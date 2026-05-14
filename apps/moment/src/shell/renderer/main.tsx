@@ -11,7 +11,7 @@ if (!rootElement) {
 
 createRoot(rootElement).render(
   <StrictMode>
-    <NimiThemeProvider accentPack="desktop-accent" defaultScheme="dark">
+    <NimiThemeProvider accentPack="nimi-accent" defaultScheme="dark">
       <App />
     </NimiThemeProvider>
   </StrictMode>,

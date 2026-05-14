@@ -1,8 +1,7 @@
+import { IconButton, StatusBadge, Surface, cn, type StatusTone } from '@nimiplatform/nimi-kit/ui';
 import { formatAge } from '../../app-shell/app-store.js';
-import { S } from '../../app-shell/page-style.js';
 import type { MedicalEventRow } from '../../bridge/sqlite-bridge.js';
 import {
-  EVENT_TYPE_COLORS,
   EVENT_TYPE_ICONS,
   EVENT_TYPE_LABELS,
   formatMonthLabel,
@@ -13,6 +12,47 @@ import {
   RESULT_LABELS,
   SEVERITY_LABELS,
 } from './medical-events-page-shared.js';
+
+const EVENT_TYPE_TONE_CLASS_DEFAULT = 'bg-[color-mix(in_srgb,var(--nimi-status-neutral)_14%,transparent)] text-[var(--nimi-status-neutral)]';
+const EVENT_TYPE_TONE_CLASS: Record<string, string> = {
+  visit: 'bg-[color-mix(in_srgb,var(--nimi-status-info)_14%,transparent)] text-[var(--nimi-status-info)]',
+  emergency: 'bg-[color-mix(in_srgb,var(--nimi-status-danger)_12%,transparent)] text-[var(--nimi-status-danger)]',
+  hospitalization: 'bg-[color-mix(in_srgb,var(--nimi-status-warning)_14%,transparent)] text-[var(--nimi-status-warning)]',
+  checkup: 'bg-[color-mix(in_srgb,var(--nimi-status-info)_14%,transparent)] text-[var(--nimi-status-info)]',
+  medication: 'bg-[color-mix(in_srgb,var(--nimi-status-success)_14%,transparent)] text-[var(--nimi-status-success)]',
+  'lab-report': 'bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_14%,transparent)] text-[var(--nimi-action-primary-bg)]',
+  other: EVENT_TYPE_TONE_CLASS_DEFAULT,
+};
+
+const EVENT_TYPE_BADGE_TONE: Record<string, StatusTone> = {
+  visit: 'info',
+  emergency: 'danger',
+  hospitalization: 'warning',
+  checkup: 'info',
+  medication: 'success',
+  'lab-report': 'info',
+  other: 'neutral',
+};
+
+function severityTone(severity: string): StatusTone {
+  if (severity === 'severe') return 'danger';
+  if (severity === 'moderate') return 'warning';
+  return 'neutral';
+}
+
+function resultTone(result: string): StatusTone {
+  if (result === 'pass') return 'success';
+  if (result === 'fail') return 'danger';
+  return 'warning';
+}
+
+function labRangeTone(label: string): StatusTone {
+  if (label.includes('严重') || label.includes('耗竭') || label.includes('贫血') || label.includes('偏低')) {
+    return 'danger';
+  }
+  if (label.includes('正常') || label.includes('充足')) return 'success';
+  return 'warning';
+}
 
 export function MedicalEventsTimeline({
   events,
@@ -37,82 +77,86 @@ export function MedicalEventsTimeline({
 
   if (filteredEvents.length === 0) {
     return (
-      <div className={`${S.radius} p-8 text-center`} style={{ background: S.card, boxShadow: S.shadow }}>
+      <Surface tone="card" elevation="raised" padding="none" className="rounded-lg p-8 text-center">
         <span className="text-[24px]">🏥</span>
-        <p className="text-[14px] mt-2 font-medium" style={{ color: S.text }}>
+        <p className="text-[14px] mt-2 font-medium text-[var(--nimi-text-primary)]">
           {events.length === 0 ? '还没有就医记录' : '未找到匹配的记录'}
         </p>
-        <p className="text-[13px] mt-1" style={{ color: S.sub }}>
+        <p className="text-[13px] mt-1 text-[var(--nimi-text-muted)]">
           {events.length === 0 ? '记录门诊、体检、用药等信息' : '尝试调整筛选条件'}
         </p>
-      </div>
+      </Surface>
     );
   }
 
   return (
     <div className="relative">
       {searchQuery ? (
-        <p className="text-[13px] mb-3" style={{ color: S.sub }}>
+        <p className="text-[13px] mb-3 text-[var(--nimi-text-muted)]">
           找到 {filteredEvents.length} 条匹配记录
         </p>
       ) : null}
 
-      <div className="absolute left-[18px] top-0 bottom-0 w-[2px]" style={{ background: S.border }} />
+      <div className="absolute bottom-0 left-[18px] top-0 w-px bg-[var(--nimi-border-subtle)]" />
 
       {timelineGroups.map(([yearMonth, monthEvents]) => (
         <div key={yearMonth} className="relative pl-10 pb-6">
-          <div className="absolute left-[11px] top-1 w-[16px] h-[16px] rounded-full border-[2px] flex items-center justify-center" style={{ background: S.card, borderColor: S.accent }}>
-            <div className="w-[6px] h-[6px] rounded-full" style={{ background: S.accent }} />
+          <div className="absolute left-[11px] top-1 flex h-4 w-4 items-center justify-center rounded-full border-2 border-[var(--nimi-action-primary-bg)] bg-[var(--nimi-surface-card)]">
+            <div className="h-1.5 w-1.5 rounded-full bg-[var(--nimi-action-primary-bg)]" />
           </div>
 
           <div className="flex items-center gap-2 mb-2">
-            <span className="text-[14px] font-bold" style={{ color: S.text }}>{formatMonthLabel(yearMonth)}</span>
-            <span className="text-[12px]" style={{ color: S.sub }}>{monthEvents.length} 条记录</span>
+            <span className="text-[14px] font-bold text-[var(--nimi-text-primary)]">{formatMonthLabel(yearMonth)}</span>
+            <span className="text-[12px] text-[var(--nimi-text-muted)]">{monthEvents.length} 条记录</span>
           </div>
 
           <div className="space-y-1.5">
             {monthEvents.map((event) => {
-              const typeColor = EVENT_TYPE_COLORS[event.eventType] ?? '#6b7280';
+              const eventTypeToneClass = EVENT_TYPE_TONE_CLASS[event.eventType] ?? EVENT_TYPE_TONE_CLASS_DEFAULT;
+              const eventTypeBadgeTone = EVENT_TYPE_BADGE_TONE[event.eventType] ?? 'neutral';
               const dateStr = event.eventDate.split('T')[0] ?? event.eventDate;
               const day = parseInt(dateStr.split('-')[2] ?? '1', 10);
               const isSevere = event.severity === 'severe';
 
               return (
                 <div key={event.eventId}>
-                  <div className={`flex items-start gap-2.5 p-2.5 ${S.radiusSm} transition-all duration-150`} style={{ background: isSevere ? '#fef2f2' : S.card, border: `1px solid ${isSevere ? '#fca5a5' : S.border}` }}>
-                    <div className="w-[28px] h-[28px] rounded-[8px] flex items-center justify-center text-[14px] shrink-0 font-medium" style={{ background: typeColor + '18', color: typeColor }}>
+                  <Surface
+                    as="article"
+                    tone="card"
+                    material="solid"
+                    elevation="base"
+                    padding="none"
+                    className={cn(
+                      'flex items-start gap-2.5 rounded-lg p-2.5 transition-all duration-150',
+                      isSevere && 'border-[var(--nimi-status-danger)] bg-[color-mix(in_srgb,var(--nimi-status-danger)_8%,var(--nimi-surface-card))]',
+                    )}
+                  >
+                    <div className={cn('flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-[14px] font-medium', eventTypeToneClass)}>
                       {EVENT_TYPE_ICONS[event.eventType] ?? '📋'}
                     </div>
 
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5">
-                        <p className="text-[14px] font-medium" style={{ color: S.text }}>{event.title}</p>
+                        <p className="text-[14px] font-medium text-[var(--nimi-text-primary)]">{event.title}</p>
                         {event.severity ? (
-                          <span
-                            className={`text-[12px] px-1.5 py-0.5 rounded-full ${event.severity === 'severe'
-                              ? 'bg-red-100 text-red-700'
-                              : event.severity === 'moderate'
-                                ? 'bg-amber-100 text-amber-700'
-                                : ''}`}
-                            style={event.severity === 'mild' ? { background: '#f0f0ec', color: S.sub } : undefined}
-                          >
+                          <StatusBadge tone={severityTone(event.severity)} className="px-1.5 py-0.5 text-[12px]">
                             {SEVERITY_LABELS[event.severity] ?? event.severity}
-                          </span>
+                          </StatusBadge>
                         ) : null}
                         {event.result ? (
-                          <span className={`text-[12px] px-1.5 py-0.5 rounded-full ${event.result === 'pass' ? 'bg-green-100 text-green-700' : event.result === 'fail' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'}`}>
+                          <StatusBadge tone={resultTone(event.result)} className="px-1.5 py-0.5 text-[12px]">
                             {RESULT_LABELS[event.result] ?? event.result}
-                          </span>
+                          </StatusBadge>
                         ) : null}
                       </div>
-                      <p className="text-[12px] truncate" style={{ color: S.sub }}>
+                      <p className="text-[12px] truncate text-[var(--nimi-text-muted)]">
                         {day}日
                         {event.endDate ? ` - ${event.endDate.split('T')[0]}` : ''}
                         {event.hospital ? ` · ${event.hospital}` : ''}
                         {` · ${formatAge(event.ageMonths)}`}
                       </p>
                       {event.medication || event.dosage ? (
-                        <p className="text-[12px] mt-0.5" style={{ color: S.accent }}>
+                        <p className="text-[12px] mt-0.5 text-[var(--nimi-action-primary-bg)]">
                           💊 {event.medication}{event.dosage ? ` · ${event.dosage}` : ''}
                         </p>
                       ) : null}
@@ -127,47 +171,62 @@ export function MedicalEventsTimeline({
                                 const range = labRangeFor(item, value);
                                 return (
                                   <div key={item.key} className="flex items-center gap-2 text-[12px]">
-                                    <span className="w-14 shrink-0" style={{ color: S.sub }}>{item.label}</span>
-                                    <span className="font-medium" style={{ color: S.text }}>{value} {item.unit}</span>
-                                    <span className="px-1 py-0.5 rounded text-[12px]" style={{ background: `${range.color}20`, color: range.color }}>{range.label}</span>
+                                    <span className="w-14 shrink-0 text-[var(--nimi-text-muted)]">{item.label}</span>
+                                    <span className="font-medium text-[var(--nimi-text-primary)]">{value} {item.unit}</span>
+                                    <StatusBadge tone={labRangeTone(range.label)} className="rounded px-1 py-0.5 text-[12px]">{range.label}</StatusBadge>
                                   </div>
                                 );
                               })}
                             </div>
                           );
                         }
-                        return <p className="text-[12px] mt-0.5 truncate" style={{ color: S.sub }}>{event.notes}</p>;
+                        return <p className="text-[12px] mt-0.5 truncate text-[var(--nimi-text-muted)]">{event.notes}</p>;
                       })() : null}
                     </div>
 
                     <div className="flex flex-col items-end gap-1.5 shrink-0">
-                      <span className="text-[12px] px-1.5 py-0.5 rounded-full" style={{ background: typeColor + '18', color: typeColor }}>
+                      <StatusBadge tone={eventTypeBadgeTone} className="px-1.5 py-0.5 text-[12px]">
                         {EVENT_TYPE_LABELS[event.eventType] ?? event.eventType}
-                      </span>
+                      </StatusBadge>
                       <div className="flex gap-1">
-                        <button onClick={() => onEdit(event)} className="text-[12px] px-1.5 py-0.5 rounded-full transition-colors hover:bg-[#f0f0ec]" style={{ color: S.sub }} title="编辑">✏️</button>
-                        <button onClick={() => onAnalyze(event)} disabled={eventAiLoading === event.eventId} className="text-[12px] px-1.5 py-0.5 rounded-full transition-colors hover:bg-[#f0f0ec] disabled:opacity-40" style={{ color: S.sub }} title="AI 分析">
-                          {eventAiLoading === event.eventId ? '⏳' : '✨'}
-                        </button>
+                        <IconButton
+                          onClick={() => onEdit(event)}
+                          tone="ghost"
+                          size="sm"
+                          className="h-6 min-h-6 w-6 text-[12px] text-[var(--nimi-text-muted)]"
+                          title="编辑"
+                          aria-label="编辑"
+                          icon="✏️"
+                        />
+                        <IconButton
+                          onClick={() => onAnalyze(event)}
+                          disabled={eventAiLoading === event.eventId}
+                          tone="ghost"
+                          size="sm"
+                          className="h-6 min-h-6 w-6 text-[12px] text-[var(--nimi-text-muted)]"
+                          title="AI 分析"
+                          aria-label="AI 分析"
+                          icon={eventAiLoading === event.eventId ? '⏳' : '✨'}
+                        />
                       </div>
                     </div>
-                  </div>
+                  </Surface>
 
                   {eventAiResult[event.eventId] ? (
-                    <div className={`ml-[38px] mt-1 p-2.5 ${S.radiusSm}`} style={{ background: '#f9faf7', border: `1px solid ${S.border}` }}>
+                    <Surface tone="card" material="solid" elevation="base" padding="none" className="ml-[38px] mt-1 rounded-lg p-2.5">
                       <div className="flex items-center justify-between mb-1">
                         <div className="flex items-center gap-1">
                           <span className="text-[12px]">✨</span>
-                          <span className="text-[12px] font-semibold" style={{ color: S.text }}>AI 分析</span>
+                          <span className="text-[12px] font-semibold text-[var(--nimi-text-primary)]">AI 分析</span>
                         </div>
-                        <button onClick={() => onCloseAI(event.eventId)} className="text-[12px] hover:bg-[#f0f0ec] px-1 rounded" style={{ color: S.sub }}>
+                        <button onClick={() => onCloseAI(event.eventId)} className="rounded px-1 text-[12px] text-[var(--nimi-text-muted)] transition-colors hover:bg-[var(--nimi-action-ghost-hover)]">
                           收起
                         </button>
                       </div>
-                      <p className="text-[12px] leading-relaxed" style={{ color: S.text }}>
+                      <p className="text-[12px] leading-relaxed text-[var(--nimi-text-primary)]">
                         {eventAiResult[event.eventId]}
                       </p>
-                    </div>
+                    </Surface>
                   ) : null}
                 </div>
               );

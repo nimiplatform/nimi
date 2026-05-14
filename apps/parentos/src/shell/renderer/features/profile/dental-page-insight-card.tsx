@@ -1,13 +1,11 @@
+import { Surface } from '@nimiplatform/nimi-kit/ui';
 import { useMemo } from 'react';
 import type { ReactNode } from 'react';
 import type { DentalRecordRow } from '../../bridge/sqlite-bridge.js';
-import { S } from '../../app-shell/page-style.js';
 import {
   computeDentalOverviewStates,
   parseDentalToothIds,
 } from './dental-page-domain.js';
-
-const MONO = '"JetBrains Mono", "SF Mono", ui-monospace, monospace';
 
 interface DentalInsightCardProps {
   childName: string;
@@ -22,11 +20,23 @@ interface Chip {
   tone: ChipTone;
 }
 
-const CHIP_COLORS: Record<ChipTone, { bg: string; fg: string; dot: string }> = {
-  warn:  { bg: 'rgba(245,158,11,0.14)', fg: '#b45309', dot: '#f59e0b' },
-  info:  { bg: 'rgba(99,102,241,0.12)', fg: '#4338ca', dot: '#6366f1' },
-  ok:    { bg: 'rgba(78,204,163,0.16)', fg: '#053D2C', dot: '#10b981' },
-  alert: { bg: 'rgba(236,72,153,0.14)', fg: '#be185d', dot: '#ec4899' },
+const CHIP_CLASSES: Record<ChipTone, { chip: string; dot: string }> = {
+  warn: {
+    chip: 'bg-[color-mix(in_srgb,var(--nimi-status-warning)_15%,transparent)] text-[var(--nimi-status-warning)]',
+    dot: 'bg-[var(--nimi-status-warning)]',
+  },
+  info: {
+    chip: 'bg-[color-mix(in_srgb,var(--nimi-status-info)_15%,transparent)] text-[var(--nimi-status-info)]',
+    dot: 'bg-[var(--nimi-status-info)]',
+  },
+  ok: {
+    chip: 'bg-[color-mix(in_srgb,var(--nimi-status-success)_15%,transparent)] text-[var(--nimi-status-success)]',
+    dot: 'bg-[var(--nimi-status-success)]',
+  },
+  alert: {
+    chip: 'bg-[color-mix(in_srgb,var(--nimi-status-danger)_15%,transparent)] text-[var(--nimi-status-danger)]',
+    dot: 'bg-[var(--nimi-status-danger)]',
+  },
 };
 
 const CN_MONTHS = ['一', '二', '三', '四', '五', '六', '七', '八', '九', '十', '十一', '十二'];
@@ -104,96 +114,69 @@ export function DentalInsightCard({ childName, ageLabel, records }: DentalInsigh
     <>尚未记录萌出信息，补充记录后可生成更完整的口腔发育画像。</>
   ) : (
     <>
-      {childName} 在 {ageLabel} 时已萌出 <strong style={{ fontWeight: 600 }}>{stats.eruptedCount} 颗牙</strong>，
-      其中恒牙 <strong style={{ fontWeight: 600 }}>{stats.permanentPresent}</strong> 颗、
-      乳牙 <strong style={{ fontWeight: 600 }}>{stats.primaryPresent}</strong> 颗在位。
+      {childName} 在 {ageLabel} 时已萌出 <strong className="font-semibold">{stats.eruptedCount} 颗牙</strong>，
+      其中恒牙 <strong className="font-semibold">{stats.permanentPresent}</strong> 颗、
+      乳牙 <strong className="font-semibold">{stats.primaryPresent}</strong> 颗在位。
     </>
   );
 
   const paragraph2: ReactNode = stats.cariesCount > 0 ? (
     <>
-      当前龋齿 <strong style={{ fontWeight: 600 }}>{stats.cariesCount}</strong> 处，
-      建议<strong style={{ fontWeight: 600 }}>及时随访治疗</strong>。
+      当前龋齿 <strong className="font-semibold">{stats.cariesCount}</strong> 处，
+      建议<strong className="font-semibold">及时随访治疗</strong>。
     </>
   ) : (
     <>
-      龋齿情况为 <strong style={{ fontWeight: 600 }}>0</strong>，
-      口腔整体发育处于 <strong style={{ fontWeight: 600 }}>正常范围</strong>。
+      龋齿情况为 <strong className="font-semibold">0</strong>，
+      口腔整体发育处于 <strong className="font-semibold">正常范围</strong>。
     </>
   );
 
   return (
-    <section
-      className="mb-5 nimi-material-glass-thick backdrop-blur-[var(--nimi-backdrop-blur-strong)]"
-      style={{
-        position: 'relative',
-        overflow: 'hidden',
-        background: 'var(--nimi-material-glass-thick-bg, rgba(255,255,255,0.70))',
-        border: '1px solid var(--nimi-material-glass-thick-border, rgba(226,232,240,0.40))',
-        padding: 22,
-        borderRadius: 24,
-        boxShadow: '0 1px 2px rgba(15,23,42,0.03), 0 14px 40px rgba(15,23,42,0.08)',
-      }}
+    <Surface
+      as="section"
+      tone="card"
+      material="glass-thick"
+      elevation="raised"
+      padding="lg"
+      className="mb-5 relative overflow-hidden rounded-3xl"
     >
-      <div
-        aria-hidden
-        style={{
-          position: 'absolute',
-          top: -60,
-          right: -40,
-          width: 240,
-          height: 240,
-          background: 'radial-gradient(circle, rgba(78,204,163,0.18), transparent 60%)',
-          pointerEvents: 'none',
-        }}
-      />
-
-      <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, gap: 12 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-          <span style={{ color: S.accent, display: 'inline-flex' }}>
+      <div className="relative mb-3 flex items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-2.5">
+          <span className="inline-flex text-[var(--nimi-action-primary-bg)]">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M12 3l1.8 4.5L18 9l-4.2 1.5L12 15l-1.8-4.5L6 9l4.2-1.5z" />
               <path d="M19 15l.9 2.1 2.1.9-2.1.9L19 21l-.9-2.1L16 18l2.1-.9z" />
             </svg>
           </span>
-          <span style={{ fontSize: 12, fontWeight: 600, color: S.text, letterSpacing: '0.01em' }}>AI 观察</span>
-          <span style={{ fontSize: 11, color: '#64748b' }}>
-            基于 <span style={{ fontFamily: MONO }}>{stats.totalRecords}</span> 条记录 · {ageLabel}
+          <span className="text-[12px] font-semibold tracking-normal text-[var(--nimi-text-primary)]">AI 观察</span>
+          <span className="text-[11px] text-[var(--nimi-text-muted)]">
+            基于 <span className="font-mono">{stats.totalRecords}</span> 条记录 · {ageLabel}
           </span>
         </div>
       </div>
 
-      <p style={{ position: 'relative', margin: '4px 0 6px', fontSize: 14, lineHeight: 1.75, color: S.text, letterSpacing: '0.005em' }}>
+      <p className="relative mb-1.5 mt-1 text-[14px] leading-7 tracking-normal text-[var(--nimi-text-primary)]">
         {paragraph1}
       </p>
-      <p style={{ position: 'relative', margin: '0 0 14px', fontSize: 14, lineHeight: 1.75, color: S.text, letterSpacing: '0.005em' }}>
+      <p className="relative mb-3.5 mt-0 text-[14px] leading-7 tracking-normal text-[var(--nimi-text-primary)]">
         {paragraph2}
       </p>
 
-      <div style={{ position: 'relative', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+      <div className="relative flex flex-wrap gap-2">
         {chips.map((c, i) => {
-          const colors = CHIP_COLORS[c.tone];
+          const classes = CHIP_CLASSES[c.tone];
           return (
             <div
               key={i}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8,
-                padding: '6px 12px',
-                borderRadius: 999,
-                background: colors.bg,
-                color: colors.fg,
-                fontSize: 12,
-                fontWeight: 500,
-              }}
+              className={`flex items-center gap-2 rounded-full px-3 py-1.5 text-[12px] font-medium ${classes.chip}`}
             >
-              <span style={{ width: 6, height: 6, borderRadius: 999, background: colors.dot, flexShrink: 0 }} />
+              <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${classes.dot}`} />
               {c.label}
             </div>
           );
         })}
       </div>
-    </section>
+    </Surface>
   );
 }

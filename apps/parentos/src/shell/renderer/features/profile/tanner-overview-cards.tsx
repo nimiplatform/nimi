@@ -1,4 +1,4 @@
-import { S } from '../../app-shell/page-style.js';
+import { Surface } from '@nimiplatform/nimi-kit/ui';
 import type { MeasurementRow } from '../../bridge/sqlite-bridge.js';
 
 type TannerOverviewCardsProps = {
@@ -24,19 +24,19 @@ export function TannerOverviewCards({
         const actualYears = ageMonths / 12;
         const diff = latest.value - actualYears;
         const status = Math.abs(diff) <= 1
-          ? { label: '正常范围', color: '#22c55e', bg: '#f0fdf4' }
+          ? { label: '正常范围', className: 'border-[color-mix(in_srgb,var(--nimi-status-success)_30%,var(--nimi-border-subtle))] bg-[color-mix(in_srgb,var(--nimi-status-success)_8%,var(--nimi-surface-card))] text-[var(--nimi-status-success)]', dot: 'bg-[var(--nimi-status-success)]' }
           : diff > 1
-            ? { label: `偏早 ${Math.abs(diff).toFixed(1)} 年`, color: '#f59e0b', bg: '#fffbeb' }
-            : { label: `偏晚 ${Math.abs(diff).toFixed(1)} 年`, color: '#3b82f6', bg: '#eff6ff' };
+            ? { label: `偏早 ${Math.abs(diff).toFixed(1)} 年`, className: 'border-[color-mix(in_srgb,var(--nimi-status-warning)_30%,var(--nimi-border-subtle))] bg-[color-mix(in_srgb,var(--nimi-status-warning)_8%,var(--nimi-surface-card))] text-[var(--nimi-status-warning)]', dot: 'bg-[var(--nimi-status-warning)]' }
+            : { label: `偏晚 ${Math.abs(diff).toFixed(1)} 年`, className: 'border-[color-mix(in_srgb,var(--nimi-status-info)_30%,var(--nimi-border-subtle))] bg-[color-mix(in_srgb,var(--nimi-status-info)_8%,var(--nimi-surface-card))] text-[var(--nimi-status-info)]', dot: 'bg-[var(--nimi-status-info)]' };
         return (
-          <div className={`${S.radiusSm} p-4`} style={{ background: status.bg, border: `1px solid ${status.color}30` }}>
-            <p className="text-[12px] font-medium" style={{ color: S.sub }}>🦴 骨龄</p>
-            <p className="text-[20px] font-bold mt-1" style={{ color: S.text }}>{latest.value} 岁</p>
+          <div className={`rounded-2xl border p-4 ${status.className}`}>
+            <p className="text-[12px] font-medium text-[var(--nimi-text-muted)]">🦴 骨龄</p>
+            <p className="text-[20px] font-bold mt-1 text-[var(--nimi-text-primary)]">{latest.value} 岁</p>
             <div className="flex items-center gap-1 mt-1">
-              <span className="w-1.5 h-1.5 rounded-full" style={{ background: status.color }} />
-              <span className="text-[13px]" style={{ color: status.color }}>{status.label}</span>
+              <span className={`h-1.5 w-1.5 rounded-full ${status.dot}`} />
+              <span className="text-[13px]">{status.label}</span>
             </div>
-            <p className="text-[12px] mt-1" style={{ color: S.sub }}>{latest.measuredAt.split('T')[0]}</p>
+            <p className="text-[12px] mt-1 text-[var(--nimi-text-muted)]">{latest.measuredAt.split('T')[0]}</p>
           </div>
         );
       })()}
@@ -44,10 +44,10 @@ export function TannerOverviewCards({
         const latest = [...bodyFatMeasurements].sort((left, right) => right.measuredAt.localeCompare(left.measuredAt))[0];
         if (!latest) return <div />;
         return (
-          <div className={`${S.radiusSm} p-4`} style={{ background: '#f5f3ef' }}>
-            <p className="text-[12px] font-medium" style={{ color: S.sub }}>📊 体脂率</p>
-            <p className="text-[20px] font-bold mt-1" style={{ color: S.text }}>{latest.value}%</p>
-            <p className="text-[12px] mt-1" style={{ color: S.sub }}>{latest.measuredAt.split('T')[0]}</p>
+          <div className="rounded-2xl bg-[var(--nimi-surface-panel)] p-4">
+            <p className="text-[12px] font-medium text-[var(--nimi-text-muted)]">📊 体脂率</p>
+            <p className="text-[20px] font-bold mt-1 text-[var(--nimi-text-primary)]">{latest.value}%</p>
+            <p className="text-[12px] mt-1 text-[var(--nimi-text-muted)]">{latest.measuredAt.split('T')[0]}</p>
           </div>
         );
       })()}

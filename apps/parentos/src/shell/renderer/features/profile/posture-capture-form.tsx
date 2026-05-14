@@ -1,3 +1,5 @@
+import { Camera, X } from 'lucide-react';
+import { StatusBadge } from '@nimiplatform/nimi-kit/ui';
 import { useRef, useState } from 'react';
 import { computeAgeMonthsAt } from '../../app-shell/app-store.js';
 import { insertMeasurement } from '../../bridge/sqlite-bridge.js';
@@ -10,7 +12,6 @@ import {
   DateField,
   FormField,
   FormGrid,
-  HEALTH_MODAL_TOKENS,
   HealthRecordModalShell,
   InlineError,
   Input,
@@ -88,25 +89,11 @@ const POSTURE_TABS = [
 
 type PostureTab = (typeof POSTURE_TABS)[number]['key'];
 
-/** nimi-kit status palette (light scheme): success / warning / danger. */
-const KIT_STATUS_SUCCESS = '#16a34a';
-const KIT_STATUS_WARNING = '#d97706';
-const KIT_STATUS_DANGER = '#dc2626';
-
-/**
- * ParentOS page-accent purple family (indigo). The primary tone `#818CF8`
- * (indigo-400) matches `S.blue` used by the "添加孩子" button and other
- * page-level accents — pairing it with a lighter sibling keeps chip
- * selection within the established page hue.
- */
-const KIT_OVERTONE_LIGHT = '#a5b4fc'; // indigo-300 — selected & "normal" state
-const KIT_OVERTONE_DEEP = '#818CF8';  // indigo-400 (S.blue) — selected & "abnormal" state
-
 const COBB_LEVELS = [
-  { max: 10, label: '正常', color: KIT_STATUS_SUCCESS },
-  { max: 25, label: '需定期监测', color: KIT_STATUS_WARNING },
-  { max: 40, label: '建议支具治疗', color: KIT_STATUS_DANGER },
-  { max: Infinity, label: '建议手术评估', color: KIT_STATUS_DANGER },
+  { max: 10, label: '正常', tone: 'success' },
+  { max: 25, label: '需定期监测', tone: 'warning' },
+  { max: 40, label: '建议支具治疗', tone: 'danger' },
+  { max: Infinity, label: '建议手术评估', tone: 'danger' },
 ] as const;
 
 function cobbLevel(angle: number) {
@@ -142,7 +129,6 @@ export function PostureCaptureContent({ child, onSaved, onClose }: PostureCaptur
   const [postureTab, setPostureTab] = useState<PostureTab>('back');
   const [saving, setSaving] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [photoUploadHover, setPhotoUploadHover] = useState(false);
 
   const photoInputRef = useRef<HTMLInputElement>(null);
   const photoSlotRef = useRef<string | null>(null);
@@ -242,7 +228,7 @@ export function PostureCaptureContent({ child, onSaved, onClose }: PostureCaptur
 
   const chipActiveColorFor = (selected: boolean, normal: boolean): string | undefined => {
     if (!selected) return undefined;
-    return normal ? KIT_OVERTONE_LIGHT : KIT_OVERTONE_DEEP;
+    return normal ? 'var(--nimi-status-success)' : 'var(--nimi-status-info)';
   };
 
   type ChipOpt = { value: string; label: string; normal: boolean };
@@ -304,10 +290,7 @@ export function PostureCaptureContent({ child, onSaved, onClose }: PostureCaptur
           </SectionCard>
 
           <SectionCard variant="plain">
-            <div
-              className="grid grid-cols-3 gap-0 overflow-hidden rounded-[14px]"
-              style={{ border: `1px solid ${HEALTH_MODAL_TOKENS.border}`, background: '#ffffff' }}
-            >
+            <div className="grid grid-cols-3 gap-0 overflow-hidden rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)]">
               {POSTURE_TABS.map((tab) => {
                 const active = postureTab === tab.key;
                 const hasPhoto = !!formPhotos[tab.photoKey];
@@ -316,19 +299,26 @@ export function PostureCaptureContent({ child, onSaved, onClose }: PostureCaptur
                     key={tab.key}
                     type="button"
                     onClick={() => setPostureTab(tab.key)}
-                    className="relative flex flex-col items-center gap-1.5 py-3 transition-colors"
-                    style={{
-                      background: active ? '#f4f7ea' : '#fafaf8',
-                      borderBottom: active ? `2px solid ${HEALTH_MODAL_TOKENS.accent}` : '2px solid transparent',
-                    }}
+                    className={`relative flex flex-col items-center gap-1.5 border-b-2 py-3 transition-colors ${
+                      active
+                        ? 'border-[var(--nimi-action-primary-bg)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,var(--nimi-surface-card))]'
+                        : 'border-transparent bg-[var(--nimi-surface-panel)] hover:bg-[var(--nimi-action-ghost-hover)]'
+                    }`}
                   >
                     <span className="text-[18px]">{tab.emoji}</span>
-                    <span className="text-[12.5px] font-medium" style={{ color: active ? HEALTH_MODAL_TOKENS.accent : HEALTH_MODAL_TOKENS.sub }}>
+                    <span
+                      className={`text-[12.5px] font-medium ${
+                        active ? 'text-[var(--nimi-action-primary-bg)]' : 'text-[var(--nimi-text-muted)]'
+                      }`}
+                    >
                       {tab.label}
                     </span>
                     <span
-                      className="absolute top-1.5 right-1.5 grid h-4 w-4 place-items-center rounded-full text-[10px]"
-                      style={{ background: hasPhoto ? '#dcfce7' : '#f0f0ec', color: hasPhoto ? '#166534' : HEALTH_MODAL_TOKENS.sub }}
+                      className={`absolute right-1.5 top-1.5 grid h-4 w-4 place-items-center rounded-full text-[10px] ${
+                        hasPhoto
+                          ? 'bg-[color-mix(in_srgb,var(--nimi-status-success)_15%,transparent)] text-[var(--nimi-status-success)]'
+                          : 'bg-[var(--nimi-surface-muted)] text-[var(--nimi-text-muted)]'
+                      }`}
                     >
                       {hasPhoto ? '✓' : '📷'}
                     </span>
@@ -340,7 +330,7 @@ export function PostureCaptureContent({ child, onSaved, onClose }: PostureCaptur
             <div className="mt-3 space-y-3">
               {currentPhotoUrl ? (
                 <div className="relative">
-                  <img src={currentPhotoUrl} alt="preview" className="h-28 w-full rounded-[14px] object-cover" />
+                  <img src={currentPhotoUrl} alt="preview" className="h-28 w-full rounded-2xl object-cover" />
                   <button
                     type="button"
                     onClick={() =>
@@ -350,9 +340,10 @@ export function PostureCaptureContent({ child, onSaved, onClose }: PostureCaptur
                         return next;
                       })
                     }
-                    className="absolute top-1.5 right-1.5 grid h-6 w-6 place-items-center rounded-full bg-black/50 text-[12px] text-white hover:bg-black/70"
+                    className="absolute right-1.5 top-1.5 grid h-6 w-6 place-items-center rounded-full bg-[color-mix(in_srgb,var(--nimi-text-primary)_50%,transparent)] text-[var(--nimi-action-primary-text)] transition-colors hover:bg-[color-mix(in_srgb,var(--nimi-text-primary)_70%,transparent)]"
+                    aria-label="删除照片"
                   >
-                    ✕
+                    <X size={12} strokeWidth={1.75} />
                   </button>
                 </div>
               ) : (
@@ -362,34 +353,13 @@ export function PostureCaptureContent({ child, onSaved, onClose }: PostureCaptur
                     photoSlotRef.current = currentPhotoKey;
                     photoInputRef.current?.click();
                   }}
-                  onMouseEnter={() => setPhotoUploadHover(true)}
-                  onMouseLeave={() => setPhotoUploadHover(false)}
-                  className="flex h-20 w-full flex-col items-center justify-center gap-1.5 text-[12.5px] font-medium"
-                  style={{
-                    borderRadius: 14,
-                    border: `2px dashed ${photoUploadHover ? HEALTH_MODAL_TOKENS.accent : '#d0d0cc'}`,
-                    background: photoUploadHover ? '#f9fbf4' : '#fafaf8',
-                    color: photoUploadHover ? HEALTH_MODAL_TOKENS.accent : HEALTH_MODAL_TOKENS.sub,
-                    transition: 'border-color 0.25s ease, background 0.25s ease, color 0.25s ease',
-                  }}
+                  className="group flex h-20 w-full flex-col items-center justify-center gap-1.5 rounded-2xl border-2 border-dashed border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] text-[12.5px] font-medium text-[var(--nimi-text-muted)] transition-colors hover:border-[var(--nimi-action-primary-bg)] hover:bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_8%,var(--nimi-surface-panel))] hover:text-[var(--nimi-action-primary-bg)]"
                 >
-                  <svg
-                    width="20"
-                    height="20"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    strokeWidth="1.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    style={{
-                      stroke: photoUploadHover ? HEALTH_MODAL_TOKENS.accent : '#b0b0aa',
-                      transform: photoUploadHover ? 'scale(1.15) rotate(6deg)' : 'scale(1) rotate(0deg)',
-                      transition: 'stroke 0.25s ease, transform 0.3s ease',
-                    }}
-                  >
-                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
-                    <circle cx="12" cy="13" r="4" />
-                  </svg>
+                  <Camera
+                    size={20}
+                    strokeWidth={1.5}
+                    className="transition-transform duration-300 group-hover:rotate-6 group-hover:scale-110"
+                  />
                   <span>点击上传{POSTURE_TABS.find((t) => t.key === postureTab)?.label}照片</span>
                 </button>
               )}
@@ -432,8 +402,8 @@ export function PostureCaptureContent({ child, onSaved, onClose }: PostureCaptur
                     {renderChips(ADAM_OPTIONS as readonly ChipOpt[], formAdam, setFormAdam)}
                   </FormField>
                   {formAdam === 'obvious' && (
-                    <div className="rounded-[12px] px-3 py-2.5" style={{ background: '#fef2f2', border: '1px solid #fecaca' }}>
-                      <p className="text-[12.5px] font-medium" style={{ color: KIT_STATUS_DANGER }}>
+                    <div className="rounded-xl border border-[color-mix(in_srgb,var(--nimi-status-danger)_30%,var(--nimi-border-subtle))] bg-[color-mix(in_srgb,var(--nimi-status-danger)_8%,var(--nimi-surface-card))] px-3 py-2.5">
+                      <p className="text-[12.5px] font-medium text-[var(--nimi-status-danger)]">
                         ⚠️ 建议尽快去骨科或脊柱外科做正式评估
                       </p>
                     </div>
@@ -448,8 +418,7 @@ export function PostureCaptureContent({ child, onSaved, onClose }: PostureCaptur
             trailing={
               isMedical ? null : (
                 <span
-                  className="rounded-full px-2 py-0.5 text-[11px]"
-                  style={{ background: '#f5f3ef', color: HEALTH_MODAL_TOKENS.sub }}
+                  className="rounded-full bg-[var(--nimi-surface-muted)] px-2 py-0.5 text-[11px] text-[var(--nimi-text-muted)]"
                 >
                   选择"体检报告"或"医生评估"后激活
                 </span>
@@ -471,12 +440,9 @@ export function PostureCaptureContent({ child, onSaved, onClose }: PostureCaptur
                 {formCobb && parseFloat(formCobb) > 0 ? (() => {
                   const level = cobbLevel(parseFloat(formCobb));
                   return (
-                    <span
-                      className="shrink-0 rounded-full px-2.5 py-1 text-[12.5px] font-medium"
-                      style={{ background: `${level.color}15`, color: level.color }}
-                    >
+                    <StatusBadge tone={level.tone} className="shrink-0 py-1 text-[12.5px]">
                       {level.label}
-                    </span>
+                    </StatusBadge>
                   );
                 })() : null}
               </div>

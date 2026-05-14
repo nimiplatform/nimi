@@ -8,8 +8,10 @@ exports[`Avatar shell visual snapshots > degraded surface — relaunch pending (
 >
   <section
     aria-label="Avatar surface unavailable"
-    class="avatar-degraded-surface nimi-material-glass-regular backdrop-blur-[var(--nimi-backdrop-blur-regular)] avatar-degraded-surface--error"
+    class="nimi-surface rounded-[var(--nimi-radius-md)] border transition-colors duration-[var(--nimi-motion-fast)] nimi-surface--overlay nimi-surface--elevation-modal shadow-[var(--nimi-elevation-modal)] nimi-material-glass-regular bg-[var(--nimi-material-glass-regular-bg)] border-[var(--nimi-material-glass-regular-border)] avatar-degraded-surface nimi-material-glass-regular backdrop-blur-[var(--nimi-backdrop-blur-regular)] avatar-degraded-surface--error"
     data-composition-state="error_bootstrap_fatal"
+    data-nimi-material="glass-regular"
+    data-nimi-tone="overlay"
     data-testid="avatar-degraded-surface"
     role="alert"
   >
@@ -17,7 +19,7 @@ exports[`Avatar shell visual snapshots > degraded surface — relaunch pending (
       class="avatar-degraded-surface__banner"
     >
       <span
-        class="avatar-degraded-surface__badge avatar-degraded-surface__badge--error"
+        class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-[color-mix(in_srgb,var(--nimi-status-danger)_15%,transparent)] text-[var(--nimi-status-danger)] avatar-degraded-surface__badge avatar-degraded-surface__badge--error"
       >
         Surface unavailable
       </span>
@@ -41,11 +43,15 @@ exports[`Avatar shell visual snapshots > degraded surface — relaunch pending (
       class="avatar-degraded-surface__actions"
     >
       <button
-        class="avatar-degraded-surface__reload"
+        class="nimi-action inline-flex items-center justify-center gap-2 border font-semibold tracking-[var(--nimi-type-label-letter-spacing)] rounded-[var(--nimi-radius-action)] transition-all duration-[var(--nimi-motion-fast)] cursor-pointer disabled:cursor-not-allowed disabled:opacity-[var(--nimi-opacity-disabled)] nimi-action--primary bg-[var(--nimi-action-primary-bg)] border-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)] hover:bg-[var(--nimi-action-primary-bg-hover)] hover:-translate-y-px nimi-action--size-md min-h-[var(--nimi-sizing-action-md-height)] px-4 text-[length:var(--nimi-type-label-size)] avatar-degraded-surface__reload"
         data-testid="avatar-degraded-reload"
         type="button"
       >
-        Reload shell
+        <span
+          class="truncate"
+        >
+          Reload shell
+        </span>
       </button>
     </div>
     <details
@@ -85,8 +91,10 @@ exports[`Avatar shell visual snapshots > degraded surface — runtime unavailabl
 >
   <section
     aria-label="Avatar surface unavailable"
-    class="avatar-degraded-surface nimi-material-glass-regular backdrop-blur-[var(--nimi-backdrop-blur-regular)] avatar-degraded-surface--degraded"
+    class="nimi-surface rounded-[var(--nimi-radius-md)] border transition-colors duration-[var(--nimi-motion-fast)] nimi-surface--overlay nimi-surface--elevation-modal shadow-[var(--nimi-elevation-modal)] nimi-material-glass-regular bg-[var(--nimi-material-glass-regular-bg)] border-[var(--nimi-material-glass-regular-border)] avatar-degraded-surface nimi-material-glass-regular backdrop-blur-[var(--nimi-backdrop-blur-regular)] avatar-degraded-surface--degraded"
     data-composition-state="degraded_runtime_unavailable"
+    data-nimi-material="glass-regular"
+    data-nimi-tone="overlay"
     data-testid="avatar-degraded-surface"
     role="alert"
   >
@@ -94,7 +102,7 @@ exports[`Avatar shell visual snapshots > degraded surface — runtime unavailabl
       class="avatar-degraded-surface__banner"
     >
       <span
-        class="avatar-degraded-surface__badge avatar-degraded-surface__badge--degraded"
+        class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-[color-mix(in_srgb,var(--nimi-status-warning)_15%,transparent)] text-[var(--nimi-status-warning)] avatar-degraded-surface__badge avatar-degraded-surface__badge--degraded"
       >
         Runtime unavailable
       </span>
@@ -118,11 +126,15 @@ exports[`Avatar shell visual snapshots > degraded surface — runtime unavailabl
       class="avatar-degraded-surface__actions"
     >
       <button
-        class="avatar-degraded-surface__reload"
+        class="nimi-action inline-flex items-center justify-center gap-2 border font-semibold tracking-[var(--nimi-type-label-letter-spacing)] rounded-[var(--nimi-radius-action)] transition-all duration-[var(--nimi-motion-fast)] cursor-pointer disabled:cursor-not-allowed disabled:opacity-[var(--nimi-opacity-disabled)] nimi-action--primary bg-[var(--nimi-action-primary-bg)] border-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)] hover:bg-[var(--nimi-action-primary-bg-hover)] hover:-translate-y-px nimi-action--size-md min-h-[var(--nimi-sizing-action-md-height)] px-4 text-[length:var(--nimi-type-label-size)] avatar-degraded-surface__reload"
         data-testid="avatar-degraded-reload"
         type="button"
       >
-        Reload shell
+        <span
+          class="truncate"
+        >
+          Reload shell
+        </span>
       </button>
     </div>
     <details
@@ -171,7 +183,9 @@ exports[`Avatar shell visual snapshots > ready surface (embodiment-stage + compa
   </section>
   <section
     aria-label="Avatar companion"
-    class="avatar-companion-surface nimi-material-glass-regular backdrop-blur-[var(--nimi-backdrop-blur-regular)] avatar-companion-surface--idle"
+    class="nimi-surface rounded-[var(--nimi-radius-md)] border transition-colors duration-[var(--nimi-motion-fast)] nimi-surface--overlay nimi-surface--elevation-floating shadow-[var(--nimi-elevation-floating)] nimi-material-glass-regular bg-[var(--nimi-material-glass-regular-bg)] border-[var(--nimi-material-glass-regular-border)] avatar-companion-surface nimi-material-glass-regular backdrop-blur-[var(--nimi-backdrop-blur-regular)] avatar-companion-surface--idle"
+    data-nimi-material="glass-regular"
+    data-nimi-tone="overlay"
     data-testid="avatar-companion-surface"
   >
     <div
@@ -209,30 +223,42 @@ exports[`Avatar shell visual snapshots > ready surface (embodiment-stage + compa
         aria-controls="avatar-companion-settings-popover"
         aria-expanded="false"
         aria-label="Open companion settings"
-        class="avatar-companion-surface__settings"
+        class="nimi-action inline-flex items-center justify-center gap-2 border font-semibold tracking-[var(--nimi-type-label-letter-spacing)] rounded-[var(--nimi-radius-action)] transition-all duration-[var(--nimi-motion-fast)] cursor-pointer disabled:cursor-not-allowed disabled:opacity-[var(--nimi-opacity-disabled)] nimi-action--ghost bg-transparent border-transparent text-[var(--nimi-text-secondary)] hover:bg-[var(--nimi-action-ghost-hover)] hover:text-[var(--nimi-text-primary)] hover:-translate-y-px nimi-action--size-sm min-h-[var(--nimi-sizing-action-sm-height)] text-[length:var(--nimi-type-body-sm-size)] nimi-action--icon aspect-square px-0 avatar-companion-surface__settings"
         type="button"
       >
-        ⚙
+        <span
+          class="nimi-action__icon inline-flex shrink-0 items-center justify-center"
+        >
+          ⚙
+        </span>
       </button>
     </div>
     <form
       class="avatar-companion-surface__composer"
       data-testid="avatar-companion-composer"
     >
-      <textarea
-        aria-label="Type a message to send to this anchor"
-        class="avatar-companion-surface__composer-input"
-        maxlength="400"
-        placeholder="Type a message…"
-        rows="1"
-      />
+      <label
+        class="flex rounded-[var(--nimi-radius-field)] border border-[var(--nimi-field-border)] bg-[var(--nimi-field-bg)] text-[var(--nimi-field-text)] transition-colors duration-[var(--nimi-motion-fast)] focus-within:border-[var(--nimi-field-focus)] focus-within:ring-[length:var(--nimi-focus-ring-width)] focus-within:ring-[var(--nimi-focus-ring-color)] avatar-companion-surface__composer-field"
+      >
+        <textarea
+          aria-label="Type a message to send to this anchor"
+          class="min-h-[var(--nimi-sizing-textarea-min-height)] w-full resize-y bg-transparent px-3 py-2 outline-none placeholder:text-[var(--nimi-field-placeholder)] avatar-companion-surface__composer-input"
+          maxlength="400"
+          placeholder="Type a message…"
+          rows="1"
+        />
+      </label>
       <button
         aria-label="Send message"
-        class="avatar-companion-surface__composer-send"
+        class="nimi-action inline-flex items-center justify-center gap-2 border font-semibold tracking-[var(--nimi-type-label-letter-spacing)] rounded-[var(--nimi-radius-action)] transition-all duration-[var(--nimi-motion-fast)] cursor-pointer disabled:cursor-not-allowed disabled:opacity-[var(--nimi-opacity-disabled)] nimi-action--primary bg-[var(--nimi-action-primary-bg)] border-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)] hover:bg-[var(--nimi-action-primary-bg-hover)] hover:-translate-y-px nimi-action--size-sm min-h-[var(--nimi-sizing-action-sm-height)] px-3 text-[length:var(--nimi-type-body-sm-size)] avatar-companion-surface__composer-send"
         disabled=""
         type="submit"
       >
-        ➤
+        <span
+          class="truncate"
+        >
+          ➤
+        </span>
       </button>
     </form>
   </section>

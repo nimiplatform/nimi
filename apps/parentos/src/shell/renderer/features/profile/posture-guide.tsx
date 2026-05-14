@@ -1,5 +1,5 @@
+import { Button, IconButton, Surface } from '@nimiplatform/nimi-kit/ui';
 import { useState } from 'react';
-import { S } from '../../app-shell/page-style.js';
 
 /* ── Guide data ── */
 
@@ -168,12 +168,19 @@ export function PostureGuide({ onClose }: { onClose: () => void }) {
   if (!current) return null;
 
   return (
-    <div className={`${S.radius} mb-5 overflow-hidden`} style={{ boxShadow: S.shadow }}>
+    <Surface tone="card" elevation="raised" padding="none" className="mb-5 overflow-hidden rounded-3xl">
       {/* Step header */}
-      <div className="px-5 py-4" style={{ background: 'linear-gradient(135deg, #6f8f2c, #1e293b)' }}>
+      <div className="bg-[image:var(--nimi-surface-hero)] px-5 py-4">
         <div className="flex items-center justify-between mb-3">
           <span className="text-[12px] text-white/60">体态观察指引</span>
-          <button onClick={onClose} className="w-6 h-6 rounded-full flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10">✕</button>
+          <IconButton
+            aria-label="关闭体态观察指引"
+            icon="✕"
+            onClick={onClose}
+            size="sm"
+            tone="ghost"
+            className="h-6 min-h-6 w-6 border-transparent text-white/60 hover:bg-white/10 hover:text-white"
+          />
         </div>
         <h3 className="text-[16px] font-bold text-white mb-3">{current.title}</h3>
         {/* Step indicators */}
@@ -187,53 +194,55 @@ export function PostureGuide({ onClose }: { onClose: () => void }) {
       </div>
 
       {/* Content */}
-      <div className="p-5 space-y-5" style={{ background: S.card }}>
+      <div className="space-y-5 bg-[var(--nimi-surface-card)] p-5">
         {current.sections.map((sec, si) => (
           <div key={si}>
             {'heading' in sec && sec.heading && (
-              <h4 className="text-[14px] font-semibold mb-2" style={{ color: S.text }}>{sec.heading}</h4>
+              <h4 className="text-[14px] font-semibold mb-2 text-[var(--nimi-text-primary)]">{sec.heading}</h4>
             )}
 
             {'body' in sec && sec.body && (
-              <p className="text-[14px] leading-relaxed" style={{ color: S.sub }}>{sec.body}</p>
+              <p className="text-[14px] leading-relaxed text-[var(--nimi-text-muted)]">{sec.body}</p>
             )}
 
             {'items' in sec && sec.items && (
               <div className="space-y-2">
                 {sec.items.map((item, ii) => (
-                  <div key={ii} className={`${S.radiusSm} p-3`} style={{ background: '#f8faf9', border: `1px solid ${S.border}` }}>
+                  <div key={ii} className="rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] p-3">
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="text-[14px] font-semibold" style={{ color: S.text }}>{item.label}</span>
+                      <span className="text-[14px] font-semibold text-[var(--nimi-text-primary)]">{item.label}</span>
                       {item.tag && (
-                        <span className="text-[12px] px-1.5 py-0.5 rounded-full" style={{ background: '#e8f0e8', color: S.accent }}>{item.tag}</span>
+                        <span className="rounded-full bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_12%,transparent)] px-1.5 py-0.5 text-[12px] text-[var(--nimi-action-primary-bg)]">{item.tag}</span>
                       )}
                     </div>
-                    <p className="text-[13px] leading-relaxed" style={{ color: S.sub }}>{item.desc}</p>
+                    <p className="text-[13px] leading-relaxed text-[var(--nimi-text-muted)]">{item.desc}</p>
                   </div>
                 ))}
               </div>
             )}
 
             {'table' in sec && sec.table && (
-              <div className={`${S.radiusSm} overflow-hidden border`} style={{ borderColor: S.border }}>
-                <div className="grid grid-cols-[0.8fr_1fr_1.5fr] text-[12px] font-medium py-2 px-3" style={{ background: '#f8faf9', color: S.sub }}>
+              <div className="overflow-hidden rounded-2xl border border-[var(--nimi-border-subtle)]">
+                <div className="grid grid-cols-[0.8fr_1fr_1.5fr] bg-[var(--nimi-surface-panel)] px-3 py-2 text-[12px] font-medium text-[var(--nimi-text-muted)]">
                   <span>角度</span><span>分级</span><span>建议</span>
                 </div>
                 {sec.table.map((row, ri) => (
-                  <div key={ri} className="grid grid-cols-[0.8fr_1fr_1.5fr] py-2 px-3 border-t text-[13px]"
-                    style={{ borderColor: '#f0f0ec', background: ri % 2 === 0 ? S.card : '#fafcfb' }}>
-                    <span className="font-semibold" style={{ color: S.accent }}>{row.field}</span>
-                    <span style={{ color: S.text }}>{row.meaning}</span>
-                    <span style={{ color: S.sub }}>{row.note}</span>
+                  <div
+                    key={ri}
+                    className={`grid grid-cols-[0.8fr_1fr_1.5fr] border-t border-[var(--nimi-border-subtle)] px-3 py-2 text-[13px] ${ri % 2 === 0 ? 'bg-[var(--nimi-surface-card)]' : 'bg-[var(--nimi-surface-panel)]'}`}
+                  >
+                    <span className="font-semibold text-[var(--nimi-action-primary-bg)]">{row.field}</span>
+                    <span className="text-[var(--nimi-text-primary)]">{row.meaning}</span>
+                    <span className="text-[var(--nimi-text-muted)]">{row.note}</span>
                   </div>
                 ))}
               </div>
             )}
 
             {'warning' in sec && sec.warning && (
-              <div className={`${S.radiusSm} px-4 py-3`} style={{ background: '#fff8e8', border: '1px solid #f3d38a' }}>
-                <p className="text-[14px] font-semibold mb-1" style={{ color: S.text }}>{sec.warning.title}</p>
-                <p className="text-[13px] leading-relaxed" style={{ color: S.sub }}>{sec.warning.body}</p>
+              <div className="rounded-2xl border border-[color-mix(in_srgb,var(--nimi-status-warning)_35%,var(--nimi-border-subtle))] bg-[color-mix(in_srgb,var(--nimi-status-warning)_10%,var(--nimi-surface-card))] px-4 py-3">
+                <p className="text-[14px] font-semibold mb-1 text-[var(--nimi-text-primary)]">{sec.warning.title}</p>
+                <p className="text-[13px] leading-relaxed text-[var(--nimi-text-muted)]">{sec.warning.body}</p>
               </div>
             )}
           </div>
@@ -241,23 +250,20 @@ export function PostureGuide({ onClose }: { onClose: () => void }) {
       </div>
 
       {/* Navigation */}
-      <div className="flex items-center justify-between px-5 py-3" style={{ background: '#f8faf9', borderTop: `1px solid ${S.border}` }}>
-        <button onClick={() => setStep(Math.max(0, step - 1))} disabled={step === 0}
-          className="text-[14px] font-medium disabled:opacity-30" style={{ color: S.sub }}>
+      <div className="flex items-center justify-between border-t border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] px-5 py-3">
+        <Button onClick={() => setStep(Math.max(0, step - 1))} disabled={step === 0} tone="ghost" size="sm" className="disabled:opacity-30">
           ← 上一步
-        </button>
+        </Button>
         {step < GUIDE_STEPS.length - 1 ? (
-          <button onClick={() => setStep(step + 1)}
-            className={`px-4 py-1.5 text-[14px] font-medium text-white ${S.radiusSm}`} style={{ background: S.accent }}>
+          <Button onClick={() => setStep(step + 1)} tone="primary" size="sm" className="rounded-2xl">
             下一步 →
-          </button>
+          </Button>
         ) : (
-          <button onClick={onClose}
-            className={`px-4 py-1.5 text-[14px] font-medium text-white ${S.radiusSm}`} style={{ background: S.accent }}>
+          <Button onClick={onClose} tone="primary" size="sm" className="rounded-2xl">
             我知道了 ✓
-          </button>
+          </Button>
         )}
       </div>
-    </div>
+    </Surface>
   );
 }

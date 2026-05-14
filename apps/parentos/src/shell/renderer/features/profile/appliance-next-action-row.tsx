@@ -1,3 +1,4 @@
+import { Button } from '@nimiplatform/nimi-kit/ui';
 /**
  * Row of per-appliance "next action" cards for the hero appliances in the
  * grid. Hero cards are narrow, so their forward-looking action (下次换套 /
@@ -6,11 +7,10 @@
  */
 import type {
   OrthodonticApplianceRow,
+  OrthodonticApplianceType,
   OrthodonticCheckinRow,
   OrthodonticUnwearIntervalRow,
 } from '../../bridge/sqlite-bridge.js';
-import { S } from '../../app-shell/page-style.js';
-import { applianceIdentity } from './appliance-identity.js';
 import { applianceTypeLabel } from './orthodontic-derive.js';
 import { computeApplianceNextAction } from './appliance-next-action.js';
 import {
@@ -44,77 +44,75 @@ export function ApplianceNextActionRow({
       }}
     >
       {appliances.map(({ appliance, intervals, checkins }) => {
-        const identity = applianceIdentity(appliance.applianceType);
         const action = computeApplianceNextAction({ appliance, intervals, checkins, nowIso });
+        const identityClass = applianceIdentityClassNames(appliance.applianceType);
         return (
           <div
             key={appliance.applianceId}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 14,
-              padding: '14px 18px',
-              borderRadius: 18,
-              background: identity.tint,
-            }}
+            className={`flex items-center gap-3.5 rounded-2xl px-[18px] py-3.5 ${identityClass.card}`}
           >
             <div style={{ flex: 1, minWidth: 0 }}>
               <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 6,
-                  fontSize: 12,
-                  color: S.sub,
-                  fontWeight: 600,
-                }}
+                className="flex items-center gap-1.5 text-[12px] font-semibold text-[var(--nimi-text-muted)]"
               >
                 <span
                   aria-hidden="true"
-                  style={{ width: 6, height: 6, borderRadius: 999, background: identity.solid }}
+                  className={`h-1.5 w-1.5 rounded-full ${identityClass.dot}`}
                 />
                 {applianceTypeLabel(appliance.applianceType)} · {action.label}
                 {action.daysAway !== null && <DaysAwayPill daysAway={action.daysAway} />}
               </div>
               <div
-                style={{
-                  fontSize: 20,
-                  fontWeight: 700,
-                  color: 'var(--nimi-text-primary)',
-                  marginTop: 4,
-                  letterSpacing: '-0.01em',
-                }}
+                className="mt-1 text-[20px] font-bold text-[var(--nimi-text-primary)]"
               >
                 {action.date ? formatMonthDay(action.date) : '—'}
               </div>
               {action.detail && (
-                <div style={{ fontSize: 12, color: S.sub, marginTop: 2 }}>{action.detail}</div>
+                <div className="mt-0.5 text-[12px] text-[var(--nimi-text-muted)]">{action.detail}</div>
               )}
             </div>
-            <button
-              type="button"
+            <Button
+              tone="secondary"
+              size="sm"
               onClick={() => onNextAction(appliance, action)}
-              className="hover:-translate-y-0.5"
-              style={{
-                padding: '9px 16px',
-                borderRadius: 999,
-                fontSize: 13,
-                fontWeight: 600,
-                fontFamily: 'inherit',
-                cursor: 'pointer',
-                whiteSpace: 'nowrap',
-                background: '#ffffff',
-                color: 'var(--nimi-text-primary)',
-                border: `1px solid ${identity.solid}`,
-                transition: 'all 160ms',
-                flexShrink: 0,
-              }}
+              className="shrink-0 whitespace-nowrap rounded-full"
             >
               {action.actionLabel}
-            </button>
+            </Button>
           </div>
         );
       })}
     </div>
   );
+}
+
+function applianceIdentityClassNames(type: OrthodonticApplianceType): { card: string; dot: string } {
+  if (type === 'clear-aligner') {
+    return {
+      card: 'bg-[color-mix(in_srgb,var(--nimi-status-success)_12%,var(--nimi-surface-card))]',
+      dot: 'bg-[var(--nimi-status-success)]',
+    };
+  }
+  if (type === 'expander' || type === 'retainer-fixed') {
+    return {
+      card: 'bg-[color-mix(in_srgb,var(--nimi-status-info)_12%,var(--nimi-surface-card))]',
+      dot: 'bg-[var(--nimi-status-info)]',
+    };
+  }
+  if (type === 'retainer-removable') {
+    return {
+      card: 'bg-[color-mix(in_srgb,var(--nimi-status-danger)_10%,var(--nimi-surface-card))]',
+      dot: 'bg-[var(--nimi-status-danger)]',
+    };
+  }
+  if (type === 'metal-braces' || type === 'ceramic-braces') {
+    return {
+      card: 'bg-[color-mix(in_srgb,var(--nimi-text-muted)_12%,var(--nimi-surface-card))]',
+      dot: 'bg-[var(--nimi-text-muted)]',
+    };
+  }
+  return {
+    card: 'bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_12%,var(--nimi-surface-card))]',
+    dot: 'bg-[var(--nimi-action-primary-bg)]',
+  };
 }

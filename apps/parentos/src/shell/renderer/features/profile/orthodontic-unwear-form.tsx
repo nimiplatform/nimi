@@ -1,3 +1,4 @@
+import { Button, IconButton, Surface, TextareaField, TextField } from '@nimiplatform/nimi-kit/ui';
 import { useMemo, useState } from 'react';
 import {
   insertUnwearInterval,
@@ -6,7 +7,6 @@ import {
 } from '../../bridge/sqlite-bridge.js';
 import { isoNow, ulid } from '../../bridge/ulid.js';
 import { catchLog } from '../../infra/telemetry/catch-log.js';
-import { S } from '../../app-shell/page-style.js';
 
 interface Props {
   appliance: OrthodonticApplianceRow;
@@ -102,143 +102,117 @@ export function OrthodonticUnwearForm({
       role="dialog"
       aria-modal="true"
       aria-label="记录未戴时段"
-      style={{
-        position: 'fixed',
-        inset: 0,
-        background: 'rgba(15,23,42,0.32)',
-        display: 'grid',
-        placeItems: 'center',
-        zIndex: 100,
-      }}
+      className="fixed inset-0 z-[100] grid place-items-center bg-[var(--nimi-scrim-modal)] p-4"
     >
-      <div
+      <Surface
+        tone="overlay"
+        material="glass-thick"
+        elevation="modal"
+        padding="lg"
+        className="flex flex-col gap-3"
         style={{
-          background: '#fff',
-          padding: 24,
-          borderRadius: 16,
           minWidth: 360,
           maxWidth: 460,
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 12,
         }}
       >
         <div className="flex items-center justify-between">
-          <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600 }}>
+          <h3 className="m-0 text-[16px] font-semibold text-[var(--nimi-text-primary)]">
             {openOnly ? '记录脱下时间' : '补记一次未戴时段'}
           </h3>
-          <button
-            type="button"
+          <IconButton
+            aria-label="关闭"
             onClick={onClose}
-            style={{ background: 'transparent', border: 0, cursor: 'pointer', fontSize: 18, color: '#64748b' }}
-          >
-            ×
-          </button>
+            size="sm"
+            tone="ghost"
+            icon={<span aria-hidden="true" className="text-[18px] leading-none">×</span>}
+          />
         </div>
 
         {localError && (
           <div
             role="alert"
-            className="text-[13px] px-3 py-2 rounded-md"
-            style={{ background: '#fef2f2', color: '#b91c1c', border: '1px solid #fecaca' }}
+            className="rounded-md border border-[color-mix(in_srgb,var(--nimi-status-danger)_30%,var(--nimi-border-subtle))] bg-[color-mix(in_srgb,var(--nimi-status-danger)_8%,var(--nimi-surface-card))] px-3 py-2 text-[13px] text-[var(--nimi-status-danger)]"
           >
             {localError}
           </div>
         )}
 
-        <label className="flex flex-col gap-1 text-[14px]" style={{ color: '#475569' }}>
+        <label className="flex flex-col gap-1 text-[14px] text-[var(--nimi-text-muted)]">
           脱下时间
-          <input
+          <TextField
             type="datetime-local"
             value={startAt}
             onChange={(e) => setStartAt(e.target.value)}
-            className="px-2 py-1.5 rounded-md text-[14px]"
-            style={{ border: '1px solid rgba(226,232,240,0.9)' }}
+            className="text-[14px]"
           />
         </label>
 
         {!openOnly && (
-          <label className="flex flex-col gap-1 text-[14px]" style={{ color: '#475569' }}>
+          <label className="flex flex-col gap-1 text-[14px] text-[var(--nimi-text-muted)]">
             戴回时间
-            <input
+            <TextField
               type="datetime-local"
               value={endAt}
               onChange={(e) => setEndAt(e.target.value)}
-              className="px-2 py-1.5 rounded-md text-[14px]"
-              style={{ border: '1px solid rgba(226,232,240,0.9)' }}
+              className="text-[14px]"
             />
             {endBeforeStart && (
-              <span className="text-[13px]" style={{ color: '#b91c1c' }}>
+              <span className="text-[13px] text-[var(--nimi-status-danger)]">
                 结束时间必须晚于开始时间
               </span>
             )}
           </label>
         )}
 
-        <fieldset className="flex flex-col gap-1.5 text-[14px]" style={{ color: '#475569', border: 0, padding: 0 }}>
+        <fieldset className="flex flex-col gap-1.5 border-0 p-0 text-[14px] text-[var(--nimi-text-muted)]">
           <legend>原因（选填）</legend>
           <div className="flex items-center gap-2 flex-wrap">
             {REASON_OPTIONS.map((opt) => {
               const active = reason === opt.value;
               return (
-                <button
+                <Button
                   key={opt.value}
-                  type="button"
                   onClick={() => setReason(active ? '' : opt.value)}
-                  className="text-[13px] px-3 py-1 rounded-full transition-all"
-                  style={{
-                    background: active ? 'rgba(78,204,163,0.14)' : 'rgba(241,245,249,0.7)',
-                    color: active ? '#15803d' : '#475569',
-                    border: active ? '1px solid rgba(78,204,163,0.4)' : '1px solid rgba(226,232,240,0.9)',
-                    cursor: 'pointer',
-                    fontWeight: active ? 600 : 500,
-                  }}
+                  tone={active ? 'primary' : 'secondary'}
+                  size="sm"
+                  className="text-[13px]"
                 >
                   {opt.label}
-                </button>
+                </Button>
               );
             })}
           </div>
         </fieldset>
 
-        <label className="flex flex-col gap-1 text-[14px]" style={{ color: '#475569' }}>
+        <label className="flex flex-col gap-1 text-[14px] text-[var(--nimi-text-muted)]">
           备注（选填）
-          <textarea
+          <TextareaField
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             rows={2}
-            className="px-2 py-1.5 rounded-md text-[14px]"
-            style={{ border: '1px solid rgba(226,232,240,0.9)' }}
+            className="text-[14px]"
             placeholder="例如：嘴唇红肿，吃饭时取下"
           />
         </label>
 
         <div className="flex justify-end gap-2 mt-2">
-          <button
-            type="button"
+          <Button
             onClick={onClose}
-            className="text-[14px]"
-            style={{ background: 'transparent', color: '#64748b', border: 0, cursor: 'pointer', padding: '6px 12px' }}
+            tone="ghost"
+            size="sm"
           >
             取消
-          </button>
-          <button
-            type="button"
+          </Button>
+          <Button
             onClick={() => void handleSubmit()}
             disabled={endBeforeStart}
-            className="text-[14px] font-semibold text-white"
-            style={{
-              background: endBeforeStart ? '#cbd5e1' : S.accent,
-              padding: '6px 14px',
-              borderRadius: 8,
-              border: 0,
-              cursor: endBeforeStart ? 'not-allowed' : 'pointer',
-            }}
+            tone="primary"
+            size="sm"
           >
             保存
-          </button>
+          </Button>
         </div>
-      </div>
+      </Surface>
     </div>
   );
 }

@@ -1,3 +1,4 @@
+import { Surface } from '@nimiplatform/nimi-kit/ui';
 /**
  * ProfileDatePicker — shared date picker component.
  * Extracted from sleep-page.tsx's proven DatePickerInput implementation
@@ -6,7 +7,6 @@
 import { forwardRef, useCallback, useEffect, useRef, useState, type CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
 import { Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
-import { S } from '../../app-shell/page-style.js';
 
 /* ── Helpers ── */
 
@@ -124,8 +124,8 @@ function DrumColumn({ items, selected, onSelect, label, itemHeight = ITEM_H, vis
 
   return (
     <div className="flex-1 relative" aria-label={label}>
-      <div className="absolute inset-x-0 top-0 z-10 pointer-events-none" style={{ height: itemHeight * 2, background: 'linear-gradient(to bottom, rgba(255,255,255,0.92), rgba(255,255,255,0))' }} />
-      <div className="absolute inset-x-0 bottom-0 z-10 pointer-events-none" style={{ height: itemHeight * 2, background: 'linear-gradient(to top, rgba(255,255,255,0.92), rgba(255,255,255,0))' }} />
+      <div className="absolute inset-x-0 top-0 z-10 pointer-events-none bg-[linear-gradient(to_bottom,var(--nimi-surface-overlay),transparent)]" style={{ height: itemHeight * 2 }} />
+      <div className="absolute inset-x-0 bottom-0 z-10 pointer-events-none bg-[linear-gradient(to_top,var(--nimi-surface-overlay),transparent)]" style={{ height: itemHeight * 2 }} />
       <div ref={colRef} className="time-picker-col overflow-y-auto"
         onScroll={handleScroll} onWheel={handleWheel}
         style={{ height: panelHeight, scrollSnapType: 'y mandatory', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
@@ -140,15 +140,14 @@ function DrumColumn({ items, selected, onSelect, label, itemHeight = ITEM_H, vis
           const translateY = (centerOffset > 0 ? 1 : -1) * Math.min(8, distanceRows * 3);
           const scale = 0.9 + emphasis * 0.2;
           const isCentered = Math.abs(centerOffset) < itemHeight * 0.35;
-          const color = isCentered ? '#2F7D6B' : `rgba(118, 123, 132, ${opacity})`;
           return (
             <div key={v} onClick={() => { onSelect(v); scrollToIndex(items.indexOf(v), true); }}
-              className="flex items-center justify-center cursor-pointer select-none" aria-selected={isCentered}
-              style={{ height: itemHeight, scrollSnapAlign: 'center', fontSize, fontWeight, color,
+              className={`flex items-center justify-center cursor-pointer select-none ${isCentered ? 'text-[var(--nimi-action-primary-bg)]' : 'text-[var(--nimi-text-muted)]'}`} aria-selected={isCentered}
+              style={{ height: itemHeight, scrollSnapAlign: 'center', fontSize, fontWeight,
                 transform: `translateY(${translateY}px) scale(${scale})`,
                 transition: 'font-size 0.12s ease, color 0.12s ease, font-weight 0.12s ease, transform 0.12s ease',
                 letterSpacing: isCentered ? '0.02em' : '0.01em',
-                textShadow: isCentered ? '0 1px 0 rgba(255,255,255,0.9), 0 4px 12px rgba(78,204,163,0.12)' : 'none',
+                opacity,
               }}>
               {renderValue(v)}
             </div>
@@ -206,11 +205,10 @@ export const DatePickerPanel = forwardRef<HTMLDivElement, {
   const top = Math.min(pos.top, window.innerHeight - 380);
 
   return (
-    <div ref={ref} className="fixed z-[60] rounded-[16px] overflow-hidden p-3"
+    <div ref={ref} className="fixed z-[60] rounded-2xl overflow-hidden border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-overlay)] p-3 shadow-[var(--nimi-elevation-floating)]"
       onClick={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()}
       style={{
-        left, top, width: pos.width, background: '#fff',
-        boxShadow: '0 4px 20px rgba(0,0,0,0.12)', border: `1px solid ${S.border}`,
+        left, top, width: pos.width,
         opacity: open ? 1 : 0,
         transform: open ? 'translateY(0) scale(1)' : 'translateY(-6px) scale(0.97)',
         transformOrigin: 'top center', transition: 'opacity 0.2s ease, transform 0.2s ease',
@@ -220,31 +218,27 @@ export const DatePickerPanel = forwardRef<HTMLDivElement, {
       <div className="mb-3">
         <div className="flex items-center justify-between gap-2">
           <button type="button" onClick={() => onDisplayMonthChange(addMonths(displayMonth, -1))}
-            className="flex h-8 w-8 items-center justify-center rounded-full transition-colors hover:bg-[#e6f7f0]"
-            style={{ color: '#3BB88A', background: 'linear-gradient(180deg, rgba(78,204,163,0.12), rgba(78,204,163,0.06))', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.55)' }}
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)] text-[var(--nimi-action-primary-bg)] transition-colors hover:bg-[var(--nimi-action-ghost-hover)]"
             aria-label="上个月">
             <ChevronLeft size={16} strokeWidth={1.75} />
           </button>
 
           <div className="relative flex-1">
             <button type="button" onClick={() => setShowMonthYearPicker((p) => !p)}
-              className="relative flex w-full items-center justify-center gap-2 rounded-full px-4 py-2 transition-colors hover:bg-[#e6f7f0]"
-              style={{ background: 'linear-gradient(180deg, rgba(78,204,163,0.12), rgba(78,204,163,0.06))', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.72)', color: '#2F7D6B' }}>
+              className="relative flex w-full items-center justify-center gap-2 rounded-full bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)] px-4 py-2 text-[var(--nimi-action-primary-bg)] transition-colors hover:bg-[var(--nimi-action-ghost-hover)]">
               <span className="text-[16px] font-semibold tracking-[0.02em]">{displayMonth.getFullYear()}年</span>
               <span className="relative pr-4 text-[16px] font-semibold tracking-[0.02em]">
                 {displayMonth.getMonth() + 1}月
                 <ChevronRight size={13} strokeWidth={2} className="absolute right-[-1px] bottom-[1px] transition-transform"
-                  style={{ color: '#3BB88A', transform: `rotate(${showMonthYearPicker ? 270 : 90}deg)` }} />
+                  style={{ transform: `rotate(${showMonthYearPicker ? 270 : 90}deg)` }} />
               </span>
             </button>
 
             {showMonthYearPicker && (
-              <div className="absolute left-1/2 top-[calc(100%+10px)] z-20 w-[216px] -translate-x-1/2 overflow-hidden rounded-[16px]"
-                style={{ background: '#fff', border: `1px solid ${S.border}`, boxShadow: '0 10px 28px rgba(0,0,0,0.14)' }}
+              <div className="absolute left-1/2 top-[calc(100%+10px)] z-20 w-[216px] -translate-x-1/2 overflow-hidden rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-overlay)] shadow-[var(--nimi-elevation-floating)]"
                 onMouseDown={(e) => e.stopPropagation()}>
-                <div className="absolute inset-x-0 pointer-events-none z-[5]"
-                  style={{ top: 28, height: 28, background: 'linear-gradient(180deg, rgba(78,204,163,0.12), rgba(78,204,163,0.07))', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.32), inset 0 -1px 0 rgba(255,255,255,0.24)' }} />
-                <div className="absolute top-0 bottom-0 left-1/2 w-px z-[6]" style={{ background: S.border }} />
+                <div className="absolute inset-x-0 pointer-events-none z-[5] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)]" style={{ top: 28, height: 28 }} />
+                <div className="absolute top-0 bottom-0 left-1/2 w-px z-[6] bg-[var(--nimi-border-subtle)]" />
                 <div className="flex relative" style={{ height: 84 }}>
                   <DrumColumn items={yearItems} selected={displayMonth.getFullYear()}
                     onSelect={(y) => onDisplayMonthChange(new Date(y, displayMonth.getMonth(), 1, 12, 0, 0, 0))}
@@ -258,11 +252,9 @@ export const DatePickerPanel = forwardRef<HTMLDivElement, {
           </div>
 
           <button type="button" onClick={() => { if (!isCurrentMonth) onDisplayMonthChange(addMonths(displayMonth, 1)); }}
-            className="flex h-8 w-8 items-center justify-center rounded-full transition-colors hover:bg-[#e6f7f0]"
+            className={`flex h-8 w-8 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)] text-[var(--nimi-action-primary-bg)] transition-colors hover:bg-[var(--nimi-action-ghost-hover)] ${isCurrentMonth ? 'opacity-70' : ''}`}
             style={{
-              color: isCurrentMonth ? 'rgba(47,125,107,0.35)' : '#3BB88A',
-              background: isCurrentMonth ? 'linear-gradient(180deg, rgba(78,204,163,0.06), rgba(78,204,163,0.03))' : 'linear-gradient(180deg, rgba(78,204,163,0.12), rgba(78,204,163,0.06))',
-              boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.55)', cursor: isCurrentMonth ? 'not-allowed' : 'pointer', opacity: isCurrentMonth ? 0.72 : 1,
+              cursor: isCurrentMonth ? 'not-allowed' : 'pointer',
             }}
             aria-label="下个月" disabled={isCurrentMonth}>
             <ChevronRight size={16} strokeWidth={1.75} />
@@ -273,34 +265,36 @@ export const DatePickerPanel = forwardRef<HTMLDivElement, {
       {/* Weekday headers */}
       <div className="mb-2 grid grid-cols-7 gap-1 px-1">
         {['一', '二', '三', '四', '五', '六', '日'].map((label) => (
-          <div key={label} className="flex h-8 items-center justify-center text-[13px] font-medium" style={{ color: S.sub }}>{label}</div>
+          <div key={label} className="flex h-8 items-center justify-center text-[13px] font-medium text-[var(--nimi-text-muted)]">{label}</div>
         ))}
       </div>
 
       {/* Day grid */}
-      <div className="grid grid-cols-7 gap-1 rounded-[16px] p-2.5"
-        style={{ background: 'linear-gradient(180deg, rgba(244,252,249,0.98), rgba(232,249,241,0.95))', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.82)' }}>
+      <div className="grid grid-cols-7 gap-1 rounded-2xl bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_8%,var(--nimi-surface-card))] p-2.5">
         {days.map((day) => {
           const inMonth = day.getMonth() === displayMonth.getMonth();
           const isSelected = sameDay(day, selectedDate);
           const isToday = sameDay(day, safeToday);
           const isFuture = isAfterDay(day, effectiveMax);
-          const textColor = isSelected ? '#1F5D4A' : isFuture ? 'rgba(164,170,178,0.46)' : inMonth ? S.text : 'rgba(139,145,153,0.62)';
+          const dayTone = isSelected
+            ? 'text-[var(--nimi-action-primary-bg)]'
+            : isFuture
+              ? 'text-[var(--nimi-text-muted)]'
+              : inMonth
+                ? 'text-[var(--nimi-text-primary)]'
+                : 'text-[var(--nimi-text-muted)]';
           return (
             <button key={day.toISOString()} type="button"
               onClick={() => { if (!isFuture) onChange(formatDateValue(day)); }}
-              className="relative flex h-10 items-center justify-center rounded-[13px] text-[14px] transition-all duration-150 hover:-translate-y-[1px]"
+              className={`relative flex h-10 items-center justify-center rounded-xl text-[14px] transition-all duration-150 hover:-translate-y-[1px] ${dayTone} ${isSelected ? 'bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_16%,transparent)] shadow-[var(--nimi-elevation-base)]' : isToday ? 'bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_8%,transparent)]' : ''}`}
               disabled={isFuture}
               style={{
-                color: textColor,
-                background: isFuture ? 'transparent' : isSelected ? 'linear-gradient(180deg, rgba(78,204,163,0.24), rgba(78,204,163,0.12))' : isToday ? 'linear-gradient(180deg, rgba(78,204,163,0.10), rgba(78,204,163,0.05))' : 'transparent',
                 fontWeight: isFuture ? 500 : isSelected ? 750 : isToday ? 650 : 520,
-                boxShadow: isFuture ? 'none' : isSelected ? '0 4px 12px rgba(78,204,163,0.12), inset 0 0 0 1px rgba(78,204,163,0.18)' : isToday ? 'inset 0 0 0 1px rgba(78,204,163,0.10)' : 'none',
                 opacity: isFuture ? 0.42 : inMonth ? 1 : 0.78,
                 cursor: isFuture ? 'not-allowed' : 'pointer',
               }}>
               <span>{day.getDate()}</span>
-              {isToday && !isSelected && <span className="absolute bottom-[5px] left-1/2 h-1 w-1 -translate-x-1/2 rounded-full" style={{ background: 'rgba(78,204,163,0.75)' }} />}
+              {isToday && !isSelected && <span className="absolute bottom-[5px] left-1/2 h-1 w-1 -translate-x-1/2 rounded-full bg-[var(--nimi-action-primary-bg)]" />}
             </button>
           );
         })}
@@ -309,18 +303,18 @@ export const DatePickerPanel = forwardRef<HTMLDivElement, {
       {/* Footer */}
       <div className="mt-3 flex items-center justify-between px-1">
         <button type="button" onClick={() => { const now = new Date(); onDisplayMonthChange(new Date(now.getFullYear(), now.getMonth(), 1, 12, 0, 0, 0)); onChange(formatDateValue(clampToMax(now, maxDate))); }}
-          className="rounded-full px-3 py-1 text-[14px] font-medium transition-colors hover:bg-[#e6f7f0]" style={{ color: '#2F7D6B' }}>
+          className="rounded-full px-3 py-1 text-[14px] font-medium text-[var(--nimi-action-primary-bg)] transition-colors hover:bg-[var(--nimi-action-ghost-hover)]">
           今天
         </button>
         <div className="flex items-center gap-1">
           {onClear && value && (
             <button type="button" onClick={onClear}
-              className="rounded-full px-3 py-1 text-[14px] font-medium transition-colors hover:bg-[#f4f4ef]" style={{ color: '#9aa0a7' }}>
+              className="rounded-full px-3 py-1 text-[14px] font-medium text-[var(--nimi-text-muted)] transition-colors hover:bg-[var(--nimi-action-ghost-hover)]">
               清空
             </button>
           )}
           <button type="button" onClick={onClose}
-            className="rounded-full px-3 py-1 text-[14px] font-medium transition-colors hover:bg-[#f4f4ef]" style={{ color: S.sub }}>
+            className="rounded-full px-3 py-1 text-[14px] font-medium transition-colors hover:bg-[var(--nimi-action-ghost-hover)] text-[var(--nimi-text-muted)]">
             关闭
           </button>
         </div>
@@ -403,17 +397,17 @@ export function ProfileDatePicker({
     <div ref={wrapRef} className="relative">
       <div className="group/field relative flex items-center cursor-pointer" onClick={handleTriggerClick}>
         <input type="text" readOnly value={formatDateDisplay(value)}
-          className={`w-full ${S.radiusSm} ${sizeClass} outline-none transition-shadow focus:ring-2 focus:ring-[#4ECCA3]/50 cursor-pointer ${className}`}
-          style={{ borderColor: S.border, borderWidth: 1, borderStyle: 'solid', background: '#fafaf8', ...style }} />
+          className={`w-full rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-field-bg)] ${sizeClass} cursor-pointer outline-none transition-shadow focus:ring-2 focus:ring-[var(--nimi-ring)] ${className}`}
+          style={style} />
         <div className={`absolute right-2 flex items-center gap-1 ${size === 'small' ? 'text-[13px]' : ''}`}>
           {allowClear && value && (
             <button type="button" onClick={(e) => { e.stopPropagation(); onChange(''); setOpen(false); }}
-              className="flex h-5 w-5 items-center justify-center rounded-full transition-colors hover:bg-[#e6f7f0]" style={{ color: '#9ea5ad' }} aria-label="清空日期">
+              className="flex h-5 w-5 items-center justify-center rounded-full text-[var(--nimi-text-muted)] transition-colors hover:bg-[var(--nimi-action-ghost-hover)]" aria-label="清空日期">
               <svg width={size === 'small' ? 12 : 13} height={size === 'small' ? 12 : 13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12" /></svg>
             </button>
           )}
           <Calendar size={size === 'small' ? 14 : 16} strokeWidth={1.5}
-            className={`transition-colors ${open ? 'text-[#1e293b]' : 'text-gray-400 group-focus-within/field:text-[#1e293b]'}`} />
+            className={`transition-colors ${open ? 'text-[var(--nimi-text-primary)]' : 'text-gray-400 group-focus-within/field:text-[var(--nimi-text-primary)]'}`} />
         </div>
       </div>
 

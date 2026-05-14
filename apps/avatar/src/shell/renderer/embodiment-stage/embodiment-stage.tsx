@@ -6,6 +6,7 @@
 // degraded / loading / error / relaunch-pending state.
 
 import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { cn } from '@nimiplatform/nimi-kit/ui';
 import {
   createAvatarHitRegionSnapshot,
   rectFromElement,
@@ -354,7 +355,7 @@ export function EmbodimentStage(props: EmbodimentStageProps) {
 
   return (
     <section
-      className="avatar-embodiment-stage"
+      className={cn('avatar-embodiment-stage')}
       data-testid="avatar-embodiment-stage"
       onPointerEnter={(event) => {
         if (isInteractiveTarget(event.target)) return;

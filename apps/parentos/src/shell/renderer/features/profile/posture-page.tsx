@@ -1,10 +1,10 @@
+import { Button, Surface, TextareaField, TextField } from '@nimiplatform/nimi-kit/ui';
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useAppStore, computeAgeMonths, computeAgeMonthsAt } from '../../app-shell/app-store.js';
 import { getMeasurements, insertMeasurement, getFitnessAssessments } from '../../bridge/sqlite-bridge.js';
 import type { MeasurementRow, FitnessAssessmentRow } from '../../bridge/sqlite-bridge.js';
 import { ulid, isoNow } from '../../bridge/ulid.js';
-import { S } from '../../app-shell/page-style.js';
 import { AISummaryCard } from './ai-summary-card.js';
 import { ProfileDatePicker } from './profile-date-picker.js';
 import { catchLog } from '../../infra/telemetry/catch-log.js';
@@ -44,7 +44,7 @@ const PHOTO_SLOTS = [
 ] as const;
 
 const FOOT_ARCH_LABELS: Record<string, string> = { normal: '正常', flat: '扁平足', 'high-arch': '高弓足', monitoring: '观察中' };
-const FOOT_ARCH_COLORS: Record<string, string> = { normal: '#22c55e', flat: '#f59e0b', 'high-arch': '#f59e0b', monitoring: '#3b82f6' };
+const FOOT_ARCH_TONES: Record<string, BadgeTone> = { normal: 'success', flat: 'warning', 'high-arch': 'warning', monitoring: 'info' };
 
 const SHOE_WEAR_OPTIONS = [
   { value: 'normal', label: '正常（外侧偏多）' },
@@ -89,13 +89,14 @@ const KNEE_OPTIONS = [
 ] as const;
 
 type PostureTab = 'back' | 'side' | 'forward-bend';
+type BadgeTone = 'success' | 'warning' | 'danger' | 'info' | 'neutral';
 
 const COBB_LEVELS = [
-  { max: 10, label: '正常', color: '#22c55e' },
-  { max: 25, label: '需定期监测', color: '#f59e0b' },
-  { max: 40, label: '建议支具治疗', color: '#ef4444' },
-  { max: Infinity, label: '建议手术评估', color: '#dc2626' },
-];
+  { max: 10, label: '正常', tone: 'success' },
+  { max: 25, label: '需定期监测', tone: 'warning' },
+  { max: 40, label: '建议支具治疗', tone: 'danger' },
+  { max: Infinity, label: '建议手术评估', tone: 'danger' },
+] as const;
 
 function cobbLevel(angle: number) {
   return COBB_LEVELS.find((l) => angle <= l.max) ?? COBB_LEVELS[COBB_LEVELS.length - 1]!;
@@ -104,6 +105,23 @@ function cobbLevel(angle: number) {
 function fmtAge(months: number) {
   const y = Math.floor(months / 12); const m = months % 12;
   return y > 0 ? (m > 0 ? `${y}岁${m}个月` : `${y}岁`) : `${m}个月`;
+}
+
+function badgeToneClass(tone: BadgeTone) {
+  if (tone === 'success') return 'bg-[color-mix(in_srgb,var(--nimi-status-success)_15%,transparent)] text-[var(--nimi-status-success)]';
+  if (tone === 'warning') return 'bg-[color-mix(in_srgb,var(--nimi-status-warning)_15%,transparent)] text-[var(--nimi-status-warning)]';
+  if (tone === 'danger') return 'bg-[color-mix(in_srgb,var(--nimi-status-danger)_15%,transparent)] text-[var(--nimi-status-danger)]';
+  if (tone === 'info') return 'bg-[color-mix(in_srgb,var(--nimi-status-info)_15%,transparent)] text-[var(--nimi-status-info)]';
+  return 'bg-[color-mix(in_srgb,var(--nimi-status-neutral)_15%,transparent)] text-[var(--nimi-status-neutral)]';
+}
+
+function optionButtonClass(selected: boolean, isNormal: boolean) {
+  if (!selected) {
+    return 'flex-1 border-[var(--nimi-border-subtle)] bg-[var(--nimi-field-bg)] text-[var(--nimi-text-muted)] shadow-none hover:shadow-none hover:translate-y-0';
+  }
+  return isNormal
+    ? 'flex-1 border-[color-mix(in_srgb,var(--nimi-status-success)_35%,var(--nimi-border-subtle))] bg-[color-mix(in_srgb,var(--nimi-status-success)_12%,var(--nimi-surface-card))] text-[var(--nimi-status-success)] shadow-none hover:shadow-none hover:translate-y-0'
+    : 'flex-1 border-[color-mix(in_srgb,var(--nimi-status-warning)_35%,var(--nimi-border-subtle))] bg-[color-mix(in_srgb,var(--nimi-status-warning)_12%,var(--nimi-surface-card))] text-[var(--nimi-status-warning)] shadow-none hover:shadow-none hover:translate-y-0';
 }
 
 export default function PosturePage() {
@@ -143,7 +161,7 @@ export default function PosturePage() {
 
   useEffect(() => { if (activeChildId) loadData(activeChildId).catch(catchLog('posture', 'action:load-posture-data-failed')); }, [activeChildId]);
 
-  if (!child) return <div className="p-8" style={{ color: S.sub }}>请先添加孩子</div>;
+  if (!child) return <div className="p-8 text-[var(--nimi-text-muted)]">请先添加孩子</div>;
 
   const ageMonths = computeAgeMonths(child.birthDate);
   const cobbRecords = measurements.filter((m) => m.typeId === 'scoliosis-cobb-angle').sort((a, b) => b.measuredAt.localeCompare(a.measuredAt));
@@ -216,16 +234,16 @@ export default function PosturePage() {
   }, [cobbRecords, shoulderRecords]);
 
   return (
-    <div className={S.container} style={{ paddingTop: S.topPad, minHeight: '100%' }}>
-      <Link to="/profile" className="text-[14px] hover:underline mb-5 inline-block" style={{ color: S.sub }}>← 返回档案</Link>
+    <div className="max-w-3xl mx-auto min-h-full px-6 pb-6 pt-[72px]">
+      <Link to="/profile" className="text-[14px] hover:underline mb-5 inline-block text-[var(--nimi-text-muted)]">← 返回档案</Link>
 
       <div className="flex items-center justify-between mb-1">
-        <h1 className="text-xl font-bold" style={{ color: S.text }}>体态档案</h1>
+        <h1 className="text-xl font-bold text-[var(--nimi-text-primary)]">体态档案</h1>
         <div className="flex items-center gap-2">
-          <button
+          <Button
             onClick={() => setShowGuide((prev) => !prev)}
-            className={`flex items-center gap-1.5 px-3 py-2 text-[14px] font-medium ${S.radiusSm} transition-all`}
-            style={showGuide ? { background: S.accent, color: '#fff' } : { background: '#f0f0ec', color: S.sub }}
+            tone={showGuide ? 'primary' : 'secondary'}
+            size="sm"
           >
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
               <circle cx="12" cy="12" r="10" />
@@ -233,13 +251,11 @@ export default function PosturePage() {
               <line x1="12" y1="17" x2="12.01" y2="17" />
             </svg>
             录入指引
-          </button>
+          </Button>
           {!showForm && (
-            <button onClick={() => setShowForm(true)}
-              className={`flex items-center gap-1.5 px-4 py-2 text-[14px] font-medium text-white ${S.radiusSm} hover:opacity-90`}
-              style={{ background: S.accent }}>
+            <Button onClick={() => setShowForm(true)} tone="primary" size="sm">
               + 添加记录
-            </button>
+            </Button>
           )}
         </div>
       </div>
@@ -257,33 +273,33 @@ export default function PosturePage() {
 
       {/* Quick overview */}
       <div className="grid grid-cols-3 gap-3 mb-5">
-        <div className={`${S.radiusSm} p-4`} style={{ background: S.card, boxShadow: S.shadow }}>
-          <p className="text-[12px] font-medium" style={{ color: S.sub }}>🦴 Cobb 角</p>
+        <Surface tone="card" elevation="raised" padding="md" className="rounded-2xl">
+          <p className="text-[12px] font-medium text-[var(--nimi-text-muted)]">🦴 Cobb 角</p>
           {cobbRecords[0] ? (() => {
             const level = cobbLevel(cobbRecords[0].value);
             return (<>
-              <p className="text-[20px] font-bold mt-1" style={{ color: S.text }}>{cobbRecords[0].value}°</p>
-              <span className="text-[12px] px-1.5 py-0.5 rounded-full mt-1 inline-block" style={{ background: `${level.color}20`, color: level.color }}>{level.label}</span>
+              <p className="text-[20px] font-bold mt-1 text-[var(--nimi-text-primary)]">{cobbRecords[0].value}°</p>
+              <span className={`text-[12px] px-1.5 py-0.5 rounded-full mt-1 inline-block ${badgeToneClass(level.tone)}`}>{level.label}</span>
             </>);
-          })() : <p className="text-[14px] mt-1" style={{ color: S.sub }}>未记录</p>}
-        </div>
+          })() : <p className="text-[14px] mt-1 text-[var(--nimi-text-muted)]">未记录</p>}
+        </Surface>
 
-        <div className={`${S.radiusSm} p-4`} style={{ background: S.card, boxShadow: S.shadow }}>
-          <p className="text-[12px] font-medium" style={{ color: S.sub }}>🧍 肩部</p>
+        <Surface tone="card" elevation="raised" padding="md" className="rounded-2xl">
+          <p className="text-[12px] font-medium text-[var(--nimi-text-muted)]">🧍 肩部</p>
           {shoulderRecords[0] ? (
-            <p className="text-[16px] font-bold mt-1" style={{ color: S.text }}>{SHOULDER_LABELS[String(shoulderRecords[0].value)] ?? '未知'}</p>
-          ) : <p className="text-[14px] mt-1" style={{ color: S.sub }}>未记录</p>}
-        </div>
+            <p className="text-[16px] font-bold mt-1 text-[var(--nimi-text-primary)]">{SHOULDER_LABELS[String(shoulderRecords[0].value)] ?? '未知'}</p>
+          ) : <p className="text-[14px] mt-1 text-[var(--nimi-text-muted)]">未记录</p>}
+        </Surface>
 
-        <div className={`${S.radiusSm} p-4`} style={{ background: S.card, boxShadow: S.shadow }}>
-          <p className="text-[12px] font-medium" style={{ color: S.sub }}>🦶 足弓</p>
+        <Surface tone="card" elevation="raised" padding="md" className="rounded-2xl">
+          <p className="text-[12px] font-medium text-[var(--nimi-text-muted)]">🦶 足弓</p>
           {latestFootArch?.footArchStatus ? (
-            <p className="text-[16px] font-bold mt-1" style={{ color: FOOT_ARCH_COLORS[latestFootArch.footArchStatus] ?? S.text }}>
+            <p className={`text-[16px] font-bold mt-1 ${badgeToneClass(FOOT_ARCH_TONES[latestFootArch.footArchStatus] ?? 'neutral')}`}>
               {FOOT_ARCH_LABELS[latestFootArch.footArchStatus] ?? latestFootArch.footArchStatus}
             </p>
-          ) : <p className="text-[14px] mt-1" style={{ color: S.sub }}>未记录</p>}
-          <p className="text-[12px] mt-0.5" style={{ color: S.sub }}>来自体能测评</p>
-        </div>
+          ) : <p className="text-[14px] mt-1 text-[var(--nimi-text-muted)]">未记录</p>}
+          <p className="text-[12px] mt-0.5 text-[var(--nimi-text-muted)]">来自体能测评</p>
+        </Surface>
       </div>
 
       {/* Hidden photo input */}
@@ -301,44 +317,52 @@ export default function PosturePage() {
 
       {/* Form */}
       {showForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.25)' }} onClick={() => resetForm()}>
-        <div className={`w-[580px] max-h-[85vh] overflow-y-auto rounded-2xl flex flex-col shadow-xl`} style={{ background: '#f4f5f0' }} onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--nimi-scrim-modal)]" onClick={() => resetForm()}>
+        <Surface
+          tone="overlay"
+          material="glass-thick"
+          elevation="modal"
+          padding="none"
+          className="flex w-[580px] max-h-[85vh] flex-col overflow-y-auto rounded-3xl"
+          onClick={(e) => e.stopPropagation()}
+        >
           {/* Header */}
           <div className="flex items-center justify-between px-6 pt-6 pb-2">
             <div className="flex items-center gap-2.5">
-              <span className="w-9 h-9 rounded-xl flex items-center justify-center text-[18px]" style={{ background: '#f1f5f9' }}>🧍</span>
-              <h2 className="text-[16px] font-bold" style={{ color: S.text }}>添加体态记录</h2>
+              <span className="w-9 h-9 rounded-xl flex items-center justify-center bg-[var(--nimi-surface-active)] text-[18px]">🧍</span>
+              <h2 className="text-[16px] font-bold text-[var(--nimi-text-primary)]">添加体态记录</h2>
             </div>
-            <button onClick={resetForm} className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-black/5 transition-colors" style={{ color: S.sub }}>✕</button>
+            <Button onClick={resetForm} tone="ghost" size="sm" className="h-7 min-h-0 w-7 rounded-full px-0">✕</Button>
           </div>
 
           <div className="px-6 pb-4 flex-1 space-y-4">
 
             {/* ━━ 基础信息 + 视角 Tab ━━ */}
-            <div className="rounded-xl p-4 space-y-3" style={{ background: '#fff' }}>
-              <p className="text-[14px] font-semibold" style={{ color: S.text }}>基础信息</p>
+            <Surface tone="card" elevation="base" padding="md" className="rounded-xl space-y-3">
+              <p className="text-[14px] font-semibold text-[var(--nimi-text-primary)]">基础信息</p>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <p className="text-[13px] mb-1.5 font-medium" style={{ color: S.sub }}>评估日期</p>
-                  <ProfileDatePicker value={formDate} onChange={setFormDate}
-                    style={{ borderWidth: 1, borderStyle: 'solid', borderColor: S.border, background: '#fafaf8', color: S.text, borderRadius: 12 }} />
+                  <p className="text-[13px] mb-1.5 font-medium text-[var(--nimi-text-muted)]">评估日期</p>
+                  <ProfileDatePicker value={formDate} onChange={setFormDate} />
                 </div>
                 <div>
-                  <p className="text-[13px] mb-1.5 font-medium" style={{ color: S.sub }}>数据来源</p>
+                  <p className="text-[13px] mb-1.5 font-medium text-[var(--nimi-text-muted)]">数据来源</p>
                   <div className="flex gap-1.5">
                     {SOURCE_OPTIONS.map((opt) => (
-                      <button key={opt.value} onClick={() => setFormSource(opt.value)}
-                        className="flex-1 py-2.5 text-[13px] font-medium rounded-xl transition-all"
-                        style={formSource === opt.value
-                          ? { background: S.accent, color: '#fff' }
-                          : { border: `1px solid ${S.border}`, color: S.sub, background: '#fafaf8' }}>
+                      <Button
+                        key={opt.value}
+                        onClick={() => setFormSource(opt.value)}
+                        tone={formSource === opt.value ? 'primary' : 'secondary'}
+                        size="md"
+                        className="flex-1 text-[13px]"
+                      >
                         {opt.label}
-                      </button>
+                      </Button>
                     ))}
                   </div>
                 </div>
               </div>
-            </div>
+            </Surface>
 
             {/* ━━ 视角联动 Tab ━━ */}
             {(() => {
@@ -356,43 +380,43 @@ export default function PosturePage() {
                 <div className="flex gap-1.5">
                   {opts.map((o) => {
                     const selected = val === o.value;
-                    const isNormal = 'normal' in o ? o.normal : o.value === '0' || o.value === 'normal' || o.value === 'equal' || o.value === 'straight' || o.value === 'symmetric';
+                    const isNormal = 'normal' in o ? o.normal === true : o.value === '0' || o.value === 'normal' || o.value === 'equal' || o.value === 'straight' || o.value === 'symmetric';
                     return (
-                      <button key={o.value} onClick={() => set(val === o.value ? '' : o.value)}
-                        className="flex-1 py-2 text-[13px] font-medium rounded-xl transition-all"
-                        style={selected
-                          ? { background: isNormal ? '#dcfce7' : '#fef3c7', color: isNormal ? '#166534' : '#92400e', border: `1px solid ${isNormal ? '#bbf7d0' : '#fde68a'}` }
-                          : { border: `1px solid ${S.border}`, color: S.sub, background: '#fafaf8' }}>
+                      <Button
+                        key={o.value}
+                        onClick={() => set(val === o.value ? '' : o.value)}
+                        tone="secondary"
+                        size="md"
+                        className={`text-[13px] ${optionButtonClass(selected, isNormal)}`}
+                      >
                         {o.label}
-                      </button>
+                      </Button>
                     );
                   })}
                 </div>
               );
 
-              const fieldLabel = (text: string) => <p className="text-[13px] font-medium mb-1.5" style={{ color: S.text }}>{text}</p>;
+              const fieldLabel = (text: string) => <p className="text-[13px] font-medium mb-1.5 text-[var(--nimi-text-primary)]">{text}</p>;
 
               return (
                 <>
                   {/* Tab bar with photo upload areas */}
-                  <div className="rounded-xl overflow-hidden" style={{ background: '#fff' }}>
+                  <Surface tone="card" elevation="base" padding="none" className="rounded-xl overflow-hidden">
                     <div className="grid grid-cols-3 gap-0">
                       {tabs.map((tab) => {
                         const active = postureTab === tab.key;
                         const hasPhoto = formPhotos[tab.photoKey];
                         return (
-                          <div key={tab.key} onClick={() => setPostureTab(tab.key)}
-                            className="relative flex flex-col items-center gap-1.5 py-4 transition-all cursor-pointer"
-                            style={{
-                              background: active ? '#f4f7ea' : '#fafaf8',
-                              borderBottom: active ? `2px solid ${S.accent}` : '2px solid transparent',
-                            }}>
+                          <div
+                            key={tab.key}
+                            onClick={() => setPostureTab(tab.key)}
+                            className={`relative flex flex-col items-center gap-1.5 border-b-2 py-4 transition-all cursor-pointer ${active ? 'border-b-[var(--nimi-action-primary-bg)] bg-[var(--nimi-surface-active)]' : 'border-b-transparent bg-[var(--nimi-surface-panel)]'}`}
+                          >
                             <span className="text-[20px]">{tab.emoji}</span>
-                            <span className="text-[13px] font-medium" style={{ color: active ? S.accent : S.sub }}>{tab.label}</span>
+                            <span className={`text-[13px] font-medium ${active ? 'text-[var(--nimi-action-primary-bg)]' : 'text-[var(--nimi-text-muted)]'}`}>{tab.label}</span>
                             {/* Photo upload indicator */}
                             <button onClick={(e) => { e.stopPropagation(); photoSlotRef.current = tab.photoKey; photoInputRef.current?.click(); }}
-                              className="absolute top-2 right-2 w-5 h-5 rounded-full flex items-center justify-center text-[12px] transition-colors hover:bg-black/5"
-                              style={{ background: hasPhoto ? '#dcfce7' : '#f0f0ec', color: hasPhoto ? '#166534' : S.sub }}
+                              className={`absolute top-2 right-2 w-5 h-5 rounded-full flex items-center justify-center text-[12px] transition-colors hover:bg-[var(--nimi-action-ghost-hover)] ${hasPhoto ? 'bg-[color-mix(in_srgb,var(--nimi-status-success)_15%,transparent)] text-[var(--nimi-status-success)]' : 'bg-[var(--nimi-surface-muted)] text-[var(--nimi-text-muted)]'}`}
                               title={hasPhoto ? '已上传' : '上传照片'}>
                               {hasPhoto ? '✓' : '📷'}
                             </button>
@@ -410,21 +434,20 @@ export default function PosturePage() {
                         const photoUrl = formPhotos[currentPhotoKey];
                         return photoUrl ? (
                           <div className="relative group">
-                            <img src={photoUrl} alt="preview" className={`w-full h-32 object-cover ${S.radiusSm}`} />
+                            <img src={photoUrl} alt="preview" className={`w-full h-32 object-cover ${"rounded-2xl"}`} />
                             <button
                               onClick={() => setFormPhotos((p) => { const next = { ...p }; delete next[currentPhotoKey]; return next; })}
-                              className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-black/50 text-white text-[13px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                              className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-[var(--nimi-scrim-modal)] text-[var(--nimi-action-primary-text)] text-[13px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
                             >✕</button>
                           </div>
                         ) : (
                           <button type="button"
                             onClick={() => { photoSlotRef.current = currentPhotoKey; photoInputRef.current?.click(); }}
-                            className={`w-full h-24 ${S.radiusSm} flex flex-col items-center justify-center gap-1.5 cursor-pointer`}
-                            style={{ border: `2px dashed #d0d0cc`, background: '#fafaf8' }}>
-                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" strokeWidth="1.5" strokeLinecap="round" style={{ stroke: '#b0b0aa' }}>
+                            className="w-full h-24 rounded-2xl flex flex-col items-center justify-center gap-1.5 cursor-pointer border-2 border-dashed border-[var(--nimi-border-subtle)] bg-[var(--nimi-field-bg)]">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" strokeWidth="1.5" strokeLinecap="round" className="stroke-[var(--nimi-text-muted)]">
                               <rect x="3" y="3" width="18" height="18" rx="2" ry="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" />
                             </svg>
-                            <span className="text-[13px]" style={{ color: S.sub }}>点击上传照片</span>
+                            <span className="text-[13px] text-[var(--nimi-text-muted)]">点击上传照片</span>
                           </button>
                         );
                       })()}
@@ -451,47 +474,47 @@ export default function PosturePage() {
                             {fieldLabel('前屈试验')}
                             {optionBtn(ADAM_OPTIONS.map((o) => ({ ...o, normal: o.value === 'normal' })), formAdam, setFormAdam)}
                             {formAdam === 'obvious' && (
-                              <div className="rounded-xl px-3 py-2.5 mt-2" style={{ background: '#fef2f2', border: '1px solid #fecaca' }}>
-                                <p className="text-[13px] font-medium" style={{ color: '#dc2626' }}>⚠️ 建议尽快去骨科或脊柱外科做正式评估</p>
+                              <div className="rounded-xl border border-[color-mix(in_srgb,var(--nimi-status-danger)_30%,var(--nimi-border-subtle))] bg-[color-mix(in_srgb,var(--nimi-status-danger)_8%,var(--nimi-surface-card))] px-3 py-2.5 mt-2">
+                                <p className="text-[13px] font-medium text-[var(--nimi-status-danger)]">⚠️ 建议尽快去骨科或脊柱外科做正式评估</p>
                               </div>
                             )}
                           </div>
                         </>
                       )}
                     </div>
-                  </div>
+                  </Surface>
 
                   {/* ━━ 医疗数据（Cobb 角）━━ */}
-                  <div className={`rounded-xl p-4 space-y-3 transition-opacity ${isMedical ? 'opacity-100' : 'opacity-50'}`} style={{ background: '#fff' }}>
+                  <Surface tone="card" elevation="base" padding="md" className={`rounded-xl space-y-3 transition-opacity ${isMedical ? 'opacity-100' : 'opacity-50'}`}>
                     <div className="flex items-center justify-between">
-                      <p className="text-[14px] font-semibold" style={{ color: S.text }}>医疗数据</p>
-                      {!isMedical && <span className="text-[12px] px-2 py-0.5 rounded-full" style={{ background: '#f5f3ef', color: S.sub }}>选择"体检报告"或"医生评估"后激活</span>}
+                      <p className="text-[14px] font-semibold text-[var(--nimi-text-primary)]">医疗数据</p>
+                      {!isMedical && <span className="text-[12px] px-2 py-0.5 rounded-full bg-[var(--nimi-surface-active)] text-[var(--nimi-text-muted)]">选择"体检报告"或"医生评估"后激活</span>}
                     </div>
                     <div>
-                      <p className="text-[13px] mb-1.5 font-medium" style={{ color: S.sub }}>Cobb 角（°）</p>
+                      <p className="text-[13px] mb-1.5 font-medium text-[var(--nimi-text-muted)]">Cobb 角（°）</p>
                       <div className="flex items-center gap-3">
-                        <input type="number" step="1" min="0" max="90" value={formCobb}
+                        <TextField type="number" step="1" min="0" max="90" value={formCobb}
                           onChange={(e) => setFormCobb(e.target.value)} placeholder="来自 X 光报告"
                           disabled={!isMedical}
-                          className="flex-1 rounded-xl px-3 py-2.5 text-[14px] outline-none transition-shadow focus:ring-2 focus:ring-[#4ECCA3]/50 disabled:cursor-not-allowed"
-                          style={{ borderWidth: 1, borderStyle: 'solid', borderColor: S.border, background: isMedical ? '#fafaf8' : '#f5f3ef', color: S.text }} />
-                        <span className="text-[14px] shrink-0" style={{ color: S.sub }}>°</span>
+                          className={`flex-1 ${isMedical ? '' : 'bg-[var(--nimi-surface-active)]'}`}
+                          inputClassName="text-[14px] disabled:cursor-not-allowed" />
+                        <span className="text-[14px] shrink-0 text-[var(--nimi-text-muted)]">°</span>
                         {formCobb && parseFloat(formCobb) > 0 && (() => {
                           const level = cobbLevel(parseFloat(formCobb));
-                          return <span className="text-[13px] px-2.5 py-1 rounded-full shrink-0 font-medium" style={{ background: `${level.color}15`, color: level.color }}>{level.label}</span>;
+                          return <span className={`text-[13px] px-2.5 py-1 rounded-full shrink-0 font-medium ${badgeToneClass(level.tone)}`}>{level.label}</span>;
                         })()}
                       </div>
                     </div>
-                  </div>
+                  </Surface>
 
                   {/* ━━ 备注 ━━ */}
-                  <div className="rounded-xl p-4" style={{ background: '#fff' }}>
-                    <p className="text-[13px] mb-1.5 font-medium" style={{ color: S.sub }}>补充备注</p>
-                    <textarea value={formNotes} onChange={(e) => setFormNotes(e.target.value)} placeholder="其他观察到的情况..."
+                  <Surface tone="card" elevation="base" padding="md" className="rounded-xl">
+                    <p className="text-[13px] mb-1.5 font-medium text-[var(--nimi-text-muted)]">补充备注</p>
+                    <TextareaField value={formNotes} onChange={(e) => setFormNotes(e.target.value)} placeholder="其他观察到的情况..."
                       rows={2}
-                      className="w-full rounded-xl px-3 py-2.5 text-[14px] outline-none transition-shadow focus:ring-2 focus:ring-[#4ECCA3]/50 resize-none"
-                      style={{ borderWidth: 1, borderStyle: 'solid', borderColor: S.border, background: '#fafaf8', color: S.text }} />
-                  </div>
+                      className="w-full"
+                      textareaClassName="resize-none text-[14px]" />
+                  </Surface>
                 </>
               );
             })()}
@@ -501,49 +524,49 @@ export default function PosturePage() {
           {/* Footer */}
           <div className="px-6 pt-3 pb-5">
             <div className="flex items-center justify-end gap-2.5">
-              <button onClick={resetForm} className="px-5 py-2.5 text-[14px] rounded-xl transition-colors hover:bg-[#e8e8e4]" style={{ background: '#e8e8e4', color: S.sub }}>取消</button>
-              <button onClick={() => void handleSubmit()} className="px-6 py-2.5 text-[14px] font-medium text-white rounded-xl transition-colors hover:brightness-110" style={{ background: S.accent }}>保存记录</button>
+              <Button onClick={resetForm} tone="secondary" size="md">取消</Button>
+              <Button onClick={() => void handleSubmit()} tone="primary" size="md">保存记录</Button>
             </div>
           </div>
-        </div>
+        </Surface>
         </div>
       )}
 
       {/* Timeline */}
-      <h2 className="text-[14px] font-semibold mb-3 mt-2" style={{ color: S.text }}>
+      <h2 className="text-[14px] font-semibold mb-3 mt-2 text-[var(--nimi-text-primary)]">
         {timeline.length > 0 ? `评估记录（${timeline.length} 次）` : ''}
       </h2>
       {timeline.length === 0 && !showForm && (
-        <div className={`${S.radius} p-8 text-center`} style={{ background: S.card, boxShadow: S.shadow }}>
+        <Surface tone="card" elevation="raised" padding="lg" className="rounded-3xl text-center">
           <span className="text-[24px]">🧍</span>
-          <p className="text-[14px] mt-2 font-medium" style={{ color: S.text }}>还没有体态评估记录</p>
-          <p className="text-[13px] mt-1" style={{ color: S.sub }}>记录脊柱侧弯角度和肩部对称性</p>
-        </div>
+          <p className="text-[14px] mt-2 font-medium text-[var(--nimi-text-primary)]">还没有体态评估记录</p>
+          <p className="text-[13px] mt-1 text-[var(--nimi-text-muted)]">记录脊柱侧弯角度和肩部对称性</p>
+        </Surface>
       )}
       <div className="space-y-3">
         {timeline.map((rec) => (
-          <div key={rec.date} className={`${S.radius} p-4`} style={{ background: S.card, boxShadow: S.shadow }}>
-            <p className="text-[13px] font-medium mb-2" style={{ color: S.sub }}>{rec.date}</p>
+          <Surface key={rec.date} tone="card" elevation="raised" padding="md" className="rounded-3xl">
+            <p className="text-[13px] font-medium mb-2 text-[var(--nimi-text-muted)]">{rec.date}</p>
             <div className="flex flex-wrap gap-3">
               {rec.cobb != null && (() => {
                 const level = cobbLevel(rec.cobb);
                 return (
                   <div className="flex items-center gap-2">
-                    <span className="text-[12px]" style={{ color: S.sub }}>Cobb 角</span>
-                    <span className="text-[16px] font-bold" style={{ color: S.text }}>{rec.cobb}°</span>
-                    <span className="text-[12px] px-1.5 py-0.5 rounded-full" style={{ background: `${level.color}20`, color: level.color }}>{level.label}</span>
+                    <span className="text-[12px] text-[var(--nimi-text-muted)]">Cobb 角</span>
+                    <span className="text-[16px] font-bold text-[var(--nimi-text-primary)]">{rec.cobb}°</span>
+                    <span className={`text-[12px] px-1.5 py-0.5 rounded-full ${badgeToneClass(level.tone)}`}>{level.label}</span>
                   </div>
                 );
               })()}
               {rec.shoulder && (
                 <div className="flex items-center gap-2">
-                  <span className="text-[12px]" style={{ color: S.sub }}>肩部</span>
-                  <span className="text-[14px] font-medium" style={{ color: S.text }}>{SHOULDER_LABELS[rec.shoulder] ?? '未知'}</span>
+                  <span className="text-[12px] text-[var(--nimi-text-muted)]">肩部</span>
+                  <span className="text-[14px] font-medium text-[var(--nimi-text-primary)]">{SHOULDER_LABELS[rec.shoulder] ?? '未知'}</span>
                 </div>
               )}
             </div>
-            {rec.cobbNotes && <p className="text-[13px] mt-2" style={{ color: S.sub }}>{rec.cobbNotes}</p>}
-          </div>
+            {rec.cobbNotes && <p className="text-[13px] mt-2 text-[var(--nimi-text-muted)]">{rec.cobbNotes}</p>}
+          </Surface>
         ))}
       </div>
     </div>

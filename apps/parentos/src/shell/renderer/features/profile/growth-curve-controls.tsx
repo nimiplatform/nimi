@@ -1,6 +1,6 @@
+import { Button, Surface, Tooltip, cn } from '@nimiplatform/nimi-kit/ui';
 import { useTranslation } from 'react-i18next';
 import { AppSelect } from '../../app-shell/app-select.js';
-import { S } from '../../app-shell/page-style.js';
 import type { MeasurementRow } from '../../bridge/sqlite-bridge.js';
 import { GROWTH_STANDARD_LABELS, type GrowthStandard } from './who-lms-loader.js';
 import {
@@ -40,6 +40,7 @@ export function GrowthCurveControls({
   const latestWeight = getLatestMeasurement(measurements, 'weight');
   const computedBmi = latestHeight && latestWeight ? computeBMI(latestHeight.value, latestWeight.value) : null;
   const staleDays = getStaleMeasurementDays(measurements);
+  const noDataLabel = t('Profile.rich.growth.noData');
   const visibleCards = METRIC_CARDS.filter((card) => {
     if (card.maxAgeMonths != null && ageMonths > card.maxAgeMonths) return false;
     if (card.minAgeMonths != null && ageMonths < card.minAgeMonths) return false;
@@ -62,50 +63,59 @@ export function GrowthCurveControls({
             const bmiDate = latestHeight && latestWeight
               ? (latestHeight.measuredAt > latestWeight.measuredAt ? latestHeight.measuredAt : latestWeight.measuredAt)
               : null;
-            dateLabel = bmiDate ? fmtMeasDate(bmiDate) : t('Profile.rich.growth.noData');
+            dateLabel = bmiDate ? fmtMeasDate(bmiDate) : noDataLabel;
           } else {
             displayValue = measurement ? `${measurement.value}` : '--';
-            dateLabel = measurement ? fmtMeasDate(measurement.measuredAt) : t('Profile.rich.growth.noData');
+            dateLabel = measurement ? fmtMeasDate(measurement.measuredAt) : noDataLabel;
             if (measurement && previous) delta = Math.round((measurement.value - previous.value) * 10) / 10;
           }
 
           return (
-            <button
+            <Surface
+              as="button"
               key={card.typeId}
               onClick={() => onSelectType(card.typeId)}
-              className={`${S.radiusSm} p-3 text-left transition-all duration-150`}
-              style={{
-                background: S.card,
-                boxShadow: isActive ? `0 0 0 2px ${S.accent}` : S.shadow,
-                border: isActive ? 'none' : undefined,
-              }}
+              tone="card"
+              elevation="raised"
+              padding="sm"
+              interactive
+              active={isActive}
+              className={cn(
+                'rounded-2xl text-left transition-all duration-150',
+                isActive && 'border-[var(--nimi-action-primary-bg)] ring-2 ring-[var(--nimi-action-primary-bg)]',
+              )}
             >
               <div className="flex items-start justify-between mb-2">
                 <span className="text-[20px]">{card.emoji}</span>
-                <span className="text-[12px] font-medium" style={{ color: isActive ? S.accent : S.sub }}>{card.label}</span>
+                <span className={cn('text-[12px] font-medium', isActive ? 'text-[var(--nimi-action-primary-bg)]' : 'text-[var(--nimi-text-muted)]')}>{card.label}</span>
               </div>
               <div className="flex items-baseline gap-1.5">
-                <p className="text-[20px] font-bold leading-none" style={{ color: S.text }}>{displayValue}</p>
+                <p className="text-[20px] font-bold leading-none text-[var(--nimi-text-primary)]">{displayValue}</p>
                 {delta != null ? (
-                  <span className="text-[12px] font-medium" style={{ color: S.sub }}>
+                  <span className="text-[12px] font-medium text-[var(--nimi-text-muted)]">
                     {delta >= 0 ? '↑' : '↓'}{delta >= 0 ? '+' : ''}{delta}
                   </span>
                 ) : null}
               </div>
-              <p className="text-[12px] mt-0.5" style={{ color: S.sub }}>{card.unit}</p>
-              <p className="text-[12px] mt-1" style={{ color: dateLabel === t('Profile.rich.growth.noData') ? '#d4d1cc' : S.sub }}>{dateLabel}</p>
-            </button>
+              <p className="text-[12px] mt-0.5 text-[var(--nimi-text-muted)]">{card.unit}</p>
+              <p className={cn('text-[12px] mt-1', dateLabel === noDataLabel ? 'text-[var(--nimi-text-subtle)]' : 'text-[var(--nimi-text-muted)]')}>{dateLabel}</p>
+            </Surface>
           );
         })}
       </div>
 
       {staleDays != null && staleDays > 90 ? (
-        <div className={`${S.radiusSm} px-3 py-2 mb-4 flex items-center gap-2`} style={{ background: '#faf8f0', border: '1px solid #e8e2d0' }}>
+        <Surface
+          tone="card"
+          elevation="base"
+          padding="sm"
+          className="mb-4 flex items-center gap-2 rounded-2xl border-[color-mix(in_srgb,var(--nimi-status-warning)_35%,var(--nimi-border-subtle))] bg-[color-mix(in_srgb,var(--nimi-status-warning)_10%,var(--nimi-surface-card))] px-3 py-2"
+        >
           <span className="text-[14px]">📅</span>
-          <span className="text-[13px]" style={{ color: '#8a7a5a' }}>
+          <span className="text-[13px] text-[var(--nimi-status-warning)]">
             {t('Profile.rich.growth.staleHint', { days: staleDays })}
           </span>
-        </div>
+        </Surface>
       ) : null}
 
       {(() => {
@@ -124,39 +134,38 @@ export function GrowthCurveControls({
                 value: standard!.typeId,
                 label: `${standard!.displayName} (${standard!.unit})`,
               }))}
-              style={{ color: isOtherActive ? S.text : S.sub }}
+              className={isOtherActive ? 'text-[var(--nimi-text-primary)]' : 'text-[var(--nimi-text-muted)]'}
             />
           </div>
         );
       })()}
 
       <div className="flex items-center mb-3">
-        <div className="flex items-center gap-1.5 p-0.5 rounded-full" style={{ background: '#f0f0ec' }}>
+        <Surface tone="panel" elevation="base" padding="none" className="flex items-center gap-1.5 rounded-full p-0.5">
           {(['china', 'who'] as const).map((standard) => {
             const isActive = growthStandard === standard;
             return (
-              <div key={standard} className="group/std relative flex items-center">
-                <button
+              <Tooltip
+                key={standard}
+                content={<span className="whitespace-pre-line">{getGrowthStandardTooltip(standard)}</span>}
+                contentClassName="w-[280px] p-3 text-[13px] leading-relaxed"
+              >
+                <Button
                   onClick={() => onSelectGrowthStandard(standard)}
-                  className={`flex items-center gap-1 px-3 py-1 text-[13px] font-medium rounded-full transition-all duration-200 ${isActive ? 'text-white shadow-sm' : ''}`}
-                  style={isActive ? { background: standard === 'china' ? '#e25c5c' : '#4a90d9', color: '#fff' } : { color: S.sub }}
+                  tone={isActive ? 'primary' : 'ghost'}
+                  size="sm"
+                  className="min-h-0 rounded-full px-3 py-1 text-[13px]"
                 >
                   {GROWTH_STANDARD_LABELS[standard]}
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="opacity-50">
                     <circle cx="12" cy="12" r="10" />
                     <path d="M12 16v-4M12 8h.01" />
                   </svg>
-                </button>
-                <div
-                  className="pointer-events-none absolute left-0 top-8 z-50 w-[280px] rounded-xl p-3 text-[13px] leading-relaxed opacity-0 transition-opacity duration-200 group-hover/std:pointer-events-auto group-hover/std:opacity-100 whitespace-pre-line"
-                  style={{ background: '#1e293b', color: '#f1f5f9', boxShadow: '0 4px 16px rgba(0,0,0,0.2)' }}
-                >
-                  {getGrowthStandardTooltip(standard)}
-                </div>
-              </div>
+                </Button>
+              </Tooltip>
             );
           })}
-        </div>
+        </Surface>
       </div>
     </>
   );

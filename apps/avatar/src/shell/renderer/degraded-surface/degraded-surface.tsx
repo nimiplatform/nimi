@@ -9,6 +9,7 @@
 // keys declared in .nimi/spec/avatar/kernel/tables/i18n-keys.yaml.
 
 import { useTranslation } from '../i18n/index.js';
+import { Button, StatusBadge, Surface, cn } from '@nimiplatform/nimi-kit/ui';
 import { reloadAvatarShell } from '../shell-reload.js';
 import { useSurfaceMountEvidence } from '../app-shell/composition-events.js';
 import type { CompositionDerivation } from '../app-shell/composition-state.js';
@@ -63,30 +64,37 @@ export function DegradedSurface(props: DegradedSurfaceProps) {
       : t(`${keyPrefix}.summary`);
 
   return (
-    <section
-      className={`avatar-degraded-surface nimi-material-glass-regular backdrop-blur-[var(--nimi-backdrop-blur-regular)] avatar-degraded-surface--${tone}`}
+    <Surface
+      as="section"
+      material="glass-regular"
+      tone="overlay"
+      elevation="modal"
+      padding="none"
+      className={cn('avatar-degraded-surface nimi-material-glass-regular backdrop-blur-[var(--nimi-backdrop-blur-regular)]', `avatar-degraded-surface--${tone}`)}
       data-testid="avatar-degraded-surface"
       data-composition-state={composition.state}
       role="alert"
       aria-label={t('Avatar.degraded.surface_aria')}
     >
       <div className="avatar-degraded-surface__banner">
-        <span className={`avatar-degraded-surface__badge avatar-degraded-surface__badge--${tone}`}>
+        <StatusBadge className={`avatar-degraded-surface__badge avatar-degraded-surface__badge--${tone}`} tone={tone === 'error' ? 'danger' : tone === 'degraded' ? 'warning' : 'info'}>
           {t(`${keyPrefix}.badge`)}
-        </span>
+        </StatusBadge>
       </div>
       <h1 className="avatar-degraded-surface__title">{t(`${keyPrefix}.title`)}</h1>
       <p className="avatar-degraded-surface__summary">{summary}</p>
       <p className="avatar-degraded-surface__recovery">{t(`${keyPrefix}.recovery`)}</p>
       <div className="avatar-degraded-surface__actions">
-        <button
+        <Button
           type="button"
           className="avatar-degraded-surface__reload"
+          tone="primary"
+          size="md"
           onClick={() => reloadAvatarShell()}
           data-testid="avatar-degraded-reload"
         >
           {t('Avatar.degraded.reload')}
-        </button>
+        </Button>
       </div>
       {composition.reason && composition.variant !== 'loading' && composition.variant !== 'relaunch' ? (
         <details className="avatar-degraded-surface__diagnostics">
@@ -127,6 +135,6 @@ export function DegradedSurface(props: DegradedSurfaceProps) {
           </dl>
         </details>
       ) : null}
-    </section>
+    </Surface>
   );
 }

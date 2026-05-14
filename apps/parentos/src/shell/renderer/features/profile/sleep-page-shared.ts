@@ -1,12 +1,12 @@
-import { S } from '../../app-shell/page-style.js';
+import { Surface } from '@nimiplatform/nimi-kit/ui';
 import type { SleepRecordRow } from '../../bridge/sqlite-bridge.js';
 
 export const QUALITY_OPTIONS = ['good', 'fair', 'poor'] as const;
 export const QUALITY_LABELS: Record<string, string> = { good: '好', fair: '一般', poor: '差' };
 export const QUALITY_COLOR: Record<string, { bg: string; text: string }> = {
-  good: { bg: '#dcfce7', text: '#15803d' },
-  fair: { bg: '#fef3c7', text: '#b45309' },
-  poor: { bg: '#fee2e2', text: '#dc2626' },
+  good: { bg: 'color-mix(in_srgb,var(--nimi-status-success)_14%,transparent)', text: 'var(--nimi-status-success)' },
+  fair: { bg: 'color-mix(in_srgb,var(--nimi-status-warning)_14%,transparent)', text: 'var(--nimi-status-warning)' },
+  poor: { bg: 'color-mix(in_srgb,var(--nimi-status-danger)_12%,transparent)', text: 'var(--nimi-status-danger)' },
 };
 
 export type SleepAgeTier = 'infant' | 'toddler' | 'preschool' | 'school';
@@ -26,13 +26,13 @@ export const TIER_DEFAULTS: Record<SleepAgeTier, { bed: string; wake: string }> 
 };
 
 export const inputCls = (extra = '') =>
-  `w-full ${S.radiusSm} pl-3 pr-8 py-2 text-[14px] outline-none transition-shadow focus:ring-2 focus:ring-[#4ECCA3]/50 ${extra}`;
+  `w-full ${"rounded-2xl"} pl-3 pr-8 py-2 text-[14px] outline-none transition-shadow focus:ring-2 focus:ring-[var(--nimi-action-primary-bg)]/50 ${extra}`;
 
 export const inputSty = {
-  borderColor: S.border,
+  borderColor: 'var(--nimi-border-subtle)',
   borderWidth: 1,
   borderStyle: 'solid' as const,
-  background: '#ffffff',
+  background: 'var(--nimi-surface-card)',
 };
 
 export function sleepAgeTier(ageMonths: number): SleepAgeTier {

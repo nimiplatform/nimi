@@ -1,3 +1,4 @@
+import { Button, cn, StatusBadge, Surface, TextField } from '@nimiplatform/nimi-kit/ui';
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
@@ -14,15 +15,12 @@ import {
 import type { MeasurementRow, VisionFollowupSettings } from '../../bridge/sqlite-bridge.js';
 import { GROWTH_STANDARDS } from '../../knowledge-base/index.js';
 import type { GrowthTypeId } from '../../knowledge-base/gen/growth-standards.gen.js';
-import { S } from '../../app-shell/page-style.js';
 import { AppSelect } from '../../app-shell/app-select.js';
 import { catchLog } from '../../infra/telemetry/catch-log.js';
 import { ulid, isoNow } from '../../bridge/ulid.js';
 import { ProfileDatePicker } from './profile-date-picker.js';
 import { CHART_OPTIONS } from './vision-data.js';
 import { SectionLabel } from './vision-page-cards.js';
-
-const MONO = "var(--nimi-font-mono, 'JetBrains Mono', 'SF Mono', ui-monospace, monospace)";
 
 export const EARLY_SCREENING_MAX_AGE_MONTHS = 72;
 export const VISION_SCREENING_PREFIX = 'vision:';
@@ -38,9 +36,9 @@ const SCREENING_TYPES = [
 ] as const;
 
 const SCREENING_RESULT_OPTIONS = [
-  { key: 'pass', labelKey: 'resultPass', color: '#10b981' },
-  { key: 'refer', labelKey: 'resultRefer', color: '#ef4444' },
-  { key: 'inconclusive', labelKey: 'resultInconclusive', color: '#f59e0b' },
+  { key: 'pass', labelKey: 'resultPass', tone: 'success' },
+  { key: 'refer', labelKey: 'resultRefer', tone: 'danger' },
+  { key: 'inconclusive', labelKey: 'resultInconclusive', tone: 'warning' },
 ] as const;
 
 /* ── ScreeningModal — admit a new early screening to medical_events ─ */
@@ -93,39 +91,54 @@ export function ScreeningModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.25)' }} onClick={onClose}>
-      <div className={`w-[560px] max-h-[85vh] overflow-y-auto ${S.radius} p-5 shadow-xl`} style={{ background: S.card }} onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--nimi-scrim-modal)]" onClick={onClose}>
+      <Surface
+        tone="overlay"
+        material="glass-thick"
+        elevation="modal"
+        padding="lg"
+        className="max-h-[85vh] w-[560px] overflow-y-auto rounded-3xl"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-[16px] font-semibold" style={{ color: S.text }}>{t('Profile.rich.vision.screeningModalTitle')}</h3>
-          <button onClick={onClose} aria-label={t('Profile.rich.common.close')} className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-[#f0f0ec]" style={{ color: S.sub }}>✕</button>
+          <h3 className="text-[16px] font-semibold text-[var(--nimi-text-primary)]">{t('Profile.rich.vision.screeningModalTitle')}</h3>
+          <Button onClick={onClose} aria-label={t('Profile.rich.common.close')} tone="ghost" size="sm" className="h-7 min-h-7 w-7 rounded-full px-0">✕</Button>
         </div>
 
-        <p className="text-[13px] mb-2" style={{ color: S.sub }}>{t('Profile.rich.vision.screeningItem')}</p>
+        <p className="text-[13px] mb-2 text-[var(--nimi-text-muted)]">{t('Profile.rich.vision.screeningItem')}</p>
         <div className="flex flex-wrap gap-1.5 mb-4">
           {availableTypes.map((screeningType) => (
             <button
               key={screeningType.key}
               onClick={() => setFormType(screeningType.key)}
-              className={`flex items-center gap-1 px-3 py-1.5 text-[13px] ${S.radiusSm} transition-all`}
-              style={formType === screeningType.key
-                ? { background: S.accent, color: '#fff' }
-                : { background: '#f5f3ef', color: S.sub }}
+              className={cn(
+                'flex items-center gap-1 rounded-2xl px-3 py-1.5 text-[13px] transition-all',
+                formType === screeningType.key
+                  ? 'bg-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)]'
+                  : 'bg-[var(--nimi-action-secondary-bg)] text-[var(--nimi-text-muted)] hover:bg-[var(--nimi-action-ghost-hover)]',
+              )}
             >
               <span>{screeningType.emoji}</span> {t(`Profile.rich.vision.screeningTypes.${screeningType.labelKey}`)}
             </button>
           ))}
         </div>
 
-        <p className="text-[13px] mb-2" style={{ color: S.sub }}>{t('Profile.rich.vision.screeningResult')}</p>
+        <p className="text-[13px] mb-2 text-[var(--nimi-text-muted)]">{t('Profile.rich.vision.screeningResult')}</p>
         <div className="flex gap-1.5 mb-4">
           {SCREENING_RESULT_OPTIONS.map((r) => (
             <button
               key={r.key}
               onClick={() => setFormResult(r.key)}
-              className={`px-3 py-1.5 text-[13px] ${S.radiusSm} transition-all font-medium`}
-              style={formResult === r.key
-                ? { background: r.color, color: '#fff' }
-                : { background: '#f5f3ef', color: S.sub }}
+              className={cn(
+                'rounded-2xl px-3 py-1.5 text-[13px] font-medium transition-all',
+                formResult === r.key
+                  ? {
+                    success: 'bg-[var(--nimi-status-success)] text-[var(--nimi-action-primary-text)]',
+                    danger: 'bg-[var(--nimi-status-danger)] text-[var(--nimi-action-primary-text)]',
+                    warning: 'bg-[var(--nimi-status-warning)] text-[var(--nimi-action-primary-text)]',
+                  }[r.tone]
+                  : 'bg-[var(--nimi-action-secondary-bg)] text-[var(--nimi-text-muted)] hover:bg-[var(--nimi-action-ghost-hover)]',
+              )}
             >
               {t(`Profile.rich.vision.${r.labelKey}`)}
             </button>
@@ -134,47 +147,49 @@ export function ScreeningModal({
 
         <div className="grid grid-cols-2 gap-3 mb-3">
           <div>
-            <p className="text-[13px] mb-1" style={{ color: S.sub }}>{t('Profile.rich.common.date')}</p>
-            <ProfileDatePicker value={formDate} onChange={setFormDate} style={{ background: '#f5f3ef', color: S.text }} />
+            <p className="text-[13px] mb-1 text-[var(--nimi-text-muted)]">{t('Profile.rich.common.date')}</p>
+            <ProfileDatePicker value={formDate} onChange={setFormDate} />
           </div>
           <div>
-            <p className="text-[13px] mb-1" style={{ color: S.sub }}>{t('Profile.rich.vision.hospitalOrClinic')}</p>
-            <input
-              type="text" value={formHospital} onChange={(e) => setFormHospital(e.target.value)}
+            <p className="text-[13px] mb-1 text-[var(--nimi-text-muted)]">{t('Profile.rich.vision.hospitalOrClinic')}</p>
+            <TextField
+              type="text"
+              value={formHospital}
+              onChange={(e) => setFormHospital(e.target.value)}
               placeholder={t('Profile.rich.common.optional')}
-              className={`w-full px-3 py-2 text-[14px] ${S.radiusSm} border-0 outline-none`}
-              style={{ background: '#f5f3ef', color: S.text }}
+              className="w-full"
             />
           </div>
         </div>
 
         <div className="mb-4">
-          <p className="text-[13px] mb-1" style={{ color: S.sub }}>{t('Profile.rich.vision.notes')}</p>
-          <input
-            type="text" value={formNotes} onChange={(e) => setFormNotes(e.target.value)}
+          <p className="text-[13px] mb-1 text-[var(--nimi-text-muted)]">{t('Profile.rich.vision.notes')}</p>
+          <TextField
+            type="text"
+            value={formNotes}
+            onChange={(e) => setFormNotes(e.target.value)}
             placeholder={t('Profile.rich.common.optional')}
-            className={`w-full px-3 py-2 text-[14px] ${S.radiusSm} border-0 outline-none`}
-            style={{ background: '#f5f3ef', color: S.text }}
+            className="w-full"
           />
         </div>
 
         <div className="flex gap-2">
-          <button
+          <Button
             onClick={() => void handleSubmit()}
-            className={`px-5 py-2 text-[14px] font-medium text-white ${S.radiusSm} hover:opacity-90 transition-all`}
-            style={{ background: S.accent }}
+            tone="primary"
+            size="md"
           >
             {t('Profile.rich.common.save')}
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={onClose}
-            className={`px-4 py-2 text-[14px] ${S.radiusSm} transition-all`}
-            style={{ background: '#f5f3ef', color: S.sub }}
+            tone="secondary"
+            size="md"
           >
             {t('Profile.rich.common.cancel')}
-          </button>
+          </Button>
         </div>
-      </div>
+      </Surface>
     </div>
   );
 }
@@ -185,36 +200,34 @@ export function SourcesTooltip() {
   return (
     <div className="group relative">
       <div
-        className="w-[18px] h-[18px] rounded-full flex items-center justify-center cursor-help transition-colors hover:bg-[#f0f0ec]"
-        style={{ color: 'var(--nimi-fg-3)' }}
+        className="w-[18px] h-[18px] rounded-full flex items-center justify-center cursor-help transition-colors text-[var(--nimi-text-muted)] hover:bg-[var(--nimi-action-ghost-hover)]"
       >
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
           <circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" />
         </svg>
       </div>
       <div
-        className="pointer-events-none absolute left-0 top-7 z-50 w-[340px] rounded-xl p-4 text-[13px] leading-relaxed opacity-0 transition-opacity duration-200 group-hover:pointer-events-auto group-hover:opacity-100"
-        style={{ background: '#1e293b', color: '#e0e4e8', boxShadow: '0 8px 24px rgba(0,0,0,0.2)' }}
+        className="pointer-events-none absolute left-0 top-7 z-50 w-[340px] rounded-xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-overlay)] p-4 text-[13px] leading-relaxed text-[var(--nimi-text-secondary)] opacity-0 shadow-[var(--nimi-elevation-floating)] transition-opacity duration-200 group-hover:pointer-events-auto group-hover:opacity-100"
       >
-        <p className="text-[14px] font-semibold text-white mb-2.5">数据参考文献</p>
+        <p className="text-[14px] font-semibold text-[var(--nimi-text-primary)] mb-2.5">数据参考文献</p>
         <ul className="space-y-2.5">
           <li>
-            <span className="text-[#4ECCA3] font-medium">眼轴 P50/P75 百分位（分性别 · 4-18岁）</span>
-            <span className="block text-[12px] text-[#a0a8b4] mt-0.5">He X, Sankaridurg P, Naduvilath T, et al. Normative data and percentile curves for axial length and axial length/corneal curvature in Chinese children and adolescents aged 4-18 years.</span>
-            <span className="block text-[12px] text-[#7a8090]">Br J Ophthalmol 2023;107:167-175</span>
+            <span className="text-[var(--nimi-action-primary-bg)] font-medium">眼轴 P50/P75 百分位（分性别 · 4-18岁）</span>
+            <span className="block text-[12px] text-[var(--nimi-text-secondary)] mt-0.5">He X, Sankaridurg P, Naduvilath T, et al. Normative data and percentile curves for axial length and axial length/corneal curvature in Chinese children and adolescents aged 4-18 years.</span>
+            <span className="block text-[12px] text-[var(--nimi-text-muted)]">Br J Ophthalmol 2023;107:167-175</span>
           </li>
           <li>
-            <span className="text-[#4ECCA3] font-medium">远视储备 · 角膜曲率参考区间（6-15岁）</span>
-            <span className="block text-[12px] text-[#a0a8b4] mt-0.5">中华预防医学会公共卫生眼科分会. 中国学龄儿童眼球远视储备、眼轴长度、角膜曲率参考区间及相关遗传因素专家共识（2022年）.</span>
-            <span className="block text-[12px] text-[#7a8090]">中华眼科杂志 2022;58(2):96-102</span>
+            <span className="text-[var(--nimi-action-primary-bg)] font-medium">远视储备 · 角膜曲率参考区间（6-15岁）</span>
+            <span className="block text-[12px] text-[var(--nimi-text-secondary)] mt-0.5">中华预防医学会公共卫生眼科分会. 中国学龄儿童眼球远视储备、眼轴长度、角膜曲率参考区间及相关遗传因素专家共识（2022年）.</span>
+            <span className="block text-[12px] text-[var(--nimi-text-muted)]">中华眼科杂志 2022;58(2):96-102</span>
           </li>
           <li>
-            <span className="text-[#4ECCA3] font-medium">眼轴防控应用共识</span>
-            <span className="block text-[12px] text-[#a0a8b4] mt-0.5">中华医学会眼科学分会眼视光学组. 眼轴长度在近视防控管理中的应用专家共识（2023）.</span>
+            <span className="text-[var(--nimi-action-primary-bg)] font-medium">眼轴防控应用共识</span>
+            <span className="block text-[12px] text-[var(--nimi-text-secondary)] mt-0.5">中华医学会眼科学分会眼视光学组. 眼轴长度在近视防控管理中的应用专家共识（2023）.</span>
           </li>
           <li>
-            <span className="text-[#4ECCA3] font-medium">近视防控技术指南</span>
-            <span className="block text-[12px] text-[#a0a8b4] mt-0.5">国家卫生健康委员会. 儿童青少年近视防控适宜技术指南（更新版）. 2023</span>
+            <span className="text-[var(--nimi-action-primary-bg)] font-medium">近视防控技术指南</span>
+            <span className="block text-[12px] text-[var(--nimi-text-secondary)] mt-0.5">国家卫生健康委员会. 儿童青少年近视防控适宜技术指南（更新版）. 2023</span>
           </li>
         </ul>
       </div>
@@ -317,11 +330,12 @@ export function NextStepsCard({
         right={
           <button
             onClick={() => setEditing((e) => !e)}
-            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] cursor-pointer transition-all border-0"
-            style={{
-              background: editing ? 'var(--nimi-accent-soft)' : 'rgba(15,23,42,0.05)',
-              color: editing ? 'var(--nimi-accent)' : 'var(--nimi-fg-2)',
-            }}
+            className={cn(
+              'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] cursor-pointer transition-all border-0',
+              editing
+                ? 'bg-[var(--nimi-accent-soft)] text-[var(--nimi-accent)]'
+                : 'bg-[var(--nimi-action-secondary-bg)] text-[var(--nimi-text-secondary)] hover:bg-[var(--nimi-action-ghost-hover)]',
+            )}
           >
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="12" cy="12" r="3" />
@@ -333,18 +347,16 @@ export function NextStepsCard({
       >
         {t('Profile.detail.nextRecordDate')}
       </SectionLabel>
-      <div
-        className="rounded-[22px] nimi-material-glass-regular bg-[var(--nimi-material-glass-regular-bg)] border border-[var(--nimi-material-glass-regular-border)]"
-        style={{ padding: 6, boxShadow: '0 1px 2px rgba(15,23,42,0.03), 0 6px 18px rgba(15,23,42,0.04)' }}
+      <Surface
+        tone="card"
+        material="glass-regular"
+        elevation="raised"
+        padding="none"
+        className="rounded-3xl p-1.5"
       >
-        <div className="flex items-center gap-3" style={{ padding: '12px 14px' }}>
+        <div className="flex items-center gap-3 px-3.5 py-3">
           <div
-            className="grid place-items-center flex-shrink-0 rounded-[12px]"
-            style={{
-              width: 32, height: 32,
-              background: 'var(--nimi-accent-soft)',
-              color: 'var(--nimi-accent)',
-            }}
+            className="grid h-8 w-8 place-items-center flex-shrink-0 rounded-xl bg-[var(--nimi-accent-soft)] text-[var(--nimi-accent)]"
           >
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
               <rect x="3" y="4" width="18" height="18" rx="2" />
@@ -353,27 +365,21 @@ export function NextStepsCard({
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1.5 flex-wrap">
-              <span className="text-[14px] font-medium" style={{ color: 'var(--nimi-fg-1)' }}>
+              <span className="text-[14px] font-medium text-[var(--nimi-text-primary)]">
                 {t('Profile.rich.vision.nextReview')}
               </span>
               {resolved.isCustomDate && (
-                <span
-                  className="text-[10px] px-1.5 py-0.5 rounded-full font-medium"
-                  style={{ background: 'rgba(14,165,233,0.10)', color: '#0369a1' }}
-                >
+                <StatusBadge tone="info" className="px-1.5 py-0.5 text-[10px]">
                   {t('Profile.rich.vision.custom')}
-                </span>
+                </StatusBadge>
               )}
               {!resolved.isCustomDate && resolved.isUserOverride && (
-                <span
-                  className="text-[10px] px-1.5 py-0.5 rounded-full font-medium"
-                  style={{ background: 'rgba(15,23,42,0.05)', color: 'var(--nimi-fg-3)' }}
-                >
+                <StatusBadge tone="neutral" className="px-1.5 py-0.5 text-[10px]">
                   {t('Profile.rich.vision.everyMonths', { months: resolved.cadenceMonths })}
-                </span>
+                </StatusBadge>
               )}
             </div>
-            <div className="text-[11px] mt-0.5" style={{ color: 'var(--nimi-fg-3)', fontFamily: MONO }}>
+            <div className="text-[11px] mt-0.5 font-mono text-[var(--nimi-text-muted)]">
               {resolved.visitDate} · {fmtRelative(resolved.visitDate, today)}
             </div>
           </div>
@@ -391,7 +397,7 @@ export function NextStepsCard({
             }}
           />
         )}
-      </div>
+      </Surface>
     </div>
   );
 }
@@ -464,15 +470,14 @@ function NextStepsEditor({
   };
 
   return (
-    <div
-      className="rounded-[18px] mt-1 mb-1 mx-1"
-      style={{
-        padding: '14px 14px 12px',
-        background: 'rgba(15,23,42,0.025)',
-        border: '1px solid rgba(15,23,42,0.06)',
-      }}
+    <Surface
+      tone="panel"
+      material="solid"
+      elevation="base"
+      padding="none"
+      className="rounded-2xl mt-1 mb-1 mx-1 px-3.5 pb-3 pt-3.5"
     >
-      <div className="text-[11px] font-semibold uppercase tracking-[0.06em] mb-2" style={{ color: 'var(--nimi-fg-3)' }}>
+      <div className="text-[11px] font-semibold uppercase tracking-[0.06em] mb-2 text-[var(--nimi-text-muted)]">
         {t('Profile.rich.vision.followupFrequency')}
       </div>
       <div className="flex flex-wrap gap-1.5 mb-3">
@@ -480,19 +485,23 @@ function NextStepsEditor({
           <button
             key={p.months}
             onClick={() => setCadence(p.months)}
-            className="px-3 py-1.5 text-[12px] rounded-full border-0 cursor-pointer transition-all"
-            style={cadence === p.months
-              ? { background: 'var(--nimi-accent)', color: 'white' }
-              : { background: 'rgba(15,23,42,0.04)', color: 'var(--nimi-fg-2)' }}
+            className={cn(
+              'px-3 py-1.5 text-[12px] rounded-full border-0 cursor-pointer transition-all',
+              cadence === p.months
+                ? 'bg-[var(--nimi-accent)] text-[var(--nimi-action-primary-text)]'
+                : 'bg-[var(--nimi-action-secondary-bg)] text-[var(--nimi-text-secondary)] hover:bg-[var(--nimi-action-ghost-hover)]',
+            )}
           >
             {p.months} {t('Profile.rich.vision.monthsShort')}
           </button>
         ))}
         <div
-          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full"
-          style={isCustomCadence
-            ? { background: 'var(--nimi-accent-soft)', color: 'var(--nimi-accent)' }
-            : { background: 'rgba(15,23,42,0.04)', color: 'var(--nimi-fg-3)' }}
+          className={cn(
+            'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full',
+            isCustomCadence
+              ? 'bg-[var(--nimi-accent-soft)] text-[var(--nimi-accent)]'
+              : 'bg-[var(--nimi-action-secondary-bg)] text-[var(--nimi-text-muted)]',
+          )}
         >
           <span className="text-[12px]">{t('Profile.rich.vision.custom')}</span>
           <input
@@ -504,46 +513,40 @@ function NextStepsEditor({
               const n = Number(e.target.value);
               if (Number.isFinite(n)) setCadence(Math.round(n));
             }}
-            className="w-12 text-center bg-transparent border-0 outline-none text-[12px] tabular-nums"
-            style={{ color: 'inherit', fontFamily: MONO }}
+            className="w-12 text-center bg-transparent border-0 outline-none text-[12px] tabular-nums font-mono"
             aria-label="vision-followup-cadence-custom"
           />
           <span className="text-[12px]">{t('Profile.rich.vision.monthsShort')}</span>
         </div>
       </div>
 
-      <div className="text-[11px] font-semibold uppercase tracking-[0.06em] mb-2" style={{ color: 'var(--nimi-fg-3)' }}>
-        {t('Profile.rich.vision.customNextDate')} <span className="font-normal normal-case lowercase" style={{ color: 'var(--nimi-fg-4)' }}>· {t('Profile.rich.vision.customNextDateHint')}</span>
+      <div className="text-[11px] font-semibold uppercase tracking-[0.06em] mb-2 text-[var(--nimi-text-muted)]">
+        {t('Profile.rich.vision.customNextDate')} <span className="font-normal normal-case lowercase text-[var(--nimi-field-placeholder)]">· {t('Profile.rich.vision.customNextDateHint')}</span>
       </div>
       <div className="flex items-center gap-2 mb-1">
         <ProfileDatePicker
           value={customDate}
           onChange={setCustomDate}
-          className="flex-1 text-[13px] rounded-[10px] px-3 py-2 border-0 outline-none"
-          style={{ background: 'white', color: 'var(--nimi-fg-1)' }}
+          className="flex-1 text-[13px] rounded-xl px-3 py-2 border-0 outline-none"
         />
         {customDate && (
           <button
             onClick={() => setCustomDate('')}
-            className="text-[11px] px-2.5 py-1.5 rounded-full border-0 cursor-pointer"
-            style={{ background: 'rgba(15,23,42,0.05)', color: 'var(--nimi-fg-3)' }}
+            className="text-[11px] px-2.5 py-1.5 rounded-full border-0 cursor-pointer bg-[var(--nimi-action-secondary-bg)] text-[var(--nimi-text-muted)] hover:bg-[var(--nimi-action-ghost-hover)]"
             aria-label="vision-followup-clear-custom-date"
           >
             {t('Profile.rich.vision.clear')}
           </button>
         )}
       </div>
-      <div className="text-[11px] mb-3" style={{ color: 'var(--nimi-fg-4)' }}>
+      <div className="text-[11px] mb-3 text-[var(--nimi-field-placeholder)]">
         {latestExamDate
           ? t('Profile.rich.vision.cadenceSuggestion', { months: cadence, date: addMonths(latestExamDate, cadence) })
           : t('Profile.rich.vision.noAnchor')}
       </div>
 
       {error && (
-        <div
-          className="rounded-[10px] mb-2 px-3 py-2 text-[12px]"
-          style={{ background: 'rgba(239,68,68,0.08)', color: '#b91c1c' }}
-        >
+        <div className="rounded-xl mb-2 px-3 py-2 text-[12px] bg-[color-mix(in_srgb,var(--nimi-status-danger)_12%,transparent)] text-[var(--nimi-status-danger)]">
           {error}
         </div>
       )}
@@ -553,8 +556,7 @@ function NextStepsEditor({
           <button
             onClick={() => void handleResetToSystem()}
             disabled={saving}
-            className="text-[11px] cursor-pointer border-0 bg-transparent disabled:opacity-50"
-            style={{ color: 'var(--nimi-fg-3)' }}
+            className="text-[11px] cursor-pointer border-0 bg-transparent text-[var(--nimi-text-muted)] disabled:opacity-50"
           >
             {t('Profile.rich.vision.resetToSystem')}
           </button>
@@ -563,8 +565,7 @@ function NextStepsEditor({
           <button
             onClick={onClose}
             disabled={saving}
-            className="text-[12px] px-3 py-1.5 rounded-full border-0 cursor-pointer disabled:opacity-50"
-            style={{ background: 'rgba(15,23,42,0.05)', color: 'var(--nimi-fg-2)' }}
+            className="text-[12px] px-3 py-1.5 rounded-full border-0 cursor-pointer bg-[var(--nimi-action-secondary-bg)] text-[var(--nimi-text-secondary)] disabled:opacity-50 hover:bg-[var(--nimi-action-ghost-hover)]"
           >
             {t('Profile.rich.common.cancel')}
           </button>
@@ -572,14 +573,13 @@ function NextStepsEditor({
             onClick={() => void handleSave()}
             disabled={saving}
             aria-label="vision-followup-save"
-            className="text-[12px] px-4 py-1.5 rounded-full border-0 cursor-pointer text-white disabled:opacity-50"
-            style={{ background: 'var(--nimi-accent)' }}
+            className="text-[12px] px-4 py-1.5 rounded-full border-0 cursor-pointer bg-[var(--nimi-accent)] text-[var(--nimi-action-primary-text)] disabled:opacity-50"
           >
             {saving ? t('Profile.rich.common.saving') : t('Profile.rich.common.save')}
           </button>
         </div>
       </div>
-    </div>
+    </Surface>
   );
 }
 
@@ -602,16 +602,19 @@ export function TrendChartCard({
     .map((m) => ({ age: m.ageMonths, value: m.value, date: m.measuredAt.split('T')[0] }));
 
   return (
-    <div
-      className="rounded-[22px] nimi-material-glass-regular bg-[var(--nimi-material-glass-regular-bg)] border border-[var(--nimi-material-glass-regular-border)]"
-      style={{ padding: 20, boxShadow: '0 1px 2px rgba(15,23,42,0.03), 0 6px 18px rgba(15,23,42,0.04)' }}
+    <Surface
+      tone="card"
+      material="glass-regular"
+      elevation="raised"
+      padding="none"
+      className="rounded-3xl p-5"
     >
       <div className="flex items-baseline justify-between mb-3.5">
         <div>
-          <div className="text-[14px] font-semibold" style={{ color: 'var(--nimi-fg-1)' }}>
+          <div className="text-[14px] font-semibold text-[var(--nimi-text-primary)]">
             {t('Profile.rich.vision.curveTitle', { metric: typeInfo?.displayName ?? t('Profile.rich.vision.curveFallback') })}
           </div>
-          <div className="text-[11px] mt-0.5" style={{ color: 'var(--nimi-fg-3)' }}>
+          <div className="text-[11px] mt-0.5 text-[var(--nimi-text-muted)]">
             {t('Profile.rich.vision.measurementCount', { count: chartData.length })}
           </div>
         </div>
@@ -622,7 +625,7 @@ export function TrendChartCard({
         />
       </div>
       {chartData.length === 0 ? (
-        <div className="p-8 text-center" style={{ color: 'var(--nimi-fg-3)' }}>
+        <div className="p-8 text-center text-[var(--nimi-text-muted)]">
           <span className="text-[13px]">{t('Profile.rich.vision.emptyMetric', { metric: typeInfo?.displayName ?? '' })}</span>
         </div>
       ) : (
@@ -646,6 +649,6 @@ export function TrendChartCard({
           </LineChart>
         </ResponsiveContainer>
       )}
-    </div>
+    </Surface>
   );
 }

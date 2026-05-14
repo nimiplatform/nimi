@@ -1,7 +1,7 @@
+import { Button, Surface } from '@nimiplatform/nimi-kit/ui';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { RefreshCw } from 'lucide-react';
-import { S } from '../../app-shell/page-style.js';
 import { computeAgeMonths, useAppStore } from '../../app-shell/app-store.js';
 import {
   getHealthRecordEvents,
@@ -107,7 +107,7 @@ export default function ProfilePage() {
 
   if (!activeChild) {
     return (
-      <div className="flex h-full items-center justify-center" style={{ color: S.sub }}>
+      <div className="flex h-full items-center justify-center text-[var(--nimi-text-muted)]">
         {t('Profile.empty.noActiveChild', { defaultValue: 'Add a child profile first' })}
       </div>
     );
@@ -118,7 +118,7 @@ export default function ProfilePage() {
   const recencyDays = lastRecordedDaysAgo(events);
 
   return (
-    <div className="h-full overflow-y-auto hide-scrollbar" style={{ background: 'transparent' }}>
+    <div className="h-full overflow-y-auto hide-scrollbar">
       <div className="mx-auto max-w-5xl px-6 pb-10 pt-5">
         <ProfileHero
           child={activeChild}
@@ -134,26 +134,27 @@ export default function ProfilePage() {
         />
 
         {error ? (
-          <div
-            className="mb-5 flex items-center justify-between rounded-[16px] px-4 py-3"
-            style={{ background: '#fef2f2', color: '#b91c1c', border: '1px solid #fecaca' }}
+          <Surface
+            tone="card"
+            padding="none"
+            className="mb-5 flex items-center justify-between rounded-lg border-[var(--nimi-status-danger)] bg-[color-mix(in_srgb,var(--nimi-status-danger)_10%,var(--nimi-surface-card))] px-4 py-3 text-[var(--nimi-status-danger)]"
           >
             <span className="text-[14px]">
               {t('Profile.errors.loadFailed', { defaultValue: 'Health record could not load' })}
             </span>
-            <button
+            <Button
               type="button"
               onClick={() => void loadRecords(activeChild.childId)}
-              className="rounded-full px-3 py-1 text-[13px]"
-              style={{ background: '#fee2e2' }}
+              tone="danger"
+              size="sm"
             >
               {t('Profile.actions.retry', { defaultValue: 'Retry' })}
-            </button>
-          </div>
+            </Button>
+          </Surface>
         ) : null}
 
         {loading || !snapshot ? (
-          <div className="flex h-40 items-center justify-center text-[14px]" style={{ color: S.sub }}>
+          <div className="flex h-40 items-center justify-center text-[14px] text-[var(--nimi-text-muted)]">
             {t('Profile.loading', { defaultValue: 'Loading...' })}
           </div>
         ) : (
@@ -163,19 +164,19 @@ export default function ProfilePage() {
             <section>
               <div className="mb-3 flex items-end justify-between gap-3">
                 <div>
-                  <h2 className="text-[18px] font-semibold tracking-normal" style={{ color: S.text, letterSpacing: 0 }}>
+                  <h2 className="text-[18px] font-semibold tracking-normal text-[var(--nimi-text-primary)]">
                     {t('Profile.archive.title', { defaultValue: '她的故事，分门别类' })}
                   </h2>
                 </div>
-                <button
+                <Button
                   type="button"
                   onClick={() => void loadRecords(activeChild.childId)}
-                  className="inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-[13px] font-medium transition-colors hover:bg-white/60"
-                  style={{ color: S.sub, background: 'rgba(255,255,255,0.35)' }}
+                  tone="ghost"
+                  size="sm"
+                  leadingIcon={<RefreshCw size={14} />}
                 >
-                  <RefreshCw size={14} />
                   {t('Profile.actions.refresh', { defaultValue: 'Refresh' })}
-                </button>
+                </Button>
               </div>
               <div className="space-y-4">
                 {snapshot.groups.map((group) => (

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { S } from '../../app-shell/page-style.js';
+import { Button, StatusBadge, Surface, TextareaField } from '@nimiplatform/nimi-kit/ui';
+import { ArrowRight, ChevronDown, Eye, Pencil, Star } from 'lucide-react';
 import { ProfileDatePicker } from '../profile/profile-date-picker.js';
 import { useAppStore } from '../../app-shell/app-store.js';
 import {
@@ -126,19 +127,23 @@ function EditableText({ text, onSave }: { text: string; onSave: (v: string) => v
   const ref = useRef<HTMLTextAreaElement>(null);
   const start = () => { setDraft(text); setEditing(true); setTimeout(() => ref.current?.focus(), 0); };
   if (editing) return (<div>
-    <textarea ref={ref} value={draft} onChange={(e) => setDraft(e.target.value)}
-      className={`w-full ${S.radiusSm} px-3 py-2 text-[16px] leading-[1.8] outline-none resize-y min-h-[80px]`}
-      style={{ background: S.bg, color: S.text, border: `1px solid ${S.accent}` }} />
+    <TextareaField
+      ref={ref}
+      value={draft}
+      onChange={(e) => setDraft(e.target.value)}
+      className="report-radius-sm"
+      textareaClassName="report-editable-textarea"
+    />
     <div className="flex gap-2 mt-2">
-      <button onClick={() => { onSave(draft); setEditing(false); }} className="px-3 py-1 rounded-lg text-[14px] font-medium text-white" style={{ background: S.accent }}>保存</button>
-      <button onClick={() => setEditing(false)} className="px-3 py-1 rounded-lg text-[14px]" style={{ color: S.sub }}>取消</button>
+      <Button size="sm" tone="primary" onClick={() => { onSave(draft); setEditing(false); }}>保存</Button>
+      <Button size="sm" tone="ghost" onClick={() => setEditing(false)}>取消</Button>
     </div>
   </div>);
   return (<div className="group relative">
-    <p className="text-[16px] leading-[1.8]" style={{ color: S.text }}>{text}</p>
-    <button onClick={start} className="absolute top-0 right-0 opacity-0 group-hover:opacity-100 transition-opacity w-6 h-6 rounded flex items-center justify-center" style={{ color: S.sub }} title="编辑">
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" /></svg>
-    </button>
+    <p className="report-editable-text">{text}</p>
+    <Button onClick={start} tone="ghost" size="sm" className="report-editable-button opacity-0 transition-opacity group-hover:opacity-100" title="编辑">
+      <Pencil size={12} />
+    </Button>
   </div>);
 }
 
@@ -150,67 +155,67 @@ function NarrativeViewer({ content, reportId, onContentUpdate }: { content: Narr
   const editField = (f: 'opening' | 'milestoneReplay' | 'closingMessage', v: string) => onContentUpdate?.({ ...content, [f]: v });
 
   return (<div className="space-y-4">
-    <div className={`${S.radius} p-5 nimi-material-glass-regular bg-[var(--nimi-material-glass-regular-bg)] border border-[var(--nimi-material-glass-regular-border)] backdrop-blur-[var(--nimi-backdrop-blur-regular)] shadow-[0_8px_32px_rgba(31,38,135,0.04)]`}>
-      <h2 className="text-[20px] font-bold leading-tight" style={{ color: S.text }}>{content.title}</h2>
-      <p className="text-[14px] mt-1" style={{ color: S.sub }}>{content.subtitle}</p>
-      {content.format === 'narrative-ai' && <span className="text-[12px] px-2 py-0.5 rounded-full mt-2 inline-block" style={{ background: '#f0f5e6', color: S.accent }}>AI 撰写</span>}
+    <div className="report-glass-card report-card-pad">
+      <h2 className="report-card-title-lg">{content.title}</h2>
+      <p className="report-card-subtitle">{content.subtitle}</p>
+      {content.format === 'narrative-ai' && <StatusBadge tone="success" className="mt-2">AI 撰写</StatusBadge>}
     </div>
 
-    {content.opening && (<div className={`${S.radius} p-5`} style={{ background: '#fefce8', boxShadow: S.shadow }}>
-      {canEdit ? <EditableText text={content.opening} onSave={(v) => editField('opening', v)} /> : <p className="text-[16px] leading-[1.8] italic" style={{ color: S.text }}>{content.opening}</p>}
+    {content.opening && (<div className="report-soft-panel report-soft-panel--warning-light">
+      {canEdit ? <EditableText text={content.opening} onSave={(v) => editField('opening', v)} /> : <p className="report-body-text report-body-text--italic">{content.opening}</p>}
     </div>)}
 
-    {content.narrativeSections.map((section) => (<div key={section.id} className={`${S.radius} p-5 nimi-material-glass-regular bg-[var(--nimi-material-glass-regular-bg)] border border-[var(--nimi-material-glass-regular-border)] backdrop-blur-[var(--nimi-backdrop-blur-regular)] shadow-[0_8px_32px_rgba(31,38,135,0.04)]`}>
-      <h3 className="text-[16px] font-semibold mb-2" style={{ color: S.text }}>{section.title}</h3>
-      {canEdit ? <EditableText text={section.narrative} onSave={(v) => editSection(section.id, v)} /> : <p className="text-[16px] leading-[1.8]" style={{ color: S.text }}>{section.narrative}</p>}
+    {content.narrativeSections.map((section) => (<div key={section.id} className="report-glass-card report-card-pad">
+      <h3 className="report-card-title">{section.title}</h3>
+      {canEdit ? <EditableText text={section.narrative} onSave={(v) => editSection(section.id, v)} /> : <p className="report-body-text">{section.narrative}</p>}
       {section.dataPoints && section.dataPoints.length > 0 && (<div className="mt-3 flex flex-wrap gap-3">
-        {section.dataPoints.map((dp) => (<div key={dp.label} className={`${S.radiusSm} px-3 py-2`} style={{ background: S.bg }}>
-          <span className="text-[12px] uppercase tracking-wide" style={{ color: S.sub }}>{dp.label}</span>
-          <span className="text-[16px] font-semibold ml-2" style={{ color: S.text }}>{dp.value}</span>
-          {dp.detail && <span className="text-[13px] ml-1" style={{ color: S.sub }}>{dp.detail}</span>}
+        {section.dataPoints.map((dp) => (<div key={dp.label} className="report-data-pill">
+          <span className="report-data-label">{dp.label}</span>
+          <span className="report-data-value">{dp.value}</span>
+          {dp.detail && <span className="report-data-detail">{dp.detail}</span>}
         </div>))}
       </div>)}
     </div>))}
 
-    {content.milestoneReplay && (<div className={`${S.radius} p-5`} style={{ background: '#fef9c3', boxShadow: S.shadow }}>
-      <div className="flex items-center gap-2 mb-2"><span className="text-[16px]">⭐</span><h3 className="text-[16px] font-semibold" style={{ color: S.text }}>里程碑时刻</h3></div>
-      {canEdit ? <EditableText text={content.milestoneReplay} onSave={(v) => editField('milestoneReplay', v)} /> : <p className="text-[16px] leading-[1.8]" style={{ color: S.text }}>{content.milestoneReplay}</p>}
+    {content.milestoneReplay && (<div className="report-soft-panel report-soft-panel--warning">
+      <div className="report-section-heading-row"><Star size={16} className="report-icon-warning" /><h3 className="report-card-title">里程碑时刻</h3></div>
+      {canEdit ? <EditableText text={content.milestoneReplay} onSave={(v) => editField('milestoneReplay', v)} /> : <p className="report-body-text">{content.milestoneReplay}</p>}
     </div>)}
 
     {((content.highlights?.length ?? 0) > 0 || (content.watchNext?.length ?? 0) > 0) && (<div className="grid gap-3 sm:grid-cols-2">
-      {content.highlights && content.highlights.length > 0 && (<div className={`${S.radius} p-5 nimi-material-glass-regular bg-[var(--nimi-material-glass-regular-bg)] border border-[var(--nimi-material-glass-regular-border)] backdrop-blur-[var(--nimi-backdrop-blur-regular)] shadow-[0_8px_32px_rgba(31,38,135,0.04)]`}>
-        <h3 className="text-[16px] font-semibold mb-3" style={{ color: S.text }}>🌟 本月亮点</h3>
-        <ul className="space-y-2">{content.highlights.map((h, i) => <li key={i} className={`${S.radiusSm} px-3 py-2 text-[14px]`} style={{ background: '#f0f5e6', color: S.text }}>{h}</li>)}</ul>
+      {content.highlights && content.highlights.length > 0 && (<div className="report-glass-card report-card-pad">
+        <h3 className="report-section-heading-row report-card-title"><Star size={16} className="report-icon-warning" />本月亮点</h3>
+        <ul className="space-y-2">{content.highlights.map((h, i) => <li key={i} className="report-list-item report-list-item--accent">{h}</li>)}</ul>
       </div>)}
-      {content.watchNext && content.watchNext.length > 0 && (<div className={`${S.radius} p-5 nimi-material-glass-regular bg-[var(--nimi-material-glass-regular-bg)] border border-[var(--nimi-material-glass-regular-border)] backdrop-blur-[var(--nimi-backdrop-blur-regular)] shadow-[0_8px_32px_rgba(31,38,135,0.04)]`}>
-        <h3 className="text-[16px] font-semibold mb-3" style={{ color: S.text }}>👀 下月留意</h3>
-        <ul className="space-y-2">{content.watchNext.map((w, i) => <li key={i} className={`${S.radiusSm} px-3 py-2 text-[14px]`} style={{ background: '#fefce8', color: S.text }}>{w}</li>)}</ul>
+      {content.watchNext && content.watchNext.length > 0 && (<div className="report-glass-card report-card-pad">
+        <h3 className="report-section-heading-row report-card-title"><Eye size={16} className="report-icon-info" />下月留意</h3>
+        <ul className="space-y-2">{content.watchNext.map((w, i) => <li key={i} className="report-list-item report-list-item--warning">{w}</li>)}</ul>
       </div>)}
     </div>)}
 
-    {content.trendSignals.length > 0 && (<div className={`${S.radius} p-5 nimi-material-glass-regular bg-[var(--nimi-material-glass-regular-bg)] border border-[var(--nimi-material-glass-regular-border)] backdrop-blur-[var(--nimi-backdrop-blur-regular)] shadow-[0_8px_32px_rgba(31,38,135,0.04)]`}>
-      <h3 className="text-[16px] font-semibold mb-3" style={{ color: S.text }}>趋势信号</h3>
-      <div className="grid gap-3 sm:grid-cols-2">{content.trendSignals.map((sig) => (<div key={sig.id} className={`${S.radiusSm} p-3`} style={{ background: S.bg, border: `1px solid ${S.border}` }}>
-        <h4 className="text-[14px] font-semibold" style={{ color: S.text }}>{sig.title}</h4>
-        <p className="mt-1 text-[14px]" style={{ color: S.text }}>{sig.summary}</p>
+    {content.trendSignals.length > 0 && (<div className="report-glass-card report-card-pad">
+      <h3 className="report-card-title report-title-spaced">趋势信号</h3>
+      <div className="grid gap-3 sm:grid-cols-2">{content.trendSignals.map((sig) => (<div key={sig.id} className="report-trend-card">
+        <h4 className="report-trend-title">{sig.title}</h4>
+        <p className="report-trend-summary">{sig.summary}</p>
       </div>))}</div>
     </div>)}
 
-    {content.actionItems.length > 0 && (<div className={`${S.radius} p-5 nimi-material-glass-regular bg-[var(--nimi-material-glass-regular-bg)] border border-[var(--nimi-material-glass-regular-border)] backdrop-blur-[var(--nimi-backdrop-blur-regular)] shadow-[0_8px_32px_rgba(31,38,135,0.04)]`}>
-      <h3 className="text-[16px] font-semibold mb-3" style={{ color: S.text }}>下一步行动</h3>
-      <div className="space-y-2">{content.actionItems.map((a) => (<Link key={a.id} to={a.linkTo ?? '/advisor'} className={`flex items-center gap-3 ${S.radiusSm} px-4 py-3 transition-colors hover:opacity-90`} style={{ background: '#f0f5e6', border: `1px solid ${S.accent}40` }}>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={S.accent} strokeWidth="2" strokeLinecap="round"><path d="M5 12h14M12 5l7 7-7 7" /></svg>
-        <span className="text-[14px] font-medium" style={{ color: S.text }}>{a.text}</span>
+    {content.actionItems.length > 0 && (<div className="report-glass-card report-card-pad">
+      <h3 className="report-card-title report-title-spaced">下一步行动</h3>
+      <div className="space-y-2">{content.actionItems.map((a) => (<Link key={a.id} to={a.linkTo ?? '/advisor'} className="report-action-link">
+        <ArrowRight size={16} className="report-icon-accent" strokeWidth={2} />
+        <span className="report-action-link-text">{a.text}</span>
       </Link>))}</div>
     </div>)}
 
-    {content.closingMessage && (<div className={`${S.radius} p-5`} style={{ background: '#f0fdf4', boxShadow: S.shadow }}>
-      {canEdit ? <EditableText text={content.closingMessage} onSave={(v) => editField('closingMessage', v)} /> : <p className="text-[16px] leading-[1.8]" style={{ color: S.text }}>{content.closingMessage}</p>}
+    {content.closingMessage && (<div className="report-soft-panel report-soft-panel--success">
+      {canEdit ? <EditableText text={content.closingMessage} onSave={(v) => editField('closingMessage', v)} /> : <p className="report-body-text">{content.closingMessage}</p>}
     </div>)}
 
-    <div className={`${S.radius} p-4 nimi-material-glass-regular bg-[var(--nimi-material-glass-regular-bg)] border border-[var(--nimi-material-glass-regular-border)] backdrop-blur-[var(--nimi-backdrop-blur-regular)] shadow-[0_8px_32px_rgba(31,38,135,0.04)]`}>
-      <p className="text-[13px]" style={{ color: S.sub }}>数据来源：{content.sources.join('，')}</p>
-      <p className="text-[13px] mt-1" style={{ color: '#92400e' }}>{content.safetyNote}</p>
+    <div className="report-glass-card report-card-pad-sm">
+      <p className="report-footnote">数据来源：{content.sources.join('，')}</p>
+      <p className="report-footnote report-footnote--warning">{content.safetyNote}</p>
     </div>
   </div>);
 }
@@ -219,15 +224,15 @@ function NarrativeViewer({ content, reportId, onContentUpdate }: { content: Narr
 
 function StructuredViewer({ content }: { content: StructuredGrowthReportContent }) {
   return (<div className="space-y-4">
-    <div className={`${S.radius} p-5 nimi-material-glass-regular bg-[var(--nimi-material-glass-regular-bg)] border border-[var(--nimi-material-glass-regular-border)] backdrop-blur-[var(--nimi-backdrop-blur-regular)] shadow-[0_8px_32px_rgba(31,38,135,0.04)]`}>
-      <h2 className="text-[20px] font-bold" style={{ color: S.text }}>{content.title}</h2>
-      <p className="text-[14px] mt-1" style={{ color: S.sub }}>{content.subtitle}</p>
-      <p className="text-[13px] mt-3" style={{ color: '#92400e' }}>{content.safetyNote}</p>
+    <div className="report-glass-card report-card-pad">
+      <h2 className="report-card-title-lg">{content.title}</h2>
+      <p className="report-card-subtitle">{content.subtitle}</p>
+      <p className="report-footnote report-footnote--warning report-footnote--spaced">{content.safetyNote}</p>
     </div>
-    {content.metrics.length > 0 && <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">{content.metrics.map((m) => (<div key={m.id} className={`${S.radiusSm} p-3 nimi-material-glass-regular bg-[var(--nimi-material-glass-regular-bg)] border border-[var(--nimi-material-glass-regular-border)] backdrop-blur-[var(--nimi-backdrop-blur-regular)] shadow-[0_8px_32px_rgba(31,38,135,0.04)]`}><div className="text-[12px] uppercase" style={{ color: S.sub }}>{m.label}</div><div className="mt-1 text-[18px] font-semibold" style={{ color: S.text }}>{m.value}</div>{m.detail && <div className="text-[12px]" style={{ color: S.sub }}>{m.detail}</div>}</div>))}</div>}
-    {content.overview.length > 0 && <div className={`${S.radius} p-5 nimi-material-glass-regular bg-[var(--nimi-material-glass-regular-bg)] border border-[var(--nimi-material-glass-regular-border)] backdrop-blur-[var(--nimi-backdrop-blur-regular)] shadow-[0_8px_32px_rgba(31,38,135,0.04)]`}><h3 className="text-[16px] font-semibold mb-3" style={{ color: S.text }}>概览</h3><ul className="space-y-2">{content.overview.map((item) => <li key={item} className={`${S.radiusSm} px-3 py-2 text-[14px]`} style={{ background: S.bg, color: S.text }}>{item}</li>)}</ul></div>}
-    <div className="grid gap-3 sm:grid-cols-2">{content.sections.map((sec) => (<div key={sec.id} className={`${S.radius} p-5 nimi-material-glass-regular bg-[var(--nimi-material-glass-regular-bg)] border border-[var(--nimi-material-glass-regular-border)] backdrop-blur-[var(--nimi-backdrop-blur-regular)] shadow-[0_8px_32px_rgba(31,38,135,0.04)]`}><h3 className="text-[16px] font-semibold mb-3" style={{ color: S.text }}>{sec.title}</h3><ul className="space-y-2">{sec.items.map((item) => <li key={item} className={`${S.radiusSm} px-3 py-2 text-[14px]`} style={{ background: S.bg, color: S.text }}>{item}</li>)}</ul></div>))}</div>
-    <div className={`${S.radius} p-4 nimi-material-glass-regular bg-[var(--nimi-material-glass-regular-bg)] border border-[var(--nimi-material-glass-regular-border)] backdrop-blur-[var(--nimi-backdrop-blur-regular)] shadow-[0_8px_32px_rgba(31,38,135,0.04)]`}><p className="text-[13px]" style={{ color: S.sub }}>数据来源：{content.sources.join('，')}</p></div>
+    {content.metrics.length > 0 && <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">{content.metrics.map((m) => (<div key={m.id} className="report-glass-card report-metric-card"><div className="report-data-label">{m.label}</div><div className="report-metric-value">{m.value}</div>{m.detail && <div className="report-data-detail">{m.detail}</div>}</div>))}</div>}
+    {content.overview.length > 0 && <div className="report-glass-card report-card-pad"><h3 className="report-card-title report-title-spaced">概览</h3><ul className="space-y-2">{content.overview.map((item) => <li key={item} className="report-list-item report-list-item--panel">{item}</li>)}</ul></div>}
+    <div className="grid gap-3 sm:grid-cols-2">{content.sections.map((sec) => (<div key={sec.id} className="report-glass-card report-card-pad"><h3 className="report-card-title report-title-spaced">{sec.title}</h3><ul className="space-y-2">{sec.items.map((item) => <li key={item} className="report-list-item report-list-item--panel">{item}</li>)}</ul></div>))}</div>
+    <div className="report-glass-card report-card-pad-sm"><p className="report-footnote">数据来源：{content.sources.join('，')}</p></div>
   </div>);
 }
 
@@ -289,7 +294,7 @@ export default function ReportsPage() {
     return () => { cancelled = true; };
   }, [child]);
 
-  if (!child) return <div style={{ minHeight: '100vh' }}><div className={S.container} style={{ paddingTop: 16 }}><p style={{ color: S.sub }}>请先添加孩子档案。</p></div></div>;
+  if (!child) return <div className="report-page-shell"><div className="report-page-container"><p className="report-muted-text">请先添加孩子档案。</p></div></div>;
 
   const activeChild = child;
   const latestReport = reports[0] ?? null;
@@ -398,71 +403,81 @@ export default function ReportsPage() {
   };
 
   return (
-    <div className="hide-scrollbar overflow-y-auto" style={{ minHeight: '100vh' }}>
-      <div className={S.container} style={{ paddingTop: 16 }}>
+    <div className="report-page-shell hide-scrollbar overflow-y-auto">
+      <div className="report-page-container">
         <div className="mb-5">
-          <h1 className="text-[18px] font-bold" style={{ color: S.text }}>成长报告</h1>
-          <p className="text-[14px] mt-0.5" style={{ color: S.sub }}>基于本地数据自动生成，每月更新</p>
+          <h1 className="report-page-title">成长报告</h1>
+          <p className="report-page-subtitle">基于本地数据自动生成，每月更新</p>
         </div>
 
-        {errorMessage && <div className={`mb-4 ${S.radiusSm} px-4 py-3 text-[14px]`} style={{ border: '1px solid #fed7d7', background: '#fff5f5', color: '#c53030' }}>{errorMessage}</div>}
-        {infoMessage && <div className={`mb-4 ${S.radiusSm} px-4 py-3 text-[14px]`} style={{ border: `1px solid ${S.border}`, background: '#f7faf2', color: S.text }}>{infoMessage}</div>}
+        {errorMessage && <div className="report-message report-message--error">{errorMessage}</div>}
+        {infoMessage && <div className="report-message report-message--success">{infoMessage}</div>}
 
         {latestContent && latestReport ? (
           <div className="mb-6">
             <ReportViewer content={latestContent} reportId={latestReport.reportId} persisted={latestReport} childName={activeChild.displayName} selfRoleName={activeChild.recorderProfiles?.[0]?.name} onContentUpdate={latestContent.version === 2 ? (u) => void handleContentUpdate(latestReport.reportId, u) : undefined} />
-            <div className="mt-3"><button onClick={() => handleCopy(latestContent!)} className={`${S.radiusSm} px-4 py-2 text-[14px] font-medium`} style={{ background: S.card, border: `1px solid ${S.border}`, color: S.text }}>{copied ? '已复制 ✓' : '复制文本'}</button></div>
+            <div className="mt-3"><Button size="sm" tone="secondary" onClick={() => handleCopy(latestContent!)}>{copied ? '已复制' : '复制文本'}</Button></div>
           </div>
         ) : (
-          <div className={`${S.radius} p-8 text-center mb-6 nimi-material-glass-regular bg-[var(--nimi-material-glass-regular-bg)] border border-[var(--nimi-material-glass-regular-border)] backdrop-blur-[var(--nimi-backdrop-blur-regular)] shadow-[0_8px_32px_rgba(31,38,135,0.04)]`}>
-            <p className="text-[16px]" style={{ color: S.sub }}>还没有成长报告</p>
-            <p className="text-[14px] mt-1" style={{ color: S.sub }}>报告会在首页自动生成，也可以在下方手动创建</p>
-          </div>
+          <Surface tone="card" material="glass-regular" elevation="raised" padding="none" className="report-empty-state">
+            <p className="report-empty-title">还没有成长报告</p>
+            <p className="report-empty-subtitle">报告会在首页自动生成，也可以在下方手动创建</p>
+          </Surface>
         )}
 
         {reports.length > 1 && (<div className="mb-6">
-          <p className="text-[14px] font-semibold mb-3" style={{ color: S.sub }}>历史报告</p>
+          <p className="report-section-label">历史报告</p>
           <div className="space-y-2">{reports.slice(1).map((report) => {
             const isExpanded = expandedReportId === report.reportId;
             let parsed: ParsedReportContent | null = null; let title = '报告';
             try { parsed = parseReportContent(report.content); title = parsed.title; } catch { /* */ }
             return (<div key={report.reportId}>
               <button onClick={() => setExpandedReportId((prev) => prev === report.reportId ? null : report.reportId)}
-                className={`w-full ${S.radius} p-4 text-left transition-all`} style={{ border: `1px solid ${isExpanded ? S.accent : S.border}`, background: isExpanded ? '#e8eccc' : S.card }}>
+                className={`report-history-button ${isExpanded ? 'report-history-button--active' : ''}`}>
                 <div className="flex items-center gap-2">
-                  <span className="text-[14px] font-medium flex-1 truncate" style={{ color: S.text }}>{title}</span>
-                  {parsed && <span className="text-[12px] px-2 py-0.5 rounded-full shrink-0" style={{ background: S.bg, color: S.sub }}>{reportBadgeLabel(parsed)}</span>}
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={S.sub} strokeWidth="2" className={`shrink-0 transition-transform ${isExpanded ? 'rotate-180' : ''}`}><path d="M6 9l6 6 6-6" /></svg>
+                  <span className="report-history-title">{title}</span>
+                  {parsed && <StatusBadge tone="neutral" className="shrink-0">{reportBadgeLabel(parsed)}</StatusBadge>}
+                  <ChevronDown size={12} className={`report-icon-muted shrink-0 transition-transform ${isExpanded ? 'rotate-180' : ''}`} strokeWidth={2} />
                 </div>
-                <p className="text-[13px] mt-1" style={{ color: S.sub }}>{report.periodStart.slice(0, 10)} 至 {report.periodEnd.slice(0, 10)}</p>
+                <p className="report-history-date">{report.periodStart.slice(0, 10)} 至 {report.periodEnd.slice(0, 10)}</p>
               </button>
               {isExpanded && parsed && (<div ref={viewerRef} className="mt-2 pb-4">
                 <ReportViewer content={parsed} reportId={report.reportId} persisted={report} childName={activeChild.displayName} selfRoleName={activeChild.recorderProfiles?.[0]?.name} onContentUpdate={parsed.version === 2 ? (u) => void handleContentUpdate(report.reportId, u) : undefined} />
-                <div className="mt-3"><button onClick={() => handleCopy(parsed!)} className={`${S.radiusSm} px-4 py-2 text-[14px] font-medium`} style={{ background: S.card, border: `1px solid ${S.border}`, color: S.text }}>{copied ? '已复制 ✓' : '复制文本'}</button></div>
+                <div className="mt-3"><Button size="sm" tone="secondary" onClick={() => handleCopy(parsed!)}>{copied ? '已复制' : '复制文本'}</Button></div>
               </div>)}
             </div>);
           })}</div>
         </div>)}
 
         <div className="mb-8">
-          <button onClick={() => setShowAdvanced(!showAdvanced)} className="flex items-center gap-2 text-[14px] font-medium" style={{ color: S.sub }}>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={`transition-transform ${showAdvanced ? 'rotate-180' : ''}`}><path d="M6 9l6 6 6-6" /></svg>
+          <button onClick={() => setShowAdvanced(!showAdvanced)} className="report-advanced-toggle">
+            <ChevronDown size={12} strokeWidth={2} className={`transition-transform ${showAdvanced ? 'rotate-180' : ''}`} />
             高级选项 · 手动生成报告
           </button>
-          {showAdvanced && (<div className={`${S.radius} p-5 mt-3 nimi-material-glass-regular bg-[var(--nimi-material-glass-regular-bg)] border border-[var(--nimi-material-glass-regular-border)] backdrop-blur-[var(--nimi-backdrop-blur-regular)] shadow-[0_8px_32px_rgba(31,38,135,0.04)]`}>
+          {showAdvanced && (<Surface tone="card" material="glass-regular" elevation="raised" padding="none" className="report-advanced-panel">
             <div className="mb-3">
-              <p className="text-[13px] font-medium mb-2" style={{ color: S.sub }}>时间范围</p>
-              <div className="flex flex-wrap gap-2">{PRESET_OPTIONS.map((p) => <button key={p.id} onClick={() => handlePresetChange(p.id)} className="px-3 py-1 rounded-full text-[13px] transition-colors" style={periodPreset === p.id ? { background: S.accent, color: '#fff' } : { background: S.bg, color: S.text, border: `1px solid ${S.border}` }}>{p.label}</button>)}</div>
+              <p className="report-field-label">时间范围</p>
+              <div className="flex flex-wrap gap-2">{PRESET_OPTIONS.map((p) => (
+                <Button
+                  key={p.id}
+                  onClick={() => handlePresetChange(p.id)}
+                  size="sm"
+                  tone={periodPreset === p.id ? 'primary' : 'secondary'}
+                  className="min-h-0 rounded-full py-1 text-[13px]"
+                >
+                  {p.label}
+                </Button>
+              ))}</div>
             </div>
             <div className="flex gap-3 mb-4">
-              <div className="flex-1"><label className="block text-[12px] mb-1" style={{ color: S.sub }}>开始日期</label><ProfileDatePicker value={periodStart} onChange={(v) => handleDateChange('start', v)} size="small" /></div>
-              <div className="flex-1"><label className="block text-[12px] mb-1" style={{ color: S.sub }}>结束日期</label><ProfileDatePicker value={periodEnd} onChange={(v) => handleDateChange('end', v)} size="small" /></div>
+              <div className="flex-1"><label className="report-date-label">开始日期</label><ProfileDatePicker value={periodStart} onChange={(v) => handleDateChange('start', v)} size="small" /></div>
+              <div className="flex-1"><label className="report-date-label">结束日期</label><ProfileDatePicker value={periodEnd} onChange={(v) => handleDateChange('end', v)} size="small" /></div>
             </div>
-            <button onClick={() => void handleGenerate()} disabled={generateState === 'saving'}
-              className={`w-full ${S.radiusSm} py-2.5 text-[14px] font-medium text-white disabled:opacity-60 disabled:cursor-not-allowed hover:opacity-90`} style={{ background: S.accent }}>
+            <Button onClick={() => void handleGenerate()} disabled={generateState === 'saving'}
+              fullWidth tone="primary" className="report-generate-button">
               {generateState === 'saving' ? '正在生成报告...' : '生成综合报告'}
-            </button>
-          </div>)}
+            </Button>
+          </Surface>)}
         </div>
       </div>
     </div>

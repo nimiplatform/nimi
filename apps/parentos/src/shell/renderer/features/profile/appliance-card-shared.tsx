@@ -1,3 +1,4 @@
+import { Button, IconButton, StatusBadge, cn } from '@nimiplatform/nimi-kit/ui';
 /**
  * Shared building blocks for the multi-appliance orthodontic cards
  * (`appliance-hero-card` / `appliance-compact-card`). Keeping the header,
@@ -7,8 +8,6 @@
 import type { ReactNode } from 'react';
 import type { OrthodonticApplianceRow } from '../../bridge/sqlite-bridge.js';
 import { computeAgeMonthsAt } from '../../app-shell/app-store.js';
-import { S } from '../../app-shell/page-style.js';
-import { applianceIdentity } from './appliance-identity.js';
 import { applianceTypeLabel } from './orthodontic-derive.js';
 import type { ApplianceNextAction } from './appliance-next-action.js';
 import type { AppliancePhaseProgress } from './orthodontic-derive.js';
@@ -38,30 +37,14 @@ export function ageAtLabel(birthDate: string, startedAt: string): string {
   return rem > 0 ? `${years} 岁 ${rem} 月` : `${years} 岁`;
 }
 
-/** Soft amber pill used to flag an overdue date across the cards. */
-function daysAwayTone(daysAway: number | null): { bg: string; color: string } {
-  if (daysAway !== null && daysAway < 0) {
-    return { bg: 'rgba(245,158,11,0.18)', color: '#9a6404' };
-  }
-  return { bg: 'rgba(16,185,129,0.18)', color: '#047857' };
-}
-
 export function DaysAwayPill({ daysAway }: { daysAway: number }) {
-  const tone = daysAwayTone(daysAway);
   return (
-    <span
-      style={{
-        fontSize: 11,
-        padding: '3px 9px',
-        borderRadius: 999,
-        background: tone.bg,
-        color: tone.color,
-        fontWeight: 600,
-        whiteSpace: 'nowrap',
-      }}
+    <StatusBadge
+      tone={daysAway < 0 ? 'warning' : 'success'}
+      className="whitespace-nowrap px-2.5 py-1 text-[11px] font-semibold"
     >
       {daysAway < 0 ? `已过期 ${-daysAway} 天` : `还有 ${daysAway} 天`}
-    </span>
+    </StatusBadge>
   );
 }
 
@@ -75,48 +58,28 @@ export function ApplianceCardHeader({
   onEditAppliance: (appliance: OrthodonticApplianceRow) => void;
   trailing?: ReactNode;
 }) {
-  const identity = applianceIdentity(appliance.applianceType);
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
       <span
         aria-hidden="true"
-        style={{
-          width: 9,
-          height: 9,
-          borderRadius: 999,
-          background: identity.solid,
-          flexShrink: 0,
-        }}
+        className="h-2.5 w-2.5 shrink-0 rounded-full bg-[var(--nimi-action-primary-bg)]"
       />
       <span
-        style={{ fontSize: 15, fontWeight: 700, color: 'var(--nimi-text-primary)' }}
+        className="text-[15px] font-bold text-[var(--nimi-text-primary)]"
       >
         {applianceTypeLabel(appliance.applianceType)}
       </span>
       <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 4 }}>
         {trailing}
-        <button
-          type="button"
+        <IconButton
           onClick={() => onEditAppliance(appliance)}
           aria-label="矫治器设置"
           title="矫治器设置"
-          style={{
-            width: 28,
-            height: 28,
-            padding: 0,
-            border: 0,
-            borderRadius: 999,
-            display: 'inline-grid',
-            placeItems: 'center',
-            cursor: 'pointer',
-            color: 'var(--nimi-text-muted)',
-            background: 'transparent',
-            transition: 'all 160ms',
-          }}
-          className="hover:bg-black/5 hover:text-[var(--nimi-text-primary)]"
-        >
-          <GearIcon />
-        </button>
+          tone="ghost"
+          size="sm"
+          className="h-7 min-h-7 w-7 rounded-full text-[var(--nimi-text-muted)]"
+          icon={<GearIcon />}
+        />
       </div>
     </div>
   );
@@ -131,7 +94,7 @@ export function ApplianceMetaLine({
   childBirthDate: string;
 }) {
   return (
-    <div style={{ fontSize: 12, color: S.sub, marginTop: 4 }}>
+    <div className="mt-1 text-[12px] text-[var(--nimi-text-muted)]">
       起始 {appliance.startedAt} · {ageAtLabel(childBirthDate, appliance.startedAt)}
     </div>
   );
@@ -151,58 +114,32 @@ export function AppliancePhasePill({
   phase: AppliancePhaseProgress | null;
   onAdvancePhase: (appliance: OrthodonticApplianceRow) => void;
 }) {
-  const identity = applianceIdentity(appliance.applianceType);
   if (!phase) {
     return (
-      <button
-        type="button"
+      <Button
         onClick={() => onAdvancePhase(appliance)}
-        style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: 6,
-          padding: '4px 12px',
-          borderRadius: 999,
-          fontSize: 12,
-          fontWeight: 600,
-          border: '1px dashed rgba(15,23,42,0.2)',
-          background: 'transparent',
-          color: 'var(--nimi-text-muted)',
-          cursor: 'pointer',
-          fontFamily: 'inherit',
-        }}
+        tone="ghost"
+        size="sm"
+        className="min-h-7 rounded-full border-dashed border-[var(--nimi-border-subtle)] px-3 text-[12px] text-[var(--nimi-text-muted)]"
       >
         设置治疗阶段
-      </button>
+      </Button>
     );
   }
   return (
-    <button
-      type="button"
+    <Button
       onClick={() => onAdvancePhase(appliance)}
       title="推进治疗阶段"
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: 6,
-        padding: '4px 12px',
-        borderRadius: 999,
-        fontSize: 12,
-        fontWeight: 600,
-        border: 0,
-        background: identity.tint,
-        color: identity.tintText,
-        cursor: 'pointer',
-        fontFamily: 'inherit',
-        whiteSpace: 'nowrap',
-      }}
+      tone="ghost"
+      size="sm"
+      className="min-h-7 whitespace-nowrap rounded-full bg-[color-mix(in_srgb,var(--nimi-status-info)_15%,transparent)] px-3 text-[12px] text-[var(--nimi-status-info)]"
     >
       <span
         aria-hidden="true"
-        style={{ width: 6, height: 6, borderRadius: 999, background: identity.solid }}
+        className="h-1.5 w-1.5 rounded-full bg-[var(--nimi-status-info)]"
       />
       {phase.label} · 第 {phase.monthsInPhase} / {phase.expectedMonths} 个月
-    </button>
+    </Button>
   );
 }
 
@@ -230,45 +167,23 @@ export function ApplianceLogActions({
       }}
     >
       {supportsWearGap && (
-        <button
-          type="button"
+        <Button
           onClick={() => handlers.onBackfillUnwear(appliance)}
-          className="hover:-translate-y-0.5"
-          style={{
-            border: `1px solid ${S.accent}`,
-            background: '#ffffff',
-            color: 'var(--nimi-text-primary)',
-            padding: '9px 18px',
-            borderRadius: 999,
-            cursor: 'pointer',
-            fontSize: 13,
-            fontWeight: 600,
-            fontFamily: 'inherit',
-            transition: 'all 160ms',
-          }}
+          tone="secondary"
+          size="md"
+          className="rounded-full px-4 text-[13px]"
         >
           补记未戴时段
-        </button>
+        </Button>
       )}
-      <button
-        type="button"
+      <Button
         onClick={() => handlers.onLogIssue(appliance)}
-        className="text-white hover:-translate-y-0.5"
-        style={{
-          background: 'var(--nimi-text-primary)',
-          border: 0,
-          padding: '10px 18px',
-          borderRadius: 999,
-          cursor: 'pointer',
-          fontSize: 13,
-          fontWeight: 600,
-          fontFamily: 'inherit',
-          boxShadow: '0 6px 18px rgba(15,23,42,0.16)',
-          transition: 'all 160ms',
-        }}
+        tone="primary"
+        size="md"
+        className={cn('rounded-full px-4 text-[13px]', !supportsWearGap && 'min-w-[128px]')}
       >
         记录异常
-      </button>
+      </Button>
     </div>
   );
 }

@@ -1,16 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { S } from '../../app-shell/page-style.js';
+import { Button, IconButton, Surface, TextareaField, Toggle as KitToggle } from '@nimiplatform/nimi-kit/ui';
+import { Pencil, X } from 'lucide-react';
 import type { NarrativeReportContent, ProfessionalSummary, ProfessionalSummarySection } from './structured-report.js';
-
-const SERIF = "var(--font-serif, 'Noto Serif SC', 'Source Han Serif SC', 'Songti SC', 'STSong', Georgia, serif)";
-const MONO = "var(--nimi-font-mono, 'JetBrains Mono', 'SF Mono', ui-monospace, monospace)";
-const FG1 = S.text;
-const FG2 = '#334155';
-const FG3 = S.sub;
-const FG4 = '#94a3b8';
-const ACCENT = S.accent;
-const RULE_SOFT = 'rgba(148,163,184,0.30)';
 
 interface SectionDraftChange {
   body?: string;
@@ -61,26 +53,9 @@ interface ToggleProps {
 }
 function Toggle({ checked, onChange, ariaLabel }: ToggleProps) {
   return (
-    <button
-      role="switch"
-      aria-checked={checked}
-      aria-label={ariaLabel}
-      onClick={() => onChange(!checked)}
-      style={{
-        width: 40, height: 22, borderRadius: 999,
-        background: checked ? ACCENT : '#cbd5e1',
-        border: 0, padding: 0, cursor: 'pointer',
-        position: 'relative', flexShrink: 0,
-        transition: 'background 160ms',
-      }}>
-      <span style={{
-        position: 'absolute', top: 2, left: checked ? 20 : 2,
-        width: 18, height: 18, borderRadius: 999,
-        background: '#fff',
-        boxShadow: '0 2px 4px rgba(15,23,42,0.15)',
-        transition: 'left 160ms',
-      }} />
-    </button>
+    <span aria-label={ariaLabel} className="inline-flex shrink-0">
+      <KitToggle checked={checked} onChange={onChange} />
+    </span>
   );
 }
 
@@ -110,86 +85,64 @@ function ProfessionalSectionEditor({
   };
 
   return (
-    <article style={{
-      opacity: section.enabled ? 1 : 0.5,
-      padding: '18px 20px', borderRadius: 14,
-      background: section.enabled ? '#ffffff' : 'rgba(248,250,252,0.8)',
-      border: `1px solid ${RULE_SOFT}`,
-      transition: 'opacity 160ms',
-    }}>
-      <header style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 }}>
-        <h4 style={{
-          margin: 0, flex: 1,
-          fontFamily: SERIF, fontSize: 16, fontWeight: 600, color: FG1,
-        }}>
+    <Surface
+      as="article"
+      tone={section.enabled ? 'card' : 'panel'}
+      elevation="base"
+      padding="none"
+      className={`report-professional-section ${section.enabled ? '' : 'report-professional-section--disabled'}`}
+    >
+      <header className="report-professional-section-header">
+        <h4 className="report-professional-section-title">
           {section.title}
           {isEdited ? (
-            <span style={{ marginLeft: 8, fontSize: 11, color: '#b45309', fontWeight: 500, fontFamily: 'inherit' }}>
+            <span className="report-professional-edited">
               · 已编辑
             </span>
           ) : null}
         </h4>
-        <span style={{ fontSize: 11, color: FG3 }}>{section.enabled ? '包含' : '隐藏'}</span>
+        <span className="report-professional-toggle-label">{section.enabled ? '包含' : '隐藏'}</span>
         <Toggle checked={section.enabled} onChange={onToggle} ariaLabel={`是否包含 ${section.title} 到分享版本`} />
       </header>
 
       {editing ? (
         <>
-          <textarea ref={ref} value={draft}
+          <TextareaField
+            ref={ref}
+            value={draft}
             onChange={(e) => setDraft(e.target.value)}
-            style={{
-              width: '100%', minHeight: 120, padding: '10px 12px',
-              borderRadius: 10, border: `1px solid ${ACCENT}`,
-              background: '#ffffff', color: FG1,
-              fontFamily: 'inherit', fontSize: 14, lineHeight: 1.75,
-              outline: 'none', resize: 'vertical',
-            }} />
-          <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
-            <button onClick={save}
-              style={{ padding: '6px 14px', borderRadius: 8, border: 0, background: ACCENT, color: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+            className="report-radius-sm"
+            textareaClassName="report-professional-textarea"
+          />
+          <div className="mt-2.5 flex gap-2">
+            <Button size="sm" tone="primary" onClick={save}>
               保存
-            </button>
-            <button onClick={() => { setDraft(section.body); setEditing(false); }}
-              style={{ padding: '6px 14px', borderRadius: 8, border: 0, background: 'transparent', color: FG3, fontSize: 12, cursor: 'pointer' }}>
+            </Button>
+            <Button size="sm" tone="ghost" onClick={() => { setDraft(section.body); setEditing(false); }}>
               取消
-            </button>
+            </Button>
           </div>
         </>
       ) : (
         <>
-          <p style={{
-            margin: 0, fontSize: 14, lineHeight: 1.85, color: FG2,
-            whiteSpace: 'pre-wrap', wordBreak: 'break-word',
-          }}>
+          <p className="report-professional-section-body">
             {section.body || '本期未记录。'}
           </p>
           {section.enabled ? (
-            <div style={{ display: 'flex', gap: 10, marginTop: 12, flexWrap: 'wrap' }}>
-              <button onClick={start}
-                style={{
-                  padding: '5px 12px', borderRadius: 8, border: `1px solid ${RULE_SOFT}`,
-                  background: '#fff', color: FG2, fontSize: 12, cursor: 'pointer',
-                  display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: 'inherit',
-                }}>
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                  <path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
-                </svg>
+            <div className="report-professional-section-actions">
+              <Button size="sm" tone="secondary" onClick={start} className="min-h-0 px-3 py-1 text-xs" leadingIcon={<Pencil size={11} />}>
                 编辑
-              </button>
+              </Button>
               {isEdited ? (
-                <button onClick={onRestore}
-                  style={{
-                    padding: '5px 12px', borderRadius: 8, border: 0,
-                    background: 'transparent', color: FG3, fontSize: 11.5, cursor: 'pointer', fontFamily: 'inherit',
-                  }}>
+                <Button size="sm" tone="ghost" onClick={onRestore} className="min-h-0 px-3 py-1 text-[11.5px]">
                   恢复 AI 原文
-                </button>
+                </Button>
               ) : null}
             </div>
           ) : null}
         </>
       )}
-    </article>
+    </Surface>
   );
 }
 
@@ -244,71 +197,39 @@ export function ProfessionalSummaryModal({
       role="dialog"
       aria-modal="true"
       aria-labelledby="pro-summary-title"
-      style={{
-        position: 'fixed', inset: 0, zIndex: 2000,
-        background: 'rgba(15,23,42,0.55)',
-        display: 'flex', alignItems: 'flex-start', justifyContent: 'center',
-        padding: '40px 24px',
-        overflowY: 'auto',
-      }}
+      className="report-professional-backdrop"
       onClick={onClose}
     >
-      <div
+      <Surface
+        tone="overlay"
+        elevation="modal"
+        padding="none"
         onClick={(e) => e.stopPropagation()}
-        style={{
-          width: '100%', maxWidth: 760,
-          background: '#ffffff', borderRadius: 20,
-          boxShadow: '0 24px 72px rgba(15,23,42,0.35)',
-          display: 'flex', flexDirection: 'column',
-          maxHeight: 'calc(100vh - 80px)',
-        }}
+        className="report-professional-modal"
       >
-        <header style={{
-          display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
-          padding: '24px 28px 18px',
-          borderBottom: `1px solid ${RULE_SOFT}`,
-        }}>
+        <header className="report-professional-modal-header">
           <div>
-            <div style={{ fontFamily: MONO, fontSize: 11, color: FG3, letterSpacing: '0.14em', fontWeight: 600, textTransform: 'uppercase' }}>
+            <div className="report-professional-eyebrow">
               SHARE · 给老师 / 医生
             </div>
-            <h2 id="pro-summary-title" style={{
-              margin: '6px 0 0',
-              fontFamily: SERIF, fontSize: 22, fontWeight: 700, color: FG1, letterSpacing: '-0.005em',
-            }}>
+            <h2 id="pro-summary-title" className="report-professional-title">
               精简版 · {title}
             </h2>
             {summary?.childSummary ? (
-              <div style={{ marginTop: 6, fontSize: 12.5, color: FG2 }}>{summary.childSummary}</div>
+              <div className="report-professional-child-summary">{summary.childSummary}</div>
             ) : null}
           </div>
-          <button onClick={onClose} aria-label="关闭"
-            style={{
-              width: 32, height: 32, borderRadius: 8, border: 0,
-              background: 'transparent', cursor: 'pointer', color: FG3,
-              display: 'grid', placeItems: 'center',
-            }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-              <path d="M18 6 6 18M6 6l12 12" />
-            </svg>
-          </button>
+          <IconButton onClick={onClose} aria-label="关闭" icon={<X size={18} />} size="sm" tone="ghost" />
         </header>
 
-        <div style={{
-          padding: '18px 28px 20px',
-          flex: 1, minHeight: 0, overflowY: 'auto',
-        }}>
+        <div className="report-professional-modal-body">
           {summary ? (
             <>
-              <div style={{
-                marginBottom: 16, padding: '10px 14px',
-                background: 'rgba(248,250,252,0.9)', border: `1px solid ${RULE_SOFT}`, borderRadius: 10,
-                fontSize: 12.5, color: FG2, lineHeight: 1.7,
-              }}>
-                <span style={{ fontWeight: 600, color: FG1 }}>精简版说明：</span>
+              <div className="report-professional-intro">
+                <span className="report-strong">精简版说明：</span>
                 AI 按客观医学/教育记录语气生成，家长可逐条编辑或隐去敏感内容；未勾选的 section 不会出现在导出或复制内容里。
               </div>
-              <div style={{ display: 'grid', gap: 12 }}>
+              <div className="report-professional-section-list">
                 {summary.sections.map((s) => (
                   <ProfessionalSectionEditor key={s.id} section={s}
                     onBodyChange={(body) => applySummary(updateSection(summary, s.id, { body }))}
@@ -318,11 +239,7 @@ export function ProfessionalSummaryModal({
               </div>
             </>
           ) : (
-            <div style={{
-              padding: '32px 20px', textAlign: 'center',
-              background: 'rgba(248,250,252,0.9)', borderRadius: 12,
-              color: FG2, fontSize: 13.5, lineHeight: 1.8,
-            }}>
+            <div className="report-professional-empty">
               此报告还没有精简版内容。
               <br />
               请回到报告页「高级选项 · 生成综合报告」重新生成一次，AI 会同时产出精简版。
@@ -330,35 +247,20 @@ export function ProfessionalSummaryModal({
           )}
         </div>
 
-        <footer style={{
-          padding: '14px 28px 20px',
-          borderTop: `1px solid ${RULE_SOFT}`,
-          display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap',
-        }}>
+        <footer className="report-professional-modal-footer">
           {summary?.disclaimer ? (
-            <div style={{ flex: 1, minWidth: 240, fontSize: 11, color: FG4, lineHeight: 1.7 }}>
+            <div className="report-professional-disclaimer">
               {summary.disclaimer}
             </div>
-          ) : <div style={{ flex: 1 }} />}
-          <button onClick={handleCopy} disabled={!summary}
-            style={{
-              padding: '8px 14px', borderRadius: 10, border: `1px solid ${RULE_SOFT}`,
-              background: '#fff', color: FG1, fontSize: 12.5, fontWeight: 500, cursor: summary ? 'pointer' : 'not-allowed',
-              fontFamily: 'inherit', opacity: summary ? 1 : 0.5,
-            }}>
+          ) : <div className="report-professional-footer-spacer" />}
+          <Button onClick={handleCopy} disabled={!summary} size="sm" tone="secondary">
             {copyToast ?? '复制精简版'}
-          </button>
-          <button onClick={onPrint} disabled={!summary || !onPrint}
-            style={{
-              padding: '8px 14px', borderRadius: 10, border: 0,
-              background: summary && onPrint ? ACCENT : '#cbd5e1',
-              color: '#fff', fontSize: 12.5, fontWeight: 600, cursor: summary && onPrint ? 'pointer' : 'not-allowed',
-              fontFamily: 'inherit',
-            }}>
+          </Button>
+          <Button onClick={onPrint} disabled={!summary || !onPrint} size="sm" tone="primary">
             另存为 PDF
-          </button>
+          </Button>
         </footer>
-      </div>
+      </Surface>
     </div>
   );
 

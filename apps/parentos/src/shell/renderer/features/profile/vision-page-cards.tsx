@@ -34,24 +34,15 @@ export function SectionLabel({ children, right }: { children: ReactNode; right?:
 
 /* ── Status pill — tinted background with leading dot ────────────── */
 
-const PILL_TONES = {
-  ok: { bg: 'rgba(16,185,129,0.10)', fg: '#047857', dot: '#10b981' },
-  warn: { bg: 'rgba(245,158,11,0.12)', fg: '#92400e', dot: '#f59e0b' },
-  danger: { bg: 'rgba(239,68,68,0.10)', fg: '#b91c1c', dot: '#ef4444' },
-  info: { bg: 'rgba(14,165,233,0.10)', fg: '#0369a1', dot: '#0ea5e9' },
-  neutral: { bg: 'rgba(100,116,139,0.10)', fg: '#475569', dot: '#94a3b8' },
-} as const;
-
-export type PillTone = keyof typeof PILL_TONES;
+export type PillTone = 'ok' | 'warn' | 'danger' | 'info' | 'neutral';
 
 export function StatusPill({ tone = 'ok', children }: { tone?: PillTone; children: ReactNode }) {
-  const t = PILL_TONES[tone];
+  const t = pillToneClasses(tone);
   return (
     <span
-      className="inline-flex items-center gap-1.5 rounded-full px-2 py-[3px] text-[11px] font-semibold whitespace-nowrap"
-      style={{ background: t.bg, color: t.fg }}
+      className={`inline-flex items-center gap-1.5 rounded-full px-2 py-[3px] text-[11px] font-semibold whitespace-nowrap ${t.pill}`}
     >
-      <span className="w-1.5 h-1.5 rounded-full" style={{ background: t.dot }} />
+      <span className={`h-1.5 w-1.5 rounded-full ${t.dot}`} />
       {children}
     </span>
   );
@@ -60,7 +51,7 @@ export function StatusPill({ tone = 'ok', children }: { tone?: PillTone; childre
 /* ── At-a-glance chip — paired OD/OS values + status tag ─────────── */
 
 export function GlanceChip({ metric }: { metric: GlanceMetric }) {
-  const t = PILL_TONES[metric.status];
+  const t = pillToneClasses(metric.status);
   const renderEye = (value: number | null, label: string) => (
     <div>
       <span className="text-[9px] tracking-[0.08em]" style={{ color: 'var(--nimi-fg-4)' }}>{label} </span>
@@ -80,8 +71,7 @@ export function GlanceChip({ metric }: { metric: GlanceMetric }) {
       <div className="flex items-center justify-between mb-2">
         <span className="text-[11px] font-medium" style={{ color: 'var(--nimi-fg-3)' }}>{metric.label}</span>
         <span
-          className="text-[10px] font-semibold px-[7px] py-0.5 rounded-full"
-          style={{ background: t.bg, color: t.fg }}
+          className={`rounded-full px-[7px] py-0.5 text-[10px] font-semibold ${t.pill}`}
         >
           {metric.tag}
         </span>
@@ -97,6 +87,37 @@ export function GlanceChip({ metric }: { metric: GlanceMetric }) {
   );
 }
 
+function pillToneClasses(tone: PillTone): { pill: string; dot: string } {
+  if (tone === 'ok') {
+    return {
+      pill: 'bg-[color-mix(in_srgb,var(--nimi-status-success)_10%,transparent)] text-[var(--nimi-status-success)]',
+      dot: 'bg-[var(--nimi-status-success)]',
+    };
+  }
+  if (tone === 'warn') {
+    return {
+      pill: 'bg-[color-mix(in_srgb,var(--nimi-status-warning)_12%,transparent)] text-[var(--nimi-status-warning)]',
+      dot: 'bg-[var(--nimi-status-warning)]',
+    };
+  }
+  if (tone === 'danger') {
+    return {
+      pill: 'bg-[color-mix(in_srgb,var(--nimi-status-danger)_10%,transparent)] text-[var(--nimi-status-danger)]',
+      dot: 'bg-[var(--nimi-status-danger)]',
+    };
+  }
+  if (tone === 'info') {
+    return {
+      pill: 'bg-[color-mix(in_srgb,var(--nimi-status-info)_10%,transparent)] text-[var(--nimi-status-info)]',
+      dot: 'bg-[var(--nimi-status-info)]',
+    };
+  }
+  return {
+    pill: 'bg-[color-mix(in_srgb,var(--nimi-text-muted)_10%,transparent)] text-[var(--nimi-text-secondary)]',
+    dot: 'bg-[var(--nimi-text-muted)]',
+  };
+}
+
 /* ── Chevron icon ────────────────────────────────────────────────── */
 
 function ChevronDown({ size = 14 }: { size?: number }) {
@@ -110,8 +131,8 @@ function ChevronDown({ size = 14 }: { size?: number }) {
 
 /* ── AgeFilter — horizontal age timeline picker ──────────────────── */
 
-const EXAM_TYPE_COLOR = (kind: ExamView['kind']) =>
-  kind === 'full' ? 'var(--nimi-accent)' : kind === 'biometric' ? '#0ea5e9' : '#94a3b8';
+const examTypeStroke = (kind: ExamView['kind']) =>
+  kind === 'full' ? 'var(--nimi-accent)' : kind === 'biometric' ? 'var(--nimi-status-info)' : 'var(--nimi-text-muted)';
 
 const EXAM_TYPE_LABEL = (kind: ExamView['kind']) =>
   kind === 'full' ? '完整检查' : kind === 'biometric' ? '眼轴跟踪' : '视力筛查';
@@ -200,7 +221,7 @@ export function AgeFilter({
           const isActive = e.id === activeExamId;
           const isHover = e.id === hoverId;
           const dimmed = selectedAge != null && !isInSelected;
-          const tooltipColor = EXAM_TYPE_COLOR(e.kind);
+          const tooltipColor = examTypeStroke(e.kind);
           return (
             <div
               key={e.id}

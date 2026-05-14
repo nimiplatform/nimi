@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { S } from '../../app-shell/page-style.js';
+import { Button, StatusBadge, Surface, cn } from '@nimiplatform/nimi-kit/ui';
 import type { JournalTagInsertRow } from '../../bridge/sqlite-bridge.js';
 import { ulid } from '../../bridge/ulid.js';
 import { catchLog } from '../../infra/telemetry/catch-log.js';
@@ -27,8 +27,8 @@ export function AutoTagBar({ status, suggestion, selectedTags, selectedDimension
   if (status === 'suggesting') {
     return (
       <div className="flex items-center gap-2 py-1.5">
-        <div className="w-3 h-3 rounded-full animate-pulse" style={{ background: S.accent }} />
-        <span className="text-[13px]" style={{ color: S.sub }}>AI 正在分析...</span>
+        <div className="h-3 w-3 animate-pulse rounded-full bg-[var(--nimi-action-primary-bg)]" />
+        <span className="text-[13px] text-[var(--nimi-text-muted)]">AI 正在分析...</span>
       </div>
     );
   }
@@ -36,8 +36,8 @@ export function AutoTagBar({ status, suggestion, selectedTags, selectedDimension
   if (status === 'failed') {
     return (
       <div className="flex items-center gap-2 py-1.5">
-        <span className="text-[12px]" style={{ color: S.sub }}>AI 成长关键词暂不可用</span>
-        <button onClick={onRetry} className="text-[12px] underline" style={{ color: S.accent }}>重试</button>
+        <span className="text-[12px] text-[var(--nimi-text-muted)]">AI 成长关键词暂不可用</span>
+        <button onClick={onRetry} className="text-[12px] text-[var(--nimi-action-primary-bg)] underline">重试</button>
       </div>
     );
   }
@@ -51,21 +51,21 @@ export function AutoTagBar({ status, suggestion, selectedTags, selectedDimension
   if (!dim || suggestedTags.length === 0) return null;
 
   return (
-    <div className={`flex items-center gap-2 flex-wrap py-1.5 px-2 ${S.radiusSm}`}
-      style={{ background: '#f4f7ea', border: `1px solid ${S.accent}30` }}>
-      <span className="text-[12px] shrink-0" style={{ color: S.accent }}>✨</span>
+    <div className="flex flex-wrap items-center gap-2 parentos-radius-sm border border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_22%,var(--nimi-border-subtle))] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_8%,var(--nimi-surface-card))] px-2 py-1.5">
+      <span className="shrink-0 text-[12px] text-[var(--nimi-action-primary-bg)]">✨</span>
       {selectedDimension !== suggestion.dimensionId && (
-        <span className="text-[12px] rounded-full px-1.5 py-0.5 font-medium"
-          style={{ background: S.accent + '20', color: S.accent }}>
+        <span className="parentos-radius-full bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_14%,transparent)] px-1.5 py-0.5 text-[12px] font-medium text-[var(--nimi-action-primary-bg)]">
           成长方向 · {dim.displayName}
         </span>
       )}
       {suggestedTags.map((tag) => (
         <button key={tag} onClick={() => onToggleTag(tag)}
-          className="rounded-full px-2 py-0.5 text-[12px] transition-colors"
-          style={selectedTags.includes(tag)
-            ? { background: S.accent, color: '#fff' }
-            : { background: '#fff', color: S.accent, border: `1px solid ${S.accent}40` }}>
+          className={cn(
+            'parentos-radius-full px-2 py-0.5 text-[12px] transition-colors',
+            selectedTags.includes(tag)
+              ? 'bg-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)]'
+              : 'border border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_30%,transparent)] bg-[var(--nimi-surface-card)] text-[var(--nimi-action-primary-bg)] hover:bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_8%,transparent)]',
+          )}>
           {tag}
         </button>
       ))}
@@ -88,9 +88,9 @@ export function PhotoBar({ drafts, onRemove, inputRef }: PhotoBarProps) {
       {/* Photo previews */}
       {drafts.map((d, i) => (
         <div key={i} className="relative w-14 h-14 shrink-0">
-          <img src={d.previewUrl} alt="" className={`w-14 h-14 ${S.radiusSm} object-cover`} />
+          <img src={d.previewUrl} alt="" className="h-14 w-14 parentos-radius-sm object-cover" />
           <button onClick={() => onRemove(i)}
-            className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500 text-white text-[12px] flex items-center justify-center leading-none">
+            className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-[var(--nimi-status-danger)] text-[12px] leading-none text-[var(--nimi-action-primary-text)]">
             ✕
           </button>
         </div>
@@ -99,8 +99,7 @@ export function PhotoBar({ drafts, onRemove, inputRef }: PhotoBarProps) {
       {/* Add photo button */}
       {drafts.length < 9 && (
         <button onClick={() => inputRef.current?.click()}
-          className={`w-14 h-14 ${S.radiusSm} flex flex-col items-center justify-center gap-0.5 transition-colors hover:bg-[#eceeed]`}
-          style={{ border: `1px dashed ${S.border}`, color: S.sub }}>
+          className="flex h-14 w-14 flex-col items-center justify-center gap-0.5 parentos-radius-sm border border-dashed border-[var(--nimi-border-subtle)] text-[var(--nimi-text-muted)] transition-colors hover:bg-[var(--nimi-action-ghost-hover)]">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
             <rect x="3" y="3" width="18" height="18" rx="2" />
             <circle cx="8.5" cy="8.5" r="1.5" />
@@ -227,42 +226,41 @@ export function SaveConfirmationModal({
   const aiReady = aiStatus === 'ready' && aiSuggestion?.dimensionId && aiDim && aiSuggestion.tags.length > 0;
 
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(15,23,42,0.28)] p-4" onClick={onCancel}>
-      <div
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--nimi-scrim-modal)] p-4" onClick={onCancel}>
+      <Surface
         role="dialog"
         aria-modal="true"
         aria-label="保存随手记"
-        className={`${S.radius} w-full max-w-[480px] p-5`}
-        style={{ background: S.card, boxShadow: S.shadow }}
+        tone="overlay"
+        elevation="modal"
+        padding="md"
+        className="w-full max-w-[480px] parentos-radius-xl p-5"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <h3 className="mb-4 text-[16px] font-semibold" style={{ color: S.text }}>保存随手记</h3>
+        <h3 className="mb-4 text-[16px] font-semibold text-[var(--nimi-text-primary)]">保存随手记</h3>
 
         {/* Text preview */}
-        <div className={`${S.radiusSm} mb-4 max-h-[160px] overflow-y-auto p-3`}
-          style={{ background: '#fafaf8', border: `1px solid ${S.border}` }}>
-          <p className="whitespace-pre-wrap text-[14px] leading-relaxed" style={{ color: S.sub }}>
+        <Surface tone="card" elevation="base" padding="sm" className="mb-4 max-h-[160px] overflow-y-auto parentos-radius-sm p-3">
+          <p className="whitespace-pre-wrap text-[14px] leading-relaxed text-[var(--nimi-text-muted)]">
             {textPreview || '（无文字内容）'}
           </p>
-        </div>
+        </Surface>
 
         {/* Manual dimension + tags (display-only) */}
         {(manualDim || selectedTags.length > 0) && (
           <div className="mb-4">
-            <p className="mb-1.5 text-[13px] font-medium" style={{ color: S.sub }}>已选分类</p>
+            <p className="mb-1.5 text-[13px] font-medium text-[var(--nimi-text-muted)]">已选分类</p>
             <div className="flex flex-wrap items-center gap-1.5">
               {manualDim && (
-                <span className="rounded-full px-2 py-0.5 text-[12px] font-medium"
-                  style={{ background: S.accent + '20', color: S.accent }}>
+                <span className="parentos-radius-full bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_14%,transparent)] px-2 py-0.5 text-[12px] font-medium text-[var(--nimi-action-primary-bg)]">
                   {manualDim.displayName}
                 </span>
               )}
               {selectedTags.map((tag) => (
-                <span key={tag} className="rounded-full px-2 py-0.5 text-[12px]"
-                  style={{ background: '#f0f0ec', color: S.text }}>
+                <StatusBadge key={tag} tone="neutral" className="parentos-radius-full px-2 py-0.5 text-[12px] text-[var(--nimi-text-primary)]">
                   {tag}
-                </span>
+                </StatusBadge>
               ))}
             </div>
           </div>
@@ -270,47 +268,47 @@ export function SaveConfirmationModal({
 
         {/* AI tag analysis section */}
         <div className="mb-5">
-          <p className="mb-1.5 text-[13px] font-medium" style={{ color: S.sub }}>AI 成长关键词</p>
+          <p className="mb-1.5 text-[13px] font-medium text-[var(--nimi-text-muted)]">AI 成长关键词</p>
 
           {aiStatus === 'suggesting' && (
             <div className="flex items-center gap-2 py-2">
-              <div className="h-3 w-3 animate-pulse rounded-full" style={{ background: S.accent }} />
-              <span className="text-[13px]" style={{ color: S.sub }}>AI 正在分析成长关键词...</span>
+              <div className="h-3 w-3 animate-pulse rounded-full bg-[var(--nimi-action-primary-bg)]" />
+              <span className="text-[13px] text-[var(--nimi-text-muted)]">AI 正在分析成长关键词...</span>
             </div>
           )}
 
           {aiStatus === 'failed' && (
             <div className="py-2">
               <div className="flex items-center gap-2">
-                <span className="text-[12px]" style={{ color: S.sub }}>AI 分析暂不可用</span>
-                <button onClick={handleRetry} className="text-[12px] underline" style={{ color: S.accent }}>重试</button>
+                <span className="text-[12px] text-[var(--nimi-text-muted)]">AI 分析暂不可用</span>
+                <button onClick={handleRetry} className="text-[12px] text-[var(--nimi-action-primary-bg)] underline">重试</button>
               </div>
               {aiError && (
-                <p className="mt-1 text-[12px] break-all" style={{ color: '#b45309' }}>{aiError}</p>
+                <p className="mt-1 break-all text-[12px] text-[var(--nimi-status-warning)]">{aiError}</p>
               )}
             </div>
           )}
 
           {aiStatus === 'ready' && !aiReady && (
-            <p className="py-2 text-[12px]" style={{ color: S.sub }}>AI 未识别到成长关键词</p>
+            <p className="py-2 text-[12px] text-[var(--nimi-text-muted)]">AI 未识别到成长关键词</p>
           )}
 
           {aiReady && (
-            <div className={`flex flex-wrap items-center gap-2 px-2 py-2 ${S.radiusSm}`}
-              style={{ background: '#f4f7ea', border: `1px solid ${S.accent}30` }}>
-              <span className="shrink-0 text-[12px]" style={{ color: S.accent }}>✨</span>
+            <div className="flex flex-wrap items-center gap-2 parentos-radius-sm border border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_22%,var(--nimi-border-subtle))] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_8%,var(--nimi-surface-card))] px-2 py-2">
+              <span className="shrink-0 text-[12px] text-[var(--nimi-action-primary-bg)]">✨</span>
               {aiDim && selectedDimension !== aiSuggestion!.dimensionId && (
-                <span className="rounded-full px-1.5 py-0.5 text-[12px] font-medium"
-                  style={{ background: S.accent + '20', color: S.accent }}>
+                <span className="parentos-radius-full bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_14%,transparent)] px-1.5 py-0.5 text-[12px] font-medium text-[var(--nimi-action-primary-bg)]">
                   成长方向 · {aiDim.displayName}
                 </span>
               )}
               {aiSuggestion!.tags.map((tag) => (
                 <button key={tag} onClick={() => handleToggleAiTag(tag)}
-                  className="rounded-full px-2 py-0.5 text-[12px] transition-colors"
-                  style={selectedAiTags.has(tag)
-                    ? { background: S.accent, color: '#fff' }
-                    : { background: '#fff', color: S.accent, border: `1px solid ${S.accent}40` }}>
+                  className={cn(
+                    'parentos-radius-full px-2 py-0.5 text-[12px] transition-colors',
+                    selectedAiTags.has(tag)
+                      ? 'bg-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)]'
+                      : 'border border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_30%,transparent)] bg-[var(--nimi-surface-card)] text-[var(--nimi-action-primary-bg)] hover:bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_8%,transparent)]',
+                  )}>
                   {tag}
                 </button>
               ))}
@@ -318,24 +316,20 @@ export function SaveConfirmationModal({
           )}
 
           {aiStatus === 'idle' && draftTextForTagging.trim().length < 10 && (
-            <p className="py-2 text-[12px]" style={{ color: S.sub }}>文字内容较短，跳过 AI 分析</p>
+            <p className="py-2 text-[12px] text-[var(--nimi-text-muted)]">文字内容较短，跳过 AI 分析</p>
           )}
         </div>
 
         {/* Footer */}
         <div className="flex items-center justify-end gap-2">
-          <button type="button" onClick={onCancel}
-            className={`${S.radiusSm} px-4 py-2 text-[14px] transition-colors`}
-            style={{ background: '#f3f4f6', color: S.sub }}>
+          <Button type="button" onClick={onCancel} tone="ghost" size="sm" className="parentos-radius-sm px-4 py-2 text-[14px]">
             取消
-          </button>
-          <button type="button" onClick={handleConfirm}
-            className={`${S.radiusSm} px-4 py-2 text-[14px] font-medium text-white transition-colors`}
-            style={{ background: S.accent }}>
+          </Button>
+          <Button type="button" onClick={handleConfirm} tone="primary" size="sm" className="parentos-radius-sm px-4 py-2 text-[14px] font-medium">
             {aiStatus === 'suggesting' ? '保存（跳过 AI 分析）' : '保存'}
-          </button>
+          </Button>
         </div>
-      </div>
+      </Surface>
     </div>,
     document.body,
   );

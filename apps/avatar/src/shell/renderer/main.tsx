@@ -5,6 +5,7 @@
 // fallback path.
 import './i18n/index.js';
 import { createRoot } from 'react-dom/client';
+import { NimiThemeProvider } from '@nimiplatform/nimi-kit/ui';
 import { App } from './App.js';
 import { t } from './i18n/index.js';
 import { installCreateImageBitmapSuspendForTauri } from './vrm/vrm-tauri-quirks.js';
@@ -32,4 +33,8 @@ if (typeof document !== 'undefined') {
 // GLTFLoader during the first canvas teardown — the second mount then
 // fails to re-upload the textures and the renderer enters Context Lost.
 // Three.js / R3F + cached GPU resources are not StrictMode-friendly.
-createRoot(container).render(<App />);
+createRoot(container).render(
+  <NimiThemeProvider accentPack="nimi-accent" defaultScheme="light">
+    <App />
+  </NimiThemeProvider>,
+);

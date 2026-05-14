@@ -1,3 +1,4 @@
+import { Button, Surface } from '@nimiplatform/nimi-kit/ui';
 /**
  * Full-width compact card for the appliance that would otherwise be left
  * unpaired in the grid (PO-ORTHO-003a). Instead of shrinking a hero, the odd
@@ -7,12 +8,11 @@
  */
 import type {
   OrthodonticApplianceRow,
+  OrthodonticApplianceType,
   OrthodonticCaseRow,
   OrthodonticCheckinRow,
   OrthodonticUnwearIntervalRow,
 } from '../../bridge/sqlite-bridge.js';
-import { S } from '../../app-shell/page-style.js';
-import { applianceIdentity } from './appliance-identity.js';
 import { computeApplianceRingView } from './appliance-ring-view.js';
 import { ApplianceRing } from './appliance-ring.js';
 import { computeApplianceNextAction } from './appliance-next-action.js';
@@ -38,41 +38,16 @@ function StackButton({
   tone: 'primary' | 'outline';
   onClick: () => void;
 }) {
-  const base = {
-    padding: '8px 16px',
-    borderRadius: 999,
-    fontSize: 13,
-    fontWeight: 600,
-    fontFamily: 'inherit',
-    cursor: 'pointer',
-    whiteSpace: 'nowrap' as const,
-    transition: 'all 160ms',
-    width: '100%',
-  };
   return (
-    <button
-      type="button"
+    <Button
+      tone={tone === 'primary' ? 'primary' : 'secondary'}
+      size="sm"
       onClick={onClick}
-      className="hover:-translate-y-0.5"
-      style={
-        tone === 'primary'
-          ? {
-              ...base,
-              background: 'var(--nimi-text-primary)',
-              color: '#ffffff',
-              border: 0,
-              boxShadow: '0 4px 12px rgba(15,23,42,0.16)',
-            }
-          : {
-              ...base,
-              background: '#ffffff',
-              color: 'var(--nimi-text-primary)',
-              border: `1px solid ${S.accent}`,
-            }
-      }
+      fullWidth
+      className="rounded-full whitespace-nowrap"
     >
       {label}
-    </button>
+    </Button>
   );
 }
 
@@ -93,35 +68,25 @@ export function ApplianceCompactCard({
   nowIso: string;
   handlers: ApplianceCardHandlers;
 }) {
-  const identity = applianceIdentity(appliance.applianceType);
   const ringView = computeApplianceRingView({ appliance, caseRow, intervals, checkins, nowIso });
   const phase = computeAppliancePhaseProgress(appliance, nowIso);
   const nextAction = computeApplianceNextAction({ appliance, intervals, checkins, nowIso });
   const supportsWearGap = applianceSupportsWearGap(appliance.applianceType);
 
   return (
-    <section
-      style={{
-        background: '#ffffff',
-        borderRadius: 24,
-        overflow: 'hidden',
-        boxShadow: '0 8px 28px rgba(15,23,42,0.07), 0 1px 3px rgba(15,23,42,0.05)',
-        display: 'flex',
-        alignItems: 'stretch',
-      }}
+    <Surface
+      as="section"
+      tone="card"
+      material="glass-regular"
+      elevation="raised"
+      padding="none"
+      className="flex items-stretch overflow-hidden rounded-3xl"
     >
       {/* left identity bar */}
-      <div style={{ width: 6, background: identity.solid, flexShrink: 0 }} aria-hidden="true" />
+      <div className={`w-1.5 shrink-0 ${applianceIdentityBarClassName(appliance.applianceType)}`} aria-hidden="true" />
 
       <div
-        style={{
-          flex: 1,
-          padding: '20px 24px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 24,
-          flexWrap: 'wrap',
-        }}
+        className="flex flex-1 flex-wrap items-center gap-6 px-6 py-5"
       >
         {/* small ring */}
         <div style={{ flexShrink: 0 }}>
@@ -129,7 +94,7 @@ export function ApplianceCompactCard({
         </div>
 
         {/* middle: identity + phase + embedded next action */}
-        <div style={{ flex: 1, minWidth: 220, display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <div className="flex min-w-[220px] flex-1 flex-col gap-2.5">
           <div>
             <ApplianceCardHeader
               appliance={appliance}
@@ -137,7 +102,7 @@ export function ApplianceCompactCard({
             />
             <ApplianceMetaLine appliance={appliance} childBirthDate={childBirthDate} />
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          <div className="flex flex-wrap items-center gap-2">
             <AppliancePhasePill
               appliance={appliance}
               phase={phase}
@@ -147,44 +112,24 @@ export function ApplianceCompactCard({
 
           {/* embedded next action */}
           <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 10,
-              padding: '10px 14px',
-              borderRadius: 14,
-              background: 'rgba(15,23,42,0.03)',
-              flexWrap: 'wrap',
-            }}
+            className="flex flex-wrap items-center gap-2.5 rounded-xl bg-[color-mix(in_srgb,var(--nimi-text-primary)_3%,transparent)] px-3.5 py-2.5"
           >
-            <span style={{ fontSize: 12, color: S.sub, fontWeight: 600 }}>
+            <span className="text-[12px] font-semibold text-[var(--nimi-text-muted)]">
               {nextAction.label}
             </span>
-            <span
-              style={{
-                fontSize: 15,
-                fontWeight: 700,
-                color: 'var(--nimi-text-primary)',
-              }}
-            >
+            <span className="text-[15px] font-bold text-[var(--nimi-text-primary)]">
               {nextAction.date ? formatMonthDay(nextAction.date) : '—'}
             </span>
             {nextAction.daysAway !== null && <DaysAwayPill daysAway={nextAction.daysAway} />}
             {nextAction.detail && (
-              <span style={{ fontSize: 12, color: S.sub }}>· {nextAction.detail}</span>
+              <span className="text-[12px] text-[var(--nimi-text-muted)]">· {nextAction.detail}</span>
             )}
           </div>
         </div>
 
         {/* right: vertical action stack */}
         <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 8,
-            minWidth: 132,
-            flexShrink: 0,
-          }}
+          className="flex min-w-[132px] shrink-0 flex-col gap-2"
         >
           <StackButton
             label={nextAction.actionLabel}
@@ -205,6 +150,14 @@ export function ApplianceCompactCard({
           />
         </div>
       </div>
-    </section>
+    </Surface>
   );
+}
+
+function applianceIdentityBarClassName(type: OrthodonticApplianceType): string {
+  if (type === 'clear-aligner') return 'bg-[var(--nimi-status-success)]';
+  if (type === 'expander' || type === 'retainer-fixed') return 'bg-[var(--nimi-status-info)]';
+  if (type === 'retainer-removable') return 'bg-[var(--nimi-status-danger)]';
+  if (type === 'metal-braces' || type === 'ceramic-braces') return 'bg-[var(--nimi-text-muted)]';
+  return 'bg-[var(--nimi-action-primary-bg)]';
 }

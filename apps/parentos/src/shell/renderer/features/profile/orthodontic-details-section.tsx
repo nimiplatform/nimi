@@ -1,6 +1,5 @@
 import { useState } from 'react';
-import { Surface } from '@nimiplatform/nimi-kit/ui';
-import { S } from '../../app-shell/page-style.js';
+import { Surface, cn } from '@nimiplatform/nimi-kit/ui';
 
 interface Props {
   title: string;
@@ -34,86 +33,43 @@ export function OrthodonticDetailsSection({
     <Surface
       as="section"
       material="glass-regular"
+      elevation="raised"
       padding="none"
       tone="card"
-      className="rounded-[24px] overflow-hidden shadow-[0_6px_18px_rgba(15,23,42,0.04)]"
+      className="overflow-hidden rounded-3xl"
     >
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
-        style={{
-          width: '100%',
-          padding: '20px 24px',
-          border: 0,
-          background: 'transparent',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          cursor: 'pointer',
-          fontFamily: 'inherit',
-          textAlign: 'left',
-        }}
+        className="flex w-full cursor-pointer items-center justify-between border-0 bg-transparent px-6 py-5 text-left font-[inherit]"
       >
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'baseline',
-            gap: 12,
-            flexWrap: 'wrap',
-            minWidth: 0,
-          }}
-        >
-          <span
-            style={{
-              fontSize: 15,
-              fontWeight: 600,
-              color: S.text,
-              whiteSpace: 'nowrap',
-            }}
-          >
+        <div className="flex min-w-0 flex-wrap items-baseline gap-3">
+          <span className="whitespace-nowrap text-[15px] font-semibold text-[var(--nimi-text-primary)]">
             {title}
           </span>
           {count !== undefined && (
-            <span
-              style={{
-                fontSize: 12,
-                color: 'var(--nimi-text-muted)',
-                fontFamily: 'var(--nimi-font-mono)',
-                whiteSpace: 'nowrap',
-              }}
-            >
+            <span className="whitespace-nowrap font-mono text-[12px] text-[var(--nimi-text-muted)]">
               {count}
             </span>
           )}
           {hint && (
-            <span
-              style={{
-                fontSize: 12,
-                // slate-400 — kit fg-4 缺位；hint 比 count 再淡一档，避免与
-                // count 抢视觉。
-                color: '#94a3b8',
-                whiteSpace: 'nowrap',
-              }}
-            >
+            <span className="whitespace-nowrap text-[12px] text-[var(--nimi-text-muted)] opacity-[var(--nimi-opacity-muted)]">
               · {hint}
             </span>
           )}
         </div>
         <span
           aria-hidden
-          style={{
-            color: 'var(--nimi-text-muted)',
-            display: 'grid',
-            placeItems: 'center',
-            transform: open ? 'rotate(180deg)' : 'rotate(0)',
-            transition: 'transform 240ms',
-          }}
+          className={cn(
+            'grid place-items-center text-[var(--nimi-text-muted)] transition-transform duration-[var(--nimi-motion-medium)]',
+            open ? 'rotate-180' : 'rotate-0',
+          )}
         >
           <ChevronIcon />
         </span>
       </button>
-      {open && <div style={{ padding: '0 24px 24px' }}>{children}</div>}
+      {open && <div className="px-6 pb-6">{children}</div>}
     </Surface>
   );
 }
@@ -149,31 +105,15 @@ export function DetailsStat({
   sub?: string;
 }) {
   return (
-    <div style={{ padding: '4px 0' }}>
-      <div
-        style={{
-          textTransform: 'uppercase',
-          letterSpacing: '0.08em',
-          fontSize: 11,
-          fontWeight: 600,
-          color: 'var(--nimi-text-muted)',
-          marginBottom: 6,
-        }}
-      >
+    <div className="py-1">
+      <div className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--nimi-text-muted)]">
         {label}
       </div>
-      <div
-        style={{
-          fontSize: 24,
-          fontWeight: 700,
-          letterSpacing: '-0.02em',
-          color: 'var(--nimi-text-primary)',
-        }}
-      >
+      <div className="text-[24px] font-bold tracking-[-0.02em] text-[var(--nimi-text-primary)]">
         {value}
       </div>
       {sub && (
-        <div style={{ fontSize: 12, color: 'var(--nimi-text-muted)', marginTop: 4 }}>
+        <div className="mt-1 text-[12px] text-[var(--nimi-text-muted)]">
           {sub}
         </div>
       )}

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { Surface } from '@nimiplatform/nimi-kit/ui';
 import { saveAttachment, upsertMilestoneRecord } from '../../bridge/sqlite-bridge.js';
 import { isoNow, ulid } from '../../bridge/ulid.js';
 import { MILESTONE_CATALOG } from '../../knowledge-base/index.js';
@@ -10,7 +11,6 @@ import {
   type ChipOption,
   DateField,
   FormField,
-  HEALTH_MODAL_TOKENS,
   ModalContent,
   ModalFooter,
   ModalHeader,
@@ -126,10 +126,10 @@ export function MilestoneCaptureContent({ child, ageMonths, onSaved, onClose, he
         <ModalContent>
           <div className="flex h-full flex-col items-center justify-center px-8 py-12 text-center">
             <div className="mb-3 text-[36px]">🎓</div>
-            <p className="mb-1 text-[14px] font-medium" style={{ color: HEALTH_MODAL_TOKENS.text }}>
+            <p className="mb-1 text-[14px] font-medium text-[var(--nimi-text-primary)]">
               已超出里程碑数据范围
             </p>
-            <p className="text-[13px]" style={{ color: HEALTH_MODAL_TOKENS.sub }}>
+            <p className="text-[13px] text-[var(--nimi-text-muted)]">
               里程碑库只覆盖 0–6 岁。该孩子的年龄段已无新可记录条目。
             </p>
           </div>
@@ -167,52 +167,48 @@ export function MilestoneCaptureContent({ child, ageMonths, onSaved, onClose, he
             <FormField label="选择里程碑（按当前月龄过滤）">
               <div className="max-h-[260px] space-y-1.5 overflow-y-auto pr-1">
                 {candidates.map((item) => (
-                  <button
+                  <Surface
+                    as="button"
                     key={item.milestoneId}
                     type="button"
                     onClick={() => setSelectedId(item.milestoneId)}
-                    className="w-full rounded-[14px] px-4 py-3 text-left transition-colors"
-                    style={
-                      selectedId === item.milestoneId
-                        ? {
-                            background: 'rgba(78,204,163,0.14)',
-                            border: `1px solid ${HEALTH_MODAL_TOKENS.accent}`,
-                          }
-                        : { background: HEALTH_MODAL_TOKENS.fieldBg, border: `1px solid ${HEALTH_MODAL_TOKENS.fieldBorder}` }
-                    }
+                    tone="card"
+                    elevation="base"
+                    padding="none"
+                    material="solid"
+                    interactive
+                    active={selectedId === item.milestoneId}
+                    className="w-full px-4 py-3 text-left"
                   >
                     <div className="flex items-center justify-between">
-                      <span className="text-[13px] font-medium" style={{ color: HEALTH_MODAL_TOKENS.text }}>
+                      <span className="text-[13px] font-medium text-[var(--nimi-text-primary)]">
                         {item.title}
                       </span>
-                      <span className="text-[12px]" style={{ color: HEALTH_MODAL_TOKENS.sub }}>
+                      <span className="text-[12px] text-[var(--nimi-text-muted)]">
                         {item.typicalAge.rangeStart}-{item.typicalAge.rangeEnd} 月
                       </span>
                     </div>
-                    <p className="mt-0.5 text-[12px]" style={{ color: HEALTH_MODAL_TOKENS.sub }}>
+                    <p className="mt-0.5 text-[12px] text-[var(--nimi-text-muted)]">
                       {item.description}
                     </p>
-                  </button>
+                  </Surface>
                 ))}
               </div>
             </FormField>
           ) : milestone ? (
-            <div
-              className="rounded-[14px] px-4 py-3"
-              style={{ background: 'rgba(78,204,163,0.14)', border: `1px solid ${HEALTH_MODAL_TOKENS.accent}` }}
-            >
+            <Surface tone="card" elevation="base" padding="none" material="solid" active className="px-4 py-3">
               <div className="flex items-center justify-between">
-                <span className="text-[13px] font-medium" style={{ color: HEALTH_MODAL_TOKENS.text }}>
+                <span className="text-[13px] font-medium text-[var(--nimi-text-primary)]">
                   {milestone.title}
                 </span>
-                <span className="text-[12px]" style={{ color: HEALTH_MODAL_TOKENS.sub }}>
+                <span className="text-[12px] text-[var(--nimi-text-muted)]">
                   {milestone.typicalAge.rangeStart}-{milestone.typicalAge.rangeEnd} 月
                 </span>
               </div>
-              <p className="mt-0.5 text-[12px]" style={{ color: HEALTH_MODAL_TOKENS.sub }}>
+              <p className="mt-0.5 text-[12px] text-[var(--nimi-text-muted)]">
                 {milestone.description}
               </p>
-            </div>
+            </Surface>
           ) : null}
 
           {milestone ? (

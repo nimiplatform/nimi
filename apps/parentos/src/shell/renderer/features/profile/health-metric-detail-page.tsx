@@ -3,9 +3,8 @@ import { Link, Navigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import { ArrowLeft, CalendarClock, Plus } from 'lucide-react';
-import { Surface } from '@nimiplatform/nimi-kit/ui';
+import { IconButton, Surface } from '@nimiplatform/nimi-kit/ui';
 import { computeAgeMonths, useAppStore } from '../../app-shell/app-store.js';
-import { S } from '../../app-shell/page-style.js';
 import {
   getHealthRecordEvents,
   getHealthRecordValues,
@@ -151,7 +150,7 @@ export default function HealthMetricDetailPage() {
 
   if (!activeChild) {
     return (
-      <div className="flex h-full items-center justify-center" style={{ color: S.sub }}>
+      <div className="flex h-full items-center justify-center text-[var(--nimi-text-muted)]">
         {t('Profile.empty.noActiveChild', { defaultValue: 'Add a child profile first' })}
       </div>
     );
@@ -162,34 +161,32 @@ export default function HealthMetricDetailPage() {
   const freshnessKey = metricSnapshot ? FRESHNESS_LABEL_KEYS[metricSnapshot.freshness] : null;
 
   return (
-    <div className="h-full overflow-y-auto hide-scrollbar" style={{ background: 'transparent' }}>
+    <div className="h-full overflow-y-auto hide-scrollbar bg-transparent">
       <div className="mx-auto max-w-5xl px-6 pb-8 pt-5">
         <div className="mb-4 flex items-center justify-between gap-3">
           <Link
             to="/profile"
-            className="inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-[13px] font-medium transition-colors hover:bg-white/60"
-            style={{ color: S.sub, background: 'rgba(255,255,255,0.35)' }}
+            className="inline-flex items-center gap-2 rounded-full bg-[color-mix(in_srgb,var(--nimi-surface-card)_35%,transparent)] px-3 py-1.5 text-[13px] font-medium text-[var(--nimi-text-muted)] transition-colors hover:bg-[var(--nimi-action-ghost-hover)]"
           >
             <ArrowLeft size={14} />
             {t('Profile.detail.back', { defaultValue: 'Back' })}
           </Link>
           {initialIntent ? (
-            <button
-              type="button"
+            <IconButton
+              tone="primary"
+              size="md"
               onClick={() => setCaptureOpen(true)}
-              className="inline-flex h-10 w-10 items-center justify-center rounded-full text-white transition-transform hover:-translate-y-0.5"
-              style={{ background: S.accent, boxShadow: '0 4px 14px rgba(78,204,163,0.22)' }}
+              className="h-10 w-10 rounded-full shadow-[var(--nimi-elevation-base)]"
               aria-label={t('Profile.detail.addRecord', { defaultValue: 'Add record' })}
               title={t('Profile.detail.addRecord', { defaultValue: 'Add record' })}
-            >
-              <Plus size={18} />
-            </button>
+              icon={<Plus size={18} />}
+            />
           ) : null}
         </div>
 
-        <Surface as="section" material="glass-thick" padding="none" tone="card" className="mb-5 overflow-hidden rounded-[var(--nimi-radius-xl)] p-6 shadow-[0_8px_32px_rgba(31,38,135,0.04)]">
-          <p className="text-[13px] font-medium" style={{ color: S.sub }}>{groupText}</p>
-          <h1 className="mt-1 text-2xl font-semibold tracking-normal" style={{ color: S.text, letterSpacing: 0 }}>
+        <Surface as="section" material="glass-thick" padding="none" tone="card" className="mb-5 overflow-hidden rounded-2xl p-6 shadow-[var(--nimi-elevation-base)]">
+          <p className="text-[13px] font-medium text-[var(--nimi-text-muted)]">{groupText}</p>
+          <h1 className="mt-1 text-2xl font-semibold tracking-normal text-[var(--nimi-text-primary)]">
             {metricLabel(metric, t)}
           </h1>
           <div className="mt-5 grid gap-3 md:grid-cols-4">
@@ -216,40 +213,40 @@ export default function HealthMetricDetailPage() {
           </div>
         </Surface>
 
-        <Surface as="section" material="glass-regular" padding="none" tone="card" className="overflow-hidden rounded-[var(--nimi-radius-xl)] shadow-[0_8px_32px_rgba(31,38,135,0.04)]">
-          <div className="flex items-center justify-between border-b px-5 py-4" style={{ borderColor: 'rgba(226,232,240,0.55)' }}>
-            <h2 className="text-[15px] font-semibold tracking-normal" style={{ color: S.text, letterSpacing: 0 }}>
+        <Surface as="section" material="glass-regular" padding="none" tone="card" className="overflow-hidden rounded-2xl shadow-[var(--nimi-elevation-base)]">
+          <div className="flex items-center justify-between border-b border-[color-mix(in_srgb,var(--nimi-border-subtle)_55%,transparent)] px-5 py-4">
+            <h2 className="text-[15px] font-semibold tracking-normal text-[var(--nimi-text-primary)]">
               {t('Profile.detail.history', { defaultValue: 'History' })}
             </h2>
-            <span className="text-[12px]" style={{ color: S.sub }}>{historyRows.length}</span>
+            <span className="text-[12px] text-[var(--nimi-text-muted)]">{historyRows.length}</span>
           </div>
           {error ? (
-            <div className="px-5 py-6 text-[14px]" style={{ color: '#b91c1c' }}>
+            <div className="px-5 py-6 text-[14px] text-[var(--nimi-status-danger)]">
               {t('Profile.errors.loadFailed', { defaultValue: 'Health record could not load' })}
             </div>
           ) : loading ? (
-            <div className="flex h-32 items-center justify-center text-[14px]" style={{ color: S.sub }}>
+            <div className="flex h-32 items-center justify-center text-[14px] text-[var(--nimi-text-muted)]">
               {t('Profile.loading', { defaultValue: 'Loading...' })}
             </div>
           ) : historyRows.length === 0 ? (
-            <div className="px-5 py-8 text-[14px]" style={{ color: S.sub }}>
+            <div className="px-5 py-8 text-[14px] text-[var(--nimi-text-muted)]">
               {t('Profile.detail.noHistory', { defaultValue: 'No history yet' })}
             </div>
           ) : (
-            <div className="divide-y" style={{ borderColor: 'rgba(226,232,240,0.45)' }}>
+            <div className="divide-y divide-[color-mix(in_srgb,var(--nimi-border-subtle)_45%,transparent)]">
               {historyRows.map((row) => (
                 <div key={row.value.valueId} className="grid grid-cols-1 gap-2 px-5 py-3.5 md:grid-cols-[130px_minmax(120px,1fr)_140px_minmax(160px,1fr)] md:items-center md:gap-3">
-                  <div className="inline-flex items-center gap-1.5 text-[13px]" style={{ color: S.sub }}>
+                  <div className="inline-flex items-center gap-1.5 text-[13px] text-[var(--nimi-text-muted)]">
                     <CalendarClock size={13} />
                     {formatDate(row.event.effectiveDate, t)}
                   </div>
-                  <div className="text-[14px] font-medium" style={{ color: S.text }}>
+                  <div className="text-[14px] font-medium text-[var(--nimi-text-primary)]">
                     {formatHealthValue(row.value, metric, t)}
                   </div>
-                  <div className="text-[13px]" style={{ color: S.sub }}>
+                  <div className="text-[13px] text-[var(--nimi-text-muted)]">
                     {sourceLabel(row.event.sourceSurface, t)}
                   </div>
-                  <div className="truncate text-[13px]" style={{ color: S.sub }}>
+                  <div className="truncate text-[13px] text-[var(--nimi-text-muted)]">
                     {row.event.notes || t('Profile.empty.noDate', { defaultValue: 'None' })}
                   </div>
                 </div>
@@ -277,9 +274,9 @@ export default function HealthMetricDetailPage() {
 
 function MetricSummaryCell({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-[14px] px-4 py-3" style={{ background: 'rgba(248,250,252,0.68)', border: '1px solid rgba(226,232,240,0.62)' }}>
-      <p className="text-[12px]" style={{ color: S.sub }}>{label}</p>
-      <p className="mt-1 truncate text-[15px] font-semibold" style={{ color: S.text }}>{value}</p>
+    <div className="rounded-xl border border-[color-mix(in_srgb,var(--nimi-border-subtle)_62%,transparent)] bg-[color-mix(in_srgb,var(--nimi-surface-panel)_68%,transparent)] px-4 py-3">
+      <p className="text-[12px] text-[var(--nimi-text-muted)]">{label}</p>
+      <p className="mt-1 truncate text-[15px] font-semibold text-[var(--nimi-text-primary)]">{value}</p>
     </div>
   );
 }

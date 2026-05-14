@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState, type RefObject } from 'react';
-import { S } from '../../app-shell/page-style.js';
+import { useEffect, useRef, useState, type CSSProperties, type RefObject } from 'react';
+import { Button, IconButton, Surface, TextareaField } from '@nimiplatform/nimi-kit/ui';
 import type { VoiceDraft } from './journal-page-helpers.js';
 import type { VoiceRecordingSession } from './voice-observation-recorder.js';
 
@@ -74,13 +74,11 @@ function LiveWaveform({
         return (
           <span
             key={i}
-            className="rounded-full transition-[height] duration-[60ms] ease-out"
+            className="parentos-waveform-bar parentos-waveform-bar-primary rounded-full transition-[height] duration-[60ms] ease-out"
             style={{
-              width: 3,
-              height: `${heightPct}%`,
-              background: `linear-gradient(180deg, ${S.accent} 0%, #6FE0BA 100%)`,
-              opacity: 0.55 + Math.min(0.45, level * 0.9),
-            }}
+              '--parentos-waveform-height': `${heightPct}%`,
+              '--parentos-waveform-opacity': String(0.55 + Math.min(0.45, level * 0.9)),
+            } as CSSProperties}
           />
         );
       })}
@@ -107,15 +105,11 @@ function StaticWaveform({
         return (
           <span
             key={i}
-            className="rounded-full"
+            className={active ? 'parentos-waveform-bar parentos-waveform-bar-primary rounded-full' : 'parentos-waveform-bar parentos-waveform-bar-muted rounded-full'}
             style={{
-              width: 3,
-              height: `${heightPct}%`,
-              background: active
-                ? `linear-gradient(180deg, ${S.accent} 0%, #6FE0BA 100%)`
-                : '#cbd5d3',
-              opacity: active ? 0.95 : 0.7,
-            }}
+              '--parentos-waveform-height': `${heightPct}%`,
+              '--parentos-waveform-opacity': active ? '0.95' : '0.7',
+            } as CSSProperties}
           />
         );
       })}
@@ -139,10 +133,7 @@ function LiveTimer({
     return () => window.clearInterval(id);
   }, [sessionRef]);
   return (
-    <span
-      className="font-mono text-[28px] font-medium tabular-nums tracking-wide"
-      style={{ color: S.text }}
-    >
+    <span className="font-mono text-[28px] font-medium tabular-nums tracking-wide text-[var(--nimi-text-primary)]">
       {formatDuration(ms)}
     </span>
   );
@@ -164,22 +155,13 @@ export function VoiceIdleEntry({
       <div className="relative">
         <span
           aria-hidden
-          className="pointer-events-none absolute inset-0 rounded-full"
-          style={{
-            background: `radial-gradient(circle, ${S.accent}55 0%, transparent 70%)`,
-            transform: 'scale(1.6)',
-            filter: 'blur(8px)',
-          }}
+          className="parentos-voice-orb-glow pointer-events-none absolute inset-0 rounded-full"
         />
         <button
           type="button"
           onClick={onStart}
           disabled={!recordingSupported}
-          className="relative flex h-[76px] w-[76px] items-center justify-center rounded-full text-white transition-transform hover:scale-105 active:scale-95 disabled:opacity-40"
-          style={{
-            background: `linear-gradient(135deg, ${S.accent} 0%, #6FE0BA 100%)`,
-            boxShadow: `0 10px 30px ${S.accent}55, 0 2px 6px rgba(0,0,0,0.08)`,
-          }}
+          className="parentos-voice-primary-orb relative flex h-[76px] w-[76px] items-center justify-center rounded-full text-[var(--nimi-action-primary-text)] transition-transform hover:scale-105 active:scale-95 disabled:opacity-40"
           aria-label="开始语音记录"
         >
           <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -189,17 +171,16 @@ export function VoiceIdleEntry({
           </svg>
         </button>
       </div>
-      <p className="text-[14px] font-medium" style={{ color: S.text }}>点击开始语音记录</p>
+      <p className="text-[14px] font-medium text-[var(--nimi-text-primary)]">点击开始语音记录</p>
       <button
         type="button"
         onClick={onSwitchToText}
-        className="text-[13px] underline-offset-2 transition-colors hover:text-[color:var(--nimi-text)]"
-        style={{ color: S.sub }}
+        className="text-[13px] text-[var(--nimi-text-muted)] underline-offset-2 transition-colors hover:text-[var(--nimi-text-primary)]"
       >
         切换文字输入
       </button>
       {!recordingSupported ? (
-        <p className="mt-1 text-[12px] text-red-500">当前环境不支持录音，请在桌面端使用并授权麦克风。</p>
+        <p className="mt-1 text-[12px] text-[var(--nimi-status-danger)]">当前环境不支持录音，请在桌面端使用并授权麦克风。</p>
       ) : null}
     </div>
   );
@@ -217,35 +198,35 @@ export function VoiceRecordingPanel({
   onCancel: () => void;
 }) {
   return (
-    <div
-      className="relative flex flex-col items-center gap-5 rounded-[18px] px-5 py-7"
-      style={{
-        background: 'linear-gradient(180deg, #f4faf7 0%, #fafafa 100%)',
-        border: `1px solid ${S.accent}25`,
-      }}
+    <Surface
+      tone="card"
+      elevation="base"
+      padding="md"
+      className="relative flex flex-col items-center gap-5 parentos-radius-18 border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_18%,var(--nimi-border-subtle))] bg-[linear-gradient(180deg,color-mix(in_srgb,var(--nimi-action-primary-bg)_8%,var(--nimi-surface-card))_0%,var(--nimi-surface-card)_100%)] px-5 py-7"
     >
-      <button
+      <IconButton
         type="button"
         onClick={onCancel}
-        className="absolute right-3 top-3 flex h-7 w-7 items-center justify-center rounded-full transition-colors hover:bg-black/5"
-        style={{ color: S.sub }}
+        tone="ghost"
+        size="sm"
+        className="absolute right-3 top-3 h-7 min-h-0 w-7 parentos-radius-full text-[var(--nimi-text-muted)]"
         aria-label="取消录音"
         title="取消录音"
-      >
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-          <path d="M18 6 6 18" /><path d="m6 6 12 12" />
-        </svg>
-      </button>
+        icon={
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+            <path d="M18 6 6 18" /><path d="m6 6 12 12" />
+          </svg>
+        }
+      />
 
       <div className="flex items-center gap-2">
         <span className="relative flex h-2 w-2">
           <span
-            className="absolute inline-flex h-full w-full animate-ping rounded-full opacity-70"
-            style={{ background: '#ef4444' }}
+            className="parentos-status-danger-bg absolute inline-flex h-full w-full animate-ping rounded-full opacity-70"
           />
-          <span className="relative inline-flex h-2 w-2 rounded-full" style={{ background: '#ef4444' }} />
+          <span className="relative inline-flex h-2 w-2 rounded-full bg-[var(--nimi-status-danger)]" />
         </span>
-        <span className="text-[12px] font-medium tracking-wide" style={{ color: '#9ca3af' }}>录音中</span>
+        <span className="text-[12px] font-medium tracking-wide text-[var(--nimi-text-muted)]">录音中</span>
       </div>
 
       <div className="w-full max-w-[360px]">
@@ -255,22 +236,13 @@ export function VoiceRecordingPanel({
       <LiveTimer sessionRef={sessionRef} />
 
       <div className="flex items-center gap-3">
-        <button
-          type="button"
-          onClick={onCancel}
-          className="rounded-full px-5 py-2 text-[13px] font-medium transition-colors"
-          style={{ background: '#f1f5f4', color: S.sub }}
-        >
+        <Button type="button" onClick={onCancel} tone="ghost" size="sm" className="parentos-radius-full px-5 py-2 text-[13px] font-medium">
           取消
-        </button>
+        </Button>
         <button
           type="button"
           onClick={onStop}
-          className="flex items-center gap-2 rounded-full px-6 py-2.5 text-[14px] font-semibold text-white transition-transform hover:-translate-y-0.5"
-          style={{
-            background: `linear-gradient(135deg, ${S.accent} 0%, #3DB890 100%)`,
-            boxShadow: `0 8px 20px ${S.accent}55`,
-          }}
+          className="parentos-voice-stop-button flex items-center gap-2 rounded-full px-6 py-2.5 text-[14px] font-semibold text-[var(--nimi-action-primary-text)] transition-transform hover:-translate-y-0.5"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
             <rect x="6" y="6" width="12" height="12" rx="2" />
@@ -278,7 +250,7 @@ export function VoiceRecordingPanel({
           完成
         </button>
       </div>
-    </div>
+    </Surface>
   );
 }
 
@@ -327,21 +299,16 @@ export function VoicePreviewPanel({
 
   return (
     <div className="space-y-4">
-      <div
-        className="flex items-center gap-3 rounded-[16px] px-4 py-3"
-        style={{
-          background: 'linear-gradient(135deg, #f6faf8 0%, #ffffff 100%)',
-          border: `1px solid ${S.border}`,
-        }}
+      <Surface
+        tone="card"
+        elevation="base"
+        padding="sm"
+        className="flex items-center gap-3 parentos-radius-lg bg-[linear-gradient(135deg,color-mix(in_srgb,var(--nimi-action-primary-bg)_6%,var(--nimi-surface-card))_0%,var(--nimi-surface-card)_100%)] px-4 py-3"
       >
         <button
           type="button"
           onClick={togglePlay}
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-white transition-transform hover:scale-105 active:scale-95"
-          style={{
-            background: `linear-gradient(135deg, ${S.accent} 0%, #6FE0BA 100%)`,
-            boxShadow: `0 4px 12px ${S.accent}55`,
-          }}
+          className="parentos-voice-play-button flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[var(--nimi-action-primary-text)] transition-transform hover:scale-105 active:scale-95"
           aria-label={isPlaying ? '暂停' : '播放'}
         >
           {isPlaying ? (
@@ -360,28 +327,30 @@ export function VoicePreviewPanel({
           <StaticWaveform samples={voiceDraft.levelSamples} active={isPlaying} />
         </div>
 
-        <span className="shrink-0 font-mono text-[13px] tabular-nums" style={{ color: S.sub }}>
+        <span className="shrink-0 font-mono text-[13px] tabular-nums text-[var(--nimi-text-muted)]">
           {formatDuration(voiceDraft.durationMs)}
         </span>
 
-        <button
+        <IconButton
           type="button"
           onClick={onClear}
-          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-colors hover:bg-black/5"
-          style={{ color: S.sub }}
+          tone="ghost"
+          size="sm"
+          className="h-8 min-h-0 w-8 shrink-0 parentos-radius-full text-[var(--nimi-text-muted)]"
           aria-label="删除录音"
           title="删除录音"
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-            <path d="M3 6h18" /><path d="M8 6V4h8v2" />
-            <path d="M19 6l-1 14H6L5 6" />
-          </svg>
-        </button>
+          icon={
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <path d="M3 6h18" /><path d="M8 6V4h8v2" />
+              <path d="M19 6l-1 14H6L5 6" />
+            </svg>
+          }
+        />
 
         {voiceDraft.previewUrl ? (
           <audio ref={audioRef} src={voiceDraft.previewUrl} preload="metadata" className="hidden" />
         ) : null}
-      </div>
+      </Surface>
 
       {!transcribed ? (
         <div className="flex items-center justify-center">
@@ -389,21 +358,15 @@ export function VoicePreviewPanel({
             type="button"
             onClick={onTranscribe}
             disabled={transcribing || voiceRuntimeAvailable === false}
-            className="flex items-center gap-2 rounded-full px-5 py-2 text-[13px] font-medium transition-colors disabled:opacity-50"
-            style={{
-              background: '#fff',
-              color: S.accent,
-              border: `1px solid ${S.accent}40`,
-            }}
+            className="parentos-transcribe-button flex items-center gap-2 rounded-full px-5 py-2 text-[13px] font-medium transition-colors disabled:opacity-50"
           >
             {transcribing ? (
               <>
                 <span className="relative flex h-2 w-2">
                   <span
-                    className="absolute inline-flex h-full w-full animate-ping rounded-full"
-                    style={{ background: S.accent }}
+                    className="parentos-action-primary-bg absolute inline-flex h-full w-full animate-ping rounded-full"
                   />
-                  <span className="relative inline-flex h-2 w-2 rounded-full" style={{ background: S.accent }} />
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-[var(--nimi-action-primary-bg)]" />
                 </span>
                 AI 正在转写...
               </>
@@ -420,28 +383,28 @@ export function VoicePreviewPanel({
       ) : null}
 
       {voiceRuntimeAvailable === false ? (
-        <p className="text-center text-[12px]" style={{ color: '#b45309' }}>
+        <p className="text-center text-[12px] text-[var(--nimi-status-warning)]">
           语音转写暂不可用，仍可保存语音记录。
         </p>
       ) : null}
       {voiceDraft.error ? (
-        <p className="text-center text-[12px] text-red-500">{voiceDraft.error}</p>
+        <p className="text-center text-[12px] text-[var(--nimi-status-danger)]">{voiceDraft.error}</p>
       ) : null}
 
       {transcribed ? (
         <div>
           <div className="mb-1.5 flex items-center gap-1.5">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={S.accent} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--nimi-action-primary-bg)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M12 3l1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5L12 3Z" />
             </svg>
-            <span className="text-[12px] font-medium" style={{ color: S.accent }}>转写结果（可编辑）</span>
+            <span className="text-[12px] font-medium text-[var(--nimi-action-primary-bg)]">转写结果（可编辑）</span>
           </div>
-          <textarea
+          <TextareaField
             value={voiceDraft.transcript}
             onChange={(event) => onTranscriptChange(event.target.value)}
             placeholder="转写结果可以在这里继续修改..."
-            className="w-full resize-none rounded-[12px] p-3 text-[14px] leading-relaxed outline-none transition-colors focus:border-[color:var(--nimi-accent)]"
-            style={{ border: `1px solid ${S.border}`, background: '#fafafa' }}
+            className="w-full parentos-radius-md text-[14px] leading-relaxed"
+            textareaClassName="resize-none"
             rows={4}
           />
         </div>

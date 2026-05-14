@@ -1,7 +1,6 @@
+import { Surface } from '@nimiplatform/nimi-kit/ui';
 import { useMemo, useState } from 'react';
-import type { CSSProperties } from 'react';
 import type { DentalRecordRow } from '../../bridge/sqlite-bridge.js';
-import { S } from '../../app-shell/page-style.js';
 import {
   computeDentalOverviewStates,
   type EruptionState,
@@ -11,12 +10,37 @@ import {
 
 type StatusKey = 'primary' | 'permanent' | 'lost' | 'caries' | 'treated';
 
-const STATUS_META: Record<StatusKey, { label: string; dot: string; ring: string; fill: string; fg: string }> = {
-  permanent: { label: '恒牙',   dot: '#8b5cf6', ring: 'rgba(139,92,246,0.55)',  fill: 'rgba(139,92,246,0.16)', fg: '#6d28d9' },
-  primary:   { label: '乳牙',   dot: '#38bdf8', ring: 'rgba(56,189,248,0.55)',  fill: 'rgba(56,189,248,0.16)', fg: '#0369a1' },
-  lost:      { label: '已脱落', dot: '#64748b', ring: 'rgba(100,116,139,0.55)', fill: 'rgba(100,116,139,0.14)', fg: '#475569' },
-  caries:    { label: '龋齿',   dot: '#ec4899', ring: 'rgba(236,72,153,0.45)',  fill: 'rgba(236,72,153,0.10)', fg: '#be185d' },
-  treated:   { label: '已治疗', dot: '#10b981', ring: 'rgba(16,185,129,0.45)',  fill: 'rgba(16,185,129,0.10)', fg: '#047857' },
+const STATUS_META: Record<StatusKey, { label: string; dotClass: string; cellClass: string; textClass: string }> = {
+  permanent: {
+    label: '恒牙',
+    dotClass: 'bg-[var(--nimi-status-info)] ring-[color-mix(in_srgb,var(--nimi-status-info)_18%,transparent)]',
+    cellClass: 'border-[color-mix(in_srgb,var(--nimi-status-info)_42%,var(--nimi-border-subtle))] bg-[color-mix(in_srgb,var(--nimi-status-info)_12%,var(--nimi-surface-card))] text-[var(--nimi-status-info)]',
+    textClass: 'text-[var(--nimi-status-info)]',
+  },
+  primary: {
+    label: '乳牙',
+    dotClass: 'bg-[var(--nimi-action-primary-bg)] ring-[color-mix(in_srgb,var(--nimi-action-primary-bg)_18%,transparent)]',
+    cellClass: 'border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_42%,var(--nimi-border-subtle))] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_12%,var(--nimi-surface-card))] text-[var(--nimi-action-primary-bg)]',
+    textClass: 'text-[var(--nimi-action-primary-bg)]',
+  },
+  lost: {
+    label: '已脱落',
+    dotClass: 'bg-[var(--nimi-text-muted)] ring-[color-mix(in_srgb,var(--nimi-text-muted)_18%,transparent)]',
+    cellClass: 'border-[color-mix(in_srgb,var(--nimi-text-muted)_36%,var(--nimi-border-subtle))] bg-[var(--nimi-surface-panel)] text-[var(--nimi-text-muted)]',
+    textClass: 'text-[var(--nimi-text-muted)]',
+  },
+  caries: {
+    label: '龋齿',
+    dotClass: 'bg-[var(--nimi-status-danger)] ring-[color-mix(in_srgb,var(--nimi-status-danger)_18%,transparent)]',
+    cellClass: 'border-[color-mix(in_srgb,var(--nimi-status-danger)_36%,var(--nimi-border-subtle))] bg-[color-mix(in_srgb,var(--nimi-status-danger)_10%,var(--nimi-surface-card))] text-[var(--nimi-status-danger)]',
+    textClass: 'text-[var(--nimi-status-danger)]',
+  },
+  treated: {
+    label: '已治疗',
+    dotClass: 'bg-[var(--nimi-status-success)] ring-[color-mix(in_srgb,var(--nimi-status-success)_18%,transparent)]',
+    cellClass: 'border-[color-mix(in_srgb,var(--nimi-status-success)_36%,var(--nimi-border-subtle))] bg-[color-mix(in_srgb,var(--nimi-status-success)_10%,var(--nimi-surface-card))] text-[var(--nimi-status-success)]',
+    textClass: 'text-[var(--nimi-status-success)]',
+  },
 };
 
 const LEGEND_ORDER: StatusKey[] = ['permanent', 'primary', 'lost', 'caries', 'treated'];
@@ -26,7 +50,7 @@ const OVERVIEW_UPPER_L = ['61', '62', '63', '64', '65', '26', '27', '28'];
 const OVERVIEW_LOWER_L = ['71', '72', '73', '74', '75', '36', '37', '38'];
 const OVERVIEW_LOWER_R = ['48', '47', '46', '85', '84', '83', '82', '81'];
 
-const MONO = '"JetBrains Mono", "SF Mono", ui-monospace, monospace';
+const MONO_CLASS = 'font-mono';
 
 function isPrimaryPosition(positionId: string): boolean {
   const n = Number(positionId);
@@ -83,7 +107,7 @@ export function ToothStatusOverview({ records }: { records: DentalRecordRow[] })
     const label = showsTypeOnly
       ? `${meta.label}${entry.isPresent ? '·已长出' : '·未萌出'}`
       : meta.label;
-    return { displayId: entry.displayId, label, color: meta.dot, name };
+    return { displayId: entry.displayId, label, textClass: meta.textClass, name };
   })();
 
   const renderTooth = (positionId: string) => {
@@ -99,30 +123,6 @@ export function ToothStatusOverview({ records }: { records: DentalRecordRow[] })
         ? `${meta.label}${entry.isPresent ? '·已长出' : '·未萌出'}`
         : meta.label;
     const title = `${entry.displayId}${TOOTH_NAMES[entry.displayId] ? ` ${TOOTH_NAMES[entry.displayId]}` : ''} · ${stateLabel}`;
-    const cellStyle: CSSProperties = {
-      position: 'relative',
-      width: '100%',
-      aspectRatio: '34 / 40',
-      borderRadius: 9,
-      border: `1.5px solid ${meta.ring}`,
-      background: isHovered ? '#ffffff' : meta.fill || '#ffffff',
-      color: meta.fg,
-      fontFamily: MONO,
-      fontSize: 11,
-      fontWeight: 600,
-      display: 'grid',
-      placeItems: 'center',
-      cursor: 'pointer',
-      opacity: isFaded && !isHovered ? 0.42 : 1,
-      boxShadow: isHovered
-        ? '0 4px 12px rgba(15,23,42,0.10)'
-        : isFaded
-          ? 'none'
-          : '0 1px 2px rgba(15,23,42,0.04)',
-      transition: 'all 160ms',
-      outline: isHovered ? `2px solid ${S.accent}` : 'none',
-      outlineOffset: 2,
-    };
     return (
       <button
         key={positionId}
@@ -132,7 +132,8 @@ export function ToothStatusOverview({ records }: { records: DentalRecordRow[] })
         onMouseLeave={() => setHovered((cur) => (cur === positionId ? null : cur))}
         onFocus={() => setHovered(positionId)}
         onBlur={() => setHovered((cur) => (cur === positionId ? null : cur))}
-        style={cellStyle}
+        className={`relative grid w-full cursor-pointer place-items-center rounded-lg border-[1.5px] font-semibold transition-all duration-150 ${MONO_CLASS} ${meta.cellClass} ${isFaded && !isHovered ? 'opacity-40' : 'opacity-100'} ${isHovered ? 'bg-[var(--nimi-surface-card)] shadow-[var(--nimi-elevation-base)] outline outline-2 outline-offset-2 outline-[var(--nimi-action-primary-bg)]' : ''}`}
+        style={{ aspectRatio: '34 / 40', fontSize: 11 }}
       >
         <span>{entry.displayId}</span>
       </button>
@@ -140,59 +141,34 @@ export function ToothStatusOverview({ records }: { records: DentalRecordRow[] })
   };
 
   const renderRow = (leftIds: string[], rightIds: string[]) => (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
-      <span style={{ fontSize: 11, color: '#94a3b8', width: 12, textAlign: 'center', flexShrink: 0 }}>右</span>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(8, minmax(0, 1fr))', gap: 4, flex: 1, minWidth: 0 }}>
+    <div className="flex min-w-0 items-center gap-2.5">
+      <span className="w-3 shrink-0 text-center text-[11px] text-[var(--nimi-text-muted)]">右</span>
+      <div className="grid min-w-0 flex-1 gap-1" style={{ gridTemplateColumns: 'repeat(8, minmax(0, 1fr))' }}>
         {leftIds.map(renderTooth)}
       </div>
-      <div style={{ width: 10, height: 1, background: 'var(--nimi-border-subtle, rgba(226,232,240,0.9))', flexShrink: 0 }} />
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(8, minmax(0, 1fr))', gap: 4, flex: 1, minWidth: 0 }}>
+      <div className="h-px w-2.5 shrink-0 bg-[var(--nimi-border-subtle)]" />
+      <div className="grid min-w-0 flex-1 gap-1" style={{ gridTemplateColumns: 'repeat(8, minmax(0, 1fr))' }}>
         {rightIds.map(renderTooth)}
       </div>
-      <span style={{ fontSize: 11, color: '#94a3b8', width: 12, textAlign: 'center', flexShrink: 0 }}>左</span>
+      <span className="w-3 shrink-0 text-center text-[11px] text-[var(--nimi-text-muted)]">左</span>
     </div>
   );
 
   return (
-    <section
-      className="mb-5"
-      style={{
-        background: S.card,
-        padding: 20,
-        borderRadius: 24,
-        boxShadow: '0 1px 2px rgba(15,23,42,0.03), 0 10px 28px rgba(15,23,42,0.06)',
-        overflow: 'hidden',
-      }}
-    >
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18, gap: 12 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+    <Surface tone="card" material="glass-regular" elevation="raised" padding="lg" className="mb-5 overflow-hidden rounded-3xl">
+      <div className="mb-[18px] flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2.5">
           <div
-            style={{
-              width: 28,
-              height: 28,
-              borderRadius: 8,
-              display: 'grid',
-              placeItems: 'center',
-              background: 'rgba(78,204,163,0.16)',
-              color: '#053D2C',
-            }}
+            className="grid h-7 w-7 place-items-center rounded-lg bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_14%,transparent)] text-[var(--nimi-action-primary-bg)]"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
               <path d="M12 3c-3 0-5 1.5-6 1.5S4 3.8 3.5 5.5C3 7.2 3.7 10 4.5 12c.4 1 .5 2 .7 3.5.2 1.4.4 3 .9 4.2.4 1 1 1.3 1.5 1.3.8 0 1-1 1.2-2.2.2-1.2.4-2.8.9-3.2.3-.3 2.3-.3 2.6 0 .5.4.7 2 .9 3.2.2 1.2.4 2.2 1.2 2.2.5 0 1.1-.3 1.5-1.3.5-1.2.7-2.8.9-4.2.2-1.5.3-2.5.7-3.5.8-2 1.5-4.8 1-6.5-.5-1.7-1.5-1-2.5-1S15 3 12 3z" />
             </svg>
           </div>
-          <h3 style={{ margin: 0, fontSize: 15, fontWeight: 600, color: S.text }}>牙齿状态总览</h3>
-          <div className="group relative" style={{ display: 'inline-block' }}>
+          <h3 className="m-0 text-[15px] font-semibold text-[var(--nimi-text-primary)]">牙齿状态总览</h3>
+          <div className="group relative inline-block">
             <span
-              style={{
-                display: 'inline-flex',
-                width: 16,
-                height: 16,
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#94a3b8',
-                cursor: 'help',
-              }}
+              className="inline-flex h-4 w-4 cursor-help items-center justify-center text-[var(--nimi-text-muted)]"
             >
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="12" cy="12" r="10" />
@@ -200,99 +176,71 @@ export function ToothStatusOverview({ records }: { records: DentalRecordRow[] })
               </svg>
             </span>
             <div
-              className="pointer-events-none absolute left-0 top-6 z-50 rounded-xl opacity-0 transition-opacity duration-200 group-hover:pointer-events-auto group-hover:opacity-100"
-              style={{
-                width: 280,
-                padding: 14,
-                fontSize: 11,
-                lineHeight: 1.6,
-                background: '#1e293b',
-                color: '#e2e8f0',
-                boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
-              }}
+              className="pointer-events-none absolute left-0 top-6 z-50 w-[280px] rounded-xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-overlay)] p-3.5 text-[11px] leading-relaxed text-[var(--nimi-text-secondary)] opacity-0 shadow-[var(--nimi-elevation-floating)] transition-opacity duration-200 group-hover:pointer-events-auto group-hover:opacity-100"
             >
-              <p style={{ margin: 0, marginBottom: 6, fontWeight: 600, color: '#ffffff', fontSize: 12 }}>FDI 牙位编号</p>
-              <p style={{ margin: 0, color: '#cbd5e1' }}>
-                <span style={{ color: '#8b5cf6', fontWeight: 500 }}>恒牙 11–48</span>：四象限各 8 颗恒牙（1/2/3/4 系）。
+              <p className="m-0 mb-1.5 text-[12px] font-semibold text-[var(--nimi-text-primary)]">FDI 牙位编号</p>
+              <p className="m-0 text-[var(--nimi-text-secondary)]">
+                <span className="font-medium text-[var(--nimi-status-info)]">恒牙 11–48</span>：四象限各 8 颗恒牙（1/2/3/4 系）。
               </p>
-              <p style={{ margin: '4px 0 0', color: '#cbd5e1' }}>
-                <span style={{ color: '#38bdf8', fontWeight: 500 }}>乳牙 51–85</span>：四象限各 5 颗乳牙（5/6/7/8 系）。
+              <p className="m-0 mt-1 text-[var(--nimi-text-secondary)]">
+                <span className="font-medium text-[var(--nimi-action-primary-bg)]">乳牙 51–85</span>：四象限各 5 颗乳牙（5/6/7/8 系）。
               </p>
-              <p style={{ margin: '6px 0 0', color: '#94a3b8', fontSize: 10 }}>
+              <p className="m-0 mt-1.5 text-[10px] text-[var(--nimi-text-muted)]">
                 同一牙位：乳牙更替后该格会切换为对应恒牙编号（例如 53 → 13）。
               </p>
             </div>
           </div>
         </div>
-        <div style={{ fontSize: 11, color: '#64748b', fontFamily: MONO }}>
+        <div className={`text-[11px] text-[var(--nimi-text-muted)] ${MONO_CLASS}`}>
           共 32 位 · 20 乳牙 + 12 恒牙
         </div>
       </div>
 
-      <div style={{ padding: '0 0 16px' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <div style={{ fontSize: 10, color: '#94a3b8', textAlign: 'center', letterSpacing: '0.2em', textTransform: 'uppercase' }}>
+      <div className="pb-4">
+        <div className="flex flex-col gap-2.5">
+          <div className="text-center text-[10px] uppercase tracking-[0.2em] text-[var(--nimi-text-muted)]">
             上颌 · Upper
           </div>
           {renderRow(OVERVIEW_UPPER_R, OVERVIEW_UPPER_L)}
           <div
-            style={{
-              height: 1,
-              background: 'linear-gradient(to right, transparent, rgba(226,232,240,0.9) 20%, rgba(226,232,240,0.9) 80%, transparent)',
-              margin: '4px 0',
-            }}
+            className="my-1 h-px bg-[linear-gradient(to_right,transparent,var(--nimi-border-subtle)_20%,var(--nimi-border-subtle)_80%,transparent)]"
           />
           {renderRow(OVERVIEW_LOWER_R, OVERVIEW_LOWER_L)}
-          <div style={{ fontSize: 10, color: '#94a3b8', textAlign: 'center', letterSpacing: '0.2em', textTransform: 'uppercase' }}>
+          <div className="text-center text-[10px] uppercase tracking-[0.2em] text-[var(--nimi-text-muted)]">
             下颌 · Lower
           </div>
         </div>
       </div>
 
       <div
-        style={{
-          marginTop: 4,
-          paddingTop: 16,
-          borderTop: '1px solid var(--nimi-border-subtle, rgba(226,232,240,0.9))',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 16,
-          flexWrap: 'wrap',
-        }}
+        className="mt-1 flex flex-wrap items-center justify-between gap-4 border-t border-[var(--nimi-border-subtle)] pt-4"
       >
-        <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
+        <div className="flex flex-wrap gap-3.5">
           {LEGEND_ORDER.map((key) => {
             const meta = STATUS_META[key];
             return (
-              <div key={key} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: '#334155' }}>
+              <div key={key} className="flex items-center gap-1.5 text-[11px] text-[var(--nimi-text-secondary)]">
                 <span
-                  style={{
-                    width: 8,
-                    height: 8,
-                    borderRadius: 999,
-                    background: meta.dot,
-                    boxShadow: `0 0 0 2px ${meta.fill || 'rgba(148,163,184,0.15)'}`,
-                  }}
+                  className={`h-2 w-2 rounded-full ring-2 ${meta.dotClass}`}
                 />
                 <span>{meta.label}</span>
-                <span style={{ color: '#94a3b8', fontFamily: MONO }}>{counts[key]}</span>
+                <span className={`text-[var(--nimi-text-muted)] ${MONO_CLASS}`}>{counts[key]}</span>
               </div>
             );
           })}
         </div>
-        <div style={{ fontSize: 11, color: '#64748b', minHeight: 16 }}>
+        <div className="min-h-4 text-[11px] text-[var(--nimi-text-muted)]">
           {hoverInfo ? (
             <span>
-              <span style={{ fontFamily: MONO, color: hoverInfo.color, fontWeight: 600 }}>#{hoverInfo.displayId}</span>
-              {hoverInfo.name && <span style={{ color: '#475569' }}> · {hoverInfo.name}</span>}
+              <span className={`${MONO_CLASS} font-semibold ${hoverInfo.textClass}`}>#{hoverInfo.displayId}</span>
+              {hoverInfo.name && <span className="text-[var(--nimi-text-muted)]"> · {hoverInfo.name}</span>}
               <span> · {hoverInfo.label}</span>
             </span>
           ) : (
-            <span style={{ color: '#94a3b8' }}>鼠标悬停查看牙位详情</span>
+            <span className="text-[var(--nimi-text-muted)]">鼠标悬停查看牙位详情</span>
           )}
         </div>
       </div>
-    </section>
+    </Surface>
   );
 }

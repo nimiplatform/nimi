@@ -1,9 +1,9 @@
+import { Button } from '@nimiplatform/nimi-kit/ui';
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAppStore, computeAgeMonths } from '../../app-shell/app-store.js';
 import { getMedicalEvents } from '../../bridge/sqlite-bridge.js';
 import type { MedicalEventRow } from '../../bridge/sqlite-bridge.js';
-import { S } from '../../app-shell/page-style.js';
 import { AppSelect } from '../../app-shell/app-select.js';
 import { AISummaryCard } from './ai-summary-card.js';
 import { catchLog } from '../../infra/telemetry/catch-log.js';
@@ -53,28 +53,29 @@ export default function MedicalEventsPage() {
     );
   }, [events, filterType, searchQuery]);
 
-  if (!child) return <div className="p-8" style={{ color: S.sub }}>请先添加孩子</div>;
+  if (!child) return <div className="p-8 text-[var(--nimi-text-muted)]">请先添加孩子</div>;
 
   const ageMonths = computeAgeMonths(child.birthDate);
 
   return (
-    <div className={S.container} style={{ paddingTop: S.topPad, minHeight: '100%' }}>
+    <div className="mx-auto min-h-full max-w-3xl px-6 pb-6 pt-[72px]">
       <div className="flex items-center gap-2 mb-6">
-        <Link to="/profile" className="text-[14px] hover:underline" style={{ color: S.sub }}>&larr; 返回档案</Link>
+        <Link to="/profile" className="text-[14px] hover:underline text-[var(--nimi-text-muted)]">&larr; 返回档案</Link>
       </div>
 
       {/* ── Header ── */}
       <div className="flex items-center justify-between mb-1">
-        <h1 className="text-xl font-bold" style={{ color: S.text }}>就医记录</h1>
+        <h1 className="text-xl font-bold text-[var(--nimi-text-primary)]">就医记录</h1>
         <div className="flex gap-2">
           {events.length > 0 ? (
-            <button
+            <Button
+              tone={insights.showAnalysis ? 'secondary' : 'primary'}
+              size="sm"
               onClick={() => {
                 insights.setShowAnalysis(!insights.showAnalysis);
                 if (!insights.showAnalysis && !insights.aiInsight) void insights.generateAIInsight();
               }}
-              className={S.radiusSm + ' text-sm px-4 py-2 text-white flex items-center gap-1.5'}
-              style={{ background: insights.showAnalysis ? '#6b7280' : S.blue }}
+              className="rounded-2xl"
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                 <circle cx="11" cy="11" r="8" />
@@ -82,12 +83,12 @@ export default function MedicalEventsPage() {
                 <path d="M11 8v6M8 11h6" />
               </svg>
               {insights.showAnalysis ? '收起分析' : '智能识别'}
-            </button>
+            </Button>
           ) : null}
           {!formState.showForm ? (
-            <button onClick={() => formState.setShowForm(true)} className={S.radiusSm + ' text-sm px-4 py-2 text-white'} style={{ background: S.accent }}>
+            <Button tone="primary" size="sm" onClick={() => formState.setShowForm(true)} className="rounded-2xl">
               添加事件
-            </button>
+            </Button>
           ) : null}
         </div>
       </div>
@@ -120,16 +121,15 @@ export default function MedicalEventsPage() {
         <div className="flex gap-2 mb-4 flex-wrap">
           <div className="relative flex-1 min-w-48">
             <svg className="absolute left-2.5 top-1/2 -translate-y-1/2" width="14" height="14" viewBox="0 0 24 24" fill="none"
-              stroke={S.sub} strokeWidth="2" strokeLinecap="round">
+              stroke={'var(--nimi-text-muted)'} strokeWidth="2" strokeLinecap="round">
               <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
             </svg>
             <input placeholder="搜索诊断、医院、用药..." value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className={S.radiusSm + ' border pl-8 pr-14 py-1.5 text-sm w-full'}
-              style={{ borderColor: S.border }} />
+              className="w-full rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] py-1.5 pl-8 pr-14 text-sm text-[var(--nimi-text-primary)]" />
             {searchQuery && (
               <button onClick={() => setSearchQuery('')}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-[13px]" style={{ color: S.sub }}>清除</button>
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-[13px] text-[var(--nimi-text-muted)]">清除</button>
             )}
           </div>
           <AppSelect value={filterType} onChange={setFilterType}

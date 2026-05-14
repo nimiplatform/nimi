@@ -1,7 +1,7 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
 import { convertFileSrc } from '@tauri-apps/api/core';
-import { S } from '../../app-shell/page-style.js';
+import { IconButton, StatusBadge, Surface, cn } from '@nimiplatform/nimi-kit/ui';
 import { OBSERVATION_DIMENSIONS } from '../../knowledge-base/index.js';
 import type { JournalEntryRow } from '../../bridge/sqlite-bridge.js';
 import {
@@ -91,8 +91,7 @@ function EntryActionMenu({
         ref={buttonRef}
         type="button"
         onClick={(e) => { e.stopPropagation(); setOpen((prev) => !prev); }}
-        className="flex h-6 w-6 items-center justify-center rounded-lg transition-colors hover:bg-[#f0f0ec]"
-        style={{ color: '#b0b5bc' }}
+        className="flex h-6 w-6 items-center justify-center parentos-radius-sm text-[var(--nimi-text-muted)] transition-colors hover:bg-[var(--nimi-action-ghost-hover)]"
         aria-label="更多操作"
         title="更多操作"
       >
@@ -105,41 +104,39 @@ function EntryActionMenu({
       {open && pos ? createPortal(
         <div
           ref={menuRef}
-          className="fixed z-50 overflow-hidden rounded-lg py-1 shadow-lg"
+          className="parentos-portal-frame fixed z-50"
           style={{
-            top: pos.top,
-            left: pos.left,
-            width: MENU_WIDTH,
-            background: S.card,
-            border: `1px solid ${S.border}`,
-          }}
+            '--parentos-portal-left': `${pos.left}px`,
+            '--parentos-portal-top': `${pos.top}px`,
+            '--parentos-portal-width': `${MENU_WIDTH}px`,
+          } as CSSProperties}
         >
-          <button
-            type="button"
-            onClick={(e) => { e.stopPropagation(); setOpen(false); onEdit(); }}
-            className="flex w-full items-center gap-2 px-3 py-1.5 text-[13px] transition-colors hover:bg-[#f5f3ef]"
-            style={{ color: S.text }}
-          >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-              <path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
-            </svg>
-            编辑
-          </button>
-          {onDelete ? (
+          <Surface tone="overlay" elevation="floating" padding="none" className="overflow-hidden parentos-radius-sm py-1">
             <button
               type="button"
-              onClick={(e) => { e.stopPropagation(); setOpen(false); onDelete(); }}
-              className="flex w-full items-center gap-2 px-3 py-1.5 text-[13px] transition-colors hover:bg-[#fef2f2]"
-              style={{ color: '#dc2626' }}
+              onClick={(e) => { e.stopPropagation(); setOpen(false); onEdit(); }}
+              className="flex w-full items-center gap-2 px-3 py-1.5 text-[13px] text-[var(--nimi-text-primary)] transition-colors hover:bg-[var(--nimi-action-ghost-hover)]"
             >
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                <path d="M3 6h18" /><path d="M8 6V4h8v2" />
-                <path d="M19 6l-1 14H6L5 6" />
-                <path d="M10 11v6" /><path d="M14 11v6" />
+                <path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
               </svg>
-              删除
+              编辑
             </button>
-          ) : null}
+            {onDelete ? (
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); setOpen(false); onDelete(); }}
+                className="flex w-full items-center gap-2 px-3 py-1.5 text-[13px] text-[var(--nimi-status-danger)] transition-colors hover:bg-[color-mix(in_srgb,var(--nimi-status-danger)_10%,transparent)]"
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                  <path d="M3 6h18" /><path d="M8 6V4h8v2" />
+                  <path d="M19 6l-1 14H6L5 6" />
+                  <path d="M10 11v6" /><path d="M14 11v6" />
+                </svg>
+                删除
+              </button>
+            ) : null}
+          </Surface>
         </div>,
         document.body,
       ) : null}
@@ -166,16 +163,18 @@ export function JournalEntryTimeline({
   return (
     <section>
       <div className="mb-3 flex items-center justify-between gap-3">
-        <h2 className="text-[16px] font-semibold" style={{ color: S.text }}>随记列表</h2>
+        <h2 className="text-[16px] font-semibold text-[var(--nimi-text-primary)]">随记列表</h2>
         <div className="flex flex-wrap gap-1">
           {FILTER_OPTIONS.map(({ key, label }) => (
             <button
               key={key}
               onClick={() => onFilterChange(key)}
-              className="rounded-full px-2 py-0.5 text-[12px] transition-colors"
-              style={entryFilter === key
-                ? { background: S.accent, color: '#fff' }
-                : { background: '#f0f0ec', color: S.sub }}
+              className={cn(
+                'parentos-radius-full px-2 py-0.5 text-[12px] transition-colors',
+                entryFilter === key
+                  ? 'bg-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)]'
+                  : 'bg-[var(--nimi-action-secondary-bg)] text-[var(--nimi-text-muted)] hover:bg-[var(--nimi-action-ghost-hover)]',
+              )}
             >
               {label}
             </button>
@@ -184,32 +183,31 @@ export function JournalEntryTimeline({
       </div>
 
       {entries.length === 0 ? (
-        <div className={`${S.radius} p-8 text-center`} style={{ background: S.card, boxShadow: S.shadow }}>
-          <p className="text-[14px]" style={{ color: S.sub }}>还没有随记，先写下一条吧</p>
-        </div>
+        <Surface tone="card" elevation="raised" padding="lg" className="parentos-radius-xl p-8 text-center">
+          <p className="text-[14px] text-[var(--nimi-text-muted)]">还没有随记，先写下一条吧</p>
+        </Surface>
       ) : filteredEntries.length === 0 ? (
-        <div className={`${S.radius} p-8 text-center`} style={{ background: S.card, boxShadow: S.shadow }}>
-          <p className="text-[14px]" style={{ color: S.text }}>还没有珍藏的成长瞬间</p>
-          <p className="mt-2 text-[13px] leading-relaxed" style={{ color: S.sub }}>
+        <Surface tone="card" elevation="raised" padding="lg" className="parentos-radius-xl p-8 text-center">
+          <p className="text-[14px] text-[var(--nimi-text-primary)]">还没有珍藏的成长瞬间</p>
+          <p className="mt-2 text-[13px] leading-relaxed text-[var(--nimi-text-muted)]">
             遇到第一次、获奖、读完一本书或特别想留住的片刻时，可以把随记标记为珍藏。
           </p>
-        </div>
+        </Surface>
       ) : (
         <div className="relative">
-          <div className="absolute bottom-0 left-[18px] top-0 w-[2px]" style={{ background: S.border }} />
+          <div className="absolute bottom-0 left-[18px] top-0 w-[2px] bg-[var(--nimi-border-subtle)]" />
 
           {entryGroups.map(([date, dayEntries]) => (
             <div key={date} className="relative pb-5 pl-10">
               <div
-                className="absolute left-[11px] top-1 flex h-[16px] w-[16px] items-center justify-center rounded-full border-[2px]"
-                style={{ background: S.card, borderColor: S.accent }}
+                className="absolute left-[11px] top-1 flex h-[16px] w-[16px] items-center justify-center rounded-full border-[2px] border-[var(--nimi-action-primary-bg)] bg-[var(--nimi-surface-card)]"
               >
-                <div className="h-[6px] w-[6px] rounded-full" style={{ background: S.accent }} />
+                <div className="h-[6px] w-[6px] rounded-full bg-[var(--nimi-action-primary-bg)]" />
               </div>
 
               <div className="mb-2 flex items-center gap-2">
-                <span className="text-[14px] font-bold" style={{ color: S.text }}>{formatDateLabel(date)}</span>
-                <span className="text-[12px]" style={{ color: S.sub }}>{dayEntries.length} 条</span>
+                <span className="text-[14px] font-bold text-[var(--nimi-text-primary)]">{formatDateLabel(date)}</span>
+                <span className="text-[12px] text-[var(--nimi-text-muted)]">{dayEntries.length} 条</span>
               </div>
 
               <div className="space-y-2.5">
@@ -222,62 +220,60 @@ export function JournalEntryTimeline({
                   const keepsakeReasonLabel = getKeepsakeReasonLabel(entry.keepsakeReason);
 
                   return (
-                    <div
+                    <Surface
                       key={entry.entryId}
-                      className={`group overflow-hidden ${S.radius} transition-all`}
-                      style={{ boxShadow: S.shadow, background: S.card }}
+                      tone="card"
+                      elevation="raised"
+                      padding="none"
+                      className="group overflow-hidden parentos-radius-xl transition-all"
                     >
                       <div
-                        className="h-[3px]"
-                        style={{
-                          background: isKeepsake ? '#fbbf24' : S.accent,
-                        }}
+                        className={cn('h-[3px]', isKeepsake ? 'bg-[var(--nimi-status-warning)]' : 'bg-[var(--nimi-action-primary-bg)]')}
                       />
 
                       <div className="p-4">
                         <div className="mb-2.5 flex items-center justify-between gap-3">
                           <div className="flex flex-wrap items-center gap-2">
-                            <span className="text-[13px] font-medium" style={{ color: S.text }}>
+                            <span className="text-[13px] font-medium text-[var(--nimi-text-primary)]">
                               {entry.recordedAt.split('T')[1]?.slice(0, 5)}
                             </span>
                             {dimension ? (
-                              <span
-                                className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[12px] font-medium"
-                                style={{ background: '#ecfdf5', color: '#047857' }}
-                              >
+                              <StatusBadge tone="success" className="gap-1 px-2 py-0.5 text-[12px] font-medium">
                                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                   <circle cx="12" cy="12" r="3" />
                                   <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z" />
                                 </svg>
                                 观察 · {dimension.displayName}
-                              </span>
+                              </StatusBadge>
                             ) : null}
                           </div>
 
                           <div className="flex items-center gap-1">
                             {entry.voicePath ? (
-                              <span className="mr-1 rounded px-1.5 py-0.5 text-[12px]" style={{ background: '#e0f2fe', color: '#0284c7' }}>
+                              <StatusBadge tone="info" className="mr-1 parentos-radius-sm px-1.5 py-0.5 text-[12px]">
                                 {entry.contentType === 'mixed' ? '语音 + 文字' : '语音'}
-                              </span>
+                              </StatusBadge>
                             ) : null}
 
                             {onAskAiAboutEntry ? (
-                              <button
+                              <IconButton
                                 type="button"
                                 onClick={(event) => {
                                   event.stopPropagation();
                                   onAskAiAboutEntry(entry);
                                 }}
-                                className="flex h-6 w-6 items-center justify-center rounded-lg transition-colors hover:bg-[#e0ecff]"
-                                style={{ color: '#6b7280' }}
+                                tone="ghost"
+                                size="sm"
+                                className="h-6 min-h-0 w-6 parentos-radius-sm text-[var(--nimi-text-muted)] hover:bg-[color-mix(in_srgb,var(--nimi-status-info)_12%,transparent)] hover:text-[var(--nimi-status-info)]"
                                 aria-label="和 AI 聊这条记录"
                                 title="和 AI 聊这条记录"
-                              >
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                                  <path d="M12 3l1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5L12 3Z" />
-                                  <path d="M19 14l1 3 3 1-3 1-1 3-1-3-3-1 3-1 1-3Z" />
-                                </svg>
-                              </button>
+                                icon={
+                                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M12 3l1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5L12 3Z" />
+                                    <path d="M19 14l1 3 3 1-3 1-1 3-1-3-3-1 3-1 1-3Z" />
+                                  </svg>
+                                }
+                              />
                             ) : null}
                             <button
                               type="button"
@@ -285,13 +281,13 @@ export function JournalEntryTimeline({
                                 event.stopPropagation();
                                 onToggleKeepsake?.(entry);
                               }}
-                              className="flex h-6 w-6 items-center justify-center rounded-lg transition-colors hover:bg-[#fef9c3]"
+                              className="flex h-6 w-6 items-center justify-center parentos-radius-sm transition-colors hover:bg-[color-mix(in_srgb,var(--nimi-status-warning)_18%,transparent)]"
                               aria-label={isKeepsake ? '取消珍藏' : '标记珍藏'}
                               title={isKeepsake ? '取消珍藏' : '标记珍藏'}
                             >
                               <svg width="14" height="14" viewBox="0 0 24 24"
-                                fill={isKeepsake ? '#f59e0b' : 'none'}
-                                stroke={isKeepsake ? '#f59e0b' : '#b0b5bc'}
+                                fill={isKeepsake ? 'var(--nimi-status-warning)' : 'none'}
+                                stroke={isKeepsake ? 'var(--nimi-status-warning)' : 'var(--nimi-text-muted)'}
                                 strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
                               >
                                 <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
@@ -307,13 +303,13 @@ export function JournalEntryTimeline({
                         </div>
 
                         {isKeepsake && entry.keepsakeTitle ? (
-                          <p className="mb-2 text-[16px] font-semibold leading-[1.5]" style={{ color: S.text }}>
+                          <p className="mb-2 text-[16px] font-semibold leading-[1.5] text-[var(--nimi-text-primary)]">
                             {entry.keepsakeTitle}
                           </p>
                         ) : null}
 
                         {bodyText ? (
-                          <p className="text-[14px] leading-[1.7]" style={{ color: S.text }}>{bodyText}</p>
+                          <p className="text-[14px] leading-[1.7] text-[var(--nimi-text-primary)]">{bodyText}</p>
                         ) : null}
 
                         {entryPhotos.length > 0 ? (
@@ -323,36 +319,28 @@ export function JournalEntryTimeline({
                                 key={`${photoPath}-${index}`}
                                 src={convertFileSrc(photoPath)}
                                 alt=""
-                                className={`h-20 w-20 object-cover ${S.radiusSm}`}
-                                style={{ border: `1px solid ${S.border}` }}
+                                className="h-20 w-20 parentos-radius-sm border border-[var(--nimi-border-subtle)] object-cover"
                               />
                             ))}
                           </div>
                         ) : null}
 
                         {(keepsakeReasonLabel || tags.length > 0) ? (
-                          <div className="mt-3 flex flex-wrap gap-1.5 border-t pt-2.5" style={{ borderColor: S.border }}>
+                          <div className="mt-3 flex flex-wrap gap-1.5 border-t border-[var(--nimi-border-subtle)] pt-2.5">
                             {keepsakeReasonLabel ? (
-                              <span
-                                className="rounded-full px-2.5 py-1 text-[12px] font-medium"
-                                style={{ background: '#fef3c7', color: '#a16207' }}
-                              >
+                              <StatusBadge tone="warning" className="parentos-radius-full px-2.5 py-1 text-[12px] font-medium">
                                 珍藏原因 · {keepsakeReasonLabel}
-                              </span>
+                              </StatusBadge>
                             ) : null}
                             {tags.map((tag) => (
-                              <span
-                                key={tag}
-                                className="rounded-full px-2.5 py-1 text-[12px] font-medium"
-                                style={{ background: '#f5f3ef', color: S.sub }}
-                              >
+                              <StatusBadge key={tag} tone="neutral" className="parentos-radius-full px-2.5 py-1 text-[12px] font-medium">
                                 {tag}
-                              </span>
+                              </StatusBadge>
                             ))}
                           </div>
                         ) : null}
                       </div>
-                    </div>
+                    </Surface>
                   );
                 })}
               </div>

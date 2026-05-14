@@ -6,6 +6,7 @@
 // no cross-anchor messages, no trigger-toggle gating.
 
 import { useCallback, type ChangeEvent, type FormEvent, type KeyboardEvent, type RefObject } from 'react';
+import { Button, IconButton, Surface, TextareaField, cn } from '@nimiplatform/nimi-kit/ui';
 import { useTranslation } from '../i18n/index.js';
 import {
   beginCompanionSubmit,
@@ -267,22 +268,27 @@ export function CompanionSurface(props: CompanionSurfaceProps) {
   const showBubble = Boolean(companion.bubbleVisible && latestText);
 
   return (
-    <section
-      className={`avatar-companion-surface nimi-material-glass-regular backdrop-blur-[var(--nimi-backdrop-blur-regular)] avatar-companion-surface--${status}`}
+    <Surface
+      as="section"
+      material="glass-regular"
+      tone="overlay"
+      elevation="floating"
+      padding="none"
+      className={cn('avatar-companion-surface nimi-material-glass-regular backdrop-blur-[var(--nimi-backdrop-blur-regular)]', `avatar-companion-surface--${status}`)}
       data-testid="avatar-companion-surface"
       aria-label={t('Avatar.shell.companion_aria')}
     >
       {showBubble ? (
         <div className="avatar-companion-surface__bubble" data-testid="avatar-companion-bubble">
           <p className="avatar-companion-surface__bubble-text">{latestText}</p>
-          <button
-            type="button"
+          <IconButton
             className="avatar-companion-surface__bubble-close"
             aria-label={t('Avatar.bubble.close_aria')}
             onClick={onBubbleClose}
-          >
-            ×
-          </button>
+            icon="×"
+            size="sm"
+            tone="ghost"
+          />
         </div>
       ) : null}
 
@@ -310,29 +316,29 @@ export function CompanionSurface(props: CompanionSurfaceProps) {
         </button>
         <span className="avatar-companion-surface__status-label" data-testid="avatar-companion-status">{label}</span>
         {voice.status === 'replying' ? (
-          <button
-            type="button"
+          <IconButton
             className="avatar-companion-surface__interrupt"
             onClick={onInterruptClick}
             aria-label={t('Avatar.status.interrupt_aria')}
-          >
-            ⏹
-          </button>
+            icon="⏹"
+            size="sm"
+            tone="ghost"
+          />
         ) : (
           <span className="avatar-companion-surface__speaker" aria-hidden="true">
             {voice.status === 'pending' ? '🔊' : '🔈'}
           </span>
         )}
-        <button
-          type="button"
-          className={`avatar-companion-surface__settings${settingsOpen ? ' avatar-companion-surface__settings--open' : ''}`}
+        <IconButton
+          className={cn('avatar-companion-surface__settings', settingsOpen && 'avatar-companion-surface__settings--open')}
           onClick={onSettingsToggle}
           aria-expanded={settingsOpen}
           aria-controls="avatar-companion-settings-popover"
           aria-label={t('Avatar.status.settings_aria')}
-        >
-          ⚙
-        </button>
+          icon="⚙"
+          size="sm"
+          tone="ghost"
+        />
       </div>
 
       {showCaptions && voice.userCaption ? (
@@ -363,8 +369,9 @@ export function CompanionSurface(props: CompanionSurfaceProps) {
         onSubmit={submitText}
         data-testid="avatar-companion-composer"
       >
-        <textarea
-          className="avatar-companion-surface__composer-input"
+        <TextareaField
+          className="avatar-companion-surface__composer-field"
+          textareaClassName="avatar-companion-surface__composer-input"
           value={draftValue}
           onChange={(event: ChangeEvent<HTMLTextAreaElement>) => {
             setCompanion((current) => setCompanionDraft(current, event.target.value));
@@ -376,15 +383,17 @@ export function CompanionSurface(props: CompanionSurfaceProps) {
           disabled={composerDisabled}
           aria-label={t('Avatar.composer.aria_label')}
         />
-        <button
+        <Button
           type="submit"
+          tone="primary"
+          size="sm"
           className="avatar-companion-surface__composer-send"
           disabled={composerDisabled || !normalizeText(draftValue)}
           aria-label={t('Avatar.composer.send_aria')}
         >
           ➤
-        </button>
+        </Button>
       </form>
-    </section>
+    </Surface>
   );
 }

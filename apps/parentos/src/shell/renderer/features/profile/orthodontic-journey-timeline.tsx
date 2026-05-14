@@ -1,3 +1,4 @@
+import { IconButton, StatusBadge, Surface, cn } from '@nimiplatform/nimi-kit/ui';
 import { useMemo, useState } from 'react';
 import { convertFileSrc } from '@tauri-apps/api/core';
 import type {
@@ -6,7 +7,6 @@ import type {
   OrthodonticJourney,
   OrthodonticJourneyEntry,
 } from '../../bridge/sqlite-bridge.js';
-import { S } from '../../app-shell/page-style.js';
 import { formatDateLabel } from '../journal/journal-page-helpers.js';
 import { formatHours } from './orthodontic-derive.js';
 import {
@@ -107,7 +107,7 @@ export function OrthodonticJourneyTimeline({
 
   if (loading) {
     return (
-      <p className="text-[14px]" style={{ color: S.sub }}>
+      <p className="text-[14px] text-[var(--nimi-text-muted)]">
         时间轴加载中…
       </p>
     );
@@ -116,7 +116,7 @@ export function OrthodonticJourneyTimeline({
   const isEmpty = pastDates.length === 0 && futureDates.length === 0;
   if (isEmpty) {
     return (
-      <p className="text-[14px]" style={{ color: S.sub }}>
+      <p className="text-[14px] text-[var(--nimi-text-muted)]">
         还没有事件。开始记录后会按时间顺序呈现在此。
       </p>
     );
@@ -126,14 +126,13 @@ export function OrthodonticJourneyTimeline({
     <div style={{ position: 'relative', paddingLeft: 22 }}>
       <div
         aria-hidden
+        className="absolute bottom-1.5 left-1.5 top-1.5 w-px bg-[linear-gradient(to_bottom,var(--nimi-border-subtle),var(--nimi-border-subtle)_80%,transparent)]"
         style={{
           position: 'absolute',
           left: 6,
           top: 6,
           bottom: 6,
           width: 1,
-          background:
-            'linear-gradient(to bottom, rgba(226,232,240,0.9), rgba(226,232,240,0.9) 80%, transparent)',
         }}
       />
 
@@ -156,6 +155,7 @@ export function OrthodonticJourneyTimeline({
         <div
           role="separator"
           aria-label="今天"
+          className="text-[var(--nimi-text-muted)]"
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -164,12 +164,11 @@ export function OrthodonticJourneyTimeline({
             fontSize: 11,
             letterSpacing: '0.08em',
             textTransform: 'uppercase',
-            color: 'var(--nimi-text-muted)',
           }}
         >
-          <span style={{ flex: 1, height: 1, background: 'rgba(226,232,240,0.9)' }} />
+          <span className="h-px flex-1 bg-[var(--nimi-border-subtle)]" />
           今天
-          <span style={{ flex: 1, height: 1, background: 'rgba(226,232,240,0.9)' }} />
+          <span className="h-px flex-1 bg-[var(--nimi-border-subtle)]" />
         </div>
       )}
 
@@ -220,30 +219,25 @@ function DateGroup({
 }) {
   if (cards.length === 0) return null;
   const isFutureGroup = cards.some((c) => c.isFuture);
-  const dotStyle: React.CSSProperties = {
-    position: 'absolute',
-    left: -22,
-    top: 4,
-    width: 13,
-    height: 13,
-    borderRadius: 999,
-    background: isFutureGroup ? '#ffffff' : '#ffffff',
-    border: isFutureGroup
-      ? `1.5px dashed ${S.accent}`
-      : `2px solid ${S.accent}`,
-    boxShadow: '0 0 0 3px rgba(255,255,255,0.9)',
-  };
   return (
     <div style={{ marginBottom: isLastGroup ? 0 : 24, position: 'relative' }}>
-      <div aria-hidden style={dotStyle} />
+      <div
+        aria-hidden
+        className={cn(
+          'absolute -left-[22px] top-1 h-[13px] w-[13px] rounded-full bg-[var(--nimi-surface-card)] shadow-[0_0_0_3px_var(--nimi-surface-card)]',
+          isFutureGroup
+            ? 'border-[1.5px] border-dashed border-[var(--nimi-action-primary-bg)]'
+            : 'border-2 border-solid border-[var(--nimi-action-primary-bg)]',
+        )}
+      />
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 10 }}>
-        <span style={{ fontSize: 13, fontWeight: 600, color: S.text }}>
+        <span className="text-[var(--nimi-text-primary)]" style={{ fontSize: 13, fontWeight: 600 }}>
           {formatDateLabel(date)}
         </span>
         <span
+          className="text-[var(--nimi-text-muted)]"
           style={{
             fontSize: 11,
-            color: '#64748b',
             fontFamily: '"JetBrains Mono", "SF Mono", ui-monospace, monospace',
           }}
         >
@@ -282,14 +276,13 @@ function JourneyCard({
   onDeleteRecord: (record: DentalRecordRow) => void;
 }) {
   return (
-    <article
-      className="group"
+    <Surface
+      as="article"
+      tone="card"
+      elevation="raised"
+      padding="none"
+      className="group border-transparent p-5"
       style={{
-        background: '#ffffff',
-        padding: 20,
-        borderRadius: 20,
-        boxShadow:
-          '0 1px 2px rgba(15,23,42,0.03), 0 6px 18px rgba(15,23,42,0.04)',
         opacity: card.isFuture ? 0.92 : 1,
       }}
     >
@@ -302,14 +295,15 @@ function JourneyCard({
         }}
       >
         <div
+          className={cn(
+            'grid h-8 w-8 shrink-0 place-items-center rounded-lg text-[16px]',
+            card.toneClassName,
+          )}
           style={{
             width: 32,
             height: 32,
-            borderRadius: 10,
             display: 'grid',
             placeItems: 'center',
-            background: card.toneBg,
-            color: card.toneFg,
             fontSize: 16,
             flexShrink: 0,
           }}
@@ -318,10 +312,10 @@ function JourneyCard({
         </div>
         <div style={{ minWidth: 0, flex: 1 }}>
           <div
+            className="text-[var(--nimi-text-primary)]"
             style={{
               fontSize: 14,
               fontWeight: 600,
-              color: S.text,
               display: 'flex',
               alignItems: 'center',
               gap: 8,
@@ -332,7 +326,7 @@ function JourneyCard({
             {card.isFuture && <FutureBadge />}
           </div>
           {card.subtitle && (
-            <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>
+            <div className="text-[var(--nimi-text-muted)]" style={{ fontSize: 11, marginTop: 2 }}>
               {card.subtitle}
             </div>
           )}
@@ -349,10 +343,10 @@ function JourneyCard({
 
       {card.content && (
         <p
+          className="text-[var(--nimi-text-secondary)]"
           style={{
             margin: '10px 0 0',
             fontSize: 13,
-            color: 'var(--nimi-text-secondary)',
             lineHeight: 1.6,
             whiteSpace: 'pre-wrap',
             wordBreak: 'break-word',
@@ -365,7 +359,7 @@ function JourneyCard({
       {card.photos && card.photos.length > 0 && (
         <PhotoStrip photos={card.photos} onOpen={onOpenLightbox} />
       )}
-    </article>
+    </Surface>
   );
 }
 
@@ -389,49 +383,31 @@ function CardActionButtons({
 }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
-      <button
-        type="button"
+      <IconButton
+        size="sm"
+        tone="ghost"
         onClick={(e) => {
           e.stopPropagation();
           onAskAiAboutRecord(record);
         }}
         aria-label="和 AI 聊这条记录"
         title="和 AI 聊这条记录"
-        style={{
-          width: 28,
-          height: 28,
-          display: 'grid',
-          placeItems: 'center',
-          borderRadius: 8,
-          border: 0,
-          background: 'transparent',
-          color: '#64748b',
-          cursor: 'pointer',
-          transition: 'all 160ms',
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.background = 'rgba(78,204,163,0.12)';
-          e.currentTarget.style.color = '#053D2C';
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.background = 'transparent';
-          e.currentTarget.style.color = '#64748b';
-        }}
-      >
-        <svg
-          width="14"
-          height="14"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <path d="M12 3l1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5L12 3Z" />
-          <path d="M19 14l1 3 3 1-3 1-1 3-1-3-3-1 3-1 1-3Z" />
-        </svg>
-      </button>
+        icon={
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M12 3l1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5L12 3Z" />
+            <path d="M19 14l1 3 3 1-3 1-1 3-1-3-3-1 3-1 1-3Z" />
+          </svg>
+        }
+      />
       <div className="opacity-0 transition-opacity duration-200 group-hover:opacity-100">
         <DentalRecordActionMenu
           onEdit={() => onEditRecord(record)}
@@ -444,18 +420,9 @@ function CardActionButtons({
 
 function FutureBadge() {
   return (
-    <span
-      style={{
-        background: 'rgba(99,102,241,0.10)',
-        color: '#4338ca',
-        padding: '2px 8px',
-        borderRadius: 999,
-        fontSize: 10,
-        fontWeight: 500,
-      }}
-    >
+    <StatusBadge tone="info" className="px-2 py-0.5 text-[10px] font-medium">
       预计
-    </span>
+    </StatusBadge>
   );
 }
 
@@ -480,13 +447,9 @@ function PhotoStrip({
           key={p.attachmentId}
           type="button"
           onClick={() => onOpen(photos, idx)}
+          className="relative aspect-square cursor-pointer overflow-hidden rounded-lg border-0 bg-transparent p-0"
           style={{
-            border: 0,
-            background: 'transparent',
-            padding: 0,
-            cursor: 'pointer',
             aspectRatio: '1 / 1',
-            borderRadius: 10,
             overflow: 'hidden',
             position: 'relative',
           }}
@@ -511,8 +474,7 @@ interface JourneyCardData {
   occurredAt: string; // full ISO for sub-sorting within a group
   isFuture: boolean;
   emoji: string;
-  toneBg: string;
-  toneFg: string;
+  toneClassName: string;
   title: string;
   subtitle: string | null;
   content: string | null;
@@ -661,9 +623,18 @@ function projectEntry(
 }
 
 const TONE = {
-  brand: { toneBg: 'rgba(168,85,247,0.12)', toneFg: '#7e22ce' },
-  success: { toneBg: 'rgba(16,185,129,0.14)', toneFg: '#047857' },
-  warning: { toneBg: 'rgba(245,158,11,0.14)', toneFg: '#b45309' },
+  brand: {
+    toneClassName:
+      'bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_12%,transparent)] text-[var(--nimi-action-primary-bg)]',
+  },
+  success: {
+    toneClassName:
+      'bg-[color-mix(in_srgb,var(--nimi-status-success)_14%,transparent)] text-[var(--nimi-status-success)]',
+  },
+  warning: {
+    toneClassName:
+      'bg-[color-mix(in_srgb,var(--nimi-status-warning)_14%,transparent)] text-[var(--nimi-status-warning)]',
+  },
 } as const;
 
 /**

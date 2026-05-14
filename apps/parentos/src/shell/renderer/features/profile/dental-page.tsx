@@ -1,7 +1,7 @@
+import { Button, Surface } from '@nimiplatform/nimi-kit/ui';
 import { useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useAppStore, computeAgeMonths } from '../../app-shell/app-store.js';
-import { S } from '../../app-shell/page-style.js';
 import { DentalHistoryView } from './dental-history-view.js';
 import {
   OrthodonticPage,
@@ -31,33 +31,22 @@ export default function DentalPage() {
 
   if (!child) {
     return (
-      <div className={S.container} style={{ paddingTop: S.topPad }}>
-        <div className="p-8 text-[14px]" style={{ color: S.sub }}>请先添加孩子</div>
+      <div className="mx-auto max-w-3xl px-6 pb-6 pt-[72px]">
+        <div className="p-8 text-[14px] text-[var(--nimi-text-muted)]">请先添加孩子</div>
       </div>
     );
   }
 
   const ageMonths = computeAgeMonths(child.birthDate);
 
-  // Wave D widens the dental page container to 880 px so the new
-  // ortho hero / tray / next-visit triad has breathing room. Scoped here
-  // rather than touching the shared `S.container` so other profile pages
-  // keep their 768 px reading rhythm.
+  // Wave D keeps this page slightly wider than profile reading pages so the
+  // ortho hero / tray / next-visit triad has breathing room.
   return (
-    <div
-      style={{
-        maxWidth: 880,
-        margin: '0 auto',
-        padding: '0 24px 24px',
-        paddingTop: S.topPad,
-        minHeight: '100%',
-      }}
-    >
+    <div className="mx-auto min-h-full max-w-4xl px-6 pb-6 pt-[72px]">
       <div className="flex items-center gap-2 mb-3">
         <Link
           to="/profile"
-          className="text-[14px] hover:underline flex items-center gap-1.5"
-          style={{ color: S.sub }}
+          className="text-[14px] hover:underline flex items-center gap-1.5 text-[var(--nimi-text-muted)]"
         >
           <svg
             width="14"
@@ -77,31 +66,13 @@ export default function DentalPage() {
 
       <div className="flex items-end justify-between gap-4 flex-wrap mb-5">
         <div>
-          <h1
-            style={{
-              margin: 0,
-              fontFamily: 'inherit',
-              fontSize: 36,
-              fontWeight: 700,
-              letterSpacing: '-0.025em',
-              lineHeight: 1.1,
-              color: S.text,
-            }}
-          >
+          <h1 className="m-0 text-[36px] font-bold leading-[1.1] text-[var(--nimi-text-primary)]">
             口腔档案
           </h1>
         </div>
       </div>
 
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 12,
-          flexWrap: 'wrap',
-        }}
-      >
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <TabNav activeTab={activeTab} onChange={setActiveTab} />
         {activeTab === 'orthodontic' && (
           <AddApplianceButton
@@ -137,39 +108,29 @@ export default function DentalPage() {
  */
 function AddApplianceButton({ onClick }: { onClick: () => void }) {
   return (
-    <button
+    <Button
       type="button"
       onClick={onClick}
-      style={{
-        padding: '6px 14px',
-        borderRadius: 999,
-        fontSize: 13,
-        fontWeight: 500,
-        background: 'transparent',
-        border: '1px solid var(--nimi-border-subtle)',
-        color: 'var(--nimi-text-secondary)',
-        cursor: 'pointer',
-        fontFamily: 'inherit',
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: 6,
-        whiteSpace: 'nowrap',
-      }}
+      tone="secondary"
+      size="sm"
+      className="rounded-full whitespace-nowrap"
+      leadingIcon={
+        <svg
+          width="13"
+          height="13"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.6"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="M12 5v14M5 12h14" />
+        </svg>
+      }
     >
-      <svg
-        width="13"
-        height="13"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <path d="M12 5v14M5 12h14" />
-      </svg>
       添加矫治器
-    </button>
+    </Button>
   );
 }
 /* ── Tab nav ─────────────────────────────────────────────── */
@@ -186,43 +147,29 @@ function TabNav({
     { key: 'orthodontic', label: '正畸治疗' },
   ];
   return (
-    <div
-      style={{
-        display: 'inline-flex',
-        padding: 4,
-        borderRadius: 999,
-        background: 'rgba(255,255,255,0.55)',
-        border: '1px solid var(--nimi-border-subtle)',
-        backdropFilter: 'blur(18px)',
-        width: 'fit-content',
-      }}
+    <Surface
+      tone="card"
+      material="glass-regular"
+      elevation="base"
+      padding="none"
+      className="inline-flex w-fit rounded-full p-1"
     >
       {tabs.map((tab) => {
         const active = activeTab === tab.key;
         return (
-          <button
+          <Button
             key={tab.key}
             type="button"
             onClick={() => onChange(tab.key)}
-            style={{
-              padding: '8px 18px',
-              borderRadius: 999,
-              border: 0,
-              cursor: 'pointer',
-              whiteSpace: 'nowrap',
-              background: active ? S.text : 'transparent',
-              color: active ? '#ffffff' : 'var(--nimi-text-secondary)',
-              fontSize: 13,
-              fontWeight: active ? 600 : 500,
-              fontFamily: 'inherit',
-              boxShadow: active ? '0 4px 14px rgba(15,23,42,0.18)' : 'none',
-              transition: 'all 160ms',
-            }}
+            tone={active ? 'primary' : 'ghost'}
+            size="sm"
+            className="rounded-full whitespace-nowrap"
+            aria-pressed={active}
           >
             {tab.label}
-          </button>
+          </Button>
         );
       })}
-    </div>
+    </Surface>
   );
 }

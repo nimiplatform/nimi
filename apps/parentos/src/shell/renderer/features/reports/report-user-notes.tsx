@@ -1,17 +1,8 @@
 import { useRef, useState } from 'react';
-import { S } from '../../app-shell/page-style.js';
+import { Button, TextareaField } from '@nimiplatform/nimi-kit/ui';
+import { Pencil, Plus } from 'lucide-react';
 import { isoNow, ulid } from '../../bridge/ulid.js';
 import type { NarrativeReportContent, UserNote } from './structured-report.js';
-
-const SERIF = "var(--font-serif, 'Noto Serif SC', 'Source Han Serif SC', 'Songti SC', 'STSong', Georgia, serif)";
-const FG1 = S.text;
-const FG3 = S.sub;
-const FG4 = '#94a3b8';
-const ACCENT = S.accent;
-
-const NOTE_BG = 'rgba(254,249,195,0.65)';
-const NOTE_BORDER = 'rgba(234,179,8,0.35)';
-const NOTE_INK = '#78350f';
 
 export function getNotesForAnchor(content: NarrativeReportContent, anchor: string): UserNote[] {
   if (!content.userNotes) return [];
@@ -57,69 +48,48 @@ function NoteCard({ note, canEdit, onSave, onDelete }: NoteCardProps) {
 
   if (editing) {
     return (
-      <div style={{
-        marginTop: 10, padding: '12px 14px',
-        background: NOTE_BG, border: `1px solid ${NOTE_BORDER}`, borderRadius: 12,
-      }}>
-        <textarea ref={ref} value={draft} onChange={(e) => setDraft(e.target.value)}
-          style={{
-            width: '100%', minHeight: 72, padding: '8px 10px',
-            borderRadius: 8, border: `1px solid ${NOTE_BORDER}`,
-            background: 'rgba(255,255,255,0.9)', color: FG1,
-            fontFamily: 'inherit', fontSize: 13.5, lineHeight: 1.7,
-            outline: 'none', resize: 'vertical',
-          }} />
-        <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-          <button onClick={() => { const t = draft.trim(); if (!t) return; onSave(t); setEditing(false); }}
-            style={{ padding: '5px 12px', borderRadius: 8, border: 0, background: ACCENT, color: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+      <div className="report-note-card">
+        <TextareaField
+          ref={ref}
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          className="report-radius-sm"
+          textareaClassName="report-note-textarea"
+        />
+        <div className="mt-2 flex gap-2">
+          <Button size="sm" tone="primary" onClick={() => { const t = draft.trim(); if (!t) return; onSave(t); setEditing(false); }}>
             保存
-          </button>
-          <button onClick={() => setEditing(false)}
-            style={{ padding: '5px 12px', borderRadius: 8, border: 0, background: 'transparent', color: FG3, fontSize: 12, cursor: 'pointer' }}>
+          </Button>
+          <Button size="sm" tone="ghost" onClick={() => setEditing(false)}>
             取消
-          </button>
+          </Button>
         </div>
       </div>
     );
   }
 
   return (
-    <div style={{
-      marginTop: 10, padding: '12px 14px',
-      background: NOTE_BG, border: `1px solid ${NOTE_BORDER}`, borderRadius: 12,
-      position: 'relative',
-    }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke={NOTE_INK} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M12 20h9M16.5 3.5a2.1 2.1 0 113 3L7 19l-4 1 1-4L16.5 3.5z" />
-        </svg>
-        <span style={{ fontSize: 10, letterSpacing: '0.14em', fontWeight: 600, textTransform: 'uppercase', color: NOTE_INK }}>
+    <div className="report-note-card report-note-card--view">
+      <div className="report-note-header">
+        <Pencil size={11} className="report-icon-warning" strokeWidth={2} />
+        <span className="report-note-kicker">
           家长备注
         </span>
         {date ? (
-          <span style={{ fontSize: 10, color: FG4, marginLeft: 'auto', fontFamily: 'var(--nimi-font-mono, ui-monospace, monospace)' }}>{date}</span>
+          <span className="report-note-date">{date}</span>
         ) : null}
       </div>
-      <p style={{
-        margin: 0, fontFamily: SERIF, fontSize: 13.5, lineHeight: 1.75, color: FG1,
-        whiteSpace: 'pre-wrap', wordBreak: 'break-word',
-      }}>
+      <p className="report-note-body">
         {note.text}
       </p>
       {canEdit ? (
-        <div className="hide-on-print" style={{
-          display: 'flex', gap: 10, marginTop: 10, paddingTop: 8,
-          borderTop: `1px dashed ${NOTE_BORDER}`,
-          justifyContent: 'flex-end',
-        }}>
-          <button onClick={start}
-            style={{ padding: '3px 10px', borderRadius: 6, border: 0, background: 'transparent', color: NOTE_INK, fontSize: 11, fontWeight: 500, cursor: 'pointer' }}>
+        <div className="report-note-actions hide-on-print">
+          <Button size="sm" tone="ghost" onClick={start} className="report-note-action-button report-note-action-button--warning">
             编辑
-          </button>
-          <button onClick={onDelete}
-            style={{ padding: '3px 10px', borderRadius: 6, border: 0, background: 'transparent', color: '#9f1239', fontSize: 11, fontWeight: 500, cursor: 'pointer' }}>
+          </Button>
+          <Button size="sm" tone="danger" onClick={onDelete} className="report-note-action-button">
             删除
-          </button>
+          </Button>
         </div>
       ) : null}
     </div>
@@ -148,48 +118,35 @@ function NoteComposer({ onAdd }: NoteComposerProps) {
 
   if (!open) {
     return (
-      <button onClick={openComposer}
+      <Button
+        onClick={openComposer}
+        tone="ghost"
+        size="sm"
         className="report-note-composer hide-on-print"
-        style={{
-          marginTop: 10,
-          display: 'inline-flex', alignItems: 'center', gap: 6,
-          padding: '5px 12px', borderRadius: 999,
-          background: 'rgba(254,249,195,0.4)', color: NOTE_INK,
-          border: `1px dashed ${NOTE_BORDER}`,
-          fontSize: 11.5, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit',
-        }}>
-        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-          <path d="M12 5v14M5 12h14" />
-        </svg>
+      >
+        <Plus size={11} />
         追加我的备注
-      </button>
+      </Button>
     );
   }
 
   return (
-    <div className="report-note-composer hide-on-print" style={{
-      marginTop: 10, padding: '12px 14px',
-      background: NOTE_BG, border: `1px solid ${NOTE_BORDER}`, borderRadius: 12,
-    }}>
-      <textarea ref={ref} value={draft}
+    <div className="report-note-card report-note-composer hide-on-print">
+      <TextareaField
+        ref={ref}
+        value={draft}
         onChange={(e) => setDraft(e.target.value)}
         placeholder="写一段备注，比如你对这一段观察的补充、疑问、或想让医生看到的细节……"
-        style={{
-          width: '100%', minHeight: 72, padding: '8px 10px',
-          borderRadius: 8, border: `1px solid ${NOTE_BORDER}`,
-          background: 'rgba(255,255,255,0.9)', color: FG1,
-          fontFamily: 'inherit', fontSize: 13.5, lineHeight: 1.7,
-          outline: 'none', resize: 'vertical',
-        }} />
-      <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-        <button onClick={submit}
-          style={{ padding: '5px 12px', borderRadius: 8, border: 0, background: ACCENT, color: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+        className="report-radius-sm"
+        textareaClassName="report-note-textarea"
+      />
+      <div className="mt-2 flex gap-2">
+        <Button size="sm" tone="primary" onClick={submit}>
           保存备注
-        </button>
-        <button onClick={() => setOpen(false)}
-          style={{ padding: '5px 12px', borderRadius: 8, border: 0, background: 'transparent', color: FG3, fontSize: 12, cursor: 'pointer' }}>
+        </Button>
+        <Button size="sm" tone="ghost" onClick={() => setOpen(false)}>
           取消
-        </button>
+        </Button>
       </div>
     </div>
   );
@@ -209,7 +166,7 @@ export function NoteAnchor({ anchor, content, canEdit, onChange }: NoteAnchorPro
   const handleDelete = (id: string) => onChange(deleteUserNote(content, id));
 
   return (
-    <div style={{ marginTop: 4 }}>
+    <div className="report-note-anchor">
       {notes.map((n) => (
         <NoteCard key={n.id} note={n} canEdit={canEdit}
           onSave={(t) => handleUpdate(n.id, t)}

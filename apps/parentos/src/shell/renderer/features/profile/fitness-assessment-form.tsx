@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { cn } from '@nimiplatform/nimi-kit/ui';
 import { computeAgeMonthsAt } from '../../app-shell/app-store.js';
 import { insertFitnessAssessment } from '../../bridge/sqlite-bridge.js';
 import { isoNow, ulid } from '../../bridge/ulid.js';
@@ -291,4 +292,3 @@ export function FitnessAssessmentModal(props: FitnessFormContentProps) {
     </HealthRecordModalShell>
   );
 }
-

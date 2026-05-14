@@ -1,3 +1,4 @@
+import { Surface } from '@nimiplatform/nimi-kit/ui';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   readOrthodonticPhotoBlob,
@@ -26,17 +27,9 @@ export function CompareView({
   if (!a || !b) {
     return (
       <div
+        className="mb-2.5 grid w-full place-items-center rounded-2xl border border-dashed border-[var(--nimi-border-strong)] bg-[var(--nimi-surface-active)] text-[13px] text-[var(--nimi-text-muted)]"
         style={{
-          width: '100%',
           aspectRatio: '16 / 10',
-          borderRadius: 18,
-          border: '1px dashed var(--nimi-border-strong)',
-          background: 'var(--nimi-surface-active)',
-          display: 'grid',
-          placeItems: 'center',
-          color: 'var(--nimi-text-muted)',
-          fontSize: 13,
-          marginBottom: 10,
         }}
       >
         当前视角下两组照片不完整，先切换角度或拍一组补齐。
@@ -46,13 +39,10 @@ export function CompareView({
   if (mode === 'split') {
     return (
       <div
+        className="mb-2.5 grid w-full gap-2.5"
         style={{
-          display: 'grid',
           gridTemplateColumns: '1fr 1fr',
-          gap: 10,
-          width: '100%',
           aspectRatio: '16 / 10',
-          marginBottom: 10,
         }}
       >
         <PhotoTile attachment={a} role="之前" session={aBundle?.session ?? null} />
@@ -118,18 +108,8 @@ function CompareSlider({
         const x = e.touches[0]?.clientX;
         if (x !== undefined) onMove(x);
       }}
-      style={{
-        position: 'relative',
-        width: '100%',
-        aspectRatio: '16 / 10',
-        borderRadius: 18,
-        overflow: 'hidden',
-        background: 'var(--nimi-text-primary)',
-        cursor: 'ew-resize',
-        userSelect: 'none',
-        boxShadow: '0 1px 2px rgba(15,23,42,0.05), 0 8px 24px rgba(15,23,42,0.08)',
-        marginBottom: 10,
-      }}
+      className="relative mb-2.5 w-full cursor-ew-resize select-none overflow-hidden rounded-2xl bg-[var(--nimi-text-primary)] shadow-[var(--nimi-elevation-raised)]"
+      style={{ aspectRatio: '16 / 10' }}
     >
       <div style={{ position: 'absolute', inset: 0 }}>
         <PhotoTile attachment={b} role="之后" session={bBundle?.session ?? null} />
@@ -144,32 +124,18 @@ function CompareSlider({
         <PhotoTile attachment={a} role="之前" session={aBundle?.session ?? null} />
       </div>
       <div
+        className="absolute bottom-0 top-0 w-0.5 bg-[var(--nimi-surface-card)] shadow-[var(--nimi-elevation-base)]"
         style={{
-          position: 'absolute',
-          top: 0,
-          bottom: 0,
           left: `${pos}%`,
-          width: 2,
-          background: 'rgba(255,255,255,0.9)',
-          boxShadow: '0 0 0 1px rgba(15,23,42,0.15)',
           transform: 'translateX(-1px)',
         }}
       />
       <div
+        className="pointer-events-none absolute grid h-9 w-9 place-items-center rounded-full bg-[var(--nimi-surface-card)] text-[var(--nimi-text-secondary)] shadow-[var(--nimi-elevation-floating)]"
         style={{
-          position: 'absolute',
           top: '50%',
           left: `${pos}%`,
           transform: 'translate(-50%, -50%)',
-          width: 36,
-          height: 36,
-          borderRadius: 999,
-          background: 'white',
-          boxShadow: '0 2px 8px rgba(15,23,42,0.22), 0 0 0 1px rgba(15,23,42,0.06)',
-          display: 'grid',
-          placeItems: 'center',
-          color: 'var(--nimi-text-secondary)',
-          pointerEvents: 'none',
         }}
       >
         <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
@@ -200,15 +166,13 @@ function PhotoTile({ attachment, role, session }: PhotoTileProps) {
     ? `${role} · ${session ? formatThumbLabel(session) : ''}`
     : null;
   return (
-    <div
+    <Surface
+      tone="card"
+      material="glass-regular"
+      elevation="raised"
+      padding="none"
+      className="relative h-full w-full overflow-hidden rounded-2xl"
       style={{
-        position: 'relative',
-        width: '100%',
-        height: '100%',
-        borderRadius: 18,
-        overflow: 'hidden',
-        background: 'var(--nimi-surface-active)',
-        boxShadow: '0 1px 2px rgba(15,23,42,0.05), 0 8px 24px rgba(15,23,42,0.08)',
       }}
     >
       {dataUrl ? (
@@ -225,13 +189,8 @@ function PhotoTile({ attachment, role, session }: PhotoTileProps) {
         />
       ) : (
         <div
+          className="absolute inset-0 grid place-items-center text-[12px] text-[var(--nimi-text-muted)]"
           style={{
-            position: 'absolute',
-            inset: 0,
-            display: 'grid',
-            placeItems: 'center',
-            color: 'var(--nimi-text-muted)',
-            fontSize: 12,
           }}
         >
           加载中…
@@ -239,24 +198,14 @@ function PhotoTile({ attachment, role, session }: PhotoTileProps) {
       )}
       {label && (
         <div
+          className="absolute left-2.5 top-2.5 rounded-full bg-[var(--nimi-surface-overlay)] px-2 py-[3px] text-[10px] font-medium tracking-[0.04em] text-[var(--nimi-text-primary)] shadow-[var(--nimi-elevation-base)]"
           style={{
-            position: 'absolute',
-            left: 10,
-            top: 10,
-            padding: '3px 8px',
-            borderRadius: 999,
-            background: 'rgba(15,23,42,0.55)',
-            color: 'white',
-            fontSize: 10,
-            letterSpacing: '0.04em',
-            fontWeight: 500,
-            backdropFilter: 'blur(6px)',
           }}
         >
           {label}
         </div>
       )}
-    </div>
+    </Surface>
   );
 }
 
@@ -312,4 +261,3 @@ export function usePhotoBlob(attachmentId: string, mimeType: string): string | n
   }, [attachmentId, mimeType]);
   return dataUrl;
 }
-

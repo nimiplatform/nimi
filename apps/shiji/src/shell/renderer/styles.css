@@ -1,5 +1,6 @@
 @import "@nimiplatform/nimi-kit/ui/styles.css";
 @import "@nimiplatform/nimi-kit/ui/themes/light.css";
+@import "@nimiplatform/nimi-kit/ui/themes/nimi-accent.css";
 @import "tailwindcss";
 
 /* ShiJi age-appropriate defaults — SJ-SHELL-004 */

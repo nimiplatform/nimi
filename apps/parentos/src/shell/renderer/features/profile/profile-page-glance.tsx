@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Activity, Eye, Ruler, Scale, Target } from 'lucide-react';
 import { Surface } from '@nimiplatform/nimi-kit/ui';
-import { S } from '../../app-shell/page-style.js';
 import type { HealthMetricSnapshot, HealthRecordSnapshot } from '../../engine/health-record-domain.js';
 import type { HealthMetricId } from '../../knowledge-base/index.js';
 import { formatMetricSnapshotValue, metricLabel } from './health-record-display.js';
@@ -89,14 +88,14 @@ function hasRecordedValue(ms: HealthMetricSnapshot): boolean {
 function freshnessDotColor(freshness: HealthMetricSnapshot['freshness']): string {
   switch (freshness) {
     case 'fresh':
-      return '#22c55e';
+      return 'bg-[var(--nimi-status-success)]';
     case 'stale':
-      return '#eab308';
+      return 'bg-[var(--nimi-status-warning)]';
     case 'missing':
-      return '#94a3b8';
+      return 'bg-[var(--nimi-text-muted)]';
     case 'unscheduled':
     default:
-      return '#94a3b8';
+      return 'bg-[var(--nimi-text-muted)]';
   }
 }
 
@@ -116,18 +115,18 @@ function GlanceCard({ entry }: { entry: HighlightEntry }) {
         material="glass-regular"
         padding="none"
         tone="card"
-        className="h-full rounded-[18px] p-4 transition-transform hover:-translate-y-0.5"
+        className="h-full rounded-2xl p-4 transition-transform hover:-translate-y-0.5"
       >
         <div className="flex items-start justify-between">
-          <div className="grid h-8 w-8 place-items-center rounded-[10px]" style={{ background: 'rgba(78,204,163,0.12)', color: S.accent }}>
+          <div className="grid h-8 w-8 place-items-center rounded-lg bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_12%,transparent)] text-[var(--nimi-action-primary-bg)]">
             <Icon size={15} />
           </div>
-          <span className="h-2 w-2 rounded-full" style={{ background: entry.freshnessDot }} />
+          <span className={`h-2 w-2 rounded-full ${entry.freshnessDot}`} />
         </div>
-        <p className="mt-3 text-[12px]" style={{ color: S.sub }}>{metricLabel(ms.metric, t)}</p>
-        <p className="mt-1 text-[20px] font-semibold leading-tight" style={{ color: S.text }}>{value}</p>
+        <p className="mt-3 text-[12px] text-[var(--nimi-text-muted)]">{metricLabel(ms.metric, t)}</p>
+        <p className="mt-1 text-[20px] font-semibold leading-tight text-[var(--nimi-text-primary)]">{value}</p>
         {daysAgo !== null ? (
-          <p className="mt-2 text-[11px]" style={{ color: S.sub }}>
+          <p className="mt-2 text-[11px] text-[var(--nimi-text-muted)]">
             {daysAgo === 0
               ? t('Profile.glance.today', { defaultValue: '今天' })
               : t('Profile.glance.daysAgo', { count: daysAgo, defaultValue: '{{count}} 天前' })}
@@ -141,9 +140,9 @@ function GlanceCard({ entry }: { entry: HighlightEntry }) {
 function SectionLabel({ eyebrow, title, subtitle }: { eyebrow?: string; title: string; subtitle?: ReactNode }) {
   return (
     <div className="mb-3">
-      {eyebrow ? <p className="text-[11px] font-semibold uppercase tracking-[0.12em]" style={{ color: S.sub }}>{eyebrow}</p> : null}
-      <h2 className={`${eyebrow ? 'mt-1' : ''} text-[18px] font-semibold tracking-normal`} style={{ color: S.text, letterSpacing: 0 }}>{title}</h2>
-      {subtitle ? <p className="mt-1 text-[12px]" style={{ color: S.sub }}>{subtitle}</p> : null}
+      {eyebrow ? <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--nimi-text-muted)]">{eyebrow}</p> : null}
+      <h2 className={`${eyebrow ? 'mt-1' : ''} text-[18px] font-semibold tracking-normal text-[var(--nimi-text-primary)]`}>{title}</h2>
+      {subtitle ? <p className="mt-1 text-[12px] text-[var(--nimi-text-muted)]">{subtitle}</p> : null}
     </div>
   );
 }

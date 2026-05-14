@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { convertFileSrc } from '@tauri-apps/api/core';
+import { cn } from '@nimiplatform/nimi-kit/ui';
 import type { AttachmentRow } from '../../bridge/sqlite-bridge.js';
 import type { ReactNode } from 'react';
 import {
@@ -79,8 +80,8 @@ export function DentalRecordFormModal(props: DentalRecordFormModalProps) {
 const SEVERITY_OPTIONS = ['mild', 'moderate', 'severe'] as const;
 const SEVERITY_ACTIVE_BG: Record<(typeof SEVERITY_OPTIONS)[number], string> = {
   mild: HEALTH_MODAL_TOKENS.accent,
-  moderate: '#d97706',
-  severe: '#dc2626',
+  moderate: 'var(--nimi-status-warning)',
+  severe: 'var(--nimi-status-danger)',
 };
 
 export function DentalRecordFormBody(props: DentalRecordFormModalProps) {
@@ -132,22 +133,24 @@ export function DentalRecordFormBody(props: DentalRecordFormModalProps) {
             return (
               <div
                 key={idx}
-                className="cursor-pointer p-4 transition-all"
-                style={{
-                  borderRadius: 16,
-                  background: isActive ? '#fafaf8' : '#f9faf7',
-                  border: `1.5px solid ${isActive ? `${HEALTH_MODAL_TOKENS.accent}60` : HEALTH_MODAL_TOKENS.fieldBorder}`,
-                }}
+                className={cn(
+                  'cursor-pointer rounded-2xl border p-4 transition-all',
+                  isActive
+                    ? 'border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_38%,var(--nimi-border-subtle))] bg-[var(--nimi-surface-card)]'
+                    : 'border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)]',
+                )}
                 onClick={() => props.setActiveEntryIdx(idx)}
               >
                 <div className="mb-2 flex items-center justify-between">
                   <p
-                    className="text-[13px] font-semibold"
-                    style={{ color: isActive ? HEALTH_MODAL_TOKENS.accent : HEALTH_MODAL_TOKENS.text }}
+                    className={cn(
+                      'text-[13px] font-semibold',
+                      isActive ? 'text-[var(--nimi-action-primary-bg)]' : 'text-[var(--nimi-text-primary)]',
+                    )}
                   >
                     事件 {idx + 1} {eventMeta ? `· ${eventMeta.emoji} ${eventMeta.label}` : ''}
                     {entry.toothIds.length > 0 ? (
-                      <span className="font-normal" style={{ color: HEALTH_MODAL_TOKENS.sub }}>
+                      <span className="font-normal text-[var(--nimi-text-muted)]">
                         {' '}
                         · {entry.toothIds.length} 颗牙
                       </span>
@@ -160,8 +163,7 @@ export function DentalRecordFormBody(props: DentalRecordFormModalProps) {
                         event.stopPropagation();
                         props.removeEntry(idx);
                       }}
-                      className="rounded-full px-2 py-0.5 text-[12px] transition-colors hover:bg-red-50"
-                      style={{ color: '#dc2626' }}
+                      className="rounded-full px-2 py-0.5 text-[12px] text-[var(--nimi-status-danger)] transition-colors hover:bg-[color-mix(in_srgb,var(--nimi-status-danger)_8%,transparent)]"
                     >
                       删除
                     </button>
@@ -184,7 +186,7 @@ export function DentalRecordFormBody(props: DentalRecordFormModalProps) {
                     {entryNeedsTooth ? (
                       <div>
                         <div className="mb-2 flex items-center gap-3">
-                          <p className="text-[12px]" style={{ color: HEALTH_MODAL_TOKENS.sub }}>
+                          <p className="text-[12px] text-[var(--nimi-text-muted)]">
                             牙位
                           </p>
                           <ChipGroup
@@ -244,26 +246,24 @@ export function DentalRecordFormBody(props: DentalRecordFormModalProps) {
               onClick={props.addEntry}
               onMouseEnter={() => setEntryAddHover(true)}
               onMouseLeave={() => setEntryAddHover(false)}
-              className="flex w-full items-center justify-center gap-2 py-3 text-[13px] font-medium"
-              style={{
-                borderRadius: 14,
-                border: `2px dashed ${entryAddHover ? HEALTH_MODAL_TOKENS.accent : '#d0d0cc'}`,
-                background: entryAddHover ? '#f9fbf4' : '#fafaf8',
-                color: entryAddHover ? HEALTH_MODAL_TOKENS.accent : HEALTH_MODAL_TOKENS.sub,
-                transition: 'border-color 0.25s ease, background 0.25s ease, color 0.25s ease',
-              }}
+              className={cn(
+                'flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed py-3 text-[13px] font-medium transition-colors',
+                entryAddHover
+                  ? 'border-[var(--nimi-action-primary-bg)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_8%,var(--nimi-surface-card))] text-[var(--nimi-action-primary-bg)]'
+                  : 'border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] text-[var(--nimi-text-muted)]',
+              )}
             >
               <svg
                 width="16"
                 height="16"
                 viewBox="0 0 24 24"
                 fill="none"
+                stroke="currentColor"
                 strokeWidth="1.5"
                 strokeLinecap="round"
+                className="transition-transform duration-300"
                 style={{
-                  stroke: entryAddHover ? HEALTH_MODAL_TOKENS.accent : '#b0b0aa',
                   transform: entryAddHover ? 'scale(1.15) rotate(90deg)' : 'scale(1) rotate(0deg)',
-                  transition: 'stroke 0.25s ease, transform 0.3s ease',
                 }}
               >
                 <path d="M12 5v14M5 12h14" />
@@ -310,12 +310,12 @@ export function DentalRecordFormBody(props: DentalRecordFormModalProps) {
                     <img
                       src={convertFileSrc(attachment.filePath)}
                       alt={attachment.fileName}
-                      className="h-24 w-full rounded-[14px] object-cover"
+                      className="h-24 w-full rounded-xl object-cover"
                     />
                     <button
                       type="button"
                       onClick={() => props.removeExistingPhoto(attachment.attachmentId)}
-                      className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-[12px] text-white opacity-0 transition-opacity group-hover:opacity-100"
+                      className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-[var(--nimi-surface-overlay)] text-[12px] text-[var(--nimi-text-primary)] opacity-0 shadow-[var(--nimi-elevation-base)] transition-opacity group-hover:opacity-100"
                     >
                       ×
                     </button>
@@ -323,11 +323,11 @@ export function DentalRecordFormBody(props: DentalRecordFormModalProps) {
                 ))}
                 {props.formPhotoPreviews.map((src, idx) => (
                   <div key={idx} className="group relative">
-                    <img src={src} alt={`preview-${idx}`} className="h-24 w-full rounded-[14px] object-cover" />
+                    <img src={src} alt={`preview-${idx}`} className="h-24 w-full rounded-xl object-cover" />
                     <button
                       type="button"
                       onClick={() => props.removePhotoAt(idx)}
-                      className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-[12px] text-white opacity-0 transition-opacity group-hover:opacity-100"
+                      className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-[var(--nimi-surface-overlay)] text-[12px] text-[var(--nimi-text-primary)] opacity-0 shadow-[var(--nimi-elevation-base)] transition-opacity group-hover:opacity-100"
                     >
                       ✕
                     </button>
@@ -342,32 +342,31 @@ export function DentalRecordFormBody(props: DentalRecordFormModalProps) {
                           onClick={() => void props.pickPhotoFiles()}
                           onMouseEnter={() => props.setPhotoDropHover(true)}
                           onMouseLeave={() => props.setPhotoDropHover(false)}
-                          className={`flex h-24 ${totalPhotoCount === 0 ? 'col-span-4' : ''} w-full flex-col items-center justify-center gap-1.5 rounded-[14px]`}
-                          style={{
-                            border: `2px dashed ${photoActive ? HEALTH_MODAL_TOKENS.accent : '#d0d0cc'}`,
-                            background: photoActive ? '#f9fbf4' : HEALTH_MODAL_TOKENS.fieldBg,
-                            color: photoActive ? HEALTH_MODAL_TOKENS.accent : HEALTH_MODAL_TOKENS.sub,
-                            transition: 'border-color 0.25s ease, background 0.25s ease, color 0.25s ease',
-                          }}
+                          className={cn(
+                            'flex h-24 w-full flex-col items-center justify-center gap-1.5 rounded-xl border-2 border-dashed transition-colors',
+                            totalPhotoCount === 0 && 'col-span-4',
+                            photoActive
+                              ? 'border-[var(--nimi-action-primary-bg)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_8%,var(--nimi-surface-card))] text-[var(--nimi-action-primary-bg)]'
+                              : 'border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] text-[var(--nimi-text-muted)]',
+                          )}
                         >
                           <svg
                             width="22"
                             height="22"
                             viewBox="0 0 24 24"
                             fill="none"
+                            stroke="currentColor"
                             strokeWidth="1.5"
                             strokeLinecap="round"
+                            className="transition-transform duration-300"
                             style={{
-                              stroke: photoActive ? HEALTH_MODAL_TOKENS.accent : '#b0b0aa',
                               transform: photoActive ? 'scale(1.15) rotate(90deg)' : 'scale(1) rotate(0deg)',
-                              transition: 'stroke 0.25s ease, transform 0.3s ease',
                             }}
                           >
                             <path d="M12 5v14M5 12h14" />
                           </svg>
                           <span
                             className="px-1 text-center text-[12px]"
-                            style={{ color: 'inherit', transition: 'color 0.25s ease' }}
                           >
                             {props.formPhotoFiles.length === 0
                               ? `点击或拖拽上传口腔照片（最多 ${PHOTO_MAX} 张）`

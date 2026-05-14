@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { cn } from '@nimiplatform/nimi-kit/ui';
 import { computeAgeMonthsAt } from '../../app-shell/app-store.js';
 import { insertMeasurement, saveAttachment } from '../../bridge/sqlite-bridge.js';
 import { isoNow, ulid } from '../../bridge/ulid.js';
@@ -9,7 +10,6 @@ import {
   DateField,
   FormField,
   FormGrid,
-  HEALTH_MODAL_TOKENS,
   HealthRecordModalShell,
   Input,
   ModalContent,
@@ -150,29 +150,27 @@ export function GrowthAddRecordContent({
           </FormGrid>
 
           <div
-            className="flex items-center gap-2 px-4"
-            style={{
-              height: HEALTH_MODAL_TOKENS.fieldHeight,
-              borderRadius: HEALTH_MODAL_TOKENS.fieldRadius,
-              background: hasBMI ? '#f0fdf4' : HEALTH_MODAL_TOKENS.fieldBg,
-              border: `1px solid ${hasBMI ? '#bbf7d0' : HEALTH_MODAL_TOKENS.fieldBorder}`,
-              transition: 'all 0.2s',
-            }}
+            className={cn(
+              'flex min-h-[44px] items-center gap-2 rounded-2xl border px-4 transition-colors',
+              hasBMI
+                ? 'border-[color-mix(in_srgb,var(--nimi-status-success)_30%,var(--nimi-border-subtle))] bg-[color-mix(in_srgb,var(--nimi-status-success)_8%,var(--nimi-surface-card))]'
+                : 'border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)]',
+            )}
           >
-            <span className="text-[13px] font-medium" style={{ color: HEALTH_MODAL_TOKENS.sub }}>
+            <span className="text-[13px] font-medium text-[var(--nimi-text-muted)]">
               BMI 自动计算
             </span>
             {hasBMI && bmi != null && bmiMeta ? (
               <>
-                <span className="ml-auto text-[16px] font-bold" style={{ color: bmiMeta.color }}>
+                <span className={`ml-auto text-[16px] font-bold ${bmiToneClassName(bmiMeta.tag)}`}>
                   {bmi}
                 </span>
-                <span className="text-[13px] font-medium" style={{ color: bmiMeta.color }}>
+                <span className={`text-[13px] font-medium ${bmiToneClassName(bmiMeta.tag)}`}>
                   {bmiMeta.tag}
                 </span>
               </>
             ) : (
-              <span className="ml-auto text-[14px]" style={{ color: '#c4c4c4' }}>
+              <span className="ml-auto text-[14px] text-[var(--nimi-text-muted)]">
                 --
               </span>
             )}
@@ -207,6 +205,13 @@ export function GrowthAddRecordContent({
       </ModalFooter>
     </>
   );
+}
+
+function bmiToneClassName(tag: string): string {
+  if (tag.includes('偏轻')) return 'text-[var(--nimi-status-info)]';
+  if (tag.includes('正常')) return 'text-[var(--nimi-status-success)]';
+  if (tag.includes('偏重')) return 'text-[var(--nimi-status-warning)]';
+  return 'text-[var(--nimi-status-danger)]';
 }
 
 type GrowthCurveAddRecordModalProps = {

@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from 'react';
+import { cn } from '@nimiplatform/nimi-kit/ui';
 import { computeAgeMonthsAt } from '../../app-shell/app-store.js';
 import { insertMeasurement, insertTannerAssessment } from '../../bridge/sqlite-bridge.js';
 import { isoNow, ulid } from '../../bridge/ulid.js';
@@ -135,7 +136,7 @@ function TannerFormFields({
             value={formAssessedBy}
             onChange={setFormAssessedBy}
             layout="fill"
-            activeColor="#BDE0F5"
+            activeColor="var(--nimi-status-info)"
           />
         </FormField>
       </FormGrid>

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { Button, Surface } from '@nimiplatform/nimi-kit/ui';
 import { useAppStore } from '../../app-shell/app-store.js';
-import { S } from '../../app-shell/page-style.js';
 import { REMINDER_RULES } from '../../knowledge-base/index.js';
 import { loadAllFreqOverrides, clearFreqOverride, type FreqOverride } from '../../engine/reminder-freq-overrides.js';
 import { catchLog, catchLogThen } from '../../infra/telemetry/catch-log.js';
@@ -50,53 +50,51 @@ export default function ReminderSettingsPage() {
     await loadOverrides();
   };
 
-  if (!child) return <div className="p-8" style={{ color: S.sub }}>请先添加孩子</div>;
+  if (!child) return <div className="p-8 text-[var(--nimi-text-muted)]">请先添加孩子</div>;
 
   return (
-    <div className="min-h-full p-6" style={{ background: 'transparent' }}>
-      <div className="max-w-3xl mx-auto">
-        <Link to="/settings" className="inline-flex items-center gap-1 text-[14px] mb-5 hover:underline" style={{ color: S.sub }}>
+    <div className="min-h-full bg-transparent p-6">
+      <div className="mx-auto max-w-3xl">
+        <Link to="/settings" className="mb-5 inline-flex items-center gap-1 text-[14px] text-[var(--nimi-text-muted)] hover:underline">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M15 18l-6-6 6-6" /></svg>
           返回设置
         </Link>
 
-        <h1 className="text-[24px] font-bold mb-2" style={{ color: S.text }}>提醒管理</h1>
-        <p className="text-[14px] mb-6" style={{ color: S.sub }}>查看和管理已自定义频率的提醒规则</p>
+        <h1 className="mb-2 text-[24px] font-bold text-[var(--nimi-text-primary)]">提醒管理</h1>
+        <p className="mb-6 text-[14px] text-[var(--nimi-text-muted)]">查看和管理已自定义频率的提醒规则</p>
 
         {loading ? (
-          <p className="text-[14px]" style={{ color: S.sub }}>加载中...</p>
+          <p className="text-[14px] text-[var(--nimi-text-muted)]">加载中...</p>
         ) : entries.length === 0 ? (
-          <div className={`${S.radius} p-8 text-center`} style={{ background: S.card, boxShadow: S.shadow }}>
+          <Surface tone="card" material="solid" elevation="base" padding="lg" className="parentos-radius-xl text-center">
             <span className="text-[24px]">⏱️</span>
-            <p className="text-[14px] mt-2 font-medium" style={{ color: S.text }}>所有提醒使用默认频率</p>
-            <p className="text-[13px] mt-1" style={{ color: S.sub }}>在首页或提醒页点击"调整频率"可自定义</p>
-          </div>
+            <p className="mt-2 text-[14px] font-medium text-[var(--nimi-text-primary)]">所有提醒使用默认频率</p>
+            <p className="mt-1 text-[13px] text-[var(--nimi-text-muted)]">在首页或提醒页点击"调整频率"可自定义</p>
+          </Surface>
         ) : (
           <div className="space-y-3">
             {entries.map((entry) => (
-              <div key={entry.ruleId} className={`${S.radius} p-4 flex items-center gap-4`} style={{ background: S.card, boxShadow: S.shadow }}>
+              <Surface key={entry.ruleId} tone="card" material="solid" elevation="base" padding="md" className="flex items-center gap-4 parentos-radius-xl">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <span className="text-[12px] px-2 py-0.5 rounded-full" style={{ background: '#f5f3ef', color: S.sub }}>
+                    <span className="rounded-full bg-[var(--nimi-action-secondary-bg)] px-2 py-0.5 text-[12px] text-[var(--nimi-text-muted)]">
                       {DOMAIN_LABELS[entry.domain] ?? entry.domain}
                     </span>
-                    <p className="text-[14px] font-medium truncate" style={{ color: S.text }}>{entry.ruleTitle}</p>
+                    <p className="truncate text-[14px] font-medium text-[var(--nimi-text-primary)]">{entry.ruleTitle}</p>
                   </div>
-                  <p className="text-[13px] mt-1" style={{ color: S.sub }}>
+                  <p className="mt-1 text-[13px] text-[var(--nimi-text-muted)]">
                     默认：每 {entry.defaultInterval} 个月 →
                     {entry.override.disabled ? (
-                      <span style={{ color: '#dc2626' }}> 已关闭</span>
+                      <span className="text-[var(--nimi-status-danger)]"> 已关闭</span>
                     ) : (
-                      <span style={{ color: S.accent }}> 每 {entry.override.intervalMonths} 个月</span>
+                      <span className="text-[var(--nimi-action-primary-bg)]"> 每 {entry.override.intervalMonths} 个月</span>
                     )}
                   </p>
                 </div>
-                <button onClick={() => void handleReset(entry.ruleId)}
-                  className={`shrink-0 px-3 py-1.5 text-[13px] ${S.radiusSm} hover:opacity-80`}
-                  style={{ background: '#f5f3ef', color: S.text }}>
+                <Button onClick={() => void handleReset(entry.ruleId)} tone="secondary" size="sm" className="shrink-0 text-[13px]">
                   恢复默认
-                </button>
-              </div>
+                </Button>
+              </Surface>
             ))}
           </div>
         )}

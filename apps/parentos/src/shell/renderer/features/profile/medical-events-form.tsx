@@ -295,7 +295,7 @@ function MedicalEventsFormBody({
                       正在识别 {ocrImageName}...
                     </p>
                   ) : ocrError ? (
-                    <p className="text-[12px]" style={{ color: '#dc2626' }}>
+                    <p className="text-[12px] text-[var(--nimi-status-danger)]">
                       {ocrError}
                     </p>
                   ) : ocrImageName ? (

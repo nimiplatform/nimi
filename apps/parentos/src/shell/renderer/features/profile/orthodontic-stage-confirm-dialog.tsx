@@ -1,3 +1,4 @@
+import { Button, Surface } from '@nimiplatform/nimi-kit/ui';
 import {
   type OrthodonticStage,
   updateOrthodonticCase,
@@ -5,7 +6,6 @@ import {
 } from '../../bridge/sqlite-bridge.js';
 import { isoNow } from '../../bridge/ulid.js';
 import { catchLog } from '../../infra/telemetry/catch-log.js';
-import { S } from '../../app-shell/page-style.js';
 import { stageLabel } from './orthodontic-derive.js';
 
 interface ConfirmProps {
@@ -27,64 +27,40 @@ export function OrthodonticStageConfirmDialog({ stage, onCancel, onConfirm }: Co
       role="dialog"
       aria-modal="true"
       aria-label="确认推进阶段"
-      style={{
-        position: 'fixed',
-        inset: 0,
-        background: 'rgba(15,23,42,0.32)',
-        display: 'grid',
-        placeItems: 'center',
-        zIndex: 100,
-      }}
+      className="fixed inset-0 z-[100] grid place-items-center bg-[var(--nimi-scrim-modal)]"
     >
-      <div
-        style={{
-          background: '#fff',
-          padding: 24,
-          borderRadius: 16,
-          minWidth: 320,
-          maxWidth: 400,
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 12,
-        }}
+      <Surface
+        material="glass-regular"
+        tone="overlay"
+        elevation="floating"
+        padding="none"
+        className="flex min-w-[320px] max-w-[400px] flex-col gap-3 rounded-2xl p-6"
       >
-        <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600 }}>
+        <h3 className="m-0 text-[16px] font-semibold text-[var(--nimi-text-primary)]">
           推进到「{stageLabel(stage)}」?
         </h3>
-        <p className="text-[14px]" style={{ color: S.sub, margin: 0 }}>
+        <p className="m-0 text-[14px] text-[var(--nimi-text-muted)]">
           阶段一旦推进，提醒规则与日程会按新阶段调整。如果是误操作，可以再次手动回滚。
         </p>
-        <div className="flex justify-end gap-2 mt-2">
-          <button
+        <div className="mt-2 flex justify-end gap-2">
+          <Button
             type="button"
             onClick={onCancel}
-            className="text-[14px]"
-            style={{
-              background: 'transparent',
-              color: '#64748b',
-              border: 0,
-              cursor: 'pointer',
-              padding: '6px 12px',
-            }}
+            tone="ghost"
+            size="sm"
           >
             取消
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
             onClick={onConfirm}
-            className="text-[14px] font-semibold text-white"
-            style={{
-              background: S.accent,
-              padding: '6px 14px',
-              borderRadius: 8,
-              border: 0,
-              cursor: 'pointer',
-            }}
+            tone="primary"
+            size="sm"
           >
             确认推进
-          </button>
+          </Button>
         </div>
-      </div>
+      </Surface>
     </div>
   );
 }

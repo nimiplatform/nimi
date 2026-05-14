@@ -1,5 +1,5 @@
+import { ConfirmDialog, IconButton, Surface, TextField } from '@nimiplatform/nimi-kit/ui';
 import { useTranslation } from 'react-i18next';
-import { S } from '../../app-shell/page-style.js';
 import type { MeasurementRow } from '../../bridge/sqlite-bridge.js';
 import type { WHOLMSDataset } from './who-lms-loader.js';
 import {
@@ -52,11 +52,11 @@ export function GrowthCurveHistoryTable({
 
   return (
     <>
-      <div className={`mt-6 ${S.radius} p-4`} style={{ background: S.card, boxShadow: S.shadow }}>
-        <h3 className="text-[14px] font-semibold mb-3" style={{ color: S.text }}>{t('Profile.rich.common.history')}</h3>
-        <table className="w-full text-[14px]" style={{ color: S.text }}>
+      <Surface tone="card" elevation="raised" padding="md" className="mt-6">
+        <h3 className="text-[14px] font-semibold mb-3 text-[var(--nimi-text-primary)]">{t('Profile.rich.common.history')}</h3>
+        <table className="w-full text-[14px] text-[var(--nimi-text-primary)]">
           <thead>
-            <tr className="text-left" style={{ color: S.sub, borderBottom: `1px solid ${S.border}` }}>
+            <tr className="border-b border-[var(--nimi-border-subtle)] text-left text-[var(--nimi-text-muted)]">
               <th className="pb-2">{t('Profile.rich.common.date')}</th>
               <th className="pb-2">{t('Profile.rich.common.age')}</th>
               <th className="pb-2">{t('Profile.rich.common.value')}</th>
@@ -72,15 +72,14 @@ export function GrowthCurveHistoryTable({
               .map((measurement) => {
                 const isEditing = editingId === measurement.measurementId;
                 return (
-                  <tr key={measurement.measurementId} style={{ borderBottom: `1px solid ${S.border}` }}>
+                  <tr key={measurement.measurementId} className="border-b border-[var(--nimi-border-subtle)]">
                     <td className="py-2">
                       {isEditing ? (
-                        <input
+                        <TextField
                           type="date"
                           value={editDate}
                           onChange={(event) => onEditDateChange(event.target.value)}
-                          className="text-[14px] px-1.5 py-0.5 rounded border w-[120px]"
-                          style={{ borderColor: S.border }}
+                          className="min-h-0 w-[120px] px-1.5 py-0.5 text-[14px]"
                         />
                       ) : measurement.measuredAt.split('T')[0]}
                     </td>
@@ -91,13 +90,12 @@ export function GrowthCurveHistoryTable({
                     </td>
                     <td>
                       {isEditing ? (
-                        <input
+                        <TextField
                           type="number"
                           step="0.1"
                           value={editValue}
                           onChange={(event) => onEditValueChange(event.target.value)}
-                          className="text-[14px] px-1.5 py-0.5 rounded border w-[80px]"
-                          style={{ borderColor: S.border }}
+                          className="min-h-0 w-[80px] px-1.5 py-0.5 text-[14px]"
                         />
                       ) : <>{measurement.value} {typeInfo?.unit}</>}
                     </td>
@@ -114,48 +112,49 @@ export function GrowthCurveHistoryTable({
                       <div className="flex items-center justify-end gap-1">
                         {isEditing ? (
                           <>
-                            <button
+                            <IconButton
                               onClick={() => onSaveEdit(measurement)}
-                              className="w-6 h-6 rounded-full flex items-center justify-center text-[14px] transition-colors hover:bg-green-50"
+                              tone="primary"
+                              size="sm"
+                              className="h-6 min-h-0 w-6"
                               title={t('Profile.rich.common.save')}
-                              style={{ color: '#16a34a' }}
-                            >
-                              ✓
-                            </button>
-                            <button
+                              icon="✓"
+                            />
+                            <IconButton
                               onClick={onCancelEdit}
-                              className="w-6 h-6 rounded-full flex items-center justify-center text-[14px] transition-colors hover:bg-gray-100"
+                              tone="ghost"
+                              size="sm"
+                              className="h-6 min-h-0 w-6 text-[var(--nimi-text-muted)]"
                               title={t('Profile.rich.common.cancel')}
-                              style={{ color: S.sub }}
-                            >
-                              ✕
-                            </button>
+                              icon="✕"
+                            />
                           </>
                         ) : (
                           <>
-                            <button
+                            <IconButton
                               onClick={() => onAnalyze(measurement)}
-                              className="w-6 h-6 rounded-full flex items-center justify-center text-[16px] transition-colors hover:bg-[#f0f0ec]"
+                              tone="ghost"
+                              size="sm"
+                              className="h-6 min-h-0 w-6 text-[16px]"
                               title={t('Profile.rich.common.aiAnalyze')}
-                            >
-                              💬
-                            </button>
-                            <button
+                              icon="💬"
+                            />
+                            <IconButton
                               onClick={() => onStartEdit(measurement)}
-                              className="w-6 h-6 rounded-full flex items-center justify-center text-[14px] transition-colors hover:bg-blue-50"
+                              tone="secondary"
+                              size="sm"
+                              className="h-6 min-h-0 w-6"
                               title={t('Profile.rich.common.edit')}
-                              style={{ color: '#2563eb' }}
-                            >
-                              ✎
-                            </button>
-                            <button
+                              icon="✎"
+                            />
+                            <IconButton
                               onClick={() => onRequestDelete(measurement.measurementId)}
-                              className="w-6 h-6 rounded-full flex items-center justify-center text-[14px] transition-colors hover:bg-red-50"
+                              tone="danger"
+                              size="sm"
+                              className="h-6 min-h-0 w-6"
                               title={t('Profile.rich.common.delete')}
-                              style={{ color: '#dc2626' }}
-                            >
-                              ✕
-                            </button>
+                              icon="✕"
+                            />
                           </>
                         )}
                       </div>
@@ -165,41 +164,19 @@ export function GrowthCurveHistoryTable({
               })}
           </tbody>
         </table>
-      </div>
+      </Surface>
 
       {deletingId ? (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center"
-          style={{ background: 'rgba(0,0,0,0.35)' }}
-          onClick={onCancelDelete}
-        >
-          <div
-            className={`${S.radius} p-6 w-[340px]`}
-            style={{ background: S.card, boxShadow: '0 8px 32px rgba(0,0,0,0.18)' }}
-            onClick={(event) => event.stopPropagation()}
-          >
-            <h3 className="text-[16px] font-semibold mb-2" style={{ color: S.text }}>{t('Profile.rich.common.confirmDelete')}</h3>
-            <p className="text-[14px] leading-[1.6] mb-5" style={{ color: S.sub }}>
-              {t('Profile.rich.common.deleteCannotUndo')}
-            </p>
-            <div className="flex justify-end gap-2">
-              <button
-                onClick={onCancelDelete}
-                className="text-[14px] px-4 py-1.5 rounded-full font-medium transition-colors hover:opacity-80"
-                style={{ background: '#f5f3ef', color: S.text }}
-              >
-                {t('Profile.rich.common.cancel')}
-              </button>
-              <button
-                onClick={() => onConfirmDelete(deletingId)}
-                className="text-[14px] px-4 py-1.5 rounded-full text-white font-medium transition-colors hover:opacity-90"
-                style={{ background: '#dc2626' }}
-              >
-                {t('Profile.rich.common.confirmDeleteAction')}
-              </button>
-            </div>
-          </div>
-        </div>
+        <ConfirmDialog
+          open
+          title={t('Profile.rich.common.confirmDelete')}
+          message={t('Profile.rich.common.deleteCannotUndo')}
+          cancelLabel={t('Profile.rich.common.cancel')}
+          confirmLabel={t('Profile.rich.common.confirmDeleteAction')}
+          confirmTone="danger"
+          onClose={onCancelDelete}
+          onConfirm={() => onConfirmDelete(deletingId)}
+        />
       ) : null}
     </>
   );

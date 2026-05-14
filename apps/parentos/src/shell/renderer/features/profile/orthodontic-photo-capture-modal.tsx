@@ -1,3 +1,4 @@
+import { Button, Surface, TextField } from '@nimiplatform/nimi-kit/ui';
 import { useEffect, useRef, useState } from 'react';
 import {
   attachOrthodonticPhoto,
@@ -11,7 +12,6 @@ import {
 } from '../../bridge/sqlite-bridge.js';
 import { isoNow, ulid } from '../../bridge/ulid.js';
 import { catchLog } from '../../infra/telemetry/catch-log.js';
-import { S } from '../../app-shell/page-style.js';
 
 interface Props {
   childId: string;
@@ -154,27 +154,28 @@ export function OrthodonticPhotoCaptureModal({
       style={{
         position: 'fixed',
         inset: 0,
-        background: 'rgba(15,23,42,0.32)',
         display: 'grid',
         placeItems: 'center',
         zIndex: 100,
       }}
+      className="bg-[var(--nimi-scrim-modal)]"
       onClick={(e) => {
         if (e.target === e.currentTarget && !submitting) onClose();
       }}
     >
-      <div
+      <Surface
+        tone="overlay"
+        material="glass-thick"
+        elevation="modal"
+        padding="lg"
+        className="rounded-3xl"
         style={{
-          background: '#fff',
-          padding: 24,
-          borderRadius: 18,
           width: 'min(520px, 92vw)',
           maxHeight: '90vh',
           overflow: 'auto',
           display: 'flex',
           flexDirection: 'column',
           gap: 14,
-          boxShadow: '0 18px 48px rgba(15,23,42,0.16)',
         }}
       >
         <header
@@ -184,37 +185,31 @@ export function OrthodonticPhotoCaptureModal({
             alignItems: 'center',
           }}
         >
-          <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600 }}>拍一组牙齿照片</h3>
-          <button
-            type="button"
+          <h3 className="m-0 text-[16px] font-semibold text-[var(--nimi-text-primary)]">
+            拍一组牙齿照片
+          </h3>
+          <Button
             onClick={() => !submitting && onClose()}
-            style={{
-              background: 'transparent',
-              border: 0,
-              color: 'var(--nimi-text-muted)',
-              fontSize: 18,
-              cursor: 'pointer',
-            }}
+            tone="ghost"
+            size="sm"
+            className="h-7 min-h-7 w-7 rounded-full px-0 text-[18px]"
             aria-label="关闭"
           >
             ×
-          </button>
+          </Button>
         </header>
 
         {localError && (
-          <div
+          <Surface
             role="alert"
-            style={{
-              fontSize: 13,
-              color: '#b91c1c',
-              background: '#fef2f2',
-              border: '1px solid #fecaca',
-              borderRadius: 10,
-              padding: '8px 12px',
-            }}
+            tone="card"
+            material="solid"
+            elevation="base"
+            padding="sm"
+            className="rounded-xl border-[color-mix(in_srgb,var(--nimi-status-danger)_30%,var(--nimi-border-subtle))] bg-[color-mix(in_srgb,var(--nimi-status-danger)_8%,var(--nimi-surface-card))] text-[13px] text-[var(--nimi-status-danger)]"
           >
             {localError}
-          </div>
+          </Surface>
         )}
 
         <PhotoSlot
@@ -231,34 +226,34 @@ export function OrthodonticPhotoCaptureModal({
         />
 
         <Field label="拍摄日期">
-          <input
+          <TextField
             type="date"
             value={sessionDate}
             onChange={(e) => setSessionDate(e.target.value)}
-            style={inputStyle()}
+            className="w-full"
           />
         </Field>
 
         {isClearAligner && (
           <Field label="对应牙套序号（可选）">
-            <input
+            <TextField
               type="number"
               min={1}
               value={trayIndex}
               placeholder={appliance?.totalAligners ? `1 – ${appliance.totalAligners}` : '1+'}
               onChange={(e) => setTrayIndex(e.target.value)}
-              style={inputStyle()}
+              className="w-full"
             />
           </Field>
         )}
 
         <Field label="备注（可选）">
-          <input
+          <TextField
             type="text"
             value={note}
             placeholder="复诊确认 / 治疗起点 / …"
             onChange={(e) => setNote(e.target.value)}
-            style={inputStyle()}
+            className="w-full"
           />
         </Field>
 
@@ -270,43 +265,24 @@ export function OrthodonticPhotoCaptureModal({
             marginTop: 8,
           }}
         >
-          <button
-            type="button"
+          <Button
             onClick={() => onClose()}
             disabled={submitting}
-            style={{
-              background: 'transparent',
-              color: 'var(--nimi-text-secondary)',
-              border: 0,
-              cursor: submitting ? 'default' : 'pointer',
-              padding: '8px 14px',
-              fontSize: 14,
-              fontFamily: 'inherit',
-            }}
+            tone="ghost"
+            size="md"
           >
             取消
-          </button>
-          <button
-            type="button"
+          </Button>
+          <Button
             onClick={() => void handleSubmit()}
             disabled={submitting}
-            style={{
-              background: S.accent,
-              color: 'var(--nimi-action-primary-text)',
-              padding: '8px 16px',
-              borderRadius: 999,
-              border: 0,
-              cursor: submitting ? 'default' : 'pointer',
-              fontSize: 14,
-              fontWeight: 600,
-              fontFamily: 'inherit',
-              opacity: submitting ? 0.7 : 1,
-            }}
+            tone="primary"
+            size="md"
           >
             {submitting ? '保存中…' : '保存'}
-          </button>
+          </Button>
         </footer>
-      </div>
+      </Surface>
     </div>
   );
 }
@@ -359,28 +335,27 @@ function PhotoSlot({
   };
 
   return (
-    <div
+    <Surface
+      tone="card"
+      material="solid"
+      elevation="base"
+      padding="sm"
+      className="border-dashed bg-[color-mix(in_srgb,var(--nimi-text-primary)_2%,var(--nimi-surface-card))]"
       style={{
         display: 'flex',
         gap: 12,
         alignItems: 'center',
-        padding: 12,
-        borderRadius: 12,
-        border: '1px dashed var(--nimi-border-strong)',
-        background: 'rgba(15,23,42,0.02)',
       }}
     >
       <div
+        className="rounded-xl bg-[var(--nimi-surface-active)] text-[var(--nimi-text-muted)]"
         style={{
           width: 64,
           height: 64,
-          borderRadius: 12,
-          background: 'var(--nimi-surface-active)',
           overflow: 'hidden',
           flexShrink: 0,
           display: 'grid',
           placeItems: 'center',
-          color: 'var(--nimi-text-muted)',
           fontSize: 11,
         }}
       >
@@ -395,14 +370,13 @@ function PhotoSlot({
         )}
       </div>
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0 }}>
-        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--nimi-text-primary)' }}>
+        <div className="text-[13px] font-semibold text-[var(--nimi-text-primary)]">
           {label}
         </div>
         {slot.file ? (
           <div
+            className="text-[12px] text-[var(--nimi-text-muted)]"
             style={{
-              fontSize: 12,
-              color: 'var(--nimi-text-muted)',
               whiteSpace: 'nowrap',
               overflow: 'hidden',
               textOverflow: 'ellipsis',
@@ -411,50 +385,32 @@ function PhotoSlot({
             {slot.file.name}
           </div>
         ) : (
-          <div style={{ fontSize: 12, color: 'var(--nimi-text-muted)' }}>
+          <div className="text-[12px] text-[var(--nimi-text-muted)]">
             JPEG / PNG / WebP — 自动压缩到 1600px
           </div>
         )}
       </div>
       <div style={{ display: 'flex', gap: 6 }}>
-        <button
-          type="button"
+        <Button
           onClick={() => inputRef.current?.click()}
-          style={{
-            padding: '6px 12px',
-            borderRadius: 999,
-            border: '1px solid var(--nimi-border-subtle)',
-            background: 'white',
-            fontSize: 12,
-            fontWeight: 500,
-            color: 'var(--nimi-text-primary)',
-            cursor: 'pointer',
-            fontFamily: 'inherit',
-          }}
+          tone="secondary"
+          size="sm"
+          className="text-[12px]"
         >
           {slot.file ? '更换' : '选择照片'}
-        </button>
+        </Button>
         {slot.file && (
-          <button
-            type="button"
+          <Button
             onClick={() => {
               if (inputRef.current) inputRef.current.value = '';
               onChange(EMPTY_SLOT);
             }}
-            style={{
-              padding: '6px 12px',
-              borderRadius: 999,
-              border: 0,
-              background: 'transparent',
-              fontSize: 12,
-              fontWeight: 500,
-              color: 'var(--nimi-text-muted)',
-              cursor: 'pointer',
-              fontFamily: 'inherit',
-            }}
+            tone="ghost"
+            size="sm"
+            className="text-[12px]"
           >
             清空
-          </button>
+          </Button>
         )}
       </div>
       <input
@@ -467,31 +423,19 @@ function PhotoSlot({
           if (f) void handleFile(f);
         }}
       />
-    </div>
+    </Surface>
   );
 }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-      <span style={{ fontSize: 12, color: 'var(--nimi-text-muted)', fontWeight: 500 }}>
+      <span className="text-[12px] font-medium text-[var(--nimi-text-muted)]">
         {label}
       </span>
       {children}
     </label>
   );
-}
-
-function inputStyle(): React.CSSProperties {
-  return {
-    padding: '8px 12px',
-    border: '1px solid var(--nimi-border-subtle)',
-    borderRadius: 10,
-    fontSize: 14,
-    fontFamily: 'inherit',
-    outline: 'none',
-    background: 'white',
-  };
 }
 
 // ── Helpers ────────────────────────────────────────────────

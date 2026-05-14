@@ -1,5 +1,5 @@
+import { cn } from '@nimiplatform/nimi-kit/ui';
 import { useState } from 'react';
-import { S } from '../../app-shell/page-style.js';
 import { readImageFileAsDataUrl } from './checkup-ocr.js';
 
 export type PendingPhoto = {
@@ -70,11 +70,11 @@ export function PhotoGrid({ photos, maxPhotos, hint, onChange }: PhotoGridProps)
     >
       {photos.map((photo, idx) => (
         <div key={idx} className="group relative">
-          <img src={photo.base64} alt={`preview-${idx}`} className={`h-24 w-full object-cover ${S.radiusSm}`} />
+          <img src={photo.base64} alt={`preview-${idx}`} className={`h-24 w-full object-cover ${"rounded-2xl"}`} />
           <button
             type="button"
             onClick={() => removeAt(idx)}
-            className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-[12px] text-white opacity-0 transition-opacity group-hover:opacity-100"
+            className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-[var(--nimi-surface-overlay)] text-[12px] text-[var(--nimi-text-primary)] opacity-0 shadow-[var(--nimi-elevation-base)] transition-opacity group-hover:opacity-100"
           >
             ✕
           </button>
@@ -86,30 +86,30 @@ export function PhotoGrid({ photos, maxPhotos, hint, onChange }: PhotoGridProps)
           onClick={pickFiles}
           onMouseEnter={() => setDropHover(true)}
           onMouseLeave={() => setDropHover(false)}
-          className={`flex h-24 ${isEmpty ? 'col-span-3' : ''} w-full flex-col items-center justify-center gap-1.5 ${S.radiusSm}`}
-          style={{
-            border: `2px dashed ${active ? '#4ECCA3' : '#d0d0cc'}`,
-            background: active ? '#f9fbf4' : '#fafaf8',
-            color: active ? S.accent : S.sub,
-            transition: 'border-color 0.25s ease, background 0.25s ease, color 0.25s ease',
-          }}
+          className={cn(
+            'flex h-24 w-full flex-col items-center justify-center gap-1.5 rounded-2xl border-2 border-dashed transition-colors',
+            isEmpty && 'col-span-3',
+            active
+              ? 'border-[var(--nimi-action-primary-bg)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_8%,var(--nimi-surface-card))] text-[var(--nimi-action-primary-bg)]'
+              : 'border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] text-[var(--nimi-text-muted)]',
+          )}
         >
           <svg
             width="22"
             height="22"
             viewBox="0 0 24 24"
             fill="none"
+            stroke="currentColor"
             strokeWidth="1.5"
             strokeLinecap="round"
+            className="transition-transform duration-300"
             style={{
-              stroke: active ? S.accent : '#b0b0aa',
               transform: active ? 'scale(1.15) rotate(90deg)' : 'scale(1) rotate(0deg)',
-              transition: 'stroke 0.25s ease, transform 0.3s ease',
             }}
           >
             <path d="M12 5v14M5 12h14" />
           </svg>
-          <span className="px-1 text-center text-[12px]" style={{ color: 'inherit' }}>
+          <span className="px-1 text-center text-[12px]">
             {isEmpty ? hint ?? `点击或拖拽上传照片（最多 ${maxPhotos} 张）` : '添加更多'}
           </span>
         </button>

@@ -7,8 +7,8 @@ import {
   useModelConfigProfileController,
   type AppModelConfigSurface,
 } from '@nimiplatform/nimi-kit/features/model-config';
+import { Surface, buttonVariants, cn } from '@nimiplatform/nimi-kit/ui';
 import { applyAIProfileToConfig, type AIConfig } from '@nimiplatform/sdk/mod';
-import { S } from '../../app-shell/page-style.js';
 import { PARENTOS_AI_SCOPE_REF } from './parentos-ai-config.js';
 import { getParentosAIConfigService } from './parentos-ai-config-service.js';
 import { getParentosRouteModelPickerProvider } from './parentos-route-model-picker-provider.js';
@@ -83,37 +83,37 @@ export default function AiSettingsPage() {
 
   const footer = bannerCopy ? (
     <div
-      className="mt-4 rounded-md px-4 py-3 text-sm"
-      style={bannerCopy.kind === 'warning'
-        ? { background: '#fef9e7', color: '#92400e', border: '1px solid #fde68a' }
-        : { background: '#fef2f2', color: '#991b1b', border: '1px solid #fecaca' }}
+      className={bannerCopy.kind === 'warning'
+        ? 'mt-4 parentos-radius-md border border-[color-mix(in_srgb,var(--nimi-status-warning)_30%,var(--nimi-border-subtle))] bg-[color-mix(in_srgb,var(--nimi-status-warning)_10%,var(--nimi-surface-card))] px-4 py-3 text-sm text-[var(--nimi-status-warning)]'
+        : 'mt-4 parentos-radius-md border border-[color-mix(in_srgb,var(--nimi-status-danger)_30%,var(--nimi-border-subtle))] bg-[color-mix(in_srgb,var(--nimi-status-danger)_8%,var(--nimi-surface-card))] px-4 py-3 text-sm text-[var(--nimi-status-danger)]'}
     >
       {bannerCopy.message}
     </div>
   ) : null;
 
   return (
-    <div className="h-full overflow-y-auto" style={{ background: 'transparent' }}>
-      <div className={S.container} style={{ paddingTop: S.topPad }}>
+    <div className="h-full overflow-y-auto bg-transparent">
+      <div className="mx-auto max-w-3xl px-6 pb-6 pt-[72px]">
         <div className="mb-6 flex items-center gap-3">
           <Link
             to="/settings"
-            className="flex h-8 w-8 items-center justify-center rounded-full transition-colors hover:bg-black/5"
+            className={cn(buttonVariants({ tone: 'ghost', size: 'sm' }), 'h-8 min-h-8 w-8 px-0')}
+            aria-label="返回设置"
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={S.text} strokeWidth="2" strokeLinecap="round">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
               <path d="M15 18l-6-6 6-6" />
             </svg>
           </Link>
-          <h1 className="text-2xl font-bold tracking-tight" style={{ color: S.text }}>AI 模型设置</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-[var(--nimi-text-primary)]">AI 模型设置</h1>
         </div>
 
-        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+        <Surface tone="card" material="solid" elevation="base" padding="lg" className="parentos-radius-lg">
           <ModelConfigAiModelHub
             surface={surface}
             profile={profileController}
             footer={footer}
           />
-        </div>
+        </Surface>
       </div>
     </div>
   );

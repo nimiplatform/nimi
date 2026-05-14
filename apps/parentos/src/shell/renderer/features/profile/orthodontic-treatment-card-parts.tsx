@@ -1,3 +1,4 @@
+import { cn } from '@nimiplatform/nimi-kit/ui';
 /**
  * Case-level chrome pieces shared by `orthodontic-case-shell`: the bottom
  * 疗程总进度 strip + stage stepper, the overall-progress projection, and the
@@ -8,7 +9,6 @@
  * case-level chrome remains.
  */
 import type { ReactNode } from 'react';
-import { S } from '../../app-shell/page-style.js';
 import type { OrthodonticCaseRow, OrthodonticStage } from '../../bridge/sqlite-bridge.js';
 import { computeStageOptions, STAGE_ORDER, stageLabel } from './orthodontic-derive.js';
 
@@ -30,71 +30,32 @@ export function ProgressStrip({
 }) {
   return (
     <div>
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          marginBottom: 8,
-        }}
-      >
+      <div className="mb-2 flex items-center justify-between">
         <CapsLabel>疗程总进度</CapsLabel>
-        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
-          <span
-            style={{
-              fontSize: 13,
-              color: 'var(--nimi-text-primary)',
-              fontWeight: 600,
-              fontFamily: 'var(--nimi-font-mono)',
-            }}
-          >
+        <div className="inline-flex items-center gap-2.5">
+          <span className="font-mono text-[13px] font-semibold text-[var(--nimi-text-primary)]">
             {progressPct}%
           </span>
           {trailingAction}
         </div>
       </div>
-      <div style={{ position: 'relative', height: 6, marginBottom: 14 }}>
+      <div className="relative mb-3.5 h-1.5">
+        <div className="absolute inset-0 rounded-full bg-[color-mix(in_srgb,var(--nimi-text-primary)_6%,transparent)]" />
         <div
+          className="absolute bottom-0 left-0 top-0 rounded-full bg-[var(--nimi-action-primary-bg)] transition-[width] duration-[var(--nimi-motion-medium)]"
           style={{
-            position: 'absolute',
-            inset: 0,
-            borderRadius: 999,
-            background: 'rgba(15,23,42,0.06)',
-          }}
-        />
-        <div
-          style={{
-            position: 'absolute',
-            left: 0,
-            top: 0,
-            bottom: 0,
-            borderRadius: 999,
             width: `${progressPct}%`,
-            background: S.accent,
-            transition: 'width 360ms',
           }}
         />
       </div>
       <div
         role="list"
         aria-label="正畸阶段"
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          gap: 12,
-          fontSize: 12,
-        }}
+        className="flex items-center justify-between gap-3 text-[12px]"
       >
         {STAGE_ORDER.map((s) => {
           const isCurrent = s === stage;
           const isPast = STAGE_ORDER.indexOf(s) < STAGE_ORDER.indexOf(stage);
-          const color = isCurrent
-            ? 'var(--nimi-text-primary)'
-            : isPast
-            ? 'var(--nimi-text-secondary)'
-            : '#94a3b8';
-          const dot = isCurrent ? S.accent : isPast ? S.accent : 'rgba(15,23,42,0.15)';
           const detail =
             isCurrent && s === 'active'
               ? ` (第 ${monthsElapsed}${monthsTotal !== null ? ` / ${monthsTotal}` : ''} 个月)`
@@ -103,26 +64,26 @@ export function ProgressStrip({
             <span
               key={s}
               role="listitem"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 6,
-                color,
-                fontWeight: isCurrent ? 600 : 500,
-                whiteSpace: 'nowrap',
-              }}
+              className={cn(
+                'inline-flex items-center gap-1.5 whitespace-nowrap',
+                isCurrent
+                  ? 'font-semibold text-[var(--nimi-text-primary)]'
+                  : 'font-medium',
+                !isCurrent && (isPast ? 'text-[var(--nimi-text-secondary)]' : 'text-[var(--nimi-text-muted)]'),
+              )}
             >
               <span
                 aria-hidden="true"
-                className={isCurrent ? 'ortho-stage-active-dot' : undefined}
-                style={{
-                  width: isCurrent ? 8 : 6,
-                  height: isCurrent ? 8 : 6,
-                  borderRadius: 999,
-                  background: dot,
-                  boxShadow: isCurrent ? '0 0 0 3px rgba(78,204,163,0.22)' : 'none',
-                  flexShrink: 0,
-                }}
+                className={cn(
+                  'shrink-0 rounded-full',
+                  isCurrent && 'ortho-stage-active-dot',
+                  isCurrent
+                    ? 'h-2 w-2 ring-4 ring-[color-mix(in_srgb,var(--nimi-action-primary-bg)_22%,transparent)]'
+                    : 'h-1.5 w-1.5',
+                  isCurrent || isPast
+                    ? 'bg-[var(--nimi-action-primary-bg)]'
+                    : 'bg-[color-mix(in_srgb,var(--nimi-text-primary)_15%,transparent)]',
+                )}
               />
               {stageLabel(s)}
               {detail}
@@ -138,15 +99,7 @@ export function ProgressStrip({
 
 function CapsLabel({ children }: { children: ReactNode }) {
   return (
-    <div
-      style={{
-        textTransform: 'uppercase',
-        letterSpacing: '0.08em',
-        fontSize: 11,
-        fontWeight: 600,
-        color: 'var(--nimi-text-muted)',
-      }}
-    >
+    <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--nimi-text-muted)]">
       {children}
     </div>
   );

@@ -1,3 +1,4 @@
+import { Surface } from '@nimiplatform/nimi-kit/ui';
 /**
  * Orthodontic modal forms: new-case, add-appliance, clinical-event.
  *
@@ -10,7 +11,7 @@
  * Pure composition of `bridge` writers + small primitives. PO-ORTHO-002 /
  * PO-ORTHO-003 / PO-ORTHO-006 fail-close happens in the Rust command layer.
  */
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import {
   insertOrthodonticAppliance,
   insertOrthodonticCase,
@@ -36,7 +37,6 @@ import {
 import { computeAgeMonthsAt } from '../../app-shell/app-store.js';
 import { isoNow, ulid } from '../../bridge/ulid.js';
 import { catchLog } from '../../infra/telemetry/catch-log.js';
-import { S } from '../../app-shell/page-style.js';
 import {
   addDaysIso,
   applianceRequiresPrescribedHours,
@@ -53,6 +53,48 @@ import {
   ModalErrorBanner,
   ModalFooter,
 } from './orthodontic-modal-primitives.js';
+
+function ModalSuccessNote({ children }: { children: ReactNode }) {
+  return (
+    <Surface
+      tone="card"
+      material="solid"
+      elevation="base"
+      padding="sm"
+      className="rounded-md border-[color-mix(in_srgb,var(--nimi-status-success)_25%,var(--nimi-border-subtle))] bg-[color-mix(in_srgb,var(--nimi-status-success)_8%,var(--nimi-surface-card))] text-[13px] text-[var(--nimi-text-primary)]"
+    >
+      {children}
+    </Surface>
+  );
+}
+
+function ModalWarningNote({ children }: { children: ReactNode }) {
+  return (
+    <Surface
+      tone="card"
+      material="solid"
+      elevation="base"
+      padding="sm"
+      className="rounded-md border-[color-mix(in_srgb,var(--nimi-status-warning)_25%,var(--nimi-border-subtle))] bg-[color-mix(in_srgb,var(--nimi-status-warning)_8%,var(--nimi-surface-card))] text-[13px] text-[var(--nimi-status-warning)]"
+    >
+      {children}
+    </Surface>
+  );
+}
+
+function ModalDangerNote({ children }: { children: ReactNode }) {
+  return (
+    <Surface
+      tone="card"
+      material="solid"
+      elevation="base"
+      padding="sm"
+      className="rounded-md border-[color-mix(in_srgb,var(--nimi-status-danger)_30%,var(--nimi-border-subtle))] bg-[color-mix(in_srgb,var(--nimi-status-danger)_8%,var(--nimi-surface-card))] text-[14px] text-[var(--nimi-status-danger)]"
+    >
+      {children}
+    </Surface>
+  );
+}
 
 export function CaseFormModal({
   childId,
@@ -291,7 +333,7 @@ export function EditCaseFormModal({
 
       {primaryAppliance && (showHoursField || showAlignerPlanFields) && (
         <>
-          <div className="text-[12px] uppercase tracking-[0.06em] mt-2 pt-3 border-t" style={{ color: S.sub, borderColor: 'rgba(226,232,240,0.7)' }}>
+          <div className="mt-2 border-t border-[var(--nimi-border-subtle)] pt-3 text-[12px] uppercase tracking-[0.06em] text-[var(--nimi-text-muted)]">
             装置：{applianceTypeLabel(primaryAppliance.applianceType)}
           </div>
           {showHoursField && (
@@ -304,7 +346,7 @@ export function EditCaseFormModal({
                 placeholder="例如 22"
               />
               {!prescribedHoursValid && (
-                <div className="text-[13px]" style={{ color: '#b91c1c' }}>
+                <div className="text-[13px] text-[var(--nimi-status-danger)]">
                   医嘱每日佩戴小时数必须在 1..24 之间。
                 </div>
               )}
@@ -320,7 +362,7 @@ export function EditCaseFormModal({
                 placeholder="例如 30"
               />
               {!totalAlignersValid && (
-                <div className="text-[13px]" style={{ color: '#b91c1c' }}>
+                <div className="text-[13px] text-[var(--nimi-status-danger)]">
                   总副数必须是大于 0 的整数。
                 </div>
               )}
@@ -332,21 +374,14 @@ export function EditCaseFormModal({
                 placeholder="例如 7"
               />
               {!daysPerAlignerValid && (
-                <div className="text-[13px]" style={{ color: '#b91c1c' }}>
+                <div className="text-[13px] text-[var(--nimi-status-danger)]">
                   每副佩戴天数必须是大于 0 的整数。
                 </div>
               )}
               {derivedPlannedEndAt && (
-                <div
-                  className="text-[13px] px-3 py-2 rounded-md"
-                  style={{
-                    background: 'rgba(78,204,163,0.08)',
-                    color: S.text,
-                    border: '1px solid rgba(78,204,163,0.25)',
-                  }}
-                >
+                <ModalSuccessNote>
                   预计结束日期 <strong>{derivedPlannedEndAt}</strong>
-                </div>
+                </ModalSuccessNote>
               )}
             </>
           )}
@@ -487,14 +522,13 @@ export function ApplianceFormModal({
         onChange={(v) => handleTypeChange(v as OrthodonticApplianceType)}
         options={eligibleTypes.map((o) => ({ value: o.value, label: o.label }))} />
       {eligibleTypes.length === 0 && (
-        <div className="text-[14px] px-3 py-2 rounded-md"
-          style={{ background: '#fef2f2', color: '#b91c1c', border: '1px solid #fecaca' }}>
+        <ModalDangerNote>
           孩子当前年龄不满足任何矫治器的最小年龄门槛。
-        </div>
+        </ModalDangerNote>
       )}
       <FieldInput label="开始日期" type="date" value={startedAt} onChange={setStartedAt} />
       {dateIsBeforeBirth && (
-        <div className="text-[13px]" style={{ color: '#b91c1c' }}>
+        <div className="text-[13px] text-[var(--nimi-status-danger)]">
           开始日期不能早于孩子出生日。
         </div>
       )}
@@ -507,7 +541,7 @@ export function ApplianceFormModal({
           <FieldInput label="扩弓转动周期（天，可选）" type="number" value={activationInterval}
             onChange={setActivationInterval} placeholder="例如 3" />
           {!activationIntervalValid && (
-            <div className="text-[13px]" style={{ color: '#b91c1c' }}>
+            <div className="text-[13px] text-[var(--nimi-status-danger)]">
               转动周期必须是大于 0 的整数。
             </div>
           )}
@@ -518,14 +552,14 @@ export function ApplianceFormModal({
           <FieldInput label="牙套总副数" type="number" value={totalAligners} onChange={setTotalAligners}
             placeholder="例如 30" />
           {!totalAlignersValid && (
-            <div className="text-[13px]" style={{ color: '#b91c1c' }}>
+            <div className="text-[13px] text-[var(--nimi-status-danger)]">
               总副数必须是大于 0 的整数。
             </div>
           )}
           <FieldInput label="每副佩戴天数" type="number" value={daysPerAligner} onChange={setDaysPerAligner}
             placeholder="例如 7" />
           {!daysPerAlignerValid && (
-            <div className="text-[13px]" style={{ color: '#b91c1c' }}>
+            <div className="text-[13px] text-[var(--nimi-status-danger)]">
               每副佩戴天数必须是大于 0 的整数。
             </div>
           )}
@@ -541,7 +575,7 @@ export function ApplianceFormModal({
       <FieldTextarea label="下次复诊议程（可选）" value={nextReviewAgenda}
         onChange={setNextReviewAgenda} placeholder="例如 评估扩弓量 / 换主弓丝" />
       {startedAt && childBirthDate && !dateIsBeforeBirth && (
-        <div className="text-[13px]" style={{ color: S.sub }}>
+        <div className="text-[13px] text-[var(--nimi-text-muted)]">
           开始时孩子 {Math.floor(startedAgeMonths / 12)} 岁 {startedAgeMonths % 12} 月
         </div>
       )}
@@ -708,18 +742,16 @@ export function OrthoClinicalEventModal({
               label: `${a.applianceType} · 开始 ${a.startedAt}`,
             }))} />
           {computedNextReviewDate && (
-            <div className="text-[13px] px-3 py-2 rounded-md"
-              style={{ background: 'rgba(78,204,163,0.08)', color: S.text, border: '1px solid rgba(78,204,163,0.25)' }}>
+            <ModalSuccessNote>
               本次完成后，下次复诊自动设为 <strong>{computedNextReviewDate}</strong>；对应协议提醒会推进到该日。
-            </div>
+            </ModalSuccessNote>
           )}
         </>
       )}
       {!isEditing && advancesReview && activeAppliances.length === 0 && (
-        <div className="text-[13px] px-3 py-2 rounded-md"
-          style={{ background: 'rgba(245,158,11,0.08)', color: '#b45309', border: '1px solid rgba(245,158,11,0.25)' }}>
+        <ModalWarningNote>
           当前疗程没有进行中的装置。事件会写入时间线，但不会推进复诊周期。
-        </div>
+        </ModalWarningNote>
       )}
       <FieldInput label="机构" value={hospital} onChange={setHospital} placeholder="可选" />
       <FieldTextarea label="备注" value={notes} onChange={setNotes} placeholder="可选" />

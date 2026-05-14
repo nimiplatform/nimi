@@ -8,15 +8,13 @@
  * collapses the appliance set to a single "primary" one (PO-ORTHO-003a).
  */
 import { useEffect, useRef, useState } from 'react';
-import { Surface } from '@nimiplatform/nimi-kit/ui';
+import { Button, IconButton, StatusBadge, Surface } from '@nimiplatform/nimi-kit/ui';
 import {
   deleteOrthodonticCase,
   type OrthodonticCaseRow,
   type OrthodonticStage,
 } from '../../bridge/sqlite-bridge.js';
 import { catchLog } from '../../infra/telemetry/catch-log.js';
-import { S } from '../../app-shell/page-style.js';
-import { applianceIdentity } from './appliance-identity.js';
 import { applianceTypeLabel, computeStageOptions, stageLabel } from './orthodontic-derive.js';
 import {
   blockedAdvanceReason,
@@ -113,21 +111,22 @@ export function OrthodonticCaseShell({
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       {/* ── header strip: parallel-appliance count + identity legend ── */}
       {items.length > 0 && (
-        <div
+        <Surface
+          tone="card"
+          material="glass-regular"
+          elevation="base"
+          padding="none"
+          className="px-5 py-3"
           style={{
             display: 'flex',
             alignItems: 'center',
             gap: 16,
-            padding: '12px 20px',
-            borderRadius: 16,
-            background: '#ffffff',
-            boxShadow: '0 1px 3px rgba(15,23,42,0.05)',
             flexWrap: 'wrap',
           }}
         >
-          <span style={{ fontSize: 13, color: S.sub }}>
+          <span className="text-[13px] text-[var(--nimi-text-muted)]">
             正在并行{' '}
-            <strong style={{ color: S.text, fontWeight: 700 }}>{items.length}</strong> 件矫治器
+            <strong className="font-bold text-[var(--nimi-text-primary)]">{items.length}</strong> 件矫治器
           </span>
           <div
             style={{
@@ -138,32 +137,22 @@ export function OrthodonticCaseShell({
             }}
           >
             {appliances.map((appliance) => {
-              const identity = applianceIdentity(appliance.applianceType);
               return (
                 <span
                   key={appliance.applianceId}
                   style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}
                 >
-                  <span
-                    aria-hidden="true"
-                    style={{
-                      width: 8,
-                      height: 8,
-                      borderRadius: 999,
-                      background: identity.solid,
-                    }}
-                  />
-                  <span style={{ color: S.text, fontWeight: 600 }}>
+                  <StatusBadge tone="info" className="px-1.5 py-0 text-[11px]">
                     {applianceTypeLabel(appliance.applianceType)}
-                  </span>
-                  <span style={{ color: S.sub, fontFamily: 'var(--nimi-font-mono)' }}>
+                  </StatusBadge>
+                  <span className="font-mono text-[var(--nimi-text-muted)]">
                     起 {appliance.startedAt.slice(5)}
                   </span>
                 </span>
               );
             })}
           </div>
-        </div>
+        </Surface>
       )}
 
       {isLegacy && <UnknownLegacyBanner />}
@@ -191,10 +180,8 @@ export function OrthodonticCaseShell({
       <Surface
         as="section"
         material="glass-thick"
-        padding="none"
+        padding="lg"
         tone="card"
-        className="rounded-[24px]"
-        style={{ background: '#ffffff', padding: '20px 28px 24px' }}
       >
         <ProgressStrip
           progressPct={overallProgressPct}
@@ -203,105 +190,93 @@ export function OrthodonticCaseShell({
           monthsTotal={monthsTotal}
           trailingAction={
             <div ref={menuRef} style={{ position: 'relative' }}>
-              <button
-                type="button"
+              <IconButton
                 aria-label="疗程管理菜单"
                 onClick={() => setMenuOpen((v) => !v)}
-                className="rounded-full p-1.5 transition-colors hover:bg-slate-100"
-                style={{
-                  background: 'transparent',
-                  border: 0,
-                  cursor: 'pointer',
-                  color: 'var(--nimi-text-muted)',
-                  display: 'inline-grid',
-                  placeItems: 'center',
-                }}
-              >
-                <DotsIcon />
-              </button>
+                tone="ghost"
+                size="sm"
+                className="text-[var(--nimi-text-muted)]"
+                icon={<DotsIcon />}
+              />
               {menuOpen && (
-                <div
+                <Surface
                   role="menu"
-                  className="absolute right-0 rounded-xl py-1 min-w-[220px]"
+                  tone="overlay"
+                  material="glass-regular"
+                  elevation="floating"
+                  padding="none"
+                  className="absolute right-0 bottom-full z-10 mb-1.5 min-w-[220px] overflow-hidden py-1"
                   style={{
-                    bottom: '100%',
-                    marginBottom: 6,
-                    background: '#ffffff',
-                    border: '1px solid rgba(226,232,240,0.8)',
-                    boxShadow: '0 -12px 32px rgba(15,23,42,0.12)',
-                    zIndex: 5,
+                    minWidth: 220,
                   }}
                 >
-                  <button
-                    type="button"
+                  <Button
                     role="menuitem"
                     onClick={() => {
                       setMenuOpen(false);
                       handlers.onEditCase();
                     }}
-                    className="w-full text-left text-[14px] px-3 py-2 hover:bg-slate-50"
-                    style={{ background: 'transparent', border: 0, color: S.text, cursor: 'pointer' }}
+                    tone="ghost"
+                    size="sm"
+                    fullWidth
+                    className="justify-start rounded-none px-3 text-left text-[14px]"
                   >
                     编辑当前疗程
-                  </button>
+                  </Button>
                   {!isLegacy && canAddAppliance && (
-                    <button
-                      type="button"
+                    <Button
                       role="menuitem"
                       onClick={() => {
                         setMenuOpen(false);
                         handlers.onAddAppliance();
                       }}
-                      className="w-full text-left text-[14px] px-3 py-2 hover:bg-slate-50"
-                      style={{ background: 'transparent', border: 0, color: S.text, cursor: 'pointer' }}
+                      tone="ghost"
+                      size="sm"
+                      fullWidth
+                      className="justify-start rounded-none px-3 text-left text-[14px]"
                     >
                       添加矫治器
-                    </button>
+                    </Button>
                   )}
                   {advanceTarget ? (
-                    <button
-                      type="button"
+                    <Button
                       role="menuitem"
                       onClick={() => {
                         setMenuOpen(false);
                         setPendingStage({ stage: advanceTarget.stage });
                       }}
-                      className="w-full text-left text-[14px] px-3 py-2 hover:bg-slate-50"
-                      style={{ background: 'transparent', border: 0, color: S.text, cursor: 'pointer' }}
+                      tone="ghost"
+                      size="sm"
+                      fullWidth
+                      className="justify-start rounded-none px-3 text-left text-[14px]"
                     >
                       推进到「{stageLabel(advanceTarget.stage)}」
-                    </button>
+                    </Button>
                   ) : (
-                    <button
-                      type="button"
+                    <Button
                       role="menuitem"
                       disabled
-                      className="w-full text-left text-[14px] px-3 py-2"
-                      style={{
-                        background: 'transparent',
-                        border: 0,
-                        color: 'var(--nimi-text-muted)',
-                        cursor: 'not-allowed',
-                        fontStyle: 'italic',
-                      }}
+                      tone="ghost"
+                      size="sm"
+                      fullWidth
+                      className="justify-start rounded-none px-3 text-left text-[14px] italic text-[var(--nimi-text-muted)]"
                       title={blockedAdvanceReason(stageOptions)}
                     >
                       没有可推进的下一阶段
-                    </button>
+                    </Button>
                   )}
-                  <div
-                    style={{ borderTop: '1px solid rgba(226,232,240,0.6)', margin: '2px 0' }}
-                  />
-                  <button
-                    type="button"
+                  <div className="my-0.5 border-t border-[var(--nimi-border-subtle)]" />
+                  <Button
                     role="menuitem"
                     onClick={() => void handleDeleteCase()}
-                    className="w-full text-left text-[14px] px-3 py-2 hover:bg-rose-50"
-                    style={{ background: 'transparent', border: 0, color: '#b91c1c', cursor: 'pointer' }}
+                    tone="danger"
+                    size="sm"
+                    fullWidth
+                    className="justify-start rounded-none px-3 text-left text-[14px]"
                   >
                     删除当前疗程
-                  </button>
-                </div>
+                  </Button>
+                </Surface>
               )}
             </div>
           }
@@ -330,42 +305,44 @@ export function OrthodonticCaseShell({
 
 function UnknownLegacyBanner() {
   return (
-    <div
-      className="p-4 rounded-2xl"
-      style={{
-        background: 'rgba(245,158,11,0.08)',
-        border: '1px solid rgba(245,158,11,0.3)',
-      }}
+    <Surface
+      tone="card"
+      material="glass-regular"
+      elevation="base"
+      padding="md"
+      className="border-[var(--nimi-status-warning)]"
     >
-      <div className="text-[14px] font-semibold mb-1" style={{ color: '#b45309' }}>
+      <div className="mb-1 text-[14px] font-semibold text-[var(--nimi-status-warning)]">
         待确认历史疗程
       </div>
-      <p className="text-[13px]" style={{ color: S.sub }}>
+      <p className="text-[13px] text-[var(--nimi-text-muted)]">
         该疗程由历史 ortho-start 记录回补生成。请在「⋯ 菜单 → 删除当前疗程」后新建一个正式疗程，或先把它改归类为正式类型再加矫治器（PO-ORTHO-002a）。
       </p>
-    </div>
+    </Surface>
   );
 }
 
 function NoActiveApplianceCard({ canAdd, onAdd }: { canAdd: boolean; onAdd: () => void }) {
   return (
-    <div
-      className="rounded-2xl p-6"
-      style={{ background: '#ffffff', boxShadow: '0 1px 4px rgba(15,23,42,0.06)' }}
+    <Surface
+      tone="card"
+      material="glass-regular"
+      elevation="base"
+      padding="lg"
     >
-      <p className="text-[14px]" style={{ color: S.sub, margin: 0 }}>
+      <p className="m-0 text-[14px] text-[var(--nimi-text-muted)]">
         当前疗程还没有进行中的矫治器。添加矫治器后可以开始记录每日状态。
       </p>
       {canAdd && (
-        <button
-          type="button"
+        <Button
           onClick={onAdd}
-          className="mt-3 text-[14px] font-semibold px-4 py-2 rounded-full"
-          style={{ background: S.accent, color: '#fff', border: 0, cursor: 'pointer' }}
+          tone="primary"
+          size="md"
+          className="mt-3"
         >
           添加矫治器
-        </button>
+        </Button>
       )}
-    </div>
+    </Surface>
   );
 }

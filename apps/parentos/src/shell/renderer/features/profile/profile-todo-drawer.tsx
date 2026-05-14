@@ -1,3 +1,4 @@
+import { IconButton, cn } from '@nimiplatform/nimi-kit/ui';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAppStore } from '../../app-shell/app-store.js';
@@ -89,21 +90,15 @@ export function ProfileTodoDrawer() {
         onClick={() => (open ? closeDrawer() : openDrawer())}
         aria-label="打开待办事项"
         title="待办事项"
-        className="fixed bottom-6 right-6 z-40 flex h-12 w-12 items-center justify-center rounded-full transition-all hover:-translate-y-0.5"
-        style={{
-          background: '#1e293b',
-          color: '#ffffff',
-          boxShadow: '0 10px 24px rgba(15,23,42,0.18)',
-        }}
+        className="fixed bottom-6 right-6 z-40 flex h-12 w-12 items-center justify-center rounded-full border border-[var(--nimi-action-primary-bg)] bg-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)] shadow-[var(--nimi-elevation-floating)] transition-all hover:-translate-y-0.5"
       >
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M9 11l3 3L22 4" />
-          <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
-        </svg>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M9 11l3 3L22 4" />
+            <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+          </svg>
         {pendingCount > 0 ? (
           <span
-            className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[12px] font-bold"
-            style={{ background: '#4ECCA3', color: '#ffffff', border: '2px solid #ffffff' }}
+            className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full border-2 border-[var(--nimi-surface-card)] bg-[var(--nimi-status-success)] px-1 text-[12px] font-bold text-[var(--nimi-action-primary-text)]"
           >
             {pendingCount > 99 ? '99+' : pendingCount}
           </span>
@@ -115,34 +110,28 @@ export function ProfileTodoDrawer() {
           <div
             onClick={closeDrawer}
             aria-hidden
-            className="fixed inset-0 z-40"
-            style={{
-              background: 'rgba(15,23,42,0.22)',
-              opacity: open ? 1 : 0,
-              transition: 'opacity 0.2s ease',
-              pointerEvents: open ? 'auto' : 'none',
-            }}
+            className={cn(
+              'fixed inset-0 z-40 bg-[color-mix(in_srgb,var(--nimi-text-primary)_22%,transparent)] transition-opacity duration-200',
+              open ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0',
+            )}
           />
           <aside
             onTransitionEnd={(event) => {
               if (event.target !== event.currentTarget) return;
               if (!open) setMounted(false);
             }}
-            className="fixed right-0 top-0 z-50 flex h-full flex-col"
+            className="fixed right-0 top-0 z-50 flex h-full w-[360px] flex-col border-l border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-overlay)] shadow-[var(--nimi-elevation-floating)]"
             style={{
-              width: DRAWER_WIDTH,
-              background: '#ffffff',
-              boxShadow: '-18px 0 48px rgba(15,23,42,0.12)',
               transform: open ? 'translateX(0)' : `translateX(${DRAWER_WIDTH}px)`,
               transition: 'transform 0.22s ease',
             }}
           >
-            <div className="flex items-center justify-between border-b px-5 py-4" style={{ borderColor: '#eceae4' }}>
+            <div className="flex items-center justify-between border-b border-[var(--nimi-border-subtle)] px-5 py-4">
               <div>
-                <h2 className="text-[16px] font-semibold tracking-tight" style={{ color: '#1e293b', letterSpacing: '-0.3px' }}>
+                <h2 className="text-[16px] font-semibold text-[var(--nimi-text-primary)]">
                   待办事项
                 </h2>
-                <p className="mt-0.5 text-[13px]" style={{ color: '#64748b' }}>
+                <p className="mt-0.5 text-[13px] text-[var(--nimi-text-muted)]">
                   {child.displayName} · {pendingCount > 0 ? `${pendingCount} 条未完成` : '全部已完成'}
                 </p>
               </div>
@@ -150,22 +139,22 @@ export function ProfileTodoDrawer() {
                 <Link
                   to="/reminders"
                   onClick={closeDrawer}
-                  className="text-[13px] font-medium transition-colors hover:underline"
-                  style={{ color: '#475569' }}
+                  className="text-[13px] font-medium transition-colors hover:underline text-[var(--nimi-text-muted)]"
                 >
                   查看全部
                 </Link>
-                <button
-                  type="button"
+                <IconButton
+                  tone="ghost"
+                  size="sm"
                   onClick={closeDrawer}
                   aria-label="关闭"
-                  className="flex h-7 w-7 items-center justify-center rounded-lg transition-colors hover:bg-[#f0f0ec]"
-                  style={{ color: '#b0b5bc' }}
-                >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                    <path d="M18 6L6 18M6 6l12 12" />
-                  </svg>
-                </button>
+                  className="h-7 w-7 rounded-lg text-[var(--nimi-text-muted)]"
+                  icon={(
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                      <path d="M18 6L6 18M6 6l12 12" />
+                    </svg>
+                  )}
+                />
               </div>
             </div>
 
@@ -180,7 +169,7 @@ export function ProfileTodoDrawer() {
                   }}
                 />
                 {todoList.length === 0 ? (
-                  <p className="px-6 py-10 text-center text-[14px]" style={{ color: '#9CA0A6' }}>
+                  <p className="px-6 py-10 text-center text-[14px] text-[var(--nimi-text-muted)]">
                     还没有待办，添加一条开始吧
                   </p>
                 ) : (

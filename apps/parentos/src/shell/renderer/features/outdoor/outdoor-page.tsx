@@ -1,7 +1,7 @@
+import { Button, Surface, TextField } from '@nimiplatform/nimi-kit/ui';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAppStore } from '../../app-shell/app-store.js';
-import { S } from '../../app-shell/page-style.js';
 import { ulid, isoNow } from '../../bridge/ulid.js';
 import {
   getOutdoorRecords,
@@ -29,11 +29,6 @@ import {
   type HeatmapCell,
   type HeatmapLevel,
 } from './outdoor-helpers.js';
-
-const textMain = '#1e293b';
-const textMuted = '#475569';
-const accentGreen = '#4ECCA3';
-const accentBlue = '#818CF8';
 
 // ── Outdoor Page ──────────────────────────────────────────
 
@@ -156,40 +151,40 @@ export function OutdoorPage() {
 
   const backLink = (
     <div className="flex items-center gap-2 mb-5">
-      <Link to="/profile" className="text-[14px] hover:underline" style={{ color: textMuted }}>← 返回档案</Link>
+      <Link to="/profile" className="text-[14px] hover:underline text-[var(--nimi-text-muted)]">← 返回档案</Link>
     </div>
   );
 
   if (!child) {
-    return <div className={S.container} style={{ paddingTop: S.topPad }}>{backLink}<p style={{ color: textMuted }}>请先选择一个孩子</p></div>;
+    return <div className="max-w-3xl mx-auto px-6 pb-6 pt-[72px]">{backLink}<p className="text-[var(--nimi-text-muted)]">请先选择一个孩子</p></div>;
   }
 
   if (loading) {
-    return <div className={S.container} style={{ paddingTop: S.topPad }}>{backLink}<p style={{ color: textMuted }}>加载中…</p></div>;
+    return <div className="max-w-3xl mx-auto px-6 pb-6 pt-[72px]">{backLink}<p className="text-[var(--nimi-text-muted)]">加载中…</p></div>;
   }
 
   // ── Goal not set: onboarding ──
 
   if (goalMinutes === null && !showGoalSetup) {
     return (
-      <div className={S.container} style={{ paddingTop: S.topPad }}>
+      <div className="max-w-3xl mx-auto px-6 pb-6 pt-[72px]">
         {backLink}
-        <div className="mx-auto max-w-lg nimi-material-glass-thick bg-[var(--nimi-material-glass-thick-bg)] border border-[var(--nimi-material-glass-thick-border)] backdrop-blur-[var(--nimi-backdrop-blur-strong)] rounded-[var(--nimi-radius-xl)] shadow-[0_8px_32px_rgba(31,38,135,0.04)]" style={{ padding: 32 }}>
-          <h2 className="mb-4 text-[18px] font-semibold" style={{ color: textMain }}>每周户外目标</h2>
-          <p className="mb-3 text-[14px] leading-relaxed" style={{ color: textMuted }}>
+        <Surface tone="card" material="glass-thick" elevation="raised" padding="lg" className="mx-auto max-w-lg">
+          <h2 className="mb-4 text-[18px] font-semibold text-[var(--nimi-text-primary)]">每周户外目标</h2>
+          <p className="mb-3 text-[14px] leading-relaxed text-[var(--nimi-text-muted)]">
             充足的户外活动时间是保护视力的重要方式。研究表明，每天累计 2 小时以上的户外活动有助于降低近视风险。
           </p>
-          <p className="mb-6 text-[14px] leading-relaxed" style={{ color: textMuted }}>
+          <p className="mb-6 text-[14px] leading-relaxed text-[var(--nimi-text-muted)]">
             记录每天的户外时长，帮助你了解孩子每周是否有足够的户外活动。
           </p>
-          <button
+          <Button
             onClick={() => { setGoalDraft(String(DEFAULT_OUTDOOR_GOAL_MINUTES)); setShowGoalSetup(true); }}
-            className="rounded-full px-5 py-2 text-[14px] font-medium text-white transition-colors"
-            style={{ background: accentGreen }}
+            tone="primary"
+            size="md"
           >
             设定每周目标
-          </button>
-        </div>
+          </Button>
+        </Surface>
       </div>
     );
   }
@@ -198,41 +193,40 @@ export function OutdoorPage() {
 
   if (showGoalSetup) {
     return (
-      <div className={S.container} style={{ paddingTop: S.topPad }}>
+      <div className="max-w-3xl mx-auto px-6 pb-6 pt-[72px]">
         {backLink}
-        <div className="mx-auto max-w-lg nimi-material-glass-thick bg-[var(--nimi-material-glass-thick-bg)] border border-[var(--nimi-material-glass-thick-border)] backdrop-blur-[var(--nimi-backdrop-blur-strong)] rounded-[var(--nimi-radius-xl)] shadow-[0_8px_32px_rgba(31,38,135,0.04)]" style={{ padding: 32 }}>
-          <h2 className="mb-4 text-[18px] font-semibold" style={{ color: textMain }}>设定每周户外目标</h2>
-          <p className="mb-4 text-[14px]" style={{ color: textMuted }}>建议每周 630 分钟（约每天 90 分钟）</p>
+        <Surface tone="card" material="glass-thick" elevation="raised" padding="lg" className="mx-auto max-w-lg">
+          <h2 className="mb-4 text-[18px] font-semibold text-[var(--nimi-text-primary)]">设定每周户外目标</h2>
+          <p className="mb-4 text-[14px] text-[var(--nimi-text-muted)]">建议每周 630 分钟（约每天 90 分钟）</p>
           <div className="mb-4 flex items-center gap-3">
             <input
               type="number"
               value={goalDraft}
               onChange={(e) => setGoalDraft(e.target.value)}
-              className="w-28 rounded-xl border border-slate-200 px-3 py-2 text-center text-[16px]"
-              style={{ color: textMain }}
+              className="w-28 rounded-xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-field-bg)] px-3 py-2 text-center text-[16px] text-[var(--nimi-text-primary)]"
               min={1}
             />
-            <span className="text-[14px]" style={{ color: textMuted }}>分钟 / 周</span>
+            <span className="text-[14px] text-[var(--nimi-text-muted)]">分钟 / 周</span>
           </div>
           <div className="flex gap-3">
-            <button
+            <Button
               onClick={handleSaveGoal}
-              className="rounded-full px-5 py-2 text-[14px] font-medium text-white transition-colors"
-              style={{ background: accentGreen }}
+              tone="primary"
+              size="md"
             >
               确定
-            </button>
+            </Button>
             {goalMinutes !== null && (
-              <button
+              <Button
                 onClick={() => setShowGoalSetup(false)}
-                className="rounded-full px-5 py-2 text-[14px] font-medium transition-colors"
-                style={{ color: textMuted }}
+                tone="ghost"
+                size="md"
               >
                 取消
-              </button>
+              </Button>
             )}
           </div>
-        </div>
+        </Surface>
       </div>
     );
   }
@@ -240,32 +234,28 @@ export function OutdoorPage() {
   // ── Main page ──
 
   const progressPercent = Math.min(100, Math.round((weekSummary.totalMinutes / effectiveGoal) * 100));
-  const progressColor = weekSummary.isComplete ? accentGreen : accentBlue;
-
   return (
-    <div className={S.container} style={{ paddingTop: S.topPad }}>
+    <div className="max-w-3xl mx-auto px-6 pb-6 pt-[72px]">
       {backLink}
       {/* Week navigator */}
       <div className="mb-6 flex items-center justify-between">
         <button
           onClick={() => setSelectedWeekStart(shiftWeek(selectedWeekStart, -1))}
-          className="rounded-lg px-3 py-1 text-[14px] transition-colors hover:bg-white/60"
-          style={{ color: textMuted }}
+          className="rounded-lg px-3 py-1 text-[14px] text-[var(--nimi-text-muted)] transition-colors hover:bg-[var(--nimi-action-ghost-hover)]"
         >
           ← 上周
         </button>
         <div className="text-center">
-          <h2 className="text-[16px] font-semibold" style={{ color: textMain }}>
+          <h2 className="text-[16px] font-semibold text-[var(--nimi-text-primary)]">
             {formatWeekRange(selectedWeekStart)}
           </h2>
           {selectedWeekStart === currentWeekStart && (
-            <span className="text-[13px]" style={{ color: accentGreen }}>本周</span>
+            <span className="text-[13px] text-[var(--nimi-action-primary-bg)]">本周</span>
           )}
         </div>
         <button
           onClick={() => setSelectedWeekStart(shiftWeek(selectedWeekStart, 1))}
-          className="rounded-lg px-3 py-1 text-[14px] transition-colors hover:bg-white/60"
-          style={{ color: textMuted }}
+          className="rounded-lg px-3 py-1 text-[14px] text-[var(--nimi-text-muted)] transition-colors hover:bg-[var(--nimi-action-ghost-hover)] disabled:opacity-50"
           disabled={isFutureWeek}
         >
           下周 →
@@ -273,55 +263,51 @@ export function OutdoorPage() {
       </div>
 
       {/* Progress card */}
-      <div className="mb-6 nimi-material-glass-thick bg-[var(--nimi-material-glass-thick-bg)] border border-[var(--nimi-material-glass-thick-border)] backdrop-blur-[var(--nimi-backdrop-blur-strong)] rounded-[var(--nimi-radius-xl)] shadow-[0_8px_32px_rgba(31,38,135,0.04)]" style={{ padding: 24 }}>
+      <Surface tone="card" material="glass-thick" elevation="raised" padding="lg" className="mb-6">
         <div className="mb-3 flex items-end justify-between">
           <div>
-            <p className="text-[24px] font-bold tabular-nums" style={{ color: textMain }}>
-              {weekSummary.totalMinutes} <span className="text-[16px] font-normal" style={{ color: textMuted }}>/ {effectiveGoal} 分钟</span>
+            <p className="text-[24px] font-bold tabular-nums text-[var(--nimi-text-primary)]">
+              {weekSummary.totalMinutes} <span className="text-[16px] font-normal text-[var(--nimi-text-muted)]">/ {effectiveGoal} 分钟</span>
             </p>
           </div>
-          <span className="text-[14px] font-medium tabular-nums" style={{ color: progressColor }}>
+          <span className={`text-[14px] font-medium tabular-nums ${weekSummary.isComplete ? 'text-[var(--nimi-action-primary-bg)]' : 'text-[var(--nimi-status-info)]'}`}>
             {progressPercent}%
           </span>
         </div>
 
         {/* Progress bar */}
-        <div className="mb-4 h-3 overflow-hidden rounded-full" style={{ background: 'rgba(226,232,240,0.5)' }}>
-          <div
-            className="h-full rounded-full transition-all duration-500"
-            style={{ width: `${progressPercent}%`, background: progressColor }}
-          />
-        </div>
+        <progress value={progressPercent} max={100} aria-label="本周户外目标完成度" className="mb-4 h-3 w-full overflow-hidden rounded-full accent-[var(--nimi-action-primary-bg)]" />
 
         {/* Message */}
-        <p className="text-[14px] font-medium" style={{ color: textMain }}>{message.primary}</p>
-        <p className="mt-1 text-[14px]" style={{ color: textMuted }}>{message.secondary}</p>
+        <p className="text-[14px] font-medium text-[var(--nimi-text-primary)]">{message.primary}</p>
+        <p className="mt-1 text-[14px] text-[var(--nimi-text-muted)]">{message.secondary}</p>
 
         {/* Add record button */}
         {!isPastWeek && !isFutureWeek && (
-          <button
+          <Button
             onClick={openNewRecord}
-            className="mt-4 rounded-full px-5 py-2 text-[14px] font-medium text-white transition-colors hover:opacity-90"
-            style={{ background: accentGreen }}
+            tone="primary"
+            size="md"
+            className="mt-4"
           >
             ＋ 记录户外活动
-          </button>
+          </Button>
         )}
-      </div>
+      </Surface>
 
       {/* Vision-archive cross-link — close the myopia-prevention loop */}
       <VisionSummaryCard childId={child.childId} />
 
       {/* Heatmap (daily intensity over recent weeks) */}
-      <div className="mb-6 nimi-material-glass-regular bg-[var(--nimi-material-glass-regular-bg)] border border-[var(--nimi-material-glass-regular-border)] backdrop-blur-[var(--nimi-backdrop-blur-regular)] rounded-[var(--nimi-radius-xl)] shadow-[0_8px_32px_rgba(31,38,135,0.04)]" style={{ padding: 24 }}>
+      <Surface tone="card" material="glass-regular" elevation="raised" padding="lg" className="mb-6">
         <div className="mb-4 flex items-baseline justify-between">
-          <h3 className="text-[16px] font-semibold" style={{ color: textMain }}>户外活动热力图</h3>
-          <span className="text-[13px]" style={{ color: textMuted }}>
+          <h3 className="text-[16px] font-semibold text-[var(--nimi-text-primary)]">户外活动热力图</h3>
+          <span className="text-[13px] text-[var(--nimi-text-muted)]">
             近 {heatmap.weeksBack} 周 · 日均目标 {heatmap.dailyTargetMinutes} 分钟
           </span>
         </div>
         <HeatmapGrid heatmap={heatmap} />
-        <div className="mt-4 flex items-center justify-end gap-1 text-[12px]" style={{ color: textMuted }}>
+        <div className="mt-4 flex items-center justify-end gap-1 text-[12px] text-[var(--nimi-text-muted)]">
           <span>少</span>
           <LegendSwatch level={0} />
           <LegendSwatch level={1} />
@@ -330,26 +316,25 @@ export function OutdoorPage() {
           <LegendSwatch level={4} />
           <span>多</span>
         </div>
-      </div>
+      </Surface>
 
       {/* Week records list */}
-      <div className="mb-6 nimi-material-glass-regular bg-[var(--nimi-material-glass-regular-bg)] border border-[var(--nimi-material-glass-regular-border)] backdrop-blur-[var(--nimi-backdrop-blur-regular)] rounded-[var(--nimi-radius-xl)] shadow-[0_8px_32px_rgba(31,38,135,0.04)]" style={{ padding: 24 }}>
+      <Surface tone="card" material="glass-regular" elevation="raised" padding="lg" className="mb-6">
         <div className="mb-4 flex items-center justify-between">
-          <h3 className="text-[16px] font-semibold" style={{ color: textMain }}>
+          <h3 className="text-[16px] font-semibold text-[var(--nimi-text-primary)]">
             {selectedWeekStart === currentWeekStart ? '本周记录' : '当周记录'}
           </h3>
           {isPastWeek && (
             <button
               onClick={() => { setEditingRecord(null); setModalOpen(true); }}
-              className="text-[13px] font-medium transition-colors hover:opacity-80"
-              style={{ color: accentBlue }}
+              className="text-[13px] font-medium text-[var(--nimi-status-info)] transition-colors hover:opacity-80"
             >
               补录
             </button>
           )}
         </div>
         {weekRecords.length === 0 ? (
-          <p className="text-[14px]" style={{ color: textMuted }}>暂无记录</p>
+          <p className="text-[14px] text-[var(--nimi-text-muted)]">暂无记录</p>
         ) : (
           <div className="space-y-2">
             {weekRecords.map((r) => (
@@ -358,22 +343,21 @@ export function OutdoorPage() {
                 className="flex items-center justify-between rounded-xl px-3 py-2 transition-colors hover:bg-white/40"
               >
                 <div>
-                  <span className="text-[14px] font-medium" style={{ color: textMain }}>
+                  <span className="text-[14px] font-medium text-[var(--nimi-text-primary)]">
                     {formatShortDate(r.activityDate)} {weekdayLabel(parseDate(r.activityDate))}
                   </span>
-                  <span className="ml-3 text-[14px] tabular-nums" style={{ color: accentBlue }}>
+                  <span className="ml-3 text-[14px] tabular-nums text-[var(--nimi-status-info)]">
                     {r.durationMinutes} 分钟
                   </span>
                   {r.note && (
-                    <span className="ml-2 text-[13px]" style={{ color: textMuted }}>
+                    <span className="ml-2 text-[13px] text-[var(--nimi-text-muted)]">
                       {r.note}
                     </span>
                   )}
                 </div>
                 <button
                   onClick={() => openEditRecord(r)}
-                  className="text-[13px] transition-colors hover:opacity-80"
-                  style={{ color: textMuted }}
+                  className="text-[13px] text-[var(--nimi-text-muted)] transition-colors hover:opacity-80"
                 >
                   编辑
                 </button>
@@ -381,17 +365,16 @@ export function OutdoorPage() {
             ))}
           </div>
         )}
-      </div>
+      </Surface>
 
       {/* Goal setting footer */}
-      <div className="mb-8 flex items-center justify-between rounded-2xl px-4 py-3" style={{ background: 'rgba(255,255,255,0.3)' }}>
-        <span className="text-[14px]" style={{ color: textMuted }}>
+      <div className="mb-8 flex items-center justify-between rounded-2xl bg-[color-mix(in_srgb,var(--nimi-surface-card)_72%,transparent)] px-4 py-3">
+        <span className="text-[14px] text-[var(--nimi-text-muted)]">
           本周目标: {effectiveGoal} 分钟
         </span>
         <button
           onClick={() => { setGoalDraft(String(effectiveGoal)); setShowGoalSetup(true); }}
-          className="text-[14px] font-medium transition-colors hover:opacity-80"
-          style={{ color: accentBlue }}
+          className="text-[14px] font-medium text-[var(--nimi-status-info)] transition-colors hover:opacity-80"
         >
           修改
         </button>
@@ -415,12 +398,12 @@ export function OutdoorPage() {
 
 // ── Heatmap ───────────────────────────────────────────────
 
-const HEATMAP_LEVELS = [
-  'rgba(226,232,240,0.35)', // 0 — empty
-  'rgba(129,140,248,0.25)', // 1 — <50% of daily target
-  'rgba(129,140,248,0.55)', // 2 — 50–100%
-  'rgba(78,204,163,0.65)',  // 3 — 100–150%
-  'rgba(78,204,163,0.95)',  // 4 — ≥150%
+const HEATMAP_LEVEL_CLASSES = [
+  'bg-[color-mix(in_srgb,var(--nimi-surface-muted)_62%,transparent)]',
+  'bg-[color-mix(in_srgb,var(--nimi-status-info)_22%,transparent)]',
+  'bg-[color-mix(in_srgb,var(--nimi-status-info)_48%,transparent)]',
+  'bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_58%,transparent)]',
+  'bg-[var(--nimi-action-primary-bg)]',
 ] as const;
 
 const HEATMAP_CELL_PX = 16;
@@ -430,15 +413,12 @@ const WEEKDAY_LABELS_SPARSE = ['一', '', '三', '', '五', '', '日'] as const;
 function LegendSwatch({ level }: { level: HeatmapLevel }) {
   return (
     <span
-      className="inline-block h-3 w-3 rounded-sm"
-      style={{ background: HEATMAP_LEVELS[level] }}
+      className={`inline-block h-3 w-3 rounded-sm ${HEATMAP_LEVEL_CLASSES[level]}`}
     />
   );
 }
 
 function HeatmapCellView({ cell }: { cell: HeatmapCell }) {
-  const bg = HEATMAP_LEVELS[cell.level];
-  const opacity = cell.isFuture ? 0.3 : 1;
   const title = cell.isFuture
     ? `${cell.date} · 未来`
     : cell.minutes > 0
@@ -448,14 +428,10 @@ function HeatmapCellView({ cell }: { cell: HeatmapCell }) {
   return (
     <div
       title={title}
-      className="rounded-[3px] transition-colors"
+      className={`rounded-sm transition-colors ${HEATMAP_LEVEL_CLASSES[cell.level]} ${cell.isFuture ? 'opacity-30' : ''} ${cell.isToday ? 'ring-2 ring-[var(--nimi-status-info)] ring-offset-[-1px]' : ''}`}
       style={{
-        background: bg,
-        opacity,
         width: HEATMAP_CELL_PX,
         height: HEATMAP_CELL_PX,
-        outline: cell.isToday ? `1.5px solid ${accentBlue}` : undefined,
-        outlineOffset: -1,
       }}
     />
   );
@@ -477,8 +453,8 @@ function HeatmapGrid({ heatmap }: { heatmap: import('./outdoor-helpers.js').Heat
           {WEEKDAY_LABELS_SPARSE.map((label, i) => (
             <div
               key={i}
-              className="flex items-center text-[12px]"
-              style={{ height: HEATMAP_CELL_PX, color: textMuted }}
+              className="flex items-center text-[12px] text-[var(--nimi-text-muted)]"
+              style={{ height: HEATMAP_CELL_PX }}
             >
               {label}
             </div>
@@ -491,8 +467,8 @@ function HeatmapGrid({ heatmap }: { heatmap: import('./outdoor-helpers.js').Heat
             {heatmap.monthLabels.map((ml) => (
               <span
                 key={`${ml.weekIndex}-${ml.label}`}
-                className="absolute top-0 text-[12px]"
-                style={{ left: ml.weekIndex * colStride, color: textMuted }}
+                className="absolute top-0 text-[12px] text-[var(--nimi-text-muted)]"
+                style={{ left: ml.weekIndex * colStride }}
               >
                 {ml.label}
               </span>
@@ -552,98 +528,94 @@ function RecordModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center"
-      style={{ background: 'var(--nimi-scrim-modal)' }}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--nimi-scrim-modal)]"
       onClick={onClose}
     >
-      <div
-        className="w-80 nimi-material-glass-thick bg-[var(--nimi-material-glass-thick-bg)] border border-[var(--nimi-material-glass-thick-border)] backdrop-blur-[var(--nimi-backdrop-blur-strong)] shadow-[0_8px_32px_rgba(31,38,135,0.04)]"
-        style={{ padding: 24, borderRadius: 20 }}
+      <Surface
+        tone="overlay"
+        material="glass-thick"
+        elevation="modal"
+        padding="lg"
+        className="w-80 rounded-2xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <h3 className="mb-4 text-[16px] font-semibold" style={{ color: textMain }}>
+        <h3 className="mb-4 text-[16px] font-semibold text-[var(--nimi-text-primary)]">
           {isEditing ? '编辑记录' : '记录户外活动'}
         </h3>
 
         {/* Date */}
-        <label className="mb-1 block text-[13px]" style={{ color: textMuted }}>日期</label>
+        <label className="mb-1 block text-[13px] text-[var(--nimi-text-muted)]">日期</label>
         <input
           type="date"
           value={date}
           onChange={(e) => setDate(e.target.value)}
-          className="mb-4 w-full rounded-xl border border-slate-200 px-3 py-2 text-[14px]"
-          style={{ color: textMain }}
+          className="mb-4 w-full rounded-xl border border-[var(--nimi-field-border)] bg-[var(--nimi-field-bg)] px-3 py-2 text-[14px] text-[var(--nimi-field-text)]"
           max={fmtDate(new Date())}
         />
 
         {/* Duration */}
-        <label className="mb-1 block text-[13px]" style={{ color: textMuted }}>时长（分钟）</label>
+        <label className="mb-1 block text-[13px] text-[var(--nimi-text-muted)]">时长（分钟）</label>
         <div className="mb-2 flex gap-2">
           {DURATION_PRESETS.map((preset) => (
-            <button
+            <Button
               key={preset}
               onClick={() => setMinutes(String(preset))}
-              className="rounded-lg px-3 py-1 text-[14px] transition-colors"
-              style={{
-                background: minutes === String(preset) ? accentBlue : 'rgba(226,232,240,0.4)',
-                color: minutes === String(preset) ? '#fff' : textMuted,
-              }}
+              tone={minutes === String(preset) ? 'primary' : 'secondary'}
+              size="sm"
             >
               {preset}
-            </button>
+            </Button>
           ))}
         </div>
-        <input
+        <TextField
           type="number"
           value={minutes}
           onChange={(e) => setMinutes(e.target.value)}
           placeholder="自定义分钟数"
-          className="mb-4 w-full rounded-xl border border-slate-200 px-3 py-2 text-[14px]"
-          style={{ color: textMain }}
+          className="mb-4 w-full"
           min={1}
         />
 
         {/* Note */}
-        <label className="mb-1 block text-[13px]" style={{ color: textMuted }}>备注（可选）</label>
-        <input
+        <label className="mb-1 block text-[13px] text-[var(--nimi-text-muted)]">备注（可选）</label>
+        <TextField
           type="text"
           value={note}
           onChange={(e) => setNote(e.target.value)}
           placeholder="例：小区公园散步"
-          className="mb-5 w-full rounded-xl border border-slate-200 px-3 py-2 text-[14px]"
-          style={{ color: textMain }}
+          className="mb-5 w-full"
         />
 
         {/* Actions */}
         <div className="flex items-center justify-between">
           {isEditing && onDelete ? (
-            <button
+            <Button
               onClick={onDelete}
-              className="text-[14px] font-medium transition-colors hover:opacity-80"
-              style={{ color: '#ef4444' }}
+              tone="danger"
+              size="sm"
             >
               删除
-            </button>
+            </Button>
           ) : <span />}
           <div className="flex gap-3">
-            <button
+            <Button
               onClick={onClose}
-              className="rounded-full px-4 py-1.5 text-[14px] transition-colors"
-              style={{ color: textMuted }}
+              tone="ghost"
+              size="sm"
             >
               取消
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={handleSave}
               disabled={!canSave || saving}
-              className="rounded-full px-5 py-1.5 text-[14px] font-medium text-white transition-colors disabled:opacity-50"
-              style={{ background: accentGreen }}
+              tone="primary"
+              size="sm"
             >
               {saving ? '保存中…' : '保存'}
-            </button>
+            </Button>
           </div>
         </div>
-      </div>
+      </Surface>
     </div>
   );
 }

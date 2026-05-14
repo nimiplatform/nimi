@@ -1,10 +1,10 @@
+import { Surface } from '@nimiplatform/nimi-kit/ui';
 import { useState } from 'react';
 import {
   updateOrthodonticApplianceReview,
   updateOrthodonticAppliancePlan,
   type OrthodonticApplianceRow,
 } from '../../bridge/sqlite-bridge.js';
-import { S } from '../../app-shell/page-style.js';
 import { isoNow } from '../../bridge/ulid.js';
 import { catchLog } from '../../infra/telemetry/catch-log.js';
 import { applianceTypeLabel } from './orthodontic-derive.js';
@@ -151,19 +151,18 @@ export function EditApplianceFormModal({
     <Modal title="编辑矫治器设置" onClose={onClose}>
       {localError && <ModalErrorBanner message={localError} onDismiss={() => setLocalError(null)} />}
 
-      <div className="text-[13px] px-3 py-2 rounded-md"
-        style={{ background: 'rgba(15,23,42,0.04)', color: S.sub, border: '1px solid rgba(226,232,240,0.7)' }}>
-        矫治器类型 <strong style={{ color: S.text, marginLeft: 6 }}>{applianceTypeLabel(appliance.applianceType)}</strong>
-        <span style={{ marginLeft: 12 }}>启用日期</span>
-        <strong style={{ color: S.text, marginLeft: 6 }}>{appliance.startedAt}</strong>
-      </div>
+      <Surface tone="card" material="solid" elevation="base" padding="none" className="rounded-md border border-[color-mix(in_srgb,var(--nimi-border-subtle)_70%,transparent)] bg-[color-mix(in_srgb,var(--nimi-text-primary)_4%,transparent)] px-3 py-2 text-[13px] text-[var(--nimi-text-muted)]">
+        矫治器类型 <strong className="ml-1.5 text-[var(--nimi-text-primary)]">{applianceTypeLabel(appliance.applianceType)}</strong>
+        <span className="ml-3">启用日期</span>
+        <strong className="ml-1.5 text-[var(--nimi-text-primary)]">{appliance.startedAt}</strong>
+      </Surface>
 
       {needsPrescribedHours && (
         <>
           <FieldInput label="医嘱每日佩戴小时" type="number" value={prescribedHours} onChange={setPrescribedHours}
             placeholder="例如 22" />
           {!prescribedHoursValid && (
-            <div className="text-[13px]" style={{ color: '#b91c1c' }}>
+            <div className="text-[13px] text-[var(--nimi-status-danger)]">
               医嘱每日佩戴小时数必须在 1..24 之间。
             </div>
           )}
@@ -175,14 +174,14 @@ export function EditApplianceFormModal({
           <FieldInput label="牙套总副数" type="number" value={totalAligners} onChange={setTotalAligners}
             placeholder="例如 30" />
           {!totalAlignersValid && (
-            <div className="text-[13px]" style={{ color: '#b91c1c' }}>
+            <div className="text-[13px] text-[var(--nimi-status-danger)]">
               总副数必须是大于 0 的整数。
             </div>
           )}
           <FieldInput label="每副佩戴天数" type="number" value={daysPerAligner} onChange={setDaysPerAligner}
             placeholder="例如 7" />
           {!daysPerAlignerValid && (
-            <div className="text-[13px]" style={{ color: '#b91c1c' }}>
+            <div className="text-[13px] text-[var(--nimi-status-danger)]">
               每副佩戴天数必须是大于 0 的整数。
             </div>
           )}
@@ -194,7 +193,7 @@ export function EditApplianceFormModal({
           <FieldInput label="扩弓转动周期（天，可选）" type="number" value={activationInterval}
             onChange={setActivationInterval} placeholder="例如 3" />
           {!activationIntervalValid && (
-            <div className="text-[13px]" style={{ color: '#b91c1c' }}>
+            <div className="text-[13px] text-[var(--nimi-status-danger)]">
               转动周期必须是大于 0 的整数。
             </div>
           )}
@@ -204,7 +203,7 @@ export function EditApplianceFormModal({
       <FieldInput label="下次复诊日期" type="date" value={nextReviewDate} onChange={setNextReviewDate}
         placeholder="留空清除" />
       {!nextReviewValid && (
-        <div className="text-[13px]" style={{ color: '#b91c1c' }}>
+        <div className="text-[13px] text-[var(--nimi-status-danger)]">
           下次复诊日期格式应为 YYYY-MM-DD。
         </div>
       )}

@@ -1,6 +1,6 @@
+import { Surface } from '@nimiplatform/nimi-kit/ui';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { S } from '../../app-shell/page-style.js';
 import { type PediatricDrug, PEDIATRIC_DRUGS, matchDrugs } from './pediatric-drugs.js';
 
 export interface DrugSelection {
@@ -109,45 +109,41 @@ export function DrugComboBox({ value, onChange, onSelect, historyDrugs, placehol
         onChange={(e) => { onChange(e.target.value); if (e.target.value.trim().length >= 2) { if (!mounted) openPanel(); } else { closePanel(); } }}
         onFocus={() => { if (queryLen >= 2 && !mounted) openPanel(); }}
         placeholder={placeholder ?? '搜索药品名称或拼音首字母'}
-        className="w-full bg-transparent text-[14px] outline-none"
-        style={{ color: S.text }}
+        className="w-full bg-transparent text-[14px] text-[var(--nimi-text-primary)] outline-none"
       />
 
       {mounted && pos && createPortal(
-        <div ref={panelRef} className="fixed z-[60] rounded-xl overflow-hidden"
+        <div ref={panelRef} className="fixed z-[60]"
           style={{
             left: Math.min(pos.left, window.innerWidth - pos.width - 8),
             top: Math.min(pos.top, window.innerHeight - 260),
             width: Math.max(pos.width, 280),
             maxHeight: 240,
-            background: '#fff',
-            boxShadow: '0 4px 20px rgba(0,0,0,0.12)',
-            border: `1px solid ${S.border}`,
             opacity: open ? 1 : 0,
             transform: open ? 'translateY(0) scale(1)' : 'translateY(-4px) scale(0.98)',
             transformOrigin: 'top left',
             transition: 'opacity 0.15s ease, transform 0.15s ease',
             pointerEvents: open ? 'auto' : 'none',
           }}>
-
-          <div className="overflow-y-auto" style={{ maxHeight: 240 }}>
+          <Surface tone="overlay" material="glass-regular" elevation="floating" padding="none" className="overflow-hidden rounded-xl">
+          <div className="max-h-[240px] overflow-y-auto">
             {matches.length === 0 && !showCustom && shouldSearch && (
               <div className="px-3 py-4 text-center">
-                <p className="text-[13px]" style={{ color: S.sub }}>未找到匹配药品</p>
+                <p className="text-[13px] text-[var(--nimi-text-muted)]">未找到匹配药品</p>
               </div>
             )}
 
             {matches.slice(0, 15).map((drug) => (
               <button key={drug.id}
                 onClick={() => handleSelect(drug)}
-                className="flex items-center gap-2 w-full px-3 py-2 text-left transition-colors hover:bg-[#f5f3ef]">
+                className="flex items-center gap-2 w-full px-3 py-2 text-left transition-colors hover:bg-[var(--nimi-action-ghost-hover)]">
                 <div className="flex-1 min-w-0">
-                  <span className="text-[14px] font-medium" style={{ color: S.text }}>{drug.name}</span>
+                  <span className="text-[14px] font-medium text-[var(--nimi-text-primary)]">{drug.name}</span>
                   {drug.generic && (
-                    <span className="text-[12px] ml-1" style={{ color: S.sub }}>({drug.generic})</span>
+                    <span className="text-[12px] ml-1 text-[var(--nimi-text-muted)]">({drug.generic})</span>
                   )}
                 </div>
-                <span className="text-[12px] shrink-0 px-1.5 py-0.5 rounded" style={{ background: '#f5f3ef', color: S.sub }}>
+                <span className="shrink-0 rounded bg-[var(--nimi-surface-active)] px-1.5 py-0.5 text-[12px] text-[var(--nimi-text-muted)]">
                   {drug.unit}
                 </span>
               </button>
@@ -156,14 +152,14 @@ export function DrugComboBox({ value, onChange, onSelect, historyDrugs, placehol
             {/* Custom entry fallback */}
             {showCustom && (
               <button onClick={handleCustom}
-                className="flex items-center gap-2 w-full px-3 py-2.5 text-left transition-colors hover:bg-[#f5f3ef]"
-                style={{ borderTop: `1px solid ${S.border}` }}>
-                <span className="text-[14px] font-medium" style={{ color: S.accent }}>
+                className="flex items-center gap-2 w-full border-t border-[var(--nimi-border-subtle)] px-3 py-2.5 text-left transition-colors hover:bg-[var(--nimi-action-ghost-hover)]">
+                <span className="text-[14px] font-medium text-[var(--nimi-action-primary-bg)]">
                   + 添加自定义药品: "{value.trim()}"
                 </span>
               </button>
             )}
           </div>
+          </Surface>
         </div>,
         document.body,
       )}

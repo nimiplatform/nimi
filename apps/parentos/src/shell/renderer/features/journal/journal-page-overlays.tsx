@@ -1,6 +1,6 @@
 import { createPortal } from 'react-dom';
-import { useEffect, useRef, useState, type RefObject } from 'react';
-import { S } from '../../app-shell/page-style.js';
+import { useEffect, useRef, useState, type CSSProperties, type RefObject } from 'react';
+import { Button, IconButton, StatusBadge, Surface, TextField, cn } from '@nimiplatform/nimi-kit/ui';
 import type { JournalEntryRow } from '../../bridge/sqlite-bridge.js';
 import {
   EMOJI_CATEGORIES,
@@ -51,34 +51,44 @@ export function EmojiPickerPortal({
   return (
     <div
       ref={panelRef}
-      className={`fixed z-50 flex flex-col ${S.radiusSm} shadow-xl overflow-hidden`}
-      style={{ background: S.card, border: `1px solid ${S.border}`, width: panelWidth, height: panelHeight, left, bottom }}
+      className="parentos-portal-frame fixed z-50"
+      style={{
+        '--parentos-portal-bottom': `${bottom}px`,
+        '--parentos-portal-height': `${panelHeight}px`,
+        '--parentos-portal-left': `${left}px`,
+        '--parentos-portal-width': `${panelWidth}px`,
+      } as CSSProperties}
     >
-      <div className="flex items-center px-1.5 pt-1.5 pb-1 border-b shrink-0" style={{ borderColor: S.border }}>
-        {EMOJI_CATEGORIES.map((cat) => (
-          <button
-            key={cat.key}
-            onClick={() => onCategoryChange(cat.key)}
-            title={cat.label}
-            className={`w-7 h-7 rounded flex items-center justify-center text-[16px] transition-colors ${category === cat.key ? 'bg-[#e8e8e4]' : 'hover:bg-[#f0f0ec]'}`}
-          >
-            {cat.icon}
-          </button>
-        ))}
-      </div>
-      <div className="flex-1 overflow-y-auto p-1.5">
-        <div className="grid grid-cols-8 gap-0.5">
-          {EMOJI_CATEGORIES.find((c) => c.key === category)?.emojis.map((emoji, index) => (
+      <Surface tone="overlay" elevation="floating" padding="none" className="flex h-full flex-col overflow-hidden parentos-radius-sm">
+        <div className="flex shrink-0 items-center border-b border-[var(--nimi-border-subtle)] px-1.5 pb-1 pt-1.5">
+          {EMOJI_CATEGORIES.map((cat) => (
             <button
-              key={`${emoji}-${index}`}
-              onClick={() => onSelect(emoji)}
-              className="w-[34px] h-[34px] rounded flex items-center justify-center text-[18px] hover:bg-[#f0f0ec] transition-colors"
+              key={cat.key}
+              onClick={() => onCategoryChange(cat.key)}
+              title={cat.label}
+              className={cn(
+                'flex h-7 w-7 items-center justify-center parentos-radius-sm text-[16px] transition-colors',
+                category === cat.key ? 'bg-[var(--nimi-surface-active)]' : 'hover:bg-[var(--nimi-action-ghost-hover)]',
+              )}
             >
-              {emoji}
+              {cat.icon}
             </button>
           ))}
         </div>
-      </div>
+        <div className="flex-1 overflow-y-auto p-1.5">
+          <div className="grid grid-cols-8 gap-0.5">
+            {EMOJI_CATEGORIES.find((c) => c.key === category)?.emojis.map((emoji, index) => (
+              <button
+                key={`${emoji}-${index}`}
+                onClick={() => onSelect(emoji)}
+                className="flex h-[34px] w-[34px] items-center justify-center parentos-radius-sm text-[18px] transition-colors hover:bg-[var(--nimi-action-ghost-hover)]"
+              >
+                {emoji}
+              </button>
+            ))}
+          </div>
+        </div>
+      </Surface>
     </div>
   );
 }
@@ -103,45 +113,34 @@ export function DeleteJournalEntryModal({
         role="dialog"
         aria-modal="true"
         aria-label="删除随手记"
-        className={`${S.radius} w-full max-w-[420px] p-5`}
-        style={{ background: S.card, boxShadow: S.shadow }}
+        className="w-full max-w-[420px]"
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="mb-4">
-          <h3 className="text-[16px] font-semibold" style={{ color: S.text }}>删除这条随手记？</h3>
-          <p className="mt-1 text-[14px] leading-relaxed" style={{ color: S.sub }}>
-            删除后会从列表中移除这条随手记，关联的本地语音和图片也会一起清理。
-          </p>
-        </div>
-        <div className={`${S.radiusSm} mb-4 p-3`} style={{ background: '#fafaf8', border: `1px solid ${S.border}` }}>
-          <p className="mb-1 text-[13px] font-medium" style={{ color: S.text }}>
-            {entry.recordedAt.split('T')[0]} {entry.recordedAt.split('T')[1]?.slice(0, 5)}
-          </p>
-          <p className="line-clamp-3 text-[14px] leading-relaxed" style={{ color: S.sub }}>{previewText}</p>
-          {mediaCount > 0 ? (
-            <p className="mt-2 text-[13px]" style={{ color: '#b45309' }}>包含 {mediaCount} 个本地媒体附件</p>
-          ) : null}
-        </div>
-        <div className="flex items-center justify-end gap-2">
-          <button
-            type="button"
-            onClick={onCancel}
-            disabled={deleting}
-            className={`${S.radiusSm} px-4 py-2 text-[14px] transition-colors disabled:opacity-50`}
-            style={{ background: '#f3f4f6', color: S.sub }}
-          >
-            取消
-          </button>
-          <button
-            type="button"
-            onClick={onConfirm}
-            disabled={deleting}
-            className={`${S.radiusSm} px-4 py-2 text-[14px] font-medium text-white transition-colors disabled:opacity-50`}
-            style={{ background: '#dc2626' }}
-          >
-            {deleting ? '删除中...' : '确认删除'}
-          </button>
-        </div>
+        <Surface tone="overlay" elevation="modal" padding="md" className="parentos-radius-xl p-5">
+          <div className="mb-4">
+            <h3 className="text-[16px] font-semibold text-[var(--nimi-text-primary)]">删除这条随手记？</h3>
+            <p className="mt-1 text-[14px] leading-relaxed text-[var(--nimi-text-muted)]">
+              删除后会从列表中移除这条随手记，关联的本地语音和图片也会一起清理。
+            </p>
+          </div>
+          <Surface tone="card" elevation="base" padding="sm" className="mb-4 parentos-radius-sm p-3">
+            <p className="mb-1 text-[13px] font-medium text-[var(--nimi-text-primary)]">
+              {entry.recordedAt.split('T')[0]} {entry.recordedAt.split('T')[1]?.slice(0, 5)}
+            </p>
+            <p className="line-clamp-3 text-[14px] leading-relaxed text-[var(--nimi-text-muted)]">{previewText}</p>
+            {mediaCount > 0 ? (
+              <p className="mt-2 text-[13px] text-[var(--nimi-status-warning)]">包含 {mediaCount} 个本地媒体附件</p>
+            ) : null}
+          </Surface>
+          <div className="flex items-center justify-end gap-2">
+            <Button type="button" onClick={onCancel} disabled={deleting} tone="ghost" size="sm">
+              取消
+            </Button>
+            <Button type="button" onClick={onConfirm} disabled={deleting} tone="danger" size="sm">
+              {deleting ? '删除中...' : '确认删除'}
+            </Button>
+          </div>
+        </Surface>
       </div>
     </div>,
     document.body,
@@ -195,68 +194,64 @@ export function KeepsakePromptModal({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background: 'var(--nimi-scrim-modal)' }}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--nimi-scrim-modal)] p-4"
       onClick={onSkip}
     >
-      <div
+      <Surface
         role="dialog"
         aria-modal="true"
         aria-label={copy.ariaLabel}
-        className={`w-full max-w-[680px] max-h-[85vh] overflow-y-auto ${S.radius} flex flex-col shadow-xl`}
-        style={{ background: S.card }}
+        tone="overlay"
+        elevation="modal"
+        padding="none"
+        className="flex max-h-[85vh] w-full max-w-[680px] flex-col overflow-y-auto parentos-radius-xl"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="flex items-center justify-between px-6 pt-6 pb-3">
           <div className="flex items-center gap-2">
             <span className="text-[20px]">⭐</span>
-            <h3 className="text-[16px] font-bold" style={{ color: S.text }}>{copy.heading}</h3>
+            <h3 className="text-[16px] font-bold text-[var(--nimi-text-primary)]">{copy.heading}</h3>
           </div>
-          <button
+          <IconButton
             type="button"
             onClick={onSkip}
             disabled={saving}
-            className="flex h-7 w-7 items-center justify-center rounded-full transition-colors hover:bg-[#f0f0ec] disabled:opacity-50"
-            style={{ color: S.sub }}
+            tone="ghost"
+            size="sm"
+            className="h-7 min-h-0 w-7 parentos-radius-full text-[var(--nimi-text-muted)]"
             aria-label="关闭"
             title="关闭"
-          >
-            ✕
-          </button>
+            icon="✕"
+          />
         </div>
 
         <div className="px-6 pb-2 space-y-4 flex-1">
-          <div
-            className={`${S.radiusSm} px-4 py-3`}
-            style={{ background: '#fff8eb', border: '1px solid rgba(245, 158, 11, 0.18)' }}
-          >
-            <p className="text-[14px] font-medium" style={{ color: '#92400e' }}>{copy.bannerTitle}</p>
-            <p className="mt-1 text-[13px] leading-relaxed" style={{ color: S.sub }}>
+          <Surface tone="card" elevation="base" padding="sm" className="parentos-radius-sm border-[color-mix(in_srgb,var(--nimi-status-warning)_22%,var(--nimi-border-subtle))] bg-[color-mix(in_srgb,var(--nimi-status-warning)_8%,var(--nimi-surface-card))] px-4 py-3">
+            <p className="text-[14px] font-medium text-[var(--nimi-status-warning)]">{copy.bannerTitle}</p>
+            <p className="mt-1 text-[13px] leading-relaxed text-[var(--nimi-text-muted)]">
               {copy.bannerBody}
             </p>
-          </div>
+          </Surface>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <p className="mb-1 text-[13px]" style={{ color: S.sub }}>标题（可选）</p>
-              <input
+              <p className="mb-1 text-[13px] text-[var(--nimi-text-muted)]">标题（可选）</p>
+              <TextField
                 type="text"
                 value={title}
                 maxLength={60}
                 onChange={(event) => onTitleChange(event.target.value)}
                 placeholder="比如：第一次独自上台分享"
-                className={`${S.radiusSm} w-full px-3 py-2 text-[14px] border-0 outline-none transition-shadow focus:ring-2 focus:ring-[#4ECCA3]/50`}
-                style={{ background: '#fafaf8', color: S.text }}
+                className="w-full parentos-radius-sm text-[14px]"
               />
             </div>
 
             <div>
-              <p className="mb-1 text-[13px]" style={{ color: S.sub }}>为什么值得珍藏（可选）</p>
+              <p className="mb-1 text-[13px] text-[var(--nimi-text-muted)]">为什么值得珍藏（可选）</p>
               <select
                 value={reason ?? ''}
                 onChange={(event) => onReasonChange(event.target.value ? event.target.value as KeepsakeReason : null)}
-                className={`${S.radiusSm} w-full px-3 py-2 text-[14px] border-0 outline-none transition-shadow focus:ring-2 focus:ring-[#4ECCA3]/50`}
-                style={{ background: '#fafaf8', color: S.text }}
+                className="min-h-[var(--nimi-sizing-field-md-height)] w-full cursor-pointer appearance-none parentos-radius-sm border border-[var(--nimi-field-border)] bg-[var(--nimi-field-bg)] px-3 text-[14px] text-[var(--nimi-field-text)] outline-none transition-colors focus:border-[var(--nimi-field-focus)] focus:ring-[length:var(--nimi-focus-ring-width)] focus:ring-[var(--nimi-focus-ring-color)]"
               >
                 <option value="">暂不选择</option>
                 {KEEPSAKE_REASON_OPTIONS.map((option) => (
@@ -268,39 +263,24 @@ export function KeepsakePromptModal({
 
           {reason ? (
             <div className="flex justify-start">
-              <span
-                className="rounded-full px-2.5 py-1 text-[12px] font-medium"
-                style={{ background: '#fef3c7', color: '#a16207' }}
-              >
+              <StatusBadge tone="warning" className="parentos-radius-full px-2.5 py-1 text-[12px] font-medium">
                 {getKeepsakeReasonLabel(reason)}
-              </span>
+              </StatusBadge>
             </div>
           ) : null}
         </div>
 
         <div className="mt-1 px-6 pt-3 pb-5">
           <div className="flex items-center justify-end gap-2">
-            <button
-              type="button"
-              onClick={onSkip}
-              disabled={saving}
-              className={`px-4 py-2 text-[14px] ${S.radiusSm} transition-colors hover:bg-[#e8e8e4] disabled:opacity-50`}
-              style={{ background: '#f0f0ec', color: S.sub }}
-            >
+            <Button type="button" onClick={onSkip} disabled={saving} tone="ghost" size="sm" className="parentos-radius-sm px-4 py-2 text-[14px]">
               {copy.skipLabel}
-            </button>
-            <button
-              type="button"
-              onClick={onSave}
-              disabled={saving}
-              className={`px-5 py-2 text-[14px] font-medium text-white ${S.radiusSm} transition-colors hover:brightness-110 disabled:opacity-50`}
-              style={{ background: S.accent }}
-            >
+            </Button>
+            <Button type="button" onClick={onSave} disabled={saving} tone="primary" size="sm" className="parentos-radius-sm px-5 py-2 text-[14px] font-medium">
               {saving ? copy.savingLabel : copy.saveLabel}
-            </button>
+            </Button>
           </div>
         </div>
-      </div>
+      </Surface>
     </div>,
     document.body,
   );

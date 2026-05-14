@@ -1,3 +1,4 @@
+import { Surface } from '@nimiplatform/nimi-kit/ui';
 /**
  * Records a clear-aligner switch to the next tray (PO-ORTHO-005
  * `aligner-change` checkin). Opened from a clear-aligner card's "换下一副"
@@ -13,7 +14,6 @@ import {
 } from '../../bridge/sqlite-bridge.js';
 import { isoNow, ulid } from '../../bridge/ulid.js';
 import { catchLog } from '../../infra/telemetry/catch-log.js';
-import { S } from '../../app-shell/page-style.js';
 import { computeCycleProgress } from './orthodontic-derive.js';
 import { toLocalDatetimeInputValue } from './orthodontic-treatment-card-parts.js';
 import {
@@ -106,17 +106,10 @@ export function OrthodonticAlignerSwitchModal({
     <Modal title="更换下一副牙套" onClose={onClose}>
       {localError && <ModalErrorBanner message={localError} onDismiss={() => setLocalError(null)} />}
 
-      <div
-        className="text-[13px] px-3 py-2 rounded-md"
-        style={{
-          background: 'rgba(15,23,42,0.04)',
-          color: S.sub,
-          border: '1px solid rgba(226,232,240,0.7)',
-        }}
-      >
-        当前第 <strong style={{ color: S.text }}>{cycle.currentAlignerIndex}</strong>
+      <Surface tone="card" material="solid" elevation="base" padding="none" className="rounded-md border border-[color-mix(in_srgb,var(--nimi-border-subtle)_70%,transparent)] bg-[color-mix(in_srgb,var(--nimi-text-primary)_4%,transparent)] px-3 py-2 text-[13px] text-[var(--nimi-text-muted)]">
+        当前第 <strong className="text-[var(--nimi-text-primary)]">{cycle.currentAlignerIndex}</strong>
         {total !== null ? ` / ${total}` : ''} 副
-      </div>
+      </Surface>
 
       <FieldInput
         label="本次更换后的牙套序号"
@@ -126,7 +119,7 @@ export function OrthodonticAlignerSwitchModal({
         placeholder={`默认 ${nextIndex}`}
       />
       {overCap && (
-        <div className="text-[13px]" style={{ color: '#b91c1c' }}>
+        <div className="text-[13px] text-[var(--nimi-status-danger)]">
           已达到处方总副数 {total}，无法继续更换。
         </div>
       )}

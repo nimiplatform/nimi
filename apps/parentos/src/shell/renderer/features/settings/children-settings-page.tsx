@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { convertFileSrc } from '@tauri-apps/api/core';
+import { Button, Surface, TextField, SelectField, cn } from '@nimiplatform/nimi-kit/ui';
 import { useAppStore, type NurtureMode } from '../../app-shell/app-store.js';
 import { createChild, createFamily, deleteChild, getChildren, updateChild } from '../../bridge/sqlite-bridge.js';
 import { saveChildAvatar } from '../../bridge/child-avatar-bridge.js';
@@ -9,20 +10,12 @@ import { isoNow, ulid } from '../../bridge/ulid.js';
 import { fileToBase64 } from '../journal/journal-page-helpers.js';
 import { AvatarCropModal } from './avatar-crop-modal.js';
 import { ProfileDatePicker } from '../profile/profile-date-picker.js';
-import { AppSelect } from '../../app-shell/app-select.js';
 import { ChildAvatar } from '../../shared/child-avatar.js';
-import { S } from '../../app-shell/page-style.js';
 
 /** Convert a local filesystem path to a Tauri 2 asset URL */
 function assetUrl(path: string): string {
   try { return convertFileSrc(path); } catch { return path; }
 }
-
-/* ── design tokens — shared theme palette from `app-shell/page-style.ts`.
- * Inner card-on-card separators use a tangible literal (#f1f5f9) because
- * `S.border` (rgba(255,255,255,0.7)) is calibrated for glass surfaces and
- * would vanish against a white card background. */
-const INNER_BORDER = '#f1f5f9';
 
 /* ── recorder presets ────────────────────────────────────── */
 
@@ -223,9 +216,6 @@ export default function ChildrenSettingsPage() {
     setForm((prev) => ({ ...prev, recorder: { ...prev.recorder, name: prev.customRecorderName || '', emoji: '👤' } }));
   };
 
-  const inp = 'w-full rounded-xl border-0 px-3.5 py-2.5 text-[14px] outline-none transition-shadow focus:ring-2 focus:ring-[#818CF8]/40';
-  const inputBg = { background: '#f5f3ef', color: S.text };
-
   /** For number inputs: seed from placeholder on first arrow click, then let native step take over */
   const numChange = (field: 'birthWeightKg' | 'birthHeightCm' | 'birthHeadCircCm', placeholder: string, step: number) =>
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -244,66 +234,74 @@ export default function ChildrenSettingsPage() {
   const isCustom = !RECORDER_PRESETS.some((p) => p.name === form.recorder.name);
 
   return (
-    <div className="min-h-full p-6" style={{ background: 'transparent' }}>
-      <div className="max-w-3xl mx-auto">
+    <div className="min-h-full bg-transparent p-6">
+      <div className="mx-auto max-w-3xl">
         {/* Back link */}
-        <Link to={fromProfile ? '/profile' : '/settings'} className="inline-flex items-center gap-1 text-[14px] mb-5 hover:underline" style={{ color: S.sub }}>
+        <Link to={fromProfile ? '/profile' : '/settings'} className="mb-5 inline-flex items-center gap-1 text-[14px] text-[var(--nimi-text-muted)] hover:underline">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M15 18l-6-6 6-6" /></svg>
           {fromProfile ? '返回档案' : '返回设置'}
         </Link>
 
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="mb-6 flex items-center justify-between">
           <div>
-            <h1 className="text-xl font-bold" style={{ color: S.text }}>孩子管理</h1>
-            <p className="text-[14px] mt-0.5" style={{ color: S.sub }}>管理孩子档案和基本信息</p>
+            <h1 className="text-xl font-bold text-[var(--nimi-text-primary)]">孩子管理</h1>
+            <p className="mt-0.5 text-[14px] text-[var(--nimi-text-muted)]">管理孩子档案和基本信息</p>
           </div>
           {!showForm && (
-            <button onClick={() => { setForm(EMPTY_FORM); setShowForm(true); }}
-              className="flex items-center gap-1.5 px-5 py-2.5 rounded-full text-[14px] font-medium text-white transition-all hover:scale-[1.02] hover:shadow-md"
-              style={{ background: S.blue, boxShadow: '0 2px 8px rgba(129,140,248,0.3)' }}>
+            <Button onClick={() => { setForm(EMPTY_FORM); setShowForm(true); }} tone="primary" size="md" className="text-[14px]">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
               添加孩子
-            </button>
+            </Button>
           )}
         </div>
 
         {/* Empty state */}
         {children.length === 0 && !showForm && (
-          <div className={`${S.radius} p-10 text-center`} style={{ background: S.card, boxShadow: S.shadow }}>
-            <div className="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center" style={{ background: '#f5f3ef' }}>
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#c0bdb8" strokeWidth="1.5" strokeLinecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
+          <Surface tone="card" material="solid" elevation="base" padding="lg" className="parentos-radius-xl p-10 text-center">
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[var(--nimi-action-secondary-bg)]">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="text-[var(--nimi-text-muted)]" strokeWidth="1.5" strokeLinecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
             </div>
-            <p className="text-[16px] font-medium" style={{ color: S.text }}>还没有添加孩子</p>
-            <p className="text-[14px] mt-1" style={{ color: S.sub }}>点击上方按钮添加第一个孩子</p>
-          </div>
+            <p className="text-[16px] font-medium text-[var(--nimi-text-primary)]">还没有添加孩子</p>
+            <p className="mt-1 text-[14px] text-[var(--nimi-text-muted)]">点击上方按钮添加第一个孩子</p>
+          </Surface>
         )}
 
         {/* Child list */}
         {!showForm && children.map((child) => {
           const isActive = activeChildId === child.childId;
           return (
-            <div key={child.childId} className={`${S.radius} p-5 mb-4 transition-all duration-200 hover:shadow-md`}
-              style={{ background: S.card, boxShadow: S.shadow, borderLeft: isActive ? `3px solid ${S.blue}` : '3px solid transparent' }}>
+            <Surface
+              key={child.childId}
+              tone="card"
+              material="solid"
+              elevation="base"
+              padding="lg"
+              className={cn(
+                'mb-4 parentos-radius-xl border-l-[3px] transition-all duration-200 hover:shadow-[var(--nimi-elevation-raised)]',
+                isActive ? 'border-l-[var(--nimi-action-primary-bg)]' : 'border-l-transparent',
+              )}
+            >
               <div className="flex items-center gap-4">
                 <ChildAvatar
                   child={child}
-                  className="w-12 h-12 rounded-full object-cover shrink-0"
-                  style={{ outline: isActive ? `2px solid ${S.blue}` : '1px solid rgba(226, 232, 240, 0.95)' }}
+                  className={cn(
+                    'w-12 h-12 rounded-full object-cover shrink-0',
+                    isActive ? 'parentos-child-avatar-outline-active' : 'parentos-child-avatar-outline-idle',
+                  )}
                 />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <h3 className="text-[16px] font-semibold" style={{ color: S.text }}>{child.displayName}</h3>
-                    {isActive && <span className="text-[12px] px-2 py-0.5 rounded-full text-white" style={{ background: S.accent }}>当前</span>}
+                    <h3 className="text-[16px] font-semibold text-[var(--nimi-text-primary)]">{child.displayName}</h3>
+                    {isActive && <span className="rounded-full bg-[var(--nimi-action-primary-bg)] px-2 py-0.5 text-[12px] text-[var(--nimi-action-primary-text)]">当前</span>}
                   </div>
-                  <p className="text-[14px] mt-0.5" style={{ color: S.sub }}>
+                  <p className="mt-0.5 text-[14px] text-[var(--nimi-text-muted)]">
                     {child.gender === 'male' ? '男' : '女'} · {child.birthDate} · {MODE_LABELS[child.nurtureMode] ?? child.nurtureMode}
                   </p>
                   {child.recorderProfiles && child.recorderProfiles.length > 0 && (
-                    <div className="flex items-center gap-1.5 mt-1">
+                    <div className="mt-1 flex items-center gap-1.5">
                       {child.recorderProfiles.map((r) => (
-                        <span key={r.id} className="inline-flex items-center gap-0.5 text-[13px] px-2 py-0.5 rounded-full"
-                          style={{ background: '#f5f3ef', color: S.sub }}>
+                        <span key={r.id} className="inline-flex items-center gap-0.5 rounded-full bg-[var(--nimi-action-secondary-bg)] px-2 py-0.5 text-[13px] text-[var(--nimi-text-muted)]">
                           <span>{recorderEmoji(r.name)}</span> {r.name}
                         </span>
                       ))}
@@ -312,49 +310,41 @@ export default function ChildrenSettingsPage() {
                 </div>
                 <div className="flex gap-2 shrink-0">
                   {!isActive && (
-                    <button onClick={() => setActiveChildId(child.childId)}
-                      className="text-[13px] px-3.5 py-1.5 rounded-full font-medium transition-colors hover:opacity-80"
-                      style={{ background: '#f5f3ef', color: S.text }}>
+                    <Button onClick={() => setActiveChildId(child.childId)} tone="secondary" size="sm" className="text-[13px]">
                       设为活跃
-                    </button>
+                    </Button>
                   )}
-                  <button onClick={() => startEdit(child.childId)}
-                    className="text-[13px] px-3.5 py-1.5 rounded-full font-medium transition-colors hover:opacity-80"
-                    style={{ background: '#f5f3ef', color: S.text }}>
+                  <Button onClick={() => startEdit(child.childId)} tone="secondary" size="sm" className="text-[13px]">
                     编辑
-                  </button>
-                  <button onClick={() => setDeletingChildId(child.childId)}
-                    className="text-[13px] px-3.5 py-1.5 rounded-full font-medium text-red-600 transition-colors hover:bg-red-50"
-                    style={{ background: '#fef2f2' }}>
+                  </Button>
+                  <Button onClick={() => setDeletingChildId(child.childId)} tone="danger" size="sm" className="text-[13px]">
                     删除
-                  </button>
+                  </Button>
                 </div>
               </div>
               {deletingChildId === child.childId && (
-                <div className="mt-4 p-4 rounded-xl" style={{ background: '#fef2f2', border: '1px solid #fecaca' }}>
-                  <p className="text-[14px] mb-3" style={{ color: '#b91c1c' }}>
+                <div className="mt-4 parentos-radius-lg border border-[color-mix(in_srgb,var(--nimi-status-danger)_25%,var(--nimi-border-subtle))] bg-[color-mix(in_srgb,var(--nimi-status-danger)_8%,var(--nimi-surface-card))] p-4">
+                  <p className="mb-3 text-[14px] text-[var(--nimi-status-danger)]">
                     删除 <strong>{child.displayName}</strong> 会级联删除所有关联数据（生长记录、疫苗、日记、AI 对话等），此操作不可撤销。
                   </p>
                   <div className="flex gap-2">
-                    <button onClick={() => void handleDelete(child.childId)}
-                      className="text-[13px] px-4 py-1.5 rounded-full text-white font-medium" style={{ background: '#dc2626' }}>
+                    <Button onClick={() => void handleDelete(child.childId)} tone="danger" size="sm" className="bg-[var(--nimi-status-danger)] text-[13px] text-[var(--nimi-action-primary-text)]">
                       确认删除
-                    </button>
-                    <button onClick={() => setDeletingChildId(null)}
-                      className="text-[13px] px-4 py-1.5 rounded-full font-medium" style={{ background: '#f5f3ef', color: S.text }}>
+                    </Button>
+                    <Button onClick={() => setDeletingChildId(null)} tone="secondary" size="sm" className="text-[13px]">
                       取消
-                    </button>
+                    </Button>
                   </div>
                 </div>
               )}
-            </div>
+            </Surface>
           );
         })}
 
         {/* ── Add / Edit form ── */}
         {showForm && (
-          <div className={`${S.radius} p-6`} style={{ background: S.card, boxShadow: S.shadow }}>
-            <h3 className="text-[16px] font-semibold mb-5" style={{ color: S.text }}>
+          <Surface tone="card" material="solid" elevation="base" padding="lg" className="parentos-radius-xl">
+            <h3 className="mb-5 text-[16px] font-semibold text-[var(--nimi-text-primary)]">
               {editingId ? '编辑孩子' : '添加孩子'}
             </h3>
 
@@ -371,128 +361,127 @@ export default function ChildrenSettingsPage() {
                     className="w-20 h-20"
                   />
                 )}
-                <div className="absolute inset-0 rounded-full flex items-center justify-center bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round">
+                <div className="absolute inset-0 flex items-center justify-center rounded-full bg-[var(--nimi-scrim-modal)] opacity-0 transition-opacity group-hover:opacity-100">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="text-[var(--nimi-action-primary-text)]" strokeWidth="2" strokeLinecap="round">
                     <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
                     <circle cx="12" cy="13" r="4" />
                   </svg>
                 </div>
               </button>
               <div>
-                <p className="text-[14px] font-medium" style={{ color: S.text }}>
+                <p className="text-[14px] font-medium text-[var(--nimi-text-primary)]">
                   {form.avatarPreview ? '点击更换头像' : '上传头像'}
                 </p>
-                <p className="text-[13px] mt-0.5" style={{ color: S.sub }}>支持 JPG、PNG、WebP 格式</p>
+                <p className="mt-0.5 text-[13px] text-[var(--nimi-text-muted)]">支持 JPG、PNG、WebP 格式</p>
               </div>
             </div>
 
             {/* Basic info */}
-            <p className="text-[14px] font-semibold mb-3" style={{ color: S.sub }}>基本信息</p>
-            <div className="grid grid-cols-2 gap-4 mb-5">
+            <p className="mb-3 text-[14px] font-semibold text-[var(--nimi-text-muted)]">基本信息</p>
+            <div className="mb-5 grid grid-cols-2 gap-4">
               <div>
-                <label className="text-[13px] block mb-1.5" style={{ color: S.sub }}>姓名 *</label>
-                <input value={form.displayName} onChange={(e) => setForm({ ...form, displayName: e.target.value })}
-                  className={inp} style={inputBg} />
+                <label className="mb-1.5 block text-[13px] text-[var(--nimi-text-muted)]">姓名 *</label>
+                <TextField value={form.displayName} onChange={(e) => setForm({ ...form, displayName: e.target.value })} className="w-full" inputClassName="text-[14px]" />
               </div>
               <div>
-                <label className="text-[13px] block mb-1.5" style={{ color: S.sub }}>性别 *</label>
-                <AppSelect value={form.gender} onChange={(v) => setForm({ ...form, gender: v as 'male' | 'female' })}
+                <label className="mb-1.5 block text-[13px] text-[var(--nimi-text-muted)]">性别 *</label>
+                <SelectField value={form.gender} onValueChange={(v) => setForm({ ...form, gender: v as 'male' | 'female' })}
                   options={[{ value: 'male', label: '男' }, { value: 'female', label: '女' }]} />
               </div>
               <div>
-                <label className="text-[13px] block mb-1.5" style={{ color: S.sub }}>出生日期 *</label>
+                <label className="mb-1.5 block text-[13px] text-[var(--nimi-text-muted)]">出生日期 *</label>
                 <ProfileDatePicker value={form.birthDate} onChange={(v) => setForm({ ...form, birthDate: v })}
                   maxDate={new Date().toISOString().slice(0, 10)} size="small" />
               </div>
               <div>
-                <label className="text-[13px] block mb-1.5" style={{ color: S.sub }}>养育模式</label>
-                <AppSelect value={form.nurtureMode} onChange={(v) => setForm({ ...form, nurtureMode: v as NurtureMode })}
+                <label className="mb-1.5 block text-[13px] text-[var(--nimi-text-muted)]">养育模式</label>
+                <SelectField value={form.nurtureMode} onValueChange={(v) => setForm({ ...form, nurtureMode: v as NurtureMode })}
                   options={[{ value: 'relaxed', label: '轻松养' }, { value: 'balanced', label: '均衡养' }, { value: 'advanced', label: '进阶养' }]} />
               </div>
             </div>
 
             {/* Birth measurements */}
-            <p className="text-[14px] font-semibold mb-3" style={{ color: S.sub }}>出生数据</p>
-            <div className="grid grid-cols-3 gap-4 mb-5">
+            <p className="mb-3 text-[14px] font-semibold text-[var(--nimi-text-muted)]">出生数据</p>
+            <div className="mb-5 grid grid-cols-3 gap-4">
               <div>
-                <label className="text-[13px] block mb-1.5" style={{ color: S.sub }}>体重 (kg)</label>
-                <input type="number" step="0.01" value={form.birthWeightKg}
+                <label className="mb-1.5 block text-[13px] text-[var(--nimi-text-muted)]">体重 (kg)</label>
+                <TextField type="number" step="0.01" value={form.birthWeightKg}
                   onChange={numChange('birthWeightKg', '3.50', 0.01)}
-                  className={inp} style={inputBg} placeholder="3.50" />
+                  className="w-full" inputClassName="text-[14px]" placeholder="3.50" />
               </div>
               <div>
-                <label className="text-[13px] block mb-1.5" style={{ color: S.sub }}>身长 (cm)</label>
-                <input type="number" step="0.1" value={form.birthHeightCm}
+                <label className="mb-1.5 block text-[13px] text-[var(--nimi-text-muted)]">身长 (cm)</label>
+                <TextField type="number" step="0.1" value={form.birthHeightCm}
                   onChange={numChange('birthHeightCm', '50.0', 0.1)}
-                  className={inp} style={inputBg} placeholder="50.0" />
+                  className="w-full" inputClassName="text-[14px]" placeholder="50.0" />
               </div>
               <div>
-                <label className="text-[13px] block mb-1.5" style={{ color: S.sub }}>头围 (cm)</label>
-                <input type="number" step="0.1" value={form.birthHeadCircCm}
+                <label className="mb-1.5 block text-[13px] text-[var(--nimi-text-muted)]">头围 (cm)</label>
+                <TextField type="number" step="0.1" value={form.birthHeadCircCm}
                   onChange={numChange('birthHeadCircCm', '34.0', 0.1)}
-                  className={inp} style={inputBg} placeholder="34.0" />
+                  className="w-full" inputClassName="text-[14px]" placeholder="34.0" />
               </div>
             </div>
 
             {/* Medical info */}
-            <p className="text-[14px] font-semibold mb-3" style={{ color: S.sub }}>健康信息</p>
-            <div className="grid grid-cols-2 gap-4 mb-5">
+            <p className="mb-3 text-[14px] font-semibold text-[var(--nimi-text-muted)]">健康信息</p>
+            <div className="mb-5 grid grid-cols-2 gap-4">
               <div>
-                <label className="text-[13px] block mb-1.5" style={{ color: S.sub }}>过敏史（逗号分隔）</label>
-                <input value={form.allergies} onChange={(e) => setForm({ ...form, allergies: e.target.value })}
-                  className={inp} style={inputBg} placeholder="牛奶, 花生" />
+                <label className="mb-1.5 block text-[13px] text-[var(--nimi-text-muted)]">过敏史（逗号分隔）</label>
+                <TextField value={form.allergies} onChange={(e) => setForm({ ...form, allergies: e.target.value })}
+                  className="w-full" inputClassName="text-[14px]" placeholder="牛奶, 花生" />
               </div>
               <div>
-                <label className="text-[13px] block mb-1.5" style={{ color: S.sub }}>医疗备注（逗号分隔）</label>
-                <input value={form.medicalNotes} onChange={(e) => setForm({ ...form, medicalNotes: e.target.value })}
-                  className={inp} style={inputBg} placeholder="早产, G6PD缺乏" />
+                <label className="mb-1.5 block text-[13px] text-[var(--nimi-text-muted)]">医疗备注（逗号分隔）</label>
+                <TextField value={form.medicalNotes} onChange={(e) => setForm({ ...form, medicalNotes: e.target.value })}
+                  className="w-full" inputClassName="text-[14px]" placeholder="早产, G6PD缺乏" />
               </div>
             </div>
 
             {/* Recorder profile (single select) */}
-            <p className="text-[14px] font-semibold mb-3" style={{ color: S.sub }}>记录者</p>
-            <div className="flex flex-wrap gap-2 mb-3">
+            <p className="mb-3 text-[14px] font-semibold text-[var(--nimi-text-muted)]">记录者</p>
+            <div className="mb-3 flex flex-wrap gap-2">
               {RECORDER_PRESETS.map((p) => {
                 const active = form.recorder.name === p.name;
                 return (
                   <button key={p.name} onClick={() => selectRecorder(p)}
-                    className={`${S.radiusSm} px-3.5 py-2 text-[14px] flex items-center gap-1.5 transition-all`}
-                    style={active
-                      ? { background: S.blue, color: '#fff', boxShadow: '0 2px 8px rgba(129,140,248,0.3)' }
-                      : { background: '#f5f3ef', color: S.text }}>
+                    className={cn(
+                      'flex items-center gap-1.5 parentos-radius-lg px-3.5 py-2 text-[14px] transition-all',
+                      active
+                        ? 'bg-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)] shadow-[var(--nimi-elevation-base)]'
+                        : 'bg-[var(--nimi-action-secondary-bg)] text-[var(--nimi-text-primary)] hover:bg-[var(--nimi-action-ghost-hover)]',
+                    )}>
                     <span>{p.emoji}</span> {p.name}
                   </button>
                 );
               })}
               <button onClick={selectCustomRecorder}
-                className={`${S.radiusSm} px-3.5 py-2 text-[14px] flex items-center gap-1 transition-all`}
-                style={isCustom
-                  ? { background: S.blue, color: '#fff', boxShadow: '0 2px 8px rgba(129,140,248,0.3)' }
-                  : { background: '#f5f3ef', color: S.sub }}>
+                className={cn(
+                  'flex items-center gap-1 parentos-radius-lg px-3.5 py-2 text-[14px] transition-all',
+                  isCustom
+                    ? 'bg-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)] shadow-[var(--nimi-elevation-base)]'
+                    : 'bg-[var(--nimi-action-secondary-bg)] text-[var(--nimi-text-muted)] hover:bg-[var(--nimi-action-ghost-hover)]',
+                )}>
                 👤 自定义
               </button>
             </div>
             {isCustom && (
-              <input value={form.customRecorderName}
+              <TextField value={form.customRecorderName}
                 onChange={(e) => setForm((prev) => ({ ...prev, customRecorderName: e.target.value, recorder: { ...prev.recorder, name: e.target.value, emoji: '👤' } }))}
-                className={inp} style={inputBg} placeholder="输入自定义记录者名称" />
+                className="w-full" inputClassName="text-[14px]" placeholder="输入自定义记录者名称" />
             )}
             <div className="mb-5" />
 
             {/* Actions */}
-            <div className="flex gap-3 pt-2" style={{ borderTop: `1px solid ${INNER_BORDER}` }}>
-              <button onClick={() => void (editingId ? handleUpdate() : handleAdd())}
-                className="px-6 py-2.5 rounded-full text-[14px] font-medium text-white transition-all hover:opacity-90"
-                style={{ background: S.blue, boxShadow: '0 2px 8px rgba(129,140,248,0.3)' }}>
+            <div className="flex gap-3 border-t border-[var(--nimi-border-subtle)] pt-2">
+              <Button onClick={() => void (editingId ? handleUpdate() : handleAdd())} tone="primary" size="md" className="px-6 text-[14px]">
                 {editingId ? '保存' : '添加'}
-              </button>
-              <button onClick={resetForm}
-                className="px-6 py-2.5 rounded-full text-[14px] font-medium transition-colors"
-                style={{ background: '#f5f3ef', color: S.text }}>
+              </Button>
+              <Button onClick={resetForm} tone="secondary" size="md" className="px-6 text-[14px]">
                 取消
-              </button>
+              </Button>
             </div>
-          </div>
+          </Surface>
         )}
       </div>
 

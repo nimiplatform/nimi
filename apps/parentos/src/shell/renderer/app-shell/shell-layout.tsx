@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, type MouseEvent as ReactMouseEvent, type ReactNode, type ComponentType } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { Home, User, BookText, MessageCircle, TrendingUp, Settings, Bell, LogOut, ChevronDown, Check, UserPlus, type LucideProps } from 'lucide-react';
-import { AmbientBackground, Surface } from '@nimiplatform/nimi-kit/ui';
+import { AmbientBackground, Surface, cn } from '@nimiplatform/nimi-kit/ui';
 import { useAppStore, computeAgeMonths, type ChildProfile } from './app-store.js';
 import { startParentosWindowDrag } from '../bridge/window-drag.js';
 import { setAppSetting } from '../bridge/sqlite-bridge.js';
@@ -10,9 +10,6 @@ import { logoutParentOSRuntimeAccount } from '../features/auth/parentos-auth-ada
 import { isoNow } from '../bridge/ulid.js';
 import { ProfileTodoDrawer } from '../features/profile/profile-todo-drawer.js';
 import { ChildAvatar } from '../shared/child-avatar.js';
-
-const textMain = '#1e293b';
-const textMuted = '#475569';
 
 const navItems: Array<{ to: string; label: string; Icon: ComponentType<LucideProps> }> = [
   { to: '/timeline', label: '首页', Icon: Home },
@@ -68,16 +65,13 @@ function ChildSwitcherBreadcrumb({ childList, activeChildId, onSwitchChild }: {
         aria-expanded={open}
         aria-haspopup="menu"
         aria-label="切换孩子"
-        className="flex items-center gap-2 rounded-[10px] px-2 py-1.5 transition-colors hover:bg-white/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#4ECCA3]/30"
+        className="flex items-center gap-2 rounded-lg px-2 py-1.5 transition-colors hover:bg-[var(--nimi-action-ghost-hover)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)]"
       >
-        <span
-          className="flex h-6 w-6 shrink-0 items-center justify-center overflow-hidden rounded-full"
-          style={{ outline: '1px solid rgba(226, 232, 240, 0.95)' }}
-        >
+        <span className="flex h-6 w-6 shrink-0 items-center justify-center overflow-hidden rounded-full ring-1 ring-[var(--nimi-border-subtle)]">
           <ChildAvatar child={activeChild} className="h-full w-full object-cover" />
         </span>
-        <span className="text-[14px] font-medium" style={{ color: textMain }}>{activeChild.displayName}</span>
-        <ChevronDown size={13} strokeWidth={2} className="text-slate-400" />
+        <span className="text-[14px] font-medium text-[var(--nimi-text-primary)]">{activeChild.displayName}</span>
+        <ChevronDown size={13} strokeWidth={2} className="text-[var(--nimi-text-muted)]" />
       </button>
 
       {mounted && (
@@ -87,18 +81,14 @@ function ChildSwitcherBreadcrumb({ childList, activeChildId, onSwitchChild }: {
           padding="none"
           tone="card"
           role="menu"
-          className="absolute left-0 top-12 z-50 w-60 overflow-hidden py-1.5 border-[var(--nimi-material-glass-thick-border)] rounded-[16px] shadow-[0_8px_32px_rgba(78,204,163,0.1)]"
+          className={cn(
+            'absolute left-0 top-12 z-50 w-60 origin-top-left overflow-hidden rounded-xl border-[var(--nimi-material-glass-thick-border)] py-1.5 shadow-[var(--nimi-elevation-floating)] transition-all duration-[var(--nimi-motion-fast)]',
+            open ? 'pointer-events-auto translate-y-0 scale-100 opacity-100' : 'pointer-events-none translate-y-1 scale-95 opacity-0',
+          )}
           onTransitionEnd={() => { if (!open) setMounted(false); }}
-          style={{
-            opacity: open ? 1 : 0,
-            transform: open ? 'translateY(0) scale(1)' : 'translateY(6px) scale(0.97)',
-            transformOrigin: 'top left',
-            transition: 'opacity 0.18s ease, transform 0.18s ease',
-            pointerEvents: open ? 'auto' : 'none',
-          }}
         >
           <div className="px-1.5">
-            {childList.map((c, idx) => {
+            {childList.map((c) => {
               const isActive = c.childId === activeChildId;
               const ageLabel = formatChildAge(computeAgeMonths(c.birthDate));
               return (
@@ -108,50 +98,44 @@ function ChildSwitcherBreadcrumb({ childList, activeChildId, onSwitchChild }: {
                   role="menuitemradio"
                   aria-checked={isActive}
                   onClick={() => { onSwitchChild(c.childId); closeMenu(); }}
-                  className="flex w-full items-center justify-between gap-3 rounded-xl px-2 py-2 text-left transition-colors hover:bg-[#4ECCA3]/5"
-                  style={{
-                    background: isActive ? 'rgba(78,204,163,0.1)' : undefined,
-                    opacity: open ? 1 : 0,
-                    transform: open ? 'translateY(0)' : 'translateY(3px)',
-                    transition: `opacity 0.18s ease ${idx * 0.03}s, transform 0.18s ease ${idx * 0.03}s`,
-                  }}
+                  className={cn(
+                    'flex w-full items-center justify-between gap-3 rounded-xl px-2 py-2 text-left text-[var(--nimi-text-primary)] transition-colors hover:bg-[var(--nimi-action-ghost-hover)]',
+                    isActive && 'bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)]',
+                  )}
                 >
                   <div className="flex min-w-0 items-center gap-2.5">
-                    <span
-                      className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full"
-                      style={{ outline: isActive ? '2px solid #4ECCA3' : '1px solid rgba(226, 232, 240, 0.95)' }}
-                    >
+                    <span className={cn(
+                      'flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full',
+                      isActive ? 'ring-2 ring-[var(--nimi-action-primary-bg)]' : 'ring-1 ring-[var(--nimi-border-subtle)]',
+                    )}>
                       <ChildAvatar child={c} className="h-full w-full object-cover" />
                     </span>
                     <div className="min-w-0">
-                      <span className="block truncate text-[14px] font-semibold" style={{ color: isActive ? '#2F7D6B' : textMain }}>
+                      <span className={cn(
+                        'block truncate text-[14px] font-semibold',
+                        isActive ? 'text-[var(--nimi-action-primary-bg)]' : 'text-[var(--nimi-text-primary)]',
+                      )}>
                         {c.displayName}
                       </span>
-                      <span className="block text-[12px]" style={{ color: textMuted }}>{ageLabel}</span>
+                      <span className="block text-[12px] text-[var(--nimi-text-muted)]">{ageLabel}</span>
                     </div>
                   </div>
-                  {isActive ? <Check size={16} strokeWidth={2.2} style={{ color: '#4ECCA3' }} /> : null}
+                  {isActive ? <Check size={16} strokeWidth={2.2} className="text-[var(--nimi-action-primary-bg)]" /> : null}
                 </button>
               );
             })}
           </div>
 
-          <div className="mx-3 my-1 border-t" style={{ borderColor: 'rgba(78,204,163,0.2)' }} />
+          <div className="mx-3 my-1 border-t border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_20%,transparent)]" />
 
           <div className="px-1.5 pb-0.5">
             <button
               type="button"
               role="menuitem"
               onClick={() => { closeMenu(); navigate('/settings/children'); }}
-              className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-[14px] transition-colors hover:bg-[#4ECCA3]/5"
-              style={{
-                color: textMuted,
-                opacity: open ? 1 : 0,
-                transform: open ? 'translateY(0)' : 'translateY(3px)',
-                transition: `opacity 0.18s ease ${childList.length * 0.03}s, transform 0.18s ease ${childList.length * 0.03}s`,
-              }}
+              className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-[14px] text-[var(--nimi-text-muted)] transition-colors hover:bg-[var(--nimi-action-ghost-hover)]"
             >
-              <UserPlus size={16} strokeWidth={1.8} style={{ color: '#9ca3af' }} />
+              <UserPlus size={16} strokeWidth={1.8} className="text-[var(--nimi-text-muted)]" />
               添加家庭成员
             </button>
           </div>
@@ -208,8 +192,7 @@ function AccountAvatarMenu() {
         onClick={() => open ? closeMenu() : openMenu()}
         aria-expanded={open}
         aria-label="打开账号菜单"
-        className="flex h-9 w-9 items-center justify-center rounded-full text-[14px] font-semibold transition-all hover:-translate-y-0.5"
-        style={{ background: textMain, color: '#fff', boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}
+        className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--nimi-text-primary)] text-[14px] font-semibold text-[var(--nimi-text-inverse)] shadow-[var(--nimi-elevation-base)] transition-all hover:-translate-y-0.5"
       >
         {initial}
       </button>
@@ -220,73 +203,54 @@ function AccountAvatarMenu() {
           material="glass-thick"
           padding="none"
           tone="card"
-          className="absolute right-0 top-12 z-50 w-64 overflow-hidden py-2 border-[var(--nimi-material-glass-thick-border)] rounded-[16px] shadow-[0_8px_32px_rgba(78,204,163,0.1)]"
+          className={cn(
+            'absolute right-0 top-12 z-50 w-64 origin-top-right overflow-hidden rounded-xl border-[var(--nimi-material-glass-thick-border)] py-2 shadow-[var(--nimi-elevation-floating)] transition-all duration-[var(--nimi-motion-fast)]',
+            open ? 'pointer-events-auto translate-y-0 scale-100 opacity-100' : 'pointer-events-none translate-y-1 scale-95 opacity-0',
+          )}
           onTransitionEnd={() => { if (!open) setMounted(false); }}
-          style={{
-            opacity: open ? 1 : 0,
-            transform: open ? 'translateY(0) scale(1)' : 'translateY(6px) scale(0.97)',
-            transformOrigin: 'top right',
-            transition: 'opacity 0.18s ease, transform 0.18s ease',
-            pointerEvents: open ? 'auto' : 'none',
-          }}
         >
           {/* ── User info header ── */}
           <div className="flex items-center gap-3 px-4 py-3">
-            <div
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[16px] font-semibold text-white"
-              style={{ background: textMain }}
-            >
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--nimi-text-primary)] text-[16px] font-semibold text-[var(--nimi-text-inverse)]">
               {initial}
             </div>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-semibold" style={{ color: textMain }}>
+              <p className="truncate text-sm font-semibold text-[var(--nimi-text-primary)]">
                 {displayName}
               </p>
               {authUser?.email ? (
-                <p className="truncate text-xs" style={{ color: textMuted }}>{authUser.email}</p>
+                <p className="truncate text-xs text-[var(--nimi-text-muted)]">{authUser.email}</p>
               ) : null}
             </div>
           </div>
 
           {/* ── Divider ── */}
-          <div className="mx-3 border-t" style={{ borderColor: 'rgba(78,204,163,0.2)' }} />
+          <div className="mx-3 border-t border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_20%,transparent)]" />
 
           {/* ── Menu items ── */}
           <div className="px-1.5 py-1.5">
-            {accountMenuItems.map((item, idx) => (
+            {accountMenuItems.map((item) => (
               <button
                 key={item.id}
                 onClick={() => { closeMenu(); navigate(item.route); }}
-                className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-[14px] transition-all hover:bg-[#4ECCA3]/5"
-                style={{
-                  color: '#374151',
-                  opacity: open ? 1 : 0,
-                  transform: open ? 'translateY(0)' : 'translateY(3px)',
-                  transition: `opacity 0.18s ease ${idx * 0.03}s, transform 0.18s ease ${idx * 0.03}s`,
-                }}
+                className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-[14px] text-[var(--nimi-text-secondary)] transition-all hover:bg-[var(--nimi-action-ghost-hover)] hover:text-[var(--nimi-text-primary)]"
               >
-                <item.icon size={18} strokeWidth={1.8} style={{ color: '#9ca3af' }} />
+                <item.icon size={18} strokeWidth={1.8} className="text-[var(--nimi-text-muted)]" />
                 {item.label}
               </button>
             ))}
           </div>
 
           {/* ── Divider ── */}
-          <div className="mx-3 border-t" style={{ borderColor: '#f3f4f6' }} />
+          <div className="mx-3 border-t border-[var(--nimi-border-subtle)]" />
 
           {/* ── Logout ── */}
           <div className="px-1.5 py-1.5">
             <button
               onClick={handleLogout}
-              className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-[14px] transition-all hover:bg-red-50"
-              style={{
-                color: '#e25555',
-                opacity: open ? 1 : 0,
-                transform: open ? 'translateY(0)' : 'translateY(3px)',
-                transition: `opacity 0.18s ease ${accountMenuItems.length * 0.03}s, transform 0.18s ease ${accountMenuItems.length * 0.03}s`,
-              }}
+              className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-[14px] text-[var(--nimi-status-danger)] transition-all hover:bg-[color-mix(in_srgb,var(--nimi-status-danger)_8%,transparent)]"
             >
-              <LogOut size={18} strokeWidth={1.8} style={{ color: '#e25555' }} />
+              <LogOut size={18} strokeWidth={1.8} className="text-[var(--nimi-status-danger)]" />
               退出登录
             </button>
           </div>
@@ -322,8 +286,7 @@ export function ShellLayout({ children }: { children: ReactNode }) {
     <AmbientBackground variant="mesh" className="isolate flex h-full overflow-hidden">
       {/* Sidebar — transparent, shares global bg */}
       <nav
-        className="relative z-30 flex w-[62px] shrink-0 flex-col items-center overflow-visible pb-5"
-        style={{ background: 'transparent', paddingTop: 128 }}
+        className="relative z-30 flex w-[62px] shrink-0 flex-col items-center overflow-visible bg-transparent pt-32 pb-5"
       >
         <div className="flex flex-1 flex-col items-center gap-1">
           {navItems.map((item) => (
@@ -331,20 +294,16 @@ export function ShellLayout({ children }: { children: ReactNode }) {
               key={item.to}
               to={item.to}
               className={({ isActive }) =>
-                `group relative flex items-center justify-center w-[40px] h-[40px] rounded-[12px] transition-all duration-150 ${
-                  isActive ? '' : 'hover:bg-white/40'
+                `group relative flex items-center justify-center w-[40px] h-[40px] rounded-xl transition-all duration-150 ${
+                  isActive
+                    ? 'bg-[var(--nimi-text-primary)] text-[var(--nimi-text-inverse)] shadow-[var(--nimi-elevation-base)]'
+                    : 'text-[var(--nimi-text-muted)] hover:bg-[var(--nimi-action-ghost-hover)] hover:text-[var(--nimi-text-primary)]'
                 }`
-              }
-              style={({ isActive }) =>
-                isActive
-                  ? { background: textMain, color: '#fff', boxShadow: '0 4px 14px rgba(0,0,0,0.08)' }
-                  : { color: '#64748b' }
               }
             >
               <item.Icon size={19} strokeWidth={1.8} />
               <span
-                className="pointer-events-none absolute left-[52px] z-50 whitespace-nowrap px-3 py-1.5 text-[13px] font-medium opacity-0 transition-opacity duration-100 group-hover:opacity-100 bg-[var(--nimi-material-glass-thick-bg)] border border-[var(--nimi-material-glass-thick-border)] backdrop-blur-[var(--nimi-backdrop-blur-strong)] shadow-[0_8px_32px_rgba(31,38,135,0.04)] rounded-[var(--nimi-radius-xl)] nimi-material-glass-thick"
-                style={{ color: textMain }}
+                className="pointer-events-none absolute left-[52px] z-50 whitespace-nowrap rounded-2xl border border-[var(--nimi-material-glass-thick-border)] bg-[var(--nimi-material-glass-thick-bg)] px-3 py-1.5 text-[13px] font-medium text-[var(--nimi-text-primary)] opacity-0 shadow-[var(--nimi-elevation-floating)] backdrop-blur-[var(--nimi-backdrop-blur-strong)] transition-opacity duration-100 group-hover:opacity-100 nimi-material-glass-thick"
               >
                 {item.label}
               </span>
@@ -358,15 +317,14 @@ export function ShellLayout({ children }: { children: ReactNode }) {
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Top bar */}
         <header
-          className="z-20 flex h-[60px] shrink-0 items-center gap-4 px-6"
-          style={{ background: 'transparent' }}
+          className="z-20 flex h-[60px] shrink-0 items-center gap-4 bg-transparent px-6"
           onMouseDown={handleWindowDragMouseDown}
         >
           <div className="flex min-w-0 items-center gap-2">
-            <h1 className="text-[18px] font-semibold tracking-tight" style={{ color: textMain, letterSpacing: '-0.3px' }}>ParentOS</h1>
+            <h1 className="text-[18px] font-semibold text-[var(--nimi-text-primary)]">ParentOS</h1>
             {childList.length > 0 && activeChildId ? (
               <>
-                <span className="select-none text-slate-300" aria-hidden="true">/</span>
+                <span className="select-none text-[var(--nimi-border-strong)]" aria-hidden="true">/</span>
                 <ChildSwitcherBreadcrumb
                   childList={childList}
                   activeChildId={activeChildId}
@@ -377,8 +335,7 @@ export function ShellLayout({ children }: { children: ReactNode }) {
           </div>
 
           <div className="ml-auto flex items-center gap-3">
-            <button className="flex h-9 w-9 items-center justify-center rounded-xl transition-colors hover:bg-white/40"
-              style={{ color: '#64748b' }}>
+            <button className="flex h-9 w-9 items-center justify-center rounded-xl text-[var(--nimi-text-muted)] transition-colors hover:bg-[var(--nimi-action-ghost-hover)] hover:text-[var(--nimi-text-primary)]">
               <Bell size={17} strokeWidth={1.8} />
             </button>
 

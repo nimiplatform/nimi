@@ -1,3 +1,4 @@
+import { Surface } from '@nimiplatform/nimi-kit/ui';
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -15,7 +16,6 @@ import {
 } from '../../bridge/sqlite-bridge.js';
 import type { DentalRecordRow, AttachmentRow } from '../../bridge/sqlite-bridge.js';
 import { ulid, isoNow } from '../../bridge/ulid.js';
-import { S } from '../../app-shell/page-style.js';
 import { DentalInsightCard } from './dental-page-insight-card.js';
 import { catchLog } from '../../infra/telemetry/catch-log.js';
 import { readImageFileAsDataUrl } from './checkup-ocr.js';
@@ -394,7 +394,7 @@ export function DentalHistoryView() {
     return Number.isFinite(n) && ((n >= 11 && n <= 18) || (n >= 21 && n <= 28) || (n >= 31 && n <= 38) || (n >= 41 && n <= 48));
   }).length;
 
-  if (!child) return <div className="p-8" style={{ color: S.sub }}>请先添加孩子</div>;
+  if (!child) return <div className="p-8 text-[var(--nimi-text-muted)]">请先添加孩子</div>;
 
   const sortedRecords = [...records].sort((a, b) => b.eventDate.localeCompare(a.eventDate));
   // Build filter chips. All `ortho-*` events collapse into a single "正畸"
@@ -615,8 +615,7 @@ export function DentalHistoryView() {
 
       {/* Reminder toast */}
       {reminderMsg && (
-        <div className={`${S.radiusSm} px-4 py-2.5 mb-4 flex items-center gap-2 text-[14px] font-medium`}
-          style={{ background: '#f0f7f0', color: '#16a34a', border: '1px solid #bbf7d0' }}>
+        <div className="mb-4 flex items-center gap-2 rounded-2xl border border-[color-mix(in_srgb,var(--nimi-status-success)_30%,var(--nimi-border-subtle))] bg-[color-mix(in_srgb,var(--nimi-status-success)_8%,var(--nimi-surface-card))] px-4 py-2.5 text-[14px] font-medium text-[var(--nimi-status-success)]">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" /></svg>
           {reminderMsg}
         </div>
@@ -625,15 +624,14 @@ export function DentalHistoryView() {
       {errorMsg && (
         <div
           role="alert"
-          className={`${S.radiusSm} px-4 py-2.5 mb-4 flex items-start gap-2 text-[14px] font-medium`}
-          style={{ background: '#fef2f2', color: '#b91c1c', border: '1px solid #fecaca' }}
+          className="mb-4 flex items-start gap-2 rounded-2xl border border-[color-mix(in_srgb,var(--nimi-status-danger)_30%,var(--nimi-border-subtle))] bg-[color-mix(in_srgb,var(--nimi-status-danger)_8%,var(--nimi-surface-card))] px-4 py-2.5 text-[14px] font-medium text-[var(--nimi-status-danger)]"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10" /><path d="M12 8v4M12 16h.01" /></svg>
-          <span style={{ flex: 1 }}>{errorMsg}</span>
+          <span className="flex-1">{errorMsg}</span>
           <button
             type="button"
             onClick={() => setErrorMsg(null)}
-            style={{ border: 0, background: 'transparent', color: '#b91c1c', cursor: 'pointer', fontSize: 12 }}
+            className="cursor-pointer border-0 bg-transparent text-[12px] text-[var(--nimi-status-danger)]"
              aria-label={t('Profile.rich.common.close')}
           >
             ×
@@ -643,15 +641,7 @@ export function DentalHistoryView() {
 
       {/* Section label */}
       <div
-        className="mb-3"
-        style={{
-          fontSize: 10,
-          fontWeight: 600,
-          letterSpacing: '0.18em',
-          textTransform: 'uppercase',
-          color: '#94a3b8',
-          padding: '0 4px',
-        }}
+        className="mb-3 px-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--nimi-text-muted)]"
       >
         {t('Profile.rich.dental.statusOverview')}
       </div>
@@ -731,20 +721,20 @@ export function DentalHistoryView() {
       />
 
       {/* ── Records timeline ─────────────────────────────── */}
-      <div className="mt-2 mb-4 flex items-center justify-between gap-3 flex-wrap" style={{ padding: '0 4px' }}>
+      <div className="mt-2 mb-4 flex items-center justify-between gap-3 flex-wrap px-1">
         <div className="flex items-baseline gap-2">
-          <h3 style={{ margin: 0, fontSize: 15, fontWeight: 600, color: S.text }}>{t('Profile.rich.dental.history')}</h3>
-          <span style={{ fontSize: 12, color: '#64748b', fontFamily: '"JetBrains Mono", "SF Mono", ui-monospace, monospace' }}>
+          <h3 className="m-0 text-[15px] font-semibold text-[var(--nimi-text-primary)]">{t('Profile.rich.dental.history')}</h3>
+          <span className="font-mono text-[12px] text-[var(--nimi-text-muted)]">
             {t('Profile.rich.common.recordsCount', { count: sortedRecords.length })}
           </span>
         </div>
         {filterTabs.length > 1 && (
-          <div style={{ display: 'flex', padding: 3, borderRadius: 999, gap: 2, background: 'rgba(226,232,240,0.45)', border: '1px solid rgba(226,232,240,0.6)' }}>
+          <div className="flex gap-0.5 rounded-full border border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-border-subtle)_45%,transparent)] p-[3px]">
             {filterTabs.map((tab) => {
               const active = typeFilter === tab.key;
               return (
                 <button key={tab.key ?? 'all'} type="button" onClick={() => setTypeFilter(tab.key)}
-                  style={{ border: 0, background: active ? '#ffffff' : 'transparent', color: active ? S.text : '#64748b', fontWeight: active ? 600 : 400, fontSize: 12, padding: '6px 12px', borderRadius: 999, cursor: 'pointer', boxShadow: active ? '0 1px 3px rgba(15,23,42,0.08)' : 'none', transition: 'all 160ms' }}>
+                  className={`cursor-pointer rounded-full border-0 px-3 py-1.5 text-[12px] transition-all ${active ? 'bg-[var(--nimi-surface-card)] font-semibold text-[var(--nimi-text-primary)] shadow-[var(--nimi-elevation-base)]' : 'bg-transparent font-normal text-[var(--nimi-text-muted)]'}`}>
                   {tab.label}
                 </button>
               );
@@ -754,17 +744,17 @@ export function DentalHistoryView() {
       </div>
 
       {sortedRecords.length === 0 && !showForm && (
-        <div className={`${S.radius} p-8 text-center`} style={{ background: S.card, boxShadow: S.shadow }}>
+        <Surface tone="card" material="glass-regular" elevation="raised" padding="lg" className="rounded-3xl p-8 text-center">
           <span className="text-[24px]">🦷</span>
-          <p className="text-[14px] mt-2 font-medium" style={{ color: S.text }}>{t('Profile.rich.dental.empty')}</p>
-          <p className="text-[13px] mt-1" style={{ color: S.sub }}>{t('Profile.rich.dental.emptyHint')}</p>
-        </div>
+          <p className="text-[14px] mt-2 font-medium text-[var(--nimi-text-primary)]">{t('Profile.rich.dental.empty')}</p>
+          <p className="text-[13px] mt-1 text-[var(--nimi-text-muted)]">{t('Profile.rich.dental.emptyHint')}</p>
+        </Surface>
       )}
 
       {sortedRecords.length > 0 && filteredSortedRecords.length === 0 && (
-        <div className={`${S.radius} p-6 text-center`} style={{ background: S.card, boxShadow: S.shadow }}>
-          <p className="text-[14px]" style={{ color: S.sub }}>{t('Profile.rich.dental.emptyFiltered')}</p>
-        </div>
+        <Surface tone="card" material="glass-regular" elevation="raised" padding="lg" className="rounded-3xl p-6 text-center">
+          <p className="text-[14px] text-[var(--nimi-text-muted)]">{t('Profile.rich.dental.emptyFiltered')}</p>
+        </Surface>
       )}
 
       {filteredSortedRecords.length > 0 && (

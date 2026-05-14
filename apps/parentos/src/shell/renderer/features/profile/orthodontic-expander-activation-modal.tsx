@@ -1,3 +1,4 @@
+import { Surface } from '@nimiplatform/nimi-kit/ui';
 /**
  * Records an expander activation turn (PO-ORTHO-005 `expander-activation`
  * checkin / PO-ORTHO-014). Opened from the expander card's "记录转动" action.
@@ -11,7 +12,6 @@ import {
 } from '../../bridge/sqlite-bridge.js';
 import { isoNow, ulid } from '../../bridge/ulid.js';
 import { catchLog } from '../../infra/telemetry/catch-log.js';
-import { S } from '../../app-shell/page-style.js';
 import { toLocalDatetimeInputValue } from './orthodontic-treatment-card-parts.js';
 import {
   FieldInput,
@@ -89,17 +89,10 @@ export function OrthodonticExpanderActivationModal({
     <Modal title="记录扩弓器加力" onClose={onClose}>
       {localError && <ModalErrorBanner message={localError} onDismiss={() => setLocalError(null)} />}
 
-      <div
-        className="text-[13px] px-3 py-2 rounded-md"
-        style={{
-          background: 'rgba(15,23,42,0.04)',
-          color: S.sub,
-          border: '1px solid rgba(226,232,240,0.7)',
-        }}
-      >
-        已加力 <strong style={{ color: S.text }}>{appliance.completedActivations}</strong>
+      <Surface tone="card" material="solid" elevation="base" padding="none" className="rounded-md border border-[color-mix(in_srgb,var(--nimi-border-subtle)_70%,transparent)] bg-[color-mix(in_srgb,var(--nimi-text-primary)_4%,transparent)] px-3 py-2 text-[13px] text-[var(--nimi-text-muted)]">
+        已加力 <strong className="text-[var(--nimi-text-primary)]">{appliance.completedActivations}</strong>
         {cap !== null ? ` / ${cap}` : ''} 圈
-      </div>
+      </Surface>
 
       <FieldInput
         label="本次加力序号"
@@ -109,7 +102,7 @@ export function OrthodonticExpanderActivationModal({
         placeholder={`默认 ${nextIndex}`}
       />
       {overCap && (
-        <div className="text-[13px]" style={{ color: '#b91c1c' }}>
+        <div className="text-[13px] text-[var(--nimi-status-danger)]">
           已达到处方总加力次数 {cap}，无法继续记录加力。
         </div>
       )}

@@ -1,3 +1,4 @@
+import { Button, Surface } from '@nimiplatform/nimi-kit/ui';
 /**
  * Parent-initiated treatment-phase advance dialog (PO-ORTHO-013). The
  * per-appliance mirror of `OrthodonticStageConfirmDialog`: the phase pill on
@@ -11,7 +12,6 @@ import {
 } from '../../bridge/sqlite-bridge.js';
 import { isoNow } from '../../bridge/ulid.js';
 import { catchLog } from '../../infra/telemetry/catch-log.js';
-import { S } from '../../app-shell/page-style.js';
 import {
   applianceTypeLabel,
   computeAppliancePhaseOptions,
@@ -53,35 +53,23 @@ export function AppliancePhaseAdvanceDialog({
       role="dialog"
       aria-modal="true"
       aria-label="确认推进治疗阶段"
-      style={{
-        position: 'fixed',
-        inset: 0,
-        background: 'rgba(15,23,42,0.32)',
-        display: 'grid',
-        placeItems: 'center',
-        zIndex: 100,
-      }}
+      className="fixed inset-0 z-[100] grid place-items-center bg-[var(--nimi-scrim-modal)]"
     >
-      <div
-        style={{
-          background: '#fff',
-          padding: 24,
-          borderRadius: 16,
-          minWidth: 320,
-          maxWidth: 400,
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 12,
-        }}
+      <Surface
+        material="glass-regular"
+        tone="overlay"
+        elevation="floating"
+        padding="none"
+        className="flex min-w-[320px] max-w-[400px] flex-col gap-3 rounded-2xl p-6"
       >
         {target ? (
           <>
-            <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600 }}>
+            <h3 className="m-0 text-[16px] font-semibold text-[var(--nimi-text-primary)]">
               {isInitial
                 ? `设置「${applianceTypeLabel(appliance.applianceType)}」初始阶段为「${target.label}」?`
                 : `推进到「${target.label}」?`}
             </h3>
-            <p className="text-[14px]" style={{ color: S.sub, margin: 0 }}>
+            <p className="m-0 text-[14px] text-[var(--nimi-text-muted)]">
               {isInitial
                 ? '设置后会开始按该阶段计算阶段月数。如果是误操作，可以再次手动调整。'
                 : '阶段只能逐级推进。推进后会从今天开始重新计算阶段月数。'}
@@ -89,45 +77,31 @@ export function AppliancePhaseAdvanceDialog({
           </>
         ) : (
           <>
-            <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600 }}>已是最后阶段</h3>
-            <p className="text-[14px]" style={{ color: S.sub, margin: 0 }}>
+            <h3 className="m-0 text-[16px] font-semibold text-[var(--nimi-text-primary)]">已是最后阶段</h3>
+            <p className="m-0 text-[14px] text-[var(--nimi-text-muted)]">
               该矫治器已处于其治疗阶段序列的最后一个阶段，没有可推进的下一阶段。
             </p>
           </>
         )}
-        <div className="flex justify-end gap-2 mt-2">
-          <button
-            type="button"
+        <div className="mt-2 flex justify-end gap-2">
+          <Button
+            tone="ghost"
+            size="sm"
             onClick={onCancel}
-            className="text-[14px]"
-            style={{
-              background: 'transparent',
-              color: '#64748b',
-              border: 0,
-              cursor: 'pointer',
-              padding: '6px 12px',
-            }}
           >
             {target ? '取消' : '关闭'}
-          </button>
+          </Button>
           {target && (
-            <button
-              type="button"
+            <Button
+              tone="primary"
+              size="sm"
               onClick={() => void handleConfirm()}
-              className="text-[14px] font-semibold text-white"
-              style={{
-                background: S.accent,
-                padding: '6px 14px',
-                borderRadius: 8,
-                border: 0,
-                cursor: 'pointer',
-              }}
             >
               {isInitial ? '确认设置' : '确认推进'}
-            </button>
+            </Button>
           )}
         </div>
-      </div>
+      </Surface>
     </div>
   );
 }

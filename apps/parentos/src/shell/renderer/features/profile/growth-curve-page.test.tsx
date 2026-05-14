@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { TooltipProvider } from '@nimiplatform/nimi-kit/ui';
 import type { ReactNode } from 'react';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -144,9 +145,11 @@ describe('GrowthCurvePage', () => {
 
   it('renders WHO lines only inside official coverage and fails closed for weight after 120 months', async () => {
     render(
-      <MemoryRouter>
-        <GrowthCurvePage />
-      </MemoryRouter>,
+      <TooltipProvider>
+        <MemoryRouter>
+          <GrowthCurvePage />
+        </MemoryRouter>
+      </TooltipProvider>,
     );
 
     await waitFor(() => {
@@ -178,9 +181,11 @@ describe('GrowthCurvePage', () => {
 
   it('imports OCR candidates only after parent confirmation and stores them as source=ocr', async () => {
     render(
-      <MemoryRouter>
-        <GrowthCurvePage />
-      </MemoryRouter>,
+      <TooltipProvider>
+        <MemoryRouter>
+          <GrowthCurvePage />
+        </MemoryRouter>
+      </TooltipProvider>,
     );
 
     await waitFor(() => {

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { S } from '../../app-shell/page-style.js';
+import type { SelectFieldOption } from '@nimiplatform/nimi-kit/ui';
 import { useAppStore, computeAgeMonths } from '../../app-shell/app-store.js';
 import { OBSERVATION_DIMENSIONS } from '../../knowledge-base/index.js';
 import { getActiveDimensions } from '../../engine/observation-matcher.js';
@@ -380,7 +380,7 @@ export default function JournalPage() {
     writeJournalLocalDraft({ ...currentLocalDraftPayload, updatedAt });
   }, [child, currentLocalDraftHasContent, currentLocalDraftPayload, editingEntryId]);
 
-  if (!child) return <div className="p-8" style={{ color: S.sub }}>请先添加孩子</div>;
+  if (!child) return <div className="p-8 text-[var(--nimi-text-muted)]">请先添加孩子</div>;
 
   /* ── Helpers ── */
 
@@ -585,7 +585,7 @@ export default function JournalPage() {
      ════════════════════════════════════════════════════════ */
 
   return (
-    <div className={`${S.container} hide-scrollbar`} style={{ paddingTop: 16, minHeight: '100%' }}>
+    <div className="hide-scrollbar mx-auto min-h-full max-w-3xl px-6 pb-6 pt-4">
       <JournalPageCapture
         activeChildId={activeChildId}
         childOptions={children.map((item) => ({ value: item.childId, label: item.displayName }))}

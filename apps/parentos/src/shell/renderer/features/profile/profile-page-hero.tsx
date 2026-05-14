@@ -1,8 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Pencil, Plus } from 'lucide-react';
-import { Surface } from '@nimiplatform/nimi-kit/ui';
-import { S } from '../../app-shell/page-style.js';
+import { Button, Surface } from '@nimiplatform/nimi-kit/ui';
 import { ChildAvatar } from '../../shared/child-avatar.js';
 import { formatAgeText } from './health-record-display.js';
 
@@ -35,25 +34,24 @@ export function ProfileHero({ child, ageMonths, completeness, recordCount, lastR
       as="section"
       material="glass-thick"
       padding="none"
-      tone="card"
-      className="mb-6 overflow-hidden rounded-[var(--nimi-radius-xl)] p-6 shadow-[0_8px_32px_rgba(31,38,135,0.04)]"
-      style={{ background: 'linear-gradient(135deg, rgba(167,243,208,0.35) 0%, rgba(191,219,254,0.30) 60%, rgba(221,214,254,0.30) 100%)' }}
+      tone="hero"
+      elevation="raised"
+      className="mb-6 overflow-hidden rounded-3xl p-6"
     >
       <div className="flex flex-wrap items-start gap-5">
         <ChildAvatar
           child={child}
           ageMonths={ageMonths}
-          className="h-[72px] w-[72px] rounded-[20px] border-2 object-cover"
-          style={{ borderColor: 'rgba(255,255,255,0.65)', boxShadow: '0 4px 14px rgba(0,0,0,0.06)' }}
+          className="h-[72px] w-[72px] rounded-2xl border-2 border-[var(--nimi-material-glass-thick-border)] object-cover shadow-[var(--nimi-elevation-base)]"
         />
         <div className="min-w-[240px] flex-1">
           <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-            <h1 className="text-[22px] font-semibold tracking-normal" style={{ color: S.text, letterSpacing: 0 }}>
+            <h1 className="text-[22px] font-semibold tracking-normal text-[var(--nimi-text-primary)]">
               {child.displayName}
             </h1>
-            <p className="text-[13px]" style={{ color: S.sub }}>{subtitleParts.join(' · ')}</p>
+            <p className="text-[13px] text-[var(--nimi-text-muted)]">{subtitleParts.join(' · ')}</p>
           </div>
-          <p className="mt-2 text-[13px]" style={{ color: S.sub }}>
+          <p className="mt-2 text-[13px] text-[var(--nimi-text-muted)]">
             {t('Profile.hero.recordSummary', {
               count: recordCount,
               defaultValue: '已经陪她记录了 {{count}} 条',
@@ -63,37 +61,40 @@ export function ProfileHero({ child, ageMonths, completeness, recordCount, lastR
               : ''}
           </p>
           <div className="mt-3 flex items-center gap-3">
-            <span className="text-[12px] uppercase tracking-[0.06em]" style={{ color: S.sub }}>
+            <span className="text-[12px] uppercase tracking-[0.06em] text-[var(--nimi-text-muted)]">
               {t('Profile.hero.completeness', { defaultValue: '档案完整度' })}
             </span>
-            <div className="h-[6px] flex-1 overflow-hidden rounded-full" style={{ background: 'rgba(255,255,255,0.5)' }}>
+            <div className="h-[6px] flex-1 overflow-hidden rounded-full bg-[var(--nimi-surface-overlay)]">
               <div
-                className="h-full rounded-full transition-all"
-                style={{ width: `${completeness}%`, background: 'linear-gradient(90deg, #4ECCA3 0%, #818CF8 100%)' }}
+                className="h-full rounded-full bg-[image:var(--nimi-surface-hero)] transition-all"
+                style={{ width: `${completeness}%` }}
               />
             </div>
-            <span className="text-[12px] font-semibold" style={{ color: S.text }}>{completeness}%</span>
+            <span className="text-[12px] font-semibold text-[var(--nimi-text-primary)]">{completeness}%</span>
           </div>
         </div>
         <div className="flex flex-col items-stretch gap-2">
-          <button
-            type="button"
+          <Button
             onClick={onAddRecord}
-            className="inline-flex items-center justify-center gap-1.5 rounded-full px-4 py-2 text-[13px] font-semibold text-white transition-transform hover:-translate-y-0.5"
-            style={{ background: S.accent, boxShadow: '0 4px 14px rgba(78,204,163,0.32)' }}
+            tone="primary"
+            size="md"
+            leadingIcon={<Plus size={15} />}
           >
-            <Plus size={15} />
             {t('Profile.actions.addHealthData', { defaultValue: '记录新数据' })}
-          </button>
-          <Link
-            to="/settings/children"
-            state={{ from: 'profile' }}
-            className="inline-flex items-center justify-center gap-1.5 rounded-full px-4 py-2 text-[13px] font-medium transition-colors"
-            style={{ background: 'rgba(255,255,255,0.65)', color: S.text }}
+          </Button>
+          <Button
+            asChild
+            tone="secondary"
+            size="md"
+            leadingIcon={<Pencil size={13} />}
           >
-            <Pencil size={13} />
-            {t('Profile.actions.editChild', { defaultValue: '编辑资料' })}
-          </Link>
+            <Link
+              to="/settings/children"
+              state={{ from: 'profile' }}
+            >
+              {t('Profile.actions.editChild', { defaultValue: '编辑资料' })}
+            </Link>
+          </Button>
         </div>
       </div>
     </Surface>

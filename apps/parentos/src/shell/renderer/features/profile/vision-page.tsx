@@ -1,3 +1,4 @@
+import { Button } from '@nimiplatform/nimi-kit/ui';
 /**
  * Vision archive page — timeline-document view.
  *
@@ -17,7 +18,6 @@ import { computeAgeMonths, useAppStore } from '../../app-shell/app-store.js';
 import { deleteMeasurement, getMeasurements, getMedicalEvents } from '../../bridge/sqlite-bridge.js';
 import type { MeasurementRow, MedicalEventRow } from '../../bridge/sqlite-bridge.js';
 import type { GrowthTypeId } from '../../knowledge-base/gen/growth-standards.gen.js';
-import { S } from '../../app-shell/page-style.js';
 import { catchLog } from '../../infra/telemetry/catch-log.js';
 import { AISummaryCard } from './ai-summary-card.js';
 import { readImageFileAsDataUrl, analyzeCheckupSheetOCR } from './checkup-ocr.js';
@@ -138,7 +138,7 @@ export default function VisionPage() {
 
   if (!child) {
     return (
-      <div className="flex items-center justify-center h-full" style={{ color: 'var(--nimi-fg-3)' }}>
+      <div className="flex h-full items-center justify-center text-[var(--nimi-text-muted)]">
         {t('Profile.empty.noActiveChild')}
       </div>
     );
@@ -179,16 +179,16 @@ export default function VisionPage() {
   };
 
   return (
-    <div className={S.container} style={{ paddingTop: S.topPad, minHeight: '100%' }}>
+      <div className="max-w-3xl mx-auto min-h-full px-6 pb-6 pt-[72px]">
       <div className="flex items-center gap-2 mb-4">
-        <Link to="/profile" className="text-[14px] hover:underline" style={{ color: 'var(--nimi-fg-3)' }}>← {t('Profile.rich.common.backToProfile')}</Link>
+        <Link to="/profile" className="text-[14px] text-[var(--nimi-text-muted)] hover:underline">← {t('Profile.rich.common.backToProfile')}</Link>
       </div>
 
       {/* Page header */}
       <header className="flex items-center gap-4 mb-5 flex-wrap">
         <div className="flex items-center gap-3 flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <h1 className="text-xl font-bold" style={{ color: 'var(--nimi-fg-1)' }}>
+            <h1 className="text-xl font-bold text-[var(--nimi-text-primary)]">
               {t('Profile.rich.vision.title', { name: child.displayName })}
             </h1>
             <SourcesTooltip />
@@ -198,8 +198,7 @@ export default function VisionPage() {
           {supportsQuantitative && (
             <button
               onClick={() => setShowGuide(!showGuide)}
-              className={`flex items-center gap-1 px-3 py-1.5 text-[12px] font-medium rounded-full transition-all`}
-              style={showGuide ? { background: 'var(--nimi-accent-soft)', color: 'var(--nimi-accent)' } : { background: 'rgba(15,23,42,0.05)', color: 'var(--nimi-fg-2)' }}
+              className={`flex items-center gap-1 rounded-full px-3 py-1.5 text-[12px] font-medium transition-all ${showGuide ? 'bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_12%,transparent)] text-[var(--nimi-action-primary-bg)]' : 'bg-[var(--nimi-action-ghost-hover)] text-[var(--nimi-text-secondary)]'}`}
             >
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="12" cy="12" r="10" /><path d="M9.1 9a3 3 0 015.8 1c0 2-3 3-3 3M12 17h.01" />
@@ -211,8 +210,7 @@ export default function VisionPage() {
             <button
               onClick={() => ocrInputRef.current?.click()}
               disabled={ocrScanning}
-              className="group relative flex items-center gap-1 px-3 py-1.5 text-[12px] font-medium rounded-full transition-all disabled:opacity-50"
-              style={{ background: 'rgba(186,230,253,0.45)', color: 'var(--nimi-fg-2)', border: '1px solid rgba(14,165,233,0.20)' }}
+              className="group relative flex items-center gap-1 rounded-full border border-[color-mix(in_srgb,var(--nimi-status-info)_20%,var(--nimi-border-subtle))] bg-[color-mix(in_srgb,var(--nimi-status-info)_12%,transparent)] px-3 py-1.5 text-[12px] font-medium text-[var(--nimi-text-secondary)] transition-all disabled:opacity-50"
             >
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
                 <rect x="3" y="3" width="18" height="18" rx="2" /><path d="M3 9h18M9 21V9" />
@@ -223,8 +221,7 @@ export default function VisionPage() {
           {supportsScreening && (
             <button
               onClick={() => setShowScreeningModal(true)}
-              className="flex items-center gap-1 px-3 py-1.5 text-[12px] font-medium rounded-full transition-all"
-              style={{ background: 'rgba(15,23,42,0.05)', color: 'var(--nimi-fg-2)' }}
+              className="flex items-center gap-1 rounded-full bg-[var(--nimi-action-ghost-hover)] px-3 py-1.5 text-[12px] font-medium text-[var(--nimi-text-secondary)] transition-all"
             >
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z" /><circle cx="12" cy="12" r="3" />
@@ -233,16 +230,16 @@ export default function VisionPage() {
             </button>
           )}
           {supportsQuantitative && (
-            <button
+            <Button
               onClick={openManualForm}
-              className="flex items-center gap-1 px-3.5 py-1.5 text-[12px] font-medium text-white rounded-full transition-all hover:opacity-90"
-              style={{ background: 'var(--nimi-accent)' }}
+              tone="primary"
+              size="sm"
             >
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M12 5v14M5 12h14" />
               </svg>
               {t('Profile.rich.vision.recordData')}
-            </button>
+            </Button>
           )}
         </div>
       </header>
@@ -258,8 +255,7 @@ export default function VisionPage() {
       />
       {ocrError && (
         <div
-          className="rounded-[14px] px-4 py-3 mb-4 text-[13px]"
-          style={{ background: 'rgba(239,68,68,0.06)', color: '#b91c1c', border: '1px solid rgba(239,68,68,0.20)' }}
+          className="mb-4 rounded-2xl border border-[color-mix(in_srgb,var(--nimi-status-danger)_28%,var(--nimi-border-subtle))] bg-[color-mix(in_srgb,var(--nimi-status-danger)_8%,transparent)] px-4 py-3 text-[13px] text-[var(--nimi-status-danger)]"
           data-testid="vision-ocr-error"
         >
           {ocrError}
@@ -344,11 +340,7 @@ export default function VisionPage() {
               exams.length > 0 ? (
                 <button
                   onClick={() => setShowAgeFilter((s) => !s)}
-                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] cursor-pointer transition-all border-0"
-                  style={{
-                    background: showAgeFilter ? 'var(--nimi-accent-soft)' : 'rgba(15,23,42,0.05)',
-                    color: showAgeFilter ? 'var(--nimi-accent)' : 'var(--nimi-fg-2)',
-                  }}
+                  className={`inline-flex cursor-pointer items-center gap-1.5 rounded-full border-0 px-2.5 py-1 text-[11px] transition-all ${showAgeFilter ? 'bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_12%,transparent)] text-[var(--nimi-action-primary-bg)]' : 'bg-[var(--nimi-action-ghost-hover)] text-[var(--nimi-text-secondary)]'}`}
                 >
                   <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M3 6h18M7 12h10M11 18h2" />
@@ -367,7 +359,7 @@ export default function VisionPage() {
             }
           >
             {t('Profile.rich.vision.timelineTitle')}
-            <span className="ml-2 text-[10px]" style={{ color: 'var(--nimi-fg-4)', textTransform: 'none', letterSpacing: 0, fontWeight: 400 }}>
+            <span className="ml-2 text-[10px] font-normal normal-case tracking-normal text-[var(--nimi-text-muted)]">
               {t('Profile.rich.vision.examCount', { count: exams.length })}
             </span>
           </SectionLabel>
@@ -399,11 +391,10 @@ export default function VisionPage() {
           ) : (
             <div className="relative" style={{ paddingLeft: 24 }}>
               <div
-                className="absolute"
                 style={{
-                  left: 9, top: 16, bottom: 16, width: 2, borderRadius: 1,
-                  background: 'linear-gradient(to bottom, rgba(15,23,42,0.10), rgba(15,23,42,0.04))',
+                  left: 9, top: 16, bottom: 16, width: 2,
                 }}
+                className="absolute rounded-px bg-[linear-gradient(to_bottom,color-mix(in_srgb,var(--nimi-text-primary)_10%,transparent),color-mix(in_srgb,var(--nimi-text-primary)_4%,transparent))]"
               />
               <div className="flex flex-col gap-3.5">
                 {recentExams.map((e, i) => (
@@ -469,10 +460,10 @@ export default function VisionPage() {
 
         {/* Footer */}
         <div
-          className="flex justify-between items-center"
-          style={{ padding: '16px 4px 0', borderTop: '1px solid rgba(15,23,42,0.06)' }}
+          style={{ padding: '16px 4px 0' }}
+          className="flex items-center justify-between border-t border-[color-mix(in_srgb,var(--nimi-text-primary)_6%,transparent)]"
         >
-          <div className="text-[11px]" style={{ color: 'var(--nimi-fg-4)' }}>
+          <div className="text-[11px] text-[var(--nimi-text-muted)]">
             所有数据加密存储 · 仅家庭可见
           </div>
         </div>

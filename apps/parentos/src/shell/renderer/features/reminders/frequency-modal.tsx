@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { S } from '../../app-shell/page-style.js';
+import { Button, IconButton, Surface, TextField, cn } from '@nimiplatform/nimi-kit/ui';
 import { saveFreqOverride, clearFreqOverride, loadFreqOverrides, type FreqOverride } from '../../engine/reminder-freq-overrides.js';
 import { catchLogThen } from '../../infra/telemetry/catch-log.js';
 
@@ -55,10 +55,10 @@ export function FrequencyModal({ childId, ruleId, ruleTitle, currentIntervalMont
 
   if (!loaded || selected === null) {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'var(--nimi-scrim-modal)' }} onClick={onClose}>
-        <div className={`w-[380px] ${S.radius} p-6 shadow-xl flex items-center justify-center`} style={{ background: S.card }}>
-          <span className="text-[14px]" style={{ color: S.sub }}>加载中...</span>
-        </div>
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--nimi-scrim-modal)]" onClick={onClose}>
+        <Surface tone="overlay" material="glass-thick" elevation="modal" padding="lg" className="flex w-[380px] items-center justify-center parentos-radius-xl">
+          <span className="text-[14px] text-[var(--nimi-text-muted)]">加载中...</span>
+        </Surface>
       </div>
     );
   }
@@ -95,48 +95,62 @@ export function FrequencyModal({ childId, ruleId, ruleTitle, currentIntervalMont
   const isCustomized = Boolean(existingOverride);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'var(--nimi-scrim-modal)' }} onClick={onClose}>
-      <div className={`w-[380px] ${S.radius} p-6 shadow-xl`} style={{ background: S.card }} onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--nimi-scrim-modal)]" onClick={onClose}>
+      <Surface
+        tone="overlay"
+        material="glass-thick"
+        elevation="modal"
+        padding="lg"
+        className="w-[380px] parentos-radius-xl"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header */}
-        <div className="flex items-center justify-between mb-4">
+        <div className="mb-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="text-[18px]">⏱️</span>
-            <h2 className="text-[16px] font-bold" style={{ color: S.text }}>调整提醒频率</h2>
+            <h2 className="text-[16px] font-bold text-[var(--nimi-text-primary)]">调整提醒频率</h2>
           </div>
-          <button onClick={onClose} className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-[#f0f0ec]" style={{ color: S.sub }}>✕</button>
+          <IconButton onClick={onClose} icon="✕" aria-label="关闭" tone="ghost" size="sm" className="h-7 min-h-7 w-7" />
         </div>
 
-        <p className="text-[14px] mb-1" style={{ color: S.text }}>{ruleTitle}</p>
-        <p className="text-[13px] mb-4" style={{ color: S.sub }}>
+        <p className="mb-1 text-[14px] text-[var(--nimi-text-primary)]">{ruleTitle}</p>
+        <p className="mb-4 text-[13px] text-[var(--nimi-text-muted)]">
           默认频率：每 {currentIntervalMonths} 个月
-          {isCustomized && !isDisabled && <span style={{ color: S.accent }}> → 已调整为每 {effectiveCurrent} 个月</span>}
-          {isDisabled && <span style={{ color: '#dc2626' }}> → 已关闭</span>}
+          {isCustomized && !isDisabled && <span className="text-[var(--nimi-action-primary-bg)]"> → 已调整为每 {effectiveCurrent} 个月</span>}
+          {isDisabled && <span className="text-[var(--nimi-status-danger)]"> → 已关闭</span>}
         </p>
 
         {/* Options */}
-        <div className="flex flex-wrap gap-2 mb-3">
+        <div className="mb-3 flex flex-wrap gap-2">
           {PRESET_OPTIONS.map((opt) => (
             <button key={opt.months} onClick={() => setSelected(opt.months)}
-              className={`px-3 py-1.5 rounded-full text-[14px] transition-all ${opt.months === currentIntervalMonths ? 'font-medium' : ''}`}
-              style={selected === opt.months
-                ? { background: S.accent, color: '#fff' }
-                : { background: '#f5f3ef', color: S.text, border: `1px solid ${S.border}` }}>
+              className={cn(
+                'rounded-full border px-3 py-1.5 text-[14px] transition-all',
+                opt.months === currentIntervalMonths && 'font-medium',
+                selected === opt.months
+                  ? 'border-[var(--nimi-action-primary-bg)] bg-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)]'
+                  : 'border-[var(--nimi-action-secondary-border)] bg-[var(--nimi-action-secondary-bg)] text-[var(--nimi-text-primary)] hover:border-[var(--nimi-border-strong)]',
+              )}>
               {opt.label}{opt.months === currentIntervalMonths ? '(默认)' : ''}
             </button>
           ))}
           <button onClick={() => { setSelected('custom'); if (!customMonths) setCustomMonths(String(effectiveCurrent)); }}
-            className="px-3 py-1.5 rounded-full text-[14px] transition-all"
-            style={selected === 'custom'
-              ? { background: S.accent, color: '#fff' }
-              : { background: '#f5f3ef', color: S.text, border: `1px solid ${S.border}` }}>
+            className={cn(
+              'rounded-full border px-3 py-1.5 text-[14px] transition-all',
+              selected === 'custom'
+                ? 'border-[var(--nimi-action-primary-bg)] bg-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)]'
+                : 'border-[var(--nimi-action-secondary-border)] bg-[var(--nimi-action-secondary-bg)] text-[var(--nimi-text-primary)] hover:border-[var(--nimi-border-strong)]',
+            )}>
             自定义
           </button>
           {canDisable && (
             <button onClick={() => setSelected('disable')}
-              className="px-3 py-1.5 rounded-full text-[14px] transition-all"
-              style={selected === 'disable'
-                ? { background: '#dc2626', color: '#fff' }
-                : { background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca' }}>
+              className={cn(
+                'rounded-full border px-3 py-1.5 text-[14px] transition-all',
+                selected === 'disable'
+                  ? 'border-[var(--nimi-status-danger)] bg-[var(--nimi-status-danger)] text-[var(--nimi-action-primary-text)]'
+                  : 'border-[color-mix(in_srgb,var(--nimi-status-danger)_25%,var(--nimi-border-subtle))] bg-[color-mix(in_srgb,var(--nimi-status-danger)_8%,var(--nimi-surface-card))] text-[var(--nimi-status-danger)]',
+              )}>
               关闭此提醒
             </button>
           )}
@@ -144,36 +158,46 @@ export function FrequencyModal({ childId, ruleId, ruleTitle, currentIntervalMont
 
         {/* Custom input */}
         {selected === 'custom' && (
-          <div className="flex items-center gap-2 mb-4">
-            <input type="number" min="1" max="120" value={customMonths} onChange={(e) => setCustomMonths(e.target.value)}
-              placeholder="月数" className={`w-20 ${S.radiusSm} px-3 py-1.5 text-[14px] border-0 outline-none`}
-              style={{ background: '#f5f3ef', color: S.text }} />
-            <span className="text-[14px]" style={{ color: S.sub }}>个月</span>
+          <div className="mb-4 flex items-center gap-2">
+            <TextField
+              type="number"
+              min="1"
+              max="120"
+              value={customMonths}
+              onChange={(e) => setCustomMonths(e.target.value)}
+              placeholder="月数"
+              className="w-20"
+              inputClassName="text-[14px]"
+            />
+            <span className="text-[14px] text-[var(--nimi-text-muted)]">个月</span>
           </div>
         )}
 
         {selected === 'disable' && (
-          <p className="text-[13px] mb-4 px-3 py-2 rounded-lg" style={{ background: '#fef2f2', color: '#dc2626' }}>
+          <p className="mb-4 parentos-radius-md bg-[color-mix(in_srgb,var(--nimi-status-danger)_8%,var(--nimi-surface-card))] px-3 py-2 text-[13px] text-[var(--nimi-status-danger)]">
             关闭后该提醒将不再出现。可在设置 → 提醒管理中恢复。
           </p>
         )}
 
         {/* Actions */}
         <div className="flex gap-2">
-          <button onClick={() => void handleConfirm()} disabled={saving}
-            className={`flex-1 py-2.5 text-[14px] font-medium text-white ${S.radiusSm} disabled:opacity-40 hover:opacity-90`}
-            style={{ background: selected === 'disable' ? '#dc2626' : S.accent }}>
+          <Button
+            onClick={() => void handleConfirm()}
+            disabled={saving}
+            tone={selected === 'disable' ? 'danger' : 'primary'}
+            size="md"
+            fullWidth
+            className={selected === 'disable' ? 'bg-[var(--nimi-status-danger)] text-[var(--nimi-action-primary-text)]' : undefined}
+          >
             {saving ? '保存中...' : '确认'}
-          </button>
+          </Button>
           {isCustomized && (
-            <button onClick={() => void handleResetDefault()} disabled={saving}
-              className={`px-4 py-2.5 text-[14px] ${S.radiusSm}`}
-              style={{ background: '#f5f3ef', color: S.text }}>
+            <Button onClick={() => void handleResetDefault()} disabled={saving} tone="secondary" size="md">
               恢复默认
-            </button>
+            </Button>
           )}
         </div>
-      </div>
+      </Surface>
     </div>
   );
 }

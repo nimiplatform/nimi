@@ -1,5 +1,5 @@
+import { Surface } from '@nimiplatform/nimi-kit/ui';
 import { useState } from 'react';
-import { S } from '../../app-shell/page-style.js';
 import type { StageDesc } from './tanner-page-shared.js';
 
 type TannerStageSelectorProps = {
@@ -19,7 +19,7 @@ export function TannerStageSelector({
 
   return (
     <div className="mb-5">
-      <p className="text-[14px] font-semibold mb-2" style={{ color: S.text }}>{label}</p>
+      <p className="text-[14px] font-semibold mb-2 text-[var(--nimi-text-primary)]">{label}</p>
       <div className="space-y-1.5">
         {stages.map((stage) => {
           const active = value === stage.stage;
@@ -27,16 +27,12 @@ export function TannerStageSelector({
           return (
             <div
               key={stage.stage}
-              className={`${S.radiusSm} overflow-hidden transition-all`}
-              style={active
-                ? { background: S.accent, color: '#fff', boxShadow: '0 2px 8px rgba(148,165,51,0.25)' }
-                : { background: '#f5f3ef', color: S.text }}
+              className={`overflow-hidden rounded-2xl transition-all ${active ? 'bg-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)] shadow-[var(--nimi-elevation-base)]' : 'bg-[var(--nimi-surface-panel)] text-[var(--nimi-text-primary)]'}`}
             >
               <button onClick={() => onChange(stage.stage)} className="w-full text-left p-3">
                 <div className="flex items-center gap-2">
                   <div
-                    className="w-6 h-6 rounded-full flex items-center justify-center text-[13px] font-bold shrink-0"
-                    style={active ? { background: 'rgba(255,255,255,0.25)', color: '#fff' } : { background: '#f1f5f9', color: S.sub }}
+                    className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[13px] font-bold ${active ? 'bg-[color-mix(in_srgb,var(--nimi-action-primary-text)_25%,transparent)] text-[var(--nimi-action-primary-text)]' : 'bg-[var(--nimi-surface-card)] text-[var(--nimi-text-muted)]'}`}
                   >
                     {stage.stage}
                   </div>
@@ -46,23 +42,19 @@ export function TannerStageSelector({
                       event.stopPropagation();
                       setExpandedStage(expanded ? null : stage.stage);
                     }}
-                    className="text-[12px] px-1.5 py-0.5 rounded cursor-pointer transition-colors"
-                    style={active ? { background: 'rgba(255,255,255,0.2)', color: '#fff' } : { background: '#f1f5f9', color: S.sub }}
+                    className={`cursor-pointer rounded px-1.5 py-0.5 text-[12px] transition-colors ${active ? 'bg-[color-mix(in_srgb,var(--nimi-action-primary-text)_20%,transparent)] text-[var(--nimi-action-primary-text)]' : 'bg-[var(--nimi-surface-card)] text-[var(--nimi-text-muted)]'}`}
                   >
                     {expanded ? '收起' : '如何判断?'}
                   </span>
                 </div>
-                <p className="text-[12px] mt-1 ml-8 leading-relaxed" style={{ color: active ? 'rgba(255,255,255,0.8)' : S.sub }}>
+                <p className={`ml-8 mt-1 text-[12px] leading-relaxed ${active ? 'text-[color-mix(in_srgb,var(--nimi-action-primary-text)_80%,transparent)]' : 'text-[var(--nimi-text-muted)]'}`}>
                   {stage.desc}
                 </p>
               </button>
               {expanded ? (
                 <div className="px-3 pb-3 ml-8">
                   <div
-                    className={`${S.radiusSm} p-2.5 text-[12px] leading-relaxed`}
-                    style={active
-                      ? { background: 'rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.9)' }
-                      : { background: '#fff', color: S.text, border: `1px solid ${S.border}` }}
+                    className={`rounded-2xl p-2.5 text-[12px] leading-relaxed ${active ? 'bg-[color-mix(in_srgb,var(--nimi-action-primary-text)_15%,transparent)] text-[color-mix(in_srgb,var(--nimi-action-primary-text)_90%,transparent)]' : 'border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] text-[var(--nimi-text-primary)]'}`}
                   >
                     {stage.howToJudge}
                   </div>

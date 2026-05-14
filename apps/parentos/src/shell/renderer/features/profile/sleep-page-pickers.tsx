@@ -1,14 +1,12 @@
+import { cn } from '@nimiplatform/nimi-kit/ui';
 import { forwardRef, useCallback, useEffect, useRef, useState, type ReactNode, type RefObject, type WheelEvent } from 'react';
 import { createPortal } from 'react-dom';
 import { Calendar, ChevronLeft, ChevronRight, type LucideIcon } from 'lucide-react';
-import { S } from '../../app-shell/page-style.js';
 import {
   addMonths,
   clampDateToToday,
   formatDateDisplay,
   formatDateValue,
-  inputCls,
-  inputSty,
   isAfterDay,
   parseDateValue,
   sameDay,
@@ -104,8 +102,8 @@ function DrumColumn({
 
   return (
     <div className="flex-1 relative" aria-label={label}>
-      <div className="absolute inset-x-0 top-0 z-10 pointer-events-none" style={{ height: itemHeight * 2, background: 'linear-gradient(to bottom, rgba(255,255,255,0.92), rgba(255,255,255,0))' }} />
-      <div className="absolute inset-x-0 bottom-0 z-10 pointer-events-none" style={{ height: itemHeight * 2, background: 'linear-gradient(to top, rgba(255,255,255,0.92), rgba(255,255,255,0))' }} />
+      <div className="absolute inset-x-0 top-0 z-10 pointer-events-none bg-[linear-gradient(to_bottom,var(--nimi-surface-overlay),transparent)]" style={{ height: itemHeight * 2 }} />
+      <div className="absolute inset-x-0 bottom-0 z-10 pointer-events-none bg-[linear-gradient(to_top,var(--nimi-surface-overlay),transparent)]" style={{ height: itemHeight * 2 }} />
 
       <div
         ref={colRef}
@@ -132,8 +130,6 @@ function DrumColumn({
           const translateY = (centerOffset > 0 ? 1 : -1) * Math.min(8, distanceRows * 3);
           const scale = 0.9 + emphasis * 0.2;
           const isCentered = Math.abs(centerOffset) < itemHeight * 0.35;
-          const color = isCentered ? '#5e7316' : `rgba(118, 123, 132, ${opacity})`;
-
           return (
             <div
               key={value}
@@ -141,18 +137,17 @@ function DrumColumn({
                 onSelect(value);
                 scrollToIndex(items.indexOf(value), true);
               }}
-              className="flex items-center justify-center cursor-pointer select-none"
+              className={`flex items-center justify-center cursor-pointer select-none ${isCentered ? 'text-[var(--nimi-action-primary-bg)]' : 'text-[var(--nimi-text-muted)]'}`}
               aria-selected={isCentered}
               style={{
                 height: itemHeight,
                 scrollSnapAlign: 'center',
                 fontSize,
                 fontWeight,
-                color,
                 transform: `translateY(${translateY}px) scale(${scale})`,
                 transition: 'font-size 0.12s ease, color 0.12s ease, font-weight 0.12s ease, transform 0.12s ease',
                 letterSpacing: isCentered ? '0.02em' : '0.01em',
-                textShadow: isCentered ? '0 1px 0 rgba(255,255,255,0.9), 0 4px 12px rgba(148,165,51,0.12)' : 'none',
+                opacity,
               }}
             >
               {renderValue(value)}
@@ -229,18 +224,13 @@ export function TimePickerInput({
           type="text"
           readOnly
           value={value}
-          className={`w-full outline-none transition-shadow focus:ring-2 focus:ring-[#4ECCA3]/50 cursor-pointer ${
+          className={cn(`w-full cursor-pointer border border-[var(--nimi-border-subtle)] text-[var(--nimi-text-primary)] outline-none transition-shadow focus:ring-2 focus:ring-[var(--nimi-ring)] ${
             isSmall
-              ? `${S.radiusSm} pl-2 pr-7 py-1 text-[14px] bg-white`
-              : 'h-12 rounded-[14px] pl-3 pr-9 text-[14px]'
-          }`}
-          style={
-            isSmall
-              ? { borderColor: S.border, borderWidth: 1, borderStyle: 'solid' }
-              : { borderColor: '#E5E5DD', borderWidth: 1, borderStyle: 'solid', background: '#fafaf8', color: '#1e293b' }
-          }
+              ? 'rounded-2xl bg-[var(--nimi-field-bg)] pl-2 pr-7 py-1 text-[14px]'
+              : 'h-12 rounded-2xl bg-[var(--nimi-field-bg)] pl-3 pr-9 text-[14px]'
+          }`)}
         />
-        <Icon size={iconSize} strokeWidth={1.5} className={`absolute ${isSmall ? 'right-2' : 'right-3'} text-gray-400 transition-colors cursor-pointer ${open ? 'text-[#1e293b]' : 'group-focus-within/field:text-[#1e293b]'}`} />
+        <Icon size={iconSize} strokeWidth={1.5} className={`absolute ${isSmall ? 'right-2' : 'right-3'} text-[var(--nimi-text-muted)] transition-colors cursor-pointer ${open ? 'text-[var(--nimi-text-primary)]' : 'group-focus-within/field:text-[var(--nimi-text-primary)]'}`} />
       </div>
 
       <PickerPortal open={open}>
@@ -275,18 +265,15 @@ const TimePickerPanel = forwardRef<HTMLDivElement, {
   return (
     <div
       ref={ref}
-      className="fixed z-[60] rounded-[16px] overflow-hidden"
+      className="fixed z-[60] overflow-hidden rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-overlay)] shadow-[var(--nimi-elevation-floating)]"
       style={{
         left,
         top,
         width,
-        background: '#fff',
-        boxShadow: '0 4px 20px rgba(0,0,0,0.12)',
-        border: `1px solid ${S.border}`,
       }}
     >
-      <div className="absolute inset-x-0 pointer-events-none z-[5]" style={{ top: PAD_ROWS * ITEM_H, height: ITEM_H, background: 'linear-gradient(180deg, rgba(148,165,51,0.12), rgba(148,165,51,0.07))', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.32), inset 0 -1px 0 rgba(255,255,255,0.24)' }} />
-      <div className="absolute top-0 bottom-0 left-1/2 w-px z-[6]" style={{ background: S.border }} />
+      <div className="absolute inset-x-0 pointer-events-none z-[5] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)]" style={{ top: PAD_ROWS * ITEM_H, height: ITEM_H }} />
+      <div className="absolute top-0 bottom-0 left-1/2 w-px z-[6] bg-[var(--nimi-border-subtle)]" />
       <div className="flex relative" style={{ height: PANEL_H }}>
         <DrumColumn items={HOURS} selected={hour} onSelect={onHourChange} label="小时" />
         <DrumColumn items={MINUTES} selected={minute} onSelect={onMinuteChange} label="分钟" />
@@ -335,10 +322,9 @@ export function DatePickerInput({
           type="text"
           readOnly
           value={formatDateDisplay(value)}
-          className={`${inputCls()} cursor-pointer`}
-          style={inputSty}
+          className="h-12 w-full cursor-pointer rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-field-bg)] pl-3 pr-9 text-[14px] text-[var(--nimi-text-primary)] outline-none transition-shadow focus:ring-2 focus:ring-[var(--nimi-ring)]"
         />
-        <Calendar size={16} strokeWidth={1.5} className={`absolute right-2.5 transition-colors cursor-pointer ${open ? 'text-[#1e293b]' : 'text-gray-400 group-focus-within/field:text-[#1e293b]'}`} />
+        <Calendar size={16} strokeWidth={1.5} className={`absolute right-2.5 transition-colors cursor-pointer ${open ? 'text-[var(--nimi-text-primary)]' : 'text-[var(--nimi-text-muted)] group-focus-within/field:text-[var(--nimi-text-primary)]'}`} />
       </div>
 
       <PickerPortal open={open}>
@@ -407,34 +393,31 @@ const DatePickerPanel = forwardRef<HTMLDivElement, {
   return (
     <div
       ref={ref}
-      className="fixed z-[60] rounded-[16px] overflow-hidden p-3"
+      className="fixed z-[60] overflow-hidden rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-overlay)] p-3 shadow-[var(--nimi-elevation-floating)]"
       style={{
         left,
         top,
         width,
-        background: '#fff',
-        boxShadow: '0 4px 20px rgba(0,0,0,0.12)',
-        border: `1px solid ${S.border}`,
       }}
     >
       <div className="mb-3 space-y-2">
         <div className="flex items-center justify-between gap-2">
-          <button type="button" onClick={() => onDisplayMonthChange(addMonths(displayMonth, -1))} className="flex h-8 w-8 items-center justify-center rounded-full transition-colors hover:bg-[#eef4dd]" style={{ color: '#6d7d2a', background: 'linear-gradient(180deg, rgba(148,165,51,0.12), rgba(148,165,51,0.06))', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.55)' }} aria-label="上个月">
+          <button type="button" onClick={() => onDisplayMonthChange(addMonths(displayMonth, -1))} className="flex h-8 w-8 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)] text-[var(--nimi-action-primary-bg)] transition-colors hover:bg-[var(--nimi-action-ghost-hover)]" aria-label="上个月">
             <ChevronLeft size={16} strokeWidth={1.75} />
           </button>
           <div className="relative flex-1">
-            <button type="button" onClick={() => setShowMonthYearPicker((prev) => !prev)} className="relative flex w-full items-center justify-center gap-2 rounded-full px-4 py-2 transition-colors hover:bg-[#f3f7e8]" style={{ background: 'linear-gradient(180deg, rgba(148,165,51,0.12), rgba(148,165,51,0.06))', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.72)', color: '#5e7316' }}>
+            <button type="button" onClick={() => setShowMonthYearPicker((prev) => !prev)} className="relative flex w-full items-center justify-center gap-2 rounded-full bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)] px-4 py-2 text-[var(--nimi-action-primary-bg)] transition-colors hover:bg-[var(--nimi-action-ghost-hover)]">
               <span className="text-[16px] font-semibold tracking-[0.02em]">{displayMonth.getFullYear()}年</span>
               <span className="relative pr-4 text-[16px] font-semibold tracking-[0.02em]">
                 {displayMonth.getMonth() + 1}月
-                <ChevronRight size={13} strokeWidth={2} className="absolute right-[-1px] bottom-[1px] transition-transform" style={{ color: '#7b8d30', transform: `rotate(${showMonthYearPicker ? 270 : 90}deg)` }} />
+                <ChevronRight size={13} strokeWidth={2} className="absolute right-[-1px] bottom-[1px] text-[var(--nimi-action-primary-bg)] transition-transform" style={{ transform: `rotate(${showMonthYearPicker ? 270 : 90}deg)` }} />
               </span>
             </button>
 
             {showMonthYearPicker ? (
-              <div className="absolute left-1/2 top-[calc(100%+10px)] z-20 w-[216px] -translate-x-1/2 overflow-hidden rounded-[16px]" style={{ background: '#fff', border: `1px solid ${S.border}`, boxShadow: '0 10px 28px rgba(0,0,0,0.14)' }}>
-                <div className="absolute inset-x-0 pointer-events-none z-[5]" style={{ top: 28, height: 28, background: 'linear-gradient(180deg, rgba(148,165,51,0.12), rgba(148,165,51,0.07))', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.32), inset 0 -1px 0 rgba(255,255,255,0.24)' }} />
-                <div className="absolute top-0 bottom-0 left-1/2 w-px z-[6]" style={{ background: S.border }} />
+              <div className="absolute left-1/2 top-[calc(100%+10px)] z-20 w-[216px] -translate-x-1/2 overflow-hidden rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-overlay)] shadow-[var(--nimi-elevation-floating)]">
+                <div className="absolute inset-x-0 pointer-events-none z-[5] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)]" style={{ top: 28, height: 28 }} />
+                <div className="absolute top-0 bottom-0 left-1/2 w-px z-[6] bg-[var(--nimi-border-subtle)]" />
                 <div className="flex relative" style={{ height: 84 }}>
                   <DrumColumn items={yearItems} selected={displayMonth.getFullYear()} onSelect={(nextYear) => onDisplayMonthChange(new Date(nextYear, displayMonth.getMonth(), 1, 12, 0, 0, 0))} label="年份" itemHeight={28} visibleRows={3} renderValue={(year) => String(year)} />
                   <DrumColumn items={monthItems} selected={displayMonth.getMonth() + 1} onSelect={(nextMonth) => onDisplayMonthChange(new Date(displayMonth.getFullYear(), nextMonth - 1, 1, 12, 0, 0, 0))} label="月份" itemHeight={28} visibleRows={3} renderValue={(month) => `${month}月`} />
@@ -442,7 +425,7 @@ const DatePickerPanel = forwardRef<HTMLDivElement, {
               </div>
             ) : null}
           </div>
-          <button type="button" onClick={() => onDisplayMonthChange(addMonths(displayMonth, 1))} className="flex h-8 w-8 items-center justify-center rounded-full transition-colors hover:bg-[#eef4dd]" style={{ color: isCurrentMonth ? 'rgba(109,125,42,0.35)' : '#6d7d2a', background: isCurrentMonth ? 'linear-gradient(180deg, rgba(148,165,51,0.06), rgba(148,165,51,0.03))' : 'linear-gradient(180deg, rgba(148,165,51,0.12), rgba(148,165,51,0.06))', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.55)', cursor: isCurrentMonth ? 'not-allowed' : 'pointer', opacity: isCurrentMonth ? 0.72 : 1 }} aria-label="下个月" disabled={isCurrentMonth}>
+          <button type="button" onClick={() => onDisplayMonthChange(addMonths(displayMonth, 1))} className="flex h-8 w-8 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)] text-[var(--nimi-action-primary-bg)] transition-colors hover:bg-[var(--nimi-action-ghost-hover)] disabled:cursor-not-allowed disabled:opacity-50" aria-label="下个月" disabled={isCurrentMonth}>
             <ChevronRight size={16} strokeWidth={1.75} />
           </button>
         </div>
@@ -450,26 +433,18 @@ const DatePickerPanel = forwardRef<HTMLDivElement, {
 
       <div className="mb-2 grid grid-cols-7 gap-1 px-1">
         {['一', '二', '三', '四', '五', '六', '日'].map((label) => (
-          <div key={label} className="flex h-8 items-center justify-center text-[13px] font-medium" style={{ color: S.sub }}>
+          <div key={label} className="flex h-8 items-center justify-center text-[13px] font-medium text-[var(--nimi-text-muted)]">
             {label}
           </div>
         ))}
       </div>
 
-      <div className="grid grid-cols-7 gap-1 rounded-[16px] p-2.5" style={{ background: 'linear-gradient(180deg, rgba(251,252,247,0.98), rgba(247,249,241,0.95))', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.82)' }}>
+      <div className="grid grid-cols-7 gap-1 rounded-2xl bg-[var(--nimi-surface-panel)] p-2.5">
         {days.map((day) => {
           const inMonth = day.getMonth() === displayMonth.getMonth();
           const isSelected = sameDay(day, selectedDate);
           const isToday = sameDay(day, today);
           const isFuture = isAfterDay(day, safeToday);
-          const textColor = isSelected
-            ? '#556813'
-            : isFuture
-              ? 'rgba(164, 170, 178, 0.46)'
-              : inMonth
-                ? S.text
-                : 'rgba(139, 145, 153, 0.62)';
-
           return (
             <button
               key={day.toISOString()}
@@ -478,20 +453,17 @@ const DatePickerPanel = forwardRef<HTMLDivElement, {
                 if (isFuture) return;
                 onChange(formatDateValue(day));
               }}
-              className="relative flex h-10 items-center justify-center rounded-[13px] text-[14px] transition-all duration-150 hover:-translate-y-[1px]"
+              className={`relative flex h-10 items-center justify-center rounded-xl text-[14px] transition-all duration-150 hover:-translate-y-[1px] ${isSelected ? 'bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_18%,transparent)] text-[var(--nimi-action-primary-bg)] shadow-[var(--nimi-elevation-base)]' : isToday ? 'bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_8%,transparent)] text-[var(--nimi-text-primary)]' : inMonth ? 'text-[var(--nimi-text-primary)]' : 'text-[var(--nimi-text-muted)]'} disabled:cursor-not-allowed disabled:opacity-40`}
               disabled={isFuture}
               style={{
-                color: textColor,
-                background: isFuture ? 'transparent' : isSelected ? 'linear-gradient(180deg, rgba(148,165,51,0.24), rgba(148,165,51,0.12))' : isToday ? 'linear-gradient(180deg, rgba(148,165,51,0.10), rgba(148,165,51,0.05))' : 'transparent',
                 fontWeight: isFuture ? 500 : isSelected ? 750 : isToday ? 650 : 520,
-                boxShadow: isFuture ? 'none' : isSelected ? '0 4px 12px rgba(148,165,51,0.12), inset 0 0 0 1px rgba(148,165,51,0.18)' : isToday ? 'inset 0 0 0 1px rgba(148,165,51,0.10)' : 'none',
                 opacity: isFuture ? 0.42 : inMonth ? 1 : 0.78,
                 cursor: isFuture ? 'not-allowed' : 'pointer',
                 transform: isFuture ? 'none' : undefined,
               }}
             >
               <span>{day.getDate()}</span>
-              {isToday && !isSelected ? <span className="absolute bottom-[5px] left-1/2 h-1 w-1 -translate-x-1/2 rounded-full" style={{ background: 'rgba(148,165,51,0.75)' }} /> : null}
+              {isToday && !isSelected ? <span className="absolute bottom-[5px] left-1/2 h-1 w-1 -translate-x-1/2 rounded-full bg-[var(--nimi-action-primary-bg)]" /> : null}
             </button>
           );
         })}
@@ -502,10 +474,10 @@ const DatePickerPanel = forwardRef<HTMLDivElement, {
           const now = new Date();
           onDisplayMonthChange(new Date(now.getFullYear(), now.getMonth(), 1, 12, 0, 0, 0));
           onChange(formatDateValue(now));
-        }} className="rounded-full px-3 py-1 text-[14px] font-medium transition-colors hover:bg-[#f3f5ea]" style={{ color: '#5e7316' }}>
+        }} className="rounded-full px-3 py-1 text-[14px] font-medium text-[var(--nimi-action-primary-bg)] transition-colors hover:bg-[var(--nimi-action-ghost-hover)]">
           今天
         </button>
-        <button type="button" onClick={onClose} className="rounded-full px-3 py-1 text-[14px] font-medium transition-colors hover:bg-[#f4f4ef]" style={{ color: S.sub }}>
+        <button type="button" onClick={onClose} className="rounded-full px-3 py-1 text-[14px] font-medium transition-colors hover:bg-[var(--nimi-action-ghost-hover)] text-[var(--nimi-text-muted)]">
           关闭
         </button>
       </div>

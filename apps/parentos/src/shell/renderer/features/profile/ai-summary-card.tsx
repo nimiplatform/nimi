@@ -1,3 +1,4 @@
+import { Button, Surface } from '@nimiplatform/nimi-kit/ui';
 /**
  * AISummaryCard — Reusable AI analysis summary for profile sub-pages.
  *
@@ -6,7 +7,6 @@
  * Falls back gracefully when the AI runtime is unavailable.
  */
 import { useState, useEffect, useCallback } from 'react';
-import { S } from '../../app-shell/page-style.js';
 import { getPlatformClient } from '@nimiplatform/sdk';
 import { getAppSetting, setAppSetting } from '../../bridge/sqlite-bridge.js';
 import { isoNow } from '../../bridge/ulid.js';
@@ -181,53 +181,50 @@ export function AISummaryCard(props: AISummaryCardProps) {
   // No data at all — show a subtle hint
   if (!dataContext) {
     return (
-      <div className={`${S.radius} p-4 mb-5 flex items-center gap-3`}
-        style={{ background: '#f9faf7', border: `1px solid ${S.border}` }}>
+      <Surface tone="card" material="solid" elevation="base" padding="md" className="mb-5 flex items-center gap-3">
         <span className="text-[20px]">📊</span>
-        <p className="text-[14px]" style={{ color: S.sub }}>记录更多数据后，AI 将为您生成分析报告</p>
-      </div>
+        <p className="text-[14px] text-[var(--nimi-text-muted)]">记录更多数据后，AI 将为您生成分析报告</p>
+      </Surface>
     );
   }
 
   return (
-    <div className={`${S.radius} p-5 mb-5`} style={{ background: S.card, boxShadow: S.shadow }}>
+    <Surface tone="card" material="solid" elevation="raised" padding="lg" className="mb-5">
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <span className="text-[16px]">✨</span>
-          <h3 className="text-[14px] font-semibold" style={{ color: S.text }}>AI 分析</h3>
+          <h3 className="text-[14px] font-semibold text-[var(--nimi-text-primary)]">AI 分析</h3>
         </div>
-        <button onClick={() => void generate(true)}
+        <Button onClick={() => void generate(true)}
           disabled={loading}
-          className="flex items-center gap-1 text-[13px] px-2.5 py-1 rounded-full transition-colors hover:bg-[#f0f0ec] disabled:opacity-40"
-          style={{ color: S.sub }}
+          tone="ghost"
+          size="sm"
           title="重新生成">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"
             className={loading ? 'animate-spin' : ''}>
             <path d="M21 12a9 9 0 1 1-6.22-8.56" />
           </svg>
           {loading ? '生成中' : '刷新'}
-        </button>
+        </Button>
       </div>
 
       {loading && !summary ? (
         /* Skeleton */
         <div className="space-y-2 animate-pulse">
-          <div className="h-3 rounded-full w-full" style={{ background: '#eceeed' }} />
-          <div className="h-3 rounded-full w-4/5" style={{ background: '#eceeed' }} />
-          <div className="h-3 rounded-full w-3/5" style={{ background: '#eceeed' }} />
+          <div className="h-3 rounded-full w-full bg-[var(--nimi-surface-active)]" />
+          <div className="h-3 rounded-full w-4/5 bg-[var(--nimi-surface-active)]" />
+          <div className="h-3 rounded-full w-3/5 bg-[var(--nimi-surface-active)]" />
         </div>
       ) : error ? (
         <div className="flex items-center gap-2">
-          <span className="text-[14px]" style={{ color: S.sub }}>连接 AI 运行时后可查看智能分析</span>
-          <button onClick={() => void generate(true)}
-            className={`text-[13px] px-2 py-0.5 ${S.radiusSm} transition-colors hover:bg-[#f0f0ec]`}
-            style={{ color: S.accent, border: `1px solid ${S.border}` }}>
+          <span className="text-[14px] text-[var(--nimi-text-muted)]">连接 AI 运行时后可查看智能分析</span>
+          <Button onClick={() => void generate(true)} tone="secondary" size="sm">
             重试
-          </button>
+          </Button>
         </div>
       ) : summary ? (
-        <p className="text-[14px] leading-relaxed" style={{ color: S.text }}>{summary}</p>
+        <p className="text-[14px] leading-relaxed text-[var(--nimi-text-primary)]">{summary}</p>
       ) : null}
-    </div>
+    </Surface>
   );
 }

@@ -1,3 +1,4 @@
+import { Surface } from '@nimiplatform/nimi-kit/ui';
 import { Link } from 'react-router-dom';
 import {
   Area,
@@ -9,7 +10,6 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import { S } from '../../app-shell/page-style.js';
 import type { MeasurementRow } from '../../bridge/sqlite-bridge.js';
 import {
   GROWTH_STANDARD_LABELS,
@@ -17,7 +17,6 @@ import {
   type WHOLMSDataset,
 } from './who-lms-loader.js';
 import {
-  TYPE_COLORS,
   buildMergedChartData,
   computeChartYDomain,
   formatAgeLabel,
@@ -63,11 +62,6 @@ function formatXTick(age: number, span: number): string {
   return `${age}月`;
 }
 
-const BAND_COLORS = {
-  china: { outer: 'rgba(212,149,106,0.08)', inner: 'rgba(217,64,64,0.06)', median: '#d94040', edge: '#d4956a', far: '#c4a882' },
-  who: { outer: 'rgba(154,176,204,0.08)', inner: 'rgba(58,127,214,0.06)', median: '#3a7fd6', edge: '#6a9fd8', far: '#9bb0cc' },
-} as const;
-
 export function GrowthCurveChartPanel({
   chartData,
   selectedType,
@@ -85,19 +79,19 @@ export function GrowthCurveChartPanel({
         : `当前年龄超出${standardLabel}百分位参考线覆盖范围，仅显示已记录数据。`)
     : null;
 
-  const colors = BAND_COLORS[growthStandard];
-  const userColor = TYPE_COLORS[selectedType] ?? '#6366f1';
+  const colors = growthBandPalette(growthStandard);
+  const userColor = growthMetricStroke(selectedType);
 
   return (
     <>
-      <div className={`${S.radius} p-5 mb-6`} style={{ background: S.card, boxShadow: S.shadow }}>
+      <Surface tone="card" material="glass-regular" elevation="raised" padding="none" className="mb-6 rounded-3xl p-5">
         {chartData.length === 0 ? (
           <div className="p-8 text-center">
             <span className="text-[24px]">📏</span>
-            <p className="text-[14px] mt-2 font-medium" style={{ color: S.text }}>
+            <p className="text-[14px] mt-2 font-medium text-[var(--nimi-text-primary)]">
               还没有{typeInfo?.displayName ?? selectedType}记录
             </p>
-            <p className="text-[13px] mt-1" style={{ color: S.sub }}>点击右上角添加第一条记录</p>
+            <p className="text-[13px] mt-1 text-[var(--nimi-text-muted)]">点击右上角添加第一条记录</p>
           </div>
         ) : (
           (() => {
@@ -119,28 +113,28 @@ export function GrowthCurveChartPanel({
                       <stop offset="100%" stopColor={userColor} stopOpacity={0.02} />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f0ed" vertical={false} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--nimi-border-subtle)" vertical={false} />
                   <XAxis
                     dataKey="age"
                     type="number"
                     domain={[minAge, maxAge]}
                     ticks={xTicks}
                     tickFormatter={(age: number) => formatXTick(age, span)}
-                    tick={{ fontSize: 10, fill: '#94a3b8' }}
-                    axisLine={{ stroke: '#e2e8f0' }}
-                    tickLine={{ stroke: '#e2e8f0', strokeWidth: 0.5 }}
-                    label={{ value: span > 24 ? '年龄' : '月龄', position: 'insideBottom', offset: -16, style: { fontSize: 10, fill: '#94a3b8', fontWeight: 500 } }}
+                    tick={{ fontSize: 10, fill: 'var(--nimi-text-muted)' }}
+                    axisLine={{ stroke: 'var(--nimi-border-subtle)' }}
+                    tickLine={{ stroke: 'var(--nimi-border-subtle)', strokeWidth: 0.5 }}
+                    label={{ value: span > 24 ? '年龄' : '月龄', position: 'insideBottom', offset: -16, style: { fontSize: 10, fill: 'var(--nimi-text-muted)', fontWeight: 500 } }}
                   />
                   <YAxis
                     domain={yDomain}
-                    tick={{ fontSize: 10, fill: '#94a3b8' }}
+                    tick={{ fontSize: 10, fill: 'var(--nimi-text-muted)' }}
                     axisLine={false}
                     tickLine={false}
-                    label={{ value: unit, angle: -90, position: 'insideLeft', style: { fontSize: 10, fill: '#94a3b8' } }}
+                    label={{ value: unit, angle: -90, position: 'insideLeft', style: { fontSize: 10, fill: 'var(--nimi-text-muted)' } }}
                     width={36}
                   />
                   <Tooltip
-                    cursor={{ stroke: '#cbd5e1', strokeWidth: 1, strokeDasharray: '4 3' }}
+                    cursor={{ stroke: 'var(--nimi-border-strong)', strokeWidth: 1, strokeDasharray: '4 3' }}
                     isAnimationActive={false}
                     offset={12}
                     content={({ active, payload, label }) => {
@@ -161,19 +155,19 @@ export function GrowthCurveChartPanel({
                       }) : null;
                       return (
                         <div
-                          className="rounded-2xl px-4 py-3 pointer-events-none nimi-material-glass-thick bg-[var(--nimi-material-glass-thick-bg)] border border-[var(--nimi-material-glass-thick-border)] backdrop-blur-[var(--nimi-backdrop-blur-strong)] shadow-[0_8px_24px_rgba(0,0,0,0.08)]"
+                          className="pointer-events-none rounded-2xl border border-[var(--nimi-material-glass-thick-border)] bg-[var(--nimi-material-glass-thick-bg)] px-4 py-3 shadow-[var(--nimi-elevation-floating)] backdrop-blur-[var(--nimi-backdrop-blur-strong)] nimi-material-glass-thick"
                           style={{
                             minWidth: 160,
                           }}
                         >
-                          <p className="text-[13px] font-medium" style={{ color: '#94a3b8' }}>
+                          <p className="text-[13px] font-medium text-[var(--nimi-text-muted)]">
                             {formatAgeLabel(age)}
                             {point?.date ? ` · ${point.date}` : ''}
                           </p>
-                          <p className="text-[20px] font-bold mt-1 tracking-tight" style={{ color: '#1e293b' }}>
-                            {value}<span className="text-[14px] font-medium ml-1" style={{ color: '#94a3b8' }}>{unit}</span>
+                          <p className="text-[20px] font-bold mt-1 tracking-tight text-[var(--nimi-text-primary)]">
+                            {value}<span className="text-[14px] font-medium ml-1 text-[var(--nimi-text-muted)]">{unit}</span>
                           </p>
-                          {hint ? <p className="text-[13px] mt-1.5 font-medium" style={{ color: hint.color }}>{hint.text}</p> : null}
+                          {hint ? <p className={`mt-1.5 text-[13px] font-medium ${percentileHintClassName(hint.text)}`}>{hint.text}</p> : null}
                         </div>
                       );
                     }}
@@ -182,9 +176,9 @@ export function GrowthCurveChartPanel({
                   {hasBands ? (
                     <>
                       <Area type="monotone" dataKey="p97" stroke="none" fill={colors.outer} isAnimationActive={false} connectNulls />
-                      <Area type="monotone" dataKey="p3" stroke="none" fill={S.card} isAnimationActive={false} connectNulls />
+                      <Area type="monotone" dataKey="p3" stroke="none" fill={'var(--nimi-surface-card)'} isAnimationActive={false} connectNulls />
                       <Area type="monotone" dataKey="p90" stroke="none" fill={colors.inner} isAnimationActive={false} connectNulls />
-                      <Area type="monotone" dataKey="p10" stroke="none" fill={S.card} isAnimationActive={false} connectNulls />
+                      <Area type="monotone" dataKey="p10" stroke="none" fill={'var(--nimi-surface-card)'} isAnimationActive={false} connectNulls />
                     </>
                   ) : null}
 
@@ -232,7 +226,7 @@ export function GrowthCurveChartPanel({
                       return (
                         <g>
                           <circle cx={cx} cy={cy} r={6} fill={userColor} opacity={0.12} />
-                          <circle cx={cx} cy={cy} r={3.5} fill="#fff" stroke={userColor} strokeWidth={2} />
+                          <circle cx={cx} cy={cy} r={3.5} fill="var(--nimi-surface-card)" stroke={userColor} strokeWidth={2} />
                         </g>
                       );
                     }}
@@ -242,7 +236,7 @@ export function GrowthCurveChartPanel({
                       return (
                         <g>
                           <circle cx={cx} cy={cy} r={10} fill={userColor} opacity={0.1} />
-                          <circle cx={cx} cy={cy} r={5} fill="#fff" stroke={userColor} strokeWidth={2.5} />
+                          <circle cx={cx} cy={cy} r={5} fill="var(--nimi-surface-card)" stroke={userColor} strokeWidth={2.5} />
                         </g>
                       );
                     }}
@@ -253,12 +247,11 @@ export function GrowthCurveChartPanel({
             );
           })()
         )}
-      </div>
+      </Surface>
 
       {referenceNote ? (
         <div
-          className={`${S.radiusSm} px-3 py-2 mb-4 text-[13px]`}
-          style={{ background: '#f7f6f2', border: `1px solid ${S.border}`, color: S.sub }}
+          className="mb-4 rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] px-3 py-2 text-[13px] text-[var(--nimi-text-muted)]"
         >
           {referenceNote}
         </div>
@@ -276,27 +269,27 @@ export function GrowthCurveChartPanel({
           const diff = boneAgeYears - actualAgeYears;
           const absDiff = Math.abs(diff);
           const status = absDiff <= 1
-            ? { label: '正常范围', color: '#22c55e', bg: '#f0fdf4' }
+            ? { label: '正常范围', className: 'border-[color-mix(in_srgb,var(--nimi-status-success)_30%,var(--nimi-border-subtle))] bg-[color-mix(in_srgb,var(--nimi-status-success)_8%,var(--nimi-surface-card))] text-[var(--nimi-status-success)]', dot: 'bg-[var(--nimi-status-success)]' }
             : diff > 1
-              ? { label: `偏早 ${absDiff.toFixed(1)} 年`, color: '#f59e0b', bg: '#fffbeb' }
-              : { label: `偏晚 ${absDiff.toFixed(1)} 年`, color: '#3b82f6', bg: '#eff6ff' };
+              ? { label: `偏早 ${absDiff.toFixed(1)} 年`, className: 'border-[color-mix(in_srgb,var(--nimi-status-warning)_30%,var(--nimi-border-subtle))] bg-[color-mix(in_srgb,var(--nimi-status-warning)_8%,var(--nimi-surface-card))] text-[var(--nimi-status-warning)]', dot: 'bg-[var(--nimi-status-warning)]' }
+              : { label: `偏晚 ${absDiff.toFixed(1)} 年`, className: 'border-[color-mix(in_srgb,var(--nimi-status-info)_30%,var(--nimi-border-subtle))] bg-[color-mix(in_srgb,var(--nimi-status-info)_8%,var(--nimi-surface-card))] text-[var(--nimi-status-info)]', dot: 'bg-[var(--nimi-status-info)]' };
           const actualAgeStr = `${Math.floor(ageMonths / 12)} 岁 ${ageMonths % 12} 月`;
           return (
-            <div className={`${S.radius} p-4 mb-4 flex items-start gap-3`} style={{ background: status.bg, border: `1px solid ${status.color}30` }}>
+            <div className={`mb-4 flex items-start gap-3 rounded-3xl border p-4 ${status.className}`}>
               <span className="text-[20px] mt-0.5">🦴</span>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <span className="text-[16px] font-semibold" style={{ color: S.text }}>骨龄 {boneAgeYears} 岁</span>
-                  <span className="text-[13px]" style={{ color: S.sub }}>（实际 {actualAgeStr}）</span>
+                  <span className="text-[16px] font-semibold text-[var(--nimi-text-primary)]">骨龄 {boneAgeYears} 岁</span>
+                  <span className="text-[13px] text-[var(--nimi-text-muted)]">（实际 {actualAgeStr}）</span>
                 </div>
                 <div className="flex items-center gap-1.5 mt-1">
-                  <span className="w-2 h-2 rounded-full inline-block" style={{ background: status.color }} />
-                  <span className="text-[14px]" style={{ color: status.color }}>{status.label}</span>
-                  {absDiff > 1 ? <span className="text-[13px]" style={{ color: S.sub }}> — 建议关注身高增长趋势</span> : null}
+                  <span className={`inline-block h-2 w-2 rounded-full ${status.dot}`} />
+                  <span className="text-[14px]">{status.label}</span>
+                  {absDiff > 1 ? <span className="text-[13px] text-[var(--nimi-text-muted)]"> — 建议关注身高增长趋势</span> : null}
                 </div>
                 <div className="flex items-center gap-3 mt-1.5">
-                  <span className="text-[12px]" style={{ color: S.sub }}>评估日期：{latest.measuredAt.split('T')[0]}</span>
-            <Link to="/profile" className="text-[12px] hover:underline" style={{ color: S.accent }}>
+                  <span className="text-[12px] text-[var(--nimi-text-muted)]">评估日期：{latest.measuredAt.split('T')[0]}</span>
+            <Link to="/profile" className="text-[12px] hover:underline text-[var(--nimi-action-primary-bg)]">
                     详细记录 → 青春期发育
                   </Link>
                 </div>
@@ -307,4 +300,43 @@ export function GrowthCurveChartPanel({
       ) : null}
     </>
   );
+}
+
+function growthMetricStroke(selectedType: string): string {
+  if (selectedType === 'weight') return 'var(--nimi-status-success)';
+  if (selectedType === 'head-circumference') return 'var(--nimi-status-warning)';
+  if (selectedType === 'bmi') return 'var(--nimi-status-info)';
+  return 'var(--nimi-action-primary-bg)';
+}
+
+function growthBandPalette(growthStandard: GrowthStandard): {
+  outer: string;
+  inner: string;
+  median: string;
+  edge: string;
+  far: string;
+} {
+  if (growthStandard === 'china') {
+    return {
+      outer: 'color-mix(in_srgb,var(--nimi-status-warning)_8%,transparent)',
+      inner: 'color-mix(in_srgb,var(--nimi-status-danger)_6%,transparent)',
+      median: 'var(--nimi-status-danger)',
+      edge: 'var(--nimi-status-warning)',
+      far: 'color-mix(in_srgb,var(--nimi-status-warning)_68%,var(--nimi-text-muted))',
+    };
+  }
+  return {
+    outer: 'color-mix(in_srgb,var(--nimi-status-info)_8%,transparent)',
+    inner: 'color-mix(in_srgb,var(--nimi-status-info)_6%,transparent)',
+    median: 'var(--nimi-status-info)',
+    edge: 'color-mix(in_srgb,var(--nimi-status-info)_72%,var(--nimi-action-primary-bg))',
+    far: 'color-mix(in_srgb,var(--nimi-status-info)_52%,var(--nimi-text-muted))',
+  };
+}
+
+function percentileHintClassName(text: string): string {
+  if (text.includes('建议')) return 'text-[var(--nimi-status-danger)]';
+  if (text.includes('偏低') || text.includes('偏高')) return 'text-[var(--nimi-status-warning)]';
+  if (text.includes('平均')) return 'text-[var(--nimi-text-secondary)]';
+  return 'text-[var(--nimi-status-success)]';
 }

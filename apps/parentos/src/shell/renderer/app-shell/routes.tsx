@@ -1,5 +1,6 @@
 import { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
+import { Surface } from '@nimiplatform/nimi-kit/ui';
 
 const TimelinePage = lazy(() => import('../features/timeline/timeline-page.js'));
 const ProfilePage = lazy(() => import('../features/profile/profile-page.js'));
@@ -28,9 +29,9 @@ const AiSettingsPage = lazy(() => import('../features/settings/ai-settings-page.
 
 function PageFallback() {
   return (
-    <div className="flex items-center justify-center h-full text-gray-400">
+    <Surface tone="canvas" padding="none" className="flex h-full items-center justify-center border-0 text-[var(--nimi-text-muted)]">
       Loading...
-    </div>
+    </Surface>
   );
 }
 

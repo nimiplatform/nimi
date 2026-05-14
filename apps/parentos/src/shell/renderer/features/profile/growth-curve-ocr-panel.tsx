@@ -1,5 +1,5 @@
+import { Button, Surface } from '@nimiplatform/nimi-kit/ui';
 import { AppSelect } from '../../app-shell/app-select.js';
-import { S, selectStyle } from '../../app-shell/page-style.js';
 import { GROWTH_STANDARDS } from '../../knowledge-base/index.js';
 import { ProfileDatePicker } from './profile-date-picker.js';
 import type { OCRImportTypeId, OCRMeasurementCandidate } from './checkup-ocr.js';
@@ -42,17 +42,17 @@ export function GrowthCurveOCRPanel({
   onImport,
 }: GrowthCurveOCRPanelProps) {
   return (
-    <div className={`w-full ${S.radius} p-4 space-y-4`} style={{ background: S.card, boxShadow: S.shadow }}>
+    <Surface tone="card" material="solid" elevation="raised" padding="md" className="w-full space-y-4">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <h3 className="font-medium text-sm" style={{ color: S.text }}>Import from health sheet (OCR)</h3>
-          <p className="text-xs" style={{ color: S.sub }}>
+          <h3 className="font-medium text-sm text-[var(--nimi-text-primary)]">Import from health sheet (OCR)</h3>
+          <p className="text-xs text-[var(--nimi-text-muted)]">
             Extracts structured growth measurements only. Nothing is saved until you confirm the candidates.
           </p>
         </div>
-        <button onClick={onClose} className={`px-3 py-1.5 text-sm ${S.radiusSm}`} style={{ background: S.bg, color: S.sub }}>
+        <Button onClick={onClose} tone="ghost" size="sm">
           Close OCR
-        </button>
+        </Button>
       </div>
 
       {ocrRuntimeAvailable === false ? (
@@ -68,22 +68,22 @@ export function GrowthCurveOCRPanel({
           className="block text-sm"
         />
         {ocrImageName ? (
-          <p className="text-xs" style={{ color: S.sub }} data-testid="ocr-image-name">
+          <p className="text-xs text-[var(--nimi-text-muted)]" data-testid="ocr-image-name">
             已选择：{ocrImageName}
           </p>
         ) : null}
         <div className="flex gap-2">
-          <button
+          <Button
             onClick={onAnalyze}
             disabled={!hasOCRImage || ocrRuntimeAvailable === false || ocrStatus === 'analyzing'}
-            className={`px-4 py-1.5 text-sm text-white ${S.radiusSm} disabled:opacity-50`}
-            style={{ background: S.accent }}
+            tone="primary"
+            size="sm"
           >
             {ocrStatus === 'analyzing' ? 'Analyzing...' : 'Analyze sheet'}
-          </button>
-          <button onClick={onReset} className={`px-4 py-1.5 text-sm ${S.radiusSm}`} style={{ background: S.bg, color: S.sub }}>
+          </Button>
+          <Button onClick={onReset} tone="secondary" size="sm">
             Reset
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -94,15 +94,14 @@ export function GrowthCurveOCRPanel({
       {ocrStatus === 'review' ? (
         <div className="space-y-3">
           {ocrCandidates.length === 0 ? (
-            <p className="text-sm" style={{ color: S.sub }}>未识别到可导入的受支持测量值。</p>
+            <p className="text-sm text-[var(--nimi-text-muted)]">未识别到可导入的受支持测量值。</p>
           ) : (
             <>
               <div className="space-y-3">
                 {ocrCandidates.map((candidate, index) => (
                   <div
                     key={`${candidate.typeId}-${index}`}
-                    className={`${S.radiusSm} p-3 space-y-2`}
-                    style={{ borderColor: S.border, borderWidth: 1, borderStyle: 'solid' }}
+                    className="space-y-2 rounded-2xl border border-[var(--nimi-border-subtle)] p-3"
                   >
                     <label className="flex items-center gap-2 text-sm">
                       <input
@@ -127,34 +126,32 @@ export function GrowthCurveOCRPanel({
                         type="number"
                         value={candidate.value}
                         onChange={(event) => onChangeCandidateValue(index, Number(event.target.value))}
-                        className={S.select}
-                        style={selectStyle}
+                        className={"rounded-xl px-3 py-1.5 text-[14px] cursor-pointer appearance-none bg-[var(--nimi-field-bg)] text-[var(--nimi-text-primary)] border border-[var(--nimi-field-border)] transition-colors"}
                       />
                       <ProfileDatePicker
                         value={candidate.measuredAt}
                         onChange={(nextDate) => onChangeCandidateDate(index, nextDate)}
-                        className={S.select}
-                        style={selectStyle}
+                        className={"rounded-xl px-3 py-1.5 text-[14px] cursor-pointer appearance-none bg-[var(--nimi-field-bg)] text-[var(--nimi-text-primary)] border border-[var(--nimi-field-border)] transition-colors"}
                         size="small"
                       />
                     </div>
                     {candidate.notes ? (
-                      <p className="text-xs" style={{ color: S.sub }}>{candidate.notes}</p>
+                      <p className="text-xs text-[var(--nimi-text-muted)]">{candidate.notes}</p>
                     ) : null}
                   </div>
                 ))}
               </div>
-              <button
+              <Button
                 onClick={onImport}
-                className={`px-4 py-2 text-sm text-white ${S.radiusSm}`}
-                style={{ background: S.accent }}
+                tone="primary"
+                size="md"
               >
                 Import selected OCR measurements
-              </button>
+              </Button>
             </>
           )}
         </div>
       ) : null}
-    </div>
+    </Surface>
   );
 }

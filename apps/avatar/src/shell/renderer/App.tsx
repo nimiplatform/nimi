@@ -5,6 +5,7 @@
 // hard-cut; companion-surface is always-visible while ready.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { IconButton, Surface, Toggle, cn } from '@nimiplatform/nimi-kit/ui';
 import { useTranslation } from './i18n/index.js';
 import { bootstrapAvatar, type BootstrapHandle } from './app-shell/app-bootstrap.js';
 import { useAvatarStore } from './app-shell/app-store.js';
@@ -514,11 +515,11 @@ export function App() {
         : 'ready'
     : 'damped';
 
-  const shellClass = [
+  const shellClass = cn(
     'avatar-root',
     `avatar-root--${composition.variant}`,
     `avatar-root--${ambient}`,
-  ].join(' ');
+  );
 
   if (!composition.ready) {
     return (
@@ -560,7 +561,12 @@ export function App() {
         settingsOpen={settingsOpen}
       />
       {settingsOpen ? (
-        <section
+        <Surface
+          as="section"
+          material="glass-thick"
+          tone="overlay"
+          elevation="floating"
+          padding="none"
           id="avatar-companion-settings-popover"
           className="avatar-settings-popover nimi-material-glass-thick backdrop-blur-[var(--nimi-backdrop-blur-strong)]"
           aria-label={t('Avatar.settings.popover_aria')}
@@ -568,65 +574,61 @@ export function App() {
         >
           <header className="avatar-settings-popover__header">
             <strong>{t('Avatar.settings.header')}</strong>
-            <button
-              type="button"
+            <IconButton
               className="avatar-settings-popover__close"
               aria-label={t('Avatar.settings.close_aria')}
               onClick={() => setSettingsOpen(false)}
-            >
-              ×
-            </button>
+              icon="×"
+              size="sm"
+              tone="ghost"
+            />
           </header>
-          <label className="avatar-settings-popover__toggle">
-            <input
-              type="checkbox"
+          <div className="avatar-settings-popover__toggle">
+            <Toggle
               checked={shellSettings.alwaysOnTop}
-              onChange={(event) => persistShellSettings({ ...shellSettings, alwaysOnTop: event.target.checked })}
+              onChange={(checked) => persistShellSettings({ ...shellSettings, alwaysOnTop: checked })}
             />
             <span className="avatar-settings-popover__toggle-text">
               <span className="avatar-settings-popover__toggle-label">{t('Avatar.settings.always_on_top.label')}</span>
               <span className="avatar-settings-popover__toggle-help">{t('Avatar.settings.always_on_top.help')}</span>
             </span>
-          </label>
-          <label className="avatar-settings-popover__toggle">
-            <input
-              type="checkbox"
+          </div>
+          <div className="avatar-settings-popover__toggle">
+            <Toggle
               checked={shellSettings.bubbleAutoOpen}
-              onChange={(event) => persistShellSettings({ ...shellSettings, bubbleAutoOpen: event.target.checked })}
+              onChange={(checked) => persistShellSettings({ ...shellSettings, bubbleAutoOpen: checked })}
             />
             <span className="avatar-settings-popover__toggle-text">
               <span className="avatar-settings-popover__toggle-label">{t('Avatar.settings.bubble_auto_open.label')}</span>
               <span className="avatar-settings-popover__toggle-help">{t('Avatar.settings.bubble_auto_open.help')}</span>
             </span>
-          </label>
-          <label className="avatar-settings-popover__toggle">
-            <input
-              type="checkbox"
+          </div>
+          <div className="avatar-settings-popover__toggle">
+            <Toggle
               checked={shellSettings.bubbleAutoCollapse}
-              onChange={(event) => persistShellSettings({ ...shellSettings, bubbleAutoCollapse: event.target.checked })}
+              onChange={(checked) => persistShellSettings({ ...shellSettings, bubbleAutoCollapse: checked })}
             />
             <span className="avatar-settings-popover__toggle-text">
               <span className="avatar-settings-popover__toggle-label">{t('Avatar.settings.bubble_auto_collapse.label')}</span>
               <span className="avatar-settings-popover__toggle-help">{t('Avatar.settings.bubble_auto_collapse.help')}</span>
             </span>
-          </label>
-          <label className="avatar-settings-popover__toggle">
-            <input
-              type="checkbox"
+          </div>
+          <div className="avatar-settings-popover__toggle">
+            <Toggle
               checked={shellSettings.showVoiceCaptions}
-              onChange={(event) => persistShellSettings({ ...shellSettings, showVoiceCaptions: event.target.checked })}
+              onChange={(checked) => persistShellSettings({ ...shellSettings, showVoiceCaptions: checked })}
             />
             <span className="avatar-settings-popover__toggle-text">
               <span className="avatar-settings-popover__toggle-label">{t('Avatar.settings.show_voice_captions.label')}</span>
               <span className="avatar-settings-popover__toggle-help">{t('Avatar.settings.show_voice_captions.help')}</span>
             </span>
-          </label>
+          </div>
           {shellSettings.showVoiceCaptions !== defaultAvatarShellSettings.showVoiceCaptions ? (
             <p className="avatar-settings-popover__note">
               {t('Avatar.settings.show_voice_captions.note')}
             </p>
           ) : null}
-        </section>
+        </Surface>
       ) : null}
     </div>
   );

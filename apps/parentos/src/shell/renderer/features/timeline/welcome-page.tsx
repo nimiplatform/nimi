@@ -1,7 +1,6 @@
 import { Link } from 'react-router-dom';
-import { AmbientBackground, Surface } from '@nimiplatform/nimi-kit/ui';
+import { AmbientBackground, Surface, buttonVariants, cn } from '@nimiplatform/nimi-kit/ui';
 import { useAppStore, computeAgeMonths } from '../../app-shell/app-store.js';
-import { S } from '../../app-shell/page-style.js';
 import { ChildAvatar } from '../../shared/child-avatar.js';
 
 /* ── data ───────────────────────────────────────────────── */
@@ -29,11 +28,6 @@ const TRUST = [
   { emoji: '🌍', label: '采用中国与 WHO 权威标准' },
 ] as const;
 
-/* ── styles ──────────────────────────────────────────────── */
-
-const textMain = '#1e293b';
-const textMuted = '#475569';
-
 /* ── component ───────────────────────────────────────────── */
 
 export function WelcomePage() {
@@ -53,15 +47,14 @@ export function WelcomePage() {
 
       {/* ── main scrollable content ── */}
       <div
-        className="relative min-w-0 flex-1 overflow-y-auto"
-        style={{ paddingTop: S.topPad, paddingLeft: 60, paddingRight: 60, paddingBottom: 40 }}
+        className="relative min-w-0 flex-1 overflow-y-auto px-[60px] pb-10 pt-[72px]"
       >
         <div className="flex flex-col gap-8">
 
           {/* ── header ── */}
           <header>
-            <p className="text-[14px] font-medium tracking-wide" style={{ color: textMuted }}>{dateStr}</p>
-            <h1 className="mt-2 text-[24px] font-semibold tracking-tight" style={{ color: textMain, letterSpacing: '-0.5px' }}>
+            <p className="text-[14px] font-medium tracking-wide text-[var(--nimi-text-muted)]">{dateStr}</p>
+            <h1 className="mt-2 text-[24px] font-semibold tracking-tight text-[var(--nimi-text-primary)]">
               {greeting}，开启今天的育儿之旅。
             </h1>
           </header>
@@ -75,11 +68,11 @@ export function WelcomePage() {
             className="relative overflow-hidden p-12"
           >
             <div className="flex items-center justify-between">
-              <div style={{ maxWidth: 420 }}>
-                <h2 className="text-[24px] font-semibold" style={{ color: textMain }}>
+              <div className="max-w-[420px]">
+                <h2 className="text-[24px] font-semibold text-[var(--nimi-text-primary)]">
                   {hasChildren ? '选择一个孩子开始' : '欢迎使用成长底稿'}
                 </h2>
-                <p className="mt-3 text-[16px] leading-relaxed" style={{ color: textMuted }}>
+                <p className="mt-3 text-[16px] leading-relaxed text-[var(--nimi-text-muted)]">
                   {hasChildren
                     ? '请选择一个孩子，查看个性化成长时间线'
                     : '这里是你的专属"成长底稿"。从第一笔身高体重，到每一次难忘的微笑，我们用科学与 AI 陪伴宝贝的每一步。'}
@@ -99,26 +92,19 @@ export function WelcomePage() {
                           key={child.childId}
                           type="button"
                           onClick={() => setActiveChildId(child.childId)}
-                          className="flex items-center gap-3 rounded-full py-2 pl-2.5 pr-5 text-left transition-all hover:-translate-y-0.5"
-                          style={{
-                            background: '#fff',
-                            color: textMain,
-                            boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
-                            border: '1px solid rgba(255,255,255,0.8)',
-                          }}
+                          className="flex items-center gap-3 rounded-full border border-[var(--nimi-material-glass-thin-border)] bg-[var(--nimi-surface-card)] py-2 pl-2.5 pr-5 text-left text-[var(--nimi-text-primary)] shadow-[var(--nimi-elevation-base)] transition-all hover:-translate-y-0.5"
                         >
                           <ChildAvatar child={child} ageMonths={age} className="h-9 w-9 shrink-0 rounded-full object-cover" />
                           <span>
                             <span className="block text-[14px] font-semibold">{child.displayName}</span>
-                            <span className="block text-[13px]" style={{ color: textMuted }}>{ageLabel}</span>
+                            <span className="block text-[13px] text-[var(--nimi-text-muted)]">{ageLabel}</span>
                           </span>
                         </button>
                       );
                     })}
                     <Link
                       to="/settings/children"
-                      className="flex items-center gap-2 rounded-full px-5 py-2 text-[14px] font-medium transition-colors hover:bg-black/5"
-                      style={{ color: textMuted, border: '1.5px dashed #cbd5e1' }}
+                      className={cn(buttonVariants({ tone: 'ghost', size: 'sm' }), 'border border-dashed border-[var(--nimi-border-strong)] px-5')}
                     >
                       + 添加新孩子
                     </Link>
@@ -126,11 +112,7 @@ export function WelcomePage() {
                 ) : (
                   <Link
                     to="/settings/children"
-                    className="mt-8 inline-flex items-center gap-2 rounded-full px-7 py-3.5 text-[16px] font-medium text-white transition-all hover:-translate-y-0.5"
-                    style={{
-                      background: textMain,
-                      boxShadow: '0 4px 14px rgba(0,0,0,0.08)',
-                    }}
+                    className={cn(buttonVariants({ tone: 'primary', size: 'lg' }), 'mt-8 px-7 py-3.5 text-[16px]')}
                   >
                     建立宝贝专属档案
                     <span>→</span>
@@ -140,8 +122,7 @@ export function WelcomePage() {
 
               {/* illustration */}
               <div
-                className="hidden shrink-0 select-none lg:flex"
-                style={{ fontSize: 80, gap: 16, filter: 'drop-shadow(0 10px 20px rgba(0,0,0,0.08))' }}
+                className="hidden shrink-0 select-none gap-4 text-[80px] drop-shadow-lg lg:flex"
               >
                 <span>👶</span><span>🌱</span>
               </div>
@@ -150,7 +131,7 @@ export function WelcomePage() {
 
           {/* ── bento feature cards ── */}
           <section>
-            <h2 className="mb-5 text-[18px] font-semibold" style={{ color: textMain }}>
+            <h2 className="mb-5 text-[18px] font-semibold text-[var(--nimi-text-primary)]">
               我们将这样陪伴你
             </h2>
             <div className="grid grid-cols-3 gap-6">
@@ -164,13 +145,12 @@ export function WelcomePage() {
                   className="p-7 transition-transform hover:-translate-y-1"
                 >
                   <div
-                    className="mb-5 flex h-11 w-11 items-center justify-center rounded-xl text-[24px]"
-                    style={{ background: '#fff', boxShadow: '0 4px 12px rgba(0,0,0,0.04)' }}
+                    className="mb-5 flex h-11 w-11 items-center justify-center parentos-radius-lg bg-[var(--nimi-surface-card)] text-[24px] shadow-[var(--nimi-elevation-base)]"
                   >
                     {item.emoji}
                   </div>
-                  <h3 className="text-[18px] font-semibold" style={{ color: textMain }}>{item.title}</h3>
-                  <p className="mt-2.5 text-[16px] leading-relaxed" style={{ color: textMuted }}>{item.desc}</p>
+                  <h3 className="text-[18px] font-semibold text-[var(--nimi-text-primary)]">{item.title}</h3>
+                  <p className="mt-2.5 text-[16px] leading-relaxed text-[var(--nimi-text-muted)]">{item.desc}</p>
                 </Surface>
               ))}
             </div>
@@ -181,12 +161,7 @@ export function WelcomePage() {
             {TRUST.map((t) => (
               <div
                 key={t.label}
-                className="flex items-center gap-2 rounded-full px-4 py-2 text-[14px]"
-                style={{
-                  color: textMuted,
-                  background: 'rgba(255,255,255,0.6)',
-                  border: '1px solid rgba(255,255,255,0.8)',
-                }}
+                className="flex items-center gap-2 rounded-full border border-[var(--nimi-material-glass-thin-border)] bg-[var(--nimi-material-glass-thin-bg)] px-4 py-2 text-[14px] text-[var(--nimi-text-muted)]"
               >
                 <span>{t.emoji}</span> {t.label}
               </div>

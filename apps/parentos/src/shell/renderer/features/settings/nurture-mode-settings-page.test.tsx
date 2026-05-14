@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { fireEvent, render, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import NurtureModeSettingsPage from './nurture-mode-settings-page.js';
@@ -18,6 +18,23 @@ vi.mock('../../bridge/sqlite-bridge.js', () => ({
 vi.mock('../../bridge/ulid.js', () => ({
   isoNow: () => '2026-04-03T00:00:00.000Z',
 }));
+
+Object.defineProperty(Element.prototype, 'scrollIntoView', {
+  configurable: true,
+  value: vi.fn(),
+});
+Object.defineProperty(Element.prototype, 'hasPointerCapture', {
+  configurable: true,
+  value: vi.fn(() => false),
+});
+Object.defineProperty(Element.prototype, 'setPointerCapture', {
+  configurable: true,
+  value: vi.fn(),
+});
+Object.defineProperty(Element.prototype, 'releasePointerCapture', {
+  configurable: true,
+  value: vi.fn(),
+});
 
 describe('NurtureModeSettingsPage', () => {
   const domain = REMINDER_DOMAINS[0] ?? 'sleep';
@@ -83,20 +100,13 @@ describe('NurtureModeSettingsPage', () => {
     });
     expect(useAppStore.getState().children[0]?.nurtureMode).toBe('relaxed');
 
-    const buttonCountBeforeOpen = document.body.querySelectorAll('button').length;
-    const overrideTrigger = Array.from(container.querySelectorAll('button')).find((button) =>
-      button.querySelector('path[d="M6 9l6 6 6-6"]'),
-    ) as HTMLButtonElement | undefined;
+    const overrideTrigger = screen
+      .getAllByRole('combobox')
+      .find((trigger) => trigger.textContent?.includes('进阶养')) as HTMLButtonElement | undefined;
 
     expect(overrideTrigger).toBeTruthy();
-    fireEvent.click(overrideTrigger!);
-
-    await waitFor(() => {
-      expect(document.body.querySelectorAll('button').length).toBeGreaterThan(buttonCountBeforeOpen);
-    });
-
-    const portalButtons = Array.from(document.body.querySelectorAll('button')).slice(buttonCountBeforeOpen);
-    fireEvent.click(portalButtons[portalButtons.length - 1] as HTMLButtonElement);
+    fireEvent.pointerDown(overrideTrigger!, { button: 0, ctrlKey: false, pointerType: 'mouse' });
+    fireEvent.click(await screen.findByRole('option', { name: /均衡养/ }));
 
     await waitFor(() => {
       expect(updateChild).toHaveBeenCalledTimes(2);

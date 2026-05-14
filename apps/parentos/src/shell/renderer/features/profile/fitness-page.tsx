@@ -1,9 +1,9 @@
+import { Button, Surface } from '@nimiplatform/nimi-kit/ui';
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAppStore, computeAgeMonths } from '../../app-shell/app-store.js';
 import { getFitnessAssessments } from '../../bridge/sqlite-bridge.js';
 import type { FitnessAssessmentRow } from '../../bridge/sqlite-bridge.js';
-import { S } from '../../app-shell/page-style.js';
 import { AISummaryCard } from './ai-summary-card.js';
 import { catchLog } from '../../infra/telemetry/catch-log.js';
 import { FitnessAssessmentModal, ageTier } from './fitness-assessment-form.js';
@@ -42,7 +42,7 @@ export default function FitnessPage() {
     }
   }, [activeChildId]);
 
-  if (!child) return <div className="p-8" style={{ color: S.sub }}>请先添加孩子</div>;
+  if (!child) return <div className="p-8 text-[var(--nimi-text-muted)]">请先添加孩子</div>;
 
   const ageMonths = computeAgeMonths(child.birthDate);
 
@@ -55,16 +55,16 @@ export default function FitnessPage() {
   };
 
   return (
-    <div className={S.container} style={{ paddingTop: S.topPad, minHeight: '100%' }}>
+    <div className="mx-auto min-h-full max-w-3xl px-6 pb-6 pt-[72px]">
       <div className="flex items-center gap-2 mb-6">
-        <Link to="/profile" className="text-[14px] hover:underline" style={{ color: S.sub }}>&larr; 返回档案</Link>
+        <Link to="/profile" className="text-[14px] hover:underline text-[var(--nimi-text-muted)]">&larr; 返回档案</Link>
       </div>
       <div className="flex items-center justify-between mb-1">
-        <h1 className="text-xl font-bold" style={{ color: S.text }}>体能评估</h1>
+        <h1 className="text-xl font-bold text-[var(--nimi-text-primary)]">体能评估</h1>
         {!showForm && (
-          <button onClick={() => setShowForm(true)} className={S.radiusSm + ' text-sm px-4 py-2 text-white'} style={{ background: S.accent }}>
+          <Button tone="primary" size="sm" onClick={() => setShowForm(true)} className="rounded-2xl">
             添加评估
-          </button>
+          </Button>
         )}
       </div>
       <AISummaryCard domain="fitness" childName={child.displayName} childId={child.childId}
@@ -85,11 +85,11 @@ export default function FitnessPage() {
       {/* Assessment Cards */}
       <section>
         {sortedAssessments.length === 0 ? (
-          <div className={`${S.radius} p-8 text-center`} style={{ background: S.card, boxShadow: S.shadow }}>
+          <Surface tone="card" material="glass-regular" elevation="raised" padding="none" className="rounded-3xl p-8 text-center">
             <span className="text-[24px]">🏃</span>
-            <p className="text-[14px] mt-2 font-medium" style={{ color: S.text }}>还没有体能评估</p>
-            <p className="text-[13px] mt-1" style={{ color: S.sub }}>记录体测成绩，追踪体能发展</p>
-          </div>
+            <p className="text-[14px] mt-2 font-medium text-[var(--nimi-text-primary)]">还没有体能评估</p>
+            <p className="text-[13px] mt-1 text-[var(--nimi-text-muted)]">记录体测成绩，追踪体能发展</p>
+          </Surface>
         ) : (
           <div className="space-y-4">
             {sortedAssessments.map((a) => {
@@ -115,53 +115,53 @@ export default function FitnessPage() {
               ].filter((m) => m.value != null);
 
               const metricChip = (m: { label: string; value: number | null; unit: string }) => (
-                <span key={m.label} className="inline-flex items-center gap-1 text-[14px] px-2 py-0.5 rounded-full" style={{ background: '#f4f4f2' }}>
-                  <span style={{ color: S.sub }}>{m.label}</span>
-                  <span className="font-medium" style={{ color: S.text }}>{m.value}{m.unit}</span>
+                <span key={m.label} className="inline-flex items-center gap-1 rounded-full bg-[var(--nimi-surface-panel)] px-2 py-0.5 text-[14px]">
+                  <span className="text-[var(--nimi-text-muted)]">{m.label}</span>
+                  <span className="font-medium text-[var(--nimi-text-primary)]">{m.value}{m.unit}</span>
                 </span>
               );
 
               return (
-                <div key={a.assessmentId} className={S.radius + ' p-5'} style={{ background: S.card, boxShadow: S.shadow }}>
+                <Surface key={a.assessmentId} tone="card" material="glass-regular" elevation="raised" padding="none" className="rounded-3xl p-5">
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2.5">
-                      <span className="text-sm font-semibold" style={{ color: S.text }}>{a.assessedAt.split('T')[0]}</span>
-                      <span className="text-[13px] px-1.5 py-0.5 rounded" style={{ background: '#f4f4f2', color: S.sub }}>{AGE_TIER_LABELS[ageTier(a.ageMonths)]}</span>
+                      <span className="text-sm font-semibold text-[var(--nimi-text-primary)]">{a.assessedAt.split('T')[0]}</span>
+                      <span className="rounded bg-[var(--nimi-surface-panel)] px-1.5 py-0.5 text-[13px] text-[var(--nimi-text-muted)]">{AGE_TIER_LABELS[ageTier(a.ageMonths)]}</span>
                       {a.assessmentSource && (
-                        <span className="text-[13px]" style={{ color: S.sub }}>{SOURCE_LABELS[a.assessmentSource] ?? a.assessmentSource}</span>
+                        <span className="text-[13px] text-[var(--nimi-text-muted)]">{SOURCE_LABELS[a.assessmentSource] ?? a.assessmentSource}</span>
                       )}
                     </div>
                   </div>
                   <div className="space-y-2">
                     {speedMetrics.length > 0 && (
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-[13px] w-8" style={{ color: S.sub }}>速度</span>
+                        <span className="text-[13px] w-8 text-[var(--nimi-text-muted)]">速度</span>
                         {speedMetrics.map(metricChip)}
                       </div>
                     )}
                     {strengthMetrics.length > 0 && (
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-[13px] w-8" style={{ color: S.sub }}>力量</span>
+                        <span className="text-[13px] w-8 text-[var(--nimi-text-muted)]">力量</span>
                         {strengthMetrics.map(metricChip)}
                       </div>
                     )}
                     {cardioMetrics.length > 0 && (
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-[13px] w-8" style={{ color: S.sub }}>心肺</span>
+                        <span className="text-[13px] w-8 text-[var(--nimi-text-muted)]">心肺</span>
                         {cardioMetrics.map(metricChip)}
                       </div>
                     )}
                     {a.footArchStatus && (
                       <div className="flex items-center gap-2">
-                        <span className="text-[13px] w-8" style={{ color: S.sub }}>足弓</span>
-                        <span className="inline-flex items-center text-[14px] px-2 py-0.5 rounded-full font-medium" style={{ background: '#f4f4f2', color: S.text }}>
+                        <span className="text-[13px] w-8 text-[var(--nimi-text-muted)]">足弓</span>
+                        <span className="inline-flex items-center rounded-full bg-[var(--nimi-surface-panel)] px-2 py-0.5 text-[14px] font-medium text-[var(--nimi-text-primary)]">
                           {FOOT_ARCH_LABELS[a.footArchStatus] ?? a.footArchStatus}
                         </span>
                       </div>
                     )}
                   </div>
-                  {a.notes && <p className="text-[14px] mt-3 pt-2" style={{ color: S.sub, borderTop: `1px solid ${S.border}` }}>{a.notes}</p>}
-                </div>
+                  {a.notes && <p className="mt-3 border-t border-[var(--nimi-border-subtle)] pt-2 text-[14px] text-[var(--nimi-text-muted)]">{a.notes}</p>}
+                </Surface>
               );
             })}
           </div>

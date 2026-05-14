@@ -1,6 +1,6 @@
+import { Button, Surface, TextField } from '@nimiplatform/nimi-kit/ui';
 import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { S } from '../../app-shell/page-style.js';
 import { computeAgeMonthsAt, useAppStore } from '../../app-shell/app-store.js';
 import { convertFileSrc } from '@tauri-apps/api/core';
 import { insertMeasurement, getMeasurements, saveAttachment, getAttachments, deleteAttachment } from '../../bridge/sqlite-bridge.js';
@@ -134,7 +134,7 @@ export default function ReportUploadPage() {
   };
 
   if (!child) {
-    return <div className="flex items-center justify-center h-full" style={{ color: S.sub }}>请先添加孩子档案</div>;
+    return <div className="flex items-center justify-center h-full text-[var(--nimi-text-muted)]">请先添加孩子档案</div>;
   }
 
   const handleFileSelect = async (file: File | null) => {
@@ -243,37 +243,34 @@ export default function ReportUploadPage() {
   };
 
   return (
-    <div className={S.container} style={{ paddingTop: S.topPad, minHeight: '100%' }}>
+    <div className="max-w-3xl mx-auto min-h-full px-6 pb-6 pt-[72px]">
       <div className="flex items-center gap-2 mb-5">
-        <Link to="/profile" className="text-[14px] hover:underline" style={{ color: S.sub }}>← 返回档案</Link>
+        <Link to="/profile" className="text-[14px] hover:underline text-[var(--nimi-text-muted)]">← 返回档案</Link>
       </div>
       <div className="flex items-center justify-between mb-2">
-        <h1 className="text-xl font-bold" style={{ color: S.text }}>智能识别 & 影像档案</h1>
+        <h1 className="text-xl font-bold text-[var(--nimi-text-primary)]">智能识别 & 影像档案</h1>
         <div className="flex items-center gap-2">
           {reportGroups.length > 0 && (
-            <span className="text-[13px] px-2.5 py-0.5 rounded-full" style={{ background: '#f4f7ea', color: S.accent }}>
+            <span className="rounded-full bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,var(--nimi-surface-card))] px-2.5 py-0.5 text-[13px] text-[var(--nimi-action-primary-bg)]">
               {reportGroups.length} 份报告
             </span>
           )}
           {allAttachments.length > 0 && (
-            <span className="text-[13px] px-2.5 py-0.5 rounded-full" style={{ background: '#f0eff8', color: '#7c6faf' }}>
+            <span className="rounded-full bg-[color-mix(in_srgb,var(--nimi-status-info)_10%,var(--nimi-surface-card))] px-2.5 py-0.5 text-[13px] text-[var(--nimi-status-info)]">
               {allAttachments.length} 张影像
             </span>
           )}
         </div>
       </div>
-      <p className="text-[14px] mb-4" style={{ color: S.sub }}>
+      <p className="text-[14px] mb-4 text-[var(--nimi-text-muted)]">
         上传医院报告自动提取数据，所有影像资料统一归档
       </p>
 
       {/* ── Tab toggle ─────────────────────────────────────── */}
-      <div className="flex gap-1 rounded-full p-1 mb-5 w-fit" style={{ background: '#eceeed' }}>
+      <div className="flex gap-1 rounded-full bg-[var(--nimi-action-ghost-hover)] p-1 mb-5 w-fit">
         {([['upload', '📄 上传报告'], ['library', '📚 报告库'], ['attachments', '🖼️ 影像档案']] as const).map(([k, l]) => (
           <button key={k} onClick={() => setActiveView(k)}
-            className="px-4 py-1.5 text-[13px] font-medium rounded-full transition-all"
-            style={activeView === k
-              ? { background: S.card, color: S.text, boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }
-              : { color: S.sub }}>
+            className={`px-4 py-1.5 text-[13px] font-medium rounded-full transition-all ${activeView === k ? 'bg-[var(--nimi-surface-card)] text-[var(--nimi-text-primary)] shadow-[var(--nimi-elevation-base)]' : 'text-[var(--nimi-text-muted)]'}`}>
             {l}
           </button>
         ))}
@@ -286,14 +283,13 @@ export default function ReportUploadPage() {
 
       {/* ── Step 1: Upload ──────────────────────────────────── */}
       {status !== 'done' && (
-        <div className={`${S.radius} p-6 mb-4`} style={{ background: S.card, boxShadow: S.shadow }}>
+        <Surface tone="card" material="glass-regular" elevation="raised" padding="lg" className="mb-4 rounded-3xl">
           {!imagePreview ? (
             /* Drop zone */
-            <label className={`flex flex-col items-center justify-center py-10 border-2 border-dashed ${S.radiusSm} cursor-pointer transition-colors hover:border-[${S.accent}]/50 hover:bg-[#f4f7ea]/30`}
-              style={{ borderColor: S.border }}>
+            <label className="flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[var(--nimi-border-subtle)] py-10 transition-colors hover:border-[var(--nimi-action-primary-bg)] hover:bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_8%,transparent)]">
               <span className="text-[36px] mb-2">📄</span>
-              <p className="text-[14px] font-medium" style={{ color: S.text }}>点击选择或拖放报告图片</p>
-              <p className="text-[13px] mt-1" style={{ color: S.sub }}>支持 JPG、PNG 格式</p>
+              <p className="text-[14px] font-medium text-[var(--nimi-text-primary)]">点击选择或拖放报告图片</p>
+              <p className="text-[13px] mt-1 text-[var(--nimi-text-muted)]">支持 JPG、PNG 格式</p>
               <input type="file" accept="image/*" className="hidden"
                 onChange={(e) => void handleFileSelect(e.target.files?.[0] ?? null)} />
             </label>
@@ -301,12 +297,11 @@ export default function ReportUploadPage() {
             /* Preview + analyze */
             <div className="flex gap-4">
               <img src={imagePreview} alt="报告预览"
-                className={`w-[160px] h-[200px] object-cover ${S.radiusSm} border`}
-                style={{ borderColor: S.border }} />
+                className="w-[160px] h-[200px] rounded-2xl border border-[var(--nimi-border-subtle)] object-cover" />
               <div className="flex-1 flex flex-col justify-between">
                 <div>
-                  <p className="text-[14px] font-medium" style={{ color: S.text }}>{imageName}</p>
-                  <p className="text-[13px] mt-1" style={{ color: S.sub }}>
+                  <p className="text-[14px] font-medium text-[var(--nimi-text-primary)]">{imageName}</p>
+                  <p className="text-[13px] mt-1 text-[var(--nimi-text-muted)]">
                     {status === 'analyzing' ? '正在识别中，请稍候...' : '图片已就绪，点击开始识别'}
                   </p>
                   {runtimeAvailable === false && (
@@ -314,48 +309,45 @@ export default function ReportUploadPage() {
                   )}
                 </div>
                 <div className="flex gap-2 mt-3">
-                  <button onClick={() => void handleAnalyze()}
+                  <Button onClick={() => void handleAnalyze()}
                     disabled={status === 'analyzing' || runtimeAvailable === false}
-                    className={`px-5 py-2 text-[14px] font-medium text-white ${S.radiusSm} disabled:opacity-50`}
-                    style={{ background: S.accent }}>
+                    tone="primary"
+                    size="md">
                     {status === 'analyzing' ? (
                       <span className="flex items-center gap-2">
-                        <span className="inline-block w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        <span className="inline-block w-3.5 h-3.5 border-2 border-[color-mix(in_srgb,var(--nimi-action-primary-text)_30%,transparent)] border-t-[var(--nimi-action-primary-text)] rounded-full animate-spin" />
                         识别中...
                       </span>
                     ) : '🔍 开始识别'}
-                  </button>
-                  <button onClick={reset}
-                    className={`px-4 py-2 text-[14px] ${S.radiusSm}`}
-                    style={{ background: '#f0f0ec', color: S.sub }}>重新选择</button>
+                  </Button>
+                  <Button onClick={reset} tone="ghost" size="md">重新选择</Button>
                 </div>
               </div>
             </div>
           )}
-        </div>
+        </Surface>
       )}
 
       {/* ── Error ───────────────────────────────────────────── */}
       {error && (
-        <div className={`${S.radiusSm} px-4 py-3 mb-4 text-[14px]`}
-          style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca' }}>
+        <div className="mb-4 rounded-2xl border border-[color-mix(in_srgb,var(--nimi-status-danger)_30%,var(--nimi-border-subtle))] bg-[color-mix(in_srgb,var(--nimi-status-danger)_8%,var(--nimi-surface-card))] px-4 py-3 text-[14px] text-[var(--nimi-status-danger)]">
           {error}
         </div>
       )}
 
       {/* ── Step 2: Review candidates ──────────────────────── */}
       {status === 'review' && candidates.length > 0 && (
-        <div className={`${S.radius} p-5 mb-4`} style={{ background: S.card, boxShadow: S.shadow }}>
+        <Surface tone="card" material="glass-regular" elevation="raised" padding="lg" className="mb-4 rounded-3xl">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h3 className="text-[16px] font-bold" style={{ color: S.text }}>
+              <h3 className="text-[16px] font-bold text-[var(--nimi-text-primary)]">
                 识别到 {candidates.length} 项数据
               </h3>
-              <p className="text-[13px] mt-0.5" style={{ color: S.sub }}>
+              <p className="text-[13px] mt-0.5 text-[var(--nimi-text-muted)]">
                 请确认以下数据，取消不需要的项目
               </p>
             </div>
-            <span className="text-[13px] px-2 py-0.5 rounded-full" style={{ background: '#f4f7ea', color: S.accent }}>
+            <span className="rounded-full bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,var(--nimi-surface-card))] px-2 py-0.5 text-[13px] text-[var(--nimi-action-primary-bg)]">
               已选 {candidates.filter((c) => c.selected).length}/{candidates.length}
             </span>
           </div>
@@ -365,40 +357,31 @@ export default function ReportUploadPage() {
               const info = getDisplayInfo(c.typeId);
               return (
                 <div key={i}
-                  className={`flex items-center gap-3 p-3 ${S.radiusSm} transition-all cursor-pointer`}
-                  style={{
-                    background: c.selected ? '#f9faf7' : '#fafafa',
-                    border: `1.5px solid ${c.selected ? S.accent : S.border}`,
-                    opacity: c.selected ? 1 : 0.5,
-                  }}
+                  className={`flex cursor-pointer items-center gap-3 rounded-2xl border p-3 transition-all ${c.selected ? 'border-[var(--nimi-action-primary-bg)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_8%,var(--nimi-surface-card))]' : 'border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] opacity-50'}`}
                   onClick={() => toggleCandidate(i)}>
                   {/* Checkbox */}
-                  <div className="w-[20px] h-[20px] rounded-full border-[1.5px] flex items-center justify-center shrink-0 transition-all"
-                    style={c.selected
-                      ? { background: S.accent, borderColor: S.accent, color: '#fff' }
-                      : { borderColor: '#c5cad0' }}>
+                  <div className={`w-[20px] h-[20px] rounded-full border-[1.5px] flex items-center justify-center shrink-0 transition-all ${c.selected ? 'border-[var(--nimi-action-primary-bg)] bg-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)]' : 'border-[var(--nimi-border-strong)]'}`}>
                     {c.selected && <svg viewBox="0 0 12 12" className="w-3 h-3"><path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="2" fill="none" /></svg>}
                   </div>
                   {/* Icon + name */}
                   <span className="text-[18px]">{info.emoji}</span>
                   <div className="flex-1 min-w-0">
-                    <p className="text-[14px] font-medium" style={{ color: S.text }}>{info.name}</p>
-                    {c.notes && <p className="text-[12px] truncate" style={{ color: S.sub }}>{c.notes}</p>}
+                    <p className="text-[14px] font-medium text-[var(--nimi-text-primary)]">{info.name}</p>
+                    {c.notes && <p className="text-[12px] truncate text-[var(--nimi-text-muted)]">{c.notes}</p>}
                   </div>
                   {/* Value (editable) */}
-                  <input type="number" value={c.value}
+                  <TextField type="number" value={c.value}
                     onClick={(e) => e.stopPropagation()}
                     onChange={(e) => updateCandidate(i, 'value', e.target.value)}
-                    className={`w-20 text-right text-[16px] font-bold px-2 py-1 ${S.radiusSm}`}
-                    style={{ color: S.text, borderColor: S.border, borderWidth: 1, borderStyle: 'solid' }} />
-                  <span className="text-[12px] w-12" style={{ color: S.sub }}>{info.unit}</span>
+                    className="w-20"
+                    inputClassName="text-right text-[16px] font-bold text-[var(--nimi-text-primary)]" />
+                  <span className="text-[12px] w-12 text-[var(--nimi-text-muted)]">{info.unit}</span>
                   {/* Date */}
                   <div onClick={(e) => e.stopPropagation()}>
                     <ProfileDatePicker
                       value={c.measuredAt}
                       onChange={(nextDate) => updateCandidate(i, 'measuredAt', nextDate)}
-                      className={`text-[13px] ${S.radiusSm}`}
-                      style={{ color: S.sub, borderColor: S.border, borderWidth: 1, borderStyle: 'solid', background: '#fff' }}
+                      className="text-[13px]"
                       size="small"
                     />
                   </div>
@@ -408,44 +391,39 @@ export default function ReportUploadPage() {
           </div>
 
           <div className="flex gap-2 mt-4">
-            <button onClick={() => void handleImport()}
+            <Button onClick={() => void handleImport()}
               disabled={candidates.filter((c) => c.selected).length === 0}
-              className={`flex-1 py-2.5 text-[14px] font-medium text-white ${S.radiusSm} disabled:opacity-50 transition-colors hover:opacity-90`}
-              style={{ background: S.accent }}>
+              tone="primary"
+              size="md"
+              fullWidth>
               ✅ 确认导入 {candidates.filter((c) => c.selected).length} 条数据
-            </button>
-            <button onClick={reset}
-              className={`px-4 py-2.5 text-[14px] ${S.radiusSm}`}
-              style={{ background: '#f0f0ec', color: S.sub }}>取消</button>
+            </Button>
+            <Button onClick={reset} tone="ghost" size="md">取消</Button>
           </div>
-        </div>
+        </Surface>
       )}
 
       {/* ── Importing spinner ──────────────────────────────── */}
       {status === 'importing' && (
-        <div className={`${S.radius} p-8 flex flex-col items-center`} style={{ background: S.card, boxShadow: S.shadow }}>
-          <span className="inline-block w-8 h-8 border-3 border-[#f1f5f9] border-t-[#1e293b] rounded-full animate-spin mb-3" />
-          <p className="text-[14px]" style={{ color: S.text }}>正在导入数据...</p>
-        </div>
+        <Surface tone="card" material="glass-regular" elevation="raised" padding="lg" className="flex flex-col items-center rounded-3xl p-8">
+          <span className="inline-block w-8 h-8 border-3 border-[var(--nimi-border-subtle)] border-t-[var(--nimi-text-primary)] rounded-full animate-spin mb-3" />
+          <p className="text-[14px] text-[var(--nimi-text-primary)]">正在导入数据...</p>
+        </Surface>
       )}
 
       {/* ── Step 3: Success ────────────────────────────────── */}
       {status === 'done' && (
-        <div className={`${S.radius} p-8 flex flex-col items-center`} style={{ background: S.card, boxShadow: S.shadow }}>
+        <Surface tone="card" material="glass-regular" elevation="raised" padding="lg" className="flex flex-col items-center rounded-3xl p-8">
           <span className="text-[48px] mb-3">🎉</span>
-          <h3 className="text-[16px] font-bold" style={{ color: S.text }}>导入成功</h3>
-          <p className="text-[14px] mt-1 mb-5" style={{ color: S.sub }}>
+          <h3 className="text-[16px] font-bold text-[var(--nimi-text-primary)]">导入成功</h3>
+          <p className="text-[14px] mt-1 mb-5 text-[var(--nimi-text-muted)]">
             已成功导入 {importedCount} 条数据到 {child.displayName} 的档案
           </p>
           <div className="flex gap-3">
-            <button onClick={() => { reset(); setActiveView('library'); }}
-              className={`px-5 py-2 text-[14px] font-medium text-white ${S.radiusSm}`}
-              style={{ background: S.accent }}>查看报告库</button>
-            <button onClick={reset}
-              className={`px-5 py-2 text-[14px] ${S.radiusSm}`}
-              style={{ background: '#f0f0ec', color: S.sub }}>继续上传</button>
+            <Button onClick={() => { reset(); setActiveView('library'); }} tone="primary" size="md">查看报告库</Button>
+            <Button onClick={reset} tone="ghost" size="md">继续上传</Button>
           </div>
-        </div>
+        </Surface>
       )}
 
       </>}
@@ -456,15 +434,15 @@ export default function ReportUploadPage() {
       {activeView === 'library' && (
         <div>
           {reportGroups.length === 0 ? (
-            <div className={`${S.radius} p-10 text-center`} style={{ background: S.card, boxShadow: S.shadow }}>
+            <Surface tone="card" material="glass-regular" elevation="raised" padding="lg" className="rounded-3xl p-10 text-center">
               <span className="text-[36px]">📂</span>
-              <p className="text-[16px] font-medium mt-3" style={{ color: S.text }}>暂无报告记录</p>
-              <p className="text-[13px] mt-1" style={{ color: S.sub }}>通过智能识别提取的数据会自动归档到这里</p>
-            </div>
+              <p className="text-[16px] font-medium mt-3 text-[var(--nimi-text-primary)]">暂无报告记录</p>
+              <p className="text-[13px] mt-1 text-[var(--nimi-text-muted)]">通过智能识别提取的数据会自动归档到这里</p>
+            </Surface>
           ) : (
             <div className="relative">
               {/* Timeline line */}
-              <div className="absolute left-[18px] top-0 bottom-0 w-[2px]" style={{ background: S.border }} />
+              <div className="absolute left-[18px] top-0 bottom-0 w-[2px] bg-[var(--nimi-border-subtle)]" />
 
               {reportGroups.map((group) => {
                 const ageY = Math.floor(group.ageMonths / 12);
@@ -485,36 +463,35 @@ export default function ReportUploadPage() {
                 return (
                   <div key={group.date} className="relative pl-10 pb-5">
                     {/* Timeline dot */}
-                    <div className="absolute left-[11px] top-1 w-[16px] h-[16px] rounded-full border-[2px] flex items-center justify-center"
-                      style={{ background: S.card, borderColor: S.accent }}>
-                      <div className="w-[6px] h-[6px] rounded-full" style={{ background: S.accent }} />
+                    <div className="absolute left-[11px] top-1 w-[16px] h-[16px] rounded-full border-[2px] border-[var(--nimi-action-primary-bg)] bg-[var(--nimi-surface-card)] flex items-center justify-center">
+                      <div className="w-[6px] h-[6px] rounded-full bg-[var(--nimi-action-primary-bg)]" />
                     </div>
 
                     {/* Date header */}
                     <div className="flex items-center gap-2 mb-2">
-                      <span className="text-[14px] font-bold" style={{ color: S.text }}>{group.date}</span>
-                      <span className="text-[12px] px-2 py-0.5 rounded-full" style={{ background: '#f4f7ea', color: S.accent }}>{ageStr}</span>
-                      <span className="text-[12px]" style={{ color: S.sub }}>{group.items.length} 项数据</span>
+                      <span className="text-[14px] font-bold text-[var(--nimi-text-primary)]">{group.date}</span>
+                      <span className="rounded-full bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,var(--nimi-surface-card))] px-2 py-0.5 text-[12px] text-[var(--nimi-action-primary-bg)]">{ageStr}</span>
+                      <span className="text-[12px] text-[var(--nimi-text-muted)]">{group.items.length} 项数据</span>
                     </div>
 
                     {/* Report card */}
-                    <div className={`${S.radius} overflow-hidden`} style={{ background: S.card, boxShadow: S.shadow }}>
+                    <Surface tone="card" material="glass-regular" elevation="raised" padding="none" className="overflow-hidden rounded-3xl">
                       {[...categories.entries()].map(([cat, items]) => (
                         <div key={cat}>
-                          <div className="px-4 py-2 text-[12px] font-medium" style={{ background: '#f8faf9', color: S.sub }}>
+                          <div className="bg-[var(--nimi-surface-panel)] px-4 py-2 text-[12px] font-medium text-[var(--nimi-text-muted)]">
                             {cat === '眼科' ? '👁️' : cat === '血检' ? '🧪' : cat === '骨龄' ? '🦴' : '📏'} {cat}
                           </div>
                           {items.map((item) => {
                             const info = getDisplayInfo(item.typeId);
                             return (
-                              <div key={item.measurementId} className="flex items-center justify-between px-4 py-2 border-t" style={{ borderColor: '#f0f0ec' }}>
+                              <div key={item.measurementId} className="flex items-center justify-between border-t border-[var(--nimi-border-subtle)] px-4 py-2">
                                 <div className="flex items-center gap-2">
                                   <span className="text-[14px]">{info.emoji}</span>
-                                  <span className="text-[13px]" style={{ color: S.text }}>{info.name}</span>
+                                  <span className="text-[13px] text-[var(--nimi-text-primary)]">{info.name}</span>
                                 </div>
                                 <div className="flex items-center gap-1">
-                                  <span className="text-[14px] font-bold" style={{ color: S.text }}>{item.value}</span>
-                                  <span className="text-[12px]" style={{ color: S.sub }}>{info.unit}</span>
+                                  <span className="text-[14px] font-bold text-[var(--nimi-text-primary)]">{item.value}</span>
+                                  <span className="text-[12px] text-[var(--nimi-text-muted)]">{info.unit}</span>
                                 </div>
                               </div>
                             );
@@ -525,17 +502,17 @@ export default function ReportUploadPage() {
                       {(() => {
                         const att = group.items.map((m) => reportAttachments.get(m.measurementId)).find(Boolean);
                         return att ? (
-                          <div className="px-4 py-2.5 border-t flex items-center gap-2" style={{ borderColor: '#f0f0ec', background: '#fafaf8' }}>
+                          <div className="flex items-center gap-2 border-t border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] px-4 py-2.5">
                             <img src={convertFileSrc(att.filePath)} alt={att.fileName}
-                              className={`w-12 h-16 object-cover ${S.radiusSm}`} style={{ border: `1px solid ${S.border}` }} />
+                              className="h-16 w-12 rounded-2xl border border-[var(--nimi-border-subtle)] object-cover" />
                             <div>
-                              <p className="text-[12px] font-medium" style={{ color: S.sub }}>原始报告</p>
-                              <p className="text-[12px]" style={{ color: '#b0b0b0' }}>{att.fileName}</p>
+                              <p className="text-[12px] font-medium text-[var(--nimi-text-muted)]">原始报告</p>
+                              <p className="text-[12px] text-[var(--nimi-text-muted)]">{att.fileName}</p>
                             </div>
                           </div>
                         ) : null;
                       })()}
-                    </div>
+                    </Surface>
                   </div>
                 );
               })}
@@ -551,22 +528,16 @@ export default function ReportUploadPage() {
         <div>
           {/* Source filter */}
           {attachOwnerTables.length > 1 && (
-            <div className="flex gap-1 rounded-full p-1 mb-4 w-fit" style={{ background: '#eceeed' }}>
+            <div className="flex gap-1 rounded-full bg-[var(--nimi-action-ghost-hover)] p-1 mb-4 w-fit">
               <button onClick={() => setAttachFilter('all')}
-                className="px-3.5 py-1.5 text-[13px] font-medium rounded-full transition-all"
-                style={attachFilter === 'all'
-                  ? { background: S.card, color: S.text, boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }
-                  : { color: S.sub }}>
+                className={`rounded-full px-3.5 py-1.5 text-[13px] font-medium transition-all ${attachFilter === 'all' ? 'bg-[var(--nimi-surface-card)] text-[var(--nimi-text-primary)] shadow-[var(--nimi-elevation-base)]' : 'text-[var(--nimi-text-muted)]'}`}>
                 全部
               </button>
               {attachOwnerTables.map((ot) => {
                 const meta = OWNER_TABLE_LABELS[ot];
                 return (
                   <button key={ot} onClick={() => setAttachFilter(ot)}
-                    className="px-3.5 py-1.5 text-[13px] font-medium rounded-full transition-all"
-                    style={attachFilter === ot
-                      ? { background: S.card, color: S.text, boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }
-                      : { color: S.sub }}>
+                    className={`rounded-full px-3.5 py-1.5 text-[13px] font-medium transition-all ${attachFilter === ot ? 'bg-[var(--nimi-surface-card)] text-[var(--nimi-text-primary)] shadow-[var(--nimi-elevation-base)]' : 'text-[var(--nimi-text-muted)]'}`}>
                     {meta ? `${meta.emoji} ${meta.label}` : ot}
                   </button>
                 );
@@ -576,36 +547,34 @@ export default function ReportUploadPage() {
 
           {/* Empty state */}
           {allAttachments.length === 0 && (
-            <div className={`${S.radius} p-10 text-center`} style={{ background: S.card, boxShadow: S.shadow }}>
+            <Surface tone="card" material="glass-regular" elevation="raised" padding="lg" className="rounded-3xl p-10 text-center">
               <span className="text-[36px]">📂</span>
-              <p className="text-[16px] font-medium mt-3" style={{ color: S.text }}>暂无影像资料</p>
-              <p className="text-[13px] mt-1" style={{ color: S.sub }}>各模块上传的照片和报告等原图均会在此统一存档</p>
-            </div>
+              <p className="text-[16px] font-medium mt-3 text-[var(--nimi-text-primary)]">暂无影像资料</p>
+              <p className="text-[13px] mt-1 text-[var(--nimi-text-muted)]">各模块上传的照片和报告等原图均会在此统一存档</p>
+            </Surface>
           )}
 
           {/* Timeline grid */}
           {attachGroups.length > 0 && (
             <div className="relative">
-              <div className="absolute left-[18px] top-0 bottom-0 w-[2px]" style={{ background: S.border }} />
+              <div className="absolute left-[18px] top-0 bottom-0 w-[2px] bg-[var(--nimi-border-subtle)]" />
 
               {attachGroups.map(([date, items]) => (
                 <div key={date} className="relative pl-10 pb-5">
-                  <div className="absolute left-[11px] top-1 w-[16px] h-[16px] rounded-full border-[2px] flex items-center justify-center"
-                    style={{ background: S.card, borderColor: S.accent }}>
-                    <div className="w-[6px] h-[6px] rounded-full" style={{ background: S.accent }} />
+                  <div className="absolute left-[11px] top-1 w-[16px] h-[16px] rounded-full border-[2px] border-[var(--nimi-action-primary-bg)] bg-[var(--nimi-surface-card)] flex items-center justify-center">
+                    <div className="w-[6px] h-[6px] rounded-full bg-[var(--nimi-action-primary-bg)]" />
                   </div>
 
                   <div className="flex items-center gap-2 mb-2">
-                    <span className="text-[14px] font-bold" style={{ color: S.text }}>{date}</span>
-                    <span className="text-[12px]" style={{ color: S.sub }}>{items.length} 张</span>
+                    <span className="text-[14px] font-bold text-[var(--nimi-text-primary)]">{date}</span>
+                    <span className="text-[12px] text-[var(--nimi-text-muted)]">{items.length} 张</span>
                   </div>
 
                   <div className="grid grid-cols-3 gap-2">
                     {items.map((a) => {
                       const meta = OWNER_TABLE_LABELS[a.ownerTable];
                       return (
-                        <div key={a.attachmentId} className={`${S.radius} overflow-hidden group relative`}
-                          style={{ background: S.card, boxShadow: S.shadow }}>
+                        <Surface key={a.attachmentId} tone="card" material="glass-regular" elevation="raised" padding="none" className="group relative overflow-hidden rounded-3xl">
                           <img
                             src={convertFileSrc(a.filePath)}
                             alt={a.fileName}
@@ -613,18 +582,18 @@ export default function ReportUploadPage() {
                             onClick={() => setPreviewUrl(convertFileSrc(a.filePath))}
                           />
                           <div className="px-2.5 py-2">
-                            <p className="text-[12px] truncate" style={{ color: S.text }}>{a.fileName}</p>
-                            <p className="text-[12px] mt-0.5" style={{ color: S.sub }}>
+                            <p className="text-[12px] truncate text-[var(--nimi-text-primary)]">{a.fileName}</p>
+                            <p className="text-[12px] mt-0.5 text-[var(--nimi-text-muted)]">
                               {meta ? `${meta.emoji} ${meta.label}` : a.ownerTable}
                             </p>
                           </div>
                           <button
                             onClick={() => void handleDeleteAttachment(a.attachmentId)}
-                            className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-black/50 text-white text-[12px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                            className="absolute top-1.5 right-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-[var(--nimi-surface-overlay)] text-[12px] text-[var(--nimi-text-primary)] opacity-0 shadow-[var(--nimi-elevation-base)] transition-opacity group-hover:opacity-100"
                           >
                             ✕
                           </button>
-                        </div>
+                        </Surface>
                       );
                     })}
                   </div>
@@ -637,11 +606,11 @@ export default function ReportUploadPage() {
 
       {/* Fullscreen preview modal */}
       {previewUrl && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.7)' }}
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--nimi-scrim-modal)]"
           onClick={() => setPreviewUrl(null)}>
           <img src={previewUrl} alt="preview" className="max-w-[90vw] max-h-[85vh] object-contain rounded-lg" />
           <button onClick={() => setPreviewUrl(null)}
-            className="absolute top-6 right-6 w-10 h-10 rounded-full bg-black/50 text-white text-[16px] flex items-center justify-center hover:bg-black/70 transition-colors">
+            className="absolute top-6 right-6 flex h-10 w-10 items-center justify-center rounded-full bg-[var(--nimi-surface-overlay)] text-[16px] text-[var(--nimi-text-primary)] shadow-[var(--nimi-elevation-floating)] transition-colors hover:bg-[var(--nimi-action-ghost-hover)]">
             ✕
           </button>
         </div>

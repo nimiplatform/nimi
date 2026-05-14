@@ -1,6 +1,6 @@
+import { Surface } from '@nimiplatform/nimi-kit/ui';
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { S } from '../../app-shell/page-style.js';
 import { getMeasurements, type MeasurementRow } from '../../bridge/sqlite-bridge.js';
 import { catchLog } from '../../infra/telemetry/catch-log.js';
 import { EYE_SET, fmtAge, groupByDate } from '../profile/vision-data.js';
@@ -41,20 +41,25 @@ export function VisionSummaryCard({ childId }: { childId: string }) {
 
   if (!latestRecord) {
     return (
-      <Link
+      <Surface
+        as={Link}
         to="/profile"
         data-testid="outdoor-vision-summary"
-        className="block mb-6 nimi-material-glass-regular bg-[var(--nimi-material-glass-regular-bg)] border border-[var(--nimi-material-glass-regular-border)] backdrop-blur-[var(--nimi-backdrop-blur-regular)] rounded-[var(--nimi-radius-xl)] transition-colors hover:bg-white/70"
-        style={{ padding: 16 }}
+        tone="card"
+        material="glass-regular"
+        elevation="base"
+        padding="md"
+        interactive
+        className="mb-6 block no-underline"
       >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="text-[14px] font-medium" style={{ color: S.text }}>视力档案</span>
-            <span className="text-[12px]" style={{ color: S.sub }}>尚无检查记录</span>
+            <span className="text-[14px] font-medium text-[var(--nimi-text-primary)]">视力档案</span>
+            <span className="text-[12px] text-[var(--nimi-text-muted)]">尚无检查记录</span>
           </div>
-          <span className="text-[13px]" style={{ color: S.sub }}>录入 →</span>
+          <span className="text-[13px] text-[var(--nimi-text-muted)]">录入 →</span>
         </div>
-      </Link>
+      </Surface>
     );
   }
 
@@ -68,38 +73,43 @@ export function VisionSummaryCard({ childId }: { childId: string }) {
   const hasAxial = ar != null || al != null;
 
   return (
-    <Link
+    <Surface
+      as={Link}
       to="/profile"
       data-testid="outdoor-vision-summary"
-      className="block mb-6 nimi-material-glass-regular bg-[var(--nimi-material-glass-regular-bg)] border border-[var(--nimi-material-glass-regular-border)] backdrop-blur-[var(--nimi-backdrop-blur-regular)] rounded-[var(--nimi-radius-xl)] transition-colors hover:bg-white/70"
-      style={{ padding: 16 }}
+      tone="card"
+      material="glass-regular"
+      elevation="base"
+      padding="md"
+      interactive
+      className="mb-6 block no-underline"
     >
       <div className="mb-2 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="text-[14px] font-medium" style={{ color: S.text }}>最近一次视力检查</span>
-          <span className="text-[12px]" style={{ color: S.sub }}>{latestRecord.date} · {elapsed}</span>
+          <span className="text-[14px] font-medium text-[var(--nimi-text-primary)]">最近一次视力检查</span>
+          <span className="text-[12px] text-[var(--nimi-text-muted)]">{latestRecord.date} · {elapsed}</span>
         </div>
-        <span className="text-[13px]" style={{ color: S.sub }}>查看档案 →</span>
+        <span className="text-[13px] text-[var(--nimi-text-muted)]">查看档案 →</span>
       </div>
       <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
         {hasVision && (
           <div className="flex items-baseline gap-2">
-            <span className="text-[12px]" style={{ color: S.sub }}>裸眼</span>
-            <span className="text-[16px] font-bold tabular-nums" style={{ color: S.text }}>
+            <span className="text-[12px] text-[var(--nimi-text-muted)]">裸眼</span>
+            <span className="text-[16px] font-bold tabular-nums text-[var(--nimi-text-primary)]">
               R {vr ?? '—'} · L {vl ?? '—'}
             </span>
           </div>
         )}
         {hasAxial && (
           <div className="flex items-baseline gap-2">
-            <span className="text-[12px]" style={{ color: S.sub }}>眼轴</span>
-            <span className="text-[16px] font-bold tabular-nums" style={{ color: S.text }}>
+            <span className="text-[12px] text-[var(--nimi-text-muted)]">眼轴</span>
+            <span className="text-[16px] font-bold tabular-nums text-[var(--nimi-text-primary)]">
               R {ar != null ? `${ar}mm` : '—'} · L {al != null ? `${al}mm` : '—'}
             </span>
           </div>
         )}
-        <span className="ml-auto text-[12px]" style={{ color: S.sub }}>{fmtAge(latestRecord.ageMonths)}</span>
+        <span className="ml-auto text-[12px] text-[var(--nimi-text-muted)]">{fmtAge(latestRecord.ageMonths)}</span>
       </div>
-    </Link>
+    </Surface>
   );
 }

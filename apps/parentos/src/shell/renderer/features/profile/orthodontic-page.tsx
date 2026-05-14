@@ -1,3 +1,4 @@
+import { Button, Surface } from '@nimiplatform/nimi-kit/ui';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -22,7 +23,6 @@ import {
   type OrthodonticUnwearReason,
 } from '../../bridge/sqlite-bridge.js';
 import { catchLog } from '../../infra/telemetry/catch-log.js';
-import { S } from '../../app-shell/page-style.js';
 import { OrthodonticTeethSelfiesCard } from './orthodontic-teeth-selfies-card.js';
 import { OrthodonticPhotoCaptureModal } from './orthodontic-photo-capture-modal.js';
 import { OrthodonticDetailsSection } from './orthodontic-details-section.js';
@@ -399,7 +399,7 @@ export function OrthodonticPage({
 
   if (loading) {
     return (
-      <div className="p-6 text-[14px]" style={{ color: S.sub }}>
+      <div className="p-6 text-[14px] text-[var(--nimi-text-muted)]">
         加载中…
       </div>
     );
@@ -648,8 +648,7 @@ function ErrorBanner({ msg, onDismiss }: { msg: string; onDismiss: () => void })
   return (
     <div
       role="alert"
-      className="p-3 rounded-xl text-[14px] flex items-start justify-between gap-2"
-      style={{ background: '#fef2f2', color: '#b91c1c', border: '1px solid #fecaca' }}
+      className="flex items-start justify-between gap-2 rounded-xl border border-[color-mix(in_srgb,var(--nimi-status-danger)_30%,var(--nimi-border-subtle))] bg-[color-mix(in_srgb,var(--nimi-status-danger)_8%,var(--nimi-surface-card))] p-3 text-[14px] text-[var(--nimi-status-danger)]"
     >
       <span style={{ wordBreak: 'break-word' }}>{msg}</span>
       <button
@@ -665,35 +664,29 @@ function ErrorBanner({ msg, onDismiss }: { msg: string; onDismiss: () => void })
 
 function EmptyState({ onCreate, hasHistory }: { onCreate: () => void; hasHistory: boolean }) {
   return (
-    <div
-      className="rounded-[20px] p-8 text-center"
-      style={{
-        background:
-          'linear-gradient(135deg, rgba(167,243,208,0.18) 0%, rgba(191,219,254,0.18) 60%, rgba(221,214,254,0.18) 100%)',
-        border: '1px solid rgba(226,232,240,0.7)',
-      }}
+    <Surface
+      material="glass-regular"
+      tone="card"
+      elevation="raised"
+      padding="none"
+      className="rounded-2xl border border-[color-mix(in_srgb,var(--nimi-border-subtle)_70%,transparent)] bg-[linear-gradient(135deg,color-mix(in_srgb,var(--nimi-action-primary-bg)_18%,var(--nimi-surface-card))_0%,color-mix(in_srgb,var(--nimi-status-info)_18%,var(--nimi-surface-card))_60%,color-mix(in_srgb,var(--nimi-status-success)_14%,var(--nimi-surface-card))_100%)] p-8 text-center"
     >
-      <h3 className="text-[18px] font-semibold" style={{ color: S.text, margin: 0 }}>
+      <h3 className="m-0 text-[18px] font-semibold text-[var(--nimi-text-primary)]">
         {hasHistory ? '当前没有进行中的疗程' : '还没有正畸疗程'}
       </h3>
-      <p className="mt-2 text-[14px]" style={{ color: S.sub }}>
+      <p className="mt-2 text-[14px] text-[var(--nimi-text-muted)]">
         {hasHistory
           ? '上一段疗程已结束。可以新建一段新的疗程，过往记录会保留在口腔记录里。'
           : '新建疗程后，可以记录每副牙套节奏、复诊安排、未戴时段，并自动生成时间轴。'}
       </p>
-      <button
-        type="button"
+      <Button
+        tone="primary"
+        size="md"
         onClick={onCreate}
-        className="mt-5 inline-flex items-center gap-1.5 rounded-full px-5 py-2.5 text-[14px] font-semibold text-white"
-        style={{
-          background: S.accent,
-          border: 0,
-          cursor: 'pointer',
-          boxShadow: '0 6px 18px rgba(78,204,163,0.32)',
-        }}
+        className="mt-5 rounded-full shadow-[var(--nimi-elevation-base)]"
       >
         {hasHistory ? '新建一段新的疗程' : '新建正畸疗程'}
-      </button>
-    </div>
+      </Button>
+    </Surface>
   );
 }

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { cn } from '@nimiplatform/nimi-kit/ui';
 import { insertOutdoorRecord } from '../../bridge/sqlite-bridge.js';
 import { isoNow, ulid } from '../../bridge/ulid.js';
 import {
@@ -110,4 +111,3 @@ export function OutdoorCaptureContent({ child, onSaved, onClose }: OutdoorCaptur
     </>
   );
 }
-

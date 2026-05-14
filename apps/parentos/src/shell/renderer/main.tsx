@@ -11,7 +11,7 @@ installParentosTauriRuntimeHook();
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <NimiThemeProvider accentPack="desktop-accent" defaultScheme="light">
+    <NimiThemeProvider accentPack="nimi-accent" defaultScheme="light">
       <App />
     </NimiThemeProvider>
   </StrictMode>,
