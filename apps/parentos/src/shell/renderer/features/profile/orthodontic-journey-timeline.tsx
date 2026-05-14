@@ -80,7 +80,13 @@ export function OrthodonticJourneyTimeline({
     const pastCards: JourneyCardData[] = journey.past
       .map((e) => projectEntry(e, false, recordById, attachmentMap))
       .filter((c): c is JourneyCardData => c !== null);
-    const futureCards: JourneyCardData[] = journey.future
+    // Collapse repeatable future projections. Multiple active appliances each
+    // emit their own `next-clinical-review` row (one per appliance ×
+    // nextReviewDate); the parent only cares about the SINGLE nearest follow-
+    // up. Same shape concern for other "next-*" kinds — keep only the
+    // earliest occurrence per kind so the future column reads as a clean
+    // forward roadmap, not a per-appliance audit log.
+    const futureCards: JourneyCardData[] = collapseRepeatableFutures(journey.future)
       .map((e) => projectEntry(e, true, recordById, attachmentMap))
       .filter((c): c is JourneyCardData => c !== null);
     return {
@@ -659,6 +665,39 @@ const TONE = {
   success: { toneBg: 'rgba(16,185,129,0.14)', toneFg: '#047857' },
   warning: { toneBg: 'rgba(245,158,11,0.14)', toneFg: '#b45309' },
 } as const;
+
+/**
+ * Per-kind dedup of future-projection rows. The Rust journey emits one
+ * `next-clinical-review` / `next-aligner-change` / `cycle-planned-switch`
+ * per active appliance. The parent's mental model is "what happens next" —
+ * showing both the 6/3 and the 6/24 next-review (one per appliance) doubles
+ * up. Keep only the earliest occurrence per kind. Non-collapsible kinds
+ * (case-planned-end is single-shot already, but defensively whitelist it)
+ * pass through unchanged.
+ */
+const COLLAPSIBLE_FUTURE_KINDS: ReadonlySet<OrthodonticJourneyEntry['kind']> = new Set([
+  'next-clinical-review',
+  'next-aligner-change',
+  'cycle-planned-switch',
+]);
+
+function collapseRepeatableFutures(
+  future: OrthodonticJourneyEntry[],
+): OrthodonticJourneyEntry[] {
+  const earliestByKind = new Map<OrthodonticJourneyEntry['kind'], OrthodonticJourneyEntry>();
+  const passthrough: OrthodonticJourneyEntry[] = [];
+  for (const entry of future) {
+    if (!COLLAPSIBLE_FUTURE_KINDS.has(entry.kind)) {
+      passthrough.push(entry);
+      continue;
+    }
+    const existing = earliestByKind.get(entry.kind);
+    if (!existing || entryTime(entry).localeCompare(entryTime(existing)) < 0) {
+      earliestByKind.set(entry.kind, entry);
+    }
+  }
+  return [...passthrough, ...earliestByKind.values()];
+}
 
 function entryTime(entry: OrthodonticJourneyEntry): string {
   switch (entry.kind) {

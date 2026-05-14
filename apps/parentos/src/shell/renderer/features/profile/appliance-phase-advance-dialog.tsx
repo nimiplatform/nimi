@@ -1,0 +1,133 @@
+/**
+ * Parent-initiated treatment-phase advance dialog (PO-ORTHO-013). The
+ * per-appliance mirror of `OrthodonticStageConfirmDialog`: the phase pill on
+ * every appliance card opens this, and confirming advances the appliance to
+ * the immediate next `phaseId` in its type's sequence (the first phase when
+ * none is set yet). Adjacency is re-enforced by the Rust command.
+ */
+import {
+  advanceOrthodonticAppliancePhase,
+  type OrthodonticApplianceRow,
+} from '../../bridge/sqlite-bridge.js';
+import { isoNow } from '../../bridge/ulid.js';
+import { catchLog } from '../../infra/telemetry/catch-log.js';
+import { S } from '../../app-shell/page-style.js';
+import {
+  applianceTypeLabel,
+  computeAppliancePhaseOptions,
+} from './orthodontic-derive.js';
+
+export function AppliancePhaseAdvanceDialog({
+  appliance,
+  onCancel,
+  onConfirmed,
+  onError,
+}: {
+  appliance: OrthodonticApplianceRow;
+  onCancel: () => void;
+  onConfirmed: () => Promise<void>;
+  onError: (msg: string | null) => void;
+}) {
+  const options = computeAppliancePhaseOptions(appliance);
+  const target = options.find((o) => o.advanceable) ?? null;
+  const isInitial = appliance.currentPhase === null;
+
+  const handleConfirm = async () => {
+    if (!target) return;
+    onError(null);
+    try {
+      await advanceOrthodonticAppliancePhase({
+        applianceId: appliance.applianceId,
+        nextPhase: target.phaseId,
+        now: isoNow(),
+      });
+      await onConfirmed();
+    } catch (error) {
+      catchLog('ortho', 'action:advance-appliance-phase-failed')(error);
+      onError(error instanceof Error ? error.message : String(error));
+    }
+  };
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="确认推进治疗阶段"
+      style={{
+        position: 'fixed',
+        inset: 0,
+        background: 'rgba(15,23,42,0.32)',
+        display: 'grid',
+        placeItems: 'center',
+        zIndex: 100,
+      }}
+    >
+      <div
+        style={{
+          background: '#fff',
+          padding: 24,
+          borderRadius: 16,
+          minWidth: 320,
+          maxWidth: 400,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 12,
+        }}
+      >
+        {target ? (
+          <>
+            <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600 }}>
+              {isInitial
+                ? `设置「${applianceTypeLabel(appliance.applianceType)}」初始阶段为「${target.label}」?`
+                : `推进到「${target.label}」?`}
+            </h3>
+            <p className="text-[14px]" style={{ color: S.sub, margin: 0 }}>
+              {isInitial
+                ? '设置后会开始按该阶段计算阶段月数。如果是误操作，可以再次手动调整。'
+                : '阶段只能逐级推进。推进后会从今天开始重新计算阶段月数。'}
+            </p>
+          </>
+        ) : (
+          <>
+            <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600 }}>已是最后阶段</h3>
+            <p className="text-[14px]" style={{ color: S.sub, margin: 0 }}>
+              该矫治器已处于其治疗阶段序列的最后一个阶段，没有可推进的下一阶段。
+            </p>
+          </>
+        )}
+        <div className="flex justify-end gap-2 mt-2">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="text-[14px]"
+            style={{
+              background: 'transparent',
+              color: '#64748b',
+              border: 0,
+              cursor: 'pointer',
+              padding: '6px 12px',
+            }}
+          >
+            {target ? '取消' : '关闭'}
+          </button>
+          {target && (
+            <button
+              type="button"
+              onClick={() => void handleConfirm()}
+              className="text-[14px] font-semibold text-white"
+              style={{
+                background: S.accent,
+                padding: '6px 14px',
+                borderRadius: 8,
+                border: 0,
+                cursor: 'pointer',
+              }}
+            >
+              {isInitial ? '确认设置' : '确认推进'}
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}

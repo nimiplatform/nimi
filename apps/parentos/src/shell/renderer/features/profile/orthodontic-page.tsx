@@ -21,10 +21,8 @@ import {
   type OrthodonticUnwearIntervalRow,
   type OrthodonticUnwearReason,
 } from '../../bridge/sqlite-bridge.js';
-import { computeAgeMonths } from '../../app-shell/app-store.js';
 import { catchLog } from '../../infra/telemetry/catch-log.js';
 import { S } from '../../app-shell/page-style.js';
-import { OrthodonticTreatmentCard } from './orthodontic-treatment-card.js';
 import { OrthodonticTeethSelfiesCard } from './orthodontic-teeth-selfies-card.js';
 import { OrthodonticPhotoCaptureModal } from './orthodontic-photo-capture-modal.js';
 import { OrthodonticDetailsSection } from './orthodontic-details-section.js';
@@ -37,6 +35,13 @@ import {
   OrthoClinicalEventModal,
 } from './orthodontic-modals.js';
 import { OrthodonticUnwearForm } from './orthodontic-unwear-form.js';
+import { OrthodonticCaseShell } from './orthodontic-case-shell.js';
+import type { OrthodonticCaseShellHandlers } from './orthodontic-case-shell.js';
+import type { ApplianceGridItem } from './orthodontic-appliances-grid.js';
+import type { ApplianceNextAction } from './appliance-next-action.js';
+import { OrthodonticAlignerSwitchModal } from './orthodontic-aligner-switch-modal.js';
+import { OrthodonticExpanderActivationModal } from './orthodontic-expander-activation-modal.js';
+import { AppliancePhaseAdvanceDialog } from './appliance-phase-advance-dialog.js';
 import {
   buildDentalAttachmentMap,
   dentalEventLabelAndEmoji,
@@ -71,20 +76,39 @@ const APPLIANCE_TYPE_OPTIONS: { value: OrthodonticApplianceType; label: string; 
   { value: 'retainer-removable', label: '活动保持器', minAgeMonths: 84 },
 ];
 
+/**
+ * Hero-slot priority order for the multi-appliance grid (PO-ORTHO-003a). The
+ * highest-priority appliance leads the grid; the lowest-priority odd-one-out
+ * is the appliance promoted to the full-width compact card. Matches the
+ * parent's mental priority for daily action.
+ */
+const APPLIANCE_PRIORITY: OrthodonticApplianceType[] = [
+  'clear-aligner',
+  'twin-block',
+  'activator',
+  'retainer-removable',
+  'expander',
+  'metal-braces',
+  'ceramic-braces',
+  'retainer-fixed',
+];
+
+function appliancePriorityRank(type: OrthodonticApplianceType): number {
+  const idx = APPLIANCE_PRIORITY.indexOf(type);
+  return idx < 0 ? APPLIANCE_PRIORITY.length : idx;
+}
+
 interface ClinicalEventPrefill {
   eventType?: OrthoClinicalEventType;
   notes?: string;
 }
 
 /**
- * Top-level orthodontic surface. Wave D composition:
- *   WearingHero → TrayProgressCard → NextVisitCard → TeethSelfiesCard →
- *   Details(journey) → Details(recent trends)
- *
- * The legacy Hero / TodayCard / CycleCard / PromptsCard layout was deleted
- * in this wave; the parent surface no longer surfaces "prompts" — actions
- * live where the parent's eye already is (hero quick-tags + next-visit
- * grid + selfies capture button).
+ * Top-level orthodontic surface. Renders the active case as
+ * `OrthodonticCaseShell` (case chrome + multi-appliance grid + consolidated
+ * review card), then the teeth-selfies card and the journey timeline. Every
+ * active appliance of the case is surfaced — there is no "primary appliance"
+ * collapse (PO-ORTHO-003a).
  */
 export function OrthodonticPage({
   childId,
@@ -105,9 +129,7 @@ export function OrthodonticPage({
   const [journey, setJourney] = useState<OrthodonticJourney | null>(null);
   // ortho-* dental_records + their attachments: feed into the journey
   // timeline so clinical-event entries render with photos like the dental
-  // history list does. Both surfaces (dental history + this timeline) show
-  // the same rows; the timeline pairs by `recordId` returned by the journey
-  // query.
+  // history list does.
   const [orthoDentalRecords, setOrthoDentalRecords] = useState<DentalRecordRow[]>([]);
   const [dentalAttachmentMap, setDentalAttachmentMap] = useState<Map<string, AttachmentRow[]>>(new Map());
   const [activeCaseId, setActiveCaseId] = useState<string | null>(null);
@@ -116,18 +138,25 @@ export function OrthodonticPage({
   const [showCaseForm, setShowCaseForm] = useState(false);
   const [showEditCaseForm, setShowEditCaseForm] = useState(false);
   const [showApplianceForm, setShowApplianceForm] = useState(false);
-  const [showEditApplianceForm, setShowEditApplianceForm] = useState(false);
   const [showClinicalEventModal, setShowClinicalEventModal] = useState(false);
   const [clinicalEventPrefill, setClinicalEventPrefill] =
     useState<ClinicalEventPrefill | null>(null);
   const [editingClinicalRecord, setEditingClinicalRecord] =
     useState<DentalRecordRow | null>(null);
-  const [showBackfillForm, setShowBackfillForm] = useState(false);
-  const [backfillDefaultReason, setBackfillDefaultReason] =
-    useState<OrthodonticUnwearReason | undefined>(undefined);
   const [showPhotoCapture, setShowPhotoCapture] = useState(false);
   const [selfiesReloadKey, setSelfiesReloadKey] = useState(0);
   const [nowIso, setNowIso] = useState(() => new Date().toISOString());
+
+  // Per-appliance modal targets — keyed by the appliance row rather than a
+  // boolean flag so every appliance in the grid can drive its own modal.
+  const [editingAppliance, setEditingAppliance] = useState<OrthodonticApplianceRow | null>(null);
+  const [backfillAppliance, setBackfillAppliance] = useState<OrthodonticApplianceRow | null>(null);
+  const [backfillDefaultReason, setBackfillDefaultReason] =
+    useState<OrthodonticUnwearReason | undefined>(undefined);
+  const [switchAppliance, setSwitchAppliance] = useState<OrthodonticApplianceRow | null>(null);
+  const [activationAppliance, setActivationAppliance] = useState<OrthodonticApplianceRow | null>(null);
+  const [phaseAdvanceAppliance, setPhaseAdvanceAppliance] =
+    useState<OrthodonticApplianceRow | null>(null);
 
   // Re-tick `now` every 60s so open-interval ages and countdowns refresh.
   useEffect(() => {
@@ -135,11 +164,9 @@ export function OrthodonticPage({
     return () => window.clearInterval(id);
   }, []);
 
-  // Wave D audit follow-up (W-D-1): the dental-page `+` toolbar menu hands
-  // off entry-point intent through `actionRequest`. Consume it here so the
-  // corresponding modal opens, then signal back so the parent can clear the
-  // slot. The `nonce` on each request guarantees repeat clicks of the same
-  // kind still fire the effect.
+  // The dental-page `+` toolbar menu hands off entry-point intent through
+  // `actionRequest`. Consume it here so the corresponding modal opens, then
+  // signal back so the parent can clear the slot.
   useEffect(() => {
     if (!actionRequest) return;
     if (actionRequest.kind === 'add-appliance') {
@@ -252,88 +279,60 @@ export function OrthodonticPage({
     [cases, activeCaseId],
   );
 
-  const activeAppliances = useMemo(
-    () => appliances.filter((a) => a.status === 'active'),
+  // All active appliances of the case, priority-sorted for the grid. There is
+  // no "primary appliance" collapse (PO-ORTHO-003a) — every active appliance
+  // is surfaced as its own card.
+  const sortedActiveAppliances = useMemo(
+    () =>
+      appliances
+        .filter((a) => a.status === 'active')
+        .sort((a, b) => {
+          const rank = appliancePriorityRank(a.applianceType) - appliancePriorityRank(b.applianceType);
+          return rank !== 0 ? rank : a.startedAt.localeCompare(b.startedAt);
+        }),
     [appliances],
   );
 
-  // Primary appliance for hero + tray-progress + capture pin. Prefer
-  // clear-aligner > twin-block > activator > retainer-removable > expander >
-  // others; this matches the parent's mental priority for daily action.
-  const primaryAppliance = useMemo<OrthodonticApplianceRow | null>(() => {
-    const order: OrthodonticApplianceType[] = [
-      'clear-aligner',
-      'twin-block',
-      'activator',
-      'retainer-removable',
-      'expander',
-      'metal-braces',
-      'ceramic-braces',
-      'retainer-fixed',
-    ];
-    for (const t of order) {
-      const found = activeAppliances.find((a) => a.applianceType === t);
-      if (found) return found;
-    }
-    return activeAppliances[0] ?? null;
-  }, [activeAppliances]);
+  const gridItems = useMemo<ApplianceGridItem[]>(
+    () =>
+      sortedActiveAppliances.map((appliance) => ({
+        appliance,
+        intervals: intervalsByAppliance[appliance.applianceId] ?? [],
+        checkins: checkinsByAppliance[appliance.applianceId] ?? [],
+      })),
+    [sortedActiveAppliances, intervalsByAppliance, checkinsByAppliance],
+  );
 
   const eligibleApplianceTypes = useMemo(
     () => APPLIANCE_TYPE_OPTIONS.filter((opt) => ageMonths >= opt.minAgeMonths),
     [ageMonths],
   );
 
-  const primaryIntervals = primaryAppliance
-    ? intervalsByAppliance[primaryAppliance.applianceId] ?? []
-    : [];
-  const primaryCheckins = primaryAppliance
-    ? checkinsByAppliance[primaryAppliance.applianceId] ?? []
-    : [];
-
   const { monthsElapsed, monthsTotal } = useMemo(() => {
     if (!activeCase) return { monthsElapsed: 0, monthsTotal: null as number | null };
     const startMs = new Date(`${activeCase.startedAt}T00:00:00.000Z`).getTime();
     const daysElapsed = Math.max(0, (new Date(nowIso).getTime() - startMs) / (1000 * 60 * 60 * 24));
-    // Use ceil so day 1+ already reads as "第 1 月" — the prior floor() reported
-    // "第 0 月" for the entire first 30 days of treatment, which parents read
-    // as "data not connected" rather than "we just started".
+    // Use ceil so day 1+ already reads as "第 1 月".
     const elapsed = daysElapsed > 0 ? Math.max(1, Math.ceil(daysElapsed / 30)) : 0;
     const total = computeCaseMonthsTotal(activeCase, appliances);
     return { monthsElapsed: elapsed, monthsTotal: total };
   }, [activeCase, appliances, nowIso]);
 
-  const { nextReview, daysToReview } = useMemo(() => {
-    const dates = appliances
-      .filter((a) => a.status === 'active' && a.nextReviewDate)
-      .map((a) => a.nextReviewDate as string)
-      .sort();
-    const next = dates[0] ?? activeCase?.nextReviewDate ?? null;
-    if (!next) return { nextReview: null, daysToReview: null };
-    const days = Math.round(
-      (new Date(`${next}T00:00:00.000Z`).getTime() - new Date(nowIso).getTime()) /
-        (1000 * 60 * 60 * 24),
-    );
-    return { nextReview: next, daysToReview: days };
-  }, [appliances, activeCase, nowIso]);
-
   // ── Modal routing ──
 
-  const handleOpenClinicalEvent = () => {
+  const handleOpenClinicalEvent = useCallback(() => {
     setClinicalEventPrefill(null);
     setShowClinicalEventModal(true);
-  };
+  }, []);
 
-  const handleLogOrthoIssue = () => {
+  const handleLogOrthoIssue = useCallback(() => {
     // 「记录异常」 — prefill event type only; the parent fills in their own
     // notes. PO-ORTHO-010 wording boundary is enforced inside the modal.
     setClinicalEventPrefill({ eventType: 'ortho-issue', notes: '' });
     setShowClinicalEventModal(true);
-  };
+  }, []);
 
   // Per-card action handlers for orthodontic journey clinical-event entries.
-  // Same backing data as the dental history list, same handlers structurally;
-  // we copy the logic here rather than navigate to the dental tab so the
-  // parent stays in the orthodontic context.
   const handleAskAiAboutRecord = (record: DentalRecordRow) => {
     const meta = dentalEventLabelAndEmoji(record.eventType);
     const eventDate = record.eventDate.split('T')[0] ?? record.eventDate;
@@ -370,10 +369,33 @@ export function OrthodonticPage({
     }
   };
 
-  const handleOpenUnwearBackfill = (defaultReason?: 'other') => {
-    setBackfillDefaultReason(defaultReason);
-    setShowBackfillForm(true);
-  };
+  // Per-appliance card handlers + case-level handlers passed into the shell.
+  const shellHandlers = useMemo<OrthodonticCaseShellHandlers>(
+    () => ({
+      onEditAppliance: (appliance) => setEditingAppliance(appliance),
+      onBackfillUnwear: (appliance) => {
+        setBackfillDefaultReason(undefined);
+        setBackfillAppliance(appliance);
+      },
+      onLogIssue: () => handleLogOrthoIssue(),
+      onAdvancePhase: (appliance) => setPhaseAdvanceAppliance(appliance),
+      onNextAction: (appliance: OrthodonticApplianceRow, action: ApplianceNextAction) => {
+        if (action.actionKind === 'switch-aligner') {
+          setSwitchAppliance(appliance);
+        } else if (action.actionKind === 'log-activation') {
+          setActivationAppliance(appliance);
+        } else {
+          handleOpenClinicalEvent();
+        }
+      },
+      onEditCase: () => setShowEditCaseForm(true),
+      onAddAppliance: () => setShowApplianceForm(true),
+      onLogClinicalEvent: () => handleOpenClinicalEvent(),
+      onCaseChanged: reloadAll,
+      onError: setErrorMsg,
+    }),
+    [handleLogOrthoIssue, handleOpenClinicalEvent, reloadAll],
+  );
 
   if (loading) {
     return (
@@ -383,9 +405,8 @@ export function OrthodonticPage({
     );
   }
 
-  // PO-ORTHO-002b: when there is no ongoing (non-completed) case we render
-  // the empty-state CTA. Past completed cases live in the journey timeline
-  // (and a future "history" surface), not in the active treatment view.
+  // When there is no ongoing (non-completed) case we render the empty-state
+  // CTA. Past completed cases live in the journey timeline, not here.
   if (!activeCase) {
     const hasHistory = cases.length > 0;
     return (
@@ -406,39 +427,26 @@ export function OrthodonticPage({
     );
   }
 
+  const switchContext = switchAppliance
+    ? gridItems.find((i) => i.appliance.applianceId === switchAppliance.applianceId) ?? null
+    : null;
+
   return (
     <div className="flex flex-col gap-4">
       {errorMsg && <ErrorBanner msg={errorMsg} onDismiss={() => setErrorMsg(null)} />}
 
-      <OrthodonticTreatmentCard
+      <OrthodonticCaseShell
         caseRow={activeCase}
-        primaryAppliance={primaryAppliance}
-        intervals={primaryIntervals}
-        alignerChangeCheckins={primaryCheckins}
-        nextReview={nextReview}
-        daysToReview={daysToReview}
+        items={gridItems}
+        childBirthDate={childBirthDate}
         monthsElapsed={monthsElapsed}
         monthsTotal={monthsTotal}
         nowIso={nowIso}
-        onEditCase={() => setShowEditCaseForm(true)}
-        onEditAppliance={() => setShowEditApplianceForm(true)}
-        onOpenUnwearBackfill={handleOpenUnwearBackfill}
-        onOpenClinicalEvent={handleOpenClinicalEvent}
-        onLogOrthoIssue={handleLogOrthoIssue}
-        onCaseChanged={reloadAll}
-        onError={setErrorMsg}
+        canAddAppliance={
+          activeCase.caseType !== 'unknown-legacy' && eligibleApplianceTypes.length > 0
+        }
+        handlers={shellHandlers}
       />
-
-      {activeCase.caseType === 'unknown-legacy' && <UnknownLegacyBanner />}
-
-      {!primaryAppliance && (
-        <NoActiveApplianceCard
-          canAdd={
-            activeCase.caseType !== 'unknown-legacy' && eligibleApplianceTypes.length > 0
-          }
-          onAdd={() => setShowApplianceForm(true)}
-        />
-      )}
 
       {activeCase.caseType !== 'unknown-legacy' && (
         <OrthodonticTeethSelfiesCard
@@ -451,13 +459,12 @@ export function OrthodonticPage({
       )}
 
       <OrthodonticDetailsSection
-        title="旅程时间轴"
+        title="正畸记录"
         count={
           journey
             ? `${journey.past.length + journey.future.length} 条`
             : undefined
         }
-        hint="按时间回看"
       >
         <OrthodonticJourneyTimeline
           journey={journey}
@@ -485,7 +492,7 @@ export function OrthodonticPage({
       {showEditCaseForm && (
         <EditCaseFormModal
           caseRow={activeCase}
-          primaryAppliance={primaryAppliance}
+          primaryAppliance={sortedActiveAppliances[0] ?? null}
           onClose={() => setShowEditCaseForm(false)}
           onSaved={async () => {
             setShowEditCaseForm(false);
@@ -510,12 +517,51 @@ export function OrthodonticPage({
         />
       )}
 
-      {showEditApplianceForm && primaryAppliance && (
+      {editingAppliance && (
         <EditApplianceFormModal
-          appliance={primaryAppliance}
-          onClose={() => setShowEditApplianceForm(false)}
+          appliance={editingAppliance}
+          onClose={() => setEditingAppliance(null)}
           onSaved={async () => {
-            setShowEditApplianceForm(false);
+            setEditingAppliance(null);
+            await reloadAll();
+          }}
+          onError={setErrorMsg}
+        />
+      )}
+
+      {phaseAdvanceAppliance && (
+        <AppliancePhaseAdvanceDialog
+          appliance={phaseAdvanceAppliance}
+          onCancel={() => setPhaseAdvanceAppliance(null)}
+          onConfirmed={async () => {
+            setPhaseAdvanceAppliance(null);
+            await reloadAll();
+          }}
+          onError={setErrorMsg}
+        />
+      )}
+
+      {switchAppliance && switchContext && (
+        <OrthodonticAlignerSwitchModal
+          appliance={switchAppliance}
+          intervals={switchContext.intervals}
+          checkins={switchContext.checkins}
+          nowIso={nowIso}
+          onClose={() => setSwitchAppliance(null)}
+          onSaved={async () => {
+            setSwitchAppliance(null);
+            await reloadAll();
+          }}
+          onError={setErrorMsg}
+        />
+      )}
+
+      {activationAppliance && (
+        <OrthodonticExpanderActivationModal
+          appliance={activationAppliance}
+          onClose={() => setActivationAppliance(null)}
+          onSaved={async () => {
+            setActivationAppliance(null);
             await reloadAll();
           }}
           onError={setErrorMsg}
@@ -526,7 +572,7 @@ export function OrthodonticPage({
         <OrthoClinicalEventModal
           childId={childId}
           childBirthDate={childBirthDate}
-          activeAppliances={activeAppliances}
+          activeAppliances={sortedActiveAppliances}
           prefill={clinicalEventPrefill ?? undefined}
           editingRecord={editingClinicalRecord}
           onClose={() => {
@@ -544,16 +590,16 @@ export function OrthodonticPage({
         />
       )}
 
-      {showBackfillForm && primaryAppliance && (
+      {backfillAppliance && (
         <OrthodonticUnwearForm
-          appliance={primaryAppliance}
+          appliance={backfillAppliance}
           defaultReason={backfillDefaultReason}
           onClose={() => {
-            setShowBackfillForm(false);
+            setBackfillAppliance(null);
             setBackfillDefaultReason(undefined);
           }}
           onSaved={async () => {
-            setShowBackfillForm(false);
+            setBackfillAppliance(null);
             setBackfillDefaultReason(undefined);
             await reloadAll();
           }}
@@ -565,7 +611,7 @@ export function OrthodonticPage({
         <OrthodonticPhotoCaptureModal
           childId={childId}
           caseId={activeCase.caseId}
-          appliance={primaryAppliance}
+          appliance={sortedActiveAppliances[0] ?? null}
           onClose={() => setShowPhotoCapture(false)}
           onSaved={async () => {
             setShowPhotoCapture(false);
@@ -617,25 +663,6 @@ function ErrorBanner({ msg, onDismiss }: { msg: string; onDismiss: () => void })
   );
 }
 
-function UnknownLegacyBanner() {
-  return (
-    <div
-      className="p-4 rounded-2xl"
-      style={{
-        background: 'rgba(245,158,11,0.08)',
-        border: '1px solid rgba(245,158,11,0.3)',
-      }}
-    >
-      <div className="text-[14px] font-semibold mb-1" style={{ color: '#b45309' }}>
-        待确认历史疗程
-      </div>
-      <p className="text-[13px]" style={{ color: S.sub }}>
-        该疗程由历史 ortho-start 记录回补生成。请在「⋯ 菜单 → 删除当前疗程」后新建一个正式疗程，或先把它改归类为正式类型再加装置（PO-ORTHO-002a）。
-      </p>
-    </div>
-  );
-}
-
 function EmptyState({ onCreate, hasHistory }: { onCreate: () => void; hasHistory: boolean }) {
   return (
     <div
@@ -670,34 +697,3 @@ function EmptyState({ onCreate, hasHistory }: { onCreate: () => void; hasHistory
     </div>
   );
 }
-
-function NoActiveApplianceCard({
-  canAdd,
-  onAdd,
-}: {
-  canAdd: boolean;
-  onAdd: () => void;
-}) {
-  return (
-    <div
-      className="rounded-2xl p-6"
-      style={{ background: '#ffffff', boxShadow: '0 1px 4px rgba(15,23,42,0.06)' }}
-    >
-      <p className="text-[14px]" style={{ color: S.sub, margin: 0 }}>
-        当前疗程还没有进行中的矫治器。添加矫治器后可以开始记录每日状态。
-      </p>
-      {canAdd && (
-        <button
-          type="button"
-          onClick={onAdd}
-          className="mt-3 text-[14px] font-semibold px-4 py-2 rounded-full"
-          style={{ background: S.accent, color: '#fff', border: 0, cursor: 'pointer' }}
-        >
-          添加矫治器
-        </button>
-      )}
-    </div>
-  );
-}
-
-void computeAgeMonths;
