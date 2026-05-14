@@ -7,13 +7,17 @@ import type {
   DashData,
   DataGapAlertItem,
   DimensionDistributionItem,
+  GrowthSnapshotMetric,
+  GrowthTrendItem,
   MilestoneTimelineItem,
   MilestoneTimelineSummary,
   ObservationDistributionSummary,
   RecentChangeItem,
+  RecentLineItem,
   SleepTrendPoint,
   SleepTrendSummary,
   TimelineHomeViewModel,
+  VisionSnapshotSummary,
 } from './timeline-data-types.js';
 import { C } from './timeline-data-types.js';
 
@@ -480,6 +484,102 @@ export function buildDataGapAlert(
   };
 }
 
+function buildGrowthSnapshot(measurements: DashData['measurements']): TimelineHomeViewModel['growthSnapshot'] {
+  const latestMeasurements = latestByType(measurements);
+  const metrics: GrowthSnapshotMetric[] = ['height', 'weight', 'head-circumference', 'bmi']
+    .map((typeId) => {
+      const measurement = latestMeasurements.get(typeId);
+      const meta = MEASUREMENT_META[typeId];
+      if (!measurement || !meta) return null;
+      return { id: typeId, label: meta.label, value: `${measurement.value}`, unit: meta.unit };
+    })
+    .filter((item): item is GrowthSnapshotMetric => item !== null)
+    .slice(0, 4);
+  const trends: GrowthTrendItem[] = ['height', 'weight']
+    .map((typeId) => {
+      const meta = MEASUREMENT_META[typeId];
+      if (!meta) return null;
+      const records = measurements.filter((measurement) => measurement.typeId === typeId).sort((a, b) => a.measuredAt.localeCompare(b.measuredAt));
+      const recent = records.slice(-8);
+      if (recent.length === 0) return null;
+      const latest = recent[recent.length - 1]!;
+      const latestVal = typeof latest.value === 'number' ? latest.value : Number(latest.value);
+      let delta: number | null = null;
+      let deltaPercent: number | null = null;
+      if (recent.length >= 2) {
+        const prev = recent[recent.length - 2]!;
+        const prevVal = typeof prev.value === 'number' ? prev.value : Number(prev.value);
+        if (Number.isFinite(latestVal) && Number.isFinite(prevVal)) {
+          delta = Math.round((latestVal - prevVal) * 10) / 10;
+          deltaPercent = prevVal !== 0 ? Math.round(((latestVal - prevVal) / prevVal) * 1000) / 10 : null;
+        }
+      }
+      return {
+        id: typeId,
+        label: meta.label,
+        latestValue: `${latest.value}`,
+        unit: meta.unit,
+        points: recent.map((measurement) => ({
+          date: measurement.measuredAt.slice(0, 10),
+          value: typeof measurement.value === 'number' ? measurement.value : Number(measurement.value),
+        })),
+        delta,
+        deltaPercent,
+      };
+    })
+    .filter((item): item is GrowthTrendItem => item !== null);
+  const latestGrowthRecord = [...latestMeasurements.values()]
+    .filter((measurement) => ['height', 'weight', 'head-circumference', 'bmi'].includes(measurement.typeId))
+    .sort((left, right) => right.measuredAt.localeCompare(left.measuredAt))[0] ?? null;
+
+  return {
+    updatedAt: latestGrowthRecord?.measuredAt ?? null,
+    updatedLabel: latestGrowthRecord ? `${fmtRel(latestGrowthRecord.measuredAt)}更新` : '暂无成长测量记录',
+    metrics,
+    trends,
+  };
+}
+
+function buildVisionSnapshot(measurements: DashData['measurements']): VisionSnapshotSummary {
+  const latest = latestByType(measurements);
+  const left = latest.get('vision-left');
+  const right = latest.get('vision-right');
+  const latestRecord = [left, right]
+    .filter((record): record is MeasurementRow => record != null)
+    .sort((a, b) => b.measuredAt.localeCompare(a.measuredAt))[0] ?? null;
+
+  return {
+    leftEye: left ? `${left.value}` : null,
+    rightEye: right ? `${right.value}` : null,
+    measuredAt: latestRecord?.measuredAt ?? null,
+    measuredLabel: latestRecord ? `${fmtRel(latestRecord.measuredAt)}检查` : '暂无视力记录',
+  };
+}
+
+function buildRecentLines(journalEntries: DashData['journalEntries']): RecentLineItem[] {
+  return [...journalEntries]
+    .sort((left, right) => right.recordedAt.localeCompare(left.recordedAt))
+    .slice(0, 4)
+    .map((entry) => {
+      const reasonLabel = getKeepsakeReasonLabel(entry.keepsakeReason);
+      const isKeepsake = entry.keepsake === 1;
+      return {
+        id: entry.entryId,
+        title: entry.keepsakeTitle?.trim() || entry.textContent?.slice(0, 56) || (entry.contentType === 'voice' ? '语音记录' : '观察记录'),
+        detail: isKeepsake
+          ? reasonLabel
+            ? `珍藏原因：${reasonLabel}`
+            : '值得回看的成长瞬间'
+          : fmtRel(entry.recordedAt),
+        recordedAt: entry.recordedAt,
+        to: isKeepsake ? '/journal?filter=keepsake' : '/journal',
+        badge: isKeepsake ? '珍藏' : '随记',
+        badgeTone: isKeepsake ? 'keepsake' : 'default',
+        tag: reasonLabel,
+      };
+    });
+}
+
 export function buildTimelineHomeViewModel(params: {
   child: ChildProfile;
   d: DashData;
@@ -489,6 +589,12 @@ export function buildTimelineHomeViewModel(params: {
   return {
     recentChanges: buildRecentChanges(params.d),
     dataGapAlert: buildDataGapAlert(params.d, params.ageMonths, params.agenda),
+    growthSnapshot: buildGrowthSnapshot(params.d.measurements),
+    sleepTrend: buildSleepTrend(params.d.sleepRecords),
+    visionSnapshot: buildVisionSnapshot(params.d.measurements),
+    milestoneTimeline: buildMilestoneTimeline(params.d.milestoneRecords, params.ageMonths),
+    observationDistribution: buildObservationDistribution(params.d.journalEntries),
+    recentLines: buildRecentLines(params.d.journalEntries),
   };
 }
 

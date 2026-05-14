@@ -13,9 +13,17 @@ import { buildReminderAgenda, getLocalToday, UnknownReminderRuleError, type Acti
 import { useDash, buildTimelineHomeViewModel, C } from './timeline-data.js';
 import {
   ChildContextCard,
+  GrowthSnapshotCard,
+  MilestoneTimelineCard,
+  MonthlyReportCard,
+  ObservationDistributionCard,
+  OutdoorGoalCard,
   QuickLinksStrip,
   RecentChangesHeroCard,
+  RecentLinesCard,
+  SleepTrendCard,
   StageFocusCard,
+  VisionCard,
 } from './timeline-cards.js';
 import { autoGenerateMonthlyReport } from '../reports/auto-report.js';
 import { FrequencyModal } from '../reminders/frequency-modal.js';
@@ -226,7 +234,26 @@ export default function TimelinePage() {
         </div>
         <div className="grid auto-rows-min grid-cols-8 gap-6">
           <QuickLinksStrip ageMonths={ageMonths} />
+          {/* Growth snapshot (left) + Sleep trend & Vision (right, stacked) */}
+          <div className="col-span-8 flex gap-6">
+            <div className="min-w-0 flex-1 [&>div]:h-full">
+              <GrowthSnapshotCard snapshot={homeVm.growthSnapshot} />
+            </div>
+            <div className="flex min-w-0 flex-1 flex-col gap-6">
+              <div className="flex-1 [&>div]:h-full">
+                <SleepTrendCard summary={homeVm.sleepTrend} />
+              </div>
+              <div className="flex-1 [&>div]:h-full">
+                <VisionCard snapshot={homeVm.visionSnapshot} />
+              </div>
+            </div>
+          </div>
+          <OutdoorGoalCard records={d.outdoorRecords} goalMinutes={d.outdoorGoalMinutes} />
           {periods.length > 0 ? <StageFocusCard periods={periods} /> : null}
+          <MilestoneTimelineCard summary={homeVm.milestoneTimeline} />
+          <RecentLinesCard lines={homeVm.recentLines} />
+          <ObservationDistributionCard summary={homeVm.observationDistribution} />
+          {d.latestMonthlyReport ? <MonthlyReportCard report={d.latestMonthlyReport} /> : null}
         </div>
       </div>
 
