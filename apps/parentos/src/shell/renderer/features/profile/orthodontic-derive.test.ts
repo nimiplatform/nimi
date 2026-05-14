@@ -6,8 +6,13 @@ import type {
   OrthodonticUnwearIntervalRow,
 } from '../../bridge/sqlite-bridge.js';
 import {
+  APPLIANCE_PHASES,
   applianceSupportsWearGap,
+  computeAppliancePhaseOptions,
+  computeAppliancePhaseProgress,
   computeCycleProgress,
+  computeDailyNetWear,
+  computeExpanderActivationProjection,
   computeOpenIntervalState,
   computeStageOptions,
   defaultPrescribedHoursPerDay,
@@ -29,11 +34,15 @@ function makeAppliance(overrides: Partial<OrthodonticApplianceRow> = {}): Orthod
     prescribedHoursPerDay: 22,
     prescribedActivations: null,
     completedActivations: 0,
+    activationIntervalDays: null,
     totalAligners: 30,
     daysPerAligner: 7,
+    currentPhase: null,
+    phaseStartedAt: null,
     reviewIntervalDays: 56,
     lastReviewAt: null,
     nextReviewDate: '2026-05-27',
+    nextReviewAgenda: null,
     pauseReason: null,
     notes: null,
     createdAt: '2026-04-01T00:00:00.000Z',
@@ -363,5 +372,206 @@ describe('formatHours', () => {
   });
   it('formats double-digit hours rounded', () => {
     expect(formatHours(22.7)).toBe('23 小时');
+  });
+});
+
+describe('computeAppliancePhaseProgress (PO-ORTHO-013)', () => {
+  it('returns null when the appliance has no phase set', () => {
+    const appliance = makeAppliance({ currentPhase: null, phaseStartedAt: null });
+    expect(computeAppliancePhaseProgress(appliance, NOW)).toBeNull();
+  });
+
+  it('returns null defensively when the persisted phase is not in the type sequence', () => {
+    const appliance = makeAppliance({
+      applianceType: 'expander',
+      currentPhase: 'leveling', // belongs to fixed braces, not expander
+      phaseStartedAt: '2026-04-01',
+    });
+    expect(computeAppliancePhaseProgress(appliance, NOW)).toBeNull();
+  });
+
+  it('projects phase number, label and ceil month counter from phaseStartedAt', () => {
+    const appliance = makeAppliance({
+      applianceType: 'metal-braces',
+      totalAligners: null,
+      daysPerAligner: null,
+      prescribedHoursPerDay: null,
+      currentPhase: 'space-closure',
+      phaseStartedAt: '2026-03-01',
+    });
+    const progress = computeAppliancePhaseProgress(appliance, NOW);
+    expect(progress).not.toBeNull();
+    expect(progress!.phaseId).toBe('space-closure');
+    expect(progress!.label).toBe('关闭间隙');
+    expect(progress!.phaseNumber).toBe(2);
+    expect(progress!.phaseTotal).toBe(4);
+    expect(progress!.expectedMonths).toBe(6);
+    // 2026-03-01 → 2026-04-12 is 42 days → ceil(42/30) = 2 months.
+    expect(progress!.monthsInPhase).toBe(2);
+  });
+
+  it('falls back to startedAt when phaseStartedAt is null is not possible (paired nullness), so uses phaseStartedAt', () => {
+    const appliance = makeAppliance({
+      applianceType: 'retainer-removable',
+      totalAligners: null,
+      daysPerAligner: null,
+      prescribedHoursPerDay: 16,
+      currentPhase: 'full-time',
+      phaseStartedAt: '2026-04-11',
+    });
+    const progress = computeAppliancePhaseProgress(appliance, NOW);
+    // 2026-04-11 → 2026-04-12 is ~1 day → ceil → 1 month.
+    expect(progress!.monthsInPhase).toBe(1);
+  });
+});
+
+describe('computeAppliancePhaseOptions (PO-ORTHO-013)', () => {
+  it('marks the first phase advanceable when no phase is set', () => {
+    const opts = computeAppliancePhaseOptions({
+      applianceType: 'expander',
+      currentPhase: null,
+    });
+    expect(opts.map((o) => o.phaseId)).toEqual(['widening', 'holding']);
+    expect(opts[0]!.state).toBe('future');
+    expect(opts[0]!.advanceable).toBe(true);
+    expect(opts[1]!.advanceable).toBe(false);
+  });
+
+  it('marks the immediate next phase advanceable and prior phases past', () => {
+    const opts = computeAppliancePhaseOptions({
+      applianceType: 'metal-braces',
+      currentPhase: 'space-closure',
+    });
+    expect(opts.find((o) => o.phaseId === 'leveling')!.state).toBe('past');
+    expect(opts.find((o) => o.phaseId === 'space-closure')!.state).toBe('current');
+    const finishing = opts.find((o) => o.phaseId === 'finishing')!;
+    expect(finishing.state).toBe('future');
+    expect(finishing.advanceable).toBe(true);
+    expect(opts.find((o) => o.phaseId === 'debond-prep')!.advanceable).toBe(false);
+  });
+
+  it('marks nothing advanceable at the final phase', () => {
+    const opts = computeAppliancePhaseOptions({
+      applianceType: 'metal-braces',
+      currentPhase: 'debond-prep',
+    });
+    expect(opts.every((o) => !o.advanceable)).toBe(true);
+    expect(opts.find((o) => o.phaseId === 'debond-prep')!.state).toBe('current');
+  });
+});
+
+describe('computeExpanderActivationProjection (PO-ORTHO-014)', () => {
+  it('projects the next activation from the latest event + per-appliance cadence', () => {
+    const appliance = makeAppliance({
+      applianceType: 'expander',
+      totalAligners: null,
+      daysPerAligner: null,
+      prescribedHoursPerDay: null,
+      prescribedActivations: 28,
+      completedActivations: 4,
+      activationIntervalDays: 3,
+    });
+    const activationCheckins = [
+      makeCheckin({ checkinDate: '2026-04-10', checkinType: 'expander-activation', activationIndex: 4 }),
+      makeCheckin({ checkinDate: '2026-04-07', checkinType: 'expander-activation', activationIndex: 3 }),
+    ];
+    const proj = computeExpanderActivationProjection({ appliance, activationCheckins, nowIso: NOW });
+    expect(proj.completedActivations).toBe(4);
+    expect(proj.prescribedActivations).toBe(28);
+    expect(proj.ratio).toBeCloseTo(4 / 28);
+    expect(proj.isComplete).toBe(false);
+    // latest event 2026-04-10 + 3 days = 2026-04-13.
+    expect(proj.nextActivationDate).toBe('2026-04-13');
+  });
+
+  it('anchors on startedAt when there are no activation events yet', () => {
+    const appliance = makeAppliance({
+      applianceType: 'expander',
+      totalAligners: null,
+      daysPerAligner: null,
+      prescribedHoursPerDay: null,
+      prescribedActivations: 28,
+      completedActivations: 0,
+      activationIntervalDays: 2,
+      startedAt: '2026-04-01',
+    });
+    const proj = computeExpanderActivationProjection({ appliance, activationCheckins: [], nowIso: NOW });
+    expect(proj.nextActivationDate).toBe('2026-04-03');
+  });
+
+  it('stops projecting once the prescribed cap is reached', () => {
+    const appliance = makeAppliance({
+      applianceType: 'expander',
+      totalAligners: null,
+      daysPerAligner: null,
+      prescribedHoursPerDay: null,
+      prescribedActivations: 28,
+      completedActivations: 28,
+      activationIntervalDays: 3,
+    });
+    const proj = computeExpanderActivationProjection({ appliance, activationCheckins: [], nowIso: NOW });
+    expect(proj.isComplete).toBe(true);
+    expect(proj.ratio).toBe(1);
+    expect(proj.nextActivationDate).toBeNull();
+  });
+});
+
+describe('computeDailyNetWear (PO-ORTHO-008a)', () => {
+  it('reports a full day of net wear when there are no gaps today', () => {
+    const result = computeDailyNetWear({
+      intervals: [],
+      prescribedHoursPerDay: 22,
+      nowIso: NOW,
+    });
+    expect(result.todayNetWearHours).toBe(24);
+    expect(result.todayTargetHours).toBe(22);
+  });
+
+  it('subtracts a closed gap that falls within today', () => {
+    // NOW is 2026-04-12T18:00Z; a 2h closed gap today.
+    const result = computeDailyNetWear({
+      intervals: [
+        makeInterval({
+          startAt: '2026-04-12T09:00:00.000Z',
+          endAt: '2026-04-12T11:00:00.000Z',
+          reason: 'school',
+        }),
+      ],
+      prescribedHoursPerDay: 22,
+      nowIso: NOW,
+    });
+    expect(result.todayNetWearHours).toBe(22);
+  });
+
+  it('counts an open gap only up to now and ignores gaps before today', () => {
+    const result = computeDailyNetWear({
+      intervals: [
+        // yesterday — fully outside today's window, ignored.
+        makeInterval({
+          startAt: '2026-04-11T08:00:00.000Z',
+          endAt: '2026-04-11T20:00:00.000Z',
+        }),
+        // open gap that started 3h ago (NOW = 18:00Z) — counts 3h.
+        makeInterval({ startAt: '2026-04-12T15:00:00.000Z', endAt: null }),
+      ],
+      prescribedHoursPerDay: 16,
+      nowIso: NOW,
+    });
+    expect(result.todayNetWearHours).toBe(21);
+  });
+});
+
+describe('APPLIANCE_PHASES', () => {
+  it('declares an ordered sequence for every admitted applianceType', () => {
+    const types: (keyof typeof APPLIANCE_PHASES)[] = [
+      'twin-block', 'expander', 'activator', 'metal-braces',
+      'ceramic-braces', 'clear-aligner', 'retainer-fixed', 'retainer-removable',
+    ];
+    for (const t of types) {
+      expect(APPLIANCE_PHASES[t].length).toBeGreaterThan(0);
+    }
+    expect(APPLIANCE_PHASES['metal-braces'].map((p) => p.phaseId)).toEqual([
+      'leveling', 'space-closure', 'finishing', 'debond-prep',
+    ]);
   });
 });

@@ -299,6 +299,7 @@ fn main() {
             sqlite::queries::update_orthodontic_appliance_status,
             sqlite::queries::update_orthodontic_appliance_review,
             sqlite::queries::update_orthodontic_appliance_plan,
+            sqlite::queries::advance_orthodontic_appliance_phase,
             sqlite::queries::delete_orthodontic_appliance,
             sqlite::queries::get_orthodontic_appliances,
             sqlite::queries::insert_orthodontic_checkin,

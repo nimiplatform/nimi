@@ -9,7 +9,13 @@ import { isoNow } from '../../bridge/ulid.js';
 import { catchLog } from '../../infra/telemetry/catch-log.js';
 import { applianceTypeLabel } from './orthodontic-derive.js';
 import { applianceRequiresPrescribedHours } from './orthodontic-modal-domain.js';
-import { FieldInput, Modal, ModalErrorBanner, ModalFooter } from './orthodontic-modal-primitives.js';
+import {
+  FieldInput,
+  FieldTextarea,
+  Modal,
+  ModalErrorBanner,
+  ModalFooter,
+} from './orthodontic-modal-primitives.js';
 
 /**
  * In-flight edit modal for an existing appliance. Surfaces what
@@ -32,6 +38,7 @@ export function EditApplianceFormModal({
   onError: (message: string | null) => void;
 }) {
   const isClearAligner = appliance.applianceType === 'clear-aligner';
+  const isExpander = appliance.applianceType === 'expander';
   const needsPrescribedHours = applianceRequiresPrescribedHours(appliance.applianceType);
 
   const [prescribedHours, setPrescribedHours] = useState<string>(
@@ -43,12 +50,19 @@ export function EditApplianceFormModal({
   const [daysPerAligner, setDaysPerAligner] = useState<string>(
     appliance.daysPerAligner !== null ? String(appliance.daysPerAligner) : '',
   );
+  const [activationInterval, setActivationInterval] = useState<string>(
+    appliance.activationIntervalDays !== null ? String(appliance.activationIntervalDays) : '',
+  );
   const [nextReviewDate, setNextReviewDate] = useState<string>(appliance.nextReviewDate ?? '');
+  const [nextReviewAgenda, setNextReviewAgenda] = useState<string>(
+    appliance.nextReviewAgenda ?? '',
+  );
   const [localError, setLocalError] = useState<string | null>(null);
 
   const prescribedHoursNum = Number(prescribedHours);
   const totalAlignersNum = Number(totalAligners);
   const daysPerAlignerNum = Number(daysPerAligner);
+  const activationIntervalNum = Number(activationInterval);
 
   const prescribedHoursValid = needsPrescribedHours
     ? Number.isInteger(prescribedHoursNum) && prescribedHoursNum > 0 && prescribedHoursNum <= 24
@@ -59,10 +73,20 @@ export function EditApplianceFormModal({
   const daysPerAlignerValid = isClearAligner
     ? Number.isInteger(daysPerAlignerNum) && daysPerAlignerNum > 0
     : true;
+  // activationIntervalDays is expander-only and optional; when filled it must
+  // be a positive integer (PO-ORTHO-014).
+  const activationIntervalValid =
+    !isExpander || activationInterval === ''
+      ? true
+      : Number.isInteger(activationIntervalNum) && activationIntervalNum > 0;
   const nextReviewValid = nextReviewDate === '' || /^\d{4}-\d{2}-\d{2}$/.test(nextReviewDate);
 
   const formValid =
-    prescribedHoursValid && totalAlignersValid && daysPerAlignerValid && nextReviewValid;
+    prescribedHoursValid &&
+    totalAlignersValid &&
+    daysPerAlignerValid &&
+    activationIntervalValid &&
+    nextReviewValid;
 
   const handleSubmit = async () => {
     if (needsPrescribedHours && !prescribedHoursValid) {
@@ -73,6 +97,12 @@ export function EditApplianceFormModal({
     }
     if (isClearAligner && (!totalAlignersValid || !daysPerAlignerValid)) {
       const msg = '隐形牙套需要正整数的总副数和每副佩戴天数';
+      setLocalError(msg);
+      onError(msg);
+      return;
+    }
+    if (!activationIntervalValid) {
+      const msg = '扩弓转动周期必须是大于 0 的整数（天）';
       setLocalError(msg);
       onError(msg);
       return;
@@ -92,6 +122,9 @@ export function EditApplianceFormModal({
         prescribedHoursPerDay: needsPrescribedHours ? prescribedHoursNum : null,
         totalAligners: isClearAligner ? totalAlignersNum : null,
         daysPerAligner: isClearAligner ? daysPerAlignerNum : null,
+        activationIntervalDays:
+          isExpander && activationInterval !== '' ? activationIntervalNum : null,
+        nextReviewAgenda: nextReviewAgenda.trim() === '' ? null : nextReviewAgenda.trim(),
         now,
       });
       // Persist the review date only when the parent actually touched it.
@@ -115,12 +148,12 @@ export function EditApplianceFormModal({
   };
 
   return (
-    <Modal title="编辑装置设置" onClose={onClose}>
+    <Modal title="编辑矫治器设置" onClose={onClose}>
       {localError && <ModalErrorBanner message={localError} onDismiss={() => setLocalError(null)} />}
 
       <div className="text-[13px] px-3 py-2 rounded-md"
         style={{ background: 'rgba(15,23,42,0.04)', color: S.sub, border: '1px solid rgba(226,232,240,0.7)' }}>
-        装置类型 <strong style={{ color: S.text, marginLeft: 6 }}>{applianceTypeLabel(appliance.applianceType)}</strong>
+        矫治器类型 <strong style={{ color: S.text, marginLeft: 6 }}>{applianceTypeLabel(appliance.applianceType)}</strong>
         <span style={{ marginLeft: 12 }}>启用日期</span>
         <strong style={{ color: S.text, marginLeft: 6 }}>{appliance.startedAt}</strong>
       </div>
@@ -156,6 +189,18 @@ export function EditApplianceFormModal({
         </>
       )}
 
+      {isExpander && (
+        <>
+          <FieldInput label="扩弓转动周期（天，可选）" type="number" value={activationInterval}
+            onChange={setActivationInterval} placeholder="例如 3" />
+          {!activationIntervalValid && (
+            <div className="text-[13px]" style={{ color: '#b91c1c' }}>
+              转动周期必须是大于 0 的整数。
+            </div>
+          )}
+        </>
+      )}
+
       <FieldInput label="下次复诊日期" type="date" value={nextReviewDate} onChange={setNextReviewDate}
         placeholder="留空清除" />
       {!nextReviewValid && (
@@ -163,6 +208,9 @@ export function EditApplianceFormModal({
           下次复诊日期格式应为 YYYY-MM-DD。
         </div>
       )}
+
+      <FieldTextarea label="下次复诊议程（可选）" value={nextReviewAgenda}
+        onChange={setNextReviewAgenda} placeholder="例如 评估扩弓量 / 换主弓丝" />
 
       <ModalFooter
         onCancel={onClose}
@@ -173,4 +221,3 @@ export function EditApplianceFormModal({
     </Modal>
   );
 }
-

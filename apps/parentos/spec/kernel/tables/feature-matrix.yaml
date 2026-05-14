@@ -323,7 +323,7 @@ features:
     phase: 1
     priority: P1
     contract: orthodontic-contract
-    description: "High-frequency parent-facing compliance checkins limited to wear-daily, aligner-change, expander-activation, retention-wear."
+    description: "Parent-facing orthodontic checkins limited to aligner-change and expander-activation; daily wear is modeled as wear-gap intervals."
     tables: [local-storage.yaml#orthodontic_checkins, orthodontic-protocols.yaml]
 
   - featureId: PO-FEAT-051

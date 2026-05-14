@@ -317,11 +317,15 @@ tables:
       - { name: prescribedHoursPerDay, type: INTEGER, nullable: true, description: "Used by wear-daily / retention-wear protocols" }
       - { name: prescribedActivations, type: INTEGER, nullable: true, description: "Expander total activation count target" }
       - { name: completedActivations, type: INTEGER, nullable: false, description: "Expander running activation counter; default 0" }
+      - { name: activationIntervalDays, type: INTEGER, nullable: true, description: "Expander only; per-appliance activation-turn cadence in days, overrides protocol-rule default. MUST be NULL for non-expander types (PO-ORTHO-014). Added by schema v20." }
       - { name: totalAligners, type: INTEGER, nullable: true, description: "Clear-aligner only; total tray count in the prescribed series (PO-ORTHO-003)" }
       - { name: daysPerAligner, type: INTEGER, nullable: true, description: "Clear-aligner only; prescribed wear days per tray before switching (PO-ORTHO-003)" }
+      - { name: currentPhase, type: TEXT, nullable: true, description: "Per-appliance treatment phase; when non-null MUST be a phaseId admitted for this applianceType in orthodontic-protocols.yaml#appliancePhases. NULL = not yet set (PO-ORTHO-013). Added by schema v20." }
+      - { name: phaseStartedAt, type: TEXT, nullable: true, description: "ISO 8601 date the currentPhase was entered; drives the per-appliance month counter. NULL iff currentPhase is NULL (PO-ORTHO-013). Added by schema v20." }
       - { name: reviewIntervalDays, type: INTEGER, nullable: true, description: "Review cadence; default comes from protocol rule" }
       - { name: lastReviewAt, type: TEXT, nullable: true, description: "ISO 8601 date" }
       - { name: nextReviewDate, type: TEXT, nullable: true, description: "ISO 8601 date" }
+      - { name: nextReviewAgenda, type: TEXT, nullable: true, description: "Parent-entered free-text describing what the appliance's next review visit is for; never AI-generated (PO-ORTHO-015). Added by schema v20." }
       - { name: pauseReason, type: TEXT, nullable: true, description: "Required when status = paused" }
       - { name: notes, type: TEXT, nullable: true }
       - { name: createdAt, type: TEXT, nullable: false, description: "ISO 8601 datetime" }

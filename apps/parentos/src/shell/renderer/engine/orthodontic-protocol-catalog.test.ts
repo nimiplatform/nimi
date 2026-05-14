@@ -12,7 +12,10 @@ import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { parse as parseYaml } from 'yaml';
 import { REMINDER_RULES } from '../knowledge-base/index.js';
-import { defaultReviewIntervalDays } from '../features/profile/orthodontic-derive.js';
+import {
+  APPLIANCE_PHASES,
+  defaultReviewIntervalDays,
+} from '../features/profile/orthodontic-derive.js';
 import type { OrthodonticApplianceType } from '../bridge/sqlite-bridge.js';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
@@ -23,8 +26,14 @@ interface OrthoProtocolsYamlRule {
   applianceTypes?: string[];
   defaultIntervalDays?: number;
 }
+interface OrthoProtocolsYamlPhase {
+  phaseId: string;
+  label: string;
+  expectedMonths: number;
+}
 interface OrthoProtocolsYaml {
   rules: OrthoProtocolsYamlRule[];
+  appliancePhases: Record<string, OrthoProtocolsYamlPhase[]>;
 }
 
 function loadProtocolsYaml(): OrthoProtocolsYaml {
@@ -145,6 +154,35 @@ describe('orthodontic protocol catalog coverage', () => {
       const tsDays = defaultReviewIntervalDays(applianceType);
       const yamlDays = expectedByAppliance.get(applianceType);
       expect(tsDays).toBe(yamlDays);
+    }
+  });
+
+  /**
+   * TS ↔ YAML drift guard for the per-appliance treatment-phase mirror in
+   * orthodontic-derive.ts#APPLIANCE_PHASES (PO-ORTHO-013). The Rust mirror is
+   * guarded separately by `protocol_catalog_drift_guard::appliance_phases_match_yaml`.
+   */
+  it('APPLIANCE_PHASES (TS) matches orthodontic-protocols.yaml#appliancePhases for every applianceType', () => {
+    const yaml = loadProtocolsYaml();
+    const admittedTypes: OrthodonticApplianceType[] = [
+      'twin-block', 'expander', 'activator',
+      'metal-braces', 'ceramic-braces', 'clear-aligner',
+      'retainer-fixed', 'retainer-removable',
+    ];
+    // Every applianceType has a YAML sequence and a matching TS mirror, in order.
+    for (const applianceType of admittedTypes) {
+      const yamlPhases = yaml.appliancePhases[applianceType];
+      expect(yamlPhases, `appliancePhases missing "${applianceType}"`).toBeDefined();
+      const tsPhases = APPLIANCE_PHASES[applianceType];
+      expect(tsPhases.map((p) => p.phaseId)).toEqual(yamlPhases!.map((p) => p.phaseId));
+      expect(tsPhases.map((p) => p.label)).toEqual(yamlPhases!.map((p) => p.label));
+      expect(tsPhases.map((p) => p.expectedMonths)).toEqual(
+        yamlPhases!.map((p) => p.expectedMonths),
+      );
+    }
+    // Reverse: the YAML must not declare a sequence for an unknown applianceType.
+    for (const key of Object.keys(yaml.appliancePhases)) {
+      expect(admittedTypes).toContain(key as OrthodonticApplianceType);
     }
   });
 

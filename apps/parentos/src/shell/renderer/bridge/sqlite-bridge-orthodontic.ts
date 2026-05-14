@@ -78,13 +78,24 @@ export interface OrthodonticApplianceRow {
   prescribedHoursPerDay: number | null;
   prescribedActivations: number | null;
   completedActivations: number;
+  /** Expander only. Per-appliance activation-turn cadence in days; overrides the
+   * protocol-rule default. NULL for every non-expander type (PO-ORTHO-014). */
+  activationIntervalDays: number | null;
   /** Clear-aligner only. Total tray count in the prescribed series (PO-ORTHO-003). */
   totalAligners: number | null;
   /** Clear-aligner only. Prescribed wear days per tray before switching (PO-ORTHO-003). */
   daysPerAligner: number | null;
+  /** Per-appliance treatment phase: a `phaseId` admitted for this `applianceType`
+   * in `orthodontic-protocols.yaml#appliancePhases`, or NULL ("not yet set"). PO-ORTHO-013. */
+  currentPhase: string | null;
+  /** ISO 8601 date `currentPhase` was entered. NULL iff `currentPhase` is NULL. PO-ORTHO-013. */
+  phaseStartedAt: string | null;
   reviewIntervalDays: number | null;
   lastReviewAt: string | null;
   nextReviewDate: string | null;
+  /** Parent-entered free-text agenda for the appliance's next review visit.
+   * Never AI-generated (PO-ORTHO-015). */
+  nextReviewAgenda: string | null;
   pauseReason: string | null;
   notes: string | null;
   createdAt: string;
@@ -212,11 +223,21 @@ export function insertOrthodonticAppliance(params: {
   startedAt: string;
   prescribedHoursPerDay: number | null;
   prescribedActivations: number | null;
+  /** Expander only; per-appliance activation-turn cadence in days. MUST be NULL
+   * for non-expander types; positive when set (PO-ORTHO-014). */
+  activationIntervalDays: number | null;
   /** Clear-aligner only; required (positive integer) when applianceType='clear-aligner', NULL otherwise. */
   totalAligners: number | null;
   /** Clear-aligner only; required (positive integer) when applianceType='clear-aligner', NULL otherwise. */
   daysPerAligner: number | null;
+  /** Initial treatment phase; when set MUST be a `phaseId` admitted for this
+   * `applianceType` (PO-ORTHO-013). Pass NULL to leave unset. */
+  currentPhase: string | null;
+  /** ISO 8601 date; MUST be set iff `currentPhase` is set (PO-ORTHO-013). */
+  phaseStartedAt: string | null;
   reviewIntervalDays: number | null;
+  /** Parent-entered next-review agenda free-text, or NULL (PO-ORTHO-015). */
+  nextReviewAgenda: string | null;
   notes: string | null;
   now: string;
 }) {
@@ -248,16 +269,37 @@ export function updateOrthodonticApplianceReview(params: {
  * Edits the in-flight wear plan of an existing appliance. Same fail-close
  * rules as `insertOrthodonticAppliance` (PO-ORTHO-003): clear-aligner requires
  * positive `totalAligners` and `daysPerAligner`; non-clear-aligner must keep
- * both NULL.
+ * both NULL; `activationIntervalDays` is expander-only and positive when set
+ * (PO-ORTHO-014). Does NOT mutate `currentPhase` / `phaseStartedAt` — those go
+ * through `advanceOrthodonticAppliancePhase`.
  */
 export function updateOrthodonticAppliancePlan(params: {
   applianceId: string;
   prescribedHoursPerDay: number | null;
   totalAligners: number | null;
   daysPerAligner: number | null;
+  /** Expander only; per-appliance activation-turn cadence in days (PO-ORTHO-014). */
+  activationIntervalDays: number | null;
+  /** Parent-entered next-review agenda free-text, or NULL (PO-ORTHO-015). */
+  nextReviewAgenda: string | null;
   now: string;
 }) {
   return invoke<void>('update_orthodontic_appliance_plan', params);
+}
+
+/**
+ * Parent-initiated, adjacency-only treatment-phase advance (PO-ORTHO-013). The
+ * admitted `nextPhase` is the immediate next `phaseId` in the appliance type's
+ * sequence — the first phase when `currentPhase` is NULL, otherwise the phase
+ * one step after the current one. Any other target fail-closes at the Rust
+ * command layer.
+ */
+export function advanceOrthodonticAppliancePhase(params: {
+  applianceId: string;
+  nextPhase: string;
+  now: string;
+}) {
+  return invoke<void>('advance_orthodontic_appliance_phase', params);
 }
 
 export function deleteOrthodonticAppliance(applianceId: string) {

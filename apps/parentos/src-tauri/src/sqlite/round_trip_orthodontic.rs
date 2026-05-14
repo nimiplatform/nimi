@@ -70,6 +70,64 @@ fn orthodontic_case_appliance_checkin_round_trip_and_cascade() {
 }
 
 #[test]
+fn schema_v20_appliance_phase_cadence_agenda_columns_round_trip() {
+    // Migration v20 adds currentPhase / phaseStartedAt (PO-ORTHO-013),
+    // activationIntervalDays (PO-ORTHO-014), nextReviewAgenda (PO-ORTHO-015).
+    // This exercises that the columns exist after run_migrations, round-trip a
+    // value, and that the phase-advance UPDATE shape lands on the right row.
+    let conn = Connection::open_in_memory().expect("open in-memory db");
+    conn.execute_batch("PRAGMA foreign_keys=ON;")
+        .expect("enable foreign keys");
+    run_migrations(&conn).expect("run migrations");
+    seed_family_and_child(&conn);
+
+    conn.execute(
+        "INSERT INTO orthodontic_cases (caseId, childId, caseType, stage, startedAt, plannedEndAt, actualEndAt, primaryIssues, providerName, providerInstitution, nextReviewDate, notes, createdAt, updatedAt) VALUES (?1,?2,?3,?4,?5,NULL,NULL,NULL,NULL,NULL,NULL,NULL,?6,?6)",
+        params!["case-v20", "child-1", "early-intervention", "active", "2026-04-01", "2026-04-01T00:00:00.000Z"],
+    ).expect("insert case");
+    // Expander appliance carrying all four v20 columns.
+    conn.execute(
+        "INSERT INTO orthodontic_appliances (applianceId, caseId, childId, applianceType, status, startedAt, prescribedActivations, completedActivations, activationIntervalDays, currentPhase, phaseStartedAt, reviewIntervalDays, nextReviewDate, nextReviewAgenda, createdAt, updatedAt)
+         VALUES (?1, ?2, ?3, 'expander', 'active', ?4, 28, 0, 3, 'widening', ?4, 42, '2026-05-13', ?5, ?6, ?6)",
+        params!["appl-v20", "case-v20", "child-1", "2026-04-01", "评估扩弓量", "2026-04-01T00:00:00.000Z"],
+    ).expect("insert expander appliance with v20 columns");
+
+    let (phase, phase_started, interval, agenda): (
+        Option<String>,
+        Option<String>,
+        Option<i32>,
+        Option<String>,
+    ) = conn
+        .query_row(
+            "SELECT currentPhase, phaseStartedAt, activationIntervalDays, nextReviewAgenda FROM orthodontic_appliances WHERE applianceId = 'appl-v20'",
+            [],
+            |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?)),
+        )
+        .expect("read v20 columns");
+    assert_eq!(phase.as_deref(), Some("widening"));
+    assert_eq!(phase_started.as_deref(), Some("2026-04-01"));
+    assert_eq!(interval, Some(3));
+    assert_eq!(agenda.as_deref(), Some("评估扩弓量"));
+
+    // Phase-advance UPDATE shape: widening → holding (the command body issues
+    // exactly this UPDATE after resolve_next_appliance_phase validates the
+    // target; the resolver itself is unit-tested in appliance_field_guard_tests).
+    conn.execute(
+        "UPDATE orthodontic_appliances SET currentPhase = ?2, phaseStartedAt = ?3, updatedAt = ?4 WHERE applianceId = ?1",
+        params!["appl-v20", "holding", "2026-07-01", "2026-07-01T10:00:00.000Z"],
+    )
+    .expect("advance phase");
+    let advanced: String = conn
+        .query_row(
+            "SELECT currentPhase FROM orthodontic_appliances WHERE applianceId = 'appl-v20'",
+            [],
+            |r| r.get(0),
+        )
+        .expect("read advanced phase");
+    assert_eq!(advanced, "holding");
+}
+
+#[test]
 fn migration_v16_deletes_empty_loser_and_archives_loser_with_data() {
     let conn = Connection::open_in_memory().expect("open in-memory db");
     conn.execute_batch("PRAGMA foreign_keys=ON;")
