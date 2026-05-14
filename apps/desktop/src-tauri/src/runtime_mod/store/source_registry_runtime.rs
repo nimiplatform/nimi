@@ -175,6 +175,12 @@ fn normalize_entry_path_within_roots(
         };
         attempts.push(candidate.clone());
         let Ok(normalized) = candidate.canonicalize() else {
+            if raw_target.is_absolute() && missing_entry_is_within_base(&base, &candidate) {
+                return Err(format!(
+                    "mod entry 路径不存在于已启用 mod source 内: {}",
+                    candidate.display()
+                ));
+            }
             continue;
         };
         if normalized.starts_with(&base) {
@@ -189,6 +195,25 @@ fn normalize_entry_path_within_roots(
             .collect::<Vec<_>>()
             .join(", ")
     ))
+}
+
+fn missing_entry_is_within_base(base: &Path, candidate: &Path) -> bool {
+    let mut current = candidate;
+    loop {
+        if current.exists() {
+            return current
+                .canonicalize()
+                .map(|normalized| normalized.starts_with(base))
+                .unwrap_or(false);
+        }
+        let Some(parent) = current.parent() else {
+            return false;
+        };
+        if parent == current {
+            return false;
+        }
+        current = parent;
+    }
 }
 
 fn enabled_runtime_mod_source_dirs(app: &AppHandle) -> Result<Vec<PathBuf>, String> {
@@ -415,7 +440,8 @@ pub fn open_runtime_mod_dir(app: &AppHandle, path: &str) -> Result<(), String> {
 mod source_registry_tests {
     use super::{
         ensure_default_runtime_mod_source_for_dir, runtime_mod_default_source_record_for_dir,
-        validate_user_managed_source_input, watchable_runtime_mod_source_ids,
+        normalize_entry_path_within_roots, validate_user_managed_source_input,
+        watchable_runtime_mod_source_ids,
         DEFAULT_INSTALLED_SOURCE_ID, RuntimeModDeveloperModeState, RuntimeModSourceRecord,
     };
     use crate::runtime_mod::store::init_schema;
@@ -574,5 +600,52 @@ mod source_registry_tests {
         with_env(&[("HOME", home.to_str())], || {
             assert_eq!(std::env::var("HOME").ok().as_deref(), home.to_str());
         });
+    }
+
+    #[test]
+    fn entry_path_normalization_accepts_dot_segments_inside_source_root() {
+        let home = temp_home("dot-entry");
+        let source_root = home.join("runtime");
+        let entry = source_root
+            .join("audio-book")
+            .join("dist")
+            .join("mods")
+            .join("audio-book")
+            .join("index.js");
+        std::fs::create_dir_all(entry.parent().expect("entry parent")).expect("create entry parent");
+        std::fs::write(&entry, "export {};\n").expect("write entry");
+
+        let requested = source_root
+            .join("audio-book")
+            .join(".")
+            .join("dist")
+            .join("mods")
+            .join("audio-book")
+            .join("index.js");
+        let normalized = normalize_entry_path_within_roots(&[source_root], &requested.display().to_string())
+            .expect("dot-segment entry should be accepted");
+
+        assert_eq!(normalized, entry.canonicalize().expect("canonical entry"));
+        std::fs::remove_dir_all(&home).expect("cleanup temp root");
+    }
+
+    #[test]
+    fn entry_path_normalization_reports_missing_inside_source_root_without_boundary_misclassification() {
+        let home = temp_home("missing-entry");
+        let source_root = home.join("runtime");
+        std::fs::create_dir_all(&source_root).expect("create source root");
+
+        let requested = source_root
+            .join("audio-book")
+            .join(".")
+            .join("dist")
+            .join("mods")
+            .join("audio-book")
+            .join("index.js");
+        let error = normalize_entry_path_within_roots(&[source_root], &requested.display().to_string())
+            .expect_err("missing in-root entry should fail closed");
+
+        assert!(error.contains("mod entry 路径不存在于已启用 mod source 内"));
+        std::fs::remove_dir_all(&home).expect("cleanup temp root");
     }
 }

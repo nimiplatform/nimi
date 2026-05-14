@@ -172,6 +172,18 @@ jobs:
         if: steps.nimi_mods_access.outputs.available == 'true'
         run: pnpm build:sdk
 
+      - name: Install nimi-mods dependencies
+        if: steps.nimi_mods_access.outputs.available == 'true'
+        run: pnpm --dir nimi-mods install --no-frozen-lockfile
+
+      - name: Build runtime mods for desktop E2E
+        if: steps.nimi_mods_access.outputs.available == 'true'
+        run: pnpm --dir nimi-mods run build
+
+      - name: Validate runtime mod entries for desktop E2E
+        if: steps.nimi_mods_access.outputs.available == 'true'
+        run: pnpm --filter @nimiplatform/desktop run smoke:mods
+
       - name: Run desktop E2E smoke (Linux)
         id: desktop_e2e_smoke_linux
         if: steps.nimi_mods_access.outputs.available == 'true' && matrix.platform == 'ubuntu-22.04'
@@ -300,6 +312,14 @@ jobs:
           NIMI_DESKTOP_UPDATER_PUBLIC_KEY: ${{ vars.NIMI_DESKTOP_UPDATER_PUBLIC_KEY }}
         run: node apps/desktop/scripts/normalize-updater-public-key.mjs --write-github-env
 
+      - name: Write desktop updater Tauri config
+        if: steps.nimi_mods_access.outputs.available == 'true'
+        env:
+          NIMI_DESKTOP_UPDATER_ENDPOINT: ${{ vars.NIMI_DESKTOP_UPDATER_ENDPOINT || 'https://install.nimi.ai/desktop/latest.json' }}
+        run: |
+          node apps/desktop/scripts/write-updater-tauri-config.mjs \
+            --output apps/desktop/src-tauri/target/ci-updater.conf.json
+
       - name: Validate desktop signing inputs
         if: steps.nimi_mods_access.outputs.available == 'true'
         run: |
@@ -387,7 +407,7 @@ jobs:
           projectPath: apps/desktop
           includeUpdaterJson: true
           updaterJsonPreferNsis: true
-          args: --config src-tauri/tauri.conf.json --bundles ${{ matrix.extra_args }} --ci
+          args: --config src-tauri/tauri.conf.json --config src-tauri/target/ci-updater.conf.json --bundles ${{ matrix.extra_args }} --ci
 
       - name: Build desktop updater artifacts (macOS ad-hoc)
         id: tauri_build_macos_ad_hoc
@@ -404,7 +424,7 @@ jobs:
           projectPath: apps/desktop
           includeUpdaterJson: true
           updaterJsonPreferNsis: true
-          args: --config src-tauri/tauri.conf.json --bundles ${{ matrix.extra_args }} --ci
+          args: --config src-tauri/tauri.conf.json --config src-tauri/target/ci-updater.conf.json --bundles ${{ matrix.extra_args }} --ci
 
       - name: Build desktop updater artifacts (macOS Developer ID)
         id: tauri_build_macos_developer_id
@@ -426,7 +446,7 @@ jobs:
           projectPath: apps/desktop
           includeUpdaterJson: true
           updaterJsonPreferNsis: true
-          args: --config src-tauri/tauri.conf.json --bundles ${{ matrix.extra_args }} --ci
+          args: --config src-tauri/tauri.conf.json --config src-tauri/target/ci-updater.conf.json --bundles ${{ matrix.extra_args }} --ci
 
       - name: Resolve desktop updater artifact paths
         id: tauri_build

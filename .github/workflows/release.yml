@@ -618,6 +618,13 @@ jobs:
           NIMI_DESKTOP_UPDATER_PUBLIC_KEY: ${{ vars.NIMI_DESKTOP_UPDATER_PUBLIC_KEY }}
         run: node apps/desktop/scripts/normalize-updater-public-key.mjs --write-github-env
 
+      - name: Write desktop updater Tauri config
+        env:
+          NIMI_DESKTOP_UPDATER_ENDPOINT: ${{ vars.NIMI_DESKTOP_UPDATER_ENDPOINT || 'https://install.nimi.ai/desktop/latest.json' }}
+        run: |
+          node apps/desktop/scripts/write-updater-tauri-config.mjs \
+            --output apps/desktop/src-tauri/target/ci-updater.conf.json
+
       - name: Validate desktop signing inputs
         run: |
           set -euo pipefail
@@ -706,7 +713,7 @@ jobs:
           prerelease: ${{ contains(needs.resolve.outputs.version, '-') }}
           includeUpdaterJson: true
           updaterJsonPreferNsis: true
-          args: --config src-tauri/tauri.conf.json --bundles ${{ matrix.extra_args }} --ci
+          args: --config src-tauri/tauri.conf.json --config src-tauri/target/ci-updater.conf.json --bundles ${{ matrix.extra_args }} --ci
 
       - name: Build desktop artifacts (macOS ad-hoc)
         id: tauri_build_macos_ad_hoc
@@ -728,7 +735,7 @@ jobs:
           prerelease: ${{ contains(needs.resolve.outputs.version, '-') }}
           includeUpdaterJson: true
           updaterJsonPreferNsis: true
-          args: --config src-tauri/tauri.conf.json --bundles ${{ matrix.extra_args }} --ci
+          args: --config src-tauri/tauri.conf.json --config src-tauri/target/ci-updater.conf.json --bundles ${{ matrix.extra_args }} --ci
 
       - name: Build desktop artifacts (macOS Developer ID)
         id: tauri_build_macos_developer_id
@@ -755,7 +762,7 @@ jobs:
           prerelease: ${{ contains(needs.resolve.outputs.version, '-') }}
           includeUpdaterJson: true
           updaterJsonPreferNsis: true
-          args: --config src-tauri/tauri.conf.json --bundles ${{ matrix.extra_args }} --ci
+          args: --config src-tauri/tauri.conf.json --config src-tauri/target/ci-updater.conf.json --bundles ${{ matrix.extra_args }} --ci
 
       - name: Resolve desktop artifact paths
         id: tauri_build

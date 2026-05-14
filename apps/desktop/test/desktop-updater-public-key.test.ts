@@ -3,6 +3,7 @@ import { Buffer } from 'node:buffer';
 import test from 'node:test';
 
 import { normalizeDesktopUpdaterPublicKey } from '../scripts/lib/desktop-updater-public-key.mjs';
+import { createDesktopUpdaterTauriConfig } from '../scripts/lib/desktop-updater-tauri-config.mjs';
 
 const rawPublicKey = 'RWQf6LRCGA9i53mlYecO4IzT51TGPpvWucNSCh1CBM0QTaLn73Y7GFO3';
 const publicKeyText = `untrusted comment: minisign public key\n${rawPublicKey}\n`;
@@ -39,3 +40,24 @@ test('desktop updater public key normalizer rejects non-minisign material', () =
   );
 });
 
+test('desktop updater Tauri config overlay carries normalized updater public key and endpoint', () => {
+  const endpoint = 'https://install.nimi.ai/desktop/latest.json';
+  const config = createDesktopUpdaterTauriConfig({
+    publicKey: rawPublicKey,
+    endpoint,
+  });
+
+  assert.equal(config.plugins.updater.pubkey, normalizeDesktopUpdaterPublicKey(rawPublicKey));
+  assert.deepEqual(config.plugins.updater.endpoints, [endpoint]);
+  assert.equal(config.plugins.updater.windows.installMode, 'passive');
+});
+
+test('desktop updater Tauri config overlay rejects non-https updater endpoints', () => {
+  assert.throws(
+    () => createDesktopUpdaterTauriConfig({
+      publicKey: rawPublicKey,
+      endpoint: 'http://install.nimi.ai/desktop/latest.json',
+    }),
+    /must use https/,
+  );
+});
