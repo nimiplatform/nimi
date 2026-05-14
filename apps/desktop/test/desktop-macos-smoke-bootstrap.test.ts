@@ -88,6 +88,8 @@ test('desktop macos smoke renderer sources include mounted ping markers', () => 
   assert.match(mainSource, /renderer-main-entry/);
   assert.match(mainSource, /renderer-root-mounted/);
   assert.match(mainSource, /window-page-error/);
+  assert.match(mainSource, /desktop_macos_smoke_ping/);
+  assert.doesNotMatch(mainSource, /import\('@renderer\/bridge\/runtime-bridge\/macos-smoke'\)/);
   assert.match(bootstrapRsSource, /window-eval-probe/);
   assert.match(bootstrapRsSource, /renderer-module-import-failed/);
   assert.match(bootstrapRsSource, /window-dynamic-import-ok/);

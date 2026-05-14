@@ -48,6 +48,14 @@ test('desktop CSP allows tauri asset protocol for VRM avatar loading', () => {
     connectDirective.includes('http://asset.localhost'),
     'connect-src must allow http://asset.localhost for Tauri asset protocol compatibility',
   );
+  assert.ok(
+    connectDirective.includes('http://ipc.localhost'),
+    'connect-src must allow http://ipc.localhost for Tauri Windows IPC fallback',
+  );
+  assert.ok(
+    connectDirective.includes('data:'),
+    'connect-src must allow data: wasm payloads emitted by packaged renderer dependencies',
+  );
 });
 
 test('desktop CSP allows blob module scripts for runtime mod loading', () => {

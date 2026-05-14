@@ -62,6 +62,18 @@ function shouldSkipRewrite(specifier: string): boolean {
   return /^(?:[a-zA-Z][a-zA-Z\d+\-.]*:|\/\/)/.test(specifier);
 }
 
+function isPackagedTauriOrigin(origin: string): boolean {
+  return /^https?:\/\/tauri\.localhost(?::\d+)?$/i.test(origin);
+}
+
+function canDirectlyImportLocalFsModule(): boolean {
+  if (typeof window === 'undefined') {
+    return true;
+  }
+  const origin = typeof window.location?.origin === 'string' ? window.location.origin : '';
+  return !isPackagedTauriOrigin(origin);
+}
+
 function rewriteImportSpecifierForEntryPath(specifier: string, entryPath: string): string {
   if (shouldSkipRewrite(specifier)) {
     return specifier;
@@ -72,6 +84,9 @@ function rewriteImportSpecifierForEntryPath(specifier: string, entryPath: string
   }
   const resolvedPath = resolveFsImportPath(entryPath, specifier);
   if (!resolvedPath) {
+    return specifier;
+  }
+  if (!canDirectlyImportLocalFsModule()) {
     return specifier;
   }
   return toViteFsImportUrl(resolvedPath) ?? toFileImportUrl(resolvedPath);
@@ -143,6 +158,9 @@ function toViteFsImportUrl(entryPath: string): string | null {
     return null;
   }
   const origin = typeof window.location?.origin === 'string' ? window.location.origin : '';
+  if (isPackagedTauriOrigin(origin)) {
+    return null;
+  }
   if (!/^https?:\/\//.test(origin)) {
     return null;
   }
@@ -154,6 +172,9 @@ function toViteFsImportUrl(entryPath: string): string | null {
 export async function loadRuntimeModFactoryFromEntryPath(
   entryPath: string,
 ): Promise<RuntimeModFactory | null> {
+  if (!canDirectlyImportLocalFsModule()) {
+    return null;
+  }
   const importUrls = [
     toViteFsImportUrl(entryPath),
     toFileImportUrl(entryPath),

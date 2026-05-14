@@ -17,10 +17,40 @@ const runtimeReady = Promise.all([
     return i18nMod;
 });
 
+type TauriCoreInvoke = (command: string, args?: Record<string, unknown>) => Promise<unknown>;
+
+function resolveTauriCoreInvoke(): TauriCoreInvoke | null {
+    const tauriGlobal = (globalThis as typeof globalThis & {
+      __TAURI__?: {
+        core?: { invoke?: unknown };
+        invoke?: unknown;
+      };
+    }).__TAURI__;
+    if (!tauriGlobal) {
+        return null;
+    }
+    const coreInvoke = tauriGlobal?.core?.invoke;
+    if (typeof coreInvoke === 'function') {
+        return coreInvoke.bind(tauriGlobal.core) as TauriCoreInvoke;
+    }
+    const legacyInvoke = tauriGlobal?.invoke;
+    if (typeof legacyInvoke === 'function') {
+        return legacyInvoke.bind(tauriGlobal) as TauriCoreInvoke;
+    }
+    return null;
+}
+
 function pingSmokeAsync(event: string, payload?: Record<string, unknown>): void {
-    void import('@renderer/bridge/runtime-bridge/macos-smoke')
-        .then((m) => m.pingDesktopMacosSmoke(event, payload))
-        .catch(() => {});
+    const invoke = resolveTauriCoreInvoke();
+    if (!invoke) {
+        return;
+    }
+    void invoke('desktop_macos_smoke_ping', {
+      payload: {
+        stage: event,
+        details: payload,
+      },
+    }).catch(() => {});
 }
 
 function describeUnhandledReason(reason: unknown): Record<string, unknown> {
@@ -81,7 +111,7 @@ window.addEventListener('unhandledrejection', (event) => {
 // Mount the root immediately — Suspense shows nothing until the lazy
 // App resolves (which awaits runtime hooks + i18n init internally).
 createRoot(rootElement).render(<Suspense fallback={null}>
-  <NimiThemeProvider accentPack="desktop-accent" defaultScheme="light">
+  <NimiThemeProvider accentPack="nimi-accent" defaultScheme="light">
     <App />
   </NimiThemeProvider>
 </Suspense>);

@@ -5,7 +5,10 @@ import {
   buildHostedPackageModuleSource,
   isHostedPackageExportBinding,
 } from '../src/runtime/mod/discovery/hosted-packages';
-import { rewriteRuntimeModSourceImportSpecifiers } from '../src/runtime/mod/discovery/module-loader';
+import {
+  loadRuntimeModFactoryFromEntryPath,
+  rewriteRuntimeModSourceImportSpecifiers,
+} from '../src/runtime/mod/discovery/module-loader';
 
 test('module loader rewrites supported bare package imports to hosted module urls', () => {
   const source = [
@@ -86,4 +89,30 @@ test('hosted package module source filters invalid export bindings before emissi
   assert.doesNotMatch(source, /export const true\b/);
   assert.doesNotMatch(source, /export const catch\b/);
   assert.doesNotMatch(source, /not-valid-name/);
+});
+
+test('packaged tauri runtime mod loading skips direct local file module imports', async () => {
+  const originalWindow = globalThis.window;
+  Object.defineProperty(globalThis, 'window', {
+    configurable: true,
+    value: {
+      location: {
+        origin: 'http://tauri.localhost',
+      },
+    },
+  });
+  try {
+    const factory = await loadRuntimeModFactoryFromEntryPath('D:/mods/example/dist/index.js');
+    assert.equal(factory, null);
+    const rewritten = rewriteRuntimeModSourceImportSpecifiers(
+      'import "./chunk.js";',
+      'D:/mods/example/dist/index.js',
+    );
+    assert.equal(rewritten, 'import "./chunk.js";');
+  } finally {
+    Object.defineProperty(globalThis, 'window', {
+      configurable: true,
+      value: originalWindow,
+    });
+  }
 });
