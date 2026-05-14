@@ -508,6 +508,9 @@ func TestStartSupervisedEnginesExposesManagedMediaLoopbackOnSupportedHost(t *tes
 
 func TestStartSupervisedEnginesEnablesManagedImageBackendOnImageSupportedAttachedHost(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	if !engine.ManagedImageSupervisedPlatformSupported() {
+		t.Skip("current host has no admitted runtime-owned managed image backend package")
+	}
 	homeDir := t.TempDir()
 	setDaemonTestHome(t, homeDir)
 	if err := os.MkdirAll(filepath.Join(homeDir, ".nimi", "runtime"), 0o755); err != nil {

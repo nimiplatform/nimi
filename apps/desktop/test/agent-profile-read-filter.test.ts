@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { createHookClient } from '@nimiplatform/sdk/mod';
+import { createHookClient, createModKvStore } from '@nimiplatform/sdk/mod';
+import type { HookClient, HookStorageClient } from '@nimiplatform/sdk/mod';
 import { loadAgentDetails } from '../src/runtime/data-sync/flows/agent-runtime-flow';
 import {
   clearInternalModSdkHost,
@@ -9,15 +10,82 @@ import {
   resetRuntimeHostForTesting,
   setInternalModSdkHost,
 } from '../src/runtime/mod';
-import {
-  MINTYOU_MOD_ID,
-  MINTYOU_RUNTIME_PROFILE_READ_AGENT,
-} from '../../../nimi-mods/runtime/mint-you/src/contracts.js';
-import { registerMintYouDataCapabilities } from '../../../nimi-mods/runtime/mint-you/src/registrars/data.js';
-import {
-  requestPhoto,
-  respondToRequest,
-} from '../../../nimi-mods/runtime/mint-you/src/services/photo-auth.js';
+
+const MINTYOU_MOD_ID = 'mint-you';
+const MINTYOU_RUNTIME_PROFILE_READ_AGENT = 'runtime.profile.read.agent';
+const MINTYOU_PHOTO_AUTH_NAMESPACE = 'mint-you.photo-auth.v1';
+
+function photoAuthKey(input: {
+  ownerAgentId: string;
+  viewerUserId: string;
+  worldId: string;
+}): string {
+  return [
+    String(input.worldId || '').trim(),
+    String(input.ownerAgentId || '').trim(),
+    String(input.viewerUserId || '').trim(),
+  ].join(':');
+}
+
+async function requestPhoto(
+  storage: HookStorageClient,
+  viewerUserId: string,
+  ownerAgentId: string,
+  worldId: string,
+): Promise<void> {
+  const store = createModKvStore({
+    storage,
+    namespace: MINTYOU_PHOTO_AUTH_NAMESPACE,
+  });
+  await store.setJson(photoAuthKey({ ownerAgentId, viewerUserId, worldId }), {
+    state: 'requested',
+  });
+}
+
+async function respondToRequest(
+  storage: HookStorageClient,
+  ownerAgentId: string,
+  viewerUserId: string,
+  worldId: string,
+  approved: boolean,
+): Promise<void> {
+  const store = createModKvStore({
+    storage,
+    namespace: MINTYOU_PHOTO_AUTH_NAMESPACE,
+  });
+  await store.setJson(photoAuthKey({ ownerAgentId, viewerUserId, worldId }), {
+    state: approved ? 'approved' : 'denied',
+  });
+}
+
+async function registerMintYouDataCapabilities(input: {
+  hookClient: HookClient;
+}): Promise<void> {
+  const store = createModKvStore({
+    storage: input.hookClient.storage,
+    namespace: MINTYOU_PHOTO_AUTH_NAMESPACE,
+  });
+  await input.hookClient.profile.registerAgentReadFilter({
+    handler: async (payload) => {
+      const ownerAgentId = String(payload.ownerAgentId || '').trim();
+      const viewerUserId = String(payload.viewerUserId || '').trim();
+      const worldId = String(payload.worldId || '').trim();
+      const profile = payload.profile as Record<string, unknown>;
+      const referenceImageUrl = String(profile.referenceImageUrl || '').trim();
+      if (!ownerAgentId || !viewerUserId || !worldId || !referenceImageUrl) {
+        return {
+          referenceImageUrl: null,
+        };
+      }
+      const grant = await store.getJson<{ state?: string }>(
+        photoAuthKey({ ownerAgentId, viewerUserId, worldId }),
+      );
+      return {
+        referenceImageUrl: grant?.state === 'approved' ? referenceImageUrl : null,
+      };
+    },
+  });
+}
 
 function installRuntimeStorageTauriMock(): () => void {
   const storage = new Map<string, string>();

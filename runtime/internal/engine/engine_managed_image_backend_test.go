@@ -323,9 +323,9 @@ func TestDiscoverInstalledManagedImageBackendLaunchConfigInjectsManagedCUDAPathP
 
 func TestResolveInstalledManagedImageBackendRequiresMaterializerWithoutCreatingRoot(t *testing.T) {
 	t.Setenv("NIMI_RUNTIME_GPU_VENDOR", "nvidia")
-	_, ok := resolveManagedImageBackendPackageSpecForCurrentHostWithSource("stablediffusion-ggml", "")
-	if !ok {
-		t.Skip("current host has no managed image backend package spec")
+	spec, ok := resolveManagedImageBackendPackageSpecForCurrentHostWithSource("stablediffusion-ggml", "")
+	if !ok || !spec.Supported {
+		t.Skip("current host has no supported managed image backend package spec")
 	}
 	backendsPath := filepath.Join(t.TempDir(), "managed-image-backends")
 	_, err := resolveInstalledManagedImageBackendConfig(backendsPath, t.TempDir(), &ManagedImageBackendConfig{
@@ -343,9 +343,9 @@ func TestResolveInstalledManagedImageBackendRequiresMaterializerWithoutCreatingR
 
 func TestEnsureManagedImageBackendRequiresMaterializerWithoutInstalling(t *testing.T) {
 	t.Setenv("NIMI_RUNTIME_GPU_VENDOR", "nvidia")
-	_, ok := resolveManagedImageBackendPackageSpecForCurrentHostWithSource("stablediffusion-ggml", "")
-	if !ok {
-		t.Skip("current host has no managed image backend package spec")
+	spec, ok := resolveManagedImageBackendPackageSpecForCurrentHostWithSource("stablediffusion-ggml", "")
+	if !ok || !spec.Supported {
+		t.Skip("current host has no supported managed image backend package spec")
 	}
 	mgr, err := NewManager(nil, t.TempDir(), nil)
 	if err != nil {

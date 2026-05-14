@@ -334,6 +334,7 @@ func TestDaemonBindCanonicalMemoryStandardIsIdempotent(t *testing.T) {
 }
 
 func TestDaemonRunWaitsForBackgroundWorkersToStop(t *testing.T) {
+	t.Setenv("NIMI_RUNTIME_LOCAL_LLAMA_BASE_URL", "http://127.0.0.1:1234/v1")
 	cfg := config.Config{
 		GRPCAddr:                "127.0.0.1:0",
 		HTTPAddr:                "127.0.0.1:0",
@@ -344,9 +345,6 @@ func TestDaemonRunWaitsForBackgroundWorkersToStop(t *testing.T) {
 		IdempotencyCapacity:     32,
 		AIHealthIntervalSeconds: 1,
 		AIHTTPTimeoutSeconds:    1,
-		Providers: map[string]config.RuntimeFileTarget{
-			"openrouter": {BaseURL: "https://example.invalid", APIKey: "openrouter-key"},
-		},
 	}
 	daemon, err := New(cfg, slog.New(slog.NewTextHandler(io.Discard, nil)), "test")
 	if err != nil {

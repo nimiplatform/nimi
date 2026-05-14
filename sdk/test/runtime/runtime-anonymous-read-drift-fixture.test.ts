@@ -32,10 +32,25 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __filename = fileURLToPath(import.meta.url);
-const repoRoot = resolve(dirname(__filename), '..', '..', '..', '..');
-const driftScript = join(repoRoot, 'scripts', 'check-runtime-rpc-auth-posture-sdk-drift.mjs');
-const sdkSourceRel = 'nimi/sdk/src/runtime/method-ids.ts';
+const driftScriptRel = 'scripts/check-runtime-rpc-auth-posture-sdk-drift.mjs';
+const repoRoot = findRepoRoot(dirname(__filename));
+const driftScript = join(repoRoot, driftScriptRel);
+const sdkSourceRel = 'sdk/src/runtime/method-ids.ts';
 const sdkSourceAbs = join(repoRoot, sdkSourceRel);
+
+function findRepoRoot(startDir: string): string {
+  let dir = resolve(startDir);
+  while (true) {
+    if (existsSync(join(dir, driftScriptRel))) {
+      return dir;
+    }
+    const parent = dirname(dir);
+    if (parent === dir) {
+      throw new Error(`fixture setup: repository root not found from ${startDir}`);
+    }
+    dir = parent;
+  }
+}
 
 function runDriftScript(workdirOverride?: string): { code: number; stdout: string; stderr: string } {
   const result = spawnSync('node', [driftScript], {
@@ -53,17 +68,17 @@ function runDriftScript(workdirOverride?: string): { code: number; stdout: strin
 function makeIsolatedRepoCopy(mutator: (source: string) => string): string {
   const workdir = mkdtempSync(join(tmpdir(), 'sdk-drift-fixture-'));
   // Mirror the index, shards, and SDK path the drift script reads.
-  const tableRel = 'nimi/.nimi/spec/runtime/kernel/tables/runtime-rpc-auth-posture.yaml';
+  const tableRel = '.nimi/spec/runtime/kernel/tables/runtime-rpc-auth-posture.yaml';
   const tableSrcAbs = join(repoRoot, tableRel);
   const tableDstAbs = join(workdir, tableRel);
   mkdirSync(dirname(tableDstAbs), { recursive: true });
   copyFileSync(tableSrcAbs, tableDstAbs);
 
   const shardRels = [
-    'nimi/.nimi/spec/runtime/kernel/tables/runtime-rpc-auth-posture/agent-ai-cognition.yaml',
-    'nimi/.nimi/spec/runtime/kernel/tables/runtime-rpc-auth-posture/audit-artifact-workflow.yaml',
-    'nimi/.nimi/spec/runtime/kernel/tables/runtime-rpc-auth-posture/identity-access.yaml',
-    'nimi/.nimi/spec/runtime/kernel/tables/runtime-rpc-auth-posture/local-connector-model.yaml',
+    '.nimi/spec/runtime/kernel/tables/runtime-rpc-auth-posture/agent-ai-cognition.yaml',
+    '.nimi/spec/runtime/kernel/tables/runtime-rpc-auth-posture/audit-artifact-workflow.yaml',
+    '.nimi/spec/runtime/kernel/tables/runtime-rpc-auth-posture/identity-access.yaml',
+    '.nimi/spec/runtime/kernel/tables/runtime-rpc-auth-posture/local-connector-model.yaml',
   ];
   for (const shardRel of shardRels) {
     const shardDstAbs = join(workdir, shardRel);
