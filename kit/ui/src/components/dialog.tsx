@@ -39,7 +39,7 @@ export function DialogContent({
     <DialogPrimitive.Portal>
       <DialogPrimitive.Overlay
         className={cn(
-          'fixed inset-0 z-[var(--nimi-z-dialog)] bg-[var(--nimi-overlay-backdrop)] data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
+          'nimi-overlay-backdrop nimi-overlay-backdrop--dialog fixed inset-0 z-[var(--nimi-z-dialog)] bg-[var(--nimi-overlay-backdrop)] data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
           overlayClassName,
         )}
       />
@@ -48,7 +48,7 @@ export function DialogContent({
         onOpenAutoFocus={(e) => e.preventDefault()}
         onEscapeKeyDown={() => onClose?.()}
         className={cn(
-          'fixed top-1/2 left-1/2 z-[var(--nimi-z-dialog)] -translate-x-1/2 -translate-y-1/2 rounded-[var(--nimi-radius-lg)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-overlay)] shadow-[var(--nimi-elevation-modal)] w-full max-w-md',
+          'nimi-overlay-panel nimi-overlay-panel--dialog fixed top-1/2 left-1/2 z-[var(--nimi-z-dialog)] -translate-x-1/2 -translate-y-1/2 rounded-[var(--nimi-radius-lg)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-overlay)] shadow-[var(--nimi-elevation-modal)] w-full max-w-md',
           'data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95',
           className,
         )}
@@ -62,18 +62,18 @@ export function DialogContent({
 
 export function DialogHeader({ className, children }: { className?: string; children?: ReactNode }) {
   return (
-    <div className={cn('px-6 pt-6 pb-2 text-[length:var(--nimi-type-section-title-size)] font-[var(--nimi-type-section-title-weight)] leading-[var(--nimi-type-section-title-line-height)]', className)}>
+    <div className={cn('nimi-overlay-title px-6 pt-6 pb-2 text-[length:var(--nimi-type-section-title-size)] font-[var(--nimi-type-section-title-weight)] leading-[var(--nimi-type-section-title-line-height)]', className)}>
       {children}
     </div>
   );
 }
 
 export function DialogBody({ className, children }: { className?: string; children?: ReactNode }) {
-  return <div className={cn('px-6 py-2', className)}>{children}</div>;
+  return <div className={cn('nimi-overlay-content px-6 py-2', className)}>{children}</div>;
 }
 
 export function DialogFooter({ className, children }: { className?: string; children?: ReactNode }) {
-  return <div className={cn('px-6 pt-2 pb-6', className)}>{children}</div>;
+  return <div className={cn('nimi-overlay-footer px-6 pt-2 pb-6', className)}>{children}</div>;
 }
 
 export const DialogTitle = DialogPrimitive.Title;
@@ -81,7 +81,7 @@ export const DialogDescription = DialogPrimitive.Description;
 export const DialogClose = DialogPrimitive.Close;
 
 // ---------------------------------------------------------------------------
-// OverlayShell — backward-compatible adapter mapping to Dialog
+// OverlayShell — canonical app-facing overlay shell for dialog/drawer surfaces.
 // ---------------------------------------------------------------------------
 
 type OverlayShellKind = 'dialog' | 'drawer' | 'popover';
@@ -119,6 +119,17 @@ export function OverlayShell({
     if (!nextOpen && onClose) onClose();
   };
 
+  const backdropKindClass = kind === 'drawer'
+    ? 'nimi-overlay-backdrop--drawer'
+    : kind === 'popover'
+      ? 'nimi-overlay-backdrop--popover'
+      : 'nimi-overlay-backdrop--dialog';
+  const panelKindClass = kind === 'drawer'
+    ? 'nimi-overlay-panel--drawer'
+    : kind === 'popover'
+      ? 'nimi-overlay-panel--popover'
+      : 'nimi-overlay-panel--dialog';
+
   const drawerClasses = kind === 'drawer'
     ? 'top-0 right-0 left-auto h-full translate-x-0 translate-y-0 max-w-sm rounded-l-[var(--nimi-radius-lg)] rounded-r-none'
     : '';
@@ -128,7 +139,8 @@ export function OverlayShell({
       <DialogPrimitive.Portal>
         <DialogPrimitive.Overlay
           className={cn(
-            'fixed inset-0 z-[var(--nimi-z-dialog)] bg-[var(--nimi-overlay-backdrop)]',
+            'nimi-overlay-backdrop fixed inset-0 z-[var(--nimi-z-dialog)] bg-[var(--nimi-overlay-backdrop)]',
+            backdropKindClass,
             className,
           )}
           onClick={closeOnBackdrop ? () => onClose?.() : undefined}
@@ -140,19 +152,20 @@ export function OverlayShell({
           onPointerDownOutside={closeOnBackdrop ? undefined : (e) => e.preventDefault()}
           onInteractOutside={closeOnBackdrop ? undefined : (e) => e.preventDefault()}
           className={cn(
-            'fixed top-1/2 left-1/2 z-[var(--nimi-z-dialog)] -translate-x-1/2 -translate-y-1/2 rounded-[var(--nimi-radius-lg)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-overlay)] shadow-[var(--nimi-elevation-modal)] w-full max-w-md',
+            'nimi-overlay-panel fixed top-1/2 left-1/2 z-[var(--nimi-z-dialog)] -translate-x-1/2 -translate-y-1/2 rounded-[var(--nimi-radius-lg)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-overlay)] shadow-[var(--nimi-elevation-modal)] w-full max-w-md',
+            panelKindClass,
             drawerClasses,
             panelClassName,
           )}
           style={panelStyle}
         >
           {title ? (
-            <div className="px-6 pt-6 pb-2 text-[length:var(--nimi-type-section-title-size)] font-[var(--nimi-type-section-title-weight)] leading-[var(--nimi-type-section-title-line-height)]">
+            <div className="nimi-overlay-title px-6 pt-6 pb-2 text-[length:var(--nimi-type-section-title-size)] font-[var(--nimi-type-section-title-weight)] leading-[var(--nimi-type-section-title-line-height)]">
               {title}
             </div>
           ) : null}
-          <div className={cn('px-6 py-2', contentClassName)}>{children}</div>
-          {footer ? <div className="px-6 pt-2 pb-6">{footer}</div> : null}
+          <div className={cn('nimi-overlay-content px-6 py-2', contentClassName)}>{children}</div>
+          {footer ? <div className="nimi-overlay-footer px-6 pt-2 pb-6">{footer}</div> : null}
         </DialogPrimitive.Content>
       </DialogPrimitive.Portal>
     </Dialog>

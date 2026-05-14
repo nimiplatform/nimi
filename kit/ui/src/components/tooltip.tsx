@@ -5,12 +5,14 @@ import { cn } from '../design-tokens.js';
 export const TooltipProvider = TooltipPrimitive.Provider;
 
 const CONTENT_CLASSES =
-  'z-[var(--nimi-z-tooltip)] rounded-[var(--nimi-radius-sm)] bg-[var(--nimi-surface-overlay)] border border-[var(--nimi-border-subtle)] px-3 py-1.5 text-[length:var(--nimi-type-caption-size)] leading-[var(--nimi-type-caption-line-height)] shadow-[var(--nimi-elevation-floating)] animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[side=bottom]:slide-in-from-top-2 data-[side=top]:slide-in-from-bottom-2';
+  'nimi-tooltip-layer nimi-tooltip-bubble z-[var(--nimi-z-tooltip)] rounded-[var(--nimi-radius-sm)] bg-[var(--nimi-surface-overlay)] border border-[var(--nimi-border-subtle)] px-3 py-1.5 text-[length:var(--nimi-type-caption-size)] leading-[var(--nimi-type-caption-line-height)] shadow-[var(--nimi-elevation-floating)] animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[side=bottom]:slide-in-from-top-2 data-[side=top]:slide-in-from-bottom-2';
 
 type TooltipProps = {
   children: ReactNode;
   content: ReactNode;
   placement?: 'top' | 'bottom';
+  open?: boolean;
+  defaultOpen?: boolean;
   className?: string;
   contentClassName?: string;
 };
@@ -19,11 +21,13 @@ export function Tooltip({
   children,
   content,
   placement = 'bottom',
+  open,
+  defaultOpen,
   className,
   contentClassName,
 }: TooltipProps) {
   return (
-    <TooltipPrimitive.Root>
+    <TooltipPrimitive.Root open={open} defaultOpen={defaultOpen}>
       <TooltipPrimitive.Trigger asChild>
         <span className={cn('inline-flex items-center justify-center', className)}>
           {children}

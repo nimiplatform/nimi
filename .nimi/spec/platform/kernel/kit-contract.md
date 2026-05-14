@@ -59,7 +59,8 @@
 - `shell/tauri` is an infra module for shared Tauri host glue: runtime bridge, daemon lifecycle, session logging, auth/oauth commands, runtime defaults.
 - Delivered as a Rust crate at `kit/shell/tauri/`, consumed by Tauri apps via Cargo path dependency.
 - Must remain renderer-agnostic: pure Rust host/bridge logic, no JS/TS runtime code.
-- Must not contain app-specific business logic, desktop-only menu bar/runtime-mod, or realm/runtime typed API truth.
+- Must not contain app-specific business logic, single-consumer menu bar or
+  mod-host logic, or realm/runtime typed API truth.
 - Shared `runtime_defaults` payload shape is owned here together with `shell/renderer`: canonical fields include `realmBaseUrl`, `jwksUrl`, `revocationUrl`, `jwtIssuer`, `jwtAudience`, and `connectorId`; retired `credentialRefId` must not remain emitted truth.
 - Consumer Tauri apps that wire `nimi_kit_shell_tauri::runtime_defaults` must not retain an app-local `src-tauri/src/defaults.rs` duplicate for the same payload shape.
 - D-IPC-* rules continue to govern IPC contract semantics; this module provides the shared implementation.
@@ -75,8 +76,10 @@
 - Must not re-own auth session truth or telemetry normalization truth already owned by `kit/auth` (domain/auth) and `kit/telemetry` (domain/telemetry).
 - Shared `parseRuntimeDefaults()` semantics are owned here: missing required realm defaults must fail closed instead of normalizing to empty strings, and consumer apps must not fork a parallel parser contract.
 - Bootstrap skeleton provides shared orchestration hooks; app-local code retains runtime readiness, daemon policy, and local data bootstrap.
-- Desktop and overtone retain local facade directories for app-specific bridge modules; shared core primitives come from this module.
-- Web-specific UI adapter components (`.web.tsx`) must not be placed in this module.
+- Consumer apps may retain app-local facade directories for app-specific bridge
+  modules only when their own spec owns that boundary; shared core primitives
+  come from this module.
+- Consumer-specific UI adapter components must not be placed in this module.
 
 ## P-KIT-043 — Runtime Capabilities Module
 
@@ -84,7 +87,7 @@
 - Must be runtime-safe and renderer-safe: zero UI, CSS, app code, or shell-specific imports.
 - May be consumed by runtime-side code (Go consumers via shared contract) in addition to renderer consumers.
 - Must not be stranded in any single app's runtime directory; this is the single shared truth for capability semantics.
-- Replaces desktop-local `capabilities.ts` and `capability-catalog.ts` as the canonical owner.
+- Replaces any app-local capability catalog as the canonical owner.
 
 ## P-KIT-050 — Future Module Admission
 
@@ -100,24 +103,23 @@
 - Feature modules must not import app-layer code, app state stores, `dataSync`, or platform bridge implementations directly.
 - Feature modules must remain portable across apps by consuming injected adapters only.
 
-## P-KIT-061 — Desktop Chat Obstacle-Flow Exception Consumer Boundary
+## P-KIT-061 — Chat Host Composition Adapter Boundary
 
 `kit/features/chat` remains the shared conversation-shell parity owner across
-apps, but the admitted desktop obstacle-aware transcript-flow line may consume
-it as a desktop-controlled exception consumer.
+apps and exposes adapter slots for host-provided layout or presentation inputs.
+Those adapter inputs are caller-supplied data, not kit-owned product truth.
 
 Fixed rules:
 
-- the desktop obstacle-aware line does not by itself reopen shared canonical
-  shell ownership for `kit/features/chat`
-- desktop may inject host-local occupancy geometry and host-local obstacle-flow
-  taxonomy into the canonical adapter path, but it must not fork a private
-  transcript shell, private scroll-root truth, or private grouping /
-  virtualization truth
-- `kit/features/chat` remains the shared parity owner outside the admitted
-  desktop exception line
-- any future widening of obstacle-aware shell truth into shared non-desktop kit
-  ownership requires an explicit separate authority cut
+- host-local layout or presentation inputs do not by themselves reopen shared
+  canonical shell ownership for `kit/features/chat`
+- adapter callers may pass geometry, placement, or flow taxonomy into the
+  canonical adapter path, but kit must not fork a private transcript shell,
+  private scroll-root truth, or private grouping / virtualization truth
+- `kit/features/chat` remains the shared parity owner outside explicit adapter
+  inputs
+- any future widening of a host-local flow into shared kit ownership requires
+  an explicit separate authority cut
 
 ## P-KIT-065 — Kit-First Reuse Protocol
 
@@ -150,67 +152,48 @@ Fixed rules:
 
 ## P-KIT-072 — Avatar Ownership Hardcut
 
-- `kit/features/avatar` consumes runtime-owned persistent `AgentPresentationProfile` truth and app-owned / desktop-owned transient `AvatarInteractionState`; it does not own either canonical layer.
+- `kit/features/avatar` consumes runtime-owned persistent `AgentPresentationProfile` truth and app-owned transient `AvatarInteractionState`; it does not own either canonical layer.
 - The module must not own canonical agent identity, canonical memory, voice workflow truth, voice asset truth, thread continuity truth, or app-specific permission policy.
 - The module must not import app stores, Tauri/Electron bridges, or runtime internal code directly.
 - Surface-specific placement, permissions, and orchestration remain app-owned; avatar renderer semantics remain reusable kit-owned.
 - Runtime-aware avatar helpers must fail closed when required presentation profile fields are absent or unresolved; they must not invent fallback avatar assets, provider voices, or surface-local pseudo-success truth.
 
-## P-KIT-073 — Desktop Local Avatar Binding Consumer Boundary
-
-`kit/features/avatar` may consume desktop-local bound presentation results, but it does
-not own desktop avatar import, storage, registry, or per-agent binding semantics.
+## P-KIT-073 — Avatar Backend Renderer Seam
 
 Fixed rules:
 
-- kit avatar surfaces may render a desktop-local override that has already been resolved
-  by desktop-local authority, but they must not become the canonical home for how local
-  VRM or Live2D files are imported, stored, or attached to an agent
-- backend-specific optional surfaces such as `/vrm` remain renderer seams only; admitting
-  future Live2D rendering does not by itself admit desktop-local storage or import truth
-- kit must not require consumers to point directly at Downloads paths or arbitrary local
-  files as persistent product truth; any local-file override must arrive as an already
-  resolved consumer input
+- backend-specific optional exports such as `/vrm` and `/live2d` are renderer
+  seams only
+- backend renderer seams must preserve the normalized avatar presentation
+  contract from `/headless` and must not re-own persistent presentation truth
+- backend renderer seams must not own avatar asset import, storage, registry,
+  per-agent binding, fallback policy, local runtime packaging, or viewport
+  lifecycle truth
+- a backend renderer export must be registered and shipped explicitly before it
+  is available package surface; registry prose must not fabricate a shipped
+  export
+- backend admission is bounded to avatar-stage rendering semantics; pointer
+  interaction parity, camera choreography, authoring flows, and model inspection
+  behavior require separate authority if promoted to reusable kit surface
 
-## P-KIT-073a — Live2D Backend Admission Posture
+## P-KIT-074 — Avatar Interaction Adapter Boundary
 
-`kit/features/avatar` admits Live2D as part of the reusable avatar backend family, while
-keeping the first shipped viewport implementation desktop-local.
-
-Fixed rules:
-
-- the admitted reusable kit truth is the backend seam and semantic consume boundary, not
-  a requirement that the first concrete Live2D viewport ship from kit immediately
-- a desktop app may ship the first concrete Live2D viewport locally while still consuming
-  the same `kit/features/avatar` stage semantics and normalized presentation inputs
-- Live2D backend admission here does not widen kit into owner of desktop-local fallback
-  policy, local runtime packaging, or desktop-only viewport lifecycle
-- a future exported `/live2d` surface must be registered and shipped explicitly before
-  consumers may treat it as an available package export; this rule admits the backend
-  family now without fabricating a shipped export
-- initial Live2D admission is bounded to avatar-stage rendering semantics; pointer
-  interaction parity, camera choreography, authoring flows, and backend-specific model
-  inspection behavior remain deferred unless later admitted explicitly
-
-## P-KIT-074 — Desktop Pointer Interaction Consumer Boundary
-
-`kit/features/avatar` may consume desktop-resolved app-attention inputs for an active
-avatar surface, but it does not own desktop-local attention intake or attention-truth
-authority.
+`kit/features/avatar` may expose typed interaction adapter fields for active
+avatar surfaces. These fields are renderer inputs and do not make kit the owner
+of raw attention intake.
 
 Fixed rules:
 
-- kit avatar surfaces may consume already-resolved attention targets,
-  continuous presence, and bounded app-attention-follow inputs, but they must
-  not become the canonical home for DOM pointer capture, app viewport
-  measurement, or desktop attention smoothing / clamp policy
-- backend-specific optional surfaces such as `/vrm` remain renderer seams only;
-  they must not become the semantic owner of attention interaction truth,
-  speaking-vs-attention precedence, or surface stop-line policy
-- reusable kit contracts may expose admitted interaction-state fields needed by
-  consumers, but raw attention intake lifecycle ownership remains with the
-  consuming desktop shell unless a later platform authority explicitly widens
-  that boundary
+- interaction adapter fields may include resolved attention targets, continuous
+  presence state, and bounded follow intent when admitted by the feature module
+  type surface
+- kit must not own DOM pointer capture, viewport measurement, attention
+  smoothing, clamp policy, speaking-vs-attention precedence, or surface
+  stop-line policy
+- backend-specific optional surfaces such as `/vrm` and `/live2d` remain
+  renderer seams and must not become semantic owners of interaction truth
+- widening raw interaction lifecycle ownership into kit requires a separate
+  platform authority cut
 
 ## P-KIT-080 — Adapter Injection Contract
 
@@ -240,7 +223,7 @@ Fixed rules:
   - the `shell/renderer` sub-module re-owns auth session truth or telemetry normalization truth
   - the `core/runtime-capabilities` sub-module contains UI, CSS, or shell-specific imports
   - the auth sub-module defines CSS custom properties outside the `--nimi-*` namespace (except scoped overrides within `data-shell-auth-theme`)
-  - a feature module omits required registry metadata for `surface_level`, `adapter_contract`, `headless_exports`, `ui_exports`, or `planned_consumers`
+  - a feature module omits required registry metadata for `surface_level`, `adapter_contract`, `headless_exports`, or `ui_exports`
   - a feature module claims `runtime` or `realm` capability but does not publish the matching surface
   - a feature module publishes `runtime` while binding `getPlatformClient().realm`, or publishes `realm` while binding `getPlatformClient().runtime`
   - a feature module imports app aliases, SDK client packages, or platform bridge implementations directly

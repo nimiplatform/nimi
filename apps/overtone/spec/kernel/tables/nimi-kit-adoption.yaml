@@ -1,0 +1,81 @@
+version: 1
+app: overtone
+app_entry:
+  style: apps/overtone/src/shell/renderer/styles.css
+  bootstrap: apps/overtone/src/shell/renderer/main.tsx
+  theme_provider: apps/overtone/src/shell/renderer/main.tsx
+modules:
+  - id: overtone.studio.layout
+    app: overtone
+    module: apps/overtone/src/shell/renderer/app-shell/layouts/studio-layout.tsx
+    families:
+      - surface
+      - status
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - dark
+      - light
+    default_scheme: dark
+    accent_pack: overtone-accent
+  - id: overtone.publish.modal
+    app: overtone
+    module: apps/overtone/src/shell/renderer/features/workspace/publish-panel.tsx
+    families:
+      - overlay
+      - action
+      - field
+      - status
+      - surface
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - dark
+      - light
+    default_scheme: dark
+    accent_pack: overtone-accent
+  - id: overtone.ui.primitives
+    app: overtone
+    module: apps/overtone/src/shell/renderer/features/workspace/ui-primitives.tsx
+    families:
+      - action
+      - field
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - dark
+      - light
+    default_scheme: dark
+    accent_pack: overtone-accent
+  - id: overtone.waveform.exception
+    app: overtone
+    module: apps/overtone/src/shell/renderer/features/workspace/waveform.tsx
+    families:
+      - surface
+    testid_required: false
+    exception_policy: controlled_exception
+    source_rule: P-DESIGN-021
+    scheme_support:
+      - dark
+      - light
+    default_scheme: dark
+    accent_pack: overtone-accent
+forbidden_patterns:
+  - id: overtone.no_legacy_action_classes
+    scope: apps/overtone/src/shell/renderer
+    pattern: \bot-btn-(?:primary|secondary|tertiary|icon)\b
+    reason: Overtone action wrappers must delegate to kit action primitives instead of app-local action authority classes.
+    source_rule: P-DESIGN-019
+  - id: overtone.no_legacy_field_class
+    scope: apps/overtone/src/shell/renderer
+    pattern: \bot-input(?!-)\b
+    reason: Overtone field wrappers must delegate to kit field primitives instead of app-local field authority classes.
+    source_rule: P-DESIGN-019
+  - id: overtone.no_phased_out_accent_aliases
+    scope: apps/overtone/src/shell/renderer
+    pattern: --ot-[a-z0-9-]+\b|--color-ot-[a-z0-9-]+\b
+    reason: Overtone renderer must consume kit semantic tokens instead of phased-out app-scoped accent aliases.
+    source_rule: P-DESIGN-008

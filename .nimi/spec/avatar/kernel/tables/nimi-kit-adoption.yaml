@@ -1,0 +1,72 @@
+version: 1
+app: avatar
+app_entry:
+  style: apps/avatar/src/shell/renderer/app.css
+  bootstrap: apps/avatar/src/shell/renderer/main.tsx
+  theme_provider: apps/avatar/src/shell/renderer/main.tsx
+modules:
+  - id: avatar.shell.app
+    app: avatar
+    module: apps/avatar/src/shell/renderer/App.tsx
+    families:
+      - surface
+      - action
+      - status
+    testid_required: true
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: avatar.shell.embodiment_stage
+    app: avatar
+    module: apps/avatar/src/shell/renderer/embodiment-stage/embodiment-stage.tsx
+    families:
+      - surface
+    testid_required: true
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: avatar.shell.companion_surface
+    app: avatar
+    module: apps/avatar/src/shell/renderer/companion-surface/companion-surface.tsx
+    families:
+      - surface
+      - action
+      - field
+      - status
+      - overlay
+    testid_required: true
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: avatar.shell.degraded_surface
+    app: avatar
+    module: apps/avatar/src/shell/renderer/degraded-surface/degraded-surface.tsx
+    families:
+      - surface
+      - action
+      - status
+    testid_required: true
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+forbidden_patterns:
+  - id: avatar.no_local_root_design_tokens
+    scope: apps/avatar/src/shell/renderer/app-shell/tokens.css
+    pattern: ':root\s*\{[\s\S]*--(?:color|surface|spacing|motion|font|line-height|companion|degraded|settings|nimi)-'
+    reason: Avatar renderer token authority must come from nimi-kit semantic tokens, not app-local root registries.

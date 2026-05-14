@@ -11,23 +11,24 @@
 
 ## 1. Purpose
 
-Nimi Design Pattern defines the shared design foundation for `desktop`, `forge`, `relay`, and `overtone`.
+Nimi Design Pattern defines the shared design foundation and external consumer contract for `@nimiplatform/nimi-kit/ui`.
 It is the only normative source for:
 
 - semantic design tokens
 - shared primitive families
 - theme scheme delivery
-- adoption registry and hard gates
+- consumer manifest schema and hard gates
 
 ## 2. Model
 
 - Shared foundation: one cross-app spec and one shared lib, `@nimiplatform/nimi-kit/ui`
 - Foundation schemes: `nimi-light`, `nimi-dark`
-- Accent packs: `desktop-accent`, `forge-accent`, `relay-accent`, `overtone-accent`
-- Controlled exceptions: `desktop world-detail` and Overtone waveform / transport visualization
+- Shared accent pack: `nimi-accent`
+- Consumer accent packs: defined by each consuming app's local spec manifest and projected into kit output without becoming platform design authority
+- Controlled exceptions: app-local manifests only; platform design authority does not carry concrete app exception inventories
 
 ## 3. Authority Split
 
 - `.nimi/spec/platform/kernel/design-pattern-contract.md` owns the normative design contract.
-- App-local design docs may describe art direction and narrative expression, but they must reference `P-DESIGN-*` and must not redefine shared primitives.
+- App-local specs own concrete kit adoption inventories, retained app-owned compositions, and product art direction, but they must reference `P-DESIGN-*` and must not redefine shared primitives.
 - App implementation must consume the generated shared lib projection and pass `pnpm check:nimi-ui-pattern`.

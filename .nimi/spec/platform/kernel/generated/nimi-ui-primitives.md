@@ -6,7 +6,7 @@
 |---|---|---|---|---|---|
 | `primitive.surface` | `surface` | `Surface` | `root` | `tone`, `elevation`, `state`, `material` | `P-DESIGN-011` |
 | `primitive.action` | `action` | `Button` | `root`, `leadingIcon`, `trailingIcon`, `icon` | `tone`, `size`, `modifier`, `state`, `compound` | `P-DESIGN-012` |
-| `primitive.icon_action` | `action` | `IconButton` |  |  | `P-DESIGN-012` |
+| `primitive.icon_action` | `action` | `IconButton` | `root`, `icon` | `modifier` | `P-DESIGN-012` |
 | `primitive.overlay` | `overlay` | `OverlayShell` | `backdrop`, `panel`, `title`, `content`, `footer`, `tooltipLayer`, `tooltipBubble` | `kind_backdrop`, `kind_panel` | `P-DESIGN-013` |
 | `primitive.sidebar` | `sidebar` | `SidebarShell` | `container`, `header`, `searchRow`, `search`, `searchField`, `section`, `sectionLabel`, `item`, `itemTitle`, `itemDescription`, `affordance`, `resizeHandle`, `resizeHandleBefore` | `family`, `item_kind`, `item_state`, `affordance`, `compound` | `P-DESIGN-014` |
 | `primitive.field` | `field` | `TextField` | `root`, `input`, `textarea` | `tone`, `modifier`, `state` | `P-DESIGN-015` |

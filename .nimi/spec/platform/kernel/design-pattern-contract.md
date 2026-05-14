@@ -4,16 +4,16 @@
 
 ## P-DESIGN-001 — Foundation Authority
 
-- The Nimi design pattern is the single authoritative source for shared visual and interaction contracts across `desktop`, `forge`, `relay`, `overtone`, and `parentos`.
+- The Nimi design pattern is the single authoritative source for shared kit primitives, semantic tokens, theme-pack schemas, material taxonomy, and external app integration rules.
 - Cross-app design authority must live in `.nimi/spec/platform/kernel/design-pattern-contract.md` and the structured fact sources under `.nimi/spec/platform/kernel/tables/`.
-- App-local design prose may describe art direction, but must not redefine shared primitive families, token taxonomies, or governance rules.
+- App-local specs own concrete kit consumption inventories, retained app-owned compositions, and product art direction. They may not redefine shared primitive families, token taxonomies, or governance rules.
 
 ## P-DESIGN-002 — Theme Pack Model
 
 - Shared design foundation is constant across apps; theme expression is delivered through foundation scheme packs plus exactly one app accent pack.
 - Governed app entries must import `@nimiplatform/nimi-kit/ui/themes/light.css`, `@nimiplatform/nimi-kit/ui/themes/dark.css`, and exactly one app accent pack from `@nimiplatform/nimi-kit/ui/themes/*-accent.css`.
 - Foundation schemes are `nimi-light` and `nimi-dark`.
-- Initial accent packs are `desktop-accent`, `forge-accent`, `relay-accent`, and `overtone-accent`.
+- `nimi-accent` is the shared Nimi accent pack. External app accent packs may be packaged by `@nimiplatform/nimi-kit/ui` only when their values are owned by the consuming app's local spec manifest, not by platform design authority.
 
 ## P-DESIGN-003 — Semantic Token Taxonomy
 
@@ -50,7 +50,7 @@
 ## P-DESIGN-008 — Accent Alias Phase-Out
 
 - Generated accent packs must emit shared `--nimi-*` semantic token values only; they must not emit app-scoped alias token namespaces such as `--ot-*`, `--color-ot-*`, `--color-brand-*`, or `--color-accent-*` as long-term authority.
-- Legacy full-theme compatibility outputs such as `relay-dark.css` and `overtone-studio.css` must not remain in the generated shared-lib theme surface once the foundation-plus-accent model is active.
+- Retired app-specific full-theme compatibility outputs must not remain in the generated shared-lib theme surface once the foundation-plus-accent model is active.
 - Governed app chrome may layer app identity through shared semantic tokens and local `color-mix(...)` expressions, but it must not depend on app-scoped accent aliases for shared background, text, focus, or surface meaning.
 
 ## P-DESIGN-010 — Shared Primitive Contract
@@ -71,8 +71,9 @@
 
 ## P-DESIGN-013 — Overlay Contract
 
-- `Dialog` (backed by `@radix-ui/react-dialog`) is the shared overlay primitive for `dialog` and `drawer` kinds. `Popover` (backed by `@radix-ui/react-popover`) handles popover overlays. `Tooltip` (backed by `@radix-ui/react-tooltip`) handles tooltips.
-- `OverlayShell` is retained as a backward-compatible adapter mapping to `Dialog`.
+- `OverlayShell` is the shared overlay shell primitive for governed `dialog` and `drawer` surfaces. It owns the canonical backdrop, panel, title, content, footer, motion, z-index, close behavior, and testability slots.
+- `Dialog` / `DialogContent` are lower-level Radix-backed parts for kit-internal and explicitly controlled overlay surfaces; they must still emit the canonical overlay slot classes when rendering governed content.
+- `Popover` / `PopoverContent` and `Tooltip` / `TooltipContent` are lower-level Radix-backed overlay parts for popover and tooltip surfaces; their content layers must emit the canonical overlay-family classes admitted in `nimi-ui-primitives.yaml`.
 - Governed overlays must keep reduced-motion behavior and stable testability surfaces.
 
 ## P-DESIGN-014 — Sidebar / Nav Contract
@@ -106,30 +107,26 @@
 
 ## P-DESIGN-019 — App-Owned Composition Boundary
 
-- App-owned composition components are permitted only when they are explicitly registered in `tables/nimi-ui-compositions.yaml`.
+- App-owned composition components are permitted only when they are explicitly registered in the consuming app's local kit composition manifest.
 - Thin wrappers over shared primitive families must delegate directly to `@nimiplatform/nimi-kit/ui` and must not add an app-owned visual contract for those shared families.
 - App-owned compositions may define local interaction or layout selectors only for component families that are not yet part of the shared toolkit contract; they must not become a parallel authority for `action`, `field`, `surface`, `sidebar`, `overlay`, `status`, `scroll_area`, `toggle`, or `avatar`.
 
 ## P-DESIGN-020 — Adoption Registry
 
-- Every governed shell-level module must be explicitly registered in `tables/nimi-ui-adoption.yaml`.
-- Registry rows must declare `scheme_support`, `default_scheme`, and `accent_pack`; governed apps may not encode these decisions only in app-local code.
-- Hard gate enforcement is driven by the registry, not by ad hoc path guesses or reviewer memory.
+- Every governed shell-level module must be explicitly registered in the consuming app's local kit adoption manifest.
+- Manifest rows must declare `scheme_support`, `default_scheme`, and `accent_pack`; governed apps may not encode these decisions only in renderer code.
+- Hard gate enforcement is driven by platform-defined manifest schema plus app-local manifests, not by ad hoc path guesses or reviewer memory.
 
 ## P-DESIGN-021 — Controlled Exceptions
 
-- Exceptions to shared primitive adoption must be explicit and narrow.
-- The only initial controlled exceptions are:
-  - `desktop world-detail`
-  - `desktop chat avatar viewport chrome (Live2D / VRM)`
-  - `desktop contacts profile-detail hero shell`
-  - Overtone waveform / transport-bar signature visualization surfaces
+- Exceptions to shared primitive adoption must be explicit, narrow, and owned by the consuming app's local kit manifest.
+- Platform design authority must not carry concrete app exception inventories.
 - Controlled exceptions must still consume shared semantic tokens and may not define an independent token system.
 
 ## P-DESIGN-022 — Material Layering Contract
 
 - Material is an axis orthogonal to the surface `tone` family declared in P-DESIGN-011. Governed surfaces that are not `solid` must declare both a tone and a material.
-- Allowed materials are `solid`, `glass-thin`, `glass-regular`, `glass-thick`, and `glass-chrome`. `solid` is the default and preserves backwards compatibility for surfaces that do not declare a material. This 5-tier taxonomy supersedes the prior 3-material taxonomy (`solid`, `glass-regular`, `glass-thick`); the prior tier names are preserved byte-for-byte with identical semantics, and `glass-thin` / `glass-chrome` are the admitted additional tiers.
+- Allowed materials are `solid`, `glass-thin`, `glass-regular`, `glass-thick`, and `glass-chrome`. `solid` is the default material for surfaces that do not declare a material. This 5-tier taxonomy supersedes the prior 3-material taxonomy (`solid`, `glass-regular`, `glass-thick`); the prior tier names are preserved byte-for-byte with identical semantics, and `glass-thin` / `glass-chrome` are the admitted additional tiers.
 - `glass-regular` and `glass-thick` must resolve background fill, border color, and backdrop-filter blur strength through semantic `material.*` and `backdrop.*` tokens declared in `tables/nimi-ui-tokens.yaml`. Governed modules must not inline `rgba(...)` material values or inline `backdrop-filter` declarations.
 - Material tokens are `foundation`-layer tokens. Every `material.*` and `backdrop.*` token must declare both light and dark values in `tables/nimi-ui-themes.yaml`.
 - Material tokens must stay neutral. Accent expression is delivered through accent packs per P-DESIGN-002 and must not be welded into material values.
@@ -152,6 +149,7 @@
   - an app renderer entry does not import the shared foundation CSS, both scheme packs, and exactly one accent pack
   - an app renderer entry does not apply theme state through the shared scheme runtime
   - a governed module defines local shell/sidebar/surface/action/overlay/toggle/scroll_area/avatar helper families
+  - platform design tables contain non-core app consumption inventories instead of app-local kit manifests
   - an app-local stylesheet defines a parallel root token registry or `@theme` block for governed semantic `--nimi-*` tokens
   - an app-local stylesheet assigns values to `--nimi-*` variables
   - a governed module defines CVA variants for shared primitive families outside `kit/ui`
@@ -163,7 +161,7 @@
 - `tables/nimi-ui-tokens.yaml`
 - `tables/nimi-ui-primitives.yaml`
 - `tables/nimi-ui-themes.yaml`
-- `tables/nimi-ui-adoption.yaml`
-- `tables/nimi-ui-compositions.yaml`
+- consuming app `spec/**/tables/nimi-kit-adoption.yaml` manifests
+- consuming app `spec/**/tables/nimi-kit-compositions.yaml` manifests
 - `tables/nimi-ui-allowlists.yaml`
 - `tables/rule-evidence.yaml`

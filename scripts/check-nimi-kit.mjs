@@ -130,10 +130,43 @@ function declaredCssVariables(content) {
   return [...content.matchAll(/(^|\s)(--[a-zA-Z0-9_-]+)\s*:/gm)].map((match) => String(match[2] || ''));
 }
 
+function discoverAppLocalThemeExports() {
+  const manifestRels = [];
+  const appsRoot = path.join(repoRoot, 'apps');
+  if (fs.existsSync(appsRoot)) {
+    for (const entry of fs.readdirSync(appsRoot, { withFileTypes: true })) {
+      if (!entry.isDirectory()) continue;
+      manifestRels.push(path.join('apps', entry.name, 'spec', 'kernel', 'tables', 'nimi-kit-themes.yaml'));
+    }
+  }
+
+  const nimiSpecRoot = path.join(repoRoot, '.nimi', 'spec');
+  if (fs.existsSync(nimiSpecRoot)) {
+    for (const entry of fs.readdirSync(nimiSpecRoot, { withFileTypes: true })) {
+      if (!entry.isDirectory() || entry.name === 'platform' || entry.name.startsWith('_')) continue;
+      manifestRels.push(path.join('.nimi', 'spec', entry.name, 'kernel', 'tables', 'nimi-kit-themes.yaml'));
+    }
+  }
+
+  const exports = new Set();
+  for (const relPath of manifestRels) {
+    const absPath = path.join(repoRoot, relPath);
+    if (!fs.existsSync(absPath)) continue;
+    const doc = readYaml(absPath);
+    for (const pack of Array.isArray(doc?.packs) ? doc.packs : []) {
+      const themeId = String(pack?.theme_id || '').trim();
+      if (!themeId) continue;
+      exports.add(`./ui/themes/${themeId}.css`);
+    }
+  }
+  return exports;
+}
+
 const registry = readYaml(registryPath);
 const kitPackage = readJson(packageJsonPath);
 const packageExportsMap = kitPackage.exports || {};
 const packageExports = new Set(Object.keys(packageExportsMap));
+const appLocalThemeExports = discoverAppLocalThemeExports();
 const modules = Array.isArray(registry?.modules) ? registry.modules : [];
 const appAliasPattern = /^@(renderer|runtime|app|desktop|forge|relay|web|overtone|realm-drift)(\/|$)/u;
 const registeredExportKeys = new Set();
@@ -163,7 +196,6 @@ for (const row of modules) {
   const headlessExports = Array.isArray(row?.headless_exports) ? row.headless_exports.map((item) => String(item || '').trim()).filter(Boolean) : [];
   const uiExports = Array.isArray(row?.ui_exports) ? row.ui_exports.map((item) => String(item || '').trim()).filter(Boolean) : [];
   const reuseEntrypoints = Array.isArray(row?.reuse_entrypoints) ? row.reuse_entrypoints.map((item) => String(item || '').trim()).filter(Boolean) : [];
-  const plannedConsumers = Array.isArray(row?.planned_consumers) ? row.planned_consumers.map((item) => String(item || '').trim()).filter(Boolean) : [];
 
   expect(id, 'nimi-kit-registry.yaml: module row missing id');
   expect(subpath.startsWith('/'), `nimi-kit-registry.yaml ${id}: subpath must start with /`);
@@ -183,7 +215,7 @@ for (const row of modules) {
   expect(Array.isArray(row?.headless_exports), `nimi-kit-registry.yaml ${id}: headless_exports must be an array`);
   expect(Array.isArray(row?.ui_exports), `nimi-kit-registry.yaml ${id}: ui_exports must be an array`);
   expect(Array.isArray(row?.reuse_entrypoints), `nimi-kit-registry.yaml ${id}: reuse_entrypoints must be an array`);
-  expect(Array.isArray(row?.planned_consumers), `nimi-kit-registry.yaml ${id}: planned_consumers must be an array`);
+  expect(!Object.prototype.hasOwnProperty.call(row, 'planned_consumers'), `nimi-kit-registry.yaml ${id}: planned_consumers is forbidden; concrete consumption truth belongs in app-local kit manifests`);
   const moduleDir = modulePath.split('/')[0] || '';
   expect(allowedModuleDirs.has(moduleDir), `nimi-kit-registry.yaml ${id}: unsupported module dir ${moduleDir}`);
   registeredModuleSubpaths.add(modulePath);
@@ -201,6 +233,7 @@ for (const row of modules) {
   }
 
   for (const key of exportsList) {
+    expect(!/[<>]/u.test(key), `nimi-kit-registry.yaml ${id}: export ${key} must be a concrete package export, not a placeholder`);
     expect(packageExports.has(key), `nimi-kit-registry.yaml ${id}: export ${key} missing from kit/package.json`);
     registeredExportKeys.add(key);
   }
@@ -225,7 +258,6 @@ for (const row of modules) {
     expect(headlessExports.length > 0, `${id}: feature module must expose headless exports`);
     expect(uiExports.length > 0, `${id}: feature module must expose UI exports`);
     expect(reuseEntrypoints.length > 0, `${id}: feature module must declare reuse_entrypoints`);
-    expect(plannedConsumers.length >= 2, `${id}: feature module must be planned for at least two apps`);
     if (modulePath.startsWith('features/')) {
       expect(exportsList.includes(`./${modulePath}`), `${id}: feature module must publish aggregate export ./${modulePath}`);
       expect(headlessExports.includes(`./${modulePath}/headless`), `${id}: feature module must publish /headless export`);
@@ -269,7 +301,7 @@ for (const [exportKey, target] of Object.entries(packageExportsMap)) {
     || exportKey.startsWith('./telemetry')
     || exportKey.startsWith('./features/');
 
-  if (isKitSurfaceExport && !registeredExportKeys.has(exportKey)) {
+  if (isKitSurfaceExport && !registeredExportKeys.has(exportKey) && !appLocalThemeExports.has(exportKey)) {
     fail(`kit/package.json: export ${exportKey} is not registered in nimi-kit-registry.yaml`);
   }
 }

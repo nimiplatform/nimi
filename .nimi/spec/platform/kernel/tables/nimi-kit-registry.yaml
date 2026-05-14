@@ -6,30 +6,34 @@ modules:
     surface_level: foundation
     adapter_contract: none
     description: Cross-app design system built on Radix UI + CVA + Tailwind, with nimi semantic tokens
-    dependencies: ["@radix-ui/react-dialog", "@radix-ui/react-tooltip", "@radix-ui/react-scroll-area", "@radix-ui/react-select", "@radix-ui/react-switch", "@radix-ui/react-avatar", "@radix-ui/react-popover", "@radix-ui/react-slot", "class-variance-authority", "clsx", "tailwind-merge"]
-    peer_dependencies: [react, react-dom]
+    dependencies:
+      - "@radix-ui/react-dialog"
+      - "@radix-ui/react-tooltip"
+      - "@radix-ui/react-scroll-area"
+      - "@radix-ui/react-select"
+      - "@radix-ui/react-switch"
+      - "@radix-ui/react-avatar"
+      - "@radix-ui/react-popover"
+      - "@radix-ui/react-slot"
+      - class-variance-authority
+      - clsx
+      - tailwind-merge
+    peer_dependencies:
+      - react
+      - react-dom
     exports:
       - ./ui
       - ./ui/styles.css
       - ./ui/themes/light.css
       - ./ui/themes/dark.css
-      - ./ui/themes/desktop-accent.css
-      - ./ui/themes/forge-accent.css
-      - ./ui/themes/relay-accent.css
-      - ./ui/themes/overtone-accent.css
-      - ./ui/themes/video-food-map-accent.css
+      - ./ui/themes/nimi-accent.css
     headless_exports: []
     ui_exports:
       - ./ui
       - ./ui/styles.css
       - ./ui/themes/light.css
       - ./ui/themes/dark.css
-      - ./ui/themes/desktop-accent.css
-      - ./ui/themes/forge-accent.css
-      - ./ui/themes/relay-accent.css
-      - ./ui/themes/overtone-accent.css
-      - ./ui/themes/video-food-map-accent.css
-    planned_consumers: [desktop, forge, overtone, relay, video-food-map, web]
+      - ./ui/themes/nimi-accent.css
     reuse_entrypoints:
       - ./ui
       - ./ui/styles.css
@@ -42,8 +46,12 @@ modules:
     surface_level: headless+ui
     adapter_contract: AuthPlatformAdapter
     description: Cross-app authentication UI (email, OTP, wallet, social OAuth)
-    dependencies: [kit.core, sdk]
-    peer_dependencies: [react, react-i18next]
+    dependencies:
+      - kit.core
+      - sdk
+    peer_dependencies:
+      - react
+      - react-i18next
     exports:
       - ./auth
       - ./auth/styles.css
@@ -54,7 +62,6 @@ modules:
     ui_exports:
       - ./auth
       - ./auth/styles.css
-    planned_consumers: [desktop, forge, overtone, relay, web]
     reuse_entrypoints:
       - ./auth
       - ./auth/styles.css
@@ -77,7 +84,6 @@ modules:
       - ./core/shell-mode
       - ./core/oauth
     ui_exports: []
-    planned_consumers: [desktop, forge, overtone, relay, web, realm-drift]
     reuse_entrypoints:
       - ./core/shell-mode
       - ./core/oauth
@@ -95,7 +101,6 @@ modules:
     exports: []
     headless_exports: []
     ui_exports: []
-    planned_consumers: [desktop, forge, parentos, shiji, lookdev, moment, overtone, realm-drift, video-food-map]
     reuse_entrypoints: []
     admission_status: active
     owner: platform
@@ -107,8 +112,13 @@ modules:
     surface_level: infra
     adapter_contract: none
     description: Shared renderer shell glue — Tauri command wrappers, bridge primitives, bootstrap skeleton. Delivered as subpath exports of the single nimi-kit npm package.
-    dependencies: [kit.core, kit.auth, kit.telemetry, sdk]
-    peer_dependencies: [react]
+    dependencies:
+      - kit.core
+      - kit.auth
+      - kit.telemetry
+      - sdk
+    peer_dependencies:
+      - react
     exports:
       - ./shell/renderer/bridge
       - ./shell/renderer/bootstrap
@@ -116,7 +126,6 @@ modules:
       - ./shell/renderer/bridge
       - ./shell/renderer/bootstrap
     ui_exports: []
-    planned_consumers: [desktop, forge, parentos, shiji, lookdev, moment, overtone, realm-drift, video-food-map, web]
     reuse_entrypoints:
       - ./shell/renderer/bridge
       - ./shell/renderer/bootstrap
@@ -136,7 +145,6 @@ modules:
     headless_exports:
       - ./core/runtime-capabilities
     ui_exports: []
-    planned_consumers: [desktop, web, runtime]
     reuse_entrypoints:
       - ./core/runtime-capabilities
     admission_status: active
@@ -162,7 +170,6 @@ modules:
     headless_exports:
       - ./core/model-config
     ui_exports: []
-    planned_consumers: [desktop, forge, parentos]
     reuse_entrypoints:
       - ./core/model-config
     admission_status: active
@@ -176,7 +183,8 @@ modules:
     adapter_contract: none
     description: Renderer-side telemetry (emit, debug-buffer, error-boundary)
     dependencies: []
-    peer_dependencies: [react]
+    peer_dependencies:
+      - react
     exports:
       - ./telemetry
       - ./telemetry/error-boundary
@@ -184,7 +192,6 @@ modules:
       - ./telemetry
     ui_exports:
       - ./telemetry/error-boundary
-    planned_consumers: [forge, desktop, relay]
     reuse_entrypoints:
       - ./telemetry
       - ./telemetry/error-boundary
@@ -197,8 +204,10 @@ modules:
     surface_level: headless+ui+runtime+realm
     adapter_contract: ConversationSourceAdapter + ConversationShellAdapter + ConversationThreadAdapter + ConversationComposerAdapter + ConversationOrchestrationProvider + ConversationOrchestrationRegistry + ConversationRuntimeAdapter + ConversationContinuityAdapter + RuntimeChatComposerAdapterOptions + RealmChatComposerAdapterOptions
     description: Reusable unified conversation shell with target-first AI/human/agent contracts, a canonical presentational and message shell, orchestration provider registry/contracts, active simple-ai runtime integration, active realm typed human chat integration, realtime normalization, timeline composition/display helpers, and a socket-agnostic transport controller
-    dependencies: [kit.ui]
-    peer_dependencies: [react]
+    dependencies:
+      - kit.ui
+    peer_dependencies:
+      - react
     exports:
       - ./features/chat
       - ./features/chat/headless
@@ -211,7 +220,6 @@ modules:
       - ./features/chat/runtime
     ui_exports:
       - ./features/chat/ui
-    planned_consumers: [desktop, relay, forge, realm-drift]
     reuse_entrypoints:
       - ./features/chat/ui
       - ./features/chat/headless
@@ -226,8 +234,11 @@ modules:
     surface_level: headless+ui+runtime
     adapter_contract: AvatarPresentationAdapter + AvatarInteractionAdapter + RuntimeAgentPresentationAdapter
     description: Reusable avatar stage surface with normalized headless presentation contracts, default UI shell, runtime-backed persistent agent presentation projection binding, and optional backend renderer seams including the shipped VRM surface and admitted future Live2D backend family
-    dependencies: [kit.ui, sdk]
-    peer_dependencies: [react]
+    dependencies:
+      - kit.ui
+      - sdk
+    peer_dependencies:
+      - react
     exports:
       - ./features/avatar
       - ./features/avatar/headless
@@ -242,7 +253,6 @@ modules:
       - ./features/avatar/ui
       - ./features/avatar/vrm
       - ./features/avatar/live2d
-    planned_consumers: [desktop, web]
     reuse_entrypoints:
       - ./features/avatar/ui
       - ./features/avatar/headless
@@ -252,15 +262,17 @@ modules:
     admission_status: active
     owner: platform
     source_rule: P-KIT-071
-    notes: Live2D backend family is now shipped as `./features/avatar/live2d` for reusable renderer-domain helpers and optional renderer seams. The first concrete Live2D viewport may still remain desktop-local.
+    notes: Live2D backend family is shipped as `./features/avatar/live2d` for reusable renderer-domain helpers and optional renderer seams. App-local viewport policy and product placement are outside platform kit registry truth.
   - id: kit.features.model-picker
     subpath: /features/model-picker
     kind: feature
     surface_level: headless+ui+runtime
     adapter_contract: ModelCatalogAdapter
     description: Reusable model browse-and-select surface with headless filtering, default UI shell, and runtime-backed catalog panels
-    dependencies: [kit.ui]
-    peer_dependencies: [react]
+    dependencies:
+      - kit.ui
+    peer_dependencies:
+      - react
     exports:
       - ./features/model-picker
       - ./features/model-picker/headless
@@ -271,7 +283,6 @@ modules:
       - ./features/model-picker/runtime
     ui_exports:
       - ./features/model-picker/ui
-    planned_consumers: [desktop, relay]
     reuse_entrypoints:
       - ./features/model-picker/ui
       - ./features/model-picker/headless
@@ -285,8 +296,14 @@ modules:
     surface_level: headless+ui
     adapter_contract: AppModelConfigSurface consumer-injection contract (scopeRef, SharedAIConfigService, providerResolver, projectionResolver, localAssetSource, capabilityOverrides, i18n)
     description: Reusable AI Model hub shell consuming the spec-resident CANONICAL_CAPABILITY_CATALOG, with complete params editors (text / audio-synthesize / audio-transcribe / voice-workflow / image / video), default profile controller enforcing D-AIPC-005 atomic apply, and ModelConfigAiModelHub composition that owns the Import AI Profile header action placement
-    dependencies: [kit.ui, kit.features.model-picker, kit.core.runtime-capabilities, kit.core.model-config, sdk]
-    peer_dependencies: [react]
+    dependencies:
+      - kit.ui
+      - kit.features.model-picker
+      - kit.core.runtime-capabilities
+      - kit.core.model-config
+      - sdk
+    peer_dependencies:
+      - react
     exports:
       - ./features/model-config
       - ./features/model-config/headless
@@ -295,7 +312,6 @@ modules:
       - ./features/model-config/headless
     ui_exports:
       - ./features/model-config/ui
-    planned_consumers: [desktop, forge, parentos]
     reuse_entrypoints:
       - ./features/model-config/ui
       - ./features/model-config/headless
@@ -307,9 +323,11 @@ modules:
     kind: feature
     surface_level: headless+ui+runtime
     adapter_contract: GenerationPanelAdapter
-    description: Reusable generation workflow shell with headless submit orchestration, default status panel UI, active overtone runtime panels, and active desktop runtime-status consumers
-    dependencies: [kit.ui]
-    peer_dependencies: [react]
+    description: Reusable generation workflow shell with headless submit orchestration, default status panel UI, app-local runtime panels, and app-local runtime-status consumers
+    dependencies:
+      - kit.ui
+    peer_dependencies:
+      - react
     exports:
       - ./features/generation
       - ./features/generation/headless
@@ -320,7 +338,6 @@ modules:
       - ./features/generation/runtime
     ui_exports:
       - ./features/generation/ui
-    planned_consumers: [overtone, desktop]
     reuse_entrypoints:
       - ./features/generation/ui
       - ./features/generation/headless
@@ -333,9 +350,11 @@ modules:
     kind: feature
     surface_level: headless+ui+realm
     adapter_contract: CommerceGiftAdapter
-    description: Reusable commerce surface for cross-app gifting and lightweight transactional dialogs backed by realm business services, with desktop as the active consumer and web remaining planned
-    dependencies: [kit.ui]
-    peer_dependencies: [react]
+    description: Reusable commerce surface for cross-app gifting and lightweight transactional dialogs backed by realm business services, with app-local consumers declared outside platform kit authority
+    dependencies:
+      - kit.ui
+    peer_dependencies:
+      - react
     exports:
       - ./features/commerce
       - ./features/commerce/headless
@@ -346,7 +365,6 @@ modules:
       - ./features/commerce/realm
     ui_exports:
       - ./features/commerce/ui
-    planned_consumers: [desktop, web]
     reuse_entrypoints:
       - ./features/commerce/ui
       - ./features/commerce/headless

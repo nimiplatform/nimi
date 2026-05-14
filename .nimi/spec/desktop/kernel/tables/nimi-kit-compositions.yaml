@@ -1,0 +1,11 @@
+version: 1
+app: desktop
+components:
+  - id: desktop.chat.contact_rail
+    app: desktop
+    module: apps/desktop/src/shell/renderer/features/chat/chat-contacts-sidebar.tsx
+    component: ChatContactsSidebar
+    classification: app_owned_composition
+    shared_families: []
+    shared_targets: []
+    source_rule: P-DESIGN-019

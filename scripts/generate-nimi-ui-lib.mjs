@@ -12,16 +12,42 @@ const outDir = path.join(repoRoot, 'kit', 'ui', 'src', 'generated');
 const themesDir = path.join(outDir, 'themes');
 
 const LEGACY_GENERATED_FILES = [
+  path.join(themesDir, 'desktop-accent.css'),
+  path.join(themesDir, 'relay-accent.css'),
   path.join(themesDir, 'relay-dark.css'),
   path.join(themesDir, 'overtone-studio.css'),
   path.join(outDir, 'primitive-contract.ts'),
   path.join(outDir, 'primitives.css'),
   path.join(outDir, 'typography.css'),
+  path.join(repoRoot, 'kit', 'ui', 'src', 'themes', 'relay-accent.css'),
 ];
 
 async function readYaml(fileName) {
   const raw = await fs.readFile(path.join(tablesDir, fileName), 'utf8');
   return YAML.parse(raw);
+}
+
+async function discoverAppKitThemeDocs() {
+  const appsRoot = path.join(repoRoot, 'apps');
+  let entries = [];
+  try {
+    entries = await fs.readdir(appsRoot, { withFileTypes: true });
+  } catch {
+    return [];
+  }
+  const docs = [];
+  for (const entry of entries) {
+    if (!entry.isDirectory()) continue;
+    const rel = path.join('apps', entry.name, 'spec', 'kernel', 'tables', 'nimi-kit-themes.yaml');
+    const abs = path.join(repoRoot, rel);
+    try {
+      const raw = await fs.readFile(abs, 'utf8');
+      docs.push(YAML.parse(raw));
+    } catch {
+      // Apps without a kit theme manifest do not contribute theme packs.
+    }
+  }
+  return docs;
 }
 
 function cssHeader(source) {
@@ -186,18 +212,29 @@ async function main() {
   const checkMode = process.argv.includes('--check');
   const tokensDoc = await readYaml('nimi-ui-tokens.yaml');
   const themesDoc = await readYaml('nimi-ui-themes.yaml');
+  const appThemeDocs = await discoverAppKitThemeDocs();
+  const mergedThemesDoc = {
+    ...themesDoc,
+    packs: [
+      ...(Array.isArray(themesDoc?.packs) ? themesDoc.packs : []),
+      ...appThemeDocs.flatMap((doc) => (Array.isArray(doc?.packs) ? doc.packs : [])),
+    ],
+  };
+  const mergedAccentPackIds = normalizePacks(mergedThemesDoc)
+    .filter((pack) => String(pack?.pack_kind) === 'accent')
+    .map((pack) => String(pack.theme_id));
 
-  const rendered = new Map([
-    [path.join(outDir, 'tokens.ts'), renderTokensFile(tokensDoc, themesDoc)],
+  const renderedEntries = [
+    [path.join(outDir, 'tokens.ts'), renderTokensFile(tokensDoc, mergedThemesDoc)],
     [path.join(outDir, 'theme-base.css'), renderThemeBase(tokensDoc)],
-    [path.join(themesDir, 'light.css'), renderFoundationTheme(tokensDoc, themesDoc, 'nimi-light', ':root:not([data-nimi-scheme]), :root[data-nimi-scheme="light"]')],
-    [path.join(themesDir, 'dark.css'), renderFoundationTheme(tokensDoc, themesDoc, 'nimi-dark', '.dark, :root[data-nimi-scheme="dark"]')],
-    [path.join(themesDir, 'desktop-accent.css'), renderAccentTheme(tokensDoc, themesDoc, 'desktop-accent')],
-    [path.join(themesDir, 'forge-accent.css'), renderAccentTheme(tokensDoc, themesDoc, 'forge-accent')],
-    [path.join(themesDir, 'relay-accent.css'), renderAccentTheme(tokensDoc, themesDoc, 'relay-accent')],
-    [path.join(themesDir, 'overtone-accent.css'), renderAccentTheme(tokensDoc, themesDoc, 'overtone-accent')],
-    [path.join(themesDir, 'video-food-map-accent.css'), renderAccentTheme(tokensDoc, themesDoc, 'video-food-map-accent')],
-  ]);
+    [path.join(themesDir, 'light.css'), renderFoundationTheme(tokensDoc, mergedThemesDoc, 'nimi-light', ':root:not([data-nimi-scheme]), :root[data-nimi-scheme="light"]')],
+    [path.join(themesDir, 'dark.css'), renderFoundationTheme(tokensDoc, mergedThemesDoc, 'nimi-dark', '.dark, :root[data-nimi-scheme="dark"]')],
+    ...mergedAccentPackIds.map((themeId) => [
+      path.join(themesDir, `${themeId}.css`),
+      renderAccentTheme(tokensDoc, mergedThemesDoc, themeId),
+    ]),
+  ];
+  const rendered = new Map(renderedEntries);
 
   if (checkMode) {
     const drifted = [];

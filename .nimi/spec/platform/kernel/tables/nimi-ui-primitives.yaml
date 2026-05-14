@@ -77,6 +77,13 @@ primitives:
         - id: solid
           class_name: nimi-material-solid
           styles: {}
+        - id: glass-thin
+          class_name: nimi-material-glass-thin
+          styles:
+            background: var(--nimi-material-glass-thin-bg)
+            border-color: var(--nimi-material-glass-thin-border)
+            backdrop-filter: blur(var(--nimi-backdrop-blur-thin))
+            -webkit-backdrop-filter: blur(var(--nimi-backdrop-blur-thin))
         - id: glass-regular
           class_name: nimi-material-glass-regular
           styles:
@@ -91,6 +98,13 @@ primitives:
             border-color: var(--nimi-material-glass-thick-border)
             backdrop-filter: blur(var(--nimi-backdrop-blur-strong))
             -webkit-backdrop-filter: blur(var(--nimi-backdrop-blur-strong))
+        - id: glass-chrome
+          class_name: nimi-material-glass-chrome
+          styles:
+            background: var(--nimi-material-glass-chrome-bg)
+            border-color: var(--nimi-material-glass-chrome-border)
+            backdrop-filter: blur(var(--nimi-backdrop-blur-chrome))
+            -webkit-backdrop-filter: blur(var(--nimi-backdrop-blur-chrome))
     source_rule: P-DESIGN-011
   - id: primitive.action
     family: action
@@ -232,8 +246,23 @@ primitives:
   - id: primitive.icon_action
     family: action
     component: IconButton
-    slots: []
-    class_groups: {}
+    slots:
+      - id: root
+        class_name: nimi-action
+        styles: {}
+      - id: icon
+        class_name: nimi-action__icon
+        styles:
+          display: inline-flex
+          align-items: center
+          justify-content: center
+    class_groups:
+      modifier:
+        - id: icon
+          class_name: nimi-action--icon
+          styles:
+            aspect-ratio: 1 / 1
+            padding-inline: "0"
     source_rule: P-DESIGN-012
   - id: primitive.overlay
     family: overlay

@@ -5,21 +5,21 @@ import { cn, type SurfaceElevation, type SurfaceMaterial, type SurfaceTone } fro
 type SurfacePadding = 'none' | 'sm' | 'md' | 'lg';
 
 export const surfaceVariants = cva(
-  'rounded-[var(--nimi-radius-md)] border border-[var(--nimi-border-subtle)] transition-colors duration-[var(--nimi-motion-fast)]',
+  'nimi-surface rounded-[var(--nimi-radius-md)] border border-[var(--nimi-border-subtle)] transition-colors duration-[var(--nimi-motion-fast)]',
   {
     variants: {
       tone: {
-        canvas: 'bg-[var(--nimi-surface-canvas)]',
-        panel: 'bg-[var(--nimi-surface-panel)]',
-        card: 'bg-[var(--nimi-surface-card)]',
-        hero: 'bg-[image:var(--nimi-surface-hero)]',
-        overlay: 'bg-[var(--nimi-surface-overlay)]',
+        canvas: 'nimi-surface--canvas bg-[var(--nimi-surface-canvas)]',
+        panel: 'nimi-surface--panel bg-[var(--nimi-surface-panel)]',
+        card: 'nimi-surface--card bg-[var(--nimi-surface-card)]',
+        hero: 'nimi-surface--hero bg-[image:var(--nimi-surface-hero)]',
+        overlay: 'nimi-surface--overlay bg-[var(--nimi-surface-overlay)]',
       },
       elevation: {
-        base: 'shadow-[var(--nimi-elevation-base)]',
-        raised: 'shadow-[var(--nimi-elevation-raised)]',
-        floating: 'shadow-[var(--nimi-elevation-floating)]',
-        modal: 'shadow-[var(--nimi-elevation-modal)]',
+        base: 'nimi-surface--elevation-base shadow-[var(--nimi-elevation-base)]',
+        raised: 'nimi-surface--elevation-raised shadow-[var(--nimi-elevation-raised)]',
+        floating: 'nimi-surface--elevation-floating shadow-[var(--nimi-elevation-floating)]',
+        modal: 'nimi-surface--elevation-modal shadow-[var(--nimi-elevation-modal)]',
       },
       padding: {
         none: '',
@@ -79,8 +79,8 @@ export function Surface<T extends ElementType = 'div'>(props: SurfaceProps<T>) {
       'data-nimi-tone': tone,
       className: cn(
         surfaceVariants({ tone, elevation, padding, material }),
-        interactive && 'cursor-pointer hover:border-[var(--nimi-border-strong)] hover:shadow-[var(--nimi-elevation-raised)]',
-        active && 'bg-[var(--nimi-surface-active)]',
+        interactive && 'nimi-surface--interactive cursor-pointer hover:border-[var(--nimi-border-strong)] hover:shadow-[var(--nimi-elevation-raised)]',
+        active && 'nimi-surface--active bg-[var(--nimi-surface-active)]',
         className,
       ),
     },

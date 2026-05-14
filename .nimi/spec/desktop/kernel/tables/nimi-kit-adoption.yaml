@@ -1,0 +1,282 @@
+version: 1
+app: desktop
+app_entry:
+  style: apps/desktop/src/shell/renderer/styles.css
+  bootstrap: apps/desktop/src/shell/renderer/main.tsx
+  theme_provider: apps/desktop/src/shell/renderer/main.tsx
+modules:
+  - id: desktop.contacts.sidebar
+    app: desktop
+    module: apps/desktop/src/shell/renderer/features/contacts/contacts-view.tsx
+    families:
+      - avatar
+      - surface
+      - action
+      - sidebar
+    testid_required: true
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: desktop.runtime.sidebar
+    app: desktop
+    module: apps/desktop/src/shell/renderer/features/runtime-config/runtime-config-panel-view.tsx
+    families:
+      - surface
+      - sidebar
+    testid_required: true
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: desktop.runtime.shared
+    app: desktop
+    module: apps/desktop/src/shell/renderer/features/runtime-config/runtime-config-primitives.tsx
+    families:
+      - surface
+      - action
+      - field
+      - status
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: desktop.runtime.overview.page
+    app: desktop
+    module: apps/desktop/src/shell/renderer/features/runtime-config/runtime-config-page-overview.tsx
+    families:
+      - surface
+      - action
+      - status
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: desktop.runtime.runtime.page
+    app: desktop
+    module: apps/desktop/src/shell/renderer/features/runtime-config/runtime-config-page-runtime.tsx
+    families:
+      - surface
+      - action
+      - field
+      - status
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: desktop.runtime.audit.section
+    app: desktop
+    module: apps/desktop/src/shell/renderer/features/runtime-config/runtime-config-global-audit-section.tsx
+    families:
+      - surface
+      - action
+      - field
+      - status
+      - scroll_area
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: desktop.runtime.debug.section
+    app: desktop
+    module: apps/desktop/src/shell/renderer/features/runtime-config/runtime-config-local-debug-section.tsx
+    families:
+      - surface
+      - action
+      - field
+      - status
+      - scroll_area
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: desktop.runtime.health.section
+    app: desktop
+    module: apps/desktop/src/shell/renderer/features/runtime-config/runtime-config-runtime-health-section.tsx
+    families:
+      - surface
+      - action
+      - status
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: desktop.runtime.usage.section
+    app: desktop
+    module: apps/desktop/src/shell/renderer/features/runtime-config/runtime-config-usage-stats-section.tsx
+    families:
+      - surface
+      - action
+      - field
+      - status
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: desktop.runtime.local.catalog.page
+    app: desktop
+    module: apps/desktop/src/shell/renderer/features/runtime-config/runtime-config-model-center-catalog-section.tsx
+    families:
+      - surface
+      - action
+      - field
+      - status
+      - scroll_area
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: desktop.runtime.local.catalog.card
+    app: desktop
+    module: apps/desktop/src/shell/renderer/features/runtime-config/runtime-config-local-model-center-catalog-card.tsx
+    families:
+      - surface
+      - action
+      - field
+      - status
+      - scroll_area
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: desktop.runtime.local.page
+    app: desktop
+    module: apps/desktop/src/shell/renderer/features/runtime-config/runtime-config-local-model-center-sections.tsx
+    families:
+      - surface
+      - action
+      - field
+      - status
+      - scroll_area
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: desktop.settings.sidebar
+    app: desktop
+    module: apps/desktop/src/shell/renderer/features/settings/settings-panel-body.tsx
+    families:
+      - surface
+      - sidebar
+      - action
+      - field
+      - toggle
+      - status
+      - scroll_area
+    testid_required: true
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: desktop.world.detail.exception
+    app: desktop
+    module: apps/desktop/src/shell/renderer/features/world/world-detail.tsx
+    families:
+      - surface
+    testid_required: true
+    exception_policy: controlled_exception
+    source_rule: P-DESIGN-021
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: desktop.chat.avatar.live2d.exception
+    app: desktop
+    module: apps/desktop/src/shell/renderer/features/chat/chat-agent-avatar-live2d-viewport.tsx
+    families:
+      - surface
+    testid_required: false
+    exception_policy: controlled_exception
+    source_rule: P-DESIGN-021
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: desktop.chat.avatar.vrm.exception
+    app: desktop
+    module: apps/desktop/src/shell/renderer/features/chat/chat-agent-avatar-vrm-viewport.tsx
+    families:
+      - surface
+    testid_required: false
+    exception_policy: controlled_exception
+    source_rule: P-DESIGN-021
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: desktop.contacts.profile-detail.exception
+    app: desktop
+    module: apps/desktop/src/shell/renderer/features/contacts/contact-detail-view-content.tsx
+    families:
+      - surface
+    testid_required: true
+    exception_policy: controlled_exception
+    source_rule: P-DESIGN-021
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+forbidden_patterns:
+  - id: desktop.no_legacy_brand_or_accent_aliases
+    scope: apps/desktop/src/shell/renderer/styles.css
+    pattern: --color-brand-|--color-accent-
+    reason: Desktop governed styles must use kit semantic tokens and nimi-accent, not retired brand/accent aliases.
+    source_rule: P-DESIGN-008
+  - id: desktop.no_motion_base_alias
+    scope: .nimi/spec/desktop/kernel/tables/renderer-design-tokens.yaml
+    pattern: 'motion\.base|--nimi-motion-base'
+    reason: Desktop downstream design tokens must align to motion.slow and must not retain motion.base aliases.
+    source_rule: P-DESIGN-017

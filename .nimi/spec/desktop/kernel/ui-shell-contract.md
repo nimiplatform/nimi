@@ -320,7 +320,7 @@ Desktop shell baseline 的视觉表达，而不是每个 route 独立发明的�
 - Desktop shell visual baseline 继续服从 `D-SHELL-015` ~ `D-SHELL-025`
   的 taxonomy；material 是这些 baseline surface 的表达轴之一，不是新的
   route ownership 或 layout ownership。
-- `desktop-accent` 继续承担 Desktop identity；accent 不得焊死进
+- `nimi-accent` 继续承担 shared Nimi mint identity；accent 不得焊死进
   material/background truth。
 
 ## D-SHELL-027 — Shell Ambient Ownership And Rollout Order

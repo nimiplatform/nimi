@@ -1,0 +1,24 @@
+version: 1
+app: video-food-map
+app_entry:
+  style: apps/video-food-map/src/shell/renderer/styles.css
+  bootstrap: apps/video-food-map/src/shell/renderer/main.tsx
+  theme_provider: apps/video-food-map/src/shell/renderer/App.tsx
+modules:
+  - id: video-food-map.shell.app
+    app: video-food-map
+    module: apps/video-food-map/src/shell/renderer/App.tsx
+    families:
+      - surface
+      - action
+      - field
+      - status
+      - sidebar
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: video-food-map-accent

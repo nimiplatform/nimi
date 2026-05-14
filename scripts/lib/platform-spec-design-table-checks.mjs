@@ -110,6 +110,9 @@ export function checkNimiDesignTables({
     const values = row?.values && typeof row.values === 'object' ? row.values : {};
     if (!themeId || !packKind) fail(`${themesRel}: theme packs require theme_id and pack_kind`);
     if (!allowedThemeLayers.has(packKind)) fail(`${themesRel}: ${themeId} has invalid pack_kind ${packKind}`);
+    if (Array.isArray(row?.applies_to_apps) && row.applies_to_apps.length > 0) {
+      fail(`${themesRel}: ${themeId} must not carry concrete app applicability; app usage belongs in app-local kit manifests`);
+    }
     if (!definedRuleIds.has(source)) fail(`${themesRel}: ${themeId} references unknown source_rule ${source}`);
     if (!themeCoverage.has(themeId)) themeCoverage.set(themeId, new Set());
     for (const tokenId of Object.keys(values)) {
@@ -137,14 +140,18 @@ export function checkNimiDesignTables({
   }
 
   const modules = Array.isArray(designAdoptionTable?.modules) ? designAdoptionTable.modules : [];
+  const platformCoreApps = new Set();
   for (const row of modules) {
     const id = String(row?.id || '').trim();
+    const app = String(row?.app || '').trim();
     const relModule = String(row?.module || '').trim();
     const schemeSupport = Array.isArray(row?.scheme_support) ? row.scheme_support.map((item) => String(item || '').trim()).filter(Boolean) : [];
     const defaultScheme = String(row?.default_scheme || '').trim();
     const accentPack = String(row?.accent_pack || '').trim();
     const source = String(row?.source_rule || '').trim();
     if (!id || !relModule || !defaultScheme || !accentPack) fail(`${adoptionRel}: adoption rows require id, module, default_scheme, accent_pack`);
+    if (app && !platformCoreApps.has(app)) fail(`${adoptionRel}: ${id} must move app ${app} adoption truth to the app-local kit manifest`);
+    if (/^apps\//u.test(relModule)) fail(`${adoptionRel}: ${id} must not reference app module ${relModule}`);
     if (schemeSupport.length === 0) fail(`${adoptionRel}: ${id} must declare non-empty scheme_support`);
     if (!schemeSupport.every((scheme) => scheme === 'light' || scheme === 'dark')) fail(`${adoptionRel}: ${id} has invalid scheme_support values`);
     if (!schemeSupport.includes(defaultScheme)) fail(`${adoptionRel}: ${id} default_scheme must be included in scheme_support`);
@@ -167,6 +174,12 @@ export function checkNimiDesignTables({
     if (!id || !app || !relModule || !component || !classification) {
       fail(`${compositionsRel}: composition rows require id, app, module, component, classification`);
       continue;
+    }
+    if (!platformCoreApps.has(app)) {
+      fail(`${compositionsRel}: ${id} must move app ${app} composition truth to the app-local kit manifest`);
+    }
+    if (/^apps\//u.test(relModule)) {
+      fail(`${compositionsRel}: ${id} must not reference app module ${relModule}`);
     }
     if (!allowedClassification.has(classification)) {
       fail(`${compositionsRel}: ${id} has invalid classification ${classification}`);
@@ -196,17 +209,13 @@ export function checkNimiDesignTables({
     const scope = String(item?.scope || '').trim();
     const source = String(item?.source_rule || '').trim();
     if (!id || !pattern || !scope) fail(`${allowlistsRel}: allowlist rows require id, pattern, scope`);
+    if (/\bapps\/[^/\s]+/u.test(scope)) {
+      fail(`${allowlistsRel}: ${id} must move app allowlist scope to the app-local kit manifest`);
+    }
     if (!definedRuleIds.has(source)) fail(`${allowlistsRel}: ${id} references unknown source_rule ${source}`);
   }
 
   if (!tokenIds.has('motion.slow')) {
     fail(`${tokensRel}: toolkit token taxonomy must define motion.slow`);
   }
-
-  const desktopTokenTableRel = '.nimi/spec/desktop/kernel/tables/renderer-design-tokens.yaml';
-  const desktopTokenTableRaw = read(desktopTokenTableRel);
-  if (desktopTokenTableRaw.includes('motion.base') || desktopTokenTableRaw.includes('--nimi-motion-base')) {
-    fail(`${desktopTokenTableRel}: downstream desktop design tokens must align to motion.slow and must not retain motion.base aliases`);
-  }
 }
-

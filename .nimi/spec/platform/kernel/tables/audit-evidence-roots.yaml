@@ -14,7 +14,7 @@ roots:
       - .nimi/spec/platform/kernel/kit-contract.md
       - .nimi/spec/platform/kernel/tables/nimi-kit-registry.yaml
     evidence_roots:
-      - apps/shared-tauri
+      - kit/shell/tauri
     source_rule: P-KIT-041
   - id: platform-host-local-nimicoding-projection
     owner_domain: platform

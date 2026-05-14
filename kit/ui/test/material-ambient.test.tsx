@@ -32,6 +32,16 @@ test('Surface material="glass-regular" applies the regular glass class', () => {
   expect(html).not.toMatch(/nimi-material-glass-thick/);
 });
 
+test('Surface material="glass-thin" applies the thin glass class', () => {
+  const html = renderToStaticMarkup(
+    <Surface tone="card" material="glass-thin">thin</Surface>,
+  );
+  expect(html).toMatch(/data-nimi-material="glass-thin"/);
+  expect(html).toMatch(/nimi-material-glass-thin/);
+  expect(html).not.toMatch(/nimi-material-glass-regular/);
+  expect(html).not.toMatch(/nimi-material-glass-chrome/);
+});
+
 test('Surface material="glass-thick" applies the thick glass class', () => {
   const html = renderToStaticMarkup(
     <Surface tone="card" material="glass-thick">thick</Surface>,
@@ -39,6 +49,16 @@ test('Surface material="glass-thick" applies the thick glass class', () => {
   expect(html).toMatch(/data-nimi-material="glass-thick"/);
   expect(html).toMatch(/nimi-material-glass-thick/);
   expect(html).not.toMatch(/nimi-material-glass-regular/);
+});
+
+test('Surface material="glass-chrome" applies the chrome glass class', () => {
+  const html = renderToStaticMarkup(
+    <Surface tone="overlay" material="glass-chrome">chrome</Surface>,
+  );
+  expect(html).toMatch(/data-nimi-material="glass-chrome"/);
+  expect(html).toMatch(/data-nimi-tone="overlay"/);
+  expect(html).toMatch(/nimi-material-glass-chrome/);
+  expect(html).not.toMatch(/nimi-material-glass-thin/);
 });
 
 test('Surface material does not regress tone/elevation/padding classes', () => {

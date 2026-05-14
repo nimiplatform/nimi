@@ -51,11 +51,11 @@ Product surfaces must use kit primitives as follows:
 | Review Queue | Surface (panel/card), ScrollArea, StatusBadge, Button |
 | Profile / Preference Surface | Surface (panel/card), Button, SelectField, StatusBadge |
 
-App-local composition components are permitted for map rendering and extraction visualization, but must be registered in `nimi-ui-compositions.yaml` per `P-DESIGN-019`.
+App-local composition components are permitted for map rendering and extraction visualization, but must be registered in the app-local `tables/nimi-kit-compositions.yaml` manifest per `P-DESIGN-019`.
 
 ## VFM-SHELL-008 — Adoption Registration
 
-Each shell-level module must be registered in `nimi-ui-adoption.yaml` per `P-DESIGN-020`, declaring `scheme_support: [light, dark]`, `default_scheme: light`, and `accent_pack: video-food-map-accent`.
+Each shell-level module must be registered in the app-local `tables/nimi-kit-adoption.yaml` manifest per `P-DESIGN-020`, declaring `scheme_support: [light, dark]`, `default_scheme: light`, and `accent_pack: video-food-map-accent`.
 
 ## VFM-SHELL-009 — Personal Space First-Screen Priority
 

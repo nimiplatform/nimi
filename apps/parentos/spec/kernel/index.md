@@ -13,6 +13,7 @@ Normative surfaces:
 - `health-record-console-contract.md` for the `/profile` first-screen health record console, metric registry consumption, latest-status projection, evaluation semantics, freshness, and next-record display
 - `capture-orchestrator-contract.md` for the unified add-data modal, typed capture intent, protocol-driven fields, save transaction, and reminder-linked completion
 - `profile-contract.md` for child profile and health-record surfaces
+- `kit-ui-consumption-contract.md` for ParentOS-specific `@nimiplatform/nimi-kit/ui` adoption, app-owned composition boundaries, and renderer design hard gates
 - `journal-contract.md` for journaling, voice capture, and closed-set tag suggestion
 - `advisor-contract.md` for advisor chat, report generation, and AI boundary rules
 - `knowledge-asset-contract.md` for knowledge asset manifests, section semantics, provenance, schema validation, generated projections, and runtime consumption boundaries
@@ -23,6 +24,8 @@ Normative surfaces:
 - `tables/health-capture-protocols.yaml` for unified capture protocols and required metric sets
 - `tables/reminder-capture-targets.yaml` for canonical `record_data` reminder to capture-protocol bindings
 - `tables/reference-data-assets.yaml` for the admitted knowledge asset registry
+- `tables/nimi-kit-adoption.yaml` for concrete ParentOS governed renderer modules consuming `@nimiplatform/nimi-kit/ui`
+- `tables/nimi-kit-compositions.yaml` for retained ParentOS app-owned compositions that must not become parallel primitive authority
 
 Guide-only documents:
 

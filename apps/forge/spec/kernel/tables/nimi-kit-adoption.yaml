@@ -1,0 +1,38 @@
+version: 1
+app: forge
+app_entry:
+  style: apps/forge/src/shell/renderer/styles.css
+  bootstrap: apps/forge/src/shell/renderer/main.tsx
+  theme_provider: apps/forge/src/shell/renderer/main.tsx
+modules:
+  - id: forge.app.sidebar
+    app: forge
+    module: apps/forge/src/shell/renderer/app-shell/layouts/sidebar.tsx
+    families:
+      - surface
+      - sidebar
+      - action
+    testid_required: true
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: forge-accent
+  - id: forge.settings.page
+    app: forge
+    module: apps/forge/src/shell/renderer/pages/settings/settings-page.tsx
+    families:
+      - surface
+      - action
+      - field
+      - status
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: forge-accent

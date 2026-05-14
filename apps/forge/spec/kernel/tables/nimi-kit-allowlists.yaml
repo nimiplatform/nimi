@@ -1,0 +1,15 @@
+version: 1
+app: forge
+items:
+  - id: allow.webkit_app_region.forge
+    pattern_type: inline_style_property
+    pattern: WebkitAppRegion
+    scope: apps/forge/src
+    reason: Native shell drag regions are transport-level requirements, not visual contract drift.
+    source_rule: P-DESIGN-021
+  - id: allow.runtime_progress_width.forge
+    pattern_type: inline_style_property
+    pattern: width
+    scope: apps/forge/src/shell/renderer/pages
+    reason: Runtime progress bars require measured percentage widths.
+    source_rule: P-DESIGN-021

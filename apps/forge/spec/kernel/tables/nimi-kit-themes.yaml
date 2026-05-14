@@ -1,0 +1,16 @@
+version: 1
+app: forge
+packs:
+  - theme_id: forge-accent
+    pack_kind: accent
+    source_rule: P-DESIGN-002
+    values:
+      surface.active: "#e8f8f1"
+      action.primary_bg: "#4ECCA3"
+      action.primary_bg_hover: "#3DBB96"
+      action.primary_text: "#ffffff"
+      action.ghost_hover: rgba(78,204,163,0.10)
+      sidebar.item_active: "#e8f8f1"
+      sidebar.item_hover: rgba(78,204,163,0.08)
+      field.focus: "#4ECCA3"
+      focus.ring_color: rgba(78,204,163,0.28)

@@ -45,6 +45,7 @@
 | `agent-chat-voice-session-contract.md` | `D-LLM-*` | Agent chat broader voice session authority：explicit entry / exit、same-anchor text/voice continuity、admitted listening modes（`push-to-talk` / foreground `hands-free`）、interruption、transcript/caption rules；不拥有 voice executor / workflow / wake-word / background continuation truth |
 | `agent-chat-voice-workflow-contract.md` | `D-LLM-*` | Agent chat richer voice workflow authority：`voice_workflow.voice_clone` / `voice_workflow.voice_design` admission、voice identity / `VoiceReference`、preset/custom voice selection、packet-bounded clone/design trigger、workflow return-path truth；不拥有 APML-projected resolved message/action / runtime workflow substrate / broader voice session truth |
 | `ui-shell-contract.md` | `D-SHELL-*` | 导航、布局、路由、分包 |
+| `kit-ui-consumption-contract.md` | `D-SHELL-*` | Desktop 对 `@nimiplatform/nimi-kit/ui` 的消费清单、保留 composition、allowlist 与受控例外 |
 | `menu-bar-shell-contract.md` | `D-MBAR-*` | macOS menu bar shell 入口、导航与 close/hide 语义 |
 | `error-boundary-contract.md` | `D-ERR-*` | 错误边界与归一化映射 |
 | `telemetry-contract.md` | `D-TEL-*` | 结构化日志与消息格式 |
@@ -82,6 +83,9 @@
 - `tables/renderer-design-sidebars.yaml`
 - `tables/renderer-design-overlays.yaml`
 - `tables/renderer-design-allowlists.yaml`
+- `tables/nimi-kit-adoption.yaml`
+- `tables/nimi-kit-compositions.yaml`
+- `tables/nimi-kit-allowlists.yaml`
 - `tables/desktop-testing-gates.yaml`
 - `tables/command-execution-classification.yaml`
 - `tables/desktop-feature-coverage.yaml`

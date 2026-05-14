@@ -1,0 +1,36 @@
+version: 1
+app: avatar
+components:
+  - id: avatar.shell.embodiment_stage
+    app: avatar
+    module: apps/avatar/src/shell/renderer/embodiment-stage/embodiment-stage.tsx
+    component: EmbodimentStage
+    classification: app_owned_composition
+    shared_families:
+      - surface
+    shared_targets: []
+    source_rule: P-DESIGN-019
+  - id: avatar.shell.companion_surface
+    app: avatar
+    module: apps/avatar/src/shell/renderer/companion-surface/companion-surface.tsx
+    component: CompanionSurface
+    classification: app_owned_composition
+    shared_families:
+      - surface
+      - action
+      - field
+      - status
+      - overlay
+    shared_targets: []
+    source_rule: P-DESIGN-019
+  - id: avatar.shell.degraded_surface
+    app: avatar
+    module: apps/avatar/src/shell/renderer/degraded-surface/degraded-surface.tsx
+    component: DegradedSurface
+    classification: app_owned_composition
+    shared_families:
+      - surface
+      - action
+      - status
+    shared_targets: []
+    source_rule: P-DESIGN-019

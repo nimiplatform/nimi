@@ -38,6 +38,27 @@ const compositionsTable = readYaml('.nimi/spec/platform/kernel/tables/nimi-ui-co
 const allowlistsTable = readYaml('.nimi/spec/platform/kernel/tables/nimi-ui-allowlists.yaml');
 const primitivesTable = readYaml('.nimi/spec/platform/kernel/tables/nimi-ui-primitives.yaml');
 
+function discoverAppKitTables(fileName) {
+  const appsRoot = path.join(repoRoot, 'apps');
+  const rels = [];
+  if (fs.existsSync(appsRoot)) {
+    rels.push(...fs
+      .readdirSync(appsRoot, { withFileTypes: true })
+      .filter((entry) => entry.isDirectory())
+      .map((entry) => path.join('apps', entry.name, 'spec', 'kernel', 'tables', fileName)));
+  }
+  const nimiSpecRoot = path.join(repoRoot, '.nimi', 'spec');
+  if (fs.existsSync(nimiSpecRoot)) {
+    rels.push(...fs
+      .readdirSync(nimiSpecRoot, { withFileTypes: true })
+      .filter((entry) => entry.isDirectory() && !['platform', '_meta'].includes(entry.name))
+      .map((entry) => path.join('.nimi', 'spec', entry.name, 'kernel', 'tables', fileName)));
+  }
+  return rels
+    .filter((rel) => fs.existsSync(path.join(repoRoot, rel)))
+    .map((rel) => ({ rel, doc: readYaml(rel) }));
+}
+
 const hardFailures = [];
 const tokenRows = Array.isArray(tokensTable?.tokens) ? tokensTable.tokens : [];
 const tokenIds = new Set(tokenRows.map((row) => String(row?.id || '').trim()).filter(Boolean));
@@ -48,7 +69,11 @@ const accentTokenIds = new Set(
     .filter(Boolean),
 );
 
-const themeRows = Array.isArray(themesTable?.packs) ? themesTable.packs : [];
+const appThemeTables = discoverAppKitTables('nimi-kit-themes.yaml');
+const themeRows = [
+  ...(Array.isArray(themesTable?.packs) ? themesTable.packs : []),
+  ...appThemeTables.flatMap(({ doc }) => (Array.isArray(doc?.packs) ? doc.packs : [])),
+];
 const themeCoverage = new Map();
 const themeKinds = new Map();
 for (const row of themeRows) {
@@ -81,23 +106,20 @@ for (const [themeId, coverage] of themeCoverage) {
   }
 }
 
-const appEntries = [
-  {
-    app: 'desktop',
-    styleRel: 'apps/desktop/src/shell/renderer/styles.css',
-    mainRel: 'apps/desktop/src/shell/renderer/main.tsx',
-  },
-  {
-    app: 'forge',
-    styleRel: 'apps/forge/src/shell/renderer/styles.css',
-    mainRel: 'apps/forge/src/shell/renderer/main.tsx',
-  },
-  {
-    app: 'overtone',
-    styleRel: 'apps/overtone/src/shell/renderer/styles.css',
-    mainRel: 'apps/overtone/src/shell/renderer/main.tsx',
-  },
-];
+const appEntries = [];
+const appAdoptionTables = discoverAppKitTables('nimi-kit-adoption.yaml');
+for (const { doc, rel } of appAdoptionTables) {
+  const app = String(doc?.app || '').trim();
+  const entry = doc?.app_entry && typeof doc.app_entry === 'object' ? doc.app_entry : {};
+  const styleRel = String(entry?.style || '').trim();
+  const mainRel = String(entry?.bootstrap || '').trim();
+  const themeProviderRel = String(entry?.theme_provider || mainRel).trim();
+  if (!app || !styleRel || !mainRel || !themeProviderRel) {
+    hardFailures.push(`${rel}: app-local nimi-kit adoption manifest requires app_entry style, bootstrap, and theme_provider`);
+    continue;
+  }
+  appEntries.push({ app, styleRel, mainRel, themeProviderRel });
+}
 const generatedThemesDir = path.join(repoRoot, 'kit', 'ui', 'src', 'generated', 'themes');
 for (const legacyTheme of ['relay-dark.css', 'overtone-studio.css']) {
   if (fs.existsSync(path.join(generatedThemesDir, legacyTheme))) {
@@ -139,7 +161,10 @@ if (/export\s+const\s+NIMI_ACCENT_PACKS\s*=\s*\[/u.test(designTokenFacade)) {
   hardFailures.push('kit/ui/src/design-tokens.ts: NIMI_ACCENT_PACKS must be derived from generated ACCENT_PACK_IDS');
 }
 
-const adoptionRows = Array.isArray(adoptionTable?.modules) ? adoptionTable.modules : [];
+const adoptionRows = [
+  ...(Array.isArray(adoptionTable?.modules) ? adoptionTable.modules : []),
+  ...appAdoptionTables.flatMap(({ doc }) => (Array.isArray(doc?.modules) ? doc.modules : [])),
+];
 const accentPackByApp = new Map();
 for (const row of adoptionRows) {
   const app = String(row?.app || '').trim();
@@ -173,7 +198,7 @@ for (const entry of appEntries) {
   if (/@theme\s*\{/u.test(styleContent)) {
     hardFailures.push(`${entry.styleRel}: app styles must not define app-local @theme blocks`);
   }
-  if (/:root\s*\{[\s\S]*--(?:ot|nimi)-/u.test(styleContent) || /:root\s*\{[\s\S]*--color-(?:mint|brand|bg-base)/u.test(styleContent)) {
+  if (/:root\s*\{[\s\S]*--(?:ot|nimi)-/u.test(styleContent) || /:root\s*\{[\s\S]*--color-[a-z0-9-]+\s*:/u.test(styleContent)) {
     hardFailures.push(`${entry.styleRel}: app styles must not define app-local root token authority`);
   }
   if (/(^|\n)\s*\.nimi-[^\n]*\{/u.test(styleContent)) {
@@ -183,15 +208,12 @@ for (const entry of appEntries) {
     hardFailures.push(`${entry.styleRel}: app styles must not assign --nimi-* token values`);
   }
   if (/--ot-[a-z0-9-]+\b/u.test(styleContent) || /--color-ot-[a-z0-9-]+\b/u.test(styleContent)) {
-    hardFailures.push(`${entry.styleRel}: app styles must not depend on phased-out overtone accent aliases`);
+    hardFailures.push(`${entry.styleRel}: app styles must not depend on phased-out app-scoped accent aliases`);
   }
-  if (entry.app === 'desktop' && (styleContent.includes('--color-brand-') || styleContent.includes('--color-accent-'))) {
-    hardFailures.push(`${entry.styleRel}: desktop governed styles must not depend on phased-out brand/accent aliases`);
-  }
-
-  const mainContent = read(entry.mainRel);
-  if (!mainContent.includes('@nimiplatform/nimi-kit/ui') || !mainContent.includes('NimiThemeProvider')) {
-    hardFailures.push(`${entry.mainRel}: must use NimiThemeProvider from @nimiplatform/nimi-kit/ui`);
+  const themeProviderRel = entry.themeProviderRel || entry.mainRel;
+  const themeProviderContent = read(themeProviderRel);
+  if (!themeProviderContent.includes('@nimiplatform/nimi-kit/ui') || !themeProviderContent.includes('NimiThemeProvider')) {
+    hardFailures.push(`${themeProviderRel}: must use NimiThemeProvider from @nimiplatform/nimi-kit/ui`);
   }
 }
 
@@ -218,19 +240,18 @@ for (const selector of generatedSelectors) {
   }
 }
 
-for (const rel of [
-  'apps/overtone/src/shell/renderer/App.tsx',
-  'apps/overtone/src/shell/renderer/app-shell/layouts/studio-layout.tsx',
-  'apps/overtone/src/shell/renderer/styles.css',
-]) {
-  const content = read(rel);
-  if (/--ot-[a-z0-9-]+\b/u.test(content) || /--color-ot-[a-z0-9-]+\b/u.test(content)) {
-    hardFailures.push(`${rel}: shared chrome source must not use phased-out overtone accent aliases`);
-  }
-}
-
-const allowlists = Array.isArray(allowlistsTable?.items) ? allowlistsTable.items : [];
-const compositionRows = Array.isArray(compositionsTable?.components) ? compositionsTable.components : [];
+const allowlists = [
+  ...(Array.isArray(allowlistsTable?.items) ? allowlistsTable.items : []),
+  ...discoverAppKitTables('nimi-kit-allowlists.yaml').flatMap(({ doc }) => (Array.isArray(doc?.items) ? doc.items : [])),
+];
+const appForbiddenPatterns = appAdoptionTables.flatMap(({ doc, rel }) =>
+  (Array.isArray(doc?.forbidden_patterns) ? doc.forbidden_patterns : []).map((item) => ({ ...item, manifestRel: rel })),
+);
+const appCompositionTables = discoverAppKitTables('nimi-kit-compositions.yaml');
+const compositionRows = [
+  ...(Array.isArray(compositionsTable?.components) ? compositionsTable.components : []),
+  ...appCompositionTables.flatMap(({ doc }) => (Array.isArray(doc?.components) ? doc.components : [])),
+];
 
 function extractComponentBlock(content, componentName) {
   const startPatterns = [
@@ -299,9 +320,8 @@ for (const row of adoptionRows) {
   }
   if (content.includes('style={{')) {
     const styleProps = [...content.matchAll(/style=\{\{([^}]*)\}\}/gu)].flatMap((match) =>
-      String(match[1] || '')
-        .split(',')
-        .map((part) => part.split(':')[0]?.trim())
+      [...String(match[1] || '').matchAll(/(?:^|[,{\n])\s*([A-Za-z_$][\w$]*)\s*:/gu)]
+        .map((propMatch) => propMatch[1]?.trim())
         .filter(Boolean),
     );
     for (const prop of styleProps) {
@@ -319,6 +339,16 @@ for (const row of compositionRows) {
   if (!compositionsByModule.has(relModule)) compositionsByModule.set(relModule, []);
   compositionsByModule.get(relModule).push(row);
 }
+const exportedComponentPrefixesByModule = new Map();
+for (const { doc } of appCompositionTables) {
+  for (const item of Array.isArray(doc?.exported_component_prefixes) ? doc.exported_component_prefixes : []) {
+    const relModule = String(item?.module || '').trim();
+    const prefix = String(item?.prefix || '').trim();
+    if (!relModule || !prefix) continue;
+    if (!exportedComponentPrefixesByModule.has(relModule)) exportedComponentPrefixesByModule.set(relModule, []);
+    exportedComponentPrefixesByModule.get(relModule).push(prefix);
+  }
+}
 
 for (const [relModule, rows] of compositionsByModule) {
   const content = read(relModule);
@@ -329,15 +359,17 @@ for (const [relModule, rows] of compositionsByModule) {
       .filter(Boolean),
   );
 
-  const overtoneExports = new Set(
-    [...content.matchAll(/export\s+(?:const|function)\s+(Ot[A-Za-z0-9_]+)/gu)]
-      .map((match) => String(match[1] || '').trim())
-      .filter(Boolean),
-  );
   const registeredComponents = new Set(rows.map((row) => String(row?.component || '').trim()).filter(Boolean));
-  for (const componentName of overtoneExports) {
-    if (!registeredComponents.has(componentName)) {
-      hardFailures.push(`${relModule}: exported composition ${componentName} must be registered in nimi-ui-compositions.yaml`);
+  for (const prefix of exportedComponentPrefixesByModule.get(relModule) || []) {
+    const exportedComponents = new Set(
+      [...content.matchAll(new RegExp(`export\\s+(?:const|function)\\s+(${escapeRegex(prefix)}[A-Za-z0-9_]+)`, 'gu'))]
+        .map((match) => String(match[1] || '').trim())
+        .filter(Boolean),
+    );
+    for (const componentName of exportedComponents) {
+      if (!registeredComponents.has(componentName)) {
+        hardFailures.push(`${relModule}: exported composition ${componentName} must be registered in the app-local nimi-kit composition manifest`);
+      }
     }
   }
 
@@ -370,28 +402,25 @@ for (const [relModule, rows] of compositionsByModule) {
   }
 }
 
-for (const docRel of ['apps/overtone/design.md']) {
-  if (!fs.existsSync(path.join(repoRoot, docRel))) continue;
-  const content = read(docRel);
-  if (/\bdesign\b/i.test(content) && !content.includes('P-DESIGN-')) {
-    hardFailures.push(`${docRel}: app-local design authority docs must reference P-DESIGN-*`);
+for (const item of appForbiddenPatterns) {
+  const scope = String(item?.scope || '').trim();
+  const pattern = String(item?.pattern || '').trim();
+  const id = String(item?.id || '').trim() || 'unnamed_forbidden_pattern';
+  const reason = String(item?.reason || '').trim() || 'app-local kit consumption forbidden pattern matched';
+  if (!scope || !pattern) {
+    hardFailures.push(`${item.manifestRel}: forbidden pattern ${id} requires scope and pattern`);
+    continue;
   }
-}
-
-const overtoneRendererRoot = path.join(repoRoot, 'apps/overtone/src/shell/renderer');
-if (fs.existsSync(overtoneRendererRoot)) {
-  const overtoneFiles = listFilesRecursively(
-    overtoneRendererRoot,
-    (abs) => /\.(?:ts|tsx|css)$/u.test(abs) && !/\.test\./u.test(abs),
-  );
-  for (const abs of overtoneFiles) {
-    const rel = path.relative(repoRoot, abs).replace(/\\/gu, '/');
+  const absScope = path.join(repoRoot, scope);
+  const targets = fs.existsSync(absScope) && fs.statSync(absScope).isDirectory()
+    ? listFilesRecursively(absScope, (abs) => /\.(?:ts|tsx|css)$/u.test(abs) && !/\.test\./u.test(abs))
+    : [absScope].filter((abs) => fs.existsSync(abs));
+  const regex = new RegExp(pattern, 'u');
+  for (const abs of targets) {
     const content = fs.readFileSync(abs, 'utf8');
-    if (/\bot-btn-(?:primary|secondary|tertiary|icon)\b/u.test(content)) {
-      hardFailures.push(`${rel}: legacy Overtone action authority classes are forbidden; use OtButton or shared action primitives`);
-    }
-    if (/\bot-input(?!-)\b/u.test(content)) {
-      hardFailures.push(`${rel}: legacy Overtone field authority class "ot-input" is forbidden; use OtInput or shared field primitives`);
+    if (regex.test(content)) {
+      const rel = path.relative(repoRoot, abs).replace(/\\/gu, '/');
+      hardFailures.push(`${rel}: ${reason} (${id})`);
     }
   }
 }

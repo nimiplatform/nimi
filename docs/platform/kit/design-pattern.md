@@ -4,11 +4,10 @@
 > the shipped cross-app authority for shared visual + interaction
 > contracts.
 
-The Nimi **design pattern** is the platform-wide visual + interaction
+The Nimi **design pattern** is the shared visual + interaction
 authority that sits inside `@nimiplatform/nimi-kit/ui`. It governs
-every Nimi-governed app — Desktop, Forge, Relay, Overtone, parentOS,
-and any future first-party app — under one design language with a
-small set of admitted theme expressions.
+kit primitives, semantic tokens, theme schemas, and the generic
+contract any consuming app must follow.
 
 ## Foundation Authority
 
@@ -16,9 +15,9 @@ small set of admitted theme expressions.
 | --- | --- |
 | Authority spec | `.nimi/spec/platform/kernel/design-pattern-contract.md` |
 | Authority tables | `.nimi/spec/platform/kernel/tables/` |
-| Governed apps | `desktop`, `forge`, `relay`, `overtone`, `parentos` (and any later-admitted app) |
-| App-local design prose may | Describe art direction |
-| App-local design prose may NOT | Redefine shared primitive families, token taxonomies, or governance rules |
+| Governed consumers | Declared by each app's local kit manifest |
+| App-local spec may | Own concrete adoption inventory, app-owned compositions, accent selection, and art direction |
+| App-local spec may NOT | Redefine shared primitive families, token taxonomies, or governance rules |
 
 ## Theme Pack Model (P-DESIGN-002)
 
@@ -28,7 +27,8 @@ identity comes from accent packs that layer on top.
 | Layer | What it provides |
 | --- | --- |
 | Foundation scheme | Shared light / dark scheme (`nimi-light`, `nimi-dark`) |
-| Accent pack | Exactly one per app (e.g., `desktop-accent`, `forge-accent`, `relay-accent`, `overtone-accent`) |
+| Shared accent pack | `nimi-accent` |
+| Consumer accent pack | Optional app-owned pack declared in the consuming app spec manifest |
 
 Governed app entries import:
 
@@ -122,9 +122,9 @@ surfaces.
 Generated accent packs emit shared `--nimi-*` semantic token values
 only. App-scoped alias namespaces (`--ot-*`, `--color-ot-*`,
 `--color-brand-*`, `--color-accent-*`) are not long-term authority.
-Legacy full-theme compatibility outputs (`relay-dark.css`,
-`overtone-studio.css`) cannot remain in the generated shared-lib
-theme surface once foundation-plus-accent is active.
+Retired app-specific full-theme compatibility outputs cannot remain
+in the generated shared-lib theme surface once foundation-plus-accent
+is active.
 
 Governed app chrome may layer app identity through shared semantic
 tokens and local `color-mix(...)` expressions, but not through

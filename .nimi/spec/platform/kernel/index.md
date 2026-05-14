@@ -74,10 +74,10 @@ Every platform domain document (vision, architecture, protocol, ai-last-mile, de
 | `tables/error-code-mapping.yaml` | `protocol-contract.md` | Platform protocol error → runtime reason code mapping |
 | `tables/nimi-ui-tokens.yaml` | `design-pattern-contract.md` | Cross-app semantic design token registry, including typography, sizing, focus, opacity, and scrollbar tokens |
 | `tables/nimi-ui-primitives.yaml` | `design-pattern-contract.md` | Executable shared primitive contract used for generated CSS and prop unions |
-| `tables/nimi-ui-themes.yaml` | `design-pattern-contract.md` | Foundation scheme values plus app accent pack values for the toolkit token taxonomy |
-| `tables/nimi-ui-adoption.yaml` | `design-pattern-contract.md` | Governed module registry, supported schemes, and accent pack selection |
-| `tables/nimi-ui-compositions.yaml` | `design-pattern-contract.md` | Explicit registry for app-owned composition components and thin wrappers that must not become parallel primitive authority |
-| `tables/nimi-ui-allowlists.yaml` | `design-pattern-contract.md` | Approved design escape hatches |
+| `tables/nimi-ui-themes.yaml` | `design-pattern-contract.md` | Foundation scheme values and shared Nimi accent values for the toolkit token taxonomy |
+| `tables/nimi-ui-adoption.yaml` | `design-pattern-contract.md` | Core exception registry only; non-core app adoption inventories belong in app-local kit manifests |
+| `tables/nimi-ui-compositions.yaml` | `design-pattern-contract.md` | Core exception composition registry only; non-core app-owned compositions belong in app-local kit manifests |
+| `tables/nimi-ui-allowlists.yaml` | `design-pattern-contract.md` | Core/shared design escape hatches; non-core app escapes belong in app-local kit manifests |
 | `tables/nimi-kit-registry.yaml` | `kit-contract.md` | Kit sub-module registry with kind, exports, dependency direction, and admission metadata |
 | `tables/canonical-capability-catalog.yaml` | `capability-catalog-contract.md` | Canonical `CanonicalCapabilityId` rows with structured sourceRef, i18n keys, runtime evidence class, and deferred entries |
 | `tables/app-slice-admissions.yaml` | `app-slice-admission-contract.md` | Active app-local spec slices admitted by `.nimi/spec` as subordinate audit authority |

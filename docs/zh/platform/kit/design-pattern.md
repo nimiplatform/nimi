@@ -3,7 +3,7 @@
 > 状态：运行中 (Running)。Nimi 设计模式 (`P-DESIGN-*`) 是
 > 用于共享视觉和交互约定的跨应用权威。
 
-Nimi **设计模式** 是位于 `@nimiplatform/nimi-kit/ui` 中的平台级视觉和交互权威，它管理着每一个 Nimi 管理的应用——包括 Desktop、Forge、Relay、Overtone、parentOS 以及任何未来的官方应用——在一种设计语言下，并且只允许少量已准入的主题表达。
+Nimi **设计模式** 是位于 `@nimiplatform/nimi-kit/ui` 中的共享视觉和交互权威。它管理 kit primitives、语义令牌、主题 schema，以及任何消费方 app 接入时必须遵守的通用契约。
 
 ## 基础权威
 
@@ -11,9 +11,9 @@ Nimi **设计模式** 是位于 `@nimiplatform/nimi-kit/ui` 中的平台级视�
 | --- | --- |
 | 权威规范 | `.nimi/spec/platform/kernel/design-pattern-contract.md` |
 | 权威表格 | `.nimi/spec/platform/kernel/tables/` |
-| 管理的应用 | `desktop`, `forge`, `relay`, `overtone`, `parentos`（以及任何后续准入的应用） |
-| 应用本地设计文档可以 | 描述艺术指导 |
-| 应用本地设计文档不可以 | 重新定义共享的基本家族、令牌分类或治理规则 |
+| 管理的消费方 | 由各 app 本地 kit manifest 声明 |
+| 应用本地 spec 可以 | 拥有具体 adoption 清单、app-owned compositions、accent 选择和艺术指导 |
+| 应用本地 spec 不可以 | 重新定义共享 primitive 家族、令牌分类或治理规则 |
 
 ## 主题包模型 (P-DESIGN-002)
 
@@ -22,7 +22,8 @@ Nimi **设计模式** 是位于 `@nimiplatform/nimi-kit/ui` 中的平台级视�
 | 层 | 提供的内容 |
 | --- | --- |
 | 基础方案 | 共享的浅色/深色方案 (`nimi-light`, `nimi-dark`) |
-| 强调包 | 每个应用一个（例如，`desktop-accent`, `forge-accent`, `relay-accent`, `overtone-accent`) |
+| 共享强调包 | `nimi-accent` |
+| 消费方强调包 | 可选，由消费方 app spec manifest 拥有 |
 
 受管理的应用条目导入：
 
@@ -109,7 +110,7 @@ Nimi **设计模式** 是位于 `@nimiplatform/nimi-kit/ui` 中的平台级视�
 
 ## 强调别名逐步淘汰 (P-DESIGN-008)
 
-生成的强调包仅发出共享的 `--nimi-*` 语义令牌值。应用范围的别名命名空间（`--ot-*`, `--color-ot-*`, `--color-brand-*`, `--color-accent-*`）不是长期权威。遗留的全主题兼容输出（`relay-dark.css`, `overtone-studio.css`）在基础加强调激活后不能保留在生成的共享库主题表面上。
+生成的强调包仅发出共享的 `--nimi-*` 语义令牌值。应用范围的别名命名空间（`--ot-*`, `--color-ot-*`, `--color-brand-*`, `--color-accent-*`）不是长期权威。已退役的应用特定全主题兼容输出在基础加强调激活后不能保留在生成的共享库主题表面上。
 
 受管理的应用界面可以通过共享语义令牌和本地 `color-mix(...)` 表达式来分层应用身份，但不能通过应用范围的强调别名来表示共享背景/文本/焦点/表面含义。
 

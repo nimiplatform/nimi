@@ -6,9 +6,8 @@
 
 The **Platform Kit** is the cross-surface layer that holds the design
 tokens, primitives, foundation modules, feature modules, logic
-modules, and infra modules that Desktop, Avatar, Web, and other
-governed apps all consume. It is the answer to: "where does the
-shared visual + interaction language live?"
+modules, and infra modules that governed apps consume. It is the
+answer to: "where does the shared visual + interaction language live?"
 
 Kit is one package. Every Nimi app reaches into it through subpath
 imports. Apps do not duplicate what Kit covers.
@@ -65,18 +64,17 @@ For the material-token catalog see [Nimi UI Material](/platform/kit/nimi-ui-mate
 ## What Kit Does Not Own
 
 - Per-app layout (each app composes Kit primitives in its own way)
-- App-specific UX or product flows (Desktop chat shape, Avatar shell,
-  etc.)
+- App-specific UX or product flows
 - Runtime semantic authority (those are runtime/cognition contracts)
 - Realm domain truth
 - Backend execution
 
 Kit provides the building blocks. Apps assemble.
 
-## Reader Scenario: A Mod Author Wants Buttons That Look Right
+## Reader Scenario: A Consumer Wants Buttons That Look Right
 
-A mod author writing a Desktop mod wants their UI to look like the
-rest of Desktop.
+A consumer app wants its UI to match the shared Nimi interaction
+language.
 
 1. **Consume Kit primitives.** The mod imports
    `@nimiplatform/nimi-kit/ui` for shared `<Button>`, `<Surface>`,
@@ -86,11 +84,11 @@ rest of Desktop.
 3. **Theme follows shared scheme.** Mod imports the shared light /
    dark CSS plus exactly one app accent pack from
    `@nimiplatform/nimi-kit/ui/themes/*-accent.css`.
-4. **Visual consistency.** The mod's UI inherits the same primitives
-   + tokens as host Desktop, automatically.
+4. **Visual consistency.** The consumer UI inherits the admitted
+   primitives and tokens automatically.
 
-The mod author did not redefine button variants. They composed
-admitted primitives.
+The consumer did not redefine button variants. It composed admitted
+primitives.
 
 ## Reader Scenario: An App Adds A Feature That Already Exists In Kit
 
@@ -99,7 +97,7 @@ An app needs OAuth flow handling.
 1. **Check Kit first.** `@nimiplatform/nimi-kit/auth` provides auth
    components + hooks, parameterized through `AuthPlatformAdapter`.
 2. **Inject the adapter.** App provides the platform-specific
-   adapter (Tauri / web).
+   adapter (native shell / browser).
 3. **Use Kit's surface.** The app does not implement OAuth from
    scratch.
 

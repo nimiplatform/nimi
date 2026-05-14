@@ -71,6 +71,18 @@ Desktop shell and window surface:
 - Small UI button near pet for chat trigger (Phase 2 surface)
 - App lifecycle events (`avatar.app.*`)
 
+### [`kit-ui-consumption-contract.md`](kit-ui-consumption-contract.md)
+
+Avatar-local consumption contract for `@nimiplatform/nimi-kit`:
+
+- Avatar concrete renderer adoption and composition inventories live under
+  `.nimi/spec/avatar/kernel/tables/nimi-kit-*.yaml`
+- platform design authority supplies shared primitives, tokens, material tiers,
+  theme-pack schema, and generic integration rules only
+- Avatar uses shared `nimi-accent` unless an Avatar-local theme manifest admits
+  an app-specific accent pack
+- app-local root design token registries are drift, not platform truth
+
 ### [`live2d-render-contract.md`](live2d-render-contract.md)
 
 Current shipped backend-specific rendering branch:
@@ -216,6 +228,16 @@ confidence, evidence, threshold, and manual confirmation semantics.
 Dynamic window sizing rules. Wave 4 admit baseline + Wave 0 of topic
 `2026-04-30-avatar-vrm-backend-branch` extension (per-backend
 nominal_bounds_default + `BackendBranch.nominalBounds` source authority).
+
+### [`tables/nimi-kit-adoption.yaml`](tables/nimi-kit-adoption.yaml)
+
+Avatar renderer modules governed by shared kit UI adoption, including app
+entrypoint theme imports and local forbidden patterns.
+
+### [`tables/nimi-kit-compositions.yaml`](tables/nimi-kit-compositions.yaml)
+
+Avatar-owned shell compositions that remain downstream of shared kit primitive
+authority.
 
 ## Upstream Platform Contracts (Referenced)
 

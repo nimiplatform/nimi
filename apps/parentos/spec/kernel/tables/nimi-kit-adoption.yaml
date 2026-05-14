@@ -1,0 +1,1619 @@
+version: 1
+app: parentos
+app_entry:
+  style: apps/parentos/src/shell/renderer/styles.css
+  bootstrap: apps/parentos/src/shell/renderer/main.tsx
+  theme_provider: apps/parentos/src/shell/renderer/main.tsx
+modules:
+  - id: parentos.app_shell.app_select
+    app: parentos
+    module: apps/parentos/src/shell/renderer/app-shell/app-select.tsx
+    families:
+      - surface
+      - field
+      - overlay
+      - action
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: parentos.app_shell.routes
+    app: parentos
+    module: apps/parentos/src/shell/renderer/app-shell/routes.tsx
+    families:
+      - surface
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: parentos.app_shell.shell_layout
+    app: parentos
+    module: apps/parentos/src/shell/renderer/app-shell/shell-layout.tsx
+    families:
+      - surface
+      - sidebar
+      - action
+      - avatar
+      - status
+      - scroll_area
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: parentos.features.journal.journal_entry_timeline
+    app: parentos
+    module: apps/parentos/src/shell/renderer/features/journal/journal-entry-timeline.tsx
+    families:
+      - surface
+      - action
+      - status
+      - scroll_area
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: parentos.features.journal.journal_observation_focus
+    app: parentos
+    module: apps/parentos/src/shell/renderer/features/journal/journal-observation-focus.tsx
+    families:
+      - surface
+      - action
+      - status
+      - scroll_area
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: parentos.features.journal.journal_page_capture
+    app: parentos
+    module: apps/parentos/src/shell/renderer/features/journal/journal-page-capture.tsx
+    families:
+      - surface
+      - field
+      - action
+      - status
+      - scroll_area
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: parentos.features.journal.journal_page_overlays
+    app: parentos
+    module: apps/parentos/src/shell/renderer/features/journal/journal-page-overlays.tsx
+    families:
+      - surface
+      - overlay
+      - action
+      - status
+      - scroll_area
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: parentos.features.journal.journal_page
+    app: parentos
+    module: apps/parentos/src/shell/renderer/features/journal/journal-page.tsx
+    families:
+      - surface
+      - action
+      - status
+      - scroll_area
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: parentos.features.journal.journal_recorded_at_picker
+    app: parentos
+    module: apps/parentos/src/shell/renderer/features/journal/journal-recorded-at-picker.tsx
+    families:
+      - surface
+      - overlay
+      - field
+      - action
+      - status
+      - scroll_area
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: parentos.features.journal.journal_sub_components
+    app: parentos
+    module: apps/parentos/src/shell/renderer/features/journal/journal-sub-components.tsx
+    families:
+      - surface
+      - action
+      - status
+      - scroll_area
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: parentos.features.journal.journal_voice_card
+    app: parentos
+    module: apps/parentos/src/shell/renderer/features/journal/journal-voice-card.tsx
+    families:
+      - surface
+      - action
+      - status
+      - scroll_area
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: parentos.features.outdoor.outdoor_page
+    app: parentos
+    module: apps/parentos/src/shell/renderer/features/outdoor/outdoor-page.tsx
+    families:
+      - surface
+      - action
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: parentos.features.outdoor.vision_summary_card
+    app: parentos
+    module: apps/parentos/src/shell/renderer/features/outdoor/vision-summary-card.tsx
+    families:
+      - surface
+      - action
+      - status
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: parentos.features.profile.ai_summary_card
+    app: parentos
+    module: apps/parentos/src/shell/renderer/features/profile/ai-summary-card.tsx
+    families:
+      - surface
+      - action
+      - status
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: parentos.features.profile.allergy_page
+    app: parentos
+    module: apps/parentos/src/shell/renderer/features/profile/allergy-page.tsx
+    families:
+      - surface
+      - action
+      - status
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: parentos.features.profile.appliance_card_shared
+    app: parentos
+    module: apps/parentos/src/shell/renderer/features/profile/appliance-card-shared.tsx
+    families:
+      - surface
+      - action
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: parentos.features.profile.appliance_compact_card
+    app: parentos
+    module: apps/parentos/src/shell/renderer/features/profile/appliance-compact-card.tsx
+    families:
+      - surface
+      - action
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: parentos.features.profile.appliance_next_action_row
+    app: parentos
+    module: apps/parentos/src/shell/renderer/features/profile/appliance-next-action-row.tsx
+    families:
+      - surface
+      - action
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: parentos.features.profile.appliance_phase_advance_dialog
+    app: parentos
+    module: apps/parentos/src/shell/renderer/features/profile/appliance-phase-advance-dialog.tsx
+    families:
+      - surface
+      - overlay
+      - action
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: parentos.features.profile.dental_eruption_scan_modal
+    app: parentos
+    module: apps/parentos/src/shell/renderer/features/profile/dental-eruption-scan-modal.tsx
+    families:
+      - surface
+      - overlay
+      - action
+      - status
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: parentos.features.profile.dental_history_actions
+    app: parentos
+    module: apps/parentos/src/shell/renderer/features/profile/dental-history-actions.tsx
+    families:
+      - surface
+      - action
+      - status
+      - scroll_area
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: parentos.features.profile.dental_history_record_list
+    app: parentos
+    module: apps/parentos/src/shell/renderer/features/profile/dental-history-record-list.tsx
+    families:
+      - surface
+      - action
+      - status
+      - scroll_area
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: parentos.features.profile.dental_history_view
+    app: parentos
+    module: apps/parentos/src/shell/renderer/features/profile/dental-history-view.tsx
+    families:
+      - surface
+      - action
+      - status
+      - scroll_area
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: parentos.features.profile.dental_page_form_modal
+    app: parentos
+    module: apps/parentos/src/shell/renderer/features/profile/dental-page-form-modal.tsx
+    families:
+      - surface
+      - overlay
+      - field
+      - action
+      - status
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: parentos.features.profile.dental_page_insight_card
+    app: parentos
+    module: apps/parentos/src/shell/renderer/features/profile/dental-page-insight-card.tsx
+    families:
+      - surface
+      - action
+      - status
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: parentos.features.profile.dental_page_kpi_strip
+    app: parentos
+    module: apps/parentos/src/shell/renderer/features/profile/dental-page-kpi-strip.tsx
+    families:
+      - surface
+      - action
+      - status
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: parentos.features.profile.dental_page_tooth_chart
+    app: parentos
+    module: apps/parentos/src/shell/renderer/features/profile/dental-page-tooth-chart.tsx
+    families:
+      - surface
+      - action
+      - status
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: parentos.features.profile.dental_page_tooth_status_overview
+    app: parentos
+    module: apps/parentos/src/shell/renderer/features/profile/dental-page-tooth-status-overview.tsx
+    families:
+      - surface
+      - action
+      - status
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: parentos.features.profile.dental_page
+    app: parentos
+    module: apps/parentos/src/shell/renderer/features/profile/dental-page.tsx
+    families:
+      - surface
+      - action
+      - status
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: parentos.features.profile.dental_photo_lightbox
+    app: parentos
+    module: apps/parentos/src/shell/renderer/features/profile/dental-photo-lightbox.tsx
+    families:
+      - surface
+      - overlay
+      - action
+      - status
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: parentos.features.profile.dental_record_action_menu
+    app: parentos
+    module: apps/parentos/src/shell/renderer/features/profile/dental-record-action-menu.tsx
+    families:
+      - surface
+      - action
+      - status
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: parentos.features.profile.drug_combobox
+    app: parentos
+    module: apps/parentos/src/shell/renderer/features/profile/drug-combobox.tsx
+    families:
+      - surface
+      - field
+      - action
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: parentos.features.profile.fitness_assessment_form
+    app: parentos
+    module: apps/parentos/src/shell/renderer/features/profile/fitness-assessment-form.tsx
+    families:
+      - surface
+      - field
+      - action
+      - status
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: parentos.features.profile.fitness_page
+    app: parentos
+    module: apps/parentos/src/shell/renderer/features/profile/fitness-page.tsx
+    families:
+      - surface
+      - action
+      - status
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: parentos.features.profile.growth_curve_add_record_modal
+    app: parentos
+    module: apps/parentos/src/shell/renderer/features/profile/growth-curve-add-record-modal.tsx
+    families:
+      - surface
+      - overlay
+      - action
+      - status
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: parentos.features.profile.growth_curve_chart_panel
+    app: parentos
+    module: apps/parentos/src/shell/renderer/features/profile/growth-curve-chart-panel.tsx
+    families:
+      - surface
+      - action
+      - status
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: parentos.features.profile.growth_curve_controls
+    app: parentos
+    module: apps/parentos/src/shell/renderer/features/profile/growth-curve-controls.tsx
+    families:
+      - surface
+      - action
+      - status
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: parentos.features.profile.growth_curve_history_table
+    app: parentos
+    module: apps/parentos/src/shell/renderer/features/profile/growth-curve-history-table.tsx
+    families:
+      - surface
+      - action
+      - status
+      - scroll_area
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: parentos.features.profile.growth_curve_ocr_panel
+    app: parentos
+    module: apps/parentos/src/shell/renderer/features/profile/growth-curve-ocr-panel.tsx
+    families:
+      - surface
+      - action
+      - status
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: parentos.features.profile.growth_curve_page
+    app: parentos
+    module: apps/parentos/src/shell/renderer/features/profile/growth-curve-page.tsx
+    families:
+      - surface
+      - action
+      - status
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: parentos.features.profile.health_metric_detail_page
+    app: parentos
+    module: apps/parentos/src/shell/renderer/features/profile/health-metric-detail-page.tsx
+    families:
+      - surface
+      - action
+      - status
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: parentos.features.profile.health_record_modal_shell
+    app: parentos
+    module: apps/parentos/src/shell/renderer/features/profile/health-record-modal-shell.tsx
+    families:
+      - surface
+      - overlay
+      - action
+      - status
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: parentos.features.profile.medical_events_analysis_panel
+    app: parentos
+    module: apps/parentos/src/shell/renderer/features/profile/medical-events-analysis-panel.tsx
+    families:
+      - surface
+      - action
+      - status
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: parentos.features.profile.medical_events_page
+    app: parentos
+    module: apps/parentos/src/shell/renderer/features/profile/medical-events-page.tsx
+    families:
+      - surface
+      - action
+      - status
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: parentos.features.profile.medical_events_timeline
+    app: parentos
+    module: apps/parentos/src/shell/renderer/features/profile/medical-events-timeline.tsx
+    families:
+      - surface
+      - action
+      - status
+      - scroll_area
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: parentos.features.profile.milestone_capture_form
+    app: parentos
+    module: apps/parentos/src/shell/renderer/features/profile/milestone-capture-form.tsx
+    families:
+      - surface
+      - field
+      - action
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: parentos.features.profile.milestone_page
+    app: parentos
+    module: apps/parentos/src/shell/renderer/features/profile/milestone-page.tsx
+    families:
+      - surface
+      - action
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: parentos.features.profile.orthodontic_aligner_switch_modal
+    app: parentos
+    module: apps/parentos/src/shell/renderer/features/profile/orthodontic-aligner-switch-modal.tsx
+    families:
+      - surface
+      - overlay
+      - action
+      - status
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: parentos.features.profile.orthodontic_case_review_card
+    app: parentos
+    module: apps/parentos/src/shell/renderer/features/profile/orthodontic-case-review-card.tsx
+    families:
+      - surface
+      - action
+      - status
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: parentos.features.profile.orthodontic_case_shell
+    app: parentos
+    module: apps/parentos/src/shell/renderer/features/profile/orthodontic-case-shell.tsx
+    families:
+      - surface
+      - action
+      - status
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: parentos.features.profile.orthodontic_details_section
+    app: parentos
+    module: apps/parentos/src/shell/renderer/features/profile/orthodontic-details-section.tsx
+    families:
+      - surface
+      - action
+      - status
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: parentos.features.profile.orthodontic_edit_appliance_form_modal
+    app: parentos
+    module: apps/parentos/src/shell/renderer/features/profile/orthodontic-edit-appliance-form-modal.tsx
+    families:
+      - surface
+      - overlay
+      - field
+      - action
+      - status
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: parentos.features.profile.orthodontic_expander_activation_modal
+    app: parentos
+    module: apps/parentos/src/shell/renderer/features/profile/orthodontic-expander-activation-modal.tsx
+    families:
+      - surface
+      - overlay
+      - action
+      - status
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: parentos.features.profile.orthodontic_journey_timeline
+    app: parentos
+    module: apps/parentos/src/shell/renderer/features/profile/orthodontic-journey-timeline.tsx
+    families:
+      - surface
+      - action
+      - status
+      - scroll_area
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: parentos.features.profile.orthodontic_modal_primitives
+    app: parentos
+    module: apps/parentos/src/shell/renderer/features/profile/orthodontic-modal-primitives.tsx
+    families:
+      - surface
+      - overlay
+      - action
+      - status
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: parentos.features.profile.orthodontic_modals
+    app: parentos
+    module: apps/parentos/src/shell/renderer/features/profile/orthodontic-modals.tsx
+    families:
+      - surface
+      - overlay
+      - action
+      - status
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: parentos.features.profile.orthodontic_page
+    app: parentos
+    module: apps/parentos/src/shell/renderer/features/profile/orthodontic-page.tsx
+    families:
+      - surface
+      - action
+      - status
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: parentos.features.profile.orthodontic_photo_capture_modal
+    app: parentos
+    module: apps/parentos/src/shell/renderer/features/profile/orthodontic-photo-capture-modal.tsx
+    families:
+      - surface
+      - overlay
+      - field
+      - action
+      - status
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: parentos.features.profile.orthodontic_stage_confirm_dialog
+    app: parentos
+    module: apps/parentos/src/shell/renderer/features/profile/orthodontic-stage-confirm-dialog.tsx
+    families:
+      - surface
+      - overlay
+      - action
+      - status
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: parentos.features.profile.orthodontic_teeth_selfies_compare
+    app: parentos
+    module: apps/parentos/src/shell/renderer/features/profile/orthodontic-teeth-selfies-compare.tsx
+    families:
+      - surface
+      - action
+      - status
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: parentos.features.profile.orthodontic_teeth_selfies_session_strip
+    app: parentos
+    module: apps/parentos/src/shell/renderer/features/profile/orthodontic-teeth-selfies-session-strip.tsx
+    families:
+      - surface
+      - action
+      - status
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: parentos.features.profile.orthodontic_treatment_card_parts
+    app: parentos
+    module: apps/parentos/src/shell/renderer/features/profile/orthodontic-treatment-card-parts.tsx
+    families:
+      - surface
+      - action
+      - status
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: parentos.features.profile.orthodontic_unwear_form
+    app: parentos
+    module: apps/parentos/src/shell/renderer/features/profile/orthodontic-unwear-form.tsx
+    families:
+      - surface
+      - field
+      - action
+      - status
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: parentos.features.profile.outdoor_capture_form
+    app: parentos
+    module: apps/parentos/src/shell/renderer/features/profile/outdoor-capture-form.tsx
+    families:
+      - surface
+      - field
+      - action
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: parentos.features.profile.outdoor_summary_card
+    app: parentos
+    module: apps/parentos/src/shell/renderer/features/profile/outdoor-summary-card.tsx
+    families:
+      - surface
+      - action
+      - status
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: parentos.features.profile.photo_grid
+    app: parentos
+    module: apps/parentos/src/shell/renderer/features/profile/photo-grid.tsx
+    families:
+      - surface
+      - action
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: parentos.features.profile.posture_capture_form
+    app: parentos
+    module: apps/parentos/src/shell/renderer/features/profile/posture-capture-form.tsx
+    families:
+      - surface
+      - field
+      - action
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: parentos.features.profile.posture_guide
+    app: parentos
+    module: apps/parentos/src/shell/renderer/features/profile/posture-guide.tsx
+    families:
+      - surface
+      - action
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: parentos.features.profile.posture_page
+    app: parentos
+    module: apps/parentos/src/shell/renderer/features/profile/posture-page.tsx
+    families:
+      - surface
+      - action
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: parentos.features.profile.profile_date_picker
+    app: parentos
+    module: apps/parentos/src/shell/renderer/features/profile/profile-date-picker.tsx
+    families:
+      - surface
+      - overlay
+      - field
+      - action
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: parentos.features.profile.profile_page_glance
+    app: parentos
+    module: apps/parentos/src/shell/renderer/features/profile/profile-page-glance.tsx
+    families:
+      - surface
+      - action
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: parentos.features.profile.profile_page_group_card
+    app: parentos
+    module: apps/parentos/src/shell/renderer/features/profile/profile-page-group-card.tsx
+    families:
+      - surface
+      - action
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: parentos.features.profile.profile_page_hero
+    app: parentos
+    module: apps/parentos/src/shell/renderer/features/profile/profile-page-hero.tsx
+    families:
+      - surface
+      - action
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: parentos.features.profile.profile_page
+    app: parentos
+    module: apps/parentos/src/shell/renderer/features/profile/profile-page.tsx
+    families:
+      - surface
+      - action
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: parentos.features.profile.profile_todo_drawer
+    app: parentos
+    module: apps/parentos/src/shell/renderer/features/profile/profile-todo-drawer.tsx
+    families:
+      - surface
+      - overlay
+      - action
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: parentos.features.profile.report_history_page
+    app: parentos
+    module: apps/parentos/src/shell/renderer/features/profile/report-history-page.tsx
+    families:
+      - surface
+      - action
+      - status
+      - scroll_area
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: parentos.features.profile.report_upload_page
+    app: parentos
+    module: apps/parentos/src/shell/renderer/features/profile/report-upload-page.tsx
+    families:
+      - surface
+      - action
+      - status
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: parentos.features.profile.sleep_page_pickers
+    app: parentos
+    module: apps/parentos/src/shell/renderer/features/profile/sleep-page-pickers.tsx
+    families:
+      - surface
+      - overlay
+      - field
+      - action
+      - status
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: parentos.features.profile.sleep_page_shared
+    app: parentos
+    module: apps/parentos/src/shell/renderer/features/profile/sleep-page-shared.ts
+    families:
+      - surface
+      - action
+      - status
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: parentos.features.profile.sleep_page
+    app: parentos
+    module: apps/parentos/src/shell/renderer/features/profile/sleep-page.tsx
+    families:
+      - surface
+      - action
+      - status
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: parentos.features.profile.sleep_record_card
+    app: parentos
+    module: apps/parentos/src/shell/renderer/features/profile/sleep-record-card.tsx
+    families:
+      - surface
+      - action
+      - status
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: parentos.features.profile.sleep_trend_chart
+    app: parentos
+    module: apps/parentos/src/shell/renderer/features/profile/sleep-trend-chart.tsx
+    families:
+      - surface
+      - action
+      - status
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: parentos.features.profile.tanner_assessment_form
+    app: parentos
+    module: apps/parentos/src/shell/renderer/features/profile/tanner-assessment-form.tsx
+    families:
+      - surface
+      - field
+      - action
+      - status
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: parentos.features.profile.tanner_guide_panel
+    app: parentos
+    module: apps/parentos/src/shell/renderer/features/profile/tanner-guide-panel.tsx
+    families:
+      - surface
+      - action
+      - status
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: parentos.features.profile.tanner_overview_cards
+    app: parentos
+    module: apps/parentos/src/shell/renderer/features/profile/tanner-overview-cards.tsx
+    families:
+      - surface
+      - action
+      - status
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: parentos.features.profile.tanner_page
+    app: parentos
+    module: apps/parentos/src/shell/renderer/features/profile/tanner-page.tsx
+    families:
+      - surface
+      - action
+      - status
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: parentos.features.profile.tanner_stage_selector
+    app: parentos
+    module: apps/parentos/src/shell/renderer/features/profile/tanner-stage-selector.tsx
+    families:
+      - surface
+      - overlay
+      - field
+      - action
+      - status
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: parentos.features.profile.tanner_timeline
+    app: parentos
+    module: apps/parentos/src/shell/renderer/features/profile/tanner-timeline.tsx
+    families:
+      - surface
+      - action
+      - status
+      - scroll_area
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: parentos.features.profile.vaccine_page
+    app: parentos
+    module: apps/parentos/src/shell/renderer/features/profile/vaccine-page.tsx
+    families:
+      - surface
+      - action
+      - status
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: parentos.features.profile.vision_guide
+    app: parentos
+    module: apps/parentos/src/shell/renderer/features/profile/vision-guide.tsx
+    families:
+      - surface
+      - action
+      - status
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: parentos.features.profile.vision_page_components
+    app: parentos
+    module: apps/parentos/src/shell/renderer/features/profile/vision-page-components.tsx
+    families:
+      - surface
+      - action
+      - status
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: parentos.features.profile.vision_page
+    app: parentos
+    module: apps/parentos/src/shell/renderer/features/profile/vision-page.tsx
+    families:
+      - surface
+      - action
+      - status
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: parentos.features.reminders.frequency_modal
+    app: parentos
+    module: apps/parentos/src/shell/renderer/features/reminders/frequency-modal.tsx
+    families:
+      - surface
+      - overlay
+      - action
+      - status
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: parentos.features.reports.report_user_notes
+    app: parentos
+    module: apps/parentos/src/shell/renderer/features/reports/report-user-notes.tsx
+    families:
+      - surface
+      - field
+      - action
+      - status
+      - scroll_area
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: parentos.features.reports.reports_action_bar
+    app: parentos
+    module: apps/parentos/src/shell/renderer/features/reports/reports-action-bar.tsx
+    families:
+      - surface
+      - action
+      - status
+      - scroll_area
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: parentos.features.reports.reports_monthly_letter
+    app: parentos
+    module: apps/parentos/src/shell/renderer/features/reports/reports-monthly-letter.tsx
+    families:
+      - surface
+      - action
+      - status
+      - scroll_area
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: parentos.features.reports.reports_page
+    app: parentos
+    module: apps/parentos/src/shell/renderer/features/reports/reports-page.tsx
+    families:
+      - surface
+      - action
+      - status
+      - scroll_area
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: parentos.features.reports.reports_professional_view
+    app: parentos
+    module: apps/parentos/src/shell/renderer/features/reports/reports-professional-view.tsx
+    families:
+      - surface
+      - action
+      - status
+      - scroll_area
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: parentos.features.settings.ai_settings_page
+    app: parentos
+    module: apps/parentos/src/shell/renderer/features/settings/ai-settings-page.tsx
+    families:
+      - surface
+      - field
+      - action
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: parentos.features.settings.children_settings_page
+    app: parentos
+    module: apps/parentos/src/shell/renderer/features/settings/children-settings-page.tsx
+    families:
+      - surface
+      - field
+      - action
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: parentos.features.settings.nurture_mode_settings_page
+    app: parentos
+    module: apps/parentos/src/shell/renderer/features/settings/nurture-mode-settings-page.tsx
+    families:
+      - surface
+      - field
+      - action
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: parentos.features.settings.reminder_settings_page
+    app: parentos
+    module: apps/parentos/src/shell/renderer/features/settings/reminder-settings-page.tsx
+    families:
+      - surface
+      - field
+      - action
+      - status
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: parentos.features.timeline.welcome_page
+    app: parentos
+    module: apps/parentos/src/shell/renderer/features/timeline/welcome-page.tsx
+    families:
+      - surface
+      - action
+      - scroll_area
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
+forbidden_patterns:
+  - id: parentos.no_page_style_visual_authority
+    scope: apps/parentos/src/shell/renderer
+    pattern: from\s+['"][^'"]*page-style(?:\.js)?['"]|\bS\.
+    reason: ParentOS kit consumption authority lives in this app-local manifest and kit primitives, not app-shell/page-style visual constants.
+    source_rule: P-DESIGN-020
+  - id: parentos.no_page_style_s_export
+    scope: apps/parentos/src/shell/renderer/app-shell/page-style.ts
+    pattern: \bexport\s+const\s+S\b
+    reason: The S visual facade is a retired app-local shared design truth.
+    source_rule: P-DESIGN-020
+  - id: parentos.no_inline_backdrop_filter
+    scope: apps/parentos/src/shell/renderer
+    pattern: "backdropFilter\\s*:|backdrop-filter\\s*:"
+    reason: Glass material must resolve through Surface material classes and kit material tokens.
+    source_rule: P-DESIGN-022
+  - id: parentos.no_root_color_authority
+    scope: apps/parentos/src/shell/renderer/styles.css
+    pattern: ":root\\s*\\{[\\s\\S]*--color-[a-z0-9-]+\\s*:"
+    reason: ParentOS renderer CSS must not define a root --color-* token registry.
+    source_rule: P-DESIGN-007
+  - id: parentos.no_visual_constant_facades
+    scope: apps/parentos/src/shell/renderer
+    pattern: \b(?:export\s+)?const\s+[A-Z0-9_]*(?:VISUAL|STYLE|COLORS|COLOR|TOKENS)[A-Z0-9_]*\s*=[\s\S]{0,1600}(?:#[0-9a-fA-F]{3,8}\b|rgba?\()
+    reason: ParentOS visual constants for shared families must move to kit tokens or app-local domain semantics without becoming shared primitive truth.
+    source_rule: P-DESIGN-019
