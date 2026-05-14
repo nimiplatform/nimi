@@ -69,6 +69,17 @@ const accentTokenIds = new Set(
     .filter(Boolean),
 );
 
+for (const [rel, doc, key] of [
+  ['.nimi/spec/platform/kernel/tables/nimi-ui-adoption.yaml', adoptionTable, 'modules'],
+  ['.nimi/spec/platform/kernel/tables/nimi-ui-compositions.yaml', compositionsTable, 'components'],
+  ['.nimi/spec/platform/kernel/tables/nimi-ui-allowlists.yaml', allowlistsTable, 'items'],
+]) {
+  const rows = Array.isArray(doc?.[key]) ? doc[key] : [];
+  if (rows.length > 0) {
+    hardFailures.push(`${rel}: platform design tables must not carry concrete app consumption inventory`);
+  }
+}
+
 const appThemeTables = discoverAppKitTables('nimi-kit-themes.yaml');
 const themeRows = [
   ...(Array.isArray(themesTable?.packs) ? themesTable.packs : []),
