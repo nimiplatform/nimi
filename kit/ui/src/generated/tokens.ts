@@ -4,9 +4,8 @@
 export const DESIGN_PACK_IDS = [
   "nimi-light",
   "nimi-dark",
-  "desktop-accent",
+  "nimi-accent",
   "forge-accent",
-  "relay-accent",
   "overtone-accent",
   "video-food-map-accent"
 ] as const;
@@ -15,9 +14,8 @@ export const FOUNDATION_SCHEME_IDS = [
   "nimi-dark"
 ] as const;
 export const ACCENT_PACK_IDS = [
-  "desktop-accent",
+  "nimi-accent",
   "forge-accent",
-  "relay-accent",
   "overtone-accent",
   "video-food-map-accent"
 ] as const;

@@ -1,5 +1,6 @@
 import { createContext, useContext, useLayoutEffect, useMemo, useState, type ReactNode } from 'react';
 import { type NimiAccentPack, type NimiThemeScheme } from './design-tokens.js';
+import { ACCENT_PACK_IDS } from './generated/tokens.js';
 
 type NimiThemeContextValue = {
   scheme: NimiThemeScheme;
@@ -16,13 +17,7 @@ type NimiThemeProviderProps = {
   children: ReactNode;
 };
 
-const ALL_ACCENT_CLASSES = [
-  'nimi-theme-accent--desktop-accent',
-  'nimi-theme-accent--forge-accent',
-  'nimi-theme-accent--relay-accent',
-  'nimi-theme-accent--overtone-accent',
-  'nimi-theme-accent--video-food-map-accent',
-] as const;
+const ALL_ACCENT_CLASSES = ACCENT_PACK_IDS.map((accentPack) => `nimi-theme-accent--${accentPack}`);
 
 export function NimiThemeProvider({
   scheme,

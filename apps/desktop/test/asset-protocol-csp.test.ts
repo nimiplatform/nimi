@@ -65,6 +65,10 @@ test('desktop CSP allows blob module scripts for runtime mod loading', () => {
     scriptDirective.includes('blob:'),
     'script-src must allow blob: module URLs for hosted mod package shims and source fallback loading',
   );
+  assert.ok(
+    scriptDirective.includes("'wasm-unsafe-eval'"),
+    'script-src must allow wasm-unsafe-eval so packaged WebKit can instantiate renderer WASM dependencies without enabling unsafe-eval',
+  );
 });
 
 test('desktop asset protocol is enabled for local avatar resource loading', () => {

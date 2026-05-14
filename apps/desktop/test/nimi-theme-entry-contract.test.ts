@@ -13,7 +13,7 @@ const stylesSource = readWorkspace('src/shell/renderer/styles.css');
 test('desktop theme entry uses shared Nimi theme runtime', () => {
   assert.match(mainSource, /@nimiplatform\/nimi-kit\/ui/u);
   assert.match(mainSource, /NimiThemeProvider/u);
-  assert.match(mainSource, /accentPack="desktop-accent"/u);
+  assert.match(mainSource, /accentPack="nimi-accent"/u);
   assert.match(mainSource, /defaultScheme="light"/u);
 });
 
@@ -21,7 +21,7 @@ test('desktop stylesheet imports shared foundation and accent packs only', () =>
   assert.match(stylesSource, /@nimiplatform\/nimi-kit\/ui\/styles\.css/u);
   assert.match(stylesSource, /@nimiplatform\/nimi-kit\/ui\/themes\/light\.css/u);
   assert.match(stylesSource, /@nimiplatform\/nimi-kit\/ui\/themes\/dark\.css/u);
-  assert.match(stylesSource, /@nimiplatform\/nimi-kit\/ui\/themes\/desktop-accent\.css/u);
+  assert.match(stylesSource, /@nimiplatform\/nimi-kit\/ui\/themes\/nimi-accent\.css/u);
   assert.doesNotMatch(stylesSource, /relay-dark\.css|overtone-studio\.css/u);
 });
 
