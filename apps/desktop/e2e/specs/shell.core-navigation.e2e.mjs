@@ -5,6 +5,7 @@ describe('shell.core-navigation', () => {
   it('switches across the core desktop tabs with stable selectors', async () => {
     assertScenario('shell.core-navigation');
     await waitForTestId(E2E_IDS.mainShell);
+    await waitForTestId(E2E_IDS.shellSidebarRail);
     await clickByTestId(E2E_IDS.navTab('home'));
     await waitForTestId(E2E_IDS.panel('home'));
     await clickByTestId(E2E_IDS.navTab('contacts'));

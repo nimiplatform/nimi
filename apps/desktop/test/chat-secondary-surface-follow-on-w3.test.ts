@@ -17,7 +17,7 @@ const vrmViewportSource = readWorkspaceFile('src/shell/renderer/features/chat/ch
 const desktopSurfacesSpec = readRepoFile('.nimi/spec/desktop/kernel/tables/renderer-design-surfaces.yaml');
 const desktopUiShellSpec = readRepoFile('.nimi/spec/desktop/kernel/ui-shell-contract.md');
 const platformDesignPatternSpec = readRepoFile('.nimi/spec/platform/kernel/design-pattern-contract.md');
-const platformUiAdoptionSpec = readRepoFile('.nimi/spec/platform/kernel/tables/nimi-ui-adoption.yaml');
+const desktopKitAdoptionSpec = readRepoFile('.nimi/spec/desktop/kernel/tables/nimi-kit-adoption.yaml');
 
 test('W3 chat surface follow-on: canonical conversation shell is governed as a shared adapter, not a chat exception', () => {
   assert.match(humanCanonicalSource, /CanonicalTranscriptView/);
@@ -37,7 +37,7 @@ test('W3 chat surface follow-on: avatar viewport chrome remains implementation-l
   assert.match(desktopUiShellSpec, /retired desktop avatar viewport exceptions remain history only and do not\s+constitute current shell authority/);
   assert.doesNotMatch(desktopSurfacesSpec, /id: chat\.avatar\.live2d\.viewport_exception/);
   assert.doesNotMatch(desktopSurfacesSpec, /id: chat\.avatar\.vrm\.viewport_exception/);
-  assert.match(platformDesignPatternSpec, /desktop chat avatar viewport chrome \(Live2D \/ VRM\)/);
-  assert.match(platformUiAdoptionSpec, /id: desktop\.chat\.avatar\.live2d\.exception[\s\S]*exception_policy: controlled_exception/);
-  assert.match(platformUiAdoptionSpec, /id: desktop\.chat\.avatar\.vrm\.exception[\s\S]*exception_policy: controlled_exception/);
+  assert.match(platformDesignPatternSpec, /P-DESIGN-021/);
+  assert.match(desktopKitAdoptionSpec, /id: desktop\.chat\.avatar\.live2d\.exception[\s\S]*exception_policy: controlled_exception/);
+  assert.match(desktopKitAdoptionSpec, /id: desktop\.chat\.avatar\.vrm\.exception[\s\S]*exception_policy: controlled_exception/);
 });

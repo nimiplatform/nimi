@@ -1,6 +1,11 @@
 use crate::desktop_release::DesktopReleaseInfo;
-use crate::runtime_bridge::RuntimeBridgeDaemonStatus;
+use crate::runtime_bridge::{
+    generated as runtime_bridge_generated, RuntimeBridgeDaemonStatus, RuntimeBridgeUnaryPayload,
+    RuntimeBridgeUnaryResult,
+};
 use crate::RuntimeDefaults;
+use base64::Engine;
+use prost::Message;
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::io::Write;
@@ -13,6 +18,7 @@ const E2E_BACKEND_LOG_PATH_ENV: &str = "NIMI_E2E_BACKEND_LOG_PATH";
 #[serde(rename_all = "camelCase")]
 struct DesktopE2EFixtureManifest {
     tauri_fixture: Option<DesktopE2ETauriFixture>,
+    realm_fixture: Option<DesktopE2ERealmFixture>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -25,6 +31,19 @@ struct DesktopE2ETauriFixture {
     confirm_dialog: Option<DesktopE2EConfirmDialogOverride>,
     agent_memory_bind_standard: Option<DesktopE2EAgentMemoryBindStandardOverride>,
     macos_smoke: Option<DesktopE2EMacosSmokeOverride>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct DesktopE2ERealmFixture {
+    current_user: Option<DesktopE2ECurrentUser>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct DesktopE2ECurrentUser {
+    id: String,
+    display_name: Option<String>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -109,6 +128,113 @@ pub fn append_backend_log_message(message: &str) {
 
 fn append_backend_log(message: &str) {
     append_backend_log_message(message);
+}
+
+fn encode_unary_response<Response>(response: Response) -> RuntimeBridgeUnaryResult
+where
+    Response: Message,
+{
+    RuntimeBridgeUnaryResult {
+        response_bytes_base64: base64::engine::general_purpose::STANDARD
+            .encode(response.encode_to_vec()),
+        response_metadata: None,
+    }
+}
+
+fn account_projection_from_fixture(
+    fixture: Option<&DesktopE2ERealmFixture>,
+) -> Option<runtime_bridge_generated::AccountProjection> {
+    let user = fixture.and_then(|realm| realm.current_user.as_ref())?;
+    let account_id = user.id.trim();
+    if account_id.is_empty() {
+        return None;
+    }
+    Some(runtime_bridge_generated::AccountProjection {
+        account_id: account_id.to_string(),
+        display_name: user
+            .display_name
+            .as_deref()
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+            .unwrap_or(account_id)
+            .to_string(),
+        realm_environment_id: "e2e-fixture".to_string(),
+        workspace_memberships: Vec::new(),
+    })
+}
+
+fn runtime_account_status_response(
+    projection: Option<runtime_bridge_generated::AccountProjection>,
+) -> runtime_bridge_generated::GetAccountSessionStatusResponse {
+    if let Some(account_projection) = projection {
+        return runtime_bridge_generated::GetAccountSessionStatusResponse {
+            state: runtime_bridge_generated::AccountSessionState::Authenticated as i32,
+            account_projection: Some(account_projection),
+            reason_code: runtime_bridge_generated::ReasonCode::ActionExecuted as i32,
+            account_reason_code: runtime_bridge_generated::AccountReasonCode::ActionExecuted as i32,
+            production_inert: false,
+        };
+    }
+    runtime_bridge_generated::GetAccountSessionStatusResponse {
+        state: runtime_bridge_generated::AccountSessionState::Anonymous as i32,
+        account_projection: None,
+        reason_code: runtime_bridge_generated::ReasonCode::ActionExecuted as i32,
+        account_reason_code: runtime_bridge_generated::AccountReasonCode::ActionExecuted as i32,
+        production_inert: false,
+    }
+}
+
+fn runtime_account_token_response(
+    projection: Option<runtime_bridge_generated::AccountProjection>,
+) -> runtime_bridge_generated::GetAccessTokenResponse {
+    if projection.is_some() {
+        return runtime_bridge_generated::GetAccessTokenResponse {
+            accepted: true,
+            access_token: "e2e-runtime-account-access-token".to_string(),
+            expires_at: None,
+            reason_code: runtime_bridge_generated::ReasonCode::ActionExecuted as i32,
+            account_reason_code: runtime_bridge_generated::AccountReasonCode::ActionExecuted as i32,
+            production_inert: false,
+        };
+    }
+    runtime_bridge_generated::GetAccessTokenResponse {
+        accepted: false,
+        access_token: String::new(),
+        expires_at: None,
+        reason_code: runtime_bridge_generated::ReasonCode::PrincipalUnauthorized as i32,
+        account_reason_code: runtime_bridge_generated::AccountReasonCode::AccountUnavailable as i32,
+        production_inert: false,
+    }
+}
+
+pub fn runtime_bridge_unary_override(
+    payload: &RuntimeBridgeUnaryPayload,
+) -> Result<Option<RuntimeBridgeUnaryResult>, String> {
+    let Some(manifest) = load_fixture_manifest()? else {
+        return Ok(None);
+    };
+    let projection = account_projection_from_fixture(manifest.realm_fixture.as_ref());
+    match payload.method_id.trim() {
+        "/nimi.runtime.v1.RuntimeAccountService/GetAccountSessionStatus" => {
+            append_backend_log(&format!(
+                "runtime_account_fixture method=getAccountSessionStatus authenticated={}",
+                projection.is_some()
+            ));
+            Ok(Some(encode_unary_response(
+                runtime_account_status_response(projection),
+            )))
+        }
+        "/nimi.runtime.v1.RuntimeAccountService/GetAccessToken" => {
+            append_backend_log(&format!(
+                "runtime_account_fixture method=getAccessToken accepted={}",
+                projection.is_some()
+            ));
+            Ok(Some(encode_unary_response(runtime_account_token_response(
+                projection,
+            ))))
+        }
+        _ => Ok(None),
+    }
 }
 
 pub fn runtime_defaults_override() -> Result<Option<RuntimeDefaults>, String> {

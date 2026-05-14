@@ -34,6 +34,11 @@ type StatusOverrideHook =
     Arc<dyn Fn() -> Result<Option<RuntimeBridgeDaemonStatus>, String> + Send + Sync>;
 type StatusSyncHook = Arc<dyn Fn(&AppHandle, RuntimeBridgeDaemonStatus) + Send + Sync>;
 type ActionInFlightHook = Arc<dyn Fn(&AppHandle, Option<&'static str>) + Send + Sync>;
+type UnaryOverrideHook = Arc<
+    dyn Fn(&RuntimeBridgeUnaryPayload) -> Result<Option<RuntimeBridgeUnaryResult>, String>
+        + Send
+        + Sync,
+>;
 type OptionalPathHook = Arc<dyn Fn() -> Option<PathBuf> + Send + Sync>;
 type OptionalStringHook = Arc<dyn Fn() -> Option<String> + Send + Sync>;
 type ResultPathHook = Arc<dyn Fn() -> Result<PathBuf, String> + Send + Sync>;
@@ -41,6 +46,7 @@ type ResultPathHook = Arc<dyn Fn() -> Result<PathBuf, String> + Send + Sync>;
 #[derive(Clone, Default)]
 pub struct RuntimeBridgeHostHooks {
     pub status_override: Option<StatusOverrideHook>,
+    pub unary_override: Option<UnaryOverrideHook>,
     pub sync_daemon_status: Option<StatusSyncHook>,
     pub set_action_in_flight: Option<ActionInFlightHook>,
     pub staged_runtime_binary_path: Option<OptionalPathHook>,
@@ -72,6 +78,15 @@ fn call_status_override_hook() -> Result<Option<RuntimeBridgeDaemonStatus>, Stri
 fn sync_daemon_status_hook(app: &AppHandle, status: RuntimeBridgeDaemonStatus) {
     if let Some(hook) = host_hooks().and_then(|hooks| hooks.sync_daemon_status.as_ref()) {
         hook(app, status);
+    }
+}
+
+fn call_unary_override_hook(
+    payload: &RuntimeBridgeUnaryPayload,
+) -> Result<Option<RuntimeBridgeUnaryResult>, String> {
+    match host_hooks().and_then(|hooks| hooks.unary_override.as_ref()) {
+        Some(hook) => hook(payload),
+        None => Ok(None),
     }
 }
 
@@ -184,6 +199,12 @@ pub fn is_allowlisted_method(method_id: &str) -> bool {
 pub async fn runtime_bridge_unary(
     payload: RuntimeBridgeUnaryPayload,
 ) -> Result<RuntimeBridgeUnaryResult, String> {
+    let method_id = payload.method_id.as_str();
+    if is_allowlisted_method(method_id) && !is_stream_method(method_id) {
+        if let Some(result) = call_unary_override_hook(&payload)? {
+            return Ok(result);
+        }
+    }
     unary::invoke_unary(&payload).await
 }
 

@@ -12,6 +12,9 @@ fn install_shared_runtime_bridge_hooks() {
             status_override: Some(Arc::new(|| {
                 crate::desktop_e2e_fixture::runtime_bridge_status_override()
             })),
+            unary_override: Some(Arc::new(|payload| {
+                crate::desktop_e2e_fixture::runtime_bridge_unary_override(payload)
+            })),
             sync_daemon_status: Some(Arc::new(|app, status| {
                 crate::menu_bar_shell::sync_daemon_status(app, status);
             })),

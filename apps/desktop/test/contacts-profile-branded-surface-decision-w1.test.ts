@@ -21,8 +21,7 @@ const profileMediaSource = readWorkspaceFile('src/shell/renderer/features/profil
 const profileGiftsSource = readWorkspaceFile('src/shell/renderer/features/profile/gifts-tab.tsx');
 const desktopUiShellSpec = readRepoFile('.nimi/spec/desktop/kernel/ui-shell-contract.md');
 const desktopSurfacesSpec = readRepoFile('.nimi/spec/desktop/kernel/tables/renderer-design-surfaces.yaml');
-const platformDesignPatternSpec = readRepoFile('.nimi/spec/platform/kernel/design-pattern-contract.md');
-const platformUiAdoptionSpec = readRepoFile('.nimi/spec/platform/kernel/tables/nimi-ui-adoption.yaml');
+const desktopKitAdoptionSpec = readRepoFile('.nimi/spec/desktop/kernel/tables/nimi-kit-adoption.yaml');
 
 test('W1 contacts/profile branded decision: hero shell is the only admitted controlled exception cohort', () => {
   assert.match(desktopUiShellSpec, /## D-SHELL-032 — Contacts Profile Branded Surface Split And Hero Exception Freeze/);
@@ -30,8 +29,7 @@ test('W1 contacts/profile branded decision: hero shell is the only admitted cont
   assert.match(contactsDetailShellSource, /rounded-\[34px\]|rounded-\[30px\]|backdrop-blur-\[18px\]/);
   assert.match(desktopSurfacesSpec, /id: contacts\.profile_detail\.hero_exception[\s\S]*surface_profile: exception[\s\S]*exception_policy: controlled[\s\S]*source_rule: D-SHELL-032/);
   assert.match(desktopSurfacesSpec, /id: contacts\.profile_detail\.shell_exception[\s\S]*surface_profile: exception[\s\S]*exception_policy: controlled[\s\S]*source_rule: D-SHELL-032/);
-  assert.match(platformDesignPatternSpec, /desktop contacts profile-detail hero shell/);
-  assert.match(platformUiAdoptionSpec, /id: desktop\.contacts\.profile-detail\.exception[\s\S]*exception_policy: controlled_exception/);
+  assert.match(desktopKitAdoptionSpec, /id: desktop\.contacts\.profile-detail\.exception[\s\S]*exception_policy: controlled_exception/);
 });
 
 test('W1 contacts/profile branded decision: feed and request cards are frozen as converging cohorts, not branded exceptions', () => {
@@ -47,6 +45,6 @@ test('W1 contacts/profile branded decision: feed and request cards are frozen as
   assert.match(desktopSurfacesSpec, /id: profile\.collections\.cards[\s\S]*surface_profile: secondary[\s\S]*exception_policy: none[\s\S]*source_rule: D-SHELL-032/);
   assert.match(desktopSurfacesSpec, /id: profile\.media\.cards[\s\S]*surface_profile: secondary[\s\S]*exception_policy: none[\s\S]*source_rule: D-SHELL-032/);
   assert.match(desktopSurfacesSpec, /id: profile\.gifts\.cards[\s\S]*surface_profile: secondary[\s\S]*exception_policy: none[\s\S]*source_rule: D-SHELL-032/);
-  assert.doesNotMatch(platformUiAdoptionSpec, /desktop\.profile\.(posts|likes|collections|media|gifts)\.exception/);
-  assert.doesNotMatch(platformUiAdoptionSpec, /desktop\.contacts\.friend-requests\.exception/);
+  assert.doesNotMatch(desktopKitAdoptionSpec, /desktop\.profile\.(posts|likes|collections|media|gifts)\.exception/);
+  assert.doesNotMatch(desktopKitAdoptionSpec, /desktop\.contacts\.friend-requests\.exception/);
 });
