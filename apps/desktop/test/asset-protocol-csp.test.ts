@@ -50,6 +50,15 @@ test('desktop CSP allows tauri asset protocol for VRM avatar loading', () => {
   );
 });
 
+test('desktop CSP allows blob module scripts for runtime mod loading', () => {
+  const scriptDirective = csp.match(/\bscript-src\b[^;]*/)?.[0] || '';
+
+  assert.ok(
+    scriptDirective.includes('blob:'),
+    'script-src must allow blob: module URLs for hosted mod package shims and source fallback loading',
+  );
+});
+
 test('desktop asset protocol is enabled for local avatar resource loading', () => {
   assert.equal(
     assetProtocol?.enable,
