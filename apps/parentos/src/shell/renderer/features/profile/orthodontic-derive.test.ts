@@ -499,6 +499,30 @@ describe('computeExpanderActivationProjection (PO-ORTHO-014)', () => {
     expect(proj.nextActivationDate).toBe('2026-04-03');
   });
 
+  it('anchors on startedAt when a stray activation event predates the start date', () => {
+    // max(latest event, startedAt): a checkin dated before startedAt must not
+    // pull the projection earlier than the appliance start (PO-ORTHO-014).
+    const appliance = makeAppliance({
+      applianceType: 'expander',
+      totalAligners: null,
+      daysPerAligner: null,
+      prescribedHoursPerDay: null,
+      prescribedActivations: 28,
+      completedActivations: 1,
+      activationIntervalDays: 3,
+      startedAt: '2026-04-01',
+    });
+    const proj = computeExpanderActivationProjection({
+      appliance,
+      activationCheckins: [
+        makeCheckin({ checkinDate: '2026-03-20', checkinType: 'expander-activation', activationIndex: 1 }),
+      ],
+      nowIso: NOW,
+    });
+    // startedAt 2026-04-01 + 3 days, not 2026-03-20 + 3.
+    expect(proj.nextActivationDate).toBe('2026-04-04');
+  });
+
   it('stops projecting once the prescribed cap is reached', () => {
     const appliance = makeAppliance({
       applianceType: 'expander',

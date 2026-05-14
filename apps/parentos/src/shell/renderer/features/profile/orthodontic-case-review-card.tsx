@@ -133,8 +133,10 @@ export function OrthodonticCaseReviewCard({
                 <span style={{ color: 'var(--nimi-text-primary)', fontWeight: 600, minWidth: 96 }}>
                   {applianceTypeLabel(appliance.applianceType)}
                 </span>
+                {/* PO-ORTHO-015: a parent-empty agenda renders as a neutral
+                    empty marker — never fabricated or inferred agenda text. */}
                 <span style={{ color: appliance.nextReviewAgenda ? S.text : S.sub }}>
-                  {appliance.nextReviewAgenda ?? '未填写议程'}
+                  {appliance.nextReviewAgenda ?? '—'}
                 </span>
               </div>
             );

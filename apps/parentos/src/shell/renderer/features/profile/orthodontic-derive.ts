@@ -438,10 +438,12 @@ export function computeExpanderActivationProjection(params: {
       )
       .map((c) => c.checkinAt ?? ymdToIsoMidnight(c.checkinDate))
       .sort((a, b) => a.localeCompare(b));
+    // PO-ORTHO-014: anchor is max(latest activation event, startedAt) — never
+    // earlier than the appliance start even if a stray event predates it.
+    const startedIso = ymdToIsoMidnight(appliance.startedAt);
+    const latestEventIso = events.length > 0 ? events[events.length - 1]! : null;
     const anchorIso =
-      events.length > 0
-        ? events[events.length - 1]!
-        : ymdToIsoMidnight(appliance.startedAt);
+      latestEventIso !== null && latestEventIso > startedIso ? latestEventIso : startedIso;
     nextActivationDate = addDaysIso(anchorIso, cadenceDays);
   }
   return {

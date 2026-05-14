@@ -139,10 +139,21 @@ pub fn insert_orthodontic_appliance(
         ));
     }
     validate_activation_interval_days(appliance_type_trimmed, activation_interval_days)?;
+    // Normalize once so validation and the INSERT agree on the stored value:
+    // trim, and treat an empty string as "not set" (NULL). The renderer never
+    // sends whitespace-only values, but a normalized write keeps the read-path
+    // fail-close (validate_orthodontic_appliance_read_fields) from rejecting a
+    // row this command authored.
+    let current_phase = current_phase
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty());
+    let phase_started_at = phase_started_at
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty());
     validate_appliance_phase_fields(
         appliance_type_trimmed,
-        current_phase.as_deref().map(str::trim),
-        phase_started_at.as_deref().map(str::trim),
+        current_phase.as_deref(),
+        phase_started_at.as_deref(),
     )?;
     assert_age_gate(
         appliance_type_trimmed,
@@ -377,9 +388,10 @@ pub fn update_orthodontic_appliance_review(
 /// review/status/phase-advance update paths so a plan edit never silently
 /// advances the review cycle or the treatment phase. The
 /// `PO-ORTHO-ALIGNER-CHANGE` reminder_state IS rescheduled when `daysPerAligner`
-/// changes, because its cadence is definitionally `daysPerAligner`
-/// (PO-ORTHO-008) and a stale value would surface as the wrong "更换下一副牙套"
-/// date in the reminder center.
+/// changes, and the `PO-ORTHO-EXPANDER-ACTIVATION` reminder_state when
+/// `activationIntervalDays` changes — both cadences are definitionally those
+/// columns (PO-ORTHO-008 / PO-ORTHO-014) and a stale value would surface as the
+/// wrong next-action date in the reminder center.
 #[tauri::command]
 pub fn update_orthodontic_appliance_plan(
     appliance_id: String,
@@ -480,6 +492,38 @@ pub fn update_orthodontic_appliance_plan(
                 .map_err(|e| format!("update_orthodontic_appliance_plan reschedule aligner-change: {e}"))?;
             }
         }
+    }
+    // Symmetric reschedule for the PO-ORTHO-EXPANDER-ACTIVATION reminder when
+    // activationIntervalDays changes (PO-ORTHO-014: the override applies to the
+    // reminder next-trigger, not just the UI projection). Anchor is max(latest
+    // expander-activation checkin date, appliance startedAt); cadence falls
+    // back to the catalog default (1 day) when the override is cleared.
+    if appliance_type_trimmed == "expander" {
+        let cadence = activation_interval_days.map(i64::from).unwrap_or(1);
+        let (latest_event_date, started_at): (Option<String>, String) = conn
+            .query_row(
+                "SELECT
+                     (SELECT checkinDate FROM orthodontic_checkins
+                      WHERE applianceId = ?1 AND checkinType = 'expander-activation'
+                      ORDER BY checkinDate DESC, createdAt DESC LIMIT 1),
+                     startedAt
+                 FROM orthodontic_appliances
+                 WHERE applianceId = ?1",
+                params![appliance_id],
+                |row| Ok((row.get::<_, Option<String>>(0)?, row.get::<_, String>(1)?)),
+            )
+            .map_err(|e| format!("update_orthodontic_appliance_plan fetch expander-activation anchor: {e}"))?;
+        let anchor_date =
+            max_event_or_started_anchor_date(latest_event_date.as_deref(), started_at.as_str());
+        let next = add_days_iso(anchor_date, cadence);
+        let next_iso = format!("{next}T00:00:00.000Z");
+        let state_id = format!("ortho-{}-PO-ORTHO-EXPANDER-ACTIVATION", appliance_id);
+        conn.execute(
+            "UPDATE reminder_states SET nextTriggerAt = ?2, updatedAt = ?3
+             WHERE stateId = ?1 AND status = 'active'",
+            params![state_id, next_iso, now],
+        )
+        .map_err(|e| format!("update_orthodontic_appliance_plan reschedule expander-activation: {e}"))?;
     }
     Ok(())
 }
@@ -676,8 +720,8 @@ mod appliance_field_guard_tests {
     //! Unit coverage for the PO-ORTHO-013 / PO-ORTHO-014 fail-close validators
     //! and the parent-initiated phase-advance adjacency resolver.
     use super::{
-        resolve_next_appliance_phase, validate_activation_interval_days,
-        validate_appliance_phase_fields,
+        max_event_or_started_anchor_date, resolve_next_appliance_phase,
+        validate_activation_interval_days, validate_appliance_phase_fields,
     };
 
     #[test]
@@ -691,6 +735,22 @@ mod appliance_field_guard_tests {
         let err = validate_activation_interval_days("metal-braces", Some(2))
             .expect_err("non-expander with a value must fail-close");
         assert!(err.contains("PO-ORTHO-014"));
+    }
+
+    #[test]
+    fn expander_activation_anchor_never_precedes_started_at() {
+        assert_eq!(
+            max_event_or_started_anchor_date(Some("2026-03-20"), "2026-04-01"),
+            "2026-04-01"
+        );
+        assert_eq!(
+            max_event_or_started_anchor_date(Some("2026-04-03"), "2026-04-01"),
+            "2026-04-03"
+        );
+        assert_eq!(
+            max_event_or_started_anchor_date(None, "2026-04-01"),
+            "2026-04-01"
+        );
     }
 
     #[test]

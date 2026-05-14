@@ -41,6 +41,15 @@ fn add_days_iso(iso_date: &str, days: i64) -> String {
         .map(|d| d.format("%Y-%m-%d").to_string())
         .unwrap_or_else(|| iso_date.to_string())
 }
+fn max_event_or_started_anchor_date<'a>(
+    latest_event_date: Option<&'a str>,
+    started_at: &'a str,
+) -> &'a str {
+    match latest_event_date {
+        Some(date) if date > started_at => date,
+        _ => started_at,
+    }
+}
 fn derive_initial_review_schedule(
     appliance_type: &str,
     started_at: &str,

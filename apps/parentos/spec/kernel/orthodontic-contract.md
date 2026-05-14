@@ -555,8 +555,11 @@ and PO-ORTHO-010.
   enumerates each active appliance alongside its `nextReviewAgenda`.
 - `nextReviewAgenda` is out of scope for any AI prompt or summary, the same
   boundary as photo sessions (PO-ORTHO-012) and `notes`.
-- A NULL `nextReviewAgenda` renders as an empty agenda line for that appliance,
-  never as placeholder or inferred text.
+- A NULL `nextReviewAgenda` renders as a neutral empty marker for that
+  appliance (e.g. an em-dash) — never as fabricated, inferred, or AI-generated
+  agenda text. The empty-state marker is not "placeholder content"; it is the
+  absence of content, surfaced so the appliance still appears in the agenda
+  list with its identity.
 
 ## PO-ORTHO-011 Fail-Close Behaviors
 
