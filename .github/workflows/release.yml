@@ -613,6 +613,11 @@ jobs:
             echo "require_apple_credentials=${require_apple}"
           } >> "${GITHUB_OUTPUT}"
 
+      - name: Normalize desktop updater public key
+        env:
+          NIMI_DESKTOP_UPDATER_PUBLIC_KEY: ${{ vars.NIMI_DESKTOP_UPDATER_PUBLIC_KEY }}
+        run: node apps/desktop/scripts/normalize-updater-public-key.mjs --write-github-env
+
       - name: Validate desktop signing inputs
         run: |
           set -euo pipefail
@@ -665,7 +670,6 @@ jobs:
           APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           MACOS_SIGNING_MODE: ${{ steps.macos_signing.outputs.mode }}
-          NIMI_DESKTOP_UPDATER_PUBLIC_KEY: ${{ vars.NIMI_DESKTOP_UPDATER_PUBLIC_KEY }}
           NIMI_DESKTOP_UPDATER_ENDPOINT: ${{ vars.NIMI_DESKTOP_UPDATER_ENDPOINT || 'https://install.nimi.ai/desktop/latest.json' }}
           REQUIRE_APPLE_CREDENTIALS: ${{ steps.macos_signing.outputs.require_apple_credentials }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
@@ -689,7 +693,6 @@ jobs:
         uses: tauri-apps/tauri-action@73fb865345c54760d875b94642314f8c0c894afa # action-v0.6.1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NIMI_DESKTOP_UPDATER_PUBLIC_KEY: ${{ vars.NIMI_DESKTOP_UPDATER_PUBLIC_KEY }}
           NIMI_DESKTOP_UPDATER_ENDPOINT: ${{ vars.NIMI_DESKTOP_UPDATER_ENDPOINT || 'https://install.nimi.ai/desktop/latest.json' }}
           NIMI_DESKTOP_MACOS_SIGNING_MODE: ${{ steps.macos_signing.outputs.mode }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
@@ -711,7 +714,6 @@ jobs:
         uses: tauri-apps/tauri-action@73fb865345c54760d875b94642314f8c0c894afa # action-v0.6.1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NIMI_DESKTOP_UPDATER_PUBLIC_KEY: ${{ vars.NIMI_DESKTOP_UPDATER_PUBLIC_KEY }}
           NIMI_DESKTOP_UPDATER_ENDPOINT: ${{ vars.NIMI_DESKTOP_UPDATER_ENDPOINT || 'https://install.nimi.ai/desktop/latest.json' }}
           NIMI_DESKTOP_MACOS_SIGNING_MODE: ${{ steps.macos_signing.outputs.mode }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
@@ -734,7 +736,6 @@ jobs:
         uses: tauri-apps/tauri-action@73fb865345c54760d875b94642314f8c0c894afa # action-v0.6.1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NIMI_DESKTOP_UPDATER_PUBLIC_KEY: ${{ vars.NIMI_DESKTOP_UPDATER_PUBLIC_KEY }}
           NIMI_DESKTOP_UPDATER_ENDPOINT: ${{ vars.NIMI_DESKTOP_UPDATER_ENDPOINT || 'https://install.nimi.ai/desktop/latest.json' }}
           NIMI_DESKTOP_MACOS_SIGNING_MODE: ${{ steps.macos_signing.outputs.mode }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
