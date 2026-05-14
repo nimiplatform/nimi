@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "postinstall": "node scripts/ensure-rust.mjs",
+    "tauri": "tauri",
     "dev": "pnpm run dev:shell",
     "env:check:runtime-mods-dir": "node scripts/dev-env-check.mjs --require-runtime-mods-dir",
     "env:check:mods-root": "node scripts/env-check-mods-root.mjs",

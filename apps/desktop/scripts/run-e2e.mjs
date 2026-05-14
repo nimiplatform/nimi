@@ -189,9 +189,16 @@ function ensureTauriDriverAvailable() {
   }
 }
 
+function executableForPlatform(command) {
+  if (os.platform() === 'win32' && command === 'pnpm') {
+    return 'pnpm.cmd';
+  }
+  return command;
+}
+
 function spawnLogged(command, args, options = {}) {
   return new Promise((resolve, reject) => {
-    const child = spawn(command, args, {
+    const child = spawn(executableForPlatform(command), args, {
       cwd: options.cwd || repoRoot,
       env: { ...process.env, ...options.env },
       stdio: options.stdio || 'inherit',
