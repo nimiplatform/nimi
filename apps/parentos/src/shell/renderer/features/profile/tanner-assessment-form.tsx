@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react';
-import { cn } from '@nimiplatform/nimi-kit/ui';
+import '@nimiplatform/nimi-kit/ui';
 import { computeAgeMonthsAt } from '../../app-shell/app-store.js';
 import { insertMeasurement, insertTannerAssessment } from '../../bridge/sqlite-bridge.js';
 import { isoNow, ulid } from '../../bridge/ulid.js';

@@ -1,4 +1,4 @@
-import { Surface } from '@nimiplatform/nimi-kit/ui';
+import '@nimiplatform/nimi-kit/ui';
 import { useState } from 'react';
 import type { StageDesc } from './tanner-page-shared.js';
 

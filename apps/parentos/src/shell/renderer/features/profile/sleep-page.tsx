@@ -1,5 +1,5 @@
 import { Button, Surface } from '@nimiplatform/nimi-kit/ui';
-﻿import { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAppStore, computeAgeMonths, formatAge } from '../../app-shell/app-store.js';
 import { deleteSleepRecord, getSleepRecords } from '../../bridge/sqlite-bridge.js';

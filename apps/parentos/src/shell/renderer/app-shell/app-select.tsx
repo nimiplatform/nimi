@@ -9,17 +9,19 @@ export interface AppSelectProps {
   options: AppSelectOption[];
   /** Text shown when value is ''. */
   placeholder?: string;
+  'aria-label'?: string;
   className?: string;
   style?: CSSProperties;
 }
 
-export function AppSelect({ value, onChange, options, placeholder, className, style }: AppSelectProps) {
+export function AppSelect({ value, onChange, options, placeholder, className, style, 'aria-label': ariaLabel }: AppSelectProps) {
   const select = (
     <SelectField
       value={value}
       onValueChange={onChange}
       options={options}
       placeholder={placeholder}
+      aria-label={ariaLabel}
       className={className}
     />
   );

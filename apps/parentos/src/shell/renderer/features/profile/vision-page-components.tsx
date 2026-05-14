@@ -609,8 +609,8 @@ export function TrendChartCard({
       padding="none"
       className="rounded-3xl p-5"
     >
-      <div className="flex items-baseline justify-between mb-3.5">
-        <div>
+      <div className="mb-3.5 flex items-baseline justify-between gap-3">
+        <div className="min-w-0">
           <div className="text-[14px] font-semibold text-[var(--nimi-text-primary)]">
             {t('Profile.rich.vision.curveTitle', { metric: typeInfo?.displayName ?? t('Profile.rich.vision.curveFallback') })}
           </div>
@@ -622,6 +622,8 @@ export function TrendChartCard({
           value={chartType}
           onChange={(v) => onChartTypeChange(v as GrowthTypeId)}
           options={CHART_OPTIONS.map((o) => ({ value: o.typeId, label: o.label }))}
+          aria-label={t('Profile.rich.vision.curveFallback')}
+          className="w-36 shrink-0"
         />
       </div>
       {chartData.length === 0 ? (

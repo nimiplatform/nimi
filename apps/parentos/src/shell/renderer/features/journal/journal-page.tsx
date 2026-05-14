@@ -112,6 +112,10 @@ export default function JournalPage() {
     () => getActiveDimensions(OBSERVATION_DIMENSIONS, ageMonths),
     [ageMonths],
   );
+  const childOptions = useMemo<SelectFieldOption[]>(
+    () => children.map((item) => ({ value: item.childId, label: item.displayName })),
+    [children],
+  );
 
   const observationFocus: ObservationFocusData | null = useMemo(() => {
     if (!selectedDimension) return null;
@@ -588,7 +592,7 @@ export default function JournalPage() {
     <div className="hide-scrollbar mx-auto min-h-full max-w-3xl px-6 pb-6 pt-4">
       <JournalPageCapture
         activeChildId={activeChildId}
-        childOptions={children.map((item) => ({ value: item.childId, label: item.displayName }))}
+        childOptions={childOptions}
         onChildChange={setActiveChildId}
         guidedContext={guidedContext}
         observationFocus={observationFocus}

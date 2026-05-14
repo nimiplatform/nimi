@@ -15,6 +15,7 @@
  * intentionally cyclic or invite deeper engagement.
  */
 
+import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
 import type { ReminderKind } from '../../knowledge-base/index.js';
 import type { ActiveReminder } from '../../engine/reminder-engine.js';
@@ -180,17 +181,17 @@ export function ReminderExplainDrawer({ reminder, onClose, onAction, onOpenCaptu
   const primaries = complete ? resolveFooterPrimary(reminder) : [];
   const notApplicableOk = canMarkNotApplicable(reminder);
 
-  return (
+  const drawer = (
     <>
       <div
         onClick={onClose}
         aria-hidden
-        className="fixed inset-0 z-40 bg-[rgba(15,23,42,0.28)] transition-opacity"
+        className="parentos-reminder-explain-drawer-overlay fixed inset-0 z-[90] bg-[rgba(15,23,42,0.28)] transition-opacity"
       />
       <aside
         role="dialog"
         aria-label={`提醒详情：${reminder.rule.title}`}
-        className="fixed right-0 top-0 z-50 flex h-full flex-col bg-white shadow-[-18px_0_48px_rgba(15,23,42,0.14)]"
+        className="parentos-reminder-explain-drawer fixed right-0 top-0 z-[100] flex h-full flex-col bg-white shadow-[-18px_0_48px_rgba(15,23,42,0.14)]"
         style={{ width: DRAWER_WIDTH }}
         onKeyDown={(event) => {
           if (event.key === 'Escape') onClose();
@@ -394,6 +395,8 @@ export function ReminderExplainDrawer({ reminder, onClose, onAction, onOpenCaptu
       </aside>
     </>
   );
+
+  return typeof document === 'undefined' ? drawer : createPortal(drawer, document.body);
 }
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {

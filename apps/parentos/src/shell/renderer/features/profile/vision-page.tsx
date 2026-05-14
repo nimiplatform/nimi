@@ -194,11 +194,11 @@ export default function VisionPage() {
             <SourcesTooltip />
           </div>
         </div>
-        <div className="flex items-center gap-1.5 flex-wrap">
+        <div className="flex shrink-0 flex-wrap items-center justify-end gap-1.5">
           {supportsQuantitative && (
             <button
               onClick={() => setShowGuide(!showGuide)}
-              className={`flex items-center gap-1 rounded-full px-3 py-1.5 text-[12px] font-medium transition-all ${showGuide ? 'bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_12%,transparent)] text-[var(--nimi-action-primary-bg)]' : 'bg-[var(--nimi-action-ghost-hover)] text-[var(--nimi-text-secondary)]'}`}
+              className={`flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full px-3 py-1.5 text-[12px] font-medium transition-all ${showGuide ? 'bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_12%,transparent)] text-[var(--nimi-action-primary-bg)]' : 'bg-[var(--nimi-action-ghost-hover)] text-[var(--nimi-text-secondary)]'}`}
             >
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="12" cy="12" r="10" /><path d="M9.1 9a3 3 0 015.8 1c0 2-3 3-3 3M12 17h.01" />
@@ -210,7 +210,7 @@ export default function VisionPage() {
             <button
               onClick={() => ocrInputRef.current?.click()}
               disabled={ocrScanning}
-              className="group relative flex items-center gap-1 rounded-full border border-[color-mix(in_srgb,var(--nimi-status-info)_20%,var(--nimi-border-subtle))] bg-[color-mix(in_srgb,var(--nimi-status-info)_12%,transparent)] px-3 py-1.5 text-[12px] font-medium text-[var(--nimi-text-secondary)] transition-all disabled:opacity-50"
+              className="group relative flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full border border-[color-mix(in_srgb,var(--nimi-status-info)_20%,var(--nimi-border-subtle))] bg-[color-mix(in_srgb,var(--nimi-status-info)_12%,transparent)] px-3 py-1.5 text-[12px] font-medium text-[var(--nimi-text-secondary)] transition-all disabled:opacity-50"
             >
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
                 <rect x="3" y="3" width="18" height="18" rx="2" /><path d="M3 9h18M9 21V9" />
@@ -221,7 +221,7 @@ export default function VisionPage() {
           {supportsScreening && (
             <button
               onClick={() => setShowScreeningModal(true)}
-              className="flex items-center gap-1 rounded-full bg-[var(--nimi-action-ghost-hover)] px-3 py-1.5 text-[12px] font-medium text-[var(--nimi-text-secondary)] transition-all"
+              className="flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full bg-[var(--nimi-action-ghost-hover)] px-3 py-1.5 text-[12px] font-medium text-[var(--nimi-text-secondary)] transition-all"
             >
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z" /><circle cx="12" cy="12" r="3" />

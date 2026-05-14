@@ -70,7 +70,7 @@ export function OrthoCycleProgressWidget({ cycle }: { cycle: OrthoCycleSummary }
               key={idx}
               className="h-[6px] flex-1 rounded-full"
               style={{
-                background: isFilled ? 'var(--color-accent)' : 'rgba(148,163,184,0.25)',
+                background: isFilled ? 'var(--nimi-status-success)' : 'rgba(148,163,184,0.25)',
                 opacity: isFilled ? 0.95 : 1,
               }}
             />

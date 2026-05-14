@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import type { ReactNode } from 'react';
+import { act, type ReactNode } from 'react';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import VisionPage from './vision-page.js';
@@ -136,6 +136,34 @@ describe('VisionPage OCR intake', () => {
       activeChildId: null,
       children: [],
     });
+  });
+
+  it('keeps vision page header actions as non-wrapping controls', async () => {
+    act(() => {
+      useAppStore.setState((state) => ({
+        children: state.children.map((child) => (
+          child.childId === 'child-1'
+            ? { ...child, birthDate: '2021-06-01' }
+            : child
+        )),
+      }));
+    });
+
+    render(
+      <MemoryRouter>
+        <VisionPage />
+      </MemoryRouter>,
+    );
+
+    const guideButton = await screen.findByRole('button', { name: /录入指引/ });
+    const ocrButton = await screen.findByRole('button', { name: /智能识别/ });
+    const screeningButton = await screen.findByRole('button', { name: /添加筛查/ });
+    const recordButton = await screen.findByRole('button', { name: /录入数据/ });
+
+    for (const button of [guideButton, ocrButton, screeningButton, recordButton]) {
+      expect(button.classList.contains('whitespace-nowrap')).toBe(true);
+      expect(button.classList.contains('shrink-0')).toBe(true);
+    }
   });
 
   it('prefills the vision form from OCR and stores confirmed rows as source=ocr', async () => {

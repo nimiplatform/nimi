@@ -1,4 +1,4 @@
-import { Surface } from '@nimiplatform/nimi-kit/ui';
+import '@nimiplatform/nimi-kit/ui';
 import type { MeasurementRow } from '../../bridge/sqlite-bridge.js';
 
 type TannerOverviewCardsProps = {

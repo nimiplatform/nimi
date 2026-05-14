@@ -1,4 +1,4 @@
-import { Surface } from '@nimiplatform/nimi-kit/ui';
+import '@nimiplatform/nimi-kit/ui';
 /**
  * ProfileDatePicker — shared date picker component.
  * Extracted from sleep-page.tsx's proven DatePickerInput implementation
@@ -205,7 +205,7 @@ export const DatePickerPanel = forwardRef<HTMLDivElement, {
   const top = Math.min(pos.top, window.innerHeight - 380);
 
   return (
-    <div ref={ref} className="fixed z-[60] rounded-2xl overflow-hidden border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-overlay)] p-3 shadow-[var(--nimi-elevation-floating)]"
+    <div ref={ref} className="parentos-profile-date-picker-panel fixed z-[120] rounded-2xl overflow-hidden border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-overlay)] p-3 shadow-[var(--nimi-elevation-floating)]"
       onClick={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()}
       style={{
         left, top, width: pos.width,

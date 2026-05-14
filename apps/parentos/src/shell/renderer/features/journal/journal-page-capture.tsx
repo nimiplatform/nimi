@@ -1,6 +1,6 @@
 import { createPortal } from 'react-dom';
 import type { RefObject } from 'react';
-import { Button, IconButton, Surface, TextareaField, cn } from '@nimiplatform/nimi-kit/ui';
+import { Button, IconButton, Surface, TextareaField, cn, type SelectFieldOption } from '@nimiplatform/nimi-kit/ui';
 import { AppSelect } from '../../app-shell/app-select.js';
 import { PhotoBar } from './journal-sub-components.js';
 import { VoiceIdleEntry, VoiceRecordingPanel, VoicePreviewPanel } from './journal-voice-card.js';
@@ -21,7 +21,7 @@ import { RecordedAtPicker } from './journal-recorded-at-picker.js';
 
 export function JournalPageCapture(props: {
   activeChildId: string | null;
-  childOptions: Array<{ value: string; label: string }>;
+  childOptions: SelectFieldOption[];
   onChildChange: (value: string | null) => void;
   guidedContext: GuidedPromptContext | null;
   observationFocus: ObservationFocusData | null;
@@ -76,10 +76,21 @@ export function JournalPageCapture(props: {
 }) {
   return (
     <>
-      <div className="flex items-center justify-between mb-5">
-        <h1 className="text-xl font-bold text-[var(--nimi-text-primary)]">成长随记</h1>
+      <div
+        className={cn(
+          'mb-5 grid items-center gap-4',
+          props.childOptions.length > 1 ? 'grid-cols-[auto_minmax(9rem,13.5rem)]' : 'grid-cols-1',
+        )}
+      >
+        <h1 className="shrink-0 text-xl font-bold text-[var(--nimi-text-primary)]">成长随记</h1>
         {props.childOptions.length > 1 ? (
-          <AppSelect value={props.activeChildId ?? ''} onChange={(value) => props.onChildChange(value || null)} options={props.childOptions} />
+          <AppSelect
+            value={props.activeChildId ?? ''}
+            onChange={(value) => props.onChildChange(value || null)}
+            options={props.childOptions}
+            aria-label="切换成长随记孩子"
+            className="w-full"
+          />
         ) : null}
       </div>
 

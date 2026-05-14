@@ -8,7 +8,7 @@
  *   │ (200px,      │ ModalContent  (scrollable, p-6)   │
  *   │  optional)   │                                   │
  *   │              ├───────────────────────────────────┤
- *   │              │ ModalFooter   (76px, glass blur)  │
+ *   │              │ ModalFooter   (76px, solid)       │
  *   └──────────────┴───────────────────────────────────┘
  *
  * Sizes (total modal width — sidebar included):
@@ -27,6 +27,7 @@ import {
   type CSSProperties,
   type ReactNode,
 } from 'react';
+import { createPortal } from 'react-dom';
 import { X, type LucideIcon } from 'lucide-react';
 import { Button as KitButton, Surface, TextareaField, TextField } from '@nimiplatform/nimi-kit/ui';
 import { ProfileDatePicker } from './profile-date-picker.js';
@@ -84,21 +85,21 @@ export function HealthRecordModalShell({
   if (!open) return null;
   const width = SIZE_WIDTH[size];
 
-  return (
+  const modal = (
     <div
       role="dialog"
       aria-label={ariaLabel}
       aria-modal="true"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--nimi-scrim-modal)]"
+      className="parentos-health-modal-overlay fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto bg-[var(--nimi-scrim-modal)] px-4 py-6"
       onClick={onClose}
     >
       <Surface
         as="section"
-        tone="overlay"
-        material="glass-thick"
+        tone="card"
+        material="solid"
         elevation="modal"
         padding="none"
-        className="flex overflow-hidden rounded-3xl"
+        className="parentos-health-modal-panel flex overflow-hidden rounded-3xl bg-[var(--nimi-surface-card)]"
         style={{
           width,
           maxWidth: 'calc(100vw - 32px)',
@@ -107,10 +108,12 @@ export function HealthRecordModalShell({
         onClick={(event) => event.stopPropagation()}
       >
         {sidebar}
-        <div className="flex min-w-0 flex-1 flex-col">{children}</div>
+        <div className="flex min-w-0 flex-1 flex-col bg-[var(--nimi-surface-card)]">{children}</div>
       </Surface>
     </div>
   );
+
+  return typeof document === 'undefined' ? modal : createPortal(modal, document.body);
 }
 
 /* ── Sidebar ────────────────────────────────────────────────────────────── */
@@ -308,7 +311,7 @@ export function ModalContent({ children, className, noPadding }: ModalContentPro
   return (
     <div
       className={[
-        'flex-1 min-h-0 overflow-y-auto',
+        'flex-1 min-h-0 overflow-y-auto bg-[var(--nimi-surface-card)]',
         noPadding ? '' : 'px-6 py-5',
         className ?? '',
       ]
@@ -330,7 +333,7 @@ type ModalFooterProps = {
 export function ModalFooter({ children, leading }: ModalFooterProps) {
   return (
     <footer
-      className="flex shrink-0 items-center justify-end gap-3 border-t border-[var(--nimi-border-subtle)] bg-[var(--nimi-material-glass-regular-bg)] px-6 nimi-material-glass-regular backdrop-blur-[var(--nimi-backdrop-blur-regular)]"
+      className="flex shrink-0 items-center justify-end gap-3 border-t border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-6"
       style={{
         height: HEALTH_MODAL_TOKENS.footerHeight,
       }}
@@ -473,14 +476,20 @@ type InputProps = Omit<React.InputHTMLAttributes<HTMLInputElement>, 'style'> & {
 };
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
-  { invalid, size = 'normal', className, ...rest },
+  { invalid, size = 'normal', className, type, ...rest },
   ref,
 ) {
+  const numberInputClassName = type === 'number'
+    ? '[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none'
+    : '';
+
   return (
     <TextField
       ref={ref}
       {...rest}
+      type={type}
       className={`w-full ${size === 'compact' ? 'min-h-10' : 'min-h-12'} ${invalid ? 'border-[var(--nimi-status-danger)] ring-[length:var(--nimi-focus-ring-width)] ring-[var(--nimi-status-danger)]' : ''} ${className ?? ''}`}
+      inputClassName={numberInputClassName}
       aria-invalid={invalid || undefined}
     />
   );

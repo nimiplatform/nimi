@@ -1,4 +1,4 @@
-import { Surface } from '@nimiplatform/nimi-kit/ui';
+import '@nimiplatform/nimi-kit/ui';
 import type { SleepRecordRow } from '../../bridge/sqlite-bridge.js';
 
 export const QUALITY_OPTIONS = ['good', 'fair', 'poor'] as const;

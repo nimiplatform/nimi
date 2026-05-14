@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Pencil, Plus } from 'lucide-react';
 import { Button, Surface } from '@nimiplatform/nimi-kit/ui';
@@ -24,6 +24,7 @@ export interface ProfileHeroProps {
 
 export function ProfileHero({ child, ageMonths, completeness, recordCount, lastRecordedDaysAgo, onAddRecord }: ProfileHeroProps) {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const subtitleParts = [
     t(child.gender === 'male' ? 'Profile.gender.male' : 'Profile.gender.female', { defaultValue: child.gender === 'male' ? '男' : '女' }),
     formatAgeText(ageMonths, t),
@@ -83,17 +84,14 @@ export function ProfileHero({ child, ageMonths, completeness, recordCount, lastR
             {t('Profile.actions.addHealthData', { defaultValue: '记录新数据' })}
           </Button>
           <Button
-            asChild
+            onClick={() => {
+              void navigate('/settings/children', { state: { from: 'profile' } });
+            }}
             tone="secondary"
             size="md"
             leadingIcon={<Pencil size={13} />}
           >
-            <Link
-              to="/settings/children"
-              state={{ from: 'profile' }}
-            >
-              {t('Profile.actions.editChild', { defaultValue: '编辑资料' })}
-            </Link>
+            {t('Profile.actions.editChild', { defaultValue: '编辑资料' })}
           </Button>
         </div>
       </div>

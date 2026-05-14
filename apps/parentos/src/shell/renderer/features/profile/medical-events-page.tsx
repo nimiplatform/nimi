@@ -132,8 +132,13 @@ export default function MedicalEventsPage() {
                 className="absolute right-2 top-1/2 -translate-y-1/2 text-[13px] text-[var(--nimi-text-muted)]">清除</button>
             )}
           </div>
-          <AppSelect value={filterType} onChange={setFilterType}
-            options={[{ value: 'all', label: '全部类型' }, ...Object.entries(EVENT_TYPE_LABELS).map(([val, label]) => ({ value: val, label }))]} />
+          <AppSelect
+            value={filterType}
+            onChange={setFilterType}
+            options={[{ value: 'all', label: '全部类型' }, ...Object.entries(EVENT_TYPE_LABELS).map(([val, label]) => ({ value: val, label }))]}
+            aria-label="筛选就医事件类型"
+            className="w-40 shrink-0"
+          />
         </div>
       )}
 
