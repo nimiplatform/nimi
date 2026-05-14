@@ -386,6 +386,10 @@ pub struct OrthodonticAppliance {
 // avoid a second query; Rust validates numerically.
 include!("orthodontic_appliances.inc.rs");
 
+include!("orthodontic_protocol_catalog_drift_guard.inc.rs");
+
+include!("orthodontic_lifecycle_guard_tests.inc.rs");
+
 include!("orthodontic_checkins.inc.rs");
 
 include!("orthodontic_unwear_intervals.inc.rs");
