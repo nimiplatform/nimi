@@ -21,6 +21,7 @@ import * as zustandModule from 'zustand';
 const HOSTED_PACKAGE_REGISTRY_KEY = '__NIMI_HOSTED_MOD_PACKAGES__';
 const IDENTIFIER_PATTERN = /^[A-Za-z_$][\w$]*$/;
 const RESERVED_MODULE_EXPORT_BINDINGS = new Set([
+  'arguments',
   'await',
   'break',
   'case',
@@ -34,21 +35,33 @@ const RESERVED_MODULE_EXPORT_BINDINGS = new Set([
   'do',
   'else',
   'enum',
+  'eval',
   'export',
   'extends',
+  'false',
   'finally',
   'for',
   'function',
   'if',
+  'implements',
   'import',
   'in',
+  'interface',
   'instanceof',
+  'let',
+  'null',
   'new',
+  'package',
+  'private',
+  'protected',
+  'public',
   'return',
+  'static',
   'super',
   'switch',
   'this',
   'throw',
+  'true',
   'try',
   'typeof',
   'var',
@@ -110,7 +123,7 @@ export function isHostedPackageExportBinding(key: string): boolean {
     && !RESERVED_MODULE_EXPORT_BINDINGS.has(key);
 }
 
-function buildHostedPackageModuleSource(specifier: string, moduleNamespace: Record<string, unknown>): string {
+export function buildHostedPackageModuleSource(specifier: string, moduleNamespace: Record<string, unknown>): string {
   const exportLines = Object.keys(moduleNamespace)
     .filter(isHostedPackageExportBinding)
     .sort()

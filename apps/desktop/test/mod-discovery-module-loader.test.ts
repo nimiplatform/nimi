@@ -1,7 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { isHostedPackageExportBinding } from '../src/runtime/mod/discovery/hosted-packages';
+import {
+  buildHostedPackageModuleSource,
+  isHostedPackageExportBinding,
+} from '../src/runtime/mod/discovery/hosted-packages';
 import { rewriteRuntimeModSourceImportSpecifiers } from '../src/runtime/mod/discovery/module-loader';
 
 test('module loader rewrites supported bare package imports to hosted module urls', () => {
@@ -50,7 +53,31 @@ test('module loader rewrites supported bare package imports to hosted module url
 test('hosted package module shim does not emit reserved-word export bindings', () => {
   assert.equal(isHostedPackageExportBinding('createHookClient'), true);
   assert.equal(isHostedPackageExportBinding('$valid'), true);
+  assert.equal(isHostedPackageExportBinding('arguments'), false);
   assert.equal(isHostedPackageExportBinding('catch'), false);
   assert.equal(isHostedPackageExportBinding('default'), false);
+  assert.equal(isHostedPackageExportBinding('eval'), false);
+  assert.equal(isHostedPackageExportBinding('false'), false);
+  assert.equal(isHostedPackageExportBinding('implements'), false);
+  assert.equal(isHostedPackageExportBinding('let'), false);
+  assert.equal(isHostedPackageExportBinding('null'), false);
+  assert.equal(isHostedPackageExportBinding('private'), false);
+  assert.equal(isHostedPackageExportBinding('true'), false);
   assert.equal(isHostedPackageExportBinding('not-valid-name'), false);
+});
+
+test('hosted package module source filters invalid export bindings before emission', () => {
+  const source = buildHostedPackageModuleSource('test-package', {
+    validName: 1,
+    null: null,
+    true: true,
+    catch: 'reserved',
+    'not-valid-name': 'invalid',
+  });
+
+  assert.match(source, /export const validName = module\["validName"\];/);
+  assert.doesNotMatch(source, /export const null\b/);
+  assert.doesNotMatch(source, /export const true\b/);
+  assert.doesNotMatch(source, /export const catch\b/);
+  assert.doesNotMatch(source, /not-valid-name/);
 });
