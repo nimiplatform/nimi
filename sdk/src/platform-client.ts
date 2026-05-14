@@ -8,7 +8,7 @@ import {
 import { Realm } from './realm/client.js';
 import type { RealmFetchImpl, RealmTokenRefreshResult } from './realm/client-types.js';
 import type { RealmServiceArgs, RealmServiceResult } from './realm/generated/type-helpers.js';
-import { createNimiError } from './runtime/errors.js';
+import { asNimiError, createNimiError } from './runtime/errors.js';
 import { AccountCallerMode, AccountSessionState } from './runtime/generated/runtime/v1/account.js';
 import { Runtime } from './runtime/runtime.js';
 import type { ListConnectorsRequest, ListConnectorsResponse } from './runtime/generated/runtime/v1/connector.js';
@@ -38,6 +38,13 @@ type RealmServices = Realm['services'];
 type RuntimeConnectorModule = Runtime['connector'];
 type RuntimeAuditModule = Runtime['audit'];
 type ListConnectorsInput = ListConnectorsRequest;
+type PlatformRuntimeAccountCaller = {
+  appId: string;
+  appInstanceId: string;
+  deviceId: string;
+  mode: AccountCallerMode;
+  scopes: string[];
+};
 type AuthPasswordLoginBody = RealmServiceArgs<'AuthService', 'passwordLogin'>[0];
 type AuthPasswordLoginInput = {
   identifier?: string;
@@ -377,7 +384,12 @@ function createLocalFirstPartyAuthRouteError(route: string): never {
   });
 }
 
-function createDomains(runtime: Runtime, realm: Realm, authMode: PlatformClientInput['authMode']): PlatformDomains {
+function createDomains(
+  runtime: Runtime,
+  realm: Realm,
+  authMode: PlatformClientInput['authMode'],
+  accountCaller: PlatformRuntimeAccountCaller,
+): PlatformDomains {
   const toListConnectorsInput = (input?: Partial<ListConnectorsInput>): ListConnectorsInput => ({
     pageSize: Number(input?.pageSize || 0),
     pageToken: String(input?.pageToken || ''),
@@ -385,6 +397,43 @@ function createDomains(runtime: Runtime, realm: Realm, authMode: PlatformClientI
     statusFilter: Number(input?.statusFilter || 0),
     providerFilter: String(input?.providerFilter || ''),
   });
+  let localFirstPartyRefreshInflight: Promise<boolean> | null = null;
+
+  const refreshLocalFirstPartyRuntimeAccount = async (): Promise<boolean> => {
+    if (authMode !== 'local-first-party-runtime') {
+      return false;
+    }
+    if (!localFirstPartyRefreshInflight) {
+      localFirstPartyRefreshInflight = (async () => {
+        const response = await runtime.account.refreshAccountSession({ caller: accountCaller });
+        return Boolean(response.accepted);
+      })();
+    }
+    try {
+      return await localFirstPartyRefreshInflight;
+    } finally {
+      localFirstPartyRefreshInflight = null;
+    }
+  };
+
+  const withLocalFirstPartyAuthRefresh = async <T>(operation: () => Promise<T>): Promise<T> => {
+    try {
+      return await operation();
+    } catch (error) {
+      const normalized = asNimiError(error, {
+        reasonCode: ReasonCode.RUNTIME_CALL_FAILED,
+        actionHint: 'retry_or_check_runtime_status',
+        source: 'runtime',
+      });
+      if (normalized.reasonCode !== ReasonCode.AUTH_TOKEN_INVALID) {
+        throw error;
+      }
+      if (!await refreshLocalFirstPartyRuntimeAccount()) {
+        throw error;
+      }
+      return operation();
+    }
+  };
 
   return {
     auth: authMode === 'local-first-party-runtime' ? {
@@ -460,25 +509,25 @@ function createDomains(runtime: Runtime, realm: Realm, authMode: PlatformClientI
       createPost: (input) => realm.services.PostsService.createPost(input),
     },
     runtimeAdmin: {
-      listProviderCatalog: (input = {}, options) => runtime.connector.listProviderCatalog(input, options),
-      listConnectors: (input, options) => runtime.connector.listConnectors(toListConnectorsInput(input), options),
-      createConnector: (input, options) => runtime.connector.createConnector(input, options),
-      updateConnector: (input, options) => runtime.connector.updateConnector(input, options),
-      deleteConnector: (input, options) => runtime.connector.deleteConnector(input, options),
-      testConnector: (input, options) => runtime.connector.testConnector(input, options),
-      listConnectorModels: (input, options) => runtime.connector.listConnectorModels(input, options),
-      listModelCatalogProviders: (input = {}, options) => runtime.connector.listModelCatalogProviders(input, options),
-      listCatalogProviderModels: (input, options) => runtime.connector.listCatalogProviderModels(input, options),
-      getCatalogModelDetail: (input, options) => runtime.connector.getCatalogModelDetail(input, options),
-      upsertModelCatalogProvider: (input, options) => runtime.connector.upsertModelCatalogProvider(input, options),
-      deleteModelCatalogProvider: (input, options) => runtime.connector.deleteModelCatalogProvider(input, options),
-      upsertCatalogModelOverlay: (input, options) => runtime.connector.upsertCatalogModelOverlay(input, options),
-      deleteCatalogModelOverlay: (input, options) => runtime.connector.deleteCatalogModelOverlay(input, options),
-      listAuditEvents: (input, options) => runtime.audit.listAuditEvents(input, options),
-      exportAuditEvents: (input, options) => runtime.audit.exportAuditEvents(input, options),
-      listUsageStats: (input, options) => runtime.audit.listUsageStats(input, options),
-      getRuntimeHealth: (input = {}, options) => runtime.audit.getRuntimeHealth(input, options),
-      listAIProviderHealth: (input = {}, options) => runtime.audit.listAIProviderHealth(input, options),
+      listProviderCatalog: (input = {}, options) => withLocalFirstPartyAuthRefresh(() => runtime.connector.listProviderCatalog(input, options)),
+      listConnectors: (input, options) => withLocalFirstPartyAuthRefresh(() => runtime.connector.listConnectors(toListConnectorsInput(input), options)),
+      createConnector: (input, options) => withLocalFirstPartyAuthRefresh(() => runtime.connector.createConnector(input, options)),
+      updateConnector: (input, options) => withLocalFirstPartyAuthRefresh(() => runtime.connector.updateConnector(input, options)),
+      deleteConnector: (input, options) => withLocalFirstPartyAuthRefresh(() => runtime.connector.deleteConnector(input, options)),
+      testConnector: (input, options) => withLocalFirstPartyAuthRefresh(() => runtime.connector.testConnector(input, options)),
+      listConnectorModels: (input, options) => withLocalFirstPartyAuthRefresh(() => runtime.connector.listConnectorModels(input, options)),
+      listModelCatalogProviders: (input = {}, options) => withLocalFirstPartyAuthRefresh(() => runtime.connector.listModelCatalogProviders(input, options)),
+      listCatalogProviderModels: (input, options) => withLocalFirstPartyAuthRefresh(() => runtime.connector.listCatalogProviderModels(input, options)),
+      getCatalogModelDetail: (input, options) => withLocalFirstPartyAuthRefresh(() => runtime.connector.getCatalogModelDetail(input, options)),
+      upsertModelCatalogProvider: (input, options) => withLocalFirstPartyAuthRefresh(() => runtime.connector.upsertModelCatalogProvider(input, options)),
+      deleteModelCatalogProvider: (input, options) => withLocalFirstPartyAuthRefresh(() => runtime.connector.deleteModelCatalogProvider(input, options)),
+      upsertCatalogModelOverlay: (input, options) => withLocalFirstPartyAuthRefresh(() => runtime.connector.upsertCatalogModelOverlay(input, options)),
+      deleteCatalogModelOverlay: (input, options) => withLocalFirstPartyAuthRefresh(() => runtime.connector.deleteCatalogModelOverlay(input, options)),
+      listAuditEvents: (input, options) => withLocalFirstPartyAuthRefresh(() => runtime.audit.listAuditEvents(input, options)),
+      exportAuditEvents: (input, options) => withLocalFirstPartyAuthRefresh(() => runtime.audit.exportAuditEvents(input, options)),
+      listUsageStats: (input, options) => withLocalFirstPartyAuthRefresh(() => runtime.audit.listUsageStats(input, options)),
+      getRuntimeHealth: (input = {}, options) => withLocalFirstPartyAuthRefresh(() => runtime.audit.getRuntimeHealth(input, options)),
+      listAIProviderHealth: (input = {}, options) => withLocalFirstPartyAuthRefresh(() => runtime.audit.listAIProviderHealth(input, options)),
       healthEvents: (input = {}, options) => runtime.healthEvents(input, options),
       providerHealthEvents: (input = {}, options) => runtime.providerHealthEvents(input, options),
     },
@@ -725,7 +774,7 @@ export async function createPlatformClient(input: PlatformClientInput): Promise<
   const client: PlatformClient = {
     runtime,
     realm,
-    domains: createDomains(runtime, realm, authMode),
+    domains: createDomains(runtime, realm, authMode, accountCaller),
     worldEvolution: createPlatformWorldEvolution(runtime),
   };
   currentPlatformClient = client;

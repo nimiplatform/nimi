@@ -16,6 +16,7 @@ import {
 import { createPlatformClient } from '@nimiplatform/sdk';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import { GetAccessTokenResponse, RegisterAppResponse, type ProviderCatalogEntry } from '@nimiplatform/sdk/runtime';
+import { RefreshAccountSessionResponse } from '@nimiplatform/sdk/runtime/generated/runtime/v1/account';
 import {
   ListConnectorModelsResponse,
   ListConnectorsResponse,
@@ -644,15 +645,11 @@ test('sdkListConnectorModelDescriptors coalesces concurrent model inventory read
   }
 });
 
-test('sdkListConnectors propagates AUTH_TOKEN_INVALID without retrying anonymously (no fallback)', async () => {
+test('sdkListConnectors refreshes local first-party account token on AUTH_TOKEN_INVALID without anonymous fallback', async () => {
   clearRuntimeConnectorSdkCaches();
-  // Wave 3 acceptance: when a Runtime call surfaces AUTH_TOKEN_INVALID,
-  // the renderer MUST NOT catch and retry anonymously. The error
-  // propagates to the caller. (This case should be impossible if Wave
-  // 0+1+2 hold; this test guards the renderer's behavior on contract
-  // violation.)
   const calls: TauriInvokeCall[] = [];
-  const restoreTauri = installTauriRuntime(calls, () => 'realm-token');
+  let token = 'stale-realm-token';
+  const restoreTauri = installTauriRuntime(calls, () => token);
   try {
     await createPlatformClient({
       authMode: 'local-first-party-runtime',
@@ -674,7 +671,20 @@ test('sdkListConnectors propagates AUTH_TOKEN_INVALID without retrying anonymous
             responseBytesBase64: Buffer.from(
               GetAccessTokenResponse.toBinary(GetAccessTokenResponse.create({
                 accepted: true,
-                accessToken: 'realm-token',
+                accessToken: token,
+              })),
+            ).toString('base64'),
+          };
+        }
+        if (
+          command === 'runtime_bridge_unary'
+          && methodId === '/nimi.runtime.v1.RuntimeAccountService/RefreshAccountSession'
+        ) {
+          token = 'fresh-realm-token';
+          return {
+            responseBytesBase64: Buffer.from(
+              RefreshAccountSessionResponse.toBinary(RefreshAccountSessionResponse.create({
+                accepted: true,
               })),
             ).toString('base64'),
           };
@@ -682,10 +692,23 @@ test('sdkListConnectors propagates AUTH_TOKEN_INVALID without retrying anonymous
         if (
           command === 'runtime_bridge_unary'
           && methodId === '/nimi.runtime.v1.RuntimeConnectorService/ListConnectors'
+          && unwrapped.authorization === 'Bearer stale-realm-token'
         ) {
           throw {
             reasonCode: ReasonCode.AUTH_TOKEN_INVALID,
             message: 'token rejected by runtime authn (simulated)',
+          };
+        }
+        if (
+          command === 'runtime_bridge_unary'
+          && methodId === '/nimi.runtime.v1.RuntimeConnectorService/ListConnectors'
+        ) {
+          return {
+            responseBytesBase64: Buffer.from(
+              ListConnectorsResponse.toBinary(ListConnectorsResponse.create({
+                connectors: [],
+              })),
+            ).toString('base64'),
           };
         }
         return { responseBytesBase64: '' };
@@ -695,20 +718,21 @@ test('sdkListConnectors propagates AUTH_TOKEN_INVALID without retrying anonymous
       target.window.__NIMI_TAURI_TEST__.invoke = target.__NIMI_TAURI_TEST__.invoke;
     }
 
-    let caught: unknown = null;
-    try {
-      await sdkListConnectors();
-    } catch (error) {
-      caught = error;
-    }
-    assert.ok(caught, 'expected sdkListConnectors to throw on AUTH_TOKEN_INVALID');
+    await sdkListConnectors();
 
     const listConnectorCalls = calls.filter((call) => (
       call.command === 'runtime_bridge_unary'
       && call.payload.methodId === '/nimi.runtime.v1.RuntimeConnectorService/ListConnectors'
     ));
-    // No retry — one and only one call.
-    assert.equal(listConnectorCalls.length, 1, 'ListConnectors must NOT be retried after AUTH_TOKEN_INVALID');
+    assert.equal(listConnectorCalls.length, 2, 'ListConnectors retries once after refreshing the local account token');
+    assert.equal(listConnectorCalls[0]?.payload.authorization, 'Bearer stale-realm-token');
+    assert.equal(listConnectorCalls[1]?.payload.authorization, 'Bearer fresh-realm-token');
+
+    const refreshCalls = calls.filter((call) => (
+      call.command === 'runtime_bridge_unary'
+      && call.payload.methodId === '/nimi.runtime.v1.RuntimeAccountService/RefreshAccountSession'
+    ));
+    assert.equal(refreshCalls.length, 1, 'AUTH_TOKEN_INVALID should trigger one account refresh');
   } finally {
     restoreTauri();
   }

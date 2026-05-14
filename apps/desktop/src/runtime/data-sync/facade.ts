@@ -236,9 +236,12 @@ export class DataSync {
 
   private isReauthenticationRequired(error: unknown): boolean {
     const errorFields = extractRuntimeErrorFields(error);
+    const code = String(errorFields.code || '').trim().toUpperCase();
     const reasonCode = String(errorFields.reasonCode || '').trim().toUpperCase();
     return (
-      reasonCode === ReasonCode.AUTH_TOKEN_INVALID
+      code === ReasonCode.AUTH_TOKEN_INVALID
+      || reasonCode === 'AUTH_REQUIRED'
+      || reasonCode === ReasonCode.AUTH_TOKEN_INVALID
       || reasonCode === ReasonCode.AUTH_TOKEN_EXPIRED
       || reasonCode === ReasonCode.APP_TOKEN_EXPIRED
       || reasonCode === ReasonCode.SESSION_EXPIRED

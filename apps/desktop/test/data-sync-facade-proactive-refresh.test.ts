@@ -247,6 +247,49 @@ test('DataSync clears Desktop auth projection when Realm access requires reauthe
   clearHotState();
 });
 
+test('DataSync clears Desktop auth projection for Realm AUTH_REQUIRED responses', async () => {
+  clearHotState();
+  let clearAuthCalls = 0;
+  let stopAllPollingCalls = 0;
+  const dataSync = new DataSync();
+  dataSync.initApi({
+    realmBaseUrl: 'https://realm.example',
+    accessTokenProvider: async () => 'runtime-account-access-token',
+  });
+  dataSync.setAuthCallbacks({
+    setAuth: () => undefined,
+    clearAuth: () => {
+      clearAuthCalls += 1;
+    },
+    getCurrentUser: () => ({ id: 'user-1' }),
+    isFriend: () => false,
+  });
+  dataSync.stopAllPolling = (() => {
+    stopAllPollingCalls += 1;
+  }) as typeof dataSync.stopAllPolling;
+  const authRequired = Object.assign(new Error('Authentication required'), {
+    code: ReasonCode.AUTH_TOKEN_INVALID,
+    reasonCode: 'AUTH_REQUIRED',
+    actionHint: 'refresh_realm_token_or_reauthenticate',
+    retryable: false,
+    traceId: 'trace-auth-required',
+  });
+
+  await assert.rejects(
+    () => dataSync.callApi(async () => {
+      throw authRequired;
+    }),
+    /Authentication required/,
+  );
+
+  assert.equal(clearAuthCalls, 1);
+  assert.equal(stopAllPollingCalls, 1);
+  const hotState = readDataSyncHotState();
+  assert.equal(hotState?.accessToken, '');
+  assert.equal(hotState?.refreshToken, '');
+  clearHotState();
+});
+
 test('DataSync keeps Desktop auth projection when Realm denies data access', async () => {
   clearHotState();
   let clearAuthCalls = 0;

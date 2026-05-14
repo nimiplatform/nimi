@@ -1,6 +1,7 @@
 import { tryParseJsonLike } from '../net/json';
 
 export type RuntimeErrorFields = {
+  code?: string;
   traceId?: string;
   reasonCode?: string;
   actionHint?: string;
@@ -66,6 +67,9 @@ export function extractRuntimeErrorFields(error: unknown): RuntimeErrorFields {
   }
 
   for (const candidate of collectCandidates(error)) {
+    if (!result.code) {
+      result.code = asString(candidate.code);
+    }
     if (!result.traceId) {
       result.traceId = asString(candidate.traceId) || asString(candidate.trace_id);
     }
