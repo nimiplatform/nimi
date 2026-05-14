@@ -293,7 +293,8 @@ export default defineConfig(({ mode }) => {
       outDir: path.resolve(__dirname, 'dist'),
       emptyOutDir: true,
       modulePreload: {
-        resolveDependencies: (_filename, deps) => deps.filter((dep) => !dep.includes('vendor-three-core')),
+        polyfill: false,
+        resolveDependencies: () => [],
       },
       sourcemap: true,
       rollupOptions: {
