@@ -12,7 +12,6 @@ import {
 import {
   createLive2dDiagnostic,
   describeLive2dLoadError,
-  hasLive2dCubismCore,
   probeLive2dAssetUrls,
   resizeCanvasToHost,
   resolveLive2dRuntimeUrls,
@@ -80,22 +79,6 @@ export default function ChatAgentAvatarLive2dViewport({
   useEffect(() => {
     const host = hostRef.current;
     if (!host) {
-      return;
-    }
-
-    if (!hasLive2dCubismCore()) {
-      const error = 'Live2D Cubism Core is not available in the desktop shell.';
-      setDiagnostic(createLive2dDiagnostic({
-        assetRef: input.assetRef,
-        stage: 'core-check',
-        status: 'error',
-        error,
-      }));
-      setLoadState({
-        status: 'error',
-        source: null,
-        error,
-      });
       return;
     }
 

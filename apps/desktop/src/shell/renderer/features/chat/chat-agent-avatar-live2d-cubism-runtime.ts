@@ -17,6 +17,7 @@ import type {
   OfficialCubismRuntime,
 } from './chat-agent-avatar-live2d-cubism-runtime-types';
 import {
+  ensureLive2dCubismCoreLoaded,
   loadOfficialCubismRuntimeModules,
 } from '@renderer/features/chat/chat-agent-avatar-live2d-cubism-runtime-loader';
 
@@ -36,20 +37,13 @@ function setGlobalLive2dDebugSnapshot(snapshot: Record<string, unknown> | null):
   }).__NIMI_LIVE2D_DEBUG__ = snapshot;
 }
 
-function hasLive2dCubismCore(): boolean {
-  return Boolean((globalThis as typeof globalThis & { Live2DCubismCore?: unknown }).Live2DCubismCore);
-}
-
 async function loadOfficialCubismRuntime(): Promise<OfficialCubismRuntime> {
   if (officialCubismRuntimePromise) {
     return officialCubismRuntimePromise;
   }
 
   officialCubismRuntimePromise = (async () => {
-    if (!hasLive2dCubismCore()) {
-      throw new Error('Live2D Cubism Core is not available in the desktop shell.');
-    }
-
+    await ensureLive2dCubismCoreLoaded();
     const runtime = await loadOfficialCubismRuntimeModules();
 
     if (!runtime.CubismFramework.isStarted()) {

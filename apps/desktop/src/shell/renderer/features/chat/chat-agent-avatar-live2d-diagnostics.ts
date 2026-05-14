@@ -1,4 +1,5 @@
 import type { ChatAgentAvatarLive2dModelSource } from './chat-agent-avatar-live2d-viewport-state';
+import { hasLive2dCubismCore } from './chat-agent-avatar-live2d-cubism-runtime-loader';
 
 export type Live2dViewportStatus = 'loading' | 'ready' | 'error';
 
@@ -35,10 +36,6 @@ export type ChatAgentAvatarLive2dDiagnostic = {
   recoveryAttemptCount: number;
   recoveryReason: string | null;
 };
-
-export function hasLive2dCubismCore(): boolean {
-  return Boolean((globalThis as typeof globalThis & { Live2DCubismCore?: unknown }).Live2DCubismCore);
-}
 
 export function describeLive2dLoadError(error: unknown): string {
   if (error instanceof Error && error.message.trim()) {
