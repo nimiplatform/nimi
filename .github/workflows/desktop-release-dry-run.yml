@@ -508,11 +508,11 @@ jobs:
             'apps/desktop/src-tauri/resources/runtime',
             'apps/desktop/reports',
           ];
-          fs.appendFileSync(outputPath, 'paths<<__NIMI_EOF__\\n');
+          fs.appendFileSync(outputPath, 'paths<<__NIMI_EOF__\n');
           for (const filePath of uploadPaths) {
-            fs.appendFileSync(outputPath, `${filePath}\\n`);
+            fs.appendFileSync(outputPath, `${filePath}\n`);
           }
-          fs.appendFileSync(outputPath, '__NIMI_EOF__\\n');
+          fs.appendFileSync(outputPath, '__NIMI_EOF__\n');
           NODE
 
       - name: Upload desktop dry-run artifacts
