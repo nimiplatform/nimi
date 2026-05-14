@@ -30,8 +30,8 @@
     "nimicoding"
   ],
   "dependencies": {
-    "@openai/codex-sdk": "^0.124.0",
-    "yaml": "^2.8.1"
+    "@openai/codex-sdk": "^0.130.0",
+    "yaml": "^2.9.0"
   },
   "files": [
     "bin",
