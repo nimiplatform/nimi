@@ -69,13 +69,19 @@ test('hosted package module shim does not emit reserved-word export bindings', (
 test('hosted package module source filters invalid export bindings before emission', () => {
   const source = buildHostedPackageModuleSource('test-package', {
     validName: 1,
+    registry: 'exported registry',
+    module: 'exported module',
     null: null,
     true: true,
     catch: 'reserved',
     'not-valid-name': 'invalid',
   });
 
-  assert.match(source, /export const validName = module\["validName"\];/);
+  const constBindings = [...source.matchAll(/\bconst\s+([A-Za-z_$][\w$]*)\b/g)].map((match) => match[1]);
+  assert.equal(new Set(constBindings).size, constBindings.length);
+  assert.match(source, /export const module = __nimiHostedPackageModule\["module"\];/);
+  assert.match(source, /export const registry = __nimiHostedPackageModule\["registry"\];/);
+  assert.match(source, /export const validName = __nimiHostedPackageModule\["validName"\];/);
   assert.doesNotMatch(source, /export const null\b/);
   assert.doesNotMatch(source, /export const true\b/);
   assert.doesNotMatch(source, /export const catch\b/);

@@ -123,18 +123,32 @@ export function isHostedPackageExportBinding(key: string): boolean {
     && !RESERVED_MODULE_EXPORT_BINDINGS.has(key);
 }
 
+function resolveHostedPackageInternalBinding(baseName: string, reservedBindings: ReadonlySet<string>): string {
+  let candidate = baseName;
+  let suffix = 0;
+  while (reservedBindings.has(candidate)) {
+    suffix += 1;
+    candidate = `${baseName}${suffix}`;
+  }
+  return candidate;
+}
+
 export function buildHostedPackageModuleSource(specifier: string, moduleNamespace: Record<string, unknown>): string {
-  const exportLines = Object.keys(moduleNamespace)
+  const exportKeys = Object.keys(moduleNamespace)
     .filter(isHostedPackageExportBinding)
-    .sort()
-    .map((key) => `export const ${key} = module[${JSON.stringify(key)}];`);
+    .sort();
+  const reservedBindings = new Set(exportKeys);
+  const registryBinding = resolveHostedPackageInternalBinding('__nimiHostedPackageRegistry', reservedBindings);
+  reservedBindings.add(registryBinding);
+  const moduleBinding = resolveHostedPackageInternalBinding('__nimiHostedPackageModule', reservedBindings);
+  const exportLines = exportKeys.map((key) => `export const ${key} = ${moduleBinding}[${JSON.stringify(key)}];`);
 
   return [
-    `const registry = globalThis[${JSON.stringify(HOSTED_PACKAGE_REGISTRY_KEY)}];`,
-    `const module = registry?.[${JSON.stringify(specifier)}];`,
-    `if (!module) throw new Error(${JSON.stringify(`Missing hosted package module: ${specifier}`)});`,
+    `const ${registryBinding} = globalThis[${JSON.stringify(HOSTED_PACKAGE_REGISTRY_KEY)}];`,
+    `const ${moduleBinding} = ${registryBinding}?.[${JSON.stringify(specifier)}];`,
+    `if (!${moduleBinding}) throw new Error(${JSON.stringify(`Missing hosted package module: ${specifier}`)});`,
     ...exportLines,
-    'export default module.default;',
+    `export default ${moduleBinding}.default;`,
   ].join('\n');
 }
 
