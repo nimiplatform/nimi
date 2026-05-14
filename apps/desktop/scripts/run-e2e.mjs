@@ -189,6 +189,41 @@ function ensureTauriDriverAvailable() {
   }
 }
 
+function hasPathSeparator(input) {
+  return /[\\/]/.test(input);
+}
+
+function resolveNativeDriverPath(nativeDriver) {
+  const normalized = String(nativeDriver || '').trim();
+  if (!normalized || hasPathSeparator(normalized)) {
+    return normalized;
+  }
+
+  const resolver = os.platform() === 'win32' ? 'where.exe' : 'which';
+  const probe = spawnSync(resolver, [normalized], {
+    cwd: repoRoot,
+    env: process.env,
+    encoding: 'utf8',
+  });
+  if (probe.error || probe.status !== 0) {
+    const detail = [probe.error?.message, probe.stderr, probe.stdout]
+      .map((value) => String(value || '').trim())
+      .filter(Boolean)
+      .join(' | ');
+    throw new Error(detail
+      ? `native WebDriver binary ${JSON.stringify(normalized)} is not resolvable: ${detail}`
+      : `native WebDriver binary ${JSON.stringify(normalized)} is not resolvable`);
+  }
+  const resolved = String(probe.stdout || '')
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .find(Boolean);
+  if (!resolved) {
+    throw new Error(`native WebDriver binary ${JSON.stringify(normalized)} resolved to an empty path`);
+  }
+  return resolved;
+}
+
 function requiresShell(command) {
   return os.platform() === 'win32' && command === 'pnpm';
 }
@@ -227,10 +262,15 @@ async function buildApplication() {
   ]);
 }
 
-function waitForPort(host, port, timeoutMs = 15000) {
+function waitForPort(host, port, timeoutMs = 15000, shouldAbort) {
   const deadline = Date.now() + timeoutMs;
   return new Promise((resolve, reject) => {
     const tryConnect = () => {
+      const abortReason = shouldAbort?.();
+      if (abortReason) {
+        reject(new Error(abortReason));
+        return;
+      }
       const socket = net.createConnection({ host, port });
       socket.once('connect', () => {
         socket.destroy();
@@ -265,7 +305,7 @@ async function runScenario(scenarioId, runIndex) {
     throw new Error(`desktop E2E application not found: ${appPath}`);
   }
 
-  const nativeDriver = String(process.env.NIMI_E2E_NATIVE_DRIVER || '').trim();
+  const nativeDriver = resolveNativeDriverPath(process.env.NIMI_E2E_NATIVE_DRIVER);
   const driverPort = Number(process.env.NIMI_E2E_DRIVER_PORT || '4444');
   const driverHost = process.env.NIMI_E2E_DRIVER_HOST || '127.0.0.1';
   const artifactsDir = path.join(artifactRoot(), `${String(runIndex).padStart(2, '0')}-${scenarioId}`);
@@ -306,6 +346,10 @@ async function runScenario(scenarioId, runIndex) {
   });
   driver.stdout.pipe(driverLog);
   driver.stderr.pipe(driverLog);
+  let driverExit = null;
+  driver.on('exit', (code, signal) => {
+    driverExit = { code, signal };
+  });
 
   writeArtifactManifest(artifactManifestPath, {
     scenario_id: scenarioId,
@@ -320,7 +364,15 @@ async function runScenario(scenarioId, runIndex) {
   });
 
   try {
-    await waitForPort(driverHost, driverPort, 20000);
+    await waitForPort(driverHost, driverPort, 20000, () => {
+      if (!driverExit) {
+        return '';
+      }
+      const suffix = driverExit.signal
+        ? `signal ${driverExit.signal}`
+        : `code ${driverExit.code}`;
+      return `tauri-driver exited before opening ${driverHost}:${driverPort} (${suffix}); see ${path.join(artifactsDir, 'tauri-driver.log')}`;
+    });
     await spawnLogged(
       'pnpm',
       [

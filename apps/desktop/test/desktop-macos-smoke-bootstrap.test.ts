@@ -91,6 +91,8 @@ test('desktop macos smoke renderer sources include mounted ping markers', () => 
   assert.match(bootstrapRsSource, /window-eval-probe/);
   assert.match(bootstrapRsSource, /renderer-module-import-failed/);
   assert.match(bootstrapRsSource, /window-dynamic-import-ok/);
+  assert.match(bootstrapRsSource, /if \(!context\?\.enabled\) \{/);
+  assert.match(bootstrapRsSource, /return import\(scriptSrc\);/);
   assert.match(appSource, /app-mounted/);
   assert.match(bootstrapSource, /macos-smoke-context-ready/);
   assert.match(bootstrapSource, /macos-smoke-scenario-start/);

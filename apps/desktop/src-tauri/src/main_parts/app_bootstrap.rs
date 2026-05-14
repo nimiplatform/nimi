@@ -108,19 +108,27 @@ fn build_desktop_app() -> Result<tauri::App<tauri::Wry>, tauri::Error> {
       }
       void invokeSafe('desktop_macos_smoke_context_get')
         .then((context) => {
-          if (context?.enabled && context?.scenarioId === 'boot.anonymous.login-screen') {
+          if (!context?.enabled) {
+            return undefined;
+          }
+          if (context?.scenarioId === 'boot.anonymous.login-screen') {
             globalRecord.localStorage?.clear?.();
           }
+          return import(scriptSrc);
         })
-        .then(() => import(scriptSrc))
-        .then(() => invokeSafe('desktop_macos_smoke_ping', {
-          payload: {
-            stage: 'window-dynamic-import-ok',
-            details: {
-              scriptSrc,
+        .then((importResult) => {
+          if (!importResult) {
+            return undefined;
+          }
+          return invokeSafe('desktop_macos_smoke_ping', {
+            payload: {
+              stage: 'window-dynamic-import-ok',
+              details: {
+                scriptSrc,
+              },
             },
-          },
-        }))
+          });
+        })
         .catch((error) => invokeSafe('desktop_macos_smoke_report_write', {
           payload: {
             ok: false,
