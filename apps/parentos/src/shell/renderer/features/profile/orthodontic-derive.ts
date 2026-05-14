@@ -253,6 +253,246 @@ export function computeCycleProgress(params: {
   };
 }
 
+// ── Per-appliance treatment phase (PO-ORTHO-013) ────────────────────────
+
+export interface AppliancePhase {
+  phaseId: string;
+  label: string;
+  /** Typical phase duration — a projection for the month counter, never a deadline. */
+  expectedMonths: number;
+}
+
+/**
+ * Ordered per-appliance-type treatment-phase sequences. TS mirror of
+ * `orthodontic-protocols.yaml#appliancePhases`; the YAML is the sole authority
+ * and `orthodontic-protocol-catalog.test.ts` pins this against it.
+ */
+export const APPLIANCE_PHASES: Record<OrthodonticApplianceType, AppliancePhase[]> = {
+  'twin-block': [
+    { phaseId: 'functional', label: '功能导下颌', expectedMonths: 9 },
+    { phaseId: 'settling', label: '咬合稳定', expectedMonths: 3 },
+  ],
+  expander: [
+    { phaseId: 'widening', label: '加力扩弓', expectedMonths: 3 },
+    { phaseId: 'holding', label: '保持稳定', expectedMonths: 6 },
+  ],
+  activator: [
+    { phaseId: 'functional', label: '功能导下颌', expectedMonths: 9 },
+    { phaseId: 'settling', label: '咬合稳定', expectedMonths: 3 },
+  ],
+  'metal-braces': [
+    { phaseId: 'leveling', label: '排齐整平', expectedMonths: 8 },
+    { phaseId: 'space-closure', label: '关闭间隙', expectedMonths: 6 },
+    { phaseId: 'finishing', label: '咬合精调', expectedMonths: 4 },
+    { phaseId: 'debond-prep', label: '拆机准备', expectedMonths: 2 },
+  ],
+  'ceramic-braces': [
+    { phaseId: 'leveling', label: '排齐整平', expectedMonths: 8 },
+    { phaseId: 'space-closure', label: '关闭间隙', expectedMonths: 6 },
+    { phaseId: 'finishing', label: '咬合精调', expectedMonths: 4 },
+    { phaseId: 'debond-prep', label: '拆机准备', expectedMonths: 2 },
+  ],
+  'clear-aligner': [
+    { phaseId: 'active-series', label: '主动序列', expectedMonths: 12 },
+    { phaseId: 'refinement', label: '精调序列', expectedMonths: 3 },
+  ],
+  'retainer-fixed': [
+    { phaseId: 'stabilizing', label: '稳定保持期', expectedMonths: 12 },
+    { phaseId: 'long-term', label: '长期保持期', expectedMonths: 24 },
+  ],
+  'retainer-removable': [
+    { phaseId: 'full-time', label: '全日佩戴', expectedMonths: 6 },
+    { phaseId: 'night-time', label: '夜间佩戴', expectedMonths: 12 },
+    { phaseId: 'intermittent', label: '间歇佩戴', expectedMonths: 24 },
+  ],
+};
+
+/**
+ * Whole months elapsed since an ISO date/datetime, ceil semantics matching the
+ * case-level `monthsElapsed` projection: 0 before day 1, else
+ * `max(1, ceil(days / 30))` so day 1 already reads as "第 1 月".
+ */
+function monthsSinceCeil(fromIso: string, nowIso: string): number {
+  const fromMs = parseIso(fromIso.length > 10 ? fromIso : ymdToIsoMidnight(fromIso));
+  const days = Math.max(0, (parseIso(nowIso) - fromMs) / DAY_MS);
+  return days > 0 ? Math.max(1, Math.ceil(days / 30)) : 0;
+}
+
+/** Adds whole days to an ISO date/datetime, returning a `yyyy-mm-dd` date. */
+function addDaysIso(iso: string, days: number): string {
+  return new Date(parseIso(iso) + days * DAY_MS).toISOString().slice(0, 10);
+}
+
+export interface AppliancePhaseProgress {
+  phaseId: string;
+  label: string;
+  /** 1-based position of the current phase in the type sequence. */
+  phaseNumber: number;
+  phaseTotal: number;
+  /** Whole months since `phaseStartedAt` (ceil). */
+  monthsInPhase: number;
+  /** Typical-duration projection — never a deadline (PO-ORTHO-013). */
+  expectedMonths: number;
+}
+
+/**
+ * Per-appliance phase view-model (PO-ORTHO-013). Returns null when the
+ * appliance has no phase set yet (the admitted "未设置" intermediate state) or
+ * — defensively — when the persisted phase is not in the type's sequence (the
+ * Rust read path already fail-closes on that, so this is belt-and-braces).
+ */
+export function computeAppliancePhaseProgress(
+  appliance: OrthodonticApplianceRow,
+  nowIso: string,
+): AppliancePhaseProgress | null {
+  if (!appliance.currentPhase) return null;
+  const seq = APPLIANCE_PHASES[appliance.applianceType];
+  const idx = seq.findIndex((p) => p.phaseId === appliance.currentPhase);
+  if (idx < 0) return null;
+  const phase = seq[idx]!;
+  const anchor = appliance.phaseStartedAt ?? appliance.startedAt;
+  return {
+    phaseId: phase.phaseId,
+    label: phase.label,
+    phaseNumber: idx + 1,
+    phaseTotal: seq.length,
+    monthsInPhase: monthsSinceCeil(anchor, nowIso),
+    expectedMonths: phase.expectedMonths,
+  };
+}
+
+export interface AppliancePhaseOption {
+  phaseId: string;
+  label: string;
+  state: 'past' | 'current' | 'future';
+  /** True when the parent can advance to this phase from the current one. */
+  advanceable: boolean;
+}
+
+/**
+ * Per-appliance phase stepper view-model — the PO-ORTHO-013 mirror of
+ * `computeStageOptions`. With a null `currentPhase` the first phase is the
+ * single advanceable target; otherwise the immediate next phase is advanceable.
+ */
+export function computeAppliancePhaseOptions(
+  appliance: Pick<OrthodonticApplianceRow, 'applianceType' | 'currentPhase'>,
+): AppliancePhaseOption[] {
+  const seq = APPLIANCE_PHASES[appliance.applianceType];
+  const currentIdx = appliance.currentPhase
+    ? seq.findIndex((p) => p.phaseId === appliance.currentPhase)
+    : -1;
+  return seq.map((phase, idx) => {
+    const state: AppliancePhaseOption['state'] =
+      idx < currentIdx ? 'past' : idx === currentIdx ? 'current' : 'future';
+    return {
+      phaseId: phase.phaseId,
+      label: phase.label,
+      state,
+      advanceable: idx === currentIdx + 1,
+    };
+  });
+}
+
+// ── Expander activation cadence (PO-ORTHO-014) ──────────────────────────
+
+export interface ExpanderActivationProjection {
+  completedActivations: number;
+  prescribedActivations: number | null;
+  /** completedActivations / prescribedActivations clamped to [0,1]; null when
+   *  there is no prescribed denominator. */
+  ratio: number | null;
+  /** ISO `yyyy-mm-dd` of the next projected activation, or null when the series
+   *  is complete or the appliance is not an expander. */
+  nextActivationDate: string | null;
+  /** True once `completedActivations >= prescribedActivations`. */
+  isComplete: boolean;
+}
+
+/**
+ * Expander activation progress + next-turn projection (PO-ORTHO-014).
+ * `nextActivationDate = max(latest expander-activation event, startedAt) +
+ * activationIntervalDays`, with the cadence falling back to 1 day when the
+ * appliance has no per-appliance override.
+ */
+export function computeExpanderActivationProjection(params: {
+  appliance: OrthodonticApplianceRow;
+  activationCheckins: OrthodonticCheckinRow[];
+  nowIso: string;
+}): ExpanderActivationProjection {
+  const { appliance, activationCheckins } = params;
+  const completed = appliance.completedActivations;
+  const prescribed = appliance.prescribedActivations;
+  const isComplete = prescribed !== null && completed >= prescribed;
+  const ratio =
+    prescribed !== null && prescribed > 0
+      ? Math.max(0, Math.min(1, completed / prescribed))
+      : null;
+  let nextActivationDate: string | null = null;
+  if (appliance.applianceType === 'expander' && !isComplete) {
+    const cadenceDays = appliance.activationIntervalDays ?? 1;
+    const events = activationCheckins
+      .filter(
+        (c) =>
+          c.checkinType === 'expander-activation' &&
+          c.applianceId === appliance.applianceId,
+      )
+      .map((c) => c.checkinAt ?? ymdToIsoMidnight(c.checkinDate))
+      .sort((a, b) => a.localeCompare(b));
+    // PO-ORTHO-014: anchor is max(latest activation event, startedAt) — never
+    // earlier than the appliance start even if a stray event predates it.
+    const startedIso = ymdToIsoMidnight(appliance.startedAt);
+    const latestEventIso = events.length > 0 ? events[events.length - 1]! : null;
+    const anchorIso =
+      latestEventIso !== null && latestEventIso > startedIso ? latestEventIso : startedIso;
+    nextActivationDate = addDaysIso(anchorIso, cadenceDays);
+  }
+  return {
+    completedActivations: completed,
+    prescribedActivations: prescribed,
+    ratio,
+    nextActivationDate,
+    isComplete,
+  };
+}
+
+// ── Daily net-wear view (PO-ORTHO-008a) ─────────────────────────────────
+
+export interface DailyNetWear {
+  /** Today's net wear hours = 24 − Σ today's gap hours, clamped to [0, 24]. */
+  todayNetWearHours: number;
+  /** Prescribed daily wear target (`appliance.prescribedHoursPerDay`), or null. */
+  todayTargetHours: number | null;
+}
+
+/**
+ * PO-ORTHO-008a daily net-wear view: today's net wear derived from the same
+ * wear-gap stream as the cycle projection, scoped to `[today 00:00 local, now]`.
+ * Surfaced as the ring metric for retention removable appliances; the
+ * underlying per-cycle projection is unchanged.
+ */
+export function computeDailyNetWear(params: {
+  intervals: OrthodonticUnwearIntervalRow[];
+  prescribedHoursPerDay: number | null;
+  nowIso: string;
+}): DailyNetWear {
+  const { intervals, prescribedHoursPerDay, nowIso } = params;
+  const now = new Date(nowIso);
+  const dayStart = new Date(now);
+  dayStart.setHours(0, 0, 0, 0);
+  const dayStartMs = dayStart.getTime();
+  const nowMs = now.getTime();
+  let gapMs = 0;
+  for (const iv of intervals) {
+    const startMs = parseIso(iv.startAt);
+    const endMs = iv.endAt ? parseIso(iv.endAt) : nowMs;
+    const overlapStart = Math.max(startMs, dayStartMs);
+    const overlapEnd = Math.min(endMs, nowMs);
+    if (overlapEnd > overlapStart) gapMs += overlapEnd - overlapStart;
+  }
+  const todayNetWearHours = Math.max(0, Math.min(24, 24 - gapMs / HOUR_MS));
+  return { todayNetWearHours, todayTargetHours: prescribedHoursPerDay };
+}
+
 // ── Stage stepper ───────────────────────────────────────────────────────
 
 export const STAGE_ORDER: OrthodonticStage[] = [

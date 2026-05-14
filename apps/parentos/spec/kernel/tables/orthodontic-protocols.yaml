@@ -34,6 +34,31 @@ schema:
       - retainer-removable
   applianceStatus: { type: enum, required: true, values: [active, paused, completed] }
 
+  currentPhase:
+    type: string
+    required: false
+    notes: >
+      Per-appliance treatment phase (PO-ORTHO-013). When non-null it MUST be a
+      `phaseId` admitted for the row's `applianceType` in `appliancePhases`
+      below. NULL = "phase not yet set" (admitted intermediate state). Paired
+      with `phaseStartedAt`: both NULL or both set.
+
+  activationIntervalDays:
+    type: integer
+    required: false
+    notes: >
+      Expander-only per-appliance activation-turn cadence in days (PO-ORTHO-014).
+      Overrides `PO-ORTHO-EXPANDER-ACTIVATION#defaultIntervalDays` for both the
+      reminder next-trigger and the UI "下次转动" projection. MUST be NULL for
+      every non-expander appliance type; MUST be positive for `expander` when set.
+
+  nextReviewAgenda:
+    type: string
+    required: false
+    notes: >
+      Parent-entered free-text describing what the appliance's next review visit
+      is for (PO-ORTHO-015). Never AI-generated. Out of scope for any AI prompt.
+
   # v1 compliance is a per-CYCLE continuous projection derived from wear-gap
   # intervals (see PO-ORTHO-008). There is no daily bucket. The legacy
   # `complianceThresholds` table is retired in v15 along with `wear-daily`.
@@ -67,6 +92,45 @@ applianceMinAge:
   clear-aligner:       84
   retainer-fixed:      84
   retainer-removable:  84
+
+# Per-appliance treatment-phase sequences (PO-ORTHO-013). Each applianceType has
+# a clinically-ordered list of phases; `orthodontic_appliances.currentPhase`
+# stores one `phaseId` from its type's sequence (or NULL = not yet set).
+# `expectedMonths` is a typical-duration projection for the per-appliance month
+# counter — never a hard deadline, never a "落后" verdict source (PO-ORTHO-010).
+# Phase transitions are parent-initiated and adjacency-only
+# (advance_orthodontic_appliance_phase). phaseId values are stable identifiers;
+# renaming or removing one is a breaking change requiring a data migration.
+appliancePhases:
+  expander:
+    - { phaseId: widening,      label: "加力扩弓",   expectedMonths: 3 }
+    - { phaseId: holding,       label: "保持稳定",   expectedMonths: 6 }
+  twin-block:
+    - { phaseId: functional,    label: "功能导下颌", expectedMonths: 9 }
+    - { phaseId: settling,      label: "咬合稳定",   expectedMonths: 3 }
+  activator:
+    - { phaseId: functional,    label: "功能导下颌", expectedMonths: 9 }
+    - { phaseId: settling,      label: "咬合稳定",   expectedMonths: 3 }
+  metal-braces:
+    - { phaseId: leveling,      label: "排齐整平",   expectedMonths: 8 }
+    - { phaseId: space-closure, label: "关闭间隙",   expectedMonths: 6 }
+    - { phaseId: finishing,     label: "咬合精调",   expectedMonths: 4 }
+    - { phaseId: debond-prep,   label: "拆机准备",   expectedMonths: 2 }
+  ceramic-braces:
+    - { phaseId: leveling,      label: "排齐整平",   expectedMonths: 8 }
+    - { phaseId: space-closure, label: "关闭间隙",   expectedMonths: 6 }
+    - { phaseId: finishing,     label: "咬合精调",   expectedMonths: 4 }
+    - { phaseId: debond-prep,   label: "拆机准备",   expectedMonths: 2 }
+  clear-aligner:
+    - { phaseId: active-series, label: "主动序列",   expectedMonths: 12 }
+    - { phaseId: refinement,    label: "精调序列",   expectedMonths: 3 }
+  retainer-fixed:
+    - { phaseId: stabilizing,   label: "稳定保持期", expectedMonths: 12 }
+    - { phaseId: long-term,     label: "长期保持期", expectedMonths: 24 }
+  retainer-removable:
+    - { phaseId: full-time,     label: "全日佩戴",   expectedMonths: 6 }
+    - { phaseId: night-time,    label: "夜间佩戴",   expectedMonths: 12 }
+    - { phaseId: intermittent,  label: "间歇佩戴",   expectedMonths: 24 }
 
 # Admitted dynamic reminder rules emitted by the protocol catalog compiler.
 # ruleId stability contract: these IDs persist into reminder_states, so
@@ -122,9 +186,13 @@ rules:
     cadence: interval
     checkinType: expander-activation
     defaultIntervalDays: 1
+    intervalOverrideField: activationIntervalDays
     stopWhen: "completedActivations >= prescribedActivations"
     nurtureMode: { relaxed: push, balanced: push, advanced: push }
     source: "AAO-2023 expander protocol"
+    # PO-ORTHO-014: when the appliance row has a non-null
+    # `activationIntervalDays`, it overrides `defaultIntervalDays` for both the
+    # reminder next-trigger computation and the UI "下次转动" projection.
 
   - ruleId: PO-ORTHO-REVIEW-FIXED
     applianceTypes: [metal-braces, ceramic-braces]
@@ -241,14 +309,12 @@ dentalFollowUpRules:
     triggeredBy: { dentalEventType: checkup }
     source: "NHC-stomatology-2023"
 
-# Checkin discriminator: only these four values are admitted in
+# Checkin discriminator: only these two values are admitted in
 # orthodontic_checkins.checkinType. All other orthodontic-lifecycle events
 # (review, adjustment, issue, end) write to dental_records instead.
 admittedCheckinTypes:
-  - wear-daily
   - aligner-change
   - expander-activation
-  - retention-wear
 
 # AI boundary for orthodontic summaries.
 aiBoundary:
@@ -267,5 +333,9 @@ constraints:
   - "Every ruleId in rules[] and dentalFollowUpRules[] must round-trip into the compiled REMINDER_RULES catalog."
   - "Runtime code must not synthesize ruleIds outside this file; PO-TIME-007 fail-close enforces this."
   - "applianceMinAge keys must match the applianceType enum exactly."
+  - "appliancePhases keys must match the applianceType enum exactly (every type has a sequence; no extra keys)."
+  - "phaseId values must be unique within each applianceType sequence; renaming or removing a phaseId is a breaking change."
+  - "orthodontic_appliances.currentPhase, when non-null, must be a phaseId from that row's applianceType sequence (PO-ORTHO-013)."
+  - "orthodontic_appliances.activationIntervalDays is expander-only and must be NULL for every other applianceType (PO-ORTHO-014)."
   - "admittedCheckinTypes must match orthodontic_checkins.checkinType SQLite column semantics exactly."
   - "pauseSemantics.level must remain 'appliance'; any attempt to introduce case-level pause is a contract violation."

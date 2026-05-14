@@ -27,7 +27,12 @@ import {
   type OrthodonticStage,
   type WritableOrthodonticCaseType,
 } from '../../bridge/sqlite-bridge.js';
-import { applianceSupportsWearGap, applianceTypeLabel, defaultReviewIntervalDays } from './orthodontic-derive.js';
+import {
+  APPLIANCE_PHASES,
+  applianceSupportsWearGap,
+  applianceTypeLabel,
+  defaultReviewIntervalDays,
+} from './orthodontic-derive.js';
 import { computeAgeMonthsAt } from '../../app-shell/app-store.js';
 import { isoNow, ulid } from '../../bridge/ulid.js';
 import { catchLog } from '../../infra/telemetry/catch-log.js';
@@ -258,6 +263,9 @@ export function EditCaseFormModal({
           prescribedHoursPerDay: showHoursField ? prescribedHoursNum : null,
           totalAligners: showAlignerPlanFields ? totalAlignersNum : null,
           daysPerAligner: showAlignerPlanFields ? daysPerAlignerNum : null,
+          // Preserved as-is here; the per-appliance editor (Wave 5) owns these.
+          activationIntervalDays: primaryAppliance.activationIntervalDays,
+          nextReviewAgenda: primaryAppliance.nextReviewAgenda,
           now,
         });
       }
@@ -385,12 +393,26 @@ export function ApplianceFormModal({
   const [startedAt, setStartedAt] = useState(new Date().toISOString().slice(0, 10));
   const [prescribedHours, setPrescribedHours] = useState<string>('');
   const [prescribedActivations, setPrescribedActivations] = useState<string>('');
+  const [activationInterval, setActivationInterval] = useState<string>('');
   const [totalAligners, setTotalAligners] = useState<string>('');
   const [daysPerAligner, setDaysPerAligner] = useState<string>('');
+  const [currentPhase, setCurrentPhase] = useState<string>('');
   const [reviewIntervalDays, setReviewIntervalDays] = useState<string>('');
+  const [nextReviewAgenda, setNextReviewAgenda] = useState<string>('');
   const [localError, setLocalError] = useState<string | null>(null);
   const needsPrescribedHours = applianceRequiresPrescribedHours(applianceType);
   const isClearAligner = applianceType === 'clear-aligner';
+  const isExpander = applianceType === 'expander';
+  // Phase options are type-specific (PO-ORTHO-013) — reset the picked phase
+  // whenever the appliance type changes so an invalid phaseId can't carry over.
+  const handleTypeChange = (next: OrthodonticApplianceType) => {
+    setApplianceType(next);
+    setCurrentPhase('');
+  };
+  const activationIntervalValid =
+    !isExpander || activationInterval === ''
+      ? true
+      : Number.isInteger(Number(activationInterval)) && Number(activationInterval) > 0;
   const totalAlignersValid = isClearAligner
     ? Number.isInteger(Number(totalAligners)) && Number(totalAligners) > 0
     : true;
@@ -412,6 +434,12 @@ export function ApplianceFormModal({
       onError(msg);
       return;
     }
+    if (!activationIntervalValid) {
+      const msg = '扩弓转动周期必须是大于 0 的整数（天）';
+      setLocalError(msg);
+      onError(msg);
+      return;
+    }
     try {
       onError(null);
       setLocalError(null);
@@ -425,9 +453,16 @@ export function ApplianceFormModal({
         startedAt,
         prescribedHoursPerDay: prescribedHours ? Number(prescribedHours) : null,
         prescribedActivations: prescribedActivations ? Number(prescribedActivations) : null,
+        activationIntervalDays:
+          isExpander && activationInterval !== '' ? Number(activationInterval) : null,
         totalAligners: isClearAligner ? Number(totalAligners) : null,
         daysPerAligner: isClearAligner ? Number(daysPerAligner) : null,
+        // currentPhase + phaseStartedAt are paired: both set when the parent
+        // picks an initial phase, both NULL otherwise (PO-ORTHO-013).
+        currentPhase: currentPhase === '' ? null : currentPhase,
+        phaseStartedAt: currentPhase === '' ? null : startedAt,
         reviewIntervalDays: reviewIntervalDays ? Number(reviewIntervalDays) : null,
+        nextReviewAgenda: nextReviewAgenda.trim() === '' ? null : nextReviewAgenda.trim(),
         notes: null,
         now: isoNow(),
       });
@@ -448,8 +483,8 @@ export function ApplianceFormModal({
   return (
     <Modal title="添加矫治器" onClose={onClose}>
       {localError && <ModalErrorBanner message={localError} onDismiss={() => setLocalError(null)} />}
-      <FieldSelect label="装置类型" value={applianceType}
-        onChange={(v) => setApplianceType(v as OrthodonticApplianceType)}
+      <FieldSelect label="矫治器类型" value={applianceType}
+        onChange={(v) => handleTypeChange(v as OrthodonticApplianceType)}
         options={eligibleTypes.map((o) => ({ value: o.value, label: o.label }))} />
       {eligibleTypes.length === 0 && (
         <div className="text-[14px] px-3 py-2 rounded-md"
@@ -465,9 +500,18 @@ export function ApplianceFormModal({
       )}
       <FieldInput label="医嘱佩戴小时/天" type="number" value={prescribedHours} onChange={setPrescribedHours}
         required={needsPrescribedHours} />
-      {applianceType === 'expander' && (
-        <FieldInput label="扩弓总激活次数" type="number" value={prescribedActivations}
-          onChange={setPrescribedActivations} />
+      {isExpander && (
+        <>
+          <FieldInput label="扩弓总激活次数" type="number" value={prescribedActivations}
+            onChange={setPrescribedActivations} />
+          <FieldInput label="扩弓转动周期（天，可选）" type="number" value={activationInterval}
+            onChange={setActivationInterval} placeholder="例如 3" />
+          {!activationIntervalValid && (
+            <div className="text-[13px]" style={{ color: '#b91c1c' }}>
+              转动周期必须是大于 0 的整数。
+            </div>
+          )}
+        </>
       )}
       {isClearAligner && (
         <>
@@ -489,6 +533,13 @@ export function ApplianceFormModal({
       )}
       <FieldInput label="复诊间隔（天）" type="number" value={reviewIntervalDays}
         onChange={setReviewIntervalDays} />
+      <FieldSelect label="初始治疗阶段（可选）" value={currentPhase} onChange={setCurrentPhase}
+        options={[
+          { value: '', label: '暂不设置' },
+          ...APPLIANCE_PHASES[applianceType].map((p) => ({ value: p.phaseId, label: p.label })),
+        ]} />
+      <FieldTextarea label="下次复诊议程（可选）" value={nextReviewAgenda}
+        onChange={setNextReviewAgenda} placeholder="例如 评估扩弓量 / 换主弓丝" />
       {startedAt && childBirthDate && !dateIsBeforeBirth && (
         <div className="text-[13px]" style={{ color: S.sub }}>
           开始时孩子 {Math.floor(startedAgeMonths / 12)} 岁 {startedAgeMonths % 12} 月
@@ -500,6 +551,7 @@ export function ApplianceFormModal({
           || Boolean(dateIsBeforeBirth)
           || (needsPrescribedHours && !prescribedHours.trim())
           || (isClearAligner && (!totalAlignersValid || !daysPerAlignerValid))
+          || !activationIntervalValid
         } />
     </Modal>
   );

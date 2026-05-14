@@ -450,7 +450,6 @@ export function ReminderPanel({
       </div>
 
       <div className="flex-1 overflow-y-auto px-1">
-        {orthoCycle && <OrthoCycleProgressWidget cycle={orthoCycle} />}
         {items.length === 0 ? (
           <p className="py-10 text-center text-[14px]" style={{ color: '#64748b' }}>暂无事项</p>
         ) : (
@@ -467,6 +466,8 @@ export function ReminderPanel({
             ))}
           </>
         )}
+
+        {orthoCycle && <OrthoCycleProgressWidget cycle={orthoCycle} />}
 
         {p0OverflowCount > 0 && (
           <AgendaOverflowGroup

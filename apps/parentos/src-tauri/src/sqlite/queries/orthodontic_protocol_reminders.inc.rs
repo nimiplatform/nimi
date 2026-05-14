@@ -41,6 +41,15 @@ fn add_days_iso(iso_date: &str, days: i64) -> String {
         .map(|d| d.format("%Y-%m-%d").to_string())
         .unwrap_or_else(|| iso_date.to_string())
 }
+fn max_event_or_started_anchor_date<'a>(
+    latest_event_date: Option<&'a str>,
+    started_at: &'a str,
+) -> &'a str {
+    match latest_event_date {
+        Some(date) if date > started_at => date,
+        _ => started_at,
+    }
+}
 fn derive_initial_review_schedule(
     appliance_type: &str,
     started_at: &str,
@@ -105,6 +114,7 @@ fn seed_protocol_reminders_for_appliance(
     _review_interval_days_override: Option<i32>,
     _prescribed_hours_per_day: Option<i32>,
     days_per_aligner: Option<i32>,
+    activation_interval_days: Option<i32>,
     now: &str,
 ) -> Result<(), String> {
     let protocols = protocols_for_appliance(appliance_type);
@@ -113,16 +123,18 @@ fn seed_protocol_reminders_for_appliance(
     }
     let conn = get_conn()?.lock().map_err(|e| e.to_string())?;
     for protocol in protocols {
-        // PO-ORTHO-ALIGNER-CHANGE cadence comes from the appliance's prescribed
-        // daysPerAligner so the reminder lines up with the actual change cycle
-        // (PO-ORTHO-008). Other clear-aligner protocols (e.g. review) keep the
-        // catalog default.
-        let trigger_days = if protocol.rule_id == "PO-ORTHO-ALIGNER-CHANGE" {
-            days_per_aligner
+        // Cadence overrides per PO-ORTHO-008 / PO-ORTHO-014:
+        //   PO-ORTHO-ALIGNER-CHANGE      → appliance.daysPerAligner
+        //   PO-ORTHO-EXPANDER-ACTIVATION → appliance.activationIntervalDays
+        // Other protocols (e.g. review) keep the catalog default.
+        let trigger_days = match protocol.rule_id {
+            "PO-ORTHO-ALIGNER-CHANGE" => days_per_aligner
                 .map(i64::from)
-                .unwrap_or(protocol.first_trigger_days)
-        } else {
-            protocol.first_trigger_days
+                .unwrap_or(protocol.first_trigger_days),
+            "PO-ORTHO-EXPANDER-ACTIVATION" => activation_interval_days
+                .map(i64::from)
+                .unwrap_or(protocol.first_trigger_days),
+            _ => protocol.first_trigger_days,
         };
         let next_trigger = add_days_iso(started_at, trigger_days);
         let next_trigger_iso = format!("{next_trigger}T00:00:00.000Z");
@@ -236,15 +248,16 @@ fn repair_protocol_state_after_checkin_delete(
     else {
         return Ok(());
     };
-    let (appliance_type, started_at, appliance_status, prescribed_activations, days_per_aligner): (
-        String,
-        String,
-        String,
-        Option<i32>,
-        Option<i32>,
-    ) = conn
+    let (
+        appliance_type,
+        started_at,
+        appliance_status,
+        prescribed_activations,
+        days_per_aligner,
+        activation_interval_days,
+    ): (String, String, String, Option<i32>, Option<i32>, Option<i32>) = conn
         .query_row(
-            "SELECT applianceType, startedAt, status, prescribedActivations, daysPerAligner FROM orthodontic_appliances WHERE applianceId = ?1",
+            "SELECT applianceType, startedAt, status, prescribedActivations, daysPerAligner, activationIntervalDays FROM orthodontic_appliances WHERE applianceId = ?1",
             params![appliance_id],
             |row| {
                 Ok((
@@ -253,16 +266,21 @@ fn repair_protocol_state_after_checkin_delete(
                     row.get::<_, String>(2)?,
                     row.get::<_, Option<i32>>(3)?,
                     row.get::<_, Option<i32>>(4)?,
+                    row.get::<_, Option<i32>>(5)?,
                 ))
             },
         )
         .map_err(|e| format!("repair_protocol_state_after_checkin_delete fetch appliance meta: {e}"))?;
-    let cadence_days = if checkin_type == "aligner-change" {
-        days_per_aligner
+    // Cadence overrides per PO-ORTHO-008 / PO-ORTHO-014: aligner-change follows
+    // daysPerAligner, expander-activation follows activationIntervalDays.
+    let cadence_days = match checkin_type {
+        "aligner-change" => days_per_aligner
             .map(i64::from)
-            .unwrap_or(fallback_cadence_days)
-    } else {
-        fallback_cadence_days
+            .unwrap_or(fallback_cadence_days),
+        "expander-activation" => activation_interval_days
+            .map(i64::from)
+            .unwrap_or(fallback_cadence_days),
+        _ => fallback_cadence_days,
     };
     let latest_checkin_date: Option<String> = conn
         .query_row(
@@ -283,14 +301,17 @@ fn repair_protocol_state_after_checkin_delete(
                 .map(|protocol| protocol.first_trigger_days)
                 .unwrap_or(0);
             // Seed-day parity with seed_protocol_reminders_for_appliance: the
-            // aligner-change protocol uses the appliance's daysPerAligner so
-            // the reminder lines up with PO-ORTHO-008 cycle math.
-            let seed_days = if rule_id == "PO-ORTHO-ALIGNER-CHANGE" {
-                days_per_aligner
+            // aligner-change protocol uses daysPerAligner and the
+            // expander-activation protocol uses activationIntervalDays so the
+            // reminder lines up with PO-ORTHO-008 / PO-ORTHO-014.
+            let seed_days = match rule_id {
+                "PO-ORTHO-ALIGNER-CHANGE" => days_per_aligner
                     .map(i64::from)
-                    .unwrap_or(catalog_seed_days)
-            } else {
-                catalog_seed_days
+                    .unwrap_or(catalog_seed_days),
+                "PO-ORTHO-EXPANDER-ACTIVATION" => activation_interval_days
+                    .map(i64::from)
+                    .unwrap_or(catalog_seed_days),
+                _ => catalog_seed_days,
             };
             add_days_iso_strict(started_at.as_str(), seed_days)?
         }
@@ -423,5 +444,4 @@ const WRITABLE_CASE_TYPES: &str = "early-intervention | fixed-braces | clear-ali
 const ADMITTED_STAGES: &str = "assessment | planning | active | retention | completed";
 const ADMITTED_APPLIANCE_TYPES: &str = "twin-block | expander | activator | metal-braces | ceramic-braces | clear-aligner | retainer-fixed | retainer-removable";
 const ADMITTED_APPLIANCE_STATUSES: &str = "active | paused | completed";
-const ADMITTED_CHECKIN_TYPES: &str =
-    "wear-daily | aligner-change | expander-activation | retention-wear";
+const ADMITTED_CHECKIN_TYPES: &str = "aligner-change | expander-activation";

@@ -27,6 +27,7 @@ import { OutdoorCaptureContent } from './outdoor-capture-form.js';
 import { DentalCaptureContent } from './dental-capture-form.js';
 import { hasMilestoneCandidatesForAge } from './milestone-capture-form.js';
 import { TannerCaptureContent } from './tanner-assessment-form.js';
+import { PostureCaptureContent } from './posture-capture-form.js';
 import { useAppStore } from '../../app-shell/app-store.js';
 import {
   CancelButton,
@@ -71,6 +72,7 @@ const GROUP_SIZE: Record<string, HealthModalSize> = {
   sleep: 'M',
   outdoor: 'M',
   fitness: 'L',
+  posture: 'L',
   vision: 'XL',
   dental: 'XL',
   medical: 'XL',
@@ -84,6 +86,7 @@ const GROUP_EMOJI: Record<string, string> = {
   sleep: '🌙',
   outdoor: '☀️',
   fitness: '🏃',
+  posture: '🧍',
   vision: '👁️',
   dental: '🦷',
   medical: '🏥',
@@ -93,12 +96,18 @@ const GROUP_EMOJI: Record<string, string> = {
 const SIDEBAR_GROUP_ORDER: readonly string[] = [
   'growth',
   'fitness',
+  'posture',
   'sleep',
   'outdoor',
   'vision',
   'dental',
   'medical',
   'development',
+];
+
+/** Sidebar entries that are not spec-derived `HEALTH_METRIC_GROUPS` entries. */
+const VIRTUAL_SIDEBAR_ITEMS: ReadonlyArray<{ id: string; emoji: string; label: string }> = [
+  { id: 'posture', emoji: '🧍', label: '体态' },
 ];
 
 function sortOptionsForSidebar<T extends { group: { groupId: string } }>(options: readonly T[]): T[] {
@@ -151,12 +160,26 @@ function SidebarHealthCaptureModal({
     onSaved?.({ eventId: '' } as SaveHealthRecordCaptureResult);
   };
 
-  const sidebarItems: HealthRecordSidebarItem[] = options.map((option) => ({
-    id: option.group.groupId,
-    emoji: GROUP_EMOJI[option.group.groupId],
-    label: groupLabel(option.group.groupId, option.group.displayName, t),
-    disabled: !PROTOTYPE_GROUPS.has(option.group.groupId),
-  }));
+  const sidebarItems: HealthRecordSidebarItem[] = [
+    ...options.map((option) => ({
+      id: option.group.groupId,
+      emoji: GROUP_EMOJI[option.group.groupId],
+      label: groupLabel(option.group.groupId, option.group.displayName, t),
+      disabled: !PROTOTYPE_GROUPS.has(option.group.groupId),
+    })),
+    ...VIRTUAL_SIDEBAR_ITEMS.map((item) => ({
+      id: item.id,
+      emoji: item.emoji,
+      label: item.label,
+      disabled: false,
+    })),
+  ].sort((a, b) => {
+    const indexOf = (id: string) => {
+      const idx = SIDEBAR_GROUP_ORDER.indexOf(id);
+      return idx === -1 ? SIDEBAR_GROUP_ORDER.length : idx;
+    };
+    return indexOf(a.id) - indexOf(b.id);
+  });
 
   const renderContent = () => {
     if (selectedGroupId === 'growth') {
@@ -246,6 +269,15 @@ function SidebarHealthCaptureModal({
         <DentalCaptureContent
           child={{ childId, birthDate: childBirthDate }}
           ageMonths={ageMonths}
+          onSaved={handleSavedFromGroup}
+          onClose={onClose}
+        />
+      );
+    }
+    if (selectedGroupId === 'posture') {
+      return (
+        <PostureCaptureContent
+          child={{ childId, birthDate: childBirthDate }}
           onSaved={handleSavedFromGroup}
           onClose={onClose}
         />

@@ -21,7 +21,74 @@ fn assert_age_gate(
     }
     Ok(())
 }
+
+/// PO-ORTHO-014: `activationIntervalDays` is expander-only and, when set for an
+/// expander, must be a positive integer. Any non-null value on a non-expander
+/// type fail-closes.
+fn validate_activation_interval_days(
+    appliance_type: &str,
+    activation_interval_days: Option<i32>,
+) -> Result<(), String> {
+    match (appliance_type, activation_interval_days) {
+        ("expander", Some(d)) if d > 0 => Ok(()),
+        ("expander", Some(d)) => Err(format!(
+            "activationIntervalDays must be a positive integer for expander; got {d} (PO-ORTHO-014)"
+        )),
+        ("expander", None) => Ok(()),
+        (_, Some(_)) => Err(format!(
+            "activationIntervalDays is expander-only and must be NULL for applianceType \"{appliance_type}\" (PO-ORTHO-014)"
+        )),
+        (_, None) => Ok(()),
+    }
+}
+
+/// PO-ORTHO-013: `currentPhase` / `phaseStartedAt` are either both NULL ("phase
+/// not yet set") or both set, and a non-null `currentPhase` must be a `phaseId`
+/// admitted for the appliance's `applianceType`.
+fn validate_appliance_phase_fields(
+    appliance_type: &str,
+    current_phase: Option<&str>,
+    phase_started_at: Option<&str>,
+) -> Result<(), String> {
+    match (current_phase, phase_started_at) {
+        (None, None) => Ok(()),
+        (Some(phase), Some(_)) => {
+            let seq = appliance_phase_sequence(appliance_type);
+            if seq.contains(&phase) {
+                Ok(())
+            } else {
+                Err(format!(
+                    "currentPhase \"{phase}\" is not an admitted phase for applianceType \"{appliance_type}\" (PO-ORTHO-013); expected one of {seq:?}"
+                ))
+            }
+        }
+        _ => Err(
+            "currentPhase and phaseStartedAt must both be set or both be NULL (PO-ORTHO-013)"
+                .to_string(),
+        ),
+    }
+}
+
+/// Read-path fail-close (PO-ORTHO-011): a persisted appliance row must still
+/// satisfy the PO-ORTHO-013 / PO-ORTHO-014 field invariants. The write paths
+/// already enforce these, so a violation here means direct DB tampering or a
+/// migration defect — surface it rather than render a contract-violating row.
+fn validate_orthodontic_appliance_read_fields(
+    appliance: &OrthodonticAppliance,
+) -> Result<(), String> {
+    validate_activation_interval_days(
+        appliance.appliance_type.as_str(),
+        appliance.activation_interval_days,
+    )?;
+    validate_appliance_phase_fields(
+        appliance.appliance_type.as_str(),
+        appliance.current_phase.as_deref(),
+        appliance.phase_started_at.as_deref(),
+    )?;
+    Ok(())
+}
 #[tauri::command]
+#[allow(clippy::too_many_arguments)]
 pub fn insert_orthodontic_appliance(
     appliance_id: String,
     case_id: String,
@@ -32,9 +99,13 @@ pub fn insert_orthodontic_appliance(
     started_at: String,
     prescribed_hours_per_day: Option<i32>,
     prescribed_activations: Option<i32>,
+    activation_interval_days: Option<i32>,
     total_aligners: Option<i32>,
     days_per_aligner: Option<i32>,
+    current_phase: Option<String>,
+    phase_started_at: Option<String>,
     review_interval_days: Option<i32>,
+    next_review_agenda: Option<String>,
     notes: Option<String>,
     now: String,
 ) -> Result<(), String> {
@@ -67,6 +138,23 @@ pub fn insert_orthodontic_appliance(
             "totalAligners / daysPerAligner are clear-aligner-only and must be NULL for applianceType \"{appliance_type}\" (PO-ORTHO-003)"
         ));
     }
+    validate_activation_interval_days(appliance_type_trimmed, activation_interval_days)?;
+    // Normalize once so validation and the INSERT agree on the stored value:
+    // trim, and treat an empty string as "not set" (NULL). The renderer never
+    // sends whitespace-only values, but a normalized write keeps the read-path
+    // fail-close (validate_orthodontic_appliance_read_fields) from rejecting a
+    // row this command authored.
+    let current_phase = current_phase
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty());
+    let phase_started_at = phase_started_at
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty());
+    validate_appliance_phase_fields(
+        appliance_type_trimmed,
+        current_phase.as_deref(),
+        phase_started_at.as_deref(),
+    )?;
     assert_age_gate(
         appliance_type_trimmed,
         started_at.trim(),
@@ -81,8 +169,8 @@ pub fn insert_orthodontic_appliance(
     let conn = get_conn()?.lock().map_err(|e| e.to_string())?;
     assert_parent_case_accepts_appliance(&conn, case_id.as_str(), child_id.as_str())?;
     conn.execute(
-        "INSERT INTO orthodontic_appliances (applianceId, caseId, childId, applianceType, status, startedAt, endedAt, prescribedHoursPerDay, prescribedActivations, completedActivations, totalAligners, daysPerAligner, reviewIntervalDays, lastReviewAt, nextReviewDate, pauseReason, notes, createdAt, updatedAt)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, NULL, ?7, ?8, 0, ?9, ?10, ?11, NULL, ?12, NULL, ?13, ?14, ?14)",
+        "INSERT INTO orthodontic_appliances (applianceId, caseId, childId, applianceType, status, startedAt, endedAt, prescribedHoursPerDay, prescribedActivations, completedActivations, activationIntervalDays, totalAligners, daysPerAligner, currentPhase, phaseStartedAt, reviewIntervalDays, lastReviewAt, nextReviewDate, nextReviewAgenda, pauseReason, notes, createdAt, updatedAt)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, NULL, ?7, ?8, 0, ?9, ?10, ?11, ?12, ?13, ?14, NULL, ?15, ?16, NULL, ?17, ?18, ?18)",
         params![
             appliance_id,
             case_id,
@@ -92,10 +180,14 @@ pub fn insert_orthodontic_appliance(
             started_at,
             prescribed_hours_per_day,
             prescribed_activations,
+            activation_interval_days,
             total_aligners,
             days_per_aligner,
+            current_phase,
+            phase_started_at,
             effective_review_interval_days,
             initial_next_review_date,
+            next_review_agenda,
             notes,
             now
         ],
@@ -112,6 +204,7 @@ pub fn insert_orthodontic_appliance(
             review_interval_days,
             prescribed_hours_per_day,
             days_per_aligner,
+            activation_interval_days,
             now.as_str(),
         )?;
     }
@@ -159,6 +252,7 @@ pub fn update_orthodontic_appliance_status(
     let prescribed_hours: Option<i32>;
     let review_interval: Option<i32>;
     let days_per_aligner: Option<i32>;
+    let activation_interval_days: Option<i32>;
     {
         let conn = get_conn()?.lock().map_err(|e| e.to_string())?;
         conn.execute(
@@ -168,7 +262,7 @@ pub fn update_orthodontic_appliance_status(
         .map_err(|e| format!("update_orthodontic_appliance_status: {e}"))?;
         let row = conn
             .query_row(
-                "SELECT caseId, applianceType, startedAt, childId, prescribedHoursPerDay, reviewIntervalDays, daysPerAligner FROM orthodontic_appliances WHERE applianceId = ?1",
+                "SELECT caseId, applianceType, startedAt, childId, prescribedHoursPerDay, reviewIntervalDays, daysPerAligner, activationIntervalDays FROM orthodontic_appliances WHERE applianceId = ?1",
                 params![appliance_id],
                 |row| Ok((
                     row.get::<_, String>(0)?,
@@ -178,6 +272,7 @@ pub fn update_orthodontic_appliance_status(
                     row.get::<_, Option<i32>>(4)?,
                     row.get::<_, Option<i32>>(5)?,
                     row.get::<_, Option<i32>>(6)?,
+                    row.get::<_, Option<i32>>(7)?,
                 )),
             )
             .map_err(|e| format!("update_orthodontic_appliance_status fetch appliance meta: {e}"))?;
@@ -188,6 +283,7 @@ pub fn update_orthodontic_appliance_status(
         prescribed_hours = row.4;
         review_interval = row.5;
         days_per_aligner = row.6;
+        activation_interval_days = row.7;
         // Protocol reminder lifecycle transitions (PO-ORTHO-007 delivery).
         match status.trim() {
             "paused" => transition_protocol_reminders(
@@ -218,6 +314,7 @@ pub fn update_orthodontic_appliance_status(
             review_interval,
             prescribed_hours,
             days_per_aligner,
+            activation_interval_days,
             now.as_str(),
         )?;
     }
@@ -278,24 +375,31 @@ pub fn update_orthodontic_appliance_review(
 }
 
 /// Edits the in-flight wear plan of an existing appliance:
-/// `prescribedHoursPerDay`, `totalAligners`, `daysPerAligner`. Same fail-close
-/// rules as `insert_orthodontic_appliance` (PO-ORTHO-003) — `clear-aligner`
-/// requires positive `totalAligners` AND `daysPerAligner`; non-clear-aligner
-/// rows must keep both NULL; `prescribed_hours_per_day` must be present for
-/// any wear-gap-supporting type.
+/// `prescribedHoursPerDay`, `totalAligners`, `daysPerAligner`,
+/// `activationIntervalDays` (PO-ORTHO-014), `nextReviewAgenda` (PO-ORTHO-015).
+/// Same fail-close rules as `insert_orthodontic_appliance` (PO-ORTHO-003) —
+/// `clear-aligner` requires positive `totalAligners` AND `daysPerAligner`;
+/// non-clear-aligner rows must keep both NULL; `prescribed_hours_per_day` must
+/// be present for any wear-gap-supporting type; `activationIntervalDays` is
+/// expander-only and positive when set.
 ///
-/// Does NOT mutate `reviewIntervalDays`, `nextReviewDate`, or `status` — those
-/// stay owned by the review/status update paths so a plan edit never silently
-/// advances the review cycle. The `PO-ORTHO-ALIGNER-CHANGE` reminder_state
-/// IS rescheduled when `daysPerAligner` changes, because its cadence is
-/// definitionally `daysPerAligner` (PO-ORTHO-008) and a stale value would
-/// surface as the wrong "更换下一副牙套" date in the reminder center.
+/// Does NOT mutate `reviewIntervalDays`, `nextReviewDate`, `status`,
+/// `currentPhase`, or `phaseStartedAt` — those stay owned by the
+/// review/status/phase-advance update paths so a plan edit never silently
+/// advances the review cycle or the treatment phase. The
+/// `PO-ORTHO-ALIGNER-CHANGE` reminder_state IS rescheduled when `daysPerAligner`
+/// changes, and the `PO-ORTHO-EXPANDER-ACTIVATION` reminder_state when
+/// `activationIntervalDays` changes — both cadences are definitionally those
+/// columns (PO-ORTHO-008 / PO-ORTHO-014) and a stale value would surface as the
+/// wrong next-action date in the reminder center.
 #[tauri::command]
 pub fn update_orthodontic_appliance_plan(
     appliance_id: String,
     prescribed_hours_per_day: Option<i32>,
     total_aligners: Option<i32>,
     days_per_aligner: Option<i32>,
+    activation_interval_days: Option<i32>,
+    next_review_agenda: Option<String>,
     now: String,
 ) -> Result<(), String> {
     let conn = get_conn()?.lock().map_err(|e| e.to_string())?;
@@ -337,19 +441,24 @@ pub fn update_orthodontic_appliance_plan(
             "totalAligners / daysPerAligner are clear-aligner-only and must be NULL for applianceType \"{appliance_type}\" (PO-ORTHO-003)"
         ));
     }
+    validate_activation_interval_days(appliance_type_trimmed, activation_interval_days)?;
 
     conn.execute(
         "UPDATE orthodontic_appliances
          SET prescribedHoursPerDay = ?2,
              totalAligners = ?3,
              daysPerAligner = ?4,
-             updatedAt = ?5
+             activationIntervalDays = ?5,
+             nextReviewAgenda = ?6,
+             updatedAt = ?7
          WHERE applianceId = ?1",
         params![
             appliance_id,
             prescribed_hours_per_day,
             total_aligners,
             days_per_aligner,
+            activation_interval_days,
+            next_review_agenda,
             now,
         ],
     )
@@ -384,9 +493,115 @@ pub fn update_orthodontic_appliance_plan(
             }
         }
     }
+    // Symmetric reschedule for the PO-ORTHO-EXPANDER-ACTIVATION reminder when
+    // activationIntervalDays changes (PO-ORTHO-014: the override applies to the
+    // reminder next-trigger, not just the UI projection). Anchor is max(latest
+    // expander-activation checkin date, appliance startedAt); cadence falls
+    // back to the catalog default (1 day) when the override is cleared.
+    if appliance_type_trimmed == "expander" {
+        let cadence = activation_interval_days.map(i64::from).unwrap_or(1);
+        let (latest_event_date, started_at): (Option<String>, String) = conn
+            .query_row(
+                "SELECT
+                     (SELECT checkinDate FROM orthodontic_checkins
+                      WHERE applianceId = ?1 AND checkinType = 'expander-activation'
+                      ORDER BY checkinDate DESC, createdAt DESC LIMIT 1),
+                     startedAt
+                 FROM orthodontic_appliances
+                 WHERE applianceId = ?1",
+                params![appliance_id],
+                |row| Ok((row.get::<_, Option<String>>(0)?, row.get::<_, String>(1)?)),
+            )
+            .map_err(|e| format!("update_orthodontic_appliance_plan fetch expander-activation anchor: {e}"))?;
+        let anchor_date =
+            max_event_or_started_anchor_date(latest_event_date.as_deref(), started_at.as_str());
+        let next = add_days_iso(anchor_date, cadence);
+        let next_iso = format!("{next}T00:00:00.000Z");
+        let state_id = format!("ortho-{}-PO-ORTHO-EXPANDER-ACTIVATION", appliance_id);
+        conn.execute(
+            "UPDATE reminder_states SET nextTriggerAt = ?2, updatedAt = ?3
+             WHERE stateId = ?1 AND status = 'active'",
+            params![state_id, next_iso, now],
+        )
+        .map_err(|e| format!("update_orthodontic_appliance_plan reschedule expander-activation: {e}"))?;
+    }
     Ok(())
 }
 
+/// Resolves the admitted next phase for a phase advance (PO-ORTHO-013): the
+/// first phase when `current_phase` is None, the phase one step after the
+/// current one otherwise. `Ok(None)` means the appliance is already at the
+/// final phase. `Err` when the type has no sequence or the persisted phase is
+/// not in the type's sequence (fail-close).
+fn resolve_next_appliance_phase(
+    appliance_type: &str,
+    current_phase: Option<&str>,
+) -> Result<Option<&'static str>, String> {
+    let seq = appliance_phase_sequence(appliance_type);
+    if seq.is_empty() {
+        return Err(format!(
+            "applianceType \"{appliance_type}\" has no admitted phase sequence (PO-ORTHO-013)"
+        ));
+    }
+    match current_phase {
+        None => Ok(seq.first().copied()),
+        Some(curr) => {
+            let idx = seq.iter().position(|p| *p == curr).ok_or_else(|| {
+                format!(
+                    "persisted currentPhase \"{curr}\" is not in the \"{appliance_type}\" phase sequence (PO-ORTHO-013)"
+                )
+            })?;
+            Ok(seq.get(idx + 1).copied())
+        }
+    }
+}
+
+/// PO-ORTHO-013: parent-initiated, adjacency-only treatment-phase advance.
+/// The admitted `next_phase` is the immediate next `phaseId` in the appliance
+/// type's sequence — the first phase when `currentPhase` is NULL, otherwise the
+/// phase one step after the current one. Any other target fail-closes. Sets
+/// `phaseStartedAt` to the UTC date component of `now`.
+#[tauri::command]
+pub fn advance_orthodontic_appliance_phase(
+    appliance_id: String,
+    next_phase: String,
+    now: String,
+) -> Result<(), String> {
+    let next_phase_trimmed = next_phase.trim();
+    let conn = get_conn()?.lock().map_err(|e| e.to_string())?;
+    let (appliance_type, current_phase): (String, Option<String>) = conn
+        .query_row(
+            "SELECT applianceType, currentPhase FROM orthodontic_appliances WHERE applianceId = ?1",
+            params![appliance_id],
+            |row| Ok((row.get::<_, String>(0)?, row.get::<_, Option<String>>(1)?)),
+        )
+        .map_err(|e| {
+            format!("advance_orthodontic_appliance_phase: appliance \"{appliance_id}\" not found: {e}")
+        })?;
+    let Some(expected_next) =
+        resolve_next_appliance_phase(appliance_type.as_str(), current_phase.as_deref())?
+    else {
+        return Err(format!(
+            "appliance \"{appliance_id}\" is already at the final phase of its \"{appliance_type}\" sequence; no next phase to advance to (PO-ORTHO-013)"
+        ));
+    };
+    if next_phase_trimmed != expected_next {
+        return Err(format!(
+            "phase transition target \"{next_phase_trimmed}\" is not the immediate next phase (expected \"{expected_next}\") for applianceType \"{appliance_type}\" (PO-ORTHO-013)"
+        ));
+    }
+    let phase_started_at = if now.len() >= 10 {
+        &now[..10]
+    } else {
+        now.as_str()
+    };
+    conn.execute(
+        "UPDATE orthodontic_appliances SET currentPhase = ?2, phaseStartedAt = ?3, updatedAt = ?4 WHERE applianceId = ?1",
+        params![appliance_id, next_phase_trimmed, phase_started_at, now],
+    )
+    .map_err(|e| format!("advance_orthodontic_appliance_phase: {e}"))?;
+    Ok(())
+}
 #[tauri::command]
 pub fn delete_orthodontic_appliance(appliance_id: String) -> Result<(), String> {
     let case_id: String;
@@ -416,7 +631,7 @@ pub fn get_orthodontic_appliances(case_id: String) -> Result<Vec<OrthodonticAppl
     let conn = get_conn()?.lock().map_err(|e| e.to_string())?;
     let mut stmt = conn
         .prepare(
-            "SELECT applianceId, caseId, childId, applianceType, status, startedAt, endedAt, prescribedHoursPerDay, prescribedActivations, completedActivations, totalAligners, daysPerAligner, reviewIntervalDays, lastReviewAt, nextReviewDate, pauseReason, notes, createdAt, updatedAt
+            "SELECT applianceId, caseId, childId, applianceType, status, startedAt, endedAt, prescribedHoursPerDay, prescribedActivations, completedActivations, activationIntervalDays, totalAligners, daysPerAligner, currentPhase, phaseStartedAt, reviewIntervalDays, lastReviewAt, nextReviewDate, nextReviewAgenda, pauseReason, notes, createdAt, updatedAt
              FROM orthodontic_appliances WHERE caseId = ?1 ORDER BY startedAt DESC, createdAt DESC",
         )
         .map_err(|e| format!("get_orthodontic_appliances: {e}"))?;
@@ -433,20 +648,29 @@ pub fn get_orthodontic_appliances(case_id: String) -> Result<Vec<OrthodonticAppl
                 prescribed_hours_per_day: row.get(7)?,
                 prescribed_activations: row.get(8)?,
                 completed_activations: row.get(9)?,
-                total_aligners: row.get(10)?,
-                days_per_aligner: row.get(11)?,
-                review_interval_days: row.get(12)?,
-                last_review_at: row.get(13)?,
-                next_review_date: row.get(14)?,
-                pause_reason: row.get(15)?,
-                notes: row.get(16)?,
-                created_at: row.get(17)?,
-                updated_at: row.get(18)?,
+                activation_interval_days: row.get(10)?,
+                total_aligners: row.get(11)?,
+                days_per_aligner: row.get(12)?,
+                current_phase: row.get(13)?,
+                phase_started_at: row.get(14)?,
+                review_interval_days: row.get(15)?,
+                last_review_at: row.get(16)?,
+                next_review_date: row.get(17)?,
+                next_review_agenda: row.get(18)?,
+                pause_reason: row.get(19)?,
+                notes: row.get(20)?,
+                created_at: row.get(21)?,
+                updated_at: row.get(22)?,
             })
         })
         .map_err(|e| format!("get_orthodontic_appliances: {e}"))?;
-    rows.collect::<Result<Vec<_>, _>>()
-        .map_err(|e| format!("get_orthodontic_appliances collect: {e}"))
+    let appliances = rows
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|e| format!("get_orthodontic_appliances collect: {e}"))?;
+    for appliance in &appliances {
+        validate_orthodontic_appliance_read_fields(appliance)?;
+    }
+    Ok(appliances)
 }
 fn recompute_case_next_review(case_id: &str) -> Result<(), String> {
     let conn = get_conn()?.lock().map_err(|e| e.to_string())?;
@@ -489,4 +713,84 @@ pub struct OrthodonticCheckin {
     pub notes: Option<String>,
     pub created_at: String,
     pub updated_at: String,
+}
+
+#[cfg(test)]
+mod appliance_field_guard_tests {
+    //! Unit coverage for the PO-ORTHO-013 / PO-ORTHO-014 fail-close validators
+    //! and the parent-initiated phase-advance adjacency resolver.
+    use super::{
+        max_event_or_started_anchor_date, resolve_next_appliance_phase,
+        validate_activation_interval_days, validate_appliance_phase_fields,
+    };
+
+    #[test]
+    fn activation_interval_days_is_expander_only_and_positive() {
+        assert!(validate_activation_interval_days("expander", Some(3)).is_ok());
+        assert!(validate_activation_interval_days("expander", None).is_ok());
+        assert!(validate_activation_interval_days("expander", Some(0)).is_err());
+        assert!(validate_activation_interval_days("expander", Some(-1)).is_err());
+        // Non-expander types must keep it NULL.
+        assert!(validate_activation_interval_days("clear-aligner", None).is_ok());
+        let err = validate_activation_interval_days("metal-braces", Some(2))
+            .expect_err("non-expander with a value must fail-close");
+        assert!(err.contains("PO-ORTHO-014"));
+    }
+
+    #[test]
+    fn expander_activation_anchor_never_precedes_started_at() {
+        assert_eq!(
+            max_event_or_started_anchor_date(Some("2026-03-20"), "2026-04-01"),
+            "2026-04-01"
+        );
+        assert_eq!(
+            max_event_or_started_anchor_date(Some("2026-04-03"), "2026-04-01"),
+            "2026-04-03"
+        );
+        assert_eq!(
+            max_event_or_started_anchor_date(None, "2026-04-01"),
+            "2026-04-01"
+        );
+    }
+
+    #[test]
+    fn appliance_phase_fields_require_paired_nullness_and_admitted_phase() {
+        // Both NULL — admitted "not yet set" state.
+        assert!(validate_appliance_phase_fields("expander", None, None).is_ok());
+        // Both set with an admitted phaseId for the type.
+        assert!(
+            validate_appliance_phase_fields("expander", Some("widening"), Some("2026-05-01")).is_ok()
+        );
+        // Phase not in the type's sequence.
+        let bad_phase =
+            validate_appliance_phase_fields("expander", Some("leveling"), Some("2026-05-01"))
+                .expect_err("phase outside the type sequence must fail-close");
+        assert!(bad_phase.contains("PO-ORTHO-013"));
+        // Unpaired nullness.
+        assert!(validate_appliance_phase_fields("expander", Some("widening"), None).is_err());
+        assert!(validate_appliance_phase_fields("expander", None, Some("2026-05-01")).is_err());
+    }
+
+    #[test]
+    fn next_phase_resolver_is_adjacency_only() {
+        // NULL → first phase.
+        assert_eq!(
+            resolve_next_appliance_phase("metal-braces", None).unwrap(),
+            Some("leveling")
+        );
+        // Mid-sequence → the immediate next.
+        assert_eq!(
+            resolve_next_appliance_phase("metal-braces", Some("leveling")).unwrap(),
+            Some("space-closure")
+        );
+        // Final phase → None (no next).
+        assert_eq!(
+            resolve_next_appliance_phase("metal-braces", Some("debond-prep")).unwrap(),
+            None
+        );
+        // Persisted phase not in the type's sequence → fail-close.
+        assert!(resolve_next_appliance_phase("metal-braces", Some("widening")).is_err());
+        // Unknown applianceType has no sequence → fail-close.
+        assert!(resolve_next_appliance_phase("not-a-type", None).is_err());
+    }
 }

@@ -89,6 +89,24 @@ pub(crate) fn default_review_interval_days_for_rule(rule_id: &str) -> Option<i64
         _ => None,
     }
 }
+/// Ordered per-appliance treatment-phase sequence (PO-ORTHO-013). Mirror of
+/// `orthodontic-protocols.yaml#appliancePhases` — only the ordered `phaseId`
+/// list is needed Rust-side (labels / expectedMonths are renderer-only).
+/// Drift is caught by `protocol_catalog_drift_guard::appliance_phases_match_yaml`.
+/// An unknown appliance type yields an empty slice; callers fail-close.
+pub(crate) fn appliance_phase_sequence(appliance_type: &str) -> &'static [&'static str] {
+    match appliance_type {
+        "expander" => &["widening", "holding"],
+        "twin-block" | "activator" => &["functional", "settling"],
+        "metal-braces" | "ceramic-braces" => {
+            &["leveling", "space-closure", "finishing", "debond-prep"]
+        }
+        "clear-aligner" => &["active-series", "refinement"],
+        "retainer-fixed" => &["stabilizing", "long-term"],
+        "retainer-removable" => &["full-time", "night-time", "intermittent"],
+        _ => &[],
+    }
+}
 include!("orthodontic_protocol_reminders.inc.rs");
 
 fn is_writable_case_type(t: &str) -> bool {
@@ -340,11 +358,24 @@ pub struct OrthodonticAppliance {
     pub prescribed_hours_per_day: Option<i32>,
     pub prescribed_activations: Option<i32>,
     pub completed_activations: i32,
+    /// PO-ORTHO-014: expander-only per-appliance activation-turn cadence in days.
+    /// NULL for every non-expander type.
+    pub activation_interval_days: Option<i32>,
     pub total_aligners: Option<i32>,
     pub days_per_aligner: Option<i32>,
+    /// PO-ORTHO-013: per-appliance treatment phase; a `phaseId` admitted for this
+    /// `applianceType` in `orthodontic-protocols.yaml#appliancePhases`, or NULL
+    /// ("not yet set").
+    pub current_phase: Option<String>,
+    /// PO-ORTHO-013: ISO 8601 date `current_phase` was entered. NULL iff
+    /// `current_phase` is NULL.
+    pub phase_started_at: Option<String>,
     pub review_interval_days: Option<i32>,
     pub last_review_at: Option<String>,
     pub next_review_date: Option<String>,
+    /// PO-ORTHO-015: parent-entered free-text agenda for the appliance's next
+    /// review visit. Never AI-generated.
+    pub next_review_agenda: Option<String>,
     pub pause_reason: Option<String>,
     pub notes: Option<String>,
     pub created_at: String,

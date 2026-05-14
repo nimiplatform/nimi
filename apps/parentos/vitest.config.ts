@@ -5,6 +5,9 @@ export default defineConfig({
   test: {
     globals: true,
     include: ['src/**/*.test.{ts,tsx}', 'scripts/**/*.test.ts'],
+    // Pin the timezone so date-boundary logic (e.g. PO-ORTHO-008a's
+    // "today 00:00 local" net-wear window) is deterministic across machines.
+    env: { TZ: 'UTC' },
   },
   resolve: {
     dedupe: ['react', 'react-dom', 'scheduler'],

@@ -16,8 +16,8 @@ mod protocol_catalog_drift_guard {
     //! changed follow-up interval must update the YAML AND the Rust mirror
     //! together or this test fails.
     use super::{
-        default_review_interval_days_for_rule, dental_followup_rule_for, protocols_for_appliance,
-        review_rule_id_for_appliance,
+        appliance_phase_sequence, default_review_interval_days_for_rule, dental_followup_rule_for,
+        protocols_for_appliance, review_rule_id_for_appliance,
     };
     use serde::Deserialize;
     use std::collections::{BTreeMap, BTreeSet};
@@ -26,6 +26,13 @@ mod protocol_catalog_drift_guard {
         rules: Vec<ProtocolRuleSpec>,
         #[serde(rename = "dentalFollowUpRules")]
         dental_followup_rules: Vec<DentalFollowupRuleSpec>,
+        #[serde(rename = "appliancePhases")]
+        appliance_phases: BTreeMap<String, Vec<AppliancePhaseSpec>>,
+    }
+    #[derive(Debug, Deserialize)]
+    #[serde(rename_all = "camelCase")]
+    struct AppliancePhaseSpec {
+        phase_id: String,
     }
     #[derive(Debug, Deserialize)]
     #[serde(rename_all = "camelCase")]
@@ -218,6 +225,49 @@ mod protocol_catalog_drift_guard {
             assert_eq!(
                 admitted_by_rust, admitted_by_yaml,
                 "follow-up admission drift for eventType \"{candidate}\": Rust admits={admitted_by_rust}, YAML admits={admitted_by_yaml}",
+            );
+        }
+    }
+    #[test]
+    fn appliance_phases_match_yaml() {
+        // PO-ORTHO-013: the Rust `appliance_phase_sequence` mirror must match
+        // the ordered phaseId list in `orthodontic-protocols.yaml#appliancePhases`
+        // for every applianceType, in order.
+        let spec = parse_spec();
+        const ALL_APPLIANCE_TYPES: &[&str] = &[
+            "twin-block",
+            "expander",
+            "activator",
+            "metal-braces",
+            "ceramic-braces",
+            "clear-aligner",
+            "retainer-fixed",
+            "retainer-removable",
+        ];
+        // Every applianceType must have a YAML phase sequence and a matching
+        // Rust mirror, in the same order.
+        for appliance_type in ALL_APPLIANCE_TYPES {
+            let yaml_phases: Vec<&str> = spec
+                .appliance_phases
+                .get(*appliance_type)
+                .unwrap_or_else(|| {
+                    panic!("orthodontic-protocols.yaml#appliancePhases is missing applianceType \"{appliance_type}\"")
+                })
+                .iter()
+                .map(|p| p.phase_id.as_str())
+                .collect();
+            let rust_phases = appliance_phase_sequence(appliance_type);
+            assert_eq!(
+                rust_phases, yaml_phases.as_slice(),
+                "appliancePhases drift for \"{appliance_type}\": Rust {rust_phases:?} vs YAML {yaml_phases:?}",
+            );
+        }
+        // Reverse: the YAML must not declare a phase sequence for an
+        // applianceType outside the admitted enum.
+        for appliance_type in spec.appliance_phases.keys() {
+            assert!(
+                ALL_APPLIANCE_TYPES.contains(&appliance_type.as_str()),
+                "orthodontic-protocols.yaml#appliancePhases declares unknown applianceType \"{appliance_type}\"",
             );
         }
     }
@@ -619,13 +669,24 @@ pub fn insert_orthodontic_checkin(
         _ => None,
     };
     if let Some(rule_id) = rule_id_for_advance {
-        // PO-ORTHO-ALIGNER-CHANGE cadence follows the appliance's prescribed
-        // daysPerAligner so the reminder lines up with the actual change cycle
-        // (PO-ORTHO-008). Falls back to the catalog default only if the column
-        // is missing (defensive — clear-aligner inserts enforce a positive
-        // value per PO-ORTHO-003).
+        // Cadence follows the appliance's own schedule so the reminder lines up
+        // with the actual change cycle: PO-ORTHO-ALIGNER-CHANGE uses
+        // daysPerAligner (PO-ORTHO-008); PO-ORTHO-EXPANDER-ACTIVATION uses
+        // activationIntervalDays (PO-ORTHO-014). Both fall back to the catalog
+        // default only if the column is NULL.
         let advance_days = match ct {
-            "expander-activation" => 1,
+            "expander-activation" => {
+                let aid: Option<i32> = conn
+                    .query_row(
+                        "SELECT activationIntervalDays FROM orthodontic_appliances WHERE applianceId = ?1",
+                        params![appliance_id],
+                        |row| row.get(0),
+                    )
+                    .map_err(|e| {
+                        format!("insert_orthodontic_checkin fetch activationIntervalDays: {e}")
+                    })?;
+                aid.map(i64::from).unwrap_or(1)
+            }
             "aligner-change" => {
                 let dpa: Option<i32> = conn
                     .query_row(

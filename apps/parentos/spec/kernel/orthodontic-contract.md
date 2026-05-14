@@ -142,11 +142,15 @@ Orthodontic appliances must store and read:
 - `prescribedHoursPerDay` — integer, nullable (populated for wear-daily / retention-wear protocols)
 - `prescribedActivations` — integer, nullable (expander only)
 - `completedActivations` — integer, default 0 (expander only)
+- `activationIntervalDays` — integer, nullable (expander only; per-appliance activation-turn cadence in days — overrides the protocol-rule default. MUST be NULL for every non-expander appliance type. See PO-ORTHO-014.)
 - `totalAligners` — integer, nullable (clear-aligner only; total tray count in the prescribed series)
 - `daysPerAligner` — integer, nullable (clear-aligner only; prescribed wear days per tray before switching)
+- `currentPhase` — text, nullable; the appliance's current treatment phase. When non-null it MUST be a `phaseId` admitted for this `applianceType` in `orthodontic-protocols.yaml#appliancePhases`. NULL means "phase not yet set" — an admitted intermediate state, never a fail-close. See PO-ORTHO-013.
+- `phaseStartedAt` — ISO 8601 date, nullable; the date `currentPhase` was entered. Drives the per-appliance month counter. MUST be NULL when `currentPhase` is NULL, and non-NULL when `currentPhase` is non-NULL.
 - `reviewIntervalDays` — integer, nullable (default comes from protocol rule)
 - `lastReviewAt` — ISO 8601 date, nullable
 - `nextReviewDate` — ISO 8601 date, nullable
+- `nextReviewAgenda` — text, nullable; parent-entered free-text describing what this appliance's next review visit is for (e.g. "评估扩弓量", "换主弓丝"). Never AI-generated. See PO-ORTHO-015.
 - `pauseReason` — nullable, required when `status = paused`
 - `notes` — nullable
 - `createdAt`, `updatedAt`
@@ -154,6 +158,12 @@ Orthodontic appliances must store and read:
 Admitted `applianceType` values MUST match `orthodontic-protocols.yaml#schema.applianceType`. The spec-to-runtime binding is validated by the knowledge-base check.
 
 `totalAligners` and `daysPerAligner` are clear-aligner-only fields. The Rust command layer MUST reject `insert_orthodontic_appliance` for `applianceType = 'clear-aligner'` when either is missing or non-positive (fail-close, mirroring the existing `prescribedHoursPerDay` rule). Both fields MUST be NULL for non-clear-aligner appliance types. These fields are independent of `reviewIntervalDays`: the latter is the clinical review cadence; these two govern the per-tray wear schedule and are not used to seed reminder_states.
+
+`activationIntervalDays` is expander-only with the same fail-close shape as the clear-aligner fields: the Rust command layer MUST reject a non-null `activationIntervalDays` for any `applianceType` other than `expander`, and MUST reject a non-positive value for `expander`. `currentPhase` / `phaseStartedAt` are governed by PO-ORTHO-013; `nextReviewAgenda` is governed by PO-ORTHO-015.
+
+### PO-ORTHO-003a Multi-Appliance Rendering Invariant
+
+A single non-completed case MAY hold any number of `status = active` appliances concurrently (e.g. an expander + fixed braces + a retainer running in parallel during overlapping treatment phases). The renderer surface MUST render **every** active appliance of the active case, each as its own self-contained card with its own phase, ring metric, next-action, and review agenda. The renderer MUST NOT collapse the set to a single "primary" appliance, hide non-primary appliances, or merge their per-appliance state. A "primary" ordering MAY still be used for layout priority (which appliance occupies the most prominent slot), but it MUST NOT gate visibility. Paused / completed appliances are excluded from the active-treatment surface and live in the journey timeline.
 
 ## PO-ORTHO-004 Pause Semantics
 
@@ -313,11 +323,28 @@ daysShifted          = predictedSwitchDate − (cycleAnchor + daysPerAligner)  -
 
 Constraints:
 
-- There is no `daily compliance bucket`. UI wording MUST be cycle-relative ("本副已净戴 X / Y 小时", "下次换套预计 5/15（推后 1 天）"), not "今日达成 / 部分 / 缺席".
+- There is no `daily compliance bucket`. The cycle projection MUST NOT be re-bucketed into "今日达成 / 部分 / 缺席" verdict labels; the cycle metric wording stays cycle-relative ("本副已净戴 X / Y 小时", "下次换套预计 5/15（推后 1 天）"). The daily net-wear *view* admitted below is a raw tally, not a verdict bucket, and is the only daily-framed surface permitted.
 - UI MUST label the metric as "任务达成率近似" / "净戴时长近似" and MUST NOT present `cycleNetWearHours` as a clinically precise wear-time reconstruction.
 - The projection MUST reflect open intervals (still accumulating un-wear), so the displayed `cycleNetWearHours` updates monotonically while the appliance is out.
 - For non-clear-aligner removable appliances (twin-block / activator / retainer-removable) the same projection applies, with `cycleTargetHours` = (review interval days × prescribedHoursPerDay) since they have no aligner index.
 - A future `compliance-v2` may extend this (e.g., smart-device ingest). It is intentionally out of scope for v1.
+
+### PO-ORTHO-008a Daily Net-Wear View
+
+For `retainer-fixed | retainer-removable` appliances, and for any removable appliance whose owning case is in `stage = retention`, the renderer MAY surface a **daily net-wear view** as the primary ring metric instead of the cycle ring. Rationale: the retention review cycle is ~180 days (`PO-ORTHO-RETENTION-REVIEW`); a 180-day cycle ring carries no day-to-day signal for the parent, whereas "今日是否戴够" is the actionable daily question.
+
+```
+todayNetWearHours = 24 − Σ gap_hours overlapping [today 00:00 local, now]
+                    (open gap counted up to `now`; same overlap math as the cycle projection)
+todayTargetHours  = appliance.prescribedHoursPerDay   -- the medically prescribed daily wear
+```
+
+Constraints (fail-close on the wording, same posture as PO-ORTHO-008):
+
+- The view MUST be labelled "今日净戴近似" — it is a raw tally derived from the same wear-gap stream, NOT a clinical reconstruction and NOT a verdict bucket.
+- `retainer-fixed` has no wear-gap stream (it is a fixed appliance, PO-ORTHO-005a); for it the daily view is not applicable and the ring falls back to the phase/month view (PO-ORTHO-013).
+- The underlying per-cycle projection (`predictedSwitchDate` / `nextReviewDate` math) is unchanged and still runs; only the *displayed ring metric* differs. The daily view never replaces the cycle math, it re-frames the surface metric.
+- This is a v1 admission scoped to retention surfaces only. It MUST NOT be applied to `clear-aligner` active-series wear, where the cycle ring remains the only admitted ring metric.
 
 ## PO-ORTHO-009 Early-Intervention Age Gate
 
@@ -453,6 +480,87 @@ include them in any export that leaves the device. The session directory is
 within the per-app local data dir already covered by the broader PIPL
 boundary (`apps/parentos/AGENTS.md#Privacy Boundary`).
 
+## PO-ORTHO-013 Per-Appliance Treatment Phase
+
+Each appliance progresses through a clinically-ordered sequence of treatment
+phases that is **specific to its `applianceType`** (排齐整平 → 关闭间隙 → … for
+fixed braces; 加力扩弓 → 保持稳定 for an expander; etc.). This is distinct from
+`orthodontic_cases.stage` (PO-ORTHO-002): `stage` is the course-level lifecycle
+(初评 / 方案规划 / 治疗中 / 保持期 / 已完成); `currentPhase` is the per-appliance
+clinical step *within* the active course. A case with three active appliances
+can have each appliance in a different phase.
+
+The admitted phase sequence per `applianceType` is governed solely by
+`orthodontic-protocols.yaml#appliancePhases`. Each entry is an ordered list of
+`{ phaseId, label, expectedMonths }`.
+
+Invariants (fail-close on each):
+
+- `orthodontic_appliances.currentPhase`, when non-null, MUST be a `phaseId`
+  admitted for that row's `applianceType` in `appliancePhases`. A `currentPhase`
+  outside the type's sequence is a fail-close violation.
+- `currentPhase` NULL is an admitted intermediate state ("phase not yet set"),
+  the same posture as a nullable `reviewIntervalDays`. The renderer surfaces a
+  "设置阶段" affordance; it does not fail-close.
+- `phaseStartedAt` MUST be NULL iff `currentPhase` is NULL, and a valid ISO 8601
+  date otherwise.
+- Phase transitions are **parent-initiated only** — runtime MUST NOT auto-promote
+  an appliance between phases. The dedicated command
+  `advance_orthodontic_appliance_phase` performs the transition; it MUST reject
+  any target that is not the immediate next `phaseId` in the type's sequence
+  (mirroring the PO-ORTHO-002 stage-adjacency rule), and MUST set `phaseStartedAt`
+  to the transition date.
+- The per-appliance month counter the UI shows is
+  `monthsSince(phaseStartedAt ?? startedAt)` over the current phase's
+  `expectedMonths`. `expectedMonths` is a typical-duration projection, never a
+  hard deadline; the counter MAY exceed `expectedMonths` and the UI MUST NOT
+  render that as an error or a "落后" verdict (PO-ORTHO-010 boundary).
+
+## PO-ORTHO-014 Expander Activation Cadence
+
+Expander activation ("加力 / 转动") is recorded as discrete `expander-activation`
+checkins (PO-ORTHO-005) against a running `completedActivations` counter toward
+`prescribedActivations`. PO-ORTHO-014 adds the forward cadence projection.
+
+- `orthodontic_appliances.activationIntervalDays` is the per-appliance turn
+  cadence in days. When set, it overrides the protocol-rule default
+  (`PO-ORTHO-EXPANDER-ACTIVATION#defaultIntervalDays`) for both the
+  reminder-state next-trigger computation and the UI "下次转动" projection.
+- Next-activation projection:
+  `nextActivationAt = max(latest expander-activation checkinAt, appliance.startedAt) + activationIntervalDays`.
+  When `completedActivations >= prescribedActivations` the projection stops and
+  the UI surfaces "已完成加力" instead of a next date (mirroring the protocol
+  rule's `stopWhen`).
+- Activation progress is `completedActivations / prescribedActivations`. This is
+  the expander's ring metric (PO-ORTHO-013 phase view is the fallback when
+  `prescribedActivations` is null).
+- Bilateral / per-screw turn detail ("左 1 圈 + 右 1 圈") is NOT structured data;
+  it lives in the `expander-activation` checkin's `notes` free-text field. The
+  schema deliberately does not model per-side turn counts in v1.
+- `activationIntervalDays` is expander-only and fail-closes for any other
+  `applianceType` (PO-ORTHO-003, PO-ORTHO-011).
+
+## PO-ORTHO-015 Per-Appliance Review Agenda
+
+`orthodontic_appliances.nextReviewAgenda` is a parent-entered free-text note
+describing what the appliance's next review visit is for ("评估扩弓量",
+"换主弓丝", "拍片确认稳定"). It is purely parent input — the runtime MUST NOT
+synthesize, infer, or AI-generate it, consistent with `orthodontic_cases.primaryIssues`
+and PO-ORTHO-010.
+
+- When a case has multiple active appliances, the renderer aggregates a
+  case-level "下次复诊" surface: the consolidated review date is
+  `min(active appliances.nextReviewDate)` (the same projection PO-ORTHO-002
+  caches into `orthodontic_cases.nextReviewDate`), and the "当次议程" list
+  enumerates each active appliance alongside its `nextReviewAgenda`.
+- `nextReviewAgenda` is out of scope for any AI prompt or summary, the same
+  boundary as photo sessions (PO-ORTHO-012) and `notes`.
+- A NULL `nextReviewAgenda` renders as a neutral empty marker for that
+  appliance (e.g. an em-dash) — never as fabricated, inferred, or AI-generated
+  agenda text. The empty-state marker is not "placeholder content"; it is the
+  absence of content, surfaced so the appliance still appears in the agenda
+  list with its identity.
+
 ## PO-ORTHO-011 Fail-Close Behaviors
 
 The orthodontic layer must fail closed when:
@@ -462,6 +570,10 @@ The orthodontic layer must fail closed when:
 - a persisted `orthodontic_cases.caseType` or `stage` is outside its enum
 - a protocol reminder writes a synthetic ruleId (anything not in the unioned catalog)
 - an appliance is created whose `startedAt` is earlier than `PO-ORTHO-009` minAge
+- a persisted `orthodontic_appliances.currentPhase` is non-null but not in the `appliancePhases` sequence for that row's `applianceType` (PO-ORTHO-013)
+- `orthodontic_appliances.phaseStartedAt` and `currentPhase` disagree on nullness (one set, the other null) (PO-ORTHO-013)
+- `advance_orthodontic_appliance_phase` is called with a target that is not the immediate next `phaseId` in the type's sequence (PO-ORTHO-013)
+- `orthodontic_appliances.activationIntervalDays` is non-null for an `applianceType` other than `expander`, or non-positive for `expander` (PO-ORTHO-014)
 - `orthodontic_cases.nextReviewDate` is written directly without being recomputed from active appliances
 - an AI summary emits forbidden wording from PO-ORTHO-010 and the surface still tries to display it
 - a checkin references a `caseId`/`applianceId` pair that does not round-trip
