@@ -105,7 +105,7 @@ func main() {
 	if err != nil {
 		exitf("dial grpc: %v", err)
 	}
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 
 	client := runtimev1.NewRuntimeAiServiceClient(conn)
 	submitResp, err := client.SubmitScenarioJob(ctx, req)
@@ -212,7 +212,7 @@ func writeArtifact(outputPath string, mimeType string, payload []byte) (string, 
 		}
 		path = file.Name()
 		if _, err := file.Write(payload); err != nil {
-			file.Close()
+			_ = file.Close()
 			return "", err
 		}
 		if err := file.Close(); err != nil {

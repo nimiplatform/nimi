@@ -292,7 +292,7 @@ func TestRestoreStateDoesNotHealLegacyManagedLocalImportRecord(t *testing.T) {
 	if err != nil {
 		t.Fatalf("New: %v", err)
 	}
-	defer restored.Close()
+	defer func() { restored.Close() }()
 
 	model := restored.modelByID(localModelID)
 	if model == nil {
@@ -326,7 +326,7 @@ func TestRestoreStateDoesNotHealLegacyManagedLocalImportRecordWithNormalizedMani
 	if err != nil {
 		t.Fatalf("New: %v", err)
 	}
-	defer restored.Close()
+	defer func() { restored.Close() }()
 
 	model := restored.modelByID(localModelID)
 	if model == nil {
@@ -355,7 +355,7 @@ func TestStartLocalModelRejectsLegacyRecordFromDesktopBundle(t *testing.T) {
 	if err != nil {
 		t.Fatalf("New: %v", err)
 	}
-	defer svc.Close()
+	defer func() { svc.Close() }()
 	svc.endpointProbe = func(_ context.Context, _ string, endpoint string) endpointProbeResult {
 		return endpointProbeResult{
 			healthy:   true,
@@ -401,7 +401,7 @@ func TestCheckLocalModelHealthRejectsLegacyUnhealthyRecord(t *testing.T) {
 	if err != nil {
 		t.Fatalf("New: %v", err)
 	}
-	defer svc.Close()
+	defer func() { svc.Close() }()
 	svc.endpointProbe = func(_ context.Context, _ string, endpoint string) endpointProbeResult {
 		return endpointProbeResult{
 			healthy:   false,
@@ -447,7 +447,7 @@ func TestListLocalModelsDoesNotNormalizeManagedUnhealthyRecord(t *testing.T) {
 	if err != nil {
 		t.Fatalf("New: %v", err)
 	}
-	defer svc.Close()
+	defer func() { svc.Close() }()
 	probeCalls := 0
 	svc.endpointProbe = func(_ context.Context, _ string, endpoint string) endpointProbeResult {
 		probeCalls++
@@ -496,7 +496,7 @@ func TestListLocalModelsDoesNotHealManagedAttachedRuntimeMode(t *testing.T) {
 	if err != nil {
 		t.Fatalf("New: %v", err)
 	}
-	defer svc.Close()
+	defer func() { svc.Close() }()
 	probeCalls := 0
 	svc.endpointProbe = func(_ context.Context, _ string, endpoint string) endpointProbeResult {
 		probeCalls++

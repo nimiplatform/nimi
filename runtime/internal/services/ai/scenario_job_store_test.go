@@ -73,7 +73,7 @@ func TestSubmitScenarioJobSpeechSynthesizeCompletes(t *testing.T) {
 		w.Header().Set("Content-Type", "audio/mpeg")
 		_, _ = w.Write(speechBytes)
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
 		CloudProviders: map[string]nimillm.ProviderCredentials{"openai": {BaseURL: server.URL}},
@@ -164,7 +164,7 @@ func TestSubmitScenarioJobWorldGenerateCompletes(t *testing.T) {
 			http.NotFound(w, r)
 		}
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
 		CloudProviders:        map[string]nimillm.ProviderCredentials{"worldlabs": {BaseURL: server.URL, APIKey: "world-api-key"}},
@@ -260,7 +260,7 @@ func TestSubmitScenarioJobStoresScenarioNativeState(t *testing.T) {
 		w.Header().Set("Content-Type", "audio/mpeg")
 		_, _ = w.Write(speechBytes)
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
 		CloudProviders: map[string]nimillm.ProviderCredentials{"openai": {BaseURL: server.URL}},
@@ -477,7 +477,7 @@ func TestSubscribeScenarioJobEventsForMediaScenario(t *testing.T) {
 		w.Header().Set("Content-Type", "audio/mpeg")
 		_, _ = w.Write(speechBytes)
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
 		CloudProviders: map[string]nimillm.ProviderCredentials{"openai": {BaseURL: server.URL}},

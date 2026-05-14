@@ -143,7 +143,7 @@ func (s *Service) loadStateFromDB() error {
 	if err != nil {
 		return fmt.Errorf("load memory banks: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	for rows.Next() {
 		var locatorKeyValue string
 		var bankRaw string
@@ -171,7 +171,7 @@ func (s *Service) loadStateFromDB() error {
 	if err != nil {
 		return fmt.Errorf("load memory records: %w", err)
 	}
-	defer recordRows.Close()
+	defer func() { _ = recordRows.Close() }()
 	for recordRows.Next() {
 		var locatorKeyValue string
 		var recordRaw string
@@ -201,7 +201,7 @@ func (s *Service) loadStateFromDB() error {
 	if err != nil {
 		return fmt.Errorf("load replication backlog: %w", err)
 	}
-	defer backlogRows.Close()
+	defer func() { _ = backlogRows.Close() }()
 	for backlogRows.Next() {
 		var raw string
 		if err := backlogRows.Scan(&raw); err != nil {
@@ -434,7 +434,7 @@ func (s *Service) loadPendingEmbeddingCutoverStateFromDB() error {
 	if err != nil {
 		return fmt.Errorf("load pending embedding cutover state: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	for rows.Next() {
 		var key string
 		var raw string

@@ -91,7 +91,7 @@ func streamManagedImageCommandOutput(reader io.ReadCloser, stream string, label 
 	if reader == nil {
 		return
 	}
-	defer reader.Close()
+	defer func() { _ = reader.Close() }()
 	scanner := bufio.NewScanner(reader)
 	scanner.Buffer(make([]byte, 0, 64*1024), 1024*1024)
 	scanner.Split(splitManagedImageLogToken)
@@ -419,7 +419,7 @@ func reserveManagedImageLoopbackPort() (int, error) {
 	if err != nil {
 		return 0, fmt.Errorf("reserve managed image loopback port: %w", err)
 	}
-	defer listener.Close()
+	defer func() { _ = listener.Close() }()
 	address, ok := listener.Addr().(*net.TCPAddr)
 	if !ok {
 		return 0, fmt.Errorf("resolve managed image loopback port: unexpected address type %T", listener.Addr())

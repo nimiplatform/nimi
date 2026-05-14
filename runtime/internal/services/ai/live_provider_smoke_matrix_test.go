@@ -275,7 +275,7 @@ func runLocalSpeechHostPreflight(t *testing.T, baseURL string, apiKey string, mo
 	if err != nil {
 		t.Fatalf("local speech health preflight failed: %v", err)
 	}
-	defer response.Body.Close()
+	defer func() { _ = response.Body.Close() }()
 	if response.StatusCode != http.StatusOK {
 		t.Fatalf("local speech health preflight status=%d", response.StatusCode)
 	}
@@ -298,7 +298,7 @@ func runLocalSpeechHostPreflight(t *testing.T, baseURL string, apiKey string, mo
 	if err != nil {
 		t.Fatalf("local speech catalog preflight failed: %v", err)
 	}
-	defer catalogResponse.Body.Close()
+	defer func() { _ = catalogResponse.Body.Close() }()
 	if catalogResponse.StatusCode != http.StatusOK {
 		t.Fatalf("local speech catalog preflight status=%d", catalogResponse.StatusCode)
 	}
@@ -566,7 +566,7 @@ func maybeSkipFishAudioBalancePreflight(t *testing.T, svc *Service, providerID s
 	if err != nil {
 		return
 	}
-	defer response.Body.Close()
+	defer func() { _ = response.Body.Close() }()
 	if response.StatusCode != http.StatusPaymentRequired {
 		return
 	}

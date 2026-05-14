@@ -293,7 +293,7 @@ func (s *Service) SubscribeAIProviderHealthEvents(_ *runtimev1.SubscribeAIProvid
 		MaxConsecutiveDrops: 3,
 		CloseErr:            status.Error(codes.ResourceExhausted, "slow consumer"),
 	})
-	defer relay.Close()
+	defer func() { relay.Close() }()
 
 	done := make(chan error, 1)
 	go func() {
@@ -350,7 +350,7 @@ func (s *Service) SubscribeRuntimeHealthEvents(_ *runtimev1.SubscribeRuntimeHeal
 		MaxConsecutiveDrops: 3,
 		CloseErr:            status.Error(codes.ResourceExhausted, "slow consumer"),
 	})
-	defer relay.Close()
+	defer func() { relay.Close() }()
 
 	done := make(chan error, 1)
 	go func() {

@@ -103,7 +103,7 @@ func fetchGitHubReleaseByTag(tagURL string, client *http.Client) (githubReleaseP
 	if err != nil {
 		return githubReleasePayload{}, fmt.Errorf("%w: fetch release metadata: %v", ErrEngineBinaryDownloadFailed, err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		return githubReleasePayload{}, fmt.Errorf("%w: release metadata HTTP %d from %s", ErrEngineBinaryDownloadFailed, resp.StatusCode, tagURL)

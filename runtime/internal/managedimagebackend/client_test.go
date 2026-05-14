@@ -41,7 +41,7 @@ func TestLoadModelAndGenerateImage(t *testing.T) {
 	if err != nil {
 		t.Fatalf("listen: %v", err)
 	}
-	defer listener.Close()
+	defer func() { _ = listener.Close() }()
 
 	server := grpc.NewServer(grpc.UnknownServiceHandler(func(_ any, stream grpc.ServerStream) error {
 		method, _ := grpc.MethodFromServerStream(stream)
@@ -145,7 +145,7 @@ func TestGenerateImageAcceptsLegacyTerminalResult(t *testing.T) {
 	if err != nil {
 		t.Fatalf("listen: %v", err)
 	}
-	defer listener.Close()
+	defer func() { _ = listener.Close() }()
 
 	server := grpc.NewServer(grpc.UnknownServiceHandler(func(_ any, stream grpc.ServerStream) error {
 		method, _ := grpc.MethodFromServerStream(stream)
@@ -186,7 +186,7 @@ func TestGenerateImageReturnsLegacyTerminalFailure(t *testing.T) {
 	if err != nil {
 		t.Fatalf("listen: %v", err)
 	}
-	defer listener.Close()
+	defer func() { _ = listener.Close() }()
 
 	server := grpc.NewServer(grpc.UnknownServiceHandler(func(_ any, stream grpc.ServerStream) error {
 		method, _ := grpc.MethodFromServerStream(stream)
@@ -224,7 +224,7 @@ func TestLoadModelAndGenerateImageReturnsBackendFailure(t *testing.T) {
 	if err != nil {
 		t.Fatalf("listen: %v", err)
 	}
-	defer listener.Close()
+	defer func() { _ = listener.Close() }()
 
 	server := grpc.NewServer(grpc.UnknownServiceHandler(func(_ any, stream grpc.ServerStream) error {
 		method, _ := grpc.MethodFromServerStream(stream)
@@ -263,7 +263,7 @@ func TestFreeModelInvokesBackendFree(t *testing.T) {
 	if err != nil {
 		t.Fatalf("listen: %v", err)
 	}
-	defer listener.Close()
+	defer func() { _ = listener.Close() }()
 
 	var (
 		freeModelPath string

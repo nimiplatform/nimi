@@ -293,7 +293,7 @@ func TestValidateLocalModelRequest(t *testing.T) {
 	loopbackServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	}))
-	defer loopbackServer.Close()
+	defer func() { loopbackServer.Close() }()
 	svc = newTestService(logger, Config{EnforceEndpointSecurity: true})
 	svc.localModel = &fakeLocalModelLister{responses: []*runtimev1.ListLocalAssetsResponse{{
 		Assets: []*runtimev1.LocalAssetRecord{{

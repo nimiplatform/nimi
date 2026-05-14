@@ -129,7 +129,7 @@ func TestScenarioJobStoreCancelPreservesCanceledStateForDetachedVideoJob(t *test
 			http.NotFound(w, r)
 		}
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
 		CloudProviders: map[string]nimillm.ProviderCredentials{
@@ -223,7 +223,7 @@ func TestScenarioJobStoreDetachedVideoJobPublishesPollingMetadataAndRemainsQuery
 			http.NotFound(w, r)
 		}
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
 		CloudProviders: map[string]nimillm.ProviderCredentials{
@@ -327,7 +327,7 @@ func TestScenarioJobStoreDetachedVideoJobIgnoresShortRequestTimeout(t *testing.T
 			http.NotFound(w, r)
 		}
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
 		CloudProviders: map[string]nimillm.ProviderCredentials{
@@ -421,7 +421,7 @@ func TestScenarioJobStoreDetachedVideoJobCompletesAfterLongPoll(t *testing.T) {
 			http.NotFound(w, r)
 		}
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
 		CloudProviders: map[string]nimillm.ProviderCredentials{
@@ -517,7 +517,7 @@ func TestScenarioJobStoreDetachedVideoJobFailsFromProviderFailure(t *testing.T) 
 			http.NotFound(w, r)
 		}
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
 		CloudProviders: map[string]nimillm.ProviderCredentials{
@@ -602,7 +602,7 @@ func TestScenarioJobStoreDetachedVideoJobExpiredFromProvider(t *testing.T) {
 			http.NotFound(w, r)
 		}
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
 		CloudProviders: map[string]nimillm.ProviderCredentials{
@@ -696,7 +696,7 @@ func TestScenarioJobStoreDetachedVideoJobSurvivesTransientPollFailure(t *testing
 			http.NotFound(w, r)
 		}
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
 		CloudProviders: map[string]nimillm.ProviderCredentials{

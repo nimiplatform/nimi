@@ -606,7 +606,7 @@ func (s *Supervisor) streamProcessLogs(reader io.ReadCloser, stream string, leve
 	if reader == nil {
 		return
 	}
-	defer reader.Close()
+	defer func() { _ = reader.Close() }()
 	scanner := bufio.NewScanner(reader)
 	scanner.Buffer(make([]byte, 0, 64*1024), 1024*1024)
 	scanner.Split(splitProcessLogToken)

@@ -19,7 +19,7 @@ func TestDeleteProviderVoice_ElevenLabs(t *testing.T) {
 		gotAPIKey = request.Header.Get("xi-api-key")
 		writer.WriteHeader(http.StatusNoContent)
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	err := DeleteProviderVoice(context.Background(), "elevenlabs", "voice_123", MediaAdapterConfig{
 		BaseURL:               server.URL,
@@ -46,7 +46,7 @@ func TestDeleteProviderVoice_ElevenLabsNotFoundIsIgnored(t *testing.T) {
 		writer.WriteHeader(http.StatusNotFound)
 		_, _ = writer.Write([]byte(`{"detail":{"message":"voice not found"}}`))
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	err := DeleteProviderVoice(context.Background(), "elevenlabs", "voice_missing", MediaAdapterConfig{
 		BaseURL:               server.URL,
@@ -70,7 +70,7 @@ func TestDeleteProviderVoice_FishAudio(t *testing.T) {
 		gotAuth = request.Header.Get("Authorization")
 		writer.WriteHeader(http.StatusNoContent)
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	err := DeleteProviderVoice(context.Background(), "fish_audio", "model_123", MediaAdapterConfig{
 		BaseURL:               server.URL,
@@ -97,7 +97,7 @@ func TestDeleteProviderVoice_FishAudioNotFoundIsIgnored(t *testing.T) {
 		writer.WriteHeader(http.StatusNotFound)
 		_, _ = writer.Write([]byte(`{"message":"model not found"}`))
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	err := DeleteProviderVoice(context.Background(), "fish_audio", "model_missing", MediaAdapterConfig{
 		BaseURL:               server.URL,

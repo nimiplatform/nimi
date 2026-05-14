@@ -129,7 +129,7 @@ func (s *Service) SubmitDelegatedApprovalDecision(_ context.Context, req *runtim
 	if approvalID == "" {
 		return nil, status.Error(codes.InvalidArgument, "approval_request_id is required")
 	}
-	nextState := runtimev1.DelegatedApprovalRequestState_DELEGATED_APPROVAL_REQUEST_STATE_UNSPECIFIED
+	var nextState runtimev1.DelegatedApprovalRequestState
 	switch req.GetDecision() {
 	case runtimev1.DelegatedApprovalDecision_DELEGATED_APPROVAL_DECISION_APPROVE:
 		nextState = runtimev1.DelegatedApprovalRequestState_DELEGATED_APPROVAL_REQUEST_STATE_APPROVED

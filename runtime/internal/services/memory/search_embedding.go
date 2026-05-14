@@ -182,7 +182,7 @@ func deleteMissingEmbeddings(tx *sql.Tx, liveRecordIDs map[string]struct{}) erro
 	if err != nil {
 		return fmt.Errorf("list memory_record_embedding: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	stale := make([]string, 0)
 	for rows.Next() {
 		var memoryID string

@@ -10,7 +10,7 @@ import (
 
 func TestLocalEnvironmentDependencyJobDedupesActiveEnvironment(t *testing.T) {
 	svc := newLocalEnvironmentJobTestService(t)
-	defer svc.Close()
+	defer func() { svc.Close() }()
 	req := localEnvironmentJobRequestForTest(t, svc)
 
 	first, err := svc.startLocalEnvironmentDependencyJob(context.Background(), req, nil)
@@ -28,7 +28,7 @@ func TestLocalEnvironmentDependencyJobDedupesActiveEnvironment(t *testing.T) {
 
 func TestLocalEnvironmentDependencyJobSuccessPromotesSelectedSource(t *testing.T) {
 	svc := newLocalEnvironmentJobTestService(t)
-	defer svc.Close()
+	defer func() { svc.Close() }()
 	req := localEnvironmentJobRequestForTest(t, svc)
 
 	job, err := svc.startLocalEnvironmentDependencyJob(context.Background(), req, func(context.Context, localEnvironmentDependencyJobState) (localEnvironmentDependencyJobResult, error) {
@@ -63,7 +63,7 @@ func TestLocalEnvironmentDependencyJobSuccessPromotesSelectedSource(t *testing.T
 
 func TestLocalEnvironmentDependencyJobCancelDoesNotPromote(t *testing.T) {
 	svc := newLocalEnvironmentJobTestService(t)
-	defer svc.Close()
+	defer func() { svc.Close() }()
 	req := localEnvironmentJobRequestForTest(t, svc)
 
 	job, err := svc.startLocalEnvironmentDependencyJob(context.Background(), req, nil)
@@ -84,7 +84,7 @@ func TestLocalEnvironmentDependencyJobCancelDoesNotPromote(t *testing.T) {
 
 func TestLocalEnvironmentDependencyJobFailureDoesNotPromote(t *testing.T) {
 	svc := newLocalEnvironmentJobTestService(t)
-	defer svc.Close()
+	defer func() { svc.Close() }()
 	req := localEnvironmentJobRequestForTest(t, svc)
 
 	job, err := svc.startLocalEnvironmentDependencyJob(context.Background(), req, func(context.Context, localEnvironmentDependencyJobState) (localEnvironmentDependencyJobResult, error) {
@@ -103,7 +103,7 @@ func TestLocalEnvironmentDependencyJobFailureDoesNotPromote(t *testing.T) {
 
 func TestLocalEnvironmentDependencyJobUnderspecifiedReadyResultDoesNotPromote(t *testing.T) {
 	svc := newLocalEnvironmentJobTestService(t)
-	defer svc.Close()
+	defer func() { svc.Close() }()
 	req := localEnvironmentJobRequestForTest(t, svc)
 
 	job, err := svc.startLocalEnvironmentDependencyJob(context.Background(), req, func(context.Context, localEnvironmentDependencyJobState) (localEnvironmentDependencyJobResult, error) {
@@ -125,7 +125,7 @@ func TestLocalEnvironmentDependencyJobUnderspecifiedReadyResultDoesNotPromote(t 
 
 func TestLocalEnvironmentDependencyJobRepairRequiredBlocksPlan(t *testing.T) {
 	svc := newLocalEnvironmentJobTestService(t)
-	defer svc.Close()
+	defer func() { svc.Close() }()
 	runtimeDataRoot := filepath.Join(t.TempDir(), "runtime-data")
 	req := localEnvironmentJobRequestForTestWithRoot(t, svc, runtimeDataRoot)
 
@@ -189,7 +189,7 @@ func TestLocalEnvironmentDependencyJobsPersistAcrossRestart(t *testing.T) {
 	if err != nil {
 		t.Fatalf("restore service: %v", err)
 	}
-	defer restored.Close()
+	defer func() { restored.Close() }()
 	restoredJob, ok := restored.localEnvironmentDependencyJobs[job.JobID]
 	if !ok {
 		t.Fatalf("expected restored job %s", job.JobID)

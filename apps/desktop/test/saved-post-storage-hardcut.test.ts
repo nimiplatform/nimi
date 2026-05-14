@@ -8,17 +8,12 @@ function readWorkspaceFile(relativePath: string): string {
   return fs.readFileSync(path.join(import.meta.dirname, '..', relativePath), 'utf8');
 }
 
-function readRepoFile(relativePath: string): string {
-  return fs.readFileSync(path.join(import.meta.dirname, '..', '..', '..', relativePath), 'utf8');
-}
-
 const postCardSource = readWorkspaceFile('src/shell/renderer/features/home/post-card.tsx');
 const articleSource = readWorkspaceFile('src/shell/renderer/features/home/article.tsx');
 const collectionsTabSource = readWorkspaceFile('src/shell/renderer/features/profile/collections-tab.tsx');
 const contactDetailTabsSource = readWorkspaceFile('src/shell/renderer/features/contacts/contact-detail-view-tabs.tsx');
 const enLocaleSource = readDesktopLocaleSource('en');
 const zhLocaleSource = readDesktopLocaleSource('zh');
-const packetSource = readRepoFile('.nimi/topics/closed/2026-04-24-governance-runtime-desktop-gate-repair/packet-wave-2-desktop-saved-post-storage-hardcut.md');
 
 const savedPostTruthPatterns = [
   /nimi\.desktop\.saved-post-ids/,
@@ -59,10 +54,4 @@ test('finding-0023 removes saved-post localization strings from desktop Home and
   assert.doesNotMatch(zhLocaleSource, /收藏帖子|已收藏|加载收藏帖子|收藏的帖子/);
   assert.match(enLocaleSource, /"empty": "No collections yet"/);
   assert.match(zhLocaleSource, /"empty": "暂无合集"/);
-});
-
-test('saved-post hardcut packet claims only finding-0023', () => {
-  assert.match(packetSource, /packet_id: wave-2-desktop-saved-post-storage-hardcut/);
-  assert.match(packetSource, /finding_claims:\n {2}- finding-0023/);
-  assert.doesNotMatch(packetSource, /finding-0010|finding-0013|finding-0016/);
 });

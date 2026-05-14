@@ -203,7 +203,7 @@ func doFishAudioMultipartJSONRequest(
 	if err != nil {
 		return MapProviderRequestError(err)
 	}
-	defer response.Body.Close()
+	defer func() { _ = response.Body.Close() }()
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
 		var payload map[string]any
 		_ = json.NewDecoder(response.Body).Decode(&payload)

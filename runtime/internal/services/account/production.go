@@ -221,7 +221,7 @@ func (r realmOAuthExchanger) exchangeForm(ctx context.Context, form url.Values) 
 	if err != nil {
 		return AccountMaterial{}, fmt.Errorf("%w: %v", ErrLoginExchangeFailure, err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	return materialFromTokenResponse(resp)
 }
 
@@ -239,7 +239,7 @@ func (r realmTokenRefresher) Refresh(ctx context.Context, material AccountMateri
 	if err != nil {
 		return AccountMaterial{}, fmt.Errorf("%w: %v", ErrLoginExchangeFailure, err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	next, err := materialFromTokenResponse(resp)
 	if err != nil {
 		return AccountMaterial{}, err

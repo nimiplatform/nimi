@@ -42,7 +42,7 @@ func TestExecuteGeminiTranscribeUsesChatCompletions(t *testing.T) {
 			},
 		})
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	artifacts, _, _, err := ExecuteGeminiTranscribe(
 		context.Background(),
@@ -173,7 +173,7 @@ func TestExecuteGeminiImageGenerateContentUsesNativeEndpoint(t *testing.T) {
 			},
 		})
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	artifacts, usage, providerJobID, err := ExecuteGeminiOperation(
 		context.Background(),
@@ -282,7 +282,7 @@ func TestExecuteGeminiOperationReturnsCanceledOnContextCancelWhilePolling(t *tes
 			http.NotFound(w, r)
 		}
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	ctx, cancel := context.WithCancel(context.Background())
 	go func() {

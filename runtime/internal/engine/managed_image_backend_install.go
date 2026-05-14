@@ -325,7 +325,7 @@ func installManagedImageBackendFromOCI(ctx context.Context, backendsPath string,
 	if err != nil {
 		return fmt.Errorf("install managed image backend %s: create temp dir: %w", backendName, err)
 	}
-	defer os.RemoveAll(tmpDir)
+	defer func() { _ = os.RemoveAll(tmpDir) }()
 
 	layerPath := filepath.Join(tmpDir, "layer.tar.gz")
 	if _, err := downloadOCIImageBlobToFile(ctx, parsedRef, expectedLayerDigest, layerPath); err != nil {
@@ -371,7 +371,7 @@ func installManagedImageBackendFromDirectArchive(ctx context.Context, backendsPa
 	if err != nil {
 		return fmt.Errorf("install managed image backend %s: create temp dir: %w", backendName, err)
 	}
-	defer os.RemoveAll(tmpDir)
+	defer func() { _ = os.RemoveAll(tmpDir) }()
 
 	archiveName := filepath.Base(strings.TrimSpace(spec.ArchiveURL))
 	if archiveName == "." || archiveName == "" {

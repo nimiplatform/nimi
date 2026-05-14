@@ -86,7 +86,7 @@ func TestExecuteScenarioTextGenerateRouteDescribeProbeWritesHeaderForLocalRoute(
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = w.Write([]byte(`{"choices":[{"message":{"content":"unexpected"}}]}`))
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
 	localAsset := &runtimev1.LocalAssetRecord{

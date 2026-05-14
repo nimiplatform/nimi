@@ -27,7 +27,7 @@ func ProbeHealth(ctx context.Context, endpoint string, healthPath string, expect
 	if err != nil {
 		return fmt.Errorf("health probe failed: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	body, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
 
@@ -91,7 +91,7 @@ func probeCanonicalCatalogHealth(ctx context.Context, endpoint string, engineLab
 	if err != nil {
 		return fmt.Errorf("health probe failed: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	body, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
 
@@ -118,7 +118,7 @@ func probeCanonicalCatalogHealth(ctx context.Context, endpoint string, engineLab
 	if err != nil {
 		return fmt.Errorf("catalog probe failed: %w", err)
 	}
-	defer catalogResp.Body.Close()
+	defer func() { _ = catalogResp.Body.Close() }()
 
 	body, _ = io.ReadAll(io.LimitReader(catalogResp.Body, canonicalCatalogProbeBodyLimitBytes))
 	if catalogResp.StatusCode < 200 || catalogResp.StatusCode >= 300 {

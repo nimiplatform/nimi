@@ -37,7 +37,7 @@ func TestExecuteAWSPollyTTS_MapsCatalogModelToEngine(t *testing.T) {
 				writer.Header().Set("Content-Type", "audio/mpeg")
 				_, _ = writer.Write([]byte("audio-bytes"))
 			}))
-			defer server.Close()
+			defer func() { server.Close() }()
 
 			req := &runtimev1.SubmitScenarioJobRequest{
 				ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE,

@@ -33,7 +33,7 @@ func TestWarmLocalModelLoadsOnceAndCachesReadyState(t *testing.T) {
 			http.NotFound(w, r)
 		}
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	svc := newTestServiceWithProbe(t, nil)
 	installed, err := svc.installLocalAsset(context.Background(), installLocalAssetParams{
@@ -116,7 +116,7 @@ func TestWarmLocalModelInstalledProbeFailureReturnsUnavailableWithoutInvalidTran
 			http.NotFound(w, r)
 		}
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	svc := newTestServiceWithProbe(t, nil)
 	installed, err := svc.installLocalAsset(context.Background(), installLocalAssetParams{
@@ -211,7 +211,7 @@ func TestWarmLocalModelRetriesManagedProbeUntilReady(t *testing.T) {
 			http.NotFound(w, r)
 		}
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	probeCalls := 0
 	svc := newTestServiceWithProbe(t, func(_ context.Context, endpoint string) endpointProbeResult {
@@ -300,7 +300,7 @@ func TestWarmLocalSpeechSynthesizeLoadsOnceAndCachesReadyState(t *testing.T) {
 			http.NotFound(w, r)
 		}
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	svc := newTestServiceWithProbe(t, func(_ context.Context, endpoint string) endpointProbeResult {
 		return endpointProbeResult{
@@ -423,7 +423,7 @@ func TestWarmLocalSpeechTranscribeExecutesCapabilityRoute(t *testing.T) {
 			http.NotFound(w, r)
 		}
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	svc := newTestServiceWithProbe(t, func(_ context.Context, endpoint string) endpointProbeResult {
 		return endpointProbeResult{
@@ -481,7 +481,7 @@ func TestWarmLocalSpeechSynthesizeFailureMarksModelWarmFailed(t *testing.T) {
 			http.NotFound(w, r)
 		}
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	svc := newTestServiceWithProbe(t, func(_ context.Context, endpoint string) endpointProbeResult {
 		return endpointProbeResult{
@@ -540,7 +540,7 @@ func TestWarmLocalSpeechSynthesizeRejectsEmptyVoicesFile(t *testing.T) {
 			http.NotFound(w, r)
 		}
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	svc := newTestServiceWithProbe(t, func(_ context.Context, endpoint string) endpointProbeResult {
 		return endpointProbeResult{

@@ -26,7 +26,7 @@ func TestInstallManagedDownloadedModelInfersEmbeddingKindWhenUnspecified(t *test
 		}
 		_, _ = w.Write(modelBytes)
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	svc.hfDownloadBaseURL = server.URL
 
@@ -74,7 +74,7 @@ func TestInstallManagedDownloadedModelRequiresExpectedHash(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write(validTestGGUF())
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	svc.hfDownloadBaseURL = server.URL
 

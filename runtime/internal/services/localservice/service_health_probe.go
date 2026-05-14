@@ -87,7 +87,7 @@ func probeOpenAICompatibleEndpoint(ctx context.Context, endpoint string) endpoin
 			probeURL: probeURL,
 		}
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		return endpointProbeResult{
@@ -178,7 +178,7 @@ func probeMediaEndpointWithTimeout(ctx context.Context, endpoint string, timeout
 			probeURL: healthURL,
 		}
 	}
-	defer healthResp.Body.Close()
+	defer func() { _ = healthResp.Body.Close() }()
 
 	healthBody, _ := io.ReadAll(io.LimitReader(healthResp.Body, localHealthProbeMaxResponseBodySize))
 	if healthResp.StatusCode != http.StatusOK {
@@ -231,7 +231,7 @@ func probeMediaEndpointWithTimeout(ctx context.Context, endpoint string, timeout
 			probeURL: catalogURL,
 		}
 	}
-	defer catalogResp.Body.Close()
+	defer func() { _ = catalogResp.Body.Close() }()
 
 	catalogBody, _ := io.ReadAll(io.LimitReader(catalogResp.Body, localHealthProbeMaxResponseBodySize))
 	if catalogResp.StatusCode != http.StatusOK {

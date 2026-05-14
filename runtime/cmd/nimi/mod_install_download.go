@@ -55,7 +55,7 @@ func downloadGitHubModSource(
 	if err != nil {
 		return "", fmt.Errorf("MOD_INSTALL_DOWNLOAD_FAILED: actionHint=check_network_or_source_repo: %w", err)
 	}
-	defer response.Body.Close()
+	defer func() { _ = response.Body.Close() }()
 
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
 		body, _ := io.ReadAll(io.LimitReader(response.Body, 4096))
@@ -85,7 +85,7 @@ func extractGitHubTarball(reader io.Reader, destination string) error {
 	if err != nil {
 		return fmt.Errorf("MOD_INSTALL_ARCHIVE_INVALID: actionHint=retry_with_valid_repo_source: %w", err)
 	}
-	defer gzipReader.Close()
+	defer func() { _ = gzipReader.Close() }()
 
 	tarReader := tar.NewReader(gzipReader)
 	totalBytes := int64(0)

@@ -78,7 +78,7 @@ func (b *Backend) GenerateImageManagedMediaDirect(
 	if err != nil {
 		return nil, nil, nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL)
 	}
-	defer os.RemoveAll(tempDir)
+	defer func() { _ = os.RemoveAll(tempDir) }()
 
 	resolvedRefImages, err := b.materializeManagedMediaImages(ctx, spec.GetReferenceImages(), tempDir, "reference")
 	if err != nil {
@@ -538,7 +538,7 @@ func (b *Backend) materializeManagedMediaImage(ctx context.Context, source strin
 		if err != nil {
 			return "", MapProviderRequestError(err)
 		}
-		defer response.Body.Close()
+		defer func() { _ = response.Body.Close() }()
 		if response.StatusCode < 200 || response.StatusCode >= 300 {
 			return "", MapProviderHTTPError(response.StatusCode, nil)
 		}

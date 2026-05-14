@@ -157,7 +157,7 @@ func TestMemoryServiceAcceleratorCleanupDeletesExpiredAliasRows(t *testing.T) {
 	if err != nil {
 		t.Fatalf("query alias rows: %v", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	for rows.Next() {
 		var aliasNorm string
 		if err := rows.Scan(&aliasNorm); err != nil {
@@ -417,7 +417,7 @@ func TestMemoryServiceStartupAcceleratorCleanupRemovesExpiredAliasRows(t *testin
 		t.Fatalf("New(reopen): %v", err)
 	}
 	closeMemoryServiceForTest(t, reopened)
-	defer reopened.Close()
+	defer func() { _ = reopened.Close() }()
 
 	var count int
 	if err := reopened.PersistenceBackend().DB().QueryRow(`

@@ -45,7 +45,7 @@ func (s sqliteCanonicalReviewStore) ListAdmittedTruths(ctx context.Context, scop
 	if err != nil {
 		return nil, fmt.Errorf("list admitted truths: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	out := make([]TruthRecord, 0)
 	for rows.Next() {
 		var raw string
@@ -77,7 +77,7 @@ func (s sqliteCanonicalReviewStore) ListNarrativeContext(ctx context.Context, sc
 	if err != nil {
 		return nil, fmt.Errorf("query narratives: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	queryTokens := strings.Fields(buildReviewSearchTokens(query))
 	type candidate struct {
 		hit   *runtimev1.NarrativeRecallHit
@@ -286,7 +286,7 @@ func (s sqliteCanonicalReviewStore) listNarrativeSourceIDs(ctx context.Context, 
 	if err != nil {
 		return nil, err
 	}
-	defer sourceRows.Close()
+	defer func() { _ = sourceRows.Close() }()
 	sourceIDs := make([]string, 0)
 	for sourceRows.Next() {
 		var memoryID string

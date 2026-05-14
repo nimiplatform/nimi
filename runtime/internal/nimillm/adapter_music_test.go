@@ -30,7 +30,7 @@ func TestExecuteStabilityMusicPromptOnly(t *testing.T) {
 		w.Header().Set("Content-Type", "audio/mpeg")
 		_, _ = w.Write([]byte("stable-audio-bytes"))
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	artifacts, _, _, err := ExecuteStabilityMusic(context.Background(), MediaAdapterConfig{
 		BaseURL:               server.URL,
@@ -84,7 +84,7 @@ func TestExecuteStabilityMusicIterationMultipart(t *testing.T) {
 		w.Header().Set("Content-Type", "audio/mpeg")
 		_, _ = w.Write([]byte("stable-iteration"))
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	req := newMusicJobRequest("stable-audio-2", "continue this idea")
 	req.Extensions = []*runtimev1.ScenarioExtension{musicIterationExtension(t, map[string]any{
@@ -134,7 +134,7 @@ func TestExecuteSoundverseMusicPromptOnly(t *testing.T) {
 			http.NotFound(w, r)
 		}
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	artifacts, _, _, err := ExecuteSoundverseMusic(context.Background(), MediaAdapterConfig{
 		BaseURL:               server.URL,
@@ -185,7 +185,7 @@ func TestExecuteMubertMusicUsesHeadersAndPolling(t *testing.T) {
 			http.NotFound(w, r)
 		}
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	artifacts, _, providerJobID, err := ExecuteMubertMusic(context.Background(), MediaAdapterConfig{
 		BaseURL:               server.URL,
@@ -219,7 +219,7 @@ func TestExecuteMubertMusicReturnsCanceledWhileWaitingForPoll(t *testing.T) {
 			http.NotFound(w, r)
 		}
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	ctx, cancel := context.WithCancel(context.Background())
 	go func() {
@@ -262,7 +262,7 @@ func TestExecuteLoudlyMusicUsesAPIKeyHeader(t *testing.T) {
 			http.NotFound(w, r)
 		}
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	artifacts, _, _, err := ExecuteLoudlyMusic(context.Background(), MediaAdapterConfig{
 		BaseURL:               server.URL,
@@ -295,7 +295,7 @@ func TestExecuteLlamaMusicFallsBackAcrossEndpoints(t *testing.T) {
 		}
 		http.NotFound(w, r)
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	artifacts, _, _, err := ExecuteLlamaMusic(context.Background(), MediaAdapterConfig{
 		BaseURL:               server.URL,
@@ -323,7 +323,7 @@ func TestExecuteSidecarMusicUsesCanonicalPath(t *testing.T) {
 		w.Header().Set("Content-Type", "audio/mpeg")
 		_, _ = w.Write([]byte("sidecar-music"))
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	artifacts, _, _, err := ExecuteSidecarMusic(context.Background(), MediaAdapterConfig{
 		BaseURL:               server.URL,
@@ -359,7 +359,7 @@ func newMusicJobRequest(modelID string, prompt string) *runtimev1.SubmitScenario
 
 func decodeMusicJSONBody(t *testing.T, r *http.Request) map[string]any {
 	t.Helper()
-	defer r.Body.Close()
+	defer func() { _ = r.Body.Close() }()
 	body := map[string]any{}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		t.Fatalf("Decode body: %v", err)

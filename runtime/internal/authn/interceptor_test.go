@@ -95,7 +95,7 @@ func TestAuthenticateProjectsIdentityForValidBearerToken(t *testing.T) {
 	server := newJWKSTestServer(t, jwksDocument{
 		Keys: []jwkEntry{rsaJWKFromPrivateKey(t, key, "kid-1")},
 	})
-	defer server.Close()
+	defer func() { server.Close() }()
 	v, err := NewValidator(server.URL(), "test-issuer", "test-audience")
 	if err != nil {
 		t.Fatalf("NewValidator: %v", err)

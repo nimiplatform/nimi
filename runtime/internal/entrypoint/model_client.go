@@ -33,7 +33,7 @@ func ListModelsGRPC(grpcAddr string, timeout time.Duration, appID string, metada
 	if err != nil {
 		return nil, fmt.Errorf("dial grpc %s: %w", addr, err)
 	}
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 
 	client := runtimev1.NewRuntimeModelServiceClient(conn)
 	resp, err := client.ListModels(ctx, &runtimev1.ListModelsRequest{})
@@ -68,7 +68,7 @@ func PullModelGRPC(grpcAddr string, timeout time.Duration, req *runtimev1.PullMo
 	if err != nil {
 		return nil, fmt.Errorf("dial grpc %s: %w", addr, err)
 	}
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 
 	client := runtimev1.NewRuntimeModelServiceClient(conn)
 	resp, err := client.PullModel(ctx, req)
@@ -103,7 +103,7 @@ func RemoveModelGRPC(grpcAddr string, timeout time.Duration, req *runtimev1.Remo
 	if err != nil {
 		return nil, fmt.Errorf("dial grpc %s: %w", addr, err)
 	}
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 
 	client := runtimev1.NewRuntimeModelServiceClient(conn)
 	resp, err := client.RemoveModel(ctx, req)
@@ -147,7 +147,7 @@ func CheckModelHealthGRPC(grpcAddr string, timeout time.Duration, req *runtimev1
 	if err != nil {
 		return nil, fmt.Errorf("dial grpc %s: %w", addr, err)
 	}
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 
 	client := runtimev1.NewRuntimeModelServiceClient(conn)
 	resp, err := client.CheckModelHealth(ctx, req)

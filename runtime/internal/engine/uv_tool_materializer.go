@@ -114,7 +114,7 @@ func installManagedUVTool(root string, spec managedUVArchiveSpec) error {
 	if err != nil {
 		return fmt.Errorf("install uv tool: create temp dir: %w", err)
 	}
-	defer os.RemoveAll(tmpDir)
+	defer func() { _ = os.RemoveAll(tmpDir) }()
 
 	archivePath := filepath.Join(tmpDir, strings.TrimSpace(spec.ArchiveName))
 	archiveHash, err := downloadURLToFile(managedUVArchiveURL(spec), archivePath)

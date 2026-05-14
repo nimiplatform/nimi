@@ -102,7 +102,7 @@ func validateManagedModelEntryFile(path string) error {
 		if err != nil {
 			return fmt.Errorf("open gguf entry: %w", err)
 		}
-		defer file.Close()
+		defer func() { _ = file.Close() }()
 		header := make([]byte, len(ggufMagicHeader))
 		if _, err := io.ReadFull(file, header); err != nil {
 			return fmt.Errorf("read gguf header: %w", err)
@@ -198,7 +198,7 @@ func computeFileSHA256(path string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 	hasher := sha256.New()
 	if _, err := io.Copy(hasher, file); err != nil {
 		return "", err

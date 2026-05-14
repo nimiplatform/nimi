@@ -30,7 +30,7 @@ func TestStreamScenarioSpeechSynthesizeSuccess(t *testing.T) {
 		w.Header().Set("Content-Type", "audio/mpeg")
 		_, _ = w.Write(payload)
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
 		CloudProviders: map[string]nimillm.ProviderCredentials{"openai": {BaseURL: server.URL}},
@@ -171,7 +171,7 @@ func TestStreamScenarioSpeechSynthesizeProviderErrorSendsFailedEvent(t *testing.
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "provider failure", http.StatusInternalServerError)
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	var logs bytes.Buffer
 	svc := newTestService(slog.New(slog.NewTextHandler(&logs, nil)), Config{
@@ -230,7 +230,7 @@ func TestStreamSpeechDoneFrameConstraints(t *testing.T) {
 		w.Header().Set("Content-Type", "audio/mpeg")
 		_, _ = w.Write(payload)
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
 		CloudProviders: map[string]nimillm.ProviderCredentials{"openai": {BaseURL: server.URL}},
@@ -284,7 +284,7 @@ func TestStreamFirstPacketTimeout(t *testing.T) {
 		w.Header().Set("Content-Type", "audio/mpeg")
 		_, _ = w.Write([]byte("late-payload"))
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
 		CloudProviders: map[string]nimillm.ProviderCredentials{"openai": {BaseURL: server.URL}},
@@ -343,7 +343,7 @@ func TestStreamScenarioSpeechSynthesizeLargePayloadChunking(t *testing.T) {
 		w.Header().Set("Content-Type", "audio/mpeg")
 		_, _ = w.Write(largePayload)
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
 		CloudProviders: map[string]nimillm.ProviderCredentials{"openai": {BaseURL: server.URL}},
@@ -399,7 +399,7 @@ func TestStreamScenarioSpeechSynthesizeForwardsScenarioExtensions(t *testing.T) 
 			http.NotFound(w, r)
 			return
 		}
-		defer r.Body.Close()
+		defer func() { _ = r.Body.Close() }()
 
 		var payload map[string]any
 		if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
@@ -414,7 +414,7 @@ func TestStreamScenarioSpeechSynthesizeForwardsScenarioExtensions(t *testing.T) 
 		w.Header().Set("Content-Type", "audio/mpeg")
 		_, _ = w.Write([]byte("speech-audio-payload"))
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
 		CloudProviders: map[string]nimillm.ProviderCredentials{"openai": {BaseURL: server.URL}},
@@ -476,7 +476,7 @@ func TestStreamCloseModeDoneTrueCarriesUsage(t *testing.T) {
 			}
 		}
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
 		LocalProviders: map[string]nimillm.ProviderCredentials{"llama": {BaseURL: server.URL}},
@@ -528,7 +528,7 @@ func TestStreamCloseModeTerminalEventOnError(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		http.Error(w, "internal error", http.StatusInternalServerError)
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
 		LocalProviders: map[string]nimillm.ProviderCredentials{"llama": {BaseURL: server.URL}},
@@ -581,7 +581,7 @@ func TestStreamTextFirstPacketTimeoutStartsAfterStreamEstablished(t *testing.T) 
 			}
 		}
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
 		LocalProviders: map[string]nimillm.ProviderCredentials{"llama": {BaseURL: server.URL}},
@@ -654,7 +654,7 @@ func TestStreamTextFirstPacketTimeoutTreatsToolCallChunksAsActivity(t *testing.T
 			f.Flush()
 		}
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
 		LocalProviders: map[string]nimillm.ProviderCredentials{"llama": {BaseURL: server.URL}},

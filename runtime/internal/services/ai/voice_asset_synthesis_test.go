@@ -24,7 +24,7 @@ func TestLocalQwenVoiceAssetCreateUseDeleteLifecycle(t *testing.T) {
 		case "/v1/voice/clone":
 			_, _ = io.WriteString(w, `{"voice_id":"`+expectedVoiceRef+`","job_id":"job-local-qwen3-001","metadata":{"host_family":"qwen3_tts"}}`)
 		case "/v1/audio/speech":
-			defer r.Body.Close()
+			defer func() { _ = r.Body.Close() }()
 			var payload map[string]any
 			if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
 				t.Fatalf("decode synth payload: %v", err)
@@ -36,7 +36,7 @@ func TestLocalQwenVoiceAssetCreateUseDeleteLifecycle(t *testing.T) {
 			http.NotFound(w, r)
 		}
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{AllowLoopbackEndpoint: true})
 	svc.SetLocalProviderEndpoint("speech", server.URL+"/v1", "")

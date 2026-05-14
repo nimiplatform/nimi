@@ -35,7 +35,7 @@ func AuthorizeExternalPrincipalGRPC(grpcAddr string, timeout time.Duration, req 
 	if err != nil {
 		return nil, fmt.Errorf("dial grpc %s: %w", addr, err)
 	}
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 
 	client := runtimev1.NewRuntimeGrantServiceClient(conn)
 	resp, err := client.AuthorizeExternalPrincipal(ctx, req)
@@ -70,7 +70,7 @@ func ValidateAppAccessTokenGRPC(grpcAddr string, timeout time.Duration, req *run
 	if err != nil {
 		return nil, fmt.Errorf("dial grpc %s: %w", addr, err)
 	}
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 
 	client := runtimev1.NewRuntimeGrantServiceClient(conn)
 	resp, err := client.ValidateAppAccessToken(ctx, req)
@@ -105,7 +105,7 @@ func RevokeAppAccessTokenGRPC(grpcAddr string, timeout time.Duration, req *runti
 	if err != nil {
 		return nil, fmt.Errorf("dial grpc %s: %w", addr, err)
 	}
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 
 	client := runtimev1.NewRuntimeGrantServiceClient(conn)
 	resp, err := client.RevokeAppAccessToken(ctx, req)
@@ -140,7 +140,7 @@ func IssueDelegatedAccessTokenGRPC(grpcAddr string, timeout time.Duration, req *
 	if err != nil {
 		return nil, fmt.Errorf("dial grpc %s: %w", addr, err)
 	}
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 
 	client := runtimev1.NewRuntimeGrantServiceClient(conn)
 	resp, err := client.IssueDelegatedAccessToken(ctx, req)
@@ -175,7 +175,7 @@ func ListTokenChainGRPC(grpcAddr string, timeout time.Duration, req *runtimev1.L
 	if err != nil {
 		return nil, fmt.Errorf("dial grpc %s: %w", addr, err)
 	}
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 
 	client := runtimev1.NewRuntimeGrantServiceClient(conn)
 	resp, err := client.ListTokenChain(ctx, req)

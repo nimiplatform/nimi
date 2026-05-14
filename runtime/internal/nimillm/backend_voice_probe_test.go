@@ -32,7 +32,7 @@ func TestListSpeechVoicesFiltersByModel(t *testing.T) {
 			},
 		})
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	backend := NewBackend("cloud-openai_compatible", server.URL, "", 3*time.Second)
 	if backend == nil {
@@ -70,7 +70,7 @@ func TestListSpeechVoicesFallsBackToSecondaryPath(t *testing.T) {
 			http.NotFound(w, r)
 		}
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	backend := NewBackend("cloud-openai_compatible", server.URL, "", 3*time.Second)
 	if backend == nil {

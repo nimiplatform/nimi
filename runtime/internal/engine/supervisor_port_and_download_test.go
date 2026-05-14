@@ -28,7 +28,7 @@ func TestResolvePortOccupied(t *testing.T) {
 	if err != nil {
 		t.Fatalf("listen: %v", err)
 	}
-	defer ln.Close()
+	defer func() { _ = ln.Close() }()
 
 	occupiedPort := ln.Addr().(*net.TCPAddr).Port
 	_, err = resolvePort(occupiedPort)

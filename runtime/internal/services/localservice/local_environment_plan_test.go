@@ -11,7 +11,7 @@ import (
 
 func TestLocalEnvironmentServiceConstructionDoesNotResolveLocalCompute(t *testing.T) {
 	svc := newLocalEnvironmentTestService(t)
-	defer svc.Close()
+	defer func() { svc.Close() }()
 
 	if got := len(svc.localEnvironmentHostProfiles); got != 0 {
 		t.Fatalf("expected no host profile snapshots on construction, got %d", got)
@@ -23,7 +23,7 @@ func TestLocalEnvironmentServiceConstructionDoesNotResolveLocalCompute(t *testin
 
 func TestResolveLocalEnvironmentPlanIncludesPythonManagedFamilies(t *testing.T) {
 	svc := newLocalEnvironmentTestService(t)
-	defer svc.Close()
+	defer func() { svc.Close() }()
 
 	plan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
 		PackID:           "local-image-python",
@@ -55,7 +55,7 @@ func TestResolveLocalEnvironmentPlanIncludesPythonManagedFamilies(t *testing.T) 
 
 func TestResolveLocalEnvironmentPlanRequiresAssetSpecificModelDependency(t *testing.T) {
 	svc := newLocalEnvironmentTestService(t)
-	defer svc.Close()
+	defer func() { svc.Close() }()
 
 	plan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
 		PackID:          "local-image-python",
@@ -78,7 +78,7 @@ func TestResolveLocalEnvironmentPlanRequiresAssetSpecificModelDependency(t *test
 
 func TestResolveLocalEnvironmentPlanIncludesTextAndOptionalCUDA(t *testing.T) {
 	svc := newLocalEnvironmentTestService(t)
-	defer svc.Close()
+	defer func() { svc.Close() }()
 
 	plan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
 		PackID:          "local-text",
@@ -95,7 +95,7 @@ func TestResolveLocalEnvironmentPlanIncludesTextAndOptionalCUDA(t *testing.T) {
 
 func TestResolveLocalEnvironmentPlanRequiresMaterializerForReadyManagedCUDAProjection(t *testing.T) {
 	svc := newLocalEnvironmentTestService(t)
-	defer svc.Close()
+	defer func() { svc.Close() }()
 	svc.SetEngineManager(&mockEngineManager{
 		sharedAcceleratorDependencyStatus: &engine.SharedAcceleratorDependencyStatus{
 			DependencyID:      cudaUserSpaceRuntimeDependencyID,
@@ -134,7 +134,7 @@ func TestResolveLocalEnvironmentPlanRequiresMaterializerForReadyManagedCUDAProje
 
 func TestResolveLocalEnvironmentPlanProjectsCUDARepairRequired(t *testing.T) {
 	svc := newLocalEnvironmentTestService(t)
-	defer svc.Close()
+	defer func() { svc.Close() }()
 	svc.SetEngineManager(&mockEngineManager{
 		sharedAcceleratorDependencyStatus: &engine.SharedAcceleratorDependencyStatus{
 			DependencyID:  cudaUserSpaceRuntimeDependencyID,
@@ -194,7 +194,7 @@ func TestResolveLocalEnvironmentPlanRestoresReadySelectedSourceRecord(t *testing
 	if err != nil {
 		t.Fatalf("restore service: %v", err)
 	}
-	defer restored.Close()
+	defer func() { restored.Close() }()
 	restoredPlan := restored.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
 		PackID:          "local-text",
 		ConsumerScope:   "llama.cpp.cuda",
@@ -212,7 +212,7 @@ func TestResolveLocalEnvironmentPlanRestoresReadySelectedSourceRecord(t *testing
 
 func TestResolveLocalEnvironmentPlanRejectsSelectedSourceWithoutVerificationEvidence(t *testing.T) {
 	svc := newLocalEnvironmentTestService(t)
-	defer svc.Close()
+	defer func() { svc.Close() }()
 	runtimeDataRoot := filepath.Join(t.TempDir(), "runtime-data")
 	profile := localEnvironmentNvidiaProfile()
 
@@ -248,7 +248,7 @@ func TestResolveLocalEnvironmentPlanRejectsSelectedSourceWithoutVerificationEvid
 
 func TestResolveLocalEnvironmentPlanRepairRecordBlocksDependency(t *testing.T) {
 	svc := newLocalEnvironmentTestService(t)
-	defer svc.Close()
+	defer func() { svc.Close() }()
 	runtimeDataRoot := filepath.Join(t.TempDir(), "runtime-data")
 	profile := localEnvironmentNvidiaProfile()
 
@@ -284,7 +284,7 @@ func TestResolveLocalEnvironmentPlanRepairRecordBlocksDependency(t *testing.T) {
 
 func TestResolveLocalEnvironmentPlanUnknownPackUnsupported(t *testing.T) {
 	svc := newLocalEnvironmentTestService(t)
-	defer svc.Close()
+	defer func() { svc.Close() }()
 
 	plan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
 		PackID:      "missing-pack",

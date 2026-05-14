@@ -212,7 +212,7 @@ func (s *Service) narrativeEmbeddingRecallScores(ctx context.Context, bank *runt
 	if err != nil {
 		return nil, nil
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	out := make(map[string]float64)
 	for rows.Next() {
 		var narrativeID string
@@ -247,7 +247,7 @@ func (s *Service) recallFeedbackBiases(bankLocatorKey string, targetKind string,
 	if err != nil {
 		return nil
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	out := make(map[string]float64, len(ids))
 	for rows.Next() {
 		var targetID string
@@ -284,7 +284,7 @@ func (s *Service) loadNarrativeRecallCandidates(locator *runtimev1.MemoryBankLoc
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	candidates := make([]narrativeRecallCandidate, 0)
 	for rows.Next() {
 		var item narrativeRecallCandidate
@@ -315,7 +315,7 @@ func (s *Service) loadNarrativeSourceIDs(narrativeID string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	out := make([]string, 0)
 	for rows.Next() {
 		var memoryID string
@@ -355,7 +355,7 @@ func (s *Service) relationExpansions(bankLocatorKey string, sourceIDs []string) 
 	if err != nil {
 		return nil
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	out := make([]relationExpansion, 0)
 	for rows.Next() {
 		var item relationExpansion

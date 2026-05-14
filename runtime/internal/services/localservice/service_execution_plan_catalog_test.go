@@ -171,7 +171,7 @@ func TestLocalApplyProfileInstallsPassiveAssets(t *testing.T) {
 		}
 		_, _ = w.Write(payload)
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	svc.hfDownloadBaseURL = server.URL
 	svc.verified = []*runtimev1.LocalVerifiedAssetDescriptor{

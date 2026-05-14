@@ -23,7 +23,7 @@ import (
 func TestRunRuntimeAIGenerateJSON(t *testing.T) {
 	service := &cmdTestRuntimeAIService{
 		textGenerateResponse: &runtimev1.ExecuteScenarioResponse{
-			Output: testTextGenerateOutput("hello from runtime"),
+			Output:        testTextGenerateOutput("hello from runtime"),
 			FinishReason:  runtimev1.FinishReason_FINISH_REASON_STOP,
 			RouteDecision: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 			ModelResolved: "qwen2.5",
@@ -80,7 +80,7 @@ func TestRunRuntimeAIGenerateJSON(t *testing.T) {
 func TestRunRuntimeAIEmbedJSON(t *testing.T) {
 	service := &cmdTestRuntimeAIService{
 		textEmbedResponse: &runtimev1.ExecuteScenarioResponse{
-			Output: testTextEmbedOutput([][]float64{{1.0, 2.0}, {3.0, 4.0}}),
+			Output:        testTextEmbedOutput([][]float64{{1.0, 2.0}, {3.0, 4.0}}),
 			FinishReason:  runtimev1.FinishReason_FINISH_REASON_STOP,
 			RouteDecision: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 			ModelResolved: "text-embedding-3-small",
@@ -740,7 +740,7 @@ func captureStdoutFromRun(run func() error) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	defer reader.Close()
+	defer func() { _ = reader.Close() }()
 	os.Stdout = writer
 
 	outputCh := make(chan string, 1)

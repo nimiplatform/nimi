@@ -24,7 +24,7 @@ func TestExecuteScenarioTextGenerateSuccess(t *testing.T) {
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = w.Write([]byte(`{"choices":[{"message":{"content":"hello from scenario"},"finish_reason":"stop"}],"usage":{"prompt_tokens":3,"completion_tokens":4}}`))
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
 		LocalProviders: map[string]nimillm.ProviderCredentials{"llama": {BaseURL: server.URL}},
@@ -75,7 +75,7 @@ func TestExecuteScenarioTextGenerateHydratesLocalEndpointFromActiveModel(t *test
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = w.Write([]byte(`{"choices":[{"message":{"content":"ready"},"finish_reason":"stop"}],"usage":{"prompt_tokens":2,"completion_tokens":1}}`))
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
 	localLister := &fakeLocalModelLister{
@@ -135,7 +135,7 @@ func TestExecuteScenarioTextGenerateDoesNotSynthesizeSentinelUsage(t *testing.T)
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = w.Write([]byte(`{"choices":[{"message":{"content":"hello without usage"},"finish_reason":"stop"}]}`))
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
 		LocalProviders: map[string]nimillm.ProviderCredentials{"llama": {BaseURL: server.URL}},
@@ -185,7 +185,7 @@ func TestStreamScenarioTextGenerateSequence(t *testing.T) {
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = w.Write([]byte(`{"choices":[{"message":{"content":"stream from scenario"},"finish_reason":"stop"}],"usage":{"prompt_tokens":2,"completion_tokens":3}}`))
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
 		LocalProviders: map[string]nimillm.ProviderCredentials{"llama": {BaseURL: server.URL}},
@@ -285,7 +285,7 @@ func TestStreamScenarioTextGenerateTimeoutEmitsFailedEvent(t *testing.T) {
 		w.Header().Set("Content-Type", "text/event-stream")
 		time.Sleep(80 * time.Millisecond)
 	}))
-	defer streamServer.Close()
+	defer func() { streamServer.Close() }()
 
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
 		LocalProviders: map[string]nimillm.ProviderCredentials{"llama": {BaseURL: streamServer.URL}},

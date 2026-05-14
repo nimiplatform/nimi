@@ -32,7 +32,7 @@ func TestExecuteGoogleCloudTTS_ChirpRequestUsesVoiceNameWithoutModelName(t *test
 		writer.Header().Set("Content-Type", "audio/mpeg")
 		_, _ = writer.Write([]byte("audio-bytes"))
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	req := &runtimev1.SubmitScenarioJobRequest{
 		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE,
@@ -105,7 +105,7 @@ func TestExecuteGoogleCloudTTS_GeminiRequestAddsModelPromptAndProviderOverrides(
 		writer.Header().Set("Content-Type", "audio/mpeg")
 		_, _ = writer.Write([]byte("gemini-audio"))
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	req := &runtimev1.SubmitScenarioJobRequest{
 		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE,

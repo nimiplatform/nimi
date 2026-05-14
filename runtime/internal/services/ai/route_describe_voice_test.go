@@ -102,7 +102,7 @@ func TestExecuteScenarioVoiceCloneRouteDescribeProbeWritesHeaderForLocalQwenRout
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		_, _ = w.Write([]byte(`{"ok":true}`))
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 	svc.SetLocalProviderEndpoint("speech", server.URL+"/v1", "")
 	svc.localModel = &fakeLocalModelLister{responses: []*runtimev1.ListLocalAssetsResponse{{
 		Assets: []*runtimev1.LocalAssetRecord{{

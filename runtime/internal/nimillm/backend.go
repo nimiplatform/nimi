@@ -454,7 +454,7 @@ func (b *Backend) StreamGenerateText(ctx context.Context, modelID string, input 
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
 		var errPayload map[string]any
 		_ = json.NewDecoder(response.Body).Decode(&errPayload)
-		response.Body.Close()
+		_ = response.Body.Close()
 		if IsStreamUnsupported(response.StatusCode, errPayload) {
 			return b.fallbackStreamToNonStream(ctx, modelID, input, systemPrompt, temperature, topP, maxTokens, onDelta)
 		}
@@ -463,10 +463,10 @@ func (b *Backend) StreamGenerateText(ctx context.Context, modelID string, input 
 
 	contentType := strings.ToLower(strings.TrimSpace(response.Header.Get("Content-Type")))
 	if !strings.HasPrefix(contentType, "text/event-stream") {
-		response.Body.Close()
+		_ = response.Body.Close()
 		return b.fallbackStreamToNonStream(ctx, modelID, input, systemPrompt, temperature, topP, maxTokens, onDelta)
 	}
-	defer response.Body.Close()
+	defer func() { _ = response.Body.Close() }()
 
 	var outputBuilder strings.Builder
 	var usage *runtimev1.UsageStats

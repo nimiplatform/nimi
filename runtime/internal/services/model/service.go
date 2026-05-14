@@ -518,7 +518,7 @@ func fetchReadyCatalogRows(ctx context.Context, endpoint string) ([]readyCatalog
 	if err != nil {
 		return nil, fmt.Errorf("catalog probe failed: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	body, _ := io.ReadAll(io.LimitReader(resp.Body, 128*1024))
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {

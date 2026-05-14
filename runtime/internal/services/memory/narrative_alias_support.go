@@ -140,7 +140,7 @@ func (s *Service) narrativeAliasBonuses(bankLocatorKey string, query string, nar
 	if err != nil {
 		return nil
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	out := make(map[string]float64, len(ids))
 	for rows.Next() {
 		var narrativeID string

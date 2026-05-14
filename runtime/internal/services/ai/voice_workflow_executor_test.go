@@ -37,7 +37,7 @@ func TestVoiceWorkflowViaNimillmCloneSuccess(t *testing.T) {
 				w.Header().Set("Content-Type", "application/json")
 				_, _ = io.WriteString(w, `{"voice_id":"voice-123","job_id":"job-123"}`)
 			}))
-			defer server.Close()
+			defer func() { server.Close() }()
 
 			result, err := executeVoiceWorkflowViaNimillm(
 				context.Background(),
@@ -93,7 +93,7 @@ func TestStepFunVoiceCloneWorkflowSuccess(t *testing.T) {
 			if err != nil {
 				t.Fatalf("FormFile(file): %v", err)
 			}
-			defer file.Close()
+			defer func() { _ = file.Close() }()
 			payload, err := io.ReadAll(file)
 			if err != nil {
 				t.Fatalf("ReadAll(file): %v", err)
@@ -125,7 +125,7 @@ func TestStepFunVoiceCloneWorkflowSuccess(t *testing.T) {
 			http.NotFound(w, r)
 		}
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	req := voiceCloneRequest()
 	req.Head.ModelId = "stepfun/step-tts-2"
@@ -301,7 +301,7 @@ func TestFishAudioVoiceCloneWorkflowSuccess(t *testing.T) {
 		if err != nil {
 			t.Fatalf("FormFile(voices): %v", err)
 		}
-		defer file.Close()
+		defer func() { _ = file.Close() }()
 		payload, err := io.ReadAll(file)
 		if err != nil {
 			t.Fatalf("ReadAll(file): %v", err)
@@ -315,7 +315,7 @@ func TestFishAudioVoiceCloneWorkflowSuccess(t *testing.T) {
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = io.WriteString(w, `{"_id":"fish-model-001"}`)
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	req := voiceCloneRequest()
 	req.Head.ModelId = "fish_audio/s1"
@@ -373,7 +373,7 @@ func TestElevenLabsVoiceCloneWorkflowSuccess(t *testing.T) {
 		if err != nil {
 			t.Fatalf("FormFile(files): %v", err)
 		}
-		defer file.Close()
+		defer func() { _ = file.Close() }()
 		payload, err := io.ReadAll(file)
 		if err != nil {
 			t.Fatalf("ReadAll(file): %v", err)
@@ -387,7 +387,7 @@ func TestElevenLabsVoiceCloneWorkflowSuccess(t *testing.T) {
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = io.WriteString(w, `{"voice_id":"voice-elevenlabs-clone-001"}`)
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	req := voiceCloneRequest()
 	req.Head.ModelId = "elevenlabs/eleven_multilingual_sts_v2"
@@ -449,7 +449,7 @@ func TestElevenLabsVoiceDesignWorkflowSuccess(t *testing.T) {
 			http.NotFound(w, r)
 		}
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	result, err := executeVoiceWorkflowViaNimillm(
 		context.Background(),

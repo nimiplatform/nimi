@@ -285,7 +285,7 @@ func (s *Service) downloadManagedModelFile(
 	if err != nil {
 		return "", fmt.Errorf("download model file %q: %w", relativeFile, err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != http.StatusOK {
 		return "", fmt.Errorf("download model file %q status=%d", relativeFile, resp.StatusCode)
 	}

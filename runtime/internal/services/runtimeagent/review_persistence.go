@@ -110,7 +110,7 @@ func (s sqliteReviewPersistence) ListRecoverableReviewRuns(ctx context.Context) 
 	if err != nil {
 		return nil, fmt.Errorf("load recoverable review runs: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	out := make([]ReviewRunRecord, 0)
 	for rows.Next() {
 		var run ReviewRunRecord

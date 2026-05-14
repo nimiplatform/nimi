@@ -98,7 +98,7 @@ func (s *Service) ftsRecallScores(bank *runtimev1.MemoryBank, query string) map[
 	if err != nil {
 		return nil
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	out := make(map[string]float32)
 	for rows.Next() {
 		var memoryID string
@@ -130,7 +130,7 @@ func (s *Service) embeddingRecallScores(ctx context.Context, bank *runtimev1.Mem
 	if err != nil {
 		return nil, nil
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	out := make(map[string]float64)
 	for rows.Next() {
 		var memoryID string

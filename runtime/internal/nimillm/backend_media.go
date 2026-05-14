@@ -198,7 +198,7 @@ func (b *Backend) Transcribe(
 	if err != nil {
 		return "", nil, MapProviderRequestError(err)
 	}
-	defer response.Body.Close()
+	defer func() { _ = response.Body.Close() }()
 
 	type transcriptionResponse struct {
 		Text string `json:"text"`

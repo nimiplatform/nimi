@@ -1,14 +1,15 @@
-run:
-  timeout: 5m
+version: "2"
 
 linters:
-  disable-all: true
+  default: none
   enable:
     - errcheck
     - govet
     - ineffassign
     - misspell
 
-issues:
-  exclude-dirs:
-    - gen
+run:
+  timeout: 5m
+  relative-path-mode: gomod
+  build-tags: []
+  tests: true

@@ -7,8 +7,8 @@ import (
 )
 
 func printCLIHeader(w io.Writer, title string) {
-	fmt.Fprintln(w, strings.TrimSpace(title))
-	fmt.Fprintln(w)
+	_, _ = fmt.Fprintln(w, strings.TrimSpace(title))
+	_, _ = fmt.Fprintln(w)
 }
 
 func printCLIField(w io.Writer, label string, value string) {
@@ -18,10 +18,10 @@ func printCLIField(w io.Writer, label string, value string) {
 		return
 	}
 	if label == "" {
-		fmt.Fprintf(w, "  %s\n", value)
+		_, _ = fmt.Fprintf(w, "  %s\n", value)
 		return
 	}
-	fmt.Fprintf(w, "  %-14s %s\n", label+":", value)
+	_, _ = fmt.Fprintf(w, "  %-14s %s\n", label+":", value)
 }
 
 func printCLINextStep(w io.Writer, command string) {
@@ -29,9 +29,9 @@ func printCLINextStep(w io.Writer, command string) {
 	if command == "" {
 		return
 	}
-	fmt.Fprintln(w)
-	fmt.Fprintln(w, "Next")
-	fmt.Fprintln(w)
+	_, _ = fmt.Fprintln(w)
+	_, _ = fmt.Fprintln(w, "Next")
+	_, _ = fmt.Fprintln(w)
 	printCLIField(w, "", command)
 }
 

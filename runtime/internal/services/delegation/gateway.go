@@ -97,7 +97,7 @@ func (g *Gateway) DiscoverTools(ctx context.Context, providerID string) ([]ToolD
 		return nil, gatewayFailure(reasonForContext(ctx, ReasonGatewayMCPConnectFailed), "mcp client connect failed for provider %q", err, profile.ID)
 	}
 	defer cleanup()
-	defer session.Close()
+	defer func() { _ = session.Close() }()
 
 	tools, err := session.ListTools(ctx, &mcp.ListToolsParams{})
 	if err != nil {
@@ -128,7 +128,7 @@ func (g *Gateway) CallTool(ctx context.Context, req ToolCallRequest) (*Quarantin
 		return nil, gatewayFailure(reasonForContext(callCtx, ReasonGatewayMCPConnectFailed), "mcp client connect failed for provider %q", err, profile.ID)
 	}
 	defer cleanup()
-	defer session.Close()
+	defer func() { _ = session.Close() }()
 
 	tools, err := session.ListTools(callCtx, &mcp.ListToolsParams{})
 	if err != nil {

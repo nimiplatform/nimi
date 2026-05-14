@@ -28,7 +28,7 @@ func TestExecuteGLMTaskReturnsCanceledOnContextCancelWhilePolling(t *testing.T) 
 			http.NotFound(w, r)
 		}
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	ctx, cancel := context.WithCancel(context.Background())
 	go func() {

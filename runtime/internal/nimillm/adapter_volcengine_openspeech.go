@@ -218,7 +218,7 @@ func executeBytedanceOpenSpeechWS(
 	if err != nil {
 		return "", nil, MapProviderRequestError(err)
 	}
-	defer connection.Close()
+	defer func() { _ = connection.Close() }()
 
 	done := make(chan struct{})
 	go func() {

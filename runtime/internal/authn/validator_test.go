@@ -201,7 +201,7 @@ func validClaims() jwt.MapClaims {
 func TestValidateRS256ValidTokenWithJWKS(t *testing.T) {
 	key := generateRSAKey(t)
 	server := newJWKSTestServer(t, jwksDocument{Keys: []jwkEntry{rsaJWKFromPrivateKey(t, key, "kid-1")}})
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	validator, err := NewValidator(server.URL(), "test-issuer", "test-audience")
 	if err != nil {
@@ -236,7 +236,7 @@ func TestValidateRS256ValidTokenWithJWKS(t *testing.T) {
 func TestValidateCallsRevocationEndpointAfterSuccessfulJWTValidation(t *testing.T) {
 	key := generateRSAKey(t)
 	jwksServer := newJWKSTestServer(t, jwksDocument{Keys: []jwkEntry{rsaJWKFromPrivateKey(t, key, "kid-1")}})
-	defer jwksServer.Close()
+	defer func() { jwksServer.Close() }()
 
 	var captured revocationRequest
 	revocationServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -253,7 +253,7 @@ func TestValidateCallsRevocationEndpointAfterSuccessfulJWTValidation(t *testing.
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(revocationResponse{Active: true})
 	}))
-	defer revocationServer.Close()
+	defer func() { revocationServer.Close() }()
 
 	validator, err := NewValidator(jwksServer.URL(), "test-issuer", "test-audience")
 	if err != nil {
@@ -286,7 +286,7 @@ func TestValidateCallsRevocationEndpointAfterSuccessfulJWTValidation(t *testing.
 func TestValidateRejectsMissingSIDWhenRevocationConfigured(t *testing.T) {
 	key := generateRSAKey(t)
 	jwksServer := newJWKSTestServer(t, jwksDocument{Keys: []jwkEntry{rsaJWKFromPrivateKey(t, key, "kid-1")}})
-	defer jwksServer.Close()
+	defer func() { jwksServer.Close() }()
 
 	var revocationHits int
 	revocationServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
@@ -294,7 +294,7 @@ func TestValidateRejectsMissingSIDWhenRevocationConfigured(t *testing.T) {
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(revocationResponse{Active: true})
 	}))
-	defer revocationServer.Close()
+	defer func() { revocationServer.Close() }()
 
 	validator, err := NewValidator(jwksServer.URL(), "test-issuer", "test-audience")
 	if err != nil {
@@ -316,13 +316,13 @@ func TestValidateRejectsMissingSIDWhenRevocationConfigured(t *testing.T) {
 func TestValidateRejectsRevokedSession(t *testing.T) {
 	key := generateRSAKey(t)
 	jwksServer := newJWKSTestServer(t, jwksDocument{Keys: []jwkEntry{rsaJWKFromPrivateKey(t, key, "kid-1")}})
-	defer jwksServer.Close()
+	defer func() { jwksServer.Close() }()
 
 	revocationServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(revocationResponse{Active: true, Revoked: true})
 	}))
-	defer revocationServer.Close()
+	defer func() { revocationServer.Close() }()
 
 	validator, err := NewValidator(jwksServer.URL(), "test-issuer", "test-audience")
 	if err != nil {
@@ -339,13 +339,13 @@ func TestValidateRejectsRevokedSession(t *testing.T) {
 func TestValidateRejectsInactiveSession(t *testing.T) {
 	key := generateRSAKey(t)
 	jwksServer := newJWKSTestServer(t, jwksDocument{Keys: []jwkEntry{rsaJWKFromPrivateKey(t, key, "kid-1")}})
-	defer jwksServer.Close()
+	defer func() { jwksServer.Close() }()
 
 	revocationServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(revocationResponse{Active: false})
 	}))
-	defer revocationServer.Close()
+	defer func() { revocationServer.Close() }()
 
 	validator, err := NewValidator(jwksServer.URL(), "test-issuer", "test-audience")
 	if err != nil {
@@ -362,13 +362,13 @@ func TestValidateRejectsInactiveSession(t *testing.T) {
 func TestValidateRejectsMalformedRevocationResponse(t *testing.T) {
 	key := generateRSAKey(t)
 	jwksServer := newJWKSTestServer(t, jwksDocument{Keys: []jwkEntry{rsaJWKFromPrivateKey(t, key, "kid-1")}})
-	defer jwksServer.Close()
+	defer func() { jwksServer.Close() }()
 
 	revocationServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = io.WriteString(w, `{"active":true,"expires_at":"not-rfc3339"}`)
 	}))
-	defer revocationServer.Close()
+	defer func() { revocationServer.Close() }()
 
 	validator, err := NewValidator(jwksServer.URL(), "test-issuer", "test-audience")
 	if err != nil {
@@ -385,7 +385,7 @@ func TestValidateRejectsMalformedRevocationResponse(t *testing.T) {
 func TestRefreshJWKSCoalescesConcurrentRefreshesForSameKid(t *testing.T) {
 	key := generateRSAKey(t)
 	server := newJWKSTestServer(t, jwksDocument{Keys: []jwkEntry{rsaJWKFromPrivateKey(t, key, "kid-1")}})
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	validator, err := NewValidator(server.URL(), "test-issuer", "test-audience")
 	if err != nil {
@@ -418,7 +418,7 @@ func TestRefreshJWKSCoalescesConcurrentRefreshesForSameKid(t *testing.T) {
 func TestValidateES256ValidTokenWithJWKS(t *testing.T) {
 	key := generateECKey(t)
 	server := newJWKSTestServer(t, jwksDocument{Keys: []jwkEntry{ecJWKFromPrivateKey(t, key, "ec-kid")}})
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	validator, err := NewValidator(server.URL(), "test-issuer", "test-audience")
 	if err != nil {
@@ -440,7 +440,7 @@ func TestValidateKidMissTriggersRefreshAndPasses(t *testing.T) {
 	key2 := generateRSAKey(t)
 
 	server := newJWKSTestServer(t, jwksDocument{Keys: []jwkEntry{rsaJWKFromPrivateKey(t, key1, "kid-1")}})
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	validator, err := NewValidator(server.URL(), "test-issuer", "test-audience")
 	if err != nil {
@@ -467,7 +467,7 @@ func TestValidateKidMissTriggersRefreshAndPasses(t *testing.T) {
 func TestValidateAcceptsClockSkewWithinSixtySeconds(t *testing.T) {
 	key := generateRSAKey(t)
 	server := newJWKSTestServer(t, jwksDocument{Keys: []jwkEntry{rsaJWKFromPrivateKey(t, key, "kid-1")}})
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	validator, err := NewValidator(server.URL(), "test-issuer", "test-audience")
 	if err != nil {
@@ -491,7 +491,7 @@ func TestValidateAcceptsClockSkewWithinSixtySeconds(t *testing.T) {
 func TestValidateRejectsClockSkewBeyondSixtySeconds(t *testing.T) {
 	key := generateRSAKey(t)
 	server := newJWKSTestServer(t, jwksDocument{Keys: []jwkEntry{rsaJWKFromPrivateKey(t, key, "kid-1")}})
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	validator, err := NewValidator(server.URL(), "test-issuer", "test-audience")
 	if err != nil {
@@ -532,7 +532,7 @@ func TestValidateMissingJWKSURLRejectsToken(t *testing.T) {
 func TestValidateMissingKidRejected(t *testing.T) {
 	key := generateRSAKey(t)
 	server := newJWKSTestServer(t, jwksDocument{Keys: []jwkEntry{rsaJWKFromPrivateKey(t, key, "kid-1")}})
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	validator, err := NewValidator(server.URL(), "test-issuer", "test-audience")
 	if err != nil {
@@ -549,7 +549,7 @@ func TestValidateMissingKidRejected(t *testing.T) {
 func TestValidateUnsupportedAlgorithmRejected(t *testing.T) {
 	key := generateRSAKey(t)
 	server := newJWKSTestServer(t, jwksDocument{Keys: []jwkEntry{rsaJWKFromPrivateKey(t, key, "kid-1")}})
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	validator, err := NewValidator(server.URL(), "test-issuer", "test-audience")
 	if err != nil {
@@ -566,7 +566,7 @@ func TestValidateUnsupportedAlgorithmRejected(t *testing.T) {
 func TestValidateWrongIssuerRejected(t *testing.T) {
 	key := generateRSAKey(t)
 	server := newJWKSTestServer(t, jwksDocument{Keys: []jwkEntry{rsaJWKFromPrivateKey(t, key, "kid-1")}})
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	validator, err := NewValidator(server.URL(), "expected-issuer", "test-audience")
 	if err != nil {
@@ -585,7 +585,7 @@ func TestValidateWrongIssuerRejected(t *testing.T) {
 func TestValidateWrongAudienceRejected(t *testing.T) {
 	key := generateRSAKey(t)
 	server := newJWKSTestServer(t, jwksDocument{Keys: []jwkEntry{rsaJWKFromPrivateKey(t, key, "kid-1")}})
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	validator, err := NewValidator(server.URL(), "test-issuer", "expected-audience")
 	if err != nil {
@@ -604,7 +604,7 @@ func TestValidateWrongAudienceRejected(t *testing.T) {
 func TestValidateMissingSubjectRejected(t *testing.T) {
 	key := generateRSAKey(t)
 	server := newJWKSTestServer(t, jwksDocument{Keys: []jwkEntry{rsaJWKFromPrivateKey(t, key, "kid-1")}})
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	validator, err := NewValidator(server.URL(), "test-issuer", "test-audience")
 	if err != nil {
@@ -623,7 +623,7 @@ func TestValidateMissingSubjectRejected(t *testing.T) {
 func TestValidateMissingIssuedAtRejected(t *testing.T) {
 	key := generateRSAKey(t)
 	server := newJWKSTestServer(t, jwksDocument{Keys: []jwkEntry{rsaJWKFromPrivateKey(t, key, "kid-1")}})
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	validator, err := NewValidator(server.URL(), "test-issuer", "test-audience")
 	if err != nil {
@@ -642,7 +642,7 @@ func TestValidateMissingIssuedAtRejected(t *testing.T) {
 func TestValidateIssuedAtBeyondClockSkewRejected(t *testing.T) {
 	key := generateRSAKey(t)
 	server := newJWKSTestServer(t, jwksDocument{Keys: []jwkEntry{rsaJWKFromPrivateKey(t, key, "kid-1")}})
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	validator, err := NewValidator(server.URL(), "test-issuer", "test-audience")
 	if err != nil {
@@ -662,7 +662,7 @@ func TestValidateIssuedAtBeyondClockSkewRejected(t *testing.T) {
 func TestValidateRejectsTokenLifetimeAboveTwentyFourHours(t *testing.T) {
 	key := generateRSAKey(t)
 	server := newJWKSTestServer(t, jwksDocument{Keys: []jwkEntry{rsaJWKFromPrivateKey(t, key, "kid-1")}})
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	validator, err := NewValidator(server.URL(), "test-issuer", "test-audience")
 	if err != nil {
@@ -687,7 +687,7 @@ func TestValidateRejectsTokenLifetimeAboveTwentyFourHours(t *testing.T) {
 func TestValidateNbfInFutureRejected(t *testing.T) {
 	key := generateRSAKey(t)
 	server := newJWKSTestServer(t, jwksDocument{Keys: []jwkEntry{rsaJWKFromPrivateKey(t, key, "kid-1")}})
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	validator, err := NewValidator(server.URL(), "test-issuer", "test-audience")
 	if err != nil {
@@ -706,7 +706,7 @@ func TestValidateNbfInFutureRejected(t *testing.T) {
 func TestValidateExpiredTokenRejected(t *testing.T) {
 	key := generateRSAKey(t)
 	server := newJWKSTestServer(t, jwksDocument{Keys: []jwkEntry{rsaJWKFromPrivateKey(t, key, "kid-1")}})
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	validator, err := NewValidator(server.URL(), "test-issuer", "test-audience")
 	if err != nil {
@@ -725,7 +725,7 @@ func TestValidateExpiredTokenRejected(t *testing.T) {
 func TestValidateAlgNoneTokenRejected(t *testing.T) {
 	key := generateRSAKey(t)
 	server := newJWKSTestServer(t, jwksDocument{Keys: []jwkEntry{rsaJWKFromPrivateKey(t, key, "kid-1")}})
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	validator, err := NewValidator(server.URL(), "test-issuer", "test-audience")
 	if err != nil {
@@ -797,7 +797,7 @@ func TestValidateEmptyTokenFailsClosed(t *testing.T) {
 func TestValidateFallbackUsesCachedHistoricalKeyOnRefreshFailure(t *testing.T) {
 	key := generateRSAKey(t)
 	server := newJWKSTestServer(t, jwksDocument{Keys: []jwkEntry{rsaJWKFromPrivateKey(t, key, "kid-1")}})
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	validator, err := NewValidator(server.URL(), "test-issuer", "test-audience")
 	if err != nil {

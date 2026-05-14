@@ -215,7 +215,7 @@ func (r *runtimeAgentStateRepository) loadStateFromDB(s *Service) error {
 	if err != nil {
 		return fmt.Errorf("load runtime agent records: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	for rows.Next() {
 		var agentID string
 		var agentRaw string
@@ -239,7 +239,7 @@ func (r *runtimeAgentStateRepository) loadStateFromDB(s *Service) error {
 	if err != nil {
 		return fmt.Errorf("load runtime agent states: %w", err)
 	}
-	defer stateRows.Close()
+	defer func() { _ = stateRows.Close() }()
 	for stateRows.Next() {
 		var agentID string
 		var stateRaw string
@@ -260,7 +260,7 @@ func (r *runtimeAgentStateRepository) loadStateFromDB(s *Service) error {
 	if err != nil {
 		return fmt.Errorf("load runtime agent hooks: %w", err)
 	}
-	defer hookRows.Close()
+	defer func() { _ = hookRows.Close() }()
 	for hookRows.Next() {
 		var agentID string
 		var hookRaw string
@@ -281,7 +281,7 @@ func (r *runtimeAgentStateRepository) loadStateFromDB(s *Service) error {
 	if err != nil {
 		return fmt.Errorf("load runtime agent events: %w", err)
 	}
-	defer eventRows.Close()
+	defer func() { _ = eventRows.Close() }()
 	for eventRows.Next() {
 		var eventRaw string
 		if err := eventRows.Scan(&eventRaw); err != nil {

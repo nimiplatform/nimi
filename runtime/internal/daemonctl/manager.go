@@ -439,7 +439,7 @@ func (m *Manager) followLogFile(ctx context.Context, path string, w io.Writer) e
 		_ = file.Close()
 		return err
 	}
-	defer watcher.Close()
+	defer func() { _ = watcher.Close() }()
 	if err := watcher.Add(dir); err != nil {
 		_ = file.Close()
 		return err
@@ -648,7 +648,7 @@ func defaultStartProcess(executable string, logPath string) (int, error) {
 	if err != nil {
 		return 0, fmt.Errorf("open runtime log file: %w", err)
 	}
-	defer logFile.Close()
+	defer func() { _ = logFile.Close() }()
 
 	cmd := exec.Command(executable, "serve")
 	detachCommand(cmd)
@@ -707,7 +707,7 @@ func readTailLines(path string, lines int) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	info, err := file.Stat()
 	if err != nil {

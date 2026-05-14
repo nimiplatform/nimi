@@ -108,7 +108,7 @@ func TestExecuteBackendSyncMediaImageUsesManagedPathWhenProfileResolverReturnsMa
 	if err != nil {
 		t.Fatalf("listen: %v", err)
 	}
-	defer listener.Close()
+	defer func() { _ = listener.Close() }()
 	tempDir := t.TempDir()
 	server := grpc.NewServer(grpc.UnknownServiceHandler(func(_ any, stream grpc.ServerStream) error {
 		method, _ := grpc.MethodFromServerStream(stream)
@@ -287,7 +287,7 @@ func TestExecuteBackendSyncMediaImageUsesPlainPathForPythonPipelineSelection(t *
 			t.Fatalf("unexpected request path: %s", r.URL.Path)
 		}
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	svc := &Service{
 		localImageProfile: &fakeLocalImageProfileResolver{

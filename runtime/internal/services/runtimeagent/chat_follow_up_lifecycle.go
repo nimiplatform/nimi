@@ -78,7 +78,7 @@ func (s *Service) launchPublicChatFollowUp(followUpID string) {
 	}
 	session, ok := s.publicChatAnchorSnapshot(followUp.ConversationAnchorID)
 	if !ok {
-		s.emitPublicChatFollowUpCanceled(*followUp, "anchor_unavailable", runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED, "", "public chat anchor unavailable")
+		_ = s.emitPublicChatFollowUpCanceled(*followUp, "anchor_unavailable", runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED, "", "public chat anchor unavailable")
 		return
 	}
 	req := publicChatTurnRequestPayload{
@@ -93,7 +93,7 @@ func (s *Service) launchPublicChatFollowUp(followUpID string) {
 	reservedSession, reservedTurn, turnCtx, err := s.reservePublicChatTurn(context.Background(), followUp.CallerAppID, followUp.SubjectUserID, req)
 	if err != nil {
 		failure := runtimeErrorDetailFromError(err)
-		s.emitPublicChatFollowUpCanceled(*followUp, "runtime_unavailable", failure.ReasonCode, failure.ActionHint, failure.Message)
+		_ = s.emitPublicChatFollowUpCanceled(*followUp, "runtime_unavailable", failure.ReasonCode, failure.ActionHint, failure.Message)
 		return
 	}
 	s.setPublicChatAnchorBaseSystemPrompt(reservedSession.ConversationAnchorID, session.SystemPrompt)
@@ -112,7 +112,7 @@ func (s *Service) launchPublicChatFollowUp(followUpID string) {
 	); err != nil {
 		s.releasePublicChatTurn(reservedSession.ConversationAnchorID, reservedTurn.TurnID)
 		failure := runtimeErrorDetailFromError(err)
-		s.emitPublicChatFollowUpCanceled(*followUp, "runtime_unavailable", failure.ReasonCode, failure.ActionHint, failure.Message)
+		_ = s.emitPublicChatFollowUpCanceled(*followUp, "runtime_unavailable", failure.ReasonCode, failure.ActionHint, failure.Message)
 		return
 	}
 	s.setPublicChatTurnRequestID(turn.TurnID, followUp.FollowUpID)
@@ -120,7 +120,7 @@ func (s *Service) launchPublicChatFollowUp(followUpID string) {
 	if err := s.emitPublicChatTurnEvent(reservedSession, turn.TurnID, publicChatTurnAcceptedType, publicChatAcceptedDetail(followUp.FollowUpID)); err != nil {
 		s.releasePublicChatTurn(reservedSession.ConversationAnchorID, reservedTurn.TurnID)
 		failure := runtimeErrorDetailFromError(err)
-		s.emitPublicChatFollowUpCanceled(*followUp, "runtime_unavailable", failure.ReasonCode, failure.ActionHint, failure.Message)
+		_ = s.emitPublicChatFollowUpCanceled(*followUp, "runtime_unavailable", failure.ReasonCode, failure.ActionHint, failure.Message)
 		return
 	}
 	s.setPublicChatStoredFollowUpOutcome(followUp.ConversationAnchorID, followUp.SourceTurnID, publicChatFollowUpOutcome{

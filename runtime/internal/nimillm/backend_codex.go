@@ -115,13 +115,13 @@ func (b *Backend) streamGenerateTextCodexResponses(
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
 		var errPayload map[string]any
 		_ = json.NewDecoder(response.Body).Decode(&errPayload)
-		response.Body.Close()
+		_ = response.Body.Close()
 		if IsStreamUnsupported(response.StatusCode, errPayload) {
 			return b.fallbackStreamToNonStream(ctx, modelID, input, systemPrompt, temperature, topP, maxTokens, onDelta)
 		}
 		return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, MapProviderHTTPError(response.StatusCode, errPayload)
 	}
-	defer response.Body.Close()
+	defer func() { _ = response.Body.Close() }()
 
 	scanner := bufio.NewScanner(response.Body)
 	scanner.Buffer(make([]byte, 0, 64*1024), codexTextMaxStreamBuffer)

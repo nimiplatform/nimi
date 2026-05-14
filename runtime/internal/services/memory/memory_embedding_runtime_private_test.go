@@ -430,7 +430,7 @@ func TestPendingMemoryEmbeddingCutoverPersistsAcrossRestart(t *testing.T) {
 	if err != nil {
 		t.Fatalf("New(restarted): %v", err)
 	}
-	defer restarted.Close()
+	defer func() { _ = restarted.Close() }()
 	setManagedEmbeddingProfileForTest(restarted, testManagedEmbeddingProfile("local/embed-new"))
 
 	state, err := restarted.InspectMemoryEmbeddingState(ctx, InspectMemoryEmbeddingStateRequest{

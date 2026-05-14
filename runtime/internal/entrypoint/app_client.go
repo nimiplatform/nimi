@@ -38,7 +38,7 @@ func SendAppMessageGRPC(grpcAddr string, timeout time.Duration, req *runtimev1.S
 	if err != nil {
 		return nil, fmt.Errorf("dial grpc %s: %w", addr, err)
 	}
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 
 	client := runtimev1.NewRuntimeAppServiceClient(conn)
 	resp, err := client.SendAppMessage(ctx, req)
@@ -74,7 +74,7 @@ func SubscribeAppMessagesGRPC(ctx context.Context, grpcAddr string, req *runtime
 	client := runtimev1.NewRuntimeAppServiceClient(conn)
 	stream, err := client.SubscribeAppMessages(ctx, req)
 	if err != nil {
-		conn.Close()
+		_ = conn.Close()
 		return nil, nil, fmt.Errorf("runtime app subscribe messages: %w", err)
 	}
 
@@ -83,7 +83,7 @@ func SubscribeAppMessagesGRPC(ctx context.Context, grpcAddr string, req *runtime
 	go func() {
 		defer close(events)
 		defer close(errCh)
-		defer conn.Close()
+		defer func() { _ = conn.Close() }()
 
 		for {
 			event, recvErr := stream.Recv()

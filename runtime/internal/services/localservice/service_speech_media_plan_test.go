@@ -367,7 +367,7 @@ func TestStartLocalModelSpeechSupervisedUsesManagedSpeechEndpoint(t *testing.T) 
 			http.NotFound(w, r)
 		}
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	probedEndpoints := make([]string, 0, 1)
 	svc := newTestServiceWithProbe(t, func(_ context.Context, endpoint string) endpointProbeResult {
@@ -474,7 +474,7 @@ func TestStartLocalModelSpeechSupervisedSkipsWarmExecutionOnStart(t *testing.T) 
 			http.NotFound(w, r)
 		}
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	svc := newTestServiceWithProbe(t, func(_ context.Context, endpoint string) endpointProbeResult {
 		return endpointProbeResult{
@@ -528,7 +528,7 @@ func TestStartLocalModelSpeechSupervisedFailsClosedWhenVoicesFileInvalid(t *test
 			http.NotFound(w, r)
 		}
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	svc := newTestServiceWithProbe(t, func(_ context.Context, endpoint string) endpointProbeResult {
 		return endpointProbeResult{
@@ -585,7 +585,7 @@ func TestCheckLocalAssetHealthSpeechSupervisedRetainsReadyAfterSuccessfulStart(t
 			http.NotFound(w, r)
 		}
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	svc := newTestServiceWithProbe(t, func(_ context.Context, endpoint string) endpointProbeResult {
 		return endpointProbeResult{

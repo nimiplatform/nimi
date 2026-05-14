@@ -41,7 +41,7 @@ func deleteBytedanceARKTask(ctx context.Context, providerJobID string, cfg Media
 	if err != nil {
 		return MapProviderRequestError(err)
 	}
-	defer response.Body.Close()
+	defer func() { _ = response.Body.Close() }()
 
 	switch response.StatusCode {
 	case http.StatusOK, http.StatusAccepted, http.StatusNoContent, http.StatusNotFound, http.StatusConflict:

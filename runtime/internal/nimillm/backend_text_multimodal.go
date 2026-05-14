@@ -436,7 +436,7 @@ func (b *Backend) readInlineMediaBytes(ctx context.Context, location string) ([]
 		if err != nil {
 			return nil, "", MapProviderRequestError(err)
 		}
-		defer resp.Body.Close()
+		defer func() { _ = resp.Body.Close() }()
 		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 			return nil, "", MapProviderHTTPError(resp.StatusCode, nil)
 		}

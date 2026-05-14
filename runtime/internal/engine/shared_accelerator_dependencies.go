@@ -318,7 +318,7 @@ func installManagedNVIDIACUDAUserSpaceRuntime(ctx context.Context, dependenciesP
 	if err != nil {
 		return fmt.Errorf("create managed CUDA dependency temp dir: %w", err)
 	}
-	defer os.RemoveAll(tmpDir)
+	defer func() { _ = os.RemoveAll(tmpDir) }()
 	archiveURL := strings.TrimSpace(source.ArchiveURL)
 	archiveSHA256 := strings.TrimSpace(source.ArchiveSHA256)
 	if archiveURL == "" {

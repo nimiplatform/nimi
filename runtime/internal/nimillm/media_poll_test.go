@@ -106,7 +106,7 @@ func TestPollProviderTaskForArtifactCancelsVolcengineTaskOnContextCancel(t *test
 			http.NotFound(w, r)
 		}
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	ctx, cancel := context.WithCancel(loopbackProviderTestContext(context.Background()))
 	go func() {
@@ -152,7 +152,7 @@ func TestDeleteBytedanceARKTaskTreatsConflictAsSuccess(t *testing.T) {
 			},
 		})
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	if err := DeleteProviderAsyncTask(context.Background(), AdapterBytedanceARKTask, "task-1", MediaAdapterConfig{BaseURL: server.URL, AllowLoopbackEndpoint: true}); err != nil {
 		t.Fatalf("expected conflict to be treated as success, got %v", err)
@@ -180,7 +180,7 @@ func TestPollProviderTaskForArtifactCompletesAfterQueuedStates(t *testing.T) {
 			"b64_mp4": base64.StdEncoding.EncodeToString([]byte("video-bytes")),
 		})
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	artifacts, usage, providerJobID, err := PollProviderTaskForArtifact(
 		loopbackProviderTestContext(context.Background()),
@@ -283,7 +283,7 @@ func TestPollProviderTaskForArtifactRetriesTransientErrorsWhenDetached(t *testin
 			"b64_mp4": base64.StdEncoding.EncodeToString([]byte("video-bytes-retry")),
 		})
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	// Cancel-only context: no deadline → detached polling.
 	ctx, cancel := context.WithCancel(loopbackProviderTestContext(context.Background()))
@@ -346,7 +346,7 @@ func TestPollProviderTaskForArtifactImmediateExitOnErrorWithDeadline(t *testing.
 		w.WriteHeader(http.StatusInternalServerError)
 		_ = json.NewEncoder(w).Encode(map[string]any{"error": "server error"})
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	// Context with deadline: NOT detached → immediate exit on error.
 	ctx, cancel := context.WithTimeout(loopbackProviderTestContext(context.Background()), 30*time.Second)
@@ -430,7 +430,7 @@ func TestPollProviderTaskForArtifactPermanentErrorFailsFastWhenDetached(t *testi
 		w.WriteHeader(http.StatusUnauthorized)
 		_ = json.NewEncoder(w).Encode(map[string]any{"error": "invalid api key"})
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	// Cancel-only context: detached mode.
 	ctx, cancel := context.WithCancel(loopbackProviderTestContext(context.Background()))

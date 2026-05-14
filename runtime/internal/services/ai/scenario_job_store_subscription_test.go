@@ -37,7 +37,7 @@ func TestScenarioJobStoreDetachedVideoJobRemainsQueryableDuringLongPoll(t *testi
 			http.NotFound(w, r)
 		}
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
 		CloudProviders: map[string]nimillm.ProviderCredentials{
@@ -192,7 +192,7 @@ func TestSubmitScenarioJobDashScopeVoiceDesignUsesAPIModelTarget(t *testing.T) {
 			},
 		})
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
 		CloudProviders: map[string]nimillm.ProviderCredentials{

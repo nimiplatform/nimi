@@ -334,7 +334,7 @@ func writeTextGenerateArtifactTempFile(mimeType string, payload []byte) (string,
 		return "", nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL)
 	}
 	if _, err := file.Write(payload); err != nil {
-		file.Close()
+		_ = file.Close()
 		_ = os.Remove(file.Name())
 		return "", nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL)
 	}

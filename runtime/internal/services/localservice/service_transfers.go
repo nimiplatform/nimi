@@ -433,7 +433,7 @@ func (s *Service) WatchLocalTransfers(_ *runtimev1.WatchLocalTransfersRequest, s
 			return event.GetDone()
 		},
 	})
-	defer relay.Close()
+	defer func() { relay.Close() }()
 
 	done := make(chan error, 1)
 	go func() {

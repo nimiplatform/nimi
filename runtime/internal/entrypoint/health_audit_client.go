@@ -37,7 +37,7 @@ func FetchAIProviderHealthGRPC(grpcAddr string, timeout time.Duration) ([]Provid
 	if err != nil {
 		return nil, fmt.Errorf("dial grpc %s: %w", addr, err)
 	}
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 
 	client := runtimev1.NewRuntimeAuditServiceClient(conn)
 	resp, err := client.ListAIProviderHealth(ctx, &runtimev1.ListAIProviderHealthRequest{})
@@ -84,7 +84,7 @@ func SubscribeAIProviderHealthGRPC(ctx context.Context, grpcAddr string) (<-chan
 	client := runtimev1.NewRuntimeAuditServiceClient(conn)
 	stream, err := client.SubscribeAIProviderHealthEvents(ctx, &runtimev1.SubscribeAIProviderHealthEventsRequest{})
 	if err != nil {
-		conn.Close()
+		_ = conn.Close()
 		return nil, nil, fmt.Errorf("subscribe ai provider health events: %w", err)
 	}
 
@@ -93,7 +93,7 @@ func SubscribeAIProviderHealthGRPC(ctx context.Context, grpcAddr string) (<-chan
 	go func() {
 		defer close(events)
 		defer close(errCh)
-		defer conn.Close()
+		defer func() { _ = conn.Close() }()
 
 		for {
 			item, recvErr := stream.Recv()
@@ -150,7 +150,7 @@ func SubscribeRuntimeHealthGRPC(ctx context.Context, grpcAddr string) (<-chan Ru
 	client := runtimev1.NewRuntimeAuditServiceClient(conn)
 	stream, err := client.SubscribeRuntimeHealthEvents(ctx, &runtimev1.SubscribeRuntimeHealthEventsRequest{})
 	if err != nil {
-		conn.Close()
+		_ = conn.Close()
 		return nil, nil, fmt.Errorf("subscribe runtime health events: %w", err)
 	}
 
@@ -159,7 +159,7 @@ func SubscribeRuntimeHealthGRPC(ctx context.Context, grpcAddr string) (<-chan Ru
 	go func() {
 		defer close(events)
 		defer close(errCh)
-		defer conn.Close()
+		defer func() { _ = conn.Close() }()
 
 		for {
 			item, recvErr := stream.Recv()
@@ -216,7 +216,7 @@ func FetchRuntimeHealthGRPC(grpcAddr string, timeout time.Duration) (map[string]
 	if err != nil {
 		return nil, fmt.Errorf("dial grpc %s: %w", addr, err)
 	}
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 
 	client := runtimev1.NewRuntimeAuditServiceClient(conn)
 	healthResp, err := client.GetRuntimeHealth(ctx, &runtimev1.GetRuntimeHealthRequest{})
@@ -299,7 +299,7 @@ func ListAuditEventsGRPC(grpcAddr string, timeout time.Duration, req *runtimev1.
 	if err != nil {
 		return nil, fmt.Errorf("dial grpc %s: %w", addr, err)
 	}
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 
 	client := runtimev1.NewRuntimeAuditServiceClient(conn)
 	resp, err := client.ListAuditEvents(ctx, req)
@@ -334,7 +334,7 @@ func ListUsageStatsGRPC(grpcAddr string, timeout time.Duration, req *runtimev1.L
 	if err != nil {
 		return nil, fmt.Errorf("dial grpc %s: %w", addr, err)
 	}
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 
 	client := runtimev1.NewRuntimeAuditServiceClient(conn)
 	resp, err := client.ListUsageStats(ctx, req)
@@ -369,7 +369,7 @@ func ExportAuditEventsGRPC(grpcAddr string, timeout time.Duration, req *runtimev
 	if err != nil {
 		return nil, fmt.Errorf("dial grpc %s: %w", addr, err)
 	}
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 
 	client := runtimev1.NewRuntimeAuditServiceClient(conn)
 	stream, err := client.ExportAuditEvents(ctx, req)

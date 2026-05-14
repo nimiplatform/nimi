@@ -176,7 +176,7 @@ func TestLocalStartLocalModelRequiresExactManagedLlamaModel(t *testing.T) {
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = w.Write([]byte(`{"data":[{"id":"other-model"}]}`))
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	svc := newTestServiceWithProbe(t, nil)
 	installed, err := svc.installLocalAsset(context.Background(), installLocalAssetParams{
@@ -230,7 +230,7 @@ func TestWaitForManagedEnginePortReleaseTimesOutWhenPortStaysOccupied(t *testing
 	if err != nil {
 		t.Fatalf("listen: %v", err)
 	}
-	defer ln.Close()
+	defer func() { _ = ln.Close() }()
 
 	port := ln.Addr().(*net.TCPAddr).Port
 	err = waitForManagedEnginePortRelease(context.Background(), port, 250*time.Millisecond)

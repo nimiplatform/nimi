@@ -22,7 +22,7 @@ func TestVoiceWorkflowFailCloseOnInvalidProviderResponse(t *testing.T) {
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = io.WriteString(w, `{}`)
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	_, err := executeVoiceWorkflowViaNimillm(
 		context.Background(),
@@ -50,7 +50,7 @@ func TestVoiceWorkflowRejectsJobOnlyProviderResponse(t *testing.T) {
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = io.WriteString(w, `{"job_id":"job-only"}`)
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	_, err := executeVoiceWorkflowViaNimillm(
 		context.Background(),
@@ -78,7 +78,7 @@ func TestVoiceWorkflowDoesNotSynthesizeProviderJobID(t *testing.T) {
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = io.WriteString(w, `{"voice_id":"voice-only"}`)
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	result, err := executeVoiceWorkflowViaNimillm(
 		context.Background(),
@@ -108,7 +108,7 @@ func TestExecuteVoiceWorkflowJobPersistsWorkflowFamilyAndHandlePolicyMetadata(t 
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = io.WriteString(w, `{"voice_id":"voice-123","job_id":"job-123"}`)
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
 		CloudProviders: map[string]nimillm.ProviderCredentials{
@@ -290,7 +290,7 @@ func TestSubmitScenarioJobLocalQwenWorkflowReturnsAssetWithHandlePolicyMetadata(
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		_, _ = io.WriteString(w, `{"ok":true}`)
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 	svc.SetLocalProviderEndpoint("speech", server.URL+"/v1", "")
 	svc.localModel = &fakeLocalModelLister{responses: []*runtimev1.ListLocalAssetsResponse{{
 		Assets: []*runtimev1.LocalAssetRecord{{
@@ -432,7 +432,7 @@ func TestExecuteVoiceWorkflowJobLocalQwenSucceedsViaSpeechHost(t *testing.T) {
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = io.WriteString(w, `{"voice_id":"voice-local-qwen3-001","job_id":"job-local-qwen3-001","metadata":{"host_family":"qwen3_tts"}}`)
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	svc.SetLocalProviderEndpoint("speech", server.URL+"/v1", "")
 	req := voiceCloneRequest()

@@ -72,7 +72,7 @@ func TestExecuteAlibabaNativeTTSPreservesRequestedVoice(t *testing.T) {
 		w.Header().Set("Content-Type", "audio/mpeg")
 		_, _ = w.Write([]byte("dashscope-tts-bytes"))
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	artifacts, _, _, err := ExecuteAlibabaNative(
 		context.Background(),
@@ -174,7 +174,7 @@ func TestExecuteDashScopeTranscribeUsesCompatibleChatPath(t *testing.T) {
 			},
 		})
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	artifacts, _, _, err := ExecuteDashScopeTranscribe(
 		context.Background(),
@@ -420,7 +420,7 @@ func TestExecuteAlibabaNativeImageWan26UsesAsyncImageGenerationContract(t *testi
 			http.NotFound(w, r)
 		}
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	artifacts, _, providerJobID, err := ExecuteAlibabaNative(
 		context.Background(),
@@ -509,7 +509,7 @@ func TestExecuteDashScopeVoiceWorkflowUsesCustomizationContractForClone(t *testi
 			},
 		})
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	result, err := executeDashScopeVoiceWorkflow(context.Background(), VoiceWorkflowRequest{
 		Provider:        "dashscope",
@@ -577,7 +577,7 @@ func TestExecuteDashScopeVoiceWorkflowUsesCustomizationContractForDesign(t *test
 			},
 		})
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	result, err := executeDashScopeVoiceWorkflow(context.Background(), VoiceWorkflowRequest{
 		Provider:        "dashscope",

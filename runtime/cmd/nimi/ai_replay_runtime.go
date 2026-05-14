@@ -79,7 +79,7 @@ func submitAndCollectRuntimeReplay(grpcAddr string, timeout time.Duration, req *
 	if err != nil {
 		return nil, fmt.Errorf("dial grpc %s: %w", grpcAddr, err)
 	}
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 
 	client := runtimev1.NewRuntimeAiServiceClient(conn)
 	resp, err := client.SubmitScenarioJob(ctx, req)

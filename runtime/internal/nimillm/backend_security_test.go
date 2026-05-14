@@ -43,7 +43,7 @@ func TestNewSecuredBackendAllowsLoopbackEndpoint(t *testing.T) {
 			},
 		})
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	backend := NewSecuredBackend("cloud-openai", server.URL, "", 3*time.Second, true)
 	if backend == nil {
@@ -83,7 +83,7 @@ func TestCloudProviderWithTargetLoopbackPolicy(t *testing.T) {
 			},
 		})
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	provider := NewCloudProvider(CloudConfig{
 		Providers:               map[string]ProviderCredentials{},

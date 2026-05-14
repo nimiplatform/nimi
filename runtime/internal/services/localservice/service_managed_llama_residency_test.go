@@ -212,7 +212,7 @@ func TestAcquireLocalAssetLeaseWarmsResidentManagedLlamaBeforeTextExecution(t *t
 			http.NotFound(w, r)
 		}
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	svc := newTestServiceWithProbe(t, nil)
 	svc.SetEngineManager(&mockEngineManager{

@@ -512,7 +512,7 @@ func TestGenerateTextOpenAIProviderNativeAudioRequest(t *testing.T) {
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = w.Write([]byte(`{"choices":[{"message":{"content":"heard it"},"finish_reason":"stop"}],"usage":{"prompt_tokens":4,"completion_tokens":2}}`))
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	backend := newBackend("cloud-openai", server.URL, "", nil, 0, server.Client().Transport, false, true)
 	if backend == nil {

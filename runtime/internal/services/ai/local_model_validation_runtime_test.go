@@ -60,7 +60,7 @@ func TestValidateLocalModelRequestInstalledImageDoesNotWarmTextOnlyAssets(t *tes
 	loopbackServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	}))
-	defer loopbackServer.Close()
+	defer func() { loopbackServer.Close() }()
 	imageLister := &fakeLocalModelLister{responses: []*runtimev1.ListLocalAssetsResponse{{
 		Assets: []*runtimev1.LocalAssetRecord{{
 			LocalAssetId:         "local-image-installed",
@@ -297,7 +297,7 @@ func TestValidateLocalModelRequestUnhealthyImageRetriesStartAndRecovers(t *testi
 	loopbackServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	}))
-	defer loopbackServer.Close()
+	defer func() { loopbackServer.Close() }()
 
 	imageLister := &fakeLocalModelLister{responses: []*runtimev1.ListLocalAssetsResponse{{
 		Assets: []*runtimev1.LocalAssetRecord{{
@@ -340,7 +340,7 @@ func TestValidateLocalModelRequestUnhealthyImageRequiresStartWithDynamicProfileO
 	loopbackServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	}))
-	defer loopbackServer.Close()
+	defer func() { loopbackServer.Close() }()
 
 	imageLister := &fakeLocalModelLister{
 		responses: []*runtimev1.ListLocalAssetsResponse{{

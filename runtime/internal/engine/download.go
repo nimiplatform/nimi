@@ -70,7 +70,7 @@ func downloadManagedBinary(destDir string, spec managedBinaryBootstrapSpec, vers
 	if err != nil {
 		return "", "", "", fmt.Errorf("%w: create bootstrap temp directory: %v", ErrEngineBinaryDownloadFailed, err)
 	}
-	defer os.RemoveAll(tmpDir)
+	defer func() { _ = os.RemoveAll(tmpDir) }()
 
 	downloadPath := filepath.Join(tmpDir, asset.Name)
 	archiveHash, err := downloadURLToFile(asset.DownloadURL, downloadPath)
@@ -156,7 +156,7 @@ func downloadURLToFile(sourceURL string, destPath string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("%w: request engine binary: %v", ErrEngineBinaryDownloadFailed, err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		return "", fmt.Errorf("%w: HTTP %d from %s", ErrEngineBinaryDownloadFailed, resp.StatusCode, sourceURL)
@@ -227,7 +227,7 @@ func extractManagedPayloadFromZip(archivePath string, destDir string) error {
 	if err != nil {
 		return fmt.Errorf("%w: open zip archive: %v", ErrEngineBinaryDownloadFailed, err)
 	}
-	defer reader.Close()
+	defer func() { _ = reader.Close() }()
 
 	for _, file := range reader.File {
 		relPath, err := normalizeManagedArchiveEntryPath(file.Name)
@@ -282,13 +282,13 @@ func extractManagedPayloadFromTarGZ(archivePath string, destDir string) error {
 	if err != nil {
 		return fmt.Errorf("%w: open tar archive: %v", ErrEngineBinaryDownloadFailed, err)
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	gzipReader, err := gzip.NewReader(file)
 	if err != nil {
 		return fmt.Errorf("%w: open gzip archive: %v", ErrEngineBinaryDownloadFailed, err)
 	}
-	defer gzipReader.Close()
+	defer func() { _ = gzipReader.Close() }()
 
 	tarReader := tar.NewReader(gzipReader)
 	for {
@@ -411,7 +411,7 @@ func installManagedBinaryPayload(destDir string, stagedDir string) error {
 		if err != nil {
 			return fmt.Errorf("%w: open staged payload file: %v", ErrEngineBinaryDownloadFailed, err)
 		}
-		defer source.Close()
+		defer func() { _ = source.Close() }()
 		if err := copyReaderToFileWithMode(source, destPath, info.Mode().Perm()); err != nil {
 			return err
 		}
@@ -454,7 +454,7 @@ func copyFile(sourcePath string, destPath string) error {
 	if err != nil {
 		return fmt.Errorf("%w: open downloaded asset: %v", ErrEngineBinaryDownloadFailed, err)
 	}
-	defer in.Close()
+	defer func() { _ = in.Close() }()
 	return copyReaderToFile(in, destPath)
 }
 
@@ -463,7 +463,7 @@ func sha256File(path string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("%w: open engine binary: %v", ErrEngineBinaryDownloadFailed, err)
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	hasher := sha256.New()
 	if _, err := io.Copy(hasher, file); err != nil {

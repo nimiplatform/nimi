@@ -33,7 +33,7 @@ func TestBackendGenerateImageForwardsScenarioExtensions(t *testing.T) {
 			},
 		})
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	backend := NewBackend("openai", server.URL, "", time.Second)
 	scenarioExtensions := map[string]any{
@@ -82,7 +82,7 @@ func TestBackendGenerateImageNormalizesBase64ResponseFormat(t *testing.T) {
 			},
 		})
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	backend := NewBackend("openai", server.URL, "", time.Second)
 	_, _, err := backend.GenerateImage(context.Background(), "openai/image", &runtimev1.ImageGenerateScenarioSpec{
@@ -127,7 +127,7 @@ func TestBackendGenerateImageUsesCodexResponsesTool(t *testing.T) {
 			},
 		})
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	backend := NewBackendWithHeaders("cloud-openai_codex", server.URL+"/backend-api/codex", "token-123", map[string]string{
 		"originator": "codex_cli_rs",
@@ -180,7 +180,7 @@ func TestBackendGenerateImageUsesConfiguredCodexHostModel(t *testing.T) {
 			},
 		})
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	provider := NewCloudProvider(CloudConfig{
 		Providers: map[string]ProviderCredentials{
@@ -226,7 +226,7 @@ func TestBackendGenerateVideoForwardsScenarioExtensions(t *testing.T) {
 			},
 		})
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	backend := NewBackend("openai", server.URL, "", time.Second)
 	scenarioExtensions := map[string]any{
@@ -287,7 +287,7 @@ func TestBackendGenerateImageUsesMediaCanonicalPath(t *testing.T) {
 			},
 		})
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	backend := NewBackend("local-media", server.URL, "", time.Second)
 	payload, _, err := backend.GenerateImage(context.Background(), "media/flux.1-schnell", &runtimev1.ImageGenerateScenarioSpec{
@@ -325,7 +325,7 @@ func TestBackendGenerateVideoUsesMediaCanonicalPath(t *testing.T) {
 			},
 		})
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	backend := NewBackend("local-media", server.URL, "", time.Second)
 	payload, _, err := backend.GenerateVideo(context.Background(), "media/wan2.1-video", &runtimev1.VideoGenerateScenarioSpec{
@@ -394,7 +394,7 @@ func TestBackendTranscribeForwardsScenarioExtensions(t *testing.T) {
 			"text": "transcribed text",
 		})
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	backend := NewBackend("openai", server.URL, "", time.Second)
 	scenarioExtensions := map[string]any{
@@ -443,7 +443,7 @@ func TestBackendGenerateMusicNormalizesIterationExtensions(t *testing.T) {
 			},
 		})
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	backend := NewBackend("cloud-stability", server.URL, "", time.Second)
 	_, _, err := backend.GenerateMusic(context.Background(), "stable-audio-2", &runtimev1.MusicGenerateScenarioSpec{
@@ -486,7 +486,7 @@ func TestBackendGenerateMusicRejectsIterationForUnsupportedBackend(t *testing.T)
 
 func decodeJSONBodyForBackendMediaTest(t *testing.T, r *http.Request) map[string]any {
 	t.Helper()
-	defer r.Body.Close()
+	defer func() { _ = r.Body.Close() }()
 
 	var payload map[string]any
 	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
@@ -497,7 +497,7 @@ func decodeJSONBodyForBackendMediaTest(t *testing.T, r *http.Request) map[string
 
 func decodeMultipartExtensionsForBackendMediaTest(t *testing.T, r *http.Request) map[string]any {
 	t.Helper()
-	defer r.Body.Close()
+	defer func() { _ = r.Body.Close() }()
 
 	reader, err := r.MultipartReader()
 	if err != nil {

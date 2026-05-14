@@ -45,7 +45,7 @@ func TestInstallManagedImageBackendFromOCI(t *testing.T) {
 			http.NotFound(w, r)
 		}
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	oldTransport := http.DefaultTransport
 	http.DefaultTransport = server.Client().Transport
@@ -99,7 +99,7 @@ func TestInstallManagedImageBackendFromOCIRequiresAuthorityDigest(t *testing.T) 
 			http.NotFound(w, r)
 		}
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	oldTransport := http.DefaultTransport
 	http.DefaultTransport = server.Client().Transport
@@ -136,7 +136,7 @@ func TestInstallManagedImageBackendFromOCIRejectsManifestDigestDrift(t *testing.
 			http.NotFound(w, r)
 		}
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	oldTransport := http.DefaultTransport
 	http.DefaultTransport = server.Client().Transport
@@ -166,7 +166,7 @@ func TestDownloadOCIImageBlobToFileRejectsBodyDigestMismatch(t *testing.T) {
 		}
 		_, _ = w.Write([]byte("wrong-body"))
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	oldTransport := http.DefaultTransport
 	http.DefaultTransport = server.Client().Transport
@@ -195,7 +195,7 @@ func TestInstallManagedImageBackendFromDirectArchive(t *testing.T) {
 			http.NotFound(w, r)
 		}
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	backendsPath := t.TempDir()
 	spec := managedImageBackendPackageSpec{

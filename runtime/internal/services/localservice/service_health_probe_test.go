@@ -35,7 +35,7 @@ func TestDefaultEndpointProbeMediaRejectsEmptyReadyCatalog(t *testing.T) {
 			http.NotFound(w, r)
 		}
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	probe := defaultEndpointProbe(context.Background(), "media", server.URL)
 	if probe.healthy {
@@ -74,7 +74,7 @@ func TestDefaultEndpointProbeMediaCollectsReadyModels(t *testing.T) {
 			http.NotFound(w, r)
 		}
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	probe := defaultEndpointProbe(context.Background(), "media", server.URL)
 	if !probe.healthy {
@@ -112,7 +112,7 @@ func TestDefaultEndpointProbeMediaProxyAllowsReadyEmptyCatalog(t *testing.T) {
 			http.NotFound(w, r)
 		}
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	probe := defaultEndpointProbe(context.Background(), "media", server.URL)
 	if !probe.healthy {
@@ -144,7 +144,7 @@ func TestDefaultEndpointProbeSpeechRejectsCatalogReadyFalse(t *testing.T) {
 			http.NotFound(w, r)
 		}
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	probe := defaultEndpointProbe(context.Background(), "speech", server.URL)
 	if probe.healthy {
@@ -263,7 +263,7 @@ func TestLocalStartManagedLocalModelWarmsBeforeReportingActive(t *testing.T) {
 			http.NotFound(w, r)
 		}
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	svc := newTestServiceWithProbe(t, nil)
 	mgr := &mockEngineManager{sharedAcceleratorDependencyStatus: &engine.SharedAcceleratorDependencyStatus{
@@ -323,7 +323,7 @@ func TestLocalStartManagedLocalModelWarmFailureTransitionsUnhealthy(t *testing.T
 			http.NotFound(w, r)
 		}
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	svc := newTestServiceWithProbe(t, nil)
 	svc.SetEngineManager(&mockEngineManager{})

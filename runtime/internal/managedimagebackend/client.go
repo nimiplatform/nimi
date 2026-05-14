@@ -121,7 +121,7 @@ func GenerateImage(ctx context.Context, req ImageRequest) (*ImageGenerateDiagnos
 		)
 		return nil, fmt.Errorf("dial managed media backend: %w", err)
 	}
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 	slog.Info("managed image backend dial ready",
 		"operation", "generate",
 		"backend_address", strings.TrimSpace(req.BackendAddress),
@@ -249,7 +249,7 @@ func LoadModel(ctx context.Context, req LoadModelRequest) (*LoadModelDiagnostics
 		)
 		return nil, fmt.Errorf("dial managed media backend: %w", err)
 	}
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 	slog.Info("managed image backend dial ready",
 		"operation", "load",
 		"backend_address", strings.TrimSpace(req.BackendAddress),
@@ -313,7 +313,7 @@ func FreeModel(ctx context.Context, req LoadModelRequest) error {
 	if err != nil {
 		return fmt.Errorf("dial managed media backend: %w", err)
 	}
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 
 	freeReq := dynamicpb.NewMessage(modelOptionsMessageDescriptor)
 	setStringField(freeReq, "ModelPath", req.ModelsRoot)

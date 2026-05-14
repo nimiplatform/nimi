@@ -19,7 +19,7 @@ func TestBackendPostJSONUsesContextDeadlineOverClientTimeout(t *testing.T) {
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = w.Write([]byte(`{"ok":true}`))
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	backend := NewBackend("llama", server.URL, "", 50*time.Millisecond)
 	if backend == nil {
@@ -45,7 +45,7 @@ func TestBackendStreamGenerateTextBrokenChunkReturnsReasonCode(t *testing.T) {
 		w.Header().Set("Content-Type", "text/event-stream")
 		_, _ = w.Write([]byte("data: {not-json}\n\n"))
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	backend := NewBackend("openai", server.URL, "", 5*time.Second)
 	if backend == nil {
@@ -87,7 +87,7 @@ func TestBackendGenerateTextUsesFlexibleMessageExtraction(t *testing.T) {
 			"usage":{"prompt_tokens":8,"total_tokens":20}
 		}`))
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	backend := NewBackend("openai", server.URL, "", 5*time.Second)
 	if backend == nil {
@@ -127,7 +127,7 @@ func TestBackendGenerateTextUsesOpenAICompatibleRootPathForGeminiBase(t *testing
 			"usage":{"prompt_tokens":2,"completion_tokens":3,"total_tokens":5}
 		}`))
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	backend := NewBackend("gemini", server.URL+"/openai", "", 5*time.Second)
 	if backend == nil {
@@ -162,7 +162,7 @@ func TestBackendStreamGenerateTextUsesOpenAICompatibleRootPathForGeminiBase(t *t
 		_, _ = w.Write([]byte("data: {\"choices\":[{\"delta\":{\"content\":\"hello\"},\"finish_reason\":\"stop\"}],\"usage\":{\"prompt_tokens\":2,\"completion_tokens\":1,\"total_tokens\":3}}\n\n"))
 		_, _ = w.Write([]byte("data: [DONE]\n\n"))
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	backend := NewBackend("gemini", server.URL+"/openai", "", 5*time.Second)
 	if backend == nil {
@@ -201,7 +201,7 @@ func TestBackendStreamGenerateTextCountsNonContentChunksAsActivity(t *testing.T)
 		_, _ = w.Write([]byte(`data: {"choices":[{"delta":{},"finish_reason":"tool_calls"}],"usage":{"prompt_tokens":5,"completion_tokens":0,"total_tokens":5}}` + "\n\n"))
 		_, _ = w.Write([]byte("data: [DONE]\n\n"))
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	backend := NewBackend("openai", server.URL, "", 5*time.Second)
 	if backend == nil {
@@ -261,7 +261,7 @@ func TestBackendGenerateTextUsesCodexResponses(t *testing.T) {
 			"usage":{"input_tokens":3,"output_tokens":2}
 		}`))
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	backend := NewBackendWithHeaders("cloud-openai_codex", server.URL+"/backend-api/codex", "token-123", map[string]string{
 		"originator": "codex_cli_rs",
@@ -336,7 +336,7 @@ func TestBackendStreamGenerateTextUsesCodexResponsesSSE(t *testing.T) {
 		_, _ = w.Write([]byte("data: {\"type\":\"response.completed\",\"response\":{\"status\":\"completed\",\"usage\":{\"input_tokens\":5,\"output_tokens\":2}}}\n\n"))
 		_, _ = w.Write([]byte("data: [DONE]\n\n"))
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	backend := NewBackendWithHeaders("cloud-openai_codex", server.URL+"/backend-api/codex", "token-123", map[string]string{
 		"originator": "codex_cli_rs",
@@ -410,7 +410,7 @@ func TestBackendStreamGenerateTextUsesCodexResponsesSSEDespiteUnexpectedContentT
 		_, _ = w.Write([]byte("data: {\"type\":\"response.completed\",\"response\":{\"status\":\"completed\",\"usage\":{\"input_tokens\":5,\"output_tokens\":2}}}\n\n"))
 		_, _ = w.Write([]byte("data: [DONE]\n\n"))
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	backend := NewBackendWithHeaders("cloud-openai_codex", server.URL+"/backend-api/codex", "token-123", map[string]string{
 		"originator": "codex_cli_rs",
@@ -491,7 +491,7 @@ func TestBackendGenerateTextUsesAnthropicMessagesAPI(t *testing.T) {
 			"usage":{"input_tokens":4,"output_tokens":3}
 		}`))
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	backend := NewBackendWithHeaders("cloud-anthropic", server.URL, "sk-ant-api-test", anthropicCredentialHeaders("sk-ant-api-test"), 5*time.Second)
 	if backend == nil {
@@ -546,7 +546,7 @@ func TestBackendGenerateTextUsesAnthropicOAuthBearer(t *testing.T) {
 			"usage":{"input_tokens":2,"output_tokens":2}
 		}`))
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	token := "sk-ant-oat-test"
 	backend := NewBackendWithHeaders("cloud-anthropic", server.URL, token, anthropicCredentialHeaders(token), 5*time.Second)
@@ -589,7 +589,7 @@ func TestBackendGenerateTextUsesOpenAICompatibleOAuthBearer(t *testing.T) {
 			"usage":{"prompt_tokens":2,"completion_tokens":4,"total_tokens":6}
 		}`))
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	backend := NewBackendWithHeaders("cloud-openai_compatible", server.URL+"/v1", "qwen-oauth-token", nil, 5*time.Second)
 	if backend == nil {
@@ -637,7 +637,7 @@ func TestBackendStreamGenerateTextUsesAnthropicMessagesSSE(t *testing.T) {
 		_, _ = w.Write([]byte("event: message_start\n"))
 		_, _ = w.Write([]byte("data: {\"message\":{\"usage\":{\"input_tokens\":6,\"output_tokens\":2}}}\n\n"))
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	backend := NewBackendWithHeaders("cloud-anthropic", server.URL, "sk-ant-api-test", anthropicCredentialHeaders("sk-ant-api-test"), 5*time.Second)
 	if backend == nil {

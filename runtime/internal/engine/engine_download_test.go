@@ -29,7 +29,7 @@ func TestDownloadFromURLSuccessDownloadHelpers(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write(fakeBinary)
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	destDir := filepath.Join(t.TempDir(), "engines", "test")
 	binaryPath, hash, err := downloadFromURLWithExpectedSHA256(server.URL+"/fake-binary", destDir, "test-binary", "")
@@ -67,7 +67,7 @@ func TestDownloadFromURLHTTPErrorDownloadHelpers(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	destDir := filepath.Join(t.TempDir(), "engines", "test")
 	_, _, err := downloadFromURLWithExpectedSHA256(server.URL+"/missing", destDir, "test-binary", "")
@@ -91,7 +91,7 @@ func TestDownloadFromURLHashMismatchDownloadHelpers(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write(fakeBinary)
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	destDir := filepath.Join(t.TempDir(), "engines", "test")
 	_, _, err := downloadFromURLWithExpectedSHA256(server.URL+"/fake-binary", destDir, "test-binary", strings.Repeat("0", 64))
@@ -123,7 +123,7 @@ func TestDownloadURLToFileRetriesTransientEOF(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write(fakeBinary)
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	destPath := filepath.Join(t.TempDir(), "downloaded.bin")
 	hash, err := downloadURLToFile(server.URL+"/retry.bin", destPath)
@@ -173,7 +173,7 @@ func TestManagerEnsureLlamaFailsWhenRegistryPersistFailsDownloadHelpers(t *testi
 			http.NotFound(w, r)
 		}
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 	serverURL = server.URL
 	t.Cleanup(setLlamaReleaseSourceForTest(server.URL, server.Client()))
 

@@ -39,7 +39,7 @@ func TestLocalDefaultProbeBuildsSingleV1ModelsPath(t *testing.T) {
 		receivedPath = r.URL.Path
 		_, _ = w.Write([]byte(`{"data":[{"id":"default-probe-model"}]}`))
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	svc := newTestServiceWithProbe(t, nil)
 	installed := mustInstallAttachedLocalModel(t, svc, installLocalAssetParams{

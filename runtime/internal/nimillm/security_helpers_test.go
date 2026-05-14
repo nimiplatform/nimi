@@ -90,7 +90,7 @@ func TestExecuteElevenLabsTTSEscapesVoiceID(t *testing.T) {
 		w.Header().Set("Content-Type", "audio/mpeg")
 		_, _ = w.Write([]byte("audio"))
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	_, _, _, err := ExecuteElevenLabsTTS(context.Background(), MediaAdapterConfig{
 		BaseURL:               server.URL,
@@ -122,7 +122,7 @@ func TestDoJSONOrBinaryRequestRejectsLoopbackWithoutExplicitOptIn(t *testing.T) 
 		w.Header().Set("Content-Type", "audio/mpeg")
 		_, _ = w.Write(make([]byte, maxJSONOrBinaryResponseBytes+1))
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	_, err := DoJSONOrBinaryRequest(context.Background(), http.MethodPost, server.URL, "", map[string]any{"ok": true}, nil)
 	if err == nil {
@@ -184,7 +184,7 @@ func TestFetchBinaryArtifactRejectsLoopbackWithoutExplicitOptIn(t *testing.T) {
 		w.Header().Set("Content-Type", "image/png")
 		_, _ = w.Write(make([]byte, maxDecodedMediaURLBytes+1))
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	_, _, err := fetchBinaryArtifact(context.Background(), server.URL)
 	if err == nil {
@@ -197,7 +197,7 @@ func TestExtractBinaryArtifactBytesAndMIMEHonorsCanceledContext(t *testing.T) {
 		w.Header().Set("Content-Type", "image/png")
 		_, _ = w.Write([]byte("detached fetch would succeed"))
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	ctx, cancel := context.WithCancel(loopbackProviderTestContext(context.Background()))
 	cancel()
@@ -215,7 +215,7 @@ func TestFetchAudioFromURIRejectsLoopbackWithoutExplicitOptIn(t *testing.T) {
 		w.Header().Set("Content-Type", "audio/wav")
 		_, _ = w.Write(make([]byte, maxDecodedMediaURLBytes+1))
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	_, _, err := FetchAudioFromURI(context.Background(), server.URL)
 	if err == nil {

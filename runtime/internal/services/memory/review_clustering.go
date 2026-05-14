@@ -54,7 +54,7 @@ func (s *Service) reviewInputEmbeddings(bankKey string, records []*runtimev1.Mem
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	out := make(map[string][]float64, len(recordIDs))
 	for rows.Next() {
 		var memoryID string

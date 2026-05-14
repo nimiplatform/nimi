@@ -151,7 +151,7 @@ func selectDistinctIDs(ctx context.Context, tx *sql.Tx, query string, args ...an
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	out := make([]string, 0)
 	for rows.Next() {
 		var id string

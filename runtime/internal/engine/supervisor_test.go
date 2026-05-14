@@ -92,7 +92,7 @@ func mustAllocateTestPort() int {
 	if err != nil {
 		panic(err)
 	}
-	defer ln.Close()
+	defer func() { _ = ln.Close() }()
 	return ln.Addr().(*net.TCPAddr).Port
 }
 

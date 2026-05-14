@@ -32,7 +32,7 @@ func TestLlamaDownloadURL(t *testing.T) {
 		}
 		_, _ = w.Write([]byte(releasePayload))
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 	t.Cleanup(setLlamaReleaseSourceForTest(server.URL, server.Client()))
 
 	url, err := llamaDownloadURL(version)
@@ -116,7 +116,7 @@ func TestLlamaReleaseAssetPrefersWindowsNvidiaCUDAAndFallsBackToCPU(t *testing.T
 		}
 		_, _ = w.Write([]byte(fmt.Sprintf(`{"tag_name":"%s","assets":[{"name":"%s","browser_download_url":"https://github.com/ggml-org/llama.cpp/releases/download/%s/%s","digest":"sha256:%s"},{"name":"%s","browser_download_url":"https://github.com/ggml-org/llama.cpp/releases/download/%s/%s","digest":"sha256:%s"}]}`, version, cpuAsset, version, cpuAsset, cpuHash, cudaAsset, version, cudaAsset, cudaHash)))
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 	t.Cleanup(setLlamaReleaseSourceForTest(server.URL, server.Client()))
 
 	asset, err := llamaReleaseAsset(version)
@@ -134,7 +134,7 @@ func TestLlamaReleaseAssetPrefersWindowsNvidiaCUDAAndFallsBackToCPU(t *testing.T
 		}
 		_, _ = w.Write([]byte(fmt.Sprintf(`{"tag_name":"%s","assets":[{"name":"%s","browser_download_url":"https://github.com/ggml-org/llama.cpp/releases/download/%s/%s","digest":"sha256:%s"}]}`, version, cpuAsset, version, cpuAsset, cpuHash)))
 	}))
-	defer fallbackServer.Close()
+	defer func() { fallbackServer.Close() }()
 	t.Cleanup(setLlamaReleaseSourceForTest(fallbackServer.URL, fallbackServer.Client()))
 
 	asset, err = llamaReleaseAsset(version)
@@ -297,7 +297,7 @@ func TestLlamaExpectedSHA256(t *testing.T) {
 		}
 		_, _ = w.Write([]byte(fmt.Sprintf(`{"tag_name":"%s","assets":[{"name":"%s","browser_download_url":"https://github.com/ggml-org/llama.cpp/releases/download/%s/%s","digest":"sha256:%s"}]}`, version, asset, version, asset, expectedHash)))
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	t.Cleanup(setLlamaReleaseSourceForTest(server.URL, server.Client()))
 
@@ -314,7 +314,7 @@ func TestLlamaExpectedSHA256MissingAsset(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write([]byte(`{"tag_name":"b8575","assets":[{"name":"llama-b8575-bin-macos-arm64.tar.gz","browser_download_url":"https://github.com/ggml-org/llama.cpp/releases/download/b8575/llama-b8575-bin-macos-arm64.tar.gz","digest":"sha256:aac7f1248948cf2e6b2ce1c86a311601b1e37154914397f602b1f6f4bfe2de00"}]}`))
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	t.Cleanup(setLlamaReleaseSourceForTest(server.URL, server.Client()))
 
@@ -348,7 +348,7 @@ func TestProbeHealthSuccess(t *testing.T) {
 		}
 		w.WriteHeader(http.StatusNotFound)
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	err := ProbeHealth(context.Background(), server.URL, "/v1/models", "")
 	if err != nil {
@@ -361,7 +361,7 @@ func TestProbeHealthBodyMatch(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte("engine is running"))
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	err := ProbeHealth(context.Background(), server.URL, "/", "engine is running")
 	if err != nil {
@@ -374,7 +374,7 @@ func TestProbeHealthBodyMismatch(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte("something else"))
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	err := ProbeHealth(context.Background(), server.URL, "/", "engine is running")
 	if err == nil {
@@ -386,7 +386,7 @@ func TestProbeHealthServerError(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	err := ProbeHealth(context.Background(), server.URL, "/v1/models", "")
 	if err == nil {
@@ -414,7 +414,7 @@ func TestProbeMediaHealthSuccess(t *testing.T) {
 			w.WriteHeader(http.StatusNotFound)
 		}
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	if err := ProbeMediaHealth(context.Background(), server.URL); err != nil {
 		t.Fatalf("expected media healthy, got %v", err)
@@ -434,7 +434,7 @@ func TestProbeMediaHealthRequiresCatalog(t *testing.T) {
 			w.WriteHeader(http.StatusNotFound)
 		}
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	if err := ProbeMediaHealth(context.Background(), server.URL); err == nil {
 		t.Fatal("expected media health probe to fail without ready catalog models")
@@ -454,7 +454,7 @@ func TestProbeMediaHealthProxyExecutionRequiresExecutionReadyCatalog(t *testing.
 			w.WriteHeader(http.StatusNotFound)
 		}
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	if err := ProbeMediaHealth(context.Background(), server.URL); err == nil {
 		t.Fatal("expected proxy_execution media health to fail without ready catalog models")
@@ -471,7 +471,7 @@ func TestProbeMediaHealthRejectsImageDriverPartialHealth(t *testing.T) {
 			w.WriteHeader(http.StatusNotFound)
 		}
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	if err := ProbeMediaHealth(context.Background(), server.URL); err == nil {
 		t.Fatal("expected media health to fail when healthz is not execution-ready")
@@ -491,7 +491,7 @@ func TestProbeSpeechHealthRequiresCatalogReadyTrue(t *testing.T) {
 			w.WriteHeader(http.StatusNotFound)
 		}
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	if err := ProbeSpeechHealth(context.Background(), server.URL); err == nil {
 		t.Fatal("expected speech health probe to fail when catalog reports ready=false")
@@ -512,7 +512,7 @@ func TestProbeMediaHealthRejectsOversizedCatalogPayload(t *testing.T) {
 			w.WriteHeader(http.StatusNotFound)
 		}
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	if err := ProbeMediaHealth(context.Background(), server.URL); err == nil {
 		t.Fatal("expected media health probe to fail on oversized catalog payload")
@@ -535,7 +535,7 @@ func TestProbeSupervisorHealthUsesSpeechProbe(t *testing.T) {
 			w.WriteHeader(http.StatusNotFound)
 		}
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	cfg := EngineConfig{
 		Kind:           EngineSpeech,
@@ -553,7 +553,7 @@ func TestProbeSupervisorHealthTCP(t *testing.T) {
 	if err != nil {
 		t.Fatalf("listen tcp: %v", err)
 	}
-	defer listener.Close()
+	defer func() { _ = listener.Close() }()
 
 	cfg := EngineConfig{
 		Kind:           engineManagedImageBackend,
@@ -577,7 +577,7 @@ func TestWaitHealthySuccess(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte(`{"data":[{"id":"qwen2.5"}]}`))
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	err := WaitHealthy(context.Background(), server.URL, "/v1/models", "", 50*time.Millisecond, 5*time.Second)
 	if err != nil {
@@ -592,7 +592,7 @@ func TestWaitHealthyTimeout(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusServiceUnavailable)
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	err := WaitHealthy(context.Background(), server.URL, "/v1/models", "", 50*time.Millisecond, 200*time.Millisecond)
 	if err == nil {
@@ -604,7 +604,7 @@ func TestWaitHealthyCancelled(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusServiceUnavailable)
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	ctx, cancel := context.WithCancel(context.Background())
 	go func() {
@@ -637,7 +637,7 @@ func TestWaitMediaHealthySuccess(t *testing.T) {
 			w.WriteHeader(http.StatusNotFound)
 		}
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	if err := WaitMediaHealthy(context.Background(), server.URL, 50*time.Millisecond, 5*time.Second); err != nil {
 		t.Fatalf("expected media healthy after retries, got %v", err)

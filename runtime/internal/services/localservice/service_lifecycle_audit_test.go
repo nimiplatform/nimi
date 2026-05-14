@@ -249,7 +249,7 @@ func TestLocalAuditCapacityRespectedAcrossPersistAndRestore(t *testing.T) {
 	if err != nil {
 		t.Fatalf("create service: %v", err)
 	}
-	defer svc.Close()
+	defer func() { svc.Close() }()
 
 	for i := 0; i < 5; i++ {
 		if _, err := svc.AppendRuntimeAudit(context.Background(), &runtimev1.AppendRuntimeAuditRequest{
@@ -275,7 +275,7 @@ func TestLocalAuditCapacityRespectedAcrossPersistAndRestore(t *testing.T) {
 	if err != nil {
 		t.Fatalf("restart service: %v", err)
 	}
-	defer restarted.Close()
+	defer func() { restarted.Close() }()
 
 	restored, err := restarted.ListLocalAudits(context.Background(), &runtimev1.ListLocalAuditsRequest{PageSize: 10})
 	if err != nil {

@@ -30,7 +30,7 @@ func (b *Backend) postJSON(ctx context.Context, path string, requestBody any, re
 	if err != nil {
 		return MapProviderRequestError(err)
 	}
-	defer response.Body.Close()
+	defer func() { _ = response.Body.Close() }()
 
 	return DecodeResponseJSON(response, responseBody)
 }
@@ -55,7 +55,7 @@ func (b *Backend) probeGETAbsolute(ctx context.Context, endpoint string) error {
 	if err != nil {
 		return MapProviderRequestError(err)
 	}
-	defer response.Body.Close()
+	defer func() { _ = response.Body.Close() }()
 
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
 		var payload map[string]any
@@ -77,7 +77,7 @@ func (b *Backend) getJSONAbsolute(ctx context.Context, endpoint string, response
 	if err != nil {
 		return MapProviderRequestError(err)
 	}
-	defer response.Body.Close()
+	defer func() { _ = response.Body.Close() }()
 
 	return DecodeResponseJSON(response, responseBody)
 }
@@ -99,7 +99,7 @@ func (b *Backend) postRaw(ctx context.Context, path string, requestBody any) ([]
 	if err != nil {
 		return nil, MapProviderRequestError(err)
 	}
-	defer response.Body.Close()
+	defer func() { _ = response.Body.Close() }()
 
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
 		var payload map[string]any

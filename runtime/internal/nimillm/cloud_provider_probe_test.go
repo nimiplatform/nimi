@@ -70,7 +70,7 @@ func TestBackendProbeConnectorAndListModelsUseAnthropicAPI(t *testing.T) {
 			http.NotFound(w, r)
 		}
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	backend := NewBackendWithHeaders("cloud-anthropic", server.URL, "sk-ant-api-test", anthropicCredentialHeaders("sk-ant-api-test"), defaultHTTPTimeout)
 	if backend == nil {

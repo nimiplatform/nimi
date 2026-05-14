@@ -93,7 +93,7 @@ func (s *Server) Serve(ctx context.Context, listenAddress string) error {
 	if err != nil {
 		return fmt.Errorf("listen managed image backend: %w", err)
 	}
-	defer listener.Close()
+	defer func() { _ = listener.Close() }()
 
 	grpcServer := grpc.NewServer(grpc.UnknownServiceHandler(s.handleUnknownMethod))
 	defer grpcServer.GracefulStop()

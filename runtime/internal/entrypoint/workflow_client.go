@@ -38,7 +38,7 @@ func SubmitWorkflowGRPC(grpcAddr string, timeout time.Duration, req *runtimev1.S
 	if err != nil {
 		return nil, fmt.Errorf("dial grpc %s: %w", addr, err)
 	}
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 
 	client := runtimev1.NewRuntimeWorkflowServiceClient(conn)
 	resp, err := client.SubmitWorkflow(ctx, req)
@@ -73,7 +73,7 @@ func GetWorkflowGRPC(grpcAddr string, timeout time.Duration, req *runtimev1.GetW
 	if err != nil {
 		return nil, fmt.Errorf("dial grpc %s: %w", addr, err)
 	}
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 
 	client := runtimev1.NewRuntimeWorkflowServiceClient(conn)
 	resp, err := client.GetWorkflow(ctx, req)
@@ -108,7 +108,7 @@ func CancelWorkflowGRPC(grpcAddr string, timeout time.Duration, req *runtimev1.C
 	if err != nil {
 		return nil, fmt.Errorf("dial grpc %s: %w", addr, err)
 	}
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 
 	client := runtimev1.NewRuntimeWorkflowServiceClient(conn)
 	resp, err := client.CancelWorkflow(ctx, req)
@@ -144,7 +144,7 @@ func SubscribeWorkflowEventsGRPC(ctx context.Context, grpcAddr string, req *runt
 	client := runtimev1.NewRuntimeWorkflowServiceClient(conn)
 	stream, err := client.SubscribeWorkflowEvents(ctx, req)
 	if err != nil {
-		conn.Close()
+		_ = conn.Close()
 		return nil, nil, fmt.Errorf("runtime workflow subscribe events: %w", err)
 	}
 
@@ -153,7 +153,7 @@ func SubscribeWorkflowEventsGRPC(ctx context.Context, grpcAddr string, req *runt
 	go func() {
 		defer close(events)
 		defer close(errCh)
-		defer conn.Close()
+		defer func() { _ = conn.Close() }()
 
 		for {
 			event, recvErr := stream.Recv()

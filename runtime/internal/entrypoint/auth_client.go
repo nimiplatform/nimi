@@ -35,7 +35,7 @@ func RegisterAppGRPC(grpcAddr string, timeout time.Duration, req *runtimev1.Regi
 	if err != nil {
 		return nil, fmt.Errorf("dial grpc %s: %w", addr, err)
 	}
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 
 	client := runtimev1.NewRuntimeAuthServiceClient(conn)
 	resp, err := client.RegisterApp(ctx, req)
@@ -70,7 +70,7 @@ func OpenSessionGRPC(grpcAddr string, timeout time.Duration, req *runtimev1.Open
 	if err != nil {
 		return nil, fmt.Errorf("dial grpc %s: %w", addr, err)
 	}
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 
 	client := runtimev1.NewRuntimeAuthServiceClient(conn)
 	resp, err := client.OpenSession(ctx, req)
@@ -105,7 +105,7 @@ func RefreshSessionGRPC(grpcAddr string, timeout time.Duration, req *runtimev1.R
 	if err != nil {
 		return nil, fmt.Errorf("dial grpc %s: %w", addr, err)
 	}
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 
 	client := runtimev1.NewRuntimeAuthServiceClient(conn)
 	resp, err := client.RefreshSession(ctx, req)
@@ -140,7 +140,7 @@ func RevokeSessionGRPC(grpcAddr string, timeout time.Duration, req *runtimev1.Re
 	if err != nil {
 		return nil, fmt.Errorf("dial grpc %s: %w", addr, err)
 	}
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 
 	client := runtimev1.NewRuntimeAuthServiceClient(conn)
 	resp, err := client.RevokeSession(ctx, req)
@@ -175,7 +175,7 @@ func RegisterExternalPrincipalGRPC(grpcAddr string, timeout time.Duration, req *
 	if err != nil {
 		return nil, fmt.Errorf("dial grpc %s: %w", addr, err)
 	}
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 
 	client := runtimev1.NewRuntimeAuthServiceClient(conn)
 	resp, err := client.RegisterExternalPrincipal(ctx, req)
@@ -210,7 +210,7 @@ func OpenExternalPrincipalSessionGRPC(grpcAddr string, timeout time.Duration, re
 	if err != nil {
 		return nil, fmt.Errorf("dial grpc %s: %w", addr, err)
 	}
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 
 	client := runtimev1.NewRuntimeAuthServiceClient(conn)
 	resp, err := client.OpenExternalPrincipalSession(ctx, req)
@@ -245,7 +245,7 @@ func RevokeExternalPrincipalSessionGRPC(grpcAddr string, timeout time.Duration, 
 	if err != nil {
 		return nil, fmt.Errorf("dial grpc %s: %w", addr, err)
 	}
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 
 	client := runtimev1.NewRuntimeAuthServiceClient(conn)
 	resp, err := client.RevokeExternalPrincipalSession(ctx, req)

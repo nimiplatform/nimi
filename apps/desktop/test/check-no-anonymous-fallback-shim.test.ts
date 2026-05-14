@@ -18,9 +18,24 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __filename = fileURLToPath(import.meta.url);
-const repoRoot = resolve(dirname(__filename), '..', '..', '..', '..');
+const driftScriptRel = 'scripts/check-no-anonymous-fallback-shim.mjs';
+function findRepoRoot(startDir: string): string {
+  let current = startDir;
+  for (;;) {
+    if (existsSync(join(current, driftScriptRel))) {
+      return current;
+    }
+    const parent = dirname(current);
+    if (parent === current) {
+      assert.fail(`repo root containing ${driftScriptRel} not found from ${startDir}`);
+    }
+    current = parent;
+  }
+}
+
+const repoRoot = findRepoRoot(dirname(__filename));
 const driftScript = join(repoRoot, 'scripts', 'check-no-anonymous-fallback-shim.mjs');
-const renderRel = 'nimi/apps/desktop/src/shell/renderer';
+const renderRel = 'apps/desktop/src/shell/renderer';
 
 function runDriftScript(workdirOverride?: string): { code: number; stdout: string; stderr: string } {
   const result = spawnSync('node', [driftScript], {
@@ -37,9 +52,8 @@ function runDriftScript(workdirOverride?: string): { code: number; stdout: strin
 
 function makeIsolatedRenderer(extraFiles: Array<{ relPath: string; content: string }>): string {
   const workdir = mkdtempSync(join(tmpdir(), 'fallback-shim-fixture-'));
-  // The script reads relative to process.cwd(), specifically
-  // <cwd>/nimi/apps/desktop/src/shell/renderer/. Create a minimal
-  // synthetic renderer tree.
+  // The script reads relative to process.cwd(). Create a minimal
+  // synthetic renderer tree at the real repo-relative renderer path.
   const renderAbs = join(workdir, renderRel);
   mkdirSync(renderAbs, { recursive: true });
   // Always include one clean baseline file so the scan sees >0 files

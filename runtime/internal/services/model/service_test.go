@@ -222,7 +222,7 @@ func TestCheckModelHealthLocalSpeechWorkflowSucceedsWhenCatalogAdvertisesAdmitte
 			http.NotFound(w, r)
 		}
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 	t.Setenv("NIMI_RUNTIME_LOCAL_SPEECH_BASE_URL", server.URL)
 
 	resp, err := svc.CheckModelHealth(context.Background(), &runtimev1.CheckModelHealthRequest{
@@ -256,7 +256,7 @@ func TestCheckModelHealthLocalSpeechRequiresTargetReadyCatalogCapability(t *test
 			http.NotFound(w, r)
 		}
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 	t.Setenv("NIMI_RUNTIME_LOCAL_SPEECH_BASE_URL", server.URL)
 
 	registry := modelregistry.New()
@@ -294,7 +294,7 @@ func TestCheckModelHealthLocalSpeechFailsClosedWhenCatalogMissesRequiredCapabili
 			http.NotFound(w, r)
 		}
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 	t.Setenv("NIMI_RUNTIME_LOCAL_SPEECH_BASE_URL", server.URL)
 
 	registry := modelregistry.New()
@@ -511,7 +511,7 @@ func TestCheckModelHealthLocalMediaRequiresTargetReadyCatalogEntry(t *testing.T)
 			http.NotFound(w, r)
 		}
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 	t.Setenv("NIMI_RUNTIME_LOCAL_MEDIA_BASE_URL", server.URL)
 
 	registry := modelregistry.New()
@@ -549,7 +549,7 @@ func TestCheckModelHealthLocalMediaFailsClosedWhenCatalogMissesTarget(t *testing
 			http.NotFound(w, r)
 		}
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 	t.Setenv("NIMI_RUNTIME_LOCAL_MEDIA_BASE_URL", server.URL)
 
 	registry := modelregistry.New()

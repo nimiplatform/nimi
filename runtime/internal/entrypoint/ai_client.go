@@ -41,7 +41,7 @@ func ExecuteScenarioGRPC(grpcAddr string, timeout time.Duration, req *runtimev1.
 	if err != nil {
 		return nil, fmt.Errorf("dial grpc %s: %w", addr, err)
 	}
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 
 	client := runtimev1.NewRuntimeAiServiceClient(conn)
 	resp, err := client.ExecuteScenario(ctx, req)
@@ -82,7 +82,7 @@ func SubmitScenarioJobAndCollectGRPC(grpcAddr string, timeout time.Duration, req
 	if err != nil {
 		return nil, fmt.Errorf("dial grpc %s: %w", addr, err)
 	}
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 
 	client := runtimev1.NewRuntimeAiServiceClient(conn)
 	if req.GetExecutionMode() == runtimev1.ExecutionMode_EXECUTION_MODE_UNSPECIFIED {

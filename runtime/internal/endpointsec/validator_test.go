@@ -227,7 +227,7 @@ func TestNewPinnedTransportRetriesAcrossSafeIPs(t *testing.T) {
 			return nil, errors.New("first ip unavailable")
 		}
 		server, client := net.Pipe()
-		go server.Close()
+		go func() { _ = server.Close() }()
 		return client, nil
 	})
 

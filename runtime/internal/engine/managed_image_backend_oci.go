@@ -55,7 +55,7 @@ func fetchOCIManifest(ctx context.Context, ref ociImageReference) (ociDistributi
 	if err != nil {
 		return ociDistributionManifest{}, fmt.Errorf("request OCI manifest %s: %w", ref.Reference, err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != http.StatusOK {
 		return ociDistributionManifest{}, fmt.Errorf("request OCI manifest %s: HTTP %d", ref.Reference, resp.StatusCode)
 	}
@@ -84,7 +84,7 @@ func downloadOCIImageBlobToFile(ctx context.Context, ref ociImageReference, dige
 	if err != nil {
 		return "", fmt.Errorf("request OCI blob %s: %w", trimmedDigest, err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != http.StatusOK {
 		return "", fmt.Errorf("request OCI blob %s: HTTP %d", trimmedDigest, resp.StatusCode)
 	}

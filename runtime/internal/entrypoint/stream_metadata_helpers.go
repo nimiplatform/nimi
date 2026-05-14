@@ -49,7 +49,7 @@ func StreamScenarioGRPC(ctx context.Context, grpcAddr string, req *runtimev1.Str
 	client := runtimev1.NewRuntimeAiServiceClient(conn)
 	stream, err := client.StreamScenario(ctx, req)
 	if err != nil {
-		conn.Close()
+		_ = conn.Close()
 		return nil, nil, fmt.Errorf("runtime ai stream scenario: %w", err)
 	}
 
@@ -58,7 +58,7 @@ func StreamScenarioGRPC(ctx context.Context, grpcAddr string, req *runtimev1.Str
 	go func() {
 		defer close(events)
 		defer close(errCh)
-		defer conn.Close()
+		defer func() { _ = conn.Close() }()
 
 		for {
 			event, recvErr := stream.Recv()

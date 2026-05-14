@@ -318,7 +318,7 @@ func TestProductionActivationCodeStateExchangeCustodyAndTokenProjection(t *testi
 		w.Header().Set("content-type", "application/json")
 		_, _ = w.Write([]byte(`{"access_token":"access-prod","refresh_token":"refresh-prod","expires_in":300,"user":{"id":"acct-prod","displayName":"Prod User"}}`))
 	}))
-	defer authServer.Close()
+	defer func() { authServer.Close() }()
 	exchanger := newRealmOAuthExchanger(resolveProductionConfig(ProductionConfig{
 		RealmBaseURL:     authServer.URL,
 		AuthorizationURL: authServer.URL + "/authorize",

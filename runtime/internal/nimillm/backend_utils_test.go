@@ -33,7 +33,7 @@ func TestDecodeMediaURLHonorsContext(t *testing.T) {
 			_, _ = w.Write([]byte("late"))
 		}
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	backend := NewBackend("llama", server.URL, "", time.Second)
 	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
@@ -54,7 +54,7 @@ func TestDecodeMediaURLRejectsOversizedPayload(t *testing.T) {
 		w.Header().Set("Content-Type", "application/octet-stream")
 		_, _ = io.Copy(w, io.LimitReader(zeroReader{}, maxDecodedMediaURLBytes+1))
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	backend := NewBackend("llama", server.URL, "", time.Second)
 	_, err := backend.DecodeMedia(context.Background(), "", server.URL)

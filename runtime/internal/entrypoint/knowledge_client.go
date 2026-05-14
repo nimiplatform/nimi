@@ -317,7 +317,7 @@ func withCognitionClient[T any](addr string, timeout time.Duration, appID string
 	if err != nil {
 		return nil, fmt.Errorf("dial grpc %s: %w", addr, err)
 	}
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 
 	return call(preparedCtx, runtimev1.NewRuntimeCognitionServiceClient(conn))
 }

@@ -39,7 +39,7 @@ func (b *Backend) DecodeMedia(ctx context.Context, b64Data string, mediaURL stri
 		if err != nil {
 			return nil, MapProviderRequestError(err)
 		}
-		defer response.Body.Close()
+		defer func() { _ = response.Body.Close() }()
 		if response.StatusCode < 200 || response.StatusCode >= 300 {
 			return nil, MapProviderHTTPError(response.StatusCode, nil)
 		}

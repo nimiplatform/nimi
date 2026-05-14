@@ -55,7 +55,7 @@ func InspectPath(path string) (Summary, error) {
 	if err != nil {
 		return Summary{}, err
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 	return Inspect(file)
 }
 

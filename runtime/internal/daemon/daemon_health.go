@@ -238,7 +238,7 @@ func probeAIProvider(ctx context.Context, client *http.Client, target aiProvider
 			lastErr = err
 			continue
 		}
-		resp.Body.Close()
+		_ = resp.Body.Close()
 
 		switch {
 		case resp.StatusCode >= 200 && resp.StatusCode < 300:

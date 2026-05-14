@@ -40,7 +40,7 @@ func defaultStableDiffusionCPPGenerateRequester(ctx context.Context, client *htt
 	if err != nil {
 		return nil, fmt.Errorf("execute stable-diffusion.cpp generate request: %w", err)
 	}
-	defer response.Body.Close()
+	defer func() { _ = response.Body.Close() }()
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
 		body, _ := io.ReadAll(io.LimitReader(response.Body, 1<<20))
 		return nil, fmt.Errorf("stable-diffusion.cpp generate request failed: status=%d body=%s", response.StatusCode, strings.TrimSpace(string(body)))
@@ -185,7 +185,7 @@ func fetchManagedImageURL(ctx context.Context, client *http.Client, target strin
 	if err != nil {
 		return nil, fmt.Errorf("execute managed image artifact request: %w", err)
 	}
-	defer response.Body.Close()
+	defer func() { _ = response.Body.Close() }()
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
 		return nil, fmt.Errorf("managed image artifact request failed: status=%d", response.StatusCode)
 	}

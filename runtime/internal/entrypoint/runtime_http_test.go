@@ -31,7 +31,7 @@ func TestFetchHealthFailsClosedOnNonSuccessStatus(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		http.Error(w, "runtime unavailable", http.StatusBadGateway)
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	httpAddr := strings.TrimPrefix(server.URL, "http://")
 	_, err := FetchHealth(httpAddr, 0)

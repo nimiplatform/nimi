@@ -178,7 +178,7 @@ func TestDeleteVoiceAssetDeletesProviderPersistentVoiceWhenSupported(t *testing.
 		gotAPIKey = request.Header.Get("xi-api-key")
 		writer.WriteHeader(http.StatusNoContent)
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
 		CloudProviders: map[string]nimillm.ProviderCredentials{
@@ -243,7 +243,7 @@ func TestDeleteVoiceAssetDeletesFishAudioProviderModelWhenSupported(t *testing.T
 		gotAuth = request.Header.Get("Authorization")
 		writer.WriteHeader(http.StatusNoContent)
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
 		CloudProviders: map[string]nimillm.ProviderCredentials{
@@ -334,7 +334,7 @@ func TestDeleteVoiceAssetProviderFailureMarksPendingReconciliationAndRetryClears
 		}
 		writer.WriteHeader(http.StatusNoContent)
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
 		CloudProviders: map[string]nimillm.ProviderCredentials{
@@ -447,7 +447,7 @@ func TestListVoiceAssetsRetriesPendingVoiceDeleteReconciliation(t *testing.T) {
 		requestCount++
 		writer.WriteHeader(http.StatusNoContent)
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
 		CloudProviders: map[string]nimillm.ProviderCredentials{
@@ -532,7 +532,7 @@ func TestListVoiceAssetsSkipsVoiceDeleteReconciliationWithinCooldown(t *testing.
 		requestCount++
 		writer.WriteHeader(http.StatusNoContent)
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
 		CloudProviders: map[string]nimillm.ProviderCredentials{
@@ -590,7 +590,7 @@ func TestListVoiceAssetsMarksVoiceDeleteReconciliationExhaustedAfterMaxAttempts(
 		writer.WriteHeader(http.StatusBadGateway)
 		_, _ = writer.Write([]byte(`{"detail":{"message":"still unavailable"}}`))
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
 		CloudProviders: map[string]nimillm.ProviderCredentials{
@@ -691,7 +691,7 @@ func TestRunVoiceAssetDeleteReconciliationLoopRetriesPendingDelete(t *testing.T)
 		requestCount.Add(1)
 		writer.WriteHeader(http.StatusNoContent)
 	}))
-	defer server.Close()
+	defer func() { server.Close() }()
 
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
 		CloudProviders: map[string]nimillm.ProviderCredentials{
