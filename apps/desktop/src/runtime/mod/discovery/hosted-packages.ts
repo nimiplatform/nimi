@@ -20,6 +20,43 @@ import * as zustandModule from 'zustand';
 
 const HOSTED_PACKAGE_REGISTRY_KEY = '__NIMI_HOSTED_MOD_PACKAGES__';
 const IDENTIFIER_PATTERN = /^[A-Za-z_$][\w$]*$/;
+const RESERVED_MODULE_EXPORT_BINDINGS = new Set([
+  'await',
+  'break',
+  'case',
+  'catch',
+  'class',
+  'const',
+  'continue',
+  'debugger',
+  'default',
+  'delete',
+  'do',
+  'else',
+  'enum',
+  'export',
+  'extends',
+  'finally',
+  'for',
+  'function',
+  'if',
+  'import',
+  'in',
+  'instanceof',
+  'new',
+  'return',
+  'super',
+  'switch',
+  'this',
+  'throw',
+  'try',
+  'typeof',
+  'var',
+  'void',
+  'while',
+  'with',
+  'yield',
+]);
 
 const HOSTED_PACKAGE_MODULES = new Map<string, Record<string, unknown>>([
   ['react', reactModule],
@@ -67,9 +104,15 @@ function toHostedPackageExports(moduleNamespace: Record<string, unknown>): Recor
   };
 }
 
+export function isHostedPackageExportBinding(key: string): boolean {
+  return key !== 'default'
+    && IDENTIFIER_PATTERN.test(key)
+    && !RESERVED_MODULE_EXPORT_BINDINGS.has(key);
+}
+
 function buildHostedPackageModuleSource(specifier: string, moduleNamespace: Record<string, unknown>): string {
   const exportLines = Object.keys(moduleNamespace)
-    .filter((key) => key !== 'default' && IDENTIFIER_PATTERN.test(key))
+    .filter(isHostedPackageExportBinding)
     .sort()
     .map((key) => `export const ${key} = module[${JSON.stringify(key)}];`);
 

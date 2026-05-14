@@ -4,7 +4,13 @@ import {
   resolveModRuntimeContext,
 } from '../internal/runtime-access.js';
 import type { ModRuntimeContextInput } from '../types/runtime-mod.js';
-import type { ModRuntimeClient } from './types.js';
+import type {
+  ModRuntimeClient,
+  ModRuntimeListLocalArtifactsInput,
+  ModRuntimeLocalArtifactKind,
+  ModRuntimeLocalAssetKind,
+  ModRuntimeLocalAssetRecord,
+} from './types.js';
 import {
   assertCanonicalModAIScopeRef,
   type AIConfig,
@@ -14,7 +20,10 @@ import {
 } from './ai-config.js';
 export { createModRuntimeInspector } from './inspector.js';
 export {
+  buildLocalImageWorkflowExtensions,
   buildLocalProfileExtensions,
+  type LocalImageWorkflowComponentSelection,
+  type LocalImageWorkflowExtensionInput,
   type ProfileEntryOverride,
   type LocalProfileExtensionInput,
 } from '../../runtime/runtime-media.js';
@@ -45,6 +54,56 @@ function requireRuntimeHostBridge<T>(
     });
   }
   return bridge;
+}
+
+function toLocalAssetKindFilter(kind: ModRuntimeLocalArtifactKind | undefined): ModRuntimeLocalAssetKind | undefined {
+  if (!kind) {
+    return undefined;
+  }
+  return kind === 'llm' ? 'chat' : kind;
+}
+
+function metadataString(metadata: Record<string, unknown> | undefined, key: string): string {
+  const direct = metadata?.[key];
+  return typeof direct === 'string' ? direct.trim() : '';
+}
+
+function toLocalArtifactKind(asset: ModRuntimeLocalAssetRecord): ModRuntimeLocalArtifactKind {
+  const metadataKind = metadataString(asset.metadata, 'artifactKind')
+    || metadataString(asset.metadata, 'kind')
+    || metadataString(asset.metadata, 'role');
+  if (metadataKind === 'llm') {
+    return 'llm';
+  }
+  const artifactRoles = Array.isArray((asset as { artifactRoles?: unknown }).artifactRoles)
+    ? ((asset as { artifactRoles?: unknown[] }).artifactRoles || []).map((item) => String(item || '').trim().toLowerCase())
+    : [];
+  if (artifactRoles.includes('llm')) {
+    return 'llm';
+  }
+  const assetIdentity = `${asset.assetId} ${asset.entry}`.toLowerCase();
+  if (asset.kind === 'chat' && /(^|[^a-z0-9])(qwen|llm|text[-_ ]?encoder)/u.test(assetIdentity)) {
+    return 'llm';
+  }
+  return asset.kind;
+}
+
+function toLocalArtifactRecord(asset: ModRuntimeLocalAssetRecord) {
+  return {
+    ...asset,
+    artifactId: asset.assetId,
+    kind: toLocalArtifactKind(asset),
+  };
+}
+
+function artifactMatchesInput(
+  artifact: ReturnType<typeof toLocalArtifactRecord>,
+  input: ModRuntimeListLocalArtifactsInput | undefined,
+): boolean {
+  if (!input?.kind) {
+    return true;
+  }
+  return artifact.kind === input.kind;
 }
 
 export function createModRuntimeClient(modId: string, context?: ModRuntimeContextInput): ModRuntimeClient {
@@ -112,6 +171,16 @@ export function createModRuntimeClient(modId: string, context?: ModRuntimeContex
         modId: normalizedModId,
         ...input,
       }),
+      listArtifacts: async (input) => {
+        const assets = await runtimeHost.local.listAssets({
+          modId: normalizedModId,
+          ...input,
+          kind: toLocalAssetKindFilter(input?.kind),
+        });
+        return assets
+          .map(toLocalArtifactRecord)
+          .filter((artifact) => artifactMatchesInput(artifact, input));
+      },
       listProfiles: async () => runtimeHost.local.listProfiles({
         modId: normalizedModId,
       }),

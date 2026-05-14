@@ -33,6 +33,10 @@ export function matchesExpectedBundle(artifacts, expectedBundle) {
   return true;
 }
 
+export function expectsLatestJsonArtifact(expectedBundle) {
+  return String(expectedBundle || '').trim() !== 'app';
+}
+
 export function collectDesktopUpdaterArtifactViolations({ artifacts, expectedBundle }) {
   const normalizedArtifacts = normalizeArtifactPaths(artifacts);
   const errors = [];
@@ -49,7 +53,7 @@ export function collectDesktopUpdaterArtifactViolations({ artifacts, expectedBun
   }
 
   const latestJsonPath = normalizedArtifacts.find((filePath) => path.basename(filePath) === 'latest.json');
-  if (!latestJsonPath) {
+  if (!latestJsonPath && expectsLatestJsonArtifact(expectedBundle)) {
     errors.push('latest.json is missing from tauri artifacts');
   }
 

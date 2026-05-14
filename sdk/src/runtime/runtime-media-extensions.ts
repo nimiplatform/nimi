@@ -13,6 +13,16 @@ export interface LocalProfileExtensionInput {
   profileOverrides?: JsonObject;
 }
 
+export interface LocalImageWorkflowComponentSelection {
+  slot: string;
+  localArtifactId: string;
+}
+
+export interface LocalImageWorkflowExtensionInput {
+  components?: LocalImageWorkflowComponentSelection[];
+  profileOverrides?: JsonObject;
+}
+
 const MUSIC_ITERATION_MODES = new Set(['extend', 'remix', 'reference']);
 
 export function buildMusicIterationExtensions(
@@ -127,6 +137,28 @@ export function buildLocalProfileExtensions(
     : [];
   if (entryOverrides.length > 0) {
     merged.entry_overrides = entryOverrides;
+  }
+  if (workflow.profileOverrides && Object.keys(workflow.profileOverrides).length > 0) {
+    merged.profile_overrides = workflow.profileOverrides;
+  }
+  return merged;
+}
+
+export function buildLocalImageWorkflowExtensions(
+  workflow: LocalImageWorkflowExtensionInput,
+  baseExtensions?: JsonObject,
+): JsonObject {
+  const merged: JsonObject = { ...(baseExtensions || {}) };
+  const components = Array.isArray(workflow.components)
+    ? workflow.components
+      .map((item) => ({
+        slot: normalizeText(item.slot),
+        localArtifactId: normalizeText(item.localArtifactId),
+      }))
+      .filter((item) => item.slot && item.localArtifactId)
+    : [];
+  if (components.length > 0) {
+    merged.components = components;
   }
   if (workflow.profileOverrides && Object.keys(workflow.profileOverrides).length > 0) {
     merged.profile_overrides = workflow.profileOverrides;

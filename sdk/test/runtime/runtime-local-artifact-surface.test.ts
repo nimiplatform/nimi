@@ -8,7 +8,10 @@ import {
   isRuntimeLocalAnonymousMethod,
   isRuntimeWriteMethod,
 } from '../../src/runtime/method-ids.js';
-import { buildLocalProfileExtensions } from '../../src/runtime/runtime-media.js';
+import {
+  buildLocalImageWorkflowExtensions,
+  buildLocalProfileExtensions,
+} from '../../src/runtime/runtime-media.js';
 
 test('runtime method groups classify local asset RPCs correctly', () => {
   const anonymousMethods = [
@@ -32,6 +35,36 @@ test('runtime method groups classify local asset RPCs correctly', () => {
     assert.equal(isRuntimeWriteMethod(methodId), true);
     assert.equal(isRuntimeLocalAnonymousMethod(methodId), false);
   }
+});
+
+test('buildLocalImageWorkflowExtensions normalizes component selections and preserves unrelated extensions', () => {
+  const extensions = buildLocalImageWorkflowExtensions(
+    {
+      components: [
+        { slot: '  vae_path  ', localArtifactId: ' local-vae ' },
+        { slot: 'llm_path', localArtifactId: 'local-llm' },
+        { slot: '', localArtifactId: 'ignored-empty-slot' },
+        { slot: 'clip_l_path', localArtifactId: '' },
+      ],
+      profileOverrides: {
+        step: 8,
+      },
+    },
+    {
+      preserved: true,
+    },
+  );
+
+  assert.deepEqual(extensions, {
+    preserved: true,
+    components: [
+      { slot: 'vae_path', localArtifactId: 'local-vae' },
+      { slot: 'llm_path', localArtifactId: 'local-llm' },
+    ],
+    profile_overrides: {
+      step: 8,
+    },
+  });
 });
 
 test('runtime method groups classify local profile RPCs correctly', () => {

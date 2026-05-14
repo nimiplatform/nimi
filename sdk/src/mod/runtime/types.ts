@@ -183,6 +183,10 @@ export type ModRuntimeLocalAssetKind =
   | 'controlnet'
   | 'auxiliary';
 
+export type ModRuntimeLocalArtifactKind =
+  | ModRuntimeLocalAssetKind
+  | 'llm';
+
 export type ModRuntimeLocalAssetStatus =
   | 'installed'
   | 'active'
@@ -191,6 +195,12 @@ export type ModRuntimeLocalAssetStatus =
 
 export type ModRuntimeListLocalAssetsInput = {
   kind?: ModRuntimeLocalAssetKind;
+  status?: ModRuntimeLocalAssetStatus;
+  engine?: string;
+};
+
+export type ModRuntimeListLocalArtifactsInput = {
+  kind?: ModRuntimeLocalArtifactKind;
   status?: ModRuntimeLocalAssetStatus;
   engine?: string;
 };
@@ -296,6 +306,13 @@ export type ModRuntimeLocalAssetRecord = {
   metadata?: JsonObject;
 };
 
+export type ModRuntimeLocalArtifactRecord =
+  Omit<ModRuntimeLocalAssetRecord, 'kind'>
+  & {
+    artifactId: string;
+    kind: ModRuntimeLocalArtifactKind;
+  };
+
 export type ModRuntimeSchedulingResourceHint = {
   estimatedVramBytes?: number | null;
   estimatedRamBytes?: number | null;
@@ -353,6 +370,7 @@ export type ModRuntimeClient = {
   };
   local: {
     listAssets(input?: ModRuntimeListLocalAssetsInput): Promise<ModRuntimeLocalAssetRecord[]>;
+    listArtifacts(input?: ModRuntimeListLocalArtifactsInput): Promise<ModRuntimeLocalArtifactRecord[]>;
     listProfiles(): Promise<ModRuntimeLocalProfile[]>;
     requestProfileInstall(input: {
       profileId: string;

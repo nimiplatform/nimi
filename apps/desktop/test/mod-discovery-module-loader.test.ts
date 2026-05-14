@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
+import { isHostedPackageExportBinding } from '../src/runtime/mod/discovery/hosted-packages';
 import { rewriteRuntimeModSourceImportSpecifiers } from '../src/runtime/mod/discovery/module-loader';
 
 test('module loader rewrites supported bare package imports to hosted module urls', () => {
@@ -44,4 +45,12 @@ test('module loader rewrites supported bare package imports to hosted module url
     /import "file:\/\/\/mods\/test-ai\/dist\/mods\/test-ai\/chunk\.js";/,
     'relative imports should still resolve against entry path',
   );
+});
+
+test('hosted package module shim does not emit reserved-word export bindings', () => {
+  assert.equal(isHostedPackageExportBinding('createHookClient'), true);
+  assert.equal(isHostedPackageExportBinding('$valid'), true);
+  assert.equal(isHostedPackageExportBinding('catch'), false);
+  assert.equal(isHostedPackageExportBinding('default'), false);
+  assert.equal(isHostedPackageExportBinding('not-valid-name'), false);
 });

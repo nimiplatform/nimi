@@ -48,6 +48,41 @@ test('desktop updater artifact validation accepts aligned updater assets', () =>
   }
 });
 
+test('desktop updater artifact validation accepts signed macOS app archive without latest.json', () => {
+  const fixture = makeArtifactFixture();
+  try {
+    const appArtifacts = fixture.artifacts.filter((artifactPath) => path.basename(artifactPath) !== 'latest.json');
+    assert.deepEqual(
+      collectDesktopUpdaterArtifactViolations({
+        artifacts: appArtifacts,
+        expectedBundle: 'app',
+      }),
+      [],
+    );
+  } finally {
+    fixture.cleanup();
+  }
+});
+
+test('desktop updater artifact validation still requires latest.json for non-app updater bundles', () => {
+  const fixture = makeArtifactFixture();
+  try {
+    const appImagePath = path.join(path.dirname(fixture.artifacts[0]!), 'Nimi_0.1.0_amd64.AppImage');
+    const signaturePath = `${appImagePath}.sig`;
+    fs.writeFileSync(appImagePath, 'appimage');
+    fs.writeFileSync(signaturePath, 'sig');
+
+    const violations = collectDesktopUpdaterArtifactViolations({
+      artifacts: [appImagePath, signaturePath],
+      expectedBundle: 'appimage',
+    });
+
+    assert.ok(violations.some((line: string) => line.includes('latest.json is missing')));
+  } finally {
+    fixture.cleanup();
+  }
+});
+
 test('desktop updater artifact validation rejects missing signatures and bundle mismatch', () => {
   const fixture = makeArtifactFixture();
   try {

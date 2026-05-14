@@ -1,8 +1,11 @@
 export type {
+  LocalImageWorkflowComponentSelection,
+  LocalImageWorkflowExtensionInput,
   LocalProfileExtensionInput,
   ProfileEntryOverride,
 } from './runtime-media-extensions.js';
 export {
+  buildLocalImageWorkflowExtensions,
   buildLocalProfileExtensions,
   buildMusicIterationExtensions,
 } from './runtime-media-extensions.js';

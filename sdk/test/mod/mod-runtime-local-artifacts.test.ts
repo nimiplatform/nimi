@@ -129,3 +129,83 @@ test('mod runtime client forwards local asset listing with mod id and filters', 
   assert.equal(assets.length, 1);
   assert.equal(assets[0]?.assetId, 'z-image-ae');
 });
+
+test('mod runtime client projects local artifacts from local assets with artifact ids and llm kind', async () => {
+  clearModSdkHost();
+
+  const assetCalls: Array<Record<string, unknown>> = [];
+  const runtimeHost = {
+    getRuntimeHookRuntime: () => ({}) as RuntimeHookRuntimeFacade,
+    route: {},
+    local: {
+      listAssets: async (input: Record<string, unknown>) => {
+        assetCalls.push(input);
+        return [
+          {
+            localAssetId: 'vae-1',
+            assetId: 'local/z_image_ae',
+            kind: 'vae',
+            engine: 'localai',
+            entry: 'ae.safetensors',
+            files: ['ae.safetensors'],
+            license: 'apache-2.0',
+            source: { repo: 'black-forest-labs/FLUX.1-schnell', revision: 'main' },
+            hashes: {},
+            status: 'installed',
+            installedAt: new Date(0).toISOString(),
+            updatedAt: new Date(0).toISOString(),
+            metadata: { family: 'z-image' },
+          },
+          {
+            localAssetId: 'llm-1',
+            assetId: 'local/qwen3_4b',
+            kind: 'chat',
+            engine: 'localai',
+            entry: 'Qwen3-4B-Q4_K_M.gguf',
+            files: ['Qwen3-4B-Q4_K_M.gguf'],
+            license: 'qwen',
+            source: { repo: 'Qwen/Qwen3-4B-GGUF', revision: 'main' },
+            hashes: {},
+            status: 'active',
+            installedAt: new Date(0).toISOString(),
+            updatedAt: new Date(0).toISOString(),
+            metadata: { family: 'z-image' },
+          },
+        ];
+      },
+      listProfiles: async () => [],
+      requestProfileInstall: async () => ({}),
+      getProfileInstallStatus: async () => ({}),
+      getProfileApplyStatus: async () => null,
+    },
+    scheduler: { peek: async () => ({}) },
+    aiConfig: {},
+    aiSnapshot: {},
+    memoryEmbeddingConfig: {},
+    memoryEmbeddingRuntime: {},
+    ai: {},
+    media: {},
+    voice: {},
+    getModLocalProfileSnapshot: async () => ({}),
+  };
+
+  const client = createModRuntimeClient('mod.local.artifacts.test', {
+    runtimeHost: runtimeHost as never,
+    runtime: {} as RuntimeHookRuntimeFacade,
+  });
+
+  const artifacts = await client.local.listArtifacts({
+    kind: 'llm',
+    engine: 'localai',
+  });
+
+  assert.deepEqual(assetCalls[0], {
+    modId: 'mod.local.artifacts.test',
+    kind: 'chat',
+    engine: 'localai',
+  });
+  assert.equal(artifacts.length, 1);
+  assert.equal(artifacts[0]?.artifactId, 'local/qwen3_4b');
+  assert.equal(artifacts[0]?.localAssetId, 'llm-1');
+  assert.equal(artifacts[0]?.kind, 'llm');
+});
