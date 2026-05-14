@@ -189,20 +189,17 @@ function ensureTauriDriverAvailable() {
   }
 }
 
-function executableForPlatform(command) {
-  if (os.platform() === 'win32' && command === 'pnpm') {
-    return 'pnpm.cmd';
-  }
-  return command;
+function requiresShell(command) {
+  return os.platform() === 'win32' && command === 'pnpm';
 }
 
 function spawnLogged(command, args, options = {}) {
   return new Promise((resolve, reject) => {
-    const child = spawn(executableForPlatform(command), args, {
+    const child = spawn(command, args, {
       cwd: options.cwd || repoRoot,
       env: { ...process.env, ...options.env },
       stdio: options.stdio || 'inherit',
-      shell: false,
+      shell: options.shell ?? requiresShell(command),
     });
     child.on('error', reject);
     child.on('exit', (code) => {
