@@ -71,7 +71,6 @@ export const config = {
   capabilities: [
     {
       maxInstances: 1,
-      browserName: 'wry',
       'tauri:options': {
         application: process.env.NIMI_E2E_APPLICATION,
       },
