@@ -683,8 +683,9 @@ jobs:
       - name: Validate bundled runtime manifest
         run: pnpm --filter @nimiplatform/desktop run check:desktop-release-sync -- --expected "${RELEASE_VERSION}"
 
-      - name: Build desktop artifacts
-        id: tauri_build
+      - name: Build desktop artifacts (non-macOS)
+        id: tauri_build_non_macos
+        if: matrix.platform != 'macos-latest'
         uses: tauri-apps/tauri-action@73fb865345c54760d875b94642314f8c0c894afa # action-v0.6.1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -693,12 +694,6 @@ jobs:
           NIMI_DESKTOP_MACOS_SIGNING_MODE: ${{ steps.macos_signing.outputs.mode }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-          APPLE_CERTIFICATE: ${{ matrix.platform == 'macos-latest' && steps.macos_signing.outputs.require_apple_credentials == 'true' && secrets.APPLE_CERTIFICATE || '' }}
-          APPLE_CERTIFICATE_PASSWORD: ${{ matrix.platform == 'macos-latest' && steps.macos_signing.outputs.require_apple_credentials == 'true' && secrets.APPLE_CERTIFICATE_PASSWORD || '' }}
-          APPLE_SIGNING_IDENTITY: ${{ matrix.platform == 'macos-latest' && (steps.macos_signing.outputs.use_ad_hoc_signing == 'true' && '-' || secrets.APPLE_SIGNING_IDENTITY) || '' }}
-          APPLE_ID: ${{ matrix.platform == 'macos-latest' && steps.macos_signing.outputs.require_apple_credentials == 'true' && secrets.APPLE_ID || '' }}
-          APPLE_PASSWORD: ${{ matrix.platform == 'macos-latest' && steps.macos_signing.outputs.require_apple_credentials == 'true' && secrets.APPLE_PASSWORD || '' }}
-          APPLE_TEAM_ID: ${{ matrix.platform == 'macos-latest' && steps.macos_signing.outputs.require_apple_credentials == 'true' && secrets.APPLE_TEAM_ID || '' }}
         with:
           projectPath: apps/desktop
           tagName: ${{ needs.resolve.outputs.publish == 'true' && needs.resolve.outputs.tag || '' }}
@@ -709,6 +704,76 @@ jobs:
           includeUpdaterJson: true
           updaterJsonPreferNsis: true
           args: --config src-tauri/tauri.conf.json --bundles ${{ matrix.extra_args }} --ci
+
+      - name: Build desktop artifacts (macOS ad-hoc)
+        id: tauri_build_macos_ad_hoc
+        if: matrix.platform == 'macos-latest' && steps.macos_signing.outputs.use_ad_hoc_signing == 'true'
+        uses: tauri-apps/tauri-action@73fb865345c54760d875b94642314f8c0c894afa # action-v0.6.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NIMI_DESKTOP_UPDATER_PUBLIC_KEY: ${{ vars.NIMI_DESKTOP_UPDATER_PUBLIC_KEY }}
+          NIMI_DESKTOP_UPDATER_ENDPOINT: ${{ vars.NIMI_DESKTOP_UPDATER_ENDPOINT || 'https://install.nimi.ai/desktop/latest.json' }}
+          NIMI_DESKTOP_MACOS_SIGNING_MODE: ${{ steps.macos_signing.outputs.mode }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: '-'
+        with:
+          projectPath: apps/desktop
+          tagName: ${{ needs.resolve.outputs.publish == 'true' && needs.resolve.outputs.tag || '' }}
+          releaseName: ${{ needs.resolve.outputs.publish == 'true' && format('Desktop {0}', needs.resolve.outputs.version) || '' }}
+          releaseBody: ${{ needs.resolve.outputs.publish == 'true' && ((vars.NIMI_DESKTOP_MACOS_SIGNING_MODE || 'developer-id') == 'ad-hoc' && 'Automated desktop bundle built by release workflow. macOS assets use ad-hoc signing and are not Apple notarized.' || 'Automated desktop bundle built by release workflow.') || '' }}
+          releaseDraft: false
+          prerelease: ${{ contains(needs.resolve.outputs.version, '-') }}
+          includeUpdaterJson: true
+          updaterJsonPreferNsis: true
+          args: --config src-tauri/tauri.conf.json --bundles ${{ matrix.extra_args }} --ci
+
+      - name: Build desktop artifacts (macOS Developer ID)
+        id: tauri_build_macos_developer_id
+        if: matrix.platform == 'macos-latest' && steps.macos_signing.outputs.require_apple_credentials == 'true'
+        uses: tauri-apps/tauri-action@73fb865345c54760d875b94642314f8c0c894afa # action-v0.6.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NIMI_DESKTOP_UPDATER_PUBLIC_KEY: ${{ vars.NIMI_DESKTOP_UPDATER_PUBLIC_KEY }}
+          NIMI_DESKTOP_UPDATER_ENDPOINT: ${{ vars.NIMI_DESKTOP_UPDATER_ENDPOINT || 'https://install.nimi.ai/desktop/latest.json' }}
+          NIMI_DESKTOP_MACOS_SIGNING_MODE: ${{ steps.macos_signing.outputs.mode }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        with:
+          projectPath: apps/desktop
+          tagName: ${{ needs.resolve.outputs.publish == 'true' && needs.resolve.outputs.tag || '' }}
+          releaseName: ${{ needs.resolve.outputs.publish == 'true' && format('Desktop {0}', needs.resolve.outputs.version) || '' }}
+          releaseBody: ${{ needs.resolve.outputs.publish == 'true' && ((vars.NIMI_DESKTOP_MACOS_SIGNING_MODE || 'developer-id') == 'ad-hoc' && 'Automated desktop bundle built by release workflow. macOS assets use ad-hoc signing and are not Apple notarized.' || 'Automated desktop bundle built by release workflow.') || '' }}
+          releaseDraft: false
+          prerelease: ${{ contains(needs.resolve.outputs.version, '-') }}
+          includeUpdaterJson: true
+          updaterJsonPreferNsis: true
+          args: --config src-tauri/tauri.conf.json --bundles ${{ matrix.extra_args }} --ci
+
+      - name: Resolve desktop artifact paths
+        id: tauri_build
+        env:
+          ARTIFACT_PATHS_NON_MACOS: ${{ steps.tauri_build_non_macos.outputs.artifactPaths }}
+          ARTIFACT_PATHS_MACOS_AD_HOC: ${{ steps.tauri_build_macos_ad_hoc.outputs.artifactPaths }}
+          ARTIFACT_PATHS_MACOS_DEVELOPER_ID: ${{ steps.tauri_build_macos_developer_id.outputs.artifactPaths }}
+        run: |
+          set -euo pipefail
+          artifact_paths="${ARTIFACT_PATHS_NON_MACOS:-${ARTIFACT_PATHS_MACOS_AD_HOC:-${ARTIFACT_PATHS_MACOS_DEVELOPER_ID:-}}}"
+          if [[ -z "${artifact_paths}" ]]; then
+            echo "tauri-action did not report artifact paths" >&2
+            exit 1
+          fi
+          {
+            echo 'artifactPaths<<__NIMI_ARTIFACT_PATHS__'
+            printf '%s\n' "${artifact_paths}"
+            echo '__NIMI_ARTIFACT_PATHS__'
+          } >> "${GITHUB_OUTPUT}"
 
       - name: Validate desktop updater artifacts
         env:

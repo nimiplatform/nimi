@@ -213,9 +213,18 @@ function spawnLogged(command, args, options = {}) {
 }
 
 async function buildApplication() {
-  await spawnLogged('pnpm', ['--filter', '@nimiplatform/desktop', 'run', 'build:renderer']);
   await spawnLogged('pnpm', ['--filter', '@nimiplatform/desktop', 'run', 'prepare:runtime-bundle']);
-  await spawnLogged('cargo', ['build', '--release', '--manifest-path', 'apps/desktop/src-tauri/Cargo.toml']);
+  await spawnLogged('pnpm', [
+    '--filter',
+    '@nimiplatform/desktop',
+    'run',
+    'tauri',
+    'build',
+    '--config',
+    'src-tauri/tauri.conf.json',
+    '--no-bundle',
+    '--ci',
+  ]);
 }
 
 function waitForPort(host, port, timeoutMs = 15000) {
