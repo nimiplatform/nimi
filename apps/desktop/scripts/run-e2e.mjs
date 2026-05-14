@@ -172,7 +172,7 @@ function ensureSupportedPlatform() {
 }
 
 function ensureTauriDriverAvailable() {
-  const probe = spawnSync('tauri-driver', ['--version'], {
+  const probe = spawnSync('tauri-driver', ['--help'], {
     cwd: repoRoot,
     env: process.env,
     encoding: 'utf8',

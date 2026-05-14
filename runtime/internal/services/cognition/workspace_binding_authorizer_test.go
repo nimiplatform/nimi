@@ -240,11 +240,32 @@ func TestWorkspacePrivateAllowsOnlyThroughResolver(t *testing.T) {
 	if _, err := svc.GetIngestTask(ctx, &runtimev1.GetIngestTaskRequest{Context: reqCtx, TaskId: ingest.GetTaskId()}); err != nil {
 		t.Fatalf("GetIngestTask: %v", err)
 	}
+	waitWorkspaceIngestTaskTerminal(t, svc, ctx, reqCtx, ingest.GetTaskId())
 	if _, err := svc.DeletePage(ctx, &runtimev1.DeletePageRequest{Context: reqCtx, BankId: bankID, Lookup: &runtimev1.DeletePageRequest_PageId{PageId: second.GetPage().GetPageId()}}); err != nil {
 		t.Fatalf("DeletePage: %v", err)
 	}
 	if _, err := svc.DeleteKnowledgeBank(ctx, &runtimev1.DeleteKnowledgeBankRequest{Context: reqCtx, BankId: bankID}); err != nil {
 		t.Fatalf("DeleteKnowledgeBank: %v", err)
+	}
+}
+
+func waitWorkspaceIngestTaskTerminal(t *testing.T, svc *Service, ctx context.Context, reqCtx *runtimev1.KnowledgeRequestContext, taskID string) {
+	t.Helper()
+	deadline := time.Now().Add(2 * time.Second)
+	for {
+		resp, err := svc.GetIngestTask(ctx, &runtimev1.GetIngestTaskRequest{Context: reqCtx, TaskId: taskID})
+		if err != nil {
+			t.Fatalf("GetIngestTask terminal poll: %v", err)
+		}
+		switch resp.GetTask().GetStatus() {
+		case runtimev1.KnowledgeIngestTaskStatus_KNOWLEDGE_INGEST_TASK_STATUS_COMPLETED,
+			runtimev1.KnowledgeIngestTaskStatus_KNOWLEDGE_INGEST_TASK_STATUS_FAILED:
+			return
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("ingest task did not reach terminal status: %+v", resp.GetTask())
+		}
+		time.Sleep(10 * time.Millisecond)
 	}
 }
 

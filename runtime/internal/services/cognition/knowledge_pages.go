@@ -138,7 +138,10 @@ func (s *Service) DeletePage(ctx context.Context, req *runtimev1.DeletePageReque
 		return nil, err
 	}
 	if err := s.cognitionCore.KnowledgeService().Delete(scope.ScopeID, cognitionknowledge.PageID(page.GetPageId())); err != nil {
-		return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_LOCAL_SERVICE_UNAVAILABLE)
+		return nil, grpcerr.WithReasonCodeOptions(codes.Internal, runtimev1.ReasonCode_AI_LOCAL_SERVICE_UNAVAILABLE, grpcerr.ReasonOptions{
+			ActionHint: "retry_after_cognition_storage_recovery",
+			Message:    "delete page: cognition storage error: " + err.Error(),
+		})
 	}
 	return &runtimev1.DeletePageResponse{Ack: okAck()}, nil
 }
