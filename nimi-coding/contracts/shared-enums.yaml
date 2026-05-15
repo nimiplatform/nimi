@@ -12,14 +12,15 @@ surface_class_enum:
   - audit_evidence_state
   - operational_local_artifact
   - methodology_authority
+  - nimicoding_managed_projection
   - host_projection_anchor
-  - host_package_overlay
   - candidate_roadmap
   - support_registry
   - lifecycle_progress_state
 authority_rank_enum:
   - active_product_canonical
   - package_canonical
+  - package_projection_support
   - support_only
   - guidance_only
   - derived_non_authority
@@ -35,6 +36,7 @@ tracking_policy_enum:
 mutability_enum:
   - human_admitted
   - package_admitted
+  - package_projected
   - generated_reproducible
   - operational_snapshot
   - disposable

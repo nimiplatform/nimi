@@ -104,6 +104,15 @@ taxonomy:
     reference_rules: [may_project_through_declared_projection_edge]
     promotion_rules: [may_be_consumed_by_host_anchor_only]
     fail_closed_cases: [copied_to_host_product_authority, stranded_in_host_spec]
+  - class_id: nimicoding_managed_projection
+    owner_kind: nimi_coding_package_projection
+    authority_rank: package_projection_support
+    allowed_roots: [".nimi/methodology/**", ".nimi/contracts/**", ".nimi/config/**"]
+    tracking_policy: tracked_required
+    mutability: package_projected
+    reference_rules: [may_be_read_as_project_local_nimicoding_context, must_not_override_product_authority]
+    promotion_rules: [created_or_refreshed_only_by_nimicoding_init_or_sync]
+    fail_closed_cases: [copied_to_host_product_authority, promoted_to_product_spec, drift_without_sync_policy]
   - class_id: host_projection_anchor
     owner_kind: host_projection
     authority_rank: support_only
@@ -113,15 +122,6 @@ taxonomy:
     reference_rules: [may_point_to_methodology_authority, must_be_minimal]
     promotion_rules: [never_promote_to_product_authority]
     fail_closed_cases: [contains_package_methodology_body, contains_lifecycle_status]
-  - class_id: host_package_overlay
-    owner_kind: host_projection
-    authority_rank: support_only
-    allowed_roots: [".nimi/config/host-overlay.yaml"]
-    tracking_policy: tracked_only_with_explicit_admission
-    mutability: human_admitted
-    reference_rules: [minimal_overlay_only_if_admitted]
-    promotion_rules: [host_mirrors_removed_by_default, minimal_overlay_only]
-    fail_closed_cases: [host_copy_without_overlay_admission, overlay_contains_package_body, non_overlay_config_mirror]
   - class_id: candidate_roadmap
     owner_kind: planning_owner
     authority_rank: candidate_only
@@ -159,14 +159,15 @@ class_enum:
   - audit_evidence_state
   - operational_local_artifact
   - methodology_authority
+  - nimicoding_managed_projection
   - host_projection_anchor
-  - host_package_overlay
   - candidate_roadmap
   - support_registry
   - lifecycle_progress_state
 authority_rank_enum:
   - active_product_canonical
   - package_canonical
+  - package_projection_support
   - support_only
   - guidance_only
   - derived_non_authority
@@ -182,6 +183,7 @@ tracking_policy_enum:
 mutability_enum:
   - human_admitted
   - package_admitted
+  - package_projected
   - generated_reproducible
   - operational_snapshot
   - disposable
@@ -192,8 +194,8 @@ semantic_constraints:
   - product_admission_registry_may_store_compact_semantic_admissions_but_not_package_mechanics
   - generated_and_derived_classes_are_never_authority
   - package_methodology_and_package_spec_remain_package_owned
+  - nimicoding_managed_projection_may_exist_in_host_project_but_is_not_product_authority
   - host_projection_anchor_must_be_minimal_and_must_not_copy_package_body
-  - host_package_overlay_is_removed_by_default
   - support_registry_must_not_store_run_or_coverage_status
   - candidate_roadmap_must_not_live_under_.nimi/spec
   - tracked_non_product_outputs_require_tracked_output_admission

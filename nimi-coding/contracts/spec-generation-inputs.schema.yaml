@@ -24,7 +24,7 @@ document_instance:
     - root: .nimi/spec
       class_filter: product_authority_only
       allowed_surface_classes: [product_authority, product_authority_table, product_admission_registry, thin_guidance, host_projection_anchor, support_registry]
-      forbidden_surface_classes: [derived_view, spec_generation_state, audit_evidence_state, operational_local_artifact, host_package_overlay, candidate_roadmap, lifecycle_progress_state, methodology_authority]
+      forbidden_surface_classes: [derived_view, spec_generation_state, audit_evidence_state, operational_local_artifact, nimicoding_managed_projection, candidate_roadmap, lifecycle_progress_state, methodology_authority]
       owner: nimi_host
       use_as_authority: true
       projection_edge_ref: null
@@ -44,7 +44,7 @@ document_instance:
     - spec_generation_state
     - audit_evidence_state
     - operational_local_artifact
-    - host_package_overlay
+    - nimicoding_managed_projection
     - candidate_roadmap
     - lifecycle_progress_state
   generation_order: [classify_inputs, validate_placement, product_authority, product_authority_tables, thin_guides, derived_views, generation_audit]
@@ -94,7 +94,7 @@ baseline_inputs:
     - root: .nimi/spec
       class_filter: product_authority_only
       allowed_surface_classes: [product_authority, product_authority_table, product_admission_registry, thin_guidance, host_projection_anchor, support_registry]
-      forbidden_surface_classes: [derived_view, spec_generation_state, audit_evidence_state, operational_local_artifact, host_package_overlay, candidate_roadmap, lifecycle_progress_state, methodology_authority]
+      forbidden_surface_classes: [derived_view, spec_generation_state, audit_evidence_state, operational_local_artifact, nimicoding_managed_projection, candidate_roadmap, lifecycle_progress_state, methodology_authority]
       owner: nimi_host
       use_as_authority: true
       projection_edge_ref: null
@@ -126,7 +126,7 @@ forbidden_source_classes:
   - spec_generation_state
   - audit_evidence_state
   - operational_local_artifact
-  - host_package_overlay
+  - nimicoding_managed_projection
   - candidate_roadmap
   - lifecycle_progress_state
 hard_constraints:
@@ -136,5 +136,5 @@ hard_constraints:
   - generated_views_must_not_be_used_as_authority_inputs
   - generated_views_must_render_to_stdout_only
   - audit_state_and_lifecycle_state_must_not_be_used_as_product_authority_inputs
-  - package_methodology_must_be_consumed_from_package_roots_or_minimal_projection_edges
+  - nimicoding_managed_projections_may_be_read_as_project_context_but_not_as_product_authority_inputs
   - generation_audit_outputs_must_default_to_.nimi/local/state/spec-generation

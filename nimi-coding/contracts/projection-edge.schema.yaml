@@ -35,17 +35,17 @@ projection_edges:
     forbidden_promoted_fields: [package_methodology_body, product_rule_body, lifecycle_status, run_ledger, private_evidence]
     drift_check_command: pnpm exec nimicoding validate-projection-edges --profile nimi
     failure_disposition: fail_closed
-  - edge_id: nimi_coding_package_to_host_overlay
-    edge_kind: package_to_host_overlay
+  - edge_id: nimi_coding_package_to_managed_projection
+    edge_kind: package_to_managed_projection
     source_ref: nimi-coding/{config,contracts,methodology,spec}/**
     source_class: methodology_authority
     source_owner: nimi_coding_package
-    target_ref: .nimi/config/host-overlay.yaml
-    target_class: host_package_overlay
+    target_ref: .nimi/{config,contracts,methodology}/**
+    target_class: nimicoding_managed_projection
     target_owner: nimi_host
-    allowed_fields: [package_id, package_version, package_truth_root, overlay_fields, drift_check_command]
-    forbidden_promoted_fields: [package_methodology_body, package_contract_body, product_rule_body, lifecycle_status, run_ledger, private_evidence]
-    drift_check_command: pnpm exec nimicoding validate-host-overlay --profile nimi
+    allowed_fields: [projected_package_file_body]
+    forbidden_promoted_fields: [product_rule_body, lifecycle_status, run_ledger, private_evidence]
+    drift_check_command: pnpm exec nimicoding sync --check
     failure_disposition: fail_closed
   - edge_id: product_authority_to_derived_view
     edge_kind: product_to_derived_view
@@ -97,7 +97,7 @@ projection_edges:
     failure_disposition: fail_closed
 edge_kind_enum:
   - package_to_host_anchor
-  - package_to_host_overlay
+  - package_to_managed_projection
   - product_to_derived_view
   - product_to_support_registry
   - authority_to_audit_evidence
@@ -107,7 +107,7 @@ failure_disposition_enum:
   - block
 allowed_target_classes:
   - host_projection_anchor
-  - host_package_overlay
+  - nimicoding_managed_projection
   - derived_view
   - support_registry
   - audit_evidence_state
@@ -124,7 +124,7 @@ forbidden_promoted_fields_catalog:
   - private_evidence
 semantic_constraints:
   - host_projection_anchor_must_not_copy_package_methodology_body
-  - host_package_overlay_may_contain_only_allowed_fields
+  - nimicoding_managed_projection_is_project_local_cli_projection_not_product_authority
   - derived_view_projection_must_be_reproducible
   - audit_evidence_may_cite_authority_but_never_override_it
   - missing_projection_edge_is_a_validation_failure

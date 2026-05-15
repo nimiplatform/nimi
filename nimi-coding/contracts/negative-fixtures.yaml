@@ -39,20 +39,20 @@ fixtures:
     setup: .nimi/spec/product-scope.yaml containing package methodology body
     expected_failure: package_body_promoted_to_product_authority
     validator_scope: projection
-  - fixture_id: host_package_mirror_without_overlay_admission
+  - fixture_id: nimicoding_managed_projection_passes
     contract_ref: placement-contract.schema.yaml
-    setup: .nimi/contracts/topic.schema.yaml as host package mirror
-    expected_failure: host_package_mirror_without_minimal_overlay_admission
+    setup: .nimi/contracts/topic.schema.yaml as init-managed projection
+    expected_failure: none
     validator_scope: placement
-  - fixture_id: config_host_package_mirror_without_overlay_admission
+  - fixture_id: nimicoding_config_projection_passes
     contract_ref: placement-contract.schema.yaml
-    setup: .nimi/config/spec-generation-inputs.yaml as package-methodology host mirror
-    expected_failure: host_package_mirror_without_minimal_overlay_admission
+    setup: .nimi/config/spec-generation-inputs.yaml as init-managed projection
+    expected_failure: none
     validator_scope: placement
-  - fixture_id: methodology_host_package_mirror_without_overlay_admission
+  - fixture_id: nimicoding_methodology_projection_passes
     contract_ref: placement-contract.schema.yaml
-    setup: .nimi/methodology/spec-reconstruction.yaml as package-methodology host mirror
-    expected_failure: host_package_mirror_without_minimal_overlay_admission
+    setup: .nimi/methodology/spec-reconstruction.yaml as init-managed projection
+    expected_failure: none
     validator_scope: placement
   - fixture_id: blanket_v2_docs_input_root
     contract_ref: spec-generation-inputs.schema.yaml

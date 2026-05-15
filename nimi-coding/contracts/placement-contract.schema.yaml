@@ -55,11 +55,17 @@ placement_rules:
     requires_admission: projection_edge
     validator_scope: host_projection
   - root_pattern: .nimi/config/host-overlay.yaml
-    allowed_classes: [host_projection_anchor, host_package_overlay]
+    allowed_classes: [host_projection_anchor]
     owner: host_projection
     tracking_policy: tracked_only_with_explicit_admission
     requires_admission: projection_edge
     validator_scope: host_overlay
+  - root_pattern: .nimi/{config,contracts,methodology}/**
+    allowed_classes: [nimicoding_managed_projection]
+    owner: nimi_coding_package_projection
+    tracking_policy: tracked_required
+    requires_admission: nimicoding_init_or_sync_projection
+    validator_scope: nimicoding_managed_projection
   - root_pattern: nimi-coding/{spec,methodology,contracts,config}/**
     allowed_classes: [methodology_authority, support_registry]
     owner: nimi_coding_package
@@ -98,7 +104,7 @@ allowed_spec_meta_rules:
     allowed_classes: []
     allowed_dispositions: [move_package, move_local, delete]
   - root_pattern: .nimi/config/host-overlay.yaml
-    allowed_classes: [host_projection_anchor, host_package_overlay]
+    allowed_classes: [host_projection_anchor]
     required_fields: [package_id, package_version, package_truth_root, overlay_fields, drift_check_command]
 root_policy:
   product_authority_root: .nimi/spec
@@ -129,27 +135,25 @@ forbidden_roots:
     - .nimi/spec/**
   methodology_authority:
     - .nimi/spec/**
-  host_package_overlay:
+forbidden_root_exceptions:
+  nimicoding_managed_projection:
     - .nimi/methodology/**
     - .nimi/contracts/**
     - .nimi/config/**
-forbidden_root_exceptions:
-  host_package_overlay:
-    - .nimi/config/host-overlay.yaml
 tracking_policy_notes:
   .nimi/topics/**:
     tracking_policy: local_only
     meaning: local_human_authored_lifecycle_workspace_not_product_authority
-  .nimi/config/host-overlay.yaml:
-    tracking_policy: tracked_only_with_explicit_admission
-    meaning: explicit_minimal_overlay_exception_to_host_config_mirror_rejection
+  .nimi/{config,contracts,methodology}/**:
+    tracking_policy: tracked_required
+    meaning: project_local_nimicoding_managed_projection_created_by_init_or_sync_not_product_authority
 fail_closed_cases:
   - class_root_mismatch
   - file_under_.nimi/spec_without_product_or_minimal_anchor_class
   - file_under_kernel_tables_without_table_family
   - _meta_file_without_minimal_anchor_or_package_migration_disposition
   - tracked_non_product_file_without_admission
-  - host_package_mirror_without_minimal_overlay_admission
+  - nimicoding_managed_projection_promoted_to_product_authority
   - future_or_backlog_under_.nimi/spec
   - product_admission_registry_contains_package_methodology_body
 semantic_constraints:

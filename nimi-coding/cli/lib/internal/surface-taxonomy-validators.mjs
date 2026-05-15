@@ -263,10 +263,10 @@ function classifyRef(ref, text, parsedYaml) {
     return "lifecycle_progress_state";
   }
   if (ref.startsWith(".nimi/contracts/") || ref.startsWith(".nimi/methodology/")) {
-    return "host_package_overlay";
+    return "nimicoding_managed_projection";
   }
   if (ref.startsWith(".nimi/config/")) {
-    return ref === ".nimi/config/host-overlay.yaml" ? "host_package_overlay" : "host_package_overlay";
+    return ref === ".nimi/config/host-overlay.yaml" ? "host_projection_anchor" : "nimicoding_managed_projection";
   }
   if (ref.startsWith("nimi-coding/")) {
     return "methodology_authority";
@@ -284,8 +284,11 @@ function dispositionFor(ref, surfaceClass, errors) {
   if (errors.length > 0 && surfaceClass === "unclassified") {
     return "block";
   }
-  if (surfaceClass === "methodology_authority" || surfaceClass === "host_package_overlay") {
+  if (surfaceClass === "methodology_authority") {
     return "move_package";
+  }
+  if (surfaceClass === "nimicoding_managed_projection") {
+    return "keep";
   }
   if (surfaceClass === "derived_view") {
     return "delete";
@@ -300,8 +303,11 @@ function dispositionFor(ref, surfaceClass, errors) {
 }
 
 function targetRootFor(surfaceClass, ref) {
-  if (surfaceClass === "methodology_authority" || surfaceClass === "host_package_overlay") {
+  if (surfaceClass === "methodology_authority") {
     return "nimi-coding";
+  }
+  if (surfaceClass === "nimicoding_managed_projection") {
+    return ".nimi";
   }
   if (surfaceClass === "derived_view") {
     return "stdout_view";
@@ -325,7 +331,7 @@ function targetRootFor(surfaceClass, ref) {
 }
 
 function ownerFor(surfaceClass, ref) {
-  if (surfaceClass === "methodology_authority" || surfaceClass === "host_package_overlay") {
+  if (surfaceClass === "methodology_authority" || surfaceClass === "nimicoding_managed_projection") {
     return "nimi-coding";
   }
   if (surfaceClass === "derived_view") {
@@ -381,7 +387,7 @@ function validationCommandsFor(entryClass) {
     support_registry: ["pnpm exec nimicoding validate-table-family --profile nimi --root .nimi/spec"],
     thin_guidance: ["pnpm exec nimicoding validate-guidance-bodies --profile nimi --root .nimi/spec"],
     host_projection_anchor: ["pnpm exec nimicoding validate-projection-edges --profile nimi --root .nimi/spec"],
-    host_package_overlay: ["pnpm exec nimicoding validate-placement --profile nimi --root .nimi/spec"],
+    nimicoding_managed_projection: ["pnpm exec nimicoding validate-placement --profile nimi --root .nimi/spec"],
     candidate_roadmap: ["pnpm exec nimicoding validate-domain-admission --profile nimi --root .nimi/spec"],
   };
   return commands[entryClass] ?? ["pnpm exec nimicoding validate-placement --profile nimi --root .nimi/spec"];
@@ -417,9 +423,6 @@ function validateRefPlacement(ref, surfaceClass, parsedYaml, text, contracts) {
   }
   if (surfaceClass === "candidate_roadmap" && ref.startsWith(".nimi/spec/")) {
     addError(errors, "candidate_roadmap_under_spec", ref);
-  }
-  if (surfaceClass === "host_package_overlay" && ref !== ".nimi/config/host-overlay.yaml") {
-    addError(errors, "host_package_mirror_without_minimal_overlay_admission", ref);
   }
   if (isTrackedNonProductRef(ref) && !isAdmittedTrackedOutput(ref, trackedAdmissionRoots(contracts))) {
     addError(errors, "tracked_non_product_without_admission", ref);
@@ -612,7 +615,7 @@ function groupInventoryByDisposition(entries) {
 function buildMigrationExecutionPackets(entries) {
   const packetKinds = [
     {
-      packet_id: "move-package-methodology-and-host-overlays",
+      packet_id: "move-package-methodology-copied-under-spec",
       dispositions: ["move_package"],
       requires_confirmation: false,
     },
@@ -720,8 +723,8 @@ export async function classifySpecSurface(projectRoot, options = {}) {
         "audit_evidence_state",
         "operational_local_artifact",
         "methodology_authority",
+        "nimicoding_managed_projection",
         "host_projection_anchor",
-        "host_package_overlay",
         "candidate_roadmap",
         "support_registry",
         "lifecycle_progress_state",
@@ -729,7 +732,7 @@ export async function classifySpecSurface(projectRoot, options = {}) {
       semantic_constraints: [
         "inventory_must_not_modify_files",
         "future_under_spec_must_not_have_keep_disposition",
-        "host_package_mirror_must_not_have_keep_disposition",
+        "nimicoding_managed_projection_must_not_be_promoted_to_product_authority",
       ],
     },
   });

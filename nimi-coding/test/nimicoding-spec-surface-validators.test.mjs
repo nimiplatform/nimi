@@ -202,45 +202,45 @@ test("validate-placement fails on spec generation state under spec meta", async 
   });
 });
 
-test("validate-placement fails on host package mirror without overlay admission", async () => {
+test("validate-placement accepts nimicoding managed contract projection", async () => {
   await withTempProject(async (projectRoot) => {
     await seedValidRuntimeTableProject(projectRoot);
     await writeProjectFile(projectRoot, ".nimi/contracts/topic.schema.yaml", "version: 1\n");
 
     const result = await runCliSubprocess(["validate-placement", "--profile", "nimi", "--root", ".nimi/spec", "--json"], { cwd: projectRoot });
-    assert.equal(result.exitCode, 1);
+    assert.equal(result.exitCode, 0);
     const payload = JSON.parse(result.stdout);
     assert.equal(payload.validator, "validate-placement");
-    assert.equal(payload.ok, false);
-    assert.match(JSON.stringify(payload.errors), /host_package_mirror_without_minimal_overlay_admission/);
+    assert.equal(payload.ok, true);
+    assert.equal(payload.summary.by_surface_class.nimicoding_managed_projection, 1);
   });
 });
 
-test("validate-placement fails on config host package mirror without overlay admission", async () => {
+test("validate-placement accepts nimicoding managed config projection", async () => {
   await withTempProject(async (projectRoot) => {
     await seedValidRuntimeTableProject(projectRoot);
     await writeProjectFile(projectRoot, ".nimi/config/spec-generation-inputs.yaml", "version: 1\n");
 
     const result = await runCliSubprocess(["validate-placement", "--profile", "nimi", "--root", ".nimi/spec", "--json"], { cwd: projectRoot });
-    assert.equal(result.exitCode, 1);
+    assert.equal(result.exitCode, 0);
     const payload = JSON.parse(result.stdout);
     assert.equal(payload.validator, "validate-placement");
-    assert.equal(payload.ok, false);
-    assert.match(JSON.stringify(payload.errors), /host_package_mirror_without_minimal_overlay_admission/);
+    assert.equal(payload.ok, true);
+    assert.equal(payload.summary.by_surface_class.nimicoding_managed_projection, 1);
   });
 });
 
-test("validate-placement fails on methodology host package mirror without overlay admission", async () => {
+test("validate-placement accepts nimicoding managed methodology projection", async () => {
   await withTempProject(async (projectRoot) => {
     await seedValidRuntimeTableProject(projectRoot);
     await writeProjectFile(projectRoot, ".nimi/methodology/spec-reconstruction.yaml", "version: 1\n");
 
     const result = await runCliSubprocess(["validate-placement", "--profile", "nimi", "--root", ".nimi/spec", "--json"], { cwd: projectRoot });
-    assert.equal(result.exitCode, 1);
+    assert.equal(result.exitCode, 0);
     const payload = JSON.parse(result.stdout);
     assert.equal(payload.validator, "validate-placement");
-    assert.equal(payload.ok, false);
-    assert.match(JSON.stringify(payload.errors), /host_package_mirror_without_minimal_overlay_admission/);
+    assert.equal(payload.ok, true);
+    assert.equal(payload.summary.by_surface_class.nimicoding_managed_projection, 1);
   });
 });
 
@@ -495,6 +495,7 @@ test("generate-spec-migration-plan emits local-only plan preserving confirmation
     await seedValidRuntimeTableProject(projectRoot);
     await writeProjectFile(projectRoot, ".nimi/spec/avatar/kernel/index.md", "# Avatar Candidate\n");
     await writeProjectFile(projectRoot, ".nimi/spec/runtime/kernel/generated/job-states.md", "# Generated Jobs\n");
+    await writeProjectFile(projectRoot, ".nimi/spec/product-scope.yaml", "package_name: \"@nimiplatform/nimi-coding\"\n");
     await writeProjectFile(projectRoot, ".nimi/methodology/core.yaml", "version: 1\n");
 
     const emitRef = ".nimi/local/state/spec-surface/migration-plan.json";
@@ -514,7 +515,8 @@ test("generate-spec-migration-plan emits local-only plan preserving confirmation
     assert.equal(payload.ok, true);
     assert.equal(payload.mutation_policy.mutates_source_tree, false);
     assert.ok(payload.groups.delete.includes(".nimi/spec/runtime/kernel/generated/job-states.md"));
-    assert.ok(payload.groups.move_package.includes(".nimi/methodology/core.yaml"));
+    assert.ok(payload.groups.move_package.includes(".nimi/spec/product-scope.yaml"));
+    assert.ok(payload.groups.keep.includes(".nimi/methodology/core.yaml"));
     const avatarEntry = payload.inventory.find((entry) => entry.source_path === ".nimi/spec/avatar/kernel/index.md");
     assert.equal(avatarEntry.disposition, "keep");
     assert.equal(avatarEntry.required_confirmation, "none");
