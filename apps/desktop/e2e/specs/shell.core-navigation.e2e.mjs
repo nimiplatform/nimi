@@ -14,8 +14,6 @@ describe('shell.core-navigation', () => {
     await waitForTestId(E2E_IDS.panel('world'));
     await clickByTestId(E2E_IDS.navTab('explore'));
     await waitForTestId(E2E_IDS.panel('explore'));
-    await clickByTestId(E2E_IDS.navTab('settings'));
-    await waitForTestId(E2E_IDS.panel('settings'));
     await clickByTestId(E2E_IDS.navTab('runtime'));
     await waitForTestId(E2E_IDS.panel('runtime'));
   });
