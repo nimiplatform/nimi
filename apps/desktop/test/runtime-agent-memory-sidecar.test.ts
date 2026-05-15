@@ -371,6 +371,41 @@ test('runtime agent memory adapter maps canonical bank status to standard, basel
   });
 });
 
+test('runtime agent memory adapter uses desktop E2E fixture status only after runtime status fails', async () => {
+  const { runtime } = createRuntimeMock();
+  runtime.memory.getBank = async () => {
+    throw new Error('local memory substrate is not configured');
+  };
+  const fixtureStatusCalls: Array<Record<string, unknown>> = [];
+  const adapter = createRuntimeAgentMemoryAdapter({
+    getRuntime: () => runtime as never,
+    getSubjectUserId: () => 'user-1',
+    getMemoryEmbeddingConfigService: () => createMemoryEmbeddingServiceMock().service,
+    getAgentMemoryStandardFixtureStatus: async (payload) => {
+      fixtureStatusCalls.push(payload);
+      return {
+        available: true,
+        alreadyBound: false,
+        bank: {
+          bankId: 'bank-agent-1',
+          embeddingProfile: {
+            modelId: 'local/embed-alpha',
+          },
+        },
+      };
+    },
+    listLocalRuntimeAssets: async () => [],
+  });
+
+  const status = await adapter.getCanonicalBankStatus(LOCAL_AGENT_REF);
+
+  assert.deepEqual(status, {
+    mode: 'baseline',
+    bankId: 'bank-agent-1',
+  });
+  assert.deepEqual(fixtureStatusCalls, [{ agentId: LOCAL_AGENT_REF }]);
+});
+
 test('runtime agent memory adapter keeps compatibility queries working when canonical bank is baseline', async () => {
   const { runtime } = createRuntimeMock();
   runtime.memory.getBank = (async () => ({

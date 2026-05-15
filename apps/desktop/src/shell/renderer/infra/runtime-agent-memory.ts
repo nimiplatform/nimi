@@ -19,6 +19,7 @@ import {
 } from '@nimiplatform/sdk/runtime';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import { getDesktopMemoryEmbeddingConfigService } from '@renderer/app-shell/providers/desktop-memory-embedding-config-service';
+import { getAgentMemoryStandardFixtureStatus } from '@renderer/bridge/runtime-bridge/agent-memory';
 import { listLocalRuntimeAssets } from '@renderer/bridge/runtime-bridge/local-ai';
 import { getDesktopMacosSmokeContext } from '@renderer/bridge/runtime-bridge/macos-smoke';
 
@@ -64,6 +65,7 @@ type RuntimeAgentMemoryDeps = {
   getSubjectUserId?: () => string | undefined | Promise<string | undefined>;
   getMemoryEmbeddingConfigService?: () => DesktopMemoryEmbeddingConfigService;
   getMemoryEmbeddingScopeRef?: () => AIScopeRef;
+  getAgentMemoryStandardFixtureStatus?: typeof getAgentMemoryStandardFixtureStatus;
   listLocalRuntimeAssets?: typeof listLocalRuntimeAssets;
   now?: () => Date;
 };
@@ -337,6 +339,7 @@ export function createRuntimeAgentMemoryAdapter(deps: RuntimeAgentMemoryDeps = {
     ?? (() => getDesktopMemoryEmbeddingConfigService());
   const getMemoryEmbeddingScopeRef = deps.getMemoryEmbeddingScopeRef
     ?? (() => createDefaultAIScopeRef());
+  const getFixtureStatus = deps.getAgentMemoryStandardFixtureStatus ?? getAgentMemoryStandardFixtureStatus;
   const listAssets = deps.listLocalRuntimeAssets ?? listLocalRuntimeAssets;
   const now = deps.now ?? (() => new Date());
   let protectedAccess: ReturnType<typeof createRuntimeProtectedScopeHelper> | null = null;
@@ -503,6 +506,31 @@ export function createRuntimeAgentMemoryAdapter(deps: RuntimeAgentMemoryDeps = {
     };
   };
 
+  const getDesktopE2EAgentMemoryFixtureStatus = async (
+    agentId: string,
+  ): Promise<CanonicalMemoryBankStatus | null> => {
+    const result = await getFixtureStatus({ agentId });
+    if (!result.available) {
+      return null;
+    }
+    const bankId = normalizeText(result.bank.bankId);
+    const embeddingProfile = result.bank.embeddingProfile;
+    const embeddingProfileModelId = embeddingProfile && typeof embeddingProfile === 'object'
+      ? normalizeText((embeddingProfile as Record<string, unknown>).modelId)
+      : '';
+    if (result.alreadyBound) {
+      return {
+        mode: 'standard',
+        bankId: bankId || undefined,
+        embeddingProfileModelId: embeddingProfileModelId || undefined,
+      };
+    }
+    return {
+      mode: 'baseline',
+      bankId: bankId || undefined,
+    };
+  };
+
   const getLegacyCanonicalBankStatus = async (agentId: string): Promise<CanonicalMemoryBankStatus> => {
     try {
       const metadata = await readCanonicalBankMetadata(agentId);
@@ -524,6 +552,10 @@ export function createRuntimeAgentMemoryAdapter(deps: RuntimeAgentMemoryDeps = {
         bankId: metadata.bankId,
       };
     } catch (error) {
+      const fixtureStatus = await getDesktopE2EAgentMemoryFixtureStatus(agentId);
+      if (fixtureStatus) {
+        return fixtureStatus;
+      }
       if (isRuntimeMemoryUnavailable(error)) {
         return { mode: 'unavailable' };
       }
@@ -565,6 +597,10 @@ export function createRuntimeAgentMemoryAdapter(deps: RuntimeAgentMemoryDeps = {
     } catch (error) {
       if (!isRuntimeNotFound(error) && !isRuntimeMemoryUnavailable(error)) {
         throw error;
+      }
+      const fixtureStatus = await getDesktopE2EAgentMemoryFixtureStatus(agentId);
+      if (fixtureStatus) {
+        return fixtureStatus;
       }
     }
 

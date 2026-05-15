@@ -21,6 +21,7 @@ import type {
   CatalogState,
   CatalogTrustTier,
   AgentMemoryBindStandardResult,
+  AgentMemoryStandardFixtureStatusResult,
   MemoryEmbeddingRuntimeBindResult,
   MemoryEmbeddingRuntimeCutoverResult,
   MemoryEmbeddingRuntimeInspectResult,
@@ -560,6 +561,15 @@ export function parseConfirmDialogResult(value: unknown): ConfirmDialogResult {
 export function parseAgentMemoryBindStandardResult(value: unknown): AgentMemoryBindStandardResult {
   const record = assertRecord(value, 'agent_memory_bind_standard returned invalid payload');
   return {
+    alreadyBound: Boolean(record.alreadyBound),
+    bank: parseOptionalJsonObject(record.bank) || {},
+  };
+}
+
+export function parseAgentMemoryStandardFixtureStatusResult(value: unknown): AgentMemoryStandardFixtureStatusResult {
+  const record = assertRecord(value, 'agent_memory_standard_fixture_status_get returned invalid payload');
+  return {
+    available: Boolean(record.available),
     alreadyBound: Boolean(record.alreadyBound),
     bank: parseOptionalJsonObject(record.bank) || {},
   };

@@ -321,6 +321,7 @@ fn build_desktop_app() -> Result<tauri::App<tauri::Wry>, tauri::Error> {
             crate::oauth_commands::oauth_token_exchange,
             crate::oauth_commands::oauth_listen_for_code,
             super::defaults_and_commands::runtime_agent_memory::agent_memory_bind_standard,
+            super::defaults_and_commands::runtime_agent_memory::agent_memory_standard_fixture_status_get,
             super::defaults_and_commands::runtime_memory_embedding::memory_embedding_runtime_inspect,
             super::defaults_and_commands::runtime_memory_embedding::memory_embedding_runtime_request_bind,
             super::defaults_and_commands::runtime_memory_embedding::memory_embedding_runtime_request_cutover,
