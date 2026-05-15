@@ -64,7 +64,8 @@ inventory_generation_rules:
   - generate_split_children_for_mixed_authority_and_state_files
   - use_block_only_for_user_confirmation_cases
   - use_move_package_for_package_methodology_spec_contract_config
-  - use_move_local_for_audit_lifecycle_derived_and_operational_state
+  - use_move_local_for_audit_lifecycle_and_operational_state
+  - use_delete_for_derived_views_with_stdout_view_replacement
   - use_delete_for_obsolete_generated_or_one_time_state_without_durable_target
 semantic_constraints:
   - inventory_must_not_modify_files
@@ -74,5 +75,5 @@ semantic_constraints:
   - future_under_spec_must_not_have_keep_disposition
   - host_package_mirror_must_not_have_keep_disposition
   - product_admission_registry_must_not_be_moved_to_package
-  - generated_views_default_to_move_local_or_delete
+  - generated_views_default_to_delete_with_stdout_view
   - audit_state_defaults_to_move_local

@@ -287,7 +287,10 @@ function dispositionFor(ref, surfaceClass, errors) {
   if (surfaceClass === "methodology_authority" || surfaceClass === "host_package_overlay") {
     return "move_package";
   }
-  if (["derived_view", "spec_generation_state", "audit_evidence_state", "candidate_roadmap", "lifecycle_progress_state", "operational_local_artifact"].includes(surfaceClass)) {
+  if (surfaceClass === "derived_view") {
+    return "delete";
+  }
+  if (["spec_generation_state", "audit_evidence_state", "candidate_roadmap", "lifecycle_progress_state", "operational_local_artifact"].includes(surfaceClass)) {
     return "move_local";
   }
   if (errors.length > 0) {
@@ -301,7 +304,7 @@ function targetRootFor(surfaceClass, ref) {
     return "nimi-coding";
   }
   if (surfaceClass === "derived_view") {
-    return ".nimi/local/derived";
+    return "stdout_view";
   }
   if (surfaceClass === "spec_generation_state" || surfaceClass === "lifecycle_progress_state" || surfaceClass === "operational_local_artifact") {
     return ".nimi/local/state";
@@ -396,6 +399,9 @@ function validateRefPlacement(ref, surfaceClass, parsedYaml, text, contracts) {
   }
   if (surfaceClass === "derived_view" && ref.startsWith(".nimi/spec/")) {
     addError(errors, "derived_view_under_product_authority_root", ref);
+  }
+  if (surfaceClass === "derived_view" && ref.startsWith(".nimi/local/derived/")) {
+    addError(errors, "derived_view_written_to_local_derived", ref);
   }
   if (surfaceClass === "spec_generation_state" && ref.startsWith(".nimi/spec/")) {
     addError(errors, "spec_generation_state_under_spec", ref);

@@ -48,11 +48,11 @@ spec_tree_model:
   non_authority_classes:
     - id: derived_view
       allowed_roots:
-        - .nimi/local/derived/**
+        - stdout_view
       forbidden_roots:
         - .nimi/spec/**/kernel/generated/**
         - .nimi/spec/generated/**
-      tracking_policy: local_only
+      tracking_policy: untracked_stdout_only
     - id: spec_generation_state
       allowed_roots:
         - .nimi/local/state/spec-generation/**
@@ -126,7 +126,7 @@ spec_tree_model:
       input_config_ref: nimi-coding/config/spec-generation-inputs.yaml
       output_class: derived_view
       output_roots:
-        - .nimi/local/derived/spec-human-doc
+        - stdout_view
       audit_output_root: .nimi/local/state/spec-generation
       generate_command: pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope spec-human-doc
       drift_check_command: pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope spec-human-doc --check

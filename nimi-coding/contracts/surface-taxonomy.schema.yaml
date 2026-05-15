@@ -62,12 +62,12 @@ taxonomy:
   - class_id: derived_view
     owner_kind: generator
     authority_rank: derived_non_authority
-    allowed_roots: [".nimi/local/derived/**"]
-    tracking_policy: local_only
+    allowed_roots: ["stdout_view"]
+    tracking_policy: untracked_stdout_only
     mutability: generated_reproducible
     reference_rules: [may_reference_declared_inputs, must_not_be_referenced_as_authority]
     promotion_rules: [never_promote_derived_output]
-    fail_closed_cases: [referenced_as_authority, stored_under_product_authority_root]
+    fail_closed_cases: [referenced_as_authority, stored_under_product_authority_root, written_to_local_derived]
   - class_id: spec_generation_state
     owner_kind: spec_generator
     authority_rank: lifecycle_state

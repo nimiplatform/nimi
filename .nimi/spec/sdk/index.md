@@ -28,7 +28,7 @@
 - `S-ERROR-*` — Runtime/Realm 错误投影、SDK 本地错误码与重试语义
 - `S-BOUNDARY-*` — 跨包导入边界与禁止路径
 
-结构化事实源：`kernel/tables/*.yaml`；生成视图：`kernel/generated/*.md`。
+结构化事实源：`kernel/tables/*.yaml`；table views 按需通过 `pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope sdk` 渲染到 stdout。
 
 ## 4. 跨域依赖关系
 

@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import fs from 'node:fs';
 import path from 'node:path';
+import { spawnSync } from 'node:child_process';
 
 const cwd = process.cwd();
 const specRoot = path.join(cwd, '.nimi', 'spec');
@@ -246,21 +247,25 @@ function checkCompanionConstraints(companionFiles, definitionMap) {
 }
 
 function checkGeneratedNoLegacyIdOutput() {
-  const targets = [
-    'scripts/generate-spec-human-doc.mjs',
-    '.nimi/spec/generated/nimi-spec.md',
-  ];
+  const scriptRel = 'scripts/generate-spec-human-doc.mjs';
+  const scriptAbs = path.join(cwd, scriptRel);
+  if (!fs.existsSync(scriptAbs)) {
+    fail(`missing generated pipeline target: ${scriptRel}`);
+    return;
+  }
 
-  for (const rel of targets) {
-    if (!fs.existsSync(path.join(cwd, rel))) {
-      fail(`missing generated pipeline target: ${rel}`);
-      continue;
-    }
-    const content = readFile(rel);
-    const tokens = new Set((content.match(LEGACY_INLINE_RE) || []));
-    for (const token of tokens) {
-      fail(`${rel} still contains retired legacy ID token: ${token}`);
-    }
+  const rendered = spawnSync(process.execPath, [scriptAbs], {
+    cwd,
+    encoding: 'utf8',
+    maxBuffer: 32 * 1024 * 1024,
+  });
+  if (rendered.status !== 0) {
+    fail(`${scriptRel} failed to render stdout view: ${rendered.stderr || rendered.stdout}`);
+    return;
+  }
+  const tokens = new Set((String(rendered.stdout || '').match(LEGACY_INLINE_RE) || []));
+  for (const token of tokens) {
+    fail(`${scriptRel} stdout view still contains retired legacy ID token: ${token}`);
   }
 }
 

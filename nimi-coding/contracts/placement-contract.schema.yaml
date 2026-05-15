@@ -72,12 +72,6 @@ placement_rules:
     tracking_policy: local_only
     requires_admission: none
     validator_scope: topic_lifecycle
-  - root_pattern: .nimi/local/derived/**
-    allowed_classes: [derived_view]
-    owner: generator
-    tracking_policy: local_only
-    requires_admission: none
-    validator_scope: derived
   - root_pattern: .nimi/local/state/**
     allowed_classes: [spec_generation_state, lifecycle_progress_state, operational_local_artifact]
     owner: execution_workflow
@@ -124,6 +118,7 @@ forbidden_roots:
   derived_view:
     - .nimi/spec/**/kernel/generated/**
     - .nimi/spec/generated/**
+    - .nimi/local/derived/**
   spec_generation_state:
     - .nimi/spec/_meta/spec-generation-audit/**
     - .nimi/spec/_meta/spec-generation-audit.yaml

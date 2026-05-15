@@ -108,29 +108,23 @@ Nimi Runtime 是一个 gRPC 守护进程，负责 AI 推理执行、模型管理
 
 export async function finalizeGeneratedDoc({ checkMode, outPath, output, repoRoot }) {
   if (checkMode) {
-    let current = '';
     try {
-      current = await fs.readFile(outPath, 'utf8');
-    } catch {
-      process.stderr.write(`spec human doc does not exist: ${path.relative(repoRoot, outPath)}\n`);
-      process.stderr.write('run `pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope spec-human-doc` to generate.\n');
+      await fs.access(outPath);
+      process.stderr.write(`spec human doc must not be written to disk: ${path.relative(repoRoot, outPath)}\n`);
+      process.stderr.write('Render the human-readable view on demand with `pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope spec-human-doc`.\n');
       process.exitCode = 1;
       return;
+    } catch (error) {
+      if (error?.code !== 'ENOENT') throw error;
     }
 
-    const stripDate = (s) => s.replace(/^> 生成时间: .+$/m, '');
-    if (stripDate(current) !== stripDate(output)) {
-      process.stderr.write(`spec human doc drift detected: ${path.relative(repoRoot, outPath)}\n`);
-      process.stderr.write('run `pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope spec-human-doc` to regenerate.\n');
-      process.exitCode = 1;
-      return;
-    }
-
-    process.stdout.write('spec human doc is up-to-date\n');
+    // Touch the rendered output in memory so syntax/render failures surface in --check mode.
+    String(output);
+    process.stdout.write('spec human doc renderable (stdout view, no file written)\n');
     return;
   }
 
-  await fs.mkdir(path.dirname(outPath), { recursive: true });
-  await fs.writeFile(outPath, output, 'utf8');
-  process.stdout.write(`generated spec human doc: ${path.relative(repoRoot, outPath)}\n`);
+  process.stdout.write(`<!-- nimi-derived-view: ${path.relative(repoRoot, outPath).replace(/\\/g, '/')} -->\n`);
+  process.stdout.write(output);
+  if (!output.endsWith('\n')) process.stdout.write('\n');
 }

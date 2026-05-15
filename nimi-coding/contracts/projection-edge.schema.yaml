@@ -52,10 +52,10 @@ projection_edges:
     source_ref: .nimi/spec/<domain>/kernel/**
     source_class: product_authority
     source_owner: product_domain
-    target_ref: .nimi/local/derived/**
+    target_ref: stdout_view
     target_class: derived_view
     target_owner: generator
-    allowed_fields: [rendered_summary, source_refs, generated_at, generator_id]
+    allowed_fields: [rendered_summary, source_refs, generator_id]
     forbidden_promoted_fields: [product_rule_body_without_source_ref, audit_coverage_status, lifecycle_status]
     drift_check_command: pnpm exec nimicoding generate-spec-derived-docs --profile nimi --check
     failure_disposition: fail_closed

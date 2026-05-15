@@ -104,6 +104,6 @@
 - `kernel/companion/*.md` 为解释层，不定义规则。
 - 每个 companion 章节必须声明 `Anchors:` 指向 `D-*` Rule。
 
-## 7. 自动生成视图
+## 7. Derived Views
 
-`generated/` 目录由 `scripts/generate-desktop-spec-kernel-docs.mjs` 从 YAML 生成。修改 tables 后必须执行生成并通过 docs drift 检查。
+Desktop table views are rendered on demand with `pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope desktop`. The views are stdout artifacts; `generated/` is not a product authority directory.

@@ -12,25 +12,26 @@ const outDir = path.join(kernelRoot, 'generated');
 const checkMode = process.argv.includes('--check');
 
 async function main() {
-  await fs.mkdir(outDir, { recursive: true });
+  let entries = [];
+  try {
+    entries = await fs.readdir(outDir);
+  } catch (error) {
+    if (error?.code !== 'ENOENT') throw error;
+  }
+
+  const generatedMarkdown = entries.filter((entry) => entry.endsWith('.md'));
+  if (generatedMarkdown.length > 0) {
+    process.stderr.write(`avatar kernel derived views must not be written to disk: ${generatedMarkdown.join(', ')}\n`);
+    process.exit(1);
+  }
 
   if (checkMode) {
-    const entries = await fs.readdir(outDir);
-    const generatedMarkdown = entries.filter((entry) => entry.endsWith('.md'));
-    if (generatedMarkdown.length > 0) {
-      process.stderr.write(`avatar kernel generated docs drift detected: unexpected files ${generatedMarkdown.join(', ')}\n`);
-      process.exit(1);
-    }
-    process.stdout.write('avatar kernel generated docs are up-to-date (0 files)\n');
+    process.stdout.write('avatar kernel derived views renderable (0 views, no files written)\n');
     return;
   }
 
-  for (const entry of await fs.readdir(outDir)) {
-    if (entry.endsWith('.md')) {
-      await fs.unlink(path.join(outDir, entry));
-    }
-  }
-  process.stdout.write('generated avatar kernel docs (0 files)\n');
+  process.stdout.write('<!-- nimi-derived-view: .nimi/spec/avatar/kernel/generated/index.md -->\n');
+  process.stdout.write('# Avatar Derived Views\n\n_No derived markdown views are defined for avatar._\n');
 }
 
 main().catch((error) => {

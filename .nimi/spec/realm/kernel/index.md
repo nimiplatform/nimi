@@ -53,30 +53,6 @@ updated: 2026-04-18
 - `tables/open-spec-alignment-map.yaml`
 - `tables/under-spec-registry.yaml`
 
-## Generated
+## Derived Views
 
-- `generated/index.md`
-- `generated/rule-catalog.md`
-- `generated/rule-evidence.md`
-- `generated/commit-authorization-matrix.md`
-- `generated/truth-contract.md`
-- `generated/projection-contract.md`
-- `generated/world-state-contract.md`
-- `generated/world-history-contract.md`
-- `generated/chat-contract.md`
-- `generated/group-agent-participation-contract.md`
-- `generated/group-agent-trigger-policy.md`
-- `generated/group-agent-slot-lifecycle.md`
-- `generated/attachment-contract.md`
-- `generated/binding-contract.md`
-- `generated/resource-contract.md`
-- `generated/social-contract.md`
-- `generated/economy-contract.md`
-- `generated/asset-contract.md`
-- `generated/bundle-contract.md`
-- `generated/transit-contract.md`
-- `generated/oauth-authority-contract.md`
-- `generated/domain-enums.md`
-- `generated/domain-state-machines.md`
-- `generated/open-spec-alignment-map.md`
-- `generated/under-spec-registry.md`
+Realm table views are rendered on demand with `pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope realm`. The views are stdout artifacts; `generated/` is not a product authority directory.

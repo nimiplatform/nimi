@@ -21,7 +21,7 @@ spec_generation_inputs:
   local_inputs:
     - root: .nimi/local
       owner: local_execution
-      allowed_surface_classes: [derived_view, spec_generation_state, audit_evidence_state, operational_local_artifact, lifecycle_progress_state]
+      allowed_surface_classes: [spec_generation_state, audit_evidence_state, operational_local_artifact, lifecycle_progress_state]
       use_as_authority: false
   forbidden_source_classes:
     - derived_view
@@ -42,5 +42,6 @@ spec_generation_inputs:
   inference_rules:
     - no_blanket_docs_roots
     - no_generated_as_authority
+    - no_derived_views_written_to_local
     - no_audit_or_lifecycle_state_as_authority
   acceptance_mode: placement_validity_before_generation

@@ -4,6 +4,7 @@ import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import YAML from 'yaml';
+import { derivedViewMode, finalizeDerivedViews } from './lib/spec-derived-view-output.mjs';
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '..');
@@ -151,9 +152,7 @@ async function parseYamlFile(filePath) {
 }
 
 async function main() {
-  const checkMode = process.argv.includes('--check');
-
-  await fs.mkdir(outDir, { recursive: true });
+  const { checkMode } = derivedViewMode();
 
   const renderedEntries = [];
   for (const spec of specs) {
@@ -166,45 +165,13 @@ async function main() {
   const indexPath = path.join(outDir, 'index.md');
   const indexRendered = renderGeneratedIndex(specs);
 
-  if (checkMode) {
-    const drifted = [];
-    for (const entry of renderedEntries) {
-      let current = '';
-      try {
-        current = await fs.readFile(entry.outputPath, 'utf8');
-      } catch {
-        drifted.push(entry.outputPath);
-        continue;
-      }
-      if (current !== entry.rendered) drifted.push(entry.outputPath);
-    }
-
-    let currentIndex = '';
-    try {
-      currentIndex = await fs.readFile(indexPath, 'utf8');
-    } catch {
-      drifted.push(indexPath);
-    }
-    if (currentIndex !== indexRendered) drifted.push(indexPath);
-
-    if (drifted.length > 0) {
-      process.stderr.write('future kernel generated docs drift detected:\n');
-      for (const file of drifted) {
-        process.stderr.write(`  - ${path.relative(repoRoot, file)}\n`);
-      }
-      process.stderr.write('run `pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope future` to regenerate.\n');
-      process.exitCode = 1;
-      return;
-    }
-    process.stdout.write(`future kernel generated docs are up-to-date (${renderedEntries.length + 1} files)\n`);
-    return;
-  }
-
-  for (const entry of renderedEntries) {
-    await fs.writeFile(entry.outputPath, entry.rendered, 'utf8');
-  }
-  await fs.writeFile(indexPath, indexRendered, 'utf8');
-  process.stdout.write(`generated future kernel docs (${renderedEntries.length + 1} files)\n`);
+  await finalizeDerivedViews({
+    checkMode,
+    repoRoot,
+    outDir,
+    scopeLabel: 'future kernel',
+    entries: [...renderedEntries, { outputPath: indexPath, rendered: indexRendered }],
+  });
 }
 
 main().catch((error) => {

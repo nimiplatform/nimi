@@ -37,7 +37,7 @@ document_instance:
   local_inputs:
     - root: .nimi/local
       owner: local_execution
-      allowed_surface_classes: [derived_view, spec_generation_state, audit_evidence_state, operational_local_artifact, lifecycle_progress_state]
+      allowed_surface_classes: [spec_generation_state, audit_evidence_state, operational_local_artifact, lifecycle_progress_state]
       use_as_authority: false
   forbidden_source_classes:
     - derived_view
@@ -48,7 +48,7 @@ document_instance:
     - candidate_roadmap
     - lifecycle_progress_state
   generation_order: [classify_inputs, validate_placement, product_authority, product_authority_tables, thin_guides, derived_views, generation_audit]
-  inference_rules: [no_blanket_docs_roots, no_generated_as_authority, no_audit_or_lifecycle_state_as_authority]
+  inference_rules: [no_blanket_docs_roots, no_generated_as_authority, no_derived_views_written_to_local, no_audit_or_lifecycle_state_as_authority]
   acceptance_mode: placement_validity_before_generation
 docs_input_required_fields:
   - root
@@ -106,7 +106,7 @@ baseline_inputs:
   local_inputs:
     - root: .nimi/local
       owner: local_execution
-      allowed_surface_classes: [derived_view, spec_generation_state, audit_evidence_state, operational_local_artifact, lifecycle_progress_state]
+      allowed_surface_classes: [spec_generation_state, audit_evidence_state, operational_local_artifact, lifecycle_progress_state]
       use_as_authority: false
 mode_enum:
   - class_filtered
@@ -134,6 +134,7 @@ hard_constraints:
   - canonical_target_root_must_be_.nimi/spec_for_product_authority_outputs_only
   - each_input_file_must_have_an_accepted_surface_class_before_render
   - generated_views_must_not_be_used_as_authority_inputs
+  - generated_views_must_render_to_stdout_only
   - audit_state_and_lifecycle_state_must_not_be_used_as_product_authority_inputs
   - package_methodology_must_be_consumed_from_package_roots_or_minimal_projection_edges
   - generation_audit_outputs_must_default_to_.nimi/local/state/spec-generation

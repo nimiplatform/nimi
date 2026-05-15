@@ -396,50 +396,35 @@ function writeFile(absPath, content) {
 }
 
 function verifyOrWrite(targets, indexContent) {
-  const mismatches = [];
-  const expectedFiles = new Set(targets.map((target) => path.basename(target.outputFile)).concat('index.md'));
-  for (const target of targets) {
-    const existing = fs.existsSync(target.outputFile) ? fs.readFileSync(target.outputFile, 'utf8') : null;
-    if (CHECK_MODE) {
-      if (existing !== target.content) mismatches.push(relativeToRoot(target.outputFile));
-      continue;
-    }
-    writeFile(target.outputFile, target.content);
-  }
   const indexPath = path.join(GENERATED_DIR, 'index.md');
-  const existingIndex = fs.existsSync(indexPath) ? fs.readFileSync(indexPath, 'utf8') : null;
   if (CHECK_MODE) {
-    if (existingIndex !== indexContent) mismatches.push(relativeToRoot(indexPath));
+    const existing = [];
     if (fs.existsSync(GENERATED_DIR)) {
       for (const entry of fs.readdirSync(GENERATED_DIR)) {
         if (!entry.endsWith('.md')) continue;
-        if (expectedFiles.has(entry)) continue;
-        mismatches.push(relativeToRoot(path.join(GENERATED_DIR, entry)));
+        existing.push(relativeToRoot(path.join(GENERATED_DIR, entry)));
       }
     }
-    if (mismatches.length > 0) {
-      throw new Error(`Realm kernel generated docs drift detected:\n- ${mismatches.join('\n- ')}`);
+    if (existing.length > 0) {
+      throw new Error(`Realm kernel derived views must not be written to disk:\n- ${existing.join('\n- ')}`);
     }
+    process.stdout.write(`realm kernel derived views renderable (${targets.length + 1} views, no files written)\n`);
     return;
   }
-  writeFile(indexPath, indexContent);
-}
 
-function removeStaleGeneratedFiles(targets) {
-  const expected = new Set(targets.map((target) => path.basename(target.outputFile)).concat('index.md'));
-  if (!fs.existsSync(GENERATED_DIR)) return;
-  for (const entry of fs.readdirSync(GENERATED_DIR)) {
-    if (!entry.endsWith('.md')) continue;
-    if (expected.has(entry)) continue;
-    fs.rmSync(path.join(GENERATED_DIR, entry), { force: true });
+  for (const target of targets) {
+    process.stdout.write(`<!-- nimi-derived-view: ${relativeToRoot(target.outputFile)} -->\n`);
+    process.stdout.write(target.content);
+    process.stdout.write('\n');
   }
+  process.stdout.write(`<!-- nimi-derived-view: ${relativeToRoot(indexPath)} -->\n`);
+  process.stdout.write(indexContent);
 }
 
 function main() {
   ensureDerivedRuleCatalog();
   const targets = buildRenderTargets();
   const indexContent = buildIndexContent(targets);
-  if (!CHECK_MODE) removeStaleGeneratedFiles(targets);
   verifyOrWrite(targets, indexContent);
 }
 

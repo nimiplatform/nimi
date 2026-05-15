@@ -35,16 +35,6 @@ updated: 2026-04-16
 - `tables/prompt-serving-lanes.yaml`
 - `tables/completion-gates.yaml`
 
-## Generated
+## Derived Views
 
-- `generated/index.md`
-- `generated/artifact-families.md`
-- `generated/public-surface.md`
-- `generated/runtime-bridge-boundary.md`
-- `generated/runtime-capability-upgrade-matrix.md`
-- `generated/memory-service-operations.md`
-- `generated/knowledge-service-operations.md`
-- `generated/skill-service-operations.md`
-- `generated/admitted-reference-matrix.md`
-- `generated/prompt-serving-lanes.md`
-- `generated/completion-gates.md`
+Cognition table views are rendered on demand with `pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope cognition`. The views are stdout artifacts; `generated/` is not a product authority directory.

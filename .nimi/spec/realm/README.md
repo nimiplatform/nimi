@@ -19,7 +19,7 @@ Realm hard-cut semantic core is `Truth / Projection / World State / World Histor
 - Contracts: `kernel/*.md`
 - Tables: `kernel/tables/*.yaml`
 - Authorization matrix: `kernel/tables/commit-authorization-matrix.yaml`
-- Generated: `kernel/generated/*.md`
+- Derived views: render on demand with `pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope realm`
 - Domain docs (thin): `truth.md`, `projection.md`, `world-state.md`, `world-history.md`, `world.md`, `agent.md`, `binding.md`, `chat.md`, `social.md`, `economy.md`, `asset.md`, `transit.md`
 - Bridge docs (thin): `app-interconnect-model.md`, `world-creator-economy.md`, `creator-revenue-policy.md`, `realm-interop-mapping.md`
 

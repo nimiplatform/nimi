@@ -513,7 +513,7 @@ test("generate-spec-migration-plan emits local-only plan preserving confirmation
     assert.equal(payload.contract, "nimicoding.spec-migration-plan.v1");
     assert.equal(payload.ok, true);
     assert.equal(payload.mutation_policy.mutates_source_tree, false);
-    assert.ok(payload.groups.move_local.includes(".nimi/spec/runtime/kernel/generated/job-states.md"));
+    assert.ok(payload.groups.delete.includes(".nimi/spec/runtime/kernel/generated/job-states.md"));
     assert.ok(payload.groups.move_package.includes(".nimi/methodology/core.yaml"));
     const avatarEntry = payload.inventory.find((entry) => entry.source_path === ".nimi/spec/avatar/kernel/index.md");
     assert.equal(avatarEntry.disposition, "keep");

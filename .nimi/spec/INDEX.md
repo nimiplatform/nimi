@@ -285,7 +285,7 @@ Platform 规范采用 kernel + domain 的两层结构，覆盖平台架构、协
 
 - Kernel（唯一事实源）：`.nimi/spec/platform/kernel/`
 - Tables（事实源）：`.nimi/spec/platform/kernel/tables/`
-- Generated（自动生成视图）：`.nimi/spec/platform/kernel/generated/`
+- Derived views（按需渲染）：`pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope platform`
 - Domain：
   - `.nimi/spec/platform/vision.md`
   - `.nimi/spec/platform/architecture.md`
@@ -351,7 +351,7 @@ Realm 规范采用 kernel + domain 的两层结构，覆盖 Realm Truth、World 
 
 - Kernel（唯一事实源）：`.nimi/spec/realm/kernel/`
 - Tables（事实源）：`.nimi/spec/realm/kernel/tables/`
-- Generated（自动生成视图）：`.nimi/spec/realm/kernel/generated/`
+- Derived views（按需渲染）：`pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope realm`
 - Domain：
   - `.nimi/spec/realm/truth.md`
   - `.nimi/spec/realm/world-state.md`
@@ -408,7 +408,7 @@ Realm 规范采用 kernel + domain 的两层结构，覆盖 Realm Truth、World 
 
 - Kernel（治理规则）：`.nimi/spec/future/kernel/`
 - Tables（事实源）：`.nimi/spec/future/kernel/tables/`
-- Generated（自动生成视图）：`.nimi/spec/future/kernel/generated/`
+- Derived views（按需渲染）：`pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope future`
 
 ### 添加新的未来能力条目
 
@@ -427,7 +427,7 @@ Realm 规范采用 kernel + domain 的两层结构，覆盖 Realm Truth、World 
 
 - Kernel（唯一事实源）：`.nimi/spec/cognition/kernel/`
 - Tables（事实源）：`.nimi/spec/cognition/kernel/tables/`
-- Generated（自动生成视图）：`.nimi/spec/cognition/kernel/generated/`
+- Derived views（按需渲染）：`pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope cognition`
 
 ### 收口 cognition object model / family boundary
 

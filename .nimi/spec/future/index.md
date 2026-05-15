@@ -12,7 +12,7 @@
 
 - `kernel/` — 治理规则（Rule ID `F-*`）
 - `kernel/tables/` — YAML 事实源
-- `kernel/generated/` — 自动生成的表格视图
+- table views — 按需通过 `pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope future` 渲染到 stdout
 
 ## 3. Task-Oriented 阅读路径
 
@@ -24,7 +24,7 @@
 
 ### 审查 backlog 优先级
 
-1. `.nimi/spec/future/kernel/generated/backlog-items.md` — 按优先级分组查看
+1. `.nimi/spec/future/kernel/tables/backlog-items.yaml` — 按优先级查看 YAML 事实源
 2. `.nimi/spec/future/kernel/capability-backlog.md` — 优先级标准
 
 ### 毕业条目到正式 spec
