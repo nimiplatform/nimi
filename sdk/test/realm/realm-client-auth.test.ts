@@ -563,36 +563,41 @@ test('Realm refreshToken supports function mode', async () => {
 });
 
 test('Realm.decodeTokenExpiry parses valid and invalid JWTs', () => {
+  const originalDateNow = Date.now;
+  Date.now = () => 1699999999000;
+
   // Valid JWT with exp claim (exp = 1700000000 → 2023-11-14T22:13:20.000Z)
   const payload = btoa(JSON.stringify({ sub: 'user-1', exp: 1700000000 }));
   const validJwt = `eyJhbGciOiJIUzI1NiJ9.${payload}.signature`;
 
-  const result = Realm.decodeTokenExpiry(validJwt);
-  assert.ok(result);
-  assert.equal(result.expiresAt, 1700000000 * 1000);
-  assert.equal(typeof result.expiresInMs, 'number');
+  try {
+    const result = Realm.decodeTokenExpiry(validJwt);
+    assert.deepEqual(result, {
+      expiresAt: 1700000000 * 1000,
+      expiresInMs: 1000,
+    });
 
-  // Invalid JWT (not enough parts)
-  assert.equal(Realm.decodeTokenExpiry('not-a-jwt'), null);
+    // Invalid JWT (not enough parts)
+    assert.equal(Realm.decodeTokenExpiry('not-a-jwt'), null);
 
-  // JWT without exp claim
-  const noExpPayload = btoa(JSON.stringify({ sub: 'user-1' }));
-  const noExpJwt = `eyJhbGciOiJIUzI1NiJ9.${noExpPayload}.signature`;
-  assert.equal(Realm.decodeTokenExpiry(noExpJwt), null);
+    // JWT without exp claim
+    const noExpPayload = btoa(JSON.stringify({ sub: 'user-1' }));
+    const noExpJwt = `eyJhbGciOiJIUzI1NiJ9.${noExpPayload}.signature`;
+    assert.equal(Realm.decodeTokenExpiry(noExpJwt), null);
 
-  // Malformed base64
-  const malformedJwt = 'header.!!!invalid-base64!!!.signature';
-  assert.equal(Realm.decodeTokenExpiry(malformedJwt), null);
+    // Malformed base64
+    const malformedJwt = 'header.!!!invalid-base64!!!.signature';
+    assert.equal(Realm.decodeTokenExpiry(malformedJwt), null);
 
-  const base64UrlPayload = Buffer.from(JSON.stringify({ sub: 'user-1', exp: 1700000001 })).toString(
-    'base64url',
-  );
-  const base64UrlJwt = `header.${base64UrlPayload}.signature`;
-  assert.equal(Realm.decodeTokenExpiry(base64UrlJwt)?.expiresAt, 1700000001 * 1000);
-  const unsafeResult = Realm.decodeTokenExpiryUnsafe(validJwt);
-  assert.ok(unsafeResult);
-  assert.equal(unsafeResult.expiresAt, result.expiresAt);
-  assert.ok(Math.abs(unsafeResult.expiresInMs - result.expiresInMs) <= 1);
+    const base64UrlPayload = Buffer.from(JSON.stringify({ sub: 'user-1', exp: 1700000001 })).toString(
+      'base64url',
+    );
+    const base64UrlJwt = `header.${base64UrlPayload}.signature`;
+    assert.equal(Realm.decodeTokenExpiry(base64UrlJwt)?.expiresAt, 1700000001 * 1000);
+    assert.deepEqual(Realm.decodeTokenExpiryUnsafe(validJwt), result);
+  } finally {
+    Date.now = originalDateNow;
+  }
 });
 
 test('Realm admitted unauthenticated AuthService endpoints do not send Authorization header', async () => {
