@@ -1,4 +1,19 @@
 version: 3
+table_family: product_catalog
+owner: avatar
+catalog_id: avatar_feature_matrix
+entries:
+  - wave_0
+  - wave_1
+  - wave_2
+  - wave_3
+  - wave_4
+  - wave_5
+  - wave_6
+  - wave_7
+  - wave_8
+  - wave_9
+  - wave_10
 description: >
   Wave-based feature delivery matrix for Nimi Avatar. Each wave is an
   end-to-end deliverable capability slice; partial / mid-state delivery is
@@ -25,7 +40,6 @@ description: >
 waves:
   wave_0:
     title: "Spec admit gate"
-    status: done
     target: "Industrial spec baseline for surface composition + companion + degraded surfaces; wave schedule recorded in spec; lipsync upstream contract校核 done."
     scope:
       - id: app_shell_contract_rewrite
@@ -49,7 +63,6 @@ waves:
 
   wave_1:
     title: "Surface composition implementation"
-    status: done
     target: "Ready 状态视觉与 OLV 截图等价：embodiment-stage 全屏 + companion-surface 浮于一角；degraded 状态独立 surface；ready/degraded 互斥不混合。"
     scope:
       - id: embodiment_stage_module
@@ -76,7 +89,6 @@ waves:
 
   wave_2:
     title: "i18n + Design tokens 工业化"
-    status: done
     target: "所有文案 i18n 化、所有视觉值 token 化；avatar 第一次拥有正式设计系统基础。"
     scope:
       - id: i18n_framework_wiring
@@ -103,7 +115,6 @@ waves:
 
   wave_3:
     title: "Voice / lipsync end-to-end"
-    status: done
     target: "runtime → SDK → avatar selected backend 的 voice/lipsync 链路工业级跑通；audio playback 与 backend lipsync 同步；runtime 端缺 voice emitter 一并补完。"
     scope:
       - id: runtime_lipsync_emitter_audit
@@ -127,7 +138,6 @@ waves:
 
   wave_4:
     title: "Window + Settings 工业级"
-    status: done
     target: "window 形状跟随 Live2D + companion footprint；drag 区限定到 embodiment-stage；settings popover 替代主区 4-toggle 大块。"
     scope:
       - id: dynamic_window_bounds
@@ -150,7 +160,6 @@ waves:
 
   wave_5:
     title: "Spec admit & contract baseline + platform spec extension (B2.A+)"
-    status: done
     slug: spec-admit-and-platform-admission
     target: >
       Backend-branch / VRM backend / self-contained / wLipSync audio pipeline
@@ -173,7 +182,6 @@ waves:
 
   wave_6:
     title: "Carrier abstraction extraction + Live2D refactor + audio pipeline + frame_batch hard-cut"
-    status: done
     slug: carrier-abstraction-and-frame-batch-hardcut
     target: >
       BackendBranch carrier abstraction live; Live2D conforms; audio-pipeline
@@ -192,7 +200,6 @@ waves:
 
   wave_7:
     title: "VRM lifecycle + MToon outline + framing + diagnostics + instance cache"
-    status: done
     slug: vrm-lifecycle-and-diagnostics
     target: >
       VRM load / context-lost recovery (1500ms single retry → fail-close on
@@ -207,7 +214,6 @@ waves:
 
   wave_8:
     title: "VRM motion preset + emote state + projection adapter + activity mapping"
-    status: done
     slug: vrm-motion-emote-projection
     target: >
       NAS handler ontology projection → VRM generated motion / emote /
@@ -222,7 +228,6 @@ waves:
 
   wave_9:
     title: "Window bounds multi-backend + alpha-mask hit region + drag region"
-    status: done
     slug: window-bounds-and-hit-region
     target: >
       Window shape + click-through + drag region all backend-aware;
@@ -235,7 +240,6 @@ waves:
 
   wave_10:
     title: "Smoke evidence + representative samples + closeout"
-    status: done
     slug: smoke-and-closeout
     target: >
       21-run deterministic headless smoke matrix (7 scenarios × 3

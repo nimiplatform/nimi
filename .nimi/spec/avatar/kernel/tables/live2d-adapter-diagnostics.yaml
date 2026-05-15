@@ -1,7 +1,9 @@
 version: 1
+table_family: closed_enum
+owner: avatar
+enum_id: live2d_adapter_diagnostics
 registry_id: "nimi.avatar.live2d-adapter-diagnostics.v1"
 authority: "avatar.kernel.live2d_asset_compatibility"
-status: "active"
 admitted_by:
   topic_id: "2026-04-24-live2d-existing-assets-nimi-adaptation"
   wave_id: "wave-1-compatibility-contract-alignment"
@@ -11,13 +13,12 @@ description: >
 
 namespace: "AVATAR_LIVE2D_COMPAT_*"
 closed_code_set: true
-owner: "Avatar"
 consumer_posture:
   desktop: "may display typed diagnostics but does not own meanings"
   runtime: "does not own or reinterpret these Avatar compatibility diagnostics"
   sdk: "does not define additional codes"
 
-codes:
+codes: &live2d_adapter_diagnostic_values
   AVATAR_LIVE2D_COMPAT_MANIFEST_MISSING:
     meaning: "Requested tier requires a manifest but none was selected."
     trigger: "semantic_basic or companion_complete validation starts without an embedded or explicit external sidecar manifest."
@@ -84,3 +85,5 @@ refs:
   markdown_contract: ".nimi/spec/avatar/kernel/live2d-asset-compatibility-contract.md"
   manifest_schema: ".nimi/spec/avatar/kernel/tables/live2d-adapter-manifest.schema.yaml"
   tier_table: ".nimi/spec/avatar/kernel/tables/live2d-compatibility-tiers.yaml"
+
+values: *live2d_adapter_diagnostic_values

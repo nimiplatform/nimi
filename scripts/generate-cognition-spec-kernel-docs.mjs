@@ -22,7 +22,6 @@ const specs = [
   { input: 'admitted-reference-matrix.yaml', output: 'admitted-reference-matrix.md', render: renderAdmittedReferenceMatrix },
   { input: 'prompt-serving-lanes.yaml', output: 'prompt-serving-lanes.md', render: renderPromptServingLanes },
   { input: 'completion-gates.yaml', output: 'completion-gates.md', render: renderCompletionGates },
-  { input: 'rule-evidence.yaml', output: 'rule-evidence.md', render: renderRuleEvidence },
 ];
 
 function normalizeMarkdown(markdown) {

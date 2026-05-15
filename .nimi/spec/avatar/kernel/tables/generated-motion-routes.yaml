@@ -1,6 +1,7 @@
 version: 1
+table_family: product_catalog
 owner: .nimi/spec/avatar
-status: active
+catalog_id: avatar_generated_motion_routes
 admitted_by: 2026-05-01-avatar-apml-auto-adapter/wave-0
 description: >
   Avatar backend route ids for generated motion provider support. These route
@@ -18,7 +19,7 @@ public_apml_syntax:
     Public APML <motion>, <expression>, <lookat>, <pose>, and <clear-pose>
     remain not admitted. Routes below are Avatar backend ids only.
 
-routes:
+routes: &avatar_generated_motion_route_entries
   - route_id: idle_subtle
     projection_event: runtime.agent.presentation.activity_requested
     runtime_activity_id: idle
@@ -70,3 +71,5 @@ invariants:
   - unsupported backend_targets fail_closed.
   - missing capability profile support fails_closed.
   - no route may require a .vrma file as APML runtime support proof.
+
+entries: *avatar_generated_motion_route_entries

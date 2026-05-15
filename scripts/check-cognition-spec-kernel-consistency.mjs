@@ -47,7 +47,6 @@ const requiredFiles = [
   '.nimi/spec/cognition/kernel/tables/admitted-reference-matrix.yaml',
   '.nimi/spec/cognition/kernel/tables/prompt-serving-lanes.yaml',
   '.nimi/spec/cognition/kernel/tables/completion-gates.yaml',
-  '.nimi/spec/cognition/kernel/tables/rule-evidence.yaml',
 ];
 
 for (const rel of requiredFiles) {
@@ -154,9 +153,6 @@ validateCompletionGates(completionGates?.gates, completionGatesRel);
 
 validatePublicSurfaceCapabilityMappings(publicSurfaceTable?.surfaces, upgradeMatrix?.capabilities, '.nimi/spec/cognition/kernel/tables/public-surface.yaml');
 
-const evidenceTableRel = '.nimi/spec/cognition/kernel/tables/rule-evidence.yaml';
-const evidenceTable = readYaml(evidenceTableRel);
-checkRuleEvidence(definitionMap, evidenceTable, evidenceTableRel);
 validateSQLiteOnlyBackendFreeze();
 validateSupportDocsAlignment();
 validateCorePublicSurface(publicSurfaceTable?.surfaces);

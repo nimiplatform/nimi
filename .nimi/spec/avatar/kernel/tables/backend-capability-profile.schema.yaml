@@ -1,6 +1,9 @@
 schema_id: nimi.avatar.backend-capability-profile.v1
+table_family: product_catalog
 owner: .nimi/spec/avatar
-status: active
+catalog_id: avatar_backend_capability_profile_schema
+entries:
+  - id: nimi.avatar.backend-capability-profile.v1
 admitted_by: 2026-05-01-avatar-apml-auto-adapter/wave-0
 description: >
   Backend-agnostic Avatar capability profile schema. Profiles describe the

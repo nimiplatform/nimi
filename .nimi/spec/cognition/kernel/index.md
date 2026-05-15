@@ -34,7 +34,6 @@ updated: 2026-04-16
 - `tables/admitted-reference-matrix.yaml`
 - `tables/prompt-serving-lanes.yaml`
 - `tables/completion-gates.yaml`
-- `tables/rule-evidence.yaml`
 
 ## Generated
 
@@ -49,4 +48,3 @@ updated: 2026-04-16
 - `generated/admitted-reference-matrix.md`
 - `generated/prompt-serving-lanes.md`
 - `generated/completion-gates.md`
-- `generated/rule-evidence.md`

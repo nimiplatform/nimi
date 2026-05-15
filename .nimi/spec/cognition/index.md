@@ -48,8 +48,7 @@
 16. `.nimi/spec/cognition/kernel/tables/admitted-reference-matrix.yaml`
 17. `.nimi/spec/cognition/kernel/tables/prompt-serving-lanes.yaml`
 18. `.nimi/spec/cognition/kernel/tables/completion-gates.yaml`
-19. `.nimi/spec/cognition/kernel/tables/rule-evidence.yaml`
-20. `nimi-cognition/**`
+19. `nimi-cognition/**`
 
 ## 4. 边界声明
 
