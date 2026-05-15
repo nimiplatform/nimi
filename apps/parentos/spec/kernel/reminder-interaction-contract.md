@@ -338,6 +338,41 @@ Completion is permitted only when the capture orchestrator has:
 
 If any step fails, the reminder remains due or snoozed according to existing `PO-TIME-*` agenda rules. The interaction layer must surface the save failure and must not synthesize completion.
 
+## PO-REMI-014 Micro-Action Content Gate
+
+The dashboard task surface (`timeline-contract.md#PO-TIME-010`) admits a
+`connect` task family for parent micro-actions. Micro-action content does not
+introduce a new reminder kind; it reuses `PO-REMI-003.practice` semantics.
+This section governs the content-source gate for such rules so AI-assisted or
+content-derived practice phrasing cannot bypass the existing reviewed-content
+boundary owned by `tables/knowledge-source-readiness.yaml`.
+
+A `practice`-kind rule whose content originates from parenting micro-action
+content (sourced via `dashboard-task-catalog.yaml#microActionContentRef` or
+from any future content table consumed by the orchestrator) must satisfy all
+of the following at `check:knowledge-base`:
+
+- the referenced `knowledge-source-readiness.yaml#domain` row exists,
+- its `status` field is `reviewed`,
+- the rule's `explain.sources[]` array (PO-REMI-006) cites the same admitted
+  source row used by the catalog binding,
+- the rule's `explain` object is fully populated per PO-REMI-006 shape
+  requirements (`whyNow / howTo / doneWhen / sources` required).
+
+A `practice`-kind rule whose source domain row carries `status: needs-review`
+is a fail-close violation. The orchestrator must exclude the rule from
+eligibility and the knowledge-base compile must fail closed.
+
+This gate does **not**:
+
+- modify the PO-REMI-003.practice state machine,
+- modify the PO-REMI-005 action enumeration,
+- modify the PO-REMI-008 practice re-entry semantics,
+- modify the PO-REMI-009 progression evidence projection,
+- admit a new reminder kind,
+- authorize AI free-form parenting advice outside the admitted reviewed-source
+  boundary.
+
 ## Exclusions
 
 The following remain outside this contract:

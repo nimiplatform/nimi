@@ -1,0 +1,105 @@
+version: 1
+
+# Dashboard Task Catalog
+#
+# Authority surface for the ParentOS dashboard task orchestration projection
+# governed by `apps/parentos/spec/kernel/timeline-contract.md#PO-TIME-010`.
+# This table admits the schema only; row admission is deferred to a later wave
+# alongside dashboard task capture UX work. Wave-1 closeout admits the schema
+# and intentionally ships `rows: []`.
+#
+# Owner contracts referenced by rows MUST be one of:
+#   - apps/parentos/spec/kernel/timeline-contract.md
+#   - apps/parentos/spec/kernel/reminder-interaction-contract.md
+#   - apps/parentos/spec/kernel/capture-orchestrator-contract.md
+#   - apps/parentos/spec/kernel/journal-contract.md
+#   - apps/parentos/spec/kernel/orthodontic-contract.md
+#
+# Rows MUST NOT duplicate reminder-rules.yaml, orthodontic-protocols.yaml, or
+# custom_todos truth. Rows of family=must-do reference existing reminder rules
+# via ownerContract; they do not redefine reminder eligibility.
+
+field_contract:
+  taskId:
+    type: string
+    required: true
+    description: "ULID for the catalog row."
+  family:
+    type: enum
+    values: [must-do, maintain, observe, connect]
+    required: true
+    description: "Task family per timeline-contract#PO-TIME-010. personal family is owned by custom_todos and is not admitted in this catalog."
+  ownerContract:
+    type: string
+    required: true
+    description: "Path to the admitted owner contract. Must resolve to one of the admitted ParentOS kernel contracts."
+  cadencePolicy:
+    type: enum
+    values: [anchor, interval, windowed]
+    required: true
+    description: "anchor = anchored to a child biological date such as birth-day-of-month; interval = fixed recurring interval; windowed = active inside named monthly window."
+  biologicalAnchor:
+    type: enum
+    values: [birthDayOfMonth, none]
+    required: true
+    description: "Whether the row anchors on the child's birth-day-of-month."
+  slotPreference:
+    type: enum
+    values: [weekend-heavy, weekday-evening-light, hard-time]
+    required: true
+    description: "Preferred slot for dashboard surfacing."
+  dispersionWindow:
+    type: enum
+    values: [week-1, week-2, week-3, week-4, rolling]
+    required: true
+    description: "Monthly window for dispersion. rolling = no monthly window."
+  mutualExclusionGroup:
+    type: string
+    required: false
+    description: "Optional group key for same-day mutual exclusion. Rows that share a value compete for the day's surface slot."
+  displayWindowDays:
+    type: integer
+    required: true
+    description: "Number of days the row remains in the main dashboard list once eligible."
+  snoozeDefaultDays:
+    type: integer
+    required: true
+    description: "Default snooze duration in days when the parent defers the task."
+  decayStrategy:
+    type: enum
+    values: [low-disturbance-downgrade, resurface-next-cycle]
+    required: true
+    description: "How an ignored eligible row exits the main dashboard list."
+  metricIdRefs:
+    type: array
+    required: false
+    description: "References into health-metric-registry.yaml. Required when family=maintain has structured persistence."
+  captureProtocolIdRef:
+    type: string
+    required: false
+    description: "Reference into health-capture-protocols.yaml. Required when family=maintain."
+  observationDimensionRef:
+    type: string
+    required: false
+    description: "Reference into reference-data-assets.yaml#observation-framework. Required when family=observe and the row creates journal evidence with a structured dimension."
+  microActionContentRef:
+    type: string
+    required: false
+    description: "Reference into knowledge-source-readiness.yaml#domain. Required when family=connect. The referenced domain row must be status=reviewed (see reminder-interaction-contract.md#PO-REMI-014)."
+  featureId:
+    type: string
+    required: true
+    description: "Reference into feature-matrix.yaml. Typically PO-FEAT-056."
+
+constraints:
+  - "taskId must be unique across all rows."
+  - "family=maintain rows must populate captureProtocolIdRef and at least one metricIdRefs entry."
+  - "family=connect rows must populate microActionContentRef AND the referenced knowledge-source-readiness.yaml row must be status=reviewed (reminder-interaction-contract.md#PO-REMI-014 fail-close)."
+  - "family=observe rows must populate observationDimensionRef OR remain projection-only with no structured capture target."
+  - "family=must-do rows must point at existing reminder-rules.yaml / orthodontic-protocols.yaml authority via ownerContract; this catalog must not duplicate those rules."
+  - "ownerContract must resolve to an admitted ParentOS kernel contract path."
+  - "Rows must not weaken the PO-TIME-003 P0 delivery invariant. A row whose dispersion or mutual-exclusion semantics would suppress a P0 reminder is a PO-TIME-010 fail-close violation."
+  - "Rows must not recompute PO-HREC freshness locally; freshness must be consumed from the PO-HREC-006 snapshot."
+  - "Wave-1 admits the schema only. Row admission is deferred to a later wave once the dashboard task capture UX is admitted."
+
+rows: []

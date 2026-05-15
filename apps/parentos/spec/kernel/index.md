@@ -24,6 +24,7 @@ Normative surfaces:
 - `tables/health-capture-protocols.yaml` for unified capture protocols and required metric sets
 - `tables/reminder-capture-targets.yaml` for canonical `record_data` reminder to capture-protocol bindings
 - `tables/reference-data-assets.yaml` for the admitted knowledge asset registry
+- `tables/dashboard-task-catalog.yaml` for the dashboard task orchestration catalog consumed by `timeline-contract.md#PO-TIME-010`
 - `tables/nimi-kit-adoption.yaml` for concrete ParentOS governed renderer modules consuming `@nimiplatform/nimi-kit/ui`
 - `tables/nimi-kit-compositions.yaml` for retained ParentOS app-owned compositions that must not become parallel primitive authority
 

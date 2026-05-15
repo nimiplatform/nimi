@@ -36,7 +36,8 @@ CaptureIntent {
     metric_row |
     reminder |
     detail_page |
-    ocr_confirm
+    ocr_confirm |
+    dashboard_task
   childId
   groupId
   captureProtocolId
@@ -44,6 +45,7 @@ CaptureIntent {
   recordedAtDefault
   source: manual | ocr | imported | reminder
   linkedReminder: null | { childId, ruleId, repeatIndex }
+  dashboardTaskId: null | string
   prefillValues
   postSaveBehavior
 }
@@ -63,6 +65,7 @@ The modal supports exactly these modes:
 | `guided` | multi-metric protocol selected by parent |
 | `reminder` | `record_data` reminder with a capture target |
 | `ocr_confirm` | OCR candidates requiring parent confirmation |
+| `dashboard_task` | dashboard task surface row from `tables/dashboard-task-catalog.yaml` |
 
 A flat mega-dropdown is not an admitted capture model. Selection must be
 group-to-protocol or group-to-metric-set.
@@ -110,6 +113,29 @@ button copy, route path, or reminder prose.
 `completedAt` can be written only after the persisted event satisfies the
 target's completion policy.
 
+## PO-CAPT-005a Dashboard-Task Capture
+
+When `origin=dashboard_task`, the intent must include `dashboardTaskId`
+referencing a `tables/dashboard-task-catalog.yaml#taskId` row. The orchestrator
+must resolve the catalog row and use its `captureProtocolIdRef` to drive
+protocol selection. Local invention of fields, metrics, or storage targets is
+forbidden (`PO-CAPT-003`, `PO-CAPT-008` extended).
+
+Additional invariants for the `dashboard_task` origin:
+
+- `childId`, `captureProtocolId`, and `metricIds` are required.
+- `prefillValues` may carry values previously persisted for the same metric.
+- `linkedReminder` is optional. When the dashboard task is reminder-backed
+  (typically `family=maintain` rows whose catalog binding mirrors a
+  `record_data` reminder), `linkedReminder` must point at the underlying
+  reminder so `PO-CAPT-005` reminder-linked completion still governs the
+  reminder writeback.
+- A `dashboard_task` origin without a reminder backing must not write
+  `completedAt` on any reminder row. Completion of the dashboard task itself
+  is owned by the state owner declared by `dashboard-task-catalog.yaml#ownerContract`.
+- `dashboard_task` origin does not create a new save path. The `PO-CAPT-004`
+  save transaction rules apply unchanged.
+
 ## PO-CAPT-006 Detail Page Interaction
 
 Detail pages may open the orchestrator with `prefilled` mode. Detail pages must
@@ -135,3 +161,5 @@ The orchestrator must fail closed when:
 - a reminder-linked save does not satisfy the reminder target
 - an OCR candidate attempts to auto-save without parent confirmation
 - a detail page bypasses the orchestrator
+- a `dashboard_task` origin intent lacks `dashboardTaskId`, or `dashboardTaskId` does not resolve to a `tables/dashboard-task-catalog.yaml` row
+- a `dashboard_task` origin synthesizes fields, metric ids, or storage targets outside the catalog row's declared protocol

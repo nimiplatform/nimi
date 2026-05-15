@@ -189,6 +189,94 @@ The timeline and health record console surfaces serve complementary mandates. Th
 - Timeline may link to profile sub-pages for deep record access or open `PO-CAPT-*` capture intents for `record_data` reminders.
 - Timeline may display recent-change snippets (PO-TIME-004 `recentChanges` bucket) but must not duplicate the health console's metric status, next-record date, freshness status, or last-record summary projection.
 
+## PO-TIME-010 Dashboard Task Families and Orchestration
+
+The dashboard task surface is a `PO-TIME-*` orchestration projection. It composes a small daily list of finishable tasks from reminder agenda, health-record freshness, journal recency, orthodontic cycle, custom todos, and admitted catalog rows. It does not own the truth of any record, freshness state, reminder rule, observation entry, or orthodontic cycle. It does not weaken the `PO-TIME-003` P0 delivery invariant. It does not promote `dataGapAlert` from display-only.
+
+### Task Family Vocabulary
+
+Every dashboard task belongs to exactly one family. Each family names exactly one eligibility source and exactly one state owner.
+
+| Family | Eligibility source | State owner |
+|---|---|---|
+| `must-do` | `reminder-rules.yaml`, `orthodontic-protocols.yaml`, and other admitted domain rules surfaced through PO-TIME-001/002 | `reminder-interaction-contract.md` (`PO-REMI-003.task` or `PO-REMI-003.guide` per existing reminder kind) |
+| `maintain` | `dashboard-task-catalog.yaml` rows whose `family=maintain`, gated by PO-HREC-006 freshness projection and PO-REMI-013 record-data capture binding | `reminder-interaction-contract.md` (`PO-REMI-003.task` via record_data) |
+| `observe` | `dashboard-task-catalog.yaml` rows whose `family=observe`, anchored on journal recency from `journal-contract.md` and observation-framework dimensions | `journal-contract.md` `PO-JOUR-001` entry for evidence; `PO-REMI-003.practice` when prompt habituation applies |
+| `connect` | `dashboard-task-catalog.yaml` rows whose `family=connect`, gated by `knowledge-source-readiness.yaml#status=reviewed` content sources (see `PO-REMI-014`) | `reminder-interaction-contract.md` (`PO-REMI-003.practice` kind only — no new kind) |
+| `personal` | `tables/local-storage.yaml#custom_todos` rows | `custom_todos` storage; not part of `dashboard-task-catalog.yaml` |
+
+### Eligibility Composition
+
+The orchestrator composes today's candidate list from:
+
+- the `PO-TIME-002` reminder state projection,
+- the `PO-HREC-006` freshness and next-record projection (consumed; never recomputed),
+- the `journal-contract.md` recency view,
+- the `orthodontic-contract.md` cycle projection,
+- `dashboard-task-catalog.yaml` rows whose owner contract resolves,
+- `custom_todos` rows.
+
+A catalog row whose `ownerContract`, `captureProtocolIdRef`, `observationDimensionRef`, or `microActionContentRef` does not resolve is excluded from eligibility (fail-close at orchestration; see `PO-TIME-007` extension below).
+
+### Monthly Dispersion
+
+Within a calendar month, the main dashboard list must surface at most one `maintain` task per day. `maintain` tasks are dispersed across `week-1 | week-2 | week-3 | week-4 | rolling` windows declared by each row's `dispersionWindow` field. Heavy tasks (`slotPreference: weekend-heavy`) prefer Saturday/Sunday slots; light tasks (`slotPreference: weekday-evening-light`) prefer weekday-evening slots. Hard-time tasks (`slotPreference: hard-time`) retain their domain schedule and are not subject to dispersion.
+
+### Biological Anchor Rule
+
+When a catalog row sets `biologicalAnchor: birthDayOfMonth`, the row's monthly window anchors on the child's birth-day-of-month rather than calendar month start. If the anchor day is a weekday and `slotPreference: weekend-heavy`, the orchestrator selects the nearest weekend. If `slotPreference: weekday-evening-light`, the row may stay on the anchor weekday evening.
+
+### Same-Day Mutual Exclusion
+
+The main dashboard task surface caps simultaneous display at:
+
+- one `maintain` task per day,
+- one `observe` task per day,
+- one `connect` task per day,
+- unlimited `must-do` tasks subject to the `PO-TIME-003` P0 delivery invariant,
+- unlimited `personal` tasks (subject to user authorship).
+
+If today's eligible set includes a hard-time orthodontic, vaccine, appointment, or P0 `must-do` task that shares a `mutualExclusionGroup` value with a `maintain` row, the `maintain` row defers to the next eligible day. `PO-TIME-003` is restated verbatim here: P0 reminders must be visible in `todayFocus`. Dispersion, mutual exclusion, and decay must not suppress a P0 reminder.
+
+### Display Window and Decay
+
+Each catalog row declares `displayWindowDays`. A row that becomes eligible enters the main dashboard list for that window. After the window expires without user engagement (no save, no snooze, no `mark_not_applicable`):
+
+- The row downgrades to a low-disturbance indicator equivalent to `PO-TIME-004`'s `dataGapAlert` semantics. The indicator is display-only and must not mutate `reminder_states`. The indicator must not become a new task source. Promoting `dataGapAlert` (or its equivalent) into an eligible task source is a fail-close violation of this section.
+- The row remains eligible to re-surface in a later cadence window per its `cadencePolicy` and `dispersionWindow`.
+- If the row's `decayStrategy` is `resurface-next-cycle`, the orchestrator drops it from the main list immediately at window expiry and schedules the next eligibility window. If `low-disturbance-downgrade`, the orchestrator keeps the indicator visible until next eligibility.
+
+### Snooze
+
+Each catalog row declares `snoozeDefaultDays`. The `PO-REMI-005` snooze action enumeration is unchanged. `PO-REMI-010` admissibility constraints are unchanged; P0 `task` rules cannot be hidden by snooze.
+
+### Ranking
+
+The orchestrator ranks today's eligible candidates in this order:
+
+1. `must-do` hard-time and `P0` rows,
+2. `must-do` due rows with admitted capture target available,
+3. `must-do` orthodontic cycle proximity rows,
+4. `maintain` rows by freshness severity and `slotPreference` match for today,
+5. stage-specific `observe` and `connect` rows by content freshness and `slotPreference`,
+6. `personal` (`custom_todos`) rows by user-authored ordering.
+
+Ranking must preserve same-day mutual exclusion and the `PO-TIME-003` P0 invariant. Ranking is not authority over individual record state; it is a display projection.
+
+### Fail-Close Behavior
+
+The orchestrator must fail closed when:
+
+- a `dashboard-task-catalog.yaml` row references a `captureProtocolId` that is not present in `health-capture-protocols.yaml`,
+- a row references a `metricId` that is not present in `health-metric-registry.yaml`,
+- a `family=connect` row references a `microActionContentRef` whose `knowledge-source-readiness.yaml#status` is not `reviewed`,
+- a row's `ownerContract` does not resolve to an admitted contract,
+- a row would suppress a `P0` reminder for any dispersion, mutual-exclusion, snooze, or decay purpose,
+- a row would recompute `PO-HREC-*` freshness locally instead of consuming the PO-HREC snapshot,
+- a row would write directly to `health_record_events` / `health_record_values` instead of opening a `PO-CAPT-*` intent.
+
+These fail-close conditions extend `PO-TIME-007`. They do not weaken or replace it.
+
 ## Exclusions
 
 The following remain outside this contract:

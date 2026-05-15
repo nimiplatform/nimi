@@ -366,6 +366,14 @@ features:
     description: "Single structured add-data modal for profile, detail-page, OCR-confirmed, and record_data reminder capture intents, with persistence-gated reminder completion."
     tables: [health-capture-protocols.yaml, reminder-capture-targets.yaml, health-metric-registry.yaml, local-storage.yaml#health_record_events, local-storage.yaml#health_record_values, local-storage.yaml#reminder_states]
 
+  - featureId: PO-FEAT-056
+    name: "Dashboard task orchestration"
+    phase: 1
+    priority: P1
+    contract: timeline-contract
+    description: "Compose a small daily dashboard task surface from PO-HREC freshness, PO-REMI agenda, orthodontic cycle, journal recency, custom_todos, and dashboard-task-catalog.yaml rows; preserve P0 delivery, monthly dispersion, biological anchor, same-day mutual exclusion, snooze, and low-disturbance decay."
+    tables: [dashboard-task-catalog.yaml, health-metric-registry.yaml, health-capture-protocols.yaml, reminder-capture-targets.yaml, knowledge-source-readiness.yaml, reference-data-assets.yaml, local-storage.yaml#custom_todos, local-storage.yaml#reminder_states]
+
 constraints:
   - "The current baseline preserves the reminder -> record -> review core loop."
   - "Implemented AI features must stay within typed runtime contracts and the current knowledge-source-readiness gates."

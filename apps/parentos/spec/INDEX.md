@@ -37,6 +37,7 @@ Kernel tables:
 | [kernel/tables/reminder-rules.yaml](kernel/tables/reminder-rules.yaml) | Reminder rule catalog |
 | [kernel/tables/knowledge-source-readiness.yaml](kernel/tables/knowledge-source-readiness.yaml) | Reviewed versus needs-review AI gate |
 | [kernel/tables/reference-data-assets.yaml](kernel/tables/reference-data-assets.yaml) | Versioned knowledge asset registry |
+| [kernel/tables/dashboard-task-catalog.yaml](kernel/tables/dashboard-task-catalog.yaml) | Dashboard task orchestration catalog consumed by `timeline-contract.md#PO-TIME-010` |
 
 Reference/data assets:
 
