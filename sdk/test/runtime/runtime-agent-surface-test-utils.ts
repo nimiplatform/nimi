@@ -41,6 +41,14 @@ import { setNodeGrpcBridge, type NodeGrpcBridge } from '../../src/runtime/transp
 import type { RuntimeAgentConsumeEvent } from '../../src/runtime/types-runtime-agent.js';
 
 const APP_ID = 'nimi.runtime.agent.surface.test';
+const OWNER_USER_ID = 'subject-1';
+const REALM_AGENT_ID = 'agent-1';
+const LOCAL_AGENT_REF = `local-agent:${OWNER_USER_ID}:${REALM_AGENT_ID}`;
+const LOCAL_AGENT_IDENTITY = {
+  ownerUserId: OWNER_USER_ID,
+  realmAgentId: REALM_AGENT_ID,
+  localAgentRef: LOCAL_AGENT_REF,
+} as const;
 const OPEN_CONVERSATION_ANCHOR_METHOD = '/nimi.runtime.v1.RuntimeAgentService/OpenConversationAnchor';
 const GET_CONVERSATION_ANCHOR_SNAPSHOT_METHOD = '/nimi.runtime.v1.RuntimeAgentService/GetConversationAnchorSnapshot';
 const TIMELINE_STARTED_AT = '2026-04-25T00:00:00.000Z';
@@ -130,10 +138,20 @@ function createAppEvent(messageType: string, payload: Record<string, unknown>): 
 }
 
 function createAgentEvent(input: Parameters<typeof AgentEvent.create>[0]): Uint8Array {
+  const inputAgentId = typeof input?.agentId === 'string' ? input.agentId : '';
+  const realmAgentId = input?.realmAgentId || (inputAgentId.startsWith('local-agent:') ? REALM_AGENT_ID : inputAgentId) || REALM_AGENT_ID;
+  const ownerUserId = input?.ownerUserId || OWNER_USER_ID;
+  const localAgentRef = input?.localAgentRef || (inputAgentId.startsWith('local-agent:')
+    ? inputAgentId
+    : `local-agent:${ownerUserId}:${realmAgentId}`);
   return AgentEvent.toBinary(AgentEvent.create({
     sequence: '1',
     timestamp: Timestamp.create({ seconds: '1700000003', nanos: 0 }),
     ...input,
+    agentId: '',
+    ownerUserId,
+    realmAgentId,
+    localAgentRef,
   }));
 }
 
@@ -183,6 +201,10 @@ export {
   parseAppConsumeEvent,
   RuntimeMethodIds,
   APP_ID,
+  OWNER_USER_ID,
+  REALM_AGENT_ID,
+  LOCAL_AGENT_REF,
+  LOCAL_AGENT_IDENTITY,
   OPEN_CONVERSATION_ANCHOR_METHOD,
   GET_CONVERSATION_ANCHOR_SNAPSHOT_METHOD,
   TIMELINE_STARTED_AT,

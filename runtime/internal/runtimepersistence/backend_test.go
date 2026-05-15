@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"os"
 	"path/filepath"
-	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -81,7 +80,7 @@ func TestBackendRestoresNewestHealthyBackup(t *testing.T) {
 	}
 }
 
-func TestBackendMigratesResidualRuntimeAgentNamespaceTables(t *testing.T) {
+func TestBackendRuntimeLocalAgentSchemaIgnoresRetiredTables(t *testing.T) {
 	t.Parallel()
 
 	dir := t.TempDir()
@@ -91,22 +90,19 @@ func TestBackendMigratesResidualRuntimeAgentNamespaceTables(t *testing.T) {
 		t.Fatalf("Open: %v", err)
 	}
 	if err := backend.WriteTx(context.Background(), func(tx *sql.Tx) error {
-		if _, err := tx.Exec(`INSERT INTO runtime_agent_meta(key, value) VALUES ('agent_event_sequence', '229') ON CONFLICT(key) DO UPDATE SET value=excluded.value`); err != nil {
+		if _, err := tx.Exec(`CREATE TABLE runtime_agent_agent (
+				agent_id TEXT PRIMARY KEY,
+				agent_json TEXT NOT NULL
+			)`); err != nil {
 			return err
 		}
-		if _, err := tx.Exec(`CREATE TABLE agentcore_meta (key TEXT PRIMARY KEY, value TEXT NOT NULL)`); err != nil {
+		if _, err := tx.Exec(`INSERT INTO runtime_agent_agent(agent_id, agent_json) VALUES ('agent-old', '{"retired":true}')`); err != nil {
 			return err
 		}
-		if _, err := tx.Exec(`INSERT INTO agentcore_meta(key, value) VALUES ('schema_version', '1'), ('state_initialized', '1'), ('agent_event_sequence', '0'), ('legacy_only', 'old-value')`); err != nil {
-			return err
-		}
-		_, err := tx.Exec(`CREATE TABLE agentcore_agent (
-			agent_id TEXT PRIMARY KEY,
-			agent_json TEXT NOT NULL
-		)`)
+		_, err := tx.Exec(`INSERT INTO runtime_local_agent(local_agent_ref, agent_json) VALUES ('local-agent:user-new:agent-old', '{"current":true}')`)
 		return err
 	}); err != nil {
-		t.Fatalf("WriteTx(seed legacy tables): %v", err)
+		t.Fatalf("WriteTx(seed tables): %v", err)
 	}
 	if err := backend.Close(); err != nil {
 		t.Fatalf("Close(seed): %v", err)
@@ -114,71 +110,34 @@ func TestBackendMigratesResidualRuntimeAgentNamespaceTables(t *testing.T) {
 
 	backend, err = Open(nil, localStatePath)
 	if err != nil {
-		t.Fatalf("Open(migrated): %v", err)
+		t.Fatalf("Open(reopen): %v", err)
 	}
 	defer func() {
 		if err := backend.Close(); err != nil {
-			t.Fatalf("Close(migrated): %v", err)
+			t.Fatalf("Close(reopen): %v", err)
 		}
 	}()
 
-	if tableExists(t, backend.DB(), "agentcore_meta") {
-		t.Fatal("expected legacy agentcore_meta table to be removed")
+	if !tableExists(t, backend.DB(), "runtime_agent_agent") {
+		t.Fatal("expected retired runtime_agent_agent table to remain outside current schema")
 	}
-	if tableExists(t, backend.DB(), "agentcore_agent") {
-		t.Fatal("expected empty legacy agentcore_agent table to be removed")
+	var retiredJSON string
+	if err := backend.DB().QueryRow(`SELECT agent_json FROM runtime_agent_agent WHERE agent_id = 'agent-old'`).Scan(&retiredJSON); err != nil {
+		t.Fatalf("QueryRow(retired runtime_agent_agent): %v", err)
 	}
-	var sequence string
-	if err := backend.DB().QueryRow(`SELECT value FROM runtime_agent_meta WHERE key = 'agent_event_sequence'`).Scan(&sequence); err != nil {
-		t.Fatalf("QueryRow(agent_event_sequence): %v", err)
+	if retiredJSON != `{"retired":true}` {
+		t.Fatalf("expected retired row to be untouched, got %q", retiredJSON)
 	}
-	if sequence != "229" {
-		t.Fatalf("expected target meta value to win, got %q", sequence)
+	var localAgentRef string
+	var agentJSON string
+	if err := backend.DB().QueryRow(`SELECT local_agent_ref, agent_json FROM runtime_local_agent`).Scan(&localAgentRef, &agentJSON); err != nil {
+		t.Fatalf("QueryRow(runtime_local_agent): %v", err)
 	}
-	var legacyOnly string
-	if err := backend.DB().QueryRow(`SELECT value FROM runtime_agent_meta WHERE key = 'legacy_only'`).Scan(&legacyOnly); err != nil {
-		t.Fatalf("QueryRow(legacy_only): %v", err)
+	if localAgentRef != "local-agent:user-new:agent-old" {
+		t.Fatalf("expected current local_agent_ref row, got %q", localAgentRef)
 	}
-	if legacyOnly != "old-value" {
-		t.Fatalf("expected missing legacy meta key to be copied, got %q", legacyOnly)
-	}
-}
-
-func TestBackendFailsClosedWhenLegacyAndTargetRuntimeAgentRowsConflict(t *testing.T) {
-	t.Parallel()
-
-	dir := t.TempDir()
-	localStatePath := filepath.Join(dir, "local-state.json")
-	backend, err := Open(nil, localStatePath)
-	if err != nil {
-		t.Fatalf("Open: %v", err)
-	}
-	if err := backend.WriteTx(context.Background(), func(tx *sql.Tx) error {
-		if _, err := tx.Exec(`INSERT INTO runtime_agent_agent(agent_id, agent_json) VALUES ('agent-new', '{}')`); err != nil {
-			return err
-		}
-		if _, err := tx.Exec(`CREATE TABLE agentcore_agent (
-			agent_id TEXT PRIMARY KEY,
-			agent_json TEXT NOT NULL
-		)`); err != nil {
-			return err
-		}
-		_, err := tx.Exec(`INSERT INTO agentcore_agent(agent_id, agent_json) VALUES ('agent-old', '{}')`)
-		return err
-	}); err != nil {
-		t.Fatalf("WriteTx(seed conflicting rows): %v", err)
-	}
-	if err := backend.Close(); err != nil {
-		t.Fatalf("Close(seed): %v", err)
-	}
-
-	backend, err = Open(nil, localStatePath)
-	if err == nil {
-		_ = backend.Close()
-		t.Fatal("expected conflicting non-meta legacy and target rows to fail closed")
-	}
-	if !strings.Contains(err.Error(), "both agentcore_agent and runtime_agent_agent contain rows") {
-		t.Fatalf("expected conflict error, got %v", err)
+	if agentJSON != `{"current":true}` {
+		t.Fatalf("expected current runtime local agent row, got %q", agentJSON)
 	}
 }
 

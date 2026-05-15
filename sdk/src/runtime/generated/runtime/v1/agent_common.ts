@@ -28,6 +28,18 @@ export interface AgentRequestContext {
      * @generated from protobuf field: nimi.runtime.v1.ScopedRuntimeBindingAttachment scoped_binding = 3
      */
     scopedBinding?: ScopedRuntimeBindingAttachment;
+    /**
+     * @generated from protobuf field: string owner_user_id = 4
+     */
+    ownerUserId: string;
+    /**
+     * @generated from protobuf field: string realm_agent_id = 5
+     */
+    realmAgentId: string;
+    /**
+     * @generated from protobuf field: string local_agent_ref = 6
+     */
+    localAgentRef: string;
 }
 // @generated message type with reflection information, may provide speed optimized methods
 class AgentRequestContext$Type extends MessageType<AgentRequestContext> {
@@ -35,13 +47,19 @@ class AgentRequestContext$Type extends MessageType<AgentRequestContext> {
         super("nimi.runtime.v1.AgentRequestContext", [
             { no: 1, name: "app_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 2, name: "subject_user_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "scoped_binding", kind: "message", T: () => ScopedRuntimeBindingAttachment }
+            { no: 3, name: "scoped_binding", kind: "message", T: () => ScopedRuntimeBindingAttachment },
+            { no: 4, name: "owner_user_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "realm_agent_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "local_agent_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<AgentRequestContext>): AgentRequestContext {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.appId = "";
         message.subjectUserId = "";
+        message.ownerUserId = "";
+        message.realmAgentId = "";
+        message.localAgentRef = "";
         if (value !== undefined)
             reflectionMergePartial<AgentRequestContext>(this, message, value);
         return message;
@@ -59,6 +77,15 @@ class AgentRequestContext$Type extends MessageType<AgentRequestContext> {
                     break;
                 case /* nimi.runtime.v1.ScopedRuntimeBindingAttachment scoped_binding */ 3:
                     message.scopedBinding = ScopedRuntimeBindingAttachment.internalBinaryRead(reader, reader.uint32(), options, message.scopedBinding);
+                    break;
+                case /* string owner_user_id */ 4:
+                    message.ownerUserId = reader.string();
+                    break;
+                case /* string realm_agent_id */ 5:
+                    message.realmAgentId = reader.string();
+                    break;
+                case /* string local_agent_ref */ 6:
+                    message.localAgentRef = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -81,6 +108,15 @@ class AgentRequestContext$Type extends MessageType<AgentRequestContext> {
         /* nimi.runtime.v1.ScopedRuntimeBindingAttachment scoped_binding = 3; */
         if (message.scopedBinding)
             ScopedRuntimeBindingAttachment.internalBinaryWrite(message.scopedBinding, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
+        /* string owner_user_id = 4; */
+        if (message.ownerUserId !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.ownerUserId);
+        /* string realm_agent_id = 5; */
+        if (message.realmAgentId !== "")
+            writer.tag(5, WireType.LengthDelimited).string(message.realmAgentId);
+        /* string local_agent_ref = 6; */
+        if (message.localAgentRef !== "")
+            writer.tag(6, WireType.LengthDelimited).string(message.localAgentRef);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

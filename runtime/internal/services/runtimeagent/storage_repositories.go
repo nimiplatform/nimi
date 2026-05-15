@@ -3,17 +3,15 @@ package runtimeagent
 import "github.com/nimiplatform/nimi/runtime/internal/runtimepersistence"
 
 type runtimeAgentStateRepository struct {
-	backend         *runtimepersistence.Backend
-	legacyStatePath string
+	backend *runtimepersistence.Backend
 }
 
-func newRuntimeAgentStateRepository(backend *runtimepersistence.Backend, legacyStatePath string) *runtimeAgentStateRepository {
+func newRuntimeAgentStateRepository(backend *runtimepersistence.Backend) *runtimeAgentStateRepository {
 	if backend == nil {
 		return nil
 	}
 	return &runtimeAgentStateRepository{
-		backend:         backend,
-		legacyStatePath: legacyStatePath,
+		backend: backend,
 	}
 }
 

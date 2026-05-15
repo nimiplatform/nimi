@@ -14,11 +14,13 @@ func TestWriteAgentMemoryRejectsMissingPromotionEvidence(t *testing.T) {
 
 	svc := newRuntimeAgentTestService(t)
 	ctx := context.Background()
-	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{AgentId: "agent-promotion-missing"}); err != nil {
+	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
+		Context: testRuntimeAgentIdentityContext("agent-promotion-missing")}); err != nil {
 		t.Fatalf("InitializeAgent: %v", err)
 	}
 
 	resp, err := svc.WriteAgentMemory(ctx, &runtimev1.WriteAgentMemoryRequest{
+		Context:    testRuntimeAgentIdentityContext("agent-promotion-missing"),
 		AgentId:    "agent-promotion-missing",
 		Candidates: []*runtimev1.CanonicalMemoryCandidate{promotionEvidenceTestCandidate("agent-promotion-missing", nil)},
 	})
@@ -42,11 +44,13 @@ func TestWriteAgentMemoryAcceptsCompletePromotionEvidence(t *testing.T) {
 
 	svc := newRuntimeAgentTestService(t)
 	ctx := context.Background()
-	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{AgentId: "agent-promotion-complete"}); err != nil {
+	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
+		Context: testRuntimeAgentIdentityContext("agent-promotion-complete")}); err != nil {
 		t.Fatalf("InitializeAgent: %v", err)
 	}
 
 	resp, err := svc.WriteAgentMemory(ctx, &runtimev1.WriteAgentMemoryRequest{
+		Context:    testRuntimeAgentIdentityContext("agent-promotion-complete"),
 		AgentId:    "agent-promotion-complete",
 		Candidates: []*runtimev1.CanonicalMemoryCandidate{promotionEvidenceTestCandidate("agent-promotion-complete", completePromotionEvidence(t))},
 	})
@@ -63,12 +67,14 @@ func TestWriteAgentMemoryAcceptsCanonicalAgentChatPromotionEvidence(t *testing.T
 
 	svc := newRuntimeAgentTestService(t)
 	ctx := context.Background()
-	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{AgentId: "agent-promotion-canonical-chat"}); err != nil {
+	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
+		Context: testRuntimeAgentIdentityContext("agent-promotion-canonical-chat")}); err != nil {
 		t.Fatalf("InitializeAgent: %v", err)
 	}
 
 	evidence := completePromotionEvidenceWithSourceProfile(t, "canonical_agent_chat")
 	resp, err := svc.WriteAgentMemory(ctx, &runtimev1.WriteAgentMemoryRequest{
+		Context:    testRuntimeAgentIdentityContext("agent-promotion-canonical-chat"),
 		AgentId:    "agent-promotion-canonical-chat",
 		Candidates: []*runtimev1.CanonicalMemoryCandidate{promotionEvidenceTestCandidate("agent-promotion-canonical-chat", evidence)},
 	})
@@ -86,7 +92,7 @@ func promotionEvidenceTestCandidate(agentID string, evidence *structpb.Struct) *
 		TargetBank: &runtimev1.MemoryBankLocator{
 			Scope: runtimev1.MemoryBankScope_MEMORY_BANK_SCOPE_AGENT_CORE,
 			Owner: &runtimev1.MemoryBankLocator_AgentCore{
-				AgentCore: &runtimev1.AgentCoreBankOwner{AgentId: agentID},
+				AgentCore: &runtimev1.AgentCoreBankOwner{AgentId: testRuntimeAgentLocalRef(agentID)},
 			},
 		},
 		SourceEventId: "promotion-evidence-event",

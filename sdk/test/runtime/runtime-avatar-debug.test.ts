@@ -9,6 +9,8 @@ import {
   Runtime,
   RuntimeMethodIds,
   APP_ID,
+  LOCAL_AGENT_REF,
+  LOCAL_AGENT_IDENTITY,
   installNodeGrpcBridge,
   clearNodeGrpcBridge,
 } from './runtime-agent-surface-test-utils.js';
@@ -31,7 +33,7 @@ import {
 function requestEnvelope() {
   return {
     probeId: 'probe-1',
-    agentId: 'agent-1',
+    agentId: LOCAL_AGENT_REF,
     conversationAnchorId: 'anchor-1',
     probeKind: AvatarDebugProbeKind.BACKEND_LOAD,
     requestedAt: Timestamp.create({ seconds: '1700000100', nanos: 0 }),
@@ -44,7 +46,7 @@ function requestEnvelope() {
 function resultEnvelope() {
   return {
     probeId: 'probe-1',
-    agentId: 'agent-1',
+    agentId: LOCAL_AGENT_REF,
     conversationAnchorId: 'anchor-1',
     probeKind: AvatarDebugProbeKind.BACKEND_LOAD,
     status: AvatarDebugProbeStatus.BLOCKED,
@@ -109,7 +111,7 @@ test('runtime avatar debug module uses typed Runtime RPCs and protected scopes',
         capturedSnapshotRequests.push(GetAvatarDebugSnapshotRequest.fromBinary(input.request));
         assert.equal(input.protectedAccessToken?.tokenId, 'avatar-debug-token-2');
         return GetAvatarDebugSnapshotResponse.toBinary(GetAvatarDebugSnapshotResponse.create({
-          agentId: 'agent-1',
+          agentId: LOCAL_AGENT_REF,
           conversationAnchorId: 'anchor-1',
           probeResults: [resultEnvelope()],
           replayRefs: [replayRef()],
@@ -153,7 +155,7 @@ test('runtime avatar debug module uses typed Runtime RPCs and protected scopes',
     });
 
     const requested = await runtime.avatarDebug.requestProbe({
-      agentId: 'agent-1',
+      ...LOCAL_AGENT_IDENTITY,
       conversationAnchorId: 'anchor-1',
       probeKind: AvatarDebugProbeKind.BACKEND_LOAD,
       requestedBy: AvatarDebugRequestedBy.DESKTOP_DEBUG_WORKBENCH,
@@ -161,16 +163,16 @@ test('runtime avatar debug module uses typed Runtime RPCs and protected scopes',
       replayRequested: true,
     });
     const snapshot = await runtime.avatarDebug.snapshot({
-      agentId: 'agent-1',
+      ...LOCAL_AGENT_IDENTITY,
       conversationAnchorId: 'anchor-1',
     });
     const listed = await runtime.avatarDebug.listProbeResults({
-      agentId: 'agent-1',
+      ...LOCAL_AGENT_IDENTITY,
       conversationAnchorId: 'anchor-1',
       probeKind: AvatarDebugProbeKind.BACKEND_LOAD,
     });
     const replay = await runtime.avatarDebug.getReplay({
-      agentId: 'agent-1',
+      ...LOCAL_AGENT_IDENTITY,
       conversationAnchorId: 'anchor-1',
       probeId: 'probe-1',
     });

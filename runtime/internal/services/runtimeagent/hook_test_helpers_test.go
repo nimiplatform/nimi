@@ -33,7 +33,7 @@ func newTestTimeHookIntent(intentID, agentID string, scheduledFor, admittedAt ti
 	}
 	return &runtimev1.HookIntent{
 		IntentId:      intentID,
-		AgentId:       agentID,
+		AgentId:       testRuntimeAgentLocalRef(agentID),
 		TriggerFamily: runtimev1.HookTriggerFamily_HOOK_TRIGGER_FAMILY_TIME,
 		TriggerDetail: &runtimev1.HookTriggerDetail{
 			Detail: &runtimev1.HookTriggerDetail_Time{

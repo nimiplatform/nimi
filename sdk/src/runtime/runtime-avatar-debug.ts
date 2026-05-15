@@ -11,7 +11,7 @@ import type {
 } from './generated/runtime/v1/agent_service.js';
 import type { RuntimeCallOptions } from './types.js';
 import type { RuntimeAgentClient } from './types-client-interfaces.js';
-import type { RuntimeScopedBindingAttachment } from './types-runtime-agent.js';
+import type { RuntimeAgentLocalIdentity, RuntimeScopedBindingAttachment } from './types-runtime-agent.js';
 
 const AVATAR_DEBUG_READ_SCOPE = 'runtime.agent.avatar_debug.read';
 const AVATAR_DEBUG_WRITE_SCOPE = 'runtime.agent.avatar_debug.write';
@@ -20,8 +20,7 @@ type ProtectedScopeHelper = {
   getCallOptions(scopes: readonly string[], baseOptions?: RuntimeCallOptions): Promise<RuntimeCallOptions>;
 };
 
-export type RuntimeAvatarDebugSnapshotRequest = {
-  agentId: string;
+export type RuntimeAvatarDebugSnapshotRequest = RuntimeAgentLocalIdentity & {
   conversationAnchorId: string;
   subjectUserId?: string;
   scopedBinding?: RuntimeScopedBindingAttachment;
@@ -72,7 +71,7 @@ function toScopedBindingAttachment(
   input: RuntimeScopedBindingAttachment | undefined,
   defaults: {
     runtimeAppId: string;
-    agentId?: string;
+    localAgentRef?: string;
     conversationAnchorId?: string;
   },
 ): ScopedRuntimeBindingAttachment | undefined {
@@ -87,10 +86,29 @@ function toScopedBindingAttachment(
     appInstanceId: optionalString(input?.appInstanceId) || '',
     windowId: optionalString(input?.windowId) || '',
     avatarInstanceId: optionalString(input?.avatarInstanceId) || '',
-    agentId: optionalString(input?.agentId) || optionalString(defaults.agentId) || '',
+    agentId: optionalString(input?.localAgentRef) || optionalString(defaults.localAgentRef) || '',
     conversationAnchorId: optionalString(input?.conversationAnchorId) || optionalString(defaults.conversationAnchorId) || '',
     worldId: optionalString(input?.worldId) || '',
   };
+}
+
+function requireLocalAgentIdentity(request: RuntimeAgentLocalIdentity & { agentId?: unknown }): RuntimeAgentLocalIdentity {
+  if (optionalString(request.agentId)) {
+    throw new Error('runtime avatar debug request must use localAgentRef, not agentId');
+  }
+  const ownerUserId = optionalString(request.ownerUserId);
+  const realmAgentId = optionalString(request.realmAgentId);
+  const localAgentRef = optionalString(request.localAgentRef);
+  if (!ownerUserId || !realmAgentId || !localAgentRef) {
+    throw new Error('runtime avatar debug request requires ownerUserId, realmAgentId, and localAgentRef');
+  }
+  if (!localAgentRef.startsWith('local-agent:')) {
+    throw new Error('runtime avatar debug request localAgentRef is malformed');
+  }
+  if (localAgentRef !== `local-agent:${ownerUserId}:${realmAgentId}`) {
+    throw new Error('runtime avatar debug request localAgentRef must match ownerUserId and realmAgentId');
+  }
+  return { ownerUserId, realmAgentId, localAgentRef };
 }
 
 async function contextForAvatarDebug(input: {
@@ -100,23 +118,33 @@ async function contextForAvatarDebug(input: {
 }): Promise<{
   appId: string;
   subjectUserId: string;
+  ownerUserId: string;
+  realmAgentId: string;
+  localAgentRef: string;
   scopedBinding?: ScopedRuntimeBindingAttachment;
 }> {
+  const identity = requireLocalAgentIdentity(input.request);
   const scopedBinding = toScopedBindingAttachment(input.request.scopedBinding, {
     runtimeAppId: input.appId,
-    agentId: input.request.agentId,
+    localAgentRef: identity.localAgentRef,
     conversationAnchorId: input.request.conversationAnchorId,
   });
   if (scopedBinding) {
     return {
       appId: input.appId,
       subjectUserId: '',
+      ownerUserId: identity.ownerUserId,
+      realmAgentId: identity.realmAgentId,
+      localAgentRef: identity.localAgentRef,
       scopedBinding,
     };
   }
   return {
     appId: input.appId,
-    subjectUserId: await input.resolveSubjectUserId(input.request.subjectUserId),
+    subjectUserId: await input.resolveSubjectUserId(input.request.subjectUserId || identity.ownerUserId),
+    ownerUserId: identity.ownerUserId,
+    realmAgentId: identity.realmAgentId,
+    localAgentRef: identity.localAgentRef,
   };
 }
 
@@ -136,7 +164,7 @@ export function createRuntimeAvatarDebugModule(input: {
       const callOptions = await input.protectedAccess.getCallOptions([AVATAR_DEBUG_READ_SCOPE], options);
       return input.agent.getAvatarDebugSnapshot({
         context,
-        agentId: request.agentId,
+        agentId: context.localAgentRef,
         conversationAnchorId: request.conversationAnchorId,
       }, callOptions);
     },
@@ -149,7 +177,7 @@ export function createRuntimeAvatarDebugModule(input: {
       const callOptions = await input.protectedAccess.getCallOptions([AVATAR_DEBUG_WRITE_SCOPE], options);
       return input.agent.requestAvatarDebugProbe({
         context,
-        agentId: request.agentId,
+        agentId: context.localAgentRef,
         conversationAnchorId: request.conversationAnchorId,
         probeKind: request.probeKind,
         requestedBy: request.requestedBy,
@@ -169,7 +197,7 @@ export function createRuntimeAvatarDebugModule(input: {
       const callOptions = await input.protectedAccess.getCallOptions([AVATAR_DEBUG_READ_SCOPE], options);
       return input.agent.listAvatarDebugProbeResults({
         context,
-        agentId: request.agentId,
+        agentId: context.localAgentRef,
         conversationAnchorId: request.conversationAnchorId,
         probeKind: request.probeKind ?? AvatarDebugProbeKind.UNSPECIFIED,
       }, callOptions);
@@ -183,7 +211,7 @@ export function createRuntimeAvatarDebugModule(input: {
       const callOptions = await input.protectedAccess.getCallOptions([AVATAR_DEBUG_READ_SCOPE], options);
       return input.agent.getAvatarDebugReplay({
         context,
-        agentId: request.agentId,
+        agentId: context.localAgentRef,
         conversationAnchorId: request.conversationAnchorId,
         probeId: request.probeId,
       }, callOptions);

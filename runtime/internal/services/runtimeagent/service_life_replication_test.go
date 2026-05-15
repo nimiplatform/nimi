@@ -16,7 +16,7 @@ func TestRuntimeAgentProjectsCommittedMemoryReplicationEvents(t *testing.T) {
 	svc := newRuntimeAgentTestService(t)
 	ctx := context.Background()
 	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
-		AgentId: "agent-replication-a",
+		Context: testRuntimeAgentIdentityContext("agent-replication-a"),
 		AutonomyConfig: &runtimev1.AgentAutonomyConfig{
 			DailyTokenBudget: 20,
 		},
@@ -25,7 +25,7 @@ func TestRuntimeAgentProjectsCommittedMemoryReplicationEvents(t *testing.T) {
 		t.Fatalf("InitializeAgent(agent-replication-a): %v", err)
 	}
 	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
-		AgentId: "agent-replication-b",
+		Context: testRuntimeAgentIdentityContext("agent-replication-b"),
 		AutonomyConfig: &runtimev1.AgentAutonomyConfig{
 			DailyTokenBudget: 20,
 		},
@@ -34,7 +34,7 @@ func TestRuntimeAgentProjectsCommittedMemoryReplicationEvents(t *testing.T) {
 		t.Fatalf("InitializeAgent(agent-replication-b): %v", err)
 	}
 	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
-		AgentId: "agent-replication-c",
+		Context: testRuntimeAgentIdentityContext("agent-replication-c"),
 		AutonomyConfig: &runtimev1.AgentAutonomyConfig{
 			DailyTokenBudget: 20,
 		},
@@ -43,6 +43,7 @@ func TestRuntimeAgentProjectsCommittedMemoryReplicationEvents(t *testing.T) {
 		t.Fatalf("InitializeAgent(agent-replication-c): %v", err)
 	}
 	if _, err := svc.UpdateAgentState(ctx, &runtimev1.UpdateAgentStateRequest{
+		Context: testRuntimeAgentIdentityContext("agent-replication-a"),
 		AgentId: "agent-replication-a",
 		Mutations: []*runtimev1.AgentStateMutation{
 			{
@@ -56,6 +57,7 @@ func TestRuntimeAgentProjectsCommittedMemoryReplicationEvents(t *testing.T) {
 	}
 
 	coreWrite, err := svc.WriteAgentMemory(ctx, &runtimev1.WriteAgentMemoryRequest{
+		Context: testRuntimeAgentIdentityContext("agent-replication-a"),
 		AgentId: "agent-replication-a",
 		Candidates: []*runtimev1.CanonicalMemoryCandidate{
 			{
@@ -63,7 +65,7 @@ func TestRuntimeAgentProjectsCommittedMemoryReplicationEvents(t *testing.T) {
 				TargetBank: &runtimev1.MemoryBankLocator{
 					Scope: runtimev1.MemoryBankScope_MEMORY_BANK_SCOPE_AGENT_CORE,
 					Owner: &runtimev1.MemoryBankLocator_AgentCore{
-						AgentCore: &runtimev1.AgentCoreBankOwner{AgentId: "agent-replication-a"},
+						AgentCore: &runtimev1.AgentCoreBankOwner{AgentId: testRuntimeAgentLocalRef("agent-replication-a")},
 					},
 				},
 				SourceEventId: "evt-core",
@@ -86,6 +88,7 @@ func TestRuntimeAgentProjectsCommittedMemoryReplicationEvents(t *testing.T) {
 		t.Fatalf("expected one accepted core memory, got %d", len(coreWrite.GetAccepted()))
 	}
 	dyadicWrite, err := svc.WriteAgentMemory(ctx, &runtimev1.WriteAgentMemoryRequest{
+		Context: testRuntimeAgentIdentityContext("agent-replication-a"),
 		AgentId: "agent-replication-a",
 		Candidates: []*runtimev1.CanonicalMemoryCandidate{
 			{
@@ -93,7 +96,7 @@ func TestRuntimeAgentProjectsCommittedMemoryReplicationEvents(t *testing.T) {
 				TargetBank: &runtimev1.MemoryBankLocator{
 					Scope: runtimev1.MemoryBankScope_MEMORY_BANK_SCOPE_AGENT_DYADIC,
 					Owner: &runtimev1.MemoryBankLocator_AgentDyadic{
-						AgentDyadic: &runtimev1.AgentDyadicBankOwner{AgentId: "agent-replication-a", UserId: "user-1"},
+						AgentDyadic: &runtimev1.AgentDyadicBankOwner{AgentId: testRuntimeAgentLocalRef("agent-replication-a"), UserId: "user-1"},
 					},
 				},
 				SourceEventId: "evt-dyadic",
@@ -116,6 +119,7 @@ func TestRuntimeAgentProjectsCommittedMemoryReplicationEvents(t *testing.T) {
 		t.Fatalf("expected one accepted dyadic memory, got %d", len(dyadicWrite.GetAccepted()))
 	}
 	worldWrite, err := svc.WriteAgentMemory(ctx, &runtimev1.WriteAgentMemoryRequest{
+		Context: testRuntimeAgentIdentityContext("agent-replication-a"),
 		AgentId: "agent-replication-a",
 		Candidates: []*runtimev1.CanonicalMemoryCandidate{
 			{
@@ -201,6 +205,7 @@ func TestRuntimeAgentProjectsCommittedMemoryReplicationEvents(t *testing.T) {
 
 	streamA := newAgentEventCaptureStreamLimit(ctx, 3)
 	if err := svc.SubscribeAgentEvents(&runtimev1.SubscribeAgentEventsRequest{
+		Context:      testRuntimeAgentIdentityContext("agent-replication-a"),
 		AgentId:      "agent-replication-a",
 		Cursor:       encodeCursor(cursorA),
 		EventFilters: []runtimev1.AgentEventType{runtimev1.AgentEventType_AGENT_EVENT_TYPE_REPLICATION},
@@ -222,6 +227,7 @@ func TestRuntimeAgentProjectsCommittedMemoryReplicationEvents(t *testing.T) {
 
 	streamB := newAgentEventCaptureStreamLimit(ctx, 1)
 	if err := svc.SubscribeAgentEvents(&runtimev1.SubscribeAgentEventsRequest{
+		Context:      testRuntimeAgentIdentityContext("agent-replication-b"),
 		AgentId:      "agent-replication-b",
 		Cursor:       encodeCursor(cursorB),
 		EventFilters: []runtimev1.AgentEventType{runtimev1.AgentEventType_AGENT_EVENT_TYPE_REPLICATION},
@@ -236,6 +242,7 @@ func TestRuntimeAgentProjectsCommittedMemoryReplicationEvents(t *testing.T) {
 	done := make(chan error, 1)
 	go func() {
 		done <- svc.SubscribeAgentEvents(&runtimev1.SubscribeAgentEventsRequest{
+			Context:      testRuntimeAgentIdentityContext("agent-replication-c"),
 			AgentId:      "agent-replication-c",
 			Cursor:       encodeCursor(cursorC),
 			EventFilters: []runtimev1.AgentEventType{runtimev1.AgentEventType_AGENT_EVENT_TYPE_REPLICATION},
@@ -257,7 +264,7 @@ func TestRuntimeAgentIgnoresNonCanonicalMemoryReplicationUpdates(t *testing.T) {
 	svc := newRuntimeAgentTestService(t)
 	ctx := context.Background()
 	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
-		AgentId: "agent-replication-ignore",
+		Context: testRuntimeAgentIdentityContext("agent-replication-ignore"),
 		AutonomyConfig: &runtimev1.AgentAutonomyConfig{
 			DailyTokenBudget: 20,
 		},
@@ -326,7 +333,7 @@ func TestRuntimeAgentProjectsBridgeDrivenMemoryReplicationEvents(t *testing.T) {
 	svc := newRuntimeAgentTestService(t)
 	ctx := context.Background()
 	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
-		AgentId: "agent-bridge-a",
+		Context: testRuntimeAgentIdentityContext("agent-bridge-a"),
 		AutonomyConfig: &runtimev1.AgentAutonomyConfig{
 			DailyTokenBudget: 20,
 		},
@@ -335,7 +342,7 @@ func TestRuntimeAgentProjectsBridgeDrivenMemoryReplicationEvents(t *testing.T) {
 		t.Fatalf("InitializeAgent(agent-bridge-a): %v", err)
 	}
 	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
-		AgentId: "agent-bridge-b",
+		Context: testRuntimeAgentIdentityContext("agent-bridge-b"),
 		AutonomyConfig: &runtimev1.AgentAutonomyConfig{
 			DailyTokenBudget: 20,
 		},
@@ -344,6 +351,7 @@ func TestRuntimeAgentProjectsBridgeDrivenMemoryReplicationEvents(t *testing.T) {
 		t.Fatalf("InitializeAgent(agent-bridge-b): %v", err)
 	}
 	if _, err := svc.UpdateAgentState(ctx, &runtimev1.UpdateAgentStateRequest{
+		Context: testRuntimeAgentIdentityContext("agent-bridge-a"),
 		AgentId: "agent-bridge-a",
 		Mutations: []*runtimev1.AgentStateMutation{
 			{
@@ -357,6 +365,7 @@ func TestRuntimeAgentProjectsBridgeDrivenMemoryReplicationEvents(t *testing.T) {
 	}
 
 	coreWrite, err := svc.WriteAgentMemory(ctx, &runtimev1.WriteAgentMemoryRequest{
+		Context: testRuntimeAgentIdentityContext("agent-bridge-a"),
 		AgentId: "agent-bridge-a",
 		Candidates: []*runtimev1.CanonicalMemoryCandidate{
 			{
@@ -364,7 +373,7 @@ func TestRuntimeAgentProjectsBridgeDrivenMemoryReplicationEvents(t *testing.T) {
 				TargetBank: &runtimev1.MemoryBankLocator{
 					Scope: runtimev1.MemoryBankScope_MEMORY_BANK_SCOPE_AGENT_CORE,
 					Owner: &runtimev1.MemoryBankLocator_AgentCore{
-						AgentCore: &runtimev1.AgentCoreBankOwner{AgentId: "agent-bridge-a"},
+						AgentCore: &runtimev1.AgentCoreBankOwner{AgentId: testRuntimeAgentLocalRef("agent-bridge-a")},
 					},
 				},
 				SourceEventId: "evt-bridge-core",
@@ -382,6 +391,7 @@ func TestRuntimeAgentProjectsBridgeDrivenMemoryReplicationEvents(t *testing.T) {
 		t.Fatalf("WriteAgentMemory(core): %v", err)
 	}
 	dyadicWrite, err := svc.WriteAgentMemory(ctx, &runtimev1.WriteAgentMemoryRequest{
+		Context: testRuntimeAgentIdentityContext("agent-bridge-a"),
 		AgentId: "agent-bridge-a",
 		Candidates: []*runtimev1.CanonicalMemoryCandidate{
 			{
@@ -389,7 +399,7 @@ func TestRuntimeAgentProjectsBridgeDrivenMemoryReplicationEvents(t *testing.T) {
 				TargetBank: &runtimev1.MemoryBankLocator{
 					Scope: runtimev1.MemoryBankScope_MEMORY_BANK_SCOPE_AGENT_DYADIC,
 					Owner: &runtimev1.MemoryBankLocator_AgentDyadic{
-						AgentDyadic: &runtimev1.AgentDyadicBankOwner{AgentId: "agent-bridge-a", UserId: "user-1"},
+						AgentDyadic: &runtimev1.AgentDyadicBankOwner{AgentId: testRuntimeAgentLocalRef("agent-bridge-a"), UserId: "user-1"},
 					},
 				},
 				SourceEventId: "evt-bridge-dyadic",
@@ -407,6 +417,7 @@ func TestRuntimeAgentProjectsBridgeDrivenMemoryReplicationEvents(t *testing.T) {
 		t.Fatalf("WriteAgentMemory(dyadic): %v", err)
 	}
 	worldWrite, err := svc.WriteAgentMemory(ctx, &runtimev1.WriteAgentMemoryRequest{
+		Context: testRuntimeAgentIdentityContext("agent-bridge-a"),
 		AgentId: "agent-bridge-a",
 		Candidates: []*runtimev1.CanonicalMemoryCandidate{
 			{
@@ -490,6 +501,7 @@ func TestRuntimeAgentProjectsBridgeDrivenMemoryReplicationEvents(t *testing.T) {
 
 	streamA := newAgentEventCaptureStreamLimit(ctx, 3)
 	if err := svc.SubscribeAgentEvents(&runtimev1.SubscribeAgentEventsRequest{
+		Context:      testRuntimeAgentIdentityContext("agent-bridge-a"),
 		AgentId:      "agent-bridge-a",
 		Cursor:       encodeCursor(cursorA),
 		EventFilters: []runtimev1.AgentEventType{runtimev1.AgentEventType_AGENT_EVENT_TYPE_REPLICATION},
@@ -502,6 +514,7 @@ func TestRuntimeAgentProjectsBridgeDrivenMemoryReplicationEvents(t *testing.T) {
 
 	streamB := newAgentEventCaptureStreamLimit(ctx, 1)
 	if err := svc.SubscribeAgentEvents(&runtimev1.SubscribeAgentEventsRequest{
+		Context:      testRuntimeAgentIdentityContext("agent-bridge-b"),
 		AgentId:      "agent-bridge-b",
 		Cursor:       encodeCursor(cursorB),
 		EventFilters: []runtimev1.AgentEventType{runtimev1.AgentEventType_AGENT_EVENT_TYPE_REPLICATION},
@@ -519,7 +532,7 @@ func TestRuntimeAgentLifeTrackLoopReschedulesWithAIOutput(t *testing.T) {
 	svc := newRuntimeAgentTestService(t)
 	ctx := context.Background()
 	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
-		AgentId: "agent-loop-reschedule",
+		Context: testRuntimeAgentIdentityContext("agent-loop-reschedule"),
 		AutonomyConfig: &runtimev1.AgentAutonomyConfig{
 			Mode:             runtimev1.AgentAutonomyMode_AGENT_AUTONOMY_MODE_LOW,
 			DailyTokenBudget: 50,
@@ -531,7 +544,7 @@ func TestRuntimeAgentLifeTrackLoopReschedulesWithAIOutput(t *testing.T) {
 
 	now := time.Now().UTC()
 	followupDelay := 10 * time.Minute
-	if err := svc.admitPendingHook("agent-loop-reschedule", newTestTimePendingHook(t, "hook-loop-reschedule", "agent-loop-reschedule", now.Add(-time.Second), now.Add(-2*time.Second))); err != nil {
+	if err := svc.admitPendingHook(testRuntimeAgentLocalRef("agent-loop-reschedule"), newTestTimePendingHook(t, "hook-loop-reschedule", "agent-loop-reschedule", now.Add(-time.Second), now.Add(-2*time.Second))); err != nil {
 		t.Fatalf("admitPendingHook: %v", err)
 	}
 
@@ -559,13 +572,14 @@ func TestRuntimeAgentLifeTrackLoopReschedulesWithAIOutput(t *testing.T) {
 
 	waitForRuntimeAgentCondition(t, 2*time.Second, func() bool {
 		resp, err := svc.ListPendingHooks(ctx, &runtimev1.ListPendingHooksRequest{
+			Context:              testRuntimeAgentIdentityContext("agent-loop-reschedule"),
 			AgentId:              "agent-loop-reschedule",
 			AdmissionStateFilter: runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_RESCHEDULED,
 		})
 		return err == nil && len(resp.GetHooks()) == 1
 	})
 
-	entry, err := svc.agentByID("agent-loop-reschedule")
+	entry, err := svc.agentByID(testRuntimeAgentLocalRef("agent-loop-reschedule"))
 	if err != nil {
 		t.Fatalf("agentByID: %v", err)
 	}
@@ -573,6 +587,7 @@ func TestRuntimeAgentLifeTrackLoopReschedulesWithAIOutput(t *testing.T) {
 		t.Fatalf("expected original hook rescheduled, got %s", hookAdmissionState(entry.Hooks["hook-loop-reschedule"]))
 	}
 	pendingResp, err := svc.ListPendingHooks(ctx, &runtimev1.ListPendingHooksRequest{
+		Context:              testRuntimeAgentIdentityContext("agent-loop-reschedule"),
 		AgentId:              "agent-loop-reschedule",
 		AdmissionStateFilter: runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_PENDING,
 	})
@@ -593,7 +608,7 @@ func TestRuntimeAgentLifeTrackLoopPersistsBehavioralPostureFromAIOutput(t *testi
 	svc := newRuntimeAgentTestService(t)
 	ctx := context.Background()
 	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
-		AgentId: "agent-loop-posture",
+		Context: testRuntimeAgentIdentityContext("agent-loop-posture"),
 		AutonomyConfig: &runtimev1.AgentAutonomyConfig{
 			Mode:             runtimev1.AgentAutonomyMode_AGENT_AUTONOMY_MODE_LOW,
 			DailyTokenBudget: 25,
@@ -604,7 +619,7 @@ func TestRuntimeAgentLifeTrackLoopPersistsBehavioralPostureFromAIOutput(t *testi
 	mustEnableAutonomy(t, svc, ctx, "agent-loop-posture")
 
 	now := time.Now().UTC()
-	if err := svc.admitPendingHook("agent-loop-posture", newTestTimePendingHook(t, "hook-loop-posture", "agent-loop-posture", now.Add(-time.Second), now.Add(-2*time.Second))); err != nil {
+	if err := svc.admitPendingHook(testRuntimeAgentLocalRef("agent-loop-posture"), newTestTimePendingHook(t, "hook-loop-posture", "agent-loop-posture", now.Add(-time.Second), now.Add(-2*time.Second))); err != nil {
 		t.Fatalf("admitPendingHook: %v", err)
 	}
 
@@ -629,13 +644,14 @@ func TestRuntimeAgentLifeTrackLoopPersistsBehavioralPostureFromAIOutput(t *testi
 
 	waitForRuntimeAgentCondition(t, 2*time.Second, func() bool {
 		resp, err := svc.ListPendingHooks(ctx, &runtimev1.ListPendingHooksRequest{
+			Context:              testRuntimeAgentIdentityContext("agent-loop-posture"),
 			AgentId:              "agent-loop-posture",
 			AdmissionStateFilter: runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_COMPLETED,
 		})
 		return err == nil && len(resp.GetHooks()) == 1
 	})
 
-	posture, err := svc.GetBehavioralPosture(ctx, "agent-loop-posture")
+	posture, err := svc.GetBehavioralPosture(ctx, testRuntimeAgentLocalRef("agent-loop-posture"))
 	if err != nil {
 		t.Fatalf("GetBehavioralPosture: %v", err)
 	}
@@ -651,7 +667,8 @@ func TestRuntimeAgentLifeTrackLoopPersistsBehavioralPostureFromAIOutput(t *testi
 	if len(posture.TruthBasisIDs) != 2 || posture.TruthBasisIDs[0] != "truth-1" || posture.TruthBasisIDs[1] != "truth-2" {
 		t.Fatalf("unexpected truth basis ids: %#v", posture.TruthBasisIDs)
 	}
-	stateResp, err := svc.GetAgentState(ctx, &runtimev1.GetAgentStateRequest{AgentId: "agent-loop-posture"})
+	stateResp, err := svc.GetAgentState(ctx, &runtimev1.GetAgentStateRequest{
+		Context: testRuntimeAgentIdentityContext("agent-loop-posture"), AgentId: "agent-loop-posture"})
 	if err != nil {
 		t.Fatalf("GetAgentState: %v", err)
 	}
@@ -666,7 +683,7 @@ func TestRuntimeAgentLifeTrackLoopFailsOnInvalidAIOutput(t *testing.T) {
 	svc := newRuntimeAgentTestService(t)
 	ctx := context.Background()
 	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
-		AgentId: "agent-loop-invalid",
+		Context: testRuntimeAgentIdentityContext("agent-loop-invalid"),
 		AutonomyConfig: &runtimev1.AgentAutonomyConfig{
 			Mode:             runtimev1.AgentAutonomyMode_AGENT_AUTONOMY_MODE_LOW,
 			DailyTokenBudget: 25,
@@ -677,7 +694,7 @@ func TestRuntimeAgentLifeTrackLoopFailsOnInvalidAIOutput(t *testing.T) {
 	mustEnableAutonomy(t, svc, ctx, "agent-loop-invalid")
 
 	now := time.Now().UTC()
-	if err := svc.admitPendingHook("agent-loop-invalid", newTestTimePendingHook(t, "hook-loop-invalid", "agent-loop-invalid", now.Add(-time.Second), now.Add(-2*time.Second))); err != nil {
+	if err := svc.admitPendingHook(testRuntimeAgentLocalRef("agent-loop-invalid"), newTestTimePendingHook(t, "hook-loop-invalid", "agent-loop-invalid", now.Add(-time.Second), now.Add(-2*time.Second))); err != nil {
 		t.Fatalf("admitPendingHook: %v", err)
 	}
 	svc.mu.RLock()
@@ -705,6 +722,7 @@ func TestRuntimeAgentLifeTrackLoopFailsOnInvalidAIOutput(t *testing.T) {
 
 	waitForRuntimeAgentCondition(t, 2*time.Second, func() bool {
 		resp, err := svc.ListPendingHooks(ctx, &runtimev1.ListPendingHooksRequest{
+			Context:              testRuntimeAgentIdentityContext("agent-loop-invalid"),
 			AgentId:              "agent-loop-invalid",
 			AdmissionStateFilter: runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_FAILED,
 		})
@@ -712,6 +730,7 @@ func TestRuntimeAgentLifeTrackLoopFailsOnInvalidAIOutput(t *testing.T) {
 	})
 
 	failedResp, err := svc.ListPendingHooks(ctx, &runtimev1.ListPendingHooksRequest{
+		Context:              testRuntimeAgentIdentityContext("agent-loop-invalid"),
 		AgentId:              "agent-loop-invalid",
 		AdmissionStateFilter: runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_FAILED,
 	})
@@ -723,6 +742,7 @@ func TestRuntimeAgentLifeTrackLoopFailsOnInvalidAIOutput(t *testing.T) {
 	}
 	stream := newAgentEventCaptureStreamLimit(ctx, 3)
 	if err := svc.SubscribeAgentEvents(&runtimev1.SubscribeAgentEventsRequest{
+		Context: testRuntimeAgentIdentityContext("agent-loop-invalid"),
 		AgentId: "agent-loop-invalid",
 		Cursor:  encodeCursor(cursor),
 	}, stream); err != context.Canceled {
@@ -748,7 +768,7 @@ func TestRuntimeAgentLifeTrackLoopFailsOnInvalidBehavioralPostureOutput(t *testi
 	svc := newRuntimeAgentTestService(t)
 	ctx := context.Background()
 	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
-		AgentId: "agent-loop-invalid-posture",
+		Context: testRuntimeAgentIdentityContext("agent-loop-invalid-posture"),
 		AutonomyConfig: &runtimev1.AgentAutonomyConfig{
 			Mode:             runtimev1.AgentAutonomyMode_AGENT_AUTONOMY_MODE_LOW,
 			DailyTokenBudget: 25,
@@ -759,7 +779,7 @@ func TestRuntimeAgentLifeTrackLoopFailsOnInvalidBehavioralPostureOutput(t *testi
 	mustEnableAutonomy(t, svc, ctx, "agent-loop-invalid-posture")
 
 	now := time.Now().UTC()
-	if err := svc.admitPendingHook("agent-loop-invalid-posture", newTestTimePendingHook(t, "hook-loop-invalid-posture", "agent-loop-invalid-posture", now.Add(-time.Second), now.Add(-2*time.Second))); err != nil {
+	if err := svc.admitPendingHook(testRuntimeAgentLocalRef("agent-loop-invalid-posture"), newTestTimePendingHook(t, "hook-loop-invalid-posture", "agent-loop-invalid-posture", now.Add(-time.Second), now.Add(-2*time.Second))); err != nil {
 		t.Fatalf("admitPendingHook: %v", err)
 	}
 
@@ -784,13 +804,14 @@ func TestRuntimeAgentLifeTrackLoopFailsOnInvalidBehavioralPostureOutput(t *testi
 
 	waitForRuntimeAgentCondition(t, 2*time.Second, func() bool {
 		resp, err := svc.ListPendingHooks(ctx, &runtimev1.ListPendingHooksRequest{
+			Context:              testRuntimeAgentIdentityContext("agent-loop-invalid-posture"),
 			AgentId:              "agent-loop-invalid-posture",
 			AdmissionStateFilter: runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_FAILED,
 		})
 		return err == nil && len(resp.GetHooks()) == 1
 	})
 
-	posture, err := svc.GetBehavioralPosture(ctx, "agent-loop-invalid-posture")
+	posture, err := svc.GetBehavioralPosture(ctx, testRuntimeAgentLocalRef("agent-loop-invalid-posture"))
 	if err != nil {
 		t.Fatalf("GetBehavioralPosture: %v", err)
 	}

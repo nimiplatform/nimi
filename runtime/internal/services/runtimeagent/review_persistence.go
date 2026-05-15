@@ -35,7 +35,7 @@ func newReviewPersistence(backend *runtimepersistence.Backend) reviewPersistence
 
 func (s sqliteReviewPersistence) SavePreparedReviewRun(ctx context.Context, run ReviewRunRecord) error {
 	if strings.TrimSpace(run.ReviewRunID) == "" || strings.TrimSpace(run.AgentID) == "" || strings.TrimSpace(run.BankLocatorKey) == "" {
-		return fmt.Errorf("review_run_id, agent_id, bank_locator_key are required")
+		return fmt.Errorf("review_run_id, local_agent_ref, bank_locator_key are required")
 	}
 	now := time.Now().UTC().Format(time.RFC3339Nano)
 	if strings.TrimSpace(run.CreatedAt) == "" {
@@ -52,8 +52,8 @@ func (s sqliteReviewPersistence) SavePreparedReviewRun(ctx context.Context, run 
 	}
 	return s.backend.WriteTx(ctx, func(tx *sql.Tx) error {
 		_, err := tx.ExecContext(ctx, `
-			INSERT OR REPLACE INTO runtime_agent_review_run(review_run_id, agent_id, bank_locator_key, checkpoint_basis, status, prepared_outcomes_json, failure_message, created_at, updated_at)
-			VALUES (?, ?, ?, ?, ?, ?, ?, COALESCE((SELECT created_at FROM runtime_agent_review_run WHERE review_run_id = ?), ?), ?)
+			INSERT OR REPLACE INTO runtime_local_agent_review_run(review_run_id, local_agent_ref, bank_locator_key, checkpoint_basis, status, prepared_outcomes_json, failure_message, created_at, updated_at)
+			VALUES (?, ?, ?, ?, ?, ?, ?, COALESCE((SELECT created_at FROM runtime_local_agent_review_run WHERE review_run_id = ?), ?), ?)
 		`, run.ReviewRunID, run.AgentID, run.BankLocatorKey, run.CheckpointBasis, run.Status, string(payload), run.FailureMessage, run.ReviewRunID, run.CreatedAt, run.UpdatedAt)
 		return err
 	})
@@ -62,7 +62,7 @@ func (s sqliteReviewPersistence) SavePreparedReviewRun(ctx context.Context, run 
 func (s sqliteReviewPersistence) UpdateReviewRunStatus(ctx context.Context, reviewRunID string, statusValue string, failureMessage string) error {
 	return s.backend.WriteTx(ctx, func(tx *sql.Tx) error {
 		_, err := tx.ExecContext(ctx, `
-			UPDATE runtime_agent_review_run
+			UPDATE runtime_local_agent_review_run
 			SET status = ?, failure_message = ?, updated_at = ?
 			WHERE review_run_id = ?
 		`, statusValue, failureMessage, time.Now().UTC().Format(time.RFC3339Nano), reviewRunID)
@@ -74,7 +74,7 @@ func (s sqliteReviewPersistence) RecordReviewFollowUp(ctx context.Context, run R
 	completedAt := time.Now().UTC().Format(time.RFC3339Nano)
 	return s.backend.WriteTx(ctx, func(tx *sql.Tx) error {
 		_, err := tx.ExecContext(ctx, `
-			INSERT OR REPLACE INTO runtime_agent_review_followup(bank_locator_key, review_run_id, checkpoint_basis, completed_at)
+			INSERT OR REPLACE INTO runtime_local_agent_review_followup(bank_locator_key, review_run_id, checkpoint_basis, completed_at)
 			VALUES (?, ?, ?, ?)
 		`, run.BankLocatorKey, run.ReviewRunID, run.CheckpointBasis, completedAt)
 		return err
@@ -88,7 +88,7 @@ func (s sqliteReviewPersistence) GetReviewFollowUp(ctx context.Context, locator 
 	var record ReviewFollowUpRecord
 	err := s.backend.DB().QueryRowContext(ctx, `
 		SELECT bank_locator_key, review_run_id, checkpoint_basis, completed_at
-		FROM runtime_agent_review_followup
+		FROM runtime_local_agent_review_followup
 		WHERE bank_locator_key = ?
 	`, memoryservice.LocatorKey(locator)).Scan(&record.BankLocatorKey, &record.ReviewRunID, &record.CheckpointBasis, &record.CompletedAt)
 	if err != nil {
@@ -102,8 +102,8 @@ func (s sqliteReviewPersistence) GetReviewFollowUp(ctx context.Context, locator 
 
 func (s sqliteReviewPersistence) ListRecoverableReviewRuns(ctx context.Context) ([]ReviewRunRecord, error) {
 	rows, err := s.backend.DB().QueryContext(ctx, `
-		SELECT review_run_id, agent_id, bank_locator_key, checkpoint_basis, status, prepared_outcomes_json, failure_message, created_at, updated_at
-		FROM runtime_agent_review_run
+		SELECT review_run_id, local_agent_ref, bank_locator_key, checkpoint_basis, status, prepared_outcomes_json, failure_message, created_at, updated_at
+		FROM runtime_local_agent_review_run
 		WHERE status IN ('prepared', 'memory_committed')
 		ORDER BY created_at, review_run_id
 	`)

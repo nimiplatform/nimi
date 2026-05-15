@@ -119,6 +119,18 @@ export interface AgentRecord {
      * @generated from protobuf field: google.protobuf.Timestamp updated_at = 7
      */
     updatedAt?: Timestamp;
+    /**
+     * @generated from protobuf field: string local_agent_ref = 20
+     */
+    localAgentRef: string;
+    /**
+     * @generated from protobuf field: string owner_user_id = 21
+     */
+    ownerUserId: string;
+    /**
+     * @generated from protobuf field: string realm_agent_id = 22
+     */
+    realmAgentId: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.AgentStateProjection
@@ -1010,6 +1022,18 @@ export interface AgentEvent {
      */
     timestamp?: Timestamp;
     /**
+     * @generated from protobuf field: string local_agent_ref = 20
+     */
+    localAgentRef: string;
+    /**
+     * @generated from protobuf field: string owner_user_id = 21
+     */
+    ownerUserId: string;
+    /**
+     * @generated from protobuf field: string realm_agent_id = 22
+     */
+    realmAgentId: string;
+    /**
      * @generated from protobuf oneof: detail
      */
     detail: {
@@ -1092,6 +1116,18 @@ export interface InitializeAgentRequest {
      * @generated from protobuf field: google.protobuf.Struct metadata = 6
      */
     metadata?: Struct;
+    /**
+     * @generated from protobuf field: string local_agent_ref = 20
+     */
+    localAgentRef: string;
+    /**
+     * @generated from protobuf field: string owner_user_id = 21
+     */
+    ownerUserId: string;
+    /**
+     * @generated from protobuf field: string realm_agent_id = 22
+     */
+    realmAgentId: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.InitializeAgentResponse
@@ -1569,6 +1605,18 @@ export interface ConversationAnchor {
      * @generated from protobuf field: google.protobuf.Struct metadata = 9
      */
     metadata?: Struct;
+    /**
+     * @generated from protobuf field: string local_agent_ref = 20
+     */
+    localAgentRef: string;
+    /**
+     * @generated from protobuf field: string owner_user_id = 21
+     */
+    ownerUserId: string;
+    /**
+     * @generated from protobuf field: string realm_agent_id = 22
+     */
+    realmAgentId: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.ConversationAnchorSnapshot
@@ -1607,6 +1655,18 @@ export interface OpenConversationAnchorRequest {
      * @generated from protobuf field: google.protobuf.Struct metadata = 4
      */
     metadata?: Struct;
+    /**
+     * @generated from protobuf field: string local_agent_ref = 20
+     */
+    localAgentRef: string;
+    /**
+     * @generated from protobuf field: string owner_user_id = 21
+     */
+    ownerUserId: string;
+    /**
+     * @generated from protobuf field: string realm_agent_id = 22
+     */
+    realmAgentId: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.OpenConversationAnchorResponse
@@ -3365,7 +3425,10 @@ class AgentRecord$Type extends MessageType<AgentRecord> {
             { no: 4, name: "autonomy", kind: "message", T: () => AgentAutonomyState },
             { no: 5, name: "metadata", kind: "message", T: () => Struct },
             { no: 6, name: "created_at", kind: "message", T: () => Timestamp },
-            { no: 7, name: "updated_at", kind: "message", T: () => Timestamp }
+            { no: 7, name: "updated_at", kind: "message", T: () => Timestamp },
+            { no: 20, name: "local_agent_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 21, name: "owner_user_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 22, name: "realm_agent_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<AgentRecord>): AgentRecord {
@@ -3373,6 +3436,9 @@ class AgentRecord$Type extends MessageType<AgentRecord> {
         message.agentId = "";
         message.displayName = "";
         message.lifecycleStatus = 0;
+        message.localAgentRef = "";
+        message.ownerUserId = "";
+        message.realmAgentId = "";
         if (value !== undefined)
             reflectionMergePartial<AgentRecord>(this, message, value);
         return message;
@@ -3402,6 +3468,15 @@ class AgentRecord$Type extends MessageType<AgentRecord> {
                     break;
                 case /* google.protobuf.Timestamp updated_at */ 7:
                     message.updatedAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.updatedAt);
+                    break;
+                case /* string local_agent_ref */ 20:
+                    message.localAgentRef = reader.string();
+                    break;
+                case /* string owner_user_id */ 21:
+                    message.ownerUserId = reader.string();
+                    break;
+                case /* string realm_agent_id */ 22:
+                    message.realmAgentId = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -3436,6 +3511,15 @@ class AgentRecord$Type extends MessageType<AgentRecord> {
         /* google.protobuf.Timestamp updated_at = 7; */
         if (message.updatedAt)
             Timestamp.internalBinaryWrite(message.updatedAt, writer.tag(7, WireType.LengthDelimited).fork(), options).join();
+        /* string local_agent_ref = 20; */
+        if (message.localAgentRef !== "")
+            writer.tag(20, WireType.LengthDelimited).string(message.localAgentRef);
+        /* string owner_user_id = 21; */
+        if (message.ownerUserId !== "")
+            writer.tag(21, WireType.LengthDelimited).string(message.ownerUserId);
+        /* string realm_agent_id = 22; */
+        if (message.realmAgentId !== "")
+            writer.tag(22, WireType.LengthDelimited).string(message.realmAgentId);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -5931,6 +6015,9 @@ class AgentEvent$Type extends MessageType<AgentEvent> {
             { no: 2, name: "sequence", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
             { no: 3, name: "agent_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 4, name: "timestamp", kind: "message", T: () => Timestamp },
+            { no: 20, name: "local_agent_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 21, name: "owner_user_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 22, name: "realm_agent_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 10, name: "lifecycle", kind: "message", oneof: "detail", T: () => AgentLifecycleEventDetail },
             { no: 11, name: "hook", kind: "message", oneof: "detail", T: () => AgentHookEventDetail },
             { no: 12, name: "memory", kind: "message", oneof: "detail", T: () => AgentMemoryEventDetail },
@@ -5946,6 +6033,9 @@ class AgentEvent$Type extends MessageType<AgentEvent> {
         message.eventType = 0;
         message.sequence = "0";
         message.agentId = "";
+        message.localAgentRef = "";
+        message.ownerUserId = "";
+        message.realmAgentId = "";
         message.detail = { oneofKind: undefined };
         if (value !== undefined)
             reflectionMergePartial<AgentEvent>(this, message, value);
@@ -5967,6 +6057,15 @@ class AgentEvent$Type extends MessageType<AgentEvent> {
                     break;
                 case /* google.protobuf.Timestamp timestamp */ 4:
                     message.timestamp = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.timestamp);
+                    break;
+                case /* string local_agent_ref */ 20:
+                    message.localAgentRef = reader.string();
+                    break;
+                case /* string owner_user_id */ 21:
+                    message.ownerUserId = reader.string();
+                    break;
+                case /* string realm_agent_id */ 22:
+                    message.realmAgentId = reader.string();
                     break;
                 case /* nimi.runtime.v1.AgentLifecycleEventDetail lifecycle */ 10:
                     message.detail = {
@@ -6064,6 +6163,15 @@ class AgentEvent$Type extends MessageType<AgentEvent> {
         /* nimi.runtime.v1.AgentAvatarDebugEventDetail avatar_debug = 17; */
         if (message.detail.oneofKind === "avatarDebug")
             AgentAvatarDebugEventDetail.internalBinaryWrite(message.detail.avatarDebug, writer.tag(17, WireType.LengthDelimited).fork(), options).join();
+        /* string local_agent_ref = 20; */
+        if (message.localAgentRef !== "")
+            writer.tag(20, WireType.LengthDelimited).string(message.localAgentRef);
+        /* string owner_user_id = 21; */
+        if (message.ownerUserId !== "")
+            writer.tag(21, WireType.LengthDelimited).string(message.ownerUserId);
+        /* string realm_agent_id = 22; */
+        if (message.realmAgentId !== "")
+            writer.tag(22, WireType.LengthDelimited).string(message.realmAgentId);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -6083,7 +6191,10 @@ class InitializeAgentRequest$Type extends MessageType<InitializeAgentRequest> {
             { no: 3, name: "display_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 4, name: "autonomy_config", kind: "message", T: () => AgentAutonomyConfig },
             { no: 5, name: "world_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 6, name: "metadata", kind: "message", T: () => Struct }
+            { no: 6, name: "metadata", kind: "message", T: () => Struct },
+            { no: 20, name: "local_agent_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 21, name: "owner_user_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 22, name: "realm_agent_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<InitializeAgentRequest>): InitializeAgentRequest {
@@ -6091,6 +6202,9 @@ class InitializeAgentRequest$Type extends MessageType<InitializeAgentRequest> {
         message.agentId = "";
         message.displayName = "";
         message.worldId = "";
+        message.localAgentRef = "";
+        message.ownerUserId = "";
+        message.realmAgentId = "";
         if (value !== undefined)
             reflectionMergePartial<InitializeAgentRequest>(this, message, value);
         return message;
@@ -6117,6 +6231,15 @@ class InitializeAgentRequest$Type extends MessageType<InitializeAgentRequest> {
                     break;
                 case /* google.protobuf.Struct metadata */ 6:
                     message.metadata = Struct.internalBinaryRead(reader, reader.uint32(), options, message.metadata);
+                    break;
+                case /* string local_agent_ref */ 20:
+                    message.localAgentRef = reader.string();
+                    break;
+                case /* string owner_user_id */ 21:
+                    message.ownerUserId = reader.string();
+                    break;
+                case /* string realm_agent_id */ 22:
+                    message.realmAgentId = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -6148,6 +6271,15 @@ class InitializeAgentRequest$Type extends MessageType<InitializeAgentRequest> {
         /* google.protobuf.Struct metadata = 6; */
         if (message.metadata)
             Struct.internalBinaryWrite(message.metadata, writer.tag(6, WireType.LengthDelimited).fork(), options).join();
+        /* string local_agent_ref = 20; */
+        if (message.localAgentRef !== "")
+            writer.tag(20, WireType.LengthDelimited).string(message.localAgentRef);
+        /* string owner_user_id = 21; */
+        if (message.ownerUserId !== "")
+            writer.tag(21, WireType.LengthDelimited).string(message.ownerUserId);
+        /* string realm_agent_id = 22; */
+        if (message.realmAgentId !== "")
+            writer.tag(22, WireType.LengthDelimited).string(message.realmAgentId);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -7824,7 +7956,10 @@ class ConversationAnchor$Type extends MessageType<ConversationAnchor> {
             { no: 6, name: "last_message_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 7, name: "created_at", kind: "message", T: () => Timestamp },
             { no: 8, name: "updated_at", kind: "message", T: () => Timestamp },
-            { no: 9, name: "metadata", kind: "message", T: () => Struct }
+            { no: 9, name: "metadata", kind: "message", T: () => Struct },
+            { no: 20, name: "local_agent_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 21, name: "owner_user_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 22, name: "realm_agent_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<ConversationAnchor>): ConversationAnchor {
@@ -7835,6 +7970,9 @@ class ConversationAnchor$Type extends MessageType<ConversationAnchor> {
         message.status = 0;
         message.lastTurnId = "";
         message.lastMessageId = "";
+        message.localAgentRef = "";
+        message.ownerUserId = "";
+        message.realmAgentId = "";
         if (value !== undefined)
             reflectionMergePartial<ConversationAnchor>(this, message, value);
         return message;
@@ -7870,6 +8008,15 @@ class ConversationAnchor$Type extends MessageType<ConversationAnchor> {
                     break;
                 case /* google.protobuf.Struct metadata */ 9:
                     message.metadata = Struct.internalBinaryRead(reader, reader.uint32(), options, message.metadata);
+                    break;
+                case /* string local_agent_ref */ 20:
+                    message.localAgentRef = reader.string();
+                    break;
+                case /* string owner_user_id */ 21:
+                    message.ownerUserId = reader.string();
+                    break;
+                case /* string realm_agent_id */ 22:
+                    message.realmAgentId = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -7910,6 +8057,15 @@ class ConversationAnchor$Type extends MessageType<ConversationAnchor> {
         /* google.protobuf.Struct metadata = 9; */
         if (message.metadata)
             Struct.internalBinaryWrite(message.metadata, writer.tag(9, WireType.LengthDelimited).fork(), options).join();
+        /* string local_agent_ref = 20; */
+        if (message.localAgentRef !== "")
+            writer.tag(20, WireType.LengthDelimited).string(message.localAgentRef);
+        /* string owner_user_id = 21; */
+        if (message.ownerUserId !== "")
+            writer.tag(21, WireType.LengthDelimited).string(message.ownerUserId);
+        /* string realm_agent_id = 22; */
+        if (message.realmAgentId !== "")
+            writer.tag(22, WireType.LengthDelimited).string(message.realmAgentId);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -7989,13 +8145,19 @@ class OpenConversationAnchorRequest$Type extends MessageType<OpenConversationAnc
             { no: 1, name: "context", kind: "message", T: () => AgentRequestContext },
             { no: 2, name: "agent_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 3, name: "subject_user_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 4, name: "metadata", kind: "message", T: () => Struct }
+            { no: 4, name: "metadata", kind: "message", T: () => Struct },
+            { no: 20, name: "local_agent_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 21, name: "owner_user_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 22, name: "realm_agent_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<OpenConversationAnchorRequest>): OpenConversationAnchorRequest {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.agentId = "";
         message.subjectUserId = "";
+        message.localAgentRef = "";
+        message.ownerUserId = "";
+        message.realmAgentId = "";
         if (value !== undefined)
             reflectionMergePartial<OpenConversationAnchorRequest>(this, message, value);
         return message;
@@ -8016,6 +8178,15 @@ class OpenConversationAnchorRequest$Type extends MessageType<OpenConversationAnc
                     break;
                 case /* google.protobuf.Struct metadata */ 4:
                     message.metadata = Struct.internalBinaryRead(reader, reader.uint32(), options, message.metadata);
+                    break;
+                case /* string local_agent_ref */ 20:
+                    message.localAgentRef = reader.string();
+                    break;
+                case /* string owner_user_id */ 21:
+                    message.ownerUserId = reader.string();
+                    break;
+                case /* string realm_agent_id */ 22:
+                    message.realmAgentId = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -8041,6 +8212,15 @@ class OpenConversationAnchorRequest$Type extends MessageType<OpenConversationAnc
         /* google.protobuf.Struct metadata = 4; */
         if (message.metadata)
             Struct.internalBinaryWrite(message.metadata, writer.tag(4, WireType.LengthDelimited).fork(), options).join();
+        /* string local_agent_ref = 20; */
+        if (message.localAgentRef !== "")
+            writer.tag(20, WireType.LengthDelimited).string(message.localAgentRef);
+        /* string owner_user_id = 21; */
+        if (message.ownerUserId !== "")
+            writer.tag(21, WireType.LengthDelimited).string(message.ownerUserId);
+        /* string realm_agent_id = 22; */
+        if (message.realmAgentId !== "")
+            writer.tag(22, WireType.LengthDelimited).string(message.realmAgentId);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

@@ -24,6 +24,17 @@ import type { RuntimeAgentConsumeEvent } from '../../src/runtime/types-runtime-a
 
 const APP_ID = 'nimi.runtime.agent.surface.test';
 const TIMELINE_STARTED_AT = '2026-04-25T00:00:00.000Z';
+const OWNER_USER_ID = 'subject-1';
+const ALPHA_IDENTITY = {
+  ownerUserId: OWNER_USER_ID,
+  realmAgentId: 'agent-1',
+  localAgentRef: `local-agent:${OWNER_USER_ID}:agent-1`,
+} as const;
+const BETA_IDENTITY = {
+  ownerUserId: OWNER_USER_ID,
+  realmAgentId: 'agent-2',
+  localAgentRef: `local-agent:${OWNER_USER_ID}:agent-2`,
+} as const;
 
 function timelineChannelForTestEvent(messageType: string): 'text' | 'state' | '' {
   switch (messageType) {
@@ -94,10 +105,18 @@ function createAppEvent(messageType: string, payload: Record<string, unknown>): 
 }
 
 function createAgentEvent(input: Parameters<typeof AgentEvent.create>[0]): Uint8Array {
+  const inputAgentId = typeof input?.agentId === 'string' ? input.agentId : '';
+  const realmAgentId = input?.realmAgentId || (inputAgentId.includes('agent-2') ? 'agent-2' : 'agent-1');
+  const ownerUserId = input?.ownerUserId || OWNER_USER_ID;
+  const localAgentRef = input?.localAgentRef || `local-agent:${ownerUserId}:${realmAgentId}`;
   return AgentEvent.toBinary(AgentEvent.create({
     sequence: '1',
     timestamp: Timestamp.create({ seconds: '1700000003', nanos: 0 }),
     ...input,
+    agentId: '',
+    ownerUserId,
+    realmAgentId,
+    localAgentRef,
   }));
 }
 
@@ -141,42 +160,42 @@ test('runtime agent consume surface keeps multi-agent and same-agent different-a
         return {
           async *[Symbol.asyncIterator]() {
             yield createAppEvent('runtime.agent.turn.accepted', {
-              agent_id: 'agent-1',
+              agent_id: ALPHA_IDENTITY.localAgentRef,
               conversation_anchor_id: 'anchor-1',
               turn_id: 'turn-a1',
               stream_id: 'stream-a1',
               detail: { request_id: 'req-a1' },
             });
             yield createAppEvent('runtime.agent.turn.text_delta', {
-              agent_id: 'agent-1',
+              agent_id: ALPHA_IDENTITY.localAgentRef,
               conversation_anchor_id: 'anchor-1',
               turn_id: 'turn-a1',
               stream_id: 'stream-a1',
               detail: { text: 'alpha one' },
             });
             yield createAppEvent('runtime.agent.turn.accepted', {
-              agent_id: 'agent-1',
+              agent_id: ALPHA_IDENTITY.localAgentRef,
               conversation_anchor_id: 'anchor-2',
               turn_id: 'turn-a2',
               stream_id: 'stream-a2',
               detail: { request_id: 'req-a2' },
             });
             yield createAppEvent('runtime.agent.turn.text_delta', {
-              agent_id: 'agent-1',
+              agent_id: ALPHA_IDENTITY.localAgentRef,
               conversation_anchor_id: 'anchor-2',
               turn_id: 'turn-a2',
               stream_id: 'stream-a2',
               detail: { text: 'alpha two' },
             });
             yield createAppEvent('runtime.agent.turn.accepted', {
-              agent_id: 'agent-2',
+              agent_id: BETA_IDENTITY.localAgentRef,
               conversation_anchor_id: 'anchor-b1',
               turn_id: 'turn-b1',
               stream_id: 'stream-b1',
               detail: { request_id: 'req-b1' },
             });
             yield createAppEvent('runtime.agent.turn.text_delta', {
-              agent_id: 'agent-2',
+              agent_id: BETA_IDENTITY.localAgentRef,
               conversation_anchor_id: 'anchor-b1',
               turn_id: 'turn-b1',
               stream_id: 'stream-b1',
@@ -188,12 +207,12 @@ test('runtime agent consume surface keeps multi-agent and same-agent different-a
       if (input.methodId === RuntimeMethodIds.agent.subscribeEvents) {
         const request = SubscribeAgentEventsRequest.fromBinary(input.request);
         capturedSubscribeRequests.push(request);
-        if (request.agentId === 'agent-1') {
+        if (request.context?.localAgentRef === ALPHA_IDENTITY.localAgentRef) {
           return {
             async *[Symbol.asyncIterator]() {
               yield createAgentEvent({
                 eventType: AgentEventType.STATE,
-                agentId: 'agent-1',
+                ...ALPHA_IDENTITY,
                 detail: {
                   oneofKind: 'state',
                   state: {
@@ -208,7 +227,7 @@ test('runtime agent consume surface keeps multi-agent and same-agent different-a
               });
               yield createAgentEvent({
                 eventType: AgentEventType.STATE,
-                agentId: 'agent-1',
+                ...ALPHA_IDENTITY,
                 detail: {
                   oneofKind: 'state',
                   state: {
@@ -224,12 +243,12 @@ test('runtime agent consume surface keeps multi-agent and same-agent different-a
             },
           };
         }
-        if (request.agentId === 'agent-2') {
+        if (request.context?.localAgentRef === BETA_IDENTITY.localAgentRef) {
           return {
             async *[Symbol.asyncIterator]() {
               yield createAgentEvent({
                 eventType: AgentEventType.STATE,
-                agentId: 'agent-2',
+                ...BETA_IDENTITY,
                 detail: {
                   oneofKind: 'state',
                   state: {
@@ -285,34 +304,34 @@ test('runtime agent consume surface keeps multi-agent and same-agent different-a
 
     const alphaAnchorOneEvents = await collectRuntimeAgentEvents(
       await runtimeAlphaAnchorOne.agent.turns.subscribe({
-        agentId: 'agent-1',
+        ...ALPHA_IDENTITY,
         conversationAnchorId: 'anchor-1',
       }),
     );
     const alphaAnchorTwoEvents = await collectRuntimeAgentEvents(
       await runtimeAlphaAnchorTwo.agent.turns.subscribe({
-        agentId: 'agent-1',
+        ...ALPHA_IDENTITY,
         conversationAnchorId: 'anchor-2',
       }),
     );
     const betaAnchorOneEvents = await collectRuntimeAgentEvents(
       await runtimeBetaAnchorOne.agent.turns.subscribe({
-        agentId: 'agent-2',
+        ...BETA_IDENTITY,
         conversationAnchorId: 'anchor-b1',
       }),
     );
 
     assert.deepEqual(
-      new Set(alphaAnchorOneEvents.map((event) => `${event.agentId}:${event.conversationAnchorId}`)),
-      new Set(['agent-1:anchor-1']),
+      new Set(alphaAnchorOneEvents.map((event) => `${event.localAgentRef}:${event.conversationAnchorId}`)),
+      new Set([`${ALPHA_IDENTITY.localAgentRef}:anchor-1`]),
     );
     assert.deepEqual(
-      new Set(alphaAnchorTwoEvents.map((event) => `${event.agentId}:${event.conversationAnchorId}`)),
-      new Set(['agent-1:anchor-2']),
+      new Set(alphaAnchorTwoEvents.map((event) => `${event.localAgentRef}:${event.conversationAnchorId}`)),
+      new Set([`${ALPHA_IDENTITY.localAgentRef}:anchor-2`]),
     );
     assert.deepEqual(
-      new Set(betaAnchorOneEvents.map((event) => `${event.agentId}:${event.conversationAnchorId}`)),
-      new Set(['agent-2:anchor-b1']),
+      new Set(betaAnchorOneEvents.map((event) => `${event.localAgentRef}:${event.conversationAnchorId}`)),
+      new Set([`${BETA_IDENTITY.localAgentRef}:anchor-b1`]),
     );
 
     assert.ok(alphaAnchorOneEvents.some((event) => event.eventName === 'runtime.agent.turn.accepted'));
@@ -321,8 +340,8 @@ test('runtime agent consume surface keeps multi-agent and same-agent different-a
     assert.ok(betaAnchorOneEvents.some((event) => event.eventName === 'runtime.agent.turn.text_delta'));
 
     assert.deepEqual(
-      capturedSubscribeRequests.map((request) => request.agentId),
-      ['agent-1', 'agent-1', 'agent-2'],
+      capturedSubscribeRequests.map((request) => request.context?.localAgentRef),
+      [ALPHA_IDENTITY.localAgentRef, ALPHA_IDENTITY.localAgentRef, BETA_IDENTITY.localAgentRef],
     );
   } finally {
     clearNodeGrpcBridge();

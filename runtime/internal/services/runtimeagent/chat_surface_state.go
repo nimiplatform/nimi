@@ -32,6 +32,9 @@ type persistedPublicChatSurfaceState struct {
 type persistedPublicChatAnchor struct {
 	ConversationAnchorID string                           `json:"conversationAnchorId"`
 	AgentID              string                           `json:"agentId"`
+	LocalAgentRef        string                           `json:"localAgentRef"`
+	OwnerUserID          string                           `json:"ownerUserId"`
+	RealmAgentID         string                           `json:"realmAgentId"`
 	CallerAppID          string                           `json:"callerAppId"`
 	SubjectUserID        string                           `json:"subjectUserId"`
 	ThreadID             string                           `json:"threadId"`
@@ -112,6 +115,9 @@ func (s *Service) capturePublicChatSurfaceSnapshotLocked() (persistedPublicChatS
 		item := persistedPublicChatAnchor{
 			ConversationAnchorID: session.ConversationAnchorID,
 			AgentID:              session.AgentID,
+			LocalAgentRef:        session.LocalAgentRef,
+			OwnerUserID:          session.OwnerUserID,
+			RealmAgentID:         session.RealmAgentID,
 			CallerAppID:          session.CallerAppID,
 			SubjectUserID:        session.SubjectUserID,
 			ThreadID:             session.ThreadID,
@@ -210,11 +216,11 @@ func (r *publicChatSurfaceStateRepository) persistPublicChatSurfaceStateWithAnch
 			return nil
 		}
 		if strings.TrimSpace(metadataJSON) == "" {
-			_, err := tx.Exec(`DELETE FROM runtime_agent_meta WHERE key = ?`, key)
+			_, err := tx.Exec(`DELETE FROM runtime_local_agent_meta WHERE key = ?`, key)
 			return err
 		}
 		_, err := tx.Exec(
-			`INSERT INTO runtime_agent_meta(key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value=excluded.value`,
+			`INSERT INTO runtime_local_agent_meta(key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value=excluded.value`,
 			key,
 			metadataJSON,
 		)
@@ -227,7 +233,7 @@ func (r *publicChatSurfaceStateRepository) persistPublicChatSurfaceStateWithAnch
 
 func persistPublicChatSurfaceStateTx(tx *sql.Tx, snapshot persistedPublicChatSurfaceState, raw string) error {
 	var currentVersionRaw string
-	err := tx.QueryRow(`SELECT value FROM runtime_agent_meta WHERE key = ?`, runtimeAgentMetaPublicChatSurfaceVersionKey).Scan(&currentVersionRaw)
+	err := tx.QueryRow(`SELECT value FROM runtime_local_agent_meta WHERE key = ?`, runtimeAgentMetaPublicChatSurfaceVersionKey).Scan(&currentVersionRaw)
 	if err != nil && err != sql.ErrNoRows {
 		return err
 	}
@@ -239,14 +245,14 @@ func persistPublicChatSurfaceStateTx(tx *sql.Tx, snapshot persistedPublicChatSur
 		return nil
 	}
 	if _, err := tx.Exec(
-		`INSERT INTO runtime_agent_meta(key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value=excluded.value`,
+		`INSERT INTO runtime_local_agent_meta(key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value=excluded.value`,
 		runtimeAgentMetaPublicChatSurfaceVersionKey,
 		encodeSequenceValue(snapshot.Version),
 	); err != nil {
 		return err
 	}
 	if _, err := tx.Exec(
-		`INSERT INTO runtime_agent_meta(key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value=excluded.value`,
+		`INSERT INTO runtime_local_agent_meta(key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value=excluded.value`,
 		runtimeAgentMetaPublicChatSurfaceStateKey,
 		raw,
 	); err != nil {
@@ -363,6 +369,9 @@ func (r *publicChatSurfaceStateRepository) loadPublicChatSurfaceStateFromDB(s *S
 		delete(s.chatActiveByAgent, key)
 	}
 	for _, item := range persisted.Anchors {
+		if _, err := validateLocalAgentIdentity(item.OwnerUserID, item.RealmAgentID, item.LocalAgentRef); err != nil {
+			return fmt.Errorf("persisted conversation anchor %s local identity invalid: %w", item.ConversationAnchorID, err)
+		}
 		transcript := make([]*runtimev1.ChatMessage, 0, len(item.Transcript))
 		for _, rawMessage := range item.Transcript {
 			message := &runtimev1.ChatMessage{}
@@ -390,6 +399,9 @@ func (r *publicChatSurfaceStateRepository) loadPublicChatSurfaceStateFromDB(s *S
 		s.chatAnchors[item.ConversationAnchorID] = &publicChatAnchorState{
 			ConversationAnchorID: item.ConversationAnchorID,
 			AgentID:              item.AgentID,
+			LocalAgentRef:        item.LocalAgentRef,
+			OwnerUserID:          item.OwnerUserID,
+			RealmAgentID:         item.RealmAgentID,
 			CallerAppID:          item.CallerAppID,
 			SubjectUserID:        item.SubjectUserID,
 			ThreadID:             item.ThreadID,

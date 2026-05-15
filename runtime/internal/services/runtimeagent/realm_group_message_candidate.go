@@ -539,7 +539,7 @@ func (s *Service) persistRealmGroupMessageCandidateState(snapshot persistedRealm
 	}
 	return s.backend.WriteTx(context.Background(), func(tx *sql.Tx) error {
 		_, err := tx.Exec(
-			`INSERT INTO runtime_agent_meta(key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value=excluded.value`,
+			`INSERT INTO runtime_local_agent_meta(key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value=excluded.value`,
 			realmGroupMessageCandidateMetaStateKey,
 			string(raw),
 		)

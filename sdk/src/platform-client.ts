@@ -1,4 +1,4 @@
-import { asRecord, normalizeText, type JsonObject } from './internal/utils.js';
+import { asRecord, normalizeText } from './internal/utils.js';
 import {
   createWorldEvolutionSelectorReadFacade,
   getRuntimeWorldEvolutionSelectorReadProvider,
@@ -6,13 +6,13 @@ import {
   type WorldEvolutionSelectorReadProvider,
 } from './internal/world-evolution-selector-read.js';
 import { Realm } from './realm/client.js';
-import type { RealmFetchImpl, RealmTokenRefreshResult } from './realm/client-types.js';
+import type { RealmTokenRefreshResult } from './realm/client-types.js';
 import type { RealmServiceArgs, RealmServiceResult } from './realm/generated/type-helpers.js';
 import { asNimiError, createNimiError } from './runtime/errors.js';
 import { AccountCallerMode, AccountSessionState } from './runtime/generated/runtime/v1/account.js';
 import { Runtime } from './runtime/runtime.js';
 import type { ListConnectorsRequest, ListConnectorsResponse } from './runtime/generated/runtime/v1/connector.js';
-import type { RuntimeCallOptions, RuntimeClientDefaults, RuntimeOptions, RuntimeTransportConfig } from './runtime/types.js';
+import type { RuntimeCallOptions } from './runtime/types.js';
 import type {
   WorldEvolutionCheckpointReadResult,
   WorldEvolutionCheckpointSelector,
@@ -32,61 +32,20 @@ import {
   createPlatformWorldGovernanceDomain,
   type PlatformWorldGovernanceDomain,
 } from './platform-client-world-governance.js';
-
-type PlatformSessionUser = JsonObject | null;
+import type { PlatformAuthSessionStore, PlatformClientInput } from './platform-client-types.js';
+export type { PlatformAuthSessionStore, PlatformClientInput } from './platform-client-types.js';
 type RealmServices = Realm['services'];
 type RuntimeConnectorModule = Runtime['connector'];
 type RuntimeAuditModule = Runtime['audit'];
 type ListConnectorsInput = ListConnectorsRequest;
-type PlatformRuntimeAccountCaller = {
-  appId: string;
-  appInstanceId: string;
-  deviceId: string;
-  mode: AccountCallerMode;
-  scopes: string[];
-};
+type PlatformRuntimeAccountCaller = { appId: string; appInstanceId: string; deviceId: string; mode: AccountCallerMode; scopes: string[] };
 type AuthPasswordLoginBody = RealmServiceArgs<'AuthService', 'passwordLogin'>[0];
-type AuthPasswordLoginInput = {
-  identifier?: string;
-  email?: string;
-  password: AuthPasswordLoginBody['password'];
-};
+type AuthPasswordLoginInput = { identifier?: string; email?: string; password: AuthPasswordLoginBody['password'] };
 type AuthPasswordLoginResult = RealmServiceResult<'AuthService', 'passwordLogin'>;
 type ListMyFriendsResult = RealmServiceResult<'MeService', 'listMyFriendsWithDetails'>;
 type CreateImageDirectUploadResult = RealmServiceResult<'ResourcesService', 'createImageDirectUpload'>;
 type CreateVideoDirectUploadResult = RealmServiceResult<'ResourcesService', 'createVideoDirectUpload'>;
-type RequireSignedUrlsInput = {
-  requireSignedUrls?: string | boolean;
-};
-
-export type PlatformAuthSessionStore = {
-  getAccessToken?: () => string | Promise<string>;
-  getRefreshToken?: () => string | Promise<string>;
-  getSubjectUserId?: () => string | Promise<string>;
-  getCurrentUser?: () => PlatformSessionUser | Promise<PlatformSessionUser>;
-  setAuthSession?: (
-    user: PlatformSessionUser,
-    accessToken: string,
-    refreshToken?: string,
-  ) => void | Promise<void>;
-  clearAuthSession?: () => void | Promise<void>;
-};
-
-export type PlatformClientInput = {
-  authMode?: 'local-first-party-runtime' | 'web-cloud' | 'external-principal';
-  appId?: string;
-  realmBaseUrl?: string;
-  accessToken?: string;
-  accessTokenProvider?: () => string | Promise<string>;
-  refreshTokenProvider?: () => string | Promise<string>;
-  subjectUserIdProvider?: () => string | Promise<string>;
-  sessionStore?: PlatformAuthSessionStore | null;
-  runtimeTransport?: RuntimeTransportConfig | null;
-  runtimeDefaults?: RuntimeClientDefaults;
-  runtimeOptions?: Omit<RuntimeOptions, 'appId' | 'transport' | 'auth' | 'subjectContext' | 'defaults'>;
-  realmFetchImpl?: RealmFetchImpl;
-  allowAnonymousRealm?: boolean;
-};
+type RequireSignedUrlsInput = { requireSignedUrls?: string | boolean };
 
 type PlatformDomains = {
   auth: {

@@ -66,7 +66,9 @@ func TestPublicChatCommittedTurnEmitsVoiceLipsyncProjection(t *testing.T) {
 		SubjectUserId: "user-1",
 		MessageType:   publicChatTurnRequestType,
 		Payload: publicChatStructPayload(t, map[string]any{
-			"agent_id":               "agent-alpha",
+			"local_agent_ref":        testRuntimeAgentLocalRef("agent-alpha"),
+			"owner_user_id":          "user-1",
+			"realm_agent_id":         "agent-alpha",
 			"conversation_anchor_id": anchorID,
 			"request_id":             "lipsync-request-1",
 			"messages": []any{

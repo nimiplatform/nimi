@@ -29,6 +29,7 @@ import type {
   RuntimeAgentAnchorsModule,
   RuntimeAgentConsumeEvent,
   RuntimeAgentConsumeRequest,
+  RuntimeAgentLocalIdentity,
   RuntimeAgentMessage,
   RuntimeAgentModule,
   RuntimeAgentSessionSnapshotRequest,
@@ -119,7 +120,7 @@ function toScopedBindingAttachment(
   input: RuntimeScopedBindingAttachment | undefined,
   defaults: {
     runtimeAppId: string;
-    agentId?: string;
+    localAgentRef?: string;
     conversationAnchorId?: string;
     worldId?: string;
   },
@@ -135,7 +136,7 @@ function toScopedBindingAttachment(
     appInstanceId: optionalString(input?.appInstanceId) || '',
     windowId: optionalString(input?.windowId) || '',
     avatarInstanceId: optionalString(input?.avatarInstanceId) || '',
-    agentId: optionalString(input?.agentId) || optionalString(defaults.agentId) || '',
+    agentId: optionalString(input?.localAgentRef) || optionalString(defaults.localAgentRef) || '',
     conversationAnchorId: optionalString(input?.conversationAnchorId) || optionalString(defaults.conversationAnchorId) || '',
     worldId: optionalString(input?.worldId) || optionalString(defaults.worldId) || '',
   };
@@ -149,12 +150,52 @@ function runtimeAgentInputError(message: string, actionHint: string): never {
   });
 }
 
-function requireRuntimeAgentId(agentId: unknown, actionHint = 'provide_runtime_agent_id'): string {
-  const normalized = optionalString(agentId);
-  if (!normalized) {
-    runtimeAgentInputError('runtime agent request requires agentId', actionHint);
+function requireLocalAgentIdentity(
+  input: Partial<RuntimeAgentLocalIdentity> & { agentId?: unknown },
+  actionHint = 'provide_runtime_agent_local_identity',
+): RuntimeAgentLocalIdentity {
+  if (optionalString(input.agentId)) {
+    runtimeAgentInputError('runtime agent request must use localAgentRef, not agentId', actionHint);
   }
-  return normalized;
+  const ownerUserId = optionalString(input.ownerUserId);
+  if (!ownerUserId) {
+    runtimeAgentInputError('runtime agent request requires ownerUserId', actionHint);
+  }
+  const realmAgentId = optionalString(input.realmAgentId);
+  if (!realmAgentId) {
+    runtimeAgentInputError('runtime agent request requires realmAgentId', actionHint);
+  }
+  const localAgentRef = optionalString(input.localAgentRef);
+  if (!localAgentRef) {
+    runtimeAgentInputError('runtime agent request requires localAgentRef', actionHint);
+  }
+  if (!localAgentRef.startsWith('local-agent:')) {
+    runtimeAgentInputError('runtime agent request localAgentRef is malformed', actionHint);
+  }
+  if (localAgentRef === realmAgentId) {
+    runtimeAgentInputError('runtime agent request localAgentRef must not be bare realmAgentId', actionHint);
+  }
+  const expected = `local-agent:${ownerUserId}:${realmAgentId}`;
+  if (localAgentRef !== expected) {
+    runtimeAgentInputError('runtime agent request localAgentRef must match ownerUserId and realmAgentId', actionHint);
+  }
+  return { ownerUserId, realmAgentId, localAgentRef };
+}
+
+function runtimeAgentRequestContext(
+  appId: string,
+  subjectUserId: string,
+  identity: RuntimeAgentLocalIdentity,
+  scopedBinding?: ScopedRuntimeBindingAttachment,
+) {
+  return {
+    appId,
+    subjectUserId,
+    ownerUserId: identity.ownerUserId,
+    realmAgentId: identity.realmAgentId,
+    localAgentRef: identity.localAgentRef,
+    ...(scopedBinding ? { scopedBinding } : {}),
+  };
 }
 
 function requireConversationAnchorId(anchorId: unknown, actionHint = 'open_runtime_agent_anchor_first'): string {
@@ -190,7 +231,7 @@ function normalizeTurnMessages(messages: RuntimeAgentTurnRequest['messages']): R
 }
 
 function toTurnPayload(request: RuntimeAgentTurnRequest): Record<string, unknown> {
-  const agentId = requireRuntimeAgentId(request.agentId);
+  const identity = requireLocalAgentIdentity(request);
   const conversationAnchorId = requireConversationAnchorId(request.conversationAnchorId);
   const messages = normalizeTurnMessages(request.messages);
   if (messages.length === 0) {
@@ -209,7 +250,9 @@ function toTurnPayload(request: RuntimeAgentTurnRequest): Record<string, unknown
     runtimeAgentInputError('runtime agent turn request maxOutputTokens must be non-negative', 'provide_non_negative_max_output_tokens');
   }
   return {
-    agent_id: agentId,
+    local_agent_ref: identity.localAgentRef,
+    owner_user_id: identity.ownerUserId,
+    realm_agent_id: identity.realmAgentId,
     conversation_anchor_id: conversationAnchorId,
     ...(optionalString(request.requestId) ? { request_id: optionalString(request.requestId) } : {}),
     ...(optionalString(request.threadId) ? { thread_id: optionalString(request.threadId) } : {}),
@@ -264,19 +307,19 @@ export function createRuntimeAgentAnchorsModule(input: {
 }): RuntimeAgentAnchorsModule {
   return {
     async open(request, options) {
-      const agentId = requireRuntimeAgentId(request.agentId);
-      const subjectUserId = await input.resolveSubjectUserId(request.subjectUserId);
+      const identity = requireLocalAgentIdentity(request);
+      const subjectUserId = await input.resolveSubjectUserId(request.subjectUserId || identity.ownerUserId);
       const openOptions = options?.protectedAccessToken
         ? baseCallOptions(options)
         : await input.protectedAccess.getCallOptions([AGENT_WRITE_SCOPE], options);
       const response = await input.agent.openConversationAnchor({
-        agentId,
+        agentId: '',
+        localAgentRef: identity.localAgentRef,
+        ownerUserId: identity.ownerUserId,
+        realmAgentId: identity.realmAgentId,
         subjectUserId,
         ...(request.metadata ? { metadata: toProtoStruct(request.metadata) } : {}),
-        context: {
-          appId: input.appId,
-          subjectUserId,
-        },
+        context: runtimeAgentRequestContext(input.appId, subjectUserId, identity),
       }, openOptions);
       if (!response.snapshot) {
         throw createNimiError({
@@ -289,19 +332,16 @@ export function createRuntimeAgentAnchorsModule(input: {
       return response.snapshot;
     },
     async getSnapshot(request, options) {
-      const agentId = requireRuntimeAgentId(request.agentId);
+      const identity = requireLocalAgentIdentity(request);
       const conversationAnchorId = requireConversationAnchorId(request.conversationAnchorId);
-      const subjectUserId = await input.resolveSubjectUserId(request.subjectUserId);
+      const subjectUserId = await input.resolveSubjectUserId(request.subjectUserId || identity.ownerUserId);
       const snapshotOptions = options?.protectedAccessToken
         ? baseCallOptions(options)
         : await input.protectedAccess.getCallOptions([AGENT_READ_SCOPE], options);
       const response = await input.agent.getConversationAnchorSnapshot({
-        agentId,
+        agentId: '',
         conversationAnchorId,
-        context: {
-          appId: input.appId,
-          subjectUserId,
-        },
+        context: runtimeAgentRequestContext(input.appId, subjectUserId, identity),
       }, snapshotOptions);
       if (!response.snapshot) {
         throw createNimiError({
@@ -324,12 +364,12 @@ export function createRuntimeAgentTurnsModule(input: {
 }): RuntimeAgentTurnsModule {
   return {
     async subscribe(request, options) {
-      const agentId = requireRuntimeAgentId(request.agentId);
+      const identity = requireLocalAgentIdentity(request);
       const conversationAnchorId = optionalString(request.conversationAnchorId);
       const cursor = optionalRuntimeCursor(request.cursor);
       const scopedBinding = toScopedBindingAttachment(request.scopedBinding, {
         runtimeAppId: input.appId,
-        agentId,
+        localAgentRef: identity.localAgentRef,
         conversationAnchorId,
       });
       const subjectUserId = scopedBinding ? undefined : await input.resolveSubjectUserId(request.subjectUserId);
@@ -351,12 +391,12 @@ export function createRuntimeAgentTurnsModule(input: {
         : null;
       const agentStreamHandle = includeAgentEvents
         ? await input.agent.subscribeEvents({
-          agentId,
+          agentId: '',
           cursor,
           eventFilters: [AgentEventType.HOOK, AgentEventType.STATE],
           context: scopedBinding
-            ? { appId: input.appId, subjectUserId: '', scopedBinding }
-            : { appId: input.appId, subjectUserId: subjectUserId || '' },
+            ? runtimeAgentRequestContext(input.appId, '', identity, scopedBinding)
+            : runtimeAgentRequestContext(input.appId, subjectUserId || '', identity),
         }, makeStreamOptions(agentSubscribeOptions || {}, options?.signal))
         : null;
       return {
@@ -392,9 +432,10 @@ export function createRuntimeAgentTurnsModule(input: {
       };
     },
     async request(request, options) {
+      const identity = requireLocalAgentIdentity(request);
       const scopedBinding = toScopedBindingAttachment(request.scopedBinding, {
         runtimeAppId: input.appId,
-        agentId: request.agentId,
+        localAgentRef: identity.localAgentRef,
         conversationAnchorId: request.conversationAnchorId,
         worldId: request.worldId,
       });
@@ -414,18 +455,16 @@ export function createRuntimeAgentTurnsModule(input: {
       return assertAccepted(response, TURN_REQUEST_TYPE);
     },
     async interrupt(request, options) {
-      const agentId = requireRuntimeAgentId(request.agentId);
+      const identity = requireLocalAgentIdentity(request);
       const conversationAnchorId = requireConversationAnchorId(request.conversationAnchorId);
       const scopedBinding = toScopedBindingAttachment(request.scopedBinding, {
         runtimeAppId: input.appId,
-        agentId,
+        localAgentRef: identity.localAgentRef,
         conversationAnchorId,
         worldId: request.worldId,
       });
       const payload = toProtoStruct({
-        agent_id: agentId,
         conversation_anchor_id: conversationAnchorId,
-        ...(optionalString(request.worldId) ? { world_id: optionalString(request.worldId) } : {}),
         ...(optionalString(request.turnId) ? { turn_id: optionalString(request.turnId) } : {}),
         ...(optionalString(request.reason) ? { reason: optionalString(request.reason) } : {}),
       });
@@ -444,12 +483,12 @@ export function createRuntimeAgentTurnsModule(input: {
       return assertAccepted(response, TURN_INTERRUPT_TYPE);
     },
     async getSessionSnapshot(request, options) {
-      const agentId = requireRuntimeAgentId(request.agentId);
+      const identity = requireLocalAgentIdentity(request);
       const conversationAnchorId = requireConversationAnchorId(request.conversationAnchorId);
       const requestId = optionalString(request.requestId);
       const scopedBinding = toScopedBindingAttachment(request.scopedBinding, {
         runtimeAppId: input.appId,
-        agentId,
+        localAgentRef: identity.localAgentRef,
         conversationAnchorId,
         worldId: request.worldId,
       });
@@ -459,13 +498,13 @@ export function createRuntimeAgentTurnsModule(input: {
       // only carries scope/anchor/window relations.
       const callOptions = await input.protectedAccess.getCallOptions([AGENT_READ_SCOPE], options);
       const snapshotRequest: GetPublicChatSessionSnapshotRequest = {
-        agentId,
+        agentId: identity.localAgentRef,
         conversationAnchorId,
         requestId: requestId || '',
         worldId: optionalString(request.worldId) || '',
         context: scopedBinding
-          ? { appId: input.appId, subjectUserId: '', scopedBinding }
-          : { appId: input.appId, subjectUserId: subjectUserId || '' },
+          ? runtimeAgentRequestContext(input.appId, '', identity, scopedBinding)
+          : runtimeAgentRequestContext(input.appId, subjectUserId || '', identity),
       };
       const response = await input.agent.getPublicChatSessionSnapshot(snapshotRequest, callOptions);
       return parseSessionSnapshot(fromProtoStruct(response.snapshot));

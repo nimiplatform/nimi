@@ -284,6 +284,14 @@ export const ChatSyncMode = {
 
 export type ChatSyncMode = (typeof ChatSyncMode)[keyof typeof ChatSyncMode];
 
+export const CheckEmailEntryRoute = {
+  REGISTER_WITH_OTP: "register_with_otp",
+  LOGIN_WITH_OTP: "login_with_otp",
+  LOGIN_WITH_PASSWORD: "login_with_password",
+} as const satisfies Record<string, components['schemas']['CheckEmailResponseDto']['entryRoute']>;
+
+export type CheckEmailEntryRoute = (typeof CheckEmailEntryRoute)[keyof typeof CheckEmailEntryRoute];
+
 export const CloneAssetClonePolicy = {
   ALLOW: "ALLOW",
   DENY: "DENY",
@@ -327,6 +335,24 @@ export const CommitRealmGroupMessageCandidateMessageType = {
 } as const satisfies Record<string, components['schemas']['CommitRealmGroupMessageCandidateInputDto']['messageType']>;
 
 export type CommitRealmGroupMessageCandidateMessageType = (typeof CommitRealmGroupMessageCandidateMessageType)[keyof typeof CommitRealmGroupMessageCandidateMessageType];
+
+export const CreateAgentDnaPrimary = {
+  CARING: "CARING",
+  PLAYFUL: "PLAYFUL",
+  INTELLECTUAL: "INTELLECTUAL",
+  CONFIDENT: "CONFIDENT",
+  MYSTERIOUS: "MYSTERIOUS",
+  ROMANTIC: "ROMANTIC",
+} as const satisfies Record<string, components['schemas']['CreateAgentDto']['dnaPrimary']>;
+
+export type CreateAgentDnaPrimary = (typeof CreateAgentDnaPrimary)[keyof typeof CreateAgentDnaPrimary];
+
+export const CreateAgentOwnershipType = {
+  MASTER_OWNED: "MASTER_OWNED",
+  WORLD_OWNED: "WORLD_OWNED",
+} as const satisfies Record<string, components['schemas']['CreateAgentDto']['ownershipType']>;
+
+export type CreateAgentOwnershipType = (typeof CreateAgentOwnershipType)[keyof typeof CreateAgentOwnershipType];
 
 export const CreateAgentRuleCategory = {
   CONSTRAINT: "CONSTRAINT",
@@ -373,6 +399,16 @@ export const CreateAgentRuleScope = {
 } as const satisfies Record<string, components['schemas']['CreateAgentRuleDto']['scope']>;
 
 export type CreateAgentRuleScope = (typeof CreateAgentRuleScope)[keyof typeof CreateAgentRuleScope];
+
+export const CreateAgentState = {
+  INCUBATING: "INCUBATING",
+  READY: "READY",
+  ACTIVE: "ACTIVE",
+  SUSPENDED: "SUSPENDED",
+  FAILED: "FAILED",
+} as const satisfies Record<string, components['schemas']['CreateAgentResponseDto']['state']>;
+
+export type CreateAgentState = (typeof CreateAgentState)[keyof typeof CreateAgentState];
 
 export const CreateAssetClonePolicy = {
   ALLOW: "ALLOW",
@@ -688,6 +724,15 @@ export const NotificationType = {
 } as const satisfies Record<string, components['schemas']['NotificationDto']['type']>;
 
 export type NotificationType = (typeof NotificationType)[keyof typeof NotificationType];
+
+export const OAuthLoginProvider = {
+  GOOGLE: "GOOGLE",
+  WECHAT: "WECHAT",
+  TWITTER: "TWITTER",
+  TIKTOK: "TIKTOK",
+} as const satisfies Record<string, components['schemas']['OAuthLoginDto']['provider']>;
+
+export type OAuthLoginProvider = (typeof OAuthLoginProvider)[keyof typeof OAuthLoginProvider];
 
 export const OAuthLoginState = {
   OK: "ok",

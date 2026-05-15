@@ -16,14 +16,14 @@ func TestRuntimeAgentColdStartHasNoTruthsOrPostureBasis(t *testing.T) {
 	svc := newRuntimeAgentTestService(t)
 	ctx := context.Background()
 	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
-		AgentId: "agent-cold-start",
+		Context: testRuntimeAgentIdentityContext("agent-cold-start"),
 	}); err != nil {
 		t.Fatalf("InitializeAgent: %v", err)
 	}
 	locator := &runtimev1.MemoryBankLocator{
 		Scope: runtimev1.MemoryBankScope_MEMORY_BANK_SCOPE_AGENT_CORE,
 		Owner: &runtimev1.MemoryBankLocator_AgentCore{
-			AgentCore: &runtimev1.AgentCoreBankOwner{AgentId: "agent-cold-start"},
+			AgentCore: &runtimev1.AgentCoreBankOwner{AgentId: testRuntimeAgentLocalRef("agent-cold-start")},
 		},
 	}
 	truths, err := svc.memorySvc.ListAdmittedTruths(ctx, locator)
@@ -33,7 +33,7 @@ func TestRuntimeAgentColdStartHasNoTruthsOrPostureBasis(t *testing.T) {
 	if len(truths) != 0 {
 		t.Fatalf("expected no admitted truths on cold start, got %#v", truths)
 	}
-	posture, err := svc.GetBehavioralPosture(ctx, "agent-cold-start")
+	posture, err := svc.GetBehavioralPosture(ctx, testRuntimeAgentLocalRef("agent-cold-start"))
 	if err != nil {
 		t.Fatalf("GetBehavioralPosture: %v", err)
 	}
@@ -62,12 +62,12 @@ func TestRuntimeAgentBehavioralPosturePersistsAcrossRestart(t *testing.T) {
 	closeRuntimeAgentServiceForTest(t, svc)
 	ctx := context.Background()
 	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
-		AgentId: "agent-posture",
+		Context: testRuntimeAgentIdentityContext("agent-posture"),
 	}); err != nil {
 		t.Fatalf("InitializeAgent: %v", err)
 	}
 	want := BehavioralPosture{
-		AgentID:          "agent-posture",
+		AgentID:          testRuntimeAgentLocalRef("agent-posture"),
 		PostureClass:     "steady_support",
 		ActionFamily:     "support",
 		StatusText:       "steady and terse",
@@ -103,7 +103,7 @@ func TestRuntimeAgentBehavioralPosturePersistsAcrossRestart(t *testing.T) {
 	}
 	closeRuntimeAgentServiceForTest(t, svc)
 
-	got, err := svc.GetBehavioralPosture(ctx, "agent-posture")
+	got, err := svc.GetBehavioralPosture(ctx, testRuntimeAgentLocalRef("agent-posture"))
 	if err != nil {
 		t.Fatalf("GetBehavioralPosture: %v", err)
 	}
@@ -143,14 +143,14 @@ func TestRuntimeAgentRecoversPreparedReviewRunAndCommitsMemory(t *testing.T) {
 	closeRuntimeAgentServiceForTest(t, svc)
 	ctx := context.Background()
 	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
-		AgentId: "agent-review",
+		Context: testRuntimeAgentIdentityContext("agent-review"),
 	}); err != nil {
 		t.Fatalf("InitializeAgent: %v", err)
 	}
 	locator := &runtimev1.MemoryBankLocator{
 		Scope: runtimev1.MemoryBankScope_MEMORY_BANK_SCOPE_AGENT_CORE,
 		Owner: &runtimev1.MemoryBankLocator_AgentCore{
-			AgentCore: &runtimev1.AgentCoreBankOwner{AgentId: "agent-review"},
+			AgentCore: &runtimev1.AgentCoreBankOwner{AgentId: testRuntimeAgentLocalRef("agent-review")},
 		},
 	}
 	if _, err := memorySvc.EnsureCanonicalBank(ctx, locator, "Agent Memory", nil); err != nil {
@@ -229,7 +229,7 @@ func TestRuntimeAgentRecoversPreparedReviewRunAndCommitsMemory(t *testing.T) {
 	closeRuntimeAgentServiceForTest(t, svc)
 
 	var statusValue string
-	if err := svc.backend.DB().QueryRow(`SELECT status FROM runtime_agent_review_run WHERE review_run_id = ?`, "review-run-1").Scan(&statusValue); err != nil {
+	if err := svc.backend.DB().QueryRow(`SELECT status FROM runtime_local_agent_review_run WHERE review_run_id = ?`, "review-run-1").Scan(&statusValue); err != nil {
 		t.Fatalf("load review run status: %v", err)
 	}
 	if statusValue != "completed" {
@@ -278,14 +278,14 @@ func TestRuntimeAgentRecoveryDowngradesWave4TruthBelowAdmissionFloor(t *testing.
 	closeRuntimeAgentServiceForTest(t, svc)
 	ctx := context.Background()
 	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
-		AgentId: "agent-wave4-threshold",
+		Context: testRuntimeAgentIdentityContext("agent-wave4-threshold"),
 	}); err != nil {
 		t.Fatalf("InitializeAgent: %v", err)
 	}
 	locator := &runtimev1.MemoryBankLocator{
 		Scope: runtimev1.MemoryBankScope_MEMORY_BANK_SCOPE_AGENT_CORE,
 		Owner: &runtimev1.MemoryBankLocator_AgentCore{
-			AgentCore: &runtimev1.AgentCoreBankOwner{AgentId: "agent-wave4-threshold"},
+			AgentCore: &runtimev1.AgentCoreBankOwner{AgentId: testRuntimeAgentLocalRef("agent-wave4-threshold")},
 		},
 	}
 	if _, err := memorySvc.EnsureCanonicalBank(ctx, locator, "Agent Memory", nil); err != nil {
@@ -407,14 +407,14 @@ func TestRuntimeAgentExecuteCanonicalReviewCommitsExecutorOutputs(t *testing.T) 
 	closeRuntimeAgentServiceForTest(t, svc)
 	ctx := context.Background()
 	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
-		AgentId: "agent-canonical-review",
+		Context: testRuntimeAgentIdentityContext("agent-canonical-review"),
 	}); err != nil {
 		t.Fatalf("InitializeAgent: %v", err)
 	}
 	locator := &runtimev1.MemoryBankLocator{
 		Scope: runtimev1.MemoryBankScope_MEMORY_BANK_SCOPE_AGENT_CORE,
 		Owner: &runtimev1.MemoryBankLocator_AgentCore{
-			AgentCore: &runtimev1.AgentCoreBankOwner{AgentId: "agent-canonical-review"},
+			AgentCore: &runtimev1.AgentCoreBankOwner{AgentId: testRuntimeAgentLocalRef("agent-canonical-review")},
 		},
 	}
 	if _, err := memorySvc.BindCanonicalBankEmbeddingProfile(ctx, locator); err != nil {
@@ -487,7 +487,7 @@ func TestRuntimeAgentExecuteCanonicalReviewCommitsExecutorOutputs(t *testing.T) 
 	}))
 
 	result, err := svc.ExecuteCanonicalReview(ctx, CanonicalReviewRequest{
-		AgentID: "agent-canonical-review",
+		AgentID: testRuntimeAgentLocalRef("agent-canonical-review"),
 		Bank:    locator,
 		Limit:   10,
 	})
@@ -511,7 +511,7 @@ func TestRuntimeAgentExecuteCanonicalReviewCommitsExecutorOutputs(t *testing.T) 
 	}
 
 	var reviewStatus string
-	if err := svc.backend.DB().QueryRow(`SELECT status FROM runtime_agent_review_run WHERE review_run_id = ?`, result.ReviewRunID).Scan(&reviewStatus); err != nil {
+	if err := svc.backend.DB().QueryRow(`SELECT status FROM runtime_local_agent_review_run WHERE review_run_id = ?`, result.ReviewRunID).Scan(&reviewStatus); err != nil {
 		t.Fatalf("load review run status: %v", err)
 	}
 	if reviewStatus != "completed" {

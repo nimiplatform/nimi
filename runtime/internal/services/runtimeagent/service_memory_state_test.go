@@ -2,9 +2,6 @@ package runtimeagent
 
 import (
 	"context"
-	"encoding/json"
-	"errors"
-	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -14,9 +11,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/config"
 	memoryservice "github.com/nimiplatform/nimi/runtime/internal/services/memory"
 	"google.golang.org/grpc/metadata"
-	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 func TestRuntimeAgentRecordAgentMemoryRecallFeedbackAffectsQueryRanking(t *testing.T) {
@@ -39,13 +34,14 @@ func TestRuntimeAgentRecordAgentMemoryRecallFeedbackAffectsQueryRanking(t *testi
 
 	ctx := context.Background()
 	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
-		AgentId:     "agent-feedback",
+		Context:     testRuntimeAgentIdentityContext("agent-feedback"),
 		DisplayName: "Feedback Agent",
 	}); err != nil {
 		t.Fatalf("InitializeAgent: %v", err)
 	}
 
 	writeResp, err := svc.WriteAgentMemory(ctx, &runtimev1.WriteAgentMemoryRequest{
+		Context: testRuntimeAgentIdentityContext("agent-feedback"),
 		AgentId: "agent-feedback",
 		Candidates: []*runtimev1.CanonicalMemoryCandidate{
 			{
@@ -53,7 +49,7 @@ func TestRuntimeAgentRecordAgentMemoryRecallFeedbackAffectsQueryRanking(t *testi
 				TargetBank: &runtimev1.MemoryBankLocator{
 					Scope: runtimev1.MemoryBankScope_MEMORY_BANK_SCOPE_AGENT_CORE,
 					Owner: &runtimev1.MemoryBankLocator_AgentCore{
-						AgentCore: &runtimev1.AgentCoreBankOwner{AgentId: "agent-feedback"},
+						AgentCore: &runtimev1.AgentCoreBankOwner{AgentId: testRuntimeAgentLocalRef("agent-feedback")},
 					},
 				},
 				SourceEventId: "evt-feedback-1",
@@ -70,7 +66,7 @@ func TestRuntimeAgentRecordAgentMemoryRecallFeedbackAffectsQueryRanking(t *testi
 				TargetBank: &runtimev1.MemoryBankLocator{
 					Scope: runtimev1.MemoryBankScope_MEMORY_BANK_SCOPE_AGENT_CORE,
 					Owner: &runtimev1.MemoryBankLocator_AgentCore{
-						AgentCore: &runtimev1.AgentCoreBankOwner{AgentId: "agent-feedback"},
+						AgentCore: &runtimev1.AgentCoreBankOwner{AgentId: testRuntimeAgentLocalRef("agent-feedback")},
 					},
 				},
 				SourceEventId: "evt-feedback-2",
@@ -95,7 +91,7 @@ func TestRuntimeAgentRecordAgentMemoryRecallFeedbackAffectsQueryRanking(t *testi
 
 	if err := svc.RecordAgentMemoryRecallFeedback(ctx, AgentMemoryRecallFeedback{
 		FeedbackID: "agent-feedback-helpful-1",
-		AgentID:    "agent-feedback",
+		AgentID:    testRuntimeAgentLocalRef("agent-feedback"),
 		TargetKind: "record",
 		TargetID:   secondID,
 		Polarity:   "helpful",
@@ -105,7 +101,7 @@ func TestRuntimeAgentRecordAgentMemoryRecallFeedbackAffectsQueryRanking(t *testi
 	}
 	if err := svc.RecordAgentMemoryRecallFeedback(ctx, AgentMemoryRecallFeedback{
 		FeedbackID: "agent-feedback-unhelpful-1",
-		AgentID:    "agent-feedback",
+		AgentID:    testRuntimeAgentLocalRef("agent-feedback"),
 		TargetKind: "record",
 		TargetID:   firstID,
 		Polarity:   "unhelpful",
@@ -115,6 +111,7 @@ func TestRuntimeAgentRecordAgentMemoryRecallFeedbackAffectsQueryRanking(t *testi
 	}
 
 	queryResp, err := svc.QueryAgentMemory(ctx, &runtimev1.QueryAgentMemoryRequest{
+		Context: testRuntimeAgentIdentityContext("agent-feedback"),
 		AgentId: "agent-feedback",
 		Query:   "alpha",
 		Limit:   10,
@@ -153,7 +150,7 @@ func TestRuntimeAgentRecordAgentMemoryRecallFeedbackRejectsMismatchedBank(t *tes
 
 	ctx := context.Background()
 	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
-		AgentId:     "agent-feedback-boundary",
+		Context:     testRuntimeAgentIdentityContext("agent-feedback-boundary"),
 		DisplayName: "Feedback Boundary Agent",
 	}); err != nil {
 		t.Fatalf("InitializeAgent: %v", err)
@@ -161,11 +158,11 @@ func TestRuntimeAgentRecordAgentMemoryRecallFeedbackRejectsMismatchedBank(t *tes
 
 	err = svc.RecordAgentMemoryRecallFeedback(ctx, AgentMemoryRecallFeedback{
 		FeedbackID: "agent-feedback-boundary-1",
-		AgentID:    "agent-feedback-boundary",
+		AgentID:    testRuntimeAgentLocalRef("agent-feedback-boundary"),
 		Bank: &runtimev1.MemoryBankLocator{
 			Scope: runtimev1.MemoryBankScope_MEMORY_BANK_SCOPE_AGENT_CORE,
 			Owner: &runtimev1.MemoryBankLocator_AgentCore{
-				AgentCore: &runtimev1.AgentCoreBankOwner{AgentId: "someone-else"},
+				AgentCore: &runtimev1.AgentCoreBankOwner{AgentId: testRuntimeAgentLocalRef("someone-else")},
 			},
 		},
 		TargetKind: "record",
@@ -177,174 +174,6 @@ func TestRuntimeAgentRecordAgentMemoryRecallFeedbackRejectsMismatchedBank(t *tes
 	}
 	if !strings.Contains(err.Error(), "agent_core review bank must match agent_id") {
 		t.Fatalf("unexpected error: %v", err)
-	}
-}
-
-// TestRuntimeAgentImportsLegacyJSONIntoSQLiteAndRename is retired as part of
-// the Exec Pack 2 hard cut. The legacy-import fixture used the pre-cut
-// `PendingHook{HookId, Status, Trigger, NextIntent}` shape plus
-// `NextHookIntent_*` oneof sub-messages, which are no longer part of the
-// Go proto surface and cannot be constructed in the new vocabulary.
-// Re-introducing those Go types just to run this import path would
-// preserve legacy canonical truth "just for tests", which packet doctrine
-// explicitly forbids.
-//
-// The JSON-on-disk import path is still covered by runtime startup
-// (loadState + importLegacyStateIfPresent) exercised by
-// `TestRuntimeAgentStateReloadPreservesHookAdmissionAndEventSequence`
-// after the hard cut, but using the new HookIntent-shaped fixture.
-func TestRuntimeAgentImportsLegacyJSONIntoSQLiteAndRename(t *testing.T) {
-	t.Skip("retired: pre-cut PendingHook + NextHookIntent shape is no longer part of the Go proto surface")
-	_ = filepath.Join // keep filepath import reachable for later replacement test
-}
-
-func testRuntimeAgentImportsLegacyJSONIntoSQLiteAndRenameRetired(t *testing.T) {
-	dir := t.TempDir()
-	localStatePath := filepath.Join(dir, "local-state.json")
-	legacyPath := filepath.Join(dir, "runtime-agent-state.json")
-	now := time.Now().UTC()
-	agent := &runtimev1.AgentRecord{
-		AgentId:         "agent-legacy",
-		DisplayName:     "Legacy Agent",
-		LifecycleStatus: runtimev1.AgentLifecycleStatus_AGENT_LIFECYCLE_STATUS_ACTIVE,
-		Autonomy: &runtimev1.AgentAutonomyState{
-			Enabled: true,
-		},
-		CreatedAt: timestamppb.New(now),
-		UpdatedAt: timestamppb.New(now),
-	}
-	state := &runtimev1.AgentStateProjection{
-		ExecutionState: runtimev1.AgentExecutionState_AGENT_EXECUTION_STATE_LIFE_PENDING,
-		StatusText:     "legacy status",
-		ActiveWorldId:  "world-legacy",
-		UpdatedAt:      timestamppb.New(now),
-	}
-	scheduledFor := now.Add(3 * time.Minute)
-	hook := newTestTimePendingHook(t, "hook-legacy", "agent-legacy", scheduledFor, now)
-	event := &runtimev1.AgentEvent{
-		EventType: runtimev1.AgentEventType_AGENT_EVENT_TYPE_HOOK,
-		Sequence:  3,
-		AgentId:   agent.GetAgentId(),
-		Timestamp: timestamppb.New(now),
-		Detail: &runtimev1.AgentEvent_Hook{
-			Hook: &runtimev1.AgentHookEventDetail{
-				Family:     runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_PENDING,
-				Intent:     cloneHookIntent(hook.GetIntent()),
-				ObservedAt: timestamppb.New(now),
-			},
-		},
-	}
-	agentRaw, err := protojson.Marshal(agent)
-	if err != nil {
-		t.Fatalf("protojson.Marshal(agent): %v", err)
-	}
-	stateRaw, err := protojson.Marshal(state)
-	if err != nil {
-		t.Fatalf("protojson.Marshal(state): %v", err)
-	}
-	hookRaw, err := protojson.Marshal(hook)
-	if err != nil {
-		t.Fatalf("protojson.Marshal(hook): %v", err)
-	}
-	eventRaw, err := protojson.Marshal(event)
-	if err != nil {
-		t.Fatalf("protojson.Marshal(event): %v", err)
-	}
-	legacy := persistedRuntimeAgentState{
-		SchemaVersion: runtimeAgentStateSchemaVersion,
-		SavedAt:       now.Format(time.RFC3339Nano),
-		Sequence:      event.GetSequence(),
-		Agents: []persistedAgentState{
-			{
-				Agent: agentRaw,
-				State: stateRaw,
-				Hooks: []json.RawMessage{hookRaw},
-			},
-		},
-		Events: []json.RawMessage{eventRaw},
-	}
-	raw, err := json.MarshalIndent(legacy, "", "  ")
-	if err != nil {
-		t.Fatalf("json.MarshalIndent: %v", err)
-	}
-	if err := os.WriteFile(legacyPath, raw, 0o600); err != nil {
-		t.Fatalf("os.WriteFile(runtime-agent-state.json): %v", err)
-	}
-
-	memorySvc, err := memoryservice.New(nil, config.Config{
-		LocalStatePath:       localStatePath,
-		AIHTTPTimeoutSeconds: 2,
-	})
-	if err != nil {
-		t.Fatalf("memory.New: %v", err)
-	}
-	closeRuntimeAgentMemoryServiceForTest(t, memorySvc)
-	svc, err := New(nil, localStatePath, memorySvc)
-	if err != nil {
-		t.Fatalf("runtimeagent.New(import): %v", err)
-	}
-	closeRuntimeAgentServiceForTest(t, svc)
-
-	entry, err := svc.agentByID(agent.GetAgentId())
-	if err != nil {
-		t.Fatalf("agentByID(imported): %v", err)
-	}
-	if entry.State.GetStatusText() != "legacy status" {
-		t.Fatalf("unexpected imported state: %#v", entry.State)
-	}
-	if len(entry.Hooks) != 1 || entry.Hooks["hook-legacy"] == nil {
-		t.Fatalf("unexpected imported hooks: %#v", entry.Hooks)
-	}
-	if len(svc.events) != 1 || svc.events[0].GetSequence() != event.GetSequence() {
-		t.Fatalf("unexpected imported events: %#v", svc.events)
-	}
-	if _, err := os.Stat(legacyPath); !errors.Is(err, os.ErrNotExist) {
-		t.Fatalf("expected legacy runtime-agent file to be renamed, stat err=%v", err)
-	}
-	if _, err := os.Stat(legacyPath + ".wave4-imported.json.bak"); err != nil {
-		t.Fatalf("expected imported runtime agent backup rename: %v", err)
-	}
-	if got, err := svc.runtimeAgentMetaValue(runtimeAgentMetaLegacyImportSourcePathKey); err != nil || got != legacyPath {
-		t.Fatalf("unexpected import source path metadata: got=%q err=%v", got, err)
-	}
-	if got, err := svc.runtimeAgentMetaValue(runtimeAgentMetaLegacyImportSourceSchemaVersionKey); err != nil || got != "1" {
-		t.Fatalf("unexpected import schema metadata: got=%q err=%v", got, err)
-	}
-	if got, err := svc.runtimeAgentMetaValue(runtimeAgentMetaLegacyImportSourceSHA256Key); err != nil || got == "" {
-		t.Fatalf("expected import sha metadata, got=%q err=%v", got, err)
-	}
-	if got, err := svc.runtimeAgentMetaValue(runtimeAgentMetaLegacyImportedAtKey); err != nil || got == "" {
-		t.Fatalf("expected import timestamp metadata, got=%q err=%v", got, err)
-	}
-
-	if err := memorySvc.PersistenceBackend().Close(); err != nil {
-		t.Fatalf("Close(first backend): %v", err)
-	}
-
-	memorySvc, err = memoryservice.New(nil, config.Config{
-		LocalStatePath:       localStatePath,
-		AIHTTPTimeoutSeconds: 2,
-	})
-	if err != nil {
-		t.Fatalf("memory.New(restart): %v", err)
-	}
-	closeRuntimeAgentMemoryServiceForTest(t, memorySvc)
-	defer func() {
-		if err := memorySvc.PersistenceBackend().Close(); err != nil {
-			t.Fatalf("Close(second backend): %v", err)
-		}
-	}()
-	svc, err = New(nil, localStatePath, memorySvc)
-	if err != nil {
-		t.Fatalf("runtimeagent.New(restart): %v", err)
-	}
-	closeRuntimeAgentServiceForTest(t, svc)
-	entry, err = svc.agentByID(agent.GetAgentId())
-	if err != nil {
-		t.Fatalf("agentByID(restart): %v", err)
-	}
-	if len(entry.Hooks) != 1 {
-		t.Fatalf("expected one imported hook after restart, got %#v", entry.Hooks)
 	}
 }
 
@@ -380,6 +209,7 @@ func newRuntimeAgentTestService(t *testing.T) *Service {
 func mustEnableAutonomy(t *testing.T, svc *Service, ctx context.Context, agentID string) {
 	t.Helper()
 	resp, err := svc.EnableAutonomy(ctx, &runtimev1.EnableAutonomyRequest{
+		Context: testRuntimeAgentIdentityContext(agentID),
 		AgentId: agentID,
 	})
 	if err != nil {
@@ -392,7 +222,8 @@ func mustEnableAutonomy(t *testing.T, svc *Service, ctx context.Context, agentID
 
 func mustFindPendingCadenceHook(t *testing.T, svc *Service, ctx context.Context, agentID string) *runtimev1.PendingHook {
 	t.Helper()
-	resp, err := svc.ListPendingHooks(ctx, &runtimev1.ListPendingHooksRequest{AgentId: agentID})
+	resp, err := svc.ListPendingHooks(ctx, &runtimev1.ListPendingHooksRequest{
+		Context: testRuntimeAgentIdentityContext(agentID), AgentId: agentID})
 	if err != nil {
 		t.Fatalf("ListPendingHooks(%s): %v", agentID, err)
 	}

@@ -71,7 +71,9 @@ func TestPublicChatTurnRequestAllowsRouteOmissionWhenRuntimeResolvesBinding(t *t
 		SubjectUserId: "user-1",
 		MessageType:   publicChatTurnRequestType,
 		Payload: publicChatStructPayload(t, map[string]any{
-			"agent_id":               "agent-alpha",
+			"local_agent_ref":        testRuntimeAgentLocalRef("agent-alpha"),
+			"owner_user_id":          "user-1",
+			"realm_agent_id":         "agent-alpha",
 			"conversation_anchor_id": anchorID,
 			"thread_id":              "thread-route-omission",
 			"messages": []any{
@@ -161,7 +163,9 @@ func TestPublicChatTurnInvalidStructuredOutputFailsClosed(t *testing.T) {
 		SubjectUserId: "user-1",
 		MessageType:   publicChatTurnRequestType,
 		Payload: publicChatStructPayload(t, map[string]any{
-			"agent_id":               "agent-alpha",
+			"local_agent_ref":        testRuntimeAgentLocalRef("agent-alpha"),
+			"owner_user_id":          "user-1",
+			"realm_agent_id":         "agent-alpha",
 			"conversation_anchor_id": anchorID,
 			"messages": []any{
 				map[string]any{"role": "user", "content": "hello"},
@@ -255,7 +259,9 @@ func TestPublicChatTurnRequestPreservesCommittedTranscriptOnFailedTurn(t *testin
 		SubjectUserId: "user-1",
 		MessageType:   publicChatTurnRequestType,
 		Payload: publicChatStructPayload(t, map[string]any{
-			"agent_id":               "agent-alpha",
+			"local_agent_ref":        testRuntimeAgentLocalRef("agent-alpha"),
+			"owner_user_id":          "user-1",
+			"realm_agent_id":         "agent-alpha",
 			"conversation_anchor_id": anchorID,
 			"messages": []any{
 				map[string]any{"role": "user", "content": "hello"},
@@ -362,7 +368,9 @@ func TestPublicChatTurnRequestFoldsCommittedLastTurnIntoTranscript(t *testing.T)
 		SubjectUserId: "user-1",
 		MessageType:   publicChatTurnRequestType,
 		Payload: publicChatStructPayload(t, map[string]any{
-			"agent_id":               "agent-alpha",
+			"local_agent_ref":        testRuntimeAgentLocalRef("agent-alpha"),
+			"owner_user_id":          "user-1",
+			"realm_agent_id":         "agent-alpha",
 			"conversation_anchor_id": anchorID,
 			"messages": []any{
 				map[string]any{"role": "user", "content": "测试"},
@@ -448,7 +456,9 @@ func TestPublicChatTurnRequestRejectsUnknownEmotionBeforeCommit(t *testing.T) {
 		SubjectUserId: "user-1",
 		MessageType:   publicChatTurnRequestType,
 		Payload: publicChatStructPayload(t, map[string]any{
-			"agent_id":               "agent-alpha",
+			"local_agent_ref":        testRuntimeAgentLocalRef("agent-alpha"),
+			"owner_user_id":          "user-1",
+			"realm_agent_id":         "agent-alpha",
 			"conversation_anchor_id": anchorID,
 			"messages": []any{
 				map[string]any{"role": "user", "content": "hello"},
@@ -553,7 +563,9 @@ func TestPublicChatFollowUpRunsInsideRuntime(t *testing.T) {
 		SubjectUserId: "user-1",
 		MessageType:   publicChatTurnRequestType,
 		Payload: publicChatStructPayload(t, map[string]any{
-			"agent_id":               "agent-alpha",
+			"local_agent_ref":        testRuntimeAgentLocalRef("agent-alpha"),
+			"owner_user_id":          "user-1",
+			"realm_agent_id":         "agent-alpha",
 			"conversation_anchor_id": anchorID,
 			"thread_id":              "thread-follow-up",
 			"messages": []any{

@@ -68,6 +68,9 @@ type publicChatReasoningConfig struct {
 type publicChatAnchorState struct {
 	ConversationAnchorID string
 	AgentID              string
+	LocalAgentRef        string
+	OwnerUserID          string
+	RealmAgentID         string
 	CallerAppID          string
 	SubjectUserID        string
 	ThreadID             string
@@ -142,6 +145,9 @@ type publicChatReasoningPayload struct {
 // requests that reference a non-existent anchor (no implicit creation).
 type publicChatTurnRequestPayload struct {
 	AgentID              string                             `json:"agent_id"`
+	LocalAgentRef        string                             `json:"local_agent_ref"`
+	OwnerUserID          string                             `json:"owner_user_id"`
+	RealmAgentID         string                             `json:"realm_agent_id"`
 	ConversationAnchorID string                             `json:"conversation_anchor_id"`
 	RequestID            string                             `json:"request_id,omitempty"`
 	ThreadID             string                             `json:"thread_id,omitempty"`

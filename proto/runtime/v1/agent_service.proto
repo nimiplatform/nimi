@@ -24,11 +24,7 @@ enum AgentExecutionState {
   AGENT_EXECUTION_STATE_LIFE_RUNNING = 4;
   AGENT_EXECUTION_STATE_SUSPENDED = 5;
 }
-enum AgentTrackType {
-  AGENT_TRACK_TYPE_UNSPECIFIED = 0;
-  AGENT_TRACK_TYPE_CHAT = 1;
-  AGENT_TRACK_TYPE_LIFE = 2;
-}
+enum AgentTrackType { AGENT_TRACK_TYPE_UNSPECIFIED = 0; AGENT_TRACK_TYPE_CHAT = 1; AGENT_TRACK_TYPE_LIFE = 2; }
 // K-AGCORE-041 HookIntent trigger family is limited to `time` and `event`.
 // Non-admitted trigger families (turn_completed, scheduled_time absolute,
 // state_condition, world_event, compound) are not part of the mounted
@@ -150,6 +146,9 @@ message AgentRecord {
   google.protobuf.Struct metadata = 5;
   google.protobuf.Timestamp created_at = 6;
   google.protobuf.Timestamp updated_at = 7;
+  string local_agent_ref = 20;
+  string owner_user_id = 21;
+  string realm_agent_id = 22;
 }
 message AgentStateProjection {
   AgentExecutionState execution_state = 1;
@@ -404,6 +403,9 @@ message AgentEvent {
   uint64 sequence = 2;
   string agent_id = 3;
   google.protobuf.Timestamp timestamp = 4;
+  string local_agent_ref = 20;
+  string owner_user_id = 21;
+  string realm_agent_id = 22;
   oneof detail {
     AgentLifecycleEventDetail lifecycle = 10;
     AgentHookEventDetail hook = 11;
@@ -422,6 +424,9 @@ message InitializeAgentRequest {
   AgentAutonomyConfig autonomy_config = 4;
   string world_id = 5;
   google.protobuf.Struct metadata = 6;
+  string local_agent_ref = 20;
+  string owner_user_id = 21;
+  string realm_agent_id = 22;
 }
 message InitializeAgentResponse {
   AgentRecord agent = 1;
@@ -566,6 +571,9 @@ message ConversationAnchor {
   google.protobuf.Timestamp created_at = 7;
   google.protobuf.Timestamp updated_at = 8;
   google.protobuf.Struct metadata = 9;
+  string local_agent_ref = 20;
+  string owner_user_id = 21;
+  string realm_agent_id = 22;
 }
 message ConversationAnchorSnapshot {
   ConversationAnchor anchor = 1;
@@ -577,6 +585,9 @@ message OpenConversationAnchorRequest {
   string agent_id = 2;
   string subject_user_id = 3;
   google.protobuf.Struct metadata = 4;
+  string local_agent_ref = 20;
+  string owner_user_id = 21;
+  string realm_agent_id = 22;
 }
 message OpenConversationAnchorResponse {
   ConversationAnchorSnapshot snapshot = 1;

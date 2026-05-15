@@ -49,12 +49,12 @@ func TestWave1ExecPack3PostureProjectionAndEnvelopeInvariants(t *testing.T) {
 
 	ctx := context.Background()
 	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
-		AgentId: "agent-exec-pack-3",
+		Context: testRuntimeAgentIdentityContext("agent-exec-pack-3"),
 	}); err != nil {
 		t.Fatalf("InitializeAgent: %v", err)
 	}
 
-	entry, err := svc.agentByID("agent-exec-pack-3")
+	entry, err := svc.agentByID(testRuntimeAgentLocalRef("agent-exec-pack-3"))
 	if err != nil {
 		t.Fatalf("agentByID: %v", err)
 	}
@@ -69,7 +69,7 @@ func TestWave1ExecPack3PostureProjectionAndEnvelopeInvariants(t *testing.T) {
 	cursor := svc.sequence
 	svc.mu.RUnlock()
 
-	entry, err = svc.agentByID("agent-exec-pack-3")
+	entry, err = svc.agentByID(testRuntimeAgentLocalRef("agent-exec-pack-3"))
 	if err != nil {
 		t.Fatalf("agentByID: %v", err)
 	}
@@ -97,6 +97,7 @@ func TestWave1ExecPack3PostureProjectionAndEnvelopeInvariants(t *testing.T) {
 	defer cancel()
 	stream := newAgentEventCaptureStreamLimit(streamCtx, 2)
 	if err := svc.SubscribeAgentEvents(&runtimev1.SubscribeAgentEventsRequest{
+		Context: testRuntimeAgentIdentityContext("agent-exec-pack-3"),
 		AgentId: "agent-exec-pack-3",
 		Cursor:  encodeCursor(cursor),
 		EventFilters: []runtimev1.AgentEventType{
@@ -246,7 +247,9 @@ func TestWave1ExecPack3CommittedPresentationReachesTypedStream(t *testing.T) {
 		SubjectUserId: "user-1",
 		MessageType:   publicChatTurnRequestType,
 		Payload: publicChatStructPayload(t, map[string]any{
-			"agent_id":               "agent-alpha",
+			"local_agent_ref":        testRuntimeAgentLocalRef("agent-alpha"),
+			"owner_user_id":          "user-1",
+			"realm_agent_id":         "agent-alpha",
 			"conversation_anchor_id": anchorID,
 			"messages": []any{
 				map[string]any{"role": "user", "content": "show emotion"},
@@ -273,6 +276,7 @@ func TestWave1ExecPack3CommittedPresentationReachesTypedStream(t *testing.T) {
 	defer cancel()
 	stream := newAgentEventCaptureStreamLimit(streamCtx, 1)
 	if err := svc.SubscribeAgentEvents(&runtimev1.SubscribeAgentEventsRequest{
+		Context: testRuntimeAgentIdentityContext("agent-alpha"),
 		AgentId: "agent-alpha",
 		Cursor:  encodeCursor(cursor),
 		EventFilters: []runtimev1.AgentEventType{
@@ -362,7 +366,9 @@ func TestWave1ExecPack3CommittedAPMLActivityReachesTypedStream(t *testing.T) {
 		SubjectUserId: "user-1",
 		MessageType:   publicChatTurnRequestType,
 		Payload: publicChatStructPayload(t, map[string]any{
-			"agent_id":               "agent-alpha",
+			"local_agent_ref":        testRuntimeAgentLocalRef("agent-alpha"),
+			"owner_user_id":          "user-1",
+			"realm_agent_id":         "agent-alpha",
 			"conversation_anchor_id": anchorID,
 			"messages": []any{
 				map[string]any{"role": "user", "content": "show activity"},
@@ -389,6 +395,7 @@ func TestWave1ExecPack3CommittedAPMLActivityReachesTypedStream(t *testing.T) {
 	defer cancel()
 	stream := newAgentEventCaptureStreamLimit(streamCtx, 1)
 	if err := svc.SubscribeAgentEvents(&runtimev1.SubscribeAgentEventsRequest{
+		Context: testRuntimeAgentIdentityContext("agent-alpha"),
 		AgentId: "agent-alpha",
 		Cursor:  encodeCursor(cursor),
 		EventFilters: []runtimev1.AgentEventType{

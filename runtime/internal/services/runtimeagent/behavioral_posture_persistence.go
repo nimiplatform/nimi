@@ -29,7 +29,7 @@ func newBehavioralPosturePersistence(backend *runtimepersistence.Backend) behavi
 
 func (s sqliteBehavioralPosturePersistence) PutBehavioralPosture(ctx context.Context, posture BehavioralPosture) error {
 	if strings.TrimSpace(posture.AgentID) == "" {
-		return fmt.Errorf("agent_id is required")
+		return fmt.Errorf("local_agent_ref is required")
 	}
 	if strings.TrimSpace(posture.UpdatedAt) == "" {
 		posture.UpdatedAt = time.Now().UTC().Format(time.RFC3339Nano)
@@ -44,7 +44,7 @@ func (s sqliteBehavioralPosturePersistence) PutBehavioralPosture(ctx context.Con
 	}
 	return s.backend.WriteTx(ctx, func(tx *sql.Tx) error {
 		_, err := tx.ExecContext(ctx, `
-			INSERT OR REPLACE INTO runtime_agent_behavioral_posture(agent_id, status_text, truth_basis_json, posture_json, updated_at)
+			INSERT OR REPLACE INTO runtime_local_agent_behavioral_posture(local_agent_ref, status_text, truth_basis_json, posture_json, updated_at)
 			VALUES (?, ?, ?, ?, ?)
 		`, posture.AgentID, posture.StatusText, string(basisRaw), string(raw), posture.UpdatedAt)
 		return err
@@ -55,8 +55,8 @@ func (s sqliteBehavioralPosturePersistence) GetBehavioralPosture(ctx context.Con
 	var raw string
 	err := s.backend.DB().QueryRowContext(ctx, `
 		SELECT posture_json
-		FROM runtime_agent_behavioral_posture
-		WHERE agent_id = ?
+		FROM runtime_local_agent_behavioral_posture
+		WHERE local_agent_ref = ?
 	`, strings.TrimSpace(agentID)).Scan(&raw)
 	if err != nil {
 		if err == sql.ErrNoRows {

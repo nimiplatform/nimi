@@ -66,7 +66,9 @@ func TestPublicChatTurnRejectsConcurrentTurnForSameAgent(t *testing.T) {
 		SubjectUserId: "user-1",
 		MessageType:   publicChatTurnRequestType,
 		Payload: publicChatStructPayload(t, map[string]any{
-			"agent_id":               "agent-alpha",
+			"local_agent_ref":        testRuntimeAgentLocalRef("agent-alpha"),
+			"owner_user_id":          "user-1",
+			"realm_agent_id":         "agent-alpha",
 			"conversation_anchor_id": anchorID,
 			"messages": []any{
 				map[string]any{"role": "user", "content": "hello"},
@@ -88,7 +90,9 @@ func TestPublicChatTurnRejectsConcurrentTurnForSameAgent(t *testing.T) {
 		SubjectUserId: "user-1",
 		MessageType:   publicChatTurnRequestType,
 		Payload: publicChatStructPayload(t, map[string]any{
-			"agent_id":               "agent-alpha",
+			"local_agent_ref":        testRuntimeAgentLocalRef("agent-alpha"),
+			"owner_user_id":          "user-1",
+			"realm_agent_id":         "agent-alpha",
 			"conversation_anchor_id": anchorID,
 			"messages": []any{
 				map[string]any{"role": "user", "content": "second turn"},
@@ -160,7 +164,9 @@ func TestPublicChatSessionRejectsThreadIdentityDrift(t *testing.T) {
 		SubjectUserId: "user-1",
 		MessageType:   publicChatTurnRequestType,
 		Payload: publicChatStructPayload(t, map[string]any{
-			"agent_id":               "agent-alpha",
+			"local_agent_ref":        testRuntimeAgentLocalRef("agent-alpha"),
+			"owner_user_id":          "user-1",
+			"realm_agent_id":         "agent-alpha",
 			"conversation_anchor_id": anchorID,
 			"thread_id":              "thread-1",
 			"messages": []any{
@@ -188,7 +194,9 @@ func TestPublicChatSessionRejectsThreadIdentityDrift(t *testing.T) {
 		SubjectUserId: "user-1",
 		MessageType:   publicChatTurnRequestType,
 		Payload: publicChatStructPayload(t, map[string]any{
-			"agent_id":               "agent-alpha",
+			"local_agent_ref":        testRuntimeAgentLocalRef("agent-alpha"),
+			"owner_user_id":          "user-1",
+			"realm_agent_id":         "agent-alpha",
 			"conversation_anchor_id": anchorID,
 			"thread_id":              "thread-2",
 			"messages": []any{
@@ -251,7 +259,9 @@ func TestPublicChatSessionRejectsExecutionBindingDrift(t *testing.T) {
 		SubjectUserId: "user-1",
 		MessageType:   publicChatTurnRequestType,
 		Payload: publicChatStructPayload(t, map[string]any{
-			"agent_id":               "agent-alpha",
+			"local_agent_ref":        testRuntimeAgentLocalRef("agent-alpha"),
+			"owner_user_id":          "user-1",
+			"realm_agent_id":         "agent-alpha",
 			"conversation_anchor_id": anchorID,
 			"thread_id":              "thread-1",
 			"messages": []any{
@@ -279,7 +289,9 @@ func TestPublicChatSessionRejectsExecutionBindingDrift(t *testing.T) {
 		SubjectUserId: "user-1",
 		MessageType:   publicChatTurnRequestType,
 		Payload: publicChatStructPayload(t, map[string]any{
-			"agent_id":               "agent-alpha",
+			"local_agent_ref":        testRuntimeAgentLocalRef("agent-alpha"),
+			"owner_user_id":          "user-1",
+			"realm_agent_id":         "agent-alpha",
 			"conversation_anchor_id": anchorID,
 			"thread_id":              "thread-1",
 			"messages": []any{
@@ -317,7 +329,9 @@ func TestPublicChatTurnRequestRejectsMissingConversationAnchorID(t *testing.T) {
 		SubjectUserId: "user-1",
 		MessageType:   publicChatTurnRequestType,
 		Payload: publicChatStructPayload(t, map[string]any{
-			"agent_id": "agent-alpha",
+			"local_agent_ref": testRuntimeAgentLocalRef("agent-alpha"),
+			"owner_user_id":   "user-1",
+			"realm_agent_id":  "agent-alpha",
 			"messages": []any{
 				map[string]any{"role": "user", "content": "hello"},
 			},
@@ -356,7 +370,9 @@ func TestPublicChatTurnRequestRejectsUnknownConversationAnchorID(t *testing.T) {
 		SubjectUserId: "user-1",
 		MessageType:   publicChatTurnRequestType,
 		Payload: publicChatStructPayload(t, map[string]any{
-			"agent_id":               "agent-alpha",
+			"local_agent_ref":        testRuntimeAgentLocalRef("agent-alpha"),
+			"owner_user_id":          "user-1",
+			"realm_agent_id":         "agent-alpha",
 			"conversation_anchor_id": "agent_anchor_never_opened",
 			"messages": []any{
 				map[string]any{"role": "user", "content": "hello"},
@@ -405,8 +421,10 @@ func TestPublicChatIngressRejectsLegacyAgentChatCarrier(t *testing.T) {
 				SubjectUserId: "user-1",
 				MessageType:   messageType,
 				Payload: publicChatStructPayload(t, map[string]any{
-					"agent_id":   "agent-alpha",
-					"session_id": "session-legacy",
+					"local_agent_ref": testRuntimeAgentLocalRef("agent-alpha"),
+					"owner_user_id":   "user-1",
+					"realm_agent_id":  "agent-alpha",
+					"session_id":      "session-legacy",
 					"messages": []any{
 						map[string]any{"role": "user", "content": "hello"},
 					},

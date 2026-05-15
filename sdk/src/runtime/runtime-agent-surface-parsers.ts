@@ -20,7 +20,7 @@ function eventHasConversationAnchor(
     && normalizeText((event as { conversationAnchorId?: string }).conversationAnchorId).length > 0;
 }
 export function matchesConsumeRequest(event: RuntimeAgentConsumeEvent, request: RuntimeAgentConsumeRequest): boolean {
-  if (event.agentId !== request.agentId) {
+  if (event.localAgentRef !== request.localAgentRef) {
     return false;
   }
   const requestedAnchorId = optionalString(request.conversationAnchorId);

@@ -16,6 +16,12 @@ import {
   unwrapTauriInvokePayload,
 } from './runtime-client-fixtures.js';
 
+const LOCAL_AGENT_IDENTITY = {
+  ownerUserId: 'user-1',
+  realmAgentId: 'agent-1',
+  localAgentRef: 'local-agent:user-1:agent-1',
+} as const;
+
 test('tauri-ipc Runtime agent session snapshot includes protected token and app session', async () => {
   const capturedPayloads: Record<string, unknown>[] = [];
   const authorizeRequests: AuthorizeExternalPrincipalRequest[] = [];
@@ -89,7 +95,7 @@ test('tauri-ipc Runtime agent session snapshot includes protected token and app 
     });
 
     await runtime.agent.turns.getSessionSnapshot({
-      agentId: 'agent-1',
+      ...LOCAL_AGENT_IDENTITY,
       conversationAnchorId: 'anchor-1',
     });
 

@@ -66,7 +66,9 @@ func TestWave2PublicChatEventHookProjectsRejectedRuntimeHookTruth(t *testing.T) 
 		SubjectUserId: "user-1",
 		MessageType:   publicChatTurnRequestType,
 		Payload: publicChatStructPayload(t, map[string]any{
-			"agent_id":               "agent-alpha",
+			"local_agent_ref":        testRuntimeAgentLocalRef("agent-alpha"),
+			"owner_user_id":          "user-1",
+			"realm_agent_id":         "agent-alpha",
 			"conversation_anchor_id": anchorID,
 			"messages": []any{
 				map[string]any{"role": "user", "content": "propose idle follow up"},
@@ -104,6 +106,7 @@ func TestWave2PublicChatEventHookProjectsRejectedRuntimeHookTruth(t *testing.T) 
 
 	hookStream := newAgentEventCaptureStreamLimit(context.Background(), 2)
 	if err := svc.SubscribeAgentEvents(&runtimev1.SubscribeAgentEventsRequest{
+		Context:      testRuntimeAgentIdentityContext("agent-alpha"),
 		AgentId:      "agent-alpha",
 		Cursor:       encodeCursor(cursor),
 		EventFilters: []runtimev1.AgentEventType{runtimev1.AgentEventType_AGENT_EVENT_TYPE_HOOK},
@@ -140,6 +143,7 @@ func TestWave2PublicChatEventHookProjectsRejectedRuntimeHookTruth(t *testing.T) 
 	}
 
 	pendingResp, err := svc.ListPendingHooks(context.Background(), &runtimev1.ListPendingHooksRequest{
+		Context:              testRuntimeAgentIdentityContext("agent-alpha"),
 		AgentId:              "agent-alpha",
 		AdmissionStateFilter: runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_PENDING,
 	})

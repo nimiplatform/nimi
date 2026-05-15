@@ -46,6 +46,12 @@ import {
   unwrapTauriInvokePayload,
 } from './runtime-client-fixtures.js';
 
+const LOCAL_AGENT_IDENTITY = {
+  ownerUserId: 'user-1',
+  realmAgentId: 'agent-1',
+  localAgentRef: 'local-agent:user-1:agent-1',
+} as const;
+
 test('node-grpc and tauri-ipc cover runtime.local unary contract surface', async () => {
   const localMethodEntries = Object.entries(RuntimeMethodIds.local) as Array<
     [keyof typeof RuntimeMethodIds.local, string]
@@ -398,7 +404,7 @@ test('tauri-ipc runtime agent anchor unary request includes runtime app session'
                   snapshot: {
                     anchor: ConversationAnchor.create({
                       conversationAnchorId: 'anchor-1',
-                      agentId: 'agent-1',
+                      ...LOCAL_AGENT_IDENTITY,
                       subjectUserId: 'user-1',
                       status: ConversationAnchorStatus.ACTIVE,
                     }),
@@ -433,7 +439,7 @@ test('tauri-ipc runtime agent anchor unary request includes runtime app session'
     });
 
     await client.agent.openConversationAnchor({
-      agentId: 'agent-1',
+      ...LOCAL_AGENT_IDENTITY,
       subjectUserId: 'user-1',
     });
     assert.ok(capturedPayload);
@@ -490,7 +496,7 @@ test('tauri-ipc Runtime agent anchor surface includes protected token and app se
                     snapshot: {
                       anchor: ConversationAnchor.create({
                         conversationAnchorId: 'anchor-1',
-                        agentId: 'agent-1',
+                        ...LOCAL_AGENT_IDENTITY,
                         subjectUserId: 'user-1',
                         status: ConversationAnchorStatus.ACTIVE,
                       }),
@@ -529,7 +535,7 @@ test('tauri-ipc Runtime agent anchor surface includes protected token and app se
     });
 
     await runtime.agent.anchors.open({
-      agentId: 'agent-1',
+      ...LOCAL_AGENT_IDENTITY,
     });
 
     const openPayload = capturedPayloads.find((captured) => captured.methodId === RuntimeMethodIds.agent.openConversationAnchor);
@@ -633,11 +639,11 @@ test('tauri-ipc Runtime agent turns surface includes protected tokens for stream
     });
 
     await runtime.agent.turns.subscribe({
-      agentId: 'agent-1',
+      ...LOCAL_AGENT_IDENTITY,
       conversationAnchorId: 'anchor-1',
     });
     await runtime.agent.turns.request({
-      agentId: 'agent-1',
+      ...LOCAL_AGENT_IDENTITY,
       conversationAnchorId: 'anchor-1',
       messages: [{ role: 'user', content: 'hello' }],
       executionBinding: { route: 'local', modelId: 'local/qwen2.5' },

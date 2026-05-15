@@ -4,10 +4,10 @@ import { asRecord } from './helpers.js';
 import { parseRuntimeAgentPresentationConsumeEvent } from './runtime-agent-presentation-parsers.js';
 import { parseRuntimeAgentTimeline } from './runtime-agent-timeline-parsers.js';
 import type { RuntimeAgentConsumeEvent } from './types-runtime-agent.js';
-import { expectString, optionalContentString, optionalString } from './runtime-agent-surface-parser-common.js';
+import { expectLocalAgentRef, expectString, optionalContentString, optionalString } from './runtime-agent-surface-parser-common.js';
 
 export function parseAppConsumeEvent(messageType: string, payload: Record<string, unknown>): RuntimeAgentConsumeEvent {
-  const agentId = expectString(payload.agent_id, 'agent_id', messageType);
+  const localAgentRef = expectLocalAgentRef(payload.agent_id, 'agent_id', messageType);
   const conversationAnchorId = expectString(payload.conversation_anchor_id, 'conversation_anchor_id', messageType);
   const detail = asRecord(payload.detail);
   const parseTimeline = (turnId: string, streamId: string) => parseRuntimeAgentTimeline(
@@ -19,7 +19,7 @@ export function parseAppConsumeEvent(messageType: string, payload: Record<string
   const presentationEvent = parseRuntimeAgentPresentationConsumeEvent(
     messageType,
     payload,
-    agentId,
+    localAgentRef,
     conversationAnchorId,
     parseTimeline,
   );
@@ -32,7 +32,7 @@ export function parseAppConsumeEvent(messageType: string, payload: Record<string
       const streamId = expectString(payload.stream_id, 'stream_id', messageType);
       return {
         eventName: messageType,
-        agentId,
+        localAgentRef,
         conversationAnchorId,
         turnId,
         streamId,
@@ -56,7 +56,7 @@ export function parseAppConsumeEvent(messageType: string, payload: Record<string
       }
       return {
         eventName: messageType,
-        agentId,
+        localAgentRef,
         conversationAnchorId,
         turnId,
         streamId,
@@ -70,7 +70,7 @@ export function parseAppConsumeEvent(messageType: string, payload: Record<string
       const streamId = expectString(payload.stream_id, 'stream_id', messageType);
       return {
         eventName: messageType,
-        agentId,
+        localAgentRef,
         conversationAnchorId,
         turnId,
         streamId,
@@ -85,7 +85,7 @@ export function parseAppConsumeEvent(messageType: string, payload: Record<string
       const streamId = expectString(payload.stream_id, 'stream_id', messageType);
       return {
         eventName: messageType,
-        agentId,
+        localAgentRef,
         conversationAnchorId,
         turnId,
         streamId,
@@ -102,7 +102,7 @@ export function parseAppConsumeEvent(messageType: string, payload: Record<string
       const messageId = expectString(payload.message_id || detail.message_id, 'message_id', messageType);
       return {
         eventName: messageType,
-        agentId,
+        localAgentRef,
         conversationAnchorId,
         turnId,
         streamId,
@@ -119,7 +119,7 @@ export function parseAppConsumeEvent(messageType: string, payload: Record<string
       const streamId = expectString(payload.stream_id, 'stream_id', messageType);
       return {
         eventName: messageType,
-        agentId,
+        localAgentRef,
         conversationAnchorId,
         turnId,
         streamId,
@@ -135,7 +135,7 @@ export function parseAppConsumeEvent(messageType: string, payload: Record<string
       const streamId = expectString(payload.stream_id, 'stream_id', messageType);
       return {
         eventName: messageType,
-        agentId,
+        localAgentRef,
         conversationAnchorId,
         turnId,
         streamId,
@@ -150,7 +150,7 @@ export function parseAppConsumeEvent(messageType: string, payload: Record<string
       const streamId = expectString(payload.stream_id, 'stream_id', messageType);
       return {
         eventName: messageType,
-        agentId,
+        localAgentRef,
         conversationAnchorId,
         turnId,
         streamId,
@@ -166,7 +166,7 @@ export function parseAppConsumeEvent(messageType: string, payload: Record<string
       const streamId = expectString(payload.stream_id, 'stream_id', messageType);
       return {
         eventName: messageType,
-        agentId,
+        localAgentRef,
         conversationAnchorId,
         turnId,
         streamId,
@@ -181,7 +181,7 @@ export function parseAppConsumeEvent(messageType: string, payload: Record<string
       const streamId = expectString(payload.stream_id, 'stream_id', messageType);
       return {
         eventName: messageType,
-        agentId,
+        localAgentRef,
         conversationAnchorId,
         turnId,
         streamId,

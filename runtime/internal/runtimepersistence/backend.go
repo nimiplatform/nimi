@@ -29,20 +29,6 @@ const (
 	integrityCheckPragma = "PRAGMA quick_check"
 )
 
-var runtimeAgentNamespaceRenamePairs = []struct {
-	old string
-	new string
-}{
-	{old: "agentcore_meta", new: "runtime_agent_meta"},
-	{old: "agentcore_agent", new: "runtime_agent_agent"},
-	{old: "agentcore_state_projection", new: "runtime_agent_state_projection"},
-	{old: "agentcore_hook", new: "runtime_agent_hook"},
-	{old: "agentcore_event_log", new: "runtime_agent_event_log"},
-	{old: "agentcore_behavioral_posture", new: "runtime_agent_behavioral_posture"},
-	{old: "agentcore_review_run", new: "runtime_agent_review_run"},
-	{old: "agentcore_review_followup", new: "runtime_agent_review_followup"},
-}
-
 type Backend struct {
 	logger    *slog.Logger
 	path      string
@@ -258,9 +244,6 @@ func (b *Backend) ensureHealthyOrRestore() error {
 }
 
 func (b *Backend) ensureSchema() error {
-	if err := b.migrateRuntimeAgentNamespace(); err != nil {
-		return err
-	}
 	stmts := []string{
 		`CREATE TABLE IF NOT EXISTS memory_meta (key TEXT PRIMARY KEY, value TEXT NOT NULL)`,
 		`CREATE TABLE IF NOT EXISTS memory_bank (
@@ -409,40 +392,40 @@ func (b *Backend) ensureSchema() error {
 			checkpoint_json TEXT NOT NULL,
 			updated_at TEXT NOT NULL
 		)`,
-		`CREATE TABLE IF NOT EXISTS runtime_agent_meta (key TEXT PRIMARY KEY, value TEXT NOT NULL)`,
-		`CREATE TABLE IF NOT EXISTS runtime_agent_agent (
-			agent_id TEXT PRIMARY KEY,
+		`CREATE TABLE IF NOT EXISTS runtime_local_agent_meta (key TEXT PRIMARY KEY, value TEXT NOT NULL)`,
+		`CREATE TABLE IF NOT EXISTS runtime_local_agent (
+			local_agent_ref TEXT PRIMARY KEY,
 			agent_json TEXT NOT NULL
 		)`,
-		`CREATE TABLE IF NOT EXISTS runtime_agent_state_projection (
-			agent_id TEXT PRIMARY KEY,
+		`CREATE TABLE IF NOT EXISTS runtime_local_agent_state_projection (
+			local_agent_ref TEXT PRIMARY KEY,
 			state_json TEXT NOT NULL
 		)`,
-		`CREATE TABLE IF NOT EXISTS runtime_agent_hook (
-			agent_id TEXT NOT NULL,
+		`CREATE TABLE IF NOT EXISTS runtime_local_agent_hook (
+			local_agent_ref TEXT NOT NULL,
 			hook_id TEXT NOT NULL,
 			status INTEGER NOT NULL,
 			scheduled_for TEXT,
 			hook_json TEXT NOT NULL,
-			PRIMARY KEY (agent_id, hook_id)
+			PRIMARY KEY (local_agent_ref, hook_id)
 		)`,
-		`CREATE TABLE IF NOT EXISTS runtime_agent_event_log (
+		`CREATE TABLE IF NOT EXISTS runtime_local_agent_event_log (
 			sequence INTEGER PRIMARY KEY,
-			agent_id TEXT NOT NULL,
+			local_agent_ref TEXT NOT NULL,
 			event_type INTEGER NOT NULL,
 			timestamp TEXT,
 			event_json TEXT NOT NULL
 		)`,
-		`CREATE TABLE IF NOT EXISTS runtime_agent_behavioral_posture (
-			agent_id TEXT PRIMARY KEY,
+		`CREATE TABLE IF NOT EXISTS runtime_local_agent_behavioral_posture (
+			local_agent_ref TEXT PRIMARY KEY,
 			status_text TEXT NOT NULL,
 			truth_basis_json TEXT NOT NULL,
 			posture_json TEXT NOT NULL,
 			updated_at TEXT NOT NULL
 		)`,
-		`CREATE TABLE IF NOT EXISTS runtime_agent_review_run (
+		`CREATE TABLE IF NOT EXISTS runtime_local_agent_review_run (
 			review_run_id TEXT PRIMARY KEY,
-			agent_id TEXT NOT NULL,
+			local_agent_ref TEXT NOT NULL,
 			bank_locator_key TEXT NOT NULL,
 			checkpoint_basis TEXT,
 			status TEXT NOT NULL,
@@ -451,7 +434,7 @@ func (b *Backend) ensureSchema() error {
 			created_at TEXT NOT NULL,
 			updated_at TEXT NOT NULL
 		)`,
-		`CREATE TABLE IF NOT EXISTS runtime_agent_review_followup (
+		`CREATE TABLE IF NOT EXISTS runtime_local_agent_review_followup (
 			bank_locator_key TEXT PRIMARY KEY,
 			review_run_id TEXT NOT NULL,
 			checkpoint_basis TEXT,
@@ -466,102 +449,10 @@ func (b *Backend) ensureSchema() error {
 	if _, err := b.writeDB.Exec(`INSERT INTO memory_meta(key, value) VALUES ('schema_version','1') ON CONFLICT(key) DO NOTHING`); err != nil {
 		return err
 	}
-	if _, err := b.writeDB.Exec(`INSERT INTO runtime_agent_meta(key, value) VALUES ('schema_version','1') ON CONFLICT(key) DO NOTHING`); err != nil {
+	if _, err := b.writeDB.Exec(`INSERT INTO runtime_local_agent_meta(key, value) VALUES ('schema_version','1') ON CONFLICT(key) DO NOTHING`); err != nil {
 		return err
 	}
 	return nil
-}
-
-func (b *Backend) migrateRuntimeAgentNamespace() error {
-	tx, err := b.writeDB.Begin()
-	if err != nil {
-		return fmt.Errorf("begin runtime agent namespace migration: %w", err)
-	}
-	defer func() {
-		_ = tx.Rollback()
-	}()
-	for _, pair := range runtimeAgentNamespaceRenamePairs {
-		oldExists, err := sqliteTableExists(tx, pair.old)
-		if err != nil {
-			return fmt.Errorf("check legacy runtime agent table %s: %w", pair.old, err)
-		}
-		if !oldExists {
-			continue
-		}
-		newExists, err := sqliteTableExists(tx, pair.new)
-		if err != nil {
-			return fmt.Errorf("check target runtime agent table %s: %w", pair.new, err)
-		}
-		if newExists {
-			if err := migrateOverlappingRuntimeAgentTable(tx, pair.old, pair.new); err != nil {
-				return err
-			}
-			continue
-		}
-		if _, err := tx.Exec(fmt.Sprintf(`ALTER TABLE %s RENAME TO %s`, pair.old, pair.new)); err != nil {
-			return fmt.Errorf("rename runtime agent table %s -> %s: %w", pair.old, pair.new, err)
-		}
-	}
-	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("commit runtime agent namespace migration: %w", err)
-	}
-	return nil
-}
-
-func migrateOverlappingRuntimeAgentTable(tx *sql.Tx, oldName string, newName string) error {
-	oldRows, err := sqliteTableRowCount(tx, oldName)
-	if err != nil {
-		return fmt.Errorf("count legacy runtime agent table %s: %w", oldName, err)
-	}
-	if oldRows == 0 {
-		if _, err := tx.Exec(fmt.Sprintf(`DROP TABLE %s`, oldName)); err != nil {
-			return fmt.Errorf("drop empty legacy runtime agent table %s: %w", oldName, err)
-		}
-		return nil
-	}
-	newRows, err := sqliteTableRowCount(tx, newName)
-	if err != nil {
-		return fmt.Errorf("count target runtime agent table %s: %w", newName, err)
-	}
-	if newRows == 0 {
-		if _, err := tx.Exec(fmt.Sprintf(`DROP TABLE %s`, newName)); err != nil {
-			return fmt.Errorf("drop empty target runtime agent table %s: %w", newName, err)
-		}
-		if _, err := tx.Exec(fmt.Sprintf(`ALTER TABLE %s RENAME TO %s`, oldName, newName)); err != nil {
-			return fmt.Errorf("rename runtime agent table %s -> %s: %w", oldName, newName, err)
-		}
-		return nil
-	}
-	if oldName == "agentcore_meta" && newName == "runtime_agent_meta" {
-		if _, err := tx.Exec(`
-			INSERT INTO runtime_agent_meta(key, value)
-			SELECT key, value FROM agentcore_meta
-			WHERE key NOT IN (SELECT key FROM runtime_agent_meta)
-		`); err != nil {
-			return fmt.Errorf("merge legacy runtime agent meta: %w", err)
-		}
-		if _, err := tx.Exec(`DROP TABLE agentcore_meta`); err != nil {
-			return fmt.Errorf("drop merged legacy runtime agent meta: %w", err)
-		}
-		return nil
-	}
-	return fmt.Errorf("runtime agent namespace migration blocked: both %s and %s contain rows", oldName, newName)
-}
-
-func sqliteTableExists(tx *sql.Tx, name string) (bool, error) {
-	var count int
-	if err := tx.QueryRow(`SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = ?`, name).Scan(&count); err != nil {
-		return false, err
-	}
-	return count > 0, nil
-}
-
-func sqliteTableRowCount(tx *sql.Tx, name string) (int, error) {
-	var count int
-	if err := tx.QueryRow(fmt.Sprintf(`SELECT COUNT(*) FROM %s`, name)).Scan(&count); err != nil {
-		return 0, err
-	}
-	return count, nil
 }
 
 func databasePath(localStatePath string) (string, error) {

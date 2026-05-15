@@ -13,11 +13,11 @@ func TestRuntimeAgentCurrentEmotionTransitionRules(t *testing.T) {
 	t.Parallel()
 	svc := newRuntimeAgentServiceForPublicChatTest(t)
 	if _, err := svc.InitializeAgent(context.Background(), &runtimev1.InitializeAgentRequest{
-		AgentId: "agent-emotion-state",
+		Context: testRuntimeAgentIdentityContext("agent-emotion-state"),
 	}); err != nil {
 		t.Fatalf("InitializeAgent: %v", err)
 	}
-	entry, err := svc.agentByID("agent-emotion-state")
+	entry, err := svc.agentByID(testRuntimeAgentLocalRef("agent-emotion-state"))
 	if err != nil {
 		t.Fatalf("agentByID: %v", err)
 	}
@@ -70,11 +70,11 @@ func TestRuntimeAgentEmotionDecayDoesNotOverrideNewerTruth(t *testing.T) {
 	t.Parallel()
 	svc := newRuntimeAgentServiceForPublicChatTest(t)
 	if _, err := svc.InitializeAgent(context.Background(), &runtimev1.InitializeAgentRequest{
-		AgentId: "agent-emotion-decay",
+		Context: testRuntimeAgentIdentityContext("agent-emotion-decay"),
 	}); err != nil {
 		t.Fatalf("InitializeAgent: %v", err)
 	}
-	entry, err := svc.agentByID("agent-emotion-decay")
+	entry, err := svc.agentByID(testRuntimeAgentLocalRef("agent-emotion-decay"))
 	if err != nil {
 		t.Fatalf("agentByID: %v", err)
 	}

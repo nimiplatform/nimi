@@ -3,6 +3,7 @@ import type { SendAppMessageResponse } from './generated/runtime/v1/app';
 import type { RuntimeAgentClient } from './types-client-interfaces.js';
 import type {
   RuntimeAgentConsumeRequest,
+  RuntimeAgentLocalIdentity,
   RuntimeAgentSessionSnapshot,
   RuntimeAgentSessionSnapshotRequest,
   RuntimeAgentTurnInterruptRequest,
@@ -14,14 +15,12 @@ import type { RuntimeCallOptions, RuntimeStreamCallOptions } from './types.js';
 export type * from './types-runtime-agent-core.js';
 export type * from './types-runtime-agent-events.js';
 
-export type RuntimeAgentAnchorsOpenRequest = {
-  agentId: string;
+export type RuntimeAgentAnchorsOpenRequest = RuntimeAgentLocalIdentity & {
   subjectUserId?: string;
   metadata?: Record<string, unknown>;
 };
 
-export type RuntimeAgentAnchorsSnapshotRequest = {
-  agentId: string;
+export type RuntimeAgentAnchorsSnapshotRequest = RuntimeAgentLocalIdentity & {
   conversationAnchorId: string;
   subjectUserId?: string;
 };

@@ -97,7 +97,7 @@ func TestRuntimeAgentInitializeWriteQueryAndHooks(t *testing.T) {
 
 	ctx := context.Background()
 	initResp, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
-		AgentId:     "agent-alpha",
+		Context:     testRuntimeAgentIdentityContext("agent-alpha"),
 		DisplayName: "Alpha",
 		AutonomyConfig: &runtimev1.AgentAutonomyConfig{
 			DailyTokenBudget: 100,
@@ -112,6 +112,7 @@ func TestRuntimeAgentInitializeWriteQueryAndHooks(t *testing.T) {
 	}
 
 	_, err = svc.UpdateAgentState(ctx, &runtimev1.UpdateAgentStateRequest{
+		Context: testRuntimeAgentIdentityContext("agent-alpha"),
 		AgentId: "agent-alpha",
 		Mutations: []*runtimev1.AgentStateMutation{
 			{
@@ -126,6 +127,7 @@ func TestRuntimeAgentInitializeWriteQueryAndHooks(t *testing.T) {
 	}
 
 	writeResp, err := svc.WriteAgentMemory(ctx, &runtimev1.WriteAgentMemoryRequest{
+		Context: testRuntimeAgentIdentityContext("agent-alpha"),
 		AgentId: "agent-alpha",
 		Candidates: []*runtimev1.CanonicalMemoryCandidate{
 			{
@@ -133,7 +135,7 @@ func TestRuntimeAgentInitializeWriteQueryAndHooks(t *testing.T) {
 				TargetBank: &runtimev1.MemoryBankLocator{
 					Scope: runtimev1.MemoryBankScope_MEMORY_BANK_SCOPE_AGENT_CORE,
 					Owner: &runtimev1.MemoryBankLocator_AgentCore{
-						AgentCore: &runtimev1.AgentCoreBankOwner{AgentId: "agent-alpha"},
+						AgentCore: &runtimev1.AgentCoreBankOwner{AgentId: testRuntimeAgentLocalRef("agent-alpha")},
 					},
 				},
 				SourceEventId: "evt-1",
@@ -154,7 +156,7 @@ func TestRuntimeAgentInitializeWriteQueryAndHooks(t *testing.T) {
 				TargetBank: &runtimev1.MemoryBankLocator{
 					Scope: runtimev1.MemoryBankScope_MEMORY_BANK_SCOPE_AGENT_DYADIC,
 					Owner: &runtimev1.MemoryBankLocator_AgentDyadic{
-						AgentDyadic: &runtimev1.AgentDyadicBankOwner{AgentId: "agent-alpha", UserId: "user-1"},
+						AgentDyadic: &runtimev1.AgentDyadicBankOwner{AgentId: testRuntimeAgentLocalRef("agent-alpha"), UserId: "user-1"},
 					},
 				},
 				SourceEventId: "evt-2",
@@ -178,7 +180,7 @@ func TestRuntimeAgentInitializeWriteQueryAndHooks(t *testing.T) {
 	}
 
 	queryResp, err := svc.QueryAgentMemory(ctx, &runtimev1.QueryAgentMemoryRequest{
-		Context: &runtimev1.AgentRequestContext{SubjectUserId: "user-1"},
+		Context: testRuntimeAgentIdentityContext("agent-alpha"),
 		AgentId: "agent-alpha",
 		Query:   "What do you know?",
 		Limit:   10,
@@ -191,7 +193,7 @@ func TestRuntimeAgentInitializeWriteQueryAndHooks(t *testing.T) {
 	}
 
 	historyResp, err := svc.QueryAgentMemory(ctx, &runtimev1.QueryAgentMemoryRequest{
-		Context:          &runtimev1.AgentRequestContext{SubjectUserId: "user-1"},
+		Context:          testRuntimeAgentIdentityContext("agent-alpha"),
 		AgentId:          "agent-alpha",
 		Query:            "",
 		Limit:            10,
@@ -210,11 +212,12 @@ func TestRuntimeAgentInitializeWriteQueryAndHooks(t *testing.T) {
 	hookNow := time.Now()
 	hookTime := hookNow.Add(5 * time.Minute)
 	hook := newTestTimePendingHook(t, "hook-1", "agent-alpha", hookTime, hookNow)
-	if err := svc.admitPendingHook("agent-alpha", hook); err != nil {
+	if err := svc.admitPendingHook(testRuntimeAgentLocalRef("agent-alpha"), hook); err != nil {
 		t.Fatalf("admitPendingHook: %v", err)
 	}
 
-	pendingResp, err := svc.ListPendingHooks(ctx, &runtimev1.ListPendingHooksRequest{AgentId: "agent-alpha"})
+	pendingResp, err := svc.ListPendingHooks(ctx, &runtimev1.ListPendingHooksRequest{
+		Context: testRuntimeAgentIdentityContext("agent-alpha"), AgentId: "agent-alpha"})
 	if err != nil {
 		t.Fatalf("ListPendingHooks: %v", err)
 	}
@@ -223,6 +226,7 @@ func TestRuntimeAgentInitializeWriteQueryAndHooks(t *testing.T) {
 	}
 
 	cancelResp, err := svc.CancelHook(ctx, &runtimev1.CancelHookRequest{
+		Context:  testRuntimeAgentIdentityContext("agent-alpha"),
 		AgentId:  "agent-alpha",
 		IntentId: "hook-1",
 		Reason:   "test cleanup",
@@ -236,6 +240,7 @@ func TestRuntimeAgentInitializeWriteQueryAndHooks(t *testing.T) {
 
 	stream := newAgentEventCaptureStream(ctx)
 	if err := svc.SubscribeAgentEvents(&runtimev1.SubscribeAgentEventsRequest{
+		Context:      testRuntimeAgentIdentityContext("agent-alpha"),
 		AgentId:      "agent-alpha",
 		EventFilters: []runtimev1.AgentEventType{runtimev1.AgentEventType_AGENT_EVENT_TYPE_MEMORY},
 	}, stream); err != context.Canceled {
@@ -249,16 +254,16 @@ func TestRuntimeAgentInitializeWriteQueryAndHooks(t *testing.T) {
 	}
 }
 
-func TestRuntimeAgentSubscribeAgentEventsRejectsMissingAgentID(t *testing.T) {
+func TestRuntimeAgentSubscribeAgentEventsRejectsMissingLocalAgentIdentity(t *testing.T) {
 	t.Parallel()
 
 	svc := newRuntimeAgentTestService(t)
 	err := svc.SubscribeAgentEvents(&runtimev1.SubscribeAgentEventsRequest{}, newAgentEventCaptureStream(context.Background()))
 	if status.Code(err) != codes.InvalidArgument {
-		t.Fatalf("expected InvalidArgument for missing agent_id, got %v", err)
+		t.Fatalf("expected InvalidArgument for missing local identity context, got %v", err)
 	}
-	if !strings.Contains(err.Error(), "agent_id is required") {
-		t.Fatalf("expected explicit agent_id failure, got %v", err)
+	if !strings.Contains(err.Error(), "agent request context is required") {
+		t.Fatalf("expected explicit local identity context failure, got %v", err)
 	}
 }
 
@@ -274,6 +279,7 @@ func TestRuntimeAgentSubscribeAgentEventsSendsHeadersBeforeFirstEvent(t *testing
 	done := make(chan error, 1)
 	go func() {
 		done <- svc.SubscribeAgentEvents(&runtimev1.SubscribeAgentEventsRequest{
+			Context:      testRuntimeAgentIdentityContext("agent-empty-stream"),
 			AgentId:      "agent-empty-stream",
 			EventFilters: []runtimev1.AgentEventType{runtimev1.AgentEventType_AGENT_EVENT_TYPE_HOOK},
 		}, stream)
@@ -303,7 +309,7 @@ func TestRuntimeAgentAutonomyDefaultsOffWithoutImplicitEnable(t *testing.T) {
 	svc := newRuntimeAgentTestService(t)
 	ctx := context.Background()
 	initResp, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
-		AgentId: "agent-autonomy-default-off",
+		Context: testRuntimeAgentIdentityContext("agent-autonomy-default-off"),
 		AutonomyConfig: &runtimev1.AgentAutonomyConfig{
 			DailyTokenBudget: 20,
 		},
@@ -325,12 +331,13 @@ func TestRuntimeAgentSetAutonomyConfigDoesNotImplicitlyEnable(t *testing.T) {
 	svc := newRuntimeAgentTestService(t)
 	ctx := context.Background()
 	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
-		AgentId: "agent-autonomy-config",
+		Context: testRuntimeAgentIdentityContext("agent-autonomy-config"),
 	}); err != nil {
 		t.Fatalf("InitializeAgent: %v", err)
 	}
 
 	resp, err := svc.SetAutonomyConfig(ctx, &runtimev1.SetAutonomyConfigRequest{
+		Context: testRuntimeAgentIdentityContext("agent-autonomy-config"),
 		AgentId: "agent-autonomy-config",
 		Config: &runtimev1.AgentAutonomyConfig{
 			Mode:             runtimev1.AgentAutonomyMode_AGENT_AUTONOMY_MODE_LOW,
@@ -354,12 +361,13 @@ func TestRuntimeAgentSetPresentationProfilePersistsAndClearsMetadata(t *testing.
 	svc := newRuntimeAgentTestService(t)
 	ctx := context.Background()
 	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
-		AgentId: "agent-presentation-profile",
+		Context: testRuntimeAgentIdentityContext("agent-presentation-profile"),
 	}); err != nil {
 		t.Fatalf("InitializeAgent: %v", err)
 	}
 
 	resp, err := svc.SetAgentPresentationProfile(ctx, &runtimev1.SetAgentPresentationProfileRequest{
+		Context: testRuntimeAgentIdentityContext("agent-presentation-profile"),
 		AgentId: "agent-presentation-profile",
 		Mutation: &runtimev1.SetAgentPresentationProfileRequest_Profile{
 			Profile: &runtimev1.AgentPresentationProfile{
@@ -379,7 +387,8 @@ func TestRuntimeAgentSetPresentationProfilePersistsAndClearsMetadata(t *testing.
 		t.Fatalf("unexpected normalized avatar_asset_ref: %q", got)
 	}
 
-	agentResp, err := svc.GetAgent(ctx, &runtimev1.GetAgentRequest{AgentId: "agent-presentation-profile"})
+	agentResp, err := svc.GetAgent(ctx, &runtimev1.GetAgentRequest{
+		Context: testRuntimeAgentIdentityContext("agent-presentation-profile"), AgentId: "agent-presentation-profile"})
 	if err != nil {
 		t.Fatalf("GetAgent: %v", err)
 	}
@@ -395,6 +404,7 @@ func TestRuntimeAgentSetPresentationProfilePersistsAndClearsMetadata(t *testing.
 	}
 
 	clearResp, err := svc.SetAgentPresentationProfile(ctx, &runtimev1.SetAgentPresentationProfileRequest{
+		Context: testRuntimeAgentIdentityContext("agent-presentation-profile"),
 		AgentId: "agent-presentation-profile",
 		Mutation: &runtimev1.SetAgentPresentationProfileRequest_Clear{
 			Clear: &runtimev1.ClearAgentPresentationProfile{},
@@ -407,7 +417,8 @@ func TestRuntimeAgentSetPresentationProfilePersistsAndClearsMetadata(t *testing.
 		t.Fatalf("expected cleared profile response, got %#v", clearResp.GetProfile())
 	}
 
-	clearedAgentResp, err := svc.GetAgent(ctx, &runtimev1.GetAgentRequest{AgentId: "agent-presentation-profile"})
+	clearedAgentResp, err := svc.GetAgent(ctx, &runtimev1.GetAgentRequest{
+		Context: testRuntimeAgentIdentityContext("agent-presentation-profile"), AgentId: "agent-presentation-profile"})
 	if err != nil {
 		t.Fatalf("GetAgent after clear: %v", err)
 	}
@@ -424,12 +435,13 @@ func TestRuntimeAgentSetPresentationProfileRejectsInvalidProfiles(t *testing.T) 
 	svc := newRuntimeAgentTestService(t)
 	ctx := context.Background()
 	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
-		AgentId: "agent-presentation-profile-invalid",
+		Context: testRuntimeAgentIdentityContext("agent-presentation-profile-invalid"),
 	}); err != nil {
 		t.Fatalf("InitializeAgent: %v", err)
 	}
 
 	_, err := svc.SetAgentPresentationProfile(ctx, &runtimev1.SetAgentPresentationProfileRequest{
+		Context: testRuntimeAgentIdentityContext("agent-presentation-profile-invalid"),
 		AgentId: "agent-presentation-profile-invalid",
 		Mutation: &runtimev1.SetAgentPresentationProfileRequest_Profile{
 			Profile: &runtimev1.AgentPresentationProfile{
@@ -443,6 +455,7 @@ func TestRuntimeAgentSetPresentationProfileRejectsInvalidProfiles(t *testing.T) 
 	}
 
 	_, err = svc.SetAgentPresentationProfile(ctx, &runtimev1.SetAgentPresentationProfileRequest{
+		Context: testRuntimeAgentIdentityContext("agent-presentation-profile-invalid"),
 		AgentId: "agent-presentation-profile-invalid",
 		Mutation: &runtimev1.SetAgentPresentationProfileRequest_Profile{
 			Profile: &runtimev1.AgentPresentationProfile{
@@ -456,6 +469,7 @@ func TestRuntimeAgentSetPresentationProfileRejectsInvalidProfiles(t *testing.T) 
 	}
 
 	_, err = svc.SetAgentPresentationProfile(ctx, &runtimev1.SetAgentPresentationProfileRequest{
+		Context: testRuntimeAgentIdentityContext("agent-presentation-profile-invalid"),
 		AgentId: "agent-presentation-profile-invalid",
 		Mutation: &runtimev1.SetAgentPresentationProfileRequest_Profile{
 			Profile: &runtimev1.AgentPresentationProfile{
@@ -470,6 +484,7 @@ func TestRuntimeAgentSetPresentationProfileRejectsInvalidProfiles(t *testing.T) 
 	}
 
 	_, err = svc.SetAgentPresentationProfile(ctx, &runtimev1.SetAgentPresentationProfileRequest{
+		Context: testRuntimeAgentIdentityContext("agent-presentation-profile-invalid"),
 		AgentId: "agent-presentation-profile-invalid",
 		Mutation: &runtimev1.SetAgentPresentationProfileRequest_Profile{
 			Profile: &runtimev1.AgentPresentationProfile{
@@ -490,12 +505,13 @@ func TestRuntimeAgentEnableAutonomyNoopWhenModeOff(t *testing.T) {
 	svc := newRuntimeAgentTestService(t)
 	ctx := context.Background()
 	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
-		AgentId: "agent-autonomy-noop",
+		Context: testRuntimeAgentIdentityContext("agent-autonomy-noop"),
 	}); err != nil {
 		t.Fatalf("InitializeAgent: %v", err)
 	}
 
 	resp, err := svc.EnableAutonomy(ctx, &runtimev1.EnableAutonomyRequest{
+		Context: testRuntimeAgentIdentityContext("agent-autonomy-noop"),
 		AgentId: "agent-autonomy-noop",
 	})
 	if err != nil {
@@ -515,11 +531,12 @@ func TestRuntimeAgentEnableAutonomyActivatesConfiguredMode(t *testing.T) {
 	svc := newRuntimeAgentTestService(t)
 	ctx := context.Background()
 	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
-		AgentId: "agent-autonomy-enable",
+		Context: testRuntimeAgentIdentityContext("agent-autonomy-enable"),
 	}); err != nil {
 		t.Fatalf("InitializeAgent: %v", err)
 	}
 	if _, err := svc.SetAutonomyConfig(ctx, &runtimev1.SetAutonomyConfigRequest{
+		Context: testRuntimeAgentIdentityContext("agent-autonomy-enable"),
 		AgentId: "agent-autonomy-enable",
 		Config: &runtimev1.AgentAutonomyConfig{
 			Mode:             runtimev1.AgentAutonomyMode_AGENT_AUTONOMY_MODE_MEDIUM,
@@ -530,6 +547,7 @@ func TestRuntimeAgentEnableAutonomyActivatesConfiguredMode(t *testing.T) {
 	}
 
 	resp, err := svc.EnableAutonomy(ctx, &runtimev1.EnableAutonomyRequest{
+		Context: testRuntimeAgentIdentityContext("agent-autonomy-enable"),
 		AgentId: "agent-autonomy-enable",
 	})
 	if err != nil {
@@ -565,7 +583,7 @@ func TestRuntimeAgentRunLifeTrackSweepAdmitsCadenceTickByMode(t *testing.T) {
 			ctx := context.Background()
 			agentID := "agent-cadence-" + tc.name
 			if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
-				AgentId: agentID,
+				Context: testRuntimeAgentIdentityContext(agentID),
 				AutonomyConfig: &runtimev1.AgentAutonomyConfig{
 					Mode: tc.mode,
 				},
@@ -593,7 +611,7 @@ func TestRuntimeAgentRunLifeTrackSweepPrefersEarlierCallbackOverCadenceTick(t *t
 	svc := newRuntimeAgentTestService(t)
 	ctx := context.Background()
 	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
-		AgentId: "agent-earlier-callback",
+		Context: testRuntimeAgentIdentityContext("agent-earlier-callback"),
 		AutonomyConfig: &runtimev1.AgentAutonomyConfig{
 			Mode: runtimev1.AgentAutonomyMode_AGENT_AUTONOMY_MODE_LOW,
 		},
@@ -604,7 +622,7 @@ func TestRuntimeAgentRunLifeTrackSweepPrefersEarlierCallbackOverCadenceTick(t *t
 
 	now := time.Now().UTC()
 	callbackAt := now.Add(30 * time.Minute)
-	if err := svc.admitPendingHook("agent-earlier-callback", newTestTimePendingHookWithReason(t, "hook-earlier-callback", "agent-earlier-callback", "callback first", callbackAt, now)); err != nil {
+	if err := svc.admitPendingHook(testRuntimeAgentLocalRef("agent-earlier-callback"), newTestTimePendingHookWithReason(t, "hook-earlier-callback", "agent-earlier-callback", "callback first", callbackAt, now)); err != nil {
 		t.Fatalf("admitPendingHook: %v", err)
 	}
 
@@ -612,7 +630,8 @@ func TestRuntimeAgentRunLifeTrackSweepPrefersEarlierCallbackOverCadenceTick(t *t
 		t.Fatalf("runLifeTrackSweep: %v", err)
 	}
 
-	pendingResp, err := svc.ListPendingHooks(ctx, &runtimev1.ListPendingHooksRequest{AgentId: "agent-earlier-callback"})
+	pendingResp, err := svc.ListPendingHooks(ctx, &runtimev1.ListPendingHooksRequest{
+		Context: testRuntimeAgentIdentityContext("agent-earlier-callback"), AgentId: "agent-earlier-callback"})
 	if err != nil {
 		t.Fatalf("ListPendingHooks: %v", err)
 	}
@@ -639,7 +658,7 @@ func TestRuntimeAgentExecuteDueHooksRespectsMinSpacingForEarlyCallback(t *testin
 	svc := newRuntimeAgentTestService(t)
 	ctx := context.Background()
 	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
-		AgentId: "agent-min-spacing",
+		Context: testRuntimeAgentIdentityContext("agent-min-spacing"),
 		AutonomyConfig: &runtimev1.AgentAutonomyConfig{
 			Mode: runtimev1.AgentAutonomyMode_AGENT_AUTONOMY_MODE_LOW,
 		},
@@ -649,7 +668,7 @@ func TestRuntimeAgentExecuteDueHooksRespectsMinSpacingForEarlyCallback(t *testin
 	mustEnableAutonomy(t, svc, ctx, "agent-min-spacing")
 
 	admitBase := time.Now().UTC()
-	entry, err := svc.agentByID("agent-min-spacing")
+	entry, err := svc.agentByID(testRuntimeAgentLocalRef("agent-min-spacing"))
 	if err != nil {
 		t.Fatalf("agentByID: %v", err)
 	}
@@ -663,7 +682,7 @@ func TestRuntimeAgentExecuteDueHooksRespectsMinSpacingForEarlyCallback(t *testin
 	// is due (>=10min) but below the 60min min-spacing floor 閳?runtime
 	// reschedules to admitBase+60min.
 	tooEarly := admitBase.Add(10 * time.Minute)
-	if err := svc.admitPendingHook("agent-min-spacing", newTestTimePendingHookWithReason(t, "hook-too-early", "agent-min-spacing", "early callback", tooEarly, admitBase)); err != nil {
+	if err := svc.admitPendingHook(testRuntimeAgentLocalRef("agent-min-spacing"), newTestTimePendingHookWithReason(t, "hook-too-early", "agent-min-spacing", "early callback", tooEarly, admitBase)); err != nil {
 		t.Fatalf("admitPendingHook: %v", err)
 	}
 
@@ -681,7 +700,8 @@ func TestRuntimeAgentExecuteDueHooksRespectsMinSpacingForEarlyCallback(t *testin
 	// The reschedule rebuilds a TIME-family follow-up hook targeting the
 	// earliest instant allowed by min-spacing (anchor + 60min).
 	expected := admitBase.Add(60 * time.Minute).UTC()
-	pendingAfter, err := svc.ListPendingHooks(ctx, &runtimev1.ListPendingHooksRequest{AgentId: "agent-min-spacing"})
+	pendingAfter, err := svc.ListPendingHooks(ctx, &runtimev1.ListPendingHooksRequest{
+		Context: testRuntimeAgentIdentityContext("agent-min-spacing"), AgentId: "agent-min-spacing"})
 	if err != nil {
 		t.Fatalf("ListPendingHooks: %v", err)
 	}
@@ -770,11 +790,11 @@ func TestRuntimeAgentExecuteDueHooksRejectsOffModeAgent(t *testing.T) {
 	svc := newRuntimeAgentTestService(t)
 	ctx := context.Background()
 	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
-		AgentId: "agent-off-mode-gate",
+		Context: testRuntimeAgentIdentityContext("agent-off-mode-gate"),
 	}); err != nil {
 		t.Fatalf("InitializeAgent: %v", err)
 	}
-	entry, err := svc.agentByID("agent-off-mode-gate")
+	entry, err := svc.agentByID(testRuntimeAgentLocalRef("agent-off-mode-gate"))
 	if err != nil {
 		t.Fatalf("agentByID: %v", err)
 	}
@@ -785,7 +805,7 @@ func TestRuntimeAgentExecuteDueHooksRejectsOffModeAgent(t *testing.T) {
 
 	admitBase := time.Now().UTC().Add(-time.Minute)
 	dueAt := admitBase.Add(-time.Second)
-	if err := svc.admitPendingHook("agent-off-mode-gate", newTestTimePendingHook(t, "hook-off-mode", "agent-off-mode-gate", dueAt, admitBase)); err != nil {
+	if err := svc.admitPendingHook(testRuntimeAgentLocalRef("agent-off-mode-gate"), newTestTimePendingHook(t, "hook-off-mode", "agent-off-mode-gate", dueAt, admitBase)); err != nil {
 		t.Fatalf("admitPendingHook: %v", err)
 	}
 

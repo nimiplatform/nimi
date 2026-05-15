@@ -8,7 +8,6 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	grpcerr "github.com/nimiplatform/nimi/runtime/internal/grpcerr"
-	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -23,13 +22,14 @@ func (s *Service) agentAdminRuntime() agentAdminRuntime {
 }
 
 func (r agentAdminRuntime) initialize(ctx context.Context, req *runtimev1.InitializeAgentRequest) (*runtimev1.InitializeAgentResponse, error) {
-	agentID := strings.TrimSpace(req.GetAgentId())
-	if agentID == "" {
-		agentID = "agent_" + ulid.Make().String()
+	identity, err := localAgentIdentityFromInitializeRequest(req)
+	if err != nil {
+		return nil, err
 	}
+	localAgentRef := identity.LocalAgentRef
 
 	r.svc.mu.RLock()
-	if existing := r.svc.agents[agentID]; existing != nil && existing.Agent.GetLifecycleStatus() != runtimev1.AgentLifecycleStatus_AGENT_LIFECYCLE_STATUS_TERMINATED {
+	if existing := r.svc.agents[localAgentRef]; existing != nil && existing.Agent.GetLifecycleStatus() != runtimev1.AgentLifecycleStatus_AGENT_LIFECYCLE_STATUS_TERMINATED {
 		r.svc.mu.RUnlock()
 		return nil, status.Error(codes.AlreadyExists, "agent already exists")
 	}
@@ -38,7 +38,7 @@ func (r agentAdminRuntime) initialize(ctx context.Context, req *runtimev1.Initia
 	agentBank := &runtimev1.MemoryBankLocator{
 		Scope: runtimev1.MemoryBankScope_MEMORY_BANK_SCOPE_AGENT_CORE,
 		Owner: &runtimev1.MemoryBankLocator_AgentCore{
-			AgentCore: &runtimev1.AgentCoreBankOwner{AgentId: agentID},
+			AgentCore: &runtimev1.AgentCoreBankOwner{AgentId: localAgentRef},
 		},
 	}
 	if _, err := r.svc.memorySvc.EnsureCanonicalBank(ctx, agentBank, "Agent Memory", nil); err != nil {
@@ -48,8 +48,11 @@ func (r agentAdminRuntime) initialize(ctx context.Context, req *runtimev1.Initia
 	now := time.Now().UTC()
 	autonomy := buildInitialAutonomyState(req.GetAutonomyConfig(), now)
 	agent := &runtimev1.AgentRecord{
-		AgentId:         agentID,
-		DisplayName:     firstNonEmpty(strings.TrimSpace(req.GetDisplayName()), agentID),
+		AgentId:         localAgentRef,
+		LocalAgentRef:   localAgentRef,
+		OwnerUserId:     identity.OwnerUserID,
+		RealmAgentId:    identity.RealmAgentID,
+		DisplayName:     firstNonEmpty(strings.TrimSpace(req.GetDisplayName()), localAgentRef),
 		LifecycleStatus: runtimev1.AgentLifecycleStatus_AGENT_LIFECYCLE_STATUS_ACTIVE,
 		Autonomy:        autonomy,
 		Metadata:        cloneStruct(req.GetMetadata()),
@@ -68,7 +71,7 @@ func (r agentAdminRuntime) initialize(ctx context.Context, req *runtimev1.Initia
 		State: cloneAgentState(state),
 		Hooks: make(map[string]*runtimev1.PendingHook),
 	}
-	lifecycleEvent := r.svc.newEvent(agentID, runtimev1.AgentEventType_AGENT_EVENT_TYPE_LIFECYCLE, &runtimev1.AgentEvent_Lifecycle{
+	lifecycleEvent := r.svc.newEventForIdentity(identity, runtimev1.AgentEventType_AGENT_EVENT_TYPE_LIFECYCLE, &runtimev1.AgentEvent_Lifecycle{
 		Lifecycle: &runtimev1.AgentLifecycleEventDetail{
 			PreviousStatus: runtimev1.AgentLifecycleStatus_AGENT_LIFECYCLE_STATUS_UNSPECIFIED,
 			CurrentStatus:  runtimev1.AgentLifecycleStatus_AGENT_LIFECYCLE_STATUS_ACTIVE,
@@ -76,7 +79,7 @@ func (r agentAdminRuntime) initialize(ctx context.Context, req *runtimev1.Initia
 	})
 	events := []*runtimev1.AgentEvent{lifecycleEvent}
 	if autonomy.GetEnabled() {
-		events = append(events, r.svc.newEvent(agentID, runtimev1.AgentEventType_AGENT_EVENT_TYPE_BUDGET, &runtimev1.AgentEvent_Budget{
+		events = append(events, r.svc.newEventForIdentity(identity, runtimev1.AgentEventType_AGENT_EVENT_TYPE_BUDGET, &runtimev1.AgentEvent_Budget{
 			Budget: &runtimev1.AgentBudgetEventDetail{
 				BudgetExhausted: autonomy.GetBudgetExhausted(),
 				RemainingTokens: remainingTokens(autonomy),
@@ -94,16 +97,22 @@ func (r agentAdminRuntime) initialize(ctx context.Context, req *runtimev1.Initia
 }
 
 func (r agentAdminRuntime) terminate(req *runtimev1.TerminateAgentRequest) (*runtimev1.TerminateAgentResponse, error) {
-	agentID := strings.TrimSpace(req.GetAgentId())
-	entry, err := r.svc.agentByID(agentID)
+	identity, err := localAgentIdentityFromContext(req.GetContext())
 	if err != nil {
+		return nil, err
+	}
+	entry, err := r.svc.agentByID(identity.LocalAgentRef)
+	if err != nil {
+		return nil, err
+	}
+	if err := validateAgentRecordIdentity(entry.Agent, identity); err != nil {
 		return nil, err
 	}
 	now := time.Now().UTC()
 	entry.Agent.LifecycleStatus = runtimev1.AgentLifecycleStatus_AGENT_LIFECYCLE_STATUS_TERMINATED
 	entry.Agent.UpdatedAt = timestamppb.New(now)
 	events := []*runtimev1.AgentEvent{
-		r.svc.newEvent(agentID, runtimev1.AgentEventType_AGENT_EVENT_TYPE_LIFECYCLE, &runtimev1.AgentEvent_Lifecycle{
+		r.svc.newEventForIdentity(identity, runtimev1.AgentEventType_AGENT_EVENT_TYPE_LIFECYCLE, &runtimev1.AgentEvent_Lifecycle{
 			Lifecycle: &runtimev1.AgentLifecycleEventDetail{
 				PreviousStatus: runtimev1.AgentLifecycleStatus_AGENT_LIFECYCLE_STATUS_ACTIVE,
 				CurrentStatus:  runtimev1.AgentLifecycleStatus_AGENT_LIFECYCLE_STATUS_TERMINATED,
@@ -118,16 +127,30 @@ func (r agentAdminRuntime) terminate(req *runtimev1.TerminateAgentRequest) (*run
 }
 
 func (r agentAdminRuntime) get(req *runtimev1.GetAgentRequest) (*runtimev1.GetAgentResponse, error) {
-	entry, err := r.svc.agentByID(strings.TrimSpace(req.GetAgentId()))
+	identity, err := localAgentIdentityFromContext(req.GetContext())
 	if err != nil {
+		return nil, err
+	}
+	entry, err := r.svc.agentByID(identity.LocalAgentRef)
+	if err != nil {
+		return nil, err
+	}
+	if err := validateAgentRecordIdentity(entry.Agent, identity); err != nil {
 		return nil, err
 	}
 	return &runtimev1.GetAgentResponse{Agent: cloneAgentRecord(entry.Agent)}, nil
 }
 
 func (r agentAdminRuntime) setPresentationProfile(req *runtimev1.SetAgentPresentationProfileRequest) (*runtimev1.SetAgentPresentationProfileResponse, error) {
-	entry, err := r.svc.agentByID(strings.TrimSpace(req.GetAgentId()))
+	identity, err := localAgentIdentityFromContext(req.GetContext())
 	if err != nil {
+		return nil, err
+	}
+	entry, err := r.svc.agentByID(identity.LocalAgentRef)
+	if err != nil {
+		return nil, err
+	}
+	if err := validateAgentRecordIdentity(entry.Agent, identity); err != nil {
 		return nil, err
 	}
 	var profile *runtimev1.AgentPresentationProfile
@@ -185,8 +208,15 @@ func (r agentAdminRuntime) list(req *runtimev1.ListAgentsRequest) (*runtimev1.Li
 }
 
 func (r agentAdminRuntime) getState(req *runtimev1.GetAgentStateRequest) (*runtimev1.GetAgentStateResponse, error) {
-	entry, err := r.svc.agentByID(strings.TrimSpace(req.GetAgentId()))
+	identity, err := localAgentIdentityFromContext(req.GetContext())
 	if err != nil {
+		return nil, err
+	}
+	entry, err := r.svc.agentByID(identity.LocalAgentRef)
+	if err != nil {
+		return nil, err
+	}
+	if err := validateAgentRecordIdentity(entry.Agent, identity); err != nil {
 		return nil, err
 	}
 	return &runtimev1.GetAgentStateResponse{State: cloneAgentState(entry.State)}, nil
@@ -196,8 +226,15 @@ func (r agentAdminRuntime) updateState(req *runtimev1.UpdateAgentStateRequest) (
 	if len(req.GetMutations()) == 0 {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
-	entry, err := r.svc.agentByID(strings.TrimSpace(req.GetAgentId()))
+	identity, err := localAgentIdentityFromContext(req.GetContext())
 	if err != nil {
+		return nil, err
+	}
+	entry, err := r.svc.agentByID(identity.LocalAgentRef)
+	if err != nil {
+		return nil, err
+	}
+	if err := validateAgentRecordIdentity(entry.Agent, identity); err != nil {
 		return nil, err
 	}
 	nextState := cloneAgentState(entry.State)
@@ -255,7 +292,7 @@ func (r agentAdminRuntime) updateState(req *runtimev1.UpdateAgentStateRequest) (
 }
 
 func (r agentAdminRuntime) enableAutonomy(req *runtimev1.EnableAutonomyRequest) (*runtimev1.EnableAutonomyResponse, error) {
-	entry, err := r.svc.agentByID(strings.TrimSpace(req.GetAgentId()))
+	identity, entry, err := r.svc.agentEntryForIdentityContext(req.GetContext())
 	if err != nil {
 		return nil, err
 	}
@@ -271,7 +308,7 @@ func (r agentAdminRuntime) enableAutonomy(req *runtimev1.EnableAutonomyRequest) 
 		entry.Agent.Autonomy.WindowStartedAt = timestamppb.New(now)
 	}
 	entry.Agent.UpdatedAt = timestamppb.New(now)
-	event := r.svc.newEvent(entry.Agent.GetAgentId(), runtimev1.AgentEventType_AGENT_EVENT_TYPE_BUDGET, &runtimev1.AgentEvent_Budget{
+	event := r.svc.newEventForIdentity(identity, runtimev1.AgentEventType_AGENT_EVENT_TYPE_BUDGET, &runtimev1.AgentEvent_Budget{
 		Budget: &runtimev1.AgentBudgetEventDetail{
 			BudgetExhausted: entry.Agent.GetAutonomy().GetBudgetExhausted(),
 			RemainingTokens: remainingTokens(entry.Agent.GetAutonomy()),
@@ -285,7 +322,7 @@ func (r agentAdminRuntime) enableAutonomy(req *runtimev1.EnableAutonomyRequest) 
 }
 
 func (r agentAdminRuntime) disableAutonomy(req *runtimev1.DisableAutonomyRequest) (*runtimev1.DisableAutonomyResponse, error) {
-	entry, err := r.svc.agentByID(strings.TrimSpace(req.GetAgentId()))
+	identity, entry, err := r.svc.agentEntryForIdentityContext(req.GetContext())
 	if err != nil {
 		return nil, err
 	}
@@ -296,7 +333,7 @@ func (r agentAdminRuntime) disableAutonomy(req *runtimev1.DisableAutonomyRequest
 	entry.Agent.Autonomy.Enabled = false
 	entry.Agent.Autonomy.BudgetExhausted = false
 	entry.Agent.UpdatedAt = timestamppb.New(now)
-	event := r.svc.newEvent(entry.Agent.GetAgentId(), runtimev1.AgentEventType_AGENT_EVENT_TYPE_BUDGET, &runtimev1.AgentEvent_Budget{
+	event := r.svc.newEventForIdentity(identity, runtimev1.AgentEventType_AGENT_EVENT_TYPE_BUDGET, &runtimev1.AgentEvent_Budget{
 		Budget: &runtimev1.AgentBudgetEventDetail{
 			BudgetExhausted: false,
 			RemainingTokens: remainingTokens(entry.Agent.GetAutonomy()),
@@ -313,7 +350,7 @@ func (r agentAdminRuntime) setAutonomyConfig(req *runtimev1.SetAutonomyConfigReq
 	if req.GetConfig() == nil {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
-	entry, err := r.svc.agentByID(strings.TrimSpace(req.GetAgentId()))
+	identity, entry, err := r.svc.agentEntryForIdentityContext(req.GetContext())
 	if err != nil {
 		return nil, err
 	}
@@ -333,7 +370,7 @@ func (r agentAdminRuntime) setAutonomyConfig(req *runtimev1.SetAutonomyConfigReq
 			entry.Agent.Autonomy.GetUsedTokensInWindow() >= entry.Agent.Autonomy.GetConfig().GetDailyTokenBudget()
 	}
 	entry.Agent.UpdatedAt = timestamppb.New(now)
-	event := r.svc.newEvent(entry.Agent.GetAgentId(), runtimev1.AgentEventType_AGENT_EVENT_TYPE_BUDGET, &runtimev1.AgentEvent_Budget{
+	event := r.svc.newEventForIdentity(identity, runtimev1.AgentEventType_AGENT_EVENT_TYPE_BUDGET, &runtimev1.AgentEvent_Budget{
 		Budget: &runtimev1.AgentBudgetEventDetail{
 			BudgetExhausted: entry.Agent.GetAutonomy().GetBudgetExhausted(),
 			RemainingTokens: remainingTokens(entry.Agent.GetAutonomy()),
@@ -347,7 +384,7 @@ func (r agentAdminRuntime) setAutonomyConfig(req *runtimev1.SetAutonomyConfigReq
 }
 
 func (r agentAdminRuntime) listPendingHooks(req *runtimev1.ListPendingHooksRequest) (*runtimev1.ListPendingHooksResponse, error) {
-	entry, err := r.svc.agentByID(strings.TrimSpace(req.GetAgentId()))
+	_, entry, err := r.svc.agentEntryForIdentityContext(req.GetContext())
 	if err != nil {
 		return nil, err
 	}
@@ -383,7 +420,11 @@ func (r agentAdminRuntime) listPendingHooks(req *runtimev1.ListPendingHooksReque
 }
 
 func (r agentAdminRuntime) cancelHook(req *runtimev1.CancelHookRequest) (*runtimev1.CancelHookResponse, error) {
-	outcome, err := r.svc.cancelHook(strings.TrimSpace(req.GetAgentId()), strings.TrimSpace(req.GetIntentId()), "app", req.GetReason())
+	identity, _, err := r.svc.agentEntryForIdentityContext(req.GetContext())
+	if err != nil {
+		return nil, err
+	}
+	outcome, err := r.svc.cancelHook(identity.LocalAgentRef, strings.TrimSpace(req.GetIntentId()), "app", req.GetReason())
 	if err != nil {
 		return nil, err
 	}

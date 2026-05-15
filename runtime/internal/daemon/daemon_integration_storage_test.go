@@ -2,6 +2,7 @@ package daemon
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"io"
 	"log/slog"
@@ -13,6 +14,7 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/config"
 	"github.com/nimiplatform/nimi/runtime/internal/health"
+	"github.com/nimiplatform/nimi/runtime/internal/runtimepersistence"
 	memoryservice "github.com/nimiplatform/nimi/runtime/internal/services/memory"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
@@ -20,13 +22,10 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-func TestDaemonNewImportsLegacyStateBeforeReadiness(t *testing.T) {
+func TestDaemonNewImportsMemoryStateBeforeReadiness(t *testing.T) {
 	localStatePath := filepath.Join(t.TempDir(), "local-state.json")
 	if err := writePersistedMemoryState(localStatePath, "agent-import", "mem-import"); err != nil {
 		t.Fatalf("writePersistedMemoryState: %v", err)
-	}
-	if err := writePersistedRuntimeAgentState(localStatePath, "agent-import", time.Now().UTC().Add(time.Minute)); err != nil {
-		t.Fatalf("writePersistedRuntimeAgentState: %v", err)
 	}
 
 	cfg := config.Config{
@@ -55,9 +54,6 @@ func TestDaemonNewImportsLegacyStateBeforeReadiness(t *testing.T) {
 	}
 	if _, err := os.Stat(filepath.Join(runtimeDir, "memory-state.json.wave3-imported.json.bak")); err != nil {
 		t.Fatalf("expected memory legacy rename before Run: %v", err)
-	}
-	if _, err := os.Stat(filepath.Join(runtimeDir, "runtime-agent-state.json.wave4-imported.json.bak")); err != nil {
-		t.Fatalf("expected runtime-agent legacy rename before Run: %v", err)
 	}
 }
 
@@ -195,17 +191,28 @@ func TestDaemonNewRestoresHealthySQLiteBackup(t *testing.T) {
 	}
 }
 
-func writePersistedRuntimeAgentState(localStatePath string, agentID string, scheduledFor time.Time) error {
+func writeRuntimeLocalAgentState(localStatePath string, realmAgentID string, scheduledFor time.Time) error {
+	ownerUserID := "user-1"
+	localAgentRef := "local-agent:" + ownerUserID + ":" + realmAgentID
 	now := time.Now().UTC()
+	backend, err := runtimepersistence.Open(nil, localStatePath)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = backend.Close() }()
 	agentRaw, err := protojson.Marshal(&runtimev1.AgentRecord{
-		AgentId:         agentID,
-		DisplayName:     agentID,
+		AgentId:         localAgentRef,
+		LocalAgentRef:   localAgentRef,
+		OwnerUserId:     ownerUserID,
+		RealmAgentId:    realmAgentID,
+		DisplayName:     realmAgentID,
 		LifecycleStatus: runtimev1.AgentLifecycleStatus_AGENT_LIFECYCLE_STATUS_ACTIVE,
 		Autonomy: &runtimev1.AgentAutonomyState{
 			Enabled: true,
 			Config: &runtimev1.AgentAutonomyConfig{
-				Mode:             runtimev1.AgentAutonomyMode_AGENT_AUTONOMY_MODE_LOW,
-				DailyTokenBudget: 10,
+				Mode:             runtimev1.AgentAutonomyMode_AGENT_AUTONOMY_MODE_MEDIUM,
+				DailyTokenBudget: 100,
+				MaxTokensPerHook: 20,
 			},
 			WindowStartedAt: timestamppb.New(now),
 		},
@@ -222,25 +229,18 @@ func writePersistedRuntimeAgentState(localStatePath string, agentID string, sche
 	if err != nil {
 		return err
 	}
-	// K-AGCORE-041 mounted hook vocabulary: TIME-family HookIntent with
-	// relative delay = scheduledFor - now. not_before pins the earliest
-	// firing so the normalizer's max(delay, not_before) preserves the
-	// absolute-schedule semantics this integration test historically relied
-	// on, without reintroducing SCHEDULED_TIME / NextHookIntent.
-	hookDelay := scheduledFor.Sub(now)
-	if hookDelay < 0 {
-		hookDelay = 0
+	delay := scheduledFor.Sub(now)
+	if delay < 0 {
+		delay = 0
 	}
 	hookRaw, err := protojson.Marshal(&runtimev1.PendingHook{
 		Intent: &runtimev1.HookIntent{
 			IntentId:      "hook-daemon-loop",
-			AgentId:       "agent-daemon-loop",
+			AgentId:       localAgentRef,
 			TriggerFamily: runtimev1.HookTriggerFamily_HOOK_TRIGGER_FAMILY_TIME,
 			TriggerDetail: &runtimev1.HookTriggerDetail{
 				Detail: &runtimev1.HookTriggerDetail_Time{
-					Time: &runtimev1.HookTriggerTimeDetail{
-						Delay: durationpb.New(hookDelay),
-					},
+					Time: &runtimev1.HookTriggerTimeDetail{Delay: durationpb.New(delay)},
 				},
 			},
 			Effect:         runtimev1.HookEffect_HOOK_EFFECT_FOLLOW_UP_TURN,
@@ -253,26 +253,33 @@ func writePersistedRuntimeAgentState(localStatePath string, agentID string, sche
 	if err != nil {
 		return err
 	}
-
-	payload := map[string]any{
-		"schemaVersion": 1,
-		"savedAt":       now.Format(time.RFC3339),
-		"sequence":      0,
-		"agents": []map[string]any{
-			{
-				"agent": json.RawMessage(agentRaw),
-				"state": json.RawMessage(stateRaw),
-				"hooks": []json.RawMessage{hookRaw},
-			},
-		},
-		"events": []json.RawMessage{},
-	}
-	content, err := json.MarshalIndent(payload, "", "  ")
-	if err != nil {
+	return backend.WriteTx(context.Background(), func(tx *sql.Tx) error {
+		if _, err := tx.Exec(`INSERT INTO runtime_local_agent(local_agent_ref, agent_json) VALUES (?, ?)`, localAgentRef, string(agentRaw)); err != nil {
+			return err
+		}
+		if _, err := tx.Exec(`INSERT INTO runtime_local_agent_state_projection(local_agent_ref, state_json) VALUES (?, ?)`, localAgentRef, string(stateRaw)); err != nil {
+			return err
+		}
+		if _, err := tx.Exec(`INSERT INTO runtime_local_agent_hook(local_agent_ref, hook_id, status, scheduled_for, hook_json) VALUES (?, ?, ?, ?, ?)`, localAgentRef, "hook-daemon-loop", int(runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_PENDING), scheduledFor.Format(time.RFC3339Nano), string(hookRaw)); err != nil {
+			return err
+		}
+		if _, err := tx.Exec(`INSERT INTO runtime_local_agent_meta(key, value) VALUES ('state_initialized','1') ON CONFLICT(key) DO UPDATE SET value=excluded.value`); err != nil {
+			return err
+		}
+		_, err := tx.Exec(`INSERT INTO runtime_local_agent_meta(key, value) VALUES ('agent_event_sequence','0') ON CONFLICT(key) DO UPDATE SET value=excluded.value`)
 		return err
+	})
+}
+
+func runtimeAgentRequestContext(realmAgentID string) *runtimev1.AgentRequestContext {
+	ownerUserID := "user-1"
+	return &runtimev1.AgentRequestContext{
+		AppId:         "daemon-test",
+		SubjectUserId: ownerUserID,
+		OwnerUserId:   ownerUserID,
+		RealmAgentId:  realmAgentID,
+		LocalAgentRef: "local-agent:" + ownerUserID + ":" + realmAgentID,
 	}
-	statePath := filepath.Join(filepath.Dir(localStatePath), "runtime-agent-state.json")
-	return os.WriteFile(statePath, append(content, '\n'), 0o600)
 }
 
 type daemonLifeTurnAI struct {
@@ -307,7 +314,7 @@ func waitForDaemonHookStatus(t *testing.T, daemon *Daemon, agentID string, expec
 	deadline := time.Now().Add(timeout)
 	for time.Now().Before(deadline) {
 		resp, err := daemon.grpc.AgentService().ListPendingHooks(context.Background(), &runtimev1.ListPendingHooksRequest{
-			AgentId:              agentID,
+			Context:              runtimeAgentRequestContext(agentID),
 			AdmissionStateFilter: expected,
 		})
 		if err == nil && len(resp.GetHooks()) == 1 {

@@ -72,7 +72,7 @@ function optionalNumber(value: unknown): number | undefined {
 export function parseRuntimeAgentPresentationConsumeEvent(
   messageType: string,
   payload: Record<string, unknown>,
-  agentId: string,
+  localAgentRef: string,
   conversationAnchorId: string,
   parseTimeline: (turnId: string, streamId: string) => RuntimeAgentTimelineEnvelope,
 ): RuntimeAgentConsumeEvent | undefined {
@@ -81,7 +81,7 @@ export function parseRuntimeAgentPresentationConsumeEvent(
     case 'runtime.agent.presentation.activity_requested':
       return {
         eventName: messageType,
-        agentId,
+        localAgentRef,
         conversationAnchorId,
         turnId: expectString(payload.turn_id, 'turn_id', messageType),
         streamId: expectString(payload.stream_id, 'stream_id', messageType),
@@ -97,7 +97,7 @@ export function parseRuntimeAgentPresentationConsumeEvent(
     case 'runtime.agent.presentation.motion_requested':
       return {
         eventName: messageType,
-        agentId,
+        localAgentRef,
         conversationAnchorId,
         turnId: expectString(payload.turn_id, 'turn_id', messageType),
         streamId: expectString(payload.stream_id, 'stream_id', messageType),
@@ -112,7 +112,7 @@ export function parseRuntimeAgentPresentationConsumeEvent(
     case 'runtime.agent.presentation.expression_requested':
       return {
         eventName: messageType,
-        agentId,
+        localAgentRef,
         conversationAnchorId,
         turnId: expectString(payload.turn_id, 'turn_id', messageType),
         streamId: expectString(payload.stream_id, 'stream_id', messageType),
@@ -126,7 +126,7 @@ export function parseRuntimeAgentPresentationConsumeEvent(
     case 'runtime.agent.presentation.pose_requested':
       return {
         eventName: messageType,
-        agentId,
+        localAgentRef,
         conversationAnchorId,
         turnId: expectString(payload.turn_id, 'turn_id', messageType),
         streamId: expectString(payload.stream_id, 'stream_id', messageType),
@@ -140,7 +140,7 @@ export function parseRuntimeAgentPresentationConsumeEvent(
     case 'runtime.agent.presentation.pose_cleared':
       return {
         eventName: messageType,
-        agentId,
+        localAgentRef,
         conversationAnchorId,
         turnId: expectString(payload.turn_id, 'turn_id', messageType),
         streamId: expectString(payload.stream_id, 'stream_id', messageType),
@@ -151,7 +151,7 @@ export function parseRuntimeAgentPresentationConsumeEvent(
     case 'runtime.agent.presentation.lookat_requested':
       return {
         eventName: messageType,
-        agentId,
+        localAgentRef,
         conversationAnchorId,
         turnId: expectString(payload.turn_id, 'turn_id', messageType),
         streamId: expectString(payload.stream_id, 'stream_id', messageType),
@@ -167,7 +167,7 @@ export function parseRuntimeAgentPresentationConsumeEvent(
       const streamId = expectString(payload.stream_id, 'stream_id', messageType);
       return {
         eventName: messageType,
-        agentId,
+        localAgentRef,
         conversationAnchorId,
         turnId,
         streamId,
@@ -180,7 +180,7 @@ export function parseRuntimeAgentPresentationConsumeEvent(
       const streamId = expectString(payload.stream_id, 'stream_id', messageType);
       return {
         eventName: messageType,
-        agentId,
+        localAgentRef,
         conversationAnchorId,
         turnId,
         streamId,

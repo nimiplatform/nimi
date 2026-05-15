@@ -168,7 +168,7 @@ func newRuntimeAgentServiceForPublicChatStatePathWithClose(t *testing.T, localSt
 		t.Fatalf("runtimeagent.New: %v", err)
 	}
 	if _, err := svc.InitializeAgent(context.Background(), &runtimev1.InitializeAgentRequest{
-		AgentId:     "agent-alpha",
+		Context:     testRuntimeAgentIdentityContext("agent-alpha"),
 		DisplayName: "Alpha",
 	}); err != nil {
 		if status.Code(err) != codes.AlreadyExists {
@@ -215,9 +215,10 @@ func newRuntimeAgentServiceForPublicChatStatePathWithClose(t *testing.T, localSt
 // path, so tests must open one explicitly before issuing any turn request.
 func openPublicChatTestAnchor(t *testing.T, svc *Service, agentID string, callerAppID string, subjectUserID string) string {
 	t.Helper()
+	ctx := testLocalAgentContext(subjectUserID, agentID)
+	ctx.AppId = callerAppID
 	resp, err := svc.OpenConversationAnchor(context.Background(), &runtimev1.OpenConversationAnchorRequest{
-		Context:       &runtimev1.AgentRequestContext{AppId: callerAppID, SubjectUserId: subjectUserID},
-		AgentId:       agentID,
+		Context:       ctx,
 		SubjectUserId: subjectUserID,
 	})
 	if err != nil {
@@ -345,22 +346,27 @@ func requestPublicChatSessionSnapshot(
 		svc.chatSurfaceMu.Unlock()
 		t.Fatalf("anchor not found for snapshot: %s", anchorID)
 	}
-	agentID := anchor.AgentID
 	callerAppID := anchor.CallerAppID
 	subjectUserID := anchor.SubjectUserID
+	ownerUserID := anchor.OwnerUserID
+	realmAgentID := anchor.RealmAgentID
+	localAgentRef := anchor.LocalAgentRef
 	svc.chatSurfaceMu.Unlock()
 	resp, err := svc.GetPublicChatSessionSnapshot(context.Background(), &runtimev1.GetPublicChatSessionSnapshotRequest{
 		Context: &runtimev1.AgentRequestContext{
 			AppId:         callerAppID,
 			SubjectUserId: subjectUserID,
+			OwnerUserId:   ownerUserID,
+			RealmAgentId:  realmAgentID,
+			LocalAgentRef: localAgentRef,
 			ScopedBinding: &runtimev1.ScopedRuntimeBindingAttachment{
 				BindingId:            "binding-" + anchorID,
 				RuntimeAppId:         callerAppID,
-				AgentId:              agentID,
+				AgentId:              localAgentRef,
 				ConversationAnchorId: anchorID,
 			},
 		},
-		AgentId:              agentID,
+		AgentId:              localAgentRef,
 		ConversationAnchorId: anchorID,
 		RequestId:            requestID,
 	})
@@ -407,9 +413,11 @@ func TestPublicChatSessionSnapshotAcceptsFirstPartyProtectedCapability(t *testin
 	anchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
 
 	ctx := envelope.WithValidatedProtectedCapability(context.Background(), "desktop.app", runtimeAgentReadScope)
+	agentCtx := testRuntimeAgentIdentityContext("agent-alpha")
+	agentCtx.AppId = "desktop.app"
 	resp, err := svc.GetPublicChatSessionSnapshot(ctx, &runtimev1.GetPublicChatSessionSnapshotRequest{
-		Context:              &runtimev1.AgentRequestContext{AppId: "desktop.app", SubjectUserId: "user-1"},
-		AgentId:              "agent-alpha",
+		Context:              agentCtx,
+		AgentId:              testRuntimeAgentLocalRef("agent-alpha"),
 		ConversationAnchorId: anchorID,
 		RequestId:            "subject-protected-snapshot",
 	})
@@ -426,7 +434,8 @@ func waitForPublicChatAgentIdle(t *testing.T, svc *Service, agentID string) {
 	t.Helper()
 	deadline := time.Now().Add(2 * time.Second)
 	for time.Now().Before(deadline) {
-		resp, err := svc.GetAgentState(context.Background(), &runtimev1.GetAgentStateRequest{AgentId: agentID})
+		resp, err := svc.GetAgentState(context.Background(), &runtimev1.GetAgentStateRequest{
+			Context: testRuntimeAgentIdentityContext(agentID), AgentId: agentID})
 		if err == nil && resp.GetState().GetExecutionState() == runtimev1.AgentExecutionState_AGENT_EXECUTION_STATE_IDLE {
 			return
 		}
@@ -506,7 +515,9 @@ func TestPublicChatTurnRequestStreamsAndAppliesPostTurnEffects(t *testing.T) {
 		SubjectUserId: "user-1",
 		MessageType:   publicChatTurnRequestType,
 		Payload: publicChatStructPayload(t, map[string]any{
-			"agent_id":               "agent-alpha",
+			"local_agent_ref":        testRuntimeAgentLocalRef("agent-alpha"),
+			"owner_user_id":          "user-1",
+			"realm_agent_id":         "agent-alpha",
 			"conversation_anchor_id": anchorID,
 			"request_id":             "desktop-turn-request-1",
 			"thread_id":              "thread-1",
@@ -599,7 +610,8 @@ func TestPublicChatTurnRequestStreamsAndAppliesPostTurnEffects(t *testing.T) {
 			t.Fatalf("runtime.agent.turn.completed.detail must be terminal_reason-only; saw %q in %v", banned, completedDetail)
 		}
 	}
-	stateResp, err := svc.GetAgentState(context.Background(), &runtimev1.GetAgentStateRequest{AgentId: "agent-alpha"})
+	stateResp, err := svc.GetAgentState(context.Background(), &runtimev1.GetAgentStateRequest{
+		Context: testRuntimeAgentIdentityContext("agent-alpha"), AgentId: "agent-alpha"})
 	if err != nil {
 		t.Fatalf("GetAgentState: %v", err)
 	}
@@ -607,8 +619,8 @@ func TestPublicChatTurnRequestStreamsAndAppliesPostTurnEffects(t *testing.T) {
 		t.Fatalf("expected agent to return to idle, got=%s", stateResp.GetState().GetExecutionState())
 	}
 	memoryResp, err := svc.QueryAgentMemory(context.Background(), &runtimev1.QueryAgentMemoryRequest{
-		Context:          &runtimev1.AgentRequestContext{SubjectUserId: "user-1"},
-		AgentId:          "agent-alpha",
+		Context:          testRuntimeAgentIdentityContext("agent-alpha"),
+		AgentId:          testRuntimeAgentLocalRef("agent-alpha"),
 		Query:            "",
 		Limit:            10,
 		CanonicalClasses: []runtimev1.MemoryCanonicalClass{runtimev1.MemoryCanonicalClass_MEMORY_CANONICAL_CLASS_DYADIC},
@@ -691,7 +703,9 @@ func TestPublicChatTurnMessageCommitFailureFailsClosed(t *testing.T) {
 		SubjectUserId: "user-1",
 		MessageType:   publicChatTurnRequestType,
 		Payload: publicChatStructPayload(t, map[string]any{
-			"agent_id":               "agent-alpha",
+			"local_agent_ref":        testRuntimeAgentLocalRef("agent-alpha"),
+			"owner_user_id":          "user-1",
+			"realm_agent_id":         "agent-alpha",
 			"conversation_anchor_id": anchorID,
 			"messages": []any{
 				map[string]any{"role": "user", "content": "hello"},
@@ -788,7 +802,9 @@ func TestPublicChatTurnRequestDetachesExecutionFromIngressContext(t *testing.T) 
 		SubjectUserId: "user-1",
 		MessageType:   publicChatTurnRequestType,
 		Payload: publicChatStructPayload(t, map[string]any{
-			"agent_id":               "agent-alpha",
+			"local_agent_ref":        testRuntimeAgentLocalRef("agent-alpha"),
+			"owner_user_id":          "user-1",
+			"realm_agent_id":         "agent-alpha",
 			"conversation_anchor_id": anchorID,
 			"thread_id":              "thread-detached-context",
 			"messages": []any{

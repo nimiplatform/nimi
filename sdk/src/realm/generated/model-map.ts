@@ -89,7 +89,6 @@ export type RealmGeneratedModelMap = {
   ChatUserRefPayloadDto: components['schemas']['ChatUserRefPayloadDto'];
   ChatViewDto: components['schemas']['ChatViewDto'];
   CheckEmailDto: components['schemas']['CheckEmailDto'];
-  CheckEmailEntryRoute: components['schemas']['CheckEmailEntryRoute'];
   CheckEmailResponseDto: components['schemas']['CheckEmailResponseDto'];
   ClassDefinitionDto: components['schemas']['ClassDefinitionDto'];
   CloneAssetDto: components['schemas']['CloneAssetDto'];
@@ -137,7 +136,6 @@ export type RealmGeneratedModelMap = {
   CursorPageMetaDto: components['schemas']['CursorPageMetaDto'];
   DeleteAgentOperationResponseDto: components['schemas']['DeleteAgentOperationResponseDto'];
   DeleteRelationshipResponseDto: components['schemas']['DeleteRelationshipResponseDto'];
-  DnaPrimaryType: components['schemas']['DnaPrimaryType'];
   DnaSecondaryTrait: components['schemas']['DnaSecondaryTrait'];
   EditMessageInputDto: components['schemas']['EditMessageInputDto'];
   EmailOtpRequestDto: components['schemas']['EmailOtpRequestDto'];

@@ -40,14 +40,14 @@ func TestRuntimeAgentExecuteCanonicalReviewWithAIBackedExecutorAppliesWave4Norma
 	closeRuntimeAgentServiceForTest(t, svc)
 	ctx := context.Background()
 	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
-		AgentId: "agent-canonical-review-ai",
+		Context: testRuntimeAgentIdentityContext("agent-canonical-review-ai"),
 	}); err != nil {
 		t.Fatalf("InitializeAgent: %v", err)
 	}
 	locator := &runtimev1.MemoryBankLocator{
 		Scope: runtimev1.MemoryBankScope_MEMORY_BANK_SCOPE_AGENT_CORE,
 		Owner: &runtimev1.MemoryBankLocator_AgentCore{
-			AgentCore: &runtimev1.AgentCoreBankOwner{AgentId: "agent-canonical-review-ai"},
+			AgentCore: &runtimev1.AgentCoreBankOwner{AgentId: testRuntimeAgentLocalRef("agent-canonical-review-ai")},
 		},
 	}
 	if _, err := memorySvc.BindCanonicalBankEmbeddingProfile(ctx, locator); err != nil {
@@ -112,7 +112,7 @@ func TestRuntimeAgentExecuteCanonicalReviewWithAIBackedExecutorAppliesWave4Norma
 	}))
 
 	result, err := svc.ExecuteCanonicalReview(ctx, CanonicalReviewRequest{
-		AgentID: "agent-canonical-review-ai",
+		AgentID: testRuntimeAgentLocalRef("agent-canonical-review-ai"),
 		Bank:    locator,
 		Limit:   10,
 	})
@@ -126,7 +126,7 @@ func TestRuntimeAgentExecuteCanonicalReviewWithAIBackedExecutorAppliesWave4Norma
 		t.Fatalf("unexpected execution result: %#v", result)
 	}
 	var reviewStatus string
-	if err := svc.backend.DB().QueryRow(`SELECT status FROM runtime_agent_review_run WHERE review_run_id = ?`, result.ReviewRunID).Scan(&reviewStatus); err != nil {
+	if err := svc.backend.DB().QueryRow(`SELECT status FROM runtime_local_agent_review_run WHERE review_run_id = ?`, result.ReviewRunID).Scan(&reviewStatus); err != nil {
 		t.Fatalf("load review run status: %v", err)
 	}
 	if reviewStatus != "completed" {
@@ -182,14 +182,14 @@ func TestRuntimeAgentRecoversMemoryCommittedReviewRunWithoutRecommittingMemory(t
 	closeRuntimeAgentServiceForTest(t, svc)
 	ctx := context.Background()
 	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
-		AgentId: "agent-review-committed",
+		Context: testRuntimeAgentIdentityContext("agent-review-committed"),
 	}); err != nil {
 		t.Fatalf("InitializeAgent: %v", err)
 	}
 	locator := &runtimev1.MemoryBankLocator{
 		Scope: runtimev1.MemoryBankScope_MEMORY_BANK_SCOPE_AGENT_CORE,
 		Owner: &runtimev1.MemoryBankLocator_AgentCore{
-			AgentCore: &runtimev1.AgentCoreBankOwner{AgentId: "agent-review-committed"},
+			AgentCore: &runtimev1.AgentCoreBankOwner{AgentId: testRuntimeAgentLocalRef("agent-review-committed")},
 		},
 	}
 	if _, err := memorySvc.EnsureCanonicalBank(ctx, locator, "Agent Memory", nil); err != nil {
@@ -262,7 +262,7 @@ func TestRuntimeAgentRecoversMemoryCommittedReviewRunWithoutRecommittingMemory(t
 	closeRuntimeAgentServiceForTest(t, svc)
 
 	var statusValue string
-	if err := svc.backend.DB().QueryRow(`SELECT status FROM runtime_agent_review_run WHERE review_run_id = ?`, "review-run-committed").Scan(&statusValue); err != nil {
+	if err := svc.backend.DB().QueryRow(`SELECT status FROM runtime_local_agent_review_run WHERE review_run_id = ?`, "review-run-committed").Scan(&statusValue); err != nil {
 		t.Fatalf("load review run status: %v", err)
 	}
 	if statusValue != "completed" {
@@ -342,7 +342,7 @@ func TestRuntimeAgentRecoveryFailClosesOnInvalidReviewLocatorKey(t *testing.T) {
 	var failureMessage string
 	if err := svc.backend.DB().QueryRow(`
 		SELECT status, failure_message
-		FROM runtime_agent_review_run
+		FROM runtime_local_agent_review_run
 		WHERE review_run_id = ?
 	`, "review-run-invalid-locator").Scan(&statusValue, &failureMessage); err != nil {
 		t.Fatalf("load review run failure state: %v", err)
@@ -357,7 +357,7 @@ func TestRuntimeAgentRecoveryFailClosesOnInvalidReviewLocatorKey(t *testing.T) {
 	var followUpCount int
 	if err := svc.backend.DB().QueryRow(`
 		SELECT COUNT(*)
-		FROM runtime_agent_review_followup
+		FROM runtime_local_agent_review_followup
 		WHERE review_run_id = ?
 	`, "review-run-invalid-locator").Scan(&followUpCount); err != nil {
 		t.Fatalf("count review follow-ups: %v", err)
@@ -387,14 +387,14 @@ func TestRuntimeAgentRecoveryWritesFollowUpExactlyOnceAcrossRestarts(t *testing.
 	closeRuntimeAgentServiceForTest(t, svc)
 	ctx := context.Background()
 	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
-		AgentId: "agent-followup-once",
+		Context: testRuntimeAgentIdentityContext("agent-followup-once"),
 	}); err != nil {
 		t.Fatalf("InitializeAgent: %v", err)
 	}
 	locator := &runtimev1.MemoryBankLocator{
 		Scope: runtimev1.MemoryBankScope_MEMORY_BANK_SCOPE_AGENT_CORE,
 		Owner: &runtimev1.MemoryBankLocator_AgentCore{
-			AgentCore: &runtimev1.AgentCoreBankOwner{AgentId: "agent-followup-once"},
+			AgentCore: &runtimev1.AgentCoreBankOwner{AgentId: testRuntimeAgentLocalRef("agent-followup-once")},
 		},
 	}
 	if _, err := memorySvc.EnsureCanonicalBank(ctx, locator, "Agent Memory", nil); err != nil {
@@ -481,7 +481,7 @@ func TestRuntimeAgentRecoveryWritesFollowUpExactlyOnceAcrossRestarts(t *testing.
 	var followUpCount int
 	if err := svc.backend.DB().QueryRow(`
 		SELECT COUNT(*)
-		FROM runtime_agent_review_followup
+		FROM runtime_local_agent_review_followup
 		WHERE review_run_id = ?
 	`, "review-run-followup-once").Scan(&followUpCount); err != nil {
 		t.Fatalf("count review follow-ups: %v", err)

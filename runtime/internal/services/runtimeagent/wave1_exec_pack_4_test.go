@@ -33,8 +33,10 @@ func TestWave1RemediationAConversationAnchorMetadataCommittedAndRecovered(t *tes
 	}
 
 	openResp, err := svc.OpenConversationAnchor(context.Background(), &runtimev1.OpenConversationAnchorRequest{
-		Context:       &runtimev1.AgentRequestContext{AppId: "desktop.app", SubjectUserId: "user-1"},
-		AgentId:       "agent-alpha",
+		Context:       testRuntimeAgentIdentityContext("agent-alpha"),
+		LocalAgentRef: testRuntimeAgentLocalRef("agent-alpha"),
+		OwnerUserId:   "user-1",
+		RealmAgentId:  "agent-alpha",
 		SubjectUserId: "user-1",
 		Metadata:      metadata,
 	})
@@ -50,7 +52,8 @@ func TestWave1RemediationAConversationAnchorMetadataCommittedAndRecovered(t *tes
 	}
 
 	currentResp, err := svc.GetConversationAnchorSnapshot(context.Background(), &runtimev1.GetConversationAnchorSnapshotRequest{
-		AgentId:              "agent-alpha",
+		Context:              testRuntimeAgentIdentityContext("agent-alpha"),
+		AgentId:              testRuntimeAgentLocalRef("agent-alpha"),
 		ConversationAnchorId: anchorID,
 	})
 	if err != nil {
@@ -66,7 +69,8 @@ func TestWave1RemediationAConversationAnchorMetadataCommittedAndRecovered(t *tes
 	defer closeRecovered()
 
 	recoveredResp, err := recoveredSvc.GetConversationAnchorSnapshot(context.Background(), &runtimev1.GetConversationAnchorSnapshotRequest{
-		AgentId:              "agent-alpha",
+		Context:              testRuntimeAgentIdentityContext("agent-alpha"),
+		AgentId:              testRuntimeAgentLocalRef("agent-alpha"),
 		ConversationAnchorId: anchorID,
 	})
 	if err != nil {
@@ -85,7 +89,7 @@ func TestWave1ExecPack4ConversationAnchorRecoveryAndIsolation(t *testing.T) {
 	var err error
 
 	if _, err := svc.InitializeAgent(context.Background(), &runtimev1.InitializeAgentRequest{
-		AgentId:     "agent-beta",
+		Context:     testRuntimeAgentIdentityContext("agent-beta"),
 		DisplayName: "Beta",
 	}); err != nil {
 		t.Fatalf("InitializeAgent(agent-beta): %v", err)
@@ -160,7 +164,9 @@ func TestWave1ExecPack4ConversationAnchorRecoveryAndIsolation(t *testing.T) {
 		SubjectUserId: "user-1",
 		MessageType:   publicChatTurnRequestType,
 		Payload: publicChatStructPayload(t, map[string]any{
-			"agent_id":               "agent-alpha",
+			"local_agent_ref":        testRuntimeAgentLocalRef("agent-alpha"),
+			"owner_user_id":          "user-1",
+			"realm_agent_id":         "agent-alpha",
 			"conversation_anchor_id": anchorA1,
 			"thread_id":              "thread-exec-pack-4-anchor-a1",
 			"messages": []any{
@@ -182,7 +188,8 @@ func TestWave1ExecPack4ConversationAnchorRecoveryAndIsolation(t *testing.T) {
 	activeStreamID := strings.TrimSpace(publicChatPayloadMap(t, accepted)["stream_id"].(string))
 
 	activeAnchorSnapshot, err := svc.GetConversationAnchorSnapshot(context.Background(), &runtimev1.GetConversationAnchorSnapshotRequest{
-		AgentId:              "agent-alpha",
+		Context:              testRuntimeAgentIdentityContext("agent-alpha"),
+		AgentId:              testRuntimeAgentLocalRef("agent-alpha"),
 		ConversationAnchorId: anchorA1,
 	})
 	if err != nil {
@@ -211,7 +218,9 @@ func TestWave1ExecPack4ConversationAnchorRecoveryAndIsolation(t *testing.T) {
 		SubjectUserId: "user-1",
 		MessageType:   publicChatTurnRequestType,
 		Payload: publicChatStructPayload(t, map[string]any{
-			"agent_id":               "agent-beta",
+			"local_agent_ref":        testRuntimeAgentLocalRef("agent-beta"),
+			"owner_user_id":          "user-1",
+			"realm_agent_id":         "agent-beta",
 			"conversation_anchor_id": anchorB1,
 			"thread_id":              "thread-exec-pack-4-anchor-b1",
 			"messages": []any{
@@ -256,7 +265,8 @@ func TestWave1ExecPack4ConversationAnchorRecoveryAndIsolation(t *testing.T) {
 	recoveredSvc.SetPublicChatAppEmitter(recoveredCapture.emit)
 
 	recoveredA1, err := recoveredSvc.GetConversationAnchorSnapshot(context.Background(), &runtimev1.GetConversationAnchorSnapshotRequest{
-		AgentId:              "agent-alpha",
+		Context:              testRuntimeAgentIdentityContext("agent-alpha"),
+		AgentId:              testRuntimeAgentLocalRef("agent-alpha"),
 		ConversationAnchorId: anchorA1,
 	})
 	if err != nil {
@@ -276,7 +286,8 @@ func TestWave1ExecPack4ConversationAnchorRecoveryAndIsolation(t *testing.T) {
 	}
 
 	recoveredA2, err := recoveredSvc.GetConversationAnchorSnapshot(context.Background(), &runtimev1.GetConversationAnchorSnapshotRequest{
-		AgentId:              "agent-alpha",
+		Context:              testRuntimeAgentIdentityContext("agent-alpha"),
+		AgentId:              testRuntimeAgentLocalRef("agent-alpha"),
 		ConversationAnchorId: anchorA2,
 	})
 	if err != nil {
@@ -287,7 +298,8 @@ func TestWave1ExecPack4ConversationAnchorRecoveryAndIsolation(t *testing.T) {
 	}
 
 	recoveredB1, err := recoveredSvc.GetConversationAnchorSnapshot(context.Background(), &runtimev1.GetConversationAnchorSnapshotRequest{
-		AgentId:              "agent-beta",
+		Context:              testRuntimeAgentIdentityContext("agent-beta"),
+		AgentId:              testRuntimeAgentLocalRef("agent-beta"),
 		ConversationAnchorId: anchorB1,
 	})
 	if err != nil {
@@ -341,7 +353,9 @@ func TestWave1ExecPack4InterruptIsolationRejectsWrongAnchor(t *testing.T) {
 		SubjectUserId: "user-1",
 		MessageType:   publicChatTurnRequestType,
 		Payload: publicChatStructPayload(t, map[string]any{
-			"agent_id":               "agent-alpha",
+			"local_agent_ref":        testRuntimeAgentLocalRef("agent-alpha"),
+			"owner_user_id":          "user-1",
+			"realm_agent_id":         "agent-alpha",
 			"conversation_anchor_id": anchorA1,
 			"messages": []any{
 				map[string]any{"role": "user", "content": "hold"},
@@ -376,7 +390,8 @@ func TestWave1ExecPack4InterruptIsolationRejectsWrongAnchor(t *testing.T) {
 		t.Fatalf("expected NotFound for wrong-anchor interrupt, got err=%v code=%v", err, status.Code(err))
 	}
 
-	stateResp, err := svc.GetAgentState(context.Background(), &runtimev1.GetAgentStateRequest{AgentId: "agent-alpha"})
+	stateResp, err := svc.GetAgentState(context.Background(), &runtimev1.GetAgentStateRequest{
+		Context: testRuntimeAgentIdentityContext("agent-alpha"), AgentId: "agent-alpha"})
 	if err != nil {
 		t.Fatalf("GetAgentState(after wrong interrupt): %v", err)
 	}
@@ -408,7 +423,7 @@ func TestWave1ExecutionStateClosureEmitsOnlyAdmittedNoOriginLifecycleSeam(t *tes
 	svc := newRuntimeAgentTestService(t)
 	ctx := context.Background()
 	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
-		AgentId: "agent-pack4-hook-origin",
+		Context: testRuntimeAgentIdentityContext("agent-pack4-hook-origin"),
 	}); err != nil {
 		t.Fatalf("InitializeAgent: %v", err)
 	}
@@ -418,14 +433,15 @@ func TestWave1ExecutionStateClosureEmitsOnlyAdmittedNoOriginLifecycleSeam(t *tes
 	cursor := svc.sequence
 	svc.mu.RUnlock()
 
-	if err := svc.admitPendingHook("agent-pack4-hook-origin", newTestTimePendingHook(t, "hook-pack4-origin", "agent-pack4-hook-origin", now.Add(time.Minute), now)); err != nil {
+	if err := svc.admitPendingHook(testRuntimeAgentLocalRef("agent-pack4-hook-origin"), newTestTimePendingHook(t, "hook-pack4-origin", testRuntimeAgentLocalRef("agent-pack4-hook-origin"), now.Add(time.Minute), now)); err != nil {
 		t.Fatalf("admitPendingHook: %v", err)
 	}
-	if _, err := svc.markHookRunning("agent-pack4-hook-origin", "hook-pack4-origin"); err != nil {
+	if _, err := svc.markHookRunning(testRuntimeAgentLocalRef("agent-pack4-hook-origin"), "hook-pack4-origin"); err != nil {
 		t.Fatalf("markHookRunning: %v", err)
 	}
 	if _, err := svc.CancelHook(ctx, &runtimev1.CancelHookRequest{
-		AgentId:  "agent-pack4-hook-origin",
+		Context:  testRuntimeAgentIdentityContext("agent-pack4-hook-origin"),
+		AgentId:  testRuntimeAgentLocalRef("agent-pack4-hook-origin"),
 		IntentId: "hook-pack4-origin",
 		Reason:   "operator stop",
 	}); err != nil {
@@ -436,7 +452,8 @@ func TestWave1ExecutionStateClosureEmitsOnlyAdmittedNoOriginLifecycleSeam(t *tes
 	defer cancel()
 	stream := newAgentEventCaptureStreamLimit(streamCtx, 7)
 	if err := svc.SubscribeAgentEvents(&runtimev1.SubscribeAgentEventsRequest{
-		AgentId: "agent-pack4-hook-origin",
+		Context: testRuntimeAgentIdentityContext("agent-pack4-hook-origin"),
+		AgentId: testRuntimeAgentLocalRef("agent-pack4-hook-origin"),
 		Cursor:  encodeCursor(cursor),
 	}, stream); err != context.Canceled && err != context.DeadlineExceeded {
 		t.Fatalf("SubscribeAgentEvents: %v", err)
@@ -496,7 +513,7 @@ func TestWave1ExecPack4ChatTrackHookProposalUsesCanonicalHookLifecycle(t *testin
 	svc := newRuntimeAgentTestService(t)
 	ctx := context.Background()
 	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
-		AgentId: "agent-pack4-chat-track",
+		Context: testRuntimeAgentIdentityContext("agent-pack4-chat-track"),
 	}); err != nil {
 		t.Fatalf("InitializeAgent: %v", err)
 	}
@@ -518,7 +535,7 @@ func TestWave1ExecPack4ChatTrackHookProposalUsesCanonicalHookLifecycle(t *testin
 	svc.mu.RUnlock()
 
 	if err := svc.ExecuteChatTrackSidecar(ctx, ChatTrackSidecarExecutionRequest{
-		AgentID:       "agent-pack4-chat-track",
+		AgentID:       testRuntimeAgentLocalRef("agent-pack4-chat-track"),
 		SourceEventID: "chat-turn-pack4",
 		Messages: []*runtimev1.ChatMessage{
 			{Role: "user", Content: "follow up later"},
@@ -528,7 +545,8 @@ func TestWave1ExecPack4ChatTrackHookProposalUsesCanonicalHookLifecycle(t *testin
 	}
 
 	pendingResp, err := svc.ListPendingHooks(ctx, &runtimev1.ListPendingHooksRequest{
-		AgentId:              "agent-pack4-chat-track",
+		Context:              testRuntimeAgentIdentityContext("agent-pack4-chat-track"),
+		AgentId:              testRuntimeAgentLocalRef("agent-pack4-chat-track"),
 		AdmissionStateFilter: runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_PENDING,
 	})
 	if err != nil {
@@ -540,7 +558,8 @@ func TestWave1ExecPack4ChatTrackHookProposalUsesCanonicalHookLifecycle(t *testin
 
 	hookStream := newAgentEventCaptureStreamLimit(ctx, 2)
 	if err := svc.SubscribeAgentEvents(&runtimev1.SubscribeAgentEventsRequest{
-		AgentId:      "agent-pack4-chat-track",
+		Context:      testRuntimeAgentIdentityContext("agent-pack4-chat-track"),
+		AgentId:      testRuntimeAgentLocalRef("agent-pack4-chat-track"),
 		Cursor:       encodeCursor(cursor),
 		EventFilters: []runtimev1.AgentEventType{runtimev1.AgentEventType_AGENT_EVENT_TYPE_HOOK},
 	}, hookStream); err != context.Canceled {
@@ -615,7 +634,9 @@ func TestWave1ExecPack4PublicChatHookProjectionAndNoRawAPMLConsumerPath(t *testi
 		SubjectUserId: "user-1",
 		MessageType:   publicChatTurnRequestType,
 		Payload: publicChatStructPayload(t, map[string]any{
-			"agent_id":               "agent-alpha",
+			"local_agent_ref":        testRuntimeAgentLocalRef("agent-alpha"),
+			"owner_user_id":          "user-1",
+			"realm_agent_id":         "agent-alpha",
 			"conversation_anchor_id": anchorID,
 			"messages": []any{
 				map[string]any{"role": "user", "content": "propose follow up"},
@@ -647,7 +668,8 @@ func TestWave1ExecPack4PublicChatHookProjectionAndNoRawAPMLConsumerPath(t *testi
 	// truth. Public chat follow-up scheduling remains anchored in the chat
 	// session surface.
 	pendingResp, err := svc.ListPendingHooks(context.Background(), &runtimev1.ListPendingHooksRequest{
-		AgentId:              "agent-alpha",
+		Context:              testRuntimeAgentIdentityContext("agent-alpha"),
+		AgentId:              testRuntimeAgentLocalRef("agent-alpha"),
 		AdmissionStateFilter: runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_PENDING,
 	})
 	if err != nil {
@@ -658,7 +680,8 @@ func TestWave1ExecPack4PublicChatHookProjectionAndNoRawAPMLConsumerPath(t *testi
 	}
 	hookStream := newAgentEventCaptureStreamLimit(context.Background(), 2)
 	if err := svc.SubscribeAgentEvents(&runtimev1.SubscribeAgentEventsRequest{
-		AgentId:      "agent-alpha",
+		Context:      testRuntimeAgentIdentityContext("agent-alpha"),
+		AgentId:      testRuntimeAgentLocalRef("agent-alpha"),
 		Cursor:       encodeCursor(cursor),
 		EventFilters: []runtimev1.AgentEventType{runtimev1.AgentEventType_AGENT_EVENT_TYPE_HOOK},
 	}, hookStream); err != context.DeadlineExceeded && err != context.Canceled {
@@ -705,6 +728,8 @@ func TestWave1ExecPack4PublicChatHookProjectionAndNoRawAPMLConsumerPath(t *testi
 		SubjectUserId: "user-1",
 		MessageType:   publicChatTurnRequestType,
 		Payload: publicChatStructPayload(t, map[string]any{
+			"owner_user_id":          "user-1",
+			"realm_agent_id":         "agent-alpha",
 			"conversation_anchor_id": anchorID,
 			"messages": []any{
 				map[string]any{"role": "user", "content": "missing agent id"},
@@ -714,7 +739,7 @@ func TestWave1ExecPack4PublicChatHookProjectionAndNoRawAPMLConsumerPath(t *testi
 	if status.Code(err) != codes.InvalidArgument {
 		t.Fatalf("expected InvalidArgument for implicit/default-agent routing attempt, got err=%v code=%v", err, status.Code(err))
 	}
-	if err == nil || !strings.Contains(err.Error(), "requires agent_id") {
-		t.Fatalf("expected agent_id requirement failure, got %v", err)
+	if err == nil || !strings.Contains(err.Error(), "local_agent_ref is required") {
+		t.Fatalf("expected local_agent_ref requirement failure, got %v", err)
 	}
 }

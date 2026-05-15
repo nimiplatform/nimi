@@ -36,7 +36,9 @@ func TestPublicChatTurnInterruptCancelsActiveTurn(t *testing.T) {
 		SubjectUserId: "user-1",
 		MessageType:   publicChatTurnRequestType,
 		Payload: publicChatStructPayload(t, map[string]any{
-			"agent_id":               "agent-alpha",
+			"local_agent_ref":        testRuntimeAgentLocalRef("agent-alpha"),
+			"owner_user_id":          "user-1",
+			"realm_agent_id":         "agent-alpha",
 			"conversation_anchor_id": anchorID,
 			"messages": []any{
 				map[string]any{"role": "user", "content": "hello"},
@@ -79,7 +81,8 @@ func TestPublicChatTurnInterruptCancelsActiveTurn(t *testing.T) {
 	if got := interruptedDetail["reason"]; got != "user_cancelled" {
 		t.Fatalf("unexpected interrupted.detail.reason: %v", got)
 	}
-	stateResp, err := svc.GetAgentState(context.Background(), &runtimev1.GetAgentStateRequest{AgentId: "agent-alpha"})
+	stateResp, err := svc.GetAgentState(context.Background(), &runtimev1.GetAgentStateRequest{
+		Context: testRuntimeAgentIdentityContext("agent-alpha"), AgentId: "agent-alpha"})
 	if err != nil {
 		t.Fatalf("GetAgentState: %v", err)
 	}
@@ -159,7 +162,9 @@ func TestPublicChatSessionSnapshotReportsLiveAndTerminalState(t *testing.T) {
 		SubjectUserId: "user-1",
 		MessageType:   publicChatTurnRequestType,
 		Payload: publicChatStructPayload(t, map[string]any{
-			"agent_id":               "agent-alpha",
+			"local_agent_ref":        testRuntimeAgentLocalRef("agent-alpha"),
+			"owner_user_id":          "user-1",
+			"realm_agent_id":         "agent-alpha",
 			"conversation_anchor_id": anchorID,
 			"thread_id":              "thread-session-snapshot",
 			"messages": []any{

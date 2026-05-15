@@ -34,6 +34,8 @@ import {
   parseAppConsumeEvent,
   RuntimeMethodIds,
   APP_ID,
+  LOCAL_AGENT_REF,
+  LOCAL_AGENT_IDENTITY,
   OPEN_CONVERSATION_ANCHOR_METHOD,
   GET_CONVERSATION_ANCHOR_SNAPSHOT_METHOD,
   TIMELINE_STARTED_AT,
@@ -90,14 +92,14 @@ test('runtime agent turns subscribe parses Wave 2 hook projection events with or
           async *[Symbol.asyncIterator]() {
             yield createAgentEvent({
               eventType: AgentEventType.HOOK,
-              agentId: 'agent-1',
+              ...LOCAL_AGENT_IDENTITY,
               detail: {
                 oneofKind: 'hook',
                 hook: {
                   family: HookAdmissionState.PROPOSED,
                   intent: {
                     intentId: 'action-wave2-event',
-                    agentId: 'agent-1',
+                    agentId: LOCAL_AGENT_REF,
                     conversationAnchorId: 'anchor-1',
                     originatingTurnId: 'turn-wave2',
                     originatingStreamId: 'stream-wave2',
@@ -119,14 +121,14 @@ test('runtime agent turns subscribe parses Wave 2 hook projection events with or
             });
             yield createAgentEvent({
               eventType: AgentEventType.HOOK,
-              agentId: 'agent-1',
+              ...LOCAL_AGENT_IDENTITY,
               detail: {
                 oneofKind: 'hook',
                 hook: {
                   family: HookAdmissionState.REJECTED,
                   intent: {
                     intentId: 'action-wave2-event',
-                    agentId: 'agent-1',
+                    agentId: LOCAL_AGENT_REF,
                     conversationAnchorId: 'anchor-1',
                     originatingTurnId: 'turn-wave2',
                     originatingStreamId: 'stream-wave2',
@@ -171,12 +173,13 @@ test('runtime agent turns subscribe parses Wave 2 hook projection events with or
     });
 
     const stream = await runtime.agent.turns.subscribe({
-      agentId: 'agent-1',
+      ...LOCAL_AGENT_IDENTITY,
       conversationAnchorId: 'anchor-1',
     });
     const events = await collectRuntimeAgentEvents(stream);
 
-    assert.equal(capturedAgentSubscribeRequest?.agentId, 'agent-1');
+    assert.equal(capturedAgentSubscribeRequest?.agentId, '');
+    assert.equal(capturedAgentSubscribeRequest?.context?.localAgentRef, LOCAL_AGENT_REF);
     assert.deepEqual(capturedAgentSubscribeRequest?.eventFilters, [
       AgentEventType.HOOK,
       AgentEventType.STATE,
@@ -307,17 +310,18 @@ test('runtime agent session snapshot recovery stays anchor-native and consumer-o
     });
 
     const snapshot = await runtime.agent.turns.getSessionSnapshot({
-      agentId: 'agent-1',
+      ...LOCAL_AGENT_IDENTITY,
       conversationAnchorId: 'anchor-1',
       requestId: 'req-1',
     });
 
-    assert.equal(capturedSessionSnapshotRequest?.agentId, 'agent-1');
+    assert.equal(capturedSessionSnapshotRequest?.agentId, LOCAL_AGENT_REF);
     assert.equal(capturedSessionSnapshotRequest?.conversationAnchorId, 'anchor-1');
     assert.equal(capturedSessionSnapshotRequest?.requestId, 'req-1');
     assert.equal(capturedSessionSnapshotRequest?.worldId, '');
     assert.equal(capturedSessionSnapshotRequest?.context?.appId, APP_ID);
     assert.equal(capturedSessionSnapshotRequest?.context?.subjectUserId, 'subject-1');
+    assert.equal(capturedSessionSnapshotRequest?.context?.localAgentRef, LOCAL_AGENT_REF);
     assert.deepEqual(protectedTokens, [
       {
         methodId: RuntimeMethodIds.agent.getPublicChatSessionSnapshot,
@@ -374,14 +378,14 @@ test('runtime agent turns subscribe can skip agent event stream for app-only tur
         return {
           async *[Symbol.asyncIterator]() {
             yield createAppEvent('runtime.agent.turn.accepted', {
-              agent_id: 'agent-1',
+              agent_id: LOCAL_AGENT_REF,
               conversation_anchor_id: 'anchor-1',
               turn_id: 'turn-1',
               stream_id: 'stream-1',
               detail: { request_id: 'req-1' },
             });
             yield createAppEvent('runtime.agent.turn.completed', {
-              agent_id: 'agent-1',
+              agent_id: LOCAL_AGENT_REF,
               conversation_anchor_id: 'anchor-1',
               turn_id: 'turn-1',
               stream_id: 'stream-1',
@@ -412,7 +416,7 @@ test('runtime agent turns subscribe can skip agent event stream for app-only tur
     });
 
     const stream = await runtime.agent.turns.subscribe({
-      agentId: 'agent-1',
+      ...LOCAL_AGENT_IDENTITY,
       conversationAnchorId: 'anchor-1',
       includeAgentEvents: false,
     });
@@ -463,7 +467,7 @@ test('runtime agent consume surface admits agent-scoped no-origin state and hook
         return {
           async *[Symbol.asyncIterator]() {
             yield createAppEvent('runtime.agent.turn.accepted', {
-              agent_id: 'agent-1',
+              agent_id: LOCAL_AGENT_REF,
               conversation_anchor_id: 'anchor-2',
               turn_id: 'turn-2',
               stream_id: 'stream-2',
@@ -477,7 +481,7 @@ test('runtime agent consume surface admits agent-scoped no-origin state and hook
           async *[Symbol.asyncIterator]() {
             yield createAgentEvent({
               eventType: AgentEventType.STATE,
-              agentId: 'agent-1',
+              ...LOCAL_AGENT_IDENTITY,
               detail: {
                 oneofKind: 'state',
                 state: {
@@ -488,14 +492,14 @@ test('runtime agent consume surface admits agent-scoped no-origin state and hook
             });
             yield createAgentEvent({
               eventType: AgentEventType.HOOK,
-              agentId: 'agent-1',
+              ...LOCAL_AGENT_IDENTITY,
               detail: {
                 oneofKind: 'hook',
                 hook: {
                   family: HookAdmissionState.PENDING,
                   intent: {
                     intentId: 'hook-no-origin',
-                    agentId: 'agent-1',
+                    agentId: LOCAL_AGENT_REF,
                     triggerFamily: HookTriggerFamily.EVENT,
                     triggerDetail: {
                       detail: {
@@ -511,7 +515,7 @@ test('runtime agent consume surface admits agent-scoped no-origin state and hook
             });
             yield createAgentEvent({
               eventType: AgentEventType.STATE,
-              agentId: 'agent-1',
+              ...LOCAL_AGENT_IDENTITY,
               detail: {
                 oneofKind: 'state',
                 state: {
@@ -524,7 +528,7 @@ test('runtime agent consume surface admits agent-scoped no-origin state and hook
             });
             yield createAgentEvent({
               eventType: AgentEventType.STATE,
-              agentId: 'agent-other',
+              localAgentRef: 'local-agent:subject-1:agent-other', ownerUserId: 'subject-1', realmAgentId: 'agent-other',
               detail: {
                 oneofKind: 'state',
                 state: {
@@ -554,7 +558,7 @@ test('runtime agent consume surface admits agent-scoped no-origin state and hook
     });
 
     const stream = await runtime.agent.turns.subscribe({
-      agentId: 'agent-1',
+      ...LOCAL_AGENT_IDENTITY,
     });
 
     const events: RuntimeAgentConsumeEvent[] = [];
@@ -603,7 +607,7 @@ test('runtime agent consume surface admits agent-scoped no-origin state and hook
 test('runtime agent consume surface rejects invalid emotion projection', () => {
   assert.throws(() => parseAgentConsumeEvent(AgentEvent.fromBinary(createAgentEvent({
     eventType: AgentEventType.STATE,
-    agentId: 'agent-1',
+    ...LOCAL_AGENT_IDENTITY,
     detail: {
       oneofKind: 'state',
       state: {
@@ -616,7 +620,7 @@ test('runtime agent consume surface rejects invalid emotion projection', () => {
 
   assert.throws(() => parseAgentConsumeEvent(AgentEvent.fromBinary(createAgentEvent({
     eventType: AgentEventType.STATE,
-    agentId: 'agent-1',
+    ...LOCAL_AGENT_IDENTITY,
     detail: {
       oneofKind: 'state',
       state: {

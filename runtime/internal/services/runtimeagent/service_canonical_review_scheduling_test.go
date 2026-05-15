@@ -171,7 +171,7 @@ func TestRuntimeAgentCanonicalReviewSchedulingSweepSuppressesNonActiveAndNonIdle
 		{
 			name: "non_active",
 			mutate: func(svc *Service) error {
-				entry, err := svc.agentByID("agent-review-scheduling-state")
+				entry, err := svc.agentByID(testRuntimeAgentLocalRef("agent-review-scheduling-state"))
 				if err != nil {
 					return err
 				}
@@ -182,7 +182,7 @@ func TestRuntimeAgentCanonicalReviewSchedulingSweepSuppressesNonActiveAndNonIdle
 		{
 			name: "non_idle",
 			mutate: func(svc *Service) error {
-				entry, err := svc.agentByID("agent-review-scheduling-state")
+				entry, err := svc.agentByID(testRuntimeAgentLocalRef("agent-review-scheduling-state"))
 				if err != nil {
 					return err
 				}
@@ -287,13 +287,14 @@ func TestRuntimeAgentCanonicalReviewSchedulingSweepNoClustersNoOp(t *testing.T) 
 func initializeCanonicalReviewSchedulingAgent(t *testing.T, ctx context.Context, svc *Service, agentID string) *runtimev1.MemoryBankLocator {
 	t.Helper()
 
-	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{AgentId: agentID}); err != nil {
+	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
+		Context: testRuntimeAgentIdentityContext(agentID)}); err != nil {
 		t.Fatalf("InitializeAgent(%s): %v", agentID, err)
 	}
 	locator := &runtimev1.MemoryBankLocator{
 		Scope: runtimev1.MemoryBankScope_MEMORY_BANK_SCOPE_AGENT_CORE,
 		Owner: &runtimev1.MemoryBankLocator_AgentCore{
-			AgentCore: &runtimev1.AgentCoreBankOwner{AgentId: agentID},
+			AgentCore: &runtimev1.AgentCoreBankOwner{AgentId: testRuntimeAgentLocalRef(agentID)},
 		},
 	}
 	if _, err := svc.memorySvc.BindCanonicalBankEmbeddingProfile(ctx, locator); err != nil {
@@ -332,7 +333,7 @@ func persistReviewFollowUpForTest(t *testing.T, svc *Service, locator *runtimev1
 	t.Helper()
 
 	if _, err := svc.backend.DB().Exec(`
-		INSERT OR REPLACE INTO runtime_agent_review_followup(bank_locator_key, review_run_id, checkpoint_basis, completed_at)
+		INSERT OR REPLACE INTO runtime_local_agent_review_followup(bank_locator_key, review_run_id, checkpoint_basis, completed_at)
 		VALUES (?, ?, ?, ?)
 	`, memoryservice.LocatorKey(locator), reviewRunID, checkpointBasis, completedAt.UTC().Format(time.RFC3339Nano)); err != nil {
 		t.Fatalf("persist review follow-up: %v", err)
@@ -345,7 +346,7 @@ func countReviewRunsForBank(t *testing.T, svc *Service, locator *runtimev1.Memor
 	var count int
 	if err := svc.backend.DB().QueryRow(`
 		SELECT COUNT(*)
-		FROM runtime_agent_review_run
+		FROM runtime_local_agent_review_run
 		WHERE bank_locator_key = ?
 	`, memoryservice.LocatorKey(locator)).Scan(&count); err != nil {
 		t.Fatalf("count review runs: %v", err)
@@ -393,7 +394,7 @@ func TestAIBackedCanonicalReviewExecutorDecodesValidOutput(t *testing.T) {
 		Bank: &runtimev1.MemoryBankLocator{
 			Scope: runtimev1.MemoryBankScope_MEMORY_BANK_SCOPE_AGENT_CORE,
 			Owner: &runtimev1.MemoryBankLocator_AgentCore{
-				AgentCore: &runtimev1.AgentCoreBankOwner{AgentId: "agent-review-ai"},
+				AgentCore: &runtimev1.AgentCoreBankOwner{AgentId: testRuntimeAgentLocalRef("agent-review-ai")},
 			},
 		},
 		CheckpointBasis: "mem-0",
@@ -509,7 +510,7 @@ func TestAIBackedCanonicalReviewExecutorRejectsInvalidOutput(t *testing.T) {
 				Bank: &runtimev1.MemoryBankLocator{
 					Scope: runtimev1.MemoryBankScope_MEMORY_BANK_SCOPE_AGENT_CORE,
 					Owner: &runtimev1.MemoryBankLocator_AgentCore{
-						AgentCore: &runtimev1.AgentCoreBankOwner{AgentId: "agent-review-ai"},
+						AgentCore: &runtimev1.AgentCoreBankOwner{AgentId: testRuntimeAgentLocalRef("agent-review-ai")},
 					},
 				},
 				Clusters: []memoryservice.ReviewTopicCluster{

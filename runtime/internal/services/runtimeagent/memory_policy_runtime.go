@@ -22,7 +22,7 @@ func (s *Service) memoryPolicyRuntime() memoryPolicyRuntime {
 }
 
 func (m memoryPolicyRuntime) query(ctx context.Context, req *runtimev1.QueryAgentMemoryRequest) (*runtimev1.QueryAgentMemoryResponse, error) {
-	entry, err := m.svc.agentByID(strings.TrimSpace(req.GetAgentId()))
+	_, entry, err := m.svc.agentEntryForIdentityContext(req.GetContext())
 	if err != nil {
 		return nil, err
 	}
@@ -124,7 +124,7 @@ func (m memoryPolicyRuntime) write(ctx context.Context, req *runtimev1.WriteAgen
 	if len(req.GetCandidates()) == 0 {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
-	entry, err := m.svc.agentByID(strings.TrimSpace(req.GetAgentId()))
+	_, entry, err := m.svc.agentEntryForIdentityContext(req.GetContext())
 	if err != nil {
 		return nil, err
 	}

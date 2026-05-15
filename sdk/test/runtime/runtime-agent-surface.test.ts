@@ -34,6 +34,9 @@ import {
   parseAppConsumeEvent,
   RuntimeMethodIds,
   APP_ID,
+  REALM_AGENT_ID,
+  LOCAL_AGENT_REF,
+  LOCAL_AGENT_IDENTITY,
   OPEN_CONVERSATION_ANCHOR_METHOD,
   GET_CONVERSATION_ANCHOR_SNAPSHOT_METHOD,
   TIMELINE_STARTED_AT,
@@ -48,7 +51,7 @@ import {
 } from './runtime-agent-surface-test-utils.js';
 import type { RuntimeAgentConsumeEvent } from './runtime-agent-surface-test-utils.js';
 
-test('runtime agent anchors project explicit agentId and conversationAnchorId through runtime truth', async () => {
+test('runtime agent anchors project explicit localAgentRef and conversationAnchorId through runtime truth', async () => {
   let capturedOpenRequest: OpenConversationAnchorRequest | null = null;
   let capturedSnapshotRequest: GetConversationAnchorSnapshotRequest | null = null;
   const authorizeRequests: AuthorizeExternalPrincipalRequest[] = [];
@@ -123,25 +126,34 @@ test('runtime agent anchors project explicit agentId and conversationAnchorId th
     });
 
     const opened = await runtime.agent.anchors.open({
-      agentId: 'agent-1',
+      ...LOCAL_AGENT_IDENTITY,
       metadata: { source: 'sdk-test' },
     });
     const recovered = await runtime.agent.anchors.getSnapshot({
-      agentId: 'agent-1',
+      ...LOCAL_AGENT_IDENTITY,
       conversationAnchorId: 'anchor-1',
     });
 
     assert.equal(opened.anchor?.conversationAnchorId, 'anchor-1');
     assert.equal(recovered.anchor?.conversationAnchorId, 'anchor-1');
-    assert.equal(capturedOpenRequest?.agentId, 'agent-1');
+    assert.equal(capturedOpenRequest?.agentId, '');
+    assert.equal(capturedOpenRequest?.localAgentRef, LOCAL_AGENT_REF);
+    assert.equal(capturedOpenRequest?.ownerUserId, 'subject-1');
+    assert.equal(capturedOpenRequest?.realmAgentId, REALM_AGENT_ID);
     assert.equal(capturedOpenRequest?.subjectUserId, 'subject-1');
     assert.equal(capturedOpenRequest?.context?.appId, APP_ID);
     assert.equal(capturedOpenRequest?.context?.subjectUserId, 'subject-1');
+    assert.equal(capturedOpenRequest?.context?.localAgentRef, LOCAL_AGENT_REF);
+    assert.equal(capturedOpenRequest?.context?.ownerUserId, 'subject-1');
+    assert.equal(capturedOpenRequest?.context?.realmAgentId, REALM_AGENT_ID);
     assert.equal((Struct.toJson(capturedOpenRequest?.metadata as Struct) as { source?: string }).source, 'sdk-test');
-    assert.equal(capturedSnapshotRequest?.agentId, 'agent-1');
+    assert.equal(capturedSnapshotRequest?.agentId, '');
     assert.equal(capturedSnapshotRequest?.conversationAnchorId, 'anchor-1');
     assert.equal(capturedSnapshotRequest?.context?.appId, APP_ID);
     assert.equal(capturedSnapshotRequest?.context?.subjectUserId, 'subject-1');
+    assert.equal(capturedSnapshotRequest?.context?.localAgentRef, LOCAL_AGENT_REF);
+    assert.equal(capturedSnapshotRequest?.context?.ownerUserId, 'subject-1');
+    assert.equal(capturedSnapshotRequest?.context?.realmAgentId, REALM_AGENT_ID);
     assert.equal(registerCalls, 1);
     assert.deepEqual(authorizeRequests.map((request) => request.scopes), [
       ['runtime.agent.write'],
@@ -164,6 +176,97 @@ test('runtime agent anchors project explicit agentId and conversationAnchorId th
   }
 });
 
+test('runtime agent public surface keeps same realmAgentId separate across owners', async () => {
+  const sharedRealmAgentId = 'agent-shared';
+  const ownerAIdentity = {
+    ownerUserId: 'owner-a',
+    realmAgentId: sharedRealmAgentId,
+    localAgentRef: `local-agent:owner-a:${sharedRealmAgentId}`,
+  } as const;
+  const ownerBIdentity = {
+    ownerUserId: 'owner-b',
+    realmAgentId: sharedRealmAgentId,
+    localAgentRef: `local-agent:owner-b:${sharedRealmAgentId}`,
+  } as const;
+  const capturedOpenRequests: OpenConversationAnchorRequest[] = [];
+
+  installNodeGrpcBridge({
+    invokeUnary: async (_config, input) => {
+      if (input.methodId === RuntimeMethodIds.auth.registerApp) {
+        return RegisterAppResponse.toBinary(RegisterAppResponse.create({
+          accepted: true,
+        }));
+      }
+      if (input.methodId === RuntimeMethodIds.appAuth.authorizeExternalPrincipal) {
+        const request = AuthorizeExternalPrincipalRequest.fromBinary(input.request);
+        return AuthorizeExternalPrincipalResponse.toBinary(AuthorizeExternalPrincipalResponse.create({
+          tokenId: `anchor-token-${request.subjectUserId || capturedOpenRequests.length}`,
+          appId: APP_ID,
+          subjectUserId: request.subjectUserId,
+          externalPrincipalId: APP_ID,
+          effectiveScopes: request.scopes,
+          policyVersion: '1.0.0',
+          issuedScopeCatalogVersion: '1.0.0',
+          canDelegate: false,
+          secret: 'anchor-secret',
+        }));
+      }
+      if (input.methodId === OPEN_CONVERSATION_ANCHOR_METHOD) {
+        const request = OpenConversationAnchorRequest.fromBinary(input.request);
+        capturedOpenRequests.push(request);
+        return OpenConversationAnchorResponse.toBinary(OpenConversationAnchorResponse.create({
+          snapshot: createAnchorSnapshot(
+            request.context?.ownerUserId === 'owner-a' ? 'anchor-owner-a' : 'anchor-owner-b',
+            request.localAgentRef,
+          ),
+        }));
+      }
+      throw new Error(`unexpected method: ${input.methodId}`);
+    },
+    openStream: async () => {
+      throw new Error('unexpected stream call');
+    },
+    closeStream: async () => {},
+  });
+
+  try {
+    const runtime = new Runtime({
+      appId: APP_ID,
+      transport: {
+        type: 'node-grpc',
+        endpoint: '127.0.0.1:46371',
+      },
+      subjectContext: {
+        subjectUserId: 'runtime-subject',
+      },
+    });
+
+    const ownerA = await runtime.agent.anchors.open({
+      ...ownerAIdentity,
+      subjectUserId: 'owner-a',
+    });
+    const ownerB = await runtime.agent.anchors.open({
+      ...ownerBIdentity,
+      subjectUserId: 'owner-b',
+    });
+
+    assert.equal(ownerA.anchor?.conversationAnchorId, 'anchor-owner-a');
+    assert.equal(ownerB.anchor?.conversationAnchorId, 'anchor-owner-b');
+    assert.equal(capturedOpenRequests.length, 2);
+    assert.equal(capturedOpenRequests[0]?.realmAgentId, sharedRealmAgentId);
+    assert.equal(capturedOpenRequests[1]?.realmAgentId, sharedRealmAgentId);
+    assert.equal(capturedOpenRequests[0]?.ownerUserId, 'owner-a');
+    assert.equal(capturedOpenRequests[1]?.ownerUserId, 'owner-b');
+    assert.equal(capturedOpenRequests[0]?.localAgentRef, ownerAIdentity.localAgentRef);
+    assert.equal(capturedOpenRequests[1]?.localAgentRef, ownerBIdentity.localAgentRef);
+    assert.notEqual(capturedOpenRequests[0]?.localAgentRef, capturedOpenRequests[1]?.localAgentRef);
+    assert.equal(capturedOpenRequests[0]?.agentId, '');
+    assert.equal(capturedOpenRequests[1]?.agentId, '');
+  } finally {
+    clearNodeGrpcBridge();
+  }
+});
+
 test('runtime agent turn request rejects malformed payloads before runtime RPC', async () => {
   const runtime = new Runtime({
     appId: APP_ID,
@@ -178,7 +281,7 @@ test('runtime agent turn request rejects malformed payloads before runtime RPC',
 
   await assert.rejects(
     () => runtime.agent.turns.request({
-      agentId: 'agent-1',
+      ...LOCAL_AGENT_IDENTITY,
       conversationAnchorId: 'anchor-1',
       messages: [],
       executionBinding: { route: 'local', modelId: 'local/qwen2.5' },
@@ -192,7 +295,7 @@ test('runtime agent turn request rejects malformed payloads before runtime RPC',
 
   await assert.rejects(
     () => runtime.agent.turns.request({
-      agentId: 'agent-1',
+      ...LOCAL_AGENT_IDENTITY,
       conversationAnchorId: 'anchor-1',
       messages: [{ role: 'user', content: 'hello' }],
       executionBinding: { route: 'invalid' as 'local', modelId: 'local/qwen2.5' },
@@ -206,7 +309,7 @@ test('runtime agent turn request rejects malformed payloads before runtime RPC',
 
   await assert.rejects(
     () => runtime.agent.turns.request({
-      agentId: 'agent-1',
+      ...LOCAL_AGENT_IDENTITY,
       conversationAnchorId: 'anchor-1',
       messages: [{ role: 'user', content: 'hello' }],
       executionBinding: { route: 'local', modelId: '' },
@@ -220,18 +323,20 @@ test('runtime agent turn request rejects malformed payloads before runtime RPC',
 
   await assert.rejects(
     () => runtime.agent.anchors.open({
-      agentId: '',
-    }),
+      ownerUserId: 'subject-1',
+      realmAgentId: REALM_AGENT_ID,
+      localAgentRef: '',
+    } as never),
     (error: unknown) => {
       assert.equal((error as { reasonCode?: string }).reasonCode, 'AI_INPUT_INVALID');
-      assert.match(String((error as Error).message), /requires agentId/);
+      assert.match(String((error as Error).message), /requires localAgentRef/);
       return true;
     },
   );
 
   await assert.rejects(
     () => runtime.agent.anchors.getSnapshot({
-      agentId: 'agent-1',
+      ...LOCAL_AGENT_IDENTITY,
       conversationAnchorId: '',
     }),
     (error: unknown) => {
@@ -243,19 +348,21 @@ test('runtime agent turn request rejects malformed payloads before runtime RPC',
 
   await assert.rejects(
     () => runtime.agent.turns.subscribe({
-      agentId: '',
+      ownerUserId: 'subject-1',
+      realmAgentId: REALM_AGENT_ID,
+      localAgentRef: '',
       conversationAnchorId: 'anchor-1',
-    }),
+    } as never),
     (error: unknown) => {
       assert.equal((error as { reasonCode?: string }).reasonCode, 'AI_INPUT_INVALID');
-      assert.match(String((error as Error).message), /requires agentId/);
+      assert.match(String((error as Error).message), /requires localAgentRef/);
       return true;
     },
   );
 
   await assert.rejects(
     () => runtime.agent.turns.subscribe({
-      agentId: 'agent-1',
+      ...LOCAL_AGENT_IDENTITY,
       conversationAnchorId: 'anchor-1',
       cursor: 'not-a-runtime-cursor',
     }),
@@ -268,7 +375,7 @@ test('runtime agent turn request rejects malformed payloads before runtime RPC',
 
   await assert.rejects(
     () => runtime.agent.turns.interrupt({
-      agentId: 'agent-1',
+      ...LOCAL_AGENT_IDENTITY,
       conversationAnchorId: '',
     }),
     (error: unknown) => {
@@ -280,7 +387,7 @@ test('runtime agent turn request rejects malformed payloads before runtime RPC',
 
   await assert.rejects(
     () => runtime.agent.turns.getSessionSnapshot({
-      agentId: 'agent-1',
+      ...LOCAL_AGENT_IDENTITY,
       conversationAnchorId: '',
     }),
     (error: unknown) => {
@@ -357,35 +464,35 @@ test('runtime agent turns subscribe/request/interrupt hard-cut to anchor-native 
         return {
           async *[Symbol.asyncIterator]() {
             yield createAppEvent('runtime.agent.turn.started', {
-              agent_id: 'agent-1',
+              agent_id: LOCAL_AGENT_REF,
               conversation_anchor_id: 'anchor-other',
               turn_id: 'turn-ignored',
               stream_id: 'stream-ignored',
               detail: { track: 'chat' },
             });
             yield createAppEvent('runtime.agent.turn.accepted', {
-              agent_id: 'agent-1',
+              agent_id: LOCAL_AGENT_REF,
               conversation_anchor_id: 'anchor-1',
               turn_id: 'turn-1',
               stream_id: 'stream-1',
               detail: { request_id: 'req-1' },
             });
             yield createAppEvent('runtime.agent.turn.text_delta', {
-              agent_id: 'agent-1',
+              agent_id: LOCAL_AGENT_REF,
               conversation_anchor_id: 'anchor-1',
               turn_id: 'turn-1',
               stream_id: 'stream-1',
               detail: { text: 'hello' },
             });
             yield createAppEvent('runtime.agent.presentation.expression_requested', {
-              agent_id: 'agent-1',
+              agent_id: LOCAL_AGENT_REF,
               conversation_anchor_id: 'anchor-1',
               turn_id: 'turn-1',
               stream_id: 'stream-1',
               detail: { expression_id: 'smile', expected_duration_ms: 1200 },
             });
             yield createAppEvent('runtime.agent.presentation.activity_requested', {
-              agent_id: 'agent-1',
+              agent_id: LOCAL_AGENT_REF,
               conversation_anchor_id: 'anchor-1',
               turn_id: 'turn-1',
               stream_id: 'stream-1',
@@ -396,7 +503,7 @@ test('runtime agent turns subscribe/request/interrupt hard-cut to anchor-native 
               },
             });
             yield createAppEvent('runtime.agent.turn.message_committed', {
-              agent_id: 'agent-1',
+              agent_id: LOCAL_AGENT_REF,
               conversation_anchor_id: 'anchor-1',
               turn_id: 'turn-1',
               stream_id: 'stream-1',
@@ -418,7 +525,7 @@ test('runtime agent turns subscribe/request/interrupt hard-cut to anchor-native 
           async *[Symbol.asyncIterator]() {
             yield createAgentEvent({
               eventType: AgentEventType.STATE,
-              agentId: 'agent-1',
+              ...LOCAL_AGENT_IDENTITY,
               detail: {
                 oneofKind: 'state',
                 state: {
@@ -430,7 +537,7 @@ test('runtime agent turns subscribe/request/interrupt hard-cut to anchor-native 
             });
             yield createAgentEvent({
               eventType: AgentEventType.STATE,
-              agentId: 'agent-1',
+              ...LOCAL_AGENT_IDENTITY,
               detail: {
                 oneofKind: 'state',
                 state: {
@@ -445,14 +552,14 @@ test('runtime agent turns subscribe/request/interrupt hard-cut to anchor-native 
             });
             yield createAgentEvent({
               eventType: AgentEventType.HOOK,
-              agentId: 'agent-1',
+              ...LOCAL_AGENT_IDENTITY,
               detail: {
                 oneofKind: 'hook',
                 hook: {
                   family: HookAdmissionState.RUNNING,
                   intent: {
                     intentId: 'hook-1',
-                    agentId: 'agent-1',
+                    agentId: LOCAL_AGENT_REF,
                     conversationAnchorId: 'anchor-1',
                     originatingTurnId: 'turn-1',
                     originatingStreamId: 'stream-1',
@@ -492,17 +599,17 @@ test('runtime agent turns subscribe/request/interrupt hard-cut to anchor-native 
     });
 
     const stream = await runtime.agent.turns.subscribe({
-      agentId: 'agent-1',
+      ...LOCAL_AGENT_IDENTITY,
       conversationAnchorId: 'anchor-1',
     });
     await runtime.agent.turns.request({
-      agentId: 'agent-1',
+      ...LOCAL_AGENT_IDENTITY,
       conversationAnchorId: 'anchor-1',
       messages: [{ role: 'user', content: 'hello' }],
       executionBinding: { route: 'local', modelId: 'local/qwen2.5' },
     });
     await runtime.agent.turns.interrupt({
-      agentId: 'agent-1',
+      ...LOCAL_AGENT_IDENTITY,
       conversationAnchorId: 'anchor-1',
       turnId: 'turn-1',
       reason: 'user_interrupt',
@@ -540,7 +647,8 @@ test('runtime agent turns subscribe/request/interrupt hard-cut to anchor-native 
         secret: 'secret-3',
       },
     ]);
-    assert.equal(capturedAgentSubscribeRequest?.agentId, 'agent-1');
+    assert.equal(capturedAgentSubscribeRequest?.agentId, '');
+    assert.equal(capturedAgentSubscribeRequest?.context?.localAgentRef, LOCAL_AGENT_REF);
     assert.deepEqual(capturedAgentSubscribeRequest?.eventFilters, [
       AgentEventType.HOOK,
       AgentEventType.STATE,
@@ -548,7 +656,10 @@ test('runtime agent turns subscribe/request/interrupt hard-cut to anchor-native 
 
     const turnRequestPayload = Struct.toJson(capturedMessages[0]?.payload as Struct) as Record<string, unknown>;
     assert.equal(capturedMessages[0]?.messageType, 'runtime.agent.turn.request');
-    assert.equal(turnRequestPayload.agent_id, 'agent-1');
+    assert.equal(turnRequestPayload.local_agent_ref, LOCAL_AGENT_REF);
+    assert.equal(turnRequestPayload.owner_user_id, 'subject-1');
+    assert.equal(turnRequestPayload.realm_agent_id, REALM_AGENT_ID);
+    assert.equal('agent_id' in turnRequestPayload, false);
     assert.equal(turnRequestPayload.conversation_anchor_id, 'anchor-1');
     assert.equal('session_id' in turnRequestPayload, false);
 
@@ -618,7 +729,7 @@ test('runtime agent turns binding-only mode sends scoped binding and does not re
     bindingHandle: 'handle-1',
     runtimeAppId: APP_ID,
     avatarInstanceId: 'avatar-instance-1',
-    agentId: 'agent-1',
+    ...LOCAL_AGENT_IDENTITY,
     conversationAnchorId: 'anchor-1',
     worldId: 'world-1',
   };
@@ -693,12 +804,12 @@ test('runtime agent turns binding-only mode sends scoped binding and does not re
     });
 
     await runtime.agent.turns.subscribe({
-      agentId: 'agent-1',
+      ...LOCAL_AGENT_IDENTITY,
       conversationAnchorId: 'anchor-1',
       scopedBinding: binding,
     });
     await runtime.agent.turns.request({
-      agentId: 'agent-1',
+      ...LOCAL_AGENT_IDENTITY,
       conversationAnchorId: 'anchor-1',
       worldId: 'world-1',
       messages: [{ role: 'user', content: 'hello' }],
@@ -706,14 +817,14 @@ test('runtime agent turns binding-only mode sends scoped binding and does not re
       scopedBinding: binding,
     });
     await runtime.agent.turns.interrupt({
-      agentId: 'agent-1',
+      ...LOCAL_AGENT_IDENTITY,
       conversationAnchorId: 'anchor-1',
       worldId: 'world-1',
       turnId: 'turn-1',
       scopedBinding: binding,
     });
     await runtime.agent.turns.getSessionSnapshot({
-      agentId: 'agent-1',
+      ...LOCAL_AGENT_IDENTITY,
       conversationAnchorId: 'anchor-1',
       worldId: 'world-1',
       requestId: 'snapshot-1',
@@ -730,7 +841,7 @@ test('runtime agent turns binding-only mode sends scoped binding and does not re
     for (const message of capturedMessages) {
       assert.equal(message.subjectUserId, '');
       assert.equal(message.scopedBinding?.bindingId, 'binding-1');
-      assert.equal(message.scopedBinding?.agentId, 'agent-1');
+      assert.equal(message.scopedBinding?.agentId, LOCAL_AGENT_REF);
       assert.equal(message.scopedBinding?.conversationAnchorId, 'anchor-1');
       assert.equal(message.scopedBinding?.worldId, 'world-1');
     }
@@ -741,7 +852,7 @@ test('runtime agent turns binding-only mode sends scoped binding and does not re
 
 test('runtime agent consume surface rejects invalid activity projection category', () => {
   assert.throws(() => parseAppConsumeEvent('runtime.agent.presentation.activity_requested', {
-    agent_id: 'agent-1',
+    agent_id: LOCAL_AGENT_REF,
     conversation_anchor_id: 'anchor-1',
     turn_id: 'turn-1',
     stream_id: 'stream-1',
@@ -755,7 +866,7 @@ test('runtime agent consume surface rejects invalid activity projection category
 
 test('runtime agent consume surface preserves runtime-owned turn timeline envelope', () => {
   const event = parseAppConsumeEvent('runtime.agent.turn.text_delta', withRuntimeTimeline('runtime.agent.turn.text_delta', {
-    agent_id: 'agent-1',
+    agent_id: LOCAL_AGENT_REF,
     conversation_anchor_id: 'anchor-1',
     turn_id: 'turn-1',
     stream_id: 'stream-1',
@@ -775,7 +886,7 @@ test('runtime agent consume surface preserves runtime-owned turn timeline envelo
 
 test('runtime agent consume surface rejects malformed turn timeline envelopes', () => {
   const base = withRuntimeTimeline('runtime.agent.turn.accepted', {
-    agent_id: 'agent-1',
+    agent_id: LOCAL_AGENT_REF,
     conversation_anchor_id: 'anchor-1',
     turn_id: 'turn-1',
     stream_id: 'stream-1',

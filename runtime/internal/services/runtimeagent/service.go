@@ -48,7 +48,6 @@ type Service struct {
 
 	logger                    *slog.Logger
 	memorySvc                 *memoryservice.Service
-	statePath                 string
 	backend                   *runtimepersistence.Backend
 	stateRepo                 *runtimeAgentStateRepository
 	chatStateRepo             *publicChatSurfaceStateRepository
@@ -123,13 +122,11 @@ func New(logger *slog.Logger, localStatePath string, memorySvc *memoryservice.Se
 	if err != nil {
 		return nil, err
 	}
-	statePath := runtimeAgentStatePath(localStatePath)
 	backend := memorySvc.PersistenceBackend()
-	stateRepo := newRuntimeAgentStateRepository(backend, statePath)
+	stateRepo := newRuntimeAgentStateRepository(backend)
 	svc := &Service{
 		logger:                         logger,
 		memorySvc:                      memorySvc,
-		statePath:                      statePath,
 		backend:                        backend,
 		stateRepo:                      stateRepo,
 		chatStateRepo:                  newPublicChatSurfaceStateRepository(backend, stateRepo),

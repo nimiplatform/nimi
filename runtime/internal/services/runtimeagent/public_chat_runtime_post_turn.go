@@ -151,6 +151,13 @@ func (r publicChatRuntime) applyAssistantTurnMemory(
 	}
 	now := time.Now().UTC()
 	resp, err := r.svc.WriteAgentMemory(ctx, &runtimev1.WriteAgentMemoryRequest{
+		Context: &runtimev1.AgentRequestContext{
+			AppId:         session.CallerAppID,
+			SubjectUserId: session.SubjectUserID,
+			OwnerUserId:   session.OwnerUserID,
+			RealmAgentId:  session.RealmAgentID,
+			LocalAgentRef: session.LocalAgentRef,
+		},
 		AgentId: session.AgentID,
 		Candidates: []*runtimev1.CanonicalMemoryCandidate{
 			{

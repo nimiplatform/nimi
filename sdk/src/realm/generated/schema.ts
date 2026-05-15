@@ -4311,16 +4311,14 @@ export type components = {
             /** @description Email address to check */
             email: string;
         };
-        /**
-         * @description Recommended auth entry route for this email address
-         * @enum {string}
-         */
-        CheckEmailEntryRoute: "register_with_otp" | "login_with_otp" | "login_with_password";
         CheckEmailResponseDto: {
             /** @description Whether the email is available (not registered) */
             available: boolean;
-            /** @description Recommended auth entry route for this email address */
-            entryRoute: components["schemas"]["CheckEmailEntryRoute"];
+            /**
+             * @description Recommended auth entry route for this email address
+             * @enum {string}
+             */
+            entryRoute: "register_with_otp" | "login_with_otp" | "login_with_password";
         };
         ClassDefinitionDto: {
             abilities?: string[];
@@ -4390,13 +4388,19 @@ export type components = {
             dna?: {
                 [key: string]: unknown;
             };
-            /** @description Primary DNA personality archetype */
-            dnaPrimary?: components["schemas"]["DnaPrimaryType"];
+            /**
+             * @description Primary DNA personality archetype
+             * @enum {string}
+             */
+            dnaPrimary?: "CARING" | "PLAYFUL" | "INTELLECTUAL" | "CONFIDENT" | "MYSTERIOUS" | "ROMANTIC";
             /** @description Secondary DNA traits (max 3 recommended) */
             dnaSecondary?: components["schemas"]["DnaSecondaryTrait"][];
             handle: string;
-            /** @description Ownership mode: MASTER_OWNED (default) or WORLD_OWNED */
-            ownershipType?: components["schemas"]["AgentOwnershipType"];
+            /**
+             * @description Ownership mode: MASTER_OWNED (default) or WORLD_OWNED
+             * @enum {string}
+             */
+            ownershipType?: "MASTER_OWNED" | "WORLD_OWNED";
             referenceImageUrl?: string;
             rules?: components["schemas"]["CreateAgentRulesDto"];
             /** @description Required for active agent creation. All active agents are world-bound. */
@@ -4407,7 +4411,8 @@ export type components = {
                 [key: string]: unknown;
             };
             id: string;
-            state: components["schemas"]["AgentState"];
+            /** @enum {string} */
+            state: "INCUBATING" | "READY" | "ACTIVE" | "SUSPENDED" | "FAILED";
             user: components["schemas"]["AgentResponseUserDto"];
         };
         CreateAgentRuleDto: {
@@ -4809,11 +4814,6 @@ export type components = {
         DeleteRelationshipResponseDto: {
             deleted: boolean;
         };
-        /**
-         * @description Primary DNA personality archetype
-         * @enum {string}
-         */
-        DnaPrimaryType: "CARING" | "PLAYFUL" | "INTELLECTUAL" | "CONFIDENT" | "MYSTERIOUS" | "ROMANTIC";
         /**
          * @description Secondary DNA traits (max 3 recommended)
          * @enum {string}
@@ -5427,7 +5427,8 @@ export type components = {
             code?: string;
             codeVerifier?: string;
             idToken?: string;
-            provider: components["schemas"]["OAuthProvider"];
+            /** @enum {string} */
+            provider: "GOOGLE" | "WECHAT" | "TWITTER" | "TIKTOK";
             redirectUri?: string;
         };
         OAuthLoginResultDto: {

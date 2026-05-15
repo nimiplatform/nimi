@@ -17,12 +17,12 @@ func (s *Service) agentStateRuntime() agentStateRuntime {
 	return agentStateRuntime{svc: s}
 }
 
-func (r agentStateRuntime) agentByID(agentID string) (*agentEntry, error) {
-	if agentID == "" {
+func (r agentStateRuntime) agentByID(localAgentRef string) (*agentEntry, error) {
+	if localAgentRef == "" {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
 	r.svc.mu.RLock()
-	entry := cloneAgentEntry(r.svc.agents[agentID])
+	entry := cloneAgentEntry(r.svc.agents[localAgentRef])
 	r.svc.mu.RUnlock()
 	if entry == nil {
 		return nil, status.Error(codes.NotFound, "agent not found")
@@ -31,17 +31,21 @@ func (r agentStateRuntime) agentByID(agentID string) (*agentEntry, error) {
 }
 
 func (r agentStateRuntime) insertAgent(entry *agentEntry, events ...*runtimev1.AgentEvent) error {
+	localAgentRef, err := localAgentRefForEntry(entry)
+	if err != nil {
+		return err
+	}
 	r.svc.mu.Lock()
-	previousEntry, hadEntry := r.svc.agents[entry.Agent.GetAgentId()]
+	previousEntry, hadEntry := r.svc.agents[localAgentRef]
 	previousEvents := append([]*runtimev1.AgentEvent(nil), r.svc.events...)
 	previousSequence := r.svc.sequence
-	r.svc.agents[entry.Agent.GetAgentId()] = cloneAgentEntry(entry)
+	r.svc.agents[localAgentRef] = cloneAgentEntry(entry)
 	committedEvents := r.svc.eventStreamRuntime().appendEventsLocked(events...)
 	if err := r.saveStateLocked(); err != nil {
 		if hadEntry {
-			r.svc.agents[entry.Agent.GetAgentId()] = previousEntry
+			r.svc.agents[localAgentRef] = previousEntry
 		} else {
-			delete(r.svc.agents, entry.Agent.GetAgentId())
+			delete(r.svc.agents, localAgentRef)
 		}
 		r.svc.events = previousEvents
 		r.svc.sequence = previousSequence
@@ -55,17 +59,21 @@ func (r agentStateRuntime) insertAgent(entry *agentEntry, events ...*runtimev1.A
 }
 
 func (r agentStateRuntime) updateAgent(entry *agentEntry, events ...*runtimev1.AgentEvent) error {
+	localAgentRef, err := localAgentRefForEntry(entry)
+	if err != nil {
+		return err
+	}
 	r.svc.mu.Lock()
-	previousEntry, hadEntry := r.svc.agents[entry.Agent.GetAgentId()]
+	previousEntry, hadEntry := r.svc.agents[localAgentRef]
 	previousEvents := append([]*runtimev1.AgentEvent(nil), r.svc.events...)
 	previousSequence := r.svc.sequence
-	r.svc.agents[entry.Agent.GetAgentId()] = cloneAgentEntry(entry)
+	r.svc.agents[localAgentRef] = cloneAgentEntry(entry)
 	committedEvents := r.svc.eventStreamRuntime().appendEventsLocked(events...)
 	if err := r.saveStateLocked(); err != nil {
 		if hadEntry {
-			r.svc.agents[entry.Agent.GetAgentId()] = previousEntry
+			r.svc.agents[localAgentRef] = previousEntry
 		} else {
-			delete(r.svc.agents, entry.Agent.GetAgentId())
+			delete(r.svc.agents, localAgentRef)
 		}
 		r.svc.events = previousEvents
 		r.svc.sequence = previousSequence
@@ -110,13 +118,6 @@ func (r agentStateRuntime) markInitialized(sequence uint64) error {
 		return nil
 	}
 	return r.svc.stateRepo.markRuntimeAgentStateInitialized(sequence)
-}
-
-func (r agentStateRuntime) resetImportedState() error {
-	if r.svc == nil || r.svc.stateRepo == nil {
-		return nil
-	}
-	return r.svc.stateRepo.resetImportedState()
 }
 
 func (r agentStateRuntime) saveStateLockedOrPanicContext(label string) error {

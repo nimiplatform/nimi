@@ -25,16 +25,23 @@ func (s *Service) OpenConversationAnchor(_ context.Context, req *runtimev1.OpenC
 	if req == nil {
 		return nil, status.Error(codes.InvalidArgument, "open conversation anchor request is required")
 	}
-	agentID := strings.TrimSpace(req.GetAgentId())
-	subjectUserID := strings.TrimSpace(req.GetSubjectUserId())
-	if agentID == "" {
-		return nil, status.Error(codes.InvalidArgument, "agent_id is required")
+	identity, err := localAgentIdentityFromOpenAnchorRequest(req)
+	if err != nil {
+		return nil, err
 	}
+	localAgentRef := identity.LocalAgentRef
+	subjectUserID := strings.TrimSpace(req.GetSubjectUserId())
 	if subjectUserID == "" {
 		return nil, status.Error(codes.InvalidArgument, "subject_user_id is required")
 	}
-	entry, err := s.agentByID(agentID)
+	if subjectUserID != identity.OwnerUserID {
+		return nil, status.Error(codes.FailedPrecondition, "conversation anchor owner_user_id mismatch")
+	}
+	entry, err := s.agentByID(localAgentRef)
 	if err != nil {
+		return nil, err
+	}
+	if err := validateAgentRecordIdentity(entry.Agent, identity); err != nil {
 		return nil, err
 	}
 	if entry.Agent.GetLifecycleStatus() != runtimev1.AgentLifecycleStatus_AGENT_LIFECYCLE_STATUS_ACTIVE {
@@ -48,7 +55,10 @@ func (s *Service) OpenConversationAnchor(_ context.Context, req *runtimev1.OpenC
 
 	anchor := &publicChatAnchorState{
 		ConversationAnchorID: anchorID,
-		AgentID:              agentID,
+		AgentID:              localAgentRef,
+		OwnerUserID:          identity.OwnerUserID,
+		RealmAgentID:         identity.RealmAgentID,
+		LocalAgentRef:        localAgentRef,
 		CallerAppID:          callerAppID,
 		SubjectUserID:        subjectUserID,
 		Status:               runtimev1.ConversationAnchorStatus_CONVERSATION_ANCHOR_STATUS_ACTIVE,
@@ -93,11 +103,12 @@ func (s *Service) GetConversationAnchorSnapshot(_ context.Context, req *runtimev
 	if req == nil {
 		return nil, status.Error(codes.InvalidArgument, "get conversation anchor snapshot request is required")
 	}
-	agentID := strings.TrimSpace(req.GetAgentId())
-	anchorID := strings.TrimSpace(req.GetConversationAnchorId())
-	if agentID == "" {
-		return nil, status.Error(codes.InvalidArgument, "agent_id is required")
+	identity, err := localAgentIdentityFromContext(req.GetContext())
+	if err != nil {
+		return nil, err
 	}
+	localAgentRef := identity.LocalAgentRef
+	anchorID := strings.TrimSpace(req.GetConversationAnchorId())
 	if anchorID == "" {
 		return nil, status.Error(codes.InvalidArgument, "conversation_anchor_id is required")
 	}
@@ -108,9 +119,13 @@ func (s *Service) GetConversationAnchorSnapshot(_ context.Context, req *runtimev
 		s.chatSurfaceMu.Unlock()
 		return nil, status.Error(codes.NotFound, "conversation anchor not found")
 	}
-	if anchor.AgentID != agentID {
+	if anchor.AgentID != localAgentRef {
 		s.chatSurfaceMu.Unlock()
-		return nil, status.Error(codes.FailedPrecondition, "conversation anchor agent_id mismatch")
+		return nil, status.Error(codes.FailedPrecondition, "conversation anchor local_agent_ref mismatch")
+	}
+	if anchor.OwnerUserID != identity.OwnerUserID || anchor.RealmAgentID != identity.RealmAgentID || anchor.LocalAgentRef != identity.LocalAgentRef {
+		s.chatSurfaceMu.Unlock()
+		return nil, status.Error(codes.FailedPrecondition, "conversation anchor local identity mismatch")
 	}
 	cloned := *anchor
 	s.chatSurfaceMu.Unlock()
@@ -143,6 +158,9 @@ func (s *Service) buildConversationAnchorSnapshotLocked(anchor *publicChatAnchor
 	record := &runtimev1.ConversationAnchor{
 		ConversationAnchorId: anchor.ConversationAnchorID,
 		AgentId:              anchor.AgentID,
+		LocalAgentRef:        anchor.LocalAgentRef,
+		OwnerUserId:          anchor.OwnerUserID,
+		RealmAgentId:         anchor.RealmAgentID,
 		SubjectUserId:        anchor.SubjectUserID,
 		Status:               status,
 		LastTurnId:           anchor.LastTurnID,

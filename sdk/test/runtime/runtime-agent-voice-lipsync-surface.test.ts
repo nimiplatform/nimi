@@ -3,6 +3,7 @@ import test from 'node:test';
 
 import { parseAppConsumeEvent } from '../../src/runtime/runtime-agent-surface-parsers.js';
 
+const LOCAL_AGENT_REF = 'local-agent:subject-1:agent-1';
 const TIMELINE_STARTED_AT = '2026-04-25T00:00:00.000Z';
 
 function withRuntimeTimeline(messageType: string, payload: Record<string, unknown>): Record<string, unknown> {
@@ -28,7 +29,7 @@ function withRuntimeTimeline(messageType: string, payload: Record<string, unknow
 
 test('runtime agent consume surface parses runtime-owned voice and lipsync timeline payloads', () => {
   const voice = parseAppConsumeEvent('runtime.agent.presentation.voice_playback_requested', withRuntimeTimeline('runtime.agent.presentation.voice_playback_requested', {
-    agent_id: 'agent-1',
+    agent_id: LOCAL_AGENT_REF,
     conversation_anchor_id: 'anchor-1',
     turn_id: 'turn-1',
     stream_id: 'stream-1',
@@ -47,7 +48,7 @@ test('runtime agent consume surface parses runtime-owned voice and lipsync timel
   assert.equal(voice.detail.durationMs, 1200);
 
   const lipsync = parseAppConsumeEvent('runtime.agent.presentation.lipsync_frame_batch', withRuntimeTimeline('runtime.agent.presentation.lipsync_frame_batch', {
-    agent_id: 'agent-1',
+    agent_id: LOCAL_AGENT_REF,
     conversation_anchor_id: 'anchor-1',
     turn_id: 'turn-1',
     stream_id: 'stream-1',
@@ -68,7 +69,7 @@ test('runtime agent consume surface parses runtime-owned voice and lipsync timel
 
 test('runtime agent consume surface rejects malformed voice and lipsync timeline payloads', () => {
   const voice = withRuntimeTimeline('runtime.agent.presentation.voice_playback_requested', {
-    agent_id: 'agent-1',
+    agent_id: LOCAL_AGENT_REF,
     conversation_anchor_id: 'anchor-1',
     turn_id: 'turn-1',
     stream_id: 'stream-1',
@@ -102,7 +103,7 @@ test('runtime agent consume surface rejects malformed voice and lipsync timeline
   }), /detail\.playback_state is not an admitted playback state/);
 
   const lipsync = withRuntimeTimeline('runtime.agent.presentation.lipsync_frame_batch', {
-    agent_id: 'agent-1',
+    agent_id: LOCAL_AGENT_REF,
     conversation_anchor_id: 'anchor-1',
     turn_id: 'turn-1',
     stream_id: 'stream-1',

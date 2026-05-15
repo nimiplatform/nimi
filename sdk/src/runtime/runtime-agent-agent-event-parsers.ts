@@ -13,7 +13,7 @@ import {
 } from './generated/runtime/v1/agent_service.js';
 import { ReasonCode as RuntimeProtoReasonCode } from './generated/runtime/v1/common.js';
 import type { RuntimeAgentConsumeEvent, RuntimeAgentHookAdmissionState } from './types-runtime-agent.js';
-import { expectCurrentEmotion, expectString, optionalString } from './runtime-agent-surface-parser-common.js';
+import { expectCurrentEmotion, expectLocalAgentIdentity, expectString, optionalString } from './runtime-agent-surface-parser-common.js';
 
 type RuntimeAgentHookEventName =
   | 'runtime.agent.hook.intent_proposed'
@@ -162,15 +162,12 @@ function optionalRuntimeReasonCode(value: RuntimeProtoReasonCode): string | unde
   return typeof normalized === 'string' ? normalized : undefined;
 }
 export function parseAgentConsumeEvent(event: AgentEvent): RuntimeAgentConsumeEvent {
-  const agentId = normalizeText(event.agentId);
-  if (!agentId) {
-    throw createNimiError({
-      message: 'runtime agent consume event requires agent_id',
-      reasonCode: ReasonCode.SDK_RUNTIME_RESPONSE_DECODE_FAILED,
-      actionHint: 'check_runtime_agent_projection_shape',
-      source: 'sdk',
-    });
-  }
+  const identity = expectLocalAgentIdentity(
+    event.localAgentRef,
+    event.ownerUserId,
+    event.realmAgentId,
+    'runtime.agent.event',
+  );
   switch (event.detail.oneofKind) {
     case 'state': {
       const detail = event.detail.state;
@@ -183,7 +180,7 @@ export function parseAgentConsumeEvent(event: AgentEvent): RuntimeAgentConsumeEv
         case AgentStateEventFamily.STATUS_TEXT_CHANGED:
           return {
             eventName: 'runtime.agent.state.status_text_changed',
-            agentId,
+            ...identity,
             ...origin,
             detail: {
               currentStatusText: normalizeText(detail.currentStatusText),
@@ -200,7 +197,7 @@ export function parseAgentConsumeEvent(event: AgentEvent): RuntimeAgentConsumeEv
           const previousExecutionState = parseExecutionState(detail.previousExecutionState);
           return {
             eventName: 'runtime.agent.state.execution_state_changed',
-            agentId,
+            ...identity,
             ...origin,
             detail: {
               currentExecutionState,
@@ -211,7 +208,7 @@ export function parseAgentConsumeEvent(event: AgentEvent): RuntimeAgentConsumeEv
         case AgentStateEventFamily.EMOTION_CHANGED:
           return {
             eventName: 'runtime.agent.state.emotion_changed',
-            agentId,
+            ...identity,
             ...origin,
             detail: {
               currentEmotion: expectCurrentEmotion(detail.currentEmotion, 'current_emotion', 'runtime.agent.state.emotion_changed'),
@@ -227,7 +224,7 @@ export function parseAgentConsumeEvent(event: AgentEvent): RuntimeAgentConsumeEv
           const previousPosture = parsePostureProjection(detail.previousPosture);
           return {
             eventName: 'runtime.agent.state.posture_changed',
-            agentId,
+            ...identity,
             ...origin,
             detail: {
               currentPosture,
@@ -252,7 +249,7 @@ export function parseAgentConsumeEvent(event: AgentEvent): RuntimeAgentConsumeEv
       }
       return {
         eventName,
-        agentId,
+        ...identity,
         ...(detail.intent && optionalString(detail.intent.conversationAnchorId)
           ? { conversationAnchorId: optionalString(detail.intent.conversationAnchorId) }
           : {}),

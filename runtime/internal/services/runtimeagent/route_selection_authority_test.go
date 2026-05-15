@@ -61,7 +61,7 @@ func TestAIBackedCanonicalReviewExecutorDefersRouteToRuntimeSelection(t *testing
 		Bank: &runtimev1.MemoryBankLocator{
 			Scope: runtimev1.MemoryBankScope_MEMORY_BANK_SCOPE_AGENT_CORE,
 			Owner: &runtimev1.MemoryBankLocator_AgentCore{
-				AgentCore: &runtimev1.AgentCoreBankOwner{AgentId: "agent-review-route"},
+				AgentCore: &runtimev1.AgentCoreBankOwner{AgentId: testRuntimeAgentLocalRef("agent-review-route")},
 			},
 		},
 		Clusters: []memory.ReviewTopicCluster{

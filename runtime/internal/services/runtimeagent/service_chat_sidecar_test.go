@@ -19,12 +19,12 @@ func TestRuntimeAgentApplyChatTrackSidecarPersistsBehavioralPosture(t *testing.T
 	svc := newRuntimeAgentTestService(t)
 	ctx := context.Background()
 	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
-		AgentId: "agent-chat-sidecar-posture",
+		Context: testRuntimeAgentIdentityContext("agent-chat-sidecar-posture"),
 	}); err != nil {
 		t.Fatalf("InitializeAgent: %v", err)
 	}
 
-	err := svc.ApplyChatTrackSidecar(ctx, "agent-chat-sidecar-posture", "chat-turn-posture", ChatTrackSidecarResult{
+	err := svc.ApplyChatTrackSidecar(ctx, testRuntimeAgentLocalRef("agent-chat-sidecar-posture"), "chat-turn-posture", ChatTrackSidecarResult{
 		PosturePatch: &BehavioralPosturePatch{
 			PostureClass:     "careful_support",
 			ActionFamily:     "support",
@@ -38,7 +38,7 @@ func TestRuntimeAgentApplyChatTrackSidecarPersistsBehavioralPosture(t *testing.T
 		t.Fatalf("ApplyChatTrackSidecar: %v", err)
 	}
 
-	posture, err := svc.GetBehavioralPosture(ctx, "agent-chat-sidecar-posture")
+	posture, err := svc.GetBehavioralPosture(ctx, testRuntimeAgentLocalRef("agent-chat-sidecar-posture"))
 	if err != nil {
 		t.Fatalf("GetBehavioralPosture: %v", err)
 	}
@@ -51,7 +51,8 @@ func TestRuntimeAgentApplyChatTrackSidecarPersistsBehavioralPosture(t *testing.T
 	if len(posture.TruthBasisIDs) != 2 || posture.TruthBasisIDs[0] != "truth-1" || posture.TruthBasisIDs[1] != "truth-2" {
 		t.Fatalf("unexpected truth basis ids: %#v", posture.TruthBasisIDs)
 	}
-	stateResp, err := svc.GetAgentState(ctx, &runtimev1.GetAgentStateRequest{AgentId: "agent-chat-sidecar-posture"})
+	stateResp, err := svc.GetAgentState(ctx, &runtimev1.GetAgentStateRequest{
+		Context: testRuntimeAgentIdentityContext("agent-chat-sidecar-posture"), AgentId: "agent-chat-sidecar-posture"})
 	if err != nil {
 		t.Fatalf("GetAgentState: %v", err)
 	}
@@ -66,7 +67,7 @@ func TestRuntimeAgentApplyChatTrackSidecarOmitsUnprovenOriginLinkage(t *testing.
 	svc := newRuntimeAgentTestService(t)
 	ctx := context.Background()
 	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
-		AgentId: "agent-chat-sidecar-origin",
+		Context: testRuntimeAgentIdentityContext("agent-chat-sidecar-origin"),
 	}); err != nil {
 		t.Fatalf("InitializeAgent: %v", err)
 	}
@@ -75,7 +76,7 @@ func TestRuntimeAgentApplyChatTrackSidecarOmitsUnprovenOriginLinkage(t *testing.
 	cursor := svc.sequence
 	svc.mu.RUnlock()
 
-	err := svc.ApplyChatTrackSidecar(ctx, "agent-chat-sidecar-origin", "uncommitted-source-event", ChatTrackSidecarResult{
+	err := svc.ApplyChatTrackSidecar(ctx, testRuntimeAgentLocalRef("agent-chat-sidecar-origin"), "uncommitted-source-event", ChatTrackSidecarResult{
 		PosturePatch: &BehavioralPosturePatch{
 			PostureClass:     "careful_support",
 			ActionFamily:     "support",
@@ -93,6 +94,7 @@ func TestRuntimeAgentApplyChatTrackSidecarOmitsUnprovenOriginLinkage(t *testing.
 	defer cancel()
 	stream := newAgentEventCaptureStreamLimit(streamCtx, 2)
 	if err := svc.SubscribeAgentEvents(&runtimev1.SubscribeAgentEventsRequest{
+		Context: testRuntimeAgentIdentityContext("agent-chat-sidecar-origin"),
 		AgentId: "agent-chat-sidecar-origin",
 		Cursor:  encodeCursor(cursor),
 		EventFilters: []runtimev1.AgentEventType{
@@ -124,12 +126,12 @@ func TestRuntimeAgentApplyChatTrackSidecarRejectsInvalidBehavioralPosture(t *tes
 	svc := newRuntimeAgentTestService(t)
 	ctx := context.Background()
 	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
-		AgentId: "agent-chat-sidecar-invalid",
+		Context: testRuntimeAgentIdentityContext("agent-chat-sidecar-invalid"),
 	}); err != nil {
 		t.Fatalf("InitializeAgent: %v", err)
 	}
 
-	err := svc.ApplyChatTrackSidecar(ctx, "agent-chat-sidecar-invalid", "chat-turn-invalid", ChatTrackSidecarResult{
+	err := svc.ApplyChatTrackSidecar(ctx, testRuntimeAgentLocalRef("agent-chat-sidecar-invalid"), "chat-turn-invalid", ChatTrackSidecarResult{
 		PosturePatch: &BehavioralPosturePatch{
 			PostureClass:  "bad",
 			ActionFamily:  "freestyle",
@@ -141,7 +143,7 @@ func TestRuntimeAgentApplyChatTrackSidecarRejectsInvalidBehavioralPosture(t *tes
 		t.Fatal("expected invalid posture patch to fail")
 	}
 
-	posture, err := svc.GetBehavioralPosture(ctx, "agent-chat-sidecar-invalid")
+	posture, err := svc.GetBehavioralPosture(ctx, testRuntimeAgentLocalRef("agent-chat-sidecar-invalid"))
 	if err != nil {
 		t.Fatalf("GetBehavioralPosture: %v", err)
 	}
@@ -156,18 +158,18 @@ func TestRuntimeAgentApplyChatTrackSidecarCancelsHooksAddsFollowUpAndWritesMemor
 	svc := newRuntimeAgentTestService(t)
 	ctx := context.Background()
 	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
-		AgentId: "agent-chat-sidecar-combined",
+		Context: testRuntimeAgentIdentityContext("agent-chat-sidecar-combined"),
 	}); err != nil {
 		t.Fatalf("InitializeAgent: %v", err)
 	}
 
 	now := time.Now()
 	scheduledFor := now.Add(10 * time.Minute)
-	if err := svc.admitPendingHook("agent-chat-sidecar-combined", newTestTimePendingHook(t, "hook-chat-sidecar-old", "agent-chat-sidecar-combined", scheduledFor, now)); err != nil {
+	if err := svc.admitPendingHook(testRuntimeAgentLocalRef("agent-chat-sidecar-combined"), newTestTimePendingHook(t, "hook-chat-sidecar-old", "agent-chat-sidecar-combined", scheduledFor, now)); err != nil {
 		t.Fatalf("admitPendingHook: %v", err)
 	}
 
-	err := svc.ApplyChatTrackSidecar(ctx, "agent-chat-sidecar-combined", "chat-turn-combined", ChatTrackSidecarResult{
+	err := svc.ApplyChatTrackSidecar(ctx, testRuntimeAgentLocalRef("agent-chat-sidecar-combined"), "chat-turn-combined", ChatTrackSidecarResult{
 		CancelPendingHookIDs: []string{"hook-chat-sidecar-old"},
 		NextHookIntent: &runtimev1.HookIntent{
 			IntentId:      "hook-chat-sidecar-new",
@@ -187,7 +189,7 @@ func TestRuntimeAgentApplyChatTrackSidecarCancelsHooksAddsFollowUpAndWritesMemor
 				TargetBank: &runtimev1.MemoryBankLocator{
 					Scope: runtimev1.MemoryBankScope_MEMORY_BANK_SCOPE_AGENT_CORE,
 					Owner: &runtimev1.MemoryBankLocator_AgentCore{
-						AgentCore: &runtimev1.AgentCoreBankOwner{AgentId: "agent-chat-sidecar-combined"},
+						AgentCore: &runtimev1.AgentCoreBankOwner{AgentId: testRuntimeAgentLocalRef("agent-chat-sidecar-combined")},
 					},
 				},
 				Record: &runtimev1.MemoryRecordInput{
@@ -204,6 +206,7 @@ func TestRuntimeAgentApplyChatTrackSidecarCancelsHooksAddsFollowUpAndWritesMemor
 	}
 
 	canceledResp, err := svc.ListPendingHooks(ctx, &runtimev1.ListPendingHooksRequest{
+		Context:              testRuntimeAgentIdentityContext("agent-chat-sidecar-combined"),
 		AgentId:              "agent-chat-sidecar-combined",
 		AdmissionStateFilter: runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_CANCELED,
 	})
@@ -214,6 +217,7 @@ func TestRuntimeAgentApplyChatTrackSidecarCancelsHooksAddsFollowUpAndWritesMemor
 		t.Fatalf("expected original hook canceled, got %#v", canceledResp.GetHooks())
 	}
 	pendingResp, err := svc.ListPendingHooks(ctx, &runtimev1.ListPendingHooksRequest{
+		Context:              testRuntimeAgentIdentityContext("agent-chat-sidecar-combined"),
 		AgentId:              "agent-chat-sidecar-combined",
 		AdmissionStateFilter: runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_PENDING,
 	})
@@ -228,6 +232,7 @@ func TestRuntimeAgentApplyChatTrackSidecarCancelsHooksAddsFollowUpAndWritesMemor
 	}
 
 	queryResp, err := svc.QueryAgentMemory(ctx, &runtimev1.QueryAgentMemoryRequest{
+		Context: testRuntimeAgentIdentityContext("agent-chat-sidecar-combined"),
 		AgentId: "agent-chat-sidecar-combined",
 		Query:   "chat sidecar memory",
 		Limit:   5,
@@ -246,14 +251,14 @@ func TestRuntimeAgentExecuteChatTrackSidecarWithAIBackedExecutorAppliesOutputs(t
 	svc := newRuntimeAgentTestService(t)
 	ctx := context.Background()
 	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
-		AgentId: "agent-chat-exec",
+		Context: testRuntimeAgentIdentityContext("agent-chat-exec"),
 	}); err != nil {
 		t.Fatalf("InitializeAgent: %v", err)
 	}
 
 	now := time.Now()
 	scheduledFor := now.Add(5 * time.Minute)
-	if err := svc.admitPendingHook("agent-chat-exec", newTestTimePendingHook(t, "hook-chat-exec-old", "agent-chat-exec", scheduledFor, now)); err != nil {
+	if err := svc.admitPendingHook(testRuntimeAgentLocalRef("agent-chat-exec"), newTestTimePendingHook(t, "hook-chat-exec-old", "agent-chat-exec", scheduledFor, now)); err != nil {
 		t.Fatalf("admitPendingHook: %v", err)
 	}
 
@@ -271,7 +276,7 @@ func TestRuntimeAgentExecuteChatTrackSidecarWithAIBackedExecutorAppliesOutputs(t
 	svc.SetChatTrackSidecarExecutor(NewAIBackedChatTrackSidecarExecutor(fakeAI))
 
 	err := svc.ExecuteChatTrackSidecar(ctx, ChatTrackSidecarExecutionRequest{
-		AgentID:       "agent-chat-exec",
+		AgentID:       testRuntimeAgentLocalRef("agent-chat-exec"),
 		SourceEventID: "chat-turn-1",
 		Messages: []*runtimev1.ChatMessage{
 			{Role: "user", Content: "please keep the agent focused and remember this request"},
@@ -287,7 +292,7 @@ func TestRuntimeAgentExecuteChatTrackSidecarWithAIBackedExecutorAppliesOutputs(t
 		t.Fatalf("expected direct chat sidecar execution to use internal app id, got=%q", got)
 	}
 
-	posture, err := svc.GetBehavioralPosture(ctx, "agent-chat-exec")
+	posture, err := svc.GetBehavioralPosture(ctx, testRuntimeAgentLocalRef("agent-chat-exec"))
 	if err != nil {
 		t.Fatalf("GetBehavioralPosture: %v", err)
 	}
@@ -296,6 +301,7 @@ func TestRuntimeAgentExecuteChatTrackSidecarWithAIBackedExecutorAppliesOutputs(t
 	}
 
 	canceledResp, err := svc.ListPendingHooks(ctx, &runtimev1.ListPendingHooksRequest{
+		Context:              testRuntimeAgentIdentityContext("agent-chat-exec"),
 		AgentId:              "agent-chat-exec",
 		AdmissionStateFilter: runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_CANCELED,
 	})
@@ -306,6 +312,7 @@ func TestRuntimeAgentExecuteChatTrackSidecarWithAIBackedExecutorAppliesOutputs(t
 		t.Fatalf("expected canceled original hook, got %#v", canceledResp.GetHooks())
 	}
 	pendingResp, err := svc.ListPendingHooks(ctx, &runtimev1.ListPendingHooksRequest{
+		Context:              testRuntimeAgentIdentityContext("agent-chat-exec"),
 		AgentId:              "agent-chat-exec",
 		AdmissionStateFilter: runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_PENDING,
 	})
@@ -317,6 +324,7 @@ func TestRuntimeAgentExecuteChatTrackSidecarWithAIBackedExecutorAppliesOutputs(t
 	}
 
 	queryResp, err := svc.QueryAgentMemory(ctx, &runtimev1.QueryAgentMemoryRequest{
+		Context: testRuntimeAgentIdentityContext("agent-chat-exec"),
 		AgentId: "agent-chat-exec",
 		Query:   "wave 6 posture patch",
 		Limit:   5,
@@ -335,7 +343,7 @@ func TestRuntimeAgentConsumeChatTrackSidecarAppMessagePreservesCallerAppIDForAIE
 	svc := newRuntimeAgentTestService(t)
 	ctx := context.Background()
 	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
-		AgentId: "agent-chat-sidecar-caller-app",
+		Context: testRuntimeAgentIdentityContext("agent-chat-sidecar-caller-app"),
 	}); err != nil {
 		t.Fatalf("InitializeAgent: %v", err)
 	}
@@ -358,7 +366,7 @@ func TestRuntimeAgentConsumeChatTrackSidecarAppMessagePreservesCallerAppIDForAIE
 		ToAppId:     "runtime.agent.internal.chat_track_sidecar",
 		MessageType: "agent.chat_track.sidecar_input.v1",
 		Payload: &structpb.Struct{Fields: map[string]*structpb.Value{
-			"agent_id":        structpb.NewStringValue("agent-chat-sidecar-caller-app"),
+			"agent_id":        structpb.NewStringValue(testRuntimeAgentLocalRef("agent-chat-sidecar-caller-app")),
 			"source_event_id": structpb.NewStringValue("turn-sidecar-caller-app"),
 			"thread_id":       structpb.NewStringValue("thread-caller-app"),
 			"messages": structpb.NewListValue(&structpb.ListValue{Values: []*structpb.Value{
@@ -386,7 +394,7 @@ func TestRuntimeAgentExecuteChatTrackSidecarWithAIBackedExecutorFailsClosedOnInv
 	svc := newRuntimeAgentTestService(t)
 	ctx := context.Background()
 	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
-		AgentId: "agent-chat-exec-invalid",
+		Context: testRuntimeAgentIdentityContext("agent-chat-exec-invalid"),
 	}); err != nil {
 		t.Fatalf("InitializeAgent: %v", err)
 	}
@@ -404,7 +412,7 @@ func TestRuntimeAgentExecuteChatTrackSidecarWithAIBackedExecutorFailsClosedOnInv
 	}))
 
 	err := svc.ExecuteChatTrackSidecar(ctx, ChatTrackSidecarExecutionRequest{
-		AgentID:       "agent-chat-exec-invalid",
+		AgentID:       testRuntimeAgentLocalRef("agent-chat-exec-invalid"),
 		SourceEventID: "chat-turn-invalid",
 		Messages: []*runtimev1.ChatMessage{
 			{Role: "user", Content: "hello"},
@@ -414,7 +422,7 @@ func TestRuntimeAgentExecuteChatTrackSidecarWithAIBackedExecutorFailsClosedOnInv
 		t.Fatal("expected invalid AI-backed chat sidecar output to fail")
 	}
 
-	posture, getErr := svc.GetBehavioralPosture(ctx, "agent-chat-exec-invalid")
+	posture, getErr := svc.GetBehavioralPosture(ctx, testRuntimeAgentLocalRef("agent-chat-exec-invalid"))
 	if getErr != nil {
 		t.Fatalf("GetBehavioralPosture: %v", getErr)
 	}
@@ -530,7 +538,7 @@ func TestRuntimeAgentConsumeChatTrackSidecarAppMessageExecutesIngressPayload(t *
 	svc := newRuntimeAgentTestService(t)
 	ctx := context.Background()
 	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
-		AgentId: "agent-chat-sidecar-ingress",
+		Context: testRuntimeAgentIdentityContext("agent-chat-sidecar-ingress"),
 	}); err != nil {
 		t.Fatalf("InitializeAgent: %v", err)
 	}
@@ -552,7 +560,7 @@ func TestRuntimeAgentConsumeChatTrackSidecarAppMessageExecutesIngressPayload(t *
 		ToAppId:     "runtime.agent.internal.chat_track_sidecar",
 		MessageType: "agent.chat_track.sidecar_input.v1",
 		Payload: &structpb.Struct{Fields: map[string]*structpb.Value{
-			"agent_id":        structpb.NewStringValue("agent-chat-sidecar-ingress"),
+			"agent_id":        structpb.NewStringValue(testRuntimeAgentLocalRef("agent-chat-sidecar-ingress")),
 			"source_event_id": structpb.NewStringValue("turn-sidecar-1"),
 			"thread_id":       structpb.NewStringValue("thread-1"),
 			"messages": structpb.NewListValue(&structpb.ListValue{Values: []*structpb.Value{
@@ -573,7 +581,7 @@ func TestRuntimeAgentConsumeChatTrackSidecarAppMessageExecutesIngressPayload(t *
 	if len(fakeAI.requests) != 1 {
 		t.Fatalf("expected one executor request, got %d", len(fakeAI.requests))
 	}
-	posture, err := svc.GetBehavioralPosture(ctx, "agent-chat-sidecar-ingress")
+	posture, err := svc.GetBehavioralPosture(ctx, testRuntimeAgentLocalRef("agent-chat-sidecar-ingress"))
 	if err != nil {
 		t.Fatalf("GetBehavioralPosture: %v", err)
 	}
@@ -588,19 +596,19 @@ func TestRuntimeAgentApplyChatTrackSidecarRejectsSameBatchSemanticContradiction(
 	svc := newRuntimeAgentTestService(t)
 	ctx := context.Background()
 	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
-		AgentId: "agent-chat-sidecar-contradiction",
+		Context: testRuntimeAgentIdentityContext("agent-chat-sidecar-contradiction"),
 	}); err != nil {
 		t.Fatalf("InitializeAgent: %v", err)
 	}
 
-	err := svc.ApplyChatTrackSidecar(ctx, "agent-chat-sidecar-contradiction", "chat-turn-contradiction", ChatTrackSidecarResult{
+	err := svc.ApplyChatTrackSidecar(ctx, testRuntimeAgentLocalRef("agent-chat-sidecar-contradiction"), "chat-turn-contradiction", ChatTrackSidecarResult{
 		CanonicalMemoryCandidates: []*runtimev1.CanonicalMemoryCandidate{
 			{
 				CanonicalClass: runtimev1.MemoryCanonicalClass_MEMORY_CANONICAL_CLASS_PUBLIC_SHARED,
 				TargetBank: &runtimev1.MemoryBankLocator{
 					Scope: runtimev1.MemoryBankScope_MEMORY_BANK_SCOPE_AGENT_CORE,
 					Owner: &runtimev1.MemoryBankLocator_AgentCore{
-						AgentCore: &runtimev1.AgentCoreBankOwner{AgentId: "agent-chat-sidecar-contradiction"},
+						AgentCore: &runtimev1.AgentCoreBankOwner{AgentId: testRuntimeAgentLocalRef("agent-chat-sidecar-contradiction")},
 					},
 				},
 				Record: &runtimev1.MemoryRecordInput{
@@ -619,7 +627,7 @@ func TestRuntimeAgentApplyChatTrackSidecarRejectsSameBatchSemanticContradiction(
 				TargetBank: &runtimev1.MemoryBankLocator{
 					Scope: runtimev1.MemoryBankScope_MEMORY_BANK_SCOPE_AGENT_CORE,
 					Owner: &runtimev1.MemoryBankLocator_AgentCore{
-						AgentCore: &runtimev1.AgentCoreBankOwner{AgentId: "agent-chat-sidecar-contradiction"},
+						AgentCore: &runtimev1.AgentCoreBankOwner{AgentId: testRuntimeAgentLocalRef("agent-chat-sidecar-contradiction")},
 					},
 				},
 				Record: &runtimev1.MemoryRecordInput{
@@ -643,6 +651,7 @@ func TestRuntimeAgentApplyChatTrackSidecarRejectsSameBatchSemanticContradiction(
 	}
 
 	queryResp, queryErr := svc.QueryAgentMemory(ctx, &runtimev1.QueryAgentMemoryRequest{
+		Context: testRuntimeAgentIdentityContext("agent-chat-sidecar-contradiction"),
 		AgentId: "agent-chat-sidecar-contradiction",
 		Query:   "likes",
 		Limit:   5,
@@ -663,7 +672,7 @@ func TestRuntimeAgentConsumeChatTrackSidecarAppMessageFailsClosedOnInvalidPayloa
 		ToAppId:     "runtime.agent.internal.chat_track_sidecar",
 		MessageType: "agent.chat_track.sidecar_input.v1",
 		Payload: &structpb.Struct{Fields: map[string]*structpb.Value{
-			"agent_id":           structpb.NewStringValue("agent-1"),
+			"agent_id":           structpb.NewStringValue(testRuntimeAgentLocalRef("agent-1")),
 			"source_event_id":    structpb.NewStringValue("turn-1"),
 			"thread_id":          structpb.NewStringValue("thread-1"),
 			"behavioral_posture": structpb.NewStructValue(&structpb.Struct{}),

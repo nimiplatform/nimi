@@ -413,8 +413,8 @@ func TestDaemonStopSupervisedEnginesRunsOnlyOnce(t *testing.T) {
 
 func TestDaemonRunStartsRuntimeAgentLifeTrackLoop(t *testing.T) {
 	localStatePath := filepath.Join(t.TempDir(), "local-state.json")
-	if err := writePersistedRuntimeAgentState(localStatePath, "agent-daemon-loop", time.Now().UTC().Add(-time.Second)); err != nil {
-		t.Fatalf("writePersistedRuntimeAgentState: %v", err)
+	if err := writeRuntimeLocalAgentState(localStatePath, "agent-daemon-loop", time.Now().UTC().Add(-time.Second)); err != nil {
+		t.Fatalf("writeRuntimeLocalAgentState: %v", err)
 	}
 
 	cfg := config.Config{

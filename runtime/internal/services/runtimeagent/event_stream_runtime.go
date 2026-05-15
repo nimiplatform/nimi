@@ -21,17 +21,18 @@ func (r eventStreamRuntime) subscribe(req *runtimev1.SubscribeAgentEventsRequest
 	if req == nil {
 		return status.Error(codes.InvalidArgument, "subscribe agent events request is required")
 	}
-	agentID := strings.TrimSpace(req.GetAgentId())
-	if agentID == "" {
-		return status.Error(codes.InvalidArgument, "agent_id is required")
+	identity, err := localAgentIdentityFromContext(req.GetContext())
+	if err != nil {
+		return err
 	}
+	localAgentRef := identity.LocalAgentRef
 	requestContext := req.GetContext()
 	scopedBinding := requestContext.GetScopedBinding()
 	if scopedBinding == nil && strings.TrimSpace(requestContext.GetAppId()) != "" && strings.TrimSpace(requestContext.GetSubjectUserId()) == "" {
 		return runtimeAgentBindingError(runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BINDING_NOT_FOUND)
 	}
 	if scopedBinding != nil {
-		if err := r.svc.validateScopedBindingAttachment(scopedBinding, requestContext.GetAppId(), agentID, runtimeAgentEventReadScope); err != nil {
+		if err := r.svc.validateScopedBindingAttachment(scopedBinding, requestContext.GetAppId(), localAgentRef, runtimeAgentEventReadScope); err != nil {
 			return err
 		}
 	}
@@ -46,7 +47,7 @@ func (r eventStreamRuntime) subscribe(req *runtimev1.SubscribeAgentEventsRequest
 		return err
 	}
 	sub := &subscriber{
-		agentID:       agentID,
+		agentID:       localAgentRef,
 		eventFilters:  filterMap,
 		scopedBinding: cloneScopedBindingAttachment(scopedBinding),
 		ch:            make(chan *runtimev1.AgentEvent, subscriberBuffer),

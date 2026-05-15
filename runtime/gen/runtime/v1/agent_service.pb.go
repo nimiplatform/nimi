@@ -1718,6 +1718,9 @@ type AgentRecord struct {
 	Metadata        *structpb.Struct       `protobuf:"bytes,5,opt,name=metadata,proto3" json:"metadata,omitempty"`
 	CreatedAt       *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	UpdatedAt       *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	LocalAgentRef   string                 `protobuf:"bytes,20,opt,name=local_agent_ref,json=localAgentRef,proto3" json:"local_agent_ref,omitempty"`
+	OwnerUserId     string                 `protobuf:"bytes,21,opt,name=owner_user_id,json=ownerUserId,proto3" json:"owner_user_id,omitempty"`
+	RealmAgentId    string                 `protobuf:"bytes,22,opt,name=realm_agent_id,json=realmAgentId,proto3" json:"realm_agent_id,omitempty"`
 	unknownFields   protoimpl.UnknownFields
 	sizeCache       protoimpl.SizeCache
 }
@@ -1799,6 +1802,27 @@ func (x *AgentRecord) GetUpdatedAt() *timestamppb.Timestamp {
 		return x.UpdatedAt
 	}
 	return nil
+}
+
+func (x *AgentRecord) GetLocalAgentRef() string {
+	if x != nil {
+		return x.LocalAgentRef
+	}
+	return ""
+}
+
+func (x *AgentRecord) GetOwnerUserId() string {
+	if x != nil {
+		return x.OwnerUserId
+	}
+	return ""
+}
+
+func (x *AgentRecord) GetRealmAgentId() string {
+	if x != nil {
+		return x.RealmAgentId
+	}
+	return ""
 }
 
 type AgentStateProjection struct {
@@ -4343,11 +4367,14 @@ func (x *AgentAvatarDebugEventDetail) GetReplay() *AvatarDebugReplayRef {
 }
 
 type AgentEvent struct {
-	state     protoimpl.MessageState `protogen:"open.v1"`
-	EventType AgentEventType         `protobuf:"varint,1,opt,name=event_type,json=eventType,proto3,enum=nimi.runtime.v1.AgentEventType" json:"event_type,omitempty"`
-	Sequence  uint64                 `protobuf:"varint,2,opt,name=sequence,proto3" json:"sequence,omitempty"`
-	AgentId   string                 `protobuf:"bytes,3,opt,name=agent_id,json=agentId,proto3" json:"agent_id,omitempty"`
-	Timestamp *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	EventType     AgentEventType         `protobuf:"varint,1,opt,name=event_type,json=eventType,proto3,enum=nimi.runtime.v1.AgentEventType" json:"event_type,omitempty"`
+	Sequence      uint64                 `protobuf:"varint,2,opt,name=sequence,proto3" json:"sequence,omitempty"`
+	AgentId       string                 `protobuf:"bytes,3,opt,name=agent_id,json=agentId,proto3" json:"agent_id,omitempty"`
+	Timestamp     *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
+	LocalAgentRef string                 `protobuf:"bytes,20,opt,name=local_agent_ref,json=localAgentRef,proto3" json:"local_agent_ref,omitempty"`
+	OwnerUserId   string                 `protobuf:"bytes,21,opt,name=owner_user_id,json=ownerUserId,proto3" json:"owner_user_id,omitempty"`
+	RealmAgentId  string                 `protobuf:"bytes,22,opt,name=realm_agent_id,json=realmAgentId,proto3" json:"realm_agent_id,omitempty"`
 	// Types that are valid to be assigned to Detail:
 	//
 	//	*AgentEvent_Lifecycle
@@ -4419,6 +4446,27 @@ func (x *AgentEvent) GetTimestamp() *timestamppb.Timestamp {
 		return x.Timestamp
 	}
 	return nil
+}
+
+func (x *AgentEvent) GetLocalAgentRef() string {
+	if x != nil {
+		return x.LocalAgentRef
+	}
+	return ""
+}
+
+func (x *AgentEvent) GetOwnerUserId() string {
+	if x != nil {
+		return x.OwnerUserId
+	}
+	return ""
+}
+
+func (x *AgentEvent) GetRealmAgentId() string {
+	if x != nil {
+		return x.RealmAgentId
+	}
+	return ""
 }
 
 func (x *AgentEvent) GetDetail() isAgentEvent_Detail {
@@ -4560,6 +4608,9 @@ type InitializeAgentRequest struct {
 	AutonomyConfig *AgentAutonomyConfig   `protobuf:"bytes,4,opt,name=autonomy_config,json=autonomyConfig,proto3" json:"autonomy_config,omitempty"`
 	WorldId        string                 `protobuf:"bytes,5,opt,name=world_id,json=worldId,proto3" json:"world_id,omitempty"`
 	Metadata       *structpb.Struct       `protobuf:"bytes,6,opt,name=metadata,proto3" json:"metadata,omitempty"`
+	LocalAgentRef  string                 `protobuf:"bytes,20,opt,name=local_agent_ref,json=localAgentRef,proto3" json:"local_agent_ref,omitempty"`
+	OwnerUserId    string                 `protobuf:"bytes,21,opt,name=owner_user_id,json=ownerUserId,proto3" json:"owner_user_id,omitempty"`
+	RealmAgentId   string                 `protobuf:"bytes,22,opt,name=realm_agent_id,json=realmAgentId,proto3" json:"realm_agent_id,omitempty"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -4634,6 +4685,27 @@ func (x *InitializeAgentRequest) GetMetadata() *structpb.Struct {
 		return x.Metadata
 	}
 	return nil
+}
+
+func (x *InitializeAgentRequest) GetLocalAgentRef() string {
+	if x != nil {
+		return x.LocalAgentRef
+	}
+	return ""
+}
+
+func (x *InitializeAgentRequest) GetOwnerUserId() string {
+	if x != nil {
+		return x.OwnerUserId
+	}
+	return ""
+}
+
+func (x *InitializeAgentRequest) GetRealmAgentId() string {
+	if x != nil {
+		return x.RealmAgentId
+	}
+	return ""
 }
 
 type InitializeAgentResponse struct {
@@ -6250,6 +6322,9 @@ type ConversationAnchor struct {
 	CreatedAt            *timestamppb.Timestamp   `protobuf:"bytes,7,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	UpdatedAt            *timestamppb.Timestamp   `protobuf:"bytes,8,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
 	Metadata             *structpb.Struct         `protobuf:"bytes,9,opt,name=metadata,proto3" json:"metadata,omitempty"`
+	LocalAgentRef        string                   `protobuf:"bytes,20,opt,name=local_agent_ref,json=localAgentRef,proto3" json:"local_agent_ref,omitempty"`
+	OwnerUserId          string                   `protobuf:"bytes,21,opt,name=owner_user_id,json=ownerUserId,proto3" json:"owner_user_id,omitempty"`
+	RealmAgentId         string                   `protobuf:"bytes,22,opt,name=realm_agent_id,json=realmAgentId,proto3" json:"realm_agent_id,omitempty"`
 	unknownFields        protoimpl.UnknownFields
 	sizeCache            protoimpl.SizeCache
 }
@@ -6347,6 +6422,27 @@ func (x *ConversationAnchor) GetMetadata() *structpb.Struct {
 	return nil
 }
 
+func (x *ConversationAnchor) GetLocalAgentRef() string {
+	if x != nil {
+		return x.LocalAgentRef
+	}
+	return ""
+}
+
+func (x *ConversationAnchor) GetOwnerUserId() string {
+	if x != nil {
+		return x.OwnerUserId
+	}
+	return ""
+}
+
+func (x *ConversationAnchor) GetRealmAgentId() string {
+	if x != nil {
+		return x.RealmAgentId
+	}
+	return ""
+}
+
 type ConversationAnchorSnapshot struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`
 	Anchor         *ConversationAnchor    `protobuf:"bytes,1,opt,name=anchor,proto3" json:"anchor,omitempty"`
@@ -6413,6 +6509,9 @@ type OpenConversationAnchorRequest struct {
 	AgentId       string                 `protobuf:"bytes,2,opt,name=agent_id,json=agentId,proto3" json:"agent_id,omitempty"`
 	SubjectUserId string                 `protobuf:"bytes,3,opt,name=subject_user_id,json=subjectUserId,proto3" json:"subject_user_id,omitempty"`
 	Metadata      *structpb.Struct       `protobuf:"bytes,4,opt,name=metadata,proto3" json:"metadata,omitempty"`
+	LocalAgentRef string                 `protobuf:"bytes,20,opt,name=local_agent_ref,json=localAgentRef,proto3" json:"local_agent_ref,omitempty"`
+	OwnerUserId   string                 `protobuf:"bytes,21,opt,name=owner_user_id,json=ownerUserId,proto3" json:"owner_user_id,omitempty"`
+	RealmAgentId  string                 `protobuf:"bytes,22,opt,name=realm_agent_id,json=realmAgentId,proto3" json:"realm_agent_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -6473,6 +6572,27 @@ func (x *OpenConversationAnchorRequest) GetMetadata() *structpb.Struct {
 		return x.Metadata
 	}
 	return nil
+}
+
+func (x *OpenConversationAnchorRequest) GetLocalAgentRef() string {
+	if x != nil {
+		return x.LocalAgentRef
+	}
+	return ""
+}
+
+func (x *OpenConversationAnchorRequest) GetOwnerUserId() string {
+	if x != nil {
+		return x.OwnerUserId
+	}
+	return ""
+}
+
+func (x *OpenConversationAnchorRequest) GetRealmAgentId() string {
+	if x != nil {
+		return x.RealmAgentId
+	}
+	return ""
 }
 
 type OpenConversationAnchorResponse struct {
@@ -9208,7 +9328,7 @@ const file_runtime_v1_agent_service_proto_rawDesc = "" +
 	"\x15used_tokens_in_window\x18\x03 \x01(\x03R\x12usedTokensInWindow\x12F\n" +
 	"\x11window_started_at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\x0fwindowStartedAt\x12)\n" +
 	"\x10budget_exhausted\x18\x05 \x01(\bR\x0fbudgetExhausted\x12C\n" +
-	"\x0fsuspended_until\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\x0esuspendedUntil\"\x89\x03\n" +
+	"\x0fsuspended_until\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\x0esuspendedUntil\"\xfb\x03\n" +
 	"\vAgentRecord\x12\x19\n" +
 	"\bagent_id\x18\x01 \x01(\tR\aagentId\x12!\n" +
 	"\fdisplay_name\x18\x02 \x01(\tR\vdisplayName\x12P\n" +
@@ -9218,7 +9338,10 @@ const file_runtime_v1_agent_service_proto_rawDesc = "" +
 	"\n" +
 	"created_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x129\n" +
 	"\n" +
-	"updated_at\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\"\xce\x03\n" +
+	"updated_at\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\x12&\n" +
+	"\x0flocal_agent_ref\x18\x14 \x01(\tR\rlocalAgentRef\x12\"\n" +
+	"\rowner_user_id\x18\x15 \x01(\tR\vownerUserId\x12$\n" +
+	"\x0erealm_agent_id\x18\x16 \x01(\tR\frealmAgentId\"\xce\x03\n" +
 	"\x14AgentStateProjection\x12M\n" +
 	"\x0fexecution_state\x18\x01 \x01(\x0e2$.nimi.runtime.v1.AgentExecutionStateR\x0eexecutionState\x12\x1f\n" +
 	"\vstatus_text\x18\x02 \x01(\tR\n" +
@@ -9440,14 +9563,17 @@ const file_runtime_v1_agent_service_proto_rawDesc = "" +
 	"\x06family\x18\x01 \x01(\x0e2'.nimi.runtime.v1.AvatarDebugEventFamilyR\x06family\x12J\n" +
 	"\arequest\x18\x02 \x01(\v20.nimi.runtime.v1.AvatarDebugProbeRequestEnvelopeR\arequest\x12G\n" +
 	"\x06result\x18\x03 \x01(\v2/.nimi.runtime.v1.AvatarDebugProbeResultEnvelopeR\x06result\x12=\n" +
-	"\x06replay\x18\x04 \x01(\v2%.nimi.runtime.v1.AvatarDebugReplayRefR\x06replay\"\x90\x06\n" +
+	"\x06replay\x18\x04 \x01(\v2%.nimi.runtime.v1.AvatarDebugReplayRefR\x06replay\"\x82\a\n" +
 	"\n" +
 	"AgentEvent\x12>\n" +
 	"\n" +
 	"event_type\x18\x01 \x01(\x0e2\x1f.nimi.runtime.v1.AgentEventTypeR\teventType\x12\x1a\n" +
 	"\bsequence\x18\x02 \x01(\x04R\bsequence\x12\x19\n" +
 	"\bagent_id\x18\x03 \x01(\tR\aagentId\x128\n" +
-	"\ttimestamp\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\ttimestamp\x12J\n" +
+	"\ttimestamp\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\ttimestamp\x12&\n" +
+	"\x0flocal_agent_ref\x18\x14 \x01(\tR\rlocalAgentRef\x12\"\n" +
+	"\rowner_user_id\x18\x15 \x01(\tR\vownerUserId\x12$\n" +
+	"\x0erealm_agent_id\x18\x16 \x01(\tR\frealmAgentId\x12J\n" +
 	"\tlifecycle\x18\n" +
 	" \x01(\v2*.nimi.runtime.v1.AgentLifecycleEventDetailH\x00R\tlifecycle\x12;\n" +
 	"\x04hook\x18\v \x01(\v2%.nimi.runtime.v1.AgentHookEventDetailH\x00R\x04hook\x12A\n" +
@@ -9457,14 +9583,17 @@ const file_runtime_v1_agent_service_proto_rawDesc = "" +
 	"\x05state\x18\x0f \x01(\v2&.nimi.runtime.v1.AgentStateEventDetailH\x00R\x05state\x12S\n" +
 	"\fpresentation\x18\x10 \x01(\v2-.nimi.runtime.v1.AgentPresentationEventDetailH\x00R\fpresentation\x12Q\n" +
 	"\favatar_debug\x18\x11 \x01(\v2,.nimi.runtime.v1.AgentAvatarDebugEventDetailH\x00R\vavatarDebugB\b\n" +
-	"\x06detail\"\xb5\x02\n" +
+	"\x06detail\"\xa7\x03\n" +
 	"\x16InitializeAgentRequest\x12>\n" +
 	"\acontext\x18\x01 \x01(\v2$.nimi.runtime.v1.AgentRequestContextR\acontext\x12\x19\n" +
 	"\bagent_id\x18\x02 \x01(\tR\aagentId\x12!\n" +
 	"\fdisplay_name\x18\x03 \x01(\tR\vdisplayName\x12M\n" +
 	"\x0fautonomy_config\x18\x04 \x01(\v2$.nimi.runtime.v1.AgentAutonomyConfigR\x0eautonomyConfig\x12\x19\n" +
 	"\bworld_id\x18\x05 \x01(\tR\aworldId\x123\n" +
-	"\bmetadata\x18\x06 \x01(\v2\x17.google.protobuf.StructR\bmetadata\"\x8a\x01\n" +
+	"\bmetadata\x18\x06 \x01(\v2\x17.google.protobuf.StructR\bmetadata\x12&\n" +
+	"\x0flocal_agent_ref\x18\x14 \x01(\tR\rlocalAgentRef\x12\"\n" +
+	"\rowner_user_id\x18\x15 \x01(\tR\vownerUserId\x12$\n" +
+	"\x0erealm_agent_id\x18\x16 \x01(\tR\frealmAgentId\"\x8a\x01\n" +
 	"\x17InitializeAgentResponse\x122\n" +
 	"\x05agent\x18\x01 \x01(\v2\x1c.nimi.runtime.v1.AgentRecordR\x05agent\x12;\n" +
 	"\x05state\x18\x02 \x01(\v2%.nimi.runtime.v1.AgentStateProjectionR\x05state\"\x8a\x01\n" +
@@ -9571,7 +9700,7 @@ const file_runtime_v1_agent_service_proto_rawDesc = "" +
 	"\acontext\x18\x01 \x01(\v2$.nimi.runtime.v1.AgentRequestContextR\acontext\x12\x19\n" +
 	"\bagent_id\x18\x02 \x01(\tR\aagentId\x12\x16\n" +
 	"\x06cursor\x18\x03 \x01(\tR\x06cursor\x12D\n" +
-	"\revent_filters\x18\x04 \x03(\x0e2\x1f.nimi.runtime.v1.AgentEventTypeR\feventFilters\"\xc5\x03\n" +
+	"\revent_filters\x18\x04 \x03(\x0e2\x1f.nimi.runtime.v1.AgentEventTypeR\feventFilters\"\xb7\x04\n" +
 	"\x12ConversationAnchor\x124\n" +
 	"\x16conversation_anchor_id\x18\x01 \x01(\tR\x14conversationAnchorId\x12\x19\n" +
 	"\bagent_id\x18\x02 \x01(\tR\aagentId\x12&\n" +
@@ -9584,16 +9713,22 @@ const file_runtime_v1_agent_service_proto_rawDesc = "" +
 	"created_at\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x129\n" +
 	"\n" +
 	"updated_at\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\x123\n" +
-	"\bmetadata\x18\t \x01(\v2\x17.google.protobuf.StructR\bmetadata\"\xa9\x01\n" +
+	"\bmetadata\x18\t \x01(\v2\x17.google.protobuf.StructR\bmetadata\x12&\n" +
+	"\x0flocal_agent_ref\x18\x14 \x01(\tR\rlocalAgentRef\x12\"\n" +
+	"\rowner_user_id\x18\x15 \x01(\tR\vownerUserId\x12$\n" +
+	"\x0erealm_agent_id\x18\x16 \x01(\tR\frealmAgentId\"\xa9\x01\n" +
 	"\x1aConversationAnchorSnapshot\x12;\n" +
 	"\x06anchor\x18\x01 \x01(\v2#.nimi.runtime.v1.ConversationAnchorR\x06anchor\x12$\n" +
 	"\x0eactive_turn_id\x18\x02 \x01(\tR\factiveTurnId\x12(\n" +
-	"\x10active_stream_id\x18\x03 \x01(\tR\x0eactiveStreamId\"\xd7\x01\n" +
+	"\x10active_stream_id\x18\x03 \x01(\tR\x0eactiveStreamId\"\xc9\x02\n" +
 	"\x1dOpenConversationAnchorRequest\x12>\n" +
 	"\acontext\x18\x01 \x01(\v2$.nimi.runtime.v1.AgentRequestContextR\acontext\x12\x19\n" +
 	"\bagent_id\x18\x02 \x01(\tR\aagentId\x12&\n" +
 	"\x0fsubject_user_id\x18\x03 \x01(\tR\rsubjectUserId\x123\n" +
-	"\bmetadata\x18\x04 \x01(\v2\x17.google.protobuf.StructR\bmetadata\"i\n" +
+	"\bmetadata\x18\x04 \x01(\v2\x17.google.protobuf.StructR\bmetadata\x12&\n" +
+	"\x0flocal_agent_ref\x18\x14 \x01(\tR\rlocalAgentRef\x12\"\n" +
+	"\rowner_user_id\x18\x15 \x01(\tR\vownerUserId\x12$\n" +
+	"\x0erealm_agent_id\x18\x16 \x01(\tR\frealmAgentId\"i\n" +
 	"\x1eOpenConversationAnchorResponse\x12G\n" +
 	"\bsnapshot\x18\x01 \x01(\v2+.nimi.runtime.v1.ConversationAnchorSnapshotR\bsnapshot\"\xb7\x01\n" +
 	"$GetConversationAnchorSnapshotRequest\x12>\n" +

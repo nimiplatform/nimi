@@ -19,7 +19,7 @@ func TestRuntimeAgentHookLifecycleExecutionStateAndCursor(t *testing.T) {
 	svc := newRuntimeAgentTestService(t)
 	ctx := context.Background()
 	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
-		AgentId: "agent-lifecycle",
+		Context: testRuntimeAgentIdentityContext("agent-lifecycle"),
 		AutonomyConfig: &runtimev1.AgentAutonomyConfig{
 			DailyTokenBudget: 20,
 		},
@@ -33,11 +33,12 @@ func TestRuntimeAgentHookLifecycleExecutionStateAndCursor(t *testing.T) {
 
 	now := time.Now().UTC()
 	scheduledFor := now.Add(2 * time.Minute)
-	if err := svc.admitPendingHook("agent-lifecycle", newTestTimePendingHook(t, "hook-life-1", "agent-lifecycle", scheduledFor, now)); err != nil {
+	if err := svc.admitPendingHook(testRuntimeAgentLocalRef("agent-lifecycle"), newTestTimePendingHook(t, "hook-life-1", "agent-lifecycle", scheduledFor, now)); err != nil {
 		t.Fatalf("admitPendingHook: %v", err)
 	}
 
-	stateResp, err := svc.GetAgentState(ctx, &runtimev1.GetAgentStateRequest{AgentId: "agent-lifecycle"})
+	stateResp, err := svc.GetAgentState(ctx, &runtimev1.GetAgentStateRequest{
+		Context: testRuntimeAgentIdentityContext("agent-lifecycle"), AgentId: "agent-lifecycle"})
 	if err != nil {
 		t.Fatalf("GetAgentState(pending): %v", err)
 	}
@@ -45,7 +46,7 @@ func TestRuntimeAgentHookLifecycleExecutionStateAndCursor(t *testing.T) {
 		t.Fatalf("expected LIFE_PENDING, got %s", stateResp.GetState().GetExecutionState())
 	}
 
-	running, err := svc.markHookRunning("agent-lifecycle", "hook-life-1")
+	running, err := svc.markHookRunning(testRuntimeAgentLocalRef("agent-lifecycle"), "hook-life-1")
 	if err != nil {
 		t.Fatalf("markHookRunning: %v", err)
 	}
@@ -53,7 +54,8 @@ func TestRuntimeAgentHookLifecycleExecutionStateAndCursor(t *testing.T) {
 		t.Fatalf("expected running outcome, got %s", running.GetIntent().GetAdmissionState())
 	}
 
-	stateResp, err = svc.GetAgentState(ctx, &runtimev1.GetAgentStateRequest{AgentId: "agent-lifecycle"})
+	stateResp, err = svc.GetAgentState(ctx, &runtimev1.GetAgentStateRequest{
+		Context: testRuntimeAgentIdentityContext("agent-lifecycle"), AgentId: "agent-lifecycle"})
 	if err != nil {
 		t.Fatalf("GetAgentState(running): %v", err)
 	}
@@ -62,6 +64,7 @@ func TestRuntimeAgentHookLifecycleExecutionStateAndCursor(t *testing.T) {
 	}
 
 	if _, err := svc.CancelHook(ctx, &runtimev1.CancelHookRequest{
+		Context:  testRuntimeAgentIdentityContext("agent-lifecycle"),
 		AgentId:  "agent-lifecycle",
 		IntentId: "hook-life-1",
 		Reason:   "operator stop",
@@ -69,7 +72,8 @@ func TestRuntimeAgentHookLifecycleExecutionStateAndCursor(t *testing.T) {
 		t.Fatalf("CancelHook: %v", err)
 	}
 
-	stateResp, err = svc.GetAgentState(ctx, &runtimev1.GetAgentStateRequest{AgentId: "agent-lifecycle"})
+	stateResp, err = svc.GetAgentState(ctx, &runtimev1.GetAgentStateRequest{
+		Context: testRuntimeAgentIdentityContext("agent-lifecycle"), AgentId: "agent-lifecycle"})
 	if err != nil {
 		t.Fatalf("GetAgentState(canceled): %v", err)
 	}
@@ -78,6 +82,7 @@ func TestRuntimeAgentHookLifecycleExecutionStateAndCursor(t *testing.T) {
 	}
 
 	if _, err := svc.CancelHook(ctx, &runtimev1.CancelHookRequest{
+		Context:  testRuntimeAgentIdentityContext("agent-lifecycle"),
 		AgentId:  "agent-lifecycle",
 		IntentId: "hook-life-1",
 		Reason:   "double cancel",
@@ -85,7 +90,8 @@ func TestRuntimeAgentHookLifecycleExecutionStateAndCursor(t *testing.T) {
 		t.Fatalf("expected FailedPrecondition on terminal cancel, got %v", err)
 	}
 
-	pendingResp, err := svc.ListPendingHooks(ctx, &runtimev1.ListPendingHooksRequest{AgentId: "agent-lifecycle"})
+	pendingResp, err := svc.ListPendingHooks(ctx, &runtimev1.ListPendingHooksRequest{
+		Context: testRuntimeAgentIdentityContext("agent-lifecycle"), AgentId: "agent-lifecycle"})
 	if err != nil {
 		t.Fatalf("ListPendingHooks(active): %v", err)
 	}
@@ -94,6 +100,7 @@ func TestRuntimeAgentHookLifecycleExecutionStateAndCursor(t *testing.T) {
 	}
 
 	canceledResp, err := svc.ListPendingHooks(ctx, &runtimev1.ListPendingHooksRequest{
+		Context:              testRuntimeAgentIdentityContext("agent-lifecycle"),
 		AgentId:              "agent-lifecycle",
 		AdmissionStateFilter: runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_CANCELED,
 	})
@@ -106,6 +113,7 @@ func TestRuntimeAgentHookLifecycleExecutionStateAndCursor(t *testing.T) {
 
 	hookStream := newAgentEventCaptureStreamLimit(ctx, 4)
 	if err := svc.SubscribeAgentEvents(&runtimev1.SubscribeAgentEventsRequest{
+		Context:      testRuntimeAgentIdentityContext("agent-lifecycle"),
 		AgentId:      "agent-lifecycle",
 		Cursor:       encodeCursor(cursor),
 		EventFilters: []runtimev1.AgentEventType{runtimev1.AgentEventType_AGENT_EVENT_TYPE_HOOK},
@@ -129,6 +137,7 @@ func TestRuntimeAgentHookLifecycleExecutionStateAndCursor(t *testing.T) {
 
 	stateStream := newAgentEventCaptureStreamLimit(ctx, 3)
 	if err := svc.SubscribeAgentEvents(&runtimev1.SubscribeAgentEventsRequest{
+		Context:      testRuntimeAgentIdentityContext("agent-lifecycle"),
 		AgentId:      "agent-lifecycle",
 		Cursor:       encodeCursor(cursor),
 		EventFilters: []runtimev1.AgentEventType{runtimev1.AgentEventType_AGENT_EVENT_TYPE_STATE},
@@ -172,7 +181,7 @@ func TestRuntimeAgentTerminateEmitsExecutionStateProjection(t *testing.T) {
 	svc := newRuntimeAgentTestService(t)
 	ctx := context.Background()
 	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
-		AgentId: "agent-terminate-state",
+		Context: testRuntimeAgentIdentityContext("agent-terminate-state"),
 	}); err != nil {
 		t.Fatalf("InitializeAgent: %v", err)
 	}
@@ -182,13 +191,15 @@ func TestRuntimeAgentTerminateEmitsExecutionStateProjection(t *testing.T) {
 	svc.mu.RUnlock()
 
 	if _, err := svc.TerminateAgent(ctx, &runtimev1.TerminateAgentRequest{
+		Context: testRuntimeAgentIdentityContext("agent-terminate-state"),
 		AgentId: "agent-terminate-state",
 		Reason:  "shutdown",
 	}); err != nil {
 		t.Fatalf("TerminateAgent: %v", err)
 	}
 
-	stateResp, err := svc.GetAgentState(ctx, &runtimev1.GetAgentStateRequest{AgentId: "agent-terminate-state"})
+	stateResp, err := svc.GetAgentState(ctx, &runtimev1.GetAgentStateRequest{
+		Context: testRuntimeAgentIdentityContext("agent-terminate-state"), AgentId: "agent-terminate-state"})
 	if err != nil {
 		t.Fatalf("GetAgentState: %v", err)
 	}
@@ -198,6 +209,7 @@ func TestRuntimeAgentTerminateEmitsExecutionStateProjection(t *testing.T) {
 
 	stream := newAgentEventCaptureStreamLimit(ctx, 1)
 	if err := svc.SubscribeAgentEvents(&runtimev1.SubscribeAgentEventsRequest{
+		Context:      testRuntimeAgentIdentityContext("agent-terminate-state"),
 		AgentId:      "agent-terminate-state",
 		Cursor:       encodeCursor(cursor),
 		EventFilters: []runtimev1.AgentEventType{runtimev1.AgentEventType_AGENT_EVENT_TYPE_STATE},
@@ -230,12 +242,13 @@ func TestRuntimeAgentWorldSharedQueryAndWriteUseActiveWorldID(t *testing.T) {
 	svc := newRuntimeAgentTestService(t)
 	ctx := context.Background()
 	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
-		AgentId: "agent-world",
+		Context: testRuntimeAgentIdentityContext("agent-world"),
 	}); err != nil {
 		t.Fatalf("InitializeAgent: %v", err)
 	}
 
 	_, err := svc.QueryAgentMemory(ctx, &runtimev1.QueryAgentMemoryRequest{
+		Context:          testRuntimeAgentIdentityContext("agent-world"),
 		AgentId:          "agent-world",
 		CanonicalClasses: []runtimev1.MemoryCanonicalClass{runtimev1.MemoryCanonicalClass_MEMORY_CANONICAL_CLASS_WORLD_SHARED},
 	})
@@ -244,6 +257,7 @@ func TestRuntimeAgentWorldSharedQueryAndWriteUseActiveWorldID(t *testing.T) {
 	}
 
 	if _, err := svc.UpdateAgentState(ctx, &runtimev1.UpdateAgentStateRequest{
+		Context: testRuntimeAgentIdentityContext("agent-world"),
 		AgentId: "agent-world",
 		Mutations: []*runtimev1.AgentStateMutation{
 			{
@@ -257,6 +271,7 @@ func TestRuntimeAgentWorldSharedQueryAndWriteUseActiveWorldID(t *testing.T) {
 	}
 
 	writeResp, err := svc.WriteAgentMemory(ctx, &runtimev1.WriteAgentMemoryRequest{
+		Context: testRuntimeAgentIdentityContext("agent-world"),
 		AgentId: "agent-world",
 		Candidates: []*runtimev1.CanonicalMemoryCandidate{
 			{
@@ -295,6 +310,7 @@ func TestRuntimeAgentWorldSharedQueryAndWriteUseActiveWorldID(t *testing.T) {
 	}
 
 	queryResp, err := svc.QueryAgentMemory(ctx, &runtimev1.QueryAgentMemoryRequest{
+		Context:          testRuntimeAgentIdentityContext("agent-world"),
 		AgentId:          "agent-world",
 		Query:            "What is the weather?",
 		CanonicalClasses: []runtimev1.MemoryCanonicalClass{runtimev1.MemoryCanonicalClass_MEMORY_CANONICAL_CLASS_WORLD_SHARED},
@@ -317,12 +333,13 @@ func TestRuntimeAgentWorldSharedWriteFailsClosedForMissingOrMismatchedWorld(t *t
 	svc := newRuntimeAgentTestService(t)
 	ctx := context.Background()
 	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
-		AgentId: "agent-world-fail",
+		Context: testRuntimeAgentIdentityContext("agent-world-fail"),
 	}); err != nil {
 		t.Fatalf("InitializeAgent: %v", err)
 	}
 
 	writeResp, err := svc.WriteAgentMemory(ctx, &runtimev1.WriteAgentMemoryRequest{
+		Context: testRuntimeAgentIdentityContext("agent-world-fail"),
 		AgentId: "agent-world-fail",
 		Candidates: []*runtimev1.CanonicalMemoryCandidate{
 			{
@@ -355,6 +372,7 @@ func TestRuntimeAgentWorldSharedWriteFailsClosedForMissingOrMismatchedWorld(t *t
 	}
 
 	if _, err := svc.UpdateAgentState(ctx, &runtimev1.UpdateAgentStateRequest{
+		Context: testRuntimeAgentIdentityContext("agent-world-fail"),
 		AgentId: "agent-world-fail",
 		Mutations: []*runtimev1.AgentStateMutation{
 			{
@@ -368,6 +386,7 @@ func TestRuntimeAgentWorldSharedWriteFailsClosedForMissingOrMismatchedWorld(t *t
 	}
 
 	writeResp, err = svc.WriteAgentMemory(ctx, &runtimev1.WriteAgentMemoryRequest{
+		Context: testRuntimeAgentIdentityContext("agent-world-fail"),
 		AgentId: "agent-world-fail",
 		Candidates: []*runtimev1.CanonicalMemoryCandidate{
 			{
@@ -406,7 +425,7 @@ func TestRuntimeAgentExecuteDueHooksProducesTerminalOutcomes(t *testing.T) {
 	svc := newRuntimeAgentTestService(t)
 	ctx := context.Background()
 	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
-		AgentId: "agent-exec",
+		Context: testRuntimeAgentIdentityContext("agent-exec"),
 		AutonomyConfig: &runtimev1.AgentAutonomyConfig{
 			Mode:             runtimev1.AgentAutonomyMode_AGENT_AUTONOMY_MODE_LOW,
 			DailyTokenBudget: 50,
@@ -420,7 +439,7 @@ func TestRuntimeAgentExecuteDueHooksProducesTerminalOutcomes(t *testing.T) {
 	admitBase := time.Now().UTC()
 	mustAdmit := func(hook *runtimev1.PendingHook) {
 		t.Helper()
-		if err := svc.admitPendingHook("agent-exec", hook); err != nil {
+		if err := svc.admitPendingHook(testRuntimeAgentLocalRef("agent-exec"), hook); err != nil {
 			t.Fatalf("admitPendingHook(%s): %v", hook.GetIntent().GetIntentId(), err)
 		}
 	}
@@ -490,7 +509,8 @@ func TestRuntimeAgentExecuteDueHooksProducesTerminalOutcomes(t *testing.T) {
 		t.Fatalf("expected rescheduled admission_state, got %s", statuses["hook-reschedule"])
 	}
 
-	stateResp, err := svc.GetAgentState(ctx, &runtimev1.GetAgentStateRequest{AgentId: "agent-exec"})
+	stateResp, err := svc.GetAgentState(ctx, &runtimev1.GetAgentStateRequest{
+		Context: testRuntimeAgentIdentityContext("agent-exec"), AgentId: "agent-exec"})
 	if err != nil {
 		t.Fatalf("GetAgentState: %v", err)
 	}
@@ -498,7 +518,7 @@ func TestRuntimeAgentExecuteDueHooksProducesTerminalOutcomes(t *testing.T) {
 		t.Fatalf("expected LIFE_PENDING because follow-up hook remains pending, got %s", stateResp.GetState().GetExecutionState())
 	}
 
-	entry, err := svc.agentByID("agent-exec")
+	entry, err := svc.agentByID(testRuntimeAgentLocalRef("agent-exec"))
 	if err != nil {
 		t.Fatalf("agentByID: %v", err)
 	}
@@ -515,7 +535,8 @@ func TestRuntimeAgentExecuteDueHooksProducesTerminalOutcomes(t *testing.T) {
 		t.Fatalf("expected rescheduled hook stored terminal state, got %s", hookAdmissionState(entry.Hooks["hook-reschedule"]))
 	}
 
-	pendingResp, err := svc.ListPendingHooks(ctx, &runtimev1.ListPendingHooksRequest{AgentId: "agent-exec"})
+	pendingResp, err := svc.ListPendingHooks(ctx, &runtimev1.ListPendingHooksRequest{
+		Context: testRuntimeAgentIdentityContext("agent-exec"), AgentId: "agent-exec"})
 	if err != nil {
 		t.Fatalf("ListPendingHooks: %v", err)
 	}
@@ -534,7 +555,7 @@ func TestRuntimeAgentExecuteDueHooksReschedulesBudgetExhaustedAgent(t *testing.T
 	ctx := context.Background()
 	windowStart := timestamppb.New(time.Now().UTC().Add(-2 * time.Hour))
 	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
-		AgentId: "agent-budget",
+		Context: testRuntimeAgentIdentityContext("agent-budget"),
 		AutonomyConfig: &runtimev1.AgentAutonomyConfig{
 			Mode:             runtimev1.AgentAutonomyMode_AGENT_AUTONOMY_MODE_LOW,
 			DailyTokenBudget: 10,
@@ -543,7 +564,7 @@ func TestRuntimeAgentExecuteDueHooksReschedulesBudgetExhaustedAgent(t *testing.T
 		t.Fatalf("InitializeAgent: %v", err)
 	}
 	mustEnableAutonomy(t, svc, ctx, "agent-budget")
-	entry, err := svc.agentByID("agent-budget")
+	entry, err := svc.agentByID(testRuntimeAgentLocalRef("agent-budget"))
 	if err != nil {
 		t.Fatalf("agentByID: %v", err)
 	}
@@ -555,7 +576,7 @@ func TestRuntimeAgentExecuteDueHooksReschedulesBudgetExhaustedAgent(t *testing.T
 	}
 
 	admitBase := time.Now().UTC()
-	if err := svc.admitPendingHook("agent-budget", newTestTimePendingHook(t, "hook-budget", "agent-budget", admitBase, admitBase)); err != nil {
+	if err := svc.admitPendingHook(testRuntimeAgentLocalRef("agent-budget"), newTestTimePendingHook(t, "hook-budget", "agent-budget", admitBase, admitBase)); err != nil {
 		t.Fatalf("admitPendingHook: %v", err)
 	}
 
@@ -571,7 +592,8 @@ func TestRuntimeAgentExecuteDueHooksReschedulesBudgetExhaustedAgent(t *testing.T
 	}
 	// Follow-up pending hook must fire no earlier than the next budget
 	// window start, i.e. windowStart + 24h.
-	pendingAfter, err := svc.ListPendingHooks(ctx, &runtimev1.ListPendingHooksRequest{AgentId: "agent-budget"})
+	pendingAfter, err := svc.ListPendingHooks(ctx, &runtimev1.ListPendingHooksRequest{
+		Context: testRuntimeAgentIdentityContext("agent-budget"), AgentId: "agent-budget"})
 	if err != nil {
 		t.Fatalf("ListPendingHooks: %v", err)
 	}
@@ -610,7 +632,7 @@ func TestRuntimeAgentLifeTrackLoopRejectsDueHookWithoutExecutor(t *testing.T) {
 	svc := newRuntimeAgentTestService(t)
 	ctx := context.Background()
 	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
-		AgentId: "agent-loop-reject",
+		Context: testRuntimeAgentIdentityContext("agent-loop-reject"),
 		AutonomyConfig: &runtimev1.AgentAutonomyConfig{
 			Mode:             runtimev1.AgentAutonomyMode_AGENT_AUTONOMY_MODE_LOW,
 			DailyTokenBudget: 25,
@@ -621,7 +643,7 @@ func TestRuntimeAgentLifeTrackLoopRejectsDueHookWithoutExecutor(t *testing.T) {
 	mustEnableAutonomy(t, svc, ctx, "agent-loop-reject")
 
 	now := time.Now().UTC()
-	if err := svc.admitPendingHook("agent-loop-reject", newTestTimePendingHook(t, "hook-loop-reject", "agent-loop-reject", now.Add(-time.Second), now.Add(-2*time.Second))); err != nil {
+	if err := svc.admitPendingHook(testRuntimeAgentLocalRef("agent-loop-reject"), newTestTimePendingHook(t, "hook-loop-reject", "agent-loop-reject", now.Add(-time.Second), now.Add(-2*time.Second))); err != nil {
 		t.Fatalf("admitPendingHook: %v", err)
 	}
 
@@ -634,6 +656,7 @@ func TestRuntimeAgentLifeTrackLoopRejectsDueHookWithoutExecutor(t *testing.T) {
 
 	waitForRuntimeAgentCondition(t, 2*time.Second, func() bool {
 		resp, err := svc.ListPendingHooks(ctx, &runtimev1.ListPendingHooksRequest{
+			Context:              testRuntimeAgentIdentityContext("agent-loop-reject"),
 			AgentId:              "agent-loop-reject",
 			AdmissionStateFilter: runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_REJECTED,
 		})
@@ -641,6 +664,7 @@ func TestRuntimeAgentLifeTrackLoopRejectsDueHookWithoutExecutor(t *testing.T) {
 	})
 
 	rejectedResp, err := svc.ListPendingHooks(ctx, &runtimev1.ListPendingHooksRequest{
+		Context:              testRuntimeAgentIdentityContext("agent-loop-reject"),
 		AgentId:              "agent-loop-reject",
 		AdmissionStateFilter: runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_REJECTED,
 	})
@@ -651,7 +675,8 @@ func TestRuntimeAgentLifeTrackLoopRejectsDueHookWithoutExecutor(t *testing.T) {
 		t.Fatalf("expected one rejected hook, got %d", len(rejectedResp.GetHooks()))
 	}
 
-	stateResp, err := svc.GetAgentState(ctx, &runtimev1.GetAgentStateRequest{AgentId: "agent-loop-reject"})
+	stateResp, err := svc.GetAgentState(ctx, &runtimev1.GetAgentStateRequest{
+		Context: testRuntimeAgentIdentityContext("agent-loop-reject"), AgentId: "agent-loop-reject"})
 	if err != nil {
 		t.Fatalf("GetAgentState: %v", err)
 	}
@@ -666,7 +691,7 @@ func TestRuntimeAgentLifeTrackLoopEmitsCommittedHookMemoryAndBudgetEvents(t *tes
 	svc := newRuntimeAgentTestService(t)
 	ctx := context.Background()
 	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
-		AgentId: "agent-loop-events",
+		Context: testRuntimeAgentIdentityContext("agent-loop-events"),
 		AutonomyConfig: &runtimev1.AgentAutonomyConfig{
 			Mode:             runtimev1.AgentAutonomyMode_AGENT_AUTONOMY_MODE_LOW,
 			DailyTokenBudget: 50,
@@ -679,6 +704,7 @@ func TestRuntimeAgentLifeTrackLoopEmitsCommittedHookMemoryAndBudgetEvents(t *tes
 	}
 	mustEnableAutonomy(t, svc, ctx, "agent-loop-events")
 	if _, err := svc.UpdateAgentState(ctx, &runtimev1.UpdateAgentStateRequest{
+		Context: testRuntimeAgentIdentityContext("agent-loop-events"),
 		AgentId: "agent-loop-events",
 		Mutations: []*runtimev1.AgentStateMutation{
 			{
@@ -692,7 +718,7 @@ func TestRuntimeAgentLifeTrackLoopEmitsCommittedHookMemoryAndBudgetEvents(t *tes
 	}
 
 	now := time.Now().UTC()
-	if err := svc.admitPendingHook("agent-loop-events", newTestTimePendingHook(t, "hook-loop-events", "agent-loop-events", now.Add(-time.Second), now.Add(-2*time.Second))); err != nil {
+	if err := svc.admitPendingHook(testRuntimeAgentLocalRef("agent-loop-events"), newTestTimePendingHook(t, "hook-loop-events", "agent-loop-events", now.Add(-time.Second), now.Add(-2*time.Second))); err != nil {
 		t.Fatalf("admitPendingHook: %v", err)
 	}
 
@@ -726,6 +752,7 @@ func TestRuntimeAgentLifeTrackLoopEmitsCommittedHookMemoryAndBudgetEvents(t *tes
 
 	waitForRuntimeAgentCondition(t, 2*time.Second, func() bool {
 		resp, err := svc.ListPendingHooks(ctx, &runtimev1.ListPendingHooksRequest{
+			Context:              testRuntimeAgentIdentityContext("agent-loop-events"),
 			AgentId:              "agent-loop-events",
 			AdmissionStateFilter: runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_COMPLETED,
 		})
@@ -745,6 +772,7 @@ func TestRuntimeAgentLifeTrackLoopEmitsCommittedHookMemoryAndBudgetEvents(t *tes
 	// fixture has no conversation_anchor_id / originating_turn_id linkage.
 	stream := newAgentEventCaptureStreamLimit(ctx, 9)
 	if err := svc.SubscribeAgentEvents(&runtimev1.SubscribeAgentEventsRequest{
+		Context: testRuntimeAgentIdentityContext("agent-loop-events"),
 		AgentId: "agent-loop-events",
 		Cursor:  encodeCursor(cursor),
 	}, stream); err != context.Canceled {
@@ -813,7 +841,7 @@ func TestRuntimeAgentLifeTrackLoopEmitsCommittedHookMemoryAndBudgetEvents(t *tes
 		}
 	}
 
-	entry, err := svc.agentByID("agent-loop-events")
+	entry, err := svc.agentByID(testRuntimeAgentLocalRef("agent-loop-events"))
 	if err != nil {
 		t.Fatalf("agentByID: %v", err)
 	}
@@ -837,12 +865,12 @@ func TestRuntimeAgentWriteLifeTurnCandidatesRejectsSameBatchSemanticContradictio
 	svc := newRuntimeAgentTestService(t)
 	ctx := context.Background()
 	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
-		AgentId: "agent-life-contradiction",
+		Context: testRuntimeAgentIdentityContext("agent-life-contradiction"),
 	}); err != nil {
 		t.Fatalf("InitializeAgent: %v", err)
 	}
 
-	entry, err := svc.agentByID("agent-life-contradiction")
+	entry, err := svc.agentByID(testRuntimeAgentLocalRef("agent-life-contradiction"))
 	if err != nil {
 		t.Fatalf("agentByID: %v", err)
 	}
@@ -875,6 +903,7 @@ func TestRuntimeAgentWriteLifeTurnCandidatesRejectsSameBatchSemanticContradictio
 	}
 
 	queryResp, queryErr := svc.QueryAgentMemory(ctx, &runtimev1.QueryAgentMemoryRequest{
+		Context: testRuntimeAgentIdentityContext("agent-life-contradiction"),
 		AgentId: "agent-life-contradiction",
 		Query:   "likes",
 		Limit:   5,

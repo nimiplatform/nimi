@@ -72,8 +72,14 @@ func decodePublicChatTurnRequestPayload(payload any) (publicChatTurnRequestPaylo
 		}
 		return publicChatTurnRequestPayload{}, status.Error(codes.InvalidArgument, "public chat turn payload invalid")
 	}
-	if strings.TrimSpace(decoded.AgentID) == "" || len(toProtoPublicChatMessages(decoded.Messages)) == 0 {
-		return publicChatTurnRequestPayload{}, status.Error(codes.InvalidArgument, "public chat turn payload requires agent_id and messages")
+	if strings.TrimSpace(decoded.AgentID) != "" {
+		return publicChatTurnRequestPayload{}, status.Error(codes.InvalidArgument, "public chat turn payload must use local_agent_ref, not agent_id")
+	}
+	if _, err := validateLocalAgentIdentity(decoded.OwnerUserID, decoded.RealmAgentID, decoded.LocalAgentRef); err != nil {
+		return publicChatTurnRequestPayload{}, err
+	}
+	if len(toProtoPublicChatMessages(decoded.Messages)) == 0 {
+		return publicChatTurnRequestPayload{}, status.Error(codes.InvalidArgument, "public chat turn payload requires messages")
 	}
 	if decoded.MaxOutputTokens < 0 {
 		return publicChatTurnRequestPayload{}, status.Error(codes.InvalidArgument, "public chat max_output_tokens must be non-negative")

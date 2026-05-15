@@ -14,6 +14,12 @@ export type RuntimeAgentExecutionBinding = {
 
 export type RuntimeAgentReasoningConfig = NimiReasoningConfig;
 
+export type RuntimeAgentLocalIdentity = {
+  ownerUserId: string;
+  realmAgentId: string;
+  localAgentRef: string;
+};
+
 export type RuntimeScopedBindingAttachment = {
   bindingId: string;
   bindingHandle?: string;
@@ -21,13 +27,12 @@ export type RuntimeScopedBindingAttachment = {
   appInstanceId?: string;
   windowId?: string;
   avatarInstanceId?: string;
-  agentId?: string;
+  localAgentRef?: string;
   conversationAnchorId?: string;
   worldId?: string;
 };
 
-export type RuntimeAgentTurnRequest = {
-  agentId: string;
+export type RuntimeAgentTurnRequest = RuntimeAgentLocalIdentity & {
   conversationAnchorId: string;
   requestId?: string;
   threadId?: string;
@@ -40,8 +45,7 @@ export type RuntimeAgentTurnRequest = {
   scopedBinding?: RuntimeScopedBindingAttachment;
 };
 
-export type RuntimeAgentTurnInterruptRequest = {
-  agentId: string;
+export type RuntimeAgentTurnInterruptRequest = RuntimeAgentLocalIdentity & {
   conversationAnchorId: string;
   worldId?: string;
   turnId?: string;
@@ -49,16 +53,14 @@ export type RuntimeAgentTurnInterruptRequest = {
   scopedBinding?: RuntimeScopedBindingAttachment;
 };
 
-export type RuntimeAgentSessionSnapshotRequest = {
-  agentId: string;
+export type RuntimeAgentSessionSnapshotRequest = RuntimeAgentLocalIdentity & {
   conversationAnchorId: string;
   worldId?: string;
   requestId?: string;
   scopedBinding?: RuntimeScopedBindingAttachment;
 };
 
-export type RuntimeAgentConsumeRequest = {
-  agentId: string;
+export type RuntimeAgentConsumeRequest = RuntimeAgentLocalIdentity & {
   conversationAnchorId?: string;
   cursor?: string;
   subjectUserId?: string;
@@ -155,7 +157,7 @@ export type RuntimeAgentTurnEnvelope = {
     | 'runtime.agent.turn.failed'
     | 'runtime.agent.turn.interrupted'
     | 'runtime.agent.turn.interrupt_ack';
-  agentId: string;
+  localAgentRef: string;
   conversationAnchorId: string;
   turnId: string;
   streamId: string;
@@ -170,7 +172,7 @@ export type RuntimeAgentPresentationEnvelope = {
     | 'runtime.agent.presentation.pose_requested'
     | 'runtime.agent.presentation.pose_cleared'
     | 'runtime.agent.presentation.lookat_requested';
-  agentId: string;
+  localAgentRef: string;
   conversationAnchorId: string;
   turnId: string;
   streamId: string;
@@ -180,15 +182,14 @@ export type RuntimeAgentPresentationTimelineEnvelope = {
   eventName:
     | 'runtime.agent.presentation.voice_playback_requested'
     | 'runtime.agent.presentation.lipsync_frame_batch';
-  agentId: string;
+  localAgentRef: string;
   conversationAnchorId: string;
   turnId: string;
   streamId: string;
   timeline: RuntimeAgentTimelineEnvelope;
 };
 
-export type RuntimeAgentScopedOriginEnvelope = {
-  agentId: string;
+export type RuntimeAgentScopedOriginEnvelope = RuntimeAgentLocalIdentity & {
   conversationAnchorId?: string;
   originatingTurnId?: string;
   originatingStreamId?: string;
@@ -219,4 +220,3 @@ export type RuntimeAgentHookAdmissionState =
   | 'failed'
   | 'canceled'
   | 'rescheduled';
-

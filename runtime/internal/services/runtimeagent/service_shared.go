@@ -20,11 +20,24 @@ func (s *Service) newEvent(agentID string, eventType runtimev1.AgentEventType, d
 	return s.newEventAt(agentID, eventType, detail, time.Now().UTC())
 }
 
+func (s *Service) newEventForIdentity(identity localAgentIdentity, eventType runtimev1.AgentEventType, detail any) *runtimev1.AgentEvent {
+	return s.newEventForIdentityAt(identity, eventType, detail, time.Now().UTC())
+}
+
+func (s *Service) newEventForIdentityAt(identity localAgentIdentity, eventType runtimev1.AgentEventType, detail any, observedAt time.Time) *runtimev1.AgentEvent {
+	event := s.newEventAt(identity.LocalAgentRef, eventType, detail, observedAt)
+	event.LocalAgentRef = identity.LocalAgentRef
+	event.OwnerUserId = identity.OwnerUserID
+	event.RealmAgentId = identity.RealmAgentID
+	return event
+}
+
 func (s *Service) newEventAt(agentID string, eventType runtimev1.AgentEventType, detail any, observedAt time.Time) *runtimev1.AgentEvent {
 	event := &runtimev1.AgentEvent{
-		EventType: eventType,
-		AgentId:   agentID,
-		Timestamp: timestamppb.New(observedAt.UTC()),
+		EventType:     eventType,
+		AgentId:       agentID,
+		LocalAgentRef: strings.TrimSpace(agentID),
+		Timestamp:     timestamppb.New(observedAt.UTC()),
 	}
 	switch typed := detail.(type) {
 	case *runtimev1.AgentEvent_Lifecycle:
