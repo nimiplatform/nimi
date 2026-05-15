@@ -289,9 +289,71 @@ function waitForPort(host, port, timeoutMs = 15000, shouldAbort) {
   });
 }
 
+function waitForPortClosed(host, port, timeoutMs = 10000) {
+  const deadline = Date.now() + timeoutMs;
+  return new Promise((resolve, reject) => {
+    const tryConnect = () => {
+      const socket = net.createConnection({ host, port });
+      socket.once('connect', () => {
+        socket.destroy();
+        if (Date.now() >= deadline) {
+          reject(new Error(`timed out waiting for ${host}:${port} to close`));
+          return;
+        }
+        setTimeout(tryConnect, 250);
+      });
+      socket.once('error', () => {
+        socket.destroy();
+        resolve();
+      });
+    };
+    tryConnect();
+  });
+}
+
 function createLogFile(filePath) {
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
   return fs.createWriteStream(filePath, { flags: 'w' });
+}
+
+function waitForExit(child, timeoutMs = 10000) {
+  if (child.exitCode !== null || child.signalCode !== null) {
+    return Promise.resolve();
+  }
+  return new Promise((resolve, reject) => {
+    const timeout = setTimeout(() => {
+      child.off('exit', onExit);
+      reject(new Error(`process ${child.pid || 'unknown'} did not exit within ${timeoutMs}ms`));
+    }, timeoutMs);
+    const onExit = () => {
+      clearTimeout(timeout);
+      resolve();
+    };
+    child.once('exit', onExit);
+  });
+}
+
+async function terminateProcessTree(child) {
+  if (!child.pid) {
+    return;
+  }
+  if (os.platform() === 'win32') {
+    spawnSync('taskkill.exe', ['/pid', String(child.pid), '/t', '/f'], {
+      cwd: repoRoot,
+      env: process.env,
+      encoding: 'utf8',
+    });
+  } else {
+    child.kill('SIGTERM');
+  }
+  try {
+    await waitForExit(child, 10000);
+  } catch {
+    if (os.platform() !== 'win32') {
+      child.kill('SIGKILL');
+      await waitForExit(child, 5000);
+    }
+  }
 }
 
 async function runScenario(scenarioId, runIndex) {
@@ -398,7 +460,8 @@ async function runScenario(scenarioId, runIndex) {
       },
     );
   } finally {
-    driver.kill('SIGTERM');
+    await terminateProcessTree(driver);
+    await waitForPortClosed(driverHost, driverPort, 10000);
     driverLog.end();
     await fixtureServer.close();
   }

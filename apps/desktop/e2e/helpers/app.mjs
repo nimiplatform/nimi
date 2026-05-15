@@ -40,6 +40,20 @@ export async function updateRuntimeBridgeStatus(status) {
   return response.json();
 }
 
+export async function updateRealmRestOnline(online) {
+  const baseUrl = String(process.env.NIMI_E2E_FIXTURE_CONTROL_URL || '').trim();
+  assert.ok(baseUrl, 'NIMI_E2E_FIXTURE_CONTROL_URL is required');
+  const response = await fetch(`${baseUrl}/rest-online`, {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+    },
+    body: JSON.stringify({ online }),
+  });
+  assert.equal(response.ok, true, `rest-online control failed: ${response.status}`);
+  return response.json();
+}
+
 export async function assertActiveChat(chatId) {
   const timeline = await waitForTestId(E2E_IDS.messageTimeline);
   await browser.waitUntil(async () => {

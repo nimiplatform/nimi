@@ -13,6 +13,14 @@ const runtimeUnavailableSpecSource = fs.readFileSync(
   path.join(root, 'e2e/specs/boot.runtime-unavailable.degraded-shell.e2e.mjs'),
   'utf8',
 );
+const offlineRecoverySpecSource = fs.readFileSync(
+  path.join(root, 'e2e/specs/offline.banner-and-recovery.e2e.mjs'),
+  'utf8',
+);
+const offlineRecoveryProfile = JSON.parse(fs.readFileSync(
+  path.join(root, 'e2e/fixtures/profiles/offline.banner-and-recovery.json'),
+  'utf8',
+));
 const authenticatedBootSpecSource = fs.readFileSync(
   path.join(root, 'e2e/specs/boot.authenticated.main-shell.e2e.mjs'),
   'utf8',
@@ -38,9 +46,22 @@ test('desktop E2E runner fails fast when tauri-driver exits before opening the W
   assert.match(runnerSource, /see \$\{path\.join\(artifactsDir, 'tauri-driver\.log'\)\}/);
 });
 
+test('desktop E2E runner tears down native WebDriver process trees between scenarios', () => {
+  assert.match(runnerSource, /async function terminateProcessTree\(child\)/);
+  assert.match(runnerSource, /taskkill\.exe/);
+  assert.match(runnerSource, /waitForPortClosed\(driverHost, driverPort, 10000\)/);
+});
+
 test('runtime-unavailable boot smoke targets the canonical desktop release strip', () => {
   assert.match(runtimeUnavailableSpecSource, /E2E_IDS\.desktopReleaseStrip/);
   assert.doesNotMatch(runtimeUnavailableSpecSource, /E2E_IDS\.offlineStrip/);
+});
+
+test('offline recovery smoke targets Realm REST reachability, not runtime release readiness', () => {
+  assert.equal(offlineRecoveryProfile.realmFixture?.restOnline, false);
+  assert.equal(offlineRecoveryProfile.tauriFixture, undefined);
+  assert.match(offlineRecoverySpecSource, /updateRealmRestOnline\(true\)/);
+  assert.doesNotMatch(offlineRecoverySpecSource, /updateRuntimeBridgeStatus/);
 });
 
 test('authenticated desktop boot smoke fails closed on missing account projection', () => {
