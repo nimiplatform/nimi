@@ -4,6 +4,7 @@ import (
 	"context"
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"testing"
+	"time"
 )
 
 func TestPublicChatTurnInterruptCancelsActiveTurn(t *testing.T) {
@@ -96,6 +97,7 @@ func TestPublicChatSessionSnapshotReportsLiveAndTerminalState(t *testing.T) {
 	anchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
 	capture := newPublicChatEmitCapture()
 	release := make(chan struct{})
+	firstDeltaApplied := make(chan struct{})
 	svc.SetPublicChatAppEmitter(capture.emit)
 	svc.SetChatTrackSidecarExecutor(stubChatTrackSidecarExecutor{})
 	svc.SetPublicChatTurnExecutor(stubPublicChatTurnExecutor{
@@ -127,6 +129,7 @@ func TestPublicChatSessionSnapshotReportsLiveAndTerminalState(t *testing.T) {
 			}); err != nil {
 				return err
 			}
+			close(firstDeltaApplied)
 			select {
 			case <-ctx.Done():
 				return ctx.Err()
@@ -181,6 +184,11 @@ func TestPublicChatSessionSnapshotReportsLiveAndTerminalState(t *testing.T) {
 	}
 	accepted := capture.waitForMessageType(t, publicChatTurnAcceptedType)
 	_ = capture.waitForMessageType(t, publicChatTurnStartedType)
+	select {
+	case <-firstDeltaApplied:
+	case <-time.After(10 * time.Second):
+		t.Fatal("timed out waiting for first live turn delta to be applied")
+	}
 	if got := publicChatPayloadMap(t, accepted)["conversation_anchor_id"].(string); got != anchorID {
 		t.Fatalf("expected accepted conversation_anchor_id=%s, got=%s", anchorID, got)
 	}
