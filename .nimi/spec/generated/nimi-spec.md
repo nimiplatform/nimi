@@ -1,7 +1,7 @@
 # Nimi Platform 技术规范
 
 > 本文档由 `scripts/generate-spec-human-doc.mjs` 自动生成，是 `/.nimi/spec/` 规范树的人类可读投影。
-> 生成时间: 2026-05-14
+> 生成时间: 2026-05-15
 >
 > 权威规则定义位于 `/.nimi/spec/` 原始文件中。如需修改，请编辑当前 canonical spec 后重新生成。
 
@@ -4440,6 +4440,10 @@ Fixed rules:
 | OpenConversationAnchor | unary |
 | GetConversationAnchorSnapshot | unary |
 | GetPublicChatSessionSnapshot | unary |
+| GetCompanionParticipationProjection | unary |
+| RequestCompanionParticipation | unary |
+| CancelCompanionParticipation | unary |
+| OpenCompanionParticipationReplay | unary |
 | CreateRealmGroupMessageCandidate | unary |
 | GetRealmGroupMessageCandidateEvidence | unary |
 | GetAvatarDebugSnapshot | unary |
@@ -5435,6 +5439,10 @@ Fixed rules:
 - OpenConversationAnchor
 - GetConversationAnchorSnapshot
 - GetPublicChatSessionSnapshot
+- GetCompanionParticipationProjection
+- RequestCompanionParticipation
+- CancelCompanionParticipation
+- OpenCompanionParticipationReplay
 - CreateRealmGroupMessageCandidate
 - GetRealmGroupMessageCandidateEvidence
 - GetAvatarDebugSnapshot

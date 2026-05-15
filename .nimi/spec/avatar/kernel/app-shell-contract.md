@@ -2,7 +2,7 @@
 
 > **App**: `@nimiplatform/avatar`
 > **Authority**: Avatar kernel contract
-> **Status**: Wave 0 industrial baseline (supersedes earlier "Phase 1 / Phase 2 deferred" framing)
+> **Status**: Wave 0 industrial baseline (supersedes retired small-button surface framing)
 > **Sibling contracts**:
 > - [Embodiment projection contract](embodiment-projection-contract.md)
 > - [Live2D render contract](live2d-render-contract.md)
@@ -14,7 +14,7 @@
 >
 > Explicit binding-only / embedded / delegated Avatar mode 仍可由 `K-BIND-*` admit，但它不是 Desktop-launched Avatar 的默认路径。
 >
-> **Wave 0 Surface Composition admit**：本 contract 重写 surface composition 模型为 `embodiment-stage` / `companion-surface` / `degraded-surface` 三互斥结构（K-NAV-SHELL-COMPOSITION-*）。原 "Phase 2 deferred small chat button" 路径正式废弃，由 always-visible Companion Surface（K-NAV-SHELL-COMPANION-*）取代；degraded posture 由独立 Degraded Surface（K-NAV-SHELL-DEGRADED-*）承载，不再混入 ready 主区。
+> **Wave 0 Surface Composition admit**：本 contract 重写 surface composition 模型为 `embodiment-stage` / `companion-surface` / `degraded-surface` 三互斥结构（K-NAV-SHELL-COMPOSITION-*）。原 small chat button 路径正式废弃，由 always-visible Companion Surface（K-NAV-SHELL-COMPANION-*）取代；degraded posture 由独立 Degraded Surface（K-NAV-SHELL-DEGRADED-*）承载，不再混入 ready 主区。
 
 ---
 
@@ -36,7 +36,7 @@ Window 必须以如下 config 启动（不可 runtime 改变）：
 |---|---|---|
 | `transparent` | `true` | 背景透明，形象即 UI |
 | `decorations` | `false` | 无 title bar / close / min buttons |
-| `alwaysOnTop` | `true` (default) | Pet 始终可见；用户 setting 可覆盖 |
+| `alwaysOnTop` | `true` (default) | Avatar embodiment 默认常驻可见；用户 setting 可覆盖 |
 | `resizable` | `true` (programmatic only) | Runtime 按 model bounds + companion footprint 调整 |
 | `skipTaskbar` | `true` | 不在 taskbar 显示（dock 上有 tray icon） |
 | `shadow` | `false` | 无 window shadow（形象自身有阴影） |

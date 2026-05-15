@@ -14,7 +14,7 @@ description: >
   fallback semantics for APML auto-adapter runtime support. Generated motion
   provider routes are governed by generated-motion-routes.yaml. The initial
   generated route set is `idle_subtle / listen_lean / nod_yes / shake_no /
-  greet_wave`. The legacy vrm-motion-presets.yaml registry is interchange-only
+  greet_wave`. The vrm-motion-presets.yaml registry is interchange-only
   evidence and is not a runtime support gate.
 
   This mapping remains Avatar backend routing evidence only and must not be

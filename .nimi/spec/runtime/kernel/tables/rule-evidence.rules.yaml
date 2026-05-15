@@ -2333,3 +2333,28 @@
 - rule_id: K-WEV-016
   status: deferred
   evidence_refs: []
+# Companion participation projection (K-AGCORE-125..132)
+- rule_id: K-AGCORE-125
+  status: covered
+  evidence_refs: [runtime_kernel_consistency]
+- rule_id: K-AGCORE-126
+  status: covered
+  evidence_refs: [runtime_kernel_consistency]
+- rule_id: K-AGCORE-127
+  status: covered
+  evidence_refs: [runtime_kernel_consistency]
+- rule_id: K-AGCORE-128
+  status: covered
+  evidence_refs: [runtime_kernel_consistency]
+- rule_id: K-AGCORE-129
+  status: covered
+  evidence_refs: [runtime_kernel_consistency]
+- rule_id: K-AGCORE-130
+  status: covered
+  evidence_refs: [runtime_kernel_consistency]
+- rule_id: K-AGCORE-131
+  status: covered
+  evidence_refs: [runtime_kernel_consistency]
+- rule_id: K-AGCORE-132
+  status: covered
+  evidence_refs: [runtime_kernel_consistency]

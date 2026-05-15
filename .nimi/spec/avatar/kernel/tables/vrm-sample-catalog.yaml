@@ -1,0 +1,65 @@
+version: 1
+description: >
+  Representative VRM sample catalog for Avatar VRM acceptance. Sample binaries
+  are not committed to the repository; they are fetched on demand into
+  apps/avatar/.cache/assets/vrm-models/. Every entry must have a concrete
+  source URL, license authority, expected minimum byte size, and acceptance
+  purpose.
+
+samples:
+  - id: vrm1-constraint-twist
+    filename: VRM1_Constraint_Twist_Sample.vrm
+    display_name: VRM1 Constraint Twist Sample
+    source_url: https://raw.githubusercontent.com/pixiv/three-vrm/release/packages/three-vrm/examples/models/VRM1_Constraint_Twist_Sample.vrm
+    source_page: https://github.com/pixiv/three-vrm/blob/release/packages/three-vrm/examples/models/VRM1_Constraint_Twist_Sample.vrm
+    upstream: pixiv/three-vrm
+    license: MIT
+    license_authority: https://github.com/pixiv/three-vrm/blob/release/LICENSE
+    expected_min_bytes: 9000000
+    acceptance_purpose:
+      - vrm_1_constraint_twist_reference
+      - humanoid_bone_and_generated_motion_smoke
+      - pixiv_three_vrm_loader_baseline
+
+  - id: vroid-hair-sample-female-cc0
+    filename: HairSample_Female.vrm
+    display_name: VRoid HairSample Female
+    source_url: https://raw.githubusercontent.com/madjin/vrm-samples/master/vroid/beta/HairSample_Female.vrm
+    source_page: https://github.com/madjin/vrm-samples/blob/master/vroid/beta/HairSample_Female.vrm
+    upstream: VRoid Studio sample model via madjin/vrm-samples mirror
+    license: CC0-1.0
+    license_authority: https://vroid.pixiv.help/hc/en-us/articles/4402614652569-Do-VRoid-Studio-s-sample-models-come-with-conditions-of-use
+    expected_min_bytes: 17000000
+    acceptance_purpose:
+      - vroid_humanoid_hair_and_spring_bone_coverage
+      - larger_texture_material_profile
+      - cc0_sample_distribution_baseline
+
+  - id: vroid-hair-sample-male-cc0
+    filename: HairSample_Male.vrm
+    display_name: VRoid HairSample Male
+    source_url: https://raw.githubusercontent.com/madjin/vrm-samples/master/vroid/beta/HairSample_Male.vrm
+    source_page: https://github.com/madjin/vrm-samples/blob/master/vroid/beta/HairSample_Male.vrm
+    upstream: VRoid Studio sample model via madjin/vrm-samples mirror
+    license: CC0-1.0
+    license_authority: https://vroid.pixiv.help/hc/en-us/articles/4402614652569-Do-VRoid-Studio-s-sample-models-come-with-conditions-of-use
+    expected_min_bytes: 18000000
+    acceptance_purpose:
+      - vroid_humanoid_hair_and_spring_bone_coverage
+      - alternate_body_proportion_and_material_profile
+      - cc0_sample_distribution_baseline
+
+constraints:
+  - description: >
+      Sample binaries must remain out of git. The only tracked artifacts are
+      this catalog, fetcher metadata, tests, and license/provenance documents.
+  - description: >
+      `apps/avatar/scripts/fetch-vrm-models.mjs` must contain one definition
+      for every catalog sample id and must reject unknown ids.
+  - description: >
+      Adding a non-CC0/non-MIT sample requires an explicit product/legal
+      disposition in the admitting topic before the sample can close acceptance.
+  - description: >
+      A sample cannot close visual or smoke proof unless its fetched payload is
+      at least `expected_min_bytes` and parses as binary glTF/VRM in the
+      relevant smoke path.

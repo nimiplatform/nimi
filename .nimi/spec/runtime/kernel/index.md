@@ -62,6 +62,7 @@
 | `runtime-agent-participation-contract.md` | `K-AGCORE-*` | Runtime-owned non-canonical agent participation authority、closed axis/profile model、candidate output、memory/capability/concurrency policy、and public raw prompt boundary |
 | `multi-agent-room-orchestration-contract.md` | `K-AGCORE-*` | Runtime-owned same-room/session orchestration authority、closed room axis registry、domain matrix、trigger arbitration、budget/cancellation/status/external admission、and domain commit handoff boundary |
 | `realm-group-participation-consumer-contract.md` | `K-AGCORE-*` | Runtime-owned consumer boundary for Realm GROUP agent participation、typed context refs、candidate output、policy inheritance、room-orchestration binding、and no direct Realm commit |
+| `companion-participation-projection-contract.md` | `K-AGCORE-*` | Runtime-owned projection boundary for Avatar companion/persona/debug participation consumers、typed statuses、candidate/commit split、trigger boundary、and no raw payload exposure |
 | `agent-conversation-anchor-contract.md` | `K-AGCORE-*` | Runtime-owned `ConversationAnchor` continuity truth for per-agent multi-surface chat/session sharing inside a multi-agent runtime |
 | `agent-presentation-contract.md` | `K-AGCORE-*` | Runtime-owned persistent `AgentPresentationProfile` truth、default avatar binding、and non-owner boundary for renderer-local state |
 | `agent-presentation-stream-contract.md` | `K-AGCORE-*` | Runtime-owned transient `turn` / `presentation` projection seam、current emotion projection、and stream commit semantics |

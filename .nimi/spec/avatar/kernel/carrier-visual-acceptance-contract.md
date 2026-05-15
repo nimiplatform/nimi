@@ -97,7 +97,7 @@ across backends.
 
 This contract does not admit:
 
-- Phase 2 voice output or lipsync (Wave 3 admitted; tracked separately)
+- voice output or lipsync behavior (admitted by the voice/lipsync wave and tracked separately)
 - shared `PresentationTimeline`
 - broad platform or SDK Event API behavior
 - 3D / Lottie / robot backend visual proof beyond Live2D + VRM

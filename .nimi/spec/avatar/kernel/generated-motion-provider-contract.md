@@ -214,5 +214,5 @@ Wave implementation and closeout must include gates proving:
 
 This contract supersedes the `.vrma` runtime asset close gate recorded by
 `2026-04-30-avatar-vrm-backend-branch` for APML auto-adapter support. Existing
-`.vrma` assets may remain as legacy/interchange evidence until wave-2 hard-cuts
+`.vrma` assets may remain as interchange-only evidence until wave-2 hard-cuts
 implementation, but they are not canonical runtime proof for this topic.

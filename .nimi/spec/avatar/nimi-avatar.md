@@ -10,7 +10,7 @@ Nimi Avatar 是桌面悬浮 embodiment carrier，是 Nimi agent 的视觉化身�
 - 透明背景、无 chrome、always-on-top
 - 大小跟随当前 embodiment surface bounds + companion surface footprint 自动调整
 - 可在桌面 embodiment-stage 区域拖拽移动（companion 区域不开启 drag）
-- 点击 pet 身体响应（表情 / motion 等），点击 pet 外区域穿透到下层 app
+- 点击 Avatar embodiment 身体响应（表情 / motion 等），点击 embodiment 外区域穿透到下层 app
 - Companion Surface（assistant bubble + status row + composer）固定 always-visible，不依赖外部 trigger button
 
 ### 核心差异点
@@ -23,8 +23,8 @@ Avatar 是普通 local first-party Nimi app，但不是传统聊天窗口：
 
 ### 多种交互方式
 
-- **Window drag**：拖动 pet 到桌面任意位置（仅 embodiment-stage 内部区域）
-- **Click on pet body**：触发对应 NAS event handler（如点 head 害羞）
+- **Window drag**：拖动 Avatar embodiment 到桌面任意位置（仅 embodiment-stage 内部区域）
+- **Click on embodiment body**：触发对应 NAS event handler（如点 head 害羞）
 - **Companion composer**：text input + send，提交一个 bounded text turn（始终可见）
 - **Companion mic toggle**：foreground STT 输入，绑定当前 anchor（始终可见）
 - **Companion bubble**：最近 assistant message + close × button
@@ -49,7 +49,7 @@ Avatar 是普通 local first-party Nimi app，但不是传统聊天窗口：
 - 内容作者：提供 backend package + NAS handlers (`nimi/` 目录) 就能 ship 完整 agent 角色
 - 生态参与者：创造带 programmable 行为的 agent avatar，可以独立分发
 
-NAS convention（见 `kernel/agent-script-contract.md`）把 agent semantics 投影到 embodiment backend API；当前 shipped branch 仍由 Live2D API 覆盖 motion / parameter / expression / pose / wait 等能力。
+NAS convention（见 `kernel/agent-script-contract.md`）把 agent semantics 投影到 embodiment backend API；当前 admitted carrier branches are Live2D and VRM. Live2D owns Cubism motion / parameter / expression / pose / wait projection; VRM owns generated motion / emote / expression / lipsync projection through `src/shell/renderer/vrm/**`.
 
 ## Non-Goals
 
@@ -57,7 +57,7 @@ Nimi Avatar 当前**不**追求：
 
 - 多 agent 同屏（一次一个 agent）
 - Full chat experience（长历史 / 多线程 / 文件上传）— 由 desktop app 承载；avatar companion bubble 仅展示当前 anchor 最近一条 assistant message
-- 新 backend branch 的 shipped implementation（当前仍只有 Live2D；VRM / 3D 作为 future rendering backend）
+- Unadmitted backend branches beyond Live2D and VRM（3D variants beyond the admitted VRM branch require separate authority）
 - Global hotkey system（companion stack 始终可见，不需要 hotkey 唤起）
 - Mobile / web thin client（future 可能通过 thin client protocol）
 - Multi-user agent（每个 avatar 对应一个 agent，一个 runtime 一个 user scope）
@@ -68,8 +68,7 @@ Nimi Avatar 消费 Nimi runtime 的 agent data，通过 embodiment projection la
 
 - Activity events → NAS activity handlers → backend motion / expression
 - Posture changes → NAS event handlers → backend pose / 姿态调整
-- Lipsync frame batch → Live2D `ParamMouthOpenY` 桥（Wave 3 admit）
-- Voice playback timeline → audio playback 与 lipsync 时间同步（runtime monotonic_with_wall_anchor）
+- Voice playback timeline → audio pipeline + backend lipsync driver（Live2D mouth parameter / VRM wLipSync expression preset writes）
 - User interactions → emit `avatar.user.*` / `avatar.companion.*` events → runtime observes
 - Cross-app events：通过 `avatar_instance_registry` projection 协调 desktop chat / avatar instance lifecycle
 
@@ -91,8 +90,11 @@ Nimi Avatar 消费 Nimi runtime 的 agent data，通过 embodiment projection la
   `runtime.agent` turns API 获取 request-time protected access token；默认
   启动路径不 issue scoped binding
 - visual bootstrap 通过 Runtime account projection + launch `agent_id` 解析本机
-  Agent Center package；当前 shipped carrier branch 是 Live2D，VRM / 3D 仍是
-  future backend branch，不能伪成功
+  Agent Center package；当前 admitted carrier branches 是 Live2D 与 VRM。VRM
+  deferral evidence 已由 2026-05-15 reconciliation topic 关闭；最终上线前的
+  launch-readiness / visual-human acceptance 仍由
+  `2026-05-15-avatar-launch-readiness-and-acceptance` 单独关闭，不能从 smoke
+  evidence 直接推导。
 - conversation bootstrap 由 Avatar 创建或恢复 Avatar-owned Runtime anchor；本地
   recovery cache 只按 Runtime account projection + `agent_id` +
   `avatar_instance_id` 索引，并且必须经 Runtime snapshot 校验后才能复用
@@ -191,7 +193,7 @@ Avatar 重构分 5 个 wave，每个 wave 必须是端到端可交付能力切�
 | **0** | Spec 重构 | `app-shell-contract.md` / `nimi-avatar.md` / `feature-matrix.yaml` / `avatar-event-contract.md` / `agent-presentation-stream-contract.md` admit；nimi-coding spec validators 通过 |
 | **1** | Surface composition | `embodiment-stage/` + `companion-surface/` + `degraded-surface/` 子模块完整实现；App.tsx 重写为三选一渲染；删除 trigger toggle 路径与 ready 区 diagnostic 残留 |
 | **2** | i18n + Design tokens | `locales/{en,zh}/avatar.json` 完整文案；i18n 框架接通；`app-shell/tokens.css` design system；BEM 化全部组件；`i18n-keys.yaml` spec 表 |
-| **3** | Lipsync 端到端 | runtime `lipsync_frame_batch` / `voice_playback_requested` 实现链路（如缺失补完 emitter）；SDK 消费 lipsync queue；avatar `live2d/lipsync-bridge.ts` 投到 `ParamMouthOpenY`；voice-companion-state lipsync slice |
+| **3** | Voice / lipsync 端到端 | runtime `voice_playback_requested` 实现链路；SDK 消费 voice timeline；selected backend lipsync driver 投到 Live2D mouth parameter 或 VRM expression preset；voice-companion-state lipsync slice |
 | **4** | Window + Settings 工业化 | dynamic window bounds (embodiment + companion footprint)；drag region 限定到 embodiment-stage；settings popover 替换主区 4-toggle 大块；`window-bounds-policy.yaml` spec 表 |
 
 每个 wave 完工后必须跑：
@@ -243,4 +245,4 @@ RuntimeAgent 的 admitted consume surface 已经成为 `apps/avatar` 的 primary
 - normal path 使用 desktop-selected launch context + local visual package + runtime IPC bridge + SDK consume
 - mock fixtures 继续保留为 explicit fixture / integration test corpus
 - runtime 不可用时 interaction/voice/activity fail closed，不允许 silent downgrade 到 mock；进入 degraded composition state 卸载 ready surface
-- Wave 3 admit 后 runtime presentation timeline 中的 `lipsync_frame_batch` / `voice_playback_requested` 必须实际产生，且与 SDK 消费链路、avatar Live2D 桥接共同闭合
+- Runtime presentation voice playback must drive the SDK consume chain and the selected backend lipsync path; `lipsync_frame_batch` is not an Avatar app consume path.

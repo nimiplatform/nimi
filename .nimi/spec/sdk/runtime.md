@@ -6,6 +6,7 @@
 ## 0. 权威导入
 
 - `kernel/runtime-contract.md`（S-RUNTIME-010, S-RUNTIME-011, S-RUNTIME-012, S-RUNTIME-015, S-RUNTIME-023, S-RUNTIME-028, S-RUNTIME-045, S-RUNTIME-050, S-RUNTIME-066, S-RUNTIME-067, S-RUNTIME-068, S-RUNTIME-069, S-RUNTIME-070, S-RUNTIME-071, S-RUNTIME-072, S-RUNTIME-073, S-RUNTIME-103, S-RUNTIME-104, S-RUNTIME-105, S-RUNTIME-106, S-RUNTIME-107, S-RUNTIME-108, S-RUNTIME-111）
+- `kernel/companion-participation-client-contract.md`（S-RUNTIME-227, S-RUNTIME-228, S-RUNTIME-229, S-RUNTIME-230）
 - `kernel/surface-contract.md`（S-SURFACE-002, S-SURFACE-003, S-SURFACE-004）
 - `kernel/transport-contract.md`（S-TRANSPORT-001, S-TRANSPORT-002, S-TRANSPORT-005, S-TRANSPORT-007, S-TRANSPORT-008, S-TRANSPORT-009, S-TRANSPORT-010, S-TRANSPORT-011, S-TRANSPORT-012, S-TRANSPORT-013）
 - `kernel/error-projection.md`（S-ERROR-001, S-ERROR-006, S-ERROR-009, S-ERROR-012, S-ERROR-014, S-ERROR-015）
@@ -97,7 +98,18 @@ Cloud provider, connector, account, and route SDK paths remain independent from
 local compute setup. Missing local `uv`, Python, Torch, CUDA, native package, or
 model dependency state must not block cloud-only SDK operations.
 
-## 6. 非目标
+## 6. Companion Participation Projection
+
+Companion participation SDK projection is governed by
+`kernel/companion-participation-client-contract.md` (`S-RUNTIME-227` through
+`S-RUNTIME-230`).
+
+The SDK may expose typed projection and bounded controls for
+Avatar companion/persona/debug surfaces only as downstream Runtime participation
+consumers. It must preserve the candidate/commit split and fail closed on
+unknown surface kinds, trigger sources, statuses, or missing typed refs.
+
+## 7. 非目标
 
 - 不在本文件定义本地规则体系。
 - 不在 domain 文档维护实现态测试清单。

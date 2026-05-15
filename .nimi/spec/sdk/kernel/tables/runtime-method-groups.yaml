@@ -337,6 +337,10 @@ groups:
       - OpenConversationAnchor
       - GetConversationAnchorSnapshot
       - GetPublicChatSessionSnapshot
+      - GetCompanionParticipationProjection
+      - RequestCompanionParticipation
+      - CancelCompanionParticipation
+      - OpenCompanionParticipationReplay
       - CreateRealmGroupMessageCandidate
       - GetRealmGroupMessageCandidateEvidence
       - GetAvatarDebugSnapshot

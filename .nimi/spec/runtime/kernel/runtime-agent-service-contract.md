@@ -119,6 +119,10 @@ Apps may not:
 - `OpenConversationAnchor`
 - `GetConversationAnchorSnapshot`
 - `GetPublicChatSessionSnapshot`
+- `GetCompanionParticipationProjection`
+- `RequestCompanionParticipation`
+- `CancelCompanionParticipation`
+- `OpenCompanionParticipationReplay`
 - `GetAgentState`
 - `UpdateAgentState`
 - `EnableAutonomy`

@@ -299,3 +299,8 @@
 | `D-LLM-091` | `covered` | `desktop_kernel_consistency` |
 | `D-LLM-092` | `covered` | `desktop_kernel_consistency` |
 | `D-LLM-093` | `covered` | `desktop_kernel_consistency` |
+| `D-LLM-094` | `covered` | `desktop_kernel_consistency` |
+| `D-LLM-095` | `covered` | `desktop_kernel_consistency` |
+| `D-LLM-096` | `covered` | `desktop_kernel_consistency` |
+| `D-LLM-097` | `covered` | `desktop_kernel_consistency` |
+| `D-LLM-098` | `covered` | `desktop_kernel_consistency` |

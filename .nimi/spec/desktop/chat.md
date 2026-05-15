@@ -2,6 +2,14 @@
 
 > Normative Imports: `.nimi/spec/desktop/kernel/*`
 
+Companion participation controls and projection surfaces in Desktop chat,
+Avatar launch surfaces, persona companion surfaces, and Avatar debug workbench
+surfaces consume
+`.nimi/spec/desktop/kernel/companion-participation-control-surface-contract.md`
+(`D-LLM-094` through `D-LLM-098`). They are typed SDK/Runtime consumers only and
+must not own prompt assembly, provider/model routing, memory writes, private
+schedulers, queue truth, or domain commit.
+
 ## Scope
 
 聊天功能域 — ChatPage、mode host / target rail、canonical conversation shell、human transcript / composer、消息发送、事件同步、已读标记、Outbox 刷新。

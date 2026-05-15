@@ -177,6 +177,10 @@
 | `RuntimeAgentService` | `OpenConversationAnchor` | `RuntimeAgentService` | `OpenConversationAnchor` | `aligned` |
 | `RuntimeAgentService` | `GetConversationAnchorSnapshot` | `RuntimeAgentService` | `GetConversationAnchorSnapshot` | `aligned` |
 | `RuntimeAgentService` | `GetPublicChatSessionSnapshot` | `RuntimeAgentService` | `GetPublicChatSessionSnapshot` | `aligned` |
+| `RuntimeAgentService` | `GetCompanionParticipationProjection` | `RuntimeAgentService` | `GetCompanionParticipationProjection` | `aligned` |
+| `RuntimeAgentService` | `RequestCompanionParticipation` | `RuntimeAgentService` | `RequestCompanionParticipation` | `aligned` |
+| `RuntimeAgentService` | `CancelCompanionParticipation` | `RuntimeAgentService` | `CancelCompanionParticipation` | `aligned` |
+| `RuntimeAgentService` | `OpenCompanionParticipationReplay` | `RuntimeAgentService` | `OpenCompanionParticipationReplay` | `aligned` |
 | `RuntimeAgentService` | `ListDelegatedProviderProfiles` | `RuntimeAgentService` | `ListDelegatedProviderProfiles` | `aligned` |
 | `RuntimeAgentService` | `UpsertDelegatedProviderProfile` | `RuntimeAgentService` | `UpsertDelegatedProviderProfile` | `aligned` |
 | `RuntimeAgentService` | `SetDelegatedProviderState` | `RuntimeAgentService` | `SetDelegatedProviderState` | `aligned` |

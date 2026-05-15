@@ -32,6 +32,7 @@
 | `runtime-delegation-client-contract.md` | `S-RUNTIME-*` | SDK typed projection and command boundary for Runtime-owned delegated capability providers, requests, firewall verdicts, approvals, and replay |
 | `runtime-agent-participation-client-contract.md` | `S-RUNTIME-*` | SDK typed client and method registry boundary for Runtime-owned agent participation profiles, candidates, verdicts, audit, and replay |
 | `realm-group-agent-participation-client-contract.md` | `S-RUNTIME-*` | SDK typed consumer hardcut for Realm GROUP agent participation controls, context refs, candidates, status projection, and no prompt/provider/model/commit ownership |
+| `companion-participation-client-contract.md` | `S-RUNTIME-*` | SDK typed companion participation projection/control boundary for Avatar companion/persona/debug surfaces; no raw prompt/provider/APML/debug/domain payload transport |
 | `runtime-avatar-control-client-contract.md` | `S-RUNTIME-*` | SDK typed client boundary for Desktop Avatar configuration and Runtime-owned Avatar debug probe/replay methods |
 | `world-evolution-engine-projection-contract.md` | `S-RUNTIME-*` | World Evolution Engine 的 typed projection-only 边界 |
 | `world-evolution-engine-consumer-contract.md` | `S-RUNTIME-*` | World Evolution Engine 的 app/mod consumer-facing API landing、selector-read stable method matrix、shared typed building blocks 与 no-leak hardcut |

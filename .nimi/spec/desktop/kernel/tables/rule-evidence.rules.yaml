@@ -1449,3 +1449,28 @@
   evidence_refs:
     - desktop_kernel_consistency
   note: "Realm Group Desktop/Web implementation status admitted as contract truth."
+- rule_id: D-LLM-094
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+  note: "Companion Participation Desktop consumer boundary admitted as contract truth."
+- rule_id: D-LLM-095
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+  note: "Companion Participation Desktop typed controls admitted as contract truth."
+- rule_id: D-LLM-096
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+  note: "Avatar persona/package variants admitted as configuration, not separate product or surface-kind truth."
+- rule_id: D-LLM-097
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+  note: "Companion Participation refusal and recovery UX fail-closed posture admitted as contract truth."
+- rule_id: D-LLM-098
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+  note: "Desktop no-private-scheduler hardcut for Companion Participation admitted as contract truth."

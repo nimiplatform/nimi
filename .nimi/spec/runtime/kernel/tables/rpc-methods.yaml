@@ -345,6 +345,14 @@ services:
         type: unary
       - name: GetPublicChatSessionSnapshot
         type: unary
+      - name: GetCompanionParticipationProjection
+        type: unary
+      - name: RequestCompanionParticipation
+        type: unary
+      - name: CancelCompanionParticipation
+        type: unary
+      - name: OpenCompanionParticipationReplay
+        type: unary
       - name: CreateRealmGroupMessageCandidate
         type: unary
       - name: GetRealmGroupMessageCandidateEvidence

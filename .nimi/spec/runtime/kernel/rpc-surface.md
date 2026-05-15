@@ -345,16 +345,20 @@ name。design/proto 关系以 `tables/rpc-migration-map.yaml` 为准。
 5. `OpenConversationAnchor`
 6. `GetConversationAnchorSnapshot`
 7. `GetPublicChatSessionSnapshot`
-8. `GetAgentState`
-9. `UpdateAgentState`
-10. `EnableAutonomy`
-11. `DisableAutonomy`
-12. `SetAutonomyConfig`
-13. `ListPendingHooks`
-14. `CancelHook`
-15. `QueryAgentMemory`
-16. `WriteAgentMemory`
-17. `SubscribeAgentEvents`
+8. `GetCompanionParticipationProjection`
+9. `RequestCompanionParticipation`
+10. `CancelCompanionParticipation`
+11. `OpenCompanionParticipationReplay`
+12. `GetAgentState`
+13. `UpdateAgentState`
+14. `EnableAutonomy`
+15. `DisableAutonomy`
+16. `SetAutonomyConfig`
+17. `ListPendingHooks`
+18. `CancelHook`
+19. `QueryAgentMemory`
+20. `WriteAgentMemory`
+21. `SubscribeAgentEvents`
 
 固定约束：
 
@@ -380,7 +384,9 @@ name。design/proto 关系以 `tables/rpc-migration-map.yaml` 为准。
 
 - `InitializeAgent` / `TerminateAgent`：`runtime.agent.admin`
 - `GetAgent` / `ListAgents` / `GetConversationAnchorSnapshot` / `GetPublicChatSessionSnapshot` / `GetAgentState` / `ListPendingHooks` / `QueryAgentMemory` / `SubscribeAgentEvents`：`runtime.agent.read`
+- `GetCompanionParticipationProjection` / `OpenCompanionParticipationReplay`：`runtime.agent.companion_participation.read`
 - `OpenConversationAnchor`：`runtime.agent.write`
+- `RequestCompanionParticipation` / `CancelCompanionParticipation`：`runtime.agent.companion_participation.write`
 - `UpdateAgentState` / `WriteAgentMemory` / `CancelHook`：`runtime.agent.write`
 - `EnableAutonomy` / `DisableAutonomy` / `SetAutonomyConfig`：`runtime.agent.autonomy.write`
 

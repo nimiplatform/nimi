@@ -256,6 +256,10 @@ Source: `.nimi/spec/runtime/kernel/tables/rpc-methods.yaml` · Phase 1
 | `OpenConversationAnchor` | `S-SURFACE-002` |
 | `GetConversationAnchorSnapshot` | `S-SURFACE-002` |
 | `GetPublicChatSessionSnapshot` | `S-SURFACE-002` |
+| `GetCompanionParticipationProjection` | `S-SURFACE-002` |
+| `RequestCompanionParticipation` | `S-SURFACE-002` |
+| `CancelCompanionParticipation` | `S-SURFACE-002` |
+| `OpenCompanionParticipationReplay` | `S-SURFACE-002` |
 | `CreateRealmGroupMessageCandidate` | `S-SURFACE-002` |
 | `GetRealmGroupMessageCandidateEvidence` | `S-SURFACE-002` |
 | `GetAvatarDebugSnapshot` | `S-SURFACE-002` |

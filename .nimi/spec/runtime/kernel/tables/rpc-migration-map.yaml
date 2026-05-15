@@ -832,6 +832,26 @@ method_mappings:
   proto_method: GetPublicChatSessionSnapshot
   mapping_status: aligned
 - design_service: RuntimeAgentService
+  design_method: GetCompanionParticipationProjection
+  proto_service: RuntimeAgentService
+  proto_method: GetCompanionParticipationProjection
+  mapping_status: aligned
+- design_service: RuntimeAgentService
+  design_method: RequestCompanionParticipation
+  proto_service: RuntimeAgentService
+  proto_method: RequestCompanionParticipation
+  mapping_status: aligned
+- design_service: RuntimeAgentService
+  design_method: CancelCompanionParticipation
+  proto_service: RuntimeAgentService
+  proto_method: CancelCompanionParticipation
+  mapping_status: aligned
+- design_service: RuntimeAgentService
+  design_method: OpenCompanionParticipationReplay
+  proto_service: RuntimeAgentService
+  proto_method: OpenCompanionParticipationReplay
+  mapping_status: aligned
+- design_service: RuntimeAgentService
   design_method: ListDelegatedProviderProfiles
   proto_service: RuntimeAgentService
   proto_method: ListDelegatedProviderProfiles

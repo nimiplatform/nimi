@@ -142,7 +142,7 @@ fallback is not support for a non-idle route.
 - `THREE.AnimationMixer` 持有当前 + 上一 clip；切换走 `mixer.crossFadeFrom`
 - 每帧 `mixer.update(delta)` + `vrm.update(delta)` 同节拍
 
-This path is admitted only for interchange, authoring, and legacy evidence. It
+This path is admitted only for interchange and authoring evidence. It
 must not be required for APML auto-adapter runtime support.
 
 ## K-NAV-VRM-004 Interchange Preset Registry

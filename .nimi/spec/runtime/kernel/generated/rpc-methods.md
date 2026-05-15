@@ -245,6 +245,10 @@ Source: `K-RPC-004b`
 | `OpenConversationAnchor` | `unary` |
 | `GetConversationAnchorSnapshot` | `unary` |
 | `GetPublicChatSessionSnapshot` | `unary` |
+| `GetCompanionParticipationProjection` | `unary` |
+| `RequestCompanionParticipation` | `unary` |
+| `CancelCompanionParticipation` | `unary` |
+| `OpenCompanionParticipationReplay` | `unary` |
 | `CreateRealmGroupMessageCandidate` | `unary` |
 | `GetRealmGroupMessageCandidateEvidence` | `unary` |
 | `GetAvatarDebugSnapshot` | `unary` |

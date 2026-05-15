@@ -1,6 +1,6 @@
 version: 2
 rule_compliance:
-  total_s_rules: 184
+  total_s_rules: 188
   audit_date: "2026-05-01"
   sdk_version: "0.4.0"
 
@@ -644,6 +644,22 @@ rules:
     status: covered
     evidence_refs: [sdk_kernel_consistency]
     note: "Realm Group SDK implementation status admitted as contract truth."
+  - rule_id: S-RUNTIME-227
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+    note: "Companion Participation SDK typed projection-only boundary admitted as contract truth."
+  - rule_id: S-RUNTIME-228
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+    note: "Companion Participation SDK bounded controls route to Runtime-owned methods only."
+  - rule_id: S-RUNTIME-229
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+    note: "Companion Participation SDK fail-closed decoding admitted as contract truth."
+  - rule_id: S-RUNTIME-230
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+    note: "Companion Participation SDK candidate/commit split admitted as contract truth."
 
   # --- World Contract (S-WORLD) ---
   - rule_id: S-WORLD-001

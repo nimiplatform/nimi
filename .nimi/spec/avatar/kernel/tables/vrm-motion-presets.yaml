@@ -1,10 +1,11 @@
 version: 1
 description: >
-  Legacy/interchange motion preset registry for the VRM backend branch. Each
-  preset id maps to a built-in .vrma asset shipped with apps/avatar;
-  per-model overrides may live at <model_path>/motions/<preset_id>.vrma and
-  take priority for interchange playback. Missing preset_id fail-closes for
-  interchange playback (log warn, no fake motion).
+  Interchange-only motion preset registry for the VRM backend branch. This
+  registry is not the APML/runtime motion support surface. Each preset id maps
+  to a built-in .vrma asset shipped with apps/avatar; per-model overrides may
+  live at <model_path>/motions/<preset_id>.vrma and take priority for
+  interchange playback. Missing preset_id fail-closes for interchange playback
+  (log warn, no fake motion).
 
   Wave 0 of topic 2026-05-01-avatar-apml-auto-adapter supersedes this registry
   as APML auto-adapter runtime support proof. Generated motion provider support
@@ -13,22 +14,19 @@ description: >
   generated-motion-provider-contract.md. .vrma remains authoring/interchange
   evidence only.
 
-  Wave 0 admit (topic 2026-04-30-avatar-vrm-backend-branch, design-04 +
-  design-08): 4 entries below are admitted. `idle_subtle` is a MIT fork-copy
-  from airi `idle_loop.vrma` (Option C-prime); the remaining 3 entries are
-  internal author targets whose actual `.vrma` files land at wave 3. The 3
-  external-license entries (greet_wave / wave_hello / think_chin_touch) are
-  deferred to wave 3 admit, when both `license` and `source` are locked to
-  concrete non-placeholder values. activity-mapping.yaml v2 routes activities
-  that would point to the 3 external entries through `idle_subtle` as fallback
-  in wave 0; wave 3 admit packet flips them back to the formal preset.
+  Wave 2 of topic
+  2026-05-15-avatar-vrm-deferral-and-authority-reconciliation hard-cuts the
+  stale unbacked preset rows. Only `idle_subtle` is admitted as a built-in
+  interchange asset because it is the only physical `.vrma` file present with
+  concrete license/source metadata. Runtime support for `listen_lean`,
+  `nod_yes`, `shake_no`, and `greet_wave` is governed by
+  generated-motion-routes.yaml and generated-motion-provider-contract.md, not
+  this registry.
 
   Drift checks:
     - every entry MUST have non-placeholder `license` + `source` fields
       (no "TBD", "candidate", "VRoid Hub 候选", etc.)
-    - activity-mapping.yaml `vrm.motion` references MUST resolve to an
-      entry in this registry; references to deferred (wave_3) entries
-      MUST fail-close at validator time
+    - generated-motion route ids do not need to resolve to this registry
     - per-model override at <model_path>/motions/<preset_id>.vrma must
       target an admitted preset id; otherwise registry rejects the
       override and falls back to the builtin
@@ -43,51 +41,12 @@ presets:
     source: _external/airi/packages/stage-ui-three/src/assets/vrm/animations/idle_loop.vrma
     attribution: apps/avatar/assets/vrm-motion-presets/THIRD_PARTY_LICENSES.md
 
-  - id: listen_lean
-    file: listen_lean.vrma
-    loop: true
-    license: internal
-    source: apps/avatar/docs/vrma-authoring.md (Blender + UniVRM author)
-
-  - id: nod_yes
-    file: nod_yes.vrma
-    loop: false
-    license: internal
-    source: apps/avatar/docs/vrma-authoring.md (Blender + UniVRM author)
-
-  - id: shake_no
-    file: shake_no.vrma
-    loop: false
-    license: internal
-    source: apps/avatar/docs/vrma-authoring.md (Blender + UniVRM author)
-
-# wave_3 admit (incremental; not part of wave_0 surface):
-#   - id: greet_wave
-#     file: greet_wave.vrma
-#     loop: false
-#     license: <SPDX id or 'internal' once locked>
-#     source: <URL or 'internal' source description once locked>
-#   - id: wave_hello
-#     file: wave_hello.vrma
-#     loop: false
-#     license: <SPDX id or 'internal' once locked>
-#     source: <URL or 'internal' source description once locked>
-#   - id: think_chin_touch
-#     file: think_chin_touch.vrma
-#     loop: false
-#     license: <SPDX id or 'internal' once locked>
-#     source: <URL or 'internal' source description once locked>
-# Fetcher: apps/avatar/scripts/fetch-vrm-motion-presets.mjs (added in wave_3
-# when the external sources are locked); not git-tracked assets are recorded
-# in apps/avatar/assets/.gitignore.
-
 constraints:
   - description: >
-      Wave 0 admit registry contains exactly the 4 entries above: one MIT
-      fork-copy (`idle_subtle`) and three internal author targets.
-      Adding wave_3 entries requires updating activity-mapping.yaml v2 in the
-      same packet to flip the fallback routes from `idle_subtle` to the
-      formal preset.
+      Registry v1 contains exactly one built-in interchange entry:
+      `idle_subtle`. Adding any other built-in `.vrma` entry requires a real
+      physical file, concrete license/source metadata, tests, and topic
+      evidence.
   - description: >
       `license` and `source` must be concrete strings (non-empty,
       non-placeholder). Spec validator rejects entries containing "TBD",
@@ -104,8 +63,8 @@ constraints:
 
 drift_checks:
   - description: >
-      Any change to `presets[].id` must propagate to activity-mapping.yaml
-      `vrm.motion` references and to vrm-motion-preset-registry.ts.
+      Any change to `presets[].id` must propagate to interchange-only tests
+      and to vrm-motion-preset-registry.ts.
   - description: >
       Any change to `presets[].file` must rename the corresponding asset
       file in apps/avatar/assets/vrm-motion-presets/.

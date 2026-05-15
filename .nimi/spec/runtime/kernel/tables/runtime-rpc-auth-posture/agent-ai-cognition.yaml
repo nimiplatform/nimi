@@ -52,6 +52,30 @@ methods:
     kernel_refs:
       - K-AUTHN-001
       - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeAgentService/GetCompanionParticipationProjection
+    posture: protected_or_scoped_binding_read
+    rationale: companion participation projection requires runtime protected capability or scoped app binding
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeAgentService/RequestCompanionParticipation
+    posture: protected_or_scoped_binding_write
+    rationale: companion participation request mutates canonical Runtime public-chat execution through a scoped control path
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeAgentService/CancelCompanionParticipation
+    posture: protected_or_scoped_binding_write
+    rationale: companion participation cancel interrupts canonical Runtime public-chat execution through a scoped control path
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeAgentService/OpenCompanionParticipationReplay
+    posture: protected_or_scoped_binding_read
+    rationale: companion participation replay exposes typed projection/audit refs through a scoped read path
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
   - method_id: /nimi.runtime.v1.RuntimeAgentService/GetAvatarDebugSnapshot
     posture: anonymous_read
     rationale: id-based debug snapshot; no JWT validation

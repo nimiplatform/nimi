@@ -6,7 +6,7 @@
 
 | Declared K Rules | Resolved Rule Rows | Evidence Catalog Entries |
 |---:|---:|---:|
-| 786 | 786 | 7 |
+| 794 | 794 | 7 |
 
 ## Evidence Catalog
 
@@ -771,6 +771,14 @@
 | `K-WEV-014` | `deferred` | — |
 | `K-WEV-015` | `deferred` | — |
 | `K-WEV-016` | `deferred` | — |
+| `K-AGCORE-125` | `covered` | `runtime_kernel_consistency` |
+| `K-AGCORE-126` | `covered` | `runtime_kernel_consistency` |
+| `K-AGCORE-127` | `covered` | `runtime_kernel_consistency` |
+| `K-AGCORE-128` | `covered` | `runtime_kernel_consistency` |
+| `K-AGCORE-129` | `covered` | `runtime_kernel_consistency` |
+| `K-AGCORE-130` | `covered` | `runtime_kernel_consistency` |
+| `K-AGCORE-131` | `covered` | `runtime_kernel_consistency` |
+| `K-AGCORE-132` | `covered` | `runtime_kernel_consistency` |
 | `K-MMPROV-001` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
 | `K-MMPROV-002` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
 | `K-MMPROV-003` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |

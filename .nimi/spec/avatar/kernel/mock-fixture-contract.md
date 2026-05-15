@@ -345,9 +345,9 @@ VITE_AVATAR_MOCK_SCENARIO=basic-emotion-cycle
 
 ---
 
-## 7. Phase 1 Starting Scenarios
+## 7. Seed Fixture Scenarios
 
-Five seed scenarios 定义在 `tables/scenario-catalog.yaml`，驱动 Phase 1 开发：
+Five seed scenarios 定义在 `tables/scenario-catalog.yaml`，驱动 explicit fixture development：
 
 | Scenario id | 用途 |
 |---|---|
