@@ -294,6 +294,7 @@
   "agentCenterLive2dAdapterEmbedded": "内嵌",
   "agentCenterLive2dAdapterNone": "未选择",
   "agentCenterLive2dAdapterManifestPackageRequired": "请先选择 Live2D 资源，再导入 adapter manifest。",
+  "agentCenterLive2dAdapterImportLive2dRequired": "Live2D adapter manifest 需要 Live2D Avatar 资源。",
   "agentCenterLive2dAdapterImporting": "正在导入 sidecar...",
   "agentCenterImportLive2dAdapterManifest": "导入 Live2D adapter sidecar",
   "agentCenterAvatarClearing": "清除中...",

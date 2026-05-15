@@ -16,11 +16,16 @@ use std::path::{Component, Path, PathBuf};
 use url::Url;
 
 const VALIDATION_SCHEMA_VERSION: u8 = 1;
+const MAX_AVATAR_PACKAGE_MANIFEST_BYTES: u64 = 262_144;
+const MAX_AVATAR_PACKAGE_BYTES: u64 = 524_288_000;
+const MAX_AVATAR_PACKAGE_FILE_BYTES: u64 = 104_857_600;
+const MAX_AVATAR_PACKAGE_FILE_COUNT: usize = 2_048;
 const MAX_LIVE2D_ADAPTER_MANIFEST_BYTES: u64 = 262_144;
 const MAX_BACKGROUND_BYTES: u64 = 20_971_520;
 const MAX_BACKGROUND_PIXELS: u32 = 8_192;
 const VALIDATION_FILE_NAME: &str = "validation.json";
 const MANIFEST_FILE_NAME: &str = "manifest.json";
+const CAPABILITY_PROFILE_FILE_NAME: &str = "capability-profile.json";
 const LIVE2D_ADAPTER_FILE_NAME: &str = "live2d-adapter.json";
 const LIVE2D_ADAPTER_CUSTODY_FILE_NAME: &str = "custody.json";
 const OPERATIONS_FILE_NAME: &str = "agent-center-local-resources.jsonl";
@@ -93,6 +98,8 @@ struct AgentCenterResourceOperationRecord {
     reason_code: String,
 }
 
+#[path = "resources_avatar_package.rs"]
+mod resources_avatar_package;
 #[path = "resources_commands.rs"]
 mod resources_commands;
 #[path = "resources_manifest_validation.rs"]
@@ -108,6 +115,7 @@ use resources_manifest_validation::*;
 use resources_operations::*;
 use resources_validation::*;
 
+pub(crate) use resources_avatar_package::*;
 pub(crate) use resources_commands::*;
 pub(crate) use resources_manifest_validation::*;
 pub(crate) use resources_remove_commands::*;

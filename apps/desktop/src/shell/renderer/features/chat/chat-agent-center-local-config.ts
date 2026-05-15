@@ -94,6 +94,21 @@ export type AgentCenterLive2dAdapterManifestImportParseResult =
   | { ok: true; result: AgentCenterLive2dAdapterManifestImportResult }
   | { ok: false; errors: string[] };
 
+export type AgentCenterAvatarPackageImportResult = {
+  package_id: string;
+  backend_kind: AgentCenterAvatarPackageKind;
+  backend_capability_profile_ref: string;
+  selected: boolean;
+  manifest_sha256: string;
+  package_bytes: number;
+  file_count: number;
+  imported_at: string;
+};
+
+export type AgentCenterAvatarPackageImportParseResult =
+  | { ok: true; result: AgentCenterAvatarPackageImportResult }
+  | { ok: false; errors: string[] };
+
 export type AgentCenterLocalResourceRemoveResult = {
   resource_kind: 'avatar_package' | 'background' | 'agent_local_resources' | 'account_local_resources';
   resource_id: string;
@@ -172,6 +187,7 @@ const UI_KEYS = ['schema_version', 'last_section'] as const;
 
 const MOTION_VALUES = new Set(['system', 'reduced', 'full']);
 const SECTION_VALUES = new Set(['overview', 'appearance', 'chat_behavior', 'model', 'cognition', 'advanced']);
+const AVATAR_PACKAGE_KIND_VALUES = new Set(['live2d', 'vrm']);
 const VALIDATION_SEVERITY_VALUES = new Set(['error', 'warning']);
 const BACKGROUND_VALIDATION_STATUS_VALUES = new Set([
   'valid',
@@ -493,6 +509,69 @@ export function validateAgentCenterLive2dAdapterManifestImportResult(
       selected: root.selected as boolean,
       sha256,
       bytes: root.bytes as number,
+      imported_at: importedAt,
+    },
+  };
+}
+
+export function validateAgentCenterAvatarPackageImportResult(
+  value: unknown,
+): AgentCenterAvatarPackageImportParseResult {
+  const errors: string[] = [];
+  const root = requireRecord(value, 'avatarPackageImportResult', errors);
+  if (!root) {
+    return { ok: false, errors };
+  }
+  collectUnknownKeys(root, [
+    'package_id',
+    'backend_kind',
+    'backend_capability_profile_ref',
+    'selected',
+    'manifest_sha256',
+    'package_bytes',
+    'file_count',
+    'imported_at',
+  ], 'avatarPackageImportResult', errors);
+  const packageId = validatePackageId(root.package_id, 'avatarPackageImportResult.package_id', errors) || '';
+  const backendKind = readString(root.backend_kind, 'avatarPackageImportResult.backend_kind', errors) || '';
+  if (backendKind && !AVATAR_PACKAGE_KIND_VALUES.has(backendKind)) {
+    errors.push('avatarPackageImportResult.backend_kind: invalid backend kind');
+  }
+  if (backendKind && packageId && !packageId.startsWith(`${backendKind}_`)) {
+    errors.push('avatarPackageImportResult.package_id: backend kind mismatch');
+  }
+  const backendCapabilityProfileRef = validateNormalizedId(
+    root.backend_capability_profile_ref,
+    'avatarPackageImportResult.backend_capability_profile_ref',
+    errors,
+  );
+  if (typeof root.selected !== 'boolean') {
+    errors.push('avatarPackageImportResult.selected: expected boolean');
+  }
+  const manifestSha256 = readString(root.manifest_sha256, 'avatarPackageImportResult.manifest_sha256', errors) || '';
+  if (manifestSha256 && !/^[a-f0-9]{64}$/u.test(manifestSha256)) {
+    errors.push('avatarPackageImportResult.manifest_sha256: invalid sha256');
+  }
+  if (typeof root.package_bytes !== 'number' || !Number.isSafeInteger(root.package_bytes) || root.package_bytes <= 0) {
+    errors.push('avatarPackageImportResult.package_bytes: expected positive integer');
+  }
+  if (typeof root.file_count !== 'number' || !Number.isSafeInteger(root.file_count) || root.file_count <= 0) {
+    errors.push('avatarPackageImportResult.file_count: expected positive integer');
+  }
+  const importedAt = validateTimestamp(root.imported_at, 'avatarPackageImportResult.imported_at', errors) || '';
+  if (errors.length > 0) {
+    return { ok: false, errors };
+  }
+  return {
+    ok: true,
+    result: {
+      package_id: packageId,
+      backend_kind: backendKind as AgentCenterAvatarPackageKind,
+      backend_capability_profile_ref: backendCapabilityProfileRef,
+      selected: root.selected as boolean,
+      manifest_sha256: manifestSha256,
+      package_bytes: root.package_bytes as number,
+      file_count: root.file_count as number,
       imported_at: importedAt,
     },
   };

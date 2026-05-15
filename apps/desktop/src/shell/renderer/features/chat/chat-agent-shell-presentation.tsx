@@ -19,8 +19,13 @@ import {
   agentCenterLocalConfigQueryKey,
   getAgentCenterBackgroundAsset,
   getAgentCenterLocalConfig,
+  importAgentCenterAvatarPackage,
   importAgentCenterBackground,
+  importAgentCenterLive2dAdapterManifest,
+  pickAgentCenterAvatarPackageSource,
   pickAgentCenterBackgroundSource,
+  pickAgentCenterLive2dAdapterManifestSource,
+  removeAgentCenterAvatarPackage,
   removeAgentCenterBackground,
 } from '@renderer/bridge/runtime-bridge/chat-agent-center-local-config-store';
 import { cancelStream } from '../turns/stream-controller';
@@ -49,6 +54,7 @@ import { ChatComposerLeadingAvatar } from './chat-shared-composer-leading-avatar
 import { CHAT_CONTENT_POSITION_CLASS, CHAT_CONTENT_WIDTH_CLASS } from './chat-shared-content-layout';
 import type { UseAgentConversationPresentationInput } from './chat-agent-shell-presentation-types';
 import type { PendingAttachment } from '../turns/turn-input-attachments';
+import type { AgentCenterAvatarPackageKind } from './chat-agent-center-local-config';
 
 
 const AGENT_TRANSCRIPT_BOTTOM_RESERVE_CLASS = 'pb-[clamp(140px,16vh,200px)]';
@@ -192,6 +198,110 @@ export function useAgentConversationPresentation(
   );
   const avatarPackageChecking = false;
   const avatarConfigMutation = useAgentCenterAvatarConfigMutation(input, queryClient, agentCenterLocalConfigQuery.data);
+  const avatarPackageImportMutation = useMutation({
+    mutationFn: async (kind: AgentCenterAvatarPackageKind) => {
+      if (!input.accountId || !input.activeTarget?.localAgentRef) {
+        throw new Error(input.t('Chat.agentCenterAvatarImportAgentRequired', {
+          defaultValue: 'Select an agent before importing an avatar package.',
+        }));
+      }
+      const sourcePath = await pickAgentCenterAvatarPackageSource(kind);
+      if (!sourcePath) {
+        return null;
+      }
+      return importAgentCenterAvatarPackage({
+        accountId: input.accountId,
+        ownerUserId: input.activeTarget.ownerUserId,
+        realmAgentId: input.activeTarget.realmAgentId,
+        localAgentRef: input.activeTarget.localAgentRef,
+        kind,
+        sourcePath,
+        select: true,
+      });
+    },
+    onSuccess: async (result) => {
+      if (!result || !input.accountId || !input.activeTarget?.localAgentRef) {
+        return;
+      }
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: agentCenterLocalConfigQueryKey(input.accountId, input.activeTarget.localAgentRef),
+        }),
+        avatarLiveInstancesQuery.refetch(),
+      ]);
+    },
+  });
+  const live2dAdapterManifestImportMutation = useMutation({
+    mutationFn: async () => {
+      if (!input.accountId || !input.activeTarget?.localAgentRef || !avatarPackageConfig?.avatar_package_ref) {
+        throw new Error(input.t('Chat.agentCenterLive2dAdapterManifestPackageRequired', {
+          defaultValue: 'Import and select a Live2D avatar package before linking its adapter manifest.',
+        }));
+      }
+      if (avatarPackageConfig.backend_kind !== 'live2d') {
+        throw new Error(input.t('Chat.agentCenterLive2dAdapterImportLive2dRequired', {
+          defaultValue: 'Live2D adapter manifests can only be linked to Live2D avatar packages.',
+        }));
+      }
+      const sourcePath = await pickAgentCenterLive2dAdapterManifestSource();
+      if (!sourcePath) {
+        return null;
+      }
+      return importAgentCenterLive2dAdapterManifest({
+        accountId: input.accountId,
+        ownerUserId: input.activeTarget.ownerUserId,
+        realmAgentId: input.activeTarget.realmAgentId,
+        localAgentRef: input.activeTarget.localAgentRef,
+        packageId: avatarPackageConfig.avatar_package_ref,
+        sourcePath,
+        select: true,
+      });
+    },
+    onSuccess: async (result) => {
+      if (!result || !input.accountId || !input.activeTarget?.localAgentRef) {
+        return;
+      }
+      await queryClient.invalidateQueries({
+        queryKey: agentCenterLocalConfigQueryKey(input.accountId, input.activeTarget.localAgentRef),
+      });
+    },
+  });
+  const clearAvatarPackageMutation = useMutation({
+    mutationFn: async () => {
+      if (!input.accountId || !input.activeTarget?.localAgentRef || !avatarPackageConfig?.avatar_package_ref) {
+        return null;
+      }
+      return removeAgentCenterAvatarPackage({
+        accountId: input.accountId,
+        ownerUserId: input.activeTarget.ownerUserId,
+        realmAgentId: input.activeTarget.realmAgentId,
+        localAgentRef: input.activeTarget.localAgentRef,
+        packageId: avatarPackageConfig.avatar_package_ref,
+      });
+    },
+    onSuccess: async (result) => {
+      if (!result || !input.accountId || !input.activeTarget?.localAgentRef) {
+        return;
+      }
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: agentCenterLocalConfigQueryKey(input.accountId, input.activeTarget.localAgentRef),
+        }),
+        avatarLiveInstancesQuery.refetch(),
+      ]);
+    },
+  });
+  const avatarImportDisabled = !hasTauriInvoke()
+    || !input.accountId
+    || !input.activeTarget?.localAgentRef
+    || avatarPackageImportMutation.isPending;
+  const avatarImportError = avatarPackageImportMutation.error instanceof Error
+    ? avatarPackageImportMutation.error.message
+    : live2dAdapterManifestImportMutation.error instanceof Error
+      ? live2dAdapterManifestImportMutation.error.message
+      : clearAvatarPackageMutation.error instanceof Error
+        ? clearAvatarPackageMutation.error.message
+        : null;
   const backgroundValidation = backgroundAssetQuery.data?.validation || null;
   const backgroundValid = backgroundValidation?.status === 'valid';
   const backgroundImportMutation = useMutation({
@@ -559,6 +669,11 @@ export function useAgentConversationPresentation(
         avatarPackageChecking={avatarPackageChecking}
         avatarPackageConfig={avatarPackageConfig}
         avatarConfigMutation={avatarConfigMutation}
+        avatarPackageImportMutation={avatarPackageImportMutation}
+        avatarImportDisabled={avatarImportDisabled}
+        avatarImportError={avatarImportError}
+        clearAvatarPackageMutation={clearAvatarPackageMutation}
+        live2dAdapterManifestImportMutation={live2dAdapterManifestImportMutation}
         selectedBackgroundAssetId={selectedBackgroundAssetId}
         backgroundAssetQuery={backgroundAssetQuery}
         backgroundValidation={backgroundValidation}
@@ -652,8 +767,12 @@ export function useAgentConversationPresentation(
     characterData.avatarUrl,
     characterData.avatarFallback,
     avatarConfigured,
+    avatarImportDisabled,
+    avatarImportError,
     avatarPackageChecking,
     avatarConfigMutation,
+    avatarPackageConfig,
+    avatarPackageImportMutation,
     avatarPackageValid,
     avatarComposerActionState,
     avatarActionPending,
@@ -667,7 +786,9 @@ export function useAgentConversationPresentation(
     backgroundAssetQuery.isFetching,
     backgroundValidation,
     backgroundValid,
+    clearAvatarPackageMutation,
     clearBackgroundMutation,
+    live2dAdapterManifestImportMutation,
     selectedBackgroundAssetId,
     handleComposerAvatarAction,
     input.activeTarget,

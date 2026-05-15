@@ -14,6 +14,10 @@ test('Agent Chat Settings Avatar surface exposes closed configuration controls',
     join(repoRoot, 'src/shell/renderer/features/chat/chat-agent-shell-presentation.tsx'),
     'utf8',
   );
+  const bridgeSource = readFileSync(
+    join(repoRoot, 'src/shell/renderer/bridge/runtime-bridge/chat-agent-center-local-config-store.ts'),
+    'utf8',
+  );
   const mutationSource = readFileSync(
     join(repoRoot, 'src/shell/renderer/features/chat/chat-agent-center-avatar-config-mutation.ts'),
     'utf8',
@@ -31,11 +35,19 @@ test('Agent Chat Settings Avatar surface exposes closed configuration controls',
   }
 
   assert.match(presentationSource, /useAgentCenterAvatarConfigMutation/u);
+  assert.match(presentationSource, /importAgentCenterAvatarPackage/u);
+  assert.match(presentationSource, /pickAgentCenterAvatarPackageSource/u);
+  assert.match(presentationSource, /removeAgentCenterAvatarPackage/u);
+  assert.match(presentationSource, /importAgentCenterLive2dAdapterManifest/u);
   assert.match(mutationSource, /putAgentCenterLocalConfig/u);
+  assert.match(bridgeSource, /desktop_agent_center_avatar_package_import/u);
+  assert.match(bridgeSource, /desktop_agent_center_avatar_package_pick_live2d_source/u);
+  assert.match(bridgeSource, /desktop_agent_center_avatar_package_pick_vrm_source/u);
+  assert.match(bridgeSource, /desktop_agent_center_avatar_package_remove/u);
   assert.doesNotMatch(mutationSource, /selected_package/u);
   assert.doesNotMatch(mutationSource, /last_validated_at/u);
-  assert.doesNotMatch(presentationSource, /importAgentCenterAvatarPackage/u);
-  assert.doesNotMatch(presentationSource, /validateAgentCenterAvatarPackage/u);
+  assert.doesNotMatch(presentationSource, /chat-agent-avatar-store/u);
+  assert.doesNotMatch(bridgeSource, /desktop_agent_avatar_store/u);
 });
 
 test('Agent Chat Settings Avatar surface does not widen Avatar launch handoff', () => {

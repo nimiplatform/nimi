@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 
 import {
   createDefaultAgentCenterLocalConfig,
+  validateAgentCenterAvatarPackageImportResult,
   validateAgentCenterLive2dAdapterManifestImportResult,
   validateAgentCenterBackgroundAssetResult,
   validateAgentCenterBackgroundImportResult,
@@ -197,6 +198,32 @@ test('Agent Center Live2D adapter manifest import parser accepts Rust payload sh
   });
 
   assert.equal(result.ok, true);
+});
+
+test('Agent Center avatar package import parser accepts Rust payload shape', () => {
+  const live2dResult = validateAgentCenterAvatarPackageImportResult({
+    package_id: 'live2d_ab12cd34ef56',
+    backend_kind: 'live2d',
+    backend_capability_profile_ref: 'avatar_profile_live2d_ab12cd34ef56',
+    selected: true,
+    manifest_sha256: 'b'.repeat(64),
+    package_bytes: 512,
+    file_count: 3,
+    imported_at: '2026-05-01T00:00:00Z',
+  });
+  const vrmResult = validateAgentCenterAvatarPackageImportResult({
+    package_id: 'vrm_cd12ef34ab56',
+    backend_kind: 'vrm',
+    backend_capability_profile_ref: 'avatar_profile_vrm_cd12ef34ab56',
+    selected: true,
+    manifest_sha256: 'c'.repeat(64),
+    package_bytes: 4096,
+    file_count: 1,
+    imported_at: '2026-05-01T00:00:00Z',
+  });
+
+  assert.equal(live2dResult.ok, true);
+  assert.equal(vrmResult.ok, true);
 });
 
 test('Agent Center background validation parser accepts sidecar payload shape', () => {

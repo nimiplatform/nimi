@@ -294,6 +294,7 @@
   "agentCenterLive2dAdapterEmbedded": "Embedded",
   "agentCenterLive2dAdapterNone": "Not selected",
   "agentCenterLive2dAdapterManifestPackageRequired": "Select a Live2D package before importing an adapter manifest.",
+  "agentCenterLive2dAdapterImportLive2dRequired": "Live2D adapter manifests require a Live2D avatar package.",
   "agentCenterLive2dAdapterImporting": "Importing sidecar...",
   "agentCenterImportLive2dAdapterManifest": "Import Live2D adapter sidecar",
   "agentCenterAvatarClearing": "Clearing...",

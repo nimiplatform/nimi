@@ -2,11 +2,14 @@ import { hasTauriInvoke } from './env';
 import { invokeChecked } from './invoke';
 import {
   validateAgentCenterLocalConfig,
+  validateAgentCenterAvatarPackageImportResult,
   validateAgentCenterLive2dAdapterManifestImportResult,
   validateAgentCenterBackgroundAssetResult,
   validateAgentCenterBackgroundImportResult,
   validateAgentCenterBackgroundValidationResult,
   validateAgentCenterLocalResourceRemoveResult,
+  type AgentCenterAvatarPackageImportResult,
+  type AgentCenterAvatarPackageKind,
   type AgentCenterLive2dAdapterManifestImportResult,
   type AgentCenterBackgroundAssetResult,
   type AgentCenterBackgroundImportResult,
@@ -27,6 +30,14 @@ function parseAgentCenterLocalConfig(value: unknown): AgentCenterLocalConfig {
     throw new Error(`Agent Center local config payload is invalid: ${result.errors.join('; ')}`);
   }
   return result.config;
+}
+
+function parseAgentCenterAvatarPackageImportResult(value: unknown): AgentCenterAvatarPackageImportResult {
+  const result = validateAgentCenterAvatarPackageImportResult(value);
+  if (!result.ok) {
+    throw new Error(`Agent Center avatar package import payload is invalid: ${result.errors.join('; ')}`);
+  }
+  return result.result;
 }
 
 function parseAgentCenterLive2dAdapterManifestImportResult(value: unknown): AgentCenterLive2dAdapterManifestImportResult {
@@ -116,9 +127,33 @@ export async function pickAgentCenterLive2dAdapterManifestSource(): Promise<stri
   return invokeChecked('desktop_agent_center_live2d_adapter_manifest_pick_source', {}, parseOptionalPath);
 }
 
+export async function pickAgentCenterAvatarPackageSource(kind: AgentCenterAvatarPackageKind): Promise<string | null> {
+  const command = kind === 'live2d'
+    ? 'desktop_agent_center_avatar_package_pick_live2d_source'
+    : 'desktop_agent_center_avatar_package_pick_vrm_source';
+  requireTauri(command);
+  return invokeChecked(command, {}, parseOptionalPath);
+}
+
 export async function pickAgentCenterBackgroundSource(): Promise<string | null> {
   requireTauri('desktop_agent_center_background_pick_source');
   return invokeChecked('desktop_agent_center_background_pick_source', {}, parseOptionalPath);
+}
+
+export async function importAgentCenterAvatarPackage(input: {
+  accountId: string;
+  ownerUserId: string;
+  realmAgentId: string;
+  localAgentRef: string;
+  kind: AgentCenterAvatarPackageKind;
+  sourcePath: string;
+  displayName?: string;
+  select?: boolean;
+}): Promise<AgentCenterAvatarPackageImportResult> {
+  requireTauri('desktop_agent_center_avatar_package_import');
+  return invokeChecked('desktop_agent_center_avatar_package_import', {
+    payload: input,
+  }, parseAgentCenterAvatarPackageImportResult);
 }
 
 export async function importAgentCenterLive2dAdapterManifest(input: {
@@ -149,6 +184,19 @@ export async function importAgentCenterBackground(input: {
   return invokeChecked('desktop_agent_center_background_import', {
     payload: input,
   }, parseAgentCenterBackgroundImportResult);
+}
+
+export async function removeAgentCenterAvatarPackage(input: {
+  accountId: string;
+  ownerUserId: string;
+  realmAgentId: string;
+  localAgentRef: string;
+  packageId: string;
+}): Promise<AgentCenterLocalResourceRemoveResult> {
+  requireTauri('desktop_agent_center_avatar_package_remove');
+  return invokeChecked('desktop_agent_center_avatar_package_remove', {
+    payload: input,
+  }, parseAgentCenterLocalResourceRemoveResult);
 }
 
 export async function removeAgentCenterBackground(input: {

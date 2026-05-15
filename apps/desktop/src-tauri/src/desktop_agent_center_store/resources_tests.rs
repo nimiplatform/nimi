@@ -100,6 +100,34 @@ fn write_background_import_source(home: &Path) -> PathBuf {
     path
 }
 
+fn write_live2d_avatar_source(home: &Path) -> PathBuf {
+    let dir = home.join("live2d-source");
+    fs::create_dir_all(dir.join("textures")).expect("live2d textures");
+    fs::create_dir_all(dir.join("nimi")).expect("live2d adapter dir");
+    fs::write(
+        dir.join("ren.model3.json"),
+        br#"{"Version":3,"FileReferences":{"Moc":"ren.moc3","Textures":["textures/ren.png"]}}"#,
+    )
+    .expect("model3");
+    fs::write(dir.join("ren.moc3"), b"moc3-bytes").expect("moc3");
+    fs::write(dir.join("textures/ren.png"), png_bytes(64, 64)).expect("texture");
+    fs::write(
+        dir.join("nimi/live2d-adapter.json"),
+        br#"{"schema_version":1,"adapter_kind":"live2d_creator_sidecar"}"#,
+    )
+    .expect("adapter");
+    dir
+}
+
+fn write_vrm_avatar_source(home: &Path) -> PathBuf {
+    let path = home.join("ren.vrm");
+    fs::write(&path, b"vrm-bytes").expect("vrm source");
+    let presets = home.join("vrm-motion-presets");
+    fs::create_dir_all(&presets).expect("vrm presets");
+    fs::write(presets.join("idle_subtle.vrma"), b"vrma-bytes").expect("vrma");
+    path
+}
+
 fn operation_log_path(home: &Path) -> PathBuf {
     home.join(".nimi/data/accounts/account_1/agents")
         .join(local_scope_path_segment(&local_agent_ref()))
@@ -128,6 +156,189 @@ fn agent_center_marker_for_account(
     fs::create_dir_all(dir.join("modules/appearance")).expect("agent-center dir");
     fs::write(dir.join("modules/appearance/marker.txt"), b"local").expect("marker");
     dir
+}
+
+#[test]
+fn imports_live2d_avatar_package_transactionally_and_selects_it() {
+    let home = temp_home("import-live2d-avatar");
+    with_env(&[("HOME", home.to_str())], || {
+        let source = write_live2d_avatar_source(&home);
+        let result = desktop_agent_center_avatar_package_import_blocking(
+            DesktopAgentCenterAvatarPackageImportPayload {
+                account_id: "account_1".to_string(),
+                owner_user_id: owner_user_id(),
+                realm_agent_id: realm_agent_id(),
+                local_agent_ref: local_agent_ref(),
+                kind: AgentCenterAvatarBackendKind::Live2d,
+                source_path: source.to_string_lossy().to_string(),
+                display_name: Some("Ren Live2D".to_string()),
+                select: Some(true),
+            },
+        )
+        .expect("import live2d avatar package");
+
+        assert!(result.package_id.starts_with("live2d_"));
+        assert_eq!(result.backend_kind, AgentCenterAvatarBackendKind::Live2d);
+        assert!(result
+            .backend_capability_profile_ref
+            .starts_with("avatar_profile_live2d_"));
+        assert_eq!(result.file_count, 4);
+        let dir = avatar_package_dir(
+            "account_1",
+            &local_agent_ref(),
+            AgentCenterAvatarBackendKind::Live2d,
+            &result.package_id,
+        )
+        .expect("avatar package dir");
+        assert!(dir.join(MANIFEST_FILE_NAME).exists());
+        assert!(dir.join(CAPABILITY_PROFILE_FILE_NAME).exists());
+        assert!(dir.join("files/ren.model3.json").exists());
+        assert!(dir.join("files/nimi/live2d-adapter.json").exists());
+        let config = desktop_agent_center_config_get(DesktopAgentCenterConfigScopePayload {
+            account_id: "account_1".to_string(),
+            owner_user_id: owner_user_id(),
+            realm_agent_id: realm_agent_id(),
+            local_agent_ref: local_agent_ref(),
+        })
+        .expect("config");
+        assert_eq!(
+            config.modules.avatar_package.avatar_package_ref.as_deref(),
+            Some(result.package_id.as_str())
+        );
+        assert_eq!(
+            config
+                .modules
+                .avatar_package
+                .backend_capability_profile_ref
+                .as_deref(),
+            Some(result.backend_capability_profile_ref.as_str())
+        );
+        assert_eq!(
+            config.modules.avatar_package.live2d_adapter_manifest_source,
+            AgentCenterLive2dAdapterManifestSource::EmbeddedCreatorManifest
+        );
+        let operations = fs::read_to_string(operation_log_path(&home)).expect("operation log");
+        assert!(operations.contains("\"operation_type\":\"avatar_package_import\""));
+        assert!(operations.contains("\"resource_kind\":\"avatar_package\""));
+    });
+}
+
+#[test]
+fn imports_vrm_avatar_package_transactionally_and_selects_it() {
+    let home = temp_home("import-vrm-avatar");
+    with_env(&[("HOME", home.to_str())], || {
+        let source = write_vrm_avatar_source(&home);
+        let result = desktop_agent_center_avatar_package_import_blocking(
+            DesktopAgentCenterAvatarPackageImportPayload {
+                account_id: "account_1".to_string(),
+                owner_user_id: owner_user_id(),
+                realm_agent_id: realm_agent_id(),
+                local_agent_ref: local_agent_ref(),
+                kind: AgentCenterAvatarBackendKind::Vrm,
+                source_path: source.to_string_lossy().to_string(),
+                display_name: Some("Ren VRM".to_string()),
+                select: Some(true),
+            },
+        )
+        .expect("import vrm avatar package");
+
+        assert!(result.package_id.starts_with("vrm_"));
+        assert_eq!(result.backend_kind, AgentCenterAvatarBackendKind::Vrm);
+        assert!(result
+            .backend_capability_profile_ref
+            .starts_with("avatar_profile_vrm_"));
+        let dir = avatar_package_dir(
+            "account_1",
+            &local_agent_ref(),
+            AgentCenterAvatarBackendKind::Vrm,
+            &result.package_id,
+        )
+        .expect("avatar package dir");
+        assert!(dir.join(MANIFEST_FILE_NAME).exists());
+        assert!(dir.join(CAPABILITY_PROFILE_FILE_NAME).exists());
+        assert!(dir.join("files/ren.vrm").exists());
+        assert!(dir
+            .join("files/vrm-motion-presets/idle_subtle.vrma")
+            .exists());
+        let config = desktop_agent_center_config_get(DesktopAgentCenterConfigScopePayload {
+            account_id: "account_1".to_string(),
+            owner_user_id: owner_user_id(),
+            realm_agent_id: realm_agent_id(),
+            local_agent_ref: local_agent_ref(),
+        })
+        .expect("config");
+        assert_eq!(
+            config.modules.avatar_package.avatar_package_ref.as_deref(),
+            Some(result.package_id.as_str())
+        );
+        assert_eq!(
+            config.modules.avatar_package.live2d_adapter_manifest_source,
+            AgentCenterLive2dAdapterManifestSource::None
+        );
+    });
+}
+
+#[test]
+fn removes_selected_avatar_package_by_clearing_config_and_quarantining_directory() {
+    let home = temp_home("remove-avatar-package");
+    with_env(&[("HOME", home.to_str())], || {
+        let source = write_vrm_avatar_source(&home);
+        let imported = desktop_agent_center_avatar_package_import_blocking(
+            DesktopAgentCenterAvatarPackageImportPayload {
+                account_id: "account_1".to_string(),
+                owner_user_id: owner_user_id(),
+                realm_agent_id: realm_agent_id(),
+                local_agent_ref: local_agent_ref(),
+                kind: AgentCenterAvatarBackendKind::Vrm,
+                source_path: source.to_string_lossy().to_string(),
+                display_name: Some("Ren VRM".to_string()),
+                select: Some(true),
+            },
+        )
+        .expect("import vrm avatar package");
+        let package_root = avatar_package_dir(
+            "account_1",
+            &local_agent_ref(),
+            AgentCenterAvatarBackendKind::Vrm,
+            &imported.package_id,
+        )
+        .expect("avatar package dir");
+
+        let result = desktop_agent_center_avatar_package_remove_blocking(
+            DesktopAgentCenterAvatarPackageRemovePayload {
+                account_id: "account_1".to_string(),
+                owner_user_id: owner_user_id(),
+                realm_agent_id: realm_agent_id(),
+                local_agent_ref: local_agent_ref(),
+                package_id: imported.package_id.clone(),
+            },
+        )
+        .expect("remove avatar package");
+
+        assert!(result.quarantined);
+        assert!(!package_root.exists());
+        let config = desktop_agent_center_config_get(DesktopAgentCenterConfigScopePayload {
+            account_id: "account_1".to_string(),
+            owner_user_id: owner_user_id(),
+            realm_agent_id: realm_agent_id(),
+            local_agent_ref: local_agent_ref(),
+        })
+        .expect("config");
+        assert!(config.modules.avatar_package.avatar_package_ref.is_none());
+        assert!(config
+            .modules
+            .avatar_package
+            .backend_capability_profile_ref
+            .is_none());
+        assert!(home
+            .join(".nimi/data/accounts/account_1/agents")
+            .join(local_scope_path_segment(&local_agent_ref()))
+            .join("agent-center/quarantine/avatar_package")
+            .read_dir()
+            .expect("quarantine dir")
+            .next()
+            .is_some());
+    });
 }
 
 #[test]

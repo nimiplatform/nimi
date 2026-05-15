@@ -60,6 +60,27 @@ pub(super) fn live2d_adapter_manifest_dir(
         .join(manifest_ref))
 }
 
+pub(super) fn avatar_package_dir(
+    account_id: &str,
+    local_agent_ref: &str,
+    kind: AgentCenterAvatarBackendKind,
+    package_id: &str,
+) -> Result<PathBuf, String> {
+    let kind_segment = match kind {
+        AgentCenterAvatarBackendKind::Live2d => "live2d",
+        AgentCenterAvatarBackendKind::Vrm => "vrm",
+        AgentCenterAvatarBackendKind::Future => {
+            return Err("future avatar backend cannot create a local package".to_string());
+        }
+    };
+    Ok(agent_center_dir(account_id, local_agent_ref)?
+        .join("modules")
+        .join("avatar_package")
+        .join("packages")
+        .join(kind_segment)
+        .join(package_id))
+}
+
 pub(super) fn is_safe_relative_path(value: &str) -> bool {
     let path = Path::new(value);
     !value.trim().is_empty()

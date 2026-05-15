@@ -33,6 +33,29 @@ pub(crate) struct DesktopAgentCenterLive2dAdapterManifestImportPayload {
 
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub(crate) struct DesktopAgentCenterAvatarPackageImportPayload {
+    pub account_id: String,
+    pub owner_user_id: String,
+    pub realm_agent_id: String,
+    pub local_agent_ref: String,
+    pub kind: AgentCenterAvatarBackendKind,
+    pub source_path: String,
+    pub display_name: Option<String>,
+    pub select: Option<bool>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct DesktopAgentCenterAvatarPackageRemovePayload {
+    pub account_id: String,
+    pub owner_user_id: String,
+    pub realm_agent_id: String,
+    pub local_agent_ref: String,
+    pub package_id: String,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub(crate) struct DesktopAgentCenterAgentLocalResourcesRemovePayload {
     pub account_id: String,
     pub owner_user_id: String,
@@ -54,6 +77,19 @@ pub(crate) struct DesktopAgentCenterLive2dAdapterManifestImportResult {
     pub selected: bool,
     pub sha256: String,
     pub bytes: u64,
+    pub imported_at: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct DesktopAgentCenterAvatarPackageImportResult {
+    pub package_id: String,
+    pub backend_kind: AgentCenterAvatarBackendKind,
+    pub backend_capability_profile_ref: String,
+    pub selected: bool,
+    pub manifest_sha256: String,
+    pub package_bytes: u64,
+    pub file_count: usize,
     pub imported_at: String,
 }
 
