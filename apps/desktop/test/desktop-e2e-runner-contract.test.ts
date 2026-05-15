@@ -33,6 +33,10 @@ const desktopE2eFixtureSource = fs.readFileSync(
   path.join(root, 'src-tauri/src/desktop_e2e_fixture.rs'),
   'utf8',
 );
+const tauriHttpEnvSource = fs.readFileSync(
+  path.join(root, 'src-tauri/src/main_parts/env_http.rs'),
+  'utf8',
+);
 const realmFixtureServerSource = fs.readFileSync(
   path.join(root, 'e2e/fixtures/realm-fixture-server.mjs'),
   'utf8',
@@ -64,11 +68,21 @@ test('runtime-unavailable boot smoke targets the canonical desktop release strip
 test('offline recovery smoke targets Realm REST reachability, not runtime release readiness', () => {
   assert.equal(offlineRecoveryProfile.realmFixture?.restOnline, false);
   assert.equal(offlineRecoveryProfile.tauriFixture, undefined);
+  assert.match(runnerSource, /const fixtureServer = await startRealmFixtureServer/);
+  assert.match(runnerSource, /fixtureOrigin: fixtureServer\.origin/);
   assert.match(offlineRecoverySpecSource, /clickByTestId\(E2E_IDS\.navTab\('contacts'\)\)/);
   assert.match(offlineRecoverySpecSource, /updateRealmRestOnline\(true\)/);
   assert.doesNotMatch(offlineRecoverySpecSource, /updateRuntimeBridgeStatus/);
   assert.match(realmFixtureServerSource, /reasonCode:\s*ReasonCode\.REALM_UNAVAILABLE/);
   assert.match(realmFixtureServerSource, /actionHint:\s*'retry_realm_request'/);
+});
+
+test('desktop E2E fixture Realm origin is admitted by the packaged HTTP bridge allowlist', () => {
+  assert.match(tauriHttpEnvSource, /crate::desktop_e2e_fixture::runtime_defaults_override\(\)/);
+  assert.match(tauriHttpEnvSource, /defaults\.realm\.realm_base_url/);
+  assert.match(tauriHttpEnvSource, /defaults\.realm\.jwks_url/);
+  assert.match(tauriHttpEnvSource, /defaults\.realm\.revocation_url/);
+  assert.match(tauriHttpEnvSource, /defaults\.realm\.jwt_issuer/);
 });
 
 test('authenticated desktop boot smoke fails closed on missing account projection', () => {

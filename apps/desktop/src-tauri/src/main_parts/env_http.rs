@@ -114,7 +114,7 @@ pub(super) fn normalize_origin(url: &Url) -> Result<String, String> {
 
 pub(super) fn allowed_http_origins() -> HashSet<String> {
     let mut origins = HashSet::new();
-    let candidates = [
+    let mut candidates = vec![
         env_value("NIMI_REALM_URL", "http://localhost:3002"),
         "http://localhost".to_string(),
         "http://127.0.0.1".to_string(),
@@ -123,6 +123,12 @@ pub(super) fn allowed_http_origins() -> HashSet<String> {
         env_value("NIMI_LOCAL_PROVIDER_ENDPOINT", ""),
         env_value("NIMI_LOCAL_OPENAI_ENDPOINT", ""),
     ];
+    if let Ok(Some(defaults)) = crate::desktop_e2e_fixture::runtime_defaults_override() {
+        candidates.push(defaults.realm.realm_base_url);
+        candidates.push(defaults.realm.jwks_url);
+        candidates.push(defaults.realm.revocation_url);
+        candidates.push(defaults.realm.jwt_issuer);
+    }
 
     for candidate in candidates {
         if let Ok(url) = Url::parse(candidate.as_str()) {
