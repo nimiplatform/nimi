@@ -18,6 +18,7 @@ const CONTRACT_REFS = {
   tableFamily: "contracts/table-family.schema.yaml",
   domainAdmission: "contracts/domain-admission.schema.yaml",
   trackedOutputAdmission: "contracts/tracked-output-admission.schema.yaml",
+  highRiskAdmission: "contracts/high-risk-admission.schema.yaml",
   negativeFixtures: "contracts/negative-fixtures.yaml",
 };
 
@@ -221,7 +222,10 @@ function classifyRef(ref, text, parsedYaml) {
   if (ref === ".nimi/spec/bootstrap-state.yaml") {
     return "lifecycle_progress_state";
   }
-  if (ref === ".nimi/spec/product-scope.yaml" || ref === ".nimi/spec/high-risk-admissions.yaml") {
+  if (ref === ".nimi/spec/high-risk-admissions.yaml") {
+    return "product_admission_registry";
+  }
+  if (ref === ".nimi/spec/product-scope.yaml") {
     return "methodology_authority";
   }
   if (ref.startsWith(".nimi/spec/") && ref.includes("/kernel/tables/") && isYamlRef(ref)) {
@@ -369,6 +373,7 @@ function ambiguityFor(requiredConfirmation, surfaceClass) {
 
 function validationCommandsFor(entryClass) {
   const commands = {
+    product_admission_registry: ["pnpm exec nimicoding validate-placement --profile nimi --root .nimi/spec"],
     product_authority_table: ["pnpm exec nimicoding validate-table-family --profile nimi --root .nimi/spec"],
     support_registry: ["pnpm exec nimicoding validate-table-family --profile nimi --root .nimi/spec"],
     thin_guidance: ["pnpm exec nimicoding validate-guidance-bodies --profile nimi --root .nimi/spec"],
@@ -424,7 +429,34 @@ function validateRefPlacement(ref, surfaceClass, parsedYaml, text, contracts) {
   if (surfaceClass === "product_authority" && isMarkdownRef(ref) && GENERATED_REF_PATTERN.test(text)) {
     addError(errors, "derived_view_referenced_as_authority", ref);
   }
+  if (surfaceClass === "product_admission_registry") {
+    errors.push(...validateProductAdmissionRegistryRef(ref, parsedYaml, text, contracts));
+  }
 
+  return errors;
+}
+
+function validateProductAdmissionRegistryRef(ref, parsedYaml, text, contracts) {
+  const errors = [];
+  if (ref !== ".nimi/spec/high-risk-admissions.yaml") {
+    addError(errors, "product_admission_registry_outside_allowed_root", ref);
+    return errors;
+  }
+  if (!isPlainObject(parsedYaml)) {
+    addError(errors, "product_admission_registry_invalid_yaml", ref);
+    return errors;
+  }
+  const requiredKeys = Array.isArray(contracts.highRiskAdmission.data?.top_level_required_keys)
+    ? contracts.highRiskAdmission.data.top_level_required_keys
+    : [];
+  for (const key of requiredKeys) {
+    if (!(key in parsedYaml)) {
+      addError(errors, "product_admission_registry_missing_required_key", ref, key);
+    }
+  }
+  if (/package_name:\s*"?@nimiplatform\/nimi-coding"?|spec_tree_model:|canonical_spec_root:/i.test(text)) {
+    addError(errors, "product_admission_registry_contains_package_methodology_body", ref);
+  }
   return errors;
 }
 
@@ -675,6 +707,7 @@ export async function classifySpecSurface(projectRoot, options = {}) {
       target_class_enum: [
         "product_authority",
         "product_authority_table",
+        "product_admission_registry",
         "thin_guidance",
         "derived_view",
         "spec_generation_state",
@@ -715,6 +748,7 @@ export function isProductAuthoritySurfaceClass(surfaceClass) {
   return [
     "product_authority",
     "product_authority_table",
+    "product_admission_registry",
     "thin_guidance",
     "host_projection_anchor",
     "support_registry",

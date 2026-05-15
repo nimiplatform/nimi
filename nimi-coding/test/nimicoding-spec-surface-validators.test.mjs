@@ -3,6 +3,7 @@ import {
   mkdir,
   path,
   readFile,
+  repoRoot,
   runCliSubprocess,
   test,
   withTempProject,
@@ -68,6 +69,69 @@ test("classify-spec-tree treats support_registry table family as support registr
     assert.equal(entry.current_inferred_class, "support_registry");
     assert.equal(entry.target_class, "support_registry");
     assert.equal(entry.disposition, "keep");
+  });
+});
+
+test("package spec generation inputs include every required product authority surface class", async () => {
+  const contract = YAML.parse(await readFile(path.join(repoRoot, "contracts", "spec-generation-inputs.schema.yaml"), "utf8"));
+  const config = YAML.parse(await readFile(path.join(repoRoot, "config", "spec-generation-inputs.yaml"), "utf8"));
+  const requiredClasses = contract.document_instance.docs_inputs[0].allowed_surface_classes;
+  const configuredClasses = config.spec_generation_inputs.docs_inputs[0].allowed_surface_classes;
+  for (const surfaceClass of requiredClasses) {
+    assert.ok(configuredClasses.includes(surfaceClass), `${surfaceClass} missing from package spec-generation inputs`);
+  }
+});
+
+test("classify-spec-tree keeps compact high-risk admissions as product admission registry", async () => {
+  await withTempProject(async (projectRoot) => {
+    await seedValidRuntimeTableProject(projectRoot);
+    await writeProjectFile(
+      projectRoot,
+      ".nimi/spec/high-risk-admissions.yaml",
+      YAML.stringify({
+        admissions: [{
+          topic_id: "2026-05-01-runtime-authority",
+          packet_id: "wave-0-authority-admit",
+          disposition: "complete",
+          admitted_at: "2026-05-01T00:00:00Z",
+          manager_review_owner: "nimicoding-manager",
+          summary: "Runtime authority admitted as product governance truth.",
+          source_decision_contract: ".nimi/topics/closed/2026-05-01-runtime-authority/packet-wave-0-authority-admit.md",
+        }],
+        admission_rules: ["explicit_manager_owned_decision_required_before_canonical_high_risk_admission"],
+        semantic_constraints: ["canonical_admission_records_must_not_promote_operational_runtime_state"],
+      }),
+    );
+
+    const result = await runCliSubprocess(["classify-spec-tree", "--profile", "nimi", "--root", ".nimi/spec", "--json"], { cwd: projectRoot });
+    assert.equal(result.exitCode, 0);
+    const payload = JSON.parse(result.stdout);
+    const entry = payload.inventory.inventory.find((item) => item.source_path === ".nimi/spec/high-risk-admissions.yaml");
+    assert.equal(entry.current_inferred_class, "product_admission_registry");
+    assert.equal(entry.target_class, "product_admission_registry");
+    assert.equal(entry.disposition, "keep");
+    assert.equal(entry.required_confirmation, "none");
+  });
+});
+
+test("validate-placement rejects package methodology body inside product admission registry", async () => {
+  await withTempProject(async (projectRoot) => {
+    await seedValidRuntimeTableProject(projectRoot);
+    await writeProjectFile(
+      projectRoot,
+      ".nimi/spec/high-risk-admissions.yaml",
+      [
+        "admissions: []",
+        "admission_rules: []",
+        "semantic_constraints: []",
+        "package_name: \"@nimiplatform/nimi-coding\"",
+        "",
+      ].join("\n"),
+    );
+
+    const result = await runCliSubprocess(["validate-placement", "--profile", "nimi", "--root", ".nimi/spec", "--json"], { cwd: projectRoot });
+    assert.equal(result.exitCode, 1);
+    assert.match(result.stdout, /product_admission_registry_contains_package_methodology_body/);
   });
 });
 
