@@ -9,6 +9,8 @@ const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const cwd = path.resolve(scriptDir, '..');
 
 let failed = false;
+const cognitionKernelImport = 'Normative Imports: `.nimi/spec/cognition/kernel/*`';
+const cognitionKernelRefPattern = /(?:\.nimi\/spec\/cognition\/kernel\/|kernel\/(?:cognition|family|surface|runtime-bridge|runtime-upgrade|memory-service|knowledge-service|skill-service|reference|prompt-serving|completion)-contract\.md)/u;
 
 function fail(msg) {
   failed = true;
@@ -62,11 +64,11 @@ if (domainFiles.length === 0) {
 
 for (const rel of domainFiles) {
   const content = read(rel);
-  if (!content.includes('Normative Imports: `.nimi/spec/cognition/kernel/*`')) {
+  if (!content.includes(cognitionKernelImport)) {
     fail(`${rel} must declare cognition kernel imports`);
   }
-  if (!/\bC-COG-\d{3}\b/u.test(content)) {
-    fail(`${rel} must reference at least one cognition kernel Rule ID`);
+  if (!cognitionKernelRefPattern.test(content)) {
+    fail(`${rel} must reference cognition kernel authority files`);
   }
   checkNoLocalRuleIds(content, rel);
   checkNoRuleDefinitionHeadings(content, rel);

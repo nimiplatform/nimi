@@ -1,19 +1,17 @@
 # Standalone Cognition
 
-> Scope: `nimi-cognition` 作为独立 standalone cognition domain 的权威说明；runtime 可以 bridge / consume cognition，但不得重新定义其 authority。
->
+This file is guide-only. Normative cognition authority lives in `.nimi/spec/cognition/kernel/**` and `.nimi/spec/cognition/kernel/tables/**`.
+
 > Normative Imports: `.nimi/spec/cognition/kernel/*`
 
 ## 1. 目标
 
-本目录定义 `nimi-cognition` 的独立 authority home。
-它来源于 runtime memory / knowledge 语义的抽离与升级。当前 public repo canonical 已明确把 continuity memory semantic owner 放在 cognition/runtime 路径；realm 在本 repo public authority 中不再保留 active memory owner surface。后续 cross-repo cleanup 只允许收窄 wording 或 tooling，不得把 owner line 写回 realm。
+本目录是 `nimi-cognition` 的独立 authority home。它来源于 runtime memory / knowledge 语义的抽离与升级。当前 public repo canonical 把 continuity memory semantic owner 放在 cognition/runtime 路径；realm 在本 repo public authority 中没有 active memory owner surface。
 
 ## 2. 目录结构
 
-- `kernel/` — 规范唯一事实源（Rule ID `C-*`）
+- `kernel/` — cognition authority contracts
 - `kernel/tables/` — 结构化事实表
-- `kernel/generated/` — 自动生成视图
 
 ## 3. 阅读路径
 
@@ -52,8 +50,10 @@
 
 ## 4. 边界声明
 
-- Kernel anchor rules: `C-COG-001` `C-COG-002` `C-COG-003` `C-COG-016`
-- cognition 不是 runtime subchapter。
-- runtime 可以 bridge / consume cognition，但不能重新定义 cognition authority。
-- runtime-facing overlap surface 的存在，不等于 runtime 或 realm 重新获得 cognition semantic ownership。
-- baseline、审计报告、实现代码都不是权威；权威只在本目录 kernel 中。
+Boundary and ownership rules are covered by:
+
+1. `.nimi/spec/cognition/kernel/cognition-contract.md`
+2. `.nimi/spec/cognition/kernel/runtime-bridge-contract.md`
+3. `.nimi/spec/cognition/kernel/runtime-upgrade-contract.md`
+4. `.nimi/spec/runtime/kernel/runtime-memory-service-contract.md`
+5. `.nimi/spec/runtime/kernel/knowledge-contract.md`

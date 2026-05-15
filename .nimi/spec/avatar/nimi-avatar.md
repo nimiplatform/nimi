@@ -74,58 +74,17 @@ Nimi Avatar 消费 Nimi runtime 的 agent data，通过 embodiment projection la
 
 当前正常启动路径使用 runtime/SDK consume chain。Mock scenario 仍保留，但只在显式 fixture mode 下参与；runtime 不可用时不会 silent fallback 到 mock。
 
-当前 canonical 启动模型固定为：
+Canonical launch, Runtime revalidation, degraded composition, and recovery posture are covered by the kernel authority set:
 
-- normal path 必须带 Desktop-selected minimal launch intent
-- launch intent 只包含 required `agent_id`、optional `avatar_instance_id`、
-  optional non-authoritative `launch_source`
-- Desktop 不传递 scoped binding、visual package、conversation anchor、
-  runtime/world、account/user、Realm/auth/token truth
-- 缺少 launch context 或缺少 `agent_id` 必须 fail closed；Avatar app 不得默认
-  bootstrap 单个 agent
-- Runtime bootstrap 通过 SDK local first-party Runtime client；Avatar 以
-  `nimi.avatar` local first-party app 身份读取 Runtime account projection，并仅
-  通过 Runtime-issued short-lived access token 访问授权私有数据
-- Avatar 通过 SDK local first-party Runtime-backed token provider 为
-  `runtime.agent` turns API 获取 request-time protected access token；默认
-  启动路径不 issue scoped binding
-- visual bootstrap 通过 Runtime account projection + launch `agent_id` 解析本机
-  Agent Center package；当前 admitted carrier branches 是 Live2D 与 VRM。VRM
-  deferral evidence 已由 2026-05-15 reconciliation topic 关闭；最终上线前的
-  launch-readiness / visual-human acceptance 仍由
-  `2026-05-15-avatar-launch-readiness-and-acceptance` 单独关闭，不能从 smoke
-  evidence 直接推导。
-- conversation bootstrap 由 Avatar 创建或恢复 Avatar-owned Runtime anchor；本地
-  recovery cache 只按 Runtime account projection + `agent_id` +
-  `avatar_instance_id` 索引，并且必须经 Runtime snapshot 校验后才能复用
-- Avatar 不读取 shared auth、不创建 Realm HTTP client、不做 login bootstrap、
-  不拥有 refresh token、durable auth/session/user truth 或 Avatar-local JWT subject
-  truth
-- bounded close handoff 只允许携带 `avatar_instance_id` 和 surface attribution；
-  avatar app 负责按 live instance identity 执行 close，缺少 target 时 fail closed
+- `kernel/app-shell-contract.md`
+- `kernel/avatar-event-contract.md`
+- `kernel/embodiment-projection-contract.md`
+- `kernel/live2d-render-contract.md`
+- `kernel/vrm-backend-contract.md`
+- `.nimi/spec/runtime/kernel/runtime-agent-service-contract.md`
+- `.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md`
 
-当前 running-session posture 固定为 first-party Runtime revalidation。下列规则
-supersede 早期 shared desktop auth session / scoped-binding default launch 描述：
-
-- Runtime 拥有 auth、session、refresh-token custody、account projection 与
-  Runtime-issued short-lived access token authority
-- Desktop 只拥有 launch intent，不拥有 Avatar visual package、conversation
-  anchor、account/user、Realm/auth/token truth
-- Avatar 只消费 minimal launch intent、本机 Runtime/SDK projections、以及
-  Runtime-authorized local Agent Center package
-- Runtime first-party bootstrap 不可用时，Avatar 必须按 `app-shell-contract.md`
-  §6 surface composition 切换到对应 degraded composition state（保留 ready 主区
-  的混合渲染是禁止的）
-- 只要本地已授权 visual package 有效，Runtime account state 的 typed degraded
-  state 不得伪造成 package success 或 auth success
-- user-facing degraded copy 必须使用 Runtime/account/session 语言，不出现 CORS
-  workaround 或 shared auth truth
-
-Recovery posture 与 surface composition 联动：
-
-- user-facing surface 可以给出 calm degraded copy、explicit reload/relaunch guidance、以及 desktop launch-context update notice
-- recovery affordance 只允许 reload / relaunch 当前 shell；不得在 avatar app 内新增 runtime fallback
-- launch-context update、anchor rebind、或 relaunch 前，avatar-local transient bubble / draft / foreground voice UI 必须清空，避免 stale state 跨 continuity 泄漏
+Read those contracts for launch intent shape, Runtime account projection, authorized package resolution, Avatar-owned anchor recovery, bounded close handoff, degraded composition, and transient UI cleanup.
 
 ## Product Form 详细
 
@@ -186,7 +145,7 @@ Avatar shell 的渲染由 composition state 驱动（`ready` / `loading` / `degr
 
 ## Wave Schedule
 
-Avatar 重构分 5 个 wave，每个 wave 必须是端到端可交付能力切片：
+Avatar 重构历史分 5 个 wave；当前产品 authority 以 kernel contracts 和 tables 为准：
 
 | Wave | 主题 | 交付内容 |
 |---|---|---|
@@ -196,12 +155,7 @@ Avatar 重构分 5 个 wave，每个 wave 必须是端到端可交付能力切�
 | **3** | Voice / lipsync 端到端 | runtime `voice_playback_requested` 实现链路；SDK 消费 voice timeline；selected backend lipsync driver 投到 Live2D mouth parameter 或 VRM expression preset；voice-companion-state lipsync slice |
 | **4** | Window + Settings 工业化 | dynamic window bounds (embodiment + companion footprint)；drag region 限定到 embodiment-stage；settings popover 替换主区 4-toggle 大块；`window-bounds-policy.yaml` spec 表 |
 
-每个 wave 完工后必须跑：
-
-- nimi-coding spec validators（`validate-spec-tree` / `validate-spec-audit` / `validate-spec-governance` / `validate-ai-governance` / `generate-spec-derived-docs --check`）
-- avatar 全套（`typecheck` / `test` / `lint` / `cargo check` / `cargo test`）
-- Wave 3 触发 runtime go test
-- Wave 1+ 实机端到端验证
+Historical wave verification lives in the corresponding topic records. Current validation entry points are the active `nimi-coding` topic and spec gates.
 
 ## Wave-by-Wave Reading Path
 
@@ -244,5 +198,5 @@ RuntimeAgent 的 admitted consume surface 已经成为 `apps/avatar` 的 primary
 
 - normal path 使用 desktop-selected launch context + local visual package + runtime IPC bridge + SDK consume
 - mock fixtures 继续保留为 explicit fixture / integration test corpus
-- runtime 不可用时 interaction/voice/activity fail closed，不允许 silent downgrade 到 mock；进入 degraded composition state 卸载 ready surface
-- Runtime presentation voice playback must drive the SDK consume chain and the selected backend lipsync path; `lipsync_frame_batch` is not an Avatar app consume path.
+- runtime unavailable behavior is covered by `kernel/app-shell-contract.md` degraded composition rules
+- Runtime presentation voice playback authority is covered by `.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md`, the SDK consume chain, and the selected backend lipsync contracts; `lipsync_frame_batch` is not an Avatar app consume path.
