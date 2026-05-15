@@ -49,6 +49,17 @@
         ]
       }
     },
+    "groupChats": {
+      "items": []
+    },
+    "economyBalances": {
+      "sparkBalance": 0,
+      "gemBalance": 0,
+      "currency": "NIMI"
+    },
+    "notificationUnreadCount": {
+      "unreadCount": 0
+    },
     "friends": {
       "items": [
         {

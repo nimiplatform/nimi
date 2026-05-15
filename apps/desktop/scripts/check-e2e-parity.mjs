@@ -19,6 +19,10 @@ function readText(relativePath) {
   return fs.readFileSync(path.join(desktopRoot, relativePath), 'utf8');
 }
 
+function readRepoText(relativePath) {
+  return fs.readFileSync(path.join(repoRoot, relativePath), 'utf8');
+}
+
 function readJson(filePath) {
   return JSON.parse(fs.readFileSync(filePath, 'utf8'));
 }
@@ -131,10 +135,68 @@ function assertFixtureRealmOriginBridgeParity() {
   }
 }
 
+function assertCanonicalTranscriptSelectorParity() {
+  const transcriptSource = readRepoText('kit/features/chat/src/components/canonical-transcript-view.tsx');
+  const humanAdapterSource = readText('src/shell/renderer/features/chat/chat-human-canonical-components.tsx');
+  for (const required of [
+    'dataTestId?: string',
+    'activeConversationId?: string | null',
+    'data-testid={dataTestId}',
+    'data-active-chat-id={String(activeConversationId || \'\')}',
+  ]) {
+    if (!transcriptSource.includes(required)) {
+      fail(`canonical transcript does not expose the E2E active conversation contract: ${required}`);
+    }
+  }
+  for (const required of [
+    'E2E_IDS.messageTimeline',
+    'activeConversationId: input.model.selectedChatId',
+  ]) {
+    if (!humanAdapterSource.includes(required)) {
+      fail(`desktop human chat does not bind canonical transcript selector parity: ${required}`);
+    }
+  }
+}
+
+function assertAuthenticatedFixtureSurfaceParity() {
+  const fixtureServerSource = readText('e2e/fixtures/realm-fixture-server.mjs');
+  for (const required of [
+    '/api/human/group-chats',
+    '/api/economy/balances',
+    '/api/human/notifications/unread-count',
+  ]) {
+    if (!fixtureServerSource.includes(required)) {
+      fail(`Realm fixture server does not cover authenticated desktop shell endpoint ${required}`);
+    }
+  }
+
+  const incompleteProfiles = [];
+  for (const [scenarioId] of scenarioRegistry.entries()) {
+    const profile = loadProfileDefinition(profilePathForScenario(scenarioId));
+    if (!profile?.realmFixture?.currentUser) {
+      continue;
+    }
+    const fixture = profile.realmFixture;
+    const missing = [
+      fixture.groupChats ? '' : 'groupChats',
+      fixture.economyBalances ? '' : 'economyBalances',
+      fixture.notificationUnreadCount ? '' : 'notificationUnreadCount',
+    ].filter(Boolean);
+    if (missing.length > 0) {
+      incompleteProfiles.push(`${scenarioId}: ${missing.join(', ')}`);
+    }
+  }
+  if (incompleteProfiles.length > 0) {
+    fail(`authenticated E2E profiles are missing current shell fixture surfaces: ${incompleteProfiles.join('; ')}`);
+  }
+}
+
 try {
   assertScenarioRegistryIntegrity();
   assertAuthorlessHomeFeedParity();
   assertFixtureRealmOriginBridgeParity();
+  assertCanonicalTranscriptSelectorParity();
+  assertAuthenticatedFixtureSurfaceParity();
 } catch (error) {
   fail(error instanceof Error ? error.message : String(error));
 }

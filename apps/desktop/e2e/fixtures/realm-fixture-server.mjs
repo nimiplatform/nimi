@@ -170,6 +170,25 @@ function handleApi(request, response, manifestPath) {
     return undefined;
   }
 
+  if (request.method === 'GET' && pathname === '/api/human/group-chats') {
+    json(response, 200, fixture.groupChats || { items: [] });
+    return undefined;
+  }
+
+  if (request.method === 'GET' && pathname === '/api/economy/balances') {
+    json(response, 200, fixture.economyBalances || {
+      sparkBalance: 0,
+      gemBalance: 0,
+      currency: 'NIMI',
+    });
+    return undefined;
+  }
+
+  if (request.method === 'GET' && pathname === '/api/human/notifications/unread-count') {
+    json(response, 200, fixture.notificationUnreadCount || { unreadCount: 0 });
+    return undefined;
+  }
+
   const messageMatch = pathname.match(/^\/api\/human\/chats\/([^/]+)\/messages$/u);
   if (request.method === 'GET' && messageMatch) {
     const chatId = decodeURIComponent(messageMatch[1]);
