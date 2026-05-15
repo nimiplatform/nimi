@@ -296,6 +296,76 @@ test("validate-placement fails on lifecycle cutover state under spec meta", asyn
   });
 });
 
+test("domain admission admits avatar and cognition as active product domains", async () => {
+  const contract = YAML.parse(await readFile(path.join(repoRoot, "contracts", "domain-admission.schema.yaml"), "utf8"));
+  const admissions = new Map(contract.domain_admissions.map((entry) => [entry.domain_id, entry]));
+  for (const domainId of ["avatar", "cognition"]) {
+    const admission = admissions.get(domainId);
+    assert.equal(admission.authority_class, "active_product");
+    assert.equal(admission.owner, domainId);
+    assert.deepEqual(admission.allowed_surface_classes, [
+      "product_authority",
+      "product_authority_table",
+      "thin_guidance",
+      "support_registry",
+    ]);
+    assert.ok(admission.forbidden_surface_classes.includes("derived_view"));
+    assert.ok(admission.forbidden_surface_classes.includes("spec_generation_state"));
+    assert.ok(admission.forbidden_surface_classes.includes("audit_evidence_state"));
+    assert.ok(admission.forbidden_surface_classes.includes("lifecycle_progress_state"));
+    assert.ok(admission.forbidden_surface_classes.includes("candidate_roadmap"));
+    assert.ok(admission.forbidden_surface_classes.includes("methodology_authority"));
+    assert.equal(admission.admission_policy.table_policy, "product_tables_must_declare_table_family_before_keep");
+    assert.equal(admission.admission_policy.guidance_policy, "guidance_must_be_thin_and_must_not_carry_rule_body");
+    assert.match(admission.admission_policy.generated_evidence_state_policy, /must_move_or_split/);
+  }
+
+  const productAdmissions = [...admissions.values()].filter((entry) => ["avatar", "cognition"].includes(entry.domain_id));
+  assert.doesNotMatch(JSON.stringify(productAdmissions), /candidate_only/);
+});
+
+test("validate-domain-admission no longer blocks avatar and cognition as unadmitted domains", async () => {
+  await withTempProject(async (projectRoot) => {
+    await seedValidRuntimeTableProject(projectRoot);
+    await writeProjectFile(projectRoot, ".nimi/spec/avatar/kernel/index.md", "# Avatar Kernel\n\nAvatar product authority.\n");
+    await writeProjectFile(projectRoot, ".nimi/spec/cognition/kernel/index.md", "# Cognition Kernel\n\nCognition product authority.\n");
+
+    const result = await runCliSubprocess(["validate-domain-admission", "--profile", "nimi", "--root", ".nimi/spec", "--json"], { cwd: projectRoot });
+    assert.equal(result.exitCode, 0);
+    const payload = JSON.parse(result.stdout);
+    assert.equal(payload.validator, "validate-domain-admission");
+    assert.equal(payload.ok, true);
+    assert.doesNotMatch(JSON.stringify(payload.errors), /unadmitted_domain_retained_as_spec_input/);
+  });
+});
+
+test("avatar and cognition active admission keeps surface violations fail-closed", async () => {
+  await withTempProject(async (projectRoot) => {
+    await seedValidRuntimeTableProject(projectRoot);
+    await writeProjectFile(projectRoot, ".nimi/spec/avatar/kernel/index.md", "# Avatar Kernel\n\nAvatar product authority.\n");
+    await writeProjectFile(projectRoot, ".nimi/spec/cognition/kernel/index.md", "# Cognition Kernel\n\nCognition product authority.\n");
+    await writeProjectFile(projectRoot, ".nimi/spec/avatar/kernel/generated/render.md", "# Generated Avatar View\n");
+    await writeProjectFile(projectRoot, ".nimi/spec/avatar/kernel/tables/rule-evidence.yaml", "owner: avatar\nentries:\n  - coverage_status: covered\n");
+    await writeProjectFile(projectRoot, ".nimi/spec/cognition/kernel/tables/missing-family.yaml", "owner: cognition\nentries:\n  - id: missing-family\n");
+    await writeProjectFile(projectRoot, ".nimi/spec/cognition/index.md", "# Cognition Guide\n\nThis guide MUST define behavior.\n");
+
+    const placement = await runCliSubprocess(["validate-placement", "--profile", "nimi", "--root", ".nimi/spec", "--json"], { cwd: projectRoot });
+    assert.equal(placement.exitCode, 1);
+    assert.match(placement.stdout, /derived_view_under_product_authority_root/);
+    assert.match(placement.stdout, /audit_evidence_state_under_spec/);
+    assert.doesNotMatch(placement.stdout, /unadmitted_domain_retained_as_spec_input/);
+
+    const tableFamily = await runCliSubprocess(["validate-table-family", "--profile", "nimi", "--root", ".nimi/spec", "--json"], { cwd: projectRoot });
+    assert.equal(tableFamily.exitCode, 1);
+    assert.match(tableFamily.stdout, /missing_table_family/);
+
+    const guidance = await runCliSubprocess(["validate-guidance-bodies", "--profile", "nimi", "--root", ".nimi/spec", "--json"], { cwd: projectRoot });
+    assert.equal(guidance.exitCode, 1);
+    assert.match(guidance.stdout, /guidance_defines_rule_body/);
+    assert.doesNotMatch(guidance.stdout, /unadmitted_domain_retained_as_spec_input/);
+  });
+});
+
 test("validate-domain-admission fails when future remains under spec", async () => {
   await withTempProject(async (projectRoot) => {
     await seedValidRuntimeTableProject(projectRoot);
@@ -445,10 +515,11 @@ test("generate-spec-migration-plan emits local-only plan preserving confirmation
     assert.equal(payload.mutation_policy.mutates_source_tree, false);
     assert.ok(payload.groups.move_local.includes(".nimi/spec/runtime/kernel/generated/job-states.md"));
     assert.ok(payload.groups.move_package.includes(".nimi/methodology/core.yaml"));
-    assert.ok(payload.required_confirmations.some((entry) => (
-      entry.source_path === ".nimi/spec/avatar/kernel/index.md"
-      && entry.required_confirmation === "product_semantic_fork"
-    )));
+    const avatarEntry = payload.inventory.find((entry) => entry.source_path === ".nimi/spec/avatar/kernel/index.md");
+    assert.equal(avatarEntry.disposition, "keep");
+    assert.equal(avatarEntry.required_confirmation, "none");
+    assert.doesNotMatch(JSON.stringify(avatarEntry), /candidate_only/);
+    assert.ok(!payload.required_confirmations.some((entry) => entry.source_path.startsWith(".nimi/spec/avatar/")));
     assert.equal(payload.enum_validation.unknown_target_classes.length, 0);
     assert.equal(payload.enum_validation.unknown_dispositions.length, 0);
 

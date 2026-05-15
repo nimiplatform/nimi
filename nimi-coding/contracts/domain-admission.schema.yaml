@@ -67,22 +67,30 @@ domain_admissions:
     migration_disposition_when_unadmitted: block
   - domain_id: avatar
     domain_root: .nimi/spec/avatar
-    authority_class: migration_input_only
+    authority_class: active_product
     owner: avatar
-    admitted_by: domain_admission_required_before_keep
+    admitted_by: wave_1_domain_admission
     allowed_surface_classes: [product_authority, product_authority_table, thin_guidance, support_registry]
     forbidden_surface_classes: [derived_view, spec_generation_state, audit_evidence_state, lifecycle_progress_state, candidate_roadmap, methodology_authority]
     validation_commands: [pnpm exec nimicoding validate-spec-governance --profile nimi --scope avatar]
     migration_disposition_when_unadmitted: block
+    admission_policy:
+      generated_evidence_state_policy: generated_views_evidence_and_lifecycle_state_must_move_or_split_out_of_product_authority_root
+      table_policy: product_tables_must_declare_table_family_before_keep
+      guidance_policy: guidance_must_be_thin_and_must_not_carry_rule_body
   - domain_id: cognition
     domain_root: .nimi/spec/cognition
-    authority_class: migration_input_only
+    authority_class: active_product
     owner: cognition
-    admitted_by: domain_admission_required_before_keep
+    admitted_by: wave_1_domain_admission
     allowed_surface_classes: [product_authority, product_authority_table, thin_guidance, support_registry]
     forbidden_surface_classes: [derived_view, spec_generation_state, audit_evidence_state, lifecycle_progress_state, candidate_roadmap, methodology_authority]
     validation_commands: [pnpm exec nimicoding validate-spec-governance --profile nimi --scope cognition]
     migration_disposition_when_unadmitted: block
+    admission_policy:
+      generated_evidence_state_policy: generated_views_evidence_and_lifecycle_state_must_move_or_split_out_of_product_authority_root
+      table_policy: product_tables_must_declare_table_family_before_keep
+      guidance_policy: guidance_must_be_thin_and_must_not_carry_rule_body
   - domain_id: future
     domain_root: .nimi/spec/future
     authority_class: excluded_from_spec
@@ -112,14 +120,20 @@ domain_rules:
       - delete
       - block
   - domain_id: avatar
+    required_authority_class: active_product
+    forbidden_authority_classes:
+      - candidate_only
+      - migration_input_only
     allowed_authority_classes:
       - active_product
-      - migration_input_only
     admission_required: true
   - domain_id: cognition
+    required_authority_class: active_product
+    forbidden_authority_classes:
+      - candidate_only
+      - migration_input_only
     allowed_authority_classes:
       - active_product
-      - migration_input_only
     admission_required: true
 semantic_constraints:
   - directory_presence_does_not_admit_product_authority
@@ -127,3 +141,7 @@ semantic_constraints:
   - future_domain_must_not_remain_under_.nimi/spec
   - product_domain_admission_must_name_validation_commands
   - package_projection_domains_must_not_define_product_rules
+  - active_product_domain_does_not_admit_generated_evidence_or_state_surfaces
+  - product_authority_tables_must_declare_table_family
+  - thin_guidance_must_not_carry_rule_body
+  - avatar_and_cognition_must_not_be_demoted_to_candidate_only
