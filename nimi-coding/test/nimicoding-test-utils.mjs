@@ -127,7 +127,59 @@ async function updateSpecGenerationInputs(projectRoot, updater) {
   const configPath = path.join(projectRoot, ".nimi", "config", "spec-generation-inputs.yaml");
   const config = YAML.parse(await readFile(configPath, "utf8"));
   updater(config.spec_generation_inputs);
+  normalizeV2SpecGenerationInputs(config.spec_generation_inputs);
   await writeFile(configPath, YAML.stringify(config), "utf8");
+}
+
+function normalizeV2SpecGenerationInputs(inputs) {
+  if (!inputs || inputs.mode !== "class_filtered") {
+    return;
+  }
+
+  const authorityClasses = [
+    "product_authority",
+    "product_authority_table",
+    "thin_guidance",
+    "host_projection_anchor",
+    "support_registry",
+  ];
+  const forbiddenClasses = [
+    "derived_view",
+    "spec_generation_state",
+    "audit_evidence_state",
+    "operational_local_artifact",
+    "host_package_overlay",
+    "candidate_roadmap",
+    "lifecycle_progress_state",
+    "methodology_authority",
+  ];
+
+  if (Array.isArray(inputs.code_roots)) {
+    inputs.code_inputs = inputs.code_roots.map((root) => ({
+      root,
+      owner: "fixture",
+      projection_edge_ref: null,
+    }));
+    delete inputs.code_roots;
+  }
+
+  const legacyDocsRoots = Array.isArray(inputs.docs_roots) ? inputs.docs_roots : [];
+  if (Array.isArray(inputs.docs_roots)) {
+    delete inputs.docs_roots;
+  }
+
+  if (Array.isArray(inputs.structure_roots) || legacyDocsRoots.length > 0) {
+    const structureRoots = [...new Set([
+      ...(Array.isArray(inputs.structure_roots) ? inputs.structure_roots : []),
+      ...legacyDocsRoots,
+    ])];
+    inputs.structure_inputs = structureRoots.map((root) => ({
+      root,
+      owner: "fixture",
+      allowed_surface_classes: authorityClasses,
+    }));
+    delete inputs.structure_roots;
+  }
 }
 
 async function writeBlueprintReference(projectRoot, root = "spec") {
@@ -178,11 +230,12 @@ async function seedReconstructedTargetTruth(projectRoot) {
       spec_generation_audit: {
         generation_mode: "mixed",
         canonical_target_root: ".nimi/spec",
-        declared_profile: "minimal",
+        declared_profile: "surface_taxonomy_v1",
+        placement_report_ref: ".nimi/local/state/spec-surface/current-inventory.json",
         input_roots: {
           code_roots: [],
-          docs_roots: ["README.md"],
-          structure_roots: ["."],
+          docs_roots: [".nimi/spec"],
+          structure_roots: [],
           human_note_paths: [],
           benchmark_blueprint_root: null,
         },
@@ -190,7 +243,7 @@ async function seedReconstructedTargetTruth(projectRoot) {
           {
             canonical_path: ".nimi/spec/INDEX.md",
             file_class: "index",
-            source_refs: ["README.md"],
+            source_refs: [".nimi/spec/INDEX.md"],
             source_basis: "grounded",
             coverage_status: "complete",
             unresolved_items: [],
@@ -199,7 +252,7 @@ async function seedReconstructedTargetTruth(projectRoot) {
           {
             canonical_path: ".nimi/spec/project/kernel/index.md",
             file_class: "kernel_markdown",
-            source_refs: ["README.md"],
+            source_refs: [".nimi/spec/INDEX.md"],
             source_basis: "grounded",
             coverage_status: "complete",
             unresolved_items: [],
@@ -208,7 +261,7 @@ async function seedReconstructedTargetTruth(projectRoot) {
           {
             canonical_path: ".nimi/spec/project/kernel/core-rules.md",
             file_class: "kernel_markdown",
-            source_refs: ["README.md"],
+            source_refs: [".nimi/spec/INDEX.md"],
             source_basis: "grounded",
             coverage_status: "complete",
             unresolved_items: [],
@@ -217,7 +270,7 @@ async function seedReconstructedTargetTruth(projectRoot) {
           {
             canonical_path: ".nimi/spec/project/kernel/tables/rule-catalog.yaml",
             file_class: "kernel_tables",
-            source_refs: ["README.md"],
+            source_refs: [".nimi/spec/INDEX.md"],
             source_basis: "grounded",
             coverage_status: "complete",
             unresolved_items: [],

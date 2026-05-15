@@ -2,6 +2,18 @@ import { cp, mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import YAML from "yaml";
 
+function rootsFromInputs(inputs, legacyField, v2Field) {
+  if (Array.isArray(inputs?.[legacyField])) {
+    return inputs[legacyField].map(String);
+  }
+  if (Array.isArray(inputs?.[v2Field])) {
+    return inputs[v2Field]
+      .map((entry) => entry?.root)
+      .filter((entry) => typeof entry === "string");
+  }
+  return [];
+}
+
 async function copyFixtureTree(repoRoot, projectRoot, fixtureRelativePath, targetRelativePath) {
   const sourcePath = path.join(repoRoot, "test", "fixtures", "spec-generation", fixtureRelativePath);
   const targetPath = path.join(projectRoot, targetRelativePath);
@@ -70,6 +82,7 @@ export async function applyFixtureScenario({
 
   const specGenerationInputsPath = path.join(projectRoot, ".nimi", "config", "spec-generation-inputs.yaml");
   const effectiveGenerationInputs = YAML.parse(await readFile(specGenerationInputsPath, "utf8")).spec_generation_inputs;
+  let declaredProfile = null;
 
   if (fixture.spec_tree_model) {
     const specTreeModelPath = path.join(projectRoot, ".nimi", "spec", "_meta", "spec-tree-model.yaml");
@@ -80,16 +93,22 @@ export async function applyFixtureScenario({
     if (fixture.spec_tree_model.generated_pipelines) {
       model.generated_pipelines = fixture.spec_tree_model.generated_pipelines;
     }
+    declaredProfile = model.profile;
     await writeFile(specTreeModelPath, YAML.stringify(specTreeModelDocument), "utf8");
   }
 
   const auditPath = path.join(projectRoot, ".nimi", "spec", "_meta", "spec-generation-audit.yaml");
   try {
     const auditDocument = YAML.parse(await readFile(auditPath, "utf8"));
-    auditDocument.spec_generation_audit.input_roots.code_roots = effectiveGenerationInputs.code_roots;
-    auditDocument.spec_generation_audit.input_roots.docs_roots = effectiveGenerationInputs.docs_roots;
-    auditDocument.spec_generation_audit.input_roots.structure_roots = effectiveGenerationInputs.structure_roots;
-    auditDocument.spec_generation_audit.input_roots.human_note_paths = effectiveGenerationInputs.human_note_paths;
+    auditDocument.spec_generation_audit.declared_profile = declaredProfile ?? auditDocument.spec_generation_audit.declared_profile;
+    auditDocument.spec_generation_audit.placement_report_ref = ".nimi/local/state/spec-surface/current-inventory.json";
+    auditDocument.spec_generation_audit.input_roots.code_roots = rootsFromInputs(effectiveGenerationInputs, "code_roots", "code_inputs");
+    auditDocument.spec_generation_audit.input_roots.docs_roots = rootsFromInputs(effectiveGenerationInputs, "docs_roots", "docs_inputs")
+      .filter((root) => root !== ".nimi/spec" && root.startsWith(".nimi/spec/"));
+    auditDocument.spec_generation_audit.input_roots.structure_roots = rootsFromInputs(effectiveGenerationInputs, "structure_roots", "structure_inputs");
+    auditDocument.spec_generation_audit.input_roots.human_note_paths = Array.isArray(effectiveGenerationInputs.human_note_paths)
+      ? effectiveGenerationInputs.human_note_paths
+      : [];
     auditDocument.spec_generation_audit.input_roots.benchmark_blueprint_root = effectiveGenerationInputs.benchmark_blueprint_root;
     await writeFile(auditPath, YAML.stringify(auditDocument), "utf8");
   } catch {
@@ -166,10 +185,17 @@ export async function materializeFixtureHostOutput({
     const specGenerationInputsPath = path.join(projectRoot, ".nimi", "config", "spec-generation-inputs.yaml");
     const effectiveGenerationInputs = YAML.parse(await readFile(specGenerationInputsPath, "utf8")).spec_generation_inputs;
     const auditDocument = YAML.parse(await readFile(auditTargetPath, "utf8"));
-    auditDocument.spec_generation_audit.input_roots.code_roots = effectiveGenerationInputs.code_roots;
-    auditDocument.spec_generation_audit.input_roots.docs_roots = effectiveGenerationInputs.docs_roots;
-    auditDocument.spec_generation_audit.input_roots.structure_roots = effectiveGenerationInputs.structure_roots;
-    auditDocument.spec_generation_audit.input_roots.human_note_paths = effectiveGenerationInputs.human_note_paths;
+    const specTreeModelPath = path.join(projectRoot, ".nimi", "spec", "_meta", "spec-tree-model.yaml");
+    const specTreeModelDocument = YAML.parse(await readFile(specTreeModelPath, "utf8"));
+    auditDocument.spec_generation_audit.declared_profile = specTreeModelDocument?.spec_tree_model?.profile ?? auditDocument.spec_generation_audit.declared_profile;
+    auditDocument.spec_generation_audit.placement_report_ref = ".nimi/local/state/spec-surface/current-inventory.json";
+    auditDocument.spec_generation_audit.input_roots.code_roots = rootsFromInputs(effectiveGenerationInputs, "code_roots", "code_inputs");
+    auditDocument.spec_generation_audit.input_roots.docs_roots = rootsFromInputs(effectiveGenerationInputs, "docs_roots", "docs_inputs")
+      .filter((root) => root !== ".nimi/spec" && root.startsWith(".nimi/spec/"));
+    auditDocument.spec_generation_audit.input_roots.structure_roots = rootsFromInputs(effectiveGenerationInputs, "structure_roots", "structure_inputs");
+    auditDocument.spec_generation_audit.input_roots.human_note_paths = Array.isArray(effectiveGenerationInputs.human_note_paths)
+      ? effectiveGenerationInputs.human_note_paths
+      : [];
     auditDocument.spec_generation_audit.input_roots.benchmark_blueprint_root = effectiveGenerationInputs.benchmark_blueprint_root;
     await writeFile(auditTargetPath, YAML.stringify(auditDocument), "utf8");
   }
@@ -226,6 +252,7 @@ export async function buildSpecReconstructionCloseoutImport(projectRoot, overrid
     summary: {
       generated_paths: generatedPaths,
       audit_ref: ".nimi/spec/_meta/spec-generation-audit.yaml",
+      placement_report_ref: ".nimi/local/state/spec-surface/current-inventory.json",
       coverage_summary: {
         complete_files: completeFiles,
         partial_files: partialFiles,

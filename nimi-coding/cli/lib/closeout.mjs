@@ -252,6 +252,7 @@ async function synthesizeSpecReconstructionSummary(projectRoot, doctorResult, ve
   return {
     generated_paths: generatedPaths,
     audit_ref: ".nimi/spec/_meta/spec-generation-audit.yaml",
+    placement_report_ref: ".nimi/local/state/spec-surface/current-inventory.json",
     coverage_summary: {
       complete_files: Math.max(generatedPaths.length - partialFiles - placeholderFiles, 0),
       partial_files: partialFiles,

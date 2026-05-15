@@ -363,14 +363,14 @@ test("handoff exports spec reconstruction payload during bootstrap-only mode", a
     assert.equal(payload.skill.readiness.ok, true);
     assert.deepEqual(payload.skill.compareTargets, [".nimi/spec"]);
     assert.equal(payload.generationContext.canonicalTargetRoot, ".nimi/spec");
-    assert.equal(payload.generationContext.mode, "mixed");
+    assert.equal(payload.generationContext.mode, "class_filtered");
     assert.deepEqual(payload.generationContext.requiredFileClasses, [
       "INDEX.md",
       "domain kernel/*.md",
       "domain kernel/tables/**",
     ]);
     assert.equal(payload.generationContext.benchmarkBlueprintRoot, null);
-    assert.equal(payload.generationContext.acceptanceMode, "canonical_tree_validity_without_blueprint");
+    assert.equal(payload.generationContext.acceptanceMode, "placement_validity_before_generation");
     assert.equal(payload.generationContext.auditRef, ".nimi/spec/_meta/spec-generation-audit.yaml");
     assert.equal(payload.generationContext.auditContractRef, ".nimi/contracts/spec-generation-audit.schema.yaml");
     assert.ok(payload.context.orderedPaths.includes(".nimi/config/spec-generation-inputs.yaml"));
@@ -523,9 +523,9 @@ test("handoff projects an external host prompt for spec reconstruction", async (
     assert.match(promptText, /Audit output: \.nimi\/spec\/_meta\/spec-generation-audit\.yaml/);
     assert.match(promptText, /Write `\.nimi\/spec\/_meta\/spec-generation-audit\.yaml` alongside the canonical tree/);
     assert.match(promptText, /Required file classes: INDEX\.md, domain kernel\/\*\.md, domain kernel\/tables\/\*\*/);
-    assert.match(promptText, /Minimum generation sequence: \.nimi\/spec\/INDEX\.md, \.nimi\/spec\/project\/kernel\/index\.md/);
+    assert.match(promptText, /Minimum generation sequence: classify_inputs, validate_placement, write_product_authority/);
     assert.match(promptText, /Code roots: none/);
-    assert.match(promptText, /Docs roots: README\.md/);
+    assert.match(promptText, /Docs roots: \.nimi\/spec/);
     assert.match(promptText, /For ordinary projects without a benchmark blueprint/);
   });
 });

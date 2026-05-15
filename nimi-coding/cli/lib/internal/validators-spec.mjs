@@ -54,6 +54,25 @@ function generatedOutputNormativeRootOverlaps(specTreeModel) {
   return overlaps;
 }
 
+function normalizeAuditFileClass(entry) {
+  const explicitSurfaceClass = typeof entry.surface_class === "string" ? entry.surface_class : null;
+  if (explicitSurfaceClass) {
+    return explicitSurfaceClass;
+  }
+
+  switch (String(entry.file_class ?? "")) {
+    case "kernel_markdown":
+      return "product_authority";
+    case "kernel_tables":
+      return "product_authority_table";
+    case "domain_guides":
+    case "kernel_generated":
+      return "thin_guidance";
+    default:
+      return String(entry.file_class ?? "");
+  }
+}
+
 export async function validateSpecTree(rootPath, options = {}) {
   const projectRoot = options.projectRoot ?? process.cwd();
   const specTreeModel = await loadSpecTreeModelContract(projectRoot);
@@ -425,7 +444,8 @@ export async function validateSpecAudit(auditPath, options = {}) {
       continue;
     }
 
-    if (auditEntry.file_class !== classifiedFile.classId && !(classifiedFile.path === "INDEX.md" && auditEntry.file_class === "index")) {
+    const auditFileClass = normalizeAuditFileClass(auditEntry);
+    if (auditFileClass !== classifiedFile.classId && !(classifiedFile.path === "INDEX.md" && auditFileClass === "index")) {
       errors.push(`spec generation audit file_class does not match canonical tree classification for ${classifiedFile.path}: expected ${classifiedFile.classId}`);
     }
   }

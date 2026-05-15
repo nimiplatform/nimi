@@ -245,7 +245,7 @@ test("validate-spec-tree accepts a canonical benchmark tree after direct materia
     const payload = JSON.parse(result.stdout);
     assert.equal(payload.validator, "validate-spec-tree");
     assert.equal(payload.ok, true);
-    assert.equal(payload.summary.profile, "minimal");
+    assert.equal(payload.summary.profile, "surface_taxonomy_v1");
     assert.equal(payload.summary.missingRequired.length, 0);
   });
 });

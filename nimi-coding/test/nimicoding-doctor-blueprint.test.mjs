@@ -121,7 +121,7 @@ test("doctor emits machine-readable JSON", async () => {
     assert.equal(payload.reconstructionRequired, true);
     assert.equal(payload.runtimeInstalled, false);
     assert.equal(payload.handoffReadiness.ok, true);
-    assert.equal(payload.specGenerationInputs.mode, "mixed");
+    assert.equal(payload.specGenerationInputs.mode, "class_filtered");
     assert.equal(payload.specGenerationInputs.benchmarkMode, "none");
     assert.equal(payload.benchmarkAuditReadiness.available, false);
     assert.equal(payload.benchmarkAuditReadiness.ready, false);
@@ -261,7 +261,7 @@ test("blueprint-audit reports missing canonical coverage when a blueprint root i
     assert.equal(payload.ok, false);
     assert.equal(payload.blueprintRoot, "spec");
     assert.equal(payload.canonicalRoot, ".nimi/spec");
-    assert.equal(payload.specGenerationInputs.acceptanceMode, "canonical_tree_validity_without_blueprint");
+    assert.equal(payload.specGenerationInputs.acceptanceMode, "placement_validity_before_generation");
     assert.ok(payload.inventory.missingDomains.includes("runtime"));
     assert.equal(payload.comparison.kernelMarkdown.missing, 1);
     assert.equal(payload.comparison.kernelTables.missing, 1);
@@ -307,7 +307,7 @@ test("blueprint-audit uses repo-local blueprint reference and can write a local 
     const payload = JSON.parse(auditResult.stdout);
     assert.equal(payload.ok, true);
     assert.equal(payload.blueprintRoot, "spec");
-    assert.equal(payload.specGenerationInputs.acceptanceMode, "canonical_tree_validity_without_blueprint");
+    assert.equal(payload.specGenerationInputs.acceptanceMode, "placement_validity_before_generation");
     assert.equal(payload.comparison.kernelMarkdown.missing, 0);
     assert.equal(payload.comparison.kernelTables.missing, 0);
     assert.equal(payload.inventory.indexPresent, true);
@@ -555,7 +555,7 @@ test("blueprint-audit accepts a mini benchmark fixture modeled on nimi/spec stru
     const payload = JSON.parse(auditResult.stdout);
     assert.equal(payload.ok, true);
     assert.equal(payload.blueprintRoot, "spec");
-    assert.equal(payload.specGenerationInputs.mode, "mixed");
+    assert.equal(payload.specGenerationInputs.mode, "class_filtered");
     assert.equal(payload.specGenerationInputs.acceptanceMode, "semantic_and_structural_parity_when_blueprint_exists");
     assert.equal(payload.comparison.kernelMarkdown.missing, 0);
     assert.equal(payload.comparison.kernelTables.missing, 0);
@@ -632,19 +632,21 @@ test("spec reconstruction handoff uses the mini benchmark fixture as a mixed-inp
     assert.equal(payload.skill.id, "spec_reconstruction");
     assert.equal(payload.generationContext.canonicalTargetRoot, ".nimi/spec");
     assert.deepEqual(payload.generationContext.codeRoots, ["src"]);
-    assert.deepEqual(payload.generationContext.docsRoots, ["docs"]);
+    assert.deepEqual(payload.generationContext.docsRoots, [".nimi/spec"]);
     assert.deepEqual(payload.generationContext.structureRoots, ["src", "docs"]);
     assert.deepEqual(payload.generationContext.humanNotePaths, [".nimi/local/notes/reconstruction-note.md"]);
     assert.equal(payload.generationContext.benchmarkBlueprintRoot, "spec");
     assert.equal(payload.generationContext.benchmarkMode, "repo_spec_blueprint");
     assert.equal(payload.generationContext.acceptanceMode, "semantic_and_structural_parity_when_blueprint_exists");
     assert.deepEqual(payload.generationContext.minimumGenerationSequence, [
-      ".nimi/spec/INDEX.md",
-      ".nimi/spec/project/kernel/index.md",
-      ".nimi/spec/project/kernel/core-rules.md",
-      ".nimi/spec/project/kernel/tables/rule-catalog.yaml",
+      "classify_inputs",
+      "validate_placement",
+      "write_product_authority",
+      "write_product_authority_tables",
+      "write_thin_guidance",
+      "write_local_generation_audit",
     ]);
-    assert.ok(payload.generationContext.skeletonRules.includes("generate_minimal_kernel_before_optional_guides_and_generated_views"));
+    assert.ok(payload.generationContext.skeletonRules.includes("generate_minimal_kernel_before_optional_guides"));
 
     const promptResult = await captureRunCli(["handoff", "--skill", "spec_reconstruction", "--prompt"]);
     assert.equal(promptResult.exitCode, 0);
@@ -654,11 +656,11 @@ test("spec reconstruction handoff uses the mini benchmark fixture as a mixed-inp
     );
     assert.match(promptText, /Benchmark blueprint root: spec/);
     assert.match(promptText, /Code roots: src/);
-    assert.match(promptText, /Docs roots: docs/);
+    assert.match(promptText, /Docs roots: \.nimi\/spec/);
     assert.match(promptText, /Human note paths: \.nimi\/local\/notes\/reconstruction-note\.md/);
     assert.match(promptText, /aim for semantic and structural parity/i);
     assert.match(promptText, /minimum generation sequence/i);
-    assert.match(promptText, /\.nimi\/spec\/project\/kernel\/core-rules\.md/);
+    assert.match(promptText, /write_product_authority_tables/);
   });
 });
 

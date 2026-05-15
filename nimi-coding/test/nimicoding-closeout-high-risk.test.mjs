@@ -305,6 +305,7 @@ test("closeout rejects failed spec reconstruction payloads that still carry a su
         summary: {
           generated_paths: [".nimi/spec/INDEX.md"],
           audit_ref: ".nimi/spec/_meta/spec-generation-audit.yaml",
+          placement_report_ref: ".nimi/local/state/spec-surface/current-inventory.json",
           coverage_summary: {
             complete_files: 1,
             partial_files: 0,
@@ -411,6 +412,7 @@ test("closeout imports an external JSON summary before writing local artifact", 
             ".nimi/spec/_meta/spec-generation-audit.yaml",
           ],
           audit_ref: ".nimi/spec/_meta/spec-generation-audit.yaml",
+          placement_report_ref: ".nimi/local/state/spec-surface/current-inventory.json",
           coverage_summary: {
             complete_files: 4,
             partial_files: 0,
@@ -477,6 +479,7 @@ test("closeout rejects imported spec reconstruction summaries that overstate aud
             ".nimi/spec/_meta/spec-generation-audit.yaml",
           ],
           audit_ref: ".nimi/spec/_meta/spec-generation-audit.yaml",
+          placement_report_ref: ".nimi/local/state/spec-surface/current-inventory.json",
           coverage_summary: {
             complete_files: 4,
             partial_files: 0,

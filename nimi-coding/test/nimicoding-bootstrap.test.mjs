@@ -181,9 +181,9 @@ test("start bootstraps the project, integrates entrypoints, and prepares spec re
     assert.match(bootstrapConfig, /initialized_by: "@nimiplatform\/nimi-coding"/);
     assert.match(bootstrapConfig, /bootstrap_contract: "nimicoding.bootstrap"/);
     assert.match(bootstrapConfig, /bootstrap_contract_version: 1/);
-    assert.match(specGenerationInputs, /mode: mixed/);
+    assert.match(specGenerationInputs, /mode: class_filtered/);
     assert.match(specGenerationInputs, /canonical_target_root: \.nimi\/spec/);
-    assert.match(specGenerationInputs, /benchmark_mode: none/);
+    assert.match(specGenerationInputs, /acceptance_mode: placement_validity_before_generation/);
     assert.doesNotMatch(coreYaml, /cli_runtime/);
     assert.match(topicLifecycleReport, /applicability_boundary:/);
     assert.match(topicLifecycleReport, /small_low_risk_changes_need_topic: false/);
@@ -213,7 +213,8 @@ test("start bootstraps the project, integrates entrypoints, and prepares spec re
     assert.match(productScope, /completed_surfaces:/);
     assert.match(productScope, /deferred_execution_surfaces:/);
     assert.match(productScope, /packet_bound_run_kernel/);
-    assert.match(specTreeModel, /canonical_root: \.nimi\/spec/);
+    assert.match(specTreeModel, /profile: surface_taxonomy_v1/);
+    assert.match(specTreeModel, /product_authority_root: \.nimi\/spec/);
     assert.match(commandGatingMatrix, /command_gating_matrix:/);
     assert.match(generateDriftChecklist, /generate_drift_migration_checklist:/);
     assert.match(governanceRoutingChecklist, /governance_routing_cutover_checklist:/);
@@ -296,13 +297,13 @@ test("start projects canonical spec meta contracts and checklists as valid yaml"
     const cutoverReadiness = await readYamlFile(path.join(projectRoot, ".nimi", "spec", "_meta", "spec-authority-cutover-readiness.yaml"));
     const impactedSurfaceMatrix = await readYamlFile(path.join(projectRoot, ".nimi", "spec", "_meta", "phase2-impacted-surface-matrix.yaml"));
 
-    assert.equal(specTreeModel.spec_tree_model.profile, "minimal");
-    assert.equal(specTreeModel.spec_tree_model.canonical_root, ".nimi/spec");
+    assert.equal(specTreeModel.spec_tree_model.profile, "surface_taxonomy_v1");
+    assert.equal(specTreeModel.spec_tree_model.product_authority_root, ".nimi/spec");
     assert.equal(specTreeModel.spec_tree_model.blueprint_source, undefined);
     assert.equal(bootstrapState.state.tree_state, "bootstrap_only");
     assert.equal(bootstrapState.state.authority_mode, "external_authority_active");
-    assert.equal(specGenerationInputs.spec_generation_inputs.mode, "mixed");
-    assert.equal(specGenerationInputs.spec_generation_inputs.benchmark_mode, "none");
+    assert.equal(specGenerationInputs.spec_generation_inputs.mode, "class_filtered");
+    assert.equal(specGenerationInputs.spec_generation_inputs.acceptance_mode, "placement_validity_before_generation");
     assert.ok(!bootstrapState.current_truth.admitted_files.includes(".nimi/methodology/spec-target-truth-profile.yaml"));
     assert.equal(productScope.canonical_spec_model.state_carrier_ref, ".nimi/spec/bootstrap-state.yaml");
     assert.equal(productScope.canonical_spec_model.phase_one_contracts[2], ".nimi/spec/_meta/spec-authority-cutover-readiness.yaml");

@@ -1,25 +1,46 @@
-version: 1
-contract_ref: .nimi/contracts/spec-generation-inputs.schema.yaml
+version: 2
+contract_ref: nimi-coding/contracts/spec-generation-inputs.schema.yaml
 spec_generation_inputs:
-  mode: mixed
+  mode: class_filtered
   canonical_target_root: .nimi/spec
-  code_roots: []
-  docs_roots:
-    - README.md
-  structure_roots:
-    - .
-  human_note_paths: []
-  benchmark_blueprint_root: null
-  benchmark_mode: none
-  acceptance_mode: canonical_tree_validity_without_blueprint
+  code_inputs: []
+  docs_inputs:
+    - root: .nimi/spec
+      class_filter: product_authority_only
+      allowed_surface_classes: [product_authority, product_authority_table, thin_guidance, host_projection_anchor, support_registry]
+      forbidden_surface_classes: [derived_view, spec_generation_state, audit_evidence_state, operational_local_artifact, host_package_overlay, candidate_roadmap, lifecycle_progress_state, methodology_authority]
+      owner: nimi_host
+      use_as_authority: true
+      projection_edge_ref: null
+  structure_inputs: []
+  topic_inputs:
+    - root: .nimi/topics
+      owner: topic_lifecycle
+      allowed_surface_classes: [lifecycle_progress_state, candidate_roadmap]
+      use_as_authority: false
+  local_inputs:
+    - root: .nimi/local
+      owner: local_execution
+      allowed_surface_classes: [derived_view, spec_generation_state, audit_evidence_state, operational_local_artifact, lifecycle_progress_state]
+      use_as_authority: false
+  forbidden_source_classes:
+    - derived_view
+    - spec_generation_state
+    - audit_evidence_state
+    - operational_local_artifact
+    - host_package_overlay
+    - candidate_roadmap
+    - lifecycle_progress_state
   generation_order:
-    - index
-    - kernel_markdown
-    - kernel_tables
-    - generated_views
+    - classify_inputs
+    - validate_placement
+    - product_authority
+    - product_authority_tables
     - thin_guides
+    - derived_views
+    - generation_audit
   inference_rules:
-    - infer_domains_from_available_source_materials_when_no_blueprint_exists
-    - separate_normative_kernel_from_generated_and_guidance_surfaces
-    - establish_kernel_markdown_before_thin_guides
-    - establish_kernel_tables_before_generated_views
+    - no_blanket_docs_roots
+    - no_generated_as_authority
+    - no_audit_or_lifecycle_state_as_authority
+  acceptance_mode: placement_validity_before_generation

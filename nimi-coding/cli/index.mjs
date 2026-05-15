@@ -14,12 +14,19 @@ import { runTopic } from "./commands/topic.mjs";
 import { runTopicRunnerCommand } from "./commands/topic-runner.mjs";
 import { runValidateAcceptance } from "./commands/validate-acceptance.mjs";
 import { runGenerateSpecDerivedDocs } from "./commands/generate-spec-derived-docs.mjs";
+import { runClassifySpecTree } from "./commands/classify-spec-tree.mjs";
 import { runValidateAiGovernance } from "./commands/validate-ai-governance.mjs";
+import { runValidateDomainAdmission } from "./commands/validate-domain-admission.mjs";
 import { runValidateExecutionPacket } from "./commands/validate-execution-packet.mjs";
+import { runValidateGuidanceBodies } from "./commands/validate-guidance-bodies.mjs";
 import { runValidateOrchestrationState } from "./commands/validate-orchestration-state.mjs";
+import { runValidatePlacement } from "./commands/validate-placement.mjs";
+import { runValidateProjectionEdges } from "./commands/validate-projection-edges.mjs";
 import { runValidateSpecGovernance } from "./commands/validate-spec-governance.mjs";
 import { runValidateSpecAudit } from "./commands/validate-spec-audit.mjs";
 import { runValidateSpecTree } from "./commands/validate-spec-tree.mjs";
+import { runValidateTableFamily } from "./commands/validate-table-family.mjs";
+import { runValidateTrackedOutputAdmission } from "./commands/validate-tracked-output-admission.mjs";
 import { runValidatePrompt } from "./commands/validate-prompt.mjs";
 import { runValidateWorkerOutput } from "./commands/validate-worker-output.mjs";
 import { helpText } from "./help.mjs";
@@ -46,6 +53,13 @@ const COMMANDS = {
   "validate-spec-governance": runValidateSpecGovernance,
   "validate-spec-audit": runValidateSpecAudit,
   "validate-spec-tree": runValidateSpecTree,
+  "classify-spec-tree": runClassifySpecTree,
+  "validate-placement": runValidatePlacement,
+  "validate-table-family": runValidateTableFamily,
+  "validate-projection-edges": runValidateProjectionEdges,
+  "validate-guidance-bodies": runValidateGuidanceBodies,
+  "validate-domain-admission": runValidateDomainAdmission,
+  "validate-tracked-output-admission": runValidateTrackedOutputAdmission,
   "generate-spec-derived-docs": runGenerateSpecDerivedDocs,
   "validate-ai-governance": runValidateAiGovernance,
   "validate-prompt": runValidatePrompt,
