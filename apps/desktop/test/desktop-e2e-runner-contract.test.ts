@@ -64,6 +64,7 @@ test('runtime-unavailable boot smoke targets the canonical desktop release strip
 test('offline recovery smoke targets Realm REST reachability, not runtime release readiness', () => {
   assert.equal(offlineRecoveryProfile.realmFixture?.restOnline, false);
   assert.equal(offlineRecoveryProfile.tauriFixture, undefined);
+  assert.match(offlineRecoverySpecSource, /clickByTestId\(E2E_IDS\.navTab\('contacts'\)\)/);
   assert.match(offlineRecoverySpecSource, /updateRealmRestOnline\(true\)/);
   assert.doesNotMatch(offlineRecoverySpecSource, /updateRuntimeBridgeStatus/);
   assert.match(realmFixtureServerSource, /reasonCode:\s*ReasonCode\.REALM_UNAVAILABLE/);

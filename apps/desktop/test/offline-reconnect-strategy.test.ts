@@ -139,7 +139,7 @@ describe('D-OFFLINE-004: reconnect backoff behavior', () => {
     assert.equal(timer.pendingCount(), 0);
   });
 
-  test('markCacheFallbackUsed forces realm reconnect scheduling even without pending recovery work', async () => {
+  test('rest outage schedules realm reconnect even without pending recovery work', async () => {
     coordinator.configureReconnectHandlers({
       hasPendingRealmRecoveryWork: async () => false,
       probeRealmReachability: async () => false,
@@ -147,11 +147,24 @@ describe('D-OFFLINE-004: reconnect backoff behavior', () => {
 
     coordinator.markRealmRestReachable(false);
     await flushAsyncWork();
-    assert.equal(timer.pendingCount(), 0);
+    assert.equal(timer.nextDelay(), 1000);
+  });
+
+  test('markCacheFallbackUsed forces realm reconnect scheduling when only cache fallback needs recovery', async () => {
+    coordinator.configureReconnectHandlers({
+      hasPendingRealmRecoveryWork: async () => false,
+      probeRealmReachability: async () => false,
+    });
+
+    coordinator.markRealmSocketReachable(false);
+    await flushAsyncWork();
+    assert.equal(timer.nextDelay(), 1000);
+    await timer.runNext();
+    assert.equal(timer.nextDelay(), 2000);
 
     coordinator.markCacheFallbackUsed();
     await flushAsyncWork();
-    assert.equal(timer.nextDelay(), 1000);
+    assert.equal(timer.pendingCount(), 1);
   });
 
   test('runtime reconnect backoff doubles on failure and resets after success', async () => {
