@@ -406,6 +406,66 @@ test('runtime agent memory adapter uses desktop E2E fixture status only after ru
   assert.deepEqual(fixtureStatusCalls, [{ agentId: LOCAL_AGENT_REF }]);
 });
 
+test('runtime agent memory adapter uses desktop E2E fixture status after runtime reports missing binding', async () => {
+  const { runtime } = createRuntimeMock();
+  runtime.memory.getBank = (async () => ({
+    bank: {
+      bankId: 'bank-agent-1',
+      locator: {
+        scope: MemoryBankScope.AGENT_CORE,
+        owner: {
+          oneofKind: 'agentCore',
+          agent: {
+            agentId: LOCAL_AGENT_REF,
+          },
+        },
+      },
+      embeddingProfile: null,
+    },
+  })) as never;
+  const fixtureStatusCalls: Array<Record<string, unknown>> = [];
+  const adapter = createRuntimeAgentMemoryAdapter({
+    getRuntime: () => runtime as never,
+    getSubjectUserId: () => 'user-1',
+    getMemoryEmbeddingConfigService: () => createMemoryEmbeddingServiceMock({
+      inspect: async () => ({
+        bindingIntentPresent: false,
+        bindingSourceKind: null,
+        resolutionState: 'missing',
+        resolvedProfileIdentity: null,
+        canonicalBankStatus: 'unbound',
+        blockedReasonCode: null,
+        operationReadiness: {
+          bindAllowed: false,
+          cutoverAllowed: false,
+        },
+      }),
+    }).service,
+    getAgentMemoryStandardFixtureStatus: async (payload) => {
+      fixtureStatusCalls.push(payload);
+      return {
+        available: true,
+        alreadyBound: false,
+        bank: {
+          bankId: 'bank-agent-1',
+          embeddingProfile: {
+            modelId: 'local/embed-alpha',
+          },
+        },
+      };
+    },
+    listLocalRuntimeAssets: async () => [],
+  });
+
+  const status = await adapter.getCanonicalBankStatus(LOCAL_AGENT_REF);
+
+  assert.deepEqual(status, {
+    mode: 'baseline',
+    bankId: 'bank-agent-1',
+  });
+  assert.deepEqual(fixtureStatusCalls, [{ agentId: LOCAL_AGENT_REF }]);
+});
+
 test('runtime agent memory adapter keeps compatibility queries working when canonical bank is baseline', async () => {
   const { runtime } = createRuntimeMock();
   runtime.memory.getBank = (async () => ({
