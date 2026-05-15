@@ -122,7 +122,7 @@ pnpm runtime:config:validate
 首次验证无需配置任何 provider 密钥。直接启动 runtime：
 
 ```bash
-pnpm runtime:serve
+pnpm dev:runtime
 ```
 
 新开一个终端：
