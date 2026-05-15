@@ -619,6 +619,46 @@ export const NEEDS_REVIEW_DOMAINS: readonly string[] = ${JSON.stringify(needsRev
   writeGen('knowledge-source-readiness.gen.ts', ts);
 }
 
+// ── dashboard-task-catalog ─────────────────────────────────
+
+function generateDashboardTaskCatalog() {
+  const data = readYaml('dashboard-task-catalog.yaml') as {
+    rows: Array<Record<string, unknown>>;
+  };
+
+  const ts = `
+export type DashboardTaskFamily = 'must-do' | 'maintain' | 'observe' | 'connect';
+export type DashboardTaskCadencePolicy = 'anchor' | 'interval' | 'windowed';
+export type DashboardTaskBiologicalAnchor = 'birthDayOfMonth' | 'none';
+export type DashboardTaskSlotPreference = 'weekend-heavy' | 'weekday-evening-light' | 'hard-time';
+export type DashboardTaskDispersionWindow = 'week-1' | 'week-2' | 'week-3' | 'week-4' | 'rolling';
+export type DashboardTaskDecayStrategy = 'low-disturbance-downgrade' | 'resurface-next-cycle';
+
+export interface DashboardTaskCatalogRow {
+  taskId: string;
+  family: DashboardTaskFamily;
+  ownerContract: string;
+  cadencePolicy: DashboardTaskCadencePolicy;
+  biologicalAnchor: DashboardTaskBiologicalAnchor;
+  slotPreference: DashboardTaskSlotPreference;
+  dispersionWindow: DashboardTaskDispersionWindow;
+  mutualExclusionGroup?: string;
+  displayWindowDays: number;
+  snoozeDefaultDays: number;
+  decayStrategy: DashboardTaskDecayStrategy;
+  metricIdRefs?: readonly string[];
+  captureProtocolIdRef?: string;
+  observationDimensionRef?: string;
+  microActionContentRef?: string;
+  featureId: string;
+}
+
+export const DASHBOARD_TASK_CATALOG: readonly DashboardTaskCatalogRow[] = ${JSON.stringify(data.rows, null, 2)} ;
+`;
+
+  writeGen('dashboard-task-catalog.gen.ts', ts);
+}
+
 // -- health-record authority -------------------------------------------------
 
 function generateHealthRecordAuthority() {
@@ -791,6 +831,7 @@ generateObservationFramework();
 generateGrowthStandards();
 generateNurtureModes();
 generateKnowledgeSourceReadiness();
+generateDashboardTaskCatalog();
 generateHealthRecordAuthority();
 generateKnowledgeAssetProjectionFingerprints();
 console.log('Done.');

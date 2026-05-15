@@ -31,6 +31,18 @@ export type { NurtureModeConfig, NurtureModeId } from './gen/nurture-modes.gen.j
 
 export { KNOWLEDGE_SOURCES, REVIEWED_DOMAINS, NEEDS_REVIEW_DOMAINS } from './gen/knowledge-source-readiness.gen.js';
 export type { KnowledgeSource, KnowledgeSourceStatus } from './gen/knowledge-source-readiness.gen.js';
+
+export { DASHBOARD_TASK_CATALOG } from './gen/dashboard-task-catalog.gen.js';
+export type {
+  DashboardTaskCatalogRow,
+  DashboardTaskFamily,
+  DashboardTaskCadencePolicy,
+  DashboardTaskBiologicalAnchor,
+  DashboardTaskSlotPreference,
+  DashboardTaskDispersionWindow,
+  DashboardTaskDecayStrategy,
+} from './gen/dashboard-task-catalog.gen.js';
+
 export { KNOWLEDGE_ASSET_PROJECTION_FINGERPRINTS } from './gen/knowledge-asset-fingerprints.gen.js';
 export type { KnowledgeAssetProjectionFingerprint } from './gen/knowledge-asset-fingerprints.gen.js';
 

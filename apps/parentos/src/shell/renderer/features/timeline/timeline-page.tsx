@@ -36,6 +36,7 @@ import { ReminderPanel } from './timeline-page-panels.js';
 import { HealthCaptureModal } from '../profile/health-capture-modal.js';
 import type { HealthCaptureIntent } from '../profile/health-capture-orchestrator.js';
 import { buildRecordDataCaptureIntent } from '../reminders/record-data-capture.js';
+import { DashboardTaskList, type DashboardTaskCaptureIntent } from './dashboard-task-list.js';
 
 export default function TimelinePage() {
   const { activeChildId, children: childList } = useAppStore();
@@ -47,6 +48,13 @@ export default function TimelinePage() {
   const [freqModalReminder, setFreqModalReminder] = useState<ActiveReminder | null>(null);
   const [captureIntent, setCaptureIntent] = useState<HealthCaptureIntent | null>(null);
   const [captureError, setCaptureError] = useState<string | null>(null);
+  // Wave-4 dashboard task proof: the typed `dashboard_task` intent is held
+  // here for downstream consumption. Wave-5 will translate it into the
+  // existing `HealthCaptureIntent` shape once PO-CAPT-005a admission lands
+  // on the TypeScript side; until then, this state proves the projection
+  // produces well-formed capture payloads (see
+  // `apps/parentos/spec/kernel/capture-orchestrator-contract.md#PO-CAPT-005a`).
+  const [dashboardTaskIntent, setDashboardTaskIntent] = useState<DashboardTaskCaptureIntent | null>(null);
   const autoGenTriggered = useRef(false);
 
   const repeatableRuleIds = useMemo(
@@ -232,6 +240,21 @@ export default function TimelinePage() {
           <ChildContextCard child={child} ageMonths={ageMonths} />
           <RecentChangesHeroCard items={homeVm.recentChanges} />
         </div>
+        <DashboardTaskList
+          today={localToday}
+          child={{ childId: child.childId, birthDate: child.birthDate }}
+          reminderAgenda={agenda}
+          customTodos={d.customTodos}
+          onDashboardTaskCapture={setDashboardTaskIntent}
+        />
+        {dashboardTaskIntent ? (
+          <div
+            data-testid="pending-dashboard-task-intent"
+            data-task-id={dashboardTaskIntent.dashboardTaskId}
+            data-protocol-id={dashboardTaskIntent.captureProtocolId}
+            style={{ display: 'none' }}
+          />
+        ) : null}
         <div className="grid auto-rows-min grid-cols-8 gap-6">
           <QuickLinksStrip ageMonths={ageMonths} />
           {/* Growth snapshot (left) + Sleep trend & Vision (right, stacked) */}
