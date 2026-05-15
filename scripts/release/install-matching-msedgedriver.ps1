@@ -3,12 +3,21 @@ $ErrorActionPreference = "Stop"
 function Resolve-EdgeRuntimeVersion {
   $programFiles = [Environment]::GetEnvironmentVariable("ProgramFiles")
   $programFilesX86 = [Environment]::GetEnvironmentVariable("ProgramFiles(x86)")
-  $candidates = @(
-    (Join-Path $programFilesX86 "Microsoft\EdgeWebView\Application\msedgewebview2.exe"),
-    (Join-Path $programFiles "Microsoft\EdgeWebView\Application\msedgewebview2.exe"),
+  $edgeWebViewRoots = @(
+    (Join-Path $programFilesX86 "Microsoft\EdgeWebView\Application"),
+    (Join-Path $programFiles "Microsoft\EdgeWebView\Application")
+  ) | Where-Object { $_ -and (Test-Path $_) }
+  $edgeWebViewCandidates = $edgeWebViewRoots | ForEach-Object {
+    Get-ChildItem -Path $_ -Recurse -Filter "msedgewebview2.exe" -ErrorAction SilentlyContinue
+  } | ForEach-Object { $_.FullName }
+  $edgeCandidates = @(
     (Join-Path $programFilesX86 "Microsoft\Edge\Application\msedge.exe"),
     (Join-Path $programFiles "Microsoft\Edge\Application\msedge.exe")
-  ) | Where-Object { $_ -and (Test-Path $_) }
+  )
+  $candidates = @()
+  $candidates += @($edgeWebViewCandidates)
+  $candidates += @($edgeCandidates)
+  $candidates = $candidates | Where-Object { $_ -and (Test-Path $_) }
 
   foreach ($candidate in $candidates) {
     $version = (Get-Item $candidate).VersionInfo.ProductVersion
@@ -29,7 +38,7 @@ if (-not $runnerTemp) {
 
 $driverRoot = Join-Path $runnerTemp "nimi-msedgedriver-$edgeVersion"
 $zipPath = Join-Path $driverRoot "edgedriver_win64.zip"
-$downloadUrl = "https://msedgedriver.azureedge.net/$edgeVersion/edgedriver_win64.zip"
+$downloadUrl = "https://msedgedriver.microsoft.com/$edgeVersion/edgedriver_win64.zip"
 
 if (Test-Path $driverRoot) {
   Remove-Item -Recurse -Force $driverRoot
