@@ -1,15 +1,15 @@
 // Wave 3 chunk 3-B — load-vrm-motion-preset-table tests.
 //
-// Real YAML round-trip via Vite ?raw → 4 wave_0 entries; placeholder
-// rejection on synthesized inputs (license/source TBD/candidate/empty);
-// duplicate id rejection; wave_0 admit regression marker.
+// Real YAML round-trip via Vite ?raw → admitted interchange entries;
+// placeholder rejection on synthesized inputs (license/source
+// TBD/candidate/empty); duplicate id rejection; admitted-id regression marker.
 
 import { afterEach, describe, expect, it } from 'vitest';
 import {
   __resetVrmMotionPresetTableForTests,
+  ADMITTED_INTERCHANGE_PRESET_IDS,
   loadVrmMotionPresetTable,
   normalizeVrmMotionPresetTable,
-  WAVE_0_ADMITTED_PRESET_IDS,
 } from './load-vrm-motion-preset-table.js';
 
 afterEach(() => {
@@ -17,17 +17,15 @@ afterEach(() => {
 });
 
 describe('loadVrmMotionPresetTable', () => {
-  it('parses the real spec YAML and returns at least the 4 wave_0 entries', () => {
+  it('parses the real spec YAML and returns the admitted interchange entry', () => {
     const table = loadVrmMotionPresetTable();
     expect(table).toBeDefined();
     expect(table.builtinDir).toBe('apps/avatar/assets/vrm-motion-presets');
-    // Wave_0 admit: exactly the 4 anchor ids while the 3 wave_3 entries
-    // remain commented out in the YAML. After chunk 3-D flips them in,
-    // this assertion relaxes to >= 4.
     const ids = table.presets.map((p) => p.id).sort();
-    for (const required of WAVE_0_ADMITTED_PRESET_IDS) {
-      expect(ids, `missing wave_0 admitted id "${required}"`).toContain(required);
+    for (const required of ADMITTED_INTERCHANGE_PRESET_IDS) {
+      expect(ids, `missing admitted interchange id "${required}"`).toContain(required);
     }
+    expect(ids).toEqual(['idle_subtle']);
   });
 
   it('every parsed entry has non-placeholder license + source', () => {
@@ -81,9 +79,9 @@ describe('normalizeVrmMotionPresetTable', () => {
   }
 
   function tableWith(extras: Array<Record<string, unknown>> = []): Record<string, unknown> {
-    // Always include the 4 wave_0 anchors so the wave_0 admit invariant
+    // Always include the admitted interchange anchor so that invariant
     // doesn't trigger on unrelated negative tests.
-    const anchors = WAVE_0_ADMITTED_PRESET_IDS.map((id, i) => ({
+    const anchors = ADMITTED_INTERCHANGE_PRESET_IDS.map((id, i) => ({
       id,
       file: `${id}.vrma`,
       loop: i === 0 || i === 1,
@@ -201,18 +199,16 @@ describe('normalizeVrmMotionPresetTable', () => {
     ).toThrow(/duplicate/);
   });
 
-  it('rejects when a wave_0 admitted id is missing', () => {
-    // Build a table with only 3 of the 4 anchors.
+  it('rejects when the admitted interchange id is missing', () => {
     expect(() =>
       normalizeVrmMotionPresetTable({
         builtin_dir: 'a/b',
         presets: [
-          { id: 'idle_subtle', file: 'a.vrma', loop: true, license: 'internal', source: 'x' },
           { id: 'listen_lean', file: 'b.vrma', loop: true, license: 'internal', source: 'x' },
           { id: 'nod_yes', file: 'c.vrma', loop: false, license: 'internal', source: 'x' },
         ],
       }),
-    ).toThrow(/wave_0 admitted preset/);
+    ).toThrow(/admitted interchange preset/);
   });
 
   it('rejects non-boolean loop', () => {
@@ -232,12 +228,12 @@ describe('normalizeVrmMotionPresetTable', () => {
     ).toThrow(/loop/);
   });
 
-  it('accepts the 4-anchor table without the 3 deferred wave_3 entries', () => {
+  it('accepts the one-entry interchange table without generated route ids', () => {
     const table = normalizeVrmMotionPresetTable(tableWith());
-    expect(table.presets).toHaveLength(4);
+    expect(table.presets).toHaveLength(1);
   });
 
-  it('accepts an extended 7-entry table (post-wave_3 flip preview)', () => {
+  it('accepts an extended interchange table when real metadata exists', () => {
     const table = normalizeVrmMotionPresetTable(
       tableWith([
         {
@@ -263,6 +259,6 @@ describe('normalizeVrmMotionPresetTable', () => {
         },
       ]),
     );
-    expect(table.presets).toHaveLength(7);
+    expect(table.presets).toHaveLength(4);
   });
 });

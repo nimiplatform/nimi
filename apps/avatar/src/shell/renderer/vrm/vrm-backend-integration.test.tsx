@@ -2,20 +2,20 @@
 //
 // Smoke-level integration verification of `createVrmBackendBranch` after
 // chunk 3-D rewires emote state + motion preset registry + lipsync driver
-// + projection adapter through the deferred projection shim. Heavier
+// + projection adapter through the queued projection adapter. Heavier
 // mock-scenario coverage lives in chunk 3-E.
 //
 // Verifies:
 //  1. The branch's projection queues calls before the surface registers
-//     the real adapter (deferred shim contract).
+//     the real adapter (queued adapter contract).
 //  2. branch.shutdown() invokes generated motion runtime dispose +
 //     audioConsumer.silent + tears down the surface without throwing.
-//  3. createDeferredProjection unit behavior: calls before setAdapter
+//  3. createQueuedProjection unit behavior: calls before setAdapter
 //     are queued in arrival order then replayed; subsequent calls
 //     dispatch directly; reset() detaches the adapter.
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { createDeferredProjection } from './vrm-backend.js';
+import { createQueuedProjection } from './vrm-backend.js';
 import type { BackendProjection } from '../carrier/backend-branch.js';
 
 beforeEach(() => {
@@ -26,7 +26,7 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-describe('createDeferredProjection (chunk 3-D)', () => {
+describe('createQueuedProjection (chunk 3-D)', () => {
   function makeRecorder(): BackendProjection & { calls: string[] } {
     const calls: string[] = [];
     return {
@@ -50,7 +50,7 @@ describe('createDeferredProjection (chunk 3-D)', () => {
   }
 
   it('queues calls before setAdapter, then replays in arrival order', () => {
-    const handle = createDeferredProjection();
+    const handle = createQueuedProjection();
     handle.projection.applyActivity({ name: 'happy', intensity: 0.8 });
     handle.projection.applyMotion({ routeId: 'idle_subtle' });
     handle.projection.applyEmotion({ current: 'happy', previous: null });
@@ -65,7 +65,7 @@ describe('createDeferredProjection (chunk 3-D)', () => {
   });
 
   it('after setAdapter, subsequent calls dispatch directly without queuing', () => {
-    const handle = createDeferredProjection();
+    const handle = createQueuedProjection();
     const recorder = makeRecorder();
     handle.setAdapter(recorder);
     handle.projection.applyExpression({ name: 'aa', weight: 0.5 });
@@ -74,7 +74,7 @@ describe('createDeferredProjection (chunk 3-D)', () => {
   });
 
   it('reset() detaches the adapter so subsequent calls re-queue', () => {
-    const handle = createDeferredProjection();
+    const handle = createQueuedProjection();
     const first = makeRecorder();
     handle.setAdapter(first);
     handle.projection.applyMotion({ routeId: 'idle_subtle' });
@@ -122,7 +122,7 @@ describe('createVrmBackendBranch (chunk 3-D wiring)', () => {
       }),
     );
 
-    // projection is the deferred shim — calls before the surface mounts
+    // projection is the queued adapter — calls before the surface mounts
     // are queued; we just verify they don't throw at this point.
     expect(() =>
       handle.branch.projection.applyActivity({ name: 'idle', intensity: null }),

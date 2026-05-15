@@ -3,8 +3,8 @@
 > **Status**: Wave 0 admit (topic `2026-04-30-avatar-vrm-backend-branch`,
 > design-04 §"VRM Motion Preset Registry" + design-08 §"资产源决策").
 > **Owner**: avatar app authority.
-> **Audience**: Internal asset author producing the 4 wave_0 internal
-> motion presets and the 3 wave_3 external presets.
+> **Audience**: Internal asset author producing optional future built-in
+> interchange `.vrma` presets.
 
 This document is the canonical author pipeline for the `.vrma` motion preset
 assets shipped under `apps/avatar/assets/vrm-motion-presets/`. It targets
@@ -19,32 +19,30 @@ loop-safe, low-drift skeletal animation that loads via
 | Blender | 4.x (LTS recommended) | Animation authoring |
 | UniVRM Blender Add-on | 2.x | `.vrm` import + `.vrma` export menu |
 | VRoid Studio (optional) | latest | Source character for rigging if not authoring from scratch |
-| Reference VRM file | any wave_0 admitted sample | Exporter rig target (UniVRM exports `.vrma` against a humanoid skeleton) |
+| Reference VRM file | any admitted VRM sample | Exporter rig target (UniVRM exports `.vrma` against a humanoid skeleton) |
 
 `@pixiv/three-vrm-animation` is **not** a Blender plugin — it is the runtime
 loader. Authoring happens entirely in Blender; the runtime reads the
 exported `.vrma` (a glTF binary with `VRMC_vrm_animation` extension).
 
-## Wave 0 Internal Presets
+## Current Built-In Preset
 
-The 4 wave_0 admit entries (per `vrm-motion-presets.yaml`):
+The current built-in interchange registry contains one physical preset:
 
 | Preset id | Loop | Duration | Description |
 | --- | --- | --- | --- |
 | `idle_subtle` | yes | ~3 s | Subtle breathing + micro head sway; primary idle baseline |
-| `listen_lean` | yes | ~3 s | Forward lean, head slight upward tilt; receiving input posture |
-| `nod_yes` | no | ~1.2 s | Two affirmative head nods |
-| `shake_no` | no | ~1.2 s | Two negative head shakes |
 
-Wave 3 admits 3 additional external entries
-(`greet_wave / wave_hello / think_chin_touch`) once their license + source
-fields are locked. Wave 3 author flow follows the same steps below.
+Runtime generated motion routes (`listen_lean`, `nod_yes`, `shake_no`,
+`greet_wave`) are governed by `generated-motion-routes.yaml` and
+`generated-motion-provider-contract.md`; they are not required physical
+`.vrma` assets.
 
 ## Author Pipeline (Blender)
 
 1. **Import the reference VRM**
    - File → Import → VRM (UniVRM)
-   - Select any wave_0 admitted sample VRM (or a VRoid Studio export)
+   - Select any admitted sample VRM (or a VRoid Studio export)
    - Confirm the humanoid armature shows under Scene Outliner
 
 2. **Create a new Action**
@@ -135,14 +133,16 @@ are loaded by `vrm-motion-preset-registry.ts` from the model package, not
 from `apps/avatar/assets/`. Override files MUST reference an admitted
 preset id; unknown ids are rejected at registry load.
 
-## Wave 0 PoC Gate
+## Built-In Interchange Asset Gate
 
-Wave 0 close gate requires:
+The current built-in interchange registry requires:
 
 - `apps/avatar/assets/vrm-motion-presets/idle_subtle.vrma` physically exists
 - `loadVrmAnimation` PASSes against it (unit or manual verify)
 
-The other 3 wave_0 admit entries (`listen_lean / nod_yes / shake_no`) admit
-their **registry record** at wave_0 with the asset files landing alongside
-the wave_3 author cycle. Wave_3 close gate then enforces all 7 presets
-physically exist and load.
+Topic `2026-05-15-avatar-vrm-deferral-and-authority-reconciliation` wave 2
+hard-cuts the previous unbacked registry rows. `listen_lean`, `nod_yes`,
+`shake_no`, and `greet_wave` are runtime generated-motion route ids, not
+required built-in `.vrma` files. Future built-in interchange presets may use
+this authoring process, but they must add real files, concrete license/source
+metadata, tests, and topic evidence in the same admission packet.

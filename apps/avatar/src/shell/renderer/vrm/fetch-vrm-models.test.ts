@@ -79,6 +79,32 @@ describe('VRM_SAMPLE_DEFINITIONS', () => {
     expect(def.license).toBe('MIT');
     expect(def.expectedMinBytes).toBeGreaterThan(0);
   });
+
+  it('declares the admitted VRoid CC0 hair samples with concrete raw source URLs', () => {
+    const female = VRM_SAMPLE_DEFINITIONS['vroid-hair-sample-female-cc0'];
+    const male = VRM_SAMPLE_DEFINITIONS['vroid-hair-sample-male-cc0'];
+
+    expect(female).toMatchObject({
+      filename: 'HairSample_Female.vrm',
+      license: 'CC0-1.0',
+    });
+    expect(male).toMatchObject({
+      filename: 'HairSample_Male.vrm',
+      license: 'CC0-1.0',
+    });
+    expect(female.sourceUrl).toContain('raw.githubusercontent.com/madjin/vrm-samples');
+    expect(male.sourceUrl).toContain('raw.githubusercontent.com/madjin/vrm-samples');
+    expect(female.expectedMinBytes).toBeGreaterThan(16_000_000);
+    expect(male.expectedMinBytes).toBeGreaterThan(17_000_000);
+  });
+
+  it('keeps fetcher sample ids aligned with the admitted sample catalog', () => {
+    expect(Object.keys(VRM_SAMPLE_DEFINITIONS).sort()).toEqual([
+      'vrm1-constraint-twist',
+      'vroid-hair-sample-female-cc0',
+      'vroid-hair-sample-male-cc0',
+    ]);
+  });
 });
 
 describe('resolveSamplePath', () => {
