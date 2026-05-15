@@ -30,6 +30,12 @@
 - The token → primitive → generation → gate pipeline is unchanged.
 - Consumer import path: `@nimiplatform/nimi-kit/ui`.
 - Generation pipeline output: `kit/ui/src/generated/`.
+- `ui` owns reusable primitive families and default visual behavior only. It
+  must not absorb app product composition, information architecture, route
+  placement, data schemas, or app-local consumption inventories.
+- UI reference-card taxonomy may identify missing primitive families, but a
+  missing family is only a gap-audit item until `tables/nimi-ui-primitives.yaml`,
+  `kit/ui` implementation, tests, and generated docs are updated together.
 
 ## P-KIT-020 — Auth Sub-Module
 

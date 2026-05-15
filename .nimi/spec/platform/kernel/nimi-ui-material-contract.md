@@ -21,6 +21,11 @@ The 5-tier taxonomy admitted under `P-DESIGN-022` is the single material
 authority for all governed surfaces in the repo. No app, mod, or feature
 module may author a parallel material axis.
 
+UI Card v2.1 surface labels map to this material taxonomy only as semantic
+roles: app background, regular glass card, elevated glass card, navigation
+surface, floating panel, and modal shell. They do not introduce new material
+tiers and do not provide canonical blur, opacity, border, or shadow values.
+
 **Allowed tiers (in ascending opacity / blur intensity order):**
 
 | Tier | Background token | Border token | Backdrop blur |

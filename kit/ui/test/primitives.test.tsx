@@ -4,18 +4,29 @@ import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, expect, test } from 'vitest';
 import {
   Button,
+  Checkbox,
+  ConfirmDialog,
   Dialog,
   DialogBody,
   DialogContent,
   DialogFooter,
   DialogHeader,
+  EmptyState,
+  FieldShell,
   IconButton,
+  InlineAlert,
+  LoadingSkeleton,
   NimiThemeProvider,
+  NimiTabs,
+  NimiText,
+  NumberStepper,
   OverlayShell,
   Popover,
   PopoverContent,
+  ProgressIndicator,
   SearchField,
   SelectField,
+  SegmentedControl,
   SidebarAffordanceBadge,
   SidebarAffordanceChevron,
   SidebarAffordanceStatusDot,
@@ -30,9 +41,13 @@ import {
   SidebarShell,
   StatusBadge,
   Surface,
+  Toggle,
   Tooltip,
   TooltipProvider,
+  ActionMenu,
+  Slider,
   cn,
+  downgradeSurfaceMaterial,
 } from '../src/index.js';
 
 (
@@ -121,15 +136,15 @@ test('shared primitives render sidebar structure', () => {
 test('surface, button, field, and status primitives render', () => {
   const html = renderToStaticMarkup(
     <div>
-      <Surface tone="card" elevation="floating" interactive active>card</Surface>
+      <Surface tone="card" elevation="floating" material="glass-thick" transparency="reduced" interactive active>card</Surface>
       <SettingsCard>settings-card</SettingsCard>
       <SettingsPageShell contentClassName="px-2 py-2">
         <SettingsSectionTitle description="Shared settings section">Preferences</SettingsSectionTitle>
       </SettingsPageShell>
-      <Button tone="primary" leadingIcon={<span />} trailingIcon={<span />}>save</Button>
-      <IconButton tone="ghost" size="sm" icon={<span />} aria-label="Icon action" />
+      <Button tone="primary" loading active leadingIcon={<span />} trailingIcon={<span />}>save</Button>
+      <IconButton tone="ghost" size="sm" active icon={<span />} aria-label="Icon action" />
       <SearchField placeholder="Search" />
-      <StatusBadge tone="success">ready</StatusBadge>
+      <StatusBadge tone="success" shape="dot">ready</StatusBadge>
     </div>,
   );
 
@@ -145,9 +160,13 @@ test('surface, button, field, and status primitives render', () => {
   expect(hasClass(html, 'nimi-surface--elevation-floating')).toBe(true);
   expect(hasClass(html, 'nimi-surface--interactive')).toBe(true);
   expect(hasClass(html, 'nimi-surface--active')).toBe(true);
+  expect(hasClass(html, 'nimi-surface--transparency-reduced')).toBe(true);
+  expect(hasClass(html, 'nimi-material-glass-regular')).toBe(true);
   expect(hasClass(html, 'nimi-action')).toBe(true);
   expect(hasClass(html, 'nimi-action--primary')).toBe(true);
   expect(hasClass(html, 'nimi-action--ghost')).toBe(true);
+  expect(hasClass(html, 'nimi-action--active')).toBe(true);
+  expect(hasClass(html, 'nimi-action--loading')).toBe(true);
   expect(hasClass(html, 'nimi-action--size-sm')).toBe(true);
   expect(hasClass(html, 'nimi-action--size-md')).toBe(true);
   expect(hasClass(html, 'nimi-action--icon')).toBe(true);
@@ -156,6 +175,89 @@ test('surface, button, field, and status primitives render', () => {
   expect(hasClass(html, 'nimi-action__leading')).toBe(true);
   expect(hasClass(html, 'nimi-action__trailing')).toBe(true);
   expect(hasClass(html, 'nimi-action__icon')).toBe(true);
+  expect(hasClass(html, 'nimi-action__spinner')).toBe(true);
+  expect(hasClass(html, 'nimi-status-badge')).toBe(true);
+  expect(hasClass(html, 'nimi-status-badge--success')).toBe(true);
+  expect(hasClass(html, 'nimi-status-badge--dot')).toBe(true);
+  expect(hasClass(html, 'nimi-status-badge__dot')).toBe(true);
+});
+
+test('shared control and feedback primitives render canonical slots', () => {
+  const html = renderToStaticMarkup(
+    <div>
+      <NimiText role="page-title">AI Runtime</NimiText>
+      <NimiText role="section-title">Runtime Load</NimiText>
+      <NimiText role="card-title">System Resources</NimiText>
+      <NimiText role="helper">Captured metadata</NimiText>
+      <SegmentedControl
+        ariaLabel="View"
+        value="grid"
+        onValueChange={() => {}}
+        items={[
+          { value: 'grid', label: 'Grid', icon: <span /> },
+          { value: 'list', label: 'List' },
+        ]}
+      />
+      <NimiTabs
+        ariaLabel="Profile tabs"
+        value="posts"
+        onValueChange={() => {}}
+        items={[
+          { value: 'posts', label: 'Posts' },
+          { value: 'likes', label: 'Likes' },
+        ]}
+      />
+      <Checkbox defaultChecked label="Checked" />
+      <Slider defaultValue={60} showValue />
+      <NumberStepper value={12} ariaLabel="Count" onValueChange={() => {}} />
+      <ProgressIndicator value={62} showValue />
+      <InlineAlert tone="success" icon={<span />} action={<button type="button">Dismiss</button>}>Saved</InlineAlert>
+      <EmptyState title="No data yet" description="Create something" action={<Button tone="primary">Create</Button>} />
+      <LoadingSkeleton lines={3} />
+      <ActionMenu
+        ariaLabel="Actions"
+        items={[
+          { id: 'edit', label: 'Edit', icon: <span /> },
+          { id: 'delete', label: 'Delete', tone: 'danger' },
+        ]}
+      />
+      <FieldShell label="Name" description="Required" message="Use a stable name" messageTone="danger">
+        <SearchField placeholder="Search" />
+      </FieldShell>
+    </div>,
+  );
+
+  expect(hasClass(html, 'nimi-text')).toBe(true);
+  expect(hasClass(html, 'nimi-text--page-title')).toBe(true);
+  expect(hasClass(html, 'nimi-text--section-title')).toBe(true);
+  expect(hasClass(html, 'nimi-text--card-title')).toBe(true);
+  expect(hasClass(html, 'nimi-text--helper')).toBe(true);
+  expect(hasClass(html, 'nimi-segmented-control')).toBe(true);
+  expect(hasClass(html, 'nimi-segmented-control__item')).toBe(true);
+  expect(hasClass(html, 'nimi-segmented-control__item--selected')).toBe(true);
+  expect(hasClass(html, 'nimi-tabs')).toBe(true);
+  expect(hasClass(html, 'nimi-tabs__tab--active')).toBe(true);
+  expect(hasClass(html, 'nimi-checkbox')).toBe(true);
+  expect(hasClass(html, 'nimi-checkbox__box')).toBe(true);
+  expect(hasClass(html, 'nimi-slider')).toBe(true);
+  expect(hasClass(html, 'nimi-number-stepper')).toBe(true);
+  expect(hasClass(html, 'nimi-progress')).toBe(true);
+  expect(hasClass(html, 'nimi-inline-alert')).toBe(true);
+  expect(hasClass(html, 'nimi-inline-alert--success')).toBe(true);
+  expect(hasClass(html, 'nimi-empty-state')).toBe(true);
+  expect(hasClass(html, 'nimi-skeleton')).toBe(true);
+  expect(hasClass(html, 'nimi-action-menu')).toBe(true);
+  expect(hasClass(html, 'nimi-action-menu__item--danger')).toBe(true);
+  expect(hasClass(html, 'nimi-field-shell')).toBe(true);
+  expect(html).toMatch(/aria-describedby/);
+});
+
+test('surface material transparency downgrade is deterministic', () => {
+  expect(downgradeSurfaceMaterial('glass-chrome', 'reduced')).toBe('glass-thick');
+  expect(downgradeSurfaceMaterial('glass-thick', 'reduced')).toBe('glass-regular');
+  expect(downgradeSurfaceMaterial('glass-regular', 'reduced')).toBe('glass-thin');
+  expect(downgradeSurfaceMaterial('glass-thin', 'reduced')).toBe('glass-thin');
+  expect(downgradeSurfaceMaterial('glass-chrome', 'solid')).toBe('solid');
 });
 
 test('overlay primitives emit canonical overlay slots', async () => {
@@ -217,14 +319,87 @@ test('select field ignores empty option values reserved by Radix', () => {
   )).not.toThrow();
 });
 
-test('theme provider renders children', () => {
+test('toggle primitive renders canonical switch slots and states', () => {
   const html = renderToStaticMarkup(
-    <NimiThemeProvider accentPack="nimi-accent" defaultScheme="dark">
-      <Surface tone="panel">theme</Surface>
-    </NimiThemeProvider>,
+    <div>
+      <Toggle checked onChange={() => {}} />
+      <Toggle checked={false} onChange={() => {}} disabled />
+    </div>,
   );
 
-  expect(html).toMatch(/theme/);
+  expect(hasClass(html, 'nimi-toggle')).toBe(true);
+  expect(hasClass(html, 'nimi-toggle__thumb')).toBe(true);
+  expect(html).toMatch(/data-state="checked"/);
+  expect(html).toMatch(/data-state="unchecked"/);
+  expect(html).toMatch(/disabled=""/);
+});
+
+test('confirm dialog uses governed overlay and action primitives', async () => {
+  container = document.createElement('div');
+  document.body.appendChild(container);
+  root = createRoot(container);
+
+  await act(async () => {
+    root?.render(
+      <ConfirmDialog
+        open
+        title="Delete this world?"
+        message="This action cannot be undone."
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        pending
+        pendingLabel="Deleting"
+        onConfirm={() => {}}
+        onClose={() => {}}
+      />,
+    );
+    await flush();
+  });
+
+  const html = document.body.innerHTML;
+  expect(html).toMatch(/Delete this world/);
+  expect(html).toMatch(/This action cannot be undone/);
+  expect(html).toMatch(/Deleting/);
+  expect(hasClass(html, 'nimi-overlay-backdrop')).toBe(true);
+  expect(hasClass(html, 'nimi-overlay-panel--dialog')).toBe(true);
+  expect(hasClass(html, 'nimi-overlay-title')).toBe(true);
+  expect(hasClass(html, 'nimi-overlay-footer')).toBe(true);
+  expect(hasClass(html, 'nimi-action--danger')).toBe(true);
+});
+
+test('theme provider applies semantic accent packs without app truth', async () => {
+  container = document.createElement('div');
+  document.body.appendChild(container);
+  root = createRoot(container);
+
+  await act(async () => {
+    root?.render(
+      <NimiThemeProvider accentPack="nimi-accent" defaultScheme="dark">
+        <Surface tone="panel">theme</Surface>
+      </NimiThemeProvider>,
+    );
+    await flush();
+  });
+
+  expect(document.documentElement.dataset.nimiScheme).toBe('dark');
+  expect(document.documentElement.dataset.nimiAccent).toBe('nimi-accent');
+  expect(document.documentElement.classList.contains('dark')).toBe(true);
+  expect(document.documentElement.classList.contains('nimi-theme-accent--nimi-accent')).toBe(true);
+
+  await act(async () => {
+    root?.render(
+      <NimiThemeProvider accentPack="forge-accent" scheme="light">
+        <Surface tone="panel">theme</Surface>
+      </NimiThemeProvider>,
+    );
+    await flush();
+  });
+
+  expect(document.documentElement.dataset.nimiScheme).toBe('light');
+  expect(document.documentElement.dataset.nimiAccent).toBe('forge-accent');
+  expect(document.documentElement.classList.contains('dark')).toBe(false);
+  expect(document.documentElement.classList.contains('nimi-theme-accent--forge-accent')).toBe(true);
+  expect(document.documentElement.classList.contains('nimi-theme-accent--nimi-accent')).toBe(false);
 });
 
 test('cn utility merges classes correctly', () => {

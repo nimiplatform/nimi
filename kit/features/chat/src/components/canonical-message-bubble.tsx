@@ -1,8 +1,6 @@
-import { memo, useCallback, useEffect, useState, type CSSProperties, type ReactNode } from 'react';
+import { Component, Suspense, lazy, memo, useCallback, useEffect, useState, type CSSProperties, type ReactNode } from 'react';
 import { Dialog, DialogContent, DialogTitle, IconButton, cn } from '@nimiplatform/nimi-kit/ui';
 import type { ConversationCanonicalMessage } from '../types.js';
-import { ChatMarkdownRenderer } from './chat-markdown-renderer.js';
-import { RpContentRenderer } from './rp-content-renderer.js';
 import { hasRpContent } from '../utils/rp-content-parser.js';
 
 export type CanonicalBubbleDisplayContext = 'transcript' | 'stage';
@@ -10,6 +8,89 @@ export type CanonicalBubbleDisplayContext = 'transcript' | 'stage';
 type StageMediaPreviewKind = 'image' | 'video' | 'image-pending' | 'video-pending';
 
 type BubbleShape = { className: string; style: CSSProperties };
+
+const ChatMarkdownRenderer = lazy(async () => {
+  try {
+    const mod = await import('./chat-markdown-renderer.js');
+    return { default: mod.ChatMarkdownRenderer };
+  } catch (error) {
+    throw createLazyImportError('canonical:markdown-renderer', error);
+  }
+});
+
+const RpContentRenderer = lazy(async () => {
+  try {
+    const mod = await import('./rp-content-renderer.js');
+    return { default: mod.RpContentRenderer };
+  } catch (error) {
+    throw createLazyImportError('canonical:rp-content-renderer', error);
+  }
+});
+
+function createLazyImportError(label: string, error: unknown): Error {
+  const reason = error instanceof Error ? error.message : String(error || 'unknown import error');
+  const wrapped = new Error(`${label}: ${reason}`);
+  wrapped.name = 'LazyImportError';
+  wrapped.cause = error;
+  return wrapped;
+}
+
+function PlainTextMessageContent({ content }: { content: string }) {
+  return <p className="my-2 whitespace-pre-wrap text-sm leading-[1.7] text-gray-900">{content}</p>;
+}
+
+type LazyMessageContentBoundaryProps = {
+  children: ReactNode;
+  fallback: ReactNode;
+  resetKey: string;
+};
+
+type LazyMessageContentBoundaryState = {
+  failed: boolean;
+};
+
+class LazyMessageContentBoundary extends Component<LazyMessageContentBoundaryProps, LazyMessageContentBoundaryState> {
+  constructor(props: LazyMessageContentBoundaryProps) {
+    super(props);
+    this.state = { failed: false };
+  }
+
+  static getDerivedStateFromError(): LazyMessageContentBoundaryState {
+    return { failed: true };
+  }
+
+  override componentDidUpdate(prevProps: LazyMessageContentBoundaryProps): void {
+    if (prevProps.resetKey !== this.props.resetKey && this.state.failed) {
+      this.setState({ failed: false });
+    }
+  }
+
+  override render() {
+    return this.state.failed ? this.props.fallback : this.props.children;
+  }
+}
+
+function MarkdownMessageContent({ content }: { content: string }) {
+  const fallback = <PlainTextMessageContent content={content} />;
+  return (
+    <LazyMessageContentBoundary resetKey={`markdown:${content}`} fallback={fallback}>
+      <Suspense fallback={fallback}>
+        <ChatMarkdownRenderer content={content} appearance="canonical" />
+      </Suspense>
+    </LazyMessageContentBoundary>
+  );
+}
+
+function RpMessageContent({ content }: { content: string }) {
+  const fallback = <PlainTextMessageContent content={content} />;
+  return (
+    <LazyMessageContentBoundary resetKey={`rp:${content}`} fallback={fallback}>
+      <Suspense fallback={fallback}>
+        <RpContentRenderer content={content} appearance="canonical" />
+      </Suspense>
+    </LazyMessageContentBoundary>
+  );
+}
 
 function bubbleShapeFor(role: ConversationCanonicalMessage['role'], position: CanonicalMessageBubbleProps['position']): BubbleShape {
   const R = 22; // large corner radius
@@ -353,13 +434,13 @@ export const CanonicalMessageBubble = memo(function CanonicalMessageBubble({
         )
       ) : isStreaming ? (
         <div className={`space-y-1 ${message.text ? '' : 'italic opacity-70'}`}>
-          {message.text ? <ChatMarkdownRenderer content={message.text} appearance="canonical" /> : 'Streaming…'}
+          {message.text ? <MarkdownMessageContent content={message.text} /> : 'Streaming…'}
           <span className="inline-block animate-pulse text-emerald-600">|</span>
         </div>
       ) : !disableRpContent && hasRpContent(message.text) ? (
-        <RpContentRenderer content={message.text} appearance="canonical" />
+        <RpMessageContent content={message.text} />
       ) : (
-        <ChatMarkdownRenderer content={message.text} appearance="canonical" />
+        <MarkdownMessageContent content={message.text} />
       )}
       {isVoice && isVoiceTranscriptVisible && transcriptText ? (
         <div className="mt-2 border-t border-gray-200/30 pt-2 text-xs opacity-80">

@@ -36,6 +36,8 @@ type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   fullWidth?: boolean;
   leadingIcon?: ReactNode;
   trailingIcon?: ReactNode;
+  loading?: boolean;
+  active?: boolean;
   asChild?: boolean;
 };
 
@@ -43,6 +45,7 @@ type IconButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   tone?: ActionTone;
   size?: ActionSize;
   icon: ReactNode;
+  active?: boolean;
   asChild?: boolean;
 };
 
@@ -53,23 +56,37 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
     fullWidth = false,
     leadingIcon,
     trailingIcon,
+    loading = false,
+    active = false,
     asChild = false,
     className,
     children,
     type = 'button',
+    disabled,
     ...rest
   },
   ref,
 ) {
   const Comp = asChild ? Slot : 'button';
+  const isDisabled = disabled || loading;
   return (
     <Comp
       ref={ref}
       type={asChild ? undefined : type}
-      className={cn(buttonVariants({ tone, size }), fullWidth && 'w-full', className)}
+      aria-busy={loading || undefined}
+      data-active={active || undefined}
+      disabled={asChild ? undefined : isDisabled}
+      className={cn(
+        buttonVariants({ tone, size }),
+        active && 'nimi-action--active bg-[var(--nimi-surface-active)]',
+        loading && 'nimi-action--loading cursor-wait',
+        fullWidth && 'w-full',
+        className,
+      )}
       {...rest}
     >
       {leadingIcon ? <span className="nimi-action__leading inline-flex shrink-0 items-center justify-center">{leadingIcon}</span> : null}
+      {loading ? <span className="nimi-action__spinner inline-block h-3.5 w-3.5 shrink-0 rounded-full border-2 border-current border-r-transparent" aria-hidden="true" /> : null}
       <span className="inline-flex min-w-0 items-center justify-center gap-2 overflow-hidden text-ellipsis whitespace-nowrap">{children}</span>
       {trailingIcon ? <span className="nimi-action__trailing inline-flex shrink-0 items-center justify-center">{trailingIcon}</span> : null}
     </Comp>
@@ -81,6 +98,7 @@ export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(functio
     tone = 'ghost',
     size = 'md',
     icon,
+    active = false,
     asChild = false,
     className,
     type = 'button',
@@ -96,6 +114,7 @@ export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(functio
       className={cn(
         buttonVariants({ tone, size }),
         'nimi-action--icon aspect-square px-0',
+        active && 'nimi-action--active bg-[var(--nimi-surface-active)]',
         className,
       )}
       {...rest}

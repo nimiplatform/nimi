@@ -5,7 +5,7 @@
 
 Contract: `GROUP-AGENT-PARTICIPATION-CONTRACT-001`
 Domain: `chat`
-Version: `2026-05-13`
+Version: `2026-05-15`
 
 Rules: 0
 

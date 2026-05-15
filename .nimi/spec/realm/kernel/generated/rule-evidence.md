@@ -7,7 +7,7 @@ Version: `2026-04-23`
 Owner: `@team`
 
 Profiles: 14
-Rules mapped: 107
+Rules mapped: 111
 
 | Rule ID | Domain | OpenAPI | Prisma | Services | Tests |
 | --- | --- | --- | --- | --- | --- |
@@ -68,6 +68,10 @@ Rules mapped: 107
 | R-CHAT-014 | chat | 25 | 3 | 4 | 4 |
 | R-CHAT-015 | chat | 25 | 3 | 4 | 4 |
 | R-CHAT-016 | chat | 25 | 3 | 4 | 4 |
+| R-CHAT-017 | chat | 25 | 3 | 4 | 4 |
+| R-CHAT-018 | chat | 25 | 3 | 4 | 4 |
+| R-CHAT-019 | chat | 25 | 3 | 4 | 4 |
+| R-CHAT-020 | chat | 25 | 3 | 4 | 4 |
 | R-BIND-001 | binding | 4 | 1 | 3 | 3 |
 | R-BIND-002 | binding | 4 | 1 | 3 | 3 |
 | R-BIND-003 | binding | 4 | 1 | 3 | 3 |

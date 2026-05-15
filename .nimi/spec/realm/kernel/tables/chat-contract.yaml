@@ -1,7 +1,7 @@
 contract_id: CHAT-CONTRACT-001
 domain: chat
 status: ACTIVE
-version: 2026-05-13
+version: 2026-05-15
 owner: '@team'
 sources:
   human_spec: ../chat-contract.md
@@ -77,7 +77,23 @@ rules:
   - rule_id: R-CHAT-016
     level: must
     title: realm-agent-slot-id-is-durable-binding-identity
-    statement: "realmGroupAgentSlotId is the durable Realm identity for a local Agent participation binding inside a specific GROUP thread, distinct from the Realm Agent source identity and human membership identity; executable local Agent reference is localAgentRef = ownerUserId + realmAgentId, and commit must validate the same active realmGroupAgentSlotId, target chatId, and localAgentRef because realmAgentId alone is not a valid executable local Agent or group slot reference."
+    statement: "realmGroupAgentSlotId is the durable Realm identity for a local Agent participation binding inside a specific GROUP thread, distinct from the Realm Agent source identity and human membership identity; executable local Agent reference is localAgentRef = local-agent:${ownerUserId}:${realmAgentId}, and commit must validate the same active realmGroupAgentSlotId, target chatId, and localAgentRef because realmAgentId alone is not a valid executable local Agent or group slot reference."
+  - rule_id: R-CHAT-017
+    level: must
+    title: realm-agent-and-local-agent-identity-split
+    statement: "Realm Agent source identity and executable local Agent identity are distinct: realmAgentId identifies the Realm Agent source entity for Realm truth, Realm projection, world relationships, social visibility, and friendship relationships, while localAgentRef = local-agent:${ownerUserId}:${realmAgentId} identifies the owner-scoped executable local fork; local execution, direct Human-Agent local chat, local memory, local projection, avatar binding, Agent Center resources, Runtime Agent records, SDK/IPC conversation anchors, and group Runtime candidate handoff must not be keyed or authorized by bare realmAgentId or agentId."
+  - rule_id: R-CHAT-018
+    level: must
+    title: human-agent-direct-chat-is-local-fork-route
+    statement: "Human-Agent DIRECT chat is admitted only as a Private Desktop local-chat product route after Realm friendship/admission checks; it must create or reuse the owner-scoped local Agent fork identified by localAgentRef = local-agent:${ownerUserId}:${realmAgentId} and persist local thread identity by localAgentRef, while Realm DIRECT cloud transcript truth remains Human-Human only and Desktop, SDK, Runtime, and local stores must not convert Human-Agent local chat into Realm cloud DIRECT transcript truth or use realmAgentId alone as the local thread key."
+  - rule_id: R-CHAT-019
+    level: must
+    title: local-agent-execution-consumers-require-identity-tuple
+    statement: "All consumers of local Agent execution identity must carry ownerUserId, realmAgentId, and localAgentRef; realmAgentId may be stored only as source metadata and must not be sufficient authority for execution, memory, projection, avatar, Agent Center package/config, or conversation-anchor selection, and missing or mismatched tuple fields must fail-close without legacy aliases, dual read/write compatibility, synthetic success, or renderer-local shadow truth."
+  - rule_id: R-CHAT-020
+    level: must
+    title: local-agent-fork-cardinality-is-single-per-owner-source-agent
+    statement: "V1 admits exactly one canonical local Agent execution fork for a given ownerUserId plus realmAgentId pair, addressed by localAgentRef = local-agent:${ownerUserId}:${realmAgentId}; any product need for multiple simultaneous local forks of the same Realm Agent for one owner or for an opaque persisted localAgentId distinct from that deterministic localAgentRef requires a new admitted authority decision before implementation, and until then implementation must hard-cut to deterministic localAgentRef identity and fail closed on ambiguous fork cardinality."
 entities:
   - name: ChatThread
     prisma_model: Chat

@@ -241,6 +241,33 @@ const uiCases = [
     expected: 'app styles must not define app-local root token authority',
   },
   {
+    name: 'random accent palette authority',
+    mutate(root) {
+      append(root, 'apps/probe/src/styles.css', '\n.random-accent { --nimi-accent: red; }\n');
+    },
+    expected: 'apps/probe/src/styles.css: app styles must not assign --nimi-* token values',
+  },
+  {
+    name: 'missing kit accent theme import',
+    mutate(root) {
+      write(root, 'apps/probe/src/styles.css', `@import "@nimiplatform/nimi-kit/ui/styles.css";
+@import "@nimiplatform/nimi-kit/ui/themes/light.css";
+@import "@nimiplatform/nimi-kit/ui/themes/dark.css";
+`);
+    },
+    expected: 'apps/probe/src/styles.css: must import @nimiplatform/nimi-kit/ui/themes/nimi-accent.css',
+  },
+  {
+    name: 'missing kit theme provider',
+    mutate(root) {
+      write(root, 'apps/probe/src/main.tsx', `export function App() {
+  return <div />;
+}
+`);
+    },
+    expected: 'apps/probe/src/main.tsx: must use NimiThemeProvider from @nimiplatform/nimi-kit/ui',
+  },
+  {
     name: 'inline raw glass style',
     mutate(root) {
       write(root, 'apps/probe/src/surface.tsx', `import { Surface } from '@nimiplatform/nimi-kit/ui';
@@ -250,6 +277,51 @@ export function ProbeSurface() {
 `);
     },
     expected: 'inline style property "backdropFilter" is forbidden outside allowlists',
+  },
+  {
+    name: 'marketing hero gradient card',
+    mutate(root) {
+      write(root, 'apps/probe/src/surface.tsx', `import { Surface } from '@nimiplatform/nimi-kit/ui';
+export function ProbeSurface() {
+  return (
+    <Surface>
+      <section style={{ background: 'linear-gradient(135deg, #6945ff, #13d6a0)' }}>
+        The Future of AI Collaboration
+      </section>
+    </Surface>
+  );
+}
+`);
+    },
+    expected: 'apps/probe/src/surface.tsx: inline style property "background" is forbidden outside allowlists',
+  },
+  {
+    name: 'plain web form styling',
+    mutate(root) {
+      write(root, 'apps/probe/src/surface.tsx', `import { Surface } from '@nimiplatform/nimi-kit/ui';
+export function ProbeSurface() {
+  return (
+    <Surface>
+      <form style={{ backgroundColor: 'white' }}>
+        <input name="email" />
+      </form>
+    </Surface>
+  );
+}
+`);
+    },
+    expected: 'apps/probe/src/surface.tsx: inline style property "backgroundColor" is forbidden outside allowlists',
+  },
+  {
+    name: 'dense border line material bypass',
+    mutate(root) {
+      write(root, 'apps/probe/src/surface.tsx', `import { Surface } from '@nimiplatform/nimi-kit/ui';
+export function ProbeSurface() {
+  return <Surface><div className="border-[#dfe4ec]">dense lines</div></Surface>;
+}
+`);
+    },
+    expected: 'apps/probe/src/surface.tsx: raw visual token pattern "border-[#" is forbidden in governed modules',
   },
   {
     name: 'missing governed module authority',

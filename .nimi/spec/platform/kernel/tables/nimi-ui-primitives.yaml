@@ -73,6 +73,12 @@ primitives:
           styles:
             background: var(--nimi-surface-active)
             border-color: var(--nimi-border-strong)
+        - id: transparency_reduced
+          class_name: nimi-surface--transparency-reduced
+          styles: {}
+        - id: transparency_solid
+          class_name: nimi-surface--transparency-solid
+          styles: {}
       material:
         - id: solid
           class_name: nimi-material-solid
@@ -147,6 +153,11 @@ primitives:
           display: inline-flex
           align-items: center
           justify-content: center
+      - id: spinner
+        class_name: nimi-action__spinner
+        styles:
+          display: inline-block
+          flex-shrink: "0"
     class_groups:
       tone:
         - id: primary
@@ -229,6 +240,14 @@ primitives:
             opacity: var(--nimi-opacity-disabled)
             box-shadow: none
             transform: none
+        - id: active
+          class_name: nimi-action--active
+          styles:
+            background: var(--nimi-surface-active)
+        - id: loading
+          class_name: nimi-action--loading
+          styles:
+            cursor: wait
       compound:
         - id: icon_sm
           selector: .nimi-action--icon.nimi-action--size-sm
@@ -649,30 +668,42 @@ primitives:
     class_groups:
       tone:
         - id: neutral
-          class_name: nimi-status--neutral
+          class_name: nimi-status-badge--neutral
           styles:
             background: color-mix(in srgb, var(--nimi-status-neutral) var(--nimi-opacity-subtle-fill), transparent)
             color: var(--nimi-status-neutral)
         - id: success
-          class_name: nimi-status--success
+          class_name: nimi-status-badge--success
           styles:
             background: color-mix(in srgb, var(--nimi-status-success) var(--nimi-opacity-subtle-fill), transparent)
             color: var(--nimi-status-success)
         - id: warning
-          class_name: nimi-status--warning
+          class_name: nimi-status-badge--warning
           styles:
             background: color-mix(in srgb, var(--nimi-status-warning) var(--nimi-opacity-subtle-fill), transparent)
             color: var(--nimi-status-warning)
         - id: danger
-          class_name: nimi-status--danger
+          class_name: nimi-status-badge--danger
           styles:
             background: color-mix(in srgb, var(--nimi-status-danger) var(--nimi-opacity-subtle-fill), transparent)
             color: var(--nimi-status-danger)
         - id: info
-          class_name: nimi-status--info
+          class_name: nimi-status-badge--info
           styles:
             background: color-mix(in srgb, var(--nimi-status-info) var(--nimi-opacity-subtle-fill), transparent)
             color: var(--nimi-status-info)
+      shape:
+        - id: soft
+          class_name: nimi-status-badge--soft
+          styles: {}
+        - id: outline
+          class_name: nimi-status-badge--outline
+          styles:
+            border-color: currentColor
+            background: transparent
+        - id: dot
+          class_name: nimi-status-badge--dot
+          styles: {}
     source_rule: P-DESIGN-010
   - id: primitive.scroll_area
     family: scroll_area
@@ -902,3 +933,150 @@ primitives:
           class_name: nimi-ambient-variant-none
           styles: {}
     source_rule: P-DESIGN-023
+  - id: primitive.typography
+    family: typography
+    component: NimiText
+    slots:
+      - { id: root, class_name: nimi-text }
+    class_groups:
+      role:
+        - { id: page_title, class_name: nimi-text--page-title }
+        - { id: section_title, class_name: nimi-text--section-title }
+        - { id: card_title, class_name: nimi-text--card-title }
+        - { id: body, class_name: nimi-text--body }
+        - { id: helper, class_name: nimi-text--helper }
+        - { id: label, class_name: nimi-text--label }
+        - { id: caption, class_name: nimi-text--caption }
+    source_rule: P-DESIGN-016
+  - id: primitive.segmented_control
+    family: action
+    component: SegmentedControl
+    slots:
+      - { id: root, class_name: nimi-segmented-control }
+      - { id: item, class_name: nimi-segmented-control__item }
+      - { id: icon, class_name: nimi-segmented-control__icon }
+    class_groups:
+      size:
+        - { id: sm, class_name: nimi-segmented-control--size-sm }
+        - { id: md, class_name: nimi-segmented-control--size-md }
+      state:
+        - { id: selected, class_name: nimi-segmented-control__item--selected }
+    source_rule: P-DESIGN-012
+  - id: primitive.tabs
+    family: navigation
+    component: NimiTabs
+    slots:
+      - { id: root, class_name: nimi-tabs }
+      - { id: tab, class_name: nimi-tabs__tab }
+    class_groups:
+      state:
+        - { id: active, class_name: nimi-tabs__tab--active }
+    source_rule: P-DESIGN-014
+  - id: primitive.checkbox
+    family: field
+    component: Checkbox
+    slots:
+      - { id: root, class_name: nimi-checkbox }
+      - { id: box, class_name: nimi-checkbox__box }
+      - { id: indicator, class_name: nimi-checkbox__indicator }
+    class_groups: {}
+    source_rule: P-DESIGN-015
+  - id: primitive.slider
+    family: field
+    component: Slider
+    slots:
+      - { id: root, class_name: nimi-slider }
+      - { id: input, class_name: nimi-slider__input }
+      - { id: value, class_name: nimi-slider__value }
+    class_groups: {}
+    source_rule: P-DESIGN-015
+  - id: primitive.number_stepper
+    family: field
+    component: NumberStepper
+    slots:
+      - { id: root, class_name: nimi-number-stepper }
+      - { id: button, class_name: nimi-number-stepper__button }
+      - { id: value, class_name: nimi-number-stepper__value }
+    class_groups: {}
+    source_rule: P-DESIGN-015
+  - id: primitive.progress
+    family: feedback
+    component: ProgressIndicator
+    slots:
+      - { id: root, class_name: nimi-progress }
+      - { id: track, class_name: nimi-progress__track }
+      - { id: bar, class_name: nimi-progress__bar }
+      - { id: value, class_name: nimi-progress__value }
+    class_groups: {}
+    source_rule: P-DESIGN-010
+  - id: primitive.inline_alert
+    family: feedback
+    component: InlineAlert
+    slots:
+      - { id: root, class_name: nimi-inline-alert }
+      - { id: icon, class_name: nimi-inline-alert__icon }
+      - { id: body, class_name: nimi-inline-alert__body }
+      - { id: action, class_name: nimi-inline-alert__action }
+    class_groups:
+      tone:
+        - { id: neutral, class_name: nimi-inline-alert--neutral }
+        - { id: success, class_name: nimi-inline-alert--success }
+        - { id: warning, class_name: nimi-inline-alert--warning }
+        - { id: danger, class_name: nimi-inline-alert--danger }
+        - { id: info, class_name: nimi-inline-alert--info }
+    source_rule: P-DESIGN-010
+  - id: primitive.empty_state
+    family: feedback
+    component: EmptyState
+    slots:
+      - { id: root, class_name: nimi-empty-state }
+      - { id: icon, class_name: nimi-empty-state__icon }
+      - { id: title, class_name: nimi-empty-state__title }
+      - { id: description, class_name: nimi-empty-state__description }
+      - { id: action, class_name: nimi-empty-state__action }
+    class_groups: {}
+    source_rule: P-DESIGN-010
+  - id: primitive.loading_skeleton
+    family: feedback
+    component: LoadingSkeleton
+    slots:
+      - { id: root, class_name: nimi-skeleton }
+      - { id: media, class_name: nimi-skeleton__media }
+      - { id: body, class_name: nimi-skeleton__body }
+      - { id: line, class_name: nimi-skeleton__line }
+    class_groups: {}
+    source_rule: P-DESIGN-010
+  - id: primitive.action_menu
+    family: overlay
+    component: ActionMenu
+    slots:
+      - { id: root, class_name: nimi-action-menu }
+      - { id: item, class_name: nimi-action-menu__item }
+      - { id: icon, class_name: nimi-action-menu__icon }
+    class_groups:
+      tone:
+        - { id: danger, class_name: nimi-action-menu__item--danger }
+    source_rule: P-DESIGN-013
+  - id: primitive.field_shell
+    family: field
+    component: FieldShell
+    slots:
+      - { id: root, class_name: nimi-field-shell }
+      - { id: label, class_name: nimi-field-shell__label }
+      - { id: description, class_name: nimi-field-shell__description }
+      - { id: message, class_name: nimi-field-shell__message }
+    class_groups: {}
+    source_rule: P-DESIGN-015
+  - id: primitive.confirm_dialog
+    family: overlay
+    component: ConfirmDialog
+    slots: []
+    class_groups: {}
+    source_rule: P-DESIGN-013
+  - id: primitive.settings_shell
+    family: settings
+    component: SettingsPageShell
+    slots:
+      - { id: card, class_name: nimi-surface }
+    class_groups: {}
+    source_rule: P-DESIGN-010

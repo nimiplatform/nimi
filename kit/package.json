@@ -29,6 +29,8 @@
     "./features/chat/realm": "./features/chat/src/realm.ts",
     "./features/chat/runtime": "./features/chat/src/runtime.ts",
     "./features/chat/ui": "./features/chat/src/ui.ts",
+    "./features/chat/components/canonical-runtime-inspect-sidebar": "./features/chat/src/components/canonical-runtime-inspect-sidebar.tsx",
+    "./features/chat/components/chat-stream-status": "./features/chat/src/components/chat-stream-status.tsx",
     "./features/avatar": "./features/avatar/src/index.ts",
     "./features/avatar/headless": "./features/avatar/src/headless.ts",
     "./features/avatar/ui": "./features/avatar/src/ui.ts",

@@ -1,4 +1,3 @@
-import { getPlatformClient } from '@nimiplatform/sdk';
 import type {
   Runtime,
   TextMessage,
@@ -195,10 +194,13 @@ export function createSimpleAiConversationProvider(
 }
 
 export function createSdkConversationRuntimeAdapter(runtime?: Runtime): ConversationRuntimeAdapter {
-  const runtimeClient = runtime ?? getPlatformClient().runtime;
+  const runtimeClient = runtime
+    ? Promise.resolve(runtime)
+    : import('@nimiplatform/sdk').then((mod) => mod.getPlatformClient().runtime);
   return {
     async streamText(request) {
-      const streamOutput = await runtimeClient.ai.text.stream(toSdkTextStreamRequest(request));
+      const resolvedRuntimeClient = await runtimeClient;
+      const streamOutput = await resolvedRuntimeClient.ai.text.stream(toSdkTextStreamRequest(request));
       return {
         stream: normalizeConversationRuntimeStream(streamOutput.stream),
       };

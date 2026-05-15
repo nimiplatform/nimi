@@ -33,6 +33,7 @@
 | `P-DESIGN-006` | `covered` | `platform_kernel_consistency`, `nimi_ui_pattern` | — |
 | `P-DESIGN-007` | `covered` | `platform_kernel_consistency`, `nimi_ui_pattern` | — |
 | `P-DESIGN-008` | `covered` | `platform_kernel_consistency`, `nimi_ui_lib_drift`, `nimi_ui_pattern` | — |
+| `P-DESIGN-009` | `partial` | `platform_kernel_consistency` | structural rule linkage only; admitted UI Card artifact/hash/classification evidence is topic-local under 2026-05-15-nimi-kit-ui-card-design-system-iteration |
 | `P-DESIGN-010` | `covered` | `platform_kernel_consistency`, `nimi_ui_lib_drift`, `nimi_ui_pattern` | — |
 | `P-DESIGN-011` | `covered` | `platform_kernel_consistency`, `nimi_ui_lib_drift`, `nimi_ui_pattern` | — |
 | `P-DESIGN-012` | `covered` | `platform_kernel_consistency`, `nimi_ui_lib_drift`, `nimi_ui_pattern` | — |
@@ -47,6 +48,9 @@
 | `P-DESIGN-021` | `covered` | `platform_kernel_consistency`, `nimi_ui_pattern` | — |
 | `P-DESIGN-022` | `covered` | `platform_kernel_consistency`, `nimi_ui_lib_drift` | — |
 | `P-DESIGN-023` | `covered` | `platform_kernel_consistency`, `nimi_ui_lib_drift` | — |
+| `P-DESIGN-024` | `partial` | `platform_kernel_consistency`, `nimi_ui_pattern` | taxonomy boundary is structurally covered; executable primitive gap closure is deferred to the topic's Wave 2 and Wave 3 |
+| `P-DESIGN-025` | `partial` | `platform_kernel_consistency`, `nimi_ui_pattern` | composition boundary is structurally covered; per-candidate shared-vs-app-local proof remains required in downstream packets |
+| `P-DESIGN-026` | `partial` | `platform_kernel_consistency`, `nimi_ui_pattern` | negative anti-drift categories are admitted; executable visual fixtures and hard gate coverage are deferred to the topic's Wave 5 |
 | `P-DESIGN-090` | `covered` | `platform_kernel_consistency`, `nimi_ui_pattern` | — |
 | `P-ARCH-001` | `partial` | `platform_kernel_consistency` | structural only; multi-participant orchestration behavior still requires integration coverage |
 | `P-ARCH-002` | `covered` | `platform_kernel_consistency` | — |

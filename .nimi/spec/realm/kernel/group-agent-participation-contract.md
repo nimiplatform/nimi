@@ -3,7 +3,7 @@ id: SPEC-REALM-KERNEL-GROUP-AGENT-PARTICIPATION-001
 title: Realm Group Agent Participation Contract
 status: active
 owner: "@team"
-updated: 2026-05-13
+updated: 2026-05-15
 ---
 
 # Group Agent Participation Contract
@@ -104,6 +104,6 @@ commit path.
 
 `realmGroupAgentSlotId` is the durable Realm identity for a local Agent
 participation binding inside a specific `GROUP` thread. The executable local
-Agent reference is `localAgentRef = ownerUserId + realmAgentId`; `realmAgentId`
-alone is not a valid group participation slot or executable local Agent
-reference.
+Agent reference is `localAgentRef = local-agent:${ownerUserId}:${realmAgentId}`;
+`realmAgentId` alone is not a valid group participation slot or executable local
+Agent reference.

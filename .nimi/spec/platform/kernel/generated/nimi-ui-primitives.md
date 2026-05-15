@@ -5,15 +5,29 @@
 | Primitive ID | Family | Component | Slots | Class Groups | Source |
 |---|---|---|---|---|---|
 | `primitive.surface` | `surface` | `Surface` | `root` | `tone`, `elevation`, `state`, `material` | `P-DESIGN-011` |
-| `primitive.action` | `action` | `Button` | `root`, `leadingIcon`, `trailingIcon`, `icon` | `tone`, `size`, `modifier`, `state`, `compound` | `P-DESIGN-012` |
+| `primitive.action` | `action` | `Button` | `root`, `leadingIcon`, `trailingIcon`, `icon`, `spinner` | `tone`, `size`, `modifier`, `state`, `compound` | `P-DESIGN-012` |
 | `primitive.icon_action` | `action` | `IconButton` | `root`, `icon` | `modifier` | `P-DESIGN-012` |
 | `primitive.overlay` | `overlay` | `OverlayShell` | `backdrop`, `panel`, `title`, `content`, `footer`, `tooltipLayer`, `tooltipBubble` | `kind_backdrop`, `kind_panel` | `P-DESIGN-013` |
 | `primitive.sidebar` | `sidebar` | `SidebarShell` | `container`, `header`, `searchRow`, `search`, `searchField`, `section`, `sectionLabel`, `item`, `itemTitle`, `itemDescription`, `affordance`, `resizeHandle`, `resizeHandleBefore` | `family`, `item_kind`, `item_state`, `affordance`, `compound` | `P-DESIGN-014` |
 | `primitive.field` | `field` | `TextField` | `root`, `input`, `textarea` | `tone`, `modifier`, `state` | `P-DESIGN-015` |
 | `primitive.textarea` | `field` | `TextareaField` |  |  | `P-DESIGN-015` |
-| `primitive.status` | `status` | `StatusBadge` | `root` | `tone` | `P-DESIGN-010` |
+| `primitive.status` | `status` | `StatusBadge` | `root` | `tone`, `shape` | `P-DESIGN-010` |
 | `primitive.scroll_area` | `scroll_area` | `ScrollArea` | `root`, `viewport`, `rail`, `thumb` | `state` | `P-DESIGN-010` |
 | `primitive.toggle` | `toggle` | `Toggle` | `root`, `thumb` | `state`, `compound` | `P-DESIGN-010` |
 | `primitive.select_field` | `field` | `SelectField` | `root`, `select`, `chevron` |  | `P-DESIGN-015` |
 | `primitive.avatar` | `avatar` | `Avatar` | `root`, `image`, `fallback` | `size`, `shape`, `tone` | `P-DESIGN-010` |
 | `primitive.ambient_background` | `surface` | `AmbientBackground` | `root`, `mesh_layer`, `minimal_layer`, `halo` | `variant` | `P-DESIGN-023` |
+| `primitive.typography` | `typography` | `NimiText` | `root` | `role` | `P-DESIGN-016` |
+| `primitive.segmented_control` | `action` | `SegmentedControl` | `root`, `item`, `icon` | `size`, `state` | `P-DESIGN-012` |
+| `primitive.tabs` | `navigation` | `NimiTabs` | `root`, `tab` | `state` | `P-DESIGN-014` |
+| `primitive.checkbox` | `field` | `Checkbox` | `root`, `box`, `indicator` |  | `P-DESIGN-015` |
+| `primitive.slider` | `field` | `Slider` | `root`, `input`, `value` |  | `P-DESIGN-015` |
+| `primitive.number_stepper` | `field` | `NumberStepper` | `root`, `button`, `value` |  | `P-DESIGN-015` |
+| `primitive.progress` | `feedback` | `ProgressIndicator` | `root`, `track`, `bar`, `value` |  | `P-DESIGN-010` |
+| `primitive.inline_alert` | `feedback` | `InlineAlert` | `root`, `icon`, `body`, `action` | `tone` | `P-DESIGN-010` |
+| `primitive.empty_state` | `feedback` | `EmptyState` | `root`, `icon`, `title`, `description`, `action` |  | `P-DESIGN-010` |
+| `primitive.loading_skeleton` | `feedback` | `LoadingSkeleton` | `root`, `media`, `body`, `line` |  | `P-DESIGN-010` |
+| `primitive.action_menu` | `overlay` | `ActionMenu` | `root`, `item`, `icon` | `tone` | `P-DESIGN-013` |
+| `primitive.field_shell` | `field` | `FieldShell` | `root`, `label`, `description`, `message` |  | `P-DESIGN-015` |
+| `primitive.confirm_dialog` | `overlay` | `ConfirmDialog` |  |  | `P-DESIGN-013` |
+| `primitive.settings_shell` | `settings` | `SettingsPageShell` | `card` |  | `P-DESIGN-010` |

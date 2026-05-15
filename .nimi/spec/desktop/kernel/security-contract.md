@@ -78,7 +78,8 @@ Content Security Policy 约束：
 
 - Tauri webview 默认启用 CSP，限制外部脚本和样式加载。
 - `connect-src` 仅允许 realm API 域名和回环地址。
-- `script-src` 禁止 `eval` 和 inline script（mod 通过沙箱 iframe 隔离）。
+- 生产 `script-src` 禁止 `eval` 和 inline script（mod 通过沙箱 iframe 隔离）。
+- Desktop Tauri 开发态关闭 Vite HMR / React Fast Refresh，使 `devCsp` 与生产 `csp` 保持同等 `script-src` 约束。
 - Web 模式下依赖服务端 CSP header 而非 Tauri webview 策略。
 
 ## D-SEC-009 — AI 凭据委托模型

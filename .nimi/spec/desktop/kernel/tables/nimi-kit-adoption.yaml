@@ -5,6 +5,22 @@ app_entry:
   bootstrap: apps/desktop/src/shell/renderer/main.tsx
   theme_provider: apps/desktop/src/shell/renderer/main.tsx
 modules:
+  - id: desktop.app_shell.routes
+    app: desktop
+    module: apps/desktop/src/shell/renderer/app-shell/routes/app-routes.tsx
+    families:
+      - surface
+      - action
+      - status
+      - feedback
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: nimi-accent
   - id: desktop.contacts.sidebar
     app: desktop
     module: apps/desktop/src/shell/renderer/features/contacts/contacts-view.tsx

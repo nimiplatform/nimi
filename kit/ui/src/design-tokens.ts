@@ -15,6 +15,7 @@ export type NimiAccentPack = NimiAccentPackId;
 export type SurfaceTone = 'canvas' | 'panel' | 'card' | 'hero' | 'overlay';
 export type SurfaceElevation = 'base' | 'raised' | 'floating' | 'modal';
 export type SurfaceMaterial = 'solid' | 'glass-thin' | 'glass-regular' | 'glass-thick' | 'glass-chrome';
+export type SurfaceMaterialTransparency = 'default' | 'reduced' | 'solid';
 export type AmbientVariant = 'mesh' | 'minimal' | 'none';
 export type ActionTone = 'primary' | 'secondary' | 'ghost' | 'danger';
 export type ActionSize = 'sm' | 'md' | 'lg';
@@ -24,9 +25,19 @@ export type SidebarItemKind = 'entity-row' | 'category-row' | 'nav-row';
 export type SidebarAffordance = 'badge' | 'status-dot' | 'chevron' | 'count';
 export type FieldTone = 'default' | 'search' | 'quiet';
 export type StatusTone = 'neutral' | 'success' | 'warning' | 'danger' | 'info';
+export type StatusBadgeShape = 'soft' | 'outline' | 'dot';
 export type AvatarSize = 'sm' | 'md' | 'lg';
 export type AvatarShape = 'circle' | 'rounded';
 export type AvatarTone = 'neutral' | 'accent';
+export type TypographyRole =
+  | 'page-title'
+  | 'section-title'
+  | 'card-title'
+  | 'body'
+  | 'helper'
+  | 'label'
+  | 'caption';
+export type FeedbackTone = 'neutral' | 'success' | 'warning' | 'danger' | 'info';
 
 export const NIMI_DESIGN_PACK_IDS = DESIGN_PACK_IDS;
 export const NIMI_THEME_SCHEME_PACK_IDS = FOUNDATION_SCHEME_IDS;

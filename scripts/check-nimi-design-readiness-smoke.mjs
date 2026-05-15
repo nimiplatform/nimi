@@ -2,6 +2,7 @@
 
 import { spawn, spawnSync } from 'node:child_process';
 import { createRequire } from 'node:module';
+import crypto from 'node:crypto';
 import fs from 'node:fs';
 import http from 'node:http';
 import os from 'node:os';
@@ -9,7 +10,8 @@ import path from 'node:path';
 import YAML from 'yaml';
 
 const repoRoot = process.cwd();
-const topicId = '2026-05-14-design-system-kit-hardcut-audit-and-alignment';
+const topicId = '2026-05-15-nimi-kit-ui-card-design-system-iteration';
+const uiCardPath = process.env.NIMI_UI_CARD_REFERENCE || path.join(repoRoot, 'config', 'nimi-kit', 'design-references', 'ui-card-v2.1.png');
 
 function resolveTopicDir() {
   const lifecycleRoots = ['ongoing', 'closed', 'pending', 'proposal'];
@@ -21,7 +23,7 @@ function resolveTopicDir() {
 }
 
 const topicDir = resolveTopicDir();
-const evidenceDir = path.join(topicDir, 'evidence', 'wave-6-readiness');
+const evidenceDir = path.join(topicDir, 'evidence', 'wave-6-tracked-ui-card-reference-asset');
 
 function read(rel) {
   return fs.readFileSync(path.join(repoRoot, rel), 'utf8');
@@ -39,6 +41,22 @@ function write(relOrAbs, content) {
 
 function exists(rel) {
   return fs.existsSync(path.join(repoRoot, rel));
+}
+
+function sha256File(abs) {
+  return crypto.createHash('sha256').update(fs.readFileSync(abs)).digest('hex');
+}
+
+function readPngSize(abs) {
+  const buffer = fs.readFileSync(abs);
+  const pngSignature = '89504e470d0a1a0a';
+  if (buffer.length < 24 || buffer.subarray(0, 8).toString('hex') !== pngSignature) {
+    return null;
+  }
+  return {
+    width: buffer.readUInt32BE(16),
+    height: buffer.readUInt32BE(20),
+  };
 }
 
 function resolveFromPackage(packageJsonRel, specifier) {
@@ -65,6 +83,25 @@ function findChrome() {
   ].filter(Boolean);
   for (const candidate of candidates) {
     if (fs.existsSync(candidate)) return candidate;
+  }
+  return null;
+}
+
+function loadPlaywright() {
+  const candidateModuleDirs = [
+    process.env.NIMI_PLAYWRIGHT_NODE_MODULES,
+    path.join(repoRoot, 'node_modules'),
+    path.join(os.homedir(), '.cache', 'codex-runtimes', 'codex-primary-runtime', 'dependencies', 'node', 'node_modules'),
+  ].filter(Boolean);
+  for (const moduleDir of candidateModuleDirs) {
+    const packageJson = path.join(moduleDir, 'playwright', 'package.json');
+    if (!fs.existsSync(packageJson)) continue;
+    try {
+      const require = createRequire(packageJson);
+      return require('playwright');
+    } catch {
+      // Try the next candidate module root.
+    }
   }
   return null;
 }
@@ -179,26 +216,204 @@ function runChrome(chrome, args) {
   });
 }
 
+function delay(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function waitForChromeEndpoint(child, output) {
+  return new Promise((resolve, reject) => {
+    const timeout = setTimeout(() => {
+      cleanup();
+      reject(new Error('Chrome DevTools endpoint did not become available'));
+    }, 30000);
+    function cleanup() {
+      clearTimeout(timeout);
+      child.stdout.off('data', onData);
+      child.stderr.off('data', onData);
+    }
+    function onData(chunk) {
+      const text = String(chunk || '');
+      output.stream += text;
+      const match = /DevTools listening on (ws:\/\/[^\s]+)/u.exec(output.stream);
+      if (!match) return;
+      cleanup();
+      resolve(match[1]);
+    }
+    child.stdout.on('data', onData);
+    child.stderr.on('data', onData);
+  });
+}
+
+async function fetchPageWebSocket(devtoolsWsUrl) {
+  const endpoint = new URL(devtoolsWsUrl);
+  const listUrl = `http://${endpoint.host}/json/list`;
+  for (let attempt = 0; attempt < 40; attempt += 1) {
+    try {
+      const response = await fetch(listUrl);
+      const pages = await response.json();
+      const page = pages.find((item) => item.type === 'page' && item.webSocketDebuggerUrl);
+      if (page) return page.webSocketDebuggerUrl;
+    } catch {
+      // Retry until Chrome finishes exposing the page target.
+    }
+    await delay(250);
+  }
+  throw new Error(`Chrome page target did not become available at ${listUrl}`);
+}
+
+async function capturePageScreenshot(pageWsUrl, url, pngPath) {
+  const ws = new WebSocket(pageWsUrl);
+  const pending = new Map();
+  const eventWaiters = new Map();
+  let nextId = 1;
+
+  await new Promise((resolve, reject) => {
+    ws.addEventListener('open', resolve, { once: true });
+    ws.addEventListener('error', reject, { once: true });
+  });
+
+  ws.addEventListener('message', (event) => {
+    const message = JSON.parse(String(event.data || '{}'));
+    if (message.id && pending.has(message.id)) {
+      const { resolve, reject } = pending.get(message.id);
+      pending.delete(message.id);
+      if (message.error) reject(new Error(`${message.error.message || 'CDP error'}`));
+      else resolve(message.result || {});
+      return;
+    }
+    if (message.method && eventWaiters.has(message.method)) {
+      const waiters = eventWaiters.get(message.method);
+      eventWaiters.delete(message.method);
+      for (const resolve of waiters) resolve(message.params || {});
+    }
+  });
+
+  function send(method, params = {}) {
+    const id = nextId;
+    nextId += 1;
+    const payload = JSON.stringify({ id, method, params });
+    return new Promise((resolve, reject) => {
+      pending.set(id, { resolve, reject });
+      ws.send(payload);
+    });
+  }
+
+  function waitForEvent(method, timeoutMs) {
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        const waiters = eventWaiters.get(method) || [];
+        eventWaiters.set(method, waiters.filter((item) => item !== resolve));
+        reject(new Error(`Timed out waiting for ${method}`));
+      }, timeoutMs);
+      const wrappedResolve = (params) => {
+        clearTimeout(timeout);
+        resolve(params);
+      };
+      const waiters = eventWaiters.get(method) || [];
+      waiters.push(wrappedResolve);
+      eventWaiters.set(method, waiters);
+    });
+  }
+
+  try {
+    await send('Page.enable');
+    await send('Runtime.enable');
+    await send('Emulation.setDeviceMetricsOverride', {
+      width: 960,
+      height: 640,
+      deviceScaleFactor: 1,
+      mobile: false,
+    });
+    const load = waitForEvent('Page.loadEventFired', 15000);
+    await send('Page.navigate', { url });
+    await load;
+    await send('Runtime.evaluate', {
+      expression: 'document.fonts && document.fonts.ready ? document.fonts.ready.then(() => true) : true',
+      awaitPromise: true,
+    });
+    await delay(750);
+    const screenshot = await send('Page.captureScreenshot', {
+      format: 'png',
+      fromSurface: true,
+      captureBeyondViewport: false,
+    });
+    fs.writeFileSync(pngPath, Buffer.from(screenshot.data, 'base64'));
+  } finally {
+    ws.close();
+  }
+}
+
 async function captureChrome(chrome, htmlPath, pngPath) {
   const staticRoot = path.dirname(htmlPath);
+  const playwright = loadPlaywright();
+  if (playwright?.chromium) {
+    const { server, port } = await serveStatic(staticRoot);
+    let lastError = null;
+    try {
+      for (let attempt = 1; attempt <= 3; attempt += 1) {
+        let browser = null;
+        try {
+          browser = await playwright.chromium.launch({
+            headless: true,
+            executablePath: chrome,
+          });
+          const page = await browser.newPage({ viewport: { width: 960, height: 640 }, deviceScaleFactor: 1 });
+          await page.goto(`http://127.0.0.1:${port}/${path.basename(htmlPath)}`, {
+            waitUntil: 'networkidle',
+            timeout: 30000,
+          });
+          await page.screenshot({ path: pngPath, fullPage: false });
+          await browser.close();
+          return {
+            status: 0,
+            signal: null,
+            stdout: '',
+            stderr: `captured with Playwright-controlled system Chrome on attempt ${attempt}`,
+          };
+        } catch (error) {
+          lastError = error;
+          if (browser) await browser.close().catch(() => {});
+          await delay(500);
+        }
+      }
+      return { status: null, signal: 'ERROR', stdout: '', stderr: `${lastError?.stack || lastError}` };
+    } finally {
+      await new Promise((resolve) => server.close(resolve));
+    }
+  }
+
+  const userDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'nimi-design-chrome-'));
   const { server, port } = await serveStatic(staticRoot);
+  let child = null;
+  const output = { stream: '' };
   try {
-    const result = await runChrome(chrome, [
+    child = spawn(chrome, [
       '--headless',
       '--disable-gpu',
+      '--disable-background-networking',
+      '--disable-extensions',
+      '--disable-dev-shm-usage',
       '--no-first-run',
       '--no-default-browser-check',
       '--hide-scrollbars',
-      '--run-all-compositor-stages-before-draw',
-      '--timeout=5000',
-      '--virtual-time-budget=5000',
+      '--remote-debugging-port=0',
       '--window-size=960,640',
-      `--screenshot=${pngPath}`,
-      `http://127.0.0.1:${port}/${path.basename(htmlPath)}`,
-    ]);
-    return result;
+      `--user-data-dir=${userDataDir}`,
+      'about:blank',
+    ], { stdio: ['ignore', 'pipe', 'pipe'] });
+    child.stdout.setEncoding('utf8');
+    child.stderr.setEncoding('utf8');
+    const devtoolsWsUrl = await waitForChromeEndpoint(child, output);
+    const pageWsUrl = await fetchPageWebSocket(devtoolsWsUrl);
+    await capturePageScreenshot(pageWsUrl, `http://127.0.0.1:${port}/${path.basename(htmlPath)}`, pngPath);
+    child.kill('SIGTERM');
+    return { status: 0, signal: null, stdout: '', stderr: output.stream };
+  } catch (error) {
+    if (child) child.kill('SIGKILL');
+    return { status: null, signal: 'ERROR', stdout: '', stderr: `${output.stream}\n${error?.stack || error}` };
   } finally {
     await new Promise((resolve) => server.close(resolve));
+    fs.rmSync(userDataDir, { recursive: true, force: true });
   }
 }
 
@@ -312,6 +527,21 @@ fs.mkdirSync(evidenceDir, { recursive: true });
 const failures = [];
 const chrome = findChrome();
 assertOk(chrome !== null, 'Chrome/Chromium executable is required for screenshot evidence', failures);
+const uiCardExists = fs.existsSync(uiCardPath);
+assertOk(uiCardExists, `UI Card v2.1 reference is required at ${uiCardPath}`, failures);
+const uiCardReference = uiCardExists
+  ? {
+      path: uiCardPath,
+      sha256: sha256File(uiCardPath),
+      dimensions: readPngSize(uiCardPath),
+      authority: 'bounded visual reference only; not numeric token truth',
+    }
+  : {
+      path: uiCardPath,
+      sha256: null,
+      dimensions: null,
+      authority: 'bounded visual reference only; not numeric token truth',
+    };
 
 const platformTables = {
   adoption: readYaml('.nimi/spec/platform/kernel/tables/nimi-ui-adoption.yaml'),
@@ -534,31 +764,58 @@ assertOk(positiveBootstrap?.platformDesignRows?.adoption === 0, 'new app bootstr
 assertOk(positiveBootstrap?.platformDesignRows?.compositions === 0, 'new app bootstrap must preserve empty platform compositions table', failures);
 assertOk(positiveBootstrap?.platformDesignRows?.allowlists === 0, 'new app bootstrap must preserve empty platform allowlists table', failures);
 
-const closeoutGateChecks = [
+const requiredGateChecks = [
   newAppBootstrap,
   runCommand('check-nimi-ui-pattern', 'pnpm', ['check:nimi-ui-pattern']),
   runCommand('check-nimi-kit', 'pnpm', ['check:nimi-kit']),
   runCommand('check-nimi-ui-lib-drift', 'pnpm', ['check:nimi-ui-lib-drift']),
+  runCommand('nimi-design-negative-fixtures', 'pnpm', ['check:nimi-design-gate-negative-fixtures']),
   runCommand('nimi-kit-build', 'pnpm', ['--filter', '@nimiplatform/nimi-kit', 'build']),
   runCommand('nimi-kit-test', 'pnpm', ['--filter', '@nimiplatform/nimi-kit', 'test']),
-  runCommand('desktop-test', 'pnpm', ['--filter', '@nimiplatform/desktop', 'test']),
-  runCommand('parentos-test', 'pnpm', ['--filter', '@nimiplatform/parentos', 'test']),
-  runCommand('avatar-test', 'pnpm', ['--filter', '@nimiplatform/avatar', 'test']),
+  runCommand('desktop-targeted-shell-tests', 'pnpm', [
+    '--filter',
+    '@nimiplatform/desktop',
+    'exec',
+    'tsx',
+    '--test',
+    'test/shell-material-redesign-w2.test.ts',
+    'test/shell-chrome-retune.test.ts',
+  ]),
   runCommand('spec-governance-all', 'pnpm', ['exec', 'nimicoding', 'validate-spec-governance', '--profile', 'nimi', '--scope', 'all']),
   runCommand('platform-generated-docs', 'pnpm', ['exec', 'nimicoding', 'generate-spec-derived-docs', '--profile', 'nimi', '--scope', 'platform', '--check']),
   runCommand('topic-validate', 'pnpm', ['exec', 'nimicoding', 'topic', 'validate', topicId, '--json']),
   runCommand('topic-validate-graph', 'pnpm', ['exec', 'nimicoding', 'topic', 'validate', 'graph', topicId, '--json']),
   runCommand('git-diff-check', 'git', ['diff', '--check']),
 ];
-for (const gate of closeoutGateChecks) {
+for (const gate of requiredGateChecks) {
   assertOk(gate.ok, `${gate.id} must pass`, failures);
 }
+
+const trueCloseGateChecks = [
+  runCommand('desktop-typecheck', 'pnpm', ['--filter', '@nimiplatform/desktop', 'typecheck']),
+  runCommand('desktop-test-full', 'pnpm', ['--filter', '@nimiplatform/desktop', 'test']),
+  runCommand('parentos-test-full', 'pnpm', ['--filter', '@nimiplatform/parentos', 'test']),
+  runCommand('avatar-test-full', 'pnpm', ['--filter', '@nimiplatform/avatar', 'test']),
+  runCommand('ai-governance-all', 'pnpm', ['nimicoding:validate-ai-governance', '--profile', 'nimi', '--scope', 'all']),
+];
+const trueCloseBlockers = trueCloseGateChecks
+  .filter((gate) => !gate.ok)
+  .map((gate) => ({
+    id: gate.id,
+    command: gate.command,
+    status: gate.status,
+    signal: gate.signal,
+    stdout: gate.stdout,
+    stderr: gate.stderr,
+    classification: 'non_wave_full_repo_closeout_blocker',
+  }));
 
 const report = {
   ok: failures.length === 0,
   generatedAt: new Date().toISOString(),
   topicId,
   chrome,
+  uiCardReference,
   evidenceDir: path.relative(repoRoot, evidenceDir),
   authorityBoundary: {
     platformDesignTablesEmpty: true,
@@ -569,22 +826,31 @@ const report = {
   newAppBootstrap,
   newAppBootstrapReport: path.relative(repoRoot, newAppBootstrapReportPath),
   newAppBootstrapPositive: positiveBootstrap,
-  closeoutGateChecks,
-  gateChecks: closeoutGateChecks,
+  requiredGateChecks,
+  trueCloseGateChecks,
+  trueClose: {
+    status: trueCloseBlockers.length === 0 ? 'ready' : 'blocked_by_non_wave_gates',
+    blockers: trueCloseBlockers,
+  },
+  closeoutGateChecks: [...requiredGateChecks, ...trueCloseGateChecks],
+  gateChecks: requiredGateChecks,
   failures,
 };
 
 write(path.join(evidenceDir, 'readiness-report.json'), `${JSON.stringify(report, null, 2)}\n`);
-write(path.join(evidenceDir, 'README.md'), `# Wave 6 Readiness Evidence
+write(path.join(evidenceDir, 'README.md'), `# Wave 5 Readiness Evidence
 
 Generated by \`pnpm check:nimi-design-readiness-smoke\`.
 
+- UI Card reference: \`${uiCardReference.path}\`
+- UI Card SHA256: \`${uiCardReference.sha256 ?? 'missing'}\`
 - Desktop screenshot: \`${visualEvidence.find((item) => item.id === 'desktop-shell')?.screenshot ?? 'missing'}\`
 - ParentOS screenshot: \`${visualEvidence.find((item) => item.id === 'parentos-shell')?.screenshot ?? 'missing'}\`
 - Avatar screenshot: \`${visualEvidence.find((item) => item.id === 'avatar-companion')?.screenshot ?? 'missing'}\`
 - Machine report: \`${path.relative(repoRoot, path.join(evidenceDir, 'readiness-report.json'))}\`
 - New-app bootstrap positive report: \`${path.relative(repoRoot, newAppBootstrapReportPath)}\`
-- Closeout gate count: ${closeoutGateChecks.length}
+- Required gate count: ${requiredGateChecks.length}
+- True-close status: \`${report.trueClose.status}\`
 `);
 
 if (failures.length > 0) {
@@ -592,4 +858,6 @@ if (failures.length > 0) {
   process.exit(1);
 }
 
-process.stdout.write(`nimi design readiness smoke passed: ${path.relative(repoRoot, evidenceDir)}\n`);
+process.stdout.write(
+  `nimi design readiness smoke passed: ${path.relative(repoRoot, evidenceDir)}; true-close ${report.trueClose.status}\n`,
+);

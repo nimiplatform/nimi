@@ -1,6 +1,6 @@
 import { createElement, type ComponentPropsWithoutRef, type ElementType, type ReactNode } from 'react';
 import { cva } from 'class-variance-authority';
-import { cn, type SurfaceElevation, type SurfaceMaterial, type SurfaceTone } from '../design-tokens.js';
+import { cn, type SurfaceElevation, type SurfaceMaterial, type SurfaceMaterialTransparency, type SurfaceTone } from '../design-tokens.js';
 
 type SurfacePadding = 'none' | 'sm' | 'md' | 'lg';
 
@@ -34,15 +34,33 @@ export const surfaceVariants = cva(
         'glass-thick': 'nimi-material-glass-thick bg-[var(--nimi-material-glass-thick-bg)] border-[var(--nimi-material-glass-thick-border)] backdrop-blur-[var(--nimi-backdrop-blur-strong)]',
         'glass-chrome': 'nimi-material-glass-chrome bg-[var(--nimi-material-glass-chrome-bg)] border-[var(--nimi-material-glass-chrome-border)] backdrop-blur-[var(--nimi-backdrop-blur-chrome)]',
       },
+      transparency: {
+        default: '',
+        reduced: 'nimi-surface--transparency-reduced',
+        solid: 'nimi-surface--transparency-solid',
+      },
     },
     defaultVariants: {
       tone: 'panel',
       elevation: 'base',
       padding: 'md',
       material: 'solid',
+      transparency: 'default',
     },
   },
 );
+
+export function downgradeSurfaceMaterial(
+  material: SurfaceMaterial,
+  transparency: SurfaceMaterialTransparency = 'default',
+): SurfaceMaterial {
+  if (transparency === 'solid') return 'solid';
+  if (transparency !== 'reduced') return material;
+  if (material === 'glass-chrome') return 'glass-thick';
+  if (material === 'glass-thick') return 'glass-regular';
+  if (material === 'glass-regular') return 'glass-thin';
+  return material;
+}
 
 type SurfaceProps<T extends ElementType = 'div'> = {
   as?: T;
@@ -50,6 +68,7 @@ type SurfaceProps<T extends ElementType = 'div'> = {
   elevation?: SurfaceElevation;
   padding?: SurfacePadding;
   material?: SurfaceMaterial;
+  transparency?: SurfaceMaterialTransparency;
   interactive?: boolean;
   active?: boolean;
   children?: ReactNode;
@@ -63,6 +82,7 @@ export function Surface<T extends ElementType = 'div'>(props: SurfaceProps<T>) {
     elevation = 'base',
     padding = 'md',
     material = 'solid',
+    transparency = 'default',
     interactive = false,
     active = false,
     children,
@@ -70,15 +90,18 @@ export function Surface<T extends ElementType = 'div'>(props: SurfaceProps<T>) {
     ...rest
   } = props;
   const Component = (as || 'div') as ElementType;
+  const resolvedMaterial = downgradeSurfaceMaterial(material, transparency);
 
   return createElement(
     Component,
     {
       ...rest,
-      'data-nimi-material': material,
+      'data-nimi-material': resolvedMaterial,
+      'data-nimi-requested-material': material,
+      'data-nimi-transparency': transparency,
       'data-nimi-tone': tone,
       className: cn(
-        surfaceVariants({ tone, elevation, padding, material }),
+        surfaceVariants({ tone, elevation, padding, material: resolvedMaterial, transparency }),
         interactive && 'nimi-surface--interactive cursor-pointer hover:border-[var(--nimi-border-strong)] hover:shadow-[var(--nimi-elevation-raised)]',
         active && 'nimi-surface--active bg-[var(--nimi-surface-active)]',
         className,

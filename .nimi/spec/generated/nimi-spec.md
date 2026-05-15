@@ -1,7 +1,7 @@
 # Nimi Platform 技术规范
 
 > 本文档由 `scripts/generate-spec-human-doc.mjs` 自动生成，是 `/.nimi/spec/` 规范树的人类可读投影。
-> 生成时间: 2026-05-13
+> 生成时间: 2026-05-14
 >
 > 权威规则定义位于 `/.nimi/spec/` 原始文件中。如需修改，请编辑当前 canonical spec 后重新生成。
 
@@ -3419,7 +3419,8 @@ Content Security Policy 约束：
 
 - Tauri webview 默认启用 CSP，限制外部脚本和样式加载。
 - `connect-src` 仅允许 realm API 域名和回环地址。
-- `script-src` 禁止 `eval` 和 inline script（mod 通过沙箱 iframe 隔离）。
+- 生产 `script-src` 禁止 `eval` 和 inline script（mod 通过沙箱 iframe 隔离）。
+- Desktop Tauri 开发态关闭 Vite HMR / React Fast Refresh，使 `devCsp` 与生产 `csp` 保持同等 `script-src` 约束。
 - Web 模式下依赖服务端 CSP header 而非 Tauri webview 策略。
 
 **Layer 5: Mod 能力沙箱** — Mod 在 capability sandbox 中执行，source-type 强制执行最小权限（如 10.6 所定义）。本地 AI 模型要求非空 `manifest.hashes` 进行完整性校验。External Agent 的 token 支持签发、撤销、列表和网关监控。

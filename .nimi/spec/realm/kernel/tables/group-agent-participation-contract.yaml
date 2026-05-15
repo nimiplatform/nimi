@@ -1,7 +1,7 @@
 contract_id: GROUP-AGENT-PARTICIPATION-CONTRACT-001
 domain: chat
 status: ACTIVE
-version: 2026-05-13
+version: 2026-05-15
 owner: '@team'
 sources:
   human_spec: ../group-agent-participation-contract.md

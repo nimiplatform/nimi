@@ -53,6 +53,24 @@
 - Retired app-specific full-theme compatibility outputs must not remain in the generated shared-lib theme surface once the foundation-plus-accent model is active.
 - Governed app chrome may layer app identity through shared semantic tokens and local `color-mix(...)` expressions, but it must not depend on app-scoped accent aliases for shared background, text, focus, or surface meaning.
 
+## P-DESIGN-009 — Visual Reference Taxonomy Admission Boundary
+
+- UI reference artifacts may seed shared taxonomy only after they are admitted
+  through a topic-local artifact manifest, classification matrix, and audit
+  result. They are never token tables, theme packs, app composition authority,
+  or implementation proof by themselves.
+- Platform contracts must cite the admitted taxonomy and source topic, not copy
+  host-local artifact paths, hashes, or visual measurements into durable
+  platform truth. Artifact identity stays in the topic evidence that admitted
+  the reference.
+- Generated image labels and pixels must not be used as canonical color,
+  radius, blur, shadow, spacing, sizing, or typography values. Numeric visual
+  values must come from `tables/nimi-ui-tokens.yaml`,
+  `tables/nimi-ui-themes.yaml`, or a later admitted platform token change.
+- A reference-card composition may be promoted to shared kit authority only as
+  a reusable primitive abstraction. Product information architecture, route
+  placement, data models, and screen composition remain app-local.
+
 ## P-DESIGN-010 — Shared Primitive Contract
 
 - Shared design primitives must be delivered by `@nimiplatform/nimi-kit/ui`, built on Radix UI headless primitives (Dialog, Tooltip, ScrollArea, Select, Switch, Avatar, Popover) and styled with CVA + Tailwind referencing `--nimi-*` semantic tokens.
@@ -141,6 +159,75 @@
 - Every `ambient.*` token must declare both light and dark values in `tables/nimi-ui-themes.yaml`.
 - Governed modules that render ambient `mesh` must honor `prefers-reduced-motion` by disabling halo animation and must honor `prefers-reduced-transparency` by falling back to `minimal` or `none`.
 
+## P-DESIGN-024 — UI Card v2.1 Shared Taxonomy Families
+
+- The shared taxonomy admitted from UI Card v2.1 is limited to primitive
+  families and semantic roles. It does not admit new component APIs until the
+  executable primitive table, `kit/ui` implementation, tests, and generated docs
+  are updated in later waves.
+- Surface and material taxonomy covers app background, regular glass cards,
+  elevated glass cards, navigation/sidebar surfaces, floating overlay panels,
+  and modal/dialog shells as reusable surface roles. Concrete dock placement,
+  runtime placement, world lists, profile headers, and app route structure are
+  excluded.
+- Typography taxonomy covers page title, section title, card title, body text,
+  muted/helper text, label/meta, caption/tag, and CJK role adjustments. Values
+  remain owned by typography tokens; the reference card does not supply sizes,
+  weights, line heights, or letter spacing.
+- Control taxonomy covers button, icon button, segmented control, text field,
+  search field, select field, textarea, toggle, checkbox, slider, stepper, and
+  tabs. Missing controls are gap-audit subjects, not automatically admitted
+  `kit/ui` exports.
+- Data and feedback taxonomy covers status badge, progress indicator, inline
+  alert, empty state, loading skeleton, error state, success state, and semantic
+  status emphasis. Status color meaning must resolve through governed status and
+  accent tokens, not random palettes.
+- Overlay and interaction taxonomy covers tooltip, dropdown menu, popover,
+  action menu, confirmation dialog, and settings panel shell. Settings content,
+  settings information architecture, and app-specific option models remain
+  app-local.
+- `nimi-accent` usage taxonomy covers focus ring, selected state, primary
+  action, active navigation, subtle background tint, and positive/confirming
+  status emphasis. Accent semantics are shared; app-local accent packs remain
+  app-local manifest authority.
+
+## P-DESIGN-025 — Composition Extraction Boundary
+
+- The UI Card v2.1 composition examples are Desktop product-feel references,
+  not platform composition authority. They may be decomposed into reusable
+  primitive gaps, but the composed screen truth remains in Desktop app-local
+  spec.
+- Desktop dock layout may seed shell surface, icon nav, active nav, and badge
+  primitive requirements; it must not seed a platform-owned dock layout.
+- Desktop top shell status controls may seed icon button, badge, counter, chip,
+  and compact toolbar primitive requirements; it must not seed Desktop status
+  bar composition.
+- Desktop command row may seed search, select, segmented control, and icon group
+  primitive requirements; it must not seed Desktop filtering workflow truth.
+- Desktop runtime, world library, contact/profile, and resource panels may seed
+  panel, list, status badge, avatar header, stat row, and resource meter
+  primitive requirements; they must not seed runtime metric schemas, world data
+  models, contact IA, or panel placement truth.
+- When a candidate can plausibly be both shared primitive and app composition,
+  the default posture is app-local candidate until a later packet proves the
+  reusable abstraction and records audit approval.
+
+## P-DESIGN-026 — Anti-Drift Negative Pattern Contract
+
+- Nimi product UI must stay compact, glass-based, token-governed, and
+  component-led. Reference-card negative examples are admitted as anti-drift
+  categories, not as pixel-level fixtures.
+- Governed product surfaces must not introduce marketing hero patterns,
+  oversized gradient cards, random accent palettes, plain native web-form
+  styling, dense border-first form grids, or ad hoc heavy-shadow cards when a
+  shared primitive family covers the need.
+- Future visual and pattern gates must encode these negative categories as
+  executable checks or named visual smoke fixtures before they are used as
+  closeout criteria.
+- App-local exceptions for negative categories require a local manifest entry,
+  a named owner, and a reason they do not redefine shared primitive or token
+  authority.
+
 ## P-DESIGN-090 — Nimi Design Hard Gate
 
 - `pnpm check:nimi-ui-pattern` is the hard gate for cross-app design compliance.
@@ -155,6 +242,8 @@
   - a governed module defines CVA variants for shared primitive families outside `kit/ui`
   - a governed module introduces raw visual contract values outside `tables/nimi-ui-allowlists.yaml`
   - a foundation scheme or accent pack omits a required token value for its layer
+  - a governed product surface introduces an admitted anti-drift negative
+    category without an app-local controlled exception
 
 ## Fact Sources
 

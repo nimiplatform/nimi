@@ -1,4 +1,4 @@
-import { useCallback, useLayoutEffect, useMemo, useRef, useState, type MutableRefObject, type ReactNode } from 'react';
+import { Suspense, lazy, useCallback, useLayoutEffect, useMemo, useRef, useState, type MutableRefObject, type ReactNode } from 'react';
 import { cn } from '@nimiplatform/nimi-kit/ui';
 import type {
   ConversationCanonicalMessage,
@@ -11,17 +11,42 @@ import type {
   ConversationViewMode,
 } from '../types.js';
 import { ConversationAnimationStyles } from './conversation-animations.js';
-import { CanonicalCharacterRail } from './canonical-character-rail.js';
 import {
   CanonicalConversationPane,
   type CanonicalConversationAnchoredSurfaceConfig,
 } from './canonical-conversation-pane.js';
 import { CanonicalDrawerShell } from './canonical-drawer-shell.js';
 import { CanonicalRightSidebar } from './canonical-right-sidebar.js';
-import { CanonicalStagePanel, type CanonicalStagePanelProps } from './canonical-stage-panel.js';
+import type { CanonicalStagePanelProps } from './canonical-stage-panel.js';
 import { CanonicalTargetPane } from './canonical-target-pane.js';
 import { CanonicalTranscriptView, type CanonicalTranscriptViewProps } from './canonical-transcript-view.js';
 import { ConversationSetupPanel } from './conversation-setup-panel.js';
+
+function createLazyImportError(label: string, error: unknown): Error {
+  const reason = error instanceof Error ? error.message : String(error || 'unknown import error');
+  const wrapped = new Error(`${label}: ${reason}`);
+  wrapped.name = 'LazyImportError';
+  wrapped.cause = error;
+  return wrapped;
+}
+
+const CanonicalCharacterRail = lazy(async () => {
+  try {
+    const mod = await import('./canonical-character-rail.js');
+    return { default: mod.CanonicalCharacterRail };
+  } catch (error) {
+    throw createLazyImportError('canonical:character-rail', error);
+  }
+});
+
+const CanonicalStagePanel = lazy(async () => {
+  try {
+    const mod = await import('./canonical-stage-panel.js');
+    return { default: mod.CanonicalStagePanel };
+  } catch (error) {
+    throw createLazyImportError('canonical:stage-panel', error);
+  }
+});
 
 function clamp(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max);
@@ -256,20 +281,22 @@ export function CanonicalConversationShell(props: CanonicalConversationShellProp
         ) : (
           <div className="flex min-h-0 min-w-0 flex-1 flex-row">
             {props.hideCharacterRail ? null : (
-              <CanonicalCharacterRail
-                selectedTarget={props.selectedTarget}
-                characterData={props.characterData}
-                avatarAnchorRef={avatarAnchorRef}
-                hideBackButton={props.hideTargetPane}
-                onBackToTargets={() => {
-                  props.onSelectTarget(null);
-                  closeTransientPanels();
-                }}
-                onOpenProfile={props.profileDrawer ? () => {
-                  setProfileOpen(true);
-                  setSettingsOpen(false);
-                } : undefined}
-              />
+              <Suspense fallback={<div className="w-[18rem] shrink-0" />}>
+                <CanonicalCharacterRail
+                  selectedTarget={props.selectedTarget}
+                  characterData={props.characterData}
+                  avatarAnchorRef={avatarAnchorRef}
+                  hideBackButton={props.hideTargetPane}
+                  onBackToTargets={() => {
+                    props.onSelectTarget(null);
+                    closeTransientPanels();
+                  }}
+                  onOpenProfile={props.profileDrawer ? () => {
+                    setProfileOpen(true);
+                    setSettingsOpen(false);
+                  } : undefined}
+                />
+              </Suspense>
             )}
             <CanonicalConversationPane
               selectedTarget={props.selectedTarget}
@@ -288,15 +315,17 @@ export function CanonicalConversationShell(props: CanonicalConversationShellProp
               topContent={props.topContent}
               anchoredSurface={props.conversationAnchoredSurface}
               stagePanel={(
-                <CanonicalStagePanel
-                  {...props.stagePanelProps}
-                  characterData={props.characterData}
-                  messages={messages}
-                  pendingFirstBeat={props.pendingFirstBeat}
-                  anchorViewportRef={stageAnchorViewportRef}
-                  cardAnchorOffsetPx={stageCardAnchorOffsetPx}
-                  onIntentOpenHistory={shellRenderContext.onIntentOpenHistory}
-                />
+                <Suspense fallback={<div className="flex min-h-0 flex-1" />}>
+                  <CanonicalStagePanel
+                    {...props.stagePanelProps}
+                    characterData={props.characterData}
+                    messages={messages}
+                    pendingFirstBeat={props.pendingFirstBeat}
+                    anchorViewportRef={stageAnchorViewportRef}
+                    cardAnchorOffsetPx={stageCardAnchorOffsetPx}
+                    onIntentOpenHistory={shellRenderContext.onIntentOpenHistory}
+                  />
+                </Suspense>
               )}
               transcript={(
                 <CanonicalTranscriptView

@@ -105,6 +105,10 @@ rules:
   - rule_id: P-DESIGN-008
     status: covered
     evidence_refs: [platform_kernel_consistency, nimi_ui_lib_drift, nimi_ui_pattern]
+  - rule_id: P-DESIGN-009
+    status: partial
+    evidence_refs: [platform_kernel_consistency]
+    coverage_note: "structural rule linkage only; admitted UI Card artifact/hash/classification evidence is topic-local under 2026-05-15-nimi-kit-ui-card-design-system-iteration"
   - rule_id: P-DESIGN-010
     status: covered
     evidence_refs: [platform_kernel_consistency, nimi_ui_lib_drift, nimi_ui_pattern]
@@ -147,6 +151,18 @@ rules:
   - rule_id: P-DESIGN-023
     status: covered
     evidence_refs: [platform_kernel_consistency, nimi_ui_lib_drift]
+  - rule_id: P-DESIGN-024
+    status: partial
+    evidence_refs: [platform_kernel_consistency, nimi_ui_pattern]
+    coverage_note: "taxonomy boundary is structurally covered; executable primitive gap closure is deferred to the topic's Wave 2 and Wave 3"
+  - rule_id: P-DESIGN-025
+    status: partial
+    evidence_refs: [platform_kernel_consistency, nimi_ui_pattern]
+    coverage_note: "composition boundary is structurally covered; per-candidate shared-vs-app-local proof remains required in downstream packets"
+  - rule_id: P-DESIGN-026
+    status: partial
+    evidence_refs: [platform_kernel_consistency, nimi_ui_pattern]
+    coverage_note: "negative anti-drift categories are admitted; executable visual fixtures and hard gate coverage are deferred to the topic's Wave 5"
   - rule_id: P-DESIGN-090
     status: covered
     evidence_refs: [platform_kernel_consistency, nimi_ui_pattern]
