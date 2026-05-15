@@ -133,6 +133,9 @@ function handleApi(request, response, manifestPath) {
 
   if (fixture.restOnline === false) {
     json(response, 503, {
+      reasonCode: 'REALM_UNAVAILABLE',
+      actionHint: 'retry_realm_request',
+      retryable: true,
       message: 'fixture rest offline',
       scenarioId: manifest.scenarioId,
     });

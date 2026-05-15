@@ -33,6 +33,10 @@ const desktopE2eFixtureSource = fs.readFileSync(
   path.join(root, 'src-tauri/src/desktop_e2e_fixture.rs'),
   'utf8',
 );
+const realmFixtureServerSource = fs.readFileSync(
+  path.join(root, 'e2e/fixtures/realm-fixture-server.mjs'),
+  'utf8',
+);
 
 test('desktop E2E runner resolves native WebDriver command names to executable paths', () => {
   assert.match(runnerSource, /function resolveNativeDriverPath\(nativeDriver\)/);
@@ -62,6 +66,8 @@ test('offline recovery smoke targets Realm REST reachability, not runtime releas
   assert.equal(offlineRecoveryProfile.tauriFixture, undefined);
   assert.match(offlineRecoverySpecSource, /updateRealmRestOnline\(true\)/);
   assert.doesNotMatch(offlineRecoverySpecSource, /updateRuntimeBridgeStatus/);
+  assert.match(realmFixtureServerSource, /reasonCode:\s*'REALM_UNAVAILABLE'/);
+  assert.match(realmFixtureServerSource, /actionHint:\s*'retry_realm_request'/);
 });
 
 test('authenticated desktop boot smoke fails closed on missing account projection', () => {

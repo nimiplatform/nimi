@@ -30,4 +30,14 @@ describe('D-OFFLINE-001: realm offline error classification', () => {
     assert.equal(isRealmOfflineError(new Error('fetch failed')), true);
     assert.equal(isRealmOfflineError(new Error('network timeout while loading realm')), true);
   });
+
+  test('fixture and HTTP gateway 503 Realm unavailable errors are treated as offline', () => {
+    const error = Object.assign(new Error('REALM_UNAVAILABLE: fixture rest offline'), {
+      reasonCode: ReasonCode.REALM_UNAVAILABLE,
+      actionHint: 'retry_realm_request',
+      retryable: true,
+    });
+
+    assert.equal(isRealmOfflineError(error), true);
+  });
 });
