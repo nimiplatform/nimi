@@ -1,9 +1,10 @@
 use super::{
     avatar_runtime_env_pairs, build_avatar_close_handoff_uri, build_avatar_handoff_uri,
-    confirm_dialog, ConfirmDialogPayload, DesktopAvatarCloseHandoffPayload,
-    DesktopAvatarLaunchHandoffPayload,
+    confirm_dialog, require_fresh_inferred_avatar_target, ConfirmDialogPayload,
+    DesktopAvatarCloseHandoffPayload, DesktopAvatarLaunchHandoffPayload,
 };
 use crate::test_support::test_guard;
+use std::time::Duration;
 use std::{fs, path::PathBuf};
 
 fn make_temp_dir(prefix: &str) -> PathBuf {
@@ -219,17 +220,81 @@ fn avatar_runtime_env_pairs_forward_runtime_defaults_without_realm_or_token() {
     )));
     assert!(pairs.contains(&(
         "NIMI_RUNTIME_LOCK_PATH",
-        fixture_dir.join("runtime.lock").to_string_lossy().to_string()
+        fixture_dir
+            .join("runtime.lock")
+            .to_string_lossy()
+            .to_string()
     )));
     assert!(pairs.contains(&("NIMI_RUNTIME_BRIDGE_MODE", "RELEASE".to_string())));
     assert!(pairs.contains(&(
         "NIMI_E2E_BACKEND_LOG_PATH",
-        fixture_dir.join("backend.log").to_string_lossy().to_string()
+        fixture_dir
+            .join("backend.log")
+            .to_string_lossy()
+            .to_string()
     )));
     assert!(!pairs.iter().any(|(key, _)| key.starts_with("NIMI_REALM")));
     assert!(!pairs.iter().any(|(key, _)| key.contains("AUTH_SESSION")));
     assert!(!pairs.iter().any(|(key, _)| key.contains("ACCESS_TOKEN")));
     let _ = fs::remove_dir_all(fixture_dir);
+}
+
+#[test]
+fn inferred_avatar_target_rejects_source_newer_than_binary() {
+    let temp = make_temp_dir("avatar-target-stale");
+    let repo = temp.join("repo");
+    let binary = repo
+        .join("apps")
+        .join("avatar")
+        .join("src-tauri")
+        .join("target")
+        .join("release")
+        .join("nimiplatform-avatar");
+    fs::create_dir_all(binary.parent().expect("binary parent")).expect("create binary parent");
+    fs::write(&binary, "old avatar binary").expect("write binary");
+    std::thread::sleep(Duration::from_millis(50));
+    let source = repo
+        .join("apps")
+        .join("avatar")
+        .join("src-tauri")
+        .join("src")
+        .join("agent_center_avatar_package.rs");
+    fs::create_dir_all(source.parent().expect("source parent")).expect("create source parent");
+    fs::write(&source, "fn main() {}").expect("write source");
+
+    let error = require_fresh_inferred_avatar_target(&repo, &binary)
+        .expect_err("stale repo-local Avatar target must fail");
+
+    assert!(error.contains("repo-local Avatar target is older than Avatar source"));
+    assert!(error.contains("pnpm build:avatar"));
+    let _ = fs::remove_dir_all(temp);
+}
+
+#[test]
+fn inferred_avatar_target_accepts_binary_newer_than_source() {
+    let temp = make_temp_dir("avatar-target-fresh");
+    let repo = temp.join("repo");
+    let source = repo
+        .join("apps")
+        .join("avatar")
+        .join("src-tauri")
+        .join("src")
+        .join("agent_center_avatar_package.rs");
+    fs::create_dir_all(source.parent().expect("source parent")).expect("create source parent");
+    fs::write(&source, "fn main() {}").expect("write source");
+    std::thread::sleep(Duration::from_millis(50));
+    let binary = repo
+        .join("apps")
+        .join("avatar")
+        .join("src-tauri")
+        .join("target")
+        .join("release")
+        .join("nimiplatform-avatar");
+    fs::create_dir_all(binary.parent().expect("binary parent")).expect("create binary parent");
+    fs::write(&binary, "fresh avatar binary").expect("write binary");
+
+    require_fresh_inferred_avatar_target(&repo, &binary).expect("fresh target should pass");
+    let _ = fs::remove_dir_all(temp);
 }
 
 #[test]

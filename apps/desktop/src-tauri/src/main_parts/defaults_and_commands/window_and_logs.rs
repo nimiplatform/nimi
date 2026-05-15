@@ -1,6 +1,8 @@
 use super::*;
-use std::path::PathBuf;
+use std::fs;
+use std::path::{Path, PathBuf};
 use std::process::Command;
+use std::time::SystemTime;
 
 const AVATAR_HANDOFF_SCHEME: &str = "nimi-avatar";
 const AVATAR_HANDOFF_LAUNCH_HOST: &str = "launch";
@@ -332,46 +334,172 @@ fn repo_root_candidates() -> Vec<PathBuf> {
 }
 
 #[cfg(target_os = "macos")]
-fn inferred_avatar_app_path() -> Option<PathBuf> {
-    repo_root_candidates()
-        .into_iter()
-        .map(|root| {
-            root.join("apps")
-                .join("avatar")
-                .join("src-tauri")
-                .join("target")
-                .join("release")
-                .join("bundle")
-                .join("macos")
-                .join("Nimi Avatar.app")
-        })
-        .find(|path| path.is_dir())
+fn inferred_avatar_app_path() -> Result<Option<PathBuf>, String> {
+    for root in repo_root_candidates() {
+        let path = root
+            .join("apps")
+            .join("avatar")
+            .join("src-tauri")
+            .join("target")
+            .join("release")
+            .join("bundle")
+            .join("macos")
+            .join("Nimi Avatar.app");
+        if path.is_dir() {
+            let executable_path = path
+                .join("Contents")
+                .join("MacOS")
+                .join("nimiplatform-avatar");
+            require_fresh_inferred_avatar_target(&root, &executable_path)?;
+            return Ok(Some(path));
+        }
+    }
+    Ok(None)
 }
 
-fn inferred_avatar_binary_path() -> Option<PathBuf> {
-    repo_root_candidates()
-        .into_iter()
-        .map(|root| {
-            root.join("apps")
-                .join("avatar")
-                .join("src-tauri")
-                .join("target")
-                .join("release")
-                .join(if cfg!(target_os = "windows") {
-                    "nimiplatform-avatar.exe"
-                } else {
-                    "nimiplatform-avatar"
-                })
-        })
-        .find(|path| path.is_file())
+fn inferred_avatar_binary_path() -> Result<Option<PathBuf>, String> {
+    for root in repo_root_candidates() {
+        let path = root
+            .join("apps")
+            .join("avatar")
+            .join("src-tauri")
+            .join("target")
+            .join("release")
+            .join(if cfg!(target_os = "windows") {
+                "nimiplatform-avatar.exe"
+            } else {
+                "nimiplatform-avatar"
+            });
+        if path.is_file() {
+            require_fresh_inferred_avatar_target(&root, &path)?;
+            return Ok(Some(path));
+        }
+    }
+    Ok(None)
+}
+
+fn require_fresh_inferred_avatar_target(
+    repo_root: &Path,
+    executable_path: &Path,
+) -> Result<(), String> {
+    let target_modified = fs::metadata(executable_path)
+        .and_then(|metadata| metadata.modified())
+        .map_err(|error| {
+            format!(
+                "repo-local Avatar target cannot be inspected: {}; {error}",
+                executable_path.display()
+            )
+        })?;
+    let source_cutoff = latest_avatar_source_modified_at(repo_root)?.ok_or_else(|| {
+        format!(
+            "repo-local Avatar source tree cannot be inspected under {}; run pnpm build:avatar",
+            repo_root.join("apps").join("avatar").display()
+        )
+    })?;
+    if target_modified < source_cutoff {
+        return Err(format!(
+            "repo-local Avatar target is older than Avatar source: {}; run pnpm build:avatar",
+            executable_path.display()
+        ));
+    }
+    Ok(())
+}
+
+fn latest_avatar_source_modified_at(repo_root: &Path) -> Result<Option<SystemTime>, String> {
+    let avatar_root = repo_root.join("apps").join("avatar");
+    let roots = [
+        avatar_root.join("src"),
+        avatar_root.join("src-tauri").join("src"),
+        avatar_root.join("src-tauri").join("capabilities"),
+        avatar_root.join("src-tauri").join("tauri.conf.json"),
+        avatar_root.join("src-tauri").join("Cargo.toml"),
+        avatar_root.join("package.json"),
+    ];
+    let mut latest = None;
+    for root in roots {
+        merge_latest_modified(&root, &mut latest)?;
+    }
+    Ok(latest)
+}
+
+fn merge_latest_modified(path: &Path, latest: &mut Option<SystemTime>) -> Result<(), String> {
+    if !path.exists() {
+        return Ok(());
+    }
+    let metadata = fs::metadata(path).map_err(|error| {
+        format!(
+            "failed to inspect Avatar source {}: {error}",
+            path.display()
+        )
+    })?;
+    if metadata.is_file() {
+        if is_avatar_source_freshness_file(path) {
+            let modified = metadata.modified().map_err(|error| {
+                format!(
+                    "failed to inspect Avatar source mtime {}: {error}",
+                    path.display()
+                )
+            })?;
+            if latest.map(|current| modified > current).unwrap_or(true) {
+                *latest = Some(modified);
+            }
+        }
+        return Ok(());
+    }
+    if metadata.is_dir() {
+        let entries = fs::read_dir(path).map_err(|error| {
+            format!(
+                "failed to read Avatar source dir {}: {error}",
+                path.display()
+            )
+        })?;
+        for entry in entries {
+            let entry = entry.map_err(|error| {
+                format!(
+                    "failed to read Avatar source dir entry {}: {error}",
+                    path.display()
+                )
+            })?;
+            let child = entry.path();
+            if child.is_dir() {
+                if is_ignored_avatar_source_freshness_dir(&child) {
+                    continue;
+                }
+                merge_latest_modified(&child, latest)?;
+            } else {
+                merge_latest_modified(&child, latest)?;
+            }
+        }
+    }
+    Ok(())
+}
+
+fn is_ignored_avatar_source_freshness_dir(path: &Path) -> bool {
+    matches!(
+        path.file_name().and_then(|value| value.to_str()),
+        Some("target" | "node_modules" | "dist" | ".vite" | "generated" | "gen")
+    )
+}
+
+fn is_avatar_source_freshness_file(path: &Path) -> bool {
+    if matches!(
+        path.file_name().and_then(|value| value.to_str()),
+        Some("Cargo.toml" | "package.json" | "tauri.conf.json")
+    ) {
+        return true;
+    }
+    matches!(
+        path.extension().and_then(|value| value.to_str()),
+        Some("rs" | "ts" | "tsx" | "json" | "html" | "css")
+    )
 }
 
 fn open_inferred_avatar_handoff_target(uri: &str) -> Result<(), String> {
     #[cfg(target_os = "macos")]
-    if let Some(app_path) = inferred_avatar_app_path() {
+    if let Some(app_path) = inferred_avatar_app_path()? {
         return spawn_avatar_handoff_app(app_path, uri);
     }
-    if let Some(binary_path) = inferred_avatar_binary_path() {
+    if let Some(binary_path) = inferred_avatar_binary_path()? {
         return spawn_avatar_handoff_binary(binary_path, uri);
     }
     Err("repo-local Avatar app/binary is not built; run pnpm build:avatar".to_string())

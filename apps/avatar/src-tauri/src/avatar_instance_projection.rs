@@ -94,6 +94,7 @@ mod tests {
 
     use super::{
         persist_projection_to_path, AvatarInstanceProjectionFile, AvatarInstanceProjectionRecord,
+        AVATAR_INSTANCE_PROJECTION_SCHEMA_VERSION,
     };
     fn temp_projection_path() -> std::path::PathBuf {
         let root = std::env::temp_dir().join(format!(

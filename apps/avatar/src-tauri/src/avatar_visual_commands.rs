@@ -112,7 +112,7 @@ fn is_selected_agent_center_live2d_adapter_manifest(
         return false;
     };
     let module = &value["modules"]["avatar_package"];
-    module["selected_package"]["kind"].as_str() == Some("live2d")
+    module["backend_kind"].as_str() == Some("live2d")
         && module["live2d_adapter_manifest_source"].as_str() == Some("external_sidecar_manifest")
         && module["live2d_adapter_manifest_ref"].as_str() == Some(manifest_ref)
 }

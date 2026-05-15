@@ -1,25 +1,67 @@
 use super::*;
 
-fn write_agent_center_live2d_package_for_agent(
+fn owner_user_id() -> &'static str {
+    "owner_1"
+}
+
+fn realm_agent_id() -> &'static str {
+    "agent_1"
+}
+
+fn local_agent_ref_for(owner_user_id: &str, realm_agent_id: &str) -> String {
+    format!("local-agent:{owner_user_id}:{realm_agent_id}")
+}
+
+fn local_agent_ref() -> String {
+    local_agent_ref_for(owner_user_id(), realm_agent_id())
+}
+
+fn agent_center_root(home: &Path, account_id: &str, local_agent_ref: &str) -> PathBuf {
+    home.join(".nimi/data/accounts")
+        .join(agent_center_path_segment(account_id))
+        .join("agents")
+        .join(agent_center_path_segment(local_agent_ref))
+        .join("agent-center")
+}
+
+fn resolve_payload(
+    account_id: &str,
+    owner_user_id: &str,
+    realm_agent_id: &str,
+) -> AgentCenterAvatarPackageResolvePayload {
+    AgentCenterAvatarPackageResolvePayload {
+        account_id: account_id.to_string(),
+        owner_user_id: owner_user_id.to_string(),
+        realm_agent_id: realm_agent_id.to_string(),
+        local_agent_ref: local_agent_ref_for(owner_user_id, realm_agent_id),
+    }
+}
+
+fn write_agent_center_live2d_package_for_local_agent(
     home: &Path,
-    agent_id: &str,
+    local_agent_ref: &str,
     entry_content: &str,
 ) -> PathBuf {
-    write_agent_center_live2d_package_for_account_agent(home, "account_1", agent_id, entry_content)
+    write_agent_center_live2d_package_for_account_agent(
+        home,
+        "account_1",
+        owner_user_id(),
+        realm_agent_id(),
+        local_agent_ref,
+        entry_content,
+    )
 }
 
 fn write_agent_center_live2d_package_for_account_agent(
     home: &Path,
     account_id: &str,
-    agent_id: &str,
+    owner_user_id: &str,
+    realm_agent_id: &str,
+    local_agent_ref: &str,
     entry_content: &str,
 ) -> PathBuf {
-    let package_dir = home
-        .join(".nimi/data/accounts")
-        .join(agent_center_path_segment(account_id))
-        .join("agents")
-        .join(agent_center_path_segment(agent_id))
-        .join("agent-center/modules/avatar_package/packages/live2d/live2d_ab12cd34ef56");
+    let package_dir = agent_center_root(home, account_id, local_agent_ref)
+        .join("modules/avatar_package/packages/live2d/live2d_ab12cd34ef56");
     let files_dir = package_dir.join("files");
     fs::create_dir_all(&files_dir).unwrap();
     let entry_path = files_dir.join("ren.model3.json");
@@ -67,19 +109,24 @@ fn write_agent_center_live2d_package_for_account_agent(
     write_agent_center_local_config(
         home,
         account_id,
-        agent_id,
+        owner_user_id,
+        realm_agent_id,
+        local_agent_ref,
         Some(("live2d", "live2d_ab12cd34ef56")),
     );
     package_dir
 }
 
 fn write_agent_center_live2d_package(home: &Path, entry_content: &str) -> PathBuf {
-    write_agent_center_live2d_package_for_agent(home, "agent_1", entry_content)
+    write_agent_center_live2d_package_for_local_agent(home, &local_agent_ref(), entry_content)
 }
 
 fn write_agent_center_vrm_package(home: &Path, entry_content: &[u8]) -> PathBuf {
     let package_dir = home
-        .join(".nimi/data/accounts/account_1/agents/agent_1")
+        .join(".nimi/data/accounts")
+        .join(agent_center_path_segment("account_1"))
+        .join("agents")
+        .join(agent_center_path_segment(&local_agent_ref()))
         .join("agent-center/modules/avatar_package/packages/vrm/vrm_ab12cd34ef56");
     let files_dir = package_dir.join("files");
     fs::create_dir_all(&files_dir).unwrap();
@@ -128,7 +175,9 @@ fn write_agent_center_vrm_package(home: &Path, entry_content: &[u8]) -> PathBuf 
     write_agent_center_local_config(
         home,
         "account_1",
-        "agent_1",
+        owner_user_id(),
+        realm_agent_id(),
+        &local_agent_ref(),
         Some(("vrm", "vrm_ab12cd34ef56")),
     );
     package_dir
@@ -137,7 +186,10 @@ fn write_agent_center_vrm_package(home: &Path, entry_content: &[u8]) -> PathBuf 
 #[test]
 fn normalize_avatar_launch_instance_id_writes_generated_id_when_omitted() {
     let mut context = AvatarLaunchContext {
-        agent_id: "agent_1".to_string(),
+        owner_user_id: owner_user_id().to_string(),
+        realm_agent_id: realm_agent_id().to_string(),
+        local_agent_ref: local_agent_ref(),
+        conversation_anchor_id: "anchor_1".to_string(),
         avatar_instance_id: None,
         launch_source: Some("desktop-agent-chat".to_string()),
     };
@@ -155,7 +207,10 @@ fn normalize_avatar_launch_instance_id_writes_generated_id_when_omitted() {
 #[test]
 fn normalize_avatar_launch_instance_id_preserves_explicit_id() {
     let mut context = AvatarLaunchContext {
-        agent_id: "agent_1".to_string(),
+        owner_user_id: owner_user_id().to_string(),
+        realm_agent_id: realm_agent_id().to_string(),
+        local_agent_ref: local_agent_ref(),
+        conversation_anchor_id: "anchor_1".to_string(),
         avatar_instance_id: Some("instance-explicit".to_string()),
         launch_source: None,
     };
@@ -173,14 +228,18 @@ fn normalize_avatar_launch_instance_id_preserves_explicit_id() {
 fn write_agent_center_local_config(
     home: &Path,
     account_id: &str,
-    agent_id: &str,
-    selected_package: Option<(&str, &str)>,
+    owner_user_id: &str,
+    realm_agent_id: &str,
+    local_agent_ref: &str,
+    selected_backend_package: Option<(&str, &str)>,
 ) {
     write_agent_center_local_config_with_adapter_manifest(
         home,
         account_id,
-        agent_id,
-        selected_package,
+        owner_user_id,
+        realm_agent_id,
+        local_agent_ref,
+        selected_backend_package,
         "none",
         None,
     );
@@ -189,39 +248,32 @@ fn write_agent_center_local_config(
 fn write_agent_center_local_config_with_adapter_manifest(
     home: &Path,
     account_id: &str,
-    agent_id: &str,
-    selected_package: Option<(&str, &str)>,
+    owner_user_id: &str,
+    realm_agent_id: &str,
+    local_agent_ref: &str,
+    selected_backend_package: Option<(&str, &str)>,
     adapter_manifest_source: &str,
     adapter_manifest_ref: Option<&str>,
 ) {
-    let config_dir = home
-        .join(".nimi/data/accounts")
-        .join(agent_center_path_segment(account_id))
-        .join("agents")
-        .join(agent_center_path_segment(agent_id))
-        .join("agent-center");
+    let config_dir = agent_center_root(home, account_id, local_agent_ref);
     fs::create_dir_all(&config_dir).unwrap();
-    let selected_package = selected_package.map(|(kind, package_id)| {
-        json!({
-            "kind": kind,
-            "package_id": package_id,
-        })
-    });
+    let selected_backend_ref = selected_backend_package.map(|(kind, package_id)| (kind, package_id));
     let config = json!({
         "schema_version": 1,
         "config_kind": "agent_center_local_config",
         "account_id": account_id,
-        "agent_id": agent_id,
+        "owner_user_id": owner_user_id,
+        "realm_agent_id": realm_agent_id,
+        "local_agent_ref": local_agent_ref,
         "modules": {
             "avatar_package": {
                 "schema_version": 1,
-                "selected_package": selected_package,
                 "conversation_anchor_scope": "current_anchor",
-                "avatar_package_ref": selected_package.as_ref().and_then(|value| value.get("package_id")).cloned(),
+                "avatar_package_ref": selected_backend_ref.as_ref().map(|(_, package_id)| *package_id),
                 "live2d_adapter_manifest_source": adapter_manifest_source,
                 "live2d_adapter_manifest_ref": adapter_manifest_ref,
                 "avatar_instance_policy": "reuse_active_instance",
-                "backend_kind": selected_package.as_ref().and_then(|value| value.get("kind")).and_then(|value| value.as_str()).unwrap_or("live2d"),
+                "backend_kind": selected_backend_ref.as_ref().map(|(kind, _)| *kind).unwrap_or("live2d"),
                 "backend_capability_profile_ref": null,
                 "generated_motion_provider_policy": "require_profile_support",
                 "launch_mode": "manual",
@@ -229,9 +281,8 @@ fn write_agent_center_local_config_with_adapter_manifest(
                 "updated_at": "2026-04-27T00:00:00Z",
                 "provenance": {
                     "source": "import_validation",
-                    "evidence_ref": selected_package.as_ref().and_then(|value| value.get("package_id")).and_then(|value| value.as_str()).unwrap_or("agent-center-avatar-config-default")
-                },
-                "last_validated_at": "2026-04-27T00:00:00Z",
+                    "evidence_ref": selected_backend_ref.as_ref().map(|(_, package_id)| *package_id).unwrap_or("agent-center-avatar-config-default")
+                }
             }
         }
     });
@@ -312,13 +363,13 @@ async fn resolve_agent_center_avatar_package_returns_live2d_model_manifest() {
     std::env::set_var("HOME", &home);
     let package_dir = write_agent_center_live2d_package(&home, r#"{"Version":3}"#);
 
-    let manifest =
-        nimi_avatar_resolve_agent_center_avatar_package(AgentCenterAvatarPackageResolvePayload {
-            account_id: "account_1".to_string(),
-            agent_id: "agent_1".to_string(),
-        })
-        .await
-        .expect("resolve package manifest");
+    let manifest = nimi_avatar_resolve_agent_center_avatar_package(resolve_payload(
+        "account_1",
+        owner_user_id(),
+        realm_agent_id(),
+    ))
+    .await
+    .expect("resolve package manifest");
 
     assert_eq!(manifest.model_id, "ren");
     let model3_path = PathBuf::from(manifest.model3_json_path.as_deref().unwrap());
@@ -366,9 +417,8 @@ async fn resolve_agent_center_avatar_package_uses_explicit_external_live2d_adapt
     )
     .unwrap();
     let manifest_ref = "live2d_adapter_ab12cd34ef56";
-    let sidecar_dir = home
-        .join(".nimi/data/accounts/account_1/agents/agent_1")
-        .join("agent-center/modules/avatar_package/adapter_manifests")
+    let sidecar_dir = agent_center_root(&home, "account_1", &local_agent_ref())
+        .join("modules/avatar_package/adapter_manifests")
         .join(manifest_ref);
     fs::create_dir_all(&sidecar_dir).unwrap();
     let sidecar_path = sidecar_dir.join("live2d-adapter.json");
@@ -380,19 +430,21 @@ async fn resolve_agent_center_avatar_package_uses_explicit_external_live2d_adapt
     write_agent_center_local_config_with_adapter_manifest(
         &home,
         "account_1",
-        "agent_1",
+        owner_user_id(),
+        realm_agent_id(),
+        &local_agent_ref(),
         Some(("live2d", "live2d_ab12cd34ef56")),
         "external_sidecar_manifest",
         Some(manifest_ref),
     );
 
-    let manifest =
-        nimi_avatar_resolve_agent_center_avatar_package(AgentCenterAvatarPackageResolvePayload {
-            account_id: "account_1".to_string(),
-            agent_id: "agent_1".to_string(),
-        })
-        .await
-        .expect("resolve package manifest");
+    let manifest = nimi_avatar_resolve_agent_center_avatar_package(resolve_payload(
+        "account_1",
+        owner_user_id(),
+        realm_agent_id(),
+    ))
+    .await
+    .expect("resolve package manifest");
 
     assert_eq!(
         manifest.adapter_manifest_path.as_deref(),
@@ -409,9 +461,8 @@ async fn resolve_agent_center_avatar_package_uses_explicit_external_live2d_adapt
         .await
         .expect("read external adapter sidecar through Avatar file gate");
     assert!(raw.contains("nimi.avatar.live2d.adapter"));
-    let unselected_dir = home
-        .join(".nimi/data/accounts/account_1/agents/agent_1")
-        .join("agent-center/modules/avatar_package/adapter_manifests/live2d_adapter_ffffffffffff");
+    let unselected_dir = agent_center_root(&home, "account_1", &local_agent_ref())
+        .join("modules/avatar_package/adapter_manifests/live2d_adapter_ffffffffffff");
     fs::create_dir_all(&unselected_dir).unwrap();
     let unselected_path = unselected_dir.join("live2d-adapter.json");
     fs::write(
@@ -451,19 +502,21 @@ async fn resolve_agent_center_avatar_package_uses_explicit_embedded_live2d_adapt
     write_agent_center_local_config_with_adapter_manifest(
         &home,
         "account_1",
-        "agent_1",
+        owner_user_id(),
+        realm_agent_id(),
+        &local_agent_ref(),
         Some(("live2d", "live2d_ab12cd34ef56")),
         "embedded_creator_manifest",
         None,
     );
 
-    let manifest =
-        nimi_avatar_resolve_agent_center_avatar_package(AgentCenterAvatarPackageResolvePayload {
-            account_id: "account_1".to_string(),
-            agent_id: "agent_1".to_string(),
-        })
-        .await
-        .expect("resolve package manifest");
+    let manifest = nimi_avatar_resolve_agent_center_avatar_package(resolve_payload(
+        "account_1",
+        owner_user_id(),
+        realm_agent_id(),
+    ))
+    .await
+    .expect("resolve package manifest");
 
     assert_eq!(
         manifest.adapter_manifest_path.as_deref(),
@@ -485,22 +538,31 @@ async fn resolve_agent_center_avatar_package_uses_explicit_embedded_live2d_adapt
 }
 
 #[tokio::test(flavor = "current_thread")]
-async fn resolve_agent_center_avatar_package_accepts_runtime_scoped_agent_id() {
+async fn resolve_agent_center_avatar_package_accepts_runtime_scoped_realm_agent_id() {
     let _guard = test_env_guard();
     let home = unique_temp_dir("agent-center-package-runtime-agent");
     fs::create_dir_all(&home).unwrap();
     let previous_home = std::env::var("HOME").ok();
     std::env::set_var("HOME", &home);
-    let package_dir =
-        write_agent_center_live2d_package_for_agent(&home, "~agent_1_tffk", r#"{"Version":3}"#);
+    let runtime_scoped_realm_agent_id = "~agent_1_tffk";
+    let runtime_scoped_local_agent_ref =
+        local_agent_ref_for(owner_user_id(), runtime_scoped_realm_agent_id);
+    let package_dir = write_agent_center_live2d_package_for_account_agent(
+        &home,
+        "account_1",
+        owner_user_id(),
+        runtime_scoped_realm_agent_id,
+        &runtime_scoped_local_agent_ref,
+        r#"{"Version":3}"#,
+    );
 
-    let manifest =
-        nimi_avatar_resolve_agent_center_avatar_package(AgentCenterAvatarPackageResolvePayload {
-            account_id: "account_1".to_string(),
-            agent_id: "~agent_1_tffk".to_string(),
-        })
-        .await
-        .expect("resolve runtime scoped package manifest");
+    let manifest = nimi_avatar_resolve_agent_center_avatar_package(resolve_payload(
+        "account_1",
+        owner_user_id(),
+        runtime_scoped_realm_agent_id,
+    ))
+    .await
+    .expect("resolve runtime scoped package manifest");
 
     assert_eq!(
         manifest.runtime_dir,
@@ -520,23 +582,30 @@ async fn resolve_agent_center_avatar_package_accepts_runtime_scoped_agent_id() {
 }
 
 #[tokio::test(flavor = "current_thread")]
-async fn resolve_agent_center_avatar_package_accepts_opaque_runtime_agent_id() {
+async fn resolve_agent_center_avatar_package_accepts_opaque_realm_agent_id() {
     let _guard = test_env_guard();
     let home = unique_temp_dir("agent-center-package-opaque-agent");
     fs::create_dir_all(&home).unwrap();
     let previous_home = std::env::var("HOME").ok();
     std::env::set_var("HOME", &home);
-    let agent_id = "agent:abc.def+1";
-    let package_dir =
-        write_agent_center_live2d_package_for_agent(&home, agent_id, r#"{"Version":3}"#);
+    let opaque_realm_agent_id = "agent:abc.def+1";
+    let opaque_local_agent_ref = local_agent_ref_for(owner_user_id(), opaque_realm_agent_id);
+    let package_dir = write_agent_center_live2d_package_for_account_agent(
+        &home,
+        "account_1",
+        owner_user_id(),
+        opaque_realm_agent_id,
+        &opaque_local_agent_ref,
+        r#"{"Version":3}"#,
+    );
 
-    let manifest =
-        nimi_avatar_resolve_agent_center_avatar_package(AgentCenterAvatarPackageResolvePayload {
-            account_id: "account_1".to_string(),
-            agent_id: agent_id.to_string(),
-        })
-        .await
-        .expect("resolve opaque runtime scoped package manifest");
+    let manifest = nimi_avatar_resolve_agent_center_avatar_package(resolve_payload(
+        "account_1",
+        owner_user_id(),
+        opaque_realm_agent_id,
+    ))
+    .await
+    .expect("resolve opaque runtime scoped package manifest");
 
     assert_eq!(
         manifest.runtime_dir,
@@ -566,17 +635,19 @@ async fn resolve_agent_center_avatar_package_uses_runtime_account_projection_sco
     let package_dir = write_agent_center_live2d_package_for_account_agent(
         &home,
         account_id,
-        "agent_1",
+        owner_user_id(),
+        realm_agent_id(),
+        &local_agent_ref(),
         r#"{"Version":3}"#,
     );
 
-    let manifest =
-        nimi_avatar_resolve_agent_center_avatar_package(AgentCenterAvatarPackageResolvePayload {
-            account_id: account_id.to_string(),
-            agent_id: "agent_1".to_string(),
-        })
-        .await
-        .expect("resolve package manifest with Runtime account projection");
+    let manifest = nimi_avatar_resolve_agent_center_avatar_package(resolve_payload(
+        account_id,
+        owner_user_id(),
+        realm_agent_id(),
+    ))
+    .await
+    .expect("resolve package manifest with Runtime account projection");
 
     assert_eq!(
         manifest.runtime_dir,
@@ -605,13 +676,13 @@ async fn resolve_agent_center_avatar_package_returns_vrm_model_manifest_and_reje
     std::env::set_var("HOME", &home);
     let vrm_package_dir = write_agent_center_vrm_package(&home, b"vrm-bytes");
 
-    let vrm_manifest =
-        nimi_avatar_resolve_agent_center_avatar_package(AgentCenterAvatarPackageResolvePayload {
-            account_id: "account_1".to_string(),
-            agent_id: "agent_1".to_string(),
-        })
-        .await
-        .expect("resolve VRM package manifest");
+    let vrm_manifest = nimi_avatar_resolve_agent_center_avatar_package(resolve_payload(
+        "account_1",
+        owner_user_id(),
+        realm_agent_id(),
+    ))
+    .await
+    .expect("resolve VRM package manifest");
     assert_eq!(vrm_manifest.kind, "vrm");
     assert_eq!(vrm_manifest.model_id, "model");
     let vrm_path = PathBuf::from(vrm_manifest.vrm_file_path.as_deref().unwrap());
@@ -630,21 +701,24 @@ async fn resolve_agent_center_avatar_package_returns_vrm_model_manifest_and_reje
     assert!(vrm_package_dir.join("files/model.vrm").exists());
 
     write_agent_center_live2d_package(&home, r#"{"Version":3}"#);
-    let entry = home.join(".nimi/data/accounts/account_1/agents/agent_1/agent-center/modules/avatar_package/packages/live2d/live2d_ab12cd34ef56/files/ren.model3.json");
+    let entry = agent_center_root(&home, "account_1", &local_agent_ref())
+        .join("modules/avatar_package/packages/live2d/live2d_ab12cd34ef56/files/ren.model3.json");
     write_agent_center_local_config(
         &home,
         "account_1",
-        "agent_1",
+        owner_user_id(),
+        realm_agent_id(),
+        &local_agent_ref(),
         Some(("live2d", "live2d_ab12cd34ef56")),
     );
     fs::write(entry, r#"{"Version":4}"#).unwrap();
-    let digest_error =
-        nimi_avatar_resolve_agent_center_avatar_package(AgentCenterAvatarPackageResolvePayload {
-            account_id: "account_1".to_string(),
-            agent_id: "agent_1".to_string(),
-        })
-        .await
-        .expect_err("digest mismatch should fail closed");
+    let digest_error = nimi_avatar_resolve_agent_center_avatar_package(resolve_payload(
+        "account_1",
+        owner_user_id(),
+        realm_agent_id(),
+    ))
+    .await
+    .expect_err("digest mismatch should fail closed");
     assert!(digest_error.contains("differs from manifest"));
 
     match previous_home {
