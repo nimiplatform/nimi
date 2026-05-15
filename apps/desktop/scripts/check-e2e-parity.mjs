@@ -184,7 +184,9 @@ function assertAuthenticatedFixtureSurfaceParity() {
   for (const required of [
     '/api/human/group-chats',
     '/api/economy/balances',
+    '/api/economy/subscription',
     '/api/human/notifications/unread-count',
+    '/api/world/posts',
   ]) {
     if (!fixtureServerSource.includes(required)) {
       fail(`Realm fixture server does not cover authenticated desktop shell endpoint ${required}`);
@@ -201,7 +203,9 @@ function assertAuthenticatedFixtureSurfaceParity() {
     const missing = [
       fixture.groupChats ? '' : 'groupChats',
       fixture.economyBalances ? '' : 'economyBalances',
+      fixture.subscription ? '' : 'subscription',
       fixture.notificationUnreadCount ? '' : 'notificationUnreadCount',
+      fixture.postFeed ? '' : 'postFeed',
     ].filter(Boolean);
     if (missing.length > 0) {
       incompleteProfiles.push(`${scenarioId}: ${missing.join(', ')}`);

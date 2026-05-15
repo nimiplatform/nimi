@@ -81,6 +81,49 @@ function lookupWorld(manifest, worldId) {
   return worlds.find((item) => String(item?.id || '') === String(worldId || '')) || null;
 }
 
+function positiveInt(value, fallback) {
+  const parsed = Number.parseInt(String(value || ''), 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+function nullableString(value) {
+  const text = String(value || '').trim();
+  return text || null;
+}
+
+function feedItems(fixture) {
+  if (Array.isArray(fixture.postFeed?.items)) {
+    return fixture.postFeed.items;
+  }
+  if (Array.isArray(fixture.posts?.items)) {
+    return fixture.posts.items;
+  }
+  return [];
+}
+
+function buildPostFeedResponse(fixture, requestUrl) {
+  const visibility = nullableString(requestUrl.searchParams.get('visibility'));
+  const worldId = nullableString(requestUrl.searchParams.get('worldId'));
+  const authorId = nullableString(requestUrl.searchParams.get('authorId'));
+  const cursor = nullableString(requestUrl.searchParams.get('cursor'));
+  const limit = positiveInt(requestUrl.searchParams.get('limit'), 15);
+  const offset = positiveInt(cursor, 0);
+  const items = feedItems(fixture)
+    .filter((post) => !authorId || String(post?.authorId || '') === authorId)
+    .filter((post) => !worldId || String(post?.worldId || '') === worldId)
+    .filter((post) => !visibility || String(post?.visibility || '') === visibility);
+  const pageItems = items.slice(offset, offset + limit);
+  const nextOffset = offset + pageItems.length;
+  return {
+    items: pageItems,
+    page: {
+      cursor,
+      limit,
+      nextCursor: nextOffset < items.length ? String(nextOffset) : null,
+    },
+  };
+}
+
 async function handleControl(request, response, manifestPath) {
   const pathname = new URL(request.url, 'http://127.0.0.1').pathname;
   const body = await parseBody(request);
@@ -180,6 +223,23 @@ function handleApi(request, response, manifestPath) {
       sparkBalance: 0,
       gemBalance: 0,
       currency: 'NIMI',
+    });
+    return undefined;
+  }
+
+  if (request.method === 'GET' && pathname === '/api/economy/subscription') {
+    json(response, 200, fixture.subscription || {
+      id: 'subscription-e2e-free',
+      tier: 'FREE',
+      status: 'ACTIVE',
+      cancelAtPeriodEnd: false,
+      currentPeriodStart: null,
+      currentPeriodEnd: null,
+      tierConfig: {
+        tier: 'FREE',
+        priceUsd: 0,
+        features: [],
+      },
     });
     return undefined;
   }
@@ -307,6 +367,11 @@ function handleApi(request, response, manifestPath) {
   if (request.method === 'GET' && worldviewSnapshotsMatch) {
     const world = lookupWorld(manifest, decodeURIComponent(worldviewSnapshotsMatch[1]));
     json(response, 200, Array.isArray(world?.worldviewSnapshots) ? world.worldviewSnapshots : []);
+    return undefined;
+  }
+
+  if (request.method === 'GET' && pathname === '/api/world/posts') {
+    json(response, 200, buildPostFeedResponse(fixture, requestUrl));
     return undefined;
   }
 
