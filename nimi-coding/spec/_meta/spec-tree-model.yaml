@@ -96,10 +96,8 @@ spec_tree_model:
         - .nimi/config/host-overlay.yaml
       required_contract: nimi-coding/contracts/projection-edge.schema.yaml
       must_be_minimal: true
-    - id: host_package_overlay
+    - id: nimicoding_managed_projection
       allowed_roots:
-        - .nimi/config/host-overlay.yaml
-      forbidden_roots:
         - .nimi/methodology/**
         - .nimi/contracts/**
         - .nimi/config/**

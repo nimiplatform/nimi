@@ -148,7 +148,7 @@ function normalizeV2SpecGenerationInputs(inputs) {
     "spec_generation_state",
     "audit_evidence_state",
     "operational_local_artifact",
-    "host_package_overlay",
+    "nimicoding_managed_projection",
     "candidate_roadmap",
     "lifecycle_progress_state",
     "methodology_authority",
