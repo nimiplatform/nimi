@@ -66,7 +66,7 @@ test('offline recovery smoke targets Realm REST reachability, not runtime releas
   assert.equal(offlineRecoveryProfile.tauriFixture, undefined);
   assert.match(offlineRecoverySpecSource, /updateRealmRestOnline\(true\)/);
   assert.doesNotMatch(offlineRecoverySpecSource, /updateRuntimeBridgeStatus/);
-  assert.match(realmFixtureServerSource, /reasonCode:\s*'REALM_UNAVAILABLE'/);
+  assert.match(realmFixtureServerSource, /reasonCode:\s*ReasonCode\.REALM_UNAVAILABLE/);
   assert.match(realmFixtureServerSource, /actionHint:\s*'retry_realm_request'/);
 });
 

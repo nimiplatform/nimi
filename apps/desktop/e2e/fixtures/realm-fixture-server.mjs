@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import http from 'node:http';
 import { Server as SocketIOServer } from 'socket.io';
+import { ReasonCode } from '@nimiplatform/sdk/types';
 
 function readJsonFile(filePath) {
   return JSON.parse(fs.readFileSync(filePath, 'utf8'));
@@ -133,7 +134,7 @@ function handleApi(request, response, manifestPath) {
 
   if (fixture.restOnline === false) {
     json(response, 503, {
-      reasonCode: 'REALM_UNAVAILABLE',
+      reasonCode: ReasonCode.REALM_UNAVAILABLE,
       actionHint: 'retry_realm_request',
       retryable: true,
       message: 'fixture rest offline',
