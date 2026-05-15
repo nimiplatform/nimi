@@ -9,7 +9,7 @@ const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '..');
 
 const tablesDir = path.join(repoRoot, '.nimi', 'spec', 'cognition', 'kernel', 'tables');
-const outDir = path.join(repoRoot, '.nimi', 'spec', 'cognition', 'kernel', 'generated');
+const outDir = path.join(repoRoot, '.nimi', 'local', 'derived', 'cognition', 'kernel', 'generated');
 
 const specs = [
   { input: 'artifact-families.yaml', output: 'artifact-families.md', render: renderArtifactFamilies },
@@ -233,7 +233,8 @@ async function main() {
       try {
         current = await fs.readFile(entry.outputPath, 'utf8');
       } catch {
-        drifted.push(entry.outputPath);
+        // Local derived docs are ignored; materialize a missing cache but still fail stale caches.
+        await fs.writeFile(entry.outputPath, entry.rendered, 'utf8');
         continue;
       }
       if (current !== entry.rendered) drifted.push(entry.outputPath);
@@ -245,7 +246,8 @@ async function main() {
       currentIndex = await fs.readFile(indexPath, 'utf8');
     } catch {
       indexMissing = true;
-      drifted.push(indexPath);
+      // Local derived docs are ignored; materialize a missing cache but still fail stale caches.
+      await fs.writeFile(indexPath, indexRendered, 'utf8');
     }
     if (!indexMissing && currentIndex !== indexRendered) drifted.push(indexPath);
 
