@@ -56,6 +56,8 @@ import {
 import {
   CancelHookRequest,
   CancelHookResponse,
+  CancelCompanionParticipationRequest,
+  CancelCompanionParticipationResponse,
   DisableAutonomyRequest,
   DisableAutonomyResponse,
   EnableAutonomyRequest,
@@ -70,6 +72,8 @@ import {
   GetAvatarDebugReplayResponse,
   GetAvatarDebugSnapshotRequest,
   GetAvatarDebugSnapshotResponse,
+  GetCompanionParticipationProjectionRequest,
+  GetCompanionParticipationProjectionResponse,
   GetConversationAnchorSnapshotRequest,
   GetConversationAnchorSnapshotResponse,
   GetDelegatedControlSurfaceSnapshotRequest,
@@ -94,10 +98,14 @@ import {
   ListPendingHooksResponse,
   OpenConversationAnchorRequest,
   OpenConversationAnchorResponse,
+  OpenCompanionParticipationReplayRequest,
+  OpenCompanionParticipationReplayResponse,
   QueryAgentMemoryRequest,
   QueryAgentMemoryResponse,
   RequestAvatarDebugProbeRequest,
   RequestAvatarDebugProbeResponse,
+  RequestCompanionParticipationRequest,
+  RequestCompanionParticipationResponse,
   SetAgentPresentationProfileRequest,
   SetAgentPresentationProfileResponse,
   SetAutonomyConfigRequest,
@@ -358,6 +366,22 @@ export const runtimeUnaryMethodCodecsDomain: Partial<RuntimeUnaryMethodCodecMap>
   [RuntimeMethodIds.agent.getPublicChatSessionSnapshot]: {
     requestType: GetPublicChatSessionSnapshotRequest,
     responseType: GetPublicChatSessionSnapshotResponse,
+  },
+  [RuntimeMethodIds.agent.getCompanionParticipationProjection]: {
+    requestType: GetCompanionParticipationProjectionRequest,
+    responseType: GetCompanionParticipationProjectionResponse,
+  },
+  [RuntimeMethodIds.agent.requestCompanionParticipation]: {
+    requestType: RequestCompanionParticipationRequest,
+    responseType: RequestCompanionParticipationResponse,
+  },
+  [RuntimeMethodIds.agent.cancelCompanionParticipation]: {
+    requestType: CancelCompanionParticipationRequest,
+    responseType: CancelCompanionParticipationResponse,
+  },
+  [RuntimeMethodIds.agent.openCompanionParticipationReplay]: {
+    requestType: OpenCompanionParticipationReplayRequest,
+    responseType: OpenCompanionParticipationReplayResponse,
   },
   [RuntimeMethodIds.agent.createRealmGroupMessageCandidate]: {
     requestType: CreateRealmGroupMessageCandidateRequest,

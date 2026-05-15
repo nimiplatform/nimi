@@ -26,6 +26,10 @@ const (
 	RuntimeAgentService_OpenConversationAnchor_FullMethodName                = "/nimi.runtime.v1.RuntimeAgentService/OpenConversationAnchor"
 	RuntimeAgentService_GetConversationAnchorSnapshot_FullMethodName         = "/nimi.runtime.v1.RuntimeAgentService/GetConversationAnchorSnapshot"
 	RuntimeAgentService_GetPublicChatSessionSnapshot_FullMethodName          = "/nimi.runtime.v1.RuntimeAgentService/GetPublicChatSessionSnapshot"
+	RuntimeAgentService_GetCompanionParticipationProjection_FullMethodName   = "/nimi.runtime.v1.RuntimeAgentService/GetCompanionParticipationProjection"
+	RuntimeAgentService_RequestCompanionParticipation_FullMethodName         = "/nimi.runtime.v1.RuntimeAgentService/RequestCompanionParticipation"
+	RuntimeAgentService_CancelCompanionParticipation_FullMethodName          = "/nimi.runtime.v1.RuntimeAgentService/CancelCompanionParticipation"
+	RuntimeAgentService_OpenCompanionParticipationReplay_FullMethodName      = "/nimi.runtime.v1.RuntimeAgentService/OpenCompanionParticipationReplay"
 	RuntimeAgentService_CreateRealmGroupMessageCandidate_FullMethodName      = "/nimi.runtime.v1.RuntimeAgentService/CreateRealmGroupMessageCandidate"
 	RuntimeAgentService_GetRealmGroupMessageCandidateEvidence_FullMethodName = "/nimi.runtime.v1.RuntimeAgentService/GetRealmGroupMessageCandidateEvidence"
 	RuntimeAgentService_GetAvatarDebugSnapshot_FullMethodName                = "/nimi.runtime.v1.RuntimeAgentService/GetAvatarDebugSnapshot"
@@ -65,6 +69,10 @@ type RuntimeAgentServiceClient interface {
 	OpenConversationAnchor(ctx context.Context, in *OpenConversationAnchorRequest, opts ...grpc.CallOption) (*OpenConversationAnchorResponse, error)
 	GetConversationAnchorSnapshot(ctx context.Context, in *GetConversationAnchorSnapshotRequest, opts ...grpc.CallOption) (*GetConversationAnchorSnapshotResponse, error)
 	GetPublicChatSessionSnapshot(ctx context.Context, in *GetPublicChatSessionSnapshotRequest, opts ...grpc.CallOption) (*GetPublicChatSessionSnapshotResponse, error)
+	GetCompanionParticipationProjection(ctx context.Context, in *GetCompanionParticipationProjectionRequest, opts ...grpc.CallOption) (*GetCompanionParticipationProjectionResponse, error)
+	RequestCompanionParticipation(ctx context.Context, in *RequestCompanionParticipationRequest, opts ...grpc.CallOption) (*RequestCompanionParticipationResponse, error)
+	CancelCompanionParticipation(ctx context.Context, in *CancelCompanionParticipationRequest, opts ...grpc.CallOption) (*CancelCompanionParticipationResponse, error)
+	OpenCompanionParticipationReplay(ctx context.Context, in *OpenCompanionParticipationReplayRequest, opts ...grpc.CallOption) (*OpenCompanionParticipationReplayResponse, error)
 	CreateRealmGroupMessageCandidate(ctx context.Context, in *CreateRealmGroupMessageCandidateRequest, opts ...grpc.CallOption) (*CreateRealmGroupMessageCandidateResponse, error)
 	GetRealmGroupMessageCandidateEvidence(ctx context.Context, in *GetRealmGroupMessageCandidateEvidenceRequest, opts ...grpc.CallOption) (*GetRealmGroupMessageCandidateEvidenceResponse, error)
 	GetAvatarDebugSnapshot(ctx context.Context, in *GetAvatarDebugSnapshotRequest, opts ...grpc.CallOption) (*GetAvatarDebugSnapshotResponse, error)
@@ -165,6 +173,46 @@ func (c *runtimeAgentServiceClient) GetPublicChatSessionSnapshot(ctx context.Con
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GetPublicChatSessionSnapshotResponse)
 	err := c.cc.Invoke(ctx, RuntimeAgentService_GetPublicChatSessionSnapshot_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeAgentServiceClient) GetCompanionParticipationProjection(ctx context.Context, in *GetCompanionParticipationProjectionRequest, opts ...grpc.CallOption) (*GetCompanionParticipationProjectionResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetCompanionParticipationProjectionResponse)
+	err := c.cc.Invoke(ctx, RuntimeAgentService_GetCompanionParticipationProjection_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeAgentServiceClient) RequestCompanionParticipation(ctx context.Context, in *RequestCompanionParticipationRequest, opts ...grpc.CallOption) (*RequestCompanionParticipationResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RequestCompanionParticipationResponse)
+	err := c.cc.Invoke(ctx, RuntimeAgentService_RequestCompanionParticipation_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeAgentServiceClient) CancelCompanionParticipation(ctx context.Context, in *CancelCompanionParticipationRequest, opts ...grpc.CallOption) (*CancelCompanionParticipationResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CancelCompanionParticipationResponse)
+	err := c.cc.Invoke(ctx, RuntimeAgentService_CancelCompanionParticipation_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeAgentServiceClient) OpenCompanionParticipationReplay(ctx context.Context, in *OpenCompanionParticipationReplayRequest, opts ...grpc.CallOption) (*OpenCompanionParticipationReplayResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(OpenCompanionParticipationReplayResponse)
+	err := c.cc.Invoke(ctx, RuntimeAgentService_OpenCompanionParticipationReplay_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -451,6 +499,10 @@ type RuntimeAgentServiceServer interface {
 	OpenConversationAnchor(context.Context, *OpenConversationAnchorRequest) (*OpenConversationAnchorResponse, error)
 	GetConversationAnchorSnapshot(context.Context, *GetConversationAnchorSnapshotRequest) (*GetConversationAnchorSnapshotResponse, error)
 	GetPublicChatSessionSnapshot(context.Context, *GetPublicChatSessionSnapshotRequest) (*GetPublicChatSessionSnapshotResponse, error)
+	GetCompanionParticipationProjection(context.Context, *GetCompanionParticipationProjectionRequest) (*GetCompanionParticipationProjectionResponse, error)
+	RequestCompanionParticipation(context.Context, *RequestCompanionParticipationRequest) (*RequestCompanionParticipationResponse, error)
+	CancelCompanionParticipation(context.Context, *CancelCompanionParticipationRequest) (*CancelCompanionParticipationResponse, error)
+	OpenCompanionParticipationReplay(context.Context, *OpenCompanionParticipationReplayRequest) (*OpenCompanionParticipationReplayResponse, error)
 	CreateRealmGroupMessageCandidate(context.Context, *CreateRealmGroupMessageCandidateRequest) (*CreateRealmGroupMessageCandidateResponse, error)
 	GetRealmGroupMessageCandidateEvidence(context.Context, *GetRealmGroupMessageCandidateEvidenceRequest) (*GetRealmGroupMessageCandidateEvidenceResponse, error)
 	GetAvatarDebugSnapshot(context.Context, *GetAvatarDebugSnapshotRequest) (*GetAvatarDebugSnapshotResponse, error)
@@ -506,6 +558,18 @@ func (UnimplementedRuntimeAgentServiceServer) GetConversationAnchorSnapshot(cont
 }
 func (UnimplementedRuntimeAgentServiceServer) GetPublicChatSessionSnapshot(context.Context, *GetPublicChatSessionSnapshotRequest) (*GetPublicChatSessionSnapshotResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetPublicChatSessionSnapshot not implemented")
+}
+func (UnimplementedRuntimeAgentServiceServer) GetCompanionParticipationProjection(context.Context, *GetCompanionParticipationProjectionRequest) (*GetCompanionParticipationProjectionResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetCompanionParticipationProjection not implemented")
+}
+func (UnimplementedRuntimeAgentServiceServer) RequestCompanionParticipation(context.Context, *RequestCompanionParticipationRequest) (*RequestCompanionParticipationResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method RequestCompanionParticipation not implemented")
+}
+func (UnimplementedRuntimeAgentServiceServer) CancelCompanionParticipation(context.Context, *CancelCompanionParticipationRequest) (*CancelCompanionParticipationResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method CancelCompanionParticipation not implemented")
+}
+func (UnimplementedRuntimeAgentServiceServer) OpenCompanionParticipationReplay(context.Context, *OpenCompanionParticipationReplayRequest) (*OpenCompanionParticipationReplayResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method OpenCompanionParticipationReplay not implemented")
 }
 func (UnimplementedRuntimeAgentServiceServer) CreateRealmGroupMessageCandidate(context.Context, *CreateRealmGroupMessageCandidateRequest) (*CreateRealmGroupMessageCandidateResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method CreateRealmGroupMessageCandidate not implemented")
@@ -727,6 +791,78 @@ func _RuntimeAgentService_GetPublicChatSessionSnapshot_Handler(srv interface{}, 
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(RuntimeAgentServiceServer).GetPublicChatSessionSnapshot(ctx, req.(*GetPublicChatSessionSnapshotRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeAgentService_GetCompanionParticipationProjection_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetCompanionParticipationProjectionRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAgentServiceServer).GetCompanionParticipationProjection(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAgentService_GetCompanionParticipationProjection_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAgentServiceServer).GetCompanionParticipationProjection(ctx, req.(*GetCompanionParticipationProjectionRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeAgentService_RequestCompanionParticipation_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RequestCompanionParticipationRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAgentServiceServer).RequestCompanionParticipation(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAgentService_RequestCompanionParticipation_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAgentServiceServer).RequestCompanionParticipation(ctx, req.(*RequestCompanionParticipationRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeAgentService_CancelCompanionParticipation_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CancelCompanionParticipationRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAgentServiceServer).CancelCompanionParticipation(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAgentService_CancelCompanionParticipation_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAgentServiceServer).CancelCompanionParticipation(ctx, req.(*CancelCompanionParticipationRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeAgentService_OpenCompanionParticipationReplay_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(OpenCompanionParticipationReplayRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAgentServiceServer).OpenCompanionParticipationReplay(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAgentService_OpenCompanionParticipationReplay_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAgentServiceServer).OpenCompanionParticipationReplay(ctx, req.(*OpenCompanionParticipationReplayRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -1226,6 +1362,22 @@ var RuntimeAgentService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetPublicChatSessionSnapshot",
 			Handler:    _RuntimeAgentService_GetPublicChatSessionSnapshot_Handler,
+		},
+		{
+			MethodName: "GetCompanionParticipationProjection",
+			Handler:    _RuntimeAgentService_GetCompanionParticipationProjection_Handler,
+		},
+		{
+			MethodName: "RequestCompanionParticipation",
+			Handler:    _RuntimeAgentService_RequestCompanionParticipation_Handler,
+		},
+		{
+			MethodName: "CancelCompanionParticipation",
+			Handler:    _RuntimeAgentService_CancelCompanionParticipation_Handler,
+		},
+		{
+			MethodName: "OpenCompanionParticipationReplay",
+			Handler:    _RuntimeAgentService_OpenCompanionParticipationReplay_Handler,
 		},
 		{
 			MethodName: "CreateRealmGroupMessageCandidate",

@@ -151,6 +151,10 @@ export type RuntimeUnaryMethodContractMap = {
   [RuntimeMethodIds.agent.openConversationAnchor]: RuntimeClientMethodContract<'agent', 'openConversationAnchor'>;
   [RuntimeMethodIds.agent.getConversationAnchorSnapshot]: RuntimeClientMethodContract<'agent', 'getConversationAnchorSnapshot'>;
   [RuntimeMethodIds.agent.getPublicChatSessionSnapshot]: RuntimeClientMethodContract<'agent', 'getPublicChatSessionSnapshot'>;
+  [RuntimeMethodIds.agent.getCompanionParticipationProjection]: RuntimeClientMethodContract<'agent', 'getCompanionParticipationProjection'>;
+  [RuntimeMethodIds.agent.requestCompanionParticipation]: RuntimeClientMethodContract<'agent', 'requestCompanionParticipation'>;
+  [RuntimeMethodIds.agent.cancelCompanionParticipation]: RuntimeClientMethodContract<'agent', 'cancelCompanionParticipation'>;
+  [RuntimeMethodIds.agent.openCompanionParticipationReplay]: RuntimeClientMethodContract<'agent', 'openCompanionParticipationReplay'>;
   [RuntimeMethodIds.agent.createRealmGroupMessageCandidate]: RuntimeClientMethodContract<'agent', 'createRealmGroupMessageCandidate'>;
   [RuntimeMethodIds.agent.getRealmGroupMessageCandidateEvidence]: RuntimeClientMethodContract<'agent', 'getRealmGroupMessageCandidateEvidence'>;
   [RuntimeMethodIds.agent.getAvatarDebugSnapshot]: RuntimeClientMethodContract<'agent', 'getAvatarDebugSnapshot'>;

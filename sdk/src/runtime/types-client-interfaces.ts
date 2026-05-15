@@ -266,6 +266,8 @@ import type {
 import type {
   CancelHookRequest,
   CancelHookResponse,
+  CancelCompanionParticipationRequest,
+  CancelCompanionParticipationResponse,
   DisableAutonomyRequest,
   DisableAutonomyResponse,
   ExecuteDelegatedCapabilityRequest,
@@ -282,6 +284,8 @@ import type {
   GetAvatarDebugReplayResponse,
   GetAvatarDebugSnapshotRequest,
   GetAvatarDebugSnapshotResponse,
+  GetCompanionParticipationProjectionRequest,
+  GetCompanionParticipationProjectionResponse,
   InitializeAgentRequest,
   InitializeAgentResponse,
   GetDelegatedControlSurfaceSnapshotRequest,
@@ -302,12 +306,16 @@ import type {
   ListPendingHooksResponse,
   OpenConversationAnchorRequest,
   OpenConversationAnchorResponse,
+  OpenCompanionParticipationReplayRequest,
+  OpenCompanionParticipationReplayResponse,
   GetPublicChatSessionSnapshotRequest,
   GetPublicChatSessionSnapshotResponse,
   QueryAgentMemoryRequest,
   QueryAgentMemoryResponse,
   RequestAvatarDebugProbeRequest,
   RequestAvatarDebugProbeResponse,
+  RequestCompanionParticipationRequest,
+  RequestCompanionParticipationResponse,
   SetAgentPresentationProfileRequest,
   SetAgentPresentationProfileResponse,
   SetDelegatedProviderStateRequest,
@@ -522,6 +530,22 @@ export type RuntimeAgentClient = {
     request: GetPublicChatSessionSnapshotRequest,
     options?: RuntimeCallOptions,
   ): Promise<GetPublicChatSessionSnapshotResponse>;
+  getCompanionParticipationProjection(
+    request: GetCompanionParticipationProjectionRequest,
+    options?: RuntimeCallOptions,
+  ): Promise<GetCompanionParticipationProjectionResponse>;
+  requestCompanionParticipation(
+    request: RequestCompanionParticipationRequest,
+    options?: RuntimeCallOptions,
+  ): Promise<RequestCompanionParticipationResponse>;
+  cancelCompanionParticipation(
+    request: CancelCompanionParticipationRequest,
+    options?: RuntimeCallOptions,
+  ): Promise<CancelCompanionParticipationResponse>;
+  openCompanionParticipationReplay(
+    request: OpenCompanionParticipationReplayRequest,
+    options?: RuntimeCallOptions,
+  ): Promise<OpenCompanionParticipationReplayResponse>;
   createRealmGroupMessageCandidate(
     request: CreateRealmGroupMessageCandidateRequest,
     options?: RuntimeCallOptions,

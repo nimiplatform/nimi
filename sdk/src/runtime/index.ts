@@ -88,6 +88,9 @@ export {
   AvatarDebugReplayRedactionState,
   AvatarDebugReplayVisibility,
   AvatarDebugRequestedBy,
+  CompanionParticipationStatus,
+  CompanionParticipationSurfaceKind,
+  CompanionParticipationTriggerSource,
   HookAdmissionState,
   AgentLifecycleStatus,
   AgentTrackType,
@@ -179,5 +182,20 @@ export type {
   RuntimeAvatarDebugRequestProbeRequest,
   RuntimeAvatarDebugSnapshotRequest,
 } from './runtime-avatar-debug.js';
+export {
+  decodeCompanionParticipationProjection,
+} from './runtime-companion-participation.js';
+export type {
+  RuntimeCompanionParticipationBaseRequest,
+  RuntimeCompanionParticipationCancelRequest,
+  RuntimeCompanionParticipationModule,
+  RuntimeCompanionParticipationProjection,
+  RuntimeCompanionParticipationReplay,
+  RuntimeCompanionParticipationReplayRequest,
+  RuntimeCompanionParticipationRequest,
+  RuntimeCompanionParticipationStatus,
+  RuntimeCompanionParticipationSurfaceKind,
+  RuntimeCompanionParticipationTriggerSource,
+} from './runtime-companion-participation.js';
 export type * from './generated/runtime/v1/artifact_service.js';
 export { toProtoStruct } from './helpers.js';

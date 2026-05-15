@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/texttarget"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -123,4 +124,38 @@ func (s *Service) resolvePublicChatBinding(
 		RoutePolicy: resolved.RoutePolicy,
 		ConnectorID: strings.TrimSpace(resolved.ConnectorID),
 	}, true, nil
+}
+
+func (s *Service) resolveRuntimeDefaultPublicChatBinding(
+	ctx context.Context,
+	subjectUserID string,
+	systemPrompt string,
+	messages []*runtimev1.ChatMessage,
+	maxOutputTokens int32,
+) (publicChatExecutionBinding, error) {
+	if s == nil || !s.HasPublicChatBindingResolver() {
+		return publicChatExecutionBinding{}, status.Error(codes.FailedPrecondition, "runtime public chat binding resolver unavailable")
+	}
+	resolved, err := s.currentPublicChatBindingResolver().ResolvePublicChatBinding(ctx, PublicChatBindingResolutionRequest{
+		ModelID:         texttarget.InternalDefaultLocalTextModelAlias,
+		RouteHint:       runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED,
+		SubjectUserID:   strings.TrimSpace(subjectUserID),
+		SystemPrompt:    strings.TrimSpace(systemPrompt),
+		Messages:        cloneChatMessages(messages),
+		MaxOutputTokens: maxOutputTokens,
+	})
+	if err != nil {
+		return publicChatExecutionBinding{}, err
+	}
+	if strings.TrimSpace(resolved.ModelID) == "" {
+		return publicChatExecutionBinding{}, status.Error(codes.FailedPrecondition, "runtime public chat binding resolver returned empty model")
+	}
+	if resolved.RoutePolicy == runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED {
+		return publicChatExecutionBinding{}, status.Error(codes.FailedPrecondition, "runtime public chat binding resolver returned unspecified route")
+	}
+	return publicChatExecutionBinding{
+		ModelID:     strings.TrimSpace(resolved.ModelID),
+		RoutePolicy: resolved.RoutePolicy,
+		ConnectorID: strings.TrimSpace(resolved.ConnectorID),
+	}, nil
 }

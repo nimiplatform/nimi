@@ -51,6 +51,9 @@ export {
   AvatarDebugProbeKind,
   AvatarDebugProbeStatus,
   AvatarDebugRequestedBy,
+  CompanionParticipationStatus,
+  CompanionParticipationSurfaceKind,
+  CompanionParticipationTriggerSource,
   HookAdmissionState,
   AgentLifecycleStatus,
   AgentTrackType,
@@ -155,3 +158,18 @@ export { createRuntimeClient } from './core/client.js';
 export { createRuntimeProtectedScopeHelper } from './protected-access.js';
 export { toProtoStruct } from './helpers.js';
 export { Runtime } from './runtime.js';
+export {
+  decodeCompanionParticipationProjection,
+} from './runtime-companion-participation.js';
+export type {
+  RuntimeCompanionParticipationBaseRequest,
+  RuntimeCompanionParticipationCancelRequest,
+  RuntimeCompanionParticipationModule,
+  RuntimeCompanionParticipationProjection,
+  RuntimeCompanionParticipationReplay,
+  RuntimeCompanionParticipationReplayRequest,
+  RuntimeCompanionParticipationRequest,
+  RuntimeCompanionParticipationStatus,
+  RuntimeCompanionParticipationSurfaceKind,
+  RuntimeCompanionParticipationTriggerSource,
+} from './runtime-companion-participation.js';

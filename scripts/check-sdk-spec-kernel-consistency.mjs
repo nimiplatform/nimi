@@ -17,6 +17,7 @@ const kernelFiles = [
   '.nimi/spec/sdk/kernel/runtime-delegation-client-contract.md',
   '.nimi/spec/sdk/kernel/runtime-agent-participation-client-contract.md',
   '.nimi/spec/sdk/kernel/realm-group-agent-participation-client-contract.md',
+  '.nimi/spec/sdk/kernel/companion-participation-client-contract.md',
   '.nimi/spec/sdk/kernel/world-contract.md',
   '.nimi/spec/sdk/kernel/world-evolution-engine-projection-contract.md',
   '.nimi/spec/sdk/kernel/world-evolution-engine-consumer-contract.md',

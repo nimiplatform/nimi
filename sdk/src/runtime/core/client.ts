@@ -20,10 +20,14 @@ import {
 import {
   ExecuteDelegatedCapabilityRequest,
   ExecuteDelegatedCapabilityResponse,
+  CancelCompanionParticipationRequest,
+  CancelCompanionParticipationResponse,
   GetAvatarDebugReplayRequest,
   GetAvatarDebugReplayResponse,
   GetAvatarDebugSnapshotRequest,
   GetAvatarDebugSnapshotResponse,
+  GetCompanionParticipationProjectionRequest,
+  GetCompanionParticipationProjectionResponse,
   GetConversationAnchorSnapshotRequest,
   GetConversationAnchorSnapshotResponse,
   GetDelegatedControlSurfaceSnapshotRequest,
@@ -42,8 +46,12 @@ import {
   ListDelegatedProviderProfilesResponse,
   OpenConversationAnchorRequest,
   OpenConversationAnchorResponse,
+  OpenCompanionParticipationReplayRequest,
+  OpenCompanionParticipationReplayResponse,
   RequestAvatarDebugProbeRequest,
   RequestAvatarDebugProbeResponse,
+  RequestCompanionParticipationRequest,
+  RequestCompanionParticipationResponse,
   SetDelegatedProviderStateRequest,
   SetDelegatedProviderStateResponse,
   SubmitDelegatedApprovalDecisionRequest,
@@ -429,6 +437,22 @@ export function createRuntimeClient(input: RuntimeClientConfig): RuntimeClient {
       getPublicChatSessionSnapshot: customUnary(RuntimeMethodIds.agent.getPublicChatSessionSnapshot, {
         requestType: GetPublicChatSessionSnapshotRequest,
         responseType: GetPublicChatSessionSnapshotResponse,
+      }),
+      getCompanionParticipationProjection: customUnary(RuntimeMethodIds.agent.getCompanionParticipationProjection, {
+        requestType: GetCompanionParticipationProjectionRequest,
+        responseType: GetCompanionParticipationProjectionResponse,
+      }),
+      requestCompanionParticipation: customUnary(RuntimeMethodIds.agent.requestCompanionParticipation, {
+        requestType: RequestCompanionParticipationRequest,
+        responseType: RequestCompanionParticipationResponse,
+      }),
+      cancelCompanionParticipation: customUnary(RuntimeMethodIds.agent.cancelCompanionParticipation, {
+        requestType: CancelCompanionParticipationRequest,
+        responseType: CancelCompanionParticipationResponse,
+      }),
+      openCompanionParticipationReplay: customUnary(RuntimeMethodIds.agent.openCompanionParticipationReplay, {
+        requestType: OpenCompanionParticipationReplayRequest,
+        responseType: OpenCompanionParticipationReplayResponse,
       }),
       createRealmGroupMessageCandidate: customUnary(RuntimeMethodIds.agent.createRealmGroupMessageCandidate, {
         requestType: CreateRealmGroupMessageCandidateRequest,
