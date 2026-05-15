@@ -5,7 +5,7 @@
 // the real ones; only the evidence emitter is mocked so we can assert spec
 // scope K-NAV-SHELL-COMPOSITION-004 evidence.
 
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { RefObject } from 'react';
 import { CompanionSurface } from './companion-surface.js';
@@ -56,6 +56,28 @@ function makeProps(overrides: Partial<Parameters<typeof CompanionSurface>[0]> = 
     settingsOpen: false,
     ...overrides,
   };
+}
+
+function createBootstrapHandle(): BootstrapHandle {
+  return {
+    getVoiceInputAvailability: vi.fn(async () => ({ available: true, reason: null })),
+    startVoiceCapture: vi.fn(),
+    submitVoiceCaptureTurn: vi.fn(),
+    cancelCompanionParticipation: vi.fn(async () => ({
+      projectionId: 'companion_participation_projection/agent_anchor_TEST/avatar_companion/turn-1',
+      agentId: baseBinding.agentId,
+      surfaceKind: 'avatar_companion',
+      profileRef: 'runtime.agent.profile/agent-test',
+      roomOrchestrationRef: 'runtime.room_orchestration/avatar_companion_presentation_room',
+      triggerSource: 'user_explicit',
+      status: 'canceled',
+      auditRef: 'runtime.audit.companion_participation/agent_anchor_TEST',
+      conversationAnchorId: baseBinding.conversationAnchorId,
+      turnId: 'turn-1',
+    })),
+    requestCompanionParticipation: vi.fn(),
+    shutdown: vi.fn(),
+  } as unknown as BootstrapHandle;
 }
 
 describe('CompanionSurface — render', () => {
@@ -114,5 +136,30 @@ describe('CompanionSurface — composition evidence emit', () => {
         }),
       }),
     );
+  });
+});
+
+describe('CompanionSurface — participation controls', () => {
+  it('routes interrupt through companion participation cancel', async () => {
+    const bootstrapHandle = createBootstrapHandle();
+    render(
+      <CompanionSurface
+        {...makeProps({
+          bootstrapHandle,
+          voice: { ...initialVoiceCompanionState, status: 'replying', currentTurnId: 'turn-1' },
+        })}
+      />,
+    );
+
+    fireEvent.click(screen.getByLabelText('Interrupt current reply'));
+
+    await waitFor(() => {
+      expect(bootstrapHandle.cancelCompanionParticipation).toHaveBeenCalledWith({
+        agentId: 'agent-test',
+        conversationAnchorId: 'agent_anchor_TEST',
+        turnId: 'turn-1',
+        reason: 'avatar_voice_interrupt',
+      });
+    });
   });
 });

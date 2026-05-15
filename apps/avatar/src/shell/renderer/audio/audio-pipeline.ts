@@ -6,7 +6,7 @@
 // interrupted | failed`) and this controller mirrors it 1:1.
 //
 // Wave 0 hard-cut (B2.A+):
-//   - The legacy caller-injected byte fetcher is removed. Bytes are read
+//   - The caller-injected byte fetcher is removed. Bytes are read
 //     from `runtime.artifacts.readBytes({ artifactId, expectedMimePrefix:
 //     'audio/' })` (S-RUNTIME-111; admitted by this topic).
 //   - `registerLipsyncSink(consumer: BackendAudioConsumer)` connects a

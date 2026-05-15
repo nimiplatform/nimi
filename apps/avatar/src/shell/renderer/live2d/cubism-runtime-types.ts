@@ -1,6 +1,6 @@
 // Minimal type shape for the official Live2D Cubism Core runtime (binary, loaded via <script>).
-// Full SDK Framework integration is deferred to M3-extended; Phase 1 only needs to verify
-// Core is loaded and expose a stub plugin API for NAS handlers.
+// Full SDK Framework integration is owned by the Live2D branch; this type shape
+// verifies Core loading and exposes the minimal plugin API used by NAS handlers.
 
 export type CubismMocVersion = number;
 

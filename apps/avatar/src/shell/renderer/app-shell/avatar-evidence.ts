@@ -15,6 +15,7 @@ export type AvatarEvidenceKind =
   | 'avatar.visual.model-loaded'
   | 'avatar.runtime.bind-failed'
   | 'avatar.runtime.bound'
+  | 'avatar.runtime.consume-ready'
   | 'avatar.model.load'
   | 'avatar.carrier.visual'
   | 'avatar.debug.session-evidence'

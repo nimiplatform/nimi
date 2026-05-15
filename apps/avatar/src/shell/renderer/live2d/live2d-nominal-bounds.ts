@@ -2,9 +2,9 @@
 //
 // Computes BackendNominalBounds for the Live2D branch. Authority for the
 // nominal viewport size is the model's CanvasInfo (model3 / Cubism Core)
-// plus an optional alpha-mask body bbox refinement; until the alpha-mask
-// path lands (deferred wave_4) the bounds reduce to the canvas size with
-// the body anchored at the visual center.
+// plus an optional alpha-mask body bbox refinement. When alpha-mask data is
+// unavailable, the bounds reduce to the canvas size with the body anchored at
+// the visual center.
 //
 // Spec: backend-branch-contract.md §"BackendNominalBounds";
 //       live2d-render-contract.md §"Model Loading".
@@ -13,7 +13,7 @@ import type { BackendNominalBounds } from '../carrier/backend-branch.js';
 import type { CubismModelHandle } from './cubism-runtime-types.js';
 
 /** Live2D fallback nominal viewport (logical px). Used when the loaded
- *  model exposes no usable canvas information; preserves legacy
+ *  model exposes no usable canvas information; preserves baseline
  *  avatar-carrier behavior so existing speaking/activity paths remain
  *  pixel-equivalent. */
 export const LIVE2D_FALLBACK_NOMINAL_BOUNDS: BackendNominalBounds = Object.freeze({

@@ -225,9 +225,9 @@ export async function startAvatarVisualCarrier(input: {
 
   const commandBus = backendHandle.commandBus;
   const backendSession = backendHandle.backendSession;
-  const legacyProjection = backendHandle.legacyProjection;
-  const interactionPhysics = legacyProjection
-    ? createInteractionPhysicsController({ projection: legacyProjection })
+  const cueProjection = backendHandle.cueProjection;
+  const interactionPhysics = cueProjection
+    ? createInteractionPhysicsController({ projection: cueProjection })
     : null;
   const executor = new HandlerExecutor();
 
@@ -256,15 +256,18 @@ export async function startAvatarVisualCarrier(input: {
     nas_handler_count: countHandlers(registry),
     backend_kind: backendHandle.branch.kind,
     backend_metadata: backendHandle.branch.metadata(),
-    // Wave_1 transitional fields preserved for evidence stability; the
-    // backend-specific compatibility/adapter ids now live inside
-    // backend.metadata() per backend-branch-contract §2.8.
+    // Branch metadata remains the canonical backend evidence surface; these
+    // fields keep model-load evidence easy to query.
     compatibility_tier:
       backendSession?.compatibility.tier ?? null,
     adapter_id: backendSession?.compatibility.adapter?.adapter_id ?? null,
   };
   recordAvatarEvidenceEventually({
     kind: 'avatar.visual.model-loaded',
+    detail: modelLoadDetail,
+  });
+  recordAvatarEvidenceEventually({
+    kind: 'avatar.model.load',
     detail: modelLoadDetail,
   });
   const modelLoadEvent = {
@@ -310,12 +313,12 @@ export async function startAvatarVisualCarrier(input: {
           backendKind: model.kind,
         });
       }
-      if (legacyProjection && interactionPhysics) {
+      if (cueProjection && interactionPhysics) {
         unwireDispatch = wireEventDispatch({
           driver,
           registry,
           executor,
-          projection: legacyProjection,
+          projection: cueProjection,
           backendProjection: backendHandle.branch.projection,
           live2dExtension:
             backendHandle.branch.kind === 'live2d'
@@ -334,19 +337,15 @@ export async function startAvatarVisualCarrier(input: {
       unwireVoiceLipsync = wireAvatarVoiceLipsync({
         driver,
       });
-      if (legacyProjection) {
+      if (cueProjection) {
         continuous = new ContinuousScheduler(
           registry,
           () => driver.getBundle(),
-          legacyProjection,
+          cueProjection,
         );
         continuous.start();
       }
       driver.emit(modelLoadEvent);
-      recordAvatarEvidenceEventually({
-        kind: 'avatar.model.load',
-        detail: modelLoadEvent.detail,
-      });
     },
     detachRuntimeDriver,
     shutdown() {

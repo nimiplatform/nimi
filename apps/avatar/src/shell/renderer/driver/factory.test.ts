@@ -17,7 +17,7 @@ describe('resolveDriverKind', () => {
   });
 
   it('fails closed on unsupported driver mode', () => {
-    vi.stubEnv('VITE_AVATAR_DRIVER', 'legacy');
-    expect(() => resolveDriverKind()).toThrow(/Unsupported VITE_AVATAR_DRIVER=legacy/);
+    vi.stubEnv('VITE_AVATAR_DRIVER', 'unsupported');
+    expect(() => resolveDriverKind()).toThrow(/Unsupported VITE_AVATAR_DRIVER=unsupported/);
   });
 });

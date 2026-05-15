@@ -16,19 +16,16 @@ import type { EmbodimentProjectionApi } from '../nas/embodiment-projection-api.j
 import { createLive2DBackendBranch } from '../live2d/live2d-backend-branch.js';
 import { createVrmBackendBranch } from '../vrm/vrm-backend.js';
 
-// Wave_1 transitional handle shape. All fields outside `branch` /
-// `audioConsumer` / `shutdown` are scoped to the carrier's transitional
-// wiring (NAS event dispatch, embodiment-stage `visualSession` prop) and
-// are `null` for backends that do not yet expose them. Later wave_1 steps
-// remove these slots once consumers move to `backend.surface` /
-// `backend.projection`.
+// Branch-owned cue/signal handles used by carrier orchestration outside the
+// BackendBranch projection. They stay explicit here so backend-specific
+// wiring has one switch site.
 export type BackendBranchHandle = {
   branch: BackendBranch;
   audioConsumer: BackendAudioConsumer;
   shutdown(): void;
   commandBus: Live2DCommandBus | null;
   backendSession: Live2DBackendSession | null;
-  legacyProjection: EmbodimentProjectionApi | null;
+  cueProjection: EmbodimentProjectionApi | null;
 };
 
 export async function createBackendBranch(
@@ -43,7 +40,7 @@ export async function createBackendBranch(
         shutdown: handle.shutdown,
         commandBus: handle.commandBus,
         backendSession: handle.backendSession,
-        legacyProjection: handle.legacyProjection,
+        cueProjection: handle.cueProjection,
       };
     }
     case 'vrm': {
@@ -54,7 +51,7 @@ export async function createBackendBranch(
         shutdown: handle.shutdown,
         commandBus: null,
         backendSession: null,
-        legacyProjection: null,
+        cueProjection: null,
       };
     }
     default: {

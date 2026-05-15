@@ -1,7 +1,7 @@
 // Wave 4 chunk 4-B of topic 2026-04-30-avatar-vrm-backend-branch.
 //
 // Tests for live2d-hit-region:
-//   - the legacy `computeLive2DHitRegion` (compatibility-driven bbox)
+//   - `computeLive2DHitRegion` (compatibility-driven bbox)
 //   - the new `createLive2DHitRegion` factory (alpha-mask + tier-aware)
 //
 // Uses a stub canvas + stub WebGL context so the alpha probe path is
@@ -73,10 +73,10 @@ afterEach(() => {
 });
 
 // ---------------------------------------------------------------------------
-// computeLive2DHitRegion (legacy bbox path)
+// computeLive2DHitRegion (compatibility bbox path)
 // ---------------------------------------------------------------------------
 
-describe('computeLive2DHitRegion (legacy)', () => {
+describe('computeLive2DHitRegion (compatibility bbox)', () => {
   it('returns LIVE2D_DEFAULT_HIT_REGION when no compatibility report', () => {
     expect(computeLive2DHitRegion()).toBe(LIVE2D_DEFAULT_HIT_REGION);
   });

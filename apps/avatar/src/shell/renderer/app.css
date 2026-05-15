@@ -15,7 +15,7 @@
  * Per app-shell-contract.md K-NAV-SHELL-COMPOSITION-002 the shell renders
  * exactly one of: (embodiment-stage + companion-surface) under ready /
  * fixture_active, OR degraded-surface under loading / degraded:* / error:* /
- * relaunch-pending. Legacy `.avatar-stage*`, `.avatar-shell--*`,
+ * relaunch-pending. Retired `.avatar-stage*`, `.avatar-shell--*`,
  * `.avatar-shell__halo*`, `.avatar-companion-trigger`, `.avatar-shell__frame`
  * rules are hard-cut.
  */

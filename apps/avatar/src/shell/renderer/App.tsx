@@ -1,7 +1,7 @@
 // Wave 1 — Avatar shell root component.
 // Per app-shell-contract.md K-NAV-SHELL-COMPOSITION-002 the shell mounts exactly
 // one of: (embodiment-stage + companion-surface) OR degraded-surface.
-// The legacy mixed `recovery panel` + `trigger toggle` paths from Phase 1/2 are
+// The retired mixed `recovery panel` + `trigger toggle` paths are
 // hard-cut; companion-surface is always-visible while ready.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';

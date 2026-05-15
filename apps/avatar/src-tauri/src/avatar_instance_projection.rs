@@ -6,12 +6,15 @@ use serde::{Deserialize, Serialize};
 
 const AVATAR_INSTANCE_PROJECTION_DIR: &str = "avatar-instance-registry";
 const AVATAR_INSTANCE_PROJECTION_FILE: &str = "instances.json";
+const AVATAR_INSTANCE_PROJECTION_SCHEMA_VERSION: u32 = 2;
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct AvatarInstanceProjectionRecord {
     pub avatar_instance_id: String,
-    pub agent_id: String,
+    pub owner_user_id: String,
+    pub realm_agent_id: String,
+    pub local_agent_ref: String,
     pub launch_source: Option<String>,
 }
 
@@ -77,7 +80,7 @@ pub fn persist_projection(
     persist_projection_to_path(
         &path,
         &AvatarInstanceProjectionFile {
-            schema_version: 1,
+            schema_version: AVATAR_INSTANCE_PROJECTION_SCHEMA_VERSION,
             publisher_pid,
             published_at_ms,
             instances: records,
@@ -106,12 +109,14 @@ mod tests {
     fn persist_projection_writes_json_payload() {
         let path = temp_projection_path();
         let payload = AvatarInstanceProjectionFile {
-            schema_version: 1,
+            schema_version: AVATAR_INSTANCE_PROJECTION_SCHEMA_VERSION,
             publisher_pid: 42,
             published_at_ms: 123,
             instances: vec![AvatarInstanceProjectionRecord {
                 avatar_instance_id: "instance-1".to_string(),
-                agent_id: "agent-1".to_string(),
+                owner_user_id: "owner-1".to_string(),
+                realm_agent_id: "agent-1".to_string(),
+                local_agent_ref: "local-agent:owner-1:agent-1".to_string(),
                 launch_source: Some("desktop-agent-chat".to_string()),
             }],
         };
@@ -119,9 +124,12 @@ mod tests {
         persist_projection_to_path(&path, &payload).expect("persist projection");
 
         let raw = fs::read_to_string(&path).expect("read projection");
-        assert!(raw.contains("\"schemaVersion\": 1"));
+        assert!(raw.contains("\"schemaVersion\": 2"));
         assert!(raw.contains("\"publisherPid\": 42"));
         assert!(raw.contains("\"avatarInstanceId\": \"instance-1\""));
+        assert!(raw.contains("\"ownerUserId\": \"owner-1\""));
+        assert!(raw.contains("\"realmAgentId\": \"agent-1\""));
+        assert!(raw.contains("\"localAgentRef\": \"local-agent:owner-1:agent-1\""));
         assert!(raw.contains("\"publishedAtMs\": 123"));
     }
 }

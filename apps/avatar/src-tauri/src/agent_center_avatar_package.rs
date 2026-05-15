@@ -23,7 +23,9 @@ pub(crate) struct ModelManifest {
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub(crate) struct AgentCenterAvatarPackageResolvePayload {
     pub(crate) account_id: String,
-    pub(crate) agent_id: String,
+    pub(crate) owner_user_id: String,
+    pub(crate) realm_agent_id: String,
+    pub(crate) local_agent_ref: String,
 }
 
 #[derive(Deserialize)]
@@ -78,7 +80,9 @@ struct AgentCenterLocalConfig {
     schema_version: u8,
     config_kind: String,
     account_id: String,
-    agent_id: String,
+    owner_user_id: String,
+    realm_agent_id: String,
+    local_agent_ref: String,
     modules: AgentCenterLocalConfigModules,
 }
 
@@ -91,7 +95,6 @@ struct AgentCenterLocalConfigModules {
 #[serde(deny_unknown_fields)]
 struct AgentCenterAvatarPackageModule {
     schema_version: u8,
-    selected_package: Option<AgentCenterSelectedAvatarPackage>,
     conversation_anchor_scope: String,
     avatar_package_ref: Option<String>,
     live2d_adapter_manifest_source: String,
@@ -104,14 +107,6 @@ struct AgentCenterAvatarPackageModule {
     debug_profile: String,
     updated_at: String,
     provenance: serde_json::Value,
-    last_validated_at: Option<String>,
-}
-
-#[derive(Deserialize)]
-#[serde(deny_unknown_fields)]
-struct AgentCenterSelectedAvatarPackage {
-    kind: String,
-    package_id: String,
 }
 
 fn validate_agent_center_id(value: &str, field: &str) -> Result<String, String> {
@@ -279,13 +274,15 @@ enum AgentCenterLive2DAdapterManifestSelection {
 fn read_selected_avatar_package(
     data_root: &Path,
     account_id: &str,
-    agent_id: &str,
+    owner_user_id: &str,
+    realm_agent_id: &str,
+    local_agent_ref: &str,
 ) -> Result<(String, String, AgentCenterLive2DAdapterManifestSelection), String> {
     let config_path = data_root
         .join("accounts")
         .join(agent_center_path_segment(account_id))
         .join("agents")
-        .join(agent_center_path_segment(agent_id))
+        .join(agent_center_path_segment(local_agent_ref))
         .join("agent-center")
         .join("config.json");
     let raw = fs::read_to_string(&config_path)
@@ -299,7 +296,12 @@ fn read_selected_avatar_package(
         return Err("agent center local config identity is not admitted".to_string());
     }
     if validate_agent_center_id(&config.account_id, "config.account_id")? != account_id
-        || validate_agent_center_id(&config.agent_id, "config.agent_id")? != agent_id
+        || validate_agent_center_id(&config.owner_user_id, "config.owner_user_id")?
+            != owner_user_id
+        || validate_agent_center_id(&config.realm_agent_id, "config.realm_agent_id")?
+            != realm_agent_id
+        || validate_agent_center_id(&config.local_agent_ref, "config.local_agent_ref")?
+            != local_agent_ref
     {
         return Err(
             "agent center local config scope does not match Runtime account projection".to_string(),
@@ -308,26 +310,24 @@ fn read_selected_avatar_package(
     if config.modules.avatar_package.schema_version != 1 {
         return Err("modules.avatar_package.schema_version must be 1".to_string());
     }
-    let selected = config
+    let kind = config
         .modules
         .avatar_package
-        .selected_package
-        .ok_or_else(|| "avatar package is not selected".to_string())?;
-    let kind = selected.kind.trim().to_string();
+        .backend_kind
+        .trim()
+        .to_string();
     if kind != "live2d" && kind != "vrm" {
         return Err("avatar_package_kind must be live2d or vrm".to_string());
     }
-    let package_id = validate_avatar_package_id(&selected.package_id, kind.as_str())?;
-    if config.modules.avatar_package.backend_kind.trim() != kind {
-        return Err(
-            "modules.avatar_package.backend_kind must match selected package kind".to_string(),
-        );
-    }
-    if config.modules.avatar_package.avatar_package_ref.as_deref() != Some(package_id.as_str()) {
-        return Err(
-            "modules.avatar_package.avatar_package_ref must match selected package id".to_string(),
-        );
-    }
+    let package_id = validate_avatar_package_id(
+        config
+            .modules
+            .avatar_package
+            .avatar_package_ref
+            .as_deref()
+            .ok_or_else(|| "modules.avatar_package.avatar_package_ref is required".to_string())?,
+        kind.as_str(),
+    )?;
     let live2d_adapter_selection = match config
         .modules
         .avatar_package
@@ -406,7 +406,6 @@ fn read_selected_avatar_package(
         config.modules.avatar_package.debug_profile,
         config.modules.avatar_package.updated_at,
         config.modules.avatar_package.provenance,
-        config.modules.avatar_package.last_validated_at,
     );
     Ok((kind, package_id, live2d_adapter_selection))
 }
@@ -431,14 +430,34 @@ pub(crate) async fn nimi_avatar_resolve_agent_center_avatar_package(
     payload: AgentCenterAvatarPackageResolvePayload,
 ) -> Result<ModelManifest, String> {
     let account_id = validate_agent_center_id(&payload.account_id, "account_id")?;
-    let agent_id = validate_agent_center_id(&payload.agent_id, "agent_id")?;
+    let owner_user_id = validate_agent_center_id(&payload.owner_user_id, "owner_user_id")?;
+    let realm_agent_id = validate_agent_center_id(&payload.realm_agent_id, "realm_agent_id")?;
+    let local_agent_ref = validate_agent_center_id(&payload.local_agent_ref, "local_agent_ref")?;
+    if local_agent_ref == realm_agent_id {
+        return Err("local_agent_ref must not be a bare realm_agent_id".to_string());
+    }
+    if !local_agent_ref.starts_with("local-agent:") {
+        return Err("local_agent_ref must start with local-agent:".to_string());
+    }
+    if local_agent_ref != format!("local-agent:{owner_user_id}:{realm_agent_id}") {
+        return Err(
+            "local_agent_ref must equal local-agent:${owner_user_id}:${realm_agent_id}"
+                .to_string(),
+        );
+    }
     let data_root = resolve_home_data_root()?;
     let (kind, package_id, live2d_adapter_selection) =
-        read_selected_avatar_package(&data_root, &account_id, &agent_id)?;
+        read_selected_avatar_package(
+            &data_root,
+            &account_id,
+            &owner_user_id,
+            &realm_agent_id,
+            &local_agent_ref,
+        )?;
     let package_dir = find_agent_center_avatar_package_dir(
         &data_root,
         &account_id,
-        &agent_id,
+        &local_agent_ref,
         kind.as_str(),
         package_id.as_str(),
     )?;
@@ -606,7 +625,7 @@ pub(crate) async fn nimi_avatar_resolve_agent_center_avatar_package(
             let candidate = resolve_agent_center_live2d_adapter_manifest_path(
                 &data_root,
                 &account_id,
-                &agent_id,
+                &local_agent_ref,
                 &manifest_ref,
             )?;
             let metadata = fs::symlink_metadata(&candidate).map_err(|error| {

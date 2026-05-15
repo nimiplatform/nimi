@@ -1,5 +1,6 @@
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::sync::Mutex;
 
 use nimi_kit_shell_tauri::desktop_paths::resolve_nimi_data_dir;
 use serde::{Deserialize, Serialize};
@@ -10,6 +11,7 @@ use crate::avatar_launch_context::AvatarLaunchContext;
 const AVATAR_EVIDENCE_DIR: &str = "avatar-carrier-evidence";
 const AVATAR_EVIDENCE_SCHEMA_VERSION: u32 = 1;
 const MAX_EVIDENCE_RECORDS: usize = 200;
+static AVATAR_EVIDENCE_WRITE_LOCK: Mutex<()> = Mutex::new(());
 
 #[derive(Clone, Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -29,6 +31,9 @@ pub struct AvatarEvidenceRecordInput {
 pub struct AvatarEvidenceRecord {
     pub kind: String,
     pub recorded_at: String,
+    pub avatar_instance_id: String,
+    pub conversation_anchor_id: String,
+    pub local_agent_ref: String,
     pub detail: Value,
     pub consume: Value,
     pub model: Value,
@@ -128,6 +133,9 @@ pub fn append_evidence_record(
     context: AvatarLaunchContext,
     input: AvatarEvidenceRecordInput,
 ) -> Result<PathBuf, String> {
+    let _write_guard = AVATAR_EVIDENCE_WRITE_LOCK
+        .lock()
+        .map_err(|_| "avatar carrier evidence write lock is poisoned".to_string())?;
     let kind = input.kind.trim().to_string();
     if kind.is_empty() {
         return Err("avatar carrier evidence kind is required".to_string());
@@ -137,6 +145,13 @@ pub fn append_evidence_record(
         return Err("avatar carrier evidence recorded_at is required".to_string());
     }
     let path = evidence_path_for_context(&context)?;
+    let avatar_instance_id = context
+        .avatar_instance_id
+        .as_deref()
+        .unwrap_or("avatar-instance")
+        .to_string();
+    let conversation_anchor_id = context.conversation_anchor_id.clone();
+    let local_agent_ref = context.local_agent_ref.clone();
     let mut projection = read_projection(&path)?.unwrap_or_else(|| AvatarEvidenceProjection {
         schema_version: AVATAR_EVIDENCE_SCHEMA_VERSION,
         publisher_pid: std::process::id(),
@@ -151,6 +166,9 @@ pub fn append_evidence_record(
     projection.records.push(AvatarEvidenceRecord {
         kind,
         recorded_at,
+        avatar_instance_id,
+        conversation_anchor_id,
+        local_agent_ref,
         detail: input.detail,
         consume: input.consume,
         model: input.model,
@@ -174,7 +192,10 @@ mod tests {
 
     fn context() -> AvatarLaunchContext {
         AvatarLaunchContext {
-            agent_id: "agent-1".to_string(),
+            owner_user_id: "owner-1".to_string(),
+            realm_agent_id: "agent-1".to_string(),
+            local_agent_ref: "local-agent:owner-1:agent-1".to_string(),
+            conversation_anchor_id: "anchor-1".to_string(),
             avatar_instance_id: Some("instance-1".to_string()),
             launch_source: Some("desktop-agent-chat".to_string()),
         }
@@ -207,6 +228,8 @@ mod tests {
 
         let raw = fs::read_to_string(path).expect("read evidence");
         assert!(raw.contains("\"avatarInstanceId\": \"instance-1\""));
+        assert!(raw.contains("\"conversationAnchorId\": \"anchor-1\""));
+        assert!(raw.contains("\"localAgentRef\": \"local-agent:owner-1:agent-1\""));
         assert!(raw.contains("\"launchSource\": \"desktop-agent-chat\""));
         assert!(raw.contains("\"kind\": \"avatar.model.load\""));
         let _ = fs::remove_dir_all(temp_home);

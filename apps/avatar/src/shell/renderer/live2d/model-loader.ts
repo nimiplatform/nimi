@@ -10,7 +10,9 @@ export type ModelManifest = {
 
 export type AgentCenterAvatarPackageReference = {
   accountId: string;
-  agentId: string;
+  ownerUserId: string;
+  realmAgentId: string;
+  localAgentRef: string;
 };
 
 type RustModelManifest = {

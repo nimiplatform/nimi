@@ -61,8 +61,30 @@ function createBootstrapHandle(): BootstrapHandle {
     getVoiceInputAvailability: vi.fn(async () => ({ available: true, reason: null })),
     startVoiceCapture: vi.fn(),
     submitVoiceCaptureTurn: vi.fn(),
-    interruptTurn: vi.fn(async () => {}),
-    requestTextTurn: vi.fn(async () => {}),
+    cancelCompanionParticipation: vi.fn(async () => ({
+      projectionId: 'companion_participation_projection/anchor-01/avatar_companion/turn-01',
+      agentId: 'local-agent:owner-product:agent-product-01',
+      surfaceKind: 'avatar_companion',
+      profileRef: 'runtime.agent.profile/local-agent:owner-product:agent-product-01',
+      roomOrchestrationRef: 'runtime.room_orchestration/avatar_companion_presentation_room',
+      triggerSource: 'user_explicit',
+      status: 'canceled',
+      auditRef: 'runtime.audit.companion_participation/anchor-01',
+      conversationAnchorId: 'anchor-01',
+      turnId: 'turn-01',
+    })),
+    requestCompanionParticipation: vi.fn(async () => ({
+      projectionId: 'companion_participation_projection/anchor-01/avatar_companion/turn-01',
+      agentId: 'local-agent:owner-product:agent-product-01',
+      surfaceKind: 'avatar_companion',
+      profileRef: 'runtime.agent.profile/local-agent:owner-product:agent-product-01',
+      roomOrchestrationRef: 'runtime.room_orchestration/avatar_companion_presentation_room',
+      triggerSource: 'user_explicit',
+      status: 'running',
+      auditRef: 'runtime.audit.companion_participation/anchor-01',
+      conversationAnchorId: 'anchor-01',
+      turnId: 'turn-01',
+    })),
     shutdown: vi.fn(async () => {}),
   } as unknown as BootstrapHandle;
 }
@@ -85,6 +107,7 @@ function seedReady(): void {
     ownerUserId: 'owner-product',
     realmAgentId: 'agent-product-01',
     localAgentRef: 'local-agent:owner-product:agent-product-01',
+    conversationAnchorId: 'anchor-01',
     avatarInstanceId: 'avatar-instance-01',
     launchSource: 'desktop-avatar-launcher',
   });
@@ -107,6 +130,7 @@ function seedDegradedRuntimeUnavailable(): void {
     ownerUserId: 'owner-product',
     realmAgentId: 'agent-product-01',
     localAgentRef: 'local-agent:owner-product:agent-product-01',
+    conversationAnchorId: 'anchor-01',
     avatarInstanceId: 'avatar-instance-01',
     launchSource: 'desktop-avatar-launcher',
   });

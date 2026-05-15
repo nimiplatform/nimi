@@ -27,21 +27,6 @@ function normalizeText(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
 }
 
-function annotateConversationContextError(stage: string, error: unknown): never {
-  if (error && typeof error === 'object') {
-    const record = error as Record<string, unknown>;
-    if (typeof record.avatarBootstrapStage !== 'string' || !record.avatarBootstrapStage.trim()) {
-      record.avatarBootstrapStage = stage;
-    }
-    throw error;
-  }
-  const wrapped = new Error(String(error || 'avatar_conversation_context_unavailable')) as Error & {
-    avatarBootstrapStage?: string;
-  };
-  wrapped.avatarBootstrapStage = stage;
-  throw wrapped;
-}
-
 function storage(): Storage | null {
   try {
     return typeof window !== 'undefined' ? window.localStorage : null;
@@ -91,15 +76,6 @@ function writePersistedFile(file: PersistedConversationContextFile): void {
   target.setItem(STORAGE_KEY, JSON.stringify(file));
 }
 
-function readPersistedContext(input: {
-  accountId: string;
-  localAgentRef: string;
-  avatarInstanceId: string;
-}): PersistedConversationContext | null {
-  const key = contextKey(input);
-  return readPersistedFile().records.find((record) => contextKey(record) === key) ?? null;
-}
-
 function writePersistedContext(input: {
   accountId: string;
   localAgentRef: string;
@@ -123,19 +99,6 @@ function writePersistedContext(input: {
       nextRecord,
       ...file.records.filter((record) => contextKey(record) !== key),
     ].slice(0, 128),
-  });
-}
-
-function forgetPersistedContext(input: {
-  accountId: string;
-  localAgentRef: string;
-  avatarInstanceId: string;
-}): void {
-  const key = contextKey(input);
-  const file = readPersistedFile();
-  writePersistedFile({
-    schemaVersion: SCHEMA_VERSION,
-    records: file.records.filter((record) => contextKey(record) !== key),
   });
 }
 
@@ -181,62 +144,30 @@ export async function resolveAvatarConversationContext(input: {
   realmAgentId: string;
   localAgentRef: string;
   avatarInstanceId: string;
-  launchSource: string | null;
+  launchConversationAnchorId: string;
 }): Promise<AvatarConversationContextResult> {
   if (input.accountId !== input.ownerUserId) {
     throw new Error('Avatar launch ownerUserId does not match Runtime account projection');
   }
-  const persisted = readPersistedContext(input);
-  if (persisted) {
-    const recovered = await validatePersistedAnchor({
-      runtime: input.runtime,
-      ownerUserId: input.ownerUserId,
-      realmAgentId: input.realmAgentId,
-      localAgentRef: input.localAgentRef,
-      conversationAnchorId: persisted.conversationAnchorId,
-    });
-    if (recovered) {
-      return recovered;
-    }
-    forgetPersistedContext(input);
+  const launchSelected = await validatePersistedAnchor({
+    runtime: input.runtime,
+    ownerUserId: input.ownerUserId,
+    realmAgentId: input.realmAgentId,
+    localAgentRef: input.localAgentRef,
+    conversationAnchorId: input.launchConversationAnchorId,
+  });
+  if (!launchSelected) {
+    throw new Error('Avatar launch conversationAnchorId does not match Runtime anchor projection');
   }
-
-  try {
-    const snapshot = await input.runtime.agent.anchors.open({
-      ownerUserId: input.ownerUserId,
-      realmAgentId: input.realmAgentId,
-      localAgentRef: input.localAgentRef,
-      metadata: {
-        launch_source: input.launchSource,
-        avatar_instance_id: input.avatarInstanceId,
-        surface: 'avatar-first-party',
-      },
-    });
-    const anchor = snapshot.anchor;
-    const conversationAnchorId = normalizeText(anchor?.conversationAnchorId);
-    const anchorAgentId = normalizeText(anchor?.agentId);
-    const subjectUserId = normalizeText(anchor?.subjectUserId);
-    if (!conversationAnchorId) {
-      throw new Error('Runtime did not return an Avatar conversation anchor');
-    }
-    if (anchorAgentId !== input.localAgentRef) {
-      throw new Error('Runtime returned an Avatar conversation anchor for a different agent');
-    }
-    if (subjectUserId !== input.ownerUserId) {
-      throw new Error('Runtime returned an Avatar conversation anchor for a different account');
-    }
-    writePersistedContext({
-      accountId: input.accountId,
-      localAgentRef: input.localAgentRef,
-      avatarInstanceId: input.avatarInstanceId,
-      conversationAnchorId,
-    });
-    return {
-      conversationAnchorId,
-      subjectUserId,
-      recovered: false,
-    };
-  } catch (error) {
-    annotateConversationContextError('conversation_anchor_open', error);
-  }
+  writePersistedContext({
+    accountId: input.accountId,
+    localAgentRef: input.localAgentRef,
+    avatarInstanceId: input.avatarInstanceId,
+    conversationAnchorId: launchSelected.conversationAnchorId,
+  });
+  return {
+    conversationAnchorId: launchSelected.conversationAnchorId,
+    subjectUserId: launchSelected.subjectUserId,
+    recovered: false,
+  };
 }

@@ -2,14 +2,14 @@
 //
 // Live2D BackendSurface adapter — wraps `Live2DCarrierVisualSurface` so
 // the embodiment-stage can mount `backend.surface.Component` directly
-// without reaching into Live2D internals or the legacy command bus.
+// without reaching into Live2D internals or the cue-level command bus.
 // The wrapper bridges the BackendSurfaceProps lifecycle channels:
 //
 //   * `onAudioConsumerReady` — fires once per mount with the
 //     branch-supplied BackendAudioConsumer so the audio pipeline
 //     orchestrator can register it as a sink.
 //   * `onHitRegionChange` — wave_4 chunk 4-C wires the alpha-mask probe
-//     via `createLive2DHitRegion` (deferred construction — needs the
+//     via `createLive2DHitRegion` (canvas-bound construction — needs the
 //     mounted cubism canvas to read pixels from). On tier C, fires the
 //     bbox-only fallback exactly once and `onLifecycleEvidence` carries
 //     the degradation reason upstream.

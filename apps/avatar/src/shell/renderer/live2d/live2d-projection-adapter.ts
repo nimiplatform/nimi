@@ -19,11 +19,9 @@
 //     adapter manifest mapping (Live2DCompatibilityReport), then falls
 //     back to the default `Activity_<CamelCase>` naming convention
 //     (live2d-render-contract §5.1).
-//   - BackendProjection is intentionally narrow; the legacy
-//     `EmbodimentProjectionApi` continues to drive NAS dispatch in
-//     wave_1 step_2 (transitional). Later wave_1 steps re-anchor the
-//     projection-api surface itself; until then this adapter and the
-//     legacy surface coexist on the same command bus.
+//   - BackendProjection is intentionally narrow; `EmbodimentProjectionApi`
+//     continues to drive cue-level NAS dispatch. This adapter and the cue
+//     surface share the same command bus by design.
 
 import { activityIdToMotionGroup } from '../nas/activity-naming.js';
 import type {
@@ -89,8 +87,8 @@ export function createLive2DProjectionAdapter(
       if (!current) return;
       // Live2D has no first-class emotion channel; route through the
       // expression manager when an adapter mapping exists, otherwise
-      // no-op (emotion overlap with motion fallback is the legacy
-      // behavior preserved by avatar-carrier).
+      // no-op (emotion overlap with motion fallback is baseline
+      // avatar-carrier behavior).
       const expressionId =
         compatibility?.adapter?.semantics?.expressions?.map?.[current];
       if (!expressionId) return;

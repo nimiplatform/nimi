@@ -8,7 +8,7 @@
 // (the YAML source remains the spec authority; drift between this
 // const and the YAML is checked by the spec validator). Loading the
 // YAML at runtime in the Tauri webview adds an unnecessary parser
-// dependency and is deferred until the asset-resolver wave admits a
+// dependency and stays outside this resolver until the asset-resolver admits a
 // shared YAML loader.
 //
 // Resolution rules (design-04 §"activity-mapping.yaml v2"):

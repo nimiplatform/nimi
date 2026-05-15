@@ -8,7 +8,7 @@
 - **App name (English)**: Nimi Avatar
 - **App ID**: `app.nimi.avatar`
 - **One-line**: 桌面悬浮 embodiment carrier，agent 的视觉化身；通过 NAS handler 把 agent semantics 投影到当前 backend branch。
-- **Status**: Pre-MVP. Wave 0 spec admit complete; Wave 1 surface composition implementation done; Wave 2 i18n + design tokens 工业化 done; Wave 3 lipsync end-to-end done (orchestrator + live2d/lipsync-bridge split + ParamMouthForm opt-in + audio time anchor + e2e fixture test); Wave 4 window + settings 工业化 done (window-bounds-policy.yaml admitted + dynamic resize wired + drag region limited to embodiment-stage + settings popover + Tauri visible-area constraint + cargo unit tests). Real runtime/SDK consume path is primary; mock is explicit fixture-only.
+- **Status**: Productization gate active. Wave 0 spec admit complete; Wave 1 surface composition implementation done; Wave 2 i18n + design tokens 工业化 done; Wave 3 lipsync end-to-end done (orchestrator + live2d/lipsync-bridge split + ParamMouthForm opt-in + audio time anchor + e2e fixture test); Wave 4 window + settings 工业化 done (window-bounds-policy.yaml admitted + dynamic resize wired + drag region limited to embodiment-stage + settings popover + Tauri visible-area constraint + cargo unit tests). Real runtime/SDK consume path is primary; mock is explicit fixture-only.
 
 ## Architecture
 
@@ -48,14 +48,14 @@ Avatar 重构分 5 个 wave；每个 wave 必须是端到端可交付能力切�
 | 0 | Spec 重构（surface composition / companion / degraded / event 体系 / wave-based feature matrix） | done |
 | 1 | Surface composition implementation（embodiment-stage / companion-surface / degraded-surface 三互斥结构 + hard-cut 旧 toggle 路径） | done |
 | 2 | i18n + Design tokens 工业化（locales/{en,zh}/avatar.json + tokens.css + i18n-keys.yaml） | done |
-| 3 | Lipsync end-to-end（runtime emitter + SDK 消费 + Live2D bridge + voice-companion-state slice） | done（**lipsync_frame_batch consume path superseded by topic 2026-04-30 wave_6 wLipSync hard-cut；保留为历史**） |
+| 3 | Voice / lipsync end-to-end（runtime voice emitter + SDK 消费 + backend lipsync driver + voice-companion-state slice） | done（Avatar app consume path is voice/audio + backend lipsync；`lipsync_frame_batch` is not consumed under `apps/avatar/src/**`） |
 | 4 | Window + Settings 工业化（dynamic window bounds + drag region 限定 + settings popover + window-bounds-policy.yaml） | done |
 | 5 | Spec admit + platform admission（multi-backend BackendBranch / VRM contract / audio-pipeline + wLipSync / runtime-artifact-contract K-AGCORE-053 / S-RUNTIME-111） | done（topic 2026-04-30-avatar-vrm-backend-branch wave_0 closed complete） |
-| 6 | Carrier abstraction extraction + Live2D refactor + audio pipeline + frame_batch hard-cut | pending（topic-internal wave_1） |
-| 7 | VRM lifecycle + MToon + framing + diagnostics + instance cache | pending（topic-internal wave_2） |
-| 8 | VRM motion preset + emote state + projection adapter + activity mapping v2 | pending（topic-internal wave_3） |
-| 9 | Window bounds multi-backend + alpha-mask hit region + drag region | pending（topic-internal wave_4） |
-| 10 | Smoke evidence + representative samples + topic closeout | pending（topic-internal wave_5） |
+| 6 | Carrier abstraction extraction + Live2D refactor + audio pipeline + frame_batch hard-cut | done（topic 2026-04-30 + reconciliation 2026-05-15） |
+| 7 | VRM lifecycle + MToon + framing + diagnostics + instance cache | done（topic 2026-04-30 + reconciliation 2026-05-15） |
+| 8 | VRM generated motion + emote state + projection adapter + activity mapping v2 | done（runtime motion support is generated-provider based；`.vrma` is interchange-only unless a real file is admitted） |
+| 9 | Window bounds multi-backend + alpha-mask hit region + drag region | done（topic 2026-04-30 + reconciliation 2026-05-15） |
+| 10 | Smoke evidence + representative samples + topic closeout | done（21-run deterministic headless matrix；final launch-readiness / visual-human acceptance is separate topic authority） |
 
 > **Wave 编号桥接**：feature-matrix v3 `wave_5..wave_10` ↔ topic-internal
 > wave numbering（candidate-wave-plan.md / packets / design-*）
@@ -65,7 +65,7 @@ Avatar 重构分 5 个 wave；每个 wave 必须是端到端可交付能力切�
 
 工程原则：
 
-- 项目未上线，不留 legacy shim；Phase 1/2/3 框架已废弃，只用 wave-based 模型
+- 项目未上线，不留 retired compatibility shim；retired v1 feature-phasing 框架已废弃，只用 wave-based 模型
 - 不做 MVP / 不做半成品中间态；每 wave 端到端交付
 - spec 先行（`.nimi/spec/avatar/kernel/**` 与 `.nimi/spec/**`），spec admit 后再做实现
 - 不做伪实现 / 伪返回；i18n、design tokens、lipsync 必须真实接通
@@ -144,7 +144,7 @@ Normal app boot is **sdk/runtime-backed**. Mock remains bounded to explicit fixt
 ### Window Behavior
 
 - Transparent background 强制（非 option）
-- No title bar / no close/min buttons on pet window
+- No title bar / no close/min buttons on the Avatar window
 - Always-on-top default（配置可覆盖）
 - Click-through outside active embodiment surface bounds（hit-region 计算）
 - Dynamic window size 跟随 active embodiment surface bounds

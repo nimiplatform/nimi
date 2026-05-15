@@ -1,11 +1,11 @@
 // Wave 2 of topic 2026-04-30-avatar-vrm-backend-branch admit
-// (closes wave_1 deferred acceptance_invariant #15: real non-synthetic runtime
+// (closes wave_1 acceptance_invariant #15: real non-synthetic runtime
 // end-to-end sanity).
 //
 // Why this file exists:
 //   Wave 1's lipsync-e2e.test.ts proves the orchestrator + state-bus + sink
 //   loop. Wave 1 invariant #15 ("real non-synthetic runtime e2e") was
-//   deferred because spinning up the runtime daemon and ingesting a real
+//   not covered there because spinning up the runtime daemon and ingesting a real
 //   .wav artifact is out of scope for a renderer-level test gate.
 //
 //   Wave 2 satisfies #15 deterministically without daemon startup by:
@@ -174,7 +174,7 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-describe('Audio non-synthetic e2e — wave_1 deferred invariant #15', () => {
+describe('Audio non-synthetic e2e — wave_1 invariant #15', () => {
   it('happy path: real .wav bytes flow runtime.artifacts.readBytes → decodeAudioData → source.start → sink.attachAudioSource → started → completed', async () => {
     const fakeWav = makeFakeWavBytes();
     expect(fakeWav.byteLength).toBe(44 + 9600);

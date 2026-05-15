@@ -4,29 +4,33 @@ Nimi Avatar（阿凡达）— 桌面悬浮 embodiment carrier，承载 Nimi agen
 
 ## Status
 
-**Pre-MVP, Wave 4 carrier landing active（runtime/SDK primary）**
+**Productization gate active（runtime/SDK primary）**
 
 ## Quick Links
 
 - [Product guide](spec/nimi-avatar.md)
 - [Spec authority map](spec/kernel/index.md)
 - [Live2D adapter authoring guide](docs/live2d-adapter-authoring.md)
-- [Phase matrix](spec/kernel/tables/feature-matrix.yaml)
+- [Feature matrix](spec/kernel/tables/feature-matrix.yaml)
 - [AGENTS.md](AGENTS.md) — Module-level rules for AI agents
 
-## Development Phases
+## Delivery Waves
 
-| Phase | Scope | Status |
-|-------|-------|--------|
-| **Phase 1** | Embodiment projection protocol + current Live2D backend branch + window shell + real runtime/SDK carrier path | 🟡 active |
-| Phase 2 | Chat bubble + voice I/O companion UX | ⏸ deferred |
-| Phase 3 | Cross-app integration / multi-backend rendering / advanced | 🔵 future |
+| Wave | Scope | Status |
+|------|-------|--------|
+| 0 | Spec admit gate | done |
+| 1 | Surface composition implementation | done |
+| 2 | i18n + design tokens industrialization | done |
+| 3 | Voice / lipsync end-to-end | done |
+| 4 | Window + settings industrialization | done |
+| 5-10 | BackendBranch, VRM, generated motion, hit-region, representative smoke evidence | done; final launch-readiness / visual-human acceptance remains a separate topic |
 
 ## Launch Model
 
 `apps/avatar` 现在不是一个“自己默认选 agent 然后独立跑起来”的 carrier。当前 canonical 正常路径是 desktop bridge / handoff：
 
-- 正常启动必须带 desktop-selected launch context：`agent_id`、`avatar_instance_id`，以及显式 `conversation_anchor_id` 或 `open_new` mode
+- 正常启动必须带 Desktop-selected minimal launch context：required `owner_user_id`、`realm_agent_id`、`local_agent_ref`、`conversation_anchor_id`；optional `avatar_instance_id`、optional non-authoritative `launch_source`
+- `local_agent_ref` 必须等于 `local-agent:${owner_user_id}:${realm_agent_id}`；bare `realm_agent_id` 不具备启动 authority
 - 缺少 launch context：fail closed；avatar app 不会默认 bootstrap 单个 agent
 - visual bootstrap 来自本机 Agent Center package；Avatar 只加载本地 Live2D / VRM visual package
 - runtime bootstrap 只通过 Desktop/Runtime IPC bridge；Avatar 不读取 shared auth、不创建 Realm HTTP client、不拥有 login/session truth

@@ -176,8 +176,8 @@ export type PopulateRegistryOptions = {
   /** Loaded backend kind. Used to reject handlers whose declared
    *  `requires` includes a capability the backend cannot satisfy
    *  (e.g. `live2d-extension` on a VRM model). When omitted, no
-   *  capability gating runs and all handlers pass through (legacy
-   *  callers / tests that did not opt in). */
+   *  capability gating runs and all handlers pass through (callers / tests
+   *  that did not opt in). */
   backendKind?: BackendKind | null;
 };
 

@@ -31,6 +31,7 @@ import { useSurfaceMountEvidence } from '../app-shell/composition-events.js';
 import type { AvatarShellSettings } from '../settings-state.js';
 import type { BootstrapHandle } from '../app-shell/app-bootstrap.js';
 import type { AvatarVoiceCaptureSession } from '../voice-capture.js';
+import type { RuntimeCompanionParticipationProjection } from '@nimiplatform/sdk/runtime/browser';
 
 export type CompanionSurfaceProps = {
   bootstrapHandle: BootstrapHandle | null;
@@ -78,6 +79,16 @@ function deriveStatus(companion: CompanionState, voice: VoiceCompanionState): St
   return 'idle';
 }
 
+function assertAcceptedProjection(projection: RuntimeCompanionParticipationProjection): void {
+  if (
+    projection.status === 'blocked'
+    || projection.status === 'failed'
+    || projection.status === 'canceled'
+  ) {
+    throw new Error(projection.refusalReason || `companion participation ${projection.status}`);
+  }
+}
+
 export function CompanionSurface(props: CompanionSurfaceProps) {
   const {
     bootstrapHandle,
@@ -117,12 +128,13 @@ export function CompanionSurface(props: CompanionSurfaceProps) {
       const submittedAt = new Date().toISOString();
       setCompanion((current) => beginCompanionSubmit(current, { text, at: submittedAt }));
       void bootstrapHandle
-        .requestTextTurn({
+        .requestCompanionParticipation({
           agentId: binding.agentId,
           conversationAnchorId: binding.conversationAnchorId,
           text,
         })
-        .then(() => {
+        .then((projection) => {
+          assertAcceptedProjection(projection);
           setCompanion((current) => completeCompanionSubmit(current));
         })
         .catch((error: unknown) => {
@@ -247,7 +259,7 @@ export function CompanionSurface(props: CompanionSurfaceProps) {
   const onInterruptClick = useCallback(() => {
     if (!bootstrapHandle || !binding) return;
     void bootstrapHandle
-      .interruptTurn({
+      .cancelCompanionParticipation({
         agentId: binding.agentId,
         conversationAnchorId: binding.conversationAnchorId,
         turnId: voice.currentTurnId || undefined,

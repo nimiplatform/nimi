@@ -155,7 +155,9 @@ fn sync_avatar_instance_projection(registry: &AvatarInstanceRegistry) {
                 .context
                 .avatar_instance_id
                 .unwrap_or_else(|| entry.window_label.clone()),
-            agent_id: entry.context.agent_id,
+            owner_user_id: entry.context.owner_user_id,
+            realm_agent_id: entry.context.realm_agent_id,
+            local_agent_ref: entry.context.local_agent_ref,
             launch_source: entry.context.launch_source,
         })
         .collect::<Vec<_>>();
@@ -208,8 +210,8 @@ fn build_avatar_window(
     // entire "桌面悬浮 embodiment surface" product form.
     // skip_taskbar deliberately omitted: on macOS it switches the window to
     // utility-style (NSWindow.canJoinAllSpaces / stationary) which interferes
-    // with `start_dragging()` and click-through semantics. The pet stays in
-    // the dock; we accept that until tray icon plumbing lands.
+    // with `start_dragging()` and click-through semantics. The Avatar window
+    // stays in the dock; we accept that until tray icon plumbing lands.
     let window = WebviewWindowBuilder::new(app, window_label, WebviewUrl::App("/".into()))
         .title("Nimi Avatar")
         .inner_size(400.0, 600.0)
