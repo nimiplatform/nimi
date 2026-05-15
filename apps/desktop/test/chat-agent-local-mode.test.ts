@@ -2,7 +2,7 @@ import {
   assert,
   test,
   ReasonCode,
-  findAgentConversationThreadByAgentId,
+  findAgentConversationThreadByLocalAgentRef,
   resolveAgentConversationActiveThreadId,
   toAgentFriendTargetsFromSocialSnapshot,
   hydrateAgentThreadBundleFromRuntimeSessionSnapshot,
@@ -13,6 +13,7 @@ import type {
 
 test('agent local mode filters social snapshot to agent friends and fails close on broken agent targets', () => {
   const targets = toAgentFriendTargetsFromSocialSnapshot({
+    ownerUserId: 'user-1',
     friends: [
       {
         id: 'human-1',
@@ -34,7 +35,9 @@ test('agent local mode filters social snapshot to agent friends and fails close 
   });
 
   assert.deepEqual(targets, [{
-    agentId: 'agent-1',
+    ownerUserId: 'user-1',
+    realmAgentId: 'agent-1',
+    localAgentRef: 'local-agent:user-1:agent-1',
     displayName: 'Companion',
     handle: 'companion',
     avatarUrl: null,
@@ -47,6 +50,7 @@ test('agent local mode filters social snapshot to agent friends and fails close 
 
   assert.throws(() => {
     toAgentFriendTargetsFromSocialSnapshot({
+      ownerUserId: 'user-1',
       friends: [{
         id: 'agent-2',
         displayName: '',
@@ -61,13 +65,17 @@ test('agent local mode resolves the selected agent to its existing thread before
   const threads: AgentLocalThreadSummary[] = [
     {
       id: 'thread-agent-1',
-      agentId: 'agent-1',
+      ownerUserId: 'user-1',
+    realmAgentId: 'agent-1',
+    localAgentRef: 'local-agent:user-1:agent-1',
       title: 'Agent One',
       updatedAtMs: 100,
       lastMessageAtMs: 90,
       archivedAtMs: null,
       targetSnapshot: {
-        agentId: 'agent-1',
+        ownerUserId: 'user-1',
+    realmAgentId: 'agent-1',
+    localAgentRef: 'local-agent:user-1:agent-1',
         displayName: 'Agent One',
         handle: 'agent-one',
         avatarUrl: null,
@@ -80,13 +88,17 @@ test('agent local mode resolves the selected agent to its existing thread before
     },
     {
       id: 'thread-agent-2',
-      agentId: 'agent-2',
+      ownerUserId: 'user-1',
+    realmAgentId: 'agent-2',
+    localAgentRef: 'local-agent:user-1:agent-2',
       title: 'Agent Two',
       updatedAtMs: 200,
       lastMessageAtMs: 180,
       archivedAtMs: null,
       targetSnapshot: {
-        agentId: 'agent-2',
+        ownerUserId: 'user-1',
+    realmAgentId: 'agent-2',
+    localAgentRef: 'local-agent:user-1:agent-2',
         displayName: 'Agent Two',
         handle: 'agent-two',
         avatarUrl: null,
@@ -99,17 +111,17 @@ test('agent local mode resolves the selected agent to its existing thread before
     },
   ];
 
-  assert.equal(findAgentConversationThreadByAgentId(threads, 'agent-2')?.id, 'thread-agent-2');
+  assert.equal(findAgentConversationThreadByLocalAgentRef(threads, 'local-agent:user-1:agent-2')?.id, 'thread-agent-2');
   assert.equal(resolveAgentConversationActiveThreadId({
     threads,
     selectionThreadId: null,
-    selectionAgentId: 'agent-2',
+    selectionLocalAgentRef: 'local-agent:user-1:agent-2',
     lastSelectedThreadId: 'thread-agent-1',
   }), 'thread-agent-2');
   assert.equal(resolveAgentConversationActiveThreadId({
     threads,
     selectionThreadId: 'thread-missing',
-    selectionAgentId: 'agent-1',
+    selectionLocalAgentRef: 'local-agent:user-1:agent-1',
     lastSelectedThreadId: 'thread-agent-2',
   }), 'thread-agent-1');
 });
@@ -117,14 +129,18 @@ test('agent local mode resolves the selected agent to its existing thread before
 test('agent session hydration does not replace missing local bundle with text-only runtime snapshot', () => {
   const thread = {
     id: 'thread-1',
-    agentId: 'agent-1',
+    ownerUserId: 'user-1',
+    realmAgentId: 'agent-1',
+    localAgentRef: 'local-agent:user-1:agent-1',
     title: 'Agent One',
     createdAtMs: 1000,
     updatedAtMs: 1000,
     lastMessageAtMs: null,
     archivedAtMs: null,
     targetSnapshot: {
-      agentId: 'agent-1',
+      ownerUserId: 'user-1',
+    realmAgentId: 'agent-1',
+    localAgentRef: 'local-agent:user-1:agent-1',
       displayName: 'Agent One',
       handle: 'agent-one',
       avatarUrl: null,
@@ -156,14 +172,18 @@ test('agent session hydration does not replace missing local bundle with text-on
 test('agent session hydration preserves local pending projections over runtime snapshot replay', () => {
   const thread = {
     id: 'thread-1',
-    agentId: 'agent-1',
+    ownerUserId: 'user-1',
+    realmAgentId: 'agent-1',
+    localAgentRef: 'local-agent:user-1:agent-1',
     title: 'Agent One',
     createdAtMs: 1000,
     updatedAtMs: 1000,
     lastMessageAtMs: null,
     archivedAtMs: null,
     targetSnapshot: {
-      agentId: 'agent-1',
+      ownerUserId: 'user-1',
+    realmAgentId: 'agent-1',
+    localAgentRef: 'local-agent:user-1:agent-1',
       displayName: 'Agent One',
       handle: 'agent-one',
       avatarUrl: null,
@@ -216,14 +236,18 @@ test('agent session hydration preserves local pending projections over runtime s
 test('agent session hydration does not drop committed assistant text when failed runtime snapshot regresses transcript', () => {
   const thread = {
     id: 'thread-1',
-    agentId: 'agent-1',
+    ownerUserId: 'user-1',
+    realmAgentId: 'agent-1',
+    localAgentRef: 'local-agent:user-1:agent-1',
     title: 'Agent One',
     createdAtMs: 1000,
     updatedAtMs: 3000,
     lastMessageAtMs: 3000,
     archivedAtMs: null,
     targetSnapshot: {
-      agentId: 'agent-1',
+      ownerUserId: 'user-1',
+    realmAgentId: 'agent-1',
+    localAgentRef: 'local-agent:user-1:agent-1',
       displayName: 'Agent One',
       handle: 'agent-one',
       avatarUrl: null,
@@ -320,14 +344,18 @@ test('agent session hydration does not drop committed assistant text when failed
 test('agent session hydration preserves committed assistant image projection when text transcript matches', () => {
   const thread = {
     id: 'thread-1',
-    agentId: 'agent-1',
+    ownerUserId: 'user-1',
+    realmAgentId: 'agent-1',
+    localAgentRef: 'local-agent:user-1:agent-1',
     title: 'Agent One',
     createdAtMs: 1000,
     updatedAtMs: 1000,
     lastMessageAtMs: 3000,
     archivedAtMs: null,
     targetSnapshot: {
-      agentId: 'agent-1',
+      ownerUserId: 'user-1',
+    realmAgentId: 'agent-1',
+    localAgentRef: 'local-agent:user-1:agent-1',
       displayName: 'Agent One',
       handle: 'agent-one',
       avatarUrl: null,
@@ -418,14 +446,18 @@ test('agent session hydration preserves committed assistant image projection whe
 test('agent session hydration merges committed media projections when runtime text transcript changes', () => {
   const thread = {
     id: 'thread-1',
-    agentId: 'agent-1',
+    ownerUserId: 'user-1',
+    realmAgentId: 'agent-1',
+    localAgentRef: 'local-agent:user-1:agent-1',
     title: 'Agent One',
     createdAtMs: 1000,
     updatedAtMs: 1000,
     lastMessageAtMs: 3000,
     archivedAtMs: null,
     targetSnapshot: {
-      agentId: 'agent-1',
+      ownerUserId: 'user-1',
+    realmAgentId: 'agent-1',
+    localAgentRef: 'local-agent:user-1:agent-1',
       displayName: 'Agent One',
       handle: 'agent-one',
       avatarUrl: null,

@@ -1,6 +1,6 @@
 import type {
   ConversationRuntimeTextStreamPart,
-} from '@nimiplatform/nimi-kit/features/chat';
+} from '@nimiplatform/nimi-kit/features/chat/headless';
 import { normalizeConversationRuntimeTextStreamPart } from '@nimiplatform/nimi-kit/features/chat/runtime';
 import {
   generateChatAgentImageRuntime,
@@ -25,7 +25,7 @@ export function createAgentLocalChatConversationRuntimeAdapter(): AgentLocalChat
     },
     async streamText(request) {
       const result = await streamChatAgentRuntime({
-        agentId: request.agentId,
+        agentId: request.localAgentRef,
         prompt: request.prompt,
         history: request.history,
         messages: request.messages,
@@ -45,7 +45,7 @@ export function createAgentLocalChatConversationRuntimeAdapter(): AgentLocalChat
     },
     async invokeText(request) {
       return invokeChatAgentRuntime({
-        agentId: request.agentId,
+        agentId: request.localAgentRef,
         prompt: request.prompt,
         history: request.history,
         messages: request.messages,

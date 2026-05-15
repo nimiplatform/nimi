@@ -1,5 +1,5 @@
-import { Component, Suspense, lazy, useCallback, useEffect, useState, type ReactNode } from 'react';
-import type { ConversationSetupAction } from '@nimiplatform/nimi-kit/features/chat';
+import { Component, Suspense, lazy, useCallback, useEffect, useState, type ErrorInfo, type ReactNode } from 'react';
+import type { ConversationSetupAction } from '@nimiplatform/nimi-kit/features/chat/headless';
 import { useNavigate } from 'react-router-dom';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { dispatchRuntimeConfigOpenPage } from '@renderer/features/runtime-config/runtime-config-navigation-events';
@@ -7,19 +7,56 @@ import { logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import { ChatContactsSidebar } from './chat-contacts-sidebar';
 import { useChatTargetsForSidebar } from './chat-sidebar-targets';
-import { ChatHumanModeContent } from './chat-human-mode-content';
-import { ChatNimiModeContent } from './chat-nimi-mode-content';
-import { ChatGroupModeContent } from './chat-group-mode-content';
 import { useChatGroupCreateController } from './chat-group-create-controller';
 
+function createLazyImportError(label: string, error: unknown): Error {
+  const reason = error instanceof Error ? error.message : String(error || 'unknown import error');
+  const wrapped = new Error(`${label}: ${reason}`);
+  wrapped.name = 'LazyImportError';
+  wrapped.cause = error;
+  return wrapped;
+}
+
+const ChatHumanModeContent = lazy(async () => {
+  try {
+    const mod = await import('./chat-human-mode-content');
+    return { default: mod.ChatHumanModeContent };
+  } catch (error) {
+    throw createLazyImportError('chat:human-mode-content', error);
+  }
+});
+
+const ChatNimiModeContent = lazy(async () => {
+  try {
+    const mod = await import('./chat-nimi-mode-content');
+    return { default: mod.ChatNimiModeContent };
+  } catch (error) {
+    throw createLazyImportError('chat:nimi-mode-content', error);
+  }
+});
+
+const ChatGroupModeContent = lazy(async () => {
+  try {
+    const mod = await import('./chat-group-mode-content');
+    return { default: mod.ChatGroupModeContent };
+  } catch (error) {
+    throw createLazyImportError('chat:group-mode-content', error);
+  }
+});
+
 const ChatAgentModeContent = lazy(async () => {
-  const mod = await import('./chat-agent-mode-content');
-  return { default: mod.ChatAgentModeContent };
+  try {
+    const mod = await import('./chat-agent-mode-content');
+    return { default: mod.ChatAgentModeContent };
+  } catch (error) {
+    throw createLazyImportError('chat:agent-mode-content', error);
+  }
 });
 
 type ChatModeSurfaceErrorBoundaryProps = {
   children: ReactNode;
   fallback: ReactNode;
+  mode: string;
 };
 
 type ChatModeSurfaceErrorBoundaryState = {
@@ -39,14 +76,22 @@ class ChatModeSurfaceErrorBoundary extends Component<
     return { failed: true };
   }
 
-  override componentDidCatch(error: Error): void {
+  override componentDidUpdate(prevProps: ChatModeSurfaceErrorBoundaryProps): void {
+    if (prevProps.mode !== this.props.mode && this.state.failed) {
+      this.setState({ failed: false });
+    }
+  }
+
+  override componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
     logRendererEvent({
       level: 'error',
       area: 'chat',
       message: 'action:chat-mode-surface:failed',
       details: {
-        chatMode: 'agent',
+        chatMode: this.props.mode,
         error: error.message,
+        cause: error.cause instanceof Error ? error.cause.message : undefined,
+        componentStack: errorInfo.componentStack,
       },
     });
   }
@@ -54,6 +99,20 @@ class ChatModeSurfaceErrorBoundary extends Component<
   override render() {
     return this.state.failed ? this.props.fallback : this.props.children;
   }
+}
+
+function ChatModeUnavailable({ mode }: { mode: string }) {
+  const copyByMode: Record<string, string> = {
+    Agent: 'Agent mode is temporarily unavailable. Switch to another conversation mode or reopen the app.',
+    Group: 'Group mode is temporarily unavailable. Switch to another conversation mode or reopen the app.',
+    Human: 'Human mode is temporarily unavailable. Switch to another conversation mode or reopen the app.',
+    Nimi: 'Nimi mode is temporarily unavailable. Switch to another conversation mode or reopen the app.',
+  };
+  return (
+    <div className="flex min-h-0 min-w-0 flex-1 items-center justify-center px-6 text-center text-sm text-[var(--nimi-text-secondary)]">
+      {copyByMode[mode] ?? `${mode} mode is temporarily unavailable. Switch to another conversation mode or reopen the app.`}
+    </div>
+  );
 }
 
 function toRuntimePageId(targetId: Extract<ConversationSetupAction, { kind: 'open-settings' }>['targetId']) {
@@ -195,28 +254,41 @@ export function ChatPage() {
 
   return (
     <div data-testid={E2E_IDS.chatPage} data-chat-page-layout="split" className="relative flex min-h-0 min-w-0 flex-1">
-      {chatMode === 'human' ? <ChatHumanModeContent {...sharedProps} /> : null}
+      {chatMode === 'human' ? (
+        <ChatModeSurfaceErrorBoundary mode="human" fallback={<ChatModeUnavailable mode="Human" />}>
+          <Suspense fallback={<div className="flex min-h-0 min-w-0 flex-1" />}>
+            <ChatHumanModeContent {...sharedProps} />
+          </Suspense>
+        </ChatModeSurfaceErrorBoundary>
+      ) : null}
       {chatMode === 'ai' ? (
-        <ChatNimiModeContent
-          {...sharedProps}
-          threadListOpen={nimiThreadListOpen}
-          onCloseThreadList={() => setNimiThreadListOpen(false)}
-        />
+        <ChatModeSurfaceErrorBoundary mode="ai" fallback={<ChatModeUnavailable mode="Nimi" />}>
+          <Suspense fallback={<div className="flex min-h-0 min-w-0 flex-1" />}>
+            <ChatNimiModeContent
+              {...sharedProps}
+              threadListOpen={nimiThreadListOpen}
+              onCloseThreadList={() => setNimiThreadListOpen(false)}
+            />
+          </Suspense>
+        </ChatModeSurfaceErrorBoundary>
       ) : null}
       {chatMode === 'agent' ? (
         <ChatModeSurfaceErrorBoundary
-          fallback={(
-            <div className="flex min-h-0 min-w-0 flex-1 items-center justify-center px-6 text-center text-sm text-[var(--nimi-text-secondary)]">
-              Agent mode is temporarily unavailable. Switch to another conversation mode or reopen the app.
-            </div>
-          )}
+          mode="agent"
+          fallback={<ChatModeUnavailable mode="Agent" />}
         >
           <Suspense fallback={<div className="flex min-h-0 min-w-0 flex-1" />}>
             <ChatAgentModeContent {...sharedProps} />
           </Suspense>
         </ChatModeSurfaceErrorBoundary>
       ) : null}
-      {chatMode === 'group' ? <ChatGroupModeContent {...sharedProps} /> : null}
+      {chatMode === 'group' ? (
+        <ChatModeSurfaceErrorBoundary mode="group" fallback={<ChatModeUnavailable mode="Group" />}>
+          <Suspense fallback={<div className="flex min-h-0 min-w-0 flex-1" />}>
+            <ChatGroupModeContent {...sharedProps} />
+          </Suspense>
+        </ChatModeSurfaceErrorBoundary>
+      ) : null}
       {authStatus === 'authenticated' ? (
         <ChatContactsSidebar
           targets={allTargets}

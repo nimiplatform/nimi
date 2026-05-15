@@ -6,11 +6,17 @@ import {
   validateAgentCenterLocalConfig,
 } from '../src/shell/renderer/features/chat/chat-agent-center-local-config';
 
-test('Agent Center local config validates the admitted module platform shape', () => {
-  const config = createDefaultAgentCenterLocalConfig({
+function createConfig() {
+  return createDefaultAgentCenterLocalConfig({
     accountId: 'account_123',
-    agentId: 'agent_456',
+    ownerUserId: 'owner_123',
+    realmAgentId: 'agent_456',
+    localAgentRef: 'local-agent:owner_123:agent_456',
   });
+}
+
+test('Agent Center local config validates the admitted module platform shape', () => {
+  const config = createConfig();
 
   config.modules.appearance.background_asset_id = 'bg_ab12cd34ef56';
   config.modules.avatar_package.avatar_package_ref = 'runtime-avatar-ref:live2d_ab12cd34ef56';
@@ -25,39 +31,36 @@ test('Agent Center local config validates the admitted module platform shape', (
   }
 });
 
-test('Agent Center local config accepts runtime-scoped agent identifiers', () => {
-  const config = createDefaultAgentCenterLocalConfig({
-    accountId: 'account_123',
-    agentId: '~agent_1_tffk',
-  });
+test('Agent Center local config rejects bare realmAgentId as local resource key', () => {
+  const config = {
+    ...createConfig(),
+    local_agent_ref: 'agent_456',
+  };
 
   const result = validateAgentCenterLocalConfig(config);
 
-  assert.equal(result.ok, true);
-  if (result.ok) {
-    assert.equal(result.config.agent_id, '~agent_1_tffk');
+  assert.equal(result.ok, false);
+  if (!result.ok) {
+    assert.ok(result.errors.some((error) => error.includes('bare realmAgentId')));
   }
 });
 
-test('Agent Center local config accepts opaque runtime agent identifiers', () => {
-  const config = createDefaultAgentCenterLocalConfig({
-    accountId: 'account_123',
-    agentId: 'agent:abc.def+1',
-  });
+test('Agent Center local config rejects mismatched localAgentRef tuple', () => {
+  const config = {
+    ...createConfig(),
+    local_agent_ref: 'local-agent:owner_999:agent_456',
+  };
 
   const result = validateAgentCenterLocalConfig(config);
 
-  assert.equal(result.ok, true);
-  if (result.ok) {
-    assert.equal(result.config.agent_id, 'agent:abc.def+1');
+  assert.equal(result.ok, false);
+  if (!result.ok) {
+    assert.ok(result.errors.some((error) => error.includes('local-agent:${ownerUserId}:${realmAgentId}')));
   }
 });
 
 test('Agent Center local config rejects unknown modules and arbitrary key growth', () => {
-  const config = createDefaultAgentCenterLocalConfig({
-    accountId: 'account_123',
-    agentId: 'agent_456',
-  }) as unknown as Record<string, unknown>;
+  const config = createConfig() as unknown as Record<string, unknown>;
   const modules = config.modules as Record<string, unknown>;
   modules.behavior = {
     schema_version: 1,
@@ -73,10 +76,7 @@ test('Agent Center local config rejects unknown modules and arbitrary key growth
 });
 
 test('Agent Center local config rejects runtime-owned truth fields', () => {
-  const config = createDefaultAgentCenterLocalConfig({
-    accountId: 'account_123',
-    agentId: 'agent_456',
-  }) as unknown as Record<string, unknown>;
+  const config = createConfig() as unknown as Record<string, unknown>;
   config.personality = 'friendly';
 
   const result = validateAgentCenterLocalConfig(config);
@@ -88,10 +88,7 @@ test('Agent Center local config rejects runtime-owned truth fields', () => {
 });
 
 test('Agent Center avatar package module rejects retired selected package truth', () => {
-  const config = createDefaultAgentCenterLocalConfig({
-    accountId: 'account_123',
-    agentId: 'agent_456',
-  }) as unknown as Record<string, unknown>;
+  const config = createConfig() as unknown as Record<string, unknown>;
   const modules = config.modules as Record<string, unknown>;
   const avatarPackage = modules.avatar_package as Record<string, unknown>;
   avatarPackage.selected_package = {
@@ -108,10 +105,10 @@ test('Agent Center avatar package module rejects retired selected package truth'
 });
 
 test('Agent Center local config rejects non-NFC identifiers', () => {
-  const config = createDefaultAgentCenterLocalConfig({
-    accountId: 'cafe\u0301',
-    agentId: 'agent_456',
-  });
+  const config = {
+    ...createConfig(),
+    account_id: 'cafe\u0301',
+  };
 
   const result = validateAgentCenterLocalConfig(config);
 

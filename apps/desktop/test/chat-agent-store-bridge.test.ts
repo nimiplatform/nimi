@@ -70,7 +70,9 @@ function installTauriInvokeMock(
 
 function sampleTarget(): AgentLocalTargetSnapshot {
   return {
-    agentId: 'agent-1',
+    ownerUserId: 'user-1',
+    realmAgentId: 'agent-1',
+    localAgentRef: 'local-agent:user-1:agent-1',
     displayName: 'Companion',
     handle: 'companion',
     avatarUrl: null,
@@ -86,13 +88,17 @@ test('chat agent bridge parser rejects invalid target shape and timestamps', () 
   assert.throws(() => {
     parseAgentLocalThreadSummary({
       id: 'thread-1',
-      agentId: 'agent-1',
+      ownerUserId: 'user-1',
+    realmAgentId: 'agent-1',
+    localAgentRef: 'local-agent:user-1:agent-1',
       title: 'Companion',
       updatedAtMs: 100,
       lastMessageAtMs: null,
       archivedAtMs: null,
       targetSnapshot: {
-        agentId: 'agent-1',
+        ownerUserId: 'user-1',
+    realmAgentId: 'agent-1',
+    localAgentRef: 'local-agent:user-1:agent-1',
         displayName: '',
         handle: 'companion',
       },
@@ -103,7 +109,9 @@ test('chat agent bridge parser rejects invalid target shape and timestamps', () 
     parseAgentLocalThreadBundle({
       thread: {
         id: 'thread-1',
-        agentId: 'agent-1',
+        ownerUserId: 'user-1',
+    realmAgentId: 'agent-1',
+    localAgentRef: 'local-agent:user-1:agent-1',
         title: 'Companion',
         createdAtMs: 10,
         updatedAtMs: 100,
@@ -131,7 +139,9 @@ test('chat agent bridge parser rejects invalid target shape and timestamps', () 
     parseAgentLocalTurnContext({
       thread: {
         id: 'thread-1',
-        agentId: 'agent-1',
+        ownerUserId: 'user-1',
+    realmAgentId: 'agent-1',
+    localAgentRef: 'local-agent:user-1:agent-1',
         title: 'Companion',
         createdAtMs: 10,
         updatedAtMs: 100,
@@ -171,7 +181,9 @@ test('chat agent bridge parser rejects invalid target shape and timestamps', () 
 test('chat agent bridge parser accepts live2d presentation profiles in target snapshots', () => {
   const summary = parseAgentLocalThreadSummary({
     id: 'thread-1',
-    agentId: 'agent-1',
+    ownerUserId: 'user-1',
+    realmAgentId: 'agent-1',
+    localAgentRef: 'local-agent:user-1:agent-1',
     title: 'Companion',
     updatedAtMs: 100,
     lastMessageAtMs: 90,
@@ -197,7 +209,9 @@ test('chat agent store bridge invokes fixed tauri commands and payload shapes', 
       case 'chat_agent_list_threads':
         return [{
           id: 'thread-1',
-          agentId: 'agent-1',
+          ownerUserId: 'user-1',
+    realmAgentId: 'agent-1',
+    localAgentRef: 'local-agent:user-1:agent-1',
           title: 'Companion',
           updatedAtMs: 100,
           lastMessageAtMs: 90,
@@ -208,7 +222,9 @@ test('chat agent store bridge invokes fixed tauri commands and payload shapes', 
         return {
           thread: {
             id: 'thread-1',
-            agentId: 'agent-1',
+            ownerUserId: 'user-1',
+    realmAgentId: 'agent-1',
+    localAgentRef: 'local-agent:user-1:agent-1',
             title: 'Companion',
             createdAtMs: 50,
             updatedAtMs: 100,
@@ -246,7 +262,9 @@ test('chat agent store bridge invokes fixed tauri commands and payload shapes', 
       case 'chat_agent_update_thread_metadata':
         return {
           ...(payload as { payload: Record<string, unknown> }).payload,
-          agentId: 'agent-1',
+          ownerUserId: 'user-1',
+    realmAgentId: 'agent-1',
+    localAgentRef: 'local-agent:user-1:agent-1',
           createdAtMs: 50,
         };
       case 'chat_agent_create_message':
@@ -276,7 +294,9 @@ test('chat agent store bridge invokes fixed tauri commands and payload shapes', 
         return {
           thread: {
             id: 'thread-1',
-            agentId: 'agent-1',
+            ownerUserId: 'user-1',
+    realmAgentId: 'agent-1',
+    localAgentRef: 'local-agent:user-1:agent-1',
             title: 'Companion',
             createdAtMs: 50,
             updatedAtMs: 120,
@@ -376,7 +396,9 @@ test('chat agent store bridge invokes fixed tauri commands and payload shapes', 
           bundle: {
             thread: {
               id: 'thread-1',
-              agentId: 'agent-1',
+              ownerUserId: 'user-1',
+    realmAgentId: 'agent-1',
+    localAgentRef: 'local-agent:user-1:agent-1',
               title: 'Companion',
               createdAtMs: 50,
               updatedAtMs: 120,
@@ -416,7 +438,9 @@ test('chat agent store bridge invokes fixed tauri commands and payload shapes', 
           bundle: {
             thread: {
               id: 'thread-1',
-              agentId: 'agent-1',
+              ownerUserId: 'user-1',
+    realmAgentId: 'agent-1',
+    localAgentRef: 'local-agent:user-1:agent-1',
               title: 'Companion',
               createdAtMs: 50,
               updatedAtMs: 120,
@@ -445,14 +469,16 @@ test('chat agent store bridge invokes fixed tauri commands and payload shapes', 
 
   try {
     const threads = await chatAgentStoreClient.listThreads();
-    assert.equal(threads[0]?.agentId, 'agent-1');
+    assert.equal(threads[0]?.localAgentRef, 'local-agent:user-1:agent-1');
 
     const bundle = await chatAgentStoreClient.getThreadBundle('thread-1');
     assert.equal(bundle?.messages[0]?.status, 'complete');
 
     await chatAgentStoreClient.createThread({
       id: 'thread-1',
-      agentId: 'agent-1',
+      ownerUserId: 'user-1',
+    realmAgentId: 'agent-1',
+    localAgentRef: 'local-agent:user-1:agent-1',
       title: 'Companion',
       createdAtMs: 50,
       updatedAtMs: 100,
@@ -587,7 +613,9 @@ test('chat agent store bridge invokes fixed tauri commands and payload shapes', 
     (calls[2]?.payload as { payload?: Record<string, unknown> })?.payload,
     {
       id: 'thread-1',
-      agentId: 'agent-1',
+      ownerUserId: 'user-1',
+    realmAgentId: 'agent-1',
+    localAgentRef: 'local-agent:user-1:agent-1',
       title: 'Companion',
       createdAtMs: 50,
       updatedAtMs: 100,

@@ -2,13 +2,16 @@ use super::types::CHAT_AGENT_DB_SCHEMA_VERSION;
 use rusqlite::{params, Connection, OptionalExtension};
 
 pub(crate) fn init_schema(conn: &Connection) -> Result<(), String> {
+    hard_reset_old_agent_thread_schema(conn)?;
     conn.pragma_update(None, "user_version", CHAT_AGENT_DB_SCHEMA_VERSION)
         .map_err(|error| format!("初始化 chat_agent user_version 失败: {error}"))?;
     conn.execute_batch(
         r#"
         CREATE TABLE IF NOT EXISTS agent_threads (
           id TEXT PRIMARY KEY,
-          agent_id TEXT NOT NULL UNIQUE,
+          local_agent_ref TEXT NOT NULL UNIQUE,
+          owner_user_id TEXT NOT NULL,
+          realm_agent_id TEXT NOT NULL,
           title TEXT NOT NULL,
           created_at_ms INTEGER NOT NULL,
           updated_at_ms INTEGER NOT NULL,
@@ -127,7 +130,9 @@ pub(crate) fn init_schema(conn: &Connection) -> Result<(), String> {
         "agent_threads",
         &[
             "id",
-            "agent_id",
+            "local_agent_ref",
+            "owner_user_id",
+            "realm_agent_id",
             "title",
             "created_at_ms",
             "updated_at_ms",
@@ -261,6 +266,33 @@ pub(crate) fn init_schema(conn: &Connection) -> Result<(), String> {
     Ok(())
 }
 
+fn hard_reset_old_agent_thread_schema(conn: &Connection) -> Result<(), String> {
+    if !table_exists(conn, "agent_threads")? {
+        return Ok(());
+    }
+    let has_current_identity = has_column(conn, "agent_threads", "local_agent_ref")?
+        && has_column(conn, "agent_threads", "owner_user_id")?
+        && has_column(conn, "agent_threads", "realm_agent_id")?;
+    if has_current_identity {
+        return Ok(());
+    }
+    conn.execute_batch(
+        r#"
+        DROP TABLE IF EXISTS agent_recall_index;
+        DROP TABLE IF EXISTS agent_relation_memory_slots;
+        DROP TABLE IF EXISTS agent_interaction_snapshots;
+        DROP TABLE IF EXISTS agent_turn_beats;
+        DROP TABLE IF EXISTS agent_turns;
+        DROP TABLE IF EXISTS agent_thread_drafts;
+        DROP TABLE IF EXISTS agent_messages;
+        DROP TABLE IF EXISTS agent_threads;
+        DROP TABLE IF EXISTS agent_store_meta;
+        "#,
+    )
+    .map_err(|error| format!("硬重建旧 chat_agent schema 失败: {error}"))?;
+    Ok(())
+}
+
 fn add_text_column_with_default_if_missing(
     conn: &Connection,
     table_name: &str,
@@ -325,6 +357,18 @@ fn ensure_store_meta(
     )
     .map_err(|error| format!("写入 chat_agent store meta 失败: {error}"))?;
     Ok(())
+}
+
+fn table_exists(conn: &Connection, table_name: &str) -> Result<bool, String> {
+    let exists = conn
+        .query_row(
+            "SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?1",
+            params![table_name],
+            |row| row.get::<_, String>(0),
+        )
+        .optional()
+        .map_err(|error| format!("查询 {table_name} 是否存在失败: {error}"))?;
+    Ok(exists.is_some())
 }
 
 fn has_column(conn: &Connection, table_name: &str, column_name: &str) -> Result<bool, String> {

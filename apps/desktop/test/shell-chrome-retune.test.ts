@@ -22,11 +22,11 @@ test('shell chrome retune: rail and topbar shells stay transparent chrome withou
 });
 
 test('shell chrome retune: shell chrome classes tighten radius scale', () => {
-  assert.match(shellChromeClassesSource, /SHELL_CHROME_MAIN_HOST_CLASS[\s\S]*rounded-\[20px\]/);
-  assert.match(shellChromeClassesSource, /SHELL_CHROME_OVERLAY_CLASS[\s\S]*rounded-\[16px\]/);
-  assert.match(shellChromeClassesSource, /SHELL_CHROME_INTERACTIVE_RADIUS_CLASS[\s\S]*rounded-\[12px\]/);
-  assert.match(shellChromeClassesSource, /SHELL_CHROME_TOOLTIP_CLASS[\s\S]*rounded-\[12px\]/);
-  assert.doesNotMatch(shellChromeClassesSource, /rounded-\[24px\]|rounded-\[18px\]|rounded-\[16px\].*ACTION_CELL|rounded-\[14px\]/u);
+  assert.match(shellChromeClassesSource, /SHELL_CHROME_MAIN_HOST_CLASS[\s\S]*rounded-3xl/);
+  assert.match(shellChromeClassesSource, /SHELL_CHROME_OVERLAY_CLASS[\s\S]*rounded-2xl/);
+  assert.match(shellChromeClassesSource, /SHELL_CHROME_INTERACTIVE_RADIUS_CLASS[\s\S]*rounded-xl/);
+  assert.match(shellChromeClassesSource, /SHELL_CHROME_TOOLTIP_CLASS[\s\S]*rounded-xl/);
+  assert.doesNotMatch(shellChromeClassesSource, /rounded-\[[0-9]+px\]/u);
 });
 
 test('shell chrome retune: nav, home launcher, account menu, and tooltips consume the tighter shell scale', () => {

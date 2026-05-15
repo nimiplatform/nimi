@@ -57,7 +57,9 @@ export type AgentCenterLocalConfig = {
   schema_version: 1;
   config_kind: typeof AGENT_CENTER_LOCAL_CONFIG_KIND;
   account_id: string;
-  agent_id: string;
+  owner_user_id: string;
+  realm_agent_id: string;
+  local_agent_ref: string;
   modules: {
     appearance: AgentCenterAppearanceModule;
     avatar_package: AgentCenterAvatarPackageModule;
@@ -154,7 +156,15 @@ const LIVE2D_ADAPTER_MANIFEST_REF_PATTERN = /^live2d_adapter_[a-f0-9]{12}$/u;
 const OPERATION_ID_PATTERN = /^(op|tx)_[a-f0-9]{12}$/u;
 const ISO_TIMESTAMP_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,9})?Z$/u;
 
-const ROOT_KEYS = ['schema_version', 'config_kind', 'account_id', 'agent_id', 'modules'] as const;
+const ROOT_KEYS = [
+  'schema_version',
+  'config_kind',
+  'account_id',
+  'owner_user_id',
+  'realm_agent_id',
+  'local_agent_ref',
+  'modules',
+] as const;
 const MODULES_KEYS = AGENT_CENTER_LOCAL_CONFIG_MODULE_IDS;
 const APPEARANCE_KEYS = ['schema_version', 'background_asset_id', 'motion'] as const;
 const LOCAL_HISTORY_KEYS = ['schema_version', 'last_cleared_at'] as const;
@@ -233,6 +243,29 @@ function validateNormalizedId(value: unknown, path: string, errors: string[]): s
     return '';
   }
   return id;
+}
+
+function validateLocalAgentRef(
+  ownerUserId: string,
+  realmAgentId: string,
+  value: unknown,
+  path: string,
+  errors: string[],
+): string {
+  const localAgentRef = validateNormalizedId(value, path, errors);
+  if (localAgentRef === realmAgentId) {
+    errors.push(`${path}: must not be a bare realmAgentId`);
+    return localAgentRef;
+  }
+  if (!localAgentRef.startsWith('local-agent:')) {
+    errors.push(`${path}: must start with local-agent:`);
+    return localAgentRef;
+  }
+  const expected = `local-agent:${ownerUserId}:${realmAgentId}`;
+  if (localAgentRef !== expected) {
+    errors.push(`${path}: must equal local-agent:\${ownerUserId}:\${realmAgentId}`);
+  }
+  return localAgentRef;
 }
 
 function validateBackgroundId(value: unknown, path: string, errors: string[]): string | null {
@@ -329,11 +362,24 @@ export function validateAgentCenterLocalConfig(value: unknown): AgentCenterLocal
     }
   }
 
+  const accountId = validateNormalizedId(root.account_id, 'config.account_id', errors);
+  const ownerUserId = validateNormalizedId(root.owner_user_id, 'config.owner_user_id', errors);
+  const realmAgentId = validateNormalizedId(root.realm_agent_id, 'config.realm_agent_id', errors);
+  const localAgentRef = validateLocalAgentRef(
+    ownerUserId,
+    realmAgentId,
+    root.local_agent_ref,
+    'config.local_agent_ref',
+    errors,
+  );
+
   const config: AgentCenterLocalConfig = {
     schema_version: 1,
     config_kind: AGENT_CENTER_LOCAL_CONFIG_KIND,
-    account_id: validateNormalizedId(root.account_id, 'config.account_id', errors),
-    agent_id: validateNormalizedId(root.agent_id, 'config.agent_id', errors),
+    account_id: accountId,
+    owner_user_id: ownerUserId,
+    realm_agent_id: realmAgentId,
+    local_agent_ref: localAgentRef,
     modules: {
       appearance: validateAppearanceModule(modules.appearance, errors),
       avatar_package: validateAvatarPackageModule(modules.avatar_package, errors),
@@ -348,12 +394,19 @@ export function validateAgentCenterLocalConfig(value: unknown): AgentCenterLocal
   return { ok: true, config };
 }
 
-export function createDefaultAgentCenterLocalConfig(input: { accountId: string; agentId: string }): AgentCenterLocalConfig {
+export function createDefaultAgentCenterLocalConfig(input: {
+  accountId: string;
+  ownerUserId: string;
+  realmAgentId: string;
+  localAgentRef: string;
+}): AgentCenterLocalConfig {
   return {
     schema_version: 1,
     config_kind: AGENT_CENTER_LOCAL_CONFIG_KIND,
     account_id: input.accountId,
-    agent_id: input.agentId,
+    owner_user_id: input.ownerUserId,
+    realm_agent_id: input.realmAgentId,
+    local_agent_ref: input.localAgentRef,
     modules: {
       appearance: {
         schema_version: 1,

@@ -27,6 +27,17 @@ function normalizeText(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
 }
 
+function buildLocalAgentRef(ownerUserId: string, realmAgentId: string): string {
+  return `local-agent:${ownerUserId}:${realmAgentId}`;
+}
+
+function parseOwnerUserId(snapshot: { ownerUserId?: unknown; currentUserId?: unknown; userId?: unknown; viewerId?: unknown }): string {
+  return normalizeText(snapshot.ownerUserId)
+    || normalizeText(snapshot.currentUserId)
+    || normalizeText(snapshot.userId)
+    || normalizeText(snapshot.viewerId);
+}
+
 function parseOwnershipType(value: unknown): AgentLocalTargetSnapshot['ownershipType'] {
   const normalized = String(value || '').trim();
   if (normalized === 'MASTER_OWNED' || normalized === 'WORLD_OWNED') {
@@ -136,7 +147,9 @@ export function areAgentTargetSnapshotsEquivalent(
   if (!left || !right) {
     return false;
   }
-  return left.agentId === right.agentId
+  return left.ownerUserId === right.ownerUserId
+    && left.realmAgentId === right.realmAgentId
+    && left.localAgentRef === right.localAgentRef
     && left.displayName === right.displayName
     && left.handle === right.handle
     && (left.avatarUrl || null) === (right.avatarUrl || null)
@@ -151,7 +164,7 @@ export function buildAgentThreadMetadataUpdate(input: {
   thread: AgentLocalThreadSummary | null;
   target: AgentLocalTargetSnapshot | null;
 }): AgentLocalUpdateThreadMetadataInput | null {
-  if (!input.thread || !input.target || input.thread.agentId !== input.target.agentId) {
+  if (!input.thread || !input.target || input.thread.localAgentRef !== input.target.localAgentRef) {
     return null;
   }
   if (areAgentTargetSnapshotsEquivalent(input.thread.targetSnapshot, input.target)) {
@@ -167,7 +180,7 @@ export function buildAgentThreadMetadataUpdate(input: {
   };
 }
 
-function parseAgentFriendTarget(value: unknown): AgentLocalTargetSnapshot {
+function parseAgentFriendTarget(value: unknown, ownerUserId: string): AgentLocalTargetSnapshot {
   const record = assertRecord(value, 'agent friend target is invalid');
   if (record.isAgent !== true) {
     throw new Error('agent friend target must set isAgent=true');
@@ -175,8 +188,11 @@ function parseAgentFriendTarget(value: unknown): AgentLocalTargetSnapshot {
   const world = parseOptionalJsonObject(record.world) ?? null;
   const agentProfile = parseOptionalJsonObject(record.agentProfile) ?? null;
   const avatarUrl = parseOptionalString(record.avatarUrl) || parseOptionalString(agentProfile?.avatarUrl) || null;
+  const realmAgentId = parseRequiredString(record.id, 'id', 'agent friend target');
   return {
-    agentId: parseRequiredString(record.id, 'id', 'agent friend target'),
+    ownerUserId,
+    realmAgentId,
+    localAgentRef: buildLocalAgentRef(ownerUserId, realmAgentId),
     displayName: parseRequiredString(record.displayName, 'displayName', 'agent friend target'),
     handle: parseRequiredString(record.handle, 'handle', 'agent friend target'),
     avatarUrl,
@@ -197,37 +213,44 @@ function parseAgentFriendTarget(value: unknown): AgentLocalTargetSnapshot {
 }
 
 export function toAgentFriendTargetsFromSocialSnapshot(
-  snapshot: { friends?: unknown[] } | null | undefined,
+  snapshot: { friends?: unknown[]; ownerUserId?: unknown; currentUserId?: unknown; userId?: unknown; viewerId?: unknown } | null | undefined,
 ): AgentLocalTargetSnapshot[] {
+  const ownerUserId = parseOwnerUserId(snapshot || {});
+  if (!ownerUserId) {
+    throw new Error('agent friend targets require ownerUserId');
+  }
   const friends = Array.isArray(snapshot?.friends) ? snapshot.friends : [];
   return friends
     .filter((item) => (parseOptionalJsonObject(item)?.isAgent === true))
-    .map((item) => parseAgentFriendTarget(item))
+    .map((item) => parseAgentFriendTarget(item, ownerUserId))
     .sort((left, right) => left.displayName.localeCompare(right.displayName));
 }
 
-export function findAgentConversationThreadByAgentId(
+export function findAgentConversationThreadByLocalAgentRef(
   threads: readonly AgentLocalThreadSummary[],
-  agentId: string | null | undefined,
+  localAgentRef: string | null | undefined,
 ): AgentLocalThreadSummary | null {
-  const normalizedAgentId = normalizeText(agentId);
-  if (!normalizedAgentId) {
+  const normalizedLocalAgentRef = normalizeText(localAgentRef);
+  if (!normalizedLocalAgentRef) {
     return null;
   }
-  return threads.find((thread) => thread.agentId === normalizedAgentId) || null;
+  return threads.find((thread) => thread.localAgentRef === normalizedLocalAgentRef) || null;
 }
 
 export function resolveAgentConversationActiveThreadId(input: {
   threads: readonly AgentLocalThreadSummary[];
   selectionThreadId: string | null | undefined;
-  selectionAgentId: string | null | undefined;
+  selectionLocalAgentRef?: string | null | undefined;
   lastSelectedThreadId: string | null | undefined;
 }): string | null {
   const normalizedSelectionThreadId = normalizeText(input.selectionThreadId);
   if (normalizedSelectionThreadId && input.threads.some((thread) => thread.id === normalizedSelectionThreadId)) {
     return normalizedSelectionThreadId;
   }
-  const selectedAgentThread = findAgentConversationThreadByAgentId(input.threads, input.selectionAgentId);
+  const selectedAgentThread = findAgentConversationThreadByLocalAgentRef(
+    input.threads,
+    input.selectionLocalAgentRef,
+  );
   if (selectedAgentThread) {
     return selectedAgentThread.id;
   }
@@ -251,7 +274,7 @@ export function toConversationThreadSummary(
     unreadCount: 0,
     status: thread.archivedAtMs == null ? 'active' : 'archived',
     pinned: false,
-    targetId: thread.agentId,
+    targetId: thread.localAgentRef,
     targetLabel: thread.targetSnapshot.displayName,
   };
 }

@@ -38,10 +38,10 @@ pub(super) fn write_background_validation_sidecar(
 
 pub(super) fn background_dir(
     account_id: &str,
-    agent_id: &str,
+    local_agent_ref: &str,
     background_asset_id: &str,
 ) -> Result<PathBuf, String> {
-    Ok(agent_center_dir(account_id, agent_id)?
+    Ok(agent_center_dir(account_id, local_agent_ref)?
         .join("modules")
         .join("appearance")
         .join("backgrounds")
@@ -50,10 +50,10 @@ pub(super) fn background_dir(
 
 pub(super) fn live2d_adapter_manifest_dir(
     account_id: &str,
-    agent_id: &str,
+    local_agent_ref: &str,
     manifest_ref: &str,
 ) -> Result<PathBuf, String> {
-    Ok(agent_center_dir(account_id, agent_id)?
+    Ok(agent_center_dir(account_id, local_agent_ref)?
         .join("modules")
         .join("avatar_package")
         .join("adapter_manifests")

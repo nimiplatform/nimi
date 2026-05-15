@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-pub(crate) const CHAT_AGENT_DB_SCHEMA_VERSION: i64 = 4;
+pub(crate) const CHAT_AGENT_DB_SCHEMA_VERSION: i64 = 5;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -65,7 +65,9 @@ pub enum ChatAgentBeatStatus {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct ChatAgentTargetSnapshot {
-    pub agent_id: String,
+    pub owner_user_id: String,
+    pub realm_agent_id: String,
+    pub local_agent_ref: String,
     pub display_name: String,
     pub handle: String,
     pub avatar_url: Option<String>,
@@ -79,7 +81,9 @@ pub struct ChatAgentTargetSnapshot {
 #[serde(rename_all = "camelCase")]
 pub struct ChatAgentThreadSummary {
     pub id: String,
-    pub agent_id: String,
+    pub owner_user_id: String,
+    pub realm_agent_id: String,
+    pub local_agent_ref: String,
     pub title: String,
     pub updated_at_ms: i64,
     pub last_message_at_ms: Option<i64>,
@@ -91,7 +95,9 @@ pub struct ChatAgentThreadSummary {
 #[serde(rename_all = "camelCase")]
 pub struct ChatAgentThreadRecord {
     pub id: String,
-    pub agent_id: String,
+    pub owner_user_id: String,
+    pub realm_agent_id: String,
+    pub local_agent_ref: String,
     pub title: String,
     pub created_at_ms: i64,
     pub updated_at_ms: i64,
@@ -250,7 +256,9 @@ pub struct ChatAgentThreadBundle {
 #[serde(rename_all = "camelCase")]
 pub struct ChatAgentCreateThreadInput {
     pub id: String,
-    pub agent_id: String,
+    pub owner_user_id: String,
+    pub realm_agent_id: String,
+    pub local_agent_ref: String,
     pub title: String,
     pub created_at_ms: i64,
     pub updated_at_ms: i64,

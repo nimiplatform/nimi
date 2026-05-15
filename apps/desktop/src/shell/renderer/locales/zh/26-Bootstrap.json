@@ -5,5 +5,6 @@
   "webDegraded": "Web 初始化超时，已进入降级模式。",
   "runtimeInitTimeout": "运行时初始化超时，请检查桌面桥接与后端连接。",
   "startFailedPrefix": "启动失败",
-  "startFailedTitle": "启动失败"
+  "startFailedTitle": "启动失败",
+  "rendererEntryFailed": "渲染器入口在应用外壳可用前失败。"
 }

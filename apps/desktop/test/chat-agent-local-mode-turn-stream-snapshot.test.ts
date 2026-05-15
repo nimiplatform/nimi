@@ -124,7 +124,9 @@ test('agent runtime turn recovers terminal projection from authoritative runtime
     });
 
     const result = await streamChatAgentRuntimeAgentTurn({
-      agentId: 'agent-1',
+      ownerUserId: 'user-1',
+      realmAgentId: 'agent-1',
+      localAgentRef: 'local-agent:user-1:agent-1',
       conversationAnchorId: 'anchor-snapshot',
       threadId: 'thread-snapshot',
       messages: [{ role: 'user', text: 'hello snapshot' }],
@@ -292,7 +294,9 @@ test('agent runtime turn binds current active turn from snapshot when accepted e
     });
 
     const result = await streamChatAgentRuntimeAgentTurn({
-      agentId: 'agent-1',
+      ownerUserId: 'user-1',
+      realmAgentId: 'agent-1',
+      localAgentRef: 'local-agent:user-1:agent-1',
       conversationAnchorId: 'anchor-active-bind',
       threadId: 'thread-active-bind',
       messages: [{ role: 'user', text: 'hello active bind' }],
@@ -534,7 +538,9 @@ test('agent runtime turn consumes runtime-owned projection events from anchor ap
     });
 
     const result = await streamChatAgentRuntimeAgentTurn({
-      agentId: 'agent-1',
+      ownerUserId: 'user-1',
+      realmAgentId: 'agent-1',
+      localAgentRef: 'local-agent:user-1:agent-1',
       conversationAnchorId: 'anchor-projection',
       threadId: 'thread-projection',
       messages: [{ role: 'user', text: 'hello projection' }],

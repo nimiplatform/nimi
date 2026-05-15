@@ -22,7 +22,6 @@ import { DesktopReleaseStrip } from './desktop-release-strip';
 import { MainLayoutTopBar } from './main-layout-topbar';
 import { SidebarTooltipButton } from './main-layout-sidebar-tooltip-button';
 import { OfflineShellStrip } from './offline-shell-strip';
-import { ScenarioJobStatusHost } from '@renderer/features/turns/scenario-job-status-host';
 import {
   SHELL_CHROME_INTERACTIVE_RADIUS_CLASS,
   SHELL_CHROME_MENU_ITEM_BASE_CLASS,
@@ -517,7 +516,6 @@ export function MainLayoutView(props: MainLayoutViewProps) {
           <OfflineShellStrip />
           <DesktopReleaseStrip />
           <StatusBanner />
-          <ScenarioJobStatusHost />
 
           {/* Runtime panel — keep-alive: mounted once, then toggled via CSS.
               Own Suspense so other lazy tabs never tear it down. */}

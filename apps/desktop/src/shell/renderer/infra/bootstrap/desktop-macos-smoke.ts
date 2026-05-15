@@ -304,8 +304,15 @@ function createDomDriverDeps(): DesktopMacosSmokeDriverDeps {
         runtime,
         getSubjectUserId: async () => subjectUserId,
       });
+      const localAgentRef = String(input.agentId || '').trim();
+      const [, ownerUserId, realmAgentId] = localAgentRef.split(':');
+      if (!ownerUserId || !realmAgentId || !localAgentRef.startsWith('local-agent:')) {
+        throw new Error('Runtime conversation anchor smoke verification requires localAgentRef formatted as local-agent:${ownerUserId}:${realmAgentId}');
+      }
       await protectedAccess.withScopes(['runtime.agent.read'], (options) => runtime.agent.anchors.getSnapshot({
-        agentId: input.agentId,
+        ownerUserId,
+        realmAgentId,
+        localAgentRef,
         conversationAnchorId: input.conversationAnchorId,
       }, options));
     },
@@ -316,13 +323,20 @@ function createDomDriverDeps(): DesktopMacosSmokeDriverDeps {
         throw new Error('cannot read Runtime product evidence without authenticated subject user id');
       }
       const runtime = getPlatformClient().runtime;
+      const localAgentRef = String(input.agentId || '').trim();
+      const [, ownerUserId, realmAgentId] = localAgentRef.split(':');
+      if (!ownerUserId || !realmAgentId || !localAgentRef.startsWith('local-agent:')) {
+        throw new Error('Runtime product path evidence requires localAgentRef formatted as local-agent:${ownerUserId}:${realmAgentId}');
+      }
       const [health, snapshot] = await Promise.all([
         runtime.health(),
         createRuntimeProtectedScopeHelper({
           runtime,
           getSubjectUserId: async () => subjectUserId,
         }).withScopes(['runtime.agent.read'], (options) => runtime.agent.anchors.getSnapshot({
-          agentId: input.agentId,
+          ownerUserId,
+          realmAgentId,
+          localAgentRef,
           conversationAnchorId: input.conversationAnchorId,
         }, options)),
       ]);
@@ -492,8 +506,13 @@ function createDomDriverDeps(): DesktopMacosSmokeDriverDeps {
         runtimeDebug: stats.runtimeDebug,
       };
     },
-    async listAvatarLiveInstances(agentId: string) {
-      return listDesktopAvatarLiveInstances(agentId);
+    async listAvatarLiveInstances(realmAgentId: string) {
+      const ownerUserId = 'desktop-smoke';
+      return listDesktopAvatarLiveInstances({
+        ownerUserId,
+        realmAgentId,
+        localAgentRef: `local-agent:${ownerUserId}:${realmAgentId}`,
+      });
     },
     async readAvatarEvidence(avatarInstanceId: string) {
       return readDesktopMacosSmokeAvatarEvidence(avatarInstanceId);

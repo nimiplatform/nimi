@@ -11,7 +11,7 @@ import type { UseAgentConversationPresentationInput } from './chat-agent-shell-p
 export function useAgentCenterAvatarConfigMutation(input: UseAgentConversationPresentationInput, queryClient: QueryClient, currentConfig: AgentCenterLocalConfig | null | undefined) {
   return useMutation({
     mutationFn: async (patch: AgentCenterAvatarConfigPatch) => {
-      if (!input.accountId || !input.activeTarget?.agentId || !currentConfig) {
+      if (!input.accountId || !input.activeTarget?.localAgentRef || !currentConfig) {
         throw new Error(input.t('Chat.agentCenterAvatarConfigAgentRequired', {
           defaultValue: 'Select an agent before changing Avatar configuration.',
         }));
@@ -31,7 +31,9 @@ export function useAgentCenterAvatarConfigMutation(input: UseAgentConversationPr
       }
       return putAgentCenterLocalConfig({
         accountId: input.accountId,
-        agentId: input.activeTarget.agentId,
+        ownerUserId: input.activeTarget.ownerUserId,
+        realmAgentId: input.activeTarget.realmAgentId,
+        localAgentRef: input.activeTarget.localAgentRef,
         config: {
           ...currentConfig,
           modules: {
@@ -42,11 +44,11 @@ export function useAgentCenterAvatarConfigMutation(input: UseAgentConversationPr
       });
     },
     onSuccess: async () => {
-      if (!input.accountId || !input.activeTarget?.agentId) {
+      if (!input.accountId || !input.activeTarget?.localAgentRef) {
         return;
       }
       await queryClient.invalidateQueries({
-        queryKey: agentCenterLocalConfigQueryKey(input.accountId, input.activeTarget.agentId),
+        queryKey: agentCenterLocalConfigQueryKey(input.accountId, input.activeTarget.localAgentRef),
       });
     },
   });

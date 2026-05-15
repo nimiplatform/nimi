@@ -13,14 +13,13 @@ fn chat_agent_truth_source_commit_context_cancel_and_rebuild_projection_round_tr
         let thread = create_thread(
             &conn,
             &ChatAgentCreateThreadInput {
-                id: "thread-truth-source".to_string(),
-                agent_id: "agent-truth-source".to_string(),
                 title: "Agent Truth".to_string(),
-                created_at_ms: 100,
                 updated_at_ms: 100,
-                last_message_at_ms: None,
-                archived_at_ms: None,
-                target_snapshot: sample_target_snapshot("agent-truth-source"),
+                target_snapshot: ChatAgentTargetSnapshot {
+                    display_name: "Agent Truth".to_string(),
+                    ..sample_target_snapshot("agent-truth-source")
+                },
+                ..sample_create_thread_input("thread-truth-source", "user-1", "agent-truth-source")
             },
         )
         .expect("create thread");
@@ -213,4 +212,3 @@ fn chat_agent_truth_source_commit_context_cancel_and_rebuild_projection_round_tr
         );
     });
 }
-

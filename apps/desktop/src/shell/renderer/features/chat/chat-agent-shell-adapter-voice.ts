@@ -47,7 +47,7 @@ function resolveIsVoiceSessionForeground(): boolean {
 }
 
 type UseAgentConversationVoiceSessionInput = {
-  activeTarget: { agentId: string } | null;
+  activeTarget: { localAgentRef: string } | null;
   activeConversationAnchorId: string | null;
   activeThreadId: string | null;
   aiConfig: AIConfig;
@@ -111,7 +111,7 @@ export function useAgentConversationVoiceSession(
     };
     resetVoiceSession();
     return resetVoiceSession;
-  }, [input.activeConversationAnchorId, input.activeTarget?.agentId, input.activeThreadId]);
+  }, [input.activeConversationAnchorId, input.activeTarget?.localAgentRef, input.activeThreadId]);
 
   useEffect(() => {
     if (typeof window === 'undefined' || typeof document === 'undefined') {

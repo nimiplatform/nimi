@@ -112,6 +112,9 @@ type RuntimeAgentSession = {
   context: {
     appId: string;
     subjectUserId: string;
+    ownerUserId: string;
+    realmAgentId: string;
+    localAgentRef: string;
   };
   subjectUserId: string;
   protectedAccess: ReturnType<typeof createRuntimeProtectedScopeHelper>;
@@ -123,6 +126,31 @@ const CANONICAL_AGENT_CHAT_SOURCE_PROFILE = 'canonical_agent_chat';
 
 function normalizeText(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
+}
+
+function parseLocalAgentIdentity(localAgentRef: string): {
+  ownerUserId: string;
+  realmAgentId: string;
+  localAgentRef: string;
+} {
+  const normalized = normalizeText(localAgentRef);
+  const parts = normalized.split(':');
+  if (parts.length !== 3 || parts[0] !== 'local-agent' || !parts[1] || !parts[2]) {
+    throw new Error('runtime agent memory requires localAgentRef formatted as local-agent:${ownerUserId}:${realmAgentId}');
+  }
+  return {
+    ownerUserId: parts[1],
+    realmAgentId: parts[2],
+    localAgentRef: normalized,
+  };
+}
+
+function buildAgentRequestContext(runtime: RuntimeClient, subjectUserId: string, localAgentRef: string) {
+  return {
+    appId: runtime.appId,
+    subjectUserId,
+    ...parseLocalAgentIdentity(localAgentRef),
+  };
 }
 
 function timestampToIso(timestamp?: { seconds: string; nanos: number }): string {
@@ -341,10 +369,7 @@ export function createRuntimeAgentMemoryAdapter(deps: RuntimeAgentMemoryDeps = {
       throw new Error('AGENT_ID_REQUIRED');
     }
 
-    const context = {
-      appId: runtime.appId,
-      subjectUserId,
-    };
+    const context = buildAgentRequestContext(runtime, subjectUserId, agentId);
 
     try {
       await protectedAccess.withScopes(['runtime.agent.read'], (options) => runtime.agent.getAgent({
@@ -360,6 +385,9 @@ export function createRuntimeAgentMemoryAdapter(deps: RuntimeAgentMemoryDeps = {
         await protectedAccess.withScopes(['runtime.agent.admin'], (options) => runtime.agent.initializeAgent({
           context,
           agentId,
+          ownerUserId: context.ownerUserId,
+          realmAgentId: context.realmAgentId,
+          localAgentRef: context.localAgentRef,
           displayName: normalizeText(input.displayName) || agentId,
           autonomyConfig: undefined,
           worldId: normalizeText(input.worldId),
@@ -454,10 +482,7 @@ export function createRuntimeAgentMemoryAdapter(deps: RuntimeAgentMemoryDeps = {
   }> => {
     const runtime = getRuntime();
     const subjectUserId = await resolveSubjectUserId();
-    const context = {
-      appId: runtime.appId,
-      subjectUserId,
-    };
+    const context = buildAgentRequestContext(runtime, subjectUserId, agentId);
     const locator = {
       scope: MemoryBankScope.AGENT_CORE,
       owner: {

@@ -3,7 +3,7 @@ import { normalizeText } from './chat-agent-orchestration-shared';
 
 export type RuntimeAgentProjectionSummary = {
   eventName: string;
-  agentId: string;
+  localAgentRef: string;
   conversationAnchorId: string | null;
   runtimeTurnId: string | null;
   runtimeStreamId: string | null;
@@ -53,7 +53,7 @@ export function summarizeRuntimeAgentProjectionEvent(event: RuntimeAgentConsumeE
   };
   return {
     eventName: event.eventName,
-    agentId: normalizeText(eventRecord.agentId),
+    localAgentRef: normalizeText(eventRecord.localAgentRef),
     conversationAnchorId: normalizeText(eventRecord.conversationAnchorId) || null,
     runtimeTurnId: normalizeText(eventRecord.originatingTurnId) || normalizeText(eventRecord.turnId) || null,
     runtimeStreamId: normalizeText(eventRecord.originatingStreamId) || normalizeText(eventRecord.streamId) || null,

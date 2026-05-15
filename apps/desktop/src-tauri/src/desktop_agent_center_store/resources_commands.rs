@@ -2,13 +2,15 @@ use super::*;
 
 pub(super) fn select_imported_live2d_adapter_manifest(
     account_id: &str,
-    agent_id: &str,
+    scope: &LocalAgentScope,
     package_id: &str,
     manifest_ref: &str,
 ) -> Result<(), String> {
     let mut config = desktop_agent_center_config_get(DesktopAgentCenterConfigScopePayload {
         account_id: account_id.to_string(),
-        agent_id: agent_id.to_string(),
+        owner_user_id: scope.owner_user_id.clone(),
+        realm_agent_id: scope.realm_agent_id.clone(),
+        local_agent_ref: scope.local_agent_ref.clone(),
     })?;
     if config.modules.avatar_package.backend_kind != AgentCenterAvatarBackendKind::Live2d
         || config.modules.avatar_package.avatar_package_ref.as_deref() != Some(package_id)
@@ -28,7 +30,9 @@ pub(super) fn select_imported_live2d_adapter_manifest(
     };
     desktop_agent_center_config_put(DesktopAgentCenterConfigPutPayload {
         account_id: account_id.to_string(),
-        agent_id: agent_id.to_string(),
+        owner_user_id: scope.owner_user_id.clone(),
+        realm_agent_id: scope.realm_agent_id.clone(),
+        local_agent_ref: scope.local_agent_ref.clone(),
         config,
     })?;
     Ok(())
@@ -36,17 +40,21 @@ pub(super) fn select_imported_live2d_adapter_manifest(
 
 pub(super) fn select_imported_background(
     account_id: &str,
-    agent_id: &str,
+    scope: &LocalAgentScope,
     background_asset_id: &str,
 ) -> Result<(), String> {
     let mut config = desktop_agent_center_config_get(DesktopAgentCenterConfigScopePayload {
         account_id: account_id.to_string(),
-        agent_id: agent_id.to_string(),
+        owner_user_id: scope.owner_user_id.clone(),
+        realm_agent_id: scope.realm_agent_id.clone(),
+        local_agent_ref: scope.local_agent_ref.clone(),
     })?;
     config.modules.appearance.background_asset_id = Some(background_asset_id.to_string());
     desktop_agent_center_config_put(DesktopAgentCenterConfigPutPayload {
         account_id: account_id.to_string(),
-        agent_id: agent_id.to_string(),
+        owner_user_id: scope.owner_user_id.clone(),
+        realm_agent_id: scope.realm_agent_id.clone(),
+        local_agent_ref: scope.local_agent_ref.clone(),
         config,
     })?;
     Ok(())
@@ -54,18 +62,22 @@ pub(super) fn select_imported_background(
 
 pub(super) fn clear_selected_background(
     account_id: &str,
-    agent_id: &str,
+    scope: &LocalAgentScope,
     background_asset_id: &str,
 ) -> Result<(), String> {
     let mut config = desktop_agent_center_config_get(DesktopAgentCenterConfigScopePayload {
         account_id: account_id.to_string(),
-        agent_id: agent_id.to_string(),
+        owner_user_id: scope.owner_user_id.clone(),
+        realm_agent_id: scope.realm_agent_id.clone(),
+        local_agent_ref: scope.local_agent_ref.clone(),
     })?;
     if config.modules.appearance.background_asset_id.as_deref() == Some(background_asset_id) {
         config.modules.appearance.background_asset_id = None;
         desktop_agent_center_config_put(DesktopAgentCenterConfigPutPayload {
             account_id: account_id.to_string(),
-            agent_id: agent_id.to_string(),
+            owner_user_id: scope.owner_user_id.clone(),
+            realm_agent_id: scope.realm_agent_id.clone(),
+            local_agent_ref: scope.local_agent_ref.clone(),
             config,
         })?;
     }
@@ -86,7 +98,11 @@ pub(crate) fn desktop_agent_center_background_import_blocking(
     payload: DesktopAgentCenterBackgroundImportPayload,
 ) -> Result<DesktopAgentCenterBackgroundImportResult, String> {
     let account_id = validate_normalized_id(&payload.account_id, "accountId")?;
-    let agent_id = validate_normalized_id(&payload.agent_id, "agentId")?;
+    let scope = validate_local_agent_scope(
+        &payload.owner_user_id,
+        &payload.realm_agent_id,
+        &payload.local_agent_ref,
+    )?;
     let source_path = PathBuf::from(&payload.source_path);
     let source = fs::canonicalize(&source_path).map_err(|error| {
         format!(
@@ -121,7 +137,7 @@ pub(crate) fn desktop_agent_center_background_import_blocking(
     };
     let background_asset_id = format!("bg_{}", &sha256[..12]);
     validate_background_id(&background_asset_id, "backgroundAssetId")?;
-    let final_dir = background_dir(&account_id, &agent_id, &background_asset_id)?;
+    let final_dir = background_dir(&account_id, &scope.local_agent_ref, &background_asset_id)?;
     let selected = payload.select.unwrap_or(true);
 
     if final_dir.exists() {
@@ -133,11 +149,11 @@ pub(crate) fn desktop_agent_center_background_import_blocking(
             ));
         }
         if selected {
-            select_imported_background(&account_id, &agent_id, &background_asset_id)?;
+            select_imported_background(&account_id, &scope, &background_asset_id)?;
         }
         let _ = record_resource_operation(
             &account_id,
-            &agent_id,
+            &scope.local_agent_ref,
             "background_import_reuse",
             "background",
             &background_asset_id,
@@ -151,7 +167,7 @@ pub(crate) fn desktop_agent_center_background_import_blocking(
         });
     }
 
-    let staging_dir = agent_center_dir(&account_id, &agent_id)?
+    let staging_dir = agent_center_dir(&account_id, &scope.local_agent_ref)?
         .join("modules")
         .join("appearance")
         .join("staging")
@@ -246,11 +262,11 @@ pub(crate) fn desktop_agent_center_background_import_blocking(
     };
 
     if selected {
-        select_imported_background(&account_id, &agent_id, &background_asset_id)?;
+        select_imported_background(&account_id, &scope, &background_asset_id)?;
     }
     let _ = record_resource_operation(
         &account_id,
-        &agent_id,
+        &scope.local_agent_ref,
         "background_import",
         "background",
         &background_asset_id,
@@ -280,7 +296,11 @@ pub(crate) fn desktop_agent_center_live2d_adapter_manifest_import_blocking(
     payload: DesktopAgentCenterLive2dAdapterManifestImportPayload,
 ) -> Result<DesktopAgentCenterLive2dAdapterManifestImportResult, String> {
     let account_id = validate_normalized_id(&payload.account_id, "accountId")?;
-    let agent_id = validate_normalized_id(&payload.agent_id, "agentId")?;
+    let scope = validate_local_agent_scope(
+        &payload.owner_user_id,
+        &payload.realm_agent_id,
+        &payload.local_agent_ref,
+    )?;
     validate_package_id(&payload.package_id, "packageId")?;
     if !payload.package_id.starts_with("live2d_") {
         return Err("packageId must reference a Live2D package".to_string());
@@ -339,7 +359,8 @@ pub(crate) fn desktop_agent_center_live2d_adapter_manifest_import_blocking(
     let sha256 = format!("{:x}", hasher.finalize());
     let manifest_ref = format!("live2d_adapter_{}", &sha256[..12]);
     validate_live2d_adapter_manifest_ref(&manifest_ref, "live2dAdapterManifestRef")?;
-    let final_dir = live2d_adapter_manifest_dir(&account_id, &agent_id, &manifest_ref)?;
+    let final_dir =
+        live2d_adapter_manifest_dir(&account_id, &scope.local_agent_ref, &manifest_ref)?;
     let selected = payload.select.unwrap_or(true);
     let imported_at = checked_at();
 
@@ -373,14 +394,14 @@ pub(crate) fn desktop_agent_center_live2d_adapter_manifest_import_blocking(
     if selected {
         select_imported_live2d_adapter_manifest(
             &account_id,
-            &agent_id,
+            &scope,
             &payload.package_id,
             &manifest_ref,
         )?;
     }
     let _ = record_resource_operation(
         &account_id,
-        &agent_id,
+        &scope.local_agent_ref,
         "live2d_adapter_manifest_import",
         "avatar_package",
         &manifest_ref,

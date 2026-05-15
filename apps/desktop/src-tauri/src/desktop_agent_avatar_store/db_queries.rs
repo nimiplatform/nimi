@@ -1,5 +1,6 @@
 use super::db_support::{
     derive_resource_record, normalize_required_string, parse_kind, parse_status,
+    validate_local_agent_ref,
 };
 use super::types::*;
 use rusqlite::{params, Connection, OptionalExtension};
@@ -142,21 +143,26 @@ pub(super) fn list_resources_impl(
 
 pub(super) fn get_binding_impl(
     conn: &Connection,
-    agent_id: &str,
+    owner_user_id: &str,
+    realm_agent_id: &str,
+    local_agent_ref: &str,
 ) -> Result<Option<DesktopAgentAvatarBindingRecord>, String> {
-    let normalized_agent_id = normalize_required_string(agent_id, "agentId")?;
+    let (owner_user_id, realm_agent_id, local_agent_ref) =
+        validate_local_agent_ref(owner_user_id, realm_agent_id, local_agent_ref)?;
     conn.query_row(
         r#"
-        SELECT agent_id, resource_id, updated_at_ms
+        SELECT owner_user_id, realm_agent_id, local_agent_ref, resource_id, updated_at_ms
         FROM desktop_agent_avatar_bindings
-        WHERE agent_id = ?1
+        WHERE local_agent_ref = ?1
         "#,
-        params![normalized_agent_id],
+        params![local_agent_ref],
         |row| {
             Ok(DesktopAgentAvatarBindingRecord {
-                agent_id: row.get(0)?,
-                resource_id: row.get(1)?,
-                updated_at_ms: row.get(2)?,
+                owner_user_id: row.get(0)?,
+                realm_agent_id: row.get(1)?,
+                local_agent_ref: row.get(2)?,
+                resource_id: row.get(3)?,
+                updated_at_ms: row.get(4)?,
             })
         },
     )
@@ -168,33 +174,63 @@ pub(super) fn set_binding_impl(
     conn: &Connection,
     payload: &DesktopAgentAvatarBindingSetPayload,
 ) -> Result<DesktopAgentAvatarBindingRecord, String> {
-    let agent_id = normalize_required_string(&payload.agent_id, "agentId")?;
+    let (owner_user_id, realm_agent_id, local_agent_ref) = validate_local_agent_ref(
+        &payload.owner_user_id,
+        &payload.realm_agent_id,
+        &payload.local_agent_ref,
+    )?;
     let resource_id = normalize_required_string(&payload.resource_id, "resourceId")?;
     if read_resource_record(conn, &resource_id)?.is_none() {
         return Err("desktop agent avatar binding failed: resource not found".to_string());
     }
     conn.execute(
         r#"
-        INSERT INTO desktop_agent_avatar_bindings (agent_id, resource_id, updated_at_ms)
-        VALUES (?1, ?2, ?3)
-        ON CONFLICT(agent_id) DO UPDATE SET
+        INSERT INTO desktop_agent_avatar_bindings (
+          local_agent_ref,
+          owner_user_id,
+          realm_agent_id,
+          resource_id,
+          updated_at_ms
+        )
+        VALUES (?1, ?2, ?3, ?4, ?5)
+        ON CONFLICT(local_agent_ref) DO UPDATE SET
+          owner_user_id = excluded.owner_user_id,
+          realm_agent_id = excluded.realm_agent_id,
           resource_id = excluded.resource_id,
           updated_at_ms = excluded.updated_at_ms
         "#,
-        params![agent_id, resource_id, payload.updated_at_ms],
+        params![
+            local_agent_ref,
+            owner_user_id,
+            realm_agent_id,
+            resource_id,
+            payload.updated_at_ms
+        ],
     )
     .map_err(|error| format!("desktop agent avatar binding failed: {error}"))?;
-    get_binding_impl(conn, &payload.agent_id)?.ok_or_else(|| {
-        "desktop agent avatar binding failed: binding missing after write".to_string()
-    })
+    get_binding_impl(
+        conn,
+        &payload.owner_user_id,
+        &payload.realm_agent_id,
+        &payload.local_agent_ref,
+    )?
+    .ok_or_else(|| {
+            "desktop agent avatar binding failed: binding missing after write".to_string()
+        })
 }
 
-pub(super) fn clear_binding_impl(conn: &Connection, agent_id: &str) -> Result<bool, String> {
-    let normalized_agent_id = normalize_required_string(agent_id, "agentId")?;
+pub(super) fn clear_binding_impl(
+    conn: &Connection,
+    owner_user_id: &str,
+    realm_agent_id: &str,
+    local_agent_ref: &str,
+) -> Result<bool, String> {
+    let (_, _, local_agent_ref) =
+        validate_local_agent_ref(owner_user_id, realm_agent_id, local_agent_ref)?;
     let changed = conn
         .execute(
-            "DELETE FROM desktop_agent_avatar_bindings WHERE agent_id = ?1",
-            params![normalized_agent_id],
+            "DELETE FROM desktop_agent_avatar_bindings WHERE local_agent_ref = ?1",
+            params![local_agent_ref],
         )
         .map_err(|error| format!("failed to clear desktop agent avatar binding: {error}"))?;
     Ok(changed > 0)

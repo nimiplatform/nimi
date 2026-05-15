@@ -12,6 +12,7 @@ const tauriConfig = JSON.parse(fs.readFileSync(tauriConfigPath, 'utf-8')) as {
   app?: {
     security?: {
       csp?: string;
+      devCsp?: string;
       assetProtocol?: {
         enable?: boolean;
         scope?: unknown;
@@ -21,6 +22,7 @@ const tauriConfig = JSON.parse(fs.readFileSync(tauriConfigPath, 'utf-8')) as {
 };
 
 const csp = String(tauriConfig.app?.security?.csp || '');
+const devCsp = String(tauriConfig.app?.security?.devCsp || '');
 const assetProtocol = tauriConfig.app?.security?.assetProtocol;
 
 test('desktop CSP allows tauri asset protocol for VRM avatar loading', () => {
@@ -68,6 +70,33 @@ test('desktop CSP allows blob module scripts for runtime mod loading', () => {
   assert.ok(
     scriptDirective.includes("'wasm-unsafe-eval'"),
     'script-src must allow wasm-unsafe-eval so packaged WebKit can instantiate renderer WASM dependencies without enabling unsafe-eval',
+  );
+  assert.ok(
+    !scriptDirective.includes("'unsafe-inline'"),
+    'production script-src must not allow inline scripts',
+  );
+});
+
+test('desktop dev CSP keeps production script restrictions while HMR is disabled', () => {
+  const devScriptDirective = devCsp.match(/\bscript-src\b[^;]*/)?.[0] || '';
+  const prodScriptDirective = csp.match(/\bscript-src\b[^;]*/)?.[0] || '';
+
+  assert.equal(
+    devScriptDirective,
+    prodScriptDirective,
+    'dev script-src must stay aligned with production script-src when desktop HMR is disabled',
+  );
+  assert.ok(
+    devScriptDirective.includes('blob:'),
+    'dev script-src must preserve blob module support for runtime mod loading',
+  );
+  assert.ok(
+    devScriptDirective.includes("'wasm-unsafe-eval'"),
+    'dev script-src must preserve WebKit WASM support',
+  );
+  assert.ok(
+    !devScriptDirective.includes("'unsafe-inline'"),
+    'dev script-src must not allow inline scripts when React refresh is disabled',
   );
 });
 

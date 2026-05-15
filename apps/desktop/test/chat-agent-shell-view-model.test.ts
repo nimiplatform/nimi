@@ -18,7 +18,9 @@ import { resolveAgentChatBehavior as resolveAgentChatBehaviorFromResolver } from
 
 function sampleTargets(): AgentLocalTargetSnapshot[] {
   return [{
-    agentId: 'agent-1',
+    ownerUserId: 'user-1',
+    realmAgentId: 'agent-1',
+    localAgentRef: 'local-agent:user-1:agent-1',
     displayName: 'Companion',
     handle: 'companion',
     avatarUrl: null,
@@ -27,7 +29,9 @@ function sampleTargets(): AgentLocalTargetSnapshot[] {
     bio: 'friend agent',
     ownershipType: 'MASTER_OWNED',
   }, {
-    agentId: 'agent-2',
+    ownerUserId: 'user-1',
+    realmAgentId: 'agent-2',
+    localAgentRef: 'local-agent:user-1:agent-2',
     displayName: 'Scout',
     handle: 'scout',
     avatarUrl: 'https://example.com/scout.png',
@@ -41,7 +45,9 @@ function sampleTargets(): AgentLocalTargetSnapshot[] {
 function sampleThreads(): AgentLocalThreadSummary[] {
   return [{
     id: 'thread-agent-1',
-    agentId: 'agent-1',
+    ownerUserId: 'user-1',
+    realmAgentId: 'agent-1',
+    localAgentRef: 'local-agent:user-1:agent-1',
     title: 'Companion',
     updatedAtMs: 100,
     lastMessageAtMs: 90,
@@ -63,14 +69,14 @@ test('agent shell view model resolves target summaries from agent targets and th
     handle: summary.handle,
     avatarUrl: summary.avatarUrl,
   })), [{
-    id: 'agent-1',
+    id: 'local-agent:user-1:agent-1',
     canonicalSessionId: 'thread-agent-1',
     title: 'Companion',
     handle: '@companion',
     avatarUrl: null,
   }, {
-    id: 'agent-2',
-    canonicalSessionId: 'agent-2',
+    id: 'local-agent:user-1:agent-2',
+    canonicalSessionId: 'local-agent:user-1:agent-2',
     title: 'Scout',
     handle: '@scout',
     avatarUrl: 'https://example.com/scout.png',
@@ -139,7 +145,7 @@ test('agent shell view model resolves canonical messages with user/agent sender 
     }],
     activeThreadId: 'thread-agent-1',
     activeConversationAnchorId: 'anchor-agent-1',
-    activeTargetId: 'agent-1',
+    activeTargetId: 'local-agent:user-1:agent-1',
     character: {
       name: 'Companion',
       avatarUrl: null,
@@ -152,7 +158,7 @@ test('agent shell view model resolves canonical messages with user/agent sender 
   assert.equal(messages[1]?.senderName, 'Companion');
   assert.equal(messages[1]?.senderKind, 'agent');
   assert.equal(messages[1]?.sessionId, 'anchor-agent-1');
-  assert.equal(messages[1]?.targetId, 'agent-1');
+  assert.equal(messages[1]?.targetId, 'local-agent:user-1:agent-1');
   assert.equal((messages[1]?.metadata as Record<string, unknown>)?.followUpTurn, true);
   assert.equal((messages[1]?.metadata as Record<string, unknown>)?.followUpInstruction, '如果对方还没回复，就轻轻追问一句。');
   assert.equal((messages[1]?.metadata as Record<string, unknown>)?.followUpDelayMs, 400);
@@ -191,7 +197,7 @@ test('agent shell view model maps image messages to canonical image kinds with m
     }],
     activeThreadId: 'thread-agent-1',
     activeConversationAnchorId: 'anchor-agent-1',
-    activeTargetId: 'agent-1',
+    activeTargetId: 'local-agent:user-1:agent-1',
     character: {
       name: 'Companion',
       avatarUrl: null,
@@ -233,7 +239,7 @@ test('agent shell view model maps voice messages to canonical voice kinds and pr
     }],
     activeThreadId: 'thread-agent-1',
     activeConversationAnchorId: 'anchor-agent-1',
-    activeTargetId: 'agent-1',
+    activeTargetId: 'local-agent:user-1:agent-1',
     character: {
       name: 'Companion',
       avatarUrl: null,
@@ -285,7 +291,7 @@ test('agent shell view model keeps same-agent different-anchor messages isolated
     }],
     activeThreadId: 'thread-agent-1a',
     activeConversationAnchorId: 'anchor-active',
-    activeTargetId: 'agent-1',
+    activeTargetId: 'local-agent:user-1:agent-1',
     character: {
       name: 'Companion',
       avatarUrl: null,
@@ -293,8 +299,8 @@ test('agent shell view model keeps same-agent different-anchor messages isolated
     },
   });
 
-  assert.equal(messages[0]?.targetId, 'agent-1');
-  assert.equal(messages[1]?.targetId, 'agent-1');
+  assert.equal(messages[0]?.targetId, 'local-agent:user-1:agent-1');
+  assert.equal(messages[1]?.targetId, 'local-agent:user-1:agent-1');
   assert.equal(messages[0]?.sessionId, 'anchor-a');
   assert.equal(messages[1]?.sessionId, 'anchor-b');
   assert.notEqual(messages[0]?.sessionId, messages[1]?.sessionId);
@@ -302,15 +308,15 @@ test('agent shell view model keeps same-agent different-anchor messages isolated
 
 test('agent shell view model resolves selected target id fail-close', () => {
   assert.equal(resolveAgentSelectedTargetId({
-    selectionAgentId: 'agent-1',
-    activeTargetId: 'agent-2',
-  }), 'agent-1');
+    selectionLocalAgentRef: 'local-agent:user-1:agent-1',
+    activeTargetId: 'local-agent:user-1:agent-2',
+  }), 'local-agent:user-1:agent-1');
   assert.equal(resolveAgentSelectedTargetId({
-    selectionAgentId: null,
-    activeTargetId: 'agent-2',
-  }), 'agent-2');
+    selectionLocalAgentRef: null,
+    activeTargetId: 'local-agent:user-1:agent-2',
+  }), 'local-agent:user-1:agent-2');
   assert.equal(resolveAgentSelectedTargetId({
-    selectionAgentId: null,
+    selectionLocalAgentRef: null,
     activeTargetId: null,
   }), null);
 });

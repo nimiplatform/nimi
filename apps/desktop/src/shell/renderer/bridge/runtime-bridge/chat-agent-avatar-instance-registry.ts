@@ -8,8 +8,16 @@ import {
 
 export type DesktopAvatarLiveInstanceRecord = {
   avatarInstanceId: string;
-  agentId: string;
+  ownerUserId: string;
+  realmAgentId: string;
+  localAgentRef: string;
   launchSource: string | null;
+};
+
+export type DesktopAvatarLiveInstanceIdentityInput = {
+  ownerUserId: string;
+  realmAgentId: string;
+  localAgentRef: string;
 };
 
 const FORBIDDEN_LIVE_INSTANCE_FIELDS = new Set([
@@ -43,6 +51,7 @@ const FORBIDDEN_LIVE_INSTANCE_FIELDS = new Set([
   'accountAccessToken',
   'refreshToken',
   'jwt',
+  'agentId',
 ]);
 
 function requireTauri(commandName: string) {
@@ -51,8 +60,21 @@ function requireTauri(commandName: string) {
   }
 }
 
-export function desktopAvatarInstanceRegistryQueryKey(agentId: string) {
-  return ['desktop-avatar-instance-registry', agentId] as const;
+export function desktopAvatarInstanceRegistryQueryKey(localAgentRef: string) {
+  return ['desktop-avatar-instance-registry', localAgentRef] as const;
+}
+
+function validateLocalAgentRef(ownerUserId: string, realmAgentId: string, localAgentRef: string): void {
+  if (localAgentRef === realmAgentId) {
+    throw new Error('desktop avatar instance registry localAgentRef must not be a bare realmAgentId');
+  }
+  if (!localAgentRef.startsWith('local-agent:')) {
+    throw new Error('desktop avatar instance registry localAgentRef must start with local-agent:');
+  }
+  const expected = `local-agent:${ownerUserId}:${realmAgentId}`;
+  if (localAgentRef !== expected) {
+    throw new Error('desktop avatar instance registry localAgentRef must equal local-agent:${ownerUserId}:${realmAgentId}');
+  }
 }
 
 export function parseDesktopAvatarLiveInstanceRecord(value: unknown): DesktopAvatarLiveInstanceRecord {
@@ -62,9 +84,15 @@ export function parseDesktopAvatarLiveInstanceRecord(value: unknown): DesktopAva
       throw new Error(`desktop avatar instance registry contains forbidden authority field: ${field}`);
     }
   }
+  const ownerUserId = parseRequiredString(record.ownerUserId, 'ownerUserId', 'desktop avatar instance registry');
+  const realmAgentId = parseRequiredString(record.realmAgentId, 'realmAgentId', 'desktop avatar instance registry');
+  const localAgentRef = parseRequiredString(record.localAgentRef, 'localAgentRef', 'desktop avatar instance registry');
+  validateLocalAgentRef(ownerUserId, realmAgentId, localAgentRef);
   return {
     avatarInstanceId: parseRequiredString(record.avatarInstanceId, 'avatarInstanceId', 'desktop avatar instance registry'),
-    agentId: parseRequiredString(record.agentId, 'agentId', 'desktop avatar instance registry'),
+    ownerUserId,
+    realmAgentId,
+    localAgentRef,
     launchSource: parseOptionalString(record.launchSource) || null,
   };
 }
@@ -77,10 +105,11 @@ function parseDesktopAvatarLiveInstanceList(value: unknown): DesktopAvatarLiveIn
 }
 
 export async function listDesktopAvatarLiveInstances(
-  agentId: string,
+  input: DesktopAvatarLiveInstanceIdentityInput,
 ): Promise<DesktopAvatarLiveInstanceRecord[]> {
+  validateLocalAgentRef(input.ownerUserId, input.realmAgentId, input.localAgentRef);
   requireTauri('desktop_avatar_instance_registry_list');
   return invokeChecked('desktop_avatar_instance_registry_list', {
-    payload: { agentId },
+    payload: input,
   }, parseDesktopAvatarLiveInstanceList);
 }

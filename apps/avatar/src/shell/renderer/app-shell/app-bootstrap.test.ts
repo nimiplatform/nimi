@@ -58,13 +58,22 @@ const runtimeMock = {
   },
 };
 
+const REALM_AGENT_ID = 'agent-launch';
+const OWNER_USER_ID = 'account-runtime';
+const LOCAL_AGENT_REF = `local-agent:${OWNER_USER_ID}:${REALM_AGENT_ID}`;
+const OTHER_LOCAL_AGENT_REF = `local-agent:${OWNER_USER_ID}:agent-other`;
+
 function launchContext(overrides: Partial<{
-  agentId: string;
+  ownerUserId: string;
+  realmAgentId: string;
+  localAgentRef: string;
   avatarInstanceId: string | null;
   launchSource: string | null;
 }> = {}) {
   return {
-    agentId: 'agent-launch',
+    ownerUserId: OWNER_USER_ID,
+    realmAgentId: REALM_AGENT_ID,
+    localAgentRef: LOCAL_AGENT_REF,
     avatarInstanceId: 'instance-1',
     launchSource: 'desktop-agent-chat',
     ...overrides,
@@ -265,8 +274,8 @@ describe('bootstrapAvatar', () => {
     openAnchorMock.mockResolvedValue({
       anchor: {
         conversationAnchorId: 'anchor-runtime',
-        agentId: 'agent-launch',
-        subjectUserId: 'account-runtime',
+        agentId: LOCAL_AGENT_REF,
+        subjectUserId: OWNER_USER_ID,
       },
     });
     getAnchorSnapshotMock.mockRejectedValue(new Error('no persisted anchor'));
@@ -325,7 +334,7 @@ describe('bootstrapAvatar', () => {
       requestedScopes: [],
     });
     expect(openAnchorMock).toHaveBeenCalledWith({
-      agentId: 'agent-launch',
+      agentId: LOCAL_AGENT_REF,
       metadata: {
         launch_source: 'desktop-agent-chat',
         avatar_instance_id: 'instance-1',
@@ -333,11 +342,13 @@ describe('bootstrapAvatar', () => {
       },
     });
     expect(resolveAgentCenterAvatarPackageManifestMock).toHaveBeenCalledWith({
-      accountId: 'account-runtime',
-      agentId: 'agent-launch',
+      accountId: OWNER_USER_ID,
+      agentId: LOCAL_AGENT_REF,
     });
     expect(useAvatarStore.getState().launch.context).toEqual({
-      agentId: 'agent-launch',
+      ownerUserId: OWNER_USER_ID,
+      realmAgentId: REALM_AGENT_ID,
+      localAgentRef: LOCAL_AGENT_REF,
       avatarInstanceId: 'instance-1',
       launchSource: 'desktop-agent-chat',
     });
@@ -346,7 +357,7 @@ describe('bootstrapAvatar', () => {
     expect(useAvatarStore.getState().runtime.binding.projection).toBeNull();
     expect(useAvatarStore.getState().consume).toEqual(expect.objectContaining({
       avatarInstanceId: 'instance-1',
-      agentId: 'agent-launch',
+      agentId: LOCAL_AGENT_REF,
       conversationAnchorId: 'anchor-runtime',
       worldId: '',
     }));
@@ -354,10 +365,10 @@ describe('bootstrapAvatar', () => {
       kind: 'sdk',
       sdk: expect.objectContaining({
         runtime: runtimeMock,
-        agentId: 'agent-launch',
+        agentId: LOCAL_AGENT_REF,
         conversationAnchorId: 'anchor-runtime',
         activeWorldId: '',
-        activeUserId: 'account-runtime',
+        activeUserId: OWNER_USER_ID,
       }),
     });
     expect(startAvatarRuntimeCarrierMock).toHaveBeenCalledWith({
@@ -446,13 +457,15 @@ describe('bootstrapAvatar', () => {
     const handle = await bootstrapAvatar();
 
     expect(useAvatarStore.getState().launch.context).toEqual({
-      agentId: 'agent-launch',
+      ownerUserId: OWNER_USER_ID,
+      realmAgentId: REALM_AGENT_ID,
+      localAgentRef: LOCAL_AGENT_REF,
       avatarInstanceId: null,
       launchSource: null,
     });
     expect(useAvatarStore.getState().runtime.binding.status).toBe('active');
     expect(openAnchorMock).toHaveBeenCalledWith({
-      agentId: 'agent-launch',
+      agentId: LOCAL_AGENT_REF,
       metadata: {
         launch_source: null,
         avatar_instance_id: 'avatar-1777420800000',
@@ -471,8 +484,8 @@ describe('bootstrapAvatar', () => {
       schemaVersion: 1,
       records: [{
         schemaVersion: 1,
-        accountId: 'account-runtime',
-        agentId: 'agent-launch',
+        accountId: OWNER_USER_ID,
+        agentId: LOCAL_AGENT_REF,
         avatarInstanceId: 'instance-1',
         conversationAnchorId: 'anchor-recovered',
         updatedAtMs: 1777420800000,
@@ -481,8 +494,8 @@ describe('bootstrapAvatar', () => {
     getAnchorSnapshotMock.mockResolvedValue({
       anchor: {
         conversationAnchorId: 'anchor-recovered',
-        agentId: 'agent-launch',
-        subjectUserId: 'account-runtime',
+        agentId: LOCAL_AGENT_REF,
+        subjectUserId: OWNER_USER_ID,
       },
     });
     const { bootstrapAvatar } = await import('./app-bootstrap.js');
@@ -490,7 +503,7 @@ describe('bootstrapAvatar', () => {
     const handle = await bootstrapAvatar();
 
     expect(getAnchorSnapshotMock).toHaveBeenCalledWith({
-      agentId: 'agent-launch',
+      agentId: LOCAL_AGENT_REF,
       conversationAnchorId: 'anchor-recovered',
     });
     expect(openAnchorMock).not.toHaveBeenCalled();
@@ -499,7 +512,7 @@ describe('bootstrapAvatar', () => {
       kind: 'sdk',
       sdk: expect.objectContaining({
         conversationAnchorId: 'anchor-recovered',
-        activeUserId: 'account-runtime',
+        activeUserId: OWNER_USER_ID,
       }),
     });
 
@@ -511,8 +524,8 @@ describe('bootstrapAvatar', () => {
       schemaVersion: 1,
       records: [{
         schemaVersion: 1,
-        accountId: 'account-runtime',
-        agentId: 'agent-launch',
+        accountId: OWNER_USER_ID,
+        agentId: LOCAL_AGENT_REF,
         avatarInstanceId: 'instance-other',
         conversationAnchorId: 'anchor-other',
         updatedAtMs: 1777420800000,
@@ -534,8 +547,8 @@ describe('bootstrapAvatar', () => {
       schemaVersion: 1,
       records: [{
         schemaVersion: 1,
-        accountId: 'account-runtime',
-        agentId: 'agent-launch',
+        accountId: OWNER_USER_ID,
+        agentId: LOCAL_AGENT_REF,
         avatarInstanceId: 'instance-1',
         conversationAnchorId: 'anchor-stale',
         updatedAtMs: 1777420800000,
@@ -544,7 +557,7 @@ describe('bootstrapAvatar', () => {
     getAnchorSnapshotMock.mockResolvedValue({
       anchor: {
         conversationAnchorId: 'anchor-stale',
-        agentId: 'agent-launch',
+        agentId: LOCAL_AGENT_REF,
         subjectUserId: 'other-account',
       },
     });
@@ -553,7 +566,7 @@ describe('bootstrapAvatar', () => {
     const handle = await bootstrapAvatar();
 
     expect(getAnchorSnapshotMock).toHaveBeenCalledWith({
-      agentId: 'agent-launch',
+      agentId: LOCAL_AGENT_REF,
       conversationAnchorId: 'anchor-stale',
     });
     expect(openAnchorMock).toHaveBeenCalledTimes(1);
@@ -570,16 +583,16 @@ describe('bootstrapAvatar', () => {
       records: [
         {
           schemaVersion: 1,
-          accountId: 'account-runtime',
-          agentId: 'agent-launch',
+          accountId: OWNER_USER_ID,
+          agentId: LOCAL_AGENT_REF,
           avatarInstanceId: 'instance-1',
           conversationAnchorId: 'anchor-instance-1',
           updatedAtMs: 1777420800000,
         },
         {
           schemaVersion: 1,
-          accountId: 'account-runtime',
-          agentId: 'agent-launch',
+          accountId: OWNER_USER_ID,
+          agentId: LOCAL_AGENT_REF,
           avatarInstanceId: 'instance-2',
           conversationAnchorId: 'anchor-instance-2',
           updatedAtMs: 1777420800001,
@@ -592,8 +605,8 @@ describe('bootstrapAvatar', () => {
     getAnchorSnapshotMock.mockResolvedValue({
       anchor: {
         conversationAnchorId: 'anchor-instance-2',
-        agentId: 'agent-launch',
-        subjectUserId: 'account-runtime',
+        agentId: LOCAL_AGENT_REF,
+        subjectUserId: OWNER_USER_ID,
       },
     });
     const { bootstrapAvatar } = await import('./app-bootstrap.js');
@@ -601,7 +614,7 @@ describe('bootstrapAvatar', () => {
     const handle = await bootstrapAvatar();
 
     expect(getAnchorSnapshotMock).toHaveBeenCalledWith({
-      agentId: 'agent-launch',
+      agentId: LOCAL_AGENT_REF,
       conversationAnchorId: 'anchor-instance-2',
     });
     expect(useAvatarStore.getState().consume.avatarInstanceId).toBe('instance-2');
@@ -616,8 +629,8 @@ describe('bootstrapAvatar', () => {
       schemaVersion: 1,
       records: [{
         schemaVersion: 1,
-        accountId: 'account-runtime',
-        agentId: 'agent-other',
+        accountId: OWNER_USER_ID,
+        agentId: OTHER_LOCAL_AGENT_REF,
         avatarInstanceId: 'instance-1',
         conversationAnchorId: 'anchor-other-agent',
         updatedAtMs: 1777420800000,
@@ -629,7 +642,7 @@ describe('bootstrapAvatar', () => {
 
     expect(getAnchorSnapshotMock).not.toHaveBeenCalled();
     expect(openAnchorMock).toHaveBeenCalledTimes(1);
-    expect(useAvatarStore.getState().consume.agentId).toBe('agent-launch');
+    expect(useAvatarStore.getState().consume.agentId).toBe(LOCAL_AGENT_REF);
     expect(useAvatarStore.getState().consume.conversationAnchorId).toBe('anchor-runtime');
 
     await handle.shutdown();

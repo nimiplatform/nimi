@@ -118,7 +118,7 @@ button {
   overflow-y: auto;
   padding: var(--nimi-space-3) calc(var(--nimi-space-4) + var(--nimi-space-2)) var(--nimi-space-3) var(--nimi-space-3);
   border-radius: var(--nimi-radius-sm);
-  background: rgba(15, 23, 42, 0.62);
+  background: var(--nimi-surface-overlay);
   border: 1px solid var(--nimi-material-glass-regular-border);
   font-size: var(--nimi-type-body-sm-size);
   line-height: var(--nimi-type-body-sm-line-height);
@@ -150,7 +150,7 @@ button {
 }
 
 .avatar-companion-surface__bubble-close:hover {
-  background: rgba(148, 163, 184, 0.16);
+  background: var(--nimi-action-ghost-hover);
   color: var(--nimi-text-primary);
 }
 
@@ -160,7 +160,7 @@ button {
   gap: var(--nimi-space-2);
   padding: var(--nimi-space-1) var(--nimi-space-2);
   border-radius: var(--nimi-radius-sm);
-  background: rgba(15, 23, 42, 0.42);
+  background: var(--nimi-surface-panel);
   border: 1px solid transparent;
 }
 
@@ -173,7 +173,7 @@ button {
   padding: 0;
   border: 1px solid var(--nimi-material-glass-regular-border);
   border-radius: var(--nimi-radius-full);
-  background: rgba(15, 23, 42, 0.62);
+  background: var(--nimi-action-secondary-bg);
   color: var(--nimi-text-secondary);
   cursor: pointer;
   transition: background var(--nimi-motion-fast) cubic-bezier(0.2, 0, 0, 1),
@@ -196,7 +196,7 @@ button {
   background: var(--nimi-status-info);
   color: var(--nimi-action-primary-text);
   border-color: var(--nimi-status-info);
-  box-shadow: 0 0 0 4px rgba(34, 211, 238, 0.18);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--nimi-status-info) 20%, transparent);
 }
 
 .avatar-companion-surface__mic--transcribing {
@@ -272,13 +272,13 @@ button {
 
 .avatar-companion-surface__interrupt:hover,
 .avatar-companion-surface__settings:hover {
-  background: rgba(148, 163, 184, 0.14);
+  background: var(--nimi-action-ghost-hover);
   color: var(--nimi-text-primary);
   border-color: var(--nimi-material-glass-regular-border);
 }
 
 .avatar-companion-surface__settings--open {
-  background: rgba(148, 163, 184, 0.18);
+  background: var(--nimi-surface-active);
   color: var(--nimi-text-primary);
   border-color: var(--nimi-border-strong);
 }
@@ -295,7 +295,7 @@ button {
   font-size: var(--nimi-type-body-sm-size);
   line-height: var(--nimi-type-body-sm-line-height);
   color: var(--nimi-text-secondary);
-  background: rgba(15, 23, 42, 0.5);
+  background: var(--nimi-surface-panel);
 }
 
 .avatar-companion-surface__caption--user {
@@ -316,8 +316,8 @@ button {
   border-radius: var(--nimi-radius-sm);
   font-size: var(--nimi-type-body-sm-size);
   color: var(--nimi-status-danger);
-  background: rgba(248, 113, 113, 0.08);
-  border: 1px solid rgba(248, 113, 113, 0.32);
+  background: color-mix(in srgb, var(--nimi-status-danger) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--nimi-status-danger) 24%, transparent);
 }
 
 .avatar-companion-surface__composer {
@@ -326,7 +326,7 @@ button {
   gap: var(--nimi-space-2);
   padding: var(--nimi-space-1) var(--nimi-space-2);
   border-radius: var(--nimi-radius-sm);
-  background: rgba(15, 23, 42, 0.62);
+  background: var(--nimi-field-bg);
   border: 1px solid var(--nimi-material-glass-regular-border);
   transition: border-color var(--nimi-motion-fast) cubic-bezier(0.2, 0, 0, 1),
     background var(--nimi-motion-fast) cubic-bezier(0.2, 0, 0, 1);
@@ -334,7 +334,7 @@ button {
 
 .avatar-companion-surface__composer:focus-within {
   border-color: var(--nimi-action-primary-bg);
-  background: rgba(15, 23, 42, 0.78);
+  background: var(--nimi-surface-overlay);
 }
 
 .avatar-companion-surface__composer-field {
@@ -390,8 +390,8 @@ button {
 }
 
 .avatar-companion-surface__composer-send:disabled {
-  background: rgba(148, 163, 184, 0.32);
-  color: rgba(15, 23, 42, 0.6);
+  background: var(--nimi-toggle-off-bg);
+  color: var(--nimi-text-muted);
   cursor: not-allowed;
 }
 
@@ -438,7 +438,7 @@ button {
 }
 
 .avatar-settings-popover__close:hover {
-  background: rgba(148, 163, 184, 0.14);
+  background: var(--nimi-action-ghost-hover);
   color: var(--nimi-text-primary);
 }
 
@@ -453,7 +453,7 @@ button {
 }
 
 .avatar-settings-popover__toggle:hover {
-  background: rgba(148, 163, 184, 0.08);
+  background: var(--nimi-surface-active);
 }
 
 .avatar-settings-popover__toggle input[type='checkbox'] {
@@ -486,8 +486,8 @@ button {
   border-radius: var(--nimi-radius-sm);
   font-size: var(--nimi-type-caption-size);
   color: var(--nimi-text-secondary);
-  background: rgba(125, 211, 252, 0.08);
-  border: 1px solid rgba(125, 211, 252, 0.18);
+  background: color-mix(in srgb, var(--nimi-status-info) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--nimi-status-info) 22%, transparent);
 }
 
 /* ── Degraded Surface (K-NAV-SHELL-DEGRADED-*) ──────────────────────────── */
@@ -501,7 +501,7 @@ button {
   justify-content: center;
   gap: var(--nimi-space-3);
   padding: var(--nimi-space-6);
-  background: rgba(2, 6, 23, 0.86);
+  background: var(--nimi-surface-canvas);
   color: var(--nimi-text-primary);
   text-align: center;
   -webkit-app-region: no-drag;
@@ -523,29 +523,29 @@ button {
   font-weight: var(--nimi-type-section-title-weight);
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  background: rgba(148, 163, 184, 0.14);
+  background: var(--nimi-surface-active);
   color: var(--nimi-text-secondary);
   border: 1px solid var(--nimi-material-glass-regular-border);
 }
 
 .avatar-degraded-surface__badge--loading {
   color: var(--nimi-status-info);
-  border-color: rgba(147, 197, 253, 0.32);
+  border-color: color-mix(in srgb, var(--nimi-status-info) 32%, transparent);
 }
 
 .avatar-degraded-surface__badge--degraded {
   color: var(--nimi-status-warning);
-  border-color: rgba(251, 146, 60, 0.32);
+  border-color: color-mix(in srgb, var(--nimi-status-warning) 32%, transparent);
 }
 
 .avatar-degraded-surface__badge--error {
   color: var(--nimi-status-danger);
-  border-color: rgba(248, 113, 113, 0.32);
+  border-color: color-mix(in srgb, var(--nimi-status-danger) 32%, transparent);
 }
 
 .avatar-degraded-surface__badge--relaunch {
   color: var(--nimi-status-info);
-  border-color: rgba(147, 197, 253, 0.32);
+  border-color: color-mix(in srgb, var(--nimi-status-info) 32%, transparent);
 }
 
 .avatar-degraded-surface__title {
@@ -602,7 +602,7 @@ button {
   margin-top: var(--nimi-space-2);
   padding: var(--nimi-space-2) var(--nimi-space-3);
   border-radius: var(--nimi-radius-sm);
-  background: rgba(15, 23, 42, 0.62);
+  background: var(--nimi-surface-overlay);
   border: 1px solid var(--nimi-material-glass-regular-border);
   font-size: var(--nimi-type-caption-size);
   color: var(--nimi-text-secondary);

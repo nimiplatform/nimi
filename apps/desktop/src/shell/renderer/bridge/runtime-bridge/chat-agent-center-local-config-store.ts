@@ -69,14 +69,18 @@ function parseAgentCenterLocalResourceRemoveResult(value: unknown): AgentCenterL
   return result.result;
 }
 
-export function agentCenterLocalConfigQueryKey(accountId: string, agentId: string) {
-  return ['agent-center-local-config', accountId, agentId] as const;
+export type AgentCenterLocalIdentityInput = {
+  accountId: string;
+  ownerUserId: string;
+  realmAgentId: string;
+  localAgentRef: string;
+};
+
+export function agentCenterLocalConfigQueryKey(accountId: string, localAgentRef: string) {
+  return ['agent-center-local-config', accountId, localAgentRef] as const;
 }
 
-export async function getAgentCenterLocalConfig(input: {
-  accountId: string;
-  agentId: string;
-}): Promise<AgentCenterLocalConfig> {
+export async function getAgentCenterLocalConfig(input: AgentCenterLocalIdentityInput): Promise<AgentCenterLocalConfig> {
   requireTauri('desktop_agent_center_config_get');
   return invokeChecked('desktop_agent_center_config_get', {
     payload: input,
@@ -85,7 +89,9 @@ export async function getAgentCenterLocalConfig(input: {
 
 export async function putAgentCenterLocalConfig(input: {
   accountId: string;
-  agentId: string;
+  ownerUserId: string;
+  realmAgentId: string;
+  localAgentRef: string;
   config: AgentCenterLocalConfig;
 }): Promise<AgentCenterLocalConfig> {
   requireTauri('desktop_agent_center_config_put');
@@ -117,7 +123,9 @@ export async function pickAgentCenterBackgroundSource(): Promise<string | null> 
 
 export async function importAgentCenterLive2dAdapterManifest(input: {
   accountId: string;
-  agentId: string;
+  ownerUserId: string;
+  realmAgentId: string;
+  localAgentRef: string;
   packageId: string;
   sourcePath: string;
   select?: boolean;
@@ -130,7 +138,9 @@ export async function importAgentCenterLive2dAdapterManifest(input: {
 
 export async function importAgentCenterBackground(input: {
   accountId: string;
-  agentId: string;
+  ownerUserId: string;
+  realmAgentId: string;
+  localAgentRef: string;
   sourcePath: string;
   displayName?: string;
   select?: boolean;
@@ -143,7 +153,9 @@ export async function importAgentCenterBackground(input: {
 
 export async function removeAgentCenterBackground(input: {
   accountId: string;
-  agentId: string;
+  ownerUserId: string;
+  realmAgentId: string;
+  localAgentRef: string;
   backgroundAssetId: string;
 }): Promise<AgentCenterLocalResourceRemoveResult> {
   requireTauri('desktop_agent_center_background_remove');
@@ -152,10 +164,9 @@ export async function removeAgentCenterBackground(input: {
   }, parseAgentCenterLocalResourceRemoveResult);
 }
 
-export async function removeAgentCenterAgentLocalResources(input: {
-  accountId: string;
-  agentId: string;
-}): Promise<AgentCenterLocalResourceRemoveResult> {
+export async function removeAgentCenterAgentLocalResources(
+  input: AgentCenterLocalIdentityInput,
+): Promise<AgentCenterLocalResourceRemoveResult> {
   requireTauri('desktop_agent_center_agent_local_resources_remove');
   return invokeChecked('desktop_agent_center_agent_local_resources_remove', {
     payload: input,
@@ -173,7 +184,9 @@ export async function removeAgentCenterAccountLocalResources(input: {
 
 export async function validateAgentCenterBackground(input: {
   accountId: string;
-  agentId: string;
+  ownerUserId: string;
+  realmAgentId: string;
+  localAgentRef: string;
   backgroundAssetId: string;
 }): Promise<AgentCenterBackgroundValidationResult> {
   requireTauri('desktop_agent_center_background_validate');
@@ -184,7 +197,9 @@ export async function validateAgentCenterBackground(input: {
 
 export async function getAgentCenterBackgroundAsset(input: {
   accountId: string;
-  agentId: string;
+  ownerUserId: string;
+  realmAgentId: string;
+  localAgentRef: string;
   backgroundAssetId: string;
 }): Promise<AgentCenterBackgroundAssetResult> {
   requireTauri('desktop_agent_center_background_asset_get');

@@ -4,18 +4,20 @@ use super::*;
 fn removes_agent_local_resources_by_quarantining_agent_center_tree() {
     let home = temp_home("remove-agent-tree");
     with_env(&[("HOME", home.to_str())], || {
-        let agent_center = agent_center_marker(&home, "agent_1");
+        let agent_center = agent_center_marker(&home, &local_agent_ref());
 
         let result = desktop_agent_center_agent_local_resources_remove_blocking(
             DesktopAgentCenterAgentLocalResourcesRemovePayload {
                 account_id: "account_1".to_string(),
-                agent_id: "agent_1".to_string(),
+                owner_user_id: owner_user_id(),
+                realm_agent_id: realm_agent_id(),
+                local_agent_ref: local_agent_ref(),
             },
         )
         .expect("remove agent local resources");
 
         assert_eq!(result.resource_kind, "agent_local_resources");
-        assert_eq!(result.resource_id, "agent_1");
+        assert_eq!(result.resource_id, local_agent_ref());
         assert!(result.quarantined);
         assert!(!agent_center.exists());
         let quarantine_root =
@@ -40,8 +42,8 @@ fn removes_agent_local_resources_by_quarantining_agent_center_tree() {
 fn removes_account_local_resources_by_quarantining_each_agent_center_tree() {
     let home = temp_home("remove-account-tree");
     with_env(&[("HOME", home.to_str())], || {
-        let agent_one = agent_center_marker(&home, "agent_1");
-        let agent_two = agent_center_marker(&home, "agent_2");
+        let agent_one = agent_center_marker(&home, &local_agent_ref());
+        let agent_two = agent_center_marker(&home, &local_agent_ref_two());
 
         let result = desktop_agent_center_account_local_resources_remove_blocking(
             DesktopAgentCenterAccountLocalResourcesRemovePayload {
@@ -77,7 +79,9 @@ fn removes_account_local_resources_for_opaque_account_ids() {
     with_env(&[("HOME", home.to_str())], || {
         let account_id = "account:abc.def+1";
         let account_segment = local_scope_path_segment(account_id);
-        let agent_center = agent_center_marker_for_account(&home, account_id, "agent:abc.def+1");
+        let opaque_local_agent_ref = "local-agent:owner_1:agent:abc.def+1";
+        let agent_center =
+            agent_center_marker_for_account(&home, account_id, opaque_local_agent_ref);
 
         let result = desktop_agent_center_account_local_resources_remove_blocking(
             DesktopAgentCenterAccountLocalResourcesRemovePayload {
@@ -112,7 +116,9 @@ fn import_rejects_svg_background_before_staging() {
         let err = desktop_agent_center_background_import_blocking(
             DesktopAgentCenterBackgroundImportPayload {
                 account_id: "account_1".to_string(),
-                agent_id: "agent_1".to_string(),
+                owner_user_id: owner_user_id(),
+                realm_agent_id: realm_agent_id(),
+                local_agent_ref: local_agent_ref(),
                 source_path: source.to_string_lossy().to_string(),
                 display_name: None,
                 select: Some(true),
@@ -121,8 +127,10 @@ fn import_rejects_svg_background_before_staging() {
         .expect_err("svg rejected");
         assert!(err.contains("SVG"));
         assert!(!home
-                .join(".nimi/data/accounts/account_1/agents/agent_1/agent-center/modules/appearance/staging")
-                .exists());
+            .join(".nimi/data/accounts/account_1/agents")
+            .join(local_scope_path_segment(&local_agent_ref()))
+            .join("agent-center/modules/appearance/staging")
+            .exists());
     });
 }
 
@@ -134,7 +142,9 @@ fn validates_background_and_writes_sidecar() {
         let result = desktop_agent_center_background_validate_blocking(
             DesktopAgentCenterBackgroundValidatePayload {
                 account_id: "account_1".to_string(),
-                agent_id: "agent_1".to_string(),
+                owner_user_id: owner_user_id(),
+                realm_agent_id: realm_agent_id(),
+                local_agent_ref: local_agent_ref(),
                 background_asset_id: "bg_ab12cd34ef56".to_string(),
             },
         )
@@ -160,7 +170,9 @@ fn rejects_svg_background_manifest() {
         let result = desktop_agent_center_background_validate_blocking(
             DesktopAgentCenterBackgroundValidatePayload {
                 account_id: "account_1".to_string(),
-                agent_id: "agent_1".to_string(),
+                owner_user_id: owner_user_id(),
+                realm_agent_id: realm_agent_id(),
+                local_agent_ref: local_agent_ref(),
                 background_asset_id: "bg_ab12cd34ef56".to_string(),
             },
         )

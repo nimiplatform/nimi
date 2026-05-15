@@ -1,4 +1,4 @@
-import type { ChatComposerVoiceState } from '@nimiplatform/nimi-kit/features/chat';
+import type { ChatComposerVoiceState } from '@nimiplatform/nimi-kit/features/chat/types';
 import type { ChatAgentVoiceWorkflowReferenceAudio } from './chat-agent-runtime';
 
 export type AgentVoiceSessionMode = 'push-to-talk' | 'hands-free';

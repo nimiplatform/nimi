@@ -19,7 +19,9 @@ test('Agent Center local config bridge parser accepts Rust store payload shape',
     schema_version: 1,
     config_kind: 'agent_center_local_config',
     account_id: 'account_1',
-    agent_id: 'agent_1',
+    owner_user_id: 'owner_1',
+    realm_agent_id: 'agent_1',
+    local_agent_ref: 'local-agent:owner_1:agent_1',
     modules: {
       appearance: {
         schema_version: 1,
@@ -63,7 +65,9 @@ test('Agent Center local config bridge rejects retired selected package truth', 
     schema_version: 1,
     config_kind: 'agent_center_local_config',
     account_id: 'account_1',
-    agent_id: 'agent_1',
+    owner_user_id: 'owner_1',
+    realm_agent_id: 'agent_1',
+    local_agent_ref: 'local-agent:owner_1:agent_1',
     modules: {
       appearance: {
         schema_version: 1,
@@ -108,17 +112,19 @@ test('Agent Center local config bridge rejects retired selected package truth', 
 });
 
 test('Agent Center local config bridge exposes stable query key shape', () => {
-  assert.deepEqual(agentCenterLocalConfigQueryKey('account_1', 'agent_1'), [
+  assert.deepEqual(agentCenterLocalConfigQueryKey('account_1', 'local-agent:owner_1:agent_1'), [
     'agent-center-local-config',
     'account_1',
-    'agent_1',
+    'local-agent:owner_1:agent_1',
   ]);
 });
 
 test('Agent Center local config default includes closed avatar configuration fields', () => {
   const config = createDefaultAgentCenterLocalConfig({
     accountId: 'account_1',
-    agentId: 'agent_1',
+    ownerUserId: 'owner_1',
+    realmAgentId: 'agent_1',
+    localAgentRef: 'local-agent:owner_1:agent_1',
   });
 
   assert.equal(config.modules.avatar_package.backend_kind, 'live2d');
@@ -137,7 +143,9 @@ test('Agent Center local config bridge rejects retired launch package config fie
     schema_version: 1,
     config_kind: 'agent_center_local_config',
     account_id: 'account_1',
-    agent_id: 'agent_1',
+    owner_user_id: 'owner_1',
+    realm_agent_id: 'agent_1',
+    local_agent_ref: 'local-agent:owner_1:agent_1',
     modules: {
       appearance: {
         schema_version: 1,

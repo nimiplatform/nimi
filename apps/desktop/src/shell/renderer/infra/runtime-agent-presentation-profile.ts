@@ -55,6 +55,9 @@ function toSetPresentationProfileRequest(input: {
   context: {
     appId: string;
     subjectUserId: string;
+    ownerUserId: string;
+    realmAgentId: string;
+    localAgentRef: string;
   };
   agentId: string;
   profile: AvatarPresentationProfile | null;
@@ -88,6 +91,19 @@ function toSetPresentationProfileRequest(input: {
         defaultVoiceReference: normalizeRuntimeAgentPresentationDefaultVoiceReference(input.profile.defaultVoiceReference),
       },
     },
+  };
+}
+
+function parseLocalAgentIdentity(localAgentRef: string) {
+  const normalized = normalizeText(localAgentRef);
+  const parts = normalized.split(':');
+  if (parts.length !== 3 || parts[0] !== 'local-agent' || !parts[1] || !parts[2]) {
+    throw new Error('runtime agent presentation profile requires localAgentRef formatted as local-agent:${ownerUserId}:${realmAgentId}');
+  }
+  return {
+    ownerUserId: parts[1],
+    realmAgentId: parts[2],
+    localAgentRef: normalized,
   };
 }
 
@@ -131,6 +147,7 @@ export function createRuntimeAgentPresentationProfileAdapter(
             context: {
               appId: runtime.appId,
               subjectUserId,
+              ...parseLocalAgentIdentity(normalizedAgentId),
             },
             agentId: normalizedAgentId,
             profile,

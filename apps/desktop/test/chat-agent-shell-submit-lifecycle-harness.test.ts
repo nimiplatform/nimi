@@ -53,14 +53,18 @@ runtimeGlobal.sessionStorage = {
 function sampleThread(): AgentLocalThreadRecord {
   return {
     id: 'thread-1',
-    agentId: 'agent-1',
+    ownerUserId: 'user-1',
+    realmAgentId: 'agent-1',
+    localAgentRef: 'local-agent:user-1:agent-1',
     title: 'Companion',
     createdAtMs: 10,
     updatedAtMs: 20,
     lastMessageAtMs: 20,
     archivedAtMs: null,
     targetSnapshot: {
-      agentId: 'agent-1',
+      ownerUserId: 'user-1',
+      realmAgentId: 'agent-1',
+      localAgentRef: 'local-agent:user-1:agent-1',
       displayName: 'Companion',
       handle: '~companion',
       avatarUrl: null,
@@ -296,7 +300,7 @@ test('agent host submit harness converges completed submit to authoritative bund
     assert.ok(completedCharacter.interactionState);
     assert.equal(consumerSnapshot.hostSnapshot.mode, 'agent');
     assert.equal(consumerSnapshot.hostSnapshot.activeThreadId, threadId);
-    assert.equal(consumerSnapshot.hostSnapshot.selectedTargetId, 'agent-1');
+    assert.equal(consumerSnapshot.hostSnapshot.selectedTargetId, 'local-agent:user-1:agent-1');
     assert.equal(consumerSnapshot.hostSnapshot.availability.badge, 1);
     assert.equal(consumerSnapshot.hostSnapshot.messages.at(-1)?.text, 'authoritative projection');
     assert.equal(consumerSnapshot.hostSnapshot.messages.at(-1)?.senderKind, 'agent');
@@ -407,7 +411,7 @@ test('agent host submit harness preserves sealed first-beat, restores draft, and
     assert.ok(consumerSnapshot.hostSnapshot.characterData);
     const canceledCharacter = consumerSnapshot.hostSnapshot.characterData;
     assert.ok(canceledCharacter.interactionState);
-    assert.equal(consumerSnapshot.hostSnapshot.selectedTargetId, 'agent-1');
+    assert.equal(consumerSnapshot.hostSnapshot.selectedTargetId, 'local-agent:user-1:agent-1');
     assert.equal(consumerSnapshot.hostSnapshot.messages.at(-1)?.text, 'sealed first beat');
     assert.equal(canceledCharacter.interactionState.phase, 'idle');
     assert.equal(consumerSnapshot.hostSnapshot.transcriptProps?.pendingFirstBeat, false);
@@ -557,7 +561,7 @@ test('agent host submit harness restores draft and clears submitting state when 
     assert.ok(consumerSnapshot.hostSnapshot.characterData);
     const failedCharacter = consumerSnapshot.hostSnapshot.characterData;
     assert.ok(failedCharacter.interactionState);
-    assert.equal(consumerSnapshot.hostSnapshot.selectedTargetId, 'agent-1');
+    assert.equal(consumerSnapshot.hostSnapshot.selectedTargetId, 'local-agent:user-1:agent-1');
     assert.equal(consumerSnapshot.hostSnapshot.messages.at(-1)?.error, 'runtime broke');
     assert.equal(failedCharacter.interactionState.phase, 'idle');
     assert.equal(consumerSnapshot.hostSnapshot.transcriptProps?.pendingFirstBeat, false);

@@ -503,7 +503,9 @@ test('platform runtime agent anchor call uses admitted SDK runtime method with p
     });
 
     await getPlatformClient().runtime.agent.anchors.getSnapshot({
-      agentId: 'agent-1',
+      ownerUserId: 'user-1',
+      realmAgentId: 'agent-1',
+      localAgentRef: 'local-agent:user-1:agent-1',
       conversationAnchorId: 'anchor-1',
     });
 

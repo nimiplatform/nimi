@@ -74,10 +74,14 @@ const FORBIDDEN_LAUNCH_FIELDS = [
   'shared_auth_session',
   'loginRoute',
   'login_route',
+  'agentId',
+  'agent_id',
 ] as const;
 
 export type AvatarLaunchContext = {
-  agentId: string;
+  ownerUserId: string;
+  realmAgentId: string;
+  localAgentRef: string;
   avatarInstanceId: string | null;
   launchSource: string | null;
 };
@@ -121,6 +125,18 @@ function normalizeOptionalString(value: unknown): string | null {
   return normalized || null;
 }
 
+function validateLocalAgentRef(ownerUserId: string, realmAgentId: string, localAgentRef: string): void {
+  if (localAgentRef === realmAgentId) {
+    throw new Error('avatar launch context localAgentRef must not be a bare realmAgentId');
+  }
+  if (!localAgentRef.startsWith('local-agent:')) {
+    throw new Error('avatar launch context localAgentRef must start with local-agent:');
+  }
+  if (localAgentRef !== `local-agent:${ownerUserId}:${realmAgentId}`) {
+    throw new Error('avatar launch context localAgentRef must equal local-agent:${ownerUserId}:${realmAgentId}');
+  }
+}
+
 export function parseAvatarLaunchContext(value: unknown): AvatarLaunchContext {
   if (!value || typeof value !== 'object') {
     throw new Error('avatar launch context returned invalid payload');
@@ -130,8 +146,14 @@ export function parseAvatarLaunchContext(value: unknown): AvatarLaunchContext {
   const launchSource = normalizeOptionalString(record.launchSource)
     ?? normalizeOptionalString(record.sourceSurface)
     ?? normalizeOptionalString(record.source_surface);
+  const ownerUserId = normalizeRequiredString(record.ownerUserId ?? record.owner_user_id, 'ownerUserId');
+  const realmAgentId = normalizeRequiredString(record.realmAgentId ?? record.realm_agent_id, 'realmAgentId');
+  const localAgentRef = normalizeRequiredString(record.localAgentRef ?? record.local_agent_ref, 'localAgentRef');
+  validateLocalAgentRef(ownerUserId, realmAgentId, localAgentRef);
   return {
-    agentId: normalizeRequiredString(record.agentId, 'agentId'),
+    ownerUserId,
+    realmAgentId,
+    localAgentRef,
     avatarInstanceId: normalizeOptionalString(record.avatarInstanceId),
     launchSource,
   };

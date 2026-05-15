@@ -4,14 +4,18 @@ use serde::{Deserialize, Serialize};
 #[serde(rename_all = "camelCase")]
 pub(crate) struct DesktopAgentCenterConfigScopePayload {
     pub account_id: String,
-    pub agent_id: String,
+    pub owner_user_id: String,
+    pub realm_agent_id: String,
+    pub local_agent_ref: String,
 }
 
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct DesktopAgentCenterConfigPutPayload {
     pub account_id: String,
-    pub agent_id: String,
+    pub owner_user_id: String,
+    pub realm_agent_id: String,
+    pub local_agent_ref: String,
     pub config: AgentCenterLocalConfig,
 }
 
@@ -19,7 +23,9 @@ pub(crate) struct DesktopAgentCenterConfigPutPayload {
 #[serde(rename_all = "camelCase")]
 pub(crate) struct DesktopAgentCenterLive2dAdapterManifestImportPayload {
     pub account_id: String,
-    pub agent_id: String,
+    pub owner_user_id: String,
+    pub realm_agent_id: String,
+    pub local_agent_ref: String,
     pub package_id: String,
     pub source_path: String,
     pub select: Option<bool>,
@@ -29,7 +35,9 @@ pub(crate) struct DesktopAgentCenterLive2dAdapterManifestImportPayload {
 #[serde(rename_all = "camelCase")]
 pub(crate) struct DesktopAgentCenterAgentLocalResourcesRemovePayload {
     pub account_id: String,
-    pub agent_id: String,
+    pub owner_user_id: String,
+    pub realm_agent_id: String,
+    pub local_agent_ref: String,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -63,7 +71,9 @@ pub(crate) struct DesktopAgentCenterLocalResourceRemoveResult {
 #[serde(rename_all = "camelCase")]
 pub(crate) struct DesktopAgentCenterBackgroundValidatePayload {
     pub account_id: String,
-    pub agent_id: String,
+    pub owner_user_id: String,
+    pub realm_agent_id: String,
+    pub local_agent_ref: String,
     pub background_asset_id: String,
 }
 
@@ -71,7 +81,9 @@ pub(crate) struct DesktopAgentCenterBackgroundValidatePayload {
 #[serde(rename_all = "camelCase")]
 pub(crate) struct DesktopAgentCenterBackgroundRemovePayload {
     pub account_id: String,
-    pub agent_id: String,
+    pub owner_user_id: String,
+    pub realm_agent_id: String,
+    pub local_agent_ref: String,
     pub background_asset_id: String,
 }
 
@@ -79,7 +91,9 @@ pub(crate) struct DesktopAgentCenterBackgroundRemovePayload {
 #[serde(rename_all = "camelCase")]
 pub(crate) struct DesktopAgentCenterBackgroundImportPayload {
     pub account_id: String,
-    pub agent_id: String,
+    pub owner_user_id: String,
+    pub realm_agent_id: String,
+    pub local_agent_ref: String,
     pub source_path: String,
     pub display_name: Option<String>,
     pub select: Option<bool>,
@@ -247,7 +261,9 @@ pub(crate) struct AgentCenterLocalConfig {
     pub schema_version: u8,
     pub config_kind: String,
     pub account_id: String,
-    pub agent_id: String,
+    pub owner_user_id: String,
+    pub realm_agent_id: String,
+    pub local_agent_ref: String,
     pub modules: AgentCenterLocalConfigModules,
 }
 

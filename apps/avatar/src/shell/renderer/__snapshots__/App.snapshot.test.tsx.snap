@@ -11,7 +11,9 @@ exports[`Avatar shell visual snapshots > degraded surface — relaunch pending (
     class="nimi-surface rounded-[var(--nimi-radius-md)] border transition-colors duration-[var(--nimi-motion-fast)] nimi-surface--overlay nimi-surface--elevation-modal shadow-[var(--nimi-elevation-modal)] nimi-material-glass-regular bg-[var(--nimi-material-glass-regular-bg)] border-[var(--nimi-material-glass-regular-border)] avatar-degraded-surface nimi-material-glass-regular backdrop-blur-[var(--nimi-backdrop-blur-regular)] avatar-degraded-surface--error"
     data-composition-state="error_bootstrap_fatal"
     data-nimi-material="glass-regular"
+    data-nimi-requested-material="glass-regular"
     data-nimi-tone="overlay"
+    data-nimi-transparency="default"
     data-testid="avatar-degraded-surface"
     role="alert"
   >
@@ -19,7 +21,7 @@ exports[`Avatar shell visual snapshots > degraded surface — relaunch pending (
       class="avatar-degraded-surface__banner"
     >
       <span
-        class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-[color-mix(in_srgb,var(--nimi-status-danger)_15%,transparent)] text-[var(--nimi-status-danger)] avatar-degraded-surface__badge avatar-degraded-surface__badge--error"
+        class="nimi-status-badge inline-flex items-center gap-1.5 rounded-full text-xs font-medium nimi-status-badge--danger bg-[color-mix(in_srgb,var(--nimi-status-danger)_15%,transparent)] text-[var(--nimi-status-danger)] nimi-status-badge--soft px-2.5 py-0.5 avatar-degraded-surface__badge avatar-degraded-surface__badge--error"
       >
         Surface unavailable
       </span>
@@ -94,7 +96,9 @@ exports[`Avatar shell visual snapshots > degraded surface — runtime unavailabl
     class="nimi-surface rounded-[var(--nimi-radius-md)] border transition-colors duration-[var(--nimi-motion-fast)] nimi-surface--overlay nimi-surface--elevation-modal shadow-[var(--nimi-elevation-modal)] nimi-material-glass-regular bg-[var(--nimi-material-glass-regular-bg)] border-[var(--nimi-material-glass-regular-border)] avatar-degraded-surface nimi-material-glass-regular backdrop-blur-[var(--nimi-backdrop-blur-regular)] avatar-degraded-surface--degraded"
     data-composition-state="degraded_runtime_unavailable"
     data-nimi-material="glass-regular"
+    data-nimi-requested-material="glass-regular"
     data-nimi-tone="overlay"
+    data-nimi-transparency="default"
     data-testid="avatar-degraded-surface"
     role="alert"
   >
@@ -102,7 +106,7 @@ exports[`Avatar shell visual snapshots > degraded surface — runtime unavailabl
       class="avatar-degraded-surface__banner"
     >
       <span
-        class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-[color-mix(in_srgb,var(--nimi-status-warning)_15%,transparent)] text-[var(--nimi-status-warning)] avatar-degraded-surface__badge avatar-degraded-surface__badge--degraded"
+        class="nimi-status-badge inline-flex items-center gap-1.5 rounded-full text-xs font-medium nimi-status-badge--warning bg-[color-mix(in_srgb,var(--nimi-status-warning)_15%,transparent)] text-[var(--nimi-status-warning)] nimi-status-badge--soft px-2.5 py-0.5 avatar-degraded-surface__badge avatar-degraded-surface__badge--degraded"
       >
         Runtime unavailable
       </span>
@@ -185,7 +189,9 @@ exports[`Avatar shell visual snapshots > ready surface (embodiment-stage + compa
     aria-label="Avatar companion"
     class="nimi-surface rounded-[var(--nimi-radius-md)] border transition-colors duration-[var(--nimi-motion-fast)] nimi-surface--overlay nimi-surface--elevation-floating shadow-[var(--nimi-elevation-floating)] nimi-material-glass-regular bg-[var(--nimi-material-glass-regular-bg)] border-[var(--nimi-material-glass-regular-border)] avatar-companion-surface nimi-material-glass-regular backdrop-blur-[var(--nimi-backdrop-blur-regular)] avatar-companion-surface--idle"
     data-nimi-material="glass-regular"
+    data-nimi-requested-material="glass-regular"
     data-nimi-tone="overlay"
+    data-nimi-transparency="default"
     data-testid="avatar-companion-surface"
   >
     <div

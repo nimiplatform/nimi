@@ -2,7 +2,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   type ChatComposerSubmitInput,
-} from '@nimiplatform/nimi-kit/features/chat';
+} from '@nimiplatform/nimi-kit/features/chat/headless';
 import type { DesktopConversationModeHost } from './chat-shared-mode-host-types';
 import { RuntimeStreamFooter } from './chat-shared-runtime-stream-ui';
 import { hasTauriInvoke } from '@renderer/bridge/runtime-bridge/env';
@@ -143,41 +143,45 @@ export function useAgentConversationPresentation(
     },
   }), [footerViewState, input.activeTarget, input.activeThreadId, input.composerReady, input.submittingThreadId, input.t, input.voiceCaptureState, input.voicePlaybackState, input.voiceSessionState, latestStatusCue, runtimeCommittedStatus]);
   const agentCenterLocalConfigQuery = useQuery({
-    queryKey: input.accountId && input.activeTarget?.agentId
-      ? agentCenterLocalConfigQueryKey(input.accountId, input.activeTarget.agentId)
+    queryKey: input.accountId && input.activeTarget?.localAgentRef
+      ? agentCenterLocalConfigQueryKey(input.accountId, input.activeTarget.localAgentRef)
       : ['agent-center-local-config', 'none'],
     queryFn: async () => (
-      input.accountId && input.activeTarget?.agentId
+      input.accountId && input.activeTarget?.localAgentRef
         ? getAgentCenterLocalConfig({
           accountId: input.accountId,
-          agentId: input.activeTarget.agentId,
+          ownerUserId: input.activeTarget.ownerUserId,
+          realmAgentId: input.activeTarget.realmAgentId,
+          localAgentRef: input.activeTarget.localAgentRef,
         })
         : null
     ),
-    enabled: hasTauriInvoke() && Boolean(input.accountId && input.activeTarget?.agentId),
+    enabled: hasTauriInvoke() && Boolean(input.accountId && input.activeTarget?.localAgentRef),
     staleTime: 30_000,
   });
   const avatarPackageConfig = agentCenterLocalConfigQuery.data?.modules.avatar_package || null;
   const selectedBackgroundAssetId = agentCenterLocalConfigQuery.data?.modules.appearance.background_asset_id || null;
   const backgroundAssetQuery = useQuery({
-    queryKey: input.accountId && input.activeTarget?.agentId && selectedBackgroundAssetId
+    queryKey: input.accountId && input.activeTarget?.localAgentRef && selectedBackgroundAssetId
       ? [
         'agent-center-background-asset',
         input.accountId,
-        input.activeTarget.agentId,
+        input.activeTarget.localAgentRef,
         selectedBackgroundAssetId,
       ]
       : ['agent-center-background-asset', 'none'],
     queryFn: async () => (
-      input.accountId && input.activeTarget?.agentId && selectedBackgroundAssetId
+      input.accountId && input.activeTarget?.localAgentRef && selectedBackgroundAssetId
         ? getAgentCenterBackgroundAsset({
           accountId: input.accountId,
-          agentId: input.activeTarget.agentId,
+          ownerUserId: input.activeTarget.ownerUserId,
+          realmAgentId: input.activeTarget.realmAgentId,
+          localAgentRef: input.activeTarget.localAgentRef,
           backgroundAssetId: selectedBackgroundAssetId,
         })
         : null
     ),
-    enabled: hasTauriInvoke() && Boolean(input.accountId && input.activeTarget?.agentId && selectedBackgroundAssetId),
+    enabled: hasTauriInvoke() && Boolean(input.accountId && input.activeTarget?.localAgentRef && selectedBackgroundAssetId),
     staleTime: 30_000,
   });
   const backdropImageUrl = assetUrlFromFileUrl(backgroundAssetQuery.data?.file_url);
@@ -192,7 +196,7 @@ export function useAgentConversationPresentation(
   const backgroundValid = backgroundValidation?.status === 'valid';
   const backgroundImportMutation = useMutation({
     mutationFn: async () => {
-      if (!input.accountId || !input.activeTarget?.agentId) {
+      if (!input.accountId || !input.activeTarget?.localAgentRef) {
         throw new Error(input.t('Chat.agentCenterBackgroundImportAgentRequired', {
           defaultValue: 'Select an agent before importing a background.',
         }));
@@ -203,18 +207,20 @@ export function useAgentConversationPresentation(
       }
       return importAgentCenterBackground({
         accountId: input.accountId,
-        agentId: input.activeTarget.agentId,
+        ownerUserId: input.activeTarget.ownerUserId,
+        realmAgentId: input.activeTarget.realmAgentId,
+        localAgentRef: input.activeTarget.localAgentRef,
         sourcePath,
         select: true,
       });
     },
     onSuccess: async (result) => {
-      if (!result || !input.accountId || !input.activeTarget?.agentId) {
+      if (!result || !input.accountId || !input.activeTarget?.localAgentRef) {
         return;
       }
       await Promise.all([
         queryClient.invalidateQueries({
-          queryKey: agentCenterLocalConfigQueryKey(input.accountId, input.activeTarget.agentId),
+          queryKey: agentCenterLocalConfigQueryKey(input.accountId, input.activeTarget.localAgentRef),
         }),
         queryClient.invalidateQueries({ queryKey: ['agent-center-background-asset'] }),
       ]);
@@ -222,29 +228,31 @@ export function useAgentConversationPresentation(
   });
   const backgroundImportDisabled = !hasTauriInvoke()
     || !input.accountId
-    || !input.activeTarget?.agentId
+    || !input.activeTarget?.localAgentRef
     || backgroundImportMutation.isPending;
   const backgroundImportError = backgroundImportMutation.error instanceof Error
     ? backgroundImportMutation.error.message
     : null;
   const clearBackgroundMutation = useMutation({
     mutationFn: async () => {
-      if (!input.accountId || !input.activeTarget?.agentId || !selectedBackgroundAssetId) {
+      if (!input.accountId || !input.activeTarget?.localAgentRef || !selectedBackgroundAssetId) {
         return null;
       }
       return removeAgentCenterBackground({
         accountId: input.accountId,
-        agentId: input.activeTarget.agentId,
+        ownerUserId: input.activeTarget.ownerUserId,
+        realmAgentId: input.activeTarget.realmAgentId,
+        localAgentRef: input.activeTarget.localAgentRef,
         backgroundAssetId: selectedBackgroundAssetId,
       });
     },
     onSuccess: async (result) => {
-      if (!result || !input.accountId || !input.activeTarget?.agentId) {
+      if (!result || !input.accountId || !input.activeTarget?.localAgentRef) {
         return;
       }
       await Promise.all([
         queryClient.invalidateQueries({
-          queryKey: agentCenterLocalConfigQueryKey(input.accountId, input.activeTarget.agentId),
+          queryKey: agentCenterLocalConfigQueryKey(input.accountId, input.activeTarget.localAgentRef),
         }),
         queryClient.invalidateQueries({ queryKey: ['agent-center-background-asset'] }),
       ]);
@@ -256,24 +264,28 @@ export function useAgentConversationPresentation(
   const avatarInstanceId = useMemo(() => (
     input.activeTarget
       ? buildDesktopAvatarInstanceId({
-        agentId: input.activeTarget.agentId,
+        localAgentRef: input.activeTarget.localAgentRef,
         threadId: input.activeThreadId,
       })
       : null
   ), [input.activeTarget, input.activeThreadId]);
   const avatarLiveInstancesQuery = useQuery({
-    queryKey: input.activeTarget?.agentId
-      ? desktopAvatarInstanceRegistryQueryKey(input.activeTarget.agentId)
+    queryKey: input.activeTarget?.localAgentRef
+      ? desktopAvatarInstanceRegistryQueryKey(input.activeTarget.localAgentRef)
       : ['desktop-avatar-instance-registry', 'none'],
     queryFn: async () => (
-      input.activeTarget?.agentId
-        ? listDesktopAvatarLiveInstances(input.activeTarget.agentId)
+      input.activeTarget?.localAgentRef
+        ? listDesktopAvatarLiveInstances({
+          ownerUserId: input.activeTarget.ownerUserId,
+          realmAgentId: input.activeTarget.realmAgentId,
+          localAgentRef: input.activeTarget.localAgentRef,
+        })
         : []
     ),
-    enabled: avatarHandoffReady && Boolean(input.activeTarget?.agentId),
+    enabled: avatarHandoffReady && Boolean(input.activeTarget?.localAgentRef),
     staleTime: 5_000,
     refetchOnWindowFocus: true,
-    refetchInterval: avatarHandoffReady && input.activeTarget?.agentId ? 5_000 : false,
+    refetchInterval: avatarHandoffReady && input.activeTarget?.localAgentRef ? 5_000 : false,
   });
   const runningAvatarInstance = avatarInstanceId
     ? avatarLiveInstancesQuery.data?.find((instance) => instance.avatarInstanceId === avatarInstanceId) || null
@@ -333,7 +345,9 @@ export function useAgentConversationPresentation(
         };
       }
       const result = await launchDesktopAvatarHandoff({
-        agentId: input.activeTarget.agentId,
+        ownerUserId: input.activeTarget.ownerUserId,
+        realmAgentId: input.activeTarget.realmAgentId,
+        localAgentRef: input.activeTarget.localAgentRef,
         avatarInstanceId,
         sourceSurface: 'desktop-agent-chat',
       });
@@ -394,17 +408,17 @@ export function useAgentConversationPresentation(
       messages: input.messages,
       activeThreadId: input.activeThreadId,
       activeConversationAnchorId: input.activeConversationAnchorId,
-      activeTargetId: input.activeTarget?.agentId || null,
+      activeTargetId: input.activeTarget?.localAgentRef || null,
       character: {
         name: characterData.name || 'Agent',
         avatarUrl: characterData.avatarUrl || null,
         handle: characterData.handle || null,
       },
     }),
-    [characterData.avatarUrl, characterData.handle, characterData.name, input.activeConversationAnchorId, input.activeTarget?.agentId, input.activeThreadId, input.messages],
+    [characterData.avatarUrl, characterData.handle, characterData.name, input.activeConversationAnchorId, input.activeTarget?.localAgentRef, input.activeThreadId, input.messages],
   );
   const selectedTargetId = resolveAgentSelectedTargetId({
-    selectionAgentId: input.inputSelectionAgentId,
+    selectionLocalAgentRef: input.inputSelectionLocalAgentRef,
     activeTargetId: input.selectedTargetId,
   });
   const handleStopGenerating = useCallback(() => {
@@ -587,8 +601,8 @@ export function useAgentConversationPresentation(
                 name={resolvedAgentDisplayName}
                 imageUrl={characterData.avatarUrl || null}
                 fallbackLabel={characterData.avatarFallback || resolvedAgentDisplayName}
-                preview={input.activeTarget?.agentId ? {
-                  targetId: input.activeTarget.agentId,
+                preview={input.activeTarget?.localAgentRef ? {
+                  targetId: input.activeTarget.localAgentRef,
                   handle: characterData.handle || null,
                   worldName: input.activeTarget.worldName || null,
                 } : null}

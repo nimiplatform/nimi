@@ -4,7 +4,7 @@ import type { AgentLocalTargetSnapshot, AgentLocalThreadRecord, AgentLocalThread
 import { randomIdV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import { createEmptyAgentThreadBundle } from './chat-agent-shell-bundle.js';
 import { bundleQueryKey, THREADS_QUERY_KEY, upsertThreadSummary } from './chat-agent-shell-core.js';
-import { findAgentConversationThreadByAgentId } from './chat-agent-thread-model.js';
+import { findAgentConversationThreadByLocalAgentRef } from './chat-agent-thread-model.js';
 import type { AppStoreState } from '@renderer/app-shell/providers/store-types';
 import type { ConversationMode } from '@nimiplatform/nimi-kit/features/chat/headless';
 import type { AgentConversationSelection } from './chat-shell-types.js';
@@ -27,16 +27,16 @@ export type AgentInteractionLaunchResult = {
 };
 
 async function resolveExistingAgentThread(
-  agentId: string,
+  localAgentRef: string,
 ): Promise<AgentLocalThreadSummary | null> {
   const cachedThreads = queryClient.getQueryData<readonly AgentLocalThreadSummary[]>(THREADS_QUERY_KEY) || [];
-  const cached = findAgentConversationThreadByAgentId(cachedThreads, agentId);
+  const cached = findAgentConversationThreadByLocalAgentRef(cachedThreads, localAgentRef);
   if (cached) {
     return cached;
   }
   const listedThreads = await chatAgentStoreClient.listThreads();
   queryClient.setQueryData(THREADS_QUERY_KEY, listedThreads);
-  return findAgentConversationThreadByAgentId(listedThreads, agentId);
+  return findAgentConversationThreadByLocalAgentRef(listedThreads, localAgentRef);
 }
 
 async function createAgentThread(
@@ -45,7 +45,9 @@ async function createAgentThread(
   const timestampMs = Date.now();
   const thread = await chatAgentStoreClient.createThread({
     id: randomIdV11('agent-thread'),
-    agentId: target.agentId,
+    ownerUserId: target.ownerUserId,
+    realmAgentId: target.realmAgentId,
+    localAgentRef: target.localAgentRef,
     title: target.displayName,
     createdAtMs: timestampMs,
     updatedAtMs: timestampMs,
@@ -83,22 +85,22 @@ async function launchAgentInteractionFromDisplay(
     interaction: AgentInteractionLaunchKind;
   },
 ): Promise<AgentInteractionLaunchResult> {
-  const agentId = String(input.target.agentId || '').trim();
-  if (!agentId) {
-    throw new Error('Agent conversation launch requires agentId');
+  const localAgentRef = String(input.target.localAgentRef || '').trim();
+  if (!localAgentRef) {
+    throw new Error('Agent conversation launch requires localAgentRef');
   }
 
-  let thread = await resolveExistingAgentThread(agentId);
+  let thread = await resolveExistingAgentThread(localAgentRef);
   const createdThread = !thread;
   if (!thread) {
     thread = await createAgentThread(input.target);
   }
 
-  input.setSelectedTargetForSource('agent', agentId);
+  input.setSelectedTargetForSource('agent', localAgentRef);
   input.setAgentConversationSelection({
     threadId: thread.id,
-    agentId,
-    targetId: agentId,
+    localAgentRef,
+    targetId: localAgentRef,
   });
   input.setChatMode('agent');
   input.setActiveTab('chat');

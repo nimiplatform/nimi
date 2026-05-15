@@ -10,7 +10,9 @@ use rusqlite::{params, Connection, OptionalExtension};
 fn summarize_thread(record: ChatAgentThreadRecord) -> ChatAgentThreadSummary {
     ChatAgentThreadSummary {
         id: record.id,
-        agent_id: record.agent_id,
+        local_agent_ref: record.local_agent_ref,
+        owner_user_id: record.owner_user_id,
+        realm_agent_id: record.realm_agent_id,
         title: record.title,
         updated_at_ms: record.updated_at_ms,
         last_message_at_ms: record.last_message_at_ms,
@@ -25,7 +27,9 @@ pub(crate) fn list_threads(conn: &Connection) -> Result<Vec<ChatAgentThreadSumma
             r#"
             SELECT
               id,
-              agent_id,
+              local_agent_ref,
+              owner_user_id,
+              realm_agent_id,
               title,
               created_at_ms,
               updated_at_ms,
@@ -58,7 +62,9 @@ pub(crate) fn get_thread_bundle(
             r#"
             SELECT
               id,
-              agent_id,
+              local_agent_ref,
+              owner_user_id,
+              realm_agent_id,
               title,
               created_at_ms,
               updated_at_ms,
@@ -134,15 +140,17 @@ pub(crate) fn get_thread_bundle(
     }))
 }
 
-fn get_thread_record_by_agent_id(
+fn get_thread_record_by_local_agent_ref(
     conn: &Connection,
-    agent_id: &str,
+    local_agent_ref: &str,
 ) -> Result<Option<ChatAgentThreadRecord>, String> {
     conn.query_row(
         r#"
         SELECT
           id,
-          agent_id,
+          local_agent_ref,
+          owner_user_id,
+          realm_agent_id,
           title,
           created_at_ms,
           updated_at_ms,
@@ -150,13 +158,13 @@ fn get_thread_record_by_agent_id(
           archived_at_ms,
           target_snapshot_json
         FROM agent_threads
-        WHERE agent_id = ?1
+        WHERE local_agent_ref = ?1
         "#,
-        params![agent_id],
+        params![local_agent_ref],
         thread_record_from_row,
     )
     .optional()
-    .map_err(|error| format!("query chat_agent thread by agent failed: {error}"))
+    .map_err(|error| format!("query chat_agent thread by local agent ref failed: {error}"))
 }
 
 pub(crate) fn create_thread(
@@ -164,7 +172,13 @@ pub(crate) fn create_thread(
     input: &ChatAgentCreateThreadInput,
 ) -> Result<ChatAgentThreadRecord, String> {
     let id = normalize_required_string(&input.id, "id")?;
-    let agent_id = normalize_required_string(&input.agent_id, "agentId")?;
+    let (owner_user_id, realm_agent_id, local_agent_ref) =
+        super::codec::normalize_local_agent_identity(
+            &input.owner_user_id,
+            &input.realm_agent_id,
+            &input.local_agent_ref,
+            "localAgentIdentity",
+        )?;
     let title = normalize_required_string(&input.title, "title")?;
     let created_at_ms = require_non_negative_ms(input.created_at_ms, "createdAtMs")?;
     let updated_at_ms = require_non_negative_ms(input.updated_at_ms, "updatedAtMs")?;
@@ -177,8 +191,11 @@ pub(crate) fn create_thread(
         .map(|value| require_non_negative_ms(value, "archivedAtMs"))
         .transpose()?;
     let target_snapshot = normalize_target_snapshot(&input.target_snapshot)?;
-    if target_snapshot.agent_id != agent_id {
-        return Err("targetSnapshot.agentId must match agentId".to_string());
+    if target_snapshot.owner_user_id != owner_user_id
+        || target_snapshot.realm_agent_id != realm_agent_id
+        || target_snapshot.local_agent_ref != local_agent_ref
+    {
+        return Err("targetSnapshot local identity must match thread local identity".to_string());
     }
     let target_snapshot_json =
         super::codec::serialize_json_value(&target_snapshot, "targetSnapshot")?;
@@ -186,18 +203,22 @@ pub(crate) fn create_thread(
         r#"
         INSERT INTO agent_threads (
           id,
-          agent_id,
+          local_agent_ref,
+          owner_user_id,
+          realm_agent_id,
           title,
           created_at_ms,
           updated_at_ms,
           last_message_at_ms,
           archived_at_ms,
           target_snapshot_json
-        ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)
+        ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)
         "#,
         params![
             id,
-            agent_id,
+            local_agent_ref,
+            owner_user_id,
+            realm_agent_id,
             title,
             created_at_ms,
             updated_at_ms,
@@ -221,8 +242,8 @@ pub(crate) fn create_thread(
                 return Err(map_sql_error("create chat_agent thread failed", error));
             }
 
-            let existing = get_thread_record_by_agent_id(conn, &agent_id)?.ok_or_else(|| {
-                "create chat_agent thread failed: duplicate agent without existing thread"
+            let existing = get_thread_record_by_local_agent_ref(conn, &local_agent_ref)?.ok_or_else(|| {
+                "create chat_agent thread failed: duplicate localAgentRef without existing thread"
                     .to_string()
             })?;
             conn.execute(
@@ -272,8 +293,10 @@ pub(crate) fn update_thread_metadata(
               updated_at_ms = ?3,
               last_message_at_ms = ?4,
               archived_at_ms = ?5,
-              agent_id = ?6,
-              target_snapshot_json = ?7
+              local_agent_ref = ?6,
+              owner_user_id = ?7,
+              realm_agent_id = ?8,
+              target_snapshot_json = ?9
             WHERE id = ?1
             "#,
             params![
@@ -282,7 +305,9 @@ pub(crate) fn update_thread_metadata(
                 updated_at_ms,
                 last_message_at_ms,
                 archived_at_ms,
-                target_snapshot.agent_id,
+                target_snapshot.local_agent_ref,
+                target_snapshot.owner_user_id,
+                target_snapshot.realm_agent_id,
                 super::codec::serialize_json_value(&target_snapshot, "targetSnapshot")?,
             ],
         )
@@ -539,7 +564,9 @@ pub(crate) fn delete_message(
             r#"
             SELECT
               t.id,
-              t.agent_id,
+              t.local_agent_ref,
+              t.owner_user_id,
+              t.realm_agent_id,
               t.title,
               t.created_at_ms,
               t.updated_at_ms,

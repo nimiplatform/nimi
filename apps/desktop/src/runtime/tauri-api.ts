@@ -17,13 +17,23 @@ type TauriRuntimeHook = TauriTestHook;
 type TauriRuntimeGlobal = typeof globalThis & {
   __NIMI_TAURI_TEST__?: TauriTestHook;
   __NIMI_TAURI_RUNTIME__?: TauriRuntimeHook;
-  __TAURI_INTERNALS__?: unknown;
-  __TAURI_IPC__?: unknown;
+  __TAURI__?: {
+    core?: { invoke?: unknown };
+    event?: { listen?: unknown };
+    invoke?: unknown;
+  };
+  __TAURI_INTERNALS__?: { invoke?: unknown; listen?: unknown; transformCallback?: unknown };
+  __TAURI_IPC__?: { invoke?: unknown; listen?: unknown };
   window?: {
     __NIMI_TAURI_TEST__?: TauriTestHook;
     __NIMI_TAURI_RUNTIME__?: TauriRuntimeHook;
-    __TAURI_INTERNALS__?: unknown;
-    __TAURI_IPC__?: unknown;
+    __TAURI__?: {
+      core?: { invoke?: unknown };
+      event?: { listen?: unknown };
+      invoke?: unknown;
+    };
+    __TAURI_INTERNALS__?: { invoke?: unknown; listen?: unknown; transformCallback?: unknown };
+    __TAURI_IPC__?: { invoke?: unknown; listen?: unknown };
   };
 };
 
@@ -34,6 +44,34 @@ function tauriGlobal(): TauriRuntimeGlobal {
 function tauriTestHook(): TauriTestHook | undefined {
   const value = tauriGlobal();
   return value.__NIMI_TAURI_TEST__ || value.window?.__NIMI_TAURI_TEST__;
+}
+
+function hasNativeTauriInvoke(): boolean {
+  const value = tauriGlobal();
+  return Boolean(
+    typeof value.window?.__TAURI__?.core?.invoke === 'function'
+      || typeof value.__TAURI__?.core?.invoke === 'function'
+      || typeof value.window?.__TAURI__?.invoke === 'function'
+      || typeof value.__TAURI__?.invoke === 'function'
+      || typeof value.window?.__TAURI_INTERNALS__?.invoke === 'function'
+      || typeof value.__TAURI_INTERNALS__?.invoke === 'function'
+      || typeof value.window?.__TAURI_IPC__?.invoke === 'function'
+      || typeof value.__TAURI_IPC__?.invoke === 'function',
+  );
+}
+
+function hasNativeTauriListen(): boolean {
+  const value = tauriGlobal();
+  return Boolean(
+    typeof value.window?.__TAURI__?.event?.listen === 'function'
+      || typeof value.__TAURI__?.event?.listen === 'function'
+      || typeof value.window?.__TAURI_INTERNALS__?.listen === 'function'
+      || typeof value.__TAURI_INTERNALS__?.listen === 'function'
+      || typeof value.window?.__TAURI_INTERNALS__?.transformCallback === 'function'
+      || typeof value.__TAURI_INTERNALS__?.transformCallback === 'function'
+      || typeof value.window?.__TAURI_IPC__?.listen === 'function'
+      || typeof value.__TAURI_IPC__?.listen === 'function',
+  );
 }
 
 function createSdkTauriRuntimeHook(): TauriRuntimeHook {
@@ -69,21 +107,16 @@ export function installSdkTauriRuntimeHook(): void {
 }
 
 export function hasTauriRuntime(): boolean {
-  const value = tauriGlobal();
   return Boolean(
     tauriTestHook()?.invoke
       || tauriTestHook()?.listen
-      || value.__NIMI_TAURI_RUNTIME__
-      || value.__TAURI_INTERNALS__
-      || value.__TAURI_IPC__
-      || value.window?.__NIMI_TAURI_RUNTIME__
-      || value.window?.__TAURI_INTERNALS__
-      || value.window?.__TAURI_IPC__,
+      || hasNativeTauriInvoke()
+      || hasNativeTauriListen(),
   );
 }
 
 export function hasTauriInvoke(): boolean {
-  return hasTauriRuntime();
+  return Boolean(tauriTestHook()?.invoke || hasNativeTauriInvoke());
 }
 
 export async function invokeTauri<T>(command: string, payload: unknown = {}): Promise<T> {
@@ -110,8 +143,7 @@ export async function listenTauri(
 }
 
 export function convertTauriFileSrc(fileUrl: string): string {
-  const value = tauriGlobal();
-  if (typeof value.window === 'undefined' || !value.window?.__TAURI_INTERNALS__) {
+  if (!hasNativeTauriInvoke()) {
     return fileUrl;
   }
   return tauriConvertFileSrc(fileUrl);

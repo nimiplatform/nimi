@@ -1,8 +1,10 @@
 import type { ReactNode } from 'react';
 import type {
   CanonicalStagePanelProps,
+} from '@nimiplatform/nimi-kit/features/chat/components/canonical-stage-panel';
+import type {
   CanonicalTranscriptViewProps,
-} from '@nimiplatform/nimi-kit/features/chat';
+} from '@nimiplatform/nimi-kit/features/chat/components/canonical-transcript-view';
 import type {
   ConversationCanonicalMessage,
   ConversationCharacterData,

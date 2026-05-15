@@ -23,14 +23,18 @@ import { createAgentTextMessage } from './helpers/agent-chat-record-fixtures.js'
 function sampleThread(): AgentLocalThreadRecord {
   return {
     id: 'thread-1',
-    agentId: 'agent-1',
+    ownerUserId: 'user-1',
+    realmAgentId: 'agent-1',
+    localAgentRef: 'local-agent:user-1:agent-1',
     title: 'Companion',
     createdAtMs: 10,
     updatedAtMs: 20,
     lastMessageAtMs: 20,
     archivedAtMs: null,
     targetSnapshot: {
-      agentId: 'agent-1',
+      ownerUserId: 'user-1',
+      realmAgentId: 'agent-1',
+      localAgentRef: 'local-agent:user-1:agent-1',
       displayName: 'Companion',
       handle: '~companion',
       avatarUrl: null,
@@ -217,8 +221,8 @@ test('agent host interaction preserves authoritative content and interrupted foo
   assert.equal(interaction.draftText, 'retry this');
   assert.deepEqual(interaction.selection, {
     threadId: 'thread-1',
-    agentId: 'agent-1',
-    targetId: 'agent-1',
+    localAgentRef: 'local-agent:user-1:agent-1',
+    targetId: 'local-agent:user-1:agent-1',
   });
   assert.equal(interaction.footerState, 'interrupted');
   assert.deepEqual(interaction.footerViewState, {
@@ -328,8 +332,8 @@ test('agent host interaction prefers authoritative completion, clears draft, and
   assert.equal(interaction?.draftText, '');
   assert.deepEqual(interaction?.selection, {
     threadId: 'thread-1',
-    agentId: 'agent-1',
-    targetId: 'agent-1',
+    localAgentRef: 'local-agent:user-1:agent-1',
+    targetId: 'local-agent:user-1:agent-1',
   });
   assert.equal(interaction?.footerState, 'done');
   assert.deepEqual(interaction?.footerViewState, {

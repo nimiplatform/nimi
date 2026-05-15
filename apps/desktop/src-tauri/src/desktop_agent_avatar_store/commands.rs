@@ -156,10 +156,19 @@ pub(crate) fn desktop_agent_avatar_binding_get(
         return Ok(override_payload
             .bindings
             .into_iter()
-            .find(|binding| binding.agent_id == payload.agent_id));
+            .find(|binding| {
+                binding.owner_user_id == payload.owner_user_id
+                    && binding.realm_agent_id == payload.realm_agent_id
+                    && binding.local_agent_ref == payload.local_agent_ref
+            }));
     }
     let conn = open_db()?;
-    get_binding(&conn, &payload.agent_id)
+    get_binding(
+        &conn,
+        &payload.owner_user_id,
+        &payload.realm_agent_id,
+        &payload.local_agent_ref,
+    )
 }
 
 #[tauri::command]
@@ -175,7 +184,12 @@ pub(crate) fn desktop_agent_avatar_binding_clear(
     payload: DesktopAgentAvatarBindingLookupPayload,
 ) -> Result<bool, String> {
     let conn = open_db()?;
-    clear_binding(&conn, &payload.agent_id)
+    clear_binding(
+        &conn,
+        &payload.owner_user_id,
+        &payload.realm_agent_id,
+        &payload.local_agent_ref,
+    )
 }
 
 #[tauri::command]

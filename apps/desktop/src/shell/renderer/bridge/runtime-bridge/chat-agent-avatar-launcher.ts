@@ -1,7 +1,9 @@
 import { invokeChecked } from './invoke';
 
 export type DesktopAvatarLaunchHandoffInput = {
-  agentId: string;
+  ownerUserId: string;
+  realmAgentId: string;
+  localAgentRef: string;
   avatarInstanceId?: string | null;
   launchSource?: string | null;
   sourceSurface?: string | null;
@@ -24,13 +26,16 @@ export type DesktopAvatarCloseHandoffResult = {
 };
 
 export type DesktopAvatarLaunchHandoffPayload = {
-  agentId: string;
+  ownerUserId: string;
+  realmAgentId: string;
+  localAgentRef: string;
   avatarInstanceId?: string;
   launchSource?: string;
   sourceSurface?: string;
 };
 
 const FORBIDDEN_LAUNCH_INPUT_FIELDS = [
+  'agentId',
   'avatarPackage',
   'avatarPackageKind',
   'avatarPackageId',
@@ -80,6 +85,19 @@ function normalizeRequiredString(value: string, field: string): string {
   return normalized;
 }
 
+function validateLocalAgentRef(ownerUserId: string, realmAgentId: string, localAgentRef: string): void {
+  if (localAgentRef === realmAgentId) {
+    throw new Error('desktop avatar handoff requires localAgentRef, not bare realmAgentId');
+  }
+  if (!localAgentRef.startsWith('local-agent:')) {
+    throw new Error('desktop avatar handoff localAgentRef must start with local-agent:');
+  }
+  const expected = `local-agent:${ownerUserId}:${realmAgentId}`;
+  if (localAgentRef !== expected) {
+    throw new Error('desktop avatar handoff localAgentRef must equal local-agent:${ownerUserId}:${realmAgentId}');
+  }
+}
+
 export function parseDesktopAvatarLaunchHandoffResult(value: unknown): DesktopAvatarLaunchHandoffResult {
   if (!value || typeof value !== 'object') {
     throw new Error('desktop avatar handoff returned invalid payload');
@@ -111,12 +129,17 @@ export function buildDesktopAvatarLaunchHandoffPayload(
       throw new Error(`desktop avatar handoff contains forbidden field: ${field}`);
     }
   }
-  const agentId = normalizeRequiredString(input.agentId, 'agentId');
+  const ownerUserId = normalizeRequiredString(input.ownerUserId, 'ownerUserId');
+  const realmAgentId = normalizeRequiredString(input.realmAgentId, 'realmAgentId');
+  const localAgentRef = normalizeRequiredString(input.localAgentRef, 'localAgentRef');
+  validateLocalAgentRef(ownerUserId, realmAgentId, localAgentRef);
   const avatarInstanceId = normalizeOptionalString(input.avatarInstanceId);
   const launchSource = normalizeOptionalString(input.launchSource);
   const sourceSurface = normalizeOptionalString(input.sourceSurface);
   return {
-    agentId,
+    ownerUserId,
+    realmAgentId,
+    localAgentRef,
     ...(avatarInstanceId ? { avatarInstanceId } : {}),
     ...(launchSource ? { launchSource } : {}),
     ...(sourceSurface ? { sourceSurface } : {}),
@@ -163,20 +186,20 @@ function sanitizeInstanceSegment(value: string | null | undefined): string {
 }
 
 export function buildDesktopAvatarInstanceId(input: {
-  agentId: string;
+  localAgentRef: string;
   threadId?: string | null;
 }): string {
   const record = input as Record<string, unknown>;
   if ('conversationAnchorId' in record) {
     throw new Error('desktop avatar instance id must not depend on conversationAnchorId');
   }
-  const agentSegment = sanitizeInstanceSegment(input.agentId);
+  const agentSegment = sanitizeInstanceSegment(input.localAgentRef);
   const continuitySegment = sanitizeInstanceSegment(input.threadId || 'default');
   return `desktop-avatar-${agentSegment}-${continuitySegment}`;
 }
 
 export function buildDesktopAvatarEphemeralInstanceId(input: {
-  agentId: string;
+  localAgentRef: string;
   threadId?: string | null;
   nonce?: string | null;
 }): string {

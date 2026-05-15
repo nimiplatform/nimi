@@ -31,6 +31,7 @@ type WorldDetailProps = {
 
 export function WorldDetail({ world, onBack }: WorldDetailProps) {
   const authStatus = useAppStore((state) => state.auth.status);
+  const ownerUserId = useAppStore((state) => String((state.auth.user as Record<string, unknown> | null)?.id || '').trim());
   const navigateToProfile = useAppStore((state) => state.navigateToProfile);
   const setActiveTab = useAppStore((state) => state.setActiveTab);
   const setChatMode = useAppStore((state) => state.setChatMode);
@@ -163,7 +164,9 @@ export function WorldDetail({ world, onBack }: WorldDetailProps) {
   }, [display, world.id]);
 
   const toAgentConversationTarget = (agent: WorldAgent): AgentLocalTargetSnapshot => ({
-    agentId: agent.id,
+    ownerUserId,
+    realmAgentId: agent.id,
+    localAgentRef: `local-agent:${ownerUserId}:${agent.id}`,
     displayName: agent.name,
     handle: agent.handle,
     avatarUrl: agent.avatarUrl ?? null,

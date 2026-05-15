@@ -14,13 +14,21 @@ pub(crate) fn desktop_agent_center_background_remove_blocking(
     payload: DesktopAgentCenterBackgroundRemovePayload,
 ) -> Result<DesktopAgentCenterLocalResourceRemoveResult, String> {
     let account_id = validate_normalized_id(&payload.account_id, "accountId")?;
-    let agent_id = validate_normalized_id(&payload.agent_id, "agentId")?;
+    let scope = validate_local_agent_scope(
+        &payload.owner_user_id,
+        &payload.realm_agent_id,
+        &payload.local_agent_ref,
+    )?;
     validate_background_id(&payload.background_asset_id, "backgroundAssetId")?;
-    clear_selected_background(&account_id, &agent_id, &payload.background_asset_id)?;
-    let source = background_dir(&account_id, &agent_id, &payload.background_asset_id)?;
+    clear_selected_background(&account_id, &scope, &payload.background_asset_id)?;
+    let source = background_dir(
+        &account_id,
+        &scope.local_agent_ref,
+        &payload.background_asset_id,
+    )?;
     let destination = quarantine_path(
         &account_id,
-        &agent_id,
+        &scope.local_agent_ref,
         "background",
         &payload.background_asset_id,
     )?;
@@ -29,7 +37,7 @@ pub(crate) fn desktop_agent_center_background_remove_blocking(
         Err(error) => {
             let _ = record_resource_operation(
                 &account_id,
-                &agent_id,
+                &scope.local_agent_ref,
                 "background_quarantine",
                 "background",
                 &payload.background_asset_id,
@@ -41,7 +49,7 @@ pub(crate) fn desktop_agent_center_background_remove_blocking(
     };
     let operation_id = record_resource_operation(
         &account_id,
-        &agent_id,
+        &scope.local_agent_ref,
         "background_quarantine",
         "background",
         &payload.background_asset_id,
@@ -76,8 +84,12 @@ pub(crate) fn desktop_agent_center_agent_local_resources_remove_blocking(
     payload: DesktopAgentCenterAgentLocalResourcesRemovePayload,
 ) -> Result<DesktopAgentCenterLocalResourceRemoveResult, String> {
     let account_id = validate_normalized_id(&payload.account_id, "accountId")?;
-    let agent_id = validate_normalized_id(&payload.agent_id, "agentId")?;
-    quarantine_agent_center_tree(&account_id, &agent_id, "agent_removed")
+    let scope = validate_local_agent_scope(
+        &payload.owner_user_id,
+        &payload.realm_agent_id,
+        &payload.local_agent_ref,
+    )?;
+    quarantine_agent_center_tree(&account_id, &scope.local_agent_ref, "agent_removed")
 }
 
 #[tauri::command]
@@ -140,14 +152,17 @@ pub(crate) fn desktop_agent_center_account_local_resources_remove_blocking(
         if !metadata.is_dir() {
             continue;
         }
-        let Some(agent_id_raw) = path.file_name().and_then(|value| value.to_str()) else {
+        let Some(local_agent_ref_segment) = path.file_name().and_then(|value| value.to_str())
+        else {
             return Err(format!(
                 "Agent Center account agent entry has invalid name ({})",
                 path.display()
             ));
         };
-        let agent_id = validate_normalized_id(agent_id_raw, "agentId")?;
-        let result = quarantine_agent_center_tree(&account_id, &agent_id, "account_removed")?;
+        let local_agent_ref =
+            validate_normalized_id(local_agent_ref_segment, "localAgentRefPathSegment")?;
+        let result =
+            quarantine_agent_center_tree(&account_id, &local_agent_ref, "account_removed")?;
         quarantined_any = quarantined_any || result.quarantined;
     }
 

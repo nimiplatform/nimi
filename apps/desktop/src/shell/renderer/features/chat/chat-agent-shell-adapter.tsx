@@ -9,7 +9,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { asNimiError } from '@nimiplatform/sdk/runtime';
 import {
   createReadyConversationSetupState,
-} from '@nimiplatform/nimi-kit/features/chat';
+} from '@nimiplatform/nimi-kit/features/chat/headless';
 import {
   type CanonicalMessageAccessorySlot,
   ConversationOrchestrationRegistry,
@@ -205,7 +205,7 @@ export function useAgentConversationModeHost(
   const setSelection = useCallback((selection: AgentConversationSelection) => {
     if (
       input.selection.threadId === selection.threadId
-      && input.selection.agentId === selection.agentId
+      && input.selection.localAgentRef === selection.localAgentRef
       && input.selection.targetId === selection.targetId
     ) {
       return;
@@ -226,7 +226,7 @@ export function useAgentConversationModeHost(
     messages,
     selectedThreadRecord,
     streamState,
-    targetByAgentId,
+    targetByLocalAgentRef,
     targets,
     targetsPending,
     targetsReady,
@@ -307,7 +307,7 @@ export function useAgentConversationModeHost(
           message: 'action:host-error',
           details: buildHostErrorDetails(error, 'sync-agent-thread-target-snapshot', {
             threadId: metadataUpdate.id,
-            agentId: metadataUpdate.targetSnapshot.agentId,
+            localAgentRef: metadataUpdate.targetSnapshot.localAgentRef,
           }),
         });
       });
@@ -317,7 +317,7 @@ export function useAgentConversationModeHost(
   }, [activeTarget, buildHostErrorDetails, queryClient, selectedThreadRecord, threads]);
 
   useAgentRuntimeSessionSnapshotHydration({
-    activeAgentId: activeTarget?.agentId || null,
+    activeLocalAgentRef: activeTarget?.localAgentRef || null,
     activeConversationAnchorId,
     authStatus: input.authStatus,
     buildHostErrorDetails,
@@ -546,7 +546,9 @@ export function useAgentConversationModeHost(
       signal: turnInput.signal,
       metadata: {
         agentLocalChat: {
-          agentId: turnInput.target.agentId,
+          ownerUserId: turnInput.target.ownerUserId,
+          realmAgentId: turnInput.target.realmAgentId,
+          localAgentRef: turnInput.target.localAgentRef,
           conversationAnchorId: turnInput.conversationAnchorId,
           targetSnapshot: turnInput.target,
           agentResolution: turnInput.agentResolution,
@@ -571,14 +573,14 @@ export function useAgentConversationModeHost(
         },
       },
     }),
-    selectedAgentId: input.selection.agentId,
+    selectedLocalAgentRef: input.selection.localAgentRef,
     selectedThreadRecord,
     setBundleCache,
     setFooterHostState,
-    setSelectionForAgent: (agentId) => setSelection({
+    setSelectionForLocalAgentRef: (localAgentRef) => setSelection({
       threadId: null,
-      agentId,
-      targetId: agentId,
+      localAgentRef,
+      targetId: localAgentRef,
     }),
     setSubmittingThreadId,
     setThreadsCache,
@@ -586,7 +588,7 @@ export function useAgentConversationModeHost(
     submittingThreadId,
     syncSelectionToThread,
     t,
-    targetByAgentId,
+    targetByLocalAgentRef,
     targetsReady,
     threads,
     threadsReady,
@@ -653,7 +655,7 @@ export function useAgentConversationModeHost(
     handleSubmit,
     hostFeedback,
     initialModelSelection,
-    inputSelectionAgentId: input.selection.agentId,
+    inputSelectionLocalAgentRef: input.selection.localAgentRef,
     isBundleLoading,
     messages,
     pendingAttachments: activePendingAttachments,
@@ -668,7 +670,7 @@ export function useAgentConversationModeHost(
     runtimeInspect,
     runtimeInspectLoading,
     schedulingJudgement,
-    selectedTargetId: activeTarget?.agentId || null,
+    selectedTargetId: activeTarget?.localAgentRef || null,
     behaviorSettings,
     setBehaviorSettings,
     cognitionContent,

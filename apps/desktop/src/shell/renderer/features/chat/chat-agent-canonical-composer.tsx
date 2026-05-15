@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type ClipboardEvent as ReactClipboardEvent, type ReactNode } from 'react';
-import { CanonicalComposer, type ChatComposerVoiceState } from '@nimiplatform/nimi-kit/features/chat';
+import { CanonicalComposer } from '@nimiplatform/nimi-kit/features/chat/components/canonical-composer';
+import type { ChatComposerVoiceState } from '@nimiplatform/nimi-kit/features/chat/types';
 import { useTranslation } from 'react-i18next';
 import { InlineFeedback, type InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
 import { cn } from '@nimiplatform/nimi-kit/ui';

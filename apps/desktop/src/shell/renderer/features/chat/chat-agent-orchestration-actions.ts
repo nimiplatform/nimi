@@ -1,6 +1,6 @@
 import type {
   ConversationTurnEvent,
-} from '@nimiplatform/nimi-kit/features/chat';
+} from '@nimiplatform/nimi-kit/features/chat/headless';
 import { feedStreamEvent } from '../turns/stream-controller';
 import { toChatAgentRuntimeError } from './chat-agent-runtime';
 import type {

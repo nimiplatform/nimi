@@ -17,8 +17,45 @@ fn sha256_hex(bytes: &[u8]) -> String {
     format!("{:x}", hasher.finalize())
 }
 
+fn owner_user_id() -> String {
+    "owner_1".to_string()
+}
+
+fn realm_agent_id() -> String {
+    "agent_1".to_string()
+}
+
+fn local_agent_ref() -> String {
+    "local-agent:owner_1:agent_1".to_string()
+}
+
+fn owner_user_id_two() -> String {
+    "owner_2".to_string()
+}
+
+fn local_agent_ref_two() -> String {
+    "local-agent:owner_2:agent_1".to_string()
+}
+
+fn local_scope() -> LocalAgentScope {
+    validate_local_agent_scope(&owner_user_id(), &realm_agent_id(), &local_agent_ref())
+        .expect("local scope")
+}
+
+fn second_owner_scope() -> LocalAgentScope {
+    validate_local_agent_scope(
+        &owner_user_id_two(),
+        &realm_agent_id(),
+        &local_agent_ref_two(),
+    )
+    .expect("second owner scope")
+}
+
 fn write_valid_background(home: &Path) -> PathBuf {
-    let dir = home.join(".nimi/data/accounts/account_1/agents/agent_1/agent-center/modules/appearance/backgrounds/bg_ab12cd34ef56");
+    let dir = home
+        .join(".nimi/data/accounts/account_1/agents")
+        .join(local_scope_path_segment(&local_agent_ref()))
+        .join("agent-center/modules/appearance/backgrounds/bg_ab12cd34ef56");
     fs::create_dir_all(&dir).expect("background dir");
     let image_bytes = b"webp-bytes";
     fs::write(dir.join("image.webp"), image_bytes).expect("image");
@@ -64,25 +101,29 @@ fn write_background_import_source(home: &Path) -> PathBuf {
 }
 
 fn operation_log_path(home: &Path) -> PathBuf {
-    home.join(
-            ".nimi/data/accounts/account_1/agents/agent_1/agent-center/operations/agent-center-local-resources.jsonl",
-        )
+    home.join(".nimi/data/accounts/account_1/agents")
+        .join(local_scope_path_segment(&local_agent_ref()))
+        .join("agent-center/operations/agent-center-local-resources.jsonl")
 }
 
 fn account_operation_log_path(home: &Path) -> PathBuf {
     home.join(".nimi/data/accounts/account_1/operations/agent-center-local-resources.jsonl")
 }
 
-fn agent_center_marker(home: &Path, agent_id: &str) -> PathBuf {
-    agent_center_marker_for_account(home, "account_1", agent_id)
+fn agent_center_marker(home: &Path, local_agent_ref: &str) -> PathBuf {
+    agent_center_marker_for_account(home, "account_1", local_agent_ref)
 }
 
-fn agent_center_marker_for_account(home: &Path, account_id: &str, agent_id: &str) -> PathBuf {
+fn agent_center_marker_for_account(
+    home: &Path,
+    account_id: &str,
+    local_agent_ref: &str,
+) -> PathBuf {
     let dir = home
         .join(".nimi/data/accounts")
         .join(local_scope_path_segment(account_id))
         .join("agents")
-        .join(local_scope_path_segment(agent_id))
+        .join(local_scope_path_segment(local_agent_ref))
         .join("agent-center");
     fs::create_dir_all(dir.join("modules/appearance")).expect("agent-center dir");
     fs::write(dir.join("modules/appearance/marker.txt"), b"local").expect("marker");
@@ -97,7 +138,9 @@ fn imports_background_transactionally_and_selects_it() {
         let result = desktop_agent_center_background_import_blocking(
             DesktopAgentCenterBackgroundImportPayload {
                 account_id: "account_1".to_string(),
-                agent_id: "agent_1".to_string(),
+                owner_user_id: owner_user_id(),
+                realm_agent_id: realm_agent_id(),
+                local_agent_ref: local_agent_ref(),
                 source_path: source.to_string_lossy().to_string(),
                 display_name: Some("Imported Background".to_string()),
                 select: Some(true),
@@ -110,14 +153,16 @@ fn imports_background_transactionally_and_selects_it() {
             result.validation.status,
             AgentCenterBackgroundValidationStatus::Valid
         );
-        let dir = background_dir("account_1", "agent_1", &result.background_asset_id)
+        let dir = background_dir("account_1", &local_agent_ref(), &result.background_asset_id)
             .expect("background dir");
         assert!(dir.join(MANIFEST_FILE_NAME).exists());
         assert!(dir.join(VALIDATION_FILE_NAME).exists());
         assert!(dir.join("image.png").exists());
         let config = desktop_agent_center_config_get(DesktopAgentCenterConfigScopePayload {
             account_id: "account_1".to_string(),
-            agent_id: "agent_1".to_string(),
+            owner_user_id: owner_user_id(),
+            realm_agent_id: realm_agent_id(),
+            local_agent_ref: local_agent_ref(),
         })
         .expect("config");
         assert_eq!(
@@ -127,7 +172,9 @@ fn imports_background_transactionally_and_selects_it() {
         let asset = desktop_agent_center_background_asset_get_blocking(
             DesktopAgentCenterBackgroundValidatePayload {
                 account_id: "account_1".to_string(),
-                agent_id: "agent_1".to_string(),
+                owner_user_id: owner_user_id(),
+                realm_agent_id: realm_agent_id(),
+                local_agent_ref: local_agent_ref(),
                 background_asset_id: result.background_asset_id,
             },
         )
@@ -144,17 +191,69 @@ fn imports_background_transactionally_and_selects_it() {
 }
 
 #[test]
+fn same_realm_agent_id_does_not_share_agent_center_resources_across_owners() {
+    let home = temp_home("owner-isolation");
+    with_env(&[("HOME", home.to_str())], || {
+        let source = write_background_import_source(&home);
+        let owner_one = desktop_agent_center_background_import_blocking(
+            DesktopAgentCenterBackgroundImportPayload {
+                account_id: "account_1".to_string(),
+                owner_user_id: owner_user_id(),
+                realm_agent_id: realm_agent_id(),
+                local_agent_ref: local_agent_ref(),
+                source_path: source.to_string_lossy().to_string(),
+                display_name: Some("Owner one".to_string()),
+                select: Some(true),
+            },
+        )
+        .expect("owner one import");
+
+        let owner_two_config =
+            desktop_agent_center_config_get(DesktopAgentCenterConfigScopePayload {
+                account_id: "account_1".to_string(),
+                owner_user_id: owner_user_id_two(),
+                realm_agent_id: realm_agent_id(),
+                local_agent_ref: local_agent_ref_two(),
+            })
+            .expect("owner two config");
+
+        assert!(owner_two_config
+            .modules
+            .appearance
+            .background_asset_id
+            .is_none());
+        assert!(background_dir(
+            "account_1",
+            &local_agent_ref(),
+            &owner_one.background_asset_id
+        )
+        .expect("owner one background")
+        .exists());
+        assert!(!background_dir(
+            "account_1",
+            &local_agent_ref_two(),
+            &owner_one.background_asset_id
+        )
+        .expect("owner two background")
+        .exists());
+        let _ = second_owner_scope();
+    });
+}
+
+#[test]
 fn removes_selected_background_by_clearing_config_and_quarantining_directory() {
     let home = temp_home("remove-background");
     with_env(&[("HOME", home.to_str())], || {
         let background_root = write_valid_background(&home);
-        select_imported_background("account_1", "agent_1", "bg_ab12cd34ef56")
+        select_imported_background("account_1", &local_scope(), "bg_ab12cd34ef56")
             .expect("select background");
 
         let result = desktop_agent_center_background_remove_blocking(
             DesktopAgentCenterBackgroundRemovePayload {
                 account_id: "account_1".to_string(),
-                agent_id: "agent_1".to_string(),
+                owner_user_id: owner_user_id(),
+                realm_agent_id: realm_agent_id(),
+                local_agent_ref: local_agent_ref(),
                 background_asset_id: "bg_ab12cd34ef56".to_string(),
             },
         )
@@ -164,12 +263,16 @@ fn removes_selected_background_by_clearing_config_and_quarantining_directory() {
         assert!(!background_root.exists());
         let config = desktop_agent_center_config_get(DesktopAgentCenterConfigScopePayload {
             account_id: "account_1".to_string(),
-            agent_id: "agent_1".to_string(),
+            owner_user_id: owner_user_id(),
+            realm_agent_id: realm_agent_id(),
+            local_agent_ref: local_agent_ref(),
         })
         .expect("config");
         assert!(config.modules.appearance.background_asset_id.is_none());
         assert!(home
-            .join(".nimi/data/accounts/account_1/agents/agent_1/agent-center/quarantine/background")
+            .join(".nimi/data/accounts/account_1/agents")
+            .join(local_scope_path_segment(&local_agent_ref()))
+            .join("agent-center/quarantine/background")
             .read_dir()
             .expect("quarantine dir")
             .next()

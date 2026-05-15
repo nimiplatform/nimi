@@ -16,6 +16,41 @@ pub(super) fn normalize_optional_string(value: Option<&str>) -> Option<String> {
         .map(|text| text.to_string())
 }
 
+fn build_local_agent_ref(owner_user_id: &str, realm_agent_id: &str) -> String {
+    format!("local-agent:{owner_user_id}:{realm_agent_id}")
+}
+
+pub(super) fn normalize_local_agent_identity(
+    owner_user_id: &str,
+    realm_agent_id: &str,
+    local_agent_ref: &str,
+    field_prefix: &str,
+) -> Result<(String, String, String), String> {
+    let owner_user_id =
+        normalize_required_string(owner_user_id, &format!("{field_prefix}.ownerUserId"))?;
+    let realm_agent_id =
+        normalize_required_string(realm_agent_id, &format!("{field_prefix}.realmAgentId"))?;
+    let local_agent_ref =
+        normalize_required_string(local_agent_ref, &format!("{field_prefix}.localAgentRef"))?;
+    if local_agent_ref == realm_agent_id {
+        return Err(format!(
+            "{field_prefix}.localAgentRef must not be bare realmAgentId"
+        ));
+    }
+    if !local_agent_ref.starts_with("local-agent:") {
+        return Err(format!(
+            "{field_prefix}.localAgentRef must start with local-agent:"
+        ));
+    }
+    let expected = build_local_agent_ref(&owner_user_id, &realm_agent_id);
+    if local_agent_ref != expected {
+        return Err(format!(
+            "{field_prefix}.localAgentRef must equal local-agent:${{ownerUserId}}:${{realmAgentId}}"
+        ));
+    }
+    Ok((owner_user_id, realm_agent_id, local_agent_ref))
+}
+
 pub(super) fn require_non_negative_ms(value: i64, field_name: &str) -> Result<i64, String> {
     if value < 0 {
         return Err(format!("{field_name} must be a non-negative integer"));
@@ -26,8 +61,16 @@ pub(super) fn require_non_negative_ms(value: i64, field_name: &str) -> Result<i6
 pub(super) fn normalize_target_snapshot(
     snapshot: &ChatAgentTargetSnapshot,
 ) -> Result<ChatAgentTargetSnapshot, String> {
+    let (owner_user_id, realm_agent_id, local_agent_ref) = normalize_local_agent_identity(
+        &snapshot.owner_user_id,
+        &snapshot.realm_agent_id,
+        &snapshot.local_agent_ref,
+        "targetSnapshot",
+    )?;
     Ok(ChatAgentTargetSnapshot {
-        agent_id: normalize_required_string(&snapshot.agent_id, "targetSnapshot.agentId")?,
+        owner_user_id,
+        realm_agent_id,
+        local_agent_ref,
         display_name: normalize_required_string(
             &snapshot.display_name,
             "targetSnapshot.displayName",

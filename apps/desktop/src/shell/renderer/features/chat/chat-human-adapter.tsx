@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { Suspense, lazy, useEffect, useMemo, useState } from 'react';
 import { createReadyConversationSetupState } from '@nimiplatform/nimi-kit/features/chat/headless';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
@@ -26,7 +26,11 @@ import {
   RuntimeInspectCard,
   RuntimeInspectUnsupportedNote,
 } from './chat-runtime-inspect-content';
-import { ChatSettingsPanel } from './chat-shared-settings-panel';
+
+const ChatSettingsPanel = lazy(async () => {
+  const mod = await import('./chat-shared-settings-panel');
+  return { default: mod.ChatSettingsPanel };
+});
 
 type UseHumanConversationModeHostInput = {
   authStatus: 'bootstrapping' | 'anonymous' | 'authenticated';
@@ -285,25 +289,29 @@ export function useHumanConversationModeHost(
     rightSidebarContent: rightSidebarContent,
     rightSidebarOverlayMenu: rightSidebarOverlayMenu,
     rightSidebarAutoOpenKey: rightSidebarAutoOpenKey,
-    settingsContent: selectedChat ? (
-      <ChatSettingsPanel
-        mode="human"
-        diagnosticsContent={(
-          <RuntimeInspectCard
-            label={t('Chat.diagnosticsSessionLabel', { defaultValue: 'Session' })}
-            value={`${canonicalSurface.diagnosticsSummary.messageCount}`}
-            detail={canonicalSurface.diagnosticsSummary.isStreaming
-              ? t('ChatTimeline.stopGenerating', 'Stop generating')
-              : t('Chat.voiceInspectReady', { defaultValue: 'Ready to play' })}
+    settingsContent: (
+      <Suspense fallback={null}>
+        {selectedChat ? (
+          <ChatSettingsPanel
+            mode="human"
+            diagnosticsContent={(
+              <RuntimeInspectCard
+                label={t('Chat.diagnosticsSessionLabel', { defaultValue: 'Session' })}
+                value={`${canonicalSurface.diagnosticsSummary.messageCount}`}
+                detail={canonicalSurface.diagnosticsSummary.isStreaming
+                  ? t('ChatTimeline.stopGenerating', 'Stop generating')
+                  : t('Chat.voiceInspectReady', { defaultValue: 'Ready to play' })}
+              />
+            )}
+          />
+        ) : (
+          <ChatSettingsPanel
+            unavailableReason={t('Chat.humanSetupRequired', {
+              defaultValue: 'Sign in to continue with human conversations.',
+            })}
           />
         )}
-      />
-    ) : (
-      <ChatSettingsPanel
-        unavailableReason={t('Chat.humanSetupRequired', {
-          defaultValue: 'Sign in to continue with human conversations.',
-        })}
-      />
+      </Suspense>
     ),
     composerContent: selectedChatId ? (
       <HumanCanonicalComposer

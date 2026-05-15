@@ -17,6 +17,8 @@ import {
   createRuntimeAgentMemoryAdapter,
 } from '../src/shell/renderer/infra/runtime-agent-memory';
 
+const LOCAL_AGENT_REF = 'local-agent:user-1:agent-1';
+
 function createRuntimeMock() {
   const calls = {
     registerApp: [] as Array<Record<string, unknown>>,
@@ -68,7 +70,7 @@ function createRuntimeMock() {
               owner: {
                 oneofKind: 'agentCore',
                 agent: {
-                  agentId: 'agent-1',
+                  agentId: LOCAL_AGENT_REF,
                 },
               },
             },
@@ -103,7 +105,7 @@ function createRuntimeMock() {
                 owner: {
                   oneofKind: 'agentDyadic',
                   agentDyadic: {
-                    agentId: 'agent-1',
+                    agentId: LOCAL_AGENT_REF,
                     userId: 'user-1',
                   },
                 },
@@ -141,7 +143,7 @@ function createRuntimeMock() {
                 owner: {
                   oneofKind: 'agentCore',
                   agent: {
-                    agentId: 'agent-1',
+                    agentId: LOCAL_AGENT_REF,
                   },
                 },
               },
@@ -151,7 +153,7 @@ function createRuntimeMock() {
                 provenance: {
                   sourceSystem: 'desktop.agent-chat',
                   sourceEventId: 'turn-2',
-                  authorId: 'agent-1',
+                  authorId: LOCAL_AGENT_REF,
                   traceId: 'thread-1',
                 },
                 payload: {
@@ -276,7 +278,7 @@ test('runtime agent memory adapter maps canonical bank status to standard, basel
     }],
   });
 
-  const standard = await adapter.getCanonicalBankStatus('agent-1');
+  const standard = await adapter.getCanonicalBankStatus(LOCAL_AGENT_REF);
   assert.deepEqual(standard, {
     mode: 'standard',
     bankId: 'bank-agent-1',
@@ -295,7 +297,7 @@ test('runtime agent memory adapter maps canonical bank status to standard, basel
         owner: {
           oneofKind: 'agentCore',
           agent: {
-            agentId: 'agent-1',
+            agentId: LOCAL_AGENT_REF,
           },
         },
       },
@@ -333,7 +335,7 @@ test('runtime agent memory adapter maps canonical bank status to standard, basel
     getMemoryEmbeddingConfigService: () => baselineService.service,
     listLocalRuntimeAssets: async () => [],
   });
-  const baseline = await baselineAdapter.getCanonicalBankStatus('agent-1');
+  const baseline = await baselineAdapter.getCanonicalBankStatus(LOCAL_AGENT_REF);
   assert.deepEqual(baseline, {
     mode: 'baseline',
     bankId: 'bank-agent-1',
@@ -360,7 +362,7 @@ test('runtime agent memory adapter maps canonical bank status to standard, basel
     getMemoryEmbeddingConfigService: () => unavailableService.service,
     listLocalRuntimeAssets: async () => [],
   });
-  const unavailable = await unavailableAdapter.getCanonicalBankStatus('agent-1');
+  const unavailable = await unavailableAdapter.getCanonicalBankStatus(LOCAL_AGENT_REF);
   assert.deepEqual(unavailable, {
     mode: 'unavailable',
     bankId: 'bank-agent-1',
@@ -379,7 +381,7 @@ test('runtime agent memory adapter keeps compatibility queries working when cano
         owner: {
           oneofKind: 'agentCore',
           agent: {
-            agentId: 'agent-1',
+            agentId: LOCAL_AGENT_REF,
           },
         },
       },
@@ -422,7 +424,7 @@ test('runtime agent memory adapter keeps compatibility queries working when cano
     }],
   });
 
-  const status = await adapter.getCanonicalBankStatus('agent-1');
+  const status = await adapter.getCanonicalBankStatus(LOCAL_AGENT_REF);
   assert.deepEqual(status, {
     mode: 'baseline',
     bankId: 'bank-agent-1',
@@ -430,7 +432,7 @@ test('runtime agent memory adapter keeps compatibility queries working when cano
   });
 
   const records = await adapter.queryCompatibilityRecords({
-    agentId: 'agent-1',
+    agentId: LOCAL_AGENT_REF,
     displayName: 'Agent One',
     createIfMissing: false,
     syncDyadicContext: false,
@@ -497,7 +499,7 @@ test('runtime agent memory adapter binds canonical bank standard through the mem
     }],
   });
 
-  const result = await adapter.bindCanonicalBankStandard('agent-1');
+  const result = await adapter.bindCanonicalBankStandard(LOCAL_AGENT_REF);
   assert.deepEqual(result, {
     mode: 'standard',
     bankId: 'bank-agent-1',
@@ -522,7 +524,7 @@ test('runtime agent memory adapter forwards chat sidecar input through app messa
   });
 
   await adapter.sendChatTrackSidecarInput({
-    agentId: 'agent-1',
+    agentId: LOCAL_AGENT_REF,
     sourceEventId: 'turn-1',
     threadId: 'thread-1',
     messages: [
@@ -561,7 +563,7 @@ test('runtime agent memory adapter forwards chat sidecar input through app messa
       };
     }>;
   };
-  assert.equal(payload.fields.agent_id?.kind?.stringValue, 'agent-1');
+  assert.equal(payload.fields.agent_id?.kind?.stringValue, LOCAL_AGENT_REF);
   assert.equal(payload.fields.source_event_id?.kind?.stringValue, 'turn-1');
   assert.equal(payload.fields.thread_id?.kind?.stringValue, 'thread-1');
   const messageValues = payload.fields.messages?.kind?.listValue?.values || [];
@@ -578,7 +580,7 @@ test('canonical memory view compatibility projection stays runtime-owned', async
       owner: {
         oneofKind: 'agentDyadic',
         agentDyadic: {
-          agentId: 'agent-1',
+          agentId: LOCAL_AGENT_REF,
           userId: 'user-7',
         },
       },
@@ -590,7 +592,7 @@ test('canonical memory view compatibility projection stays runtime-owned', async
       provenance: {
         sourceSystem: 'desktop.agent-chat',
         sourceEventId: 'turn-7',
-        authorId: 'agent-1',
+        authorId: LOCAL_AGENT_REF,
         traceId: 'thread-7',
       },
         payload: {
@@ -615,7 +617,7 @@ test('canonical memory view compatibility projection stays runtime-owned', async
     id: 'mem-7',
     content: 'remember this',
     createdAt: '2024-05-01T00:00:00.000Z',
-    createdBy: 'agent-1',
+    createdBy: LOCAL_AGENT_REF,
     effectClass: 'MEMORY_ONLY',
     importance: 1,
     reason: 'runtime_agent_projection',

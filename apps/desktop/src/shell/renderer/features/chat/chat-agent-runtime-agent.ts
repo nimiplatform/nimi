@@ -33,14 +33,14 @@ export async function streamChatAgentRuntimeAgentTurn(
     area: 'agent-chat-runtime',
     message: 'action:runtime-agent-turn:start',
     details: {
-      agentId: request.agentId,
+      localAgentRef: request.localAgentRef,
       conversationAnchorId: request.conversationAnchorId,
       threadId: request.threadId,
       requestId,
     },
   });
   const routeInput = await resolveRouteInput({
-    agentId: request.agentId,
+    agentId: request.localAgentRef,
     prompt: request.prompt,
     messages: request.messages,
     systemPrompt: request.systemPrompt,
@@ -58,7 +58,7 @@ export async function streamChatAgentRuntimeAgentTurn(
     stage: 'desktop.runtime_agent.route_resolve_ms',
     startedAt: routeResolveStartedAt,
     details: {
-      agentId: request.agentId,
+      localAgentRef: request.localAgentRef,
       conversationAnchorId: request.conversationAnchorId,
       threadId: request.threadId,
       requestId,
@@ -73,7 +73,7 @@ export async function streamChatAgentRuntimeAgentTurn(
     area: 'agent-chat-runtime',
     message: 'action:runtime-agent-turn:route-resolved',
     details: {
-      agentId: request.agentId,
+      localAgentRef: request.localAgentRef,
       conversationAnchorId: request.conversationAnchorId,
       threadId: request.threadId,
       requestId,
@@ -88,7 +88,7 @@ export async function streamChatAgentRuntimeAgentTurn(
     area: 'agent-chat-runtime',
     message: 'action:runtime-agent-turn:local-warm-skipped',
     details: {
-      agentId: request.agentId,
+      localAgentRef: request.localAgentRef,
       conversationAnchorId: request.conversationAnchorId,
       threadId: request.threadId,
       requestId,
@@ -100,9 +100,14 @@ export async function streamChatAgentRuntimeAgentTurn(
   const route = resolved.source;
   const modelId = normalizeText(resolved.modelId);
   const connectorId = normalizeText(routeInput.connectorId) || undefined;
+  const localIdentity = {
+    ownerUserId: request.ownerUserId,
+    realmAgentId: request.realmAgentId,
+    localAgentRef: request.localAgentRef,
+  };
   const subscribeStartedAt = nowMs();
   const subscribed = await runtime.agent.turns.subscribe({
-    agentId: request.agentId,
+    ...localIdentity,
     conversationAnchorId: request.conversationAnchorId,
     includeAgentEvents: false,
   });
@@ -110,7 +115,7 @@ export async function streamChatAgentRuntimeAgentTurn(
     stage: 'desktop.runtime_agent.subscribe_ms',
     startedAt: subscribeStartedAt,
     details: {
-      agentId: request.agentId,
+      localAgentRef: request.localAgentRef,
       conversationAnchorId: request.conversationAnchorId,
       threadId: request.threadId,
       requestId,
@@ -121,7 +126,7 @@ export async function streamChatAgentRuntimeAgentTurn(
     area: 'agent-chat-runtime',
     message: 'action:runtime-agent-turn:subscribed',
     details: {
-      agentId: request.agentId,
+      localAgentRef: request.localAgentRef,
       conversationAnchorId: request.conversationAnchorId,
       threadId: request.threadId,
       requestId,
@@ -140,7 +145,7 @@ export async function streamChatAgentRuntimeAgentTurn(
     }
     interruptRequested = true;
     void runtime.agent.turns.interrupt({
-      agentId: request.agentId,
+      ...localIdentity,
       conversationAnchorId: request.conversationAnchorId,
       ...(normalizeText(runtimeTurnRef.turnId) ? { turnId: runtimeTurnRef.turnId } : {}),
       reason: 'desktop_agent_chat_abort',
@@ -154,7 +159,7 @@ export async function streamChatAgentRuntimeAgentTurn(
   request.signal?.addEventListener('abort', requestInterrupt, { once: true });
 
   const requestPayloadBase = {
-    agentId: request.agentId,
+    ...localIdentity,
     conversationAnchorId: request.conversationAnchorId,
     threadId: request.threadId,
     systemPrompt: normalizeText(request.systemPrompt) || undefined,
@@ -218,7 +223,7 @@ export async function streamChatAgentRuntimeAgentTurn(
     stage: 'desktop.runtime_agent.request_ack_ms',
     startedAt: requestStartedAt,
     details: {
-      agentId: request.agentId,
+      localAgentRef: request.localAgentRef,
       conversationAnchorId: request.conversationAnchorId,
       threadId: request.threadId,
       requestId,
@@ -233,7 +238,7 @@ export async function streamChatAgentRuntimeAgentTurn(
     area: 'agent-chat-runtime',
     message: 'action:runtime-agent-turn:request-acked',
     details: {
-      agentId: request.agentId,
+      localAgentRef: request.localAgentRef,
       conversationAnchorId: request.conversationAnchorId,
       threadId: request.threadId,
       requestId,
@@ -251,7 +256,7 @@ export async function streamChatAgentRuntimeAgentTurn(
     eventQueue,
     modelId,
     querySnapshot: () => runtime.agent.turns.getSessionSnapshot({
-      agentId: request.agentId,
+      ...localIdentity,
       conversationAnchorId: request.conversationAnchorId,
       requestId,
     }),

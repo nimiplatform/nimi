@@ -24,7 +24,7 @@ export function useAgentConversationHostActions(
 ): {
   handleDeleteMessage: (messageId: string) => Promise<void>;
   handleDeleteThread: (threadId: string) => Promise<void>;
-  handleSelectAgent: (agentId: string | null) => void;
+  handleSelectAgent: (localAgentRef: string | null) => void;
   handleSelectThread: (threadId: string) => void;
   handleSubmit: (input: { text: string; attachments: readonly PendingAttachment[] }) => Promise<void>;
 } {
@@ -41,7 +41,7 @@ export function useAgentConversationHostActions(
     if (!input.threadsReady) {
       return;
     }
-    if (input.activeThreadId && !input.threads.some((thread) => thread.id === input.activeThreadId) && !input.selectedAgentId) {
+    if (input.activeThreadId && !input.threads.some((thread) => thread.id === input.activeThreadId) && !input.selectedLocalAgentRef) {
       input.syncSelectionToThread(null);
       return;
     }
@@ -84,8 +84,8 @@ export function useAgentConversationHostActions(
     input.setThreadsCache((current) => current.filter((item) => item.id !== normalizedThreadId));
     if (input.activeThreadId === normalizedThreadId) {
       input.currentDraftTextRef.current = '';
-      if (input.activeTarget?.agentId === thread.agentId) {
-        input.setSelectionForAgent(thread.agentId);
+      if (input.activeTarget?.localAgentRef === thread.localAgentRef) {
+        input.setSelectionForLocalAgentRef(thread.localAgentRef);
       } else {
         input.syncSelectionToThread(null);
         input.clearSelectedTarget();
@@ -110,25 +110,25 @@ export function useAgentConversationHostActions(
     input.queryClient.setQueryData(bundleQueryKey(nextBundle.thread.id), nextBundle);
   }, [input.activeThreadId, input.bundle, input.queryClient, input.setThreadsCache]);
 
-  const handleSelectAgent = useCallback((agentId: string | null) => {
+  const handleSelectAgent = useCallback((localAgentRef: string | null) => {
     if (input.submittingThreadId) {
       return;
     }
     void (async () => {
       await persistDraft(input.activeThreadId);
       input.currentDraftTextRef.current = '';
-      const normalizedAgentId = normalizeText(agentId);
-      if (!normalizedAgentId) {
+      const normalizedLocalAgentRef = normalizeText(localAgentRef);
+      if (!normalizedLocalAgentRef) {
         input.syncSelectionToThread(null);
         return;
       }
-      const target = input.targetByAgentId.get(normalizedAgentId);
+      const target = input.targetByLocalAgentRef.get(normalizedLocalAgentRef);
       if (!target) {
         throw new Error(input.t('Chat.agentTargetMissing', {
           defaultValue: 'The selected agent friend is no longer available.',
         }));
       }
-      input.setSelectionForAgent(target.agentId);
+      input.setSelectionForLocalAgentRef(target.localAgentRef);
     })().catch(input.reportHostError);
   }, [input, persistDraft]);
 

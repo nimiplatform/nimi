@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
+import { ChatStreamStatus } from '@nimiplatform/nimi-kit/features/chat/components/chat-stream-status';
 import {
-  ChatStreamStatus,
   type CanonicalMessageContentSlot,
   type ConversationCanonicalMessage,
-} from '@nimiplatform/nimi-kit/features/chat';
+} from '@nimiplatform/nimi-kit/features/chat/headless';
 import {
   cancelStream,
   getStreamState,

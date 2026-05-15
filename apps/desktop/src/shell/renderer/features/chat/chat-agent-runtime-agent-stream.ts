@@ -126,7 +126,9 @@ export function snapshotCompletedTurnHasRecoverableContent(turn: RuntimeAgentSes
 
 export function buildRuntimeAgentSnapshotRecoveryEvents(options: {
   turn: RuntimeAgentSessionTurnSnapshot;
-  agentId: string;
+  ownerUserId: string;
+  realmAgentId: string;
+  localAgentRef: string;
   conversationAnchorId: string;
   requestId: string;
   requestMessageId: string;
@@ -153,7 +155,9 @@ export function buildRuntimeAgentSnapshotRecoveryEvents(options: {
   if (!options.currentTurnAccepted || options.currentRuntimeTurnId !== runtimeTurnId) {
     events.push({
       eventName: 'runtime.agent.turn.accepted',
-      agentId: options.agentId,
+      ownerUserId: options.ownerUserId,
+      realmAgentId: options.realmAgentId,
+      localAgentRef: options.localAgentRef,
       conversationAnchorId: options.conversationAnchorId,
       turnId: runtimeTurnId,
       streamId,
@@ -163,7 +167,9 @@ export function buildRuntimeAgentSnapshotRecoveryEvents(options: {
   if (!options.hasStructuredEnvelope && structured) {
     events.push({
       eventName: 'runtime.agent.turn.structured',
-      agentId: options.agentId,
+      ownerUserId: options.ownerUserId,
+      realmAgentId: options.realmAgentId,
+      localAgentRef: options.localAgentRef,
       conversationAnchorId: options.conversationAnchorId,
       turnId: runtimeTurnId,
       streamId,
@@ -176,7 +182,9 @@ export function buildRuntimeAgentSnapshotRecoveryEvents(options: {
   if (!options.hasCommittedMessage && text) {
     events.push({
       eventName: 'runtime.agent.turn.message_committed',
-      agentId: options.agentId,
+      ownerUserId: options.ownerUserId,
+      realmAgentId: options.realmAgentId,
+      localAgentRef: options.localAgentRef,
       conversationAnchorId: options.conversationAnchorId,
       turnId: runtimeTurnId,
       streamId,
@@ -187,7 +195,9 @@ export function buildRuntimeAgentSnapshotRecoveryEvents(options: {
   if (snapshotTurnIsCompleted(options.turn)) {
     events.push({
       eventName: 'runtime.agent.turn.completed',
-      agentId: options.agentId,
+      ownerUserId: options.ownerUserId,
+      realmAgentId: options.realmAgentId,
+      localAgentRef: options.localAgentRef,
       conversationAnchorId: options.conversationAnchorId,
       turnId: runtimeTurnId,
       streamId,
@@ -200,7 +210,9 @@ export function buildRuntimeAgentSnapshotRecoveryEvents(options: {
   if (snapshotTurnIsFailed(options.turn)) {
     events.push({
       eventName: 'runtime.agent.turn.failed',
-      agentId: options.agentId,
+      ownerUserId: options.ownerUserId,
+      realmAgentId: options.realmAgentId,
+      localAgentRef: options.localAgentRef,
       conversationAnchorId: options.conversationAnchorId,
       turnId: runtimeTurnId,
       streamId,
@@ -249,7 +261,7 @@ export async function recoverRuntimeAgentTerminalSnapshot(options: {
       area: 'agent-chat-runtime',
       message: 'action:runtime-agent-turn:snapshot-recovery-query-failed',
       details: {
-        agentId: options.request.agentId,
+        agentId: options.request.localAgentRef,
         conversationAnchorId: options.request.conversationAnchorId,
         threadId: options.request.threadId,
         requestId: options.requestId,
@@ -267,7 +279,7 @@ export async function recoverRuntimeAgentTerminalSnapshot(options: {
       area: 'agent-chat-runtime',
       message: 'action:runtime-agent-turn:snapshot-active-turn-bound',
       details: {
-        agentId: options.request.agentId,
+        agentId: options.request.localAgentRef,
         conversationAnchorId: options.request.conversationAnchorId,
         threadId: options.request.threadId,
         requestId: options.requestId,
@@ -277,7 +289,9 @@ export async function recoverRuntimeAgentTerminalSnapshot(options: {
     });
     options.enqueue({
       eventName: 'runtime.agent.turn.accepted',
-      agentId: options.request.agentId,
+      ownerUserId: options.request.ownerUserId,
+      realmAgentId: options.request.realmAgentId,
+      localAgentRef: options.request.localAgentRef,
       conversationAnchorId: options.request.conversationAnchorId,
       turnId: activeTurnId,
       streamId,
@@ -296,7 +310,9 @@ export async function recoverRuntimeAgentTerminalSnapshot(options: {
   }
   const events = buildRuntimeAgentSnapshotRecoveryEvents({
     turn,
-    agentId: options.request.agentId,
+    ownerUserId: options.request.ownerUserId,
+    realmAgentId: options.request.realmAgentId,
+    localAgentRef: options.request.localAgentRef,
     conversationAnchorId: options.request.conversationAnchorId,
     requestId: options.requestId,
     requestMessageId: options.requestMessageId,
@@ -314,7 +330,7 @@ export async function recoverRuntimeAgentTerminalSnapshot(options: {
     area: 'agent-chat-runtime',
     message: 'action:runtime-agent-turn:snapshot-recovered',
     details: {
-      agentId: options.request.agentId,
+      agentId: options.request.localAgentRef,
       conversationAnchorId: options.request.conversationAnchorId,
       threadId: options.request.threadId,
       requestId: options.requestId,

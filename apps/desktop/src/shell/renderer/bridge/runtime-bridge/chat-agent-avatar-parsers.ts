@@ -39,6 +39,18 @@ function parseAvatarResourceStatus(value: unknown, errorPrefix: string): Desktop
   throw new Error(`${errorPrefix}: status is invalid`);
 }
 
+function validateLocalAgentRef(ownerUserId: string, realmAgentId: string, localAgentRef: string, errorPrefix: string): void {
+  if (localAgentRef === realmAgentId) {
+    throw new Error(`${errorPrefix}: localAgentRef must not be a bare realmAgentId`);
+  }
+  if (!localAgentRef.startsWith('local-agent:')) {
+    throw new Error(`${errorPrefix}: localAgentRef must start with local-agent:`);
+  }
+  if (localAgentRef !== `local-agent:${ownerUserId}:${realmAgentId}`) {
+    throw new Error(`${errorPrefix}: localAgentRef must equal local-agent:\${ownerUserId}:\${realmAgentId}`);
+  }
+}
+
 export function parseDesktopAgentAvatarResourceRecord(value: unknown): DesktopAgentAvatarResourceRecord {
   const record = assertRecord(value, 'desktop agent avatar resource is invalid');
   return {
@@ -64,8 +76,14 @@ export function parseDesktopAgentAvatarResourceRecords(value: unknown): DesktopA
 
 export function parseDesktopAgentAvatarBindingRecord(value: unknown): DesktopAgentAvatarBindingRecord {
   const record = assertRecord(value, 'desktop agent avatar binding is invalid');
+  const ownerUserId = parseRequiredString(record.ownerUserId, 'ownerUserId', 'desktop agent avatar binding');
+  const realmAgentId = parseRequiredString(record.realmAgentId, 'realmAgentId', 'desktop agent avatar binding');
+  const localAgentRef = parseRequiredString(record.localAgentRef, 'localAgentRef', 'desktop agent avatar binding');
+  validateLocalAgentRef(ownerUserId, realmAgentId, localAgentRef, 'desktop agent avatar binding');
   return {
-    agentId: parseRequiredString(record.agentId, 'agentId', 'desktop agent avatar binding'),
+    ownerUserId,
+    realmAgentId,
+    localAgentRef,
     resourceId: parseRequiredString(record.resourceId, 'resourceId', 'desktop agent avatar binding'),
     updatedAtMs: parseFiniteInteger(record.updatedAtMs, 'updatedAtMs', 'desktop agent avatar binding'),
   };
@@ -88,10 +106,21 @@ export function parseDesktopAgentAvatarImportResult(value: unknown): DesktopAgen
 }
 
 export function parseDesktopAgentAvatarImportVrmInput(input: DesktopAgentAvatarImportVrmInput): DesktopAgentAvatarImportVrmInput {
+  const bindOwnerUserId = parseOptionalString(input.bindOwnerUserId) || null;
+  const bindRealmAgentId = parseOptionalString(input.bindRealmAgentId) || null;
+  const bindLocalAgentRef = parseOptionalString(input.bindLocalAgentRef) || null;
+  if (bindOwnerUserId || bindRealmAgentId || bindLocalAgentRef) {
+    if (!bindOwnerUserId || !bindRealmAgentId || !bindLocalAgentRef) {
+      throw new Error('desktop agent avatar import vrm input: bindOwnerUserId, bindRealmAgentId, and bindLocalAgentRef are required together');
+    }
+    validateLocalAgentRef(bindOwnerUserId, bindRealmAgentId, bindLocalAgentRef, 'desktop agent avatar import vrm input');
+  }
   return {
     sourcePath: parseRequiredString(input.sourcePath, 'sourcePath', 'desktop agent avatar import vrm input'),
     displayName: parseOptionalString(input.displayName) || null,
-    bindAgentId: parseOptionalString(input.bindAgentId) || null,
+    bindOwnerUserId,
+    bindRealmAgentId,
+    bindLocalAgentRef,
     importedAtMs: input.importedAtMs == null
       ? null
       : parseFiniteInteger(input.importedAtMs, 'importedAtMs', 'desktop agent avatar import vrm input'),
@@ -99,10 +128,21 @@ export function parseDesktopAgentAvatarImportVrmInput(input: DesktopAgentAvatarI
 }
 
 export function parseDesktopAgentAvatarImportLive2dInput(input: DesktopAgentAvatarImportLive2dInput): DesktopAgentAvatarImportLive2dInput {
+  const bindOwnerUserId = parseOptionalString(input.bindOwnerUserId) || null;
+  const bindRealmAgentId = parseOptionalString(input.bindRealmAgentId) || null;
+  const bindLocalAgentRef = parseOptionalString(input.bindLocalAgentRef) || null;
+  if (bindOwnerUserId || bindRealmAgentId || bindLocalAgentRef) {
+    if (!bindOwnerUserId || !bindRealmAgentId || !bindLocalAgentRef) {
+      throw new Error('desktop agent avatar import live2d input: bindOwnerUserId, bindRealmAgentId, and bindLocalAgentRef are required together');
+    }
+    validateLocalAgentRef(bindOwnerUserId, bindRealmAgentId, bindLocalAgentRef, 'desktop agent avatar import live2d input');
+  }
   return {
     sourcePath: parseRequiredString(input.sourcePath, 'sourcePath', 'desktop agent avatar import live2d input'),
     displayName: parseOptionalString(input.displayName) || null,
-    bindAgentId: parseOptionalString(input.bindAgentId) || null,
+    bindOwnerUserId,
+    bindRealmAgentId,
+    bindLocalAgentRef,
     importedAtMs: input.importedAtMs == null
       ? null
       : parseFiniteInteger(input.importedAtMs, 'importedAtMs', 'desktop agent avatar import live2d input'),
@@ -110,8 +150,14 @@ export function parseDesktopAgentAvatarImportLive2dInput(input: DesktopAgentAvat
 }
 
 export function parseDesktopAgentAvatarBindingSetInput(input: DesktopAgentAvatarBindingSetInput): DesktopAgentAvatarBindingSetInput {
+  const ownerUserId = parseRequiredString(input.ownerUserId, 'ownerUserId', 'desktop agent avatar binding input');
+  const realmAgentId = parseRequiredString(input.realmAgentId, 'realmAgentId', 'desktop agent avatar binding input');
+  const localAgentRef = parseRequiredString(input.localAgentRef, 'localAgentRef', 'desktop agent avatar binding input');
+  validateLocalAgentRef(ownerUserId, realmAgentId, localAgentRef, 'desktop agent avatar binding input');
   return {
-    agentId: parseRequiredString(input.agentId, 'agentId', 'desktop agent avatar binding input'),
+    ownerUserId,
+    realmAgentId,
+    localAgentRef,
     resourceId: parseRequiredString(input.resourceId, 'resourceId', 'desktop agent avatar binding input'),
     updatedAtMs: parseFiniteInteger(input.updatedAtMs, 'updatedAtMs', 'desktop agent avatar binding input'),
   };

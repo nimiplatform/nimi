@@ -239,12 +239,16 @@ export function avatarDebugProbeRemediation(
 }
 
 export async function requestAvatarDebugWorkbenchProbe(input: {
-  agentId: string;
+  ownerUserId: string;
+  realmAgentId: string;
+  localAgentRef: string;
   conversationAnchorId: string;
   probeKind: AvatarDebugProbeKind;
 }) {
   return getPlatformClient().runtime.avatarDebug.requestProbe({
-    agentId: input.agentId,
+    ownerUserId: input.ownerUserId,
+    realmAgentId: input.realmAgentId,
+    localAgentRef: input.localAgentRef,
     conversationAnchorId: input.conversationAnchorId,
     probeKind: input.probeKind,
     requestedBy: AvatarDebugRequestedBy.DESKTOP_DEBUG_WORKBENCH,
@@ -260,7 +264,9 @@ export function AgentCenterAvatarDebugWorkbench(props: AgentCenterAvatarDebugWor
   const [pendingKind, setPendingKind] = useState<AvatarDebugProbeKind | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const agentId = input.activeTarget?.agentId || '';
+  const localAgentRef = input.activeTarget?.localAgentRef || '';
+  const ownerUserId = input.activeTarget?.ownerUserId || '';
+  const realmAgentId = input.activeTarget?.realmAgentId || '';
   const conversationAnchorId = input.activeConversationAnchorId || '';
   const launchHealth = useMemo(() => buildAvatarDebugWorkbenchLaunchHealth({
     avatarPackageValid,
@@ -276,10 +282,10 @@ export function AgentCenterAvatarDebugWorkbench(props: AgentCenterAvatarDebugWor
   const diagnostics = useMemo(() => buildAvatarDebugWorkbenchDiagnostics(avatarPackageConfig), [
     avatarPackageConfig,
   ]);
-  const canRequestProbe = Boolean(agentId && conversationAnchorId && launchHealth.status === 'ready');
+  const canRequestProbe = Boolean(localAgentRef && ownerUserId && realmAgentId && conversationAnchorId && launchHealth.status === 'ready');
 
   const refreshSnapshot = useCallback(async () => {
-    if (!agentId || !conversationAnchorId) {
+    if (!localAgentRef || !ownerUserId || !realmAgentId || !conversationAnchorId) {
       setErrorMessage(input.t('Chat.agentCenterAvatarDebugMissingAnchor', { defaultValue: 'Open an agent conversation before refreshing avatar debug state.' }));
       return;
     }
@@ -287,7 +293,9 @@ export function AgentCenterAvatarDebugWorkbench(props: AgentCenterAvatarDebugWor
     setErrorMessage(null);
     try {
       const nextSnapshot = await getPlatformClient().runtime.avatarDebug.snapshot({
-        agentId,
+        ownerUserId,
+        realmAgentId,
+        localAgentRef,
         conversationAnchorId,
       });
       setSnapshot(nextSnapshot);
@@ -298,10 +306,10 @@ export function AgentCenterAvatarDebugWorkbench(props: AgentCenterAvatarDebugWor
     } finally {
       setPendingKind(null);
     }
-  }, [agentId, conversationAnchorId, input]);
+  }, [conversationAnchorId, input, localAgentRef, ownerUserId, realmAgentId]);
 
   const runProbe = useCallback(async (probeKind: AvatarDebugProbeKind) => {
-    if (!agentId || !conversationAnchorId) {
+    if (!localAgentRef || !ownerUserId || !realmAgentId || !conversationAnchorId) {
       setErrorMessage(input.t('Chat.agentCenterAvatarDebugMissingAnchor', { defaultValue: 'Open an agent conversation before running probes.' }));
       return;
     }
@@ -309,14 +317,18 @@ export function AgentCenterAvatarDebugWorkbench(props: AgentCenterAvatarDebugWor
     setErrorMessage(null);
     try {
       const response = await requestAvatarDebugWorkbenchProbe({
-        agentId,
+        ownerUserId,
+        realmAgentId,
+        localAgentRef,
         conversationAnchorId,
         probeKind,
       });
       setLatestResult(response.result || null);
       setLatestReplay(response.replayRef || null);
       const nextSnapshot = await getPlatformClient().runtime.avatarDebug.snapshot({
-        agentId,
+        ownerUserId,
+        realmAgentId,
+        localAgentRef,
         conversationAnchorId,
       });
       setSnapshot(nextSnapshot);
@@ -325,18 +337,20 @@ export function AgentCenterAvatarDebugWorkbench(props: AgentCenterAvatarDebugWor
     } finally {
       setPendingKind(null);
     }
-  }, [agentId, conversationAnchorId, input]);
+  }, [conversationAnchorId, input, localAgentRef, ownerUserId, realmAgentId]);
 
   const openReplay = useCallback(async () => {
     const probeId = latestResult?.probeId || latestReplay?.probeId || '';
-    if (!agentId || !conversationAnchorId || !probeId) {
+    if (!localAgentRef || !ownerUserId || !realmAgentId || !conversationAnchorId || !probeId) {
       return;
     }
     setPendingKind(AvatarDebugProbeKind.UNSPECIFIED);
     setErrorMessage(null);
     try {
       const replay = await getPlatformClient().runtime.avatarDebug.getReplay({
-        agentId,
+        ownerUserId,
+        realmAgentId,
+        localAgentRef,
         conversationAnchorId,
         probeId,
       });
@@ -347,7 +361,7 @@ export function AgentCenterAvatarDebugWorkbench(props: AgentCenterAvatarDebugWor
     } finally {
       setPendingKind(null);
     }
-  }, [agentId, conversationAnchorId, input, latestReplay, latestResult]);
+  }, [conversationAnchorId, input, latestReplay, latestResult, localAgentRef, ownerUserId, realmAgentId]);
 
   const latestStatus = avatarDebugProbePresentationStatusLabel(latestResult, latestReplay);
   const latestEvidence = latestResult?.evidenceRefs.length ? latestResult.evidenceRefs.join(', ') : input.t('Chat.agentCenterAvatarDebugNoEvidence', { defaultValue: 'No evidence linked yet' });
@@ -387,7 +401,7 @@ export function AgentCenterAvatarDebugWorkbench(props: AgentCenterAvatarDebugWor
       <div className="mt-3 flex flex-wrap gap-2">
         <button
           type="button"
-          disabled={!agentId || !conversationAnchorId || pendingKind !== null}
+          disabled={!localAgentRef || !ownerUserId || !realmAgentId || !conversationAnchorId || pendingKind !== null}
           onClick={() => { void refreshSnapshot(); }}
           className="rounded-md border border-emerald-200 bg-white px-2.5 py-1.5 text-[11px] font-semibold text-emerald-700 transition-colors hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-50"
         >

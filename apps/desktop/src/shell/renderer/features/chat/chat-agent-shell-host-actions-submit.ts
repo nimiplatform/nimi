@@ -119,7 +119,7 @@ export async function submitAgentConversationTurn(input: {
     safeLogAgentSubmit({
       message: 'action:submit:start',
       details: {
-        selectedAgentId: activeTarget.agentId,
+        selectedLocalAgentRef: activeTarget.localAgentRef,
         activeThreadId: input.hostInput.activeThreadId,
         submittedTextLength: submittedText.length,
         attachmentCount: input.payload.attachments.length,
@@ -139,7 +139,7 @@ export async function submitAgentConversationTurn(input: {
     safeLogAgentSubmit({
       message: 'action:submit:thread-anchor-ready',
       details: {
-        selectedAgentId: activeTarget.agentId,
+        selectedLocalAgentRef: activeTarget.localAgentRef,
         threadId: effectiveThreadId,
         conversationAnchorId,
       },
@@ -176,7 +176,7 @@ export async function submitAgentConversationTurn(input: {
     const optimisticUserProjection = submittedText || optimisticPreviewAttachments.length > 0
       ? buildAgentUserProjectionCommit({
         threadId: effectiveThreadId,
-        agentId: activeTarget.agentId,
+        agentId: activeTarget.localAgentRef,
         conversationAnchorId,
         turnId: userTurnId,
         submittedText,
@@ -220,7 +220,7 @@ export async function submitAgentConversationTurn(input: {
       : [];
     const userProjection = buildAgentUserProjectionCommit({
       threadId: effectiveThreadId,
-      agentId: activeTarget.agentId,
+      agentId: activeTarget.localAgentRef,
       conversationAnchorId,
       turnId: userTurnId,
       submittedText,
@@ -263,7 +263,7 @@ export async function submitAgentConversationTurn(input: {
 
     await chatAgentStoreClient.deleteDraft(effectiveThreadId);
     await writeDesktopAgentUserTurnMemory({
-      agentId: activeTarget.agentId,
+      agentId: activeTarget.localAgentRef,
       displayName: activeTarget.displayName,
       worldId: activeTarget.worldId,
       submittedText,
@@ -445,7 +445,7 @@ export async function submitAgentConversationTurn(input: {
     safeLogAgentSubmit({
       message: 'action:submit:runtime-turn-started',
       details: {
-        selectedAgentId: activeTarget.agentId,
+        selectedLocalAgentRef: activeTarget.localAgentRef,
         threadId: effectiveThreadId,
         conversationAnchorId,
         assistantTurnId,
@@ -459,7 +459,7 @@ export async function submitAgentConversationTurn(input: {
       safeLogAgentSubmit({
         message: 'action:submit:runtime-turn-completed',
         details: {
-          selectedAgentId: activeTarget.agentId,
+          selectedLocalAgentRef: activeTarget.localAgentRef,
           threadId: effectiveThreadId,
           conversationAnchorId,
           assistantTurnId,
@@ -477,7 +477,7 @@ export async function submitAgentConversationTurn(input: {
         level: 'warn',
         message: 'action:submit:runtime-turn-failed',
         details: {
-          selectedAgentId: activeTarget.agentId,
+          selectedLocalAgentRef: activeTarget.localAgentRef,
           threadId: effectiveThreadId,
           conversationAnchorId,
           assistantTurnId,

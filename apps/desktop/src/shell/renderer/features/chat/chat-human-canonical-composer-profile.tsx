@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { MessageType } from '@nimiplatform/sdk/realm';
-import { CanonicalComposer } from '@nimiplatform/nimi-kit/features/chat';
+import { CanonicalComposer } from '@nimiplatform/nimi-kit/features/chat/components/canonical-composer';
 import { CHAT_CONTENT_WIDTH_CLASS, CHAT_CONTENT_POSITION_CLASS } from './chat-shared-content-layout';
 import { createRealmChatComposerAdapter } from '@nimiplatform/nimi-kit/features/chat/realm';
 import { useTranslation } from 'react-i18next';

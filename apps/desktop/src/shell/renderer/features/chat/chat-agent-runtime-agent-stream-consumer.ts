@@ -148,7 +148,7 @@ export function createRuntimeAgentTurnStream(input: RuntimeAgentTurnStreamInput)
             stage: 'desktop.runtime_agent.message_committed_to_message_sealed_ms',
             startedAt: messageCommittedAt,
             details: {
-              agentId: request.agentId,
+              localAgentRef: request.localAgentRef,
               conversationAnchorId: request.conversationAnchorId,
               threadId: request.threadId,
               requestId,
@@ -232,7 +232,7 @@ export function createRuntimeAgentTurnStream(input: RuntimeAgentTurnStreamInput)
                 area: 'agent-chat-runtime',
                 message: 'action:runtime-agent-turn:accepted',
                 details: {
-                  agentId: request.agentId,
+                  localAgentRef: request.localAgentRef,
                   conversationAnchorId: request.conversationAnchorId,
                   threadId: request.threadId,
                   requestId,
@@ -259,7 +259,7 @@ export function createRuntimeAgentTurnStream(input: RuntimeAgentTurnStreamInput)
                     stage: 'desktop.runtime_agent.accepted_to_started_ms',
                     startedAt: acceptedAt,
                     details: {
-                      agentId: request.agentId,
+                      localAgentRef: request.localAgentRef,
                       conversationAnchorId: request.conversationAnchorId,
                       threadId: request.threadId,
                       requestId,
@@ -276,7 +276,7 @@ export function createRuntimeAgentTurnStream(input: RuntimeAgentTurnStreamInput)
                   area: 'agent-chat-runtime',
                   message: 'action:runtime-agent-turn:started',
                   details: {
-                    agentId: request.agentId,
+                    localAgentRef: request.localAgentRef,
                     conversationAnchorId: request.conversationAnchorId,
                     threadId: request.threadId,
                     requestId,
@@ -324,7 +324,7 @@ export function createRuntimeAgentTurnStream(input: RuntimeAgentTurnStreamInput)
                 area: 'agent-chat-runtime',
                 message: 'action:runtime-agent-turn:projection-event',
                 details: {
-                  agentId: request.agentId,
+                  localAgentRef: request.localAgentRef,
                   conversationAnchorId: request.conversationAnchorId,
                   threadId: request.threadId,
                   requestId,
@@ -361,7 +361,7 @@ export function createRuntimeAgentTurnStream(input: RuntimeAgentTurnStreamInput)
                       stage: 'desktop.runtime_agent.started_to_first_delta_ms',
                       startedAt,
                       details: {
-                        agentId: request.agentId,
+                        localAgentRef: request.localAgentRef,
                         conversationAnchorId: request.conversationAnchorId,
                         threadId: request.threadId,
                         requestId,
@@ -403,7 +403,7 @@ export function createRuntimeAgentTurnStream(input: RuntimeAgentTurnStreamInput)
                 area: 'agent-chat-runtime',
                 message: 'action:runtime-agent-turn:message-committed',
                 details: {
-                  agentId: request.agentId,
+                  localAgentRef: request.localAgentRef,
                   conversationAnchorId: request.conversationAnchorId,
                   threadId: request.threadId,
                   requestId,
@@ -428,7 +428,7 @@ export function createRuntimeAgentTurnStream(input: RuntimeAgentTurnStreamInput)
                 area: 'agent-chat-runtime',
                 message: 'action:runtime-agent-turn:completed',
                 details: {
-                  agentId: request.agentId,
+                  localAgentRef: request.localAgentRef,
                   conversationAnchorId: request.conversationAnchorId,
                   threadId: request.threadId,
                   requestId,
@@ -444,7 +444,7 @@ export function createRuntimeAgentTurnStream(input: RuntimeAgentTurnStreamInput)
                 stage: 'desktop.runtime_agent.completed_to_ui_done_ms',
                 startedAt: nowMs(),
                 details: {
-                  agentId: request.agentId,
+                  localAgentRef: request.localAgentRef,
                   conversationAnchorId: request.conversationAnchorId,
                   threadId: request.threadId,
                   requestId,
@@ -510,7 +510,7 @@ export function createRuntimeAgentTurnStream(input: RuntimeAgentTurnStreamInput)
                 area: 'agent-chat-runtime',
                 message: 'action:runtime-agent-turn:failed',
                 details: {
-                  agentId: request.agentId,
+                  localAgentRef: request.localAgentRef,
                   conversationAnchorId: request.conversationAnchorId,
                   threadId: request.threadId,
                   requestId,

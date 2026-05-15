@@ -4,6 +4,8 @@ import test from 'node:test';
 import { MemoryCanonicalClass, RuntimeReasonCode } from '@nimiplatform/sdk/runtime';
 import { createRuntimeAgentInspectAdapter } from '../src/shell/renderer/infra/runtime-agent-inspect.js';
 
+const LOCAL_AGENT_REF = 'local-agent:user-1:agent-1';
+
 const PROTO_AGENT_AUTONOMY_MODE = {
   OFF: 1,
   LOW: 2,
@@ -326,7 +328,7 @@ function createRuntimeMock() {
                 owner: {
                   oneofKind: 'agentDyadic',
                   agentDyadic: {
-                    agentId: 'agent-1',
+                    agentId: LOCAL_AGENT_REF,
                     userId: 'user-1',
                   },
                 },
@@ -355,7 +357,7 @@ function createRuntimeMock() {
                 owner: {
                   oneofKind: 'agentCore',
                   agent: {
-                    agentId: 'agent-1',
+                    agentId: LOCAL_AGENT_REF,
                   },
                 },
               },
@@ -532,7 +534,7 @@ test('runtime agent inspect adapter projects public state and pending hook summa
     getSubjectUserId: () => 'user-1',
   });
 
-  const snapshot = await adapter.getPublicInspect('agent-1');
+  const snapshot = await adapter.getPublicInspect(LOCAL_AGENT_REF);
 
   assert.equal(snapshot.lifecycleStatus, 'active');
   assert.deepEqual(snapshot.presentationProfile, {
@@ -603,10 +605,10 @@ test('runtime agent inspect adapter omits dyadic memory preview without active d
   });
 
   await adapter.updateState({
-    agentId: 'agent-1',
+    agentId: LOCAL_AGENT_REF,
     clearDyadicContext: true,
   });
-  const snapshot = await adapter.getPublicInspect('agent-1');
+  const snapshot = await adapter.getPublicInspect(LOCAL_AGENT_REF);
 
   assert.equal(snapshot.activeUserId, null);
   assert.equal(calls.queryMemory.length, 1);
@@ -623,7 +625,7 @@ test('runtime agent inspect adapter projects persistent presentation profile wit
     getSubjectUserId: () => 'user-1',
   });
 
-  const profile = await adapter.getPresentationProfile('agent-1');
+  const profile = await adapter.getPresentationProfile(LOCAL_AGENT_REF);
 
   assert.deepEqual(profile, {
     backendKind: 'sprite2d',
@@ -688,7 +690,7 @@ test('runtime agent inspect adapter accepts live2d presentation profiles', async
     getSubjectUserId: () => 'user-1',
   });
 
-  const profile = await adapter.getPresentationProfile('agent-1');
+  const profile = await adapter.getPresentationProfile(LOCAL_AGENT_REF);
 
   assert.deepEqual(profile, {
     backendKind: 'live2d',
@@ -707,9 +709,9 @@ test('runtime agent inspect adapter enables and disables autonomy through admitt
     getSubjectUserId: () => 'user-1',
   });
 
-  const enabled = await adapter.enableAutonomy('agent-1');
+  const enabled = await adapter.enableAutonomy(LOCAL_AGENT_REF);
   const disabled = await adapter.disableAutonomy({
-    agentId: 'agent-1',
+    agentId: LOCAL_AGENT_REF,
     reason: 'desktop_test_disable',
   });
 
@@ -737,13 +739,13 @@ test('runtime agent inspect adapter updates admitted agent state through runtime
   });
 
   const updated = await adapter.updateState({
-    agentId: 'agent-1',
+    agentId: LOCAL_AGENT_REF,
     statusText: 'ready for tea',
     worldId: 'world-2',
     userId: 'user-7',
   });
   const cleared = await adapter.updateState({
-    agentId: 'agent-1',
+    agentId: LOCAL_AGENT_REF,
     clearWorldContext: true,
     clearDyadicContext: true,
   });
@@ -772,7 +774,7 @@ test('runtime agent inspect adapter updates autonomy config through admitted run
   });
 
   const updated = await adapter.setAutonomyConfig({
-    agentId: 'agent-1',
+    agentId: LOCAL_AGENT_REF,
     mode: 'high',
     dailyTokenBudget: '640',
     maxTokensPerHook: '160',
@@ -801,7 +803,7 @@ test('runtime agent inspect adapter cancels hooks through admitted runtime write
   });
 
   const outcome = await adapter.cancelHook({
-    agentId: 'agent-1',
+    agentId: LOCAL_AGENT_REF,
     hookId: 'hook-1',
     reason: 'desktop_test_cancel',
   });
@@ -827,7 +829,7 @@ test('runtime agent inspect adapter subscribes to agent events with protected re
   const events: Array<{ eventType: number; sequence: string; detailKind: string | null }> = [];
 
   await adapter.subscribePublicEvents({
-    agentId: 'agent-1',
+    agentId: LOCAL_AGENT_REF,
     onEvent: async (event) => {
       events.push({
         eventType: event.eventType,

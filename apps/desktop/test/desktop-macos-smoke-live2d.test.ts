@@ -431,7 +431,9 @@ test('desktop macos smoke live2d avatar product scenario waits for same-anchor A
       assert.equal(agentId, 'agent-e2e-alpha');
       return [{
         avatarInstanceId: 'desktop-avatar-agent-e2e-alpha-anchor-1',
-        agentId: 'agent-e2e-alpha',
+        ownerUserId: 'desktop-smoke',
+        realmAgentId: 'agent-e2e-alpha',
+        localAgentRef: 'local-agent:desktop-smoke:agent-e2e-alpha',
         launchSource: 'desktop-agent-chat',
       }];
     },

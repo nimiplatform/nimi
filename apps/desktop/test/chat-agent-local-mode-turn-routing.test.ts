@@ -124,7 +124,9 @@ test('agent runtime turn requests runtime without desktop local warm on local ro
     });
 
     const result = await streamChatAgentRuntimeAgentTurn({
-      agentId: 'agent-1',
+      ownerUserId: 'user-1',
+      realmAgentId: 'agent-1',
+      localAgentRef: 'local-agent:user-1:agent-1',
       conversationAnchorId: 'anchor-local',
       threadId: 'thread-local',
       messages: [{ role: 'user', text: 'hello local' }],
@@ -269,7 +271,9 @@ test('agent runtime turn request uses resolved cloud route/model binding', async
     });
 
     const result = await streamChatAgentRuntimeAgentTurn({
-      agentId: 'agent-1',
+      ownerUserId: 'user-1',
+      realmAgentId: 'agent-1',
+      localAgentRef: 'local-agent:user-1:agent-1',
       conversationAnchorId: 'anchor-cloud',
       threadId: 'thread-cloud',
       messages: [{ role: 'user', text: 'hello cloud' }],
@@ -422,7 +426,9 @@ test('agent runtime turn fails closed when runtime rejects request_id in turn pa
     });
 
     await assert.rejects(() => streamChatAgentRuntimeAgentTurn({
-      agentId: 'agent-1',
+      ownerUserId: 'user-1',
+      realmAgentId: 'agent-1',
+      localAgentRef: 'local-agent:user-1:agent-1',
       conversationAnchorId: 'anchor-legacy',
       threadId: 'thread-legacy',
       messages: [{ role: 'user', text: 'hello legacy' }],
@@ -545,7 +551,9 @@ test('agent runtime turn yields terminal turn-failed when runtime emits failed e
     });
 
     const result = await streamChatAgentRuntimeAgentTurn({
-      agentId: 'agent-1',
+      ownerUserId: 'user-1',
+      realmAgentId: 'agent-1',
+      localAgentRef: 'local-agent:user-1:agent-1',
       conversationAnchorId: 'anchor-failed',
       threadId: 'thread-failed',
       messages: [{ role: 'user', text: 'hello failed' }],

@@ -51,14 +51,18 @@ test('agent conversation anchor binding persists only explicit anchor pointers',
 
   const binding = persistAgentConversationAnchorBinding({
     threadId: ' thread-1 ',
-    agentId: ' agent-alpha ',
+    ownerUserId: ' user-a ',
+    realmAgentId: ' agent-alpha ',
+    localAgentRef: ' local-agent:user-a:agent-alpha ',
     conversationAnchorId: ' anchor-1 ',
     updatedAtMs: 10.7,
   });
 
   assert.deepEqual(binding, {
     threadId: 'thread-1',
-    agentId: 'agent-alpha',
+    ownerUserId: 'user-a',
+    realmAgentId: 'agent-alpha',
+    localAgentRef: 'local-agent:user-a:agent-alpha',
     conversationAnchorId: 'anchor-1',
     updatedAtMs: 10,
   });
@@ -73,13 +77,17 @@ test('agent conversation anchor binding hydrates from storage without same-agent
   storage.setItem(AGENT_CHAT_ANCHOR_BINDINGS_STORAGE_KEY, JSON.stringify([
     {
       threadId: 'thread-a',
-      agentId: 'agent-alpha',
+      ownerUserId: 'user-a',
+    realmAgentId: 'agent-alpha',
+    localAgentRef: 'local-agent:user-a:agent-alpha',
       conversationAnchorId: 'anchor-a',
       updatedAtMs: 1,
     },
     {
       threadId: 'thread-b',
-      agentId: 'agent-alpha',
+      ownerUserId: 'user-a',
+    realmAgentId: 'agent-alpha',
+    localAgentRef: 'local-agent:user-a:agent-alpha',
       conversationAnchorId: 'anchor-b',
       updatedAtMs: 2,
     },
@@ -90,18 +98,60 @@ test('agent conversation anchor binding hydrates from storage without same-agent
   assert.equal(getAgentConversationAnchorBinding('thread-b')?.conversationAnchorId, 'anchor-b');
 });
 
+test('agent conversation anchor binding keeps same realmAgentId separate across owners', () => {
+  installMemoryStorage();
+
+  persistAgentConversationAnchorBinding({
+    threadId: 'thread-owner-a',
+    ownerUserId: 'owner-a',
+    realmAgentId: 'agent-shared',
+    localAgentRef: 'local-agent:owner-a:agent-shared',
+    conversationAnchorId: 'anchor-owner-a',
+    updatedAtMs: 10,
+  });
+  persistAgentConversationAnchorBinding({
+    threadId: 'thread-owner-b',
+    ownerUserId: 'owner-b',
+    realmAgentId: 'agent-shared',
+    localAgentRef: 'local-agent:owner-b:agent-shared',
+    conversationAnchorId: 'anchor-owner-b',
+    updatedAtMs: 11,
+  });
+
+  assert.deepEqual(getAgentConversationAnchorBinding('thread-owner-a'), {
+    threadId: 'thread-owner-a',
+    ownerUserId: 'owner-a',
+    realmAgentId: 'agent-shared',
+    localAgentRef: 'local-agent:owner-a:agent-shared',
+    conversationAnchorId: 'anchor-owner-a',
+    updatedAtMs: 10,
+  });
+  assert.deepEqual(getAgentConversationAnchorBinding('thread-owner-b'), {
+    threadId: 'thread-owner-b',
+    ownerUserId: 'owner-b',
+    realmAgentId: 'agent-shared',
+    localAgentRef: 'local-agent:owner-b:agent-shared',
+    conversationAnchorId: 'anchor-owner-b',
+    updatedAtMs: 11,
+  });
+});
+
 test('agent conversation anchor binding drops malformed persisted entries and clears invalid pointers', () => {
   const storage = installMemoryStorage();
   storage.setItem(AGENT_CHAT_ANCHOR_BINDINGS_STORAGE_KEY, JSON.stringify([
     {
       threadId: 'thread-valid',
-      agentId: 'agent-alpha',
+      ownerUserId: 'user-a',
+    realmAgentId: 'agent-alpha',
+    localAgentRef: 'local-agent:user-a:agent-alpha',
       conversationAnchorId: 'anchor-valid',
       updatedAtMs: 3,
     },
     {
       threadId: 'thread-invalid',
-      agentId: 'agent-alpha',
+      ownerUserId: 'user-a',
+    realmAgentId: 'agent-alpha',
+    localAgentRef: 'local-agent:user-a:agent-alpha',
       conversationAnchorId: '',
       updatedAtMs: 4,
     },
@@ -126,7 +176,9 @@ test('agent conversation anchor binding notifies same-window subscribers', () =>
   try {
     persistAgentConversationAnchorBinding({
       threadId: 'thread-live',
-      agentId: 'agent-alpha',
+      ownerUserId: 'user-a',
+    realmAgentId: 'agent-alpha',
+    localAgentRef: 'local-agent:user-a:agent-alpha',
       conversationAnchorId: 'anchor-live',
       updatedAtMs: 5,
     });

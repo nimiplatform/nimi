@@ -1,17 +1,60 @@
-import { useEffect, type MouseEvent } from 'react';
+import React, { Suspense, lazy, useEffect, type MouseEvent, type PropsWithChildren } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { desktopBridge } from '@renderer/bridge';
 import { useAppStore, type AppTab } from '@renderer/app-shell/providers/app-store';
 import { useUiExtensionContext } from '@renderer/mod-ui/host/slot-context';
 import { getShellFeatureFlags } from '@nimiplatform/nimi-kit/core/shell-mode';
 import { logoutAndClearSession } from '@renderer/features/auth/logout';
-import { useChatRealtimeSync } from '@renderer/features/realtime/use-chat-realtime-sync';
 import { logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
 import { MainLayoutView } from './main-layout-view';
 
 const MACOS_TRAFFIC_LIGHT_SAFE_ZONE_PX = 92;
 
 let tabSwitchPending: { fromTab: string; toTab: string; startMs: number } | null = null;
+
+const ChatRealtimeSyncHost = lazy(async () => {
+  const mod = await import('@renderer/features/realtime/use-chat-realtime-sync');
+  return {
+    default: function ChatRealtimeSyncHostModule() {
+      mod.useChatRealtimeSync();
+      return null;
+    },
+  };
+});
+
+const ScenarioJobStatusHost = lazy(async () => {
+  const mod = await import('@renderer/features/turns/scenario-job-status-host');
+  return { default: mod.ScenarioJobStatusHost };
+});
+
+class NonCriticalStartupBoundary extends React.Component<PropsWithChildren, { hasError: boolean }> {
+  constructor(props: PropsWithChildren) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError(): { hasError: boolean } {
+    return { hasError: true };
+  }
+
+  override componentDidCatch(error: Error): void {
+    logRendererEvent({
+      level: 'warn',
+      area: 'shell',
+      message: 'action:non-critical-startup-module-failed',
+      details: {
+        error: error.message || String(error),
+      },
+    });
+  }
+
+  override render() {
+    if (this.state.hasError) {
+      return null;
+    }
+    return this.props.children;
+  }
+}
 
 export function MainLayout() {
   const flags = getShellFeatureFlags();
@@ -24,7 +67,6 @@ export function MainLayout() {
   const context = useUiExtensionContext({
     sidebarCollapsed: true,
   });
-  useChatRealtimeSync();
 
   const displayName = String(user?.displayName || user?.handle || 'User');
   const userAvatarUrl = typeof user?.avatarUrl === 'string' ? user.avatarUrl : null;
@@ -86,24 +128,32 @@ export function MainLayout() {
   };
 
   return (
-    <MainLayoutView
-      activeTab={activeTab}
-      authStatus={authStatus}
-      displayName={displayName}
-      userAvatarUrl={userAvatarUrl}
-      userEmail={userEmail}
-      context={context}
-      onNav={onNav}
-      onLogout={() => {
-        void onLogout();
-      }}
-      onLogin={() => {
-        setActiveTab('chat');
-        void navigate('/login', {
-          state: { returnToChat: true },
-        });
-      }}
-      onTitlebarMouseDown={onTitlebarMouseDown}
-    />
+    <>
+      <MainLayoutView
+        activeTab={activeTab}
+        authStatus={authStatus}
+        displayName={displayName}
+        userAvatarUrl={userAvatarUrl}
+        userEmail={userEmail}
+        context={context}
+        onNav={onNav}
+        onLogout={() => {
+          void onLogout();
+        }}
+        onLogin={() => {
+          setActiveTab('chat');
+          void navigate('/login', {
+            state: { returnToChat: true },
+          });
+        }}
+        onTitlebarMouseDown={onTitlebarMouseDown}
+      />
+      <NonCriticalStartupBoundary>
+        <Suspense fallback={null}>
+          <ChatRealtimeSyncHost />
+          <ScenarioJobStatusHost />
+        </Suspense>
+      </NonCriticalStartupBoundary>
+    </>
   );
 }

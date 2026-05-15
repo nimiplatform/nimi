@@ -9,18 +9,28 @@ import {
 } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
-  CanonicalDrawerSection,
-  CanonicalStagePanel,
   type CanonicalStagePanelProps,
+} from '@nimiplatform/nimi-kit/features/chat/components/canonical-stage-panel';
+import {
+  CanonicalDrawerSection,
+} from '@nimiplatform/nimi-kit/features/chat/components/canonical-drawer-section';
+import {
+  CanonicalStagePanel,
+} from '@nimiplatform/nimi-kit/features/chat/components/canonical-stage-panel';
+import {
   CanonicalTranscriptView,
   type CanonicalTranscriptViewProps,
+} from '@nimiplatform/nimi-kit/features/chat/components/canonical-transcript-view';
+import {
+  ChatStreamStatus,
+} from '@nimiplatform/nimi-kit/features/chat/components/chat-stream-status';
+import {
   type CanonicalMessageAccessorySlot,
   type CanonicalMessageAvatarSlot,
   type CanonicalMessageContentSlot,
   type ConversationCanonicalMessage,
-  ChatStreamStatus,
   type ConversationCharacterData,
-} from '@nimiplatform/nimi-kit/features/chat';
+} from '@nimiplatform/nimi-kit/features/chat/headless';
 import {
   getRealmChatTimelineDisplayModel,
   useRealmMessageTimeline,

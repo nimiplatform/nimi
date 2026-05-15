@@ -15,9 +15,22 @@ fn temp_home(prefix: &str) -> PathBuf {
     dir
 }
 
-fn sample_target_snapshot(agent_id: &str) -> ChatAgentTargetSnapshot {
+fn sample_local_agent_ref(owner_user_id: &str, realm_agent_id: &str) -> String {
+    format!("local-agent:{owner_user_id}:{realm_agent_id}")
+}
+
+fn sample_target_snapshot(realm_agent_id: &str) -> ChatAgentTargetSnapshot {
+    sample_target_snapshot_for_owner("user-1", realm_agent_id)
+}
+
+fn sample_target_snapshot_for_owner(
+    owner_user_id: &str,
+    realm_agent_id: &str,
+) -> ChatAgentTargetSnapshot {
     ChatAgentTargetSnapshot {
-        agent_id: agent_id.to_string(),
+        owner_user_id: owner_user_id.to_string(),
+        realm_agent_id: realm_agent_id.to_string(),
+        local_agent_ref: sample_local_agent_ref(owner_user_id, realm_agent_id),
         display_name: "Agent One".to_string(),
         handle: "~agent-one".to_string(),
         avatar_url: Some("https://example.com/avatar.png".to_string()),
@@ -25,6 +38,25 @@ fn sample_target_snapshot(agent_id: &str) -> ChatAgentTargetSnapshot {
         world_name: Some("OASIS".to_string()),
         bio: Some("Helpful agent".to_string()),
         ownership_type: Some("WORLD_OWNED".to_string()),
+    }
+}
+
+fn sample_create_thread_input(
+    id: &str,
+    owner_user_id: &str,
+    realm_agent_id: &str,
+) -> ChatAgentCreateThreadInput {
+    ChatAgentCreateThreadInput {
+        id: id.to_string(),
+        owner_user_id: owner_user_id.to_string(),
+        realm_agent_id: realm_agent_id.to_string(),
+        local_agent_ref: sample_local_agent_ref(owner_user_id, realm_agent_id),
+        title: "Agent One".to_string(),
+        created_at_ms: 100,
+        updated_at_ms: 120,
+        last_message_at_ms: None,
+        archived_at_ms: None,
+        target_snapshot: sample_target_snapshot_for_owner(owner_user_id, realm_agent_id),
     }
 }
 
@@ -77,19 +109,12 @@ fn chat_agent_store_round_trip_thread_message_and_draft() {
 
         let thread = create_thread(
             &conn,
-            &ChatAgentCreateThreadInput {
-                id: "thread-agent-001".to_string(),
-                agent_id: "agent-001".to_string(),
-                title: "Agent One".to_string(),
-                created_at_ms: 100,
-                updated_at_ms: 120,
-                last_message_at_ms: None,
-                archived_at_ms: None,
-                target_snapshot: sample_target_snapshot("agent-001"),
-            },
+            &sample_create_thread_input("thread-agent-001", "user-1", "agent-001"),
         )
         .expect("create thread");
-        assert_eq!(thread.agent_id, "agent-001");
+        assert_eq!(thread.realm_agent_id, "agent-001");
+        assert_eq!(thread.owner_user_id, "user-1");
+        assert_eq!(thread.local_agent_ref, "local-agent:user-1:agent-001");
 
         let message = create_message(
             &conn,
@@ -182,16 +207,7 @@ fn chat_agent_store_rejects_missing_thread_reuses_duplicate_agent_and_invalid_js
 
         let created = create_thread(
             &conn,
-            &ChatAgentCreateThreadInput {
-                id: "thread-agent-dup".to_string(),
-                agent_id: "agent-dup".to_string(),
-                title: "Agent Dup".to_string(),
-                created_at_ms: 100,
-                updated_at_ms: 120,
-                last_message_at_ms: None,
-                archived_at_ms: None,
-                target_snapshot: sample_target_snapshot("agent-dup"),
-            },
+            &sample_create_thread_input("thread-agent-dup", "user-1", "agent-dup"),
         )
         .expect("create thread");
         assert_eq!(created.id, "thread-agent-dup");
@@ -200,7 +216,9 @@ fn chat_agent_store_rejects_missing_thread_reuses_duplicate_agent_and_invalid_js
             &conn,
             &ChatAgentCreateThreadInput {
                 id: "thread-agent-dup-2".to_string(),
-                agent_id: "agent-dup".to_string(),
+                owner_user_id: "user-1".to_string(),
+                realm_agent_id: "agent-dup".to_string(),
+                local_agent_ref: sample_local_agent_ref("user-1", "agent-dup"),
                 title: "Agent Dup Updated".to_string(),
                 created_at_ms: 101,
                 updated_at_ms: 121,
@@ -236,6 +254,132 @@ fn chat_agent_store_rejects_missing_thread_reuses_duplicate_agent_and_invalid_js
 }
 
 #[test]
+fn chat_agent_store_isolates_same_realm_agent_across_owners() {
+    let home = temp_home("owner-isolation");
+    with_env(&[("HOME", home.to_str())], || {
+        let path = crate::desktop_paths::resolve_nimi_data_dir()
+            .expect("nimi data dir")
+            .join("chat-agent")
+            .join("main.db");
+        fs::create_dir_all(path.parent().expect("parent")).expect("create parent");
+        let conn = Connection::open(&path).expect("open");
+        super::schema::init_schema(&conn).expect("init schema");
+
+        let alice = create_thread(
+            &conn,
+            &sample_create_thread_input("thread-alice-shared-agent", "alice", "agent-shared"),
+        )
+        .expect("create alice thread");
+        let bob = create_thread(
+            &conn,
+            &sample_create_thread_input("thread-bob-shared-agent", "bob", "agent-shared"),
+        )
+        .expect("create bob thread");
+
+        assert_ne!(alice.id, bob.id);
+        assert_eq!(alice.realm_agent_id, bob.realm_agent_id);
+        assert_ne!(alice.local_agent_ref, bob.local_agent_ref);
+
+        put_draft(
+            &conn,
+            &ChatAgentPutDraftInput {
+                thread_id: alice.id.clone(),
+                text: "alice draft".to_string(),
+                updated_at_ms: 200,
+            },
+        )
+        .expect("put alice draft");
+        put_draft(
+            &conn,
+            &ChatAgentPutDraftInput {
+                thread_id: bob.id.clone(),
+                text: "bob draft".to_string(),
+                updated_at_ms: 210,
+            },
+        )
+        .expect("put bob draft");
+
+        let alice_bundle = get_thread_bundle(&conn, &alice.id)
+            .expect("alice bundle")
+            .expect("alice bundle present");
+        let bob_bundle = get_thread_bundle(&conn, &bob.id)
+            .expect("bob bundle")
+            .expect("bob bundle present");
+        assert_eq!(alice_bundle.draft.expect("alice draft").text, "alice draft");
+        assert_eq!(bob_bundle.draft.expect("bob draft").text, "bob draft");
+
+        let threads = list_threads(&conn).expect("list threads");
+        assert_eq!(threads.len(), 2);
+        assert!(threads
+            .iter()
+            .any(|thread| thread.local_agent_ref == "local-agent:alice:agent-shared"));
+        assert!(threads
+            .iter()
+            .any(|thread| thread.local_agent_ref == "local-agent:bob:agent-shared"));
+    });
+}
+
+#[test]
+fn chat_agent_store_rejects_invalid_local_agent_identity() {
+    let home = temp_home("identity-negative");
+    with_env(&[("HOME", home.to_str())], || {
+        let path = crate::desktop_paths::resolve_nimi_data_dir()
+            .expect("nimi data dir")
+            .join("chat-agent")
+            .join("main.db");
+        fs::create_dir_all(path.parent().expect("parent")).expect("create parent");
+        let conn = Connection::open(&path).expect("open");
+        super::schema::init_schema(&conn).expect("init schema");
+
+        let mut missing =
+            sample_create_thread_input("thread-missing-local-ref", "user-1", "agent-negative");
+        missing.local_agent_ref.clear();
+        assert!(create_thread(&conn, &missing)
+            .expect_err("missing localAgentRef should fail")
+            .contains("localAgentIdentity.localAgentRef must not be empty"));
+
+        let mut bare =
+            sample_create_thread_input("thread-bare-local-ref", "user-1", "agent-negative");
+        bare.local_agent_ref = "agent-negative".to_string();
+        assert!(create_thread(&conn, &bare)
+            .expect_err("bare realmAgentId should fail")
+            .contains("localAgentRef must not be bare realmAgentId"));
+
+        let mut malformed =
+            sample_create_thread_input("thread-malformed-local-ref", "user-1", "agent-negative");
+        malformed.local_agent_ref = "localagent:user-1:agent-negative".to_string();
+        assert!(create_thread(&conn, &malformed)
+            .expect_err("malformed localAgentRef should fail")
+            .contains("localAgentRef must start with local-agent:"));
+
+        let mut owner_mismatch =
+            sample_create_thread_input("thread-owner-mismatch", "user-1", "agent-negative");
+        owner_mismatch.local_agent_ref = sample_local_agent_ref("user-2", "agent-negative");
+        owner_mismatch.target_snapshot.local_agent_ref = owner_mismatch.local_agent_ref.clone();
+        assert!(create_thread(&conn, &owner_mismatch)
+            .expect_err("owner mismatch should fail")
+            .contains("localAgentRef must equal"));
+
+        let mut realm_mismatch =
+            sample_create_thread_input("thread-realm-mismatch", "user-1", "agent-negative");
+        realm_mismatch.local_agent_ref = sample_local_agent_ref("user-1", "agent-other");
+        realm_mismatch.target_snapshot.local_agent_ref = realm_mismatch.local_agent_ref.clone();
+        assert!(create_thread(&conn, &realm_mismatch)
+            .expect_err("realm mismatch should fail")
+            .contains("localAgentRef must equal"));
+
+        let mut snapshot_mismatch =
+            sample_create_thread_input("thread-snapshot-mismatch", "user-1", "agent-negative");
+        snapshot_mismatch.target_snapshot.owner_user_id = "user-2".to_string();
+        snapshot_mismatch.target_snapshot.local_agent_ref =
+            sample_local_agent_ref("user-2", "agent-negative");
+        assert!(create_thread(&conn, &snapshot_mismatch)
+            .expect_err("target snapshot mismatch should fail")
+            .contains("targetSnapshot local identity must match"));
+    });
+}
+
+#[test]
 fn chat_agent_draft_put_overwrites_and_delete_clears() {
     let home = temp_home("draft");
     with_env(&[("HOME", home.to_str())], || {
@@ -249,16 +393,7 @@ fn chat_agent_draft_put_overwrites_and_delete_clears() {
 
         let thread = create_thread(
             &conn,
-            &ChatAgentCreateThreadInput {
-                id: "thread-agent-draft".to_string(),
-                agent_id: "agent-draft".to_string(),
-                title: "Agent Draft".to_string(),
-                created_at_ms: 100,
-                updated_at_ms: 120,
-                last_message_at_ms: None,
-                archived_at_ms: None,
-                target_snapshot: sample_target_snapshot("agent-draft"),
-            },
+            &sample_create_thread_input("thread-agent-draft", "user-1", "agent-draft"),
         )
         .expect("create thread");
 
@@ -304,28 +439,23 @@ fn chat_agent_delete_message_and_delete_thread_remove_local_history() {
         let first_thread = create_thread(
             &conn,
             &ChatAgentCreateThreadInput {
-                id: "thread-agent-delete-1".to_string(),
-                agent_id: "agent-delete-1".to_string(),
-                title: "Agent Delete One".to_string(),
-                created_at_ms: 100,
-                updated_at_ms: 120,
                 last_message_at_ms: Some(130),
-                archived_at_ms: None,
-                target_snapshot: sample_target_snapshot("agent-delete-1"),
+                ..sample_create_thread_input("thread-agent-delete-1", "user-1", "agent-delete-1")
             },
         )
         .expect("create first thread");
         let second_thread = create_thread(
             &conn,
             &ChatAgentCreateThreadInput {
-                id: "thread-agent-delete-2".to_string(),
-                agent_id: "agent-delete-2".to_string(),
                 title: "Agent Delete Two".to_string(),
                 created_at_ms: 200,
                 updated_at_ms: 220,
                 last_message_at_ms: Some(230),
-                archived_at_ms: None,
-                target_snapshot: sample_target_snapshot("agent-delete-2"),
+                target_snapshot: ChatAgentTargetSnapshot {
+                    display_name: "Agent Delete Two".to_string(),
+                    ..sample_target_snapshot("agent-delete-2")
+                },
+                ..sample_create_thread_input("thread-agent-delete-2", "user-1", "agent-delete-2")
             },
         )
         .expect("create second thread");
@@ -460,14 +590,17 @@ fn chat_agent_store_rejects_multi_text_beat_assistant_turns() {
         let thread = create_thread(
             &conn,
             &ChatAgentCreateThreadInput {
-                id: "thread-single-message-hardcut".to_string(),
-                agent_id: "agent-single-message-hardcut".to_string(),
                 title: "Agent Single Message".to_string(),
-                created_at_ms: 100,
                 updated_at_ms: 100,
-                last_message_at_ms: None,
-                archived_at_ms: None,
-                target_snapshot: sample_target_snapshot("agent-single-message-hardcut"),
+                target_snapshot: ChatAgentTargetSnapshot {
+                    display_name: "Agent Single Message".to_string(),
+                    ..sample_target_snapshot("agent-single-message-hardcut")
+                },
+                ..sample_create_thread_input(
+                    "thread-single-message-hardcut",
+                    "user-1",
+                    "agent-single-message-hardcut",
+                )
             },
         )
         .expect("create thread");

@@ -21,6 +21,10 @@ fn temp_home(prefix: &str) -> PathBuf {
     dir
 }
 
+fn owner_user_id() -> String { "owner-1".to_string() }
+fn realm_agent_id() -> String { "agent-1".to_string() }
+fn local_agent_ref() -> String { "local-agent:owner-1:agent-1".to_string() }
+
 #[test]
 fn imported_vrm_is_copied_under_nimi_data_and_can_bind_to_agent() {
     let home = temp_home("vrm-import");
@@ -36,7 +40,9 @@ fn imported_vrm_is_copied_under_nimi_data_and_can_bind_to_agent() {
             &DesktopAgentAvatarImportVrmPayload {
                 source_path: source.display().to_string(),
                 display_name: Some("Sample Hero".to_string()),
-                bind_agent_id: Some("agent-1".to_string()),
+                bind_owner_user_id: Some(owner_user_id()),
+                bind_realm_agent_id: Some(realm_agent_id()),
+                bind_local_agent_ref: Some(local_agent_ref()),
                 imported_at_ms: Some(100),
             },
         )
@@ -52,13 +58,13 @@ fn imported_vrm_is_copied_under_nimi_data_and_can_bind_to_agent() {
             .exists());
         assert!(imported.resource.file_url.starts_with("file://"));
         assert_eq!(
-            imported.binding.expect("binding").agent_id,
-            "agent-1".to_string()
+            imported.binding.expect("binding").local_agent_ref,
+            local_agent_ref()
         );
 
         let resources = list_resources(&conn).expect("list resources");
         assert_eq!(resources.len(), 1);
-        let binding = get_binding(&conn, "agent-1")
+        let binding = get_binding(&conn, &owner_user_id(), &realm_agent_id(), &local_agent_ref())
             .expect("binding")
             .expect("binding present");
         assert_eq!(binding.resource_id, resources[0].resource_id);
@@ -81,7 +87,9 @@ fn imported_live2d_directory_is_copied_under_nimi_data() {
             &DesktopAgentAvatarImportLive2dPayload {
                 source_path: source_root.display().to_string(),
                 display_name: Some("Ren".to_string()),
-                bind_agent_id: None,
+                bind_owner_user_id: None,
+                bind_realm_agent_id: None,
+                bind_local_agent_ref: None,
                 imported_at_ms: Some(200),
             },
         )
@@ -114,7 +122,9 @@ fn deleting_resource_cascades_binding_and_removes_managed_directory() {
             &DesktopAgentAvatarImportVrmPayload {
                 source_path: source.display().to_string(),
                 display_name: Some("Delete Me".to_string()),
-                bind_agent_id: None,
+                bind_owner_user_id: None,
+                bind_realm_agent_id: None,
+                bind_local_agent_ref: None,
                 imported_at_ms: Some(300),
             },
         )
@@ -123,13 +133,15 @@ fn deleting_resource_cascades_binding_and_removes_managed_directory() {
         let binding = set_binding(
             &conn,
             &DesktopAgentAvatarBindingSetPayload {
-                agent_id: "agent-delete".to_string(),
+                owner_user_id: "owner-delete".to_string(),
+                realm_agent_id: "agent-delete".to_string(),
+                local_agent_ref: "local-agent:owner-delete:agent-delete".to_string(),
                 resource_id: imported.resource.resource_id.clone(),
                 updated_at_ms: 301,
             },
         )
         .expect("set binding");
-        assert_eq!(binding.agent_id, "agent-delete");
+        assert_eq!(binding.local_agent_ref, "local-agent:owner-delete:agent-delete");
 
         let stored_path = PathBuf::from(imported.resource.stored_path.clone());
         assert!(
@@ -137,7 +149,7 @@ fn deleting_resource_cascades_binding_and_removes_managed_directory() {
                 .expect("delete resource")
         );
         assert!(!stored_path.exists());
-        assert!(get_binding(&conn, "agent-delete")
+        assert!(get_binding(&conn, "owner-delete", "agent-delete", "local-agent:owner-delete:agent-delete")
             .expect("binding lookup")
             .is_none());
         assert!(list_resources(&conn).expect("resources").is_empty());
@@ -149,7 +161,7 @@ fn clearing_binding_returns_true_only_when_binding_exists() {
     let home = temp_home("clear-binding");
     with_env(&[("HOME", home.to_str())], || {
         let conn = open_db().expect("open db");
-        assert!(!clear_binding(&conn, "missing-agent").expect("clear missing"));
+        assert!(!clear_binding(&conn, "missing-owner", "missing-agent", "local-agent:missing-owner:missing-agent").expect("clear missing"));
     });
 }
 
@@ -169,7 +181,9 @@ fn imported_resources_and_bindings_survive_db_reopen() {
                 &DesktopAgentAvatarImportVrmPayload {
                     source_path: source.display().to_string(),
                     display_name: Some("Persistent Hero".to_string()),
-                    bind_agent_id: Some("agent-persist".to_string()),
+                    bind_owner_user_id: Some("owner-persist".to_string()),
+                    bind_realm_agent_id: Some("agent-persist".to_string()),
+                    bind_local_agent_ref: Some("local-agent:owner-persist:agent-persist".to_string()),
                     imported_at_ms: Some(400),
                 },
             )
@@ -181,7 +195,7 @@ fn imported_resources_and_bindings_survive_db_reopen() {
         let resources = list_resources(&reopened).expect("list resources after reopen");
         assert_eq!(resources.len(), 1);
         assert_eq!(resources[0].display_name, "Persistent Hero");
-        let binding = get_binding(&reopened, "agent-persist")
+        let binding = get_binding(&reopened, "owner-persist", "agent-persist", "local-agent:owner-persist:agent-persist")
             .expect("binding lookup after reopen")
             .expect("binding present after reopen");
         assert_eq!(binding.resource_id, resources[0].resource_id);
@@ -203,7 +217,9 @@ fn imported_vrm_can_be_read_back_as_binary_asset_payload() {
             &DesktopAgentAvatarImportVrmPayload {
                 source_path: source.display().to_string(),
                 display_name: Some("Sample Hero".to_string()),
-                bind_agent_id: None,
+                bind_owner_user_id: None,
+                bind_realm_agent_id: None,
+                bind_local_agent_ref: None,
                 imported_at_ms: Some(500),
             },
         )

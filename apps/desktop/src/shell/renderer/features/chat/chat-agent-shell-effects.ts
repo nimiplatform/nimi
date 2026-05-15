@@ -101,15 +101,15 @@ export function useAgentConversationEffects(input: UseAgentConversationEffectsIn
     if (!thread) {
       input.setSelection({
         threadId: null,
-        agentId: null,
+        localAgentRef: null,
         targetId: null,
       });
       return;
     }
     input.setSelection({
       threadId: thread.id,
-      agentId: thread.agentId,
-      targetId: thread.agentId,
+      localAgentRef: thread.localAgentRef,
+      targetId: thread.localAgentRef,
     });
   }, [input]);
 

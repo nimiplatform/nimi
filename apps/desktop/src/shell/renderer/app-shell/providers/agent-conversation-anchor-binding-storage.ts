@@ -2,7 +2,9 @@ export const AGENT_CHAT_ANCHOR_BINDINGS_STORAGE_KEY = 'nimi.chat.agent.anchor-bi
 
 export type AgentConversationAnchorBinding = {
   threadId: string;
-  agentId: string;
+  ownerUserId: string;
+  realmAgentId: string;
+  localAgentRef: string;
   conversationAnchorId: string;
   updatedAtMs: number;
 };
@@ -31,14 +33,21 @@ function normalizeBinding(
   }
   const record = value as Record<string, unknown>;
   const threadId = normalizeText(record.threadId);
-  const agentId = normalizeText(record.agentId);
+  const ownerUserId = normalizeText(record.ownerUserId);
+  const realmAgentId = normalizeText(record.realmAgentId);
+  const localAgentRef = normalizeText(record.localAgentRef);
   const conversationAnchorId = normalizeText(record.conversationAnchorId);
-  if (!threadId || !agentId || !conversationAnchorId) {
+  if (!threadId || !ownerUserId || !realmAgentId || !localAgentRef || !conversationAnchorId) {
+    return null;
+  }
+  if (!localAgentRef.startsWith('local-agent:') || localAgentRef !== `local-agent:${ownerUserId}:${realmAgentId}`) {
     return null;
   }
   return {
     threadId,
-    agentId,
+    ownerUserId,
+    realmAgentId,
+    localAgentRef,
     conversationAnchorId,
     updatedAtMs: normalizeUpdatedAtMs(record.updatedAtMs),
   };

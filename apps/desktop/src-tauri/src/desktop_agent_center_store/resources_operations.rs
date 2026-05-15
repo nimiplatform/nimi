@@ -12,8 +12,8 @@ pub(super) fn operation_id(prefix: &str, seed: &str) -> String {
     format!("{prefix}_{:.12}", format!("{:x}", hasher.finalize()))
 }
 
-pub(super) fn operations_path(account_id: &str, agent_id: &str) -> Result<PathBuf, String> {
-    Ok(agent_center_dir(account_id, agent_id)?
+pub(super) fn operations_path(account_id: &str, local_agent_ref: &str) -> Result<PathBuf, String> {
+    Ok(agent_center_dir(account_id, local_agent_ref)?
         .join("operations")
         .join(OPERATIONS_FILE_NAME))
 }
@@ -107,10 +107,10 @@ pub(super) fn append_operation_record_to_path(
 
 pub(super) fn append_operation_record(
     account_id: &str,
-    agent_id: &str,
+    local_agent_ref: &str,
     record: &AgentCenterResourceOperationRecord,
 ) -> Result<(), String> {
-    let path = operations_path(account_id, agent_id)?;
+    let path = operations_path(account_id, local_agent_ref)?;
     append_operation_record_to_path(&path, record)
 }
 
@@ -139,14 +139,15 @@ pub(super) fn build_operation_record(
 
 pub(super) fn record_resource_operation(
     account_id: &str,
-    agent_id: &str,
+    local_agent_ref: &str,
     operation_type: &str,
     resource_kind: &str,
     resource_id: &str,
     status: &str,
     reason_code: &str,
 ) -> Result<String, String> {
-    let seed = format!("{account_id}:{agent_id}:{operation_type}:{resource_kind}:{resource_id}");
+    let seed =
+        format!("{account_id}:{local_agent_ref}:{operation_type}:{resource_kind}:{resource_id}");
     let record = build_operation_record(
         &seed,
         operation_type,
@@ -156,7 +157,7 @@ pub(super) fn record_resource_operation(
         reason_code,
     );
     let event_id = record.event_id.clone();
-    append_operation_record(account_id, agent_id, &record)?;
+    append_operation_record(account_id, local_agent_ref, &record)?;
     Ok(event_id)
 }
 
@@ -208,11 +209,11 @@ pub(super) fn record_resource_operation_under(
 
 pub(super) fn quarantine_path(
     account_id: &str,
-    agent_id: &str,
+    local_agent_ref: &str,
     resource_kind: &str,
     resource_id: &str,
 ) -> Result<PathBuf, String> {
-    let root = agent_center_dir(account_id, agent_id)?;
+    let root = agent_center_dir(account_id, local_agent_ref)?;
     cleanup_expired_quarantine(&root)?;
     Ok(root.join("quarantine").join(resource_kind).join(format!(
         "{}_{}",
@@ -356,37 +357,38 @@ pub(super) fn validate_removable_agent_center_tree(source: &Path) -> Result<bool
 
 pub(super) fn quarantine_agent_center_tree(
     account_id: &str,
-    agent_id: &str,
+    local_agent_ref: &str,
     reason_code: &str,
 ) -> Result<DesktopAgentCenterLocalResourceRemoveResult, String> {
-    let source = agent_center_dir(account_id, agent_id)?;
+    let source = agent_center_dir(account_id, local_agent_ref)?;
     if !validate_removable_agent_center_tree(&source)? {
         let operation_id = record_account_resource_operation(
             account_id,
             "agent_local_resources_quarantine",
             "agent_local_resources",
-            agent_id,
+            local_agent_ref,
             "completed",
             "already_missing",
         )?;
         return Ok(DesktopAgentCenterLocalResourceRemoveResult {
             resource_kind: "agent_local_resources".to_string(),
-            resource_id: agent_id.to_string(),
+            resource_id: local_agent_ref.to_string(),
             quarantined: false,
             operation_id,
             status: "completed".to_string(),
         });
     }
-    let destination = account_quarantine_path(account_id, "agent_local_resources", agent_id)?;
+    let destination =
+        account_quarantine_path(account_id, "agent_local_resources", local_agent_ref)?;
     let quarantined = match quarantine_dir(&source, &destination) {
         Ok(value) => value,
         Err(error) => {
             let _ = record_resource_operation(
                 account_id,
-                agent_id,
+                local_agent_ref,
                 "agent_local_resources_quarantine",
                 "agent_local_resources",
-                agent_id,
+                local_agent_ref,
                 "failed",
                 reason_code,
             );
@@ -396,10 +398,10 @@ pub(super) fn quarantine_agent_center_tree(
     let operation_id = if quarantined {
         record_resource_operation_under(
             &destination.join("operations").join(OPERATIONS_FILE_NAME),
-            &format!("{account_id}:{agent_id}:quarantined_agent_center"),
+            &format!("{account_id}:{local_agent_ref}:quarantined_agent_center"),
             "agent_local_resources_quarantine",
             "agent_local_resources",
-            agent_id,
+            local_agent_ref,
             "completed",
             reason_code,
         )?
@@ -408,14 +410,14 @@ pub(super) fn quarantine_agent_center_tree(
             account_id,
             "agent_local_resources_quarantine",
             "agent_local_resources",
-            agent_id,
+            local_agent_ref,
             "completed",
             "already_missing",
         )?
     };
     Ok(DesktopAgentCenterLocalResourceRemoveResult {
         resource_kind: "agent_local_resources".to_string(),
-        resource_id: agent_id.to_string(),
+        resource_id: local_agent_ref.to_string(),
         quarantined,
         operation_id,
         status: "completed".to_string(),

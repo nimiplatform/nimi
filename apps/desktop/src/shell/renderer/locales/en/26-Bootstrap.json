@@ -5,5 +5,6 @@
   "webDegraded": "Web bootstrap timed out; switched to degraded mode.",
   "runtimeInitTimeout": "Runtime initialization timed out. Please check desktop bridge and backend connection.",
   "startFailedPrefix": "Startup failed",
-  "startFailedTitle": "Startup failed"
+  "startFailedTitle": "Startup failed",
+  "rendererEntryFailed": "Renderer entry failed before the app shell became available."
 }

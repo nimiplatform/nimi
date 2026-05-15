@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import type { ConversationTargetSummary } from '@nimiplatform/nimi-kit/features/chat/headless';
 import { dataSync } from '@runtime/data-sync';
+import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import {
   collapseHumanChatsToTargets,
   compareHumanChatsByRecency,
@@ -50,6 +51,7 @@ export function useChatTargetsForSidebar(
   authStatus: 'bootstrapping' | 'anonymous' | 'authenticated',
 ): readonly ConversationTargetSummary[] {
   const { t } = useTranslation();
+  const ownerUserId = useAppStore((state) => String((state.auth.user as Record<string, unknown> | null)?.id || '').trim());
 
   const humanChatsQuery = useQuery({
     queryKey: ['chats', authStatus],
@@ -69,7 +71,7 @@ export function useChatTargetsForSidebar(
     queryKey: [...TARGETS_QUERY_KEY, authStatus],
     queryFn: async (): Promise<ReturnType<typeof toAgentFriendTargetsFromSocialSnapshot>> => {
       const snapshot = await dataSync.loadSocialSnapshot() as SocialSnapshot;
-      return toAgentFriendTargetsFromSocialSnapshot(snapshot);
+      return toAgentFriendTargetsFromSocialSnapshot({ ...((snapshot as Record<string, unknown> | null) || {}), ownerUserId });
     },
     enabled: authStatus === 'authenticated',
     staleTime: 30_000,
@@ -85,9 +87,9 @@ export function useChatTargetsForSidebar(
   const agentTargets = useMemo(() => {
     const snapshots = agentTargetsQuery.data || [];
     return snapshots.map((target): ConversationTargetSummary => ({
-      id: target.agentId,
+      id: target.localAgentRef,
       source: 'agent' as const,
-      canonicalSessionId: target.agentId,
+      canonicalSessionId: target.localAgentRef,
       title: target.displayName,
       handle: target.handle ? `@${target.handle}` : null,
       bio: target.bio || null,

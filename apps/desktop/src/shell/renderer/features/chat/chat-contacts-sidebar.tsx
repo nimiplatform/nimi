@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import type { ConversationTargetSummary } from '@nimiplatform/nimi-kit/features/chat';
+import type { ConversationTargetSummary } from '@nimiplatform/nimi-kit/features/chat/headless';
 import { ScrollArea } from '@nimiplatform/nimi-kit/ui';
 import { useTranslation } from 'react-i18next';
 import { DesktopIconToggleAction } from '@renderer/components/action';

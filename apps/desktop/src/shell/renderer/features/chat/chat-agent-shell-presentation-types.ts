@@ -47,7 +47,7 @@ export type UseAgentConversationPresentationInput = {
   handleSubmit: (input: { text: string; attachments: readonly PendingAttachment[] }) => Promise<void>;
   hostFeedback: InlineFeedbackState | null;
   initialModelSelection?: Partial<RouteModelPickerSelection>;
-  inputSelectionAgentId: AgentConversationSelection['agentId'];
+  inputSelectionLocalAgentRef: AgentConversationSelection['localAgentRef'];
   isBundleLoading: boolean;
   messages: readonly ConversationMessageViewModel[];
   pendingAttachments: readonly PendingAttachment[];

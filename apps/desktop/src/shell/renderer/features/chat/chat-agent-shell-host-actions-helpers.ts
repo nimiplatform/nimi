@@ -93,6 +93,9 @@ async function syncRuntimePresentationProfile(input: {
   context: {
     appId: string;
     subjectUserId: string;
+    ownerUserId: string;
+    realmAgentId: string;
+    localAgentRef: string;
   };
 }): Promise<void> {
   const profile = input.target.presentationProfile;
@@ -108,7 +111,7 @@ async function syncRuntimePresentationProfile(input: {
   const protectedAccess = getRuntimeProtectedAccess();
   await protectedAccess.withScopes(['runtime.agent.write'], (options) => runtime.agent.setPresentationProfile({
     context: input.context,
-    agentId: input.target.agentId,
+    agentId: input.target.localAgentRef,
     mutation: {
       oneofKind: 'profile',
       profile: {
@@ -130,12 +133,15 @@ export async function ensureRuntimeAgentExists(target: AgentLocalTargetSnapshot)
   const context = {
     appId: runtime.appId,
     subjectUserId,
+    ownerUserId: target.ownerUserId,
+    realmAgentId: target.realmAgentId,
+    localAgentRef: target.localAgentRef,
   };
 
   try {
     const response = await protectedAccess.withScopes(['runtime.agent.read'], (options) => runtime.agent.getAgent({
       context,
-      agentId: target.agentId,
+      agentId: target.localAgentRef,
     }, options));
     if (Number(response.agent?.lifecycleStatus) === 2) {
       await syncRuntimePresentationProfile({ target, context });
@@ -151,8 +157,11 @@ export async function ensureRuntimeAgentExists(target: AgentLocalTargetSnapshot)
   try {
     await protectedAccess.withScopes(['runtime.agent.admin'], (options) => runtime.agent.initializeAgent({
       context,
-      agentId: target.agentId,
-      displayName: target.displayName || target.agentId,
+      agentId: target.localAgentRef,
+      localAgentRef: target.localAgentRef,
+      ownerUserId: target.ownerUserId,
+      realmAgentId: target.realmAgentId,
+      displayName: target.displayName || target.realmAgentId,
       autonomyConfig: undefined,
       worldId: normalizeText(target.worldId),
       metadata: undefined,
@@ -222,7 +231,9 @@ async function openConversationAnchorForTarget(
   const snapshot = await protectedAccess.withScopes(
     ['runtime.agent.write'],
     (options) => runtime.agent.anchors.open({
-      agentId: target.agentId,
+      localAgentRef: target.localAgentRef,
+      ownerUserId: target.ownerUserId,
+      realmAgentId: target.realmAgentId,
       metadata: {
         surface: 'desktop-agent-chat',
       },
@@ -263,7 +274,9 @@ async function ensureConversationAnchorBindingUpstream(input: {
     await protectedAccess.withScopes(
       ['runtime.agent.read'],
       (options) => runtime.agent.anchors.getSnapshot({
-        agentId: input.target.agentId,
+        localAgentRef: input.target.localAgentRef,
+        ownerUserId: input.target.ownerUserId,
+        realmAgentId: input.target.realmAgentId,
         conversationAnchorId: input.binding.conversationAnchorId,
       }, options),
     );
@@ -289,7 +302,9 @@ export async function createThreadForTarget(
   const timestampMs = Date.now();
   const thread = await chatAgentStoreClient.createThread({
     id: randomIdV11('agent-thread'),
-    agentId: target.agentId,
+    ownerUserId: target.ownerUserId,
+    realmAgentId: target.realmAgentId,
+    localAgentRef: target.localAgentRef,
     title: target.displayName,
     createdAtMs: timestampMs,
     updatedAtMs: timestampMs,
@@ -316,7 +331,7 @@ export async function ensureThreadAnchorBindingForTarget(input: {
   const ensuredThread = input.thread ?? await createThreadForTarget(input.input, input.target);
   const existingBinding = getAgentConversationAnchorBinding(ensuredThread.id);
   if (existingBinding) {
-    if (existingBinding.agentId !== input.target.agentId) {
+    if (existingBinding.localAgentRef !== input.target.localAgentRef) {
       throw new Error('agent thread anchor binding does not match selected agent');
     }
     const runtimeBinding = await ensureConversationAnchorBindingUpstream({
@@ -334,7 +349,9 @@ export async function ensureThreadAnchorBindingForTarget(input: {
   const conversationAnchorId = await openConversationAnchorForTarget(input.target);
   const anchorBinding = persistAgentConversationAnchorBinding({
     threadId: ensuredThread.id,
-    agentId: input.target.agentId,
+    ownerUserId: input.target.ownerUserId,
+    realmAgentId: input.target.realmAgentId,
+    localAgentRef: input.target.localAgentRef,
     conversationAnchorId,
     updatedAtMs: Date.now(),
   });

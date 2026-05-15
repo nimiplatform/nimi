@@ -100,9 +100,17 @@ export function requireProviderMetadata(
     throw new Error('agent-local-chat-v1 requires metadata.agentLocalChat');
   }
   const nextRecord = record as Record<string, unknown>;
-  const agentId = normalizeText(nextRecord.agentId);
-  if (!agentId) {
-    throw new Error('agent-local-chat-v1 metadata.agentId is required');
+  if (normalizeText(nextRecord.agentId)) {
+    throw new Error('agent-local-chat-v1 metadata.agentId is not an executable local Agent key; use localAgentRef');
+  }
+  const ownerUserId = normalizeText(nextRecord.ownerUserId);
+  const realmAgentId = normalizeText(nextRecord.realmAgentId);
+  const localAgentRef = normalizeText(nextRecord.localAgentRef);
+  if (!ownerUserId || !realmAgentId || !localAgentRef) {
+    throw new Error('agent-local-chat-v1 metadata local identity is required');
+  }
+  if (!localAgentRef.startsWith('local-agent:') || localAgentRef !== `local-agent:${ownerUserId}:${realmAgentId}`) {
+    throw new Error('agent-local-chat-v1 metadata localAgentRef mismatch');
   }
   const conversationAnchorId = normalizeText(nextRecord.conversationAnchorId);
   if (!conversationAnchorId) {
@@ -114,7 +122,9 @@ export function requireProviderMetadata(
   }
   const reasoningPreference = nextRecord.reasoningPreference === 'on' ? 'on' : 'off';
   return {
-    agentId,
+    ownerUserId,
+    realmAgentId,
+    localAgentRef,
     conversationAnchorId,
     targetSnapshot: targetSnapshot as AgentLocalTargetSnapshot,
     agentResolution: (nextRecord.agentResolution ?? null) as AgentEffectiveCapabilityResolution | null,

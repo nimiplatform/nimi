@@ -45,10 +45,12 @@ test('Agent Chat Settings Avatar surface does not widen Avatar launch handoff', 
   );
   const launchCall = presentationSource.match(/launchDesktopAvatarHandoff\(\{[\s\S]*?\}\)/u);
   assert.ok(launchCall, 'launchDesktopAvatarHandoff call must stay visible to the guard');
-  assert.match(launchCall[0], /agentId/u);
+  assert.match(launchCall[0], /ownerUserId/u);
+  assert.match(launchCall[0], /realmAgentId/u);
+  assert.match(launchCall[0], /localAgentRef/u);
   assert.match(launchCall[0], /avatarInstanceId/u);
   assert.match(launchCall[0], /sourceSurface/u);
-  assert.doesNotMatch(launchCall[0], /package|descriptor|path|profile|token|account|realm|binding|carrier/u);
+  assert.doesNotMatch(launchCall[0], /package|descriptor|path|profile|token|account|binding|carrier/u);
 });
 
 test('Agent Chat composer Avatar launch fails closed without package and backend evidence', () => {

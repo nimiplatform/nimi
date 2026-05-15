@@ -64,7 +64,7 @@ type AgentConversationShellState = {
   messages: ReturnType<typeof toConversationMessageViewModel>[];
   selectedThreadRecord: AgentLocalThreadSummary | null;
   streamState: ReturnType<typeof useConversationStreamState>;
-  targetByAgentId: Map<string, AgentLocalTargetSnapshot>;
+  targetByLocalAgentRef: Map<string, AgentLocalTargetSnapshot>;
   targets: AgentLocalTargetSnapshot[];
   targetsPending: boolean;
   targetsReady: boolean;
@@ -144,7 +144,8 @@ export function useAgentConversationShellState(
     queryKey: [...TARGETS_QUERY_KEY, input.authStatus],
     queryFn: async (): Promise<AgentLocalTargetSnapshot[]> => {
       const snapshot = await dataSync.loadSocialSnapshot() as SocialSnapshot;
-      return toAgentFriendTargetsFromSocialSnapshot(snapshot);
+      const ownerUserId = String((useAppStore.getState().auth.user as Record<string, unknown> | null)?.id || '').trim();
+      return toAgentFriendTargetsFromSocialSnapshot({ ...((snapshot as Record<string, unknown> | null) || {}), ownerUserId });
     },
     enabled: input.authStatus === 'authenticated',
   });
@@ -152,8 +153,8 @@ export function useAgentConversationShellState(
     () => targetsQuery.data || [],
     [targetsQuery.data],
   );
-  const targetByAgentId = useMemo(
-    () => new Map(targets.map((target) => [target.agentId, target])),
+  const targetByLocalAgentRef = useMemo(
+    () => new Map(targets.map((target) => [target.localAgentRef, target])),
     [targets],
   );
 
@@ -170,10 +171,10 @@ export function useAgentConversationShellState(
     () => resolveAgentConversationActiveThreadId({
       threads,
       selectionThreadId: input.selection.threadId,
-      selectionAgentId: input.selection.agentId,
+      selectionLocalAgentRef: input.selection.localAgentRef,
       lastSelectedThreadId: input.lastSelectedThreadId,
     }),
-    [input.lastSelectedThreadId, input.selection.agentId, input.selection.threadId, threads],
+    [input.lastSelectedThreadId, input.selection.localAgentRef, input.selection.threadId, threads],
   );
   const selectedThreadRecord = useMemo(
     () => threads.find((thread) => thread.id === activeThreadId) || null,
@@ -189,15 +190,15 @@ export function useAgentConversationShellState(
     [anchorBindingVersion, selectedThreadRecord?.id],
   );
   const selectedTarget = useMemo(
-    () => targetByAgentId.get(input.selection.agentId || '') || null,
-    [input.selection.agentId, targetByAgentId],
+    () => targetByLocalAgentRef.get(input.selection.localAgentRef || '') || null,
+    [input.selection.localAgentRef, targetByLocalAgentRef],
   );
   const activeTarget = useMemo(() => {
     const threadTarget = selectedThreadRecord?.targetSnapshot || null;
     if (!threadTarget) {
       return selectedTarget || null;
     }
-    if (selectedTarget?.agentId === threadTarget.agentId) {
+    if (selectedTarget?.localAgentRef === threadTarget.localAgentRef) {
       return mergeAgentTargetWithPresentationProfile(threadTarget, selectedTarget.presentationProfile || null);
     }
     return threadTarget;
@@ -236,7 +237,7 @@ export function useAgentConversationShellState(
     messages,
     selectedThreadRecord,
     streamState,
-    targetByAgentId,
+    targetByLocalAgentRef,
     targets,
     targetsPending: targetsQuery.isPending,
     targetsReady: targetsQuery.isSuccess,

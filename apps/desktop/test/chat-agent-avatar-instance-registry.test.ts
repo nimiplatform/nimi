@@ -42,14 +42,16 @@ test('desktop avatar live instance parser rejects missing minimal identity', () 
     parseDesktopAvatarLiveInstanceRecord({
       avatarInstanceId: 'instance-1',
     });
-  }, /agentId/);
+  }, /ownerUserId/);
 });
 
 test('desktop avatar live instance parser rejects old authority fields', () => {
   assert.throws(() => {
     parseDesktopAvatarLiveInstanceRecord({
       avatarInstanceId: 'instance-1',
-      agentId: 'agent-1',
+      ownerUserId: 'owner-1',
+      realmAgentId: 'agent-1',
+      localAgentRef: 'local-agent:owner-1:agent-1',
       launchSource: 'desktop-agent-chat',
       conversationAnchorId: 'anchor-1',
     });
@@ -58,22 +60,54 @@ test('desktop avatar live instance parser rejects old authority fields', () => {
   assert.throws(() => {
     parseDesktopAvatarLiveInstanceRecord({
       avatarInstanceId: 'instance-1',
-      agentId: 'agent-1',
+      ownerUserId: 'owner-1',
+      realmAgentId: 'agent-1',
+      localAgentRef: 'local-agent:owner-1:agent-1',
       avatarPackageId: 'live2d_ab12cd34ef56',
     });
   }, /forbidden authority field: avatarPackageId/);
 });
 
+test('desktop avatar live instance parser rejects bare and mismatched localAgentRef values', () => {
+  const base = {
+    avatarInstanceId: 'instance-1',
+    ownerUserId: 'owner-1',
+    realmAgentId: 'agent-1',
+  };
+  assert.throws(() => parseDesktopAvatarLiveInstanceRecord({
+    ...base,
+    localAgentRef: 'agent-1',
+  }), /bare realmAgentId/);
+  assert.throws(() => parseDesktopAvatarLiveInstanceRecord({
+    ...base,
+    localAgentRef: 'agent:abc.def+1',
+  }), /local-agent:/);
+  assert.throws(() => parseDesktopAvatarLiveInstanceRecord({
+    ...base,
+    localAgentRef: 'local-agent:owner-2:agent-1',
+  }), /ownerUserId/);
+  assert.throws(() => parseDesktopAvatarLiveInstanceRecord({
+    ...base,
+    localAgentRef: 'local-agent:owner-1:agent-2',
+  }), /realmAgentId/);
+});
+
 test('desktop avatar live instance bridge rejects authority-bearing projection records', async () => {
   const restore = installTauriInvokeMock(async () => [{
     avatarInstanceId: 'instance-1',
-    agentId: 'agent-1',
+    ownerUserId: 'owner-1',
+    realmAgentId: 'agent-1',
+    localAgentRef: 'local-agent:owner-1:agent-1',
     bindingId: 'binding-1',
   }]);
 
   try {
     await assert.rejects(
-      listDesktopAvatarLiveInstances('agent-1'),
+      listDesktopAvatarLiveInstances({
+        ownerUserId: 'owner-1',
+        realmAgentId: 'agent-1',
+        localAgentRef: 'local-agent:owner-1:agent-1',
+      }),
       /forbidden authority field: bindingId/,
     );
   } finally {
@@ -83,12 +117,12 @@ test('desktop avatar live instance bridge rejects authority-bearing projection r
 
 test('desktop avatar ephemeral instance id extends deterministic base with nonce', () => {
   const instanceId = buildDesktopAvatarEphemeralInstanceId({
-    agentId: 'agent-1',
+    localAgentRef: 'local-agent:owner-1:agent-1',
     threadId: 'thread-1',
     nonce: 'wave-4',
   });
 
-  assert.equal(instanceId, 'desktop-avatar-agent-1-thread-1-wave-4');
+  assert.equal(instanceId, 'desktop-avatar-local-agent-owner-1-agent-1-thread-1-wave-4');
 });
 
 test('desktop avatar close handoff parser rejects invalid payload', () => {
@@ -169,13 +203,19 @@ test('desktop avatar live instance bridge invokes fixed command and payload shap
     calls.push({ command, payload });
     return [{
       avatarInstanceId: 'instance-1',
-      agentId: 'agent-1',
+      ownerUserId: 'owner-1',
+      realmAgentId: 'agent-1',
+      localAgentRef: 'local-agent:owner-1:agent-1',
       launchSource: 'desktop-agent-chat',
     }];
   });
 
   try {
-    const instances = await listDesktopAvatarLiveInstances('agent-1');
+    const instances = await listDesktopAvatarLiveInstances({
+      ownerUserId: 'owner-1',
+      realmAgentId: 'agent-1',
+      localAgentRef: 'local-agent:owner-1:agent-1',
+    });
 
     assert.equal(instances.length, 1);
     assert.equal(instances[0]?.avatarInstanceId, 'instance-1');
@@ -183,7 +223,9 @@ test('desktop avatar live instance bridge invokes fixed command and payload shap
       command: 'desktop_avatar_instance_registry_list',
       payload: {
         payload: {
-          agentId: 'agent-1',
+          ownerUserId: 'owner-1',
+          realmAgentId: 'agent-1',
+          localAgentRef: 'local-agent:owner-1:agent-1',
         },
       },
     }]);

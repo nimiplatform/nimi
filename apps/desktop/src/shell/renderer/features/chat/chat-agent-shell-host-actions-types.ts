@@ -61,7 +61,7 @@ export type UseAgentConversationHostActionsInput = {
   queryClient: QueryClient;
   reportHostError: (error: unknown) => void;
   runAgentTurn: AgentRunTurn;
-  selectedAgentId: string | null;
+  selectedLocalAgentRef: string | null;
   selectedThreadRecord: AgentLocalThreadSummary | null;
   setBundleCache: (
     threadId: string,
@@ -74,7 +74,7 @@ export type UseAgentConversationHostActionsInput = {
       lifecycle: AgentTurnLifecycleState;
     } | null,
   ) => void;
-  setSelectionForAgent: (agentId: string | null) => void;
+  setSelectionForLocalAgentRef: (localAgentRef: string | null) => void;
   setSubmittingThreadId: (threadId: string | null) => void;
   setThreadsCache: (updater: (current: AgentLocalThreadSummary[]) => AgentLocalThreadSummary[]) => void;
   clearSelectedTarget: () => void;
@@ -83,7 +83,7 @@ export type UseAgentConversationHostActionsInput = {
   t: TFunction;
   textModelContextTokens: number | null;
   textMaxOutputTokensRequested: number | null;
-  targetByAgentId: Map<string, AgentLocalTargetSnapshot>;
+  targetByLocalAgentRef: Map<string, AgentLocalTargetSnapshot>;
   targetsReady: boolean;
   threads: readonly AgentLocalThreadSummary[];
   threadsReady: boolean;

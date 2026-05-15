@@ -404,9 +404,9 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
       );
       useAvatarStore.getState().setRuntimeDefaults(runtimeDefaults);
 
-      const agentId = readNormalizedString(launchContext.agentId);
+      const agentId = readNormalizedString(launchContext.localAgentRef);
       if (!agentId) {
-        throw new Error('avatar launch context is missing agentId');
+        throw new Error('avatar launch context is missing localAgentRef');
       }
       useAvatarStore.getState().setConsumeMode({
         mode: 'sdk',
@@ -654,7 +654,7 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
       ).catch((error) => {
         const state = useAvatarStore.getState();
         recordDriverStartFailure(error, {
-          agentId: state.consume.agentId || state.launch.context?.agentId || '',
+          agentId: state.consume.agentId || state.launch.context?.localAgentRef || '',
           avatarInstanceId: state.consume.avatarInstanceId || state.launch.context?.avatarInstanceId || null,
           launchSource: state.launch.context?.launchSource || null,
           runtimeAppId: AVATAR_FIRST_PARTY_APP_ID,

@@ -25,14 +25,18 @@ import { createAgentTextMessage } from './helpers/agent-chat-record-fixtures.js'
 function sampleThread(): AgentLocalThreadRecord {
   return {
     id: 'thread-1',
-    agentId: 'agent-1',
+    ownerUserId: 'user-1',
+    realmAgentId: 'agent-1',
+    localAgentRef: 'local-agent:user-1:agent-1',
     title: 'Companion',
     createdAtMs: 10,
     updatedAtMs: 20,
     lastMessageAtMs: 20,
     archivedAtMs: null,
     targetSnapshot: {
-      agentId: 'agent-1',
+      ownerUserId: 'user-1',
+      realmAgentId: 'agent-1',
+      localAgentRef: 'local-agent:user-1:agent-1',
       displayName: 'Companion',
       handle: '~companion',
       avatarUrl: null,
@@ -216,8 +220,8 @@ test('agent host flow preserves authoritative assistant content across first-bea
   assert.equal(hostFlow.outcome.draftText, 'retry this');
   assert.deepEqual(hostFlow.outcome.selection, {
     threadId: 'thread-1',
-    agentId: 'agent-1',
-    targetId: 'agent-1',
+    localAgentRef: 'local-agent:user-1:agent-1',
+    targetId: 'local-agent:user-1:agent-1',
   });
 });
 
@@ -329,7 +333,7 @@ test('agent host flow resolves authoritative completion and clears draft after f
   assert.equal(hostFlow.outcome.draftText, '');
   assert.deepEqual(hostFlow.outcome.selection, {
     threadId: 'thread-1',
-    agentId: 'agent-1',
-    targetId: 'agent-1',
+    localAgentRef: 'local-agent:user-1:agent-1',
+    targetId: 'local-agent:user-1:agent-1',
   });
 });

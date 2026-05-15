@@ -168,7 +168,7 @@ export function useAgentConversationRuntimeController(
   useEffect(() => {
     let cancelled = false;
     const target = activeTarget;
-    const agentId = normalizeText(target?.agentId);
+    const agentId = normalizeText(target?.localAgentRef);
     if (authStatus !== 'authenticated' || !target || !agentId) {
       setRuntimePresentationProfile(null);
       return () => {
@@ -203,7 +203,7 @@ export function useAgentConversationRuntimeController(
 
   useEffect(() => {
     let cancelled = false;
-    const agentId = normalizeText(activeTarget?.agentId);
+    const agentId = normalizeText(activeTarget?.localAgentRef);
     if (authStatus !== 'authenticated' || !agentId) {
       setCanonicalMemoryStatus(null);
       setCanonicalMemoryLoading(false);
@@ -241,12 +241,12 @@ export function useAgentConversationRuntimeController(
     return () => {
       cancelled = true;
     };
-  }, [activeTarget?.agentId, authStatus, buildHostErrorDetails, runtimeAgentMemory]);
+  }, [activeTarget?.localAgentRef, authStatus, buildHostErrorDetails, runtimeAgentMemory]);
 
   useEffect(() => {
     let cancelled = false;
     const target = activeTarget;
-    const agentId = normalizeText(target?.agentId);
+    const agentId = normalizeText(target?.localAgentRef);
     const cachedInspectAgentId = lastInspectFetchedAgentIdRef.current;
     if (cachedInspectAgentId && cachedInspectAgentId !== agentId) {
       setRuntimeInspect(null);
@@ -299,7 +299,7 @@ export function useAgentConversationRuntimeController(
   }, [activeTarget, authStatus, buildHostErrorDetails, runtimeAgentInspect]);
 
   useEffect(() => {
-    const agentId = normalizeText(activeTarget?.agentId);
+    const agentId = normalizeText(activeTarget?.localAgentRef);
     if (authStatus !== 'authenticated' || !agentId || !diagnosticsVisible) {
       setRecentRuntimeEvents([]);
       return;
@@ -361,10 +361,10 @@ export function useAgentConversationRuntimeController(
         clearTimeout(flushTimer);
       }
     };
-  }, [activeTarget?.agentId, authStatus, buildHostErrorDetails, diagnosticsVisible, runtimeAgentInspect]);
+  }, [activeTarget?.localAgentRef, authStatus, buildHostErrorDetails, diagnosticsVisible, runtimeAgentInspect]);
 
   const handleEnableAutonomy = useCallback(() => {
-    const agentId = normalizeText(activeTarget?.agentId);
+    const agentId = normalizeText(activeTarget?.localAgentRef);
     const targetName = normalizeText(activeTarget?.displayName) || agentId;
     if (!agentId) {
       return;
@@ -385,10 +385,10 @@ export function useAgentConversationRuntimeController(
       .finally(() => {
         setMutationPendingAction(null);
       });
-  }, [activeTarget?.agentId, activeTarget?.displayName, refreshRuntimeInspect, reportHostError, runtimeAgentInspect, setHostFeedback, t]);
+  }, [activeTarget?.localAgentRef, activeTarget?.displayName, refreshRuntimeInspect, reportHostError, runtimeAgentInspect, setHostFeedback, t]);
 
   const handleDisableAutonomy = useCallback(() => {
-    const agentId = normalizeText(activeTarget?.agentId);
+    const agentId = normalizeText(activeTarget?.localAgentRef);
     const targetName = normalizeText(activeTarget?.displayName) || agentId;
     if (!agentId) {
       return;
@@ -421,10 +421,10 @@ export function useAgentConversationRuntimeController(
     })().catch(reportHostError).finally(() => {
       setMutationPendingAction(null);
     });
-  }, [activeTarget?.agentId, activeTarget?.displayName, refreshRuntimeInspect, reportHostError, runtimeAgentInspect, setHostFeedback, t]);
+  }, [activeTarget?.localAgentRef, activeTarget?.displayName, refreshRuntimeInspect, reportHostError, runtimeAgentInspect, setHostFeedback, t]);
 
   const handleCancelPendingHook = useCallback((hookId: string) => {
-    const agentId = normalizeText(activeTarget?.agentId);
+    const agentId = normalizeText(activeTarget?.localAgentRef);
     const normalizedHookId = normalizeText(hookId);
     if (!agentId || !normalizedHookId) {
       return;
@@ -458,10 +458,10 @@ export function useAgentConversationRuntimeController(
     })().catch(reportHostError).finally(() => {
       setMutationPendingAction(null);
     });
-  }, [activeTarget?.agentId, refreshRuntimeInspect, reportHostError, runtimeAgentInspect, setHostFeedback, t]);
+  }, [activeTarget?.localAgentRef, refreshRuntimeInspect, reportHostError, runtimeAgentInspect, setHostFeedback, t]);
 
   const handleUpdateAutonomyConfig = useCallback((config: AutonomyConfigInput) => {
-    const agentId = normalizeText(activeTarget?.agentId);
+    const agentId = normalizeText(activeTarget?.localAgentRef);
     const targetName = normalizeText(activeTarget?.displayName) || agentId;
     if (!agentId) {
       return;
@@ -487,10 +487,10 @@ export function useAgentConversationRuntimeController(
       .finally(() => {
         setMutationPendingAction(null);
       });
-  }, [activeTarget?.agentId, activeTarget?.displayName, refreshRuntimeInspect, reportHostError, runtimeAgentInspect, setHostFeedback, t]);
+  }, [activeTarget?.localAgentRef, activeTarget?.displayName, refreshRuntimeInspect, reportHostError, runtimeAgentInspect, setHostFeedback, t]);
 
   const handleUpdateRuntimeState = useCallback((stateInput: RuntimeStateInput) => {
-    const agentId = normalizeText(activeTarget?.agentId);
+    const agentId = normalizeText(activeTarget?.localAgentRef);
     const targetName = normalizeText(activeTarget?.displayName) || agentId;
     if (!agentId) {
       return;
@@ -542,10 +542,10 @@ export function useAgentConversationRuntimeController(
       .finally(() => {
         setMutationPendingAction(null);
       });
-  }, [activeTarget?.agentId, activeTarget?.displayName, refreshRuntimeInspect, reportHostError, runtimeAgentInspect, runtimeInspect, setHostFeedback, t]);
+  }, [activeTarget?.localAgentRef, activeTarget?.displayName, refreshRuntimeInspect, reportHostError, runtimeAgentInspect, runtimeInspect, setHostFeedback, t]);
 
   const handleClearWorldContext = useCallback(() => {
-    const agentId = normalizeText(activeTarget?.agentId);
+    const agentId = normalizeText(activeTarget?.localAgentRef);
     const targetName = normalizeText(activeTarget?.displayName) || agentId;
     if (!agentId || !normalizeText(runtimeInspect?.activeWorldId)) {
       return;
@@ -569,10 +569,10 @@ export function useAgentConversationRuntimeController(
       .finally(() => {
         setMutationPendingAction(null);
       });
-  }, [activeTarget?.agentId, activeTarget?.displayName, refreshRuntimeInspect, reportHostError, runtimeAgentInspect, runtimeInspect?.activeWorldId, setHostFeedback, t]);
+  }, [activeTarget?.localAgentRef, activeTarget?.displayName, refreshRuntimeInspect, reportHostError, runtimeAgentInspect, runtimeInspect?.activeWorldId, setHostFeedback, t]);
 
   const handleClearDyadicContext = useCallback(() => {
-    const agentId = normalizeText(activeTarget?.agentId);
+    const agentId = normalizeText(activeTarget?.localAgentRef);
     const targetName = normalizeText(activeTarget?.displayName) || agentId;
     if (!agentId || !normalizeText(runtimeInspect?.activeUserId)) {
       return;
@@ -596,15 +596,15 @@ export function useAgentConversationRuntimeController(
       .finally(() => {
         setMutationPendingAction(null);
       });
-  }, [activeTarget?.agentId, activeTarget?.displayName, refreshRuntimeInspect, reportHostError, runtimeAgentInspect, runtimeInspect?.activeUserId, setHostFeedback, t]);
+  }, [activeTarget?.localAgentRef, activeTarget?.displayName, refreshRuntimeInspect, reportHostError, runtimeAgentInspect, runtimeInspect?.activeUserId, setHostFeedback, t]);
 
   const handleRefreshRuntimeInspect = useCallback(() => {
-    const agentId = normalizeText(activeTarget?.agentId);
+    const agentId = normalizeText(activeTarget?.localAgentRef);
     if (!agentId) {
       return;
     }
     void refreshRuntimeInspect(agentId, { surfaceErrors: true });
-  }, [activeTarget?.agentId, refreshRuntimeInspect]);
+  }, [activeTarget?.localAgentRef, refreshRuntimeInspect]);
 
   return {
     canonicalMemoryLoading,

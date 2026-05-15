@@ -2,7 +2,7 @@ import type {
   ConversationTurnEvent,
   ConversationTurnInput,
   ConversationOrchestrationProvider,
-} from '@nimiplatform/nimi-kit/features/chat';
+} from '@nimiplatform/nimi-kit/features/chat/headless';
 import { logRendererEvent } from '@renderer/bridge/runtime-bridge/logging';
 import {
   toChatAgentRuntimeError,
@@ -87,7 +87,9 @@ async function* runRuntimeAgentTurn(input: {
   let actionResult: Awaited<ReturnType<typeof runResolvedEnvelopeActions>> | null = null;
 
   const runtimeResult = await input.runtimeAdapter.streamAgentTurn?.({
-    agentId: input.metadata.agentId,
+    ownerUserId: input.metadata.ownerUserId,
+    realmAgentId: input.metadata.realmAgentId,
+    localAgentRef: input.metadata.localAgentRef,
     conversationAnchorId: input.metadata.conversationAnchorId,
     prompt: input.executionRequest.prompt,
     history: input.baseInput.history,
@@ -437,7 +439,9 @@ export function createAgentLocalChatConversationProvider(
           return;
         }
         const runtimeResult = await runtimeAdapter.streamText({
-          agentId: metadata.agentId,
+          ownerUserId: metadata.ownerUserId,
+          realmAgentId: metadata.realmAgentId,
+          localAgentRef: metadata.localAgentRef,
           conversationAnchorId: metadata.conversationAnchorId,
           prompt: executionRequest.prompt,
           history: input.history,

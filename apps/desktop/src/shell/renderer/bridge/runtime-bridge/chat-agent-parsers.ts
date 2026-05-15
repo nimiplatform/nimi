@@ -151,6 +151,33 @@ function parseOwnershipType(
   throw new Error(`${errorPrefix}: ownershipType is invalid`);
 }
 
+function buildLocalAgentRef(ownerUserId: string, realmAgentId: string): string {
+  return `local-agent:${ownerUserId}:${realmAgentId}`;
+}
+
+function rejectLegacyAgentId(record: Record<string, unknown>, errorPrefix: string): void {
+  if (parseOptionalString(record.agentId)) {
+    throw new Error(`${errorPrefix}: agentId is not an executable local Agent key; use localAgentRef`);
+  }
+}
+
+function parseLocalAgentIdentity(record: Record<string, unknown>, errorPrefix: string) {
+  rejectLegacyAgentId(record, errorPrefix);
+  const ownerUserId = parseRequiredString(record.ownerUserId, 'ownerUserId', errorPrefix);
+  const realmAgentId = parseRequiredString(record.realmAgentId, 'realmAgentId', errorPrefix);
+  const localAgentRef = parseRequiredString(record.localAgentRef, 'localAgentRef', errorPrefix);
+  if (localAgentRef === realmAgentId) {
+    throw new Error(`${errorPrefix}: localAgentRef must not be bare realmAgentId`);
+  }
+  if (!localAgentRef.startsWith('local-agent:')) {
+    throw new Error(`${errorPrefix}: localAgentRef must start with local-agent:`);
+  }
+  if (localAgentRef !== buildLocalAgentRef(ownerUserId, realmAgentId)) {
+    throw new Error(`${errorPrefix}: localAgentRef must equal local-agent:\${ownerUserId}:\${realmAgentId}`);
+  }
+  return { ownerUserId, realmAgentId, localAgentRef };
+}
+
 function parseAvatarBackendKind(
   value: unknown,
   errorPrefix: string,
@@ -179,8 +206,9 @@ function parseAvatarPresentationProfile(value: unknown, errorPrefix: string): Av
 
 export function parseAgentLocalTargetSnapshot(value: unknown): AgentLocalTargetSnapshot {
   const record = assertRecord(value, 'chat_agent target snapshot is invalid');
+  const identity = parseLocalAgentIdentity(record, 'chat_agent target snapshot');
   return {
-    agentId: parseRequiredString(record.agentId, 'agentId', 'chat_agent target snapshot'),
+    ...identity,
     displayName: parseRequiredString(record.displayName, 'displayName', 'chat_agent target snapshot'),
     handle: parseRequiredString(record.handle, 'handle', 'chat_agent target snapshot'),
     avatarUrl: parseOptionalString(record.avatarUrl) || null,
@@ -194,14 +222,18 @@ export function parseAgentLocalTargetSnapshot(value: unknown): AgentLocalTargetS
 
 export function parseAgentLocalThreadSummary(value: unknown): AgentLocalThreadSummary {
   const record = assertRecord(value, 'chat_agent thread summary is invalid');
-  const agentId = parseRequiredString(record.agentId, 'agentId', 'chat_agent thread summary');
+  const identity = parseLocalAgentIdentity(record, 'chat_agent thread summary');
   const targetSnapshot = parseAgentLocalTargetSnapshot(record.targetSnapshot);
-  if (targetSnapshot.agentId !== agentId) {
-    throw new Error('chat_agent thread summary: targetSnapshot.agentId must match agentId');
+  if (
+    targetSnapshot.ownerUserId !== identity.ownerUserId
+    || targetSnapshot.realmAgentId !== identity.realmAgentId
+    || targetSnapshot.localAgentRef !== identity.localAgentRef
+  ) {
+    throw new Error('chat_agent thread summary: targetSnapshot local identity must match thread local identity');
   }
   return {
     id: parseRequiredString(record.id, 'id', 'chat_agent thread summary'),
-    agentId,
+    ...identity,
     title: parseRequiredString(record.title, 'title', 'chat_agent thread summary'),
     updatedAtMs: parseFiniteInteger(record.updatedAtMs, 'updatedAtMs', 'chat_agent thread summary'),
     lastMessageAtMs: parseNullableFiniteInteger(record.lastMessageAtMs, 'lastMessageAtMs', 'chat_agent thread summary'),
@@ -423,15 +455,24 @@ export function parseAgentLocalCommitTurnResult(value: unknown): AgentLocalCommi
 
 export function parseAgentLocalCreateThreadInput(value: unknown): AgentLocalCreateThreadInput {
   const record = assertRecord(value, 'chat_agent create_thread payload is invalid');
+  const identity = parseLocalAgentIdentity(record, 'chat_agent create_thread payload');
+  const targetSnapshot = parseAgentLocalTargetSnapshot(record.targetSnapshot);
+  if (
+    targetSnapshot.ownerUserId !== identity.ownerUserId
+    || targetSnapshot.realmAgentId !== identity.realmAgentId
+    || targetSnapshot.localAgentRef !== identity.localAgentRef
+  ) {
+    throw new Error('chat_agent create_thread payload: targetSnapshot local identity must match thread local identity');
+  }
   return {
     id: parseRequiredString(record.id, 'id', 'chat_agent create_thread payload'),
-    agentId: parseRequiredString(record.agentId, 'agentId', 'chat_agent create_thread payload'),
+    ...identity,
     title: parseRequiredString(record.title, 'title', 'chat_agent create_thread payload'),
     createdAtMs: parseFiniteInteger(record.createdAtMs, 'createdAtMs', 'chat_agent create_thread payload'),
     updatedAtMs: parseFiniteInteger(record.updatedAtMs, 'updatedAtMs', 'chat_agent create_thread payload'),
     lastMessageAtMs: parseNullableFiniteInteger(record.lastMessageAtMs, 'lastMessageAtMs', 'chat_agent create_thread payload'),
     archivedAtMs: parseNullableFiniteInteger(record.archivedAtMs, 'archivedAtMs', 'chat_agent create_thread payload'),
-    targetSnapshot: parseAgentLocalTargetSnapshot(record.targetSnapshot),
+    targetSnapshot,
   };
 }
 

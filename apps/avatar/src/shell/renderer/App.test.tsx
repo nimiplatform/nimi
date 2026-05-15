@@ -18,16 +18,26 @@ const onLaunchContextUpdatedMock = vi.fn();
 const reloadAvatarShellMock = vi.fn();
 let tauriRuntime = false;
 let launchContextUpdatedHandler:
-  | ((payload: { agentId: string; avatarInstanceId: string | null; launchSource: string | null }) => void)
+  | ((payload: {
+    ownerUserId: string;
+    realmAgentId: string;
+    localAgentRef: string;
+    avatarInstanceId: string | null;
+    launchSource: string | null;
+  }) => void)
   | null = null;
 
 function launchContext(overrides: Partial<{
-  agentId: string;
+  ownerUserId: string;
+  realmAgentId: string;
+  localAgentRef: string;
   avatarInstanceId: string | null;
   launchSource: string | null;
 }> = {}) {
   return {
-    agentId: 'agent-product-01',
+    ownerUserId: 'owner-product',
+    realmAgentId: 'agent-product-01',
+    localAgentRef: 'local-agent:owner-product:agent-product-01',
     avatarInstanceId: 'avatar-instance-01',
     launchSource: 'desktop-avatar-launcher',
     ...overrides,
@@ -112,7 +122,7 @@ function seedReadyState(): void {
   useAvatarStore.getState().setRuntimeBinding({
     avatarInstanceId: 'avatar-instance-01',
     conversationAnchorId: 'anchor-01',
-    agentId: 'agent-product-01',
+    agentId: 'local-agent:owner-product:agent-product-01',
     worldId: 'world-01',
   });
   useAvatarStore.getState().setLaunchContext(launchContext());
@@ -298,7 +308,9 @@ describe('App composition state machine', () => {
 
     act(() => {
       launchContextUpdatedHandler?.({
-        agentId: 'agent-product-02',
+        ownerUserId: 'owner-product',
+        realmAgentId: 'agent-product-02',
+        localAgentRef: 'local-agent:owner-product:agent-product-02',
         avatarInstanceId: 'avatar-instance-02',
         launchSource: 'desktop-avatar-launcher',
       });
@@ -355,7 +367,7 @@ describe('Companion surface interactions (ready)', () => {
 
     await waitFor(() => {
       expect(handle.requestTextTurn).toHaveBeenCalledWith({
-        agentId: 'agent-product-01',
+        agentId: 'local-agent:owner-product:agent-product-01',
         conversationAnchorId: 'anchor-01',
         text: 'hello agent',
       });
@@ -383,7 +395,7 @@ describe('Companion surface interactions (ready)', () => {
     });
     const firstCall = (handle.startVoiceCapture as ReturnType<typeof vi.fn>).mock.calls[0];
     expect(firstCall?.[0]).toMatchObject({
-      agentId: 'agent-product-01',
+      agentId: 'local-agent:owner-product:agent-product-01',
       conversationAnchorId: 'anchor-01',
     });
   });

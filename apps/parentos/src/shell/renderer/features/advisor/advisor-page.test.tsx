@@ -266,11 +266,40 @@ vi.mock('@nimiplatform/nimi-kit/features/chat/ui', () => {
 });
 
 vi.mock('@nimiplatform/nimi-kit/ui', () => ({
+  Button: ({
+    children,
+    leadingIcon,
+    asChild,
+    ...props
+  }: {
+    children?: React.ReactNode;
+    leadingIcon?: React.ReactNode;
+    asChild?: boolean;
+  } & React.ButtonHTMLAttributes<HTMLButtonElement>) => {
+    if (asChild) return <>{children}</>;
+    return <button type="button" {...props}>{leadingIcon}{children}</button>;
+  },
+  IconButton: ({
+    icon,
+    ...props
+  }: {
+    icon: React.ReactNode;
+  } & React.ButtonHTMLAttributes<HTMLButtonElement>) => (
+    <button type="button" {...props}>{icon}</button>
+  ),
   ScrollArea: ({ children, className }: { children: React.ReactNode; className?: string }) => (
     <div className={className}>{children}</div>
   ),
   Surface: ({ children, className, style }: { children?: React.ReactNode; className?: string; style?: React.CSSProperties }) => (
     <div className={className} style={style}>{children}</div>
+  ),
+  TextareaField: ({
+    textareaClassName,
+    ...props
+  }: {
+    textareaClassName?: string;
+  } & React.TextareaHTMLAttributes<HTMLTextAreaElement>) => (
+    <textarea className={textareaClassName} {...props} />
   ),
   cn: (...args: unknown[]) => args.filter(Boolean).join(' '),
 }));

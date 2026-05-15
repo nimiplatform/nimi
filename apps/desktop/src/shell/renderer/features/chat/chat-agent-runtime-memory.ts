@@ -242,8 +242,8 @@ export async function loadDesktopAgentRuntimeMemoryContext(
   context: AgentLocalTurnContext,
 ): Promise<Pick<AgentLocalTurnContext, 'relationMemorySlots' | 'recallEntries'>> {
   const target = context.thread.targetSnapshot;
-  const agentId = normalizeText(target.agentId);
-  if (!agentId) {
+  const localAgentRef = normalizeText(target.localAgentRef);
+  if (!localAgentRef) {
     return {
       relationMemorySlots: [],
       recallEntries: [],
@@ -251,8 +251,8 @@ export async function loadDesktopAgentRuntimeMemoryContext(
   }
 
   const memories = await runtimeAgentMemory.queryCanonicalViews({
-    agentId,
-    displayName: normalizeText(target.displayName) || agentId,
+    agentId: localAgentRef,
+    displayName: normalizeText(target.displayName) || localAgentRef,
     worldId: target.worldId,
     query: deriveMemoryQuery(context),
     limit: 8,

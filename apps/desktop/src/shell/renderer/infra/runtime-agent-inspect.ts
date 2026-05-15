@@ -104,6 +104,31 @@ function normalizeAutonomyModeInput(value: unknown): RuntimeAgentAutonomyMode {
   }
 }
 
+function parseLocalAgentIdentity(localAgentRef: string): {
+  ownerUserId: string;
+  realmAgentId: string;
+  localAgentRef: string;
+} {
+  const normalized = normalizeText(localAgentRef);
+  const parts = normalized.split(':');
+  if (parts.length !== 3 || parts[0] !== 'local-agent' || !parts[1] || !parts[2]) {
+    throw new Error('runtime agent inspect requires localAgentRef formatted as local-agent:${ownerUserId}:${realmAgentId}');
+  }
+  return {
+    ownerUserId: parts[1],
+    realmAgentId: parts[2],
+    localAgentRef: normalized,
+  };
+}
+
+function buildAgentRequestContext(runtime: RuntimeClient, subjectUserId: string, localAgentRef: string) {
+  return {
+    appId: runtime.appId,
+    subjectUserId,
+    ...parseLocalAgentIdentity(localAgentRef),
+  };
+}
+
 function toProtoAutonomyMode(value: RuntimeAgentAutonomyMode): number {
   switch (value) {
     case 'low':
@@ -153,10 +178,7 @@ export function createRuntimeAgentInspectAdapter(deps: RuntimeAgentInspectDeps =
     const runtime = getRuntime();
     const subjectUserId = await resolveSubjectUserId();
     const protectedScopes = getProtectedAccess();
-    const context = {
-      appId: runtime.appId,
-      subjectUserId,
-    };
+    const context = buildAgentRequestContext(runtime, subjectUserId, normalizedAgentId);
     const listHooksByStatus = async (admissionStateFilter: number): Promise<RuntimeAgentPendingHookInspect[]> => {
       let pageToken = '';
       const collected: RuntimeAgentPendingHookInspect[] = [];
@@ -276,12 +298,10 @@ export function createRuntimeAgentInspectAdapter(deps: RuntimeAgentInspectDeps =
     const runtime = getRuntime();
     const subjectUserId = await resolveSubjectUserId();
     const protectedScopes = getProtectedAccess();
+    const context = buildAgentRequestContext(runtime, subjectUserId, normalizedAgentId);
     try {
       const response = await protectedScopes.withScopes(['runtime.agent.read'], (options) => runtime.agent.getAgent({
-        context: {
-          appId: runtime.appId,
-          subjectUserId,
-        },
+        context,
         agentId: normalizedAgentId,
       }, options));
       return readAgentPresentationProfile(response.agent?.metadata);
@@ -298,10 +318,7 @@ export function createRuntimeAgentInspectAdapter(deps: RuntimeAgentInspectDeps =
     const runtime = getRuntime();
     const subjectUserId = await resolveSubjectUserId();
     const protectedScopes = getProtectedAccess();
-    const context = {
-      appId: runtime.appId,
-      subjectUserId,
-    };
+    const context = buildAgentRequestContext(runtime, subjectUserId, normalizedAgentId);
     try {
       const response = await protectedScopes.withScopes(['runtime.agent.autonomy.write'], (options) => (
         runtime.agent.enableAutonomy({
@@ -393,10 +410,7 @@ export function createRuntimeAgentInspectAdapter(deps: RuntimeAgentInspectDeps =
     const runtime = getRuntime();
     const subjectUserId = await resolveSubjectUserId();
     const protectedScopes = getProtectedAccess();
-    const context = {
-      appId: runtime.appId,
-      subjectUserId,
-    };
+    const context = buildAgentRequestContext(runtime, subjectUserId, normalizedAgentId);
     try {
       const response = await protectedScopes.withScopes(['runtime.agent.write'], (options) => (
         runtime.agent.updateAgentState({
@@ -427,10 +441,7 @@ export function createRuntimeAgentInspectAdapter(deps: RuntimeAgentInspectDeps =
     const runtime = getRuntime();
     const subjectUserId = await resolveSubjectUserId();
     const protectedScopes = getProtectedAccess();
-    const context = {
-      appId: runtime.appId,
-      subjectUserId,
-    };
+    const context = buildAgentRequestContext(runtime, subjectUserId, normalizedAgentId);
     try {
       const response = await protectedScopes.withScopes(['runtime.agent.autonomy.write'], (options) => (
         runtime.agent.disableAutonomy({
@@ -470,10 +481,7 @@ export function createRuntimeAgentInspectAdapter(deps: RuntimeAgentInspectDeps =
     const runtime = getRuntime();
     const subjectUserId = await resolveSubjectUserId();
     const protectedScopes = getProtectedAccess();
-    const context = {
-      appId: runtime.appId,
-      subjectUserId,
-    };
+    const context = buildAgentRequestContext(runtime, subjectUserId, normalizedAgentId);
     try {
       const response = await protectedScopes.withScopes(['runtime.agent.write'], (options) => (
         runtime.agent.cancelHook({
@@ -506,10 +514,7 @@ export function createRuntimeAgentInspectAdapter(deps: RuntimeAgentInspectDeps =
     const runtime = getRuntime();
     const subjectUserId = await resolveSubjectUserId();
     const protectedScopes = getProtectedAccess();
-    const context = {
-      appId: runtime.appId,
-      subjectUserId,
-    };
+    const context = buildAgentRequestContext(runtime, subjectUserId, normalizedAgentId);
     try {
       const response = await protectedScopes.withScopes(['runtime.agent.autonomy.write'], (options) => (
         runtime.agent.setAutonomyConfig({
@@ -549,10 +554,7 @@ export function createRuntimeAgentInspectAdapter(deps: RuntimeAgentInspectDeps =
     const runtime = getRuntime();
     const subjectUserId = await resolveSubjectUserId();
     const protectedScopes = getProtectedAccess();
-    const context = {
-      appId: runtime.appId,
-      subjectUserId,
-    };
+    const context = buildAgentRequestContext(runtime, subjectUserId, normalizedAgentId);
     try {
       const callOptions = await protectedScopes.getCallOptions(['runtime.agent.read']);
       const stream = await runtime.agent.subscribeEvents({

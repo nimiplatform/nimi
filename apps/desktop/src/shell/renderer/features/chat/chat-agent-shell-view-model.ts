@@ -13,7 +13,7 @@ export function resolveAgentTargetSummaries(input: {
   threads: readonly AgentLocalThreadSummary[];
 }): ConversationTargetSummary[] {
   return input.targets.map((target) => {
-    const existingThread = input.threads.find((thread) => thread.agentId === target.agentId) || null;
+    const existingThread = input.threads.find((thread) => thread.localAgentRef === target.localAgentRef) || null;
     const persistedTarget = existingThread?.targetSnapshot || null;
     const resolvedTarget = {
       ...target,
@@ -21,20 +21,20 @@ export function resolveAgentTargetSummaries(input: {
       presentationProfile: persistedTarget?.presentationProfile || target.presentationProfile || null,
     };
     return {
-      id: target.agentId,
-    source: 'agent' as const,
-      canonicalSessionId: existingThread?.id || target.agentId,
+      id: target.localAgentRef,
+      source: 'agent' as const,
+      canonicalSessionId: existingThread?.id || target.localAgentRef,
       title: target.displayName,
       handle: target.handle ? `@${target.handle}` : null,
       bio: target.bio || null,
       avatarUrl: resolvedTarget.avatarUrl || null,
       avatarFallback: target.displayName.charAt(0).toUpperCase() || 'A',
-    previewText: null,
-    updatedAt: null,
-    unreadCount: 0,
-    status: 'active' as const,
-    isOnline: null,
-    metadata: {
+      previewText: null,
+      updatedAt: null,
+      unreadCount: 0,
+      status: 'active' as const,
+      isOnline: null,
+      metadata: {
         worldName: target.worldName,
         ownershipType: target.ownershipType,
         presentationProfile: resolvedTarget.presentationProfile,
@@ -89,8 +89,8 @@ export function resolveAgentCanonicalMessages(input: {
 }
 
 export function resolveAgentSelectedTargetId(input: {
-  selectionAgentId: string | null;
+  selectionLocalAgentRef: string | null;
   activeTargetId: string | null;
 }): string | null {
-  return input.selectionAgentId || input.activeTargetId || null;
+  return input.selectionLocalAgentRef || input.activeTargetId || null;
 }

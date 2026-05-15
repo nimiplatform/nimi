@@ -2,7 +2,7 @@ use super::db_queries::{read_resource_record, set_binding_impl};
 use super::db_support::{
     copy_directory_recursive, copy_file, generate_resource_id, kind_to_db,
     normalize_optional_string, normalize_source_path, now_ms, require_non_negative_ms,
-    resource_root_dir, status_to_db, AVATAR_MANAGED_RESOURCES_DIR,
+    resource_root_dir, status_to_db, validate_local_agent_ref, AVATAR_MANAGED_RESOURCES_DIR,
 };
 use super::types::*;
 use rusqlite::{params, Connection};
@@ -51,6 +51,37 @@ fn find_live2d_entry_relative_path(source_root: &Path) -> Result<String, String>
         }
     }
     Err("Live2D import requires a runtime directory containing a *.model3.json entry".to_string())
+}
+
+fn binding_payload_for_import(
+    owner_user_id: Option<&str>,
+    realm_agent_id: Option<&str>,
+    local_agent_ref: Option<&str>,
+    resource_id: String,
+    updated_at_ms: i64,
+) -> Result<Option<DesktopAgentAvatarBindingSetPayload>, String> {
+    match (
+        normalize_optional_string(owner_user_id),
+        normalize_optional_string(realm_agent_id),
+        normalize_optional_string(local_agent_ref),
+    ) {
+        (None, None, None) => Ok(None),
+        (Some(owner_user_id), Some(realm_agent_id), Some(local_agent_ref)) => {
+            let (owner_user_id, realm_agent_id, local_agent_ref) =
+                validate_local_agent_ref(&owner_user_id, &realm_agent_id, &local_agent_ref)?;
+            Ok(Some(DesktopAgentAvatarBindingSetPayload {
+                owner_user_id,
+                realm_agent_id,
+                local_agent_ref,
+                resource_id,
+                updated_at_ms,
+            }))
+        }
+        _ => Err(
+            "avatar import binding requires bindOwnerUserId, bindRealmAgentId, and bindLocalAgentRef together"
+                .to_string(),
+        ),
+    }
 }
 
 pub(super) fn import_vrm_impl(
@@ -123,19 +154,15 @@ pub(super) fn import_vrm_impl(
 
     let resource = read_resource_record(conn, &resource_id)?
         .ok_or_else(|| "VRM avatar resource missing after import".to_string())?;
-    let binding =
-        if let Some(agent_id) = normalize_optional_string(payload.bind_agent_id.as_deref()) {
-            Some(set_binding_impl(
-                conn,
-                &DesktopAgentAvatarBindingSetPayload {
-                    agent_id,
-                    resource_id: resource.resource_id.clone(),
-                    updated_at_ms: imported_at_ms,
-                },
-            )?)
-        } else {
-            None
-        };
+    let binding = binding_payload_for_import(
+        payload.bind_owner_user_id.as_deref(),
+        payload.bind_realm_agent_id.as_deref(),
+        payload.bind_local_agent_ref.as_deref(),
+        resource.resource_id.clone(),
+        imported_at_ms,
+    )?
+    .map(|binding_payload| set_binding_impl(conn, &binding_payload))
+    .transpose()?;
     Ok(DesktopAgentAvatarImportResult { resource, binding })
 }
 
@@ -239,18 +266,14 @@ pub(super) fn import_live2d_impl(
 
     let resource = read_resource_record(conn, &resource_id)?
         .ok_or_else(|| "Live2D avatar resource missing after import".to_string())?;
-    let binding =
-        if let Some(agent_id) = normalize_optional_string(payload.bind_agent_id.as_deref()) {
-            Some(set_binding_impl(
-                conn,
-                &DesktopAgentAvatarBindingSetPayload {
-                    agent_id,
-                    resource_id: resource.resource_id.clone(),
-                    updated_at_ms: imported_at_ms,
-                },
-            )?)
-        } else {
-            None
-        };
+    let binding = binding_payload_for_import(
+        payload.bind_owner_user_id.as_deref(),
+        payload.bind_realm_agent_id.as_deref(),
+        payload.bind_local_agent_ref.as_deref(),
+        resource.resource_id.clone(),
+        imported_at_ms,
+    )?
+    .map(|binding_payload| set_binding_impl(conn, &binding_payload))
+    .transpose()?;
     Ok(DesktopAgentAvatarImportResult { resource, binding })
 }

@@ -39,7 +39,7 @@ function voiceEvent(
 ): RuntimeAgentPresentationVoicePlaybackRequestedEvent {
   return {
     eventName: 'runtime.agent.presentation.voice_playback_requested',
-    agentId: 'agent-1',
+    localAgentRef: 'local-agent:user-1:agent-1',
     conversationAnchorId: 'anchor-1',
     turnId: 'turn-1',
     streamId: 'stream-1',
@@ -58,7 +58,7 @@ function lipsyncEvent(
 ): RuntimeAgentPresentationLipsyncFrameBatchEvent {
   return {
     eventName: 'runtime.agent.presentation.lipsync_frame_batch',
-    agentId: 'agent-1',
+    localAgentRef: 'local-agent:user-1:agent-1',
     conversationAnchorId: 'anchor-1',
     turnId: 'turn-1',
     streamId: 'stream-1',

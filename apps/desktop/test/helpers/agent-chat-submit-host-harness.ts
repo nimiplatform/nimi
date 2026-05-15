@@ -97,8 +97,8 @@ export function createAgentHostHarness(input: {
     threads: [input.initialBundle.thread],
     selection: {
       threadId: input.threadId,
-      agentId: input.initialBundle.thread.agentId,
-      targetId: input.initialBundle.thread.agentId,
+      localAgentRef: input.initialBundle.thread.localAgentRef,
+      targetId: input.initialBundle.thread.localAgentRef,
     },
     currentDraftText: '',
     footerByThreadId: {},
@@ -221,14 +221,14 @@ export function resolveAgentConsumerSnapshotForHarness(input: {
     threads: input.state.threads,
   });
   const selectedTargetId = resolveAgentSelectedTargetId({
-    selectionAgentId: input.state.selection.agentId,
-    activeTargetId: input.activeTarget?.agentId || null,
+    selectionLocalAgentRef: input.state.selection.localAgentRef,
+    activeTargetId: input.activeTarget?.localAgentRef || null,
   });
   const canonicalMessages = resolveAgentCanonicalMessages({
     messages,
     activeThreadId,
     activeConversationAnchorId: activeThreadId,
-    activeTargetId: input.activeTarget?.agentId || null,
+    activeTargetId: input.activeTarget?.localAgentRef || null,
     character: {
       name: characterData.name,
       avatarUrl: characterData.avatarUrl,

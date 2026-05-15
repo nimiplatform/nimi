@@ -1,7 +1,6 @@
-import type { ReactNode } from 'react';
+import { Suspense, lazy, type ReactNode } from 'react';
 import { hasTauriInvoke } from '@renderer/bridge/runtime-bridge/env';
 import { AdvBlock, AgentCenterPanel } from './chat-agent-center-panel';
-import { ChatSettingsPanel } from './chat-shared-settings-panel';
 import type { UseAgentConversationPresentationInput } from './chat-agent-shell-presentation-types';
 import { AgentDiagnosticsPanel } from './chat-agent-diagnostics';
 import { AgentCenterAvatarDebugWorkbench } from './chat-agent-center-avatar-debug-workbench';
@@ -13,6 +12,11 @@ import type {
   AgentCenterAvatarPackageModule,
   AgentCenterGeneratedMotionProviderPolicy,
 } from './chat-agent-center-avatar-config-types';
+
+const ChatSettingsPanel = lazy(async () => {
+  const mod = await import('./chat-shared-settings-panel');
+  return { default: mod.ChatSettingsPanel };
+});
 
 type MutationLike<TArg = void> = {
   error: unknown;
@@ -333,24 +337,26 @@ export function AgentConversationSettingsContent(props: AgentConversationSetting
           </div>
         )}
         modelContent={(
-          <ChatSettingsPanel
-            onDiagnosticsVisibilityChange={input.onDiagnosticsVisibilityChange}
-            onModelSelectionChange={input.onModelSelectionChange}
-            initialModelSelection={input.initialModelSelection}
-            diagnosticsContent={diagnosticsContent}
-            clearChatsTargetName={input.clearChatsTargetName}
-            clearChatsDisabled={input.clearChatsDisabled}
-            onClearAgentHistory={input.onClearAgentHistory}
-            showPresenceContent={false}
-            showDiagnosticsFooter={false}
-            showClearHistoryAction={false}
-            superSections={[
-              { id: 'conversation', label: input.t('Chat.agentCenterSuperSectionConversation', { defaultValue: 'Conversation' }), sections: ['chat', 'embed'] },
-              { id: 'voice', label: input.t('Chat.agentCenterSuperSectionVoice', { defaultValue: 'Voice' }), sections: ['tts', 'stt', 'voice'] },
-              { id: 'media', label: input.t('Chat.agentCenterSuperSectionMedia', { defaultValue: 'Media' }), sections: ['image', 'video'] },
-              { id: 'world', label: input.t('Chat.agentCenterSuperSectionWorld', { defaultValue: 'World' }), sections: ['world'] },
-            ]}
-          />
+          <Suspense fallback={null}>
+            <ChatSettingsPanel
+              onDiagnosticsVisibilityChange={input.onDiagnosticsVisibilityChange}
+              onModelSelectionChange={input.onModelSelectionChange}
+              initialModelSelection={input.initialModelSelection}
+              diagnosticsContent={diagnosticsContent}
+              clearChatsTargetName={input.clearChatsTargetName}
+              clearChatsDisabled={input.clearChatsDisabled}
+              onClearAgentHistory={input.onClearAgentHistory}
+              showPresenceContent={false}
+              showDiagnosticsFooter={false}
+              showClearHistoryAction={false}
+              superSections={[
+                { id: 'conversation', label: input.t('Chat.agentCenterSuperSectionConversation', { defaultValue: 'Conversation' }), sections: ['chat', 'embed'] },
+                { id: 'voice', label: input.t('Chat.agentCenterSuperSectionVoice', { defaultValue: 'Voice' }), sections: ['tts', 'stt', 'voice'] },
+                { id: 'media', label: input.t('Chat.agentCenterSuperSectionMedia', { defaultValue: 'Media' }), sections: ['image', 'video'] },
+                { id: 'world', label: input.t('Chat.agentCenterSuperSectionWorld', { defaultValue: 'World' }), sections: ['world'] },
+              ]}
+            />
+          </Suspense>
         )}
         cognitionContent={input.cognitionContent}
         diagnosticsContent={diagnosticsContent}

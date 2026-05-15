@@ -7,26 +7,28 @@ use super::types::*;
 pub(super) fn thread_record_from_row(
     row: &rusqlite::Row<'_>,
 ) -> Result<ChatAgentThreadRecord, rusqlite::Error> {
-    let target_snapshot_json: String = row.get(7)?;
+    let target_snapshot_json: String = row.get(9)?;
     let target_snapshot = parse_json_required::<ChatAgentTargetSnapshot>(
         target_snapshot_json,
         "agent_threads.target_snapshot_json",
     )
     .map_err(|error| {
         rusqlite::Error::FromSqlConversionFailure(
-            7,
+            9,
             rusqlite::types::Type::Text,
             Box::new(std::io::Error::new(std::io::ErrorKind::InvalidData, error)),
         )
     })?;
     Ok(ChatAgentThreadRecord {
         id: row.get(0)?,
-        agent_id: row.get(1)?,
-        title: row.get(2)?,
-        created_at_ms: row.get(3)?,
-        updated_at_ms: row.get(4)?,
-        last_message_at_ms: row.get(5)?,
-        archived_at_ms: row.get(6)?,
+        local_agent_ref: row.get(1)?,
+        owner_user_id: row.get(2)?,
+        realm_agent_id: row.get(3)?,
+        title: row.get(4)?,
+        created_at_ms: row.get(5)?,
+        updated_at_ms: row.get(6)?,
+        last_message_at_ms: row.get(7)?,
+        archived_at_ms: row.get(8)?,
         target_snapshot,
     })
 }

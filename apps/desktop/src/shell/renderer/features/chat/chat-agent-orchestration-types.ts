@@ -39,7 +39,9 @@ export const AGENT_LOCAL_CHAT_PROVIDER_CAPABILITIES = {
 } as const;
 
 export type AgentLocalChatRuntimeRequest = {
-  agentId: string;
+  ownerUserId: string;
+  realmAgentId: string;
+  localAgentRef: string;
   conversationAnchorId: string;
   prompt?: string;
   history?: readonly ConversationTurnHistoryMessage[];
@@ -154,7 +156,9 @@ export interface AgentLocalChatRuntimeAdapter {
 }
 
 export type AgentLocalChatProviderMetadata = {
-  agentId: string;
+  ownerUserId: string;
+  realmAgentId: string;
+  localAgentRef: string;
   conversationAnchorId: string;
   targetSnapshot: AgentLocalTargetSnapshot;
   agentResolution: AgentEffectiveCapabilityResolution | null;

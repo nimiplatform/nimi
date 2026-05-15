@@ -8,7 +8,15 @@ const AVATAR_INSTANCE_REGISTRY_DIR: &str = "avatar-instance-registry";
 const AVATAR_INSTANCE_REGISTRY_FILE: &str = "instances.json";
 const PROCESS_START_TIME_SKEW_MS: i64 = 1_000;
 const LIVE_PROJECTION_TTL_MS: i64 = 2_000;
-const AVATAR_INSTANCE_REGISTRY_SCHEMA_VERSION: u32 = 1;
+const AVATAR_INSTANCE_REGISTRY_SCHEMA_VERSION: u32 = 2;
+const LOCAL_AGENT_REF_PREFIX: &str = "local-agent:";
+
+#[derive(Debug, Clone)]
+pub(crate) struct AvatarInstanceLocalAgentScope {
+    pub(crate) owner_user_id: String,
+    pub(crate) realm_agent_id: String,
+    pub(crate) local_agent_ref: String,
+}
 
 fn registry_path() -> Result<PathBuf, String> {
     Ok(resolve_nimi_data_dir()?
@@ -26,6 +34,26 @@ fn load_registry_from_path(path: &Path) -> Result<DesktopAvatarInstanceRegistryF
             path.display()
         )
     })?;
+    let metadata = serde_json::from_str::<serde_json::Value>(&raw).map_err(|error| {
+        format!(
+            "failed to parse avatar instance registry metadata ({}): {error}",
+            path.display()
+        )
+    })?;
+    let publisher_pid = metadata
+        .get("publisherPid")
+        .and_then(serde_json::Value::as_u64)
+        .map(|value| value as u32)
+        .unwrap_or(0);
+    let published_at_ms = metadata
+        .get("publishedAtMs")
+        .and_then(serde_json::Value::as_i64)
+        .unwrap_or(0);
+    if !projection_is_fresh(published_at_ms, current_time_ms())
+        || !is_projection_owned_by_live_process(publisher_pid, published_at_ms)
+    {
+        return Ok(DesktopAvatarInstanceRegistryFile::default());
+    }
     serde_json::from_str::<DesktopAvatarInstanceRegistryFile>(&raw).map_err(|error| {
         format!(
             "failed to parse avatar instance registry ({}): {error}",
@@ -68,9 +96,47 @@ fn required_trimmed(value: &str, field: &str) -> Result<(), String> {
     Ok(())
 }
 
+fn normalize_required(value: &str, field: &str) -> Result<String, String> {
+    let normalized = value.trim();
+    if normalized.is_empty() {
+        return Err(format!("{field} is required"));
+    }
+    Ok(normalized.to_string())
+}
+
+fn validate_local_agent_scope(
+    owner_user_id: &str,
+    realm_agent_id: &str,
+    local_agent_ref: &str,
+) -> Result<AvatarInstanceLocalAgentScope, String> {
+    let owner_user_id = normalize_required(owner_user_id, "ownerUserId")?;
+    let realm_agent_id = normalize_required(realm_agent_id, "realmAgentId")?;
+    let local_agent_ref = normalize_required(local_agent_ref, "localAgentRef")?;
+    if local_agent_ref == realm_agent_id {
+        return Err("localAgentRef must not be a bare realmAgentId".to_string());
+    }
+    if !local_agent_ref.starts_with(LOCAL_AGENT_REF_PREFIX) {
+        return Err("localAgentRef must start with local-agent:".to_string());
+    }
+    if local_agent_ref != format!("{LOCAL_AGENT_REF_PREFIX}{owner_user_id}:{realm_agent_id}") {
+        return Err(
+            "localAgentRef must equal local-agent:${ownerUserId}:${realmAgentId}".to_string(),
+        );
+    }
+    Ok(AvatarInstanceLocalAgentScope {
+        owner_user_id,
+        realm_agent_id,
+        local_agent_ref,
+    })
+}
+
 fn validate_instance_record(record: &DesktopAvatarInstanceRegistryRecord) -> Result<(), String> {
     required_trimmed(&record.avatar_instance_id, "avatar_instance_id")?;
-    required_trimmed(&record.agent_id, "agent_id")?;
+    validate_local_agent_scope(
+        &record.owner_user_id,
+        &record.realm_agent_id,
+        &record.local_agent_ref,
+    )?;
     Ok(())
 }
 
@@ -88,9 +154,9 @@ fn validate_registry_file(file: &DesktopAvatarInstanceRegistryFile) -> Result<()
 
 fn list_instances_from_file(
     file: DesktopAvatarInstanceRegistryFile,
-    agent_id: Option<&str>,
+    scope: Option<&AvatarInstanceLocalAgentScope>,
 ) -> Result<Vec<DesktopAvatarInstanceRegistryRecord>, String> {
-    list_instances_from_file_at(file, agent_id, current_time_ms())
+    list_instances_from_file_at(file, scope, current_time_ms())
 }
 
 fn current_time_ms() -> i64 {
@@ -102,7 +168,7 @@ fn current_time_ms() -> i64 {
 
 fn list_instances_from_file_at(
     file: DesktopAvatarInstanceRegistryFile,
-    agent_id: Option<&str>,
+    scope: Option<&AvatarInstanceLocalAgentScope>,
     now_ms: i64,
 ) -> Result<Vec<DesktopAvatarInstanceRegistryRecord>, String> {
     if !projection_is_fresh(file.published_at_ms, now_ms) {
@@ -112,27 +178,42 @@ fn list_instances_from_file_at(
         return Ok(Vec::new());
     }
     validate_registry_file(&file)?;
-    let filter = agent_id
-        .map(|value| value.trim().to_string())
-        .filter(|value| !value.is_empty());
     Ok(file
         .instances
         .into_iter()
         .filter(|record| {
-            filter
+            scope
                 .as_ref()
-                .map(|expected| record.agent_id == *expected)
+                .map(|expected| {
+                    record.owner_user_id == expected.owner_user_id
+                        && record.realm_agent_id == expected.realm_agent_id
+                        && record.local_agent_ref == expected.local_agent_ref
+                })
                 .unwrap_or(true)
         })
         .collect())
 }
 
 pub(crate) fn list_instances(
-    agent_id: Option<&str>,
+    owner_user_id: Option<&str>,
+    realm_agent_id: Option<&str>,
+    local_agent_ref: Option<&str>,
 ) -> Result<Vec<DesktopAvatarInstanceRegistryRecord>, String> {
+    let scope = match (owner_user_id, realm_agent_id, local_agent_ref) {
+        (None, None, None) => None,
+        (Some(owner_user_id), Some(realm_agent_id), Some(local_agent_ref)) => Some(
+            validate_local_agent_scope(owner_user_id, realm_agent_id, local_agent_ref)?,
+        ),
+        _ => {
+            return Err(
+                "avatar instance registry lookup requires ownerUserId, realmAgentId, and localAgentRef together"
+                    .to_string(),
+            )
+        }
+    };
     let path = registry_path()?;
     let file = load_registry_from_path(&path)?;
-    list_instances_from_file(file, agent_id)
+    list_instances_from_file(file, scope.as_ref())
 }
 
 #[cfg(test)]
@@ -141,7 +222,7 @@ mod tests {
 
     use super::{
         list_instances_from_file, list_instances_from_file_at, load_registry_from_path,
-        process_start_time_matches_projection, projection_is_fresh,
+        process_start_time_matches_projection, projection_is_fresh, validate_local_agent_scope,
         DesktopAvatarInstanceRegistryFile,
     };
 
@@ -168,7 +249,24 @@ mod tests {
     fn valid_record() -> super::DesktopAvatarInstanceRegistryRecord {
         super::DesktopAvatarInstanceRegistryRecord {
             avatar_instance_id: "instance-1".to_string(),
-            agent_id: "agent-1".to_string(),
+            owner_user_id: "owner-1".to_string(),
+            realm_agent_id: "agent-1".to_string(),
+            local_agent_ref: "local-agent:owner-1:agent-1".to_string(),
+            launch_source: Some("desktop-agent-chat".to_string()),
+        }
+    }
+
+    fn valid_scope() -> super::AvatarInstanceLocalAgentScope {
+        validate_local_agent_scope("owner-1", "agent-1", "local-agent:owner-1:agent-1")
+            .expect("scope")
+    }
+
+    fn second_owner_record() -> super::DesktopAvatarInstanceRegistryRecord {
+        super::DesktopAvatarInstanceRegistryRecord {
+            avatar_instance_id: "instance-2".to_string(),
+            owner_user_id: "owner-2".to_string(),
+            realm_agent_id: "agent-1".to_string(),
+            local_agent_ref: "local-agent:owner-2:agent-1".to_string(),
             launch_source: Some("desktop-agent-chat".to_string()),
         }
     }
@@ -177,7 +275,7 @@ mod tests {
         instances: Vec<super::DesktopAvatarInstanceRegistryRecord>,
     ) -> DesktopAvatarInstanceRegistryFile {
         DesktopAvatarInstanceRegistryFile {
-            schema_version: 1,
+            schema_version: 2,
             publisher_pid: std::process::id(),
             published_at_ms: now_ms(),
             instances,
@@ -197,22 +295,25 @@ mod tests {
     #[test]
     fn load_registry_from_path_parses_instances() {
         let path = temp_registry_path();
-        fs::write(
-            &path,
-            r#"{
-  "schemaVersion": 1,
-  "publisherPid": 7,
-  "publishedAtMs": 100,
+        let raw = format!(
+            r#"{{
+  "schemaVersion": 2,
+  "publisherPid": {},
+  "publishedAtMs": {},
   "instances": [
-    {
+    {{
       "avatarInstanceId": "instance-1",
-      "agentId": "agent-1",
+      "ownerUserId": "owner-1",
+      "realmAgentId": "agent-1",
+      "localAgentRef": "local-agent:owner-1:agent-1",
       "launchSource": "desktop-agent-chat"
-    }
+    }}
   ]
-}"#,
-        )
-        .expect("write registry");
+}}"#,
+            std::process::id(),
+            now_ms()
+        );
+        fs::write(&path, raw).expect("write registry");
 
         let loaded = load_registry_from_path(&path).expect("parse registry");
 
@@ -224,7 +325,7 @@ mod tests {
     fn list_instances_returns_empty_when_publisher_pid_is_stale() {
         let listed = list_instances_from_file(
             DesktopAvatarInstanceRegistryFile {
-                schema_version: 1,
+                schema_version: 2,
                 publisher_pid: 999999,
                 published_at_ms: 100,
                 instances: vec![valid_record()],
@@ -241,7 +342,7 @@ mod tests {
         let now = now_ms();
         let listed = list_instances_from_file_at(
             DesktopAvatarInstanceRegistryFile {
-                schema_version: 1,
+                schema_version: 2,
                 publisher_pid: std::process::id(),
                 published_at_ms: now - 2_001,
                 instances: vec![valid_record()],
@@ -258,7 +359,7 @@ mod tests {
     fn list_instances_returns_empty_when_publisher_pid_is_zero() {
         let listed = list_instances_from_file(
             DesktopAvatarInstanceRegistryFile {
-                schema_version: 1,
+                schema_version: 2,
                 publisher_pid: 0,
                 published_at_ms: 100,
                 instances: vec![valid_record()],
@@ -300,24 +401,27 @@ mod tests {
     }
 
     #[test]
-    fn load_registry_from_path_rejects_authority_bearing_record_fields() {
+    fn load_registry_from_path_rejects_authority_bearing_record_fields_for_live_projection() {
         let path = temp_registry_path();
-        fs::write(
-            &path,
-            r#"{
-  "schemaVersion": 1,
-  "publisherPid": 7,
-  "publishedAtMs": 100,
+        let raw = format!(
+            r#"{{
+  "schemaVersion": 2,
+  "publisherPid": {},
+  "publishedAtMs": {},
   "instances": [
-    {
+    {{
       "avatarInstanceId": "instance-1",
-      "agentId": "agent-1",
+      "ownerUserId": "owner-1",
+      "realmAgentId": "agent-1",
+      "localAgentRef": "local-agent:owner-1:agent-1",
       "conversationAnchorId": "anchor-1"
-    }
+    }}
   ]
-}"#,
-        )
-        .expect("write registry");
+}}"#,
+            std::process::id(),
+            now_ms()
+        );
+        fs::write(&path, raw).expect("write registry");
 
         let error = load_registry_from_path(&path).expect_err("old projection fields must fail");
 
@@ -325,19 +429,97 @@ mod tests {
     }
 
     #[test]
+    fn load_registry_from_path_ignores_stale_pre_cutover_projection_fields() {
+        let path = temp_registry_path();
+        fs::write(
+            &path,
+            r#"{
+  "schemaVersion": 2,
+  "publisherPid": 7,
+  "publishedAtMs": 100,
+  "instances": [
+    {
+      "avatarInstanceId": "instance-1",
+      "ownerUserId": "owner-1",
+      "realmAgentId": "agent-1",
+      "localAgentRef": "local-agent:owner-1:agent-1",
+      "conversationAnchorId": "anchor-1"
+    }
+  ]
+}"#,
+        )
+        .expect("write registry");
+
+        let loaded = load_registry_from_path(&path).expect("stale projection is ignored");
+
+        assert!(loaded.instances.is_empty());
+    }
+
+    #[test]
     fn list_instances_validates_records_before_filtering() {
         let mut invalid_non_matching_record = valid_record();
-        invalid_non_matching_record.agent_id = "other-agent".to_string();
+        invalid_non_matching_record.owner_user_id = "owner-2".to_string();
+        invalid_non_matching_record.local_agent_ref = "local-agent:owner-2:agent-1".to_string();
         invalid_non_matching_record.avatar_instance_id = " ".to_string();
 
         let result = list_instances_from_file(
             live_registry_file(vec![valid_record(), invalid_non_matching_record]),
-            Some("agent-1"),
+            Some(&valid_scope()),
         );
 
         assert!(result
             .expect_err("invalid non-matching record must still fail closed")
             .contains("avatar_instance_id"));
+    }
+
+    #[test]
+    fn list_instances_keeps_same_realm_agent_separate_by_owner() {
+        let listed = list_instances_from_file_at(
+            live_registry_file(vec![valid_record(), second_owner_record()]),
+            Some(&valid_scope()),
+            now_ms(),
+        )
+        .expect("list instances");
+
+        assert_eq!(listed.len(), 1);
+        assert_eq!(listed[0].owner_user_id, "owner-1");
+        assert_eq!(listed[0].realm_agent_id, "agent-1");
+        assert_eq!(listed[0].local_agent_ref, "local-agent:owner-1:agent-1");
+    }
+
+    #[test]
+    fn local_agent_scope_rejects_missing_bare_mismatch_and_malformed_refs() {
+        assert!(
+            validate_local_agent_scope("", "agent-1", "local-agent:owner-1:agent-1")
+                .expect_err("missing owner")
+                .contains("ownerUserId")
+        );
+        assert!(
+            validate_local_agent_scope("owner-1", "", "local-agent:owner-1:agent-1")
+                .expect_err("missing realm")
+                .contains("realmAgentId")
+        );
+        assert!(validate_local_agent_scope("owner-1", "agent-1", "")
+            .expect_err("missing local ref")
+            .contains("localAgentRef"));
+        assert!(validate_local_agent_scope("owner-1", "agent-1", "agent-1")
+            .expect_err("bare realm")
+            .contains("bare realmAgentId"));
+        assert!(
+            validate_local_agent_scope("owner-1", "agent-1", "local-agent:owner-2:agent-1")
+                .expect_err("owner mismatch")
+                .contains("local-agent:${ownerUserId}:${realmAgentId}")
+        );
+        assert!(
+            validate_local_agent_scope("owner-1", "agent-1", "local-agent:owner-1:agent-2")
+                .expect_err("realm mismatch")
+                .contains("local-agent:${ownerUserId}:${realmAgentId}")
+        );
+        assert!(
+            validate_local_agent_scope("owner-1", "agent-1", "agent:abc.def+1")
+                .expect_err("malformed")
+                .contains("local-agent:")
+        );
     }
 
     #[test]

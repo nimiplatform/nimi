@@ -10,7 +10,9 @@ const t = (_key: string, options?: { defaultValue?: string }) => options?.defaul
 
 function sampleTarget() {
   return {
-    agentId: 'agent-1',
+    ownerUserId: 'user-1',
+    realmAgentId: 'agent-1',
+    localAgentRef: 'local-agent:user-1:agent-1',
     displayName: 'Companion',
     handle: '~companion',
     avatarUrl: null,

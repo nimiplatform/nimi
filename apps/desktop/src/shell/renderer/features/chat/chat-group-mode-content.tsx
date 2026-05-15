@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { CanonicalConversationShell } from '@nimiplatform/nimi-kit/features/chat/components/canonical-conversation-shell';
 import {
-  CanonicalConversationShell,
   type ConversationSetupAction,
   type ConversationTargetSummary,
-} from '@nimiplatform/nimi-kit/features/chat';
+} from '@nimiplatform/nimi-kit/features/chat/headless';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { useGroupConversationModeHost } from './chat-group-adapter';
 import {

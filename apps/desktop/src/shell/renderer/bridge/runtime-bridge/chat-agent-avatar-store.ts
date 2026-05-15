@@ -20,8 +20,8 @@ export function desktopAgentAvatarResourcesQueryKey() {
   return ['desktop-agent-avatar-resources'] as const;
 }
 
-export function desktopAgentAvatarBindingQueryKey(agentId: string) {
-  return ['desktop-agent-avatar-binding', agentId] as const;
+export function desktopAgentAvatarBindingQueryKey(localAgentRef: string) {
+  return ['desktop-agent-avatar-binding', localAgentRef] as const;
 }
 
 export async function pickDesktopAgentAvatarVrmSourcePath(): Promise<string | null> {
@@ -67,8 +67,8 @@ export async function readDesktopAgentAvatarResourceRelativeAsset(
   throw decommissionedError('desktop_agent_avatar_resource_read_relative_asset');
 }
 
-export async function getDesktopAgentAvatarBinding(agentId: string): Promise<DesktopAgentAvatarBindingRecord | null> {
-  void agentId;
+export async function getDesktopAgentAvatarBinding(localAgentRef: string): Promise<DesktopAgentAvatarBindingRecord | null> {
+  void localAgentRef;
   throw decommissionedError('desktop_agent_avatar_binding_get');
 }
 
@@ -79,7 +79,7 @@ export async function setDesktopAgentAvatarBinding(
   throw decommissionedError('desktop_agent_avatar_binding_set');
 }
 
-export async function clearDesktopAgentAvatarBinding(agentId: string): Promise<boolean> {
-  void agentId;
+export async function clearDesktopAgentAvatarBinding(localAgentRef: string): Promise<boolean> {
+  void localAgentRef;
   throw decommissionedError('desktop_agent_avatar_binding_clear');
 }

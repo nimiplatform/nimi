@@ -7,7 +7,8 @@ use url::Url;
 pub(super) const AVATAR_ROOT_DIR_NAME: &str = "avatar-resources";
 pub(super) const AVATAR_MANAGED_RESOURCES_DIR: &str = "resources";
 pub(super) const AVATAR_DB_FILE_NAME: &str = "registry.db";
-pub(super) const AVATAR_DB_SCHEMA_VERSION: i64 = 1;
+pub(super) const AVATAR_DB_SCHEMA_VERSION: i64 = 2;
+const LOCAL_AGENT_REF_PREFIX: &str = "local-agent:";
 
 pub(super) fn now_ms() -> i64 {
     SystemTime::now()
@@ -29,6 +30,28 @@ pub(super) fn normalize_optional_string(value: Option<&str>) -> Option<String> {
         .map(str::trim)
         .filter(|text| !text.is_empty())
         .map(|text| text.to_string())
+}
+
+pub(super) fn validate_local_agent_ref(
+    owner_user_id: &str,
+    realm_agent_id: &str,
+    local_agent_ref: &str,
+) -> Result<(String, String, String), String> {
+    let owner_user_id = normalize_required_string(owner_user_id, "ownerUserId")?;
+    let realm_agent_id = normalize_required_string(realm_agent_id, "realmAgentId")?;
+    let local_agent_ref = normalize_required_string(local_agent_ref, "localAgentRef")?;
+    if local_agent_ref == realm_agent_id {
+        return Err("localAgentRef must not be a bare realmAgentId".to_string());
+    }
+    if !local_agent_ref.starts_with(LOCAL_AGENT_REF_PREFIX) {
+        return Err("localAgentRef must start with local-agent:".to_string());
+    }
+    if local_agent_ref != format!("{LOCAL_AGENT_REF_PREFIX}{owner_user_id}:{realm_agent_id}") {
+        return Err(
+            "localAgentRef must equal local-agent:${ownerUserId}:${realmAgentId}".to_string(),
+        );
+    }
+    Ok((owner_user_id, realm_agent_id, local_agent_ref))
 }
 
 pub(super) fn require_non_negative_ms(value: i64, field_name: &str) -> Result<i64, String> {

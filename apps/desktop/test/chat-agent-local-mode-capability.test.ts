@@ -390,7 +390,7 @@ test('agent shell stays desktop-owned and uses social snapshot plus local agent 
   assert.match(voiceAdapterSource, /onAutoStop:\s*\(recording\)/);
   assert.match(voiceAdapterSource, /handleHandsFreeAutoStopRecording\(recording, conversationAnchorId\)/);
   assert.match(voiceAdapterSource, /activeConversationAnchorId/);
-  assert.match(voiceAdapterSource, /\[input\.activeConversationAnchorId,\s*input\.activeTarget\?\.agentId,\s*input\.activeThreadId\]/);
+  assert.match(voiceAdapterSource, /\[input\.activeConversationAnchorId,\s*input\.activeTarget\?\.localAgentRef,\s*input\.activeThreadId\]/);
   assert.match(voiceAdapterSource, /sessionAnchorId !== activeConversationAnchorId/);
   assert.match(voiceAdapterSource, /Voice input stopped because the conversation anchor changed\./);
   assert.match(voiceAdapterSource, /cancelStream\(activeThreadId\)/);

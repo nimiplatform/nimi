@@ -15,7 +15,9 @@ export type DesktopAgentAvatarResourceRecord = {
 };
 
 export type DesktopAgentAvatarBindingRecord = {
-  agentId: string;
+  ownerUserId: string;
+  realmAgentId: string;
+  localAgentRef: string;
   resourceId: string;
   updatedAtMs: number;
 };
@@ -38,19 +40,25 @@ export type DesktopAgentAvatarImportResult = {
 export type DesktopAgentAvatarImportVrmInput = {
   sourcePath: string;
   displayName?: string | null;
-  bindAgentId?: string | null;
+  bindOwnerUserId?: string | null;
+  bindRealmAgentId?: string | null;
+  bindLocalAgentRef?: string | null;
   importedAtMs?: number | null;
 };
 
 export type DesktopAgentAvatarImportLive2dInput = {
   sourcePath: string;
   displayName?: string | null;
-  bindAgentId?: string | null;
+  bindOwnerUserId?: string | null;
+  bindRealmAgentId?: string | null;
+  bindLocalAgentRef?: string | null;
   importedAtMs?: number | null;
 };
 
 export type DesktopAgentAvatarBindingSetInput = {
-  agentId: string;
+  ownerUserId: string;
+  realmAgentId: string;
+  localAgentRef: string;
   resourceId: string;
   updatedAtMs: number;
 };

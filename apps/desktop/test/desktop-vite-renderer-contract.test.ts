@@ -29,6 +29,10 @@ test('desktop production renderer does not inject Vite modulepreload fetch polyf
   );
 });
 
+test('desktop dev renderer disables HMR to avoid React refresh module preamble in Tauri WebKit', () => {
+  assert.match(viteConfigSource, /server:\s*{[\s\S]*hmr:\s*false/);
+});
+
 test('desktop renderer entrypoint is packaged-local and has no remote boot resources', () => {
   assert.doesNotMatch(rendererEntryHtml, /https?:\/\//);
   assert.doesNotMatch(rendererEntryHtml, /fonts\.(googleapis|gstatic)\.com/);

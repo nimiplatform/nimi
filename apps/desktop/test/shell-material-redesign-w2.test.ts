@@ -14,9 +14,10 @@ const navConfigSource = readWorkspaceFile('src/shell/renderer/app-shell/layouts/
 const sidebarTooltipSource = readWorkspaceFile('src/shell/renderer/app-shell/layouts/main-layout-sidebar-tooltip-button.tsx');
 
 test('W2 shell redesign: shared status shell adopts AmbientBackground and glass host', () => {
-  assert.match(appRoutesSource, /import \{ AmbientBackground, Surface \} from '@nimiplatform\/nimi-kit\/ui';/);
+  assert.match(appRoutesSource, /import \{ AmbientBackground, ProgressIndicator, Surface \} from '@nimiplatform\/nimi-kit\/ui';/);
   assert.match(appRoutesSource, /<AmbientBackground[\s\S]*variant="mesh"/);
   assert.match(appRoutesSource, /<Surface[\s\S]*material="glass-thick"/);
+  assert.match(appRoutesSource, /<ProgressIndicator[\s\S]*value=\{clamped\}/);
   assert.doesNotMatch(appRoutesSource, /function SharedScreenBackdrop/u);
 });
 

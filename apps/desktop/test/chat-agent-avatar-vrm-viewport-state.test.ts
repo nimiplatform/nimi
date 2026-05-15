@@ -241,6 +241,7 @@ test('avatar vrm viewport state converts file urls to tauri asset urls when taur
     runtimeGlobal.__NIMI_TAURI_RUNTIME__ = {};
     runtimeGlobal.window = {
       __TAURI_INTERNALS__: {
+        invoke: () => Promise.resolve(null),
         convertFileSrc: (path: string, protocol = 'asset') => `${protocol}://localhost/${path}`,
       },
     } as unknown as Window & typeof globalThis;

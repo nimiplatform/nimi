@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
-import { Surface } from '@nimiplatform/nimi-kit/ui';
+import { Button, EmptyState, InlineAlert, StatusBadge, Surface, cn } from '@nimiplatform/nimi-kit/ui';
 import { useAppStore, computeAgeMonths } from '../../app-shell/app-store.js';
 import {
   deleteCustomTodo,
@@ -39,9 +39,8 @@ import {
   isRecordDataReminder,
 } from './record-data-capture.js';
 
-const textMain = '#1e293b';
-const textMuted = '#475569';
-const glassInner = { background: '#f8fafc', border: '1px solid #f1f5f9', borderRadius: 16 };
+const textPrimaryClass = 'text-[var(--nimi-text-primary)]';
+const textMutedClass = 'text-[var(--nimi-text-muted)]';
 
 const DOMAIN_LABELS: Record<string, string> = {
   vaccine: '疫苗', growth: '生长', vision: '视力', dental: '口腔', sleep: '睡眠',
@@ -120,13 +119,15 @@ function formatDateLabel(value: string | null) {
 
 /* ── Glass summary tile ── */
 
-function SummaryTile({ label, value, hint, tone }: { label: string; value: string; hint: string; tone: { bg: string; fg: string } }) {
+type SummaryTone = 'success' | 'warning' | 'info' | 'danger' | 'neutral';
+
+function SummaryTile({ label, value, hint, tone }: { label: string; value: string; hint: string; tone: SummaryTone }) {
   return (
-    <div className="rounded-[18px] p-5" style={{ ...glassInner, background: tone.bg }}>
-      <p className="text-[13px] font-semibold tracking-[0.06em]" style={{ color: tone.fg }}>{label}</p>
-      <p className="text-[24px] font-semibold mt-2 leading-none tracking-tight" style={{ color: textMain }}>{value}</p>
-      <p className="text-[13px] mt-2 leading-relaxed" style={{ color: textMuted }}>{hint}</p>
-    </div>
+    <Surface material="glass-thin" tone="card" padding="none" className="rounded-2xl p-5">
+      <StatusBadge tone={tone} shape="dot">{label}</StatusBadge>
+      <p className={cn('mt-3 text-[24px] font-semibold leading-none tracking-tight', textPrimaryClass)}>{value}</p>
+      <p className={cn('mt-2 text-[13px] leading-relaxed', textMutedClass)}>{hint}</p>
+    </Surface>
   );
 }
 
@@ -137,26 +138,24 @@ function SectionCard({ title, hint, count, children, collapsible = false, defaul
 }) {
   const [collapsed, setCollapsed] = useState(defaultCollapsed);
   return (
-    <Surface as="section" material="glass-regular" padding="none" tone="card" className="p-7 transition-transform hover:-translate-y-0.5 rounded-[var(--nimi-radius-xl)] shadow-[0_8px_32px_rgba(31,38,135,0.04)]">
+    <Surface as="section" material="glass-regular" padding="none" tone="card" className="rounded-3xl p-7 transition-transform hover:-translate-y-0.5">
       <div className="flex items-end justify-between gap-3 mb-5">
         <div>
-          <h2 className="text-[16px] font-semibold tracking-tight" style={{ color: textMain, letterSpacing: '-0.3px' }}>{title}</h2>
-          <p className="text-[13px] mt-1 leading-relaxed" style={{ color: textMuted }}>{hint}</p>
+          <h2 className={cn('text-[16px] font-semibold tracking-tight', textPrimaryClass)}>{title}</h2>
+          <p className={cn('mt-1 text-[13px] leading-relaxed', textMutedClass)}>{hint}</p>
         </div>
         <div className="flex shrink-0 items-center gap-2">
           {typeof count === 'number' && (
-            <span className="shrink-0 px-2.5 py-1 rounded-full text-[12px] font-semibold" style={{ background: 'rgba(78,204,163,0.06)', color: textMuted }}>{count} 项</span>
+            <StatusBadge tone="neutral" className="shrink-0">{count} 项</StatusBadge>
           )}
           {collapsible && (
-            <button type="button" onClick={() => setCollapsed((v) => !v)}
-              className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[12px] font-medium transition-colors hover:bg-white/40"
-              style={{ color: textMuted }}>
+            <Button type="button" tone="ghost" size="sm" onClick={() => setCollapsed((v) => !v)} className="gap-1 px-2.5 py-1 text-[12px]">
               <span>{collapsed ? '展开' : '收起'}</span>
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-                style={{ transform: collapsed ? 'rotate(0deg)' : 'rotate(180deg)', transition: 'transform 180ms ease' }}>
+                className={cn('transition-transform duration-200', collapsed ? 'rotate-0' : 'rotate-180')}>
                 <path d="M6 9l6 6 6-6" />
               </svg>
-            </button>
+            </Button>
           )}
         </div>
       </div>
@@ -178,41 +177,35 @@ function TodayHero({
 }) {
   if (!reminder) {
     return (
-      <div className="rounded-[20px] p-6" style={glassInner}>
-        <p className="text-[13px] font-semibold tracking-[0.08em]" style={{ color: '#22c55e' }}>今日</p>
-        <h2 className="text-[24px] font-semibold mt-2 tracking-tight" style={{ color: textMain, letterSpacing: '-0.5px' }}>今天没有待办</h2>
-        <p className="text-[14px] mt-2 leading-relaxed" style={{ color: textMuted }}>当前没有需要立即处理的事项。</p>
-      </div>
+      <Surface material="glass-thin" tone="card" padding="none" className="rounded-2xl p-6">
+        <StatusBadge tone="success" shape="dot">今日</StatusBadge>
+        <h2 className={cn('mt-3 text-[24px] font-semibold tracking-tight', textPrimaryClass)}>今天没有待办</h2>
+        <p className={cn('mt-2 text-[14px] leading-relaxed', textMutedClass)}>当前没有需要立即处理的事项。</p>
+      </Surface>
     );
   }
   const primary = primaryAction(reminder);
   const canComplete = canDirectlyCompleteReminder(reminder);
   return (
-    <div className="rounded-[20px] p-6" style={glassInner}>
-      <p className="text-[13px] font-semibold tracking-[0.08em]" style={{ color: '#22c55e' }}>今日</p>
-      <h2 className="text-[24px] font-semibold mt-2 tracking-tight" style={{ color: textMain, letterSpacing: '-0.5px' }}>{reminder.rule.title}</h2>
-      <p className="text-[14px] mt-2 leading-relaxed" style={{ color: textMuted }}>{statusLabel(reminder)}</p>
+    <Surface material="glass-thin" tone="card" padding="none" className="rounded-2xl p-6">
+      <StatusBadge tone="success" shape="dot">今日</StatusBadge>
+      <h2 className={cn('mt-3 text-[24px] font-semibold tracking-tight', textPrimaryClass)}>{reminder.rule.title}</h2>
+      <p className={cn('mt-2 text-[14px] leading-relaxed', textMutedClass)}>{statusLabel(reminder)}</p>
       <div className="flex flex-wrap items-center gap-2 mt-5">
         {primary.kind === 'capture' ? (
-          <button
-            type="button"
-            onClick={() => onOpenCapture(reminder)}
-            className="px-4 py-2 rounded-full text-[13px] font-medium text-white transition-all hover:-translate-y-0.5"
-            style={{ background: textMain, boxShadow: '0 4px 14px rgba(0,0,0,0.08)' }}
-          >
+          <Button type="button" tone="primary" size="md" onClick={() => onOpenCapture(reminder)}>
             {primary.label}
-          </button>
+          </Button>
         ) : (
-          <Link to={primary.to} className="px-4 py-2 rounded-full text-[13px] font-medium text-white transition-all hover:-translate-y-0.5"
-            style={{ background: textMain, boxShadow: '0 4px 14px rgba(0,0,0,0.08)' }}>{primary.label}</Link>
+          <Button asChild tone="primary" size="md">
+            <Link to={primary.to}>{primary.label}</Link>
+          </Button>
         )}
         {canComplete && (
-          <button type="button" onClick={() => onComplete(reminder)}
-            className="px-4 py-2 rounded-full text-[13px] font-medium transition-colors hover:bg-white/60"
-            style={{ background: 'rgba(78,204,163,0.06)', color: textMain }}>标记完成</button>
+          <Button type="button" tone="secondary" size="md" onClick={() => onComplete(reminder)}>标记完成</Button>
         )}
       </div>
-    </div>
+    </Surface>
   );
 }
 
@@ -240,60 +233,45 @@ function ReminderRow({ reminder, onOpenDetail, onComplete, onSnooze, onSchedule,
   const canComplete = canDirectlyCompleteReminder(reminder);
 
   return (
-    <div className="rounded-[16px] p-5 transition-colors hover:bg-white" style={glassInner}>
+    <Surface material="glass-thin" tone="card" padding="none" className="rounded-2xl p-5 transition-transform hover:-translate-y-0.5">
       <div className="flex items-center justify-between gap-3">
         <div className="min-w-0">
           <div className="flex items-center gap-2 mb-2">
-            <span className="text-[12px] px-2.5 py-1 rounded-full font-medium"
-              style={{ background: isOverdue ? 'rgba(239,68,68,0.08)' : 'rgba(100,150,255,0.08)', color: isOverdue ? '#ef4444' : textMuted }}>{domain}</span>
-            <span className="text-[12px]" style={{ color: textMuted }}>{statusLabel(reminder)}</span>
+            <StatusBadge tone={isOverdue ? 'danger' : 'info'}>{domain}</StatusBadge>
+            <span className={cn('text-[12px]', textMutedClass)}>{statusLabel(reminder)}</span>
           </div>
-          <p className="text-[16px] font-semibold" style={{ color: textMain }}>{reminder.rule.title}</p>
-          <p className="text-[14px] mt-2 leading-relaxed" style={{ color: textMuted }}>{shortDescription}</p>
+          <p className={cn('text-[16px] font-semibold', textPrimaryClass)}>{reminder.rule.title}</p>
+          <p className={cn('mt-2 text-[14px] leading-relaxed', textMutedClass)}>{shortDescription}</p>
         </div>
       </div>
       <div className="flex flex-wrap gap-2 mt-4">
-        <button
-          type="button"
-          onClick={() => onOpenDetail(reminder)}
-          className="px-3.5 py-1.5 rounded-full text-[13px] font-medium text-white hover:-translate-y-0.5"
-          style={{ background: textMain, boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}
-        >
+        <Button type="button" tone="primary" size="sm" onClick={() => onOpenDetail(reminder)}>
           查看详情
-        </button>
+        </Button>
         {primary.kind === 'capture' ? (
-          <button
-            type="button"
-            onClick={() => onOpenCapture(reminder)}
-            className="px-3.5 py-1.5 rounded-full text-[13px] font-medium transition-colors"
-            style={{ background: '#fff', color: textMain, border: '1px solid #e2e8f0' }}
-          >
+          <Button type="button" tone="secondary" size="sm" onClick={() => onOpenCapture(reminder)}>
             {primary.label}
-          </button>
+          </Button>
         ) : (
-          <Link to={primary.to} className="px-3.5 py-1.5 rounded-full text-[13px] font-medium transition-colors"
-            style={{ background: '#fff', color: textMain, border: '1px solid #e2e8f0' }}>{primary.label}</Link>
+          <Button asChild tone="secondary" size="sm">
+            <Link to={primary.to}>{primary.label}</Link>
+          </Button>
         )}
         {canComplete && (
-          <button type="button" onClick={() => onComplete(reminder)} className="px-3 py-1.5 rounded-full text-[13px] font-medium transition-colors hover:bg-white/60"
-            style={{ background: 'rgba(78,204,163,0.06)', color: textMain }}>{completeLabel}</button>
+          <Button type="button" tone="secondary" size="sm" onClick={() => onComplete(reminder)}>{completeLabel}</Button>
         )}
-        <button type="button" onClick={() => onSnooze(reminder)} className="px-3 py-1.5 rounded-full text-[13px] transition-colors hover:bg-white/60"
-          style={{ color: textMuted }}>推迟</button>
+        <Button type="button" tone="ghost" size="sm" onClick={() => onSnooze(reminder)}>推迟</Button>
         {reminder.kind === 'task' && (
-          <button type="button" onClick={() => onSchedule(reminder)} className="px-3 py-1.5 rounded-full text-[13px] transition-colors hover:bg-white/60"
-            style={{ color: textMuted }}>安排</button>
+          <Button type="button" tone="ghost" size="sm" onClick={() => onSchedule(reminder)}>安排</Button>
         )}
         {canMarkNotApplicable(reminder) && (
-          <button type="button" onClick={() => onNotApplicable(reminder)} className="px-3 py-1.5 rounded-full text-[13px] transition-colors hover:bg-white/60"
-            style={{ color: '#ef4444' }}>不适用</button>
+          <Button type="button" tone="danger" size="sm" onClick={() => onNotApplicable(reminder)}>不适用</Button>
         )}
         {reminder.rule.repeatRule && (
-          <button type="button" onClick={() => onAdjustFrequency(reminder)} className="px-3 py-1.5 rounded-full text-[13px] transition-colors hover:bg-white/60"
-            style={{ color: textMuted }}>调整</button>
+          <Button type="button" tone="ghost" size="sm" onClick={() => onAdjustFrequency(reminder)}>调整</Button>
         )}
       </div>
-    </div>
+    </Surface>
   );
 }
 
@@ -381,53 +359,64 @@ export default function RemindersPage() {
 
   if (!child) {
     return (
-      <div className="flex flex-col items-center justify-center h-full gap-3" style={{ color: textMuted }}>
-        <p className="text-lg font-medium">尚未选择孩子</p>
-        <Link to="/timeline" className="text-sm hover:underline" style={{ color: textMain }}>返回首页</Link>
+      <div className="flex h-full items-center justify-center px-6">
+        <EmptyState
+          title="尚未选择孩子"
+          description="选择孩子后即可查看对应的提醒中心。"
+          action={(
+            <Button asChild tone="secondary" size="sm">
+              <Link to="/timeline">返回首页</Link>
+            </Button>
+          )}
+        />
       </div>
     );
   }
 
   if (agendaResult.kind === 'unknown-rule') {
     return (
-      <div className="flex flex-col items-center justify-center h-full gap-3 px-6 text-center" style={{ color: '#b91c1c' }}>
-        <p className="text-base font-medium">提醒目录不完整</p>
-        <p className="text-[14px]" style={{ color: textMuted }}>
+      <div className="flex h-full items-center justify-center px-6">
+        <InlineAlert tone="danger" className="max-w-2xl">
+          <p className="font-semibold">提醒目录不完整</p>
+          <p className="mt-1 text-[14px]">
           发现数据库中存在未登记的 ruleId：{agendaResult.ruleIds.join('、')}
-        </p>
-        <p className="text-[14px]" style={{ color: textMuted }}>
+          </p>
+          <p className="mt-1 text-[14px]">
           为保护数据不被误读，提醒页面已按 PO-TIME-007 fail-close。重启 ParentOS 即可触发 schema v17 自动清理这些游离记录；如果重启后仍有未登记的 ruleId，请联系开发修复规则目录。
-        </p>
+          </p>
+        </InlineAlert>
       </div>
     );
   }
 
   if (loading || customTodosLoading || !agenda) {
     return (
-      <div className="flex items-center justify-center h-full" style={{ background: 'transparent' }}>
-        <p className="text-sm" style={{ color: textMuted }}>加载中...</p>
+      <div className="flex h-full items-center justify-center">
+        <p className={cn('text-sm', textMutedClass)}>加载中...</p>
       </div>
     );
   }
 
   return (
-    <div className="h-full overflow-y-auto hide-scrollbar" style={{ background: 'transparent' }}>
+    <div className="h-full overflow-y-auto hide-scrollbar">
       <div className="max-w-[920px] mx-auto px-6 py-8 space-y-6">
         {/* Header */}
         <div className="flex items-center gap-3">
-          <Link to="/timeline" className="flex items-center justify-center w-8 h-8 rounded-lg transition-colors hover:bg-white/40" style={{ color: textMain }}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6" /></svg>
-          </Link>
+          <Button asChild tone="ghost" size="sm" className="aspect-square px-0">
+            <Link to="/timeline" aria-label="返回首页">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6" /></svg>
+            </Link>
+          </Button>
           <div>
-            <h1 className="text-[24px] font-semibold tracking-tight" style={{ color: textMain, letterSpacing: '-0.5px' }}>提醒中心</h1>
-            <p className="text-[14px] mt-1" style={{ color: textMuted }}>
+            <h1 className={cn('text-[24px] font-semibold tracking-tight', textPrimaryClass)}>提醒中心</h1>
+            <p className={cn('mt-1 text-[14px]', textMutedClass)}>
               今天 {agenda.todayFocus.length} 项，近期 {agenda.upcoming.length} 项，历史 {agenda.history.length} 项
             </p>
           </div>
         </div>
 
         {/* Hero section — glass card */}
-        <Surface as="section" material="glass-thick" padding="none" tone="card" className="p-7 rounded-[var(--nimi-radius-xl)] shadow-[0_8px_32px_rgba(31,38,135,0.04)]">
+        <Surface as="section" material="glass-thick" padding="none" tone="card" className="rounded-3xl p-7">
           <div className="grid grid-cols-1 md:grid-cols-[1.5fr_1fr] gap-5 items-stretch">
             <TodayHero
               reminder={agenda.todayFocus[0] ?? null}
@@ -435,11 +424,11 @@ export default function RemindersPage() {
               onOpenCapture={openRecordDataCapture}
             />
             <div className="grid grid-cols-1 gap-4">
-              {agenda.p0Overflow.count > 0 && <SummaryTile label="更多重要" value={String(agenda.p0Overflow.count)} hint="超出首屏的高优先级提醒。" tone={{ bg: 'rgba(251,191,36,0.08)', fg: '#b7791f' }} />}
-              {agenda.onboardingCatchup.count > 0 && <SummaryTile label="历史补录" value={String(agenda.onboardingCatchup.count)} hint="在档案创建前已过期的事项。" tone={{ bg: 'rgba(139,92,246,0.06)', fg: '#7b61a8' }} />}
-              <SummaryTile label="今天" value={String(agenda.todayFocus.length)} hint="今天值得处理的事项。" tone={{ bg: 'rgba(34,197,94,0.06)', fg: '#16a34a' }} />
-              <SummaryTile label="近期" value={String(agenda.upcoming.length)} hint="近期重要，但不急于今天。" tone={{ bg: 'rgba(59,130,246,0.06)', fg: '#3b82f6' }} />
-              <SummaryTile label="逾期汇总" value={String(agenda.overdueSummary.count)} hint="较早的逾期事项折叠在这里。" tone={{ bg: 'rgba(239,68,68,0.05)', fg: '#ef4444' }} />
+              {agenda.p0Overflow.count > 0 && <SummaryTile label="更多重要" value={String(agenda.p0Overflow.count)} hint="超出首屏的高优先级提醒。" tone="warning" />}
+              {agenda.onboardingCatchup.count > 0 && <SummaryTile label="历史补录" value={String(agenda.onboardingCatchup.count)} hint="在档案创建前已过期的事项。" tone="info" />}
+              <SummaryTile label="今天" value={String(agenda.todayFocus.length)} hint="今天值得处理的事项。" tone="success" />
+              <SummaryTile label="近期" value={String(agenda.upcoming.length)} hint="近期重要，但不急于今天。" tone="info" />
+              <SummaryTile label="逾期汇总" value={String(agenda.overdueSummary.count)} hint="较早的逾期事项折叠在这里。" tone="danger" />
             </div>
           </div>
         </Surface>
@@ -447,7 +436,7 @@ export default function RemindersPage() {
         {/* Today */}
         <SectionCard count={agenda.todayFocus.length} title="今日事项" hint="默认折叠，需要时再展开查看今天的完整事项和操作。" collapsible defaultCollapsed>
           <div className="space-y-4">
-            {agenda.todayFocus.length === 0 ? <p className="text-[14px]" style={{ color: textMuted }}>今天没有需要立即处理的事项。</p>
+            {agenda.todayFocus.length === 0 ? <p className={cn('text-[14px]', textMutedClass)}>今天没有需要立即处理的事项。</p>
             : agenda.todayFocus.map((r) => (
               <ReminderRow key={`${r.rule.ruleId}-${r.repeatIndex}`} reminder={r}
                 onOpenDetail={setActiveReminder}
@@ -489,7 +478,7 @@ export default function RemindersPage() {
         {/* Upcoming */}
         <SectionCard count={agenda.upcoming.length} title="近期" hint="近期值得关注的事项和阶段指导。">
           <div className="space-y-4">
-            {agenda.upcoming.length === 0 ? <p className="text-[14px]" style={{ color: textMuted }}>近期没有新的事项需要安排。</p>
+            {agenda.upcoming.length === 0 ? <p className={cn('text-[14px]', textMutedClass)}>近期没有新的事项需要安排。</p>
             : agenda.upcoming.map((r) => (
               <ReminderRow key={`${r.rule.ruleId}-${r.repeatIndex}`} reminder={r}
                 onOpenDetail={setActiveReminder}
@@ -503,24 +492,20 @@ export default function RemindersPage() {
         {/* History */}
         <SectionCard count={agenda.history.length} title="历史记录" hint="已完成、已安排、已推迟和不适用的提醒都在这里。">
           <div className="space-y-3">
-            {agenda.history.length === 0 ? <p className="text-[14px]" style={{ color: textMuted }}>暂无提醒历史。</p>
+            {agenda.history.length === 0 ? <p className={cn('text-[14px]', textMutedClass)}>暂无提醒历史。</p>
             : agenda.history.map((item) => (
-              <div key={`${item.rule.ruleId}-${item.repeatIndex}`} className="flex items-center justify-between gap-3 rounded-[14px] px-5 py-3.5 transition-colors hover:bg-white" style={glassInner}>
+              <Surface key={`${item.rule.ruleId}-${item.repeatIndex}`} material="glass-thin" tone="card" padding="none" className="flex items-center justify-between gap-3 rounded-2xl px-5 py-3.5">
                 <div className="min-w-0">
-                  <p className="text-[14px] font-medium truncate" style={{ color: textMain }}>{item.rule.title}</p>
-                  <p className="text-[13px] mt-1" style={{ color: textMuted }}>{historyLabel(item)}</p>
+                  <p className={cn('truncate text-[14px] font-medium', textPrimaryClass)}>{item.rule.title}</p>
+                  <p className={cn('mt-1 text-[13px]', textMutedClass)}>{historyLabel(item)}</p>
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
                   {item.historyType === 'completed' && (
-                    <button type="button" onClick={() => void handleAction(item, 'restore')}
-                      className="rounded-full px-2.5 py-1 text-[12px] font-medium transition-colors hover:bg-white/60"
-                      style={{ color: '#818CF8', background: 'rgba(129,140,248,0.10)' }}>恢复待办</button>
+                    <Button type="button" tone="secondary" size="sm" onClick={() => void handleAction(item, 'restore')}>恢复待办</Button>
                   )}
-                  <span className="text-[12px] px-2 py-1 rounded-full" style={{ color: textMuted, background: 'rgba(78,204,163,0.06)' }}>
-                    {DOMAIN_LABELS[item.rule.domain] ?? item.rule.domain}
-                  </span>
+                  <StatusBadge tone="neutral">{DOMAIN_LABELS[item.rule.domain] ?? item.rule.domain}</StatusBadge>
                 </div>
-              </div>
+              </Surface>
             ))}
           </div>
         </SectionCard>
@@ -530,32 +515,28 @@ export default function RemindersPage() {
           <SectionCard count={completedCustomTodos.length} title="日常待办记录" hint="这里收纳你手动添加并已完成的日常待办。">
             <div className="space-y-3">
               {completedCustomTodos.map((todo) => (
-                <div key={todo.todoId} className="flex items-center justify-between gap-3 rounded-[14px] px-5 py-3.5 transition-colors hover:bg-white" style={glassInner}>
+                <Surface key={todo.todoId} material="glass-thin" tone="card" padding="none" className="flex items-center justify-between gap-3 rounded-2xl px-5 py-3.5">
                   <div className="min-w-0">
-                    <p className="text-[14px] font-medium [overflow-wrap:anywhere]" style={{ color: textMain }}>{todo.title}</p>
-                    <p className="mt-1 text-[13px]" style={{ color: textMuted }}>
+                    <p className={cn('text-[14px] font-medium [overflow-wrap:anywhere]', textPrimaryClass)}>{todo.title}</p>
+                    <p className={cn('mt-1 text-[13px]', textMutedClass)}>
                       {formatDateLabel(todo.completedAt) ? `已完成 ${formatDateLabel(todo.completedAt)}` : '已完成'}
                       {todo.dueDate ? ` · 截止 ${todo.dueDate}` : ''}
                     </p>
                   </div>
                   <div className="flex shrink-0 items-center gap-2">
-                    <button type="button" onClick={() => void handleRestoreCustomTodo(todo.todoId)}
-                      className="rounded-full px-2.5 py-1 text-[12px] font-medium transition-colors hover:bg-white/60"
-                      style={{ color: '#818CF8', background: 'rgba(129,140,248,0.10)' }}>恢复待办</button>
-                    <button type="button" onClick={() => void handleDeleteCustomTodo(todo.todoId)}
-                      className="rounded-full px-2.5 py-1 text-[12px] font-medium transition-colors hover:bg-white/60"
-                      style={{ color: textMuted }}>删除</button>
+                    <Button type="button" tone="secondary" size="sm" onClick={() => void handleRestoreCustomTodo(todo.todoId)}>恢复待办</Button>
+                    <Button type="button" tone="ghost" size="sm" onClick={() => void handleDeleteCustomTodo(todo.todoId)}>删除</Button>
                   </div>
-                </div>
+                </Surface>
               ))}
             </div>
           </SectionCard>
         )}
 
         {captureError ? (
-          <div className="rounded-[16px] px-4 py-3 text-[13px]" style={{ background: '#fef2f2', color: '#b91c1c', border: '1px solid #fecaca' }}>
+          <InlineAlert tone="danger">
             {captureError}
-          </div>
+          </InlineAlert>
         ) : null}
       </div>
 

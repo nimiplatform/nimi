@@ -10,6 +10,9 @@ import {
 } from '@nimiplatform/sdk/runtime';
 import { createRuntimeAgentMemoryAdapter } from '../src/shell/renderer/infra/runtime-agent-memory';
 
+const LOCAL_AGENT_REF = 'local-agent:user-1:agent-1';
+const MISSING_LOCAL_AGENT_REF = 'local-agent:user-1:agent-missing';
+
 function createRuntimeMock() {
   const calls = {
     registerApp: [] as Array<Record<string, unknown>>,
@@ -61,7 +64,7 @@ function createRuntimeMock() {
               owner: {
                 oneofKind: 'agentCore',
                 agent: {
-                  agentId: 'agent-1',
+                  agentId: LOCAL_AGENT_REF,
                 },
               },
             },
@@ -96,7 +99,7 @@ function createRuntimeMock() {
                 owner: {
                   oneofKind: 'agentDyadic',
                   agentDyadic: {
-                    agentId: 'agent-1',
+                    agentId: LOCAL_AGENT_REF,
                     userId: 'user-1',
                   },
                 },
@@ -134,7 +137,7 @@ function createRuntimeMock() {
                 owner: {
                   oneofKind: 'agentCore',
                   agent: {
-                    agentId: 'agent-1',
+                    agentId: LOCAL_AGENT_REF,
                   },
                 },
               },
@@ -144,7 +147,7 @@ function createRuntimeMock() {
                 provenance: {
                   sourceSystem: 'desktop.agent-chat',
                   sourceEventId: 'turn-2',
-                  authorId: 'agent-1',
+                  authorId: LOCAL_AGENT_REF,
                   traceId: 'thread-1',
                 },
                 payload: {
@@ -199,7 +202,7 @@ test('runtime agent memory adapter writes user turns through admitted dyadic obs
   });
 
   await adapter.writeDyadicObservation({
-    agentId: 'agent-1',
+    agentId: LOCAL_AGENT_REF,
     displayName: 'Agent One',
     worldId: 'world-1',
     observation: 'hello',
@@ -251,13 +254,13 @@ test('runtime agent memory adapter writes assistant turns with agent author id a
   });
 
   await adapter.writeDyadicObservation({
-    agentId: 'agent-1',
+    agentId: LOCAL_AGENT_REF,
     displayName: 'Agent One',
     worldId: null,
     observation: 'assistant reply',
     sourceEventId: 'turn-2',
     traceId: 'thread-1',
-    authorId: 'agent-1',
+    authorId: LOCAL_AGENT_REF,
     policyReason: 'desktop_agent_chat_dyadic_assistant_turn',
     createIfMissing: true,
     syncDyadicContext: true,
@@ -272,7 +275,7 @@ test('runtime agent memory adapter writes assistant turns with agent author id a
   });
   const candidate = (write.candidates as Array<Record<string, unknown>>)[0];
   assert.ok(candidate);
-  assert.equal((((candidate.record as Record<string, unknown>).provenance as Record<string, unknown>).authorId), 'agent-1');
+  assert.equal((((candidate.record as Record<string, unknown>).provenance as Record<string, unknown>).authorId), LOCAL_AGENT_REF);
 
   runtime.agent.getAgent = async () => {
     throw createNimiError({
@@ -286,7 +289,7 @@ test('runtime agent memory adapter writes assistant turns with agent author id a
   };
   await assert.rejects(
     () => adapter.queryCompatibilityRecords({
-      agentId: 'agent-missing',
+      agentId: MISSING_LOCAL_AGENT_REF,
       displayName: 'Missing',
       createIfMissing: false,
       syncDyadicContext: false,
@@ -335,7 +338,7 @@ test('runtime agent memory adapter fails closed on memory substrate unavailable'
 
   await assert.rejects(
     () => adapter.writeDyadicObservation({
-      agentId: 'agent-1',
+      agentId: LOCAL_AGENT_REF,
       displayName: 'Agent One',
       worldId: null,
       observation: 'hello',
@@ -363,7 +366,7 @@ test('runtime agent memory adapter fails closed on memory substrate unavailable'
 
   await assert.rejects(
     () => adapter.queryCompatibilityRecords({
-      agentId: 'agent-1',
+      agentId: LOCAL_AGENT_REF,
       displayName: 'Agent One',
       createIfMissing: false,
       syncDyadicContext: false,
@@ -385,7 +388,7 @@ test('runtime agent memory adapter ignores additive narratives in compatibility 
           owner: {
             oneofKind: 'agentCore',
             agent: {
-              agentId: 'agent-1',
+              agentId: LOCAL_AGENT_REF,
             },
           },
         },
@@ -395,7 +398,7 @@ test('runtime agent memory adapter ignores additive narratives in compatibility 
           provenance: {
             sourceSystem: 'desktop.agent-chat',
             sourceEventId: 'turn-2',
-            authorId: 'agent-1',
+            authorId: LOCAL_AGENT_REF,
             traceId: 'thread-1',
           },
           payload: {
@@ -426,7 +429,7 @@ test('runtime agent memory adapter ignores additive narratives in compatibility 
   });
 
   const records = await adapter.queryCompatibilityRecords({
-    agentId: 'agent-1',
+    agentId: LOCAL_AGENT_REF,
     displayName: 'Agent One',
     createIfMissing: false,
     syncDyadicContext: false,
@@ -448,7 +451,7 @@ test('runtime agent memory adapter defaults dyadic sync to subject before dyadic
   });
 
   await adapter.queryCompatibilityRecords({
-    agentId: 'agent-1',
+    agentId: LOCAL_AGENT_REF,
     displayName: 'Agent One',
     createIfMissing: false,
     syncDyadicContext: true,

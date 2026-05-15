@@ -227,7 +227,9 @@ export function buildContinuityDigest(context: AgentLocalTurnContext): AgentChat
 
 function buildTargetSection(targetSnapshot: AgentLocalTargetSnapshot, bioCharLimit: number): string {
   const targetRecord = {
-    agentId: normalizeText(targetSnapshot.agentId) || undefined,
+    ownerUserId: normalizeText(targetSnapshot.ownerUserId) || undefined,
+    realmAgentId: normalizeText(targetSnapshot.realmAgentId) || undefined,
+    localAgentRef: normalizeText(targetSnapshot.localAgentRef) || undefined,
     displayName: normalizeText(targetSnapshot.displayName) || undefined,
     handle: normalizeText(targetSnapshot.handle) || undefined,
     worldId: normalizeText(targetSnapshot.worldId) || undefined,

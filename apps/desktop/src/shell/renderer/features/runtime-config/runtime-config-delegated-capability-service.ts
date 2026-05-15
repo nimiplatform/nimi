@@ -72,20 +72,28 @@ export function createDesktopDelegatedCapabilityService(deps: DelegatedCapabilit
     return protectedScopes;
   };
 
-  const buildContext = async () => {
+  const buildContext = async (agentId: string) => {
     const runtime = getRuntime();
+    const normalizedAgentId = requireText(agentId, 'agent_id');
+    const [, ownerUserId, realmAgentId] = normalizedAgentId.split(':');
+    if (!ownerUserId || !realmAgentId || !normalizedAgentId.startsWith('local-agent:')) {
+      throw new Error('delegated capability runtime agent requires localAgentRef formatted as local-agent:${ownerUserId}:${realmAgentId}');
+    }
     return {
       runtime,
       context: {
         appId: runtime.appId,
         subjectUserId: await resolveSubjectUserId(),
+        ownerUserId,
+        realmAgentId,
+        localAgentRef: normalizedAgentId,
       },
     };
   };
 
   const loadSnapshot = async (query: DelegatedControlSurfaceQuery): Promise<DelegatedControlSurfaceSnapshot | undefined> => {
     const agentId = requireText(query.agentId, 'agent_id');
-    const { runtime, context } = await buildContext();
+    const { runtime, context } = await buildContext(agentId);
     const response = await getProtectedScopes().withScopes([READ_SCOPE], (options) => runtime.agent.getDelegatedControlSurfaceSnapshot({
       context,
       agentId,
@@ -100,7 +108,7 @@ export function createDesktopDelegatedCapabilityService(deps: DelegatedCapabilit
     const transportRef = requireText(draft.transportRef, 'transport_ref');
     const command = requireText(draft.command, 'command');
     const toolName = requireText(draft.toolName, 'tool_name');
-    const { runtime, context } = await buildContext();
+    const { runtime, context } = await buildContext(agentId);
     const response = await getProtectedScopes().withScopes([WRITE_SCOPE], (options) => runtime.agent.upsertDelegatedProviderProfile({
       context,
       agentId,
@@ -128,7 +136,7 @@ export function createDesktopDelegatedCapabilityService(deps: DelegatedCapabilit
   const setProviderEnabled = async (agentIdInput: string, providerProfileIdInput: string, enabled: boolean): Promise<DelegatedProviderProfile | undefined> => {
     const agentId = requireText(agentIdInput, 'agent_id');
     const providerProfileId = requireText(providerProfileIdInput, 'provider_profile_id');
-    const { runtime, context } = await buildContext();
+    const { runtime, context } = await buildContext(agentId);
     const response = await getProtectedScopes().withScopes([WRITE_SCOPE], (options) => runtime.agent.setDelegatedProviderState({
       context,
       agentId,
@@ -149,7 +157,7 @@ export function createDesktopDelegatedCapabilityService(deps: DelegatedCapabilit
   ) => {
     const agentId = requireText(agentIdInput, 'agent_id');
     const approvalRequestId = requireText(approvalRequestIdInput, 'approval_request_id');
-    const { runtime, context } = await buildContext();
+    const { runtime, context } = await buildContext(agentId);
     return getProtectedScopes().withScopes([WRITE_SCOPE], (options) => runtime.agent.submitDelegatedApprovalDecision({
       context,
       agentId,
@@ -169,7 +177,7 @@ export function createDesktopDelegatedCapabilityService(deps: DelegatedCapabilit
   ): Promise<DelegatedReplayTrace | undefined> => {
     const agentId = requireText(agentIdInput, 'agent_id');
     const decisionId = requireText(decisionIdInput, 'decision_id');
-    const { runtime, context } = await buildContext();
+    const { runtime, context } = await buildContext(agentId);
     const response = await getProtectedScopes().withScopes([READ_SCOPE], (options) => runtime.agent.getDelegatedReplayTrace({
       context,
       agentId,

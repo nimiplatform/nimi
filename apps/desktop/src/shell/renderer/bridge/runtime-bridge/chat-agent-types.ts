@@ -10,7 +10,9 @@ export type AgentLocalBeatModality = 'text' | 'voice' | 'image' | 'video';
 export type AgentLocalBeatStatus = 'planned' | 'sealed' | 'delivered' | 'failed' | 'canceled';
 
 export type AgentLocalTargetSnapshot = {
-  agentId: string;
+  ownerUserId: string;
+  realmAgentId: string;
+  localAgentRef: string;
   displayName: string;
   handle: string;
   avatarUrl: string | null;
@@ -23,7 +25,9 @@ export type AgentLocalTargetSnapshot = {
 
 export type AgentLocalThreadSummary = {
   id: string;
-  agentId: string;
+  ownerUserId: string;
+  realmAgentId: string;
+  localAgentRef: string;
   title: string;
   updatedAtMs: number;
   lastMessageAtMs: number | null;
@@ -161,7 +165,9 @@ export type AgentLocalCommitTurnResult = {
 
 export type AgentLocalCreateThreadInput = {
   id: string;
-  agentId: string;
+  ownerUserId: string;
+  realmAgentId: string;
+  localAgentRef: string;
   title: string;
   createdAtMs: number;
   updatedAtMs: number;

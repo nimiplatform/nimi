@@ -48,12 +48,14 @@ fn init_schema(conn: &Connection) -> Result<(), String> {
           ON desktop_agent_avatar_resources(updated_at_ms DESC, resource_id DESC);
 
         CREATE TABLE IF NOT EXISTS desktop_agent_avatar_bindings (
-          agent_id TEXT PRIMARY KEY,
+          local_agent_ref TEXT PRIMARY KEY,
+          owner_user_id TEXT NOT NULL,
+          realm_agent_id TEXT NOT NULL,
           resource_id TEXT NOT NULL REFERENCES desktop_agent_avatar_resources(resource_id) ON DELETE CASCADE,
           updated_at_ms INTEGER NOT NULL
         );
         CREATE INDEX IF NOT EXISTS idx_desktop_agent_avatar_bindings_resource
-          ON desktop_agent_avatar_bindings(resource_id, updated_at_ms DESC, agent_id ASC);
+          ON desktop_agent_avatar_bindings(resource_id, updated_at_ms DESC, local_agent_ref ASC);
         "#,
     )
     .map_err(|error| format!("failed to initialize desktop agent avatar schema: {error}"))?;
@@ -86,9 +88,11 @@ pub(crate) fn delete_resource(conn: &Connection, resource_id: &str) -> Result<bo
 
 pub(crate) fn get_binding(
     conn: &Connection,
-    agent_id: &str,
+    owner_user_id: &str,
+    realm_agent_id: &str,
+    local_agent_ref: &str,
 ) -> Result<Option<DesktopAgentAvatarBindingRecord>, String> {
-    get_binding_impl(conn, agent_id)
+    get_binding_impl(conn, owner_user_id, realm_agent_id, local_agent_ref)
 }
 
 pub(crate) fn set_binding(
@@ -113,6 +117,11 @@ pub(crate) fn read_relative_resource_asset(
     read_relative_resource_asset_impl(conn, resource_id, relative_path)
 }
 
-pub(crate) fn clear_binding(conn: &Connection, agent_id: &str) -> Result<bool, String> {
-    clear_binding_impl(conn, agent_id)
+pub(crate) fn clear_binding(
+    conn: &Connection,
+    owner_user_id: &str,
+    realm_agent_id: &str,
+    local_agent_ref: &str,
+) -> Result<bool, String> {
+    clear_binding_impl(conn, owner_user_id, realm_agent_id, local_agent_ref)
 }

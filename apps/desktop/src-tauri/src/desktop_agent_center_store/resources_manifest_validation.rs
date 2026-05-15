@@ -190,9 +190,17 @@ pub(crate) fn desktop_agent_center_background_validate_blocking(
     payload: DesktopAgentCenterBackgroundValidatePayload,
 ) -> Result<AgentCenterBackgroundValidationResult, String> {
     let account_id = validate_normalized_id(&payload.account_id, "accountId")?;
-    let agent_id = validate_normalized_id(&payload.agent_id, "agentId")?;
+    let scope = validate_local_agent_scope(
+        &payload.owner_user_id,
+        &payload.realm_agent_id,
+        &payload.local_agent_ref,
+    )?;
     validate_background_id(&payload.background_asset_id, "backgroundAssetId")?;
-    let dir = background_dir(&account_id, &agent_id, &payload.background_asset_id)?;
+    let dir = background_dir(
+        &account_id,
+        &scope.local_agent_ref,
+        &payload.background_asset_id,
+    )?;
     if !dir.exists() {
         return Ok(background_validation_result(
             &payload.background_asset_id,
@@ -224,9 +232,17 @@ pub(crate) fn desktop_agent_center_background_asset_get_blocking(
     payload: DesktopAgentCenterBackgroundValidatePayload,
 ) -> Result<DesktopAgentCenterBackgroundAssetResult, String> {
     let account_id = validate_normalized_id(&payload.account_id, "accountId")?;
-    let agent_id = validate_normalized_id(&payload.agent_id, "agentId")?;
+    let scope = validate_local_agent_scope(
+        &payload.owner_user_id,
+        &payload.realm_agent_id,
+        &payload.local_agent_ref,
+    )?;
     validate_background_id(&payload.background_asset_id, "backgroundAssetId")?;
-    let dir = background_dir(&account_id, &agent_id, &payload.background_asset_id)?;
+    let dir = background_dir(
+        &account_id,
+        &scope.local_agent_ref,
+        &payload.background_asset_id,
+    )?;
     let validation = if dir.exists() {
         validate_background_manifest(&dir, &payload.background_asset_id)
     } else {

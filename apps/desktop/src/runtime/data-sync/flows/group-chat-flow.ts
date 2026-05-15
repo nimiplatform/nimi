@@ -282,6 +282,9 @@ export async function commitRealmGroupMessageCandidateHandoff(
         context: {
           appId: runtime.appId,
           subjectUserId: slot.ownerUserId,
+          ownerUserId: slot.ownerUserId,
+          realmAgentId: slot.realmAgentId,
+          localAgentRef: slot.localAgentRef,
         },
         realmGroupThreadId: chatId,
         realmGroupAgentSlotId: slot.realmGroupAgentSlotId,
@@ -310,6 +313,9 @@ export async function commitRealmGroupMessageCandidateHandoff(
         context: {
           appId: runtime.appId,
           subjectUserId: slot.ownerUserId,
+          ownerUserId: slot.ownerUserId,
+          realmAgentId: slot.realmAgentId,
+          localAgentRef: slot.localAgentRef,
         },
         candidateId: candidate.candidateId,
         candidateKind: candidate.candidateKind,

@@ -8,14 +8,18 @@ import { createAgentTextMessage } from './helpers/agent-chat-record-fixtures.js'
 function sampleThread(): AgentLocalThreadRecord {
   return {
     id: 'thread-1',
-    agentId: 'agent-1',
+    ownerUserId: 'user-1',
+    realmAgentId: 'agent-1',
+    localAgentRef: 'local-agent:user-1:agent-1',
     title: 'Companion',
     createdAtMs: 10,
     updatedAtMs: 20,
     lastMessageAtMs: 20,
     archivedAtMs: null,
     targetSnapshot: {
-      agentId: 'agent-1',
+      ownerUserId: 'user-1',
+      realmAgentId: 'agent-1',
+      localAgentRef: 'local-agent:user-1:agent-1',
       displayName: 'Companion',
       handle: '~companion',
       avatarUrl: null,
@@ -57,8 +61,8 @@ test('agent projection refresh applies authoritative bundle while the turn is st
   assert.equal(outcome?.bundle.messages.at(-1)?.contentText, 'authoritative projection');
   assert.deepEqual(outcome?.selection, {
     threadId: 'thread-1',
-    agentId: 'agent-1',
-    targetId: 'agent-1',
+    localAgentRef: 'local-agent:user-1:agent-1',
+    targetId: 'local-agent:user-1:agent-1',
   });
 });
 

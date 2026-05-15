@@ -10,6 +10,14 @@ const AGENT_CENTER_CONFIG_SCHEMA_VERSION: u8 = 1;
 const AGENT_CENTER_CONFIG_KIND: &str = "agent_center_local_config";
 const CONFIG_FILE_NAME: &str = "config.json";
 const LOCK_FILE_NAME: &str = "config.json.lock";
+const LOCAL_AGENT_REF_PREFIX: &str = "local-agent:";
+
+#[derive(Debug, Clone)]
+pub(super) struct LocalAgentScope {
+    pub(super) owner_user_id: String,
+    pub(super) realm_agent_id: String,
+    pub(super) local_agent_ref: String,
+}
 
 struct ConfigWriteLock {
     path: PathBuf,
@@ -53,6 +61,37 @@ pub(super) fn validate_normalized_id(value: &str, field_name: &str) -> Result<St
         }
     }
     Ok(trimmed.to_string())
+}
+
+pub(super) fn expected_local_agent_ref(owner_user_id: &str, realm_agent_id: &str) -> String {
+    format!("{LOCAL_AGENT_REF_PREFIX}{owner_user_id}:{realm_agent_id}")
+}
+
+pub(super) fn validate_local_agent_scope(
+    owner_user_id: &str,
+    realm_agent_id: &str,
+    local_agent_ref: &str,
+) -> Result<LocalAgentScope, String> {
+    let owner_user_id = validate_normalized_id(owner_user_id, "ownerUserId")?;
+    let realm_agent_id = validate_normalized_id(realm_agent_id, "realmAgentId")?;
+    let local_agent_ref = validate_normalized_id(local_agent_ref, "localAgentRef")?;
+    if local_agent_ref == realm_agent_id {
+        return Err("localAgentRef must not be a bare realmAgentId".to_string());
+    }
+    if !local_agent_ref.starts_with(LOCAL_AGENT_REF_PREFIX) {
+        return Err("localAgentRef must start with local-agent:".to_string());
+    }
+    let expected = expected_local_agent_ref(&owner_user_id, &realm_agent_id);
+    if local_agent_ref != expected {
+        return Err(
+            "localAgentRef must equal local-agent:${ownerUserId}:${realmAgentId}".to_string(),
+        );
+    }
+    Ok(LocalAgentScope {
+        owner_user_id,
+        realm_agent_id,
+        local_agent_ref,
+    })
 }
 
 fn can_use_raw_scope_path_segment(value: &str) -> bool {
@@ -147,7 +186,11 @@ fn validate_agent_center_config(config: &AgentCenterLocalConfig) -> Result<(), S
         return Err("config_kind must be agent_center_local_config".to_string());
     }
     validate_normalized_id(&config.account_id, "account_id")?;
-    validate_normalized_id(&config.agent_id, "agent_id")?;
+    validate_local_agent_scope(
+        &config.owner_user_id,
+        &config.realm_agent_id,
+        &config.local_agent_ref,
+    )?;
 
     validate_module_version(
         config.modules.appearance.schema_version,
@@ -247,12 +290,14 @@ fn validate_agent_center_config(config: &AgentCenterLocalConfig) -> Result<(), S
     Ok(())
 }
 
-fn default_config(account_id: String, agent_id: String) -> AgentCenterLocalConfig {
+fn default_config(account_id: String, scope: LocalAgentScope) -> AgentCenterLocalConfig {
     AgentCenterLocalConfig {
         schema_version: AGENT_CENTER_CONFIG_SCHEMA_VERSION,
         config_kind: AGENT_CENTER_CONFIG_KIND.to_string(),
         account_id,
-        agent_id,
+        owner_user_id: scope.owner_user_id,
+        realm_agent_id: scope.realm_agent_id,
+        local_agent_ref: scope.local_agent_ref,
         modules: AgentCenterLocalConfigModules {
             appearance: AgentCenterAppearanceModule {
                 schema_version: AGENT_CENTER_CONFIG_SCHEMA_VERSION,
@@ -292,24 +337,28 @@ fn default_config(account_id: String, agent_id: String) -> AgentCenterLocalConfi
 
 fn scope_from_payload(
     payload: &DesktopAgentCenterConfigScopePayload,
-) -> Result<(String, String), String> {
+) -> Result<(String, LocalAgentScope), String> {
     Ok((
         validate_normalized_id(&payload.account_id, "accountId")?,
-        validate_normalized_id(&payload.agent_id, "agentId")?,
+        validate_local_agent_scope(
+            &payload.owner_user_id,
+            &payload.realm_agent_id,
+            &payload.local_agent_ref,
+        )?,
     ))
 }
 
-pub(super) fn agent_center_dir(account_id: &str, agent_id: &str) -> Result<PathBuf, String> {
+pub(super) fn agent_center_dir(account_id: &str, local_agent_ref: &str) -> Result<PathBuf, String> {
     Ok(crate::desktop_paths::resolve_nimi_data_dir()?
         .join("accounts")
         .join(local_scope_path_segment(account_id))
         .join("agents")
-        .join(local_scope_path_segment(agent_id))
+        .join(local_scope_path_segment(local_agent_ref))
         .join("agent-center"))
 }
 
-fn config_path(account_id: &str, agent_id: &str) -> Result<PathBuf, String> {
-    Ok(agent_center_dir(account_id, agent_id)?.join(CONFIG_FILE_NAME))
+fn config_path(account_id: &str, local_agent_ref: &str) -> Result<PathBuf, String> {
+    Ok(agent_center_dir(account_id, local_agent_ref)?.join(CONFIG_FILE_NAME))
 }
 
 fn acquire_write_lock(dir: &Path) -> Result<ConfigWriteLock, String> {
@@ -366,10 +415,10 @@ fn atomic_write_json(path: &Path, config: &AgentCenterLocalConfig) -> Result<(),
 pub(crate) fn desktop_agent_center_config_get(
     payload: DesktopAgentCenterConfigScopePayload,
 ) -> Result<AgentCenterLocalConfig, String> {
-    let (account_id, agent_id) = scope_from_payload(&payload)?;
-    let path = config_path(&account_id, &agent_id)?;
+    let (account_id, scope) = scope_from_payload(&payload)?;
+    let path = config_path(&account_id, &scope.local_agent_ref)?;
     if !path.exists() {
-        return Ok(default_config(account_id, agent_id));
+        return Ok(default_config(account_id, scope));
     }
     let raw = fs::read_to_string(&path).map_err(|error| {
         format!(
@@ -384,8 +433,14 @@ pub(crate) fn desktop_agent_center_config_get(
         )
     })?;
     validate_agent_center_config(&config)?;
-    if config.account_id != account_id || config.agent_id != agent_id {
-        return Err("Agent Center config scope does not match requested account/agent".to_string());
+    if config.account_id != account_id
+        || config.owner_user_id != scope.owner_user_id
+        || config.realm_agent_id != scope.realm_agent_id
+        || config.local_agent_ref != scope.local_agent_ref
+    {
+        return Err(
+            "Agent Center config scope does not match requested account/localAgentRef".to_string(),
+        );
     }
     Ok(config)
 }
@@ -394,15 +449,23 @@ pub(crate) fn desktop_agent_center_config_get(
 pub(crate) fn desktop_agent_center_config_put(
     payload: DesktopAgentCenterConfigPutPayload,
 ) -> Result<AgentCenterLocalConfig, String> {
-    let (account_id, agent_id) = scope_from_payload(&DesktopAgentCenterConfigScopePayload {
+    let (account_id, scope) = scope_from_payload(&DesktopAgentCenterConfigScopePayload {
         account_id: payload.account_id,
-        agent_id: payload.agent_id,
+        owner_user_id: payload.owner_user_id,
+        realm_agent_id: payload.realm_agent_id,
+        local_agent_ref: payload.local_agent_ref,
     })?;
-    if payload.config.account_id != account_id || payload.config.agent_id != agent_id {
-        return Err("Agent Center config scope does not match payload account/agent".to_string());
+    if payload.config.account_id != account_id
+        || payload.config.owner_user_id != scope.owner_user_id
+        || payload.config.realm_agent_id != scope.realm_agent_id
+        || payload.config.local_agent_ref != scope.local_agent_ref
+    {
+        return Err(
+            "Agent Center config scope does not match payload account/localAgentRef".to_string(),
+        );
     }
     validate_agent_center_config(&payload.config)?;
-    let dir = agent_center_dir(&account_id, &agent_id)?;
+    let dir = agent_center_dir(&account_id, &scope.local_agent_ref)?;
     let _lock = acquire_write_lock(&dir)?;
     let path = dir.join(CONFIG_FILE_NAME);
     atomic_write_json(&path, &payload.config)?;
@@ -420,45 +483,68 @@ mod tests {
         dir
     }
 
+    fn owner_user_id() -> String {
+        "owner_1".to_string()
+    }
+
+    fn realm_agent_id() -> String {
+        "agent_1".to_string()
+    }
+
+    fn local_agent_ref() -> String {
+        "local-agent:owner_1:agent_1".to_string()
+    }
+
+    fn local_scope() -> LocalAgentScope {
+        validate_local_agent_scope(&owner_user_id(), &realm_agent_id(), &local_agent_ref())
+            .expect("local scope")
+    }
+
+    fn scope_payload() -> DesktopAgentCenterConfigScopePayload {
+        DesktopAgentCenterConfigScopePayload {
+            account_id: "account_1".to_string(),
+            owner_user_id: owner_user_id(),
+            realm_agent_id: realm_agent_id(),
+            local_agent_ref: local_agent_ref(),
+        }
+    }
+
     fn valid_config() -> AgentCenterLocalConfig {
-        let mut config = default_config("account_1".to_string(), "agent_1".to_string());
+        let mut config = default_config("account_1".to_string(), local_scope());
         config.modules.avatar_package.avatar_package_ref = Some("live2d_ab12cd34ef56".to_string());
         config.modules.avatar_package.backend_kind = AgentCenterAvatarBackendKind::Live2d;
         config
     }
 
     #[test]
-    fn local_scope_ids_accept_runtime_agent_marker_without_path_expansion() {
-        assert_eq!(
-            validate_normalized_id("~agent_1_tffk", "agentId").expect("runtime agent id"),
-            "~agent_1_tffk"
+    fn local_agent_scope_requires_exact_derived_ref() {
+        assert!(
+            validate_local_agent_scope("owner_1", "agent_1", "local-agent:owner_1:agent_1").is_ok()
         );
-        assert!(validate_normalized_id("~", "agentId").is_err());
-        assert!(validate_normalized_id("~/agent_1", "agentId").is_err());
-        assert_eq!(
-            validate_normalized_id("agent:abc.def+1", "agentId").expect("opaque runtime id"),
-            "agent:abc.def+1"
+        assert!(validate_local_agent_scope("owner_1", "agent_1", "agent_1").is_err());
+        assert!(
+            validate_local_agent_scope("owner_1", "agent_1", "local-agent:owner_2:agent_1")
+                .is_err()
         );
-        assert_ne!(
-            local_scope_path_segment("agent:abc.def+1"),
-            "agent:abc.def+1"
+        assert!(
+            validate_local_agent_scope("owner_1", "agent_1", "local-agent:owner_1:agent_2")
+                .is_err()
         );
-        assert!(validate_normalized_id("https://agent.example/1", "agentId").is_err());
+        assert!(validate_local_agent_scope("owner_1", "agent_1", "agent:abc.def+1").is_err());
     }
 
     #[test]
     fn missing_config_returns_default_without_creating_file() {
         let home = temp_home("default");
         with_env(&[("HOME", home.to_str())], || {
-            let config = desktop_agent_center_config_get(DesktopAgentCenterConfigScopePayload {
-                account_id: "account_1".to_string(),
-                agent_id: "agent_1".to_string(),
-            })
-            .expect("default config");
+            let config = desktop_agent_center_config_get(scope_payload()).expect("default config");
             assert_eq!(config.config_kind, AGENT_CENTER_CONFIG_KIND);
             assert!(config.modules.avatar_package.avatar_package_ref.is_none());
             assert!(!home
-                .join(".nimi/data/accounts/account_1/agents/agent_1/agent-center/config.json")
+                .join(format!(
+                    ".nimi/data/accounts/account_1/agents/{}/agent-center/config.json",
+                    local_scope_path_segment(&local_agent_ref())
+                ))
                 .exists());
         });
     }
@@ -470,15 +556,13 @@ mod tests {
             let config = valid_config();
             desktop_agent_center_config_put(DesktopAgentCenterConfigPutPayload {
                 account_id: "account_1".to_string(),
-                agent_id: "agent_1".to_string(),
+                owner_user_id: owner_user_id(),
+                realm_agent_id: realm_agent_id(),
+                local_agent_ref: local_agent_ref(),
                 config,
             })
             .expect("put config");
-            let loaded = desktop_agent_center_config_get(DesktopAgentCenterConfigScopePayload {
-                account_id: "account_1".to_string(),
-                agent_id: "agent_1".to_string(),
-            })
-            .expect("get config");
+            let loaded = desktop_agent_center_config_get(scope_payload()).expect("get config");
             assert_eq!(
                 loaded.modules.avatar_package.avatar_package_ref.as_deref(),
                 Some("live2d_ab12cd34ef56")
@@ -492,7 +576,9 @@ mod tests {
         with_env(&[("HOME", home.to_str())], || {
             let err = desktop_agent_center_config_put(DesktopAgentCenterConfigPutPayload {
                 account_id: "account_1".to_string(),
-                agent_id: "agent_2".to_string(),
+                owner_user_id: owner_user_id(),
+                realm_agent_id: "agent_2".to_string(),
+                local_agent_ref: "local-agent:owner_1:agent_2".to_string(),
                 config: valid_config(),
             })
             .expect_err("scope mismatch");
@@ -504,7 +590,10 @@ mod tests {
     fn get_rejects_unknown_fields_in_stored_json() {
         let home = temp_home("unknown");
         with_env(&[("HOME", home.to_str())], || {
-            let dir = home.join(".nimi/data/accounts/account_1/agents/agent_1/agent-center");
+            let dir = home.join(format!(
+                ".nimi/data/accounts/account_1/agents/{}/agent-center",
+                local_scope_path_segment(&local_agent_ref())
+            ));
             fs::create_dir_all(&dir).expect("dir");
             fs::write(
                 dir.join(CONFIG_FILE_NAME),
@@ -512,7 +601,9 @@ mod tests {
                   "schema_version": 1,
                   "config_kind": "agent_center_local_config",
                   "account_id": "account_1",
-                  "agent_id": "agent_1",
+                  "owner_user_id": "owner_1",
+                  "realm_agent_id": "agent_1",
+                  "local_agent_ref": "local-agent:owner_1:agent_1",
                   "runtime_profile": "forbidden",
                   "modules": {
                     "appearance": {"schema_version": 1, "background_asset_id": null, "motion": "system"},
@@ -539,11 +630,8 @@ mod tests {
                 }"#,
             )
             .expect("write corrupt config");
-            let err = desktop_agent_center_config_get(DesktopAgentCenterConfigScopePayload {
-                account_id: "account_1".to_string(),
-                agent_id: "agent_1".to_string(),
-            })
-            .expect_err("unknown field rejected");
+            let err = desktop_agent_center_config_get(scope_payload())
+                .expect_err("unknown field rejected");
             assert!(err.contains("runtime_profile") || err.contains("unknown field"));
         });
     }

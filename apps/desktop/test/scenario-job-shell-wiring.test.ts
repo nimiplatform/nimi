@@ -3,9 +3,9 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import test from 'node:test';
 
-const MAIN_LAYOUT_VIEW_PATH = resolve(
+const MAIN_LAYOUT_PATH = resolve(
   import.meta.dirname,
-  '../src/shell/renderer/app-shell/layouts/main-layout-view.tsx',
+  '../src/shell/renderer/app-shell/layouts/main-layout.tsx',
 );
 
 const STATUS_HOST_PATH = resolve(
@@ -14,8 +14,8 @@ const STATUS_HOST_PATH = resolve(
 );
 
 test('D-STRM-010: scenario job status host is mounted in the desktop shell', () => {
-  const source = readFileSync(MAIN_LAYOUT_VIEW_PATH, 'utf8');
-  assert.ok(source.includes("import { ScenarioJobStatusHost }"), 'expected main layout to import scenario job status host');
+  const source = readFileSync(MAIN_LAYOUT_PATH, 'utf8');
+  assert.ok(source.includes("import('@renderer/features/turns/scenario-job-status-host')"), 'expected main layout to lazy import scenario job status host');
   assert.ok(source.includes('<ScenarioJobStatusHost />'), 'expected main layout to render scenario job status host');
 });
 

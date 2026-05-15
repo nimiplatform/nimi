@@ -22,7 +22,7 @@ type RuntimeHostErrorDetailsBuilder = (
 ) => Record<string, unknown>;
 
 type UseAgentRuntimeSessionSnapshotHydrationInput = {
-  activeAgentId: string | null | undefined;
+  activeLocalAgentRef: string | null | undefined;
   activeConversationAnchorId: string | null;
   authStatus: AuthStatus;
   buildHostErrorDetails: RuntimeHostErrorDetailsBuilder;
@@ -57,12 +57,12 @@ export function useAgentRuntimeSessionSnapshotHydration(
   useEffect(() => {
     let cancelled = false;
     const thread = input.selectedThreadRecord;
-    const agentId = normalizeText(input.activeAgentId || thread?.agentId);
+    const localAgentRef = normalizeText(input.activeLocalAgentRef || thread?.localAgentRef);
     const conversationAnchorId = normalizeText(input.activeConversationAnchorId);
     if (
       input.authStatus !== 'authenticated'
       || !thread
-      || !agentId
+      || !localAgentRef
       || !conversationAnchorId
       || input.isBundleLoading
       || Boolean(input.bundleError)
@@ -78,7 +78,7 @@ export function useAgentRuntimeSessionSnapshotHydration(
     const knownMessages = currentBundleAtRequest?.messages || [];
     const lastKnownMessage = knownMessages[knownMessages.length - 1] || null;
     const snapshotRequestKey = [
-      agentId,
+      localAgentRef,
       conversationAnchorId,
       thread.id,
       thread.updatedAtMs,
@@ -100,7 +100,7 @@ export function useAgentRuntimeSessionSnapshotHydration(
           value: 1,
           threadId: thread.id,
           conversationAnchorId,
-          agentId,
+          localAgentRef,
         },
       });
       return () => {
@@ -118,12 +118,14 @@ export function useAgentRuntimeSessionSnapshotHydration(
         value: 1,
         threadId: thread.id,
         conversationAnchorId,
-        agentId,
+        localAgentRef,
         submittingThreadId: input.submittingThreadId || null,
       },
     });
     void getPlatformClient().runtime.agent.turns.getSessionSnapshot({
-      agentId,
+      localAgentRef,
+      ownerUserId: thread.ownerUserId,
+      realmAgentId: thread.realmAgentId,
       conversationAnchorId,
     })
       .then((snapshot) => {
@@ -139,7 +141,7 @@ export function useAgentRuntimeSessionSnapshotHydration(
             stage: 'desktop.runtime_agent.session_snapshot_request_ms',
             threadId: thread.id,
             conversationAnchorId,
-            agentId,
+            localAgentRef,
             transcriptMessageCount: Array.isArray(snapshot?.transcript) ? snapshot.transcript.length : null,
             hasActiveTurn: Boolean(snapshot?.activeTurn),
             hasLastTurn: Boolean(snapshot?.lastTurn),
@@ -176,7 +178,7 @@ export function useAgentRuntimeSessionSnapshotHydration(
           details: input.buildHostErrorDetails(error, 'hydrate-runtime-agent-session', {
             threadId: thread.id,
             conversationAnchorId,
-            agentId,
+            localAgentRef,
           }),
         });
       })
@@ -189,7 +191,7 @@ export function useAgentRuntimeSessionSnapshotHydration(
       cancelled = true;
     };
   }, [
-    input.activeAgentId,
+    input.activeLocalAgentRef,
     input.activeConversationAnchorId,
     input.authStatus,
     input.buildHostErrorDetails,

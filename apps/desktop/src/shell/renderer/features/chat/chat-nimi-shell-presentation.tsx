@@ -1,8 +1,6 @@
-import { useCallback, useMemo, useState, type ReactNode } from 'react';
-import {
-  CanonicalComposer,
-  type ChatComposerSubmitInput,
-} from '@nimiplatform/nimi-kit/features/chat';
+import { Suspense, lazy, useCallback, useMemo, useState, type ReactNode } from 'react';
+import { CanonicalComposer } from '@nimiplatform/nimi-kit/features/chat/components/canonical-composer';
+import type { ChatComposerSubmitInput } from '@nimiplatform/nimi-kit/features/chat/headless';
 import type {
   CanonicalMessageContentSlot,
   ConversationMessageViewModel,
@@ -15,7 +13,6 @@ import type {
 } from '@renderer/bridge/runtime-bridge/types';
 import type { DesktopConversationModeHost } from './chat-shared-mode-host-types';
 import { CHAT_CONTENT_WIDTH_CLASS, CHAT_CONTENT_POSITION_CLASS } from './chat-shared-content-layout';
-import { ChatSettingsPanel } from './chat-shared-settings-panel';
 import {
   RuntimeInspectCard,
 } from './chat-runtime-inspect-content';
@@ -25,6 +22,11 @@ import { InlineFeedback, type InlineFeedbackState } from '@renderer/ui/feedback/
 import type { RouteModelPickerSelection } from '@nimiplatform/nimi-kit/features/model-picker';
 import type { AISchedulingJudgement } from '@nimiplatform/sdk/mod';
 import { resolveExecutionSchedulingGuardDecision } from './chat-shared-execution-scheduling-guard';
+
+const ChatSettingsPanel = lazy(async () => {
+  const mod = await import('./chat-shared-settings-panel');
+  return { default: mod.ChatSettingsPanel };
+});
 
 type UseAiConversationPresentationInput = {
   activeThreadId: string | null;
@@ -147,11 +149,13 @@ export function useAiConversationPresentation(
     messages: input.canonicalMessages,
     characterData: input.aiCharacterData,
     settingsContent: (
-      <ChatSettingsPanel
-        onModelSelectionChange={input.onModelSelectionChange}
-        initialModelSelection={input.initialModelSelection}
-        diagnosticsContent={diagnosticsContent}
-      />
+      <Suspense fallback={null}>
+        <ChatSettingsPanel
+          onModelSelectionChange={input.onModelSelectionChange}
+          initialModelSelection={input.initialModelSelection}
+          diagnosticsContent={diagnosticsContent}
+        />
+      </Suspense>
     ),
     settingsDrawerTitle: input.t('Chat.settingsTitle', { defaultValue: 'Settings' }),
     settingsDrawerSubtitle: input.t('Chat.settingsSubtitle', { defaultValue: 'Global interaction preferences' }),

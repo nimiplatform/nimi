@@ -52,7 +52,9 @@ runtimeGlobal.sessionStorage = {
 
 function sampleTarget(): AgentLocalTargetSnapshot {
   return {
-    agentId: 'agent-1',
+    ownerUserId: 'user-1',
+    realmAgentId: 'agent-1',
+    localAgentRef: 'local-agent:user-1:agent-1',
     displayName: 'Companion',
     handle: 'companion',
     avatarUrl: null,
@@ -74,7 +76,9 @@ function sampleTarget(): AgentLocalTargetSnapshot {
 function sampleThread(): AgentLocalThreadRecord {
   return {
     id: 'thread-1',
-    agentId: 'agent-1',
+    ownerUserId: 'user-1',
+    realmAgentId: 'agent-1',
+    localAgentRef: 'local-agent:user-1:agent-1',
     title: 'Companion',
     createdAtMs: 10,
     updatedAtMs: 20,
