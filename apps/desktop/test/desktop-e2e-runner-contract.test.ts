@@ -41,11 +41,31 @@ const realmFixtureServerSource = fs.readFileSync(
   path.join(root, 'e2e/fixtures/realm-fixture-server.mjs'),
   'utf8',
 );
+const chatMemoryStandardBindSpecSource = fs.readFileSync(
+  path.join(root, 'e2e/specs/chat.memory-standard-bind.e2e.mjs'),
+  'utf8',
+);
+const chatLive2dRenderSmokeSpecSource = fs.readFileSync(
+  path.join(root, 'e2e/specs/chat.live2d-render-smoke.e2e.mjs'),
+  'utf8',
+);
 
 test('desktop E2E runner resolves native WebDriver command names to executable paths', () => {
   assert.match(runnerSource, /function resolveNativeDriverPath\(nativeDriver\)/);
   assert.match(runnerSource, /os\.platform\(\) === 'win32' \? 'where\.exe' : 'which'/);
   assert.match(runnerSource, /const nativeDriver = resolveNativeDriverPath\(process\.env\.NIMI_E2E_NATIVE_DRIVER\);/);
+});
+
+test('desktop E2E runner isolates WebDriver ports per scenario', () => {
+  assert.match(runnerSource, /async function resolveDriverPorts\(host\)/);
+  assert.match(runnerSource, /NIMI_E2E_NATIVE_DRIVER_PORT/);
+  assert.match(runnerSource, /findFreePort\(host, new Set\(\[driverPort\]\)\)/);
+  assert.match(runnerSource, /tauri-driver port and native WebDriver port must differ/);
+  assert.match(runnerSource, /'--port',\s*String\(driverPort\),\s*'--native-port',\s*String\(nativeDriverPort\)/);
+  assert.match(runnerSource, /driver_port: driverPort/);
+  assert.match(runnerSource, /native_driver_port: nativeDriverPort/);
+  assert.match(runnerSource, /waitForPortClosed\(driverHost, driverPort, 10000\)/);
+  assert.match(runnerSource, /waitForPortClosed\(driverHost, nativeDriverPort, 10000\)/);
 });
 
 test('desktop E2E runner fails fast when tauri-driver exits before opening the WebDriver port', () => {
@@ -58,6 +78,14 @@ test('desktop E2E runner tears down native WebDriver process trees between scena
   assert.match(runnerSource, /async function terminateProcessTree\(child\)/);
   assert.match(runnerSource, /taskkill\.exe/);
   assert.match(runnerSource, /waitForPortClosed\(driverHost, driverPort, 10000\)/);
+  assert.match(runnerSource, /waitForPortClosed\(driverHost, nativeDriverPort, 10000\)/);
+});
+
+test('desktop E2E chat scenarios target canonical local-agent anchors', () => {
+  assert.match(chatMemoryStandardBindSpecSource, /E2E_IDS\.localAgentRef\('user-e2e-primary', 'agent-e2e-alpha'\)/);
+  assert.match(chatLive2dRenderSmokeSpecSource, /E2E_IDS\.localAgentRef\('user-e2e-primary', 'agent-e2e-alpha'\)/);
+  assert.doesNotMatch(chatMemoryStandardBindSpecSource, /chatTarget\('agent-e2e-alpha'\)/);
+  assert.doesNotMatch(chatLive2dRenderSmokeSpecSource, /chatTarget\('agent-e2e-alpha'\)/);
 });
 
 test('runtime-unavailable boot smoke targets the canonical desktop release strip', () => {

@@ -311,6 +311,53 @@ function waitForPortClosed(host, port, timeoutMs = 10000) {
   });
 }
 
+function parsePort(value, label) {
+  const port = Number(value);
+  if (!Number.isInteger(port) || port <= 0 || port > 65535) {
+    throw new Error(`${label} must be an integer TCP port from 1 to 65535`);
+  }
+  return port;
+}
+
+function findFreePort(host, excluded = new Set()) {
+  return new Promise((resolve, reject) => {
+    const server = net.createServer();
+    server.unref();
+    server.once('error', reject);
+    server.listen(0, host, () => {
+      const address = server.address();
+      server.close((error) => {
+        if (error) {
+          reject(error);
+          return;
+        }
+        if (!address || typeof address === 'string') {
+          reject(new Error(`failed to resolve free TCP port on ${host}`));
+          return;
+        }
+        if (excluded.has(address.port)) {
+          findFreePort(host, excluded).then(resolve, reject);
+          return;
+        }
+        resolve(address.port);
+      });
+    });
+  });
+}
+
+async function resolveDriverPorts(host) {
+  const driverPort = process.env.NIMI_E2E_DRIVER_PORT
+    ? parsePort(process.env.NIMI_E2E_DRIVER_PORT, 'NIMI_E2E_DRIVER_PORT')
+    : await findFreePort(host);
+  const nativeDriverPort = process.env.NIMI_E2E_NATIVE_DRIVER_PORT
+    ? parsePort(process.env.NIMI_E2E_NATIVE_DRIVER_PORT, 'NIMI_E2E_NATIVE_DRIVER_PORT')
+    : await findFreePort(host, new Set([driverPort]));
+  if (driverPort === nativeDriverPort) {
+    throw new Error(`tauri-driver port and native WebDriver port must differ: ${driverPort}`);
+  }
+  return { driverPort, nativeDriverPort };
+}
+
 function createLogFile(filePath) {
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
   return fs.createWriteStream(filePath, { flags: 'w' });
@@ -368,8 +415,8 @@ async function runScenario(scenarioId, runIndex) {
   }
 
   const nativeDriver = resolveNativeDriverPath(process.env.NIMI_E2E_NATIVE_DRIVER);
-  const driverPort = Number(process.env.NIMI_E2E_DRIVER_PORT || '4444');
   const driverHost = process.env.NIMI_E2E_DRIVER_HOST || '127.0.0.1';
+  const { driverPort, nativeDriverPort } = await resolveDriverPorts(driverHost);
   const artifactsDir = path.join(artifactRoot(), `${String(runIndex).padStart(2, '0')}-${scenarioId}`);
   fs.mkdirSync(artifactsDir, { recursive: true });
   const backendLogPath = path.join(artifactsDir, 'backend.log');
@@ -394,7 +441,13 @@ async function runScenario(scenarioId, runIndex) {
   writeJson(scenarioManifestPath, scenarioManifest);
 
   const driverLog = createLogFile(path.join(artifactsDir, 'tauri-driver.log'));
-  const driverArgs = nativeDriver ? ['--native-driver', nativeDriver] : [];
+  const driverArgs = [
+    '--port',
+    String(driverPort),
+    '--native-port',
+    String(nativeDriverPort),
+    ...(nativeDriver ? ['--native-driver', nativeDriver] : []),
+  ];
   const driver = spawn('tauri-driver', driverArgs, {
     cwd: repoRoot,
     env: {
@@ -421,6 +474,8 @@ async function runScenario(scenarioId, runIndex) {
     fixture_manifest: path.relative(repoRoot, scenarioManifestPath),
     backend_log: path.relative(repoRoot, backendLogPath),
     driver_log: path.relative(repoRoot, path.join(artifactsDir, 'tauri-driver.log')),
+    driver_port: driverPort,
+    native_driver_port: nativeDriverPort,
     artifact_policy: scenarioManifest.artifactPolicy || {},
     parity_captures: [],
   });
@@ -462,6 +517,7 @@ async function runScenario(scenarioId, runIndex) {
   } finally {
     await terminateProcessTree(driver);
     await waitForPortClosed(driverHost, driverPort, 10000);
+    await waitForPortClosed(driverHost, nativeDriverPort, 10000);
     driverLog.end();
     await fixtureServer.close();
   }
