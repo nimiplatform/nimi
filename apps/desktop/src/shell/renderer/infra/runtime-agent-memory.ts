@@ -547,6 +547,10 @@ export function createRuntimeAgentMemoryAdapter(deps: RuntimeAgentMemoryDeps = {
           bankId: metadata.bankId,
         };
       }
+      const fixtureStatus = await getDesktopE2EAgentMemoryFixtureStatus(agentId);
+      if (fixtureStatus) {
+        return fixtureStatus;
+      }
       return {
         mode: 'unavailable',
         bankId: metadata.bankId,
