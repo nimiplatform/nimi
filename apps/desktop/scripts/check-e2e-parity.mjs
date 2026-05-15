@@ -138,6 +138,8 @@ function assertFixtureRealmOriginBridgeParity() {
 function assertCanonicalTranscriptSelectorParity() {
   const transcriptSource = readRepoText('kit/features/chat/src/components/canonical-transcript-view.tsx');
   const humanAdapterSource = readText('src/shell/renderer/features/chat/chat-human-canonical-components.tsx');
+  const humanComposerSource = readText('src/shell/renderer/features/chat/chat-human-canonical-composer-profile.tsx');
+  const leadingAvatarSource = readText('src/shell/renderer/features/chat/chat-shared-composer-leading-avatar.tsx');
   for (const required of [
     'dataTestId?: string',
     'activeConversationId?: string | null',
@@ -154,6 +156,25 @@ function assertCanonicalTranscriptSelectorParity() {
   ]) {
     if (!humanAdapterSource.includes(required)) {
       fail(`desktop human chat does not bind canonical transcript selector parity: ${required}`);
+    }
+  }
+  for (const required of [
+    'triggerTestId={E2E_IDS.chatHeaderProfileToggle}',
+    'openProfileTestId={E2E_IDS.chatOpenUserProfile}',
+    "navigateToProfile(targetId, 'profile')",
+  ]) {
+    if (!humanComposerSource.includes(required)) {
+      fail(`desktop human composer does not route profile E2E selectors through the shared profile page: ${required}`);
+    }
+  }
+  for (const required of [
+    'triggerTestId?: string',
+    'openProfileTestId?: string',
+    'data-testid={props.triggerTestId}',
+    'data-testid={props.openProfileTestId}',
+  ]) {
+    if (!leadingAvatarSource.includes(required)) {
+      fail(`shared composer leading avatar does not expose canonical profile selector contract: ${required}`);
     }
   }
 }
