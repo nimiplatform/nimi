@@ -622,3 +622,338 @@ spec_generation_audit_file_entries:
           content was not changed.
         - "Git provenance first observed at 97e4d5f16 spec: admit avatar debug
           workbench authority."
+    - canonical_path: .nimi/spec/avatar/kernel/kit-ui-consumption-contract.md
+      file_class: kernel_markdown
+      source_refs:
+        - .nimi/spec/avatar/kernel/kit-ui-consumption-contract.md
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
+      notes:
+        - Added during the 2026-05-15 CI audit closure pass; canonical spec
+          content was not changed.
+    - canonical_path: .nimi/spec/avatar/kernel/tables/nimi-kit-adoption.yaml
+      file_class: kernel_tables
+      source_refs:
+        - .nimi/spec/avatar/kernel/tables/nimi-kit-adoption.yaml
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
+      notes:
+        - Added during the 2026-05-15 CI audit closure pass; canonical spec
+          content was not changed.
+    - canonical_path: .nimi/spec/avatar/kernel/tables/nimi-kit-compositions.yaml
+      file_class: kernel_tables
+      source_refs:
+        - .nimi/spec/avatar/kernel/tables/nimi-kit-compositions.yaml
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
+      notes:
+        - Added during the 2026-05-15 CI audit closure pass; canonical spec
+          content was not changed.
+    - canonical_path: .nimi/spec/desktop/kernel/command-execution-contract.md
+      file_class: kernel_markdown
+      source_refs:
+        - .nimi/spec/desktop/kernel/command-execution-contract.md
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
+      notes:
+        - Added during the 2026-05-15 CI audit closure pass; canonical spec
+          content was not changed.
+    - canonical_path: .nimi/spec/desktop/kernel/generated/command-execution-classification.md
+      file_class: kernel_generated
+      source_refs:
+        - .nimi/spec/desktop/kernel/tables/command-execution-classification.yaml
+        - .nimi/spec/desktop/kernel/generated/command-execution-classification.md
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
+      notes:
+        - Added during the 2026-05-15 CI audit closure pass; generated markdown
+          source table is recorded explicitly.
+    - canonical_path: .nimi/spec/desktop/kernel/kit-ui-consumption-contract.md
+      file_class: kernel_markdown
+      source_refs:
+        - .nimi/spec/desktop/kernel/kit-ui-consumption-contract.md
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
+      notes:
+        - Added during the 2026-05-15 CI audit closure pass; canonical spec
+          content was not changed.
+    - canonical_path: .nimi/spec/desktop/kernel/realm-group-agent-participation-surface-contract.md
+      file_class: kernel_markdown
+      source_refs:
+        - .nimi/spec/desktop/kernel/realm-group-agent-participation-surface-contract.md
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
+      notes:
+        - Added during the 2026-05-15 CI audit closure pass; canonical spec
+          content was not changed.
+    - canonical_path: .nimi/spec/desktop/kernel/tables/command-execution-classification.yaml
+      file_class: kernel_tables
+      source_refs:
+        - .nimi/spec/desktop/kernel/tables/command-execution-classification.yaml
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
+      notes:
+        - Added during the 2026-05-15 CI audit closure pass; canonical spec
+          content was not changed.
+    - canonical_path: .nimi/spec/desktop/kernel/tables/nimi-kit-adoption.yaml
+      file_class: kernel_tables
+      source_refs:
+        - .nimi/spec/desktop/kernel/tables/nimi-kit-adoption.yaml
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
+      notes:
+        - Added during the 2026-05-15 CI audit closure pass; canonical spec
+          content was not changed.
+    - canonical_path: .nimi/spec/desktop/kernel/tables/nimi-kit-allowlists.yaml
+      file_class: kernel_tables
+      source_refs:
+        - .nimi/spec/desktop/kernel/tables/nimi-kit-allowlists.yaml
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
+      notes:
+        - Added during the 2026-05-15 CI audit closure pass; canonical spec
+          content was not changed.
+    - canonical_path: .nimi/spec/desktop/kernel/tables/nimi-kit-compositions.yaml
+      file_class: kernel_tables
+      source_refs:
+        - .nimi/spec/desktop/kernel/tables/nimi-kit-compositions.yaml
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
+      notes:
+        - Added during the 2026-05-15 CI audit closure pass; canonical spec
+          content was not changed.
+    - canonical_path: .nimi/spec/realm/kernel/generated/group-agent-participation-contract.md
+      file_class: kernel_generated
+      source_refs:
+        - .nimi/spec/realm/kernel/tables/group-agent-participation-contract.yaml
+        - .nimi/spec/realm/kernel/generated/group-agent-participation-contract.md
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
+      notes:
+        - Added during the 2026-05-15 CI audit closure pass; generated markdown
+          source table is recorded explicitly.
+    - canonical_path: .nimi/spec/realm/kernel/generated/group-agent-slot-lifecycle.md
+      file_class: kernel_generated
+      source_refs:
+        - .nimi/spec/realm/kernel/tables/group-agent-slot-lifecycle.yaml
+        - .nimi/spec/realm/kernel/generated/group-agent-slot-lifecycle.md
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
+      notes:
+        - Added during the 2026-05-15 CI audit closure pass; generated markdown
+          source table is recorded explicitly.
+    - canonical_path: .nimi/spec/realm/kernel/generated/group-agent-trigger-policy.md
+      file_class: kernel_generated
+      source_refs:
+        - .nimi/spec/realm/kernel/tables/group-agent-trigger-policy.yaml
+        - .nimi/spec/realm/kernel/generated/group-agent-trigger-policy.md
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
+      notes:
+        - Added during the 2026-05-15 CI audit closure pass; generated markdown
+          source table is recorded explicitly.
+    - canonical_path: .nimi/spec/realm/kernel/generated/oauth-authority-contract.md
+      file_class: kernel_generated
+      source_refs:
+        - .nimi/spec/realm/kernel/tables/oauth-authority-contract.yaml
+        - .nimi/spec/realm/kernel/generated/oauth-authority-contract.md
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
+      notes:
+        - Added during the 2026-05-15 CI audit closure pass; generated markdown
+          source table is recorded explicitly.
+    - canonical_path: .nimi/spec/realm/kernel/group-agent-participation-contract.md
+      file_class: kernel_markdown
+      source_refs:
+        - .nimi/spec/realm/kernel/group-agent-participation-contract.md
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
+      notes:
+        - Added during the 2026-05-15 CI audit closure pass; canonical spec
+          content was not changed.
+    - canonical_path: .nimi/spec/realm/kernel/oauth-authority-contract.md
+      file_class: kernel_markdown
+      source_refs:
+        - .nimi/spec/realm/kernel/oauth-authority-contract.md
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
+      notes:
+        - Added during the 2026-05-15 CI audit closure pass; canonical spec
+          content was not changed.
+    - canonical_path: .nimi/spec/realm/kernel/tables/group-agent-participation-contract.yaml
+      file_class: kernel_tables
+      source_refs:
+        - .nimi/spec/realm/kernel/tables/group-agent-participation-contract.yaml
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
+      notes:
+        - Added during the 2026-05-15 CI audit closure pass; canonical spec
+          content was not changed.
+    - canonical_path: .nimi/spec/realm/kernel/tables/group-agent-slot-lifecycle.yaml
+      file_class: kernel_tables
+      source_refs:
+        - .nimi/spec/realm/kernel/tables/group-agent-slot-lifecycle.yaml
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
+      notes:
+        - Added during the 2026-05-15 CI audit closure pass; canonical spec
+          content was not changed.
+    - canonical_path: .nimi/spec/realm/kernel/tables/group-agent-trigger-policy.yaml
+      file_class: kernel_tables
+      source_refs:
+        - .nimi/spec/realm/kernel/tables/group-agent-trigger-policy.yaml
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
+      notes:
+        - Added during the 2026-05-15 CI audit closure pass; canonical spec
+          content was not changed.
+    - canonical_path: .nimi/spec/realm/kernel/tables/oauth-authority-contract.yaml
+      file_class: kernel_tables
+      source_refs:
+        - .nimi/spec/realm/kernel/tables/oauth-authority-contract.yaml
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
+      notes:
+        - Added during the 2026-05-15 CI audit closure pass; canonical spec
+          content was not changed.
+    - canonical_path: .nimi/spec/runtime/kernel/multi-agent-room-orchestration-contract.md
+      file_class: kernel_markdown
+      source_refs:
+        - .nimi/spec/runtime/kernel/multi-agent-room-orchestration-contract.md
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
+      notes:
+        - Added during the 2026-05-15 CI audit closure pass; canonical spec
+          content was not changed.
+    - canonical_path: .nimi/spec/runtime/kernel/realm-group-participation-consumer-contract.md
+      file_class: kernel_markdown
+      source_refs:
+        - .nimi/spec/runtime/kernel/realm-group-participation-consumer-contract.md
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
+      notes:
+        - Added during the 2026-05-15 CI audit closure pass; canonical spec
+          content was not changed.
+    - canonical_path: .nimi/spec/runtime/kernel/tables/knowledge-action-scope-matrix.yaml
+      file_class: kernel_tables
+      source_refs:
+        - .nimi/spec/runtime/kernel/tables/knowledge-action-scope-matrix.yaml
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
+      notes:
+        - Added during the 2026-05-15 CI audit closure pass; canonical spec
+          content was not changed.
+    - canonical_path: .nimi/spec/runtime/kernel/tables/realm-group-participation-context.yaml
+      file_class: kernel_tables
+      source_refs:
+        - .nimi/spec/runtime/kernel/tables/realm-group-participation-context.yaml
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
+      notes:
+        - Added during the 2026-05-15 CI audit closure pass; canonical spec
+          content was not changed.
+    - canonical_path: .nimi/spec/runtime/kernel/tables/room-orchestration-axis-model.yaml
+      file_class: kernel_tables
+      source_refs:
+        - .nimi/spec/runtime/kernel/tables/room-orchestration-axis-model.yaml
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
+      notes:
+        - Added during the 2026-05-15 CI audit closure pass; canonical spec
+          content was not changed.
+    - canonical_path: .nimi/spec/runtime/kernel/tables/room-orchestration-budget-policy.yaml
+      file_class: kernel_tables
+      source_refs:
+        - .nimi/spec/runtime/kernel/tables/room-orchestration-budget-policy.yaml
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
+      notes:
+        - Added during the 2026-05-15 CI audit closure pass; canonical spec
+          content was not changed.
+    - canonical_path: .nimi/spec/runtime/kernel/tables/room-orchestration-domain-matrix.yaml
+      file_class: kernel_tables
+      source_refs:
+        - .nimi/spec/runtime/kernel/tables/room-orchestration-domain-matrix.yaml
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
+      notes:
+        - Added during the 2026-05-15 CI audit closure pass; canonical spec
+          content was not changed.
+    - canonical_path: .nimi/spec/runtime/kernel/tables/room-orchestration-domain-overlays.yaml
+      file_class: kernel_tables
+      source_refs:
+        - .nimi/spec/runtime/kernel/tables/room-orchestration-domain-overlays.yaml
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
+      notes:
+        - Added during the 2026-05-15 CI audit closure pass; canonical spec
+          content was not changed.
+    - canonical_path: .nimi/spec/runtime/kernel/tables/room-orchestration-trigger-arbitration.yaml
+      file_class: kernel_tables
+      source_refs:
+        - .nimi/spec/runtime/kernel/tables/room-orchestration-trigger-arbitration.yaml
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
+      notes:
+        - Added during the 2026-05-15 CI audit closure pass; canonical spec
+          content was not changed.
+    - canonical_path: .nimi/spec/runtime/kernel/tables/workspace-binding-relation.yaml
+      file_class: kernel_tables
+      source_refs:
+        - .nimi/spec/runtime/kernel/tables/workspace-binding-relation.yaml
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
+      notes:
+        - Added during the 2026-05-15 CI audit closure pass; canonical spec
+          content was not changed.
+    - canonical_path: .nimi/spec/runtime/kernel/workspace-binding-contract.md
+      file_class: kernel_markdown
+      source_refs:
+        - .nimi/spec/runtime/kernel/workspace-binding-contract.md
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
+      notes:
+        - Added during the 2026-05-15 CI audit closure pass; canonical spec
+          content was not changed.
+    - canonical_path: .nimi/spec/sdk/kernel/realm-group-agent-participation-client-contract.md
+      file_class: kernel_markdown
+      source_refs:
+        - .nimi/spec/sdk/kernel/realm-group-agent-participation-client-contract.md
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
+      notes:
+        - Added during the 2026-05-15 CI audit closure pass; canonical spec
+          content was not changed.

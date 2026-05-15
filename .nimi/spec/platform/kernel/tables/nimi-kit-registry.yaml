@@ -214,17 +214,34 @@ modules:
       - ./features/chat/realm
       - ./features/chat/runtime
       - ./features/chat/ui
+      - ./features/chat/types
+      - ./features/chat/components/canonical-composer
+      - ./features/chat/components/canonical-conversation-shell
+      - ./features/chat/components/canonical-drawer-section
+      - ./features/chat/components/canonical-runtime-inspect-sidebar
+      - ./features/chat/components/canonical-stage-panel
+      - ./features/chat/components/canonical-transcript-view
+      - ./features/chat/components/chat-stream-status
     headless_exports:
       - ./features/chat/headless
       - ./features/chat/realm
       - ./features/chat/runtime
+      - ./features/chat/types
     ui_exports:
       - ./features/chat/ui
+      - ./features/chat/components/canonical-composer
+      - ./features/chat/components/canonical-conversation-shell
+      - ./features/chat/components/canonical-drawer-section
+      - ./features/chat/components/canonical-runtime-inspect-sidebar
+      - ./features/chat/components/canonical-stage-panel
+      - ./features/chat/components/canonical-transcript-view
+      - ./features/chat/components/chat-stream-status
     reuse_entrypoints:
       - ./features/chat/ui
       - ./features/chat/headless
       - ./features/chat/runtime
       - ./features/chat/realm
+      - ./features/chat/components/canonical-conversation-shell
     admission_status: active
     owner: platform
     source_rule: P-KIT-070

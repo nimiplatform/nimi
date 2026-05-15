@@ -188,6 +188,46 @@ export default defineConfig(({ mode }) => {
           find: '@nimiplatform/nimi-kit/core',
           replacement: path.resolve(__dirname, '../../kit/core/src'),
         },
+        {
+          find: '@nimiplatform/nimi-kit/ui',
+          replacement: path.resolve(__dirname, '../../kit/ui/src'),
+        },
+        {
+          find: '@nimiplatform/nimi-kit/auth',
+          replacement: path.resolve(__dirname, '../../kit/auth/src'),
+        },
+        {
+          find: '@nimiplatform/nimi-kit/telemetry',
+          replacement: path.resolve(__dirname, '../../kit/telemetry/src'),
+        },
+        {
+          find: '@nimiplatform/nimi-kit/shell/renderer/bridge',
+          replacement: path.resolve(__dirname, '../../kit/shell/renderer/src/bridge'),
+        },
+        {
+          find: '@nimiplatform/nimi-kit/features/avatar',
+          replacement: path.resolve(__dirname, '../../kit/features/avatar/src'),
+        },
+        {
+          find: '@nimiplatform/nimi-kit/features/chat',
+          replacement: path.resolve(__dirname, '../../kit/features/chat/src'),
+        },
+        {
+          find: '@nimiplatform/nimi-kit/features/commerce',
+          replacement: path.resolve(__dirname, '../../kit/features/commerce/src'),
+        },
+        {
+          find: '@nimiplatform/nimi-kit/features/generation',
+          replacement: path.resolve(__dirname, '../../kit/features/generation/src'),
+        },
+        {
+          find: '@nimiplatform/nimi-kit/features/model-config',
+          replacement: path.resolve(__dirname, '../../kit/features/model-config/src'),
+        },
+        {
+          find: '@nimiplatform/nimi-kit/features/model-picker',
+          replacement: path.resolve(__dirname, '../../kit/features/model-picker/src'),
+        },
       ],
     },
     server: {
