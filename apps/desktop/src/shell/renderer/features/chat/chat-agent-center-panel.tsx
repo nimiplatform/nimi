@@ -5,6 +5,7 @@ import { confirmDialog } from '@renderer/bridge/runtime-bridge/ui';
 import { dispatchRuntimeConfigOpenPage } from '../runtime-config/runtime-config-navigation-events';
 import type { AgentLocalTargetSnapshot } from '@renderer/bridge/runtime-bridge/types';
 import type { RuntimeAgentInspectSnapshot } from '@renderer/infra/runtime-agent-inspect';
+import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import {
   Btn,
   Card,
@@ -538,6 +539,7 @@ export function AgentCenterPanel(props: AgentCenterPanelProps) {
                 aria-current={selected ? 'page' : undefined}
                 aria-label={section.label}
                 title={section.label}
+                data-testid={E2E_IDS.chatAgentCenterSection(section.id)}
                 onClick={() => setActiveSection(section.id)}
                 className={cn(
                   'group relative flex h-9 shrink-0 items-center rounded-[12px] text-[12px] font-medium',

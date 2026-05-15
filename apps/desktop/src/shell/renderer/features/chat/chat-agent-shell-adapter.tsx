@@ -249,6 +249,7 @@ export function useAgentConversationModeHost(
     runtimeInspectLoading,
     runtimePresentationProfile,
     handleCancelPendingHook,
+    handleUpgradeStandardMemory,
     handleClearDyadicContext,
     handleClearWorldContext,
     handleDisableAutonomy,
@@ -620,13 +621,15 @@ export function useAgentConversationModeHost(
         disabled={Boolean(submittingThreadId)}
         memoryStatus={canonicalMemoryStatus}
         memoryLoading={canonicalMemoryLoading}
-        allowMemoryUpgrade={false}
+        onUpgradeStandardMemory={handleUpgradeStandardMemory}
+        allowMemoryUpgrade
       />
     ) : null
   ), [
     activeTarget,
     canonicalMemoryLoading,
     canonicalMemoryStatus,
+    handleUpgradeStandardMemory,
     submittingThreadId,
   ]);
 

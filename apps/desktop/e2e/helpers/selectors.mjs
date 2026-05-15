@@ -49,6 +49,7 @@ export const E2E_IDS = {
   localAgentRef: (ownerUserId, agentId) => `local-agent:${ownerUserId}:${agentId}`,
   chatHeaderProfileToggle: 'chat-header-profile-toggle',
   chatSettingsToggle: 'chat-settings-toggle',
+  chatAgentCenterSection: (sectionId) => `chat-agent-center-section:${sectionId}`,
   chatOpenUserProfile: 'chat-open-user-profile',
   chatMemoryModeCard: 'chat-memory-mode-card',
   chatMemoryModeStatus: 'chat-memory-mode-status',
