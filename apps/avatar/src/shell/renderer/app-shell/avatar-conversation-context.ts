@@ -1,19 +1,19 @@
 import type { Runtime } from '@nimiplatform/sdk/runtime/browser';
 
-const STORAGE_KEY = 'nimi.avatar.conversation-context.v1';
-const SCHEMA_VERSION = 1;
+const STORAGE_KEY = 'nimi.avatar.conversation-context.v2';
+const SCHEMA_VERSION = 2;
 
 type PersistedConversationContext = {
-  schemaVersion: 1;
+  schemaVersion: 2;
   accountId: string;
-  agentId: string;
+  localAgentRef: string;
   avatarInstanceId: string;
   conversationAnchorId: string;
   updatedAtMs: number;
 };
 
 type PersistedConversationContextFile = {
-  schemaVersion: 1;
+  schemaVersion: 2;
   records: PersistedConversationContext[];
 };
 
@@ -52,10 +52,10 @@ function storage(): Storage | null {
 
 function contextKey(input: {
   accountId: string;
-  agentId: string;
+  localAgentRef: string;
   avatarInstanceId: string;
 }): string {
-  return `${input.accountId}\u001f${input.agentId}\u001f${input.avatarInstanceId}`;
+  return `${input.accountId}\u001f${input.localAgentRef}\u001f${input.avatarInstanceId}`;
 }
 
 function readPersistedFile(): PersistedConversationContextFile {
@@ -71,7 +71,7 @@ function readPersistedFile(): PersistedConversationContextFile {
     const records = parsed.records.filter((record): record is PersistedConversationContext => (
       record?.schemaVersion === SCHEMA_VERSION
       && Boolean(normalizeText(record.accountId))
-      && Boolean(normalizeText(record.agentId))
+      && Boolean(normalizeText(record.localAgentRef))
       && Boolean(normalizeText(record.avatarInstanceId))
       && Boolean(normalizeText(record.conversationAnchorId))
       && typeof record.updatedAtMs === 'number'
@@ -93,7 +93,7 @@ function writePersistedFile(file: PersistedConversationContextFile): void {
 
 function readPersistedContext(input: {
   accountId: string;
-  agentId: string;
+  localAgentRef: string;
   avatarInstanceId: string;
 }): PersistedConversationContext | null {
   const key = contextKey(input);
@@ -102,7 +102,7 @@ function readPersistedContext(input: {
 
 function writePersistedContext(input: {
   accountId: string;
-  agentId: string;
+  localAgentRef: string;
   avatarInstanceId: string;
   conversationAnchorId: string;
   nowMs?: number;
@@ -112,7 +112,7 @@ function writePersistedContext(input: {
   const nextRecord: PersistedConversationContext = {
     schemaVersion: SCHEMA_VERSION,
     accountId: input.accountId,
-    agentId: input.agentId,
+    localAgentRef: input.localAgentRef,
     avatarInstanceId: input.avatarInstanceId,
     conversationAnchorId: input.conversationAnchorId,
     updatedAtMs: input.nowMs ?? Date.now(),
@@ -128,7 +128,7 @@ function writePersistedContext(input: {
 
 function forgetPersistedContext(input: {
   accountId: string;
-  agentId: string;
+  localAgentRef: string;
   avatarInstanceId: string;
 }): void {
   const key = contextKey(input);
@@ -141,13 +141,16 @@ function forgetPersistedContext(input: {
 
 async function validatePersistedAnchor(input: {
   runtime: Runtime;
-  accountId: string;
-  agentId: string;
+  ownerUserId: string;
+  realmAgentId: string;
+  localAgentRef: string;
   conversationAnchorId: string;
 }): Promise<AvatarConversationContextResult | null> {
   try {
     const snapshot = await input.runtime.agent.anchors.getSnapshot({
-      agentId: input.agentId,
+      ownerUserId: input.ownerUserId,
+      realmAgentId: input.realmAgentId,
+      localAgentRef: input.localAgentRef,
       conversationAnchorId: input.conversationAnchorId,
     });
     const anchor = snapshot.anchor;
@@ -156,8 +159,8 @@ async function validatePersistedAnchor(input: {
     const subjectUserId = normalizeText(anchor?.subjectUserId);
     if (
       conversationAnchorId !== input.conversationAnchorId
-      || anchorAgentId !== input.agentId
-      || subjectUserId !== input.accountId
+      || anchorAgentId !== input.localAgentRef
+      || subjectUserId !== input.ownerUserId
     ) {
       return null;
     }
@@ -174,16 +177,22 @@ async function validatePersistedAnchor(input: {
 export async function resolveAvatarConversationContext(input: {
   runtime: Runtime;
   accountId: string;
-  agentId: string;
+  ownerUserId: string;
+  realmAgentId: string;
+  localAgentRef: string;
   avatarInstanceId: string;
   launchSource: string | null;
 }): Promise<AvatarConversationContextResult> {
+  if (input.accountId !== input.ownerUserId) {
+    throw new Error('Avatar launch ownerUserId does not match Runtime account projection');
+  }
   const persisted = readPersistedContext(input);
   if (persisted) {
     const recovered = await validatePersistedAnchor({
       runtime: input.runtime,
-      accountId: input.accountId,
-      agentId: input.agentId,
+      ownerUserId: input.ownerUserId,
+      realmAgentId: input.realmAgentId,
+      localAgentRef: input.localAgentRef,
       conversationAnchorId: persisted.conversationAnchorId,
     });
     if (recovered) {
@@ -194,7 +203,9 @@ export async function resolveAvatarConversationContext(input: {
 
   try {
     const snapshot = await input.runtime.agent.anchors.open({
-      agentId: input.agentId,
+      ownerUserId: input.ownerUserId,
+      realmAgentId: input.realmAgentId,
+      localAgentRef: input.localAgentRef,
       metadata: {
         launch_source: input.launchSource,
         avatar_instance_id: input.avatarInstanceId,
@@ -208,15 +219,15 @@ export async function resolveAvatarConversationContext(input: {
     if (!conversationAnchorId) {
       throw new Error('Runtime did not return an Avatar conversation anchor');
     }
-    if (anchorAgentId !== input.agentId) {
+    if (anchorAgentId !== input.localAgentRef) {
       throw new Error('Runtime returned an Avatar conversation anchor for a different agent');
     }
-    if (subjectUserId !== input.accountId) {
+    if (subjectUserId !== input.ownerUserId) {
       throw new Error('Runtime returned an Avatar conversation anchor for a different account');
     }
     writePersistedContext({
       accountId: input.accountId,
-      agentId: input.agentId,
+      localAgentRef: input.localAgentRef,
       avatarInstanceId: input.avatarInstanceId,
       conversationAnchorId,
     });

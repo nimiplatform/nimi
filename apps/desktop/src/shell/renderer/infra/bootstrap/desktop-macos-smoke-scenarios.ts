@@ -253,28 +253,14 @@ export async function runDesktopMacosSmokeScenario(
   const record = (step: string) => {
     steps.push(step);
   };
-  const openRuntimePanel = async () => {
-    try {
-      await deps.clickByTestId(E2E_IDS.navTab('runtime'));
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error || '');
-      if (!message.includes(`missing test id ${E2E_IDS.navTab('runtime')}`)) {
-        throw error;
-      }
-      await deps.clickByTestId(E2E_IDS.topbarRuntimeButton);
-    }
-  };
-
   try {
     switch (scenarioId) {
       case 'boot.anonymous.login-screen':
         record('wait-main-shell');
         await deps.waitForTestId(E2E_IDS.mainShell);
-        record('open-runtime-panel');
-        await openRuntimePanel();
-        record('wait-runtime-overview');
-        await deps.waitForTestId(E2E_IDS.panel('runtime'));
-        await deps.waitForTestId(E2E_IDS.runtimePageRoot('overview'));
+        record('wait-chat-default');
+        await deps.waitForTestId(E2E_IDS.panel('chat'));
+        await deps.waitForTestId(E2E_IDS.chatPage);
         try {
           record('wait-login-button');
           await deps.waitForTestId(E2E_IDS.topbarLoginButton, 750);
@@ -293,11 +279,11 @@ export async function runDesktopMacosSmokeScenario(
             await deps.clickByTestId(E2E_IDS.loginAlternativeToggle);
             await deps.waitForTestId(E2E_IDS.loginAlternativePanel);
           }
-          record('return-runtime-panel');
+          record('return-chat-panel');
           await deps.clickByTestId(E2E_IDS.loginBackButton);
           await deps.waitForTestId(E2E_IDS.mainShell);
-          await openRuntimePanel();
-          await deps.waitForTestId(E2E_IDS.panel('runtime'));
+          await deps.waitForTestId(E2E_IDS.panel('chat'));
+          await deps.waitForTestId(E2E_IDS.chatPage);
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error || '');
           if (!message.includes(`missing test id ${E2E_IDS.topbarLoginButton}`)) {

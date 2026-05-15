@@ -38,7 +38,7 @@ type RuntimeAgentTimelineForAvatar = {
 
 type RuntimeAgentVoicePlaybackEvent = {
   eventName: 'runtime.agent.presentation.voice_playback_requested';
-  agentId: string;
+  localAgentRef: string;
   conversationAnchorId: string;
   turnId: string;
   streamId: string;
@@ -80,7 +80,9 @@ type BundleCurrentEmotion = NonNullable<AgentDataBundle['emotion']>['current'];
 
 export type SdkDriverOptions = {
   runtime: Runtime;
-  agentId: string;
+  ownerUserId: string;
+  realmAgentId: string;
+  localAgentRef: string;
   conversationAnchorId: string;
   activeWorldId: string;
   activeUserId: string;
@@ -228,7 +230,9 @@ export class SdkDriver implements AgentDataDriver {
   readonly kind = 'sdk' as const;
   private _status: DriverStatus = 'idle';
   private readonly runtime: Runtime;
-  private readonly agentId: string;
+  private readonly ownerUserId: string;
+  private readonly realmAgentId: string;
+  private readonly localAgentRef: string;
   private readonly conversationAnchorId: string;
   private readonly activeWorldId: string;
   private readonly activeUserId: string;
@@ -244,7 +248,9 @@ export class SdkDriver implements AgentDataDriver {
 
   constructor(options: SdkDriverOptions) {
     this.runtime = options.runtime;
-    this.agentId = options.agentId;
+    this.ownerUserId = options.ownerUserId;
+    this.realmAgentId = options.realmAgentId;
+    this.localAgentRef = options.localAgentRef;
     this.conversationAnchorId = options.conversationAnchorId;
     this.activeWorldId = options.activeWorldId;
     this.activeUserId = options.activeUserId;
@@ -271,7 +277,9 @@ export class SdkDriver implements AgentDataDriver {
     try {
       const snapshot = await this.runtime.agent.turns.getSessionSnapshot(
         {
-	          agentId: this.agentId,
+	          ownerUserId: this.ownerUserId,
+	          realmAgentId: this.realmAgentId,
+	          localAgentRef: this.localAgentRef,
 	          conversationAnchorId: this.conversationAnchorId,
 	          ...(this.activeWorldId ? { worldId: this.activeWorldId } : {}),
 	          ...(this.scopedBinding ? { scopedBinding: this.scopedBinding } : {}),
@@ -281,7 +289,9 @@ export class SdkDriver implements AgentDataDriver {
       this.applySessionSnapshot(snapshot);
       const stream = await this.runtime.agent.turns.subscribe(
         {
-	          agentId: this.agentId,
+	          ownerUserId: this.ownerUserId,
+	          realmAgentId: this.realmAgentId,
+	          localAgentRef: this.localAgentRef,
 	          conversationAnchorId: this.conversationAnchorId,
 	          ...(this.scopedBinding ? { scopedBinding: this.scopedBinding } : {}),
 	        },
@@ -372,7 +382,7 @@ export class SdkDriver implements AgentDataDriver {
         locale: this.locale,
       },
       custom: {
-        agent_id: this.agentId,
+        agent_id: this.localAgentRef,
         conversation_anchor_id: this.conversationAnchorId,
       },
     };
@@ -570,7 +580,7 @@ export class SdkDriver implements AgentDataDriver {
           category,
           intensity,
           source: runtimeSource,
-          agent_id: event.agentId,
+          agent_id: event.localAgentRef,
           conversation_anchor_id: event.conversationAnchorId,
           turn_id: event.turnId,
           stream_id: event.streamId,
@@ -601,7 +611,7 @@ export class SdkDriver implements AgentDataDriver {
         this.emitAgentEvent(toRuntimeAgentEvent(event.eventName, {
           expression_id: event.detail.expressionId,
           expected_duration_ms: event.detail.expectedDurationMs ?? null,
-          agent_id: event.agentId,
+          agent_id: event.localAgentRef,
           conversation_anchor_id: event.conversationAnchorId,
           turn_id: event.turnId,
           stream_id: event.streamId,
@@ -759,7 +769,7 @@ export class SdkDriver implements AgentDataDriver {
     const runtimeTimeline = normalizeRuntimeTimelineForAvatar(event);
     return toRuntimeAgentEvent(event.eventName, {
       ...event.detail,
-      agent_id: event.agentId,
+      agent_id: event.localAgentRef,
       conversation_anchor_id: event.conversationAnchorId,
       originating_turn_id: 'originatingTurnId' in event ? event.originatingTurnId ?? null : null,
       originating_stream_id: 'originatingStreamId' in event ? event.originatingStreamId ?? null : null,

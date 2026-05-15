@@ -334,7 +334,9 @@ describe('bootstrapAvatar', () => {
       requestedScopes: [],
     });
     expect(openAnchorMock).toHaveBeenCalledWith({
-      agentId: LOCAL_AGENT_REF,
+      ownerUserId: OWNER_USER_ID,
+      realmAgentId: REALM_AGENT_ID,
+      localAgentRef: LOCAL_AGENT_REF,
       metadata: {
         launch_source: 'desktop-agent-chat',
         avatar_instance_id: 'instance-1',
@@ -365,7 +367,9 @@ describe('bootstrapAvatar', () => {
       kind: 'sdk',
       sdk: expect.objectContaining({
         runtime: runtimeMock,
-        agentId: LOCAL_AGENT_REF,
+        ownerUserId: OWNER_USER_ID,
+        realmAgentId: REALM_AGENT_ID,
+        localAgentRef: LOCAL_AGENT_REF,
         conversationAnchorId: 'anchor-runtime',
         activeWorldId: '',
         activeUserId: OWNER_USER_ID,
@@ -465,7 +469,9 @@ describe('bootstrapAvatar', () => {
     });
     expect(useAvatarStore.getState().runtime.binding.status).toBe('active');
     expect(openAnchorMock).toHaveBeenCalledWith({
-      agentId: LOCAL_AGENT_REF,
+      ownerUserId: OWNER_USER_ID,
+      realmAgentId: REALM_AGENT_ID,
+      localAgentRef: LOCAL_AGENT_REF,
       metadata: {
         launch_source: null,
         avatar_instance_id: 'avatar-1777420800000',
@@ -480,12 +486,12 @@ describe('bootstrapAvatar', () => {
   });
 
   it('recovers the Avatar-owned conversation anchor for the same account agent and instance', async () => {
-    window.localStorage.setItem('nimi.avatar.conversation-context.v1', JSON.stringify({
-      schemaVersion: 1,
+    window.localStorage.setItem('nimi.avatar.conversation-context.v2', JSON.stringify({
+      schemaVersion: 2,
       records: [{
-        schemaVersion: 1,
+        schemaVersion: 2,
         accountId: OWNER_USER_ID,
-        agentId: LOCAL_AGENT_REF,
+        localAgentRef: LOCAL_AGENT_REF,
         avatarInstanceId: 'instance-1',
         conversationAnchorId: 'anchor-recovered',
         updatedAtMs: 1777420800000,
@@ -503,7 +509,9 @@ describe('bootstrapAvatar', () => {
     const handle = await bootstrapAvatar();
 
     expect(getAnchorSnapshotMock).toHaveBeenCalledWith({
-      agentId: LOCAL_AGENT_REF,
+      ownerUserId: OWNER_USER_ID,
+      realmAgentId: REALM_AGENT_ID,
+      localAgentRef: LOCAL_AGENT_REF,
       conversationAnchorId: 'anchor-recovered',
     });
     expect(openAnchorMock).not.toHaveBeenCalled();
@@ -520,12 +528,12 @@ describe('bootstrapAvatar', () => {
   });
 
   it('does not reuse a persisted anchor across a different Avatar instance', async () => {
-    window.localStorage.setItem('nimi.avatar.conversation-context.v1', JSON.stringify({
-      schemaVersion: 1,
+    window.localStorage.setItem('nimi.avatar.conversation-context.v2', JSON.stringify({
+      schemaVersion: 2,
       records: [{
-        schemaVersion: 1,
+        schemaVersion: 2,
         accountId: OWNER_USER_ID,
-        agentId: LOCAL_AGENT_REF,
+        localAgentRef: LOCAL_AGENT_REF,
         avatarInstanceId: 'instance-other',
         conversationAnchorId: 'anchor-other',
         updatedAtMs: 1777420800000,
@@ -543,12 +551,12 @@ describe('bootstrapAvatar', () => {
   });
 
   it('does not recover a persisted anchor when Runtime snapshot belongs to a different account', async () => {
-    window.localStorage.setItem('nimi.avatar.conversation-context.v1', JSON.stringify({
-      schemaVersion: 1,
+    window.localStorage.setItem('nimi.avatar.conversation-context.v2', JSON.stringify({
+      schemaVersion: 2,
       records: [{
-        schemaVersion: 1,
+        schemaVersion: 2,
         accountId: OWNER_USER_ID,
-        agentId: LOCAL_AGENT_REF,
+        localAgentRef: LOCAL_AGENT_REF,
         avatarInstanceId: 'instance-1',
         conversationAnchorId: 'anchor-stale',
         updatedAtMs: 1777420800000,
@@ -566,33 +574,35 @@ describe('bootstrapAvatar', () => {
     const handle = await bootstrapAvatar();
 
     expect(getAnchorSnapshotMock).toHaveBeenCalledWith({
-      agentId: LOCAL_AGENT_REF,
+      ownerUserId: OWNER_USER_ID,
+      realmAgentId: REALM_AGENT_ID,
+      localAgentRef: LOCAL_AGENT_REF,
       conversationAnchorId: 'anchor-stale',
     });
     expect(openAnchorMock).toHaveBeenCalledTimes(1);
     expect(useAvatarStore.getState().consume.conversationAnchorId).toBe('anchor-runtime');
-    expect(window.localStorage.getItem('nimi.avatar.conversation-context.v1')).toContain('anchor-runtime');
-    expect(window.localStorage.getItem('nimi.avatar.conversation-context.v1')).not.toContain('anchor-stale');
+    expect(window.localStorage.getItem('nimi.avatar.conversation-context.v2')).toContain('anchor-runtime');
+    expect(window.localStorage.getItem('nimi.avatar.conversation-context.v2')).not.toContain('anchor-stale');
 
     await handle.shutdown();
   });
 
   it('keeps same-agent Avatar instances isolated by avatarInstanceId', async () => {
-    window.localStorage.setItem('nimi.avatar.conversation-context.v1', JSON.stringify({
-      schemaVersion: 1,
+    window.localStorage.setItem('nimi.avatar.conversation-context.v2', JSON.stringify({
+      schemaVersion: 2,
       records: [
         {
-          schemaVersion: 1,
+          schemaVersion: 2,
           accountId: OWNER_USER_ID,
-          agentId: LOCAL_AGENT_REF,
+          localAgentRef: LOCAL_AGENT_REF,
           avatarInstanceId: 'instance-1',
           conversationAnchorId: 'anchor-instance-1',
           updatedAtMs: 1777420800000,
         },
         {
-          schemaVersion: 1,
+          schemaVersion: 2,
           accountId: OWNER_USER_ID,
-          agentId: LOCAL_AGENT_REF,
+          localAgentRef: LOCAL_AGENT_REF,
           avatarInstanceId: 'instance-2',
           conversationAnchorId: 'anchor-instance-2',
           updatedAtMs: 1777420800001,
@@ -614,7 +624,9 @@ describe('bootstrapAvatar', () => {
     const handle = await bootstrapAvatar();
 
     expect(getAnchorSnapshotMock).toHaveBeenCalledWith({
-      agentId: LOCAL_AGENT_REF,
+      ownerUserId: OWNER_USER_ID,
+      realmAgentId: REALM_AGENT_ID,
+      localAgentRef: LOCAL_AGENT_REF,
       conversationAnchorId: 'anchor-instance-2',
     });
     expect(useAvatarStore.getState().consume.avatarInstanceId).toBe('instance-2');
@@ -625,12 +637,12 @@ describe('bootstrapAvatar', () => {
   });
 
   it('keeps different-agent Avatar instances isolated by agentId', async () => {
-    window.localStorage.setItem('nimi.avatar.conversation-context.v1', JSON.stringify({
-      schemaVersion: 1,
+    window.localStorage.setItem('nimi.avatar.conversation-context.v2', JSON.stringify({
+      schemaVersion: 2,
       records: [{
-        schemaVersion: 1,
+        schemaVersion: 2,
         accountId: OWNER_USER_ID,
-        agentId: OTHER_LOCAL_AGENT_REF,
+        localAgentRef: OTHER_LOCAL_AGENT_REF,
         avatarInstanceId: 'instance-1',
         conversationAnchorId: 'anchor-other-agent',
         updatedAtMs: 1777420800000,

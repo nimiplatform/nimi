@@ -404,10 +404,13 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
       );
       useAvatarStore.getState().setRuntimeDefaults(runtimeDefaults);
 
-      const agentId = readNormalizedString(launchContext.localAgentRef);
-      if (!agentId) {
+      const ownerUserId = readNormalizedString(launchContext.ownerUserId);
+      const realmAgentId = readNormalizedString(launchContext.realmAgentId);
+      const localAgentRef = readNormalizedString(launchContext.localAgentRef);
+      if (!ownerUserId || !realmAgentId || !localAgentRef) {
         throw new Error('avatar launch context is missing localAgentRef');
       }
+      const agentId = localAgentRef;
       useAvatarStore.getState().setConsumeMode({
         mode: 'sdk',
         authority: 'runtime',
@@ -488,7 +491,9 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
         const conversationContext = await runFirstPartyStage('conversation_context', () => resolveAvatarConversationContext({
           runtime,
           accountId,
-          agentId,
+          ownerUserId,
+          realmAgentId,
+          localAgentRef,
           avatarInstanceId,
           launchSource: launchContext.launchSource,
         }));
@@ -502,7 +507,9 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
           kind: 'sdk',
           sdk: {
             runtime,
-            agentId,
+            ownerUserId,
+            realmAgentId,
+            localAgentRef,
             conversationAnchorId,
             activeWorldId: '',
             activeUserId: subjectUserId,
@@ -543,7 +550,9 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
             throw new Error('avatar companion input requires an admitted execution route.');
           }
           await runtime.agent.turns.request({
-            agentId: input.agentId,
+            ownerUserId,
+            realmAgentId,
+            localAgentRef: input.agentId,
             conversationAnchorId: input.conversationAnchorId,
             messages: [{ role: 'user', content: input.text }],
             executionBinding,
@@ -573,7 +582,9 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
         };
         interruptTurn = async (input) => {
           await runtime.agent.turns.interrupt({
-            agentId: input.agentId,
+            ownerUserId,
+            realmAgentId,
+            localAgentRef: input.agentId,
             conversationAnchorId: input.conversationAnchorId,
             ...(input.turnId ? { turnId: input.turnId } : {}),
             ...(input.reason ? { reason: input.reason } : {}),

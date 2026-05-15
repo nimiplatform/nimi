@@ -5,12 +5,18 @@ function waitForTasks(): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, 0));
 }
 
+const LOCAL_IDENTITY = {
+  ownerUserId: 'owner-1',
+  realmAgentId: 'agent-1',
+  localAgentRef: 'local-agent:owner-1:agent-1',
+};
+
 describe('SdkDriver', () => {
   it('consumes runtime snapshot and presentation/state events into bundle and agent events', async () => {
     async function* stream() {
       yield {
         eventName: 'runtime.agent.presentation.activity_requested',
-        agentId: 'agent-1',
+        localAgentRef: LOCAL_IDENTITY.localAgentRef,
         conversationAnchorId: 'anchor-1',
         turnId: 'turn-1',
         streamId: 'stream-1',
@@ -23,7 +29,7 @@ describe('SdkDriver', () => {
       };
       yield {
         eventName: 'runtime.agent.state.status_text_changed',
-        agentId: 'agent-1',
+        localAgentRef: LOCAL_IDENTITY.localAgentRef,
         conversationAnchorId: 'anchor-1',
         originatingTurnId: 'turn-1',
         originatingStreamId: 'stream-1',
@@ -48,7 +54,7 @@ describe('SdkDriver', () => {
 
     const driver = new SdkDriver({
       runtime: runtime as never,
-      agentId: 'agent-1',
+      ...LOCAL_IDENTITY,
       conversationAnchorId: 'anchor-1',
       activeWorldId: 'world-1',
       activeUserId: 'user-1',
@@ -97,7 +103,7 @@ describe('SdkDriver', () => {
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     const driver = new SdkDriver({
       runtime: runtime as never,
-      agentId: 'agent-1',
+      ...LOCAL_IDENTITY,
       conversationAnchorId: 'anchor-1',
       activeWorldId: 'world-1',
       activeUserId: 'user-1',
@@ -115,7 +121,7 @@ describe('SdkDriver', () => {
     async function* stream() {
       yield {
         eventName: 'runtime.agent.presentation.activity_requested',
-        agentId: 'agent-1',
+        localAgentRef: LOCAL_IDENTITY.localAgentRef,
         conversationAnchorId: 'anchor-1',
         turnId: 'turn-1',
         streamId: 'stream-1',
@@ -144,7 +150,7 @@ describe('SdkDriver', () => {
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     const driver = new SdkDriver({
       runtime: runtime as never,
-      agentId: 'agent-1',
+      ...LOCAL_IDENTITY,
       conversationAnchorId: 'anchor-1',
       activeWorldId: 'world-1',
       activeUserId: 'user-1',
@@ -163,7 +169,7 @@ describe('SdkDriver', () => {
     async function* stream() {
       yield {
         eventName: 'runtime.agent.state.emotion_changed',
-        agentId: 'agent-1',
+        localAgentRef: LOCAL_IDENTITY.localAgentRef,
         conversationAnchorId: 'anchor-1',
         originatingTurnId: 'turn-1',
         originatingStreamId: 'stream-1',
@@ -190,7 +196,7 @@ describe('SdkDriver', () => {
 
     const driver = new SdkDriver({
       runtime: runtime as never,
-      agentId: 'agent-1',
+      ...LOCAL_IDENTITY,
       conversationAnchorId: 'anchor-1',
       activeWorldId: 'world-1',
       activeUserId: 'user-1',
@@ -219,7 +225,7 @@ describe('SdkDriver', () => {
     async function* stream() {
       yield {
         eventName: 'runtime.agent.turn.message_committed',
-        agentId: 'agent-1',
+        localAgentRef: LOCAL_IDENTITY.localAgentRef,
         conversationAnchorId: 'anchor-1',
         turnId: 'turn-2',
         streamId: 'stream-2',
@@ -251,7 +257,7 @@ describe('SdkDriver', () => {
 
     const driver = new SdkDriver({
       runtime: runtime as never,
-      agentId: 'agent-1',
+      ...LOCAL_IDENTITY,
       conversationAnchorId: 'anchor-1',
       activeWorldId: 'world-1',
       activeUserId: 'user-1',
@@ -275,7 +281,7 @@ describe('SdkDriver', () => {
     async function* stream() {
       yield {
         eventName: 'runtime.agent.turn.accepted',
-        agentId: 'agent-1',
+        localAgentRef: LOCAL_IDENTITY.localAgentRef,
         conversationAnchorId: 'anchor-1',
         turnId: 'turn-voice-1',
         streamId: 'stream-voice-1',
@@ -285,7 +291,7 @@ describe('SdkDriver', () => {
       };
       yield {
         eventName: 'runtime.agent.turn.text_delta',
-        agentId: 'agent-1',
+        localAgentRef: LOCAL_IDENTITY.localAgentRef,
         conversationAnchorId: 'anchor-1',
         turnId: 'turn-voice-1',
         streamId: 'stream-voice-1',
@@ -295,7 +301,7 @@ describe('SdkDriver', () => {
       };
       yield {
         eventName: 'runtime.agent.turn.interrupted',
-        agentId: 'agent-1',
+        localAgentRef: LOCAL_IDENTITY.localAgentRef,
         conversationAnchorId: 'anchor-1',
         turnId: 'turn-voice-1',
         streamId: 'stream-voice-1',
@@ -320,7 +326,7 @@ describe('SdkDriver', () => {
 
     const driver = new SdkDriver({
       runtime: runtime as never,
-      agentId: 'agent-1',
+      ...LOCAL_IDENTITY,
       conversationAnchorId: 'anchor-1',
       activeWorldId: 'world-1',
       activeUserId: 'user-1',
@@ -348,7 +354,7 @@ describe('SdkDriver', () => {
     async function* stream() {
       yield {
         eventName: 'runtime.agent.turn.text_delta',
-        agentId: 'agent-1',
+        localAgentRef: LOCAL_IDENTITY.localAgentRef,
         conversationAnchorId: 'anchor-1',
         turnId: 'turn-voice-1',
         streamId: 'stream-voice-1',
@@ -372,7 +378,7 @@ describe('SdkDriver', () => {
       };
       yield {
         eventName: 'runtime.agent.turn.completed',
-        agentId: 'agent-1',
+        localAgentRef: LOCAL_IDENTITY.localAgentRef,
         conversationAnchorId: 'anchor-1',
         turnId: 'turn-no-timeline',
         streamId: 'stream-no-timeline',
@@ -397,7 +403,7 @@ describe('SdkDriver', () => {
 
     const driver = new SdkDriver({
       runtime: runtime as never,
-      agentId: 'agent-1',
+      ...LOCAL_IDENTITY,
       conversationAnchorId: 'anchor-1',
       activeWorldId: 'world-1',
       activeUserId: 'user-1',
@@ -435,7 +441,7 @@ describe('SdkDriver', () => {
     async function* stream() {
       yield {
         eventName: 'runtime.agent.presentation.voice_playback_requested',
-        agentId: 'agent-1',
+        localAgentRef: LOCAL_IDENTITY.localAgentRef,
         conversationAnchorId: 'anchor-1',
         turnId: 'turn-voice-1',
         streamId: 'stream-voice-1',
@@ -480,7 +486,7 @@ describe('SdkDriver', () => {
 
     const driver = new SdkDriver({
       runtime: runtime as never,
-      agentId: 'agent-1',
+      ...LOCAL_IDENTITY,
       conversationAnchorId: 'anchor-1',
       activeWorldId: 'world-1',
       activeUserId: 'user-1',
