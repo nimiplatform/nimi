@@ -38,6 +38,10 @@ import { assignEvidenceInventory } from "./evidence-assignment.mjs";
 import { buildSpecChunks } from "./inventory-spec-chunks.mjs";
 import { buildRiskBudgetPolicy } from "./risk-budget.mjs";
 import { pathExists } from "../fs-helpers.mjs";
+import {
+  buildSpecSurfaceInventory,
+  isProductAuthoritySurfaceClass,
+} from "../internal/surface-taxonomy-validators.mjs";
 
 const execFile = promisify(execFileCallback);
 async function listGitFiles(projectRoot, targetRootRef) {
@@ -169,11 +173,31 @@ async function buildInventoryEntry(projectRoot, fileRef, targetRootRef, excludeP
     extension: extension || "none",
     owner_domain: options.ownerDomain ?? ownerDomainForFile(fileRef, targetRootRef),
     classification: classifyFile(fileRef),
+    surface_class: options.surfaceClass ?? null,
     included,
     exclusion_reason: included
       ? null
       : (excluded ? "matched_exclude_pattern" : "extension_not_auditable"),
   };
+}
+
+function applySpecSurfaceAuthorityFilter(inventory, surfaceEntriesByRef) {
+  return inventory.map((entry) => {
+    const surfaceEntry = surfaceEntriesByRef.get(entry.file_ref);
+    if (!surfaceEntry) {
+      return entry;
+    }
+    const surfaceClass = surfaceEntry.current_inferred_class;
+    if (isProductAuthoritySurfaceClass(surfaceClass)) {
+      return { ...entry, surface_class: surfaceClass };
+    }
+    return {
+      ...entry,
+      surface_class: surfaceClass,
+      included: false,
+      exclusion_reason: `non_product_surface:${surfaceClass}`,
+    };
+  });
 }
 
 function buildFileChunks(includedInventory, options) {
@@ -446,15 +470,22 @@ export async function createAuditSweepPlan(projectRoot, options) {
   for (const fileRef of allFileRefs) {
     inventory.push(await buildInventoryEntry(projectRoot, fileRef, inventoryRootRef, excludePatterns, { forceAuthority: true }));
   }
+  let specSurfaceReport = null;
+  let authorityInventory = inventory;
+  if (chunkBasis.basis === "spec") {
+    specSurfaceReport = await buildSpecSurfaceInventory(projectRoot, { rootRef: inventoryRootRef });
+    const surfaceEntriesByRef = new Map(specSurfaceReport.entries.map((entry) => [entry.source_path, entry]));
+    authorityInventory = applySpecSurfaceAuthorityFilter(inventory, surfaceEntriesByRef);
+  }
   if (chunkBasis.basis === "spec" && appSliceAdmissions.length > 0) {
     const appAuthorityEntries = await listAdmittedAppAuthorityEntries(projectRoot, appSliceAdmissions, excludePatterns);
     if (!appAuthorityEntries.ok) {
       return inputError(appAuthorityEntries.error);
     }
-    const seenAuthorityRefs = new Set(inventory.map((entry) => entry.file_ref));
+    const seenAuthorityRefs = new Set(authorityInventory.map((entry) => entry.file_ref));
     for (const entry of appAuthorityEntries.entries) {
       if (!seenAuthorityRefs.has(entry.file_ref)) {
-        inventory.push(entry);
+        authorityInventory.push(entry);
         seenAuthorityRefs.add(entry.file_ref);
       }
     }
@@ -464,16 +495,16 @@ export async function createAuditSweepPlan(projectRoot, options) {
     if (!packageAuthorityEntries.ok) {
       return inputError(packageAuthorityEntries.error);
     }
-    const seenAuthorityRefs = new Set(inventory.map((entry) => entry.file_ref));
+    const seenAuthorityRefs = new Set(authorityInventory.map((entry) => entry.file_ref));
     for (const entry of packageAuthorityEntries.entries) {
       if (!seenAuthorityRefs.has(entry.file_ref)) {
-        inventory.push(entry);
+        authorityInventory.push(entry);
         seenAuthorityRefs.add(entry.file_ref);
       }
     }
   }
 
-  const includedInventory = inventory.filter((entry) => entry.included);
+  const includedInventory = authorityInventory.filter((entry) => entry.included);
   const authorityFileRefs = new Set(includedInventory.map((entry) => entry.file_ref));
   const authorityTextByRef = new Map();
   if (chunkBasis.basis === "spec") {
@@ -516,7 +547,7 @@ export async function createAuditSweepPlan(projectRoot, options) {
   const createdAt = options.createdAt ?? new Date().toISOString();
   const ignoreResult = applyAuditIgnorePolicy(chunks, auditIgnorePolicy, createdAt);
   chunks = ignoreResult.chunks;
-  const inventoryHash = sha256Object(inventory.map((entry) => ({
+  const inventoryHash = sha256Object(authorityInventory.map((entry) => ({
     file_ref: entry.file_ref,
     sha256: entry.sha256,
     included: entry.included,
@@ -574,8 +605,15 @@ export async function createAuditSweepPlan(projectRoot, options) {
     } : {}),
     exclude_patterns: excludePatterns,
     inventory_hash: inventoryHash,
+    ...(specSurfaceReport ? {
+      surface_classification: {
+        contract: specSurfaceReport.contract,
+        summary: specSurfaceReport.summary,
+        errors: specSurfaceReport.errors,
+      },
+    } : {}),
     ...(evidenceInventoryHash ? { evidence_inventory_hash: evidenceInventoryHash } : {}),
-    inventory,
+    inventory: authorityInventory,
     ...(chunkBasis.basis === "spec" ? {
       evidence_inventory: evidenceInventory.map((entry) => ({
         file_ref: entry.file_ref,
@@ -591,9 +629,9 @@ export async function createAuditSweepPlan(projectRoot, options) {
     } : {}),
     chunks,
     coverage: {
-      total_files: inventory.length,
+      total_files: authorityInventory.length,
       included_files: includedInventory.length,
-      excluded_files: inventory.length - includedInventory.length,
+      excluded_files: authorityInventory.length - includedInventory.length,
       ...(chunkBasis.basis === "spec" ? {
         authority_files: includedInventory.length,
         evidence_files: evidenceInventory.length,
@@ -697,9 +735,9 @@ export async function createAuditSweepPlan(projectRoot, options) {
     chunkIds: chunks.map((chunk) => chunk.chunk_id),
     runLedgerRef: runRef,
     chunkCount: chunks.length,
-    totalFiles: inventory.length,
+    totalFiles: authorityInventory.length,
     includedFiles: includedInventory.length,
-    excludedFiles: inventory.length - includedInventory.length,
+    excludedFiles: authorityInventory.length - includedInventory.length,
     ...(chunkBasis.basis === "spec" ? {
       evidenceFiles: evidenceInventory.length,
       unmappedEvidenceFiles: unmappedEvidenceFiles.length,

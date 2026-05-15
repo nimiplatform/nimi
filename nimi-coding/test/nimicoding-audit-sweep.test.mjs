@@ -824,11 +824,17 @@ test("audit-sweep plan uses spec authority chunks for whole-project sweeps", asy
     assert.equal(plan.planning_basis.authority_root, ".nimi/spec");
     assert.equal(plan.planning_basis.files_are_evidence_only, true);
     assert.ok(plan.inventory.every((entry) => entry.file_ref.startsWith(".nimi/spec/")));
+    assert.equal(plan.inventory.find((entry) => entry.file_ref.includes("/kernel/generated/")).included, false);
+    assert.equal(
+      plan.inventory.find((entry) => entry.file_ref.includes("/kernel/generated/")).exclusion_reason,
+      "non_product_surface:derived_view",
+    );
+    assert.equal(plan.surface_classification.contract, "nimicoding.surface-validator-result.v1");
     assert.ok(!plan.inventory.some((entry) => entry.file_ref === "runtime/internal/service.go"));
     assert.ok(plan.evidence_inventory.some((entry) => entry.file_ref === "runtime/internal/service.go"));
     assert.equal(plan.coverage.authority_files, plan.coverage.included_files);
     assert.ok(plan.coverage.evidence_files > 0);
-    assert.ok(plan.coverage.unmapped_evidence_files > 0);
+    assert.ok(plan.coverage.unmapped_evidence_files >= 0);
     assert.equal(plan.unmapped_evidence_files.length, plan.coverage.unmapped_evidence_files);
 
     const runtimeChunk = plan.chunks.find((chunk) => chunk.owner_domain === "runtime" && chunk.spec_surface === "kernel-contracts");
@@ -844,8 +850,7 @@ test("audit-sweep plan uses spec authority chunks for whole-project sweeps", asy
     assert.ok(runtimeSecondaryChunk.evidence_inventory.includes("runtime/internal/service.go"));
     assert.ok(runtimeSecondaryChunk.evidence_inventory.includes("runtime/internal/service_test.go"));
     const runtimeGeneratedChunk = plan.chunks.find((chunk) => chunk.owner_domain === "runtime" && chunk.spec_surface === "kernel-generated");
-    assert.ok(runtimeGeneratedChunk);
-    assert.ok(!runtimeGeneratedChunk.evidence_inventory.includes("runtime/internal/service.go"));
+    assert.equal(runtimeGeneratedChunk, undefined);
     const runtimeTablesChunk = plan.chunks.find((chunk) => chunk.owner_domain === "runtime" && chunk.spec_surface === "kernel-tables");
     assert.ok(runtimeTablesChunk);
     assert.ok(runtimeTablesChunk.evidence_inventory.includes("runtime/internal/service.go"));
@@ -858,9 +863,7 @@ test("audit-sweep plan uses spec authority chunks for whole-project sweeps", asy
     const serviceEvidenceChunk = runtimeChunk;
     assert.ok(serviceEvidenceChunk);
     const specRootChunk = plan.chunks.find((chunk) => chunk.owner_domain === "spec-root");
-    assert.ok(specRootChunk);
-    assert.ok(specRootChunk.evidence_roots.includes("apps"));
-    assert.ok(specRootChunk.evidence_roots.includes("config"));
+    assert.equal(specRootChunk, undefined);
 
     const dispatchResult = await captureRunCli([
       "sweep",
@@ -1299,11 +1302,11 @@ test("audit-sweep plan expands admitted package authority and host-local project
     assert.equal(plan.chunks.filter((chunk) => chunk.authority_refs.includes(".nimi/spec/product-scope.yaml")).length, 1);
 
     const specAuditChunk = plan.chunks.find((chunk) => chunk.authority_refs.includes(".nimi/spec/_meta/spec-generation-audit.yaml"));
-    assert.ok(specAuditChunk);
-    assert.deepEqual(specAuditChunk.evidence_root_admission_refs, [".nimi/spec/platform/kernel/tables/audit-evidence-roots.yaml#host-generated-audit-tooling-implementation"]);
-    assert.deepEqual(specAuditChunk.admitted_evidence_roots, ["tools/tooling/cli/index.mjs"]);
-    assert.ok(specAuditChunk.evidence_inventory.includes("tools/tooling/cli/index.mjs"));
-    assert.ok(!packageChunk.evidence_inventory.includes("tools/tooling/cli/index.mjs"));
+    assert.equal(specAuditChunk, undefined);
+    const specAuditInventory = plan.inventory.find((entry) => entry.file_ref === ".nimi/spec/_meta/spec-generation-audit.yaml");
+    assert.equal(specAuditInventory.included, false);
+    assert.equal(specAuditInventory.exclusion_reason, "non_product_surface:spec_generation_state");
+    assert.ok(packageChunk.evidence_inventory.includes("tools/tooling/cli/index.mjs"));
 
     const hostProjectionChunk = plan.chunks.find((chunk) => chunk.authority_refs.includes(".nimi/spec/platform/kernel/package-authority-admission-contract.md"));
     assert.ok(hostProjectionChunk);

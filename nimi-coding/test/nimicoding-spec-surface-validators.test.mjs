@@ -200,6 +200,24 @@ for (const rejectedDocsRoot of [".", ".nimi/local", "README.md"]) {
   });
 }
 
+test("doctor rejects v2 legacy docs_roots even when docs_inputs are valid", async () => {
+  await withTempProject(async (projectRoot) => {
+    const startResult = await runCliSubprocess(["start", "--yes"], { cwd: projectRoot });
+    assert.equal(startResult.exitCode, 0);
+
+    const configPath = path.join(projectRoot, ".nimi", "config", "spec-generation-inputs.yaml");
+    const config = YAML.parse(await readFile(configPath, "utf8"));
+    config.spec_generation_inputs.docs_roots = ["."];
+    await writeFile(configPath, YAML.stringify(config), "utf8");
+
+    const result = await runCliSubprocess(["doctor", "--json"], { cwd: projectRoot });
+    assert.equal(result.exitCode, 1);
+    const payload = JSON.parse(result.stdout);
+    assert.equal(payload.ok, false);
+    assert.equal(payload.specGenerationInputs.ok, false);
+  });
+});
+
 test("validate-placement fails on lifecycle cutover state under spec meta", async () => {
   await withTempProject(async (projectRoot) => {
     await seedValidRuntimeTableProject(projectRoot);

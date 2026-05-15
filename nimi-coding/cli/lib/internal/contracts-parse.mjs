@@ -366,10 +366,14 @@ export function parseSpecGenerationInputsConfig(text) {
   const inferenceRules = toStringArray(config?.inference_rules);
 
   if (parsed?.version === 2) {
+    const legacyRootsAbsent = !("code_roots" in config)
+      && !("docs_roots" in config)
+      && !("structure_roots" in config);
     return {
       ok: String(parsed?.contract_ref ?? "") === "nimi-coding/contracts/spec-generation-inputs.schema.yaml"
         && mode === "class_filtered"
         && canonicalTargetRoot === ".nimi/spec"
+        && legacyRootsAbsent
         && Array.isArray(codeInputs)
         && docsInputs.length > 0
         && docsInputs.every((entry) => isPlainObject(entry)

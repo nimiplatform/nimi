@@ -582,6 +582,26 @@ export async function classifySpecSurface(projectRoot, options = {}) {
   });
 }
 
+export async function buildSpecSurfaceInventory(projectRoot, options = {}) {
+  const { entries, errors } = await buildInventory(projectRoot, options);
+  return {
+    contract: SURFACE_RESULT_CONTRACT,
+    entries,
+    errors,
+    summary: summarize(entries),
+  };
+}
+
+export function isProductAuthoritySurfaceClass(surfaceClass) {
+  return [
+    "product_authority",
+    "product_authority_table",
+    "thin_guidance",
+    "host_projection_anchor",
+    "support_registry",
+  ].includes(surfaceClass);
+}
+
 export async function validatePlacement(projectRoot, options = {}) {
   const { entries, errors } = await buildInventory(projectRoot, options);
   return reportFor("validate-placement", errors.length === 0, errors, [], entries);

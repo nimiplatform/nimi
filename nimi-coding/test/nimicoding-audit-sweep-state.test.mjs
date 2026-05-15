@@ -66,15 +66,10 @@ test("audit-sweep validate emits complete JSON for large spec sweeps", async () 
       "chunks",
       "--json",
     ], { cwd: projectRoot });
-    assert.equal(validateResult.exitCode, 2, validateResult.stderr);
+    assert.equal(validateResult.exitCode, 0, validateResult.stderr);
     assert.ok(validateResult.stdout.length > 65536);
     const validatePayload = JSON.parse(validateResult.stdout);
-    assert.equal(validatePayload.ok, false);
-    assert.ok(validatePayload.checks.some((check) => (
-      check.id === "plan_spec_unmapped_evidence_fail_closed"
-      && check.ok === false
-      && check.reason === "spec-authority plans have no unmapped evidence files"
-    )));
+    assert.equal(validatePayload.ok, true);
     assert.ok(validatePayload.checks.some((check) => (
       check.id.startsWith("run_replay_chunk-001-")
       && check.id.endsWith("_dispatch")
@@ -109,7 +104,7 @@ test("audit-sweep validate emits complete JSON for large spec sweeps", async () 
     const ledgerPayload = JSON.parse(ledgerResult.stdout);
     assert.equal(ledgerPayload.status, "partial");
     assert.equal(ledgerPayload.coverage.audited_files, 0);
-    assert.ok(ledgerPayload.coverage.evidence_coverage.unmapped_files > 0);
+    assert.equal(ledgerPayload.coverage.evidence_coverage.unmapped_files, 0);
   });
 });
 

@@ -71,9 +71,54 @@ async function collectActiveDeferredBlockers(topicDir) {
   }
   return blockers.sort();
 }
+
+function packetRequiresPlacementCloseoutEvidence(packet) {
+  const searchableFields = [
+    ...(Array.isArray(packet?.authority_owner) ? packet.authority_owner : []),
+    ...(Array.isArray(packet?.canonical_seams) ? packet.canonical_seams : []),
+    ...(Array.isArray(packet?.acceptance_invariants) ? packet.acceptance_invariants : []),
+    ...(Array.isArray(packet?.negative_tests) ? packet.negative_tests : []),
+    ...(Array.isArray(packet?.reopen_conditions) ? packet.reopen_conditions : []),
+  ].join("\n");
+  return /placement|surface[-_ ]taxonomy|surface[-_ ]class|classify-spec-tree|validate-placement|closeout_drift_resistance_requires_placement_report/i.test(
+    searchableFields,
+  );
+}
+
+async function waveHasPlacementReportEvidence(projectRoot, topicDir, waveId) {
+  const packets = await listWavePackets(topicDir, waveId);
+  if (!packets.some(({ packet }) => packetRequiresPlacementCloseoutEvidence(packet))) {
+    return { required: false, found: false };
+  }
+
+  const results = await listWaveResults(topicDir, waveId);
+  const evidenceTexts = [];
+  for (const { result, resultPath } of results) {
+    const resultText = await readTextIfFile(resultPath);
+    evidenceTexts.push(resultText ?? "");
+    if (typeof result?.source_ref === "string" && result.source_ref.length > 0) {
+      const sourcePath = path.resolve(projectRoot, result.source_ref);
+      const sourceText = await readTextIfFile(sourcePath);
+      if (sourceText !== null) {
+        evidenceTexts.push(sourceText);
+      }
+    }
+  }
+
+  const hasReport = evidenceTexts.some((text) =>
+    /nimicoding\.surface-validator-result\.v1|classify-spec-tree|validate-placement|validate-table-family|validate-projection-edges|validate-guidance-bodies|validate-domain-admission|validate-tracked-output-admission/i.test(
+      text,
+    ),
+  );
+  return { required: true, found: hasReport };
+}
+
 export async function buildWaveClosureChecks(projectRoot, topicDir, topic, wave, closeout) {
   const authority = await loadTopicRuntimeAuthority(projectRoot),
     evidence = await collectWaveArtifactEvidence(topicDir, wave.wave_id),
+    placementEvidence = closeout.drift_resistance_closure === "closed"
+      ? await waveHasPlacementReportEvidence(projectRoot, topicDir, wave.wave_id)
+      : { required: false, found: false },
     checks = [];
   (checks.push({
     id: "closeout_scope_wave",
@@ -114,6 +159,15 @@ export async function buildWaveClosureChecks(projectRoot, topicDir, topic, wave,
         ? "closeout disposition is complete"
         : `closeout disposition must be complete for wave closeout, found ${closeout.disposition ?? "missing"}`,
   });
+  if (placementEvidence.required) {
+    checks.push({
+      id: "drift_resistance_has_placement_report",
+      ok: placementEvidence.found,
+      reason: placementEvidence.found
+        ? "drift-resistance closure has recorded placement validation evidence"
+        : "drift-resistance closure requires recorded placement validation evidence for this packet",
+    });
+  }
   const activeBlockers = ["needs_revision", "overflowed", "continuation_packet_open"].includes(
     wave.state,
   );

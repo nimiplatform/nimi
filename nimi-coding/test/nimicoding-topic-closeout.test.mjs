@@ -275,6 +275,110 @@ test("topic closeout wave allows preflight design closure with packet and result
   });
 });
 
+test("topic closeout wave refuses drift-resistance closure without placement report evidence", async () => {
+  await withTempProject(async (projectRoot) => {
+    assert.equal((await captureRunCli(["start"])).exitCode, 0);
+
+    const createResult = await captureRunCli([
+      "topic",
+      "create",
+      "placement-closeout-demo",
+      "--justification",
+      "placement closeout evidence demo",
+      "--json",
+    ]);
+    const createPayload = JSON.parse(createResult.stdout);
+
+    await captureRunCli([
+      "topic", "wave", "add", createPayload.topicId, "wave-1-placement", "placement",
+      "--goal", "close placement integration", "--owner-domain", "nimi-coding", "--json",
+    ]);
+    await captureRunCli(["topic", "wave", "select", createPayload.topicId, "wave-1-placement", "--json"]);
+    await captureRunCli(["topic", "wave", "admit", createPayload.topicId, "wave-1-placement", "--json"]);
+
+    const draftPath = path.join(projectRoot, "placement-closeout-packet.yaml");
+    await writeFile(
+      draftPath,
+      YAML.stringify({
+        packet_id: "wave-1-placement-implementation",
+        topic_id: createPayload.topicId,
+        wave_id: "wave-1-placement",
+        packet_kind: "implementation",
+        status: "draft",
+        authority_owner: ["nimi-coding/cli/lib/topic-closeout.mjs"],
+        canonical_seams: ["closeout consumes placement validation evidence"],
+        forbidden_shortcuts: ["placeholder_success"],
+        acceptance_invariants: ["closeout_drift_resistance_requires_placement_report"],
+        negative_tests: ["placement_failure_cannot_be_reported_as_successful_wave_closeout"],
+        reopen_conditions: ["placement_validation_is_only_documented_not_executed"],
+      }),
+      "utf8",
+    );
+    await captureRunCli(["topic", "packet", "freeze", createPayload.topicId, "--from", draftPath, "--json"]);
+    await captureRunCli([
+      "topic", "worker", "dispatch", createPayload.topicId,
+      "--packet", "wave-1-placement-implementation", "--json",
+    ]);
+
+    const resultSource = path.join(projectRoot, "placement-result-without-report.md");
+    await writeFile(resultSource, "# Implementation Result\n\nNo placement report is attached.\n", "utf8");
+    assert.equal((await captureRunCli([
+      "topic", "result", "record", createPayload.topicId,
+      "--kind", "implementation",
+      "--verdict", "PASS",
+      "--from", resultSource,
+      "--verified-at", "2026-04-23T13:00:00Z",
+      "--json",
+    ])).exitCode, 0);
+
+    const refused = await captureRunCli([
+      "topic", "closeout", "wave", createPayload.topicId, "wave-1-placement",
+      "--authority", "closed",
+      "--semantic", "closed",
+      "--consumer", "closed",
+      "--drift-resistance", "closed",
+      "--disposition", "complete",
+      "--json",
+    ]);
+    assert.equal(refused.exitCode, 1);
+    assert.match(`${refused.stdout}\n${refused.stderr}`, /placement validation evidence/);
+
+    const placementReportSource = path.join(projectRoot, "placement-report.md");
+    await writeFile(
+      placementReportSource,
+      [
+        "# Placement Report",
+        "",
+        "contract: nimicoding.surface-validator-result.v1",
+        "validator: validate-placement",
+        "ok: false",
+        "expected_current_tree_failure: true",
+      ].join("\n"),
+      "utf8",
+    );
+    assert.equal((await captureRunCli([
+      "topic", "result", "record", createPayload.topicId,
+      "--kind", "audit",
+      "--verdict", "PASS",
+      "--from", placementReportSource,
+      "--verified-at", "2026-04-23T13:10:00Z",
+      "--json",
+    ])).exitCode, 0);
+
+    const closeout = await captureRunCli([
+      "topic", "closeout", "wave", createPayload.topicId, "wave-1-placement",
+      "--authority", "closed",
+      "--semantic", "closed",
+      "--consumer", "closed",
+      "--drift-resistance", "closed",
+      "--disposition", "complete",
+      "--json",
+    ]);
+    assert.equal(closeout.exitCode, 0, closeout.stderr);
+    assert.equal(JSON.parse(closeout.stdout).waveState, "closed");
+  });
+});
+
 test("topic hold and resume create pending-note lineage and move the topic between pending and ongoing", async () => {
   await withTempProject(async (projectRoot) => {
     const startResult = await captureRunCli(["start"]);

@@ -1,6 +1,13 @@
+import { readFile } from "node:fs/promises";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
 import { localize } from "../lib/ui.mjs";
 import { loadGovernanceConfig, requireProfile } from "../lib/internal/governance/config.mjs";
 import { runCommand } from "../lib/internal/governance/runner.mjs";
+import { parseSpecGenerationInputsConfig } from "../lib/internal/contracts-parse.mjs";
+
+const PACKAGE_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 
 function parseOptions(args) {
   const options = {
@@ -97,6 +104,19 @@ export async function runGenerateSpecDerivedDocs(args) {
   const scopeResolution = resolveScopes(parsed.options.scope, governance.config);
   if (!scopeResolution.ok) {
     process.stderr.write(localize(scopeResolution.error, scopeResolution.error));
+    return 2;
+  }
+
+  const packageInputsText = await readFile(
+    path.join(PACKAGE_ROOT, "config", "spec-generation-inputs.yaml"),
+    "utf8",
+  );
+  const packageInputs = parseSpecGenerationInputsConfig(packageInputsText);
+  if (!packageInputs.ok || !packageInputs.generationOrder.includes("validate_placement")) {
+    process.stderr.write(localize(
+      "nimicoding generate-spec-derived-docs refused: package spec generation inputs must be class-filtered and include placement validation.\n",
+      "nimicoding generate-spec-derived-docs 已拒绝：package spec generation inputs 必须按 surface class 过滤并包含 placement validation。\n",
+    ));
     return 2;
   }
 
