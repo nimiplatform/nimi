@@ -4,9 +4,9 @@ version: 1
 #
 # Authority surface for the ParentOS dashboard task orchestration projection
 # governed by `apps/parentos/spec/kernel/timeline-contract.md#PO-TIME-010`.
-# This table admits the schema only; row admission is deferred to a later wave
-# alongside dashboard task capture UX work. Wave-1 closeout admits the schema
-# and intentionally ships `rows: []`.
+# Wave-1 admitted the schema; wave-2 admits the first batch of rows. Later
+# waves may extend the row set as additional capture protocols, observation
+# dimensions, and reviewed micro-action content sources land.
 #
 # Owner contracts referenced by rows MUST be one of:
 #   - apps/parentos/spec/kernel/timeline-contract.md
@@ -23,7 +23,7 @@ field_contract:
   taskId:
     type: string
     required: true
-    description: "ULID for the catalog row."
+    description: "Readable kebab-case id for the catalog row (e.g. `dashboard-maintain-growth-infant`). Convention mirrors `reminder-rules.yaml#ruleId` / `feature-matrix.yaml#featureId`; ULIDs are not used because catalog rows are static authoritative spec rows, not user-created records."
   family:
     type: enum
     values: [must-do, maintain, observe, connect]
@@ -100,6 +100,92 @@ constraints:
   - "ownerContract must resolve to an admitted ParentOS kernel contract path."
   - "Rows must not weaken the PO-TIME-003 P0 delivery invariant. A row whose dispersion or mutual-exclusion semantics would suppress a P0 reminder is a PO-TIME-010 fail-close violation."
   - "Rows must not recompute PO-HREC freshness locally; freshness must be consumed from the PO-HREC-006 snapshot."
-  - "Wave-1 admits the schema only. Row admission is deferred to a later wave once the dashboard task capture UX is admitted."
+  - "Wave-1 admitted the schema. Wave-2 admits the first batch of rows below. Subsequent waves may extend the catalog as additional capture protocols, observation dimensions, or reviewed micro-action content sources land."
 
-rows: []
+rows:
+  - taskId: dashboard-maintain-growth-infant
+    family: maintain
+    ownerContract: apps/parentos/spec/kernel/timeline-contract.md
+    cadencePolicy: anchor
+    biologicalAnchor: birthDayOfMonth
+    slotPreference: weekend-heavy
+    dispersionWindow: rolling
+    mutualExclusionGroup: profile-maintenance
+    displayWindowDays: 5
+    snoozeDefaultDays: 3
+    decayStrategy: low-disturbance-downgrade
+    metricIdRefs: [growth.height, growth.weight, growth.head_circumference]
+    captureProtocolIdRef: growth-infant-monthly
+    featureId: PO-FEAT-056
+
+  - taskId: dashboard-maintain-growth-child
+    family: maintain
+    ownerContract: apps/parentos/spec/kernel/timeline-contract.md
+    cadencePolicy: anchor
+    biologicalAnchor: birthDayOfMonth
+    slotPreference: weekend-heavy
+    dispersionWindow: rolling
+    mutualExclusionGroup: profile-maintenance
+    displayWindowDays: 5
+    snoozeDefaultDays: 3
+    decayStrategy: low-disturbance-downgrade
+    metricIdRefs: [growth.height, growth.weight]
+    captureProtocolIdRef: growth-child-quarterly
+    featureId: PO-FEAT-056
+
+  - taskId: dashboard-maintain-sleep
+    family: maintain
+    ownerContract: apps/parentos/spec/kernel/timeline-contract.md
+    cadencePolicy: interval
+    biologicalAnchor: none
+    slotPreference: weekday-evening-light
+    dispersionWindow: rolling
+    mutualExclusionGroup: profile-maintenance
+    displayWindowDays: 2
+    snoozeDefaultDays: 1
+    decayStrategy: low-disturbance-downgrade
+    metricIdRefs: [sleep.duration_minutes]
+    captureProtocolIdRef: sleep-night
+    featureId: PO-FEAT-056
+
+  - taskId: dashboard-maintain-outdoor
+    family: maintain
+    ownerContract: apps/parentos/spec/kernel/timeline-contract.md
+    cadencePolicy: interval
+    biologicalAnchor: none
+    slotPreference: weekend-heavy
+    dispersionWindow: rolling
+    mutualExclusionGroup: profile-maintenance
+    displayWindowDays: 3
+    snoozeDefaultDays: 2
+    decayStrategy: low-disturbance-downgrade
+    metricIdRefs: [outdoor.activity_minutes]
+    captureProtocolIdRef: outdoor-activity
+    featureId: PO-FEAT-056
+
+  - taskId: dashboard-maintain-vision
+    family: maintain
+    ownerContract: apps/parentos/spec/kernel/timeline-contract.md
+    cadencePolicy: windowed
+    biologicalAnchor: none
+    slotPreference: weekend-heavy
+    dispersionWindow: week-3
+    mutualExclusionGroup: profile-maintenance
+    displayWindowDays: 5
+    snoozeDefaultDays: 7
+    decayStrategy: low-disturbance-downgrade
+    metricIdRefs: [vision.left_visual_acuity, vision.right_visual_acuity]
+    captureProtocolIdRef: vision-basic
+    featureId: PO-FEAT-056
+
+  - taskId: dashboard-observe-growth-journal
+    family: observe
+    ownerContract: apps/parentos/spec/kernel/journal-contract.md
+    cadencePolicy: windowed
+    biologicalAnchor: none
+    slotPreference: weekday-evening-light
+    dispersionWindow: week-2
+    displayWindowDays: 3
+    snoozeDefaultDays: 2
+    decayStrategy: resurface-next-cycle
+    featureId: PO-FEAT-056
