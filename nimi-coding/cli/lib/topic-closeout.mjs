@@ -106,7 +106,7 @@ async function waveHasPlacementReportEvidence(projectRoot, topicDir, waveId) {
   }
 
   const hasReport = evidenceTexts.some((text) =>
-    /nimicoding\.surface-validator-result\.v1|classify-spec-tree|validate-placement|validate-table-family|validate-projection-edges|validate-guidance-bodies|validate-domain-admission|validate-tracked-output-admission/i.test(
+    /nimicoding\.surface-validator-result\.v1|nimicoding\.spec-migration-plan\.v1|classify-spec-tree|generate-spec-migration-plan|validate-placement|validate-table-family|validate-projection-edges|validate-guidance-bodies|validate-domain-admission|validate-tracked-output-admission/i.test(
       text,
     ),
   );
