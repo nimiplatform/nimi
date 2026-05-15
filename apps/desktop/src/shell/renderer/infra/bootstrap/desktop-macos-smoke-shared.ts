@@ -64,8 +64,9 @@ export type DesktopMacosSmokeDriverDeps = {
   readAttributeByTestId: (id: string, name: string) => Promise<string | null>;
   readLive2dCanvasStats: (selector: string) => Promise<Live2dCanvasStats>;
   readVrmCanvasStats: (selector: string) => Promise<VrmCanvasStats>;
-  listAvatarLiveInstances: (agentId: string) => Promise<DesktopAvatarLiveInstanceRecord[]>;
+  listAvatarLiveInstances: (localAgentRef: string) => Promise<DesktopAvatarLiveInstanceRecord[]>;
   readAvatarEvidence: (avatarInstanceId: string) => Promise<DesktopMacosSmokeAvatarEvidenceReadResult>;
+  avatarCarrierEvidenceTimeoutMs?: number;
   writeReport: (payload: DesktopMacosSmokeReportPayload) => Promise<void>;
   currentRoute: () => string;
   currentHtml: () => string;

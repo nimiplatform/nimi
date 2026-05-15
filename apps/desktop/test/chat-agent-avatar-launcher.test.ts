@@ -16,7 +16,6 @@ const forbiddenLaunchFields = [
   'avatarPackageKind',
   'avatarPackageId',
   'avatarPackageSchemaVersion',
-  'conversationAnchorId',
   'anchorMode',
   'runtimeAppId',
   'worldId',
@@ -60,6 +59,7 @@ test('desktop avatar launcher builds minimal launch intent payload', () => {
     ownerUserId: ' owner-1 ',
     realmAgentId: ' agent-1 ',
     localAgentRef: ' local-agent:owner-1:agent-1 ',
+    conversationAnchorId: ' anchor-1 ',
     avatarInstanceId: ' instance-1 ',
     sourceSurface: ' desktop-agent-chat ',
   });
@@ -68,6 +68,7 @@ test('desktop avatar launcher builds minimal launch intent payload', () => {
     ownerUserId: 'owner-1',
     realmAgentId: 'agent-1',
     localAgentRef: 'local-agent:owner-1:agent-1',
+    conversationAnchorId: 'anchor-1',
     avatarInstanceId: 'instance-1',
     sourceSurface: 'desktop-agent-chat',
   });
@@ -78,6 +79,7 @@ test('desktop avatar launcher builds minimal launch intent payload', () => {
     ownerUserId: 'owner-1',
     realmAgentId: 'agent-1',
     localAgentRef: 'local-agent:owner-1:agent-1',
+    conversationAnchorId: 'anchor-1',
     avatarInstanceId: 'instance-1',
     launchSource: 'desktop-agent-chat',
   });
@@ -88,17 +90,20 @@ test('desktop avatar launcher allows required local Agent identity only', () => 
     ownerUserId: 'owner-1',
     realmAgentId: 'agent-1',
     localAgentRef: 'local-agent:owner-1:agent-1',
+    conversationAnchorId: 'anchor-1',
   });
 
   assert.deepEqual(payload, {
     ownerUserId: 'owner-1',
     realmAgentId: 'agent-1',
     localAgentRef: 'local-agent:owner-1:agent-1',
+    conversationAnchorId: 'anchor-1',
   });
   assert.deepEqual(parseAvatarLaunchContext(payload), {
     ownerUserId: 'owner-1',
     realmAgentId: 'agent-1',
     localAgentRef: 'local-agent:owner-1:agent-1',
+    conversationAnchorId: 'anchor-1',
     avatarInstanceId: null,
     launchSource: null,
   });
@@ -111,6 +116,7 @@ test('desktop avatar launcher rejects missing localAgentRef before invoking avat
       ownerUserId: 'owner-1',
       realmAgentId: 'agent-1',
       localAgentRef: ' ',
+      conversationAnchorId: 'anchor-1',
       avatarInstanceId: 'instance-1',
     }, {
       invokeLaunchHandoff: async () => {
@@ -131,18 +137,22 @@ test('desktop avatar launcher rejects bare and mismatched localAgentRef values',
   assert.throws(() => buildDesktopAvatarLaunchHandoffPayload({
     ...base,
     localAgentRef: 'agent-1',
+    conversationAnchorId: 'anchor-1',
   }), /bare realmAgentId/);
   assert.throws(() => buildDesktopAvatarLaunchHandoffPayload({
     ...base,
     localAgentRef: 'agent:abc.def+1',
+    conversationAnchorId: 'anchor-1',
   }), /local-agent:/);
   assert.throws(() => buildDesktopAvatarLaunchHandoffPayload({
     ...base,
     localAgentRef: 'local-agent:owner-2:agent-1',
+    conversationAnchorId: 'anchor-1',
   }), /ownerUserId/);
   assert.throws(() => buildDesktopAvatarLaunchHandoffPayload({
     ...base,
     localAgentRef: 'local-agent:owner-1:agent-2',
+    conversationAnchorId: 'anchor-1',
   }), /realmAgentId/);
 });
 
@@ -152,6 +162,7 @@ test('desktop avatar launcher no longer reserves anchors or issues scoped bindin
     ownerUserId: 'owner-1',
     realmAgentId: 'agent-1',
     localAgentRef: 'local-agent:owner-1:agent-1',
+    conversationAnchorId: 'anchor-1',
     avatarInstanceId: 'instance-1',
     launchSource: 'desktop-agent-chat',
   }, {
@@ -161,6 +172,7 @@ test('desktop avatar launcher no longer reserves anchors or issues scoped bindin
         ownerUserId: 'owner-1',
         realmAgentId: 'agent-1',
         localAgentRef: 'local-agent:owner-1:agent-1',
+        conversationAnchorId: 'anchor-1',
         avatarInstanceId: 'instance-1',
         launchSource: 'desktop-agent-chat',
       });
@@ -195,6 +207,7 @@ test('avatar launch parser rejects old binding package anchor and auth fields', 
     ownerUserId: 'owner-1',
     realmAgentId: 'agent-1',
     localAgentRef: 'local-agent:owner-1:agent-1',
+    conversationAnchorId: 'anchor-1',
     avatarInstanceId: 'instance-1',
   };
   for (const field of forbiddenLaunchFields) {

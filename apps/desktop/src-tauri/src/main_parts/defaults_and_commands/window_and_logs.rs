@@ -68,6 +68,10 @@ fn build_avatar_handoff_uri(payload: &DesktopAvatarLaunchHandoffPayload) -> Resu
         normalize_required_handoff_value(payload.realm_agent_id.as_str(), "realm_agent_id")?;
     let local_agent_ref =
         normalize_required_handoff_value(payload.local_agent_ref.as_str(), "local_agent_ref")?;
+    let conversation_anchor_id = normalize_required_handoff_value(
+        payload.conversation_anchor_id.as_str(),
+        "conversation_anchor_id",
+    )?;
     validate_handoff_local_agent_ref(&owner_user_id, &realm_agent_id, &local_agent_ref)?;
     let avatar_instance_id =
         normalize_optional_handoff_value(payload.avatar_instance_id.as_deref());
@@ -78,6 +82,7 @@ fn build_avatar_handoff_uri(payload: &DesktopAvatarLaunchHandoffPayload) -> Resu
     serializer.append_pair("owner_user_id", owner_user_id.as_str());
     serializer.append_pair("realm_agent_id", realm_agent_id.as_str());
     serializer.append_pair("local_agent_ref", local_agent_ref.as_str());
+    serializer.append_pair("conversation_anchor_id", conversation_anchor_id.as_str());
     if let Some(avatar_instance_id) = avatar_instance_id {
         serializer.append_pair("avatar_instance_id", avatar_instance_id.as_str());
     }
@@ -230,9 +235,13 @@ fn avatar_runtime_env_pairs() -> Result<Vec<(&'static str, String)>, String> {
         "NIMI_RUNTIME_GRPC_ADDR",
         "NIMI_RUNTIME_HTTP_ADDR",
         "NIMI_RUNTIME_LOCAL_STATE_PATH",
+        "NIMI_RUNTIME_LOCK_PATH",
+        "NIMI_RUNTIME_ACCOUNT_CUSTODY_PARTITION",
+        "NIMI_RUNTIME_BRIDGE_MODE",
         "NIMI_RUNTIME_BRIDGE_DEBUG",
         "NIMI_E2E_PROFILE",
         "NIMI_E2E_FIXTURE_PATH",
+        "NIMI_E2E_BACKEND_LOG_PATH",
     ] {
         if let Ok(value) = std::env::var(key) {
             if !value.trim().is_empty() {

@@ -157,7 +157,7 @@ export async function ensureRuntimeAgentExists(target: AgentLocalTargetSnapshot)
   try {
     await protectedAccess.withScopes(['runtime.agent.admin'], (options) => runtime.agent.initializeAgent({
       context,
-      agentId: target.localAgentRef,
+      agentId: '',
       localAgentRef: target.localAgentRef,
       ownerUserId: target.ownerUserId,
       realmAgentId: target.realmAgentId,

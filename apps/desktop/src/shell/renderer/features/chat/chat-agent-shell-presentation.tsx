@@ -260,6 +260,7 @@ export function useAgentConversationPresentation(
   });
   const avatarHandoffReady = hasTauriInvoke();
   const avatarRuntimeAccountReady = Boolean(input.accountId);
+  const avatarConversationAnchorReady = Boolean(input.activeConversationAnchorId);
   const [avatarActionPending, setAvatarActionPending] = useState(false);
   const avatarInstanceId = useMemo(() => (
     input.activeTarget
@@ -315,6 +316,14 @@ export function useAgentConversationPresentation(
         }),
       };
     }
+    if (!avatarConversationAnchorReady || !input.activeConversationAnchorId) {
+      return {
+        kind: 'warning' as const,
+        message: input.t('Chat.agentCenterAvatarStartAnchorRequired', {
+          defaultValue: 'Open the current Runtime conversation anchor before opening Avatar.',
+        }),
+      };
+    }
     if (!avatarRunning && !avatarPackageValid) {
       input.onOpenAgentCenter?.();
       return {
@@ -348,6 +357,7 @@ export function useAgentConversationPresentation(
         ownerUserId: input.activeTarget.ownerUserId,
         realmAgentId: input.activeTarget.realmAgentId,
         localAgentRef: input.activeTarget.localAgentRef,
+        conversationAnchorId: input.activeConversationAnchorId,
         avatarInstanceId,
         sourceSurface: 'desktop-agent-chat',
       });
@@ -364,12 +374,14 @@ export function useAgentConversationPresentation(
   }, [
     avatarHandoffReady,
     avatarRuntimeAccountReady,
+    avatarConversationAnchorReady,
     avatarConfigured,
     avatarInstanceId,
     avatarLiveInstancesQuery,
     avatarPackageValid,
     avatarRunning,
     input.activeTarget,
+    input.activeConversationAnchorId,
     input.onOpenAgentCenter,
     input.t,
   ]);

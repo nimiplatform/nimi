@@ -22,6 +22,7 @@ import {
   cubismSampleModelForScenario,
   cubismSampleProfileTokensForScenario,
   ensureAvatarProductSmokeLaunchTarget,
+  ensureAvatarProductLive2dSampleRoot,
   ensureCubismLive2dSample,
   ensureSupportedPlatform,
   ensureVrmSample,
@@ -32,9 +33,12 @@ import {
   readRuntimeLockPid,
   replacePlaceholders,
   repoRoot,
+  resetAvatarProductSmokeProjections,
   runtimeProductSmokeTauriFixture,
+  seedAvatarProductSmokeAgentCenterConfig,
   startOpenAiCompatibleSmokeProvider,
   terminateAvatarProductResidue,
+  terminateAvatarProductProcessResidue,
   terminateChildProcess,
   terminateRuntimeStartedByScenario,
   vrmSampleDefinitionForScenario,
@@ -73,13 +77,22 @@ export async function runScenario({ scenarioId, runIndex, runRoot, timeoutMs }) 
   fs.mkdirSync(artifactsDir, { recursive: true });
 
   const baseProfile = loadProfileDefinition(profilePathForScenario(scenarioId));
-  const cubismSample = isDynamicLive2dSampleScenario(scenarioId)
+  const avatarProductConfiguredLive2dSample = scenarioId === LIVE2D_AVATAR_PRODUCT_SMOKE_SCENARIO
+    ? ensureAvatarProductLive2dSampleRoot()
+    : null;
+  const cubismSample = avatarProductConfiguredLive2dSample || (isDynamicLive2dSampleScenario(scenarioId)
     || scenarioId.startsWith('chat.live2d-render-smoke')
     || scenarioId === LIVE2D_AVATAR_PRODUCT_SMOKE_SCENARIO
     ? ensureCubismLive2dSample(cubismSampleModelForScenario(scenarioId))
-    : null;
+    : null);
   const avatarProductLive2dPackage = scenarioId === LIVE2D_AVATAR_PRODUCT_SMOKE_SCENARIO
     ? createAvatarProductSmokeLive2dPackage(artifactsDir, cubismSample)
+    : null;
+  const avatarProductAgentCenterConfig = scenarioId === LIVE2D_AVATAR_PRODUCT_SMOKE_SCENARIO
+    ? seedAvatarProductSmokeAgentCenterConfig(avatarProductLive2dPackage)
+    : null;
+  const avatarProductProjectionReset = scenarioId === LIVE2D_AVATAR_PRODUCT_SMOKE_SCENARIO
+    ? resetAvatarProductSmokeProjections(avatarProductAgentCenterConfig)
     : null;
   const profile = applyAvatarProductPresentationProfile(
     baseProfile,
@@ -103,6 +116,12 @@ export async function runScenario({ scenarioId, runIndex, runRoot, timeoutMs }) 
     : undefined;
   const avatarProductRuntimeStatePath = scenarioId === LIVE2D_AVATAR_PRODUCT_SMOKE_SCENARIO
     ? path.join(artifactsDir, 'runtime', 'local-state.json')
+    : '';
+  const avatarProductRuntimeLockPath = scenarioId === LIVE2D_AVATAR_PRODUCT_SMOKE_SCENARIO
+    ? path.join(artifactsDir, 'runtime', 'runtime.lock')
+    : '';
+  const avatarProductRuntimeAccountCustodyPartition = scenarioId === LIVE2D_AVATAR_PRODUCT_SMOKE_SCENARIO
+    ? `desktop-macos-smoke:${path.basename(runRoot)}:${String(runIndex).padStart(2, '0')}`
     : '';
   const avatarProductRuntimeConfigPath = scenarioId === LIVE2D_AVATAR_PRODUCT_SMOKE_SCENARIO
     ? path.join(artifactsDir, 'runtime', 'config.json')
@@ -195,6 +214,10 @@ export async function runScenario({ scenarioId, runIndex, runRoot, timeoutMs }) 
     runtime_local_state: avatarProductRuntimeStatePath
       ? path.relative(repoRoot, avatarProductRuntimeStatePath)
       : null,
+    runtime_lock: avatarProductRuntimeLockPath
+      ? path.relative(repoRoot, avatarProductRuntimeLockPath)
+      : null,
+    runtime_account_custody_partition: avatarProductRuntimeAccountCustodyPartition || null,
     runtime_config: avatarProductRuntimeConfigPath
       ? path.relative(repoRoot, avatarProductRuntimeConfigPath)
       : null,
@@ -220,11 +243,35 @@ export async function runScenario({ scenarioId, runIndex, runRoot, timeoutMs }) 
           source_sample_root: path.relative(repoRoot, cubismSample.sampleRoot),
         }
       : null,
+    avatar_product_agent_center_config: avatarProductAgentCenterConfig
+      ? {
+          config_path: path.relative(repoRoot, avatarProductAgentCenterConfig.configPath),
+          package_dir: path.relative(repoRoot, avatarProductAgentCenterConfig.packageDir),
+          account_id: avatarProductAgentCenterConfig.accountId,
+          local_agent_ref: avatarProductAgentCenterConfig.localAgentRef,
+          avatar_package_ref: avatarProductAgentCenterConfig.avatarPackageRef,
+          backend_capability_profile_ref: avatarProductAgentCenterConfig.backendCapabilityProfileRef,
+        }
+      : null,
+    avatar_product_projection_reset: avatarProductProjectionReset
+      ? {
+          data_dir: avatarProductProjectionReset.dataDir,
+          local_agent_ref: avatarProductProjectionReset.localAgentRef,
+          instance_registry_path: avatarProductProjectionReset.instanceRegistry.registryPath,
+          removed_instance_count: avatarProductProjectionReset.instanceRegistry.removed,
+          carrier_evidence_dir: avatarProductProjectionReset.carrierEvidence.evidenceDir,
+          removed_carrier_evidence: avatarProductProjectionReset.carrierEvidence.removed,
+        }
+      : null,
     artifact_policy: scenarioManifest.artifactPolicy || {},
   });
 
   const backendLog = createLogFile(backendLogPath);
-  const initialRuntimeLockPid = readRuntimeLockPid();
+  const scenarioRuntimeLockPath = avatarProductRuntimeLockPath || '';
+  const initialRuntimeLockPid = readRuntimeLockPid(scenarioRuntimeLockPath);
+  if (scenarioId === LIVE2D_AVATAR_PRODUCT_SMOKE_SCENARIO) {
+    await terminateAvatarProductProcessResidue();
+  }
   const smokeAuthSessionEnv = {
     NIMI_E2E_AUTH_SESSION_STORAGE: 'encrypted-file',
     NIMI_E2E_AUTH_SESSION_MASTER_KEY: crypto.randomBytes(32).toString('base64'),
@@ -246,8 +293,10 @@ export async function runScenario({ scenarioId, runIndex, runRoot, timeoutMs }) 
       ...(avatarProductRuntimeStatePath ? {
         NIMI_RUNTIME_LOCAL_STATE_PATH: avatarProductRuntimeStatePath,
         NIMI_RUNTIME_CONFIG_PATH: avatarProductRuntimeConfigPath,
+        NIMI_RUNTIME_LOCK_PATH: avatarProductRuntimeLockPath,
         NIMI_RUNTIME_GRPC_ADDR: runtimeGrpcAddr,
         NIMI_RUNTIME_HTTP_ADDR: runtimeHttpAddr,
+        NIMI_RUNTIME_ACCOUNT_CUSTODY_PARTITION: avatarProductRuntimeAccountCustodyPartition,
         NIMI_RUNTIME_BRIDGE_DEBUG: '1',
       } : {}),
     },
@@ -315,7 +364,10 @@ export async function runScenario({ scenarioId, runIndex, runRoot, timeoutMs }) 
   } finally {
     await terminateChildProcess(app, 'Desktop macOS smoke app');
     await terminateAvatarProductResidue(smokeReportPath);
-    await terminateRuntimeStartedByScenario(initialRuntimeLockPid);
+    if (scenarioId === LIVE2D_AVATAR_PRODUCT_SMOKE_SCENARIO) {
+      await terminateAvatarProductProcessResidue();
+    }
+    await terminateRuntimeStartedByScenario(initialRuntimeLockPid, scenarioRuntimeLockPath);
     await closeWriteStream(backendLog);
     await fixtureServer.close();
     if (avatarProductSmokeProvider) {

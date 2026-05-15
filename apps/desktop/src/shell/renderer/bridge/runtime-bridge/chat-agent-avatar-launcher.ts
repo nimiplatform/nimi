@@ -4,6 +4,7 @@ export type DesktopAvatarLaunchHandoffInput = {
   ownerUserId: string;
   realmAgentId: string;
   localAgentRef: string;
+  conversationAnchorId: string;
   avatarInstanceId?: string | null;
   launchSource?: string | null;
   sourceSurface?: string | null;
@@ -29,6 +30,7 @@ export type DesktopAvatarLaunchHandoffPayload = {
   ownerUserId: string;
   realmAgentId: string;
   localAgentRef: string;
+  conversationAnchorId: string;
   avatarInstanceId?: string;
   launchSource?: string;
   sourceSurface?: string;
@@ -40,7 +42,6 @@ const FORBIDDEN_LAUNCH_INPUT_FIELDS = [
   'avatarPackageKind',
   'avatarPackageId',
   'avatarPackageSchemaVersion',
-  'conversationAnchorId',
   'anchorMode',
   'runtimeAppId',
   'worldId',
@@ -132,6 +133,7 @@ export function buildDesktopAvatarLaunchHandoffPayload(
   const ownerUserId = normalizeRequiredString(input.ownerUserId, 'ownerUserId');
   const realmAgentId = normalizeRequiredString(input.realmAgentId, 'realmAgentId');
   const localAgentRef = normalizeRequiredString(input.localAgentRef, 'localAgentRef');
+  const conversationAnchorId = normalizeRequiredString(input.conversationAnchorId, 'conversationAnchorId');
   validateLocalAgentRef(ownerUserId, realmAgentId, localAgentRef);
   const avatarInstanceId = normalizeOptionalString(input.avatarInstanceId);
   const launchSource = normalizeOptionalString(input.launchSource);
@@ -140,6 +142,7 @@ export function buildDesktopAvatarLaunchHandoffPayload(
     ownerUserId,
     realmAgentId,
     localAgentRef,
+    conversationAnchorId,
     ...(avatarInstanceId ? { avatarInstanceId } : {}),
     ...(launchSource ? { launchSource } : {}),
     ...(sourceSurface ? { sourceSurface } : {}),

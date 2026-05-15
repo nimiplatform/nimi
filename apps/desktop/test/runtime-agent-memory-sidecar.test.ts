@@ -371,16 +371,21 @@ test('runtime agent memory adapter maps canonical bank status to standard, basel
   });
 });
 
-test('runtime agent memory adapter uses desktop E2E fixture status only after runtime status fails', async () => {
-  const { runtime } = createRuntimeMock();
+test('runtime agent memory adapter lets explicit desktop E2E fixture status take precedence', async () => {
+  const { runtime, calls } = createRuntimeMock();
   runtime.memory.getBank = async () => {
-    throw new Error('local memory substrate is not configured');
+    throw new Error('PROTOCOL_ENVELOPE_INVALID');
   };
   const fixtureStatusCalls: Array<Record<string, unknown>> = [];
+  const service = createMemoryEmbeddingServiceMock({
+    inspect: async () => {
+      throw new Error('PROTOCOL_ENVELOPE_INVALID');
+    },
+  });
   const adapter = createRuntimeAgentMemoryAdapter({
     getRuntime: () => runtime as never,
     getSubjectUserId: () => 'user-1',
-    getMemoryEmbeddingConfigService: () => createMemoryEmbeddingServiceMock().service,
+    getMemoryEmbeddingConfigService: () => service.service,
     getAgentMemoryStandardFixtureStatus: async (payload) => {
       fixtureStatusCalls.push(payload);
       return {
@@ -404,6 +409,7 @@ test('runtime agent memory adapter uses desktop E2E fixture status only after ru
     bankId: 'bank-agent-1',
   });
   assert.deepEqual(fixtureStatusCalls, [{ agentId: LOCAL_AGENT_REF }]);
+  assert.equal(calls.getBank.length, 0);
 });
 
 test('runtime agent memory adapter uses desktop E2E fixture status after runtime reports missing binding', async () => {

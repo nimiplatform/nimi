@@ -21,6 +21,7 @@ fn launch_payload() -> DesktopAvatarLaunchHandoffPayload {
         owner_user_id: "owner-1".to_string(),
         realm_agent_id: "agent-1".to_string(),
         local_agent_ref: "local-agent:owner-1:agent-1".to_string(),
+        conversation_anchor_id: "anchor-1".to_string(),
         avatar_instance_id: Some("instance-1".to_string()),
         launch_source: None,
         source_surface: Some("desktop-agent-chat".to_string()),
@@ -85,12 +86,12 @@ fn avatar_handoff_uri_includes_only_minimal_launch_intent() {
     assert!(uri.contains("owner_user_id=owner-1"));
     assert!(uri.contains("realm_agent_id=agent-1"));
     assert!(uri.contains("local_agent_ref=local-agent%3Aowner-1%3Aagent-1"));
+    assert!(uri.contains("conversation_anchor_id=anchor-1"));
     assert!(uri.contains("avatar_instance_id=instance-1"));
     assert!(uri.contains("launch_source=desktop-agent-chat"));
     assert!(!uri.contains("avatar_package_kind"));
     assert!(!uri.contains("avatar_package_id"));
     assert!(!uri.contains("avatar_package_schema_version"));
-    assert!(!uri.contains("conversation_anchor_id"));
     assert!(!uri.contains("runtime_app_id"));
     assert!(!uri.contains("world_id"));
     assert!(!uri.contains("binding_id"));
@@ -129,7 +130,10 @@ fn avatar_runtime_env_pairs_forward_runtime_defaults_without_realm_or_token() {
         "NIMI_RUNTIME_GRPC_ADDR",
         "NIMI_RUNTIME_HTTP_ADDR",
         "NIMI_RUNTIME_LOCAL_STATE_PATH",
+        "NIMI_RUNTIME_LOCK_PATH",
+        "NIMI_RUNTIME_BRIDGE_MODE",
         "NIMI_RUNTIME_BRIDGE_DEBUG",
+        "NIMI_E2E_BACKEND_LOG_PATH",
     ];
     let saved: Vec<(&str, Option<String>)> = keys
         .iter()
@@ -167,7 +171,16 @@ fn avatar_runtime_env_pairs_forward_runtime_defaults_without_realm_or_token() {
         "NIMI_RUNTIME_LOCAL_STATE_PATH",
         fixture_dir.join("runtime-state.json").as_os_str(),
     );
+    std::env::set_var(
+        "NIMI_RUNTIME_LOCK_PATH",
+        fixture_dir.join("runtime.lock").as_os_str(),
+    );
+    std::env::set_var("NIMI_RUNTIME_BRIDGE_MODE", "RELEASE");
     std::env::set_var("NIMI_RUNTIME_BRIDGE_DEBUG", "1");
+    std::env::set_var(
+        "NIMI_E2E_BACKEND_LOG_PATH",
+        fixture_dir.join("backend.log").as_os_str(),
+    );
 
     let pairs = avatar_runtime_env_pairs().expect("avatar env pairs");
 
@@ -204,6 +217,15 @@ fn avatar_runtime_env_pairs_forward_runtime_defaults_without_realm_or_token() {
             .to_string_lossy()
             .to_string()
     )));
+    assert!(pairs.contains(&(
+        "NIMI_RUNTIME_LOCK_PATH",
+        fixture_dir.join("runtime.lock").to_string_lossy().to_string()
+    )));
+    assert!(pairs.contains(&("NIMI_RUNTIME_BRIDGE_MODE", "RELEASE".to_string())));
+    assert!(pairs.contains(&(
+        "NIMI_E2E_BACKEND_LOG_PATH",
+        fixture_dir.join("backend.log").to_string_lossy().to_string()
+    )));
     assert!(!pairs.iter().any(|(key, _)| key.starts_with("NIMI_REALM")));
     assert!(!pairs.iter().any(|(key, _)| key.contains("AUTH_SESSION")));
     assert!(!pairs.iter().any(|(key, _)| key.contains("ACCESS_TOKEN")));
@@ -216,6 +238,7 @@ fn avatar_handoff_uri_rejects_missing_local_agent_ref() {
         owner_user_id: "owner-1".to_string(),
         realm_agent_id: "agent-1".to_string(),
         local_agent_ref: " ".to_string(),
+        conversation_anchor_id: "anchor-1".to_string(),
         avatar_instance_id: Some("instance-1".to_string()),
         launch_source: None,
         source_surface: Some("desktop-agent-chat".to_string()),

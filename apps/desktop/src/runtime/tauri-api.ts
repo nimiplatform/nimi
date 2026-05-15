@@ -46,6 +46,11 @@ function tauriTestHook(): TauriTestHook | undefined {
   return value.__NIMI_TAURI_TEST__ || value.window?.__NIMI_TAURI_TEST__;
 }
 
+function tauriRuntimeHook(): TauriRuntimeHook | undefined {
+  const value = tauriGlobal();
+  return value.__NIMI_TAURI_RUNTIME__ || value.window?.__NIMI_TAURI_RUNTIME__;
+}
+
 function hasNativeTauriInvoke(): boolean {
   const value = tauriGlobal();
   return Boolean(
@@ -120,7 +125,7 @@ export function hasTauriInvoke(): boolean {
 }
 
 export async function invokeTauri<T>(command: string, payload: unknown = {}): Promise<T> {
-  const hook = tauriTestHook()?.invoke;
+  const hook = tauriTestHook()?.invoke ?? tauriRuntimeHook()?.invoke;
   if (hook) {
     return await hook(command, payload) as T;
   }
@@ -131,7 +136,7 @@ export async function listenTauri(
   eventName: string,
   handler: (event: { payload: unknown }) => void,
 ): Promise<TauriEventUnsubscribe> {
-  const hook = tauriTestHook()?.listen;
+  const hook = tauriTestHook()?.listen ?? tauriRuntimeHook()?.listen;
   if (hook) {
     const unsubscribe = await Promise.resolve(hook(eventName, handler));
     if (typeof unsubscribe !== 'function') {

@@ -163,6 +163,16 @@ fn account_projection_from_fixture(
     })
 }
 
+fn uses_real_runtime_account_projection(manifest: &DesktopE2EFixtureManifest) -> bool {
+    manifest
+        .tauri_fixture
+        .as_ref()
+        .and_then(|fixture| fixture.macos_smoke.as_ref())
+        .and_then(|smoke| smoke.scenario_id.as_deref())
+        .map(str::trim)
+        == Some("chat.live2d-avatar-product-smoke")
+}
+
 fn runtime_account_status_response(
     projection: Option<runtime_bridge_generated::AccountProjection>,
 ) -> runtime_bridge_generated::GetAccountSessionStatusResponse {
@@ -213,6 +223,9 @@ pub fn runtime_bridge_unary_override(
     let Some(manifest) = load_fixture_manifest()? else {
         return Ok(None);
     };
+    if uses_real_runtime_account_projection(&manifest) {
+        return Ok(None);
+    }
     let projection = account_projection_from_fixture(manifest.realm_fixture.as_ref());
     match payload.method_id.trim() {
         "/nimi.runtime.v1.RuntimeAccountService/GetAccountSessionStatus" => {

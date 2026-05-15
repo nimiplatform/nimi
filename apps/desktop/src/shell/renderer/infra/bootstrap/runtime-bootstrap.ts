@@ -241,10 +241,14 @@ export function bootstrapRuntime(): Promise<void> {
     if (desktopBridge.hasTauriInvoke()) {
       try {
         const runtimeStorageDirs = await desktopBridge.getRuntimeModStorageDirs();
+        const preserveMacosSmokeRuntimeStatePath =
+          macosSmokeContext.scenarioId === 'chat.live2d-avatar-product-smoke';
         daemonStatus = await syncRuntimeLocalModelsConfig({
           daemonStatus,
           localModelsPath: runtimeStorageDirs.localModelsDir,
-          localStatePath: runtimeStorageDirs.localRuntimeStatePath,
+          localStatePath: preserveMacosSmokeRuntimeStatePath
+            ? undefined
+            : runtimeStorageDirs.localRuntimeStatePath,
           bridge: {
             getRuntimeBridgeConfig: () => desktopBridge.getRuntimeBridgeConfig(),
             setRuntimeBridgeConfig: (configJson: string) => desktopBridge.setRuntimeBridgeConfig(configJson),

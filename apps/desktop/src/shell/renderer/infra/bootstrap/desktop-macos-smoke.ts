@@ -17,6 +17,7 @@ import { getActiveScope } from '@renderer/features/chat/chat-shared-active-ai-co
 import { refreshConversationCapabilityProjections } from '@renderer/features/chat/conversation-capability-projection';
 import { getPlatformClient } from '@nimiplatform/sdk';
 import { createRuntimeProtectedScopeHelper } from '@nimiplatform/sdk/runtime';
+import { AccountSessionState } from '@nimiplatform/sdk/runtime/browser';
 import {
   type DesktopMacosSmokeCanvasStats,
   type DesktopMacosSmokeDriverDeps,
@@ -382,6 +383,67 @@ function createDomDriverDeps(): DesktopMacosSmokeDriverDeps {
         mode: 2,
         scopes: [],
       };
+      const logout = await withSmokeTimeout(
+        'Runtime account product-smoke logout reset',
+        getPlatformClient().runtime.account.logout({
+          caller: accountCaller,
+          reason: 'desktop_macos_avatar_product_smoke_reset',
+        }),
+        5_000,
+      );
+      if (!logout.accepted) {
+        throw new Error(`Runtime account product-smoke logout reset rejected: ${String(logout.accountReasonCode || logout.reasonCode || 'unknown')}`);
+      }
+      const resetDeadline = Date.now() + 5_000;
+      let resetState = logout.state;
+      while (Date.now() < resetDeadline) {
+        const resetStatus = await withSmokeTimeout(
+          'Runtime account product-smoke logout readback',
+          getPlatformClient().runtime.account.getAccountSessionStatus({ caller: accountCaller }),
+          5_000,
+        );
+        resetState = resetStatus.state;
+        if (resetStatus.state === AccountSessionState.ANONYMOUS) {
+          break;
+        }
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      }
+      if (resetState !== AccountSessionState.ANONYMOUS) {
+        throw new Error(`Runtime account product-smoke logout reset did not reach anonymous state: ${String(resetState)}`);
+      }
+      const begin = await withSmokeTimeout(
+        'Runtime account product-smoke login begin',
+        getPlatformClient().runtime.account.beginLogin({
+          caller: accountCaller,
+          redirectUri: 'http://localhost:46373/auth/callback',
+          callbackOrigin: 'http://localhost:46373',
+          requestedScopes: [],
+          ttlSeconds: 60,
+        }),
+        5_000,
+      );
+      if (!begin.accepted || !begin.loginAttemptId || !begin.state || !begin.nonce) {
+        throw new Error(`Runtime account product-smoke login begin rejected: ${String(begin.accountReasonCode || begin.reasonCode || 'unknown')}`);
+      }
+      const complete = await withSmokeTimeout(
+        'Runtime account product-smoke login complete',
+        getPlatformClient().runtime.account.completeLogin({
+          caller: accountCaller,
+          loginAttemptId: begin.loginAttemptId,
+          code: 'e2e-runtime-product-smoke-code',
+          state: begin.state,
+          nonce: begin.nonce,
+          redirectUri: 'http://localhost:46373/auth/callback',
+          callbackOrigin: 'http://localhost:46373',
+          uxTraceId: '',
+          sealedCompletionTicket: '',
+          refreshToken: '',
+        }),
+        5_000,
+      );
+      if (!complete.accepted || Number(complete.state) !== 3 || !String(complete.accountProjection?.accountId || '').trim()) {
+        throw new Error(`Runtime account product-smoke login complete rejected: state=${String(complete.state)} reason=${String(complete.accountReasonCode || complete.reasonCode || 'unknown')}`);
+      }
       const deadline = Date.now() + 5_000;
       let lastError = 'not checked';
       while (Date.now() < deadline) {
@@ -394,6 +456,11 @@ function createDomDriverDeps(): DesktopMacosSmokeDriverDeps {
           const accountId = String(account.accountProjection?.accountId || '').trim();
           const isAuthenticated = Number(account.state) === 3 || String(account.state) === 'authenticated';
           if (isAuthenticated && accountId) {
+            useAppStore.getState().setAuthSession({
+              id: accountId,
+              displayName: String(account.accountProjection?.displayName || accountId),
+              realmEnvironmentId: String(account.accountProjection?.realmEnvironmentId || ''),
+            }, '', '');
             return;
           }
           lastError = `Runtime account state=${String(account.state || 'unknown')} account_present=${Boolean(accountId)}`;
@@ -506,12 +573,19 @@ function createDomDriverDeps(): DesktopMacosSmokeDriverDeps {
         runtimeDebug: stats.runtimeDebug,
       };
     },
-    async listAvatarLiveInstances(realmAgentId: string) {
-      const ownerUserId = 'desktop-smoke';
+    async listAvatarLiveInstances(localAgentRef: string) {
+      const normalized = String(localAgentRef || '').trim();
+      const rest = normalized.startsWith('local-agent:') ? normalized.slice('local-agent:'.length) : '';
+      const separator = rest.indexOf(':');
+      if (!rest || separator <= 0 || separator === rest.length - 1) {
+        throw new Error('macOS smoke Avatar live-instance lookup requires localAgentRef');
+      }
+      const ownerUserId = rest.slice(0, separator);
+      const realmAgentId = rest.slice(separator + 1);
       return listDesktopAvatarLiveInstances({
         ownerUserId,
         realmAgentId,
-        localAgentRef: `local-agent:${ownerUserId}:${realmAgentId}`,
+        localAgentRef: normalized,
       });
     },
     async readAvatarEvidence(avatarInstanceId: string) {

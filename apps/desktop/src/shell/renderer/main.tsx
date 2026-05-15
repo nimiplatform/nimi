@@ -96,26 +96,39 @@ const entryBootCopy = bootstrapEntryCopy as {
 const ENTRY_BOOT_PROGRESS_FLOOR_PERCENT = 8;
 
 type TauriCoreInvoke = (command: string, args?: Record<string, unknown>) => Promise<unknown>;
-
-function resolveTauriCoreInvoke(): TauriCoreInvoke | null {
-    const tauriGlobal = (globalThis as typeof globalThis & {
+type TauriInvokeOwner = { invoke?: unknown };
+type TauriSmokeGlobal = typeof globalThis & {
+    __TAURI__?: {
+      core?: TauriInvokeOwner;
+      invoke?: unknown;
+    };
+    __TAURI_INTERNALS__?: TauriInvokeOwner;
+    __TAURI_IPC__?: TauriInvokeOwner;
+    window?: {
       __TAURI__?: {
-        core?: { invoke?: unknown };
+        core?: TauriInvokeOwner;
         invoke?: unknown;
       };
-    }).__TAURI__;
-    if (!tauriGlobal) {
-        return null;
-    }
-    const coreInvoke = tauriGlobal?.core?.invoke;
-    if (typeof coreInvoke === 'function') {
-        return coreInvoke.bind(tauriGlobal.core) as TauriCoreInvoke;
-    }
-    const legacyInvoke = tauriGlobal?.invoke;
-    if (typeof legacyInvoke === 'function') {
-        return legacyInvoke.bind(tauriGlobal) as TauriCoreInvoke;
-    }
-    return null;
+      __TAURI_INTERNALS__?: TauriInvokeOwner;
+      __TAURI_IPC__?: TauriInvokeOwner;
+    };
+};
+
+function bindTauriInvoke(owner: TauriInvokeOwner | null | undefined): TauriCoreInvoke | null {
+    const invoke = owner?.invoke;
+    return typeof invoke === 'function' ? (invoke.bind(owner) as TauriCoreInvoke) : null;
+}
+
+function resolveTauriCoreInvoke(): TauriCoreInvoke | null {
+    const tauriGlobal = globalThis as TauriSmokeGlobal;
+    return bindTauriInvoke(tauriGlobal.__TAURI__?.core)
+      || bindTauriInvoke(tauriGlobal.__TAURI__)
+      || bindTauriInvoke(tauriGlobal.__TAURI_INTERNALS__)
+      || bindTauriInvoke(tauriGlobal.__TAURI_IPC__)
+      || bindTauriInvoke(tauriGlobal.window?.__TAURI__?.core)
+      || bindTauriInvoke(tauriGlobal.window?.__TAURI__)
+      || bindTauriInvoke(tauriGlobal.window?.__TAURI_INTERNALS__)
+      || bindTauriInvoke(tauriGlobal.window?.__TAURI_IPC__);
 }
 
 function pingSmokeAsync(event: string, payload?: Record<string, unknown>): void {

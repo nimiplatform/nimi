@@ -15,8 +15,11 @@ import {
   avatarDebugProbePresentationStatusLabel,
   avatarDebugProbeRemediation,
   avatarDebugProbeStatusLabel,
+  buildDesktopCompanionParticipationProjectionRequest,
   buildAvatarDebugWorkbenchDiagnostics,
   buildAvatarDebugWorkbenchLaunchHealth,
+  desktopCompanionParticipationRemediation,
+  desktopCompanionParticipationStatusLabel,
 } from '../src/shell/renderer/features/chat/chat-agent-center-avatar-debug-workbench.js';
 import type { AgentCenterAvatarPackageModule } from '../src/shell/renderer/features/chat/chat-agent-center-avatar-config-types.js';
 
@@ -154,4 +157,39 @@ test('avatar debug workbench presents passed only when required evidence and rep
   assert.equal(avatarDebugProbeFailClosedReason(result, replayRef), null);
   assert.equal(avatarDebugProbePresentationStatusLabel(result, replayRef), 'Passed');
   assert.match(avatarDebugProbeRemediation(result, replayRef), /Evidence is linked/);
+});
+
+test('desktop avatar debug workbench requests typed companion participation projection', () => {
+  assert.deepEqual(buildDesktopCompanionParticipationProjectionRequest({
+    ownerUserId: 'owner-1',
+    realmAgentId: 'agent-1',
+    localAgentRef: 'local-agent:owner-1:agent-1',
+    conversationAnchorId: 'anchor-1',
+  }), {
+    ownerUserId: 'owner-1',
+    realmAgentId: 'agent-1',
+    localAgentRef: 'local-agent:owner-1:agent-1',
+    conversationAnchorId: 'anchor-1',
+    surfaceKind: 'avatar_debug_workbench',
+    triggerSource: 'user_explicit',
+  });
+});
+
+test('desktop companion participation presentation fails visible on Runtime refusal states', () => {
+  const projection = {
+    projectionId: 'projection-1',
+    agentId: 'local-agent:owner-1:agent-1',
+    surfaceKind: 'avatar_debug_workbench',
+    profileRef: 'runtime.agent.profile/local-agent:owner-1:agent-1',
+    roomOrchestrationRef: 'runtime.room_orchestration/avatar_companion_presentation_room',
+    triggerSource: 'user_explicit',
+    status: 'blocked',
+    refusalReason: 'runtime_policy_blocked',
+    auditRef: 'runtime.audit.companion_participation/projection-1',
+    conversationAnchorId: 'anchor-1',
+  } as const;
+
+  assert.equal(desktopCompanionParticipationStatusLabel(projection), 'Blocked');
+  assert.equal(desktopCompanionParticipationRemediation(projection), 'runtime_policy_blocked');
+  assert.match(desktopCompanionParticipationRemediation(null), /Refresh participation projection/);
 });

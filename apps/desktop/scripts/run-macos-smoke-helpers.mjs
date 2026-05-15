@@ -95,6 +95,44 @@ export function ensureCubismLive2dSample(modelName = DEFAULT_CUBISM_SAMPLE_MODEL
   };
 }
 
+function firstExistingLive2dModelFile(root) {
+  const entries = fs.readdirSync(root, { withFileTypes: true });
+  for (const entry of entries) {
+    const entryPath = path.join(root, entry.name);
+    if (entry.isFile() && entry.name.endsWith('.model3.json')) {
+      return entryPath;
+    }
+  }
+  return '';
+}
+
+export function ensureAvatarProductLive2dSampleRoot() {
+  const configuredRoot = String(process.env.NIMI_AVATAR_PRODUCT_LIVE2D_ROOT || '').trim();
+  if (!configuredRoot) {
+    return null;
+  }
+  if (!path.isAbsolute(configuredRoot)) {
+    throw new Error('NIMI_AVATAR_PRODUCT_LIVE2D_ROOT must be absolute');
+  }
+  if (!fs.existsSync(configuredRoot) || !fs.statSync(configuredRoot).isDirectory()) {
+    throw new Error(`NIMI_AVATAR_PRODUCT_LIVE2D_ROOT does not exist or is not a directory: ${configuredRoot}`);
+  }
+
+  const runtimeRoot = fs.existsSync(path.join(configuredRoot, 'runtime'))
+    && fs.statSync(path.join(configuredRoot, 'runtime')).isDirectory()
+    ? path.join(configuredRoot, 'runtime')
+    : configuredRoot;
+  const modelPath = firstExistingLive2dModelFile(runtimeRoot);
+  if (!modelPath) {
+    throw new Error(`NIMI_AVATAR_PRODUCT_LIVE2D_ROOT must contain a runtime *.model3.json file: ${configuredRoot}`);
+  }
+  return {
+    modelName: path.basename(modelPath, '.model3.json'),
+    sampleRoot: runtimeRoot,
+    modelFileUrl: pathToFileURL(modelPath).toString(),
+  };
+}
+
 export function vrmSampleDefinitionForScenario(scenarioId) {
   return VRM_SAMPLE_CATALOG[scenarioId] || null;
 }
@@ -315,9 +353,12 @@ export function createAvatarProductSmokeLive2dPackage(artifactsDir, cubismSample
   const packageRoot = path.join(artifactsDir, 'live2d-product-asset');
   const runtimeLink = path.join(packageRoot, 'runtime');
   ensureCleanSymlink(cubismSample.sampleRoot, runtimeLink);
+  const modelFilename = `${cubismSample.modelName}.model3.json`;
   return {
     packageRoot,
     runtimeLink,
+    sampleRoot: cubismSample.sampleRoot,
+    modelFilename,
     presentationProfile: {
       backendKind: 'live2d',
       avatarAssetRef: packageRoot,
@@ -326,6 +367,329 @@ export function createAvatarProductSmokeLive2dPackage(artifactsDir, cubismSample
       interactionPolicyRef: 'product-smoke',
       defaultVoiceReference: '',
     },
+  };
+}
+
+function sha256FileHex(filePath) {
+  const hash = crypto.createHash('sha256');
+  hash.update(fs.readFileSync(filePath));
+  return hash.digest('hex');
+}
+
+function createAvatarProductSmokeLive2dAdapterManifest(avatarProductLive2dPackage) {
+  const modelId = avatarProductLive2dPackage.modelFilename.replace(/\.model3\.json$/, '');
+  return {
+    manifest_kind: 'nimi.avatar.live2d.adapter',
+    schema_version: 1,
+    adapter_id: `${modelId}-product-smoke-render-only`,
+    target_model: {
+      model_id: modelId,
+      model3: avatarProductLive2dPackage.modelFilename,
+    },
+    license: {
+      redistribution: 'unknown',
+      evidence: `operator-local resource path: ${avatarProductLive2dPackage.sampleRoot}`,
+      fixture_use: 'operator_local_only',
+    },
+    compatibility: {
+      requested_tier: 'render_only',
+    },
+    semantics: {
+      motions: {
+        idle: { group: 'Idle' },
+        missing_activity: 'idle_degraded_with_diagnostic',
+      },
+      expressions: {
+        disposition: { status: 'not_applicable', reason: 'render-only smoke does not assert expression semantics' },
+      },
+      poses: {
+        disposition: { status: 'not_applicable', reason: 'render-only smoke does not assert pose semantics' },
+      },
+      lipsync: {
+        mouth_open_y_parameter: 'ParamMouthOpenY',
+        disposition: { status: 'supported' },
+      },
+      physics: {
+        mode: 'model_physics',
+        disposition: { status: 'supported' },
+      },
+      hit_regions: {
+        map: {
+          head: ['HitAreaHead', 'Head'],
+          body: ['HitAreaBody', 'Body'],
+        },
+        fallback: 'alpha_mask_only',
+        disposition: { status: 'supported' },
+      },
+      nas_fallback: {
+        default_idle_motion: 'Idle',
+        missing_handler: 'backend_default_with_diagnostic',
+      },
+    },
+  };
+}
+
+function canUseRawScopePathSegment(value) {
+  if (typeof value !== 'string' || value.length === 0 || value.length > 128) {
+    return false;
+  }
+  if (value === '.' || value === '..') {
+    return false;
+  }
+  const first = value[0];
+  return /[a-z0-9]/.test(first) && /^[a-z0-9_-]+$/.test(value);
+}
+
+function localScopePathSegment(value) {
+  if (canUseRawScopePathSegment(value)) {
+    return value;
+  }
+  return `id_${crypto.createHash('sha256').update(value).digest('hex').slice(0, 24)}`;
+}
+
+function resolveNimiDataDir() {
+  const home = process.env.HOME || process.env.USERPROFILE || '';
+  if (!home) {
+    throw new Error('cannot resolve HOME for avatar product smoke Agent Center config');
+  }
+  const nimiDir = path.join(home, '.nimi');
+  const desktopPathsPath = path.join(nimiDir, 'desktop-paths.json');
+  if (fs.existsSync(desktopPathsPath)) {
+    const parsed = readJson(desktopPathsPath);
+    const configured = typeof parsed.nimiDataDir === 'string'
+      ? parsed.nimiDataDir.trim()
+      : typeof parsed.nimi_data_dir === 'string'
+        ? parsed.nimi_data_dir.trim()
+        : '';
+    if (configured) {
+      if (!path.isAbsolute(configured)) {
+        throw new Error(`desktop-paths.json nimiDataDir must be absolute: ${configured}`);
+      }
+      return path.normalize(configured);
+    }
+  }
+  return path.join(nimiDir, 'data');
+}
+
+export function seedAvatarProductSmokeAgentCenterConfig(avatarProductLive2dPackage) {
+  if (!avatarProductLive2dPackage?.packageRoot || !avatarProductLive2dPackage?.sampleRoot) {
+    return null;
+  }
+  const accountId = 'user-e2e-primary';
+  const ownerUserId = 'user-e2e-primary';
+  const realmAgentId = 'agent-e2e-alpha';
+  const localAgentRef = `local-agent:${ownerUserId}:${realmAgentId}`;
+  const packageHash = crypto.createHash('sha256')
+    .update(path.resolve(avatarProductLive2dPackage.packageRoot))
+    .digest('hex')
+    .slice(0, 12);
+  const profileHash = crypto.createHash('sha256')
+    .update(`${localAgentRef}:${avatarProductLive2dPackage.packageRoot}`)
+    .digest('hex')
+    .slice(0, 12);
+  const dataDir = resolveNimiDataDir();
+  const packageId = `live2d_${packageHash}`;
+  const packageDir = path.join(
+    dataDir,
+    'accounts',
+    localScopePathSegment(accountId),
+    'agents',
+    localScopePathSegment(localAgentRef),
+    'agent-center',
+    'modules',
+    'avatar_package',
+    'packages',
+    'live2d',
+    packageId,
+  );
+  const filesDir = path.join(packageDir, 'files');
+  fs.rmSync(packageDir, { recursive: true, force: true });
+  fs.mkdirSync(filesDir, { recursive: true });
+  fs.cpSync(avatarProductLive2dPackage.sampleRoot, filesDir, {
+    recursive: true,
+    dereference: true,
+  });
+  const entryFile = `files/${avatarProductLive2dPackage.modelFilename}`;
+  const entryPath = path.join(packageDir, entryFile);
+  const adapterManifestFile = 'files/nimi/live2d-adapter.json';
+  const adapterManifestPath = path.join(packageDir, adapterManifestFile);
+  fs.mkdirSync(path.dirname(adapterManifestPath), { recursive: true });
+  writeJson(adapterManifestPath, createAvatarProductSmokeLive2dAdapterManifest(avatarProductLive2dPackage));
+  const entryBytes = fs.statSync(entryPath).size;
+  const entrySha256 = sha256FileHex(entryPath);
+  const adapterManifestBytes = fs.statSync(adapterManifestPath).size;
+  const adapterManifestSha256 = sha256FileHex(adapterManifestPath);
+  writeJson(path.join(packageDir, 'manifest.json'), {
+    manifest_version: 1,
+    package_version: '1.0.0',
+    package_id: packageId,
+    kind: 'live2d',
+    loader_min_version: '1.0.0',
+    display_name: avatarProductLive2dPackage.modelFilename.replace(/\.model3\.json$/, ''),
+    display_name_i18n: {},
+    entry_file: entryFile,
+    required_files: [entryFile, adapterManifestFile],
+    content_digest: `sha256:${entrySha256}`,
+    files: [
+      {
+        path: entryFile,
+        sha256: entrySha256,
+        bytes: entryBytes,
+        mime: 'application/json',
+      },
+      {
+        path: adapterManifestFile,
+        sha256: adapterManifestSha256,
+        bytes: adapterManifestBytes,
+        mime: 'application/json',
+      },
+    ],
+    limits: {
+      max_manifest_bytes: 262144,
+      max_package_bytes: 524288000,
+      max_file_bytes: 104857600,
+      max_file_count: 2048,
+    },
+    capabilities: {},
+    import: {
+      imported_at: new Date().toISOString(),
+      source_label: avatarProductLive2dPackage.sampleRoot,
+      source_fingerprint: `sha256:${entrySha256}`,
+    },
+  });
+
+  const config = {
+    schema_version: 1,
+    config_kind: 'agent_center_local_config',
+    account_id: accountId,
+    owner_user_id: ownerUserId,
+    realm_agent_id: realmAgentId,
+    local_agent_ref: localAgentRef,
+    modules: {
+      appearance: {
+        schema_version: 1,
+        background_asset_id: null,
+        motion: 'system',
+      },
+      avatar_package: {
+        schema_version: 1,
+        conversation_anchor_scope: 'current_anchor',
+        avatar_package_ref: packageId,
+        live2d_adapter_manifest_source: 'embedded_creator_manifest',
+        live2d_adapter_manifest_ref: null,
+        avatar_instance_policy: 'reuse_active_instance',
+        backend_kind: 'live2d',
+        backend_capability_profile_ref: `profile_${profileHash}`,
+        generated_motion_provider_policy: 'require_profile_support',
+        launch_mode: 'manual',
+        debug_profile: 'strict_backend_evidence',
+        updated_at: new Date().toISOString(),
+        provenance: {
+          source: 'import_validation',
+          evidence_ref: 'avatar-product-smoke-live2d-agent-center-fixture-seed',
+        },
+      },
+      local_history: {
+        schema_version: 1,
+        last_cleared_at: null,
+      },
+      ui: {
+        schema_version: 1,
+        last_section: 'overview',
+      },
+    },
+  };
+  const configPath = path.join(
+    dataDir,
+    'accounts',
+    localScopePathSegment(accountId),
+    'agents',
+    localScopePathSegment(localAgentRef),
+    'agent-center',
+    'config.json',
+  );
+  fs.mkdirSync(path.dirname(configPath), { recursive: true });
+  writeJson(configPath, config);
+  return {
+    configPath,
+    accountId,
+    ownerUserId,
+    realmAgentId,
+    localAgentRef,
+    packageDir,
+    avatarPackageRef: config.modules.avatar_package.avatar_package_ref,
+    backendCapabilityProfileRef: config.modules.avatar_package.backend_capability_profile_ref,
+  };
+}
+
+function sanitizeAvatarProjectionComponent(input) {
+  const raw = String(input || '').trim();
+  let out = '';
+  for (const ch of raw) {
+    if (/[a-zA-Z0-9_-]/.test(ch)) {
+      out += ch;
+    } else {
+      out += '_';
+    }
+  }
+  const trimmed = out.replace(/^_+|_+$/g, '');
+  return trimmed || 'avatar-instance';
+}
+
+function removeAvatarInstanceRegistryEntries(dataDir, localAgentRef) {
+  const registryPath = path.join(dataDir, 'avatar-instance-registry', 'instances.json');
+  if (!fs.existsSync(registryPath)) {
+    return { registryPath, removed: 0 };
+  }
+  const parsed = readJson(registryPath);
+  const instances = Array.isArray(parsed.instances) ? parsed.instances : [];
+  const retained = instances.filter((instance) => instance?.localAgentRef !== localAgentRef);
+  const removed = instances.length - retained.length;
+  if (removed <= 0) {
+    return { registryPath, removed: 0 };
+  }
+  if (retained.length === 0) {
+    fs.rmSync(registryPath, { force: true });
+    return { registryPath, removed };
+  }
+  writeJson(registryPath, {
+    ...parsed,
+    instances: retained,
+  });
+  return { registryPath, removed };
+}
+
+function removeAvatarCarrierEvidenceFiles(dataDir, localAgentRef) {
+  const evidenceDir = path.join(dataDir, 'avatar-carrier-evidence');
+  if (!fs.existsSync(evidenceDir)) {
+    return { evidenceDir, removed: [] };
+  }
+  const localAgentSegment = sanitizeAvatarProjectionComponent(`desktop-avatar-${String(localAgentRef || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')}`);
+  const removed = [];
+  for (const entry of fs.readdirSync(evidenceDir, { withFileTypes: true })) {
+    if (!entry.isFile() || !entry.name.endsWith('.json')) {
+      continue;
+    }
+    if (!entry.name.startsWith(localAgentSegment)) {
+      continue;
+    }
+    const filePath = path.join(evidenceDir, entry.name);
+    fs.rmSync(filePath, { force: true });
+    removed.push(filePath);
+  }
+  return { evidenceDir, removed };
+}
+
+export function resetAvatarProductSmokeProjections(agentCenterConfig) {
+  if (!agentCenterConfig?.localAgentRef) {
+    return null;
+  }
+  const dataDir = resolveNimiDataDir();
+  return {
+    dataDir,
+    localAgentRef: agentCenterConfig.localAgentRef,
+    instanceRegistry: removeAvatarInstanceRegistryEntries(dataDir, agentCenterConfig.localAgentRef),
+    carrierEvidence: removeAvatarCarrierEvidenceFiles(dataDir, agentCenterConfig.localAgentRef),
   };
 }
 

@@ -5,6 +5,7 @@ import {
   hasTauriInvoke,
   hasTauriRuntime,
   installSdkTauriRuntimeHook,
+  invokeTauri,
 } from '../src/runtime/tauri-api.js';
 
 function resetTauriGlobals(): void {
@@ -35,6 +36,22 @@ test('native Tauri invoke is detected by function presence only', () => {
 
   assert.equal(hasTauriRuntime(), true);
   assert.equal(hasTauriInvoke(), true);
+
+  resetTauriGlobals();
+});
+
+test('direct invoke can use the published SDK runtime hook without relaxing availability probes', async () => {
+  resetTauriGlobals();
+  (globalThis as Record<string, unknown>).__NIMI_TAURI_RUNTIME__ = {
+    invoke: async (command: string, payload: unknown) => ({ command, payload }),
+  };
+
+  assert.equal(hasTauriRuntime(), false);
+  assert.equal(hasTauriInvoke(), false);
+  assert.deepEqual(await invokeTauri('runtime_bridge_status', { ok: true }), {
+    command: 'runtime_bridge_status',
+    payload: { ok: true },
+  });
 
   resetTauriGlobals();
 });

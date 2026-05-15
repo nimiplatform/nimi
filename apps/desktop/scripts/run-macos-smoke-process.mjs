@@ -151,13 +151,20 @@ export function writeSyntheticFailureReport({
   });
 }
 
-export function runtimeLockPath() {
+export function runtimeLockPath(overridePath = '') {
+  const normalized = String(overridePath || '').trim();
+  if (normalized) {
+    if (!path.isAbsolute(normalized)) {
+      throw new Error(`Runtime lock path override must be absolute: ${normalized}`);
+    }
+    return normalized;
+  }
   return path.join(os.homedir(), '.nimi', 'runtime', 'runtime.lock');
 }
 
-export function readRuntimeLockPid() {
+export function readRuntimeLockPid(lockPath = '') {
   try {
-    const raw = fs.readFileSync(runtimeLockPath(), 'utf8').trim();
+    const raw = fs.readFileSync(runtimeLockPath(lockPath), 'utf8').trim();
     const pid = Number.parseInt(raw, 10);
     return Number.isFinite(pid) && pid > 0 ? pid : null;
   } catch {
@@ -263,16 +270,33 @@ export async function terminateAvatarProductResidue(smokeReportPath) {
   }
 }
 
-export async function terminateRuntimeStartedByScenario(initialRuntimeLockPid) {
-  const currentLockPid = readRuntimeLockPid();
+export async function terminateAvatarProductProcessResidue() {
+  const result = spawnSync('pgrep', ['-f', 'Nimi Avatar.app/Contents/MacOS/nimiplatform-avatar'], {
+    cwd: repoRoot,
+    encoding: 'utf8',
+  });
+  if (result.status !== 0 || !result.stdout.trim()) {
+    return;
+  }
+  const pids = result.stdout
+    .split(/\s+/)
+    .map((value) => Number.parseInt(value, 10))
+    .filter((pid) => Number.isFinite(pid) && pid > 0 && pid !== process.pid);
+  for (const pid of pids) {
+    await terminatePid(pid, 'Avatar product smoke process residue');
+  }
+}
+
+export async function terminateRuntimeStartedByScenario(initialRuntimeLockPid, lockPath = '') {
+  const currentLockPid = readRuntimeLockPid(lockPath);
   if (!currentLockPid || currentLockPid === initialRuntimeLockPid) {
     return;
   }
   await terminatePid(currentLockPid, 'Runtime product smoke residue');
-  const remainingLockPid = readRuntimeLockPid();
+  const remainingLockPid = readRuntimeLockPid(lockPath);
   if (remainingLockPid === currentLockPid && !isProcessAlive(currentLockPid)) {
     try {
-      fs.unlinkSync(runtimeLockPath());
+      fs.unlinkSync(runtimeLockPath(lockPath));
     } catch {
       // Runtime may have removed the lock between the read and unlink.
     }

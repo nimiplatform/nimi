@@ -91,6 +91,35 @@ function nullableString(value) {
   return text || null;
 }
 
+function runtimeAccessTokenFromFixture(manifest) {
+  return nullableString(manifest.tauriFixture?.runtimeDefaults?.realm?.accessToken);
+}
+
+function runtimeAccountTokenResponse(manifest) {
+  const fixture = manifest.realmFixture || {};
+  const currentUser = fixture.currentUser || {};
+  const now = new Date().toISOString();
+  return {
+    access_token: runtimeAccessTokenFromFixture(manifest) || 'e2e-runtime-access-token',
+    refresh_token: `e2e-runtime-refresh-${String(currentUser.id || 'user-e2e-primary')}`,
+    expires_in: 3600,
+    account_id: String(currentUser.id || 'user-e2e-primary'),
+    display_name: String(currentUser.displayName || currentUser.handle || 'E2E User'),
+    realm_environment_id: String(fixture.realmEnvironmentId || 'realm-e2e-local'),
+    workspace_memberships: Array.isArray(fixture.workspaceMemberships)
+      ? fixture.workspaceMemberships
+      : [{
+          workspaceId: String(fixture.workspaceId || 'workspace-e2e-local'),
+          membershipState: 'active',
+          realmEnvironmentId: String(fixture.realmEnvironmentId || 'realm-e2e-local'),
+          observedAt: now,
+          displayMetadata: {
+            name: String(fixture.workspaceName || 'E2E Workspace'),
+          },
+        }],
+  };
+}
+
 function feedItems(fixture) {
   if (Array.isArray(fixture.postFeed?.items)) {
     return fixture.postFeed.items;
@@ -196,6 +225,14 @@ function handleApi(request, response, manifestPath) {
       active: true,
       revoked: false,
     });
+    return undefined;
+  }
+
+  if (
+    request.method === 'POST'
+    && (pathname === '/api/auth/oauth/token' || pathname === '/api/auth/refresh')
+  ) {
+    json(response, 200, runtimeAccountTokenResponse(manifest));
     return undefined;
   }
 

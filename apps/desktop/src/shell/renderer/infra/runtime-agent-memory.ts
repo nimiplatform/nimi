@@ -387,7 +387,7 @@ export function createRuntimeAgentMemoryAdapter(deps: RuntimeAgentMemoryDeps = {
       try {
         await protectedAccess.withScopes(['runtime.agent.admin'], (options) => runtime.agent.initializeAgent({
           context,
-          agentId,
+          agentId: '',
           ownerUserId: context.ownerUserId,
           realmAgentId: context.realmAgentId,
           localAgentRef: context.localAgentRef,
@@ -685,6 +685,10 @@ export function createRuntimeAgentMemoryAdapter(deps: RuntimeAgentMemoryDeps = {
       const normalizedAgentID = normalizeText(agentId);
       if (!normalizedAgentID) {
         throw new Error('AGENT_ID_REQUIRED');
+      }
+      const fixtureStatus = await getDesktopE2EAgentMemoryFixtureStatus(normalizedAgentID);
+      if (fixtureStatus) {
+        return fixtureStatus;
       }
       try {
         const memoryEmbeddingService = getMemoryEmbeddingConfigService();

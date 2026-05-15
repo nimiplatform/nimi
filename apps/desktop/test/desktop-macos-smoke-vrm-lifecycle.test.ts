@@ -173,11 +173,11 @@ for (const scenarioId of [
     }));
 
     assert.deepEqual(clicked, [
-      E2E_IDS.chatTarget('agent-e2e-alpha'),
+      E2E_IDS.chatTarget('local-agent:user-e2e-primary:agent-e2e-alpha'),
       E2E_IDS.chatRow('chat-e2e-primary'),
-      E2E_IDS.chatTarget('agent-e2e-alpha'),
+      E2E_IDS.chatTarget('local-agent:user-e2e-primary:agent-e2e-alpha'),
       E2E_IDS.chatRow('chat-e2e-primary'),
-      E2E_IDS.chatTarget('agent-e2e-alpha'),
+      E2E_IDS.chatTarget('local-agent:user-e2e-primary:agent-e2e-alpha'),
     ]);
     assert.deepEqual(selectorsWaited, [
       '[data-avatar-vrm-status]',
@@ -266,4 +266,3 @@ for (const scenarioId of [
     });
   });
 }
-
