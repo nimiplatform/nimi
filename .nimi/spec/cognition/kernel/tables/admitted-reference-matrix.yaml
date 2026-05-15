@@ -1,5 +1,8 @@
 version: 1
-families:
+table_family: owner_matrix
+owner: cognition
+matrix_id: cognition_admitted_reference_matrix
+families: &cognition_admitted_reference_matrix_rows
   - family_id: agent_model_kernel
     allowed_outgoing_refs: [memory_substrate, knowledge_projections, skill_artifacts]
     allowed_incoming_refs: []
@@ -54,3 +57,4 @@ families:
     missing_target_on_archive: none
     missing_target_on_remove: none
     source_rule: C-COG-047
+rows: *cognition_admitted_reference_matrix_rows

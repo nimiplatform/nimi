@@ -1,4 +1,7 @@
 version: 1
+table_family: product_catalog
+owner: avatar
+catalog_id: avatar_vrm_sample_catalog
 description: >
   Representative VRM sample catalog for Avatar VRM acceptance. Sample binaries
   are not committed to the repository; they are fetched on demand into
@@ -6,7 +9,7 @@ description: >
   source URL, license authority, expected minimum byte size, and acceptance
   purpose.
 
-samples:
+samples: &avatar_vrm_sample_catalog_entries
   - id: vrm1-constraint-twist
     filename: VRM1_Constraint_Twist_Sample.vrm
     display_name: VRM1 Constraint Twist Sample
@@ -63,3 +66,4 @@ constraints:
       A sample cannot close visual or smoke proof unless its fetched payload is
       at least `expected_min_bytes` and parses as binary glTF/VRM in the
       relevant smoke path.
+entries: *avatar_vrm_sample_catalog_entries

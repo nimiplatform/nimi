@@ -1,5 +1,8 @@
 version: 1
-operations:
+table_family: protocol_surface
+owner: cognition
+protocol_id: cognition_memory_service_operations
+operations: &cognition_memory_service_operation_surfaces
   - operation_id: memory_save
     entrypoint: MemoryService.Save
     admitted_inputs: one typed memory record in one cognition scope
@@ -110,3 +113,4 @@ operations:
     fail_closed_reasons: illegal scope
     non_ownership_boundary: identifier listing must not be treated as recall or history parity
     source_rule: C-COG-039
+surfaces: *cognition_memory_service_operation_surfaces

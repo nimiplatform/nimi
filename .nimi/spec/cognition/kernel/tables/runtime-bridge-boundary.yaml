@@ -1,5 +1,8 @@
 version: 1
-boundaries:
+table_family: owner_matrix
+owner: cognition
+matrix_id: cognition_runtime_bridge_boundary
+boundaries: &cognition_runtime_bridge_boundary_rows
   - concern_id: local_model_kernels
     cognition_owner: full
     runtime_owner: none
@@ -48,3 +51,4 @@ boundaries:
     admitted_bridge: cognition_may_ignore_runtime_only_truth_without_losing_validity
     forbidden_owner_inversion: cognition_must_not_require_runtime_replication_review_or_provider_truth_to_be_complete
     source_rule: C-COG-033
+rows: *cognition_runtime_bridge_boundary_rows

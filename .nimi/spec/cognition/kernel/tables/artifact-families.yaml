@@ -1,5 +1,8 @@
 version: 1
-families:
+table_family: product_catalog
+owner: cognition
+catalog_id: cognition_artifact_families
+families: &cognition_artifact_family_entries
   - family_id: agent_model_kernel
     truth_weight: primary_local_model
     persistence_mode: durable_sqlite
@@ -48,3 +51,4 @@ families:
     public_owner_surface: WorkingService
     notes: One current state per scope; excluded from digest, prompt, and durable search.
     source_rule: C-COG-019
+entries: *cognition_artifact_family_entries

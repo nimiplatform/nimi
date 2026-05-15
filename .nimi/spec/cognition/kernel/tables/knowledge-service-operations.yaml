@@ -1,4 +1,7 @@
 version: 1
+table_family: protocol_surface
+owner: cognition
+protocol_id: cognition_knowledge_service_operations
 scope_kind_constraint:
   description: >
     Operations in this registry can be invoked under any registered cognition
@@ -11,7 +14,7 @@ scope_kind_constraint:
   authoritative_rules:
     - C-COG-059
     - K-KNOW-001a
-operations:
+operations: &cognition_knowledge_service_operation_surfaces
   - operation_id: knowledge_save
     entrypoint: KnowledgeService.Save
     admitted_inputs: one typed knowledge page projection in one cognition scope
@@ -177,3 +180,4 @@ operations:
     fail_closed_reasons: illegal scope
     non_ownership_boundary: identifier listing must not be treated as lexical/hybrid/graph parity
     source_rule: C-COG-043
+surfaces: *cognition_knowledge_service_operation_surfaces

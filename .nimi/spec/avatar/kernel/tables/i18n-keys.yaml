@@ -1,4 +1,7 @@
 version: 1
+table_family: product_catalog
+owner: avatar
+catalog_id: avatar_i18n_keys
 description: >
   Wave 2 admitted i18n key table for Nimi Avatar. Lists every i18n key used by
   the avatar shell renderer along with its English baseline copy, the
@@ -16,7 +19,7 @@ description: >
   - When introducing or removing a key, update this table FIRST, then both
     locale JSON files, then the consuming component.
 
-namespaces:
+namespaces: &avatar_i18n_key_entries
   - id: composer
     spec_anchor: "app-shell-contract.md §7.6 K-NAV-SHELL-COMPANION-006"
     description: "Companion composer (text input + send button)."
@@ -294,3 +297,4 @@ constraints:
   - description: "Adding new user-visible copy MUST update this table first; component code referencing an undeclared key fails CI."
   - description: "Locale files MUST mirror the dot-namespace structure here (e.g. `Avatar.composer.placeholder`)."
   - description: "All `summary_with_reason` keys MUST use `{{reason}}` interpolation; do not concatenate at the call site."
+entries: *avatar_i18n_key_entries

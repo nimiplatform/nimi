@@ -1,4 +1,7 @@
 version: 1
+table_family: product_catalog
+owner: avatar
+catalog_id: avatar_vrm_motion_presets
 description: >
   Interchange-only motion preset registry for the VRM backend branch. This
   registry is not the APML/runtime motion support surface. Each preset id maps
@@ -33,7 +36,7 @@ description: >
 
 builtin_dir: apps/avatar/assets/vrm-motion-presets
 
-presets:
+presets: &avatar_vrm_motion_preset_entries
   - id: idle_subtle
     file: idle_subtle.vrma
     loop: true
@@ -71,3 +74,4 @@ drift_checks:
   - description: >
       Removing a preset id at registry level requires updating every
       activity-mapping.yaml entry that references it in the same packet.
+entries: *avatar_vrm_motion_preset_entries

@@ -1,4 +1,7 @@
 version: 2
+table_family: protocol_surface
+owner: avatar
+protocol_id: avatar_activity_backend_projection
 description: >
   Activity (ontology id) → backend-specific projection routing for Nimi
   Avatar. Each ontology-admitted activity declares BOTH `live2d` AND `vrm`
@@ -40,7 +43,7 @@ naming_rule:
       motion_group: "Activity_ModWeatherStormWatching"
 
 # ── core ontology activities (every entry MUST have BOTH live2d AND vrm route) ──
-activities:
+activities: &avatar_activity_backend_projection_surfaces
   # ── interaction (no intensity) ──
   greet:
     live2d:
@@ -227,3 +230,4 @@ constraints:
     - description: >
         Adding a generated motion route MUST update this table in the same
         packet when the route is intended for activity projection.
+surfaces: *avatar_activity_backend_projection_surfaces

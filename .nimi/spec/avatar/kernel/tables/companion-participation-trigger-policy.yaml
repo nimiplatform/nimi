@@ -1,10 +1,13 @@
 version: 1
+table_family: protocol_surface
+owner: avatar
+protocol_id: companion_participation_trigger_policy
 description: >
   Trigger policy for Avatar companion/persona/debug participation consumers.
   Trigger sources are UI/domain causes only; Runtime still owns execution
   admission.
 source_contract: .nimi/spec/avatar/kernel/companion-participation-consumer-contract.md
-trigger_sources:
+trigger_sources: &companion_participation_trigger_surfaces
   none:
     execution_request: forbidden
     allowed_profiles:
@@ -50,3 +53,4 @@ validation:
   missing_profile_for_execution: fail_closed
   missing_room_orchestration_for_domain_context: fail_closed
   local_fallback_execution: forbidden
+surfaces: *companion_participation_trigger_surfaces

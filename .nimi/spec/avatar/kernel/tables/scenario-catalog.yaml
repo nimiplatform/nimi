@@ -1,4 +1,7 @@
 version: 1
+table_family: product_catalog
+owner: avatar
+catalog_id: avatar_scenario_catalog
 description: >
   Mock scenario catalog for Nimi Avatar explicit fixture mode. Each scenario is
   a *.mock.json file in src/shell/renderer/mock/scenarios/ driving NAS handler
@@ -8,7 +11,7 @@ description: >
 
 default_scenario: "default"
 
-scenarios:
+scenarios: &avatar_scenario_catalog_entries
   - id: "default"
     title: "Default bootstrap scenario"
     file: "src/shell/renderer/mock/scenarios/default.mock.json"
@@ -261,3 +264,4 @@ constraints:
     - description: "loop: true 的 scenario 必须有 finite duration_ms"
     - description: "scenario file 内的 scenario_id 字段必须等于 catalog id"
     - description: "新增 scenario 必须更新本 catalog，不允许 floating scenario files"
+entries: *avatar_scenario_catalog_entries

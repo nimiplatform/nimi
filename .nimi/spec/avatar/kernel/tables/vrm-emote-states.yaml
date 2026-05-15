@@ -1,4 +1,7 @@
 version: 1
+table_family: closed_enum
+owner: avatar
+enum_id: vrm_emote_states
 description: >
   Emotion to VRM expression weight bundle. Emote names are anchored to the
   platform agent-activity-ontology (K-AGCORE-049) emotion ids
@@ -25,7 +28,7 @@ description: >
 
 source_authority: /.nimi/spec/runtime/kernel/tables/agent-activity-ontology.yaml
 
-emotes:
+emotes: &vrm_emote_state_values
   neutral:
     blend_duration_sec: 0.6
     expressions:
@@ -148,3 +151,4 @@ drift_checks:
       happy / sad / angry / relaxed / surprised / aa / ih / ou / ee / oh).
       Custom (model-specific) preset names are allowed but trigger
       partial-degrade skip warnings on models that lack them.
+values: *vrm_emote_state_values

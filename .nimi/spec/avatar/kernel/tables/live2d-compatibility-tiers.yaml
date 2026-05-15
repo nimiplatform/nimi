@@ -1,11 +1,14 @@
 version: 1
+table_family: closed_enum
+owner: avatar
+enum_id: live2d_compatibility_tiers
 description: >
   Compatibility tiers for adapting existing Live2D Cubism packages into the
   Nimi Avatar Live2D carrier. The validator computes the highest tier proven by
   package layout, adapter manifest, legal posture, semantic mappings, and Avatar
   carrier evidence.
 
-tiers:
+tiers: &live2d_compatibility_tier_values
   unsupported:
     product_claim: "The package must not load as a successful Avatar carrier."
     requires_manifest: false
@@ -77,3 +80,4 @@ validation_posture:
   upstream_mutation: "forbidden"
   unsupported_feature_success: "forbidden"
   desktop_renderer_acceptance: "forbidden"
+values: *live2d_compatibility_tier_values
