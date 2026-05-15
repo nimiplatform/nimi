@@ -263,6 +263,165 @@ The orchestrator ranks today's eligible candidates in this order:
 
 Ranking must preserve same-day mutual exclusion and the `PO-TIME-003` P0 invariant. Ranking is not authority over individual record state; it is a display projection.
 
+### PO-TIME-010.a Ranking Function
+
+The Ranking Function is the named, deterministic contract the engine must implement against. The prose subsections above (Eligibility Composition, Monthly Dispersion, Biological Anchor Rule, Same-Day Mutual Exclusion, Display Window and Decay, Snooze, Ranking) are policy; this subsection and the four below name the function signatures.
+
+Inputs (typed):
+
+- `today` — local ISO calendar date.
+- `weekday` — derived from `today`; one of `Mon | Tue | Wed | Thu | Fri | Sat | Sun`.
+- `child.birthDate` — child profile birth date.
+- `reminderAgenda` — array of `PO-TIME-002` reminder state projection rows for `child`.
+- `hrecFreshness` — `PO-HREC-006` freshness and next-record snapshot for `child` (consumed; never recomputed).
+- `orthodonticCycle` — orthodontic cycle projection from `orthodontic-contract.md`.
+- `journalRecency` — per-child last journal entry timestamps, optionally per `observation-framework` dimension.
+- `customTodos` — array of `local-storage.yaml#custom_todos` rows for `child`.
+- `catalogRows` — array of admitted rows from `dashboard-task-catalog.yaml`.
+- `surfaceHistory` — for reminder-backed rows, derived from `reminder_states.lastSurfacedAt` (persisted, see `PO-REMI-004` shared columns); for catalog-only rows, ephemeral display-layer state (see Snooze Countdown Projection below).
+
+Output: an ordered list `dashboardTaskList` of dashboard task entries, with per-family caps applied per `Same-Day Mutual Exclusion`.
+
+Tier order (ranking applied in this exact sequence; output is the concatenation):
+
+1. `must-do.hardTime` and `must-do.P0` — sourced from `reminderAgenda` with `priority = P0` or `actionType ∈ {go_hospital, record_data}` whose due date falls today or earlier and whose domain marks the reminder as hard-time.
+2. `must-do.dueWithCaptureAvailable` — sourced from `reminderAgenda` whose `actionType = record_data` and whose binding row in `reminder-capture-targets.yaml` resolves to a capture protocol present in `health-capture-protocols.yaml`.
+3. `must-do.orthodonticCycleProximity` — sourced from `reminderAgenda` whose `ruleId` matches `orthodontic-protocols.yaml#rules` and whose `orthodonticCycle` proximity flag is within the configured proximity window.
+4. `maintain` and `observe` rows from `catalogRows` whose Dispersion Function returns `eligible: true` for `today` AND whose `slotPreference` matches today's `weekday` class.
+5. `connect` rows from `catalogRows` (currently empty; tier reserved). Same eligibility test as tier 4.
+6. `personal` rows from `customTodos` in user-authored order.
+
+Tie-break within a tier:
+
+1. `slotPreference` exactness (today is `weekend` and row is `weekend-heavy` ranks above today is `weekend` and row is `weekday-evening-light`).
+2. shorter `displayWindowDays` ranks higher (more urgent surface).
+3. `taskId` lexical ascending order (deterministic final tiebreak).
+
+Determinism: same `(today, child, reminderAgenda, hrecFreshness, orthodonticCycle, journalRecency, customTodos, catalogRows, surfaceHistory)` MUST produce the same `dashboardTaskList`. The function MUST NOT consult time-of-day, randomness, network state, or any provider/model identifier.
+
+P0 invariant: `must-do.P0` rows are present in `dashboardTaskList` whenever their underlying reminder row's lifecycle is `due | overdue` and the row is not `dismissed` or `not_applicable`. `PO-TIME-003` P0 delivery invariant is restated here verbatim: P0 reminders must appear in `todayFocus` regardless of nurture mode, dispersion, mutual exclusion, decay, or snooze. No subsequent ranking step may demote a P0 row out of the visible set.
+
+### PO-TIME-010.b Dispersion Function
+
+Inputs (typed):
+
+- `today` — local ISO calendar date; the day-of-month `today.day` and the month `today.month`.
+- `catalogRow` — a single `dashboard-task-catalog.yaml` row with `dispersionWindow`, `cadencePolicy`, and `snoozeDefaultDays`.
+- `lastSurfaced` — most recent surfacing timestamp for this row (from `surfaceHistory`).
+
+Output: `{ eligible: boolean, reason: string }`.
+
+`dispersionWindow` to day-of-month range (closed intervals; deterministic):
+
+| `dispersionWindow` | `today.day` range |
+|---|---|
+| `week-1` | 1 ≤ day ≤ 7 |
+| `week-2` | 8 ≤ day ≤ 14 |
+| `week-3` | 15 ≤ day ≤ 21 |
+| `week-4` | 22 ≤ day ≤ daysInMonth(`today.month`) |
+| `rolling` | every day (no monthly window restriction) |
+
+`cadencePolicy` interaction:
+
+- `anchor`: eligible iff `today.day` equals the Anchor Function's output for `(today, child.birthDate, catalogRow)` AND `today.day` falls inside `dispersionWindow`'s day range.
+- `interval`: eligible iff `(today - lastSurfaced) ≥ snoozeDefaultDays` (in whole local days). Initial eligibility when `lastSurfaced` is null.
+- `windowed`: eligible iff `today.day` falls inside `dispersionWindow`'s day range AND `(today - lastSurfaced) ≥ snoozeDefaultDays`.
+
+Determinism: same `(today, catalogRow, lastSurfaced)` MUST produce the same output. The function MUST NOT consult locale, time zone (beyond local date), or any source outside the typed inputs.
+
+Same-day mutual exclusion is applied **after** the Dispersion Function returns `eligible: true` and before the Ranking Function output is bounded; see `Same-Day Mutual Exclusion` prose.
+
+### PO-TIME-010.c Anchor Function
+
+Inputs (typed):
+
+- `today` — local ISO calendar date.
+- `child.birthDate` — child profile birth date (year, month, day).
+- `catalogRow` — a single `dashboard-task-catalog.yaml` row with `biologicalAnchor` and `slotPreference`.
+
+Output: `{ targetDay: integer (1..daysInMonth) | null, slotMismatch: boolean }`.
+
+Algorithm:
+
+1. If `catalogRow.biologicalAnchor = none`: return `{ targetDay: null, slotMismatch: false }`. Anchor Function does not apply; the Dispersion Function uses cadence semantics alone.
+2. If `catalogRow.biologicalAnchor = birthDayOfMonth`:
+   a. `targetDay = min(child.birthDate.day, daysInMonth(today.month, today.year))`. This clamps end-of-month edge cases: child born on day 31 in a 30-day month yields `targetDay = 30`; child born Feb 29 in a non-leap February yields `targetDay = 28`.
+   b. Let `targetWeekday` be the weekday of `(today.year, today.month, targetDay)`.
+   c. If `catalogRow.slotPreference = weekend-heavy` AND `targetWeekday ∈ {Mon, Tue, Wed, Thu, Fri}`:
+      - search forward 1..6 days for the next `Sat` or `Sun` within `today.month`; if found, return `{ targetDay: <shifted day>, slotMismatch: false }`.
+      - else search backward 1..6 days for the previous `Sat` or `Sun` within `today.month`; if found, return `{ targetDay: <shifted day>, slotMismatch: false }`.
+      - else return `{ targetDay: targetDay, slotMismatch: true }`. The row still surfaces on `targetDay`; `slotMismatch: true` is a display annotation, not a fail-close. Display layer may show a softer label such as "本月没找到合适周末，挑个空就好".
+   d. If `catalogRow.slotPreference = weekday-evening-light` AND `targetWeekday ∈ {Sat, Sun}`: return `{ targetDay: targetDay, slotMismatch: false }`. The weekday-evening preference does not force a shift off the biological anchor.
+   e. If `catalogRow.slotPreference = hard-time`: the Anchor Function does not apply; domain schedule governs. Return `{ targetDay: null, slotMismatch: false }`.
+
+Determinism: same `(today, child.birthDate, catalogRow)` MUST produce the same output.
+
+The Anchor Function MUST NOT consult `lastSurfaced`, `reminderAgenda`, `hrecFreshness`, `orthodonticCycle`, or any input not listed above. Anchor decisions are pure derivations from the child's birth date and the row's anchor/slot preferences.
+
+### PO-TIME-010.d Decay Projection
+
+Inputs (typed):
+
+- `catalogRow` — a single `dashboard-task-catalog.yaml` row with `displayWindowDays`, `decayStrategy`.
+- `lastSurfaced` — most recent surfacing timestamp for this row.
+- `today` — local ISO calendar date.
+- `isP0` — boolean; derived from the row's owner contract chain (only `must-do.P0` rows are `isP0 = true`).
+
+Output: `displayState ∈ { eligible-main, eligible-pinned, downgrade-indicator, hidden-resurface }`.
+
+Projection rules (evaluated in order; first match wins):
+
+1. If `isP0 = true`: `displayState = eligible-pinned`. P0 rows are never decayed. Per `PO-TIME-003`, a P0 row remains visible regardless of `displayWindowDays`, `decayStrategy`, or `lastSurfaced`.
+2. If `lastSurfaced` is null OR `(today - lastSurfaced) ≤ catalogRow.displayWindowDays`: `displayState = eligible-main`. The row may rank into the main dashboard list per the Ranking Function.
+3. If `(today - lastSurfaced) > catalogRow.displayWindowDays` AND `catalogRow.decayStrategy = low-disturbance-downgrade`: `displayState = downgrade-indicator`. The row is suppressed from per-row main-list visibility and is instead represented by a single aggregated badge ("档案有 N 项可更新"). The aggregated badge counts how many `downgrade-indicator` rows exist for `child` today.
+4. If `(today - lastSurfaced) > catalogRow.displayWindowDays` AND `catalogRow.decayStrategy = resurface-next-cycle`: `displayState = hidden-resurface`. The row exits the main list entirely and re-enters eligibility on its next cadence/dispersion window (recomputed by Dispersion Function on subsequent days).
+
+Mandatory invariants:
+
+- The Decay Projection MUST NOT write to `reminder_states`. Catalog row decay does not mutate any persisted state.
+- The `downgrade-indicator` aggregated badge is a parallel display element to `PO-TIME-004`'s `dataGapAlert`. It MUST NOT replace, merge with, or alias `dataGapAlert`. Promoting either into an eligible task source remains a fail-close violation (`PO-TIME-004` constraint preserved).
+- The Decay Projection MUST NOT consult or modify the `dataGapAlert` projection.
+- `eligible-pinned` is reserved exclusively for P0 must-do rows; no catalog row of `family ∈ {maintain, observe, connect}` may produce `eligible-pinned`.
+
+Determinism: same `(catalogRow, lastSurfaced, today, isP0)` MUST produce the same `displayState`.
+
+### PO-TIME-010.e Snooze Countdown Projection
+
+Inputs (typed):
+
+- `catalogRow` — a single `dashboard-task-catalog.yaml` row.
+- `today` — local ISO calendar date.
+- `reminderBinding` — `null` if this catalog row has no underlying `record_data` reminder rule; otherwise a reference to the bound row in `reminder-capture-targets.yaml`.
+- `reminderState` — when `reminderBinding != null`, the corresponding `reminder_states` row with its `snoozedUntil` column. When `reminderBinding = null`, this input is unused.
+- `ephemeralSnooze` — when `reminderBinding = null`, the display layer's ephemeral `{ lastSnoozedAt: ISODate | null, snoozeUntil: ISODate | null }`. This is held in the dashboard display layer and does not persist across application restarts.
+
+Output: `{ snoozeRemainingDays: integer (≥ 0), eligibleBySnooze: boolean }`.
+
+Two paths:
+
+Path 1 — **reminder-backed maintain row** (`reminderBinding != null`):
+
+- Snooze persistence is owned by `PO-REMI-005`. Snooze action writes `reminderState.snoozedUntil` via the existing PO-REMI snooze path.
+- `snoozeRemainingDays = max(0, daysBetween(today, reminderState.snoozedUntil))` when `reminderState.snoozedUntil` is not null.
+- `eligibleBySnooze = (reminderState.snoozedUntil is null) OR (reminderState.snoozedUntil ≤ today)`.
+- The dashboard MUST NOT introduce a parallel snooze column for reminder-backed rows. There is exactly one snooze authority: `reminder_states.snoozedUntil` via `PO-REMI-005`.
+
+Path 2 — **catalog-only row** (`reminderBinding = null`; applies to all `observe` rows and to any `maintain` row whose protocol has no admitted `record_data` reminder rule):
+
+- Snooze is held in display-layer ephemeral state (`ephemeralSnooze`). The display layer initializes `ephemeralSnooze = { lastSnoozedAt: null, snoozeUntil: null }` per child per session.
+- On a user-initiated snooze action, the display layer sets `ephemeralSnooze.lastSnoozedAt = today` and `ephemeralSnooze.snoozeUntil = today + catalogRow.snoozeDefaultDays`.
+- `snoozeRemainingDays = max(0, daysBetween(today, ephemeralSnooze.snoozeUntil))` when `ephemeralSnooze.snoozeUntil` is not null.
+- `eligibleBySnooze = (ephemeralSnooze.snoozeUntil is null) OR (ephemeralSnooze.snoozeUntil ≤ today)`.
+- Ephemeral snooze state MUST NOT be written to `reminder_states`. Ephemeral snooze state MUST NOT extend `local-storage.yaml`. Persistence of catalog-only snooze across app restarts is **out of scope for this contract revision**. A later admission decision may revisit persistence; until then, catalog-only snooze is intentionally session-local.
+
+Mandatory invariants:
+
+- The Snooze Countdown Projection MUST NOT create new `reminder_states` rows for non-reminder catalog rows. Synthesizing a fake `reminder_states` row to hold ephemeral snooze is parallel-truth and is a fail-close violation.
+- The Snooze Countdown Projection MUST NOT introduce a new persistence table or extend `local-storage.yaml`. Authoring a new task-state contract is out of scope for `PO-TIME-010`.
+- `PO-REMI-010` admissibility constraints remain unchanged: P0 `task` rules cannot be hidden by snooze, whether reminder-backed or catalog-only. A catalog row that wraps a P0 must-do reminder cannot accept snooze beyond what `PO-REMI-010` admits.
+
+Determinism: same `(catalogRow, today, reminderBinding, reminderState, ephemeralSnooze)` MUST produce the same output.
+
 ### Fail-Close Behavior
 
 The orchestrator must fail closed when:
@@ -273,7 +432,16 @@ The orchestrator must fail closed when:
 - a row's `ownerContract` does not resolve to an admitted contract,
 - a row would suppress a `P0` reminder for any dispersion, mutual-exclusion, snooze, or decay purpose,
 - a row would recompute `PO-HREC-*` freshness locally instead of consuming the PO-HREC snapshot,
-- a row would write directly to `health_record_events` / `health_record_values` instead of opening a `PO-CAPT-*` intent.
+- a row would write directly to `health_record_events` / `health_record_values` instead of opening a `PO-CAPT-*` intent,
+- the Ranking Function reads inputs outside the typed input list (PO-TIME-010.a),
+- the Ranking Function demotes a P0 must-do row out of the visible set under any dispersion, mutual-exclusion, decay, or snooze condition,
+- the Dispersion Function or Anchor Function consults non-deterministic sources (time-of-day, randomness, provider/model identifier),
+- the Anchor Function returns a `targetDay` outside `1..daysInMonth(today.month, today.year)`,
+- the Decay Projection writes to `reminder_states` or any other persisted state for catalog row decay,
+- the Decay Projection's `downgrade-indicator` is promoted into the Ranking Function's eligible task source set (such promotion would alias `dataGapAlert` semantics and is forbidden),
+- the Snooze Countdown Projection synthesizes a `reminder_states` row to hold ephemeral snooze for a catalog-only row,
+- the Snooze Countdown Projection extends `local-storage.yaml` or authors a new task-state persistence path,
+- any scheduler rule hard-codes a provider, model, or application-path constant.
 
 These fail-close conditions extend `PO-TIME-007`. They do not weaken or replace it.
 
