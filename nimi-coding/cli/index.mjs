@@ -14,6 +14,7 @@ import { runTopic } from "./commands/topic.mjs";
 import { runTopicRunnerCommand } from "./commands/topic-runner.mjs";
 import { runValidateAcceptance } from "./commands/validate-acceptance.mjs";
 import { runGenerateSpecDerivedDocs } from "./commands/generate-spec-derived-docs.mjs";
+import { runGenerateSpecMigrationPlan } from "./commands/generate-spec-migration-plan.mjs";
 import { runClassifySpecTree } from "./commands/classify-spec-tree.mjs";
 import { runValidateAiGovernance } from "./commands/validate-ai-governance.mjs";
 import { runValidateDomainAdmission } from "./commands/validate-domain-admission.mjs";
@@ -61,6 +62,7 @@ const COMMANDS = {
   "validate-domain-admission": runValidateDomainAdmission,
   "validate-tracked-output-admission": runValidateTrackedOutputAdmission,
   "generate-spec-derived-docs": runGenerateSpecDerivedDocs,
+  "generate-spec-migration-plan": runGenerateSpecMigrationPlan,
   "validate-ai-governance": runValidateAiGovernance,
   "validate-prompt": runValidatePrompt,
   "validate-worker-output": runValidateWorkerOutput,

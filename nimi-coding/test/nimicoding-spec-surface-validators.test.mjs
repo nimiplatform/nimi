@@ -355,3 +355,78 @@ test("classify-spec-tree emits migration inventory and exits non-zero when viola
     assert.ok(inventory.inventory.some((entry) => entry.source_path === ".nimi/spec/runtime/kernel/generated/job-states.md"));
   });
 });
+
+test("generate-spec-migration-plan emits local-only plan preserving confirmation blockers", async () => {
+  await withTempProject(async (projectRoot) => {
+    await seedValidRuntimeTableProject(projectRoot);
+    await writeProjectFile(projectRoot, ".nimi/spec/avatar/kernel/index.md", "# Avatar Candidate\n");
+    await writeProjectFile(projectRoot, ".nimi/spec/runtime/kernel/generated/job-states.md", "# Generated Jobs\n");
+    await writeProjectFile(projectRoot, ".nimi/methodology/core.yaml", "version: 1\n");
+
+    const emitRef = ".nimi/local/state/spec-surface/migration-plan.json";
+    const result = await runCliSubprocess([
+      "generate-spec-migration-plan",
+      "--profile",
+      "nimi",
+      "--root",
+      ".nimi/spec",
+      "--emit",
+      emitRef,
+      "--json",
+    ], { cwd: projectRoot });
+    assert.equal(result.exitCode, 0, result.stderr);
+    const payload = JSON.parse(result.stdout);
+    assert.equal(payload.contract, "nimicoding.spec-migration-plan.v1");
+    assert.equal(payload.ok, true);
+    assert.equal(payload.mutation_policy.mutates_source_tree, false);
+    assert.ok(payload.groups.move_local.includes(".nimi/spec/runtime/kernel/generated/job-states.md"));
+    assert.ok(payload.groups.move_package.includes(".nimi/methodology/core.yaml"));
+    assert.ok(payload.required_confirmations.some((entry) => (
+      entry.source_path === ".nimi/spec/avatar/kernel/index.md"
+      && entry.required_confirmation === "product_semantic_fork"
+    )));
+    assert.equal(payload.enum_validation.unknown_target_classes.length, 0);
+    assert.equal(payload.enum_validation.unknown_dispositions.length, 0);
+
+    const written = JSON.parse(await readFile(path.join(projectRoot, emitRef), "utf8"));
+    assert.equal(written.contract, "nimicoding.spec-migration-plan.v1");
+  });
+});
+
+test("generate-spec-migration-plan refuses tracked authority emit paths", async () => {
+  await withTempProject(async (projectRoot) => {
+    await seedValidRuntimeTableProject(projectRoot);
+
+    const result = await runCliSubprocess([
+      "generate-spec-migration-plan",
+      "--profile",
+      "nimi",
+      "--root",
+      ".nimi/spec",
+      "--emit",
+      ".nimi/spec/migration-plan.json",
+      "--json",
+    ], { cwd: projectRoot });
+    assert.equal(result.exitCode, 2);
+    assert.match(result.stderr, /\.nimi\/local\/state\/spec-surface/);
+  });
+});
+
+test("generate-spec-migration-plan refuses traversal outside local state emit root", async () => {
+  await withTempProject(async (projectRoot) => {
+    await seedValidRuntimeTableProject(projectRoot);
+
+    const result = await runCliSubprocess([
+      "generate-spec-migration-plan",
+      "--profile",
+      "nimi",
+      "--root",
+      ".nimi/spec",
+      "--emit",
+      ".nimi/local/state/spec-surface/../../outside.json",
+      "--json",
+    ], { cwd: projectRoot });
+    assert.equal(result.exitCode, 2);
+    assert.match(result.stderr, /\.nimi\/local\/state\/spec-surface/);
+  });
+});

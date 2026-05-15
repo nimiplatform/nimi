@@ -551,6 +551,120 @@ function reportFor(validator, ok, errors, warnings, entries, extra = {}) {
   };
 }
 
+function countBy(entries, field) {
+  const counts = {};
+  for (const entry of entries) {
+    const value = String(entry[field] ?? "unknown");
+    counts[value] = (counts[value] ?? 0) + 1;
+  }
+  return counts;
+}
+
+function groupInventoryByDisposition(entries) {
+  const groups = {};
+  for (const entry of entries) {
+    const disposition = String(entry.disposition);
+    const group = groups[disposition] ?? [];
+    group.push(entry.source_path);
+    groups[disposition] = group;
+  }
+  return Object.fromEntries(Object.entries(groups).map(([key, value]) => [key, value.sort()]));
+}
+
+function buildMigrationExecutionPackets(entries) {
+  const packetKinds = [
+    {
+      packet_id: "move-package-methodology-and-host-overlays",
+      dispositions: ["move_package"],
+      requires_confirmation: false,
+    },
+    {
+      packet_id: "move-local-derived-audit-state-and-lifecycle",
+      dispositions: ["move_local"],
+      requires_confirmation: false,
+    },
+    {
+      packet_id: "rewrite-product-authority-tables-and-guidance",
+      dispositions: ["rewrite"],
+      requires_confirmation: true,
+    },
+    {
+      packet_id: "resolve-blocked-semantic-forks",
+      dispositions: ["block"],
+      requires_confirmation: true,
+    },
+  ];
+  return packetKinds
+    .map((packet) => {
+      const matching = entries.filter((entry) => packet.dispositions.includes(entry.disposition));
+      return {
+        ...packet,
+        entry_count: matching.length,
+        source_paths: matching.map((entry) => entry.source_path).sort(),
+      };
+    })
+    .filter((packet) => packet.entry_count > 0);
+}
+
+function enumValidation(entries, inventory) {
+  const targetClasses = new Set(inventory.target_class_enum);
+  const dispositions = new Set(inventory.disposition_enum);
+  return {
+    unknown_target_classes: entries
+      .filter((entry) => !targetClasses.has(entry.target_class))
+      .map((entry) => entry.source_path),
+    unknown_dispositions: entries
+      .filter((entry) => !dispositions.has(entry.disposition))
+      .map((entry) => entry.source_path),
+  };
+}
+
+function migrationPlanForInventory(rootRef, inventory) {
+  const entries = inventory.inventory;
+  const enumStatus = enumValidation(entries, inventory);
+  const requiredConfirmationEntries = entries.filter((entry) => entry.required_confirmation !== "none");
+  return {
+    contract: "nimicoding.spec-migration-plan.v1",
+    ok: enumStatus.unknown_target_classes.length === 0 && enumStatus.unknown_dispositions.length === 0,
+    version: inventory.version,
+    root: rootRef,
+    inventory: entries,
+    disposition_enum: inventory.disposition_enum,
+    target_class_enum: inventory.target_class_enum,
+    semantic_constraints: [
+      ...inventory.semantic_constraints,
+      "migration_plan_must_not_modify_files",
+      "required_confirmation_entries_must_be_preserved",
+      "local_only_plan_artifact_required",
+    ],
+    summary: {
+      total_files: entries.length,
+      by_surface_class: countBy(entries, "current_inferred_class"),
+      by_disposition: countBy(entries, "disposition"),
+      by_required_confirmation: countBy(entries, "required_confirmation"),
+      required_confirmation_count: requiredConfirmationEntries.length,
+      blocking_entries: entries.filter((entry) => entry.disposition === "block").length,
+    },
+    enum_validation: enumStatus,
+    required_confirmations: requiredConfirmationEntries.map((entry) => ({
+      source_path: entry.source_path,
+      required_confirmation: entry.required_confirmation,
+      ambiguity: entry.ambiguity,
+      evidence: entry.evidence,
+      recommendation: entry.required_confirmation === "product_semantic_fork"
+        ? "stop_for_user_decision_before_migration"
+        : "resolve_owner_or_package_boundary_before_migration",
+    })),
+    groups: groupInventoryByDisposition(entries),
+    execution_packets: buildMigrationExecutionPackets(entries),
+    mutation_policy: {
+      mutates_source_tree: false,
+      allowed_output_roots: [".nimi/local/state/spec-surface"],
+      forbidden_output_roots: [".nimi/spec", ".nimi/contracts", ".nimi/methodology", ".nimi/config"],
+    },
+  };
+}
+
 export async function classifySpecSurface(projectRoot, options = {}) {
   const { entries, errors } = await buildInventory(projectRoot, options);
   return reportFor("classify-spec-tree", errors.length === 0, errors, [], entries, {
@@ -580,6 +694,11 @@ export async function classifySpecSurface(projectRoot, options = {}) {
       ],
     },
   });
+}
+
+export async function generateSpecMigrationPlan(projectRoot, options = {}) {
+  const classification = await classifySpecSurface(projectRoot, options);
+  return migrationPlanForInventory(options.rootRef ?? ".nimi/spec", classification.inventory);
 }
 
 export async function buildSpecSurfaceInventory(projectRoot, options = {}) {
@@ -723,4 +842,22 @@ export async function writeInventoryIfRequested(report, emitRef, projectRoot) {
   const absolutePath = path.resolve(projectRoot, emitRef);
   await mkdir(path.dirname(absolutePath), { recursive: true });
   await writeFile(absolutePath, `${JSON.stringify(report.inventory, null, 2)}\n`, "utf8");
+}
+
+export async function writeMigrationPlanIfRequested(report, emitRef, projectRoot) {
+  if (!emitRef) {
+    return;
+  }
+  const allowedRoot = path.resolve(projectRoot, ".nimi/local/state/spec-surface");
+  const absolutePath = path.resolve(projectRoot, emitRef);
+  const relativeToAllowedRoot = path.relative(allowedRoot, absolutePath);
+  if (
+    relativeToAllowedRoot === "" ||
+    relativeToAllowedRoot.startsWith("..") ||
+    path.isAbsolute(relativeToAllowedRoot)
+  ) {
+    throw new Error("--emit must target .nimi/local/state/spec-surface/**");
+  }
+  await mkdir(path.dirname(absolutePath), { recursive: true });
+  await writeFile(absolutePath, `${JSON.stringify(report, null, 2)}\n`, "utf8");
 }

@@ -84,6 +84,7 @@ export function helpText() {
     `  ${styleCommand("nimicoding validate-spec-audit [.nimi/spec/_meta/spec-generation-audit.yaml]")}`,
     `  ${styleCommand("nimicoding validate-spec-tree [.nimi/spec]")}`,
     `  ${styleCommand("nimicoding classify-spec-tree --profile <profile-id> --root .nimi/spec [--emit <path>] [--json]")}`,
+    `  ${styleCommand("nimicoding generate-spec-migration-plan --profile <profile-id> --root .nimi/spec --emit .nimi/local/state/spec-surface/migration-plan.json [--json]")}`,
     `  ${styleCommand("nimicoding validate-placement --profile <profile-id> --root .nimi/spec [--json]")}`,
     `  ${styleCommand("nimicoding validate-table-family --profile <profile-id> --root .nimi/spec [--json]")}`,
     `  ${styleCommand("nimicoding validate-projection-edges --profile <profile-id> --root .nimi/spec [--json]")}`,
