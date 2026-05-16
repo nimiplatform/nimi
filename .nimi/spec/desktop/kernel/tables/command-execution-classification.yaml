@@ -148,7 +148,6 @@ registered_command_families:
     origin_crate: kit/shell/tauri
     owner_domain: runtime-account-custody
     execution_class: registered_disabled_stub
-    current_status: active_registered_fail_closed
     remediation_required: false
     admitted_risks: []
     source_rule: D-GATE-092
@@ -167,7 +166,6 @@ registered_command_families:
     origin_crate: mixed
     owner_domain: desktop-state-projection
     execution_class: bounded_blocking_with_admission
-    current_status: active
     remediation_required: false
     admitted_risks:
       - std_fs
@@ -183,7 +181,6 @@ registered_command_families:
     origin_crate: apps/desktop/src-tauri
     owner_domain: desktop-updater
     execution_class: request_response_async
-    current_status: active
     remediation_required: false
     admitted_risks:
       - blocking_http
@@ -197,7 +194,6 @@ registered_command_families:
     origin_crate: apps/desktop/src-tauri
     owner_domain: desktop-http-proxy
     execution_class: request_response_async
-    current_status: active
     remediation_required: false
     admitted_risks:
       - blocking_http
@@ -220,7 +216,6 @@ registered_command_families:
     origin_crate: mixed
     owner_domain: desktop-shell
     execution_class: bounded_blocking_with_admission
-    current_status: active
     remediation_required: false
     admitted_risks:
       - os_browser_handoff
@@ -242,7 +237,6 @@ registered_command_families:
     origin_crate: apps/desktop/src-tauri
     owner_domain: desktop-shell
     execution_class: bounded_blocking_with_admission
-    current_status: active
     remediation_required: false
     admitted_risks:
       - native_dialog
@@ -255,7 +249,6 @@ registered_command_families:
     origin_crate: kit/shell/tauri
     owner_domain: desktop-oauth
     execution_class: request_response_async
-    current_status: active
     remediation_required: false
     admitted_risks:
       - blocking_http
@@ -270,7 +263,6 @@ registered_command_families:
     origin_crate: mixed
     owner_domain: desktop-telemetry-and-menu
     execution_class: bounded_blocking_with_admission
-    current_status: active
     remediation_required: false
     admitted_risks:
       - std_fs
@@ -283,7 +275,6 @@ registered_command_families:
     origin_crate: kit/shell/tauri
     owner_domain: runtime-bridge
     execution_class: request_response_async
-    current_status: active
     remediation_required: false
     admitted_risks:
       - runtime_bridge_block_on
@@ -300,7 +291,6 @@ registered_command_families:
     origin_crate: apps/desktop/src-tauri
     owner_domain: external-agent-gateway
     execution_class: request_response_async
-    current_status: active
     remediation_required: false
     admitted_risks:
       - sync_lock_contention
@@ -312,7 +302,6 @@ registered_command_families:
     origin_crate: apps/desktop/src-tauri
     owner_domain: runtime-memory-binding
     execution_class: request_response_async
-    current_status: active
     remediation_required: false
     admitted_risks:
       - blocking_http
@@ -330,7 +319,6 @@ registered_command_families:
     origin_crate: apps/desktop/src-tauri
     owner_domain: local-runtime-catalog
     execution_class: request_response_async
-    current_status: active
     remediation_required: false
     admitted_risks: []
     source_rule: D-GATE-094
@@ -350,7 +338,6 @@ registered_command_families:
     origin_crate: apps/desktop/src-tauri
     owner_domain: local-runtime-assets
     execution_class: background_job
-    current_status: active
     remediation_required: false
     admitted_risks:
       - blocking_http
@@ -372,7 +359,6 @@ registered_command_families:
     origin_crate: apps/desktop/src-tauri
     owner_domain: local-runtime-profile-apply
     execution_class: background_job
-    current_status: active
     remediation_required: false
     admitted_risks:
       - blocking_http
@@ -393,7 +379,6 @@ registered_command_families:
     origin_crate: apps/desktop/src-tauri
     owner_domain: local-runtime-profile-apply
     execution_class: request_response_async
-    current_status: active
     remediation_required: false
     admitted_risks:
       - std_fs
@@ -415,7 +400,6 @@ registered_command_families:
     origin_crate: apps/desktop/src-tauri
     owner_domain: local-runtime-services
     execution_class: request_response_async
-    current_status: active
     remediation_required: false
     admitted_risks:
       - process_command
@@ -434,7 +418,6 @@ registered_command_families:
     origin_crate: apps/desktop/src-tauri
     owner_domain: local-runtime-download-manager
     execution_class: bounded_blocking_with_admission
-    current_status: active
     remediation_required: false
     admitted_risks:
       - std_fs
@@ -450,7 +433,6 @@ registered_command_families:
     origin_crate: apps/desktop/src-tauri
     owner_domain: local-runtime-audit-store
     execution_class: bounded_blocking_with_admission
-    current_status: active
     remediation_required: false
     admitted_risks:
       - std_fs
@@ -467,7 +449,6 @@ registered_command_families:
     origin_crate: apps/desktop/src-tauri
     owner_domain: local-runtime-assets
     execution_class: request_response_async
-    current_status: active
     remediation_required: false
     admitted_risks:
       - runtime_bridge_block_on
@@ -485,7 +466,6 @@ registered_command_families:
     origin_crate: apps/desktop/src-tauri
     owner_domain: runtime-mod-catalog
     execution_class: request_response_async
-    current_status: active
     remediation_required: false
     admitted_risks: []
     source_rule: D-GATE-094
@@ -501,7 +481,6 @@ registered_command_families:
     origin_crate: apps/desktop/src-tauri
     owner_domain: runtime-mod-catalog
     execution_class: background_job
-    current_status: active
     remediation_required: false
     admitted_risks:
       - blocking_http
@@ -564,7 +543,6 @@ registered_command_families:
     origin_crate: apps/desktop/src-tauri
     owner_domain: runtime-mod-local-store
     execution_class: bounded_blocking_with_admission
-    current_status: active
     remediation_required: false
     admitted_risks:
       - sqlite_sync
@@ -581,7 +559,6 @@ registered_command_families:
     origin_crate: apps/desktop/src-tauri
     owner_domain: desktop-chat-local-store
     execution_class: bounded_blocking_with_admission
-    current_status: active
     remediation_required: false
     admitted_risks:
       - sqlite_sync
@@ -605,7 +582,6 @@ registered_command_families:
     origin_crate: apps/desktop/src-tauri
     owner_domain: desktop-agent-center-resource-store
     execution_class: bounded_blocking_with_admission
-    current_status: active
     remediation_required: false
     admitted_risks:
       - std_fs
@@ -620,7 +596,6 @@ registered_command_families:
     origin_crate: apps/desktop/src-tauri
     owner_domain: desktop-test-fixtures
     execution_class: bounded_blocking_with_admission
-    current_status: active
     remediation_required: false
     admitted_risks:
       - std_fs
@@ -634,7 +609,6 @@ registered_command_families:
     origin_crate: apps/desktop/src-tauri
     owner_domain: desktop-device-profile
     execution_class: request_response_async
-    current_status: active
     remediation_required: false
     admitted_risks:
       - process_command
@@ -650,7 +624,6 @@ dormant_command_families:
     origin_crate: apps/desktop/src-tauri
     owner_domain: desktop-agent-avatar-store
     dormant_class: dormant_admitted
-    current_status: annotated_unregistered
     remediation_required: true
     reason: Avatar store commands are annotated but not registered; W3 must either admit a product path and active classification or delete them.
     source_rule: D-GATE-095
