@@ -93,7 +93,7 @@
 - `tables/agent-avatar-configuration.schema.yaml`
 - `tables/agent-avatar-debug-workbench-probes.yaml`
 - `tables/agent-avatar-debug-remediation-states.yaml`
-- `tables/rule-evidence.yaml`（fragment directive；实际内容委托给 `tables/rule-evidence.catalog.yaml` 与 `tables/rule-evidence.rules.yaml`）
+- `tables/rule-evidence.yaml`（fragment directive；实际内容委托给 `tables/rule-evidence.catalog.yaml` 与 `tables/rule-evidence.rules-*.yaml`）
 - `tables/codegen-import-allowlist.yaml`
 - `tables/codegen-capability-tiers.yaml`
 - `tables/codegen-static-scan-deny-patterns.yaml`

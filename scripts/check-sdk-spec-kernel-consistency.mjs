@@ -37,7 +37,9 @@ const kernelFiles = [
   '.nimi/spec/sdk/kernel/tables/runtime-agent-participation-methods.yaml',
   '.nimi/spec/sdk/kernel/tables/rule-evidence.yaml',
   '.nimi/spec/sdk/kernel/tables/rule-evidence.catalog.yaml',
-  '.nimi/spec/sdk/kernel/tables/rule-evidence.rules.yaml',
+  '.nimi/spec/sdk/kernel/tables/rule-evidence.rules-core-surface.yaml',
+  '.nimi/spec/sdk/kernel/tables/rule-evidence.rules-runtime-client.yaml',
+  '.nimi/spec/sdk/kernel/tables/rule-evidence.rules-domain-adapters.yaml',
 ];
 
 const domainFiles = listDomainMarkdownFiles('.nimi/spec/sdk');

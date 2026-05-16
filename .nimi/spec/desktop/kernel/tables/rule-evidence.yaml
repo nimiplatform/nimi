@@ -33,4 +33,7 @@ rule_registry:
   total_d_rules: 269
 fragments:
   evidence_catalog: rule-evidence.catalog.yaml
-  rules: rule-evidence.rules.yaml
+  rules:
+    - rule-evidence.rules-core.yaml
+    - rule-evidence.rules-runtime-bridge.yaml
+    - rule-evidence.rules-shell-ui.yaml
