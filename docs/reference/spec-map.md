@@ -14,7 +14,7 @@ authority and for navigating the spec directly.
 | Realm | `.nimi/spec/realm/**` |
 | Avatar | `.nimi/spec/avatar/**` |
 | Cognition | `.nimi/spec/cognition/**` |
-| Nimi Coding | `.nimi/spec/product-scope.yaml`, `.nimi/spec/bootstrap-state.yaml`, `.nimi/methodology/**`, `.nimi/contracts/**` |
+| Nimi Coding | `nimi-coding/spec/product-scope.yaml`, `nimi-coding/spec/bootstrap-state.yaml`, `nimi-coding/methodology/**`, `nimi-coding/contracts/**` |
 
 The spec is organized in a kernel + domain layout. Kernel directories
 are the single source of truth; domain files are reading aids and

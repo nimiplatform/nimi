@@ -52,7 +52,7 @@
 | 正常消费方使用正确的接缝 | 消费方仍走旧接缝 |
 | 快捷方式不会悄悄变成主路 | "临时"快捷方式变成事实主路 |
 
-**常见消费方失败**：build 通过、消费方不通过。先前那个公开文档议题就是范本：所有机器侧关卡都通过，真实读者却把文档读成"审计余渣文体"。
+**常见消费方失败**：build 通过、消费方不通过。先前那个公开文档 topic 就是范本：所有机器侧关卡都通过，真实读者却把文档读成"审计余渣文体"。
 
 ## 抗漂移闭合
 
@@ -95,11 +95,11 @@
 
 先前那次公开文档修复，机器审计层面是闭合的：权威闭合（无规范漂移）、语义闭合（声明对得上规范）、抗漂移闭合（不主张未取得证据的姿态保住了）。消费方**不通过**——用户把渲染后的文档读作"审计余渣"。
 
-方法论的反应：保持议题在 `pending`，不标记 `closed`；准入一次后续 wave，专门处理消费方缺口。**不要回头修改已闭合 wave 的记录。**
+方法论的反应：保持 topic 在 `pending`，不标记 `closed`；准入一次后续 wave，专门处理消费方缺口。**不要回头修改已闭合 wave 的记录。**
 
 四闭合存在的意义，正在于此。没有它，"build 通过"就会被当成完成。
 
 ## 来源依据
 
-- [`.nimi/methodology/four-closure-policy.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/four-closure-policy.yaml)
-- [`.nimi/contracts/closeout.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/closeout.schema.yaml)
+- [`nimi-coding/methodology/four-closure-policy.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/methodology/four-closure-policy.yaml)
+- [`nimi-coding/contracts/closeout.schema.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/contracts/closeout.schema.yaml)

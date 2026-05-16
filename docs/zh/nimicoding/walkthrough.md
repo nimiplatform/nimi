@@ -87,7 +87,7 @@ wave-1 是 `spec` packet（触及 `.nimi/spec/`）。权威收敛闸门触发。
 
 manager 启动一次独立审计（另一个 AI 会话）：
 
-| 结果类型 | audit |
+| 结果类型 | 审计（audit） |
 | 判定 | PASS |
 | 发现 | 无阻断项 |
 
@@ -109,7 +109,7 @@ worker（AI 宿主）在 packet 边界内执行：
 
 独立回路对实施结果做复核。
 
-| 结果类型 | judgement |
+| 结果类型 | 判定（judgement） |
 | 判定 | PASS |
 | 发现 | 无阻断项 |
 
@@ -124,7 +124,7 @@ wave-1 进入 closeout 阶段。
 | 消费方闭合 | closed | App 开发者可读 SessionBearer 契约；runtime 与 SDK 对齐 |
 | 抗漂移闭合 | closed | 已声明禁用 `legacy_alias`、`compat_shim`、`dual_read`、`dual_write`；重开条件显式 |
 
-wave-1 关闭。topic 仍在 `ongoing`，因为还有后续 wave。
+wave-1 关闭。 topic 仍在 `ongoing`，因为还有后续 wave。
 
 ## 阶段 8：准入 wave-2（runtime 实现）
 
@@ -218,10 +218,10 @@ reopen_criteria: SessionBearer regression observed; admit
 
 ## 来源依据
 
-- [`.nimi/methodology/topic-lifecycle-report.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/topic-lifecycle-report.yaml)
-- [`.nimi/methodology/four-closure-policy.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/four-closure-policy.yaml)
-- [`.nimi/methodology/authority-convergence-policy.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/authority-convergence-policy.yaml)
-- [`.nimi/contracts/topic.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/topic.schema.yaml)
-- [`.nimi/contracts/wave.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/wave.schema.yaml)
-- [`.nimi/contracts/packet.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/packet.schema.yaml)
-- [`.nimi/contracts/closeout.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/closeout.schema.yaml)
+- [`nimi-coding/methodology/topic-lifecycle-report.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/methodology/topic-lifecycle-report.yaml)
+- [`nimi-coding/methodology/four-closure-policy.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/methodology/four-closure-policy.yaml)
+- [`nimi-coding/methodology/authority-convergence-policy.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/methodology/authority-convergence-policy.yaml)
+- [`nimi-coding/contracts/topic.schema.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/contracts/topic.schema.yaml)
+- [`nimi-coding/contracts/wave.schema.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/contracts/wave.schema.yaml)
+- [`nimi-coding/contracts/packet.schema.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/contracts/packet.schema.yaml)
+- [`nimi-coding/contracts/closeout.schema.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/contracts/closeout.schema.yaml)

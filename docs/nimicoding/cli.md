@@ -1,277 +1,144 @@
 # CLI Surface
 
-The `nimicoding` CLI is a small, bounded set of commands. The
-package is intentionally **boundary-complete, not run-complete**:
-the CLI bootstraps, validates, and projects, but it does not
-autonomously execute packets.
+The `nimicoding` CLI is the package boundary for Nimi Coding. It
+bootstraps package-owned methodology into a project, validates the
+resulting `.nimi/**` surface, emits handoff payloads for external AI
+hosts, records local closeout evidence, and enforces topic / wave /
+packet gates for high-risk work.
+
+It does not write product code, call AI providers as the package
+runtime, own scheduling, or run an autonomous agent loop. Execution
+belongs to the admitted host; the CLI owns the contract boundary.
 
 For per-command field-level reference see
 [Reference → CLI Commands](/nimicoding/reference/cli-commands).
 
 ## Command Categories
 
-The CLI's verbs fall into a small number of categories:
-
 | Category | Commands |
 | --- | --- |
-| Bootstrap | `start`, `clear`, `doctor` |
-| Topic lifecycle | `topic create`, `topic wave ...`, `topic packet freeze`, `topic worker dispatch`, `topic result record`, `topic closeout ...`, `topic true-close-audit` |
-| Topic runner | `topic run-next-step`, `topic-runner step`, `topic-runner run` |
-| Sweep audit | `sweep audit plan`, `sweep audit chunk ...`, `sweep audit ledger build`, `sweep audit remediation-map build`, `sweep audit closeout summary`, `sweep audit status` |
-| Sweep design | `sweep design intake`, `sweep design packet-build`, `sweep design packet-build-batch`, `sweep design auditor-prompt`, `sweep design result-ingest`, `sweep design ledger-validate`, `sweep design finalize`, `sweep design wave-plan` |
-| Skill handoff | `handoff`, `closeout` |
-| High-risk execution | `admit-high-risk-decision`, `ingest-high-risk-execution`, `review-high-risk-execution`, `decide-high-risk-execution` |
-| Mechanical validators | per-artifact validators for `execution-packet`, `orchestration-state`, `prompt`, `worker-output`, `acceptance` |
-| Spec audit | `validate-spec-tree`, `validate-spec-audit`, `blueprint-audit` |
-| Repo gates | `pnpm check:nimi-nimicoding-split-readiness` and `pnpm check:nimi-coding-seed-sync` (via the host repo's tooling) |
+| Bootstrap and seed sync | `start`, `start --host <host>`, `clear`, `sync`, `doctor` |
+| Skill handoff and closeout | `handoff --skill ...`, `closeout --skill ...`, `closeout --from ...` |
+| Topic lifecycle | `topic create`, `topic status`, `topic validate`, `topic wave ...`, `topic packet freeze`, `topic worker dispatch`, `topic audit dispatch`, `topic result record`, `topic remediation open`, `topic overflow continue`, `topic hold`, `topic resume`, `topic closeout ...`, `topic true-close-audit`, `topic decision-review` |
+| Topic runner | `topic run-next-step`, `topic run-ledger ...`, `topic-runner step`, `topic-runner run` |
+| Sweep audit | `sweep audit plan`, `sweep audit chunk ...`, `sweep audit ledger build`, `sweep audit remediation-map build`, `sweep audit finding resolve`, `sweep audit closeout summary`, `sweep audit status` |
+| Sweep design | `sweep design intake`, `packet-build`, `packet-build-batch`, `auditor-prompt`, `result-ingest`, `ledger-validate`, `finalize`, `wave-plan`, `fix-topic` |
+| High-risk execution gates | `admit-high-risk-decision`, `ingest-high-risk-execution`, `review-high-risk-execution`, `decide-high-risk-execution` |
+| Mechanical artifact validators | `validate-execution-packet`, `validate-orchestration-state`, `validate-prompt`, `validate-worker-output`, `validate-acceptance` |
+| Spec and placement validators | `validate-spec-tree`, `validate-spec-audit`, `validate-spec-governance`, `classify-spec-tree`, `generate-spec-migration-plan`, `validate-placement`, `validate-table-family`, `validate-projection-edges`, `validate-guidance-bodies`, `validate-domain-admission`, `validate-tracked-output-admission`, `generate-spec-derived-docs`, `validate-ai-governance`, `blueprint-audit` |
 
-Each is bounded; new verbs require admitted contract extensions.
+Each category is bounded by typed contracts. New command families are
+package authority changes, not convenience aliases.
 
 ## Bootstrap
 
 ### `nimicoding start`
 
-Detect project state, project package source into host paths,
-seed `.nimi/**`, prepare one authoritative JSON AI task package,
-print a paste-ready prompt.
+`start` creates or resumes the project-local `.nimi/**` surface. It
+seeds package-owned config, contracts, methodology, and bootstrap spec
+material, updates managed AI entrypoint blocks when accepted, and
+prepares the next external handoff.
 
-| Property | Value |
+| Mode | Command |
 | --- | --- |
-| Mode | Interactive: explain → confirm → apply, one step at a time |
-| Failure | Fail closed on unknown CLI options |
-| Preserves | Existing truth files (does not overwrite) |
-| Refuses | Unsupported bootstrap contract versions |
+| Interactive | `nimicoding start` |
+| Non-interactive | `nimicoding start --yes` |
+| Host-targeted prompt | `nimicoding start --host <host>` |
 
-### `nimicoding clear`
+`start` preserves project-owned truth: `.nimi/spec/**`,
+`.nimi/local/**`, `.nimi/cache/**`, and locally modified bootstrap files
+are not silently overwritten.
 
-Remove only managed AI blocks in `AGENTS.md` and `CLAUDE.md`,
-remove only package-owned bootstrap files when they exactly
-match the seed.
+### `nimicoding sync`
 
-| Property | Value |
+`sync` is the package-owned seed projection contract.
+
+| Mode | Meaning |
 | --- | --- |
-| Preserves | Project-owned truth, locally modified bootstrap files, `.nimi/spec/**`, `.nimi/local/**`, `.nimi/cache/**` |
-| Refuses | Implicit deletion of project-owned truth or local artifacts |
+| `--check` | Fail non-zero when package-canonical seed files drift or are missing |
+| `--apply` | Rewrite drifted package-canonical files and seed missing entries |
+| `--dry-run` | Report what would change |
+
+Host-owned seed entries are seeded once and are not overwritten by
+`sync`.
 
 ### `nimicoding doctor`
 
-Validate `.nimi/**` bootstrap seed presence, contract
-compatibility, lifecycle markers, cross-contract reference
-alignment, host-adapter boundary truth, named-overlay status,
-admitted package-owned adapter profile overlays, and more.
+`doctor` validates bootstrap health, local state roots, cross-contract
+references, host adapter posture, skill result contracts, high-risk
+schemas, and canonical-tree readiness. Use `--json` for machine output
+and `--verbose` for internal contract detail.
 
-| Output | Human-readable or `--json` |
-| Failure | Fail closed when lifecycle, canonical tree, and auditability drift apart |
+## Minimal Adoption Path
+
+The first path for a new project is:
+
+```bash
+nimicoding start
+nimicoding doctor --json
+nimicoding handoff --skill spec_reconstruction --json
+nimicoding validate-spec-tree .nimi/spec
+nimicoding validate-spec-audit
+```
+
+`handoff` exports a payload. The external AI host consumes it and
+materializes `.nimi/spec/**`; local validators check the result.
 
 ## Topic Lifecycle
 
-The `topic` command family manages topic folders under
-`.nimi/topics/{proposal,ongoing,pending,closed}/`. It creates topics,
-adds and selects waves, admits waves, freezes packets, dispatches
-worker or audit packets, records typed results, handles remediation and
-overflow, and closes waves or topics.
-
-The mechanical runner entrypoint is:
+Topics are for authority-bearing, high-risk, cross-module, or
+multi-wave work. The CLI records durable state under
+`.nimi/topics/{proposal,ongoing,pending,closed}/`.
 
 ```bash
+nimicoding topic create <slug> --justification <text>
+nimicoding topic wave add <topic-id> <wave-id> <slug> \
+  --goal <text> --owner-domain <domain>
+nimicoding topic wave select <topic-id> <wave-id>
+nimicoding topic wave admit <topic-id> <wave-id>
+nimicoding topic packet freeze <topic-id> --from <draft-path>
 nimicoding topic run-next-step <topic-id> --json
 ```
 
-For repeated execution, use `topic-runner step` or `topic-runner run`
-with an explicit run id and adapter. Packet ids should include the wave
-identity, such as `wave-1-add-reference-field`, so the generated
-`packet-*.md` artifact remains unambiguous in the topic folder.
+`run-next-step` computes the next typed decision. For repeated stepping,
+use `topic-runner step` or `topic-runner run` with an explicit run id
+and adapter. Do not replace the runner with ad hoc `topic run-ledger`
+primitive chains.
 
-## Sweep Audit
+## Sweep Audit And Design
 
-The `sweep audit` command family splits a target root into auditable
-chunks, dispatches chunks, ingests auditor evidence, records manager
-review, builds immutable ledgers, and projects remediation maps or
-closeout summaries.
+`sweep audit` splits a target root into chunks, records auditor
+evidence, builds ledgers, maps remediation candidates, and records
+finding resolution.
 
-Plan output reports chunk artifact refs. The chunk ids are stored in
-those chunk files and follow the `chunk-001` style generated by the
-planner.
+`sweep design` starts from sweep findings. It builds bounded
+design-auditor packets, ingests typed results, validates revision
+provenance, produces final local design state, and emits candidate topic
+waves. `sweep design wave-plan` is non-mutating; `sweep design
+fix-topic` can apply a validated wave plan to a topic.
 
-## Sweep Design
+## Host-Specific Paths
 
-The `sweep design` command family starts after a sweep has findings.
-It reads `.nimi/local/audit/evidence/<sweep-id>/findings.yaml`, forks
-those findings into `.nimi/local/sweep-design/<run-id>/`, and turns
-raw audit output into planning artifacts that can become topic waves.
-
-It does not edit the original findings. It asks Codex or another host
-to inspect bounded finding packets, return typed design-auditor
-results, append revision-ledger entries, validate the ledger, finalize
-local-only design state, and build a non-mutating wave plan. Result
-ingest can accept focused or all-mode auditor output, but worker
-dispatch remains disallowed until a topic wave is separately admitted.
-
-| Phase | Role |
-| --- | --- |
-| `intake` | Fork audit findings into a design workset |
-| `packet-build` | Build a design-auditor packet for one or more findings |
-| `packet-build-batch` | Build a manifest of design-auditor packets |
-| `auditor-prompt` | Emit the prompt and required result shape for a packet |
-| `result-ingest` | Ingest a typed design-auditor result and append revisions |
-| `ledger-validate` | Validate revision-ledger and final-outcome provenance |
-| `finalize` | Emit the local-only final state report |
-| `wave-plan` | Emit candidate topic commands without mutating topic state |
-
-## Skill Handoff
-
-### `nimicoding handoff --skill <skill-id> --json`
-
-Export a machine-readable external-handoff payload. With
-`--prompt`, also print a human-readable host briefing.
-
-| Property | Value |
-| --- | --- |
-| Skill | Required (`spec_reconstruction` / `doc_spec_audit` / `audit_sweep` / `high_risk_execution`) |
-| Output | Authoritative JSON payload |
-| Host posture | Vendor-neutral; supports any admitted host (Claude, Codex, Gemini, OMX, etc.) |
-| Refuses | `doc_spec_audit` and `high_risk_execution` until canonical tree is ready |
-
-### `nimicoding closeout --skill --outcome --verified-at`
-
-Project external skill results into a local-only closeout
-payload. Optionally `--write-local` under
-`.nimi/local/handoff-results/`.
-
-| Property | Value |
-| --- | --- |
-| Validation | Closeout result must pass typed contract |
-| Failure | Fail closed if outcome contradicts canonical-tree state, if refs escape declared local artifact roots, etc. |
-| Local-only | Never promotes to project semantic truth |
-
-## High-Risk Execution
-
-### `nimicoding admit-high-risk-decision --from <json> --admitted-at <iso8601>`
-
-Accept only `nimicoding.high-risk-decision.v1` payloads with
-`decisionStatus: manager_decision_recorded`. Project canonical
-admission preview. Write tracked semantic truth only with
-explicit `--write-spec`.
-
-### `nimicoding ingest-high-risk-execution --from <json>`
-
-Accept only `high_risk_execution` closeout artifacts with
-`outcome: completed` and `summary.status: candidate_ready`.
-Mechanically validate referenced artifacts; project local-only
-ingest payload.
-
-### `nimicoding review-high-risk-execution --from <json>`
-
-Accept ingest payloads with `ok: true`. Project review-ready
-attachment for manager-owned review. Carry attachment refs and
-ingest validation evidence.
-
-### `nimicoding decide-high-risk-execution --from <json> --acceptance <path> --verified-at <iso8601>`
-
-Accept review payloads with `ok: true` and
-`reviewStatus: ready_for_manager_review`. Mechanically validate
-acceptance artifact. Require `Disposition:` line. Project
-local-only manager decision.
-
-## Mechanical Validators
-
-Per-artifact validators emit machine-readable
-`validator-cli-result.v1` JSON.
-
-| Validator | Validates |
-| --- | --- |
-| `execution-packet` | Frozen packet shape |
-| `orchestration-state` | Orchestration state record |
-| `prompt` | Prompt payload |
-| `worker-output` | Worker output shape |
-| `acceptance` | Acceptance evidence |
-
-| Property | Value |
-| --- | --- |
-| Path required | Yes |
-| Output | JSON on success or refusal |
-| Failure | Fail closed on missing required sections, malformed YAML, or seed-contract drift |
-
-## Spec Audit
-
-### `nimicoding validate-spec-tree`
-
-Validate canonical tree structure under `.nimi/spec`.
-
-### `nimicoding validate-spec-audit`
-
-Validate per-file grounding, inference, and unresolved-gap
-tracking under `.nimi/local/state/spec-generation/spec-generation-audit.yaml`.
-
-### `nimicoding blueprint-audit`
-
-Compare a repo-local blueprint root with the candidate canonical
-tree under `.nimi/spec`. Explicit equivalence audit; does not
-perform routing changes.
-
-## Reader Scenario: A First-Run Bootstrap
-
-You install Nimi Coding in a project for the first time.
-
-```
-nimicoding start
-```
-
-The CLI walks you through:
-
-1. Detect project state.
-2. Confirm or accept managed AI entrypoints (`AGENTS.md`,
-   `CLAUDE.md` blocks).
-3. Seed `.nimi/**` with package-owned source.
-4. Prepare one authoritative JSON AI task package for
-   `spec_reconstruction`.
-5. Print a paste-ready prompt for the AI host of your choice.
-
-You hand the prompt to your AI host; the host runs
-reconstruction; you return the result via `nimicoding closeout`.
-
-## Reader Scenario: A High-Risk Execution Cycle
-
-You have a mature project with canonical spec; you want to run
-substantive AI-coding work.
-
-| Step | Command |
-| --- | --- |
-| 1. Manager admits a packet | (manual; topic.yaml + packet artifact) |
-| 2. Pre-implementation audit (if needed) | (host runs audit; result recorded) |
-| 3. Hand off to host | `nimicoding handoff --skill high_risk_execution --json` |
-| 4. Host executes; returns result | (host-side) |
-| 5. Ingest result | `nimicoding ingest-high-risk-execution --from result.json` |
-| 6. Review | `nimicoding review-high-risk-execution --from ingest.json` |
-| 7. Manager decision | `nimicoding decide-high-risk-execution --from review.json --acceptance accept.md --verified-at ...` |
-| 8. Closeout | (manual; closeout artifact) |
-
-Each step is bounded by the CLI's typed validation. Skipping a
-step or smuggling fields through means the CLI refuses.
+Commands such as `sweep audit chunk audit-codex` and
+`start --host codex` are adapter-specific surfaces. They do not change
+the package boundary: Nimi Coding remains host-agnostic, and provider
+runtime ownership stays outside the package.
 
 ## What The CLI Does Not Do
 
-| Concern | Why not |
+| Concern | Boundary |
 | --- | --- |
-| Autonomous packet execution | Host AI owns execution |
-| Provider invocation | Package does not call AI providers |
-| Scheduler | Scheduling is a host concern |
-| Notification | UX is host concern |
-| Self-update | Out of standalone scope |
-
-These are explicitly deferred surfaces.
+| Product implementation | The admitted AI host or human worker changes product code |
+| Provider invocation as package runtime | The package does not own AI provider execution |
+| Scheduling | Host or surrounding workflow concern |
+| Notification | Host or product UX concern |
+| Autonomous packet execution | The package gates packet execution; it does not become the worker |
 
 ## Source Basis
 
-- [`nimi-coding/README.md`](https://github.com/nimiplatform/nimi-coding/blob/main/README.md) (CLI section)
-- [`nimi-coding/cli/`](https://github.com/nimiplatform/nimi-coding/blob/main/cli/) (CLI implementation)
-- [`nimi-coding/contracts/topic.schema.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/contracts/topic.schema.yaml)
-- [`nimi-coding/contracts/audit-plan.schema.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/contracts/audit-plan.schema.yaml)
-- [`nimi-coding/contracts/sweep-design-result.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/contracts/sweep-design-result.yaml)
+- [`nimi-coding/README.md`](https://github.com/nimiplatform/nimi-coding/blob/main/README.md)
+- [`nimi-coding/CHANGELOG.md`](https://github.com/nimiplatform/nimi-coding/blob/main/CHANGELOG.md)
+- [`nimi-coding/cli/help.mjs`](https://github.com/nimiplatform/nimi-coding/blob/main/cli/help.mjs)
+- [`nimi-coding/cli/index.mjs`](https://github.com/nimiplatform/nimi-coding/blob/main/cli/index.mjs)
 - [`nimi-coding/methodology/skill-handoff.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/methodology/skill-handoff.yaml)
-- [`nimi-coding/methodology/skill-installer-result.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/methodology/skill-installer-result.yaml)
-- [`nimi-coding/contracts/execution-packet.schema.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/contracts/execution-packet.schema.yaml)
-- [`nimi-coding/contracts/orchestration-state.schema.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/contracts/orchestration-state.schema.yaml)
-- [`nimi-coding/contracts/prompt.schema.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/contracts/prompt.schema.yaml)
-- [`nimi-coding/contracts/worker-output.schema.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/contracts/worker-output.schema.yaml)
-- [`nimi-coding/contracts/acceptance.schema.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/contracts/acceptance.schema.yaml)
+- [`nimi-coding/contracts/topic-step-decision.schema.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/contracts/topic-step-decision.schema.yaml)

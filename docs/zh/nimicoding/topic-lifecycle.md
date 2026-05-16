@@ -1,6 +1,6 @@
 # Topic 生命周期
 
-一个 topic 是一条权威性或高风险工作主线的规范容器。本页说明 topic 的状态机：粗粒度生命周期（`proposal → ongoing → pending → closed`）、wave 的细粒度状态，以及独立的 true close 状态。
+一个 topic 是权威性或高风险工作主线的受治理容器。本页说明 topic 的状态机：粗粒度生命周期（`proposal → ongoing → pending → closed`）、wave 的细粒度状态，以及独立的 true close 状态。
 
 工作如何在状态机里推进，详见 [Topic 工作流](/zh/nimicoding/topic-workflow)。
 
@@ -141,9 +141,9 @@ pending-note 是结构化的等待。不存在"它就这么放着"这种隐式�
 
 ## 来源依据
 
-- [`.nimi/methodology/topic-lifecycle.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/topic-lifecycle.yaml)
-- [`.nimi/methodology/topic-lifecycle-report.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/topic-lifecycle-report.yaml)
-- [`.nimi/contracts/topic.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/topic.schema.yaml)
-- [`.nimi/contracts/wave.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/wave.schema.yaml)
-- [`.nimi/contracts/true-close.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/true-close.schema.yaml)
-- [`.nimi/contracts/pending-note.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/pending-note.schema.yaml)
+- [`nimi-coding/methodology/topic-lifecycle.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/methodology/topic-lifecycle.yaml)
+- [`nimi-coding/methodology/topic-lifecycle-report.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/methodology/topic-lifecycle-report.yaml)
+- [`nimi-coding/contracts/topic.schema.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/contracts/topic.schema.yaml)
+- [`nimi-coding/contracts/wave.schema.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/contracts/wave.schema.yaml)
+- [`nimi-coding/contracts/true-close.schema.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/contracts/true-close.schema.yaml)
+- [`nimi-coding/contracts/pending-note.schema.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/contracts/pending-note.schema.yaml)

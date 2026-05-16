@@ -58,8 +58,8 @@ The constraints are what make the package portable.
 | Concern | Stays the same | Changes |
 | --- | --- | --- |
 | `.nimi/spec/**` (project canonical truth) | yes | — |
-| `.nimi/methodology/**` (policies) | yes | — |
-| `.nimi/contracts/**` (schemas) | yes | — |
+| `nimi-coding/methodology/**` (policies) | yes | — |
+| `nimi-coding/contracts/**` (schemas) | yes | — |
 | Topic artifacts (closed and pending) | yes | — |
 | Adapter overlay path | — | yes (host-specific) |
 
@@ -70,15 +70,15 @@ The change is the adapter. The methodology is portable.
 `vendor_neutral_profile_only` + `do_not_claim_packet_orchestration_ownership`
 together mean:
 
-- A host adapter can be added for a specific vendor (e.g.,
-  `oh-my-codex`).
+- A host adapter can be added for a specific vendor or execution
+  environment.
 - The adapter is admitted as a **constrained bridge**, not as
   semantic owner.
 - Host-specific behavior lives in the adapter, not in the
   methodology.
 
-This is what allows `oh-my-codex`, Codex, Claude, Gemini, and
-others to be admitted as bridges without making the package
+This is what allows `codex`, `claude`, `oh-my-codex`, and later
+adapters to be admitted as bridges without making the package
 vendor-coupled.
 
 ## Adapter Overlay Pattern
@@ -90,15 +90,22 @@ vendor-neutral core.
 
 | Adapter overlay path | Purpose |
 | --- | --- |
+| `adapters/codex/profile.yaml` | Admits Codex as a constrained external execution host |
+| `adapters/claude/profile.yaml` | Admits Claude as a constrained external execution host |
 | `adapters/oh-my-codex/profile.yaml` | Admits `oh-my-codex` as a constrained external execution host |
 
 For more on `oh-my-codex` specifically, see
 [Appendix → oh-my-codex](/nimicoding/appendix/oh-my-codex).
 
-Other host overlays can be added under the same pattern. Each
-overlay names which host-class capabilities the host satisfies
-and any host-specific routing details that the package can use
-without becoming vendor-coupled.
+Other host overlays can be added under the same pattern. Each overlay
+names which host-class capabilities the host satisfies and any
+host-specific routing details that the package can use without becoming
+vendor-coupled.
+
+Adapter-specific CLI paths, such as `start --host codex` or
+`sweep audit chunk audit-codex`, are routing conveniences for that
+adapter. They do not make Codex the package runtime and they do not
+change the host-agnostic contract.
 
 ## Reader Scenario: The Same Project Used With Two Hosts
 
@@ -146,7 +153,7 @@ audit (different blind spots).
    only in `manager_worker_auditor` mode).
 2. **Audit.** Host B runs the auditor role on host A's output.
 3. **Same methodology.** Both hosts are admitted under the same
-   `.nimi/methodology/**` contracts.
+   `nimi-coding/methodology/**` contracts.
 4. **Independent blind spots.** Host A's failure modes do not
    carry into host B's audit.
 
@@ -172,4 +179,7 @@ The promise is **host-swappable**, not **host-free**.
 - [`nimi-coding/config/host-adapter.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/config/host-adapter.yaml)
 - [`nimi-coding/methodology/skill-runtime.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/methodology/skill-runtime.yaml)
 - [`nimi-coding/contracts/external-host-compatibility.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/contracts/external-host-compatibility.yaml)
+- [`nimi-coding/adapters/README.md`](https://github.com/nimiplatform/nimi-coding/blob/main/adapters/README.md)
+- [`nimi-coding/adapters/codex/profile.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/adapters/codex/profile.yaml)
+- [`nimi-coding/adapters/claude/profile.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/adapters/claude/profile.yaml)
 - [`nimi-coding/adapters/oh-my-codex/profile.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/adapters/oh-my-codex/profile.yaml)

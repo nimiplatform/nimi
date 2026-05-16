@@ -1,6 +1,6 @@
 # 权威收敛
 
-权威收敛是这样一道关卡：当某个 packet 触及权威 / 规范 / 重设计面时，**实施派发之前必须有一份独立审计 PASS 在册**。这是方法论用以阻止 AI 改写规范的结构性保障。
+权威收敛是这样一道关卡：当某个 packet 触及权威 / 规范 / 重设计表面时，**实施派发之前必须有一份独立审计 PASS 在册**。这是方法论用以阻止 AI 改写规范的结构性保障。
 
 ## 什么时候触发
 
@@ -117,7 +117,7 @@ worker 想派发一个编辑 `.nimi/spec/` 的 packet，但没有实施前审计
 
 ## 来源依据
 
-- [`.nimi/methodology/authority-convergence-policy.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/authority-convergence-policy.yaml)
-- [`.nimi/contracts/authority-convergence-audit.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/authority-convergence-audit.schema.yaml)
-- [`.nimi/contracts/topic-step-decision.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/topic-step-decision.schema.yaml)
-- [`.nimi/contracts/decision-review.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/decision-review.schema.yaml)
+- [`nimi-coding/methodology/authority-convergence-policy.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/methodology/authority-convergence-policy.yaml)
+- [`nimi-coding/contracts/authority-convergence-audit.schema.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/contracts/authority-convergence-audit.schema.yaml)
+- [`nimi-coding/contracts/topic-step-decision.schema.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/contracts/topic-step-decision.schema.yaml)
+- [`nimi-coding/contracts/decision-review.schema.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/contracts/decision-review.schema.yaml)

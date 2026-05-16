@@ -44,7 +44,7 @@ CLI 会带你走完：
 1. 侦测项目状态。
 2. 确认或接受受管 AI 入口（`AGENTS.md`、`CLAUDE.md` 区块）。
 3. 把包内 source 映射到项目路径。
-4. 写入 `.nimi/spec/_meta` 和 bootstrap 文件 seed。
+4. 写入 `.nimi/config`、`.nimi/contracts`、`.nimi/methodology` 等 bootstrap 文件 seed。
 5. 更新 `.gitignore`，覆盖本地 runtime 状态。
 6. 准备一份 `spec_reconstruction` 的 JSON 交接 payload。
 7. 在终端里直接打印可粘贴的提示词。
@@ -56,7 +56,6 @@ CLI 会带你走完：
 | `.nimi/methodology/` | 方法学 source（policies） |
 | `.nimi/contracts/` | Schema source |
 | `.nimi/config/` | Bootstrap 配置 |
-| `.nimi/spec/_meta/` | 规范生成元数据 seed |
 | `AGENTS.md`（或其中区块） | 受管 Nimi Coding 区块 |
 | `CLAUDE.md`（或其中区块） | 受管 Nimi Coding 区块 |
 | `.gitignore` | 已加上本地状态忽略规则 |

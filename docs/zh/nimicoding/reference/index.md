@@ -9,7 +9,7 @@
 | 参考文档 | 适用查阅场景 |
 | --- | --- |
 | [CLI 命令参考](/zh/nimicoding/reference/cli-commands) | 查阅命令行界面具体指令及字段定义 |
-| [数据 Schema 定义](/zh/nimicoding/reference/schemas) | 查阅 Topic、Wave、Packet、Result 以及 Closeout 核心工件的数据结构与字段限制 |
+| [数据 Schema 定义](/zh/nimicoding/reference/schemas) | 查阅 Topic、Wave、Packet、Result、Closeout 以及 table-family 的数据结构与字段限制 |
 | [禁用反模式目录](/zh/nimicoding/reference/forbidden-shortcuts-catalog) | 查阅系统中预定义的 10 个具名反模式技术规范 |
 
 ## 查阅使用建议
@@ -20,5 +20,4 @@
 
 - [`nimi-coding/contracts/`](https://github.com/nimiplatform/nimi-coding/blob/main/contracts/)
 - [`nimi-coding/cli/`](https://github.com/nimiplatform/nimi-coding/blob/main/cli/)
-- [`.nimi/contracts/`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/)
-- [`.nimi/methodology/`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/)
+- [`nimi-coding/methodology/`](https://github.com/nimiplatform/nimi-coding/blob/main/methodology/)

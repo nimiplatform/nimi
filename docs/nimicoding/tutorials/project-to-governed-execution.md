@@ -1,9 +1,14 @@
 # Tutorial: Run A Governed Codex Project
 
-You are in Codex with an existing repository. You want Codex to help
-with serious work: reconstruct project knowledge, discuss a requirement,
-plan waves, run a long audit, implement or remediate findings, and close
-the work without losing track of scope.
+You are in Codex with an existing repository. This tutorial uses the
+Codex adapter path for Nimi Coding: reconstruct project knowledge,
+discuss a requirement, plan waves, run a long audit, implement or
+remediate findings, and close the work without losing track of scope.
+
+For host-neutral adoption, use the package path in
+[Installation](/nimicoding/installation): `nimicoding start`,
+`nimicoding doctor --json`, `nimicoding handoff --skill
+spec_reconstruction --json`, then the spec validators.
 
 With Nimi Coding, you still talk to Codex in normal language. The
 difference is that Codex keeps a durable work record in the repository:
@@ -58,7 +63,7 @@ npx nimicoding handoff --skill spec_reconstruction --json
 npx nimicoding handoff --skill spec_reconstruction --prompt
 npx nimicoding closeout --from spec-reconstruction-result.json --write-local
 npx nimicoding validate-spec-tree .nimi/spec
-npx nimicoding validate-spec-audit .nimi/local/state/spec-generation/spec-generation-audit.yaml
+npx nimicoding validate-spec-audit
 npx nimicoding doctor --json
 ```
 
@@ -67,7 +72,7 @@ The useful result is not just "spec generated." Codex should report:
 | Evidence | What to check |
 | --- | --- |
 | `.nimi/spec/**` | The project now has an authority tree |
-| `.nimi/local/state/spec-generation/spec-generation-audit.yaml` | Generated files cite source basis or record gaps |
+| Spec generation audit | Generated files cite source basis or record gaps |
 | closeout result | The reconstruction was admitted under a typed contract |
 | validation output | Structural and auditability checks passed |
 
@@ -326,6 +331,7 @@ manager can inspect.
 
 - [`nimi-coding/README.md`](https://github.com/nimiplatform/nimi-coding/blob/main/README.md)
 - [`nimi-coding/cli/`](https://github.com/nimiplatform/nimi-coding/blob/main/cli/)
+- [`nimi-coding/adapters/codex/profile.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/adapters/codex/profile.yaml)
 - [`nimi-coding/config/skills.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/config/skills.yaml)
 - [`nimi-coding/contracts/topic.schema.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/contracts/topic.schema.yaml)
 - [`nimi-coding/contracts/wave.schema.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/contracts/wave.schema.yaml)

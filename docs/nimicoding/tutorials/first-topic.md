@@ -51,7 +51,8 @@ The CLI walks through:
 2. Confirm or accept managed AI entrypoints (`AGENTS.md`,
    `CLAUDE.md` blocks).
 3. Project package source into project paths.
-4. Seed `.nimi/spec/_meta` and bootstrap files.
+4. Seed `.nimi/config`, `.nimi/contracts`, and `.nimi/methodology`
+   bootstrap files.
 5. Update `.gitignore` for local runtime state.
 6. Prepare a JSON handoff payload for `spec_reconstruction`.
 7. Print a paste-ready prompt directly in the terminal.
@@ -63,7 +64,6 @@ After this step, the project root has:
 | `.nimi/methodology/` | Methodology source (policies) |
 | `.nimi/contracts/` | Schema source |
 | `.nimi/config/` | Bootstrap config |
-| `.nimi/spec/_meta/` | Spec generation metadata seed |
 | `AGENTS.md` (or block within) | Managed Nimi Coding block |
 | `CLAUDE.md` (or block within) | Managed Nimi Coding block |
 | `.gitignore` | Updated with local-state ignore patterns |

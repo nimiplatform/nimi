@@ -8,11 +8,11 @@ build 是绿的、测试通过、Source Basis 也已经引用，但消费方（�
 
 | 症状 | 处置 |
 | --- | --- |
-| build 是绿的 | 议题保持 `pending`，不要标记 closed |
+| build 是绿的 | topic 保持 `pending`，不要标记 closed |
 | 测试通过 | 准入一次新 wave，专门处理消费方维度 |
 | 用户拒收 | 不要回头修改已闭合 wave 的记录 |
 
-**真实案例**：先前那个公开文档议题，正是触发了本轮文档修复。权威、语义、抗漂移三者都通过，消费方不通过。
+**真实案例**：先前那个公开文档 topic，正是触发了本轮文档修复。权威、语义、抗漂移三者都通过，消费方不通过。
 
 ## Source Basis 完整 / 文本不可读
 
@@ -31,11 +31,11 @@ wave 在机器侧闭合，但人侧验收没有记录。方法论里 `pending` �
 
 | 症状 | 处置 |
 | --- | --- |
-| wave 收尾已记录 | 议题状态停在 `pending`，等待验收 |
+| wave 收尾已记录 | topic 状态停在 `pending`，等待验收 |
 | 用户尚未复核 | 不要推进到 true-close |
 | 验收关卡未记录 | 维护 pending-note 与重开标准 |
 
-议题不会推进到 true-close，直到验收被记录。
+topic 不会推进到 true-close，直到验收被记录。
 
 ## OVERFLOW 与 PASS
 
@@ -57,7 +57,7 @@ wave 在机器侧闭合，但人侧验收没有记录。方法论里 `pending` �
 
 ## 提前 true-close
 
-议题被移入 closed 文件夹，但没有记录显式的 true-close 审计。
+topic 被移入 closed 文件夹，但没有记录显式的 true-close 审计。
 
 | 症状 | 处置 |
 | --- | --- |
@@ -81,18 +81,18 @@ wave 在机器侧闭合，但人侧验收没有记录。方法论里 `pending` �
 
 ## 局部需求陷阱
 
-小请求不断挤掉主线目标——议题原本是关于 A，最终变成 B、C、D 的零碎修复积压。
+小请求不断挤掉主线目标——topic 原本是关于 A，最终变成 B、C、D 的零碎修复积压。
 
 | 症状 | 处置 |
 | --- | --- |
-| 议题里堆了不相关的零碎修复 | 拒绝；议题是单条主迭代线 |
-| 每个零碎修复都自成一次 wave | 把零碎修复挪出议题纪律之外 |
+| topic 里堆了不相关的零碎修复 | 拒绝；topic 是单条主迭代线 |
+| 每个零碎修复都自成一次 wave | 把零碎修复挪出 topic 纪律之外 |
 
-开发节奏规则规定：议题是**单条主迭代线**的归处，不是微型 backlog。
+开发节奏规则规定：topic 是**单条主迭代线**的归处，不是微型 backlog。
 
-## 巨型规划议题
+## 巨型规划 topic
 
-议题始终不肯收敛到一次有界 wave 上。
+topic 始终不肯收敛到一次有界 wave 上。
 
 | 症状 | 处置 |
 | --- | --- |
@@ -103,14 +103,14 @@ wave 上限策略写得很清楚：规划可以把一个执行目标硬化下来
 
 ## 读者场景：识别正在进行中的失败
 
-你正在管理一个议题。第一次 wave 的审计返回 `PASS`。但用户审看渲染输出后说"对是对，不够亮眼"。
+你正在管理一个 topic。第一次 wave 的审计返回 `PASS`。但用户审看渲染输出后说"对是对，不够亮眼"。
 
 这是**build 通过 / 消费方失败**的形态。审计本身是正确的（按机器口径 PASS），消费方那一维不通过。
 
 处置：
 
 1. 不要回头修改 wave-1 的记录。审计本身是对的。
-2. 议题保持 `pending`。
+2. topic 保持 `pending`。
 3. 准入 wave-2，专门处理消费方缺口。
 4. wave-2 的 packet 根据用户反馈写出新的验收不变量。
 5. wave-2 在消费方维度满足时闭合（再交下一轮用户复核）。
@@ -133,25 +133,25 @@ wave 上限策略写得很清楚：规划可以把一个执行目标硬化下来
 
 如果上述任何一项答"是"指向影子 / fallback / 新所有者域，续作就**被拒绝**，wave 退回修订。
 
-## 读者场景：议题卡在规划阶段
+## 读者场景：topic 卡在规划阶段
 
-某议题已经持续数周。准入了三次 wave，全是规划型，没有一次达成有界闭合。
+某 topic 已经持续数周。准入了三次 wave，全是规划型，没有一次达成有界闭合。
 
-这是**巨型规划议题**反模式。
+这是**巨型规划 topic**反模式。
 
 处置：
 
 1. **不再开新的规划 wave。**wave 上限策略禁止开第四次规划。
-2. **暂停议题**，附上显式 pending-note；或者
+2. **暂停 topic**，附上显式 pending-note；或者
 3. **重做预检。**重新构造，再尝试一次，但停止线要更锐利。
 
 如果管理者直接以另一个规划名义准入 wave-4，那就是伪进展。方法论的上限正是阻止这件事的机制。
 
 ## 来源依据
 
-- [`.nimi/methodology/four-closure-policy.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/four-closure-policy.yaml)
-- [`.nimi/methodology/topic-lifecycle-report.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/topic-lifecycle-report.yaml)
-- [`.nimi/methodology/overflow-continuation-policy.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/overflow-continuation-policy.yaml)
-- [`.nimi/methodology/wave-dag-policy.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/wave-dag-policy.yaml)
-- [`.nimi/contracts/result.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/result.schema.yaml)
-- [`.nimi/contracts/overflow-continuation.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/overflow-continuation.schema.yaml)
+- [`nimi-coding/methodology/four-closure-policy.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/methodology/four-closure-policy.yaml)
+- [`nimi-coding/methodology/topic-lifecycle-report.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/methodology/topic-lifecycle-report.yaml)
+- [`nimi-coding/methodology/overflow-continuation-policy.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/methodology/overflow-continuation-policy.yaml)
+- [`nimi-coding/methodology/wave-dag-policy.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/methodology/wave-dag-policy.yaml)
+- [`nimi-coding/contracts/result.schema.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/contracts/result.schema.yaml)
+- [`nimi-coding/contracts/overflow-continuation.schema.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/contracts/overflow-continuation.schema.yaml)

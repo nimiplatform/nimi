@@ -1,6 +1,6 @@
 # Nimi Coding 核心契约 Schema
 
-本页提供 Nimi Coding 核心记录工件 Schema 的字段级参考。
+本页提供 Nimi Coding 核心记录工件和 table-family Schema 的字段级参考。
 
 ## Topic Schema
 
@@ -143,6 +143,26 @@ sweep design 流程发源于审计 finding，并将生成的本地专用设计�
 | `expected_artifacts` | 是 | 预期后续流程阶段的关联工件对象列表 |
 | `next_command_ref` | 是 | 推荐执行的具体下级命令字符串（在 `continue` 流转决策时不可留空占位） |
 
+## Table Family Schema
+
+原始定义路径：`.nimi/contracts/table-family.schema.yaml`
+
+每个 kernel table 都声明共享的表契约字段：`table_family`、`owner`、`authority_class`、`row_schema`、`allowed_references`、`forbidden_fields`。
+
+| 表族 | 权威类别 | 表族必填字段 |
+| --- | --- | --- |
+| `closed_enum` | `product_authority_table` | `table_family`、`owner`、`enum_id`、`values` |
+| `state_machine` | `product_authority_table` | `table_family`、`owner`、`machine_id`、`states`、`transitions` |
+| `protocol_surface` | `product_authority_table` | `table_family`、`owner`、`protocol_id`、`surfaces` |
+| `owner_matrix` | `product_authority_table` | `table_family`、`owner`、`matrix_id`、`rows` |
+| `product_catalog` | `product_authority_table` | `table_family`、`owner`、`catalog_id`、`entries` |
+| `gate_registry` | `product_authority_table` | `table_family`、`owner`、`registry_id`、`schema_version`、`registry_version`、`profile_id`、`tiers`、`targets`、`reason_codes`、`gates` |
+| `support_registry` | `support_registry` | `table_family`、`registry_id`、`owner`、`schema_ref`、`allowed_fields`、`forbidden_state_fields`、`entries` |
+
+`gate_registry` 是 v0.2.1 新增的表族，用于产品自有的发布关卡注册表。发布关卡注册表不能建模成 `closed_enum`：它的权威形态包含 registry 元数据、profile、tier、target、reason code 和 gate 条目。
+
+语义约束包括 `unknown_table_family_fails_closed` 和 `release_gate_registry_must_use_gate_registry_family_not_closed_enum`。
+
 ## Forbidden Shortcuts Catalog
 
 系统内建的 10 项已准入限制原则（完整逻辑定义详见 [禁用反模式技术目录](/zh/nimicoding/reference/forbidden-shortcuts-catalog)）：
@@ -159,4 +179,5 @@ sweep design 流程发源于审计 finding，并将生成的本地专用设计�
 - [`nimi-coding/contracts/sweep-design-result.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/contracts/sweep-design-result.yaml)
 - [`nimi-coding/contracts/closeout.schema.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/contracts/closeout.schema.yaml)
 - [`nimi-coding/contracts/topic-step-decision.schema.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/contracts/topic-step-decision.schema.yaml)
+- [`nimi-coding/contracts/table-family.schema.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/contracts/table-family.schema.yaml)
 - [`nimi-coding/contracts/forbidden-shortcuts.catalog.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/contracts/forbidden-shortcuts.catalog.yaml)

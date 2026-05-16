@@ -1,6 +1,7 @@
 # Nimi Coding Schemas
 
-Field-level reference for the core Nimi Coding artifact schemas.
+Field-level reference for the core Nimi Coding artifact and
+table-family schemas.
 
 ## Topic Schema
 
@@ -148,6 +149,32 @@ read-only.
 | `expected_artifacts` | yes | List |
 | `next_command_ref` | yes | Concrete next command (placeholder-free for `continue` decisions) |
 
+## Table Family Schema
+
+`contracts/table-family.schema.yaml`
+
+Every kernel table declares the shared table contract fields:
+`table_family`, `owner`, `authority_class`, `row_schema`,
+`allowed_references`, and `forbidden_fields`.
+
+| Family | Authority class | Family-required fields |
+| --- | --- | --- |
+| `closed_enum` | `product_authority_table` | `table_family`, `owner`, `enum_id`, `values` |
+| `state_machine` | `product_authority_table` | `table_family`, `owner`, `machine_id`, `states`, `transitions` |
+| `protocol_surface` | `product_authority_table` | `table_family`, `owner`, `protocol_id`, `surfaces` |
+| `owner_matrix` | `product_authority_table` | `table_family`, `owner`, `matrix_id`, `rows` |
+| `product_catalog` | `product_authority_table` | `table_family`, `owner`, `catalog_id`, `entries` |
+| `gate_registry` | `product_authority_table` | `table_family`, `owner`, `registry_id`, `schema_version`, `registry_version`, `profile_id`, `tiers`, `targets`, `reason_codes`, `gates` |
+| `support_registry` | `support_registry` | `table_family`, `registry_id`, `owner`, `schema_ref`, `allowed_fields`, `forbidden_state_fields`, `entries` |
+
+`gate_registry` is the v0.2.1 family for product-owned release gate
+registries. Release gate registries must not be modeled as
+`closed_enum`: their authority shape includes registry metadata,
+profiles, tiers, targets, reason codes, and gate entries.
+
+Semantic constraints include `unknown_table_family_fails_closed` and
+`release_gate_registry_must_use_gate_registry_family_not_closed_enum`.
+
 ## Forbidden Shortcuts Catalog
 
 The 10 admitted catalog keys (see
@@ -169,4 +196,5 @@ for full detail):
 - [`nimi-coding/contracts/sweep-design-result.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/contracts/sweep-design-result.yaml)
 - [`nimi-coding/contracts/closeout.schema.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/contracts/closeout.schema.yaml)
 - [`nimi-coding/contracts/topic-step-decision.schema.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/contracts/topic-step-decision.schema.yaml)
+- [`nimi-coding/contracts/table-family.schema.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/contracts/table-family.schema.yaml)
 - [`nimi-coding/contracts/forbidden-shortcuts.catalog.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/contracts/forbidden-shortcuts.catalog.yaml)

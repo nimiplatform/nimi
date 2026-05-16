@@ -33,29 +33,29 @@ scope, or product meaning, this section is for you.
 
 ## Start Here If You Are New
 
-The first successful Nimi Coding path is intentionally small:
+The first successful Nimi Coding path is intentionally bounded:
 
 1. **Install the package** in an existing repository. See
    [Installation](/nimicoding/installation).
 2. **Bootstrap `.nimi/`.** Use `nimicoding start`, then check the
    result with `nimicoding doctor --json`.
-3. **Reconstruct project authority** into `.nimi/spec/**`, recording
-   source basis and unresolved gaps instead of inventing clean rules.
-4. **Create a topic** for the first high-risk or authority-bearing
-   change.
-5. **Split the topic into waves** so each wave has one owner domain
-   and one closure goal.
-6. **Freeze a packet** before work starts: allowed reads, allowed
-   writes, acceptance invariants, negative tests, stop lines, and
-   reopen conditions.
-7. **Run or hand off the work through an admitted AI host**, then
-   record typed evidence.
-8. **Close the wave only across all four dimensions**: authority,
-   semantic, consumer, and drift resistance.
+3. **Hand off spec reconstruction** with
+   `nimicoding handoff --skill spec_reconstruction --json`.
+4. **Let the admitted AI host reconstruct authority** into
+   `.nimi/spec/**`, recording source basis and unresolved gaps instead
+   of inventing clean rules.
+5. **Validate the result** with `nimicoding validate-spec-tree
+   .nimi/spec` and `nimicoding validate-spec-audit`.
 
-That path is the product in miniature: AI work becomes durable,
-bounded, auditable project state instead of a chat transcript that
-looked convincing at the time.
+That path gives the project a local truth surface and mechanical
+validators. It does not require topics, waves, packets, or high-risk
+gates. Those come later, when the work is authority-bearing,
+cross-module, multi-wave, or audit-sensitive.
+
+When work becomes high-risk, the escalation path is explicit: create a
+topic, split it into waves, freeze a packet before worker execution, run
+or hand off work through an admitted host, and close only when authority,
+semantic, consumer, and drift-resistance closure all hold.
 
 ## What's In This Section
 
@@ -124,7 +124,7 @@ looked convincing at the time.
 
 ### Appendix
 
-- [oh-my-codex Adapter](/nimicoding/appendix/oh-my-codex) —
+- [oh-my-codex Adapter](/nimicoding/appendix/oh-my-codex) — one
   admitted external host adapter overlay.
 
 ## Source Basis
@@ -132,9 +132,9 @@ looked convincing at the time.
 - [`nimi-coding/README.md`](https://github.com/nimiplatform/nimi-coding/blob/main/README.md)
 - [`nimi-coding/package.json`](https://github.com/nimiplatform/nimi-coding/blob/main/package.json)
 - [`nimi-coding/AGENTS.md`](https://github.com/nimiplatform/nimi-coding/blob/main/AGENTS.md)
-- [`.nimi/spec/product-scope.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/product-scope.yaml)
-- [`.nimi/spec/bootstrap-state.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/bootstrap-state.yaml)
-- [`.nimi/spec/high-risk-admissions.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/high-risk-admissions.yaml)
-- [`.nimi/methodology/topic-lifecycle-report.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/topic-lifecycle-report.yaml)
-- [`.nimi/methodology/four-closure-policy.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/four-closure-policy.yaml)
-- [`.nimi/contracts/packet.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/packet.schema.yaml)
+- [`nimi-coding/CHANGELOG.md`](https://github.com/nimiplatform/nimi-coding/blob/main/CHANGELOG.md)
+- [`nimi-coding/spec/product-scope.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/spec/product-scope.yaml)
+- [`nimi-coding/spec/bootstrap-state.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/spec/bootstrap-state.yaml)
+- [`nimi-coding/methodology/topic-lifecycle-report.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/methodology/topic-lifecycle-report.yaml)
+- [`nimi-coding/methodology/four-closure-policy.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/methodology/four-closure-policy.yaml)
+- [`nimi-coding/contracts/packet.schema.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/contracts/packet.schema.yaml)

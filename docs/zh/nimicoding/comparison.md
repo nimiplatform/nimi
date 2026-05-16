@@ -37,7 +37,7 @@ Nimi Coding 与你已知的工程实践相比是什么位置？这一页把它�
 | --- | --- | --- |
 | 层次 | 部署、基础设施即代码 | 规范层语义 |
 | 它回答的问题 | "这次改动是否安全发布？" | "这次改动的含义是否正确？" |
-| 工件 | 流水线、运行手册、基础设施 manifest | 议题、packet、审计记录 |
+| 工件 | 流水线、运行手册、基础设施 manifest | topic、packet、审计记录 |
 | 不变量 | build 通过、测试通过、部署成功 | 权威闭合、语义闭合、消费方闭合、抗漂移 |
 
 DevOps 治理部署。Nimi Coding 治理改动在规范层的**含义**——什么真相被搬动、现在归谁、显式禁止了什么。
@@ -49,7 +49,7 @@ DevOps 治理部署。Nimi Coding 治理改动在规范层的**含义**——什
 | 维度 | DDD / RDD | Nimi Coding |
 | --- | --- | --- |
 | 主体 | 领域形态 | 改动领域的工作 |
-| 词汇 | 限界上下文、实体、值对象 | 议题、wave、packet、闭合维度 |
+| 词汇 | 限界上下文、实体、值对象 | topic、wave、packet、闭合维度 |
 | 静态 / 动态 | 多为静态（设计领域本身） | 动态（治理推进领域演化的工作） |
 | 输出 | 领域模型 | 可审计的改动记录 |
 
@@ -66,7 +66,7 @@ DDD 说"你的限界上下文是 X"。Nimi Coding 说"你这次 wave 的所有�
 | --- | --- | --- |
 | 主体 | 节奏、沟通、迭代 | 权威漂移、AI 失败模式 |
 | 层次 | 流程 | 方法论 |
-| 时间单位 | sprint | 议题 / wave |
+| 时间单位 | sprint | topic / wave |
 | 输出 | story → 完成 | wave → 已闭合（四维） |
 | 对 AI 漂移是否沉默？ | 是（早于 AI 出现） | 否（正是它的回应） |
 
@@ -84,14 +84,14 @@ Nimi Coding 不管节奏（属于另一层）。两者并不冲突，处在不�
 | 禁用快捷方式目录 | 反模式有名字，由 packet 显式声明 |
 | 宿主无关边界 | 换 AI 宿主时方法论不变 |
 | 处处 fail-closed | 权威缺失时输出被拒绝 |
-| 议题 / wave / packet / 预检 / 审计 / 收尾 | 一套连贯的世界观，不是模板堆 |
+| topic / wave / packet / 预检 / 审计 / 收尾 | 一套连贯的世界观，不是模板堆 |
 
 ## 读者场景：同时采用 DDD 和 Nimi Coding
 
 某团队已有 DDD 形态的代码库。他们想引入 AI 协作，但不想破坏结构完整性。
 
 1. **保留 DDD 领域模型。**限界上下文、实体、值对象继续生效。
-2. **把 Nimi Coding 用在 AI 协作的改动上。**AI 参与代码库改动时，改动走议题 / wave / packet 纪律。
+2. **把 Nimi Coding 用在 AI 协作的改动上。**AI 参与代码库改动时，改动走 topic / wave / packet 纪律。
 3. **每次 AI 协作的改动，把它涉及的限界上下文命名为 wave 的所有者域。**DDD 上下文是天然的 wave-domain 锚点。
 4. **闭合维度核验结构完整性。**"这次 AI 改动是否越界跨过了限界上下文？"是 Nimi Coding 准入的一种结构性核查。
 
@@ -112,7 +112,7 @@ Nimi Coding 不管节奏（属于另一层）。两者并不冲突，处在不�
 
 | 情形 | 原因 |
 | --- | --- |
-| 极小的低风险改动 | 议题开销是真实的；显式适用规则规定小改动不必走议题纪律 |
+| 极小的低风险改动 | topic 开销是真实的；显式适用规则规定小改动不必走 topic 纪律 |
 | 一次性脚本 | wave / packet 模型对临时工作过重 |
 | 与 AI 完全无关的旧代码库 | 方法论是对 AI 失败模式的回应；经典工程卫生已经够用 |
 
@@ -121,6 +121,6 @@ Nimi Coding 不管节奏（属于另一层）。两者并不冲突，处在不�
 ## 来源依据
 
 - [`nimi-coding/README.md`](https://github.com/nimiplatform/nimi-coding/blob/main/README.md)
-- [`.nimi/methodology/topic-lifecycle-report.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/topic-lifecycle-report.yaml)
-- [`.nimi/methodology/four-closure-policy.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/four-closure-policy.yaml)
-- [`.nimi/methodology/role-separation-policy.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/role-separation-policy.yaml)
+- [`nimi-coding/methodology/topic-lifecycle-report.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/methodology/topic-lifecycle-report.yaml)
+- [`nimi-coding/methodology/four-closure-policy.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/methodology/four-closure-policy.yaml)
+- [`nimi-coding/methodology/role-separation-policy.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/methodology/role-separation-policy.yaml)

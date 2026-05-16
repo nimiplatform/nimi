@@ -10,7 +10,7 @@ ship, and why this shape matters.
 | Property | Value |
 | --- | --- |
 | Package name | `@nimiplatform/nimi-coding` |
-| Repository stage | bootstrap |
+| Current release | `0.2.1` |
 | Self-hosting | No (runtime ownership delegated to external AI host) |
 | Vendor neutral | Yes |
 | Host class | `ai_native_coding_host` |
@@ -32,7 +32,7 @@ acceptance discipline for high-risk work.
 | `spec/` | Bootstrap spec seed (`bootstrap-state`, `product-scope`) |
 | `cli/` | CLI implementation |
 | `bin/nimicoding.mjs` | Entry binary |
-| `adapters/` | Host adapter overlays (e.g., `oh-my-codex`) |
+| `adapters/` | Host adapter overlays (`codex`, `claude`, `oh-my-codex`) |
 
 When `nimicoding start` runs in a host project, it projects
 package source under the project's `.nimi/**`:
@@ -91,19 +91,38 @@ The current standalone scope is boundary-complete for:
 - Machine-readable reconstruction, doc-spec-audit, and
   high-risk execution result contracts
 - Package-owned canonical high-risk admission schema contract
+- Table-family validation for product authority tables, including the
+  `gate_registry` family for release gate registries
 - Seed-only high-risk execution schemas (packet,
   orchestration-state, prompt, worker-output, acceptance)
 - Vendor-neutral external host-profile seed
 - Package-owned external host compatibility contract seed
 - Host-adapter seed for constrained external execution-host
   interop
-- Package-owned admitted host-profile overlay seed for
-  `oh_my_codex`
+- Package-owned admitted host adapter overlays for `codex`,
+  `claude`, and `oh-my-codex`
 - A bounded standalone CLI with staged `start`, validation,
-  handoff, local closeout projection, explicit admission, and
-  mechanical execution-artifact validation
+  `sync`, handoff, local closeout projection, topic lifecycle,
+  sweep audit, sweep design, explicit admission, governance
+  validators, and mechanical execution-artifact validation
 - A host-agnostic semantic + interop boundary for external AI
   hosts
+
+## Release Boundary
+
+Version `0.2.0` is the standalone public package cut. It publishes the
+CLI boundary for bootstrap, validation, handoff, local closeout, topic
+lifecycle, sweep audit, sweep design, and high-risk execution gates.
+
+Version `0.2.1` keeps that package boundary intact and adds the
+`gate_registry` table family for product-owned release gate registries.
+A release gate registry is not a closed enum or a generic product
+catalog; it carries registry metadata, profile, tiers, targets, reason
+codes, and gate entries as product authority.
+
+Runtime execution, scheduling, notifications, provider invocation, and
+self-hosted methodology execution remain outside the package boundary.
+Adapter-specific helpers do not change that boundary.
 
 ## Bootstrap Posture
 
@@ -221,9 +240,12 @@ boundary-complete standalone scope.
 
 - [`nimi-coding/README.md`](https://github.com/nimiplatform/nimi-coding/blob/main/README.md)
 - [`nimi-coding/package.json`](https://github.com/nimiplatform/nimi-coding/blob/main/package.json)
+- [`nimi-coding/CHANGELOG.md`](https://github.com/nimiplatform/nimi-coding/blob/main/CHANGELOG.md)
 - [`nimi-coding/AGENTS.md`](https://github.com/nimiplatform/nimi-coding/blob/main/AGENTS.md)
+- [`nimi-coding/contracts/table-family.schema.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/contracts/table-family.schema.yaml)
 - [`nimi-coding/config/bootstrap.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/config/bootstrap.yaml)
 - [`nimi-coding/config/skills.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/config/skills.yaml)
 - [`nimi-coding/config/host-profile.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/config/host-profile.yaml)
+- [`nimi-coding/adapters/README.md`](https://github.com/nimiplatform/nimi-coding/blob/main/adapters/README.md)
 - [`nimi-coding/spec/bootstrap-state.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/spec/bootstrap-state.yaml)
 - [`nimi-coding/spec/product-scope.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/spec/product-scope.yaml)
