@@ -38,11 +38,12 @@ roots:
   - id: spec-generation-audit-nimicoding-implementation
     owner_domain: spec-meta
     authority_refs:
-      - nimi-coding/contracts/spec-generation-audit.schema.yaml
-      - nimi-coding/methodology/spec-reconstruction.yaml
+      - .nimi/spec/platform/kernel/package-authority-admission-contract.md
     evidence_roots:
       - .nimi/contracts/spec-generation-audit.schema.yaml
       - .nimi/methodology/spec-reconstruction.yaml
+      - nimi-coding/contracts/spec-generation-audit.schema.yaml
+      - nimi-coding/methodology/spec-reconstruction.yaml
       - nimi-coding/cli/commands/validate-spec-audit.mjs
       - nimi-coding/cli/lib/internal/validators-spec.mjs
       - nimi-coding/cli/lib/closeout.mjs

@@ -835,7 +835,11 @@ function sameStringSet(actual, expected) {
 }
 
 function isProductAuthorityRef(ref) {
-  return ref.startsWith('.nimi/spec/') || ref.startsWith('nimi-coding/');
+  return ref.startsWith('.nimi/spec/');
+}
+
+function isPackageSourceRef(ref) {
+  return ref.startsWith('nimi-coding/');
 }
 
 function isAllowedHostProjectionRef(ref) {
@@ -875,7 +879,9 @@ function checkAuditEvidenceRoots(definedRuleIds) {
     if (authorityRefs.length === 0) fail(`${rel}: ${id} must declare authority_refs`);
     if (evidenceRoots.length === 0) fail(`${rel}: ${id} must declare evidence_roots`);
     for (const authorityRef of authorityRefs) {
-      if (!isProductAuthorityRef(authorityRef) || !fs.existsSync(path.join(cwd, authorityRef))) {
+      if (isPackageSourceRef(authorityRef)) {
+        fail(`${rel}: ${id} package source ref must be evidence_root or package authority admission, not authority_ref: ${authorityRef}`);
+      } else if (!isProductAuthorityRef(authorityRef) || !fs.existsSync(path.join(cwd, authorityRef))) {
         fail(`${rel}: ${id} invalid authority_ref ${authorityRef}`);
       }
     }
