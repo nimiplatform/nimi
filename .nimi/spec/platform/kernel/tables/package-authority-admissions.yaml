@@ -6,7 +6,7 @@ entries:
   - nimi-coding
 admissions:
   - id: nimi-coding
-    status: active
+    admission_posture: active
     owner_domain: nimi-coding
     authority_root: package://@nimiplatform/nimi-coding/spec
     evidence_roots:

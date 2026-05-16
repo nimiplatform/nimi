@@ -776,7 +776,7 @@ function checkAppSliceAdmissions(definedRuleIds) {
     return;
   }
   const seen = new Set();
-  const allowedStatus = new Set(['active', 'inactive']);
+  const allowedPosture = new Set(['active', 'inactive']);
   const requiredMayNotOverride = [
     '.nimi/spec/runtime/**',
     '.nimi/spec/sdk/**',
@@ -789,7 +789,7 @@ function checkAppSliceAdmissions(definedRuleIds) {
   for (const row of admissions) {
     const appId = String(row?.app_id || '').trim();
     const ownerDomain = String(row?.owner_domain || '').trim();
-    const status = String(row?.status || '').trim();
+    const admissionPosture = String(row?.admission_posture || '').trim();
     const authorityRoot = String(row?.authority_root || '').trim();
     const source = String(row?.source_rule || '').trim();
     const evidenceRoots = Array.isArray(row?.evidence_roots) ? row.evidence_roots.map((item) => String(item || '').trim()).filter(Boolean) : [];
@@ -804,7 +804,7 @@ function checkAppSliceAdmissions(definedRuleIds) {
       continue;
     }
     if (!ownerDomain) fail(`${rel}: ${appId} missing owner_domain`);
-    if (!allowedStatus.has(status)) fail(`${rel}: ${appId} has invalid status ${status || '<empty>'}`);
+    if (!allowedPosture.has(admissionPosture)) fail(`${rel}: ${appId} has invalid admission_posture ${admissionPosture || '<empty>'}`);
     if (authorityRoot !== `apps/${appId}/spec`) {
       fail(`${rel}: ${appId} authority_root must be apps/${appId}/spec`);
     } else if (!fs.existsSync(path.join(cwd, authorityRoot))) {
@@ -914,7 +914,7 @@ function checkPackageAuthorityAdmissions(definedRuleIds) {
     return;
   }
   const seen = new Set();
-  const allowedStatus = new Set(['active', 'inactive']);
+  const allowedPosture = new Set(['active', 'inactive']);
   const requiredMayNotOverride = [
     '.nimi/spec/runtime/**',
     '.nimi/spec/sdk/**',
@@ -927,7 +927,7 @@ function checkPackageAuthorityAdmissions(definedRuleIds) {
   for (const row of admissions) {
     const id = String(row?.id || '').trim();
     const ownerDomain = String(row?.owner_domain || '').trim();
-    const status = String(row?.status || '').trim();
+    const admissionPosture = String(row?.admission_posture || '').trim();
     const authorityRoot = String(row?.authority_root || '').trim();
     const source = String(row?.source_rule || '').trim();
     const evidenceRoots = Array.isArray(row?.evidence_roots) ? row.evidence_roots.map((item) => String(item || '').trim()).filter(Boolean) : [];
@@ -939,7 +939,7 @@ function checkPackageAuthorityAdmissions(definedRuleIds) {
     }
     seen.add(id);
     if (!ownerDomain) fail(`${rel}: ${id} missing owner_domain`);
-    if (!allowedStatus.has(status)) fail(`${rel}: ${id} has invalid status ${status || '<empty>'}`);
+    if (!allowedPosture.has(admissionPosture)) fail(`${rel}: ${id} has invalid admission_posture ${admissionPosture || '<empty>'}`);
     if (!authorityRoot || authorityRoot.startsWith('.nimi/spec/') || authorityRoot.includes('..') || path.isAbsolute(authorityRoot) || !authorityRoot.endsWith('/spec')) {
       fail(`${rel}: ${id} invalid authority_root ${authorityRoot || '<empty>'}`);
     } else if (!isExternalPackageRef(authorityRoot) && !fs.existsSync(path.join(cwd, authorityRoot))) {

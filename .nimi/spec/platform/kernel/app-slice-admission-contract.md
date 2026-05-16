@@ -4,7 +4,7 @@
 
 ## P-APP-001 — Single Admission Source
 
-`.nimi/spec/platform/kernel/tables/app-slice-admissions.yaml` is the only repo-wide admission source for app-local spec slices. Files under `apps/**/spec/**` are not repo-wide authority by location alone; they become audit authority only when an active admission row names their app id, authority root, owner domain, and evidence roots.
+`.nimi/spec/platform/kernel/tables/app-slice-admissions.yaml` is the only repo-wide admission source for app-local spec slices. Files under `apps/**/spec/**` are not repo-wide authority by location alone; they become audit authority only when an `admission_posture=active` admission row names their app id, authority root, owner domain, and evidence roots.
 
 ## P-APP-002 — Subordinate Authority Scope
 

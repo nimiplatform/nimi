@@ -351,12 +351,12 @@ function renderNimiKitRegistry(doc, sourceName) {
 function renderPackageAuthorityAdmissions(doc, sourceName) {
   const admissions = Array.isArray(doc?.admissions) ? doc.admissions : [];
   let out = header('Generated Package Authority Admissions', sourceName);
-  out += '| ID | Status | Owner Domain | Authority Root | Evidence Roots | May Not Override | Source |\n';
+  out += '| ID | Admission Posture | Owner Domain | Authority Root | Evidence Roots | May Not Override | Source |\n';
   out += '|---|---|---|---|---|---|---|\n';
   for (const item of admissions) {
     const evidenceRoots = Array.isArray(item?.evidence_roots) ? item.evidence_roots : [];
     const mayNotOverride = Array.isArray(item?.may_not_override) ? item.may_not_override : [];
-    out += `| \`${String(item?.id || '')}\` | \`${String(item?.status || '')}\` | \`${String(item?.owner_domain || '')}\` | \`${String(item?.authority_root || '')}\` | ${evidenceRoots.map((ref) => `\`${String(ref)}\``).join(', ') || '—'} | ${mayNotOverride.map((ref) => `\`${String(ref)}\``).join(', ') || '—'} | \`${String(item?.source_rule || '')}\` |\n`;
+    out += `| \`${String(item?.id || '')}\` | \`${String(item?.admission_posture || '')}\` | \`${String(item?.owner_domain || '')}\` | \`${String(item?.authority_root || '')}\` | ${evidenceRoots.map((ref) => `\`${String(ref)}\``).join(', ') || '—'} | ${mayNotOverride.map((ref) => `\`${String(ref)}\``).join(', ') || '—'} | \`${String(item?.source_rule || '')}\` |\n`;
   }
   out += '\n';
   const projectionRows = admissions
