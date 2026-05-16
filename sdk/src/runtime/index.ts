@@ -107,6 +107,12 @@ export {
   DelegatedTraceStageKind,
   DelegatedTransportKind,
 } from './generated/runtime/v1/delegated_control.js';
+export type {
+  DelegatedControlSurfaceSnapshot,
+  DelegatedDiagnostic,
+  DelegatedProviderProfile,
+  DelegatedReplayTrace,
+} from './generated/runtime/v1/delegated_control.js';
 export { RealmGroupMessageCandidateCommitDisposition } from './generated/runtime/v1/agent_group_message_candidate.js';
 export type {
   AuditEventRecord,
