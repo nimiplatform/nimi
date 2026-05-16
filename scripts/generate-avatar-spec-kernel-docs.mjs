@@ -30,7 +30,7 @@ async function main() {
     return;
   }
 
-  process.stdout.write('<!-- nimi-derived-view: .nimi/spec/avatar/kernel/generated/index.md -->\n');
+  process.stdout.write('<!-- nimi-derived-view: stdout:avatar/kernel/index -->\n');
   process.stdout.write('# Avatar Derived Views\n\n_No derived markdown views are defined for avatar._\n');
 }
 

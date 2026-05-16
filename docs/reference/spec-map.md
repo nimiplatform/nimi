@@ -32,7 +32,7 @@ rule citation can locate the owning kernel without guessing:
 | `S-*` | SDK |
 | `D-*` | Desktop |
 | `R-*` | Realm |
-| `F-*` | Future capability backlog |
+| `F-*` | Reserved/historical future backlog anchors outside active spec authority |
 
 Within Runtime, sub-families like `K-WF-*` (workflow), `K-STREAM-*`
 (streaming), `K-MMPROV-*` (multimodal provider), `K-DELEG-*`
@@ -48,8 +48,9 @@ identify which contract a rule belongs to.
 - The kernel's `tables/` directories are structured fact sources for
   enumerations (states, error codes, capabilities); when public docs
   abstract a list, the table is the literal answer.
-- The kernel's `generated/` directories are auto-generated views.
-  They are not the source of authority; the originating contract is.
+- Generated spec views are rendered on demand by
+  `pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope <scope>`.
+  They are stdout artifacts, not tracked `.nimi/spec/**` files.
 
 ## Generated And Private Surfaces
 
@@ -68,5 +69,4 @@ authority into public docs.
 ## Source Basis
 
 - [`.nimi/spec/INDEX.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/INDEX.md)
-- [`.nimi/spec/_meta/spec-generation-audit.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/_meta/spec-generation-audit.yaml)
-- [`.nimi/spec/generated/nimi-spec.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/generated/nimi-spec.md)
+- `pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope spec-human-doc`

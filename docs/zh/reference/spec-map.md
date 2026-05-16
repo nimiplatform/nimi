@@ -28,7 +28,7 @@ kernel 用带域前缀的规则 ID。看到一条规则引用，就能直接定�
 | `S-*` | SDK |
 | `D-*` | 桌面端 |
 | `R-*` | Realm |
-| `F-*` | 未来能力 backlog |
+| `F-*` | 保留 / 历史 future backlog anchor，不在 active spec 权威内 |
 
 Runtime 内部还有子族：`K-WF-*`（工作流）、`K-STREAM-*`（流式）、`K-MMPROV-*`（多模态 provider）、`K-DELEG-*`（委派能力）、`K-AGCORE-*`（Agent 接入），用来标明规则归哪个契约。
 
@@ -37,7 +37,9 @@ Runtime 内部还有子族：`K-WF-*`（工作流）、`K-STREAM-*`（流式）�
 - 需要跨域、按任务形状阅读：从 `.nimi/spec/INDEX.md` 开始。
 - 已知所属域：从对应 kernel 的 `index.md` 开始。
 - kernel 的 `tables/` 目录是结构化事实源，里面是状态、错误码、能力的枚举；公开文档抽象的列表，原文就是这些表。
-- kernel 的 `generated/` 目录是自动生成视图，不是权威源；权威是产生它的契约。
+- 生成 spec 视图通过
+  `pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope <scope>`
+  按需渲染到 stdout，不再作为 `.nimi/spec/**` 下的 tracked 文件。
 
 ## 生成视图与私有面
 
@@ -48,5 +50,4 @@ Runtime 内部还有子族：`K-WF-*`（工作流）、`K-STREAM-*`（流式）�
 ## 来源依据
 
 - [`.nimi/spec/INDEX.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/INDEX.md)
-- [`.nimi/spec/_meta/spec-generation-audit.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/_meta/spec-generation-audit.yaml)
-- [`.nimi/spec/generated/nimi-spec.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/generated/nimi-spec.md)
+- `pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope spec-human-doc`
