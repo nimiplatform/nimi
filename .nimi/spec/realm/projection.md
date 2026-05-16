@@ -1,50 +1,43 @@
----
-id: SPEC-REALM-PROJECTION-001
-title: Realm Projection Domain
-status: active
-owner: "@team"
-updated: 2026-04-21
----
-
-# Realm Projection Domain
+# Projection
 
 ## Normative Imports
 
-- `kernel/projection-contract.md`: `R-PROJ-001..008`
-- `kernel/truth-contract.md`: `R-TRUTH-001..014`
-- `kernel/world-state-contract.md`: `R-WSTATE-001..006`
+- `.nimi/spec/realm/kernel/*`
+- `.nimi/spec/realm/kernel/tables/*`
 
 ## Scope
 
-Projection 定义 canonical truth 的正式消费层。它负责说明 truth 如何在不同
- consumer surface 上被解释、选择、约束与追踪，但它本身不是 truth write。
-
-Projection 必须服务于：
-
-- runtime consume path
-- creator inspection path
-- public read aggregates
-- compat surfaces
-
-当前仓内尚无独立 `/.nimi/spec/runtime/**` mounted authority，因此
-`ProjectionInput / ProjectionRequest / ProjectionResult / ProjectionTraceRequirement`
-的语义 owner 先收敛在 Realm Projection kernel。runtime 是这个 seam 的消费者，
-不是当前阶段的 owner。
-
-Projection 不能退化成：
-
-- lorebook rebuild 的别名
-- worldview preview 的别名
-- prompt assembly helper 的别名
+This guide points to Realm authority surfaces for projection. It does not define product rules.
 
 ## Reading Path
 
-1. `kernel/projection-contract.md`
-2. `kernel/truth-contract.md`
-3. `kernel/world-state-contract.md`
-4. `kernel/tables/projection-contract.yaml`
+- `.nimi/spec/realm/kernel/index.md`
+- `.nimi/spec/realm/kernel/asset-contract.md`
+- `.nimi/spec/realm/kernel/attachment-contract.md`
+- `.nimi/spec/realm/kernel/binding-contract.md`
+- `.nimi/spec/realm/kernel/bundle-contract.md`
+- `.nimi/spec/realm/kernel/chat-contract.md`
+- `.nimi/spec/realm/kernel/economy-contract.md`
+- `.nimi/spec/realm/kernel/group-agent-participation-contract.md`
+- `.nimi/spec/realm/kernel/oauth-authority-contract.md`
+- `.nimi/spec/realm/kernel/projection-contract.md`
+- `.nimi/spec/realm/kernel/resource-contract.md`
+- `.nimi/spec/realm/kernel/social-contract.md`
+- `.nimi/spec/realm/kernel/transit-contract.md`
 
-## Non-goals
+## Tables
 
-Projection does not own canonical truth, runtime execution policy, or app-local
-consumer UX state.
+- `.nimi/spec/realm/kernel/tables/asset-contract.yaml`
+- `.nimi/spec/realm/kernel/tables/attachment-contract.yaml`
+- `.nimi/spec/realm/kernel/tables/binding-contract.yaml`
+- `.nimi/spec/realm/kernel/tables/bundle-contract.yaml`
+- `.nimi/spec/realm/kernel/tables/chat-contract.yaml`
+- `.nimi/spec/realm/kernel/tables/commit-authorization-matrix.yaml`
+- `.nimi/spec/realm/kernel/tables/domain-enums.yaml`
+- `.nimi/spec/realm/kernel/tables/domain-state-machines.yaml`
+- `.nimi/spec/realm/kernel/tables/economy-contract.yaml`
+- `.nimi/spec/realm/kernel/tables/group-agent-participation-contract.yaml`
+
+## Mapping Declaration
+
+Realm open-spec alignment entries anchor here when this guide participates in an external mapping. Mapping facts live in `.nimi/spec/realm/kernel/tables/open-spec-alignment-map.yaml`.

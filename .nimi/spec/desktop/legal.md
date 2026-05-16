@@ -1,26 +1,36 @@
-# Legal Domain Spec
+# Legal
 
 > Normative Imports: `.nimi/spec/desktop/kernel/*`
 
 ## Scope
 
-法律页面功能域 — 隐私政策、服务条款展示。
+This guide points to the desktop authority surfaces for legal. It does not define product rules.
 
-## Module Map
+## Reading Path
 
-- `features/legal/` — 法律页面（privacy-policy, terms-of-service）
+- `.nimi/spec/desktop/kernel/index.md`
+- `.nimi/spec/desktop/kernel/agent-avatar-configuration-contract.md`
+- `.nimi/spec/desktop/kernel/agent-avatar-debug-workbench-contract.md`
+- `.nimi/spec/desktop/kernel/agent-avatar-surface-contract.md`
+- `.nimi/spec/desktop/kernel/agent-chat-behavior-contract.md`
+- `.nimi/spec/desktop/kernel/agent-chat-message-action-contract.md`
+- `.nimi/spec/desktop/kernel/agent-chat-voice-executor-contract.md`
+- `.nimi/spec/desktop/kernel/agent-chat-voice-session-contract.md`
+- `.nimi/spec/desktop/kernel/agent-chat-voice-workflow-contract.md`
+- `.nimi/spec/desktop/kernel/agent-delegation-control-surface-contract.md`
+- `.nimi/spec/desktop/kernel/ai-profile-config-contract.md`
+- `.nimi/spec/desktop/kernel/auth-session-contract.md`
+- `.nimi/spec/desktop/kernel/bootstrap-contract.md`
 
-## Kernel References
+## Tables
 
-### State (D-STATE-004)
-
-- `activeTab = 'privacy-policy'` 时渲染隐私政策页面。
-- `activeTab = 'terms-of-service'` 时渲染服务条款页面。
-
-### Shell (D-SHELL-001)
-
-Legal tabs 属于 `detail` 导航组，不在 sidebar 显示，通过设置页面或 URL 导航进入。
-
-## CI 门禁引用
-
-本域涉及的 CI 门禁：`pnpm exec nimicoding validate-spec-governance --profile nimi --scope desktop-consistency`。
+- `.nimi/spec/desktop/kernel/tables/agent-avatar-configuration.schema.yaml`
+- `.nimi/spec/desktop/kernel/tables/agent-avatar-debug-remediation-states.yaml`
+- `.nimi/spec/desktop/kernel/tables/agent-avatar-debug-workbench-probes.yaml`
+- `.nimi/spec/desktop/kernel/tables/app-tabs.yaml`
+- `.nimi/spec/desktop/kernel/tables/bootstrap-phases.yaml`
+- `.nimi/spec/desktop/kernel/tables/build-chunks.yaml`
+- `.nimi/spec/desktop/kernel/tables/codegen-acceptance-gates.yaml`
+- `.nimi/spec/desktop/kernel/tables/codegen-capability-tiers.yaml`
+- `.nimi/spec/desktop/kernel/tables/codegen-import-allowlist.yaml`
+- `.nimi/spec/desktop/kernel/tables/codegen-static-scan-deny-patterns.yaml`

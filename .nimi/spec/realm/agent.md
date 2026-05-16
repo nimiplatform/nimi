@@ -1,36 +1,43 @@
----
-id: SPEC-REALM-AGENT-001
-title: Realm Agent Domain
-status: active
-owner: "@team"
-updated: 2026-04-18
----
-
-# Realm Agent Boundary
+# Agent
 
 ## Normative Imports
 
-- `kernel/truth-contract.md`: `R-TRUTH-001..014`
-- `.nimi/spec/runtime/kernel/runtime-agent-service-contract.md`: `K-AGCORE-004`
-- `kernel/world-state-contract.md`: `R-WSTATE-002..004`（仅引用与 Agent 可见共享当前状态相关的子集，不引入 World State 全量写入边界）
+- `.nimi/spec/realm/kernel/*`
+- `.nimi/spec/realm/kernel/tables/*`
 
 ## Scope
 
-Agent 在当前 public canonical 中不承担 memory/brain/chat/orchestration 语义。Agent 边界由两部分组成：
-
-- `Truth`: Agent 身份与规则真相
-- `World State Visibility`: 如需共享的当前关系状态，只能通过受约束的共享世界当前态暴露
-
-如需共享的当前关系状态，可通过 `World State` 暴露，但它不是 Agent runtime。
+This guide points to Realm authority surfaces for agent. It does not define product rules.
 
 ## Reading Path
 
-1. `kernel/truth-contract.md`
-2. `.nimi/spec/runtime/kernel/runtime-agent-service-contract.md`
-3. `kernel/world-state-contract.md`
-4. `kernel/tables/rule-catalog.yaml`
-5. `kernel/tables/truth-contract.yaml`
+- `.nimi/spec/realm/kernel/index.md`
+- `.nimi/spec/realm/kernel/asset-contract.md`
+- `.nimi/spec/realm/kernel/attachment-contract.md`
+- `.nimi/spec/realm/kernel/binding-contract.md`
+- `.nimi/spec/realm/kernel/bundle-contract.md`
+- `.nimi/spec/realm/kernel/chat-contract.md`
+- `.nimi/spec/realm/kernel/economy-contract.md`
+- `.nimi/spec/realm/kernel/group-agent-participation-contract.md`
+- `.nimi/spec/realm/kernel/oauth-authority-contract.md`
+- `.nimi/spec/realm/kernel/projection-contract.md`
+- `.nimi/spec/realm/kernel/resource-contract.md`
+- `.nimi/spec/realm/kernel/social-contract.md`
+- `.nimi/spec/realm/kernel/transit-contract.md`
 
-## Non-goals
+## Tables
 
-No cognition loop, approval workflow, force action, task execution, or prompt runtime state is defined here.
+- `.nimi/spec/realm/kernel/tables/asset-contract.yaml`
+- `.nimi/spec/realm/kernel/tables/attachment-contract.yaml`
+- `.nimi/spec/realm/kernel/tables/binding-contract.yaml`
+- `.nimi/spec/realm/kernel/tables/bundle-contract.yaml`
+- `.nimi/spec/realm/kernel/tables/chat-contract.yaml`
+- `.nimi/spec/realm/kernel/tables/commit-authorization-matrix.yaml`
+- `.nimi/spec/realm/kernel/tables/domain-enums.yaml`
+- `.nimi/spec/realm/kernel/tables/domain-state-machines.yaml`
+- `.nimi/spec/realm/kernel/tables/economy-contract.yaml`
+- `.nimi/spec/realm/kernel/tables/group-agent-participation-contract.yaml`
+
+## Mapping Declaration
+
+Realm open-spec alignment entries anchor here when this guide participates in an external mapping. Mapping facts live in `.nimi/spec/realm/kernel/tables/open-spec-alignment-map.yaml`.

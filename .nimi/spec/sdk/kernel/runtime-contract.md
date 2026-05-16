@@ -38,6 +38,8 @@ Runtime 子路径公开方法集合由 `runtime-method-groups.yaml` 约束，必
 
 media convenience 也必须遵守同一原则：新增 ergonomic API 只能封装既有 `ScenarioJob` + artifact 主链，不得引入新的推理语义或绕过 runtime 校验。`runtime.media.music.iterate()` 属于允许的薄投影，必须复用 `MUSIC_GENERATE` 与 `nimi.scenario.music_generate.request` 扩展面。
 
+Runtime image helper `buildLocalProfileExtensions()` 仅用于编码 `entry_overrides` 与 `profile_overrides` 到既有 runtime request extension；Runtime music helper `buildMusicIterationExtensions()` 仅作为低层 extension builder。两者不是新的推理 owner，也不替代 `runtime.media.music.iterate()` 的官方主路径。
+
 已知 method id 的低层调用必须通过 `Runtime.call()` 与 method-id contract map 绑定；`runtime.raw` 兼容别名不再是允许的公开 surface。
 
 high-level convenience targeting 必须满足：

@@ -251,12 +251,6 @@ jobs:
       - name: Desktop spec kernel generated-doc drift check
         run: pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope desktop --check
 
-      - name: Future spec kernel consistency check
-        run: pnpm exec nimicoding validate-spec-governance --profile nimi --scope future-consistency
-
-      - name: Future spec kernel generated-doc drift check
-        run: pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope future --check
-
       - name: ReasonCode constants policy check
         run: pnpm check:reason-code-constants
 

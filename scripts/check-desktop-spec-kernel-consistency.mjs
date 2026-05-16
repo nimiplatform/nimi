@@ -42,9 +42,6 @@ for (const rel of domainFiles) {
   if (!content.includes('Normative Imports: `.nimi/spec/desktop/kernel/*`')) {
     fail(`${rel} must declare kernel imports`);
   }
-  if (!/\bD-[A-Z]+-\d{3}\b/.test(content)) {
-    fail(`${rel} must reference at least one kernel Rule ID`);
-  }
   checkNoLocalRuleIds(content, rel, fail);
   checkNoRuleDefinitionHeadings(content, rel, fail);
 }
@@ -70,7 +67,7 @@ checkAppTabsConsistency();
 
 checkRetryStatusCodesConsistency();
 
-checkDomainSection0ImportsCoveredInBody();
+checkDomainGuidesDoNotOwnRuleRefs();
 
 checkSourceRuleReferentialIntegrity();
 
@@ -79,7 +76,6 @@ checkNoKernelRuleDefinitionsInDomainDocs();
 checkRuleIdReferencesResolvable();
 
 checkRendererDesignTables(fail);
-checkDesignDomainAnchors();
 
 checkCrossDomainRuleReferences(
   kernelFiles.filter((f) => f.endsWith('.md') && !f.includes('/generated/')),
@@ -481,18 +477,13 @@ function checkRetryStatusCodesConsistency() {
   }
 }
 
-function checkDomainSection0ImportsCoveredInBody() {
+function checkDomainGuidesDoNotOwnRuleRefs() {
   for (const rel of domainFiles) {
     if (!fileExists(rel)) continue;
     const content = read(rel);
-
-    // Extract D-* references from Kernel References sections
-    const ruleRefs = new Set(
-      [...content.matchAll(/\bD-[A-Z]+-\d{3}\b/g)].map((m) => m[0]),
-    );
-
-    if (ruleRefs.size === 0) {
-      fail(`${rel} has no D-* Rule ID references`);
+    const refs = [...content.matchAll(/\bD-[A-Z]+-\d{3}\b/g)].map((m) => m[0]);
+    if (refs.length > 0) {
+      fail(`${rel} must remain thin guidance and avoid direct D-* Rule ID references`);
     }
   }
 }
@@ -520,29 +511,6 @@ function checkNoKernelRuleDefinitionsInDomainDocs() {
     let match;
     while ((match = headingPattern.exec(content)) !== null) {
       fail(`${rel} defines kernel Rule ID ${match[1]} — rule definitions belong in kernel contracts only`);
-    }
-  }
-}
-
-function checkDesignDomainAnchors() {
-  const requiredAnchors = [
-    ['.nimi/spec/desktop/chat.md', 'D-SHELL-019'],
-    ['.nimi/spec/desktop/explore.md', 'D-SHELL-019'],
-    ['.nimi/spec/desktop/contacts.md', 'D-SHELL-019'],
-    ['.nimi/spec/desktop/chat.md', 'D-SHELL-023'],
-    ['.nimi/spec/desktop/contacts.md', 'D-SHELL-023'],
-    ['.nimi/spec/desktop/home.md', 'D-SHELL-015'],
-    ['.nimi/spec/desktop/notification.md', 'D-SHELL-015'],
-    ['.nimi/spec/desktop/profile.md', 'D-SHELL-015'],
-    ['.nimi/spec/desktop/settings.md', 'D-SHELL-023'],
-    ['.nimi/spec/desktop/runtime-config.md', 'D-SHELL-023'],
-    ['.nimi/spec/desktop/world-detail.md', 'D-SHELL-020'],
-  ];
-  for (const [rel, ruleId] of requiredAnchors) {
-    if (!fileExists(rel)) continue;
-    const content = read(rel);
-    if (!content.includes(ruleId)) {
-      fail(`${rel} must reference ${ruleId} for desktop design pilot anchoring`);
     }
   }
 }

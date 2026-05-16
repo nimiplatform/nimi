@@ -1,31 +1,36 @@
-# Economy Domain Spec
+# Economy
 
 > Normative Imports: `.nimi/spec/desktop/kernel/*`
 
 ## Scope
 
-经济系统功能域 — 货币余额、交易历史、充值、订阅状态、提现、礼物系统。
+This guide points to the desktop authority surfaces for economy. It does not define product rules.
 
-## Module Map
+## Reading Path
 
-- `features/economy/` — 经济系统 UI（礼物发送弹窗等）
-- `features/settings/settings-advanced-panel.tsx` — Wallet 页面（余额、充值、提现、流水）
-- `runtime/data-sync/flows/economy-notification-flow.ts` — 经济数据流
+- `.nimi/spec/desktop/kernel/index.md`
+- `.nimi/spec/desktop/kernel/agent-avatar-configuration-contract.md`
+- `.nimi/spec/desktop/kernel/agent-avatar-debug-workbench-contract.md`
+- `.nimi/spec/desktop/kernel/agent-avatar-surface-contract.md`
+- `.nimi/spec/desktop/kernel/agent-chat-behavior-contract.md`
+- `.nimi/spec/desktop/kernel/agent-chat-message-action-contract.md`
+- `.nimi/spec/desktop/kernel/agent-chat-voice-executor-contract.md`
+- `.nimi/spec/desktop/kernel/agent-chat-voice-session-contract.md`
+- `.nimi/spec/desktop/kernel/agent-chat-voice-workflow-contract.md`
+- `.nimi/spec/desktop/kernel/agent-delegation-control-surface-contract.md`
+- `.nimi/spec/desktop/kernel/ai-profile-config-contract.md`
+- `.nimi/spec/desktop/kernel/auth-session-contract.md`
+- `.nimi/spec/desktop/kernel/bootstrap-contract.md`
 
-## Kernel References
+## Tables
 
-### DataSync (D-DSYNC-006)
-
-经济数据流与方法清单以 `D-DSYNC-006` 为准；domain 层不再内联余额、充值、提现与礼物流的过程性 contract。
-
-### Security (D-SEC-002)
-
-经济操作属于敏感域，所有请求需有效 Bearer Token。
-
-### Economy Truth (R-ECON-003)
-
-礼物、结算与收入分配的规范语义以 Realm `R-ECON-003` 为权威；Desktop 只消费其 UI 投影。
-
-## CI 门禁引用
-
-本域涉及的 CI 门禁：`pnpm exec nimicoding validate-spec-governance --profile nimi --scope desktop-consistency`。
+- `.nimi/spec/desktop/kernel/tables/agent-avatar-configuration.schema.yaml`
+- `.nimi/spec/desktop/kernel/tables/agent-avatar-debug-remediation-states.yaml`
+- `.nimi/spec/desktop/kernel/tables/agent-avatar-debug-workbench-probes.yaml`
+- `.nimi/spec/desktop/kernel/tables/app-tabs.yaml`
+- `.nimi/spec/desktop/kernel/tables/bootstrap-phases.yaml`
+- `.nimi/spec/desktop/kernel/tables/build-chunks.yaml`
+- `.nimi/spec/desktop/kernel/tables/codegen-acceptance-gates.yaml`
+- `.nimi/spec/desktop/kernel/tables/codegen-capability-tiers.yaml`
+- `.nimi/spec/desktop/kernel/tables/codegen-import-allowlist.yaml`
+- `.nimi/spec/desktop/kernel/tables/codegen-static-scan-deny-patterns.yaml`

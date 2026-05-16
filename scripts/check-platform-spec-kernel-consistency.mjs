@@ -488,9 +488,6 @@ for (const rel of domainDocs) {
   if (!/^##\s+0\.\s+Normative Imports\b/mu.test(content)) {
     fail(`${rel} must define Section 0 Normative Imports`);
   }
-  if (!/\bP-[A-Z]+-\d{3}\b/u.test(content)) {
-    fail(`${rel} must reference at least one platform kernel Rule ID`);
-  }
   if (/^##\s+P-[A-Z]+-\d{3}\b/gmu.test(content)) {
     fail(`${rel} must not define kernel Rule IDs directly`);
   }

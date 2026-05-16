@@ -27,12 +27,6 @@ generate_drift_migration_checklist:
       post_cutover_canonical_input_root: .nimi/spec/desktop/kernel
       post_cutover_generated_output_root: stdout_view
       update_phase: phase_3_preparation
-    - command: pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope future
-      current_canonical_input_root: spec/future/kernel
-      current_generated_output_root: stdout_view
-      post_cutover_canonical_input_root: .nimi/spec/future/kernel
-      post_cutover_generated_output_root: stdout_view
-      update_phase: phase_3_preparation
     - command: pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope platform
       current_canonical_input_root: spec/platform/kernel
       current_generated_output_root: stdout_view
@@ -99,12 +93,6 @@ generate_drift_migration_checklist:
       post_cutover_canonical_input_root: .nimi/spec/desktop/kernel
       post_cutover_generated_output_root: stdout_view
       update_phase: phase_5_flip
-    - command: pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope future --check
-      current_canonical_input_root: spec/future/kernel
-      current_generated_output_root: stdout_view
-      post_cutover_canonical_input_root: .nimi/spec/future/kernel
-      post_cutover_generated_output_root: stdout_view
-      update_phase: phase_3_preparation
     - command: pnpm exec nimicoding validate-spec-governance --profile nimi --scope runtime-consistency
       current_canonical_input_root: spec/runtime/kernel
       current_generated_output_root: stdout_view
@@ -121,12 +109,6 @@ generate_drift_migration_checklist:
       current_canonical_input_root: spec/sdk/kernel
       current_generated_output_root: stdout_view
       post_cutover_canonical_input_root: .nimi/spec/sdk/kernel
-      post_cutover_generated_output_root: stdout_view
-      update_phase: phase_5_flip
-    - command: pnpm exec nimicoding validate-spec-governance --profile nimi --scope future-consistency
-      current_canonical_input_root: spec/future/kernel
-      current_generated_output_root: stdout_view
-      post_cutover_canonical_input_root: .nimi/spec/future/kernel
       post_cutover_generated_output_root: stdout_view
       update_phase: phase_5_flip
     - command: pnpm exec nimicoding validate-spec-governance --profile nimi --scope platform-consistency

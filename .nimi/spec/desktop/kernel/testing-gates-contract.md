@@ -85,10 +85,13 @@ macOS supplemental automated smoke 必须满足：
 - 执行器必须是 packaged Desktop app 自驱 smoke；不得伪装成 WebDriver parity。
 - 必须复用 admitted fixture、stable `data-testid` 与 private bridge surface，不得直接绕开业务 contract 改 store。
 - 证据必须进入 local execution report route patterns（如 `.local/report/**`）。
+- macOS manual smoke 保留 menu-bar hide/quit、packaged shell、runtime staging 与 self-update supplemental checklist；manual evidence 不替代 Linux/Windows blocking E2E。
 
 ## D-GATE-070 Release Parity Gate
 
 release / nightly 不得使用低于 PR 的 desktop E2E 标准，也不得通过 release 专属豁免跳过 Linux smoke 或 journey gate。nightly / release 需要执行完整 journey 集合；macOS 手工 smoke 与 supplemental automated smoke 都只能作为补充，不得伪装成 blocking desktop E2E coverage。release parity 必须以 Linux / Windows CI 真实运行结果与 evidence report 为准，不接受“本地脚本已存在”或“workflow 已配置”作为替代证据。
+
+Desktop self-update release dry-run 覆盖 runtime archive、release manifest、updater signature、public key、endpoint、bundled runtime staging 与 release resource 校验。缺任一 release prerequisite 时，release dry-run gate 失败。
 
 ## D-GATE-080 Spec Consistency & Docs Drift Gate
 

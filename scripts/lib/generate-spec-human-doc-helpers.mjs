@@ -3,7 +3,6 @@ import path from 'node:path';
 import {
   cognitionKernelFiles,
   desktopKernelFiles,
-  futureKernelFiles,
   parseKernelRules,
   platformKernelFiles,
   realmKernelFiles,
@@ -19,7 +18,6 @@ export async function loadKernelRuleMap(specDir) {
     ['runtime', runtimeKernelFiles],
     ['sdk', sdkKernelFiles],
     ['desktop', desktopKernelFiles],
-    ['future', futureKernelFiles],
     ['platform', platformKernelFiles],
     ['realm', realmKernelFiles],
   ]) {
@@ -60,9 +58,8 @@ export function appendDocumentIntroduction(d) {
 8. [错误处理模型](#8-错误处理模型)
 9. [SDK 架构](#9-sdk-架构)
 10. [Desktop 架构](#10-desktop-架构)
-11. [Future 能力规划](#11-future-能力规划)
-12. [Standalone Cognition](#12-standalone-cognition)
-13. [附录：参考表](#13-附录参考表)
+11. [Standalone Cognition](#11-standalone-cognition)
+12. [附录：参考表](#12-附录参考表)
 
 ---`);
 

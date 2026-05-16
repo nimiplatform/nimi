@@ -10,7 +10,6 @@ import {
   renderAppTabs,
   renderAdmittedReferenceMatrix,
   renderArtifactFamilies,
-  renderBacklogItems,
   renderBootstrapPhases,
   renderCompletionGates,
   renderConnectorAuthProfiles,
@@ -18,7 +17,6 @@ import {
   renderDesktopErrorCodes,
   renderErrorMappingMatrix,
   renderFeatureFlags,
-  renderGraduationLog,
   renderHookCapabilityAllowlists,
   renderHookSubsystems,
   renderImportBoundaries,
@@ -36,7 +34,6 @@ import {
   renderPromptServingLanes,
   renderPublicSurface,
   renderReasonCodes,
-  renderResearchSources,
   renderRuleEvidence,
   renderRuntimeCapabilityUpgradeMatrix,
   renderRuntimeBridgeBoundary,
@@ -71,7 +68,6 @@ async function main() {
   const ctTables = (name) => path.join(specDir, 'cognition', 'kernel', 'tables', name);
   const sdkTables = (name) => path.join(specDir, 'sdk', 'kernel', 'tables', name);
   const dtTables = (name) => path.join(specDir, 'desktop', 'kernel', 'tables', name);
-  const ftTables = (name) => path.join(specDir, 'future', 'kernel', 'tables', name);
   const d = new DocBuilder(ruleMap);
 
   appendSpecHumanDocNarrative(d);
@@ -82,169 +78,157 @@ async function main() {
 
   d.text(`---
 
-## 13. 附录：参考表
+## 12. 附录：参考表
 
 以下表格从 YAML 事实源自动渲染。YAML 文件是权威数据源；如需修改，请编辑 YAML 后重新生成。
 
-### 13.1 Runtime — RPC 方法列表
+### 12.1 Runtime — RPC 方法列表
 `);
   await d.yamlTable(rtTables('rpc-methods.yaml'), renderRpcMethods);
 
-  d.text(`### 13.2 Runtime — ReasonCode 错误码表
+  d.text(`### 12.2 Runtime — ReasonCode 错误码表
 `);
   await d.yamlTable(rtTables('reason-codes.yaml'), renderReasonCodes);
 
-  d.text(`### 13.3 Runtime — 错误映射矩阵
+  d.text(`### 12.3 Runtime — 错误映射矩阵
 `);
   await d.yamlTable(rtTables('error-mapping-matrix.yaml'), renderErrorMappingMatrix);
 
-  d.text(`### 13.4 Cognition — Artifact Families
+  d.text(`### 12.4 Cognition — Artifact Families
 `);
   await d.yamlTable(ctTables('artifact-families.yaml'), renderArtifactFamilies);
 
-  d.text(`### 13.5 Cognition — Admitted Reference Matrix
+  d.text(`### 12.5 Cognition — Admitted Reference Matrix
 `);
   await d.yamlTable(ctTables('admitted-reference-matrix.yaml'), renderAdmittedReferenceMatrix);
 
-  d.text(`### 13.6 Cognition — Public Surface
+  d.text(`### 12.6 Cognition — Public Surface
 `);
   await d.yamlTable(ctTables('public-surface.yaml'), renderPublicSurface);
 
-  d.text(`### 13.7 Cognition — Runtime Capability Upgrade Matrix
+  d.text(`### 12.7 Cognition — Runtime Capability Upgrade Matrix
 `);
   await d.yamlTable(ctTables('runtime-capability-upgrade-matrix.yaml'), renderRuntimeCapabilityUpgradeMatrix);
 
-  d.text(`### 13.8 Cognition — Memory Service Operations
+  d.text(`### 12.8 Cognition — Memory Service Operations
 `);
   await d.yamlTable(ctTables('memory-service-operations.yaml'), renderServiceOperations);
 
-  d.text(`### 13.9 Cognition — Knowledge Service Operations
+  d.text(`### 12.9 Cognition — Knowledge Service Operations
 `);
   await d.yamlTable(ctTables('knowledge-service-operations.yaml'), renderServiceOperations);
 
-  d.text(`### 13.10 Cognition — Prompt Serving Lanes
+  d.text(`### 12.10 Cognition — Prompt Serving Lanes
 `);
   await d.yamlTable(ctTables('prompt-serving-lanes.yaml'), renderPromptServingLanes);
 
-  d.text(`### 13.11 Cognition — Skill Service Operations
+  d.text(`### 12.11 Cognition — Skill Service Operations
 `);
   await d.yamlTable(ctTables('skill-service-operations.yaml'), renderServiceOperations);
 
-  d.text(`### 13.12 Cognition — Completion Gates
+  d.text(`### 12.12 Cognition — Completion Gates
 `);
   await d.yamlTable(ctTables('completion-gates.yaml'), renderCompletionGates);
 
-  d.text(`### 13.13 Cognition — Runtime Bridge Boundary
+  d.text(`### 12.13 Cognition — Runtime Bridge Boundary
 `);
   await d.yamlTable(ctTables('runtime-bridge-boundary.yaml'), renderRuntimeBridgeBoundary);
 
-  d.text(`### 13.14 Cognition — Rule Evidence
+  d.text(`### 12.14 Cognition — Rule Evidence
 `);
   await d.yamlTable(ctTables('rule-evidence.yaml'), renderRuleEvidence);
 
-  d.text(`### 13.15 Runtime — Key Source 真值表
+  d.text(`### 12.15 Runtime — Key Source 真值表
 `);
   await d.yamlTable(rtTables('key-source-truth-table.yaml'), renderKeySourceTruthTable);
 
-  d.text(`### 13.16 Runtime — Connector Auth Profiles
+  d.text(`### 12.16 Runtime — Connector Auth Profiles
 `);
   await d.yamlTable(rtTables('connector-auth-profiles.yaml'), renderConnectorAuthProfiles);
 
-  d.text(`### 13.17 Runtime — 状态机
+  d.text(`### 12.17 Runtime — 状态机
 `);
   await d.yamlTable(rtTables('state-transitions.yaml'), renderStateTransitions);
 
-  d.text(`### 13.18 Runtime — 本地引擎目录
+  d.text(`### 12.18 Runtime — 本地引擎目录
 `);
   await d.yamlTable(rtTables('local-engine-catalog.yaml'), renderLocalEngineCatalog);
 
-  d.text(`### 13.19 Runtime — 本地适配器路由
+  d.text(`### 12.19 Runtime — 本地适配器路由
 `);
   await d.yamlTable(rtTables('local-adapter-routing.yaml'), renderLocalAdapterRouting);
 
-  d.text(`### 13.20 SDK — 错误码
+  d.text(`### 12.20 SDK — 错误码
 `);
   await d.yamlTable(sdkTables('sdk-error-codes.yaml'), renderSdkErrorCodes);
 
-  d.text(`### 13.21 SDK — 导入边界
+  d.text(`### 12.21 SDK — 导入边界
 `);
   await d.yamlTable(sdkTables('import-boundaries.yaml'), renderImportBoundaries);
 
-  d.text(`### 13.22 SDK — Runtime 方法投影分组
+  d.text(`### 12.22 SDK — Runtime 方法投影分组
 `);
   await d.yamlTable(sdkTables('runtime-method-groups.yaml'), renderMethodGroups);
 
-  d.text(`### 13.22 Desktop — 启动阶段
+  d.text(`### 12.22 Desktop — 启动阶段
 `);
   await d.yamlTable(dtTables('bootstrap-phases.yaml'), renderBootstrapPhases);
 
-  d.text(`### 13.23 Desktop — IPC 命令
+  d.text(`### 12.23 Desktop — IPC 命令
 `);
   await d.yamlTable(dtTables('ipc-commands.yaml'), renderIpcCommands);
 
-  d.text(`### 13.24 Desktop — App Tabs
+  d.text(`### 12.24 Desktop — App Tabs
 `);
   await d.yamlTable(dtTables('app-tabs.yaml'), renderAppTabs);
 
-  d.text(`### 13.25 Desktop — Store Slices
+  d.text(`### 12.25 Desktop — Store Slices
 `);
   await d.yamlTable(dtTables('store-slices.yaml'), renderStoreSlices);
 
-  d.text(`### 13.26 Desktop — Hook 子系统
+  d.text(`### 12.26 Desktop — Hook 子系统
 `);
   await d.yamlTable(dtTables('hook-subsystems.yaml'), renderHookSubsystems);
 
-  d.text(`### 13.27 Desktop — UI Slots
+  d.text(`### 12.27 Desktop — UI Slots
 `);
   await d.yamlTable(dtTables('ui-slots.yaml'), renderUiSlots);
 
-  d.text(`### 13.28 Desktop — Turn Hook Points
+  d.text(`### 12.28 Desktop — Turn Hook Points
 `);
   await d.yamlTable(dtTables('turn-hook-points.yaml'), renderTurnHookPoints);
 
-  d.text(`### 13.29 Desktop — Hook Capability Allowlists
+  d.text(`### 12.29 Desktop — Hook Capability Allowlists
 `);
   await d.yamlTable(dtTables('hook-capability-allowlists.yaml'), renderHookCapabilityAllowlists);
 
-  d.text(`### 13.30 Desktop — Mod 生命周期状态
+  d.text(`### 12.30 Desktop — Mod 生命周期状态
 `);
   await d.yamlTable(dtTables('mod-lifecycle-states.yaml'), renderModLifecycleStates);
 
-  d.text(`### 13.31 Desktop — Mod 内核阶段
+  d.text(`### 12.31 Desktop — Mod 内核阶段
 `);
   await d.yamlTable(dtTables('mod-kernel-stages.yaml'), renderModKernelStages);
 
-  d.text(`### 13.32 Desktop — Feature Flags
+  d.text(`### 12.32 Desktop — Feature Flags
 `);
   await d.yamlTable(dtTables('feature-flags.yaml'), renderFeatureFlags);
 
-  d.text(`### 13.33 Desktop — 数据同步流
+  d.text(`### 12.33 Desktop — 数据同步流
 `);
   await d.yamlTable(dtTables('data-sync-flows.yaml'), renderDataSyncFlows);
 
-  d.text(`### 13.34 Desktop — 错误码
+  d.text(`### 12.34 Desktop — 错误码
 `);
   await d.yamlTable(dtTables('error-codes.yaml'), renderDesktopErrorCodes);
 
-  d.text(`### 13.35 Desktop — Retry Status Codes
+  d.text(`### 12.35 Desktop — Retry Status Codes
 `);
   await d.yamlTable(dtTables('retry-status-codes.yaml'), renderRetryStatusCodes);
 
-  d.text(`### 13.36 Desktop — Log Areas
+  d.text(`### 12.36 Desktop — Log Areas
 `);
   await d.yamlTable(dtTables('log-areas.yaml'), renderLogAreas);
-
-  d.text(`### 13.37 Future — Backlog Items
-`);
-  await d.yamlTable(ftTables('backlog-items.yaml'), renderBacklogItems);
-
-  d.text(`### 13.38 Future — Research Sources
-`);
-  await d.yamlTable(ftTables('research-sources.yaml'), renderResearchSources);
-
-  d.text(`### 13.39 Future — Graduation Log
-`);
-  await d.yamlTable(ftTables('graduation-log.yaml'), renderGraduationLog);
 
   const output = d.build();
   await finalizeGeneratedDoc({ checkMode, outPath, output, repoRoot });

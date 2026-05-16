@@ -154,6 +154,8 @@ Phase 1 provider 健康细粒度展示为 Phase 2（D-IPC-002），因此 Phase 
 
 **非错误终态说明**：`AI_FINISH_LENGTH` 和 `AI_FINISH_CONTENT_FILTER` 通过 gRPC OK + `reason_code` 返回（参考 SDK S-ERROR-009），投影为 `finishReason` 而非异常。UI 不触发错误边界（D-ERR-006），仅在消息元信息区域展示提示标注。
 
+**认证失效投影**：Runtime read surface 返回 `AUTH_TOKEN_INVALID` 时，Desktop UI 投影为 `invalid_requires_reauth`，除非目标 RPC 已在 Runtime/SDK authority 中声明为匿名可读。匿名重试只适用于已准入的只读 Runtime surface，且 credential source 继续保留在诊断详情中。Runtime Config、Local AI、usage、audit、dependency setup 等读取路径都需要 bounded timeout、错误投影、stale 投影或认证失效投影，不能无限停留在 loading 文案。
+
 **Local Speech 细化映射约束**：
 
 - Desktop 不得再把 `AI_LOCAL_SPEECH_ENV_INIT_FAILED`、

@@ -234,6 +234,8 @@ thread-level `routeSnapshot` 不再是允许的规范 contract。
 
 - Runtime Config 的角色是 authority editor：只编辑 SelectionStore/default refs
 - Runtime Config 不得持久化 resolved binding、health、metadata 或 projection reason
+- Runtime Config 可以承载 Desktop-host-owned memory embedding adjacent live config，但该 config 只表达 user-selected source / binding intent，不表达 resolved profile、bind success、bank identity、migration readiness 或 cutover completion。
+- Runtime Config 对 runtime memory resolved state、bank availability、bind / rebuild / cutover readiness 的读取只消费 admitted typed host/runtime boundary；renderer-local form state、private loopback HTTP、本地资产启发式或 `canonical-bind` 类 convenience endpoint 不构成正式产品 contract。
 - AI / Agent submit path 只允许消费 `ConversationCapabilityProjection` 与 `ConversationExecutionSnapshot`；不得重新从可写 `runtimeFields` 拼装 capability truth
 - AI / Agent submit path 若还需要 `resolvedTurnMode`、`resolvedExperiencePolicy`，必须消费
   `agent-chat-behavior-contract.md` 定义的 behavior outputs；不得经由

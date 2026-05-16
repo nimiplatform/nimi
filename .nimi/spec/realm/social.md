@@ -1,27 +1,43 @@
----
-id: SPEC-REALM-SOCIAL-001
-title: Realm Social Domain
-status: active
-owner: "@team"
-updated: 2026-03-26
----
-
-# Realm Social Domain
+# Social
 
 ## Normative Imports
 
-- `kernel/social-contract.md`: `R-SOC-001..004`
+- `.nimi/spec/realm/kernel/*`
+- `.nimi/spec/realm/kernel/tables/*`
 
 ## Scope
 
-Thin guide only. Kernel contracts and tables are authoritative.
+This guide points to Realm authority surfaces for social. It does not define product rules.
 
 ## Reading Path
 
-1. `kernel/social-contract.md`
-2. `kernel/tables/social-contract.yaml`
-3. `kernel/tables/rule-catalog.yaml`
+- `.nimi/spec/realm/kernel/index.md`
+- `.nimi/spec/realm/kernel/asset-contract.md`
+- `.nimi/spec/realm/kernel/attachment-contract.md`
+- `.nimi/spec/realm/kernel/binding-contract.md`
+- `.nimi/spec/realm/kernel/bundle-contract.md`
+- `.nimi/spec/realm/kernel/chat-contract.md`
+- `.nimi/spec/realm/kernel/economy-contract.md`
+- `.nimi/spec/realm/kernel/group-agent-participation-contract.md`
+- `.nimi/spec/realm/kernel/oauth-authority-contract.md`
+- `.nimi/spec/realm/kernel/projection-contract.md`
+- `.nimi/spec/realm/kernel/resource-contract.md`
+- `.nimi/spec/realm/kernel/social-contract.md`
+- `.nimi/spec/realm/kernel/transit-contract.md`
 
-## Non-goals
+## Tables
 
-No duplicate rule prose beyond kernel references.
+- `.nimi/spec/realm/kernel/tables/asset-contract.yaml`
+- `.nimi/spec/realm/kernel/tables/attachment-contract.yaml`
+- `.nimi/spec/realm/kernel/tables/binding-contract.yaml`
+- `.nimi/spec/realm/kernel/tables/bundle-contract.yaml`
+- `.nimi/spec/realm/kernel/tables/chat-contract.yaml`
+- `.nimi/spec/realm/kernel/tables/commit-authorization-matrix.yaml`
+- `.nimi/spec/realm/kernel/tables/domain-enums.yaml`
+- `.nimi/spec/realm/kernel/tables/domain-state-machines.yaml`
+- `.nimi/spec/realm/kernel/tables/economy-contract.yaml`
+- `.nimi/spec/realm/kernel/tables/group-agent-participation-contract.yaml`
+
+## Mapping Declaration
+
+Realm open-spec alignment entries anchor here when this guide participates in an external mapping. Mapping facts live in `.nimi/spec/realm/kernel/tables/open-spec-alignment-map.yaml`.

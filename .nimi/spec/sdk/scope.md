@@ -1,28 +1,36 @@
-# Scope SDK Domain Spec
+# Scope
 
-> Scope: `@nimiplatform/sdk/scope` 主题导引（catalog 生命周期与授权联动边界）。
 > Normative Imports: `.nimi/spec/sdk/kernel/*`
 
-## 0. 权威导入
+## Scope
 
-- `kernel/scope-contract.md`（S-SCOPE-001, S-SCOPE-002, S-SCOPE-003, S-SCOPE-004, S-SCOPE-005）
-- `kernel/surface-contract.md`（S-SURFACE-004）
-- `kernel/transport-contract.md`（S-TRANSPORT-003）
-- `kernel/error-projection.md`（S-ERROR-003）
-- `kernel/boundary-contract.md`（S-BOUNDARY-001）
+This guide points to the sdk authority surfaces for scope. It does not define product rules.
 
-## 1. 文档定位
+## Reading Path
 
-本文件用于 scope 子路径导航。scope 的公开面、错误语义和边界规则以 sdk kernel 为准。
+- `.nimi/spec/sdk/kernel/index.md`
+- `.nimi/spec/sdk/kernel/ai-config-surface-contract.md`
+- `.nimi/spec/sdk/kernel/ai-provider-contract.md`
+- `.nimi/spec/sdk/kernel/boundary-contract.md`
+- `.nimi/spec/sdk/kernel/companion-participation-client-contract.md`
+- `.nimi/spec/sdk/kernel/error-projection.md`
+- `.nimi/spec/sdk/kernel/local-environment-projection-contract.md`
+- `.nimi/spec/sdk/kernel/mod-contract.md`
+- `.nimi/spec/sdk/kernel/package-governance-contract.md`
+- `.nimi/spec/sdk/kernel/realm-contract.md`
+- `.nimi/spec/sdk/kernel/realm-group-agent-participation-client-contract.md`
+- `.nimi/spec/sdk/kernel/runtime-agent-participation-client-contract.md`
+- `.nimi/spec/sdk/kernel/runtime-avatar-control-client-contract.md`
 
-## 2. 阅读路径
+## Tables
 
-1. 主合同：`kernel/scope-contract.md`。
-2. Scope 最小稳定面：`kernel/surface-contract.md`。
-3. 传输与订阅重建：`kernel/transport-contract.md`。
-4. 导入边界：`kernel/boundary-contract.md`。
-
-## 3. 非目标
-
-- 不在 domain 层定义服务端授权规则。
-- 不在本文件维护实现态测试条目。
+- `.nimi/spec/sdk/kernel/tables/import-boundaries.yaml`
+- `.nimi/spec/sdk/kernel/tables/rule-evidence.yaml`
+- `.nimi/spec/sdk/kernel/tables/runtime-agent-participation-methods.yaml`
+- `.nimi/spec/sdk/kernel/tables/runtime-avatar-control-methods.yaml`
+- `.nimi/spec/sdk/kernel/tables/runtime-method-groups.yaml`
+- `.nimi/spec/sdk/kernel/tables/sdk-error-codes.yaml`
+- `.nimi/spec/sdk/kernel/tables/sdk-realm-realtime-gates.yaml`
+- `.nimi/spec/sdk/kernel/tables/sdk-runtime-behavioral-checks.yaml`
+- `.nimi/spec/sdk/kernel/tables/sdk-surfaces.yaml`
+- `.nimi/spec/sdk/kernel/tables/sdk-testing-gates.yaml`

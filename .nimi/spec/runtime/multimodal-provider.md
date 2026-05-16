@@ -1,40 +1,36 @@
-# Multimodal Provider Domain Spec
+# Multimodal Provider
 
-> Scope: 多模态 provider 主题导引（canonical 字段、任务语义、路由一致性）。
 > Normative Imports: `.nimi/spec/runtime/kernel/*`
 
-## 0. 权威导入
+## Scope
 
-- `kernel/multimodal-provider-contract.md`（canonical inputs：K-MMPROV-001~005；async/artifact/adapter/route：K-MMPROV-006~012；voice catalog 与 diagnostics：K-MMPROV-013~015；local image workflow：K-MMPROV-016~017；voice workflow：K-MMPROV-018~023；video：K-MMPROV-024~027；inclusion/deferred：K-MMPROV-028~029；music iteration/fail-close：K-MMPROV-030~037）
-- `kernel/scenario-job-lifecycle.md`（K-JOB-001, K-JOB-002）
-- `kernel/provider-health-contract.md`（K-PROV-001, K-PROV-002, K-PROV-006）
-- `kernel/streaming-contract.md`（K-STREAM-001, K-STREAM-003, K-STREAM-004）
-- `kernel/workflow-contract.md`（K-WF-005）
-- `kernel/tables/multimodal-canonical-fields.yaml`
-- `kernel/tables/multimodal-artifact-fields.yaml`
+This guide points to the runtime authority surfaces for multimodal-provider. It does not define product rules.
 
-## 1. 文档定位
+## Reading Path
 
-本文件是多模态 provider 导引文档。canonical 输入、异步任务、artifact 与适配约束由 kernel 统一定义。
+- `.nimi/spec/runtime/kernel/index.md`
+- `.nimi/spec/runtime/kernel/account-session-contract.md`
+- `.nimi/spec/runtime/kernel/agent-conversation-anchor-contract.md`
+- `.nimi/spec/runtime/kernel/agent-hook-intent-contract.md`
+- `.nimi/spec/runtime/kernel/agent-output-wire-contract.md`
+- `.nimi/spec/runtime/kernel/agent-presentation-contract.md`
+- `.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md`
+- `.nimi/spec/runtime/kernel/ai-profile-execution-contract.md`
+- `.nimi/spec/runtime/kernel/app-messaging-contract.md`
+- `.nimi/spec/runtime/kernel/audit-contract.md`
+- `.nimi/spec/runtime/kernel/auth-service.md`
+- `.nimi/spec/runtime/kernel/authn-token-validation.md`
+- `.nimi/spec/runtime/kernel/authz-ownership.md`
 
-## 2. 阅读路径
+## Tables
 
-1. 主合同：`kernel/multimodal-provider-contract.md`。
-2. 任务生命周期：`kernel/scenario-job-lifecycle.md`。
-3. provider 健康与命名：`kernel/provider-health-contract.md`。
-4. workflow external async：`kernel/workflow-contract.md`。
-5. image / video / TTS / STT canonical inputs 与 guardrails：`kernel/multimodal-provider-contract.md`（K-MMPROV-001~005, K-MMPROV-024~025）。
-6. adapter obligations、cloud/local route、validation fail-close 与 local image workflow：`kernel/multimodal-provider-contract.md`（K-MMPROV-008~012, K-MMPROV-016~017）。
-7. voice catalog、workflow canonical inputs、timing/alignment 与 status mapping：`kernel/multimodal-provider-contract.md`（K-MMPROV-013~023）。
-8. async task endpoints、status normalization、deferred custom voice extension 与 music iteration fail-close：`kernel/multimodal-provider-contract.md`（K-MMPROV-026~037）。
-
-## 3. 关联材料
-
-- Companion 指南：`kernel/companion/multimodal-provider-guide.md`。
-- topic-bound 本地执行计划：`.local/work/<topic-id>/**`。
-- local-only 审计与覆盖结果：`.local/report/**`。
-
-## 4. 非目标
-
-- 不在本文件定义独立规则号。
-- 不在 domain 层维护执行清单正文。
+- `.nimi/spec/runtime/kernel/tables/accelerator-consumer-requirements.yaml`
+- `.nimi/spec/runtime/kernel/tables/activation-gate-reason-codes.yaml`
+- `.nimi/spec/runtime/kernel/tables/agent-activity-ontology.yaml`
+- `.nimi/spec/runtime/kernel/tables/agent-participation-axis-model.yaml`
+- `.nimi/spec/runtime/kernel/tables/agent-participation-capability-scopes.yaml`
+- `.nimi/spec/runtime/kernel/tables/agent-participation-concurrency-policy.yaml`
+- `.nimi/spec/runtime/kernel/tables/agent-participation-context-blocks.yaml`
+- `.nimi/spec/runtime/kernel/tables/agent-participation-domain-future-seams.yaml`
+- `.nimi/spec/runtime/kernel/tables/agent-participation-external-entry-boundaries.yaml`
+- `.nimi/spec/runtime/kernel/tables/agent-participation-memory-policy.yaml`

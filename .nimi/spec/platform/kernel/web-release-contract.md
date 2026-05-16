@@ -10,6 +10,10 @@
 
 Web shell mode may consume desktop public-for-web surfaces and web-specific adapter replacements, but it must not import Tauri APIs, desktop-private renderer aliases, runtime internals, or local filesystem/mod behaviors. Unsupported desktop-only release/self-update surfaces must fail closed rather than returning pseudo-success values.
 
+Web shell bootstrap is client-only: no SSR and no service worker cache are part of the product contract. `realmBaseUrl` resolves to the browser same-origin deployment unless an admitted web release adapter supplies a different origin. Browser OAuth redirect replaces Tauri deep links, and raw bearer tokens remain memory-only while persistent browser storage carries non-sensitive session metadata.
+
+Web fetch adaptation may reuse the public proxy-fetch shape, but in `hasTauriInvoke() = false` mode it resolves to native browser `fetch`; it does not inherit Desktop CORS bypass or private IPC behavior.
+
 ## P-WEB-003 — Install Gateway Ownership
 
 `apps/install-gateway/**` is the platform release distribution gateway for install scripts, platform manifests, updater metadata, and release-feed projection. Release data must come from the admitted GitHub release source, checksum validation must remain explicit for platform archives, and generated distribution copies must not become source truth.

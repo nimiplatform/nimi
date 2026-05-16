@@ -29,14 +29,12 @@ const REQUIRED_DRIFT_COMMANDS = [
   'pnpm exec nimicoding validate-spec-governance --profile nimi --scope desktop-consistency',
   'pnpm exec nimicoding validate-spec-governance --profile nimi --scope platform-consistency',
   'pnpm exec nimicoding validate-spec-governance --profile nimi --scope realm-consistency',
-  'pnpm exec nimicoding validate-spec-governance --profile nimi --scope future-consistency',
   'pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope runtime --check',
   'pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope cognition --check',
   'pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope sdk --check',
   'pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope desktop --check',
   'pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope platform --check',
   'pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope realm --check',
-  'pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope future --check',
 ];
 
 const REQUIRED_GOVERNANCE_FILES = [

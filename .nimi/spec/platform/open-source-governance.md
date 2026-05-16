@@ -1,29 +1,41 @@
 # Open Source Governance
 
-> Domain: Platform / Governance
+> Domain: platform
 
 ## 0. Normative Imports
 
-| Kernel Location | Rule IDs |
-|---|---|
-| `kernel/governance-contract.md` | P-GOV-001–020 |
+- `.nimi/spec/platform/kernel/*`
+- `.nimi/spec/platform/kernel/tables/*`
 
-## 1. 文档定位
+## Scope
 
-本文件是开源治理域导引。许可证矩阵、发布门、治理任务分层以 P-GOV-* 为权威来源。
+This guide points to the Platform authority surfaces for open-source-governance. It does not define product rules.
 
-## 2. 阅读路径
+## Reading Path
 
-1. 先读 P-GOV-001、P-GOV-002，确认 license 与边界。
-2. 再读 P-GOV-003、P-GOV-011，确认发布门与 Go/No-Go 条件。
-3. 最后读 P-GOV-010、P-GOV-020，确认治理任务分级与执行模型。
+- `.nimi/spec/platform/kernel/index.md`
+- `.nimi/spec/platform/kernel/ai-last-mile-contract.md`
+- `.nimi/spec/platform/kernel/ai-scope-contract.md`
+- `.nimi/spec/platform/kernel/app-slice-admission-contract.md`
+- `.nimi/spec/platform/kernel/architecture-contract.md`
+- `.nimi/spec/platform/kernel/capability-catalog-contract.md`
+- `.nimi/spec/platform/kernel/design-pattern-contract.md`
+- `.nimi/spec/platform/kernel/governance-contract.md`
+- `.nimi/spec/platform/kernel/kit-contract.md`
+- `.nimi/spec/platform/kernel/nimi-ui-material-contract.md`
+- `.nimi/spec/platform/kernel/package-authority-admission-contract.md`
+- `.nimi/spec/platform/kernel/protocol-contract.md`
+- `.nimi/spec/platform/kernel/release-gate-contract.md`
 
-## 3. 执行材料位置
+## Tables
 
-- topic-bound 本地计划与排期：`.local/work/<topic-id>/**`。
-- local-only 审计与结果证据：`.local/report/**`。
-
-## 4. 非目标
-
-- 不在本文件定义额外治理规则号。
-- 不在 spec 域文档记录阶段性执行状态。
+- `.nimi/spec/platform/kernel/tables/app-authorization-presets.yaml`
+- `.nimi/spec/platform/kernel/tables/app-slice-admissions.yaml`
+- `.nimi/spec/platform/kernel/tables/audit-events.yaml`
+- `.nimi/spec/platform/kernel/tables/audit-evidence-roots.yaml`
+- `.nimi/spec/platform/kernel/tables/canonical-capability-catalog.yaml`
+- `.nimi/spec/platform/kernel/tables/compliance-test-matrix.yaml`
+- `.nimi/spec/platform/kernel/tables/error-code-mapping.yaml`
+- `.nimi/spec/platform/kernel/tables/nimi-kit-registry.yaml`
+- `.nimi/spec/platform/kernel/tables/nimi-ui-adoption.yaml`
+- `.nimi/spec/platform/kernel/tables/nimi-ui-allowlists.yaml`

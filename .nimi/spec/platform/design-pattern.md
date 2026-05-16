@@ -1,34 +1,41 @@
 # Design Pattern
 
-> Domain: Platform / Design Pattern
+> Domain: platform
 
 ## 0. Normative Imports
 
-- `P-DESIGN-001`, `P-DESIGN-002`, `P-DESIGN-003`, `P-DESIGN-004`, `P-DESIGN-005`, `P-DESIGN-006`, `P-DESIGN-007`, `P-DESIGN-008` from `kernel/design-pattern-contract.md`
-- `P-DESIGN-010`, `P-DESIGN-011`, `P-DESIGN-012`, `P-DESIGN-013`, `P-DESIGN-014`, `P-DESIGN-015`, `P-DESIGN-019` from `kernel/design-pattern-contract.md`
-- `P-DESIGN-020`, `P-DESIGN-021`, `P-DESIGN-090` from `kernel/design-pattern-contract.md`
-- `P-GOV-*` from `kernel/governance-contract.md`
+- `.nimi/spec/platform/kernel/*`
+- `.nimi/spec/platform/kernel/tables/*`
 
-## 1. Purpose
+## Scope
 
-Nimi Design Pattern defines the shared design foundation and external consumer contract for `@nimiplatform/nimi-kit/ui`.
-It is the only normative source for:
+This guide points to the Platform authority surfaces for design-pattern. It does not define product rules.
 
-- semantic design tokens
-- shared primitive families
-- theme scheme delivery
-- consumer manifest schema and hard gates
+## Reading Path
 
-## 2. Model
+- `.nimi/spec/platform/kernel/index.md`
+- `.nimi/spec/platform/kernel/ai-last-mile-contract.md`
+- `.nimi/spec/platform/kernel/ai-scope-contract.md`
+- `.nimi/spec/platform/kernel/app-slice-admission-contract.md`
+- `.nimi/spec/platform/kernel/architecture-contract.md`
+- `.nimi/spec/platform/kernel/capability-catalog-contract.md`
+- `.nimi/spec/platform/kernel/design-pattern-contract.md`
+- `.nimi/spec/platform/kernel/governance-contract.md`
+- `.nimi/spec/platform/kernel/kit-contract.md`
+- `.nimi/spec/platform/kernel/nimi-ui-material-contract.md`
+- `.nimi/spec/platform/kernel/package-authority-admission-contract.md`
+- `.nimi/spec/platform/kernel/protocol-contract.md`
+- `.nimi/spec/platform/kernel/release-gate-contract.md`
 
-- Shared foundation: one cross-app spec and one shared lib, `@nimiplatform/nimi-kit/ui`
-- Foundation schemes: `nimi-light`, `nimi-dark`
-- Shared accent pack: `nimi-accent`
-- Consumer accent packs: defined by each consuming app's local spec manifest and projected into kit output without becoming platform design authority
-- Controlled exceptions: app-local manifests only; platform design authority does not carry concrete app exception inventories
+## Tables
 
-## 3. Authority Split
-
-- `.nimi/spec/platform/kernel/design-pattern-contract.md` owns the normative design contract.
-- App-local specs own concrete kit adoption inventories, retained app-owned compositions, and product art direction, but they must reference `P-DESIGN-*` and must not redefine shared primitives.
-- App implementation must consume the generated shared lib projection and pass `pnpm check:nimi-ui-pattern`.
+- `.nimi/spec/platform/kernel/tables/app-authorization-presets.yaml`
+- `.nimi/spec/platform/kernel/tables/app-slice-admissions.yaml`
+- `.nimi/spec/platform/kernel/tables/audit-events.yaml`
+- `.nimi/spec/platform/kernel/tables/audit-evidence-roots.yaml`
+- `.nimi/spec/platform/kernel/tables/canonical-capability-catalog.yaml`
+- `.nimi/spec/platform/kernel/tables/compliance-test-matrix.yaml`
+- `.nimi/spec/platform/kernel/tables/error-code-mapping.yaml`
+- `.nimi/spec/platform/kernel/tables/nimi-kit-registry.yaml`
+- `.nimi/spec/platform/kernel/tables/nimi-ui-adoption.yaml`
+- `.nimi/spec/platform/kernel/tables/nimi-ui-allowlists.yaml`

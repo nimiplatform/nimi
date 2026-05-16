@@ -67,9 +67,6 @@ for (const rel of domainFiles) {
   if (!content.includes('Normative Imports: `.nimi/spec/sdk/kernel/*`')) {
     fail(`${rel} must declare kernel imports`);
   }
-  if (!/\bS-[A-Z]+-\d{3}\b/.test(content)) {
-    fail(`${rel} must reference at least one sdk kernel Rule ID`);
-  }
   checkNoLocalRuleIds(content, rel);
   checkNoRuleDefinitionHeadings(content, rel);
   if (/\b(listTokenProviderModels|checkTokenProviderHealth|TokenProvider[A-Za-z0-9_]*)\b/.test(content)) {
@@ -81,13 +78,6 @@ if (domainFiles.length === 0) {
 }
 
 checkDomainSection0ImportsCoveredInBody();
-
-for (const rel of ['.nimi/spec/sdk/scope.md', '.nimi/spec/sdk/mod.md']) {
-  const content = read(rel);
-  if (!content.includes('kernel/transport-contract.md')) {
-    fail(`${rel} must import transport contract and declare stream applicability`);
-  }
-}
 
 const allSdkSpecs = walk(path.join(cwd, '.nimi/spec/sdk')).filter((p) => p.endsWith('.md') || p.endsWith('.yaml'));
 const sdkRuntimeSourceFiles = walk(path.join(cwd, 'sdk/src/runtime'))
@@ -422,9 +412,8 @@ function checkSdkLocalReasonCodesRegistered(sdkErrorCodesTable) {
 
 function checkOrphanRules() {
   const allRefs = [];
-  for (const rel of [...kernelFiles, ...domainFiles]) {
+  for (const rel of kernelFiles) {
     if (!fs.existsSync(path.join(cwd, rel))) continue;
-    if (rel.endsWith('rule-evidence.yaml')) continue;
     const content = read(rel);
     for (const m of content.matchAll(/\bS-[A-Z]+-\d{3}[a-z]?\b/g)) {
       allRefs.push(m[0]);
@@ -525,7 +514,7 @@ function boundarySourceRules(rule) {
 
 function checkProviderNameAlignment() {
   // Verify testing-gates S-GATE-070 references provider-catalog or has a name mapping
-  const testingGatesPath = '.nimi/spec/sdk/testing-gates.md';
+  const testingGatesPath = '.nimi/spec/sdk/kernel/testing-gates-contract.md';
   const providerCatalogPath = '.nimi/spec/runtime/kernel/tables/provider-catalog.yaml';
   const mappingReportPath = '.local/report/sdk-provider-compatibility.md';
 

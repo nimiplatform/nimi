@@ -23,7 +23,7 @@ const CONTRACT_REFS = {
 };
 
 const TEXT_RULE_BODY_PATTERN = /\bMUST(?:\s+NOT)?\b|\bmust\s+not\b|必须|不得|fail(?:s|ed)?\s+closed/i;
-const PRODUCT_RULE_ID_PATTERN = /\b[A-Z][A-Z0-9]+-[A-Z0-9]+-[A-Z0-9-]+\b/;
+const PRODUCT_RULE_ID_PATTERN = /\b[A-Z][A-Z0-9]*-[A-Z0-9]+-[A-Z0-9-]+\b/;
 const GENERATED_REF_PATTERN = /\.nimi\/spec\/[^)\s]+\/kernel\/generated\/|\.nimi\/spec\/generated\/|kernel\/generated\//;
 
 function toPosix(value) {

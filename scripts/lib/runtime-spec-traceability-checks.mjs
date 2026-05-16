@@ -171,11 +171,7 @@ export function createRuntimeSpecTraceabilityChecks({
   }
   
   function checkOrphanRules(kernelRuleSet) {
-    const files = [...new Set([
-      ...runtimeMarkdownFiles,
-      ...kernelFiles.filter((rel) => rel.endsWith('.yaml')),
-      ...domainFiles,
-    ])];
+    const files = [...new Set(kernelFiles)];
     const refCounts = new Map();
     for (const rel of files) {
       if (!fs.existsSync(path.join(cwd, rel))) continue;

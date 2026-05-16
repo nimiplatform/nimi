@@ -26,7 +26,7 @@ function evidenceRootsForSpecOwner(ownerDomain, targetRootRef) {
     "spec-root": repoWideEvidenceRoots,
     cognition: ["nimi-cognition", ".nimi/spec/cognition"],
     desktop: ["apps/desktop", "kit", ".nimi/spec/desktop"],
-    future: [".nimi/spec/future", ".nimi/topics"],
+    future: [".nimi/topics"],
     platform: ["kit", "scripts", ".nimi/spec/platform"],
     realm: ["sdk/src/realm", "runtime/internal/protocol", ".nimi/spec/realm"],
     runtime: ["runtime", "proto/runtime/v1", "scripts", "config", ".nimi/spec/runtime"],
@@ -195,4 +195,3 @@ export function buildSpecChunks(includedInventory, options) {
   }
   return chunks;
 }
-

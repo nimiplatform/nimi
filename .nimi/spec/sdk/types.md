@@ -1,25 +1,36 @@
-# SDK Types Domain Spec
+# Types
 
-> Scope: `@nimiplatform/sdk/types` 共享类型导引。
 > Normative Imports: `.nimi/spec/sdk/kernel/*`
 
-## 0. 权威导入
+## Scope
 
-- `kernel/surface-contract.md`（S-SURFACE-001, S-SURFACE-004）
-- `kernel/error-projection.md`（S-ERROR-001, S-ERROR-010, S-ERROR-013, S-ERROR-014）
-- `kernel/tables/sdk-surfaces.yaml`
+This guide points to the sdk authority surfaces for types. It does not define product rules.
 
-## 1. 文档定位
+## Reading Path
 
-本文件定义 `@nimiplatform/sdk/types` 子路径的阅读边界。规范条款由 sdk kernel 定义；本 domain 文档只负责说明共享类型导出的角色，不复制类型细节。
+- `.nimi/spec/sdk/kernel/index.md`
+- `.nimi/spec/sdk/kernel/ai-config-surface-contract.md`
+- `.nimi/spec/sdk/kernel/ai-provider-contract.md`
+- `.nimi/spec/sdk/kernel/boundary-contract.md`
+- `.nimi/spec/sdk/kernel/companion-participation-client-contract.md`
+- `.nimi/spec/sdk/kernel/error-projection.md`
+- `.nimi/spec/sdk/kernel/local-environment-projection-contract.md`
+- `.nimi/spec/sdk/kernel/mod-contract.md`
+- `.nimi/spec/sdk/kernel/package-governance-contract.md`
+- `.nimi/spec/sdk/kernel/realm-contract.md`
+- `.nimi/spec/sdk/kernel/realm-group-agent-participation-client-contract.md`
+- `.nimi/spec/sdk/kernel/runtime-agent-participation-client-contract.md`
+- `.nimi/spec/sdk/kernel/runtime-avatar-control-client-contract.md`
 
-## 2. 子路径职责
+## Tables
 
-- 共享运行时无关的 value/type 导出，如 `NimiError`、`ScopeName`、`ExternalPrincipalId`。
-- 作为其他 SDK 子路径的稳定类型入口，不承载 transport/client facade。
-- 命名与错误族必须与 `S-SURFACE-001`、`S-ERROR-010`、`S-ERROR-013`、`S-ERROR-014` 保持一致，不引入本地别名层。
-
-## 3. 非目标
-
-- 不在本文件定义额外规则编号。
-- 不在 domain 文档维护实现态类型清单。
+- `.nimi/spec/sdk/kernel/tables/import-boundaries.yaml`
+- `.nimi/spec/sdk/kernel/tables/rule-evidence.yaml`
+- `.nimi/spec/sdk/kernel/tables/runtime-agent-participation-methods.yaml`
+- `.nimi/spec/sdk/kernel/tables/runtime-avatar-control-methods.yaml`
+- `.nimi/spec/sdk/kernel/tables/runtime-method-groups.yaml`
+- `.nimi/spec/sdk/kernel/tables/sdk-error-codes.yaml`
+- `.nimi/spec/sdk/kernel/tables/sdk-realm-realtime-gates.yaml`
+- `.nimi/spec/sdk/kernel/tables/sdk-runtime-behavioral-checks.yaml`
+- `.nimi/spec/sdk/kernel/tables/sdk-surfaces.yaml`
+- `.nimi/spec/sdk/kernel/tables/sdk-testing-gates.yaml`

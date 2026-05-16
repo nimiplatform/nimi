@@ -65,5 +65,9 @@
 ## 7. 结构约束
 
 - kernel 表 `source_rule` 仅允许 `S-*`。
-- domain 文档只引用 kernel Rule ID，不定义本地规则体系。
+- domain 文档只保留阅读路径与包路径导引，不定义本地规则体系，也不复述 kernel rule body。
 - human-authored topic lifecycle reports 写入 `.nimi/topics/{proposal|ongoing|pending|closed}/<topic-id>/**`；legacy local-only execution evidence may still appear under `.local/report/**`；tracked spec 不依赖具体 local 文件。
+
+## 8. Domain Activation Overview
+
+SDK active domains are `runtime`, `realm`, and `ai-provider`. `world`, `scope`, and `mod` remain defined SDK domains whose API surface grows only through kernel contracts and structured tables.

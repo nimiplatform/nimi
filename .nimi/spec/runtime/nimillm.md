@@ -1,43 +1,36 @@
-# nimiLLM Remote Execution Spec
+# Nimillm
 
-> Scope: remote 执行主题导引（provider 适配、流式语义、ScenarioJob 关联）。
 > Normative Imports: `.nimi/spec/runtime/kernel/*`
 
-## 0. 权威导入
+## Scope
 
-- `kernel/nimillm-contract.md`（模块边界：K-NIMI-001；adapter/media job：K-NIMI-002, K-NIMI-004；model prefix 与 route visibility：K-NIMI-003, K-NIMI-008；security/audit/streaming：K-NIMI-005~007；unsupported modality：K-NIMI-009；availability/fallback：K-NIMI-010）
-- `kernel/rpc-surface.md`（K-RPC-002）
-- `kernel/key-source-routing.md`（K-KEYSRC-002, K-KEYSRC-004）
-- `kernel/endpoint-security.md`（K-SEC-001, K-SEC-004）
-- `kernel/tables/provider-catalog.yaml`（provider canonical set / endpoint 默认值）
-- `kernel/tables/provider-capabilities.yaml`（provider runtime_plane / execution_module 能力约束）
-- `kernel/scenario-job-lifecycle.md`（K-JOB-001, K-JOB-006）
-- `kernel/streaming-contract.md`（K-STREAM-002, K-STREAM-003, K-STREAM-004）
-- `kernel/error-model.md`（K-ERR-001, K-ERR-004）
-- `kernel/audit-contract.md`（K-AUDIT-001, K-AUDIT-018）
+This guide points to the runtime authority surfaces for nimillm. It does not define product rules.
 
-## 1. 文档定位
+## Reading Path
 
-本文件只提供 nimillm 主题导航。provider 路由、错误语义、流式与任务语义均以 kernel 规则为准。
+- `.nimi/spec/runtime/kernel/index.md`
+- `.nimi/spec/runtime/kernel/account-session-contract.md`
+- `.nimi/spec/runtime/kernel/agent-conversation-anchor-contract.md`
+- `.nimi/spec/runtime/kernel/agent-hook-intent-contract.md`
+- `.nimi/spec/runtime/kernel/agent-output-wire-contract.md`
+- `.nimi/spec/runtime/kernel/agent-presentation-contract.md`
+- `.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md`
+- `.nimi/spec/runtime/kernel/ai-profile-execution-contract.md`
+- `.nimi/spec/runtime/kernel/app-messaging-contract.md`
+- `.nimi/spec/runtime/kernel/audit-contract.md`
+- `.nimi/spec/runtime/kernel/auth-service.md`
+- `.nimi/spec/runtime/kernel/authn-token-validation.md`
+- `.nimi/spec/runtime/kernel/authz-ownership.md`
 
-## 2. 阅读路径
+## Tables
 
-1. nimillm 主合同：`kernel/nimillm-contract.md`。
-2. 请求评估与路由：`kernel/key-source-routing.md`。
-3. 出站安全：`kernel/endpoint-security.md`。
-4. provider 值域与执行平面：`kernel/tables/provider-catalog.yaml` + `kernel/tables/provider-capabilities.yaml`。
-5. 流式与任务：`kernel/streaming-contract.md` + `kernel/scenario-job-lifecycle.md`。
-6. adapter layering 与 media job 责任边界：`kernel/nimillm-contract.md`（K-NIMI-002, K-NIMI-004）。
-7. endpoint/security delegation、audit alignment 与 unsupported modality：`kernel/nimillm-contract.md`（K-NIMI-005, K-NIMI-007, K-NIMI-009）。
-8. availability 与 fallback 边界：`kernel/nimillm-contract.md`（K-NIMI-010）。
-
-## 3. 模块映射
-
-- nimillm 实现：`runtime/internal/nimillm/`。
-- AI service 汇聚：`runtime/internal/services/ai/`。
-- Connector service 协同：`runtime/internal/services/connector/`。
-
-## 4. 非目标
-
-- 不在 domain 层定义 provider 规则或错误码枚举。
-- 不在本文件维护实现级接口签名清单。
+- `.nimi/spec/runtime/kernel/tables/accelerator-consumer-requirements.yaml`
+- `.nimi/spec/runtime/kernel/tables/activation-gate-reason-codes.yaml`
+- `.nimi/spec/runtime/kernel/tables/agent-activity-ontology.yaml`
+- `.nimi/spec/runtime/kernel/tables/agent-participation-axis-model.yaml`
+- `.nimi/spec/runtime/kernel/tables/agent-participation-capability-scopes.yaml`
+- `.nimi/spec/runtime/kernel/tables/agent-participation-concurrency-policy.yaml`
+- `.nimi/spec/runtime/kernel/tables/agent-participation-context-blocks.yaml`
+- `.nimi/spec/runtime/kernel/tables/agent-participation-domain-future-seams.yaml`
+- `.nimi/spec/runtime/kernel/tables/agent-participation-external-entry-boundaries.yaml`
+- `.nimi/spec/runtime/kernel/tables/agent-participation-memory-policy.yaml`

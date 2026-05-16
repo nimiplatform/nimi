@@ -1,61 +1,43 @@
----
-id: SPEC-REALM-APP-INTERCONNECT-001
-title: Realm App Interconnect Model Bridge
-status: active
-owner: "@team"
-updated: 2026-04-23
----
-
-# Realm App Interconnect Model
+# App Interconnect Model
 
 ## Normative Imports
 
-- `kernel/truth-contract.md` (`R-TRUTH-001..008`)
-- `kernel/world-state-contract.md` (`R-WSTATE-001..006`)
-- `kernel/world-history-contract.md` (`R-WHIST-001..006`)
-- `kernel/chat-contract.md` (`R-CHAT-001..007`)
-- `kernel/social-contract.md` (`R-SOC-001..004`)
-- `kernel/economy-contract.md` (`R-ECON-001..004`)
-- `kernel/asset-contract.md` (`R-ASSET-101..105`)
-- `kernel/transit-contract.md` (`R-TRANSIT-001..006`)
-- `.nimi/spec/platform/ai-last-mile.md`
+- `.nimi/spec/realm/kernel/*`
+- `.nimi/spec/realm/kernel/tables/*`
 
 ## Scope
 
-Bridge-only document. It mirrors the hard-cut realm interconnect semantics exposed by the local canonical contract set, including the `direct + group` chat substrate, without introducing a second rule system in open `.nimi/spec`. External and local kernel imports are intentionally listed in parallel when they are shared 1:1 so readers can verify bridge traceability without cross-jumping between two separate mapping sections.
-
-## Mapping Declaration
-
-| External Anchor | Local Kernel Anchor |
-| --- | --- |
-| `R-TRUTH-001..008` | `R-TRUTH-001..008` |
-| `R-WSTATE-001..006` | `R-WSTATE-001..006` |
-| `R-WHIST-001..006` | `R-WHIST-001..006` |
-| `R-CHAT-001..007` | `R-CHAT-001..007` |
-| `R-SOC-001..004` | `R-SOC-001..004` |
-| `R-ECON-001..004` | `R-ECON-001..004` |
-| `R-RSRC-001..006` | `R-RSRC-001..006` |
-| `R-ATTACH-001..004` | `R-ATTACH-001..004` |
-| `R-ASSET-101..105` | `R-ASSET-101..105` |
-| `R-BNDL-001..004` | `R-BNDL-001..004` |
-| `R-TRANSIT-001..006` | `R-TRANSIT-001..006` |
+This guide points to Realm authority surfaces for app-interconnect-model. It does not define product rules.
 
 ## Reading Path
 
-1. `kernel/index.md`
-2. `kernel/truth-contract.md`
-3. `kernel/world-state-contract.md`
-4. `kernel/world-history-contract.md`
-5. `kernel/chat-contract.md`
-6. `kernel/social-contract.md`
-7. `kernel/economy-contract.md`
-8. `kernel/asset-contract.md`
-9. `kernel/transit-contract.md`
-10. `.nimi/spec/platform/ai-last-mile.md`
+- `.nimi/spec/realm/kernel/index.md`
+- `.nimi/spec/realm/kernel/asset-contract.md`
+- `.nimi/spec/realm/kernel/attachment-contract.md`
+- `.nimi/spec/realm/kernel/binding-contract.md`
+- `.nimi/spec/realm/kernel/bundle-contract.md`
+- `.nimi/spec/realm/kernel/chat-contract.md`
+- `.nimi/spec/realm/kernel/economy-contract.md`
+- `.nimi/spec/realm/kernel/group-agent-participation-contract.md`
+- `.nimi/spec/realm/kernel/oauth-authority-contract.md`
+- `.nimi/spec/realm/kernel/projection-contract.md`
+- `.nimi/spec/realm/kernel/resource-contract.md`
+- `.nimi/spec/realm/kernel/social-contract.md`
+- `.nimi/spec/realm/kernel/transit-contract.md`
 
-## Non-goals
+## Tables
 
-- No new open-spec rule ID prefix.
-- No duplicate rule prose of kernel contracts.
-- No human-agent chat runtime, agent-agent chat runtime, model routing, or prompt/session orchestration state in this document.
-- No runtime execution evidence output in this document.
+- `.nimi/spec/realm/kernel/tables/asset-contract.yaml`
+- `.nimi/spec/realm/kernel/tables/attachment-contract.yaml`
+- `.nimi/spec/realm/kernel/tables/binding-contract.yaml`
+- `.nimi/spec/realm/kernel/tables/bundle-contract.yaml`
+- `.nimi/spec/realm/kernel/tables/chat-contract.yaml`
+- `.nimi/spec/realm/kernel/tables/commit-authorization-matrix.yaml`
+- `.nimi/spec/realm/kernel/tables/domain-enums.yaml`
+- `.nimi/spec/realm/kernel/tables/domain-state-machines.yaml`
+- `.nimi/spec/realm/kernel/tables/economy-contract.yaml`
+- `.nimi/spec/realm/kernel/tables/group-agent-participation-contract.yaml`
+
+## Mapping Declaration
+
+Realm open-spec alignment entries anchor here when this guide participates in an external mapping. Mapping facts live in `.nimi/spec/realm/kernel/tables/open-spec-alignment-map.yaml`.

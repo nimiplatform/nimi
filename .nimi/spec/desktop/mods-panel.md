@@ -1,40 +1,36 @@
-# Mods Panel Domain Spec
+# Mods Panel
 
 > Normative Imports: `.nimi/spec/desktop/kernel/*`
 
 ## Scope
 
-Mods 面板 — Desktop 中 mod 管理的唯一一等公民入口；顶层导航名仍为 `Mods`，其实际页面定义为单一 `Mod Hub`。
+This guide points to the desktop authority surfaces for mods-panel. It does not define product rules.
 
-## Module Map
+## Reading Path
 
-- `features/mods/mods-panel.tsx` — `Mods` shell 入口
-- `features/mod-hub/` — Mod Hub 业务逻辑与视图
+- `.nimi/spec/desktop/kernel/index.md`
+- `.nimi/spec/desktop/kernel/agent-avatar-configuration-contract.md`
+- `.nimi/spec/desktop/kernel/agent-avatar-debug-workbench-contract.md`
+- `.nimi/spec/desktop/kernel/agent-avatar-surface-contract.md`
+- `.nimi/spec/desktop/kernel/agent-chat-behavior-contract.md`
+- `.nimi/spec/desktop/kernel/agent-chat-message-action-contract.md`
+- `.nimi/spec/desktop/kernel/agent-chat-voice-executor-contract.md`
+- `.nimi/spec/desktop/kernel/agent-chat-voice-session-contract.md`
+- `.nimi/spec/desktop/kernel/agent-chat-voice-workflow-contract.md`
+- `.nimi/spec/desktop/kernel/agent-delegation-control-surface-contract.md`
+- `.nimi/spec/desktop/kernel/ai-profile-config-contract.md`
+- `.nimi/spec/desktop/kernel/auth-session-contract.md`
+- `.nimi/spec/desktop/kernel/bootstrap-contract.md`
 
-## Kernel References
+## Tables
 
-### Shell (D-SHELL-001, D-SHELL-002)
-
-Mods Tab 受 `enableModUi` feature flag 门控。侧边栏 puzzle icon 直接导航到 `activeTab = 'mods'`。
-
-Guard clause：`enableModUi = false` 时访问 `'mods'` tab 自动回退到 `'chat'`。
-
-### State (D-STATE-003, D-STATE-004)
-
-Mods shell 读取 mod registry、diagnostics、catalog 投影与激活 tab 状态；具体字段与派生状态以实现和 kernel state rule 为准。
-
-### Mod Governance (D-MOD-007)
-
-`Mods` 入口只负责把用户导向统一的 Mod Hub / Mod Workspace 流，不重复定义安装或生命周期动作语义。
-
-## UI Contract
-
-本域只承载 shell entry、source observability 与 conflict/developer-facing boundary：
-
-- `Mods` tab 必须直接进入统一 Mod Hub（`D-SHELL-002`）
-- source type、来源目录、冲突状态与调试入口的可见性受 `D-SHELL-010` 治理
-- catalog/install/update/manage UX 细节统一留在 `mod-hub.md`
-
-## CI 门禁引用
-
-本域涉及的 CI 门禁：`pnpm exec nimicoding validate-spec-governance --profile nimi --scope desktop-consistency`。
+- `.nimi/spec/desktop/kernel/tables/agent-avatar-configuration.schema.yaml`
+- `.nimi/spec/desktop/kernel/tables/agent-avatar-debug-remediation-states.yaml`
+- `.nimi/spec/desktop/kernel/tables/agent-avatar-debug-workbench-probes.yaml`
+- `.nimi/spec/desktop/kernel/tables/app-tabs.yaml`
+- `.nimi/spec/desktop/kernel/tables/bootstrap-phases.yaml`
+- `.nimi/spec/desktop/kernel/tables/build-chunks.yaml`
+- `.nimi/spec/desktop/kernel/tables/codegen-acceptance-gates.yaml`
+- `.nimi/spec/desktop/kernel/tables/codegen-capability-tiers.yaml`
+- `.nimi/spec/desktop/kernel/tables/codegen-import-allowlist.yaml`
+- `.nimi/spec/desktop/kernel/tables/codegen-static-scan-deny-patterns.yaml`
