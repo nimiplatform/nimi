@@ -8,9 +8,9 @@ admissions:
   - id: nimi-coding
     status: active
     owner_domain: nimi-coding
-    authority_root: nimi-coding/spec
+    authority_root: package://@nimiplatform/nimi-coding/spec
     evidence_roots:
-      - nimi-coding
+      - package://@nimiplatform/nimi-coding
     may_not_override:
       - .nimi/spec/runtime/**
       - .nimi/spec/sdk/**
@@ -18,24 +18,25 @@ admissions:
       - .nimi/spec/platform/**
       - .nimi/spec/desktop/**
       - .nimi/spec/cognition/**
+      - .nimi/spec/avatar/**
     projection_boundary:
       host_project_admission_owner: .nimi/spec/platform/kernel/package-authority-admission-contract.md
-      package_truth_root: nimi-coding/spec
+      package_truth_root: package://@nimiplatform/nimi-coding/spec
       host_local_projection_roots:
         - .nimi/config
         - .nimi/contracts
         - .nimi/methodology
       host_authority_projection_refs:
         - host_ref: .nimi/config/spec-generation-inputs.yaml
-          package_ref: nimi-coding/config/spec-generation-inputs.yaml
+          package_ref: package://@nimiplatform/nimi-coding/config/spec-generation-inputs.yaml
         - host_ref: .nimi/contracts/surface-taxonomy.schema.yaml
-          package_ref: nimi-coding/contracts/surface-taxonomy.schema.yaml
+          package_ref: package://@nimiplatform/nimi-coding/contracts/surface-taxonomy.schema.yaml
         - host_ref: .nimi/contracts/placement-contract.schema.yaml
-          package_ref: nimi-coding/contracts/placement-contract.schema.yaml
+          package_ref: package://@nimiplatform/nimi-coding/contracts/placement-contract.schema.yaml
         - host_ref: .nimi/contracts/domain-admission.schema.yaml
-          package_ref: nimi-coding/contracts/domain-admission.schema.yaml
+          package_ref: package://@nimiplatform/nimi-coding/contracts/domain-admission.schema.yaml
         - host_ref: .nimi/contracts/table-family.schema.yaml
-          package_ref: nimi-coding/contracts/table-family.schema.yaml
+          package_ref: package://@nimiplatform/nimi-coding/contracts/table-family.schema.yaml
         - host_ref: .nimi/methodology/spec-reconstruction.yaml
-          package_ref: nimi-coding/methodology/spec-reconstruction.yaml
+          package_ref: package://@nimiplatform/nimi-coding/methodology/spec-reconstruction.yaml
     source_rule: P-PKG-001

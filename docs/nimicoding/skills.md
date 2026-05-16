@@ -22,7 +22,7 @@ into a canonical authority tree under `.nimi/spec/**`.
 
 | Input | Output |
 | --- | --- |
-| Mixed inputs (code, docs, structure, human notes) | Canonical tree under `.nimi/spec/**` plus `.nimi/spec/_meta/spec-generation-audit.yaml` |
+| Mixed inputs (code, docs, structure, human notes) | Canonical tree under `.nimi/spec/**` plus `.nimi/local/state/spec-generation/spec-generation-audit.yaml` |
 
 | Property | Value |
 | --- | --- |
@@ -174,9 +174,9 @@ is implicit.
 
 ## Source Basis
 
-- [`nimi-coding/config/skills.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/config/skills.yaml)
-- [`nimi-coding/config/skill-manifest.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/config/skill-manifest.yaml)
-- [`nimi-coding/methodology/skill-runtime.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/methodology/skill-runtime.yaml)
-- [`nimi-coding/methodology/skill-handoff.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/methodology/skill-handoff.yaml)
-- [`nimi-coding/methodology/skill-installer-result.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/methodology/skill-installer-result.yaml)
-- [`nimi-coding/methodology/spec-reconstruction.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/methodology/spec-reconstruction.yaml)
+- [`nimi-coding/config/skills.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/config/skills.yaml)
+- [`nimi-coding/config/skill-manifest.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/config/skill-manifest.yaml)
+- [`nimi-coding/methodology/skill-runtime.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/methodology/skill-runtime.yaml)
+- [`nimi-coding/methodology/skill-handoff.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/methodology/skill-handoff.yaml)
+- [`nimi-coding/methodology/skill-installer-result.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/methodology/skill-installer-result.yaml)
+- [`nimi-coding/methodology/spec-reconstruction.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/methodology/spec-reconstruction.yaml)

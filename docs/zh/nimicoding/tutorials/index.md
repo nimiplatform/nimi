@@ -18,4 +18,4 @@ Tutorial 回答"我想学一遍"，How-to 回答"我要解决某个具体问题"
 
 ## 来源依据
 
-- [`nimi-coding/README.md`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/README.md)
+- [`nimi-coding/README.md`](https://github.com/nimiplatform/nimi-coding/blob/main/README.md)

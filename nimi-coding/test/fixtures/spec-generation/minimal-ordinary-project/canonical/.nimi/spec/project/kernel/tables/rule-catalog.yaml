@@ -1,8 +1,0 @@
-table_family: product_catalog
-owner: project
-catalog_id: project_rule_catalog
-entries:
-  - id: pr-001
-    title: project_rules_live_under_kernel_markdown_and_tables
-  - id: pr-002
-    title: inferred_rules_must_remain_explicit_in_the_audit

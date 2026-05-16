@@ -29,7 +29,6 @@ When iterating app UI or interaction flows, inspect `kit/README.md`, the relevan
 | `apps/realm-drift/**` | `apps/realm-drift/AGENTS.md` |
 | `apps/install-gateway/**` | `apps/install-gateway/AGENTS.md` |
 | `kit/**` | `kit/AGENTS.md` |
-| `nimi-coding/**` | `nimi-coding/AGENTS.md` |
 | `nimi-mods/**` | `nimi-mods/AGENTS.md` |
 | `proto/**` | `proto/AGENTS.md` |
 | `scripts/**` | `scripts/AGENTS.md` |
@@ -43,15 +42,16 @@ If the module has sub-level `AGENTS.md` files, read the nearest one to the file 
 - High-risk work still requires explicit authority preflight.
 - Small, local, low-risk fixes do not need a formal execution workspace when
   the authority boundary is already clear.
-- `nimi-coding/**` is an admitted monorepo package for methodology tooling and
-  bootstrap contracts, not repo-wide product authority.
+- Nimicoding is an external package consumed through `pnpm exec nimicoding` and
+  injected `.nimi/{config,contracts,methodology}/**` projections, not a host
+  source tree.
 - For high-risk work, follow the nearest authoritative `AGENTS.md` and include
   `Spec Status`, `Authority Owner`, `Work Type`, and `Parallel Truth` in the
   design/plan surface when required.
 
 ## Repo-Wide Hard Boundaries
 
-- `/.nimi/spec/**` is the only normative contract source. Retired pre-cutover authority history lives in Git only. `nimi-coding/**` is an admitted monorepo package for methodology tooling and bootstrap contracts, but it is not repo-wide product authority. Package-owned methodology source lives under `nimi-coding/{config,contracts,methodology,spec}/**`; host-project bootstrap truth lives under `.nimi/**`. Local-only execution workspaces and reports may live under `.local/**`; tracked support inputs live under `config/**`. `dev/**` is not an active execution-doc surface.
+- `/.nimi/spec/**` is the only normative contract source. Retired pre-cutover authority history lives in Git only. Nimicoding package authority lives outside this host repo and is consumed only through `pnpm exec nimicoding` plus injected `.nimi/{config,contracts,methodology}/**` projections. Host-project bootstrap truth lives under `.nimi/**`. Local-only execution workspaces and reports may live under `.local/**`; tracked support inputs live under `config/**`. `dev/**` is not an active execution-doc surface.
 - Layer debug order: `runtime` → `sdk` → `apps/desktop` / `apps/web` → `nimi-mods`.
 - Reuse `nimi-kit` first for app UI and interaction work. If a matching kit surface already covers the baseline styling and baseline interaction behavior, extend or compose it instead of recreating a parallel app-local shell.
 - No legacy shims, compatibility shells, hardcoded provider/model lists, or downstream workarounds.
@@ -68,7 +68,7 @@ If the module has sub-level `AGENTS.md` files, read the nearest one to the file 
 
 ## Retrieval Defaults
 
-- Start with: `runtime/internal`, `runtime/cmd/nimi`, `sdk/src`, `apps/**/src`, `apps/**/src-tauri/src`, `.nimi/spec/*/kernel`, `scripts`, `nimi-coding/**`, `.local/**`, `.nimi/**`, `config/**`.
+- Start with: `runtime/internal`, `runtime/cmd/nimi`, `sdk/src`, `apps/**/src`, `apps/**/src-tauri/src`, `.nimi/spec/*/kernel`, `scripts`, `.local/**`, `.nimi/**`, `config/**`.
 - Skip: `_external/**`, `.iterate/**`, `.cache/**`, `archive/**`, `docs/**`, `**/generated/**`, `**/gen/**`, lockfiles, large assets.
 
 `.local/**` is the active local execution workspace family. It is local-only and non-authoritative. Do not use `.iterate/**` or `.cache/**` as execution-state substitutes.

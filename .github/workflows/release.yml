@@ -6,7 +6,6 @@ on:
       - sdk/v*
       - proto/v*
       - desktop/v*
-      - nimicoding/v*
   workflow_dispatch:
     inputs:
       target:
@@ -17,7 +16,6 @@ on:
           - sdk
           - proto
           - desktop
-          - nimicoding
       version:
         description: Semver version (for example 0.1.0 or v0.1.0)
         required: true
@@ -64,7 +62,7 @@ jobs:
           if [[ "${EVENT_NAME}" == "push" ]]; then
             tag="${REF_NAME}"
             case "${tag}" in
-              sdk/v*|proto/v*|desktop/v*|nimicoding/v*)
+              sdk/v*|proto/v*|desktop/v*)
                 target="${tag%%/*}"
                 version="${tag#*/}"
                 publish="true"
@@ -249,111 +247,6 @@ jobs:
               pnpm --filter "${pkg}" publish --access public --no-git-checks --dry-run
             fi
           done
-
-  release-nimicoding:
-    needs:
-      - resolve
-    if: needs.resolve.outputs.target == 'nimicoding'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      id-token: write
-    env:
-      RELEASE_VERSION: ${{ needs.resolve.outputs.version_plain }}
-      PUBLISH: ${{ needs.resolve.outputs.publish }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          fetch-depth: 0
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@d15e628ca66d93ee5f352c71671a7bc6a97af5c9 # v6.0.8
-        with:
-          version: 10.32.1
-
-      - name: Setup Node.js
-        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
-        with:
-          node-version: 24
-          package-manager-cache: false
-          registry-url: https://registry.npmjs.org
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Validate Nimi Coding package metadata
-        run: |
-          set -euo pipefail
-          node <<'NODE'
-          const fs = require('node:fs');
-
-          const version = process.env.RELEASE_VERSION;
-          const payload = JSON.parse(fs.readFileSync('nimi-coding/package.json', 'utf8'));
-          const violations = [];
-
-          if (payload.name !== '@nimiplatform/nimi-coding') {
-            violations.push(`name must be @nimiplatform/nimi-coding, got ${payload.name}`);
-          }
-          if (payload.version !== version) {
-            violations.push(`version must be ${version}, got ${payload.version}`);
-          }
-          if (payload.private !== false) {
-            violations.push('private must be false for npm release');
-          }
-          if (payload.repository?.url !== 'https://github.com/nimiplatform/nimi') {
-            violations.push('repository.url must match https://github.com/nimiplatform/nimi for npm provenance');
-          }
-          if (!payload.bin || payload.bin.nimicoding !== './bin/nimicoding.mjs') {
-            violations.push('bin.nimicoding must point at ./bin/nimicoding.mjs');
-          }
-          if (!Array.isArray(payload.files) || !payload.files.includes('cli') || !payload.files.includes('contracts')) {
-            violations.push('files must include packaged cli and contracts directories');
-          }
-
-          if (violations.length > 0) {
-            process.stderr.write(`release-nimicoding validation failed:\n${violations.map((line) => `- ${line}`).join('\n')}\n`);
-            process.exit(1);
-          }
-          NODE
-
-      - name: Verify package is not already published
-        run: |
-          set -euo pipefail
-          if npm view "@nimiplatform/nimi-coding@${RELEASE_VERSION}" version >/tmp/nimicoding-version.txt 2>/tmp/nimicoding-npm-view.err; then
-            if [[ "${PUBLISH}" == "true" ]]; then
-              echo "@nimiplatform/nimi-coding@${RELEASE_VERSION} is already published" >&2
-              cat /tmp/nimicoding-version.txt >&2
-              exit 1
-            fi
-            echo "@nimiplatform/nimi-coding@${RELEASE_VERSION} is already published; dry-run may continue"
-            exit 0
-          fi
-          if grep -q 'E404' /tmp/nimicoding-npm-view.err; then
-            echo "@nimiplatform/nimi-coding@${RELEASE_VERSION} is not published yet; continuing"
-          else
-            cat /tmp/nimicoding-npm-view.err >&2
-            exit 1
-          fi
-
-      - name: Test Nimi Coding package
-        run: pnpm --filter @nimiplatform/nimi-coding test
-
-      - name: Dry-run package contents
-        run: pnpm --filter @nimiplatform/nimi-coding check:pack
-
-      - name: Smoke test CLI entrypoint
-        run: pnpm --filter @nimiplatform/nimi-coding exec nimicoding --help
-
-      - name: Publish Nimi Coding package (or dry-run)
-        run: |
-          set -euo pipefail
-
-          if [[ "${PUBLISH}" == "true" ]]; then
-            pnpm --filter @nimiplatform/nimi-coding publish --access public --no-git-checks --provenance
-          else
-            pnpm --filter @nimiplatform/nimi-coding publish --access public --no-git-checks --dry-run
-          fi
 
   release-proto:
     needs:

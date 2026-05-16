@@ -40,16 +40,12 @@ const EXCLUDED_PREFIXES = [
   '.openclaw/',
   'docs/_archive/',
   'archive/',
-  'nimi-coding/',
 ];
 
 const RETIRED_METHOD_SEGMENTS = ['nimi', 'coding'];
 const RETIRED_METHOD_NAME = RETIRED_METHOD_SEGMENTS.join('-');
 const RETIRED_CHECK_NAME = `check:${RETIRED_METHOD_NAME}-module`;
 const RETIRED_LOCAL_ROOT = `${RETIRED_METHOD_NAME}/.local`;
-// Do not ban nimi-coding/config/**: it is current package-owned bootstrap
-// source, not retired host-local methodology truth.
-
 const FORBIDDEN_TEXT_PATTERNS = [
   {
     label: 'retired methodology command',

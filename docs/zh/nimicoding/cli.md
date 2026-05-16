@@ -19,7 +19,7 @@ CLI 的命令分成几类：
 | 高风险执行 | `admit-high-risk-decision`、`ingest-high-risk-execution`、`review-high-risk-execution`、`decide-high-risk-execution` |
 | 机械校验器 | 针对 `execution-packet`、`orchestration-state`、`prompt`、`worker-output`、`acceptance` 的逐工件校验器 |
 | 规范审计 | `validate-spec-tree`、`validate-spec-audit`、`blueprint-audit` |
-| 仓库门禁 | `pnpm check:spec-authority-cutover-readiness`（通过宿主仓库的工具链） |
+| 仓库门禁 | `pnpm check:nimi-nimicoding-split-readiness` 和 `pnpm check:nimi-coding-seed-sync`（通过宿主仓库的工具链） |
 
 每一个都有严格边界，新增命令需要先扩展已准入的契约。
 
@@ -156,7 +156,7 @@ Plan 输出会报告分块工件引用。分块 id 存在分块文件里，按 p
 
 ### `nimicoding validate-spec-audit`
 
-校验 `.nimi/spec/_meta/spec-generation-audit.yaml` 中的逐文件 grounding、推断和未解决缺口跟踪。
+校验 `.nimi/local/state/spec-generation/spec-generation-audit.yaml` 中的逐文件 grounding、推断和未解决缺口跟踪。
 
 ### `nimicoding blueprint-audit`
 
@@ -211,15 +211,15 @@ CLI 会带你走完：
 
 ## 来源依据
 
-- [`nimi-coding/README.md`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/README.md)（CLI 章节）
-- [`nimi-coding/cli/`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/cli/)（CLI 实现）
-- [`nimi-coding/contracts/topic.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/contracts/topic.schema.yaml)
-- [`nimi-coding/contracts/audit-plan.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/contracts/audit-plan.schema.yaml)
-- [`nimi-coding/contracts/sweep-design-result.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/contracts/sweep-design-result.yaml)
-- [`nimi-coding/methodology/skill-handoff.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/methodology/skill-handoff.yaml)
-- [`nimi-coding/methodology/skill-installer-result.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/methodology/skill-installer-result.yaml)
-- [`nimi-coding/contracts/execution-packet.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/contracts/execution-packet.schema.yaml)
-- [`nimi-coding/contracts/orchestration-state.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/contracts/orchestration-state.schema.yaml)
-- [`nimi-coding/contracts/prompt.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/contracts/prompt.schema.yaml)
-- [`nimi-coding/contracts/worker-output.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/contracts/worker-output.schema.yaml)
-- [`nimi-coding/contracts/acceptance.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/contracts/acceptance.schema.yaml)
+- [`nimi-coding/README.md`](https://github.com/nimiplatform/nimi-coding/blob/main/README.md)（CLI 章节）
+- [`nimi-coding/cli/`](https://github.com/nimiplatform/nimi-coding/blob/main/cli/)（CLI 实现）
+- [`nimi-coding/contracts/topic.schema.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/contracts/topic.schema.yaml)
+- [`nimi-coding/contracts/audit-plan.schema.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/contracts/audit-plan.schema.yaml)
+- [`nimi-coding/contracts/sweep-design-result.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/contracts/sweep-design-result.yaml)
+- [`nimi-coding/methodology/skill-handoff.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/methodology/skill-handoff.yaml)
+- [`nimi-coding/methodology/skill-installer-result.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/methodology/skill-installer-result.yaml)
+- [`nimi-coding/contracts/execution-packet.schema.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/contracts/execution-packet.schema.yaml)
+- [`nimi-coding/contracts/orchestration-state.schema.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/contracts/orchestration-state.schema.yaml)
+- [`nimi-coding/contracts/prompt.schema.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/contracts/prompt.schema.yaml)
+- [`nimi-coding/contracts/worker-output.schema.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/contracts/worker-output.schema.yaml)
+- [`nimi-coding/contracts/acceptance.schema.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/contracts/acceptance.schema.yaml)

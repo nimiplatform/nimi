@@ -219,11 +219,11 @@ boundary-complete standalone scope.
 
 ## Source Basis
 
-- [`nimi-coding/README.md`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/README.md)
-- [`nimi-coding/package.json`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/package.json)
-- [`nimi-coding/AGENTS.md`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/AGENTS.md)
-- [`nimi-coding/config/bootstrap.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/config/bootstrap.yaml)
-- [`nimi-coding/config/skills.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/config/skills.yaml)
-- [`nimi-coding/config/host-profile.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/config/host-profile.yaml)
-- [`nimi-coding/spec/bootstrap-state.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/spec/bootstrap-state.yaml)
-- [`nimi-coding/spec/product-scope.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/spec/product-scope.yaml)
+- [`nimi-coding/README.md`](https://github.com/nimiplatform/nimi-coding/blob/main/README.md)
+- [`nimi-coding/package.json`](https://github.com/nimiplatform/nimi-coding/blob/main/package.json)
+- [`nimi-coding/AGENTS.md`](https://github.com/nimiplatform/nimi-coding/blob/main/AGENTS.md)
+- [`nimi-coding/config/bootstrap.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/config/bootstrap.yaml)
+- [`nimi-coding/config/skills.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/config/skills.yaml)
+- [`nimi-coding/config/host-profile.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/config/host-profile.yaml)
+- [`nimi-coding/spec/bootstrap-state.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/spec/bootstrap-state.yaml)
+- [`nimi-coding/spec/product-scope.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/spec/product-scope.yaml)

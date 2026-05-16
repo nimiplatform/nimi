@@ -241,7 +241,7 @@
 
 ### `nimicoding validate-spec-audit`
 
-校验 `.nimi/spec/_meta/spec-generation-audit.yaml` 中的逐文件 grounding、推断和未解决缺口跟踪。
+校验 `.nimi/local/state/spec-generation/spec-generation-audit.yaml` 中的逐文件 grounding、推断和未解决缺口跟踪。
 
 ### `nimicoding blueprint-audit`
 
@@ -249,17 +249,17 @@
 
 ## 来源依据
 
-- [`nimi-coding/cli/`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/cli/)
-- [`nimi-coding/README.md`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/README.md)（CLI 章节）
-- [`nimi-coding/contracts/topic.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/contracts/topic.schema.yaml)
-- [`nimi-coding/contracts/packet.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/contracts/packet.schema.yaml)
-- [`nimi-coding/contracts/audit-plan.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/contracts/audit-plan.schema.yaml)
-- [`nimi-coding/contracts/audit-chunk.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/contracts/audit-chunk.schema.yaml)
-- [`nimi-coding/contracts/sweep-design-result.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/contracts/sweep-design-result.yaml)
-- [`nimi-coding/contracts/execution-packet.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/contracts/execution-packet.schema.yaml)
-- [`nimi-coding/contracts/orchestration-state.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/contracts/orchestration-state.schema.yaml)
-- [`nimi-coding/contracts/prompt.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/contracts/prompt.schema.yaml)
-- [`nimi-coding/contracts/worker-output.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/contracts/worker-output.schema.yaml)
-- [`nimi-coding/contracts/acceptance.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/contracts/acceptance.schema.yaml)
-- [`nimi-coding/methodology/skill-handoff.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/methodology/skill-handoff.yaml)
-- [`nimi-coding/methodology/skill-installer-result.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/methodology/skill-installer-result.yaml)
+- [`nimi-coding/cli/`](https://github.com/nimiplatform/nimi-coding/blob/main/cli/)
+- [`nimi-coding/README.md`](https://github.com/nimiplatform/nimi-coding/blob/main/README.md)（CLI 章节）
+- [`nimi-coding/contracts/topic.schema.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/contracts/topic.schema.yaml)
+- [`nimi-coding/contracts/packet.schema.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/contracts/packet.schema.yaml)
+- [`nimi-coding/contracts/audit-plan.schema.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/contracts/audit-plan.schema.yaml)
+- [`nimi-coding/contracts/audit-chunk.schema.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/contracts/audit-chunk.schema.yaml)
+- [`nimi-coding/contracts/sweep-design-result.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/contracts/sweep-design-result.yaml)
+- [`nimi-coding/contracts/execution-packet.schema.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/contracts/execution-packet.schema.yaml)
+- [`nimi-coding/contracts/orchestration-state.schema.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/contracts/orchestration-state.schema.yaml)
+- [`nimi-coding/contracts/prompt.schema.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/contracts/prompt.schema.yaml)
+- [`nimi-coding/contracts/worker-output.schema.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/contracts/worker-output.schema.yaml)
+- [`nimi-coding/contracts/acceptance.schema.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/contracts/acceptance.schema.yaml)
+- [`nimi-coding/methodology/skill-handoff.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/methodology/skill-handoff.yaml)
+- [`nimi-coding/methodology/skill-installer-result.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/methodology/skill-installer-result.yaml)

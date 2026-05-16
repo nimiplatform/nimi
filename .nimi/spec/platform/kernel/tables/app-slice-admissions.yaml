@@ -26,6 +26,7 @@ admissions:
       - .nimi/spec/platform/**
       - .nimi/spec/desktop/**
       - .nimi/spec/cognition/**
+      - .nimi/spec/avatar/**
     source_rule: P-APP-001
   - app_id: forge
     status: active

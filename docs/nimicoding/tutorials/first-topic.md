@@ -152,7 +152,7 @@ any admitted host.
 
 ## Source Basis
 
-- [`nimi-coding/README.md`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/README.md)
-- [`nimi-coding/cli/`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/cli/) (CLI implementation)
-- [`nimi-coding/methodology/spec-reconstruction.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/methodology/spec-reconstruction.yaml)
-- [`nimi-coding/methodology/skill-handoff.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/methodology/skill-handoff.yaml)
+- [`nimi-coding/README.md`](https://github.com/nimiplatform/nimi-coding/blob/main/README.md)
+- [`nimi-coding/cli/`](https://github.com/nimiplatform/nimi-coding/blob/main/cli/) (CLI implementation)
+- [`nimi-coding/methodology/spec-reconstruction.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/methodology/spec-reconstruction.yaml)
+- [`nimi-coding/methodology/skill-handoff.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/methodology/skill-handoff.yaml)

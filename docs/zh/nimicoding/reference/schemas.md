@@ -151,12 +151,12 @@ sweep design 流程发源于审计 finding，并将生成的本地专用设计�
 
 ## 来源依据
 
-- [`nimi-coding/contracts/topic.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/contracts/topic.schema.yaml)
-- [`nimi-coding/contracts/wave.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/contracts/wave.schema.yaml)
-- [`nimi-coding/contracts/packet.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/contracts/packet.schema.yaml)
-- [`nimi-coding/contracts/result.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/contracts/result.schema.yaml)
-- [`nimi-coding/contracts/audit-plan.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/contracts/audit-plan.schema.yaml)
-- [`nimi-coding/contracts/sweep-design-result.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/contracts/sweep-design-result.yaml)
-- [`nimi-coding/contracts/closeout.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/contracts/closeout.schema.yaml)
-- [`nimi-coding/contracts/topic-step-decision.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/contracts/topic-step-decision.schema.yaml)
-- [`nimi-coding/contracts/forbidden-shortcuts.catalog.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/contracts/forbidden-shortcuts.catalog.yaml)
+- [`nimi-coding/contracts/topic.schema.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/contracts/topic.schema.yaml)
+- [`nimi-coding/contracts/wave.schema.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/contracts/wave.schema.yaml)
+- [`nimi-coding/contracts/packet.schema.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/contracts/packet.schema.yaml)
+- [`nimi-coding/contracts/result.schema.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/contracts/result.schema.yaml)
+- [`nimi-coding/contracts/audit-plan.schema.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/contracts/audit-plan.schema.yaml)
+- [`nimi-coding/contracts/sweep-design-result.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/contracts/sweep-design-result.yaml)
+- [`nimi-coding/contracts/closeout.schema.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/contracts/closeout.schema.yaml)
+- [`nimi-coding/contracts/topic-step-decision.schema.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/contracts/topic-step-decision.schema.yaml)
+- [`nimi-coding/contracts/forbidden-shortcuts.catalog.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/contracts/forbidden-shortcuts.catalog.yaml)

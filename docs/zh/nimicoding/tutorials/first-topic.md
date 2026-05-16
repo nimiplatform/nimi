@@ -129,7 +129,7 @@ doctor 输出健康，意味着你可以把技能交接给外部 AI 宿主了。
 
 ## 来源依据
 
-- [`nimi-coding/README.md`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/README.md)
-- [`nimi-coding/cli/`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/cli/)（CLI 实现）
-- [`nimi-coding/methodology/spec-reconstruction.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/methodology/spec-reconstruction.yaml)
-- [`nimi-coding/methodology/skill-handoff.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/methodology/skill-handoff.yaml)
+- [`nimi-coding/README.md`](https://github.com/nimiplatform/nimi-coding/blob/main/README.md)
+- [`nimi-coding/cli/`](https://github.com/nimiplatform/nimi-coding/blob/main/cli/)（CLI 实现）
+- [`nimi-coding/methodology/spec-reconstruction.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/methodology/spec-reconstruction.yaml)
+- [`nimi-coding/methodology/skill-handoff.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/methodology/skill-handoff.yaml)

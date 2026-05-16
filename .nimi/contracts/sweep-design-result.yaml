@@ -3,7 +3,7 @@ result_contract:
   id: sweep_design_result
   status: active_contract
   canonical_entrypoint: "nimicoding sweep design"
-  owner: nimi-coding/sweep-design
+  owner: nimicoding/sweep-design
 artifact_root: ".nimi/local/sweep-design/<run-id>/"
 source_inputs:
   - ".nimi/local/audit/evidence/<sweep-id>/findings.yaml"

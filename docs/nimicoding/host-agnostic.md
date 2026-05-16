@@ -167,9 +167,9 @@ The promise is **host-swappable**, not **host-free**.
 
 ## Source Basis
 
-- [`nimi-coding/AGENTS.md`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/AGENTS.md)
-- [`nimi-coding/config/host-profile.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/config/host-profile.yaml)
-- [`nimi-coding/config/host-adapter.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/config/host-adapter.yaml)
-- [`nimi-coding/methodology/skill-runtime.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/methodology/skill-runtime.yaml)
-- [`nimi-coding/contracts/external-host-compatibility.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/contracts/external-host-compatibility.yaml)
-- [`nimi-coding/adapters/oh-my-codex/profile.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/adapters/oh-my-codex/profile.yaml)
+- [`nimi-coding/AGENTS.md`](https://github.com/nimiplatform/nimi-coding/blob/main/AGENTS.md)
+- [`nimi-coding/config/host-profile.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/config/host-profile.yaml)
+- [`nimi-coding/config/host-adapter.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/config/host-adapter.yaml)
+- [`nimi-coding/methodology/skill-runtime.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/methodology/skill-runtime.yaml)
+- [`nimi-coding/contracts/external-host-compatibility.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/contracts/external-host-compatibility.yaml)
+- [`nimi-coding/adapters/oh-my-codex/profile.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/adapters/oh-my-codex/profile.yaml)

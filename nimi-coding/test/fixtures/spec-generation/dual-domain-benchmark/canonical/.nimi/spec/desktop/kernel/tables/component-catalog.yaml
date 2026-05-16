@@ -1,8 +1,0 @@
-table_family: product_catalog
-owner: desktop
-catalog_id: desktop_component_catalog
-entries:
-  - id: dt-001
-    title: preserve_typed_ui_boundaries
-  - id: dt-002
-    title: keep_guides_non_normative

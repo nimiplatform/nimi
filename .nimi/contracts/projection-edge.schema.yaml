@@ -25,7 +25,7 @@ shared_enum_ref: shared-enums.yaml
 projection_edges:
   - edge_id: nimi_coding_package_to_host_anchor
     edge_kind: package_to_host_anchor
-    source_ref: nimi-coding/{spec,methodology,contracts,config}/**
+    source_ref: package://@nimiplatform/nimi-coding/{spec,methodology,contracts,config}/**
     source_class: methodology_authority
     source_owner: nimi_coding_package
     target_ref: .nimi/spec/_meta/nimi-coding-admission-anchor.yaml
@@ -37,7 +37,7 @@ projection_edges:
     failure_disposition: fail_closed
   - edge_id: nimi_coding_package_to_managed_projection
     edge_kind: package_to_managed_projection
-    source_ref: nimi-coding/{config,contracts,methodology,spec}/**
+    source_ref: package://@nimiplatform/nimi-coding/{config,contracts,methodology,spec}/**
     source_class: methodology_authority
     source_owner: nimi_coding_package
     target_ref: .nimi/{config,contracts,methodology}/**

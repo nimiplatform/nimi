@@ -98,7 +98,7 @@ taxonomy:
   - class_id: methodology_authority
     owner_kind: nimi_coding_package
     authority_rank: package_canonical
-    allowed_roots: ["nimi-coding/{spec,methodology,contracts,config}/**"]
+    allowed_roots: ["package://@nimiplatform/nimi-coding/{spec,methodology,contracts,config}/**"]
     tracking_policy: tracked_required
     mutability: package_admitted
     reference_rules: [may_project_through_declared_projection_edge]
@@ -134,7 +134,7 @@ taxonomy:
   - class_id: support_registry
     owner_kind: package_or_product_owner
     authority_rank: support_only
-    allowed_roots: ["nimi-coding/{config,contracts,spec}/**", ".nimi/spec/<domain>/kernel/tables/*.yaml"]
+    allowed_roots: ["package://@nimiplatform/nimi-coding/{config,contracts,spec}/**", ".nimi/spec/<domain>/kernel/tables/*.yaml"]
     tracking_policy: tracked_only_with_explicit_admission
     mutability: human_admitted
     reference_rules: [may_register_evidence_commands, may_reference_product_authority]

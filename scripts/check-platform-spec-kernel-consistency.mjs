@@ -784,6 +784,7 @@ function checkAppSliceAdmissions(definedRuleIds) {
     '.nimi/spec/platform/**',
     '.nimi/spec/desktop/**',
     '.nimi/spec/cognition/**',
+    '.nimi/spec/avatar/**',
   ];
   for (const row of admissions) {
     const appId = String(row?.app_id || '').trim();
@@ -839,7 +840,13 @@ function isProductAuthorityRef(ref) {
 }
 
 function isPackageSourceRef(ref) {
-  return ref.startsWith('nimi-coding/');
+  return ref === 'package://@nimiplatform/nimi-coding'
+    || ref.startsWith('package://@nimiplatform/nimi-coding/');
+}
+
+function isExternalPackageRef(ref) {
+  return ref === 'package://@nimiplatform/nimi-coding'
+    || ref.startsWith('package://@nimiplatform/nimi-coding/');
 }
 
 function isAllowedHostProjectionRef(ref) {
@@ -850,10 +857,10 @@ function isAllowedHostProjectionRef(ref) {
 }
 
 function isAllowedPackageProjectionRef(ref) {
-  return ref.startsWith('nimi-coding/config/')
-    || ref.startsWith('nimi-coding/contracts/')
-    || ref.startsWith('nimi-coding/methodology/')
-    || ref.startsWith('nimi-coding/spec/');
+  return ref.startsWith('package://@nimiplatform/nimi-coding/config/')
+    || ref.startsWith('package://@nimiplatform/nimi-coding/contracts/')
+    || ref.startsWith('package://@nimiplatform/nimi-coding/methodology/')
+    || ref.startsWith('package://@nimiplatform/nimi-coding/spec/');
 }
 
 function checkAuditEvidenceRoots(definedRuleIds) {
@@ -886,6 +893,9 @@ function checkAuditEvidenceRoots(definedRuleIds) {
       }
     }
     for (const evidenceRoot of evidenceRoots) {
+      if (isExternalPackageRef(evidenceRoot)) {
+        continue;
+      }
       if (evidenceRoot.startsWith('.nimi/spec/') || evidenceRoot.includes('..') || path.isAbsolute(evidenceRoot) || !fs.existsSync(path.join(cwd, evidenceRoot))) {
         fail(`${rel}: ${id} invalid evidence_root ${evidenceRoot}`);
       }
@@ -905,6 +915,15 @@ function checkPackageAuthorityAdmissions(definedRuleIds) {
   }
   const seen = new Set();
   const allowedStatus = new Set(['active', 'inactive']);
+  const requiredMayNotOverride = [
+    '.nimi/spec/runtime/**',
+    '.nimi/spec/sdk/**',
+    '.nimi/spec/realm/**',
+    '.nimi/spec/platform/**',
+    '.nimi/spec/desktop/**',
+    '.nimi/spec/cognition/**',
+    '.nimi/spec/avatar/**',
+  ];
   for (const row of admissions) {
     const id = String(row?.id || '').trim();
     const ownerDomain = String(row?.owner_domain || '').trim();
@@ -923,13 +942,19 @@ function checkPackageAuthorityAdmissions(definedRuleIds) {
     if (!allowedStatus.has(status)) fail(`${rel}: ${id} has invalid status ${status || '<empty>'}`);
     if (!authorityRoot || authorityRoot.startsWith('.nimi/spec/') || authorityRoot.includes('..') || path.isAbsolute(authorityRoot) || !authorityRoot.endsWith('/spec')) {
       fail(`${rel}: ${id} invalid authority_root ${authorityRoot || '<empty>'}`);
-    } else if (!fs.existsSync(path.join(cwd, authorityRoot))) {
+    } else if (!isExternalPackageRef(authorityRoot) && !fs.existsSync(path.join(cwd, authorityRoot))) {
       fail(`${rel}: ${id} authority_root does not exist: ${authorityRoot}`);
     }
     if (evidenceRoots.length === 0) {
       fail(`${rel}: ${id} must declare evidence_roots`);
     }
     for (const evidenceRoot of evidenceRoots) {
+      if (isExternalPackageRef(evidenceRoot)) {
+        if (authorityRoot && !authorityRoot.startsWith(`${evidenceRoot.replace(/\/$/u, '')}/`)) {
+          fail(`${rel}: ${id} evidence root ${evidenceRoot} must contain authority_root ${authorityRoot}`);
+        }
+        continue;
+      }
       if (evidenceRoot.startsWith('.nimi/spec/') || evidenceRoot.includes('..') || path.isAbsolute(evidenceRoot) || !fs.existsSync(path.join(cwd, evidenceRoot))) {
         fail(`${rel}: ${id} invalid evidence_root ${evidenceRoot}`);
       } else if (authorityRoot && !authorityRoot.startsWith(`${evidenceRoot.replace(/\/$/u, '')}/`)) {
@@ -938,6 +963,8 @@ function checkPackageAuthorityAdmissions(definedRuleIds) {
     }
     if (mayNotOverride.length === 0) {
       fail(`${rel}: ${id} must declare may_not_override`);
+    } else if (!sameStringSet(mayNotOverride, requiredMayNotOverride)) {
+      fail(`${rel}: ${id} may_not_override must exactly match product authority fence set: ${requiredMayNotOverride.join(', ')}`);
     }
     if (!projectionBoundary) {
       fail(`${rel}: ${id} must declare projection_boundary`);
@@ -968,7 +995,7 @@ function checkPackageAuthorityAdmissions(definedRuleIds) {
         if (!isAllowedHostProjectionRef(hostRef) || hostRef.includes('..') || path.isAbsolute(hostRef) || !fs.existsSync(path.join(cwd, hostRef))) {
           fail(`${rel}: ${id} invalid host_authority_projection_refs host_ref ${hostRef || '<empty>'}`);
         }
-        if (!isAllowedPackageProjectionRef(packageRef) || packageRef.includes('..') || path.isAbsolute(packageRef) || !fs.existsSync(path.join(cwd, packageRef))) {
+        if (!isAllowedPackageProjectionRef(packageRef) || packageRef.includes('..') || path.isAbsolute(packageRef)) {
           fail(`${rel}: ${id} invalid host_authority_projection_refs package_ref ${packageRef || '<empty>'}`);
         }
         if (seenHostProjectionRefs.has(hostRef)) {

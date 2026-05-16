@@ -66,7 +66,7 @@ placement_rules:
     tracking_policy: tracked_required
     requires_admission: nimicoding_init_or_sync_projection
     validator_scope: nimicoding_managed_projection
-  - root_pattern: nimi-coding/{spec,methodology,contracts,config}/**
+  - root_pattern: package://@nimiplatform/nimi-coding/{spec,methodology,contracts,config}/**
     allowed_classes: [methodology_authority, support_registry]
     owner: nimi_coding_package
     tracking_policy: tracked_required
@@ -108,7 +108,7 @@ allowed_spec_meta_rules:
     required_fields: [package_id, package_version, package_truth_root, overlay_fields, drift_check_command]
 root_policy:
   product_authority_root: .nimi/spec
-  package_authority_root: nimi-coding
+  package_authority_root: package://@nimiplatform/nimi-coding
   topic_lifecycle_root: .nimi/topics
   local_artifact_root: .nimi/local
   tracked_non_product_roots:

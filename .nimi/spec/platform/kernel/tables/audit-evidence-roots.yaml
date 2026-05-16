@@ -42,13 +42,13 @@ roots:
     evidence_roots:
       - .nimi/contracts/spec-generation-audit.schema.yaml
       - .nimi/methodology/spec-reconstruction.yaml
-      - nimi-coding/contracts/spec-generation-audit.schema.yaml
-      - nimi-coding/methodology/spec-reconstruction.yaml
-      - nimi-coding/cli/commands/validate-spec-audit.mjs
-      - nimi-coding/cli/lib/internal/validators-spec.mjs
-      - nimi-coding/cli/lib/closeout.mjs
-      - nimi-coding/test/spec-generation-scenarios.mjs
-      - nimi-coding/test/nimicoding.test.mjs
+      - package://@nimiplatform/nimi-coding/contracts/spec-generation-audit.schema.yaml
+      - package://@nimiplatform/nimi-coding/methodology/spec-reconstruction.yaml
+      - package://@nimiplatform/nimi-coding/cli/commands/validate-spec-audit.mjs
+      - package://@nimiplatform/nimi-coding/cli/lib/internal/validators-spec.mjs
+      - package://@nimiplatform/nimi-coding/cli/lib/closeout.mjs
+      - package://@nimiplatform/nimi-coding/test/spec-generation-scenarios.mjs
+      - package://@nimiplatform/nimi-coding/test/nimicoding.test.mjs
     source_rule: P-PKG-008
   - id: platform-repository-governance
     owner_domain: platform

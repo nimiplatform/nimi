@@ -17,7 +17,6 @@ const VALID_TIERS_HINT = [
   'release-target:proto',
   'release-target:desktop',
   'release-target:web',
-  'release-target:nimicoding',
   'release-target:mods',
   'live',
   'external-repo',
