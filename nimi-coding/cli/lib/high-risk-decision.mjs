@@ -188,7 +188,11 @@ function evaluateDecisionReadiness(doctorResult, acceptanceReport) {
     };
   }
 
-  if (doctorResult.lifecycleState?.treeState !== "canonical_tree_ready" || doctorResult.canonicalTree?.requiredFilesValid !== true) {
+  const v2Ready = doctorResult.specGenerationInputs?.mode === "class_filtered"
+    && doctorResult.canonicalTree?.requiredFilesValid === true;
+  const legacyReady = doctorResult.lifecycleState?.treeState === "canonical_tree_ready"
+    && doctorResult.canonicalTree?.requiredFilesValid === true;
+  if (!v2Ready && !legacyReady) {
     return {
       ok: false,
       reason: "High-risk decision projection requires canonical_tree_ready with declared canonical files present",

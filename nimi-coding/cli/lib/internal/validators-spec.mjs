@@ -20,12 +20,90 @@ import {
   VALIDATOR_NATIVE_REFUSAL_CODES,
 } from "./validators-shared.mjs";
 import {
+  validateDomainAdmission,
+  validatePlacement,
+  validateTableFamily,
+} from "./surface-taxonomy-validators.mjs";
+import {
   classifyAuditCoveredFiles,
   classifySpecTreeFiles,
   collectTreeFiles,
   isDeclaredInputsCompatibleWithConfig,
   isSourceRefWithinDeclaredRoots,
 } from "./validators-spec-helpers.mjs";
+
+async function loadV2RequiredFiles(projectRoot) {
+  const text = await readTextIfFile(path.join(projectRoot, ".nimi", "methodology", "spec-reconstruction.yaml"));
+  const parsed = parseYamlText(text);
+  return Array.isArray(parsed?.reconstruction?.target_tree_shape?.minimal_required_outputs)
+    ? parsed.reconstruction.target_tree_shape.minimal_required_outputs.map(String)
+    : [];
+}
+
+function isV2SpecGenerationInputs(specGenerationInputs) {
+  return specGenerationInputs.ok && specGenerationInputs.mode === "class_filtered";
+}
+
+async function validateSpecTreeV2(rootPath, projectRoot, specGenerationInputs) {
+  const errors = [];
+  const warnings = [];
+  const expectedRoot = path.resolve(projectRoot, specGenerationInputs.canonicalTargetRoot ?? ".nimi/spec");
+  const targetRoot = path.resolve(rootPath);
+
+  if (targetRoot !== expectedRoot) {
+    errors.push(`spec tree root mismatch: expected ${expectedRoot} but received ${targetRoot}`);
+  }
+
+  const files = await collectTreeFiles(targetRoot);
+  if (files.length === 0) {
+    return {
+      ok: false,
+      errors: errors.length > 0 ? errors : [`missing spec tree root: ${targetRoot}`],
+      warnings,
+      refusal: makeValidatorRefusal(
+        VALIDATOR_NATIVE_REFUSAL_CODES.SPEC_TREE_MISSING,
+        "spec tree root is missing or empty",
+      ),
+    };
+  }
+
+  const requiredFiles = await loadV2RequiredFiles(projectRoot);
+  const canonicalRoot = specGenerationInputs.canonicalTargetRoot ?? ".nimi/spec";
+  const missingRequired = requiredFiles
+    .map((entry) => path.posix.relative(canonicalRoot, entry))
+    .filter((entry) => !files.includes(entry));
+  if (missingRequired.length > 0) {
+    errors.push(`missing required canonical files: ${missingRequired.join(", ")}`);
+  }
+
+  const rootRef = path.relative(projectRoot, targetRoot).split(path.sep).join(path.posix.sep) || ".";
+  const placement = await validatePlacement(projectRoot, { rootRef });
+  const domainAdmission = await validateDomainAdmission(projectRoot, { rootRef });
+  const tableFamily = await validateTableFamily(projectRoot, { rootRef });
+  errors.push(...(placement.errors ?? []), ...(domainAdmission.errors ?? []), ...(tableFamily.errors ?? []));
+
+  return {
+    ok: errors.length === 0,
+    errors,
+    warnings,
+    refusal: errors.length === 0
+      ? null
+      : makeValidatorRefusal(
+        VALIDATOR_NATIVE_REFUSAL_CODES.SPEC_TREE_INVALID,
+        `spec tree is invalid: ${path.basename(targetRoot)}`,
+      ),
+    summary: {
+      profile: "surface_taxonomy_v1",
+      canonicalRoot,
+      totalFiles: files.length,
+      requiredFiles: requiredFiles.length,
+      missingRequired,
+      classifiedFiles: placement.summary?.total ?? files.length,
+      unexpectedFiles: [],
+      conflictingFiles: [],
+    },
+  };
+}
 
 function toPortableProjectPath(projectRoot, absolutePath) {
   return path.relative(projectRoot, absolutePath).split(path.sep).join(path.posix.sep);
@@ -76,10 +154,14 @@ function normalizeAuditFileClass(entry) {
 export async function validateSpecTree(rootPath, options = {}) {
   const projectRoot = options.projectRoot ?? process.cwd();
   const specTreeModel = await loadSpecTreeModelContract(projectRoot);
+  const specGenerationInputs = await loadSpecGenerationInputsConfig(projectRoot);
   const errors = [];
   const warnings = [];
 
   if (!specTreeModel.ok) {
+    if (isV2SpecGenerationInputs(specGenerationInputs)) {
+      return validateSpecTreeV2(rootPath, projectRoot, specGenerationInputs);
+    }
     return {
       ok: false,
       errors: [`invalid spec tree model contract: ${specTreeModel.path}`],
@@ -185,10 +267,11 @@ export async function validateSpecAudit(auditPath, options = {}) {
   const specGenerationInputs = await loadSpecGenerationInputsConfig(projectRoot);
   const blueprintReference = await loadBlueprintReference(projectRoot);
   const auditContract = await loadSpecGenerationAuditContract(projectRoot);
+  const usesV2SurfaceModel = isV2SpecGenerationInputs(specGenerationInputs);
   const errors = [];
   const warnings = [];
 
-  if (!specTreeModel.ok) {
+  if (!specTreeModel.ok && !usesV2SurfaceModel) {
     return {
       ok: false,
       errors: [`invalid spec tree model contract: ${specTreeModel.path}`],
@@ -252,8 +335,8 @@ export async function validateSpecAudit(auditPath, options = {}) {
     };
   }
 
-  if (parsed.version !== 1) {
-    errors.push("spec generation audit version must be 1");
+  if (![1, 2].includes(parsed.version)) {
+    errors.push("spec generation audit version must be 1 or 2");
   }
 
   if (String(parsed.contract_ref ?? "") !== SPEC_GENERATION_AUDIT_CONTRACT_REF) {
@@ -277,20 +360,27 @@ export async function validateSpecAudit(auditPath, options = {}) {
         : null,
   };
 
-  if (String(audit.generation_mode ?? "") !== "mixed") {
+  if (usesV2SurfaceModel) {
+    if (!["mixed", "class_filtered"].includes(String(audit.generation_mode ?? ""))) {
+      errors.push("spec generation audit generation_mode must be `mixed` or `class_filtered`");
+    }
+  } else if (String(audit.generation_mode ?? "") !== "mixed") {
     errors.push("spec generation audit generation_mode must be `mixed`");
   }
-  if (String(audit.canonical_target_root ?? "") !== specTreeModel.canonicalRoot) {
-    errors.push(`spec generation audit canonical_target_root must be ${specTreeModel.canonicalRoot}`);
+
+  const canonicalRoot = specTreeModel.ok ? specTreeModel.canonicalRoot : specGenerationInputs.canonicalTargetRoot ?? ".nimi/spec";
+  const declaredProfile = specTreeModel.ok ? specTreeModel.profile : "surface_taxonomy_v1";
+  if (String(audit.canonical_target_root ?? "") !== canonicalRoot) {
+    errors.push(`spec generation audit canonical_target_root must be ${canonicalRoot}`);
   }
-  if (String(audit.declared_profile ?? "") !== specTreeModel.profile) {
-    errors.push(`spec generation audit declared_profile must be ${specTreeModel.profile}`);
+  if (String(audit.declared_profile ?? "") !== declaredProfile) {
+    errors.push(`spec generation audit declared_profile must be ${declaredProfile}`);
   }
   if (!isDeclaredInputsCompatibleWithConfig(declaredInputs, specGenerationInputs, blueprintReference)) {
     errors.push("spec generation audit input_roots must stay within the declared generation inputs and optional benchmark root");
   }
 
-  const canonicalRootPath = path.resolve(projectRoot, specTreeModel.canonicalRoot);
+  const canonicalRootPath = path.resolve(projectRoot, canonicalRoot);
   const treeFiles = await collectTreeFiles(canonicalRootPath);
   if (treeFiles.length === 0) {
     return {
@@ -304,7 +394,14 @@ export async function validateSpecAudit(auditPath, options = {}) {
     };
   }
 
-  const { auditedFiles, classifications } = classifyAuditCoveredFiles(treeFiles, specTreeModel);
+  const { auditedFiles, classifications } = specTreeModel.ok
+    ? classifyAuditCoveredFiles(treeFiles, specTreeModel)
+    : {
+      auditedFiles: treeFiles
+        .filter((entry) => !entry.startsWith("_meta/"))
+        .map((entry) => ({ path: entry, category: "surface_taxonomy_v1" })),
+      classifications: { unexpected: [], conflicts: [] },
+    };
   if (classifications.unexpected.length > 0) {
     errors.push(`spec tree contains unexpected files outside declared spec classes: ${classifications.unexpected.join(", ")}`);
   }
@@ -333,7 +430,9 @@ export async function validateSpecAudit(auditPath, options = {}) {
     }
     const absoluteEntryRef = path.resolve(projectRoot, entryRef);
     const relativeEntryRef = path.relative(projectRoot, absoluteEntryRef).split(path.sep).join(path.posix.sep);
-    const expectedPrefix = `${specTreeModel.canonicalRoot}/_meta/spec-generation-audit/`;
+    const expectedPrefix = usesV2SurfaceModel
+      ? ".nimi/local/state/spec-generation/spec-generation-audit/"
+      : `${specTreeModel.canonicalRoot}/_meta/spec-generation-audit/`;
     if (relativeEntryRef !== entryRef || !relativeEntryRef.startsWith(expectedPrefix)) {
       errors.push(`spec generation audit file_entry_ref must stay under ${expectedPrefix}: ${entryRef}`);
       continue;
@@ -349,8 +448,9 @@ export async function validateSpecAudit(auditPath, options = {}) {
       errors.push(`spec generation audit file_entry_ref is not a valid entry shard: ${entryRef}`);
       continue;
     }
-    if (entryParsed.version !== 1) {
-      errors.push(`spec generation audit file_entry_ref version must be 1: ${entryRef}`);
+    const expectedShardVersion = usesV2SurfaceModel ? 2 : 1;
+    if (entryParsed.version !== expectedShardVersion) {
+      errors.push(`spec generation audit file_entry_ref version must be ${expectedShardVersion}: ${entryRef}`);
     }
     if (String(entryParsed.contract_ref ?? "") !== SPEC_GENERATION_AUDIT_CONTRACT_REF) {
       errors.push(`spec generation audit file_entry_ref contract_ref must be ${SPEC_GENERATION_AUDIT_CONTRACT_REF}: ${entryRef}`);
@@ -373,19 +473,22 @@ export async function validateSpecAudit(auditPath, options = {}) {
       continue;
     }
 
-    const missingEntryFields = SPEC_GENERATION_AUDIT_FILE_REQUIRED_FIELDS.filter((field) => !(field in entry));
+    const requiredEntryFields = auditContract.requiredFileEntryFields?.length > 0
+      ? auditContract.requiredFileEntryFields
+      : SPEC_GENERATION_AUDIT_FILE_REQUIRED_FIELDS;
+    const missingEntryFields = requiredEntryFields.filter((field) => !(field in entry));
     if (missingEntryFields.length > 0) {
       errors.push(`spec generation audit file entry is missing required fields: ${missingEntryFields.join(", ")}`);
       continue;
     }
 
     const canonicalPath = String(entry.canonical_path ?? "");
-    if (!canonicalPath.startsWith(`${specTreeModel.canonicalRoot}/`) && canonicalPath !== `${specTreeModel.canonicalRoot}/INDEX.md`) {
-      errors.push(`spec generation audit canonical_path must stay under ${specTreeModel.canonicalRoot}: ${canonicalPath}`);
+    if (!canonicalPath.startsWith(`${canonicalRoot}/`) && canonicalPath !== `${canonicalRoot}/INDEX.md`) {
+      errors.push(`spec generation audit canonical_path must stay under ${canonicalRoot}: ${canonicalPath}`);
       continue;
     }
 
-    const relativePath = path.posix.relative(specTreeModel.canonicalRoot, canonicalPath);
+    const relativePath = path.posix.relative(canonicalRoot, canonicalPath);
     if (relativePath.startsWith("_meta/")) {
       errors.push(`spec generation audit must not record _meta files as generated canonical files: ${canonicalPath}`);
       continue;
@@ -433,8 +536,11 @@ export async function validateSpecAudit(auditPath, options = {}) {
   }
 
   const missingAuditEntries = [];
-  const requiredFiles = (specTreeModel.requiredFilesByProfile[specTreeModel.profile] ?? [])
-    .map((entry) => path.posix.relative(specTreeModel.canonicalRoot, entry))
+  const requiredFileRefs = specTreeModel.ok
+    ? (specTreeModel.requiredFilesByProfile[specTreeModel.profile] ?? [])
+    : await loadV2RequiredFiles(projectRoot);
+  const requiredFiles = requiredFileRefs
+    .map((entry) => path.posix.relative(canonicalRoot, entry))
     .filter((entry) => !entry.startsWith("_meta/"));
 
   for (const classifiedFile of auditedFiles) {
@@ -445,7 +551,7 @@ export async function validateSpecAudit(auditPath, options = {}) {
     }
 
     const auditFileClass = normalizeAuditFileClass(auditEntry);
-    if (auditFileClass !== classifiedFile.classId && !(classifiedFile.path === "INDEX.md" && auditFileClass === "index")) {
+    if (classifiedFile.classId && auditFileClass !== classifiedFile.classId && !(classifiedFile.path === "INDEX.md" && auditFileClass === "index")) {
       errors.push(`spec generation audit file_class does not match canonical tree classification for ${classifiedFile.path}: expected ${classifiedFile.classId}`);
     }
   }
@@ -498,8 +604,8 @@ export async function validateSpecAudit(auditPath, options = {}) {
         `spec generation audit is invalid: ${path.basename(absoluteAuditPath)}`,
       ),
     summary: {
-      canonicalRoot: specTreeModel.canonicalRoot,
-      declaredProfile: specTreeModel.profile,
+      canonicalRoot,
+      declaredProfile,
       auditedFiles: auditEntryByRelativePath.size,
       requiredAuditedFiles: requiredFiles.length,
       missingAuditEntries,

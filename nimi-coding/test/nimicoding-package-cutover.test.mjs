@@ -31,6 +31,9 @@ import {
   writeAuditEvidence,
 } from "./nimicoding-test-utils.mjs";
 
+const LOCAL_SPEC_GENERATION_AUDIT_REF = ".nimi/local/state/spec-generation/spec-generation-audit.yaml";
+const LOCAL_SPEC_GENERATION_AUDIT_SHARD_REF = ".nimi/local/state/spec-generation/spec-generation-audit/files-0001.yaml";
+
 test("package files publish canonical source dirs and start output matches source projection", { concurrency: false }, async () => {
   const packageJson = JSON.parse(await readFile(path.join(repoRoot, "package.json"), "utf8"));
   assert.ok(packageJson.files.includes("adapters"));
@@ -55,15 +58,18 @@ test("package files publish canonical source dirs and start output matches sourc
     assert.ok(seedMap.has(".nimi/contracts/closeout.schema.yaml"));
     assert.ok(seedMap.has(".nimi/contracts/pending-note.schema.yaml"));
     assert.ok(seedMap.has(".nimi/contracts/forbidden-shortcuts.catalog.yaml"));
+    assert.ok(seedMap.has(".nimi/contracts/surface-taxonomy.schema.yaml"));
+    assert.ok(seedMap.has(".nimi/contracts/placement-contract.schema.yaml"));
+    assert.ok(seedMap.has(".nimi/contracts/table-family.schema.yaml"));
+    assert.ok(seedMap.has(".nimi/contracts/domain-admission.schema.yaml"));
     assert.ok(seedMap.has(".nimi/methodology/topic-ontology.yaml"));
     assert.ok(seedMap.has(".nimi/methodology/topic-lifecycle.yaml"));
     assert.ok(seedMap.has(".nimi/methodology/four-closure-policy.yaml"));
-    assert.ok(seedMap.has(".nimi/spec/_meta/spec-tree-model.yaml"));
-    assert.ok(seedMap.has(".nimi/spec/_meta/command-gating-matrix.yaml"));
-    assert.ok(seedMap.has(".nimi/spec/_meta/spec-authority-cutover-readiness.yaml"));
-    assert.ok(seedMap.has(".nimi/spec/_meta/generate-drift-migration-checklist.yaml"));
-    assert.ok(seedMap.has(".nimi/spec/_meta/governance-routing-cutover-checklist.yaml"));
-    assert.ok(seedMap.has(".nimi/spec/_meta/phase2-impacted-surface-matrix.yaml"));
+    assert.ok(!seedMap.has(".nimi/spec/_meta/spec-tree-model.yaml"));
+    assert.ok(!seedMap.has(".nimi/spec/_meta/command-gating-matrix.yaml"));
+    assert.ok(!seedMap.has(".nimi/spec/_meta/spec-authority-cutover-readiness.yaml"));
+    assert.ok(!seedMap.has(".nimi/spec/bootstrap-state.yaml"));
+    assert.ok(!seedMap.has(".nimi/spec/product-scope.yaml"));
     for (const [relativePath, expected] of seedMap.entries()) {
       const actual = await readFile(path.join(projectRoot, relativePath), "utf8");
       assert.equal(actual, expected, `source projection mismatch for ${relativePath}`);
@@ -93,41 +99,32 @@ test("package repo exposes package source dirs and is not treated as a host proj
   assert.ok(payload.checks.some((check) => check.id === "nimi_root" && check.ok === false));
 });
 
-test("doctor fails closed when canonical tree files are present but bootstrap state stays bootstrap_only", { concurrency: false }, async () => {
+test("doctor accepts v2 canonical tree readiness without bootstrap-state lifecycle truth", { concurrency: false }, async () => {
   await withTempProject(async (projectRoot) => {
     const startResult = await captureRunCli(["start"]);
     assert.equal(startResult.exitCode, 0);
 
     await seedReconstructedTargetTruth(projectRoot);
-    const bootstrapStatePath = path.join(projectRoot, ".nimi", "spec", "bootstrap-state.yaml");
-    const bootstrapState = YAML.parse(await readFile(bootstrapStatePath, "utf8"));
-    bootstrapState.state.mode = "bootstrap_only";
-    bootstrapState.state.tree_state = "bootstrap_only";
-    bootstrapState.state.reconstruction_required = true;
-    bootstrapState.status.ready_for_ai_reconstruction = true;
-    await writeFile(bootstrapStatePath, YAML.stringify(bootstrapState), "utf8");
 
     const doctorResult = await captureRunCli(["doctor", "--json"]);
-    assert.equal(doctorResult.exitCode, 1);
+    assert.equal(doctorResult.exitCode, 0);
 
     const payload = JSON.parse(doctorResult.stdout);
-    assert.equal(payload.ok, false);
-    assert.match(
-      JSON.stringify(payload.checks),
-      /canonical_tree_ready but required canonical files are still missing|lifecycle drifted away from the current canonical tree readiness/i,
-    );
+    assert.equal(payload.ok, true);
+    assert.ok(payload.checks.some((check) => check.id === "bootstrap_state_contract" && check.ok === true));
   });
 });
 
-test("doctor fails closed when blueprint mode requires a missing blueprint reference", async () => {
+test("doctor fails closed when v2 benchmark mode lacks a blueprint reference", async () => {
   await withTempProject(async (projectRoot) => {
     const startResult = await captureRunCli(["start"]);
     assert.equal(startResult.exitCode, 0);
 
-    const bootstrapStatePath = path.join(projectRoot, ".nimi", "spec", "bootstrap-state.yaml");
-    const bootstrapState = YAML.parse(await readFile(bootstrapStatePath, "utf8"));
-    bootstrapState.state.blueprint_mode = "repo_spec_blueprint";
-    await writeFile(bootstrapStatePath, YAML.stringify(bootstrapState), "utf8");
+    await updateSpecGenerationInputs(projectRoot, (inputs) => {
+      inputs.benchmark_blueprint_root = "spec";
+      inputs.benchmark_mode = "repo_spec_blueprint";
+      inputs.acceptance_mode = "semantic_and_structural_parity_when_blueprint_exists";
+    });
 
     const doctorResult = await captureRunCli(["doctor", "--json"]);
     assert.equal(doctorResult.exitCode, 1);
@@ -136,6 +133,9 @@ test("doctor fails closed when blueprint mode requires a missing blueprint refer
     const blueprintCheck = payload.checks.find((check) => check.id === "blueprint_reference_contract");
     assert.equal(blueprintCheck.ok, false);
     assert.equal(blueprintCheck.severity, "error");
+    const benchmarkCheck = payload.checks.find((check) => check.id === "benchmark_audit_readiness");
+    assert.equal(benchmarkCheck.ok, false);
+    assert.equal(benchmarkCheck.severity, "warn");
   });
 });
 
@@ -157,79 +157,13 @@ test("repo docs keep cutover readiness separate from authority flip", async () =
   assert.doesNotMatch(claude, /archive\/spec-authority-legacy-20260413/);
 });
 
-test("cutover readiness check fails when the readiness artifact drops a required gate family", async () => {
+test("start output does not install pre-cutover readiness artifacts into host spec", async () => {
   await withTempProject(async (projectRoot) => {
     const startResult = await captureRunCli(["start"]);
     assert.equal(startResult.exitCode, 0);
 
     const readinessPath = path.join(projectRoot, ".nimi", "spec", "_meta", "spec-authority-cutover-readiness.yaml");
-    const readiness = await readYamlFile(readinessPath);
-    readiness.spec_authority_cutover_readiness.gate_families = readiness.spec_authority_cutover_readiness.gate_families.filter(
-      (entry) => entry.id !== "benchmark_parity_gate",
-    );
-    await writeFile(readinessPath, YAML.stringify(readiness), "utf8");
-
-    const result = await runCutoverReadinessCheck(projectRoot);
-    assert.equal(result.exitCode, 1);
-    assert.match(result.stderr, /gate families without implementation|gate family order/i);
-  });
-});
-
-test("cutover readiness check fails when reconstruction is only partial", async () => {
-  await withTempProject(async (projectRoot) => {
-    const startResult = await captureRunCli(["start"]);
-    assert.equal(startResult.exitCode, 0);
-
-    await materializeFixtureScenario(projectRoot, "mini-benchmark", "benchmark_success");
-    await writeLocalCloseoutArtifact(projectRoot, "spec_reconstruction", "completed", "partial");
-    await writeLocalCloseoutArtifact(projectRoot, "doc_spec_audit", "completed", "aligned");
-
-    const result = await runCutoverReadinessCheck(projectRoot);
-    assert.equal(result.exitCode, 1);
-    assert.match(result.stdout, /spec-authority-cutover-readiness: NO-GO/);
-    assert.match(result.stdout, /canonical_generation_gate/);
-    assert.match(result.stdout, /summary\.status is not reconstructed/);
-  });
-});
-
-test("cutover readiness check fails when blueprint parity fails", async () => {
-  await withTempProject(async (projectRoot) => {
-    const startResult = await captureRunCli(["start"]);
-    assert.equal(startResult.exitCode, 0);
-
-    await materializeFixtureScenario(projectRoot, "dual-domain-benchmark", "rule_id_drift");
-    await writeLocalCloseoutArtifact(projectRoot, "spec_reconstruction", "completed", "reconstructed");
-    await writeLocalCloseoutArtifact(projectRoot, "doc_spec_audit", "completed", "aligned");
-
-    const result = await runCutoverReadinessCheck(projectRoot);
-    assert.equal(result.exitCode, 1);
-    assert.match(result.stdout, /benchmark_parity_gate/);
-    assert.match(result.stdout, /blueprint-audit does not pass/);
-  });
-});
-
-test("cutover readiness check reports already_cut_over after the authority flip has executed", async () => {
-  await withTempProject(async (projectRoot) => {
-    const startResult = await captureRunCli(["start"]);
-    assert.equal(startResult.exitCode, 0);
-
-    await materializeFixtureScenario(projectRoot, "mini-benchmark", "benchmark_success");
-    await writeLocalCloseoutArtifact(projectRoot, "spec_reconstruction", "completed", "reconstructed");
-    await writeLocalCloseoutArtifact(projectRoot, "doc_spec_audit", "completed", "aligned");
-    const bootstrapStatePath = path.join(projectRoot, ".nimi", "spec", "bootstrap-state.yaml");
-    const bootstrapState = await readYamlFile(bootstrapStatePath);
-    bootstrapState.state.mode = "reconstruction_seeded";
-    bootstrapState.state.tree_state = "canonical_tree_ready";
-    bootstrapState.state.authority_mode = "canonical_active";
-    bootstrapState.state.blueprint_mode = "none";
-    bootstrapState.state.reconstruction_required = false;
-    bootstrapState.status.ready_for_ai_reconstruction = false;
-    bootstrapState.status.active_authority_root = ".nimi/spec";
-    await writeFile(bootstrapStatePath, YAML.stringify(bootstrapState), "utf8");
-
-    const result = await runCutoverReadinessCheck(projectRoot);
-    assert.equal(result.exitCode, 0);
-    assert.equal(result.stdout.trim(), "spec-authority-cutover-readiness: already_cut_over");
+    await assert.rejects(readFile(readinessPath, "utf8"));
   });
 });
 
@@ -267,17 +201,16 @@ test("validate-spec-tree fails when a required canonical file is missing after d
   });
 });
 
-test("validate-spec-tree fails when generated output roots overlap normative roots", async () => {
+test("validate-spec-tree fails when generated views are placed under product authority roots", async () => {
   await withTempProject(async (projectRoot) => {
     const startResult = await captureRunCli(["start"]);
     assert.equal(startResult.exitCode, 0);
 
     await materializeFixtureScenario(projectRoot, "mini-benchmark", "benchmark_success");
 
-    const modelPath = path.join(projectRoot, ".nimi", "spec", "_meta", "spec-tree-model.yaml");
-    const model = await readYamlFile(modelPath);
-    model.spec_tree_model.generated_pipelines[0].output_roots = [".nimi/spec/runtime/kernel/generated"];
-    await writeFile(modelPath, YAML.stringify(model), "utf8");
+    const generatedPath = path.join(projectRoot, ".nimi", "spec", "runtime", "kernel", "generated", "overview.md");
+    await mkdir(path.dirname(generatedPath), { recursive: true });
+    await writeFile(generatedPath, "# Generated View\n", "utf8");
 
     const result = await runCliSubprocess(["validate-spec-tree"], { cwd: projectRoot });
     assert.equal(result.exitCode, 1);
@@ -285,7 +218,7 @@ test("validate-spec-tree fails when generated output roots overlap normative roo
     assert.equal(payload.validator, "validate-spec-tree");
     assert.equal(payload.ok, false);
     assert.equal(payload.refusal.code, "SPEC_TREE_INVALID");
-    assert.match(JSON.stringify(payload.errors), /generated output roots overlap normative roots/i);
+    assert.match(JSON.stringify(payload.errors), /derived_view_under_product_authority_root/i);
   });
 });
 
@@ -312,30 +245,26 @@ test("validate-spec-audit accepts file entries from canonical audit shards", asy
 
     await materializeFixtureScenario(projectRoot, "mini-benchmark", "benchmark_success");
 
-    const auditPath = path.join(projectRoot, ".nimi", "spec", "_meta", "spec-generation-audit.yaml");
+    const auditPath = path.join(projectRoot, LOCAL_SPEC_GENERATION_AUDIT_REF);
     const auditPayload = YAML.parse(await readFile(auditPath, "utf8"));
     const files = auditPayload.spec_generation_audit.files;
     auditPayload.spec_generation_audit.files = [];
     auditPayload.spec_generation_audit.file_entry_refs = [
-      ".nimi/spec/_meta/spec-generation-audit/files-0001.yaml",
+      LOCAL_SPEC_GENERATION_AUDIT_SHARD_REF,
     ];
 
     const shardPath = path.join(
       projectRoot,
-      ".nimi",
-      "spec",
-      "_meta",
-      "spec-generation-audit",
-      "files-0001.yaml",
+      ...LOCAL_SPEC_GENERATION_AUDIT_SHARD_REF.split("/"),
     );
     await mkdir(path.dirname(shardPath), { recursive: true });
     await writeFile(
       shardPath,
       YAML.stringify({
-        version: 1,
+        version: 2,
         contract_ref: ".nimi/contracts/spec-generation-audit.schema.yaml",
         spec_generation_audit_file_entries: {
-          parent_ref: ".nimi/spec/_meta/spec-generation-audit.yaml",
+          parent_ref: LOCAL_SPEC_GENERATION_AUDIT_REF,
           files,
         },
       }),
@@ -360,23 +289,23 @@ test("validate-spec-audit rejects invalid file entry shards", async () => {
 
     await materializeFixtureScenario(projectRoot, "mini-benchmark", "benchmark_success");
 
-    const auditPath = path.join(projectRoot, ".nimi", "spec", "_meta", "spec-generation-audit.yaml");
+    const auditPath = path.join(projectRoot, LOCAL_SPEC_GENERATION_AUDIT_REF);
     const auditPayload = YAML.parse(await readFile(auditPath, "utf8"));
     const files = auditPayload.spec_generation_audit.files;
     auditPayload.spec_generation_audit.files = [];
     auditPayload.spec_generation_audit.file_entry_refs = [
-      ".nimi/spec/_meta/spec-generation-audit/files-0001.yaml",
+      LOCAL_SPEC_GENERATION_AUDIT_SHARD_REF,
     ];
 
-    const shardPath = path.join(projectRoot, ".nimi", "spec", "_meta", "spec-generation-audit", "files-0001.yaml");
+    const shardPath = path.join(projectRoot, ...LOCAL_SPEC_GENERATION_AUDIT_SHARD_REF.split("/"));
     await mkdir(path.dirname(shardPath), { recursive: true });
     await writeFile(
       shardPath,
       YAML.stringify({
-        version: 1,
+        version: 2,
         contract_ref: ".nimi/contracts/spec-generation-audit.schema.yaml",
         spec_generation_audit_file_entries: {
-          parent_ref: ".nimi/spec/_meta/other-audit.yaml",
+          parent_ref: ".nimi/local/state/spec-generation/other-audit.yaml",
           files,
         },
       }),
@@ -386,14 +315,14 @@ test("validate-spec-audit rejects invalid file entry shards", async () => {
 
     const parentResult = await runCliSubprocess(["validate-spec-audit"], { cwd: projectRoot });
     assert.equal(parentResult.exitCode, 1);
-    assert.match(JSON.stringify(JSON.parse(parentResult.stdout).errors), /parent_ref must point to \.nimi\/spec\/_meta\/spec-generation-audit\.yaml/);
+    assert.match(JSON.stringify(JSON.parse(parentResult.stdout).errors), /parent_ref must point to \.nimi\/local\/state\/spec-generation\/spec-generation-audit\.yaml/);
 
     auditPayload.spec_generation_audit.file_entry_refs = [".nimi/local/spec-generation-audit/files-0001.yaml"];
     await writeFile(auditPath, YAML.stringify(auditPayload), "utf8");
 
     const pathResult = await runCliSubprocess(["validate-spec-audit"], { cwd: projectRoot });
     assert.equal(pathResult.exitCode, 1);
-    assert.match(JSON.stringify(JSON.parse(pathResult.stdout).errors), /file_entry_ref must stay under \.nimi\/spec\/_meta\/spec-generation-audit\//);
+    assert.match(JSON.stringify(JSON.parse(pathResult.stdout).errors), /file_entry_ref must stay under \.nimi\/local\/state\/spec-generation\/spec-generation-audit\//);
   });
 });
 

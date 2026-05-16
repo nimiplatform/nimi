@@ -91,10 +91,11 @@ export function validateSpecReconstructionSummary(summary, contract, verifiedAt)
     };
   }
 
-  if (typeof summary.audit_ref !== "string" || summary.audit_ref !== SPEC_GENERATION_AUDIT_REF) {
+  const expectedAuditRef = contract.canonicalTreeCompletion?.auditRef ?? SPEC_GENERATION_AUDIT_REF;
+  if (typeof summary.audit_ref !== "string" || summary.audit_ref !== expectedAuditRef) {
     return {
       ok: false,
-      reason: `spec_reconstruction summary.audit_ref must be \`${SPEC_GENERATION_AUDIT_REF}\``,
+      reason: `spec_reconstruction summary.audit_ref must be \`${expectedAuditRef}\``,
     };
   }
 

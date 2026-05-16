@@ -183,7 +183,7 @@ function normalizeV2SpecGenerationInputs(inputs) {
 }
 
 async function writeBlueprintReference(projectRoot, root = "spec") {
-  const blueprintReferencePath = path.join(projectRoot, ".nimi", "spec", "_meta", "blueprint-reference.yaml");
+  const blueprintReferencePath = path.join(projectRoot, ".nimi", "local", "state", "spec-generation", "blueprint-reference.yaml");
   const bootstrapStatePath = path.join(projectRoot, ".nimi", "spec", "bootstrap-state.yaml");
   await mkdir(path.dirname(blueprintReferencePath), { recursive: true });
   await writeFile(
@@ -201,9 +201,13 @@ async function writeBlueprintReference(projectRoot, root = "spec") {
     "utf8",
   );
 
-  const bootstrapState = YAML.parse(await readFile(bootstrapStatePath, "utf8"));
-  bootstrapState.state.blueprint_mode = root === "spec" ? "repo_spec_blueprint" : "custom_blueprint";
-  await writeFile(bootstrapStatePath, YAML.stringify(bootstrapState), "utf8");
+  try {
+    const bootstrapState = YAML.parse(await readFile(bootstrapStatePath, "utf8"));
+    bootstrapState.state.blueprint_mode = root === "spec" ? "repo_spec_blueprint" : "custom_blueprint";
+    await writeFile(bootstrapStatePath, YAML.stringify(bootstrapState), "utf8");
+  } catch {
+    // v2 bootstrap records blueprint mode in spec-generation-inputs and the local blueprint reference.
+  }
 }
 
 async function seedReconstructedTargetTruth(projectRoot) {
@@ -211,7 +215,7 @@ async function seedReconstructedTargetTruth(projectRoot) {
     "INDEX.md": "# Project Spec\n\n- Canonical root for project rules.\n",
     "project/kernel/index.md": "# Project Kernel\n\n- Canonical kernel index.\n",
     "project/kernel/core-rules.md": "# Core Rules\n\n- Rule 1: fail closed on authority ambiguity.\n",
-    "project/kernel/tables/rule-catalog.yaml": "rules:\n  - id: rule-1\n    title: fail_closed_on_authority_ambiguity\n",
+    "project/kernel/tables/rule-catalog.yaml": "table_family: product_catalog\nowner: project\ncatalog_id: rule_catalog\nentries:\n  - id: rule-1\n    name: fail_closed_on_authority_ambiguity\n",
     "high-risk-admissions.yaml": "admissions: []\nadmission_rules: []\nsemantic_constraints: []\n",
   };
 
@@ -221,14 +225,14 @@ async function seedReconstructedTargetTruth(projectRoot) {
     await writeFile(absolutePath, contents, "utf8");
   }
 
-  await mkdir(path.join(projectRoot, ".nimi", "spec", "_meta"), { recursive: true });
+  await mkdir(path.join(projectRoot, ".nimi", "local", "state", "spec-generation"), { recursive: true });
   await writeFile(
-    path.join(projectRoot, ".nimi", "spec", "_meta", "spec-generation-audit.yaml"),
+    path.join(projectRoot, ".nimi", "local", "state", "spec-generation", "spec-generation-audit.yaml"),
     YAML.stringify({
-      version: 1,
+      version: 2,
       contract_ref: ".nimi/contracts/spec-generation-audit.schema.yaml",
       spec_generation_audit: {
-        generation_mode: "mixed",
+        generation_mode: "class_filtered",
         canonical_target_root: ".nimi/spec",
         declared_profile: "surface_taxonomy_v1",
         placement_report_ref: ".nimi/local/state/spec-surface/current-inventory.json",
@@ -242,7 +246,7 @@ async function seedReconstructedTargetTruth(projectRoot) {
         files: [
           {
             canonical_path: ".nimi/spec/INDEX.md",
-            file_class: "index",
+            surface_class: "thin_guidance",
             source_refs: [".nimi/spec/INDEX.md"],
             source_basis: "grounded",
             coverage_status: "complete",
@@ -251,7 +255,7 @@ async function seedReconstructedTargetTruth(projectRoot) {
           },
           {
             canonical_path: ".nimi/spec/project/kernel/index.md",
-            file_class: "kernel_markdown",
+            surface_class: "product_authority",
             source_refs: [".nimi/spec/INDEX.md"],
             source_basis: "grounded",
             coverage_status: "complete",
@@ -260,7 +264,7 @@ async function seedReconstructedTargetTruth(projectRoot) {
           },
           {
             canonical_path: ".nimi/spec/project/kernel/core-rules.md",
-            file_class: "kernel_markdown",
+            surface_class: "product_authority",
             source_refs: [".nimi/spec/INDEX.md"],
             source_basis: "grounded",
             coverage_status: "complete",
@@ -269,8 +273,17 @@ async function seedReconstructedTargetTruth(projectRoot) {
           },
           {
             canonical_path: ".nimi/spec/project/kernel/tables/rule-catalog.yaml",
-            file_class: "kernel_tables",
+            surface_class: "product_authority_table",
             source_refs: [".nimi/spec/INDEX.md"],
+            source_basis: "grounded",
+            coverage_status: "complete",
+            unresolved_items: [],
+            notes: [],
+          },
+          {
+            canonical_path: ".nimi/spec/high-risk-admissions.yaml",
+            surface_class: "product_admission_registry",
+            source_refs: [".nimi/spec/high-risk-admissions.yaml"],
             source_basis: "grounded",
             coverage_status: "complete",
             unresolved_items: [],
@@ -283,17 +296,21 @@ async function seedReconstructedTargetTruth(projectRoot) {
   );
 
   const bootstrapStatePath = path.join(projectRoot, ".nimi", "spec", "bootstrap-state.yaml");
-  const bootstrapState = YAML.parse(await readFile(bootstrapStatePath, "utf8"));
-  bootstrapState.state.mode = "reconstruction_seeded";
-  bootstrapState.state.tree_state = "canonical_tree_ready";
-  bootstrapState.state.reconstruction_required = false;
-  bootstrapState.status.ready_for_ai_reconstruction = false;
-  bootstrapState.cutover_readiness.gate_status.canonical_generation_gate = "ready";
-  await writeFile(
-    bootstrapStatePath,
-    YAML.stringify(bootstrapState),
-    "utf8",
-  );
+  try {
+    const bootstrapState = YAML.parse(await readFile(bootstrapStatePath, "utf8"));
+    bootstrapState.state.mode = "reconstruction_seeded";
+    bootstrapState.state.tree_state = "canonical_tree_ready";
+    bootstrapState.state.reconstruction_required = false;
+    bootstrapState.status.ready_for_ai_reconstruction = false;
+    bootstrapState.cutover_readiness.gate_status.canonical_generation_gate = "ready";
+    await writeFile(
+      bootstrapStatePath,
+      YAML.stringify(bootstrapState),
+      "utf8",
+    );
+  } catch {
+    // v2 host-local bootstrap no longer projects lifecycle state into .nimi/spec.
+  }
 }
 
 async function seedTargetTruthFilesOnly(projectRoot) {
@@ -351,13 +368,17 @@ async function readYamlFile(filePath) {
 
 async function markCanonicalTreeReady(projectRoot) {
   const bootstrapStatePath = path.join(projectRoot, ".nimi", "spec", "bootstrap-state.yaml");
-  const bootstrapState = await readYamlFile(bootstrapStatePath);
-  bootstrapState.state.mode = "reconstruction_seeded";
-  bootstrapState.state.tree_state = "canonical_tree_ready";
-  bootstrapState.state.reconstruction_required = false;
-  bootstrapState.status.ready_for_ai_reconstruction = false;
-  bootstrapState.cutover_readiness.gate_status.canonical_generation_gate = "ready";
-  await writeFile(bootstrapStatePath, YAML.stringify(bootstrapState), "utf8");
+  try {
+    const bootstrapState = await readYamlFile(bootstrapStatePath);
+    bootstrapState.state.mode = "reconstruction_seeded";
+    bootstrapState.state.tree_state = "canonical_tree_ready";
+    bootstrapState.state.reconstruction_required = false;
+    bootstrapState.status.ready_for_ai_reconstruction = false;
+    bootstrapState.cutover_readiness.gate_status.canonical_generation_gate = "ready";
+    await writeFile(bootstrapStatePath, YAML.stringify(bootstrapState), "utf8");
+  } catch {
+    // v2 host-local bootstrap derives readiness from required product authority files.
+  }
 }
 
 async function writeLocalCloseoutArtifact(projectRoot, skillId, outcome, status) {

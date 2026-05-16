@@ -27,7 +27,8 @@ roots:
   - id: spec-generation-audit-nimicoding-implementation
     owner_domain: spec-meta
     authority_refs:
-      - .nimi/spec/_meta/spec-generation-audit.yaml
+      - nimi-coding/contracts/spec-generation-audit.schema.yaml
+      - nimi-coding/methodology/spec-reconstruction.yaml
     evidence_roots:
       - .nimi/contracts/spec-generation-audit.schema.yaml
       - .nimi/methodology/spec-reconstruction.yaml

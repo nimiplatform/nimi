@@ -39,6 +39,7 @@ const PACKAGE_REPO_ROOT = fileURLToPath(new URL("../../..", import.meta.url));
 
 export async function finalizeDoctorState(projectRoot, bootstrapSurface, delegatedSurface) {
   const checks = [...bootstrapSurface.checks, ...delegatedSurface.checks];
+  const usesV2SurfaceModel = bootstrapSurface.specGenerationInputs?.mode === "class_filtered";
 
   const specContract = await loadSpecReconstructionContract(projectRoot);
   const auditContract = await loadDocSpecAuditContract(projectRoot);
@@ -170,7 +171,7 @@ export async function finalizeDoctorState(projectRoot, bootstrapSurface, delegat
     ),
   );
 
-  const lifecycleAligned = (
+  const lifecycleAligned = usesV2SurfaceModel || (
     bootstrapSurface.bootstrapStateContract.treeState === "bootstrap_only"
     && bootstrapSurface.canonicalTree.ready === false
   ) || (
@@ -187,7 +188,9 @@ export async function finalizeDoctorState(projectRoot, bootstrapSurface, delegat
     buildCheck(
       "bootstrap_lifecycle_alignment",
       lifecycleAligned,
-      lifecycleAligned
+      usesV2SurfaceModel
+        ? "v2 host-local surface model does not require bootstrap-state lifecycle alignment"
+        : lifecycleAligned
         ? `bootstrap-state lifecycle ${bootstrapSurface.bootstrapStateContract.treeState ?? "unknown"} is aligned with the current canonical tree readiness`
         : bootstrapSurface.bootstrapStateContract.treeState === "canonical_tree_ready"
           ? "bootstrap-state declares canonical_tree_ready but required canonical files are still missing"
@@ -203,7 +206,8 @@ export async function finalizeDoctorState(projectRoot, bootstrapSurface, delegat
     detail: auditArtifact.reason,
   });
 
-  const auditArtifactConsistent = !auditArtifact.present
+  const auditArtifactConsistent = usesV2SurfaceModel
+    || !auditArtifact.present
     || auditArtifact.outcome !== "completed"
     || bootstrapSurface.canonicalTree.requiredFilesValid;
   checks.push(
@@ -268,7 +272,7 @@ export async function finalizeDoctorState(projectRoot, bootstrapSurface, delegat
       && delegatedSurface.contractRuntimeOwnersAligned
       && delegatedSurface.delegatedModeAligned
       && delegatedSurface.selfHostedAligned
-      && bootstrapSurface.completionTruth.ok
+      && (usesV2SurfaceModel || bootstrapSurface.completionTruth.ok)
       && delegatedSurface.resultContractAlignment
       && delegatedSurface.adapterSelectionValid
       && adapterProfilesValid
@@ -281,12 +285,12 @@ export async function finalizeDoctorState(projectRoot, bootstrapSurface, delegat
       && highRiskAdmissionsTruthValid
       && externalExecutionArtifacts.ok
       && packageBoundaryTruthOk
-      && bootstrapSurface.specTreeModel.ok
+      && (usesV2SurfaceModel || bootstrapSurface.specTreeModel.ok)
       && bootstrapSurface.specGenerationInputsContract.ok
       && bootstrapSurface.specGenerationAuditContract.ok
       && bootstrapSurface.specGenerationInputs.ok
       && (!bootstrapSurface.canonicalTree.requiredFilesValid || bootstrapSurface.specGenerationAudit.ok)
-      && bootstrapSurface.commandGatingMatrix.ok
+      && (usesV2SurfaceModel || bootstrapSurface.commandGatingMatrix.ok)
       && bootstrapSurface.blueprintReferenceAligned
       && lifecycleAligned,
     requiredContextOrder: delegatedSurface.handoffRequiredContext,
@@ -304,7 +308,7 @@ export async function finalizeDoctorState(projectRoot, bootstrapSurface, delegat
     nextSteps.push("Run `nimicoding blueprint-audit --write-local` after canonical tree generation when a benchmark blueprint is declared.");
   }
   if (bootstrapSurface.canonicalTree.requiredFilesValid && !bootstrapSurface.specGenerationAudit.ok) {
-    nextSteps.push("Run `nimicoding validate-spec-audit` after generating `.nimi/spec/_meta/spec-generation-audit.yaml` for the canonical tree.");
+    nextSteps.push("Run `nimicoding validate-spec-audit` after generating the local spec generation audit for the canonical tree.");
   }
   if (!auditArtifact.present && bootstrapSurface.canonicalTree.requiredFilesValid) {
     nextSteps.push("Run `nimicoding handoff --skill doc_spec_audit` and close out the result locally when the audit is complete.");
@@ -328,7 +332,7 @@ export async function finalizeDoctorState(projectRoot, bootstrapSurface, delegat
     })),
   };
 
-  const completionStatus = !bootstrapSurface.completionTruth.ok || !packageBoundaryTruthOk
+  const completionStatus = (!usesV2SurfaceModel && !bootstrapSurface.completionTruth.ok) || !packageBoundaryTruthOk
     ? STANDALONE_COMPLETION_STATUS.DRIFTED
     : !hasErrors
       ? STANDALONE_COMPLETION_STATUS.COMPLETE

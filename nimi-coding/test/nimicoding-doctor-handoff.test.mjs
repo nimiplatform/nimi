@@ -193,29 +193,20 @@ test("doctor fails closed when result contract refs drift", async () => {
   });
 });
 
-test("doctor fails closed when standalone completion truth drifts", async () => {
+test("doctor does not require standalone completion truth under host spec in v2", async () => {
   await withTempProject(async (projectRoot) => {
     const startResult = await captureRunCli(["start"]);
     assert.equal(startResult.exitCode, 0);
 
     const productScopePath = path.join(projectRoot, ".nimi", "spec", "product-scope.yaml");
-    const productScopeText = await readFile(productScopePath, "utf8");
-    await writeFile(
-      productScopePath,
-      productScopeText.replace("profile: boundary_complete", "profile: promoted_runtime_parity"),
-      "utf8",
-    );
+    await assert.rejects(readFile(productScopePath, "utf8"));
 
     const doctorResult = await captureRunCli(["doctor", "--json"]);
 
-    assert.equal(doctorResult.exitCode, 1);
+    assert.equal(doctorResult.exitCode, 0);
     const payload = JSON.parse(doctorResult.stdout);
-    assert.equal(payload.ok, false);
-    assert.equal(payload.completionStatus, "drifted");
-    assert.match(
-      JSON.stringify(payload.checks),
-      /product-scope\.yaml is missing or drifted from the package-owned standalone completion truth/,
-    );
+    assert.equal(payload.ok, true);
+    assert.match(JSON.stringify(payload.checks), /v2 host-local surface model does not require \.nimi\/spec\/product-scope\.yaml/);
   });
 });
 
@@ -225,7 +216,7 @@ test("doctor fails closed when canonical-tree-ready state loses the generation a
     assert.equal(startResult.exitCode, 0);
 
     await seedReconstructedTargetTruth(projectRoot);
-    await rm(path.join(projectRoot, ".nimi", "spec", "_meta", "spec-generation-audit.yaml"), { force: true });
+    await rm(path.join(projectRoot, ".nimi", "local", "state", "spec-generation", "spec-generation-audit.yaml"), { force: true });
 
     const doctorResult = await captureRunCli(["doctor", "--json"]);
 
@@ -371,7 +362,7 @@ test("handoff exports spec reconstruction payload during bootstrap-only mode", a
     ]);
     assert.equal(payload.generationContext.benchmarkBlueprintRoot, null);
     assert.equal(payload.generationContext.acceptanceMode, "placement_validity_before_generation");
-    assert.equal(payload.generationContext.auditRef, ".nimi/spec/_meta/spec-generation-audit.yaml");
+    assert.equal(payload.generationContext.auditRef, ".nimi/local/state/spec-generation/spec-generation-audit.yaml");
     assert.equal(payload.generationContext.auditContractRef, ".nimi/contracts/spec-generation-audit.schema.yaml");
     assert.ok(payload.context.orderedPaths.includes(".nimi/config/spec-generation-inputs.yaml"));
     assert.equal(payload.runtimeOwner, "external_ai_host");
@@ -438,43 +429,21 @@ test("handoff exports spec reconstruction payload during bootstrap-only mode", a
   });
 });
 
-test("spec reconstruction handoff obeys command gating matrix", async () => {
+test("v2 spec reconstruction handoff does not require command gating matrix projection", async () => {
   await withTempProject(async (projectRoot) => {
     const startResult = await captureRunCli(["start"]);
     assert.equal(startResult.exitCode, 0);
 
     const gatingPath = path.join(projectRoot, ".nimi", "spec", "_meta", "command-gating-matrix.yaml");
-    const gatingText = await readFile(gatingPath, "utf8");
-    await writeFile(
-      gatingPath,
-      gatingText.replace(
-        [
-          "  - command: handoff",
-          "    skill: spec_reconstruction",
-          "    allowed_tree_states:",
-          "      - bootstrap_only",
-          "      - spec_tree_seeded",
-          "      - canonical_tree_in_progress",
-        ].join("\n"),
-        [
-          "  - command: handoff",
-          "    skill: spec_reconstruction",
-          "    allowed_tree_states:",
-          "      - spec_tree_seeded",
-          "      - canonical_tree_in_progress",
-        ].join("\n"),
-      ),
-      "utf8",
-    );
+    await assert.rejects(readFile(gatingPath, "utf8"));
 
     const handoffResult = await captureRunCli(["handoff", "--skill", "spec_reconstruction", "--json"]);
 
-    assert.equal(handoffResult.exitCode, 1);
+    assert.equal(handoffResult.exitCode, 0);
     const payload = JSON.parse(handoffResult.stdout);
-    assert.equal(payload.ok, false);
+    assert.equal(payload.ok, true);
     assert.equal(payload.skill.id, "spec_reconstruction");
-    assert.equal(payload.skill.readiness.ok, false);
-    assert.match(payload.skill.readiness.reason, /current lifecycle state/i);
+    assert.equal(payload.skill.readiness.ok, true);
   });
 });
 
@@ -520,8 +489,8 @@ test("handoff projects an external host prompt for spec reconstruction", async (
     assert.match(promptText, /Read this project-local truth first, in order:/);
     assert.match(promptText, /Do not assume local skill installation or self-hosting/);
     assert.match(promptText, /Canonical target root: \.nimi\/spec/);
-    assert.match(promptText, /Audit output: \.nimi\/spec\/_meta\/spec-generation-audit\.yaml/);
-    assert.match(promptText, /Write `\.nimi\/spec\/_meta\/spec-generation-audit\.yaml` alongside the canonical tree/);
+    assert.match(promptText, /Audit output: \.nimi\/local\/state\/spec-generation\/spec-generation-audit\.yaml/);
+    assert.match(promptText, /Write `\.nimi\/local\/state\/spec-generation\/spec-generation-audit\.yaml` as local generation state/);
     assert.match(promptText, /Required file classes: INDEX\.md, domain kernel\/\*\.md, domain kernel\/tables\/\*\*/);
     assert.match(promptText, /Minimum generation sequence: classify_inputs, validate_placement, write_product_authority/);
     assert.match(promptText, /Code roots: none/);

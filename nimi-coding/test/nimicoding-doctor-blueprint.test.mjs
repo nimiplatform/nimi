@@ -57,7 +57,7 @@ test("start rejects non-directory .nimi path", async () => {
   });
 });
 
-test("start restores missing bootstrap seed files without overwriting existing truth and pauses on blocking drift", async () => {
+test("start restores missing bootstrap seed files without overwriting existing host truth", async () => {
   await withTempProject(async (projectRoot) => {
     await mkdir(path.join(projectRoot, ".nimi", "spec"), { recursive: true });
     await writeFile(
@@ -68,8 +68,7 @@ test("start restores missing bootstrap seed files without overwriting existing t
 
     const result = await captureRunCli(["start"]);
 
-    assert.equal(result.exitCode, 1);
-    assert.match(result.stdout, /nimicoding start paused/);
+    assert.equal(result.exitCode, 0);
     const bootstrapState = await readFile(
       path.join(projectRoot, ".nimi", "spec", "bootstrap-state.yaml"),
       "utf8",
@@ -89,7 +88,7 @@ test("start restores missing bootstrap seed files without overwriting existing t
     assert.match(manifest, /- \.nimi\/contracts/);
     assert.match(acceptanceSchema, /kind: acceptance/);
     assert.match(agents, /nimicoding:managed:agents:start/);
-    assert.match(result.stdout, /bootstrap-state\.yaml is missing required lifecycle fields/);
+    assert.doesNotMatch(result.stdout, /nimicoding start paused/);
   });
 });
 
@@ -102,7 +101,7 @@ test("doctor validates a freshly started bootstrap", async () => {
 
     assert.equal(doctorResult.exitCode, 0);
     assert.match(doctorResult.stdout, /status: ok/);
-    assert.match(doctorResult.stdout, /project rules: incomplete/);
+    assert.match(doctorResult.stdout, /project rules: invalid/);
     assert.match(doctorResult.stdout, /AI entry files: connected/);
   });
 });
@@ -118,7 +117,7 @@ test("doctor emits machine-readable JSON", async () => {
     const payload = JSON.parse(doctorResult.stdout);
     assert.equal(payload.ok, true);
     assert.equal(payload.bootstrapPresent, true);
-    assert.equal(payload.reconstructionRequired, true);
+    assert.equal(payload.reconstructionRequired, false);
     assert.equal(payload.runtimeInstalled, false);
     assert.equal(payload.handoffReadiness.ok, true);
     assert.equal(payload.specGenerationInputs.mode, "class_filtered");
@@ -126,7 +125,7 @@ test("doctor emits machine-readable JSON", async () => {
     assert.equal(payload.benchmarkAuditReadiness.available, false);
     assert.equal(payload.benchmarkAuditReadiness.ready, false);
     assert.equal(payload.bootstrapContract.status, "supported");
-    assert.equal(payload.completionProfile, "boundary_complete");
+    assert.equal(payload.completionProfile, null);
     assert.equal(payload.completionStatus, "complete");
     assert.equal(payload.hostCompatibility.contractRef, ".nimi/contracts/external-host-compatibility.yaml");
     assert.deepEqual(payload.hostCompatibility.supportedHostPosture, ["host_agnostic_external_host"]);
@@ -154,34 +153,9 @@ test("doctor emits machine-readable JSON", async () => {
         command: "nimicoding run-next-prompt",
       },
     ]);
-    assert.deepEqual(payload.completedSurfaces, [
-      "bootstrap",
-      "doctor",
-      "handoff",
-      "sweep_audit",
-      "sweep_design",
-      "validators",
-      "topic_lifecycle_report_methodology",
-      "closeout",
-      "ingest",
-      "review",
-      "decision",
-      "admission",
-      "host_overlay_recognition",
-    ]);
-    assert.deepEqual(payload.deferredExecutionSurfaces, [
-      "packet_bound_run_kernel",
-      "provider_backed_execution",
-      "scheduler",
-      "notification",
-      "automation_backend",
-      "multi_topic_orchestration",
-    ]);
-    assert.deepEqual(payload.promotedParityGapSummary, [
-      "packet_bound_run_kernel",
-      "provider_backed_execution",
-      "scheduler_automation_notification",
-    ]);
+    assert.deepEqual(payload.completedSurfaces, []);
+    assert.deepEqual(payload.deferredExecutionSurfaces, []);
+    assert.deepEqual(payload.promotedParityGapSummary, []);
     assert.match(JSON.stringify(payload.checks), /Packaged external host compatibility contract is present and aligned/);
     assert.equal(payload.delegatedContracts.runtimeOwner, "external_ai_host");
     assert.equal(payload.delegatedContracts.executionMode, "delegated");
@@ -276,9 +250,9 @@ test("blueprint-audit uses repo-local blueprint reference and can write a local 
     const startResult = await captureRunCli(["start"]);
     assert.equal(startResult.exitCode, 0);
 
-    await mkdir(path.join(projectRoot, ".nimi", "spec", "_meta"), { recursive: true });
+    await mkdir(path.join(projectRoot, ".nimi", "local", "state", "spec-generation"), { recursive: true });
     await writeFile(
-      path.join(projectRoot, ".nimi", "spec", "_meta", "blueprint-reference.yaml"),
+      path.join(projectRoot, ".nimi", "local", "state", "spec-generation", "blueprint-reference.yaml"),
       YAML.stringify({
         version: 1,
         blueprint_reference: {
@@ -298,8 +272,8 @@ test("blueprint-audit uses repo-local blueprint reference and can write a local 
     await writeFile(path.join(projectRoot, ".nimi", "spec", "INDEX.md"), "# Blueprint Spec\n", "utf8");
     await writeFile(path.join(projectRoot, "spec", "project", "kernel", "index.md"), "# Project Kernel\n", "utf8");
     await writeFile(path.join(projectRoot, ".nimi", "spec", "project", "kernel", "index.md"), "# Project Kernel\n", "utf8");
-    await writeFile(path.join(projectRoot, "spec", "project", "kernel", "tables", "rule-catalog.yaml"), "rules: []\n", "utf8");
-    await writeFile(path.join(projectRoot, ".nimi", "spec", "project", "kernel", "tables", "rule-catalog.yaml"), "rules: []\n", "utf8");
+    await writeFile(path.join(projectRoot, "spec", "project", "kernel", "tables", "rule-catalog.yaml"), "table_family: product_catalog\nowner: project\ncatalog_id: project_rule_catalog\nentries: []\n", "utf8");
+    await writeFile(path.join(projectRoot, ".nimi", "spec", "project", "kernel", "tables", "rule-catalog.yaml"), "table_family: product_catalog\nowner: project\ncatalog_id: project_rule_catalog\nentries: []\n", "utf8");
 
     const auditResult = await captureRunCli(["blueprint-audit", "--json", "--write-local"]);
 
@@ -344,9 +318,9 @@ test("doctor rejects slug-date equivalence report refs in blueprint reference me
     const startResult = await captureRunCli(["start"]);
     assert.equal(startResult.exitCode, 0);
 
-    await mkdir(path.join(projectRoot, ".nimi", "spec", "_meta"), { recursive: true });
+    await mkdir(path.join(projectRoot, ".nimi", "local", "state", "spec-generation"), { recursive: true });
     await writeFile(
-      path.join(projectRoot, ".nimi", "spec", "_meta", "blueprint-reference.yaml"),
+      path.join(projectRoot, ".nimi", "local", "state", "spec-generation", "blueprint-reference.yaml"),
       YAML.stringify({
         version: 1,
         blueprint_reference: {
@@ -358,11 +332,11 @@ test("doctor rejects slug-date equivalence report refs in blueprint reference me
       }),
       "utf8",
     );
-
-    const bootstrapStatePath = path.join(projectRoot, ".nimi", "spec", "bootstrap-state.yaml");
-    const bootstrapState = YAML.parse(await readFile(bootstrapStatePath, "utf8"));
-    bootstrapState.state.blueprint_mode = "repo_spec_blueprint";
-    await writeFile(bootstrapStatePath, YAML.stringify(bootstrapState), "utf8");
+    await updateSpecGenerationInputs(projectRoot, (inputs) => {
+      inputs.benchmark_mode = "repo_spec_blueprint";
+      inputs.benchmark_blueprint_root = "spec";
+      inputs.acceptance_mode = "semantic_and_structural_parity_when_blueprint_exists";
+    });
 
     const doctorResult = await captureRunCli(["doctor", "--json"]);
     assert.equal(doctorResult.exitCode, 1);
@@ -378,9 +352,9 @@ test("doctor accepts topic lifecycle equivalence report refs in blueprint refere
     const startResult = await captureRunCli(["start"]);
     assert.equal(startResult.exitCode, 0);
 
-    await mkdir(path.join(projectRoot, ".nimi", "spec", "_meta"), { recursive: true });
+    await mkdir(path.join(projectRoot, ".nimi", "local", "state", "spec-generation"), { recursive: true });
     await writeFile(
-      path.join(projectRoot, ".nimi", "spec", "_meta", "blueprint-reference.yaml"),
+      path.join(projectRoot, ".nimi", "local", "state", "spec-generation", "blueprint-reference.yaml"),
       YAML.stringify({
         version: 1,
         blueprint_reference: {
@@ -393,11 +367,11 @@ test("doctor accepts topic lifecycle equivalence report refs in blueprint refere
       }),
       "utf8",
     );
-
-    const bootstrapStatePath = path.join(projectRoot, ".nimi", "spec", "bootstrap-state.yaml");
-    const bootstrapState = YAML.parse(await readFile(bootstrapStatePath, "utf8"));
-    bootstrapState.state.blueprint_mode = "repo_spec_blueprint";
-    await writeFile(bootstrapStatePath, YAML.stringify(bootstrapState), "utf8");
+    await updateSpecGenerationInputs(projectRoot, (inputs) => {
+      inputs.benchmark_mode = "repo_spec_blueprint";
+      inputs.benchmark_blueprint_root = "spec";
+      inputs.acceptance_mode = "semantic_and_structural_parity_when_blueprint_exists";
+    });
 
     const doctorResult = await captureRunCli(["doctor", "--json"]);
     assert.equal(doctorResult.exitCode, 0);
@@ -590,7 +564,7 @@ test("blueprint-audit accepts a dual-domain benchmark fixture modeled on nimi/sp
   });
 });
 
-test("blueprint-audit fails dual-domain benchmark acceptance when a generated view is missing", async () => {
+test("blueprint-audit ignores removed generated view surfaces", async () => {
   await withTempProject(async (projectRoot) => {
     const startResult = await captureRunCli(["start"]);
     assert.equal(startResult.exitCode, 0);
@@ -599,16 +573,10 @@ test("blueprint-audit fails dual-domain benchmark acceptance when a generated vi
 
     const auditResult = await captureRunCli(["blueprint-audit", "--json"]);
 
-    assert.equal(auditResult.exitCode, 1);
+    assert.equal(auditResult.exitCode, 0);
     const payload = JSON.parse(auditResult.stdout);
-    assert.equal(payload.ok, false);
-    assert.deepEqual(payload.derivedViewGaps.missingKernelGenerated, [
-      "desktop/kernel/generated/overview.md",
-    ]);
-    assert.match(
-      JSON.stringify(payload.nextSteps),
-      /Regenerate derived kernel docs after canonical blueprint content is built out/,
-    );
+    assert.equal(payload.ok, true);
+    assert.deepEqual(payload.derivedViewGaps.missingKernelGenerated, []);
   });
 });
 
@@ -676,7 +644,7 @@ test("fixture loop completes single-domain benchmark reconstruction through clos
   assert.equal(result.closeoutPayload.ok, true);
   assert.equal(result.closeoutPayload.outcome, "completed");
   assert.equal(result.closeoutPayload.summary.status, "reconstructed");
-  assert.equal(result.closeoutPayload.summary.audit_ref, ".nimi/spec/_meta/spec-generation-audit.yaml");
+  assert.equal(result.closeoutPayload.summary.audit_ref, ".nimi/local/state/spec-generation/spec-generation-audit.yaml");
   assert.equal(result.blueprintAuditResult.exitCode, 0);
   assert.equal(result.blueprintAuditPayload.ok, true);
 });
@@ -694,20 +662,16 @@ test("fixture loop completes dual-domain benchmark reconstruction through closeo
   assert.deepEqual(result.blueprintAuditPayload.inventory.blueprintDomains, ["desktop", "runtime"]);
 });
 
-test("fixture loop fails benchmark acceptance when a generated view is missing", async () => {
+test("fixture loop ignores removed generated view surfaces", async () => {
   const result = await runSpecReconstructionFixtureLoop("dual-domain-benchmark", "missing_generated_view");
 
   assert.equal(result.treeValidationResult.exitCode, 0);
-  assert.equal(result.specAuditResult.exitCode, 1);
-  assert.equal(result.closeoutResult.exitCode, 1);
-  assert.equal(result.closeoutPayload.ok, false);
-  assert.match(result.closeoutPayload.readiness.reason, /spec-generation-audit/i);
-  assert.equal(result.blueprintAuditResult.exitCode, 1);
-  assert.equal(result.blueprintAuditPayload.ok, false);
-  assert.deepEqual(
-    result.blueprintAuditPayload.derivedViewGaps.missingKernelGenerated,
-    ["desktop/kernel/generated/overview.md"],
-  );
+  assert.equal(result.specAuditResult.exitCode, 0);
+  assert.equal(result.closeoutResult.exitCode, 0);
+  assert.equal(result.closeoutPayload.ok, true);
+  assert.equal(result.blueprintAuditResult.exitCode, 0);
+  assert.equal(result.blueprintAuditPayload.ok, true);
+  assert.deepEqual(result.blueprintAuditPayload.derivedViewGaps.missingKernelGenerated, []);
 });
 
 test("fixture loop fails completed reconstruction closeout when a domain kernel file is missing", async () => {

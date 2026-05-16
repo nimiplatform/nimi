@@ -222,7 +222,11 @@ export async function buildBlueprintAuditPayload(projectRoot, options = {}) {
 
   const kernelMarkdown = compareFileSets(blueprintFiles.kernelMarkdown, canonicalFiles.kernelMarkdown);
   const kernelTables = compareFileSets(blueprintFiles.kernelTables, canonicalFiles.kernelTables);
-  const kernelGenerated = compareFileSets(blueprintFiles.kernelGenerated, canonicalFiles.kernelGenerated);
+  const kernelGenerated = {
+    present: [],
+    missing: [],
+    extra: [],
+  };
   const domainGuides = compareFileSets(blueprintFiles.domainGuides, canonicalFiles.domainGuides);
   const ruleIdPreservation = await compareRuleIds(
     blueprintAbsoluteRoot,
@@ -234,7 +238,6 @@ export async function buildBlueprintAuditPayload(projectRoot, options = {}) {
   const ok = missingDomains.length === 0
     && kernelMarkdown.missing.length === 0
     && kernelTables.missing.length === 0
-    && kernelGenerated.missing.length === 0
     && domainGuides.missing.length === 0
     && ruleIdPreservation.missingRuleIds.length === 0
     && ruleIdPreservation.parseErrors.length === 0
@@ -244,9 +247,6 @@ export async function buildBlueprintAuditPayload(projectRoot, options = {}) {
   const nextSteps = [];
   if (missingDomains.length > 0 || kernelMarkdown.missing.length > 0 || kernelTables.missing.length > 0 || !indexPresent) {
     nextSteps.push("Copy the missing blueprint structure into `/.nimi/spec/**` before attempting authority cutover.");
-  }
-  if (kernelGenerated.missing.length > 0) {
-    nextSteps.push("Regenerate derived kernel docs after canonical blueprint content is built out.");
   }
   if (domainGuides.missing.length > 0) {
     nextSteps.push("Thin and map domain guides only after kernel coverage is in place.");

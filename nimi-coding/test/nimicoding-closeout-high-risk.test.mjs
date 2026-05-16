@@ -202,7 +202,7 @@ test("closeout writes a local-only result artifact after completed reconstructio
     assert.equal(payload.ok, true);
     assert.equal(payload.contractVersion, "nimicoding.closeout.v1");
     assert.equal(payload.localOnly, true);
-    assert.equal(payload.summary.audit_ref, ".nimi/spec/_meta/spec-generation-audit.yaml");
+    assert.equal(payload.summary.audit_ref, ".nimi/local/state/spec-generation/spec-generation-audit.yaml");
     assert.equal(payload.summary.status, "reconstructed");
     assert.equal(payload.skill.resultContractRef, ".nimi/contracts/spec-reconstruction-result.yaml");
     assert.equal(
@@ -245,7 +245,7 @@ test("closeout fails completed reconstruction when spec generation audit is miss
     assert.equal(startResult.exitCode, 0);
 
     await seedReconstructedTargetTruth(projectRoot);
-    await rm(path.join(projectRoot, ".nimi", "spec", "_meta", "spec-generation-audit.yaml"), { force: true });
+    await rm(path.join(projectRoot, ".nimi", "local", "state", "spec-generation", "spec-generation-audit.yaml"), { force: true });
 
     const closeoutResult = await captureRunCli([
       "closeout",
@@ -304,7 +304,7 @@ test("closeout rejects failed spec reconstruction payloads that still carry a su
         localOnly: true,
         summary: {
           generated_paths: [".nimi/spec/INDEX.md"],
-          audit_ref: ".nimi/spec/_meta/spec-generation-audit.yaml",
+          audit_ref: ".nimi/local/state/spec-generation/spec-generation-audit.yaml",
           placement_report_ref: ".nimi/local/state/spec-surface/current-inventory.json",
           coverage_summary: {
             complete_files: 1,
@@ -409,9 +409,9 @@ test("closeout imports an external JSON summary before writing local artifact", 
             ".nimi/spec/project/kernel/index.md",
             ".nimi/spec/project/kernel/core-rules.md",
             ".nimi/spec/project/kernel/tables/rule-catalog.yaml",
-            ".nimi/spec/_meta/spec-generation-audit.yaml",
+            ".nimi/local/state/spec-generation/spec-generation-audit.yaml",
           ],
-          audit_ref: ".nimi/spec/_meta/spec-generation-audit.yaml",
+          audit_ref: ".nimi/local/state/spec-generation/spec-generation-audit.yaml",
           placement_report_ref: ".nimi/local/state/spec-surface/current-inventory.json",
           coverage_summary: {
             complete_files: 4,
@@ -455,7 +455,7 @@ test("closeout rejects imported spec reconstruction summaries that overstate aud
 
     await seedReconstructedTargetTruth(projectRoot);
 
-    const auditPath = path.join(projectRoot, ".nimi", "spec", "_meta", "spec-generation-audit.yaml");
+    const auditPath = path.join(projectRoot, ".nimi", "local", "state", "spec-generation", "spec-generation-audit.yaml");
     const auditDoc = YAML.parse(await readFile(auditPath, "utf8"));
     auditDoc.spec_generation_audit.files[0].coverage_status = "partial";
     auditDoc.spec_generation_audit.files[0].unresolved_items = ["fixture unresolved coverage"];
@@ -476,9 +476,9 @@ test("closeout rejects imported spec reconstruction summaries that overstate aud
             ".nimi/spec/project/kernel/index.md",
             ".nimi/spec/project/kernel/core-rules.md",
             ".nimi/spec/project/kernel/tables/rule-catalog.yaml",
-            ".nimi/spec/_meta/spec-generation-audit.yaml",
+            ".nimi/local/state/spec-generation/spec-generation-audit.yaml",
           ],
-          audit_ref: ".nimi/spec/_meta/spec-generation-audit.yaml",
+          audit_ref: ".nimi/local/state/spec-generation/spec-generation-audit.yaml",
           placement_report_ref: ".nimi/local/state/spec-surface/current-inventory.json",
           coverage_summary: {
             complete_files: 4,

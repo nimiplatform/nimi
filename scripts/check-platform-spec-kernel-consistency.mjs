@@ -837,6 +837,24 @@ function sameStringSet(actual, expected) {
   return expected.every((entry) => actualSet.has(entry));
 }
 
+function isProductAuthorityRef(ref) {
+  return ref.startsWith('.nimi/spec/') || ref.startsWith('nimi-coding/');
+}
+
+function isAllowedHostProjectionRef(ref) {
+  return ref.startsWith('.nimi/config/')
+    || ref.startsWith('.nimi/contracts/')
+    || ref.startsWith('.nimi/methodology/')
+    || ref.startsWith('.nimi/spec/');
+}
+
+function isAllowedPackageProjectionRef(ref) {
+  return ref.startsWith('nimi-coding/config/')
+    || ref.startsWith('nimi-coding/contracts/')
+    || ref.startsWith('nimi-coding/methodology/')
+    || ref.startsWith('nimi-coding/spec/');
+}
+
 function checkAuditEvidenceRoots(definedRuleIds) {
   const rel = '.nimi/spec/platform/kernel/tables/audit-evidence-roots.yaml';
   const roots = Array.isArray(auditEvidenceRootsTable?.roots) ? auditEvidenceRootsTable.roots : [];
@@ -860,7 +878,7 @@ function checkAuditEvidenceRoots(definedRuleIds) {
     if (authorityRefs.length === 0) fail(`${rel}: ${id} must declare authority_refs`);
     if (evidenceRoots.length === 0) fail(`${rel}: ${id} must declare evidence_roots`);
     for (const authorityRef of authorityRefs) {
-      if (!authorityRef.startsWith('.nimi/spec/') || !fs.existsSync(path.join(cwd, authorityRef))) {
+      if (!isProductAuthorityRef(authorityRef) || !fs.existsSync(path.join(cwd, authorityRef))) {
         fail(`${rel}: ${id} invalid authority_ref ${authorityRef}`);
       }
     }
@@ -944,10 +962,10 @@ function checkPackageAuthorityAdmissions(definedRuleIds) {
       for (const projectionRef of hostAuthorityProjectionRefs) {
         const hostRef = String(projectionRef?.host_ref || '').trim();
         const packageRef = String(projectionRef?.package_ref || '').trim();
-        if (!hostRef.startsWith('.nimi/spec/') || hostRef.includes('..') || path.isAbsolute(hostRef) || !fs.existsSync(path.join(cwd, hostRef))) {
+        if (!isAllowedHostProjectionRef(hostRef) || hostRef.includes('..') || path.isAbsolute(hostRef) || !fs.existsSync(path.join(cwd, hostRef))) {
           fail(`${rel}: ${id} invalid host_authority_projection_refs host_ref ${hostRef || '<empty>'}`);
         }
-        if (!packageRef.startsWith(`${authorityRoot.replace(/\/$/u, '')}/`) || packageRef.includes('..') || path.isAbsolute(packageRef) || !fs.existsSync(path.join(cwd, packageRef))) {
+        if (!isAllowedPackageProjectionRef(packageRef) || packageRef.includes('..') || path.isAbsolute(packageRef) || !fs.existsSync(path.join(cwd, packageRef))) {
           fail(`${rel}: ${id} invalid host_authority_projection_refs package_ref ${packageRef || '<empty>'}`);
         }
         if (seenHostProjectionRefs.has(hostRef)) {

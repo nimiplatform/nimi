@@ -1,4 +1,7 @@
-rules:
+table_family: product_catalog
+owner: runtime
+catalog_id: runtime_rule_catalog
+entries:
   - id: rt-001
     title: fail_closed_on_authority_ambiguity
   - id: rt-002

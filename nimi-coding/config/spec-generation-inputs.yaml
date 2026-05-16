@@ -1,5 +1,5 @@
 version: 2
-contract_ref: nimi-coding/contracts/spec-generation-inputs.schema.yaml
+contract_ref: .nimi/contracts/spec-generation-inputs.schema.yaml
 spec_generation_inputs:
   mode: class_filtered
   canonical_target_root: .nimi/spec

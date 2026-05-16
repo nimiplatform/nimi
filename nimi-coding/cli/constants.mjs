@@ -263,7 +263,7 @@ export const DOC_SPEC_AUDIT_DEFAULT_COMPARED_PATHS = [
 ];
 
 export const SPEC_TREE_MODEL_REF = ".nimi/spec/_meta/spec-tree-model.yaml";
-export const BLUEPRINT_REFERENCE_REF = ".nimi/spec/_meta/blueprint-reference.yaml";
+export const BLUEPRINT_REFERENCE_REF = ".nimi/local/state/spec-generation/blueprint-reference.yaml";
 export const COMMAND_GATING_MATRIX_REF = ".nimi/spec/_meta/command-gating-matrix.yaml";
 export const GENERATE_DRIFT_MIGRATION_CHECKLIST_REF = ".nimi/spec/_meta/generate-drift-migration-checklist.yaml";
 export const GOVERNANCE_ROUTING_CUTOVER_CHECKLIST_REF = ".nimi/spec/_meta/governance-routing-cutover-checklist.yaml";

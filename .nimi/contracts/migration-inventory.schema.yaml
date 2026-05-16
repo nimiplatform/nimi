@@ -1,0 +1,80 @@
+version: 1
+contract:
+  id: nimicoding.spec-migration-inventory.v1
+  owner: nimi-coding
+  purpose: Define machine-readable classification and migration output for current host spec surfaces.
+required_top_level_fields:
+  - version
+  - inventory
+  - disposition_enum
+  - target_class_enum
+  - semantic_constraints
+inventory_entry_required_fields:
+  - source_path
+  - current_inferred_class
+  - target_class
+  - disposition
+  - target_root
+  - owner
+  - required_confirmation
+  - ambiguity
+  - evidence
+  - validation_commands
+shared_enum_ref: shared-enums.yaml
+disposition_enum:
+  - keep
+  - move_package
+  - move_local
+  - split
+  - rewrite
+  - delete
+  - block
+target_class_enum:
+  - product_authority
+  - product_authority_table
+  - product_admission_registry
+  - thin_guidance
+  - derived_view
+  - spec_generation_state
+  - audit_evidence_state
+  - operational_local_artifact
+  - methodology_authority
+  - host_projection_anchor
+  - nimicoding_managed_projection
+  - candidate_roadmap
+  - support_registry
+  - lifecycle_progress_state
+required_confirmation_enum:
+  - none
+  - product_semantic_fork
+  - owner_ambiguity
+  - package_boundary_ambiguity
+  - destructive_deletion
+ambiguity_required_fields:
+  - posture
+  - reason
+  - candidate_owners
+ambiguity_posture_enum:
+  - none
+  - blocks_migration
+inventory: []
+inventory_generation_rules:
+  - classify_every_file_under_.nimi/spec
+  - classify_nimicoding_managed_projections_under_.nimi/methodology_.nimi/contracts_and_.nimi/config
+  - generate_split_children_for_mixed_authority_and_state_files
+  - use_block_only_for_user_confirmation_cases
+  - use_keep_for_nimicoding_init_or_sync_managed_projections
+  - use_move_package_for_package_methodology_when_copied_under_.nimi/spec
+  - use_move_local_for_audit_lifecycle_and_operational_state
+  - use_delete_for_derived_views_with_stdout_view_replacement
+  - use_delete_for_obsolete_generated_or_one_time_state_without_durable_target
+semantic_constraints:
+  - inventory_must_not_modify_files
+  - every_candidate_source_gets_one_inventory_entry_or_split_children
+  - split_entries_must_name_child_targets
+  - block_entries_require_user_confirmation_before_migration
+  - future_under_spec_must_not_have_keep_disposition
+  - nimicoding_managed_projection_must_have_keep_disposition_and_must_not_be_promoted_to_product_authority
+  - product_admission_registry_must_not_be_moved_to_package
+  - generated_views_default_to_delete_with_stdout_view
+  - audit_state_defaults_to_move_local

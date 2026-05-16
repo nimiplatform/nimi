@@ -8,7 +8,6 @@ import {
   HOST_ADAPTER_CONFIG_REF,
   SKILL_RESULT_CONTRACT_REFS,
   SPEC_GENERATION_AUDIT_CONTRACT_REF,
-  SPEC_GENERATION_AUDIT_REF,
   SPEC_RECONSTRUCTION_RESULT_CONTRACT_REF,
 } from "../constants.mjs";
 import {
@@ -79,6 +78,25 @@ function evaluateSkillReadiness(skillId, doctorResult) {
       reason: "Bootstrap or handoff validation is failing; repair doctor errors before exporting handoff payloads",
     };
   }
+  const usesV2SurfaceModel = doctorResult.specGenerationInputs?.mode === "class_filtered";
+  if (usesV2SurfaceModel && (doctorResult.commandGating?.entries ?? []).length === 0) {
+    if (skillId === "spec_reconstruction") {
+      return {
+        ok: true,
+        reason: "Projects may delegate spec reconstruction to an external AI host when canonical tree work is needed",
+      };
+    }
+    if (doctorResult.canonicalTree?.requiredFilesValid === true && doctorResult.specGenerationAudit?.ok === true) {
+      return {
+        ok: true,
+        reason: "Skill prerequisites are satisfied by the current project-local truth",
+      };
+    }
+    return {
+      ok: false,
+      reason: "This skill is not allowed in the current lifecycle state",
+    };
+  }
   const rule = (doctorResult.commandGating?.entries ?? []).find((entry) => entry.command === "handoff" && entry.skill === skillId) ?? null;
   const gatedReadiness = commandRuleAllowsCurrentState(rule, doctorResult);
   if (!gatedReadiness.ok || skillId !== "spec_reconstruction") {
@@ -109,8 +127,8 @@ function getSkillSpecificExpectations(
       expectedArtifactKinds: [],
       skillExpectedResults: [
         "generate_canonical_tree_under_.nimi/spec",
-        "establish_kernel_markdown_and_kernel_tables_before_generated_views_or_guides",
-        "record_file_level_generation_audit_under_.nimi/spec/_meta/spec-generation-audit.yaml",
+        "establish_kernel_markdown_and_kernel_tables_before_thin_guides",
+        "record_file_level_generation_audit_under_.nimi/local/state/spec-generation/spec-generation-audit.yaml",
         `satisfy_canonical_tree_completion_declared_in_${resultContractRef}`,
       ],
     };
@@ -265,7 +283,7 @@ export async function buildHandoffPayload(projectRoot, skillId) {
       acceptanceMode: specGenerationInputs.acceptanceMode ?? "canonical_tree_validity_without_blueprint",
       generationOrder: specGenerationInputs.generationOrder ?? [],
       inferenceRules: specGenerationInputs.inferenceRules ?? [],
-      auditRef: SPEC_GENERATION_AUDIT_REF,
+      auditRef: ".nimi/local/state/spec-generation/spec-generation-audit.yaml",
       auditContractRef: SPEC_GENERATION_AUDIT_CONTRACT_REF,
       requiredFileClasses: [
         "INDEX.md",
@@ -273,7 +291,6 @@ export async function buildHandoffPayload(projectRoot, skillId) {
         "domain kernel/tables/**",
       ],
       optionalFileClasses: [
-        "domain kernel/generated/**",
         "thin domain guides",
       ],
       minimalRequiredOutputs: Array.isArray(specReconstructionDocument?.reconstruction?.target_tree_shape?.minimal_required_outputs)
@@ -587,8 +604,8 @@ export function formatHandoffPrompt(payload) {
       "- 直接在 `.nimi/spec/**` 下构建 canonical tree；不要把 compact summary 当作主要输出。",
     ));
     lines.push(localize(
-      "- Write `.nimi/spec/_meta/spec-generation-audit.yaml` alongside the canonical tree. Every generated canonical file must record source refs, source basis, and unresolved gaps.",
-      "- 在 canonical tree 旁边写出 `.nimi/spec/_meta/spec-generation-audit.yaml`。每个生成的 canonical 文件都必须记录 source refs、source basis 和未解决缺口。",
+      "- Write `.nimi/local/state/spec-generation/spec-generation-audit.yaml` as local generation state. Every canonical file must record source refs, source basis, and unresolved gaps.",
+      "- 将 `.nimi/local/state/spec-generation/spec-generation-audit.yaml` 写作本地生成状态。每个 canonical 文件都必须记录 source refs、source basis 和未解决缺口。",
     ));
     lines.push(localize(
       "- When a benchmark blueprint root is declared, aim for semantic and structural parity with that benchmark rather than byte-for-byte duplication.",

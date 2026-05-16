@@ -42,7 +42,7 @@ function translateCloseoutReason(reason) {
     ["Non-completed outcomes may be projected as local-only closeout artifacts", "非 completed 的 outcome 可以仅投影为本地 closeout 产物"],
     ["Completed closeout is not allowed in the current lifecycle state", "当前生命周期状态不允许完成该 closeout"],
     ["Completed closeout requires declared canonical tree files to be valid", "完成 closeout 需要声明的 canonical tree 文件有效"],
-    ["Completed closeout requires a valid `.nimi/spec/_meta/spec-generation-audit.yaml` artifact", "完成 closeout 需要一个有效的 `.nimi/spec/_meta/spec-generation-audit.yaml` 产物"],
+    ["Completed closeout requires a valid `.nimi/local/state/spec-generation/spec-generation-audit.yaml` artifact", "完成 closeout 需要一个有效的 `.nimi/local/state/spec-generation/spec-generation-audit.yaml` 产物"],
     ["Completed doc_spec_audit closeout must compare against `.nimi/spec`", "完成 doc_spec_audit closeout 时必须对 `.nimi/spec` 进行比较"],
     ["Completed high_risk_execution closeout requires canonical admissions truth to remain `.nimi/spec/high-risk-admissions.yaml`", "完成 high_risk_execution closeout 需要 canonical admissions truth 继续落在 `.nimi/spec/high-risk-admissions.yaml`"],
     ["Completed closeout is consistent with the current canonical tree state", "completed closeout 与当前 canonical tree 状态一致"],
@@ -251,7 +251,7 @@ async function synthesizeSpecReconstructionSummary(projectRoot, doctorResult, ve
 
   return {
     generated_paths: generatedPaths,
-    audit_ref: ".nimi/spec/_meta/spec-generation-audit.yaml",
+    audit_ref: ".nimi/local/state/spec-generation/spec-generation-audit.yaml",
     placement_report_ref: ".nimi/local/state/spec-surface/current-inventory.json",
     coverage_summary: {
       complete_files: Math.max(generatedPaths.length - partialFiles - placeholderFiles, 0),
@@ -320,6 +320,41 @@ function evaluateCloseoutReadiness(skillId, outcome, doctorResult, summary) {
     };
   }
 
+  const usesV2SurfaceModel = doctorResult.specGenerationInputs?.mode === "class_filtered";
+  if (usesV2SurfaceModel && (doctorResult.commandGating?.entries ?? []).length === 0) {
+    if (!doctorResult.ok || !doctorResult.handoffReadiness.ok) {
+      return {
+        ok: false,
+        reason: "Bootstrap or handoff validation is failing; repair doctor errors before projecting closeout results",
+      };
+    }
+    if (doctorResult.canonicalTree?.requiredFilesValid !== true) {
+      return {
+        ok: false,
+        reason: "Completed closeout requires declared canonical tree files to be valid",
+      };
+    }
+    if (doctorResult.specGenerationAudit?.ok !== true) {
+      return {
+        ok: false,
+        reason: "Completed closeout requires a valid `.nimi/local/state/spec-generation/spec-generation-audit.yaml` artifact",
+      };
+    }
+    if (skillId === "doc_spec_audit") {
+      const comparedPaths = Array.isArray(summary?.compared_paths) ? summary.compared_paths : [];
+      if (!comparedPaths.includes(".nimi/spec")) {
+        return {
+          ok: false,
+          reason: "Completed doc_spec_audit closeout must compare against `.nimi/spec`",
+        };
+      }
+    }
+    return {
+      ok: true,
+      reason: "Completed closeout is consistent with the current canonical tree state",
+    };
+  }
+
   const rule = (doctorResult.commandGating?.entries ?? []).find((entry) => entry.command === "closeout" && entry.skill === skillId) ?? null;
   if (!rule?.completedRequires) {
     return {
@@ -346,7 +381,7 @@ function evaluateCloseoutReadiness(skillId, outcome, doctorResult, summary) {
   if (rule.completedRequires.spec_generation_audit_valid === true && doctorResult.specGenerationAudit?.ok !== true) {
     return {
       ok: false,
-      reason: "Completed closeout requires a valid `.nimi/spec/_meta/spec-generation-audit.yaml` artifact",
+      reason: "Completed closeout requires a valid `.nimi/local/state/spec-generation/spec-generation-audit.yaml` artifact",
     };
   }
 
@@ -602,7 +637,7 @@ export async function buildCloseoutPayload(projectRoot, options) {
       };
     }
     if (doctorResult.specGenerationAudit?.ok !== true) {
-      const reason = "Completed closeout requires a valid `.nimi/spec/_meta/spec-generation-audit.yaml` artifact";
+      const reason = "Completed closeout requires a valid `.nimi/local/state/spec-generation/spec-generation-audit.yaml` artifact";
       return {
         ok: false,
         exitCode: 1,

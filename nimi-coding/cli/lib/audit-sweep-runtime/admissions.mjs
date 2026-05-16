@@ -293,11 +293,20 @@ export async function loadPackageAuthorityAdmissions(projectRoot, listGitFiles, 
       }
       const seenProjectionHostRefs = new Set();
       for (const projection of hostAuthorityProjectionRefs) {
-        if (!safeProjectRef(projection.host_ref) || !projection.host_ref.startsWith(".nimi/spec/")) {
-          return { ok: false, error: `nimicoding sweep audit refused: ${tableRef} ${id} host_authority_projection_refs host_ref must stay under .nimi/spec.\n` };
+        const hostProjectionAllowed = projection.host_ref.startsWith(".nimi/config/")
+          || projection.host_ref.startsWith(".nimi/contracts/")
+          || projection.host_ref.startsWith(".nimi/methodology/")
+          || projection.host_ref.startsWith(".nimi/spec/");
+        if (!safeProjectRef(projection.host_ref) || !hostProjectionAllowed) {
+          return { ok: false, error: `nimicoding sweep audit refused: ${tableRef} ${id} host_authority_projection_refs host_ref must stay under .nimi config/contracts/methodology/spec projections.\n` };
         }
-        if (!safeProjectRef(projection.package_ref) || !refInsideRoot(projection.package_ref, authorityRoot)) {
-          return { ok: false, error: `nimicoding sweep audit refused: ${tableRef} ${id} host_authority_projection_refs package_ref must stay under authority_root.\n` };
+        const packageRoot = authorityRoot.replace(/\/spec$/, "");
+        const packageProjectionAllowed = projection.package_ref.startsWith(`${packageRoot}/config/`)
+          || projection.package_ref.startsWith(`${packageRoot}/contracts/`)
+          || projection.package_ref.startsWith(`${packageRoot}/methodology/`)
+          || projection.package_ref.startsWith(`${packageRoot}/spec/`);
+        if (!safeProjectRef(projection.package_ref) || !packageProjectionAllowed) {
+          return { ok: false, error: `nimicoding sweep audit refused: ${tableRef} ${id} host_authority_projection_refs package_ref must stay under admitted package authority roots.\n` };
         }
         if (seenProjectionHostRefs.has(projection.host_ref)) {
           return { ok: false, error: `nimicoding sweep audit refused: ${tableRef} ${id} host_authority_projection_refs contains duplicate host_ref.\n` };

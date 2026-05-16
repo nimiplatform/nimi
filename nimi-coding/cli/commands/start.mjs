@@ -343,8 +343,12 @@ function buildTaskStageLines(mode) {
 }
 
 function canonicalTreeReady(doctorResult) {
-  return doctorResult.lifecycleState?.treeState === "canonical_tree_ready"
+  const v2Ready = doctorResult.specGenerationInputs?.mode === "class_filtered"
+    && doctorResult.canonicalTree?.requiredFilesValid === true
+    && doctorResult.specGenerationAudit?.ok === true;
+  const legacyReady = doctorResult.lifecycleState?.treeState === "canonical_tree_ready"
     && doctorResult.canonicalTree?.requiredFilesValid === true;
+  return v2Ready || legacyReady;
 }
 
 function determineWizardStage(doctorResult) {

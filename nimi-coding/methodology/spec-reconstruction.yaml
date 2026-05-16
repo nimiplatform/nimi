@@ -2,14 +2,14 @@ version: 2
 reconstruction:
   required: true
   owner: nimi-coding
-  generation_inputs_ref: nimi-coding/config/spec-generation-inputs.yaml
-  surface_taxonomy_ref: nimi-coding/contracts/surface-taxonomy.schema.yaml
-  placement_contract_ref: nimi-coding/contracts/placement-contract.schema.yaml
-  table_family_contract_ref: nimi-coding/contracts/table-family.schema.yaml
-  domain_admission_contract_ref: nimi-coding/contracts/domain-admission.schema.yaml
-  tracked_output_admission_contract_ref: nimi-coding/contracts/tracked-output-admission.schema.yaml
-  spec_tree_model_ref: nimi-coding/spec/_meta/spec-tree-model.yaml
-  result_contract_ref: nimi-coding/contracts/spec-reconstruction-result.yaml
+  generation_inputs_ref: .nimi/config/spec-generation-inputs.yaml
+  surface_taxonomy_ref: .nimi/contracts/surface-taxonomy.schema.yaml
+  placement_contract_ref: .nimi/contracts/placement-contract.schema.yaml
+  table_family_contract_ref: .nimi/contracts/table-family.schema.yaml
+  domain_admission_contract_ref: .nimi/contracts/domain-admission.schema.yaml
+  tracked_output_admission_contract_ref: .nimi/contracts/tracked-output-admission.schema.yaml
+  spec_tree_model_ref: .nimi/contracts/surface-taxonomy.schema.yaml
+  result_contract_ref: .nimi/contracts/spec-reconstruction-result.yaml
   trigger:
     bootstrap_state: bootstrap_only
   goals:
@@ -65,7 +65,7 @@ reconstruction:
   benchmark_acceptance:
     mode: semantic_and_structural_parity_when_blueprint_exists
     blueprint_is_optional: true
-    benchmark_reference_ref: nimi-coding/spec/_meta/blueprint-reference.yaml
+    benchmark_reference_ref: .nimi/local/state/spec-generation/blueprint-reference.yaml
   hard_constraints:
     - no_human_friendly_parallel_truth
     - no_silent_authority_inference
@@ -75,12 +75,12 @@ reconstruction:
     - never_write_generation_audit_under_.nimi/spec/_meta
     - every_generated_canonical_file_requires_explicit_source_basis_and_unresolved_gap_tracking
     - every_input_file_requires_surface_class_before_generation
-    - package_methodology_and_package_spec_must_remain_under_nimi-coding
+    - package_methodology_and_package_spec_must_not_be_promoted_into_.nimi/spec
     - host_projection_anchors_must_be_minimal_and_admitted
     - unresolved_ambiguity_must_remain_explicit
     - do_not_treat_repo_local_support_files_as_canonical_tree_completion
-  lifecycle_contract_ref: nimi-coding/spec/bootstrap-state.yaml
+  lifecycle_contract_ref: .nimi/contracts/spec-reconstruction-result.yaml
   completion_gate:
     bootstrap_state_tree_state: canonical_tree_ready
     required_profile: surface_taxonomy_v1
-    audit_contract_ref: nimi-coding/contracts/spec-generation-audit.schema.yaml
+    audit_contract_ref: .nimi/contracts/spec-generation-audit.schema.yaml

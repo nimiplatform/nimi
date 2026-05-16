@@ -147,7 +147,7 @@ export async function inspectDoctorDelegatedSurface(projectRoot) {
   const missingHandoffPaths = [];
   for (const relativePath of handoffRequiredContext) {
     const info = await pathExists(path.join(projectRoot, relativePath));
-    if (!info) {
+    if (!info && relativePath !== ".nimi/spec") {
       missingHandoffPaths.push(relativePath);
     }
   }

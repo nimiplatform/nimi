@@ -265,7 +265,40 @@ export function inspectBootstrapStateContract(bootstrapStateText) {
 
 export async function inspectCanonicalTree(projectRoot, specTreeModel) {
   if (!specTreeModel.ok) {
-    return emptyCanonicalTree();
+    const reconstructionText = await readTextIfFile(path.join(projectRoot, ".nimi", "methodology", "spec-reconstruction.yaml"));
+    const reconstruction = parseYamlText(reconstructionText);
+    const requiredFiles = Array.isArray(reconstruction?.reconstruction?.target_tree_shape?.minimal_required_outputs)
+      ? reconstruction.reconstruction.target_tree_shape.minimal_required_outputs.map(String)
+      : [];
+    const canonicalRoot = typeof reconstruction?.reconstruction?.target_root === "string"
+      ? reconstruction.reconstruction.target_root
+      : ".nimi/spec";
+    const present = [];
+    const missing = [];
+
+    for (const relativePath of requiredFiles) {
+      const info = await pathExists(path.join(projectRoot, relativePath));
+      if (info && info.isFile()) {
+        present.push(relativePath);
+      } else {
+        missing.push(relativePath);
+      }
+    }
+
+    if (requiredFiles.length === 0) {
+      return emptyCanonicalTree();
+    }
+
+    return {
+      profile: "surface_taxonomy_v1",
+      canonicalRoot,
+      requiredFiles,
+      present,
+      missing,
+      invalid: [],
+      requiredFilesValid: missing.length === 0,
+      ready: missing.length === 0,
+    };
   }
 
   const requiredFiles = specTreeModel.requiredFilesByProfile[specTreeModel.profile] ?? [];

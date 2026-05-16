@@ -220,9 +220,9 @@ export function parseSpecReconstructionContract(text) {
   const expectedSummaryFields = version === 2
     ? [...SPEC_RECONSTRUCTION_SUMMARY_REQUIRED_FIELDS.slice(0, 2), "placement_report_ref", ...SPEC_RECONSTRUCTION_SUMMARY_REQUIRED_FIELDS.slice(2)]
     : SPEC_RECONSTRUCTION_SUMMARY_REQUIRED_FIELDS;
-  const expectedProfileRef = version === 2 ? "nimi-coding/spec/_meta/spec-tree-model.yaml" : SPEC_TREE_MODEL_REF;
-  const expectedInputsRef = version === 2 ? "nimi-coding/config/spec-generation-inputs.yaml" : SPEC_GENERATION_INPUTS_REF;
-  const expectedAuditContractRef = version === 2 ? "nimi-coding/contracts/spec-generation-audit.schema.yaml" : SPEC_GENERATION_AUDIT_CONTRACT_REF;
+  const expectedProfileRef = version === 2 ? ".nimi/contracts/surface-taxonomy.schema.yaml" : SPEC_TREE_MODEL_REF;
+  const expectedInputsRef = version === 2 ? ".nimi/config/spec-generation-inputs.yaml" : SPEC_GENERATION_INPUTS_REF;
+  const expectedAuditContractRef = version === 2 ? ".nimi/contracts/spec-generation-audit.schema.yaml" : SPEC_GENERATION_AUDIT_CONTRACT_REF;
   const expectedAuditRef = version === 2 ? ".nimi/local/state/spec-generation/spec-generation-audit.yaml" : SPEC_GENERATION_AUDIT_REF;
   const fileClassRequirement = version === 2
     ? "declared_surface_class_constraints_valid"
@@ -370,7 +370,7 @@ export function parseSpecGenerationInputsConfig(text) {
       && !("docs_roots" in config)
       && !("structure_roots" in config);
     return {
-      ok: String(parsed?.contract_ref ?? "") === "nimi-coding/contracts/spec-generation-inputs.schema.yaml"
+      ok: String(parsed?.contract_ref ?? "") === ".nimi/contracts/spec-generation-inputs.schema.yaml"
         && mode === "class_filtered"
         && canonicalTargetRoot === ".nimi/spec"
         && legacyRootsAbsent

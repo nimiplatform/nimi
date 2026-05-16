@@ -8,8 +8,8 @@ state:
   reconstruction_owner: ai_skills
 lifecycle_contract:
   id: nimicoding.spec-bootstrap-state.v2
-  state_carrier_ref: .nimi/spec/bootstrap-state.yaml
-  posture_carrier_ref: .nimi/spec/product-scope.yaml
+  state_carrier_ref: nimi-coding/spec/bootstrap-state.yaml
+  posture_carrier_ref: nimi-coding/spec/product-scope.yaml
   tree_state_enum:
     - bootstrap_only
     - spec_tree_seeded
@@ -48,39 +48,39 @@ lifecycle_contract:
     - canonical_active_requires_explicit_cutover_readiness
 current_truth:
   admitted_files:
-    - .nimi/methodology/core.yaml
-    - .nimi/methodology/spec-reconstruction.yaml
-    - .nimi/methodology/skill-runtime.yaml
-    - .nimi/methodology/skill-installer-result.yaml
-    - .nimi/methodology/skill-installer-summary-projection.yaml
-    - .nimi/methodology/skill-exchange-projection.yaml
-    - .nimi/methodology/skill-handoff.yaml
-    - .nimi/spec/_meta/spec-tree-model.yaml
-    - .nimi/spec/_meta/command-gating-matrix.yaml
-    - .nimi/spec/_meta/spec-authority-cutover-readiness.yaml
-    - .nimi/spec/_meta/generate-drift-migration-checklist.yaml
-    - .nimi/spec/_meta/governance-routing-cutover-checklist.yaml
-    - .nimi/spec/_meta/phase2-impacted-surface-matrix.yaml
-    - .nimi/spec/product-scope.yaml
-    - .nimi/spec/bootstrap-state.yaml
-    - .nimi/config/bootstrap.yaml
-    - .nimi/config/skills.yaml
-    - .nimi/config/skill-manifest.yaml
-    - .nimi/config/host-profile.yaml
-    - .nimi/config/host-adapter.yaml
-    - .nimi/config/external-execution-artifacts.yaml
-    - .nimi/config/skill-installer.yaml
-    - .nimi/config/installer-evidence.yaml
-    - .nimi/contracts/spec-reconstruction-result.yaml
-    - .nimi/contracts/doc-spec-audit-result.yaml
-    - .nimi/contracts/high-risk-execution-result.yaml
-    - .nimi/contracts/high-risk-admission.schema.yaml
-    - .nimi/contracts/external-host-compatibility.yaml
-    - .nimi/contracts/execution-packet.schema.yaml
-    - .nimi/contracts/orchestration-state.schema.yaml
-    - .nimi/contracts/prompt.schema.yaml
-    - .nimi/contracts/worker-output.schema.yaml
-    - .nimi/contracts/acceptance.schema.yaml
+    - nimi-coding/methodology/core.yaml
+    - nimi-coding/methodology/spec-reconstruction.yaml
+    - nimi-coding/methodology/skill-runtime.yaml
+    - nimi-coding/methodology/skill-installer-result.yaml
+    - nimi-coding/methodology/skill-installer-summary-projection.yaml
+    - nimi-coding/methodology/skill-exchange-projection.yaml
+    - nimi-coding/methodology/skill-handoff.yaml
+    - nimi-coding/spec/_meta/spec-tree-model.yaml
+    - nimi-coding/spec/_meta/command-gating-matrix.yaml
+    - nimi-coding/spec/_meta/spec-authority-cutover-readiness.yaml
+    - nimi-coding/spec/_meta/generate-drift-migration-checklist.yaml
+    - nimi-coding/spec/_meta/governance-routing-cutover-checklist.yaml
+    - nimi-coding/spec/_meta/phase2-impacted-surface-matrix.yaml
+    - nimi-coding/spec/product-scope.yaml
+    - nimi-coding/spec/bootstrap-state.yaml
+    - nimi-coding/config/bootstrap.yaml
+    - nimi-coding/config/skills.yaml
+    - nimi-coding/config/skill-manifest.yaml
+    - nimi-coding/config/host-profile.yaml
+    - nimi-coding/config/host-adapter.yaml
+    - nimi-coding/config/external-execution-artifacts.yaml
+    - nimi-coding/config/skill-installer.yaml
+    - nimi-coding/config/installer-evidence.yaml
+    - nimi-coding/contracts/spec-reconstruction-result.yaml
+    - nimi-coding/contracts/doc-spec-audit-result.yaml
+    - nimi-coding/contracts/high-risk-execution-result.yaml
+    - nimi-coding/contracts/high-risk-admission.schema.yaml
+    - nimi-coding/contracts/external-host-compatibility.yaml
+    - nimi-coding/contracts/execution-packet.schema.yaml
+    - nimi-coding/contracts/orchestration-state.schema.yaml
+    - nimi-coding/contracts/prompt.schema.yaml
+    - nimi-coding/contracts/worker-output.schema.yaml
+    - nimi-coding/contracts/acceptance.schema.yaml
 status:
   bootstrap_contract_version: 1
   ready_for_ai_reconstruction: true
@@ -89,7 +89,7 @@ status:
   canonical_root_candidate: .nimi/spec
   active_authority_root: external_authority
 cutover_readiness:
-  authority_contract_ref: .nimi/spec/_meta/spec-authority-cutover-readiness.yaml
+  authority_contract_ref: nimi-coding/spec/_meta/spec-authority-cutover-readiness.yaml
   overall_status: no_go
   gate_status:
     canonical_generation_gate: pending

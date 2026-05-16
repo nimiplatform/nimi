@@ -48,10 +48,6 @@ test("start bootstraps the project, integrates entrypoints, and prepares spec re
     assert.equal(result.exitCode, 0);
     assert.match(result.stdout, /nimicoding start wizard:/);
 
-    const bootstrapState = await readFile(
-      path.join(projectRoot, ".nimi", "spec", "bootstrap-state.yaml"),
-      "utf8",
-    );
     const bootstrapConfig = await readFile(
       path.join(projectRoot, ".nimi", "config", "bootstrap.yaml"),
       "utf8",
@@ -92,30 +88,6 @@ test("start bootstraps the project, integrates entrypoints, and prepares spec re
       path.join(projectRoot, ".nimi", "config", "audit-execution-artifacts.yaml"),
       "utf8",
     );
-    const productScope = await readFile(
-      path.join(projectRoot, ".nimi", "spec", "product-scope.yaml"),
-      "utf8",
-    );
-    const specTreeModel = await readFile(
-      path.join(projectRoot, ".nimi", "spec", "_meta", "spec-tree-model.yaml"),
-      "utf8",
-    );
-    const commandGatingMatrix = await readFile(
-      path.join(projectRoot, ".nimi", "spec", "_meta", "command-gating-matrix.yaml"),
-      "utf8",
-    );
-    const generateDriftChecklist = await readFile(
-      path.join(projectRoot, ".nimi", "spec", "_meta", "generate-drift-migration-checklist.yaml"),
-      "utf8",
-    );
-    const governanceRoutingChecklist = await readFile(
-      path.join(projectRoot, ".nimi", "spec", "_meta", "governance-routing-cutover-checklist.yaml"),
-      "utf8",
-    );
-    const impactedSurfaceMatrix = await readFile(
-      path.join(projectRoot, ".nimi", "spec", "_meta", "phase2-impacted-surface-matrix.yaml"),
-      "utf8",
-    );
     const exchangeProjection = await readFile(
       path.join(projectRoot, ".nimi", "methodology", "skill-exchange-projection.yaml"),
       "utf8",
@@ -142,6 +114,22 @@ test("start bootstraps the project, integrates entrypoints, and prepares spec re
     );
     const specGenerationAuditContract = await readFile(
       path.join(projectRoot, ".nimi", "contracts", "spec-generation-audit.schema.yaml"),
+      "utf8",
+    );
+    const surfaceTaxonomyContract = await readFile(
+      path.join(projectRoot, ".nimi", "contracts", "surface-taxonomy.schema.yaml"),
+      "utf8",
+    );
+    const placementContract = await readFile(
+      path.join(projectRoot, ".nimi", "contracts", "placement-contract.schema.yaml"),
+      "utf8",
+    );
+    const tableFamilyContract = await readFile(
+      path.join(projectRoot, ".nimi", "contracts", "table-family.schema.yaml"),
+      "utf8",
+    );
+    const domainAdmissionContract = await readFile(
+      path.join(projectRoot, ".nimi", "contracts", "domain-admission.schema.yaml"),
       "utf8",
     );
     const hostCompatibilityContract = await readFile(
@@ -175,9 +163,11 @@ test("start bootstraps the project, integrates entrypoints, and prepares spec re
     const gitignore = await readFile(path.join(projectRoot, ".gitignore"), "utf8");
     const agents = await readFile(path.join(projectRoot, "AGENTS.md"), "utf8");
     const claude = await readFile(path.join(projectRoot, "CLAUDE.md"), "utf8");
-    const handoffJson = await readFile(path.join(projectRoot, ".nimi", "local", "handoff", "spec_reconstruction.json"), "utf8");
     await assert.rejects(readFile(path.join(projectRoot, ".nimi", "methodology", "spec-target-truth-profile.yaml"), "utf8"));
-    assert.match(bootstrapState, /ready_for_ai_reconstruction: true/);
+    await assert.rejects(readFile(path.join(projectRoot, ".nimi", "spec", "bootstrap-state.yaml"), "utf8"));
+    await assert.rejects(readFile(path.join(projectRoot, ".nimi", "spec", "product-scope.yaml"), "utf8"));
+    await assert.rejects(readFile(path.join(projectRoot, ".nimi", "spec", "_meta", "spec-tree-model.yaml"), "utf8"));
+    await assert.rejects(readFile(path.join(projectRoot, ".nimi", "spec", "_meta", "command-gating-matrix.yaml"), "utf8"));
     assert.match(bootstrapConfig, /initialized_by: "@nimiplatform\/nimi-coding"/);
     assert.match(bootstrapConfig, /bootstrap_contract: "nimicoding.bootstrap"/);
     assert.match(bootstrapConfig, /bootstrap_contract_version: 1/);
@@ -204,30 +194,11 @@ test("start bootstraps the project, integrates entrypoints, and prepares spec re
     assert.match(auditExecutionArtifacts, /audit_closeout_ref: \.nimi\/local\/audit\/closeouts/);
     assert.match(auditExecutionArtifacts, /packet_ref: \.nimi\/local\/audit\/packets/);
     assert.match(auditExecutionArtifacts, /run_ledger_ref: \.nimi\/local\/audit\/runs/);
-    assert.match(productScope, /canonical_spec_root: "\.nimi\/spec"/);
-    assert.match(productScope, /phase_one_posture: contract_and_checklist_only/);
-    assert.match(productScope, /phase_one_contracts:/);
-    assert.match(productScope, /blocked_until_phase_two:/);
-    assert.match(productScope, /high_risk_admissions_truth: \.nimi\/spec\/high-risk-admissions\.yaml/);
-    assert.match(productScope, /profile: boundary_complete/);
-    assert.match(productScope, /completed_surfaces:/);
-    assert.match(productScope, /deferred_execution_surfaces:/);
-    assert.match(productScope, /packet_bound_run_kernel/);
-    assert.match(specTreeModel, /profile: surface_taxonomy_v1/);
-    assert.match(specTreeModel, /product_authority_root: \.nimi\/spec/);
-    assert.match(commandGatingMatrix, /command_gating_matrix:/);
-    assert.match(generateDriftChecklist, /generate_drift_migration_checklist:/);
-    assert.match(governanceRoutingChecklist, /governance_routing_cutover_checklist:/);
-    assert.match(impactedSurfaceMatrix, /phase2_impacted_surface_matrix:/);
     assert.match(agents, /nimicoding:managed:agents:start/);
     assert.match(claude, /nimicoding:managed:claude:start/);
     assert.match(agents, /AI-context-efficient/);
     assert.match(claude, /AI-context-efficient/);
-    assert.match(handoffJson, /"skill":/);
     await assert.rejects(readFile(path.join(projectRoot, ".nimi", "local", "handoff", "spec_reconstruction.prompt.md"), "utf8"));
-    assert.match(result.stdout, /4\. Paste Prompt/);
-    assert.match(result.stdout, /\.nimi\/local\/handoff\/spec_reconstruction\.json/);
-    assert.doesNotMatch(handoffJson, /spec-target-truth-profile/);
     assert.match(exchangeProjection, /exchange_surfaces:/);
     assert.match(exchangeProjection, /contractVersion/);
     assert.match(exchangeProjection, /- handoff/);
@@ -244,6 +215,10 @@ test("start bootstraps the project, integrates entrypoints, and prepares spec re
     assert.match(specGenerationInputsContract, /acceptance_mode_enum:/);
     assert.match(specGenerationAuditContract, /canonical_spec_generation_audit/);
     assert.match(specGenerationAuditContract, /required_file_entry_fields:/);
+    assert.match(surfaceTaxonomyContract, /taxonomy:/);
+    assert.match(placementContract, /nimicoding\.placement-contract\.v1/);
+    assert.match(tableFamilyContract, /nimicoding\.table-family\.v1/);
+    assert.match(domainAdmissionContract, /nimicoding\.domain-admission\.v1/);
     assert.match(hostCompatibilityContract, /external_host_boundary_compatibility/);
     assert.match(hostCompatibilityContract, /supported_host_posture:/);
     assert.match(hostCompatibilityContract, /host_agnostic_external_host/);
@@ -282,42 +257,27 @@ test("start refreshes managed entrypoints idempotently", async () => {
   });
 });
 
-test("start projects canonical spec meta contracts and checklists as valid yaml", async () => {
+test("start projects host-local surface contracts as valid yaml", async () => {
   await withTempProject(async (projectRoot) => {
     const result = await captureRunCli(["start"]);
     assert.equal(result.exitCode, 0);
 
-    const specTreeModel = await readYamlFile(path.join(projectRoot, ".nimi", "spec", "_meta", "spec-tree-model.yaml"));
-    const bootstrapState = await readYamlFile(path.join(projectRoot, ".nimi", "spec", "bootstrap-state.yaml"));
-    const productScope = await readYamlFile(path.join(projectRoot, ".nimi", "spec", "product-scope.yaml"));
     const specGenerationInputs = await readYamlFile(path.join(projectRoot, ".nimi", "config", "spec-generation-inputs.yaml"));
-    const commandGatingMatrix = await readYamlFile(path.join(projectRoot, ".nimi", "spec", "_meta", "command-gating-matrix.yaml"));
-    const generateDriftChecklist = await readYamlFile(path.join(projectRoot, ".nimi", "spec", "_meta", "generate-drift-migration-checklist.yaml"));
-    const governanceRoutingChecklist = await readYamlFile(path.join(projectRoot, ".nimi", "spec", "_meta", "governance-routing-cutover-checklist.yaml"));
-    const cutoverReadiness = await readYamlFile(path.join(projectRoot, ".nimi", "spec", "_meta", "spec-authority-cutover-readiness.yaml"));
-    const impactedSurfaceMatrix = await readYamlFile(path.join(projectRoot, ".nimi", "spec", "_meta", "phase2-impacted-surface-matrix.yaml"));
+    const surfaceTaxonomy = await readYamlFile(path.join(projectRoot, ".nimi", "contracts", "surface-taxonomy.schema.yaml"));
+    const placementContract = await readYamlFile(path.join(projectRoot, ".nimi", "contracts", "placement-contract.schema.yaml"));
+    const domainAdmission = await readYamlFile(path.join(projectRoot, ".nimi", "contracts", "domain-admission.schema.yaml"));
+    const tableFamily = await readYamlFile(path.join(projectRoot, ".nimi", "contracts", "table-family.schema.yaml"));
 
-    assert.equal(specTreeModel.spec_tree_model.profile, "surface_taxonomy_v1");
-    assert.equal(specTreeModel.spec_tree_model.product_authority_root, ".nimi/spec");
-    assert.equal(specTreeModel.spec_tree_model.blueprint_source, undefined);
-    assert.equal(bootstrapState.state.tree_state, "bootstrap_only");
-    assert.equal(bootstrapState.state.authority_mode, "external_authority_active");
     assert.equal(specGenerationInputs.spec_generation_inputs.mode, "class_filtered");
+    assert.equal(specGenerationInputs.contract_ref, ".nimi/contracts/spec-generation-inputs.schema.yaml");
     assert.equal(specGenerationInputs.spec_generation_inputs.acceptance_mode, "placement_validity_before_generation");
-    assert.ok(!bootstrapState.current_truth.admitted_files.includes(".nimi/methodology/spec-target-truth-profile.yaml"));
-    assert.equal(productScope.canonical_spec_model.state_carrier_ref, ".nimi/spec/bootstrap-state.yaml");
-    assert.equal(productScope.canonical_spec_model.phase_one_contracts[2], ".nimi/spec/_meta/spec-authority-cutover-readiness.yaml");
-    assert.equal(commandGatingMatrix.command_gating_matrix[0].command, "start");
-    assert.ok(commandGatingMatrix.command_gating_matrix.some((entry) => entry.command === "handoff" && entry.skill === "high_risk_execution"));
-    assert.ok(commandGatingMatrix.command_gating_matrix.some((entry) => entry.command === "closeout" && entry.skill === "high_risk_execution"));
-    assert.equal(cutoverReadiness.spec_authority_cutover_readiness.gate_families[0].id, "canonical_generation_gate");
-    assert.equal(
-      generateDriftChecklist.generate_drift_migration_checklist.entries[0].command,
-      "pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope runtime",
-    );
-    assert.equal(governanceRoutingChecklist.governance_routing_cutover_checklist.entries[0].file, "CLAUDE.md");
-    assert.equal(impactedSurfaceMatrix.phase2_impacted_surface_matrix[0].surface, "start_command");
-    await assert.rejects(readFile(path.join(projectRoot, ".nimi", "spec", "_meta", "blueprint-reference.yaml"), "utf8"));
+    assert.ok(Array.isArray(surfaceTaxonomy.taxonomy));
+    assert.equal(placementContract.contract.id, "nimicoding.placement-contract.v1");
+    assert.equal(domainAdmission.contract.id, "nimicoding.domain-admission.v1");
+    assert.equal(tableFamily.contract.id, "nimicoding.table-family.v1");
+    await assert.rejects(readFile(path.join(projectRoot, ".nimi", "spec", "bootstrap-state.yaml"), "utf8"));
+    await assert.rejects(readFile(path.join(projectRoot, ".nimi", "spec", "product-scope.yaml"), "utf8"));
+    await assert.rejects(readFile(path.join(projectRoot, ".nimi", "spec", "_meta", "spec-tree-model.yaml"), "utf8"));
   });
 });
 
@@ -357,8 +317,7 @@ test("clear removes managed entrypoints and package-owned bootstrap files but ke
       assert.ok(actual.length > 0, `expected clear to preserve ${relativePath}`);
     }
 
-    const handoffJson = await readFile(path.join(projectRoot, ".nimi", "local", "handoff", "spec_reconstruction.json"), "utf8");
-    assert.match(handoffJson, /"skill":/);
+    await assert.doesNotReject(readFile(path.join(projectRoot, ".nimi", "local", "handoff", "spec_reconstruction.json"), "utf8"));
     await assert.doesNotReject(readFile(path.join(projectRoot, ".nimi", "cache"), "utf8").catch((error) => {
       if (error.code === "EISDIR") {
         return "";

@@ -168,15 +168,23 @@ export async function inspectDoctorBootstrapSurface(projectRoot) {
           : "bootstrap.yaml declares an unsupported bootstrap contract id or version",
   });
 
+  const specGenerationInputsContract = await loadSpecGenerationInputsContract(projectRoot);
+  const specGenerationAuditContract = await loadSpecGenerationAuditContract(projectRoot);
+  const specGenerationInputs = await loadSpecGenerationInputsConfig(projectRoot);
+  const usesV2SurfaceModel = specGenerationInputs.ok && specGenerationInputs.mode === "class_filtered";
+
   const bootstrapStateText = await readTextIfFile(path.join(projectRoot, ".nimi", "spec", "bootstrap-state.yaml"));
   const bootstrapStateContract = inspectBootstrapStateContract(bootstrapStateText);
   checks.push(
     buildCheck(
       "bootstrap_state_contract",
-      bootstrapStateContract.ok,
-      bootstrapStateContract.ok
+      usesV2SurfaceModel || bootstrapStateContract.ok,
+      usesV2SurfaceModel
+        ? "v2 host-local surface model does not require .nimi/spec/bootstrap-state.yaml"
+        : bootstrapStateContract.ok
         ? `bootstrap-state.yaml matches the ${bootstrapStateContract.treeState} tree-state contract`
         : "bootstrap-state.yaml is missing required lifecycle fields or declares an unsupported lifecycle state",
+      usesV2SurfaceModel ? "info" : undefined,
     ),
   );
 
@@ -185,10 +193,13 @@ export async function inspectDoctorBootstrapSurface(projectRoot) {
   checks.push(
     buildCheck(
       "standalone_completion_truth",
-      completionTruth.ok,
-      completionTruth.ok
+      usesV2SurfaceModel || completionTruth.ok,
+      usesV2SurfaceModel
+        ? "v2 host-local surface model does not require .nimi/spec/product-scope.yaml"
+        : completionTruth.ok
         ? `Product scope declares standalone completion profile ${completionTruth.completionProfile}`
         : "product-scope.yaml is missing or drifted from the package-owned standalone completion truth",
+      usesV2SurfaceModel ? "info" : undefined,
     ),
   );
 
@@ -196,14 +207,16 @@ export async function inspectDoctorBootstrapSurface(projectRoot) {
   checks.push(
     buildCheck(
       "spec_tree_model_contract",
-      specTreeModel.ok,
-      specTreeModel.ok
+      usesV2SurfaceModel || specTreeModel.ok,
+      usesV2SurfaceModel
+        ? ".nimi/contracts/surface-taxonomy.schema.yaml supplies the v2 spec surface profile"
+        : specTreeModel.ok
         ? `${SPEC_TREE_MODEL_REF} declares canonical root ${specTreeModel.canonicalRoot} with profile ${specTreeModel.profile}`
         : `${SPEC_TREE_MODEL_REF} is missing or malformed`,
+      usesV2SurfaceModel ? "ok" : undefined,
     ),
   );
 
-  const specGenerationInputsContract = await loadSpecGenerationInputsContract(projectRoot);
   checks.push(
     buildCheck(
       "spec_generation_inputs_contract",
@@ -214,7 +227,6 @@ export async function inspectDoctorBootstrapSurface(projectRoot) {
     ),
   );
 
-  const specGenerationAuditContract = await loadSpecGenerationAuditContract(projectRoot);
   checks.push(
     buildCheck(
       "spec_generation_audit_contract",
@@ -225,13 +237,12 @@ export async function inspectDoctorBootstrapSurface(projectRoot) {
     ),
   );
 
-  const specGenerationInputs = await loadSpecGenerationInputsConfig(projectRoot);
   checks.push(
     buildCheck(
       "spec_generation_inputs_config",
       specGenerationInputs.ok,
       specGenerationInputs.ok
-        ? `${SPEC_GENERATION_INPUTS_REF} declares mixed canonical spec generation inputs`
+        ? `${SPEC_GENERATION_INPUTS_REF} declares ${specGenerationInputs.mode} canonical spec generation inputs`
         : `${SPEC_GENERATION_INPUTS_REF} is missing or malformed`,
     ),
   );
@@ -240,21 +251,29 @@ export async function inspectDoctorBootstrapSurface(projectRoot) {
   checks.push(
     buildCheck(
       "command_gating_matrix_contract",
-      commandGatingMatrix.ok,
-      commandGatingMatrix.ok
+      usesV2SurfaceModel || commandGatingMatrix.ok,
+      usesV2SurfaceModel
+        ? "v2 workflow gates are provided by project-local .nimi/contracts and .nimi/methodology"
+        : commandGatingMatrix.ok
         ? `${COMMAND_GATING_MATRIX_REF} declares ${commandGatingMatrix.entries.length} command gating rules`
         : `${COMMAND_GATING_MATRIX_REF} is missing or malformed`,
+      usesV2SurfaceModel ? "ok" : undefined,
     ),
   );
 
   const blueprintReference = await loadBlueprintReference(projectRoot);
-  const blueprintReferenceExpected = bootstrapStateContract.blueprintMode !== "none";
+  const blueprintReferenceExpected = usesV2SurfaceModel
+    ? specGenerationInputs.benchmarkMode !== "none" || typeof specGenerationInputs.benchmarkBlueprintRoot === "string"
+    : bootstrapStateContract.blueprintMode !== "none";
+  const expectedBlueprintCanonicalRoot = usesV2SurfaceModel
+    ? specGenerationInputs.canonicalTargetRoot
+    : specTreeModel.canonicalRoot;
   const blueprintReferenceAligned = !blueprintReferenceExpected
     ? !blueprintReference.present
     : blueprintReference.present
       && blueprintReference.ok
-      && blueprintReference.mode === bootstrapStateContract.blueprintMode
-      && blueprintReference.canonicalTargetRoot === specTreeModel.canonicalRoot;
+      && (usesV2SurfaceModel || blueprintReference.mode === bootstrapStateContract.blueprintMode)
+      && blueprintReference.canonicalTargetRoot === expectedBlueprintCanonicalRoot;
   checks.push(
     buildCheck(
       "blueprint_reference_contract",
@@ -276,7 +295,7 @@ export async function inspectDoctorBootstrapSurface(projectRoot) {
     available: benchmarkAvailable,
     ready: benchmarkAvailable && Boolean(
       specGenerationInputs.ok
-      && specTreeModel.ok
+      && (usesV2SurfaceModel || specTreeModel.ok)
       && (
         specGenerationInputs.benchmarkMode === "none"
           ? !blueprintReference.present
@@ -314,22 +333,28 @@ export async function inspectDoctorBootstrapSurface(projectRoot) {
       : `Canonical tree required files are still missing: ${canonicalTree.missing.join(", ")}`,
   });
 
-  const specGenerationAuditReport = await validateSpecAudit(
-    path.join(projectRoot, SPEC_GENERATION_AUDIT_REF),
-    { projectRoot },
-  );
-  const specGenerationAudit = specGenerationAuditReport.refusal?.code === "SPEC_AUDIT_MISSING"
-    ? emptySpecGenerationAudit()
-    : {
+  const specGenerationAuditRef = usesV2SurfaceModel
+    ? ".nimi/local/state/spec-generation/spec-generation-audit.yaml"
+    : SPEC_GENERATION_AUDIT_REF;
+  const specGenerationAuditInfo = await pathExists(path.join(projectRoot, specGenerationAuditRef));
+  let specGenerationAudit = emptySpecGenerationAudit();
+  specGenerationAudit.auditPath = specGenerationAuditRef;
+  if (specGenerationAuditInfo?.isFile()) {
+    const specGenerationAuditReport = await validateSpecAudit(
+      path.join(projectRoot, specGenerationAuditRef),
+      { projectRoot },
+    );
+    specGenerationAudit = {
       present: true,
       ok: specGenerationAuditReport.ok,
-      auditPath: SPEC_GENERATION_AUDIT_REF,
+      auditPath: specGenerationAuditRef,
       validator: "validate-spec-audit",
       summary: specGenerationAuditReport.summary ?? null,
       reason: specGenerationAuditReport.ok
         ? "Spec generation audit is present and structurally valid"
         : specGenerationAuditReport.errors.join("; "),
     };
+  }
   const specGenerationAuditCheckSeverity = !specGenerationAudit.present
     ? canonicalTree.requiredFilesValid ? "error" : "info"
     : specGenerationAudit.ok ? "ok" : canonicalTree.requiredFilesValid ? "error" : "warn";
@@ -350,10 +375,13 @@ export async function inspectDoctorBootstrapSurface(projectRoot) {
   checks.push(
     buildCheck(
       "high_risk_closeout_gate",
-      Boolean(highRiskCloseoutGate?.completedRequires?.tree_state === "canonical_tree_ready"),
-      highRiskCloseoutGate
+      usesV2SurfaceModel || Boolean(highRiskCloseoutGate?.completedRequires?.tree_state === "canonical_tree_ready"),
+      usesV2SurfaceModel
+        ? "v2 high-risk closeout gates are contract-driven by project-local .nimi/contracts"
+        : highRiskCloseoutGate
         ? "Command gating matrix includes high_risk_execution closeout readiness"
         : "command gating matrix is missing closeout gating for high_risk_execution",
+      usesV2SurfaceModel ? "ok" : undefined,
     ),
   );
 
