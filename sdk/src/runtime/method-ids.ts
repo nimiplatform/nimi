@@ -162,6 +162,7 @@ export const RuntimeMethodIds = {
     requestAvatarDebugProbe: '/nimi.runtime.v1.RuntimeAgentService/RequestAvatarDebugProbe',
     listAvatarDebugProbeResults: '/nimi.runtime.v1.RuntimeAgentService/ListAvatarDebugProbeResults',
     getAvatarDebugReplay: '/nimi.runtime.v1.RuntimeAgentService/GetAvatarDebugReplay',
+    resolveAvatarPackageLaunchProjection: '/nimi.runtime.v1.RuntimeAgentService/ResolveAvatarPackageLaunchProjection',
     listDelegatedProviderProfiles: '/nimi.runtime.v1.RuntimeAgentService/ListDelegatedProviderProfiles',
     upsertDelegatedProviderProfile: '/nimi.runtime.v1.RuntimeAgentService/UpsertDelegatedProviderProfile',
     setDelegatedProviderState: '/nimi.runtime.v1.RuntimeAgentService/SetDelegatedProviderState',
