@@ -1,0 +1,135 @@
+table_family: support_registry
+registry_id: platform_rule_evidence_requirement_rules_architecture
+owner: platform
+schema_ref: .nimi/contracts/table-family.schema.yaml#support_registry
+allowed_fields:
+  - rule_id
+  - evidence_requirement
+  - evidence_refs
+  - note
+  - na_reason
+  - evidence_scope_note
+  - test_files
+forbidden_state_fields:
+  - done
+  - covered
+  - coverage_status
+  - audit_date
+  - evidence_report
+  - current
+  - proposed
+  - backlog_status
+  - migration_status
+  - mapping_status
+  - run_id
+  - ledger_ref
+entries:
+  - P-ARCH-001
+  - P-ARCH-002
+  - P-ARCH-003
+  - P-ARCH-004
+  - P-ARCH-005
+  - P-ARCH-010
+  - P-ARCH-011
+  - P-ARCH-020
+  - P-ARCH-021
+  - P-ARCH-022
+  - P-ARCH-023
+  - P-ARCH-024
+  - P-ARCH-025
+  - P-ARCH-026
+  - P-ARCH-027
+  - P-ARCH-028
+  - P-ARCH-029
+  - P-ARCH-030
+  - P-ARCH-031
+rules:
+  - rule_id: P-ARCH-001
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; multi-participant orchestration behavior still requires integration coverage
+  - rule_id: P-ARCH-002
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: required
+  - rule_id: P-ARCH-003
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: required
+  - rule_id: P-ARCH-004
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: required
+  - rule_id: P-ARCH-005
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: required
+  - rule_id: P-ARCH-010
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: required
+  - rule_id: P-ARCH-011
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; layered boundary enforcement still requires implementation-level integration tests
+  - rule_id: P-ARCH-020
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; authority handoff behavior still requires runtime and realm integration validation
+  - rule_id: P-ARCH-021
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: required
+  - rule_id: P-ARCH-022
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; semantic-owner execution behavior remains deferred to Runtime kernel contracting
+  - rule_id: P-ARCH-023
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; ownership boundaries against Realm, SDK, and narrative consumers still require downstream contract validation
+  - rule_id: P-ARCH-024
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; SDK-only access and private-bypass hardcut still require implementation-level boundary checks
+  - rule_id: P-ARCH-025
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; admissible helper-layer placement still depends on later Runtime and kit integration framing
+  - rule_id: P-ARCH-026
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; inadmissible placement rejection still requires future implementation and review enforcement
+  - rule_id: P-ARCH-027
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; consumer rewrite hardcut still requires downstream app/mod boundary validation
+  - rule_id: P-ARCH-028
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; workflow-surface non-promotion still requires later Runtime semantic contract review
+  - rule_id: P-ARCH-029
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; consumer API contract home is fixed to SDK kernel while Runtime semantic ownership and host implementation details remain downstream concerns
+  - rule_id: P-ARCH-030
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; cross-layer delivery behavior still requires end-to-end execution tests
+  - rule_id: P-ARCH-031
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; world-domain facade placement and non-equivalence to K-WEV still require downstream SDK and Realm contract alignment

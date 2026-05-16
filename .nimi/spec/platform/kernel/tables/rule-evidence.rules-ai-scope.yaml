@@ -1,0 +1,55 @@
+table_family: support_registry
+registry_id: platform_rule_evidence_requirement_rules_ai_scope
+owner: platform
+schema_ref: .nimi/contracts/table-family.schema.yaml#support_registry
+allowed_fields:
+  - rule_id
+  - evidence_requirement
+  - evidence_refs
+  - note
+  - na_reason
+  - evidence_scope_note
+  - test_files
+forbidden_state_fields:
+  - done
+  - covered
+  - coverage_status
+  - audit_date
+  - evidence_report
+  - current
+  - proposed
+  - backlog_status
+  - migration_status
+  - mapping_status
+  - run_id
+  - ledger_ref
+entries:
+  - P-AISC-001
+  - P-AISC-002
+  - P-AISC-003
+  - P-AISC-004
+  - P-AISC-005
+rules:
+  - rule_id: P-AISC-001
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: required
+  - rule_id: P-AISC-002
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; lifecycle-driven AI config cleanup still requires consumer behavioral validation
+  - rule_id: P-AISC-003
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; no-implicit-inheritance behavior still requires Desktop/SDK/Runtime consumer validation
+  - rule_id: P-AISC-004
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: required
+  - rule_id: P-AISC-005
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; allowed-consumer schema enforcement still requires downstream consumer boundary checks

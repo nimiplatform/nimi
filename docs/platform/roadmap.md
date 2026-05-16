@@ -8,10 +8,9 @@ and which status values they pass through. It does not promise dates, and it is
 not an active product authority source.
 
 Active product behavior is governed by `.nimi/spec/<domain>/kernel/**`.
-Candidate roadmap and backlog material no longer lives under
-`.nimi/spec/future`; until a capability graduates into an active product
-domain, roadmap state is handled through the topic lifecycle and product
-planning process.
+Candidate roadmap and backlog material is not represented as an active spec
+subtree; until a capability graduates into an active product domain, roadmap
+state is handled through the topic lifecycle and product planning process.
 
 ## Why A Roadmap Surface
 

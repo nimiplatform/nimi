@@ -1,0 +1,123 @@
+table_family: support_registry
+registry_id: platform_rule_evidence_requirement_rules_protocol
+owner: platform
+schema_ref: .nimi/contracts/table-family.schema.yaml#support_registry
+allowed_fields:
+  - rule_id
+  - evidence_requirement
+  - evidence_refs
+  - note
+  - na_reason
+  - evidence_scope_note
+  - test_files
+forbidden_state_fields:
+  - done
+  - covered
+  - coverage_status
+  - audit_date
+  - evidence_report
+  - current
+  - proposed
+  - backlog_status
+  - migration_status
+  - mapping_status
+  - run_id
+  - ledger_ref
+entries:
+  - P-PROTO-001
+  - P-PROTO-002
+  - P-PROTO-003
+  - P-PROTO-010
+  - P-PROTO-011
+  - P-PROTO-020
+  - P-PROTO-021
+  - P-PROTO-030
+  - P-PROTO-035
+  - P-PROTO-040
+  - P-PROTO-050
+  - P-PROTO-060
+  - P-PROTO-070
+  - P-PROTO-100
+  - P-PROTO-101
+  - P-PROTO-102
+  - P-PROTO-103
+  - P-PROTO-104
+  - P-PROTO-105
+rules:
+  - rule_id: P-PROTO-001
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: required
+  - rule_id: P-PROTO-002
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: required
+  - rule_id: P-PROTO-003
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: required
+  - rule_id: P-PROTO-010
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: required
+  - rule_id: P-PROTO-011
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: required
+  - rule_id: P-PROTO-020
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: required
+  - rule_id: P-PROTO-021
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: required
+  - rule_id: P-PROTO-030
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: required
+  - rule_id: P-PROTO-035
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: required
+  - rule_id: P-PROTO-040
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: required
+  - rule_id: P-PROTO-050
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: required
+  - rule_id: P-PROTO-060
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: required
+  - rule_id: P-PROTO-070
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; cross-primitive consistency validation requires behavioral integration test
+  - rule_id: P-PROTO-100
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: required
+  - rule_id: P-PROTO-101
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: required
+  - rule_id: P-PROTO-102
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: required
+  - rule_id: P-PROTO-103
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: required
+  - rule_id: P-PROTO-104
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: required
+  - rule_id: P-PROTO-105
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: required

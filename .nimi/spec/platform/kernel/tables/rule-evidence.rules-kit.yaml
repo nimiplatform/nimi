@@ -1,0 +1,149 @@
+table_family: support_registry
+registry_id: platform_rule_evidence_requirement_rules_kit
+owner: platform
+schema_ref: .nimi/contracts/table-family.schema.yaml#support_registry
+allowed_fields:
+  - rule_id
+  - evidence_requirement
+  - evidence_refs
+  - note
+  - na_reason
+  - evidence_scope_note
+  - test_files
+forbidden_state_fields:
+  - done
+  - covered
+  - coverage_status
+  - audit_date
+  - evidence_report
+  - current
+  - proposed
+  - backlog_status
+  - migration_status
+  - mapping_status
+  - run_id
+  - ledger_ref
+entries:
+  - P-KIT-001
+  - P-KIT-002
+  - P-KIT-003
+  - P-KIT-010
+  - P-KIT-020
+  - P-KIT-030
+  - P-KIT-040
+  - P-KIT-041
+  - P-KIT-042
+  - P-KIT-043
+  - P-KIT-050
+  - P-KIT-060
+  - P-KIT-061
+  - P-KIT-065
+  - P-KIT-070
+  - P-KIT-071
+  - P-KIT-072
+  - P-KIT-073
+  - P-KIT-074
+  - P-KIT-080
+  - P-KIT-090
+rules:
+  - rule_id: P-KIT-001
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: required
+  - rule_id: P-KIT-002
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: required
+  - rule_id: P-KIT-003
+    evidence_refs:
+      - platform_kernel_consistency
+      - nimi_kit_gate
+    evidence_requirement: required
+  - rule_id: P-KIT-010
+    evidence_refs:
+      - platform_kernel_consistency
+      - nimi_ui_lib_drift
+      - nimi_ui_pattern
+    evidence_requirement: required
+  - rule_id: P-KIT-020
+    evidence_refs:
+      - platform_kernel_consistency
+      - nimi_kit_gate
+    evidence_requirement: required
+  - rule_id: P-KIT-030
+    evidence_refs:
+      - platform_kernel_consistency
+      - nimi_kit_gate
+    evidence_requirement: required
+  - rule_id: P-KIT-040
+    evidence_refs:
+      - platform_kernel_consistency
+      - nimi_kit_gate
+    evidence_requirement: required
+  - rule_id: P-KIT-041
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: required
+  - rule_id: P-KIT-042
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: required
+  - rule_id: P-KIT-043
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: required
+  - rule_id: P-KIT-050
+    evidence_refs:
+      - platform_kernel_consistency
+      - nimi_kit_gate
+    evidence_requirement: required
+  - rule_id: P-KIT-060
+    evidence_refs:
+      - platform_kernel_consistency
+      - nimi_kit_gate
+    evidence_requirement: required
+  - rule_id: P-KIT-061
+    evidence_refs:
+      - platform_kernel_consistency
+      - nimi_kit_gate
+    evidence_requirement: required
+  - rule_id: P-KIT-065
+    evidence_refs:
+      - platform_kernel_consistency
+      - nimi_kit_gate
+    evidence_requirement: required
+  - rule_id: P-KIT-070
+    evidence_refs:
+      - platform_kernel_consistency
+      - nimi_kit_gate
+    evidence_requirement: required
+  - rule_id: P-KIT-071
+    evidence_refs:
+      - platform_kernel_consistency
+      - nimi_kit_gate
+    evidence_requirement: required
+  - rule_id: P-KIT-072
+    evidence_refs:
+      - platform_kernel_consistency
+      - nimi_kit_gate
+    evidence_requirement: required
+  - rule_id: P-KIT-073
+    evidence_refs:
+      - platform_kernel_consistency
+      - nimi_kit_gate
+    evidence_requirement: required
+  - rule_id: P-KIT-074
+    evidence_refs:
+      - platform_kernel_consistency
+      - nimi_kit_gate
+    evidence_requirement: required
+  - rule_id: P-KIT-080
+    evidence_refs:
+      - platform_kernel_consistency
+      - nimi_kit_gate
+    evidence_requirement: required
+  - rule_id: P-KIT-090
+    evidence_refs:
+      - platform_kernel_consistency
+      - nimi_kit_gate
+    evidence_requirement: required

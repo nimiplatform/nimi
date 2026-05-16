@@ -31,4 +31,11 @@ entries:
   - rules
 fragments:
   evidence_catalog: rule-evidence.catalog.yaml
-  rules: rule-evidence.rules.yaml
+  rules:
+    - rule-evidence.rules-ai-last-mile-design.yaml
+    - rule-evidence.rules-architecture.yaml
+    - rule-evidence.rules-kit.yaml
+    - rule-evidence.rules-governance-catalog.yaml
+    - rule-evidence.rules-ai-scope.yaml
+    - rule-evidence.rules-app-package-slices.yaml
+    - rule-evidence.rules-protocol.yaml
