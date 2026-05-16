@@ -1,4 +1,16 @@
 version: 1
+table_family: product_catalog
+owner: runtime
+catalog_id: runtime_interceptor_chain
+entries:
+  - version
+  - lifecycle
+  - activity
+  - protocol
+  - authn
+  - authz
+  - credential-scrub
+  - audit
 interceptors:
   - name: version
     order: 1

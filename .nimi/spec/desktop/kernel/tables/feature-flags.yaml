@@ -1,3 +1,14 @@
+table_family: closed_enum
+owner: desktop
+enum_id: desktop_feature_flags
+values:
+  - flags_1
+  - flags_2
+  - flags_3
+  - flags_4
+  - flags_5
+  - flags_6
+  - flags_7
 # Desktop Shell Feature Flags
 # Source: kit/core/src/shell-mode.ts (ShellFeatureFlags)
 # Note: platform-conditional desktop defaults are captured in entry-specific fields when a plain

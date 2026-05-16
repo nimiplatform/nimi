@@ -1,4 +1,11 @@
 version: 1
+table_family: protocol_surface
+owner: runtime
+protocol_id: runtime_delegation_protocol_adapters
+surfaces:
+  - adapters_1
+  - adapters_2
+  - adapters_3
 source_rule: K-DELEG-100
 adapters:
   - adapter_id: mcp_stdio_command

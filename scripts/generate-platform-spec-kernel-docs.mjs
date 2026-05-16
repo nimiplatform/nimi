@@ -393,13 +393,13 @@ function renderRuleEvidence(doc, sourceName) {
     const item = value && typeof value === 'object' ? value : {};
     out += `| \`${ref}\` | \`${String(item.type || '').trim() || '—'}\` | \`${String(item.evidence_type || '').trim() || '—'}\` | \`${String(item.command || '').trim() || '—'}\` | \`${String(item.path || '').trim() || '—'}\` | ${String(item.description || '').trim() || '—'} |\n`;
   }
-  const hasCoverageNote = rules.some((item) => item?.coverage_note);
-  out += '\n## Rule Coverage Matrix\n\n';
-  if (hasCoverageNote) {
-    out += '| Rule ID | Status | Evidence Refs | Coverage Note |\n';
+  const hasScopeNote = rules.some((item) => item?.evidence_scope_note);
+  out += '\n## Rule Evidence Requirements\n\n';
+  if (hasScopeNote) {
+    out += '| Rule ID | Evidence Requirement | Evidence Refs | Scope Note |\n';
     out += '|---|---|---|---|\n';
   } else {
-    out += '| Rule ID | Status | Evidence Refs |\n';
+    out += '| Rule ID | Evidence Requirement | Evidence Refs |\n';
     out += '|---|---|---|\n';
   }
   for (const item of rules) {
@@ -407,11 +407,12 @@ function renderRuleEvidence(doc, sourceName) {
     if (!ruleId) continue;
     const refs = Array.isArray(item?.evidence_refs) ? item.evidence_refs : [];
     const refsText = refs.length > 0 ? refs.map((ref) => `\`${String(ref)}\``).join(', ') : '—';
-    if (hasCoverageNote) {
-      const note = String(item?.coverage_note || '').trim() || '—';
-      out += `| \`${ruleId}\` | \`${String(item?.status || '').trim() || '—'}\` | ${refsText} | ${note} |\n`;
+    const requirement = String(item?.evidence_requirement || '').trim() || '—';
+    if (hasScopeNote) {
+      const note = String(item?.evidence_scope_note || '').trim() || '—';
+      out += `| \`${ruleId}\` | \`${requirement}\` | ${refsText} | ${note} |\n`;
     } else {
-      out += `| \`${ruleId}\` | \`${String(item?.status || '').trim() || '—'}\` | ${refsText} |\n`;
+      out += `| \`${ruleId}\` | \`${requirement}\` | ${refsText} |\n`;
     }
   }
   out += '\n';

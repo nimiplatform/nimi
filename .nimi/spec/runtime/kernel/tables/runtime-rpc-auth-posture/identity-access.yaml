@@ -3,6 +3,40 @@ kind: runtime-rpc-auth-posture-shard
 parent: nimicoding.runtime-rpc-auth-posture.v1
 version: 1
 generated: false
+table_family: protocol_surface
+owner: runtime
+protocol_id: runtime_identity_access
+surfaces:
+  - RuntimeAccountService
+  - RuntimeAuthService
+  - RuntimeGrantService
+  - RuntimeAppService
+  - methods_1
+  - methods_2
+  - methods_3
+  - methods_4
+  - methods_5
+  - methods_6
+  - methods_7
+  - methods_8
+  - methods_9
+  - methods_10
+  - methods_11
+  - methods_12
+  - methods_13
+  - methods_14
+  - methods_15
+  - methods_16
+  - methods_17
+  - methods_18
+  - methods_19
+  - methods_20
+  - methods_21
+  - methods_22
+  - methods_23
+  - methods_24
+  - methods_25
+  - methods_26
 description: Account, auth, grants, and app binding posture entries.
 services:
   - RuntimeAccountService

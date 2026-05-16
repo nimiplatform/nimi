@@ -2,6 +2,26 @@ contract_id: PROJECTION-CONTRACT-001
 domain: projection
 status: ACTIVE
 version: 2026-04-21
+table_family: product_catalog
+catalog_id: realm_projection_contract
+entries:
+  - human_spec
+  - prisma
+  - services
+  - R-PROJ-001
+  - R-PROJ-002
+  - R-PROJ-003
+  - R-PROJ-004
+  - R-PROJ-005
+  - R-PROJ-006
+  - R-PROJ-007
+  - R-PROJ-008
+  - ProjectionInput
+  - ProjectionRequest
+  - ProjectionResult
+  - ProjectionTraceRequirement
+  - required_operations
+  - secondary_operations
 owner: '@team'
 sources:
   human_spec: ../projection-contract.md

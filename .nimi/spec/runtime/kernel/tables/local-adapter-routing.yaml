@@ -1,4 +1,24 @@
 version: 1
+table_family: protocol_surface
+owner: runtime
+protocol_id: runtime_local_adapter_routing
+surfaces:
+  - routes_1
+  - routes_2
+  - routes_3
+  - routes_4
+  - routes_5
+  - routes_6
+  - routes_7
+  - routes_8
+  - routes_9
+  - routes_10
+  - routes_11
+  - routes_12
+  - routes_13
+  - routes_14
+  - routes_15
+  - routes_16
 routes:
   - provider: llama
     capability: chat

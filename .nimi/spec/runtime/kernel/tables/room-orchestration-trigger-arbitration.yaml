@@ -1,4 +1,23 @@
 version: 1
+table_family: product_catalog
+owner: runtime
+catalog_id: runtime_room_orchestration_trigger_arbitration
+entries:
+  - canonical_user_turn
+  - domain_script_or_step
+  - external_protocol_signal
+  - avatar_presentation_event
+  - source_rule
+  - owner
+  - policy
+  - stable_sort_keys
+  - app_local_reordering
+  - starvation_detection
+  - domain_fairness_policy
+  - missing_trigger_evidence
+  - conflicting_trigger_evidence
+  - unknown_trigger_class
+  - external_signal_without_gateway_verdict
 source_rule: K-AGCORE-111
 trigger_classes:
   - id: canonical_user_turn

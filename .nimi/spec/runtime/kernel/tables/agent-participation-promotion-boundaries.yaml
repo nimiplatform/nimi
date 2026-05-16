@@ -1,4 +1,25 @@
 version: 1
+table_family: owner_matrix
+owner: runtime
+matrix_id: runtime_agent_participation_promotion_boundaries
+rows:
+  - RUNTIME_MEMORY_OR_COGNITION
+  - CANONICAL_CHAT
+  - REALM_GROUP_TRANSCRIPT
+  - DOMAIN_TRUTH
+  - source_rule
+  - non_canonical_default_write
+  - app_local_promotion_decision
+  - external_principal_self_promotion
+  - debug_probe_promotion
+  - side_audit_store
+  - promotion_transport_implementation_in_wave_7
+  - open_promotion_target_allowed
+  - target_owner_required
+  - audit_lineage_required
+  - provenance_required
+  - policy_verdict_required
+  - missing_required_input_policy
 source_rule: K-AGCORE-101
 promotion_targets:
   - id: RUNTIME_MEMORY_OR_COGNITION

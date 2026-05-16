@@ -1,3 +1,20 @@
+table_family: protocol_surface
+owner: desktop
+protocol_id: desktop_data_sync_flows
+surfaces:
+  - flows_1
+  - flows_2
+  - flows_3
+  - flows_4
+  - flows_5
+  - flows_6
+  - flows_7
+  - flows_8
+  - flows_9
+  - flows_10
+  - flows_11
+  - flows_12
+  - flows_13
 # Desktop DataSync Flow Enumeration
 # Source: apps/desktop/src/runtime/data-sync/facade.ts (DataSync class methods)
 

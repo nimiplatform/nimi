@@ -1,3 +1,49 @@
+table_family: protocol_surface
+protocol_id: desktop_agent_avatar_configuration_schema
+surfaces:
+  - agent_id
+  - conversation_anchor_scope
+  - live2d_adapter_manifest_source
+  - avatar_instance_policy
+  - backend_kind
+  - launch_mode
+  - debug_profile
+  - updated_at
+  - provenance
+  - avatar_package_ref
+  - live2d_adapter_manifest_ref
+  - backend_capability_profile_ref
+  - generated_motion_provider_policy
+  - package_descriptor
+  - package_path
+  - launch_package_id
+  - live2d_adapter_manifest_payload
+  - live2d_adapter_manifest_path
+  - live2d_adapter_manifest_absolute_path
+  - compatibility_tier
+  - avatar_compatibility_diagnostics
+  - carrier_registry_id
+  - scoped_avatar_binding_id
+  - account_id
+  - user_id
+  - realm_url
+  - token
+  - refresh_token
+  - jwt
+  - auth_payload
+  - raw_apml
+  - raw_mcp
+  - raw_a2a
+  - raw_provider_output
+  - backend_command
+  - Desktop stores opaque refs only and does not dereference package descriptors.
+  - The schema must not be copied into Avatar launch payload.
+  - External Live2D sidecar refs are Desktop custody refs only; Avatar remains
+    manifest resolver, compatibility validator, diagnostics, and carrier-proof
+    owner.
+  - Embedded and external Live2D adapter manifests must not be merged or
+    silently preferred.
+  - Missing evidence produces fail-closed configuration status.
 schema_id: nimi.desktop.agent-avatar-configuration.v1
 owner: .nimi/spec/desktop
 status: active

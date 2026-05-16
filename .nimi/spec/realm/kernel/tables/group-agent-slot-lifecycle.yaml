@@ -1,4 +1,7 @@
 version: 1
+table_family: state_machine
+owner: realm
+machine_id: realm_group_agent_slot_lifecycle
 source_rule: R-CHAT-009
 runtime_consumer_rule: K-AGCORE-119
 closed_registry: true

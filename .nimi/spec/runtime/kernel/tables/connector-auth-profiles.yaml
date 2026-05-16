@@ -1,4 +1,11 @@
 version: 1
+table_family: product_catalog
+owner: runtime
+catalog_id: runtime_connector_auth_profiles
+entries:
+  - openai_codex
+  - anthropic
+  - qwen_oauth
 profiles:
   - id: openai_codex
     auth_kind: oauth_managed

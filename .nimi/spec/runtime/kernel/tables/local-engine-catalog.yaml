@@ -1,4 +1,15 @@
 version: 1
+table_family: product_catalog
+owner: runtime
+catalog_id: runtime_local_engine_catalog
+entries:
+  - engines_1
+  - engines_2
+  - engines_3
+  - engines_4
+  - engines_5
+  - engines_6
+  - engines_7
 engines:
   - engine: llama
     default_endpoint: ""

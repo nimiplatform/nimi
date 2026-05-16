@@ -19,6 +19,25 @@ function mergeFragmentValues(key, currentValue, nextValue, sourcePath) {
   throw new Error(`fragment merge type mismatch for ${key} in ${sourcePath}`);
 }
 
+function projectedFragmentValue(key, value) {
+  if (!isRecord(value)) {
+    return value;
+  }
+  if (Object.prototype.hasOwnProperty.call(value, key)) {
+    return value[key];
+  }
+  if (key === 'evidence_catalog' && Array.isArray(value.entries)) {
+    return Object.fromEntries(
+      value.entries
+        .map((entry) => String(entry || '').trim())
+        .filter(Boolean)
+        .filter((entry) => Object.prototype.hasOwnProperty.call(value, entry))
+        .map((entry) => [entry, value[entry]]),
+    );
+  }
+  return value;
+}
+
 export function readYamlWithFragments(filePath) {
   const raw = fs.readFileSync(filePath, 'utf8');
   const parsed = YAML.parse(raw);
@@ -39,7 +58,7 @@ export function readYamlWithFragments(filePath) {
         throw new Error(`empty fragment reference for ${key} in ${filePath}`);
       }
       const fragmentPath = path.resolve(path.dirname(filePath), relativeRef);
-      const fragmentValue = readYamlWithFragments(fragmentPath);
+      const fragmentValue = projectedFragmentValue(key, readYamlWithFragments(fragmentPath));
       mergedValue = mergeFragmentValues(key, mergedValue, fragmentValue, filePath);
     }
     resolved[key] = mergedValue;

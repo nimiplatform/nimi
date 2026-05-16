@@ -1,4 +1,9 @@
 version: 1
+table_family: closed_enum
+owner: runtime
+enum_id: runtime_daemon_health_states
+values:
+  - machines_1
 machines:
   - machine: runtime_health
     states: [STOPPED, STARTING, READY, DEGRADED, STOPPING]

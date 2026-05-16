@@ -1,4 +1,18 @@
 version: 1
+table_family: owner_matrix
+owner: runtime
+matrix_id: runtime_agent_participation_memory_policy
+rows:
+  - canonical_agent_chat
+  - realm_group_agent
+  - scenario_sandbox
+  - oasis_world_participation
+  - external_agent_entry
+  - debug_or_probe
+  - source_rule
+  - non_canonical_default
+  - default_write_without_promotion
+  - implementation_wave
 source_rule: K-AGCORE-084
 memory_write_defaults:
   - profile: canonical_agent_chat

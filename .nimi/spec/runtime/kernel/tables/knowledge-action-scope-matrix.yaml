@@ -1,4 +1,28 @@
 version: 1
+table_family: owner_matrix
+owner: runtime
+matrix_id: runtime_knowledge_action_scope_matrix
+rows:
+  - runtime.knowledge.admin
+  - runtime.knowledge.write
+  - runtime.knowledge.read
+  - actions_1
+  - actions_2
+  - actions_3
+  - actions_4
+  - actions_5
+  - actions_6
+  - actions_7
+  - actions_8
+  - actions_9
+  - actions_10
+  - actions_11
+  - actions_12
+  - actions_13
+  - actions_14
+  - actions_15
+  - actions_16
+  - actions_17
 source_rules:
   - K-KNOW-008
   - K-KNOW-009

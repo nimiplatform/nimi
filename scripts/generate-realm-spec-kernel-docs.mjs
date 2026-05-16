@@ -233,12 +233,12 @@ function renderOpenSpecAlignment(doc, sourceFile) {
     `Version: \`${data.version ?? 'unknown'}\``,
     `Updated: \`${data.updated_at ?? 'unknown'}\``,
     '',
-    '| External ID | Type | External Path | Local Anchor | Coverage |',
+    '| External ID | Type | External Path | Local Anchor | Mapping State |',
     '| --- | --- | --- | --- | --- |',
   ];
   for (const row of rows) {
     lines.push(
-      `| ${escapeCell(row.external_id)} | ${escapeCell(row.external_type)} | ${escapeCell(row.external_path)} | ${escapeCell(row.local_anchor)} | ${escapeCell(row.coverage_status)} |`,
+      `| ${escapeCell(row.external_id)} | ${escapeCell(row.external_type)} | ${escapeCell(row.external_path)} | ${escapeCell(row.local_anchor)} | ${escapeCell(row.mapping_state)} |`,
     );
   }
   return withPreamble('Open Spec Alignment Map (Generated)', sourceFile, lines);
@@ -316,6 +316,10 @@ function buildDerivedRuleCatalog() {
   rules.sort((a, b) => compareRuleId(a.rule_id ?? '', b.rule_id ?? ''));
 
   return {
+    table_family: 'product_catalog',
+    owner: 'realm',
+    catalog_id: 'realm_rule_catalog',
+    entries: rules.map((rule) => rule.rule_id).filter(Boolean),
     id_pattern: EXPECTED_ID_PATTERN,
     generated_at: 'derived-from-contract-tables',
     generated_from: 'kernel/tables/*-contract.yaml',

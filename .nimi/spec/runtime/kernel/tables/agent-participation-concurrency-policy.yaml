@@ -1,4 +1,18 @@
 version: 1
+table_family: owner_matrix
+owner: runtime
+matrix_id: runtime_agent_participation_concurrency_policy
+rows:
+  - CANONICAL_CHAT_BUDGET
+  - PER_AGENT_PARTICIPATION_QUEUE
+  - PROFILE_ISOLATED_BUDGET
+  - DOMAIN_TRIGGER_QUEUE
+  - REJECT_WHILE_ACTIVE
+  - GATEWAY_BUDGET_QUEUE
+  - LOW_PRIORITY_CANCELABLE
+  - same_agent_cross_profile_admission_owner
+  - second_chat_life_budget_owner
+  - app_local_concurrency_authority
 source_rule: K-AGCORE-086
 concurrency_policies:
   - id: CANONICAL_CHAT_BUDGET

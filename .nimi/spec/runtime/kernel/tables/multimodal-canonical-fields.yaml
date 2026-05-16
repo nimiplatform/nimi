@@ -1,4 +1,51 @@
 version: 1
+table_family: protocol_surface
+owner: runtime
+protocol_id: runtime_multimodal_canonical_fields
+surfaces:
+  - app_id
+  - model_id
+  - prompt
+  - negative_prompt
+  - reference_images
+  - mask
+  - mode
+  - content[].type
+  - content[].role
+  - content[].text
+  - content[].image_url
+  - content[].video_url
+  - content[].audio_url
+  - options.resolution
+  - options.ratio
+  - options.duration_sec
+  - options.frames
+  - options.fps
+  - options.seed
+  - options.camera_fixed
+  - options.watermark
+  - options.generate_audio
+  - options.draft
+  - options.service_tier
+  - options.execution_expires_after_sec
+  - options.return_last_frame
+  - voice_ref
+  - target_model_id
+  - timing_mode
+  - voice_render_hints.stability
+  - voice_render_hints.similarity_boost
+  - voice_render_hints.style
+  - voice_render_hints.use_speaker_boost
+  - voice_render_hints.speed
+  - workflow_type
+  - voice_clone.reference_audio_uri
+  - voice_clone.reference_audio_bytes
+  - voice_clone.reference_audio_mime
+  - voice_clone.text
+  - voice_design.instruction_text
+  - voice_design.preview_text
+  - voice_design.language
+  - audio_source
 fields:
   - modality: common
     field: app_id

@@ -3,6 +3,93 @@ kind: runtime-rpc-auth-posture-shard
 parent: nimicoding.runtime-rpc-auth-posture.v1
 version: 1
 generated: false
+table_family: protocol_surface
+owner: runtime
+protocol_id: runtime_agent_ai_cognition
+surfaces:
+  - RuntimeAgentService
+  - RuntimeAiService
+  - RuntimeAiRealtimeService
+  - RuntimeCognitionService
+  - methods_1
+  - methods_2
+  - methods_3
+  - methods_4
+  - methods_5
+  - methods_6
+  - methods_7
+  - methods_8
+  - methods_9
+  - methods_10
+  - methods_11
+  - methods_12
+  - methods_13
+  - methods_14
+  - methods_15
+  - methods_16
+  - methods_17
+  - methods_18
+  - methods_19
+  - methods_20
+  - methods_21
+  - methods_22
+  - methods_23
+  - methods_24
+  - methods_25
+  - methods_26
+  - methods_27
+  - methods_28
+  - methods_29
+  - methods_30
+  - methods_31
+  - methods_32
+  - methods_33
+  - methods_34
+  - methods_35
+  - methods_36
+  - methods_37
+  - methods_38
+  - methods_39
+  - methods_40
+  - methods_41
+  - methods_42
+  - methods_43
+  - methods_44
+  - methods_45
+  - methods_46
+  - methods_47
+  - methods_48
+  - methods_49
+  - methods_50
+  - methods_51
+  - methods_52
+  - methods_53
+  - methods_54
+  - methods_55
+  - methods_56
+  - methods_57
+  - methods_58
+  - methods_59
+  - methods_60
+  - methods_61
+  - methods_62
+  - methods_63
+  - methods_64
+  - methods_65
+  - methods_66
+  - methods_67
+  - methods_68
+  - methods_69
+  - methods_70
+  - methods_71
+  - methods_72
+  - methods_73
+  - methods_74
+  - methods_75
+  - methods_76
+  - methods_77
+  - methods_78
+  - methods_79
 description: Agent, AI, realtime, and cognition posture entries.
 services:
   - RuntimeAgentService

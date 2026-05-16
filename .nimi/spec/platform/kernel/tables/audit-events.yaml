@@ -1,4 +1,46 @@
 version: 1
+table_family: protocol_surface
+owner: platform
+protocol_id: platform_audit_events
+surfaces:
+  - protocol_validation_failed
+  - action_execution_committed
+  - action_execution_failed
+  - action_compensation_triggered
+  - transit_denied
+  - social_admission_denied
+  - economy_settlement_applied
+  - context_handoff_applied
+  - presence_state_changed
+  - timeflow_drift_exceeded
+  - app_authorization_granted
+  - app_token_issued
+  - app_token_delegated
+  - app_token_revoked
+  - scope_manifest_registered
+  - scope_manifest_validation_failed
+  - scope_catalog_published
+  - scope_catalog_revoked
+  - app_mode_violation_denied
+  - app_resource_scope_denied
+  - app_consent_validation_failed
+  - world_extension_bound
+  - world_extension_unbound
+  - world_extension_write_denied
+  - participantId
+  - traceId
+  - timestamp
+  - domain
+  - reasonCode
+  - protocolVersion
+  - protocol
+  - ai_last_mile
+  - primitive
+  - app_auth
+  - scope
+  - app_mode
+  - app_resource
+  - world_app_binding
 events:
   - name: protocol_validation_failed
     group: protocol

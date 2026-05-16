@@ -236,9 +236,9 @@ function checkSourceRuleTable(rel, entries, idField, definitionMap) {
 }
 
 function checkRuleEvidence(definitionMap, doc, rel) {
-  const totalRules = Number(doc?.rule_compliance?.total_c_rules);
+  const totalRules = Number(doc?.rule_registry?.total_c_rules);
   if (!Number.isInteger(totalRules)) {
-    fail(`${rel} must declare integer rule_compliance.total_c_rules`);
+    fail(`${rel} must declare integer rule_registry.total_c_rules`);
   } else if (totalRules !== definitionMap.size) {
     fail(`${rel} total_c_rules=${totalRules} does not match defined cognition rules=${definitionMap.size}`);
   }
@@ -254,7 +254,7 @@ function checkRuleEvidence(definitionMap, doc, rel) {
   if (rules.length !== definitionMap.size) {
     fail(`${rel} must contain one rule-evidence entry per cognition rule`);
   }
-  const allowedStatuses = new Set(['covered', 'deferred', 'na']);
+  const allowedRequirements = new Set(['required', 'deferred', 'not_applicable']);
 
   const seenRules = new Set();
   for (const entry of rules) {
@@ -271,11 +271,11 @@ function checkRuleEvidence(definitionMap, doc, rel) {
     }
     seenRules.add(ruleID);
 
-    const status = String(entry?.status || '').trim();
-    if (!status) {
-      fail(`${rel} rule ${ruleID} must declare status`);
-    } else if (!allowedStatuses.has(status)) {
-      fail(`${rel} rule ${ruleID} uses illegal status: ${status}`);
+    const requirement = String(entry?.evidence_requirement || '').trim();
+    if (!requirement) {
+      fail(`${rel} rule ${ruleID} must declare evidence_requirement`);
+    } else if (!allowedRequirements.has(requirement)) {
+      fail(`${rel} rule ${ruleID} uses illegal evidence_requirement: ${requirement}`);
     }
 
     const evidenceRefs = Array.isArray(entry?.evidence_refs) ? entry.evidence_refs : [];

@@ -1,4 +1,32 @@
 version: 1
+table_family: owner_matrix
+owner: runtime
+matrix_id: runtime_local_environment_materializers
+rows:
+  - registry_1
+  - registry_2
+  - registry_3
+  - registry_4
+  - registry_5
+  - registry_6
+  - registry_7
+  - registry_8
+  - registry_9
+  - registry_10
+  - every dependency family in local-environment-dependencies.yaml must either
+    have one registry entry or an explicit exclusion before implementation
+    admission
+  - materializers are RuntimeLocalService-owned job executors, not Desktop
+    workflows, engine installers, scripts, or package-manager commands
+  - a materializer may request prerequisite plan resolution but must not
+    silently materialize another dependency family unless confirmation
+    explicitly covers that dependency environment
+  - startup, route resolution, Desktop page load, SDK reads, passive import
+    review, health probes, and background maintenance must not trigger first
+    heavy or network materialization
+  - missing uv, Python, venv, package set, Torch wheel, native package, model
+    asset, or companion asset projects Runtime local environment setup or repair
+    state, not ordinary-user package-manager or PATH prerequisites
 
 # Canonical Runtime materializer registry for local environment dependency
 # families. This table is downstream of local-environment-dependencies.yaml for

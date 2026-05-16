@@ -1,4 +1,18 @@
 version: 1
+table_family: product_catalog
+owner: platform
+catalog_id: platform_app_slice_admissions
+entries:
+  - admissions_1
+  - admissions_2
+  - admissions_3
+  - admissions_4
+  - admissions_5
+  - admissions_6
+  - admissions_7
+  - admissions_8
+  - admissions_9
+  - admissions_10
 admissions:
   - app_id: asset-market
     status: active

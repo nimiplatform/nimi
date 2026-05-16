@@ -1,4 +1,29 @@
 version: 1
+table_family: closed_enum
+owner: runtime
+enum_id: runtime_capability_to_asset_kind
+values:
+  - chat
+  - text.generate
+  - text.embed
+  - image.generate
+  - video.generate
+  - audio.synthesize
+  - audio.transcribe
+  - voice_workflow.voice_clone
+  - voice_workflow.voice_design
+  - embedding
+  - image
+  - video
+  - tts
+  - stt
+  - music
+  - llm
+  - vae
+  - clip
+  - controlnet
+  - lora
+  - auxiliary
 source_rule: K-LOCAL-007
 description: >
   Maps canonical capability tokens and local manifest tokens to LocalAssetKind.

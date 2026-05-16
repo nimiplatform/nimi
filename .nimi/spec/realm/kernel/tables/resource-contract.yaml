@@ -2,6 +2,21 @@ contract_id: RESOURCE-CONTRACT-001
 domain: resource
 status: ACTIVE
 version: 2026-03-25
+table_family: product_catalog
+catalog_id: realm_resource_contract
+entries:
+  - human_spec
+  - openapi
+  - prisma
+  - services
+  - R-RSRC-001
+  - R-RSRC-002
+  - R-RSRC-003
+  - R-RSRC-004
+  - R-RSRC-005
+  - R-RSRC-006
+  - Resource
+  - required_operations
 owner: '@team'
 sources:
   human_spec: ../resource-contract.md

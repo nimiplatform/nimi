@@ -1,4 +1,29 @@
 version: 1
+table_family: product_catalog
+owner: runtime
+catalog_id: runtime_agent_activity_ontology
+entries:
+  - emotion
+  - interaction
+  - state
+  - admitted_values
+  - rules
+  - prefix_pattern
+  - modid_pattern
+  - activity_pattern
+  - category_source
+  - current_runtime_public_chat_admission
+  - runtime.agent.presentation.activity_requested.detail.activity_name must be
+    one of the admitted core or extended ids unless a manifest-backed mod
+    namespace is admitted later.
+  - runtime.agent.presentation.activity_requested.detail.category must be
+    emotion, interaction, or state.
+  - runtime.agent.presentation.activity_requested.detail.intensity must be
+    absent or weak, moderate, strong.
+  - runtime.agent.presentation.activity_requested.detail.source records the
+    upstream projection source and does not replace category authority.
+  - apps/avatar may map admitted ids to backend-specific motion groups, but must
+    not change the activity category or intensity truth.
 source_rule: K-AGCORE-049
 
 categories:

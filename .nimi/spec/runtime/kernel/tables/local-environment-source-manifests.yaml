@@ -1,4 +1,26 @@
 version: 1
+table_family: owner_matrix
+owner: runtime
+matrix_id: runtime_local_environment_source_manifests
+rows:
+  - manifest_families_1
+  - manifest_families_2
+  - manifest_families_3
+  - manifest_families_4
+  - manifest_families_5
+  - manifest_families_6
+  - manifest_families_7
+  - manifest_families_8
+  - manifest_families_9
+  - manifest_families_10
+  - managed promotion requires declared source identity plus hash, digest,
+    signature, or equivalent lock proof
+  - imported source manifests are valid only for model.asset and
+    model.companion-asset
+  - imported model paths must not become Python, uv, CUDA, DLL, package-manager,
+    or native engine package roots
+  - package directories, transfer records, endpoint reachability, and script
+    results are not source manifests
 
 # Canonical source manifest schema families for Runtime local environment
 # materializers. These schemas define source identity required before managed or

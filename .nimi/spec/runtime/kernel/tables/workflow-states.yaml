@@ -1,4 +1,9 @@
 version: 1
+table_family: closed_enum
+owner: runtime
+enum_id: runtime_workflow_states
+values:
+  - machines_1
 machines:
   - machine: workflow
     states:

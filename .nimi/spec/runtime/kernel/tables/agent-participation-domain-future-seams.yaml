@@ -1,4 +1,30 @@
 version: 1
+table_family: product_catalog
+owner: runtime
+catalog_id: runtime_agent_participation_domain_future_seams
+entries:
+  - OASIS_WORLD_PARTICIPATION
+  - SCENARIO_SANDBOX
+  - source_rule
+  - runtime_participation_role
+  - domain_truth_redefinition
+  - domain_transcript_commit
+  - memory_cognition_write_before_promotion
+  - canonical_chat_write_before_promotion
+  - domain_context_open_payload
+  - app_local_agent_execution
+  - oasis_world_product_implementation_requires_separate_admission
+  - scenario_sandbox_product_implementation_requires_separate_admission
+  - scenario_job_execution_in_participation_wave
+  - sdk_proto_app_surface_in_wave_6
+  - promotion_implementation_in_wave_6
+  - raw_world_prompt_blob
+  - raw_scenario_prompt_blob
+  - runtime_world_truth_commit
+  - runtime_scenario_transcript_commit
+  - app_local_world_agent_execution
+  - app_local_scenario_agent_execution
+  - fake_world_or_scenario_success
 source_rule: K-AGCORE-095
 domain_future_seams:
   - id: OASIS_WORLD_PARTICIPATION

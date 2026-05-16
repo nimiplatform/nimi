@@ -1,4 +1,21 @@
 version: 1
+table_family: product_catalog
+catalog_id: desktop_agent_avatar_debug_workbench_probes
+entries:
+  - package_validation
+  - launch_readiness
+  - backend_load
+  - capability_profile
+  - route_support_matrix
+  - generated_motion
+  - emotion_expression
+  - speech_lipsync
+  - window_hit_region
+  - runtime_replay
+  - No probe category may report success without all required evidence.
+  - Desktop categories are product views and do not own Runtime or Avatar
+    semantics.
+  - Raw APML, MCP/A2A, provider, or app data is not admissible evidence.
 owner: .nimi/spec/desktop
 source_rule: D-LLM-085
 status: active

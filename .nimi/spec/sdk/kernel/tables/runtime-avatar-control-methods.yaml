@@ -1,4 +1,20 @@
 version: 1
+table_family: protocol_surface
+protocol_id: sdk_runtime_avatar_control_methods
+surfaces:
+  - runtime.avatarConfiguration.get
+  - runtime.avatarConfiguration.upsert
+  - runtime.avatarDebug.snapshot
+  - runtime.avatarDebug.requestProbe
+  - runtime.avatarDebug.listProbeResults
+  - runtime.avatarDebug.getReplay
+  - any
+  - Record<string, unknown>
+  - free_form_map
+  - raw_apml
+  - raw_mcp
+  - raw_a2a
+  - raw_backend_payload
 owner: .nimi/spec/sdk
 source_rule: S-RUNTIME-116
 status: active

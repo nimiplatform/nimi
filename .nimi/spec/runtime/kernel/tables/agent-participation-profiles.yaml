@@ -1,4 +1,19 @@
 version: 1
+table_family: product_catalog
+owner: runtime
+catalog_id: runtime_agent_participation_profiles
+entries:
+  - canonical_agent_chat
+  - realm_group_agent
+  - scenario_sandbox
+  - oasis_world_participation
+  - external_agent_entry
+  - debug_or_probe
+  - source_rule
+  - open_profile_kinds_allowed
+  - external_agent_canonical_chat_default
+  - sandbox_projection_npc_alias
+  - canonical_capability_carryover_default
 source_rule: K-AGCORE-074
 profiles:
   - id: canonical_agent_chat

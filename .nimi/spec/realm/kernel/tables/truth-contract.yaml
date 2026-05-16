@@ -2,6 +2,45 @@ contract_id: TRUTH-CONTRACT-001
 domain: truth
 status: ACTIVE
 version: 2026-04-22
+table_family: product_catalog
+catalog_id: realm_truth_contract
+entries:
+  - human_spec
+  - openapi
+  - prisma
+  - services
+  - R-TRUTH-001
+  - R-TRUTH-002
+  - R-TRUTH-003
+  - R-TRUTH-004
+  - R-TRUTH-005
+  - R-TRUTH-006
+  - R-TRUTH-007
+  - R-TRUTH-008
+  - R-TRUTH-009
+  - R-TRUTH-010
+  - R-TRUTH-011
+  - R-TRUTH-012
+  - R-TRUTH-013
+  - R-TRUTH-014
+  - R-TRUTH-015
+  - R-TRUTH-016
+  - R-TRUTH-017
+  - R-TRUTH-018
+  - R-TRUTH-019
+  - R-TRUTH-020
+  - R-TRUTH-021
+  - World
+  - WorldRule
+  - AgentRule
+  - WorldRelease
+  - CanonicalTruthPackage
+  - InheritanceLink
+  - ObservationMarkupEnvelope
+  - ObservationCommitLedger
+  - ObservationContinuationPlan
+  - required_operations
+  - secondary_operations
 owner: '@team'
 sources:
   human_spec: ../truth-contract.md

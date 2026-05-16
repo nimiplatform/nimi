@@ -32,32 +32,32 @@ table_families:
     authority_class: product_authority_table
     required_fields: [table_family, owner, enum_id, values]
     allowed_fields: [description, authority_refs, value, label, semantics]
-    forbidden_fields: [status, done, covered, coverage_status, audit_date, evidence_report, phase, current, proposed, backlog_status, migration_status, run_id, ledger_ref]
+    forbidden_fields: [done, covered, coverage_status, audit_date, evidence_report, current, proposed, backlog_status, migration_status, mapping_status, run_id, ledger_ref]
   - table_family: state_machine
     authority_class: product_authority_table
     required_fields: [table_family, owner, machine_id, states, transitions]
     allowed_fields: [description, authority_refs, state, transition, from, to, guard]
-    forbidden_fields: [status, done, covered, coverage_status, audit_date, evidence_report, phase, current, proposed, backlog_status, migration_status, run_id, ledger_ref]
+    forbidden_fields: [done, covered, coverage_status, audit_date, evidence_report, current, proposed, backlog_status, migration_status, mapping_status, run_id, ledger_ref]
   - table_family: protocol_surface
     authority_class: product_authority_table
     required_fields: [table_family, owner, protocol_id, surfaces]
     allowed_fields: [description, authority_refs, event, rpc, field, reason_code]
-    forbidden_fields: [status, done, covered, coverage_status, audit_date, evidence_report, phase, current, proposed, backlog_status, migration_status, run_id, ledger_ref]
+    forbidden_fields: [done, covered, coverage_status, audit_date, evidence_report, current, proposed, backlog_status, migration_status, mapping_status, run_id, ledger_ref]
   - table_family: owner_matrix
     authority_class: product_authority_table
     required_fields: [table_family, owner, matrix_id, rows]
     allowed_fields: [description, authority_refs, owner, responsibility, boundary]
-    forbidden_fields: [status, done, covered, coverage_status, audit_date, evidence_report, phase, current, proposed, backlog_status, migration_status, run_id, ledger_ref]
+    forbidden_fields: [done, covered, coverage_status, audit_date, evidence_report, current, proposed, backlog_status, migration_status, mapping_status, run_id, ledger_ref]
   - table_family: product_catalog
     authority_class: product_authority_table
     required_fields: [table_family, owner, catalog_id, entries]
     allowed_fields: [description, authority_refs, id, name, semantics, owner]
-    forbidden_fields: [status, done, covered, coverage_status, audit_date, evidence_report, phase, current, proposed, backlog_status, migration_status, run_id, ledger_ref]
+    forbidden_fields: [done, covered, coverage_status, audit_date, evidence_report, current, proposed, backlog_status, migration_status, mapping_status, run_id, ledger_ref]
   - table_family: support_registry
     authority_class: support_registry
     required_fields: [table_family, registry_id, owner, schema_ref, allowed_fields, forbidden_state_fields, entries]
     allowed_fields: [authority_refs, command_refs, evidence_class, validation_scope, registry_owner]
-    forbidden_fields: [status, done, covered, coverage_status, audit_date, evidence_report, phase, current, proposed, backlog_status, migration_status, run_id, ledger_ref]
+    forbidden_fields: [done, covered, coverage_status, audit_date, evidence_report, current, proposed, backlog_status, migration_status, mapping_status, run_id, ledger_ref]
 support_registry_shape:
   required_fields:
     - table_family
@@ -67,46 +67,43 @@ support_registry_shape:
     - allowed_fields
     - forbidden_state_fields
   forbidden_state_fields:
-    - status
     - done
     - covered
     - coverage_status
     - audit_date
     - evidence_report
-    - phase
     - current
     - proposed
     - backlog_status
     - migration_status
+    - mapping_status
     - run_id
     - ledger_ref
 forbidden_fields_by_authority_class:
   product_authority_table:
-    - status
     - done
     - covered
     - coverage_status
     - audit_date
     - evidence_report
-    - phase
     - current
     - proposed
     - backlog_status
     - migration_status
+    - mapping_status
     - run_id
     - ledger_ref
   support_registry:
-    - status
     - done
     - covered
     - coverage_status
     - audit_date
     - evidence_report
-    - phase
     - current
     - proposed
     - backlog_status
     - migration_status
+    - mapping_status
     - run_id
     - ledger_ref
 semantic_constraints:

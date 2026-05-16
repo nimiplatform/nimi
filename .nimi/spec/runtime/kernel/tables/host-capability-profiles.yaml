@@ -1,4 +1,21 @@
 version: 1
+table_family: product_catalog
+owner: runtime
+catalog_id: runtime_host_capability_profiles
+entries:
+  - owner
+  - staleness_policy
+  - install_trigger
+  - fields
+  - refresh_states
+  - profiles_1
+  - profiles_2
+  - profiles_3
+  - profile refresh may update evidence but must not start dependency download
+    or install
+  - a degraded or unsupported profile must project plan constraints explicitly
+  - Runtime must preserve cloud-only readiness even when profile probing fails
+  - Desktop, SDK, mods, and engines may consume profile projection only
 
 # Canonical host capability profile authority.
 # The profile is Runtime-owned evidence for plan resolution. It is not an

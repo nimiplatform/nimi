@@ -1,4 +1,19 @@
 version: 1
+table_family: closed_enum
+owner: runtime
+enum_id: runtime_asset_kind_registry
+values:
+  - chat
+  - image
+  - video
+  - tts
+  - stt
+  - embedding
+  - vae
+  - clip
+  - lora
+  - controlnet
+  - auxiliary
 source_rule: K-LOCAL-007
 description: >
   Defines all LocalAssetKind enum values, their runnable/passive semantics,

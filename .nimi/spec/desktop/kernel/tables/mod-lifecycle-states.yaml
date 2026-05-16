@@ -1,3 +1,15 @@
+table_family: closed_enum
+owner: desktop
+enum_id: desktop_mod_lifecycle_states
+values:
+  - DISCOVERED
+  - VERIFIED
+  - INSTALLED
+  - ENABLED
+  - DISABLED
+  - UNINSTALLED
+  - UPDATING
+  - ROLLBACK_DISABLED
 # Desktop Mod Lifecycle States
 # Source: apps/desktop/src/runtime/execution-kernel/contracts/types.ts (LifecycleState)
 

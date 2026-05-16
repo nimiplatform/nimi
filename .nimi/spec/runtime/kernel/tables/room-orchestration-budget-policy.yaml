@@ -1,4 +1,26 @@
 version: 1
+table_family: owner_matrix
+owner: runtime
+matrix_id: runtime_room_orchestration_budget_policy
+rows:
+  - K-AGCORE-007
+  - K-AGCORE-073
+  - K-AGCORE-086
+  - default_runtime_room_budget
+  - external_gateway_room_budget
+  - source_rule
+  - concrete_numeric_defaults
+  - numeric_default_first_definition_in_app
+  - room_budget_without_agent_budget
+  - agent_budget_without_room_budget
+  - owner
+  - allowed_reasons
+  - domain_local_cancellation_authority
+  - basis
+  - missing_timeout_policy
+  - namespace
+  - projection_table
+  - public_runtime_orchestration_namespace
 source_rule: K-AGCORE-112
 preserves:
   - K-AGCORE-007

@@ -336,17 +336,17 @@ function checkRuleEvidenceTraceability(sdkKernelRules) {
     fail(`${evidencePath} rules must not be empty`);
     return;
   }
-  const declaredTotal = Number(doc.rule_compliance?.total_s_rules);
+  const declaredTotal = Number(doc.rule_registry?.total_s_rules);
   if (!Number.isInteger(declaredTotal) || declaredTotal <= 0) {
-    fail(`${evidencePath} rule_compliance.total_s_rules must be a positive integer`);
+    fail(`${evidencePath} rule_registry.total_s_rules must be a positive integer`);
   } else if (declaredTotal !== rules.length) {
-    fail(`${evidencePath} rule_compliance.total_s_rules (${declaredTotal}) must match resolved rule rows (${rules.length})`);
+    fail(`${evidencePath} rule_registry.total_s_rules (${declaredTotal}) must match resolved rule rows (${rules.length})`);
   }
 
   const seen = new Set();
   for (const item of rules) {
     const ruleId = String(item?.rule_id || '').trim();
-    const status = String(item?.status || '').trim().toLowerCase();
+    const requirement = String(item?.evidence_requirement || '').trim().toLowerCase();
     const refs = Array.isArray(item?.evidence_refs) ? item.evidence_refs : [];
     const naReason = String(item?.na_reason || '').trim();
     if (!/^S-[A-Z]+-\d{3}[a-z]?$/u.test(ruleId)) {
@@ -361,16 +361,16 @@ function checkRuleEvidenceTraceability(sdkKernelRules) {
     if (!sdkKernelRules.has(ruleId)) {
       fail(`${evidencePath} references unknown sdk kernel rule: ${ruleId}`);
     }
-    if (status !== 'covered' && status !== 'na') {
-      fail(`${evidencePath} ${ruleId} has invalid status: ${status || '<empty>'} (allowed: covered|na)`);
+    if (requirement !== 'required' && requirement !== 'not_applicable') {
+      fail(`${evidencePath} ${ruleId} has invalid evidence_requirement: ${requirement || '<empty>'} (allowed: required|not_applicable)`);
       continue;
     }
-    if (status === 'na') {
-      if (!naReason) fail(`${evidencePath} ${ruleId} status=na requires na_reason`);
+    if (requirement === 'not_applicable') {
+      if (!naReason) fail(`${evidencePath} ${ruleId} evidence_requirement=not_applicable requires na_reason`);
       continue;
     }
     if (refs.length === 0) {
-      fail(`${evidencePath} ${ruleId} status=covered requires non-empty evidence_refs`);
+      fail(`${evidencePath} ${ruleId} evidence_requirement=required requires non-empty evidence_refs`);
       continue;
     }
     for (const rawRef of refs) {

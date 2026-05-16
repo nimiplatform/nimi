@@ -1,4 +1,23 @@
 version: 1
+table_family: product_catalog
+owner: runtime
+catalog_id: runtime_provider_probe_targets
+entries:
+  - local
+  - local-image
+  - local-media
+  - local-speech
+  - local-sidecar
+  - cloud-nimillm
+  - cloud-dashscope
+  - cloud-volcengine
+  - cloud-volcengine-openspeech
+  - cloud-gemini
+  - cloud-minimax
+  - cloud-kimi
+  - cloud-glm
+  - cloud-deepseek
+  - cloud-openrouter
 targets:
   - name: local
     base_url_env: NIMI_RUNTIME_LOCAL_LLAMA_BASE_URL

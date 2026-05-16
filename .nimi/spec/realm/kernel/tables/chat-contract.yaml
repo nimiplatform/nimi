@@ -2,6 +2,80 @@ contract_id: CHAT-CONTRACT-001
 domain: chat
 status: ACTIVE
 version: 2026-05-15
+table_family: product_catalog
+catalog_id: realm_chat_contract
+entries:
+  - human_spec
+  - openapi
+  - prisma
+  - services
+  - R-CHAT-001
+  - R-CHAT-002
+  - R-CHAT-003
+  - R-CHAT-004
+  - R-CHAT-005
+  - R-CHAT-006
+  - R-CHAT-007
+  - R-CHAT-008
+  - R-CHAT-009
+  - R-CHAT-010
+  - R-CHAT-011
+  - R-CHAT-012
+  - R-CHAT-013
+  - R-CHAT-014
+  - R-CHAT-015
+  - R-CHAT-016
+  - R-CHAT-017
+  - R-CHAT-018
+  - R-CHAT-019
+  - R-CHAT-020
+  - ChatThread
+  - ChatMessage
+  - GroupChatThread
+  - GroupParticipant
+  - GroupMessage
+  - RealmGroupAgentSlot
+  - RealmGroupMessageCandidateCommitPayload
+  - lifecycle_owner
+  - admission_admin_owner
+  - human_admission_gate
+  - anti_spoof_rule
+  - candidate_commit_handoff_owner
+  - runtime_candidate_owner
+  - candidate_evidence_verifier_owner
+  - agent_slot_identity_owner
+  - historical_agent_messages_posture
+  - required_operations
+  - secondary_operations
+  - Human chat surface is handled by
+    nimi-backend/apps/api/src/modules/chat/chat.controller.ts; group chat
+    surface is handled by
+    nimi-backend/apps/api/src/modules/group-chat/group-chat.controller.ts and
+    nimi-backend/libs/domains/chat/src/domains/group-chat.service.ts.
+  - GroupChatViewDto
+  - GroupParticipantDto
+  - GroupMessageAuthorDto
+  - GroupMessageViewDto
+  - ListGroupChatsResultDto
+  - ListGroupMessagesResultDto
+  - CreateGroupInputDto
+  - UpdateGroupInputDto
+  - AddGroupParticipantInputDto
+  - AddGroupAgentInputDto
+  - CommitRealmGroupMessageCandidateInputDto
+  - RealmGroupMessageCandidateCommitResultDto
+  - RealmGroupMessageCandidateSnapshotDto
+  - RealmGroupAgentSlotDto
+  - UpdateParticipantRoleInputDto
+  - ChatSyncResultDto
+  - Group lifecycle/admin, roster changes, and agent-auth anti-spoof are covered
+    by nimi-backend/libs/domains/chat/src/domains/group-chat.service.spec.ts,
+    with broader chat coverage in chat.controller.spec.ts and social integration
+    tests.
+  - Wave-1 must replace historical direct group agent message commit with
+    candidate commit-handoff tests that validate candidate lineage, evidence
+    hash, runtime trace ref, idempotency, moderation/refusal, audit, and no raw
+    text fallback.
 owner: '@team'
 sources:
   human_spec: ../chat-contract.md

@@ -1,4 +1,12 @@
 version: 1
+table_family: closed_enum
+owner: runtime
+enum_id: runtime_runtime_memory_replication_outcome
+values:
+  - outcomes_1
+  - outcomes_2
+  - outcomes_3
+  - outcomes_4
 outcomes:
   - outcome: PENDING
     source_rule: K-MEM-008

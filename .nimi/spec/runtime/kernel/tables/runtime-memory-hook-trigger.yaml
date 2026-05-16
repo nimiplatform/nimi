@@ -1,4 +1,15 @@
 version: 1
+table_family: closed_enum
+owner: runtime
+enum_id: runtime_runtime_memory_hook_trigger
+values:
+  - trigger_kinds_1
+  - trigger_kinds_2
+  - trigger_kinds_3
+  - trigger_kinds_4
+  - trigger_kinds_5
+  - trigger_kinds_6
+  - trigger_kinds_7
 trigger_kinds:
   - trigger_kind: TURN_COMPLETED
     source_rule: K-AGCORE-003

@@ -1,4 +1,21 @@
 version: 1
+table_family: protocol_surface
+owner: runtime
+protocol_id: runtime_rpc_methods
+surfaces:
+  - AIService
+  - RuntimeAiRealtimeService
+  - ConnectorService
+  - RuntimeLocalService
+  - RuntimeAuthService
+  - RuntimeGrantService
+  - RuntimeAccountService
+  - RuntimeWorkflowService
+  - RuntimeAuditService
+  - RuntimeModelService
+  - RuntimeCognitionService
+  - RuntimeAppService
+  - RuntimeAgentService
 services:
   - name: AIService
     source_rule: K-RPC-002

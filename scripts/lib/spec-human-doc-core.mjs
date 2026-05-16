@@ -517,17 +517,17 @@ export function renderCompletionGates(doc) {
 
 export function renderRuleEvidence(doc) {
   const rules = Array.isArray(doc?.rules) ? doc.rules : [];
-  let out = '| Rule ID | Status | Evidence Refs | Note |\n';
+  let out = '| Rule ID | Evidence Requirement | Evidence Refs | Note |\n';
   out += '|---|---|---|---|\n';
   for (const rule of rules) {
     const ruleID = String(rule?.rule_id || '').trim();
     if (!ruleID) continue;
-    const status = String(rule?.status || '').trim() || 'unknown';
+    const requirement = String(rule?.evidence_requirement || rule?.status || '').trim() || 'unknown';
     const refs = Array.isArray(rule?.evidence_refs)
       ? rule.evidence_refs.map((value) => `\`${String(value)}\``).join(', ')
       : '—';
     const note = String(rule?.note || '').trim() || '—';
-    out += `| ${ruleID} | ${status} | ${refs} | ${note} |\n`;
+    out += `| ${ruleID} | ${requirement} | ${refs} | ${note} |\n`;
   }
   return `${out}\n`;
 }

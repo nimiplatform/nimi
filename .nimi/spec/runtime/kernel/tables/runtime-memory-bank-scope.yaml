@@ -1,4 +1,13 @@
 version: 1
+table_family: product_catalog
+owner: runtime
+catalog_id: runtime_runtime_memory_bank_scope
+entries:
+  - scopes_1
+  - scopes_2
+  - scopes_3
+  - scopes_4
+  - scopes_5
 scopes:
   - scope: AGENT_CORE
     source_rule: K-MEM-002

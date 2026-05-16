@@ -1,4 +1,19 @@
 version: 1
+table_family: product_catalog
+owner: platform
+catalog_id: platform_participant_profiles
+entries:
+  - profiles_1
+  - profiles_2
+  - human
+  - nimi-agent
+  - external-agent
+  - external-app
+  - external-service
+  - device
+  - service
+  - render-app
+  - extension-app
 profiles:
   - participant_id: realm
     profile_ref: "realm.core-profile.v1.0.0"

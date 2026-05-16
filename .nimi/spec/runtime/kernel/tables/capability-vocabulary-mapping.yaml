@@ -1,3 +1,60 @@
+table_family: product_catalog
+owner: runtime
+catalog_id: runtime_capability_vocabulary_mapping
+entries:
+  - text.generate
+  - text.generate.vision
+  - text.generate.audio
+  - text.generate.video
+  - text.embed
+  - image.generate
+  - video.generate
+  - world.generate
+  - audio.synthesize
+  - audio.transcribe
+  - music.generate
+  - music.generate.iteration
+  - voice_workflow.voice_clone
+  - voice_workflow.voice_design
+  - chat
+  - vision
+  - audio_chat
+  - video_chat
+  - image
+  - video
+  - tts
+  - stt
+  - embedding
+  - LLM
+  - VISION
+  - IMAGE
+  - TTS
+  - STT
+  - CUSTOM
+  - local_to_canonical_1
+  - local_to_canonical_2
+  - local_to_canonical_3
+  - local_to_canonical_4
+  - local_to_canonical_5
+  - local_to_canonical_6
+  - local_to_canonical_7
+  - local_to_canonical_8
+  - local_to_canonical_9
+  - canonical_only_1
+  - canonical_only_2
+  - canonical_only_3
+  - canonical_only_4
+  - canonical_only_5
+  - huggingface_inference_1
+  - huggingface_inference_2
+  - huggingface_inference_3
+  - huggingface_inference_4
+  - huggingface_inference_5
+  - huggingface_inference_6
+  - huggingface_inference_7
+  - huggingface_inference_8
+  - huggingface_inference_9
+  - huggingface_inference_10
 # Capability Vocabulary Mapping
 # Resolves the dual-track conflict between K-MCAT-024 canonical tokens
 # and K-LOCAL-001/K-LOCAL-026 local runtime tokens.

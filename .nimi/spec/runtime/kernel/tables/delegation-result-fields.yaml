@@ -1,4 +1,36 @@
 version: 1
+table_family: protocol_surface
+owner: runtime
+protocol_id: runtime_delegation_result_fields
+surfaces:
+  - RECEIVED
+  - STREAMING
+  - COMPLETE
+  - FAILED
+  - TIMED_OUT
+  - CANCELED
+  - PROTOCOL_INVALID
+  - PROVIDER_DRIFTED
+  - DATA
+  - HEARTBEAT
+  - PROGRESS
+  - TERMINAL_SUCCESS
+  - TERMINAL_ERROR
+  - ACCEPTED_OBSERVATION
+  - ACCEPTED_SUGGESTION
+  - APPROVAL_REQUIRED
+  - QUARANTINED
+  - REJECTED
+  - SCHEMA_INVALID
+  - POLICY_BLOCKED
+  - HIGH
+  - MEDIUM
+  - LOW
+  - UNSUPPORTED
+  - EPHEMERAL_EVIDENCE
+  - REPLAY_EVIDENCE
+  - USER_VISIBLE_ARTIFACT
+  - QUARANTINED_EVIDENCE
 source_rule: K-DELEG-040
 result_states:
   - id: RECEIVED

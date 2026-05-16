@@ -90,7 +90,7 @@ Runtime kernel 的 RPC 覆盖范围为 admitted proto 服务与已定义的 desi
 14. `UpsertCatalogModelOverlay`
 15. `DeleteCatalogModelOverlay`
 
-ConnectorService 当前与 proto `RuntimeConnectorService` 对齐（见 `tables/rpc-migration-map.yaml` 中 `mapping_status=aligned`）。
+ConnectorService 当前与 proto `RuntimeConnectorService` 对齐（见 `tables/rpc-migration-map.yaml` 中 `mapping_state=aligned`）。
 
 ConnectorService 在 `CreateConnector` / `UpdateConnector` 上的 credential request shape 固定为：
 

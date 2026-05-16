@@ -1,4 +1,26 @@
 version: 1
+table_family: closed_enum
+owner: runtime
+enum_id: runtime_voice_enums
+values:
+  - unspecified
+  - voice_clone
+  - voice_design
+  - preset_voice_id
+  - voice_asset_id
+  - provider_voice_ref
+  - persistence_types_1
+  - persistence_types_2
+  - persistence_types_3
+  - handle_scopes_1
+  - handle_scopes_2
+  - delete_semantics_1
+  - delete_semantics_2
+  - asset_statuses_1
+  - asset_statuses_2
+  - asset_statuses_3
+  - asset_statuses_4
+  - asset_statuses_5
 workflow_types:
   - workflow_type: unspecified
     enum_name: VOICE_WORKFLOW_TYPE_UNSPECIFIED

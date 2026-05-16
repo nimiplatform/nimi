@@ -1,8 +1,36 @@
 version: 2
-rule_compliance:
+table_family: support_registry
+registry_id: runtime_rule_evidence_requirements
+owner: runtime
+schema_ref: .nimi/contracts/table-family.schema.yaml#support_registry
+allowed_fields:
+  - evidence_catalog
+  - rules
+  - rule_id
+  - evidence_requirement
+  - evidence_refs
+  - note
+  - na_reason
+  - evidence_scope_note
+  - test_files
+forbidden_state_fields:
+  - done
+  - covered
+  - coverage_status
+  - audit_date
+  - evidence_report
+  - current
+  - proposed
+  - backlog_status
+  - migration_status
+  - mapping_status
+  - run_id
+  - ledger_ref
+entries:
+  - evidence_catalog
+  - rules
+rule_registry:
   total_k_rules: 794
-  audit_date: "2026-05-01"
-
 fragments:
   evidence_catalog: rule-evidence.catalog.yaml
   rules:

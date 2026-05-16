@@ -1,4 +1,21 @@
 version: 1
+table_family: product_catalog
+owner: sdk
+catalog_id: sdk_runtime_method_groups
+entries:
+  - AIService
+  - ConnectorService
+  - RuntimeAiRealtimeService
+  - RuntimeLocalService
+  - RuntimeAuthService
+  - RuntimeGrantService
+  - RuntimeAccountService
+  - RuntimeWorkflowService
+  - RuntimeAuditService
+  - RuntimeModelService
+  - RuntimeCognitionService
+  - RuntimeAppService
+  - RuntimeAgentService
 groups:
   - group: ai_service_projection
     service: AIService

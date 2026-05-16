@@ -24,8 +24,8 @@ Desktop 规范验收门禁与执行证据契约，覆盖 kernel 规则集合 `D-
 ### Rule Traceability (D-GATE-080, D-BOOT-001, D-ERR-007, D-STATE-001, D-NET-002)
 
 - 全量 `D-*` 规则必须在 `.nimi/spec/desktop/kernel/tables/rule-evidence.yaml` 中存在唯一证据条目。
-- `status=covered` 必须绑定可执行门禁（`command`）且证据路径可解析到真实文件。
-- `status=na` 必须提供可校验 `na_reason`。
+- `evidence_requirement=required` 必须绑定可执行门禁（`command`）且证据路径可解析到真实文件。
+- `evidence_requirement=not_applicable` 必须提供可校验 `na_reason`。
 
 ### Gate Set & Feature Coverage (D-GATE-001, D-GATE-040, D-GATE-080)
 

@@ -192,15 +192,15 @@ function renderRuleEvidence(doc, sourceName) {
     const item = value && typeof value === 'object' ? value : {};
     out += `| \`${ref}\` | \`${String(item.type || '').trim() || '—'}\` | \`${String(item.command || '').trim() || '—'}\` | \`${String(item.path || '').trim() || '—'}\` | ${String(item.description || '').trim() || '—'} |\n`;
   }
-  out += '\n## Rule Coverage Matrix\n\n';
-  out += '| Rule ID | Status | Evidence Refs |\n';
+  out += '\n## Rule Evidence Requirements\n\n';
+  out += '| Rule ID | Evidence Requirement | Evidence Refs |\n';
   out += '|---|---|---|\n';
   for (const item of rules) {
     const ruleId = String(item?.rule_id || '').trim();
     if (!ruleId) continue;
     const refs = Array.isArray(item?.evidence_refs) ? item.evidence_refs : [];
     const refsText = refs.length > 0 ? refs.map((ref) => `\`${String(ref)}\``).join(', ') : '—';
-    out += `| \`${ruleId}\` | \`${String(item?.status || '').trim() || '—'}\` | ${refsText} |\n`;
+    out += `| \`${ruleId}\` | \`${String(item?.evidence_requirement || '').trim() || '—'}\` | ${refsText} |\n`;
   }
   out += '\n';
   return normalizeMarkdown(out);

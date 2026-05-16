@@ -1,4 +1,13 @@
 version: 2
+table_family: owner_matrix
+owner: runtime
+matrix_id: runtime_local_image_supervised_backend_matrix
+rows:
+  - kind
+  - engine
+  - engine_runtime_mode
+  - execution_endpoint
+  - consume_path
 canonical_public_contract:
   kind: image
   engine: media

@@ -1,3 +1,17 @@
+table_family: closed_enum
+owner: desktop
+enum_id: desktop_log_areas
+values:
+  - runtime
+  - renderer-bootstrap
+  - bridge
+  - datasync
+  - hook
+  - mod
+  - local-ai
+  - external-agent
+  - auth
+  - net
 # Desktop Log Areas
 # Source: apps/desktop/src/runtime/telemetry/logger.ts (area field)
 #         apps/desktop/src/shell/renderer/bridge/runtime-bridge/invoke.ts (bridge area)

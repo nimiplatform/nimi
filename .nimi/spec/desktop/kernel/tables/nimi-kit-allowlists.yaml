@@ -1,4 +1,10 @@
 version: 1
+table_family: owner_matrix
+owner: desktop
+matrix_id: desktop_nimi_kit_allowlists
+rows:
+  - allow.webkit_app_region
+  - allow.measured_panel_width
 app: desktop
 items:
   - id: allow.webkit_app_region

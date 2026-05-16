@@ -1,4 +1,12 @@
 version: 1
+table_family: product_catalog
+catalog_id: realm_under_spec_registry
+entries:
+  - U1
+  - U2
+  - U3
+  - U4
+  - U5
 updated_at: 2026-03-26
 owner: '@team'
 description: Registry of acknowledged under-specified items after the hard-cut realm refactor. Only high-impact intentional gaps that can change reader or implementation boundary judgment are listed here.

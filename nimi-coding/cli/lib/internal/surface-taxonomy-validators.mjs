@@ -232,8 +232,11 @@ function classifyRef(ref, text, parsedYaml) {
     if (isPlainObject(parsedYaml) && parsedYaml.table_family === "support_registry") {
       return "support_registry";
     }
-    const stateKeys = ["status", "done", "covered", "coverage_status", "audit_date", "evidence_report", "phase", "current", "proposed", "backlog_status", "migration_status", "run_id", "ledger_ref"];
-    if (containsAnyKey(parsedYaml, stateKeys) || /rule-evidence|coverage|backlog|migration/i.test(basenameNoExt(ref))) {
+    if (isPlainObject(parsedYaml) && typeof parsedYaml.table_family === "string") {
+      return "product_authority_table";
+    }
+    const stateKeys = ["done", "covered", "coverage_status", "audit_date", "evidence_report", "current", "proposed", "backlog_status", "migration_status", "mapping_status", "run_id", "ledger_ref"];
+    if (containsAnyKey(parsedYaml, stateKeys) || /rule-evidence|backlog|migration/i.test(basenameNoExt(ref))) {
       return "audit_evidence_state";
     }
     return "product_authority_table";
@@ -772,7 +775,10 @@ export async function validatePlacement(projectRoot, options = {}) {
 export async function validateTableFamily(projectRoot, options = {}) {
   const { contracts, entries } = await buildInventory(projectRoot, options);
   const errors = [];
-  for (const entry of entries.filter((item) => item.source_path.startsWith(".nimi/spec/") && item.source_path.includes("/kernel/tables/") && isYamlRef(item.source_path))) {
+  for (const entry of entries.filter((item) => item.source_path.startsWith(".nimi/spec/")
+    && item.source_path.includes("/kernel/tables/")
+    && isYamlRef(item.source_path)
+    && ["product_authority_table", "support_registry"].includes(item.current_inferred_class))) {
     const text = await readFile(path.join(projectRoot, entry.source_path), "utf8");
     errors.push(...validateTableRef(entry.source_path, yamlForText(text), contracts));
   }

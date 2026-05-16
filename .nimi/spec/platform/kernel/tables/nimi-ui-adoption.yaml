@@ -1,2 +1,7 @@
 version: 1
+table_family: owner_matrix
+owner: platform
+matrix_id: platform_nimi_ui_adoption
+rows:
+  - platform_nimi_ui_adoption
 modules: []

@@ -1,4 +1,14 @@
 version: 1
+table_family: product_catalog
+owner: runtime
+catalog_id: runtime_state_transitions
+entries:
+  - machines_1
+  - machines_2
+  - machines_3
+  - machines_4
+  - machines_5
+  - machines_6
 machines:
   - machine: connector_status
     states: [ACTIVE, DISABLED]

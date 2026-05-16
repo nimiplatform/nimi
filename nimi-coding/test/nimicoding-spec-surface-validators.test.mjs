@@ -153,7 +153,7 @@ test("validate-table-family fails when a kernel table has no table_family", asyn
   });
 });
 
-test("validate-table-family fails when rule evidence stores coverage status under kernel tables", async () => {
+test("validate-placement fails when rule evidence stores coverage status under kernel tables", async () => {
   await withTempProject(async (projectRoot) => {
     await seedValidRuntimeTableProject(projectRoot);
     await writeProjectFile(
@@ -165,12 +165,12 @@ test("validate-table-family fails when rule evidence stores coverage status unde
       }),
     );
 
-    const result = await runCliSubprocess(["validate-table-family", "--profile", "nimi", "--root", ".nimi/spec", "--json"], { cwd: projectRoot });
+    const result = await runCliSubprocess(["validate-placement", "--profile", "nimi", "--root", ".nimi/spec", "--json"], { cwd: projectRoot });
     assert.equal(result.exitCode, 1);
     const payload = JSON.parse(result.stdout);
-    assert.equal(payload.validator, "validate-table-family");
+    assert.equal(payload.validator, "validate-placement");
     assert.equal(payload.ok, false);
-    assert.match(JSON.stringify(payload.errors), /table_contains_forbidden_state_or_audit_field/);
+    assert.match(JSON.stringify(payload.errors), /audit_evidence_state_under_spec/);
   });
 });
 

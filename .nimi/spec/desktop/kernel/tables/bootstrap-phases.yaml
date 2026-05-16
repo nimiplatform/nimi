@@ -1,3 +1,17 @@
+table_family: product_catalog
+owner: desktop
+catalog_id: desktop_bootstrap_phases
+entries:
+  - phases_1
+  - phases_2
+  - phases_3
+  - phases_4
+  - phases_5
+  - phases_6
+  - phases_7
+  - phases_8
+  - constraints_1
+  - constraints_2
 # Desktop Bootstrap Phases
 # Source: apps/desktop/src/shell/renderer/infra/bootstrap/runtime-bootstrap.ts
 

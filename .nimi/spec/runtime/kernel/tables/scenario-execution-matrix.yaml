@@ -1,4 +1,9 @@
 version: 1
+table_family: owner_matrix
+owner: runtime
+matrix_id: runtime_scenario_execution_matrix
+rows:
+  - runtime_scenario_execution_matrix
 entries:
   - scenario_type: TEXT_GENERATE
     canonical_modality: text

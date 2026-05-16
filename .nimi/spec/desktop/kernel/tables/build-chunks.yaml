@@ -1,3 +1,19 @@
+table_family: product_catalog
+owner: desktop
+catalog_id: desktop_build_chunks
+entries:
+  - chunks_1
+  - chunks_2
+  - chunks_3
+  - chunks_4
+  - chunks_5
+  - chunks_6
+  - chunks_7
+  - chunks_8
+  - chunks_9
+  - chunks_10
+  - chunks_11
+  - chunks_12
 # Desktop Vite Build Chunks
 # Source: apps/desktop/vite.config.ts (manualChunks / lazy imports in main-layout-view.tsx)
 

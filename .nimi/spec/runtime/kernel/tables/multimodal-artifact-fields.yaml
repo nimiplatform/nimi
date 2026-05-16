@@ -1,4 +1,18 @@
 version: 1
+table_family: protocol_surface
+owner: runtime
+protocol_id: runtime_multimodal_artifact_fields
+surfaces:
+  - uri
+  - mime_type
+  - size_bytes
+  - width
+  - height
+  - duration_ms
+  - speech_alignment.unit
+  - speech_alignment.tokens[].token
+  - speech_alignment.tokens[].start_ms
+  - speech_alignment.tokens[].end_ms
 fields:
   - field: uri
     required: true

@@ -1,4 +1,15 @@
 version: 1
+table_family: product_catalog
+owner: platform
+catalog_id: platform_audit_evidence_roots
+entries:
+  - platform-web-release
+  - platform-shared-tauri-kit
+  - platform-host-local-nimicoding-projection
+  - spec-generation-audit-nimicoding-implementation
+  - platform-repository-governance
+  - runtime-proto-root-governance
+  - sdk-root-package-governance
 roots:
   - id: platform-web-release
     owner_domain: platform

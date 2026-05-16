@@ -1,2 +1,7 @@
 version: 1
+table_family: product_catalog
+owner: platform
+catalog_id: platform_nimi_ui_compositions
+entries:
+  - platform_nimi_ui_compositions
 components: []

@@ -1,4 +1,28 @@
 version: 1
+table_family: product_catalog
+owner: runtime
+catalog_id: runtime_realm_group_participation_context
+entries:
+  - R-CHAT-008
+  - R-CHAT-009
+  - R-CHAT-010
+  - R-CHAT-011
+  - R-CHAT-016
+  - group_thread_ref
+  - membership_snapshot_ref
+  - agent_slot_ref
+  - trigger_event_ref
+  - read_cursor_ref
+  - reply_target_ref
+  - room_orchestration_ref
+  - realm_commit_handoff_ref
+  - open_context_block_kind_allowed
+  - raw_prompt_blob_public_input
+  - provider_model_hint_from_realm_or_app
+  - direct_realm_commit_handle
+  - app_local_reply_queue
+  - canonical_chat_history_default_context
+  - group_limited_capability_enum
 source_rule: K-AGCORE-120
 realm_product_rules:
   - R-CHAT-008

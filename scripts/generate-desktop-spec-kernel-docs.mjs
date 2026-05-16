@@ -779,18 +779,18 @@ function renderRuleEvidence(doc, sourceName) {
   }
   out += '\n';
 
-  out += '## Rule Coverage Matrix\n\n';
-  out += '| Rule ID | Status | Evidence Refs |\n';
+  out += '## Rule Evidence Requirements\n\n';
+  out += '| Rule ID | Evidence Requirement | Evidence Refs |\n';
   out += '|---|---|---|\n';
   for (const item of rules) {
     const ruleId = String(item?.rule_id || '').trim();
     if (!ruleId) continue;
-    const status = String(item?.status || '').trim() || '—';
+    const requirement = String(item?.evidence_requirement || '').trim() || '—';
     const refs = Array.isArray(item?.evidence_refs) ? item.evidence_refs : [];
     const refsText = refs.length > 0
       ? refs.map((ref) => `\`${String(ref)}\``).join(', ')
       : '—';
-    out += `| \`${ruleId}\` | \`${status}\` | ${refsText} |\n`;
+    out += `| \`${ruleId}\` | \`${requirement}\` | ${refsText} |\n`;
   }
   out += '\n';
 

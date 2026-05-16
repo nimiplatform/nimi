@@ -2,6 +2,21 @@ contract_id: BINDING-CONTRACT-001
 domain: binding
 status: ACTIVE
 version: 2026-03-26
+table_family: product_catalog
+catalog_id: realm_binding_contract
+entries:
+  - human_spec
+  - openapi
+  - prisma
+  - services
+  - R-BIND-001
+  - R-BIND-002
+  - R-BIND-003
+  - R-BIND-004
+  - R-BIND-005
+  - Binding
+  - required_operations
+  - secondary_operations
 owner: '@team'
 sources:
   human_spec: ../binding-contract.md

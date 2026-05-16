@@ -458,12 +458,12 @@ function main() {
         pushIssue(issues, 'alignment-map', `${externalId}: local anchor missing ${anchor}`);
       }
     }
-    const coverageStatus = String(row.coverage_status || '').trim();
-    if (coverageStatus !== 'mapped' && coverageStatus !== 'blocked') {
-      pushIssue(issues, 'alignment-map', `${externalId}: coverage_status must be mapped or blocked`);
+    const mappingState = String(row.mapping_state || '').trim();
+    if (mappingState !== 'mapped' && mappingState !== 'blocked') {
+      pushIssue(issues, 'alignment-map', `${externalId}: mapping_state must be mapped or blocked`);
     }
-    if (coverageStatus === 'blocked' && !BLOCKED_BIND_RULE_ID_PATTERN.test(externalId)) {
-      pushIssue(issues, 'alignment-map', `${externalId}: blocked coverage_status is reserved for R-BIND rows`);
+    if (mappingState === 'blocked' && !BLOCKED_BIND_RULE_ID_PATTERN.test(externalId)) {
+      pushIssue(issues, 'alignment-map', `${externalId}: blocked mapping_state is reserved for R-BIND rows`);
     }
   }
 

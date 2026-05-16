@@ -1,4 +1,15 @@
 version: 1
+table_family: product_catalog
+owner: runtime
+catalog_id: runtime_key_source_truth_table
+entries:
+  - managed_with_connector_id
+  - managed_missing_connector_id
+  - inline_complete_with_default_endpoint
+  - inline_missing_provider_type
+  - inline_missing_api_key
+  - inline_missing_required_endpoint
+  - conflict_connector_and_inline
 cases:
   - id: managed_with_connector_id
     key_source: omitted_or_managed

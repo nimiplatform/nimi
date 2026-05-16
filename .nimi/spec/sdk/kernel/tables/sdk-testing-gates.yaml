@@ -1,4 +1,25 @@
 version: 1
+table_family: product_catalog
+owner: sdk
+catalog_id: sdk_sdk_testing_gates
+entries:
+  - unit_module
+  - consumer_smoke
+  - boundary_checks
+  - vnext_matrix
+  - mod_scope
+  - runtime_projection
+  - coverage
+  - provider_alignment
+  - live_smoke
+  - version_matrix
+  - release_parity
+  - generated_type_quality
+  - realm_generator_smoke
+  - fallback_hardcut
+  - unsafe_raw_usage
+  - spec_consistency
+  - docs_drift
 gates:
   - gate: unit_module
     command: pnpm --filter @nimiplatform/sdk test

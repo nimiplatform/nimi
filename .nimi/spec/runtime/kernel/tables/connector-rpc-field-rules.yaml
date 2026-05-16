@@ -1,4 +1,26 @@
 version: 1
+table_family: protocol_surface
+owner: runtime
+protocol_id: runtime_connector_rpc_field_rules
+surfaces:
+  - result.kind
+  - api_key
+  - endpoint
+  - label
+  - status/created_at/updated_at
+  - mutable_fields
+  - update_mask.paths
+  - update_mask
+  - patch_semantics
+  - status
+  - updated_at
+  - catalog_read
+  - credential
+  - deletion_flow
+  - remote_precheck
+  - remote_catalog_read
+  - page_size/page_token
+  - next_page_token
 rules:
   - rpc: CreateConnector
     field: result.kind

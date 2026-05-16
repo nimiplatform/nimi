@@ -1,4 +1,41 @@
 version: 1
+table_family: product_catalog
+owner: runtime
+catalog_id: runtime_local_environment_dependencies
+entries:
+  - dependency_families_1
+  - dependency_families_2
+  - dependency_families_3
+  - dependency_families_4
+  - dependency_families_5
+  - dependency_families_6
+  - dependency_families_7
+  - dependency_families_8
+  - dependency_families_9
+  - dependency_families_10
+  - dependency families are resolved by Runtime local environment plan before
+    activation
+  - uv, Python, venv, package sets, and Torch wheels are managed dependency
+    families, not user prerequisites
+  - engine package selection consumes dependency graph truth and must not select
+    private prerequisites
+  - model import may request a plan but must not become dependency source truth
+  - imported model and companion assets may produce model-family selected source
+    records only; they must not become Python, uv, CUDA, DLL, package-manager,
+    or native engine package roots
+  - missing uv, Python runtime, venv, package set, Torch wheel, native package,
+    model asset, or companion asset readiness projects Runtime local environment
+    setup or repair state, not ordinary-user package-manager or PATH
+    prerequisites
+  - companion asset dependency identity includes parent asset binding so
+    companion records cannot collide across parent model assets
+  - startup, route resolution, Desktop page load, SDK reads, passive import
+    review, health probes, and background maintenance must not trigger first
+    heavy or network materialization
+  - no dependency family may mutate user PATH, machine PATH, shell profiles, or
+    system CUDA
+  - missing, incompatible, corrupt, cancelled, or unconfirmed dependencies fail
+    closed
 
 # Canonical Runtime local environment dependency graph authority.
 # This table supersedes dependency truth scattered across engine installers,

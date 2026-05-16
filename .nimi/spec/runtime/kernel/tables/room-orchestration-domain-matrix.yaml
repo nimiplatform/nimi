@@ -1,4 +1,7 @@
 version: 1
+table_family: owner_matrix
+owner: runtime
+matrix_id: runtime_room_orchestration_domain_matrix
 source_rule: K-AGCORE-110
 closed_matrix: true
 axis_model: .nimi/spec/runtime/kernel/tables/room-orchestration-axis-model.yaml

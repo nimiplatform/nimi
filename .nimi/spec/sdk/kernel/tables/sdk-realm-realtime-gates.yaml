@@ -1,4 +1,11 @@
 version: 1
+table_family: product_catalog
+owner: sdk
+catalog_id: sdk_sdk_realm_realtime_gates
+entries:
+  - realtime_auth
+  - reconnect_delivery
+  - event_ownership
 gates:
   - gate: realtime_auth
     requirement: reconnect must inject latest token

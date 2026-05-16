@@ -1,4 +1,22 @@
 version: 1
+table_family: product_catalog
+owner: platform
+catalog_id: platform_nimi_kit_registry
+entries:
+  - kit.ui
+  - kit.auth
+  - kit.core
+  - kit.shell.tauri
+  - kit.shell.renderer
+  - kit.core.runtime-capabilities
+  - kit.core.model-config
+  - kit.telemetry
+  - kit.features.chat
+  - kit.features.avatar
+  - kit.features.model-picker
+  - kit.features.model-config
+  - kit.features.generation
+  - kit.features.commerce
 modules:
   - id: kit.ui
     subpath: /ui

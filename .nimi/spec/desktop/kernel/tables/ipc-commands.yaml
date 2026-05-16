@@ -1,3 +1,21 @@
+table_family: protocol_surface
+owner: desktop
+protocol_id: desktop_ipc_commands
+surfaces:
+  - runtime-defaults
+  - auth-session
+  - desktop-release
+  - desktop-update
+  - system
+  - http
+  - ui
+  - oauth
+  - telemetry
+  - mod-local
+  - external-agent
+  - runtime-bridge
+  - runtime-daemon
+  - local-runtime
 # Desktop IPC Commands (Tauri invoke)
 # Source of truth: apps/desktop/src-tauri/src/main_parts/app_bootstrap.rs
 # Synced: 2026-03-09

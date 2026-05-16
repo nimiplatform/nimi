@@ -1,4 +1,27 @@
 version: 1
+table_family: product_catalog
+owner: runtime
+catalog_id: runtime_room_orchestration_domain_overlays
+entries:
+  - realm_group
+  - scenario_sandbox
+  - oasis_world
+  - avatar_companion_presentation_room
+  - external_entry_inside_room
+  - canonical_chat_adjacency
+  - source_rule
+  - overlay_only
+  - new_matrix_rows
+  - new_matrix_columns
+  - new_axes
+  - new_owner_cells
+  - private_schedulers
+  - app_local_room_queues
+  - domain_owned_fairness_budget_cancellation_timeout
+  - direct_domain_commit
+  - external_gateway_bypass
+  - public_runtime_orchestration_status_namespace
+  - status_projection_namespace
 source_rule: K-AGCORE-116
 overlay_only: true
 matrix_ref: .nimi/spec/runtime/kernel/tables/room-orchestration-domain-matrix.yaml

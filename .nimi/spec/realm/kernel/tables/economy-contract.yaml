@@ -2,6 +2,23 @@ contract_id: ECONOMY-CONTRACT-001
 domain: economy
 status: ACTIVE
 version: 2026-03-23
+table_family: product_catalog
+catalog_id: realm_economy_contract
+entries:
+  - human_spec
+  - openapi
+  - prisma
+  - services
+  - R-ECON-001
+  - R-ECON-002
+  - R-ECON-003
+  - R-ECON-004
+  - Subscription
+  - GiftTransaction
+  - Review
+  - CurrencyTransaction
+  - required_operations
+  - secondary_operations
 owner: '@team'
 sources:
   human_spec: ../economy-contract.md

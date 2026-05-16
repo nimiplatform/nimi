@@ -1,4 +1,28 @@
 version: 1
+table_family: owner_matrix
+owner: runtime
+matrix_id: runtime_agent_participation_external_entry_boundaries
+rows:
+  - MCP_BACKED_AI_CAPABILITY
+  - EXTERNAL_A2A_AGENT
+  - source_rule
+  - external_principal_memory_writeback
+  - external_principal_cognition_writeback
+  - external_principal_canonical_chat_writeback
+  - external_principal_realm_group_commit
+  - external_principal_product_domain_commit
+  - app_desktop_avatar_mod_direct_protocol_client
+  - side_audit_store
+  - protocol_rule_rewrite_in_participation_wave
+  - required_order
+  - pre_verdict_consumption
+  - missing_verdict_policy
+  - production_a2a_claim
+  - direct_mcp_client_outside_runtime_delegated_adapter
+  - direct_a2a_client_outside_future_admitted_runtime_adapter
+  - raw_protocol_payload_public_field
+  - k_deleg_redefinition
+  - fake_external_server_success
 source_rule: K-AGCORE-089
 boundary_entries:
   - id: MCP_BACKED_AI_CAPABILITY

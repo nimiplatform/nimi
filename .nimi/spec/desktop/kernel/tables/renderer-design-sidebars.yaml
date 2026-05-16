@@ -1,4 +1,11 @@
 version: 1
+table_family: product_catalog
+owner: desktop
+catalog_id: desktop_renderer_design_sidebars
+entries:
+  - contacts.sidebar
+  - runtime.sidebar
+  - settings.sidebar
 sidebars:
   - id: contacts.sidebar
     module: features/contacts/contacts-view.tsx

@@ -1,117 +1,299 @@
-- rule_id: K-MMPROV-001
-  status: covered
-  evidence_refs: [runtime_kernel_consistency, runtime_go_test, runtime_provider_checks]
-- rule_id: K-MMPROV-002
-  status: covered
-  evidence_refs: [runtime_kernel_consistency, runtime_go_test, runtime_provider_checks]
-- rule_id: K-MMPROV-003
-  status: covered
-  evidence_refs: [runtime_kernel_consistency, runtime_go_test, runtime_provider_checks]
-- rule_id: K-MMPROV-004
-  status: covered
-  evidence_refs: [runtime_kernel_consistency, runtime_go_test, runtime_provider_checks]
-- rule_id: K-MMPROV-005
-  status: covered
-  evidence_refs: [runtime_kernel_consistency, runtime_go_test, runtime_provider_checks]
-- rule_id: K-MMPROV-006
-  status: covered
-  evidence_refs: [runtime_kernel_consistency, runtime_go_test, runtime_provider_checks]
-- rule_id: K-MMPROV-007
-  status: covered
-  evidence_refs: [runtime_kernel_consistency, runtime_go_test, runtime_provider_checks]
-- rule_id: K-MMPROV-008
-  status: covered
-  evidence_refs: [runtime_kernel_consistency, runtime_go_test, runtime_provider_checks]
-- rule_id: K-MMPROV-009
-  status: covered
-  evidence_refs: [runtime_kernel_consistency, runtime_go_test, runtime_provider_checks]
-- rule_id: K-MMPROV-010
-  status: covered
-  evidence_refs: [runtime_kernel_consistency, runtime_go_test, runtime_provider_checks]
-- rule_id: K-MMPROV-011
-  status: covered
-  evidence_refs: [runtime_kernel_consistency, runtime_go_test, runtime_provider_checks]
-- rule_id: K-MMPROV-012
-  status: covered
-  evidence_refs: [runtime_kernel_consistency, runtime_go_test, runtime_provider_checks]
-- rule_id: K-MMPROV-013
-  status: covered
-  evidence_refs: [runtime_kernel_consistency, runtime_go_test, runtime_provider_checks]
-- rule_id: K-MMPROV-014
-  status: covered
-  evidence_refs: [runtime_kernel_consistency, runtime_go_test, runtime_provider_checks]
-- rule_id: K-MMPROV-015
-  status: covered
-  evidence_refs: [runtime_kernel_consistency, runtime_go_test, runtime_provider_checks]
-- rule_id: K-MMPROV-016
-  status: covered
-  evidence_refs: [runtime_kernel_consistency, runtime_go_test, runtime_provider_checks]
-- rule_id: K-MMPROV-017
-  status: covered
-  evidence_refs: [runtime_kernel_consistency, runtime_go_test, runtime_provider_checks]
-- rule_id: K-MMPROV-018
-  status: covered
-  evidence_refs: [runtime_kernel_consistency, runtime_go_test, runtime_provider_checks]
-- rule_id: K-MMPROV-019
-  status: covered
-  evidence_refs: [runtime_kernel_consistency, runtime_go_test, runtime_provider_checks]
-- rule_id: K-MMPROV-020
-  status: covered
-  evidence_refs: [runtime_kernel_consistency, runtime_go_test, runtime_provider_checks]
-- rule_id: K-MMPROV-021
-  status: covered
-  evidence_refs: [runtime_kernel_consistency, runtime_go_test, runtime_provider_checks]
-- rule_id: K-MMPROV-022
-  status: covered
-  evidence_refs: [runtime_kernel_consistency, runtime_go_test, runtime_provider_checks]
-- rule_id: K-MMPROV-023
-  status: covered
-  evidence_refs: [runtime_kernel_consistency, runtime_go_test, runtime_provider_checks]
-- rule_id: K-MMPROV-023a
-  status: covered
-  evidence_refs: [runtime_kernel_consistency, runtime_go_test]
-- rule_id: K-MMPROV-024
-  status: covered
-  evidence_refs: [runtime_kernel_consistency, runtime_go_test, runtime_provider_checks]
-- rule_id: K-MMPROV-025
-  status: covered
-  evidence_refs: [runtime_kernel_consistency, runtime_go_test, runtime_provider_checks]
-- rule_id: K-MMPROV-026
-  status: covered
-  evidence_refs: [runtime_kernel_consistency, runtime_go_test, runtime_provider_checks]
-- rule_id: K-MMPROV-027
-  status: covered
-  evidence_refs: [runtime_kernel_consistency, runtime_go_test, runtime_provider_checks]
-- rule_id: K-MMPROV-028
-  status: covered
-  evidence_refs: [runtime_kernel_consistency, runtime_go_test, runtime_provider_checks]
-- rule_id: K-MMPROV-029
-  status: covered
-  evidence_refs: [runtime_kernel_consistency, runtime_go_test, runtime_provider_checks]
-- rule_id: K-MMPROV-030
-  status: covered
-  evidence_refs: [runtime_kernel_consistency, runtime_go_test, runtime_provider_checks]
-- rule_id: K-MMPROV-031
-  status: covered
-  evidence_refs: [runtime_kernel_consistency, runtime_go_test, runtime_provider_checks]
-- rule_id: K-MMPROV-032
-  status: covered
-  evidence_refs: [runtime_kernel_consistency, runtime_go_test, runtime_provider_checks]
-- rule_id: K-MMPROV-033
-  status: covered
-  evidence_refs: [runtime_kernel_consistency, runtime_go_test, runtime_provider_checks]
-- rule_id: K-MMPROV-034
-  status: covered
-  evidence_refs: [runtime_kernel_consistency, runtime_go_test, runtime_provider_checks]
-- rule_id: K-MMPROV-035
-  status: covered
-  evidence_refs: [runtime_kernel_consistency, runtime_go_test, runtime_provider_checks]
-- rule_id: K-MMPROV-036
-  status: covered
-  evidence_refs: [runtime_kernel_consistency, runtime_go_test, runtime_provider_checks]
-- rule_id: K-MMPROV-037
-  status: covered
-  evidence_refs: [runtime_kernel_consistency, runtime_go_test, runtime_proto_linkage]
-- rule_id: K-MMPROV-038
-  status: covered
-  evidence_refs: [runtime_kernel_consistency, runtime_go_test, runtime_provider_checks]
+table_family: support_registry
+registry_id: runtime_multimodal_rule_evidence_requirement_rules
+owner: runtime
+schema_ref: .nimi/contracts/table-family.schema.yaml#support_registry
+allowed_fields:
+  - rule_id
+  - evidence_requirement
+  - evidence_refs
+  - note
+  - na_reason
+  - evidence_scope_note
+  - test_files
+forbidden_state_fields:
+  - done
+  - covered
+  - coverage_status
+  - audit_date
+  - evidence_report
+  - current
+  - proposed
+  - backlog_status
+  - migration_status
+  - mapping_status
+  - run_id
+  - ledger_ref
+entries:
+  - K-MMPROV-001
+  - K-MMPROV-002
+  - K-MMPROV-003
+  - K-MMPROV-004
+  - K-MMPROV-005
+  - K-MMPROV-006
+  - K-MMPROV-007
+  - K-MMPROV-008
+  - K-MMPROV-009
+  - K-MMPROV-010
+  - K-MMPROV-011
+  - K-MMPROV-012
+  - K-MMPROV-013
+  - K-MMPROV-014
+  - K-MMPROV-015
+  - K-MMPROV-016
+  - K-MMPROV-017
+  - K-MMPROV-018
+  - K-MMPROV-019
+  - K-MMPROV-020
+  - K-MMPROV-021
+  - K-MMPROV-022
+  - K-MMPROV-023
+  - K-MMPROV-023a
+  - K-MMPROV-024
+  - K-MMPROV-025
+  - K-MMPROV-026
+  - K-MMPROV-027
+  - K-MMPROV-028
+  - K-MMPROV-029
+  - K-MMPROV-030
+  - K-MMPROV-031
+  - K-MMPROV-032
+  - K-MMPROV-033
+  - K-MMPROV-034
+  - K-MMPROV-035
+  - K-MMPROV-036
+  - K-MMPROV-037
+  - K-MMPROV-038
+rules:
+  - rule_id: K-MMPROV-001
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_provider_checks
+    evidence_requirement: required
+  - rule_id: K-MMPROV-002
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_provider_checks
+    evidence_requirement: required
+  - rule_id: K-MMPROV-003
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_provider_checks
+    evidence_requirement: required
+  - rule_id: K-MMPROV-004
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_provider_checks
+    evidence_requirement: required
+  - rule_id: K-MMPROV-005
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_provider_checks
+    evidence_requirement: required
+  - rule_id: K-MMPROV-006
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_provider_checks
+    evidence_requirement: required
+  - rule_id: K-MMPROV-007
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_provider_checks
+    evidence_requirement: required
+  - rule_id: K-MMPROV-008
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_provider_checks
+    evidence_requirement: required
+  - rule_id: K-MMPROV-009
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_provider_checks
+    evidence_requirement: required
+  - rule_id: K-MMPROV-010
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_provider_checks
+    evidence_requirement: required
+  - rule_id: K-MMPROV-011
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_provider_checks
+    evidence_requirement: required
+  - rule_id: K-MMPROV-012
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_provider_checks
+    evidence_requirement: required
+  - rule_id: K-MMPROV-013
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_provider_checks
+    evidence_requirement: required
+  - rule_id: K-MMPROV-014
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_provider_checks
+    evidence_requirement: required
+  - rule_id: K-MMPROV-015
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_provider_checks
+    evidence_requirement: required
+  - rule_id: K-MMPROV-016
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_provider_checks
+    evidence_requirement: required
+  - rule_id: K-MMPROV-017
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_provider_checks
+    evidence_requirement: required
+  - rule_id: K-MMPROV-018
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_provider_checks
+    evidence_requirement: required
+  - rule_id: K-MMPROV-019
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_provider_checks
+    evidence_requirement: required
+  - rule_id: K-MMPROV-020
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_provider_checks
+    evidence_requirement: required
+  - rule_id: K-MMPROV-021
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_provider_checks
+    evidence_requirement: required
+  - rule_id: K-MMPROV-022
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_provider_checks
+    evidence_requirement: required
+  - rule_id: K-MMPROV-023
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_provider_checks
+    evidence_requirement: required
+  - rule_id: K-MMPROV-023a
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-MMPROV-024
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_provider_checks
+    evidence_requirement: required
+  - rule_id: K-MMPROV-025
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_provider_checks
+    evidence_requirement: required
+  - rule_id: K-MMPROV-026
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_provider_checks
+    evidence_requirement: required
+  - rule_id: K-MMPROV-027
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_provider_checks
+    evidence_requirement: required
+  - rule_id: K-MMPROV-028
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_provider_checks
+    evidence_requirement: required
+  - rule_id: K-MMPROV-029
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_provider_checks
+    evidence_requirement: required
+  - rule_id: K-MMPROV-030
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_provider_checks
+    evidence_requirement: required
+  - rule_id: K-MMPROV-031
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_provider_checks
+    evidence_requirement: required
+  - rule_id: K-MMPROV-032
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_provider_checks
+    evidence_requirement: required
+  - rule_id: K-MMPROV-033
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_provider_checks
+    evidence_requirement: required
+  - rule_id: K-MMPROV-034
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_provider_checks
+    evidence_requirement: required
+  - rule_id: K-MMPROV-035
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_provider_checks
+    evidence_requirement: required
+  - rule_id: K-MMPROV-036
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_provider_checks
+    evidence_requirement: required
+  - rule_id: K-MMPROV-037
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_proto_linkage
+    evidence_requirement: required
+  - rule_id: K-MMPROV-038
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_provider_checks
+    evidence_requirement: required

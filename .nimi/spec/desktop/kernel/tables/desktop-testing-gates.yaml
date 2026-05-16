@@ -1,4 +1,20 @@
 version: 1
+table_family: product_catalog
+owner: desktop
+catalog_id: desktop_desktop_testing_gates
+entries:
+  - unit_contract_mock
+  - rust_tauri_integration
+  - desktop_e2e_smoke
+  - desktop_e2e_journeys
+  - selector_testability
+  - os_matrix
+  - desktop_macos_automated_smoke
+  - release_parity
+  - spec_consistency
+  - docs_drift
+  - design_contract
+  - design_adoption
 gates:
   - gate: unit_contract_mock
     command: pnpm --filter @nimiplatform/desktop test

@@ -2,6 +2,21 @@ contract_id: SOCIAL-CONTRACT-001
 domain: social
 status: ACTIVE
 version: 2026-03-23
+table_family: product_catalog
+catalog_id: realm_social_contract
+entries:
+  - human_spec
+  - openapi
+  - prisma
+  - services
+  - R-SOC-001
+  - R-SOC-002
+  - R-SOC-003
+  - R-SOC-004
+  - Friendship
+  - SocialPrecondition
+  - required_operations
+  - secondary_operations
 owner: '@team'
 sources:
   human_spec: ../social-contract.md

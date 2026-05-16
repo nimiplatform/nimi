@@ -1,4 +1,31 @@
 version: 1
+table_family: owner_matrix
+owner: desktop
+matrix_id: desktop_nimi_kit_adoption
+rows:
+  - style
+  - bootstrap
+  - theme_provider
+  - desktop.app_shell.routes
+  - desktop.contacts.sidebar
+  - desktop.runtime.sidebar
+  - desktop.runtime.shared
+  - desktop.runtime.overview.page
+  - desktop.runtime.runtime.page
+  - desktop.runtime.audit.section
+  - desktop.runtime.debug.section
+  - desktop.runtime.health.section
+  - desktop.runtime.usage.section
+  - desktop.runtime.local.catalog.page
+  - desktop.runtime.local.catalog.card
+  - desktop.runtime.local.page
+  - desktop.settings.sidebar
+  - desktop.world.detail.exception
+  - desktop.chat.avatar.live2d.exception
+  - desktop.chat.avatar.vrm.exception
+  - desktop.contacts.profile-detail.exception
+  - desktop.no_legacy_brand_or_accent_aliases
+  - desktop.no_motion_base_alias
 app: desktop
 app_entry:
   style: apps/desktop/src/shell/renderer/styles.css

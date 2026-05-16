@@ -1,4 +1,15 @@
 version: 1
+table_family: closed_enum
+owner: runtime
+enum_id: runtime_job_states
+values:
+  - SUBMITTED
+  - QUEUED
+  - RUNNING
+  - COMPLETED
+  - FAILED
+  - CANCELED
+  - TIMEOUT
 states:
   - state: SUBMITTED
     terminal: false

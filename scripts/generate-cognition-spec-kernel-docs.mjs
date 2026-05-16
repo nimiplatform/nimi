@@ -40,14 +40,13 @@ function header(title, sourceName) {
 }
 
 function renderRuleEvidence(doc, sourceName) {
-  const compliance = doc?.rule_compliance ?? {};
+  const registry = doc?.rule_registry ?? {};
   const rules = Array.isArray(doc?.rules) ? doc.rules : [];
   let out = header('Generated Cognition Rule Evidence', sourceName);
 
   out += '| Metric | Value |\n';
   out += '|---|---|\n';
-  out += `| \`total_c_rules\` | ${String(compliance?.total_c_rules ?? '—')} |\n`;
-  out += `| \`audit_date\` | ${String(compliance?.audit_date ?? '—')} |\n`;
+  out += `| \`total_c_rules\` | ${String(registry?.total_c_rules ?? '—')} |\n`;
   out += '\n';
 
   out += '## Evidence Catalog\n\n';
@@ -65,18 +64,18 @@ function renderRuleEvidence(doc, sourceName) {
   }
   out += '\n';
 
-  out += '## Rule Coverage\n\n';
-  out += '| Rule ID | Status | Evidence Refs | Note |\n';
+  out += '## Rule Evidence Requirements\n\n';
+  out += '| Rule ID | Evidence Requirement | Evidence Refs | Note |\n';
   out += '|---|---|---|---|\n';
   for (const rule of rules) {
     const ruleID = String(rule?.rule_id || '').trim();
     if (!ruleID) continue;
-    const status = String(rule?.status || '').trim() || 'unknown';
+    const requirement = String(rule?.evidence_requirement || '').trim() || 'unknown';
     const refs = Array.isArray(rule?.evidence_refs)
       ? rule.evidence_refs.map((value) => `\`${String(value)}\``).join(', ')
       : '—';
     const note = String(rule?.note || '').trim() || '—';
-    out += `| \`${ruleID}\` | \`${status}\` | ${refs} | ${note} |\n`;
+    out += `| \`${ruleID}\` | \`${requirement}\` | ${refs} | ${note} |\n`;
   }
   out += '\n';
 

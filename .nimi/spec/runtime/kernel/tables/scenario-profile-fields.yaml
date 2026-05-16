@@ -1,4 +1,11 @@
 version: 1
+table_family: protocol_surface
+owner: runtime
+protocol_id: runtime_scenario_profile_fields
+surfaces:
+  - scenario_type
+  - supported_execution_modes
+  - description
 fields:
   - field: scenario_type
     required: true

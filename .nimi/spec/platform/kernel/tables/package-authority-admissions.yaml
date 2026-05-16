@@ -1,4 +1,9 @@
 version: 1
+table_family: product_catalog
+owner: platform
+catalog_id: platform_package_authority_admissions
+entries:
+  - nimi-coding
 admissions:
   - id: nimi-coding
     status: active
