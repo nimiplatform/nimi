@@ -43,7 +43,7 @@ package-market:
     status: new
     feature: discover-home, library, creator-packages
     controller: asset-market.controller.ts
-    description: List published packages with search, category, creator, and sort filters
+    description: List published packages with search, package_kind, category, creator, and sort filters
 
   - method: POST
     path: /api/asset-market/packages
@@ -99,14 +99,14 @@ package-market:
     status: new
     feature: library, package-detail
     controller: asset-market.controller.ts
-    description: Create a PackageAcquisition and add the Package to the creator's available library
+    description: Create a package-kind-aware PackageAcquisition and add the Package to the creator's available library
 
   - method: POST
     path: /api/asset-market/bundles/{bundleId}/imports
     status: new
     feature: package-detail
     controller: asset-market.controller.ts
-    description: Create a BundleImport for downstream Forge import
+    description: Create a BundleImport for downstream package-kind-aware import targets including Forge and Avatar
 
   - method: GET
     path: /api/asset-market/creators/{creatorId}/packages

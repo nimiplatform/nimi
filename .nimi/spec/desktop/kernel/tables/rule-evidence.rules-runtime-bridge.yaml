@@ -135,6 +135,16 @@ entries:
   - D-LLM-075
   - D-LLM-076
   - D-LLM-077
+  - D-LLM-078
+  - D-LLM-079
+  - D-LLM-080
+  - D-LLM-081
+  - D-LLM-082
+  - D-LLM-083
+  - D-LLM-084
+  - D-LLM-085
+  - D-LLM-086
+  - D-LLM-087
   - D-LLM-088
   - D-LLM-089
   - D-LLM-090
@@ -146,6 +156,11 @@ entries:
   - D-LLM-096
   - D-LLM-097
   - D-LLM-098
+  - D-LLM-099
+  - D-LLM-100
+  - D-LLM-101
+  - D-LLM-102
+  - D-LLM-103
 rules:
   - rule_id: D-DSYNC-000
     evidence_refs: &a1
@@ -762,6 +777,56 @@ rules:
       - desktop_test_gate
     note: Diagnostics consume Runtime delegated snapshot evidence without raw protocol output.
     evidence_requirement: required
+  - rule_id: D-LLM-078
+    evidence_refs:
+      - desktop_kernel_consistency
+    note: Desktop Avatar configuration authority home admitted as contract truth.
+    evidence_requirement: required
+  - rule_id: D-LLM-079
+    evidence_refs:
+      - desktop_kernel_consistency
+    note: Desktop Avatar configuration closed record admitted as contract truth.
+    evidence_requirement: required
+  - rule_id: D-LLM-080
+    evidence_refs:
+      - desktop_kernel_consistency
+    note: Desktop Avatar launch payload hard cut admitted as contract truth.
+    evidence_requirement: required
+  - rule_id: D-LLM-081
+    evidence_refs:
+      - desktop_kernel_consistency
+    note: Desktop Avatar resolver ownership split admitted as contract truth.
+    evidence_requirement: required
+  - rule_id: D-LLM-082
+    evidence_refs:
+      - desktop_kernel_consistency
+    note: Desktop Avatar configuration reconciliation with debug override and delegated capability placement admitted as contract truth.
+    evidence_requirement: required
+  - rule_id: D-LLM-083
+    evidence_refs:
+      - desktop_kernel_consistency
+    note: Desktop Avatar fail-closed configuration state admitted as contract truth.
+    evidence_requirement: required
+  - rule_id: D-LLM-084
+    evidence_refs:
+      - desktop_kernel_consistency
+    note: Desktop Avatar debug workbench authority home admitted as contract truth.
+    evidence_requirement: required
+  - rule_id: D-LLM-085
+    evidence_refs:
+      - desktop_kernel_consistency
+    note: Desktop Avatar debug workbench probe taxonomy and remediation states admitted as contract truth.
+    evidence_requirement: required
+  - rule_id: D-LLM-086
+    evidence_refs:
+      - desktop_kernel_consistency
+    note: Desktop Avatar debug workbench replay and audit links admitted as contract truth.
+    evidence_requirement: required
+  - rule_id: D-LLM-087
+    evidence_refs:
+      - desktop_kernel_consistency
+    note: Desktop Avatar debug workbench app-bus and backend-command bypass prohibition admitted as contract truth.
+    evidence_requirement: required
   - rule_id: D-LLM-088
     evidence_refs:
       - desktop_kernel_consistency
@@ -816,4 +881,29 @@ rules:
     evidence_refs:
       - desktop_kernel_consistency
     note: Desktop no-private-scheduler hardcut for Companion Participation admitted as contract truth.
+    evidence_requirement: required
+  - rule_id: D-LLM-099
+    evidence_refs:
+      - desktop_kernel_consistency
+    note: Desktop Avatar package control surface consumer boundary admitted as contract truth.
+    evidence_requirement: required
+  - rule_id: D-LLM-100
+    evidence_refs:
+      - desktop_kernel_consistency
+    note: Desktop Avatar package control surface opaque ref storage admitted as contract truth.
+    evidence_requirement: required
+  - rule_id: D-LLM-101
+    evidence_refs:
+      - desktop_kernel_consistency
+    note: Desktop Avatar package acquisition/import UX must route through typed Asset Market/SDK projections.
+    evidence_requirement: required
+  - rule_id: D-LLM-102
+    evidence_refs:
+      - desktop_kernel_consistency
+    note: Desktop Avatar package readiness and failure UX must fail closed.
+    evidence_requirement: required
+  - rule_id: D-LLM-103
+    evidence_refs:
+      - desktop_kernel_consistency
+    note: Desktop Avatar package control must not widen launch payload or own resolver truth.
     evidence_requirement: required

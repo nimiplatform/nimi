@@ -19,6 +19,8 @@ export const kernelFiles = [
   '.nimi/spec/desktop/kernel/llm-adapter-contract.md',
   '.nimi/spec/desktop/kernel/world-tour-tester-contract.md',
   '.nimi/spec/desktop/kernel/agent-avatar-surface-contract.md',
+  '.nimi/spec/desktop/kernel/agent-avatar-configuration-contract.md',
+  '.nimi/spec/desktop/kernel/agent-avatar-debug-workbench-contract.md',
   '.nimi/spec/desktop/kernel/agent-delegation-control-surface-contract.md',
   '.nimi/spec/desktop/kernel/realm-group-agent-participation-surface-contract.md',
   '.nimi/spec/desktop/kernel/companion-participation-control-surface-contract.md',

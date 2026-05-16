@@ -1,6 +1,10 @@
 # @nimiplatform/avatar
 
-Nimi Avatar（阿凡达）— 桌面悬浮 embodiment carrier，承载 Nimi agent 的视觉化身。当前 shipped backend branch 是 Live2D，不再把 Live2D 当 app-local semantic home。
+Nimi Avatar（阿凡达）— 桌面悬浮 embodiment carrier，承载 Nimi agent 的视觉化身。当前 admitted backend union 是 Live2D + VRM；Avatar 不把任何 renderer backend 当 app-local semantic home。
+
+> This README is a non-authoritative operator guide. Normative authority lives
+> under `../../.nimi/spec/avatar/**` and the repo-wide platform specs referenced
+> there.
 
 ## Status
 
@@ -8,10 +12,9 @@ Nimi Avatar（阿凡达）— 桌面悬浮 embodiment carrier，承载 Nimi agen
 
 ## Quick Links
 
-- [Product guide](spec/nimi-avatar.md)
-- [Spec authority map](spec/kernel/index.md)
+- [Spec authority map](../../.nimi/spec/avatar/kernel/index.md)
 - [Live2D adapter authoring guide](docs/live2d-adapter-authoring.md)
-- [Feature matrix](spec/kernel/tables/feature-matrix.yaml)
+- [Feature matrix](../../.nimi/spec/avatar/kernel/tables/feature-matrix.yaml)
 - [AGENTS.md](AGENTS.md) — Module-level rules for AI agents
 
 ## Delivery Waves
@@ -32,10 +35,13 @@ Nimi Avatar（阿凡达）— 桌面悬浮 embodiment carrier，承载 Nimi agen
 - 正常启动必须带 Desktop-selected minimal launch context：required `owner_user_id`、`realm_agent_id`、`local_agent_ref`、`conversation_anchor_id`；optional `avatar_instance_id`、optional non-authoritative `launch_source`
 - `local_agent_ref` 必须等于 `local-agent:${owner_user_id}:${realm_agent_id}`；bare `realm_agent_id` 不具备启动 authority
 - 缺少 launch context：fail closed；avatar app 不会默认 bootstrap 单个 agent
-- visual bootstrap 来自本机 Agent Center package；Avatar 只加载本地 Live2D / VRM visual package
+- visual bootstrap 来自 Desktop/Runtime-authorized opaque package refs；当前
+  implementation may materialize through local Agent Center resolver plumbing,
+  but that plumbing is not package authority
 - runtime bootstrap 只通过 Desktop/Runtime IPC bridge；Avatar 不读取 shared auth、不创建 Realm HTTP client、不拥有 login/session truth
 - handoff payload 不携带 raw JWT、refresh token、`subject_user_id`、或 Realm base URL
-- runtime binding 不可用时，Avatar 停止 interaction/voice/activity consume，但已加载的 visual carrier 必须保持可见
+- runtime binding 不可用时，Avatar 停止 interaction/voice/activity consume，
+  unmounts the carrier, and enters degraded-only posture per active spec
 
 ## Runtime Primary, Mock Fixture Secondary
 
@@ -43,14 +49,15 @@ Nimi Avatar（阿凡达）— 桌面悬浮 embodiment carrier，承载 Nimi agen
 
 - 默认正常路径：desktop-selected launch context + local visual package + runtime IPC bridge + SDK consume
 - 显式 fixture：`VITE_AVATAR_DRIVER=mock`
-- runtime 不可用：interaction/voice/activity fail closed；不会 silent fallback 到 mock，visual model 保持可见
+- runtime 不可用：interaction/voice/activity fail closed；不会 silent fallback
+  到 mock，visual carrier 不保持为可交互/可见正常态
 - auth / Realm truth 归 Desktop/Runtime；Avatar 不做 shared-session revalidation
 
 ## Tech Stack
 
 - **Desktop shell**: Tauri 2
 - **Frontend**: React 19 + Vite 7 + Tailwind 4
-- **Embodiment backend (current)**: Live2D Cubism SDK for Web
+- **Embodiment backends (admitted)**: Live2D Cubism SDK for Web + VRM / Three.js
 - **State**: Zustand
 - **Testing**: Vitest
 - **Dev port**: 1427
@@ -63,8 +70,8 @@ Current canonical teaching model is:
 
 - runtime / SDK keep semantic truth
 - `apps/avatar` owns embodiment projection and carrier execution
-- current backend-specific branch is Live2D
-- future VRM / 3D / robot branches attach under the same projection layer, not by replacing semantic truth
+- current admitted backend branches are Live2D and VRM
+- future backend branches require explicit backend contract admission, not README wording
 
 ## Scripts
 
@@ -115,27 +122,13 @@ apps/avatar/
 │   ├── src/
 │   ├── Cargo.toml
 │   └── tauri.conf.json
-└── spec/
-    ├── INDEX.md
-    ├── nimi-avatar.md
-    └── kernel/
-        ├── index.md
-        ├── embodiment-projection-contract.md
-        ├── app-shell-contract.md
-        ├── live2d-render-contract.md
-        ├── agent-script-contract.md
-        ├── avatar-event-contract.md
-        ├── mock-fixture-contract.md
-        └── tables/
-            ├── feature-matrix.yaml
-            ├── activity-mapping.yaml
-            └── scenario-catalog.yaml
 ```
 
 ## Upstream Platform Contracts
 
 Platform-level spec is consumed from active `.nimi/spec/**` authority. The
-tracked reader guide is [Live2D Companion Architecture](../../docs/architecture/live2d-companion.md).
+tracked reader guide is
+[Avatar Kernel Authority Map](../../.nimi/spec/avatar/kernel/index.md).
 
 - [APML wire format](../../.nimi/spec/runtime/kernel/agent-output-wire-contract.md)
 - [Activity ontology](../../.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md) and [activity ontology table](../../.nimi/spec/runtime/kernel/tables/agent-activity-ontology.yaml)
@@ -151,4 +144,5 @@ tracked reader guide is [Live2D Companion Architecture](../../docs/architecture/
 - `MockDriver` remains admitted only for explicit fixture runs and tests.
 - App-local docs/spec must not describe mock as the current normal boot path.
 - Desktop/avatar relationship is bridge / handoff orchestration plus Desktop/Runtime-owned binding truth, not the old independent default-boot framing.
-- Live2D is the current backend-specific branch, not the semantic home of avatar/kernel truth.
+- Live2D and VRM are admitted backend-specific branches, not the semantic home
+  of avatar/kernel truth.

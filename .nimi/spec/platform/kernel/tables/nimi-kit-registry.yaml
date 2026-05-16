@@ -268,7 +268,7 @@ modules:
     kind: feature
     surface_level: headless+ui+runtime
     adapter_contract: AvatarPresentationAdapter + AvatarInteractionAdapter + RuntimeAgentPresentationAdapter
-    description: Reusable avatar stage surface with normalized headless presentation contracts, default UI shell, runtime-backed persistent agent presentation projection binding, and optional backend renderer seams including the shipped VRM surface and admitted future Live2D backend family
+    description: Desktop chat preview/viewport avatar stage utility with normalized headless presentation contracts, default UI shell, runtime-backed agent presentation projection binding, stage/media helpers, and optional renderer helper seams for the admitted live2d/vrm backend vocabulary
     dependencies:
       - kit.ui
       - sdk
@@ -297,7 +297,7 @@ modules:
     admission_status: active
     owner: platform
     source_rule: P-KIT-071
-    notes: Live2D backend family is shipped as `./features/avatar/live2d` for reusable renderer-domain helpers and optional renderer seams. App-local viewport policy and product placement are outside platform kit registry truth.
+    notes: This module is for Desktop chat preview, viewport, stage, and media utility reuse. It is not the launched `apps/avatar` carrier surface, package activation surface, materialization authority, or backend authority. Launched Avatar backend authority remains `.nimi/spec/avatar/kernel/backend-branch-contract.md` with `live2d | vrm`; `AvatarBackendKind` must not admit `sprite2d`, `canvas2d`, or `video`. Live2D is shipped as `./features/avatar/live2d` for reusable renderer-domain helpers and optional renderer seams only. App-local viewport policy and product placement are outside platform kit registry truth.
   - id: kit.features.model-picker
     subpath: /features/model-picker
     kind: feature

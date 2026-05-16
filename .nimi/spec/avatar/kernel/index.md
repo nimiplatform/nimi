@@ -60,6 +60,17 @@ parameter-id path is now Live2D-only escape hatch via `Live2DBackendExtension`):
 - shell consumes projection-produced surface bounds / hit masks
 - backend-specific execution is delegated to renderer branches
 
+### [`projection-backpressure-smoothing-contract.md`](projection-backpressure-smoothing-contract.md)
+
+Renderer-local projection smoothing:
+
+- smooths only `EmbodimentProjectionApi.setSignal` / `addSignal` hot-path writes
+- preserves read-your-write behavior for pending signal values
+- flushes pending signal writes before motion, expression, pose, wait, bounds,
+  or default-activity calls
+- inherits Runtime PresentationTimeline authority (`K-AGCORE-051`) and does not
+  own activity ordering, speech, lipsync, cancellation, or generated motion truth
+
 ### [`app-shell-contract.md`](app-shell-contract.md)
 
 Desktop shell and window surface:
@@ -70,6 +81,29 @@ Desktop shell and window surface:
 - Click-through outside model hit region
 - Always-visible Companion Surface bound to the Avatar embodiment footprint
 - App lifecycle events (`avatar.app.*`)
+
+### [`avatar-package-consumption-contract.md`](avatar-package-consumption-contract.md)
+
+Avatar package consumption boundary:
+
+- consumes authorized Asset Market `Package` records with `package_kind: "avatar"`
+- accepts only launched `live2d | vrm` backend kinds
+- keeps resolver execution in Avatar after Runtime/SDK authorization
+- forbids Avatar-local package lifecycle, inventory, activation, review, or UGC truth
+- fails closed on missing package kind, backend capability, model layout,
+  compatibility evidence, or local materialization
+
+### [`avatar-external-entry-consumer-contract.md`](avatar-external-entry-consumer-contract.md)
+
+Avatar external-entry consumer boundary:
+
+- consumes Runtime-admitted external-entry presentation projection only
+- inherits `K-AGCORE-079..094` and external-entry boundary matrix semantics
+- treats `direct_api` as Runtime provenance, not local raw state write authority
+- forbids Avatar-local HTTP/WebSocket/state endpoints, protocol adapters,
+  token/rate-limit/consent posture, provider/model routing, credential custody,
+  and writeback
+- fails closed on missing admission/verdict/provenance evidence
 
 ### [`companion-participation-consumer-contract.md`](companion-participation-consumer-contract.md)
 

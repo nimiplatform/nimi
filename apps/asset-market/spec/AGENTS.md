@@ -15,6 +15,7 @@ spec/
 │   ├── publish-contract.md                # AM-PUBLISH-*: package composition and publish flow
 │   ├── library-contract.md                # AM-LIB-*: available and saved library views
 │   ├── account-contract.md                # AM-ACCOUNT-*: account-facing records
+│   ├── api-contract.md                    # AM-API-*: backend API surface inventory rules
 │   └── tables/
 │       ├── routes.yaml                    # Route table — authoritative
 │       ├── feature-matrix.yaml            # Feature matrix — authoritative
@@ -34,6 +35,9 @@ All rules use prefix `AM-<DOMAIN>-NNN`.
 | Publish / Compose / Update | AM-PUBLISH | `publish-contract.md` |
 | Library / Available / Saved | AM-LIB | `library-contract.md` |
 | Account / Records | AM-ACCOUNT | `account-contract.md` |
+| API Surface Inventory | AM-API | `api-contract.md` |
+| Moderation / Review | AM-MOD | reserved; no active contract until UGC admission |
+| Preview / Import Diagnostics | AM-PREVIEW | reserved; no active contract until preview admission |
 
 ## Fact Sources
 
@@ -44,7 +48,7 @@ YAML tables in `kernel/tables/` are the authoritative fact sources. Prose in con
 | `routes.yaml` | App routes and route-feature bindings |
 | `feature-matrix.yaml` | Feature phasing, priority, dependencies |
 | `package-model.yaml` | Bundle / Package field model, readiness, reserved concepts |
-| `api-surface.yaml` | New package-market backend proposals only |
+| `api-surface.yaml` | New package-market backend proposals only; governed by `AM-API-*` |
 
 ## Editing Rules
 
@@ -55,6 +59,9 @@ YAML tables in `kernel/tables/` are the authoritative fact sources. Prose in con
 5. **Realm truth boundary is inherited, not redefined.** Asset Market consumes existing Realm `Asset` and `Bundle` semantics and must not overwrite `spec/realm/**` contracts.
 6. **Scene-Atlas remains upstream only.** `SceneCard` / `ScenePack` are not Asset Market objects; any market flow starts from admitted Realm `Asset` and `Bundle` objects.
 7. **Future reservation stays thin.** `PackageListing` may be mentioned only as a reserved future projection and must not become a current active object in this spec.
+8. **No parallel Asset Market root.** Do not create or target `.nimi/spec/asset-market/**`; the admitted Asset Market authority root is `apps/asset-market/spec/**`.
+9. **Package kind values live in one table.** `Package.package_kind` values must be admitted in `kernel/tables/package-model.yaml`; app code, docs, and proposal text must not invent extra active kind values.
+10. **Reserved rule families are inert.** `AM-MOD-*` and `AM-PREVIEW-*` are reserved coordination points only until a later admitted topic adds active contracts and table rows.
 
 ## Relation to Existing Specs
 

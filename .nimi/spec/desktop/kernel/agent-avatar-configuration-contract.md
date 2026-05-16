@@ -128,6 +128,75 @@ Desktop MUST distinguish:
 Unsupported or missing capability is not success and must not fall back to idle
 motion, local binding, or static carrier proof.
 
+## D-LLM-099 — Avatar Package Control Surface Boundary
+
+Desktop MAY present Avatar package controls only as a consumer of typed
+SDK/Runtime/Asset Market projections.
+
+Desktop MUST NOT become a package registry, package lifecycle authority,
+package inventory authority, activation authority, review authority, or local
+Avatar carrier registry.
+
+## D-LLM-100 — Opaque Ref Storage
+
+Desktop persisted configuration may store only opaque refs and bounded status
+summaries:
+
+- `avatar_package_ref`
+- `backend_capability_profile_ref`
+- selected `backend_kind`
+- readiness/status summary
+- typed diagnostic ids
+- user-visible selection provenance
+
+Desktop MUST NOT persist or pass package descriptors, package file paths,
+package bytes, backend runtime roots, Agent Center materialization paths, local
+activation bindings, or raw Asset Market API payloads as configuration truth.
+
+## D-LLM-101 — Acquisition And Import UX
+
+Desktop MAY initiate Avatar package acquisition/import only through typed SDK or
+Asset Market projections admitted by `AM-LIB-005` and `AM-API-005`.
+
+Desktop MUST NOT create:
+
+- a browser-reachable Avatar-local install endpoint
+- a Petdex-style local driver protocol
+- a Desktop-owned package install daemon
+- a direct filesystem activation path
+- an Agent Center package inventory surface
+
+## D-LLM-102 — Readiness And Failure UX
+
+Desktop readiness UX MUST fail closed when package or capability evidence is
+missing.
+
+Desktop MUST distinguish:
+
+- no Avatar package selected
+- package selected but unresolved by authorized projection
+- unsupported `backend_kind`
+- missing backend capability profile
+- missing Avatar model layout
+- blocking compatibility diagnostic
+- local materialization unavailable
+- probe required before launch
+
+Desktop MUST NOT translate missing evidence into idle motion, static carrier
+success, local binding success, or launch-ready status.
+
+## D-LLM-103 — Launch Payload And Resolver Hard Cut
+
+Avatar package controls MUST NOT widen the Avatar launch payload.
+
+Desktop may store opaque refs in its configuration record and may render status
+from typed projections. Actual package descriptor resolution, backend capability
+profile resolution, and local materialized file use belong to Avatar after
+authorized Runtime/SDK projection.
+
+Agent Center resolver plumbing, when present, is local materialization plumbing
+only. It is not package authority.
+
 ## Traceability
 
 - `.nimi/spec/desktop/kernel/agent-avatar-surface-contract.md`

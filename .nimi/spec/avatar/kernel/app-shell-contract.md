@@ -460,10 +460,13 @@ Normal path boundary:
 - protected access bootstrap：Avatar 通过 SDK local first-party
   Runtime-backed token provider 为 `runtime.agent` turns API 获取
   request-time capability token；默认路径不 issue scoped binding
-- visual bootstrap：Runtime / SDK-authorized Agent Center package descriptor →
-  local Live2D/VRM render
+- visual bootstrap：Runtime / SDK-authorized opaque visual package ref →
+  Avatar resolves local materialized Live2D/VRM files. Current Agent Center
+  resolver plumbing is local materialization only; it is not package lifecycle,
+  inventory, or activation authority.
 - data bootstrap：Runtime / SDK validates `agent_id` for the current Runtime
-  account projection before private agent/user data or package descriptors load
+  account projection before private agent/user data or authorized local visual
+  materialization loads
 - conversation bootstrap：Avatar creates or recovers an Avatar-owned context
 
 Login / account handling:
@@ -614,7 +617,8 @@ Minimum permission set for industrial baseline shell：
 - 调用 Runtime account projection / event stream / login adapter / `GetAccessToken` 等 local first-party account 方法，受 `K-ACCSVC-*` 与 app registry admission 约束
 - 通过 SDK local-first-party Runtime-backed token provider 为 `runtime.agent` turns API 请求获取 protected access token
 - 通过 SDK local-first-party Runtime-backed token provider 访问授权 Realm data API
-- 通过 Runtime / SDK 验证 `agent_id`，解析 agent/user projection 与 visual package descriptor
+- 通过 Runtime / SDK 验证 `agent_id`，解析 agent/user projection 与
+  authorized visual package ref / local materialization
 - 创建或恢复 Avatar-owned conversation context
 
 ## K-NAV-SHELL-FIRST-PARTY-RUNTIME-003 Minimal Launch Intent
@@ -648,8 +652,10 @@ guardrail 必须在合规 wave 落地（见 `negative-test-matrix.md` 与 `guard
 
 Avatar 必须：
 
-- 在加载 private agent data 或 visual package descriptor 前验证 `agent_id`
-- 仅从 Runtime / SDK-authorized descriptor 读取 local visual package files
+- 在加载 private agent data 或 authorized local visual materialization 前验证
+  `agent_id`
+- 仅从 Runtime / SDK-authorized opaque package refs 的本地 materialization
+  读取 visual package files
 - 创建或恢复 Avatar-owned conversation context
 - 支持同一 `agent_id` 的多个 `avatar_instance_id` 并存
 

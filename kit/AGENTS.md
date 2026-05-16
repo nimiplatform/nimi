@@ -2,7 +2,7 @@
 ## Scope
 - Applies to `kit/**`.
 - `@nimiplatform/nimi-kit` is the single cross-app toolkit package.
-- Modules: `kit/ui`, `kit/auth`, `kit/core`, `kit/telemetry`, `kit/shell/tauri` (Rust crate), `kit/shell/renderer`, `kit/features/chat`, `kit/features/model-picker`, `kit/features/model-config`, `kit/features/generation`, `kit/features/commerce`.
+- Modules: `kit/ui`, `kit/auth`, `kit/core`, `kit/telemetry`, `kit/shell/tauri` (Rust crate), `kit/shell/renderer`, `kit/features/chat`, `kit/features/avatar`, `kit/features/model-picker`, `kit/features/model-config`, `kit/features/generation`, `kit/features/commerce`.
 ## Hard Boundaries
 - `ui` is the reusable kit projection of platform design authority; canonical design semantics remain under `.nimi/spec/platform/kernel/**`. `auth` and `kit/features/*` must not bypass admitted kit primitives or create parallel app-local design truth.
 - Before building new app UI or interaction logic, inspect `kit/README.md`, the target module README, and `.nimi/spec/platform/kernel/tables/nimi-kit-registry.yaml` to confirm whether a reusable kit surface already exists.
@@ -12,6 +12,7 @@
 - `kit/shell/renderer` is renderer shell glue; it must not contain app stores, navigation, UI rendering, or re-own auth/telemetry truth.
 - `kit/core` runtime-capabilities sub-surface must be pure logic (runtime-safe + renderer-safe); no UI, CSS, or shell imports.
 - `kit/features/*` must not import `apps/**`, `runtime/internal/**`, app aliases, `dataSync`, app stores, or navigation directly.
+- `kit/features/avatar` is admitted only as the Desktop chat preview/viewport stage/media utility and reusable renderer helper surface. It is not the launched `apps/avatar` carrier surface, package activation surface, or backend authority. Launched Avatar backend authority remains `.nimi/spec/avatar/kernel/backend-branch-contract.md` with `live2d | vrm`; do not reintroduce `sprite2d`, `canvas2d`, or `video` into `AvatarBackendKind`.
 - SDK typed services may only be bound from explicit `runtime` or `realm` feature surfaces.
 - Runtime integrations must not bind realm clients; realm integrations must not bind runtime clients.
 - Apps must consume shared kit functionality through `@nimiplatform/nimi-kit/*` and must not recreate the same baseline shell locally once the kit surface exists.

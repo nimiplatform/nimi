@@ -210,7 +210,7 @@ avatar.activity.start:
     activity_name: string                          # "happy" | "ext:grateful" | "mod-foo:bar"
     category: enum(emotion|interaction|state)
     intensity: enum(weak|moderate|strong) | null   # null if not applicable
-    source: enum(runtime_projection|direct_api)
+    source: enum(apml_output|direct_api|mock)
     expected_duration_ms: int | null
 
 avatar.motion.play:
@@ -468,7 +468,7 @@ events:
       activity_name: string
       category: enum(emotion|interaction|state)
       intensity: enum(weak|moderate|strong)?
-      source: enum(runtime_projection|direct_api)
+      source: enum(apml_output|direct_api|mock)
       expected_duration_ms: int?
     rate_limit_tier: low
     cancellable: false
