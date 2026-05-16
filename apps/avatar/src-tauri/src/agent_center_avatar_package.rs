@@ -1,6 +1,10 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 
+// Local materialization resolver for Runtime/Desktop-authorized opaque Avatar
+// package refs. Agent Center paths are storage plumbing, not package lifecycle,
+// inventory, or activation authority.
+
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
@@ -26,6 +30,10 @@ pub(crate) struct AgentCenterAvatarPackageResolvePayload {
     pub(crate) owner_user_id: String,
     pub(crate) realm_agent_id: String,
     pub(crate) local_agent_ref: String,
+    pub(crate) backend_kind: String,
+    pub(crate) avatar_package_ref: String,
+    pub(crate) backend_capability_profile_ref: String,
+    pub(crate) materialization_ref: String,
 }
 
 #[derive(Deserialize)]
@@ -72,41 +80,6 @@ struct AgentCenterAvatarPackageManifestImport {
     imported_at: String,
     source_label: String,
     source_fingerprint: String,
-}
-
-#[derive(Deserialize)]
-#[serde(deny_unknown_fields)]
-struct AgentCenterLocalConfig {
-    schema_version: u8,
-    config_kind: String,
-    account_id: String,
-    owner_user_id: String,
-    realm_agent_id: String,
-    local_agent_ref: String,
-    modules: AgentCenterLocalConfigModules,
-}
-
-#[derive(Deserialize)]
-struct AgentCenterLocalConfigModules {
-    avatar_package: AgentCenterAvatarPackageModule,
-}
-
-#[derive(Deserialize)]
-#[serde(deny_unknown_fields)]
-struct AgentCenterAvatarPackageModule {
-    schema_version: u8,
-    conversation_anchor_scope: String,
-    avatar_package_ref: Option<String>,
-    live2d_adapter_manifest_source: String,
-    live2d_adapter_manifest_ref: Option<String>,
-    avatar_instance_policy: String,
-    backend_kind: String,
-    backend_capability_profile_ref: Option<String>,
-    generated_motion_provider_policy: String,
-    launch_mode: String,
-    debug_profile: String,
-    updated_at: String,
-    provenance: serde_json::Value,
 }
 
 fn validate_agent_center_id(value: &str, field: &str) -> Result<String, String> {
@@ -174,19 +147,28 @@ fn validate_avatar_package_id(value: &str, kind: &str) -> Result<String, String>
     Ok(normalized.to_string())
 }
 
-fn validate_live2d_adapter_manifest_ref(value: &str) -> Result<String, String> {
+fn validate_handoff_ref(value: &str, field: &str) -> Result<String, String> {
     let normalized = value.trim();
-    let Some(suffix) = normalized.strip_prefix("live2d_adapter_") else {
-        return Err("live2d_adapter_manifest_ref must use live2d_adapter_<12hex>".to_string());
-    };
-    if suffix.len() != 12
-        || !suffix
-            .chars()
-            .all(|ch| ch.is_ascii_hexdigit() && !ch.is_ascii_uppercase())
-    {
-        return Err("live2d_adapter_manifest_ref must use live2d_adapter_<12hex>".to_string());
+    if normalized.is_empty() || normalized.len() > 512 {
+        return Err(format!("{field} is required"));
+    }
+    if normalized.contains('\0') || normalized.contains('\\') || normalized.contains("://") {
+        return Err(format!("{field} must be an opaque Runtime-authorized ref"));
     }
     Ok(normalized.to_string())
+}
+
+fn expected_materialization_ref(
+    account_id: &str,
+    local_agent_ref: &str,
+    kind: &str,
+    package_id: &str,
+) -> String {
+    format!(
+        "agent-center-avatar-package:{}:{}:{kind}:{package_id}",
+        agent_center_path_segment(account_id),
+        agent_center_path_segment(local_agent_ref),
+    )
 }
 
 fn is_safe_package_relative_path(value: &str) -> bool {
@@ -245,171 +227,6 @@ fn resolve_agent_center_avatar_package_dir(
         .join(package_id))
 }
 
-fn resolve_agent_center_live2d_adapter_manifest_path(
-    data_root: &Path,
-    account_id: &str,
-    agent_id: &str,
-    manifest_ref: &str,
-) -> Result<PathBuf, String> {
-    Ok(data_root
-        .join("accounts")
-        .join(agent_center_path_segment(account_id))
-        .join("agents")
-        .join(agent_center_path_segment(agent_id))
-        .join("agent-center")
-        .join("modules")
-        .join("avatar_package")
-        .join("adapter_manifests")
-        .join(manifest_ref)
-        .join("live2d-adapter.json"))
-}
-
-#[derive(Debug)]
-enum AgentCenterLive2DAdapterManifestSelection {
-    None,
-    EmbeddedCreatorManifest,
-    ExternalSidecarManifest(String),
-}
-
-fn read_selected_avatar_package(
-    data_root: &Path,
-    account_id: &str,
-    owner_user_id: &str,
-    realm_agent_id: &str,
-    local_agent_ref: &str,
-) -> Result<(String, String, AgentCenterLive2DAdapterManifestSelection), String> {
-    let config_path = data_root
-        .join("accounts")
-        .join(agent_center_path_segment(account_id))
-        .join("agents")
-        .join(agent_center_path_segment(local_agent_ref))
-        .join("agent-center")
-        .join("config.json");
-    let raw = fs::read_to_string(&config_path)
-        .map_err(|error| format!("agent center local config is unavailable: {error}"))?;
-    if raw.len() > 262_144 {
-        return Err("agent center local config exceeds the admitted size cap".to_string());
-    }
-    let config: AgentCenterLocalConfig = serde_json::from_str(&raw)
-        .map_err(|error| format!("invalid agent center local config: {error}"))?;
-    if config.schema_version != 1 || config.config_kind != "agent_center_local_config" {
-        return Err("agent center local config identity is not admitted".to_string());
-    }
-    if validate_agent_center_id(&config.account_id, "config.account_id")? != account_id
-        || validate_agent_center_id(&config.owner_user_id, "config.owner_user_id")?
-            != owner_user_id
-        || validate_agent_center_id(&config.realm_agent_id, "config.realm_agent_id")?
-            != realm_agent_id
-        || validate_agent_center_id(&config.local_agent_ref, "config.local_agent_ref")?
-            != local_agent_ref
-    {
-        return Err(
-            "agent center local config scope does not match Runtime account projection".to_string(),
-        );
-    }
-    if config.modules.avatar_package.schema_version != 1 {
-        return Err("modules.avatar_package.schema_version must be 1".to_string());
-    }
-    let kind = config
-        .modules
-        .avatar_package
-        .backend_kind
-        .trim()
-        .to_string();
-    if kind != "live2d" && kind != "vrm" {
-        return Err("avatar_package_kind must be live2d or vrm".to_string());
-    }
-    let package_id = validate_avatar_package_id(
-        config
-            .modules
-            .avatar_package
-            .avatar_package_ref
-            .as_deref()
-            .ok_or_else(|| "modules.avatar_package.avatar_package_ref is required".to_string())?,
-        kind.as_str(),
-    )?;
-    let live2d_adapter_selection = match config
-        .modules
-        .avatar_package
-        .live2d_adapter_manifest_source
-        .trim()
-    {
-        "none" => {
-            if config
-                .modules
-                .avatar_package
-                .live2d_adapter_manifest_ref
-                .is_some()
-            {
-                return Err(
-                        "modules.avatar_package.live2d_adapter_manifest_ref requires external sidecar source"
-                            .to_string(),
-                    );
-            }
-            AgentCenterLive2DAdapterManifestSelection::None
-        }
-        "embedded_creator_manifest" => {
-            if kind != "live2d" {
-                return Err(
-                    "modules.avatar_package.live2d_adapter_manifest_source requires live2d backend"
-                        .to_string(),
-                );
-            }
-            if config
-                .modules
-                .avatar_package
-                .live2d_adapter_manifest_ref
-                .is_some()
-            {
-                return Err(
-                        "modules.avatar_package.live2d_adapter_manifest_ref must be empty for embedded source"
-                            .to_string(),
-                    );
-            }
-            AgentCenterLive2DAdapterManifestSelection::EmbeddedCreatorManifest
-        }
-        "external_sidecar_manifest" => {
-            if kind != "live2d" {
-                return Err(
-                    "modules.avatar_package.live2d_adapter_manifest_source requires live2d backend"
-                        .to_string(),
-                );
-            }
-            let manifest_ref = config
-                    .modules
-                    .avatar_package
-                    .live2d_adapter_manifest_ref
-                    .as_deref()
-                    .ok_or_else(|| {
-                        "modules.avatar_package.live2d_adapter_manifest_ref is required for external sidecar source"
-                            .to_string()
-                    })?;
-            AgentCenterLive2DAdapterManifestSelection::ExternalSidecarManifest(
-                validate_live2d_adapter_manifest_ref(manifest_ref)?,
-            )
-        }
-        _ => {
-            return Err(
-                "modules.avatar_package.live2d_adapter_manifest_source is not admitted".to_string(),
-            );
-        }
-    };
-    let _ = (
-        config.modules.avatar_package.conversation_anchor_scope,
-        config.modules.avatar_package.avatar_instance_policy,
-        config.modules.avatar_package.backend_capability_profile_ref,
-        config
-            .modules
-            .avatar_package
-            .generated_motion_provider_policy,
-        config.modules.avatar_package.launch_mode,
-        config.modules.avatar_package.debug_profile,
-        config.modules.avatar_package.updated_at,
-        config.modules.avatar_package.provenance,
-    );
-    Ok((kind, package_id, live2d_adapter_selection))
-}
-
 fn find_agent_center_avatar_package_dir(
     data_root: &Path,
     account_id: &str,
@@ -433,6 +250,15 @@ pub(crate) async fn nimi_avatar_resolve_agent_center_avatar_package(
     let owner_user_id = validate_agent_center_id(&payload.owner_user_id, "owner_user_id")?;
     let realm_agent_id = validate_agent_center_id(&payload.realm_agent_id, "realm_agent_id")?;
     let local_agent_ref = validate_agent_center_id(&payload.local_agent_ref, "local_agent_ref")?;
+    let kind = payload.backend_kind.trim().to_string();
+    if kind != "live2d" && kind != "vrm" {
+        return Err("avatar_package_kind must be live2d or vrm".to_string());
+    }
+    let package_id = validate_avatar_package_id(&payload.avatar_package_ref, kind.as_str())?;
+    let _backend_capability_profile_ref = validate_handoff_ref(
+        &payload.backend_capability_profile_ref,
+        "backend_capability_profile_ref",
+    )?;
     if local_agent_ref == realm_agent_id {
         return Err("local_agent_ref must not be a bare realm_agent_id".to_string());
     }
@@ -441,19 +267,23 @@ pub(crate) async fn nimi_avatar_resolve_agent_center_avatar_package(
     }
     if local_agent_ref != format!("local-agent:{owner_user_id}:{realm_agent_id}") {
         return Err(
-            "local_agent_ref must equal local-agent:${owner_user_id}:${realm_agent_id}"
-                .to_string(),
+            "local_agent_ref must equal local-agent:${owner_user_id}:${realm_agent_id}".to_string(),
         );
     }
     let data_root = resolve_home_data_root()?;
-    let (kind, package_id, live2d_adapter_selection) =
-        read_selected_avatar_package(
-            &data_root,
-            &account_id,
-            &owner_user_id,
-            &realm_agent_id,
-            &local_agent_ref,
-        )?;
+    let materialization_ref =
+        validate_handoff_ref(&payload.materialization_ref, "materialization_ref")?;
+    let expected_ref = expected_materialization_ref(
+        &account_id,
+        &local_agent_ref,
+        kind.as_str(),
+        package_id.as_str(),
+    );
+    if materialization_ref != expected_ref {
+        return Err(
+            "materialization_ref does not match the authorized local Avatar package".to_string(),
+        );
+    }
     let package_dir = find_agent_center_avatar_package_dir(
         &data_root,
         &account_id,
@@ -489,7 +319,7 @@ pub(crate) async fn nimi_avatar_resolve_agent_center_avatar_package(
     }
     if manifest.package_id != package_id || manifest.kind != kind {
         return Err(
-            "avatar package manifest identity does not match selected Agent Center package"
+            "avatar package manifest identity does not match authorized Avatar package handoff"
                 .to_string(),
         );
     }
@@ -603,10 +433,9 @@ pub(crate) async fn nimi_avatar_resolve_agent_center_avatar_package(
             None
         }
     };
-    let adapter_manifest_path = match live2d_adapter_selection {
-        AgentCenterLive2DAdapterManifestSelection::None => None,
-        AgentCenterLive2DAdapterManifestSelection::EmbeddedCreatorManifest => {
-            let candidate = runtime_dir.join("nimi").join("live2d-adapter.json");
+    let adapter_manifest_path = if kind == "live2d" {
+        let candidate = runtime_dir.join("nimi").join("live2d-adapter.json");
+        if candidate.exists() {
             let metadata = fs::symlink_metadata(&candidate).map_err(|error| {
                 format!("embedded Live2D adapter manifest is unavailable: {error}")
             })?;
@@ -620,31 +449,11 @@ pub(crate) async fn nimi_avatar_resolve_agent_center_avatar_package(
                 return Err("embedded Live2D adapter manifest escaped the package root".to_string());
             }
             Some(canonical.display().to_string())
+        } else {
+            None
         }
-        AgentCenterLive2DAdapterManifestSelection::ExternalSidecarManifest(manifest_ref) => {
-            let candidate = resolve_agent_center_live2d_adapter_manifest_path(
-                &data_root,
-                &account_id,
-                &local_agent_ref,
-                &manifest_ref,
-            )?;
-            let metadata = fs::symlink_metadata(&candidate).map_err(|error| {
-                format!("external Live2D adapter manifest is unavailable: {error}")
-            })?;
-            if !metadata.is_file() || metadata.file_type().is_symlink() {
-                return Err("external Live2D adapter manifest must be a regular file".to_string());
-            }
-            let canonical = candidate.canonicalize().map_err(|error| {
-                format!("external Live2D adapter manifest cannot be resolved: {error}")
-            })?;
-            if !canonical.starts_with(&canonical_data_root) {
-                return Err(
-                    "external Live2D adapter manifest escaped the Agent Center data root"
-                        .to_string(),
-                );
-            }
-            Some(canonical.display().to_string())
-        }
+    } else {
+        None
     };
     let motion_presets_dir = {
         let candidate = runtime_dir.join("vrm-motion-presets");

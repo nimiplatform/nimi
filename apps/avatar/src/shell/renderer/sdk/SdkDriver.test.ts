@@ -72,7 +72,7 @@ describe('SdkDriver', () => {
 
     expect(driver.status).toBe('running');
     expect(driver.getBundle().activity?.name).toBe('happy');
-    expect(driver.getBundle().activity?.source).toBe('runtime_projection');
+    expect(driver.getBundle().activity?.source).toBe('apml_output');
     expect(driver.getBundle().custom).toEqual(expect.objectContaining({
       last_runtime_activity_source: 'apml_output',
     }));

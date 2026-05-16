@@ -104,6 +104,15 @@ fn read_projection(path: &Path) -> Result<Option<AvatarEvidenceProjection>, Stri
     Ok(Some(projection))
 }
 
+fn read_json_string(value: &Value, field: &str) -> String {
+    value
+        .get(field)
+        .and_then(Value::as_str)
+        .unwrap_or_default()
+        .trim()
+        .to_string()
+}
+
 fn persist_projection(path: &Path, projection: &AvatarEvidenceProjection) -> Result<(), String> {
     let raw = serde_json::to_string_pretty(projection)
         .map_err(|error| format!("failed to serialize avatar carrier evidence: {error}"))?;
@@ -150,8 +159,8 @@ pub fn append_evidence_record(
         .as_deref()
         .unwrap_or("avatar-instance")
         .to_string();
-    let conversation_anchor_id = context.conversation_anchor_id.clone();
-    let local_agent_ref = context.local_agent_ref.clone();
+    let conversation_anchor_id = read_json_string(&input.consume, "conversationAnchorId");
+    let local_agent_ref = read_json_string(&input.consume, "agentId");
     let mut projection = read_projection(&path)?.unwrap_or_else(|| AvatarEvidenceProjection {
         schema_version: AVATAR_EVIDENCE_SCHEMA_VERSION,
         publisher_pid: std::process::id(),
@@ -192,10 +201,7 @@ mod tests {
 
     fn context() -> AvatarLaunchContext {
         AvatarLaunchContext {
-            owner_user_id: "owner-1".to_string(),
-            realm_agent_id: "agent-1".to_string(),
-            local_agent_ref: "local-agent:owner-1:agent-1".to_string(),
-            conversation_anchor_id: "anchor-1".to_string(),
+            agent_id: "agent-1".to_string(),
             avatar_instance_id: Some("instance-1".to_string()),
             launch_source: Some("desktop-agent-chat".to_string()),
         }
@@ -215,7 +221,12 @@ mod tests {
                 kind: "avatar.model.load".to_string(),
                 recorded_at: "2026-04-26T00:00:00.000Z".to_string(),
                 detail: json!({ "model_id": "ren", "compatibility_tier": "enhanced" }),
-                consume: json!({ "mode": "sdk", "authority": "runtime" }),
+                consume: json!({
+                    "mode": "sdk",
+                    "authority": "runtime",
+                    "agentId": "local-agent:owner-1:agent-1",
+                    "conversationAnchorId": "anchor-1"
+                }),
                 model: json!({ "modelId": "ren" }),
             },
         )

@@ -1,11 +1,7 @@
 import { createLocalFirstPartyRuntimePlatformClient } from '@nimiplatform/sdk';
 import { getSharedAudioPipelineController } from '../audio/audio-pipeline.js';
 import {
-  AccountCallerMode,
-  ScopedAppBindingPurpose,
-  type AccountCaller,
   type RuntimeCompanionParticipationProjection,
-  type RuntimeScopedBindingAttachment,
   type Runtime,
 } from '@nimiplatform/sdk/runtime/browser';
 import { getDaemonStatus, getRuntimeDefaults, hasTauriInvoke, startDaemon } from '@renderer/bridge';
@@ -20,6 +16,12 @@ import { recordAvatarEvidenceEventually } from './avatar-evidence.js';
 import { detectDeviceTier } from './device-tier-detector.js';
 import { resolveAvatarConversationContext } from './avatar-conversation-context.js';
 import { useAvatarStore } from './app-store.js';
+import {
+  createAvatarAccountCaller,
+  issueAvatarRuntimeScopedBinding,
+  resolveLaunchAgentIdentity,
+  resolveRuntimeAvatarPackageHandoff,
+} from './app-bootstrap-runtime-binding.js';
 import { isTauriRuntime, onShellReady } from './tauri-lifecycle.js';
 import { setAlwaysOnTop } from './tauri-commands.js';
 import {
@@ -34,11 +36,8 @@ import {
 } from './app-bootstrap-helpers.js';
 
 const AVATAR_FIRST_PARTY_APP_ID = 'nimi.avatar';
-const AVATAR_FIRST_PARTY_APP_INSTANCE_ID = `${AVATAR_FIRST_PARTY_APP_ID}.local-first-party`;
-const AVATAR_FIRST_PARTY_DEVICE_ID = 'local-first-party-device';
 const ACCOUNT_SESSION_STATE_AUTHENTICATED = 3;
 const AVATAR_FIRST_PARTY_DRIVER_START_TIMEOUT_MS = 12_000;
-const LOCAL_AGENT_REF_PREFIX = 'local-agent:';
 
 type FirstPartyBootstrapStage =
   | 'runtime_daemon_prepare'
@@ -47,6 +46,7 @@ type FirstPartyBootstrapStage =
   | 'account_access_token'
   | 'conversation_context'
   | 'scoped_binding_issue'
+  | 'avatar_package_handoff'
   | 'avatar_package_manifest'
   | 'driver_create'
   | 'runtime_carrier_start'
@@ -62,63 +62,6 @@ type FirstPartyBootstrapErrorDetail = {
   retryable: boolean | null;
   message: string | null;
 };
-
-function createAvatarAccountCaller(appId: string): AccountCaller {
-  return {
-    appId,
-    appInstanceId: AVATAR_FIRST_PARTY_APP_INSTANCE_ID,
-    deviceId: AVATAR_FIRST_PARTY_DEVICE_ID,
-    mode: AccountCallerMode.LOCAL_FIRST_PARTY_APP,
-    scopes: [],
-  };
-}
-
-async function issueAvatarRuntimeScopedBinding(input: {
-  runtime: Runtime;
-  accountCaller: AccountCaller;
-  runtimeAppId: string;
-  avatarInstanceId: string;
-  localAgentRef: string;
-  conversationAnchorId: string;
-}): Promise<RuntimeScopedBindingAttachment> {
-  const relation = {
-    bindingId: '',
-    runtimeAppId: input.runtimeAppId,
-    appInstanceId: AVATAR_FIRST_PARTY_APP_INSTANCE_ID,
-    windowId: input.avatarInstanceId,
-    avatarInstanceId: input.avatarInstanceId,
-    agentId: input.localAgentRef,
-    conversationAnchorId: input.conversationAnchorId,
-    worldId: '',
-    purpose: ScopedAppBindingPurpose.AVATAR_INTERACTION_CONSUME,
-    scopes: [
-      'runtime.agent.turn.read',
-      'runtime.agent.state.read',
-      'runtime.agent.presentation.read',
-    ],
-    state: 0,
-    reasonCode: 0,
-  };
-  const issued = await input.runtime.account.issueScopedAppBinding({
-    caller: input.accountCaller,
-    relation,
-    ttlSeconds: 600,
-  });
-  if (!issued.accepted || !issued.bindingId || !issued.relation) {
-    throw new Error(`Avatar runtime scoped binding rejected: ${issued.accountReasonCode || issued.reasonCode || 'unknown'}`);
-  }
-  return {
-    bindingId: issued.bindingId,
-    bindingHandle: issued.bindingCarrier || '',
-    runtimeAppId: issued.relation.runtimeAppId,
-    appInstanceId: issued.relation.appInstanceId,
-    windowId: issued.relation.windowId,
-    avatarInstanceId: issued.relation.avatarInstanceId,
-    localAgentRef: issued.relation.agentId,
-    conversationAnchorId: issued.relation.conversationAnchorId,
-    worldId: issued.relation.worldId,
-  };
-}
 
 function readErrorField(error: unknown, field: string): string {
   if (!error || typeof error !== 'object') {
@@ -189,51 +132,6 @@ function readEnumName(enumObject: Record<string, string | number>, value: unknow
   return typeof value === 'number'
     ? readNormalizedString(enumObject[value])
     : null;
-}
-
-function resolveLaunchAgentIdentity(input: {
-  ownerUserId: string;
-  realmAgentId: string;
-  localAgentRef: string;
-  accountId: string;
-}): {
-  ownerUserId: string;
-  realmAgentId: string;
-  localAgentRef: string;
-} {
-  const ownerUserId = readNormalizedString(input.ownerUserId);
-  const realmAgentId = readNormalizedString(input.realmAgentId);
-  const localAgentRef = readNormalizedString(input.localAgentRef);
-  const accountId = readNormalizedString(input.accountId);
-  if (!ownerUserId) {
-    throw new Error('avatar launch context is missing ownerUserId');
-  }
-  if (!realmAgentId) {
-    throw new Error('avatar launch context is missing realmAgentId');
-  }
-  if (!localAgentRef) {
-    throw new Error('avatar launch context is missing localAgentRef');
-  }
-  if (!accountId) {
-    throw new Error('Runtime account projection is required before resolving Avatar launch agent identity');
-  }
-  if (ownerUserId !== accountId) {
-    throw new Error('avatar launch ownerUserId does not match Runtime account projection');
-  }
-  if (localAgentRef === realmAgentId) {
-    throw new Error('avatar launch localAgentRef must not be a bare realmAgentId');
-  }
-  if (!localAgentRef.startsWith(LOCAL_AGENT_REF_PREFIX)) {
-    throw new Error('avatar launch localAgentRef must start with local-agent:');
-  }
-  if (localAgentRef !== `${LOCAL_AGENT_REF_PREFIX}${ownerUserId}:${realmAgentId}`) {
-    throw new Error('avatar launch localAgentRef must equal local-agent:${ownerUserId}:${realmAgentId}');
-  }
-  return {
-    ownerUserId,
-    realmAgentId,
-    localAgentRef,
-  };
 }
 
 async function ensureRuntimeDaemonReady(): Promise<void> {
@@ -518,7 +416,7 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
       const runtimeAppId = resolveRuntimeAppId(launchContext);
       useAvatarStore.getState().clearBundle();
       useAvatarStore.getState().clearRuntimeBinding();
-      let evidenceAgentId = readNormalizedString(launchContext.localAgentRef);
+      let evidenceAgentId = readNormalizedString(launchContext.agentId);
       try {
         await runFirstPartyStage('runtime_daemon_prepare', () => ensureRuntimeDaemonReady());
         const platformClient = await runFirstPartyStage('platform_client', () => createLocalFirstPartyRuntimePlatformClient({
@@ -587,9 +485,7 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
           realmAgentId,
           localAgentRef,
         } = resolveLaunchAgentIdentity({
-          ownerUserId: launchContext.ownerUserId,
-          realmAgentId: launchContext.realmAgentId,
-          localAgentRef: launchContext.localAgentRef,
+          agentId: launchContext.agentId,
           accountId,
         });
         evidenceAgentId = localAgentRef;
@@ -628,7 +524,6 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
           realmAgentId,
           localAgentRef,
           avatarInstanceId,
-          launchConversationAnchorId: launchContext.conversationAnchorId,
         }));
         const { conversationAnchorId, subjectUserId } = conversationContext;
         const scopedBinding = await runFirstPartyStage('scoped_binding_issue', () => issueAvatarRuntimeScopedBinding({
@@ -641,11 +536,23 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
         }));
         runtimeScopedBindingIssued = true;
 
+        const avatarPackageHandoff = await runFirstPartyStage('avatar_package_handoff', () => resolveRuntimeAvatarPackageHandoff({
+          runtime,
+          accountId,
+          ownerUserId,
+          realmAgentId,
+          localAgentRef,
+          avatarInstanceId,
+        }));
         const modelManifest = await runFirstPartyStage('avatar_package_manifest', () => resolveAgentCenterAvatarPackageManifest({
           accountId,
           ownerUserId,
           realmAgentId,
           localAgentRef,
+          avatarPackageRef: avatarPackageHandoff.avatarPackageRef,
+          backendKind: avatarPackageHandoff.backendKind,
+          backendCapabilityProfileRef: avatarPackageHandoff.backendCapabilityProfileRef,
+          materializationRef: avatarPackageHandoff.materializationRef,
         }));
         driver = await runFirstPartyStage('driver_create', async () => createDriver({
           kind: 'sdk',
@@ -818,7 +725,7 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
         recordAvatarEvidenceEventually({
           kind: 'avatar.runtime.consume-ready',
           detail: {
-            agentId: state.consume.agentId || state.launch.context?.localAgentRef || '',
+            agentId: state.consume.agentId || state.launch.context?.agentId || '',
             avatar_instance_id: state.consume.avatarInstanceId || state.launch.context?.avatarInstanceId || null,
             launch_source: state.launch.context?.launchSource || null,
             runtime_app_id: AVATAR_FIRST_PARTY_APP_ID,
@@ -836,7 +743,7 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
     } catch (error) {
       const state = useAvatarStore.getState();
       recordDriverStartFailure(error, {
-        agentId: state.consume.agentId || state.launch.context?.localAgentRef || '',
+        agentId: state.consume.agentId || state.launch.context?.agentId || '',
         avatarInstanceId: state.consume.avatarInstanceId || state.launch.context?.avatarInstanceId || null,
         launchSource: state.launch.context?.launchSource || null,
         runtimeAppId: AVATAR_FIRST_PARTY_APP_ID,

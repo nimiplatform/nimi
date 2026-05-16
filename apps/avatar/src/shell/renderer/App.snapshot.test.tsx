@@ -104,10 +104,7 @@ function seedReady(): void {
     worldId: 'world-01',
   });
   useAvatarStore.getState().setLaunchContext({
-    ownerUserId: 'owner-product',
-    realmAgentId: 'agent-product-01',
-    localAgentRef: 'local-agent:owner-product:agent-product-01',
-    conversationAnchorId: 'anchor-01',
+    agentId: 'agent-product-01',
     avatarInstanceId: 'avatar-instance-01',
     launchSource: 'desktop-avatar-launcher',
   });
@@ -127,10 +124,7 @@ function seedDegradedRuntimeUnavailable(): void {
     reason: 'runtime_scoped_binding: APP_GRANT_INVALID',
   });
   useAvatarStore.getState().setLaunchContext({
-    ownerUserId: 'owner-product',
-    realmAgentId: 'agent-product-01',
-    localAgentRef: 'local-agent:owner-product:agent-product-01',
-    conversationAnchorId: 'anchor-01',
+    agentId: 'agent-product-01',
     avatarInstanceId: 'avatar-instance-01',
     launchSource: 'desktop-avatar-launcher',
   });

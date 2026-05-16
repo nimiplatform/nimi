@@ -4,17 +4,11 @@ import { parseAvatarLaunchContext } from './launch-context.js';
 describe('parseAvatarLaunchContext', () => {
   it('accepts the minimal Desktop launch selector', () => {
     expect(parseAvatarLaunchContext({
-      ownerUserId: 'account-runtime',
-      realmAgentId: 'agent-launch',
-      localAgentRef: 'local-agent:account-runtime:agent-launch',
-      conversationAnchorId: 'anchor-1',
+      agentId: 'agent-launch',
       avatarInstanceId: 'instance-1',
       launchSource: 'desktop-agent-chat',
     })).toEqual({
-      ownerUserId: 'account-runtime',
-      realmAgentId: 'agent-launch',
-      localAgentRef: 'local-agent:account-runtime:agent-launch',
-      conversationAnchorId: 'anchor-1',
+      agentId: 'agent-launch',
       avatarInstanceId: 'instance-1',
       launchSource: 'desktop-agent-chat',
     });
@@ -22,17 +16,11 @@ describe('parseAvatarLaunchContext', () => {
 
   it('accepts snake_case launch selector from the Tauri command boundary', () => {
     expect(parseAvatarLaunchContext({
-      owner_user_id: 'account-runtime',
-      realm_agent_id: 'agent-launch',
-      local_agent_ref: 'local-agent:account-runtime:agent-launch',
-      conversation_anchor_id: 'anchor-1',
+      agent_id: 'agent-launch',
       avatar_instance_id: 'instance-1',
       launch_source: 'desktop-agent-chat',
     })).toEqual({
-      ownerUserId: 'account-runtime',
-      realmAgentId: 'agent-launch',
-      localAgentRef: 'local-agent:account-runtime:agent-launch',
-      conversationAnchorId: 'anchor-1',
+      agentId: 'agent-launch',
       avatarInstanceId: 'instance-1',
       launchSource: 'desktop-agent-chat',
     });
@@ -40,16 +28,48 @@ describe('parseAvatarLaunchContext', () => {
 
   it('rejects bare agent identity and auth truth in launch context', () => {
     expect(() => parseAvatarLaunchContext({
-      agent_id: 'agent-launch',
+      agentId: 'agent-launch',
       ownerUserId: 'account-runtime',
-      realmAgentId: 'agent-launch',
-      localAgentRef: 'local-agent:account-runtime:agent-launch',
-    })).toThrow(/forbidden field: agent_id/);
+    })).toThrow(/forbidden field: ownerUserId/);
     expect(() => parseAvatarLaunchContext({
-      ownerUserId: 'account-runtime',
-      realmAgentId: 'agent-launch',
-      localAgentRef: 'local-agent:account-runtime:agent-launch',
+      agentId: 'agent-launch',
       jwt: 'secret',
     })).toThrow(/forbidden field: jwt/);
+  });
+
+  it('rejects Runtime-owned identity and conversation truth in launch context', () => {
+    for (const field of [
+      'ownerUserId',
+      'owner_user_id',
+      'realmAgentId',
+      'realm_agent_id',
+      'localAgentRef',
+      'local_agent_ref',
+      'conversationAnchorId',
+      'conversation_anchor_id',
+    ]) {
+      expect(() => parseAvatarLaunchContext({
+        agentId: 'agent-launch',
+        [field]: 'forbidden',
+      })).toThrow(new RegExp(`forbidden field: ${field}`));
+    }
+  });
+
+  it('rejects package refs and materialization fields in launch context', () => {
+    for (const field of [
+      'avatarPackageRef',
+      'avatar_package_ref',
+      'backendCapabilityProfileRef',
+      'backend_capability_profile_ref',
+      'materializationRef',
+      'materialization_ref',
+      'localMaterializationRef',
+      'local_materialization_ref',
+    ]) {
+      expect(() => parseAvatarLaunchContext({
+        agentId: 'agent-launch',
+        [field]: 'opaque-ref',
+      })).toThrow(new RegExp(`forbidden field: ${field}`));
+    }
   });
 });

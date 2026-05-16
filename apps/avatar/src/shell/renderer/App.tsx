@@ -219,7 +219,7 @@ export function App() {
       useAvatarStore.getState().setLaunchContext(payload);
       setRelaunchPending(true);
       emitCompositionRelaunchPending({
-        agentId: payload.localAgentRef,
+        agentId: payload.agentId,
         avatarInstanceId: payload.avatarInstanceId ?? null,
         launchSource: payload.launchSource ?? null,
       });

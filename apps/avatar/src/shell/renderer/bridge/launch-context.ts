@@ -7,8 +7,16 @@ const FORBIDDEN_LAUNCH_FIELDS = [
   'avatar_package_kind',
   'avatarPackageId',
   'avatar_package_id',
+  'avatarPackageRef',
+  'avatar_package_ref',
   'avatarPackageSchemaVersion',
   'avatar_package_schema_version',
+  'backendCapabilityProfileRef',
+  'backend_capability_profile_ref',
+  'materializationRef',
+  'materialization_ref',
+  'localMaterializationRef',
+  'local_materialization_ref',
   'manifestPath',
   'manifest_path',
   'packagePath',
@@ -72,15 +80,18 @@ const FORBIDDEN_LAUNCH_FIELDS = [
   'shared_auth_session',
   'loginRoute',
   'login_route',
-  'agentId',
-  'agent_id',
+  'ownerUserId',
+  'owner_user_id',
+  'realmAgentId',
+  'realm_agent_id',
+  'localAgentRef',
+  'local_agent_ref',
+  'conversationAnchorId',
+  'conversation_anchor_id',
 ] as const;
 
 export type AvatarLaunchContext = {
-  ownerUserId: string;
-  realmAgentId: string;
-  localAgentRef: string;
-  conversationAnchorId: string;
+  agentId: string;
   avatarInstanceId: string | null;
   launchSource: string | null;
 };
@@ -134,27 +145,9 @@ export function parseAvatarLaunchContext(value: unknown): AvatarLaunchContext {
     ?? normalizeOptionalString(record.sourceSurface)
     ?? normalizeOptionalString(record.source_surface)
     ?? normalizeOptionalString(record.launch_source);
-  const ownerUserId = normalizeRequiredString(record.ownerUserId ?? record.owner_user_id, 'ownerUserId');
-  const realmAgentId = normalizeRequiredString(record.realmAgentId ?? record.realm_agent_id, 'realmAgentId');
-  const localAgentRef = normalizeRequiredString(record.localAgentRef ?? record.local_agent_ref, 'localAgentRef');
-  const conversationAnchorId = normalizeRequiredString(
-    record.conversationAnchorId ?? record.conversation_anchor_id,
-    'conversationAnchorId',
-  );
-  if (localAgentRef === realmAgentId) {
-    throw new Error('avatar launch context localAgentRef must not be a bare realmAgentId');
-  }
-  if (!localAgentRef.startsWith('local-agent:')) {
-    throw new Error('avatar launch context localAgentRef must start with local-agent:');
-  }
-  if (localAgentRef !== `local-agent:${ownerUserId}:${realmAgentId}`) {
-    throw new Error('avatar launch context localAgentRef must equal local-agent:${ownerUserId}:${realmAgentId}');
-  }
+  const agentId = normalizeRequiredString(record.agentId ?? record.agent_id, 'agentId');
   return {
-    ownerUserId,
-    realmAgentId,
-    localAgentRef,
-    conversationAnchorId,
+    agentId,
     avatarInstanceId: normalizeOptionalString(record.avatarInstanceId ?? record.avatar_instance_id),
     launchSource,
   };

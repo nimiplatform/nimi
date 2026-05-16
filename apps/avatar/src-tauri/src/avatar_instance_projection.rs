@@ -12,9 +12,7 @@ const AVATAR_INSTANCE_PROJECTION_SCHEMA_VERSION: u32 = 2;
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct AvatarInstanceProjectionRecord {
     pub avatar_instance_id: String,
-    pub owner_user_id: String,
-    pub realm_agent_id: String,
-    pub local_agent_ref: String,
+    pub agent_id: String,
     pub launch_source: Option<String>,
 }
 
@@ -115,9 +113,7 @@ mod tests {
             published_at_ms: 123,
             instances: vec![AvatarInstanceProjectionRecord {
                 avatar_instance_id: "instance-1".to_string(),
-                owner_user_id: "owner-1".to_string(),
-                realm_agent_id: "agent-1".to_string(),
-                local_agent_ref: "local-agent:owner-1:agent-1".to_string(),
+                agent_id: "agent-1".to_string(),
                 launch_source: Some("desktop-agent-chat".to_string()),
             }],
         };
@@ -128,9 +124,7 @@ mod tests {
         assert!(raw.contains("\"schemaVersion\": 2"));
         assert!(raw.contains("\"publisherPid\": 42"));
         assert!(raw.contains("\"avatarInstanceId\": \"instance-1\""));
-        assert!(raw.contains("\"ownerUserId\": \"owner-1\""));
-        assert!(raw.contains("\"realmAgentId\": \"agent-1\""));
-        assert!(raw.contains("\"localAgentRef\": \"local-agent:owner-1:agent-1\""));
+        assert!(raw.contains("\"agentId\": \"agent-1\""));
         assert!(raw.contains("\"publishedAtMs\": 123"));
     }
 }

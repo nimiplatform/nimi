@@ -48,7 +48,7 @@ function createBundle(): AgentDataBundle {
       name: 'happy',
       category: 'emotion',
       intensity: 'moderate',
-      source: 'runtime_projection',
+      source: 'apml_output',
     },
     posture: {
       posture_class: 'baseline',

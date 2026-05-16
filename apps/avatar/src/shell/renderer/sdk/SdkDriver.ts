@@ -5,6 +5,7 @@ import type {
   RuntimeScopedBindingAttachment,
 } from '@nimiplatform/sdk/runtime/browser';
 import type {
+  ActivitySource,
   AgentDataBundle,
   AgentBundleHistory,
   AgentDataDriver,
@@ -127,7 +128,14 @@ function requireRuntimeActivityIntensity(value: unknown): BundleActivityIntensit
   throw new Error('avatar sdk driver received malformed runtime activity projection intensity');
 }
 
-function requireRuntimeProjectionSource(value: unknown, label: string): string {
+function requireRuntimeProjectionSource(value: unknown, label: string): Exclude<ActivitySource, 'mock'> {
+  if (value === 'apml_output' || value === 'direct_api') {
+    return value;
+  }
+  throw new Error(`avatar sdk driver received malformed ${label} source`);
+}
+
+function requireRuntimeSourceText(value: unknown, label: string): string {
   if (typeof value === 'string' && value.trim()) {
     return value.trim();
   }
@@ -559,7 +567,7 @@ export class SdkDriver implements AgentDataDriver {
             name: event.detail.activityName,
             category,
             intensity,
-            source: 'runtime_projection',
+            source: runtimeSource,
           },
           history: mergeHistory(this.bundle.history, {
             last_activity: {
@@ -633,7 +641,7 @@ export class SdkDriver implements AgentDataDriver {
       case 'runtime.agent.state.emotion_changed': {
         const currentEmotion = requireRuntimeCurrentEmotion(event.detail.currentEmotion);
         const previousEmotion = optionalRuntimePreviousEmotion(event.detail.previousEmotion);
-        const runtimeSource = requireRuntimeProjectionSource(event.detail.source, 'runtime emotion projection');
+        const runtimeSource = requireRuntimeSourceText(event.detail.source, 'runtime emotion projection');
         this.bundle = {
           ...this.bundle,
           emotion: {

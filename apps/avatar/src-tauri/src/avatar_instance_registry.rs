@@ -132,10 +132,7 @@ mod tests {
 
     fn sample_context(instance_id: &str) -> AvatarLaunchContext {
         AvatarLaunchContext {
-            owner_user_id: "owner-1".to_string(),
-            realm_agent_id: "agent-1".to_string(),
-            local_agent_ref: "local-agent:owner-1:agent-1".to_string(),
-            conversation_anchor_id: "anchor-1".to_string(),
+            agent_id: "agent-1".to_string(),
             avatar_instance_id: Some(instance_id.to_string()),
             launch_source: Some("desktop-agent-chat".to_string()),
         }

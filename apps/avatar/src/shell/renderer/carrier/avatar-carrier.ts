@@ -21,6 +21,7 @@ import {
   type Live2DCarrierVisualHost,
 } from '../live2d/carrier-visual-host.js';
 import type { EmbodimentProjectionApi } from '../nas/embodiment-projection-api.js';
+import { createSmoothedProjection, type ProjectionSmoothingHandle } from '../nas/projection-smoothing.js';
 import {
   resolveAvatarModelManifest,
   type AvatarModelManifest,
@@ -226,14 +227,13 @@ export async function startAvatarVisualCarrier(input: {
   const commandBus = backendHandle.commandBus;
   const backendSession = backendHandle.backendSession;
   const cueProjection = backendHandle.cueProjection;
-  const interactionPhysics = cueProjection
-    ? createInteractionPhysicsController({ projection: cueProjection })
-    : null;
   const executor = new HandlerExecutor();
 
   let unwireDispatch: (() => void) | null = null;
   let unwireVoiceLipsync: (() => void) | null = null;
   let continuous: ContinuousScheduler | null = null;
+  let projectionSmoothing: ProjectionSmoothingHandle | null = null;
+  let interactionPhysics: ReturnType<typeof createInteractionPhysicsController> | null = null;
   let attachedDriver: AgentDataDriver | null = null;
   const detachRuntimeDriver = () => {
     continuous?.stop();
@@ -246,6 +246,10 @@ export async function startAvatarVisualCarrier(input: {
       console.warn(`[avatar:nas] failed to stop hot reload watcher: ${err instanceof Error ? err.message : String(err)}`);
     });
     stopNasHotReload = null;
+    interactionPhysics?.reset();
+    interactionPhysics = null;
+    projectionSmoothing?.dispose();
+    projectionSmoothing = null;
     attachedDriver = null;
   };
   store.setModelLoaded(model.modelId);
@@ -313,12 +317,19 @@ export async function startAvatarVisualCarrier(input: {
           backendKind: model.kind,
         });
       }
-      if (cueProjection && interactionPhysics) {
+      projectionSmoothing = cueProjection
+        ? createSmoothedProjection({ projection: cueProjection })
+        : null;
+      const runtimeCueProjection = projectionSmoothing?.projection ?? null;
+      interactionPhysics = runtimeCueProjection
+        ? createInteractionPhysicsController({ projection: runtimeCueProjection })
+        : null;
+      if (runtimeCueProjection && interactionPhysics) {
         unwireDispatch = wireEventDispatch({
           driver,
           registry,
           executor,
-          projection: cueProjection,
+          projection: runtimeCueProjection,
           backendProjection: backendHandle.branch.projection,
           live2dExtension:
             backendHandle.branch.kind === 'live2d'
@@ -337,11 +348,11 @@ export async function startAvatarVisualCarrier(input: {
       unwireVoiceLipsync = wireAvatarVoiceLipsync({
         driver,
       });
-      if (cueProjection) {
+      if (runtimeCueProjection) {
         continuous = new ContinuousScheduler(
           registry,
           () => driver.getBundle(),
-          cueProjection,
+          runtimeCueProjection,
         );
         continuous.start();
       }
@@ -350,7 +361,6 @@ export async function startAvatarVisualCarrier(input: {
     detachRuntimeDriver,
     shutdown() {
       detachRuntimeDriver();
-      interactionPhysics?.reset();
       executor.cancelAll();
       disposeRegistry(registry);
       backendHandle.shutdown();

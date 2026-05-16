@@ -25,6 +25,7 @@ const requestTurnMock = vi.fn();
 const interruptTurnMock = vi.fn();
 const requestCompanionParticipationMock = vi.fn();
 const cancelCompanionParticipationMock = vi.fn();
+const resolveLaunchAvatarPackageProjectionMock = vi.fn();
 const transcribeMock = vi.fn();
 const listRouteOptionsMock = vi.fn();
 const checkRouteHealthMock = vi.fn();
@@ -55,6 +56,9 @@ const runtimeMock = {
     request: (...args: unknown[]) => requestCompanionParticipationMock(...args),
     cancel: (...args: unknown[]) => cancelCompanionParticipationMock(...args),
   },
+  avatarPackage: {
+    resolveLaunchProjection: (...args: unknown[]) => resolveLaunchAvatarPackageProjectionMock(...args),
+  },
   media: {
     stt: {
       transcribe: (...args: unknown[]) => transcribeMock(...args),
@@ -70,23 +74,54 @@ const REALM_AGENT_ID = 'agent-launch';
 const OWNER_USER_ID = 'account-runtime';
 const LOCAL_AGENT_REF = `local-agent:${OWNER_USER_ID}:${REALM_AGENT_ID}`;
 const OTHER_LOCAL_AGENT_REF = `local-agent:${OWNER_USER_ID}:agent-other`;
+const AVATAR_PACKAGE_REF = 'live2d_ab12cd34ef56';
+const BACKEND_CAPABILITY_PROFILE_REF = 'avatar.backend_profile/live2d/basic';
+const AVATAR_MATERIALIZATION_REF = 'agent-center-avatar-package:account-runtime:id_8f0290aacb07e123ae912240:live2d:live2d_ab12cd34ef56';
 
 function launchContext(overrides: Partial<{
-  ownerUserId: string;
-  realmAgentId: string;
-  localAgentRef: string;
-  conversationAnchorId: string;
+  agentId: string;
   avatarInstanceId: string | null;
   launchSource: string | null;
 }> = {}) {
   return {
-    ownerUserId: OWNER_USER_ID,
-    realmAgentId: REALM_AGENT_ID,
-    localAgentRef: LOCAL_AGENT_REF,
-    conversationAnchorId: 'anchor-runtime',
+    agentId: REALM_AGENT_ID,
     avatarInstanceId: 'instance-1',
     launchSource: 'desktop-agent-chat',
     ...overrides,
+  };
+}
+
+function launchEligibleAvatarPackageProjection() {
+  return {
+    avatar_package_ref: AVATAR_PACKAGE_REF,
+    package_kind: 'avatar',
+    package_id: AVATAR_PACKAGE_REF,
+    bundle_id: 'bundle-avatar-ren',
+    bundle_member_asset_ids: ['asset-model3'],
+    backend_kind: 'live2d',
+    backend_capability_profile_ref: BACKEND_CAPABILITY_PROFILE_REF,
+    avatar_model_layout: {
+      layout_version: 1,
+      backend_kind: 'live2d',
+      entry_asset_id: 'asset-model3',
+      runtime_root: 'files',
+      required_asset_ids: ['asset-model3'],
+      live2d: {
+        model3_json_asset_id: 'asset-model3',
+        model3_json_path: 'files/ren.model3.json',
+      },
+    },
+    provenance: {
+      source_type: 'imported_local_materialization',
+      source_fingerprint: 'sha256:avatar',
+      admitted_at: '2026-05-16T00:00:00Z',
+      validator: 'avatar-test',
+    },
+    compatibility_diagnostics: [],
+    status: 'published',
+    is_ready: true,
+    readiness_issues: [],
+    materialization_ref: AVATAR_MATERIALIZATION_REF,
   };
 }
 
@@ -243,6 +278,7 @@ describe('bootstrapAvatar', () => {
     interruptTurnMock.mockReset();
     requestCompanionParticipationMock.mockReset();
     cancelCompanionParticipationMock.mockReset();
+    resolveLaunchAvatarPackageProjectionMock.mockReset();
     transcribeMock.mockReset();
     listRouteOptionsMock.mockReset();
     checkRouteHealthMock.mockReset();
@@ -363,6 +399,7 @@ describe('bootstrapAvatar', () => {
       conversationAnchorId: 'anchor-runtime',
       turnId: 'turn-runtime',
     });
+    resolveLaunchAvatarPackageProjectionMock.mockResolvedValue(launchEligibleAvatarPackageProjection());
   });
 
   afterEach(() => {
@@ -411,24 +448,31 @@ describe('bootstrapAvatar', () => {
       }),
       ttlSeconds: 600,
     });
-    expect(getAnchorSnapshotMock).toHaveBeenCalledWith({
+    expect(getAnchorSnapshotMock).not.toHaveBeenCalled();
+    expect(openAnchorMock).toHaveBeenCalledWith({
       ownerUserId: OWNER_USER_ID,
       realmAgentId: REALM_AGENT_ID,
       localAgentRef: LOCAL_AGENT_REF,
-      conversationAnchorId: 'anchor-runtime',
     });
-    expect(openAnchorMock).not.toHaveBeenCalled();
+    expect(resolveLaunchAvatarPackageProjectionMock).toHaveBeenCalledWith({
+      accountId: OWNER_USER_ID,
+      ownerUserId: OWNER_USER_ID,
+      realmAgentId: REALM_AGENT_ID,
+      localAgentRef: LOCAL_AGENT_REF,
+      avatarInstanceId: 'instance-1',
+    });
     expect(resolveAgentCenterAvatarPackageManifestMock).toHaveBeenCalledWith({
       accountId: OWNER_USER_ID,
       ownerUserId: OWNER_USER_ID,
       realmAgentId: REALM_AGENT_ID,
       localAgentRef: LOCAL_AGENT_REF,
+      avatarPackageRef: AVATAR_PACKAGE_REF,
+      backendKind: 'live2d',
+      backendCapabilityProfileRef: BACKEND_CAPABILITY_PROFILE_REF,
+      materializationRef: AVATAR_MATERIALIZATION_REF,
     });
     expect(useAvatarStore.getState().launch.context).toEqual({
-      ownerUserId: OWNER_USER_ID,
-      realmAgentId: REALM_AGENT_ID,
-      localAgentRef: LOCAL_AGENT_REF,
-      conversationAnchorId: 'anchor-runtime',
+      agentId: REALM_AGENT_ID,
       avatarInstanceId: 'instance-1',
       launchSource: 'desktop-agent-chat',
     });
@@ -538,13 +582,11 @@ describe('bootstrapAvatar', () => {
     expect(getDaemonStatusMock).toHaveBeenCalledTimes(1);
     expect(startDaemonMock).toHaveBeenCalledTimes(1);
     expect(createLocalFirstPartyRuntimePlatformClientMock).toHaveBeenCalledTimes(1);
-    expect(getAnchorSnapshotMock).toHaveBeenCalledWith({
+    expect(openAnchorMock).toHaveBeenCalledWith({
       ownerUserId: OWNER_USER_ID,
       realmAgentId: REALM_AGENT_ID,
       localAgentRef: LOCAL_AGENT_REF,
-      conversationAnchorId: 'anchor-runtime',
     });
-    expect(openAnchorMock).not.toHaveBeenCalled();
     expect(useAvatarStore.getState().runtime.binding.status).toBe('active');
 
     await handle.shutdown();
@@ -598,21 +640,16 @@ describe('bootstrapAvatar', () => {
     const handle = await bootstrapAvatar();
 
     expect(useAvatarStore.getState().launch.context).toEqual({
-      ownerUserId: OWNER_USER_ID,
-      realmAgentId: REALM_AGENT_ID,
-      localAgentRef: LOCAL_AGENT_REF,
-      conversationAnchorId: 'anchor-runtime',
+      agentId: REALM_AGENT_ID,
       avatarInstanceId: null,
       launchSource: null,
     });
     expect(useAvatarStore.getState().runtime.binding.status).toBe('active');
-    expect(getAnchorSnapshotMock).toHaveBeenCalledWith({
+    expect(openAnchorMock).toHaveBeenCalledWith({
       ownerUserId: OWNER_USER_ID,
       realmAgentId: REALM_AGENT_ID,
       localAgentRef: LOCAL_AGENT_REF,
-      conversationAnchorId: 'anchor-runtime',
     });
-    expect(openAnchorMock).not.toHaveBeenCalled();
     expect(useAvatarStore.getState().consume.avatarInstanceId).toBe('avatar-1777420800000');
     expect(createDriverMock).toHaveBeenCalledTimes(1);
     expect(createDriverMock.mock.calls[0]?.[0]?.sdk).toHaveProperty(
@@ -626,7 +663,7 @@ describe('bootstrapAvatar', () => {
     await handle.shutdown();
   });
 
-  it('uses the Desktop-supplied Runtime anchor and overwrites stale local Avatar anchor residue', async () => {
+  it('recovers a persisted Runtime anchor for the selected Avatar instance', async () => {
     window.localStorage.setItem('nimi.avatar.conversation-context.v2', JSON.stringify({
       schemaVersion: 2,
       records: [{
@@ -638,6 +675,13 @@ describe('bootstrapAvatar', () => {
         updatedAtMs: 1777420800000,
       }],
     }));
+    getAnchorSnapshotMock.mockResolvedValue({
+      anchor: {
+        conversationAnchorId: 'anchor-recovered',
+        agentId: LOCAL_AGENT_REF,
+        subjectUserId: OWNER_USER_ID,
+      },
+    });
     const { bootstrapAvatar } = await import('./app-bootstrap.js');
 
     const handle = await bootstrapAvatar();
@@ -646,16 +690,15 @@ describe('bootstrapAvatar', () => {
       ownerUserId: OWNER_USER_ID,
       realmAgentId: REALM_AGENT_ID,
       localAgentRef: LOCAL_AGENT_REF,
-      conversationAnchorId: 'anchor-runtime',
+      conversationAnchorId: 'anchor-recovered',
     });
     expect(openAnchorMock).not.toHaveBeenCalled();
-    expect(useAvatarStore.getState().consume.conversationAnchorId).toBe('anchor-runtime');
-    expect(window.localStorage.getItem('nimi.avatar.conversation-context.v2')).toContain('anchor-runtime');
-    expect(window.localStorage.getItem('nimi.avatar.conversation-context.v2')).not.toContain('anchor-recovered');
+    expect(useAvatarStore.getState().consume.conversationAnchorId).toBe('anchor-recovered');
+    expect(window.localStorage.getItem('nimi.avatar.conversation-context.v2')).toContain('anchor-recovered');
     expect(createDriverMock).toHaveBeenCalledWith({
       kind: 'sdk',
       sdk: expect.objectContaining({
-        conversationAnchorId: 'anchor-runtime',
+        conversationAnchorId: 'anchor-recovered',
         activeUserId: OWNER_USER_ID,
       }),
     });
@@ -679,19 +722,18 @@ describe('bootstrapAvatar', () => {
 
     const handle = await bootstrapAvatar();
 
-    expect(getAnchorSnapshotMock).toHaveBeenCalledWith({
+    expect(getAnchorSnapshotMock).not.toHaveBeenCalled();
+    expect(openAnchorMock).toHaveBeenCalledWith({
       ownerUserId: OWNER_USER_ID,
       realmAgentId: REALM_AGENT_ID,
       localAgentRef: LOCAL_AGENT_REF,
-      conversationAnchorId: 'anchor-runtime',
     });
-    expect(openAnchorMock).not.toHaveBeenCalled();
     expect(useAvatarStore.getState().consume.conversationAnchorId).toBe('anchor-runtime');
 
     await handle.shutdown();
   });
 
-  it('fails closed when the Desktop-supplied Runtime anchor belongs to a different account', async () => {
+  it('drops invalid persisted anchors and opens a Runtime-owned replacement', async () => {
     window.localStorage.setItem('nimi.avatar.conversation-context.v2', JSON.stringify({
       schemaVersion: 2,
       records: [{
@@ -703,9 +745,7 @@ describe('bootstrapAvatar', () => {
         updatedAtMs: 1777420800000,
       }],
     }));
-    getAvatarLaunchContextMock.mockResolvedValue(launchContext({
-      conversationAnchorId: 'anchor-stale',
-    }));
+    getAvatarLaunchContextMock.mockResolvedValue(launchContext());
     getAnchorSnapshotMock.mockResolvedValue({
       anchor: {
         conversationAnchorId: 'anchor-stale',
@@ -723,12 +763,14 @@ describe('bootstrapAvatar', () => {
       localAgentRef: LOCAL_AGENT_REF,
       conversationAnchorId: 'anchor-stale',
     });
-    expect(openAnchorMock).not.toHaveBeenCalled();
-    expect(useAvatarStore.getState().runtime.binding.status).toBe('unavailable');
-    expect(useAvatarStore.getState().runtime.binding.reason).toBe(
-      'conversation_context: Avatar launch conversationAnchorId does not match Runtime anchor projection',
-    );
-    expect(window.localStorage.getItem('nimi.avatar.conversation-context.v2')).toContain('anchor-stale');
+    expect(openAnchorMock).toHaveBeenCalledWith({
+      ownerUserId: OWNER_USER_ID,
+      realmAgentId: REALM_AGENT_ID,
+      localAgentRef: LOCAL_AGENT_REF,
+    });
+    expect(useAvatarStore.getState().runtime.binding.status).toBe('active');
+    expect(useAvatarStore.getState().consume.conversationAnchorId).toBe('anchor-runtime');
+    expect(window.localStorage.getItem('nimi.avatar.conversation-context.v2')).toContain('anchor-runtime');
 
     await handle.shutdown();
   });
@@ -758,6 +800,13 @@ describe('bootstrapAvatar', () => {
     getAvatarLaunchContextMock.mockResolvedValue(launchContext({
       avatarInstanceId: 'instance-2',
     }));
+    getAnchorSnapshotMock.mockResolvedValue({
+      anchor: {
+        conversationAnchorId: 'anchor-instance-2',
+        agentId: LOCAL_AGENT_REF,
+        subjectUserId: OWNER_USER_ID,
+      },
+    });
     const { bootstrapAvatar } = await import('./app-bootstrap.js');
 
     const handle = await bootstrapAvatar();
@@ -766,10 +815,10 @@ describe('bootstrapAvatar', () => {
       ownerUserId: OWNER_USER_ID,
       realmAgentId: REALM_AGENT_ID,
       localAgentRef: LOCAL_AGENT_REF,
-      conversationAnchorId: 'anchor-runtime',
+      conversationAnchorId: 'anchor-instance-2',
     });
     expect(useAvatarStore.getState().consume.avatarInstanceId).toBe('instance-2');
-    expect(useAvatarStore.getState().consume.conversationAnchorId).toBe('anchor-runtime');
+    expect(useAvatarStore.getState().consume.conversationAnchorId).toBe('anchor-instance-2');
     expect(openAnchorMock).not.toHaveBeenCalled();
 
     await handle.shutdown();
@@ -791,13 +840,12 @@ describe('bootstrapAvatar', () => {
 
     const handle = await bootstrapAvatar();
 
-    expect(getAnchorSnapshotMock).toHaveBeenCalledWith({
+    expect(getAnchorSnapshotMock).not.toHaveBeenCalled();
+    expect(openAnchorMock).toHaveBeenCalledWith({
       ownerUserId: OWNER_USER_ID,
       realmAgentId: REALM_AGENT_ID,
       localAgentRef: LOCAL_AGENT_REF,
-      conversationAnchorId: 'anchor-runtime',
     });
-    expect(openAnchorMock).not.toHaveBeenCalled();
     expect(useAvatarStore.getState().consume.agentId).toBe(LOCAL_AGENT_REF);
     expect(useAvatarStore.getState().consume.conversationAnchorId).toBe('anchor-runtime');
 
@@ -824,7 +872,7 @@ describe('bootstrapAvatar', () => {
   });
 
   it('surfaces first-party Runtime bootstrap stage when Runtime anchor validation fails authorization', async () => {
-    getAnchorSnapshotMock.mockRejectedValue(Object.assign(new Error('permission denied'), {
+    openAnchorMock.mockRejectedValue(Object.assign(new Error('permission denied'), {
       reasonCode: ReasonCode.PRINCIPAL_UNAUTHORIZED,
       actionHint: 'check_runtime_bridge_and_daemon',
       source: 'runtime',
@@ -836,17 +884,17 @@ describe('bootstrapAvatar', () => {
 
     expect(useAvatarStore.getState().runtime.binding.status).toBe('unavailable');
     expect(useAvatarStore.getState().runtime.binding.reason).toBe(
-      'conversation_context: Avatar launch conversationAnchorId does not match Runtime anchor projection',
+      'conversation_context: PRINCIPAL_UNAUTHORIZED / check_runtime_bridge_and_daemon',
     );
     expect(recordAvatarEvidenceEventuallyMock).toHaveBeenCalledWith(expect.objectContaining({
       kind: 'avatar.runtime.bind-failed',
       detail: expect.objectContaining({
-        reason: 'conversation_context: Avatar launch conversationAnchorId does not match Runtime anchor projection',
+        reason: 'conversation_context: PRINCIPAL_UNAUTHORIZED / check_runtime_bridge_and_daemon',
         error_stage: 'conversation_context',
-        error_reason_code: null,
-        error_action_hint: null,
-        error_source: null,
-        error_retryable: null,
+        error_reason_code: ReasonCode.PRINCIPAL_UNAUTHORIZED,
+        error_action_hint: 'check_runtime_bridge_and_daemon',
+        error_source: 'runtime',
+        error_retryable: true,
       }),
     }));
     expect(createDriverMock).not.toHaveBeenCalled();

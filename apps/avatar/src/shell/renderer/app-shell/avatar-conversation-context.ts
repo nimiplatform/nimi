@@ -102,6 +102,15 @@ function writePersistedContext(input: {
   });
 }
 
+function readPersistedContext(input: {
+  accountId: string;
+  localAgentRef: string;
+  avatarInstanceId: string;
+}): PersistedConversationContext | null {
+  const key = contextKey(input);
+  return readPersistedFile().records.find((record) => contextKey(record) === key) ?? null;
+}
+
 async function validatePersistedAnchor(input: {
   runtime: Runtime;
   ownerUserId: string;
@@ -144,30 +153,59 @@ export async function resolveAvatarConversationContext(input: {
   realmAgentId: string;
   localAgentRef: string;
   avatarInstanceId: string;
-  launchConversationAnchorId: string;
 }): Promise<AvatarConversationContextResult> {
   if (input.accountId !== input.ownerUserId) {
-    throw new Error('Avatar launch ownerUserId does not match Runtime account projection');
+    throw new Error('Avatar resolved ownerUserId does not match Runtime account projection');
   }
-  const launchSelected = await validatePersistedAnchor({
-    runtime: input.runtime,
+  const persisted = readPersistedContext({
+    accountId: input.accountId,
+    localAgentRef: input.localAgentRef,
+    avatarInstanceId: input.avatarInstanceId,
+  });
+  if (persisted) {
+    const recovered = await validatePersistedAnchor({
+      runtime: input.runtime,
+      ownerUserId: input.ownerUserId,
+      realmAgentId: input.realmAgentId,
+      localAgentRef: input.localAgentRef,
+      conversationAnchorId: persisted.conversationAnchorId,
+    });
+    if (recovered) {
+      writePersistedContext({
+        accountId: input.accountId,
+        localAgentRef: input.localAgentRef,
+        avatarInstanceId: input.avatarInstanceId,
+        conversationAnchorId: recovered.conversationAnchorId,
+      });
+      return recovered;
+    }
+  }
+
+  const opened = await input.runtime.agent.anchors.open({
     ownerUserId: input.ownerUserId,
     realmAgentId: input.realmAgentId,
     localAgentRef: input.localAgentRef,
-    conversationAnchorId: input.launchConversationAnchorId,
   });
-  if (!launchSelected) {
-    throw new Error('Avatar launch conversationAnchorId does not match Runtime anchor projection');
+  const anchor = opened.anchor;
+  const conversationAnchorId = normalizeText(anchor?.conversationAnchorId);
+  const anchorAgentId = normalizeText(anchor?.agentId);
+  const subjectUserId = normalizeText(anchor?.subjectUserId);
+  if (
+    !conversationAnchorId
+    || anchorAgentId !== input.localAgentRef
+    || subjectUserId !== input.ownerUserId
+  ) {
+    throw new Error('Runtime opened Avatar conversation anchor projection is invalid');
   }
   writePersistedContext({
     accountId: input.accountId,
     localAgentRef: input.localAgentRef,
     avatarInstanceId: input.avatarInstanceId,
-    conversationAnchorId: launchSelected.conversationAnchorId,
+    conversationAnchorId,
   });
   return {
-    conversationAnchorId: launchSelected.conversationAnchorId,
-    subjectUserId: launchSelected.subjectUserId,
+    conversationAnchorId,
+    subjectUserId,
     recovered: false,
   };
 }

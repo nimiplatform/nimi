@@ -155,9 +155,7 @@ fn sync_avatar_instance_projection(registry: &AvatarInstanceRegistry) {
                 .context
                 .avatar_instance_id
                 .unwrap_or_else(|| entry.window_label.clone()),
-            owner_user_id: entry.context.owner_user_id,
-            realm_agent_id: entry.context.realm_agent_id,
-            local_agent_ref: entry.context.local_agent_ref,
+            agent_id: entry.context.agent_id,
             launch_source: entry.context.launch_source,
         })
         .collect::<Vec<_>>();

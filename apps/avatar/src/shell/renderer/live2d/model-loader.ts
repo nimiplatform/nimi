@@ -1,5 +1,8 @@
 import { invoke } from '@tauri-apps/api/core';
 
+// Agent Center package resolution is current local materialization plumbing for
+// authorized opaque refs. Package lifecycle and activation truth live upstream.
+
 export type ModelManifest = {
   runtimeDir: string;
   modelId: string;
@@ -13,6 +16,10 @@ export type AgentCenterAvatarPackageReference = {
   ownerUserId: string;
   realmAgentId: string;
   localAgentRef: string;
+  avatarPackageRef: string;
+  backendKind: 'live2d' | 'vrm';
+  backendCapabilityProfileRef: string;
+  materializationRef: string;
 };
 
 type RustModelManifest = {

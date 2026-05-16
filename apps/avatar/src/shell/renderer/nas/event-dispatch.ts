@@ -1,4 +1,4 @@
-import type { AgentDataBundle, AgentDataDriver, AgentEvent } from '../driver/types.js';
+import type { ActivitySource, AgentDataBundle, AgentDataDriver, AgentEvent } from '../driver/types.js';
 import type {
   BackendProjection,
   Live2DBackendExtension,
@@ -66,8 +66,12 @@ function parseRuntimeActivityProjection(event: AgentEvent): NonNullable<AgentDat
     name: activityName,
     category,
     intensity: intensity === undefined ? null : intensity,
-    source: 'runtime_projection',
+    source,
   };
+}
+
+function parseRuntimeProjectionSource(value: unknown): ActivitySource {
+  return value === 'direct_api' || value === 'mock' ? value : 'apml_output';
 }
 
 function parseRuntimeExpressionProjection(event: AgentEvent): string | null {
@@ -118,8 +122,7 @@ export function wireEventDispatch(context: DispatchContext): () => void {
           activity_name: activity.name,
           category: activity.category,
           intensity: activity.intensity,
-          source: 'runtime_projection',
-          runtime_source: event.detail['source'],
+          source: activity.source,
         },
       });
       const activityName = activity.name;
@@ -182,7 +185,7 @@ export function wireEventDispatch(context: DispatchContext): () => void {
           name: 'avatar.expression.change',
           detail: {
             expression_id: expressionId,
-            source: 'runtime_projection',
+            source: parseRuntimeProjectionSource(event.detail['source']),
           },
         });
       }).catch((err: unknown) => {

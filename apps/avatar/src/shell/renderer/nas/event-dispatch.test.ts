@@ -127,7 +127,7 @@ describe('Avatar NAS runtime event dispatch', () => {
             name: 'happy',
             category: 'emotion',
             intensity: 'strong',
-            source: 'runtime_projection',
+            source: 'apml_output',
           },
         }),
       }),
@@ -138,8 +138,7 @@ describe('Avatar NAS runtime event dispatch', () => {
         activity_name: 'happy',
         category: 'emotion',
         intensity: 'strong',
-        source: 'runtime_projection',
-        runtime_source: 'apml_output',
+        source: 'apml_output',
       },
     });
     expect(driver.emitted.find((event) => event.name === 'avatar.activity.end')).toEqual({
@@ -192,8 +191,7 @@ describe('Avatar NAS runtime event dispatch', () => {
         activity_name: 'happy',
         category: 'emotion',
         intensity: 'strong',
-        source: 'runtime_projection',
-        runtime_source: 'apml_output',
+        source: 'apml_output',
       },
     });
     expect(driver.emitted.find((event) => event.name === 'avatar.activity.end')).toBeUndefined();
@@ -227,7 +225,7 @@ describe('Avatar NAS runtime event dispatch', () => {
             name: 'greet',
             category: 'interaction',
             intensity: null,
-            source: 'runtime_projection',
+            source: 'mock',
           },
         }),
       }),
@@ -238,8 +236,7 @@ describe('Avatar NAS runtime event dispatch', () => {
         activity_name: 'greet',
         category: 'interaction',
         intensity: null,
-        source: 'runtime_projection',
-        runtime_source: 'mock',
+        source: 'mock',
       },
     });
 
@@ -252,7 +249,7 @@ describe('Avatar NAS runtime event dispatch', () => {
         name: 'previous',
         category: 'state',
         intensity: null,
-        source: 'runtime_projection',
+        source: 'apml_output',
       },
     }));
     const projection = createProjection();
@@ -302,7 +299,7 @@ describe('Avatar NAS runtime event dispatch', () => {
       name: 'avatar.expression.change',
       detail: {
         expression_id: 'smile.default',
-        source: 'runtime_projection',
+        source: 'apml_output',
       },
     });
 

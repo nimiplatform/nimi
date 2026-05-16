@@ -4,9 +4,9 @@
 // resolved package and returns a discriminated union the rest of the
 // renderer consumes (BackendBranch factory + carrier wiring).
 //
-// The Tauri resolver returns the selected Agent Center package kind so this
-// module can produce the backend-discriminated manifest consumed by the
-// BackendBranch factory.
+// The Tauri resolver returns a Runtime/Desktop-authorized local materialization
+// record. Agent Center naming here is storage plumbing, not package lifecycle,
+// inventory, or activation authority.
 
 import { invoke } from '@tauri-apps/api/core';
 import {
