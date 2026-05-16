@@ -90,8 +90,11 @@ export function resolveLaunchAgentIdentity(input: {
   }
   const ownerUserId = accountId;
   if (agentId.startsWith(LOCAL_AGENT_REF_PREFIX)) {
-    const [, selectedOwnerUserId, selectedRealmAgentId, ...extra] = agentId.split(':');
-    if (!selectedOwnerUserId || !selectedRealmAgentId || extra.length > 0) {
+    const rest = agentId.slice(LOCAL_AGENT_REF_PREFIX.length);
+    const separatorIndex = rest.indexOf(':');
+    const selectedOwnerUserId = separatorIndex >= 0 ? rest.slice(0, separatorIndex).trim() : '';
+    const selectedRealmAgentId = separatorIndex >= 0 ? rest.slice(separatorIndex + 1).trim() : '';
+    if (!selectedOwnerUserId || !selectedRealmAgentId) {
       throw new Error('avatar launch agentId local-agent selector is malformed');
     }
     if (selectedOwnerUserId !== ownerUserId) {

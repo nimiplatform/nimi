@@ -9,7 +9,7 @@ use agent_center_avatar_package::nimi_avatar_resolve_agent_center_avatar_package
 #[cfg(test)]
 use agent_center_avatar_package::AgentCenterAvatarPackageResolvePayload;
 use avatar_evidence_projection::AvatarEvidenceRecordInput;
-use avatar_instance_projection::{persist_projection, AvatarInstanceProjectionRecord};
+use avatar_instance_projection::{persist_projection, projection_record_from_launch_context};
 use avatar_instance_registry::AvatarInstanceRegistry;
 use avatar_launch_context::{
     parse_avatar_deep_link_request, resolve_initial_avatar_request, AvatarCloseRequest,
@@ -150,13 +150,8 @@ fn sync_avatar_instance_projection(registry: &AvatarInstanceRegistry) {
     };
     let projection = snapshot
         .into_iter()
-        .map(|entry| AvatarInstanceProjectionRecord {
-            avatar_instance_id: entry
-                .context
-                .avatar_instance_id
-                .unwrap_or_else(|| entry.window_label.clone()),
-            agent_id: entry.context.agent_id,
-            launch_source: entry.context.launch_source,
+        .filter_map(|entry| {
+            projection_record_from_launch_context(&entry.context, &entry.window_label)
         })
         .collect::<Vec<_>>();
     if let Err(error) = persist_projection(std::process::id(), published_at_ms, projection) {

@@ -202,6 +202,7 @@ func New(cfg config.Config, state *health.State, logger *slog.Logger, version st
 	agentSvc.SetAuditStore(auditStore)
 	agentSvc.SetRuntimeArtifactStore(artifactStore)
 	agentSvc.SetRuntimePrivateAIBridge(runtimeagentservice.NewAIBackedRuntimePrivateAIBridge(aiSvc))
+	agentSvc.SetAvatarPackageLaunchProjectionResolver(runtimeagentservice.NewLocalAvatarPackageProjectionResolver(""))
 	runtimev1.RegisterRuntimeAgentServiceServer(g, agentSvc)
 
 	// K-SCHED-004: register target-agnostic denial checks. Device profile is
