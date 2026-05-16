@@ -33,16 +33,16 @@ source_rule: K-DELEG-002
 provider_kinds:
   - id: MCP_TOOL_PROVIDER
     source_rule: K-DELEG-002
-    status: adapter_candidate
+    provider_kind_posture: adapter_candidate
   - id: REMOTE_AGENT_SEAM
     source_rule: K-DELEG-002
-    status: future_only
+    provider_kind_posture: future_only
   - id: RUNTIME_NATIVE_PROVIDER
     source_rule: K-DELEG-002
-    status: runtime_owned
+    provider_kind_posture: runtime_owned
   - id: CONTROLLED_TEST_PROVIDER
     source_rule: K-DELEG-002
-    status: test_evidence
+    provider_kind_posture: test_evidence
 trust_tiers:
   - id: CONTROLLED_LOCAL
     source_rule: K-DELEG-004
