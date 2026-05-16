@@ -1341,7 +1341,7 @@ importers:
 packages:
 
   '@nimiplatform/nimi-coding@0.2.0':
-    resolution: {integrity: sha512-ROzV31/ECWHeSjvtMJBTC8domADv/uQ4A5D62I4bUt08yF/2INIfOW3YK3vvdgZkzHY4xbJBezAEbBxjRQvbig==}
+    resolution: {integrity: sha512-KgaMqr0xXi0aNsdpCsUOfQgrSxZisntsPUrHPUUJKY9g8i00aq9MI5kMdbzLPbPmHkd1g2W7V6uP3fChhYGs8A==}
     hasBin: true
 
   '@acemir/cssom@0.9.31':

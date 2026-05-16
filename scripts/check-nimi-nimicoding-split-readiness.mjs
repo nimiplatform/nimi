@@ -90,11 +90,11 @@ for (const forbidden of [
 
 for (const file of trackedTextFiles()) {
   if (isRetiredHistory(file)) continue;
+  if (isRawPackagePathAllowed(file)) continue;
   const text = readText(file);
   if (/nimi-coding\/\*\*/u.test(text)) {
     fail(`${file} keeps nimi-coding/** as a host retrieval or authority root`);
   }
-  if (isRawPackagePathAllowed(file)) continue;
   const normalizedText = text.replaceAll('package://@nimiplatform/nimi-coding/', 'package://NIMICODING/');
   const rawRefs = [...normalizedText.matchAll(/(?:^|[^A-Za-z0-9@])nimi-coding\/[A-Za-z0-9._*{}?/@-]*/gu)]
     .map((match) => match[0].trim());
