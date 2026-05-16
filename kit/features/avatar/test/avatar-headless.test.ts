@@ -2,27 +2,12 @@ import { describe, expect, it } from 'vitest';
 
 import {
   resolveAvatarBackendLabel,
+  resolveAvatarPresentationProfile,
+  resolveAvatarStagePosterUrl,
   resolveAvatarStageRendererModel,
 } from '../src/headless.js';
 
 describe('avatar headless renderer resolution', () => {
-  it('prefers sprite media urls for sprite2d presentations', () => {
-    const renderer = resolveAvatarStageRendererModel({
-      presentation: {
-        backendKind: 'sprite2d',
-        avatarAssetRef: 'https://cdn.nimi.test/avatar.png',
-      },
-    });
-
-    expect(renderer).toMatchObject({
-      kind: 'sprite2d',
-      mediaUrl: 'https://cdn.nimi.test/avatar.png',
-      posterUrl: 'https://cdn.nimi.test/avatar.png',
-      backendLabel: 'Sprite',
-      prefersMotion: false,
-    });
-  });
-
   it('keeps vrm asset refs while allowing a separate poster image', () => {
     const renderer = resolveAvatarStageRendererModel({
       presentation: {
@@ -61,28 +46,30 @@ describe('avatar headless renderer resolution', () => {
     });
   });
 
-  it('falls back to non-media canvas renderer for fallback profiles', () => {
+  it('keeps fallback profiles inside the admitted backend union', () => {
+    const presentation = resolveAvatarPresentationProfile({
+      fallbackAssetRef: 'https://cdn.nimi.test/avatar.png',
+    });
+    const posterUrl = resolveAvatarStagePosterUrl(
+      presentation,
+      'https://cdn.nimi.test/avatar.png',
+    );
     const renderer = resolveAvatarStageRendererModel({
-      presentation: {
-        backendKind: 'canvas2d',
-        avatarAssetRef: 'fallback://avatar-stage',
-      },
+      presentation,
+      imageUrl: posterUrl,
     });
 
     expect(renderer).toMatchObject({
-      kind: 'canvas2d',
-      mediaUrl: null,
-      posterUrl: null,
-      backendLabel: 'Canvas',
-      prefersMotion: false,
+      kind: 'live2d',
+      mediaUrl: 'https://cdn.nimi.test/avatar.png',
+      posterUrl: 'https://cdn.nimi.test/avatar.png',
+      backendLabel: 'Live2D',
+      prefersMotion: true,
     });
   });
 
   it('exposes stable backend labels for badge rendering', () => {
-    expect(resolveAvatarBackendLabel('sprite2d')).toBe('Sprite');
-    expect(resolveAvatarBackendLabel('canvas2d')).toBe('Canvas');
     expect(resolveAvatarBackendLabel('vrm')).toBe('VRM');
     expect(resolveAvatarBackendLabel('live2d')).toBe('Live2D');
-    expect(resolveAvatarBackendLabel('video')).toBe('Video');
   });
 });

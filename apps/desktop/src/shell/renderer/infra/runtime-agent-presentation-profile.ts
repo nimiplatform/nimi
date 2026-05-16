@@ -22,12 +22,6 @@ export function normalizeRuntimeAgentPresentationBackendKind(
       return 1;
     case 'live2d':
       return 2;
-    case 'sprite2d':
-      return 3;
-    case 'canvas2d':
-      return 4;
-    case 'video':
-      return 5;
     default:
       return null;
   }

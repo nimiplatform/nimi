@@ -19,13 +19,9 @@ fn make_temp_dir(prefix: &str) -> PathBuf {
 
 fn launch_payload() -> DesktopAvatarLaunchHandoffPayload {
     DesktopAvatarLaunchHandoffPayload {
-        owner_user_id: "owner-1".to_string(),
-        realm_agent_id: "agent-1".to_string(),
-        local_agent_ref: "local-agent:owner-1:agent-1".to_string(),
-        conversation_anchor_id: "anchor-1".to_string(),
+        agent_id: "agent-1".to_string(),
         avatar_instance_id: Some("instance-1".to_string()),
-        launch_source: None,
-        source_surface: Some("desktop-agent-chat".to_string()),
+        launch_source: Some("desktop-agent-chat".to_string()),
     }
 }
 
@@ -84,12 +80,30 @@ fn avatar_handoff_uri_includes_only_minimal_launch_intent() {
     let uri = build_avatar_handoff_uri(&launch_payload()).expect("valid handoff uri");
 
     assert!(uri.starts_with("nimi-avatar://launch?"));
-    assert!(uri.contains("owner_user_id=owner-1"));
-    assert!(uri.contains("realm_agent_id=agent-1"));
-    assert!(uri.contains("local_agent_ref=local-agent%3Aowner-1%3Aagent-1"));
-    assert!(uri.contains("conversation_anchor_id=anchor-1"));
-    assert!(uri.contains("avatar_instance_id=instance-1"));
-    assert!(uri.contains("launch_source=desktop-agent-chat"));
+    let parsed = url::Url::parse(uri.as_str()).expect("parse handoff uri");
+    let query: std::collections::BTreeMap<String, String> =
+        parsed.query_pairs().into_owned().collect();
+    assert_eq!(query.get("agent_id").map(String::as_str), Some("agent-1"));
+    assert_eq!(
+        query.get("avatar_instance_id").map(String::as_str),
+        Some("instance-1")
+    );
+    assert_eq!(
+        query.get("launch_source").map(String::as_str),
+        Some("desktop-agent-chat")
+    );
+    assert_eq!(
+        query.keys().cloned().collect::<Vec<_>>(),
+        vec![
+            "agent_id".to_string(),
+            "avatar_instance_id".to_string(),
+            "launch_source".to_string(),
+        ]
+    );
+    assert!(!uri.contains("owner_user_id"));
+    assert!(!uri.contains("realm_agent_id"));
+    assert!(!uri.contains("local_agent_ref"));
+    assert!(!uri.contains("conversation_anchor_id"));
     assert!(!uri.contains("avatar_package_kind"));
     assert!(!uri.contains("avatar_package_id"));
     assert!(!uri.contains("avatar_package_schema_version"));
@@ -298,15 +312,11 @@ fn inferred_avatar_target_accepts_binary_newer_than_source() {
 }
 
 #[test]
-fn avatar_handoff_uri_rejects_missing_local_agent_ref() {
+fn avatar_handoff_uri_rejects_missing_agent_id() {
     let error = build_avatar_handoff_uri(&DesktopAvatarLaunchHandoffPayload {
-        owner_user_id: "owner-1".to_string(),
-        realm_agent_id: "agent-1".to_string(),
-        local_agent_ref: " ".to_string(),
-        conversation_anchor_id: "anchor-1".to_string(),
+        agent_id: " ".to_string(),
         avatar_instance_id: Some("instance-1".to_string()),
         launch_source: None,
-        source_surface: Some("desktop-agent-chat".to_string()),
     })
     .expect_err("missing agent should fail");
 
@@ -318,6 +328,23 @@ fn avatar_handoff_uri_rejects_missing_local_agent_ref() {
             .and_then(serde_json::Value::as_str),
         Some("DESKTOP_AVATAR_HANDOFF_INVALID"),
     );
+}
+
+#[test]
+fn avatar_launch_payload_rejects_old_authority_fields() {
+    let payload = serde_json::json!({
+        "agentId": "agent-1",
+        "ownerUserId": "owner-1",
+        "realmAgentId": "agent-1",
+        "localAgentRef": "local-agent:owner-1:agent-1",
+        "conversationAnchorId": "anchor-1",
+        "avatarInstanceId": "instance-1",
+        "avatarPackageRef": "pkg-avatar-1",
+        "materializationRef": "agent-center://avatar/pkg-avatar-1"
+    });
+    let error = serde_json::from_value::<DesktopAvatarLaunchHandoffPayload>(payload)
+        .expect_err("old launch authority fields must fail closed");
+    assert!(error.to_string().contains("unknown field"));
 }
 
 #[test]

@@ -189,13 +189,9 @@ struct DesktopMacosSmokeReportResult {
 #[serde(deny_unknown_fields)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct DesktopAvatarLaunchHandoffPayload {
-    owner_user_id: String,
-    realm_agent_id: String,
-    local_agent_ref: String,
-    conversation_anchor_id: String,
+    agent_id: String,
     avatar_instance_id: Option<String>,
     launch_source: Option<String>,
-    source_surface: Option<String>,
 }
 
 #[derive(Debug, Serialize)]

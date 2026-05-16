@@ -1,5 +1,5 @@
 import type { CSSProperties, ReactNode } from 'react';
-import { Avatar, cn } from '@nimiplatform/nimi-kit/ui';
+import { cn } from '@nimiplatform/nimi-kit/ui';
 import {
   inferAvatarEmotionFromPhase,
   inferAvatarToneFromEmotion,
@@ -101,53 +101,9 @@ function phaseLabel(phase: AvatarStageSnapshot['interaction']['phase']): string 
   }
 }
 
-const renderSpriteAvatarStage: AvatarStageBackendRenderer = ({ fallback, label, renderer, size }) => (
-  <Avatar
-    src={renderer.mediaUrl}
-    alt={label}
-    size={SIZE_CLASSES[size].avatar}
-    tone="neutral"
-    className="h-full w-full bg-transparent text-slate-900"
-    fallback={fallback}
-    fallbackClassName="bg-[linear-gradient(180deg,rgba(255,255,255,0.92),rgba(241,245,249,0.92))] text-slate-900 text-[1.75em] font-black"
-  />
-);
-
-const renderVideoAvatarStage: AvatarStageBackendRenderer = ({ label, renderer }) => (
-  renderer.mediaUrl ? (
-    <video
-      className="h-full w-full object-cover"
-      src={renderer.mediaUrl}
-      poster={renderer.posterUrl || undefined}
-      aria-label={label}
-      autoPlay
-      loop
-      muted
-      playsInline
-    />
-  ) : null
-);
-
-const renderCanvasAvatarStage: AvatarStageBackendRenderer = ({ fallback, snapshot }) => (
-  <div className="relative flex h-full w-full items-center justify-center overflow-hidden bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.98),rgba(236,253,245,0.9)_48%,rgba(191,219,254,0.82))]">
-    <span className="absolute inset-0 opacity-80 [background-image:linear-gradient(rgba(255,255,255,0.38)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.38)_1px,transparent_1px)] [background-size:18px_18px]" />
-    <span className="absolute inset-[18%] rounded-full border border-white/70 bg-[radial-gradient(circle,rgba(255,255,255,0.9),rgba(240,249,255,0.42))]" />
-    <span
-      className={cn(
-        'absolute h-[52%] w-[52%] rounded-full border border-white/80 bg-[radial-gradient(circle,rgba(255,255,255,0.98),rgba(224,231,255,0.72))] shadow-[0_18px_40px_rgba(15,23,42,0.08)]',
-        snapshot.interaction.phase === 'thinking' || snapshot.interaction.phase === 'speaking' ? 'animate-pulse' : '',
-      )}
-    />
-    <span className="relative text-[1.9rem] font-black text-slate-900">{fallback}</span>
-  </div>
-);
-
-const DEFAULT_RENDERERS: Record<'sprite2d' | 'video' | 'vrm' | 'live2d' | 'canvas2d', AvatarStageBackendRenderer> = {
-  sprite2d: renderSpriteAvatarStage,
-  video: renderVideoAvatarStage,
+const DEFAULT_RENDERERS: Record<'vrm' | 'live2d', AvatarStageBackendRenderer> = {
   vrm: createVrmAvatarRenderer(),
   live2d: createLive2dAvatarRenderer(),
-  canvas2d: renderCanvasAvatarStage,
 };
 
 export function AvatarStage({

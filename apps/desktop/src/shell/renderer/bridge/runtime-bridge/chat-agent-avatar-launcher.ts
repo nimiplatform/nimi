@@ -1,10 +1,7 @@
 import { invokeChecked } from './invoke';
 
 export type DesktopAvatarLaunchHandoffInput = {
-  ownerUserId: string;
-  realmAgentId: string;
-  localAgentRef: string;
-  conversationAnchorId: string;
+  agentId: string;
   avatarInstanceId?: string | null;
   launchSource?: string | null;
   sourceSurface?: string | null;
@@ -27,38 +24,97 @@ export type DesktopAvatarCloseHandoffResult = {
 };
 
 export type DesktopAvatarLaunchHandoffPayload = {
-  ownerUserId: string;
-  realmAgentId: string;
-  localAgentRef: string;
-  conversationAnchorId: string;
+  agentId: string;
   avatarInstanceId?: string;
   launchSource?: string;
-  sourceSurface?: string;
 };
 
 const FORBIDDEN_LAUNCH_INPUT_FIELDS = [
-  'agentId',
+  'ownerUserId',
+  'owner_user_id',
+  'realmAgentId',
+  'realm_agent_id',
+  'localAgentRef',
+  'local_agent_ref',
+  'conversationAnchorId',
+  'conversation_anchor_id',
   'avatarPackage',
+  'avatar_package',
   'avatarPackageKind',
+  'avatar_package_kind',
   'avatarPackageId',
+  'avatar_package_id',
+  'avatarPackageRef',
+  'avatar_package_ref',
   'avatarPackageSchemaVersion',
+  'avatar_package_schema_version',
+  'backendCapabilityProfileRef',
+  'backend_capability_profile_ref',
+  'materializationRef',
+  'materialization_ref',
+  'localMaterializationRef',
+  'local_materialization_ref',
+  'manifestPath',
+  'manifest_path',
+  'packagePath',
+  'package_path',
+  'sourcePath',
+  'source_path',
+  'configPath',
+  'config_path',
   'anchorMode',
+  'anchor_mode',
   'runtimeAppId',
+  'runtime_app_id',
   'worldId',
+  'world_id',
   'scopedBinding',
+  'scoped_binding',
   'bindingId',
+  'binding_id',
   'bindingHandle',
+  'binding_handle',
+  'bindingAppInstanceId',
+  'binding_app_instance_id',
+  'bindingWindowId',
+  'binding_window_id',
+  'bindingPurpose',
+  'binding_purpose',
+  'bindingScopes',
+  'binding_scopes',
+  'bindingState',
+  'binding_state',
+  'bindingReasonCode',
+  'binding_reason_code',
   'scopes',
   'state',
   'reason',
+  'reasonCode',
   'accountId',
+  'account_id',
   'userId',
+  'user_id',
   'subjectUserId',
+  'subject_user_id',
+  'agentCenterAccountId',
+  'agent_center_account_id',
   'realmBaseUrl',
+  'realm_base_url',
   'realmUrl',
+  'realm_url',
   'accessToken',
+  'access_token',
+  'accountAccessToken',
+  'account_access_token',
   'refreshToken',
+  'refresh_token',
   'jwt',
+  'rawJwt',
+  'raw_jwt',
+  'sharedAuth',
+  'shared_auth',
+  'sharedAuthSession',
+  'shared_auth_session',
 ] as const;
 
 export type DesktopAvatarLaunchHandoffDeps = {
@@ -84,19 +140,6 @@ function normalizeRequiredString(value: string, field: string): string {
     throw new Error(`desktop avatar handoff requires ${field}`);
   }
   return normalized;
-}
-
-function validateLocalAgentRef(ownerUserId: string, realmAgentId: string, localAgentRef: string): void {
-  if (localAgentRef === realmAgentId) {
-    throw new Error('desktop avatar handoff requires localAgentRef, not bare realmAgentId');
-  }
-  if (!localAgentRef.startsWith('local-agent:')) {
-    throw new Error('desktop avatar handoff localAgentRef must start with local-agent:');
-  }
-  const expected = `local-agent:${ownerUserId}:${realmAgentId}`;
-  if (localAgentRef !== expected) {
-    throw new Error('desktop avatar handoff localAgentRef must equal local-agent:${ownerUserId}:${realmAgentId}');
-  }
 }
 
 export function parseDesktopAvatarLaunchHandoffResult(value: unknown): DesktopAvatarLaunchHandoffResult {
@@ -130,22 +173,13 @@ export function buildDesktopAvatarLaunchHandoffPayload(
       throw new Error(`desktop avatar handoff contains forbidden field: ${field}`);
     }
   }
-  const ownerUserId = normalizeRequiredString(input.ownerUserId, 'ownerUserId');
-  const realmAgentId = normalizeRequiredString(input.realmAgentId, 'realmAgentId');
-  const localAgentRef = normalizeRequiredString(input.localAgentRef, 'localAgentRef');
-  const conversationAnchorId = normalizeRequiredString(input.conversationAnchorId, 'conversationAnchorId');
-  validateLocalAgentRef(ownerUserId, realmAgentId, localAgentRef);
+  const agentId = normalizeRequiredString(input.agentId, 'agentId');
   const avatarInstanceId = normalizeOptionalString(input.avatarInstanceId);
-  const launchSource = normalizeOptionalString(input.launchSource);
-  const sourceSurface = normalizeOptionalString(input.sourceSurface);
+  const launchSource = normalizeOptionalString(input.launchSource) ?? normalizeOptionalString(input.sourceSurface);
   return {
-    ownerUserId,
-    realmAgentId,
-    localAgentRef,
-    conversationAnchorId,
+    agentId,
     ...(avatarInstanceId ? { avatarInstanceId } : {}),
     ...(launchSource ? { launchSource } : {}),
-    ...(sourceSurface ? { sourceSurface } : {}),
   };
 }
 

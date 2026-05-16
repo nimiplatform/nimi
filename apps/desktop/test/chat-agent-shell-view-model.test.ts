@@ -92,8 +92,8 @@ test('agent shell view model prefers persisted thread snapshot avatar for target
         ...sampleThreads()[0]!.targetSnapshot,
         avatarUrl: 'https://cdn.nimi.test/runtime/companion.png',
         presentationProfile: {
-          backendKind: 'sprite2d',
-          avatarAssetRef: 'https://cdn.nimi.test/runtime/companion.png',
+          backendKind: 'live2d',
+          avatarAssetRef: 'asset://avatar/live2d/companion.model3.json',
           expressionProfileRef: null,
           idlePreset: 'companion.idle.soft',
           interactionPolicyRef: null,
@@ -105,8 +105,8 @@ test('agent shell view model prefers persisted thread snapshot avatar for target
 
   assert.equal(summaries[0]?.avatarUrl, 'https://cdn.nimi.test/runtime/companion.png');
   assert.deepEqual((summaries[0]?.metadata as Record<string, unknown>)?.presentationProfile, {
-    backendKind: 'sprite2d',
-    avatarAssetRef: 'https://cdn.nimi.test/runtime/companion.png',
+    backendKind: 'live2d',
+    avatarAssetRef: 'asset://avatar/live2d/companion.model3.json',
     expressionProfileRef: null,
     idlePreset: 'companion.idle.soft',
     interactionPolicyRef: null,
@@ -323,18 +323,18 @@ test('agent shell view model resolves selected target id fail-close', () => {
 
 test('agent shell view model merges runtime presentation profile onto desktop target snapshots', () => {
   const merged = mergeAgentTargetWithPresentationProfile(sampleTargets()[0]!, {
-    backendKind: 'sprite2d',
-    avatarAssetRef: 'https://cdn.nimi.test/runtime/companion.png',
+    backendKind: 'live2d',
+    avatarAssetRef: 'asset://avatar/live2d/companion.model3.json',
     expressionProfileRef: null,
     idlePreset: 'companion.idle.soft',
     interactionPolicyRef: null,
     defaultVoiceReference: 'voice://agent-1/default',
   });
 
-  assert.equal(merged?.avatarUrl, 'https://cdn.nimi.test/runtime/companion.png');
+  assert.equal(merged?.avatarUrl, null);
   assert.deepEqual(merged?.presentationProfile, {
-    backendKind: 'sprite2d',
-    avatarAssetRef: 'https://cdn.nimi.test/runtime/companion.png',
+    backendKind: 'live2d',
+    avatarAssetRef: 'asset://avatar/live2d/companion.model3.json',
     expressionProfileRef: null,
     idlePreset: 'companion.idle.soft',
     interactionPolicyRef: null,
@@ -345,8 +345,8 @@ test('agent shell view model merges runtime presentation profile onto desktop ta
 test('agent shell view model emits thread metadata update when authoritative target snapshot changes', () => {
   const thread = sampleThreads()[0]!;
   const mergedTarget = mergeAgentTargetWithPresentationProfile(thread.targetSnapshot, {
-    backendKind: 'sprite2d',
-    avatarAssetRef: 'https://cdn.nimi.test/runtime/companion.png',
+    backendKind: 'live2d',
+    avatarAssetRef: 'asset://avatar/live2d/companion.model3.json',
     expressionProfileRef: null,
     idlePreset: 'companion.idle.soft',
     interactionPolicyRef: null,

@@ -36,55 +36,14 @@ fn normalize_optional_handoff_value(value: Option<&str>) -> Option<String> {
     }
 }
 
-fn validate_handoff_local_agent_ref(
-    owner_user_id: &str,
-    realm_agent_id: &str,
-    local_agent_ref: &str,
-) -> Result<(), String> {
-    if local_agent_ref == realm_agent_id {
-        return Err(structured_avatar_handoff_error(
-            "DESKTOP_AVATAR_HANDOFF_INVALID",
-            "avatar handoff localAgentRef must not be a bare realmAgentId",
-        ));
-    }
-    if !local_agent_ref.starts_with("local-agent:") {
-        return Err(structured_avatar_handoff_error(
-            "DESKTOP_AVATAR_HANDOFF_INVALID",
-            "avatar handoff localAgentRef must start with local-agent:",
-        ));
-    }
-    let expected = format!("local-agent:{owner_user_id}:{realm_agent_id}");
-    if local_agent_ref != expected {
-        return Err(structured_avatar_handoff_error(
-            "DESKTOP_AVATAR_HANDOFF_INVALID",
-            "avatar handoff localAgentRef must equal local-agent:${ownerUserId}:${realmAgentId}",
-        ));
-    }
-    Ok(())
-}
-
 fn build_avatar_handoff_uri(payload: &DesktopAvatarLaunchHandoffPayload) -> Result<String, String> {
-    let owner_user_id =
-        normalize_required_handoff_value(payload.owner_user_id.as_str(), "owner_user_id")?;
-    let realm_agent_id =
-        normalize_required_handoff_value(payload.realm_agent_id.as_str(), "realm_agent_id")?;
-    let local_agent_ref =
-        normalize_required_handoff_value(payload.local_agent_ref.as_str(), "local_agent_ref")?;
-    let conversation_anchor_id = normalize_required_handoff_value(
-        payload.conversation_anchor_id.as_str(),
-        "conversation_anchor_id",
-    )?;
-    validate_handoff_local_agent_ref(&owner_user_id, &realm_agent_id, &local_agent_ref)?;
+    let agent_id = normalize_required_handoff_value(payload.agent_id.as_str(), "agent_id")?;
     let avatar_instance_id =
         normalize_optional_handoff_value(payload.avatar_instance_id.as_deref());
-    let launch_source = normalize_optional_handoff_value(payload.launch_source.as_deref())
-        .or_else(|| normalize_optional_handoff_value(payload.source_surface.as_deref()));
+    let launch_source = normalize_optional_handoff_value(payload.launch_source.as_deref());
 
     let mut serializer = url::form_urlencoded::Serializer::new(String::new());
-    serializer.append_pair("owner_user_id", owner_user_id.as_str());
-    serializer.append_pair("realm_agent_id", realm_agent_id.as_str());
-    serializer.append_pair("local_agent_ref", local_agent_ref.as_str());
-    serializer.append_pair("conversation_anchor_id", conversation_anchor_id.as_str());
+    serializer.append_pair("agent_id", agent_id.as_str());
     if let Some(avatar_instance_id) = avatar_instance_id {
         serializer.append_pair("avatar_instance_id", avatar_instance_id.as_str());
     }

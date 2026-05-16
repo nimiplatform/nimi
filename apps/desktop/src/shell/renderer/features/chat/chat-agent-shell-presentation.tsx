@@ -464,12 +464,9 @@ export function useAgentConversationPresentation(
         };
       }
       const result = await launchDesktopAvatarHandoff({
-        ownerUserId: input.activeTarget.ownerUserId,
-        realmAgentId: input.activeTarget.realmAgentId,
-        localAgentRef: input.activeTarget.localAgentRef,
-        conversationAnchorId: input.activeConversationAnchorId,
+        agentId: input.activeTarget.realmAgentId,
         avatarInstanceId,
-        sourceSurface: 'desktop-agent-chat',
+        launchSource: 'desktop-agent-chat',
       });
       await avatarLiveInstancesQuery.refetch();
       return {

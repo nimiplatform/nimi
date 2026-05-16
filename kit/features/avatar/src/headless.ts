@@ -60,14 +60,8 @@ export function resolveAvatarBackendLabel(backendKind: AvatarBackendKind): strin
     case 'vrm':
       return 'VRM';
     case 'live2d':
-      return 'Live2D';
-    case 'video':
-      return 'Video';
-    case 'canvas2d':
-      return 'Canvas';
-    case 'sprite2d':
     default:
-      return 'Sprite';
+      return 'Live2D';
   }
 }
 
@@ -95,22 +89,15 @@ export function resolveAvatarPresentationProfile(input: {
     return input.presentation;
   }
   if (input.fallbackAssetRef) {
-    return createFallbackPresentationProfile(input.fallbackBackendKind || 'sprite2d', input.fallbackAssetRef);
+    return createFallbackPresentationProfile(input.fallbackBackendKind || 'live2d', input.fallbackAssetRef);
   }
-  return createFallbackPresentationProfile('canvas2d', input.fallbackProfileRef || 'fallback://avatar-stage');
+  return createFallbackPresentationProfile('live2d', input.fallbackProfileRef || 'fallback://avatar-stage');
 }
 
-export function resolveSpriteAvatarImageUrl(
-  presentation: AvatarPresentationProfile | null | undefined,
+export function resolveAvatarStagePosterUrl(
+  _presentation: AvatarPresentationProfile | null | undefined,
   fallbackImageUrl?: string | null,
 ): string | null {
-  if (
-    presentation?.backendKind === 'sprite2d'
-    && presentation.avatarAssetRef
-    && !presentation.avatarAssetRef.startsWith('fallback://')
-  ) {
-    return presentation.avatarAssetRef;
-  }
   return fallbackImageUrl || null;
 }
 
@@ -120,7 +107,6 @@ export function resolveAvatarStageRendererModel(input: {
 }): AvatarStageRendererModel {
   const { presentation } = input;
   const concreteAssetRef = isConcreteAvatarAssetRef(presentation.avatarAssetRef) ? presentation.avatarAssetRef : null;
-  const spriteImageUrl = resolveSpriteAvatarImageUrl(presentation, input.imageUrl);
   switch (presentation.backendKind) {
     case 'vrm':
       return {
@@ -140,33 +126,14 @@ export function resolveAvatarStageRendererModel(input: {
         backendLabel: resolveAvatarBackendLabel('live2d'),
         prefersMotion: true,
       };
-    case 'video':
+    default:
       return {
-        kind: 'video',
+        kind: 'live2d',
         assetRef: presentation.avatarAssetRef,
         mediaUrl: concreteAssetRef,
         posterUrl: input.imageUrl || null,
-        backendLabel: resolveAvatarBackendLabel('video'),
+        backendLabel: resolveAvatarBackendLabel('live2d'),
         prefersMotion: true,
-      };
-    case 'canvas2d':
-      return {
-        kind: 'canvas2d',
-        assetRef: presentation.avatarAssetRef,
-        mediaUrl: null,
-        posterUrl: null,
-        backendLabel: resolveAvatarBackendLabel('canvas2d'),
-        prefersMotion: false,
-      };
-    case 'sprite2d':
-    default:
-      return {
-        kind: 'sprite2d',
-        assetRef: presentation.avatarAssetRef,
-        mediaUrl: spriteImageUrl,
-        posterUrl: spriteImageUrl,
-        backendLabel: resolveAvatarBackendLabel('sprite2d'),
-        prefersMotion: false,
       };
   }
 }
@@ -178,7 +145,7 @@ export function resolveAvatarStageBackendRenderer(input: {
 }): AvatarStageBackendRenderer {
   return input.renderers?.[input.backendKind]
     || input.defaults[input.backendKind]
-    || input.defaults.canvas2d;
+    || input.defaults.live2d;
 }
 
 export function inferAvatarEmotionFromPhase(phase: AvatarInteractionState['phase']): AvatarInteractionState['emotion'] {
