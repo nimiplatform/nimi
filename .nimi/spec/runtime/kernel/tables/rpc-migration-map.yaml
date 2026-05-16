@@ -10,984 +10,984 @@ service_mappings:
   - design_service: AIService
     proto_service: RuntimeAiService
     source_rule: K-RPC-005
-    mapping_state: renamed_service
+    mapping_posture: renamed_service
     alignment_phase: phase1
   - design_service: RuntimeAiRealtimeService
     proto_service: RuntimeAiRealtimeService
     source_rule: K-RPC-005
-    mapping_state: aligned
+    mapping_posture: aligned
     alignment_phase: phase1
   - design_service: ConnectorService
     proto_service: RuntimeConnectorService
     source_rule: K-RPC-005
-    mapping_state: aligned
+    mapping_posture: aligned
     alignment_phase: phase1
   - design_service: RuntimeLocalService
     proto_service: RuntimeLocalService
     source_rule: K-RPC-004
-    mapping_state: aligned
+    mapping_posture: aligned
     alignment_phase: phase1
   - design_service: RuntimeAuthService
     proto_service: RuntimeAuthService
     source_rule: K-AUTHSVC-002
-    mapping_state: aligned
+    mapping_posture: aligned
     alignment_phase: phase1
   - design_service: RuntimeGrantService
     proto_service: RuntimeGrantService
     source_rule: K-GRANT-002
-    mapping_state: aligned
+    mapping_posture: aligned
     alignment_phase: phase1
   - design_service: RuntimeAccountService
     proto_service: RuntimeAccountService
     source_rule: K-ACCSVC-002
-    mapping_state: aligned
+    mapping_posture: aligned
     alignment_phase: phase1
   - design_service: RuntimeWorkflowService
     proto_service: RuntimeWorkflowService
     source_rule: K-WF-003
-    mapping_state: aligned
+    mapping_posture: aligned
     alignment_phase: phase2
   - design_service: RuntimeAuditService
     proto_service: RuntimeAuditService
     source_rule: K-AUDIT-013
-    mapping_state: aligned
+    mapping_posture: aligned
     alignment_phase: phase2
   - design_service: RuntimeModelService
     proto_service: RuntimeModelService
     source_rule: K-MODEL-004
-    mapping_state: aligned
+    mapping_posture: aligned
     alignment_phase: phase2
   - design_service: RuntimeCognitionService
     proto_service: RuntimeCognitionService
     source_rule: K-RPC-004a
-    mapping_state: aligned
+    mapping_posture: aligned
     alignment_phase: phase2
   - design_service: RuntimeAppService
     proto_service: RuntimeAppService
     source_rule: K-APP-001
-    mapping_state: aligned
+    mapping_posture: aligned
     alignment_phase: phase2
   - design_service: RuntimeAgentService
     proto_service: RuntimeAgentService
     source_rule: K-RPC-004b
-    mapping_state: aligned
+    mapping_posture: aligned
     alignment_phase: phase2
 method_mappings:
   - design_service: AIService
     design_method: ExecuteScenario
     proto_service: RuntimeAiService
     proto_method: ExecuteScenario
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: AIService
     design_method: StreamScenario
     proto_service: RuntimeAiService
     proto_method: StreamScenario
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: AIService
     design_method: SubmitScenarioJob
     proto_service: RuntimeAiService
     proto_method: SubmitScenarioJob
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: AIService
     design_method: GetScenarioJob
     proto_service: RuntimeAiService
     proto_method: GetScenarioJob
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: AIService
     design_method: CancelScenarioJob
     proto_service: RuntimeAiService
     proto_method: CancelScenarioJob
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: AIService
     design_method: SubscribeScenarioJobEvents
     proto_service: RuntimeAiService
     proto_method: SubscribeScenarioJobEvents
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: AIService
     design_method: GetScenarioArtifacts
     proto_service: RuntimeAiService
     proto_method: GetScenarioArtifacts
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: AIService
     design_method: ListScenarioProfiles
     proto_service: RuntimeAiService
     proto_method: ListScenarioProfiles
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: AIService
     design_method: GetVoiceAsset
     proto_service: RuntimeAiService
     proto_method: GetVoiceAsset
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: AIService
     design_method: ListVoiceAssets
     proto_service: RuntimeAiService
     proto_method: ListVoiceAssets
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: AIService
     design_method: DeleteVoiceAsset
     proto_service: RuntimeAiService
     proto_method: DeleteVoiceAsset
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: AIService
     design_method: ListPresetVoices
     proto_service: RuntimeAiService
     proto_method: ListPresetVoices
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: AIService
     design_method: UploadArtifact
     proto_service: RuntimeAiService
     proto_method: UploadArtifact
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeAiRealtimeService
     design_method: OpenRealtimeSession
     proto_service: RuntimeAiRealtimeService
     proto_method: OpenRealtimeSession
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeAiRealtimeService
     design_method: AppendRealtimeInput
     proto_service: RuntimeAiRealtimeService
     proto_method: AppendRealtimeInput
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeAiRealtimeService
     design_method: ReadRealtimeEvents
     proto_service: RuntimeAiRealtimeService
     proto_method: ReadRealtimeEvents
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeAiRealtimeService
     design_method: CloseRealtimeSession
     proto_service: RuntimeAiRealtimeService
     proto_method: CloseRealtimeSession
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: ConnectorService
     design_method: CreateConnector
     proto_service: RuntimeConnectorService
     proto_method: CreateConnector
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: ConnectorService
     design_method: GetConnector
     proto_service: RuntimeConnectorService
     proto_method: GetConnector
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: ConnectorService
     design_method: ListConnectors
     proto_service: RuntimeConnectorService
     proto_method: ListConnectors
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: ConnectorService
     design_method: UpdateConnector
     proto_service: RuntimeConnectorService
     proto_method: UpdateConnector
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: ConnectorService
     design_method: DeleteConnector
     proto_service: RuntimeConnectorService
     proto_method: DeleteConnector
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: ConnectorService
     design_method: TestConnector
     proto_service: RuntimeConnectorService
     proto_method: TestConnector
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: ConnectorService
     design_method: ListConnectorModels
     proto_service: RuntimeConnectorService
     proto_method: ListConnectorModels
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: ConnectorService
     design_method: ListProviderCatalog
     proto_service: RuntimeConnectorService
     proto_method: ListProviderCatalog
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: ConnectorService
     design_method: ListModelCatalogProviders
     proto_service: RuntimeConnectorService
     proto_method: ListModelCatalogProviders
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: ConnectorService
     design_method: UpsertModelCatalogProvider
     proto_service: RuntimeConnectorService
     proto_method: UpsertModelCatalogProvider
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: ConnectorService
     design_method: DeleteModelCatalogProvider
     proto_service: RuntimeConnectorService
     proto_method: DeleteModelCatalogProvider
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: ConnectorService
     design_method: ListCatalogProviderModels
     proto_service: RuntimeConnectorService
     proto_method: ListCatalogProviderModels
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: ConnectorService
     design_method: GetCatalogModelDetail
     proto_service: RuntimeConnectorService
     proto_method: GetCatalogModelDetail
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: ConnectorService
     design_method: UpsertCatalogModelOverlay
     proto_service: RuntimeConnectorService
     proto_method: UpsertCatalogModelOverlay
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: ConnectorService
     design_method: DeleteCatalogModelOverlay
     proto_service: RuntimeConnectorService
     proto_method: DeleteCatalogModelOverlay
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeLocalService
     design_method: ListLocalAssets
     proto_service: RuntimeLocalService
     proto_method: ListLocalAssets
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeLocalService
     design_method: ListVerifiedAssets
     proto_service: RuntimeLocalService
     proto_method: ListVerifiedAssets
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeLocalService
     design_method: InstallVerifiedAsset
     proto_service: RuntimeLocalService
     proto_method: InstallVerifiedAsset
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeLocalService
     design_method: ImportLocalAsset
     proto_service: RuntimeLocalService
     proto_method: ImportLocalAsset
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeLocalService
     design_method: ImportLocalAssetFile
     proto_service: RuntimeLocalService
     proto_method: ImportLocalAssetFile
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeLocalService
     design_method: RemoveLocalAsset
     proto_service: RuntimeLocalService
     proto_method: RemoveLocalAsset
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeLocalService
     design_method: StartLocalAsset
     proto_service: RuntimeLocalService
     proto_method: StartLocalAsset
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeLocalService
     design_method: StopLocalAsset
     proto_service: RuntimeLocalService
     proto_method: StopLocalAsset
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeLocalService
     design_method: CheckLocalAssetHealth
     proto_service: RuntimeLocalService
     proto_method: CheckLocalAssetHealth
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeLocalService
     design_method: WarmLocalAsset
     proto_service: RuntimeLocalService
     proto_method: WarmLocalAsset
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeLocalService
     design_method: SearchCatalogModels
     proto_service: RuntimeLocalService
     proto_method: SearchCatalogModels
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeLocalService
     design_method: ResolveModelInstallPlan
     proto_service: RuntimeLocalService
     proto_method: ResolveModelInstallPlan
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeLocalService
     design_method: CollectDeviceProfile
     proto_service: RuntimeLocalService
     proto_method: CollectDeviceProfile
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeLocalService
     design_method: ScanUnregisteredAssets
     proto_service: RuntimeLocalService
     proto_method: ScanUnregisteredAssets
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeLocalService
     design_method: ScaffoldOrphanAsset
     proto_service: RuntimeLocalService
     proto_method: ScaffoldOrphanAsset
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeLocalService
     design_method: ListLocalTransfers
     proto_service: RuntimeLocalService
     proto_method: ListLocalTransfers
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeLocalService
     design_method: PauseLocalTransfer
     proto_service: RuntimeLocalService
     proto_method: PauseLocalTransfer
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeLocalService
     design_method: ResumeLocalTransfer
     proto_service: RuntimeLocalService
     proto_method: ResumeLocalTransfer
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeLocalService
     design_method: CancelLocalTransfer
     proto_service: RuntimeLocalService
     proto_method: CancelLocalTransfer
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeLocalService
     design_method: WatchLocalTransfers
     proto_service: RuntimeLocalService
     proto_method: WatchLocalTransfers
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeLocalService
     design_method: ResolveLocalEnvironmentPlan
     proto_service: RuntimeLocalService
     proto_method: ResolveLocalEnvironmentPlan
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeLocalService
     design_method: ListLocalEnvironmentSelectedSources
     proto_service: RuntimeLocalService
     proto_method: ListLocalEnvironmentSelectedSources
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeLocalService
     design_method: ListLocalEnvironmentDependencyJobs
     proto_service: RuntimeLocalService
     proto_method: ListLocalEnvironmentDependencyJobs
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeLocalService
     design_method: ResolveLocalEnvironmentActivationGate
     proto_service: RuntimeLocalService
     proto_method: ResolveLocalEnvironmentActivationGate
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeLocalService
     design_method: StartLocalEnvironmentDependencyJob
     proto_service: RuntimeLocalService
     proto_method: StartLocalEnvironmentDependencyJob
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeLocalService
     design_method: CancelLocalEnvironmentDependencyJob
     proto_service: RuntimeLocalService
     proto_method: CancelLocalEnvironmentDependencyJob
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeLocalService
     design_method: RetryLocalEnvironmentDependencyJob
     proto_service: RuntimeLocalService
     proto_method: RetryLocalEnvironmentDependencyJob
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeLocalService
     design_method: RepairLocalEnvironmentDependency
     proto_service: RuntimeLocalService
     proto_method: RepairLocalEnvironmentDependency
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeLocalService
     design_method: ResolveLocalStateReconciliation
     proto_service: RuntimeLocalService
     proto_method: ResolveLocalStateReconciliation
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeLocalService
     design_method: ExecuteLocalStateCutover
     proto_service: RuntimeLocalService
     proto_method: ExecuteLocalStateCutover
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeLocalService
     design_method: ListLocalServices
     proto_service: RuntimeLocalService
     proto_method: ListLocalServices
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeLocalService
     design_method: InstallLocalService
     proto_service: RuntimeLocalService
     proto_method: InstallLocalService
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeLocalService
     design_method: StartLocalService
     proto_service: RuntimeLocalService
     proto_method: StartLocalService
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeLocalService
     design_method: StopLocalService
     proto_service: RuntimeLocalService
     proto_method: StopLocalService
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeLocalService
     design_method: CheckLocalServiceHealth
     proto_service: RuntimeLocalService
     proto_method: CheckLocalServiceHealth
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeLocalService
     design_method: RemoveLocalService
     proto_service: RuntimeLocalService
     proto_method: RemoveLocalService
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeLocalService
     design_method: ListNodeCatalog
     proto_service: RuntimeLocalService
     proto_method: ListNodeCatalog
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeLocalService
     design_method: ResolveProfile
     proto_service: RuntimeLocalService
     proto_method: ResolveProfile
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeLocalService
     design_method: ApplyProfile
     proto_service: RuntimeLocalService
     proto_method: ApplyProfile
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeLocalService
     design_method: ListLocalAudits
     proto_service: RuntimeLocalService
     proto_method: ListLocalAudits
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeLocalService
     design_method: AppendInferenceAudit
     proto_service: RuntimeLocalService
     proto_method: AppendInferenceAudit
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeLocalService
     design_method: AppendRuntimeAudit
     proto_service: RuntimeLocalService
     proto_method: AppendRuntimeAudit
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeLocalService
     design_method: ListEngines
     proto_service: RuntimeLocalService
     proto_method: ListEngines
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeLocalService
     design_method: EnsureEngine
     proto_service: RuntimeLocalService
     proto_method: EnsureEngine
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeLocalService
     design_method: StartEngine
     proto_service: RuntimeLocalService
     proto_method: StartEngine
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeLocalService
     design_method: StopEngine
     proto_service: RuntimeLocalService
     proto_method: StopEngine
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeLocalService
     design_method: GetEngineStatus
     proto_service: RuntimeLocalService
     proto_method: GetEngineStatus
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeAuthService
     design_method: RegisterApp
     proto_service: RuntimeAuthService
     proto_method: RegisterApp
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeAuthService
     design_method: OpenSession
     proto_service: RuntimeAuthService
     proto_method: OpenSession
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeAuthService
     design_method: RefreshSession
     proto_service: RuntimeAuthService
     proto_method: RefreshSession
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeAuthService
     design_method: RevokeSession
     proto_service: RuntimeAuthService
     proto_method: RevokeSession
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeAuthService
     design_method: RegisterExternalPrincipal
     proto_service: RuntimeAuthService
     proto_method: RegisterExternalPrincipal
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeAuthService
     design_method: OpenExternalPrincipalSession
     proto_service: RuntimeAuthService
     proto_method: OpenExternalPrincipalSession
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeAuthService
     design_method: RevokeExternalPrincipalSession
     proto_service: RuntimeAuthService
     proto_method: RevokeExternalPrincipalSession
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeGrantService
     design_method: AuthorizeExternalPrincipal
     proto_service: RuntimeGrantService
     proto_method: AuthorizeExternalPrincipal
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeGrantService
     design_method: ValidateAppAccessToken
     proto_service: RuntimeGrantService
     proto_method: ValidateAppAccessToken
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeGrantService
     design_method: RevokeAppAccessToken
     proto_service: RuntimeGrantService
     proto_method: RevokeAppAccessToken
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeGrantService
     design_method: IssueDelegatedAccessToken
     proto_service: RuntimeGrantService
     proto_method: IssueDelegatedAccessToken
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeGrantService
     design_method: ListTokenChain
     proto_service: RuntimeGrantService
     proto_method: ListTokenChain
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeAccountService
     design_method: GetAccountSessionStatus
     proto_service: RuntimeAccountService
     proto_method: GetAccountSessionStatus
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeAccountService
     design_method: SubscribeAccountSessionEvents
     proto_service: RuntimeAccountService
     proto_method: SubscribeAccountSessionEvents
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeAccountService
     design_method: BeginLogin
     proto_service: RuntimeAccountService
     proto_method: BeginLogin
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeAccountService
     design_method: CompleteLogin
     proto_service: RuntimeAccountService
     proto_method: CompleteLogin
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeAccountService
     design_method: GetAccessToken
     proto_service: RuntimeAccountService
     proto_method: GetAccessToken
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeAccountService
     design_method: RefreshAccountSession
     proto_service: RuntimeAccountService
     proto_method: RefreshAccountSession
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeAccountService
     design_method: Logout
     proto_service: RuntimeAccountService
     proto_method: Logout
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeAccountService
     design_method: SwitchAccount
     proto_service: RuntimeAccountService
     proto_method: SwitchAccount
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeAccountService
     design_method: IssueScopedAppBinding
     proto_service: RuntimeAccountService
     proto_method: IssueScopedAppBinding
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeAccountService
     design_method: RevokeScopedAppBinding
     proto_service: RuntimeAccountService
     proto_method: RevokeScopedAppBinding
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeAccountService
     design_method: IssueWorkspaceBinding
     proto_service: RuntimeAccountService
     proto_method: IssueWorkspaceBinding
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeAccountService
     design_method: RevokeWorkspaceBinding
     proto_service: RuntimeAccountService
     proto_method: RevokeWorkspaceBinding
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeWorkflowService
     design_method: SubmitWorkflow
     proto_service: RuntimeWorkflowService
     proto_method: SubmitWorkflow
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeWorkflowService
     design_method: GetWorkflow
     proto_service: RuntimeWorkflowService
     proto_method: GetWorkflow
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeWorkflowService
     design_method: CancelWorkflow
     proto_service: RuntimeWorkflowService
     proto_method: CancelWorkflow
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeWorkflowService
     design_method: SubscribeWorkflowEvents
     proto_service: RuntimeWorkflowService
     proto_method: SubscribeWorkflowEvents
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeAuditService
     design_method: ListAuditEvents
     proto_service: RuntimeAuditService
     proto_method: ListAuditEvents
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeAuditService
     design_method: ExportAuditEvents
     proto_service: RuntimeAuditService
     proto_method: ExportAuditEvents
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeAuditService
     design_method: ListUsageStats
     proto_service: RuntimeAuditService
     proto_method: ListUsageStats
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeAuditService
     design_method: GetRuntimeHealth
     proto_service: RuntimeAuditService
     proto_method: GetRuntimeHealth
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeAuditService
     design_method: ListAIProviderHealth
     proto_service: RuntimeAuditService
     proto_method: ListAIProviderHealth
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeAuditService
     design_method: SubscribeAIProviderHealthEvents
     proto_service: RuntimeAuditService
     proto_method: SubscribeAIProviderHealthEvents
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeAuditService
     design_method: SubscribeRuntimeHealthEvents
     proto_service: RuntimeAuditService
     proto_method: SubscribeRuntimeHealthEvents
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeModelService
     design_method: ListModels
     proto_service: RuntimeModelService
     proto_method: ListModels
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeModelService
     design_method: PullModel
     proto_service: RuntimeModelService
     proto_method: PullModel
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeModelService
     design_method: RemoveModel
     proto_service: RuntimeModelService
     proto_method: RemoveModel
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeModelService
     design_method: CheckModelHealth
     proto_service: RuntimeModelService
     proto_method: CheckModelHealth
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeCognitionService
     design_method: CreateKnowledgeBank
     proto_service: RuntimeCognitionService
     proto_method: CreateKnowledgeBank
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeCognitionService
     design_method: GetKnowledgeBank
     proto_service: RuntimeCognitionService
     proto_method: GetKnowledgeBank
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeCognitionService
     design_method: ListKnowledgeBanks
     proto_service: RuntimeCognitionService
     proto_method: ListKnowledgeBanks
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeCognitionService
     design_method: DeleteKnowledgeBank
     proto_service: RuntimeCognitionService
     proto_method: DeleteKnowledgeBank
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeCognitionService
     design_method: PutPage
     proto_service: RuntimeCognitionService
     proto_method: PutPage
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeCognitionService
     design_method: GetPage
     proto_service: RuntimeCognitionService
     proto_method: GetPage
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeCognitionService
     design_method: ListPages
     proto_service: RuntimeCognitionService
     proto_method: ListPages
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeCognitionService
     design_method: DeletePage
     proto_service: RuntimeCognitionService
     proto_method: DeletePage
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeCognitionService
     design_method: SearchKeyword
     proto_service: RuntimeCognitionService
     proto_method: SearchKeyword
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeCognitionService
     design_method: SearchHybrid
     proto_service: RuntimeCognitionService
     proto_method: SearchHybrid
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeCognitionService
     design_method: AddLink
     proto_service: RuntimeCognitionService
     proto_method: AddLink
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeCognitionService
     design_method: RemoveLink
     proto_service: RuntimeCognitionService
     proto_method: RemoveLink
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeCognitionService
     design_method: ListLinks
     proto_service: RuntimeCognitionService
     proto_method: ListLinks
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeCognitionService
     design_method: ListBacklinks
     proto_service: RuntimeCognitionService
     proto_method: ListBacklinks
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeCognitionService
     design_method: TraverseGraph
     proto_service: RuntimeCognitionService
     proto_method: TraverseGraph
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeCognitionService
     design_method: IngestDocument
     proto_service: RuntimeCognitionService
     proto_method: IngestDocument
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeCognitionService
     design_method: GetIngestTask
     proto_service: RuntimeCognitionService
     proto_method: GetIngestTask
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeAppService
     design_method: SendAppMessage
     proto_service: RuntimeAppService
     proto_method: SendAppMessage
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeAppService
     design_method: SubscribeAppMessages
     proto_service: RuntimeAppService
     proto_method: SubscribeAppMessages
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeCognitionService
     design_method: CreateBank
     proto_service: RuntimeCognitionService
     proto_method: CreateBank
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeCognitionService
     design_method: GetBank
     proto_service: RuntimeCognitionService
     proto_method: GetBank
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeCognitionService
     design_method: ListBanks
     proto_service: RuntimeCognitionService
     proto_method: ListBanks
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeCognitionService
     design_method: DeleteBank
     proto_service: RuntimeCognitionService
     proto_method: DeleteBank
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeCognitionService
     design_method: Retain
     proto_service: RuntimeCognitionService
     proto_method: Retain
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeCognitionService
     design_method: Recall
     proto_service: RuntimeCognitionService
     proto_method: Recall
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeCognitionService
     design_method: History
     proto_service: RuntimeCognitionService
     proto_method: History
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeCognitionService
     design_method: DeleteMemory
     proto_service: RuntimeCognitionService
     proto_method: DeleteMemory
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeCognitionService
     design_method: SubscribeMemoryEvents
     proto_service: RuntimeCognitionService
     proto_method: SubscribeMemoryEvents
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeAgentService
     design_method: InitializeAgent
     proto_service: RuntimeAgentService
     proto_method: InitializeAgent
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeAgentService
     design_method: TerminateAgent
     proto_service: RuntimeAgentService
     proto_method: TerminateAgent
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeAgentService
     design_method: GetAgent
     proto_service: RuntimeAgentService
     proto_method: GetAgent
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeAgentService
     design_method: ListAgents
     proto_service: RuntimeAgentService
     proto_method: ListAgents
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeAgentService
     design_method: OpenConversationAnchor
     proto_service: RuntimeAgentService
     proto_method: OpenConversationAnchor
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeAgentService
     design_method: GetConversationAnchorSnapshot
     proto_service: RuntimeAgentService
     proto_method: GetConversationAnchorSnapshot
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeAgentService
     design_method: GetPublicChatSessionSnapshot
     proto_service: RuntimeAgentService
     proto_method: GetPublicChatSessionSnapshot
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeAgentService
     design_method: GetCompanionParticipationProjection
     proto_service: RuntimeAgentService
     proto_method: GetCompanionParticipationProjection
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeAgentService
     design_method: RequestCompanionParticipation
     proto_service: RuntimeAgentService
     proto_method: RequestCompanionParticipation
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeAgentService
     design_method: CancelCompanionParticipation
     proto_service: RuntimeAgentService
     proto_method: CancelCompanionParticipation
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeAgentService
     design_method: OpenCompanionParticipationReplay
     proto_service: RuntimeAgentService
     proto_method: OpenCompanionParticipationReplay
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeAgentService
     design_method: ListDelegatedProviderProfiles
     proto_service: RuntimeAgentService
     proto_method: ListDelegatedProviderProfiles
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeAgentService
     design_method: UpsertDelegatedProviderProfile
     proto_service: RuntimeAgentService
     proto_method: UpsertDelegatedProviderProfile
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeAgentService
     design_method: SetDelegatedProviderState
     proto_service: RuntimeAgentService
     proto_method: SetDelegatedProviderState
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeAgentService
     design_method: ListDelegatedApprovalRequests
     proto_service: RuntimeAgentService
     proto_method: ListDelegatedApprovalRequests
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeAgentService
     design_method: SubmitDelegatedApprovalDecision
     proto_service: RuntimeAgentService
     proto_method: SubmitDelegatedApprovalDecision
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeAgentService
     design_method: ListDelegatedDiagnostics
     proto_service: RuntimeAgentService
     proto_method: ListDelegatedDiagnostics
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeAgentService
     design_method: GetDelegatedReplayTrace
     proto_service: RuntimeAgentService
     proto_method: GetDelegatedReplayTrace
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeAgentService
     design_method: GetDelegatedControlSurfaceSnapshot
     proto_service: RuntimeAgentService
     proto_method: GetDelegatedControlSurfaceSnapshot
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeAgentService
     design_method: ExecuteDelegatedCapability
     proto_service: RuntimeAgentService
     proto_method: ExecuteDelegatedCapability
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeAgentService
     design_method: GetAvatarDebugSnapshot
     proto_service: RuntimeAgentService
     proto_method: GetAvatarDebugSnapshot
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeAgentService
     design_method: RequestAvatarDebugProbe
     proto_service: RuntimeAgentService
     proto_method: RequestAvatarDebugProbe
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeAgentService
     design_method: ListAvatarDebugProbeResults
     proto_service: RuntimeAgentService
     proto_method: ListAvatarDebugProbeResults
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeAgentService
     design_method: GetAvatarDebugReplay
     proto_service: RuntimeAgentService
     proto_method: GetAvatarDebugReplay
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeAgentService
     design_method: GetAgentState
     proto_service: RuntimeAgentService
     proto_method: GetAgentState
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeAgentService
     design_method: UpdateAgentState
     proto_service: RuntimeAgentService
     proto_method: UpdateAgentState
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeAgentService
     design_method: EnableAutonomy
     proto_service: RuntimeAgentService
     proto_method: EnableAutonomy
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeAgentService
     design_method: DisableAutonomy
     proto_service: RuntimeAgentService
     proto_method: DisableAutonomy
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeAgentService
     design_method: SetAutonomyConfig
     proto_service: RuntimeAgentService
     proto_method: SetAutonomyConfig
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeAgentService
     design_method: ListPendingHooks
     proto_service: RuntimeAgentService
     proto_method: ListPendingHooks
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeAgentService
     design_method: CancelHook
     proto_service: RuntimeAgentService
     proto_method: CancelHook
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeAgentService
     design_method: QueryAgentMemory
     proto_service: RuntimeAgentService
     proto_method: QueryAgentMemory
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeAgentService
     design_method: WriteAgentMemory
     proto_service: RuntimeAgentService
     proto_method: WriteAgentMemory
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeAgentService
     design_method: SetAgentPresentationProfile
     proto_service: RuntimeAgentService
     proto_method: SetAgentPresentationProfile
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeAgentService
     design_method: CreateRealmGroupMessageCandidate
     proto_service: RuntimeAgentService
     proto_method: CreateRealmGroupMessageCandidate
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeAgentService
     design_method: GetRealmGroupMessageCandidateEvidence
     proto_service: RuntimeAgentService
     proto_method: GetRealmGroupMessageCandidateEvidence
-    mapping_state: aligned
+    mapping_posture: aligned
   - design_service: RuntimeAgentService
     design_method: SubscribeAgentEvents
     proto_service: RuntimeAgentService
     proto_method: SubscribeAgentEvents
-    mapping_state: aligned
+    mapping_posture: aligned
 excluded_proto_methods:
   - proto_service: RuntimeAiService
     proto_method: PeekScheduling

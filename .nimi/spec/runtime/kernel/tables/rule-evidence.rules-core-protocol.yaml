@@ -1,0 +1,585 @@
+table_family: support_registry
+registry_id: runtime_rule_evidence_core_protocol_rules
+owner: runtime
+schema_ref: .nimi/contracts/table-family.schema.yaml#support_registry
+allowed_fields:
+  - rule_id
+  - evidence_requirement
+  - evidence_refs
+  - note
+  - na_reason
+  - evidence_scope_note
+  - test_files
+forbidden_state_fields:
+  - done
+  - covered
+  - coverage_status
+  - audit_date
+  - evidence_report
+  - current
+  - proposed
+  - backlog_status
+  - migration_status
+  - mapping_status
+  - run_id
+  - ledger_ref
+entries:
+  - K-APP-001
+  - K-APP-002
+  - K-APP-003
+  - K-APP-004
+  - K-APP-005
+  - K-APP-006
+  - K-APP-006a
+  - K-APP-007
+  - K-APP-008
+  - K-APP-009
+  - K-APP-010
+  - K-CONN-001
+  - K-CONN-002
+  - K-CONN-003
+  - K-CONN-004
+  - K-CONN-005
+  - K-CONN-006
+  - K-CONN-007
+  - K-CONN-008
+  - K-CONN-009
+  - K-CONN-010
+  - K-CONN-011
+  - K-CONN-012
+  - K-CONN-013
+  - K-CONN-014
+  - K-CONN-015
+  - K-CONN-016
+  - K-CONN-017
+  - K-CONN-018
+  - K-MODEL-001
+  - K-MODEL-002
+  - K-MODEL-003
+  - K-MODEL-004
+  - K-MODEL-005
+  - K-MODEL-006
+  - K-MODEL-007
+  - K-MODEL-008
+  - K-MODEL-009
+  - K-PROTO-001
+  - K-PROTO-002
+  - K-PROTO-003
+  - K-PROTO-004
+  - K-PROTO-005
+  - K-PROTO-006
+  - K-PROTO-007
+  - K-PROTO-008
+  - K-PROTO-009
+  - K-PROTO-010
+  - K-PROTO-011
+  - K-PROTO-012
+  - K-RPC-001
+  - K-RPC-002
+  - K-RPC-003
+  - K-RPC-004
+  - K-RPC-005
+  - K-RPC-006
+  - K-RPC-007
+  - K-RPC-008
+  - K-RPC-009
+  - K-RPC-010
+  - K-RPC-011
+  - K-RPC-012
+  - K-RPC-013
+  - K-RPC-014
+  - K-RPC-015
+  - K-RPC-016
+  - K-RPC-017
+  - K-RPC-018
+  - K-RPC-019
+  - K-RPC-020
+  - K-RPC-021
+  - K-RPC-022
+  - K-RPC-023
+  - K-WF-001
+  - K-WF-002
+  - K-WF-003
+  - K-WF-004
+  - K-WF-005
+  - K-WF-006
+  - K-WF-007
+  - K-WF-008
+  - K-WF-009
+  - K-WF-010
+  - K-WF-011
+  - K-WF-012
+  - K-RPC-012a
+  - K-RPC-012b
+  - K-RPC-012c
+  - K-RPC-004a
+  - K-RPC-004b
+  - K-RPC-004c
+  - K-RPC-024
+  - K-RPC-025
+rules:
+  - rule_id: K-APP-001
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-APP-002
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-APP-003
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-APP-004
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-APP-005
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-APP-006
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-APP-006a
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-APP-007
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-APP-008
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-APP-009
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Companion multi-app interaction boundary; executable coverage lands with downstream
+      cross-surface implementation.
+    evidence_requirement: required
+  - rule_id: K-APP-010
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Avatar runtime binding boundary; executable owner-side binding implementation is deferred and
+      must not be bypassed through Avatar Realm/auth ownership.
+    evidence_requirement: required
+  - rule_id: K-CONN-001
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-CONN-002
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-CONN-003
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-CONN-004
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-CONN-005
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-CONN-006
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-CONN-007
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-CONN-008
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-CONN-009
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-CONN-010
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-CONN-011
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-CONN-012
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-CONN-013
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-CONN-014
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-CONN-015
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-CONN-016
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-CONN-017
+    evidence_refs: []
+    evidence_requirement: deferred
+  - rule_id: K-CONN-018
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-MODEL-001
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-MODEL-002
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-MODEL-003
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-MODEL-004
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-MODEL-005
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-MODEL-006
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-MODEL-007
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-MODEL-008
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-MODEL-009
+    evidence_refs: []
+    evidence_requirement: deferred
+  - rule_id: K-PROTO-001
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_proto_linkage
+    evidence_requirement: required
+  - rule_id: K-PROTO-002
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_proto_linkage
+    evidence_requirement: required
+  - rule_id: K-PROTO-003
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_proto_linkage
+    evidence_requirement: required
+  - rule_id: K-PROTO-004
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_proto_linkage
+    evidence_requirement: required
+  - rule_id: K-PROTO-005
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_proto_linkage
+    evidence_requirement: required
+  - rule_id: K-PROTO-006
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_proto_linkage
+    evidence_requirement: required
+  - rule_id: K-PROTO-007
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_proto_linkage
+    evidence_requirement: required
+  - rule_id: K-PROTO-008
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_proto_linkage
+    evidence_requirement: required
+  - rule_id: K-PROTO-009
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_proto_linkage
+    evidence_requirement: required
+  - rule_id: K-PROTO-010
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_proto_linkage
+    evidence_requirement: required
+  - rule_id: K-PROTO-011
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_proto_linkage
+    evidence_requirement: required
+  - rule_id: K-PROTO-012
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Runtime Agent Participation proto surface boundary admitted as contract truth;
+      implementation-facing proto cuts are owned by later waves.
+    evidence_requirement: deferred
+  - rule_id: K-RPC-001
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_proto_linkage
+    evidence_requirement: required
+  - rule_id: K-RPC-002
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_proto_linkage
+    evidence_requirement: required
+  - rule_id: K-RPC-003
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_proto_linkage
+    evidence_requirement: required
+  - rule_id: K-RPC-004
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_proto_linkage
+    evidence_requirement: required
+  - rule_id: K-RPC-005
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_proto_linkage
+    evidence_requirement: required
+  - rule_id: K-RPC-006
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_proto_linkage
+    evidence_requirement: required
+  - rule_id: K-RPC-007
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_proto_linkage
+    evidence_requirement: required
+  - rule_id: K-RPC-008
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_proto_linkage
+    evidence_requirement: required
+  - rule_id: K-RPC-009
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_proto_linkage
+    evidence_requirement: required
+  - rule_id: K-RPC-010
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_proto_linkage
+    evidence_requirement: required
+  - rule_id: K-RPC-011
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_proto_linkage
+    evidence_requirement: required
+  - rule_id: K-RPC-012
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_proto_linkage
+    evidence_requirement: required
+  - rule_id: K-RPC-013
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_proto_linkage
+    evidence_requirement: required
+  - rule_id: K-RPC-014
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_proto_linkage
+    evidence_requirement: required
+  - rule_id: K-RPC-015
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-RPC-016
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-RPC-017
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-RPC-018
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-RPC-019
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-RPC-020
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-RPC-021
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-RPC-022
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-RPC-023
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-WF-001
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-WF-002
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-WF-003
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-WF-004
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-WF-005
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-WF-006
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-WF-007
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-WF-008
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-WF-009
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-WF-010
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-WF-011
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-WF-012
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-RPC-012a
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-RPC-012b
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-RPC-012c
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-RPC-004a
+    evidence_refs: []
+    evidence_requirement: deferred
+  - rule_id: K-RPC-004b
+    evidence_refs: []
+    evidence_requirement: deferred
+  - rule_id: K-RPC-004c
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-RPC-024
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-RPC-025
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required

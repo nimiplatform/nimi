@@ -1,0 +1,522 @@
+table_family: support_registry
+registry_id: runtime_rule_evidence_delegation_rules
+owner: runtime
+schema_ref: .nimi/contracts/table-family.schema.yaml#support_registry
+allowed_fields:
+  - rule_id
+  - evidence_requirement
+  - evidence_refs
+  - note
+  - na_reason
+  - evidence_scope_note
+  - test_files
+forbidden_state_fields:
+  - done
+  - covered
+  - coverage_status
+  - audit_date
+  - evidence_report
+  - current
+  - proposed
+  - backlog_status
+  - migration_status
+  - mapping_status
+  - run_id
+  - ledger_ref
+entries:
+  - K-DELEG-001
+  - K-DELEG-002
+  - K-DELEG-003
+  - K-DELEG-004
+  - K-DELEG-005
+  - K-DELEG-006
+  - K-DELEG-007
+  - K-DELEG-020
+  - K-DELEG-021
+  - K-DELEG-030
+  - K-DELEG-031
+  - K-DELEG-032
+  - K-DELEG-040
+  - K-DELEG-041
+  - K-DELEG-042
+  - K-DELEG-043
+  - K-DELEG-044
+  - K-DELEG-045
+  - K-DELEG-046
+  - K-DELEG-050
+  - K-DELEG-051
+  - K-DELEG-052
+  - K-DELEG-053
+  - K-DELEG-054
+  - K-DELEG-055
+  - K-DELEG-056
+  - K-DELEG-057
+  - K-DELEG-058
+  - K-DELEG-059
+  - K-DELEG-060
+  - K-DELEG-061
+  - K-DELEG-062
+  - K-DELEG-063
+  - K-DELEG-064
+  - K-DELEG-065
+  - K-DELEG-066
+  - K-DELEG-067
+  - K-DELEG-068
+  - K-DELEG-069
+  - K-DELEG-070
+  - K-DELEG-071
+  - K-DELEG-072
+  - K-DELEG-073
+  - K-DELEG-074
+  - K-DELEG-075
+  - K-DELEG-076
+  - K-DELEG-077
+  - K-DELEG-078
+  - K-DELEG-079
+  - K-DELEG-080
+  - K-DELEG-081
+  - K-DELEG-082
+  - K-DELEG-083
+  - K-DELEG-084
+  - K-DELEG-085
+  - K-DELEG-086
+  - K-DELEG-087
+  - K-DELEG-088
+  - K-DELEG-089
+  - K-DELEG-090
+  - K-DELEG-091
+  - K-DELEG-092
+  - K-DELEG-093
+  - K-DELEG-094
+  - K-DELEG-095
+  - K-DELEG-096
+  - K-DELEG-097
+  - K-DELEG-098
+  - K-DELEG-099
+  - K-DELEG-100
+  - K-DELEG-101
+  - K-DELEG-102
+  - K-DELEG-103
+  - K-DELEG-104
+  - K-DELEG-105
+  - K-DELEG-106
+  - K-DELEG-107
+  - K-DELEG-108
+  - K-DELEG-109
+  - K-DELEG-110
+  - K-DELEG-111
+  - K-DELEG-112
+  - K-DELEG-113
+  - K-DELEG-114
+  - K-DELEG-115
+  - K-DELEG-116
+  - K-DELEG-117
+  - K-DELEG-118
+  - K-DELEG-119
+  - K-DELEG-120
+  - K-DELEG-121
+  - K-DELEG-122
+  - K-DELEG-123
+  - K-DELEG-124
+  - K-DELEG-125
+  - K-DELEG-126
+  - K-DELEG-127
+  - K-DELEG-128
+  - K-DELEG-129
+rules:
+  - rule_id: K-DELEG-001
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-DELEG-002
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-DELEG-003
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-DELEG-004
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-DELEG-005
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-DELEG-006
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-DELEG-007
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-DELEG-020
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-DELEG-021
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-DELEG-030
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-DELEG-031
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-DELEG-032
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-DELEG-040
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-DELEG-041
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-DELEG-042
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-DELEG-043
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-DELEG-044
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-DELEG-045
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-DELEG-046
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-DELEG-050
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-DELEG-051
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-DELEG-052
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-DELEG-053
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-DELEG-054
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-DELEG-055
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-DELEG-056
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-DELEG-057
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-DELEG-058
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-DELEG-059
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-DELEG-060
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-DELEG-061
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-DELEG-062
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-DELEG-063
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-DELEG-064
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-DELEG-065
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-DELEG-066
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-DELEG-067
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-DELEG-068
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-DELEG-069
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-DELEG-070
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-DELEG-071
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-DELEG-072
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-DELEG-073
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-DELEG-074
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-DELEG-075
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-DELEG-076
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-DELEG-077
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-DELEG-078
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-DELEG-079
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-DELEG-080
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-DELEG-081
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-DELEG-082
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-DELEG-083
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-DELEG-084
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-DELEG-085
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-DELEG-086
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-DELEG-087
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-DELEG-088
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-DELEG-089
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-DELEG-090
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-DELEG-091
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-DELEG-092
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-DELEG-093
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-DELEG-094
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-DELEG-095
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-DELEG-096
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-DELEG-097
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-DELEG-098
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-DELEG-099
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-DELEG-100
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-DELEG-101
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-DELEG-102
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-DELEG-103
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-DELEG-104
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-DELEG-105
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-DELEG-106
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-DELEG-107
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-DELEG-108
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-DELEG-109
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-DELEG-110
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-DELEG-111
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-DELEG-112
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-DELEG-113
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-DELEG-114
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-DELEG-115
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-DELEG-116
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-DELEG-117
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-DELEG-118
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-DELEG-119
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-DELEG-120
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-DELEG-121
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-DELEG-122
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-DELEG-123
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-DELEG-124
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-DELEG-125
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-DELEG-126
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-DELEG-127
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-DELEG-128
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-DELEG-129
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required

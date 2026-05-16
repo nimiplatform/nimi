@@ -34,13 +34,13 @@ export function renderRpcMigrationMap(doc, sourceName) {
   let out = header('Generated RPC Migration Map', sourceName);
 
   out += '## Service Mapping\n\n';
-  out += '| Design Service | Proto Service | Mapping State | Alignment Phase | Source |\n';
+  out += '| Design Service | Proto Service | Mapping Posture | Alignment Phase | Source |\n';
   out += '|---|---|---|---|---|\n';
   for (const item of serviceMappings) {
     const designService = String(item?.design_service || '').trim();
     if (!designService) continue;
     const protoService = String(item?.proto_service || '').trim() || '—';
-    const state = String(item?.mapping_state || '').trim() || 'unknown';
+    const state = String(item?.mapping_posture || '').trim() || 'unknown';
     const phase = String(item?.alignment_phase || '').trim() || '—';
     const source = String(item?.source_rule || '').trim() || '—';
     out += `| \`${designService}\` | \`${protoService}\` | \`${state}\` | \`${phase}\` | \`${source}\` |\n`;
@@ -48,7 +48,7 @@ export function renderRpcMigrationMap(doc, sourceName) {
   out += '\n';
 
   out += '## Method Mapping\n\n';
-  out += '| Design Service | Design Method | Proto Service | Proto Method | Mapping State |\n';
+  out += '| Design Service | Design Method | Proto Service | Proto Method | Mapping Posture |\n';
   out += '|---|---|---|---|---|\n';
   for (const item of methodMappings) {
     const designService = String(item?.design_service || '').trim();
@@ -56,7 +56,7 @@ export function renderRpcMigrationMap(doc, sourceName) {
     if (!designService || !designMethod) continue;
     const protoService = String(item?.proto_service || '').trim() || '—';
     const protoMethod = String(item?.proto_method || '').trim() || '—';
-    const state = String(item?.mapping_state || '').trim() || 'unknown';
+    const state = String(item?.mapping_posture || '').trim() || 'unknown';
     out += `| \`${designService}\` | \`${designMethod}\` | \`${protoService}\` | \`${protoMethod}\` | \`${state}\` |\n`;
   }
   out += '\n';

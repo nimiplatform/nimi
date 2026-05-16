@@ -1,0 +1,778 @@
+table_family: support_registry
+registry_id: runtime_rule_evidence_agent_core_rules
+owner: runtime
+schema_ref: .nimi/contracts/table-family.schema.yaml#support_registry
+allowed_fields:
+  - rule_id
+  - evidence_requirement
+  - evidence_refs
+  - note
+  - na_reason
+  - evidence_scope_note
+  - test_files
+forbidden_state_fields:
+  - done
+  - covered
+  - coverage_status
+  - audit_date
+  - evidence_report
+  - current
+  - proposed
+  - backlog_status
+  - migration_status
+  - mapping_status
+  - run_id
+  - ledger_ref
+entries:
+  - K-AGCORE-001
+  - K-AGCORE-002
+  - K-AGCORE-003
+  - K-AGCORE-004
+  - K-AGCORE-005
+  - K-AGCORE-006
+  - K-AGCORE-007
+  - K-AGCORE-008
+  - K-AGCORE-009
+  - K-AGCORE-010
+  - K-AGCORE-011
+  - K-AGCORE-012
+  - K-AGCORE-013
+  - K-AGCORE-014
+  - K-AGCORE-015
+  - K-AGCORE-016
+  - K-AGCORE-017
+  - K-AGCORE-018
+  - K-AGCORE-019
+  - K-AGCORE-020
+  - K-AGCORE-021
+  - K-AGCORE-022
+  - K-AGCORE-023
+  - K-AGCORE-024
+  - K-AGCORE-025
+  - K-AGCORE-026
+  - K-AGCORE-026a
+  - K-AGCORE-026b
+  - K-AGCORE-027
+  - K-AGCORE-028
+  - K-AGCORE-029
+  - K-AGCORE-030
+  - K-AGCORE-031
+  - K-AGCORE-032
+  - K-AGCORE-033
+  - K-AGCORE-034
+  - K-AGCORE-035
+  - K-AGCORE-036
+  - K-AGCORE-037
+  - K-AGCORE-038
+  - K-AGCORE-039
+  - K-AGCORE-040
+  - K-AGCORE-041
+  - K-AGCORE-042
+  - K-AGCORE-043
+  - K-AGCORE-044
+  - K-AGCORE-045
+  - K-AGCORE-046
+  - K-AGCORE-047
+  - K-AGCORE-048
+  - K-AGCORE-049
+  - K-AGCORE-050
+  - K-AGCORE-051
+  - K-AGCORE-052
+  - K-AGCORE-053
+  - K-AGCORE-054
+  - K-AGCORE-055
+  - K-AGCORE-056
+  - K-AGCORE-057
+  - K-AGCORE-058
+  - K-AGCORE-059
+  - K-AGCORE-060
+  - K-AGCORE-061
+  - K-AGCORE-062
+  - K-AGCORE-063
+  - K-AGCORE-064
+  - K-AGCORE-065
+  - K-AGCORE-066
+  - K-AGCORE-067
+  - K-AGCORE-068
+  - K-AGCORE-069
+  - K-AGCORE-070
+  - K-AGCORE-071
+  - K-AGCORE-072
+  - K-AGCORE-073
+  - K-AGCORE-074
+  - K-AGCORE-075
+  - K-AGCORE-076
+  - K-AGCORE-077
+  - K-AGCORE-078
+  - K-AGCORE-079
+  - K-AGCORE-080
+  - K-AGCORE-081
+  - K-AGCORE-082
+  - K-AGCORE-083
+  - K-AGCORE-084
+  - K-AGCORE-085
+  - K-AGCORE-086
+  - K-AGCORE-087
+  - K-AGCORE-088
+  - K-AGCORE-089
+  - K-AGCORE-090
+  - K-AGCORE-091
+  - K-AGCORE-092
+  - K-AGCORE-093
+  - K-AGCORE-094
+  - K-AGCORE-095
+  - K-AGCORE-096
+  - K-AGCORE-097
+  - K-AGCORE-098
+  - K-AGCORE-099
+  - K-AGCORE-100
+  - K-AGCORE-101
+  - K-AGCORE-102
+  - K-AGCORE-103
+  - K-AGCORE-104
+  - K-AGCORE-105
+  - K-AGCORE-106
+  - K-AGCORE-107
+  - K-AGCORE-108
+  - K-AGCORE-109
+  - K-AGCORE-110
+  - K-AGCORE-111
+  - K-AGCORE-112
+  - K-AGCORE-113
+  - K-AGCORE-114
+  - K-AGCORE-115
+  - K-AGCORE-116
+  - K-AGCORE-117
+  - K-AGCORE-118
+  - K-AGCORE-119
+  - K-AGCORE-120
+  - K-AGCORE-121
+  - K-AGCORE-122
+  - K-AGCORE-123
+  - K-AGCORE-124
+  - K-AGCORE-125
+  - K-AGCORE-126
+  - K-AGCORE-127
+  - K-AGCORE-128
+  - K-AGCORE-129
+  - K-AGCORE-130
+  - K-AGCORE-131
+  - K-AGCORE-132
+rules:
+  - rule_id: K-AGCORE-001
+    evidence_refs: []
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-002
+    evidence_refs: []
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-003
+    evidence_refs: []
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-004
+    evidence_refs: []
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-005
+    evidence_refs: []
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-006
+    evidence_refs: []
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-007
+    evidence_refs: []
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-008
+    evidence_refs: []
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-009
+    evidence_refs: []
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-010
+    evidence_refs: []
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-011
+    evidence_refs: []
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-012
+    evidence_refs: []
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-013
+    evidence_refs: []
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-014
+    evidence_refs: []
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-015
+    evidence_refs: []
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-016
+    evidence_refs: []
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-017
+    evidence_refs: []
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-018
+    evidence_refs: []
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-019
+    evidence_refs: []
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-020
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-AGCORE-021
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-AGCORE-022
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-AGCORE-023
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-AGCORE-024
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-AGCORE-025
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-AGCORE-026
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-AGCORE-026a
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-AGCORE-026b
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-AGCORE-027
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-AGCORE-028
+    evidence_refs: []
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-029
+    evidence_refs: []
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-030
+    evidence_refs: []
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-031
+    evidence_refs: []
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-032
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-AGCORE-033
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-AGCORE-034
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-AGCORE-035
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-AGCORE-036
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-AGCORE-037
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-AGCORE-038
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-AGCORE-039
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-AGCORE-040
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-AGCORE-041
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-AGCORE-042
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-AGCORE-043
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-AGCORE-044
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-AGCORE-045
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-AGCORE-046
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-AGCORE-047
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-AGCORE-048
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-AGCORE-049
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-AGCORE-050
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-AGCORE-051
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: PresentationTimeline voice/lipsync branch is admitted as authority; implementation evidence is
+      owned by downstream runtime timeline implementation
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-052
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-AGCORE-053
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    note: Runtime artifact bytes retrieval; admitted by 2026-04-30-avatar-vrm-backend-branch wave-0
+    evidence_requirement: required
+  - rule_id: K-AGCORE-054
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Avatar debug projection authority admitted as contract/table truth; runtime implementation
+      evidence is owned by downstream wave-3.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-055
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Avatar probe request envelope admitted as contract/table truth; runtime implementation
+      evidence is owned by downstream wave-3.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-056
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Avatar probe result envelope admitted as contract/table truth; runtime implementation evidence
+      is owned by downstream wave-3.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-057
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Avatar debug replay keys admitted as contract/table truth; runtime implementation evidence is
+      owned by downstream wave-3.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-058
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: runtime.agent.avatar_debug.* projection families admitted as contract/table truth; runtime
+      implementation evidence is owned by downstream wave-3.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-059
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Provider/delegation boundary admitted as authority reference; delegated gateway implementation
+      evidence remains under K-DELEG-*.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-060
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Later implementation status rule for Avatar debug projection; closure evidence is owned by
+      downstream waves.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-061
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Runtime agent participation authority admitted as contract/table truth; implementation
+      evidence is owned by downstream participation waves.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-062
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Runtime agent participation non-canonical candidate posture admitted as contract/table truth;
+      implementation evidence is owned by downstream participation waves.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-063
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Runtime agent participation axis registry admitted as contract/table truth; implementation
+      evidence is owned by downstream participation waves.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-064
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Runtime agent participation transcript owner axis admitted as contract/table truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-065
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Runtime agent participation identity source axis admitted as contract/table truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-066
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Runtime agent participation execution owner axis admitted as contract/table truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-067
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Runtime agent participation memory read scope axis admitted as contract/table truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-068
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Runtime agent participation memory write default axis admitted as contract/table truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-069
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Runtime agent participation capability scope axis admitted as contract/table truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-070
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Runtime agent participation input trust axis admitted as contract/table truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-071
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Runtime agent participation output destination axis admitted as contract/table truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-072
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Runtime agent participation promotion posture axis admitted as contract/table truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-073
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Runtime agent participation execution concurrency axis admitted as contract/table truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-074
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Runtime agent participation profile registry admitted as contract/table truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-075
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Runtime agent participation canonical agent chat reference profile admitted as contract/table
+      truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-076
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Runtime agent participation Realm group agent profile admitted as contract/table truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-077
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Runtime agent participation Scenario sandbox profile admitted as contract/table truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-078
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Runtime agent participation OASIS/world profile admitted as contract/table truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-079
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Runtime agent participation external agent entry profile admitted as contract/table truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-080
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Runtime agent participation debug/probe profile admitted as contract/table truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-081
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Runtime agent participation context block registry admitted as contract/table truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-082
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Runtime agent participation output candidate schema admitted as contract/table truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-083
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Runtime agent participation domain commit separation admitted as contract/table truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-084
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Runtime agent participation memory policy tables admitted as contract/table truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-085
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Runtime agent participation capability scope table admitted as contract/table truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-086
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Runtime agent participation concurrency policy table admitted as contract/table truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-087
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Runtime agent participation audit/replay boundary admitted as contract/table truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-088
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Runtime agent participation public raw prompt boundary admitted as contract/table truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-089
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Runtime agent participation external entry boundary matrix admitted as contract/table truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-090
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Runtime agent participation MCP-backed AI capability entry boundary admitted as contract/table
+      truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-091
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Runtime agent participation future A2A external agent entry boundary admitted as
+      contract/table truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-092
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Runtime agent participation external principal writeback boundary admitted as contract/table
+      truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-093
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Runtime agent participation external entry gateway chain admitted as contract/table truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-094
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Runtime agent participation external entry negative gates admitted as contract/table truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-095
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Runtime agent participation domain future seam matrix admitted as contract/table truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-096
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Runtime agent participation OASIS/world future seam boundary admitted as contract/table truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-097
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Runtime agent participation Scenario Sandbox future seam boundary admitted as contract/table
+      truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-098
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Runtime agent participation domain truth separation boundary admitted as contract/table truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-099
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Runtime agent participation future product implementation gates admitted as contract/table
+      truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-100
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Runtime agent participation domain future seam negative gates admitted as contract/table truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-101
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Runtime agent participation promotion boundary registry admitted as contract/table truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-102
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Runtime agent participation Runtime memory/cognition promotion target admitted as
+      contract/table truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-103
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Runtime agent participation canonical chat promotion target admitted as contract/table truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-104
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Runtime agent participation Realm GROUP transcript promotion target admitted as contract/table
+      truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-105
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Runtime agent participation domain truth promotion target admitted as contract/table truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-106
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Runtime agent participation promotion fail-closed invariants admitted as contract/table truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-107
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Runtime room orchestration authority admitted as contract/table truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-108
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Runtime room orchestration parent participation boundary admitted as contract/table truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-109
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Runtime room orchestration closed axis model admitted as contract/table truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-110
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Runtime room orchestration domain matrix admitted as contract/table truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-111
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Runtime room orchestration trigger arbitration and turn ordering admitted as contract/table
+      truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-112
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Runtime room orchestration budget cancellation and timeout policy admitted as contract/table
+      truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-113
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Runtime room orchestration status projection boundary admitted as contract/table truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-114
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Runtime room orchestration external participant admission admitted as contract/table truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-115
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Runtime room orchestration commit-race handoff boundary admitted as contract/table truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-116
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Runtime room orchestration domain overlay limitation admitted as contract/table truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-117
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Runtime room orchestration negative gates admitted as contract/table truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-118
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Runtime room orchestration closure gates admitted as contract/table truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-119
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Realm Group participation consumer boundary admitted as contract/table truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-120
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Realm Group typed context mapping admitted as contract/table truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-121
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Realm Group message candidate and commit handoff admitted as contract/table truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-122
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Realm Group Runtime participation policy inheritance admitted as contract/table truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-123
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Realm Group room orchestration consumer binding admitted as contract/table truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-124
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Realm Group negative gates admitted as contract/table truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-125
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-AGCORE-126
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-AGCORE-127
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-AGCORE-128
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-AGCORE-129
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-AGCORE-130
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-AGCORE-131
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-AGCORE-132
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required

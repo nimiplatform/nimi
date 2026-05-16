@@ -34,5 +34,12 @@ rule_registry:
 fragments:
   evidence_catalog: rule-evidence.catalog.yaml
   rules:
-    - rule-evidence.rules.yaml
+    - rule-evidence.rules-core-auth.yaml
+    - rule-evidence.rules-core-protocol.yaml
+    - rule-evidence.rules-core-operations.yaml
+    - rule-evidence.rules-agent-core.yaml
+    - rule-evidence.rules-delegation.yaml
+    - rule-evidence.rules-local.yaml
+    - rule-evidence.rules-cognition.yaml
+    - rule-evidence.rules-binding-world.yaml
     - rule-evidence.rules-multimodal.yaml

@@ -1,0 +1,930 @@
+table_family: support_registry
+registry_id: runtime_rule_evidence_local_rules
+owner: runtime
+schema_ref: .nimi/contracts/table-family.schema.yaml#support_registry
+allowed_fields:
+  - rule_id
+  - evidence_requirement
+  - evidence_refs
+  - note
+  - na_reason
+  - evidence_scope_note
+  - test_files
+forbidden_state_fields:
+  - done
+  - covered
+  - coverage_status
+  - audit_date
+  - evidence_report
+  - current
+  - proposed
+  - backlog_status
+  - migration_status
+  - mapping_status
+  - run_id
+  - ledger_ref
+entries:
+  - K-LENG-001
+  - K-LENG-002
+  - K-LENG-003
+  - K-LENG-004
+  - K-LENG-005
+  - K-LENG-006
+  - K-LENG-007
+  - K-LENG-008
+  - K-LENG-009
+  - K-LENG-010
+  - K-LENG-011
+  - K-LENG-012
+  - K-LENG-013
+  - K-LENG-014
+  - K-LENG-015
+  - K-LENG-016
+  - K-LENG-017
+  - K-LENG-018
+  - K-LENG-019
+  - K-LENG-020
+  - K-LENG-021
+  - K-LENG-022
+  - K-LENG-023
+  - K-LOCAL-001
+  - K-LOCAL-002
+  - K-LOCAL-003
+  - K-LOCAL-004
+  - K-LOCAL-005
+  - K-LOCAL-006
+  - K-LOCAL-007
+  - K-LOCAL-008
+  - K-LOCAL-008a
+  - K-LOCAL-009
+  - K-LOCAL-010
+  - K-LOCAL-010a
+  - K-LOCAL-011
+  - K-LOCAL-012
+  - K-LOCAL-013
+  - K-LOCAL-014
+  - K-LOCAL-015
+  - K-LOCAL-016
+  - K-LOCAL-017
+  - K-LOCAL-018
+  - K-LOCAL-019
+  - K-LOCAL-020
+  - K-LOCAL-020a
+  - K-LOCAL-021
+  - K-LOCAL-022
+  - K-LOCAL-023
+  - K-LOCAL-024
+  - K-LOCAL-025
+  - K-LOCAL-026
+  - K-LOCAL-027
+  - K-LOCAL-028
+  - K-LOCAL-029
+  - K-LOCAL-030
+  - K-MCAT-001
+  - K-MCAT-002
+  - K-MCAT-003
+  - K-MCAT-004
+  - K-MCAT-005
+  - K-MCAT-006
+  - K-MCAT-007
+  - K-MCAT-008
+  - K-MCAT-009
+  - K-MCAT-010
+  - K-MCAT-011
+  - K-MCAT-012
+  - K-MCAT-013
+  - K-MCAT-014
+  - K-MCAT-014a
+  - K-MCAT-015
+  - K-MCAT-016
+  - K-MCAT-017
+  - K-MCAT-018
+  - K-MCAT-019
+  - K-MCAT-020
+  - K-MCAT-021
+  - K-MCAT-022
+  - K-MCAT-023
+  - K-MCAT-024
+  - K-MCAT-025
+  - K-MCAT-026
+  - K-MCAT-027
+  - K-MCAT-028
+  - K-MCAT-029
+  - K-MCAT-030
+  - K-MCAT-031
+  - K-PROV-001
+  - K-PROV-002
+  - K-PROV-003
+  - K-PROV-004
+  - K-PROV-005
+  - K-PROV-006
+  - K-PROV-007
+  - K-STREAM-001
+  - K-STREAM-002
+  - K-STREAM-003
+  - K-STREAM-004
+  - K-STREAM-005
+  - K-STREAM-006
+  - K-STREAM-007
+  - K-STREAM-008
+  - K-STREAM-009
+  - K-STREAM-010
+  - K-STREAM-011
+  - K-STREAM-012
+  - K-STREAM-013
+  - K-VOICE-001
+  - K-VOICE-002
+  - K-VOICE-003
+  - K-VOICE-004
+  - K-VOICE-005
+  - K-VOICE-006
+  - K-VOICE-007
+  - K-VOICE-008
+  - K-VOICE-009
+  - K-VOICE-010
+  - K-VOICE-011
+  - K-VOICE-012
+  - K-VOICE-013
+  - K-VOICE-014
+  - K-VOICE-015
+  - K-VOICE-016
+  - K-VOICE-017
+  - K-MCAT-006a
+  - K-MCAT-006b
+  - K-LOCAL-014a
+  - K-LOCAL-021a
+  - K-LOCAL-021b
+  - K-LOCAL-021c
+  - K-LOCAL-021d
+  - K-LOCAL-021e
+  - K-LOCAL-031
+  - K-LOCAL-032
+  - K-LOCAL-033
+  - K-AIEXEC-001
+  - K-AIEXEC-002
+  - K-AIEXEC-003
+  - K-AIEXEC-004
+  - K-AIEXEC-005
+  - K-AIEXEC-006
+  - K-LENG-024
+  - K-LENG-025
+  - K-LENG-026
+  - K-LENG-027
+  - K-LENG-028
+rules:
+  - rule_id: K-LENG-001
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-LENG-002
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-LENG-003
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-LENG-004
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-LENG-005
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-LENG-006
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-LENG-007
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-LENG-008
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-LENG-009
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-LENG-010
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-LENG-011
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-LENG-012
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-LENG-013
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-LENG-014
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-LENG-015
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-LENG-016
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-LENG-017
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-LENG-018
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-LENG-019
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-LENG-020
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-LENG-021
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-LENG-022
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-LENG-023
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-LOCAL-001
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-LOCAL-002
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-LOCAL-003
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-LOCAL-004
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-LOCAL-005
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-LOCAL-006
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-LOCAL-007
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-LOCAL-008
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-LOCAL-008a
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-LOCAL-009
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-LOCAL-010
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-LOCAL-010a
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-LOCAL-011
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-LOCAL-012
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-LOCAL-013
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-LOCAL-014
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-LOCAL-015
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-LOCAL-016
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-LOCAL-017
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-LOCAL-018
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-LOCAL-019
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-LOCAL-020
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-LOCAL-020a
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-LOCAL-021
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-LOCAL-022
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-LOCAL-023
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-LOCAL-024
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-LOCAL-025
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-LOCAL-026
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-LOCAL-027
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-LOCAL-028
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-LOCAL-029
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-LOCAL-030
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-MCAT-001
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_catalog_drift
+    evidence_requirement: required
+  - rule_id: K-MCAT-002
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_catalog_drift
+    evidence_requirement: required
+  - rule_id: K-MCAT-003
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_catalog_drift
+    evidence_requirement: required
+  - rule_id: K-MCAT-004
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_catalog_drift
+    evidence_requirement: required
+  - rule_id: K-MCAT-005
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_catalog_drift
+    evidence_requirement: required
+  - rule_id: K-MCAT-006
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_catalog_drift
+    evidence_requirement: required
+  - rule_id: K-MCAT-007
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_catalog_drift
+    evidence_requirement: required
+  - rule_id: K-MCAT-008
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_catalog_drift
+    evidence_requirement: required
+  - rule_id: K-MCAT-009
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_catalog_drift
+    evidence_requirement: required
+  - rule_id: K-MCAT-010
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_catalog_drift
+    evidence_requirement: required
+  - rule_id: K-MCAT-011
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_catalog_drift
+    evidence_requirement: required
+  - rule_id: K-MCAT-012
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_catalog_drift
+    evidence_requirement: required
+  - rule_id: K-MCAT-013
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_catalog_drift
+    evidence_requirement: required
+  - rule_id: K-MCAT-014
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_catalog_drift
+    evidence_requirement: required
+  - rule_id: K-MCAT-014a
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_catalog_drift
+    evidence_requirement: required
+  - rule_id: K-MCAT-015
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_catalog_drift
+    evidence_requirement: required
+  - rule_id: K-MCAT-016
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_catalog_drift
+    evidence_requirement: required
+  - rule_id: K-MCAT-017
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_catalog_drift
+    evidence_requirement: required
+  - rule_id: K-MCAT-018
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_catalog_drift
+    evidence_requirement: required
+  - rule_id: K-MCAT-019
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_catalog_drift
+    evidence_requirement: required
+  - rule_id: K-MCAT-020
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_catalog_drift
+    evidence_requirement: required
+  - rule_id: K-MCAT-021
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_catalog_drift
+    evidence_requirement: required
+  - rule_id: K-MCAT-022
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_catalog_drift
+    evidence_requirement: required
+  - rule_id: K-MCAT-023
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_catalog_drift
+    evidence_requirement: required
+  - rule_id: K-MCAT-024
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_catalog_drift
+    evidence_requirement: required
+  - rule_id: K-MCAT-025
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_catalog_drift
+    evidence_requirement: required
+  - rule_id: K-MCAT-026
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_catalog_drift
+    evidence_requirement: required
+  - rule_id: K-MCAT-027
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_catalog_drift
+    evidence_requirement: required
+  - rule_id: K-MCAT-028
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_catalog_drift
+    evidence_requirement: required
+  - rule_id: K-MCAT-029
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_catalog_drift
+    evidence_requirement: required
+  - rule_id: K-MCAT-030
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_catalog_drift
+      - runtime_selection_freshness
+    evidence_requirement: required
+  - rule_id: K-MCAT-031
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_catalog_drift
+    evidence_requirement: required
+  - rule_id: K-PROV-001
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_provider_checks
+    evidence_requirement: required
+  - rule_id: K-PROV-002
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_provider_checks
+    evidence_requirement: required
+  - rule_id: K-PROV-003
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_provider_checks
+    evidence_requirement: required
+  - rule_id: K-PROV-004
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_provider_checks
+    evidence_requirement: required
+  - rule_id: K-PROV-005
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_provider_checks
+    evidence_requirement: required
+  - rule_id: K-PROV-006
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_provider_checks
+    evidence_requirement: required
+  - rule_id: K-PROV-007
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_provider_checks
+    evidence_requirement: required
+  - rule_id: K-STREAM-001
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-STREAM-002
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-STREAM-003
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-STREAM-004
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-STREAM-005
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-STREAM-006
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-STREAM-007
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-STREAM-008
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-STREAM-009
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-STREAM-010
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-STREAM-011
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-STREAM-012
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-STREAM-013
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-VOICE-001
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-VOICE-002
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-VOICE-003
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-VOICE-004
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-VOICE-005
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-VOICE-006
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-VOICE-007
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-VOICE-008
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-VOICE-009
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-VOICE-010
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-VOICE-011
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-VOICE-012
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-VOICE-013
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-VOICE-014
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-VOICE-015
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-VOICE-016
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-VOICE-017
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-MCAT-006a
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_catalog_drift
+    evidence_requirement: required
+  - rule_id: K-MCAT-006b
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_catalog_drift
+    evidence_requirement: required
+  - rule_id: K-LOCAL-014a
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-LOCAL-021a
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_catalog_drift
+    evidence_requirement: required
+  - rule_id: K-LOCAL-021b
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_catalog_drift
+    evidence_requirement: required
+  - rule_id: K-LOCAL-021c
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_catalog_drift
+    evidence_requirement: required
+  - rule_id: K-LOCAL-021d
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_catalog_drift
+    evidence_requirement: required
+  - rule_id: K-LOCAL-021e
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_catalog_drift
+    evidence_requirement: required
+  - rule_id: K-LOCAL-031
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-LOCAL-032
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-LOCAL-033
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-AIEXEC-001
+    evidence_refs: []
+    evidence_requirement: deferred
+  - rule_id: K-AIEXEC-002
+    evidence_refs: []
+    evidence_requirement: deferred
+  - rule_id: K-AIEXEC-003
+    evidence_refs: []
+    evidence_requirement: deferred
+  - rule_id: K-AIEXEC-004
+    evidence_refs: []
+    evidence_requirement: deferred
+  - rule_id: K-AIEXEC-005
+    evidence_refs: []
+    evidence_requirement: deferred
+  - rule_id: K-AIEXEC-006
+    evidence_refs: []
+    evidence_requirement: deferred
+  - rule_id: K-LENG-024
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-LENG-025
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-LENG-026
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-LENG-027
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-LENG-028
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
