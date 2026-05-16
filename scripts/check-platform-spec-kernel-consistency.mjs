@@ -2,8 +2,8 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
-import YAML from 'yaml';
 import { checkNimiDesignTables } from './lib/platform-spec-design-table-checks.mjs';
+import { readYamlWithFragments } from './lib/read-yaml-with-fragments.mjs';
 
 const cwd = process.cwd();
 
@@ -23,7 +23,7 @@ function read(rel) {
 }
 
 function readYaml(rel) {
-  return YAML.parse(read(rel));
+  return readYamlWithFragments(path.join(cwd, rel));
 }
 
 // --- Load tables ---

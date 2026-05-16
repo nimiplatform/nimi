@@ -1,0 +1,786 @@
+table_family: support_registry
+registry_id: platform_rule_evidence_requirement_rules
+owner: platform
+schema_ref: .nimi/contracts/table-family.schema.yaml#support_registry
+allowed_fields:
+  - rule_id
+  - evidence_requirement
+  - evidence_refs
+  - note
+  - na_reason
+  - evidence_scope_note
+  - test_files
+forbidden_state_fields:
+  - done
+  - covered
+  - coverage_status
+  - audit_date
+  - evidence_report
+  - current
+  - proposed
+  - backlog_status
+  - migration_status
+  - mapping_status
+  - run_id
+  - ledger_ref
+entries:
+  - P-ALMI-001
+  - P-ALMI-002
+  - P-ALMI-003
+  - P-ALMI-004
+  - P-ALMI-010
+  - P-ALMI-011
+  - P-ALMI-020
+  - P-ALMI-030
+  - P-DESIGN-001
+  - P-DESIGN-002
+  - P-DESIGN-003
+  - P-DESIGN-004
+  - P-DESIGN-005
+  - P-DESIGN-006
+  - P-DESIGN-007
+  - P-DESIGN-008
+  - P-DESIGN-009
+  - P-DESIGN-010
+  - P-DESIGN-011
+  - P-DESIGN-012
+  - P-DESIGN-013
+  - P-DESIGN-014
+  - P-DESIGN-015
+  - P-DESIGN-016
+  - P-DESIGN-017
+  - P-DESIGN-018
+  - P-DESIGN-019
+  - P-DESIGN-020
+  - P-DESIGN-021
+  - P-DESIGN-022
+  - P-DESIGN-023
+  - P-DESIGN-024
+  - P-DESIGN-025
+  - P-DESIGN-026
+  - P-DESIGN-090
+  - P-ARCH-001
+  - P-ARCH-002
+  - P-ARCH-003
+  - P-ARCH-004
+  - P-ARCH-005
+  - P-ARCH-010
+  - P-ARCH-011
+  - P-ARCH-020
+  - P-ARCH-021
+  - P-ARCH-022
+  - P-ARCH-023
+  - P-ARCH-024
+  - P-ARCH-025
+  - P-ARCH-026
+  - P-ARCH-027
+  - P-ARCH-028
+  - P-ARCH-029
+  - P-ARCH-030
+  - P-ARCH-031
+  - P-KIT-001
+  - P-KIT-002
+  - P-KIT-003
+  - P-KIT-010
+  - P-KIT-020
+  - P-KIT-030
+  - P-KIT-040
+  - P-KIT-041
+  - P-KIT-042
+  - P-KIT-043
+  - P-KIT-050
+  - P-KIT-060
+  - P-KIT-061
+  - P-KIT-065
+  - P-KIT-070
+  - P-KIT-071
+  - P-KIT-072
+  - P-KIT-073
+  - P-KIT-074
+  - P-KIT-080
+  - P-KIT-090
+  - P-CAPCAT-001
+  - P-CAPCAT-002
+  - P-CAPCAT-003
+  - P-GOV-001
+  - P-GOV-002
+  - P-GOV-003
+  - P-GOV-010
+  - P-GOV-011
+  - P-GOV-020
+  - P-GOV-021
+  - P-GOV-022
+  - P-GOV-023
+  - P-AISC-001
+  - P-AISC-002
+  - P-AISC-003
+  - P-AISC-004
+  - P-AISC-005
+  - P-APP-001
+  - P-APP-002
+  - P-APP-003
+  - P-APP-004
+  - P-APP-005
+  - P-APP-006
+  - P-WEB-001
+  - P-WEB-002
+  - P-WEB-003
+  - P-WEB-004
+  - P-WEB-005
+  - P-PKG-001
+  - P-PKG-002
+  - P-PKG-003
+  - P-PKG-004
+  - P-PKG-005
+  - P-PKG-006
+  - P-PKG-007
+  - P-PKG-008
+  - P-PROTO-001
+  - P-PROTO-002
+  - P-PROTO-003
+  - P-PROTO-010
+  - P-PROTO-011
+  - P-PROTO-020
+  - P-PROTO-021
+  - P-PROTO-030
+  - P-PROTO-035
+  - P-PROTO-040
+  - P-PROTO-050
+  - P-PROTO-060
+  - P-PROTO-070
+  - P-PROTO-100
+  - P-PROTO-101
+  - P-PROTO-102
+  - P-PROTO-103
+  - P-PROTO-104
+  - P-PROTO-105
+rules:
+  - rule_id: P-ALMI-001
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: required
+  - rule_id: P-ALMI-002
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; principal and session binding behavior still requires runtime integration coverage
+  - rule_id: P-ALMI-003
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; invocation authorization paths still require cross-participant behavioral tests
+  - rule_id: P-ALMI-004
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; state-transition and failure-path guarantees still require behavioral validation
+  - rule_id: P-ALMI-010
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; Hook Action fabric dispatch behavior still requires runtime integration coverage
+  - rule_id: P-ALMI-011
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; behavioral state-machine validation requires runtime integration test
+  - rule_id: P-ALMI-020
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; end-to-end replay and auditability still require behavioral integration tests
+  - rule_id: P-ALMI-030
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; latency/throughput red-line validation requires load test
+  - rule_id: P-DESIGN-001
+    evidence_refs:
+      - platform_kernel_consistency
+      - nimi_ui_pattern
+    evidence_requirement: required
+  - rule_id: P-DESIGN-002
+    evidence_refs:
+      - platform_kernel_consistency
+      - nimi_ui_lib_drift
+      - nimi_ui_pattern
+    evidence_requirement: required
+  - rule_id: P-DESIGN-003
+    evidence_refs:
+      - platform_kernel_consistency
+      - nimi_ui_lib_drift
+      - nimi_ui_pattern
+    evidence_requirement: required
+  - rule_id: P-DESIGN-004
+    evidence_refs:
+      - platform_kernel_consistency
+      - nimi_ui_lib_drift
+      - nimi_ui_pattern
+    evidence_requirement: required
+  - rule_id: P-DESIGN-005
+    evidence_refs:
+      - platform_kernel_consistency
+      - nimi_ui_lib_drift
+      - nimi_ui_pattern
+    evidence_requirement: required
+  - rule_id: P-DESIGN-006
+    evidence_refs:
+      - platform_kernel_consistency
+      - nimi_ui_pattern
+    evidence_requirement: required
+  - rule_id: P-DESIGN-007
+    evidence_refs:
+      - platform_kernel_consistency
+      - nimi_ui_pattern
+    evidence_requirement: required
+  - rule_id: P-DESIGN-008
+    evidence_refs:
+      - platform_kernel_consistency
+      - nimi_ui_lib_drift
+      - nimi_ui_pattern
+    evidence_requirement: required
+  - rule_id: P-DESIGN-009
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural rule linkage only; admitted UI Card artifact/hash/classification evidence is topic-local under 2026-05-15-nimi-kit-ui-card-design-system-iteration
+  - rule_id: P-DESIGN-010
+    evidence_refs:
+      - platform_kernel_consistency
+      - nimi_ui_lib_drift
+      - nimi_ui_pattern
+    evidence_requirement: required
+  - rule_id: P-DESIGN-011
+    evidence_refs:
+      - platform_kernel_consistency
+      - nimi_ui_lib_drift
+      - nimi_ui_pattern
+    evidence_requirement: required
+  - rule_id: P-DESIGN-012
+    evidence_refs:
+      - platform_kernel_consistency
+      - nimi_ui_lib_drift
+      - nimi_ui_pattern
+    evidence_requirement: required
+  - rule_id: P-DESIGN-013
+    evidence_refs:
+      - platform_kernel_consistency
+      - nimi_ui_lib_drift
+      - nimi_ui_pattern
+    evidence_requirement: required
+  - rule_id: P-DESIGN-014
+    evidence_refs:
+      - platform_kernel_consistency
+      - nimi_ui_lib_drift
+      - nimi_ui_pattern
+    evidence_requirement: required
+  - rule_id: P-DESIGN-015
+    evidence_refs:
+      - platform_kernel_consistency
+      - nimi_ui_lib_drift
+      - nimi_ui_pattern
+    evidence_requirement: required
+  - rule_id: P-DESIGN-016
+    evidence_refs:
+      - platform_kernel_consistency
+      - nimi_ui_lib_drift
+      - nimi_ui_pattern
+    evidence_requirement: required
+  - rule_id: P-DESIGN-017
+    evidence_refs:
+      - platform_kernel_consistency
+      - nimi_ui_lib_drift
+      - nimi_ui_pattern
+    evidence_requirement: required
+  - rule_id: P-DESIGN-018
+    evidence_refs:
+      - platform_kernel_consistency
+      - nimi_ui_lib_drift
+      - nimi_ui_pattern
+    evidence_requirement: required
+  - rule_id: P-DESIGN-019
+    evidence_refs:
+      - platform_kernel_consistency
+      - nimi_ui_pattern
+    evidence_requirement: required
+  - rule_id: P-DESIGN-020
+    evidence_refs:
+      - platform_kernel_consistency
+      - nimi_ui_pattern
+    evidence_requirement: required
+  - rule_id: P-DESIGN-021
+    evidence_refs:
+      - platform_kernel_consistency
+      - nimi_ui_pattern
+    evidence_requirement: required
+  - rule_id: P-DESIGN-022
+    evidence_refs:
+      - platform_kernel_consistency
+      - nimi_ui_lib_drift
+    evidence_requirement: required
+  - rule_id: P-DESIGN-023
+    evidence_refs:
+      - platform_kernel_consistency
+      - nimi_ui_lib_drift
+    evidence_requirement: required
+  - rule_id: P-DESIGN-024
+    evidence_refs:
+      - platform_kernel_consistency
+      - nimi_ui_pattern
+    evidence_requirement: structural_required
+    evidence_scope_note: taxonomy boundary is structurally covered; executable primitive gap closure is deferred to the topic's Wave 2 and Wave 3
+  - rule_id: P-DESIGN-025
+    evidence_refs:
+      - platform_kernel_consistency
+      - nimi_ui_pattern
+    evidence_requirement: structural_required
+    evidence_scope_note: composition boundary is structurally covered; per-candidate shared-vs-app-local proof remains required in downstream packets
+  - rule_id: P-DESIGN-026
+    evidence_refs:
+      - platform_kernel_consistency
+      - nimi_ui_pattern
+    evidence_requirement: structural_required
+    evidence_scope_note: negative anti-drift categories are admitted; executable visual fixtures and hard gate coverage are deferred to the topic's Wave 5
+  - rule_id: P-DESIGN-090
+    evidence_refs:
+      - platform_kernel_consistency
+      - nimi_ui_pattern
+    evidence_requirement: required
+  - rule_id: P-ARCH-001
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; multi-participant orchestration behavior still requires integration coverage
+  - rule_id: P-ARCH-002
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: required
+  - rule_id: P-ARCH-003
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: required
+  - rule_id: P-ARCH-004
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: required
+  - rule_id: P-ARCH-005
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: required
+  - rule_id: P-ARCH-010
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: required
+  - rule_id: P-ARCH-011
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; layered boundary enforcement still requires implementation-level integration tests
+  - rule_id: P-ARCH-020
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; authority handoff behavior still requires runtime and realm integration validation
+  - rule_id: P-ARCH-021
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: required
+  - rule_id: P-ARCH-022
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; semantic-owner execution behavior remains deferred to Runtime kernel contracting
+  - rule_id: P-ARCH-023
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; ownership boundaries against Realm, SDK, and narrative consumers still require downstream contract validation
+  - rule_id: P-ARCH-024
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; SDK-only access and private-bypass hardcut still require implementation-level boundary checks
+  - rule_id: P-ARCH-025
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; admissible helper-layer placement still depends on later Runtime and kit integration framing
+  - rule_id: P-ARCH-026
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; inadmissible placement rejection still requires future implementation and review enforcement
+  - rule_id: P-ARCH-027
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; consumer rewrite hardcut still requires downstream app/mod boundary validation
+  - rule_id: P-ARCH-028
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; workflow-surface non-promotion still requires later Runtime semantic contract review
+  - rule_id: P-ARCH-029
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; consumer API contract home is fixed to SDK kernel while Runtime semantic ownership and host implementation details remain downstream concerns
+  - rule_id: P-ARCH-030
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; cross-layer delivery behavior still requires end-to-end execution tests
+  - rule_id: P-ARCH-031
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; world-domain facade placement and non-equivalence to K-WEV still require downstream SDK and Realm contract alignment
+  - rule_id: P-KIT-001
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: required
+  - rule_id: P-KIT-002
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: required
+  - rule_id: P-KIT-003
+    evidence_refs:
+      - platform_kernel_consistency
+      - nimi_kit_gate
+    evidence_requirement: required
+  - rule_id: P-KIT-010
+    evidence_refs:
+      - platform_kernel_consistency
+      - nimi_ui_lib_drift
+      - nimi_ui_pattern
+    evidence_requirement: required
+  - rule_id: P-KIT-020
+    evidence_refs:
+      - platform_kernel_consistency
+      - nimi_kit_gate
+    evidence_requirement: required
+  - rule_id: P-KIT-030
+    evidence_refs:
+      - platform_kernel_consistency
+      - nimi_kit_gate
+    evidence_requirement: required
+  - rule_id: P-KIT-040
+    evidence_refs:
+      - platform_kernel_consistency
+      - nimi_kit_gate
+    evidence_requirement: required
+  - rule_id: P-KIT-041
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: required
+  - rule_id: P-KIT-042
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: required
+  - rule_id: P-KIT-043
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: required
+  - rule_id: P-KIT-050
+    evidence_refs:
+      - platform_kernel_consistency
+      - nimi_kit_gate
+    evidence_requirement: required
+  - rule_id: P-KIT-060
+    evidence_refs:
+      - platform_kernel_consistency
+      - nimi_kit_gate
+    evidence_requirement: required
+  - rule_id: P-KIT-061
+    evidence_refs:
+      - platform_kernel_consistency
+      - nimi_kit_gate
+    evidence_requirement: required
+  - rule_id: P-KIT-065
+    evidence_refs:
+      - platform_kernel_consistency
+      - nimi_kit_gate
+    evidence_requirement: required
+  - rule_id: P-KIT-070
+    evidence_refs:
+      - platform_kernel_consistency
+      - nimi_kit_gate
+    evidence_requirement: required
+  - rule_id: P-KIT-071
+    evidence_refs:
+      - platform_kernel_consistency
+      - nimi_kit_gate
+    evidence_requirement: required
+  - rule_id: P-KIT-072
+    evidence_refs:
+      - platform_kernel_consistency
+      - nimi_kit_gate
+    evidence_requirement: required
+  - rule_id: P-KIT-073
+    evidence_refs:
+      - platform_kernel_consistency
+      - nimi_kit_gate
+    evidence_requirement: required
+  - rule_id: P-KIT-074
+    evidence_refs:
+      - platform_kernel_consistency
+      - nimi_kit_gate
+    evidence_requirement: required
+  - rule_id: P-KIT-080
+    evidence_refs:
+      - platform_kernel_consistency
+      - nimi_kit_gate
+    evidence_requirement: required
+  - rule_id: P-KIT-090
+    evidence_refs:
+      - platform_kernel_consistency
+      - nimi_kit_gate
+    evidence_requirement: required
+  - rule_id: P-CAPCAT-001
+    evidence_refs:
+      - platform_kernel_consistency
+      - canonical_capability_catalog_gate
+    evidence_requirement: required
+  - rule_id: P-CAPCAT-002
+    evidence_refs:
+      - canonical_capability_catalog_gate
+    evidence_requirement: required
+  - rule_id: P-CAPCAT-003
+    evidence_refs:
+      - canonical_capability_catalog_gate
+    evidence_requirement: required
+  - rule_id: P-GOV-001
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: required
+  - rule_id: P-GOV-002
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: required
+  - rule_id: P-GOV-003
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: required
+  - rule_id: P-GOV-010
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: required
+  - rule_id: P-GOV-011
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: required
+  - rule_id: P-GOV-020
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: required
+  - rule_id: P-GOV-021
+    evidence_refs:
+      - platform_kernel_consistency
+      - audit_evidence_root_gate
+    evidence_requirement: required
+  - rule_id: P-GOV-022
+    evidence_refs:
+      - platform_kernel_consistency
+      - audit_evidence_root_gate
+    evidence_requirement: required
+  - rule_id: P-GOV-023
+    evidence_refs:
+      - platform_kernel_consistency
+      - audit_evidence_root_gate
+    evidence_requirement: required
+  - rule_id: P-AISC-001
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: required
+  - rule_id: P-AISC-002
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; lifecycle-driven AI config cleanup still requires consumer behavioral validation
+  - rule_id: P-AISC-003
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; no-implicit-inheritance behavior still requires Desktop/SDK/Runtime consumer validation
+  - rule_id: P-AISC-004
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: required
+  - rule_id: P-AISC-005
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; allowed-consumer schema enforcement still requires downstream consumer boundary checks
+  - rule_id: P-APP-001
+    evidence_refs:
+      - platform_kernel_consistency
+      - app_slice_admission_gate
+    evidence_requirement: required
+  - rule_id: P-APP-002
+    evidence_refs:
+      - platform_kernel_consistency
+      - app_slice_admission_gate
+    evidence_requirement: required
+  - rule_id: P-APP-003
+    evidence_refs:
+      - platform_kernel_consistency
+      - app_slice_admission_gate
+    evidence_requirement: required
+  - rule_id: P-APP-004
+    evidence_refs:
+      - platform_kernel_consistency
+      - app_slice_admission_gate
+    evidence_requirement: required
+  - rule_id: P-APP-005
+    evidence_refs:
+      - platform_kernel_consistency
+      - app_slice_admission_gate
+    evidence_requirement: required
+  - rule_id: P-APP-006
+    evidence_refs:
+      - platform_kernel_consistency
+      - app_slice_admission_gate
+    evidence_requirement: required
+  - rule_id: P-WEB-001
+    evidence_refs:
+      - platform_kernel_consistency
+      - audit_evidence_root_gate
+    evidence_requirement: required
+  - rule_id: P-WEB-002
+    evidence_refs:
+      - platform_kernel_consistency
+      - audit_evidence_root_gate
+    evidence_requirement: required
+  - rule_id: P-WEB-003
+    evidence_refs:
+      - platform_kernel_consistency
+      - audit_evidence_root_gate
+    evidence_requirement: required
+  - rule_id: P-WEB-004
+    evidence_refs:
+      - platform_kernel_consistency
+      - audit_evidence_root_gate
+    evidence_requirement: required
+  - rule_id: P-WEB-005
+    evidence_refs:
+      - platform_kernel_consistency
+      - audit_evidence_root_gate
+    evidence_requirement: required
+  - rule_id: P-PKG-001
+    evidence_refs:
+      - platform_kernel_consistency
+      - package_authority_admission_gate
+    evidence_requirement: required
+  - rule_id: P-PKG-002
+    evidence_refs:
+      - platform_kernel_consistency
+      - package_authority_admission_gate
+    evidence_requirement: required
+  - rule_id: P-PKG-003
+    evidence_refs:
+      - platform_kernel_consistency
+      - package_authority_admission_gate
+      - audit_evidence_root_gate
+    evidence_requirement: required
+  - rule_id: P-PKG-004
+    evidence_refs:
+      - platform_kernel_consistency
+      - package_authority_admission_gate
+    evidence_requirement: required
+  - rule_id: P-PKG-005
+    evidence_refs:
+      - platform_kernel_consistency
+      - package_authority_admission_gate
+    evidence_requirement: required
+  - rule_id: P-PKG-006
+    evidence_refs:
+      - platform_kernel_consistency
+      - audit_evidence_root_gate
+    evidence_requirement: required
+  - rule_id: P-PKG-007
+    evidence_refs:
+      - platform_kernel_consistency
+      - package_authority_admission_gate
+    evidence_requirement: required
+  - rule_id: P-PKG-008
+    evidence_refs:
+      - platform_kernel_consistency
+      - audit_evidence_root_gate
+    evidence_requirement: required
+  - rule_id: P-PROTO-001
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: required
+  - rule_id: P-PROTO-002
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: required
+  - rule_id: P-PROTO-003
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: required
+  - rule_id: P-PROTO-010
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: required
+  - rule_id: P-PROTO-011
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: required
+  - rule_id: P-PROTO-020
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: required
+  - rule_id: P-PROTO-021
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: required
+  - rule_id: P-PROTO-030
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: required
+  - rule_id: P-PROTO-035
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: required
+  - rule_id: P-PROTO-040
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: required
+  - rule_id: P-PROTO-050
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: required
+  - rule_id: P-PROTO-060
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: required
+  - rule_id: P-PROTO-070
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; cross-primitive consistency validation requires behavioral integration test
+  - rule_id: P-PROTO-100
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: required
+  - rule_id: P-PROTO-101
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: required
+  - rule_id: P-PROTO-102
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: required
+  - rule_id: P-PROTO-103
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: required
+  - rule_id: P-PROTO-104
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: required
+  - rule_id: P-PROTO-105
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: required

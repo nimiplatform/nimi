@@ -2,7 +2,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import YAML from 'yaml';
+import { readYamlWithFragments } from './lib/read-yaml-with-fragments.mjs';
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const cwd = path.resolve(scriptDir, '..');
@@ -36,6 +36,8 @@ const kernelFiles = [
   '.nimi/spec/sdk/kernel/tables/sdk-testing-gates.yaml',
   '.nimi/spec/sdk/kernel/tables/runtime-agent-participation-methods.yaml',
   '.nimi/spec/sdk/kernel/tables/rule-evidence.yaml',
+  '.nimi/spec/sdk/kernel/tables/rule-evidence.catalog.yaml',
+  '.nimi/spec/sdk/kernel/tables/rule-evidence.rules.yaml',
 ];
 
 const domainFiles = listDomainMarkdownFiles('.nimi/spec/sdk');
@@ -51,7 +53,7 @@ function read(rel) {
 }
 
 function readYaml(rel) {
-  return YAML.parse(read(rel));
+  return readYamlWithFragments(path.join(cwd, rel));
 }
 
 for (const rel of kernelFiles) {

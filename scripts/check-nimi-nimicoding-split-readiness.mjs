@@ -56,8 +56,8 @@ if (/['"]?nimi-coding['"]?/u.test(workspaceText)) {
 const packageJson = JSON.parse(readText('package.json'));
 const nimicodingDependency = packageJson.devDependencies?.['@nimiplatform/nimi-coding']
   ?? packageJson.dependencies?.['@nimiplatform/nimi-coding'];
-if (nimicodingDependency !== '^0.2.0') {
-  fail(`package.json must depend on @nimiplatform/nimi-coding as ^0.2.0, got ${nimicodingDependency ?? '<missing>'}`);
+if (nimicodingDependency !== '^0.2.1') {
+  fail(`package.json must depend on @nimiplatform/nimi-coding as ^0.2.1, got ${nimicodingDependency ?? '<missing>'}`);
 }
 
 const scriptText = Object.entries(packageJson.scripts ?? {})
