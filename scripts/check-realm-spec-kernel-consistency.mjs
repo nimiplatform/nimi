@@ -458,12 +458,12 @@ function main() {
         pushIssue(issues, 'alignment-map', `${externalId}: local anchor missing ${anchor}`);
       }
     }
-    const mappingState = String(row.mapping_state || '').trim();
-    if (mappingState !== 'mapped' && mappingState !== 'blocked') {
-      pushIssue(issues, 'alignment-map', `${externalId}: mapping_state must be mapped or blocked`);
+    const alignmentPosture = String(row.alignment_posture || '').trim();
+    if (alignmentPosture !== 'aligned' && alignmentPosture !== 'blocked') {
+      pushIssue(issues, 'alignment-map', `${externalId}: alignment_posture must be aligned or blocked`);
     }
-    if (mappingState === 'blocked' && !BLOCKED_BIND_RULE_ID_PATTERN.test(externalId)) {
-      pushIssue(issues, 'alignment-map', `${externalId}: blocked mapping_state is reserved for R-BIND rows`);
+    if (alignmentPosture === 'blocked' && !BLOCKED_BIND_RULE_ID_PATTERN.test(externalId)) {
+      pushIssue(issues, 'alignment-map', `${externalId}: blocked alignment_posture is reserved for R-BIND rows`);
     }
   }
 

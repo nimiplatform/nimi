@@ -231,14 +231,13 @@ function renderOpenSpecAlignment(doc, sourceFile) {
   const rows = Array.isArray(data.mappings) ? data.mappings : [];
   const lines = [
     `Version: \`${data.version ?? 'unknown'}\``,
-    `Updated: \`${data.updated_at ?? 'unknown'}\``,
     '',
-    '| External ID | Type | External Path | Local Anchor | Mapping State |',
+    '| External ID | Type | External Path | Local Anchor | Alignment Posture |',
     '| --- | --- | --- | --- | --- |',
   ];
   for (const row of rows) {
     lines.push(
-      `| ${escapeCell(row.external_id)} | ${escapeCell(row.external_type)} | ${escapeCell(row.external_path)} | ${escapeCell(row.local_anchor)} | ${escapeCell(row.mapping_state)} |`,
+      `| ${escapeCell(row.external_id)} | ${escapeCell(row.external_type)} | ${escapeCell(row.external_path)} | ${escapeCell(row.local_anchor)} | ${escapeCell(row.alignment_posture)} |`,
     );
   }
   return withPreamble('Open Spec Alignment Map (Generated)', sourceFile, lines);
@@ -249,14 +248,13 @@ function renderUnderSpec(doc, sourceFile) {
   const rows = Array.isArray(data.under_spec) ? data.under_spec : [];
   const lines = [
     `Version: \`${data.version ?? 'unknown'}\``,
-    `Updated: \`${data.updated_at ?? 'unknown'}\``,
     '',
-    '| ID | Rule | Category | Status | Impact | Summary |',
+    '| ID | Rule | Category | Authority Posture | Impact | Summary |',
     '| --- | --- | --- | --- | --- | --- |',
   ];
   for (const row of rows) {
     lines.push(
-      `| ${escapeCell(row.id)} | ${escapeCell(row.rule_id)} | ${escapeCell(row.category)} | ${escapeCell(row.status)} | ${escapeCell(row.impact)} | ${escapeCell(row.summary)} |`,
+      `| ${escapeCell(row.id)} | ${escapeCell(row.rule_id)} | ${escapeCell(row.category)} | ${escapeCell(row.authority_posture)} | ${escapeCell(row.impact)} | ${escapeCell(row.summary)} |`,
     );
   }
   return withPreamble('Under-Spec Registry (Generated)', sourceFile, lines);
