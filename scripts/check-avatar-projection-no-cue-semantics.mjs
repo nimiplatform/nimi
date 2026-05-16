@@ -10,8 +10,13 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const DESIGN = '.nimi/topics/proposal/2026-05-16-avatar-projection-stability-queue/design.md';
-const DOCTRINE = '.nimi/topics/proposal/2026-05-16-avatar-projection-stability-queue/implementation-doctrine.md';
+const TOPIC_ID = '2026-05-16-avatar-projection-stability-queue';
+const TOPIC_ROOT_CANDIDATES = [
+  `.nimi/topics/ongoing/${TOPIC_ID}`,
+  `.nimi/topics/proposal/${TOPIC_ID}`,
+];
+const DESIGN = resolveTopicDoc('design.md');
+const DOCTRINE = resolveTopicDoc('implementation-doctrine.md');
 const THROTTLED_EMIT = 'apps/avatar/src/shell/renderer/app-shell/throttled-emit.ts';
 const EMBODIMENT_STAGE = 'apps/avatar/src/shell/renderer/embodiment-stage/embodiment-stage.tsx';
 const WAVE1_CONTRACT = '.nimi/spec/avatar/kernel/projection-backpressure-smoothing-contract.md';
@@ -25,6 +30,16 @@ let failures = 0;
 function fail(message) {
   failures += 1;
   console.error(`[avatar-projection-no-cue-semantics] FAIL ${message}`);
+}
+
+function resolveTopicDoc(fileName) {
+  for (const candidate of TOPIC_ROOT_CANDIDATES) {
+    const relPath = path.join(candidate, fileName);
+    if (existsSync(path.join(ROOT, relPath))) {
+      return relPath;
+    }
+  }
+  return path.join(TOPIC_ROOT_CANDIDATES[0], fileName);
 }
 
 function read(relPath) {
