@@ -20,15 +20,6 @@ domain_admission_required_fields:
   - migration_disposition_when_unadmitted
 shared_enum_ref: shared-enums.yaml
 domain_admissions:
-  - domain_id: project
-    domain_root: .nimi/spec/project
-    authority_class: active_product
-    owner: project
-    admitted_by: nimicoding_init_default_project_domain
-    allowed_surface_classes: [product_authority, product_authority_table, thin_guidance, support_registry]
-    forbidden_surface_classes: [derived_view, spec_generation_state, audit_evidence_state, lifecycle_progress_state, candidate_roadmap, methodology_authority]
-    validation_commands: [pnpm exec nimicoding validate-spec-tree -- .nimi/spec]
-    migration_disposition_when_unadmitted: block
   - domain_id: runtime
     domain_root: .nimi/spec/runtime
     authority_class: active_product

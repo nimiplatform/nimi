@@ -46,9 +46,13 @@ reconstruction:
       - methodology_authority
     minimal_required_outputs:
       - .nimi/spec/INDEX.md
-      - .nimi/spec/project/kernel/index.md
-      - .nimi/spec/project/kernel/core-rules.md
-      - .nimi/spec/project/kernel/tables/rule-catalog.yaml
+      - .nimi/spec/runtime/kernel/index.md
+      - .nimi/spec/sdk/kernel/index.md
+      - .nimi/spec/platform/kernel/index.md
+      - .nimi/spec/realm/kernel/index.md
+      - .nimi/spec/desktop/kernel/index.md
+      - .nimi/spec/avatar/kernel/index.md
+      - .nimi/spec/cognition/kernel/index.md
     minimum_generation_sequence:
       - classify_inputs
       - validate_placement
