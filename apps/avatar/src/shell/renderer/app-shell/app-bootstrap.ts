@@ -22,6 +22,7 @@ import {
   resolveLaunchAgentIdentity,
   resolveRuntimeAvatarPackageHandoff,
 } from './app-bootstrap-runtime-binding.js';
+import { recordRuntimeAuthorizedAvatarPackageResolved } from './app-bootstrap-package-evidence.js';
 import { isTauriRuntime, onShellReady } from './tauri-lifecycle.js';
 import { setAlwaysOnTop } from './tauri-commands.js';
 import {
@@ -582,6 +583,12 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
             avatar_instance_id: avatarInstanceId,
             launch_source: launchContext.launchSource,
           },
+        });
+        recordRuntimeAuthorizedAvatarPackageResolved({
+          localAgentRef,
+          avatarInstanceId,
+          conversationAnchorId,
+          handoff: avatarPackageHandoff,
         });
         getVoiceInputAvailability = async () => {
           try {

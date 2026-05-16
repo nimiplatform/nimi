@@ -12,6 +12,7 @@ import {
   waitForSpeakingLive2dPose,
   waitForVisibleLive2dPixels,
 } from './desktop-macos-smoke-live2d';
+import { waitForAvatarCarrierEvidence } from './desktop-macos-smoke-avatar-evidence';
 import { AGENT_CHAT_ANCHOR_BINDINGS_STORAGE_KEY } from '@renderer/app-shell/providers/agent-conversation-anchor-binding-storage';
 import {
   assertStableVrmFramingSignature,
@@ -23,86 +24,6 @@ import {
   waitForVisibleVrmPixels,
   waitForVrmPostureEvidence,
 } from './desktop-macos-smoke-vrm';
-
-function readEvidenceRecords(evidence: Record<string, unknown>): Array<Record<string, unknown>> {
-  return Array.isArray(evidence.records)
-    ? evidence.records.filter((item): item is Record<string, unknown> => Boolean(item && typeof item === 'object' && !Array.isArray(item)))
-    : [];
-}
-
-function recordKind(record: Record<string, unknown>): string {
-  return typeof record.kind === 'string' ? record.kind : '';
-}
-
-function recordDetail(record: Record<string, unknown>): Record<string, unknown> {
-  return record.detail && typeof record.detail === 'object' && !Array.isArray(record.detail)
-    ? record.detail as Record<string, unknown>
-    : {};
-}
-
-function recordConsume(record: Record<string, unknown>): Record<string, unknown> {
-  return record.consume && typeof record.consume === 'object' && !Array.isArray(record.consume)
-    ? record.consume as Record<string, unknown>
-    : {};
-}
-
-function recordConversationAnchorId(record: Record<string, unknown>): string {
-  const detail = recordDetail(record);
-  const consume = recordConsume(record);
-  return String(
-    record.conversationAnchorId
-    || record.conversation_anchor_id
-    || consume.conversationAnchorId
-    || consume.conversation_anchor_id
-    || detail.conversation_anchor_id
-    || detail.conversationAnchorId
-    || '',
-  ).trim();
-}
-
-function recordTimeMs(record: Record<string, unknown>): number {
-  const value = typeof record.recordedAt === 'string' ? Date.parse(record.recordedAt) : NaN;
-  return Number.isFinite(value) ? value : 0;
-}
-
-function hasLive2dHitRegionDefault(record: Record<string, unknown> | null): boolean {
-  const detail = record ? recordDetail(record) : {};
-  const metadata = detail.backend_metadata && typeof detail.backend_metadata === 'object' && !Array.isArray(detail.backend_metadata)
-    ? detail.backend_metadata as Record<string, unknown>
-    : {};
-  const hitRegion = metadata.hit_region_default && typeof metadata.hit_region_default === 'object' && !Array.isArray(metadata.hit_region_default)
-    ? metadata.hit_region_default as Record<string, unknown>
-    : {};
-  const body = hitRegion.body && typeof hitRegion.body === 'object' && !Array.isArray(hitRegion.body)
-    ? hitRegion.body as Record<string, unknown>
-    : {};
-  const drag = hitRegion.drag && typeof hitRegion.drag === 'object' && !Array.isArray(hitRegion.drag)
-    ? hitRegion.drag as Record<string, unknown>
-    : {};
-  return (
-    Number(body.left) === 0
-    && Number(body.top) === 0
-    && Number(body.right) === 1
-    && Number(body.bottom) === 1
-    && Number(drag.left) === 0
-    && Number(drag.top) === 0
-    && Number(drag.right) === 1
-    && Number(drag.bottom) === 1
-  );
-}
-
-function isLive2dModelLoadWithHitRegionDefault(record: Record<string, unknown> | null): boolean {
-  if (!record) {
-    return false;
-  }
-  const detail = recordDetail(record);
-  const metadata = detail.backend_metadata && typeof detail.backend_metadata === 'object' && !Array.isArray(detail.backend_metadata)
-    ? detail.backend_metadata as Record<string, unknown>
-    : {};
-  const backendKind = typeof detail.backend_kind === 'string' ? detail.backend_kind : '';
-  const modelKind = typeof metadata.model_kind === 'string' ? metadata.model_kind : '';
-  return backendKind === 'live2d' && modelKind === 'live2d' && hasLive2dHitRegionDefault(record);
-}
 
 const E2E_PRIMARY_REALM_AGENT_ID = 'agent-e2e-alpha';
 const E2E_PRIMARY_LOCAL_AGENT_REF = `local-agent:user-e2e-primary:${E2E_PRIMARY_REALM_AGENT_ID}`;
@@ -182,99 +103,6 @@ async function waitForAgentConversationAnchorBinding(
     await new Promise((resolve) => setTimeout(resolve, 250));
   }
   throw new Error(`missing explicit conversation anchor binding for ${input.localAgentRef}; storage=${lastRaw || 'empty'}`);
-}
-
-async function waitForAvatarCarrierEvidence(
-  deps: DesktopMacosSmokeDriverDeps,
-  avatarInstanceId: string,
-  expectedConversationAnchorId: string,
-  timeoutMs = 90_000,
-) {
-  const deadline = Date.now() + timeoutMs;
-  let lastError = '';
-  while (Date.now() < deadline) {
-    try {
-      const result = await deps.readAvatarEvidence(avatarInstanceId);
-      const records = readEvidenceRecords(result.evidence);
-      const latestRecords = [...records].reverse();
-      const startupTerminal = latestRecords.find((record) => {
-        if (recordConversationAnchorId(record) !== expectedConversationAnchorId) {
-          return false;
-        }
-        const kind = recordKind(record);
-        return kind === 'avatar.startup.runtime-bound' || kind === 'avatar.startup.failed';
-      }) || null;
-      if (startupTerminal && recordKind(startupTerminal) === 'avatar.startup.failed') {
-        const detail = recordDetail(startupTerminal);
-        throw new Error(`Avatar runtime-bound startup failed: ${String(detail.error || 'unknown startup failure')}`);
-      }
-      const startup = startupTerminal && recordKind(startupTerminal) === 'avatar.startup.runtime-bound'
-        ? startupTerminal
-        : null;
-      const startupRecordedAt = startup ? recordTimeMs(startup) : 0;
-      const recordsForCurrentStartup = startupRecordedAt > 0
-        ? latestRecords.filter((record) => recordTimeMs(record) >= startupRecordedAt)
-        : latestRecords;
-      const bindFailure = recordsForCurrentStartup.find((record) => (
-        recordKind(record) === 'avatar.runtime.bind-failed'
-        && recordConversationAnchorId(record) === expectedConversationAnchorId
-      )) || null;
-      if (bindFailure) {
-        const detail = recordDetail(bindFailure);
-        throw new Error(`Avatar Runtime consume failed: ${String(detail.reason || detail.error_message || 'unknown bind failure')}`);
-      }
-      const consumeReady = recordsForCurrentStartup.find((record) => (
-        recordKind(record) === 'avatar.runtime.consume-ready'
-        && recordConversationAnchorId(record) === expectedConversationAnchorId
-      )) || null;
-      const modelLoad = recordsForCurrentStartup.find((record) => (
-        recordKind(record) === 'avatar.model.load'
-        && recordConversationAnchorId(record) === expectedConversationAnchorId
-      )) || null;
-      const visual = recordsForCurrentStartup.find((record) => {
-        if (recordKind(record) !== 'avatar.carrier.visual') {
-          return false;
-        }
-        if (recordConversationAnchorId(record) !== expectedConversationAnchorId) {
-          return false;
-        }
-        const detail = recordDetail(record);
-        return detail.status === 'ready' && Number(detail.visible_pixels || 0) > 0;
-      }) || null;
-      const lifecycleMounted = recordsForCurrentStartup.find((record) => {
-        if (recordKind(record) !== 'avatar.carrier.visual') {
-          return false;
-        }
-        if (recordConversationAnchorId(record) !== expectedConversationAnchorId) {
-          return false;
-        }
-        const detail = recordDetail(record);
-        return detail.lifecycle === 'mounted' && detail.source === 'live2d-carrier-surface';
-      }) || null;
-      const hitRegionDefault = hasLive2dHitRegionDefault(modelLoad);
-      const live2dModelLoad = isLive2dModelLoadWithHitRegionDefault(modelLoad);
-      if (startup && consumeReady && live2dModelLoad && lifecycleMounted && visual) {
-        return {
-          evidencePath: result.evidencePath,
-          evidence: result.evidence,
-          startup,
-          consumeReady,
-          modelLoad,
-          lifecycleMounted,
-          visual,
-        };
-      }
-      lastError = `anchor=${expectedConversationAnchorId} requirements=`
-        + `startup:${Boolean(startup)} consumeReady:${Boolean(consumeReady)} modelLoad:${Boolean(modelLoad)} `
-        + `live2dModelLoad:${live2dModelLoad} hitRegionDefault:${hitRegionDefault} `
-        + `lifecycleMounted:${Boolean(lifecycleMounted)} visual:${Boolean(visual)} `
-        + `records=${records.map((record) => `${recordKind(record)}:${recordConversationAnchorId(record) || 'no-anchor'}`).join(',') || 'none'}`;
-    } catch (error) {
-      lastError = error instanceof Error ? error.message : String(error || 'unknown evidence read error');
-    }
-    await new Promise((resolve) => setTimeout(resolve, 300));
-  }
-  throw new Error(`missing same-anchor Avatar SDK/model/visual evidence for ${avatarInstanceId} anchor=${expectedConversationAnchorId}: ${lastError}`);
 }
 
 async function waitForRuntimeProductPathEvidence(
@@ -507,6 +335,7 @@ export async function runDesktopMacosSmokeScenario(
               evidencePath: carrierEvidence.evidencePath,
               startup: carrierEvidence.startup,
               consumeReady: carrierEvidence.consumeReady,
+              packageResolved: carrierEvidence.packageResolved,
               modelLoad: carrierEvidence.modelLoad,
               lifecycleMounted: carrierEvidence.lifecycleMounted,
               visual: carrierEvidence.visual,

@@ -46,6 +46,29 @@ files for renderer use. Resolver execution MUST NOT promote the local
 materialization store, Agent Center plumbing, filesystem paths, or cache records
 into package lifecycle, inventory, activation, or publish truth.
 
+## Consumption Evidence
+
+After Runtime / SDK handoff and local materialization resolver execution both
+succeed, Avatar emits `avatar.visual.package-resolved`.
+
+The evidence detail must carry only consumer-safe refs:
+
+- `avatar_package_ref`
+- `backend_kind`
+- `backend_capability_profile_ref`
+- `materialization_ref`
+- `package_authority: "runtime_avatar_package_projection"`
+- `resolver_authority: "local_materialization_only"`
+- current `avatar_instance_id` and `conversation_anchor_id`
+
+The evidence detail must not include filesystem paths, package descriptors,
+model layouts, asset bytes, backend runtime roots, Agent Center inventory
+records, activation bindings, or publish / review lifecycle state.
+
+Product smoke evidence for a launched carrier must require same-anchor
+`avatar.visual.package-resolved` before accepting `avatar.model.load` and
+visible carrier evidence as a pass.
+
 ## Fail-Closed Consumption
 
 Avatar MUST refuse package consumption when:
@@ -71,4 +94,3 @@ Package consumption MUST NOT widen `BackendKind`. New package kinds, preview
 renderers, or import diagnostics may be admitted through Asset Market contracts,
 but launched Avatar backend execution remains the closed `live2d | vrm` union
 until `backend-branch-contract.md` is explicitly redesigned.
-

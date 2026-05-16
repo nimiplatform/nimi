@@ -471,6 +471,27 @@ describe('bootstrapAvatar', () => {
       backendCapabilityProfileRef: BACKEND_CAPABILITY_PROFILE_REF,
       materializationRef: AVATAR_MATERIALIZATION_REF,
     });
+    const packageResolvedCall = recordAvatarEvidenceEventuallyMock.mock.calls.find(([payload]) => (
+      payload
+      && typeof payload === 'object'
+      && (payload as Record<string, unknown>).kind === 'avatar.visual.package-resolved'
+    ));
+    expect(packageResolvedCall?.[0]).toEqual(expect.objectContaining({
+      kind: 'avatar.visual.package-resolved',
+      detail: expect.objectContaining({
+        agentId: LOCAL_AGENT_REF,
+        avatar_instance_id: 'instance-1',
+        conversation_anchor_id: 'anchor-runtime',
+        avatar_package_ref: AVATAR_PACKAGE_REF,
+        backend_kind: 'live2d',
+        backend_capability_profile_ref: BACKEND_CAPABILITY_PROFILE_REF,
+        materialization_ref: AVATAR_MATERIALIZATION_REF,
+        package_authority: 'runtime_avatar_package_projection',
+        resolver_authority: 'local_materialization_only',
+      }),
+    }));
+    expect((packageResolvedCall?.[0] as { detail?: Record<string, unknown> } | undefined)?.detail).not.toHaveProperty('model3_json_path');
+    expect((packageResolvedCall?.[0] as { detail?: Record<string, unknown> } | undefined)?.detail).not.toHaveProperty('model_path');
     expect(useAvatarStore.getState().launch.context).toEqual({
       agentId: REALM_AGENT_ID,
       avatarInstanceId: 'instance-1',

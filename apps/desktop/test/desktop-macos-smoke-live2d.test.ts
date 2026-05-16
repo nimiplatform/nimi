@@ -2,6 +2,22 @@ import test from 'node:test';
 
 import { assert, E2E_IDS, createBaseDriver, runDesktopMacosSmokeScenario } from './desktop-macos-smoke-test-helpers';
 
+function createAvatarPackageResolvedRecord(recordedAt = '2026-04-26T00:00:02.000Z') {
+  return {
+    kind: 'avatar.visual.package-resolved',
+    recordedAt,
+    detail: {
+      conversation_anchor_id: 'anchor-1',
+      avatar_package_ref: 'live2d_ab12cd34ef56',
+      backend_kind: 'live2d',
+      backend_capability_profile_ref: 'avatar.backend_profile/live2d/basic',
+      materialization_ref: 'agent-center-avatar-package:desktop-smoke:id_8f0290aacb07e123ae912240:live2d:live2d_ab12cd34ef56',
+      package_authority: 'runtime_avatar_package_projection',
+      resolver_authority: 'local_materialization_only',
+    },
+  };
+}
+
 test('desktop macos smoke live2d render scenario waits for visible pixels before passing', async () => {
   for (const scenarioId of ['chat.live2d-render-smoke', 'chat.live2d-render-smoke-mark', 'chat.live2d-render-smoke-wanko'] as const) {
     const clicked: string[] = [];
@@ -454,6 +470,7 @@ test('desktop macos smoke live2d avatar product scenario waits for same-anchor A
               recordedAt: '2026-04-26T00:00:01.000Z',
               detail: { driver_kind: 'sdk', authority: 'runtime', conversation_anchor_id: 'anchor-1' },
             },
+            createAvatarPackageResolvedRecord('2026-04-26T00:00:01.500Z'),
             {
               kind: 'avatar.runtime.consume-ready',
               recordedAt: '2026-04-26T00:00:02.000Z',
@@ -589,6 +606,10 @@ test('desktop macos smoke live2d avatar product scenario waits for same-anchor A
       scoped_binding_attached: true,
     },
   });
+  assert.deepEqual(
+    details.avatarProductPath?.packageResolved,
+    createAvatarPackageResolvedRecord('2026-04-26T00:00:01.500Z'),
+  );
   assert.deepEqual(details.avatarProductPath?.modelLoad, {
     kind: 'avatar.model.load',
     recordedAt: '2026-04-26T00:00:03.000Z',
@@ -633,98 +654,7 @@ test('desktop macos smoke live2d avatar product scenario waits for same-anchor A
   });
 });
 
-test('desktop macos smoke live2d avatar product scenario fails without Runtime consume-ready evidence', async () => {
-  const writtenReports: Array<Record<string, unknown>> = [];
-
-  await assert.rejects(
-    runDesktopMacosSmokeScenario('chat.live2d-avatar-product-smoke', createBaseDriver({
-      avatarCarrierEvidenceTimeoutMs: 1,
-      async readLocalStorageItem() {
-        return JSON.stringify([{
-          threadId: 'agent-thread-1',
-          localAgentRef: 'local-agent:user-e2e-primary:agent-e2e-alpha',
-          conversationAnchorId: 'anchor-1',
-          updatedAtMs: Date.now(),
-        }]);
-      },
-      async listAvatarLiveInstances(agentId) {
-        assert.equal(agentId, 'local-agent:user-e2e-primary:agent-e2e-alpha');
-        return [{
-          avatarInstanceId: 'desktop-avatar-agent-e2e-alpha-anchor-1',
-          ownerUserId: 'desktop-smoke',
-          realmAgentId: 'agent-e2e-alpha',
-          localAgentRef: 'local-agent:user-e2e-primary:agent-e2e-alpha',
-          launchSource: 'desktop-agent-chat',
-        }];
-      },
-      async readAvatarEvidence(avatarInstanceId) {
-        assert.equal(avatarInstanceId, 'desktop-avatar-agent-e2e-alpha-anchor-1');
-        return {
-          evidencePath: '/tmp/avatar-evidence.json',
-          evidence: {
-            records: [
-              {
-                kind: 'avatar.startup.runtime-bound',
-                recordedAt: '2026-04-26T00:00:01.000Z',
-                detail: { conversation_anchor_id: 'anchor-1' },
-              },
-              {
-                kind: 'avatar.model.load',
-                recordedAt: '2026-04-26T00:00:02.000Z',
-                detail: {
-                  conversation_anchor_id: 'anchor-1',
-                  model_id: 'ren',
-                  backend_kind: 'live2d',
-                  backend_metadata: {
-                    model_kind: 'live2d',
-                    hit_region_default: {
-                      body: { left: 0, top: 0, right: 1, bottom: 1 },
-                      drag: { left: 0, top: 0, right: 1, bottom: 1 },
-                    },
-                  },
-                },
-              },
-              {
-                kind: 'avatar.carrier.visual',
-                recordedAt: '2026-04-26T00:00:03.000Z',
-                detail: {
-                  conversation_anchor_id: 'anchor-1',
-                  lifecycle: 'mounted',
-                  source: 'live2d-carrier-surface',
-                },
-              },
-              {
-                kind: 'avatar.carrier.visual',
-                recordedAt: '2026-04-26T00:00:04.000Z',
-                detail: { conversation_anchor_id: 'anchor-1', status: 'ready', visible_pixels: 12 },
-              },
-            ],
-          },
-        };
-      },
-      async writeReport(payload) {
-        writtenReports.push(payload as unknown as Record<string, unknown>);
-      },
-      currentRoute() {
-        return '/chat';
-      },
-      currentHtml() {
-        return '<html>avatar-product-missing-consume-ready</html>';
-      },
-    })),
-    /missing same-anchor Avatar SDK\/model\/visual evidence/,
-  );
-
-  assert.equal(writtenReports.length, 1);
-  assert.equal(writtenReports[0]?.ok, false);
-  assert.equal(writtenReports[0]?.failedStep, 'wait-avatar-carrier-evidence');
-  assert.match(String(writtenReports[0]?.errorMessage || ''), /consumeReady:false/);
-  assert.match(String(writtenReports[0]?.errorMessage || ''), /avatar\.startup\.runtime-bound:anchor-1/);
-  assert.match(String(writtenReports[0]?.errorMessage || ''), /avatar\.model\.load:anchor-1/);
-  assert.match(String(writtenReports[0]?.errorMessage || ''), /avatar\.carrier\.visual:anchor-1/);
-});
-
-test('desktop macos smoke live2d avatar product scenario fails without hit-region evidence', async () => {
+test('desktop macos smoke live2d avatar product scenario fails without Runtime package handoff evidence', async () => {
   const writtenReports: Array<Record<string, unknown>> = [];
 
   await assert.rejects(
@@ -777,6 +707,201 @@ test('desktop macos smoke live2d avatar product scenario fails without hit-regio
                   backend_kind: 'live2d',
                   backend_metadata: {
                     model_kind: 'live2d',
+                    hit_region_default: {
+                      body: { left: 0, top: 0, right: 1, bottom: 1 },
+                      drag: { left: 0, top: 0, right: 1, bottom: 1 },
+                    },
+                  },
+                },
+              },
+              {
+                kind: 'avatar.carrier.visual',
+                recordedAt: '2026-04-26T00:00:04.000Z',
+                detail: {
+                  conversation_anchor_id: 'anchor-1',
+                  lifecycle: 'mounted',
+                  source: 'live2d-carrier-surface',
+                },
+              },
+              {
+                kind: 'avatar.carrier.visual',
+                recordedAt: '2026-04-26T00:00:05.000Z',
+                detail: { conversation_anchor_id: 'anchor-1', status: 'ready', visible_pixels: 12 },
+              },
+            ],
+          },
+        };
+      },
+      async writeReport(payload) {
+        writtenReports.push(payload as unknown as Record<string, unknown>);
+      },
+      currentRoute() {
+        return '/chat';
+      },
+      currentHtml() {
+        return '<html>avatar-product-missing-package-handoff</html>';
+      },
+    })),
+    /missing same-anchor Avatar package\/SDK\/model\/visual evidence/,
+  );
+
+  assert.equal(writtenReports.length, 1);
+  assert.equal(writtenReports[0]?.ok, false);
+  assert.equal(writtenReports[0]?.failedStep, 'wait-avatar-carrier-evidence');
+  assert.match(String(writtenReports[0]?.errorMessage || ''), /packageResolved:false/);
+  assert.match(String(writtenReports[0]?.errorMessage || ''), /live2dPackageResolved:false/);
+  assert.match(String(writtenReports[0]?.errorMessage || ''), /consumeReady:true/);
+  assert.match(String(writtenReports[0]?.errorMessage || ''), /visual:true/);
+});
+
+test('desktop macos smoke live2d avatar product scenario fails without Runtime consume-ready evidence', async () => {
+  const writtenReports: Array<Record<string, unknown>> = [];
+
+  await assert.rejects(
+    runDesktopMacosSmokeScenario('chat.live2d-avatar-product-smoke', createBaseDriver({
+      avatarCarrierEvidenceTimeoutMs: 1,
+      async readLocalStorageItem() {
+        return JSON.stringify([{
+          threadId: 'agent-thread-1',
+          localAgentRef: 'local-agent:user-e2e-primary:agent-e2e-alpha',
+          conversationAnchorId: 'anchor-1',
+          updatedAtMs: Date.now(),
+        }]);
+      },
+      async listAvatarLiveInstances(agentId) {
+        assert.equal(agentId, 'local-agent:user-e2e-primary:agent-e2e-alpha');
+        return [{
+          avatarInstanceId: 'desktop-avatar-agent-e2e-alpha-anchor-1',
+          ownerUserId: 'desktop-smoke',
+          realmAgentId: 'agent-e2e-alpha',
+          localAgentRef: 'local-agent:user-e2e-primary:agent-e2e-alpha',
+          launchSource: 'desktop-agent-chat',
+        }];
+      },
+      async readAvatarEvidence(avatarInstanceId) {
+        assert.equal(avatarInstanceId, 'desktop-avatar-agent-e2e-alpha-anchor-1');
+        return {
+          evidencePath: '/tmp/avatar-evidence.json',
+          evidence: {
+            records: [
+              {
+                kind: 'avatar.startup.runtime-bound',
+                recordedAt: '2026-04-26T00:00:01.000Z',
+                detail: { conversation_anchor_id: 'anchor-1' },
+              },
+              createAvatarPackageResolvedRecord('2026-04-26T00:00:01.500Z'),
+              {
+                kind: 'avatar.model.load',
+                recordedAt: '2026-04-26T00:00:02.000Z',
+                detail: {
+                  conversation_anchor_id: 'anchor-1',
+                  model_id: 'ren',
+                  backend_kind: 'live2d',
+                  backend_metadata: {
+                    model_kind: 'live2d',
+                    hit_region_default: {
+                      body: { left: 0, top: 0, right: 1, bottom: 1 },
+                      drag: { left: 0, top: 0, right: 1, bottom: 1 },
+                    },
+                  },
+                },
+              },
+              {
+                kind: 'avatar.carrier.visual',
+                recordedAt: '2026-04-26T00:00:03.000Z',
+                detail: {
+                  conversation_anchor_id: 'anchor-1',
+                  lifecycle: 'mounted',
+                  source: 'live2d-carrier-surface',
+                },
+              },
+              {
+                kind: 'avatar.carrier.visual',
+                recordedAt: '2026-04-26T00:00:04.000Z',
+                detail: { conversation_anchor_id: 'anchor-1', status: 'ready', visible_pixels: 12 },
+              },
+            ],
+          },
+        };
+      },
+      async writeReport(payload) {
+        writtenReports.push(payload as unknown as Record<string, unknown>);
+      },
+      currentRoute() {
+        return '/chat';
+      },
+      currentHtml() {
+        return '<html>avatar-product-missing-consume-ready</html>';
+      },
+    })),
+    /missing same-anchor Avatar package\/SDK\/model\/visual evidence/,
+  );
+
+  assert.equal(writtenReports.length, 1);
+  assert.equal(writtenReports[0]?.ok, false);
+  assert.equal(writtenReports[0]?.failedStep, 'wait-avatar-carrier-evidence');
+  assert.match(String(writtenReports[0]?.errorMessage || ''), /consumeReady:false/);
+  assert.match(String(writtenReports[0]?.errorMessage || ''), /packageResolved:true/);
+  assert.match(String(writtenReports[0]?.errorMessage || ''), /avatar\.startup\.runtime-bound:anchor-1/);
+  assert.match(String(writtenReports[0]?.errorMessage || ''), /avatar\.visual\.package-resolved:anchor-1/);
+  assert.match(String(writtenReports[0]?.errorMessage || ''), /avatar\.model\.load:anchor-1/);
+  assert.match(String(writtenReports[0]?.errorMessage || ''), /avatar\.carrier\.visual:anchor-1/);
+});
+
+test('desktop macos smoke live2d avatar product scenario fails without hit-region evidence', async () => {
+  const writtenReports: Array<Record<string, unknown>> = [];
+
+  await assert.rejects(
+    runDesktopMacosSmokeScenario('chat.live2d-avatar-product-smoke', createBaseDriver({
+      avatarCarrierEvidenceTimeoutMs: 1,
+      async readLocalStorageItem() {
+        return JSON.stringify([{
+          threadId: 'agent-thread-1',
+          localAgentRef: 'local-agent:user-e2e-primary:agent-e2e-alpha',
+          conversationAnchorId: 'anchor-1',
+          updatedAtMs: Date.now(),
+        }]);
+      },
+      async listAvatarLiveInstances(agentId) {
+        assert.equal(agentId, 'local-agent:user-e2e-primary:agent-e2e-alpha');
+        return [{
+          avatarInstanceId: 'desktop-avatar-agent-e2e-alpha-anchor-1',
+          ownerUserId: 'desktop-smoke',
+          realmAgentId: 'agent-e2e-alpha',
+          localAgentRef: 'local-agent:user-e2e-primary:agent-e2e-alpha',
+          launchSource: 'desktop-agent-chat',
+        }];
+      },
+      async readAvatarEvidence(avatarInstanceId) {
+        assert.equal(avatarInstanceId, 'desktop-avatar-agent-e2e-alpha-anchor-1');
+        return {
+          evidencePath: '/tmp/avatar-evidence.json',
+          evidence: {
+            records: [
+              {
+                kind: 'avatar.startup.runtime-bound',
+                recordedAt: '2026-04-26T00:00:01.000Z',
+                detail: { conversation_anchor_id: 'anchor-1' },
+              },
+              createAvatarPackageResolvedRecord('2026-04-26T00:00:01.500Z'),
+              {
+                kind: 'avatar.runtime.consume-ready',
+                recordedAt: '2026-04-26T00:00:02.000Z',
+                detail: {
+                  conversation_anchor_id: 'anchor-1',
+                  driver_status: 'running',
+                  scoped_binding_attached: true,
+                },
+              },
+              {
+                kind: 'avatar.model.load',
+                recordedAt: '2026-04-26T00:00:03.000Z',
+                detail: {
+                  conversation_anchor_id: 'anchor-1',
+                  model_id: 'ren',
+                  backend_kind: 'live2d',
+                  backend_metadata: {
+                    model_kind: 'live2d',
                   },
                 },
               },
@@ -808,7 +933,7 @@ test('desktop macos smoke live2d avatar product scenario fails without hit-regio
         return '<html>avatar-product-missing-hit-region</html>';
       },
     })),
-    /missing same-anchor Avatar SDK\/model\/visual evidence/,
+    /missing same-anchor Avatar package\/SDK\/model\/visual evidence/,
   );
 
   assert.equal(writtenReports.length, 1);
