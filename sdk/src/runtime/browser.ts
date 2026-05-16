@@ -57,6 +57,9 @@ export {
   HookAdmissionState,
   AgentLifecycleStatus,
   AgentTrackType,
+  HookTriggerFamily,
+} from './generated/runtime/v1/agent_service.js';
+export type {
   DelegatedApprovalDecision,
   DelegatedApprovalMode,
   DelegatedApprovalRequestState,
@@ -66,8 +69,7 @@ export {
   DelegatedReplayOutcome,
   DelegatedTraceStageKind,
   DelegatedTransportKind,
-  HookTriggerFamily,
-} from './generated/runtime/v1/agent_service.js';
+} from './generated/runtime/v1/delegated_control.js';
 export { RealmGroupMessageCandidateCommitDisposition } from './generated/runtime/v1/agent_group_message_candidate.js';
 export type {
   CatalogModelDetail,

@@ -68,22 +68,23 @@ channels, or bypass the Runtime Avatar package projection.
 Desktop and Avatar consumers must treat Agent Center local records as
 materialization evidence only.
 
-## K-AGCORE-137 Contract-Only Implementation Status
+## K-AGCORE-137 Runtime Emit Implementation Gate
 
-This contract locks method names and the public SDK shape before Asset Market
-backend persistence exists.
+`ResolveAvatarPackageLaunchProjection` is admitted as a typed
+`RuntimeAgentService` RPC and SDK client method. Runtime must source the
+projection through an injected Avatar package projection resolver that derives
+from Asset Market package truth and Runtime-authorized materialization
+evidence.
 
-Until Asset Market and Runtime implement the source of truth for
-`ResolveAvatarPackageLaunchProjection`, SDK and apps must not report production
-Avatar package projection support. Calls must fail closed when the Runtime RPC
-or Runtime client method is unavailable.
+Runtime must fail closed when the resolver is unavailable, when the Asset
+Market package projection is unavailable, or when resolver output violates
+`K-AGCORE-135`.
 
-The proto patch required by the implementation wave is exact:
+The implementation closure must keep all of the following in one validated
+wave:
 
-- add `ResolveAvatarPackageLaunchProjection` to `RuntimeAgentService`
-- add request message with `AgentRequestContext context` and
-  `string avatar_instance_id`
-- add response message matching the Runtime Avatar package projection decoded
-  by the SDK handoff decoder
-- regenerate Go and TypeScript protobuf artifacts in the same implementation
-  wave
+- typed proto request/response messages, not a free-form `Struct`
+- Go and TypeScript protobuf artifacts regenerated from proto
+- SDK unary codec and runtime bridge method parity
+- Runtime authz posture for `runtime.agent.avatar_package.read`
+- Runtime handler output validation before returning the projection

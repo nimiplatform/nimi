@@ -2,10 +2,6 @@ import type {
   AgentEvent,
   CancelCompanionParticipationRequest,
   CancelCompanionParticipationResponse,
-  GetDelegatedControlSurfaceSnapshotRequest,
-  GetDelegatedControlSurfaceSnapshotResponse,
-  GetDelegatedReplayTraceRequest,
-  GetDelegatedReplayTraceResponse,
   GetConversationAnchorSnapshotRequest,
   GetConversationAnchorSnapshotResponse,
   GetCompanionParticipationProjectionRequest,
@@ -18,8 +14,6 @@ import type {
   OpenConversationAnchorResponse,
   RequestCompanionParticipationRequest,
   RequestCompanionParticipationResponse,
-  SubmitDelegatedApprovalDecisionRequest,
-  SubmitDelegatedApprovalDecisionResponse,
   QueryAgentMemoryRequest,
   QueryAgentMemoryResponse,
   SetAgentPresentationProfileRequest,
@@ -28,6 +22,14 @@ import type {
   WriteAgentMemoryRequest,
   WriteAgentMemoryResponse,
 } from './generated/runtime/v1/agent_service.js';
+import type {
+  GetDelegatedControlSurfaceSnapshotRequest,
+  GetDelegatedControlSurfaceSnapshotResponse,
+  GetDelegatedReplayTraceRequest,
+  GetDelegatedReplayTraceResponse,
+  SubmitDelegatedApprovalDecisionRequest,
+  SubmitDelegatedApprovalDecisionResponse,
+} from './generated/runtime/v1/delegated_control.js';
 import type {
   CreateRealmGroupMessageCandidateRequest,
   CreateRealmGroupMessageCandidateResponse,

@@ -74,6 +74,52 @@ test('decodeAvatarPackageHandoff normalizes a launch-eligible Live2D avatar pack
   assert.equal('packageDescriptor' in handoff, false);
 });
 
+test('decodeAvatarPackageHandoff accepts generated proto Live2D field casing', () => {
+  const generatedShape = live2dProjection({
+    avatarModelLayout: {
+      layoutVersion: 1,
+      backendKind: 'live2d',
+      entryAssetId: 'asset-live2d-model3',
+      runtimeRoot: 'runtime',
+      requiredAssetIds: ['asset-live2d-model3', 'asset-live2d-texture-1'],
+      live2D: {
+        model3JsonAssetId: 'asset-live2d-model3',
+        model3JsonPath: 'runtime/hiyori.model3.json',
+      },
+    },
+    avatar_model_layout: undefined,
+    avatarPackageRef: 'am.package/avatar-live2d-hiyori',
+    packageKind: 'avatar',
+    packageId: 'pkg-avatar-live2d-hiyori',
+    bundleId: 'bundle-avatar-live2d-hiyori',
+    bundleMemberAssetIds: [
+      'asset-live2d-model3',
+      'asset-live2d-texture-1',
+      'asset-live2d-motion-idle',
+    ],
+    backendKind: 'live2d',
+    backendCapabilityProfileRef: 'avatar.backend_profile/live2d/basic',
+    compatibilityDiagnostics: [
+      {
+        code: 'AVATAR_PACKAGE_COMPAT_OK',
+        severity: 'info',
+      },
+    ],
+    isReady: true,
+    readinessIssues: [],
+    materializationRef: 'avatar.materialization/live2d-hiyori',
+  });
+
+  assert.deepEqual(decodeAvatarPackageHandoff(generatedShape), {
+    avatarPackageRef: 'am.package/avatar-live2d-hiyori',
+    backendKind: 'live2d',
+    backendCapabilityProfileRef: 'avatar.backend_profile/live2d/basic',
+    readiness: 'launch_eligible',
+    diagnosticIds: ['AVATAR_PACKAGE_COMPAT_OK'],
+    materializationRef: 'avatar.materialization/live2d-hiyori',
+  });
+});
+
 test('decodeAvatarPackageHandoff accepts a VRM avatar package layout and emits only safe refs', () => {
   const handoff = decodeAvatarPackageHandoff({
     avatarPackageRef: 'am.package/avatar-vrm-sample',

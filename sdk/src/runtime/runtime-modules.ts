@@ -261,6 +261,7 @@ const AGENT_METHODS = [
   'requestAvatarDebugProbe',
   'listAvatarDebugProbeResults',
   'getAvatarDebugReplay',
+  'resolveAvatarPackageLaunchProjection',
   'listDelegatedProviderProfiles',
   'upsertDelegatedProviderProfile',
   'setDelegatedProviderState',

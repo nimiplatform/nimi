@@ -403,7 +403,7 @@ function decodeLayout(
   }
 
   if (backendKind === 'live2d') {
-    const live2d = decodeLive2DLayout(asObject(valueOf(layout, 'live2d'), 'avatar_model_layout.live2d'), bundleMemberAssetIds, runtimeRoot);
+    const live2d = decodeLive2DLayout(asObject(valueOf(layout, 'live2d', 'live2D'), 'avatar_model_layout.live2d'), bundleMemberAssetIds, runtimeRoot);
     if (live2d.model3JsonAssetId !== entryAssetId) {
       throw new Error('runtime avatar package projection live2d model3_json_asset_id must match entry_asset_id');
     }

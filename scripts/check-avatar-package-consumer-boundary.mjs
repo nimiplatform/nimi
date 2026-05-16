@@ -145,17 +145,17 @@ requireIncludes(FILES.runtimeContract, [
   'K-AGCORE-134 Resolve Launch Projection Method Shape',
   'K-AGCORE-135 Launch Eligibility Gate',
   'K-AGCORE-136 Agent Center Non-Authority',
-  'K-AGCORE-137 Contract-Only Implementation Status',
+  'K-AGCORE-137 Runtime Emit Implementation Gate',
   'runtime.avatarPackage.resolveLaunchProjection',
   'ResolveAvatarPackageLaunchProjection',
   'runtime.agent.avatar_package.read',
-  'must not report production',
+  'typed proto request/response messages',
 ]);
 requireIncludes(FILES.sdkMethodTable, [
   'runtime.avatarPackage.resolveLaunchProjection',
   '/nimi.runtime.v1.RuntimeAgentService/ResolveAvatarPackageLaunchProjection',
   'runtime.agent.avatar_package.read',
-  'contract_only_until_runtime_emit',
+  'runtime_emit_rpc_available',
 ]);
 
 for (const rule of [

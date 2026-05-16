@@ -36,6 +36,7 @@ const (
 	RuntimeAgentService_RequestAvatarDebugProbe_FullMethodName               = "/nimi.runtime.v1.RuntimeAgentService/RequestAvatarDebugProbe"
 	RuntimeAgentService_ListAvatarDebugProbeResults_FullMethodName           = "/nimi.runtime.v1.RuntimeAgentService/ListAvatarDebugProbeResults"
 	RuntimeAgentService_GetAvatarDebugReplay_FullMethodName                  = "/nimi.runtime.v1.RuntimeAgentService/GetAvatarDebugReplay"
+	RuntimeAgentService_ResolveAvatarPackageLaunchProjection_FullMethodName  = "/nimi.runtime.v1.RuntimeAgentService/ResolveAvatarPackageLaunchProjection"
 	RuntimeAgentService_GetAgentState_FullMethodName                         = "/nimi.runtime.v1.RuntimeAgentService/GetAgentState"
 	RuntimeAgentService_UpdateAgentState_FullMethodName                      = "/nimi.runtime.v1.RuntimeAgentService/UpdateAgentState"
 	RuntimeAgentService_SetAgentPresentationProfile_FullMethodName           = "/nimi.runtime.v1.RuntimeAgentService/SetAgentPresentationProfile"
@@ -79,6 +80,7 @@ type RuntimeAgentServiceClient interface {
 	RequestAvatarDebugProbe(ctx context.Context, in *RequestAvatarDebugProbeRequest, opts ...grpc.CallOption) (*RequestAvatarDebugProbeResponse, error)
 	ListAvatarDebugProbeResults(ctx context.Context, in *ListAvatarDebugProbeResultsRequest, opts ...grpc.CallOption) (*ListAvatarDebugProbeResultsResponse, error)
 	GetAvatarDebugReplay(ctx context.Context, in *GetAvatarDebugReplayRequest, opts ...grpc.CallOption) (*GetAvatarDebugReplayResponse, error)
+	ResolveAvatarPackageLaunchProjection(ctx context.Context, in *ResolveAvatarPackageLaunchProjectionRequest, opts ...grpc.CallOption) (*ResolveAvatarPackageLaunchProjectionResponse, error)
 	GetAgentState(ctx context.Context, in *GetAgentStateRequest, opts ...grpc.CallOption) (*GetAgentStateResponse, error)
 	UpdateAgentState(ctx context.Context, in *UpdateAgentStateRequest, opts ...grpc.CallOption) (*UpdateAgentStateResponse, error)
 	SetAgentPresentationProfile(ctx context.Context, in *SetAgentPresentationProfileRequest, opts ...grpc.CallOption) (*SetAgentPresentationProfileResponse, error)
@@ -273,6 +275,16 @@ func (c *runtimeAgentServiceClient) GetAvatarDebugReplay(ctx context.Context, in
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GetAvatarDebugReplayResponse)
 	err := c.cc.Invoke(ctx, RuntimeAgentService_GetAvatarDebugReplay_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeAgentServiceClient) ResolveAvatarPackageLaunchProjection(ctx context.Context, in *ResolveAvatarPackageLaunchProjectionRequest, opts ...grpc.CallOption) (*ResolveAvatarPackageLaunchProjectionResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ResolveAvatarPackageLaunchProjectionResponse)
+	err := c.cc.Invoke(ctx, RuntimeAgentService_ResolveAvatarPackageLaunchProjection_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -509,6 +521,7 @@ type RuntimeAgentServiceServer interface {
 	RequestAvatarDebugProbe(context.Context, *RequestAvatarDebugProbeRequest) (*RequestAvatarDebugProbeResponse, error)
 	ListAvatarDebugProbeResults(context.Context, *ListAvatarDebugProbeResultsRequest) (*ListAvatarDebugProbeResultsResponse, error)
 	GetAvatarDebugReplay(context.Context, *GetAvatarDebugReplayRequest) (*GetAvatarDebugReplayResponse, error)
+	ResolveAvatarPackageLaunchProjection(context.Context, *ResolveAvatarPackageLaunchProjectionRequest) (*ResolveAvatarPackageLaunchProjectionResponse, error)
 	GetAgentState(context.Context, *GetAgentStateRequest) (*GetAgentStateResponse, error)
 	UpdateAgentState(context.Context, *UpdateAgentStateRequest) (*UpdateAgentStateResponse, error)
 	SetAgentPresentationProfile(context.Context, *SetAgentPresentationProfileRequest) (*SetAgentPresentationProfileResponse, error)
@@ -588,6 +601,9 @@ func (UnimplementedRuntimeAgentServiceServer) ListAvatarDebugProbeResults(contex
 }
 func (UnimplementedRuntimeAgentServiceServer) GetAvatarDebugReplay(context.Context, *GetAvatarDebugReplayRequest) (*GetAvatarDebugReplayResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetAvatarDebugReplay not implemented")
+}
+func (UnimplementedRuntimeAgentServiceServer) ResolveAvatarPackageLaunchProjection(context.Context, *ResolveAvatarPackageLaunchProjectionRequest) (*ResolveAvatarPackageLaunchProjectionResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ResolveAvatarPackageLaunchProjection not implemented")
 }
 func (UnimplementedRuntimeAgentServiceServer) GetAgentState(context.Context, *GetAgentStateRequest) (*GetAgentStateResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetAgentState not implemented")
@@ -971,6 +987,24 @@ func _RuntimeAgentService_GetAvatarDebugReplay_Handler(srv interface{}, ctx cont
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(RuntimeAgentServiceServer).GetAvatarDebugReplay(ctx, req.(*GetAvatarDebugReplayRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeAgentService_ResolveAvatarPackageLaunchProjection_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ResolveAvatarPackageLaunchProjectionRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAgentServiceServer).ResolveAvatarPackageLaunchProjection(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAgentService_ResolveAvatarPackageLaunchProjection_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAgentServiceServer).ResolveAvatarPackageLaunchProjection(ctx, req.(*ResolveAvatarPackageLaunchProjectionRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -1402,6 +1436,10 @@ var RuntimeAgentService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetAvatarDebugReplay",
 			Handler:    _RuntimeAgentService_GetAvatarDebugReplay_Handler,
+		},
+		{
+			MethodName: "ResolveAvatarPackageLaunchProjection",
+			Handler:    _RuntimeAgentService_ResolveAvatarPackageLaunchProjection_Handler,
 		},
 		{
 			MethodName: "GetAgentState",

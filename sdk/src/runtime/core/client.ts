@@ -18,8 +18,6 @@ import {
   RuntimeUnaryMethodCodecs,
 } from './method-codecs.js';
 import {
-  ExecuteDelegatedCapabilityRequest,
-  ExecuteDelegatedCapabilityResponse,
   CancelCompanionParticipationRequest,
   CancelCompanionParticipationResponse,
   GetAvatarDebugReplayRequest,
@@ -30,20 +28,10 @@ import {
   GetCompanionParticipationProjectionResponse,
   GetConversationAnchorSnapshotRequest,
   GetConversationAnchorSnapshotResponse,
-  GetDelegatedControlSurfaceSnapshotRequest,
-  GetDelegatedControlSurfaceSnapshotResponse,
-  GetDelegatedReplayTraceRequest,
-  GetDelegatedReplayTraceResponse,
   GetPublicChatSessionSnapshotRequest,
   GetPublicChatSessionSnapshotResponse,
   ListAvatarDebugProbeResultsRequest,
   ListAvatarDebugProbeResultsResponse,
-  ListDelegatedApprovalRequestsRequest,
-  ListDelegatedApprovalRequestsResponse,
-  ListDelegatedDiagnosticsRequest,
-  ListDelegatedDiagnosticsResponse,
-  ListDelegatedProviderProfilesRequest,
-  ListDelegatedProviderProfilesResponse,
   OpenConversationAnchorRequest,
   OpenConversationAnchorResponse,
   OpenCompanionParticipationReplayRequest,
@@ -52,13 +40,31 @@ import {
   RequestAvatarDebugProbeResponse,
   RequestCompanionParticipationRequest,
   RequestCompanionParticipationResponse,
+} from '../generated/runtime/v1/agent_service.js';
+import {
+  ResolveAvatarPackageLaunchProjectionRequest,
+  ResolveAvatarPackageLaunchProjectionResponse,
+} from '../generated/runtime/v1/avatar_package.js';
+import {
+  ExecuteDelegatedCapabilityRequest,
+  ExecuteDelegatedCapabilityResponse,
+  GetDelegatedControlSurfaceSnapshotRequest,
+  GetDelegatedControlSurfaceSnapshotResponse,
+  GetDelegatedReplayTraceRequest,
+  GetDelegatedReplayTraceResponse,
+  ListDelegatedApprovalRequestsRequest,
+  ListDelegatedApprovalRequestsResponse,
+  ListDelegatedDiagnosticsRequest,
+  ListDelegatedDiagnosticsResponse,
+  ListDelegatedProviderProfilesRequest,
+  ListDelegatedProviderProfilesResponse,
   SetDelegatedProviderStateRequest,
   SetDelegatedProviderStateResponse,
   SubmitDelegatedApprovalDecisionRequest,
   SubmitDelegatedApprovalDecisionResponse,
   UpsertDelegatedProviderProfileRequest,
   UpsertDelegatedProviderProfileResponse,
-} from '../generated/runtime/v1/agent_service.js';
+} from '../generated/runtime/v1/delegated_control.js';
 import {
   CreateRealmGroupMessageCandidateRequest,
   CreateRealmGroupMessageCandidateResponse,
@@ -477,6 +483,10 @@ export function createRuntimeClient(input: RuntimeClientConfig): RuntimeClient {
       getAvatarDebugReplay: customUnary(RuntimeMethodIds.agent.getAvatarDebugReplay, {
         requestType: GetAvatarDebugReplayRequest,
         responseType: GetAvatarDebugReplayResponse,
+      }),
+      resolveAvatarPackageLaunchProjection: customUnary(RuntimeMethodIds.agent.resolveAvatarPackageLaunchProjection, {
+        requestType: ResolveAvatarPackageLaunchProjectionRequest,
+        responseType: ResolveAvatarPackageLaunchProjectionResponse,
       }),
       listDelegatedProviderProfiles: customUnary(RuntimeMethodIds.agent.listDelegatedProviderProfiles, {
         requestType: ListDelegatedProviderProfilesRequest,

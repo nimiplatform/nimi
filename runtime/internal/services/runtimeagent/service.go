@@ -46,24 +46,26 @@ type scopedBindingValidator interface {
 type Service struct {
 	runtimev1.UnimplementedRuntimeAgentServiceServer
 
-	logger                    *slog.Logger
-	memorySvc                 *memoryservice.Service
-	backend                   *runtimepersistence.Backend
-	stateRepo                 *runtimeAgentStateRepository
-	chatStateRepo             *publicChatSurfaceStateRepository
-	reviews                   reviewPersistence
-	postures                  behavioralPosturePersistence
-	chatAppEmit               publicChatAppMessageEmitter
-	bindingValidator          scopedBindingValidator
-	aiBridgeMu                sync.RWMutex
-	aiBridge                  *RuntimePrivateAIBridge
-	auditStore                *auditlog.Store
-	delegatedMu               sync.RWMutex
-	delegatedGateway          delegatedCapabilityGateway
-	delegatedFirewall         delegatedOutputFirewall
-	delegatedTransportFactory delegation.TransportFactory
-	delegatedProviderProfiles map[string]*runtimev1.DelegatedProviderProfile
-	delegatedApprovalRequests map[string]*runtimev1.DelegatedApprovalRequest
+	logger                          *slog.Logger
+	memorySvc                       *memoryservice.Service
+	backend                         *runtimepersistence.Backend
+	stateRepo                       *runtimeAgentStateRepository
+	chatStateRepo                   *publicChatSurfaceStateRepository
+	reviews                         reviewPersistence
+	postures                        behavioralPosturePersistence
+	chatAppEmit                     publicChatAppMessageEmitter
+	bindingValidator                scopedBindingValidator
+	aiBridgeMu                      sync.RWMutex
+	aiBridge                        *RuntimePrivateAIBridge
+	auditStore                      *auditlog.Store
+	delegatedMu                     sync.RWMutex
+	delegatedGateway                delegatedCapabilityGateway
+	delegatedFirewall               delegatedOutputFirewall
+	delegatedTransportFactory       delegation.TransportFactory
+	delegatedProviderProfiles       map[string]*runtimev1.DelegatedProviderProfile
+	delegatedApprovalRequests       map[string]*runtimev1.DelegatedApprovalRequest
+	avatarPackageProjectionMu       sync.RWMutex
+	avatarPackageProjectionResolver AvatarPackageLaunchProjectionResolver
 	// voiceLipsync is the K-AGCORE-051 synthesizer that turns committed
 	// assistant text into runtime-owned lipsync frames. Constructor injects
 	// the deterministic synthetic adapter; real TTS providers can implement
