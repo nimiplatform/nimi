@@ -1,0 +1,140 @@
+table_family: support_registry
+registry_id: runtime_rule_evidence_local_profile_execution_rules
+owner: runtime
+schema_ref: .nimi/contracts/table-family.schema.yaml#support_registry
+allowed_fields:
+  - rule_id
+  - evidence_requirement
+  - evidence_refs
+  - note
+  - na_reason
+  - evidence_scope_note
+  - test_files
+forbidden_state_fields:
+  - done
+  - covered
+  - coverage_status
+  - audit_date
+  - evidence_report
+  - current
+  - proposed
+  - backlog_status
+  - migration_status
+  - mapping_status
+  - run_id
+  - ledger_ref
+entries:
+  - K-MCAT-006a
+  - K-MCAT-006b
+  - K-LOCAL-014a
+  - K-LOCAL-021a
+  - K-LOCAL-021b
+  - K-LOCAL-021c
+  - K-LOCAL-021d
+  - K-LOCAL-021e
+  - K-LOCAL-031
+  - K-LOCAL-032
+  - K-LOCAL-033
+  - K-AIEXEC-001
+  - K-AIEXEC-002
+  - K-AIEXEC-003
+  - K-AIEXEC-004
+  - K-AIEXEC-005
+  - K-AIEXEC-006
+  - K-LENG-024
+  - K-LENG-025
+  - K-LENG-026
+  - K-LENG-027
+  - K-LENG-028
+rules:
+  - rule_id: K-MCAT-006a
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_catalog_drift
+    evidence_requirement: required
+  - rule_id: K-MCAT-006b
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_catalog_drift
+    evidence_requirement: required
+  - rule_id: K-LOCAL-014a
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-LOCAL-021a
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_catalog_drift
+    evidence_requirement: required
+  - rule_id: K-LOCAL-021b
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_catalog_drift
+    evidence_requirement: required
+  - rule_id: K-LOCAL-021c
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_catalog_drift
+    evidence_requirement: required
+  - rule_id: K-LOCAL-021d
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_catalog_drift
+    evidence_requirement: required
+  - rule_id: K-LOCAL-021e
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_catalog_drift
+    evidence_requirement: required
+  - rule_id: K-LOCAL-031
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-LOCAL-032
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-LOCAL-033
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-AIEXEC-001
+    evidence_refs: []
+    evidence_requirement: deferred
+  - rule_id: K-AIEXEC-002
+    evidence_refs: []
+    evidence_requirement: deferred
+  - rule_id: K-AIEXEC-003
+    evidence_refs: []
+    evidence_requirement: deferred
+  - rule_id: K-AIEXEC-004
+    evidence_refs: []
+    evidence_requirement: deferred
+  - rule_id: K-AIEXEC-005
+    evidence_refs: []
+    evidence_requirement: deferred
+  - rule_id: K-AIEXEC-006
+    evidence_refs: []
+    evidence_requirement: deferred
+  - rule_id: K-LENG-024
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-LENG-025
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-LENG-026
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-LENG-027
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-LENG-028
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required

@@ -39,7 +39,11 @@ fragments:
     - rule-evidence.rules-core-operations.yaml
     - rule-evidence.rules-agent-core.yaml
     - rule-evidence.rules-delegation.yaml
-    - rule-evidence.rules-local.yaml
+    - rule-evidence.rules-local-engine.yaml
+    - rule-evidence.rules-local-category.yaml
+    - rule-evidence.rules-local-model-catalog.yaml
+    - rule-evidence.rules-local-provider-stream-voice.yaml
+    - rule-evidence.rules-local-profile-execution.yaml
     - rule-evidence.rules-cognition.yaml
     - rule-evidence.rules-binding-world.yaml
     - rule-evidence.rules-multimodal.yaml
