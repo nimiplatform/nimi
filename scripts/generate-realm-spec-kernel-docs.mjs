@@ -3,6 +3,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import YAML from 'yaml';
+import { readYamlWithFragments } from './lib/read-yaml-with-fragments.mjs';
 
 const PROJECT_ROOT = process.cwd();
 const KERNEL_DIR = path.join(PROJECT_ROOT, '.nimi', 'spec', 'realm', 'kernel');
@@ -37,7 +38,7 @@ function relativeToRoot(absPath) {
 }
 
 function readYaml(absPath) {
-  return YAML.parse(fs.readFileSync(absPath, 'utf8'));
+  return readYamlWithFragments(absPath);
 }
 
 function asStringArray(value) {
@@ -350,6 +351,7 @@ function buildRenderTargets() {
   const tableFiles = fs
     .readdirSync(TABLES_DIR)
     .filter((file) => file.endsWith('.yaml'))
+    .filter((file) => !file.startsWith('rule-evidence.'))
     .sort((a, b) => a.localeCompare(b));
   const targets = [];
   for (const file of tableFiles) {

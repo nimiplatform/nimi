@@ -2,7 +2,7 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
-import YAML from 'yaml';
+import { readYamlWithFragments } from './lib/read-yaml-with-fragments.mjs';
 
 const PROJECT_ROOT = process.cwd();
 const REALM_ROOT = path.join(PROJECT_ROOT, '.nimi', 'spec', 'realm');
@@ -64,8 +64,7 @@ function resolveWorkspacePath(filePath) {
 }
 
 function readYaml(absPath) {
-  const raw = fs.readFileSync(absPath, 'utf8');
-  return YAML.parse(raw) ?? {};
+  return readYamlWithFragments(absPath) ?? {};
 }
 
 function asStringArray(value) {
