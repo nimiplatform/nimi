@@ -11,6 +11,7 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/appregistry"
 	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
+	"github.com/nimiplatform/nimi/runtime/internal/grantlifecycle"
 	"github.com/nimiplatform/nimi/runtime/internal/scopecatalog"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
@@ -106,6 +107,89 @@ func TestGrantAuthorizeValidateRevoke(t *testing.T) {
 	}
 }
 
+func TestGrantServiceConsumesCanonicalLifecycleStates(t *testing.T) {
+	svc := newGrantServiceForTest()
+	ctx := context.Background()
+
+	authorizeResp, err := svc.AuthorizeExternalPrincipal(ctx, &runtimev1.AuthorizeExternalPrincipalRequest{
+		AppId:                 "nimi.desktop",
+		Domain:                "app-auth",
+		ExternalPrincipalId:   "agent-openclaw",
+		ExternalPrincipalType: runtimev1.ExternalPrincipalType_EXTERNAL_PRINCIPAL_TYPE_AGENT,
+		SubjectUserId:         "user-001",
+		ConsentId:             "consent-001",
+		ConsentVersion:        "v1",
+		DecisionAt:            timestamppb.Now(),
+		PolicyVersion:         "p1",
+		PolicyMode:            runtimev1.PolicyMode_POLICY_MODE_CUSTOM,
+		Scopes:                []string{"read:chat"},
+		ResourceSelectors:     &runtimev1.ResourceSelectors{ConversationIds: []string{"conv-1"}},
+		TtlSeconds:            600,
+		ScopeCatalogVersion:   "sdk-v1",
+	})
+	if err != nil {
+		t.Fatalf("authorize: %v", err)
+	}
+	if got := svc.tokens[authorizeResp.GetTokenId()].LifecycleState; got != grantlifecycle.GrantStateGranted {
+		t.Fatalf("authorized token lifecycle = %q, want granted", got)
+	}
+
+	if _, err := svc.RevokeAppAccessToken(ctx, &runtimev1.RevokeAppAccessTokenRequest{
+		AppId:   "nimi.desktop",
+		TokenId: authorizeResp.GetTokenId(),
+	}); err != nil {
+		t.Fatalf("revoke: %v", err)
+	}
+	if got := svc.tokens[authorizeResp.GetTokenId()].LifecycleState; got != grantlifecycle.GrantStateRevoked {
+		t.Fatalf("revoked token lifecycle = %q, want revoked", got)
+	}
+}
+
+func TestGrantServicePolicyReplacementUsesSupersededLifecycleState(t *testing.T) {
+	svc := newGrantServiceForTest()
+	ctx := context.Background()
+
+	rootV1, err := svc.AuthorizeExternalPrincipal(ctx, &runtimev1.AuthorizeExternalPrincipalRequest{
+		AppId:                 "nimi.desktop",
+		Domain:                "app-auth",
+		ExternalPrincipalId:   "agent-openclaw",
+		ExternalPrincipalType: runtimev1.ExternalPrincipalType_EXTERNAL_PRINCIPAL_TYPE_AGENT,
+		SubjectUserId:         "user-001",
+		ConsentId:             "consent-001",
+		ConsentVersion:        "v1",
+		DecisionAt:            timestamppb.Now(),
+		PolicyVersion:         "policy-v1",
+		PolicyMode:            runtimev1.PolicyMode_POLICY_MODE_PRESET,
+		Preset:                runtimev1.AuthorizationPreset_AUTHORIZATION_PRESET_READ_ONLY,
+		ScopeCatalogVersion:   "sdk-v1",
+	})
+	if err != nil {
+		t.Fatalf("authorize v1: %v", err)
+	}
+
+	_, err = svc.AuthorizeExternalPrincipal(ctx, &runtimev1.AuthorizeExternalPrincipalRequest{
+		AppId:                 "nimi.desktop",
+		Domain:                "app-auth",
+		ExternalPrincipalId:   "agent-openclaw",
+		ExternalPrincipalType: runtimev1.ExternalPrincipalType_EXTERNAL_PRINCIPAL_TYPE_AGENT,
+		SubjectUserId:         "user-001",
+		ConsentId:             "consent-001",
+		ConsentVersion:        "v2",
+		DecisionAt:            timestamppb.Now(),
+		PolicyVersion:         "policy-v2",
+		PolicyMode:            runtimev1.PolicyMode_POLICY_MODE_PRESET,
+		Preset:                runtimev1.AuthorizationPreset_AUTHORIZATION_PRESET_READ_ONLY,
+		ScopeCatalogVersion:   "sdk-v1",
+	})
+	if err != nil {
+		t.Fatalf("authorize v2: %v", err)
+	}
+
+	if got := svc.tokens[rootV1.GetTokenId()].LifecycleState; got != grantlifecycle.GrantStateSuperseded {
+		t.Fatalf("replaced policy lifecycle = %q, want superseded", got)
+	}
+}
+
 func TestGrantAuthorizeSupportsPublishedSDKV2(t *testing.T) {
 	svc := newGrantServiceForTest()
 
@@ -130,6 +214,33 @@ func TestGrantAuthorizeSupportsPublishedSDKV2(t *testing.T) {
 	}
 	if resp.GetIssuedScopeCatalogVersion() != "sdk-v2" {
 		t.Fatalf("expected issued_scope_catalog_version sdk-v2, got %q", resp.GetIssuedScopeCatalogVersion())
+	}
+}
+
+func TestGrantAuthorizeAcceptsAISpendMeterScope(t *testing.T) {
+	svc := newGrantServiceForTest()
+
+	resp, err := svc.AuthorizeExternalPrincipal(context.Background(), &runtimev1.AuthorizeExternalPrincipalRequest{
+		AppId:                 "nimi.desktop",
+		Domain:                "app-auth",
+		ExternalPrincipalId:   "agent-openclaw",
+		ExternalPrincipalType: runtimev1.ExternalPrincipalType_EXTERNAL_PRINCIPAL_TYPE_AGENT,
+		SubjectUserId:         "user-001",
+		ConsentId:             "consent-001",
+		ConsentVersion:        "v1",
+		DecisionAt:            timestamppb.Now(),
+		PolicyVersion:         "p-spend",
+		PolicyMode:            runtimev1.PolicyMode_POLICY_MODE_CUSTOM,
+		Scopes:                []string{"ai.spend.meter"},
+		ResourceSelectors:     &runtimev1.ResourceSelectors{},
+		TtlSeconds:            600,
+		ScopeCatalogVersion:   "sdk-v2",
+	})
+	if err != nil {
+		t.Fatalf("authorize ai.spend.meter: %v", err)
+	}
+	if resp.GetTokenId() == "" {
+		t.Fatal("expected issued token")
 	}
 }
 

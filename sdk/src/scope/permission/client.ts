@@ -80,10 +80,10 @@ export class PermissionClient {
     if (!response || response.accepted !== true || typeof response.grantId !== 'string' || response.grantId.length === 0) {
       throw new PermissionClientError('missing-required-field', 'requestGrant response missing accepted or grantId');
     }
-    if (response.state !== 'requested' && response.state !== 'prompted') {
+    if (response.state !== 'pending') {
       throw new PermissionClientError(
         'non-canonical-response',
-        `requestGrant response state must be 'requested' or 'prompted', got "${String(response.state)}"`,
+        `requestGrant response state must be 'pending', got "${String(response.state)}"`,
       );
     }
     return response;

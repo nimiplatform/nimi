@@ -10,47 +10,41 @@ package grantlifecycle
 
 import "errors"
 
-// GrantState enumerates the canonical grant lifecycle states. The
-// closed set must match the SDK PermissionClient `GrantState` enum.
+// GrantState enumerates the canonical grant lifecycle states. The closed set
+// must match P-PERM-003 and the SDK PermissionClient `GrantState` enum.
 type GrantState string
 
 const (
-	GrantStateRequested GrantState = "requested"
-	GrantStatePrompted  GrantState = "prompted"
-	GrantStateGranted   GrantState = "granted"
-	GrantStateInUse     GrantState = "in-use"
-	GrantStateRevoked   GrantState = "revoked"
-	GrantStateExpired   GrantState = "expired"
-	GrantStateDenied    GrantState = "denied"
-	GrantStateFailed    GrantState = "failed"
+	GrantStatePending    GrantState = "pending"
+	GrantStateGranted    GrantState = "granted"
+	GrantStateDenied     GrantState = "denied"
+	GrantStateExpired    GrantState = "expired"
+	GrantStateRevoked    GrantState = "revoked"
+	GrantStateSuperseded GrantState = "superseded"
 )
 
 func (s GrantState) Valid() bool {
 	switch s {
-	case GrantStateRequested, GrantStatePrompted, GrantStateGranted,
-		GrantStateInUse, GrantStateRevoked, GrantStateExpired,
-		GrantStateDenied, GrantStateFailed:
+	case GrantStatePending, GrantStateGranted, GrantStateDenied,
+		GrantStateExpired, GrantStateRevoked, GrantStateSuperseded:
 		return true
 	}
 	return false
 }
 
-// IsTerminal reports whether the state is terminal (no further
-// transitions allowed). Per contract: revoked / expired / denied /
-// failed are terminal.
+// IsTerminal reports whether the state is terminal. Denied may transition to
+// pending for a new request, but revoked / expired / superseded are terminal.
 func (s GrantState) IsTerminal() bool {
 	switch s {
-	case GrantStateRevoked, GrantStateExpired, GrantStateDenied, GrantStateFailed:
+	case GrantStateRevoked, GrantStateExpired, GrantStateSuperseded:
 		return true
 	}
 	return false
 }
 
-// AllowsExecution reports whether a grant in this state authorizes
-// in-flight execution (in-use is the only allowed execution-time
-// state per grant-service contract).
-func (s GrantState) AllowsExecution() bool {
-	return s == GrantStateInUse
+// AllowsAccess reports whether a grant in this state authorizes access.
+func (s GrantState) AllowsAccess() bool {
+	return s == GrantStateGranted
 }
 
 // Grant is the typed Runtime-local grant record. The Realm cloud-side
@@ -73,6 +67,5 @@ var (
 	ErrGrantInvalidTransition = errors.New("grantlifecycle invalid state transition")
 	ErrGrantUnknownState      = errors.New("grantlifecycle unknown state")
 	ErrGrantTerminalLocked    = errors.New("grantlifecycle grant is in terminal state")
-	ErrGrantNotInUse          = errors.New("grantlifecycle grant is not in-use; cannot revoke active execution")
 	ErrGrantRequired          = errors.New("grantlifecycle grant is required")
 )

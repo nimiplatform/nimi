@@ -6,28 +6,18 @@ import "fmt"
 // transition graph per grant-service.md. Each map[from][to] entry is
 // admitted; all others are rejected.
 var allowedTransitions = map[GrantState]map[GrantState]bool{
-	GrantStateRequested: {
-		GrantStatePrompted: true,
-		GrantStateDenied:   true,
-		GrantStateFailed:   true,
-	},
-	GrantStatePrompted: {
+	GrantStatePending: {
 		GrantStateGranted: true,
 		GrantStateDenied:  true,
 		GrantStateExpired: true,
-		GrantStateFailed:  true,
 	},
 	GrantStateGranted: {
-		GrantStateInUse:   true,
-		GrantStateRevoked: true,
-		GrantStateExpired: true,
-		GrantStateFailed:  true,
+		GrantStateRevoked:    true,
+		GrantStateExpired:    true,
+		GrantStateSuperseded: true,
 	},
-	GrantStateInUse: {
-		GrantStateGranted: true, // back to idle granted state after execution completes
-		GrantStateRevoked: true,
-		GrantStateExpired: true,
-		GrantStateFailed:  true,
+	GrantStateDenied: {
+		GrantStatePending: true,
 	},
 }
 
@@ -58,26 +48,11 @@ func Transition(grant *Grant, next GrantState, atUnix int64, detail string) (*Gr
 	return &clone, nil
 }
 
-// RevokeActive forces immediate revocation of an in-use grant. Per
-// "revocation during use fails closed for streaming and background
-// work" — this is the explicit fast-path that streaming/background
-// consumers must call when revocation arrives mid-execution.
-//
-// If the grant is not in-use, returns ErrGrantNotInUse so callers can
-// fall back to the regular Transition path.
-func RevokeActive(grant *Grant, atUnix int64, detail string) (*Grant, error) {
+func RevokeGranted(grant *Grant, atUnix int64, detail string) (*Grant, error) {
 	if grant == nil {
-		return nil, fmt.Errorf("grantlifecycle RevokeActive: %w", ErrGrantRequired)
+		return nil, fmt.Errorf("grantlifecycle RevokeGranted: %w", ErrGrantRequired)
 	}
-	if grant.State != GrantStateInUse {
-		return nil, fmt.Errorf("grantlifecycle RevokeActive: %w (current=%q)",
-			ErrGrantNotInUse, string(grant.State))
-	}
-	clone := *grant
-	clone.State = GrantStateRevoked
-	clone.LastTransition = atUnix
-	clone.Detail = detail
-	return &clone, nil
+	return Transition(grant, GrantStateRevoked, atUnix, detail)
 }
 
 // CanonicalGrantStates returns the full canonical enum in catalog
@@ -85,13 +60,11 @@ func RevokeActive(grant *Grant, atUnix int64, detail string) (*Grant, error) {
 // closed set without consulting spec yaml.
 func CanonicalGrantStates() []GrantState {
 	return []GrantState{
-		GrantStateRequested,
-		GrantStatePrompted,
+		GrantStatePending,
 		GrantStateGranted,
-		GrantStateInUse,
-		GrantStateRevoked,
-		GrantStateExpired,
 		GrantStateDenied,
-		GrantStateFailed,
+		GrantStateExpired,
+		GrantStateRevoked,
+		GrantStateSuperseded,
 	}
 }

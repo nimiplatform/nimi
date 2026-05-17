@@ -6,6 +6,7 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/grantlifecycle"
 )
 
 func (s *Service) ValidateProtectedCapability(appID string, tokenID string, secret string, capability string) (runtimev1.ReasonCode, string, bool) {
@@ -26,6 +27,12 @@ func (s *Service) ValidateProtectedCapability(appID string, tokenID string, secr
 	}
 	if subtle.ConstantTimeCompare([]byte(token.Secret), []byte(secret)) != 1 {
 		return runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED, "use_valid_token_secret", false
+	}
+	if token.LifecycleState == grantlifecycle.GrantStateRevoked {
+		return runtimev1.ReasonCode_APP_TOKEN_REVOKED, "reauthorize_external_principal", false
+	}
+	if token.LifecycleState == grantlifecycle.GrantStateSuperseded {
+		return runtimev1.ReasonCode_APP_GRANT_INVALID, "refresh_authorization_policy", false
 	}
 	if token.Revoked {
 		return runtimev1.ReasonCode_APP_TOKEN_REVOKED, "reauthorize_external_principal", false
@@ -53,7 +60,20 @@ func (s *Service) ValidateProtectedCapability(appID string, tokenID string, secr
 func (s *Service) revokePolicyChainLocked(policyKeyValue string) {
 	ids := s.policyTokens[policyKeyValue]
 	for tokenID := range ids {
-		s.cascadeRevokeLocked(tokenID)
+		s.cascadeSupersedeLocked(tokenID)
+	}
+}
+
+func (s *Service) cascadeSupersedeLocked(tokenID string) {
+	token, exists := s.tokens[tokenID]
+	if !exists || token.Revoked {
+		return
+	}
+	token = transitionTokenLifecycle(token, grantlifecycle.GrantStateSuperseded, time.Now().UTC(), "policy superseded")
+	token.Revoked = true
+	s.tokens[tokenID] = token
+	for childID := range s.parentChildren[tokenID] {
+		s.cascadeSupersedeLocked(childID)
 	}
 }
 
@@ -62,6 +82,7 @@ func (s *Service) cascadeRevokeLocked(tokenID string) {
 	if !exists || token.Revoked {
 		return
 	}
+	token = transitionTokenLifecycle(token, grantlifecycle.GrantStateRevoked, time.Now().UTC(), "token revoked")
 	token.Revoked = true
 	s.tokens[tokenID] = token
 	for childID := range s.parentChildren[tokenID] {

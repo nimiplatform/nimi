@@ -31,7 +31,7 @@ class StubTransport implements PermissionTransport {
     if (this.behavior.request instanceof Error) throw this.behavior.request;
     if (this.behavior.request === null) return null as unknown as GrantRequestAccepted;
     if (this.behavior.request !== undefined) return this.behavior.request;
-    return { accepted: true, grantId: 'grant-1', state: 'requested' };
+    return { accepted: true, grantId: 'grant-1', state: 'pending' };
   }
 }
 
@@ -74,8 +74,7 @@ describe('PermissionClient', () => {
 
   it('getGrantStatus accepts all canonical grant states', async () => {
     const states: GrantStatus['state'][] = [
-      'requested', 'prompted', 'granted', 'in-use',
-      'revoked', 'expired', 'denied', 'failed',
+      'pending', 'granted', 'denied', 'expired', 'revoked', 'superseded',
     ];
     for (const state of states) {
       const status: GrantStatus = {
@@ -103,11 +102,11 @@ describe('PermissionClient', () => {
     });
   });
 
-  it('requestGrant returns accepted with requested state', async () => {
+  it('requestGrant returns accepted with pending state', async () => {
     const client = new PermissionClient(new StubTransport());
     const result = await client.requestGrant(sampleRequest);
     assert.equal(result.accepted, true);
-    assert.equal(result.state, 'requested');
+    assert.equal(result.state, 'pending');
   });
 
   it('requestGrant rejects missing appId', async () => {
@@ -131,7 +130,7 @@ describe('PermissionClient', () => {
   });
 
   it('requestGrant rejects response with non-canonical state', async () => {
-    const bad: GrantRequestAccepted = { accepted: true, grantId: 'g', state: 'granted' as 'requested' };
+    const bad: GrantRequestAccepted = { accepted: true, grantId: 'g', state: 'granted' as 'pending' };
     const client = new PermissionClient(new StubTransport({ request: bad }));
     await assert.rejects(client.requestGrant(sampleRequest), (err: unknown) => {
       assert.ok(err instanceof PermissionClientError);

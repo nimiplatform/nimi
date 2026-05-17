@@ -1,27 +1,20 @@
-// SDK Permission client types. Transport floor only per Wave 2
-// admission rule. Full grant lifecycle (request/grant/use/revoke/
-// expire/deny/failed) is Wave 5 ownership; this module only types the
-// status read + grant request transport.
+// SDK Permission client types. Mirrors P-PERM-003 / S-PERM-004.
 
 export type GrantState =
-  | 'requested'
-  | 'prompted'
+  | 'pending'
   | 'granted'
-  | 'in-use'
-  | 'revoked'
-  | 'expired'
   | 'denied'
-  | 'failed';
+  | 'expired'
+  | 'revoked'
+  | 'superseded';
 
 export const CANONICAL_GRANT_STATES: readonly GrantState[] = [
-  'requested',
-  'prompted',
+  'pending',
   'granted',
-  'in-use',
-  'revoked',
-  'expired',
   'denied',
-  'failed',
+  'expired',
+  'revoked',
+  'superseded',
 ];
 
 export function isCanonicalGrantState(value: unknown): value is GrantState {
@@ -53,5 +46,5 @@ export interface GrantRequest {
 export interface GrantRequestAccepted {
   readonly accepted: true;
   readonly grantId: string;
-  readonly state: 'requested' | 'prompted';
+  readonly state: 'pending';
 }
