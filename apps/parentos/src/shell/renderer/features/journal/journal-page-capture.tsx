@@ -1,7 +1,6 @@
 import { createPortal } from 'react-dom';
 import type { RefObject } from 'react';
-import { Button, IconButton, Surface, TextareaField, cn, type SelectFieldOption } from '@nimiplatform/nimi-kit/ui';
-import { AppSelect } from '../../app-shell/app-select.js';
+import { Button, IconButton, Surface, TextareaField, cn } from '@nimiplatform/nimi-kit/ui';
 import { PhotoBar } from './journal-sub-components.js';
 import { VoiceIdleEntry, VoiceRecordingPanel, VoicePreviewPanel } from './journal-voice-card.js';
 import type { VoiceRecordingSession } from './voice-observation-recorder.js';
@@ -20,9 +19,6 @@ import { ObservationFocusPanel, type ObservationFocusData, type ObservationFocus
 import { RecordedAtPicker } from './journal-recorded-at-picker.js';
 
 export function JournalPageCapture(props: {
-  activeChildId: string | null;
-  childOptions: SelectFieldOption[];
-  onChildChange: (value: string | null) => void;
   guidedContext: GuidedPromptContext | null;
   observationFocus: ObservationFocusData | null;
   observationFocusOptions: ObservationFocusOption[];
@@ -76,22 +72,8 @@ export function JournalPageCapture(props: {
 }) {
   return (
     <>
-      <div
-        className={cn(
-          'mb-5 grid items-center gap-4',
-          props.childOptions.length > 1 ? 'grid-cols-[auto_minmax(9rem,13.5rem)]' : 'grid-cols-1',
-        )}
-      >
-        <h1 className="shrink-0 text-xl font-bold text-[var(--nimi-text-primary)]">成长随记</h1>
-        {props.childOptions.length > 1 ? (
-          <AppSelect
-            value={props.activeChildId ?? ''}
-            onChange={(value) => props.onChildChange(value || null)}
-            options={props.childOptions}
-            aria-label="切换成长随记孩子"
-            className="w-full"
-          />
-        ) : null}
+      <div className="mb-5">
+        <h1 className="text-xl font-bold text-[var(--nimi-text-primary)]">成长随记</h1>
       </div>
 
       <div className="relative mb-6">
@@ -194,19 +176,7 @@ export function JournalPageCapture(props: {
                   onSwitchDimension={props.onSwitchObservationFocus}
                   onClose={props.onClearObservationFocus}
                 />
-              ) : (
-                <div className="px-5 pt-5 pb-2">
-                  <Surface tone="panel" elevation="base" padding="sm" className="flex items-start gap-2.5 parentos-radius-md px-3.5 py-2.5">
-                    <svg className="mt-[1px] shrink-0 text-[var(--nimi-text-muted)]" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M12 3l1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5L12 3Z" />
-                      <path d="M19 14l1 3 3 1-3 1-1 3-1-3-3-1 3-1 1-3Z" />
-                    </svg>
-                    <p className="text-[14px] font-medium leading-relaxed text-[var(--nimi-text-secondary)]">
-                      不用管对错，像讲故事一样，描述一下孩子刚才的行为细节吧
-                    </p>
-                  </Surface>
-                </div>
-              )}
+              ) : null}
 
               <TextareaField
                 ref={props.textareaRef}
@@ -214,7 +184,7 @@ export function JournalPageCapture(props: {
                 onChange={(event) => props.onTextContentChange(event.target.value)}
                 placeholder={props.guidedContext || props.observationFocus ? '参考上面的引导问题，记录你观察到的情况...' : '他刚刚做了什么？说了什么？如果遇到了困难，他是如何解决的...'}
                 tone="quiet"
-                className="w-full border-0 bg-transparent px-5 py-0 text-[14px] leading-relaxed"
+                className="w-full border-0 bg-transparent px-5 py-0 text-[14px] leading-relaxed focus-within:border-transparent focus-within:ring-0"
                 textareaClassName="min-h-[120px] resize-none px-0 py-3"
                 rows={5}
               />
@@ -359,7 +329,7 @@ export function JournalPageCapture(props: {
                 />
               )}
               {props.voiceDraft.status === 'recording' || props.voiceDraft.status === 'idle' ? null : (
-              <div className="flex items-center justify-between mt-4">
+              <div className="flex items-center gap-2 mt-4">
                 <IconButton
                   type="button"
                   onClick={props.onToggleKeepsake}
@@ -396,6 +366,7 @@ export function JournalPageCapture(props: {
                     {props.draftStatusLabel}
                   </span>
                 ) : null}
+                <div className="flex-1" />
                 <RecordedAtPicker value={props.recordedAt} onChange={props.onRecordedAtChange} />
                 <Button
                   type="button"

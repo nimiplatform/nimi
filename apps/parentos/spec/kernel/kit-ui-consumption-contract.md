@@ -46,8 +46,26 @@ inventory and retained app-owned compositions that consume those shared rules.
 - Registered domain compositions must not define a parallel visual contract for
   kit primitive families.
 
+## PO-KITUI-005 — Overlay Registry Authority
+
+- Governed ParentOS dialog and drawer surfaces must be registered in
+  `tables/renderer-design-overlays.yaml`.
+- Registered overlay rows must name the owning module, overlay kind, surface
+  tone, elevation, z-index token, testability posture, reduced-motion posture,
+  current provider, target provider, migration wave, and exception posture.
+- ParentOS overlay rows inherit `P-DESIGN-013` and must converge on
+  `OverlayShell` unless a row is admitted as a narrow `P-DESIGN-021`
+  controlled exception with an explicit sunset wave.
+- Local overlay shells, inline `fixed inset-0` backdrops, and local portal
+  wrappers are not new primitive authority. They are legacy implementation
+  providers tracked by the overlay registry until migration removes them.
+- New ParentOS overlay surfaces must not enter renderer code without both a
+  `tables/nimi-kit-adoption.yaml` row declaring the `overlay` family and a
+  `tables/renderer-design-overlays.yaml` row.
+
 ## Fact Sources
 
 - `tables/nimi-kit-adoption.yaml`
 - `tables/nimi-kit-compositions.yaml`
 - `tables/nimi-kit-allowlists.yaml`
+- `tables/renderer-design-overlays.yaml`

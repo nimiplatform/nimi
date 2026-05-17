@@ -1,4 +1,4 @@
-import { Button, Surface } from '@nimiplatform/nimi-kit/ui';
+import { Button, DialogTitle, OverlayShell } from '@nimiplatform/nimi-kit/ui';
 /**
  * Parent-initiated treatment-phase advance dialog (PO-ORTHO-013). The
  * per-appliance mirror of `OrthodonticStageConfirmDialog`: the phase pill on
@@ -49,19 +49,15 @@ export function AppliancePhaseAdvanceDialog({
   };
 
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-label="确认推进治疗阶段"
-      className="fixed inset-0 z-[100] grid place-items-center bg-[var(--nimi-scrim-modal)]"
+    <OverlayShell
+      open
+      kind="dialog"
+      onClose={onCancel}
+      closeOnBackdrop={false}
+      panelClassName="w-auto min-w-[320px] max-w-[400px] rounded-2xl"
+      contentClassName="!p-6 flex flex-col gap-3"
     >
-      <Surface
-        material="glass-regular"
-        tone="overlay"
-        elevation="floating"
-        padding="none"
-        className="flex min-w-[320px] max-w-[400px] flex-col gap-3 rounded-2xl p-6"
-      >
+        <DialogTitle className="sr-only">确认推进治疗阶段</DialogTitle>
         {target ? (
           <>
             <h3 className="m-0 text-[16px] font-semibold text-[var(--nimi-text-primary)]">
@@ -101,7 +97,6 @@ export function AppliancePhaseAdvanceDialog({
             </Button>
           )}
         </div>
-      </Surface>
-    </div>
+    </OverlayShell>
   );
 }

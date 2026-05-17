@@ -1,4 +1,4 @@
-import { Button, Surface, TextareaField, TextField } from '@nimiplatform/nimi-kit/ui';
+import { Button, OverlayShell, Surface, TextareaField, TextField } from '@nimiplatform/nimi-kit/ui';
 import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAppStore, computeAgeMonths, computeAgeMonthsAt, formatAge } from '../../app-shell/app-store.js';
@@ -49,57 +49,52 @@ function VaccineRecordModal({ rule, childId, birthDate, onSave, onClose }: {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--nimi-scrim-modal)]" onClick={onClose}>
-      <Surface
-        tone="overlay"
-        material="glass-thick"
-        elevation="modal"
-        padding="none"
-        className="flex w-[420px] flex-col rounded-3xl"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-center justify-between px-6 pt-6 pb-3">
+    <OverlayShell
+      open
+      kind="dialog"
+      onClose={onClose}
+      panelClassName="w-[420px] rounded-3xl"
+      title={
+        <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="text-[20px]">💉</span>
             <h2 className="text-[16px] font-bold text-[var(--nimi-text-primary)]">{rule.title}</h2>
           </div>
           <button onClick={onClose} className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-[var(--nimi-action-ghost-hover)] text-[var(--nimi-text-muted)]">✕</button>
         </div>
-
-        <div className="px-6 pb-2 space-y-4 flex-1">
-          <p className="text-[14px] text-[var(--nimi-text-muted)]">{rule.description}</p>
-          <div>
-            <label className="text-[13px] mb-1 block text-[var(--nimi-text-muted)]">接种日期</label>
-            <ProfileDatePicker value={date} onChange={setDate} />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-[13px] mb-1 block text-[var(--nimi-text-muted)]">疫苗批号</label>
-              <TextField value={batch} onChange={(e) => setBatch(e.target.value)} placeholder="选填" className="w-full" />
-            </div>
-            <div>
-              <label className="text-[13px] mb-1 block text-[var(--nimi-text-muted)]">接种机构</label>
-              <TextField value={hospital} onChange={(e) => setHospital(e.target.value)} placeholder="选填" className="w-full" />
-            </div>
-          </div>
-          <div>
-            <label className="text-[13px] mb-1 block text-[var(--nimi-text-muted)]">不良反应记录</label>
-            <TextareaField value={reaction} onChange={(e) => setReaction(e.target.value)}
-              placeholder="如有不良反应请记录..."
-              className="w-full" rows={2} />
-          </div>
+      }
+      contentClassName="space-y-4"
+      footer={
+        <div className="flex items-center justify-end gap-2">
+          <Button onClick={onClose} tone="ghost" size="md">取消</Button>
+          <Button onClick={() => void handleSave()} disabled={saving} tone="primary" size="md">
+            {saving ? '保存中...' : '✅ 记录接种'}
+          </Button>
         </div>
-
-        <div className="px-6 pt-3 pb-5 mt-1">
-          <div className="flex items-center justify-end gap-2">
-            <Button onClick={onClose} tone="ghost" size="md">取消</Button>
-            <Button onClick={() => void handleSave()} disabled={saving} tone="primary" size="md">
-              {saving ? '保存中...' : '✅ 记录接种'}
-            </Button>
-          </div>
+      }
+    >
+      <p className="text-[14px] text-[var(--nimi-text-muted)]">{rule.description}</p>
+      <div>
+        <label className="text-[13px] mb-1 block text-[var(--nimi-text-muted)]">接种日期</label>
+        <ProfileDatePicker value={date} onChange={setDate} />
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="text-[13px] mb-1 block text-[var(--nimi-text-muted)]">疫苗批号</label>
+          <TextField value={batch} onChange={(e) => setBatch(e.target.value)} placeholder="选填" className="w-full" />
         </div>
-      </Surface>
-    </div>
+        <div>
+          <label className="text-[13px] mb-1 block text-[var(--nimi-text-muted)]">接种机构</label>
+          <TextField value={hospital} onChange={(e) => setHospital(e.target.value)} placeholder="选填" className="w-full" />
+        </div>
+      </div>
+      <div>
+        <label className="text-[13px] mb-1 block text-[var(--nimi-text-muted)]">不良反应记录</label>
+        <TextareaField value={reaction} onChange={(e) => setReaction(e.target.value)}
+          placeholder="如有不良反应请记录..."
+          className="w-full" rows={2} />
+      </div>
+    </OverlayShell>
   );
 }
 
@@ -165,27 +160,33 @@ function CustomVaccineModal({ childId, birthDate, onSave, onClose }: {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--nimi-scrim-modal)]" onClick={onClose}>
-      <Surface
-        tone="overlay"
-        material="glass-thick"
-        elevation="modal"
-        padding="none"
-        className="flex w-[440px] flex-col rounded-3xl"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-center justify-between px-6 pt-6 pb-3">
+    <OverlayShell
+      open
+      kind="dialog"
+      onClose={onClose}
+      panelClassName="w-[440px] rounded-3xl"
+      title={
+        <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="text-[20px]">💉</span>
             <h2 className="text-[16px] font-bold text-[var(--nimi-text-primary)]">自定义疫苗</h2>
           </div>
           <button onClick={onClose} className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-[var(--nimi-action-ghost-hover)] text-[var(--nimi-text-muted)]">✕</button>
         </div>
-
-        <div className="px-6 pb-2 space-y-4 flex-1">
-          <p className="text-[13px] text-[var(--nimi-text-muted)]">
-            添加非计划内疫苗（如流感疫苗、自费疫苗等），可设置定期提醒。
-          </p>
+      }
+      contentClassName="space-y-4"
+      footer={
+        <div className="flex items-center justify-end gap-2">
+          <Button onClick={onClose} tone="ghost" size="md">取消</Button>
+          <Button onClick={() => void handleSave()} disabled={saving || !name.trim()} tone="primary" size="md">
+            {saving ? '保存中...' : '记录接种'}
+          </Button>
+        </div>
+      }
+    >
+      <p className="text-[13px] text-[var(--nimi-text-muted)]">
+        添加非计划内疫苗（如流感疫苗、自费疫苗等），可设置定期提醒。
+      </p>
           <div>
             <label className="text-[13px] mb-1 block text-[var(--nimi-text-muted)]">疫苗名称 *</label>
             <TextField value={name} onChange={(e) => setName(e.target.value)} placeholder="如：流感疫苗、水痘疫苗" className="w-full" />
@@ -239,19 +240,8 @@ function CustomVaccineModal({ childId, birthDate, onSave, onClose }: {
                 将在 {new Date(new Date(date).setMonth(new Date(date).getMonth() + remindMonths)).toLocaleDateString('zh-CN')} 前后提醒下次接种
               </p>
             )}
-          </div>
-        </div>
-
-        <div className="px-6 pt-3 pb-5 mt-1">
-          <div className="flex items-center justify-end gap-2">
-            <Button onClick={onClose} tone="ghost" size="md">取消</Button>
-            <Button onClick={() => void handleSave()} disabled={saving || !name.trim()} tone="primary" size="md">
-              {saving ? '保存中...' : '记录接种'}
-            </Button>
-          </div>
-        </div>
-      </Surface>
-    </div>
+      </div>
+    </OverlayShell>
   );
 }
 

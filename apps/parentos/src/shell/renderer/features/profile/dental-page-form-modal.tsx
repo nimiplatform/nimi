@@ -1,6 +1,5 @@
-import { useState } from 'react';
 import { convertFileSrc } from '@tauri-apps/api/core';
-import { cn } from '@nimiplatform/nimi-kit/ui';
+import { cn, DashedAddButton } from '@nimiplatform/nimi-kit/ui';
 import type { AttachmentRow } from '../../bridge/sqlite-bridge.js';
 import type { ReactNode } from 'react';
 import {
@@ -44,7 +43,6 @@ type DentalRecordFormModalProps = {
   formHospital: string;
   formNotes: string;
   photoDragOver: boolean;
-  photoDropHover: boolean;
   existingPhotoAttachments: AttachmentRow[];
   removedAttachmentIds: string[];
   formPhotoPreviews: string[];
@@ -54,7 +52,6 @@ type DentalRecordFormModalProps = {
   setFormNotes: (value: string) => void;
   setActiveEntryIdx: (value: number) => void;
   setPhotoDragOver: (value: boolean) => void;
-  setPhotoDropHover: (value: boolean) => void;
   updateEntry: (idx: number, patch: Partial<EventEntry>) => void;
   removeEntry: (idx: number) => void;
   addEntry: () => void;
@@ -89,7 +86,6 @@ export function DentalRecordFormBody(props: DentalRecordFormModalProps) {
     (attachment) => !props.removedAttachmentIds.includes(attachment.attachmentId),
   );
   const totalPhotoCount = visibleExistingPhotoAttachments.length + props.formPhotoFiles.length;
-  const [entryAddHover, setEntryAddHover] = useState(false);
 
   const eventTypeChips: ChipOption<string>[] = props.availableEventTypes.map((item) => ({
     value: item.key,
@@ -241,35 +237,7 @@ export function DentalRecordFormBody(props: DentalRecordFormModalProps) {
           })}
 
           {!props.isEditing ? (
-            <button
-              type="button"
-              onClick={props.addEntry}
-              onMouseEnter={() => setEntryAddHover(true)}
-              onMouseLeave={() => setEntryAddHover(false)}
-              className={cn(
-                'flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed py-3 text-[13px] font-medium transition-colors',
-                entryAddHover
-                  ? 'border-[var(--nimi-action-primary-bg)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_8%,var(--nimi-surface-card))] text-[var(--nimi-action-primary-bg)]'
-                  : 'border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] text-[var(--nimi-text-muted)]',
-              )}
-            >
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                className="transition-transform duration-300"
-                style={{
-                  transform: entryAddHover ? 'scale(1.15) rotate(90deg)' : 'scale(1) rotate(0deg)',
-                }}
-              >
-                <path d="M12 5v14M5 12h14" />
-              </svg>
-              添加另一个事件
-            </button>
+            <DashedAddButton shape="row" onClick={props.addEntry} label="添加另一个事件" />
           ) : null}
 
           <FormField label="备注">
@@ -333,49 +301,19 @@ export function DentalRecordFormBody(props: DentalRecordFormModalProps) {
                     </button>
                   </div>
                 ))}
-                {totalPhotoCount < PHOTO_MAX
-                  ? (() => {
-                      const photoActive = props.photoDragOver || props.photoDropHover;
-                      return (
-                        <button
-                          type="button"
-                          onClick={() => void props.pickPhotoFiles()}
-                          onMouseEnter={() => props.setPhotoDropHover(true)}
-                          onMouseLeave={() => props.setPhotoDropHover(false)}
-                          className={cn(
-                            'flex h-24 w-full flex-col items-center justify-center gap-1.5 rounded-xl border-2 border-dashed transition-colors',
-                            totalPhotoCount === 0 && 'col-span-4',
-                            photoActive
-                              ? 'border-[var(--nimi-action-primary-bg)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_8%,var(--nimi-surface-card))] text-[var(--nimi-action-primary-bg)]'
-                              : 'border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] text-[var(--nimi-text-muted)]',
-                          )}
-                        >
-                          <svg
-                            width="22"
-                            height="22"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="1.5"
-                            strokeLinecap="round"
-                            className="transition-transform duration-300"
-                            style={{
-                              transform: photoActive ? 'scale(1.15) rotate(90deg)' : 'scale(1) rotate(0deg)',
-                            }}
-                          >
-                            <path d="M12 5v14M5 12h14" />
-                          </svg>
-                          <span
-                            className="px-1 text-center text-[12px]"
-                          >
-                            {props.formPhotoFiles.length === 0
-                              ? `点击或拖拽上传口腔照片（最多 ${PHOTO_MAX} 张）`
-                              : '添加更多'}
-                          </span>
-                        </button>
-                      );
-                    })()
-                  : null}
+                {totalPhotoCount < PHOTO_MAX ? (
+                  <DashedAddButton
+                    shape="tile"
+                    active={props.photoDragOver}
+                    onClick={() => void props.pickPhotoFiles()}
+                    className={totalPhotoCount === 0 ? 'col-span-4' : undefined}
+                    label={
+                      props.formPhotoFiles.length === 0
+                        ? `点击或拖拽上传口腔照片（最多 ${PHOTO_MAX} 张）`
+                        : '添加更多'
+                    }
+                  />
+                ) : null}
               </div>
             </UploadBox>
           </SectionCard>

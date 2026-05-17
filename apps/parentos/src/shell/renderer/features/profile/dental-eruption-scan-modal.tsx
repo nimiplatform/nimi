@@ -1,4 +1,4 @@
-import { Button, cn, StatusBadge, Surface } from '@nimiplatform/nimi-kit/ui';
+import { Button, cn, OverlayShell, StatusBadge, Surface } from '@nimiplatform/nimi-kit/ui';
 import { useMemo, useState } from 'react';
 import { ProfileDatePicker } from './profile-date-picker.js';
 import {
@@ -172,14 +172,14 @@ export function DentalEruptionScanModal(props: DentalEruptionScanModalProps) {
   if (!props.show) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--nimi-scrim-modal)] p-4">
-      <Surface
-        tone="overlay"
-        material="glass-thick"
-        elevation="modal"
-        padding="none"
-        className="max-h-[90vh] w-full max-w-[640px] overflow-auto rounded-3xl"
-      >
+    <OverlayShell
+      open
+      kind="dialog"
+      onClose={props.onClose}
+      closeOnBackdrop={false}
+      panelClassName="max-h-[90vh] w-full max-w-[640px] overflow-auto rounded-3xl"
+      contentClassName="!p-0"
+    >
         <div className="flex items-center justify-between border-b border-[var(--nimi-border-subtle)] px-5 py-4">
           <div>
             <h2 className="text-[16px] font-semibold text-[var(--nimi-text-primary)]">AI 识别牙齿萌出情况</h2>
@@ -389,8 +389,7 @@ export function DentalEruptionScanModal(props: DentalEruptionScanModalProps) {
             </Button>
           </div>
         </div>
-      </Surface>
-    </div>
+    </OverlayShell>
   );
 }
 

@@ -1,21 +1,24 @@
 /**
  * Case-level shell for the orthodontic surface. Replaces the legacy single
  * `OrthodonticTreatmentCard`: it owns the case-level chrome (the "正在并行 N
- * 件矫治器" header + identity legend, the bottom 疗程总进度 strip, the ⋯ case
- * menu, the stage-advance dialog, the unknown-legacy banner, the no-appliance
- * empty state) and composes the per-appliance grid + the consolidated review
- * card in between. Per-appliance state lives in the cards; this shell never
- * collapses the appliance set to a single "primary" one (PO-ORTHO-003a).
+ * 件矫治器" header, the bottom 疗程总进度 strip, the ⋯ case menu, the
+ * stage-advance dialog, the unknown-legacy banner, the no-appliance empty
+ * state) and composes the per-appliance grid + the consolidated review card
+ * in between. Per-appliance identity (name + start date) is owned by each
+ * appliance card below, so the header strip carries only the parallel count
+ * to avoid the duplicate-legend issue the parent flagged. Per-appliance
+ * state lives in the cards; this shell never collapses the appliance set to
+ * a single "primary" one (PO-ORTHO-003a).
  */
 import { useEffect, useRef, useState } from 'react';
-import { Button, IconButton, StatusBadge, Surface } from '@nimiplatform/nimi-kit/ui';
+import { Button, IconButton, Surface } from '@nimiplatform/nimi-kit/ui';
 import {
   deleteOrthodonticCase,
   type OrthodonticCaseRow,
   type OrthodonticStage,
 } from '../../bridge/sqlite-bridge.js';
 import { catchLog } from '../../infra/telemetry/catch-log.js';
-import { applianceTypeLabel, computeStageOptions, stageLabel } from './orthodontic-derive.js';
+import { computeStageOptions, stageLabel } from './orthodontic-derive.js';
 import {
   blockedAdvanceReason,
   computeOverallProgressPct,
@@ -109,49 +112,21 @@ export function OrthodonticCaseShell({
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      {/* ── header strip: parallel-appliance count + identity legend ── */}
+      {/* ── header strip: parallel-appliance count only. Per-appliance
+          identity + start date live on each card below, so duplicating
+          them here just clutters the chrome. ── */}
       {items.length > 0 && (
         <Surface
           tone="card"
           material="glass-regular"
           elevation="base"
           padding="none"
-          className="px-5 py-3"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 16,
-            flexWrap: 'wrap',
-          }}
+          className="flex items-center px-5 py-3"
         >
           <span className="text-[13px] text-[var(--nimi-text-muted)]">
             正在并行{' '}
             <strong className="font-bold text-[var(--nimi-text-primary)]">{items.length}</strong> 件矫治器
           </span>
-          <div
-            style={{
-              marginLeft: 'auto',
-              display: 'flex',
-              gap: 14,
-              flexWrap: 'wrap',
-            }}
-          >
-            {appliances.map((appliance) => {
-              return (
-                <span
-                  key={appliance.applianceId}
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}
-                >
-                  <StatusBadge tone="info" className="px-1.5 py-0 text-[11px]">
-                    {applianceTypeLabel(appliance.applianceType)}
-                  </StatusBadge>
-                  <span className="font-mono text-[var(--nimi-text-muted)]">
-                    起 {appliance.startedAt.slice(5)}
-                  </span>
-                </span>
-              );
-            })}
-          </div>
         </Surface>
       )}
 

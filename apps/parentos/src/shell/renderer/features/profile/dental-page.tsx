@@ -3,10 +3,7 @@ import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAppStore, computeAgeMonths } from '../../app-shell/app-store.js';
 import { DentalHistoryView } from './dental-history-view.js';
-import {
-  OrthodonticPage,
-  type OrthodonticActionRequest,
-} from './orthodontic-page.js';
+import { OrthodonticPage } from './orthodontic-page.js';
 import { NoActiveChildPlaceholder } from './_shared/no-active-child-placeholder.js';
 import { ProfileDetailShell } from './_shared/profile-detail-shell.js';
 
@@ -23,13 +20,16 @@ function readInitialTab(searchParams: URLSearchParams): DentalTab {
  *
  *  - 口腔记录: dental_records clinical timeline (includes ortho clinical events)
  *  - 正畸治疗: case + appliance + daily checkin surface
+ *
+ * The per-tab primary action ("添加记录" / "添加矫治器") lives inline at the
+ * top of each tab's content area, not in the shell header — both tabs render
+ * their action button via the same right-aligned in-content row pattern.
  */
 export default function DentalPage() {
   const { activeChildId, children } = useAppStore();
   const child = children.find((c) => c.childId === activeChildId);
   const [searchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState<DentalTab>(() => readInitialTab(searchParams));
-  const [actionRequest, setActionRequest] = useState<OrthodonticActionRequest | null>(null);
 
   if (!child) {
     return (
@@ -44,11 +44,6 @@ export default function DentalPage() {
   return (
     <ProfileDetailShell
       title="口腔档案"
-      actions={activeTab === 'orthodontic' ? (
-        <AddApplianceButton
-          onClick={() => setActionRequest({ kind: 'add-appliance', nonce: Date.now() })}
-        />
-      ) : null}
       subnav={<TabNav activeTab={activeTab} onChange={setActiveTab} />}
     >
       {activeTab === 'history' && <DentalHistoryView />}
@@ -57,50 +52,12 @@ export default function DentalPage() {
           childId={child.childId}
           childBirthDate={child.birthDate}
           ageMonths={ageMonths}
-          actionRequest={actionRequest}
-          onActionRequestHandled={() => setActionRequest(null)}
         />
       )}
     </ProfileDetailShell>
   );
 }
 
-/**
- * "添加矫治器" button next to the tab strip on the orthodontic tab.
- *
- * Earlier this slot held a dropdown with "添加矫治器" + "记录临床事件" siblings.
- * The clinical-event entry was retired (the contextual `记录就诊` and
- * `记录异常` buttons inside the treatment card cover that flow), so the
- * dropdown layer is dropped and the single remaining action is surfaced
- * directly as a plain button.
- */
-function AddApplianceButton({ onClick }: { onClick: () => void }) {
-  return (
-    <Button
-      type="button"
-      onClick={onClick}
-      tone="secondary"
-      size="sm"
-      className="rounded-full whitespace-nowrap"
-      leadingIcon={
-        <svg
-          width="13"
-          height="13"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.6"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <path d="M12 5v14M5 12h14" />
-        </svg>
-      }
-    >
-      添加矫治器
-    </Button>
-  );
-}
 /* ── Tab nav ─────────────────────────────────────────────── */
 
 function TabNav({

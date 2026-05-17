@@ -1,6 +1,7 @@
 import { Button, Surface } from '@nimiplatform/nimi-kit/ui';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useSearchParams } from 'react-router-dom';
 import { RefreshCw } from 'lucide-react';
 import { computeAgeMonths, useAppStore } from '../../app-shell/app-store.js';
 import {
@@ -54,6 +55,8 @@ function lastRecordedDaysAgo(events: readonly HealthRecordEvent[]): number | nul
 
 export default function ProfilePage() {
   const { t } = useTranslation();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const focusGroupId = searchParams.get('focus');
   const activeChildId = useAppStore((state) => state.activeChildId);
   const children = useAppStore((state) => state.children);
   const activeChild = children.find((child) => child.childId === activeChildId);
@@ -91,6 +94,17 @@ export default function ProfilePage() {
     }
     void loadRecords(activeChildId);
   }, [activeChildId, loadRecords]);
+
+  // ?focus=<groupId> is set when the user records data from the timeline
+  // dashboard; after the group card mounts we scroll it into view and clear
+  // the param so a refresh / back-nav doesn't re-trigger the scroll.
+  useEffect(() => {
+    if (!focusGroupId || loading) return;
+    const target = document.getElementById(`profile-group-${focusGroupId}`);
+    if (!target) return;
+    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    setSearchParams({}, { replace: true });
+  }, [focusGroupId, loading, setSearchParams]);
 
   const ageMonths = activeChild ? computeAgeMonths(activeChild.birthDate) : 0;
   const snapshot = useMemo(() => {

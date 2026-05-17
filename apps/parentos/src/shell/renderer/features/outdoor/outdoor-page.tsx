@@ -1,4 +1,4 @@
-import { Button, Surface, TextField } from '@nimiplatform/nimi-kit/ui';
+import { Button, OverlayShell, Surface, TextField } from '@nimiplatform/nimi-kit/ui';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAppStore } from '../../app-shell/app-store.js';
@@ -527,66 +527,17 @@ function RecordModal({
   };
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--nimi-scrim-modal)]"
-      onClick={onClose}
-    >
-      <Surface
-        tone="overlay"
-        material="glass-thick"
-        elevation="modal"
-        padding="lg"
-        className="w-80 rounded-2xl"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <h3 className="mb-4 text-[16px] font-semibold text-[var(--nimi-text-primary)]">
+    <OverlayShell
+      open
+      kind="dialog"
+      onClose={onClose}
+      panelClassName="w-80 rounded-2xl"
+      title={
+        <h3 className="text-[16px] font-semibold text-[var(--nimi-text-primary)]">
           {isEditing ? '编辑记录' : '记录户外活动'}
         </h3>
-
-        {/* Date */}
-        <label className="mb-1 block text-[13px] text-[var(--nimi-text-muted)]">日期</label>
-        <input
-          type="date"
-          value={date}
-          onChange={(e) => setDate(e.target.value)}
-          className="mb-4 w-full rounded-xl border border-[var(--nimi-field-border)] bg-[var(--nimi-field-bg)] px-3 py-2 text-[14px] text-[var(--nimi-field-text)]"
-          max={fmtDate(new Date())}
-        />
-
-        {/* Duration */}
-        <label className="mb-1 block text-[13px] text-[var(--nimi-text-muted)]">时长（分钟）</label>
-        <div className="mb-2 flex gap-2">
-          {DURATION_PRESETS.map((preset) => (
-            <Button
-              key={preset}
-              onClick={() => setMinutes(String(preset))}
-              tone={minutes === String(preset) ? 'primary' : 'secondary'}
-              size="sm"
-            >
-              {preset}
-            </Button>
-          ))}
-        </div>
-        <TextField
-          type="number"
-          value={minutes}
-          onChange={(e) => setMinutes(e.target.value)}
-          placeholder="自定义分钟数"
-          className="mb-4 w-full"
-          min={1}
-        />
-
-        {/* Note */}
-        <label className="mb-1 block text-[13px] text-[var(--nimi-text-muted)]">备注（可选）</label>
-        <TextField
-          type="text"
-          value={note}
-          onChange={(e) => setNote(e.target.value)}
-          placeholder="例：小区公园散步"
-          className="mb-5 w-full"
-        />
-
-        {/* Actions */}
+      }
+      footer={
         <div className="flex items-center justify-between">
           {isEditing && onDelete ? (
             <Button
@@ -615,7 +566,50 @@ function RecordModal({
             </Button>
           </div>
         </div>
-      </Surface>
-    </div>
+      }
+    >
+      {/* Date */}
+      <label className="mb-1 block text-[13px] text-[var(--nimi-text-muted)]">日期</label>
+      <input
+        type="date"
+        value={date}
+        onChange={(e) => setDate(e.target.value)}
+        className="mb-4 w-full rounded-xl border border-[var(--nimi-field-border)] bg-[var(--nimi-field-bg)] px-3 py-2 text-[14px] text-[var(--nimi-field-text)]"
+        max={fmtDate(new Date())}
+      />
+
+      {/* Duration */}
+      <label className="mb-1 block text-[13px] text-[var(--nimi-text-muted)]">时长（分钟）</label>
+      <div className="mb-2 flex gap-2">
+        {DURATION_PRESETS.map((preset) => (
+          <Button
+            key={preset}
+            onClick={() => setMinutes(String(preset))}
+            tone={minutes === String(preset) ? 'primary' : 'secondary'}
+            size="sm"
+          >
+            {preset}
+          </Button>
+        ))}
+      </div>
+      <TextField
+        type="number"
+        value={minutes}
+        onChange={(e) => setMinutes(e.target.value)}
+        placeholder="自定义分钟数"
+        className="mb-4 w-full"
+        min={1}
+      />
+
+      {/* Note */}
+      <label className="mb-1 block text-[13px] text-[var(--nimi-text-muted)]">备注（可选）</label>
+      <TextField
+        type="text"
+        value={note}
+        onChange={(e) => setNote(e.target.value)}
+        placeholder="例：小区公园散步"
+        className="mb-1 w-full"
+      />
+    </OverlayShell>
   );
 }

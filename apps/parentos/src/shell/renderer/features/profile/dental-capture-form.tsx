@@ -39,7 +39,6 @@ export function DentalCaptureContent({ child, ageMonths, onSaved, onClose }: Den
   const [formPhotoPreviews, setFormPhotoPreviews] = useState<string[]>([]);
   const [formPhotoFiles, setFormPhotoFiles] = useState<PendingDentalPhoto[]>([]);
   const [photoDragOver, setPhotoDragOver] = useState(false);
-  const [photoDropHover, setPhotoDropHover] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const updateEntry = (idx: number, patch: Partial<EventEntry>) => {
@@ -174,7 +173,6 @@ export function DentalCaptureContent({ child, ageMonths, onSaved, onClose }: Den
       formHospital={formHospital}
       formNotes={formNotes}
       photoDragOver={photoDragOver}
-      photoDropHover={photoDropHover}
       existingPhotoAttachments={[]}
       removedAttachmentIds={[]}
       formPhotoPreviews={formPhotoPreviews}
@@ -184,7 +182,6 @@ export function DentalCaptureContent({ child, ageMonths, onSaved, onClose }: Den
       setFormNotes={setFormNotes}
       setActiveEntryIdx={setActiveEntryIdx}
       setPhotoDragOver={setPhotoDragOver}
-      setPhotoDropHover={setPhotoDropHover}
       updateEntry={updateEntry}
       removeEntry={removeEntry}
       addEntry={addEntry}

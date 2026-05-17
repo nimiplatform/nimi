@@ -492,7 +492,13 @@ can have each appliance in a different phase.
 
 The admitted phase sequence per `applianceType` is governed solely by
 `orthodontic-protocols.yaml#appliancePhases`. Each entry is an ordered list of
-`{ phaseId, label, expectedMonths }`.
+`{ phaseId, label, description, expectedMonths }`. `label` is the short phase
+name on the appliance card pill; `description` is a one-sentence plain-language
+explanation of what the phase means, surfaced in the phase-set / phase-advance
+dialog for non-clinical readers. `description` is descriptive only — it states
+what the phase IS and MUST NOT prescribe wear behavior or assert efficacy
+(PO-ORTHO-010 boundary); it is human-authored static catalog text, never
+AI-generated.
 
 Invariants (fail-close on each):
 

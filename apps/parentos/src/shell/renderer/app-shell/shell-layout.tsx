@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, type MouseEvent as ReactMouseEvent, type ReactNode, type ComponentType } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { Home, User, BookText, MessageCircle, TrendingUp, Settings, Bell, LogOut, ChevronDown, Check, UserPlus, type LucideProps } from 'lucide-react';
+import { Home, User, BookText, MessageCircle, TrendingUp, Settings, LogOut, ChevronDown, Check, UserPlus, type LucideProps } from 'lucide-react';
 import { AmbientBackground, Surface, cn } from '@nimiplatform/nimi-kit/ui';
 import { useAppStore, computeAgeMonths, type ChildProfile } from './app-store.js';
 import { startParentosWindowDrag } from '../bridge/window-drag.js';
@@ -335,10 +335,6 @@ export function ShellLayout({ children }: { children: ReactNode }) {
           </div>
 
           <div className="ml-auto flex items-center gap-3">
-            <button className="flex h-9 w-9 items-center justify-center rounded-xl text-[var(--nimi-text-muted)] transition-colors hover:bg-[var(--nimi-action-ghost-hover)] hover:text-[var(--nimi-text-primary)]">
-              <Bell size={17} strokeWidth={1.8} />
-            </button>
-
             <AccountAvatarMenu />
           </div>
         </header>

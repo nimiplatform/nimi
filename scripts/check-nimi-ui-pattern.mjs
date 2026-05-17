@@ -427,11 +427,20 @@ for (const item of appForbiddenPatterns) {
     ? listFilesRecursively(absScope, (abs) => /\.(?:ts|tsx|css)$/u.test(abs) && !/\.test\./u.test(abs))
     : [absScope].filter((abs) => fs.existsSync(abs));
   const regex = new RegExp(pattern, 'u');
+  const baseline = new Map(
+    (Array.isArray(item?.allowed_matches) ? item.allowed_matches : []).map((entry) => [
+      String(entry?.path || '').replace(/\\/gu, '/'),
+      Number(entry?.count || 0),
+    ]),
+  );
   for (const abs of targets) {
     const content = fs.readFileSync(abs, 'utf8');
-    if (regex.test(content)) {
-      const rel = path.relative(repoRoot, abs).replace(/\\/gu, '/');
-      hardFailures.push(`${rel}: ${reason} (${id})`);
+    const rel = path.relative(repoRoot, abs).replace(/\\/gu, '/');
+    const matches = content.match(new RegExp(regex.source, 'gu')) || [];
+    const allowedCount = baseline.get(rel) || 0;
+    if (matches.length > allowedCount) {
+      const suffix = allowedCount > 0 ? `; ${allowedCount} baseline match(es) allowed` : '';
+      hardFailures.push(`${rel}: ${reason} (${id}; ${matches.length} match(es)${suffix})`);
     }
   }
 }

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState, type RefObject } from 'react';
+import { DashedAddButton } from '@nimiplatform/nimi-kit/ui';
 import { DrugComboBox, type DrugSelection } from './drug-combobox.js';
 import { getMedicalEvents } from '../../bridge/sqlite-bridge.js';
 import type { MedicalEventRow } from '../../bridge/sqlite-bridge.js';
@@ -353,13 +354,7 @@ function MedicalEventsFormBody({
                       </button>
                     </div>
                   ) : (
-                    <button
-                      onClick={() => setFormShowEndDate(true)}
-                      className="inline-flex h-12 items-center justify-center rounded-[14px] px-4 text-[13px] font-medium transition-colors hover:bg-[#f0f2ee]"
-                      style={{ border: `1px dashed ${HEALTH_MODAL_TOKENS.fieldBorder}`, color: HEALTH_MODAL_TOKENS.sub }}
-                    >
-                      + 持续治疗/住院
-                    </button>
+                    <DashedAddButton shape="row" onClick={() => setFormShowEndDate(true)} label="持续治疗/住院" />
                   )}
                 </FormField>
               </FormGrid>
@@ -577,15 +572,13 @@ function MedicalEventsFormBody({
                   </div>
                 ))}
 
-                <button
+                <DashedAddButton
+                  shape="row"
                   onClick={() =>
                     setFormMeds((prev) => [...prev, { name: '', dose: '', unit: '次', frequency: '', days: '', tags: [] }])
                   }
-                  className="w-full rounded-[14px] py-2.5 text-[13px] font-medium transition-colors hover:bg-[#f0f2ee]"
-                  style={{ border: `1px dashed ${HEALTH_MODAL_TOKENS.fieldBorder}`, color: HEALTH_MODAL_TOKENS.sub }}
-                >
-                  + 添加药品
-                </button>
+                  label="添加药品"
+                />
               </div>
             </SectionCard>
           ) : null}

@@ -89,7 +89,7 @@
 
 ## P-DESIGN-013 — Overlay Contract
 
-- `OverlayShell` is the shared overlay shell primitive for governed `dialog` and `drawer` surfaces. It owns the canonical backdrop, panel, title, content, footer, motion, z-index, close behavior, and testability slots.
+- `OverlayShell` is the shared overlay shell primitive for governed `dialog` and `drawer` surfaces. Its admitted primitive metadata also includes a controlled `popover` kind for registered overlay-family popover surfaces; app specs must not treat that as permission to hand-roll dialog/drawer shells. `OverlayShell` owns the canonical backdrop, panel, title, content, footer, motion, z-index, close behavior, and testability slots.
 - `Dialog` / `DialogContent` are lower-level Radix-backed parts for kit-internal and explicitly controlled overlay surfaces; they must still emit the canonical overlay slot classes when rendering governed content.
 - `Popover` / `PopoverContent` and `Tooltip` / `TooltipContent` are lower-level Radix-backed overlay parts for popover and tooltip surfaces; their content layers must emit the canonical overlay-family classes admitted in `nimi-ui-primitives.yaml`.
 - Governed overlays must keep reduced-motion behavior and stable testability surfaces.

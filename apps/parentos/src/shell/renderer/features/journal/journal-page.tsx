@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { NimiText } from '@nimiplatform/nimi-kit/ui';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import type { SelectFieldOption } from '@nimiplatform/nimi-kit/ui';
 import { useAppStore, computeAgeMonths } from '../../app-shell/app-store.js';
 import { OBSERVATION_DIMENSIONS } from '../../knowledge-base/index.js';
 import { getActiveDimensions } from '../../engine/observation-matcher.js';
@@ -53,7 +53,7 @@ import { createJournalPersistenceActions } from './journal-page-persistence-acti
 export default function JournalPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { activeChildId, setActiveChildId, children } = useAppStore();
+  const { activeChildId, children } = useAppStore();
   const child = children.find((item) => item.childId === activeChildId);
   const [entries, setEntries] = useState<JournalEntryRow[]>([]);
   const [captureMode, setCaptureMode] = useState<CaptureMode>('text');
@@ -112,11 +112,6 @@ export default function JournalPage() {
     () => getActiveDimensions(OBSERVATION_DIMENSIONS, ageMonths),
     [ageMonths],
   );
-  const childOptions = useMemo<SelectFieldOption[]>(
-    () => children.map((item) => ({ value: item.childId, label: item.displayName })),
-    [children],
-  );
-
   const observationFocus: ObservationFocusData | null = useMemo(() => {
     if (!selectedDimension) return null;
     const dim = activeDimensions.find((item) => item.dimensionId === selectedDimension);
@@ -224,6 +219,17 @@ export default function JournalPage() {
       textareaRef.current?.focus();
     }
   }, [captureMode]);
+
+  // When an entry is loaded for editing, jump to the composer input box
+  useEffect(() => {
+    if (!editingEntryId || captureMode !== 'text') return;
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+    textarea.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    textarea.focus({ preventScroll: true });
+    const end = textarea.value.length;
+    textarea.setSelectionRange(end, end);
+  }, [editingEntryId, captureMode]);
 
 
   useEffect(() => {
@@ -384,7 +390,7 @@ export default function JournalPage() {
     writeJournalLocalDraft({ ...currentLocalDraftPayload, updatedAt });
   }, [child, currentLocalDraftHasContent, currentLocalDraftPayload, editingEntryId]);
 
-  if (!child) return <div className="p-8 text-[var(--nimi-text-muted)]">请先添加孩子</div>;
+  if (!child) return <NimiText role="helper" className="p-8">请先添加孩子</NimiText>;
 
   /* ── Helpers ── */
 
@@ -591,9 +597,6 @@ export default function JournalPage() {
   return (
     <div className="hide-scrollbar mx-auto min-h-full max-w-3xl px-6 pb-6 pt-4">
       <JournalPageCapture
-        activeChildId={activeChildId}
-        childOptions={childOptions}
-        onChildChange={setActiveChildId}
         guidedContext={guidedContext}
         observationFocus={observationFocus}
         observationFocusOptions={observationFocusOptions}
@@ -707,7 +710,6 @@ export default function JournalPage() {
             const ga = entry.guidedAnswers ? JSON.parse(entry.guidedAnswers) as Record<string, string> : null;
             setSubjectiveNotes(ga?._subjective ?? '');
           } catch { setSubjectiveNotes(''); }
-          window.scrollTo({ top: 0, behavior: 'smooth' });
         }}
         onDeleteEntry={(entry) => setDeleteTarget(entry)}
         onToggleKeepsake={handleToggleKeepsake}

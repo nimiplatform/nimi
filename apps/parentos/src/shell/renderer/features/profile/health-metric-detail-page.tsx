@@ -21,11 +21,9 @@ import {
 } from '../../engine/health-record-domain.js';
 import {
   HEALTH_METRIC_IDS,
-  type HealthCaptureProtocolId,
   type HealthMetricId,
 } from '../../knowledge-base/index.js';
 import { HealthCaptureModal } from './health-capture-modal.js';
-import { createDefaultHealthCaptureIntent, type HealthCaptureIntent } from './health-capture-orchestrator.js';
 import {
   FRESHNESS_LABEL_KEYS,
   STATUS_LABEL_KEYS,
@@ -140,10 +138,7 @@ export default function HealthMetricDetailPage() {
       });
   }, [activeChild, events, metricId, nowIso, values]);
 
-  const initialIntent = useMemo<HealthCaptureIntent | null>(() => {
-    const protocolId = metric?.captureProtocolIds[0] as HealthCaptureProtocolId | undefined;
-    return protocolId ? createDefaultHealthCaptureIntent(protocolId, 'manual', new Date().toISOString().slice(0, 10)) : null;
-  }, [metric]);
+  const hasCaptureProtocol = (metric?.captureProtocolIds.length ?? 0) > 0;
 
   if (!metricId || !metric) {
     return <Navigate to="/profile" replace />;
@@ -165,7 +160,7 @@ export default function HealthMetricDetailPage() {
 
   return (
     <GenericMetricDetailShell
-      topAction={initialIntent ? (
+      topAction={hasCaptureProtocol ? (
         <IconButton
           tone="primary"
           size="md"
@@ -248,12 +243,13 @@ export default function HealthMetricDetailPage() {
           )}
         </Surface>
 
-        {initialIntent ? (
+        {hasCaptureProtocol && captureOpen ? (
           <HealthCaptureModal
-            open={captureOpen}
+            open
             childId={activeChild.childId}
             childBirthDate={activeChild.birthDate}
-            initialIntent={initialIntent}
+            initialGroupId={metric.groupId}
+            initialMetricId={metric.metricId}
             onClose={() => setCaptureOpen(false)}
             onSaved={(_: SaveHealthRecordCaptureResult) => {
               void loadRecords(activeChild.childId);

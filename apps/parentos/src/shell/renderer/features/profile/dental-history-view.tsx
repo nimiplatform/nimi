@@ -75,7 +75,6 @@ export function DentalHistoryView() {
   const [formPhotoPreviews, setFormPhotoPreviews] = useState<string[]>([]);
   const [formPhotoFiles, setFormPhotoFiles] = useState<PendingDentalPhoto[]>([]);
   const [photoDragOver, setPhotoDragOver] = useState(false);
-  const [photoDropHover, setPhotoDropHover] = useState(false);
   const isEditing = editingRecordId !== null;
   const visibleExistingPhotoAttachments = existingPhotoAttachments.filter((attachment) => !removedAttachmentIds.includes(attachment.attachmentId));
   const totalPhotoCount = visibleExistingPhotoAttachments.length + formPhotoFiles.length;
@@ -465,7 +464,6 @@ export function DentalHistoryView() {
     setFormPhotoPreviews([]);
     setFormPhotoFiles([]);
     setPhotoDragOver(false);
-    setPhotoDropHover(false);
     setShowForm(false);
   };
 
@@ -486,7 +484,6 @@ export function DentalHistoryView() {
     setFormPhotoPreviews([]);
     setFormPhotoFiles([]);
     setPhotoDragOver(false);
-    setPhotoDropHover(false);
     setShowForm(true);
   };
 
@@ -681,7 +678,6 @@ export function DentalHistoryView() {
         formHospital={formHospital}
         formNotes={formNotes}
         photoDragOver={photoDragOver}
-        photoDropHover={photoDropHover}
         existingPhotoAttachments={existingPhotoAttachments}
         removedAttachmentIds={removedAttachmentIds}
         formPhotoPreviews={formPhotoPreviews}
@@ -691,7 +687,6 @@ export function DentalHistoryView() {
         setFormNotes={setFormNotes}
         setActiveEntryIdx={setActiveEntryIdx}
         setPhotoDragOver={setPhotoDragOver}
-        setPhotoDropHover={setPhotoDropHover}
         updateEntry={updateEntry}
         removeEntry={removeEntry}
         addEntry={addEntry}

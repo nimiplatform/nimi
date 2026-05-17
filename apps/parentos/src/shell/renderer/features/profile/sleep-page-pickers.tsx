@@ -265,7 +265,7 @@ const TimePickerPanel = forwardRef<HTMLDivElement, {
   return (
     <div
       ref={ref}
-      className="fixed z-[60] overflow-hidden rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-overlay)] shadow-[var(--nimi-elevation-floating)]"
+      className="fixed z-[120] overflow-hidden rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-overlay)] shadow-[var(--nimi-elevation-floating)]"
       style={{
         left,
         top,
@@ -393,7 +393,7 @@ const DatePickerPanel = forwardRef<HTMLDivElement, {
   return (
     <div
       ref={ref}
-      className="fixed z-[60] overflow-hidden rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-overlay)] p-3 shadow-[var(--nimi-elevation-floating)]"
+      className="fixed z-[120] overflow-hidden rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-overlay)] p-3 shadow-[var(--nimi-elevation-floating)]"
       style={{
         left,
         top,

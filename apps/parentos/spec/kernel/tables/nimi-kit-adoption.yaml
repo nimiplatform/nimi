@@ -118,7 +118,7 @@ modules:
   - id: parentos.features.journal.journal_sub_components
     app: parentos
     module: apps/parentos/src/shell/renderer/features/journal/journal-sub-components.tsx
-    families: [ surface, action, status, scroll_area ]
+    families: [ surface, overlay, action, status, scroll_area ]
     testid_required: false
     exception_policy: none
     source_rule: P-DESIGN-020
@@ -138,7 +138,7 @@ modules:
   - id: parentos.features.outdoor.outdoor_page
     app: parentos
     module: apps/parentos/src/shell/renderer/features/outdoor/outdoor-page.tsx
-    families: [ surface, action ]
+    families: [ surface, overlay, action ]
     testid_required: false
     exception_policy: none
     source_rule: P-DESIGN-020
@@ -168,7 +168,7 @@ modules:
   - id: parentos.features.profile.allergy_page
     app: parentos
     module: apps/parentos/src/shell/renderer/features/profile/allergy-page.tsx
-    families: [ surface, action, status ]
+    families: [ surface, overlay, action, status ]
     testid_required: false
     exception_policy: none
     source_rule: P-DESIGN-020
@@ -435,6 +435,19 @@ modules:
     scheme_support: [ light, dark ]
     default_scheme: light
     accent_pack: nimi-accent
+  - id: parentos.features.profile.health_capture_modal
+    app: parentos
+    module: apps/parentos/src/shell/renderer/features/profile/health-capture-modal.tsx
+    families: [ surface, overlay, field, action, status ]
+    testid_required: false
+    exception_policy: controlled_exception
+    exception_owner: parentos-overlay-consolidation
+    exception_reason: Legacy HealthRecordModalShell consumer registered for Wave 2 migration to OverlayShell.
+    sunset_wave: wave-2
+    source_rule: P-DESIGN-021
+    scheme_support: [ light, dark ]
+    default_scheme: light
+    accent_pack: nimi-accent
   - id: parentos.features.profile.health_record_modal_shell
     app: parentos
     module: apps/parentos/src/shell/renderer/features/profile/health-record-modal-shell.tsx
@@ -488,7 +501,7 @@ modules:
   - id: parentos.features.profile.milestone_page
     app: parentos
     module: apps/parentos/src/shell/renderer/features/profile/milestone-page.tsx
-    families: [ surface, action ]
+    families: [ surface, overlay, action ]
     testid_required: false
     exception_policy: none
     source_rule: P-DESIGN-020
@@ -648,7 +661,7 @@ modules:
   - id: parentos.features.profile.orthodontic_unwear_form
     app: parentos
     module: apps/parentos/src/shell/renderer/features/profile/orthodontic-unwear-form.tsx
-    families: [ surface, field, action, status ]
+    families: [ surface, overlay, field, action, status ]
     testid_required: false
     exception_policy: none
     source_rule: P-DESIGN-020
@@ -708,7 +721,7 @@ modules:
   - id: parentos.features.profile.posture_page
     app: parentos
     module: apps/parentos/src/shell/renderer/features/profile/posture-page.tsx
-    families: [ surface, action ]
+    families: [ surface, overlay, action ]
     testid_required: false
     exception_policy: none
     source_rule: P-DESIGN-020
@@ -818,7 +831,7 @@ modules:
   - id: parentos.features.profile.report_upload_page
     app: parentos
     module: apps/parentos/src/shell/renderer/features/profile/report-upload-page.tsx
-    families: [ surface, action, status ]
+    families: [ surface, overlay, action, status ]
     testid_required: false
     exception_policy: none
     source_rule: P-DESIGN-020
@@ -848,7 +861,7 @@ modules:
   - id: parentos.features.profile.sleep_page
     app: parentos
     module: apps/parentos/src/shell/renderer/features/profile/sleep-page.tsx
-    families: [ surface, action, status ]
+    families: [ surface, overlay, action, status ]
     testid_required: false
     exception_policy: none
     source_rule: P-DESIGN-020
@@ -938,7 +951,7 @@ modules:
   - id: parentos.features.profile.vaccine_page
     app: parentos
     module: apps/parentos/src/shell/renderer/features/profile/vaccine-page.tsx
-    families: [ surface, action, status ]
+    families: [ surface, overlay, action, status ]
     testid_required: false
     exception_policy: none
     source_rule: P-DESIGN-020
@@ -958,7 +971,7 @@ modules:
   - id: parentos.features.profile.vision_page_components
     app: parentos
     module: apps/parentos/src/shell/renderer/features/profile/vision-page-components.tsx
-    families: [ surface, action, status ]
+    families: [ surface, overlay, action, status ]
     testid_required: false
     exception_policy: none
     source_rule: P-DESIGN-020
@@ -982,6 +995,19 @@ modules:
     testid_required: false
     exception_policy: none
     source_rule: P-DESIGN-020
+    scheme_support: [ light, dark ]
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: parentos.features.reminders.reminder_explain_drawer
+    app: parentos
+    module: apps/parentos/src/shell/renderer/features/reminders/reminder-explain-drawer.tsx
+    families: [ surface, overlay, action, status ]
+    testid_required: false
+    exception_policy: controlled_exception
+    exception_owner: parentos-overlay-consolidation
+    exception_reason: Legacy drawer registered for Wave 2 migration to OverlayShell kind drawer.
+    sunset_wave: wave-2
+    source_rule: P-DESIGN-021
     scheme_support: [ light, dark ]
     default_scheme: light
     accent_pack: nimi-accent
@@ -1052,6 +1078,19 @@ modules:
     testid_required: false
     exception_policy: none
     source_rule: P-DESIGN-020
+    scheme_support: [ light, dark ]
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: parentos.features.settings.avatar_crop_modal
+    app: parentos
+    module: apps/parentos/src/shell/renderer/features/settings/avatar-crop-modal.tsx
+    families: [ surface, overlay, action ]
+    testid_required: false
+    exception_policy: controlled_exception
+    exception_owner: parentos-overlay-consolidation
+    exception_reason: Legacy crop dialog registered for Wave 2 migration to OverlayShell.
+    sunset_wave: wave-2
+    source_rule: P-DESIGN-021
     scheme_support: [ light, dark ]
     default_scheme: light
     accent_pack: nimi-accent
@@ -1133,3 +1172,22 @@ forbidden_patterns:
       `pt-[72px]` in any profile-feature file indicates a hand-rolled detail
       shell bypass.
     source_rule: P-DESIGN-020
+  - id: parentos.no_handrolled_overlay_backdrop
+    scope: apps/parentos/src/shell/renderer
+    pattern: "fixed\\s+inset-0"
+    reason: ParentOS overlays must converge on OverlayShell per P-DESIGN-013
+      and PO-KITUI-005. Existing local-shell and inline-backdrop matches are
+      recorded as a Wave 2 migration baseline; new or increased matches fail.
+    source_rule: P-DESIGN-013
+    allowed_matches:
+      - { path: apps/parentos/src/shell/renderer/features/journal/journal-page-overlays.tsx, count: 2 }
+      - { path: apps/parentos/src/shell/renderer/features/journal/journal-sub-components.tsx, count: 1 }
+      - { path: apps/parentos/src/shell/renderer/features/profile/dental-photo-lightbox.tsx, count: 1 }
+      - { path: apps/parentos/src/shell/renderer/features/profile/health-record-modal-shell.tsx, count: 1 }
+      - { path: apps/parentos/src/shell/renderer/features/profile/orthodontic-modal-primitives.tsx, count: 1 }
+      - { path: apps/parentos/src/shell/renderer/features/profile/orthodontic-stage-confirm-dialog.tsx, count: 1 }
+      - { path: apps/parentos/src/shell/renderer/features/profile/orthodontic-unwear-form.tsx, count: 1 }
+      - { path: apps/parentos/src/shell/renderer/features/profile/profile-todo-drawer.tsx, count: 1 }
+      - { path: apps/parentos/src/shell/renderer/features/profile/report-upload-page.tsx, count: 1 }
+      - { path: apps/parentos/src/shell/renderer/features/reminders/reminder-explain-drawer.tsx, count: 1 }
+      - { path: apps/parentos/src/shell/renderer/features/settings/avatar-crop-modal.tsx, count: 1 }

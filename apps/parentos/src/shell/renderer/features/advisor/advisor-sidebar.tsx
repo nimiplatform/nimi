@@ -35,7 +35,7 @@ export function AdvisorSidebar({
       </Button>
 
       {/* Conversation list */}
-      <ScrollArea className="min-h-0 flex-1">
+      <ScrollArea className="min-h-0 flex-1" contentClassName="pr-1">
         <div className="flex flex-col gap-1">
           {conversations.map((conv) => {
             const active = conv.conversationId === activeConvId;
@@ -45,23 +45,21 @@ export function AdvisorSidebar({
                 type="button"
                 onClick={() => onSelectConversation(conv.conversationId)}
                 className={cn(
-                  'w-full rounded-xl px-3 py-2.5 text-left transition-colors duration-[var(--nimi-motion-fast)] hover:bg-[var(--nimi-action-ghost-hover)]',
+                  'flex w-full flex-col gap-0.5 rounded-xl px-3 py-2.5 text-left transition-colors duration-[var(--nimi-motion-fast)] hover:bg-[var(--nimi-action-ghost-hover)]',
                   active && 'bg-[var(--nimi-surface-active)] shadow-[var(--nimi-elevation-base)]',
                 )}
               >
-                <div className="flex items-start justify-between gap-2">
-                  <p
-                    className={cn(
-                      'min-w-0 flex-1 truncate text-[14px] text-[var(--nimi-text-secondary)]',
-                      active && 'font-semibold text-[var(--nimi-text-primary)]',
-                    )}
-                  >
-                    {conv.title ?? '新对话'}
-                  </p>
-                  <span className="shrink-0 pt-0.5 text-[12px] text-[var(--nimi-text-muted)]">
-                    {formatRelativeTimeCn(conv.lastMessageAt)}
-                  </span>
-                </div>
+                <p
+                  className={cn(
+                    'w-full truncate text-[14px] text-[var(--nimi-text-secondary)]',
+                    active && 'font-semibold text-[var(--nimi-text-primary)]',
+                  )}
+                >
+                  {conv.title ?? '新对话'}
+                </p>
+                <span className="text-[11px] text-[var(--nimi-text-muted)]">
+                  {formatRelativeTimeCn(conv.lastMessageAt)}
+                </span>
               </button>
             );
           })}

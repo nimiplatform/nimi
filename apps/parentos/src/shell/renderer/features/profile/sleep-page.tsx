@@ -1,4 +1,4 @@
-import { Button, Surface } from '@nimiplatform/nimi-kit/ui';
+import { Button, OverlayShell, Surface } from '@nimiplatform/nimi-kit/ui';
 import { useEffect, useState } from 'react';
 import { useAppStore, computeAgeMonths, formatAge } from '../../app-shell/app-store.js';
 import { deleteSleepRecord, getSleepRecords } from '../../bridge/sqlite-bridge.js';
@@ -122,16 +122,21 @@ export default function SleepPage() {
 
       {/* Delete confirmation dialog */}
       {deletingRecordId ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--nimi-scrim-modal)]" onClick={() => setDeletingRecordId(null)}>
-          <Surface tone="overlay" material="glass-regular" elevation="floating" padding="none" className="w-[340px] rounded-3xl p-6" onClick={(e) => e.stopPropagation()}>
-            <p className="text-[16px] font-semibold mb-2 text-[var(--nimi-text-primary)]">确认删除</p>
-            <p className="text-[14px] mb-5 text-[var(--nimi-text-muted)]">删除后无法恢复，确定要删除这条睡眠记录吗？</p>
+        <OverlayShell
+          open
+          kind="dialog"
+          onClose={() => setDeletingRecordId(null)}
+          panelClassName="w-[340px] rounded-3xl"
+          title={<p className="text-[16px] font-semibold text-[var(--nimi-text-primary)]">确认删除</p>}
+          footer={
             <div className="flex justify-end gap-2">
               <Button tone="ghost" size="sm" onClick={() => setDeletingRecordId(null)} className="rounded-2xl">取消</Button>
               <Button tone="danger" size="sm" onClick={() => void handleDelete(deletingRecordId)} className="rounded-2xl">确认删除</Button>
             </div>
-          </Surface>
-        </div>
+          }
+        >
+          <p className="text-[14px] text-[var(--nimi-text-muted)]">删除后无法恢复，确定要删除这条睡眠记录吗？</p>
+        </OverlayShell>
       ) : null}
     </ProfileDetailShell>
   );

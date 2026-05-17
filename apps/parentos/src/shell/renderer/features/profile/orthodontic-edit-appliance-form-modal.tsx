@@ -1,6 +1,7 @@
-import { Surface } from '@nimiplatform/nimi-kit/ui';
+import { Button, Surface } from '@nimiplatform/nimi-kit/ui';
 import { useState } from 'react';
 import {
+  deleteOrthodonticAppliance,
   updateOrthodonticApplianceReview,
   updateOrthodonticAppliancePlan,
   type OrthodonticApplianceRow,
@@ -14,7 +15,6 @@ import {
   FieldTextarea,
   Modal,
   ModalErrorBanner,
-  ModalFooter,
 } from './orthodontic-modal-primitives.js';
 
 /**
@@ -58,6 +58,7 @@ export function EditApplianceFormModal({
     appliance.nextReviewAgenda ?? '',
   );
   const [localError, setLocalError] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const prescribedHoursNum = Number(prescribedHours);
   const totalAlignersNum = Number(totalAligners);
@@ -147,6 +148,29 @@ export function EditApplianceFormModal({
     }
   };
 
+  const handleDelete = async () => {
+    if (
+      !window.confirm(
+        '确定删除该矫治器？相关打卡、未戴时段、复诊提醒都会一并删除，操作不可撤销。',
+      )
+    ) {
+      return;
+    }
+    try {
+      onError(null);
+      setLocalError(null);
+      setDeleting(true);
+      await deleteOrthodonticAppliance(appliance.applianceId);
+      await onSaved();
+    } catch (error) {
+      catchLog('ortho', 'action:delete-appliance-failed')(error);
+      const msg = error instanceof Error ? error.message : String(error);
+      setLocalError(msg);
+      onError(msg);
+      setDeleting(false);
+    }
+  };
+
   return (
     <Modal title="编辑矫治器设置" onClose={onClose}>
       {localError && <ModalErrorBanner message={localError} onDismiss={() => setLocalError(null)} />}
@@ -211,12 +235,31 @@ export function EditApplianceFormModal({
       <FieldTextarea label="下次复诊议程（可选）" value={nextReviewAgenda}
         onChange={setNextReviewAgenda} placeholder="例如 评估扩弓量 / 换主弓丝" />
 
-      <ModalFooter
-        onCancel={onClose}
-        onSubmit={() => void handleSubmit()}
-        submitLabel="保存"
-        disabled={!formValid}
-      />
+      <div className="mt-2 flex items-center gap-2">
+        <Button
+          type="button"
+          tone="danger"
+          size="sm"
+          onClick={() => void handleDelete()}
+          disabled={deleting}
+        >
+          {deleting ? '删除中…' : '删除矫治器'}
+        </Button>
+        <div className="ml-auto flex gap-2">
+          <Button type="button" onClick={onClose} tone="ghost" size="sm" disabled={deleting}>
+            取消
+          </Button>
+          <Button
+            type="button"
+            onClick={() => void handleSubmit()}
+            disabled={!formValid || deleting}
+            tone="primary"
+            size="sm"
+          >
+            保存
+          </Button>
+        </div>
+      </div>
     </Modal>
   );
 }

@@ -2,8 +2,14 @@ import { Button } from '@nimiplatform/nimi-kit/ui';
 /**
  * Row of per-appliance "next action" cards for the hero appliances in the
  * grid. Hero cards are narrow, so their forward-looking action (下次换套 /
- * 下次转动 / 下次复诊) is externalised here. Compact-card appliances embed
- * their own next-action inline and are excluded from this row.
+ * 下次转动) is externalised here. Compact-card appliances embed their own
+ * next-action inline and are excluded from this row.
+ *
+ * Log-review actions (下次复诊) are intentionally omitted: PO-ORTHO-015's
+ * case-level review card is the single 下次复诊 surface for the case,
+ * enumerating every active appliance + agenda. Duplicating a per-appliance
+ * 下次复诊 entry here clutters the surface and was flagged by parents as
+ * redundant.
  */
 import type {
   OrthodonticApplianceRow,
@@ -34,17 +40,22 @@ export function ApplianceNextActionRow({
   nowIso: string;
   onNextAction: ApplianceCardHandlers['onNextAction'];
 }) {
-  if (appliances.length === 0) return null;
+  const rowItems = appliances
+    .map(({ appliance, intervals, checkins }) => ({
+      appliance,
+      action: computeApplianceNextAction({ appliance, intervals, checkins, nowIso }),
+    }))
+    .filter(({ action }) => action.actionKind !== 'log-review');
+  if (rowItems.length === 0) return null;
   return (
     <div
       style={{
         display: 'grid',
-        gridTemplateColumns: `repeat(${Math.min(appliances.length, 2)}, minmax(0, 1fr))`,
+        gridTemplateColumns: `repeat(${Math.min(rowItems.length, 2)}, minmax(0, 1fr))`,
         gap: 16,
       }}
     >
-      {appliances.map(({ appliance, intervals, checkins }) => {
-        const action = computeApplianceNextAction({ appliance, intervals, checkins, nowIso });
+      {rowItems.map(({ appliance, action }) => {
         const identityClass = applianceIdentityClassNames(appliance.applianceType);
         return (
           <div

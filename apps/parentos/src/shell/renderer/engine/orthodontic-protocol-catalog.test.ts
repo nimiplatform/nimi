@@ -29,6 +29,7 @@ interface OrthoProtocolsYamlRule {
 interface OrthoProtocolsYamlPhase {
   phaseId: string;
   label: string;
+  description: string;
   expectedMonths: number;
 }
 interface OrthoProtocolsYaml {
@@ -176,9 +177,16 @@ describe('orthodontic protocol catalog coverage', () => {
       const tsPhases = APPLIANCE_PHASES[applianceType];
       expect(tsPhases.map((p) => p.phaseId)).toEqual(yamlPhases!.map((p) => p.phaseId));
       expect(tsPhases.map((p) => p.label)).toEqual(yamlPhases!.map((p) => p.label));
+      expect(tsPhases.map((p) => p.description)).toEqual(
+        yamlPhases!.map((p) => p.description),
+      );
       expect(tsPhases.map((p) => p.expectedMonths)).toEqual(
         yamlPhases!.map((p) => p.expectedMonths),
       );
+      // Every phase description must be non-empty plain-language text.
+      for (const phase of yamlPhases!) {
+        expect(phase.description.trim().length).toBeGreaterThan(0);
+      }
     }
     // Reverse: the YAML must not declare a sequence for an unknown applianceType.
     for (const key of Object.keys(yaml.appliancePhases)) {

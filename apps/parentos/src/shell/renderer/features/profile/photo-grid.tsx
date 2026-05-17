@@ -1,4 +1,4 @@
-import { cn } from '@nimiplatform/nimi-kit/ui';
+import { DashedAddButton } from '@nimiplatform/nimi-kit/ui';
 import { useState } from 'react';
 import { readImageFileAsDataUrl } from './checkup-ocr.js';
 
@@ -17,8 +17,6 @@ type PhotoGridProps = {
 
 export function PhotoGrid({ photos, maxPhotos, hint, onChange }: PhotoGridProps) {
   const [dragOver, setDragOver] = useState(false);
-  const [dropHover, setDropHover] = useState(false);
-  const active = dragOver || dropHover;
   const total = photos.length;
   const isEmpty = total === 0;
   const canAddMore = total < maxPhotos;
@@ -81,38 +79,13 @@ export function PhotoGrid({ photos, maxPhotos, hint, onChange }: PhotoGridProps)
         </div>
       ))}
       {canAddMore ? (
-        <button
-          type="button"
+        <DashedAddButton
+          shape="tile"
+          active={dragOver}
           onClick={pickFiles}
-          onMouseEnter={() => setDropHover(true)}
-          onMouseLeave={() => setDropHover(false)}
-          className={cn(
-            'flex h-24 w-full flex-col items-center justify-center gap-1.5 rounded-2xl border-2 border-dashed transition-colors',
-            isEmpty && 'col-span-3',
-            active
-              ? 'border-[var(--nimi-action-primary-bg)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_8%,var(--nimi-surface-card))] text-[var(--nimi-action-primary-bg)]'
-              : 'border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] text-[var(--nimi-text-muted)]',
-          )}
-        >
-          <svg
-            width="22"
-            height="22"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-            className="transition-transform duration-300"
-            style={{
-              transform: active ? 'scale(1.15) rotate(90deg)' : 'scale(1) rotate(0deg)',
-            }}
-          >
-            <path d="M12 5v14M5 12h14" />
-          </svg>
-          <span className="px-1 text-center text-[12px]">
-            {isEmpty ? hint ?? `点击或拖拽上传照片（最多 ${maxPhotos} 张）` : '添加更多'}
-          </span>
-        </button>
+          className={isEmpty ? 'col-span-3' : undefined}
+          label={isEmpty ? hint ?? `点击或拖拽上传照片（最多 ${maxPhotos} 张）` : '添加更多'}
+        />
       ) : null}
     </div>
   );

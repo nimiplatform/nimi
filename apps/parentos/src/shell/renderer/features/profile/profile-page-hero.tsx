@@ -67,7 +67,7 @@ export function ProfileHero({ child, ageMonths, completeness, recordCount, lastR
             </span>
             <div className="h-[6px] flex-1 overflow-hidden rounded-full bg-[var(--nimi-surface-overlay)]">
               <div
-                className="h-full rounded-full bg-[image:var(--nimi-surface-hero)] transition-all"
+                className="h-full rounded-full bg-[var(--nimi-accent)] transition-all"
                 style={{ width: `${completeness}%` }}
               />
             </div>

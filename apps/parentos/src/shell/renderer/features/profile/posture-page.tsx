@@ -1,4 +1,4 @@
-import { Button, DashedAddButton, Surface, TextareaField, TextField } from '@nimiplatform/nimi-kit/ui';
+import { Button, DashedAddButton, OverlayShell, Surface, TextareaField, TextField } from '@nimiplatform/nimi-kit/ui';
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useAppStore, computeAgeMonths, computeAgeMonthsAt } from '../../app-shell/app-store.js';
 import { getMeasurements, insertMeasurement, getFitnessAssessments } from '../../bridge/sqlite-bridge.js';
@@ -323,14 +323,12 @@ export default function PosturePage() {
 
       {/* Form */}
       {showForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--nimi-scrim-modal)]" onClick={() => resetForm()}>
-        <Surface
-          tone="overlay"
-          material="glass-thick"
-          elevation="modal"
-          padding="none"
-          className="flex w-[580px] max-h-[85vh] flex-col overflow-y-auto rounded-3xl"
-          onClick={(e) => e.stopPropagation()}
+        <OverlayShell
+          open
+          kind="dialog"
+          onClose={resetForm}
+          panelClassName="flex w-[580px] max-w-[580px] max-h-[85vh] flex-col overflow-y-auto rounded-3xl"
+          contentClassName="!p-0 flex flex-col"
         >
           {/* Header */}
           <div className="flex items-center justify-between px-6 pt-6 pb-2">
@@ -531,8 +529,7 @@ export default function PosturePage() {
               <Button onClick={() => void handleSubmit()} tone="primary" size="md">保存记录</Button>
             </div>
           </div>
-        </Surface>
-        </div>
+        </OverlayShell>
       )}
 
       {/* Timeline */}

@@ -10,20 +10,27 @@ import { formatDate, formatMetricSnapshotValue, formatMetricSnapshotValueParts, 
 interface GroupVisual {
   icon: typeof Activity;
   iconClassName: string;
-  barClassName: string;
 }
 
 const GROUP_VISUAL: Record<HealthMetricGroupId, GroupVisual> = {
-  growth: { icon: Activity, iconClassName: 'bg-[color-mix(in_srgb,var(--nimi-status-success)_12%,transparent)] text-[var(--nimi-status-success)]', barClassName: 'bg-[linear-gradient(90deg,var(--nimi-action-primary-bg),var(--nimi-status-success))]' },
-  vision: { icon: Eye, iconClassName: 'bg-[color-mix(in_srgb,var(--nimi-status-info)_12%,transparent)] text-[var(--nimi-status-info)]', barClassName: 'bg-[linear-gradient(90deg,var(--nimi-status-info),var(--nimi-action-primary-bg))]' },
-  fitness: { icon: Footprints, iconClassName: 'bg-[color-mix(in_srgb,var(--nimi-status-warning)_12%,transparent)] text-[var(--nimi-status-warning)]', barClassName: 'bg-[linear-gradient(90deg,var(--nimi-status-warning),var(--nimi-action-primary-bg))]' },
-  sleep: { icon: Moon, iconClassName: 'bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_12%,transparent)] text-[var(--nimi-action-primary-bg)]', barClassName: 'bg-[linear-gradient(90deg,var(--nimi-action-primary-bg),var(--nimi-status-info))]' },
-  outdoor: { icon: Sun, iconClassName: 'bg-[color-mix(in_srgb,var(--nimi-status-warning)_14%,transparent)] text-[var(--nimi-status-warning)]', barClassName: 'bg-[linear-gradient(90deg,var(--nimi-status-warning),var(--nimi-status-success))]' },
-  vaccine: { icon: Syringe, iconClassName: 'bg-[color-mix(in_srgb,var(--nimi-status-info)_12%,transparent)] text-[var(--nimi-status-info)]', barClassName: 'bg-[linear-gradient(90deg,var(--nimi-status-info),var(--nimi-action-primary-bg))]' },
-  dental: { icon: Smile, iconClassName: 'bg-[color-mix(in_srgb,var(--nimi-status-info)_12%,transparent)] text-[var(--nimi-status-info)]', barClassName: 'bg-[linear-gradient(90deg,var(--nimi-status-info),var(--nimi-status-success))]' },
-  medical: { icon: Stethoscope, iconClassName: 'bg-[color-mix(in_srgb,var(--nimi-status-danger)_10%,transparent)] text-[var(--nimi-status-danger)]', barClassName: 'bg-[linear-gradient(90deg,var(--nimi-status-danger),var(--nimi-status-warning))]' },
-  development: { icon: Award, iconClassName: 'bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_12%,transparent)] text-[var(--nimi-action-primary-bg)]', barClassName: 'bg-[linear-gradient(90deg,var(--nimi-action-primary-bg),var(--nimi-status-info))]' },
+  growth: { icon: Activity, iconClassName: 'bg-[color-mix(in_srgb,var(--nimi-status-success)_12%,transparent)] text-[var(--nimi-status-success)]' },
+  vision: { icon: Eye, iconClassName: 'bg-[color-mix(in_srgb,var(--nimi-status-info)_12%,transparent)] text-[var(--nimi-status-info)]' },
+  fitness: { icon: Footprints, iconClassName: 'bg-[color-mix(in_srgb,var(--nimi-status-warning)_12%,transparent)] text-[var(--nimi-status-warning)]' },
+  sleep: { icon: Moon, iconClassName: 'bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_12%,transparent)] text-[var(--nimi-action-primary-bg)]' },
+  outdoor: { icon: Sun, iconClassName: 'bg-[color-mix(in_srgb,var(--nimi-status-warning)_14%,transparent)] text-[var(--nimi-status-warning)]' },
+  vaccine: { icon: Syringe, iconClassName: 'bg-[color-mix(in_srgb,var(--nimi-status-info)_12%,transparent)] text-[var(--nimi-status-info)]' },
+  dental: { icon: Smile, iconClassName: 'bg-[color-mix(in_srgb,var(--nimi-status-info)_12%,transparent)] text-[var(--nimi-status-info)]' },
+  medical: { icon: Stethoscope, iconClassName: 'bg-[color-mix(in_srgb,var(--nimi-status-danger)_10%,transparent)] text-[var(--nimi-status-danger)]' },
+  development: { icon: Award, iconClassName: 'bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_12%,transparent)] text-[var(--nimi-action-primary-bg)]' },
 };
+
+function progressBarClassName(progress: number, review: ReviewStatusPiece[]): string {
+  if (review.some((piece) => piece.key === 'review')) return 'bg-[var(--nimi-status-danger)]';
+  if (review.some((piece) => piece.key === 'stale')) return 'bg-[var(--nimi-status-warning)]';
+  if (progress >= 100) return 'bg-[var(--nimi-status-success)]';
+  if (progress > 0) return 'bg-[var(--nimi-action-primary-bg)]';
+  return 'bg-[color-mix(in_srgb,var(--nimi-text-muted)_35%,transparent)]';
+}
 
 const PREVIEW_LIMIT = 3;
 
@@ -61,12 +68,13 @@ export function ProfileGroupCard({ group, onCapture }: ProfileGroupCardProps) {
       material="glass-regular"
       padding="none"
       tone="card"
-      className="overflow-hidden rounded-2xl shadow-[var(--nimi-elevation-base)]"
+      id={`profile-group-${group.group.groupId}`}
+      className="overflow-hidden rounded-2xl shadow-[var(--nimi-elevation-base)] scroll-mt-4"
     >
       <button
         type="button"
         onClick={() => setExpanded((prev) => !prev)}
-        className="block w-full px-5 pt-5 text-left transition-colors hover:bg-[var(--nimi-action-ghost-hover)]"
+        className="block w-full px-5 py-5 text-left transition-colors hover:bg-[var(--nimi-action-ghost-hover)]"
         aria-expanded={expanded}
       >
         <div className="flex items-start gap-3">
@@ -99,7 +107,7 @@ export function ProfileGroupCard({ group, onCapture }: ProfileGroupCardProps) {
           </div>
           <div className="hidden h-10 w-[72px] items-center sm:flex">
             <div className="h-[6px] w-full overflow-hidden rounded-full bg-[color-mix(in_srgb,var(--nimi-border-subtle)_60%,transparent)]">
-              <div className={`h-full rounded-full ${visual.barClassName}`} style={{ width: `${progress}%` }} />
+              <div className={`h-full rounded-full transition-colors ${progressBarClassName(progress, reviewStatus)}`} style={{ width: `${progress}%` }} />
             </div>
           </div>
           <Chevron size={18} className="text-[var(--nimi-text-muted)]" />
@@ -113,13 +121,13 @@ export function ProfileGroupCard({ group, onCapture }: ProfileGroupCardProps) {
           onCapture={onCapture}
         />
       ) : previewMetrics.length > 0 ? (
-        <div className="mt-4 grid gap-2 px-5 pb-5 sm:grid-cols-3">
+        <div className="grid gap-2 px-5 pb-5 sm:grid-cols-3">
           {previewMetrics.map((snapshot) => (
             <PreviewTile key={snapshot.metric.metricId} snapshot={snapshot} />
           ))}
         </div>
       ) : (
-        <div className="px-5 pb-5 pt-3 text-[12px] text-[var(--nimi-text-muted)]">
+        <div className="px-5 py-8 text-[12px] text-[var(--nimi-text-muted)]">
           {t('Profile.group.emptyHint', { defaultValue: '还没有任何记录，点击右侧记录按钮开始记录。' })}
         </div>
       )}
@@ -140,7 +148,7 @@ function ExpandedRows({
 }) {
   const { t } = useTranslation();
   return (
-    <div className="mt-2 px-2 pb-3">
+    <div className="px-2 pb-3">
       <ul className="divide-y divide-[color-mix(in_srgb,var(--nimi-border-subtle)_70%,transparent)]">
         {metrics.map((snapshot) => (
           <ExpandedRow

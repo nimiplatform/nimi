@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Button, StatusBadge, Surface, cn } from '@nimiplatform/nimi-kit/ui';
+import { Button, DashedAddButton, StatusBadge, Surface, cn } from '@nimiplatform/nimi-kit/ui';
 import type { JournalTagInsertRow } from '../../bridge/sqlite-bridge.js';
 import { ulid } from '../../bridge/ulid.js';
 import { catchLog } from '../../infra/telemetry/catch-log.js';
@@ -96,17 +96,8 @@ export function PhotoBar({ drafts, onRemove, inputRef }: PhotoBarProps) {
         </div>
       ))}
 
-      {/* Add photo button */}
       {drafts.length < 9 && (
-        <button onClick={() => inputRef.current?.click()}
-          className="flex h-14 w-14 flex-col items-center justify-center gap-0.5 parentos-radius-sm border border-dashed border-[var(--nimi-border-subtle)] text-[var(--nimi-text-muted)] transition-colors hover:bg-[var(--nimi-action-ghost-hover)]">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-            <rect x="3" y="3" width="18" height="18" rx="2" />
-            <circle cx="8.5" cy="8.5" r="1.5" />
-            <path d="m21 15-5-5L5 21" />
-          </svg>
-          <span className="text-[12px]">添加</span>
-        </button>
+        <DashedAddButton shape="thumb" onClick={() => inputRef.current?.click()} label="添加" />
       )}
     </div>
   );

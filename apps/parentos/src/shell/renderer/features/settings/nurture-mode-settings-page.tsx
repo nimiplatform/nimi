@@ -255,7 +255,7 @@ export default function NurtureModeSettingsPage() {
                               { value: 'balanced', label: '⚖️ 均衡养' },
                               { value: 'advanced', label: '🔬 进阶养' },
                             ]}
-                            className="w-[180px]"
+                            className="w-[220px] whitespace-nowrap"
                           />
                         </div>
                       );

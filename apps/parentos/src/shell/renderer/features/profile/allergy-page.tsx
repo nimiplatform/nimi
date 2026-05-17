@@ -1,4 +1,4 @@
-import { Button, DashedAddButton, Surface, TextareaField, TextField } from '@nimiplatform/nimi-kit/ui';
+import { Button, DashedAddButton, OverlayShell, Surface, TextareaField, TextField } from '@nimiplatform/nimi-kit/ui';
 import { useState, useEffect } from 'react';
 import { useAppStore, computeAgeMonths, computeAgeMonthsAt } from '../../app-shell/app-store.js';
 import { insertAllergyRecord, updateAllergyRecord, getAllergyRecords, upsertReminderState } from '../../bridge/sqlite-bridge.js';
@@ -223,8 +223,13 @@ export default function AllergyPage() {
     >
       {/* ── Form ─────────────────────────────────────────── */}
       {showForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--nimi-scrim-modal)]" onClick={() => resetForm()}>
-        <Surface tone="overlay" material="glass-thick" elevation="modal" padding="none" className="flex max-h-[85vh] w-[480px] flex-col overflow-y-auto rounded-3xl" onClick={(e) => e.stopPropagation()}>
+        <OverlayShell
+          open
+          kind="dialog"
+          onClose={resetForm}
+          panelClassName="flex max-h-[85vh] w-[480px] max-w-[480px] flex-col overflow-y-auto rounded-3xl"
+          contentClassName="!p-0 flex flex-col"
+        >
 
           {/* ── Header ── */}
           <div className="flex items-center justify-between px-6 pt-6 pb-3">
@@ -439,8 +444,7 @@ export default function AllergyPage() {
               <Button onClick={() => void handleSubmit()} disabled={!formAllergen.trim() || !formSeverity} tone="primary" size="md">保存</Button>
             </div>
           </div>
-        </Surface>
-        </div>
+        </OverlayShell>
       )}
 
       {/* ── Active allergies ─────────────────────────────── */}

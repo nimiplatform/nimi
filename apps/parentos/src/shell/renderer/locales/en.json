@@ -201,6 +201,7 @@
     "rich": {
       "common": {
         "backToProfile": "Back to profile",
+        "addChildFirst": "Please add a child profile first",
         "addRecord": "Add record",
         "save": "Save",
         "saving": "Saving...",

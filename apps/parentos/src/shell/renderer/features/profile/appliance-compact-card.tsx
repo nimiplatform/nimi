@@ -72,6 +72,10 @@ export function ApplianceCompactCard({
   const phase = computeAppliancePhaseProgress(appliance, nowIso);
   const nextAction = computeApplianceNextAction({ appliance, intervals, checkins, nowIso });
   const supportsWearGap = applianceSupportsWearGap(appliance.applianceType);
+  // log-review actions are owned by the case-level review card (PO-ORTHO-015);
+  // surfacing the same 下次复诊 inline would just duplicate it. Drop the
+  // embedded panel + primary button when that's the only action.
+  const showInlineNextAction = nextAction.actionKind !== 'log-review';
 
   return (
     <Surface
@@ -111,31 +115,35 @@ export function ApplianceCompactCard({
           </div>
 
           {/* embedded next action */}
-          <div
-            className="flex flex-wrap items-center gap-2.5 rounded-xl bg-[color-mix(in_srgb,var(--nimi-text-primary)_3%,transparent)] px-3.5 py-2.5"
-          >
-            <span className="text-[12px] font-semibold text-[var(--nimi-text-muted)]">
-              {nextAction.label}
-            </span>
-            <span className="text-[15px] font-bold text-[var(--nimi-text-primary)]">
-              {nextAction.date ? formatMonthDay(nextAction.date) : '—'}
-            </span>
-            {nextAction.daysAway !== null && <DaysAwayPill daysAway={nextAction.daysAway} />}
-            {nextAction.detail && (
-              <span className="text-[12px] text-[var(--nimi-text-muted)]">· {nextAction.detail}</span>
-            )}
-          </div>
+          {showInlineNextAction && (
+            <div
+              className="flex flex-wrap items-center gap-2.5 rounded-xl bg-[color-mix(in_srgb,var(--nimi-text-primary)_3%,transparent)] px-3.5 py-2.5"
+            >
+              <span className="text-[12px] font-semibold text-[var(--nimi-text-muted)]">
+                {nextAction.label}
+              </span>
+              <span className="text-[15px] font-bold text-[var(--nimi-text-primary)]">
+                {nextAction.date ? formatMonthDay(nextAction.date) : '—'}
+              </span>
+              {nextAction.daysAway !== null && <DaysAwayPill daysAway={nextAction.daysAway} />}
+              {nextAction.detail && (
+                <span className="text-[12px] text-[var(--nimi-text-muted)]">· {nextAction.detail}</span>
+              )}
+            </div>
+          )}
         </div>
 
         {/* right: vertical action stack */}
         <div
           className="flex min-w-[132px] shrink-0 flex-col gap-2"
         >
-          <StackButton
-            label={nextAction.actionLabel}
-            tone="primary"
-            onClick={() => handlers.onNextAction(appliance, nextAction)}
-          />
+          {showInlineNextAction && (
+            <StackButton
+              label={nextAction.actionLabel}
+              tone="primary"
+              onClick={() => handlers.onNextAction(appliance, nextAction)}
+            />
+          )}
           {supportsWearGap && (
             <StackButton
               label="补记未戴"

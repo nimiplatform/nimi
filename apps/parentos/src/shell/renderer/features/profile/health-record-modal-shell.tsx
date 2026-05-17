@@ -12,6 +12,7 @@
  *   └──────────────┴───────────────────────────────────┘
  *
  * Sizes (total modal width — sidebar included):
+ *   S  = 460  → use for: compact single-column forms (orthodontic appliance)
  *   M  = 720  → use for: growth, sleep, outdoor
  *   L  = 920  → use for: fitness
  *   XL = 1040 → use for: vision, dental, medical, development
@@ -35,9 +36,10 @@ import { AppSelect, type AppSelectOption } from '../../app-shell/app-select.js';
 
 /* ── Tokens ─────────────────────────────────────────────────────────────── */
 
-export type HealthModalSize = 'M' | 'L' | 'XL';
+export type HealthModalSize = 'S' | 'M' | 'L' | 'XL';
 
 const SIZE_WIDTH: Record<HealthModalSize, number> = {
+  S: 460,
   M: 720,
   L: 920,
   XL: 1040,
@@ -99,7 +101,7 @@ export function HealthRecordModalShell({
         material="solid"
         elevation="modal"
         padding="none"
-        className="parentos-health-modal-panel flex overflow-hidden rounded-3xl bg-[var(--nimi-surface-card)]"
+        className="parentos-health-modal-panel relative flex overflow-hidden rounded-3xl bg-[var(--nimi-surface-card)]"
         style={{
           width,
           maxWidth: 'calc(100vw - 32px)',
@@ -259,7 +261,7 @@ type ModalHeaderProps = {
 export function ModalHeader({ title, subtitle, icon, onClose, trailing }: ModalHeaderProps) {
   return (
     <header
-      className="flex shrink-0 items-center gap-3 border-b border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-6"
+      className="flex shrink-0 items-center gap-3 bg-[var(--nimi-surface-card)] px-6"
       style={{
         height: HEALTH_MODAL_TOKENS.headerHeight,
       }}
@@ -333,7 +335,7 @@ type ModalFooterProps = {
 export function ModalFooter({ children, leading }: ModalFooterProps) {
   return (
     <footer
-      className="flex shrink-0 items-center justify-end gap-3 border-t border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-6"
+      className="flex shrink-0 items-center justify-end gap-3 bg-[var(--nimi-surface-card)] px-6"
       style={{
         height: HEALTH_MODAL_TOKENS.footerHeight,
       }}
@@ -521,20 +523,14 @@ type SelectProps = {
 
 export function Select({ value, onChange, options, placeholder, className }: SelectProps) {
   return (
-    <div
-      className={`relative flex h-12 items-center rounded-2xl border border-[var(--nimi-field-border)] bg-[var(--nimi-field-bg)] ${className ?? ''}`}
-      style={{
-      }}
-    >
-      <AppSelect
-        value={value}
-        onChange={onChange}
-        options={options}
-        placeholder={placeholder}
-        className="w-full"
-        style={{ height: '100%' }}
-      />
-    </div>
+    <AppSelect
+      value={value}
+      onChange={onChange}
+      options={options}
+      placeholder={placeholder}
+      className={`min-h-12 ${className ?? ''}`}
+      contentClassName="z-[120]"
+    />
   );
 }
 

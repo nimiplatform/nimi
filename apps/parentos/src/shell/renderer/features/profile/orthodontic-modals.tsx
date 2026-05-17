@@ -1,16 +1,4 @@
-import { Surface } from '@nimiplatform/nimi-kit/ui';
-/**
- * Orthodontic modal forms: new-case, add-appliance, clinical-event.
- *
- * Behavior is unchanged from the legacy `orthodontic-tab-forms.tsx` (which
- * this replaces). The only schema-touching adjustment is the absence of
- * `actualWearHours` / `prescribedHours` from the clinical event flow — those
- * fields no longer exist on `orthodontic_checkins` (PO-ORTHO-005b) and were
- * never written by these modals anyway.
- *
- * Pure composition of `bridge` writers + small primitives. PO-ORTHO-002 /
- * PO-ORTHO-003 / PO-ORTHO-006 fail-close happens in the Rust command layer.
- */
+import { SelectField, Surface } from '@nimiplatform/nimi-kit/ui';
 import { useMemo, useState, type ReactNode } from 'react';
 import {
   insertOrthodonticAppliance,
@@ -53,6 +41,19 @@ import {
   ModalErrorBanner,
   ModalFooter,
 } from './orthodontic-modal-primitives.js';
+import {
+  CancelButton,
+  DateField,
+  FormField,
+  HealthRecordModalShell,
+  InlineError,
+  Input,
+  ModalContent,
+  ModalFooter as ShellModalFooter,
+  ModalHeader,
+  PrimaryButton,
+  TextArea,
+} from './health-record-modal-shell.js';
 
 function ModalSuccessNote({ children }: { children: ReactNode }) {
   return (
@@ -76,20 +77,6 @@ function ModalWarningNote({ children }: { children: ReactNode }) {
       elevation="base"
       padding="sm"
       className="rounded-md border-[color-mix(in_srgb,var(--nimi-status-warning)_25%,var(--nimi-border-subtle))] bg-[color-mix(in_srgb,var(--nimi-status-warning)_8%,var(--nimi-surface-card))] text-[13px] text-[var(--nimi-status-warning)]"
-    >
-      {children}
-    </Surface>
-  );
-}
-
-function ModalDangerNote({ children }: { children: ReactNode }) {
-  return (
-    <Surface
-      tone="card"
-      material="solid"
-      elevation="base"
-      padding="sm"
-      className="rounded-md border-[color-mix(in_srgb,var(--nimi-status-danger)_30%,var(--nimi-border-subtle))] bg-[color-mix(in_srgb,var(--nimi-status-danger)_8%,var(--nimi-surface-card))] text-[14px] text-[var(--nimi-status-danger)]"
     >
       {children}
     </Surface>
@@ -516,78 +503,125 @@ export function ApplianceFormModal({
     : 0;
 
   return (
-    <Modal title="添加矫治器" onClose={onClose}>
-      {localError && <ModalErrorBanner message={localError} onDismiss={() => setLocalError(null)} />}
-      <FieldSelect label="矫治器类型" value={applianceType}
-        onChange={(v) => handleTypeChange(v as OrthodonticApplianceType)}
-        options={eligibleTypes.map((o) => ({ value: o.value, label: o.label }))} />
-      {eligibleTypes.length === 0 && (
-        <ModalDangerNote>
-          孩子当前年龄不满足任何矫治器的最小年龄门槛。
-        </ModalDangerNote>
-      )}
-      <FieldInput label="开始日期" type="date" value={startedAt} onChange={setStartedAt} />
-      {dateIsBeforeBirth && (
-        <div className="text-[13px] text-[var(--nimi-status-danger)]">
-          开始日期不能早于孩子出生日。
+    <HealthRecordModalShell open size="S" onClose={onClose} ariaLabel="添加矫治器">
+      <ModalHeader title="添加矫治器" icon="🦷" onClose={onClose} />
+      <ModalContent>
+        <div className="space-y-4">
+          {localError && <InlineError>{localError}</InlineError>}
+          {eligibleTypes.length === 0 && (
+            <InlineError>孩子当前年龄不满足任何矫治器的最小年龄门槛。</InlineError>
+          )}
+          <FormField label="矫治器类型">
+            <SelectField
+              value={applianceType}
+              onValueChange={(v) => handleTypeChange(v as OrthodonticApplianceType)}
+              options={eligibleTypes.map((o) => ({ value: o.value, label: o.label }))}
+              className="min-h-12"
+            />
+          </FormField>
+          <FormField
+            label="开始日期"
+            error={dateIsBeforeBirth ? '开始日期不能早于孩子出生日。' : undefined}
+          >
+            <DateField
+              value={startedAt}
+              onChange={setStartedAt}
+              invalid={Boolean(dateIsBeforeBirth)}
+            />
+          </FormField>
+          <FormField label="医嘱佩戴小时/天" required={needsPrescribedHours}>
+            <Input type="number" value={prescribedHours} onChange={(event) => setPrescribedHours(event.target.value)} />
+          </FormField>
+          {isExpander && (
+            <>
+              <FormField label="扩弓总激活次数">
+                <Input type="number" value={prescribedActivations} onChange={(event) => setPrescribedActivations(event.target.value)} />
+              </FormField>
+              <FormField
+                label="扩弓转动周期（天，可选）"
+                error={!activationIntervalValid ? '转动周期必须是大于 0 的整数。' : undefined}
+              >
+                <Input
+                  type="number"
+                  value={activationInterval}
+                  onChange={(event) => setActivationInterval(event.target.value)}
+                  placeholder="例如 3"
+                  invalid={!activationIntervalValid}
+                />
+              </FormField>
+            </>
+          )}
+          {isClearAligner && (
+            <>
+              <FormField
+                label="牙套总副数"
+                error={!totalAlignersValid ? '总副数必须是大于 0 的整数。' : undefined}
+              >
+                <Input
+                  type="number"
+                  value={totalAligners}
+                  onChange={(event) => setTotalAligners(event.target.value)}
+                  placeholder="例如 30"
+                  invalid={!totalAlignersValid}
+                />
+              </FormField>
+              <FormField
+                label="每副佩戴天数"
+                error={!daysPerAlignerValid ? '每副佩戴天数必须是大于 0 的整数。' : undefined}
+              >
+                <Input
+                  type="number"
+                  value={daysPerAligner}
+                  onChange={(event) => setDaysPerAligner(event.target.value)}
+                  placeholder="例如 7"
+                  invalid={!daysPerAlignerValid}
+                />
+              </FormField>
+            </>
+          )}
+          <FormField label="复诊间隔（天）">
+            <Input type="number" value={reviewIntervalDays} onChange={(event) => setReviewIntervalDays(event.target.value)} />
+          </FormField>
+          <FormField label="初始治疗阶段（可选）">
+            <SelectField
+              value={currentPhase}
+              onValueChange={setCurrentPhase}
+              placeholder="暂不设置"
+              options={APPLIANCE_PHASES[applianceType].map((p) => ({ value: p.phaseId, label: p.label }))}
+              className="min-h-12"
+            />
+          </FormField>
+          <FormField label="下次复诊议程（可选）">
+            <TextArea
+              value={nextReviewAgenda}
+              onChange={(event) => setNextReviewAgenda(event.target.value)}
+              placeholder="例如 评估扩弓量 / 换主弓丝"
+              rows={3}
+            />
+          </FormField>
+          {startedAt && childBirthDate && !dateIsBeforeBirth && (
+            <p className="text-[12.5px] text-[var(--nimi-text-muted)]">
+              开始时孩子 {Math.floor(startedAgeMonths / 12)} 岁 {startedAgeMonths % 12} 月
+            </p>
+          )}
         </div>
-      )}
-      <FieldInput label="医嘱佩戴小时/天" type="number" value={prescribedHours} onChange={setPrescribedHours}
-        required={needsPrescribedHours} />
-      {isExpander && (
-        <>
-          <FieldInput label="扩弓总激活次数" type="number" value={prescribedActivations}
-            onChange={setPrescribedActivations} />
-          <FieldInput label="扩弓转动周期（天，可选）" type="number" value={activationInterval}
-            onChange={setActivationInterval} placeholder="例如 3" />
-          {!activationIntervalValid && (
-            <div className="text-[13px] text-[var(--nimi-status-danger)]">
-              转动周期必须是大于 0 的整数。
-            </div>
-          )}
-        </>
-      )}
-      {isClearAligner && (
-        <>
-          <FieldInput label="牙套总副数" type="number" value={totalAligners} onChange={setTotalAligners}
-            placeholder="例如 30" />
-          {!totalAlignersValid && (
-            <div className="text-[13px] text-[var(--nimi-status-danger)]">
-              总副数必须是大于 0 的整数。
-            </div>
-          )}
-          <FieldInput label="每副佩戴天数" type="number" value={daysPerAligner} onChange={setDaysPerAligner}
-            placeholder="例如 7" />
-          {!daysPerAlignerValid && (
-            <div className="text-[13px] text-[var(--nimi-status-danger)]">
-              每副佩戴天数必须是大于 0 的整数。
-            </div>
-          )}
-        </>
-      )}
-      <FieldInput label="复诊间隔（天）" type="number" value={reviewIntervalDays}
-        onChange={setReviewIntervalDays} />
-      <FieldSelect label="初始治疗阶段（可选）" value={currentPhase} onChange={setCurrentPhase}
-        options={[
-          { value: '', label: '暂不设置' },
-          ...APPLIANCE_PHASES[applianceType].map((p) => ({ value: p.phaseId, label: p.label })),
-        ]} />
-      <FieldTextarea label="下次复诊议程（可选）" value={nextReviewAgenda}
-        onChange={setNextReviewAgenda} placeholder="例如 评估扩弓量 / 换主弓丝" />
-      {startedAt && childBirthDate && !dateIsBeforeBirth && (
-        <div className="text-[13px] text-[var(--nimi-text-muted)]">
-          开始时孩子 {Math.floor(startedAgeMonths / 12)} 岁 {startedAgeMonths % 12} 月
-        </div>
-      )}
-      <ModalFooter onCancel={onClose} onSubmit={() => void handleSubmit()} submitLabel="保存"
-        disabled={
-          eligibleTypes.length === 0
-          || Boolean(dateIsBeforeBirth)
-          || (needsPrescribedHours && !prescribedHours.trim())
-          || (isClearAligner && (!totalAlignersValid || !daysPerAlignerValid))
-          || !activationIntervalValid
-        } />
-    </Modal>
+      </ModalContent>
+      <ShellModalFooter>
+        <CancelButton onClick={onClose} />
+        <PrimaryButton
+          onClick={() => void handleSubmit()}
+          disabled={
+            eligibleTypes.length === 0
+            || Boolean(dateIsBeforeBirth)
+            || (needsPrescribedHours && !prescribedHours.trim())
+            || (isClearAligner && (!totalAlignersValid || !daysPerAlignerValid))
+            || !activationIntervalValid
+          }
+        >
+          保存
+        </PrimaryButton>
+      </ShellModalFooter>
+    </HealthRecordModalShell>
   );
 }
 

@@ -47,22 +47,10 @@ import {
   dentalEventLabelAndEmoji,
   ORTHO_EVENT_TYPES,
 } from './dental-page-domain.js';
-/**
- * Cross-component action requests dispatched by the dental-page toolbar
- * (`+` menu) into this surface. `nonce` is a monotonically-increasing
- * number so re-clicking the same action triggers a new effect even when
- * the kind hasn't changed.
- */
-export type OrthodonticActionRequest = { kind: 'add-appliance'; nonce: number };
-
 interface Props {
   childId: string;
   childBirthDate: string;
   ageMonths: number;
-  /** Optional toolbar-driven action signal. `null` = no pending request. */
-  actionRequest?: OrthodonticActionRequest | null;
-  /** Called after this surface has consumed an action request. */
-  onActionRequestHandled?: () => void;
 }
 
 const APPLIANCE_TYPE_OPTIONS: { value: OrthodonticApplianceType; label: string; minAgeMonths: number }[] = [
@@ -114,8 +102,6 @@ export function OrthodonticPage({
   childId,
   childBirthDate,
   ageMonths,
-  actionRequest,
-  onActionRequestHandled,
 }: Props) {
   const navigate = useNavigate();
   const [cases, setCases] = useState<OrthodonticCaseRow[]>([]);
@@ -163,17 +149,6 @@ export function OrthodonticPage({
     const id = window.setInterval(() => setNowIso(new Date().toISOString()), 60_000);
     return () => window.clearInterval(id);
   }, []);
-
-  // The dental-page `+` toolbar menu hands off entry-point intent through
-  // `actionRequest`. Consume it here so the corresponding modal opens, then
-  // signal back so the parent can clear the slot.
-  useEffect(() => {
-    if (!actionRequest) return;
-    if (actionRequest.kind === 'add-appliance') {
-      setShowApplianceForm(true);
-    }
-    onActionRequestHandled?.();
-  }, [actionRequest, onActionRequestHandled]);
 
   const reloadCases = useCallback(async () => {
     try {
@@ -431,9 +406,25 @@ export function OrthodonticPage({
     ? gridItems.find((i) => i.appliance.applianceId === switchAppliance.applianceId) ?? null
     : null;
 
+  const canAddAppliance =
+    activeCase.caseType !== 'unknown-legacy' && eligibleApplianceTypes.length > 0;
+
   return (
     <div className="flex flex-col gap-4">
       {errorMsg && <ErrorBanner msg={errorMsg} onDismiss={() => setErrorMsg(null)} />}
+
+      {canAddAppliance && (
+        <div className="flex items-center justify-end gap-2">
+          <Button
+            onClick={() => setShowApplianceForm(true)}
+            tone="primary"
+            size="md"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
+            添加矫治器
+          </Button>
+        </div>
+      )}
 
       <OrthodonticCaseShell
         caseRow={activeCase}
@@ -442,9 +433,7 @@ export function OrthodonticPage({
         monthsElapsed={monthsElapsed}
         monthsTotal={monthsTotal}
         nowIso={nowIso}
-        canAddAppliance={
-          activeCase.caseType !== 'unknown-legacy' && eligibleApplianceTypes.length > 0
-        }
+        canAddAppliance={canAddAppliance}
         handlers={shellHandlers}
       />
 

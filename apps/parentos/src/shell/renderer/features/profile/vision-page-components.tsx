@@ -1,4 +1,4 @@
-import { Button, cn, StatusBadge, Surface, TextField } from '@nimiplatform/nimi-kit/ui';
+import { Button, cn, OverlayShell, StatusBadge, Surface, TextField } from '@nimiplatform/nimi-kit/ui';
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
@@ -91,21 +91,37 @@ export function ScreeningModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--nimi-scrim-modal)]" onClick={onClose}>
-      <Surface
-        tone="overlay"
-        material="glass-thick"
-        elevation="modal"
-        padding="lg"
-        className="max-h-[85vh] w-[560px] overflow-y-auto rounded-3xl"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-center justify-between mb-4">
+    <OverlayShell
+      open
+      kind="dialog"
+      onClose={onClose}
+      panelClassName="w-[560px] max-w-[560px] max-h-[85vh] overflow-y-auto rounded-3xl"
+      title={
+        <div className="flex items-center justify-between">
           <h3 className="text-[16px] font-semibold text-[var(--nimi-text-primary)]">{t('Profile.rich.vision.screeningModalTitle')}</h3>
           <Button onClick={onClose} aria-label={t('Profile.rich.common.close')} tone="ghost" size="sm" className="h-7 min-h-7 w-7 rounded-full px-0">✕</Button>
         </div>
-
-        <p className="text-[13px] mb-2 text-[var(--nimi-text-muted)]">{t('Profile.rich.vision.screeningItem')}</p>
+      }
+      footer={
+        <div className="flex gap-2">
+          <Button
+            onClick={() => void handleSubmit()}
+            tone="primary"
+            size="md"
+          >
+            {t('Profile.rich.common.save')}
+          </Button>
+          <Button
+            onClick={onClose}
+            tone="secondary"
+            size="md"
+          >
+            {t('Profile.rich.common.cancel')}
+          </Button>
+        </div>
+      }
+    >
+      <p className="text-[13px] mb-2 text-[var(--nimi-text-muted)]">{t('Profile.rich.vision.screeningItem')}</p>
         <div className="flex flex-wrap gap-1.5 mb-4">
           {availableTypes.map((screeningType) => (
             <button
@@ -173,24 +189,7 @@ export function ScreeningModal({
           />
         </div>
 
-        <div className="flex gap-2">
-          <Button
-            onClick={() => void handleSubmit()}
-            tone="primary"
-            size="md"
-          >
-            {t('Profile.rich.common.save')}
-          </Button>
-          <Button
-            onClick={onClose}
-            tone="secondary"
-            size="md"
-          >
-            {t('Profile.rich.common.cancel')}
-          </Button>
-        </div>
-      </Surface>
-    </div>
+    </OverlayShell>
   );
 }
 

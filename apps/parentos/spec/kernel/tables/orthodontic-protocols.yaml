@@ -96,41 +96,111 @@ applianceMinAge:
 # Per-appliance treatment-phase sequences (PO-ORTHO-013). Each applianceType has
 # a clinically-ordered list of phases; `orthodontic_appliances.currentPhase`
 # stores one `phaseId` from its type's sequence (or NULL = not yet set).
-# `expectedMonths` is a typical-duration projection for the per-appliance month
-# counter — never a hard deadline, never a "落后" verdict source (PO-ORTHO-010).
+# Each entry is `{ phaseId, label, description, expectedMonths }`:
+# - `label` is the short phase name shown on the appliance card pill.
+# - `description` is a one-sentence plain-language explanation for parents,
+#   surfaced in the phase-set / phase-advance dialog so a non-clinical reader
+#   understands what the phase means. It is descriptive only — it states what
+#   the phase IS, never prescribes wear behavior or asserts efficacy
+#   (PO-ORTHO-010 boundary). Human-authored static catalog text, never AI-generated.
+# - `expectedMonths` is a typical-duration projection for the per-appliance month
+#   counter — never a hard deadline, never a "落后" verdict source (PO-ORTHO-010).
 # Phase transitions are parent-initiated and adjacency-only
 # (advance_orthodontic_appliance_phase). phaseId values are stable identifiers;
 # renaming or removing one is a breaking change requiring a data migration.
 appliancePhases:
   expander:
-    - { phaseId: widening,      label: "加力扩弓",   expectedMonths: 3 }
-    - { phaseId: holding,       label: "保持稳定",   expectedMonths: 6 }
+    - phaseId: widening
+      label: "加力扩弓"
+      description: "按医嘱定期加力，逐步把过窄的牙弓扩开。"
+      expectedMonths: 3
+    - phaseId: holding
+      label: "保持稳定"
+      description: "停止加力，让扩开的牙弓在原位保持，等待骨质长稳。"
+      expectedMonths: 6
   twin-block:
-    - { phaseId: functional,    label: "功能导下颌", expectedMonths: 9 }
-    - { phaseId: settling,      label: "咬合稳定",   expectedMonths: 3 }
+    - phaseId: functional
+      label: "功能导下颌"
+      description: "矫治器引导下颌向前生长，改善上下颌的位置关系。"
+      expectedMonths: 9
+    - phaseId: settling
+      label: "咬合稳定"
+      description: "下颌位置基本到位后，让新的咬合关系逐渐稳定下来。"
+      expectedMonths: 3
   activator:
-    - { phaseId: functional,    label: "功能导下颌", expectedMonths: 9 }
-    - { phaseId: settling,      label: "咬合稳定",   expectedMonths: 3 }
+    - phaseId: functional
+      label: "功能导下颌"
+      description: "矫治器引导下颌向前生长，改善上下颌的位置关系。"
+      expectedMonths: 9
+    - phaseId: settling
+      label: "咬合稳定"
+      description: "下颌位置基本到位后，让新的咬合关系逐渐稳定下来。"
+      expectedMonths: 3
   metal-braces:
-    - { phaseId: leveling,      label: "排齐整平",   expectedMonths: 8 }
-    - { phaseId: space-closure, label: "关闭间隙",   expectedMonths: 6 }
-    - { phaseId: finishing,     label: "咬合精调",   expectedMonths: 4 }
-    - { phaseId: debond-prep,   label: "拆机准备",   expectedMonths: 2 }
+    - phaseId: leveling
+      label: "排齐整平"
+      description: "用弓丝把拥挤、高低不齐的牙齿先排齐、整平。"
+      expectedMonths: 8
+    - phaseId: space-closure
+      label: "关闭间隙"
+      description: "逐步关闭拔牙或牙缝留下的空隙。"
+      expectedMonths: 6
+    - phaseId: finishing
+      label: "咬合精调"
+      description: "对每颗牙的位置和上下咬合做精细调整。"
+      expectedMonths: 4
+    - phaseId: debond-prep
+      label: "拆机准备"
+      description: "效果达标后，准备拆除矫治器并转入保持期。"
+      expectedMonths: 2
   ceramic-braces:
-    - { phaseId: leveling,      label: "排齐整平",   expectedMonths: 8 }
-    - { phaseId: space-closure, label: "关闭间隙",   expectedMonths: 6 }
-    - { phaseId: finishing,     label: "咬合精调",   expectedMonths: 4 }
-    - { phaseId: debond-prep,   label: "拆机准备",   expectedMonths: 2 }
+    - phaseId: leveling
+      label: "排齐整平"
+      description: "用弓丝把拥挤、高低不齐的牙齿先排齐、整平。"
+      expectedMonths: 8
+    - phaseId: space-closure
+      label: "关闭间隙"
+      description: "逐步关闭拔牙或牙缝留下的空隙。"
+      expectedMonths: 6
+    - phaseId: finishing
+      label: "咬合精调"
+      description: "对每颗牙的位置和上下咬合做精细调整。"
+      expectedMonths: 4
+    - phaseId: debond-prep
+      label: "拆机准备"
+      description: "效果达标后，准备拆除矫治器并转入保持期。"
+      expectedMonths: 2
   clear-aligner:
-    - { phaseId: active-series, label: "主动序列",   expectedMonths: 12 }
-    - { phaseId: refinement,    label: "精调序列",   expectedMonths: 3 }
+    - phaseId: active-series
+      label: "主动序列"
+      description: "按医嘱依次佩戴每一副牙套，把牙齿逐步移动到目标位置。"
+      expectedMonths: 12
+    - phaseId: refinement
+      label: "精调序列"
+      description: "主体排齐后，用补充牙套对个别牙齿做最后微调。"
+      expectedMonths: 3
   retainer-fixed:
-    - { phaseId: stabilizing,   label: "稳定保持期", expectedMonths: 12 }
-    - { phaseId: long-term,     label: "长期保持期", expectedMonths: 24 }
+    - phaseId: stabilizing
+      label: "稳定保持期"
+      description: "矫治刚结束、牙齿仍易移动，靠固定保持器维持效果。"
+      expectedMonths: 12
+    - phaseId: long-term
+      label: "长期保持期"
+      description: "牙齿位置趋于稳定，进入长期维持阶段。"
+      expectedMonths: 24
   retainer-removable:
-    - { phaseId: full-time,     label: "全日佩戴",   expectedMonths: 6 }
-    - { phaseId: night-time,    label: "夜间佩戴",   expectedMonths: 12 }
-    - { phaseId: intermittent,  label: "间歇佩戴",   expectedMonths: 24 }
+    - phaseId: full-time
+      label: "全日佩戴"
+      description: "除进食、刷牙外全天佩戴保持器，巩固矫治效果。"
+      expectedMonths: 6
+    - phaseId: night-time
+      label: "夜间佩戴"
+      description: "牙齿趋于稳定后，改为仅夜间睡觉时佩戴。"
+      expectedMonths: 12
+    - phaseId: intermittent
+      label: "间歇佩戴"
+      description: "牙齿长期稳定后，按医嘱每周佩戴若干晚。"
+      expectedMonths: 24
 
 # Admitted dynamic reminder rules emitted by the protocol catalog compiler.
 # ruleId stability contract: these IDs persist into reminder_states, so
@@ -335,6 +405,7 @@ constraints:
   - "applianceMinAge keys must match the applianceType enum exactly."
   - "appliancePhases keys must match the applianceType enum exactly (every type has a sequence; no extra keys)."
   - "phaseId values must be unique within each applianceType sequence; renaming or removing a phaseId is a breaking change."
+  - "every appliancePhases entry must carry a non-empty label, description, and positive expectedMonths."
   - "orthodontic_appliances.currentPhase, when non-null, must be a phaseId from that row's applianceType sequence (PO-ORTHO-013)."
   - "orthodontic_appliances.activationIntervalDays is expander-only and must be NULL for every other applianceType (PO-ORTHO-014)."
   - "admittedCheckinTypes must match orthodontic_checkins.checkinType SQLite column semantics exactly."

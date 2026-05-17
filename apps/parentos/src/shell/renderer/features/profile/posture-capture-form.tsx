@@ -1,5 +1,5 @@
-import { Camera, X } from 'lucide-react';
-import { StatusBadge } from '@nimiplatform/nimi-kit/ui';
+import { X } from 'lucide-react';
+import { DashedAddButton, StatusBadge } from '@nimiplatform/nimi-kit/ui';
 import { useRef, useState } from 'react';
 import { computeAgeMonthsAt } from '../../app-shell/app-store.js';
 import { insertMeasurement } from '../../bridge/sqlite-bridge.js';
@@ -347,21 +347,14 @@ export function PostureCaptureContent({ child, onSaved, onClose }: PostureCaptur
                   </button>
                 </div>
               ) : (
-                <button
-                  type="button"
+                <DashedAddButton
+                  shape="tile"
                   onClick={() => {
                     photoSlotRef.current = currentPhotoKey;
                     photoInputRef.current?.click();
                   }}
-                  className="group flex h-20 w-full flex-col items-center justify-center gap-1.5 rounded-2xl border-2 border-dashed border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] text-[12.5px] font-medium text-[var(--nimi-text-muted)] transition-colors hover:border-[var(--nimi-action-primary-bg)] hover:bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_8%,var(--nimi-surface-panel))] hover:text-[var(--nimi-action-primary-bg)]"
-                >
-                  <Camera
-                    size={20}
-                    strokeWidth={1.5}
-                    className="transition-transform duration-300 group-hover:rotate-6 group-hover:scale-110"
-                  />
-                  <span>点击上传{POSTURE_TABS.find((t) => t.key === postureTab)?.label}照片</span>
-                </button>
+                  label={`点击上传${POSTURE_TABS.find((t) => t.key === postureTab)?.label}照片`}
+                />
               )}
 
               {postureTab === 'back' && (

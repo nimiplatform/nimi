@@ -190,6 +190,10 @@ describe('JournalPage', () => {
       tags: ['Shared toys'],
     });
     window.scrollTo = vi.fn();
+    Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
+      configurable: true,
+      value: vi.fn(),
+    });
 
     useAppStore.setState({
       activeChildId: 'child-1',
@@ -241,47 +245,6 @@ describe('JournalPage', () => {
     expect(getComposerTextarea()).toBeTruthy();
     expect(screen.queryByRole('button', { name: /专项观察/i })).toBeNull();
     expect(screen.queryByRole('button', { name: /阶段复盘/i })).toBeNull();
-  });
-
-  it('keeps the journal header title and child selector in bounded columns', async () => {
-    act(() => {
-      useAppStore.setState((state) => ({
-        children: [
-          ...state.children,
-          {
-            childId: 'child-2',
-            familyId: 'family-1',
-            displayName: 'Snow',
-            gender: 'male',
-            birthDate: '2021-06-01',
-            birthWeightKg: null,
-            birthHeightCm: null,
-            birthHeadCircCm: null,
-            avatarPath: null,
-            nurtureMode: 'balanced',
-            nurtureModeOverrides: null,
-            allergies: null,
-            medicalNotes: null,
-            recorderProfiles: [{ id: 'rec-2', name: 'Dad' }],
-            createdAt: '2025-01-01T00:00:00.000Z',
-            updatedAt: '2025-01-01T00:00:00.000Z',
-          },
-        ],
-      }));
-    });
-
-    renderPage();
-
-    await waitFor(() => {
-      expect(screen.getByRole('combobox', { name: '切换成长随记孩子' })).toBeTruthy();
-    });
-
-    const title = screen.getByText('成长随记');
-    const header = title.parentElement;
-    const childSelector = screen.getByRole('combobox', { name: '切换成长随记孩子' });
-    expect(title.classList.contains('shrink-0')).toBe(true);
-    expect(header?.classList.contains('grid-cols-[auto_minmax(9rem,13.5rem)]')).toBe(true);
-    expect(childSelector.classList.contains('w-full')).toBe(true);
   });
 
   it('saves a text journal entry via the confirmation modal', async () => {
@@ -603,6 +566,10 @@ describe('JournalPage', () => {
     await waitFor(() => {
       expect(screen.getByText(/正在编辑 2026-04-05 09:48 的记录/i)).toBeTruthy();
       expect(screen.getByRole('button', { name: /保存修改/i })).toBeTruthy();
+    });
+
+    await waitFor(() => {
+      expect(document.activeElement).toBe(getComposerTextarea());
     });
 
     fireEvent.change(getComposerTextarea(), {
