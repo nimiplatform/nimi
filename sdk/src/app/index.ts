@@ -1,4 +1,8 @@
 export { NimiAppClient, NimiAppClientError } from './client.js';
+export {
+  NimiAppRegistryTransportError,
+  createNimiAppRegistryTransport,
+} from './registry-transport.js';
 export type { NimiAppTransport } from './transport.js';
 export type {
   AppKind,
@@ -7,6 +11,11 @@ export type {
   NimiAppStatus,
   TrustTierId,
 } from './types.js';
+export type {
+  NimiAppAdmissionStatus,
+  NimiAppRegistrySourceRow,
+  NimiAppRegistryTransportOptions,
+} from './registry-transport.js';
 export {
   CANONICAL_APP_KINDS,
   CANONICAL_LAUNCH_READINESS,

@@ -2,6 +2,11 @@ export {
   DefaultExperienceClient,
   DefaultExperienceClientError,
 } from './client.js';
+export {
+  RuntimeDefaultExperienceTransportError,
+  createRuntimeDefaultExperienceTransport,
+  resolveDefaultExperienceMaterializationState,
+} from './runtime-transport.js';
 export type { DefaultExperienceTransport } from './transport.js';
 export type {
   ApplicableScope,
@@ -17,6 +22,10 @@ export type {
   ScopeRef,
   UpstreamInputs,
 } from './types.js';
+export type {
+  RuntimeDefaultExperienceProfileRow,
+  RuntimeDefaultExperienceTransportOptions,
+} from './runtime-transport.js';
 export {
   CANONICAL_APPLICABLE_SCOPES,
   CANONICAL_COLD_START_STATES,
