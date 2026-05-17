@@ -62,8 +62,10 @@ func TestProject_CloudImageWithoutHintReturnsUnknownDisclosure(t *testing.T) {
 
 func TestProject_CloudVideoAndAudio(t *testing.T) {
 	for capability, want := range map[string]SpendCategory{
-		"video.generate":  SpendCategoryCloudVideo,
+		"video.generate":   SpendCategoryCloudVideo,
 		"audio.synthesize": SpendCategoryCloudAudio,
+		"music.generate":   SpendCategoryCloudMusic,
+		"world.generate":   SpendCategoryCloudWorld,
 	} {
 		d, err := Project(ExecutionInput{
 			CapabilityID: capability,
@@ -90,7 +92,7 @@ func TestProject_RejectsMissingCapabilityID(t *testing.T) {
 
 func TestProject_RejectsUncategorizableCloudCapability(t *testing.T) {
 	_, err := Project(ExecutionInput{
-		CapabilityID: "world.generate",
+		CapabilityID: "file.generate",
 		IsCloudRoute: true,
 	})
 	if err == nil {
@@ -104,7 +106,8 @@ func TestProject_RejectsUncategorizableCloudCapability(t *testing.T) {
 func TestSpendCategory_Valid(t *testing.T) {
 	for _, c := range []SpendCategory{
 		SpendCategoryCloudText, SpendCategoryCloudImage, SpendCategoryCloudVideo,
-		SpendCategoryCloudAudio, SpendCategoryLocalZero,
+		SpendCategoryCloudAudio, SpendCategoryCloudMusic, SpendCategoryCloudWorld,
+		SpendCategoryLocalZero,
 	} {
 		if !c.Valid() {
 			t.Errorf("%q should be valid", c)
@@ -118,7 +121,7 @@ func TestSpendCategory_Valid(t *testing.T) {
 func TestProject_NoUnsolicitedFabrication(t *testing.T) {
 	// Sweep: cloud route without hint should NEVER set EstimateAvailable=true,
 	// must never fabricate a number.
-	for _, capability := range []string{"text.generate", "image.generate", "video.generate", "audio.synthesize"} {
+	for _, capability := range []string{"text.generate", "image.generate", "video.generate", "audio.synthesize", "music.generate", "world.generate"} {
 		d, err := Project(ExecutionInput{
 			CapabilityID: capability,
 			IsCloudRoute: true,

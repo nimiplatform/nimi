@@ -57,6 +57,7 @@ type Service struct {
 	realtimeSessions                       *realtimeSessionStore
 	voiceAssets                            *voiceAssetStore
 	runtimeArtifacts                       runtimeartifact.Store
+	spendDisclosureReporter                SpendDisclosureReporter
 	connStore                              *connector.ConnectorStore
 	localModel                             localModelLister
 	localImageProfile                      localImageProfileResolver

@@ -12,8 +12,9 @@ import "errors"
 // SpendCategory enumerates the canonical spend categories that the
 // pre-execution projection may surface. The closed enum tracks
 // canonical capability categories (cloud-text, cloud-image,
-// cloud-video, local-zero-cost — local execution carries no spend per
-// existing usagemetrics semantics).
+// cloud-video, cloud-audio, cloud-music, cloud-world,
+// local-zero-cost — local execution carries no spend per existing
+// usagemetrics semantics).
 type SpendCategory string
 
 const (
@@ -21,13 +22,16 @@ const (
 	SpendCategoryCloudImage SpendCategory = "cloud-image"
 	SpendCategoryCloudVideo SpendCategory = "cloud-video"
 	SpendCategoryCloudAudio SpendCategory = "cloud-audio"
+	SpendCategoryCloudMusic SpendCategory = "cloud-music"
+	SpendCategoryCloudWorld SpendCategory = "cloud-world"
 	SpendCategoryLocalZero  SpendCategory = "local-zero-cost"
 )
 
 func (c SpendCategory) Valid() bool {
 	switch c {
 	case SpendCategoryCloudText, SpendCategoryCloudImage, SpendCategoryCloudVideo,
-		SpendCategoryCloudAudio, SpendCategoryLocalZero:
+		SpendCategoryCloudAudio, SpendCategoryCloudMusic, SpendCategoryCloudWorld,
+		SpendCategoryLocalZero:
 		return true
 	}
 	return false

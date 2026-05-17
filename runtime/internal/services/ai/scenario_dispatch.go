@@ -41,6 +41,9 @@ func (s *Service) ExecuteScenario(ctx context.Context, req *runtimev1.ExecuteSce
 	if err != nil {
 		return nil, err
 	}
+	if err := s.reportScenarioSpendDisclosure(ctx, req.GetHead(), req.GetScenarioType()); err != nil {
+		return nil, err
+	}
 	switch req.GetScenarioType() {
 	case runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE:
 		return executeTextGenerateScenario(ctx, s, req, ignored)

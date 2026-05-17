@@ -24,6 +24,9 @@ func (s *Service) StreamScenario(req *runtimev1.StreamScenarioRequest, stream gr
 	if _, err := classifyScenarioExtensions(req.GetScenarioType(), req.GetExtensions()); err != nil {
 		return err
 	}
+	if err := s.reportScenarioSpendDisclosure(stream.Context(), req.GetHead(), req.GetScenarioType()); err != nil {
+		return err
+	}
 
 	switch req.GetScenarioType() {
 	case runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE:

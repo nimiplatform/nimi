@@ -29,6 +29,11 @@ func TestProtectedCapabilityForStream(t *testing.T) {
 		t.Fatalf("expected unrelated stream to be unprotected, got (%q,%v)", capability, required)
 	}
 
+	capability, required = protectedCapabilityForStream("/nimi.runtime.v1.RuntimeAiService/StreamScenario", nil)
+	if !required || capability != "ai.spend.meter" {
+		t.Fatalf("expected StreamScenario to require ai.spend.meter, got (%q,%v)", capability, required)
+	}
+
 	capability, required = protectedCapabilityForStream("/nimi.runtime.v1.RuntimeCognitionService/SubscribeMemoryEvents", nil)
 	if !required || capability != "runtime.memory.read" {
 		t.Fatalf("expected memory events stream to require runtime.memory.read, got (%q,%v)", capability, required)
@@ -76,6 +81,20 @@ func TestProtectedCapabilityForUnaryMemoryAndRuntimeAgent(t *testing.T) {
 			method:     "/nimi.runtime.v1.RuntimeAgentService/InitializeAgent",
 			request:    &runtimev1.InitializeAgentRequest{},
 			capability: "runtime.agent.admin",
+		},
+		{
+			method: "/nimi.runtime.v1.RuntimeAiService/ExecuteScenario",
+			request: &runtimev1.ExecuteScenarioRequest{
+				Head: &runtimev1.ScenarioRequestHead{AppId: "nimi.desktop"},
+			},
+			capability: "ai.spend.meter",
+		},
+		{
+			method: "/nimi.runtime.v1.RuntimeAiService/SubmitScenarioJob",
+			request: &runtimev1.SubmitScenarioJobRequest{
+				Head: &runtimev1.ScenarioRequestHead{AppId: "nimi.desktop"},
+			},
+			capability: "ai.spend.meter",
 		},
 		{
 			method:     "/nimi.runtime.v1.RuntimeAgentService/GetAgentState",

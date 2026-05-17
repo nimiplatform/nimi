@@ -130,6 +130,10 @@ func protectedCapabilityForUnary(fullMethod string, req any) (string, bool) {
 	switch fullMethod {
 	case "/nimi.runtime.v1.RuntimeModelService/RemoveModel":
 		return "runtime.model.remove", true
+	case "/nimi.runtime.v1.RuntimeAiService/ExecuteScenario":
+		return "ai.spend.meter", true
+	case "/nimi.runtime.v1.RuntimeAiService/SubmitScenarioJob":
+		return "ai.spend.meter", true
 	case "/nimi.runtime.v1.RuntimeCognitionService/CreateBank":
 		return "runtime.memory.admin", true
 	case "/nimi.runtime.v1.RuntimeCognitionService/GetBank":
@@ -298,6 +302,8 @@ func protectedCapabilityForStream(fullMethod string, req any) (string, bool) {
 	}
 
 	switch fullMethod {
+	case "/nimi.runtime.v1.RuntimeAiService/StreamScenario":
+		return "ai.spend.meter", true
 	case "/nimi.runtime.v1.RuntimeAuditService/ExportAuditEvents":
 		return "runtime.audit.export", true
 	case "/nimi.runtime.v1.RuntimeCognitionService/SubscribeMemoryEvents":
