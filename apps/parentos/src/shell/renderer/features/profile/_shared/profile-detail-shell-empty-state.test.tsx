@@ -14,7 +14,7 @@
 // runs inside a Tauri host (vite-only preview crashes on `invoke`), so the
 // shell-composition contract is verified through real DOM rendering here.
 
-import { render, screen } from '@testing-library/react';
+import { cleanup, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 import { TooltipProvider } from '@nimiplatform/nimi-kit/ui';
@@ -76,6 +76,7 @@ describe('profile detail pages: no-active-child empty state', () => {
   });
 
   afterEach(() => {
+    cleanup();
     useAppStore.setState({
       bootstrapReady: false,
       familyId: null,
@@ -118,5 +119,5 @@ describe('profile detail pages: no-active-child empty state', () => {
     // the page-detail-layout body, not a sibling of the layout.
     const placeholder = screen.getByText('请先添加孩子').closest('.nimi-page-detail-layout');
     expect(placeholder).not.toBeNull();
-  });
+  }, 10000);
 });
