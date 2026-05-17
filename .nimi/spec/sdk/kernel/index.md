@@ -15,7 +15,7 @@
 ## 3. Rule ID 规范
 
 - 格式：`S-<DOMAIN>-NNN`
-- `DOMAIN` 固定枚举：`SURFACE` `TRANSPORT` `ERROR` `BOUNDARY` `RUNTIME` `WORLD` `REALM` `AIP` `SCOPE` `MOD` `GATE` `PKG`
+- `DOMAIN` 固定枚举：`SURFACE` `TRANSPORT` `ERROR` `BOUNDARY` `RUNTIME` `WORLD` `REALM` `AIP` `SCOPE` `MOD` `GATE` `PKG` `AICONF` `APP` `PERM`
 - `NNN` 三位递增编号，不复用。
 
 ## 4. 文档所有权
@@ -43,6 +43,9 @@
 | `mod-contract.md` | `S-MOD-*` | mod 子路径 host 注入、inter-mod 边界、以及 World Evolution Engine host-injected facade / selector-read publication boundary |
 | `testing-gates-contract.md` | `S-GATE-*` | SDK 门禁层次、发布同级策略 |
 | `package-governance-contract.md` | `S-PKG-*` | SDK root package metadata (`S-PKG-001`), support docs (`S-PKG-002`), release gate alignment (`S-PKG-003`), and audit evidence admission (`S-PKG-004`) |
+| `ai-config-surface-contract.md` | `S-AICONF-*` | SDK typed AI config / profile / snapshot surface, host-local persistence boundary, scheduling probe categories, and no-fallback rule |
+| `nimi-app-client-contract.md` | `S-APP-*` | SDK typed Nimi App client surface: list/get/install/update/uninstall/launch/status/subscribe/healthRepair logical operations, mandatory `AIScopeRef` on launch, typed projection state aligned with `P-NAPP-008`, non-owner rule for installers / source-selectors / marketplace truth, no-fallback rule, subscription scope limited to lifecycle events |
+| `nimi-permission-client-contract.md` | `S-PERM-*` | SDK typed permission client surface for Realm `R-PERM-*` grant lifecycle and Cognition `C-APMEM-*` access policy: list/get/request/revoke/subscribe/status logical operations, mandatory `AIScopeRef`, fail-closed typed denial states, no fallback knob, no private path, subscription limited to grant lifecycle events, closed `permission_scope_ref` shape |
 
 ## 5. 结构化事实源
 

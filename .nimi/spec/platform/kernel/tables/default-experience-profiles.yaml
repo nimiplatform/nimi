@@ -1,0 +1,207 @@
+version: 1
+table_family: product_catalog
+owner: platform
+catalog_id: platform_default_experience_profiles
+entries:
+  - profiles_1
+  - profiles_2
+  - profiles_3
+  - profiles_4
+  - profiles_5
+  - alias is a readable projection of the four-dimensional matrix and must not be a schema owner
+  - profile rows must not embed provider, connector, engine, or model identifier strings
+  - host_capability_profile_refs, local_compute_pack_refs, and dependency_family_refs must resolve to admitted Runtime table rows
+  - capability_set values must resolve to admitted CanonicalCapabilityId rows in canonical-capability-catalog.yaml
+  - cloud-only profiles must not request local environment activation
+  - applicable_scopes is a closed enum of first-run, first-party-app, scope-bound-apply
+
+# Canonical Default Experience Profile catalog — platform recommendation/catalog authority.
+# See default-experience-profile-contract.md (P-DXP-001..P-DXP-012).
+# Rows are dimensioned over privacy_posture x compute_posture x capability_set x routing_policy.
+
+profile_schema:
+  owner: platform_default_experience_profile_catalog
+  fields:
+    - alias
+    - privacy_posture
+    - compute_posture
+    - capability_set
+    - routing_policy
+    - host_capability_profile_refs
+    - local_compute_pack_refs
+    - dependency_family_refs
+    - materialization_confirmation_required
+    - applicable_scopes
+    - source_rule
+  enums:
+    privacy_posture:
+      - cloud-ok
+      - local-preferred
+      - local-required
+    compute_posture:
+      - cpu-only
+      - metal-capable
+      - cuda-capable
+      - cloud-only
+    routing_policy:
+      - cloud-first
+      - local-first
+      - hybrid-explicit
+    applicable_scopes:
+      - first-run
+      - first-party-app
+      - scope-bound-apply
+
+profiles:
+  - alias: cloud-first
+    privacy_posture: cloud-ok
+    compute_posture: cloud-only
+    capability_set:
+      - text.generate
+      - text.generate.vision
+      - text.embed
+      - audio.synthesize
+      - audio.transcribe
+      - image.generate
+      - image.edit
+    routing_policy: cloud-first
+    host_capability_profile_refs:
+      - windows-amd64-cpu
+      - windows-amd64-nvidia-cuda
+      - darwin-arm64-metal
+    local_compute_pack_refs: []
+    dependency_family_refs: []
+    materialization_confirmation_required: false
+    applicable_scopes:
+      - first-run
+      - first-party-app
+      - scope-bound-apply
+    source_rule: P-DXP-002
+
+  - alias: local-standard
+    privacy_posture: local-preferred
+    compute_posture: cpu-only
+    capability_set:
+      - text.generate
+      - text.embed
+    routing_policy: local-first
+    host_capability_profile_refs:
+      - windows-amd64-cpu
+      - darwin-arm64-metal
+      - windows-amd64-nvidia-cuda
+    local_compute_pack_refs:
+      - local-text
+    dependency_family_refs:
+      - native-engine-package.llama
+      - model.asset
+    materialization_confirmation_required: true
+    applicable_scopes:
+      - first-run
+      - first-party-app
+      - scope-bound-apply
+    source_rule: P-DXP-002
+
+  - alias: local-speech-ready
+    privacy_posture: local-preferred
+    compute_posture: cpu-only
+    capability_set:
+      - text.generate
+      - text.embed
+      - audio.transcribe
+      - audio.synthesize
+    routing_policy: local-first
+    host_capability_profile_refs:
+      - windows-amd64-cpu
+      - darwin-arm64-metal
+      - windows-amd64-nvidia-cuda
+    local_compute_pack_refs:
+      - local-text
+      - local-speech
+    dependency_family_refs:
+      - native-engine-package.llama
+      - python.tool.uv
+      - python.runtime
+      - python.venv
+      - python.package-set
+      - model.asset
+    materialization_confirmation_required: true
+    applicable_scopes:
+      - first-run
+      - first-party-app
+      - scope-bound-apply
+    source_rule: P-DXP-002
+
+  - alias: local-gpu
+    privacy_posture: local-preferred
+    compute_posture: cuda-capable
+    capability_set:
+      - text.generate
+      - text.generate.vision
+      - text.embed
+      - audio.transcribe
+      - audio.synthesize
+      - image.generate
+      - image.edit
+    routing_policy: local-first
+    host_capability_profile_refs:
+      - windows-amd64-nvidia-cuda
+      - darwin-arm64-metal
+    local_compute_pack_refs:
+      - local-text
+      - local-speech
+      - local-image-native
+      - local-gpu-support
+    dependency_family_refs:
+      - accelerator.cuda.runtime
+      - native-engine-package.llama
+      - native-engine-package.stablediffusion-ggml
+      - python.tool.uv
+      - python.runtime
+      - python.venv
+      - python.package-set
+      - python.torch-wheel
+      - model.asset
+      - model.companion-asset
+    materialization_confirmation_required: true
+    applicable_scopes:
+      - first-run
+      - first-party-app
+      - scope-bound-apply
+    source_rule: P-DXP-002
+
+  - alias: hybrid-recommended
+    privacy_posture: cloud-ok
+    compute_posture: cuda-capable
+    capability_set:
+      - text.generate
+      - text.generate.vision
+      - text.embed
+      - audio.transcribe
+      - audio.synthesize
+      - image.generate
+      - image.edit
+      - video.generate
+    routing_policy: hybrid-explicit
+    host_capability_profile_refs:
+      - windows-amd64-nvidia-cuda
+      - darwin-arm64-metal
+      - windows-amd64-cpu
+    local_compute_pack_refs:
+      - local-text
+      - local-speech
+      - local-image-native
+    dependency_family_refs:
+      - native-engine-package.llama
+      - native-engine-package.stablediffusion-ggml
+      - python.tool.uv
+      - python.runtime
+      - python.venv
+      - python.package-set
+      - model.asset
+      - model.companion-asset
+    materialization_confirmation_required: true
+    applicable_scopes:
+      - first-run
+      - first-party-app
+      - scope-bound-apply
+    source_rule: P-DXP-002

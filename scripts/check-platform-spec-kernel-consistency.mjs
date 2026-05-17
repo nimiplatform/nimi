@@ -46,6 +46,9 @@ const nimiKitRegistryTable = readYaml('.nimi/spec/platform/kernel/tables/nimi-ki
 const appSliceAdmissionsTable = readYaml('.nimi/spec/platform/kernel/tables/app-slice-admissions.yaml');
 const auditEvidenceRootsTable = readYaml('.nimi/spec/platform/kernel/tables/audit-evidence-roots.yaml');
 const packageAuthorityAdmissionsTable = readYaml('.nimi/spec/platform/kernel/tables/package-authority-admissions.yaml');
+const defaultExperienceProfilesTable = readYaml('.nimi/spec/platform/kernel/tables/default-experience-profiles.yaml');
+const nimiAppRegistryTable = readYaml('.nimi/spec/platform/kernel/tables/nimi-app-registry.yaml');
+const nimiAppTrustTiersTable = readYaml('.nimi/spec/platform/kernel/tables/nimi-app-trust-tiers.yaml');
 const ruleEvidenceTable = readYaml('.nimi/spec/platform/kernel/tables/rule-evidence.yaml');
 const structuralOnlyCoverageRuleIds = new Set(
   (Array.isArray(complianceTable?.layers) ? complianceTable.layers : [])
@@ -340,12 +343,27 @@ const requiredKernelFiles = [
   'app-slice-admission-contract.md',
   'web-release-contract.md',
   'package-authority-admission-contract.md',
+  'default-experience-profile-contract.md',
+  'nimi-home-contract.md',
+  'nimi-self-update-contract.md',
+  'nimi-package-release-contract.md',
+  'cold-start-authority-contract.md',
+  'nimi-app-admission-contract.md',
+  'mod-extension-retirement-contract.md',
+  'agent-identity-floor-contract.md',
+  'app-permission-contract.md',
+  'nimi-first-party-integration-contract.md',
+  'nimi-first-party-migration-contract.md',
+  'nimi-ecosystem-contract.md',
   'governance-contract.md',
   'tables/nimi-kit-registry.yaml',
   'tables/canonical-capability-catalog.yaml',
   'tables/app-slice-admissions.yaml',
   'tables/audit-evidence-roots.yaml',
   'tables/package-authority-admissions.yaml',
+  'tables/default-experience-profiles.yaml',
+  'tables/nimi-app-registry.yaml',
+  'tables/nimi-app-trust-tiers.yaml',
   'tables/error-code-mapping.yaml',
   'tables/nimi-ui-tokens.yaml',
   'tables/nimi-ui-primitives.yaml',
@@ -378,6 +396,18 @@ const kernelContracts = [
   'app-slice-admission-contract.md',
   'web-release-contract.md',
   'package-authority-admission-contract.md',
+  'default-experience-profile-contract.md',
+  'nimi-home-contract.md',
+  'nimi-self-update-contract.md',
+  'nimi-package-release-contract.md',
+  'cold-start-authority-contract.md',
+  'nimi-app-admission-contract.md',
+  'mod-extension-retirement-contract.md',
+  'agent-identity-floor-contract.md',
+  'app-permission-contract.md',
+  'nimi-first-party-integration-contract.md',
+  'nimi-first-party-migration-contract.md',
+  'nimi-ecosystem-contract.md',
   'governance-contract.md',
 ];
 
@@ -437,6 +467,9 @@ const yamlTables = [
   { name: 'app-slice-admissions.yaml', data: appSliceAdmissionsTable },
   { name: 'audit-evidence-roots.yaml', data: auditEvidenceRootsTable },
   { name: 'package-authority-admissions.yaml', data: packageAuthorityAdmissionsTable },
+  { name: 'default-experience-profiles.yaml', data: defaultExperienceProfilesTable },
+  { name: 'nimi-app-registry.yaml', data: nimiAppRegistryTable },
+  { name: 'nimi-app-trust-tiers.yaml', data: nimiAppTrustTiersTable },
 ];
 
 for (const table of yamlTables) {

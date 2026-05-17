@@ -1,0 +1,67 @@
+table_family: support_registry
+registry_id: sdk_rule_evidence_requirement_rules_nimi_app_client
+owner: sdk
+schema_ref: .nimi/contracts/table-family.schema.yaml#support_registry
+allowed_fields:
+  - rule_id
+  - evidence_requirement
+  - evidence_refs
+  - note
+  - na_reason
+  - evidence_scope_note
+  - test_files
+forbidden_state_fields:
+  - done
+  - covered
+  - coverage_status
+  - audit_date
+  - evidence_report
+  - current
+  - proposed
+  - backlog_status
+  - migration_status
+  - mapping_status
+  - run_id
+  - ledger_ref
+entries:
+  - S-APP-001
+  - S-APP-002
+  - S-APP-003
+  - S-APP-004
+  - S-APP-005
+  - S-APP-006
+  - S-APP-007
+  - S-APP-008
+rules:
+  - rule_id: S-APP-001
+    evidence_refs:
+      - sdk_kernel_consistency
+    evidence_requirement: required
+  - rule_id: S-APP-002
+    evidence_refs:
+      - sdk_kernel_consistency
+    evidence_requirement: required
+  - rule_id: S-APP-003
+    evidence_refs:
+      - sdk_kernel_consistency
+    evidence_requirement: required
+  - rule_id: S-APP-004
+    evidence_refs:
+      - sdk_kernel_consistency
+    evidence_requirement: required
+  - rule_id: S-APP-005
+    evidence_refs:
+      - sdk_kernel_consistency
+    evidence_requirement: required
+  - rule_id: S-APP-006
+    evidence_refs:
+      - sdk_kernel_consistency
+    evidence_requirement: required
+  - rule_id: S-APP-007
+    evidence_refs:
+      - sdk_kernel_consistency
+    evidence_requirement: required
+  - rule_id: S-APP-008
+    evidence_refs:
+      - sdk_kernel_consistency
+    evidence_requirement: required

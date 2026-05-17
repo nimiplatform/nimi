@@ -6,6 +6,11 @@
 
 mod 子路径必须通过 host 注入 facade 访问平台能力。
 
+Under the Nimi Home product posture, `S-MOD-*` is retained only for existing
+developer/internal/retirement mod surfaces. It is not the public third-party
+extension API for new Nimi. New external distribution must use Nimi App SDK
+surfaces admitted by Platform/SDK contracts.
+
 ## S-MOD-002 Inter-Mod Messaging Semantics
 
 inter-mod 消息语义必须保持低延迟、同进程、可观测。

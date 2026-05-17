@@ -11,29 +11,37 @@ Desktop UI Shell 契约。定义导航 Tab 体系、布局结构、路由映射�
 导航由 `navigation-config.tsx` 定义，分为三组：
 
 1. **Core Nav**（`getCoreNavItems()`）：home、chat、contacts、world、explore、runtime（gated）、settings
-2. **Mod Nav**（sidebar puzzle icon）：mods（gated by `enableModUi`）— 点击直接进入 Mod Hub
+2. **Mod Nav**（sidebar puzzle icon）：mods（gated by `enableModUi`）— 仅作为
+   developer/internal/retirement surface；不得作为 Nimi Home 普通用户公开产品入口。
 3. **Detail Tab**：profile、agent-detail、world-detail、notification、gift-inbox、privacy-policy、terms-of-service
 
 Feature flag 门控：
 - `enableRuntimeTab` 控制 runtime tab 可见性。
 - `enableModUi` 控制 mods tab 可见性（sidebar puzzle icon + guard clause）。
+  新 Nimi 产品 posture 下该入口必须保持 developer/internal/retirement-only，
+  不能进入 ordinary-user Nimi Home close evidence。
 
 ## D-SHELL-002 — Mod UI 扩展
 
-Mod UI 通过 feature flag 门控：
+Mod UI 通过 feature flag 门控。该 surface 当前是 retirement/internalization
+对账对象，不是 public Nimi App / Extension / Mod ecosystem:
 
-- `enableModUi`：启用 mod 组件渲染 + Mods Panel + sidebar puzzle icon。
+- `enableModUi`：启用 mod 组件渲染 + Mods Panel + sidebar puzzle icon。只允许
+  developer/internal/retirement 使用。
 - `enableModWorkspaceTabs`：启用 mod workspace tab 管理。
 - `enableSettingsExtensions`：启用 settings panel 扩展区域。
 
 Mods Panel（`features/mods/mods-panel.tsx`）直接承载单页 Mod Hub：
 - 侧边栏 puzzle icon 直接导航到 `activeTab = 'mods'`。
 - `Mods` 打开后直接展示 Mod Hub，而不是旧的双视图结构。
-- Mod Hub 统一负责发现、安装、更新、启用、禁用、卸载，以及通过 `Open Mods Folder` 暴露本地 installed mods 目录入口。
+- Mod Hub 统一负责现存 mod surface 的 retirement/internalization 诊断、安装状态
+  对账与开发者操作。它不得作为 ordinary-user 发现、安装、更新、启用、禁用、
+  卸载 public Mods 的产品入口。
 - Disable / Uninstall 当前激活 mod 时 fallback 到 `'mods'` tab。
 - Guard clause：`enableModUi = false` 时访问 `'mods'` tab 自动回退到 `'chat'`。
 
-`ui-extension.app.sidebar.mods` slot 仍可供 mods 注册额外导航项（参考 `D-HOOK-004`）。
+`ui-extension.app.sidebar.mods` slot 仅保留为 internal/retirement 对账 surface
+（参考 `D-HOOK-004`）。不得作为 public Extension slot 承诺。
 
 ## D-SHELL-003 — 窗口管理
 

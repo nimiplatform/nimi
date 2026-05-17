@@ -6,6 +6,12 @@
 
 Desktop Mod 治理契约。定义 8 阶段执行内核、2 种 runtime access mode、1 条 catalog 安装治理路径、8 种生命周期状态、决策记录和审计要求。
 
+Under the Nimi Home product posture, this contract is retained only as
+developer/internal/retirement authority for existing mod surfaces. It does not
+admit public Mods or Extensions as ordinary-user product categories, and it must
+not be used as Nimi App registry, Library, Discovery, or third-party ecosystem
+truth.
+
 ## D-MOD-001 — Discovery 阶段
 
 定位 mod 包并验证源引用：

@@ -183,12 +183,12 @@ commands:
 
   - command: runtime_mod_dev_mode_get
     module: mod-local
-    description: Read Desktop Mod Developer Mode state
+    description: Read internal/developer-only Desktop Mod retirement mode state
     source_rule: D-IPC-013
 
   - command: runtime_mod_dev_mode_set
     module: mod-local
-    description: Update Desktop Mod Developer Mode state
+    description: Update internal/developer-only Desktop Mod retirement mode state
     source_rule: D-IPC-013
 
   - command: runtime_mod_storage_dirs_get
@@ -218,17 +218,17 @@ commands:
 
   - command: runtime_mod_install
     module: mod-local
-    description: Install a prebuilt runtime mod from directory, archive, or URL
+    description: Internal/developer-only retirement surface for installing a prebuilt runtime mod from directory, archive, or URL; not a public Nimi Home product install path
     source_rule: D-IPC-007
 
   - command: runtime_mod_update
     module: mod-local
-    description: Update an installed runtime mod from a prebuilt package source
+    description: Internal/developer-only retirement surface for updating an installed runtime mod from a prebuilt package source; not a public Nimi Home product update path
     source_rule: D-IPC-007
 
   - command: runtime_mod_uninstall
     module: mod-local
-    description: Uninstall an installed runtime mod package without deleting its mod-data directory
+    description: Internal/developer-only retirement surface for uninstalling an installed runtime mod package without deleting its mod-data directory; not a public Nimi Home product uninstall path
     source_rule: D-IPC-007
 
   - command: runtime_mod_read_manifest
