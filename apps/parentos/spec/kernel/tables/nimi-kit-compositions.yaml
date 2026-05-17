@@ -73,3 +73,27 @@ components:
     shared_families: []
     shared_targets: []
     source_rule: P-DESIGN-019
+  - id: parentos.profile.detail_shell
+    app: parentos
+    module: apps/parentos/src/shell/renderer/features/profile/_shared/profile-detail-shell.tsx
+    component: ProfileDetailShell
+    classification: app_owned_composition
+    shared_families: []
+    shared_targets: []
+    source_rule: P-DESIGN-019
+  - id: parentos.profile.generic_metric_detail_shell
+    app: parentos
+    module: apps/parentos/src/shell/renderer/features/profile/_shared/generic-metric-detail-shell.tsx
+    component: GenericMetricDetailShell
+    classification: app_owned_composition
+    shared_families: []
+    shared_targets: []
+    source_rule: P-DESIGN-019
+  - id: parentos.profile.no_active_child_placeholder
+    app: parentos
+    module: apps/parentos/src/shell/renderer/features/profile/_shared/no-active-child-placeholder.tsx
+    component: NoActiveChildPlaceholder
+    classification: app_owned_composition
+    shared_families: []
+    shared_targets: []
+    source_rule: P-DESIGN-019

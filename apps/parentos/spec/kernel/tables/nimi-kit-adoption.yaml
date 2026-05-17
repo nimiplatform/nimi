@@ -725,6 +725,36 @@ modules:
     scheme_support: [ light, dark ]
     default_scheme: light
     accent_pack: nimi-accent
+  - id: parentos.features.profile.generic_metric_detail_shell
+    app: parentos
+    module: apps/parentos/src/shell/renderer/features/profile/_shared/generic-metric-detail-shell.tsx
+    families: [ surface, action ]
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support: [ light, dark ]
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: parentos.features.profile.no_active_child_placeholder
+    app: parentos
+    module: apps/parentos/src/shell/renderer/features/profile/_shared/no-active-child-placeholder.tsx
+    families: [ surface ]
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support: [ light, dark ]
+    default_scheme: light
+    accent_pack: nimi-accent
+  - id: parentos.features.profile.profile_detail_shell
+    app: parentos
+    module: apps/parentos/src/shell/renderer/features/profile/_shared/profile-detail-shell.tsx
+    families: [ surface, action ]
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support: [ light, dark ]
+    default_scheme: light
+    accent_pack: nimi-accent
   - id: parentos.features.profile.profile_page_glance
     app: parentos
     module: apps/parentos/src/shell/renderer/features/profile/profile-page-glance.tsx
@@ -1094,3 +1124,12 @@ forbidden_patterns:
     reason: ParentOS visual constants for shared families must move to kit tokens or
       app-local domain semantics without becoming shared primitive truth.
     source_rule: P-DESIGN-019
+  - id: parentos.profile_detail_outer_shell_must_use_profile_detail_shell
+    scope: apps/parentos/src/shell/renderer/features/profile
+    pattern: "pt-\\[72px\\]"
+    reason: Detail-page outer shell must consume the admitted ParentOS
+      `ProfileDetailShell` or `GenericMetricDetailShell` (which compose kit
+      `PageDetailLayout`, the single owner of the `pt-[72px]` token). Direct
+      `pt-[72px]` in any profile-feature file indicates a hand-rolled detail
+      shell bypass.
+    source_rule: P-DESIGN-020

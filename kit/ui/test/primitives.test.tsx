@@ -46,6 +46,11 @@ import {
   TooltipProvider,
   ActionMenu,
   Slider,
+  BackLink,
+  PageDetailLayout,
+  Timeline,
+  TimelineDivider,
+  TimelineGroup,
   cn,
   downgradeSurfaceMaterial,
 } from '../src/index.js';
@@ -406,4 +411,116 @@ test('cn utility merges classes correctly', () => {
   expect(cn('foo', 'bar')).toBe('foo bar');
   expect(cn('p-4', false, null, 'text-sm')).toBe('p-4 text-sm');
   expect(cn('p-4', 'p-6')).toBe('p-6');
+});
+
+test('page-detail-layout composes back / title / actions / subnav / before-content slots', () => {
+  const html = renderToStaticMarkup(
+    <PageDetailLayout
+      width="lg"
+      title="口腔档案"
+      back={
+        <BackLink href="/profile" data-testid="back">
+          返回档案
+        </BackLink>
+      }
+      actions={<Button tone="primary">添加</Button>}
+      subnav={<div data-testid="subnav">tab-nav</div>}
+      beforeContent={<div data-testid="before">ai-summary</div>}
+    >
+      <div data-testid="body">body</div>
+    </PageDetailLayout>,
+  );
+
+  expect(html).toMatch(/口腔档案/);
+  expect(html).toMatch(/返回档案/);
+  expect(html).toMatch(/添加/);
+  expect(html).toMatch(/tab-nav/);
+  expect(html).toMatch(/ai-summary/);
+  expect(html).toMatch(/body/);
+  expect(hasClass(html, 'nimi-page-detail-layout')).toBe(true);
+  expect(hasClass(html, 'nimi-page-detail-layout--width-lg')).toBe(true);
+  expect(hasClass(html, 'nimi-page-detail-layout__back-row')).toBe(true);
+  expect(hasClass(html, 'nimi-page-detail-layout__header')).toBe(true);
+  expect(hasClass(html, 'nimi-page-detail-layout__title')).toBe(true);
+  expect(hasClass(html, 'nimi-page-detail-layout__actions')).toBe(true);
+  expect(hasClass(html, 'nimi-page-detail-layout__subnav')).toBe(true);
+  expect(hasClass(html, 'nimi-page-detail-layout__before-content')).toBe(true);
+  expect(hasClass(html, 'nimi-page-detail-layout__body')).toBe(true);
+  expect(hasClass(html, 'nimi-back-link')).toBe(true);
+  expect(hasClass(html, 'nimi-back-link__icon')).toBe(true);
+});
+
+test('page-detail-layout width=md emits md token and omits optional slots when unset', () => {
+  const html = renderToStaticMarkup(
+    <PageDetailLayout width="md" title="标题">
+      <div>only-body</div>
+    </PageDetailLayout>,
+  );
+  expect(hasClass(html, 'nimi-page-detail-layout--width-md')).toBe(true);
+  expect(hasClass(html, 'nimi-page-detail-layout__back-row')).toBe(false);
+  expect(hasClass(html, 'nimi-page-detail-layout__subnav')).toBe(false);
+  expect(hasClass(html, 'nimi-page-detail-layout__before-content')).toBe(false);
+  expect(hasClass(html, 'nimi-page-detail-layout__actions')).toBe(false);
+});
+
+test('back-link asChild merges visual onto child element (router-friendly)', () => {
+  const html = renderToStaticMarkup(
+    <BackLink asChild>
+      <a href="/profile" data-testid="custom-link">
+        返回档案
+      </a>
+    </BackLink>,
+  );
+  expect(html).toMatch(/data-testid="custom-link"/);
+  expect(html).toMatch(/href="\/profile"/);
+  expect(html).toMatch(/返回档案/);
+  expect(hasClass(html, 'nimi-back-link')).toBe(true);
+});
+
+test('timeline renders rail and groups with past+future dot variants and divider', () => {
+  const html = renderToStaticMarkup(
+    <Timeline>
+      <TimelineGroup date="2026-06-01" secondaryLabel="2 条" variant="future" tone="info">
+        <div>future-card</div>
+      </TimelineGroup>
+      <TimelineDivider label="今天" />
+      <TimelineGroup date="2026-05-17" secondaryLabel="3 岁 6 个月" variant="past" tone="brand" isLast>
+        <div>past-card</div>
+      </TimelineGroup>
+    </Timeline>,
+  );
+
+  expect(html).toMatch(/2026-06-01/);
+  expect(html).toMatch(/2026-05-17/);
+  expect(html).toMatch(/3 岁 6 个月/);
+  expect(html).toMatch(/今天/);
+  expect(html).toMatch(/future-card/);
+  expect(html).toMatch(/past-card/);
+  expect(hasClass(html, 'nimi-timeline')).toBe(true);
+  expect(hasClass(html, 'nimi-timeline__rail')).toBe(true);
+  expect(hasClass(html, 'nimi-timeline-group')).toBe(true);
+  expect(hasClass(html, 'nimi-timeline-group--past')).toBe(true);
+  expect(hasClass(html, 'nimi-timeline-group--future')).toBe(true);
+  expect(hasClass(html, 'nimi-timeline-group__dot')).toBe(true);
+  expect(hasClass(html, 'nimi-timeline-group__dot--solid')).toBe(true);
+  expect(hasClass(html, 'nimi-timeline-group__dot--dashed')).toBe(true);
+  expect(hasClass(html, 'nimi-timeline-group__header')).toBe(true);
+  expect(hasClass(html, 'nimi-timeline-group__date')).toBe(true);
+  expect(hasClass(html, 'nimi-timeline-group__secondary')).toBe(true);
+  expect(hasClass(html, 'nimi-timeline-group__body')).toBe(true);
+  expect(hasClass(html, 'nimi-timeline-divider')).toBe(true);
+  expect(hasClass(html, 'nimi-timeline-divider__label')).toBe(true);
+  expect(hasClass(html, 'nimi-timeline-divider__rule')).toBe(true);
+});
+
+test('timeline ring dot variant emits dual-layer ring + core nodes', () => {
+  const html = renderToStaticMarkup(
+    <Timeline>
+      <TimelineGroup date="2026-05" variant="past" dotVariant="ring" tone="info" isLast>
+        <div>ring-card</div>
+      </TimelineGroup>
+    </Timeline>,
+  );
+  expect(hasClass(html, 'nimi-timeline-group__dot--ring')).toBe(true);
+  expect(hasClass(html, 'nimi-timeline-group__dot-core')).toBe(true);
 });
