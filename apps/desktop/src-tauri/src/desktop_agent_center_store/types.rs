@@ -56,6 +56,16 @@ pub(crate) struct DesktopAgentCenterAvatarAssetRemovePayload {
 
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub(crate) struct DesktopAgentCenterAvatarAssetSelectPayload {
+    pub account_id: String,
+    pub owner_user_id: String,
+    pub realm_agent_id: String,
+    pub local_agent_ref: String,
+    pub local_asset_id: String,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub(crate) struct DesktopAgentCenterAvatarAssetValidatePayload {
     pub account_id: String,
     pub owner_user_id: String,
@@ -100,6 +110,28 @@ pub(crate) struct DesktopAgentCenterAvatarAssetImportResult {
     pub asset_bytes: u64,
     pub file_count: usize,
     pub imported_at: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct DesktopAgentCenterAvatarAssetRecord {
+    pub local_asset_id: String,
+    pub backend_kind: AgentCenterAvatarBackendKind,
+    pub display_name: String,
+    pub source_label: String,
+    pub backend_capability_profile_ref: String,
+    pub asset_bytes: u64,
+    pub file_count: usize,
+    pub imported_at: String,
+    pub selected: bool,
+    pub validation: AgentCenterAvatarAssetValidationResult,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct DesktopAgentCenterAvatarAssetListResult {
+    pub selected_local_asset_id: Option<String>,
+    pub assets: Vec<DesktopAgentCenterAvatarAssetRecord>,
 }
 
 #[derive(Debug, Clone, Serialize)]

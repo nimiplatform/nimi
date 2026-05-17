@@ -17,11 +17,13 @@ import {
   importAgentCenterAvatarAsset,
   importAgentCenterBackground,
   importAgentCenterLive2dAdapterManifest,
+  listAgentCenterAvatarAssets,
   pickAgentCenterAvatarAssetSource,
   pickAgentCenterBackgroundSource,
   pickAgentCenterLive2dAdapterManifestSource,
   removeAgentCenterAvatarAsset,
   removeAgentCenterBackground,
+  selectAgentCenterAvatarAsset,
   validateAgentCenterAvatarAsset,
 } from '@renderer/bridge/runtime-bridge/chat-agent-center-local-config-store';
 import type { AgentCenterAvatarAssetKind } from './chat-agent-center-local-config';
@@ -128,7 +130,53 @@ export function useAgentConversationLocalAvatarControls(input: UseAgentConversat
     valid: avatarAssetValid,
     checking: avatarAssetChecking,
   });
+  const avatarAssetLibraryQuery = useQuery({
+    queryKey: input.accountId && input.activeTarget?.localAgentRef
+      ? ['agent-center-avatar-asset-library', input.accountId, input.activeTarget.localAgentRef]
+      : ['agent-center-avatar-asset-library', 'none'],
+    queryFn: async () => (
+      input.accountId && input.activeTarget?.localAgentRef
+        ? listAgentCenterAvatarAssets({
+          accountId: input.accountId,
+          ownerUserId: input.activeTarget.ownerUserId,
+          realmAgentId: input.activeTarget.realmAgentId,
+          localAgentRef: input.activeTarget.localAgentRef,
+        })
+        : { selected_local_asset_id: null, assets: [] }
+    ),
+    enabled: hasTauriInvoke() && Boolean(input.accountId && input.activeTarget?.localAgentRef),
+    staleTime: 15_000,
+  });
   const avatarConfigMutation = useAgentCenterAvatarConfigMutation(input, queryClient, agentCenterLocalConfigQuery.data);
+  const avatarAssetSelectMutation = useMutation({
+    mutationFn: async (localAssetId: string) => {
+      if (!input.accountId || !input.activeTarget?.localAgentRef) {
+        throw new Error(input.t('Chat.agentCenterAvatarImportAgentRequired', {
+          defaultValue: 'Select an agent before importing a local Avatar asset.',
+        }));
+      }
+      return selectAgentCenterAvatarAsset({
+        accountId: input.accountId,
+        ownerUserId: input.activeTarget.ownerUserId,
+        realmAgentId: input.activeTarget.realmAgentId,
+        localAgentRef: input.activeTarget.localAgentRef,
+        localAssetId,
+      });
+    },
+    onSuccess: async () => {
+      if (!input.accountId || !input.activeTarget?.localAgentRef) {
+        return;
+      }
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: agentCenterLocalConfigQueryKey(input.accountId, input.activeTarget.localAgentRef),
+        }),
+        queryClient.invalidateQueries({ queryKey: ['agent-center-avatar-asset-library'] }),
+        queryClient.invalidateQueries({ queryKey: ['agent-center-avatar-asset-validation'] }),
+        avatarLiveInstancesQuery.refetch(),
+      ]);
+    },
+  });
   const avatarAssetImportMutation = useMutation({
     mutationFn: async (kind: AgentCenterAvatarAssetKind) => {
       if (!input.accountId || !input.activeTarget?.localAgentRef) {
@@ -158,6 +206,7 @@ export function useAgentConversationLocalAvatarControls(input: UseAgentConversat
         queryClient.invalidateQueries({
           queryKey: agentCenterLocalConfigQueryKey(input.accountId, input.activeTarget.localAgentRef),
         }),
+        queryClient.invalidateQueries({ queryKey: ['agent-center-avatar-asset-library'] }),
         queryClient.invalidateQueries({ queryKey: ['agent-center-avatar-asset-validation'] }),
         avatarLiveInstancesQuery.refetch(),
       ]);
@@ -220,6 +269,7 @@ export function useAgentConversationLocalAvatarControls(input: UseAgentConversat
         queryClient.invalidateQueries({
           queryKey: agentCenterLocalConfigQueryKey(input.accountId, input.activeTarget.localAgentRef),
         }),
+        queryClient.invalidateQueries({ queryKey: ['agent-center-avatar-asset-library'] }),
         queryClient.invalidateQueries({ queryKey: ['agent-center-avatar-asset-validation'] }),
         avatarLiveInstancesQuery.refetch(),
       ]);
@@ -233,6 +283,8 @@ export function useAgentConversationLocalAvatarControls(input: UseAgentConversat
     ? avatarAssetImportMutation.error.message
     : live2dAdapterManifestImportMutation.error instanceof Error
       ? live2dAdapterManifestImportMutation.error.message
+      : avatarAssetSelectMutation.error instanceof Error
+        ? avatarAssetSelectMutation.error.message
       : clearAvatarAssetMutation.error instanceof Error
         ? clearAvatarAssetMutation.error.message
         : null;
@@ -450,6 +502,8 @@ export function useAgentConversationLocalAvatarControls(input: UseAgentConversat
     avatarAssetConfig,
     avatarAssetValidationPresentation,
     avatarConfigMutation,
+    avatarAssetLibraryQuery,
+    avatarAssetSelectMutation,
     avatarAssetImportMutation,
     avatarImportDisabled,
     avatarImportError,
@@ -472,6 +526,8 @@ export function useAgentConversationLocalAvatarControls(input: UseAgentConversat
     avatarAssetConfig,
     avatarAssetValidationPresentation,
     avatarConfigMutation,
+    avatarAssetLibraryQuery,
+    avatarAssetSelectMutation,
     avatarAssetImportMutation,
     avatarImportDisabled,
     avatarImportError,

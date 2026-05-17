@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import {
   createDefaultAgentCenterLocalConfig,
   validateAgentCenterAvatarAssetImportResult,
+  validateAgentCenterAvatarAssetListResult,
   validateAgentCenterAvatarAssetValidationResult,
   validateAgentCenterLive2dAdapterManifestImportResult,
   validateAgentCenterBackgroundAssetResult,
@@ -240,6 +241,69 @@ test('Agent Center avatar asset validation parser accepts Rust payload shape', (
   });
 
   assert.equal(result.ok, true);
+});
+
+test('Agent Center avatar asset list parser accepts Rust payload shape', () => {
+  const result = validateAgentCenterAvatarAssetListResult({
+    selected_local_asset_id: 'live2d_ab12cd34ef56',
+    assets: [
+      {
+        local_asset_id: 'live2d_ab12cd34ef56',
+        backend_kind: 'live2d',
+        display_name: 'Ren Live2D',
+        source_label: 'ren_pro_zh',
+        backend_capability_profile_ref: 'avatar_profile_live2d_ab12cd34ef56',
+        asset_bytes: 512,
+        file_count: 3,
+        imported_at: '2026-05-01T00:00:00Z',
+        selected: true,
+        validation: {
+          schema_version: 1,
+          local_asset_id: 'live2d_ab12cd34ef56',
+          backend_kind: 'live2d',
+          backend_capability_profile_ref: 'avatar_profile_live2d_ab12cd34ef56',
+          checked_at: '2026-05-01T00:00:00Z',
+          status: 'valid',
+          errors: [],
+          warnings: [],
+        },
+      },
+    ],
+  });
+
+  assert.equal(result.ok, true);
+});
+
+test('Agent Center avatar asset list parser rejects selected flag drift', () => {
+  const result = validateAgentCenterAvatarAssetListResult({
+    selected_local_asset_id: 'vrm_ab12cd34ef56',
+    assets: [
+      {
+        local_asset_id: 'vrm_ab12cd34ef56',
+        backend_kind: 'vrm',
+        display_name: 'Ren VRM',
+        source_label: 'ren.vrm',
+        backend_capability_profile_ref: 'avatar_profile_vrm_ab12cd34ef56',
+        asset_bytes: 4096,
+        file_count: 1,
+        imported_at: '2026-05-01T00:00:00Z',
+        selected: false,
+        validation: {
+          schema_version: 1,
+          local_asset_id: 'vrm_ab12cd34ef56',
+          backend_kind: 'vrm',
+          backend_capability_profile_ref: 'avatar_profile_vrm_ab12cd34ef56',
+          checked_at: '2026-05-01T00:00:00Z',
+          status: 'valid',
+          errors: [],
+          warnings: [],
+        },
+      },
+    ],
+  });
+
+  assert.equal(result.ok, false);
+  assert.match(result.errors.join('\n'), /matching asset must be marked selected/u);
 });
 
 test('Agent Center background validation parser accepts sidecar payload shape', () => {

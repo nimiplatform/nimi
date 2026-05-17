@@ -2,10 +2,6 @@ import { createDefaultAgentCenterAvatarAssetModule } from './chat-agent-center-a
 import type { AgentCenterAvatarAssetModule } from './chat-agent-center-avatar-config-types';
 import { validateAvatarAssetModule } from './chat-agent-center-avatar-config-validation';
 import type {
-  AgentCenterAvatarAssetImportParseResult,
-  AgentCenterAvatarAssetKind,
-  AgentCenterAvatarAssetValidationParseResult,
-  AgentCenterAvatarAssetValidationStatus,
   AgentCenterBackgroundAssetParseResult,
   AgentCenterBackgroundImportParseResult,
   AgentCenterBackgroundValidationParseResult,
@@ -33,6 +29,9 @@ export type {
 export type {
   AgentCenterAvatarAssetImportParseResult,
   AgentCenterAvatarAssetImportResult,
+  AgentCenterAvatarAssetListParseResult,
+  AgentCenterAvatarAssetListResult,
+  AgentCenterAvatarAssetRecord,
   AgentCenterAvatarAssetKind,
   AgentCenterAvatarAssetValidationParseResult,
   AgentCenterAvatarAssetValidationResult,
@@ -51,6 +50,12 @@ export type {
   AgentCenterValidationIssue,
   AgentCenterValidationIssueSeverity,
 } from './chat-agent-center-local-config-result-types';
+
+export {
+  validateAgentCenterAvatarAssetImportResult,
+  validateAgentCenterAvatarAssetListResult,
+  validateAgentCenterAvatarAssetValidationResult,
+} from './chat-agent-center-avatar-asset-result-validation';
 
 export const AGENT_CENTER_LOCAL_CONFIG_SCHEMA_VERSION = 1;
 export const AGENT_CENTER_LOCAL_CONFIG_KIND = 'agent_center_local_config';
@@ -130,19 +135,7 @@ const UI_KEYS = ['schema_version', 'last_section'] as const;
 
 const MOTION_VALUES = new Set(['system', 'reduced', 'full']);
 const SECTION_VALUES = new Set(['overview', 'appearance', 'chat_behavior', 'model', 'cognition', 'advanced']);
-const AVATAR_ASSET_KIND_VALUES = new Set(['live2d', 'vrm']);
 const VALIDATION_SEVERITY_VALUES = new Set(['error', 'warning']);
-const AVATAR_ASSET_VALIDATION_STATUS_VALUES = new Set([
-  'valid',
-  'invalid_manifest',
-  'missing_entry',
-  'permission_denied',
-  'path_rejected',
-  'unsupported_backend',
-  'asset_missing',
-  'digest_mismatch',
-  'selection_missing',
-]);
 const BACKGROUND_VALIDATION_STATUS_VALUES = new Set([
   'valid',
   'invalid_manifest',
@@ -464,121 +457,6 @@ export function validateAgentCenterLive2dAdapterManifestImportResult(
       sha256,
       bytes: root.bytes as number,
       imported_at: importedAt,
-    },
-  };
-}
-
-export function validateAgentCenterAvatarAssetImportResult(
-  value: unknown,
-): AgentCenterAvatarAssetImportParseResult {
-  const errors: string[] = [];
-  const root = requireRecord(value, 'avatarAssetImportResult', errors);
-  if (!root) {
-    return { ok: false, errors };
-  }
-  collectUnknownKeys(root, [
-    'local_asset_id',
-    'backend_kind',
-    'backend_capability_profile_ref',
-    'selected',
-    'manifest_sha256',
-    'asset_bytes',
-    'file_count',
-    'imported_at',
-  ], 'avatarAssetImportResult', errors);
-  const localAssetId = validatePackageId(root.local_asset_id, 'avatarAssetImportResult.local_asset_id', errors) || '';
-  const backendKind = readString(root.backend_kind, 'avatarAssetImportResult.backend_kind', errors) || '';
-  if (backendKind && !AVATAR_ASSET_KIND_VALUES.has(backendKind)) {
-    errors.push('avatarAssetImportResult.backend_kind: invalid backend kind');
-  }
-  if (backendKind && localAssetId && !localAssetId.startsWith(`${backendKind}_`)) {
-    errors.push('avatarAssetImportResult.local_asset_id: backend kind mismatch');
-  }
-  const backendCapabilityProfileRef = validateNormalizedId(
-    root.backend_capability_profile_ref,
-    'avatarAssetImportResult.backend_capability_profile_ref',
-    errors,
-  );
-  if (typeof root.selected !== 'boolean') {
-    errors.push('avatarAssetImportResult.selected: expected boolean');
-  }
-  const manifestSha256 = readString(root.manifest_sha256, 'avatarAssetImportResult.manifest_sha256', errors) || '';
-  if (manifestSha256 && !/^[a-f0-9]{64}$/u.test(manifestSha256)) {
-    errors.push('avatarAssetImportResult.manifest_sha256: invalid sha256');
-  }
-  if (typeof root.asset_bytes !== 'number' || !Number.isSafeInteger(root.asset_bytes) || root.asset_bytes <= 0) {
-    errors.push('avatarAssetImportResult.asset_bytes: expected positive integer');
-  }
-  if (typeof root.file_count !== 'number' || !Number.isSafeInteger(root.file_count) || root.file_count <= 0) {
-    errors.push('avatarAssetImportResult.file_count: expected positive integer');
-  }
-  const importedAt = validateTimestamp(root.imported_at, 'avatarAssetImportResult.imported_at', errors) || '';
-  if (errors.length > 0) {
-    return { ok: false, errors };
-  }
-  return {
-    ok: true,
-    result: {
-      local_asset_id: localAssetId,
-      backend_kind: backendKind as AgentCenterAvatarAssetKind,
-      backend_capability_profile_ref: backendCapabilityProfileRef,
-      selected: root.selected as boolean,
-      manifest_sha256: manifestSha256,
-      asset_bytes: root.asset_bytes as number,
-      file_count: root.file_count as number,
-      imported_at: importedAt,
-    },
-  };
-}
-
-export function validateAgentCenterAvatarAssetValidationResult(
-  value: unknown,
-): AgentCenterAvatarAssetValidationParseResult {
-  const errors: string[] = [];
-  const root = requireRecord(value, 'avatarAssetValidation', errors);
-  if (!root) {
-    return { ok: false, errors };
-  }
-  collectUnknownKeys(root, [
-    'schema_version',
-    'local_asset_id',
-    'backend_kind',
-    'backend_capability_profile_ref',
-    'checked_at',
-    'status',
-    'errors',
-    'warnings',
-  ], 'avatarAssetValidation', errors);
-  requireSchemaVersion(root, 'avatarAssetValidation', errors);
-  const localAssetId = validatePackageId(root.local_asset_id, 'avatarAssetValidation.local_asset_id', errors);
-  const backendKind = readNullableString(root.backend_kind, 'avatarAssetValidation.backend_kind', errors);
-  if (backendKind !== null && !AVATAR_ASSET_KIND_VALUES.has(backendKind)) {
-    errors.push('avatarAssetValidation.backend_kind: invalid backend kind');
-  }
-  const backendCapabilityProfileRef = root.backend_capability_profile_ref === null
-    ? null
-    : validateNormalizedId(root.backend_capability_profile_ref, 'avatarAssetValidation.backend_capability_profile_ref', errors);
-  const checkedAt = validateTimestamp(root.checked_at, 'avatarAssetValidation.checked_at', errors) || '';
-  const status = readString(root.status, 'avatarAssetValidation.status', errors);
-  if (status && !AVATAR_ASSET_VALIDATION_STATUS_VALUES.has(status)) {
-    errors.push('avatarAssetValidation.status: invalid status');
-  }
-  const validationErrors = validateValidationIssues(root.errors, 'avatarAssetValidation.errors', errors);
-  const warnings = validateValidationIssues(root.warnings, 'avatarAssetValidation.warnings', errors);
-  if (errors.length > 0) {
-    return { ok: false, errors };
-  }
-  return {
-    ok: true,
-    result: {
-      schema_version: 1,
-      local_asset_id: localAssetId,
-      backend_kind: backendKind as AgentCenterAvatarAssetKind | null,
-      backend_capability_profile_ref: backendCapabilityProfileRef,
-      checked_at: checkedAt,
-      status: status as AgentCenterAvatarAssetValidationStatus,
-      errors: validationErrors,
-      warnings,
     },
   };
 }

@@ -37,6 +37,28 @@ export type AgentCenterAvatarAssetImportParseResult =
   | { ok: true; result: AgentCenterAvatarAssetImportResult }
   | { ok: false; errors: string[] };
 
+export type AgentCenterAvatarAssetRecord = {
+  local_asset_id: string;
+  backend_kind: AgentCenterAvatarAssetKind;
+  display_name: string;
+  source_label: string;
+  backend_capability_profile_ref: string;
+  asset_bytes: number;
+  file_count: number;
+  imported_at: string;
+  selected: boolean;
+  validation: AgentCenterAvatarAssetValidationResult;
+};
+
+export type AgentCenterAvatarAssetListResult = {
+  selected_local_asset_id: string | null;
+  assets: AgentCenterAvatarAssetRecord[];
+};
+
+export type AgentCenterAvatarAssetListParseResult =
+  | { ok: true; result: AgentCenterAvatarAssetListResult }
+  | { ok: false; errors: string[] };
+
 export type AgentCenterAvatarAssetValidationStatus =
   | 'valid'
   | 'invalid_manifest'

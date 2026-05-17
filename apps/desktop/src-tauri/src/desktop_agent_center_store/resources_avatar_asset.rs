@@ -10,6 +10,71 @@ fn avatar_asset_kind_prefix(kind: AgentCenterAvatarBackendKind) -> Result<&'stat
     }
 }
 
+fn avatar_asset_kind_from_id(local_asset_id: &str) -> Result<AgentCenterAvatarBackendKind, String> {
+    validate_local_asset_id(local_asset_id, "localAssetId")?;
+    if local_asset_id.starts_with("live2d_") {
+        return Ok(AgentCenterAvatarBackendKind::Live2d);
+    }
+    if local_asset_id.starts_with("vrm_") {
+        return Ok(AgentCenterAvatarBackendKind::Vrm);
+    }
+    Err("localAssetId must start with live2d_ or vrm_".to_string())
+}
+
+fn capability_profile_ref_for_asset(
+    kind: AgentCenterAvatarBackendKind,
+    local_asset_id: &str,
+) -> Result<String, String> {
+    let prefix = avatar_asset_kind_prefix(kind)?;
+    let Some(suffix) = local_asset_id.strip_prefix(&format!("{prefix}_")) else {
+        return Err("localAssetId prefix must match backend kind".to_string());
+    };
+    let profile_ref = format!("avatar_profile_{prefix}_{suffix}");
+    validate_normalized_id(&profile_ref, "backendCapabilityProfileRef")
+}
+
+fn read_avatar_asset_manifest(asset_dir: &Path) -> Result<AvatarAssetManifest, String> {
+    let manifest_path = asset_dir.join(MANIFEST_FILE_NAME);
+    let raw = fs::read_to_string(&manifest_path).map_err(|error| {
+        format!(
+            "failed to read avatar asset manifest ({}): {error}",
+            manifest_path.display()
+        )
+    })?;
+    serde_json::from_str::<AvatarAssetManifest>(&raw).map_err(|error| {
+        format!(
+            "failed to parse avatar asset manifest ({}): {error}",
+            manifest_path.display()
+        )
+    })
+}
+
+fn avatar_asset_record_from_dir(
+    account_id: &str,
+    scope: &LocalAgentScope,
+    kind: AgentCenterAvatarBackendKind,
+    local_asset_id: &str,
+    selected_local_asset_id: Option<&str>,
+) -> Result<DesktopAgentCenterAvatarAssetRecord, String> {
+    let asset_dir = avatar_asset_dir(account_id, &scope.local_agent_ref, kind, local_asset_id)?;
+    let profile_ref = capability_profile_ref_for_asset(kind, local_asset_id)?;
+    let validation = validate_avatar_asset_manifest(&asset_dir, local_asset_id, kind, &profile_ref);
+    write_avatar_asset_validation_sidecar(&asset_dir, &validation)?;
+    let manifest = read_avatar_asset_manifest(&asset_dir)?;
+    Ok(DesktopAgentCenterAvatarAssetRecord {
+        local_asset_id: local_asset_id.to_string(),
+        backend_kind: kind,
+        display_name: manifest.display_name,
+        source_label: manifest.import.source_label,
+        backend_capability_profile_ref: profile_ref,
+        asset_bytes: manifest.files.iter().map(|file| file.bytes).sum(),
+        file_count: manifest.files.len(),
+        imported_at: manifest.import.imported_at,
+        selected: selected_local_asset_id == Some(local_asset_id),
+        validation,
+    })
+}
+
 fn select_imported_avatar_asset(
     account_id: &str,
     scope: &LocalAgentScope,
@@ -50,6 +115,57 @@ fn select_imported_avatar_asset(
         config,
     })?;
     Ok(())
+}
+
+fn select_existing_avatar_asset(
+    account_id: &str,
+    scope: &LocalAgentScope,
+    local_asset_id: &str,
+) -> Result<AgentCenterLocalConfig, String> {
+    let kind = avatar_asset_kind_from_id(local_asset_id)?;
+    let profile_ref = capability_profile_ref_for_asset(kind, local_asset_id)?;
+    let asset_dir = avatar_asset_dir(account_id, &scope.local_agent_ref, kind, local_asset_id)?;
+    if !asset_dir.exists() {
+        return Err("selected local Avatar asset directory is missing".to_string());
+    }
+    let validation = validate_avatar_asset_manifest(&asset_dir, local_asset_id, kind, &profile_ref);
+    write_avatar_asset_validation_sidecar(&asset_dir, &validation)?;
+    if validation.status != AgentCenterAvatarAssetValidationStatus::Valid {
+        return Err(format!(
+            "selected local Avatar asset is not valid: {:?}",
+            validation.status
+        ));
+    }
+    let manifest = read_avatar_asset_manifest(&asset_dir)?;
+    let embedded_live2d_adapter_manifest = kind == AgentCenterAvatarBackendKind::Live2d
+        && manifest
+            .files
+            .iter()
+            .any(|file| file.path == "files/nimi/live2d-adapter.json");
+    select_imported_avatar_asset(
+        account_id,
+        scope,
+        kind,
+        local_asset_id,
+        &profile_ref,
+        local_asset_id,
+        embedded_live2d_adapter_manifest,
+    )?;
+    record_resource_operation(
+        account_id,
+        &scope.local_agent_ref,
+        "avatar_asset_select",
+        "avatar_asset",
+        local_asset_id,
+        "completed",
+        "user_selected_existing",
+    )?;
+    desktop_agent_center_config_get(DesktopAgentCenterConfigScopePayload {
+        account_id: account_id.to_string(),
+        owner_user_id: scope.owner_user_id.clone(),
+        realm_agent_id: scope.realm_agent_id.clone(),
+        local_agent_ref: scope.local_agent_ref.clone(),
+    })
 }
 
 fn clear_selected_avatar_asset(
@@ -196,6 +312,118 @@ pub(crate) fn desktop_agent_center_avatar_asset_validate_blocking(
     );
     write_avatar_asset_validation_sidecar(&asset_dir, &result)?;
     Ok(result)
+}
+
+#[tauri::command]
+pub(crate) async fn desktop_agent_center_avatar_asset_list(
+    payload: DesktopAgentCenterConfigScopePayload,
+) -> Result<DesktopAgentCenterAvatarAssetListResult, String> {
+    run_agent_center_resource_blocking("desktop_agent_center_avatar_asset_list", move || {
+        desktop_agent_center_avatar_asset_list_blocking(payload)
+    })
+    .await
+}
+
+pub(crate) fn desktop_agent_center_avatar_asset_list_blocking(
+    payload: DesktopAgentCenterConfigScopePayload,
+) -> Result<DesktopAgentCenterAvatarAssetListResult, String> {
+    let account_id = validate_normalized_id(&payload.account_id, "accountId")?;
+    let scope = validate_local_agent_scope(
+        &payload.owner_user_id,
+        &payload.realm_agent_id,
+        &payload.local_agent_ref,
+    )?;
+    let config = desktop_agent_center_config_get(DesktopAgentCenterConfigScopePayload {
+        account_id: account_id.clone(),
+        owner_user_id: scope.owner_user_id.clone(),
+        realm_agent_id: scope.realm_agent_id.clone(),
+        local_agent_ref: scope.local_agent_ref.clone(),
+    })?;
+    let selected_local_asset_id = config.modules.avatar_asset.local_avatar_asset_ref.clone();
+    let packages_dir = agent_center_dir(&account_id, &scope.local_agent_ref)?
+        .join("modules")
+        .join("avatar_asset")
+        .join("packages");
+    let mut assets = Vec::new();
+    for kind in [
+        AgentCenterAvatarBackendKind::Live2d,
+        AgentCenterAvatarBackendKind::Vrm,
+    ] {
+        let kind_segment = avatar_backend_kind_label(kind)?;
+        let kind_dir = packages_dir.join(kind_segment);
+        if !kind_dir.exists() {
+            continue;
+        }
+        let entries = fs::read_dir(&kind_dir).map_err(|error| {
+            format!(
+                "failed to list local Avatar assets ({}): {error}",
+                kind_dir.display()
+            )
+        })?;
+        for entry in entries {
+            let entry = entry.map_err(|error| {
+                format!(
+                    "failed to read local Avatar asset entry ({}): {error}",
+                    kind_dir.display()
+                )
+            })?;
+            let file_type = entry.file_type().map_err(|error| {
+                format!(
+                    "failed to inspect local Avatar asset entry ({}): {error}",
+                    entry.path().display()
+                )
+            })?;
+            if !file_type.is_dir() {
+                continue;
+            }
+            let local_asset_id = entry.file_name().to_string_lossy().to_string();
+            if validate_local_asset_id(&local_asset_id, "localAssetId").is_err()
+                || !local_asset_id.starts_with(&format!("{kind_segment}_"))
+            {
+                continue;
+            }
+            let record = avatar_asset_record_from_dir(
+                &account_id,
+                &scope,
+                kind,
+                &local_asset_id,
+                selected_local_asset_id.as_deref(),
+            )?;
+            assets.push(record);
+        }
+    }
+    assets.sort_by(|left, right| {
+        right
+            .imported_at
+            .cmp(&left.imported_at)
+            .then_with(|| left.local_asset_id.cmp(&right.local_asset_id))
+    });
+    Ok(DesktopAgentCenterAvatarAssetListResult {
+        selected_local_asset_id,
+        assets,
+    })
+}
+
+#[tauri::command]
+pub(crate) async fn desktop_agent_center_avatar_asset_select(
+    payload: DesktopAgentCenterAvatarAssetSelectPayload,
+) -> Result<AgentCenterLocalConfig, String> {
+    run_agent_center_resource_blocking("desktop_agent_center_avatar_asset_select", move || {
+        desktop_agent_center_avatar_asset_select_blocking(payload)
+    })
+    .await
+}
+
+pub(crate) fn desktop_agent_center_avatar_asset_select_blocking(
+    payload: DesktopAgentCenterAvatarAssetSelectPayload,
+) -> Result<AgentCenterLocalConfig, String> {
+    let account_id = validate_normalized_id(&payload.account_id, "accountId")?;
+    let scope = validate_local_agent_scope(
+        &payload.owner_user_id,
+        &payload.realm_agent_id,
+        &payload.local_agent_ref,
+    )?;
+    select_existing_avatar_asset(&account_id, &scope, &payload.local_asset_id)
 }
 
 #[tauri::command]

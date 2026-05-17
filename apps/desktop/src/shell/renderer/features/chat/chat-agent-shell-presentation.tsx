@@ -288,6 +288,8 @@ export function useAgentConversationPresentation(
         avatarAssetValidationPresentation={localAvatar.avatarAssetValidationPresentation}
         avatarConfigMutation={localAvatar.avatarConfigMutation}
         avatarAssetImportMutation={localAvatar.avatarAssetImportMutation}
+        avatarAssetLibraryQuery={localAvatar.avatarAssetLibraryQuery}
+        avatarAssetSelectMutation={localAvatar.avatarAssetSelectMutation}
         avatarImportDisabled={localAvatar.avatarImportDisabled}
         avatarImportError={localAvatar.avatarImportError}
         clearAvatarAssetMutation={localAvatar.clearAvatarAssetMutation}

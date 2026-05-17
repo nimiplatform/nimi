@@ -40,6 +40,8 @@ test('Agent Chat Settings Avatar surface exposes closed configuration controls',
 
   assert.match(localAvatarControlsSource, /useAgentCenterAvatarConfigMutation/u);
   assert.match(localAvatarControlsSource, /importAgentCenterAvatarAsset/u);
+  assert.match(localAvatarControlsSource, /listAgentCenterAvatarAssets/u);
+  assert.match(localAvatarControlsSource, /selectAgentCenterAvatarAsset/u);
   assert.match(localAvatarControlsSource, /pickAgentCenterAvatarAssetSource/u);
   assert.match(localAvatarControlsSource, /removeAgentCenterAvatarAsset/u);
   assert.match(localAvatarControlsSource, /importAgentCenterLive2dAdapterManifest/u);
@@ -47,6 +49,8 @@ test('Agent Chat Settings Avatar surface exposes closed configuration controls',
   assert.match(mutationSource, /backend_kind/u);
   assert.doesNotMatch(settingsSource, /onChange: \(backend_kind\) => avatarConfigMutation\.mutate\(\{ backend_kind \}\)/u);
   assert.match(bridgeSource, /desktop_agent_center_avatar_asset_import/u);
+  assert.match(bridgeSource, /desktop_agent_center_avatar_asset_list/u);
+  assert.match(bridgeSource, /desktop_agent_center_avatar_asset_select/u);
   assert.match(bridgeSource, /desktop_agent_center_avatar_asset_pick_live2d_source/u);
   assert.match(bridgeSource, /desktop_agent_center_avatar_asset_pick_vrm_source/u);
   assert.match(bridgeSource, /desktop_agent_center_avatar_asset_remove/u);
