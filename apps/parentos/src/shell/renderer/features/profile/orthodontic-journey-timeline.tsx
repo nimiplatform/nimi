@@ -1,4 +1,12 @@
-import { IconButton, StatusBadge, Surface, cn } from '@nimiplatform/nimi-kit/ui';
+import {
+  IconButton,
+  StatusBadge,
+  Surface,
+  Timeline,
+  TimelineDivider,
+  TimelineGroup,
+  cn,
+} from '@nimiplatform/nimi-kit/ui';
 import { useMemo, useState } from 'react';
 import { convertFileSrc } from '@tauri-apps/api/core';
 import type {
@@ -123,68 +131,61 @@ export function OrthodonticJourneyTimeline({
   }
 
   return (
-    <div style={{ position: 'relative', paddingLeft: 22 }}>
-      <div
-        aria-hidden
-        className="absolute bottom-1.5 left-1.5 top-1.5 w-px bg-[linear-gradient(to_bottom,var(--nimi-border-subtle),var(--nimi-border-subtle)_80%,transparent)]"
-        style={{
-          position: 'absolute',
-          left: 6,
-          top: 6,
-          bottom: 6,
-          width: 1,
-        }}
-      />
-
+    <Timeline>
       {/* Future groups (descending: farthest future first, nearest above today) */}
-      {futureDates.map((date) => (
-        <DateGroup
-          key={`future-${date}`}
-          date={date}
-          cards={futureByDate.get(date) ?? []}
-          onOpenLightbox={(photos, index) => setLightboxState({ photos, index })}
-          onAskAiAboutRecord={onAskAiAboutRecord}
-          onEditRecord={onEditRecord}
-          onDeleteRecord={onDeleteRecord}
-        />
-      ))}
+      {futureDates.map((date) => {
+        const cards = futureByDate.get(date) ?? [];
+        if (cards.length === 0) return null;
+        return (
+          <TimelineGroup
+            key={`future-${date}`}
+            variant="future"
+            date={formatDateLabel(date)}
+            secondaryLabel={`${cards.length} 条`}
+          >
+            {cards.map((card) => (
+              <JourneyCard
+                key={card.id}
+                card={card}
+                onOpenLightbox={(photos, index) => setLightboxState({ photos, index })}
+                onAskAiAboutRecord={onAskAiAboutRecord}
+                onEditRecord={onEditRecord}
+                onDeleteRecord={onDeleteRecord}
+              />
+            ))}
+          </TimelineGroup>
+        );
+      })}
 
       {/* "今天" divider only when there's at least one past entry; otherwise
           the future groups stand alone. */}
-      {pastDates.length > 0 && futureDates.length > 0 && (
-        <div
-          role="separator"
-          aria-label="今天"
-          className="text-[var(--nimi-text-muted)]"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 12,
-            margin: '6px 0 18px',
-            fontSize: 11,
-            letterSpacing: '0.08em',
-            textTransform: 'uppercase',
-          }}
-        >
-          <span className="h-px flex-1 bg-[var(--nimi-border-subtle)]" />
-          今天
-          <span className="h-px flex-1 bg-[var(--nimi-border-subtle)]" />
-        </div>
-      )}
+      {pastDates.length > 0 && futureDates.length > 0 && <TimelineDivider label="今天" />}
 
       {/* Past groups (descending: most recent first) */}
-      {pastDates.map((date, gi) => (
-        <DateGroup
-          key={`past-${date}`}
-          date={date}
-          cards={pastByDate.get(date) ?? []}
-          isLastGroup={gi === pastDates.length - 1}
-          onOpenLightbox={(photos, index) => setLightboxState({ photos, index })}
-          onAskAiAboutRecord={onAskAiAboutRecord}
-          onEditRecord={onEditRecord}
-          onDeleteRecord={onDeleteRecord}
-        />
-      ))}
+      {pastDates.map((date, gi) => {
+        const cards = pastByDate.get(date) ?? [];
+        if (cards.length === 0) return null;
+        return (
+          <TimelineGroup
+            key={`past-${date}`}
+            variant="past"
+            date={formatDateLabel(date)}
+            secondaryLabel={`${cards.length} 条`}
+            isLast={gi === pastDates.length - 1}
+          >
+            {cards.map((card) => (
+              <JourneyCard
+                key={card.id}
+                card={card}
+                onOpenLightbox={(photos, index) => setLightboxState({ photos, index })}
+                onAskAiAboutRecord={onAskAiAboutRecord}
+                onEditRecord={onEditRecord}
+                onDeleteRecord={onDeleteRecord}
+              />
+            ))}
+          </TimelineGroup>
+        );
+      })}
 
       {lightboxState && (
         <DentalPhotoLightbox
@@ -194,69 +195,7 @@ export function OrthodonticJourneyTimeline({
           onClose={() => setLightboxState(null)}
         />
       )}
-    </div>
-  );
-}
-
-// ── Date group ─────────────────────────────────────────────
-
-function DateGroup({
-  date,
-  cards,
-  isLastGroup = false,
-  onOpenLightbox,
-  onAskAiAboutRecord,
-  onEditRecord,
-  onDeleteRecord,
-}: {
-  date: string;
-  cards: JourneyCardData[];
-  isLastGroup?: boolean;
-  onOpenLightbox: (photos: DentalPhotoLightboxItem[], index: number) => void;
-  onAskAiAboutRecord: (record: DentalRecordRow) => void;
-  onEditRecord: (record: DentalRecordRow) => void;
-  onDeleteRecord: (record: DentalRecordRow) => void;
-}) {
-  if (cards.length === 0) return null;
-  const isFutureGroup = cards.some((c) => c.isFuture);
-  return (
-    <div style={{ marginBottom: isLastGroup ? 0 : 24, position: 'relative' }}>
-      <div
-        aria-hidden
-        className={cn(
-          'absolute -left-[22px] top-1 h-[13px] w-[13px] rounded-full bg-[var(--nimi-surface-card)] shadow-[0_0_0_3px_var(--nimi-surface-card)]',
-          isFutureGroup
-            ? 'border-[1.5px] border-dashed border-[var(--nimi-action-primary-bg)]'
-            : 'border-2 border-solid border-[var(--nimi-action-primary-bg)]',
-        )}
-      />
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 10 }}>
-        <span className="text-[var(--nimi-text-primary)]" style={{ fontSize: 13, fontWeight: 600 }}>
-          {formatDateLabel(date)}
-        </span>
-        <span
-          className="text-[var(--nimi-text-muted)]"
-          style={{
-            fontSize: 11,
-            fontFamily: '"JetBrains Mono", "SF Mono", ui-monospace, monospace',
-          }}
-        >
-          {cards.length} 条
-        </span>
-      </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        {cards.map((card) => (
-          <JourneyCard
-            key={card.id}
-            card={card}
-            onOpenLightbox={onOpenLightbox}
-            onAskAiAboutRecord={onAskAiAboutRecord}
-            onEditRecord={onEditRecord}
-            onDeleteRecord={onDeleteRecord}
-          />
-        ))}
-      </div>
-    </div>
+    </Timeline>
   );
 }
 

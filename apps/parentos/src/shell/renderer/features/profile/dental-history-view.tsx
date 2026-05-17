@@ -42,6 +42,7 @@ import { DentalKPIStrip } from './dental-page-kpi-strip.js';
 import { DentalEruptionScanModal } from './dental-eruption-scan-modal.js';
 import { DentalHistoryRecordList } from './dental-history-record-list.js';
 import { DentalHistoryActions } from './dental-history-actions.js';
+import { NoActiveChildPlaceholder } from './_shared/no-active-child-placeholder.js';
 import {
   analyzeDentalEruptionImage,
   getDentalScanDisplayMessage,
@@ -394,7 +395,7 @@ export function DentalHistoryView() {
     return Number.isFinite(n) && ((n >= 11 && n <= 18) || (n >= 21 && n <= 28) || (n >= 31 && n <= 38) || (n >= 41 && n <= 48));
   }).length;
 
-  if (!child) return <div className="p-8 text-[var(--nimi-text-muted)]">请先添加孩子</div>;
+  if (!child) return <NoActiveChildPlaceholder />;
 
   const sortedRecords = [...records].sort((a, b) => b.eventDate.localeCompare(a.eventDate));
   // Build filter chips. All `ortho-*` events collapse into a single "正畸"

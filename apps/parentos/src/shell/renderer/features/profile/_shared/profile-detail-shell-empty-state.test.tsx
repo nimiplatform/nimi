@@ -61,6 +61,8 @@ const cases: Array<{ slug: string; title: string; loader: () => Promise<{ defaul
   // wave-4
   { slug: 'growth-curve', title: '生长曲线', loader: () => import('../growth-curve-page.js') },
   { slug: 'vision', title: '视力档案', loader: () => import('../vision-page.js') },
+  // wave-5
+  { slug: 'dental', title: '口腔档案', loader: () => import('../dental-page.js') },
 ];
 
 describe('profile detail pages: no-active-child empty state', () => {

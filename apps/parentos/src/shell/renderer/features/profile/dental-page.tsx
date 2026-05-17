@@ -1,12 +1,14 @@
 import { Button, Surface } from '@nimiplatform/nimi-kit/ui';
 import { useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { useAppStore, computeAgeMonths } from '../../app-shell/app-store.js';
 import { DentalHistoryView } from './dental-history-view.js';
 import {
   OrthodonticPage,
   type OrthodonticActionRequest,
 } from './orthodontic-page.js';
+import { NoActiveChildPlaceholder } from './_shared/no-active-child-placeholder.js';
+import { ProfileDetailShell } from './_shared/profile-detail-shell.js';
 
 type DentalTab = 'history' | 'orthodontic';
 
@@ -31,69 +33,35 @@ export default function DentalPage() {
 
   if (!child) {
     return (
-      <div className="mx-auto max-w-3xl px-6 pb-6 pt-[72px]">
-        <div className="p-8 text-[14px] text-[var(--nimi-text-muted)]">请先添加孩子</div>
-      </div>
+      <ProfileDetailShell title="口腔档案">
+        <NoActiveChildPlaceholder />
+      </ProfileDetailShell>
     );
   }
 
   const ageMonths = computeAgeMonths(child.birthDate);
 
-  // Wave D keeps this page slightly wider than profile reading pages so the
-  // ortho hero / tray / next-visit triad has breathing room.
   return (
-    <div className="mx-auto min-h-full max-w-4xl px-6 pb-6 pt-[72px]">
-      <div className="flex items-center gap-2 mb-3">
-        <Link
-          to="/profile"
-          className="text-[14px] hover:underline flex items-center gap-1.5 text-[var(--nimi-text-muted)]"
-        >
-          <svg
-            width="14"
-            height="14"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.6"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M19 12H5M12 19l-7-7 7-7" />
-          </svg>
-          返回档案
-        </Link>
-      </div>
-
-      <div className="flex items-end justify-between gap-4 flex-wrap mb-5">
-        <div>
-          <h1 className="m-0 text-[36px] font-bold leading-[1.1] text-[var(--nimi-text-primary)]">
-            口腔档案
-          </h1>
-        </div>
-      </div>
-
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <TabNav activeTab={activeTab} onChange={setActiveTab} />
-        {activeTab === 'orthodontic' && (
-          <AddApplianceButton
-            onClick={() => setActionRequest({ kind: 'add-appliance', nonce: Date.now() })}
-          />
-        )}
-      </div>
-
-      <div className="mt-4">
-        {activeTab === 'history' && <DentalHistoryView />}
-        {activeTab === 'orthodontic' && (
-          <OrthodonticPage
-            childId={child.childId}
-            childBirthDate={child.birthDate}
-            ageMonths={ageMonths}
-            actionRequest={actionRequest}
-            onActionRequestHandled={() => setActionRequest(null)}
-          />
-        )}
-      </div>
-    </div>
+    <ProfileDetailShell
+      title="口腔档案"
+      actions={activeTab === 'orthodontic' ? (
+        <AddApplianceButton
+          onClick={() => setActionRequest({ kind: 'add-appliance', nonce: Date.now() })}
+        />
+      ) : null}
+      subnav={<TabNav activeTab={activeTab} onChange={setActiveTab} />}
+    >
+      {activeTab === 'history' && <DentalHistoryView />}
+      {activeTab === 'orthodontic' && (
+        <OrthodonticPage
+          childId={child.childId}
+          childBirthDate={child.birthDate}
+          ageMonths={ageMonths}
+          actionRequest={actionRequest}
+          onActionRequestHandled={() => setActionRequest(null)}
+        />
+      )}
+    </ProfileDetailShell>
   );
 }
 

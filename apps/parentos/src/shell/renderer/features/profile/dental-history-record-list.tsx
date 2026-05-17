@@ -1,4 +1,4 @@
-import { IconButton, StatusBadge, Surface } from '@nimiplatform/nimi-kit/ui';
+import { IconButton, StatusBadge, Surface, Timeline, TimelineGroup } from '@nimiplatform/nimi-kit/ui';
 import { useState } from 'react';
 import { convertFileSrc } from '@tauri-apps/api/core';
 import type { AttachmentRow, DentalRecordRow } from '../../bridge/sqlite-bridge.js';
@@ -43,45 +43,29 @@ export function DentalHistoryRecordList({
   onDelete,
 }: Props) {
   return (
-    <div style={{ position: 'relative', paddingLeft: 22 }}>
-      <div
-        className="absolute bg-[linear-gradient(to_bottom,var(--nimi-border-subtle),var(--nimi-border-subtle)_80%,transparent)]"
-        style={{ left: 6, top: 6, bottom: 6, width: 1 }}
-      />
+    <Timeline>
       {recordGroups.map(([date, dayRecords], gi) => (
-        <div key={date} style={{ marginBottom: gi === recordGroups.length - 1 ? 0 : 24, position: 'relative' }}>
-          <div
-            className="rounded-full border-2 border-[var(--nimi-action-primary-bg)] bg-[var(--nimi-surface-card)] shadow-[0_0_0_3px_var(--nimi-surface-card)]"
-            style={{
-              position: 'absolute',
-              left: -22,
-              top: 4,
-              width: 13,
-              height: 13,
-            }}
-          />
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 10 }}>
-            <span className="text-[13px] font-semibold text-[var(--nimi-text-primary)]">{formatDateLabel(date)}</span>
-            <span className="font-mono text-[11px] text-[var(--nimi-text-muted)]">
-              {dayRecords.length} 条
-            </span>
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {dayRecords.map((r) => (
-              <DentalHistoryRecordCard
-                key={r.recordId}
-                record={r}
-                attachments={attachmentMap.get(r.recordId) ?? []}
-                fmtAge={fmtAge}
-                onAskAi={onAskAi}
-                onEdit={onEdit}
-                onDelete={onDelete}
-              />
-            ))}
-          </div>
-        </div>
+        <TimelineGroup
+          key={date}
+          variant="past"
+          date={formatDateLabel(date)}
+          secondaryLabel={`${dayRecords.length} 条`}
+          isLast={gi === recordGroups.length - 1}
+        >
+          {dayRecords.map((r) => (
+            <DentalHistoryRecordCard
+              key={r.recordId}
+              record={r}
+              attachments={attachmentMap.get(r.recordId) ?? []}
+              fmtAge={fmtAge}
+              onAskAi={onAskAi}
+              onEdit={onEdit}
+              onDelete={onDelete}
+            />
+          ))}
+        </TimelineGroup>
       ))}
-    </div>
+    </Timeline>
   );
 }
 
