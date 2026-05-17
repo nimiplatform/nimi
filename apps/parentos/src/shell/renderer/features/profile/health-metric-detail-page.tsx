@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link, Navigate, useParams } from 'react-router-dom';
+import { Navigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
-import { ArrowLeft, CalendarClock, Plus } from 'lucide-react';
+import { CalendarClock, Plus } from 'lucide-react';
 import { IconButton, Surface } from '@nimiplatform/nimi-kit/ui';
+import { GenericMetricDetailShell } from './_shared/generic-metric-detail-shell.js';
 import { computeAgeMonths, useAppStore } from '../../app-shell/app-store.js';
 import {
   getHealthRecordEvents,
@@ -150,9 +151,11 @@ export default function HealthMetricDetailPage() {
 
   if (!activeChild) {
     return (
-      <div className="flex h-full items-center justify-center text-[var(--nimi-text-muted)]">
-        {t('Profile.empty.noActiveChild', { defaultValue: 'Add a child profile first' })}
-      </div>
+      <GenericMetricDetailShell>
+        <div className="flex h-full items-center justify-center text-[var(--nimi-text-muted)]">
+          {t('Profile.empty.noActiveChild', { defaultValue: 'Add a child profile first' })}
+        </div>
+      </GenericMetricDetailShell>
     );
   }
 
@@ -161,30 +164,20 @@ export default function HealthMetricDetailPage() {
   const freshnessKey = metricSnapshot ? FRESHNESS_LABEL_KEYS[metricSnapshot.freshness] : null;
 
   return (
-    <div className="h-full overflow-y-auto hide-scrollbar bg-transparent">
-      <div className="mx-auto max-w-5xl px-6 pb-8 pt-5">
-        <div className="mb-4 flex items-center justify-between gap-3">
-          <Link
-            to="/profile"
-            className="inline-flex items-center gap-2 rounded-full bg-[color-mix(in_srgb,var(--nimi-surface-card)_35%,transparent)] px-3 py-1.5 text-[13px] font-medium text-[var(--nimi-text-muted)] transition-colors hover:bg-[var(--nimi-action-ghost-hover)]"
-          >
-            <ArrowLeft size={14} />
-            {t('Profile.detail.back', { defaultValue: 'Back' })}
-          </Link>
-          {initialIntent ? (
-            <IconButton
-              tone="primary"
-              size="md"
-              onClick={() => setCaptureOpen(true)}
-              className="h-10 w-10 rounded-full shadow-[var(--nimi-elevation-base)]"
-              aria-label={t('Profile.detail.addRecord', { defaultValue: 'Add record' })}
-              title={t('Profile.detail.addRecord', { defaultValue: 'Add record' })}
-              icon={<Plus size={18} />}
-            />
-          ) : null}
-        </div>
-
-        <Surface as="section" material="glass-thick" padding="none" tone="card" className="mb-5 overflow-hidden rounded-2xl p-6 shadow-[var(--nimi-elevation-base)]">
+    <GenericMetricDetailShell
+      topAction={initialIntent ? (
+        <IconButton
+          tone="primary"
+          size="md"
+          onClick={() => setCaptureOpen(true)}
+          className="h-10 w-10 rounded-full shadow-[var(--nimi-elevation-base)]"
+          aria-label={t('Profile.detail.addRecord', { defaultValue: 'Add record' })}
+          title={t('Profile.detail.addRecord', { defaultValue: 'Add record' })}
+          icon={<Plus size={18} />}
+        />
+      ) : null}
+    >
+      <Surface as="section" material="glass-thick" padding="none" tone="card" className="mb-5 overflow-hidden rounded-2xl p-6 shadow-[var(--nimi-elevation-base)]">
           <p className="text-[13px] font-medium text-[var(--nimi-text-muted)]">{groupText}</p>
           <h1 className="mt-1 text-2xl font-semibold tracking-normal text-[var(--nimi-text-primary)]">
             {metricLabel(metric, t)}
@@ -254,21 +247,20 @@ export default function HealthMetricDetailPage() {
             </div>
           )}
         </Surface>
-      </div>
 
-      {initialIntent ? (
-        <HealthCaptureModal
-          open={captureOpen}
-          childId={activeChild.childId}
-          childBirthDate={activeChild.birthDate}
-          initialIntent={initialIntent}
-          onClose={() => setCaptureOpen(false)}
-          onSaved={(_: SaveHealthRecordCaptureResult) => {
-            void loadRecords(activeChild.childId);
-          }}
-        />
-      ) : null}
-    </div>
+        {initialIntent ? (
+          <HealthCaptureModal
+            open={captureOpen}
+            childId={activeChild.childId}
+            childBirthDate={activeChild.birthDate}
+            initialIntent={initialIntent}
+            onClose={() => setCaptureOpen(false)}
+            onSaved={(_: SaveHealthRecordCaptureResult) => {
+              void loadRecords(activeChild.childId);
+            }}
+          />
+        ) : null}
+    </GenericMetricDetailShell>
   );
 }
 
