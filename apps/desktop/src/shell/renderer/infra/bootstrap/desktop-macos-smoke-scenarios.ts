@@ -12,7 +12,10 @@ import {
   waitForSpeakingLive2dPose,
   waitForVisibleLive2dPixels,
 } from './desktop-macos-smoke-live2d';
-import { waitForAvatarCarrierEvidence } from './desktop-macos-smoke-avatar-evidence';
+import {
+  waitForAvatarCarrierEvidence,
+  waitForAvatarLive2dInteractionEvidence,
+} from './desktop-macos-smoke-avatar-evidence';
 import { AGENT_CHAT_ANCHOR_BINDINGS_STORAGE_KEY } from '@renderer/app-shell/providers/agent-conversation-anchor-binding-storage';
 import {
   assertStableVrmFramingSignature,
@@ -286,6 +289,8 @@ export async function runDesktopMacosSmokeScenario(
         const anchorWriteNotBeforeMs = Date.now();
         record('submit-anchor-turn');
         await deps.setValueBySelector('[data-chat-composer-textarea="true"]', 'Wave 2 product smoke anchor turn.');
+        record('wait-anchor-send-ready');
+        await deps.waitForSelectorEnabled('[data-chat-composer-send="true"]');
         await deps.clickSelector('[data-chat-composer-send="true"]');
         record('wait-runtime-anchor-binding');
         const conversationAnchorId = await waitForAgentConversationAnchorBinding(
@@ -322,6 +327,19 @@ export async function runDesktopMacosSmokeScenario(
             ? Math.max(1, Number(deps.avatarCarrierEvidenceTimeoutMs))
             : undefined,
         );
+        record('wait-avatar-interaction-composer-ready');
+        await deps.waitForSelectorEnabled('[data-chat-composer-textarea="true"]', 60_000);
+        record('submit-avatar-interaction-turn');
+        await deps.setValueBySelector('[data-chat-composer-textarea="true"]', 'Wave 2 product smoke interaction turn.');
+        record('wait-avatar-interaction-send-ready');
+        await deps.waitForSelectorEnabled('[data-chat-composer-send="true"]');
+        await deps.clickSelector('[data-chat-composer-send="true"]');
+        record('wait-avatar-live2d-interaction-evidence');
+        const interactionEvidence = await waitForAvatarLive2dInteractionEvidence(
+          deps,
+          liveInstance.avatarInstanceId,
+          conversationAnchorId,
+        );
         record('write-pass-report');
         await deps.writeReport({
           ok: true,
@@ -340,6 +358,7 @@ export async function runDesktopMacosSmokeScenario(
               modelLoad: carrierEvidence.modelLoad,
               lifecycleMounted: carrierEvidence.lifecycleMounted,
               visual: carrierEvidence.visual,
+              interaction: interactionEvidence.interaction,
             },
           },
         });

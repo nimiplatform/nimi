@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { SdkDriver } from './SdkDriver.js';
+import type { AgentEvent } from '../driver/types.js';
 
 function waitForTasks(): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, 0));
@@ -272,6 +273,76 @@ describe('SdkDriver', () => {
       latest_committed_message_id: 'msg-2',
       latest_committed_turn_id: 'turn-2',
       latest_committed_message_text: 'latest assistant reply',
+    }));
+
+    await driver.stop();
+  });
+
+  it('replays committed snapshot status cue into presentation events for late avatar consumers', async () => {
+    async function* stream() {
+      await new Promise(() => {});
+    }
+
+    const runtime = {
+      agent: {
+        turns: {
+          getSessionSnapshot: async () => ({
+            sessionStatus: 'active',
+            transcriptMessageCount: 1,
+            lastTurn: {
+              turnId: 'turn-1',
+              streamId: 'stream-1',
+              messageId: 'msg-1',
+              text: 'reply',
+              structured: {
+                status_cue: {
+                  mood: 'joy',
+                  action_cue: 'greet',
+                  activity_category: 'interaction',
+                },
+              },
+            },
+          }),
+          subscribe: async () => stream(),
+        },
+      },
+    } as const;
+
+    const driver = new SdkDriver({
+      runtime: runtime as never,
+      ...LOCAL_IDENTITY,
+      conversationAnchorId: 'anchor-1',
+      activeWorldId: 'world-1',
+      activeUserId: 'user-1',
+      locale: 'en-US',
+      now: () => 1_710_000_020_000,
+    });
+
+    const events: AgentEvent[] = [];
+    driver.onEvent((event) => {
+      events.push(event);
+    });
+
+    await driver.start();
+    await waitForTasks();
+
+    expect(events.map((event) => event.name)).toEqual([
+      'runtime.agent.presentation.expression_requested',
+      'runtime.agent.presentation.activity_requested',
+    ]);
+    expect(events[0]?.detail).toEqual(expect.objectContaining({
+      expression_id: 'joy',
+      turn_id: 'turn-1',
+      stream_id: 'stream-1',
+      catchup_source: 'session_snapshot',
+    }));
+    expect(events[1]?.detail).toEqual(expect.objectContaining({
+      activity_name: 'greet',
+      category: 'interaction',
+      source: 'apml_output',
+      turn_id: 'turn-1',
+      stream_id: 'stream-1',
+      catchup_source: 'session_snapshot',
     }));
 
     await driver.stop();

@@ -445,7 +445,7 @@ export function createRuntimeAgentTurnsModule(input: {
         ? await input.agent.subscribeEvents({
           agentId: '',
           cursor,
-          eventFilters: [AgentEventType.HOOK, AgentEventType.STATE],
+          eventFilters: [AgentEventType.HOOK, AgentEventType.STATE, AgentEventType.PRESENTATION],
           context: scopedBinding
             ? runtimeAgentRequestContext(input.appId, '', identity, scopedBinding)
             : runtimeAgentRequestContext(input.appId, subjectUserId || '', identity),

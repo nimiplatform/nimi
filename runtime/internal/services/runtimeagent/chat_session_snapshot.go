@@ -21,6 +21,7 @@ const (
 
 type publicChatTurnProjectionState struct {
 	TurnID            string
+	StreamID          string
 	Status            string
 	TraceID           string
 	StreamSequence    uint64
@@ -55,6 +56,7 @@ func newPublicChatTurnProjection(turn *publicChatTurnState) *publicChatTurnProje
 	}
 	return &publicChatTurnProjectionState{
 		TurnID:           turn.TurnID,
+		StreamID:         turn.StreamID,
 		Status:           publicChatTurnStatusAccepted,
 		Origin:           firstNonEmpty(strings.TrimSpace(turn.Origin), publicChatTurnOriginUser),
 		ChainID:          strings.TrimSpace(turn.ChainID),
@@ -233,6 +235,7 @@ func (p *publicChatTurnProjectionState) payload() map[string]any {
 	}
 	out := map[string]any{
 		"turn_id":             strings.TrimSpace(p.TurnID),
+		"stream_id":           strings.TrimSpace(p.StreamID),
 		"status":              strings.TrimSpace(p.Status),
 		"stream_sequence":     p.StreamSequence,
 		"turn_origin":         firstNonEmpty(strings.TrimSpace(p.Origin), publicChatTurnOriginUser),

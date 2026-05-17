@@ -232,6 +232,54 @@ function normalizeRuntimeTimelineForAvatar(event: RuntimeAgentConsumeEvent): Rec
   };
 }
 
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : {};
+}
+
+function readSnapshotStatusCue(snapshot: RuntimeAgentSessionSnapshot): {
+  turnId: string;
+  streamId: string;
+  expressionId: string;
+  activityName: string;
+  activityCategory: BundleActivityCategory | '';
+  activityIntensity: BundleActivityIntensity;
+} | null {
+  const turn = snapshot.lastTurn;
+  const turnId = typeof turn?.turnId === 'string' ? turn.turnId.trim() : '';
+  const streamId = typeof turn?.streamId === 'string' ? turn.streamId.trim() : '';
+  if (!turnId || !streamId) {
+    return null;
+  }
+  const structured = asRecord(turn?.structured);
+  const statusCue = asRecord(structured.status_cue ?? structured.statusCue);
+  const expressionId = typeof statusCue.mood === 'string' ? statusCue.mood.trim() : '';
+  const activityName = typeof statusCue.action_cue === 'string'
+    ? statusCue.action_cue.trim()
+    : typeof statusCue.actionCue === 'string'
+      ? statusCue.actionCue.trim()
+      : '';
+  const activityCategory = typeof statusCue.activity_category === 'string'
+    ? statusCue.activity_category.trim()
+    : typeof statusCue.activityCategory === 'string'
+      ? statusCue.activityCategory.trim()
+      : '';
+  const activityIntensity = typeof statusCue.activity_intensity === 'string'
+    ? statusCue.activity_intensity.trim()
+    : typeof statusCue.activityIntensity === 'string'
+      ? statusCue.activityIntensity.trim()
+      : '';
+  return {
+    turnId,
+    streamId,
+    expressionId,
+    activityName,
+    activityCategory: activityCategory as BundleActivityCategory | '',
+    activityIntensity: activityIntensity as BundleActivityIntensity,
+  };
+}
+
 export class SdkDriver implements AgentDataDriver {
   readonly kind = 'sdk' as const;
   private _status: DriverStatus = 'idle';
@@ -522,6 +570,43 @@ export class SdkDriver implements AgentDataDriver {
     });
     this.touchRuntimeNow();
     this.publishBundle();
+    this.emitSnapshotStatusCueCatchup(snapshot);
+  }
+
+  private emitSnapshotStatusCueCatchup(snapshot: RuntimeAgentSessionSnapshot): void {
+    const cue = readSnapshotStatusCue(snapshot);
+    if (!cue) {
+      return;
+    }
+    const timestampNow = this.now();
+    if (cue.expressionId) {
+      requireRuntimeCurrentEmotion(cue.expressionId);
+      this.emitAgentEvent(toRuntimeAgentEvent('runtime.agent.presentation.expression_requested', {
+        expression_id: cue.expressionId,
+        expected_duration_ms: null,
+        agent_id: this.localAgentRef,
+        conversation_anchor_id: this.conversationAnchorId,
+        turn_id: cue.turnId,
+        stream_id: cue.streamId,
+        source: 'apml_output',
+        catchup_source: 'session_snapshot',
+      }, timestampNow));
+    }
+    if (cue.activityName) {
+      const category = requireRuntimeActivityCategory(cue.activityCategory);
+      const intensity = requireRuntimeActivityIntensity(cue.activityIntensity);
+      this.emitAgentEvent(toRuntimeAgentEvent('runtime.agent.presentation.activity_requested', {
+        activity_name: cue.activityName,
+        category,
+        intensity,
+        source: 'apml_output',
+        agent_id: this.localAgentRef,
+        conversation_anchor_id: this.conversationAnchorId,
+        turn_id: cue.turnId,
+        stream_id: cue.streamId,
+        catchup_source: 'session_snapshot',
+      }, timestampNow));
+    }
   }
 
   private async consumeStream(

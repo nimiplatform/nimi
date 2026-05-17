@@ -92,6 +92,7 @@ export type RuntimeAgentTimelineEnvelope = {
 
 export type RuntimeAgentSessionTurnSnapshot = {
   turnId: string;
+  streamId?: string;
   status?: string;
   streamSequence?: number;
   turnOrigin?: string;

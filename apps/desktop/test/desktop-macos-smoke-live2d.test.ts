@@ -39,6 +39,29 @@ function createAvatarCarrierVisualReadyRecord(recordedAt = '2026-04-26T00:00:05.
   };
 }
 
+function createAvatarCarrierInteractionRecord(recordedAt = '2026-04-26T00:00:06.000Z') {
+  return {
+    kind: 'avatar.carrier.interaction',
+    recordedAt,
+    detail: {
+      conversation_anchor_id: 'anchor-1',
+      status: 'ready',
+      source: 'live2d-carrier-surface',
+      active_motion_group: 'Idle',
+      active_expression_id: 'exp_01',
+      motion_frame_applied: true,
+      expression_frame_applied: true,
+      visible_pixels: 12,
+      visible_drawable_count: 24,
+      texture_binding_count: 1,
+      sampled_pixels: 96,
+      sampled_pixel_checksum: 789012,
+      canvas_width: 360,
+      canvas_height: 480,
+    },
+  };
+}
+
 test('desktop macos smoke live2d render scenario waits for visible pixels before passing', async () => {
   for (const scenarioId of ['chat.live2d-render-smoke', 'chat.live2d-render-smoke-mark', 'chat.live2d-render-smoke-wanko'] as const) {
     const clicked: string[] = [];
@@ -539,6 +562,7 @@ test('desktop macos smoke live2d avatar product scenario waits for same-anchor A
                   recordedAt: '2026-04-26T00:00:05.000Z',
                   detail: { conversation_anchor_id: 'anchor-1', status: 'ready', visible_pixels: 0 },
                 },
+            ...(evidenceReads >= 3 ? [createAvatarCarrierInteractionRecord()] : []),
           ],
         },
       };
@@ -560,17 +584,24 @@ test('desktop macos smoke live2d avatar product scenario waits for same-anchor A
   assert.deepEqual(clickedSelectors, [
     '[data-chat-composer-send="true"]',
     '[data-agent-composer-avatar="ready_stopped"]',
+    '[data-chat-composer-send="true"]',
   ]);
-  assert.deepEqual(values, [{
-    selector: '[data-chat-composer-textarea="true"]',
-    value: 'Wave 2 product smoke anchor turn.',
-  }]);
+  assert.deepEqual(values, [
+    {
+      selector: '[data-chat-composer-textarea="true"]',
+      value: 'Wave 2 product smoke anchor turn.',
+    },
+    {
+      selector: '[data-chat-composer-textarea="true"]',
+      value: 'Wave 2 product smoke interaction turn.',
+    },
+  ]);
   assert.equal(runtimeAccountProjectionVerified, true);
   assert.equal(routeConfigured, true);
   assert.equal(staleAnchorsCleared, true);
   assert.equal(runtimeAnchorVerified, true);
   assert.equal(runtimeProductEvidenceRead, true);
-  assert.equal(evidenceReads, 2);
+  assert.equal(evidenceReads, 3);
   assert.equal(writtenReports.length, 1);
   const report = writtenReports[0] as Record<string, unknown>;
   assert.equal(report.ok, true);
@@ -582,12 +613,17 @@ test('desktop macos smoke live2d avatar product scenario waits for same-anchor A
     'wait-agent-target-selected',
     'configure-runtime-text-route',
     'submit-anchor-turn',
+    'wait-anchor-send-ready',
     'wait-runtime-anchor-binding',
     'wait-runtime-product-path-evidence',
     'wait-avatar-composer-ready',
     'launch-avatar-current-anchor',
     'wait-avatar-same-anchor-registry',
     'wait-avatar-carrier-evidence',
+    'wait-avatar-interaction-composer-ready',
+    'submit-avatar-interaction-turn',
+    'wait-avatar-interaction-send-ready',
+    'wait-avatar-live2d-interaction-evidence',
     'write-pass-report',
   ]);
   const details = report.details as { avatarProductPath?: Record<string, unknown> };
@@ -651,6 +687,7 @@ test('desktop macos smoke live2d avatar product scenario waits for same-anchor A
     },
   });
   assert.deepEqual(details.avatarProductPath?.visual, createAvatarCarrierVisualReadyRecord('2026-04-26T00:00:05.000Z'));
+  assert.deepEqual(details.avatarProductPath?.interaction, createAvatarCarrierInteractionRecord());
 });
 
 test('desktop macos smoke live2d avatar product scenario fails without local Avatar asset evidence', async () => {

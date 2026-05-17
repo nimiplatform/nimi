@@ -453,8 +453,7 @@ async fn resolve_agent_center_avatar_asset_returns_live2d_model_manifest() {
 }
 
 #[tokio::test(flavor = "current_thread")]
-async fn resolve_agent_center_avatar_asset_rejects_local_config_external_live2d_adapter_sidecar()
-{
+async fn resolve_agent_center_avatar_asset_rejects_local_config_external_live2d_adapter_sidecar() {
     let _guard = test_env_guard();
     let home = unique_temp_dir("agent-center-live2d-external-adapter");
     fs::create_dir_all(&home).unwrap();
@@ -681,8 +680,8 @@ async fn resolve_agent_center_avatar_asset_uses_runtime_account_projection_scope
 }
 
 #[tokio::test(flavor = "current_thread")]
-async fn resolve_agent_center_avatar_asset_returns_vrm_model_manifest_and_rejects_digest_mismatch(
-) {
+async fn resolve_agent_center_avatar_asset_returns_vrm_model_manifest_and_rejects_digest_mismatch()
+{
     let _guard = test_env_guard();
     let home = unique_temp_dir("agent-center-package-invalid");
     fs::create_dir_all(&home).unwrap();
@@ -690,16 +689,15 @@ async fn resolve_agent_center_avatar_asset_returns_vrm_model_manifest_and_reject
     std::env::set_var("HOME", &home);
     let vrm_package_dir = write_agent_center_vrm_package(&home, b"vrm-bytes");
 
-    let vrm_manifest =
-        nimi_avatar_resolve_agent_center_avatar_asset(resolve_payload_with_package(
-            "account_1",
-            owner_user_id(),
-            realm_agent_id(),
-            "vrm",
-            "vrm_ab12cd34ef56",
-        ))
-        .await
-        .expect("resolve VRM asset manifest");
+    let vrm_manifest = nimi_avatar_resolve_agent_center_avatar_asset(resolve_payload_with_package(
+        "account_1",
+        owner_user_id(),
+        realm_agent_id(),
+        "vrm",
+        "vrm_ab12cd34ef56",
+    ))
+    .await
+    .expect("resolve VRM asset manifest");
     assert_eq!(vrm_manifest.kind, "vrm");
     assert_eq!(vrm_manifest.model_id, "model");
     let vrm_path = PathBuf::from(vrm_manifest.vrm_file_path.as_deref().unwrap());

@@ -394,7 +394,7 @@ function createAvatarProductSmokeLive2dAdapterManifest(avatarProductLive2dPackag
   return {
     manifest_kind: 'nimi.avatar.live2d.adapter',
     schema_version: 1,
-    adapter_id: `${modelId}-product-smoke-render-only`,
+    adapter_id: `${modelId}-product-smoke-semantic-basic`,
     target_model: {
       model_id: modelId,
       model3: avatarProductLive2dPackage.modelFilename,
@@ -405,15 +405,24 @@ function createAvatarProductSmokeLive2dAdapterManifest(avatarProductLive2dPackag
       fixture_use: 'operator_local_only',
     },
     compatibility: {
-      requested_tier: 'render_only',
+      requested_tier: 'semantic_basic',
     },
     semantics: {
       motions: {
         idle: { group: 'Idle' },
+        activities: {
+          neutral: { group: 'Idle' },
+          greet: { group: 'Idle' },
+          listening: { group: 'Idle' },
+          thinking: { group: 'Idle' },
+        },
         missing_activity: 'idle_degraded_with_diagnostic',
       },
       expressions: {
-        disposition: { status: 'not_applicable', reason: 'render-only smoke does not assert expression semantics' },
+        map: {
+          joy: 'exp_01',
+        },
+        disposition: { status: 'supported' },
       },
       poses: {
         disposition: { status: 'not_applicable', reason: 'render-only smoke does not assert pose semantics' },
@@ -874,7 +883,7 @@ export async function startOpenAiCompatibleSmokeProvider() {
       const userMessage = Array.isArray(parsed.messages)
         ? [...parsed.messages].reverse().find((message) => message?.role === 'user')?.content
         : '';
-      const content = `<message id="e2e-live2d-smoke-message">Runtime product smoke acknowledged: ${escapeXmlText(String(userMessage || 'ready').slice(0, 80))}</message>`;
+      const content = `<message id="e2e-live2d-smoke-message"><emotion>joy</emotion><activity>greet</activity>Runtime product smoke acknowledged: ${escapeXmlText(String(userMessage || 'ready').slice(0, 80))}</message>`;
       if (parsed.stream === true) {
         response.writeHead(200, {
           'content-type': 'text/event-stream; charset=utf-8',

@@ -73,6 +73,13 @@ function resolveIdleMotionGroup(
   return compatibility?.idleMotionGroup ?? 'Idle';
 }
 
+function resolveExpressionId(
+  compatibility: Live2DCompatibilityReport | null,
+  name: string,
+): string {
+  return compatibility?.adapter?.semantics?.expressions?.map?.[name] ?? name;
+}
+
 export function createLive2DProjectionAdapter(
   deps: Live2DProjectionAdapterDeps,
 ): BackendProjection {
@@ -100,7 +107,7 @@ export function createLive2DProjectionAdapter(
     },
     applyExpression({ name }) {
       if (!name) return;
-      commandBus.emit('command', { kind: 'expression', id: name });
+      commandBus.emit('command', { kind: 'expression', id: resolveExpressionId(compatibility, name) });
     },
     reset() {
       commandBus.emit('command', { kind: 'expression-clear' });

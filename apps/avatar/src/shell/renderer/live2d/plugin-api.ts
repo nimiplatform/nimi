@@ -47,6 +47,13 @@ function resolveAdapterActivityMotion(
   return mapping.group ?? null;
 }
 
+function resolveAdapterExpression(
+  compatibility: Live2DCompatibilityReport | null | undefined,
+  expressionId: string,
+): string {
+  return compatibility?.adapter?.semantics?.expressions?.map?.[expressionId] ?? expressionId;
+}
+
 async function runLive2DDefaultActivityFallback(
   context: PluginApiContext,
   activityId: string,
@@ -110,7 +117,10 @@ export function createLive2DBackendApi(context: PluginApiContext): EmbodimentPro
       context.commandBus.emit('command', { kind: 'parameter-add', id: signalId, delta });
     },
     async setExpression(expressionId) {
-      context.commandBus.emit('command', { kind: 'expression', id: expressionId });
+      context.commandBus.emit('command', {
+        kind: 'expression',
+        id: resolveAdapterExpression(context.compatibility, expressionId),
+      });
     },
     clearExpression() {
       context.commandBus.emit('command', { kind: 'expression-clear' });

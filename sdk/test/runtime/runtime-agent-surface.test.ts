@@ -726,6 +726,7 @@ test('runtime agent turns subscribe/request/interrupt hard-cut to anchor-native 
     assert.deepEqual(capturedAgentSubscribeRequest?.eventFilters, [
       AgentEventType.HOOK,
       AgentEventType.STATE,
+      AgentEventType.PRESENTATION,
     ]);
 
     const turnRequestPayload = Struct.toJson(capturedMessages[0]?.payload as Struct) as Record<string, unknown>;

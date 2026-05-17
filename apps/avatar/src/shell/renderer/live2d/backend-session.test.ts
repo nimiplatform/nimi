@@ -63,7 +63,9 @@ function createFramework(): OfficialCubismFrameworkRuntime {
       getMotionFadeInTimeValue() { return -1; }
       getMotionFadeOutTimeValue() { return -1; }
       getEyeBlinkParameterCount() { return 0; }
+      getEyeBlinkParameterId() { return 'ParamEyeLOpen'; }
       getLipSyncParameterCount() { return 0; }
+      getLipSyncParameterId() { return 'ParamMouthOpenY'; }
     },
     CubismMotion: {
       create: vi.fn(() => ({

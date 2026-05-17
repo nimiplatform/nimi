@@ -46,6 +46,7 @@ export function createBaseDriver(
   return {
     async waitForTestId() {},
     async waitForSelector() {},
+    async waitForSelectorEnabled() {},
     async waitForSelectorGone() {},
     async clickByTestId() {},
     async clickSelector() {},

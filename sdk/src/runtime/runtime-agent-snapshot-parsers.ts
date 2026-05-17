@@ -59,6 +59,7 @@ function parseTurnSnapshot(value: unknown): RuntimeAgentSessionTurnSnapshot | un
   }
   return {
     turnId,
+    ...(optionalString(payload.stream_id) ? { streamId: optionalString(payload.stream_id) } : {}),
     ...(optionalString(payload.status) ? { status: optionalString(payload.status) } : {}),
     ...(optionalNumber(payload.stream_sequence) !== undefined ? { streamSequence: optionalNumber(payload.stream_sequence) } : {}),
     ...(optionalString(payload.turn_origin) ? { turnOrigin: optionalString(payload.turn_origin) } : {}),

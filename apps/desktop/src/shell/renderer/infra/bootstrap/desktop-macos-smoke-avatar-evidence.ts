@@ -107,6 +107,27 @@ function hasHumanVisibleArtifact(record: Record<string, unknown> | null): boolea
   );
 }
 
+function isLive2dInteractionEvidence(record: Record<string, unknown> | null): boolean {
+  if (!record || recordKind(record) !== 'avatar.carrier.interaction') {
+    return false;
+  }
+  const detail = recordDetail(record);
+  return (
+    detail.status === 'ready'
+    && detail.source === 'live2d-carrier-surface'
+    && typeof detail.active_motion_group === 'string'
+    && detail.active_motion_group.trim().length > 0
+    && typeof detail.active_expression_id === 'string'
+    && detail.active_expression_id.trim().length > 0
+    && detail.motion_frame_applied === true
+    && detail.expression_frame_applied === true
+    && Number(detail.visible_pixels || 0) > 0
+    && Number(detail.sampled_pixels || 0) > 0
+    && Number(detail.canvas_width || 0) > 0
+    && Number(detail.canvas_height || 0) > 0
+  );
+}
+
 export async function waitForAvatarCarrierEvidence(
   deps: DesktopMacosSmokeDriverDeps,
   avatarInstanceId: string,
@@ -207,4 +228,37 @@ export async function waitForAvatarCarrierEvidence(
     await new Promise((resolve) => setTimeout(resolve, 300));
   }
   throw new Error(`missing same-anchor Avatar local asset/SDK/model/visual evidence for ${avatarInstanceId} anchor=${expectedConversationAnchorId}: ${lastError}`);
+}
+
+export async function waitForAvatarLive2dInteractionEvidence(
+  deps: DesktopMacosSmokeDriverDeps,
+  avatarInstanceId: string,
+  expectedConversationAnchorId: string,
+  timeoutMs = 45_000,
+) {
+  const deadline = Date.now() + timeoutMs;
+  let lastError = '';
+  while (Date.now() < deadline) {
+    try {
+      const result = await deps.readAvatarEvidence(avatarInstanceId);
+      const records = readEvidenceRecords(result.evidence);
+      const latestRecords = [...records].reverse();
+      const interaction = latestRecords.find((record) => (
+        recordConversationAnchorId(record) === expectedConversationAnchorId
+        && isLive2dInteractionEvidence(record)
+      )) || null;
+      if (interaction) {
+        return {
+          evidencePath: result.evidencePath,
+          evidence: result.evidence,
+          interaction,
+        };
+      }
+      lastError = `anchor=${expectedConversationAnchorId} interaction:false records=${records.map((record) => `${recordKind(record)}:${recordConversationAnchorId(record) || 'no-anchor'}`).join(',') || 'none'}`;
+    } catch (error) {
+      lastError = error instanceof Error ? error.message : String(error || 'unknown evidence read error');
+    }
+    await new Promise((resolve) => setTimeout(resolve, 300));
+  }
+  throw new Error(`missing same-anchor Avatar Live2D motion/expression interaction evidence for ${avatarInstanceId} anchor=${expectedConversationAnchorId}: ${lastError}`);
 }

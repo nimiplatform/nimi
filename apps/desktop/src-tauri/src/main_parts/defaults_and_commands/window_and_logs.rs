@@ -182,6 +182,10 @@ fn avatar_runtime_env_pairs() -> Result<Vec<(&'static str, String)>, String> {
         ("NIMI_AGENT_ID", defaults.runtime.agent_id),
         ("NIMI_WORLD_ID", defaults.runtime.world_id),
         ("NIMI_PROVIDER", defaults.runtime.provider),
+        // Desktop may run with RELEASE bridge mode so it can host the bundled
+        // product Runtime. Avatar is a separate first-party consumer of that
+        // Runtime, so its handoff process must use the external Runtime bridge.
+        ("NIMI_RUNTIME_BRIDGE_MODE", "RUNTIME".to_string()),
         (
             "NIMI_USER_CONFIRMED_UPLOAD",
             if defaults.runtime.user_confirmed_upload {
@@ -198,7 +202,6 @@ fn avatar_runtime_env_pairs() -> Result<Vec<(&'static str, String)>, String> {
         "NIMI_RUNTIME_LOCAL_STATE_PATH",
         "NIMI_RUNTIME_LOCK_PATH",
         "NIMI_RUNTIME_ACCOUNT_CUSTODY_PARTITION",
-        "NIMI_RUNTIME_BRIDGE_MODE",
         "NIMI_RUNTIME_BRIDGE_DEBUG",
         "NIMI_E2E_PROFILE",
         "NIMI_E2E_FIXTURE_PATH",

@@ -56,6 +56,7 @@ type persistedPublicChatAnchor struct {
 
 type persistedPublicChatTurnSnapshot struct {
 	TurnID            string                            `json:"turnId"`
+	StreamID          string                            `json:"streamId,omitempty"`
 	Status            string                            `json:"status"`
 	TraceID           string                            `json:"traceId,omitempty"`
 	StreamSequence    uint64                            `json:"streamSequence"`
@@ -604,6 +605,7 @@ func toPersistedPublicChatTurnSnapshot(input *publicChatTurnProjectionState) *pe
 	}
 	return &persistedPublicChatTurnSnapshot{
 		TurnID:            input.TurnID,
+		StreamID:          input.StreamID,
 		Status:            input.Status,
 		TraceID:           input.TraceID,
 		StreamSequence:    input.StreamSequence,
@@ -644,6 +646,7 @@ func fromPersistedPublicChatTurnSnapshot(input *persistedPublicChatTurnSnapshot)
 	}
 	return &publicChatTurnProjectionState{
 		TurnID:            input.TurnID,
+		StreamID:          input.StreamID,
 		Status:            input.Status,
 		TraceID:           input.TraceID,
 		StreamSequence:    input.StreamSequence,

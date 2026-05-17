@@ -52,6 +52,7 @@ export function Live2DCarrierVisualSurface({ session }: Live2DCarrierVisualSurfa
   const [error, setError] = useState<string | null>(null);
   const [stats, setStats] = useState<Live2DCarrierVisualFrameStats | null>(null);
   const recordedVisualRef = useRef(false);
+  const recordedInteractionRef = useRef(false);
   const artifactWritePendingRef = useRef(false);
   const artifactFailureRecordedRef = useRef(false);
 
@@ -59,6 +60,7 @@ export function Live2DCarrierVisualSurface({ session }: Live2DCarrierVisualSurfa
     const host = hostRef.current;
     if (!host || !session?.execution.loaded) {
       recordedVisualRef.current = false;
+      recordedInteractionRef.current = false;
       artifactWritePendingRef.current = false;
       artifactFailureRecordedRef.current = false;
       setStatus('idle');
@@ -93,6 +95,34 @@ export function Live2DCarrierVisualSurface({ session }: Live2DCarrierVisualSurfa
         const nextStats = visualHost.renderFrame();
         setStats(nextStats);
         setStatus('ready');
+        if (
+          !recordedInteractionRef.current
+          && nextStats.visiblePixels > 0
+          && nextStats.activeMotionGroup
+          && nextStats.activeExpressionId
+          && nextStats.motionFrameApplied
+          && nextStats.expressionFrameApplied
+        ) {
+          recordedInteractionRef.current = true;
+          recordAvatarEvidenceEventually({
+            kind: 'avatar.carrier.interaction',
+            detail: {
+              status: 'ready',
+              source: 'live2d-carrier-surface',
+              active_motion_group: nextStats.activeMotionGroup,
+              active_expression_id: nextStats.activeExpressionId,
+              motion_frame_applied: nextStats.motionFrameApplied,
+              expression_frame_applied: nextStats.expressionFrameApplied,
+              visible_pixels: nextStats.visiblePixels,
+              visible_drawable_count: nextStats.visibleDrawableCount,
+              texture_binding_count: nextStats.textureBindingCount,
+              sampled_pixels: nextStats.sampledPixels,
+              sampled_pixel_checksum: nextStats.sampledPixelChecksum,
+              canvas_width: nextStats.width,
+              canvas_height: nextStats.height,
+            },
+          });
+        }
         if (!recordedVisualRef.current && !artifactWritePendingRef.current && nextStats.visiblePixels > 0) {
           artifactWritePendingRef.current = true;
           void writeVisibleFrameArtifact({ visualHost, stats: nextStats })

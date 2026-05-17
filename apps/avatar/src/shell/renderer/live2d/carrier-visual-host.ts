@@ -21,6 +21,10 @@ export type Live2DCarrierVisualFrameStats = {
   visibleDrawableCount: number;
   nonZeroOpacityDrawableCount: number;
   textureBindingCount: number;
+  activeMotionGroup: string | null;
+  motionFrameApplied: boolean;
+  activeExpressionId: string | null;
+  expressionFrameApplied: boolean;
 };
 
 export class Live2DCarrierVisualFrameError extends Error {
@@ -65,8 +69,53 @@ type VisualModelHandle = {
   release(): void;
 };
 
+type MotionManagerLike = {
+  startMotionPriority: (motion: unknown, autoDelete: boolean, priority: number) => number;
+  updateMotion: (model: Live2DVisualModelShape, deltaTimeSeconds: number) => boolean;
+  stopAllMotions: () => void;
+};
+
+type ExpressionManagerLike = {
+  startMotion: (motion: unknown, autoDelete: boolean) => number;
+  updateMotion: (model: Live2DVisualModelShape, deltaTimeSeconds: number) => boolean;
+  stopAllMotions: () => void;
+};
+
+type CubismMotionLike = {
+  setEffectIds?: (eyeBlinkIds: unknown[], lipSyncIds: unknown[]) => void;
+};
+
+function protectedMotionManager(model: unknown): MotionManagerLike {
+  const manager = (model as { _motionManager?: MotionManagerLike })._motionManager;
+  if (!manager) {
+    throw new Error('Live2D carrier visual motion manager is unavailable');
+  }
+  return manager;
+}
+
+function protectedExpressionManager(model: unknown): ExpressionManagerLike {
+  const manager = (model as { _expressionManager?: ExpressionManagerLike })._expressionManager;
+  if (!manager) {
+    throw new Error('Live2D carrier visual expression manager is unavailable');
+  }
+  return manager;
+}
+
 function createModelJsonBuffer(session: Live2DBackendSession): ArrayBuffer {
   return new TextEncoder().encode(JSON.stringify(session.settings)).buffer;
+}
+
+function readEffectIds(input: {
+  setting: InstanceType<Live2DVisualRuntime['CubismModelSettingJson']>;
+  count: () => number;
+  idAt: (index: number) => unknown;
+}): unknown[] {
+  const ids: unknown[] = [];
+  const count = Math.max(0, input.count());
+  for (let index = 0; index < count; index += 1) {
+    ids.push(input.idAt(index));
+  }
+  return ids;
 }
 
 function getModelRef(model: unknown): Live2DVisualModelShape | null {
@@ -135,6 +184,12 @@ async function createVisualModel(input: {
     private baseModelMatrix: Float32Array | null = null;
     private widePortraitMode: boolean = false;
     private defaultFramebuffer: WebGLFramebuffer | null = null;
+    private readonly motions = new Map<string, unknown[]>();
+    private readonly expressions = new Map<string, unknown>();
+    private startedMotionGroup: string | null = null;
+    private startedExpressionId: string | null = null;
+    private eyeBlinkIds: unknown[] = [];
+    private lipSyncIds: unknown[] = [];
     private breath: {
       setParameters: (params: unknown[]) => void;
       updateParameters: (model: Live2DVisualModelShape, deltaTimeSeconds: number) => void;
@@ -148,7 +203,9 @@ async function createVisualModel(input: {
       if (!getModelRef(this) || !this.getModelMatrix()) {
         throw new Error(`Live2D carrier visual failed to initialize model: ${input.session.resources.mocPath}`);
       }
+      this.setupEffectIds();
       this.setupBreath();
+      await this.loadMotions();
       await this.loadExpressions();
       await this.loadPhysics();
       await this.loadPose();
@@ -212,10 +269,15 @@ async function createVisualModel(input: {
         modelMatrix.setMatrix(this.baseModelMatrix);
       }
       model.loadParameters();
+      this.syncMotionState();
+      this.syncExpressionState();
+      const motionFrameApplied = protectedMotionManager(this).updateMotion(model, inputFrame.deltaTimeSeconds);
+      model.saveParameters();
+      const expressionFrameApplied = protectedExpressionManager(this).updateMotion(model, inputFrame.deltaTimeSeconds);
+      this.breath?.updateParameters(model, inputFrame.deltaTimeSeconds);
       for (const [parameterId, value] of input.session.execution.parameters) {
         model.setParameterValueById(parameterId, value);
       }
-      this.breath?.updateParameters(model, inputFrame.deltaTimeSeconds);
       model.saveParameters();
       model.update();
 
@@ -273,6 +335,10 @@ async function createVisualModel(input: {
         visibleDrawableCount,
         nonZeroOpacityDrawableCount,
         textureBindingCount: this.getRenderer().getBindedTextures().size,
+        activeMotionGroup: this.startedMotionGroup,
+        motionFrameApplied,
+        activeExpressionId: this.startedExpressionId,
+        expressionFrameApplied,
       };
     }
 
@@ -288,8 +354,85 @@ async function createVisualModel(input: {
     private async loadExpressions(): Promise<void> {
       for (const [name, path] of input.session.resources.expressions) {
         const bytes = await input.readBinary(path);
-        this.loadExpression(bytes, bytes.byteLength, name);
+        const expression = this.loadExpression(bytes, bytes.byteLength, name);
+        if (!expression) {
+          throw new Error(`Live2D carrier visual failed to load expression: ${name}`);
+        }
+        this.expressions.set(name, expression);
       }
+    }
+
+    private async loadMotions(): Promise<void> {
+      for (const [group, paths] of input.session.resources.motionGroups) {
+        const motions: unknown[] = [];
+        for (const [index, path] of paths.entries()) {
+          const bytes = await input.readBinary(path);
+          const motion = this.loadMotion(
+            bytes,
+            bytes.byteLength,
+            `${group}_${index}`,
+            undefined,
+            undefined,
+            this.modelSetting ?? undefined,
+            group,
+            index,
+          );
+          if (!motion) {
+            throw new Error(`Live2D carrier visual failed to load motion: ${group}`);
+          }
+          (motion as CubismMotionLike).setEffectIds?.(this.eyeBlinkIds, this.lipSyncIds);
+          motions.push(motion);
+        }
+        this.motions.set(group, motions);
+      }
+    }
+
+    private syncMotionState(): void {
+      const requested = input.session.execution.activeMotion;
+      const manager = protectedMotionManager(this);
+      if (!requested) {
+        if (this.startedMotionGroup !== null) {
+          manager.stopAllMotions();
+          this.startedMotionGroup = null;
+        }
+        return;
+      }
+      if (this.startedMotionGroup === requested) {
+        return;
+      }
+      const motion = this.motions.get(requested)?.[0] ?? null;
+      if (!motion) {
+        throw new Error(`Live2D carrier visual motion is not loaded: ${requested}`);
+      }
+      const handle = manager.startMotionPriority(motion, false, 2);
+      if (handle < 0) {
+        throw new Error(`Live2D carrier visual motion was rejected by Cubism: ${requested}`);
+      }
+      this.startedMotionGroup = requested;
+    }
+
+    private syncExpressionState(): void {
+      const requested = input.session.execution.activeExpression;
+      const manager = protectedExpressionManager(this);
+      if (!requested) {
+        if (this.startedExpressionId !== null) {
+          manager.stopAllMotions();
+          this.startedExpressionId = null;
+        }
+        return;
+      }
+      if (this.startedExpressionId === requested) {
+        return;
+      }
+      const expression = this.expressions.get(requested) ?? null;
+      if (!expression) {
+        throw new Error(`Live2D carrier visual expression is not loaded: ${requested}`);
+      }
+      const handle = manager.startMotion(expression, false);
+      if (handle < 0) {
+        throw new Error(`Live2D carrier visual expression was rejected by Cubism: ${requested}`);
+      }
+      this.startedExpressionId = requested;
     }
 
     private async loadPhysics(): Promise<void> {
@@ -315,6 +458,22 @@ async function createVisualModel(input: {
         new runtime.BreathParameterData(CubismFramework.getIdManager().getId(String(runtime.CubismDefaultParameterId.ParamAngleY)), 0, 6, 3.5, 0.3),
         new runtime.BreathParameterData(CubismFramework.getIdManager().getId(String(runtime.CubismDefaultParameterId.ParamBodyAngleX)), 0, 4, 15.5, 0.3),
       ]);
+    }
+
+    private setupEffectIds(): void {
+      if (!this.modelSetting) {
+        throw new Error('Live2D carrier visual model setting is unavailable for effect ids');
+      }
+      this.eyeBlinkIds = readEffectIds({
+        setting: this.modelSetting,
+        count: () => this.modelSetting?.getEyeBlinkParameterCount() ?? 0,
+        idAt: (index) => this.modelSetting?.getEyeBlinkParameterId(index),
+      });
+      this.lipSyncIds = readEffectIds({
+        setting: this.modelSetting,
+        count: () => this.modelSetting?.getLipSyncParameterCount() ?? 0,
+        idAt: (index) => this.modelSetting?.getLipSyncParameterId(index),
+      });
     }
   }
 

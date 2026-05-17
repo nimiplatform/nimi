@@ -43,6 +43,7 @@ export type DesktopMacosSmokeCanvasStats = {
 export type DesktopMacosSmokeDriverDeps = {
   waitForTestId: (id: string, timeoutMs?: number) => Promise<void>;
   waitForSelector: (selector: string, timeoutMs?: number) => Promise<void>;
+  waitForSelectorEnabled: (selector: string, timeoutMs?: number) => Promise<void>;
   waitForSelectorGone: (selector: string, timeoutMs?: number) => Promise<void>;
   clickByTestId: (id: string, timeoutMs?: number) => Promise<void>;
   clickSelector: (selector: string, timeoutMs?: number) => Promise<void>;

@@ -239,7 +239,8 @@ fn avatar_runtime_env_pairs_forward_runtime_defaults_without_realm_or_token() {
             .to_string_lossy()
             .to_string()
     )));
-    assert!(pairs.contains(&("NIMI_RUNTIME_BRIDGE_MODE", "RELEASE".to_string())));
+    assert!(pairs.contains(&("NIMI_RUNTIME_BRIDGE_MODE", "RUNTIME".to_string())));
+    assert!(!pairs.contains(&("NIMI_RUNTIME_BRIDGE_MODE", "RELEASE".to_string())));
     assert!(pairs.contains(&(
         "NIMI_E2E_BACKEND_LOG_PATH",
         fixture_dir

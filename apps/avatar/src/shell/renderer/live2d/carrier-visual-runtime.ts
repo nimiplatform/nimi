@@ -3,6 +3,17 @@ import type { OfficialCubismFrameworkRuntime } from './cubism-framework-runtime.
 export type Live2DVisualRuntime = OfficialCubismFrameworkRuntime & {
   CubismUserModel: new () => {
     loadModel: (buffer: ArrayBuffer, shouldCheckMocConsistency?: boolean) => void;
+    loadMotion: (
+      buffer: ArrayBuffer,
+      size: number,
+      name: string,
+      onFinishedMotionHandler?: unknown,
+      onBeganMotionHandler?: unknown,
+      modelSetting?: unknown,
+      group?: string,
+      index?: number,
+      shouldCheckMotionConsistency?: boolean,
+    ) => unknown;
     loadExpression: (buffer: ArrayBuffer, size: number, name: string) => unknown;
     createRenderer: (width: number, height: number, maskBufferCount?: number) => void;
     getRenderer: () => {

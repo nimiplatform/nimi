@@ -227,6 +227,21 @@ function createDomDriverDeps(options: DesktopMacosSmokeDriverDepsOptions = {}): 
       }
       throw new Error(`missing selector ${selector}`);
     },
+    async waitForSelectorEnabled(selector: string, timeoutMs = SMOKE_STEP_TIMEOUT_MS) {
+      const deadline = Date.now() + timeoutMs;
+      while (Date.now() < deadline) {
+        const element = document.querySelector(selector) as (HTMLElement & { disabled?: boolean }) | null;
+        if (
+          element
+          && element.disabled !== true
+          && element.getAttribute('aria-disabled') !== 'true'
+        ) {
+          return;
+        }
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      }
+      throw new Error(`selector not enabled ${selector}`);
+    },
     async waitForSelectorGone(selector: string, timeoutMs = SMOKE_STEP_TIMEOUT_MS) {
       const deadline = Date.now() + timeoutMs;
       while (Date.now() < deadline) {

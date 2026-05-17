@@ -331,8 +331,13 @@ fn find_agent_center_avatar_asset_dir(
     kind: &str,
     local_asset_id: &str,
 ) -> Result<PathBuf, String> {
-    let candidate =
-        resolve_agent_center_avatar_asset_dir(data_root, account_id, agent_id, kind, local_asset_id)?;
+    let candidate = resolve_agent_center_avatar_asset_dir(
+        data_root,
+        account_id,
+        agent_id,
+        kind,
+        local_asset_id,
+    )?;
     if candidate.exists() {
         return Ok(candidate);
     }
@@ -631,8 +636,12 @@ pub(crate) async fn nimi_avatar_resolve_local_avatar_asset(
     if local_avatar_asset_ref.is_empty() || backend_capability_profile_ref.is_empty() {
         return Err("local Avatar asset selection is incomplete".to_string());
     }
-    let materialization_ref =
-        expected_materialization_ref(&account_id, &local_agent_ref, kind.as_str(), &local_avatar_asset_ref);
+    let materialization_ref = expected_materialization_ref(
+        &account_id,
+        &local_agent_ref,
+        kind.as_str(),
+        &local_avatar_asset_ref,
+    );
     nimi_avatar_resolve_agent_center_avatar_asset(AgentCenterAvatarAssetResolvePayload {
         account_id,
         owner_user_id,
