@@ -55,6 +55,7 @@ import { CHAT_CONTENT_POSITION_CLASS, CHAT_CONTENT_WIDTH_CLASS } from './chat-sh
 import type { UseAgentConversationPresentationInput } from './chat-agent-shell-presentation-types';
 import type { PendingAttachment } from '../turns/turn-input-attachments';
 import type { AgentCenterAvatarPackageKind } from './chat-agent-center-local-config';
+import { registerDesktopAvatarLiveInstanceBinding } from './chat-agent-avatar-live-instance-runtime-binding';
 
 
 const AGENT_TRANSCRIPT_BOTTOM_RESERVE_CLASS = 'pb-[clamp(140px,16vh,200px)]';
@@ -463,6 +464,12 @@ export function useAgentConversationPresentation(
             : input.t('Chat.agentCenterAvatarStopUnconfirmed', { defaultValue: 'Close request was sent, but the OS did not confirm it.' }),
         };
       }
+      await registerDesktopAvatarLiveInstanceBinding({
+        target: input.activeTarget,
+        avatarInstanceId,
+        conversationAnchorId: input.activeConversationAnchorId,
+        subjectUserId: input.accountId,
+      });
       const result = await launchDesktopAvatarHandoff({
         agentId: input.activeTarget.realmAgentId,
         avatarInstanceId,

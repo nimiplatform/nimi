@@ -27,6 +27,23 @@ function normalizeText(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
 }
 
+function errorField(error: unknown, key: string): string {
+  if (!error || typeof error !== 'object') {
+    return '';
+  }
+  const value = (error as Record<string, unknown>)[key];
+  return typeof value === 'string' ? value.trim() : '';
+}
+
+function isMissingAvatarLiveInstanceBinding(error: unknown): boolean {
+  const reasonCode = errorField(error, 'reasonCode') || errorField(error, 'code');
+  if (reasonCode === 'RUNTIME_GRPC_NOT_FOUND') {
+    return true;
+  }
+  const message = error instanceof Error ? error.message : String(error || '');
+  return message.toLowerCase().includes('avatar live instance binding not found');
+}
+
 function storage(): Storage | null {
   try {
     return typeof window !== 'undefined' ? window.localStorage : null;
@@ -146,6 +163,53 @@ async function validatePersistedAnchor(input: {
   }
 }
 
+async function resolveRegisteredLiveInstanceAnchor(input: {
+  runtime: Runtime;
+  ownerUserId: string;
+  realmAgentId: string;
+  localAgentRef: string;
+  avatarInstanceId: string;
+}): Promise<AvatarConversationContextResult | null> {
+  try {
+    const result = await input.runtime.agent.anchors.resolveAvatarLiveInstance({
+      ownerUserId: input.ownerUserId,
+      realmAgentId: input.realmAgentId,
+      localAgentRef: input.localAgentRef,
+      avatarInstanceId: input.avatarInstanceId,
+    });
+    const binding = result.binding;
+    const snapshot = result.snapshot;
+    const anchor = snapshot.anchor;
+    const conversationAnchorId = normalizeText(anchor?.conversationAnchorId);
+    const bindingConversationAnchorId = normalizeText(binding.conversationAnchorId);
+    const bindingAvatarInstanceId = normalizeText(binding.avatarInstanceId);
+    const anchorAgentId = normalizeText(anchor?.agentId);
+    const subjectUserId = normalizeText(anchor?.subjectUserId);
+    if (
+      !conversationAnchorId
+      || conversationAnchorId !== bindingConversationAnchorId
+      || bindingAvatarInstanceId !== input.avatarInstanceId
+      || anchorAgentId !== input.localAgentRef
+      || normalizeText(binding.localAgentRef) !== input.localAgentRef
+      || normalizeText(binding.ownerUserId) !== input.ownerUserId
+      || normalizeText(binding.realmAgentId) !== input.realmAgentId
+      || subjectUserId !== input.ownerUserId
+    ) {
+      return null;
+    }
+    return {
+      conversationAnchorId,
+      subjectUserId,
+      recovered: true,
+    };
+  } catch (error) {
+    if (!isMissingAvatarLiveInstanceBinding(error)) {
+      throw error;
+    }
+    return null;
+  }
+}
+
 export async function resolveAvatarConversationContext(input: {
   runtime: Runtime;
   accountId: string;
@@ -157,6 +221,23 @@ export async function resolveAvatarConversationContext(input: {
   if (input.accountId !== input.ownerUserId) {
     throw new Error('Avatar resolved ownerUserId does not match Runtime account projection');
   }
+  const registered = await resolveRegisteredLiveInstanceAnchor({
+    runtime: input.runtime,
+    ownerUserId: input.ownerUserId,
+    realmAgentId: input.realmAgentId,
+    localAgentRef: input.localAgentRef,
+    avatarInstanceId: input.avatarInstanceId,
+  });
+  if (registered) {
+    writePersistedContext({
+      accountId: input.accountId,
+      localAgentRef: input.localAgentRef,
+      avatarInstanceId: input.avatarInstanceId,
+      conversationAnchorId: registered.conversationAnchorId,
+    });
+    return registered;
+  }
+
   const persisted = readPersistedContext({
     accountId: input.accountId,
     localAgentRef: input.localAgentRef,

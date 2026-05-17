@@ -12,6 +12,7 @@ const startDaemonMock = vi.fn();
 const hasTauriInvokeMock = vi.fn();
 const onShellReadyMock = vi.fn();
 const setAlwaysOnTopMock = vi.fn();
+const bindAvatarRuntimeIdentityMock = vi.fn();
 const driverStopMock = vi.fn();
 const createLocalFirstPartyRuntimePlatformClientMock = vi.fn();
 const getAccountSessionStatusMock = vi.fn();
@@ -19,6 +20,7 @@ const getAccessTokenMock = vi.fn();
 const issueScopedAppBindingMock = vi.fn();
 const openAnchorMock = vi.fn();
 const getAnchorSnapshotMock = vi.fn();
+const resolveAvatarLiveInstanceMock = vi.fn();
 const getSessionSnapshotMock = vi.fn();
 const subscribeTurnsMock = vi.fn();
 const requestTurnMock = vi.fn();
@@ -44,6 +46,7 @@ const runtimeMock = {
     anchors: {
       open: (...args: unknown[]) => openAnchorMock(...args),
       getSnapshot: (...args: unknown[]) => getAnchorSnapshotMock(...args),
+      resolveAvatarLiveInstance: (...args: unknown[]) => resolveAvatarLiveInstanceMock(...args),
     },
     turns: {
       getSessionSnapshot: (...args: unknown[]) => getSessionSnapshotMock(...args),
@@ -170,6 +173,7 @@ vi.mock('./tauri-lifecycle.js', () => ({
 
 vi.mock('./tauri-commands.js', () => ({
   setAlwaysOnTop: (...args: unknown[]) => setAlwaysOnTopMock(...args),
+  bindAvatarRuntimeIdentity: (...args: unknown[]) => bindAvatarRuntimeIdentityMock(...args),
 }));
 
 vi.mock('./avatar-evidence.js', () => ({
@@ -265,6 +269,7 @@ describe('bootstrapAvatar', () => {
     hasTauriInvokeMock.mockReset();
     onShellReadyMock.mockReset();
     setAlwaysOnTopMock.mockReset();
+    bindAvatarRuntimeIdentityMock.mockReset();
     driverStopMock.mockReset();
     createLocalFirstPartyRuntimePlatformClientMock.mockReset();
     getAccountSessionStatusMock.mockReset();
@@ -272,6 +277,7 @@ describe('bootstrapAvatar', () => {
     issueScopedAppBindingMock.mockReset();
     openAnchorMock.mockReset();
     getAnchorSnapshotMock.mockReset();
+    resolveAvatarLiveInstanceMock.mockReset();
     getSessionSnapshotMock.mockReset();
     subscribeTurnsMock.mockReset();
     requestTurnMock.mockReset();
@@ -290,6 +296,7 @@ describe('bootstrapAvatar', () => {
     createDriverMock.mockImplementation((input: { kind: 'sdk' | 'mock' }) => createFakeDriver(input.kind));
     onShellReadyMock.mockResolvedValue(() => {});
     setAlwaysOnTopMock.mockResolvedValue(undefined);
+    bindAvatarRuntimeIdentityMock.mockResolvedValue(undefined);
     hasTauriInvokeMock.mockReturnValue(true);
     getAvatarLaunchContextMock.mockResolvedValue(launchContext());
     getDaemonStatusMock.mockResolvedValue({
@@ -356,6 +363,7 @@ describe('bootstrapAvatar', () => {
         subjectUserId: OWNER_USER_ID,
       },
     });
+    resolveAvatarLiveInstanceMock.mockRejectedValue(new Error('avatar live instance binding not found'));
     getSessionSnapshotMock.mockResolvedValue({
       sessionStatus: 'ready',
       transcriptMessageCount: 0,

@@ -9,8 +9,8 @@ use agent_center_avatar_package::nimi_avatar_resolve_agent_center_avatar_package
 #[cfg(test)]
 use agent_center_avatar_package::AgentCenterAvatarPackageResolvePayload;
 use avatar_evidence_projection::AvatarEvidenceRecordInput;
-use avatar_instance_projection::{persist_projection, projection_record_from_launch_context};
-use avatar_instance_registry::AvatarInstanceRegistry;
+use avatar_instance_projection::{persist_projection, projection_record_from_registry_entry};
+use avatar_instance_registry::{AvatarInstanceRegistry, AvatarInstanceRuntimeIdentity};
 use avatar_launch_context::{
     parse_avatar_deep_link_request, resolve_initial_avatar_request, AvatarCloseRequest,
     AvatarDeepLinkRequest, AvatarLaunchContext, AVATAR_LAUNCH_SCHEME,
@@ -58,6 +58,16 @@ struct AvatarCursorClientPosition {
     client_x: f64,
     client_y: f64,
     scale_factor: f64,
+}
+
+#[derive(Clone, Debug, serde::Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct AvatarRuntimeIdentityBindingPayload {
+    avatar_instance_id: String,
+    owner_user_id: String,
+    realm_agent_id: String,
+    local_agent_ref: String,
+    launch_source: Option<String>,
 }
 const AVATAR_WINDOW_LABEL_PREFIX: &str = "avatar-instance";
 const AVATAR_LAUNCH_CONTEXT_UPDATED_EVENT: &str = "avatar://launch-context-updated";
@@ -150,9 +160,7 @@ fn sync_avatar_instance_projection(registry: &AvatarInstanceRegistry) {
     };
     let projection = snapshot
         .into_iter()
-        .filter_map(|entry| {
-            projection_record_from_launch_context(&entry.context, &entry.window_label)
-        })
+        .filter_map(|entry| projection_record_from_registry_entry(&entry))
         .collect::<Vec<_>>();
     if let Err(error) = persist_projection(std::process::id(), published_at_ms, projection) {
         eprintln!("[avatar-instance-projection] persist failed: {error}");
@@ -325,6 +333,39 @@ async fn nimi_avatar_get_launch_context(
         }),
     );
     Ok(context)
+}
+
+#[tauri::command]
+async fn nimi_avatar_bind_runtime_identity(
+    window: WebviewWindow,
+    registry: State<'_, AvatarInstanceRegistry>,
+    payload: AvatarRuntimeIdentityBindingPayload,
+) -> Result<(), String> {
+    let context = registry
+        .context_for_window(window.label())?
+        .ok_or_else(|| {
+            "avatar runtime identity binding requires launch context; launch from desktop orchestrator".to_string()
+        })?;
+    let context_instance_id = context
+        .avatar_instance_id
+        .as_deref()
+        .unwrap_or_else(|| window.label())
+        .trim();
+    if context_instance_id != payload.avatar_instance_id.trim() {
+        return Err("avatar runtime identity binding avatar_instance_id mismatch".to_string());
+    }
+    registry.bind_runtime_identity(
+        window.label(),
+        AvatarInstanceRuntimeIdentity {
+            avatar_instance_id: payload.avatar_instance_id,
+            owner_user_id: payload.owner_user_id,
+            realm_agent_id: payload.realm_agent_id,
+            local_agent_ref: payload.local_agent_ref,
+            launch_source: payload.launch_source.or(context.launch_source),
+        },
+    )?;
+    sync_avatar_instance_projection(&registry);
+    Ok(())
 }
 
 #[tauri::command]
@@ -543,6 +584,7 @@ fn main() {
             nimi_avatar_constrain_window_to_visible_area,
             nimi_avatar_set_always_on_top,
             nimi_avatar_get_launch_context,
+            nimi_avatar_bind_runtime_identity,
             nimi_avatar_record_evidence,
             nimi_avatar_resolve_model,
             nimi_avatar_resolve_agent_center_avatar_package,

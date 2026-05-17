@@ -4,6 +4,7 @@ use std::path::{Path, PathBuf};
 use nimi_kit_shell_tauri::desktop_paths::resolve_nimi_data_dir;
 use serde::{Deserialize, Serialize};
 
+use crate::avatar_instance_registry::{AvatarInstanceRegistryEntry, AvatarInstanceRuntimeIdentity};
 use crate::avatar_launch_context::AvatarLaunchContext;
 
 const AVATAR_INSTANCE_PROJECTION_DIR: &str = "avatar-instance-registry";
@@ -127,14 +128,56 @@ pub fn projection_record_from_launch_context(
     })
 }
 
+fn projection_record_from_runtime_identity(
+    identity: &AvatarInstanceRuntimeIdentity,
+) -> Option<AvatarInstanceProjectionRecord> {
+    let avatar_instance_id = identity.avatar_instance_id.trim();
+    let owner_user_id = identity.owner_user_id.trim();
+    let realm_agent_id = identity.realm_agent_id.trim();
+    let local_agent_ref = identity.local_agent_ref.trim();
+    if avatar_instance_id.is_empty()
+        || owner_user_id.is_empty()
+        || realm_agent_id.is_empty()
+        || local_agent_ref.is_empty()
+    {
+        return None;
+    }
+    let (resolved_owner_user_id, resolved_realm_agent_id) =
+        resolve_local_agent_ref_parts(local_agent_ref)?;
+    if resolved_owner_user_id != owner_user_id || resolved_realm_agent_id != realm_agent_id {
+        return None;
+    }
+    Some(AvatarInstanceProjectionRecord {
+        avatar_instance_id: avatar_instance_id.to_string(),
+        owner_user_id: owner_user_id.to_string(),
+        realm_agent_id: realm_agent_id.to_string(),
+        local_agent_ref: local_agent_ref.to_string(),
+        launch_source: identity.launch_source.clone(),
+    })
+}
+
+pub fn projection_record_from_registry_entry(
+    entry: &AvatarInstanceRegistryEntry,
+) -> Option<AvatarInstanceProjectionRecord> {
+    if let Some(identity) = entry.runtime_identity.as_ref() {
+        if let Some(record) = projection_record_from_runtime_identity(identity) {
+            return Some(record);
+        }
+    }
+    projection_record_from_launch_context(&entry.context, &entry.window_label)
+}
+
 #[cfg(test)]
 mod tests {
     use std::fs;
 
     use super::{
         persist_projection_to_path, projection_record_from_launch_context,
-        AvatarInstanceProjectionFile, AvatarInstanceProjectionRecord,
-        AVATAR_INSTANCE_PROJECTION_SCHEMA_VERSION,
+        projection_record_from_registry_entry, AvatarInstanceProjectionFile,
+        AvatarInstanceProjectionRecord, AVATAR_INSTANCE_PROJECTION_SCHEMA_VERSION,
+    };
+    use crate::avatar_instance_registry::{
+        AvatarInstanceRegistryEntry, AvatarInstanceRuntimeIdentity,
     };
     use crate::avatar_launch_context::AvatarLaunchContext;
 
@@ -198,5 +241,31 @@ mod tests {
         assert_eq!(record.owner_user_id, "owner-1");
         assert_eq!(record.realm_agent_id, "agent:opaque");
         assert_eq!(record.local_agent_ref, "local-agent:owner-1:agent:opaque");
+    }
+
+    #[test]
+    fn projection_record_prefers_runtime_resolved_identity() {
+        let entry = AvatarInstanceRegistryEntry {
+            window_label: "avatar-window".to_string(),
+            context: AvatarLaunchContext {
+                agent_id: "agent-1".to_string(),
+                avatar_instance_id: Some("instance-1".to_string()),
+                launch_source: Some("desktop-agent-chat".to_string()),
+            },
+            runtime_identity: Some(AvatarInstanceRuntimeIdentity {
+                avatar_instance_id: "instance-1".to_string(),
+                owner_user_id: "owner-1".to_string(),
+                realm_agent_id: "agent-1".to_string(),
+                local_agent_ref: "local-agent:owner-1:agent-1".to_string(),
+                launch_source: Some("desktop-agent-chat".to_string()),
+            }),
+        };
+
+        let record = projection_record_from_registry_entry(&entry)
+            .expect("runtime identity projection record");
+
+        assert_eq!(record.owner_user_id, "owner-1");
+        assert_eq!(record.realm_agent_id, "agent-1");
+        assert_eq!(record.local_agent_ref, "local-agent:owner-1:agent-1");
     }
 }

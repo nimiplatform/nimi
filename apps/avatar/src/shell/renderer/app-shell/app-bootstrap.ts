@@ -24,7 +24,7 @@ import {
 } from './app-bootstrap-runtime-binding.js';
 import { recordRuntimeAuthorizedAvatarPackageResolved } from './app-bootstrap-package-evidence.js';
 import { isTauriRuntime, onShellReady } from './tauri-lifecycle.js';
-import { setAlwaysOnTop } from './tauri-commands.js';
+import { bindAvatarRuntimeIdentity, setAlwaysOnTop } from './tauri-commands.js';
 import {
   applyLaunchContextRuntimeDefaults,
   errorMessage,
@@ -46,6 +46,7 @@ type FirstPartyBootstrapStage =
   | 'account_session_status'
   | 'account_access_token'
   | 'conversation_context'
+  | 'runtime_identity_binding'
   | 'scoped_binding_issue'
   | 'avatar_package_handoff'
   | 'avatar_package_manifest'
@@ -527,6 +528,13 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
           avatarInstanceId,
         }));
         const { conversationAnchorId, subjectUserId } = conversationContext;
+        await runFirstPartyStage('runtime_identity_binding', () => bindAvatarRuntimeIdentity({
+          avatarInstanceId,
+          ownerUserId,
+          realmAgentId,
+          localAgentRef,
+          launchSource: launchContext.launchSource,
+        }));
         const scopedBinding = await runFirstPartyStage('scoped_binding_issue', () => issueAvatarRuntimeScopedBinding({
           runtime,
           accountCaller,
