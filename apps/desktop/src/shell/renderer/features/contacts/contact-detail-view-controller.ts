@@ -21,6 +21,9 @@ export type ContactDetailViewProps = {
   showMessageButton?: boolean;
   fullBleed?: boolean;
   isOwnProfile?: boolean;
+  // When true, suppress the floating back-arrow overlaid on the hero banner.
+  // Used by the Contacts page where the sidebar already provides navigation.
+  hideBackButton?: boolean;
   onSaveProfile?: (draft: EditableProfileDraft) => Promise<void>;
 };
 

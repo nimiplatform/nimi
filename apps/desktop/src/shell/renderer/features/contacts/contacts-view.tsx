@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useRef, type MouseEvent } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import {
@@ -9,7 +9,6 @@ import {
 } from '@nimiplatform/nimi-kit/ui';
 import {
   SidebarHeader,
-  SidebarResizeHandle,
   SidebarSearch,
   SidebarSection,
   SidebarShell,
@@ -30,7 +29,13 @@ import nimiLogo from '@renderer/assets/logo-gray.png';
 import type { ContactsViewProps, BlockedUserInfo } from './contacts-view-types.js';
 import { FriendRequestDetail, FriendRequestsList } from './contacts-friend-requests.js';
 import { BlockConfirmDialog, RemoveFriendConfirmDialog, UnblockConfirmDialog } from './contacts-blocked-users.js';
-import { ContactsSearchResults, ContactsCategoryAccordion } from './contacts-category-list.js';
+import {
+  ContactsChipList,
+  ContactsFilterChips,
+  ContactsRequestsBanner,
+  ContactsSearchResults,
+  type ContactsChipFilter,
+} from './contacts-category-list.js';
 import { ContactDetailView } from './contact-detail-view.js';
 import {
   ContactDetailErrorState,
@@ -43,13 +48,13 @@ function SkeletonBlock(props: { className: string }) {
 
 function ContactsLoadingSkeleton() {
   return (
-    <div data-testid={E2E_IDS.panel('contacts')} className="flex h-full">
+    <div data-testid={E2E_IDS.panel('contacts')} className="flex h-full gap-2">
       <Surface
         as="aside"
         tone="panel"
         material="glass-regular"
         padding="none"
-        className="relative flex w-[320px] shrink-0 flex-col rounded-none border-0 border-r border-r-[color-mix(in_srgb,var(--nimi-border-subtle)_82%,white)]"
+        className="relative flex w-[340px] shrink-0 flex-col rounded-3xl border border-white/60 shadow-[0_18px_44px_rgba(15,23,42,0.06)]"
       >
         <div className="flex h-14 shrink-0 items-center gap-2 px-4">
           <SkeletonBlock className="h-7 w-28 rounded-lg" />
@@ -82,7 +87,7 @@ function ContactsLoadingSkeleton() {
         tone="panel"
         material="glass-regular"
         padding="none"
-        className="flex min-w-0 flex-1 flex-col rounded-none border-0 p-8"
+        className="flex min-w-0 flex-1 flex-col rounded-3xl border border-white/60 p-8 shadow-[0_18px_44px_rgba(15,23,42,0.06)]"
       >
         <div className="mx-auto flex h-full w-full max-w-3xl flex-col">
           <div className="mb-8 flex items-center gap-4">
@@ -122,16 +127,14 @@ function ContactsLoadingSkeleton() {
   );
 }
 
+const CONTACTS_SIDEBAR_FIXED_WIDTH = 340;
+
 export function ContactsView(props: ContactsViewProps) {
-  const MIN_CONTACTS_SIDEBAR_WIDTH = 240;
-  const MAX_CONTACTS_SIDEBAR_WIDTH = 460;
   const { t } = useTranslation();
   const rememberedProfileId = useAppStore((state) => state.selectedProfileId);
   const setSelectedProfileIsAgent = useAppStore((state) => state.setSelectedProfileIsAgent);
   const setSelectedProfileId = useAppStore((state) => state.setSelectedProfileId);
   const containerRef = useRef<HTMLDivElement>(null);
-  const resizingRef = useRef(false);
-  const [sidebarWidth, setSidebarWidth] = useState(280);
   const [blockingContact, setBlockingContact] = useState<ContactRecord | null>(null);
   const [unblockingContact, setUnblockingContact] = useState<ContactRecord | null>(null);
   const [removingContact, setRemovingContact] = useState<ContactRecord | null>(null);
@@ -169,41 +172,6 @@ export function ContactsView(props: ContactsViewProps) {
     });
   }, [props.blockedContacts]);
 
-  // 处理联系人侧栏拖拽缩放。
-  useEffect(() => {
-    const onMouseMove = (event: globalThis.MouseEvent) => {
-      if (!resizingRef.current || !containerRef.current) {
-        return;
-      }
-      const rect = containerRef.current.getBoundingClientRect();
-      const nextWidth = Math.min(
-        MAX_CONTACTS_SIDEBAR_WIDTH,
-        Math.max(MIN_CONTACTS_SIDEBAR_WIDTH, Math.round(event.clientX - rect.left)),
-      );
-      setSidebarWidth(nextWidth);
-    };
-
-    const onMouseUp = () => {
-      resizingRef.current = false;
-      document.body.style.cursor = '';
-      document.body.style.userSelect = '';
-    };
-
-    window.addEventListener('mousemove', onMouseMove);
-    window.addEventListener('mouseup', onMouseUp);
-    return () => {
-      window.removeEventListener('mousemove', onMouseMove);
-      window.removeEventListener('mouseup', onMouseUp);
-    };
-  }, []);
-
-  const startResize = (event: MouseEvent<HTMLDivElement>) => {
-    event.preventDefault();
-    resizingRef.current = true;
-    document.body.style.cursor = 'col-resize';
-    document.body.style.userSelect = 'none';
-  };
-
   const [acceptedRequests, setAcceptedRequests] = useState<Set<string>>(new Set());
 
   // 跟踪已拒绝的好友请求
@@ -213,53 +181,20 @@ export function ContactsView(props: ContactsViewProps) {
   const [giftModalOpen, setGiftModalOpen] = useState(false);
   const [giftTargetContact, setGiftTargetContact] = useState<ContactRecord | null>(null);
 
-  // 跟踪展开的分类（可以同时展开多个）- 默认全部折叠
-  const [expandedCategories, setExpandedCategories] = useState<Set<TabFilter>>(new Set());
-
-  // 切换分类展开/折叠
-  const toggleCategory = (categoryId: TabFilter) => {
-    setExpandedCategories(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(categoryId)) {
-        newSet.delete(categoryId);
-      } else {
-        newSet.add(categoryId);
-      }
-      return newSet;
-    });
-  };
+  // 顶部 chip 过滤器 — 区别于 props.activeFilter（后者由父组件持久化的视图过滤器）
+  const [chipFilter, setChipFilter] = useState<ContactsChipFilter>('all');
 
   // 判断用户是否被拉黑
   const isUserBlocked = (userId: string): boolean => {
     return blockedUsers.has(userId);
   };
 
-  // 获取被拉黑用户的原始分类
-  const getBlockedUserPreviousCategory = (userId: string): TabFilter | null => {
-    const info = blockedUsers.get(userId);
-    return info?.previousCategory || null;
-  };
-
-  // 根据分类获取联系人 - 使用 allFriends 获取完整列表，并过滤掉被拉黑的
-  const getContactsByCategory = (categoryId: TabFilter): ContactRecord[] => {
-    if (categoryId === 'requests') return [];
-    if (categoryId === 'blocks') {
-      // Blocks 分类：返回所有被拉黑的用户
-      return Array.from(blockedUsers.values());
-    }
-
-    const allContacts = props.allFriends;
-
-    return allContacts.filter(c => {
-      // 如果被拉黑了，不在任何普通分类中显示
-      if (isUserBlocked(c.id)) return false;
-
-      if (categoryId === 'humans') return !c.isAgent;
-      if (categoryId === 'agents') return c.isAgent && c.agentOwnershipType !== 'MASTER_OWNED';
-      if (categoryId === 'myAgents') return c.isAgent && c.agentOwnershipType === 'MASTER_OWNED';
-      return false;
-    });
-  };
+  // 当前未拉黑的联系人快照（用于派生 chip 数量与列表）
+  const activeFriends = useMemo(
+    () => props.allFriends.filter((contact) => !isUserBlocked(contact.id)),
+    [props.allFriends, blockedUsers],
+  );
+  const blockedContactsList = useMemo(() => Array.from(blockedUsers.values()), [blockedUsers]);
 
   const handleBlockUser = async (contact: ContactRecord) => {
     if (blockMutationPending) return;
@@ -270,11 +205,6 @@ export function ContactsView(props: ContactsViewProps) {
       if (selectedContact?.id === contact.id) {
         setSelectedContact(null);
       }
-      setExpandedCategories(prev => {
-        const newSet = new Set(prev);
-        newSet.add('blocks');
-        return newSet;
-      });
       setBlockingContact(null);
     } catch {
       // Parent mutation owns user feedback; keep the dialog open for retry.
@@ -285,20 +215,12 @@ export function ContactsView(props: ContactsViewProps) {
 
   const handleUnblockUser = async (contact: ContactRecord) => {
     if (unblockMutationPending) return;
-    const previousCategory = getBlockedUserPreviousCategory(contact.id);
 
     try {
       setUnblockMutationPending(true);
       await props.onUnblockUser?.(contact);
       if (selectedContact?.id === contact.id) {
         setSelectedContact(null);
-      }
-      if (previousCategory && previousCategory !== 'blocks') {
-        setExpandedCategories(prev => {
-          const newSet = new Set(prev);
-          newSet.add(previousCategory);
-          return newSet;
-        });
       }
       setUnblockingContact(null);
     } catch {
@@ -443,45 +365,61 @@ export function ContactsView(props: ContactsViewProps) {
   }
 
   return (
-    <div ref={containerRef} data-testid={E2E_IDS.panel('contacts')} className="flex h-full text-[var(--nimi-text-primary)]">
-      {/* 左侧联系人列表 */}
+    <div ref={containerRef} data-testid={E2E_IDS.panel('contacts')} className="flex h-full gap-2 text-[var(--nimi-text-primary)]">
+      {/* 左侧联系人列表（定宽，不可拖拽缩放） */}
       <SidebarShell
-        width={sidebarWidth}
-        className="rounded-3xl border border-white/60 border-r-[color-mix(in_srgb,var(--nimi-border-subtle)_82%,white)] bg-[var(--nimi-sidebar-canvas)] shadow-[0_18px_44px_rgba(15,23,42,0.06)]"
+        width={CONTACTS_SIDEBAR_FIXED_WIDTH}
+        className="rounded-3xl border border-white/60 bg-[var(--nimi-sidebar-canvas)] shadow-[0_18px_44px_rgba(15,23,42,0.06)]"
         data-testid={E2E_IDS.panel('contacts')}
       >
         <SidebarHeader
-          title={<h1 className="nimi-type-page-title text-[color:var(--nimi-text-primary)]">{t('Contacts.title')}</h1>}
-          className="px-4"
-        />
-        <SidebarSearch
-          collapsible
-          value={props.searchText}
-          onChange={props.onSearchTextChange}
-          onClear={closeSearch}
-          placeholder={t('Contacts.searchPlaceholder', { defaultValue: 'Search friends' })}
-          clearLabel={t('Home.clear', { defaultValue: 'Clear' })}
-          primaryAction={(
-            <Tooltip content={t('Contacts.addContact', { defaultValue: 'Add Friend' })} placement="bottom">
-              <IconButton
-                onClick={props.onOpenAddContact}
-                tone="ghost"
-                icon={(
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <line x1="12" y1="5" x2="12" y2="19" />
-                    <line x1="5" y1="12" x2="19" y2="12" />
-                  </svg>
-                )}
-                className="h-9 w-9 shrink-0 text-[var(--nimi-text-muted)] hover:text-[var(--nimi-text-primary)]"
-                aria-label={t('Contacts.addContact', { defaultValue: 'Add Friend' })}
-              />
-            </Tooltip>
+          title={(
+            <div className="flex min-w-0 flex-1 items-start justify-between gap-2">
+              <div className="min-w-0">
+                <h1 className="nimi-type-page-title text-[color:var(--nimi-text-primary)]">{t('Contacts.title')}</h1>
+                <p className="mt-1.5 text-xs text-[color:var(--nimi-text-muted)]">
+                  {t('Contacts.totalCount', { defaultValue: '{{count}} contacts', count: counts.humansCount + counts.agentsCount + counts.myAgentsCount })}
+                </p>
+              </div>
+              <Tooltip content={t('Contacts.addContact', { defaultValue: 'Add Friend' })} placement="bottom">
+                <IconButton
+                  onClick={props.onOpenAddContact}
+                  tone="ghost"
+                  icon={(
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <line x1="12" y1="5" x2="12" y2="19" />
+                      <line x1="5" y1="12" x2="19" y2="12" />
+                    </svg>
+                  )}
+                  className="h-9 w-9 shrink-0 text-[var(--nimi-text-muted)] hover:text-[var(--nimi-text-primary)]"
+                  aria-label={t('Contacts.addContact', { defaultValue: 'Add Friend' })}
+                />
+              </Tooltip>
+            </div>
           )}
+          className="px-4 pt-5 pb-4"
         />
+
+        <div className="pt-1 pb-3">
+          <ContactsFilterChips
+            value={chipFilter}
+            onChange={setChipFilter}
+          />
+        </div>
+
+        <div className="pb-2">
+          <SidebarSearch
+            value={props.searchText}
+            onChange={props.onSearchTextChange}
+            onClear={closeSearch}
+            placeholder={t('Contacts.searchPlaceholder', { defaultValue: 'Search friends' })}
+            clearLabel={t('Home.clear', { defaultValue: 'Clear' })}
+          />
+        </div>
 
         <ScrollArea
           className="flex-1"
-          contentClassName="space-y-1 py-1.5"
+          contentClassName="space-y-2 pt-2 pb-3"
         >
           <SidebarSection>
             {/* governed sidebar kinds: 'category-row', 'entity-row' */}
@@ -494,36 +432,27 @@ export function ContactsView(props: ContactsViewProps) {
                 onSelectContact={handleSelectContact}
               />
             ) : (
-              <ContactsCategoryAccordion
-                counts={counts}
-                expandedCategories={expandedCategories}
-                filteredRequests={props.filteredRequests}
-                acceptedRequests={acceptedRequests}
-                rejectedRequests={rejectedRequests}
-                currentContactId={selectedContact?.id ?? null}
-                getContactsByCategory={getContactsByCategory}
-                onToggleCategory={toggleCategory}
-                onSelectContact={handleSelectContact}
-                onAcceptRequest={(request) => {
-                  void acceptRequestWithEvidence(request);
-                }}
-                onRejectRequest={(request) => {
-                  void rejectRequestWithEvidence(request);
-                }}
-                onUnblock={(contact) => setUnblockingContact(contact)}
-                onSelectRequests={() => {
-                  setSelectedCategory('requests');
-                  setSelectedRequest(null);
-                  setSelectedContact(null);
-                }}
-              />
+              <>
+                <ContactsRequestsBanner
+                  count={counts.requestsCount}
+                  onSelect={() => {
+                    setSelectedCategory('requests');
+                    setSelectedRequest(null);
+                    setSelectedContact(null);
+                  }}
+                />
+                <ContactsChipList
+                  filter={chipFilter}
+                  allFriends={activeFriends}
+                  blockedContacts={blockedContactsList}
+                  currentContactId={selectedContact?.id ?? null}
+                  onSelectContact={handleSelectContact}
+                  onUnblock={(contact) => setUnblockingContact(contact)}
+                />
+              </>
             )}
           </SidebarSection>
         </ScrollArea>
-        <SidebarResizeHandle
-          ariaLabel={t('Contacts.resizeSidebar', { defaultValue: 'Resize contacts sidebar' })}
-          onMouseDown={startResize}
-        />
       </SidebarShell>
 
       {/* 右侧详情区 - 使用共享 profile 详情页 */}
@@ -610,6 +539,7 @@ export function ContactsView(props: ContactsViewProps) {
             onBlock={selectedContact ? () => setBlockingContact(selectedContact) : undefined}
             onRemove={selectedContact ? () => setRemovingContact(selectedContact) : undefined}
             showMessageButton={!selectedProfile?.isAgent && selectedProfile.accessState !== 'restricted'}
+            hideBackButton
           />
         ) : selectedContact && profileError ? (
           <div className="flex h-full items-center justify-center bg-transparent px-6 py-6">

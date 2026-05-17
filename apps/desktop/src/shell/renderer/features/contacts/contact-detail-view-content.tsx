@@ -135,7 +135,7 @@ export function ContactDetailViewContent(input: {
                   aria-label={t('Profile.visitWorld', { worldName: worldLabel, defaultValue: 'Visit {{worldName}}' })}
                 />
               ) : null}
-              {!input.isOwnProfile ? (
+              {!input.isOwnProfile && !input.hideBackButton ? (
                 <button
                   type="button"
                   onClick={input.onClose}
