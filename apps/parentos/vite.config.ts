@@ -76,7 +76,7 @@ export default defineConfig(() => {
       // entry scanner doesn't follow dynamic imports, so the dep is
       // invisible at dev-server start without this hint and the first
       // export attempt fails with "Failed to resolve import".
-      include: ['html2canvas-pro', 'jspdf'],
+      include: ['html-to-image', 'jspdf'],
     },
     server: {
       host: '127.0.0.1',
@@ -360,7 +360,7 @@ export default defineConfig(() => {
               return 'sdk-client';
             }
             if (
-              isNodePackage(normalizedId, 'html2canvas-pro')
+              isNodePackage(normalizedId, 'html-to-image')
               || isNodePackage(normalizedId, 'jspdf')
             ) {
               return 'vendor-canvas-export';

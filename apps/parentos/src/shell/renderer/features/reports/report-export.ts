@@ -64,19 +64,17 @@ async function renderTargetToCanvas(
   target: HTMLElement,
   options: ExportOptions,
 ): Promise<HTMLCanvasElement> {
-  // html2canvas-pro is a maintained fork that handles modern CSS color
-  // functions (var(), color-mix(), oklch(), lab/lch). The original
-  // html2canvas chokes on the nimi-kit theme tokens with
+  // html-to-image uses SVG <foreignObject> + native browser rendering,
+  // so it correctly handles modern CSS (var(), color-mix(), oklch(),
+  // lab/lch) — html2canvas and html2canvas-pro both reimplement a CSS
+  // parser internally and choke on nimi-kit's theme tokens with
   // "Attempting to parse an unsupported color function 'var'".
-  const { default: html2canvas } = await import('html2canvas-pro');
-  const scale = options.scale ?? Math.min(window.devicePixelRatio || 1, 2);
-  return html2canvas(target, {
+  const { toCanvas } = await import('html-to-image');
+  const pixelRatio = options.scale ?? Math.min(window.devicePixelRatio || 1, 2);
+  return toCanvas(target, {
     backgroundColor: options.backgroundColor ?? '#fffdf5',
-    scale,
-    useCORS: true,
-    logging: false,
-    allowTaint: false,
-    removeContainer: true,
+    pixelRatio,
+    cacheBust: true,
   });
 }
 
