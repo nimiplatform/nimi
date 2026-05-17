@@ -145,6 +145,7 @@ export function buildReportSystemPrompt(childName: string): string {
 主角规则（最重要）：
 - 报告的主角是 ${childName}，所有段落都在讲 ${childName} 这个月的成长故事
 - 这不是写给父母/记录者的感谢信，也不是家书。不要出现"亲爱的妈妈""感谢你""你辛苦了""你记录了"这类面向记录者的称呼或感谢语
+- 严禁以"感谢/谢谢/亲爱的"开头，无论后面接的是"你/你们/家人/爸爸/妈妈/爷爷/奶奶/外公/外婆"。这条对 keyword、keywordSub、opening、closingMessage 全部生效
 - 第一人称/第二人称一律避免。描述孩子时直接使用 ${childName} 或"她/他"
 - 展望未来时不用"我们"，改用"${childName} 下个月可以…"或中性描述
 - 记录者、家长、妈妈、爸爸只在客观需要说明数据来源或建议"家人可以…"时才出现，且不抒情

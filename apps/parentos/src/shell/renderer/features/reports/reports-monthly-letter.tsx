@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { Button, IconButton, StatusBadge, TextareaField } from '@nimiplatform/nimi-kit/ui';
 import { AlertCircle, ArrowRight, Heart, Pencil, Quote } from 'lucide-react';
 import { NoteAnchor } from './report-user-notes.js';
-import { exportReportAsPng, printReport } from './report-export.js';
+import { exportReportAsImage, exportReportAsPdf, printReport } from './report-export.js';
 import { ReportActionBar } from './reports-action-bar.js';
 import { ProfessionalSummaryModal } from './reports-professional-view.js';
 import type { NarrativeReportContent, NarrativeSection } from './structured-report.js';
@@ -31,8 +31,8 @@ function kindOf(section: NarrativeSection) {
 // caregiver-addressed openers like "亲爱的妈妈，感谢你..." We detect those and
 // fall back to safer text so the hero doesn't scream the wrong subject.
 const CAREGIVER_PATTERNS: RegExp[] = [
-  /^亲爱的(妈妈|爸爸|家长|父母|爹娘|你)/,
-  /^(感谢|谢谢)你/,
+  /^亲爱的(妈妈|爸爸|家长|父母|爹娘|爷爷|奶奶|外公|外婆|姥姥|姥爷|你)/,
+  /^(感谢|谢谢)(你|你们|大家|家人|爸爸?|妈妈?|爷爷|奶奶|外公|外婆|姥姥|姥爷)/,
   /^你这个月/,
   /^你辛苦了/,
   /^致\s*(妈妈|爸爸|家长|父母)/,
@@ -55,10 +55,12 @@ function sanitizeForChildFocus(text: string | null | undefined): string | null {
 function splitTeaser(source: string): { keyword: string; sub: string } {
   const trimmed = source.trim();
   if (!trimmed) return { keyword: '', sub: '' };
-  const match = trimmed.match(/^([\u4e00-\u9fa5]{2,4}|\S{2,6})[，,。.\s·—-]+(.+)$/);
+  const match = trimmed.match(/^([\u4e00-\u9fa5]{2,4}|\S{2,6})[、；;：:，,。.\s·—-]+(.+)$/);
   if (match) return { keyword: match[1]!, sub: match[2]!.trim() };
   if (trimmed.length <= 6) return { keyword: trimmed, sub: '' };
-  return { keyword: trimmed.slice(0, 3), sub: trimmed.slice(3).trim() };
+  // No clean punctuation boundary — don't chop mid-word (would turn
+  // "感谢爸爸..." into "感谢爸"). Let the caller try the next source.
+  return { keyword: '', sub: trimmed };
 }
 
 function firstSentence(text: string) {
@@ -165,7 +167,19 @@ export function MonthlyLetterViewer({
   const [professionalOpen, setProfessionalOpen] = useState(false);
   const [professionalPrintPending, setProfessionalPrintPending] = useState(false);
 
-  const handlePrintLetter = () => printReport('letter');
+  const reportFileStem = `${(childName && childName.trim()) || '成长报告'}-${periodStart?.slice(0, 7) ?? ''}`;
+  const handleSavePdf = async () => {
+    await exportReportAsPdf(articleRef.current, {
+      filename: `${reportFileStem}.pdf`,
+      backgroundColor: 'var(--nimi-surface-card)',
+    });
+  };
+  const handleSaveImage = async () => {
+    await exportReportAsImage(articleRef.current, {
+      filename: `${reportFileStem}.png`,
+      backgroundColor: 'var(--nimi-surface-card)',
+    });
+  };
   const handlePrintProfessional = () => {
     // Close the modal so only the professional printable subtree remains
     // visible; styles.css hides the letter article by scope.
@@ -175,12 +189,6 @@ export function MonthlyLetterViewer({
       printReport('professional');
       setProfessionalPrintPending(false);
     }, 50);
-  };
-  const handleSaveImage = async () => {
-    await exportReportAsPng(articleRef.current, {
-      filename: `${((childName && childName.trim()) || '成长报告')}-${periodStart?.slice(0, 7) ?? ''}.png`,
-      backgroundColor: 'var(--nimi-surface-card)',
-    });
   };
   const focusNoteComposer = () => {
     const composer = articleRef.current?.querySelector<HTMLElement>('.report-note-composer');
@@ -554,7 +562,7 @@ export function MonthlyLetterViewer({
       <ReportActionBar
         childName={name}
         selfRoleName={selfRoleName}
-        onPrintPdf={handlePrintLetter}
+        onSavePdf={handleSavePdf}
         onSaveImage={handleSaveImage}
         onOpenProfessional={() => setProfessionalOpen(true)}
         onRequestFocusNoteComposer={focusNoteComposer}

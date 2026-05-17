@@ -105,20 +105,6 @@ function reportBadgeLabel(c: ParsedReportContent): string {
   return l[c.reportType] ?? '综合';
 }
 
-function reportToPlainText(c: ParsedReportContent): string {
-  const l: string[] = [c.title, c.subtitle, ''];
-  if (c.version === 2) {
-    if (c.opening) l.push(c.opening, '');
-    for (const s of c.narrativeSections) l.push(`【${s.title}】`, s.narrative, '');
-    if (c.milestoneReplay) l.push('【里程碑时刻】', c.milestoneReplay, '');
-    if (c.highlights?.length) { l.push('【本月亮点】'); for (const h of c.highlights) l.push(`🌟 ${h}`); l.push(''); }
-    if (c.watchNext?.length) { l.push('【下月留意】'); for (const w of c.watchNext) l.push(`👀 ${w}`); l.push(''); }
-    if (c.actionItems.length > 0) { l.push('【下一步行动】'); for (const a of c.actionItems) l.push(`→ ${a.text}`); l.push(''); }
-    if (c.closingMessage) l.push(c.closingMessage, '');
-  } else { for (const s of c.sections) { l.push(`【${s.title}】`); for (const item of s.items) l.push(`· ${item}`); l.push(''); } }
-  l.push(c.safetyNote); return l.join('\n');
-}
-
 /* ── Editable Text ── */
 
 function EditableText({ text, onSave }: { text: string; onSave: (v: string) => void }) {
@@ -283,7 +269,6 @@ export default function ReportsPage() {
   const [generateState, setGenerateState] = useState<GenerateState>('idle');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [infoMessage, setInfoMessage] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
   const viewerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => { const d = computePresetDates('this-quarter'); setPeriodStart(d.start); setPeriodEnd(d.end); }, []);
@@ -398,10 +383,6 @@ export default function ReportsPage() {
     }
   };
 
-  const handleCopy = (content: ParsedReportContent) => {
-    navigator.clipboard.writeText(reportToPlainText(content)).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); }).catch(catchLog('reports', 'action:clipboard-write-failed', 'warn'));
-  };
-
   return (
     <div className="report-page-shell hide-scrollbar overflow-y-auto">
       <div className="report-page-container">
@@ -416,7 +397,6 @@ export default function ReportsPage() {
         {latestContent && latestReport ? (
           <div className="mb-6">
             <ReportViewer content={latestContent} reportId={latestReport.reportId} persisted={latestReport} childName={activeChild.displayName} selfRoleName={activeChild.recorderProfiles?.[0]?.name} onContentUpdate={latestContent.version === 2 ? (u) => void handleContentUpdate(latestReport.reportId, u) : undefined} />
-            <div className="mt-3"><Button size="sm" tone="secondary" onClick={() => handleCopy(latestContent!)}>{copied ? '已复制' : '复制文本'}</Button></div>
           </div>
         ) : (
           <Surface tone="card" material="glass-regular" elevation="raised" padding="none" className="report-empty-state">
@@ -443,7 +423,6 @@ export default function ReportsPage() {
               </button>
               {isExpanded && parsed && (<div ref={viewerRef} className="mt-2 pb-4">
                 <ReportViewer content={parsed} reportId={report.reportId} persisted={report} childName={activeChild.displayName} selfRoleName={activeChild.recorderProfiles?.[0]?.name} onContentUpdate={parsed.version === 2 ? (u) => void handleContentUpdate(report.reportId, u) : undefined} />
-                <div className="mt-3"><Button size="sm" tone="secondary" onClick={() => handleCopy(parsed!)}>{copied ? '已复制' : '复制文本'}</Button></div>
               </div>)}
             </div>);
           })}</div>

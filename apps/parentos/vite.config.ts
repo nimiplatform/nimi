@@ -71,6 +71,13 @@ export default defineConfig(() => {
       react(),
       tailwindcss(),
     ],
+    optimizeDeps: {
+      // Lazy-imported by report-export.ts for PDF/PNG capture. Vite's
+      // entry scanner doesn't follow dynamic imports, so the dep is
+      // invisible at dev-server start without this hint and the first
+      // export attempt fails with "Failed to resolve import".
+      include: ['html2canvas-pro', 'jspdf'],
+    },
     server: {
       host: '127.0.0.1',
       port: 1426,
@@ -352,7 +359,10 @@ export default defineConfig(() => {
             if (isNodePackage(normalizedId, 'openapi-fetch')) {
               return 'sdk-client';
             }
-            if (isNodePackage(normalizedId, 'html2canvas')) {
+            if (
+              isNodePackage(normalizedId, 'html2canvas-pro')
+              || isNodePackage(normalizedId, 'jspdf')
+            ) {
               return 'vendor-canvas-export';
             }
             return 'vendor-misc';

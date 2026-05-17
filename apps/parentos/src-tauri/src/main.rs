@@ -19,6 +19,7 @@ mod journal_audio;
 mod journal_photo;
 mod orthodontic_photos;
 mod photos;
+mod report_export;
 mod sqlite;
 #[cfg(test)]
 mod test_support;
@@ -190,6 +191,7 @@ fn main() {
             journal_photo::delete_journal_photo,
             dropped_file::read_dropped_image_as_base64,
             dropped_file::pick_image_files,
+            report_export::save_report_file,
             // Family & Children
             sqlite::queries::create_family,
             sqlite::queries::get_family,

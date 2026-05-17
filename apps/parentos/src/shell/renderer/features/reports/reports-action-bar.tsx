@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Button, Surface } from '@nimiplatform/nimi-kit/ui';
-import { Check, Download, FileImage, GraduationCap, LoaderCircle, Pencil, Printer } from 'lucide-react';
+import { Check, FileImage, GraduationCap, LoaderCircle, Pencil, Printer } from 'lucide-react';
 
 const SERIF = "var(--font-serif, 'Noto Serif SC', 'Source Han Serif SC', 'Songti SC', 'STSong', Georgia, serif)";
 const MONO = "var(--nimi-font-mono, 'JetBrains Mono', 'SF Mono', ui-monospace, monospace)";
@@ -9,11 +9,6 @@ const FAMILY_PRESETS_STORAGE_KEY = 'parentos.reports.familyShareSelection.v1';
 
 interface FamilyPreset { id: string; name: string; initial: string; toneClass: string }
 
-/**
- * The six built-in relationship chips. `name` matches the strings used by
- * RECORDER_PRESETS in children-settings-page, so we can filter the current
- * user's role out by string comparison against `child.recorderProfiles[0].name`.
- */
 const FAMILY_PRESETS: FamilyPreset[] = [
   { id: 'dad', name: '爸爸', initial: '爸', toneClass: 'report-family-avatar--dad' },
   { id: 'mom', name: '妈妈', initial: '妈', toneClass: 'report-family-avatar--mom' },
@@ -53,15 +48,10 @@ function Toast({ message, onDone }: { message: string; onDone: () => void }) {
   );
 }
 
-/* ── Family share row (placeholder) ──────────────────────────── */
+/* ── Family share row ────────────────────────────────────────── */
 
 interface FamilyShareRowProps {
   onShareSelected: (names: string[]) => void;
-  /**
-   * The current user's role name — drawn from the child's recorder profile
-   * set in children-settings (e.g. "妈妈", "爸爸"). The matching chip is
-   * hidden so we never offer sharing to oneself.
-   */
   selfRoleName?: string;
 }
 
@@ -77,9 +67,6 @@ export function FamilyShareRow({ onShareSelected, selfRoleName }: FamilyShareRow
     });
   };
 
-  // Current user's role comes from the child profile's recorder (set in
-  // children-settings). We hide that chip so the user isn't offered the
-  // option of "sharing with themselves".
   const trimmedSelf = (selfRoleName ?? '').trim();
   const visiblePresets = FAMILY_PRESETS.filter((p) => p.name !== trimmedSelf);
 
@@ -97,7 +84,7 @@ export function FamilyShareRow({ onShareSelected, selfRoleName }: FamilyShareRow
     >
       <div className="report-family-copy">
         <div className="report-family-heading">把这份报告分享给</div>
-        <div className="report-family-subtitle">自动隐去私密观察，仅保留孩子成长数据</div>
+        <div className="report-family-subtitle">自动隐去私密观察,仅保留孩子成长数据</div>
       </div>
       <div className="report-family-presets">
         {visiblePresets.map((p) => {
@@ -136,58 +123,7 @@ export function FamilyShareRow({ onShareSelected, selfRoleName }: FamilyShareRow
   );
 }
 
-/* ── Save menu (PDF / Image) ─────────────────────────────────── */
-
-interface SaveMenuProps {
-  open: boolean;
-  onClose: () => void;
-  onPrintPdf: () => void;
-  onSaveImage: () => void;
-}
-function SaveMenu({ open, onClose, onPrintPdf, onSaveImage }: SaveMenuProps) {
-  const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (!open) return;
-    const onClick = (e: MouseEvent) => {
-      if (!ref.current) return;
-      if (!ref.current.contains(e.target as Node)) onClose();
-    };
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
-    setTimeout(() => {
-      window.addEventListener('mousedown', onClick);
-      window.addEventListener('keydown', onKey);
-    }, 0);
-    return () => {
-      window.removeEventListener('mousedown', onClick);
-      window.removeEventListener('keydown', onKey);
-    };
-  }, [open, onClose]);
-
-  if (!open) return null;
-  return (
-    <div ref={ref} className="report-save-menu">
-      <Surface tone="overlay" elevation="floating" padding="none" className="report-save-menu-surface">
-        <button onClick={() => { onClose(); onPrintPdf(); }} className="report-save-menu-button">
-          <Printer size={14} />
-          <div>
-            <div className="report-save-menu-label">另存为 PDF</div>
-            <div className="report-save-menu-help">系统对话框选择保存位置</div>
-          </div>
-        </button>
-        <div className="report-save-menu-divider" />
-        <button onClick={() => { onClose(); onSaveImage(); }} className="report-save-menu-button">
-          <FileImage size={14} />
-          <div>
-            <div className="report-save-menu-label">另存为图片</div>
-            <div className="report-save-menu-help">竖版 PNG，适合发朋友圈/家人群</div>
-          </div>
-        </button>
-      </Surface>
-    </div>
-  );
-}
-
-/* ── Action cards ────────────────────────────────────────────── */
+/* ── Action cards (top row: professional + note) ─────────────── */
 
 interface ActionCardProps {
   icon: React.ReactNode;
@@ -226,13 +162,81 @@ function ActionCard({ icon, title, subtitle, onClick, disabled, accent }: Action
   );
 }
 
+/* ── Save panel (inline, below the action grid) ─────────────── */
+
+type SaveKind = 'pdf' | 'png';
+
+interface SavePanelButtonProps {
+  icon: React.ReactNode;
+  label: string;
+  help: string;
+  onClick: () => void;
+  busy?: boolean;
+  disabled?: boolean;
+}
+
+function SavePanelButton({ icon, label, help, onClick, busy, disabled }: SavePanelButtonProps) {
+  return (
+    <Surface
+      as="button"
+      onClick={onClick}
+      disabled={disabled || busy}
+      interactive={!busy && !disabled}
+      tone="card"
+      material="glass-thin"
+      elevation="base"
+      padding="none"
+      className="report-save-panel-button"
+    >
+      <div className="report-save-panel-icon">
+        {busy ? <LoaderCircle size={16} className="animate-spin" /> : icon}
+      </div>
+      <div className="report-save-panel-copy">
+        <div className="report-save-panel-label">{busy ? '正在生成…' : label}</div>
+        <div className="report-save-panel-help">{help}</div>
+      </div>
+    </Surface>
+  );
+}
+
+interface SavePanelProps {
+  onSavePdf: () => void;
+  onSaveImage: () => void;
+  busy: SaveKind | null;
+}
+
+function SavePanel({ onSavePdf, onSaveImage, busy }: SavePanelProps) {
+  return (
+    <div className="report-save-panel">
+      <div className="report-save-panel-heading">保存到本地</div>
+      <div className="report-save-panel-grid">
+        <SavePanelButton
+          icon={<Printer size={16} strokeWidth={1.8} />}
+          label="另存为 PDF"
+          help="系统对话框选择保存位置 · 适合存档/打印"
+          onClick={onSavePdf}
+          busy={busy === 'pdf'}
+          disabled={busy !== null && busy !== 'pdf'}
+        />
+        <SavePanelButton
+          icon={<FileImage size={16} strokeWidth={1.8} />}
+          label="另存为图片"
+          help="竖版 PNG · 适合发朋友圈/家人群"
+          onClick={onSaveImage}
+          busy={busy === 'png'}
+          disabled={busy !== null && busy !== 'png'}
+        />
+      </div>
+    </div>
+  );
+}
+
 /* ── Main bar ────────────────────────────────────────────────── */
 
 interface ReportActionBarProps {
   childName: string;
-  /** The current user's role from child.recorderProfiles[0].name (e.g. "妈妈"). */
   selfRoleName?: string;
-  onPrintPdf: () => void;
+  onSavePdf: () => Promise<void> | void;
   onSaveImage: () => Promise<void> | void;
   onOpenProfessional: () => void;
   onRequestFocusNoteComposer?: () => void;
@@ -240,12 +244,11 @@ interface ReportActionBarProps {
 }
 
 export function ReportActionBar({
-  childName, selfRoleName, onPrintPdf, onSaveImage, onOpenProfessional,
+  childName, selfRoleName, onSavePdf, onSaveImage, onOpenProfessional,
   onRequestFocusNoteComposer, onFamilyShareToast,
 }: ReportActionBarProps) {
-  const [saveMenuOpen, setSaveMenuOpen] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
-  const [exporting, setExporting] = useState(false);
+  const [busy, setBusy] = useState<SaveKind | null>(null);
 
   const showToast = (msg: string) => {
     if (onFamilyShareToast) onFamilyShareToast(msg);
@@ -257,18 +260,27 @@ export function ReportActionBar({
       showToast('先勾选一位家人');
       return;
     }
-    showToast(`已为「${names.join('、')}」准备精简版（分享通道即将接入）`);
+    showToast(`已为「${names.join('、')}」准备精简版(分享通道即将接入)`);
   };
 
-  const handleImage = async () => {
-    if (exporting) return;
-    setExporting(true);
+  const runSave = async (kind: SaveKind, action: () => Promise<void> | void) => {
+    if (busy) return;
+    setBusy(kind);
     try {
-      await onSaveImage();
-    } catch {
-      showToast('图片生成失败，请稍后重试');
+      await action();
+    } catch (error) {
+      // Tauri rejects can be string / Error / plain object — surface
+      // whatever we can so the user sees the actual failure instead of
+      // a generic "失败" placeholder.
+      let detail = '';
+      if (error instanceof Error) detail = error.message;
+      else if (typeof error === 'string') detail = error;
+      else if (error && typeof error === 'object') detail = JSON.stringify(error);
+      const prefix = kind === 'pdf' ? 'PDF 生成失败' : '图片生成失败';
+      showToast(detail ? `${prefix}:${detail}` : `${prefix},请稍后重试`);
+      console.error('[parentos:reports] save failed', { kind, error });
     } finally {
-      setExporting(false);
+      setBusy(null);
     }
   };
 
@@ -288,47 +300,30 @@ export function ReportActionBar({
     >
       <FamilyShareRow onShareSelected={handleFamilySelection} selfRoleName={selfRoleName} />
 
-      <div className="report-action-grid">
+      <div className="report-action-grid report-action-grid--pair">
         <div className="report-min-w-0">
           <ActionCard
-            icon={
-              <GraduationCap size={16} strokeWidth={1.8} />
-            }
+            icon={<GraduationCap size={16} strokeWidth={1.8} />}
             title="给老师/医生看的精简版"
-            subtitle="AI 客观版本，可逐条编辑/隐去"
+            subtitle="AI 客观版本,可逐条编辑/隐去"
             onClick={onOpenProfessional}
           />
         </div>
-        <div className="report-save-card-cell">
-          <ActionCard
-            icon={exporting ? (
-              <LoaderCircle size={16} className="animate-spin" />
-            ) : (
-              <Download size={16} strokeWidth={1.8} />
-            )}
-            title={exporting ? '正在生成图片…' : '保存为 PDF / 图片'}
-            subtitle="竖版 · 竖向长卷适合发家人群"
-            onClick={() => setSaveMenuOpen((o) => !o)}
-            disabled={exporting}
-          />
-          <SaveMenu
-            open={saveMenuOpen}
-            onClose={() => setSaveMenuOpen(false)}
-            onPrintPdf={onPrintPdf}
-            onSaveImage={() => void handleImage()}
-          />
-        </div>
         <div className="report-min-w-0">
           <ActionCard
-            icon={
-              <Pencil size={16} strokeWidth={1.8} />
-            }
+            icon={<Pencil size={16} strokeWidth={1.8} />}
             title="追加我的备注"
             subtitle={`写在 ${childName} 本月任意一段观察旁`}
             onClick={handleNote}
           />
         </div>
       </div>
+
+      <SavePanel
+        onSavePdf={() => void runSave('pdf', onSavePdf)}
+        onSaveImage={() => void runSave('png', onSaveImage)}
+        busy={busy}
+      />
 
       {toast ? <Toast message={toast} onDone={() => setToast(null)} /> : null}
     </Surface>
