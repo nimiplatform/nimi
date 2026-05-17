@@ -414,6 +414,28 @@ func (s *Service) snapshotPublicChatAnchorForScopedBinding(anchorID string) (pub
 	return s.snapshotPublicChatAnchor(trimmedAnchorID, "", false)
 }
 
+func (s *Service) snapshotPublicChatAnchorForAvatarLiveInstance(callerAppID string, anchorID string, identity localAgentIdentity) (publicChatAnchorState, *publicChatTurnProjectionState, *publicChatTurnProjectionState, *publicChatFollowUpState, error) {
+	trimmedCallerAppID := strings.TrimSpace(callerAppID)
+	trimmedAnchorID := strings.TrimSpace(anchorID)
+	if trimmedCallerAppID == "" || trimmedAnchorID == "" {
+		return publicChatAnchorState{}, nil, nil, nil, status.Error(codes.InvalidArgument, "public chat avatar snapshot requires caller app and conversation_anchor_id")
+	}
+
+	s.chatSurfaceMu.Lock()
+	session := s.chatAnchors[trimmedAnchorID]
+	if session == nil {
+		s.chatSurfaceMu.Unlock()
+		return publicChatAnchorState{}, nil, nil, nil, status.Error(codes.NotFound, "conversation anchor not found")
+	}
+	if session.CallerAppID != trimmedCallerAppID && !s.avatarLiveInstanceBindingAuthorizesAnchorLocked(trimmedCallerAppID, trimmedAnchorID, identity) {
+		s.chatSurfaceMu.Unlock()
+		return publicChatAnchorState{}, nil, nil, nil, status.Error(codes.PermissionDenied, "public chat anchor caller mismatch")
+	}
+	s.chatSurfaceMu.Unlock()
+
+	return s.snapshotPublicChatAnchor(trimmedAnchorID, "", false)
+}
+
 func (s *Service) snapshotPublicChatAnchor(anchorID string, callerAppID string, enforceCaller bool) (publicChatAnchorState, *publicChatTurnProjectionState, *publicChatTurnProjectionState, *publicChatFollowUpState, error) {
 	s.chatSurfaceMu.Lock()
 	defer s.chatSurfaceMu.Unlock()

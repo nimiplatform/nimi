@@ -165,6 +165,7 @@ export async function runDesktopMacosSmokeScenario(
   const steps: string[] = [];
   const record = (step: string) => {
     steps.push(step);
+    deps.onStepStart?.(step, steps);
   };
   try {
     switch (scenarioId) {

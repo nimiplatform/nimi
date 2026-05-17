@@ -24,6 +24,7 @@ import {
   type DesktopMacosSmokeFailureReportPayload,
   LIVE2D_VIEWPORT_SELECTOR,
   SMOKE_BOOTSTRAP_TIMEOUT_MS,
+  SMOKE_SCENARIO_TIMEOUT_MS,
   SMOKE_STEP_TIMEOUT_MS,
   VRM_VIEWPORT_SELECTOR,
   shouldStartDesktopMacosSmoke,
@@ -33,7 +34,13 @@ import { runDesktopMacosSmokeScenario } from './desktop-macos-smoke-scenarios';
 export { shouldStartDesktopMacosSmoke } from './desktop-macos-smoke-shared';
 export { runDesktopMacosSmokeScenario } from './desktop-macos-smoke-scenarios';
 
-function createDomDriverDeps(): DesktopMacosSmokeDriverDeps {
+type DesktopMacosSmokeDriverDepsOptions = {
+  onStepStart?: DesktopMacosSmokeDriverDeps['onStepStart'];
+  onReportWrite?: () => void;
+  isReportOpen?: DesktopMacosSmokeDriverDeps['isReportOpen'];
+};
+
+function createDomDriverDeps(options: DesktopMacosSmokeDriverDepsOptions = {}): DesktopMacosSmokeDriverDeps {
   const queryByTestId = (id: string): HTMLElement | null => (
     document.querySelector(`[data-testid="${id}"]`) as HTMLElement | null
   );
@@ -292,7 +299,11 @@ function createDomDriverDeps(): DesktopMacosSmokeDriverDeps {
           },
         },
       });
-      await refreshConversationCapabilityProjections(['text.generate']);
+      await withSmokeTimeout(
+        'Runtime text route projection refresh',
+        refreshConversationCapabilityProjections(['text.generate']),
+        SMOKE_STEP_TIMEOUT_MS,
+      );
     },
     async verifyRuntimeConversationAnchor(input) {
       const auth = useAppStore.getState().auth;
@@ -310,12 +321,16 @@ function createDomDriverDeps(): DesktopMacosSmokeDriverDeps {
       if (!ownerUserId || !realmAgentId || !localAgentRef.startsWith('local-agent:')) {
         throw new Error('Runtime conversation anchor smoke verification requires localAgentRef formatted as local-agent:${ownerUserId}:${realmAgentId}');
       }
-      await protectedAccess.withScopes(['runtime.agent.read'], (options) => runtime.agent.anchors.getSnapshot({
-        ownerUserId,
-        realmAgentId,
-        localAgentRef,
-        conversationAnchorId: input.conversationAnchorId,
-      }, options));
+      await withSmokeTimeout(
+        'Runtime conversation anchor smoke verification',
+        protectedAccess.withScopes(['runtime.agent.read'], (options) => runtime.agent.anchors.getSnapshot({
+          ownerUserId,
+          realmAgentId,
+          localAgentRef,
+          conversationAnchorId: input.conversationAnchorId,
+        }, options)),
+        SMOKE_STEP_TIMEOUT_MS,
+      );
     },
     async readRuntimeProductPathEvidence(input) {
       const auth = useAppStore.getState().auth;
@@ -329,17 +344,18 @@ function createDomDriverDeps(): DesktopMacosSmokeDriverDeps {
       if (!ownerUserId || !realmAgentId || !localAgentRef.startsWith('local-agent:')) {
         throw new Error('Runtime product path evidence requires localAgentRef formatted as local-agent:${ownerUserId}:${realmAgentId}');
       }
+      const protectedAccess = createRuntimeProtectedScopeHelper({
+        runtime,
+        getSubjectUserId: async () => subjectUserId,
+      });
       const [health, snapshot] = await Promise.all([
-        runtime.health(),
-        createRuntimeProtectedScopeHelper({
-          runtime,
-          getSubjectUserId: async () => subjectUserId,
-        }).withScopes(['runtime.agent.read'], (options) => runtime.agent.anchors.getSnapshot({
+        withSmokeTimeout('Runtime product evidence health read', runtime.health(), SMOKE_STEP_TIMEOUT_MS),
+        withSmokeTimeout('Runtime product evidence anchor snapshot read', protectedAccess.withScopes(['runtime.agent.read'], (options) => runtime.agent.anchors.getSnapshot({
           ownerUserId,
           realmAgentId,
           localAgentRef,
           conversationAnchorId: input.conversationAnchorId,
-        }, options)),
+        }, options)), SMOKE_STEP_TIMEOUT_MS),
       ]);
       const anchor = snapshot.anchor || null;
       const snapshotAgentId = String(anchor?.agentId || '').trim();
@@ -592,7 +608,11 @@ function createDomDriverDeps(): DesktopMacosSmokeDriverDeps {
       return readDesktopMacosSmokeAvatarEvidence(avatarInstanceId);
     },
     async writeReport(payload) {
+      if (options.isReportOpen && !options.isReportOpen()) {
+        return;
+      }
       await writeDesktopMacosSmokeReport(payload);
+      options.onReportWrite?.();
     },
     currentRoute() {
       return `${window.location.pathname}${window.location.search}${window.location.hash}`;
@@ -619,17 +639,49 @@ function resolveSmokeBootstrapTimeoutMs(context: DesktopMacosSmokeContext): numb
   return Math.min(180_000, Math.max(SMOKE_BOOTSTRAP_TIMEOUT_MS, requested));
 }
 
+function resolveSmokeScenarioTimeoutMs(context: DesktopMacosSmokeContext): number {
+  const requested = Number(context.bootstrapTimeoutMs || 0);
+  if (!Number.isFinite(requested) || requested <= 0) {
+    return SMOKE_SCENARIO_TIMEOUT_MS;
+  }
+  return Math.min(170_000, Math.max(SMOKE_STEP_TIMEOUT_MS, requested + SMOKE_STEP_TIMEOUT_MS));
+}
+
+async function withDesktopMacosSmokeScenarioTimeout<T>(
+  scenarioId: string,
+  task: Promise<T>,
+  timeoutMs: number,
+): Promise<T> {
+  let timeoutId: ReturnType<typeof setTimeout> | null = null;
+  try {
+    return await Promise.race([
+      task,
+      new Promise<never>((_, reject) => {
+        timeoutId = setTimeout(
+          () => reject(new Error(`desktop macOS smoke scenario ${scenarioId} timed out after ${timeoutMs}ms`)),
+          timeoutMs,
+        );
+      }),
+    ]);
+  } finally {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
+  }
+}
+
 export function buildDesktopMacosSmokeFailureReportPayload(input: {
   failedStep: string;
   message: string;
   errorName?: string;
   errorStack?: string;
   errorCause?: string;
+  steps?: readonly string[];
 }): DesktopMacosSmokeFailureReportPayload {
   return {
     ok: false,
     failedStep: input.failedStep,
-    steps: [input.failedStep],
+    steps: input.steps?.length ? [...input.steps] : [input.failedStep],
     errorMessage: input.message,
     errorName: input.errorName,
     errorStack: input.errorStack,
@@ -720,18 +772,43 @@ export function useDesktopMacosSmokeBootstrap(
     });
 
     void (async () => {
+      let currentStep = 'scenario-start';
+      let recordedSteps: string[] = [];
+      let reportOpen = true;
+      let scenarioReportWritten = false;
       try {
         if (!cancelled && context?.scenarioId) {
           await pingDesktopMacosSmoke('macos-smoke-scenario-start', {
             scenarioId: context.scenarioId,
           }).catch(() => {});
-          await runDesktopMacosSmokeScenario(context.scenarioId, createDomDriverDeps());
+          const deps = createDomDriverDeps({
+            onStepStart(step, steps) {
+              currentStep = step;
+              recordedSteps = [...steps];
+              void pingDesktopMacosSmoke('macos-smoke-step-start', {
+                scenarioId: context.scenarioId,
+                step,
+                stepCount: recordedSteps.length,
+              }).catch(() => {});
+            },
+            onReportWrite() {
+              scenarioReportWritten = true;
+            },
+            isReportOpen: () => reportOpen,
+          });
+          await withDesktopMacosSmokeScenarioTimeout(
+            context.scenarioId,
+            runDesktopMacosSmokeScenario(context.scenarioId, deps),
+            resolveSmokeScenarioTimeoutMs(context),
+          );
           await pingDesktopMacosSmoke('macos-smoke-scenario-finished', {
             scenarioId: context.scenarioId,
           }).catch(() => {});
+          reportOpen = false;
           reportedRef.current = true;
         }
       } catch (error) {
+        reportOpen = false;
         reportedRef.current = true;
         logRendererEvent({
           level: 'error',
@@ -743,6 +820,29 @@ export function useDesktopMacosSmokeBootstrap(
             error: error instanceof Error ? error.message : String(error || 'unknown error'),
           },
         });
+        if (!scenarioReportWritten) {
+          await writeDesktopMacosSmokeReport(
+            buildDesktopMacosSmokeFailureReportPayload({
+              failedStep: currentStep,
+              steps: recordedSteps.length ? recordedSteps : [currentStep],
+              message: error instanceof Error ? error.message : String(error || 'unknown error'),
+              errorName: error instanceof Error ? error.name : undefined,
+              errorStack: error instanceof Error ? error.stack : undefined,
+              errorCause: error instanceof Error ? String(error.cause || '') || undefined : undefined,
+            }),
+          ).catch((reportError) => {
+            logRendererEvent({
+              level: 'error',
+              area: 'desktop-macos-smoke',
+              message: 'phase:desktop-macos-smoke:scenario-failure-report-failed',
+              flowId,
+              details: {
+                scenarioId: context?.scenarioId,
+                error: reportError instanceof Error ? reportError.message : String(reportError || 'unknown error'),
+              },
+            });
+          });
+        }
       }
     })();
     return () => {

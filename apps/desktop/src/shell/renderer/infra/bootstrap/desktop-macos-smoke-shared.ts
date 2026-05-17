@@ -4,6 +4,7 @@ import type { DesktopMacosSmokeAvatarEvidenceReadResult } from '@renderer/bridge
 
 export const SMOKE_STEP_TIMEOUT_MS = 15000;
 export const SMOKE_BOOTSTRAP_TIMEOUT_MS = 60000;
+export const SMOKE_SCENARIO_TIMEOUT_MS = 150000;
 
 export const LIVE2D_VIEWPORT_SELECTOR = '[data-avatar-live2d-status]';
 export const VRM_VIEWPORT_SELECTOR = '[data-avatar-vrm-status]';
@@ -67,6 +68,8 @@ export type DesktopMacosSmokeDriverDeps = {
   listAvatarLiveInstances: (localAgentRef: string) => Promise<DesktopAvatarLiveInstanceRecord[]>;
   readAvatarEvidence: (avatarInstanceId: string) => Promise<DesktopMacosSmokeAvatarEvidenceReadResult>;
   avatarCarrierEvidenceTimeoutMs?: number;
+  onStepStart?: (step: string, steps: readonly string[]) => void;
+  isReportOpen?: () => boolean;
   writeReport: (payload: DesktopMacosSmokeReportPayload) => Promise<void>;
   currentRoute: () => string;
   currentHtml: () => string;

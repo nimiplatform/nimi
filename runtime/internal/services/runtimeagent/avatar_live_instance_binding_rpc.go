@@ -12,6 +12,7 @@ import (
 )
 
 const avatarLiveInstanceBindingKeySep = "\x1f"
+const defaultAvatarRuntimeAppID = "nimi.avatar"
 
 // RegisterAvatarLiveInstanceBinding binds an explicit Avatar window instance
 // to an existing Runtime-owned ConversationAnchor. It never opens anchors and
@@ -156,6 +157,29 @@ func (s *Service) ResolveAvatarLiveInstanceBinding(_ context.Context, req *runti
 
 func avatarLiveInstanceBindingKey(localAgentRef string, avatarInstanceID string) string {
 	return strings.TrimSpace(localAgentRef) + avatarLiveInstanceBindingKeySep + strings.TrimSpace(avatarInstanceID)
+}
+
+func (s *Service) avatarLiveInstanceBindingAuthorizesAnchorLocked(callerAppID string, anchorID string, identity localAgentIdentity) bool {
+	if strings.TrimSpace(callerAppID) != defaultAvatarRuntimeAppID {
+		return false
+	}
+	trimmedAnchorID := strings.TrimSpace(anchorID)
+	if trimmedAnchorID == "" || strings.TrimSpace(identity.LocalAgentRef) == "" {
+		return false
+	}
+	for _, binding := range s.avatarLiveInstanceBindings {
+		if binding == nil {
+			continue
+		}
+		if binding.ConversationAnchorID != trimmedAnchorID {
+			continue
+		}
+		if binding.OwnerUserID != identity.OwnerUserID || binding.RealmAgentID != identity.RealmAgentID || binding.LocalAgentRef != identity.LocalAgentRef {
+			continue
+		}
+		return true
+	}
+	return false
 }
 
 func validateAnchorIdentity(anchor *publicChatAnchorState, identity localAgentIdentity) error {

@@ -60,15 +60,28 @@ struct AgentCenterLocalConfigFile {
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct AgentCenterLocalConfigModules {
+    appearance: serde_json::Value,
     avatar_asset: AgentCenterLocalAvatarAssetSelection,
+    local_history: serde_json::Value,
+    ui: serde_json::Value,
 }
 
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct AgentCenterLocalAvatarAssetSelection {
+    schema_version: u8,
+    conversation_anchor_scope: String,
     local_avatar_asset_ref: Option<String>,
+    live2d_adapter_manifest_source: String,
+    live2d_adapter_manifest_ref: Option<String>,
+    avatar_instance_policy: String,
     backend_kind: String,
     backend_capability_profile_ref: Option<String>,
+    generated_motion_provider_policy: String,
+    launch_mode: String,
+    debug_profile: String,
+    updated_at: String,
+    provenance: serde_json::Value,
 }
 
 #[derive(Deserialize)]
@@ -234,7 +247,25 @@ fn read_local_avatar_asset_selection(
     {
         return Err("local Avatar asset config scope mismatch".to_string());
     }
-    Ok(config.modules.avatar_asset)
+    let selection = config.modules.avatar_asset;
+    if selection.schema_version != 1 {
+        return Err("local Avatar asset module schema_version must be 1".to_string());
+    }
+    let _ = (
+        &config.modules.appearance,
+        &config.modules.local_history,
+        &config.modules.ui,
+        &selection.conversation_anchor_scope,
+        &selection.live2d_adapter_manifest_source,
+        &selection.live2d_adapter_manifest_ref,
+        &selection.avatar_instance_policy,
+        &selection.generated_motion_provider_policy,
+        &selection.launch_mode,
+        &selection.debug_profile,
+        &selection.updated_at,
+        &selection.provenance,
+    );
+    Ok(selection)
 }
 
 fn is_safe_asset_relative_path(value: &str) -> bool {
