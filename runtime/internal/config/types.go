@@ -103,6 +103,12 @@ type Config struct {
 	// Default: ~/.nimi/runtime/model-catalog/providers
 	ModelCatalogCustomDir string
 
+	// AppRegistryPath points to the local projection of the Platform Nimi App
+	// registry. Empty means the daemon starts without a projection and
+	// Platform-governed Nimi App registrations fail closed. Runtime consumes
+	// this file read-only and does not own app admission truth.
+	AppRegistryPath string
+
 	// EngineLlamaEnabled enables the supervised llama engine.
 	// Default: false. (K-LENG-004)
 	EngineLlamaEnabled bool
@@ -205,6 +211,7 @@ type FileConfig struct {
 	SessionTTLMinSeconds    *int   `json:"sessionTtlMinSeconds,omitempty"`
 	SessionTTLMaxSeconds    *int   `json:"sessionTtlMaxSeconds,omitempty"`
 	ModelCatalogCustomDir   string `json:"modelCatalogCustomDir,omitempty"`
+	AppRegistryPath         string `json:"appRegistryPath,omitempty"`
 	LogLevel                string `json:"logLevel,omitempty"`
 
 	Auth       *FileConfigAuth              `json:"auth,omitempty"`

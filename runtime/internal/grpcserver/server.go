@@ -14,9 +14,11 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	catalog "github.com/nimiplatform/nimi/runtime/internal/aicatalog"
 	"github.com/nimiplatform/nimi/runtime/internal/appregistry"
+	"github.com/nimiplatform/nimi/runtime/internal/appregistrycatalog"
 	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
 	"github.com/nimiplatform/nimi/runtime/internal/authn"
 	"github.com/nimiplatform/nimi/runtime/internal/config"
+	"github.com/nimiplatform/nimi/runtime/internal/firstpartymigration"
 	"github.com/nimiplatform/nimi/runtime/internal/health"
 	"github.com/nimiplatform/nimi/runtime/internal/idempotency"
 	"github.com/nimiplatform/nimi/runtime/internal/modelregistry"
@@ -76,6 +78,10 @@ func New(cfg config.Config, state *health.State, logger *slog.Logger, version st
 		return nil, fmt.Errorf("configure idempotency store: %w", err)
 	}
 	appRegistry := appregistry.New()
+	nimiAppRegistry, err := loadNimiAppRegistryCatalog(cfg.AppRegistryPath)
+	if err != nil {
+		return nil, err
+	}
 	scopeCatalog := scopecatalog.New(func(operation string, version string, code runtimev1.ReasonCode) {
 		appendAuditEvent(auditStore, auditEventInput{
 			Domain:              "runtime.scope",
@@ -107,6 +113,8 @@ func New(cfg config.Config, state *health.State, logger *slog.Logger, version st
 		logger, appRegistry, auditStore,
 		int32(cfg.SessionTTLMinSeconds), int32(cfg.SessionTTLMaxSeconds),
 	)
+	authSvc.SetNimiAppRegistryCatalog(nimiAppRegistry)
+	authSvc.SetFirstPartyMigrationLaunchGate(defaultFirstPartyMigrationLaunchGate())
 	accountSvc := accountservice.NewProduction(logger, accountservice.ProductionConfig{
 		RealmBaseURL: cfg.AuthJWTIssuer,
 		AppRegistry:  appRegistry,
@@ -347,6 +355,24 @@ func New(cfg config.Config, state *health.State, logger *slog.Logger, version st
 	}
 	s.SyncServingState()
 	return s, nil
+}
+
+func loadNimiAppRegistryCatalog(path string) (*appregistrycatalog.Registry, error) {
+	path = strings.TrimSpace(path)
+	if path == "" {
+		return nil, nil
+	}
+	registry, err := appregistrycatalog.LoadRegistryFromFile(path)
+	if err != nil {
+		return nil, fmt.Errorf("load Nimi App registry projection: %w", err)
+	}
+	return registry, nil
+}
+
+func defaultFirstPartyMigrationLaunchGate() *firstpartymigration.LaunchGate {
+	return firstpartymigration.NewLaunchGate(
+		firstpartymigration.WithMigrationNotRequired("nimi.parentos"),
+	)
 }
 
 func (s *Server) AIHealthTracker() *providerhealth.Tracker {

@@ -41,6 +41,7 @@ surfaces:
   - logLevel
   - localModelsPath
   - modelCatalogCustomDir
+  - appRegistryPath
   - allowLoopbackProviderEndpoint
   - scheduling.diskDenialThresholdBytes
   - scheduling.slowdownRamThresholdBytes
@@ -90,6 +91,14 @@ fields:
     description: 本地状态持久化路径
     source_rule: K-LOCAL-016
     authority_note: Runtime-owned local AI state path; the single active state truth for local assets, transfers, dependency setup jobs, cutover evidence, and health projection. Retired Desktop-local state files are cutover inputs only, never fallback truth.
+
+  - key: appRegistryPath
+    type: string
+    default: ""
+    reload: restart
+    description: Platform Nimi App registry 的本地投影文件路径；空值时 Runtime 启动但 Platform-governed Nimi App 注册/启动 fail-closed
+    source_rule: K-CFG-017
+    authority_note: Runtime consumes this file read-only as the explicit daemon projection source for Platform app admission. Runtime must not hardcode .nimi/spec/** as the source and must not own registry truth.
 
   - key: aiHealthIntervalSeconds
     type: int

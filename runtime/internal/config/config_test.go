@@ -109,6 +109,9 @@ func TestLoadDefaultsWithoutConfigFile(t *testing.T) {
 	if cfg.ModelCatalogCustomDir != expectedCatalogCustomDir {
 		t.Fatalf("model catalog custom dir mismatch: got=%q want=%q", cfg.ModelCatalogCustomDir, expectedCatalogCustomDir)
 	}
+	if cfg.AppRegistryPath != "" {
+		t.Fatalf("app registry path should default empty, got=%q", cfg.AppRegistryPath)
+	}
 }
 
 func TestLoadFromConfigFileAppliesRuntimeAndProviderDefaults(t *testing.T) {
@@ -122,6 +125,7 @@ func TestLoadFromConfigFileAppliesRuntimeAndProviderDefaults(t *testing.T) {
   "shutdownTimeoutSeconds": 13,
   "localStatePath": "~/runtime/custom-state.json",
   "localModelsPath": "~/runtime/custom-models",
+  "appRegistryPath": "~/runtime/nimi-app-registry.yaml",
   "defaultCloudProvider": "gemini",
   "aiHttpTimeoutSeconds": 21,
   "aiHealthIntervalSeconds": 3,
@@ -160,6 +164,9 @@ func TestLoadFromConfigFileAppliesRuntimeAndProviderDefaults(t *testing.T) {
 	}
 	if cfg.LocalModelsPath != filepath.Join(homeDir, "runtime/custom-models") {
 		t.Fatalf("local models path mismatch: %q", cfg.LocalModelsPath)
+	}
+	if cfg.AppRegistryPath != filepath.Join(homeDir, "runtime/nimi-app-registry.yaml") {
+		t.Fatalf("app registry path mismatch: %q", cfg.AppRegistryPath)
 	}
 	if cfg.DefaultCloudProvider != "gemini" {
 		t.Fatalf("defaultCloudProvider mismatch: %q", cfg.DefaultCloudProvider)
