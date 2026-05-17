@@ -31,7 +31,7 @@ export class DefaultExperienceClientError extends Error {
   constructor(
     code: DefaultExperienceClientError['code'],
     message: string,
-    public readonly cause?: unknown,
+    public override readonly cause?: unknown,
   ) {
     super(message);
     this.code = code;

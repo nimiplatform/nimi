@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState, type ReactElement } from 'react';
-import { NimiAppClient, type NimiAppTransport } from '@nimiplatform/sdk/app';
 import { ScrollArea, Surface } from '@nimiplatform/nimi-kit/ui';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import {
@@ -14,58 +13,16 @@ import {
   projectDiscovery,
   projectFirstRunReadiness,
   projectLibrary,
-  type ColdStartProjection,
   type ColdStartState,
   type DiscoveryProjection,
   type FirstRunReadinessProjection,
   type LibraryProjection,
   type UpstreamInputs,
 } from '../../first-run/index.js';
-import {
-  DefaultExperienceBridge,
-  type ApplicableScope,
-  type ApplyResult,
-  type DefaultExperienceProfile,
-  type HostProfile,
-  type ProfilePreferences,
-  type RuntimeAdapter,
-  type ScopeRef,
-} from '../../../../runtime/default-experience-bridge/index.js';
+import { DefaultExperienceBridge } from '../../../../runtime/default-experience-bridge/index.js';
+import { createDesktopHomeLiveBridge, type DesktopDefaultExperienceProjection, type DesktopHomeLiveBridge } from './nimi-home-live-bridge.js';
 
-const UNAVAILABLE_APP_REGISTRY_DETAIL = 'Nimi App registry bridge is not mounted yet.';
 const UNAVAILABLE_AGENT_ANCHOR_ID = 'runtime-anchor-unavailable';
-
-const unavailableAppTransport: NimiAppTransport = {
-  async listRegistry() {
-    throw new Error(UNAVAILABLE_APP_REGISTRY_DETAIL);
-  },
-  async getAppStatus() {
-    throw new Error(UNAVAILABLE_APP_REGISTRY_DETAIL);
-  },
-};
-
-function buildRuntimeAdapter(): RuntimeAdapter {
-  return {
-    async hostProfile(): Promise<HostProfile> {
-      throw new Error('Host profile bridge is not mounted yet.');
-    },
-    async recommendProfile(
-      _scope: ApplicableScope,
-      _preferences?: ProfilePreferences,
-    ): Promise<DefaultExperienceProfile> {
-      throw new Error('AIProfile recommendation bridge is not mounted yet.');
-    },
-    async applyProfile(scopeRef: ScopeRef, profileId: string): Promise<ApplyResult> {
-      return { applied: false, profileId, scope: scopeRef };
-    },
-    async projectColdStart(inputs: UpstreamInputs): Promise<ColdStartProjection> {
-      const ready = Object.values(inputs).every((state) => state === 'ready');
-      return ready
-        ? { state: 'ready' }
-        : { state: 'unavailable', detail: 'Cold-start bridge is waiting for Runtime projections.' };
-    },
-  };
-}
 
 function runtimeDaemonState(bootstrapReady: boolean, bootstrapError: string | null): ColdStartState {
   if (bootstrapError) return 'failed';
@@ -82,23 +39,47 @@ function runtimeDefaultsState(hasRuntimeDefaults: boolean): ColdStartState {
   return hasRuntimeDefaults ? 'ready' : 'setup-required';
 }
 
-function useFirstRunReadinessProjection(): FirstRunReadinessProjection | null {
+function useDefaultExperienceProjection(liveBridge: DesktopHomeLiveBridge): DesktopDefaultExperienceProjection {
+  const [projection, setProjection] = useState<DesktopDefaultExperienceProjection>({
+    profileState: 'in-progress',
+    materializationState: 'in-progress',
+  });
+
+  useEffect(() => {
+    let cancelled = false;
+    void liveBridge.projectDefaultExperience().then((next) => {
+      if (!cancelled) setProjection(next);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [liveBridge]);
+
+  return projection;
+}
+
+function useFirstRunReadinessProjection(
+  liveBridge: DesktopHomeLiveBridge,
+  defaultExperience: DesktopDefaultExperienceProjection,
+  appRegistryState: ColdStartState,
+): FirstRunReadinessProjection | null {
   const bootstrapReady = useAppStore((state) => state.bootstrapReady);
   const bootstrapError = useAppStore((state) => state.bootstrapError);
   const authStatus = useAppStore((state) => state.auth.status);
   const runtimeDefaults = useAppStore((state) => state.runtimeDefaults);
-  const bridge = useMemo(() => new DefaultExperienceBridge(buildRuntimeAdapter()), []);
+  const bridge = useMemo(() => new DefaultExperienceBridge(liveBridge.defaultExperienceBridge), [liveBridge]);
   const inputs = useMemo<UpstreamInputs>(() => {
-    const runtimeReady = Boolean(runtimeDefaults);
     return {
       runtimeDaemon: runtimeDaemonState(bootstrapReady, bootstrapError),
       account: accountState(authStatus),
-      defaultExperienceProfile: runtimeDefaultsState(runtimeReady),
-      materialization: runtimeDefaultsState(runtimeReady),
-      appRegistry: 'unavailable',
+      defaultExperienceProfile: defaultExperience.profileState,
+      materialization: defaultExperience.materializationState === 'unavailable' && runtimeDefaults
+        ? runtimeDefaultsState(Boolean(runtimeDefaults))
+        : defaultExperience.materializationState,
+      appRegistry: appRegistryState,
       cognitionMemory: 'unavailable',
     };
-  }, [authStatus, bootstrapError, bootstrapReady, runtimeDefaults]);
+  }, [appRegistryState, authStatus, bootstrapError, bootstrapReady, defaultExperience, runtimeDefaults]);
   const [projection, setProjection] = useState<FirstRunReadinessProjection | null>(null);
 
   useEffect(() => {
@@ -114,27 +95,29 @@ function useFirstRunReadinessProjection(): FirstRunReadinessProjection | null {
   return projection;
 }
 
-function useAppRegistryProjections(): {
+function useAppRegistryProjections(liveBridge: DesktopHomeLiveBridge): {
   library: LibraryProjection | null;
   discovery: DiscoveryProjection | null;
+  appRegistryState: ColdStartState;
 } {
-  const client = useMemo(() => new NimiAppClient(unavailableAppTransport), []);
   const [library, setLibrary] = useState<LibraryProjection | null>(null);
   const [discovery, setDiscovery] = useState<DiscoveryProjection | null>(null);
+  const [appRegistryState, setAppRegistryState] = useState<ColdStartState>('in-progress');
 
   useEffect(() => {
     let cancelled = false;
-    void Promise.all([projectLibrary(client), projectDiscovery(client)]).then(([nextLibrary, nextDiscovery]) => {
+    void Promise.all([projectLibrary(liveBridge.appClient), projectDiscovery(liveBridge.appClient)]).then(([nextLibrary, nextDiscovery]) => {
       if (cancelled) return;
       setLibrary(nextLibrary);
       setDiscovery(nextDiscovery);
+      setAppRegistryState(nextLibrary.status === 'loaded' ? 'ready' : 'unavailable');
     });
     return () => {
       cancelled = true;
     };
-  }, [client]);
+  }, [liveBridge]);
 
-  return { library, discovery };
+  return { library, discovery, appRegistryState };
 }
 
 function LoadingProjection({ label }: { label: string }): ReactElement {
@@ -146,17 +129,20 @@ function LoadingProjection({ label }: { label: string }): ReactElement {
 }
 
 export function NimiHomePanel(): ReactElement {
-  const readiness = useFirstRunReadinessProjection();
-  const { library, discovery } = useAppRegistryProjections();
+  const liveBridge = useMemo(() => createDesktopHomeLiveBridge(), []);
+  const defaultExperience = useDefaultExperienceProjection(liveBridge);
+  const { library, discovery, appRegistryState } = useAppRegistryProjections(liveBridge);
+  const readiness = useFirstRunReadinessProjection(liveBridge, defaultExperience, appRegistryState);
   const agentChatBinding = useMemo<AgentChatBinding>(() => ({
     scopeRef: { kind: 'first-run', scopeId: 'nimi-home-agent-chat' },
     conversationAnchorId: UNAVAILABLE_AGENT_ANCHOR_ID,
-  }), []);
+    profileId: defaultExperience.profileId,
+  }), [defaultExperience.profileId]);
   const agentChatExecutor = useMemo<AgentChatExecutor>(() => ({
-    async applyProfile() {
-      return { applied: false };
+    async applyProfile(scopeRef, profileId) {
+      return liveBridge.applyAgentChatProfile(scopeRef, profileId);
     },
-  }), []);
+  }), [liveBridge]);
 
   return (
     <div data-testid="nimi-home-panel" className="flex min-h-0 flex-1 flex-col">

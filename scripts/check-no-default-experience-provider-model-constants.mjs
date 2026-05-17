@@ -12,6 +12,7 @@ const TARGET_GLOBS = [
   'apps/desktop/src/runtime/config-bridge',
   'apps/desktop/src/runtime/default-experience',
   'apps/desktop/src/runtime/default-experience-bridge',
+  'apps/desktop/src/shell/renderer/features/nimi-home',
   'apps/desktop/src/shell/first-run',
   'apps/desktop/src/shell/default-experience',
   'sdk/src/scope/default-experience',
