@@ -8,7 +8,7 @@
 //     written by the wLipSync driver. Avatar app no longer subscribes to
 //     that runtime event (platform-side emit deprecation is a separate
 //     topic).
-//   - The legacy caller-injected audio-bytes fetcher is removed. Audio
+//   - The caller-injected audio-bytes fetcher is removed. Audio
 //     bytes are read directly by AudioPipelineController via
 //     `runtime.artifacts.readBytes` (S-RUNTIME-111).
 //   - The Live2D-specific mouth bridge instance is dropped; topic-internal

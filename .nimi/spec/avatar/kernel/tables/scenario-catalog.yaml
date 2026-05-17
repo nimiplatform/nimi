@@ -1,4 +1,7 @@
 version: 1
+table_family: product_catalog
+owner: avatar
+catalog_id: avatar_scenario_catalog
 description: >
   Mock scenario catalog for Nimi Avatar explicit fixture mode. Each scenario is
   a *.mock.json file in src/shell/renderer/mock/scenarios/ driving NAS handler
@@ -8,7 +11,7 @@ description: >
 
 default_scenario: "default"
 
-scenarios:
+scenarios: &avatar_scenario_catalog_entries
   - id: "default"
     title: "Default bootstrap scenario"
     file: "src/shell/renderer/mock/scenarios/default.mock.json"
@@ -19,7 +22,7 @@ scenarios:
       scenario is chosen.
       Cycles a small activity sequence (neutral → happy → greet → thinking) to
       exercise the fallback motion group lookup and expression blending.
-    tags: ["phase-1", "bootstrap", "smoke"]
+    tags: ["fixture-bootstrap", "runtime-smoke"]
     validates:
       - "Activity fallback motion group lookup"
       - "NAS runtime startup + handler discovery"
@@ -34,7 +37,7 @@ scenarios:
       Rotates through all 10 core emotion activities with varying intensity.
       Validates motion group mapping for the emotion category and intensity
       variant suffix lookup.
-    tags: ["phase-1", "emotion", "fallback"]
+    tags: ["emotion", "fallback"]
     validates:
       - "10 core emotion activities all present"
       - "Intensity variants (weak / moderate / strong) applied correctly"
@@ -50,7 +53,7 @@ scenarios:
       activity events based on click region (head / body / face). Validates
       reactive trigger flow from shell → driver.emit → MockDriver trigger match
       → runtime.agent.presentation.activity_requested injection → NAS event handler execution.
-    tags: ["phase-1", "interaction", "reactive"]
+    tags: ["interaction", "reactive"]
     validates:
       - "avatar.user.click event delivery"
       - "MockDriver trigger filter matching"
@@ -66,7 +69,7 @@ scenarios:
       at 60fps reading ctx.app.cursor_x / cursor_y and driving
       ParamEyeBallX / Y + ParamAngleX / Y. Validates continuous handler frame
       scheduling and parameter API throughput.
-    tags: ["phase-1", "continuous", "parameter-api"]
+    tags: ["continuous", "parameter-api"]
     validates:
       - "Continuous handler fps scheduling"
       - "Parameter direct write (setParameter)"
@@ -82,7 +85,7 @@ scenarios:
       pre-empt mid-sequence. Validates that the greet handler's multi-step
       sequence (wave → wait → smile) respects the AbortSignal and yields to
       the new activity handler.
-    tags: ["phase-1", "sequencing", "abort-signal"]
+    tags: ["sequencing", "abort-signal"]
     validates:
       - "Handler execute() respects AbortSignal"
       - "New activity pre-empts previous mid-sequence"
@@ -98,7 +101,7 @@ scenarios:
       runtime.agent.presentation.activity_requested appropriate for each. Validates that the agent bundle
       ctx delivered to handlers reflects the current posture, and handlers can
       branch behavior on ctx.posture.action_family.
-    tags: ["phase-1", "posture", "bundle"]
+    tags: ["posture", "bundle"]
     validates:
       - "Agent bundle posture update propagation"
       - "Handler branching on ctx.posture.action_family"
@@ -118,15 +121,35 @@ scenarios:
       apps/avatar/.cache/assets/vrm-models/ tree). The fixture's vrm_lifecycle
       block is consumed by vrm-lifecycle-e2e.test.tsx via the loaderOverride
       runtime seam (no .vrm binary required at test time).
-    tags: ["phase-2", "vrm", "lifecycle"]
+    tags: ["vrm", "lifecycle"]
     validates:
       - "VRM manifest → loader → ready transition"
       - "webglcontextlost 1500ms single-retry recovery"
       - "Second context loss escalates to context_lost_twice fail-close"
       - "Asset switch disposes prior runtime + boots a new one"
 
+  - id: "vrm-context-lost"
+    title: "VRM context-lost recovery and fail-close"
+    file: "src/shell/renderer/mock/scenarios/vrm-context-lost.mock.json"
+    duration_ms: 7000
+    loop: false
+    description: >
+      Wave 3 of topic 2026-05-15-avatar-vrm-deferral-and-authority-reconciliation.
+      Isolates the context-loss proof required by the 21-run smoke matrix:
+      first webglcontextlost recovers through the admitted 1500ms retry window,
+      while a second loss before recovery fails closed with context_lost_twice.
+      This scenario shares the VRM runtime lifecycle authority but is separate
+      from vrm-lifecycle so smoke evidence can report seven distinct scenarios.
+    tags: ["vrm", "lifecycle", "context-lost", "fail-close"]
+    model_kind: "vrm"
+    requires_assets: []
+    validates:
+      - "First context loss emits context_lost and context_restored"
+      - "Second context loss before recovery emits failed_closed(context_lost_twice)"
+      - "No context-loss path records placeholder visual readiness"
+
   - id: "vrm-listening"
-    title: "VRM listening activity (preset_not_loaded fail-close)"
+    title: "VRM listening activity (generated provider fail-close)"
     file: "src/shell/renderer/mock/scenarios/vrm-listening.mock.json"
     duration_ms: 6000
     loop: false
@@ -134,17 +157,18 @@ scenarios:
       Wave 3 chunk 3-E of topic 2026-04-30-avatar-vrm-backend-branch. Drives
       applyActivity('listening') through the VRM BackendBranch projection
       chain. Per activity-mapping.yaml v2 listening → vrm.motion='listen_lean'
-      (loop=true, fade=0.3). D plan: listen_lean.vrma is NOT admitted —
-      motionRegistry.play returns {played: false, reason: 'preset_not_loaded'}
-      (expected partial-degrade behavior). Documents the fail-close honestly
-      (no fake motion); model surface stays visible, lifecycle stays at ready.
-    tags: ["phase-3", "vrm", "lifecycle", "partial-asset"]
+      (loop=true, fade=0.3). The route is handled by generatedMotionProvider,
+      not by built-in `.vrma` interchange assets. With the missing-provider
+      test path, generatedMotionRuntime.play returns {played: false,
+      reason: 'generated_motion_provider_missing'}; no `.vrma` fallback is
+      treated as runtime support proof.
+    tags: ["vrm", "lifecycle", "generated-motion"]
     model_kind: "vrm"
-    requires_assets: ["listen_lean", "nod_yes", "shake_no"]
+    requires_assets: []
     validates:
       - "applyActivity('listening') -> generatedMotionProvider.play({routeId: 'listen_lean'})"
-      - "preset_not_loaded fail-close (D plan partial-asset)"
-      - "motion_presets_loaded evidence: only idle_subtle in loaded_ids"
+      - "generated_motion_provider_missing fail-close when provider is absent"
+      - "no .vrma fallback is counted as runtime motion support"
       - "Carrier surface remains visible (no fail_closed)"
 
   - id: "vrm-thinking"
@@ -155,17 +179,15 @@ scenarios:
     description: >
       Wave 3 chunk 3-E of topic 2026-04-30-avatar-vrm-backend-branch. Drives
       applyActivity('thinking') through the VRM projection chain. Per
-      activity-mapping.yaml v2 thinking → vrm.motion='idle_subtle' (wave_0
-      fallback; wave_3 切到 think_chin_touch — deferred under D plan). Since
-      idle_subtle.vrma IS the one admitted asset, motionRegistry.play returns
-      {played: true} and the model loops idle_subtle.
-    tags: ["phase-3", "vrm", "lifecycle", "partial-asset"]
+      activity-mapping.yaml v2 thinking → vrm.motion='idle_subtle'. The route
+      is handled by generatedMotionProvider; the physical idle_subtle.vrma file
+      remains interchange-only evidence, not APML runtime support proof.
+    tags: ["vrm", "lifecycle", "generated-motion"]
     model_kind: "vrm"
     requires_assets: ["idle_subtle"]
     validates:
       - "applyActivity('thinking') -> generatedMotionProvider.play({routeId: 'idle_subtle'})"
-      - "Played path returns {played: true} (idle_subtle is admitted)"
-      - "Registry snapshot.activePresetId === 'idle_subtle'"
+      - "generated motion route support does not depend on the .vrma registry"
 
   - id: "vrm-speaking-with-audio"
     title: "VRM speaking with non-synthetic audio (lipsync coordination)"
@@ -180,7 +202,7 @@ scenarios:
       → wLipSync snapshot → vrm-lipsync-driver tick → emote state
       setLipsyncActive(true) → viseme suppression coordination. Audio pipeline
       state machine progresses idle → requested → started → completed.
-    tags: ["phase-3", "vrm", "speaking", "lipsync"]
+    tags: ["vrm", "speaking", "lipsync"]
     model_kind: "vrm"
     requires_assets: []
     validates:
@@ -203,7 +225,7 @@ scenarios:
       sink.attachAudioSource, sink.silent() invoked, state progresses idle →
       requested → completed (consumer state machine still advances). Mouth
       stays at zero throughout — explicit silent voice + silent mouth.
-    tags: ["phase-3", "vrm", "speaking", "synthetic-fail-close"]
+    tags: ["vrm", "speaking", "synthetic-fail-close"]
     model_kind: "vrm"
     requires_assets: []
     validates:
@@ -225,7 +247,7 @@ scenarios:
       ramp), the primary expressive weight cap (≤ 0.8 per
       vrm-emote-states.yaml constraint), and avatar.emote.applied evidence
       (skipped_count=0 since lipsync inactive).
-    tags: ["phase-3", "vrm", "emote", "crossfade"]
+    tags: ["vrm", "emote", "crossfade"]
     model_kind: "vrm"
     requires_assets: []
     validates:
@@ -242,3 +264,4 @@ constraints:
     - description: "loop: true 的 scenario 必须有 finite duration_ms"
     - description: "scenario file 内的 scenario_id 字段必须等于 catalog id"
     - description: "新增 scenario 必须更新本 catalog，不允许 floating scenario files"
+entries: *avatar_scenario_catalog_entries

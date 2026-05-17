@@ -1,37 +1,36 @@
-# Mod Development Host
+# Mod Development
 
 > Normative Imports: `.nimi/spec/desktop/kernel/*`
 
 ## Scope
 
-Desktop 作为第三方 mod 开发与测试宿主的产品约束与用户路径。
+This guide points to the desktop authority surfaces for mod-development. It does not define product rules.
 
-## Module Map
+## Reading Path
 
-- `features/mods/` — 已解析 mod 的运行态入口
-- `features/mod-hub/` — 安装、更新、卸载入口
-- `settings / developer` — Developer Mode、dev source directories、冲突排障入口
+- `.nimi/spec/desktop/kernel/index.md`
+- `.nimi/spec/desktop/kernel/agent-avatar-configuration-contract.md`
+- `.nimi/spec/desktop/kernel/agent-avatar-debug-workbench-contract.md`
+- `.nimi/spec/desktop/kernel/agent-avatar-surface-contract.md`
+- `.nimi/spec/desktop/kernel/agent-chat-behavior-contract.md`
+- `.nimi/spec/desktop/kernel/agent-chat-message-action-contract.md`
+- `.nimi/spec/desktop/kernel/agent-chat-voice-executor-contract.md`
+- `.nimi/spec/desktop/kernel/agent-chat-voice-session-contract.md`
+- `.nimi/spec/desktop/kernel/agent-chat-voice-workflow-contract.md`
+- `.nimi/spec/desktop/kernel/agent-delegation-control-surface-contract.md`
+- `.nimi/spec/desktop/kernel/ai-profile-config-contract.md`
+- `.nimi/spec/desktop/kernel/auth-session-contract.md`
+- `.nimi/spec/desktop/kernel/bootstrap-contract.md`
 
-## Kernel References
+## Tables
 
-### Mod Governance (D-MOD-012 — D-MOD-015)
-
-- Desktop 是 zero-bundle mod host，不得内置特定 mod。
-- mod source directories 必须显式注册，不得扫描仓路径猜测输入。
-- installed mod 目录固定为 `{nimi_data_dir}/mods`；用户只能添加 `dev` source。
-- `mod id` 在所有已启用 source 中必须全局唯一；重复时 fail-close。
-- 第三方作者在 Desktop 侧的主流程必须是 UI-only。
-
-### IPC (D-IPC-013)
-
-- source registry、`nimi_data_dir`、developer mode、reload 和 diagnostics 通过受管 IPC 暴露。
-
-### Shell (D-SHELL-009, D-SHELL-010)
-
-- Developer Mode 必须在 App 内可配置。
-- Mods Panel / Developer Panel 必须可见 mod 的来源目录、source type 和冲突状态。
-- Mod Hub 不是主调试入口。
-
-## CI 门禁引用
-
-本域目前依赖 `pnpm exec nimicoding validate-spec-governance --profile nimi --scope desktop-consistency` 与 `pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope desktop --check` 保持规则与文档一致。实现级门禁待 Developer Host UI 和 IPC 落地后补齐。
+- `.nimi/spec/desktop/kernel/tables/agent-avatar-configuration.schema.yaml`
+- `.nimi/spec/desktop/kernel/tables/agent-avatar-debug-remediation-states.yaml`
+- `.nimi/spec/desktop/kernel/tables/agent-avatar-debug-workbench-probes.yaml`
+- `.nimi/spec/desktop/kernel/tables/app-tabs.yaml`
+- `.nimi/spec/desktop/kernel/tables/bootstrap-phases.yaml`
+- `.nimi/spec/desktop/kernel/tables/build-chunks.yaml`
+- `.nimi/spec/desktop/kernel/tables/codegen-acceptance-gates.yaml`
+- `.nimi/spec/desktop/kernel/tables/codegen-capability-tiers.yaml`
+- `.nimi/spec/desktop/kernel/tables/codegen-import-allowlist.yaml`
+- `.nimi/spec/desktop/kernel/tables/codegen-static-scan-deny-patterns.yaml`

@@ -125,9 +125,6 @@ function parseAvatarBackendKind(value: unknown): AvatarPresentationProfile['back
   if (
     normalized === 'vrm'
     || normalized === 'live2d'
-    || normalized === 'sprite2d'
-    || normalized === 'canvas2d'
-    || normalized === 'video'
   ) {
     return normalized;
   }

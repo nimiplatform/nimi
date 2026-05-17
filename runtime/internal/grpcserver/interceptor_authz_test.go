@@ -152,6 +152,11 @@ func TestProtectedCapabilityForUnaryMemoryAndRuntimeAgent(t *testing.T) {
 			capability: "runtime.agent.read",
 		},
 		{
+			method:     "/nimi.runtime.v1.RuntimeAgentService/ResolveAvatarPackageLaunchProjection",
+			request:    &runtimev1.ResolveAvatarPackageLaunchProjectionRequest{},
+			capability: "runtime.agent.avatar_package.read",
+		},
+		{
 			method:     "/nimi.runtime.v1.RuntimeAgentService/ListDelegatedProviderProfiles",
 			request:    &runtimev1.ListDelegatedProviderProfilesRequest{AgentId: "agent-alpha"},
 			capability: "runtime.agent.delegation.read",

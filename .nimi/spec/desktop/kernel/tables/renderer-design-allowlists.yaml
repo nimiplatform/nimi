@@ -1,4 +1,16 @@
 version: 1
+table_family: owner_matrix
+owner: desktop
+matrix_id: desktop_renderer_design_allowlists
+rows:
+  - contacts.sidebar_width
+  - contacts.blocked_world_accent
+  - contacts.blocked_agent_radius
+  - explore.rounded_2rem
+  - explore.rounded_1_5rem
+  - explore.display_font
+  - explore.banner_transform
+  - explore.top_agents_animation
 patterns:
   - id: contacts.sidebar_width
     pattern_type: inline_style

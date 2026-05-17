@@ -88,9 +88,15 @@ export {
   AvatarDebugReplayRedactionState,
   AvatarDebugReplayVisibility,
   AvatarDebugRequestedBy,
+  CompanionParticipationStatus,
+  CompanionParticipationSurfaceKind,
+  CompanionParticipationTriggerSource,
   HookAdmissionState,
   AgentLifecycleStatus,
   AgentTrackType,
+  HookTriggerFamily,
+} from './generated/runtime/v1/agent_service.js';
+export {
   DelegatedApprovalDecision,
   DelegatedApprovalMode,
   DelegatedApprovalRequestState,
@@ -100,8 +106,13 @@ export {
   DelegatedReplayOutcome,
   DelegatedTraceStageKind,
   DelegatedTransportKind,
-  HookTriggerFamily,
-} from './generated/runtime/v1/agent_service.js';
+} from './generated/runtime/v1/delegated_control.js';
+export type {
+  DelegatedControlSurfaceSnapshot,
+  DelegatedDiagnostic,
+  DelegatedProviderProfile,
+  DelegatedReplayTrace,
+} from './generated/runtime/v1/delegated_control.js';
 export { RealmGroupMessageCandidateCommitDisposition } from './generated/runtime/v1/agent_group_message_candidate.js';
 export type {
   AuditEventRecord,
@@ -179,5 +190,27 @@ export type {
   RuntimeAvatarDebugRequestProbeRequest,
   RuntimeAvatarDebugSnapshotRequest,
 } from './runtime-avatar-debug.js';
+export {
+  decodeAvatarPackageHandoff,
+} from './runtime-avatar-package.js';
+export type {
+  RuntimeAvatarPackageBackendKind,
+  RuntimeAvatarPackageHandoff,
+} from './runtime-avatar-package.js';
+export {
+  decodeCompanionParticipationProjection,
+} from './runtime-companion-participation.js';
+export type {
+  RuntimeCompanionParticipationBaseRequest,
+  RuntimeCompanionParticipationCancelRequest,
+  RuntimeCompanionParticipationModule,
+  RuntimeCompanionParticipationProjection,
+  RuntimeCompanionParticipationReplay,
+  RuntimeCompanionParticipationReplayRequest,
+  RuntimeCompanionParticipationRequest,
+  RuntimeCompanionParticipationStatus,
+  RuntimeCompanionParticipationSurfaceKind,
+  RuntimeCompanionParticipationTriggerSource,
+} from './runtime-companion-participation.js';
 export type * from './generated/runtime/v1/artifact_service.js';
 export { toProtoStruct } from './helpers.js';

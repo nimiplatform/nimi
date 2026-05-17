@@ -1,7 +1,11 @@
 version: 1
+table_family: product_catalog
+owner: avatar
+catalog_id: live2d_adapter_manifest_schema
 schema_id: "nimi.avatar.live2d-adapter-manifest.v1"
 authority: "avatar.kernel.live2d_asset_compatibility"
-status: "active"
+entries:
+  - id: "nimi.avatar.live2d-adapter-manifest.v1"
 admitted_by:
   topic_id: "2026-04-24-live2d-existing-assets-nimi-adaptation"
   wave_id: "wave-1-compatibility-contract-alignment"

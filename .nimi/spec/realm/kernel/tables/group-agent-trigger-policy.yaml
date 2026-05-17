@@ -1,4 +1,20 @@
 version: 1
+table_family: owner_matrix
+owner: realm
+matrix_id: realm_group_agent_trigger_policy
+rows:
+  - triggers_1
+  - triggers_2
+  - triggers_3
+  - triggers_4
+  - open_trigger_values_allowed
+  - raw_prompt_payload
+  - provider_model_selection
+  - group_local_scheduler
+  - app_local_reply_queue
+  - runtime_direct_group_commit
+  - memory_write_default_from_realm
+  - group_limited_capability_enum
 source_rule: R-CHAT-010
 runtime_consumer_rule: K-AGCORE-119
 room_orchestration_rule: K-AGCORE-123

@@ -1,4 +1,41 @@
 version: 1
+table_family: protocol_surface
+owner: runtime
+protocol_id: runtime_selected_source_record_schema
+surfaces:
+  - owner
+  - cardinality
+  - environment_key_fields
+  - fields
+  - source_kinds
+  - repair_states
+  - verification_failed
+  - explicit_repair_started
+  - dependency_removed
+  - host_profile_incompatible
+  - required_artifact_missing
+  - version_or_abi_incompatible
+  - package_lock_changed
+  - runtime_data_root_changed
+  - consumers must reference the Runtime-selected source record and must not
+    independently re-resolve sources
+  - selected source records are runtime-private truth; SDK and Desktop may
+    receive bounded projection only
+  - imported model assets may produce asset selected source records but must not
+    become DLL, Python, uv, or package roots
+  - record invalidation must fail closed for affected consumers
+  - environment_key is composed from dependency_family plus the family-specific
+    key fields in local-environment-dependencies.yaml
+  - consumer_scope is not default environment key material; it is projection and
+    activation-gate data unless a family explicitly admits consumer-scoped
+    selected source ownership
+  - consumer membership is projected through selected_consumers and activation
+    gates, not by splitting selected source record truth per consumer
+  - UI rows, model asset rows, transfer ids, consumer ids, and engine-private
+    paths must not replace dependency environment keys
+  - selected source promotion requires source_manifest_ref and
+    verification_evidence_ref matching the dependency family materializer
+    registry
 
 # Canonical selected source record schema for local environment dependencies.
 

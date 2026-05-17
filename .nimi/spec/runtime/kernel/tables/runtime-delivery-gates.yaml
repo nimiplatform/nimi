@@ -1,4 +1,16 @@
 version: 1
+table_family: product_catalog
+owner: runtime
+catalog_id: runtime_runtime_delivery_gates
+entries:
+  - ssot_freeze
+  - proto_chain
+  - sdk_alignment
+  - provider_coverage
+  - workflow_async
+  - matrix_tests
+  - observability
+  - release_candidate
 gates:
   - gate: G0
     name: ssot_freeze

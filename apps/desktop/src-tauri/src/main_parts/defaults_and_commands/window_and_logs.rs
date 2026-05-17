@@ -1,6 +1,8 @@
 use super::*;
-use std::path::PathBuf;
-use std::process::Command;
+use std::fs;
+use std::path::{Path, PathBuf};
+use std::process::{Command, Stdio};
+use std::time::SystemTime;
 
 const AVATAR_HANDOFF_SCHEME: &str = "nimi-avatar";
 const AVATAR_HANDOFF_LAUNCH_HOST: &str = "launch";
@@ -34,50 +36,14 @@ fn normalize_optional_handoff_value(value: Option<&str>) -> Option<String> {
     }
 }
 
-fn validate_handoff_local_agent_ref(
-    owner_user_id: &str,
-    realm_agent_id: &str,
-    local_agent_ref: &str,
-) -> Result<(), String> {
-    if local_agent_ref == realm_agent_id {
-        return Err(structured_avatar_handoff_error(
-            "DESKTOP_AVATAR_HANDOFF_INVALID",
-            "avatar handoff localAgentRef must not be a bare realmAgentId",
-        ));
-    }
-    if !local_agent_ref.starts_with("local-agent:") {
-        return Err(structured_avatar_handoff_error(
-            "DESKTOP_AVATAR_HANDOFF_INVALID",
-            "avatar handoff localAgentRef must start with local-agent:",
-        ));
-    }
-    let expected = format!("local-agent:{owner_user_id}:{realm_agent_id}");
-    if local_agent_ref != expected {
-        return Err(structured_avatar_handoff_error(
-            "DESKTOP_AVATAR_HANDOFF_INVALID",
-            "avatar handoff localAgentRef must equal local-agent:${ownerUserId}:${realmAgentId}",
-        ));
-    }
-    Ok(())
-}
-
 fn build_avatar_handoff_uri(payload: &DesktopAvatarLaunchHandoffPayload) -> Result<String, String> {
-    let owner_user_id =
-        normalize_required_handoff_value(payload.owner_user_id.as_str(), "owner_user_id")?;
-    let realm_agent_id =
-        normalize_required_handoff_value(payload.realm_agent_id.as_str(), "realm_agent_id")?;
-    let local_agent_ref =
-        normalize_required_handoff_value(payload.local_agent_ref.as_str(), "local_agent_ref")?;
-    validate_handoff_local_agent_ref(&owner_user_id, &realm_agent_id, &local_agent_ref)?;
+    let agent_id = normalize_required_handoff_value(payload.agent_id.as_str(), "agent_id")?;
     let avatar_instance_id =
         normalize_optional_handoff_value(payload.avatar_instance_id.as_deref());
-    let launch_source = normalize_optional_handoff_value(payload.launch_source.as_deref())
-        .or_else(|| normalize_optional_handoff_value(payload.source_surface.as_deref()));
+    let launch_source = normalize_optional_handoff_value(payload.launch_source.as_deref());
 
     let mut serializer = url::form_urlencoded::Serializer::new(String::new());
-    serializer.append_pair("owner_user_id", owner_user_id.as_str());
-    serializer.append_pair("realm_agent_id", realm_agent_id.as_str());
-    serializer.append_pair("local_agent_ref", local_agent_ref.as_str());
+    serializer.append_pair("agent_id", agent_id.as_str());
     if let Some(avatar_instance_id) = avatar_instance_id {
         serializer.append_pair("avatar_instance_id", avatar_instance_id.as_str());
     }
@@ -178,11 +144,9 @@ fn spawn_avatar_handoff_binary(path: PathBuf, uri: &str) -> Result<(), String> {
     }
     let mut command = Command::new(path);
     apply_avatar_runtime_env(&mut command)?;
-    command
-        .arg(uri)
-        .spawn()
-        .map_err(|error| format!("spawn avatar binary failed: {error}"))?;
-    Ok(())
+    command.arg(uri);
+    spawn_avatar_handoff_process(command, "binary")
+        .map_err(|error| format!("spawn avatar binary failed: {error}"))
 }
 
 fn open_avatar_handoff_binary(uri: &str) -> Result<(), String> {
@@ -216,6 +180,10 @@ fn avatar_runtime_env_pairs() -> Result<Vec<(&'static str, String)>, String> {
         ("NIMI_AGENT_ID", defaults.runtime.agent_id),
         ("NIMI_WORLD_ID", defaults.runtime.world_id),
         ("NIMI_PROVIDER", defaults.runtime.provider),
+        // Desktop may run with RELEASE bridge mode so it can host the bundled
+        // product Runtime. Avatar is a separate first-party consumer of that
+        // Runtime, so its handoff process must use the external Runtime bridge.
+        ("NIMI_RUNTIME_BRIDGE_MODE", "RUNTIME".to_string()),
         (
             "NIMI_USER_CONFIRMED_UPLOAD",
             if defaults.runtime.user_confirmed_upload {
@@ -230,9 +198,11 @@ fn avatar_runtime_env_pairs() -> Result<Vec<(&'static str, String)>, String> {
         "NIMI_RUNTIME_GRPC_ADDR",
         "NIMI_RUNTIME_HTTP_ADDR",
         "NIMI_RUNTIME_LOCAL_STATE_PATH",
+        "NIMI_RUNTIME_LOCK_PATH",
+        "NIMI_RUNTIME_ACCOUNT_CUSTODY_PARTITION",
         "NIMI_RUNTIME_BRIDGE_DEBUG",
-        "NIMI_E2E_PROFILE",
         "NIMI_E2E_FIXTURE_PATH",
+        "NIMI_E2E_BACKEND_LOG_PATH",
     ] {
         if let Ok(value) = std::env::var(key) {
             if !value.trim().is_empty() {
@@ -247,6 +217,76 @@ fn apply_avatar_runtime_env(command: &mut Command) -> Result<(), String> {
     for (key, value) in avatar_runtime_env_pairs()? {
         command.env(key, value);
     }
+    Ok(())
+}
+
+fn avatar_handoff_backend_log_path() -> Option<String> {
+    std::env::var("NIMI_E2E_BACKEND_LOG_PATH")
+        .ok()
+        .map(|value| value.trim().to_string())
+        .filter(|value| !value.is_empty())
+}
+
+fn append_avatar_handoff_backend_log(message: &str) {
+    crate::desktop_e2e_fixture::append_backend_log_message(message);
+}
+
+fn attach_avatar_child_logs(command: &mut Command, launch_kind: &str) {
+    let Some(log_path) = avatar_handoff_backend_log_path() else {
+        return;
+    };
+    let stdout = fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(log_path.as_str());
+    let stderr = fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(log_path.as_str());
+    match (stdout, stderr) {
+        (Ok(stdout), Ok(stderr)) => {
+            command.stdout(Stdio::from(stdout));
+            command.stderr(Stdio::from(stderr));
+        }
+        (stdout_result, stderr_result) => {
+            append_avatar_handoff_backend_log(&format!(
+                "avatar-handoff-child-log-attach-failed launch_kind={launch_kind} stdout_error={} stderr_error={}",
+                stdout_result
+                    .err()
+                    .map(|error| error.to_string())
+                    .unwrap_or_else(|| "none".to_string()),
+                stderr_result
+                    .err()
+                    .map(|error| error.to_string())
+                    .unwrap_or_else(|| "none".to_string())
+            ));
+        }
+    }
+}
+
+fn spawn_avatar_handoff_process(mut command: Command, launch_kind: &str) -> Result<(), String> {
+    let executable = command.get_program().to_string_lossy().to_string();
+    append_avatar_handoff_backend_log(&format!(
+        "avatar-handoff-spawn-start launch_kind={launch_kind} executable={executable}"
+    ));
+    attach_avatar_child_logs(&mut command, launch_kind);
+    let mut child = command.spawn().map_err(|error| error.to_string())?;
+    let pid = child.id();
+    append_avatar_handoff_backend_log(&format!(
+        "avatar-handoff-spawned launch_kind={launch_kind} pid={pid} executable={executable}"
+    ));
+    let launch_kind = launch_kind.to_string();
+    std::thread::spawn(move || {
+        let status = child.wait();
+        match status {
+            Ok(status) => append_avatar_handoff_backend_log(&format!(
+                "avatar-handoff-exited launch_kind={launch_kind} pid={pid} status={status}"
+            )),
+            Err(error) => append_avatar_handoff_backend_log(&format!(
+                "avatar-handoff-wait-failed launch_kind={launch_kind} pid={pid} error={error}"
+            )),
+        }
+    });
     Ok(())
 }
 
@@ -276,11 +316,9 @@ fn spawn_avatar_handoff_app(path: PathBuf, uri: &str) -> Result<(), String> {
     }
     let mut command = Command::new(executable_path);
     apply_avatar_runtime_env(&mut command)?;
-    command
-        .arg(uri)
-        .spawn()
-        .map_err(|error| format!("spawn avatar app executable failed: {error}"))?;
-    Ok(())
+    command.arg(uri);
+    spawn_avatar_handoff_process(command, "app")
+        .map_err(|error| format!("spawn avatar app executable failed: {error}"))
 }
 
 #[cfg(target_os = "macos")]
@@ -323,46 +361,172 @@ fn repo_root_candidates() -> Vec<PathBuf> {
 }
 
 #[cfg(target_os = "macos")]
-fn inferred_avatar_app_path() -> Option<PathBuf> {
-    repo_root_candidates()
-        .into_iter()
-        .map(|root| {
-            root.join("apps")
-                .join("avatar")
-                .join("src-tauri")
-                .join("target")
-                .join("release")
-                .join("bundle")
-                .join("macos")
-                .join("Nimi Avatar.app")
-        })
-        .find(|path| path.is_dir())
+fn inferred_avatar_app_path() -> Result<Option<PathBuf>, String> {
+    for root in repo_root_candidates() {
+        let path = root
+            .join("apps")
+            .join("avatar")
+            .join("src-tauri")
+            .join("target")
+            .join("release")
+            .join("bundle")
+            .join("macos")
+            .join("Nimi Avatar.app");
+        if path.is_dir() {
+            let executable_path = path
+                .join("Contents")
+                .join("MacOS")
+                .join("nimiplatform-avatar");
+            require_fresh_inferred_avatar_target(&root, &executable_path)?;
+            return Ok(Some(path));
+        }
+    }
+    Ok(None)
 }
 
-fn inferred_avatar_binary_path() -> Option<PathBuf> {
-    repo_root_candidates()
-        .into_iter()
-        .map(|root| {
-            root.join("apps")
-                .join("avatar")
-                .join("src-tauri")
-                .join("target")
-                .join("release")
-                .join(if cfg!(target_os = "windows") {
-                    "nimiplatform-avatar.exe"
-                } else {
-                    "nimiplatform-avatar"
-                })
-        })
-        .find(|path| path.is_file())
+fn inferred_avatar_binary_path() -> Result<Option<PathBuf>, String> {
+    for root in repo_root_candidates() {
+        let path = root
+            .join("apps")
+            .join("avatar")
+            .join("src-tauri")
+            .join("target")
+            .join("release")
+            .join(if cfg!(target_os = "windows") {
+                "nimiplatform-avatar.exe"
+            } else {
+                "nimiplatform-avatar"
+            });
+        if path.is_file() {
+            require_fresh_inferred_avatar_target(&root, &path)?;
+            return Ok(Some(path));
+        }
+    }
+    Ok(None)
+}
+
+fn require_fresh_inferred_avatar_target(
+    repo_root: &Path,
+    executable_path: &Path,
+) -> Result<(), String> {
+    let target_modified = fs::metadata(executable_path)
+        .and_then(|metadata| metadata.modified())
+        .map_err(|error| {
+            format!(
+                "repo-local Avatar target cannot be inspected: {}; {error}",
+                executable_path.display()
+            )
+        })?;
+    let source_cutoff = latest_avatar_source_modified_at(repo_root)?.ok_or_else(|| {
+        format!(
+            "repo-local Avatar source tree cannot be inspected under {}; run pnpm build:avatar",
+            repo_root.join("apps").join("avatar").display()
+        )
+    })?;
+    if target_modified < source_cutoff {
+        return Err(format!(
+            "repo-local Avatar target is older than Avatar source: {}; run pnpm build:avatar",
+            executable_path.display()
+        ));
+    }
+    Ok(())
+}
+
+fn latest_avatar_source_modified_at(repo_root: &Path) -> Result<Option<SystemTime>, String> {
+    let avatar_root = repo_root.join("apps").join("avatar");
+    let roots = [
+        avatar_root.join("src"),
+        avatar_root.join("src-tauri").join("src"),
+        avatar_root.join("src-tauri").join("capabilities"),
+        avatar_root.join("src-tauri").join("tauri.conf.json"),
+        avatar_root.join("src-tauri").join("Cargo.toml"),
+        avatar_root.join("package.json"),
+    ];
+    let mut latest = None;
+    for root in roots {
+        merge_latest_modified(&root, &mut latest)?;
+    }
+    Ok(latest)
+}
+
+fn merge_latest_modified(path: &Path, latest: &mut Option<SystemTime>) -> Result<(), String> {
+    if !path.exists() {
+        return Ok(());
+    }
+    let metadata = fs::metadata(path).map_err(|error| {
+        format!(
+            "failed to inspect Avatar source {}: {error}",
+            path.display()
+        )
+    })?;
+    if metadata.is_file() {
+        if is_avatar_source_freshness_file(path) {
+            let modified = metadata.modified().map_err(|error| {
+                format!(
+                    "failed to inspect Avatar source mtime {}: {error}",
+                    path.display()
+                )
+            })?;
+            if latest.map(|current| modified > current).unwrap_or(true) {
+                *latest = Some(modified);
+            }
+        }
+        return Ok(());
+    }
+    if metadata.is_dir() {
+        let entries = fs::read_dir(path).map_err(|error| {
+            format!(
+                "failed to read Avatar source dir {}: {error}",
+                path.display()
+            )
+        })?;
+        for entry in entries {
+            let entry = entry.map_err(|error| {
+                format!(
+                    "failed to read Avatar source dir entry {}: {error}",
+                    path.display()
+                )
+            })?;
+            let child = entry.path();
+            if child.is_dir() {
+                if is_ignored_avatar_source_freshness_dir(&child) {
+                    continue;
+                }
+                merge_latest_modified(&child, latest)?;
+            } else {
+                merge_latest_modified(&child, latest)?;
+            }
+        }
+    }
+    Ok(())
+}
+
+fn is_ignored_avatar_source_freshness_dir(path: &Path) -> bool {
+    matches!(
+        path.file_name().and_then(|value| value.to_str()),
+        Some("target" | "node_modules" | "dist" | ".vite" | "generated" | "gen")
+    )
+}
+
+fn is_avatar_source_freshness_file(path: &Path) -> bool {
+    if matches!(
+        path.file_name().and_then(|value| value.to_str()),
+        Some("Cargo.toml" | "package.json" | "tauri.conf.json")
+    ) {
+        return true;
+    }
+    matches!(
+        path.extension().and_then(|value| value.to_str()),
+        Some("rs" | "ts" | "tsx" | "json" | "html" | "css")
+    )
 }
 
 fn open_inferred_avatar_handoff_target(uri: &str) -> Result<(), String> {
     #[cfg(target_os = "macos")]
-    if let Some(app_path) = inferred_avatar_app_path() {
+    if let Some(app_path) = inferred_avatar_app_path()? {
         return spawn_avatar_handoff_app(app_path, uri);
     }
-    if let Some(binary_path) = inferred_avatar_binary_path() {
+    if let Some(binary_path) = inferred_avatar_binary_path()? {
         return spawn_avatar_handoff_binary(binary_path, uri);
     }
     Err("repo-local Avatar app/binary is not built; run pnpm build:avatar".to_string())

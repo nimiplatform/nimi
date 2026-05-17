@@ -1,3 +1,15 @@
+table_family: product_catalog
+owner: desktop
+catalog_id: desktop_codegen_acceptance_gates
+entries:
+  - codegen_e2e
+  - governance_trace
+  - capability_tier
+  - deny_audit
+  - static_scan
+  - reload_leak
+  - scenario_coverage
+  - rollback
 gates:
   - gate: codegen_e2e
     requirement: description to runnable mod path passes

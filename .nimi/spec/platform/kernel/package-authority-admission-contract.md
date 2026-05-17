@@ -4,7 +4,7 @@
 
 ## P-PKG-001 — Single Package Admission Source
 
-Package-local spec roots outside `.nimi/spec/**` become spec-first audit authority only when an active row in `.nimi/spec/**/kernel/tables/package-authority-admissions.yaml` names the package id, authority root, owner domain, and evidence roots. Audit tools must not infer package authority from workspace membership, package names, or directory shape alone.
+Package-local spec roots outside `.nimi/spec/**` become spec-first audit authority only when an `admission_posture=active` row in `.nimi/spec/**/kernel/tables/package-authority-admissions.yaml` names the package id, authority root, owner domain, and evidence roots. Audit tools must not infer package authority from workspace membership, package names, or directory shape alone.
 
 ## P-PKG-002 — Package Authority Scope
 

@@ -120,8 +120,8 @@ is to undo the move and record the correction.
 
 ## Source Basis
 
-- [`.nimi/methodology/topic-lifecycle-report.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/topic-lifecycle-report.yaml)
-- [`.nimi/contracts/topic.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/topic.schema.yaml)
-- [`.nimi/contracts/closeout.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/closeout.schema.yaml)
-- [`.nimi/contracts/pending-note.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/pending-note.schema.yaml)
-- [`.nimi/contracts/true-close.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/true-close.schema.yaml)
+- [`nimi-coding/methodology/topic-lifecycle-report.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/methodology/topic-lifecycle-report.yaml)
+- [`nimi-coding/contracts/topic.schema.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/contracts/topic.schema.yaml)
+- [`nimi-coding/contracts/closeout.schema.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/contracts/closeout.schema.yaml)
+- [`nimi-coding/contracts/pending-note.schema.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/contracts/pending-note.schema.yaml)
+- [`nimi-coding/contracts/true-close.schema.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/contracts/true-close.schema.yaml)

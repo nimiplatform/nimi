@@ -1,0 +1,147 @@
+version: 1
+contract:
+  id: nimicoding.domain-admission.v1
+  owner: nimi-coding
+  purpose: Require explicit admission for every host spec domain before it is product authority.
+required_top_level_fields:
+  - version
+  - domain_admissions
+  - domain_authority_class_enum
+  - semantic_constraints
+domain_admission_required_fields:
+  - domain_id
+  - domain_root
+  - authority_class
+  - owner
+  - admitted_by
+  - allowed_surface_classes
+  - forbidden_surface_classes
+  - validation_commands
+  - migration_disposition_when_unadmitted
+shared_enum_ref: shared-enums.yaml
+domain_admissions:
+  - domain_id: runtime
+    domain_root: .nimi/spec/runtime
+    authority_class: active_product
+    owner: runtime
+    admitted_by: existing_host_product_authority
+    allowed_surface_classes: [product_authority, product_authority_table, thin_guidance, support_registry]
+    forbidden_surface_classes: [derived_view, spec_generation_state, audit_evidence_state, lifecycle_progress_state, candidate_roadmap, methodology_authority]
+    validation_commands: [pnpm exec nimicoding validate-spec-governance --profile nimi --scope runtime]
+    migration_disposition_when_unadmitted: block
+  - domain_id: sdk
+    domain_root: .nimi/spec/sdk
+    authority_class: active_product
+    owner: sdk
+    admitted_by: existing_host_product_authority
+    allowed_surface_classes: [product_authority, product_authority_table, thin_guidance, support_registry]
+    forbidden_surface_classes: [derived_view, spec_generation_state, audit_evidence_state, lifecycle_progress_state, candidate_roadmap, methodology_authority]
+    validation_commands: [pnpm exec nimicoding validate-spec-governance --profile nimi --scope sdk]
+    migration_disposition_when_unadmitted: block
+  - domain_id: platform
+    domain_root: .nimi/spec/platform
+    authority_class: active_product
+    owner: platform
+    admitted_by: existing_host_product_authority
+    allowed_surface_classes: [product_authority, product_authority_table, thin_guidance, support_registry, host_projection_anchor]
+    forbidden_surface_classes: [derived_view, spec_generation_state, audit_evidence_state, lifecycle_progress_state, candidate_roadmap]
+    validation_commands: [pnpm exec nimicoding validate-spec-governance --profile nimi --scope platform]
+    migration_disposition_when_unadmitted: block
+  - domain_id: realm
+    domain_root: .nimi/spec/realm
+    authority_class: active_product
+    owner: realm
+    admitted_by: existing_host_product_authority
+    allowed_surface_classes: [product_authority, product_authority_table, thin_guidance, support_registry]
+    forbidden_surface_classes: [derived_view, spec_generation_state, audit_evidence_state, lifecycle_progress_state, candidate_roadmap, methodology_authority]
+    validation_commands: [pnpm exec nimicoding validate-spec-governance --profile nimi --scope realm]
+    migration_disposition_when_unadmitted: block
+  - domain_id: desktop
+    domain_root: .nimi/spec/desktop
+    authority_class: active_product
+    owner: desktop
+    admitted_by: existing_host_product_authority
+    allowed_surface_classes: [product_authority, product_authority_table, thin_guidance, support_registry]
+    forbidden_surface_classes: [derived_view, spec_generation_state, audit_evidence_state, lifecycle_progress_state, candidate_roadmap, methodology_authority]
+    validation_commands: [pnpm exec nimicoding validate-spec-governance --profile nimi --scope desktop]
+    migration_disposition_when_unadmitted: block
+  - domain_id: avatar
+    domain_root: .nimi/spec/avatar
+    authority_class: active_product
+    owner: avatar
+    admitted_by: wave_1_domain_admission
+    allowed_surface_classes: [product_authority, product_authority_table, thin_guidance, support_registry]
+    forbidden_surface_classes: [derived_view, spec_generation_state, audit_evidence_state, lifecycle_progress_state, candidate_roadmap, methodology_authority]
+    validation_commands: [pnpm exec nimicoding validate-spec-governance --profile nimi --scope avatar]
+    migration_disposition_when_unadmitted: block
+    admission_policy:
+      generated_evidence_state_policy: generated_views_evidence_and_lifecycle_state_must_move_or_split_out_of_product_authority_root
+      table_policy: product_tables_must_declare_table_family_before_keep
+      guidance_policy: guidance_must_be_thin_and_must_not_carry_rule_body
+  - domain_id: cognition
+    domain_root: .nimi/spec/cognition
+    authority_class: active_product
+    owner: cognition
+    admitted_by: wave_1_domain_admission
+    allowed_surface_classes: [product_authority, product_authority_table, thin_guidance, support_registry]
+    forbidden_surface_classes: [derived_view, spec_generation_state, audit_evidence_state, lifecycle_progress_state, candidate_roadmap, methodology_authority]
+    validation_commands: [pnpm exec nimicoding validate-spec-governance --profile nimi --scope cognition]
+    migration_disposition_when_unadmitted: block
+    admission_policy:
+      generated_evidence_state_policy: generated_views_evidence_and_lifecycle_state_must_move_or_split_out_of_product_authority_root
+      table_policy: product_tables_must_declare_table_family_before_keep
+      guidance_policy: guidance_must_be_thin_and_must_not_carry_rule_body
+  - domain_id: future
+    domain_root: .nimi/spec/future
+    authority_class: excluded_from_spec
+    owner: planning
+    admitted_by: hardcut_decision_f2
+    allowed_surface_classes: []
+    forbidden_surface_classes: [product_authority, product_authority_table, thin_guidance, derived_view, spec_generation_state, audit_evidence_state, lifecycle_progress_state, candidate_roadmap, methodology_authority, support_registry]
+    validation_commands: [pnpm exec nimicoding validate-placement --profile nimi]
+    migration_disposition_when_unadmitted: move_local
+domain_authority_class_enum:
+  - active_product
+  - package_projection_anchor_only
+  - migration_input_only
+  - excluded_from_spec
+migration_disposition_when_unadmitted_enum:
+  - move_local
+  - move_package
+  - split
+  - delete
+  - block
+domain_rules:
+  - domain_id: future
+    required_authority_class: excluded_from_spec
+    allowed_migration_dispositions:
+      - move_local
+      - split
+      - delete
+      - block
+  - domain_id: avatar
+    required_authority_class: active_product
+    forbidden_authority_classes:
+      - candidate_only
+      - migration_input_only
+    allowed_authority_classes:
+      - active_product
+    admission_required: true
+  - domain_id: cognition
+    required_authority_class: active_product
+    forbidden_authority_classes:
+      - candidate_only
+      - migration_input_only
+    allowed_authority_classes:
+      - active_product
+    admission_required: true
+semantic_constraints:
+  - directory_presence_does_not_admit_product_authority
+  - unadmitted_domain_must_not_be_used_as_implementation_authority
+  - future_domain_must_not_remain_under_.nimi/spec
+  - product_domain_admission_must_name_validation_commands
+  - package_projection_domains_must_not_define_product_rules
+  - active_product_domain_does_not_admit_generated_evidence_or_state_surfaces
+  - product_authority_tables_must_declare_table_family
+  - thin_guidance_must_not_carry_rule_body
+  - avatar_and_cognition_must_not_be_demoted_to_candidate_only

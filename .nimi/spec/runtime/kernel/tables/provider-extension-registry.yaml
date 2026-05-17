@@ -1,4 +1,7 @@
 version: 1
+table_family: product_catalog
+owner: runtime
+catalog_id: runtime_provider_extension_registry
 entries:
   - provider_id: local
     scenario_type: IMAGE_GENERATE

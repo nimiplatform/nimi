@@ -1,0 +1,91 @@
+table_family: support_registry
+registry_id: sdk_rule_evidence_catalog
+owner: sdk
+schema_ref: .nimi/contracts/table-family.schema.yaml#support_registry
+allowed_fields:
+  - type
+  - command
+  - path
+  - description
+  - evidence_type
+  - validation_scope
+forbidden_state_fields:
+  - done
+  - covered
+  - coverage_status
+  - audit_date
+  - evidence_report
+  - current
+  - proposed
+  - backlog_status
+  - migration_status
+  - mapping_status
+  - run_id
+  - ledger_ref
+entries:
+  - sdk_behavioral_test
+  - sdk_kernel_consistency
+  - sdk_lint_gate
+  - sdk_test_gate
+  - sdk_boundary_gate
+  - sdk_realm_legacy_gate
+  - sdk_app_realm_boundary_gate
+  - sdk_unsafe_raw_gate
+  - sdk_generated_type_quality_gate
+  - sdk_mod_hardcut_gate
+  - sdk_runtime_stable_ai_output_gate
+sdk_behavioral_test:
+  type: test_gate
+  command: pnpm --filter @nimiplatform/sdk test
+  path: sdk/package.json
+  description: Behavioral unit/integration tests verifying rule semantics. Rules with this evidence have dedicated test cases (listed in test_files) that exercise the specific behavior the rule mandates.
+sdk_kernel_consistency:
+  type: static_gate
+  command: pnpm exec nimicoding validate-spec-governance --profile nimi --scope sdk-consistency
+  path: scripts/check-sdk-spec-kernel-consistency.mjs
+  description: Kernel rule integrity, surface boundary validation, method group coverage, and error code checks for SDK domain.
+sdk_lint_gate:
+  type: lint_gate
+  command: pnpm --filter @nimiplatform/sdk lint
+  path: sdk/package.json
+  description: TypeScript compile and ESLint checks for SDK implementation.
+sdk_test_gate:
+  type: test_gate
+  command: pnpm --filter @nimiplatform/sdk test
+  path: sdk/package.json
+  description: SDK unit tests pass as a whole. Rules with this ref (without test_files) are indirectly validated by the suite.
+sdk_boundary_gate:
+  type: static_gate
+  command: pnpm check:sdk-import-boundary && pnpm check:no-create-nimi-client && pnpm check:no-global-openapi-config
+  path: scripts/check-sdk-import-boundary.mjs
+  description: Import boundary enforcement and legacy entry point prohibition.
+sdk_realm_legacy_gate:
+  type: static_gate
+  command: pnpm check:sdk-realm-legacy-clean
+  path: scripts/check-sdk-realm-legacy-clean.mjs
+  description: Realm legacy naming prohibition.
+sdk_app_realm_boundary_gate:
+  type: static_gate
+  command: pnpm check:no-app-realm-rest-bypass
+  path: scripts/check-no-app-realm-rest-bypass.mjs
+  description: App production code Realm access boundary enforcement.
+sdk_unsafe_raw_gate:
+  type: static_gate
+  command: pnpm check:sdk-unsafe-raw-usage
+  path: scripts/check-sdk-unsafe-raw-usage.mjs
+  description: Explicit unsafeRaw-only escape hatch enforcement for SDK public surface.
+sdk_generated_type_quality_gate:
+  type: static_gate
+  command: pnpm check:sdk-generated-type-quality
+  path: scripts/check-sdk-generated-type-quality.mjs
+  description: Generated realm schema quality gate, including high-frequency DTO assertions and dynamic-envelope allowlist enforcement.
+sdk_mod_hardcut_gate:
+  type: static_gate
+  command: pnpm check:runtime-mod-hook-hardcut
+  path: scripts/check-runtime-mod-hook-hardcut.mjs
+  description: Mod legacy surface hardcut enforcement.
+sdk_runtime_stable_ai_output_gate:
+  type: static_gate
+  command: pnpm check:runtime-stable-ai-output-typing
+  path: scripts/check-runtime-stable-ai-output-typing.mjs
+  description: Stable runtime AI product surfaces must consume typed ScenarioOutput and ScenarioStreamDelta contracts without Struct/record reparsing.

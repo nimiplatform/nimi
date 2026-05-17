@@ -118,7 +118,13 @@ Apps may not:
 - `ListAgents`
 - `OpenConversationAnchor`
 - `GetConversationAnchorSnapshot`
+- `RegisterAvatarLiveInstanceBinding`
+- `ResolveAvatarLiveInstanceBinding`
 - `GetPublicChatSessionSnapshot`
+- `GetCompanionParticipationProjection`
+- `RequestCompanionParticipation`
+- `CancelCompanionParticipation`
+- `OpenCompanionParticipationReplay`
 - `GetAgentState`
 - `UpdateAgentState`
 - `EnableAutonomy`

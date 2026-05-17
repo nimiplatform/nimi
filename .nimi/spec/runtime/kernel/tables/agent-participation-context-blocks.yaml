@@ -1,4 +1,31 @@
 version: 1
+table_family: product_catalog
+owner: runtime
+catalog_id: runtime_agent_participation_context_blocks
+entries:
+  - runtime_conversation_anchor_ref
+  - realm_group_thread_ref
+  - trigger_message_ref
+  - participant_projection
+  - recent_group_transcript_projection
+  - agent_slot_projection
+  - scenario_package_ref
+  - scenario_run_ref
+  - scenario_branch_ref
+  - visible_scene_state
+  - recent_sandbox_transcript_projection
+  - world_context_ref
+  - world_event_ref
+  - visible_world_state_projection
+  - recent_world_transcript_or_event_projection
+  - external_participant_identity_ref
+  - external_payload_ref
+  - gateway_verdict_ref
+  - domain_context_ref
+  - tool_or_capability_projection
+  - diagnostic_probe_ref
+  - raw_prompt_blob_public_input
+  - open_context_block_kind_allowed
 source_rule: K-AGCORE-081
 context_blocks:
   - id: runtime_conversation_anchor_ref

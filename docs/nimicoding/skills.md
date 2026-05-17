@@ -22,7 +22,7 @@ into a canonical authority tree under `.nimi/spec/**`.
 
 | Input | Output |
 | --- | --- |
-| Mixed inputs (code, docs, structure, human notes) | Canonical tree under `.nimi/spec/**` plus `.nimi/spec/_meta/spec-generation-audit.yaml` |
+| Mixed inputs (code, docs, structure, human notes) | Canonical tree under `.nimi/spec/**` plus `.nimi/local/state/spec-generation/spec-generation-audit.yaml` |
 
 | Property | Value |
 | --- | --- |
@@ -111,8 +111,8 @@ A team adopting Nimi Coding has a project with mixed inputs and
 no canonical spec yet.
 
 1. **Run `nimicoding start`.** Bootstrap admits.
-2. **Project chooses host.** Adapter overlay selected (e.g.,
-   Codex, Claude, oh-my-codex).
+2. **Project chooses host.** Use the generic host profile or a
+   concrete adapter overlay such as Codex, Claude, or oh-my-codex.
 3. **Run `nimicoding handoff --skill spec_reconstruction --json`.**
    Package emits handoff payload.
 4. **Host consumes payload.** Reconstructs canonical tree under
@@ -132,11 +132,11 @@ admitted host that satisfies the host-class capabilities.
 A team wants a comprehensive audit of their project under the
 methodology.
 
-1. **Run `nimicoding handoff --skill audit_sweep --json`.**
-2. **Host runs the sweep.** Reads the project under admitted
-   read scope; emits typed findings.
-3. **Findings ledger frozen.** Result is recorded; cannot be
-   edited later.
+1. **Run `nimicoding sweep audit plan`.** Split the target root into
+   auditable chunks.
+2. **Dispatch and ingest chunks.** A host audits each chunk; the CLI
+   records typed evidence.
+3. **Build the ledger.** Findings become immutable audit evidence.
 4. **Manager reviews.** Typed findings inform the next
    wave-admission decisions.
 
@@ -174,9 +174,9 @@ is implicit.
 
 ## Source Basis
 
-- [`nimi-coding/config/skills.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/config/skills.yaml)
-- [`nimi-coding/config/skill-manifest.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/config/skill-manifest.yaml)
-- [`nimi-coding/methodology/skill-runtime.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/methodology/skill-runtime.yaml)
-- [`nimi-coding/methodology/skill-handoff.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/methodology/skill-handoff.yaml)
-- [`nimi-coding/methodology/skill-installer-result.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/methodology/skill-installer-result.yaml)
-- [`nimi-coding/methodology/spec-reconstruction.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/methodology/spec-reconstruction.yaml)
+- [`nimi-coding/config/skills.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/config/skills.yaml)
+- [`nimi-coding/config/skill-manifest.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/config/skill-manifest.yaml)
+- [`nimi-coding/methodology/skill-runtime.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/methodology/skill-runtime.yaml)
+- [`nimi-coding/methodology/skill-handoff.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/methodology/skill-handoff.yaml)
+- [`nimi-coding/methodology/skill-installer-result.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/methodology/skill-installer-result.yaml)
+- [`nimi-coding/methodology/spec-reconstruction.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/methodology/spec-reconstruction.yaml)

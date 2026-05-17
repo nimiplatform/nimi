@@ -1,7 +1,7 @@
 // Wave 1 (step 3) of topic 2026-04-30-avatar-vrm-backend-branch (design-04).
 //
 // This module is the NAS-facing projection surface anchor. It exports
-// two surfaces that coexist during wave_1:
+// two surfaces that have distinct ownership:
 //
 //   1. `BackendProjection` — the canonical ontology surface
 //      (applyActivity / applyEmotion / applyMotion / applyExpression /
@@ -10,13 +10,11 @@
 //      input-object NAS handlers (design-04 §"NAS handler signature
 //      hard-cut") consume this surface.
 //
-//   2. `EmbodimentProjectionApi` — the legacy backend-neutral cue
-//      surface (triggerMotion / setSignal / setExpression / setPose /
-//      …). Retained for the existing handler sandbox, default
-//      activity fallback, and interaction-physics code paths until
-//      they migrate to the ontology surface in a follow-up wave_1
-//      step. NEW callers MUST prefer `BackendProjection`; the legacy
-//      surface stays read-only / no behavior changes here.
+//   2. `EmbodimentProjectionApi` — the backend-neutral cue surface
+//      (triggerMotion / setSignal / setExpression / setPose / …). It is
+//      retained for the handler sandbox, default activity fallback, and
+//      interaction-physics code paths that intentionally operate on
+//      low-level cues instead of ontology-level projection events.
 //
 // The two surfaces are not interchangeable: `BackendProjection` is
 // ontology-level (no Live2D parameter id leaks), while
@@ -63,11 +61,10 @@ export type ActivityFallbackOptions = {
   bundle: AgentDataBundle;
 };
 
-/** Legacy backend-neutral cue / signal surface. Retained for the
- *  existing handler sandbox, default activity fallback, and
- *  interaction-physics call sites. Do not extend with new methods —
- *  add new capabilities to `BackendProjection` (ontology) or to a
- *  branch-specific extension type instead. */
+/** Backend-neutral cue / signal surface for the handler sandbox,
+ *  default activity fallback, and interaction-physics call sites. Do not
+ *  extend with new methods — add new capabilities to `BackendProjection`
+ *  (ontology) or to a branch-specific extension type instead. */
 export interface EmbodimentProjectionApi {
   triggerMotion(motionId: string, opts?: PlayMotionOptions): Promise<void>;
   stopMotion(): void;

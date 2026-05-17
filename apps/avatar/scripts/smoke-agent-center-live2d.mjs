@@ -47,8 +47,11 @@ function findConfiguredAgent(dataRoot, explicitAccountId, explicitAgentId) {
       const configPath = join(agentsRoot, agentSegment, 'agent-center', 'config.json');
       if (!existsSync(configPath)) continue;
       const config = readJson(configPath);
-      const selected = config.modules?.avatar_package?.selected_package;
-      if (selected?.kind === 'live2d' && normalize(selected.package_id)) {
+      const selected = config.modules?.avatar_asset;
+      if (
+        selected?.backend_kind === 'live2d'
+        && normalize(selected.local_avatar_asset_ref)
+      ) {
         return {
           accountId: normalize(config.account_id),
           agentId: normalize(config.agent_id),
@@ -68,11 +71,12 @@ function main() {
     normalize(process.env.NIMI_AVATAR_SMOKE_AGENT_ID),
   );
   const config = readJson(target.configPath);
-  const selected = config.modules?.avatar_package?.selected_package;
-  if (selected?.kind !== 'live2d' || !normalize(selected.package_id)) {
-    throw new Error(`Agent Center config has no selected Live2D package: ${target.configPath}`);
+  const selected = config.modules?.avatar_asset;
+  const localAssetRef = normalize(selected?.local_avatar_asset_ref);
+  if (selected?.backend_kind !== 'live2d' || !localAssetRef) {
+    throw new Error(`Agent Center config has no selected Live2D local Avatar asset: ${target.configPath}`);
   }
-  const packageRoot = join(
+  const assetRoot = join(
     dataRoot,
     'accounts',
     scopePathSegment(target.accountId),
@@ -80,21 +84,21 @@ function main() {
     scopePathSegment(target.agentId),
     'agent-center',
     'modules',
-    'avatar_package',
+    'avatar_asset',
     'packages',
     'live2d',
-    selected.package_id,
+    localAssetRef,
   );
-  const manifestPath = join(packageRoot, 'manifest.json');
+  const manifestPath = join(assetRoot, 'manifest.json');
   if (!existsSync(manifestPath)) {
-    throw new Error(`Live2D package manifest is missing: ${manifestPath}`);
+    throw new Error(`Live2D local Avatar asset manifest is missing: ${manifestPath}`);
   }
   const manifest = readJson(manifestPath);
   const entryFile = normalize(manifest.entry_file);
   if (!entryFile.startsWith('files/') || !entryFile.endsWith('.model3.json')) {
     throw new Error(`Live2D manifest entry_file is not a model3 entry under files/: ${entryFile}`);
   }
-  const model3Path = join(packageRoot, entryFile);
+  const model3Path = join(assetRoot, entryFile);
   if (!existsSync(model3Path)) {
     throw new Error(`Live2D model3 entry is missing: ${model3Path}`);
   }
@@ -103,11 +107,7 @@ function main() {
     throw new Error(`Live2D model3 entry is missing Version: ${model3Path}`);
   }
   const launchContext = {
-    agent_center_account_id: target.accountId,
     agent_id: target.agentId,
-    avatar_package_kind: 'live2d',
-    avatar_package_id: selected.package_id,
-    avatar_package_schema_version: 1,
   };
   console.log(JSON.stringify({
     status: 'ok',
@@ -117,7 +117,9 @@ function main() {
     agent_id: target.agentId,
     agent_path_segment: scopePathSegment(target.agentId),
     config_path: target.configPath,
-    package_root: packageRoot,
+    local_avatar_asset_ref: localAssetRef,
+    backend_capability_profile_ref: normalize(selected.backend_capability_profile_ref),
+    asset_root: assetRoot,
     manifest_path: manifestPath,
     model3_path: model3Path,
     launch_context: launchContext,

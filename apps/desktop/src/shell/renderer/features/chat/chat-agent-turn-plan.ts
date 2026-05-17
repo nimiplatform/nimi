@@ -205,7 +205,7 @@ export function findSingleExecutableImageAction(
     return null;
   }
   if (imageActions.length > 1) {
-    throw new Error('agent-local-chat-v1 admits at most one image action in phase 0');
+    throw new Error('agent-local-chat-v1 admits at most one image action in the current action envelope');
   }
   return imageActions[0] || null;
 }
@@ -218,7 +218,7 @@ export function findSingleExecutableVoiceAction(
     return null;
   }
   if (voiceActions.length > 1) {
-    throw new Error('agent-local-chat-v1 admits at most one voice action in phase 1');
+    throw new Error('agent-local-chat-v1 admits at most one voice action in the current action envelope');
   }
   return voiceActions[0] || null;
 }

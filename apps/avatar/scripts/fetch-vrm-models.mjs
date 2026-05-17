@@ -51,6 +51,26 @@ export const VRM_SAMPLE_DEFINITIONS = {
     // a redirect-page leak / partial download.
     expectedMinBytes: 9_000_000,
   },
+  'vroid-hair-sample-female-cc0': {
+    id: 'vroid-hair-sample-female-cc0',
+    filename: 'HairSample_Female.vrm',
+    sourceUrl:
+      'https://raw.githubusercontent.com/madjin/vrm-samples/master/vroid/beta/HairSample_Female.vrm',
+    license: 'CC0-1.0',
+    upstream: 'VRoid Studio sample model via madjin/vrm-samples mirror',
+    displayName: 'VRoid HairSample Female (CC0)',
+    expectedMinBytes: 17_000_000,
+  },
+  'vroid-hair-sample-male-cc0': {
+    id: 'vroid-hair-sample-male-cc0',
+    filename: 'HairSample_Male.vrm',
+    sourceUrl:
+      'https://raw.githubusercontent.com/madjin/vrm-samples/master/vroid/beta/HairSample_Male.vrm',
+    license: 'CC0-1.0',
+    upstream: 'VRoid Studio sample model via madjin/vrm-samples mirror',
+    displayName: 'VRoid HairSample Male (CC0)',
+    expectedMinBytes: 18_000_000,
+  },
 };
 
 /**

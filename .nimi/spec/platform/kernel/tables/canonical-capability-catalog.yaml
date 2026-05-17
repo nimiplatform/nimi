@@ -1,4 +1,30 @@
 version: 1
+table_family: product_catalog
+owner: platform
+catalog_id: platform_canonical_capability_catalog
+entries:
+  - capabilities_1
+  - capabilities_2
+  - capabilities_3
+  - capabilities_4
+  - capabilities_5
+  - capabilities_6
+  - capabilities_7
+  - capabilities_8
+  - capabilities_9
+  - capabilities_10
+  - capabilities_11
+  - deferred_1
+  - deferred_2
+  - deferred_3
+  - deferred_4
+  - deferred_5
+  - deferred_6
+  - deferred_7
+  - deferred_8
+  - deferred_9
+  - deferred_10
+  - deferred_11
 # Canonical capability catalog — spec-resident cross-layer identity authority.
 # See capability-catalog-contract.md (P-CAPCAT-001..003).
 # Codegen output: kit/core/src/runtime-capabilities/generated/canonical-capability-catalog.ts

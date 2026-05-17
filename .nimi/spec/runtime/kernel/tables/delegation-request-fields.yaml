@@ -1,4 +1,29 @@
 version: 1
+table_family: protocol_surface
+owner: runtime
+protocol_id: runtime_delegation_request_fields
+surfaces:
+  - OBSERVE
+  - QUERY
+  - SUGGEST_INTENT
+  - SUGGEST_TOOL_REQUEST
+  - SUGGEST_PRESENTATION
+  - CREATE_ARTIFACT
+  - CONTROLLED_TEST
+  - NOT_REQUIRED
+  - REQUIRED_PENDING
+  - APPROVED
+  - REJECTED
+  - POLICY_BLOCKED
+  - USER_REQUEST_SUMMARY
+  - RUNTIME_SELECTED_ARGUMENTS
+  - APPROVED_RESOURCE_REF
+  - SAFE_MEMORY_EXCERPT
+  - CONTROLLED_TEST_PAYLOAD
+  - string
+  - enum
+  - string_list
+  - timestamp
 source_rule: K-DELEG-030
 request_kinds:
   - id: OBSERVE

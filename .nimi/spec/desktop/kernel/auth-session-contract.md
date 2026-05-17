@@ -191,6 +191,7 @@ anonymous 状态下 desktop 可调用 `Realm.AuthService.checkEmail` 获取类�
 - revalidation 至少要能覆盖：desktop logout、`auth_session_clear`、persisted session schema/decrypt failure、realm mismatch、user switch、same-user token rotation。
 - same-user token rotation 允许仅更新 consumer 进程内 token / user projection，不要求重开 handoff 或发明 per-app token grant。
 - clear / invalid / mismatch / user switch 必须显式把 consumer 迁移到 fail-closed 状态；不得等待下次重启或偶发 401 才发现本地 durable truth 已失效。
+- logout 会先清除 local persisted session、active streams、runtime read caches 与 auth state，再进行 best-effort server logout；server logout 失败不能让 Desktop 继续相信旧 bearer 仍有效。
 - 该规则不适用于 `apps/avatar`。Avatar 的 replacement posture 是 runtime binding revalidation：Desktop/Runtime 持有 auth、Realm、subject、agent、anchor truth，Avatar 只消费 explicit launch context、本地 visual package、以及 runtime IPC projections。
 
 ## Fact Sources

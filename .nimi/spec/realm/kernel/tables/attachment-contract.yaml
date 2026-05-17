@@ -2,6 +2,21 @@ contract_id: ATTACHMENT-CONTRACT-001
 domain: attachment
 status: ACTIVE
 version: 2026-03-25
+table_family: product_catalog
+catalog_id: realm_attachment_contract
+entries:
+  - human_spec
+  - openapi
+  - prisma
+  - services
+  - R-ATTACH-001
+  - R-ATTACH-002
+  - R-ATTACH-003
+  - R-ATTACH-004
+  - PostAttachment
+  - ChatAttachmentEnvelope
+  - required_operations
+  - secondary_operations
 owner: '@team'
 sources:
   human_spec: ../attachment-contract.md

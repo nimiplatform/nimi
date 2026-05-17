@@ -1,4 +1,55 @@
 version: 1
+table_family: product_catalog
+owner: runtime
+catalog_id: runtime_provider_capabilities
+entries:
+  - providers_1
+  - providers_2
+  - providers_3
+  - providers_4
+  - providers_5
+  - providers_6
+  - providers_7
+  - providers_8
+  - providers_9
+  - providers_10
+  - providers_11
+  - providers_12
+  - providers_13
+  - providers_14
+  - providers_15
+  - providers_16
+  - providers_17
+  - providers_18
+  - providers_19
+  - providers_20
+  - providers_21
+  - providers_22
+  - providers_23
+  - providers_24
+  - providers_25
+  - providers_26
+  - providers_27
+  - providers_28
+  - providers_29
+  - providers_30
+  - providers_31
+  - providers_32
+  - providers_33
+  - providers_34
+  - providers_35
+  - providers_36
+  - providers_37
+  - providers_38
+  - providers_39
+  - providers_40
+  - providers_41
+  - providers_42
+  - providers_43
+  - providers_44
+  - providers_45
+  - providers_46
+  - providers_47
 providers:
   - provider: anthropic
     runtime_plane: remote

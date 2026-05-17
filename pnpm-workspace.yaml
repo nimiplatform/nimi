@@ -4,7 +4,6 @@ packages:
   - 'docs'
   - 'examples'
   - 'dev-tools'
-  - 'nimi-coding'
   - 'nimi-cognition'
   - 'nimi-mods/*'
   - 'sdk'

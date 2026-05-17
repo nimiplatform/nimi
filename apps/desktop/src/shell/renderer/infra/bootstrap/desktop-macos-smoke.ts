@@ -3,531 +3,22 @@ import { hasTauriInvoke } from '@renderer/bridge/runtime-bridge/env';
 import {
   getDesktopMacosSmokeContext,
   pingDesktopMacosSmoke,
-  readDesktopMacosSmokeAvatarEvidence,
   writeDesktopMacosSmokeReport,
 } from '@renderer/bridge/runtime-bridge/macos-smoke';
-import { listDesktopAvatarLiveInstances } from '@renderer/bridge/runtime-bridge/chat-agent-avatar-instance-registry';
 import type { DesktopMacosSmokeContext } from '@renderer/bridge/runtime-bridge/types';
-import { useAppStore } from '@renderer/app-shell/providers/app-store';
-import { getDesktopAIConfigService } from '@renderer/app-shell/providers/desktop-ai-config-service';
 import { createRendererFlowId, logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
-import { CHAT_AGENT_AVATAR_SMOKE_OVERRIDE_EVENT } from '@renderer/features/chat/chat-agent-avatar-debug-override';
-import { clearAllAgentConversationAnchorBindings } from '@renderer/app-shell/providers/agent-conversation-anchor-binding-storage';
-import { getActiveScope } from '@renderer/features/chat/chat-shared-active-ai-config-scope';
-import { refreshConversationCapabilityProjections } from '@renderer/features/chat/conversation-capability-projection';
-import { getPlatformClient } from '@nimiplatform/sdk';
-import { createRuntimeProtectedScopeHelper } from '@nimiplatform/sdk/runtime';
 import {
-  type DesktopMacosSmokeCanvasStats,
-  type DesktopMacosSmokeDriverDeps,
   type DesktopMacosSmokeFailureReportPayload,
-  LIVE2D_VIEWPORT_SELECTOR,
   SMOKE_BOOTSTRAP_TIMEOUT_MS,
+  SMOKE_SCENARIO_TIMEOUT_MS,
   SMOKE_STEP_TIMEOUT_MS,
-  VRM_VIEWPORT_SELECTOR,
   shouldStartDesktopMacosSmoke,
 } from './desktop-macos-smoke-shared';
+import { createDomDriverDeps } from './desktop-macos-smoke-driver-deps';
 import { runDesktopMacosSmokeScenario } from './desktop-macos-smoke-scenarios';
 
 export { shouldStartDesktopMacosSmoke } from './desktop-macos-smoke-shared';
 export { runDesktopMacosSmokeScenario } from './desktop-macos-smoke-scenarios';
-
-function createDomDriverDeps(): DesktopMacosSmokeDriverDeps {
-  const queryByTestId = (id: string): HTMLElement | null => (
-    document.querySelector(`[data-testid="${id}"]`) as HTMLElement | null
-  );
-
-  const mutateViewportHost = async (selector: string, size: { width: number; height: number }) => {
-    const root = document.querySelector(selector) as HTMLElement | null;
-    if (!root) {
-      throw new Error(`missing selector ${selector}`);
-    }
-    root.style.width = `${size.width}px`;
-    root.style.height = `${size.height}px`;
-    window.dispatchEvent(new Event('resize'));
-    await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
-  };
-
-  const pulseViewportTinyHost = async (selector: string) => {
-    const root = document.querySelector(selector) as HTMLElement | null;
-    if (!root) {
-      throw new Error(`missing selector ${selector}`);
-    }
-    const previousWidth = root.style.width;
-    const previousHeight = root.style.height;
-    root.style.width = '48px';
-    root.style.height = '64px';
-    window.dispatchEvent(new Event('resize'));
-    await new Promise((resolve) => setTimeout(resolve, 180));
-    root.style.width = previousWidth;
-    root.style.height = previousHeight;
-    window.dispatchEvent(new Event('resize'));
-    await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
-  };
-
-  const triggerViewportContextLossAndRestore = async (selector: string, debugKey: 'live2d' | 'vrm') => {
-    const root = document.querySelector(selector) as HTMLElement | null;
-    const canvas = root?.querySelector('canvas') as HTMLCanvasElement | null;
-    if (!canvas) {
-      throw new Error(`missing canvas for selector ${selector}`);
-    }
-    const runtimeWindow = window as typeof window & {
-      __NIMI_DESKTOP_SMOKE_DEBUG_ACTION__?: { kind: 'context-loss-restore'; target: 'live2d' | 'vrm' } | null;
-    };
-    runtimeWindow.__NIMI_DESKTOP_SMOKE_DEBUG_ACTION__ = {
-      kind: 'context-loss-restore',
-      target: debugKey,
-    };
-    canvas.dispatchEvent(new Event('webglcontextlost', { cancelable: true }));
-    await new Promise((resolve) => setTimeout(resolve, 200));
-    canvas.dispatchEvent(new Event('webglcontextrestored'));
-    await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
-    runtimeWindow.__NIMI_DESKTOP_SMOKE_DEBUG_ACTION__ = null;
-  };
-
-  const withSmokeTimeout = async <T,>(label: string, task: Promise<T>, timeoutMs = 5_000): Promise<T> => {
-    let timeoutId: ReturnType<typeof setTimeout> | null = null;
-    try {
-      return await Promise.race([
-        task,
-        new Promise<never>((_, reject) => {
-          timeoutId = setTimeout(() => reject(new Error(`${label} timed out after ${timeoutMs}ms`)), timeoutMs);
-        }),
-      ]);
-    } finally {
-      if (timeoutId) {
-        clearTimeout(timeoutId);
-      }
-    }
-  };
-
-  const readCanvasStats = async (
-    selector: string,
-    input: {
-      statusAttribute: string;
-      stageAttribute?: string;
-      debugWindowKey: '__NIMI_LIVE2D_DEBUG__' | '__NIMI_VRM_DEBUG__';
-      fallbackSelector: string;
-    },
-  ): Promise<DesktopMacosSmokeCanvasStats> => {
-    const root = document.querySelector(selector) as HTMLElement | null;
-    if (!root) {
-      return {
-        status: null,
-        stage: null,
-        fallbackText: null,
-        width: 0,
-        height: 0,
-        canvasPresent: false,
-        contextKind: null,
-        sampleCount: 0,
-        nonTransparentSampleCount: 0,
-        sampleError: null,
-        runtimeDebug: null,
-      };
-    }
-
-    const canvas = root.querySelector('canvas') as HTMLCanvasElement | null;
-    const fallbackElement = root.querySelector(input.fallbackSelector) as HTMLElement | null;
-    const status = root.getAttribute(input.statusAttribute);
-    const stage = input.stageAttribute ? root.getAttribute(input.stageAttribute) : null;
-    const fallbackText = fallbackElement?.textContent?.trim() || null;
-    if (!canvas) {
-      return {
-        status,
-        stage,
-        fallbackText,
-        width: 0,
-        height: 0,
-        canvasPresent: false,
-        contextKind: null,
-        sampleCount: 0,
-        nonTransparentSampleCount: 0,
-        sampleError: null,
-        runtimeDebug: null,
-      };
-    }
-
-    const gl2 = canvas.getContext('webgl2');
-    const gl = (gl2 || canvas.getContext('webgl')) as WebGLRenderingContext | WebGL2RenderingContext | null;
-    const contextKind: DesktopMacosSmokeCanvasStats['contextKind'] = gl2 ? 'webgl2' : (gl ? 'webgl' : null);
-    const width = Math.max(canvas.width, 0);
-    const height = Math.max(canvas.height, 0);
-    const sampleColumns = Math.min(12, Math.max(3, Math.floor(width / 64) || 3));
-    const sampleRows = Math.min(16, Math.max(4, Math.floor(height / 64) || 4));
-    let nonTransparentSampleCount = 0;
-    let sampleError: string | null = null;
-
-    if (gl && width > 0 && height > 0) {
-      const pixel = new Uint8Array(4);
-      try {
-        for (let row = 0; row < sampleRows; row += 1) {
-          const y = Math.min(height - 1, Math.floor(((row + 0.5) / sampleRows) * height));
-          for (let column = 0; column < sampleColumns; column += 1) {
-            const x = Math.min(width - 1, Math.floor(((column + 0.5) / sampleColumns) * width));
-            gl.readPixels(x, y, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixel);
-            const red = pixel[0] ?? 0;
-            const green = pixel[1] ?? 0;
-            const blue = pixel[2] ?? 0;
-            const alpha = pixel[3] ?? 0;
-            if (alpha > 8 || (red + green + blue) > 24) {
-              nonTransparentSampleCount += 1;
-            }
-          }
-        }
-      } catch (error) {
-        sampleError = error instanceof Error ? error.message : String(error || 'unknown pixel sampling error');
-      }
-    }
-
-    return {
-      status,
-      stage,
-      fallbackText,
-      width,
-      height,
-      canvasPresent: true,
-      contextKind,
-      sampleCount: sampleColumns * sampleRows,
-      nonTransparentSampleCount,
-      sampleError,
-      runtimeDebug: (window as typeof window & {
-        __NIMI_LIVE2D_DEBUG__?: Record<string, unknown> | null;
-        __NIMI_VRM_DEBUG__?: Record<string, unknown> | null;
-      })[input.debugWindowKey] || null,
-    };
-  };
-
-  return {
-    async waitForTestId(id: string, timeoutMs = SMOKE_STEP_TIMEOUT_MS) {
-      const deadline = Date.now() + timeoutMs;
-      while (Date.now() < deadline) {
-        if (queryByTestId(id)) {
-          return;
-        }
-        await new Promise((resolve) => setTimeout(resolve, 100));
-      }
-      throw new Error(`missing test id ${id}`);
-    },
-    async waitForSelector(selector: string, timeoutMs = SMOKE_STEP_TIMEOUT_MS) {
-      const deadline = Date.now() + timeoutMs;
-      while (Date.now() < deadline) {
-        if (document.querySelector(selector)) {
-          return;
-        }
-        await new Promise((resolve) => setTimeout(resolve, 100));
-      }
-      throw new Error(`missing selector ${selector}`);
-    },
-    async waitForSelectorGone(selector: string, timeoutMs = SMOKE_STEP_TIMEOUT_MS) {
-      const deadline = Date.now() + timeoutMs;
-      while (Date.now() < deadline) {
-        if (!document.querySelector(selector)) {
-          return;
-        }
-        await new Promise((resolve) => setTimeout(resolve, 100));
-      }
-      throw new Error(`selector still present ${selector}`);
-    },
-    async clickByTestId(id: string, timeoutMs = SMOKE_STEP_TIMEOUT_MS) {
-      await this.waitForTestId(id, timeoutMs);
-      const element = queryByTestId(id);
-      if (!element) {
-        throw new Error(`missing test id ${id}`);
-      }
-      element.click();
-    },
-    async clickSelector(selector: string, timeoutMs = SMOKE_STEP_TIMEOUT_MS) {
-      await this.waitForSelector(selector, timeoutMs);
-      const element = document.querySelector(selector) as HTMLElement | null;
-      if (!element) {
-        throw new Error(`missing selector ${selector}`);
-      }
-      element.click();
-    },
-    async setValueBySelector(selector: string, value: string, timeoutMs = SMOKE_STEP_TIMEOUT_MS) {
-      await this.waitForSelector(selector, timeoutMs);
-      const element = document.querySelector(selector) as HTMLInputElement | HTMLTextAreaElement | null;
-      if (!element) {
-        throw new Error(`missing selector ${selector}`);
-      }
-      const prototype = element instanceof HTMLTextAreaElement
-        ? HTMLTextAreaElement.prototype
-        : HTMLInputElement.prototype;
-      const descriptor = Object.getOwnPropertyDescriptor(prototype, 'value');
-      descriptor?.set?.call(element, value);
-      element.dispatchEvent(new Event('input', { bubbles: true }));
-      element.dispatchEvent(new Event('change', { bubbles: true }));
-    },
-    async readLocalStorageItem(key: string) {
-      return window.localStorage.getItem(key);
-    },
-    async clearAgentConversationAnchorBindings() {
-      clearAllAgentConversationAnchorBindings();
-      await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
-    },
-    async configureRuntimeTextRoute() {
-      const scopeRef = getActiveScope();
-      const service = getDesktopAIConfigService();
-      const current = service.aiConfig.get(scopeRef);
-      service.aiConfig.update(scopeRef, {
-        ...current,
-        capabilities: {
-          ...current.capabilities,
-          selectedBindings: {
-            ...current.capabilities.selectedBindings,
-            'text.generate': {
-              source: 'local',
-              connectorId: '',
-              model: 'e2e-live2d-text-route',
-              modelId: 'e2e-live2d-text-route',
-              modelLabel: 'E2E Live2D Text Route',
-              localModelId: 'local-e2e-live2d-text-route',
-              goRuntimeLocalModelId: 'local-e2e-live2d-text-route',
-              goRuntimeStatus: 'active',
-              provider: 'llama',
-              engine: 'llama',
-            },
-          },
-        },
-      });
-      await refreshConversationCapabilityProjections(['text.generate']);
-    },
-    async verifyRuntimeConversationAnchor(input) {
-      const auth = useAppStore.getState().auth;
-      const subjectUserId = String((auth.user as Record<string, unknown> | null)?.id || '').trim();
-      if (!subjectUserId) {
-        throw new Error('cannot verify Runtime conversation anchor without authenticated subject user id');
-      }
-      const runtime = getPlatformClient().runtime;
-      const protectedAccess = createRuntimeProtectedScopeHelper({
-        runtime,
-        getSubjectUserId: async () => subjectUserId,
-      });
-      const localAgentRef = String(input.agentId || '').trim();
-      const [, ownerUserId, realmAgentId] = localAgentRef.split(':');
-      if (!ownerUserId || !realmAgentId || !localAgentRef.startsWith('local-agent:')) {
-        throw new Error('Runtime conversation anchor smoke verification requires localAgentRef formatted as local-agent:${ownerUserId}:${realmAgentId}');
-      }
-      await protectedAccess.withScopes(['runtime.agent.read'], (options) => runtime.agent.anchors.getSnapshot({
-        ownerUserId,
-        realmAgentId,
-        localAgentRef,
-        conversationAnchorId: input.conversationAnchorId,
-      }, options));
-    },
-    async readRuntimeProductPathEvidence(input) {
-      const auth = useAppStore.getState().auth;
-      const subjectUserId = String((auth.user as Record<string, unknown> | null)?.id || '').trim();
-      if (!subjectUserId) {
-        throw new Error('cannot read Runtime product evidence without authenticated subject user id');
-      }
-      const runtime = getPlatformClient().runtime;
-      const localAgentRef = String(input.agentId || '').trim();
-      const [, ownerUserId, realmAgentId] = localAgentRef.split(':');
-      if (!ownerUserId || !realmAgentId || !localAgentRef.startsWith('local-agent:')) {
-        throw new Error('Runtime product path evidence requires localAgentRef formatted as local-agent:${ownerUserId}:${realmAgentId}');
-      }
-      const [health, snapshot] = await Promise.all([
-        runtime.health(),
-        createRuntimeProtectedScopeHelper({
-          runtime,
-          getSubjectUserId: async () => subjectUserId,
-        }).withScopes(['runtime.agent.read'], (options) => runtime.agent.anchors.getSnapshot({
-          ownerUserId,
-          realmAgentId,
-          localAgentRef,
-          conversationAnchorId: input.conversationAnchorId,
-        }, options)),
-      ]);
-      const anchor = snapshot.anchor || null;
-      const snapshotAgentId = String(anchor?.agentId || '').trim();
-      const snapshotAnchorId = String(anchor?.conversationAnchorId || '').trim();
-      const lastTurnId = String(anchor?.lastTurnId || '').trim();
-      const activeTurnId = String(snapshot.activeTurnId || '').trim();
-      const lastMessageId = String(anchor?.lastMessageId || '').trim();
-      if (snapshotAgentId !== input.agentId || snapshotAnchorId !== input.conversationAnchorId) {
-        throw new Error(`Runtime anchor snapshot mismatch agent=${snapshotAgentId || 'missing'} anchor=${snapshotAnchorId || 'missing'}`);
-      }
-      return {
-        runtime_health: {
-          status: health.status,
-          reason: health.reason || null,
-          queue_depth: health.queueDepth,
-          active_workflows: health.activeWorkflows,
-          active_inference_jobs: health.activeInferenceJobs,
-          sampled_at: health.sampledAt || null,
-        },
-        runtime_authenticated: true,
-        runtime_auth_scopes: ['runtime.agent.read'],
-        same_anchor: true,
-        agent_id: input.agentId,
-        conversation_anchor_id: input.conversationAnchorId,
-        subject_user_id: subjectUserId,
-        anchor_snapshot: {
-          status: anchor?.status ?? null,
-          last_turn_id: lastTurnId || null,
-          active_turn_id: activeTurnId || null,
-          active_stream_id: String(snapshot.activeStreamId || '').trim() || null,
-          last_message_id: lastMessageId || null,
-        },
-        has_runtime_turn: Boolean(lastTurnId || activeTurnId || lastMessageId),
-      };
-    },
-    async verifyRuntimeAccountProjection() {
-      const accountCaller = {
-        appId: 'nimi.desktop',
-        appInstanceId: 'nimi.desktop.local-first-party',
-        deviceId: 'desktop-shell',
-        mode: 2,
-        scopes: [],
-      };
-      const deadline = Date.now() + 5_000;
-      let lastError = 'not checked';
-      while (Date.now() < deadline) {
-        try {
-          const account = await withSmokeTimeout(
-            'Runtime account projection readback',
-            getPlatformClient().runtime.account.getAccountSessionStatus({ caller: accountCaller }),
-            2_000,
-          );
-          const accountId = String(account.accountProjection?.accountId || '').trim();
-          const isAuthenticated = Number(account.state) === 3 || String(account.state) === 'authenticated';
-          if (isAuthenticated && accountId) {
-            return;
-          }
-          lastError = `Runtime account state=${String(account.state || 'unknown')} account_present=${Boolean(accountId)}`;
-        } catch (error) {
-          lastError = error instanceof Error ? error.message : String(error || 'Runtime account projection read failed');
-        }
-        await new Promise((resolve) => setTimeout(resolve, 250));
-      }
-      throw new Error(`Desktop authenticated session was not available through Runtime account projection: ${lastError}`);
-    },
-    async setChatAvatarInteractionOverride(override) {
-      const runtimeWindow = window as typeof window & {
-        __NIMI_CHAT_AVATAR_SMOKE_OVERRIDE__?: Record<string, unknown> | null;
-        __NIMI_LIVE2D_SMOKE_OVERRIDE__?: Record<string, unknown> | null;
-      };
-      runtimeWindow.__NIMI_CHAT_AVATAR_SMOKE_OVERRIDE__ = override;
-      runtimeWindow.__NIMI_LIVE2D_SMOKE_OVERRIDE__ = override;
-      window.dispatchEvent(new CustomEvent(CHAT_AGENT_AVATAR_SMOKE_OVERRIDE_EVENT));
-      await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
-    },
-    async resizeLive2dViewport(size) {
-      await mutateViewportHost(LIVE2D_VIEWPORT_SELECTOR, size);
-    },
-    async pulseLive2dViewportTinyHost() {
-      await pulseViewportTinyHost(LIVE2D_VIEWPORT_SELECTOR);
-    },
-    async pulseLive2dDevicePixelRatio(nextValue) {
-      const descriptor = Object.getOwnPropertyDescriptor(window, 'devicePixelRatio');
-      const fallbackValue = window.devicePixelRatio;
-      Object.defineProperty(window, 'devicePixelRatio', {
-        configurable: true,
-        value: nextValue,
-      });
-      window.dispatchEvent(new Event('resize'));
-      await new Promise((resolve) => setTimeout(resolve, 180));
-      if (descriptor) {
-        Object.defineProperty(window, 'devicePixelRatio', descriptor);
-      } else {
-        Object.defineProperty(window, 'devicePixelRatio', {
-          configurable: true,
-          value: fallbackValue,
-        });
-      }
-      window.dispatchEvent(new Event('resize'));
-      await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
-    },
-    async triggerLive2dContextLossAndRestore() {
-      await triggerViewportContextLossAndRestore(LIVE2D_VIEWPORT_SELECTOR, 'live2d');
-    },
-    async resizeVrmViewport(size) {
-      await mutateViewportHost(VRM_VIEWPORT_SELECTOR, size);
-    },
-    async pulseVrmViewportTinyHost() {
-      await pulseViewportTinyHost(VRM_VIEWPORT_SELECTOR);
-    },
-    async triggerVrmContextLossAndRestore() {
-      await triggerViewportContextLossAndRestore(VRM_VIEWPORT_SELECTOR, 'vrm');
-    },
-    async readTextByTestId(id: string) {
-      const element = queryByTestId(id);
-      if (!element) {
-        throw new Error(`missing test id ${id}`);
-      }
-      return element.textContent || '';
-    },
-    async readAttributeByTestId(id: string, name: string) {
-      const element = queryByTestId(id);
-      if (!element) {
-        throw new Error(`missing test id ${id}`);
-      }
-      return element.getAttribute(name);
-    },
-    async readLive2dCanvasStats(selector: string) {
-      const stats = await readCanvasStats(selector, {
-        statusAttribute: 'data-avatar-live2d-status',
-        debugWindowKey: '__NIMI_LIVE2D_DEBUG__',
-        fallbackSelector: '[data-live2d-fallback-reason="true"]',
-      });
-      return {
-        status: stats.status,
-        fallbackText: stats.fallbackText,
-        width: stats.width,
-        height: stats.height,
-        canvasPresent: stats.canvasPresent,
-        contextKind: stats.contextKind,
-        sampleCount: stats.sampleCount,
-        nonTransparentSampleCount: stats.nonTransparentSampleCount,
-        sampleError: stats.sampleError,
-        runtimeDebug: stats.runtimeDebug,
-      };
-    },
-    async readVrmCanvasStats(selector: string) {
-      const stats = await readCanvasStats(selector, {
-        statusAttribute: 'data-avatar-vrm-status',
-        stageAttribute: 'data-avatar-vrm-stage',
-        debugWindowKey: '__NIMI_VRM_DEBUG__',
-        fallbackSelector: '[data-vrm-load-reason="true"], [data-vrm-error-reason="true"]',
-      });
-      return {
-        status: stats.status,
-        stage: stats.stage,
-        fallbackText: stats.fallbackText,
-        width: stats.width,
-        height: stats.height,
-        canvasPresent: stats.canvasPresent,
-        contextKind: stats.contextKind,
-        sampleCount: stats.sampleCount,
-        nonTransparentSampleCount: stats.nonTransparentSampleCount,
-        sampleError: stats.sampleError,
-        runtimeDebug: stats.runtimeDebug,
-      };
-    },
-    async listAvatarLiveInstances(realmAgentId: string) {
-      const ownerUserId = 'desktop-smoke';
-      return listDesktopAvatarLiveInstances({
-        ownerUserId,
-        realmAgentId,
-        localAgentRef: `local-agent:${ownerUserId}:${realmAgentId}`,
-      });
-    },
-    async readAvatarEvidence(avatarInstanceId: string) {
-      return readDesktopMacosSmokeAvatarEvidence(avatarInstanceId);
-    },
-    async writeReport(payload) {
-      await writeDesktopMacosSmokeReport(payload);
-    },
-    currentRoute() {
-      return `${window.location.pathname}${window.location.search}${window.location.hash}`;
-    },
-    currentHtml() {
-      return document.documentElement.outerHTML;
-    },
-  };
-}
 
 function currentRouteSnapshot(): string {
   return `${window.location.pathname}${window.location.search}${window.location.hash}`;
@@ -545,17 +36,49 @@ function resolveSmokeBootstrapTimeoutMs(context: DesktopMacosSmokeContext): numb
   return Math.min(180_000, Math.max(SMOKE_BOOTSTRAP_TIMEOUT_MS, requested));
 }
 
+function resolveSmokeScenarioTimeoutMs(context: DesktopMacosSmokeContext): number {
+  const requested = Number(context.bootstrapTimeoutMs || 0);
+  if (!Number.isFinite(requested) || requested <= 0) {
+    return SMOKE_SCENARIO_TIMEOUT_MS;
+  }
+  return Math.min(170_000, Math.max(SMOKE_STEP_TIMEOUT_MS, requested + SMOKE_STEP_TIMEOUT_MS));
+}
+
+async function withDesktopMacosSmokeScenarioTimeout<T>(
+  scenarioId: string,
+  task: Promise<T>,
+  timeoutMs: number,
+): Promise<T> {
+  let timeoutId: ReturnType<typeof setTimeout> | null = null;
+  try {
+    return await Promise.race([
+      task,
+      new Promise<never>((_, reject) => {
+        timeoutId = setTimeout(
+          () => reject(new Error(`desktop macOS smoke scenario ${scenarioId} timed out after ${timeoutMs}ms`)),
+          timeoutMs,
+        );
+      }),
+    ]);
+  } finally {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
+  }
+}
+
 export function buildDesktopMacosSmokeFailureReportPayload(input: {
   failedStep: string;
   message: string;
   errorName?: string;
   errorStack?: string;
   errorCause?: string;
+  steps?: readonly string[];
 }): DesktopMacosSmokeFailureReportPayload {
   return {
     ok: false,
     failedStep: input.failedStep,
-    steps: [input.failedStep],
+    steps: input.steps?.length ? [...input.steps] : [input.failedStep],
     errorMessage: input.message,
     errorName: input.errorName,
     errorStack: input.errorStack,
@@ -646,18 +169,44 @@ export function useDesktopMacosSmokeBootstrap(
     });
 
     void (async () => {
+      let currentStep = 'scenario-start';
+      let recordedSteps: string[] = [];
+      let reportOpen = true;
+      let scenarioReportWritten = false;
       try {
         if (!cancelled && context?.scenarioId) {
           await pingDesktopMacosSmoke('macos-smoke-scenario-start', {
             scenarioId: context.scenarioId,
           }).catch(() => {});
-          await runDesktopMacosSmokeScenario(context.scenarioId, createDomDriverDeps());
+          const deps = createDomDriverDeps({
+            context,
+            onStepStart(step, steps) {
+              currentStep = step;
+              recordedSteps = [...steps];
+              void pingDesktopMacosSmoke('macos-smoke-step-start', {
+                scenarioId: context.scenarioId,
+                step,
+                stepCount: recordedSteps.length,
+              }).catch(() => {});
+            },
+            onReportWrite() {
+              scenarioReportWritten = true;
+            },
+            isReportOpen: () => reportOpen,
+          });
+          await withDesktopMacosSmokeScenarioTimeout(
+            context.scenarioId,
+            runDesktopMacosSmokeScenario(context.scenarioId, deps),
+            resolveSmokeScenarioTimeoutMs(context),
+          );
           await pingDesktopMacosSmoke('macos-smoke-scenario-finished', {
             scenarioId: context.scenarioId,
           }).catch(() => {});
+          reportOpen = false;
           reportedRef.current = true;
         }
       } catch (error) {
+        reportOpen = false;
         reportedRef.current = true;
         logRendererEvent({
           level: 'error',
@@ -669,6 +218,29 @@ export function useDesktopMacosSmokeBootstrap(
             error: error instanceof Error ? error.message : String(error || 'unknown error'),
           },
         });
+        if (!scenarioReportWritten) {
+          await writeDesktopMacosSmokeReport(
+            buildDesktopMacosSmokeFailureReportPayload({
+              failedStep: currentStep,
+              steps: recordedSteps.length ? recordedSteps : [currentStep],
+              message: error instanceof Error ? error.message : String(error || 'unknown error'),
+              errorName: error instanceof Error ? error.name : undefined,
+              errorStack: error instanceof Error ? error.stack : undefined,
+              errorCause: error instanceof Error ? String(error.cause || '') || undefined : undefined,
+            }),
+          ).catch((reportError) => {
+            logRendererEvent({
+              level: 'error',
+              area: 'desktop-macos-smoke',
+              message: 'phase:desktop-macos-smoke:scenario-failure-report-failed',
+              flowId,
+              details: {
+                scenarioId: context?.scenarioId,
+                error: reportError instanceof Error ? reportError.message : String(reportError || 'unknown error'),
+              },
+            });
+          });
+        }
       }
     })();
     return () => {

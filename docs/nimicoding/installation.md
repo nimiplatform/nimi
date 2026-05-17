@@ -42,6 +42,14 @@ Run `start` from the project root:
 npx nimicoding start
 ```
 
+If you want the first prompt shaped for a specific host, use:
+
+```bash
+npx nimicoding start --host codex
+npx nimicoding start --host claude
+npx nimicoding start --host oh-my-codex
+```
+
 For a non-interactive smoke test, use:
 
 ```bash
@@ -60,8 +68,14 @@ modified bootstrap files are not silently deleted or overwritten.
 | Check | Expected result |
 | --- | --- |
 | `nimicoding --version` | Prints the installed package version |
-| `nimicoding --help` | Lists bootstrap, topic, sweep audit, sweep design, handoff, closeout, and validator commands |
+| `nimicoding --help` | Lists bootstrap, sync, topic, sweep audit, sweep design, handoff, closeout, high-risk gates, and validators |
 | `nimicoding doctor --json` | Reports the bootstrap health state in machine-readable form |
+
+To check package-owned seed projection later:
+
+```bash
+npx nimicoding sync --check
+```
 
 ## Remove Package-Managed Bootstrap
 
@@ -78,7 +92,7 @@ project-owned truth and local operational evidence.
 
 ## Source Basis
 
-- [`nimi-coding/package.json`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/package.json)
-- [`nimi-coding/README.md`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/README.md)
-- [`nimi-coding/cli/`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/cli/)
-- [`nimi-coding/contracts/topic.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/contracts/topic.schema.yaml)
+- [`nimi-coding/package.json`](https://github.com/nimiplatform/nimi-coding/blob/main/package.json)
+- [`nimi-coding/README.md`](https://github.com/nimiplatform/nimi-coding/blob/main/README.md)
+- [`nimi-coding/cli/`](https://github.com/nimiplatform/nimi-coding/blob/main/cli/)
+- [`nimi-coding/contracts/topic.schema.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/contracts/topic.schema.yaml)

@@ -1,0 +1,130 @@
+version: 1
+contract:
+  id: nimicoding.projection-edge.v1
+  owner: nimi-coding
+  purpose: Declare allowed projections between package, host, product, and derived surfaces.
+required_top_level_fields:
+  - version
+  - projection_edges
+  - edge_kind_enum
+  - semantic_constraints
+projection_edge_required_fields:
+  - edge_id
+  - edge_kind
+  - source_ref
+  - source_class
+  - source_owner
+  - target_ref
+  - target_class
+  - target_owner
+  - allowed_fields
+  - forbidden_promoted_fields
+  - drift_check_command
+  - failure_disposition
+shared_enum_ref: shared-enums.yaml
+projection_edges:
+  - edge_id: nimi_coding_package_to_host_anchor
+    edge_kind: package_to_host_anchor
+    source_ref: package://@nimiplatform/nimi-coding/{spec,methodology,contracts,config}/**
+    source_class: methodology_authority
+    source_owner: nimi_coding_package
+    target_ref: .nimi/spec/_meta/nimi-coding-admission-anchor.yaml
+    target_class: host_projection_anchor
+    target_owner: nimi_host
+    allowed_fields: [package_id, package_version, package_truth_root, projection_edges, must_not_override]
+    forbidden_promoted_fields: [package_methodology_body, product_rule_body, lifecycle_status, run_ledger, private_evidence]
+    drift_check_command: pnpm exec nimicoding validate-projection-edges --profile nimi
+    failure_disposition: fail_closed
+  - edge_id: nimi_coding_package_to_managed_projection
+    edge_kind: package_to_managed_projection
+    source_ref: package://@nimiplatform/nimi-coding/{config,contracts,methodology,spec}/**
+    source_class: methodology_authority
+    source_owner: nimi_coding_package
+    target_ref: .nimi/{config,contracts,methodology}/**
+    target_class: nimicoding_managed_projection
+    target_owner: nimi_host
+    allowed_fields: [projected_package_file_body]
+    forbidden_promoted_fields: [product_rule_body, lifecycle_status, run_ledger, private_evidence]
+    drift_check_command: pnpm exec nimicoding sync --check
+    failure_disposition: fail_closed
+  - edge_id: product_authority_to_derived_view
+    edge_kind: product_to_derived_view
+    source_ref: .nimi/spec/<domain>/kernel/**
+    source_class: product_authority
+    source_owner: product_domain
+    target_ref: stdout_view
+    target_class: derived_view
+    target_owner: generator
+    allowed_fields: [rendered_summary, source_refs, generator_id]
+    forbidden_promoted_fields: [product_rule_body_without_source_ref, audit_coverage_status, lifecycle_status]
+    drift_check_command: pnpm exec nimicoding generate-spec-derived-docs --profile nimi --check
+    failure_disposition: fail_closed
+  - edge_id: product_authority_to_support_registry
+    edge_kind: product_to_support_registry
+    source_ref: .nimi/spec/<domain>/kernel/**
+    source_class: product_authority
+    source_owner: product_domain
+    target_ref: .nimi/spec/<domain>/kernel/tables/*.yaml
+    target_class: support_registry
+    target_owner: product_domain
+    allowed_fields: [registry_id, owner, schema_ref, authority_refs, command_refs, evidence_class]
+    forbidden_promoted_fields: [audit_coverage_status, audit_date, lifecycle_status, roadmap_status, run_ledger]
+    drift_check_command: pnpm exec nimicoding validate-table-family --profile nimi
+    failure_disposition: fail_closed
+  - edge_id: authority_to_local_audit_evidence
+    edge_kind: authority_to_audit_evidence
+    source_ref: .nimi/spec/<domain>/kernel/**
+    source_class: product_authority
+    source_owner: product_domain
+    target_ref: .nimi/local/audit/**
+    target_class: audit_evidence_state
+    target_owner: audit_workflow
+    allowed_fields: [authority_refs, evidence_refs, finding_refs, coverage_scope, audit_validity]
+    forbidden_promoted_fields: [product_rule_body, package_methodology_body]
+    drift_check_command: pnpm exec nimicoding validate-placement --profile nimi
+    failure_disposition: fail_closed
+  - edge_id: topic_to_local_lifecycle_state
+    edge_kind: topic_to_local_state
+    source_ref: .nimi/topics/**
+    source_class: lifecycle_progress_state
+    source_owner: topic_lifecycle
+    target_ref: .nimi/local/state/**
+    target_class: lifecycle_progress_state
+    target_owner: execution_workflow
+    allowed_fields: [topic_id, wave_id, status, packet_ref, result_ref, closeout_ref]
+    forbidden_promoted_fields: [product_rule_body, package_methodology_body, private_evidence]
+    drift_check_command: pnpm exec nimicoding topic validate --profile nimi
+    failure_disposition: fail_closed
+edge_kind_enum:
+  - package_to_host_anchor
+  - package_to_managed_projection
+  - product_to_derived_view
+  - product_to_support_registry
+  - authority_to_audit_evidence
+  - topic_to_local_state
+failure_disposition_enum:
+  - fail_closed
+  - block
+allowed_target_classes:
+  - host_projection_anchor
+  - nimicoding_managed_projection
+  - derived_view
+  - support_registry
+  - audit_evidence_state
+  - lifecycle_progress_state
+forbidden_promoted_fields_catalog:
+  - package_methodology_body
+  - product_rule_body
+  - generated_rendered_body
+  - audit_coverage_status
+  - audit_date
+  - lifecycle_status
+  - roadmap_status
+  - run_ledger
+  - private_evidence
+semantic_constraints:
+  - host_projection_anchor_must_not_copy_package_methodology_body
+  - nimicoding_managed_projection_is_project_local_cli_projection_not_product_authority
+  - derived_view_projection_must_be_reproducible
+  - audit_evidence_may_cite_authority_but_never_override_it
+  - missing_projection_edge_is_a_validation_failure

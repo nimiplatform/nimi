@@ -1,9 +1,14 @@
 # Tutorial: Run A Governed Codex Project
 
-You are in Codex with an existing repository. You want Codex to help
-with serious work: reconstruct project knowledge, discuss a requirement,
-plan waves, run a long audit, implement or remediate findings, and close
-the work without losing track of scope.
+You are in Codex with an existing repository. This tutorial uses the
+Codex adapter path for Nimi Coding: reconstruct project knowledge,
+discuss a requirement, plan waves, run a long audit, implement or
+remediate findings, and close the work without losing track of scope.
+
+For host-neutral adoption, use the package path in
+[Installation](/nimicoding/installation): `nimicoding start`,
+`nimicoding doctor --json`, `nimicoding handoff --skill
+spec_reconstruction --json`, then the spec validators.
 
 With Nimi Coding, you still talk to Codex in normal language. The
 difference is that Codex keeps a durable work record in the repository:
@@ -58,7 +63,7 @@ npx nimicoding handoff --skill spec_reconstruction --json
 npx nimicoding handoff --skill spec_reconstruction --prompt
 npx nimicoding closeout --from spec-reconstruction-result.json --write-local
 npx nimicoding validate-spec-tree .nimi/spec
-npx nimicoding validate-spec-audit .nimi/spec/_meta/spec-generation-audit.yaml
+npx nimicoding validate-spec-audit
 npx nimicoding doctor --json
 ```
 
@@ -67,7 +72,7 @@ The useful result is not just "spec generated." Codex should report:
 | Evidence | What to check |
 | --- | --- |
 | `.nimi/spec/**` | The project now has an authority tree |
-| `.nimi/spec/_meta/spec-generation-audit.yaml` | Generated files cite source basis or record gaps |
+| Spec generation audit | Generated files cite source basis or record gaps |
 | closeout result | The reconstruction was admitted under a typed contract |
 | validation output | Structural and auditability checks passed |
 
@@ -96,7 +101,9 @@ I will create a topic for a fresh full audit. Proposed waves:
 4. closeout
 
 Proposed owner domains:
-.nimi/spec/**, docs/**, runtime/**, sdk/**, apps/**, nimi-coding/**
+.nimi/spec/**, docs/**, runtime/**, sdk/**, apps/**
+External package boundary:
+@nimiplatform/nimi-coding via the nimicoding CLI and injected .nimi files
 
 Please confirm the scope before I admit the first wave.
 ```
@@ -322,14 +329,15 @@ manager can inspect.
 
 ## Source Basis
 
-- [`nimi-coding/README.md`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/README.md)
-- [`nimi-coding/cli/`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/cli/)
-- [`nimi-coding/config/skills.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/config/skills.yaml)
-- [`nimi-coding/contracts/topic.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/contracts/topic.schema.yaml)
-- [`nimi-coding/contracts/wave.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/contracts/wave.schema.yaml)
-- [`nimi-coding/contracts/packet.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/contracts/packet.schema.yaml)
-- [`nimi-coding/contracts/audit-plan.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/contracts/audit-plan.schema.yaml)
-- [`nimi-coding/contracts/audit-ledger.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/contracts/audit-ledger.schema.yaml)
-- [`nimi-coding/contracts/sweep-design-result.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/contracts/sweep-design-result.yaml)
-- [`nimi-coding/methodology/spec-reconstruction.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/methodology/spec-reconstruction.yaml)
-- [`nimi-coding/methodology/skill-handoff.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/methodology/skill-handoff.yaml)
+- [`nimi-coding/README.md`](https://github.com/nimiplatform/nimi-coding/blob/main/README.md)
+- [`nimi-coding/cli/`](https://github.com/nimiplatform/nimi-coding/blob/main/cli/)
+- [`nimi-coding/adapters/codex/profile.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/adapters/codex/profile.yaml)
+- [`nimi-coding/config/skills.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/config/skills.yaml)
+- [`nimi-coding/contracts/topic.schema.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/contracts/topic.schema.yaml)
+- [`nimi-coding/contracts/wave.schema.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/contracts/wave.schema.yaml)
+- [`nimi-coding/contracts/packet.schema.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/contracts/packet.schema.yaml)
+- [`nimi-coding/contracts/audit-plan.schema.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/contracts/audit-plan.schema.yaml)
+- [`nimi-coding/contracts/audit-ledger.schema.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/contracts/audit-ledger.schema.yaml)
+- [`nimi-coding/contracts/sweep-design-result.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/contracts/sweep-design-result.yaml)
+- [`nimi-coding/methodology/spec-reconstruction.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/methodology/spec-reconstruction.yaml)
+- [`nimi-coding/methodology/skill-handoff.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/methodology/skill-handoff.yaml)

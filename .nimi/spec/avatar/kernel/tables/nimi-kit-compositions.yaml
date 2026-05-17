@@ -1,6 +1,9 @@
 version: 1
+table_family: product_catalog
+owner: avatar
+catalog_id: avatar_nimi_kit_compositions
 app: avatar
-components:
+components: &avatar_nimi_kit_composition_entries
   - id: avatar.shell.embodiment_stage
     app: avatar
     module: apps/avatar/src/shell/renderer/embodiment-stage/embodiment-stage.tsx
@@ -34,3 +37,4 @@ components:
       - status
     shared_targets: []
     source_rule: P-DESIGN-019
+entries: *avatar_nimi_kit_composition_entries

@@ -1,3 +1,13 @@
+table_family: product_catalog
+owner: desktop
+catalog_id: desktop_hook_subsystems
+entries:
+  - event
+  - data
+  - turn
+  - ui
+  - storage
+  - inter-mod
 # Desktop Hook Subsystems
 # Source: apps/desktop/src/runtime/hook/contracts/capabilities.ts
 

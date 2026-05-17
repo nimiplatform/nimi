@@ -31,6 +31,7 @@ fn allowed_http_origins_contains_runtime_defaults() {
     with_env(
         &[
             ("NIMI_REALM_URL", Some("https://gateway.nimi.ai/v1")),
+            ("NIMI_E2E_FIXTURE_PATH", None),
             (
                 "NIMI_LOCAL_PROVIDER_ENDPOINT",
                 Some("http://127.0.0.1:1234/v1"),
@@ -47,6 +48,60 @@ fn allowed_http_origins_contains_runtime_defaults() {
             assert!(origins.contains("http://localhost:1234"));
         },
     );
+}
+
+#[test]
+fn allowed_http_origins_contains_e2e_fixture_runtime_defaults() {
+    let fixture_path = std::env::temp_dir().join(format!(
+        "nimi-desktop-test-e2e-runtime-defaults-{}.json",
+        std::process::id()
+    ));
+    fs::write(
+        &fixture_path,
+        r#"{
+          "tauriFixture": {
+            "runtimeDefaults": {
+              "realm": {
+                "realmBaseUrl": "http://127.0.0.1:45115",
+                "realtimeUrl": "http://127.0.0.1:45115",
+                "accessToken": "fixture-token",
+                "jwksUrl": "http://127.0.0.1:45115/api/auth/jwks",
+                "revocationUrl": "http://127.0.0.1:45115/api/auth/sessions/introspect",
+                "jwtIssuer": "http://127.0.0.1:45115",
+                "jwtAudience": "nimi-runtime"
+              },
+              "runtime": {
+                "localProviderEndpoint": "",
+                "localProviderModel": "",
+                "localOpenAiEndpoint": "",
+                "connectorId": "",
+                "targetType": "",
+                "targetAccountId": "",
+                "agentId": "agent-e2e-alpha",
+                "worldId": "world-e2e-1",
+                "provider": "",
+                "userConfirmedUpload": false
+              }
+            }
+          }
+        }"#,
+    )
+    .expect("write fixture manifest");
+
+    let fixture_path_text = fixture_path.to_string_lossy().to_string();
+    with_env(
+        &[
+            ("NIMI_E2E_FIXTURE_PATH", Some(fixture_path_text.as_str())),
+            ("NIMI_REALM_URL", Some("http://localhost:3002")),
+        ],
+        || {
+            let origins = allowed_http_origins();
+            assert!(origins.contains("http://127.0.0.1:45115"));
+            assert!(origins.contains("http://localhost:45115"));
+        },
+    );
+
+    fs::remove_file(&fixture_path).expect("remove fixture manifest");
 }
 
 #[test]

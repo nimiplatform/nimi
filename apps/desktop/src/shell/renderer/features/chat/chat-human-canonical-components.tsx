@@ -42,6 +42,7 @@ import { dataSync } from '@runtime/data-sync';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
 import { GiftMessageBubble, type GiftMessagePayload } from '@renderer/features/economy/gift-message-bubble.js';
+import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import type { HumanChatViewDto } from './chat-human-thread-model';
 import { CHAT_CONTENT_WIDTH_CLASS, CHAT_CONTENT_POSITION_CLASS } from './chat-shared-content-layout';
 import { useChatUploadPlaceholders } from '../turns/chat-upload-placeholder-store';
@@ -170,6 +171,7 @@ function useHumanTimelineModel(selectedChatId: string | null, selectedChat: Huma
 
   return {
     authStatus,
+    selectedChatId,
     realmBaseUrl,
     currentUserId,
     currentUserAvatarUrl,
@@ -629,6 +631,8 @@ function createHumanCanonicalTranscriptProps(input: {
 }): CanonicalTranscriptViewProps {
   return {
     messages: input.model.canonicalMessages,
+    dataTestId: E2E_IDS.messageTimeline,
+    activeConversationId: input.model.selectedChatId,
     loading: input.model.messagesQuery.isPending,
     error: input.model.messagesQuery.isError ? input.t('ChatTimeline.messageLoadError') : null,
     emptyEyebrow: input.t('MessagePane.welcomeEyebrow', { defaultValue: 'Welcome' }),

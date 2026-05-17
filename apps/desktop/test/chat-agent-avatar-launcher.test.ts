@@ -12,11 +12,34 @@ import {
 import { parseAvatarLaunchContext } from '../../avatar/src/shell/renderer/bridge/launch-context.js';
 
 const forbiddenLaunchFields = [
-  'avatarPackage',
-  'avatarPackageKind',
-  'avatarPackageId',
-  'avatarPackageSchemaVersion',
+  'ownerUserId',
+  'owner_user_id',
+  'realmAgentId',
+  'realm_agent_id',
+  'localAgentRef',
+  'local_agent_ref',
   'conversationAnchorId',
+  'conversation_anchor_id',
+  'avatarPackage',
+  'avatar_package',
+  'avatarPackageKind',
+  'avatar_package_kind',
+  'avatarPackageId',
+  'avatar_package_id',
+  'avatarPackageRef',
+  'avatar_package_ref',
+  'avatarPackageSchemaVersion',
+  'avatar_package_schema_version',
+  'backendCapabilityProfileRef',
+  'backend_capability_profile_ref',
+  'materializationRef',
+  'materialization_ref',
+  'localMaterializationRef',
+  'local_materialization_ref',
+  'manifestPath',
+  'manifest_path',
+  'packagePath',
+  'package_path',
   'anchorMode',
   'runtimeAppId',
   'worldId',
@@ -57,114 +80,83 @@ test('desktop avatar launcher rejects conversation anchor based instance identit
 
 test('desktop avatar launcher builds minimal launch intent payload', () => {
   const payload = buildDesktopAvatarLaunchHandoffPayload({
-    ownerUserId: ' owner-1 ',
-    realmAgentId: ' agent-1 ',
-    localAgentRef: ' local-agent:owner-1:agent-1 ',
+    agentId: ' local-agent:owner-1:agent-1 ',
     avatarInstanceId: ' instance-1 ',
     sourceSurface: ' desktop-agent-chat ',
   });
 
   assert.deepEqual(payload, {
-    ownerUserId: 'owner-1',
-    realmAgentId: 'agent-1',
-    localAgentRef: 'local-agent:owner-1:agent-1',
+    agentId: 'local-agent:owner-1:agent-1',
     avatarInstanceId: 'instance-1',
-    sourceSurface: 'desktop-agent-chat',
+    launchSource: 'desktop-agent-chat',
   });
   for (const field of forbiddenLaunchFields) {
     assert.equal(field in payload, false, `payload must not contain ${field}`);
   }
   assert.deepEqual(parseAvatarLaunchContext(payload), {
-    ownerUserId: 'owner-1',
-    realmAgentId: 'agent-1',
-    localAgentRef: 'local-agent:owner-1:agent-1',
+    agentId: 'local-agent:owner-1:agent-1',
     avatarInstanceId: 'instance-1',
     launchSource: 'desktop-agent-chat',
   });
 });
 
-test('desktop avatar launcher allows required local Agent identity only', () => {
+test('desktop avatar launcher allows required agent selector only', () => {
   const payload = buildDesktopAvatarLaunchHandoffPayload({
-    ownerUserId: 'owner-1',
-    realmAgentId: 'agent-1',
-    localAgentRef: 'local-agent:owner-1:agent-1',
+    agentId: 'local-agent:owner-1:agent-1',
   });
 
   assert.deepEqual(payload, {
-    ownerUserId: 'owner-1',
-    realmAgentId: 'agent-1',
-    localAgentRef: 'local-agent:owner-1:agent-1',
+    agentId: 'local-agent:owner-1:agent-1',
   });
   assert.deepEqual(parseAvatarLaunchContext(payload), {
-    ownerUserId: 'owner-1',
-    realmAgentId: 'agent-1',
-    localAgentRef: 'local-agent:owner-1:agent-1',
+    agentId: 'local-agent:owner-1:agent-1',
     avatarInstanceId: null,
     launchSource: null,
   });
 });
 
-test('desktop avatar launcher rejects missing localAgentRef before invoking avatar', async () => {
+test('desktop avatar launcher rejects bare realm agent ids', () => {
+  assert.throws(
+    () => buildDesktopAvatarLaunchHandoffPayload({
+      agentId: 'agent-1',
+      avatarInstanceId: 'instance-1',
+    }),
+    /local-agent ref/,
+  );
+});
+
+test('desktop avatar launcher rejects missing agentId before invoking avatar', async () => {
   let invoked = false;
   await assert.rejects(
     launchDesktopAvatarHandoff({
-      ownerUserId: 'owner-1',
-      realmAgentId: 'agent-1',
-      localAgentRef: ' ',
+      agentId: ' ',
       avatarInstanceId: 'instance-1',
     }, {
       invokeLaunchHandoff: async () => {
         invoked = true;
-        return { opened: true, handoffUri: 'nimi-avatar://launch?agent_id=agent-1' };
+        return { opened: true, handoffUri: 'nimi-avatar://launch?agent_id=local-agent%3Aowner-1%3Aagent-1' };
       },
     }),
-    /localAgentRef/,
+    /agentId/,
   );
   assert.equal(invoked, false);
-});
-
-test('desktop avatar launcher rejects bare and mismatched localAgentRef values', () => {
-  const base = {
-    ownerUserId: 'owner-1',
-    realmAgentId: 'agent-1',
-  };
-  assert.throws(() => buildDesktopAvatarLaunchHandoffPayload({
-    ...base,
-    localAgentRef: 'agent-1',
-  }), /bare realmAgentId/);
-  assert.throws(() => buildDesktopAvatarLaunchHandoffPayload({
-    ...base,
-    localAgentRef: 'agent:abc.def+1',
-  }), /local-agent:/);
-  assert.throws(() => buildDesktopAvatarLaunchHandoffPayload({
-    ...base,
-    localAgentRef: 'local-agent:owner-2:agent-1',
-  }), /ownerUserId/);
-  assert.throws(() => buildDesktopAvatarLaunchHandoffPayload({
-    ...base,
-    localAgentRef: 'local-agent:owner-1:agent-2',
-  }), /realmAgentId/);
 });
 
 test('desktop avatar launcher no longer reserves anchors or issues scoped bindings', async () => {
   const calls: string[] = [];
   const result = await launchDesktopAvatarHandoff({
-    ownerUserId: 'owner-1',
-    realmAgentId: 'agent-1',
-    localAgentRef: 'local-agent:owner-1:agent-1',
+    agentId: 'local-agent:owner-1:agent-1',
     avatarInstanceId: 'instance-1',
     launchSource: 'desktop-agent-chat',
   }, {
     invokeLaunchHandoff: async (payload) => {
-      calls.push(`invoke:${payload.localAgentRef}`);
+      calls.push(`invoke:${payload.agentId}`);
       assert.deepEqual(payload, {
-        ownerUserId: 'owner-1',
-        realmAgentId: 'agent-1',
-        localAgentRef: 'local-agent:owner-1:agent-1',
+        agentId: 'local-agent:owner-1:agent-1',
         avatarInstanceId: 'instance-1',
         launchSource: 'desktop-agent-chat',
       });
-      return { opened: true, handoffUri: 'nimi-avatar://launch?agent_id=agent-1' };
+      return { opened: true, handoffUri: 'nimi-avatar://launch?agent_id=local-agent%3Aowner-1%3Aagent-1' };
     },
   });
 
@@ -186,15 +178,13 @@ test('desktop avatar prepared payload rejects old launch authority tuple inputs'
       runtimeAppId: 'nimi.desktop',
       worldId: 'world-1',
     } as never),
-    /forbidden field: avatarPackage/,
+    /forbidden field: ownerUserId/,
   );
 });
 
 test('avatar launch parser rejects old binding package anchor and auth fields', () => {
   const basePayload = {
-    ownerUserId: 'owner-1',
-    realmAgentId: 'agent-1',
-    localAgentRef: 'local-agent:owner-1:agent-1',
+    agentId: 'local-agent:owner-1:agent-1',
     avatarInstanceId: 'instance-1',
   };
   for (const field of forbiddenLaunchFields) {
@@ -228,11 +218,11 @@ test('desktop avatar launcher parses handoff results', () => {
   assert.deepEqual(
     parseDesktopAvatarLaunchHandoffResult({
       opened: true,
-      handoffUri: 'nimi-avatar://launch?agent_id=agent-1',
+      handoffUri: 'nimi-avatar://launch?agent_id=local-agent%3Aowner-1%3Aagent-1',
     }),
     {
       opened: true,
-      handoffUri: 'nimi-avatar://launch?agent_id=agent-1',
+      handoffUri: 'nimi-avatar://launch?agent_id=local-agent%3Aowner-1%3Aagent-1',
     },
   );
 });

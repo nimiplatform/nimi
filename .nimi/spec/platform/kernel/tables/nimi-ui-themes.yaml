@@ -1,4 +1,11 @@
 version: 2
+table_family: product_catalog
+owner: platform
+catalog_id: platform_nimi_ui_themes
+entries:
+  - packs_1
+  - packs_2
+  - packs_3
 packs:
   - theme_id: nimi-light
     pack_kind: foundation

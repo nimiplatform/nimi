@@ -7,8 +7,26 @@ const FORBIDDEN_LAUNCH_FIELDS = [
   'avatar_package_kind',
   'avatarPackageId',
   'avatar_package_id',
+  'avatarPackageRef',
+  'avatar_package_ref',
   'avatarPackageSchemaVersion',
   'avatar_package_schema_version',
+  'avatarAsset',
+  'avatar_asset',
+  'avatarAssetKind',
+  'avatar_asset_kind',
+  'avatarAssetId',
+  'avatar_asset_id',
+  'avatarAssetSchemaVersion',
+  'avatar_asset_schema_version',
+  'localAvatarAssetRef',
+  'local_avatar_asset_ref',
+  'backendCapabilityProfileRef',
+  'backend_capability_profile_ref',
+  'materializationRef',
+  'materialization_ref',
+  'localMaterializationRef',
+  'local_materialization_ref',
   'manifestPath',
   'manifest_path',
   'packagePath',
@@ -17,8 +35,6 @@ const FORBIDDEN_LAUNCH_FIELDS = [
   'source_path',
   'configPath',
   'config_path',
-  'conversationAnchorId',
-  'conversation_anchor_id',
   'anchorMode',
   'anchor_mode',
   'runtimeAppId',
@@ -74,34 +90,20 @@ const FORBIDDEN_LAUNCH_FIELDS = [
   'shared_auth_session',
   'loginRoute',
   'login_route',
-  'agentId',
-  'agent_id',
+  'ownerUserId',
+  'owner_user_id',
+  'realmAgentId',
+  'realm_agent_id',
+  'localAgentRef',
+  'local_agent_ref',
+  'conversationAnchorId',
+  'conversation_anchor_id',
 ] as const;
 
 export type AvatarLaunchContext = {
-  ownerUserId: string;
-  realmAgentId: string;
-  localAgentRef: string;
+  agentId: string;
   avatarInstanceId: string | null;
   launchSource: string | null;
-};
-
-export type AvatarScopedBindingProjection = {
-  bindingId: string;
-  bindingHandle: string | null;
-  runtimeAppId: string;
-  appInstanceId: string;
-  windowId: string;
-  avatarInstanceId: string;
-  agentId: string;
-  conversationAnchorId: string;
-  worldId: string | null;
-  purpose: string;
-  scopes: string[];
-  issuedAt: string | null;
-  expiresAt: string | null;
-  state: string;
-  reasonCode: string;
 };
 
 function assertNoForbiddenFields(record: Record<string, unknown>, context: string) {
@@ -125,18 +127,6 @@ function normalizeOptionalString(value: unknown): string | null {
   return normalized || null;
 }
 
-function validateLocalAgentRef(ownerUserId: string, realmAgentId: string, localAgentRef: string): void {
-  if (localAgentRef === realmAgentId) {
-    throw new Error('avatar launch context localAgentRef must not be a bare realmAgentId');
-  }
-  if (!localAgentRef.startsWith('local-agent:')) {
-    throw new Error('avatar launch context localAgentRef must start with local-agent:');
-  }
-  if (localAgentRef !== `local-agent:${ownerUserId}:${realmAgentId}`) {
-    throw new Error('avatar launch context localAgentRef must equal local-agent:${ownerUserId}:${realmAgentId}');
-  }
-}
-
 export function parseAvatarLaunchContext(value: unknown): AvatarLaunchContext {
   if (!value || typeof value !== 'object') {
     throw new Error('avatar launch context returned invalid payload');
@@ -145,16 +135,12 @@ export function parseAvatarLaunchContext(value: unknown): AvatarLaunchContext {
   assertNoForbiddenFields(record, 'avatar launch context');
   const launchSource = normalizeOptionalString(record.launchSource)
     ?? normalizeOptionalString(record.sourceSurface)
-    ?? normalizeOptionalString(record.source_surface);
-  const ownerUserId = normalizeRequiredString(record.ownerUserId ?? record.owner_user_id, 'ownerUserId');
-  const realmAgentId = normalizeRequiredString(record.realmAgentId ?? record.realm_agent_id, 'realmAgentId');
-  const localAgentRef = normalizeRequiredString(record.localAgentRef ?? record.local_agent_ref, 'localAgentRef');
-  validateLocalAgentRef(ownerUserId, realmAgentId, localAgentRef);
+    ?? normalizeOptionalString(record.source_surface)
+    ?? normalizeOptionalString(record.launch_source);
+  const agentId = normalizeRequiredString(record.agentId ?? record.agent_id, 'agentId');
   return {
-    ownerUserId,
-    realmAgentId,
-    localAgentRef,
-    avatarInstanceId: normalizeOptionalString(record.avatarInstanceId),
+    agentId,
+    avatarInstanceId: normalizeOptionalString(record.avatarInstanceId ?? record.avatar_instance_id),
     launchSource,
   };
 }

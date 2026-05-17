@@ -1,6 +1,9 @@
 schema_id: nimi.avatar.debug-session.v1
+table_family: product_catalog
 owner: .nimi/spec/avatar
-status: active
+catalog_id: avatar_debug_session_schema
+entries:
+  - id: nimi.avatar.debug-session.v1
 description: >
   Avatar debug session intake and backend evidence schema. This schema consumes
   Runtime-owned probe semantics and emits Avatar-owned backend evidence.
@@ -85,4 +88,3 @@ invariants:
   - Avatar evidence does not own public Runtime probe status.
   - Missing or unsupported backend capability is fail_closed evidence.
   - Debug success cannot depend on .vrma playback or placeholder profiles.
-

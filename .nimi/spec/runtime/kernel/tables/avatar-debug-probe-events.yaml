@@ -1,4 +1,33 @@
 version: 1
+table_family: protocol_surface
+protocol_id: runtime_avatar_debug_probe_events
+surfaces:
+  - package_validation
+  - launch_readiness
+  - backend_load
+  - capability_profile
+  - route_support_matrix
+  - generated_motion
+  - emotion_expression
+  - speech_lipsync
+  - window_hit_region
+  - passed
+  - failed
+  - unsupported
+  - blocked
+  - invalid
+  - raw_apml
+  - raw_mcp
+  - raw_a2a
+  - raw_provider_output
+  - app_business_data
+  - package_descriptor
+  - package_path
+  - token
+  - backend_command
+  - Probe kind names are Runtime-owned debug projection names.
+  - Avatar backend route ids are evidence refs, not Runtime probe kind names.
+  - Passed status requires concrete evidence refs.
 owner: .nimi/spec/runtime
 source_rule: K-AGCORE-055
 status: active

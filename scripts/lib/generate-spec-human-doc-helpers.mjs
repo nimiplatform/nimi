@@ -3,7 +3,6 @@ import path from 'node:path';
 import {
   cognitionKernelFiles,
   desktopKernelFiles,
-  futureKernelFiles,
   parseKernelRules,
   platformKernelFiles,
   realmKernelFiles,
@@ -19,7 +18,6 @@ export async function loadKernelRuleMap(specDir) {
     ['runtime', runtimeKernelFiles],
     ['sdk', sdkKernelFiles],
     ['desktop', desktopKernelFiles],
-    ['future', futureKernelFiles],
     ['platform', platformKernelFiles],
     ['realm', realmKernelFiles],
   ]) {
@@ -60,9 +58,8 @@ export function appendDocumentIntroduction(d) {
 8. [错误处理模型](#8-错误处理模型)
 9. [SDK 架构](#9-sdk-架构)
 10. [Desktop 架构](#10-desktop-架构)
-11. [Future 能力规划](#11-future-能力规划)
-12. [Standalone Cognition](#12-standalone-cognition)
-13. [附录：参考表](#13-附录参考表)
+11. [Standalone Cognition](#11-standalone-cognition)
+12. [附录：参考表](#12-附录参考表)
 
 ---`);
 
@@ -108,29 +105,23 @@ Nimi Runtime 是一个 gRPC 守护进程，负责 AI 推理执行、模型管理
 
 export async function finalizeGeneratedDoc({ checkMode, outPath, output, repoRoot }) {
   if (checkMode) {
-    let current = '';
     try {
-      current = await fs.readFile(outPath, 'utf8');
-    } catch {
-      process.stderr.write(`spec human doc does not exist: ${path.relative(repoRoot, outPath)}\n`);
-      process.stderr.write('run `pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope spec-human-doc` to generate.\n');
+      await fs.access(outPath);
+      process.stderr.write(`spec human doc must not be written to disk: ${path.relative(repoRoot, outPath)}\n`);
+      process.stderr.write('Render the human-readable view on demand with `pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope spec-human-doc`.\n');
       process.exitCode = 1;
       return;
+    } catch (error) {
+      if (error?.code !== 'ENOENT') throw error;
     }
 
-    const stripDate = (s) => s.replace(/^> 生成时间: .+$/m, '');
-    if (stripDate(current) !== stripDate(output)) {
-      process.stderr.write(`spec human doc drift detected: ${path.relative(repoRoot, outPath)}\n`);
-      process.stderr.write('run `pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope spec-human-doc` to regenerate.\n');
-      process.exitCode = 1;
-      return;
-    }
-
-    process.stdout.write('spec human doc is up-to-date\n');
+    // Touch the rendered output in memory so syntax/render failures surface in --check mode.
+    String(output);
+    process.stdout.write('spec human doc renderable (stdout view, no file written)\n');
     return;
   }
 
-  await fs.mkdir(path.dirname(outPath), { recursive: true });
-  await fs.writeFile(outPath, output, 'utf8');
-  process.stdout.write(`generated spec human doc: ${path.relative(repoRoot, outPath)}\n`);
+  process.stdout.write(`<!-- nimi-derived-view: ${path.relative(repoRoot, outPath).replace(/\\/g, '/')} -->\n`);
+  process.stdout.write(output);
+  if (!output.endsWith('\n')) process.stdout.write('\n');
 }

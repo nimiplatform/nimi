@@ -104,7 +104,7 @@ reject_when:
 
 ## 来源依据
 
-- [`.nimi/methodology/overflow-continuation-policy.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/overflow-continuation-policy.yaml)
-- [`.nimi/contracts/overflow-continuation.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/overflow-continuation.schema.yaml)
-- [`.nimi/contracts/result.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/result.schema.yaml)
-- [`.nimi/contracts/wave.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/wave.schema.yaml)
+- [`nimi-coding/methodology/overflow-continuation-policy.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/methodology/overflow-continuation-policy.yaml)
+- [`nimi-coding/contracts/overflow-continuation.schema.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/contracts/overflow-continuation.schema.yaml)
+- [`nimi-coding/contracts/result.schema.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/contracts/result.schema.yaml)
+- [`nimi-coding/contracts/wave.schema.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/contracts/wave.schema.yaml)

@@ -227,9 +227,9 @@ export interface NasActivityHandler {
 
 详 [`agent-script-contract.md`](agent-script-contract.md) §"NAS handler `requires`"。
 
-## 10. Deferred
+## 10. Not Admitted In This Contract
 
-本 contract 不在 Wave 0 内解决：
+本 contract 不拥有以下范围：
 
 - local trust posture / model permission model
 - runtime presentation semantic redesign

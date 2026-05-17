@@ -34,6 +34,69 @@ test('desktop macos smoke only starts when bootstrap is ready and a scenario is 
   }), false);
 });
 
+test('desktop macos smoke anonymous boot scenario asserts chat default and login roundtrip', async () => {
+  const clicked: string[] = [];
+  const waited: string[] = [];
+  const goneSelectors: string[] = [];
+  const writtenReports: Array<Record<string, unknown>> = [];
+
+  await runDesktopMacosSmokeScenario('boot.anonymous.login-screen', createBaseDriver({
+    async waitForTestId(id) {
+      waited.push(id);
+    },
+    async waitForSelectorGone(selector) {
+      goneSelectors.push(selector);
+    },
+    async clickByTestId(id) {
+      clicked.push(id);
+    },
+    async writeReport(payload) {
+      writtenReports.push(payload as unknown as Record<string, unknown>);
+    },
+    currentRoute() {
+      return '/';
+    },
+    currentHtml() {
+      return '<html>chat</html>';
+    },
+  }));
+
+  assert.deepEqual(clicked, [
+    E2E_IDS.topbarLoginButton,
+    E2E_IDS.loginBackButton,
+  ]);
+  assert.deepEqual(goneSelectors, [
+    `[data-testid="${E2E_IDS.shellSidebarRail}"]`,
+  ]);
+  assert.deepEqual(waited, [
+    E2E_IDS.mainShell,
+    E2E_IDS.panel('chat'),
+    E2E_IDS.chatPage,
+    E2E_IDS.topbarLoginButton,
+    E2E_IDS.loginScreen,
+    E2E_IDS.loginBackButton,
+    E2E_IDS.mainShell,
+    E2E_IDS.panel('chat'),
+    E2E_IDS.chatPage,
+  ]);
+  assert.equal(writtenReports.length, 1);
+  assert.deepEqual(writtenReports[0], {
+    ok: true,
+    steps: [
+      'wait-main-shell',
+      'wait-chat-default',
+      'wait-login-button',
+      'verify-anonymous-sidebar-absent',
+      'open-login',
+      'wait-login-screen',
+      'return-chat-panel',
+      'write-pass-report',
+    ],
+    route: '/',
+    htmlSnapshot: '<html>chat</html>',
+  });
+});
+
 test('desktop macos smoke chat memory bind scenario follows the expected step order', async () => {
   const clicked: string[] = [];
   const waited: string[] = [];
@@ -76,7 +139,7 @@ test('desktop macos smoke chat memory bind scenario follows the expected step or
     E2E_IDS.chatMemoryModeStatus,
   ]);
   assert.deepEqual(clicked, [
-    E2E_IDS.chatTarget('agent-e2e-alpha'),
+    E2E_IDS.chatTarget('local-agent:user-e2e-primary:agent-e2e-alpha'),
     E2E_IDS.chatSettingsToggle,
     E2E_IDS.chatMemoryModeUpgradeButton,
     E2E_IDS.chatMemoryModeUpgradeButton,

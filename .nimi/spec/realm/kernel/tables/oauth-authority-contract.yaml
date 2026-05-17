@@ -2,6 +2,29 @@ contract_id: OAUTH-AUTHORITY-CONTRACT-001
 domain: oauth-authority
 status: ACTIVE
 version: 2026-05-09
+table_family: product_catalog
+catalog_id: realm_oauth_authority_contract
+entries:
+  - human_spec
+  - openapi
+  - prisma
+  - services
+  - R-OAUTH-001
+  - R-OAUTH-002
+  - R-OAUTH-003
+  - R-OAUTH-004
+  - R-OAUTH-005
+  - R-OAUTH-006
+  - R-OAUTH-007
+  - R-OAUTH-008
+  - R-OAUTH-009
+  - R-OAUTH-010
+  - R-OAUTH-011
+  - R-OAUTH-012
+  - OauthAuthorizationCode
+  - Nimi Desktop Shell
+  - required_operations
+  - secondary_operations
 owner: '@team'
 sources:
   human_spec: ../oauth-authority-contract.md

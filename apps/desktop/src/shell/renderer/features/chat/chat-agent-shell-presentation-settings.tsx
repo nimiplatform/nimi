@@ -9,9 +9,14 @@ import type {
   AgentCenterAvatarConfigPatch,
   AgentCenterAvatarInstancePolicy,
   AgentCenterAvatarLaunchMode,
-  AgentCenterAvatarPackageModule,
+  AgentCenterAvatarAssetModule,
   AgentCenterGeneratedMotionProviderPolicy,
 } from './chat-agent-center-avatar-config-types';
+import type {
+  AgentCenterAvatarAssetKind,
+  AgentCenterAvatarAssetListResult,
+} from './chat-agent-center-local-config';
+import type { AvatarAssetValidationPresentation } from './chat-agent-shell-avatar-asset-diagnostics';
 
 const ChatSettingsPanel = lazy(async () => {
   const mod = await import('./chat-shared-settings-panel');
@@ -34,6 +39,12 @@ type BackgroundQueryLike = {
   isFetching: boolean;
 };
 
+type AvatarAssetLibraryQueryLike = {
+  data?: AgentCenterAvatarAssetListResult | null;
+  error?: unknown;
+  isFetching: boolean;
+};
+
 type BackgroundValidation = {
   status?: string;
   errors?: Array<{ message?: string }>;
@@ -42,11 +53,19 @@ type BackgroundValidation = {
 type AgentConversationSettingsContentProps = {
   input: UseAgentConversationPresentationInput;
   diagnosticsContent: ReactNode;
-  avatarPackageValid: boolean;
+  avatarAssetValid: boolean;
   backgroundValid: boolean;
-  avatarPackageChecking: boolean;
-  avatarPackageConfig: AgentCenterAvatarPackageModule | null;
+  avatarAssetChecking: boolean;
+  avatarAssetConfig: AgentCenterAvatarAssetModule | null;
+  avatarAssetValidationPresentation: AvatarAssetValidationPresentation;
   avatarConfigMutation: MutationLike<AgentCenterAvatarConfigPatch>;
+  avatarAssetImportMutation: MutationLike<AgentCenterAvatarAssetKind>;
+  avatarAssetLibraryQuery: AvatarAssetLibraryQueryLike;
+  avatarAssetSelectMutation: MutationLike<string>;
+  avatarImportDisabled: boolean;
+  avatarImportError: string | null;
+  clearAvatarAssetMutation: MutationLike;
+  live2dAdapterManifestImportMutation: MutationLike;
   selectedBackgroundAssetId: string | null | undefined;
   backgroundAssetQuery: BackgroundQueryLike;
   backgroundValidation: BackgroundValidation;
@@ -103,11 +122,19 @@ export function AgentConversationSettingsContent(props: AgentConversationSetting
   const {
     input,
     diagnosticsContent,
-    avatarPackageValid,
+    avatarAssetValid,
     backgroundValid,
-    avatarPackageChecking,
-    avatarPackageConfig,
+    avatarAssetChecking,
+    avatarAssetConfig,
+    avatarAssetValidationPresentation,
     avatarConfigMutation,
+    avatarAssetImportMutation,
+    avatarAssetLibraryQuery,
+    avatarAssetSelectMutation,
+    avatarImportDisabled,
+    avatarImportError,
+    clearAvatarAssetMutation,
+    live2dAdapterManifestImportMutation,
     selectedBackgroundAssetId,
     backgroundAssetQuery,
     backgroundValidation,
@@ -116,13 +143,29 @@ export function AgentConversationSettingsContent(props: AgentConversationSetting
     backgroundImportDisabled,
     backgroundImportMutation,
   } = props;
-  const avatarBackendKind = avatarPackageConfig?.backend_kind || 'live2d';
-  const avatarInstancePolicy = avatarPackageConfig?.avatar_instance_policy || 'reuse_active_instance';
-  const generatedMotionProviderPolicy = avatarPackageConfig?.generated_motion_provider_policy || 'require_profile_support';
-  const avatarLaunchMode = avatarPackageConfig?.launch_mode || 'manual';
-  const avatarDebugProfile = avatarPackageConfig?.debug_profile || 'standard';
-  const live2dAdapterManifestSource = avatarPackageConfig?.live2d_adapter_manifest_source || 'none';
+  const avatarBackendKind = avatarAssetConfig?.backend_kind || 'live2d';
+  const avatarInstancePolicy = avatarAssetConfig?.avatar_instance_policy || 'reuse_active_instance';
+  const generatedMotionProviderPolicy = avatarAssetConfig?.generated_motion_provider_policy || 'require_profile_support';
+  const avatarLaunchMode = avatarAssetConfig?.launch_mode || 'manual';
+  const avatarDebugProfile = avatarAssetConfig?.debug_profile || 'standard';
+  const live2dAdapterManifestSource = avatarAssetConfig?.live2d_adapter_manifest_source || 'none';
   const avatarConfigDisabled = avatarConfigMutation.isPending || !hasTauriInvoke();
+  const selectedAvatarAssetId = avatarAssetConfig?.local_avatar_asset_ref || null;
+  const avatarAssetLibrary = avatarAssetLibraryQuery.data?.assets || [];
+  const live2dAdapterImportDisabled = avatarImportDisabled
+    || live2dAdapterManifestImportMutation.isPending
+    || avatarBackendKind !== 'live2d'
+    || !selectedAvatarAssetId;
+  const clearAvatarAssetDisabled = !selectedAvatarAssetId || clearAvatarAssetMutation.isPending;
+  const formatAssetBytes = (bytes: number) => {
+    if (bytes >= 1024 * 1024) {
+      return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+    }
+    if (bytes >= 1024) {
+      return `${(bytes / 1024).toFixed(1)} KB`;
+    }
+    return `${bytes} B`;
+  };
   const renderOptionSelect = <TValue extends string>(inputProps: {
     label: string;
     value: TValue;
@@ -154,7 +197,7 @@ export function AgentConversationSettingsContent(props: AgentConversationSetting
         runtimeInspectLoading={input.runtimeInspectLoading}
         routeReady={input.agentRouteReady}
         mutationPendingAction={input.mutationPendingAction}
-        avatarConfigured={avatarPackageValid}
+        avatarConfigured={avatarAssetValid}
         backgroundConfigured={Boolean(backgroundValid)}
         avatarContent={(
           <div className="space-y-3">
@@ -162,18 +205,27 @@ export function AgentConversationSettingsContent(props: AgentConversationSetting
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <div className="text-xs font-semibold text-slate-950">
-                    {input.t('Chat.agentCenterAvatarPackage', { defaultValue: 'Avatar package' })}
+                    {input.t('Chat.agentCenterAvatarAsset', { defaultValue: 'Avatar asset' })}
                   </div>
                 </div>
                 <span className="shrink-0 rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-semibold text-slate-600">
-                  {avatarPackageValid
+                  {avatarAssetValid
                     ? input.t('Chat.agentCenterReady', { defaultValue: 'Ready' })
-                    : avatarPackageChecking
+                    : avatarAssetChecking
                       ? input.t('Chat.agentCenterChecking', { defaultValue: 'Checking' })
                       : input.t('Chat.agentCenterNeedsSetup', { defaultValue: 'Needs setup' })}
                 </span>
               </div>
               <div className="mt-3 grid gap-2 text-[11px] leading-4 text-slate-500 sm:grid-cols-2">
+                <div className="rounded-md bg-white px-2.5 py-2">
+                  <span className="font-semibold text-slate-700">
+                    {input.t('Chat.agentCenterAvatarSelectedAsset', { defaultValue: 'Selected asset' })}
+                  </span>
+                  <span className="ml-1 break-all">
+                    {avatarAssetValidationPresentation.selectedAssetId
+                      || input.t('Chat.agentCenterMissing', { defaultValue: 'Missing' })}
+                  </span>
+                </div>
                 <div className="rounded-md bg-white px-2.5 py-2">
                   <span className="font-semibold text-slate-700">
                     {input.t('Chat.agentCenterAvatarBackend', { defaultValue: 'Backend' })}
@@ -185,7 +237,7 @@ export function AgentConversationSettingsContent(props: AgentConversationSetting
                     {input.t('Chat.agentCenterAvatarCapabilityProfile', { defaultValue: 'Capability profile' })}
                   </span>
                   <span className="ml-1">
-                    {avatarPackageConfig?.backend_capability_profile_ref
+                    {avatarAssetConfig?.backend_capability_profile_ref
                       ? input.t('Chat.agentCenterAvatarProfileLinked', { defaultValue: 'Linked' })
                       : input.t('Chat.agentCenterAvatarProfilePending', { defaultValue: 'Pending evidence' })}
                   </span>
@@ -202,19 +254,162 @@ export function AgentConversationSettingsContent(props: AgentConversationSetting
                         : input.t('Chat.agentCenterLive2dAdapterNone', { defaultValue: 'Not selected' })}
                   </span>
                 </div>
+                <div className="rounded-md bg-white px-2.5 py-2">
+                  <span className="font-semibold text-slate-700">
+                    {input.t('Chat.agentCenterAvatarValidationStatus', { defaultValue: 'Validation' })}
+                  </span>
+                  <span className="ml-1">
+                    {avatarAssetValidationPresentation.validationStatus.replaceAll('_', ' ')}
+                  </span>
+                </div>
               </div>
+              {avatarAssetValidationPresentation.message ? (
+                <div className={`mt-3 rounded-md border px-3 py-2 text-[11px] leading-4 ${
+                  avatarAssetValidationPresentation.status === 'invalid'
+                    ? 'border-rose-200 bg-rose-50 text-rose-700'
+                    : 'border-amber-200 bg-amber-50 text-amber-800'
+                }`}
+                >
+                  {avatarAssetValidationPresentation.message}
+                </div>
+              ) : null}
+              {avatarAssetValidationPresentation.issueRows.length > 1 ? (
+                <div className="mt-2 rounded-md bg-white px-3 py-2 text-[11px] leading-4 text-slate-600">
+                  {avatarAssetValidationPresentation.issueRows.map((issue) => (
+                    <div key={issue} className="break-words">{issue}</div>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+            <div className="rounded-lg border border-slate-100 bg-white px-3 py-3">
+              <div className="flex items-center justify-between gap-3">
+                <div className="text-xs font-semibold text-slate-950">
+                  {input.t('Chat.agentCenterAvatarAssetLibrary', { defaultValue: 'Local asset library' })}
+                </div>
+                <span className="shrink-0 text-[10px] font-semibold uppercase text-slate-400">
+                  {avatarAssetLibraryQuery.isFetching
+                    ? input.t('Chat.agentCenterChecking', { defaultValue: 'Checking' })
+                    : `${avatarAssetLibrary.length}`}
+                </span>
+              </div>
+              {avatarAssetLibrary.length ? (
+                <div className="mt-2 divide-y divide-slate-100">
+                  {avatarAssetLibrary.map((asset) => {
+                    const assetSelected = asset.selected || asset.local_asset_id === selectedAvatarAssetId;
+                    const assetValid = asset.validation.status === 'valid';
+                    const selectDisabled = assetSelected
+                      || !assetValid
+                      || avatarAssetSelectMutation.isPending
+                      || !hasTauriInvoke();
+                    return (
+                      <div key={asset.local_asset_id} className="grid gap-2 py-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+                        <div className="min-w-0">
+                          <div className="flex min-w-0 items-center gap-2">
+                            <span className="truncate text-xs font-semibold text-slate-800">
+                              {asset.display_name}
+                            </span>
+                            <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-[9px] font-semibold uppercase text-slate-500">
+                              {asset.backend_kind}
+                            </span>
+                          </div>
+                          <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-[10px] leading-4 text-slate-500">
+                            <span className="break-all">{asset.local_asset_id}</span>
+                            <span>{formatAssetBytes(asset.asset_bytes)}</span>
+                            <span>{asset.file_count} files</span>
+                            <span className={assetValid ? 'text-emerald-600' : 'text-rose-600'}>
+                              {asset.validation.status.replaceAll('_', ' ')}
+                            </span>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          disabled={selectDisabled}
+                          onClick={() => avatarAssetSelectMutation.mutate(asset.local_asset_id)}
+                          className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition-colors hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400"
+                        >
+                          {assetSelected
+                            ? input.t('Chat.agentCenterAvatarAssetSelected', { defaultValue: 'Selected' })
+                            : input.t('Chat.agentCenterAvatarUseAsset', { defaultValue: 'Use' })}
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="mt-2 rounded-md bg-slate-50 px-3 py-2 text-[11px] leading-4 text-slate-500">
+                  {avatarAssetLibraryQuery.isFetching
+                    ? input.t('Chat.agentCenterChecking', { defaultValue: 'Checking' })
+                    : input.t('Chat.agentCenterAvatarAssetLibraryEmpty', { defaultValue: 'No imported Avatar assets' })}
+                </div>
+              )}
+              {avatarAssetLibraryQuery.error instanceof Error ? (
+                <div className="mt-2 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-[11px] leading-4 text-rose-700">
+                  {avatarAssetLibraryQuery.error.message}
+                </div>
+              ) : null}
+              {avatarAssetSelectMutation.error instanceof Error ? (
+                <div className="mt-2 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-[11px] leading-4 text-rose-700">
+                  {avatarAssetSelectMutation.error.message}
+                </div>
+              ) : null}
             </div>
             <div className="grid gap-2 sm:grid-cols-2">
-              {renderOptionSelect<'live2d' | 'vrm' | 'future'>({
-                label: input.t('Chat.agentCenterAvatarBackendKind', { defaultValue: 'Backend kind' }),
-                value: avatarBackendKind,
-                options: [
-                  { value: 'live2d', label: 'Live2D' },
-                  { value: 'vrm', label: 'VRM' },
-                  { value: 'future', label: input.t('Chat.agentCenterAvatarBackendFuture', { defaultValue: 'Future' }) },
-                ],
-                onChange: (backend_kind) => avatarConfigMutation.mutate({ backend_kind }),
-              })}
+              <button
+                type="button"
+                disabled={avatarImportDisabled}
+                onClick={() => avatarAssetImportMutation.mutate('live2d')}
+                className="group flex min-h-[72px] flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-slate-300 bg-white/70 px-3 py-3 text-center text-xs font-semibold text-slate-700 transition-all duration-200 ease-out hover:-translate-y-[1px] hover:border-emerald-400 hover:bg-emerald-50/60 hover:text-emerald-700 hover:shadow-[0_8px_20px_rgba(16,185,129,0.08)] disabled:cursor-not-allowed disabled:opacity-55 disabled:hover:translate-y-0 disabled:hover:border-slate-300 disabled:hover:bg-white/70 disabled:hover:text-slate-700 disabled:hover:shadow-none"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 text-slate-400 transition-colors group-hover:text-emerald-500">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="17 8 12 3 7 8" />
+                  <line x1="12" y1="3" x2="12" y2="15" />
+                </svg>
+                <span>
+                  {avatarAssetImportMutation.isPending
+                    ? input.t('Chat.agentCenterAvatarImporting', { defaultValue: 'Importing...' })
+                    : input.t('Chat.agentCenterImportLive2d', { defaultValue: 'Import Live2D folder' })}
+                </span>
+              </button>
+              <button
+                type="button"
+                disabled={avatarImportDisabled}
+                onClick={() => avatarAssetImportMutation.mutate('vrm')}
+                className="group flex min-h-[72px] flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-slate-300 bg-white/70 px-3 py-3 text-center text-xs font-semibold text-slate-700 transition-all duration-200 ease-out hover:-translate-y-[1px] hover:border-emerald-400 hover:bg-emerald-50/60 hover:text-emerald-700 hover:shadow-[0_8px_20px_rgba(16,185,129,0.08)] disabled:cursor-not-allowed disabled:opacity-55 disabled:hover:translate-y-0 disabled:hover:border-slate-300 disabled:hover:bg-white/70 disabled:hover:text-slate-700 disabled:hover:shadow-none"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 text-slate-400 transition-colors group-hover:text-emerald-500">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="17 8 12 3 7 8" />
+                  <line x1="12" y1="3" x2="12" y2="15" />
+                </svg>
+                <span>
+                  {avatarAssetImportMutation.isPending
+                    ? input.t('Chat.agentCenterAvatarImporting', { defaultValue: 'Importing...' })
+                    : input.t('Chat.agentCenterImportVrm', { defaultValue: 'Import VRM file' })}
+                </span>
+              </button>
+              <button
+                type="button"
+                disabled={live2dAdapterImportDisabled}
+                onClick={() => live2dAdapterManifestImportMutation.mutate()}
+                className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-left text-xs font-semibold text-slate-600 transition-colors hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-55"
+              >
+                {live2dAdapterManifestImportMutation.isPending
+                  ? input.t('Chat.agentCenterLive2dAdapterImporting', { defaultValue: 'Linking...' })
+                  : input.t('Chat.agentCenterImportLive2dAdapterManifest', { defaultValue: 'Link Live2D adapter manifest' })}
+              </button>
+              <button
+                type="button"
+                disabled={clearAvatarAssetDisabled}
+                onClick={() => clearAvatarAssetMutation.mutate()}
+                className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-left text-xs font-semibold text-slate-600 transition-colors hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-55"
+              >
+                {clearAvatarAssetMutation.isPending
+                  ? input.t('Chat.agentCenterAvatarClearing', { defaultValue: 'Removing...' })
+                  : input.t('Chat.agentCenterClearAvatarSelection', { defaultValue: 'Remove Avatar asset' })}
+              </button>
+            </div>
+            <div className="grid gap-2 sm:grid-cols-2">
               {renderOptionSelect<AgentCenterAvatarInstancePolicy>({
                 label: input.t('Chat.agentCenterAvatarInstancePolicy', { defaultValue: 'Instance policy' }),
                 value: avatarInstancePolicy,
@@ -261,12 +456,17 @@ export function AgentConversationSettingsContent(props: AgentConversationSetting
                 {avatarConfigMutation.error.message}
               </div>
             ) : null}
+            {avatarImportError ? (
+              <div className="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-[11px] leading-4 text-rose-700">
+                {avatarImportError}
+              </div>
+            ) : null}
             <AgentCenterAvatarDebugWorkbench
               input={input}
-              avatarPackageConfig={avatarPackageConfig}
-              avatarPackageValid={avatarPackageValid}
-              avatarPackageChecking={avatarPackageChecking}
-              validationMessage={null}
+              avatarAssetConfig={avatarAssetConfig}
+              avatarAssetValid={avatarAssetValid}
+              avatarAssetChecking={avatarAssetChecking}
+              validationMessage={avatarAssetValidationPresentation.message}
             />
           </div>
         )}

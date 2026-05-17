@@ -109,7 +109,7 @@ took the verdict we liked."
 
 ## Source Basis
 
-- [`.nimi/contracts/result.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/result.schema.yaml)
-- [`.nimi/contracts/decision-review.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/decision-review.schema.yaml)
-- [`.nimi/methodology/authority-convergence-policy.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/authority-convergence-policy.yaml)
-- [`.nimi/methodology/role-separation-policy.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/role-separation-policy.yaml)
+- [`nimi-coding/contracts/result.schema.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/contracts/result.schema.yaml)
+- [`nimi-coding/contracts/decision-review.schema.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/contracts/decision-review.schema.yaml)
+- [`nimi-coding/methodology/authority-convergence-policy.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/methodology/authority-convergence-policy.yaml)
+- [`nimi-coding/methodology/role-separation-policy.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/methodology/role-separation-policy.yaml)

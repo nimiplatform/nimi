@@ -1,0 +1,91 @@
+version: 1
+contract:
+  id: nimicoding.spec-surface-negative-fixtures.v1
+  owner: nimi-coding
+fixture_required_fields:
+  - fixture_id
+  - contract_ref
+  - setup
+  - expected_failure
+  - validator_scope
+fixtures:
+  - fixture_id: generated_view_under_product_authority
+    contract_ref: placement-contract.schema.yaml
+    setup: .nimi/spec/runtime/kernel/generated/example.md
+    expected_failure: derived_view_under_product_authority_root
+    validator_scope: placement
+  - fixture_id: spec_generation_state_under_meta
+    contract_ref: placement-contract.schema.yaml
+    setup: .nimi/spec/_meta/spec-generation-audit.yaml
+    expected_failure: spec_generation_state_under_spec
+    validator_scope: placement
+  - fixture_id: rule_evidence_with_coverage_status_under_kernel_tables
+    contract_ref: table-family.schema.yaml
+    setup: .nimi/spec/runtime/kernel/tables/rule-evidence.yaml with coverage_status
+    expected_failure: table_contains_forbidden_state_or_audit_field
+    validator_scope: table_family
+  - fixture_id: future_backlog_under_spec
+    contract_ref: domain-admission.schema.yaml
+    setup: .nimi/spec/future/kernel/tables/backlog-items.yaml
+    expected_failure: excluded_domain_retained_under_spec
+    validator_scope: domain_admission
+  - fixture_id: thin_guidance_with_normative_body
+    contract_ref: surface-taxonomy.schema.yaml
+    setup: .nimi/spec/desktop/local-ai.md containing MUST or 必须
+    expected_failure: guidance_defines_rule_body
+    validator_scope: guidance
+  - fixture_id: package_methodology_copied_to_spec
+    contract_ref: projection-edge.schema.yaml
+    setup: .nimi/spec/product-scope.yaml containing package methodology body
+    expected_failure: package_body_promoted_to_product_authority
+    validator_scope: projection
+  - fixture_id: nimicoding_managed_projection_passes
+    contract_ref: placement-contract.schema.yaml
+    setup: .nimi/contracts/topic.schema.yaml as init-managed projection
+    expected_failure: none
+    validator_scope: placement
+  - fixture_id: nimicoding_config_projection_passes
+    contract_ref: placement-contract.schema.yaml
+    setup: .nimi/config/spec-generation-inputs.yaml as init-managed projection
+    expected_failure: none
+    validator_scope: placement
+  - fixture_id: nimicoding_methodology_projection_passes
+    contract_ref: placement-contract.schema.yaml
+    setup: .nimi/methodology/spec-reconstruction.yaml as init-managed projection
+    expected_failure: none
+    validator_scope: placement
+  - fixture_id: blanket_v2_docs_input_root
+    contract_ref: spec-generation-inputs.schema.yaml
+    setup: .nimi/config/spec-generation-inputs.yaml docs_inputs root "."
+    expected_failure: invalid_spec_generation_inputs_config
+    validator_scope: doctor
+  - fixture_id: lifecycle_cutover_status_under_spec
+    contract_ref: placement-contract.schema.yaml
+    setup: .nimi/spec/_meta/spec-authority-cutover-readiness.yaml with current phase/status
+    expected_failure: lifecycle_progress_state_under_spec
+    validator_scope: placement
+  - fixture_id: generated_file_referenced_as_authority
+    contract_ref: projection-edge.schema.yaml
+    setup: product authority markdown links to .nimi/spec/runtime/kernel/generated/rule-evidence.md as authority
+    expected_failure: derived_view_referenced_as_authority
+    validator_scope: projection
+  - fixture_id: kernel_table_without_family
+    contract_ref: table-family.schema.yaml
+    setup: .nimi/spec/runtime/kernel/tables/example.yaml without table_family
+    expected_failure: missing_table_family
+    validator_scope: table_family
+  - fixture_id: tracked_non_product_without_admission
+    contract_ref: tracked-output-admission.schema.yaml
+    setup: .nimi/audit/example.yaml
+    expected_failure: tracked_non_product_without_admission
+    validator_scope: tracked_output
+  - fixture_id: valid_state_machine_table_passes
+    contract_ref: table-family.schema.yaml
+    setup: .nimi/spec/runtime/kernel/tables/job-states.yaml with table_family state_machine
+    expected_failure: none
+    validator_scope: table_family
+  - fixture_id: valid_minimal_package_anchor_passes
+    contract_ref: projection-edge.schema.yaml
+    setup: .nimi/spec/_meta/nimi-coding-admission-anchor.yaml with package id/version/root/edge refs only
+    expected_failure: none
+    validator_scope: projection

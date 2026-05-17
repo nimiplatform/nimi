@@ -2,6 +2,22 @@ contract_id: WORLD-STATE-CONTRACT-001
 domain: world-state
 status: ACTIVE
 version: 2026-03-22
+table_family: product_catalog
+catalog_id: realm_world_state_contract
+entries:
+  - human_spec
+  - openapi
+  - prisma
+  - services
+  - R-WSTATE-001
+  - R-WSTATE-002
+  - R-WSTATE-003
+  - R-WSTATE-004
+  - R-WSTATE-005
+  - R-WSTATE-006
+  - WorldStateRecord
+  - required_operations
+  - secondary_operations
 owner: '@team'
 sources:
   human_spec: ../world-state-contract.md

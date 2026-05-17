@@ -1,6 +1,6 @@
 id: nimicoding.topic-goal.v1
 kind: topic-goal-readiness-result
-canonical_owner: nimi-coding/contracts/topic-goal.schema.yaml
+canonical_owner: .nimi/contracts/topic-goal.schema.yaml
 host_projection_ref: .nimi/contracts/topic-goal.schema.yaml
 projection_rule: host projection must be byte-aligned with this package contract
 output_contract:

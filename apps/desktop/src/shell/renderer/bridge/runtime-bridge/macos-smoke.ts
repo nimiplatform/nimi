@@ -36,6 +36,20 @@ export async function readDesktopMacosSmokeAvatarEvidence(
   );
 }
 
+export async function applyDesktopMacosSmokeAvatarProductLocalAssetFault(
+  faultKind: 'missing_entry_file',
+): Promise<JsonObject> {
+  if (!hasTauriInvoke()) {
+    throw new Error('desktop_macos_smoke_avatar_product_local_asset_fault_apply requires Tauri runtime');
+  }
+  const result = await invokeTauri('desktop_macos_smoke_avatar_product_local_asset_fault_apply', {
+    payload: { faultKind },
+  });
+  return result && typeof result === 'object' && !Array.isArray(result)
+    ? result as JsonObject
+    : {};
+}
+
 export async function writeDesktopMacosSmokeReport(
   payload: DesktopMacosSmokeReportPayload,
 ): Promise<DesktopMacosSmokeReportResult> {

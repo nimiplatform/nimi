@@ -1,4 +1,9 @@
 version: 1
+table_family: product_catalog
+owner: runtime
+catalog_id: runtime_shared_accelerator_dependencies
+entries:
+  - dependencies_1
 
 # Accelerator-specific projection of canonical Runtime local environment
 # dependency authority. The canonical cross-family dependency graph, source

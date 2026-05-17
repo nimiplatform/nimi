@@ -1,4 +1,23 @@
 version: 1
+table_family: closed_enum
+enum_id: runtime_avatar_debug_replay_keys
+values:
+  - probe_id
+  - request_event_id
+  - result_event_id
+  - authorization_verdict_id
+  - projection_lineage_id
+  - avatar_backend_evidence_ref
+  - redaction_state
+  - replay_visibility
+  - redacted
+  - visible
+  - forbidden
+  - desktop_debug_workbench
+  - sdk_diagnostics
+  - runtime_audit_only
+  - Runtime audit/replay remains the canonical replay source.
+  - Desktop may display replay refs but must not reconstruct replay locally.
 owner: .nimi/spec/runtime
 source_rule: K-AGCORE-057
 status: active

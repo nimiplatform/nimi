@@ -21,8 +21,8 @@ importers:
         version: 2.8.2
     devDependencies:
       '@nimiplatform/nimi-coding':
-        specifier: workspace:*
-        version: link:nimi-coding
+        specifier: ^0.2.1
+        version: 0.2.1
 
   apps/avatar:
     dependencies:
@@ -1296,15 +1296,6 @@ importers:
         specifier: ^4.1.0
         version: 4.1.0(@opentelemetry/api@1.9.0)(@types/node@25.5.0)(jsdom@28.1.0)(vite@7.3.1(@types/node@25.5.0)(jiti@2.6.1)(lightningcss@1.32.0)(tsx@4.21.0)(yaml@2.8.2))
 
-  nimi-coding:
-    dependencies:
-      '@openai/codex-sdk':
-        specifier: ^0.124.0
-        version: 0.124.0
-      yaml:
-        specifier: ^2.8.1
-        version: 2.8.2
-
   nimi-cognition: {}
 
   sdk:
@@ -2206,6 +2197,11 @@ packages:
     peerDependencies:
       '@emnapi/core': ^1.7.1
       '@emnapi/runtime': ^1.7.1
+
+  '@nimiplatform/nimi-coding@0.2.1':
+    resolution: {integrity: sha512-JXpGgY7qFB/IcI9N1Muvj8b0PJFK+S9PxOOeFKPKKdMYJNVqfHyas3r+0169GO6R5gRyvG81d2rAX4URwVBCrA==}
+    engines: {node: '>=24.0.0', pnpm: '>=10.0.0'}
+    hasBin: true
 
   '@openai/codex-sdk@0.124.0':
     resolution: {integrity: sha512-CfL0JRBbjXdR6BdmCtEEWA0Z+7O2+4ZP4rEf+TggyX2kQAWaDDAXPZbgH4iQuGR7hjV/oyr++d7vmheNc2U1Tg==}
@@ -7765,6 +7761,11 @@ snapshots:
       '@emnapi/runtime': 1.9.2
       '@tybys/wasm-util': 0.10.1
     optional: true
+
+  '@nimiplatform/nimi-coding@0.2.1':
+    dependencies:
+      '@openai/codex-sdk': 0.124.0
+      yaml: 2.8.2
 
   '@openai/codex-sdk@0.124.0':
     dependencies:

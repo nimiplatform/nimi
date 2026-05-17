@@ -53,3 +53,35 @@ OTHER DEALINGS IN THE SOFTWARE.
 ```
 
 Full upstream LICENSE: <https://github.com/pixiv/three-vrm/blob/release/LICENSE>.
+
+## HairSample_Female.vrm
+
+- **Source**: <https://github.com/madjin/vrm-samples/blob/master/vroid/beta/HairSample_Female.vrm>
+- **Raw URL**: <https://raw.githubusercontent.com/madjin/vrm-samples/master/vroid/beta/HairSample_Female.vrm>
+- **Upstream model family**: VRoid Studio sample model
+- **Mirror**: madjin/vrm-samples
+- **License**: CC0-1.0, per VRoid FAQ entry listing `HairSample_Female`
+  under CC0 licensed sample models
+- **License authority**:
+  <https://vroid.pixiv.help/hc/en-us/articles/4402614652569-Do-VRoid-Studio-s-sample-models-come-with-conditions-of-use>
+- **Admitted under**: Wave 1 of topic
+  `2026-05-15-avatar-vrm-deferral-and-authority-reconciliation`
+- **Cache target**:
+  `apps/avatar/.cache/assets/vrm-models/HairSample_Female.vrm`
+  (gitignored; fetched on demand)
+
+## HairSample_Male.vrm
+
+- **Source**: <https://github.com/madjin/vrm-samples/blob/master/vroid/beta/HairSample_Male.vrm>
+- **Raw URL**: <https://raw.githubusercontent.com/madjin/vrm-samples/master/vroid/beta/HairSample_Male.vrm>
+- **Upstream model family**: VRoid Studio sample model
+- **Mirror**: madjin/vrm-samples
+- **License**: CC0-1.0, per VRoid FAQ entry listing `HairSample_Male`
+  under CC0 licensed sample models
+- **License authority**:
+  <https://vroid.pixiv.help/hc/en-us/articles/4402614652569-Do-VRoid-Studio-s-sample-models-come-with-conditions-of-use>
+- **Admitted under**: Wave 1 of topic
+  `2026-05-15-avatar-vrm-deferral-and-authority-reconciliation`
+- **Cache target**:
+  `apps/avatar/.cache/assets/vrm-models/HairSample_Male.vrm`
+  (gitignored; fetched on demand)

@@ -60,6 +60,19 @@ type publicChatReasoningConfig struct {
 	BudgetTokens int32
 }
 
+type avatarLiveInstanceBindingState struct {
+	AvatarInstanceID     string
+	ConversationAnchorID string
+	AgentID              string
+	LocalAgentRef        string
+	OwnerUserID          string
+	RealmAgentID         string
+	CallerAppID          string
+	SubjectUserID        string
+	RegisteredAt         time.Time
+	UpdatedAt            time.Time
+}
+
 // publicChatAnchorState is the runtime-owned ConversationAnchor continuity
 // state per K-AGCORE-034. It is keyed by `conversation_anchor_id` only;
 // `agent_id` is agent identity scope, not continuity scope.

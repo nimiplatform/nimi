@@ -1,3 +1,15 @@
+table_family: closed_enum
+owner: desktop
+enum_id: desktop_mod_kernel_stages
+values:
+  - discovery
+  - manifest/compat
+  - signature/auth
+  - dependency/build
+  - sandbox/policy
+  - load
+  - lifecycle
+  - audit
 # Desktop Mod Governance Kernel Stages
 # Source: apps/desktop/src/runtime/execution-kernel/contracts/types.ts (KernelStage)
 

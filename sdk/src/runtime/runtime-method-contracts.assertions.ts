@@ -1,17 +1,23 @@
 import type {
   AgentEvent,
-  GetDelegatedControlSurfaceSnapshotRequest,
-  GetDelegatedControlSurfaceSnapshotResponse,
-  GetDelegatedReplayTraceRequest,
-  GetDelegatedReplayTraceResponse,
+  CancelCompanionParticipationRequest,
+  CancelCompanionParticipationResponse,
   GetConversationAnchorSnapshotRequest,
   GetConversationAnchorSnapshotResponse,
+  GetCompanionParticipationProjectionRequest,
+  GetCompanionParticipationProjectionResponse,
   GetPublicChatSessionSnapshotRequest,
   GetPublicChatSessionSnapshotResponse,
+  OpenCompanionParticipationReplayRequest,
+  OpenCompanionParticipationReplayResponse,
   OpenConversationAnchorRequest,
   OpenConversationAnchorResponse,
-  SubmitDelegatedApprovalDecisionRequest,
-  SubmitDelegatedApprovalDecisionResponse,
+  RegisterAvatarLiveInstanceBindingRequest,
+  RegisterAvatarLiveInstanceBindingResponse,
+  ResolveAvatarLiveInstanceBindingRequest,
+  ResolveAvatarLiveInstanceBindingResponse,
+  RequestCompanionParticipationRequest,
+  RequestCompanionParticipationResponse,
   QueryAgentMemoryRequest,
   QueryAgentMemoryResponse,
   SetAgentPresentationProfileRequest,
@@ -20,6 +26,14 @@ import type {
   WriteAgentMemoryRequest,
   WriteAgentMemoryResponse,
 } from './generated/runtime/v1/agent_service.js';
+import type {
+  GetDelegatedControlSurfaceSnapshotRequest,
+  GetDelegatedControlSurfaceSnapshotResponse,
+  GetDelegatedReplayTraceRequest,
+  GetDelegatedReplayTraceResponse,
+  SubmitDelegatedApprovalDecisionRequest,
+  SubmitDelegatedApprovalDecisionResponse,
+} from './generated/runtime/v1/delegated_control.js';
 import type {
   CreateRealmGroupMessageCandidateRequest,
   CreateRealmGroupMessageCandidateResponse,
@@ -65,7 +79,25 @@ const runtimeAgentPresentationResult = runtime.call(
 );
 const runtimeAgentOpenAnchorResult = runtime.agent.openConversationAnchor({} as OpenConversationAnchorRequest);
 const runtimeAgentGetAnchorSnapshotResult = runtime.agent.getConversationAnchorSnapshot({} as GetConversationAnchorSnapshotRequest);
+const runtimeAgentRegisterAvatarLiveInstanceBindingResult = runtime.agent.registerAvatarLiveInstanceBinding(
+  {} as RegisterAvatarLiveInstanceBindingRequest,
+);
+const runtimeAgentResolveAvatarLiveInstanceBindingResult = runtime.agent.resolveAvatarLiveInstanceBinding(
+  {} as ResolveAvatarLiveInstanceBindingRequest,
+);
 const runtimeAgentGetPublicChatSessionSnapshotResult = runtime.agent.getPublicChatSessionSnapshot({} as GetPublicChatSessionSnapshotRequest);
+const runtimeAgentGetCompanionParticipationProjectionResult = runtime.agent.getCompanionParticipationProjection(
+  {} as GetCompanionParticipationProjectionRequest,
+);
+const runtimeAgentRequestCompanionParticipationResult = runtime.agent.requestCompanionParticipation(
+  {} as RequestCompanionParticipationRequest,
+);
+const runtimeAgentCancelCompanionParticipationResult = runtime.agent.cancelCompanionParticipation(
+  {} as CancelCompanionParticipationRequest,
+);
+const runtimeAgentOpenCompanionParticipationReplayResult = runtime.agent.openCompanionParticipationReplay(
+  {} as OpenCompanionParticipationReplayRequest,
+);
 const runtimeAgentCreateRealmGroupMessageCandidateResult = runtime.agent.createRealmGroupMessageCandidate(
   {} as CreateRealmGroupMessageCandidateRequest,
 );
@@ -131,9 +163,33 @@ type _GuardRuntimeAgentGetAnchorSnapshotResult = Assert<IsEqual<
   Awaited<typeof runtimeAgentGetAnchorSnapshotResult>,
   GetConversationAnchorSnapshotResponse
 >>;
+type _GuardRuntimeAgentRegisterAvatarLiveInstanceBindingResult = Assert<IsEqual<
+  Awaited<typeof runtimeAgentRegisterAvatarLiveInstanceBindingResult>,
+  RegisterAvatarLiveInstanceBindingResponse
+>>;
+type _GuardRuntimeAgentResolveAvatarLiveInstanceBindingResult = Assert<IsEqual<
+  Awaited<typeof runtimeAgentResolveAvatarLiveInstanceBindingResult>,
+  ResolveAvatarLiveInstanceBindingResponse
+>>;
 type _GuardRuntimeAgentGetPublicChatSessionSnapshotResult = Assert<IsEqual<
   Awaited<typeof runtimeAgentGetPublicChatSessionSnapshotResult>,
   GetPublicChatSessionSnapshotResponse
+>>;
+type _GuardRuntimeAgentGetCompanionParticipationProjectionResult = Assert<IsEqual<
+  Awaited<typeof runtimeAgentGetCompanionParticipationProjectionResult>,
+  GetCompanionParticipationProjectionResponse
+>>;
+type _GuardRuntimeAgentRequestCompanionParticipationResult = Assert<IsEqual<
+  Awaited<typeof runtimeAgentRequestCompanionParticipationResult>,
+  RequestCompanionParticipationResponse
+>>;
+type _GuardRuntimeAgentCancelCompanionParticipationResult = Assert<IsEqual<
+  Awaited<typeof runtimeAgentCancelCompanionParticipationResult>,
+  CancelCompanionParticipationResponse
+>>;
+type _GuardRuntimeAgentOpenCompanionParticipationReplayResult = Assert<IsEqual<
+  Awaited<typeof runtimeAgentOpenCompanionParticipationReplayResult>,
+  OpenCompanionParticipationReplayResponse
 >>;
 type _GuardRuntimeAgentCreateRealmGroupMessageCandidateResult = Assert<IsEqual<
   Awaited<typeof runtimeAgentCreateRealmGroupMessageCandidateResult>,

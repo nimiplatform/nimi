@@ -1,0 +1,142 @@
+table_family: support_registry
+registry_id: platform_rule_evidence_requirement_rules_app_package_slices
+owner: platform
+schema_ref: .nimi/contracts/table-family.schema.yaml#support_registry
+allowed_fields:
+  - rule_id
+  - evidence_requirement
+  - evidence_refs
+  - note
+  - na_reason
+  - evidence_scope_note
+  - test_files
+forbidden_state_fields:
+  - done
+  - covered
+  - coverage_status
+  - audit_date
+  - evidence_report
+  - current
+  - proposed
+  - backlog_status
+  - migration_status
+  - mapping_status
+  - run_id
+  - ledger_ref
+entries:
+  - P-APP-001
+  - P-APP-002
+  - P-APP-003
+  - P-APP-004
+  - P-APP-005
+  - P-APP-006
+  - P-WEB-001
+  - P-WEB-002
+  - P-WEB-003
+  - P-WEB-004
+  - P-WEB-005
+  - P-PKG-001
+  - P-PKG-002
+  - P-PKG-003
+  - P-PKG-004
+  - P-PKG-005
+  - P-PKG-006
+  - P-PKG-007
+  - P-PKG-008
+rules:
+  - rule_id: P-APP-001
+    evidence_refs:
+      - platform_kernel_consistency
+      - app_slice_admission_gate
+    evidence_requirement: required
+  - rule_id: P-APP-002
+    evidence_refs:
+      - platform_kernel_consistency
+      - app_slice_admission_gate
+    evidence_requirement: required
+  - rule_id: P-APP-003
+    evidence_refs:
+      - platform_kernel_consistency
+      - app_slice_admission_gate
+    evidence_requirement: required
+  - rule_id: P-APP-004
+    evidence_refs:
+      - platform_kernel_consistency
+      - app_slice_admission_gate
+    evidence_requirement: required
+  - rule_id: P-APP-005
+    evidence_refs:
+      - platform_kernel_consistency
+      - app_slice_admission_gate
+    evidence_requirement: required
+  - rule_id: P-APP-006
+    evidence_refs:
+      - platform_kernel_consistency
+      - app_slice_admission_gate
+    evidence_requirement: required
+  - rule_id: P-WEB-001
+    evidence_refs:
+      - platform_kernel_consistency
+      - audit_evidence_root_gate
+    evidence_requirement: required
+  - rule_id: P-WEB-002
+    evidence_refs:
+      - platform_kernel_consistency
+      - audit_evidence_root_gate
+    evidence_requirement: required
+  - rule_id: P-WEB-003
+    evidence_refs:
+      - platform_kernel_consistency
+      - audit_evidence_root_gate
+    evidence_requirement: required
+  - rule_id: P-WEB-004
+    evidence_refs:
+      - platform_kernel_consistency
+      - audit_evidence_root_gate
+    evidence_requirement: required
+  - rule_id: P-WEB-005
+    evidence_refs:
+      - platform_kernel_consistency
+      - audit_evidence_root_gate
+    evidence_requirement: required
+  - rule_id: P-PKG-001
+    evidence_refs:
+      - platform_kernel_consistency
+      - package_authority_admission_gate
+    evidence_requirement: required
+  - rule_id: P-PKG-002
+    evidence_refs:
+      - platform_kernel_consistency
+      - package_authority_admission_gate
+    evidence_requirement: required
+  - rule_id: P-PKG-003
+    evidence_refs:
+      - platform_kernel_consistency
+      - package_authority_admission_gate
+      - audit_evidence_root_gate
+    evidence_requirement: required
+  - rule_id: P-PKG-004
+    evidence_refs:
+      - platform_kernel_consistency
+      - package_authority_admission_gate
+    evidence_requirement: required
+  - rule_id: P-PKG-005
+    evidence_refs:
+      - platform_kernel_consistency
+      - package_authority_admission_gate
+    evidence_requirement: required
+  - rule_id: P-PKG-006
+    evidence_refs:
+      - platform_kernel_consistency
+      - audit_evidence_root_gate
+    evidence_requirement: required
+  - rule_id: P-PKG-007
+    evidence_refs:
+      - platform_kernel_consistency
+      - package_authority_admission_gate
+    evidence_requirement: required
+  - rule_id: P-PKG-008
+    evidence_refs:
+      - platform_kernel_consistency
+      - audit_evidence_root_gate
+    evidence_requirement: required

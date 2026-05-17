@@ -2,6 +2,21 @@ contract_id: BUNDLE-CONTRACT-001
 domain: bundle
 status: ACTIVE
 version: 2026-03-25
+table_family: product_catalog
+catalog_id: realm_bundle_contract
+entries:
+  - human_spec
+  - openapi
+  - prisma
+  - services
+  - R-BNDL-001
+  - R-BNDL-002
+  - R-BNDL-003
+  - R-BNDL-004
+  - Bundle
+  - BundleMember
+  - required_operations
+  - secondary_operations
 owner: '@team'
 sources:
   human_spec: ../bundle-contract.md

@@ -15,8 +15,10 @@ skills:
     inputs:
       - .nimi/config/spec-generation-inputs.yaml
       - .nimi/methodology/spec-reconstruction.yaml
-      - .nimi/spec/_meta/spec-tree-model.yaml
-      - .nimi/spec/bootstrap-state.yaml
+      - .nimi/contracts/surface-taxonomy.schema.yaml
+      - .nimi/contracts/placement-contract.schema.yaml
+      - .nimi/contracts/table-family.schema.yaml
+      - .nimi/contracts/domain-admission.schema.yaml
   - id: doc_spec_audit
     source: external
     required: true

@@ -1,3 +1,48 @@
+table_family: support_registry
+registry_id: desktop_rule_evidence_catalog
+owner: desktop
+schema_ref: .nimi/contracts/table-family.schema.yaml#support_registry
+allowed_fields:
+  - type
+  - command
+  - path
+  - description
+  - evidence_type
+  - validation_scope
+forbidden_state_fields:
+  - covered
+  - coverage_status
+  - audit_date
+  - evidence_report
+  - current
+  - done
+  - run_id
+  - ledger_ref
+entries:
+  - desktop_kernel_consistency
+  - desktop_spec_docs_drift_gate
+  - avatar_spec_consistency_gate
+  - avatar_lint_gate
+  - avatar_test_gate
+  - desktop_lint_gate
+  - desktop_test_gate
+  - desktop_e2e_smoke_gate
+  - desktop_e2e_journey_gate
+  - desktop_rust_test_gate
+  - desktop_rust_clippy_gate
+  - desktop_macos_manual_smoke_policy
+  - desktop_macos_automated_smoke_gate
+  - desktop_macos_automated_smoke_report
+  - desktop_e2e_failure_artifacts_gate
+  - desktop_e2e_ci_evidence_report
+  - desktop_mods_smoke_gate
+  - runtime_mod_hook_hardcut_gate
+  - desktop_cloud_runtime_only_gate
+  - desktop_design_contract_gate
+  - desktop_tauri_command_execution_gate
+  - desktop_runtime_config_path_gate
+  - desktop_local_ai_bridge_gate
+  - desktop_mod_capabilities_gate
 desktop_kernel_consistency:
   type: static_gate
   command: pnpm exec nimicoding validate-spec-governance --profile nimi --scope desktop-consistency

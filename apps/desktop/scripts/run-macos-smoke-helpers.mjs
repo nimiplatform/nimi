@@ -2,7 +2,6 @@ import fs from 'node:fs';
 import http from 'node:http';
 import net from 'node:net';
 import path from 'node:path';
-import process from 'node:process';
 import crypto from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -13,8 +12,21 @@ export const repoRoot = path.resolve(desktopRoot, '..', '..');
 export const CUBISM_WEB_SDK_VERSION = '5-r.5';
 export const DEFAULT_CUBISM_SAMPLE_MODEL = 'Hiyori';
 export const LIVE2D_SMOKE_SCENARIO_PREFIX = 'chat.live2d-render-smoke-';
-export const LIVE2D_AVATAR_PRODUCT_SMOKE_SCENARIO = 'chat.live2d-avatar-product-smoke';
-export const LIVE2D_AVATAR_PRODUCT_BOOTSTRAP_TIMEOUT_MS = 120000;
+export {
+  LIVE2D_AVATAR_LOCAL_ASSET_MISSING_SMOKE_SCENARIO,
+  LIVE2D_AVATAR_PRODUCT_BOOTSTRAP_TIMEOUT_MS,
+  LIVE2D_AVATAR_PRODUCT_SMOKE_SCENARIO,
+  applyAvatarProductPresentationProfile,
+  applyAvatarProductSmokeLocalAssetFault,
+  createAvatarProductSmokeLive2dPackage,
+  ensureAvatarProductLive2dSampleRoot,
+  ensureAvatarProductSmokeLaunchTarget,
+  isLive2dAvatarProductScenario,
+  resetAvatarProductSmokeProjections,
+  runtimeProductSmokeTauriFixture,
+  seedAvatarProductSmokeAgentCenterConfig,
+  withAgentPresentationProfile,
+} from './run-macos-smoke-avatar-product.mjs';
 export const VRM_SAMPLE_CATALOG = {
   'chat.vrm-lifecycle-smoke': {
     resourceId: 'fixture-vrm-constraint-twist',
@@ -112,46 +124,6 @@ export function runChecked(command, args, options = {}) {
   if (result.status !== 0) {
     throw new Error(`${command} ${args.join(' ')} exited with status ${result.status}`);
   }
-}
-
-export function ensureAvatarProductSmokeLaunchTarget() {
-  const configuredApp = String(process.env.NIMI_AVATAR_APP_PATH || '').trim();
-  if (configuredApp) {
-    if (!path.isAbsolute(configuredApp)) {
-      throw new Error('NIMI_AVATAR_APP_PATH must be absolute');
-    }
-    if (!fs.existsSync(configuredApp)) {
-      throw new Error(`NIMI_AVATAR_APP_PATH does not exist: ${configuredApp}`);
-    }
-    return { appPath: configuredApp, binaryPath: '' };
-  }
-
-  const configuredBinary = String(process.env.NIMI_AVATAR_BINARY_PATH || '').trim();
-  if (configuredBinary) {
-    if (!path.isAbsolute(configuredBinary)) {
-      throw new Error('NIMI_AVATAR_BINARY_PATH must be absolute');
-    }
-    if (!fs.existsSync(configuredBinary)) {
-      throw new Error(`NIMI_AVATAR_BINARY_PATH does not exist: ${configuredBinary}`);
-    }
-    return { appPath: '', binaryPath: configuredBinary };
-  }
-
-  runChecked('pnpm', [
-    '--filter',
-    '@nimiplatform/avatar',
-    'exec',
-    'tauri',
-    'build',
-    '--bundles',
-    'app',
-    '--no-sign',
-  ]);
-  const appPath = path.join(repoRoot, 'apps/avatar/src-tauri/target/release/bundle/macos/Nimi Avatar.app');
-  if (!fs.existsSync(appPath)) {
-    throw new Error(`Avatar product smoke app bundle was not produced: ${appPath}`);
-  }
-  return { appPath, binaryPath: '' };
 }
 
 export async function ensureVrmSample(sampleDefinition) {
@@ -287,125 +259,6 @@ export function replacePlaceholders(value, replacements) {
   return value;
 }
 
-export function runtimeProductSmokeTauriFixture(profile, scenarioId) {
-  const fixture = {
-    ...(profile.tauriFixture || {}),
-  };
-  if (scenarioId === LIVE2D_AVATAR_PRODUCT_SMOKE_SCENARIO) {
-    delete fixture.runtimeBridgeStatus;
-    delete fixture.desktopReleaseInfo;
-  }
-  return fixture;
-}
-
-export function cloneJson(value) {
-  return value == null ? value : JSON.parse(JSON.stringify(value));
-}
-
-export function ensureCleanSymlink(targetPath, linkPath) {
-  fs.rmSync(linkPath, { recursive: true, force: true });
-  fs.mkdirSync(path.dirname(linkPath), { recursive: true });
-  fs.symlinkSync(targetPath, linkPath, 'dir');
-}
-
-export function createAvatarProductSmokeLive2dPackage(artifactsDir, cubismSample) {
-  if (!cubismSample?.sampleRoot) {
-    return null;
-  }
-  const packageRoot = path.join(artifactsDir, 'live2d-product-asset');
-  const runtimeLink = path.join(packageRoot, 'runtime');
-  ensureCleanSymlink(cubismSample.sampleRoot, runtimeLink);
-  return {
-    packageRoot,
-    runtimeLink,
-    presentationProfile: {
-      backendKind: 'live2d',
-      avatarAssetRef: packageRoot,
-      expressionProfileRef: '',
-      idlePreset: 'default',
-      interactionPolicyRef: 'product-smoke',
-      defaultVoiceReference: '',
-    },
-  };
-}
-
-export function withAgentPresentationProfile(agent, presentationProfile) {
-  if (!agent || typeof agent !== 'object' || Array.isArray(agent) || !presentationProfile) {
-    return agent;
-  }
-  const next = {
-    ...agent,
-    presentationProfile,
-  };
-  const agentProfile = next.agentProfile && typeof next.agentProfile === 'object' && !Array.isArray(next.agentProfile)
-    ? next.agentProfile
-    : {};
-  next.agentProfile = {
-    ...agentProfile,
-    presentationProfile,
-  };
-  return next;
-}
-
-export function applyAvatarProductPresentationProfile(profile, scenarioId, presentationProfile) {
-  const next = cloneJson(profile);
-  if (scenarioId !== LIVE2D_AVATAR_PRODUCT_SMOKE_SCENARIO || !presentationProfile) {
-    return next;
-  }
-  const realmFixture = next.realmFixture || {};
-  next.realmFixture = realmFixture;
-  if (Array.isArray(realmFixture.creatorAgents)) {
-    realmFixture.creatorAgents = realmFixture.creatorAgents.map((agent) => (
-      agent?.id === 'agent-e2e-alpha'
-        ? withAgentPresentationProfile(agent, presentationProfile)
-        : agent
-    ));
-  }
-  if (!realmFixture.friends || typeof realmFixture.friends !== 'object' || Array.isArray(realmFixture.friends)) {
-    realmFixture.friends = { items: [] };
-  }
-  const friends = Array.isArray(realmFixture.friends.items) ? realmFixture.friends.items : [];
-  const existingFriendIndex = friends.findIndex((friend) => friend?.id === 'agent-e2e-alpha');
-  const creatorAgent = Array.isArray(realmFixture.creatorAgents)
-    ? realmFixture.creatorAgents.find((agent) => agent?.id === 'agent-e2e-alpha')
-    : null;
-  const agentFriend = withAgentPresentationProfile({
-    ...(creatorAgent || {}),
-    id: 'agent-e2e-alpha',
-    displayName: creatorAgent?.displayName || 'Fixture Agent',
-    handle: creatorAgent?.handle || '~fixture-agent',
-    avatarUrl: creatorAgent?.avatarUrl || '',
-    bio: creatorAgent?.bio || 'Seeded creator agent',
-    isAgent: true,
-  }, presentationProfile);
-  realmFixture.friends.items = existingFriendIndex >= 0
-    ? friends.map((friend, index) => (index === existingFriendIndex ? withAgentPresentationProfile(friend, presentationProfile) : friend))
-    : [...friends, agentFriend];
-  if (Array.isArray(realmFixture.searchUsers?.items)) {
-    realmFixture.searchUsers.items = realmFixture.searchUsers.items.map((agent) => (
-      agent?.id === 'agent-e2e-alpha'
-        ? withAgentPresentationProfile(agent, presentationProfile)
-        : agent
-    ));
-  }
-  if (Array.isArray(realmFixture.worlds)) {
-    realmFixture.worlds = realmFixture.worlds.map((world) => {
-      if (!world || typeof world !== 'object' || Array.isArray(world) || !Array.isArray(world.agents)) {
-        return world;
-      }
-      return {
-        ...world,
-        agents: world.agents.map((agent) => (
-          agent?.id === 'agent-e2e-alpha'
-            ? withAgentPresentationProfile(agent, presentationProfile)
-            : agent
-        )),
-      };
-    });
-  }
-  return next;
-}
-
 export function writeJson(filePath, value) {
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
   fs.writeFileSync(filePath, `${JSON.stringify(value, null, 2)}\n`, 'utf8');
@@ -478,7 +331,7 @@ export async function startOpenAiCompatibleSmokeProvider() {
       const userMessage = Array.isArray(parsed.messages)
         ? [...parsed.messages].reverse().find((message) => message?.role === 'user')?.content
         : '';
-      const content = `<message id="e2e-live2d-smoke-message">Runtime product smoke acknowledged: ${escapeXmlText(String(userMessage || 'ready').slice(0, 80))}</message>`;
+      const content = `<message id="e2e-live2d-smoke-message"><emotion>joy</emotion><activity>greet</activity>Runtime product smoke acknowledged: ${escapeXmlText(String(userMessage || 'ready').slice(0, 80))}</message>`;
       if (parsed.stream === true) {
         response.writeHead(200, {
           'content-type': 'text/event-stream; charset=utf-8',

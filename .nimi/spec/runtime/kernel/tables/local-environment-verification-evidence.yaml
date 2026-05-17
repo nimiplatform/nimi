@@ -1,4 +1,31 @@
 version: 1
+table_family: owner_matrix
+owner: runtime
+matrix_id: runtime_local_environment_verification_evidence
+rows:
+  - evidence_families_1
+  - evidence_families_2
+  - evidence_families_3
+  - evidence_families_4
+  - evidence_families_5
+  - evidence_families_6
+  - evidence_families_7
+  - evidence_families_8
+  - evidence_families_9
+  - file_existence
+  - directory_presence
+  - endpoint_reachability
+  - transfer_completion
+  - package_directory_presence
+  - path_precedence
+  - import_success_without_lock_identity
+  - script_exit_without_structured_evidence
+  - ready_system and ready_managed require family-specific evidence plus
+    selected source record promotion
+  - verification evidence must be persisted or auditable enough for repair,
+    retry, activation gate failure, and Desktop/SDK bounded projection
+  - failed evidence cannot produce fallback ready without a new selected source
+    record
 
 # Canonical verification evidence schema families for Runtime local environment
 # selected source promotion.

@@ -115,6 +115,7 @@ pub(crate) fn desktop_macos_smoke_context_get() -> Result<DesktopMacosSmokeConte
             artifacts_dir: None,
             disable_runtime_bootstrap: false,
             bootstrap_timeout_ms: None,
+            avatar_product_local_asset_fault: None,
         });
     };
 
@@ -125,6 +126,102 @@ pub(crate) fn desktop_macos_smoke_context_get() -> Result<DesktopMacosSmokeConte
         artifacts_dir: normalize_optional(override_payload.artifacts_dir),
         disable_runtime_bootstrap: override_payload.disable_runtime_bootstrap.unwrap_or(false),
         bootstrap_timeout_ms: override_payload.bootstrap_timeout_ms,
+        avatar_product_local_asset_fault: override_payload.avatar_product_local_asset_fault.map(
+            |fault| {
+                json!({
+                    "faultKind": fault.fault_kind,
+                    "packageDir": fault.package_dir,
+                })
+            },
+        ),
+    })
+}
+
+fn require_safe_relative_smoke_asset_path(path: &str, field: &str) -> Result<PathBuf, String> {
+    let trimmed = path.trim();
+    if trimmed.is_empty() {
+        return Err(format!("{field} is required"));
+    }
+    let path_buf = PathBuf::from(trimmed);
+    if path_buf.is_absolute() {
+        return Err(format!("{field} must be relative"));
+    }
+    let mut normalized = PathBuf::new();
+    for component in path_buf.components() {
+        match component {
+            std::path::Component::Normal(part) => normalized.push(part),
+            _ => {
+                return Err(format!(
+                    "{field} must not contain traversal or prefix components"
+                ))
+            }
+        }
+    }
+    if normalized.as_os_str().is_empty() {
+        return Err(format!("{field} is required"));
+    }
+    Ok(normalized)
+}
+
+#[tauri::command]
+pub(crate) fn desktop_macos_smoke_avatar_product_local_asset_fault_apply(
+    payload: DesktopMacosSmokeAvatarProductLocalAssetFaultApplyPayload,
+) -> Result<DesktopMacosSmokeAvatarProductLocalAssetFaultApplyResult, String> {
+    let override_payload = require_enabled_macos_smoke_override()?;
+    let configured = override_payload
+        .avatar_product_local_asset_fault
+        .ok_or_else(|| "Avatar product local asset fault is not configured".to_string())?;
+    let fault_kind = payload.fault_kind.trim();
+    if fault_kind != "missing_entry_file" || configured.fault_kind.trim() != fault_kind {
+        return Err(format!(
+            "unsupported Avatar product local asset fault: requested={fault_kind} configured={}",
+            configured.fault_kind
+        ));
+    }
+    let package_dir = require_absolute_path(
+        &configured.package_dir,
+        "avatarProductLocalAssetFault.packageDir",
+    )?;
+    let manifest_path = package_dir.join("manifest.json");
+    let raw_manifest = fs::read_to_string(&manifest_path).map_err(|error| {
+        format!(
+            "read Avatar product local asset manifest failed ({}): {error}",
+            manifest_path.display()
+        )
+    })?;
+    let manifest = serde_json::from_str::<serde_json::Value>(&raw_manifest).map_err(|error| {
+        format!(
+            "parse Avatar product local asset manifest failed ({}): {error}",
+            manifest_path.display()
+        )
+    })?;
+    let entry_file = manifest
+        .get("entry_file")
+        .and_then(|value| value.as_str())
+        .unwrap_or_default();
+    let relative_entry = require_safe_relative_smoke_asset_path(entry_file, "entry_file")?;
+    if !relative_entry.starts_with("files") {
+        return Err("entry_file must be inside files/".to_string());
+    }
+    let entry_path = package_dir.join(relative_entry);
+    fs::remove_file(&entry_path).map_err(|error| {
+        format!(
+            "apply Avatar product local asset missing_entry_file fault failed ({}): {error}",
+            entry_path.display()
+        )
+    })?;
+    append_macos_smoke_backend_stage(
+        "avatar-product-local-asset-fault-applied",
+        Some(&json!({
+            "faultKind": fault_kind,
+            "manifestPath": manifest_path.display().to_string(),
+            "removedEntryPath": entry_path.display().to_string(),
+        })),
+    )?;
+    Ok(DesktopMacosSmokeAvatarProductLocalAssetFaultApplyResult {
+        fault_kind: fault_kind.to_string(),
+        manifest_path: manifest_path.display().to_string(),
+        removed_entry_path: entry_path.display().to_string(),
     })
 }
 

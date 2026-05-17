@@ -1,4 +1,57 @@
 version: 1
+table_family: protocol_surface
+owner: runtime
+protocol_id: runtime_config_schema
+surfaces:
+  - schemaVersion
+  - grpcAddr
+  - httpAddr
+  - shutdownTimeoutSeconds
+  - localStatePath
+  - aiHealthIntervalSeconds
+  - aiHttpTimeoutSeconds
+  - globalConcurrencyLimit
+  - perAppConcurrencyLimit
+  - idempotencyCapacity
+  - maxDelegationDepth
+  - auditRingBufferSize
+  - usageStatsBufferSize
+  - localAuditCapacity
+  - sessionTtlMinSeconds
+  - sessionTtlMaxSeconds
+  - auth.jwt.issuer
+  - auth.jwt.audience
+  - auth.jwt.jwksUrl
+  - auth.jwt.revocationUrl
+  - providers
+  - engines.llama.enabled
+  - engines.llama.version
+  - engines.llama.port
+  - engines.media.enabled
+  - engines.media.version
+  - engines.media.port
+  - engines.speech.enabled
+  - engines.speech.version
+  - engines.speech.port
+  - engines.sidecar.enabled
+  - engines.sidecar.version
+  - engines.sidecar.port
+  - defaultLocalTextModel
+  - defaultCloudProvider
+  - logLevel
+  - localModelsPath
+  - modelCatalogCustomDir
+  - allowLoopbackProviderEndpoint
+  - scheduling.diskDenialThresholdBytes
+  - scheduling.slowdownRamThresholdBytes
+  - scheduling.slowdownVramThresholdBytes
+  - scheduling.slowdownDiskThresholdBytes
+  - scheduling.preemptionOccupancyPercent
+  - fields
+  - constraints
+  - restart
+  - hot
+  - immutable
 # Phase 1 配置文件 schema (~/.nimi/config.json) 权威字段清单
 # Source rule: K-CFG-017, K-DAEMON-009
 fields:

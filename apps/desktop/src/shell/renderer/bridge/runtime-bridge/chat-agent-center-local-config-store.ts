@@ -2,11 +2,18 @@ import { hasTauriInvoke } from './env';
 import { invokeChecked } from './invoke';
 import {
   validateAgentCenterLocalConfig,
+  validateAgentCenterAvatarAssetImportResult,
+  validateAgentCenterAvatarAssetListResult,
+  validateAgentCenterAvatarAssetValidationResult,
   validateAgentCenterLive2dAdapterManifestImportResult,
   validateAgentCenterBackgroundAssetResult,
   validateAgentCenterBackgroundImportResult,
   validateAgentCenterBackgroundValidationResult,
   validateAgentCenterLocalResourceRemoveResult,
+  type AgentCenterAvatarAssetImportResult,
+  type AgentCenterAvatarAssetListResult,
+  type AgentCenterAvatarAssetKind,
+  type AgentCenterAvatarAssetValidationResult,
   type AgentCenterLive2dAdapterManifestImportResult,
   type AgentCenterBackgroundAssetResult,
   type AgentCenterBackgroundImportResult,
@@ -27,6 +34,30 @@ function parseAgentCenterLocalConfig(value: unknown): AgentCenterLocalConfig {
     throw new Error(`Agent Center local config payload is invalid: ${result.errors.join('; ')}`);
   }
   return result.config;
+}
+
+function parseAgentCenterAvatarAssetImportResult(value: unknown): AgentCenterAvatarAssetImportResult {
+  const result = validateAgentCenterAvatarAssetImportResult(value);
+  if (!result.ok) {
+    throw new Error(`Agent Center avatar asset import payload is invalid: ${result.errors.join('; ')}`);
+  }
+  return result.result;
+}
+
+function parseAgentCenterAvatarAssetListResult(value: unknown): AgentCenterAvatarAssetListResult {
+  const result = validateAgentCenterAvatarAssetListResult(value);
+  if (!result.ok) {
+    throw new Error(`Agent Center avatar asset list payload is invalid: ${result.errors.join('; ')}`);
+  }
+  return result.result;
+}
+
+function parseAgentCenterAvatarAssetValidationResult(value: unknown): AgentCenterAvatarAssetValidationResult {
+  const result = validateAgentCenterAvatarAssetValidationResult(value);
+  if (!result.ok) {
+    throw new Error(`Agent Center avatar asset validation payload is invalid: ${result.errors.join('; ')}`);
+  }
+  return result.result;
 }
 
 function parseAgentCenterLive2dAdapterManifestImportResult(value: unknown): AgentCenterLive2dAdapterManifestImportResult {
@@ -116,9 +147,55 @@ export async function pickAgentCenterLive2dAdapterManifestSource(): Promise<stri
   return invokeChecked('desktop_agent_center_live2d_adapter_manifest_pick_source', {}, parseOptionalPath);
 }
 
+export async function pickAgentCenterAvatarAssetSource(kind: AgentCenterAvatarAssetKind): Promise<string | null> {
+  const command = kind === 'live2d'
+    ? 'desktop_agent_center_avatar_asset_pick_live2d_source'
+    : 'desktop_agent_center_avatar_asset_pick_vrm_source';
+  requireTauri(command);
+  return invokeChecked(command, {}, parseOptionalPath);
+}
+
 export async function pickAgentCenterBackgroundSource(): Promise<string | null> {
   requireTauri('desktop_agent_center_background_pick_source');
   return invokeChecked('desktop_agent_center_background_pick_source', {}, parseOptionalPath);
+}
+
+export async function importAgentCenterAvatarAsset(input: {
+  accountId: string;
+  ownerUserId: string;
+  realmAgentId: string;
+  localAgentRef: string;
+  kind: AgentCenterAvatarAssetKind;
+  sourcePath: string;
+  displayName?: string;
+  select?: boolean;
+}): Promise<AgentCenterAvatarAssetImportResult> {
+  requireTauri('desktop_agent_center_avatar_asset_import');
+  return invokeChecked('desktop_agent_center_avatar_asset_import', {
+    payload: input,
+  }, parseAgentCenterAvatarAssetImportResult);
+}
+
+export async function listAgentCenterAvatarAssets(
+  input: AgentCenterLocalIdentityInput,
+): Promise<AgentCenterAvatarAssetListResult> {
+  requireTauri('desktop_agent_center_avatar_asset_list');
+  return invokeChecked('desktop_agent_center_avatar_asset_list', {
+    payload: input,
+  }, parseAgentCenterAvatarAssetListResult);
+}
+
+export async function selectAgentCenterAvatarAsset(input: {
+  accountId: string;
+  ownerUserId: string;
+  realmAgentId: string;
+  localAgentRef: string;
+  localAssetId: string;
+}): Promise<AgentCenterLocalConfig> {
+  requireTauri('desktop_agent_center_avatar_asset_select');
+  return invokeChecked('desktop_agent_center_avatar_asset_select', {
+    payload: input,
+  }, parseAgentCenterLocalConfig);
 }
 
 export async function importAgentCenterLive2dAdapterManifest(input: {
@@ -126,7 +203,7 @@ export async function importAgentCenterLive2dAdapterManifest(input: {
   ownerUserId: string;
   realmAgentId: string;
   localAgentRef: string;
-  packageId: string;
+  localAssetId: string;
   sourcePath: string;
   select?: boolean;
 }): Promise<AgentCenterLive2dAdapterManifestImportResult> {
@@ -149,6 +226,28 @@ export async function importAgentCenterBackground(input: {
   return invokeChecked('desktop_agent_center_background_import', {
     payload: input,
   }, parseAgentCenterBackgroundImportResult);
+}
+
+export async function removeAgentCenterAvatarAsset(input: {
+  accountId: string;
+  ownerUserId: string;
+  realmAgentId: string;
+  localAgentRef: string;
+  localAssetId: string;
+}): Promise<AgentCenterLocalResourceRemoveResult> {
+  requireTauri('desktop_agent_center_avatar_asset_remove');
+  return invokeChecked('desktop_agent_center_avatar_asset_remove', {
+    payload: input,
+  }, parseAgentCenterLocalResourceRemoveResult);
+}
+
+export async function validateAgentCenterAvatarAsset(
+  input: AgentCenterLocalIdentityInput,
+): Promise<AgentCenterAvatarAssetValidationResult> {
+  requireTauri('desktop_agent_center_avatar_asset_validate');
+  return invokeChecked('desktop_agent_center_avatar_asset_validate', {
+    payload: input,
+  }, parseAgentCenterAvatarAssetValidationResult);
 }
 
 export async function removeAgentCenterBackground(input: {

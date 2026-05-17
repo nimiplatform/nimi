@@ -87,3 +87,66 @@ Once the creator leaves that context, an empty draft package should be removed a
 `PackageListing` is reserved as a future market-facing projection if the system later needs listing semantics that diverge from `Package` lifecycle semantics.
 
 It is not part of the current active object model.
+
+## AM-PKG-011: Package Kind Discriminator
+
+`Package.package_kind` is the structural discriminator for package-specific readiness, compatibility, acquisition, and downstream consumer routing.
+
+The authoritative kind set is `package_model.package_kinds` in `tables/package-model.yaml`.
+
+Current active package kinds are listed in the table. Future package kinds must be admitted in the table before any publish, acquisition, import, or consumer surface treats them as active.
+
+## AM-PKG-012: Category and Package Kind Split
+
+`Package.category` and `Package.package_kind` are separate axes.
+
+- `category` is the market-facing discovery classification axis.
+- `package_kind` is the structural/product discriminator.
+- `category` must not be used to infer package-specific readiness, backend compatibility, or consumer routing.
+- `package_kind` must not replace category filtering unless a later Asset Market redesign explicitly changes `AM-DISCOVER-*`, `AM-PUBLISH-*`, and `AM-LIB-*` together.
+
+## AM-PKG-013: Package Kind Admission
+
+Adding an active `Package.package_kind` value requires a single Asset Market admission path:
+
+- append the value in `tables/package-model.yaml`
+- define required fields and readiness issues for that kind
+- define any publish, acquisition, import, and API surface impact
+- prove no app-local package model or loose file activation path bypasses `Package`
+
+Reserved future kind names are not active values and must fail publish/acquisition/import until promoted by an admitted Asset Market topic.
+
+## AM-PKG-014: Active Avatar Package Kind
+
+`Package.package_kind = avatar` is an active Asset Market package kind for launched Avatar visual packages.
+
+Avatar packages are Asset Market products backed by Realm `Bundle` membership. They are not loose folders, direct CDN rows, Desktop bindings, or Agent Center inventory records.
+
+An avatar package must carry the package-kind-specific fields defined in `tables/package-model.yaml`, including `backend_kind`, `backend_capability_profile_ref`, `avatar_model_layout`, `provenance`, and `compatibility_diagnostics`.
+
+## AM-PKG-015: Avatar Backend Kind Boundary
+
+Active avatar packages may target only admitted launched Avatar backends:
+
+- `live2d`
+- `vrm`
+
+`sprite2d`, `canvas2d`, `video`, and any future renderer format are not active avatar package backends. Preview-only formats must use a separately admitted preview package kind and must not activate as launched Avatar carriers.
+
+## AM-PKG-016: Avatar Model Layout
+
+`avatar_model_layout` maps the package's Realm `Bundle` members into a backend loader layout.
+
+It must identify the entry asset, runtime root, required asset ids, and backend-specific entry path fields. Every referenced asset id must belong to the referenced `Bundle`; absolute paths, URLs, and host-local paths are not layout truth.
+
+The layout is package metadata. Avatar may materialize it locally after authorization, but that local materialization is not package truth.
+
+## AM-PKG-017: Avatar Package Provenance and Compatibility
+
+Avatar packages require provenance and backend compatibility evidence before readiness.
+
+- `provenance` records the admitted source and stable fingerprint.
+- `backend_capability_profile_ref` points to Avatar backend capability evidence.
+- `compatibility_diagnostics` records blocking and non-blocking validation findings.
+
+Blocking diagnostics fail readiness and publish. Non-blocking diagnostics may be surfaced in discovery/detail/import UI, but they must not be treated as success evidence.

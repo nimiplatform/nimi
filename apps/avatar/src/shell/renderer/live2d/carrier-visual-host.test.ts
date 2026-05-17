@@ -2,7 +2,14 @@ import { describe, expect, it, vi } from 'vitest';
 import type { Live2DBackendSession } from './backend-session.js';
 import type { Live2DVisualModelShape, Live2DVisualRuntime } from './carrier-visual-runtime.js';
 
-function createSession(input: { loaded?: boolean; parameters?: Map<string, number> } = {}): Live2DBackendSession {
+function createSession(input: {
+  loaded?: boolean;
+  parameters?: Map<string, number>;
+  activeMotion?: string | null;
+  activeExpression?: string | null;
+  motionGroups?: Map<string, string[]>;
+  expressions?: Map<string, string>;
+} = {}): Live2DBackendSession {
   return {
     manifest: {
       runtimeDir: '/models/ren/runtime',
@@ -15,15 +22,21 @@ function createSession(input: { loaded?: boolean; parameters?: Map<string, numbe
       FileReferences: {
         Moc: 'ren.moc3',
         Textures: ['ren.4096/texture_00.png'],
-        Motions: {},
-        Expressions: [],
+        Motions: Object.fromEntries(Array.from(input.motionGroups ?? new Map<string, string[]>()).map(([group, paths]) => [
+          group,
+          paths.map((path) => ({ File: path.replace('/models/ren/runtime/', '') })),
+        ])),
+        Expressions: Array.from(input.expressions ?? new Map<string, string>()).map(([name, path]) => ({
+          Name: name,
+          File: path.replace('/models/ren/runtime/', ''),
+        })),
       },
     },
     resources: {
       mocPath: '/models/ren/runtime/ren.moc3',
       texturePaths: ['/models/ren/runtime/ren.4096/texture_00.png'],
-      motionGroups: new Map(),
-      expressions: new Map(),
+      motionGroups: input.motionGroups ?? new Map(),
+      expressions: input.expressions ?? new Map(),
       physicsPath: null,
       posePath: null,
       displayInfoPath: null,
@@ -46,8 +59,8 @@ function createSession(input: { loaded?: boolean; parameters?: Map<string, numbe
     },
     execution: {
       loaded: input.loaded ?? true,
-      activeMotion: null,
-      activeExpression: null,
+      activeMotion: input.activeMotion ?? null,
+      activeExpression: input.activeExpression ?? null,
       activePose: null,
       parameters: input.parameters ?? new Map(),
       commandLog: [],
@@ -129,7 +142,9 @@ function createFakeRuntime(gl: ReturnType<typeof createFakeGl>): Live2DVisualRun
     public getMotionFadeInTimeValue(_groupName: string, _index: number) { return -1; }
     public getMotionFadeOutTimeValue(_groupName: string, _index: number) { return -1; }
     public getEyeBlinkParameterCount() { return 0; }
+    public getEyeBlinkParameterId(_index: number) { return 'ParamEyeLOpen'; }
     public getLipSyncParameterCount() { return 0; }
+    public getLipSyncParameterId(_index: number) { return 'ParamMouthOpenY'; }
   }
 
   class FakeUserModel {
@@ -176,9 +191,56 @@ function createFakeRuntime(gl: ReturnType<typeof createFakeGl>): Live2DVisualRun
       setCenterPosition: vi.fn(),
     };
     private readonly boundTextures = new Map<number, WebGLTexture>();
+    private motionActive = false;
+    private motionEffectIdsApplied = false;
+    private expressionActive = false;
+    public _motionManager = {
+      startMotionPriority: vi.fn((motion: unknown) => {
+        this.motionActive = true;
+        this.motionEffectIdsApplied = Boolean((motion as { __effectIdsApplied?: boolean }).__effectIdsApplied);
+        return 1;
+      }),
+      updateMotion: vi.fn(() => {
+        if (this.motionActive && !this.motionEffectIdsApplied) {
+          throw new Error('fake Cubism motion missing effect ids');
+        }
+        return this.motionActive;
+      }),
+      stopAllMotions: vi.fn(() => {
+        this.motionActive = false;
+      }),
+    };
+    public _expressionManager = {
+      startMotion: vi.fn(() => {
+        this.expressionActive = true;
+        return 1;
+      }),
+      updateMotion: vi.fn(() => this.expressionActive),
+      stopAllMotions: vi.fn(() => {
+        this.expressionActive = false;
+      }),
+    };
     public _model: Live2DVisualModelShape | null = null;
     public loadModel(_buffer: ArrayBuffer, _shouldCheckMocConsistency?: boolean) {
       this._model = this.model;
+    }
+    public loadMotion(
+      _buffer: ArrayBuffer,
+      _size: number,
+      name: string,
+      _onFinishedMotionHandler?: unknown,
+      _onBeganMotionHandler?: unknown,
+      _modelSetting?: unknown,
+      _group?: string,
+      _index?: number,
+    ) {
+      return {
+        name,
+        __effectIdsApplied: false,
+        setEffectIds: vi.fn(function setEffectIds(this: { __effectIdsApplied: boolean }, eyeBlinkIds: unknown[], lipSyncIds: unknown[]) {
+          this.__effectIdsApplied = Array.isArray(eyeBlinkIds) && Array.isArray(lipSyncIds);
+        }),
+      };
     }
     public loadExpression(_buffer: ArrayBuffer, _size: number, _name: string) {
       return {};
@@ -251,7 +313,15 @@ function createFakeRuntime(gl: ReturnType<typeof createFakeGl>): Live2DVisualRun
   };
 }
 
-async function createHostWithFakeRuntime(options: { drawVisible: boolean; loaded?: boolean; parameters?: Map<string, number> }) {
+async function createHostWithFakeRuntime(options: {
+  drawVisible: boolean;
+  loaded?: boolean;
+  parameters?: Map<string, number>;
+  activeMotion?: string | null;
+  activeExpression?: string | null;
+  motionGroups?: Map<string, string[]>;
+  expressions?: Map<string, string>;
+}) {
   const { createLive2DCarrierVisualHost } = await import('./carrier-visual-host.js');
   const gl = createFakeGl({ drawVisible: options.drawVisible });
   const canvas = document.createElement('canvas');
@@ -260,7 +330,14 @@ async function createHostWithFakeRuntime(options: { drawVisible: boolean; loaded
   });
   return createLive2DCarrierVisualHost({
     canvas,
-    session: createSession({ loaded: options.loaded, parameters: options.parameters }),
+    session: createSession({
+      loaded: options.loaded,
+      parameters: options.parameters,
+      activeMotion: options.activeMotion,
+      activeExpression: options.activeExpression,
+      motionGroups: options.motionGroups,
+      expressions: options.expressions,
+    }),
     width: 128,
     height: 160,
   }, {
@@ -317,5 +394,28 @@ describe('Live2D carrier visual host', () => {
     expect(neutral.visiblePixels).toBeGreaterThan(0);
     expect(active.visiblePixels).toBeGreaterThan(0);
     expect(active.sampledPixelChecksum).not.toBe(neutral.sampledPixelChecksum);
+  });
+
+  it('applies loaded motion and expression state through Cubism managers before drawing', async () => {
+    const host = await createHostWithFakeRuntime({
+      drawVisible: true,
+      activeMotion: 'Idle',
+      activeExpression: 'exp_01',
+      motionGroups: new Map([
+        ['Idle', ['/models/ren/runtime/motions/mtn_01.motion3.json']],
+      ]),
+      expressions: new Map([
+        ['exp_01', '/models/ren/runtime/expressions/exp_01.exp3.json'],
+      ]),
+    });
+
+    const stats = host.renderFrame({ deltaTimeSeconds: 1 / 60, seconds: 1 });
+
+    expect(stats).toEqual(expect.objectContaining({
+      activeMotionGroup: 'Idle',
+      motionFrameApplied: true,
+      activeExpressionId: 'exp_01',
+      expressionFrameApplied: true,
+    }));
   });
 });

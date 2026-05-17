@@ -1,4 +1,7 @@
 version: 1
+table_family: protocol_surface
+owner: desktop
+protocol_id: desktop_renderer_design_surfaces
 surfaces:
   - id: chat.page.root
     module: features/chat/chat-page.tsx

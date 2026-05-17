@@ -92,14 +92,11 @@ function createLive2DExtension(
 
 export type Live2DBackendBranchHandle = {
   branch: BackendBranch & { kind: 'live2d' };
-  // Wave_1 transitional accessors retained until later wave_1 steps
-  // refactor consumers (NAS event dispatch, embodiment-stage
-  // visualSession prop, avatar-carrier.test command-bus reads). New
-  // call sites MUST consume `branch.surface` / `branch.projection`
-  // / `audioConsumer` instead of these slots.
+  // Branch cue/signal surfaces used by carrier orchestration and tests that
+  // need command-level evidence outside the BackendBranch projection.
   backendSession: Live2DBackendSession;
   commandBus: Live2DCommandBus;
-  legacyProjection: EmbodimentProjectionApi;
+  cueProjection: EmbodimentProjectionApi;
   audioConsumer: BackendAudioConsumer;
   shutdown(): void;
 };
@@ -133,7 +130,7 @@ export async function createLive2DBackendBranch(
     compatibility: backendSession.compatibility,
   });
 
-  const legacyProjection = createLive2DBackendApi({
+  const cueProjection = createLive2DBackendApi({
     commandBus,
     parameterState,
     compatibility: backendSession.compatibility,
@@ -187,7 +184,7 @@ export async function createLive2DBackendBranch(
     branch,
     backendSession,
     commandBus,
-    legacyProjection,
+    cueProjection,
     audioConsumer,
     shutdown: branch.shutdown,
   };

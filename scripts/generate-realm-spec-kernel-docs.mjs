@@ -3,6 +3,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import YAML from 'yaml';
+import { readYamlWithFragments } from './lib/read-yaml-with-fragments.mjs';
 
 const PROJECT_ROOT = process.cwd();
 const KERNEL_DIR = path.join(PROJECT_ROOT, '.nimi', 'spec', 'realm', 'kernel');
@@ -37,7 +38,7 @@ function relativeToRoot(absPath) {
 }
 
 function readYaml(absPath) {
-  return YAML.parse(fs.readFileSync(absPath, 'utf8'));
+  return readYamlWithFragments(absPath);
 }
 
 function asStringArray(value) {
@@ -231,14 +232,13 @@ function renderOpenSpecAlignment(doc, sourceFile) {
   const rows = Array.isArray(data.mappings) ? data.mappings : [];
   const lines = [
     `Version: \`${data.version ?? 'unknown'}\``,
-    `Updated: \`${data.updated_at ?? 'unknown'}\``,
     '',
-    '| External ID | Type | External Path | Local Anchor | Coverage |',
+    '| External ID | Type | External Path | Local Anchor | Alignment Posture |',
     '| --- | --- | --- | --- | --- |',
   ];
   for (const row of rows) {
     lines.push(
-      `| ${escapeCell(row.external_id)} | ${escapeCell(row.external_type)} | ${escapeCell(row.external_path)} | ${escapeCell(row.local_anchor)} | ${escapeCell(row.coverage_status)} |`,
+      `| ${escapeCell(row.external_id)} | ${escapeCell(row.external_type)} | ${escapeCell(row.external_path)} | ${escapeCell(row.local_anchor)} | ${escapeCell(row.alignment_posture)} |`,
     );
   }
   return withPreamble('Open Spec Alignment Map (Generated)', sourceFile, lines);
@@ -249,14 +249,13 @@ function renderUnderSpec(doc, sourceFile) {
   const rows = Array.isArray(data.under_spec) ? data.under_spec : [];
   const lines = [
     `Version: \`${data.version ?? 'unknown'}\``,
-    `Updated: \`${data.updated_at ?? 'unknown'}\``,
     '',
-    '| ID | Rule | Category | Status | Impact | Summary |',
+    '| ID | Rule | Category | Authority Posture | Impact | Summary |',
     '| --- | --- | --- | --- | --- | --- |',
   ];
   for (const row of rows) {
     lines.push(
-      `| ${escapeCell(row.id)} | ${escapeCell(row.rule_id)} | ${escapeCell(row.category)} | ${escapeCell(row.status)} | ${escapeCell(row.impact)} | ${escapeCell(row.summary)} |`,
+      `| ${escapeCell(row.id)} | ${escapeCell(row.rule_id)} | ${escapeCell(row.category)} | ${escapeCell(row.authority_posture)} | ${escapeCell(row.impact)} | ${escapeCell(row.summary)} |`,
     );
   }
   return withPreamble('Under-Spec Registry (Generated)', sourceFile, lines);
@@ -316,6 +315,10 @@ function buildDerivedRuleCatalog() {
   rules.sort((a, b) => compareRuleId(a.rule_id ?? '', b.rule_id ?? ''));
 
   return {
+    table_family: 'product_catalog',
+    owner: 'realm',
+    catalog_id: 'realm_rule_catalog',
+    entries: rules.map((rule) => rule.rule_id).filter(Boolean),
     id_pattern: EXPECTED_ID_PATTERN,
     generated_at: 'derived-from-contract-tables',
     generated_from: 'kernel/tables/*-contract.yaml',
@@ -348,6 +351,7 @@ function buildRenderTargets() {
   const tableFiles = fs
     .readdirSync(TABLES_DIR)
     .filter((file) => file.endsWith('.yaml'))
+    .filter((file) => !file.startsWith('rule-evidence.'))
     .sort((a, b) => a.localeCompare(b));
   const targets = [];
   for (const file of tableFiles) {
@@ -396,50 +400,35 @@ function writeFile(absPath, content) {
 }
 
 function verifyOrWrite(targets, indexContent) {
-  const mismatches = [];
-  const expectedFiles = new Set(targets.map((target) => path.basename(target.outputFile)).concat('index.md'));
-  for (const target of targets) {
-    const existing = fs.existsSync(target.outputFile) ? fs.readFileSync(target.outputFile, 'utf8') : null;
-    if (CHECK_MODE) {
-      if (existing !== target.content) mismatches.push(relativeToRoot(target.outputFile));
-      continue;
-    }
-    writeFile(target.outputFile, target.content);
-  }
   const indexPath = path.join(GENERATED_DIR, 'index.md');
-  const existingIndex = fs.existsSync(indexPath) ? fs.readFileSync(indexPath, 'utf8') : null;
   if (CHECK_MODE) {
-    if (existingIndex !== indexContent) mismatches.push(relativeToRoot(indexPath));
+    const existing = [];
     if (fs.existsSync(GENERATED_DIR)) {
       for (const entry of fs.readdirSync(GENERATED_DIR)) {
         if (!entry.endsWith('.md')) continue;
-        if (expectedFiles.has(entry)) continue;
-        mismatches.push(relativeToRoot(path.join(GENERATED_DIR, entry)));
+        existing.push(relativeToRoot(path.join(GENERATED_DIR, entry)));
       }
     }
-    if (mismatches.length > 0) {
-      throw new Error(`Realm kernel generated docs drift detected:\n- ${mismatches.join('\n- ')}`);
+    if (existing.length > 0) {
+      throw new Error(`Realm kernel derived views must not be written to disk:\n- ${existing.join('\n- ')}`);
     }
+    process.stdout.write(`realm kernel derived views renderable (${targets.length + 1} views, no files written)\n`);
     return;
   }
-  writeFile(indexPath, indexContent);
-}
 
-function removeStaleGeneratedFiles(targets) {
-  const expected = new Set(targets.map((target) => path.basename(target.outputFile)).concat('index.md'));
-  if (!fs.existsSync(GENERATED_DIR)) return;
-  for (const entry of fs.readdirSync(GENERATED_DIR)) {
-    if (!entry.endsWith('.md')) continue;
-    if (expected.has(entry)) continue;
-    fs.rmSync(path.join(GENERATED_DIR, entry), { force: true });
+  for (const target of targets) {
+    process.stdout.write(`<!-- nimi-derived-view: ${relativeToRoot(target.outputFile)} -->\n`);
+    process.stdout.write(target.content);
+    process.stdout.write('\n');
   }
+  process.stdout.write(`<!-- nimi-derived-view: ${relativeToRoot(indexPath)} -->\n`);
+  process.stdout.write(indexContent);
 }
 
 function main() {
   ensureDerivedRuleCatalog();
   const targets = buildRenderTargets();
   const indexContent = buildIndexContent(targets);
-  if (!CHECK_MODE) removeStaleGeneratedFiles(targets);
   verifyOrWrite(targets, indexContent);
 }
 

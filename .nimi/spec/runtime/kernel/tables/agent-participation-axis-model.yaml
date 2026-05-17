@@ -1,4 +1,20 @@
 version: 1
+table_family: product_catalog
+owner: runtime
+catalog_id: runtime_agent_participation_axis_model
+entries:
+  - transcript_owner
+  - identity_source
+  - execution_owner
+  - memory_read_scope
+  - memory_write_default
+  - capability_scope
+  - input_trust
+  - output_destination
+  - promotion_posture
+  - execution_concurrency
+  - open_string_axis_values_allowed
+  - broadening_requires_reopen
 source_rule: K-AGCORE-063
 axes:
   - id: transcript_owner

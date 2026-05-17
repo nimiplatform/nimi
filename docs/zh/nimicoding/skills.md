@@ -17,7 +17,7 @@ Nimi Coding 包声明了四个**技能**。每个技能都是一个强类型表�
 
 | 输入 | 输出 |
 | --- | --- |
-| 混合输入（代码、文档、目录结构、人类笔记） | `.nimi/spec/**` 规范树以及 `.nimi/spec/_meta/spec-generation-audit.yaml` |
+| 混合输入（代码、文档、目录结构、人类笔记） | `.nimi/spec/**` 规范树以及 `.nimi/local/state/spec-generation/spec-generation-audit.yaml` |
 
 | 属性 | 取值 |
 | --- | --- |
@@ -139,9 +139,9 @@ Nimi Coding 包声明了四个**技能**。每个技能都是一个强类型表�
 
 ## 来源依据
 
-- [`nimi-coding/config/skills.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/config/skills.yaml)
-- [`nimi-coding/config/skill-manifest.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/config/skill-manifest.yaml)
-- [`nimi-coding/methodology/skill-runtime.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/methodology/skill-runtime.yaml)
-- [`nimi-coding/methodology/skill-handoff.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/methodology/skill-handoff.yaml)
-- [`nimi-coding/methodology/skill-installer-result.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/methodology/skill-installer-result.yaml)
-- [`nimi-coding/methodology/spec-reconstruction.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/methodology/spec-reconstruction.yaml)
+- [`nimi-coding/config/skills.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/config/skills.yaml)
+- [`nimi-coding/config/skill-manifest.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/config/skill-manifest.yaml)
+- [`nimi-coding/methodology/skill-runtime.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/methodology/skill-runtime.yaml)
+- [`nimi-coding/methodology/skill-handoff.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/methodology/skill-handoff.yaml)
+- [`nimi-coding/methodology/skill-installer-result.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/methodology/skill-installer-result.yaml)
+- [`nimi-coding/methodology/spec-reconstruction.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/methodology/spec-reconstruction.yaml)

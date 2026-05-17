@@ -1,31 +1,12 @@
 import { useCallback, useMemo, useState } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   type ChatComposerSubmitInput,
 } from '@nimiplatform/nimi-kit/features/chat/headless';
 import type { DesktopConversationModeHost } from './chat-shared-mode-host-types';
 import { RuntimeStreamFooter } from './chat-shared-runtime-stream-ui';
-import { hasTauriInvoke } from '@renderer/bridge/runtime-bridge/env';
-import {
-  buildDesktopAvatarInstanceId,
-  closeDesktopAvatarHandoff,
-  launchDesktopAvatarHandoff,
-} from '@renderer/bridge/runtime-bridge/chat-agent-avatar-launcher';
-import {
-  desktopAvatarInstanceRegistryQueryKey,
-  listDesktopAvatarLiveInstances,
-} from '@renderer/bridge/runtime-bridge/chat-agent-avatar-instance-registry';
-import {
-  agentCenterLocalConfigQueryKey,
-  getAgentCenterBackgroundAsset,
-  getAgentCenterLocalConfig,
-  importAgentCenterBackground,
-  pickAgentCenterBackgroundSource,
-  removeAgentCenterBackground,
-} from '@renderer/bridge/runtime-bridge/chat-agent-center-local-config-store';
 import { cancelStream } from '../turns/stream-controller';
 import { createInitialAgentTurnLifecycleState } from './chat-agent-shell-lifecycle';
-import { assetUrlFromFileUrl, resolveLatestAgentStatusCue } from './chat-agent-shell-presentation-status';
+import { resolveLatestAgentStatusCue } from './chat-agent-shell-presentation-status';
 import { resolveAgentFooterViewState } from './chat-agent-shell-footer-state';
 import { resolveAgentConversationSurfaceState } from './chat-agent-shell-visible-state';
 import type { RuntimeCommittedStatusProjection } from './chat-agent-shell-visible-state';
@@ -44,7 +25,7 @@ import {
 } from './chat-agent-voice-session';
 import { AgentCanonicalComposer } from './chat-agent-canonical-composer';
 import { AgentConversationDiagnosticsContent, AgentConversationSettingsContent } from './chat-agent-shell-presentation-settings';
-import { useAgentCenterAvatarConfigMutation } from './chat-agent-center-avatar-config-mutation';
+import { useAgentConversationLocalAvatarControls } from './chat-agent-shell-local-avatar-controls';
 import { ChatComposerLeadingAvatar } from './chat-shared-composer-leading-avatar';
 import { CHAT_CONTENT_POSITION_CLASS, CHAT_CONTENT_WIDTH_CLASS } from './chat-shared-content-layout';
 import type { UseAgentConversationPresentationInput } from './chat-agent-shell-presentation-types';
@@ -75,7 +56,6 @@ export function useAgentConversationPresentation(
   | 'thinkingState'
   | 'transcriptProps'
 > {
-  const queryClient = useQueryClient();
   const schedulingGuard = useMemo(
     () => resolveExecutionSchedulingGuardDecision({
       judgement: input.schedulingJudgement,
@@ -142,260 +122,19 @@ export function useAgentConversationPresentation(
       }),
     },
   }), [footerViewState, input.activeTarget, input.activeThreadId, input.composerReady, input.submittingThreadId, input.t, input.voiceCaptureState, input.voicePlaybackState, input.voiceSessionState, latestStatusCue, runtimeCommittedStatus]);
-  const agentCenterLocalConfigQuery = useQuery({
-    queryKey: input.accountId && input.activeTarget?.localAgentRef
-      ? agentCenterLocalConfigQueryKey(input.accountId, input.activeTarget.localAgentRef)
-      : ['agent-center-local-config', 'none'],
-    queryFn: async () => (
-      input.accountId && input.activeTarget?.localAgentRef
-        ? getAgentCenterLocalConfig({
-          accountId: input.accountId,
-          ownerUserId: input.activeTarget.ownerUserId,
-          realmAgentId: input.activeTarget.realmAgentId,
-          localAgentRef: input.activeTarget.localAgentRef,
-        })
-        : null
-    ),
-    enabled: hasTauriInvoke() && Boolean(input.accountId && input.activeTarget?.localAgentRef),
-    staleTime: 30_000,
-  });
-  const avatarPackageConfig = agentCenterLocalConfigQuery.data?.modules.avatar_package || null;
-  const selectedBackgroundAssetId = agentCenterLocalConfigQuery.data?.modules.appearance.background_asset_id || null;
-  const backgroundAssetQuery = useQuery({
-    queryKey: input.accountId && input.activeTarget?.localAgentRef && selectedBackgroundAssetId
-      ? [
-        'agent-center-background-asset',
-        input.accountId,
-        input.activeTarget.localAgentRef,
-        selectedBackgroundAssetId,
-      ]
-      : ['agent-center-background-asset', 'none'],
-    queryFn: async () => (
-      input.accountId && input.activeTarget?.localAgentRef && selectedBackgroundAssetId
-        ? getAgentCenterBackgroundAsset({
-          accountId: input.accountId,
-          ownerUserId: input.activeTarget.ownerUserId,
-          realmAgentId: input.activeTarget.realmAgentId,
-          localAgentRef: input.activeTarget.localAgentRef,
-          backgroundAssetId: selectedBackgroundAssetId,
-        })
-        : null
-    ),
-    enabled: hasTauriInvoke() && Boolean(input.accountId && input.activeTarget?.localAgentRef && selectedBackgroundAssetId),
-    staleTime: 30_000,
-  });
-  const backdropImageUrl = assetUrlFromFileUrl(backgroundAssetQuery.data?.file_url);
-  const avatarConfigured = Boolean(avatarPackageConfig?.avatar_package_ref);
-  const avatarPackageValid = Boolean(
-    avatarPackageConfig?.avatar_package_ref
-      && avatarPackageConfig.backend_capability_profile_ref,
-  );
-  const avatarPackageChecking = false;
-  const avatarConfigMutation = useAgentCenterAvatarConfigMutation(input, queryClient, agentCenterLocalConfigQuery.data);
-  const backgroundValidation = backgroundAssetQuery.data?.validation || null;
-  const backgroundValid = backgroundValidation?.status === 'valid';
-  const backgroundImportMutation = useMutation({
-    mutationFn: async () => {
-      if (!input.accountId || !input.activeTarget?.localAgentRef) {
-        throw new Error(input.t('Chat.agentCenterBackgroundImportAgentRequired', {
-          defaultValue: 'Select an agent before importing a background.',
-        }));
-      }
-      const sourcePath = await pickAgentCenterBackgroundSource();
-      if (!sourcePath) {
-        return null;
-      }
-      return importAgentCenterBackground({
-        accountId: input.accountId,
-        ownerUserId: input.activeTarget.ownerUserId,
-        realmAgentId: input.activeTarget.realmAgentId,
-        localAgentRef: input.activeTarget.localAgentRef,
-        sourcePath,
-        select: true,
-      });
-    },
-    onSuccess: async (result) => {
-      if (!result || !input.accountId || !input.activeTarget?.localAgentRef) {
-        return;
-      }
-      await Promise.all([
-        queryClient.invalidateQueries({
-          queryKey: agentCenterLocalConfigQueryKey(input.accountId, input.activeTarget.localAgentRef),
-        }),
-        queryClient.invalidateQueries({ queryKey: ['agent-center-background-asset'] }),
-      ]);
-    },
-  });
-  const backgroundImportDisabled = !hasTauriInvoke()
-    || !input.accountId
-    || !input.activeTarget?.localAgentRef
-    || backgroundImportMutation.isPending;
-  const backgroundImportError = backgroundImportMutation.error instanceof Error
-    ? backgroundImportMutation.error.message
-    : null;
-  const clearBackgroundMutation = useMutation({
-    mutationFn: async () => {
-      if (!input.accountId || !input.activeTarget?.localAgentRef || !selectedBackgroundAssetId) {
-        return null;
-      }
-      return removeAgentCenterBackground({
-        accountId: input.accountId,
-        ownerUserId: input.activeTarget.ownerUserId,
-        realmAgentId: input.activeTarget.realmAgentId,
-        localAgentRef: input.activeTarget.localAgentRef,
-        backgroundAssetId: selectedBackgroundAssetId,
-      });
-    },
-    onSuccess: async (result) => {
-      if (!result || !input.accountId || !input.activeTarget?.localAgentRef) {
-        return;
-      }
-      await Promise.all([
-        queryClient.invalidateQueries({
-          queryKey: agentCenterLocalConfigQueryKey(input.accountId, input.activeTarget.localAgentRef),
-        }),
-        queryClient.invalidateQueries({ queryKey: ['agent-center-background-asset'] }),
-      ]);
-    },
-  });
-  const avatarHandoffReady = hasTauriInvoke();
-  const avatarRuntimeAccountReady = Boolean(input.accountId);
-  const [avatarActionPending, setAvatarActionPending] = useState(false);
-  const avatarInstanceId = useMemo(() => (
-    input.activeTarget
-      ? buildDesktopAvatarInstanceId({
-        localAgentRef: input.activeTarget.localAgentRef,
-        threadId: input.activeThreadId,
-      })
-      : null
-  ), [input.activeTarget, input.activeThreadId]);
-  const avatarLiveInstancesQuery = useQuery({
-    queryKey: input.activeTarget?.localAgentRef
-      ? desktopAvatarInstanceRegistryQueryKey(input.activeTarget.localAgentRef)
-      : ['desktop-avatar-instance-registry', 'none'],
-    queryFn: async () => (
-      input.activeTarget?.localAgentRef
-        ? listDesktopAvatarLiveInstances({
-          ownerUserId: input.activeTarget.ownerUserId,
-          realmAgentId: input.activeTarget.realmAgentId,
-          localAgentRef: input.activeTarget.localAgentRef,
-        })
-        : []
-    ),
-    enabled: avatarHandoffReady && Boolean(input.activeTarget?.localAgentRef),
-    staleTime: 5_000,
-    refetchOnWindowFocus: true,
-    refetchInterval: avatarHandoffReady && input.activeTarget?.localAgentRef ? 5_000 : false,
-  });
-  const runningAvatarInstance = avatarInstanceId
-    ? avatarLiveInstancesQuery.data?.find((instance) => instance.avatarInstanceId === avatarInstanceId) || null
-    : null;
-  const avatarRunning = Boolean(runningAvatarInstance);
-  const handleComposerAvatarAction = useCallback(async () => {
-    if (
-      !input.activeTarget
-      || !avatarInstanceId
-    ) {
-      input.onOpenAgentCenter?.();
-      return null;
-    }
-    if (!avatarHandoffReady) {
-      return {
-        kind: 'warning' as const,
-        message: input.t('Chat.agentCenterAvatarStartRuntimeUnavailable', {
-          defaultValue: 'Avatar launch requires the desktop Runtime bridge.',
-        }),
-      };
-    }
-    if (!avatarRuntimeAccountReady) {
-      return {
-        kind: 'warning' as const,
-        message: input.t('Chat.agentCenterAvatarStartAccountRequired', {
-          defaultValue: 'Sign in with the Runtime-backed desktop account before opening Avatar.',
-        }),
-      };
-    }
-    if (!avatarRunning && !avatarPackageValid) {
-      input.onOpenAgentCenter?.();
-      return {
-        kind: 'warning' as const,
-        message: input.t(avatarConfigured
-          ? 'Chat.agentCenterAvatarStartBackendEvidenceRequired'
-          : 'Chat.agentCenterAvatarStartPackageEvidenceRequired', {
-          defaultValue: avatarConfigured
-            ? 'Avatar launch requires backend capability evidence from the authorized resolver.'
-            : 'Avatar launch requires Runtime-projected avatar package evidence.',
-        }),
-      };
-    }
-    setAvatarActionPending(true);
-    try {
-      if (avatarRunning) {
-        const result = await closeDesktopAvatarHandoff({
-          avatarInstanceId,
-          closedBy: 'desktop',
-          sourceSurface: 'desktop-agent-chat',
-        });
-        await avatarLiveInstancesQuery.refetch();
-        return {
-          kind: result.opened ? 'success' as const : 'warning' as const,
-          message: result.opened
-            ? input.t('Chat.agentCenterAvatarStopSuccess', { defaultValue: 'Avatar close request sent.' })
-            : input.t('Chat.agentCenterAvatarStopUnconfirmed', { defaultValue: 'Close request was sent, but the OS did not confirm it.' }),
-        };
-      }
-      const result = await launchDesktopAvatarHandoff({
-        ownerUserId: input.activeTarget.ownerUserId,
-        realmAgentId: input.activeTarget.realmAgentId,
-        localAgentRef: input.activeTarget.localAgentRef,
-        avatarInstanceId,
-        sourceSurface: 'desktop-agent-chat',
-      });
-      await avatarLiveInstancesQuery.refetch();
-      return {
-        kind: result.opened ? 'success' as const : 'warning' as const,
-        message: result.opened
-          ? input.t('Chat.agentCenterAvatarStartSuccess', { defaultValue: 'Avatar launch requested. Waiting for the avatar to come online.' })
-          : input.t('Chat.agentCenterAvatarStartUnconfirmed', { defaultValue: 'Launch request was sent, but the OS did not confirm it.' }),
-      };
-    } finally {
-      setAvatarActionPending(false);
-    }
-  }, [
-    avatarHandoffReady,
-    avatarRuntimeAccountReady,
-    avatarConfigured,
-    avatarInstanceId,
-    avatarLiveInstancesQuery,
-    avatarPackageValid,
-    avatarRunning,
-    input.activeTarget,
-    input.onOpenAgentCenter,
-    input.t,
-  ]);
-  const avatarComposerActionState = avatarActionPending
-    ? 'pending'
-    : !avatarHandoffReady || !avatarRuntimeAccountReady
-      ? 'unavailable'
-      : avatarRunning
-        ? 'running'
-        : !avatarConfigured
-          ? 'not_configured'
-          : !avatarPackageValid
-            ? 'package_invalid'
-            : 'ready_stopped';
+  const localAvatar = useAgentConversationLocalAvatarControls(input);
   const characterData = useMemo(() => ({
     ...surfaceState.character,
     theme: {
       roomSurface: 'linear-gradient(180deg, rgba(255,255,255,0.96), rgba(248,250,252,0.94))',
       roomAura: 'linear-gradient(180deg, rgba(255,255,255,0.82), rgba(255,255,255,0.90))',
-      appBackdropImageUrl: backdropImageUrl,
+      appBackdropImageUrl: localAvatar.backdropImageUrl,
       accentSoft: 'rgba(148,163,184,0.12)',
       accentStrong: '#475569',
       border: 'rgba(148,163,184,0.20)',
       text: '#0f172a',
     },
-  }), [backdropImageUrl, surfaceState.character]);
+  }), [localAvatar.backdropImageUrl, surfaceState.character]);
   const resolvedAgentDisplayName = useMemo(
     () =>
       characterData.name
@@ -542,18 +281,26 @@ export function useAgentConversationPresentation(
       <AgentConversationSettingsContent
         input={input}
         diagnosticsContent={diagnosticsContent}
-        avatarPackageValid={avatarPackageValid}
-        backgroundValid={backgroundValid}
-        avatarPackageChecking={avatarPackageChecking}
-        avatarPackageConfig={avatarPackageConfig}
-        avatarConfigMutation={avatarConfigMutation}
-        selectedBackgroundAssetId={selectedBackgroundAssetId}
-        backgroundAssetQuery={backgroundAssetQuery}
-        backgroundValidation={backgroundValidation}
-        backgroundImportError={backgroundImportError}
-        clearBackgroundMutation={clearBackgroundMutation}
-        backgroundImportDisabled={backgroundImportDisabled}
-        backgroundImportMutation={backgroundImportMutation}
+        avatarAssetValid={localAvatar.avatarAssetValid}
+        backgroundValid={localAvatar.backgroundValid}
+        avatarAssetChecking={localAvatar.avatarAssetChecking}
+        avatarAssetConfig={localAvatar.avatarAssetConfig}
+        avatarAssetValidationPresentation={localAvatar.avatarAssetValidationPresentation}
+        avatarConfigMutation={localAvatar.avatarConfigMutation}
+        avatarAssetImportMutation={localAvatar.avatarAssetImportMutation}
+        avatarAssetLibraryQuery={localAvatar.avatarAssetLibraryQuery}
+        avatarAssetSelectMutation={localAvatar.avatarAssetSelectMutation}
+        avatarImportDisabled={localAvatar.avatarImportDisabled}
+        avatarImportError={localAvatar.avatarImportError}
+        clearAvatarAssetMutation={localAvatar.clearAvatarAssetMutation}
+        live2dAdapterManifestImportMutation={localAvatar.live2dAdapterManifestImportMutation}
+        selectedBackgroundAssetId={localAvatar.selectedBackgroundAssetId}
+        backgroundAssetQuery={localAvatar.backgroundAssetQuery}
+        backgroundValidation={localAvatar.backgroundValidation}
+        backgroundImportError={localAvatar.backgroundImportError}
+        clearBackgroundMutation={localAvatar.clearBackgroundMutation}
+        backgroundImportDisabled={localAvatar.backgroundImportDisabled}
+        backgroundImportMutation={localAvatar.backgroundImportMutation}
       />
     ),
     settingsDrawerTitle: input.t('Chat.agentCenterTitle', { defaultValue: 'Agent Center' }),
@@ -609,9 +356,9 @@ export function useAgentConversationPresentation(
               />
             )}
             avatarAction={{
-              state: avatarComposerActionState,
+              state: localAvatar.avatarComposerActionState,
               onConfigure: input.onOpenAgentCenter,
-              onActivate: handleComposerAvatarAction,
+              onActivate: localAvatar.handleComposerAvatarAction,
             }}
             widthClassName={CHAT_CONTENT_WIDTH_CLASS}
             widthPositionClassName={CHAT_CONTENT_POSITION_CLASS}
@@ -635,29 +382,10 @@ export function useAgentConversationPresentation(
     hostFeedbackNode,
     schedulingFeedbackNode,
     hostSnapshot,
-    agentCenterLocalConfigQuery.data,
     characterData.name,
     characterData.avatarUrl,
     characterData.avatarFallback,
-    avatarConfigured,
-    avatarPackageChecking,
-    avatarConfigMutation,
-    avatarPackageValid,
-    avatarComposerActionState,
-    avatarActionPending,
-    avatarHandoffReady,
-    avatarRuntimeAccountReady,
-    avatarRunning,
-    backgroundImportDisabled,
-    backgroundImportError,
-    backgroundImportMutation,
-    backgroundAssetQuery.data,
-    backgroundAssetQuery.isFetching,
-    backgroundValidation,
-    backgroundValid,
-    clearBackgroundMutation,
-    selectedBackgroundAssetId,
-    handleComposerAvatarAction,
+    localAvatar,
     input.activeTarget,
     input.activeConversationAnchorId,
     input.activeThreadId,

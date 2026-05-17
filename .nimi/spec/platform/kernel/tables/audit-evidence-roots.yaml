@@ -1,4 +1,15 @@
 version: 1
+table_family: product_catalog
+owner: platform
+catalog_id: platform_audit_evidence_roots
+entries:
+  - platform-web-release
+  - platform-shared-tauri-kit
+  - platform-host-local-nimicoding-projection
+  - spec-generation-audit-nimicoding-implementation
+  - platform-repository-governance
+  - runtime-proto-root-governance
+  - sdk-root-package-governance
 roots:
   - id: platform-web-release
     owner_domain: platform
@@ -27,15 +38,17 @@ roots:
   - id: spec-generation-audit-nimicoding-implementation
     owner_domain: spec-meta
     authority_refs:
-      - .nimi/spec/_meta/spec-generation-audit.yaml
+      - .nimi/spec/platform/kernel/package-authority-admission-contract.md
     evidence_roots:
       - .nimi/contracts/spec-generation-audit.schema.yaml
       - .nimi/methodology/spec-reconstruction.yaml
-      - nimi-coding/cli/commands/validate-spec-audit.mjs
-      - nimi-coding/cli/lib/internal/validators-spec.mjs
-      - nimi-coding/cli/lib/closeout.mjs
-      - nimi-coding/test/spec-generation-scenarios.mjs
-      - nimi-coding/test/nimicoding.test.mjs
+      - package://@nimiplatform/nimi-coding/contracts/spec-generation-audit.schema.yaml
+      - package://@nimiplatform/nimi-coding/methodology/spec-reconstruction.yaml
+      - package://@nimiplatform/nimi-coding/cli/commands/validate-spec-audit.mjs
+      - package://@nimiplatform/nimi-coding/cli/lib/internal/validators-spec.mjs
+      - package://@nimiplatform/nimi-coding/cli/lib/closeout.mjs
+      - package://@nimiplatform/nimi-coding/test/spec-generation-scenarios.mjs
+      - package://@nimiplatform/nimi-coding/test/nimicoding.test.mjs
     source_rule: P-PKG-008
   - id: platform-repository-governance
     owner_domain: platform

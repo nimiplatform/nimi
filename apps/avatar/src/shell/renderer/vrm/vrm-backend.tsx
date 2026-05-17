@@ -19,9 +19,9 @@
 // `vrm-dev-preview-surface.tsx` for debugging without spinning up the
 // real Three.js renderer. metadata().mode === 'dev_preview'.
 //
-// Deferred projection shim:
+// Queued projection adapter:
 //   At factory time the VRM instance does not exist yet — the projection
-//   adapter requires a loaded VRM. We expose a thin shim implementing
+//   adapter requires a loaded VRM. We expose a thin adapter implementing
 //   BackendProjection that queues calls until the surface (post-runtime
 //   `ready`) registers the real adapter. Pre-ready calls are replayed
 //   on first `setAdapter`. If the runtime never reaches ready (failed_
@@ -100,24 +100,24 @@ function createVrmDevPreviewBackendSurface(manifest: VrmAvatarModelManifest): Ba
   return { Component: Wrapper };
 }
 
-/** Method-record form used by the deferred projection shim so we can
+/** Method-record form used by the queued projection adapter so we can
  *  replay queued calls without per-method casts. */
 type QueuedProjectionCall = (p: BackendProjection) => void;
 
-export type DeferredProjectionHandle = {
+export type QueuedProjectionHandle = {
   projection: BackendProjection;
   setAdapter(adapter: BackendProjection): void;
   reset(): void;
 };
 
 /**
- * Build a thin projection shim that buffers calls until the surface
+ * Build a thin projection adapter that buffers calls until the surface
  * (post-runtime-ready) registers the real adapter. Once registered,
- * queued calls are replayed in arrival order, then subsequent calls
- * dispatch directly. After `reset()` the shim is detached again
+ * queued calls are replayed in arrival order, then subsequent calls dispatch
+ * directly. After `reset()` the adapter is detached again
  * (used at branch.shutdown so a second start-up rebuilds cleanly).
  */
-export function createDeferredProjection(): DeferredProjectionHandle {
+export function createQueuedProjection(): QueuedProjectionHandle {
   let adapter: BackendProjection | null = null;
   const queue: QueuedProjectionCall[] = [];
 
@@ -238,7 +238,7 @@ export async function createVrmBackendBranch(
     resolveVrmRoute: (name) => resolver.resolveVrmRoute(name),
   };
 
-  const deferredProjection = createDeferredProjection();
+  const queuedProjection = createQueuedProjection();
 
   // Wave 4 chunk 4-C: per-backend render target for alpha-mask hit-test
   // probing. The surface drives `capture()` from useFrame (throttled to
@@ -260,7 +260,7 @@ export async function createVrmBackendBranch(
       generatedMotionRuntime,
       lipsyncDriver,
       activityMapping,
-      setProjectionAdapter: deferredProjection.setAdapter,
+      setProjectionAdapter: queuedProjection.setAdapter,
       runtimeOptions: options.runtimeOptions,
       renderTarget,
       onCapabilityProfile: (nextProfile) => {
@@ -274,7 +274,7 @@ export async function createVrmBackendBranch(
   const branch: BackendBranch & { kind: 'vrm' } = {
     kind: 'vrm',
     nominalBounds: VRM_DEFAULT_NOMINAL_BOUNDS,
-    projection: deferredProjection.projection,
+    projection: queuedProjection.projection,
     surface,
     metadata: () => ({
       model_kind: 'vrm',
@@ -298,7 +298,7 @@ export async function createVrmBackendBranch(
         // dispose is defensive; never let it block surface shutdown.
       }
       audioConsumer.silent();
-      deferredProjection.reset();
+      queuedProjection.reset();
       surfaceShutdown();
       try {
         renderTarget.dispose();

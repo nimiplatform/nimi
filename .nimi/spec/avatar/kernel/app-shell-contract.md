@@ -2,7 +2,7 @@
 
 > **App**: `@nimiplatform/avatar`
 > **Authority**: Avatar kernel contract
-> **Status**: Wave 0 industrial baseline (supersedes earlier "Phase 1 / Phase 2 deferred" framing)
+> **Status**: Wave 0 industrial baseline (supersedes retired small-button surface framing)
 > **Sibling contracts**:
 > - [Embodiment projection contract](embodiment-projection-contract.md)
 > - [Live2D render contract](live2d-render-contract.md)
@@ -14,7 +14,7 @@
 >
 > Explicit binding-only / embedded / delegated Avatar mode 仍可由 `K-BIND-*` admit，但它不是 Desktop-launched Avatar 的默认路径。
 >
-> **Wave 0 Surface Composition admit**：本 contract 重写 surface composition 模型为 `embodiment-stage` / `companion-surface` / `degraded-surface` 三互斥结构（K-NAV-SHELL-COMPOSITION-*）。原 "Phase 2 deferred small chat button" 路径正式废弃，由 always-visible Companion Surface（K-NAV-SHELL-COMPANION-*）取代；degraded posture 由独立 Degraded Surface（K-NAV-SHELL-DEGRADED-*）承载，不再混入 ready 主区。
+> **Wave 0 Surface Composition admit**：本 contract 重写 surface composition 模型为 `embodiment-stage` / `companion-surface` / `degraded-surface` 三互斥结构（K-NAV-SHELL-COMPOSITION-*）。原 small chat button 路径正式废弃，由 always-visible Companion Surface（K-NAV-SHELL-COMPANION-*）取代；degraded posture 由独立 Degraded Surface（K-NAV-SHELL-DEGRADED-*）承载，不再混入 ready 主区。
 
 ---
 
@@ -36,7 +36,7 @@ Window 必须以如下 config 启动（不可 runtime 改变）：
 |---|---|---|
 | `transparent` | `true` | 背景透明，形象即 UI |
 | `decorations` | `false` | 无 title bar / close / min buttons |
-| `alwaysOnTop` | `true` (default) | Pet 始终可见；用户 setting 可覆盖 |
+| `alwaysOnTop` | `true` (default) | Avatar embodiment 默认常驻可见；用户 setting 可覆盖 |
 | `resizable` | `true` (programmatic only) | Runtime 按 model bounds + companion footprint 调整 |
 | `skipTaskbar` | `true` | 不在 taskbar 显示（dock 上有 tray icon） |
 | `shadow` | `false` | 无 window shadow（形象自身有阴影） |
@@ -432,10 +432,10 @@ Degraded Surface 是 ready 之外所有 composition state 的唯一渲染表面�
 2. Renderer bootstrap (React mount)
 3. Emit avatar.app.start (composition state = loading)
 4. Register / identify as Runtime-admitted local first-party app (`nimi.avatar`)
-5. Validate launch `agent_id` and resolve authorized visual package descriptor
-   through Runtime / SDK authority (Live2D / VRM branch)
+5. Validate launch `agent_id` through Runtime / SDK authority
 6. Prepare SDK Runtime-backed protected access provider (typed admitted)
-7. Load local visual files from the authorized descriptor
+7. Resolve the selected local Avatar asset and load materialized Live2D / VRM
+   files
 8. Create or recover Avatar-owned conversation context
 9. Scan <model>/runtime/nimi/ for NAS handlers (§agent-script-contract)
 10. Compute initial hit region + resize window to surface bounds + companion footprint
@@ -460,10 +460,16 @@ Normal path boundary:
 - protected access bootstrap：Avatar 通过 SDK local first-party
   Runtime-backed token provider 为 `runtime.agent` turns API 获取
   request-time capability token；默认路径不 issue scoped binding
-- visual bootstrap：Runtime / SDK-authorized Agent Center package descriptor →
-  local Live2D/VRM render
+- visual bootstrap：Avatar resolves the selected local Avatar asset into
+  materialized Live2D/VRM files after Runtime validates `agent_id`. Realm /
+  Asset Market packages may become a local Avatar asset only after acquisition
+  and local materialization; they are not the default launch-time source of
+  visual truth. Current Agent Center resolver plumbing is local Avatar asset
+  materialization storage, not marketplace package lifecycle, inventory, or
+  activation authority.
 - data bootstrap：Runtime / SDK validates `agent_id` for the current Runtime
-  account projection before private agent/user data or package descriptors load
+  account projection before private agent/user data or authorized local visual
+  materialization loads
 - conversation bootstrap：Avatar creates or recovers an Avatar-owned context
 
 Login / account handling:
@@ -614,7 +620,8 @@ Minimum permission set for industrial baseline shell：
 - 调用 Runtime account projection / event stream / login adapter / `GetAccessToken` 等 local first-party account 方法，受 `K-ACCSVC-*` 与 app registry admission 约束
 - 通过 SDK local-first-party Runtime-backed token provider 为 `runtime.agent` turns API 请求获取 protected access token
 - 通过 SDK local-first-party Runtime-backed token provider 访问授权 Realm data API
-- 通过 Runtime / SDK 验证 `agent_id`，解析 agent/user projection 与 visual package descriptor
+- 通过 Runtime / SDK 验证 `agent_id`，解析 agent/user projection 与
+  authorized visual package ref / local materialization
 - 创建或恢复 Avatar-owned conversation context
 
 ## K-NAV-SHELL-FIRST-PARTY-RUNTIME-003 Minimal Launch Intent
@@ -633,6 +640,12 @@ shared auth payload、auth UX route。
 `agent_id` 是 selector，不是 authorization proof。Avatar 必须通过 Runtime /
 SDK 验证。
 
+如果 Desktop 已经拥有当前 Runtime `ConversationAnchor`，它只能通过 Runtime
+`K-AGCORE-138` 注册 `avatar_instance_id -> conversation_anchor_id` 绑定。
+Avatar 启动后可通过 SDK 解析该绑定恢复同一 anchor；不得把
+`conversation_anchor_id`、owner/account/user truth 或 scoped binding 放入 launch
+payload。
+
 ## K-NAV-SHELL-FIRST-PARTY-RUNTIME-004 Tauri Permission 排除
 
 Avatar Tauri capability 文件不允许包含：
@@ -648,12 +661,17 @@ guardrail 必须在合规 wave 落地（见 `negative-test-matrix.md` 与 `guard
 
 Avatar 必须：
 
-- 在加载 private agent data 或 visual package descriptor 前验证 `agent_id`
-- 仅从 Runtime / SDK-authorized descriptor 读取 local visual package files
+- 在加载 private agent data 或 selected local Avatar asset materialization 前
+  验证 `agent_id`
+- 仅从 Avatar local asset resolver 返回的 materialized Live2D/VRM files 读取
+  visual files；Realm / Asset Market package records 必须先 materialize 到同一
+  local asset store 后才可被 Avatar 消费
 - 创建或恢复 Avatar-owned conversation context
+- 通过 Runtime / SDK `K-AGCORE-138` live-instance binding 恢复 Desktop-current
+  conversation anchor；缺失绑定时不得从 same-agent identity 推断同一 conversation
 - 支持同一 `agent_id` 的多个 `avatar_instance_id` 并存
 
-Desktop 不得预解析或透传 agent authorization、visual package truth、或
+Desktop 不得预解析或透传 agent authorization、remote package truth、或
 conversation anchor truth。
 
 ## K-NAV-SHELL-FIRST-PARTY-RUNTIME-006 Binding-Only Mode Exclusion

@@ -8,6 +8,7 @@ import { useTranslation } from 'react-i18next';
 import { dataSync } from '@runtime/data-sync';
 import { queryClient } from '@renderer/infra/query-client/query-client';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
+import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import { ChatProfileCard } from '../turns/message-timeline-profile-card.js';
 import { toChatProfileSummary } from '../turns/message-timeline-utils.js';
 import { toProfileData } from '@renderer/features/profile/profile-model';
@@ -83,6 +84,7 @@ export function HumanCanonicalComposer(props: {
   const { t } = useTranslation();
   const offlineTier = useAppStore((state) => state.offlineTier);
   const currentUserId = String(useAppStore((state) => state.auth.user?.id) || '');
+  const navigateToProfile = useAppStore((state) => state.navigateToProfile);
   const [isUploading, setIsUploading] = useState(false);
   const [pendingAttachments, setPendingAttachments] = useState<PendingAttachment[]>([]);
   const [feedback, setFeedback] = useState<InlineFeedbackState | null>(null);
@@ -320,6 +322,9 @@ export function HumanCanonicalComposer(props: {
               handle: props.leadingAvatar.handle || null,
               worldName: props.leadingAvatar.worldName || null,
             } : null}
+            triggerTestId={E2E_IDS.chatHeaderProfileToggle}
+            openProfileTestId={E2E_IDS.chatOpenUserProfile}
+            onOpenProfilePage={(targetId) => navigateToProfile(targetId, 'profile')}
           />
         ) : null}
       />

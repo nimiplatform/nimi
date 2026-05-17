@@ -66,3 +66,19 @@ Creators must publish again to update the current market-visible version.
 A bundle may contain only a single asset.
 
 The current market does not require multi-asset minimums.
+
+## AM-PUBLISH-008: Avatar Package Publish Preconditions
+
+An avatar package may publish only when all generic `AM-PUBLISH-005` preconditions pass and the `avatar` package-kind requirements in `tables/package-model.yaml` pass.
+
+The publish gate must verify:
+
+- `package_kind = avatar`
+- `backend_kind` is `live2d` or `vrm`
+- `avatar_model_layout` references only assets in the package's Bundle
+- backend-specific entry fields match the selected backend
+- `backend_capability_profile_ref` is present and matches the selected backend
+- provenance is present and valid
+- compatibility diagnostics contain no blocking finding
+
+Publish must fail closed for reserved preview kinds, loose local folders, direct CDN rows, Agent Center package refs, or missing capability evidence.

@@ -3,6 +3,9 @@ import assert from 'node:assert/strict';
 
 import {
   createDefaultAgentCenterLocalConfig,
+  validateAgentCenterAvatarAssetImportResult,
+  validateAgentCenterAvatarAssetListResult,
+  validateAgentCenterAvatarAssetValidationResult,
   validateAgentCenterLive2dAdapterManifestImportResult,
   validateAgentCenterBackgroundAssetResult,
   validateAgentCenterBackgroundImportResult,
@@ -28,10 +31,10 @@ test('Agent Center local config bridge parser accepts Rust store payload shape',
         background_asset_id: null,
         motion: 'system',
       },
-      avatar_package: {
+      avatar_asset: {
         schema_version: 1,
         conversation_anchor_scope: 'current_anchor',
-        avatar_package_ref: 'runtime-avatar-ref:vrm_ab12cd34ef56',
+        local_avatar_asset_ref: 'vrm_ab12cd34ef56',
         live2d_adapter_manifest_source: 'none',
         live2d_adapter_manifest_ref: null,
         avatar_instance_policy: 'reuse_active_instance',
@@ -43,7 +46,7 @@ test('Agent Center local config bridge parser accepts Rust store payload shape',
         updated_at: '2026-04-27T00:00:00Z',
         provenance: {
           source: 'runtime_projection',
-          evidence_ref: 'runtime-avatar-ref:vrm_ab12cd34ef56',
+          evidence_ref: 'vrm_ab12cd34ef56',
         },
       },
       local_history: {
@@ -74,14 +77,14 @@ test('Agent Center local config bridge rejects retired selected package truth', 
         background_asset_id: null,
         motion: 'system',
       },
-      avatar_package: {
+      avatar_asset: {
         schema_version: 1,
         selected_package: {
           kind: 'vrm',
-          package_id: 'vrm_ab12cd34ef56',
+          local_asset_id: 'vrm_ab12cd34ef56',
         },
         conversation_anchor_scope: 'current_anchor',
-        avatar_package_ref: 'vrm_ab12cd34ef56',
+        local_avatar_asset_ref: 'vrm_ab12cd34ef56',
         live2d_adapter_manifest_source: 'none',
         live2d_adapter_manifest_ref: null,
         avatar_instance_policy: 'reuse_active_instance',
@@ -127,14 +130,14 @@ test('Agent Center local config default includes closed avatar configuration fie
     localAgentRef: 'local-agent:owner_1:agent_1',
   });
 
-  assert.equal(config.modules.avatar_package.backend_kind, 'live2d');
-  assert.equal(config.modules.avatar_package.live2d_adapter_manifest_source, 'none');
-  assert.equal(config.modules.avatar_package.live2d_adapter_manifest_ref, null);
-  assert.equal(config.modules.avatar_package.avatar_instance_policy, 'reuse_active_instance');
-  assert.equal(config.modules.avatar_package.generated_motion_provider_policy, 'require_profile_support');
-  assert.equal(config.modules.avatar_package.launch_mode, 'manual');
-  assert.equal(config.modules.avatar_package.debug_profile, 'standard');
-  assert.equal(config.modules.avatar_package.provenance.source, 'runtime_projection');
+  assert.equal(config.modules.avatar_asset.backend_kind, 'live2d');
+  assert.equal(config.modules.avatar_asset.live2d_adapter_manifest_source, 'none');
+  assert.equal(config.modules.avatar_asset.live2d_adapter_manifest_ref, null);
+  assert.equal(config.modules.avatar_asset.avatar_instance_policy, 'reuse_active_instance');
+  assert.equal(config.modules.avatar_asset.generated_motion_provider_policy, 'require_profile_support');
+  assert.equal(config.modules.avatar_asset.launch_mode, 'manual');
+  assert.equal(config.modules.avatar_asset.debug_profile, 'standard');
+  assert.equal(config.modules.avatar_asset.provenance.source, 'runtime_projection');
   assert.equal(validateAgentCenterLocalConfig(config).ok, true);
 });
 
@@ -152,10 +155,10 @@ test('Agent Center local config bridge rejects retired launch package config fie
         background_asset_id: null,
         motion: 'system',
       },
-      avatar_package: {
+      avatar_asset: {
         schema_version: 1,
         conversation_anchor_scope: 'current_anchor',
-        avatar_package_ref: null,
+        local_avatar_asset_ref: null,
         live2d_adapter_manifest_source: 'none',
         live2d_adapter_manifest_ref: null,
         avatar_instance_policy: 'reuse_active_instance',
@@ -169,7 +172,7 @@ test('Agent Center local config bridge rejects retired launch package config fie
           source: 'runtime_projection',
           evidence_ref: 'agent-center-avatar-config-default',
         },
-        last_launch_package_id: null,
+        last_launch_local_asset_id: null,
       },
       local_history: {
         schema_version: 1,
@@ -183,13 +186,13 @@ test('Agent Center local config bridge rejects retired launch package config fie
   });
 
   assert.equal(result.ok, false);
-  assert.match(result.errors.join('\n'), /last_launch_package_id: unknown field/u);
+  assert.match(result.errors.join('\n'), /last_launch_local_asset_id: unknown field/u);
 });
 
 test('Agent Center Live2D adapter manifest import parser accepts Rust payload shape', () => {
   const result = validateAgentCenterLive2dAdapterManifestImportResult({
     manifest_ref: 'live2d_adapter_ab12cd34ef56',
-    package_id: 'live2d_ab12cd34ef56',
+    local_asset_id: 'live2d_ab12cd34ef56',
     selected: true,
     sha256: 'a'.repeat(64),
     bytes: 128,
@@ -197,6 +200,110 @@ test('Agent Center Live2D adapter manifest import parser accepts Rust payload sh
   });
 
   assert.equal(result.ok, true);
+});
+
+test('Agent Center avatar asset import parser accepts Rust payload shape', () => {
+  const live2dResult = validateAgentCenterAvatarAssetImportResult({
+    local_asset_id: 'live2d_ab12cd34ef56',
+    backend_kind: 'live2d',
+    backend_capability_profile_ref: 'avatar_profile_live2d_ab12cd34ef56',
+    selected: true,
+    manifest_sha256: 'b'.repeat(64),
+    asset_bytes: 512,
+    file_count: 3,
+    imported_at: '2026-05-01T00:00:00Z',
+  });
+  const vrmResult = validateAgentCenterAvatarAssetImportResult({
+    local_asset_id: 'vrm_cd12ef34ab56',
+    backend_kind: 'vrm',
+    backend_capability_profile_ref: 'avatar_profile_vrm_cd12ef34ab56',
+    selected: true,
+    manifest_sha256: 'c'.repeat(64),
+    asset_bytes: 4096,
+    file_count: 1,
+    imported_at: '2026-05-01T00:00:00Z',
+  });
+
+  assert.equal(live2dResult.ok, true);
+  assert.equal(vrmResult.ok, true);
+});
+
+test('Agent Center avatar asset validation parser accepts Rust payload shape', () => {
+  const result = validateAgentCenterAvatarAssetValidationResult({
+    schema_version: 1,
+    local_asset_id: 'live2d_ab12cd34ef56',
+    backend_kind: 'live2d',
+    backend_capability_profile_ref: 'avatar_profile_live2d_ab12cd34ef56',
+    checked_at: '2026-05-01T00:00:00Z',
+    status: 'valid',
+    errors: [],
+    warnings: [],
+  });
+
+  assert.equal(result.ok, true);
+});
+
+test('Agent Center avatar asset list parser accepts Rust payload shape', () => {
+  const result = validateAgentCenterAvatarAssetListResult({
+    selected_local_asset_id: 'live2d_ab12cd34ef56',
+    assets: [
+      {
+        local_asset_id: 'live2d_ab12cd34ef56',
+        backend_kind: 'live2d',
+        display_name: 'Ren Live2D',
+        source_label: 'ren_pro_zh',
+        backend_capability_profile_ref: 'avatar_profile_live2d_ab12cd34ef56',
+        asset_bytes: 512,
+        file_count: 3,
+        imported_at: '2026-05-01T00:00:00Z',
+        selected: true,
+        validation: {
+          schema_version: 1,
+          local_asset_id: 'live2d_ab12cd34ef56',
+          backend_kind: 'live2d',
+          backend_capability_profile_ref: 'avatar_profile_live2d_ab12cd34ef56',
+          checked_at: '2026-05-01T00:00:00Z',
+          status: 'valid',
+          errors: [],
+          warnings: [],
+        },
+      },
+    ],
+  });
+
+  assert.equal(result.ok, true);
+});
+
+test('Agent Center avatar asset list parser rejects selected flag drift', () => {
+  const result = validateAgentCenterAvatarAssetListResult({
+    selected_local_asset_id: 'vrm_ab12cd34ef56',
+    assets: [
+      {
+        local_asset_id: 'vrm_ab12cd34ef56',
+        backend_kind: 'vrm',
+        display_name: 'Ren VRM',
+        source_label: 'ren.vrm',
+        backend_capability_profile_ref: 'avatar_profile_vrm_ab12cd34ef56',
+        asset_bytes: 4096,
+        file_count: 1,
+        imported_at: '2026-05-01T00:00:00Z',
+        selected: false,
+        validation: {
+          schema_version: 1,
+          local_asset_id: 'vrm_ab12cd34ef56',
+          backend_kind: 'vrm',
+          backend_capability_profile_ref: 'avatar_profile_vrm_ab12cd34ef56',
+          checked_at: '2026-05-01T00:00:00Z',
+          status: 'valid',
+          errors: [],
+          warnings: [],
+        },
+      },
+    ],
+  });
+
+  assert.equal(result.ok, false);
+  assert.match(result.errors.join('\n'), /matching asset must be marked selected/u);
 });
 
 test('Agent Center background validation parser accepts sidecar payload shape', () => {
@@ -248,7 +355,7 @@ test('Agent Center background asset parser accepts Rust payload shape', () => {
 
 test('Agent Center resource removal parser accepts quarantine payload shape', () => {
   const avatarResult = validateAgentCenterLocalResourceRemoveResult({
-    resource_kind: 'avatar_package',
+    resource_kind: 'avatar_asset',
     resource_id: 'live2d_ab12cd34ef56',
     quarantined: true,
     operation_id: 'op_ab12cd34ef56',

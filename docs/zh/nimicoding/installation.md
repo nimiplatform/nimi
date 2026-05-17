@@ -39,6 +39,14 @@ npx nimicoding --help
 npx nimicoding start
 ```
 
+如果希望第一段提示词面向特定宿主，可以使用：
+
+```bash
+npx nimicoding start --host codex
+npx nimicoding start --host claude
+npx nimicoding start --host oh-my-codex
+```
+
 需要做非交互式冒烟测试时，用：
 
 ```bash
@@ -53,8 +61,14 @@ npx nimicoding doctor --json
 | 检查 | 期望结果 |
 | --- | --- |
 | `nimicoding --version` | 打印已安装的包版本 |
-| `nimicoding --help` | 列出 bootstrap、topic、sweep audit、sweep design、handoff、closeout 与校验器命令 |
+| `nimicoding --help` | 列出 bootstrap、sync、topic、sweep audit、sweep design、handoff、closeout、高风险关卡与校验器命令 |
 | `nimicoding doctor --json` | 以机器可读形态报告 bootstrap 健康度 |
+
+后续要检查包自有 seed 是否漂移：
+
+```bash
+npx nimicoding sync --check
+```
 
 ## 移除包管理的 bootstrap
 
@@ -68,7 +82,7 @@ npx nimicoding clear --yes
 
 ## 来源依据
 
-- [`nimi-coding/package.json`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/package.json)
-- [`nimi-coding/README.md`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/README.md)
-- [`nimi-coding/cli/`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/cli/)
-- [`nimi-coding/contracts/topic.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/contracts/topic.schema.yaml)
+- [`nimi-coding/package.json`](https://github.com/nimiplatform/nimi-coding/blob/main/package.json)
+- [`nimi-coding/README.md`](https://github.com/nimiplatform/nimi-coding/blob/main/README.md)
+- [`nimi-coding/cli/`](https://github.com/nimiplatform/nimi-coding/blob/main/cli/)
+- [`nimi-coding/contracts/topic.schema.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/contracts/topic.schema.yaml)

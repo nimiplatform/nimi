@@ -2,6 +2,22 @@ contract_id: TRANSIT-CONTRACT-001
 domain: transit
 status: ACTIVE
 version: 2026-03-21
+table_family: product_catalog
+catalog_id: realm_transit_contract
+entries:
+  - human_spec
+  - openapi
+  - prisma
+  - services
+  - R-TRANSIT-001
+  - R-TRANSIT-002
+  - R-TRANSIT-003
+  - R-TRANSIT-004
+  - R-TRANSIT-005
+  - R-TRANSIT-006
+  - TransitSession
+  - required_operations
+  - secondary_operations
 owner: '@team'
 sources:
   human_spec: ../transit-contract.md

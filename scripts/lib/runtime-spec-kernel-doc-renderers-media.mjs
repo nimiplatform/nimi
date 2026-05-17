@@ -433,13 +433,13 @@ export function renderRuleEvidence(doc, sourceName) {
     ? doc.evidence_catalog
     : {};
   const rules = Array.isArray(doc?.rules) ? doc.rules : [];
-  const declaredTotal = Number(doc?.rule_compliance?.total_k_rules);
+  const declaredTotal = Number(doc?.rule_registry?.total_k_rules);
   const uniqueRuleCount = new Set(rules
     .map((item) => String(item?.rule_id || '').trim())
     .filter(Boolean)).size;
   let out = header('Generated Rule Evidence', sourceName);
 
-  out += '## Rule Compliance\n\n';
+  out += '## Rule Registry\n\n';
   out += '| Declared K Rules | Resolved Rule Rows | Evidence Catalog Entries |\n';
   out += '|---:|---:|---:|\n';
   out += `| ${Number.isInteger(declaredTotal) ? declaredTotal : '—'} | ${uniqueRuleCount} | ${Object.keys(catalog).length} |\n\n`;
@@ -457,18 +457,18 @@ export function renderRuleEvidence(doc, sourceName) {
   }
   out += '\n';
 
-  out += '## Rule Coverage Matrix\n\n';
-  out += '| Rule ID | Status | Evidence Refs |\n';
+  out += '## Rule Evidence Requirements\n\n';
+  out += '| Rule ID | Evidence Requirement | Evidence Refs |\n';
   out += '|---|---|---|\n';
   for (const item of rules) {
     const ruleId = String(item?.rule_id || '').trim();
     if (!ruleId) continue;
-    const status = String(item?.status || '').trim() || '—';
+    const requirement = String(item?.evidence_requirement || '').trim() || '—';
     const refs = Array.isArray(item?.evidence_refs) ? item.evidence_refs : [];
     const refsText = refs.length > 0
       ? refs.map((ref) => `\`${String(ref)}\``).join(', ')
       : '—';
-    out += `| \`${ruleId}\` | \`${status}\` | ${refsText} |\n`;
+    out += `| \`${ruleId}\` | \`${requirement}\` | ${refsText} |\n`;
   }
   out += '\n';
 

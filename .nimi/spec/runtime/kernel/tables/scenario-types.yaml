@@ -1,4 +1,9 @@
 version: 1
+table_family: closed_enum
+owner: runtime
+enum_id: runtime_scenario_types
+values:
+  - runtime_scenario_types
 entries:
   - scenario_type: TEXT_GENERATE
     description: Text generation scenario.

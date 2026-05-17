@@ -4,6 +4,7 @@ import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import YAML from 'yaml';
+import { derivedViewMode, finalizeDerivedViews } from './lib/spec-derived-view-output.mjs';
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '..');
@@ -22,7 +23,6 @@ const specs = [
   { input: 'admitted-reference-matrix.yaml', output: 'admitted-reference-matrix.md', render: renderAdmittedReferenceMatrix },
   { input: 'prompt-serving-lanes.yaml', output: 'prompt-serving-lanes.md', render: renderPromptServingLanes },
   { input: 'completion-gates.yaml', output: 'completion-gates.md', render: renderCompletionGates },
-  { input: 'rule-evidence.yaml', output: 'rule-evidence.md', render: renderRuleEvidence },
 ];
 
 function normalizeMarkdown(markdown) {
@@ -40,14 +40,13 @@ function header(title, sourceName) {
 }
 
 function renderRuleEvidence(doc, sourceName) {
-  const compliance = doc?.rule_compliance ?? {};
+  const registry = doc?.rule_registry ?? {};
   const rules = Array.isArray(doc?.rules) ? doc.rules : [];
   let out = header('Generated Cognition Rule Evidence', sourceName);
 
   out += '| Metric | Value |\n';
   out += '|---|---|\n';
-  out += `| \`total_c_rules\` | ${String(compliance?.total_c_rules ?? '—')} |\n`;
-  out += `| \`audit_date\` | ${String(compliance?.audit_date ?? '—')} |\n`;
+  out += `| \`total_c_rules\` | ${String(registry?.total_c_rules ?? '—')} |\n`;
   out += '\n';
 
   out += '## Evidence Catalog\n\n';
@@ -65,18 +64,18 @@ function renderRuleEvidence(doc, sourceName) {
   }
   out += '\n';
 
-  out += '## Rule Coverage\n\n';
-  out += '| Rule ID | Status | Evidence Refs | Note |\n';
+  out += '## Rule Evidence Requirements\n\n';
+  out += '| Rule ID | Evidence Requirement | Evidence Refs | Note |\n';
   out += '|---|---|---|---|\n';
   for (const rule of rules) {
     const ruleID = String(rule?.rule_id || '').trim();
     if (!ruleID) continue;
-    const status = String(rule?.status || '').trim() || 'unknown';
+    const requirement = String(rule?.evidence_requirement || '').trim() || 'unknown';
     const refs = Array.isArray(rule?.evidence_refs)
       ? rule.evidence_refs.map((value) => `\`${String(value)}\``).join(', ')
       : '—';
     const note = String(rule?.note || '').trim() || '—';
-    out += `| \`${ruleID}\` | \`${status}\` | ${refs} | ${note} |\n`;
+    out += `| \`${ruleID}\` | \`${requirement}\` | ${refs} | ${note} |\n`;
   }
   out += '\n';
 
@@ -211,9 +210,7 @@ async function parseYamlFile(filePath) {
 }
 
 async function main() {
-  const checkMode = process.argv.includes('--check');
-
-  await fs.mkdir(outDir, { recursive: true });
+  const { checkMode } = derivedViewMode();
 
   const renderedEntries = [];
   for (const spec of specs) {
@@ -226,48 +223,13 @@ async function main() {
   const indexPath = path.join(outDir, 'index.md');
   const indexRendered = renderGeneratedIndex(specs);
 
-  if (checkMode) {
-    const drifted = [];
-    for (const entry of renderedEntries) {
-      let current = '';
-      try {
-        current = await fs.readFile(entry.outputPath, 'utf8');
-      } catch {
-        drifted.push(entry.outputPath);
-        continue;
-      }
-      if (current !== entry.rendered) drifted.push(entry.outputPath);
-    }
-
-    let currentIndex = '';
-    let indexMissing = false;
-    try {
-      currentIndex = await fs.readFile(indexPath, 'utf8');
-    } catch {
-      indexMissing = true;
-      drifted.push(indexPath);
-    }
-    if (!indexMissing && currentIndex !== indexRendered) drifted.push(indexPath);
-
-    if (drifted.length > 0) {
-      process.stderr.write('cognition kernel generated docs drift detected:\n');
-      for (const file of drifted) {
-        process.stderr.write(`  - ${path.relative(repoRoot, file)}\n`);
-      }
-      process.stderr.write('run `pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope cognition` to regenerate.\n');
-      process.exitCode = 1;
-      return;
-    }
-
-    process.stdout.write(`cognition kernel generated docs are up-to-date (${renderedEntries.length + 1} files)\n`);
-    return;
-  }
-
-  for (const entry of renderedEntries) {
-    await fs.writeFile(entry.outputPath, entry.rendered, 'utf8');
-  }
-  await fs.writeFile(indexPath, indexRendered, 'utf8');
-  process.stdout.write(`generated cognition kernel docs (${renderedEntries.length + 1} files)\n`);
+  await finalizeDerivedViews({
+    checkMode,
+    repoRoot,
+    outDir,
+    scopeLabel: 'cognition kernel',
+    entries: [...renderedEntries, { outputPath: indexPath, rendered: indexRendered }],
+  });
 }
 
 main().catch((error) => {

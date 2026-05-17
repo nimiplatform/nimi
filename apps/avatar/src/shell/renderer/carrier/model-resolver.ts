@@ -4,14 +4,15 @@
 // resolved package and returns a discriminated union the rest of the
 // renderer consumes (BackendBranch factory + carrier wiring).
 //
-// The Tauri resolver returns the selected Agent Center package kind so this
-// module can produce the backend-discriminated manifest consumed by the
-// BackendBranch factory.
+// The Tauri resolver returns a local materialized Avatar asset. Agent Center
+// naming here is current Desktop storage plumbing for private imports.
+// It is not package lifecycle, inventory, or activation authority.
 
 import { invoke } from '@tauri-apps/api/core';
 import {
   resolveModelManifest as resolveLive2DTauriManifest,
-  type AgentCenterAvatarPackageReference,
+  type AgentCenterLocalAvatarAssetReference,
+  type LocalAvatarAssetReference,
   type ModelManifest as Live2DTauriManifest,
 } from '../live2d/model-loader.js';
 
@@ -41,7 +42,8 @@ export type VrmAvatarModelManifest = {
 
 export type AvatarModelManifest = Live2DAvatarModelManifest | VrmAvatarModelManifest;
 
-export type { AgentCenterAvatarPackageReference };
+export type { AgentCenterLocalAvatarAssetReference };
+export type { LocalAvatarAssetReference };
 
 type TauriAvatarModelManifest = {
   kind?: string;
@@ -120,10 +122,19 @@ export async function resolveAvatarModelManifest(modelPath: string): Promise<Ava
   return fromLive2DTauriManifest(raw);
 }
 
-export async function resolveAgentCenterAvatarPackageManifest(
-  reference: AgentCenterAvatarPackageReference,
+export async function resolveAgentCenterAvatarAssetManifest(
+  reference: AgentCenterLocalAvatarAssetReference,
 ): Promise<AvatarModelManifest> {
-  const raw = await invoke<TauriAvatarModelManifest>('nimi_avatar_resolve_agent_center_avatar_package', {
+  const raw = await invoke<TauriAvatarModelManifest>('nimi_avatar_resolve_agent_center_avatar_asset', {
+    payload: reference,
+  });
+  return fromTauriAvatarModelManifest(raw);
+}
+
+export async function resolveLocalAvatarAssetManifest(
+  reference: LocalAvatarAssetReference,
+): Promise<AvatarModelManifest> {
+  const raw = await invoke<TauriAvatarModelManifest>('nimi_avatar_resolve_local_avatar_asset', {
     payload: reference,
   });
   return fromTauriAvatarModelManifest(raw);

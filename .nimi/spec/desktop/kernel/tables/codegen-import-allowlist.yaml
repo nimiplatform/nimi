@@ -1,3 +1,12 @@
+table_family: owner_matrix
+owner: desktop
+matrix_id: desktop_codegen_import_allowlist
+rows:
+  - imports_1
+  - imports_2
+  - imports_3
+  - imports_4
+  - imports_5
 imports:
   - path: '@nimiplatform/sdk/mod'
     policy: allow

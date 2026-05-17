@@ -1,4 +1,36 @@
 version: 1
+table_family: product_catalog
+owner: runtime
+catalog_id: runtime_local_compute_packs
+entries:
+  - packs_1
+  - packs_2
+  - packs_3
+  - packs_4
+  - packs_5
+  - packs_6
+  - pack selection may be explicit or derived from a local model/capability
+    request
+  - pack selection must resolve a Runtime-owned local environment plan before
+    heavy materialization
+  - pack selection must not make Runtime core readiness depend on local compute
+    readiness
+  - cloud-only usage must not select a local compute pack implicitly
+  - Desktop may project pack status and confirmation only; it must not
+    materialize packs
+  - pack selection may produce a plan, dependency environments, and confirmation
+    payloads; it must not perform first heavy or network materialization
+  - pack-to-consumer arbitration is upstream of consumer activation; activation
+    gates evaluate a selected consumer, not an ambiguous pack
+  - pack-level optional dependency families are projection hints only and must
+    not weaken required dependency evaluation for a selected consumer
+  - consumer ids referenced by packs must remain in lockstep with
+    local-environment-consumer-requirements.yaml
+  - missing local pack dependencies project Runtime local environment setup,
+    failed, unsupported, cancelled, or repair state
+  - local compute pack projection must not instruct ordinary users to install
+    uv, Python, Torch, CUDA, native packages, model assets, or companion assets
+    through system package managers or PATH mutation
 
 # Canonical product-facing local compute pack authority.
 # Packs are requested capability bundles. They are not model rows, engine-local

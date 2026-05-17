@@ -1,5 +1,8 @@
 version: 1
-lanes:
+table_family: protocol_surface
+owner: cognition
+protocol_id: cognition_prompt_serving_lanes
+lanes: &cognition_prompt_serving_lane_surfaces
   - lane_id: core_kernel
     serving_order: 1
     admitted_families: [agent_model_kernel, world_model_kernel]
@@ -35,3 +38,4 @@ lanes:
     derived_view_source: lane_local_only
     forbidden_inputs: [working_state, routine_evidence, lane_merging_without_markers]
     source_rule: C-COG-050
+surfaces: *cognition_prompt_serving_lane_surfaces

@@ -18,14 +18,13 @@ Nimi Coding 与平台的其他部分互为压力测试。Nimi Coding 让 Nimi �
 
 1. **安装 npm 包**到现有仓库。见 [安装指南](/zh/nimicoding/installation)。
 2. **初始化 `.nimi/`**：执行 `nimicoding start`，再用 `nimicoding doctor --json` 确认结果。
-3. **重建项目权威**到 `.nimi/spec/**`，记录来源依据和未解决的缺口，而不是凭空写一套漂亮的规则。
-4. **创建 topic**，对应第一个高风险或权威性变更。
-5. **拆分 wave**，让每个 wave 只负责一个所有权域、一个闭合目标。
-6. **冻结 packet**：开工前固定允许的读、允许的写、验收恒定式、负面测试、停止线、重开条件。
-7. **由准入的 AI 宿主执行或交接**，并记录强类型证据。
-8. **关闭 wave 时四个维度都要满足**：权威、语义、消费方、抗漂移。
+3. **交接规范重建**：执行 `nimicoding handoff --skill spec_reconstruction --json`。
+4. **让已准入的 AI 宿主重建权威**到 `.nimi/spec/**`，记录来源依据和未解决的缺口，而不是凭空写一套漂亮的规则。
+5. **校验结果**：执行 `nimicoding validate-spec-tree .nimi/spec` 和 `nimicoding validate-spec-audit`。
 
-这条路径就是产品的缩影：AI 的工作变成可持续、有边界、可审计的项目状态，而不是一段当时看着挺像样的对话。
+这条路径会给项目建立本地真相层和机械校验器。它不要求你立刻使用 topic、wave、packet 或高风险关卡。那些机制只在工作承载权威、跨模块、多 wave，或需要审计时启用。
+
+一旦工作进入高风险范围，升级路径才变成：创建 topic，拆分 wave，开工前冻结 packet，经由已准入宿主执行或交接，并且只有权威、语义、消费方、抗漂移四个闭合维度都满足时才关闭。
 
 ## 本节目录
 
@@ -73,12 +72,12 @@ Nimi Coding 与平台的其他部分互为压力测试。Nimi Coding 让 Nimi �
 
 ## 来源依据
 
-- [`nimi-coding/README.md`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/README.md)
-- [`nimi-coding/package.json`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/package.json)
-- [`nimi-coding/AGENTS.md`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/AGENTS.md)
-- [`.nimi/spec/product-scope.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/product-scope.yaml)
-- [`.nimi/spec/bootstrap-state.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/bootstrap-state.yaml)
-- [`.nimi/spec/high-risk-admissions.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/high-risk-admissions.yaml)
-- [`.nimi/methodology/topic-lifecycle-report.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/topic-lifecycle-report.yaml)
-- [`.nimi/methodology/four-closure-policy.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/four-closure-policy.yaml)
-- [`.nimi/contracts/packet.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/packet.schema.yaml)
+- [`nimi-coding/README.md`](https://github.com/nimiplatform/nimi-coding/blob/main/README.md)
+- [`nimi-coding/package.json`](https://github.com/nimiplatform/nimi-coding/blob/main/package.json)
+- [`nimi-coding/AGENTS.md`](https://github.com/nimiplatform/nimi-coding/blob/main/AGENTS.md)
+- [`nimi-coding/CHANGELOG.md`](https://github.com/nimiplatform/nimi-coding/blob/main/CHANGELOG.md)
+- [`nimi-coding/spec/product-scope.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/spec/product-scope.yaml)
+- [`nimi-coding/spec/bootstrap-state.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/spec/bootstrap-state.yaml)
+- [`nimi-coding/methodology/topic-lifecycle-report.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/methodology/topic-lifecycle-report.yaml)
+- [`nimi-coding/methodology/four-closure-policy.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/methodology/four-closure-policy.yaml)
+- [`nimi-coding/contracts/packet.schema.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/contracts/packet.schema.yaml)

@@ -1,4 +1,18 @@
 version: 1
+table_family: product_catalog
+owner: runtime
+catalog_id: runtime_agent_participation_output_destinations
+entries:
+  - CANONICAL_CHAT
+  - REALM_GROUP_MESSAGE_CANDIDATE
+  - SCENARIO_TURN_CANDIDATE
+  - WORLD_EVENT_CANDIDATE
+  - EXTERNAL_REPLY_CANDIDATE
+  - DIAGNOSTIC_CANDIDATE
+  - EPHEMERAL
+  - source_rule
+  - fields
+  - direct_domain_commit_from_runtime_participation
 source_rule: K-AGCORE-071
 destinations:
   - id: CANONICAL_CHAT

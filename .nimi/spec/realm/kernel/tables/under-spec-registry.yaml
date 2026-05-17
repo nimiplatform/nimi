@@ -1,50 +1,57 @@
 version: 1
-updated_at: 2026-03-26
-owner: '@team'
-description: Registry of acknowledged under-specified items after the hard-cut realm refactor. Only high-impact intentional gaps that can change reader or implementation boundary judgment are listed here.
+table_family: product_catalog
+catalog_id: realm_under_spec_registry
+entries:
+  - U1
+  - U2
+  - U3
+  - U4
+  - U5
+owner: realm
+description: Registry of intentional Realm negative boundaries. Only high-impact exclusions that can change reader or implementation boundary judgment are listed here.
 under_spec:
   - id: U1
     rule_id: R-WSTATE-003
-    category: under-spec
-    status: acknowledged
+    category: bounded_open_design_surface
+    authority_posture: intentional_boundary
     summary: World State relation scope shape remains intentionally narrow
     detail: ENTITY and RELATION durable state schemas are intentionally app-specific and will be introduced via explicit schema registry, not via one universal JSON shape.
     impact: medium
-    resolution: define schema registry per authorized app integration
-    deferred_to: world-state-schema-registry
+    activation_condition: define schema registry per authorized app integration
+    required_authority_scope: world-state-schema-registry
   - id: U2
     rule_id: R-WHIST-003
-    category: under-spec
-    status: acknowledged
+    category: bounded_open_design_surface
+    authority_posture: intentional_boundary
     summary: canonical happened-fact taxonomy still needs a common event catalog
-    detail: provenance envelope is fixed, but the cross-app event taxonomy for canonical world history is intentionally deferred.
+    detail: provenance envelope is fixed, but the cross-app event taxonomy for canonical world history remains outside the active contract.
     impact: high
-    resolution: define shared history event catalog after first world-connected app integrations land
-    deferred_to: world-history-event-catalog
+    activation_condition: define shared history event catalog after first world-connected app integrations land
+    required_authority_scope: world-history-event-catalog
   - id: U3
     rule_id: R-RSRC-002
-    category: hard-cut-deferral
-    status: acknowledged
-    summary: VOICE resource type remains intentionally deferred after the Resource cutover
-    detail: Voice content continues to ride AUDIO plus metadata during this hard cut. A dedicated VOICE resource type and any entitlement or instance semantics are explicitly outside the active contract.
+    category: intentional_exclusion
+    authority_posture: intentional_boundary
+    summary: VOICE resource type remains outside the active Resource contract
+    detail: Voice content continues to ride AUDIO plus metadata in the active contract. A dedicated VOICE resource type and any entitlement or instance semantics are explicitly outside the active contract.
     impact: medium
-    resolution: introduce VOICE only with a dedicated typed storage, delivery, and binding contract instead of overloading the current AUDIO model
-    deferred_to: resource-voice-contract
+    activation_condition: introduce VOICE only with a dedicated typed storage, delivery, and binding contract instead of overloading the current AUDIO model
+    required_authority_scope: resource-voice-contract
   - id: U4
     rule_id: R-BIND-002
-    category: hard-cut-deferral
-    status: acknowledged
+    category: intentional_exclusion
+    authority_posture: intentional_boundary
     summary: WORKSPACE is intentionally excluded from the active binding host set
     detail: The active backend binding model only covers WORLD, AGENT, SCENE, WORLD_EVENT, and WORLDVIEW hosts. WORKSPACE remains intentionally out of scope until a real backend workspace host contract and persistence model exist.
     impact: medium
-    resolution: introduce a dedicated workspace host contract before widening Binding host enums or allow-matrix coverage
-    deferred_to: workspace-binding-host-contract
+    activation_condition: introduce a dedicated workspace host contract before widening Binding host enums or allow-matrix coverage
+    required_authority_scope: workspace-binding-host-contract
   - id: U5
     rule_id: R-BIND-003
-    category: hard-cut-deferral
-    status: acknowledged
-    summary: USE and IMPORT bindingPoint expansion remains intentionally deferred
+    category: intentional_exclusion
+    authority_posture: intentional_boundary
+    summary: USE and IMPORT bindingPoint expansion remains outside the active Binding contract
     detail: The active v1 legality matrix keeps USE and IMPORT as null-only binding forms even though the shared BINDING-POINT enum exists. Future point-bearing USE or IMPORT shapes require an explicit legality matrix extension rather than implicit reuse of presentation slots.
     impact: medium
-    resolution: extend binding allow-matrix only after concrete host/object semantics justify non-null USE or IMPORT binding points
-    deferred_to: binding-use-import-point-expansion
+    activation_condition: extend binding allow-matrix only after concrete host/object semantics justify non-null USE or IMPORT binding points
+    required_authority_scope: binding-use-import-point-expansion

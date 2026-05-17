@@ -1,6 +1,6 @@
 import type { CSSProperties, ReactNode } from 'react';
 
-export type AvatarBackendKind = 'vrm' | 'live2d' | 'sprite2d' | 'canvas2d' | 'video';
+export type AvatarBackendKind = 'vrm' | 'live2d';
 
 export type AvatarSurfacePhase =
   | 'idle'

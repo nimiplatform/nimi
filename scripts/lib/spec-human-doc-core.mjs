@@ -394,15 +394,6 @@ export function renderHookCapabilityAllowlists(doc) {
   return `${out}\n`;
 }
 
-export function renderBacklogItems(doc) {
-  const items = doc?.items || [];
-  let out = '| Item ID | Title | Priority | Category | Status |\n|---|---|---|---|---|\n';
-  for (const item of items) {
-    out += `| ${item.item_id} | ${item.title} | ${item.priority} | ${item.category} | ${item.status} |\n`;
-  }
-  return `${out}\n`;
-}
-
 export function renderBuildChunks(doc) {
   const chunks = doc?.chunks || [];
   let out = '| Chunk | 路由模式 | 描述 |\n|---|---|---|\n';
@@ -417,15 +408,6 @@ export function renderModAccessModes(doc) {
   let out = '| 模式 | 描述 |\n|---|---|\n';
   for (const mode of modes) {
     out += `| ${mode.name || mode.mode} | ${mode.description || '—'} |\n`;
-  }
-  return `${out}\n`;
-}
-
-export function renderResearchSources(doc) {
-  const sources = doc?.sources || [];
-  let out = '| Source ID | 标题 | 路径 |\n|---|---|---|\n';
-  for (const source of sources) {
-    out += `| ${source.source_id} | ${source.title || '—'} | ${source.path || '—'} |\n`;
   }
   return `${out}\n`;
 }
@@ -517,29 +499,17 @@ export function renderCompletionGates(doc) {
 
 export function renderRuleEvidence(doc) {
   const rules = Array.isArray(doc?.rules) ? doc.rules : [];
-  let out = '| Rule ID | Status | Evidence Refs | Note |\n';
+  let out = '| Rule ID | Evidence Requirement | Evidence Refs | Note |\n';
   out += '|---|---|---|---|\n';
   for (const rule of rules) {
     const ruleID = String(rule?.rule_id || '').trim();
     if (!ruleID) continue;
-    const status = String(rule?.status || '').trim() || 'unknown';
+    const requirement = String(rule?.evidence_requirement || rule?.status || '').trim() || 'unknown';
     const refs = Array.isArray(rule?.evidence_refs)
       ? rule.evidence_refs.map((value) => `\`${String(value)}\``).join(', ')
       : '—';
     const note = String(rule?.note || '').trim() || '—';
-    out += `| ${ruleID} | ${status} | ${refs} | ${note} |\n`;
-  }
-  return `${out}\n`;
-}
-
-export function renderGraduationLog(doc) {
-  const entries = doc?.entries || [];
-  if (entries.length === 0) {
-    return '> *暂无毕业记录*\n';
-  }
-  let out = '| Item ID | 毕业日期 | 目标 Spec |\n|---|---|---|\n';
-  for (const entry of entries) {
-    out += `| ${entry.item_id} | ${entry.graduated_at || '—'} | ${entry.target_spec || '—'} |\n`;
+    out += `| ${ruleID} | ${requirement} | ${refs} | ${note} |\n`;
   }
   return `${out}\n`;
 }
@@ -593,10 +563,6 @@ export const desktopKernelFiles = [
   'security-contract.md', 'streaming-consumption-contract.md', 'offline-degradation-contract.md',
   'codegen-contract.md', 'testing-gates-contract.md',
   'ai-profile-config-contract.md', 'conversation-capability-contract.md',
-];
-
-export const futureKernelFiles = [
-  'capability-backlog.md', 'source-registry.md', 'graduation-contract.md',
 ];
 
 export const platformKernelFiles = [

@@ -152,7 +152,7 @@ gate before the next phase moves.
 
 ## Source Basis
 
-- [`.nimi/methodology/authority-convergence-policy.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/authority-convergence-policy.yaml)
-- [`.nimi/contracts/authority-convergence-audit.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/authority-convergence-audit.schema.yaml)
-- [`.nimi/contracts/topic-step-decision.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/topic-step-decision.schema.yaml)
-- [`.nimi/contracts/decision-review.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/decision-review.schema.yaml)
+- [`nimi-coding/methodology/authority-convergence-policy.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/methodology/authority-convergence-policy.yaml)
+- [`nimi-coding/contracts/authority-convergence-audit.schema.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/contracts/authority-convergence-audit.schema.yaml)
+- [`nimi-coding/contracts/topic-step-decision.schema.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/contracts/topic-step-decision.schema.yaml)
+- [`nimi-coding/contracts/decision-review.schema.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/contracts/decision-review.schema.yaml)

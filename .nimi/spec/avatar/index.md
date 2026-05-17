@@ -1,45 +1,36 @@
-# Nimi Avatar Spec Guide
+# Avatar Guide
 
-This file is a guide. Nimi Avatar normative authority lives in [kernel/index.md](kernel/index.md).
+> Normative Imports: `.nimi/spec/avatar/kernel/*`
 
-Reading path:
+## Scope
 
-| Document | Role |
-|----------|------|
-| [kernel/index.md](kernel/index.md) | Nimi Avatar kernel authority map |
-| [nimi-avatar.md](nimi-avatar.md) | Product overview, product form, phase scope, known defects |
+This guide points to the avatar authority surfaces for index. It does not define product rules.
 
-## Kernel Contracts
+## Reading Path
 
-| Contract | Scope |
-|----------|-------|
-| [kernel/embodiment-projection-contract.md](kernel/embodiment-projection-contract.md) | Backend-agnostic embodiment projection layer and protocol split |
-| [kernel/app-shell-contract.md](kernel/app-shell-contract.md) | Window behavior / drag / always-on-top / click-through / small button |
-| [kernel/live2d-render-contract.md](kernel/live2d-render-contract.md) | Current Live2D backend branch: Cubism SDK integration, model loading, rendering pipeline |
-| [kernel/generated-motion-provider-contract.md](kernel/generated-motion-provider-contract.md) | Generated motion provider contract downstream of typed runtime projection |
-| [kernel/carrier-visual-acceptance-contract.md](kernel/carrier-visual-acceptance-contract.md) | Current Avatar app carrier visual proof requirements and evidence taxonomy |
-| [kernel/agent-script-contract.md](kernel/agent-script-contract.md) | NimiAgentScript (NAS) — convention-based JS handlers for embodiment package creators |
-| [kernel/avatar-event-contract.md](kernel/avatar-event-contract.md) | `avatar.*` events produced and consumed by the app |
-| [kernel/mock-fixture-contract.md](kernel/mock-fixture-contract.md) | Mock data format + scenario catalog for Phase 1 development |
+- `.nimi/spec/avatar/kernel/index.md`
+- `.nimi/spec/avatar/kernel/agent-script-contract.md`
+- `.nimi/spec/avatar/kernel/agent-script-reference.md`
+- `.nimi/spec/avatar/kernel/app-shell-contract.md`
+- `.nimi/spec/avatar/kernel/avatar-debug-session-contract.md`
+- `.nimi/spec/avatar/kernel/avatar-event-contract.md`
+- `.nimi/spec/avatar/kernel/backend-branch-contract.md`
+- `.nimi/spec/avatar/kernel/carrier-visual-acceptance-contract.md`
+- `.nimi/spec/avatar/kernel/companion-participation-consumer-contract.md`
+- `.nimi/spec/avatar/kernel/embodiment-projection-contract.md`
+- `.nimi/spec/avatar/kernel/generated-motion-provider-contract.md`
+- `.nimi/spec/avatar/kernel/kit-ui-consumption-contract.md`
+- `.nimi/spec/avatar/kernel/live2d-asset-compatibility-contract.md`
 
-## Kernel Tables
+## Tables
 
-| Table | Scope |
-|-------|-------|
-| [kernel/tables/feature-matrix.yaml](kernel/tables/feature-matrix.yaml) | Phase 1 / 2 / 3 feature phasing |
-| [kernel/tables/activity-mapping.yaml](kernel/tables/activity-mapping.yaml) | Current Live2D backend branch activity → motion-group naming (default fallback) |
-| [kernel/tables/generated-motion-routes.yaml](kernel/tables/generated-motion-routes.yaml) | Avatar generated motion route ids downstream of typed runtime projection |
-| [kernel/tables/backend-capability-profile.schema.yaml](kernel/tables/backend-capability-profile.schema.yaml) | Backend capability profile schema for generated motion support |
-| [kernel/tables/mapping-sidecar.schema.yaml](kernel/tables/mapping-sidecar.schema.yaml) | Mapping confidence/evidence sidecar schema |
-| [kernel/tables/scenario-catalog.yaml](kernel/tables/scenario-catalog.yaml) | Mock-driven dev scenarios |
-
-## Upstream Platform Specs
-
-These are consumed as active upstream contracts. They are **not** redefined here:
-
-- APML wire format — `.nimi/spec/runtime/kernel/agent-output-wire-contract.md`
-- APML LLM compliance — `.nimi/spec/runtime/kernel/agent-output-wire-contract.md` plus first-party prompt contracts
-- Activity projection — `.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md` and `kernel/tables/activity-mapping.yaml`
-- Event contract + app convention — `.nimi/spec/runtime/kernel/agent-hook-intent-contract.md`, `.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md`, and `kernel/avatar-event-contract.md`
-- SDK Event API — `.nimi/spec/sdk/kernel/runtime-contract.md`
-- Presentation Timeline — `.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md`
+- `.nimi/spec/avatar/kernel/tables/activity-mapping.yaml`
+- `.nimi/spec/avatar/kernel/tables/avatar-debug-session.schema.yaml`
+- `.nimi/spec/avatar/kernel/tables/backend-capability-profile.schema.yaml`
+- `.nimi/spec/avatar/kernel/tables/companion-participation-surface-kinds.yaml`
+- `.nimi/spec/avatar/kernel/tables/companion-participation-trigger-policy.yaml`
+- `.nimi/spec/avatar/kernel/tables/feature-matrix.yaml`
+- `.nimi/spec/avatar/kernel/tables/generated-motion-routes.yaml`
+- `.nimi/spec/avatar/kernel/tables/i18n-keys.yaml`
+- `.nimi/spec/avatar/kernel/tables/live2d-adapter-diagnostics.yaml`
+- `.nimi/spec/avatar/kernel/tables/live2d-adapter-manifest.schema.yaml`

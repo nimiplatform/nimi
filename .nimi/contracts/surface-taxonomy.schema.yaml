@@ -1,0 +1,201 @@
+version: 1
+contract:
+  id: nimicoding.surface-taxonomy.v1
+  owner: nimi-coding
+  purpose: Define every spec surface class before placement validation or migration.
+required_top_level_fields:
+  - version
+  - taxonomy
+  - class_enum
+  - authority_rank_enum
+  - tracking_policy_enum
+  - mutability_enum
+  - semantic_constraints
+class_required_fields:
+  - class_id
+  - owner_kind
+  - authority_rank
+  - allowed_roots
+  - tracking_policy
+  - mutability
+  - reference_rules
+  - promotion_rules
+  - fail_closed_cases
+shared_enum_ref: shared-enums.yaml
+taxonomy:
+  - class_id: product_authority
+    owner_kind: product_domain
+    authority_rank: active_product_canonical
+    allowed_roots: [".nimi/spec/<domain>/kernel/*.md"]
+    tracking_policy: tracked_required
+    mutability: human_admitted
+    reference_rules: [may_reference_product_authority_table, may_reference_thin_guidance, may_reference_minimal_host_projection_anchor]
+    promotion_rules: [only_admitted_topic_wave_may_change_product_authority]
+    fail_closed_cases: [contains_lifecycle_status, contains_audit_coverage, contains_package_methodology_body]
+  - class_id: product_authority_table
+    owner_kind: product_domain
+    authority_rank: active_product_canonical
+    allowed_roots: [".nimi/spec/<domain>/kernel/tables/*.yaml"]
+    tracking_policy: tracked_required
+    mutability: human_admitted
+    reference_rules: [must_declare_table_family, may_reference_product_authority]
+    promotion_rules: [table_family_must_be_product_authority_family]
+    fail_closed_cases: [missing_table_family, contains_status_or_coverage_fields, unknown_table_family]
+  - class_id: product_admission_registry
+    owner_kind: product_governance
+    authority_rank: support_only
+    allowed_roots: [".nimi/spec/high-risk-admissions.yaml"]
+    tracking_policy: tracked_required
+    mutability: human_admitted
+    reference_rules: [may_reference_topic_packets, must_use_packaged_schema, must_not_copy_package_mechanics]
+    promotion_rules: [only_explicit_manager_owned_decision_may_append_rows]
+    fail_closed_cases: [contains_package_methodology_body, contains_operational_runtime_state, missing_packaged_schema_ref]
+  - class_id: thin_guidance
+    owner_kind: product_domain
+    authority_rank: guidance_only
+    allowed_roots: [".nimi/spec/<domain>/*.md", ".nimi/spec/INDEX.md"]
+    tracking_policy: tracked_required
+    mutability: human_admitted
+    reference_rules: [may_reference_product_authority, must_not_define_rule_body]
+    promotion_rules: [normative_content_must_move_to_product_authority]
+    fail_closed_cases: [contains_must_rule_body, defines_new_rule_id, defines_acceptance_gate]
+  - class_id: derived_view
+    owner_kind: generator
+    authority_rank: derived_non_authority
+    allowed_roots: ["stdout_view"]
+    tracking_policy: untracked_stdout_only
+    mutability: generated_reproducible
+    reference_rules: [may_reference_declared_inputs, must_not_be_referenced_as_authority]
+    promotion_rules: [never_promote_derived_output]
+    fail_closed_cases: [referenced_as_authority, stored_under_product_authority_root, written_to_local_derived]
+  - class_id: spec_generation_state
+    owner_kind: spec_generator
+    authority_rank: lifecycle_state
+    allowed_roots: [".nimi/local/state/spec-generation/**"]
+    tracking_policy: local_only
+    mutability: operational_snapshot
+    reference_rules: [may_cite_inputs_and_generation_command]
+    promotion_rules: [never_promote_generation_state]
+    fail_closed_cases: [stored_under_.nimi/spec_meta, used_as_product_authority_input]
+  - class_id: audit_evidence_state
+    owner_kind: audit_workflow
+    authority_rank: evidence_only
+    allowed_roots: [".nimi/local/audit/**"]
+    tracking_policy: local_only
+    mutability: operational_snapshot
+    reference_rules: [may_cite_authority_refs, must_not_override_authority]
+    promotion_rules: [may_justify_change_packet_only]
+    fail_closed_cases: [stored_under_product_authority_root, contains_private_material_in_tracked_root]
+  - class_id: operational_local_artifact
+    owner_kind: host_adapter
+    authority_rank: operational_local
+    allowed_roots: [".nimi/local/**"]
+    tracking_policy: local_only
+    mutability: disposable
+    reference_rules: [may_be_cited_as_evidence]
+    promotion_rules: [never_promote_operational_artifact]
+    fail_closed_cases: [stored_under_.nimi/spec]
+  - class_id: methodology_authority
+    owner_kind: nimi_coding_package
+    authority_rank: package_canonical
+    allowed_roots: ["package://@nimiplatform/nimi-coding/{spec,methodology,contracts,config}/**"]
+    tracking_policy: tracked_required
+    mutability: package_admitted
+    reference_rules: [may_project_through_declared_projection_edge]
+    promotion_rules: [may_be_consumed_by_host_anchor_only]
+    fail_closed_cases: [copied_to_host_product_authority, stranded_in_host_spec]
+  - class_id: nimicoding_managed_projection
+    owner_kind: nimi_coding_package_projection
+    authority_rank: package_projection_support
+    allowed_roots: [".nimi/methodology/**", ".nimi/contracts/**", ".nimi/config/**"]
+    tracking_policy: tracked_required
+    mutability: package_projected
+    reference_rules: [may_be_read_as_project_local_nimicoding_context, must_not_override_product_authority]
+    promotion_rules: [created_or_refreshed_only_by_nimicoding_init_or_sync]
+    fail_closed_cases: [copied_to_host_product_authority, promoted_to_product_spec, drift_without_sync_policy]
+  - class_id: host_projection_anchor
+    owner_kind: host_projection
+    authority_rank: support_only
+    allowed_roots: [".nimi/spec/_meta/<package>-admission-anchor.yaml", ".nimi/config/host-overlay.yaml"]
+    tracking_policy: tracked_only_with_explicit_admission
+    mutability: human_admitted
+    reference_rules: [may_point_to_methodology_authority, must_be_minimal]
+    promotion_rules: [never_promote_to_product_authority]
+    fail_closed_cases: [contains_package_methodology_body, contains_lifecycle_status]
+  - class_id: candidate_roadmap
+    owner_kind: planning_owner
+    authority_rank: candidate_only
+    allowed_roots: [".nimi/topics/**"]
+    tracking_policy: local_only
+    mutability: human_admitted
+    reference_rules: [may_cite_product_authority, must_not_authorize_implementation]
+    promotion_rules: [must_move_to_product_authority_through_admitted_wave]
+    fail_closed_cases: [stored_under_.nimi/spec, referenced_as_active_authority]
+  - class_id: support_registry
+    owner_kind: package_or_product_owner
+    authority_rank: support_only
+    allowed_roots: ["package://@nimiplatform/nimi-coding/{config,contracts,spec}/**", ".nimi/spec/<domain>/kernel/tables/*.yaml"]
+    tracking_policy: tracked_only_with_explicit_admission
+    mutability: human_admitted
+    reference_rules: [may_register_evidence_commands, may_reference_product_authority]
+    promotion_rules: [semantic_rows_move_to_product_authority]
+    fail_closed_cases: [contains_status_field, contains_coverage_field, contains_audit_date, contains_progress_field]
+  - class_id: lifecycle_progress_state
+    owner_kind: topic_or_execution_workflow
+    authority_rank: lifecycle_state
+    allowed_roots: [".nimi/topics/**", ".nimi/local/state/**"]
+    tracking_policy: local_only
+    mutability: operational_snapshot
+    reference_rules: [may_cite_topic_packets_and_results]
+    promotion_rules: [never_promote_lifecycle_state]
+    fail_closed_cases: [stored_under_.nimi/spec, used_as_product_authority]
+class_enum:
+  - product_authority
+  - product_authority_table
+  - product_admission_registry
+  - thin_guidance
+  - derived_view
+  - spec_generation_state
+  - audit_evidence_state
+  - operational_local_artifact
+  - methodology_authority
+  - nimicoding_managed_projection
+  - host_projection_anchor
+  - candidate_roadmap
+  - support_registry
+  - lifecycle_progress_state
+authority_rank_enum:
+  - active_product_canonical
+  - package_canonical
+  - package_projection_support
+  - support_only
+  - guidance_only
+  - derived_non_authority
+  - evidence_only
+  - lifecycle_state
+  - operational_local
+  - candidate_only
+tracking_policy_enum:
+  - tracked_required
+  - tracked_forbidden
+  - local_only
+  - tracked_only_with_explicit_admission
+mutability_enum:
+  - human_admitted
+  - package_admitted
+  - package_projected
+  - generated_reproducible
+  - operational_snapshot
+  - disposable
+semantic_constraints:
+  - every_candidate_file_gets_exactly_one_surface_class
+  - unclassified_files_fail_closed
+  - product_authority_classes_must_not_contain_lifecycle_state_or_audit_coverage
+  - product_admission_registry_may_store_compact_semantic_admissions_but_not_package_mechanics
+  - generated_and_derived_classes_are_never_authority
+  - package_methodology_and_package_spec_remain_package_owned
+  - nimicoding_managed_projection_may_exist_in_host_project_but_is_not_product_authority
+  - host_projection_anchor_must_be_minimal_and_must_not_copy_package_body
+  - support_registry_must_not_store_run_or_coverage_status
+  - candidate_roadmap_must_not_live_under_.nimi/spec
+  - tracked_non_product_outputs_require_tracked_output_admission

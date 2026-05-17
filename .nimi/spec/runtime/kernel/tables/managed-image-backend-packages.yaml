@@ -1,4 +1,19 @@
 version: 1
+table_family: owner_matrix
+owner: runtime
+matrix_id: runtime_managed_image_backend_packages
+rows:
+  - package entries are source candidates for
+    native-engine-package.stablediffusion-ggml; selected source records remain
+    owned by local environment materializers
+  - supported package entries must provide package source identity, package
+    format, install directory, executable candidates, launch mode, wrapper
+    driver, and hash or digest proof before managed source promotion
+  - Runtime must not infer a stablediffusion-ggml package from engine startup
+    branches, command-line backend installers, or ad hoc code paths
+  - startup may resolve package candidates but must not perform first heavy or
+    network materialization without Runtime local environment dependency
+    confirmation and job control
 
 entries:
   - entry_id: macos-apple-silicon-stablediffusion-ggml-canonical

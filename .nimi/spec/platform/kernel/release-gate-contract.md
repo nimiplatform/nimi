@@ -19,6 +19,11 @@ prerequisites, evidence shape, blocker semantics) lives in
 `.nimi/spec/platform/kernel/tables/release-gate-registry.yaml` and
 nowhere else.
 
+`MUST`: The registry table declares `table_family: gate_registry`.
+It must not masquerade as `closed_enum`, and it must not carry a
+duplicated `values` enum header for tiers, targets, reason codes, or
+gate ids.
+
 `MUST`: No release gate may be invoked from `scripts/release-preflight.mjs`,
 `pnpm lint`, or any `.github/workflows/*.yml` step block without a
 row in this registry.

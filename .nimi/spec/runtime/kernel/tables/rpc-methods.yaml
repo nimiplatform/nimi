@@ -1,4 +1,21 @@
 version: 1
+table_family: protocol_surface
+owner: runtime
+protocol_id: runtime_rpc_methods
+surfaces:
+  - AIService
+  - RuntimeAiRealtimeService
+  - ConnectorService
+  - RuntimeLocalService
+  - RuntimeAuthService
+  - RuntimeGrantService
+  - RuntimeAccountService
+  - RuntimeWorkflowService
+  - RuntimeAuditService
+  - RuntimeModelService
+  - RuntimeCognitionService
+  - RuntimeAppService
+  - RuntimeAgentService
 services:
   - name: AIService
     source_rule: K-RPC-002
@@ -343,7 +360,19 @@ services:
         type: unary
       - name: GetConversationAnchorSnapshot
         type: unary
+      - name: RegisterAvatarLiveInstanceBinding
+        type: unary
+      - name: ResolveAvatarLiveInstanceBinding
+        type: unary
       - name: GetPublicChatSessionSnapshot
+        type: unary
+      - name: GetCompanionParticipationProjection
+        type: unary
+      - name: RequestCompanionParticipation
+        type: unary
+      - name: CancelCompanionParticipation
+        type: unary
+      - name: OpenCompanionParticipationReplay
         type: unary
       - name: CreateRealmGroupMessageCandidate
         type: unary
@@ -356,6 +385,8 @@ services:
       - name: ListAvatarDebugProbeResults
         type: unary
       - name: GetAvatarDebugReplay
+        type: unary
+      - name: ResolveAvatarPackageLaunchProjection
         type: unary
       - name: ListDelegatedProviderProfiles
         type: unary

@@ -1,0 +1,253 @@
+table_family: support_registry
+registry_id: platform_rule_evidence_requirement_rules_ai_last_mile_design
+owner: platform
+schema_ref: .nimi/contracts/table-family.schema.yaml#support_registry
+allowed_fields:
+  - rule_id
+  - evidence_requirement
+  - evidence_refs
+  - note
+  - na_reason
+  - evidence_scope_note
+  - test_files
+forbidden_state_fields:
+  - done
+  - covered
+  - coverage_status
+  - audit_date
+  - evidence_report
+  - current
+  - proposed
+  - backlog_status
+  - migration_status
+  - mapping_status
+  - run_id
+  - ledger_ref
+entries:
+  - P-ALMI-001
+  - P-ALMI-002
+  - P-ALMI-003
+  - P-ALMI-004
+  - P-ALMI-010
+  - P-ALMI-011
+  - P-ALMI-020
+  - P-ALMI-030
+  - P-DESIGN-001
+  - P-DESIGN-002
+  - P-DESIGN-003
+  - P-DESIGN-004
+  - P-DESIGN-005
+  - P-DESIGN-006
+  - P-DESIGN-007
+  - P-DESIGN-008
+  - P-DESIGN-009
+  - P-DESIGN-010
+  - P-DESIGN-011
+  - P-DESIGN-012
+  - P-DESIGN-013
+  - P-DESIGN-014
+  - P-DESIGN-015
+  - P-DESIGN-016
+  - P-DESIGN-017
+  - P-DESIGN-018
+  - P-DESIGN-019
+  - P-DESIGN-020
+  - P-DESIGN-021
+  - P-DESIGN-022
+  - P-DESIGN-023
+  - P-DESIGN-024
+  - P-DESIGN-025
+  - P-DESIGN-026
+  - P-DESIGN-090
+rules:
+  - rule_id: P-ALMI-001
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: required
+  - rule_id: P-ALMI-002
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; principal and session binding behavior still requires runtime integration coverage
+  - rule_id: P-ALMI-003
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; invocation authorization paths still require cross-participant behavioral tests
+  - rule_id: P-ALMI-004
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; state-transition and failure-path guarantees still require behavioral validation
+  - rule_id: P-ALMI-010
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; Hook Action fabric dispatch behavior still requires runtime integration coverage
+  - rule_id: P-ALMI-011
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; behavioral state-machine validation requires runtime integration test
+  - rule_id: P-ALMI-020
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; end-to-end replay and auditability still require behavioral integration tests
+  - rule_id: P-ALMI-030
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; latency/throughput red-line validation requires load test
+  - rule_id: P-DESIGN-001
+    evidence_refs:
+      - platform_kernel_consistency
+      - nimi_ui_pattern
+    evidence_requirement: required
+  - rule_id: P-DESIGN-002
+    evidence_refs:
+      - platform_kernel_consistency
+      - nimi_ui_lib_drift
+      - nimi_ui_pattern
+    evidence_requirement: required
+  - rule_id: P-DESIGN-003
+    evidence_refs:
+      - platform_kernel_consistency
+      - nimi_ui_lib_drift
+      - nimi_ui_pattern
+    evidence_requirement: required
+  - rule_id: P-DESIGN-004
+    evidence_refs:
+      - platform_kernel_consistency
+      - nimi_ui_lib_drift
+      - nimi_ui_pattern
+    evidence_requirement: required
+  - rule_id: P-DESIGN-005
+    evidence_refs:
+      - platform_kernel_consistency
+      - nimi_ui_lib_drift
+      - nimi_ui_pattern
+    evidence_requirement: required
+  - rule_id: P-DESIGN-006
+    evidence_refs:
+      - platform_kernel_consistency
+      - nimi_ui_pattern
+    evidence_requirement: required
+  - rule_id: P-DESIGN-007
+    evidence_refs:
+      - platform_kernel_consistency
+      - nimi_ui_pattern
+    evidence_requirement: required
+  - rule_id: P-DESIGN-008
+    evidence_refs:
+      - platform_kernel_consistency
+      - nimi_ui_lib_drift
+      - nimi_ui_pattern
+    evidence_requirement: required
+  - rule_id: P-DESIGN-009
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural rule linkage only; admitted UI Card artifact/hash/classification evidence is topic-local under 2026-05-15-nimi-kit-ui-card-design-system-iteration
+  - rule_id: P-DESIGN-010
+    evidence_refs:
+      - platform_kernel_consistency
+      - nimi_ui_lib_drift
+      - nimi_ui_pattern
+    evidence_requirement: required
+  - rule_id: P-DESIGN-011
+    evidence_refs:
+      - platform_kernel_consistency
+      - nimi_ui_lib_drift
+      - nimi_ui_pattern
+    evidence_requirement: required
+  - rule_id: P-DESIGN-012
+    evidence_refs:
+      - platform_kernel_consistency
+      - nimi_ui_lib_drift
+      - nimi_ui_pattern
+    evidence_requirement: required
+  - rule_id: P-DESIGN-013
+    evidence_refs:
+      - platform_kernel_consistency
+      - nimi_ui_lib_drift
+      - nimi_ui_pattern
+    evidence_requirement: required
+  - rule_id: P-DESIGN-014
+    evidence_refs:
+      - platform_kernel_consistency
+      - nimi_ui_lib_drift
+      - nimi_ui_pattern
+    evidence_requirement: required
+  - rule_id: P-DESIGN-015
+    evidence_refs:
+      - platform_kernel_consistency
+      - nimi_ui_lib_drift
+      - nimi_ui_pattern
+    evidence_requirement: required
+  - rule_id: P-DESIGN-016
+    evidence_refs:
+      - platform_kernel_consistency
+      - nimi_ui_lib_drift
+      - nimi_ui_pattern
+    evidence_requirement: required
+  - rule_id: P-DESIGN-017
+    evidence_refs:
+      - platform_kernel_consistency
+      - nimi_ui_lib_drift
+      - nimi_ui_pattern
+    evidence_requirement: required
+  - rule_id: P-DESIGN-018
+    evidence_refs:
+      - platform_kernel_consistency
+      - nimi_ui_lib_drift
+      - nimi_ui_pattern
+    evidence_requirement: required
+  - rule_id: P-DESIGN-019
+    evidence_refs:
+      - platform_kernel_consistency
+      - nimi_ui_pattern
+    evidence_requirement: required
+  - rule_id: P-DESIGN-020
+    evidence_refs:
+      - platform_kernel_consistency
+      - nimi_ui_pattern
+    evidence_requirement: required
+  - rule_id: P-DESIGN-021
+    evidence_refs:
+      - platform_kernel_consistency
+      - nimi_ui_pattern
+    evidence_requirement: required
+  - rule_id: P-DESIGN-022
+    evidence_refs:
+      - platform_kernel_consistency
+      - nimi_ui_lib_drift
+    evidence_requirement: required
+  - rule_id: P-DESIGN-023
+    evidence_refs:
+      - platform_kernel_consistency
+      - nimi_ui_lib_drift
+    evidence_requirement: required
+  - rule_id: P-DESIGN-024
+    evidence_refs:
+      - platform_kernel_consistency
+      - nimi_ui_pattern
+    evidence_requirement: structural_required
+    evidence_scope_note: taxonomy boundary is structurally covered; executable primitive gap closure is deferred to the topic's Wave 2 and Wave 3
+  - rule_id: P-DESIGN-025
+    evidence_refs:
+      - platform_kernel_consistency
+      - nimi_ui_pattern
+    evidence_requirement: structural_required
+    evidence_scope_note: composition boundary is structurally covered; per-candidate shared-vs-app-local proof remains required in downstream packets
+  - rule_id: P-DESIGN-026
+    evidence_refs:
+      - platform_kernel_consistency
+      - nimi_ui_pattern
+    evidence_requirement: structural_required
+    evidence_scope_note: negative anti-drift categories are admitted; executable visual fixtures and hard gate coverage are deferred to the topic's Wave 5
+  - rule_id: P-DESIGN-090
+    evidence_refs:
+      - platform_kernel_consistency
+      - nimi_ui_pattern
+    evidence_requirement: required

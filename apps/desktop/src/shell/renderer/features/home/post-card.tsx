@@ -125,7 +125,7 @@ export function PostCard(input: PostCardProps) {
   ).trim();
   const attachments = Array.isArray(post.attachments) ? post.attachments : [];
   const hasMedia = attachments.length > 0;
-  const isOwnPost = Boolean(currentUserId && post.author?.id && post.author.id === currentUserId);
+  const isOwnPost = Boolean(currentUserId && post.author?.id === currentUserId);
   const [isLikePending, setIsLikePending] = useState(false);
   const [isVisibilityPending, setIsVisibilityPending] = useState(false);
   const [postVisibility, setPostVisibility] = useState<'PUBLIC' | 'FRIENDS' | 'PRIVATE'>(
@@ -267,9 +267,9 @@ export function PostCard(input: PostCardProps) {
     try {
       await actionAdapter.blockUser({
         id: authorId,
-        displayName: post.author.displayName || '',
-        handle: post.author.handle || '',
-        avatarUrl: post.author.avatarUrl,
+        displayName: post.author?.displayName || '',
+        handle: post.author?.handle || '',
+        avatarUrl: post.author?.avatarUrl,
       });
       setFeedback(null);
       onBlock?.();
@@ -289,9 +289,9 @@ export function PostCard(input: PostCardProps) {
     actionAdapter,
     authorId,
     onBlock,
-    post.author.avatarUrl,
-    post.author.displayName,
-    post.author.handle,
+    post.author?.avatarUrl,
+    post.author?.displayName,
+    post.author?.handle,
     ui,
   ]);
 

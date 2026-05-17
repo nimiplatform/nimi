@@ -1,33 +1,36 @@
-# AI Provider SDK Domain Spec
+# Ai Provider
 
-> Scope: `@nimiplatform/sdk/ai-provider` 主题导引（协议适配、runtime 映射、流行为）。
 > Normative Imports: `.nimi/spec/sdk/kernel/*`
 
-## 0. 权威导入
+## Scope
 
-- `kernel/ai-provider-contract.md`（S-AIP-001, S-AIP-002, S-AIP-003, S-AIP-004, S-AIP-005, S-AIP-006）
-- `kernel/surface-contract.md`（S-SURFACE-001, S-SURFACE-002）
-- `kernel/transport-contract.md`（S-TRANSPORT-002, S-TRANSPORT-003）
-- `kernel/error-projection.md`（S-ERROR-001）
-- `kernel/boundary-contract.md`（S-BOUNDARY-001）
+This guide points to the sdk authority surfaces for ai-provider. It does not define product rules.
 
-## 1. 文档定位
+## Reading Path
 
-本文件是 ai-provider 子路径导引。该子路径负责协议适配与 runtime 调用映射，不承担路由决策；默认 app 语义应直接复用传入的 `Runtime` 实例。
+- `.nimi/spec/sdk/kernel/index.md`
+- `.nimi/spec/sdk/kernel/ai-config-surface-contract.md`
+- `.nimi/spec/sdk/kernel/ai-provider-contract.md`
+- `.nimi/spec/sdk/kernel/boundary-contract.md`
+- `.nimi/spec/sdk/kernel/companion-participation-client-contract.md`
+- `.nimi/spec/sdk/kernel/error-projection.md`
+- `.nimi/spec/sdk/kernel/local-environment-projection-contract.md`
+- `.nimi/spec/sdk/kernel/mod-contract.md`
+- `.nimi/spec/sdk/kernel/package-governance-contract.md`
+- `.nimi/spec/sdk/kernel/realm-contract.md`
+- `.nimi/spec/sdk/kernel/realm-group-agent-participation-client-contract.md`
+- `.nimi/spec/sdk/kernel/runtime-agent-participation-client-contract.md`
+- `.nimi/spec/sdk/kernel/runtime-avatar-control-client-contract.md`
 
-## 2. 阅读路径
+## Tables
 
-1. 主合同：`kernel/ai-provider-contract.md`。
-2. 子路径与方法治理：`kernel/surface-contract.md`。
-3. 流式与重建语义：`kernel/transport-contract.md`。
-4. 错误投影：`kernel/error-projection.md`。
-
-## 3. 关联上游
-
-- runtime AI 语义：`.nimi/spec/runtime/kernel/rpc-surface.md`。
-- ScenarioJob 语义：`.nimi/spec/runtime/kernel/scenario-job-lifecycle.md`。
-
-## 4. 非目标
-
-- 不在 domain 文档定义 provider 能力矩阵。
-- 不在本文件维护执行态兼容结论。
+- `.nimi/spec/sdk/kernel/tables/import-boundaries.yaml`
+- `.nimi/spec/sdk/kernel/tables/rule-evidence.yaml`
+- `.nimi/spec/sdk/kernel/tables/runtime-agent-participation-methods.yaml`
+- `.nimi/spec/sdk/kernel/tables/runtime-avatar-control-methods.yaml`
+- `.nimi/spec/sdk/kernel/tables/runtime-method-groups.yaml`
+- `.nimi/spec/sdk/kernel/tables/sdk-error-codes.yaml`
+- `.nimi/spec/sdk/kernel/tables/sdk-realm-realtime-gates.yaml`
+- `.nimi/spec/sdk/kernel/tables/sdk-runtime-behavioral-checks.yaml`
+- `.nimi/spec/sdk/kernel/tables/sdk-surfaces.yaml`
+- `.nimi/spec/sdk/kernel/tables/sdk-testing-gates.yaml`

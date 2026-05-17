@@ -8,6 +8,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/protocol/envelope"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 const runtimeAgentTurnReadScope = "runtime.agent.turn.read"
@@ -34,16 +35,32 @@ func (s *Service) GetPublicChatSessionSnapshot(ctx context.Context, req *runtime
 		return nil, status.Error(codes.InvalidArgument, "context.app_id is required")
 	}
 	scopedBinding := requestContext.GetScopedBinding()
+	var identity localAgentIdentity
 	if scopedBinding == nil {
 		if !envelope.HasValidatedProtectedCapability(ctx, callerAppID, runtimeAgentReadScope) {
 			return nil, runtimeAgentBindingError(runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BINDING_NOT_FOUND)
 		}
+		var identityErr error
+		identity, identityErr = localAgentIdentityFromContext(requestContext)
+		if identityErr != nil {
+			return nil, identityErr
+		}
 	} else {
+		if strings.TrimSpace(scopedBinding.GetConversationAnchorId()) != anchorID {
+			return nil, status.Error(codes.PermissionDenied, "public chat scoped binding conversation_anchor_id mismatch")
+		}
 		if err := s.validateScopedBindingAttachment(scopedBinding, callerAppID, agentID, runtimeAgentTurnReadScope); err != nil {
 			return nil, err
 		}
 	}
-	snapshot, session, _, _, _, err := s.publicChatRuntime().buildSessionSnapshot(callerAppID, anchorID, req.GetRequestId())
+	var snapshot *structpb.Struct
+	var session publicChatAnchorState
+	var err error
+	if scopedBinding != nil {
+		snapshot, session, _, _, _, err = s.publicChatRuntime().buildScopedBindingSessionSnapshot(callerAppID, anchorID, req.GetRequestId())
+	} else {
+		snapshot, session, _, _, _, err = s.publicChatRuntime().buildAvatarLiveInstanceSessionSnapshot(callerAppID, anchorID, req.GetRequestId(), identity)
+	}
 	if err != nil {
 		return nil, err
 	}

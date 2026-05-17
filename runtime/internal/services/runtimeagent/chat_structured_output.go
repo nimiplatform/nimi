@@ -257,6 +257,12 @@ func (e *publicChatStructuredEnvelope) payload() map[string]any {
 		}
 		if e.StatusCue.ActionCue != "" {
 			cuePayload["action_cue"] = e.StatusCue.ActionCue
+			if category, intensity, err := normalizePublicChatActivityProjection(e.StatusCue.ActionCue, e.StatusCue.Intensity); err == nil {
+				cuePayload["activity_category"] = category
+				if intensity != "" {
+					cuePayload["activity_intensity"] = intensity
+				}
+			}
 		}
 		payload["status_cue"] = cuePayload
 	}

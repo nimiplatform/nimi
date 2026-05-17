@@ -1,0 +1,909 @@
+table_family: support_registry
+registry_id: desktop_rule_evidence_runtime_bridge_rules
+owner: desktop
+schema_ref: .nimi/contracts/table-family.schema.yaml#support_registry
+allowed_fields:
+  - rule_id
+  - evidence_requirement
+  - evidence_refs
+  - note
+  - na_reason
+  - evidence_scope_note
+  - test_files
+forbidden_state_fields:
+  - done
+  - covered
+  - coverage_status
+  - audit_date
+  - evidence_report
+  - current
+  - proposed
+  - backlog_status
+  - migration_status
+  - mapping_status
+  - run_id
+  - ledger_ref
+entries:
+  - D-DSYNC-000
+  - D-DSYNC-001
+  - D-DSYNC-002
+  - D-DSYNC-003
+  - D-DSYNC-004
+  - D-DSYNC-005
+  - D-DSYNC-006
+  - D-DSYNC-007
+  - D-DSYNC-008
+  - D-DSYNC-009
+  - D-DSYNC-010
+  - D-DSYNC-011
+  - D-DSYNC-012
+  - D-DSYNC-013
+  - D-HOOK-001
+  - D-HOOK-002
+  - D-HOOK-003
+  - D-HOOK-004
+  - D-HOOK-005
+  - D-HOOK-006
+  - D-HOOK-007
+  - D-HOOK-008
+  - D-HOOK-009
+  - D-HOOK-010
+  - D-HOOK-011
+  - D-HOOK-012
+  - D-HOOK-013
+  - D-IPC-001
+  - D-IPC-002
+  - D-IPC-003
+  - D-IPC-004
+  - D-IPC-005
+  - D-IPC-006
+  - D-IPC-007
+  - D-IPC-008
+  - D-IPC-009
+  - D-IPC-014
+  - D-IPC-015
+  - D-IPC-016
+  - D-IPC-010
+  - D-IPC-011
+  - D-IPC-012
+  - D-IPC-013
+  - D-IPC-017
+  - D-LLM-001
+  - D-LLM-002
+  - D-LLM-003
+  - D-LLM-004
+  - D-LLM-005
+  - D-LLM-006
+  - D-LLM-007
+  - D-LLM-008
+  - D-LLM-009
+  - D-LLM-010
+  - D-LLM-011
+  - D-LLM-012
+  - D-LLM-013
+  - D-LLM-014
+  - D-LLM-065
+  - D-LLM-066
+  - D-LLM-067
+  - D-LLM-068
+  - D-LLM-053
+  - D-LLM-054
+  - D-LLM-055
+  - D-LLM-056
+  - D-LLM-057
+  - D-LLM-058
+  - D-LLM-059
+  - D-LLM-060
+  - D-LLM-061
+  - D-LLM-062
+  - D-LLM-063
+  - D-LLM-064
+  - D-LLM-069
+  - D-LLM-070
+  - D-LLM-071
+  - D-LLM-072
+  - D-MOD-001
+  - D-MOD-002
+  - D-MOD-003
+  - D-MOD-004
+  - D-MOD-005
+  - D-MOD-006
+  - D-MOD-007
+  - D-MOD-008
+  - D-MOD-009
+  - D-MOD-010
+  - D-MOD-011
+  - D-MOD-012
+  - D-MOD-013
+  - D-MOD-014
+  - D-MOD-015
+  - D-MOD-016
+  - D-MOD-017
+  - D-MOD-018
+  - D-MOD-019
+  - D-CODEGEN-001
+  - D-CODEGEN-010
+  - D-CODEGEN-016
+  - D-CODEGEN-020
+  - D-CODEGEN-030
+  - D-CODEGEN-040
+  - D-CODEGEN-050
+  - D-CODEGEN-060
+  - D-CODEGEN-070
+  - D-LLM-073
+  - D-LLM-074
+  - D-LLM-075
+  - D-LLM-076
+  - D-LLM-077
+  - D-LLM-078
+  - D-LLM-079
+  - D-LLM-080
+  - D-LLM-081
+  - D-LLM-082
+  - D-LLM-083
+  - D-LLM-084
+  - D-LLM-085
+  - D-LLM-086
+  - D-LLM-087
+  - D-LLM-088
+  - D-LLM-089
+  - D-LLM-090
+  - D-LLM-091
+  - D-LLM-092
+  - D-LLM-093
+  - D-LLM-094
+  - D-LLM-095
+  - D-LLM-096
+  - D-LLM-097
+  - D-LLM-098
+  - D-LLM-099
+  - D-LLM-100
+  - D-LLM-101
+  - D-LLM-102
+  - D-LLM-103
+rules:
+  - rule_id: D-DSYNC-000
+    evidence_refs: &a1
+      - desktop_kernel_consistency
+      - desktop_lint_gate
+      - desktop_test_gate
+    evidence_requirement: required
+  - rule_id: D-DSYNC-001
+    evidence_refs: *a1
+    evidence_requirement: required
+  - rule_id: D-DSYNC-002
+    evidence_refs: *a1
+    evidence_requirement: required
+  - rule_id: D-DSYNC-003
+    evidence_refs: *a1
+    evidence_requirement: required
+  - rule_id: D-DSYNC-004
+    evidence_refs: *a1
+    evidence_requirement: required
+  - rule_id: D-DSYNC-005
+    evidence_refs: *a1
+    evidence_requirement: required
+  - rule_id: D-DSYNC-006
+    evidence_refs: *a1
+    evidence_requirement: required
+  - rule_id: D-DSYNC-007
+    evidence_refs: *a1
+    evidence_requirement: required
+  - rule_id: D-DSYNC-008
+    evidence_refs: *a1
+    evidence_requirement: required
+  - rule_id: D-DSYNC-009
+    evidence_refs: *a1
+    evidence_requirement: required
+  - rule_id: D-DSYNC-010
+    evidence_refs: *a1
+    evidence_requirement: required
+  - rule_id: D-DSYNC-011
+    evidence_refs: *a1
+    evidence_requirement: required
+  - rule_id: D-DSYNC-012
+    evidence_refs: *a1
+    evidence_requirement: required
+  - rule_id: D-DSYNC-013
+    evidence_refs:
+      - desktop_kernel_consistency
+      - desktop_lint_gate
+      - desktop_test_gate
+    evidence_requirement: required
+  - rule_id: D-HOOK-001
+    evidence_refs:
+      - desktop_kernel_consistency
+      - desktop_lint_gate
+      - desktop_test_gate
+    evidence_requirement: required
+  - rule_id: D-HOOK-002
+    evidence_refs:
+      - desktop_kernel_consistency
+      - desktop_lint_gate
+      - desktop_test_gate
+    evidence_requirement: required
+  - rule_id: D-HOOK-003
+    evidence_refs:
+      - desktop_kernel_consistency
+      - desktop_lint_gate
+      - desktop_test_gate
+    evidence_requirement: required
+  - rule_id: D-HOOK-004
+    evidence_refs:
+      - desktop_kernel_consistency
+      - desktop_lint_gate
+      - desktop_test_gate
+    evidence_requirement: required
+  - rule_id: D-HOOK-005
+    evidence_refs:
+      - desktop_kernel_consistency
+      - desktop_lint_gate
+      - desktop_test_gate
+    evidence_requirement: required
+  - rule_id: D-HOOK-006
+    evidence_refs:
+      - desktop_kernel_consistency
+      - desktop_lint_gate
+      - desktop_test_gate
+    evidence_requirement: required
+  - rule_id: D-HOOK-007
+    evidence_refs:
+      - desktop_kernel_consistency
+      - desktop_lint_gate
+      - desktop_test_gate
+      - runtime_mod_hook_hardcut_gate
+    evidence_requirement: required
+  - rule_id: D-HOOK-008
+    evidence_refs:
+      - desktop_kernel_consistency
+      - desktop_lint_gate
+      - desktop_test_gate
+      - runtime_mod_hook_hardcut_gate
+    evidence_requirement: required
+  - rule_id: D-HOOK-009
+    evidence_refs:
+      - desktop_kernel_consistency
+      - desktop_lint_gate
+      - desktop_test_gate
+    evidence_requirement: required
+  - rule_id: D-HOOK-010
+    evidence_refs:
+      - desktop_kernel_consistency
+      - desktop_lint_gate
+      - desktop_test_gate
+    evidence_requirement: required
+  - rule_id: D-HOOK-011
+    evidence_refs:
+      - desktop_kernel_consistency
+      - desktop_lint_gate
+      - desktop_test_gate
+    evidence_requirement: required
+  - rule_id: D-HOOK-012
+    evidence_refs:
+      - desktop_kernel_consistency
+      - desktop_lint_gate
+      - desktop_test_gate
+    evidence_requirement: required
+  - rule_id: D-HOOK-013
+    evidence_refs:
+      - desktop_kernel_consistency
+      - desktop_lint_gate
+      - desktop_test_gate
+      - runtime_mod_hook_hardcut_gate
+    evidence_requirement: required
+  - rule_id: D-IPC-001
+    evidence_refs:
+      - desktop_kernel_consistency
+      - desktop_lint_gate
+      - desktop_test_gate
+      - desktop_e2e_smoke_gate
+    evidence_requirement: required
+  - rule_id: D-IPC-002
+    evidence_refs:
+      - desktop_kernel_consistency
+      - desktop_lint_gate
+      - desktop_test_gate
+      - desktop_e2e_journey_gate
+    evidence_requirement: required
+  - rule_id: D-IPC-003
+    evidence_refs:
+      - desktop_kernel_consistency
+      - desktop_lint_gate
+      - desktop_test_gate
+      - desktop_runtime_config_path_gate
+    evidence_requirement: required
+  - rule_id: D-IPC-004
+    evidence_refs:
+      - desktop_kernel_consistency
+      - desktop_lint_gate
+      - desktop_test_gate
+    evidence_requirement: required
+  - rule_id: D-IPC-005
+    evidence_refs:
+      - desktop_kernel_consistency
+      - desktop_lint_gate
+      - desktop_test_gate
+    evidence_requirement: required
+  - rule_id: D-IPC-006
+    evidence_refs:
+      - desktop_kernel_consistency
+      - desktop_lint_gate
+      - desktop_test_gate
+    evidence_requirement: required
+  - rule_id: D-IPC-007
+    evidence_refs:
+      - desktop_kernel_consistency
+      - desktop_lint_gate
+      - desktop_test_gate
+    evidence_requirement: required
+  - rule_id: D-IPC-008
+    evidence_refs:
+      - desktop_kernel_consistency
+      - desktop_lint_gate
+      - desktop_test_gate
+    evidence_requirement: required
+  - rule_id: D-IPC-009
+    evidence_refs:
+      - desktop_kernel_consistency
+      - desktop_lint_gate
+      - desktop_test_gate
+      - desktop_e2e_journey_gate
+    evidence_requirement: required
+  - rule_id: D-IPC-014
+    evidence_refs:
+      - desktop_kernel_consistency
+      - desktop_lint_gate
+      - desktop_test_gate
+      - desktop_e2e_journey_gate
+    evidence_requirement: required
+  - rule_id: D-IPC-015
+    evidence_refs:
+      - desktop_kernel_consistency
+      - desktop_lint_gate
+      - desktop_test_gate
+      - desktop_e2e_journey_gate
+    evidence_requirement: required
+  - rule_id: D-IPC-016
+    evidence_refs:
+      - desktop_kernel_consistency
+    evidence_requirement: required
+  - rule_id: D-IPC-010
+    evidence_refs:
+      - desktop_kernel_consistency
+      - desktop_lint_gate
+      - desktop_test_gate
+    evidence_requirement: required
+  - rule_id: D-IPC-011
+    evidence_refs:
+      - desktop_kernel_consistency
+      - desktop_lint_gate
+      - desktop_test_gate
+      - desktop_local_ai_bridge_gate
+    evidence_requirement: required
+  - rule_id: D-IPC-012
+    evidence_refs:
+      - desktop_kernel_consistency
+      - desktop_lint_gate
+      - desktop_test_gate
+      - desktop_cloud_runtime_only_gate
+    evidence_requirement: required
+  - rule_id: D-IPC-013
+    evidence_refs:
+      - desktop_kernel_consistency
+      - desktop_lint_gate
+      - desktop_test_gate
+    evidence_requirement: required
+  - rule_id: D-IPC-017
+    evidence_refs:
+      - desktop_kernel_consistency
+    evidence_requirement: required
+  - rule_id: D-LLM-001
+    evidence_refs:
+      - desktop_kernel_consistency
+      - desktop_lint_gate
+      - desktop_test_gate
+      - desktop_cloud_runtime_only_gate
+    evidence_requirement: required
+  - rule_id: D-LLM-002
+    evidence_refs:
+      - desktop_kernel_consistency
+      - desktop_lint_gate
+      - desktop_test_gate
+    evidence_requirement: required
+  - rule_id: D-LLM-003
+    evidence_refs:
+      - desktop_kernel_consistency
+      - desktop_lint_gate
+      - desktop_test_gate
+    evidence_requirement: required
+  - rule_id: D-LLM-004
+    evidence_refs:
+      - desktop_kernel_consistency
+      - desktop_lint_gate
+      - desktop_test_gate
+    evidence_requirement: required
+  - rule_id: D-LLM-005
+    evidence_refs:
+      - desktop_kernel_consistency
+      - desktop_lint_gate
+      - desktop_test_gate
+    evidence_requirement: required
+  - rule_id: D-LLM-006
+    evidence_refs:
+      - desktop_kernel_consistency
+      - desktop_lint_gate
+      - desktop_test_gate
+    evidence_requirement: required
+  - rule_id: D-LLM-007
+    evidence_refs:
+      - desktop_kernel_consistency
+      - desktop_lint_gate
+      - desktop_test_gate
+      - desktop_mods_smoke_gate
+    evidence_requirement: required
+  - rule_id: D-LLM-008
+    evidence_refs:
+      - desktop_kernel_consistency
+      - desktop_lint_gate
+      - desktop_test_gate
+    evidence_requirement: required
+  - rule_id: D-LLM-009
+    evidence_refs:
+      - desktop_kernel_consistency
+      - desktop_test_gate
+      - desktop_mods_smoke_gate
+    evidence_requirement: required
+  - rule_id: D-LLM-010
+    evidence_refs:
+      - desktop_kernel_consistency
+      - desktop_rust_test_gate
+    note: Device profile matching & engine support; Rust backend coverage
+    evidence_requirement: required
+  - rule_id: D-LLM-011
+    evidence_refs:
+      - desktop_kernel_consistency
+      - desktop_rust_test_gate
+    note: Recommendation memory budget & tier assignment; Rust backend coverage
+    evidence_requirement: required
+  - rule_id: D-LLM-012
+    evidence_refs:
+      - desktop_kernel_consistency
+      - desktop_rust_test_gate
+    note: Dependency resolution phase ordering; Rust backend coverage
+    evidence_requirement: required
+  - rule_id: D-LLM-013
+    evidence_refs:
+      - desktop_kernel_consistency
+      - desktop_rust_test_gate
+    note: Model registry identity resolution; Rust backend coverage
+    evidence_requirement: required
+  - rule_id: D-LLM-014
+    evidence_refs:
+      - desktop_kernel_consistency
+      - desktop_rust_test_gate
+    note: Download atomicity & staging; Rust backend coverage
+    evidence_requirement: required
+  - rule_id: D-LLM-065
+    evidence_refs:
+      - desktop_kernel_consistency
+    note: World generate runtime-only boundary; enforced structurally by desktop consistency gate
+    evidence_requirement: required
+  - rule_id: D-LLM-066
+    evidence_refs:
+      - desktop_kernel_consistency
+    note: World tour acceptance surface authority; enforced structurally by desktop consistency gate
+    evidence_requirement: required
+  - rule_id: D-LLM-067
+    evidence_refs:
+      - desktop_kernel_consistency
+    note: World tour required acceptance chain authority; executable coverage lands with downstream implementation
+    evidence_requirement: required
+  - rule_id: D-LLM-068
+    evidence_refs:
+      - desktop_kernel_consistency
+    note: World tour fail-close acceptance authority; executable coverage lands with downstream implementation
+    evidence_requirement: required
+  - rule_id: D-LLM-053
+    evidence_refs:
+      - desktop_kernel_consistency
+    evidence_requirement: required
+  - rule_id: D-LLM-054
+    evidence_refs:
+      - desktop_kernel_consistency
+    evidence_requirement: required
+  - rule_id: D-LLM-055
+    evidence_refs:
+      - desktop_kernel_consistency
+    evidence_requirement: required
+  - rule_id: D-LLM-056
+    evidence_refs:
+      - desktop_kernel_consistency
+    evidence_requirement: required
+  - rule_id: D-LLM-057
+    evidence_refs:
+      - desktop_kernel_consistency
+    evidence_requirement: required
+  - rule_id: D-LLM-058
+    evidence_refs:
+      - desktop_kernel_consistency
+    evidence_requirement: required
+  - rule_id: D-LLM-059
+    evidence_refs:
+      - desktop_kernel_consistency
+    evidence_requirement: required
+  - rule_id: D-LLM-060
+    evidence_refs:
+      - desktop_kernel_consistency
+    evidence_requirement: required
+  - rule_id: D-LLM-061
+    evidence_refs:
+      - desktop_kernel_consistency
+    evidence_requirement: required
+  - rule_id: D-LLM-062
+    evidence_refs:
+      - desktop_kernel_consistency
+    evidence_requirement: required
+  - rule_id: D-LLM-063
+    evidence_refs:
+      - desktop_kernel_consistency
+    evidence_requirement: required
+  - rule_id: D-LLM-064
+    evidence_refs:
+      - desktop_kernel_consistency
+    evidence_requirement: required
+  - rule_id: D-LLM-069
+    evidence_refs:
+      - desktop_kernel_consistency
+    evidence_requirement: required
+  - rule_id: D-LLM-070
+    evidence_refs:
+      - desktop_kernel_consistency
+    note: Desktop-to-Avatar demo acceptance boundary; executable coverage lands in the dedicated demo acceptance waves
+    evidence_requirement: required
+  - rule_id: D-LLM-071
+    evidence_refs:
+      - desktop_kernel_consistency
+    note: Desktop companion app-event convention; executable coverage lands with downstream cross-surface implementation.
+    evidence_requirement: required
+  - rule_id: D-LLM-072
+    evidence_refs:
+      - desktop_kernel_consistency
+      - avatar_spec_consistency_gate
+      - avatar_test_gate
+    note: Desktop Avatar launch-intent boundary; Avatar must not receive Desktop auth, Realm, package, anchor, or subject truth.
+    evidence_requirement: required
+  - rule_id: D-MOD-001
+    evidence_refs:
+      - desktop_kernel_consistency
+      - desktop_lint_gate
+      - desktop_test_gate
+    evidence_requirement: required
+  - rule_id: D-MOD-002
+    evidence_refs:
+      - desktop_kernel_consistency
+      - desktop_lint_gate
+      - desktop_test_gate
+      - desktop_mod_capabilities_gate
+    evidence_requirement: required
+  - rule_id: D-MOD-003
+    evidence_refs:
+      - desktop_kernel_consistency
+      - desktop_lint_gate
+      - desktop_test_gate
+    evidence_requirement: required
+  - rule_id: D-MOD-004
+    evidence_refs:
+      - desktop_kernel_consistency
+      - desktop_lint_gate
+      - desktop_test_gate
+    evidence_requirement: required
+  - rule_id: D-MOD-005
+    evidence_refs:
+      - desktop_kernel_consistency
+      - desktop_lint_gate
+      - desktop_test_gate
+    evidence_requirement: required
+  - rule_id: D-MOD-006
+    evidence_refs:
+      - desktop_kernel_consistency
+      - desktop_lint_gate
+      - desktop_test_gate
+    evidence_requirement: required
+  - rule_id: D-MOD-007
+    evidence_refs:
+      - desktop_kernel_consistency
+      - desktop_lint_gate
+      - desktop_test_gate
+    evidence_requirement: required
+  - rule_id: D-MOD-008
+    evidence_refs:
+      - desktop_kernel_consistency
+      - desktop_lint_gate
+      - desktop_test_gate
+    evidence_requirement: required
+  - rule_id: D-MOD-009
+    evidence_refs:
+      - desktop_kernel_consistency
+      - desktop_lint_gate
+      - desktop_test_gate
+    evidence_requirement: required
+  - rule_id: D-MOD-010
+    evidence_refs:
+      - desktop_kernel_consistency
+      - desktop_lint_gate
+      - desktop_test_gate
+    evidence_requirement: required
+  - rule_id: D-MOD-011
+    evidence_refs:
+      - desktop_kernel_consistency
+      - desktop_lint_gate
+      - desktop_test_gate
+    evidence_requirement: required
+  - rule_id: D-MOD-012
+    evidence_refs:
+      - desktop_kernel_consistency
+      - desktop_lint_gate
+      - desktop_mods_smoke_gate
+    evidence_requirement: required
+  - rule_id: D-MOD-013
+    evidence_refs:
+      - desktop_kernel_consistency
+      - desktop_lint_gate
+      - desktop_test_gate
+    evidence_requirement: required
+  - rule_id: D-MOD-014
+    evidence_refs:
+      - desktop_kernel_consistency
+      - desktop_lint_gate
+      - desktop_test_gate
+    evidence_requirement: required
+  - rule_id: D-MOD-015
+    evidence_refs:
+      - desktop_kernel_consistency
+      - desktop_lint_gate
+      - desktop_test_gate
+    evidence_requirement: required
+  - rule_id: D-MOD-016
+    evidence_refs:
+      - desktop_kernel_consistency
+      - desktop_lint_gate
+      - desktop_test_gate
+    evidence_requirement: required
+  - rule_id: D-MOD-017
+    evidence_refs:
+      - desktop_kernel_consistency
+      - desktop_lint_gate
+      - desktop_test_gate
+    evidence_requirement: required
+  - rule_id: D-MOD-018
+    evidence_refs:
+      - desktop_kernel_consistency
+      - desktop_lint_gate
+      - desktop_test_gate
+    evidence_requirement: required
+  - rule_id: D-MOD-019
+    evidence_refs:
+      - desktop_kernel_consistency
+      - desktop_lint_gate
+      - desktop_test_gate
+    evidence_requirement: required
+  - rule_id: D-CODEGEN-001
+    evidence_refs:
+      - desktop_kernel_consistency
+      - desktop_lint_gate
+      - desktop_test_gate
+    evidence_requirement: required
+  - rule_id: D-CODEGEN-010
+    evidence_refs:
+      - desktop_kernel_consistency
+      - desktop_lint_gate
+      - desktop_test_gate
+      - desktop_mod_capabilities_gate
+    evidence_requirement: required
+  - rule_id: D-CODEGEN-016
+    evidence_refs:
+      - desktop_kernel_consistency
+      - desktop_lint_gate
+      - desktop_test_gate
+    evidence_requirement: required
+  - rule_id: D-CODEGEN-020
+    evidence_refs:
+      - desktop_kernel_consistency
+      - desktop_lint_gate
+      - desktop_test_gate
+    evidence_requirement: required
+  - rule_id: D-CODEGEN-030
+    evidence_refs:
+      - desktop_kernel_consistency
+      - desktop_lint_gate
+      - desktop_test_gate
+    evidence_requirement: required
+  - rule_id: D-CODEGEN-040
+    evidence_refs:
+      - desktop_kernel_consistency
+      - desktop_lint_gate
+      - desktop_test_gate
+    evidence_requirement: required
+  - rule_id: D-CODEGEN-050
+    evidence_refs:
+      - desktop_kernel_consistency
+      - desktop_lint_gate
+      - desktop_test_gate
+    evidence_requirement: required
+  - rule_id: D-CODEGEN-060
+    evidence_refs:
+      - desktop_kernel_consistency
+      - desktop_lint_gate
+      - desktop_test_gate
+    evidence_requirement: required
+  - rule_id: D-CODEGEN-070
+    evidence_refs:
+      - desktop_kernel_consistency
+      - desktop_lint_gate
+      - desktop_test_gate
+    evidence_requirement: required
+  - rule_id: D-LLM-073
+    evidence_refs:
+      - desktop_kernel_consistency
+      - desktop_lint_gate
+      - desktop_test_gate
+    note: Delegated capability control path uses Runtime SDK typed RuntimeAgentService methods.
+    evidence_requirement: required
+  - rule_id: D-LLM-074
+    evidence_refs:
+      - desktop_kernel_consistency
+      - desktop_lint_gate
+      - desktop_test_gate
+    note: Runtime config access panel exposes the shared product control surface lanes.
+    evidence_requirement: required
+  - rule_id: D-LLM-075
+    evidence_refs:
+      - desktop_kernel_consistency
+      - desktop_lint_gate
+      - desktop_test_gate
+    note: Approval UX submits decisions through Runtime-owned delegation approval RPC.
+    evidence_requirement: required
+  - rule_id: D-LLM-076
+    evidence_refs:
+      - desktop_kernel_consistency
+      - desktop_lint_gate
+      - desktop_test_gate
+    note: Provider profile configuration writes typed Runtime profile and state only.
+    evidence_requirement: required
+  - rule_id: D-LLM-077
+    evidence_refs:
+      - desktop_kernel_consistency
+      - desktop_lint_gate
+      - desktop_test_gate
+    note: Diagnostics consume Runtime delegated snapshot evidence without raw protocol output.
+    evidence_requirement: required
+  - rule_id: D-LLM-078
+    evidence_refs:
+      - desktop_kernel_consistency
+    note: Desktop Avatar configuration authority home admitted as contract truth.
+    evidence_requirement: required
+  - rule_id: D-LLM-079
+    evidence_refs:
+      - desktop_kernel_consistency
+    note: Desktop Avatar configuration closed record admitted as contract truth.
+    evidence_requirement: required
+  - rule_id: D-LLM-080
+    evidence_refs:
+      - desktop_kernel_consistency
+    note: Desktop Avatar launch payload hard cut admitted as contract truth.
+    evidence_requirement: required
+  - rule_id: D-LLM-081
+    evidence_refs:
+      - desktop_kernel_consistency
+    note: Desktop Avatar resolver ownership split admitted as contract truth.
+    evidence_requirement: required
+  - rule_id: D-LLM-082
+    evidence_refs:
+      - desktop_kernel_consistency
+    note: Desktop Avatar configuration reconciliation with debug override and delegated capability placement admitted as contract truth.
+    evidence_requirement: required
+  - rule_id: D-LLM-083
+    evidence_refs:
+      - desktop_kernel_consistency
+    note: Desktop Avatar fail-closed configuration state admitted as contract truth.
+    evidence_requirement: required
+  - rule_id: D-LLM-084
+    evidence_refs:
+      - desktop_kernel_consistency
+    note: Desktop Avatar debug workbench authority home admitted as contract truth.
+    evidence_requirement: required
+  - rule_id: D-LLM-085
+    evidence_refs:
+      - desktop_kernel_consistency
+    note: Desktop Avatar debug workbench probe taxonomy and remediation states admitted as contract truth.
+    evidence_requirement: required
+  - rule_id: D-LLM-086
+    evidence_refs:
+      - desktop_kernel_consistency
+    note: Desktop Avatar debug workbench replay and audit links admitted as contract truth.
+    evidence_requirement: required
+  - rule_id: D-LLM-087
+    evidence_refs:
+      - desktop_kernel_consistency
+    note: Desktop Avatar debug workbench app-bus and backend-command bypass prohibition admitted as contract truth.
+    evidence_requirement: required
+  - rule_id: D-LLM-088
+    evidence_refs:
+      - desktop_kernel_consistency
+    note: Realm Group Agent Participation Desktop/Web surface authority admitted as contract truth.
+    evidence_requirement: required
+  - rule_id: D-LLM-089
+    evidence_refs:
+      - desktop_kernel_consistency
+    note: Realm Group Agent Participation typed control inputs admitted as contract truth.
+    evidence_requirement: required
+  - rule_id: D-LLM-090
+    evidence_refs:
+      - desktop_kernel_consistency
+    note: Realm Group candidate, commit, and read split admitted as contract truth.
+    evidence_requirement: required
+  - rule_id: D-LLM-091
+    evidence_refs:
+      - desktop_kernel_consistency
+    note: Realm Group queue status and refusal projection admitted as contract truth.
+    evidence_requirement: required
+  - rule_id: D-LLM-092
+    evidence_refs:
+      - desktop_kernel_consistency
+    note: Realm Group Desktop/Web hardcut gates admitted as contract truth.
+    evidence_requirement: required
+  - rule_id: D-LLM-093
+    evidence_refs:
+      - desktop_kernel_consistency
+    note: Realm Group Desktop/Web implementation status admitted as contract truth.
+    evidence_requirement: required
+  - rule_id: D-LLM-094
+    evidence_refs:
+      - desktop_kernel_consistency
+    note: Companion Participation Desktop consumer boundary admitted as contract truth.
+    evidence_requirement: required
+  - rule_id: D-LLM-095
+    evidence_refs:
+      - desktop_kernel_consistency
+    note: Companion Participation Desktop typed controls admitted as contract truth.
+    evidence_requirement: required
+  - rule_id: D-LLM-096
+    evidence_refs:
+      - desktop_kernel_consistency
+    note: Avatar persona/package variants admitted as configuration, not separate product or surface-kind truth.
+    evidence_requirement: required
+  - rule_id: D-LLM-097
+    evidence_refs:
+      - desktop_kernel_consistency
+    note: Companion Participation refusal and recovery UX fail-closed posture admitted as contract truth.
+    evidence_requirement: required
+  - rule_id: D-LLM-098
+    evidence_refs:
+      - desktop_kernel_consistency
+    note: Desktop no-private-scheduler hardcut for Companion Participation admitted as contract truth.
+    evidence_requirement: required
+  - rule_id: D-LLM-099
+    evidence_refs:
+      - desktop_kernel_consistency
+    note: Desktop Avatar local asset control surface consumer boundary admitted as contract truth.
+    evidence_requirement: required
+  - rule_id: D-LLM-100
+    evidence_refs:
+      - desktop_kernel_consistency
+    note: Desktop Avatar local asset control surface local asset ref storage admitted as contract truth.
+    evidence_requirement: required
+  - rule_id: D-LLM-101
+    evidence_refs:
+      - desktop_kernel_consistency
+    note: Desktop Avatar local import and secondary acquisition UX must route through typed Asset Market/SDK projections.
+    evidence_requirement: required
+  - rule_id: D-LLM-102
+    evidence_refs:
+      - desktop_kernel_consistency
+    note: Desktop Avatar local asset readiness and failure UX must fail closed.
+    evidence_requirement: required
+  - rule_id: D-LLM-103
+    evidence_refs:
+      - desktop_kernel_consistency
+    note: Desktop Avatar local asset control must not widen launch payload or own resolver truth.
+    evidence_requirement: required

@@ -29,7 +29,7 @@ Avatar carrier visual evidence is classified as:
 
 | Class | Meaning | Can close carrier visual proof |
 | --- | --- | --- |
-| real runtime path | Desktop-selected launch context + local Agent Center package + runtime IPC bridge + SDK driver + Avatar carrier | Yes |
+| real runtime path | Desktop-selected minimal launch context + Runtime-validated agent/session projection + selected local Avatar asset + local materialization resolver + runtime IPC bridge + SDK driver + Avatar carrier | Yes |
 | deterministic harness | Controlled Avatar app harness exercising the real carrier draw path with stable inputs | Yes, if it exercises the Avatar carrier canvas/WebGL path |
 | fixture/mock path | Explicit `VITE_AVATAR_DRIVER=mock` or mock scenario data source | Regression evidence only |
 | Desktop renderer evidence | Desktop chat Live2D renderer smoke or pixel evidence | No |
@@ -43,6 +43,10 @@ Carrier visual proof must include current executable evidence for:
 - model load success through the Avatar app Live2D branch
 - at least one frame where the carrier path produces non-placeholder visible
   pixels after model load
+- for real runtime path closure, a human-visible image artifact written by the
+  Avatar app process and referenced from the same `avatar.carrier.visual`
+  evidence record (`human_visible_artifact_path`, `artifact_mime_type`,
+  `artifact_byte_length`)
 - resilience evidence for resize or host-bound changes when the implementation
   claims responsive surface behavior
 - failure evidence showing missing/invalid model input does not render a
@@ -97,7 +101,7 @@ across backends.
 
 This contract does not admit:
 
-- Phase 2 voice output or lipsync (Wave 3 admitted; tracked separately)
+- voice output or lipsync behavior (admitted by the voice/lipsync wave and tracked separately)
 - shared `PresentationTimeline`
 - broad platform or SDK Event API behavior
 - 3D / Lottie / robot backend visual proof beyond Live2D + VRM

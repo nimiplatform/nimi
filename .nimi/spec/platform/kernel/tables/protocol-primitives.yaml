@@ -1,4 +1,14 @@
 version: 1
+table_family: protocol_surface
+owner: platform
+protocol_id: platform_protocol_primitives
+surfaces:
+  - timeflow
+  - social
+  - economy
+  - transit
+  - context
+  - presence
 primitives:
   - name: timeflow
     fields:

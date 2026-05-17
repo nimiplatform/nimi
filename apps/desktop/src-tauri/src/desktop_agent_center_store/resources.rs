@@ -1,7 +1,7 @@
 use super::store::{
     agent_center_dir, desktop_agent_center_config_get, desktop_agent_center_config_put,
     local_scope_path_segment, validate_background_id, validate_live2d_adapter_manifest_ref,
-    validate_local_agent_scope, validate_normalized_id, validate_package_id,
+    validate_local_agent_scope, validate_local_asset_id, validate_normalized_id,
     validate_utc_timestamp, LocalAgentScope,
 };
 use super::types::*;
@@ -16,11 +16,16 @@ use std::path::{Component, Path, PathBuf};
 use url::Url;
 
 const VALIDATION_SCHEMA_VERSION: u8 = 1;
+const MAX_AVATAR_ASSET_MANIFEST_BYTES: u64 = 262_144;
+const MAX_AVATAR_ASSET_BYTES: u64 = 524_288_000;
+const MAX_AVATAR_ASSET_FILE_BYTES: u64 = 104_857_600;
+const MAX_AVATAR_ASSET_FILE_COUNT: usize = 2_048;
 const MAX_LIVE2D_ADAPTER_MANIFEST_BYTES: u64 = 262_144;
 const MAX_BACKGROUND_BYTES: u64 = 20_971_520;
 const MAX_BACKGROUND_PIXELS: u32 = 8_192;
 const VALIDATION_FILE_NAME: &str = "validation.json";
 const MANIFEST_FILE_NAME: &str = "manifest.json";
+const CAPABILITY_PROFILE_FILE_NAME: &str = "capability-profile.json";
 const LIVE2D_ADAPTER_FILE_NAME: &str = "live2d-adapter.json";
 const LIVE2D_ADAPTER_CUSTODY_FILE_NAME: &str = "custody.json";
 const OPERATIONS_FILE_NAME: &str = "agent-center-local-resources.jsonl";
@@ -70,7 +75,7 @@ struct BackgroundManifestLimits {
 struct Live2dAdapterManifestCustody {
     custody_version: u8,
     manifest_ref: String,
-    package_id: String,
+    local_asset_id: String,
     manifest_kind: String,
     schema_version: u8,
     sha256: String,
@@ -93,6 +98,12 @@ struct AgentCenterResourceOperationRecord {
     reason_code: String,
 }
 
+#[path = "resources_avatar_asset.rs"]
+mod resources_avatar_asset;
+#[path = "resources_avatar_asset_manifest.rs"]
+mod resources_avatar_asset_manifest;
+#[path = "resources_avatar_asset_source.rs"]
+mod resources_avatar_asset_source;
 #[path = "resources_commands.rs"]
 mod resources_commands;
 #[path = "resources_manifest_validation.rs"]
@@ -104,10 +115,13 @@ mod resources_remove_commands;
 #[path = "resources_validation.rs"]
 mod resources_validation;
 
+use resources_avatar_asset_manifest::*;
+use resources_avatar_asset_source::*;
 use resources_manifest_validation::*;
 use resources_operations::*;
 use resources_validation::*;
 
+pub(crate) use resources_avatar_asset::*;
 pub(crate) use resources_commands::*;
 pub(crate) use resources_manifest_validation::*;
 pub(crate) use resources_remove_commands::*;

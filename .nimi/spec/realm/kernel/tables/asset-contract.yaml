@@ -2,6 +2,21 @@ contract_id: ASSET-CONTRACT-001
 domain: asset
 status: ACTIVE
 version: 2026-03-25
+table_family: product_catalog
+catalog_id: realm_asset_contract
+entries:
+  - human_spec
+  - openapi
+  - prisma
+  - services
+  - R-ASSET-101
+  - R-ASSET-102
+  - R-ASSET-103
+  - R-ASSET-104
+  - R-ASSET-105
+  - OwnableAsset
+  - required_operations
+  - secondary_operations
 owner: '@team'
 sources:
   human_spec: ../asset-contract.md

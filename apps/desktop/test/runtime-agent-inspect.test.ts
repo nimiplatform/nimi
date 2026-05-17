@@ -133,13 +133,13 @@ function createRuntimeMock() {
                         backendKind: {
                           kind: {
                             oneofKind: 'stringValue',
-                            stringValue: 'sprite2d',
+                            stringValue: 'live2d',
                           },
                         },
                         avatarAssetRef: {
                           kind: {
                             oneofKind: 'stringValue',
-                            stringValue: 'https://cdn.nimi.test/agents/agent-1.png',
+                            stringValue: 'asset://live2d/agent-1',
                           },
                         },
                         idlePreset: {
@@ -538,8 +538,8 @@ test('runtime agent inspect adapter projects public state and pending hook summa
 
   assert.equal(snapshot.lifecycleStatus, 'active');
   assert.deepEqual(snapshot.presentationProfile, {
-    backendKind: 'sprite2d',
-    avatarAssetRef: 'https://cdn.nimi.test/agents/agent-1.png',
+    backendKind: 'live2d',
+    avatarAssetRef: 'asset://live2d/agent-1',
     expressionProfileRef: null,
     idlePreset: 'companion.idle.soft',
     interactionPolicyRef: null,
@@ -628,8 +628,8 @@ test('runtime agent inspect adapter projects persistent presentation profile wit
   const profile = await adapter.getPresentationProfile(LOCAL_AGENT_REF);
 
   assert.deepEqual(profile, {
-    backendKind: 'sprite2d',
-    avatarAssetRef: 'https://cdn.nimi.test/agents/agent-1.png',
+    backendKind: 'live2d',
+    avatarAssetRef: 'asset://live2d/agent-1',
     expressionProfileRef: null,
     idlePreset: 'companion.idle.soft',
     interactionPolicyRef: null,

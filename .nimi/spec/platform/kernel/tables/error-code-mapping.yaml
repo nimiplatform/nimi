@@ -1,3 +1,56 @@
+table_family: product_catalog
+owner: platform
+catalog_id: platform_error_code_mapping
+entries:
+  - mappings_1
+  - mappings_2
+  - mappings_3
+  - mappings_4
+  - mappings_5
+  - mappings_6
+  - mappings_7
+  - mappings_8
+  - mappings_9
+  - mappings_10
+  - mappings_11
+  - mappings_12
+  - mappings_13
+  - mappings_14
+  - mappings_15
+  - mappings_16
+  - mappings_17
+  - mappings_18
+  - mappings_19
+  - mappings_20
+  - mappings_21
+  - mappings_22
+  - mappings_23
+  - mappings_24
+  - mappings_25
+  - mappings_26
+  - mappings_27
+  - mappings_28
+  - mappings_29
+  - mappings_30
+  - mappings_31
+  - mappings_32
+  - mappings_33
+  - mappings_34
+  - mappings_35
+  - mappings_36
+  - mappings_37
+  - mappings_38
+  - mappings_39
+  - mappings_40
+  - mappings_41
+  - mappings_42
+  - mappings_43
+  - mappings_44
+  - mappings_45
+  - mappings_46
+  - mappings_47
+  - mappings_48
+  - mappings_49
 # Platform ↔ Runtime Error Code Mapping
 # Resolves semantic overlap between protocol-error-codes.yaml (P-PROTO-*)
 # and reason-codes.yaml (K-ERR-*) by defining the formal correspondence.

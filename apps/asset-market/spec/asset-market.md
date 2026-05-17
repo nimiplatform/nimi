@@ -123,6 +123,7 @@ This spec imports the following kernel contracts:
 | `kernel/publish-contract.md` | AM-PUBLISH-* | package composition and publish |
 | `kernel/library-contract.md` | AM-LIB-* | available and saved views |
 | `kernel/account-contract.md` | AM-ACCOUNT-* | account records and profile |
+| `kernel/api-contract.md` | AM-API-* | backend API surface inventory |
 
 ## Non-Goals
 

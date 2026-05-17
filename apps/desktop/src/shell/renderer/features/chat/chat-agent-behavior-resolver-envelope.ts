@@ -210,7 +210,7 @@ function validatePhaseOneActionEnvelopeLimits(actions: readonly AgentResolvedMod
         throw new Error('agent-local-chat-v1 admits at most one image action in phase 0');
     }
     if (voiceActionCount > 1) {
-        throw new Error('agent-local-chat-v1 admits at most one voice action in phase 1');
+        throw new Error('agent-local-chat-v1 admits at most one voice action in the current action envelope');
     }
 }
 

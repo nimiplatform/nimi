@@ -46,6 +46,7 @@ export function createBaseDriver(
   return {
     async waitForTestId() {},
     async waitForSelector() {},
+    async waitForSelectorEnabled() {},
     async waitForSelectorGone() {},
     async clickByTestId() {},
     async clickSelector() {},
@@ -93,6 +94,9 @@ export function createBaseDriver(
         evidencePath: '',
         evidence: {},
       };
+    },
+    async applyAvatarProductLocalAssetFault() {
+      return {};
     },
     async writeReport() {},
     currentRoute() {

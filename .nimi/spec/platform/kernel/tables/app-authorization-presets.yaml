@@ -1,4 +1,17 @@
 version: 1
+table_family: owner_matrix
+owner: platform
+matrix_id: platform_app_authorization_presets
+rows:
+  - readOnly
+  - full
+  - delegate
+  - delegation_rules_1
+  - delegation_rules_2
+  - delegation_rules_3
+  - delegation_rules_4
+  - delegation_rules_5
+  - delegation_rules_6
 presets:
   - name: readOnly
     description: "Read-only access to app capabilities"

@@ -1,4 +1,11 @@
 version: 1
+table_family: product_catalog
+owner: runtime
+catalog_id: runtime_accelerator_consumer_requirements
+entries:
+  - consumers_1
+  - consumers_2
+  - consumers_3
 
 # Accelerator-specific projection of canonical local environment consumer
 # requirements. The canonical cross-family consumer graph is

@@ -7,16 +7,22 @@ export type AvatarEvidenceKind =
   | 'avatar.renderer.failed'
   | 'avatar.renderer.launch-context-read'
   | 'avatar.launch.context-bound'
+  | 'avatar.window.created'
   | 'avatar.window.page-loaded'
+  | 'avatar.window.destroyed'
+  | 'avatar.runtime.identity-bound'
   | 'avatar.startup.runtime-bound'
   | 'avatar.startup.failed'
+  | 'avatar.visual.local-asset-resolved'
   | 'avatar.visual.package-resolved'
   | 'avatar.visual.model3-found'
   | 'avatar.visual.model-loaded'
   | 'avatar.runtime.bind-failed'
   | 'avatar.runtime.bound'
+  | 'avatar.runtime.consume-ready'
   | 'avatar.model.load'
   | 'avatar.carrier.visual'
+  | 'avatar.carrier.interaction'
   | 'avatar.debug.session-evidence'
   // Wave 1 K-NAV-SHELL-COMPOSITION-004 — composition state machine evidence.
   | 'avatar.composition.transition'
@@ -41,6 +47,12 @@ export type AvatarCompositionSurface =
 export type AvatarEvidencePayload = {
   kind: AvatarEvidenceKind;
   detail: Record<string, unknown>;
+};
+
+export type AvatarEvidenceArtifactWriteResult = {
+  artifactPath: string;
+  artifactMimeType: string;
+  artifactByteLength: number;
 };
 
 function snapshotEvidenceContext() {
@@ -72,6 +84,18 @@ export async function recordAvatarEvidence(input: AvatarEvidencePayload): Promis
       detail: input.detail,
       consume: snapshot.consume,
       model: snapshot.model,
+    },
+  });
+}
+
+export async function writeAvatarEvidenceArtifact(input: {
+  artifactId: string;
+  dataUrl: string;
+}): Promise<AvatarEvidenceArtifactWriteResult> {
+  return invoke<AvatarEvidenceArtifactWriteResult>('nimi_avatar_write_evidence_artifact', {
+    payload: {
+      artifactId: input.artifactId,
+      dataUrl: input.dataUrl,
     },
   });
 }

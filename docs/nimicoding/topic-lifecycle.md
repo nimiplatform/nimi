@@ -170,9 +170,9 @@ The pending-note is the structured wait. There is no implicit
 
 ## Source Basis
 
-- [`.nimi/methodology/topic-lifecycle.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/topic-lifecycle.yaml)
-- [`.nimi/methodology/topic-lifecycle-report.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/topic-lifecycle-report.yaml)
-- [`.nimi/contracts/topic.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/topic.schema.yaml)
-- [`.nimi/contracts/wave.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/wave.schema.yaml)
-- [`.nimi/contracts/true-close.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/true-close.schema.yaml)
-- [`.nimi/contracts/pending-note.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/pending-note.schema.yaml)
+- [`nimi-coding/methodology/topic-lifecycle.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/methodology/topic-lifecycle.yaml)
+- [`nimi-coding/methodology/topic-lifecycle-report.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/methodology/topic-lifecycle-report.yaml)
+- [`nimi-coding/contracts/topic.schema.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/contracts/topic.schema.yaml)
+- [`nimi-coding/contracts/wave.schema.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/contracts/wave.schema.yaml)
+- [`nimi-coding/contracts/true-close.schema.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/contracts/true-close.schema.yaml)
+- [`nimi-coding/contracts/pending-note.schema.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/contracts/pending-note.schema.yaml)

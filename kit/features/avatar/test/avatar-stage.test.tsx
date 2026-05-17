@@ -10,8 +10,8 @@ describe('avatar stage product markup', () => {
       <AvatarStage
         snapshot={{
           presentation: {
-            backendKind: 'sprite2d',
-            avatarAssetRef: 'https://cdn.nimi.test/avatar.png',
+            backendKind: 'vrm',
+            avatarAssetRef: 'desktop-avatar://resource-1/avatar.vrm',
           },
           interaction: {
             phase: 'idle',
@@ -25,8 +25,8 @@ describe('avatar stage product markup', () => {
       />,
     );
 
-    expect(markup).not.toMatch(/Sprite/u);
     expect(markup).not.toMatch(/VRM/u);
+    expect(markup).not.toMatch(/Live2D/u);
     expect(markup).toMatch(/Here with you/u);
   });
 });

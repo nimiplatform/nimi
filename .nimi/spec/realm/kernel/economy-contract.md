@@ -19,6 +19,8 @@ This contract defines economy constraints adjacent to the Realm core.
 
 World creator economy and access economics remain auditable, explicit, and separate from narrative runtime.
 
+Legacy external economy anchors are represented only through the open-spec alignment map. `R-ECON-*` rows preserve bridge traceability while the active Realm kernel remains the canonical product authority.
+
 ## R-ECON-002
 
 AI compute route cost is not modeled as Realm core truth or hidden world mutation.

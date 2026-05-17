@@ -47,6 +47,13 @@ function resolveAdapterActivityMotion(
   return mapping.group ?? null;
 }
 
+function resolveAdapterExpression(
+  compatibility: Live2DCompatibilityReport | null | undefined,
+  expressionId: string,
+): string {
+  return compatibility?.adapter?.semantics?.expressions?.map?.[expressionId] ?? expressionId;
+}
+
 async function runLive2DDefaultActivityFallback(
   context: PluginApiContext,
   activityId: string,
@@ -83,15 +90,11 @@ async function runLive2DDefaultActivityFallback(
 }
 
 /**
- * @deprecated Wave_1 step_4: this builder is kept only as the
- * transitional `EmbodimentProjectionApi` source for the existing NAS
- * handler sandbox + `interaction-physics` callers. New projection
- * routing MUST go through `live2d-projection-adapter.ts`
- * (BackendProjection ontology surface) and the
- * `Live2DBackendExtension.setParameter` escape hatch on the
- * BackendBranch. Removal lands once the sandbox / default-fallback /
- * continuous-scheduler migrate to input-object signature handlers
- * that consume BackendProjection directly (follow-up wave_1 step).
+ * Builder for the cue-level `EmbodimentProjectionApi` consumed by the
+ * NAS handler sandbox and `interaction-physics` callers. Ontology-level
+ * projection routing goes through `live2d-projection-adapter.ts`
+ * (BackendProjection surface) and the `Live2DBackendExtension.setParameter`
+ * escape hatch on the BackendBranch.
  */
 export function createLive2DBackendApi(context: PluginApiContext): EmbodimentProjectionApi {
   return {
@@ -114,7 +117,10 @@ export function createLive2DBackendApi(context: PluginApiContext): EmbodimentPro
       context.commandBus.emit('command', { kind: 'parameter-add', id: signalId, delta });
     },
     async setExpression(expressionId) {
-      context.commandBus.emit('command', { kind: 'expression', id: expressionId });
+      context.commandBus.emit('command', {
+        kind: 'expression',
+        id: resolveAdapterExpression(context.compatibility, expressionId),
+      });
     },
     clearExpression() {
       context.commandBus.emit('command', { kind: 'expression-clear' });

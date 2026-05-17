@@ -1,36 +1,43 @@
----
-id: SPEC-REALM-WORLD-CREATOR-ECONOMY-001
-title: Realm World Creator Economy Bridge
-status: active
-owner: "@team"
-updated: 2026-03-26
----
-
 # World Creator Economy
 
 ## Normative Imports
 
-- `kernel/economy-contract.md` (`R-ECON-001..004`)
+- `.nimi/spec/realm/kernel/*`
+- `.nimi/spec/realm/kernel/tables/*`
 
 ## Scope
 
-Bridge-only document for creator economy semantics. Kernel authority remains in `.nimi/spec/realm/kernel/economy-contract.md`; this file preserves the legacy open bridge anchors while mirroring the local hard-cut semantics.
-
-## Mapping Declaration
-
-| External Anchor | Local Kernel Anchor |
-| --- | --- |
-| `R-ECON-001` | `R-ECON-001` |
-| `R-ECON-030` | `R-ECON-001`, `R-ECON-003` |
+This guide points to Realm authority surfaces for world-creator-economy. It does not define product rules.
 
 ## Reading Path
 
-1. `kernel/economy-contract.md`
-2. `kernel/tables/rule-catalog.yaml`
-3. `truth.md`
+- `.nimi/spec/realm/kernel/index.md`
+- `.nimi/spec/realm/kernel/asset-contract.md`
+- `.nimi/spec/realm/kernel/attachment-contract.md`
+- `.nimi/spec/realm/kernel/binding-contract.md`
+- `.nimi/spec/realm/kernel/bundle-contract.md`
+- `.nimi/spec/realm/kernel/chat-contract.md`
+- `.nimi/spec/realm/kernel/economy-contract.md`
+- `.nimi/spec/realm/kernel/group-agent-participation-contract.md`
+- `.nimi/spec/realm/kernel/oauth-authority-contract.md`
+- `.nimi/spec/realm/kernel/projection-contract.md`
+- `.nimi/spec/realm/kernel/resource-contract.md`
+- `.nimi/spec/realm/kernel/social-contract.md`
+- `.nimi/spec/realm/kernel/transit-contract.md`
 
-## Non-goals
+## Tables
 
-- No standalone pricing table definition in open spec.
-- No new revenue policy rule IDs in realm.
-- No duplication of open-spec frozen narrative sections.
+- `.nimi/spec/realm/kernel/tables/asset-contract.yaml`
+- `.nimi/spec/realm/kernel/tables/attachment-contract.yaml`
+- `.nimi/spec/realm/kernel/tables/binding-contract.yaml`
+- `.nimi/spec/realm/kernel/tables/bundle-contract.yaml`
+- `.nimi/spec/realm/kernel/tables/chat-contract.yaml`
+- `.nimi/spec/realm/kernel/tables/commit-authorization-matrix.yaml`
+- `.nimi/spec/realm/kernel/tables/domain-enums.yaml`
+- `.nimi/spec/realm/kernel/tables/domain-state-machines.yaml`
+- `.nimi/spec/realm/kernel/tables/economy-contract.yaml`
+- `.nimi/spec/realm/kernel/tables/group-agent-participation-contract.yaml`
+
+## Mapping Declaration
+
+Realm open-spec alignment entries anchor here when this guide participates in an external mapping. Mapping facts live in `.nimi/spec/realm/kernel/tables/open-spec-alignment-map.yaml`.

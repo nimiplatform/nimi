@@ -1,4 +1,16 @@
 version: 1
+table_family: owner_matrix
+owner: sdk
+matrix_id: sdk_import_boundaries
+rows:
+  - rules_1
+  - rules_2
+  - rules_3
+  - rules_4
+  - rules_5
+  - rules_6
+  - rules_7
+  - rules_8
 rules:
   - surface: runtime
     allowed:

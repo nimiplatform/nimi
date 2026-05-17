@@ -23,6 +23,7 @@ import type { VRM } from '@pixiv/three-vrm';
 import type { Profile } from 'wlipsync';
 
 import listeningScenario from '../mock/scenarios/vrm-listening.mock.json';
+import contextLostScenario from '../mock/scenarios/vrm-context-lost.mock.json';
 import thinkingScenario from '../mock/scenarios/vrm-thinking.mock.json';
 import speakingWithAudioScenario from '../mock/scenarios/vrm-speaking-with-audio.mock.json';
 import speakingSilentAudioScenario from '../mock/scenarios/vrm-speaking-silent-audio.mock.json';
@@ -248,6 +249,7 @@ function fakeAudioContext(decode?: () => Promise<AudioBuffer>): {
 describe('chunk 3-E scenario JSON files (fixture sanity)', () => {
   const scenarios = [
     { id: 'vrm-listening', json: listeningScenario },
+    { id: 'vrm-context-lost', json: contextLostScenario },
     { id: 'vrm-thinking', json: thinkingScenario },
     { id: 'vrm-speaking-with-audio', json: speakingWithAudioScenario },
     { id: 'vrm-speaking-silent-audio', json: speakingSilentAudioScenario },

@@ -32,7 +32,8 @@
 | `runtime-delegation-client-contract.md` | `S-RUNTIME-*` | SDK typed projection and command boundary for Runtime-owned delegated capability providers, requests, firewall verdicts, approvals, and replay |
 | `runtime-agent-participation-client-contract.md` | `S-RUNTIME-*` | SDK typed client and method registry boundary for Runtime-owned agent participation profiles, candidates, verdicts, audit, and replay |
 | `realm-group-agent-participation-client-contract.md` | `S-RUNTIME-*` | SDK typed consumer hardcut for Realm GROUP agent participation controls, context refs, candidates, status projection, and no prompt/provider/model/commit ownership |
-| `runtime-avatar-control-client-contract.md` | `S-RUNTIME-*` | SDK typed client boundary for Desktop Avatar configuration and Runtime-owned Avatar debug probe/replay methods |
+| `companion-participation-client-contract.md` | `S-RUNTIME-*` | SDK typed companion participation projection/control boundary for Avatar companion/persona/debug surfaces; no raw prompt/provider/APML/debug/domain payload transport |
+| `runtime-avatar-control-client-contract.md` | `S-RUNTIME-*` | SDK typed client boundary for Desktop Avatar configuration, Runtime-owned Avatar debug probe/replay methods, secondary Runtime Avatar package-source projection method shape, Asset Market Avatar package refs, package-kind-aware acquisition/import projections, readiness decoding, and no package lifecycle authority |
 | `world-evolution-engine-projection-contract.md` | `S-RUNTIME-*` | World Evolution Engine 的 typed projection-only 边界 |
 | `world-evolution-engine-consumer-contract.md` | `S-RUNTIME-*` | World Evolution Engine 的 app/mod consumer-facing API landing、selector-read stable method matrix、shared typed building blocks 与 no-leak hardcut |
 | `world-contract.md` | `S-WORLD-*` | `sdk/world` 的 public facade boundary、five-family coarse landing、world-input projection boundary、fixture package boundary、renderer orchestration boundary、world-session composition boundary |
@@ -64,5 +65,9 @@
 ## 7. 结构约束
 
 - kernel 表 `source_rule` 仅允许 `S-*`。
-- domain 文档只引用 kernel Rule ID，不定义本地规则体系。
+- domain 文档只保留阅读路径与包路径导引，不定义本地规则体系，也不复述 kernel rule body。
 - human-authored topic lifecycle reports 写入 `.nimi/topics/{proposal|ongoing|pending|closed}/<topic-id>/**`；legacy local-only execution evidence may still appear under `.local/report/**`；tracked spec 不依赖具体 local 文件。
+
+## 8. Domain Activation Overview
+
+SDK active domains are `runtime`, `realm`, and `ai-provider`. `world`, `scope`, and `mod` remain defined SDK domains whose API surface grows only through kernel contracts and structured tables.

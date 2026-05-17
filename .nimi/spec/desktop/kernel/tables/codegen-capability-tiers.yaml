@@ -1,3 +1,6 @@
+table_family: product_catalog
+owner: desktop
+catalog_id: desktop_codegen_capability_tiers
 entries:
   - tier: T0
     capability: runtime.ai.text.generate

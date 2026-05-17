@@ -2,6 +2,8 @@ import { ReasonCode } from '../types/index.js';
 import { createNimiError } from './errors.js';
 import { asRecord, normalizeText, parseCount, toIsoFromTimestamp } from './helpers.js';
 import {
+  AgentPresentationEventFamily,
+  type AgentPresentationEventDetail,
   AgentExecutionState,
   AgentStateEventFamily,
   HookAdmissionState,
@@ -12,6 +14,7 @@ import {
   type HookTriggerDetail,
 } from './generated/runtime/v1/agent_service.js';
 import { ReasonCode as RuntimeProtoReasonCode } from './generated/runtime/v1/common.js';
+import { parseRuntimeAgentPresentationConsumeEvent } from './runtime-agent-presentation-parsers.js';
 import type { RuntimeAgentConsumeEvent, RuntimeAgentHookAdmissionState } from './types-runtime-agent.js';
 import { expectCurrentEmotion, expectLocalAgentIdentity, expectString, optionalString } from './runtime-agent-surface-parser-common.js';
 
@@ -161,6 +164,36 @@ function optionalRuntimeReasonCode(value: RuntimeProtoReasonCode): string | unde
   const normalized = RuntimeProtoReasonCode[value];
   return typeof normalized === 'string' ? normalized : undefined;
 }
+function presentationMessageType(value: AgentPresentationEventFamily): string {
+  switch (value) {
+    case AgentPresentationEventFamily.ACTIVITY_REQUESTED:
+      return 'runtime.agent.presentation.activity_requested';
+    case AgentPresentationEventFamily.MOTION_REQUESTED:
+      return 'runtime.agent.presentation.motion_requested';
+    case AgentPresentationEventFamily.EXPRESSION_REQUESTED:
+      return 'runtime.agent.presentation.expression_requested';
+    case AgentPresentationEventFamily.POSE_REQUESTED:
+      return 'runtime.agent.presentation.pose_requested';
+    case AgentPresentationEventFamily.POSE_CLEARED:
+      return 'runtime.agent.presentation.pose_cleared';
+    case AgentPresentationEventFamily.LOOKAT_REQUESTED:
+      return 'runtime.agent.presentation.lookat_requested';
+    default:
+      return '';
+  }
+}
+function presentationExpectedDurationMs(detail: AgentPresentationEventDetail): string {
+  switch (detail.family) {
+    case AgentPresentationEventFamily.MOTION_REQUESTED:
+      return detail.motionExpectedDurationMs;
+    case AgentPresentationEventFamily.EXPRESSION_REQUESTED:
+      return detail.expressionExpectedDurationMs;
+    case AgentPresentationEventFamily.POSE_REQUESTED:
+      return detail.poseExpectedDurationMs;
+    default:
+      return '';
+  }
+}
 export function parseAgentConsumeEvent(event: AgentEvent): RuntimeAgentConsumeEvent {
   const identity = expectLocalAgentIdentity(
     event.localAgentRef,
@@ -271,6 +304,56 @@ export function parseAgentConsumeEvent(event: AgentEvent): RuntimeAgentConsumeEv
           ...(toIsoFromTimestamp(detail.observedAt) ? { observedAt: toIsoFromTimestamp(detail.observedAt) } : {}),
         },
       };
+    }
+    case 'presentation': {
+      const detail = event.detail.presentation;
+      const messageType = presentationMessageType(detail.family);
+      if (!messageType) {
+        break;
+      }
+      const payload = {
+        agent_id: identity.localAgentRef,
+        conversation_anchor_id: detail.conversationAnchorId,
+        turn_id: detail.turnId,
+        stream_id: detail.streamId,
+        detail: {
+          activity_name: detail.activityName,
+          activity_category: detail.activityCategory,
+          category: detail.activityCategory,
+          activity_intensity: detail.activityIntensity,
+          intensity: detail.activityIntensity,
+          activity_source: detail.activitySource,
+          source: detail.activitySource,
+          motion_id: detail.motionId,
+          priority: detail.motionPriority,
+          expected_duration_ms: presentationExpectedDurationMs(detail),
+          expression_id: detail.expressionId,
+          pose_id: detail.poseId,
+          previous_pose_id: detail.previousPoseId,
+          target_kind: detail.lookatTargetKind,
+          x: detail.lookatX,
+          y: detail.lookatY,
+          z: detail.lookatZ,
+        },
+      };
+      const parsed = parseRuntimeAgentPresentationConsumeEvent(
+        messageType,
+        payload,
+        identity.localAgentRef,
+        expectString(detail.conversationAnchorId, 'conversation_anchor_id', messageType),
+        () => {
+          throw createNimiError({
+            message: `${messageType} agent event timeline is not supported`,
+            reasonCode: ReasonCode.SDK_RUNTIME_RESPONSE_DECODE_FAILED,
+            actionHint: 'check_runtime_agent_projection_shape',
+            source: 'sdk',
+          });
+        },
+      );
+      if (parsed) {
+        return parsed;
+      }
+      break;
     }
     default:
       break;

@@ -1,4 +1,46 @@
 version: 1
+table_family: closed_enum
+owner: runtime
+enum_id: runtime_local_environment_job_states
+values:
+  - unknown
+  - needs_confirmation
+  - queued
+  - downloading
+  - verifying
+  - installing
+  - ready_system
+  - ready_managed
+  - repair_required
+  - failed
+  - unsupported
+  - cancelled
+  - one active job may exist per dependency environment
+  - duplicate consumer requests must attach to the same active job
+  - cancellation must stop before promotion or leave the previous selected
+    source intact
+  - repair locks must block activation until verification restores ready_system
+    or ready_managed
+  - Desktop may display, confirm, cancel, retry, or repair Runtime jobs only
+    through Runtime APIs
+  - Runtime core readiness must not wait on local environment jobs
+  - needs_confirmation may project as setup-required or
+    materializable-requires-confirmation, but it is never ready
+  - queued, downloading, installing, and verifying must emit phase/audit detail
+    sufficient for bounded Desktop and SDK projection
+  - retry must rerun family verification and must not reuse failed staging as
+    readiness proof
+  - startup, route resolution, Desktop page load, SDK reads, passive import
+    review, health probes, and background maintenance must not start first heavy
+    materialization
+  - owner
+  - target_identity
+  - commands
+  - forbidden
+  - product_setup_required_states
+  - non_ready_states
+  - ready_states
+  - forbidden_ready_projection_inputs
 
 # Canonical local environment dependency job lifecycle authority.
 

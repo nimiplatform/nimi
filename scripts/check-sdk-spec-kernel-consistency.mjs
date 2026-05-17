@@ -2,7 +2,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import YAML from 'yaml';
+import { readYamlWithFragments } from './lib/read-yaml-with-fragments.mjs';
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const cwd = path.resolve(scriptDir, '..');
@@ -17,6 +17,8 @@ const kernelFiles = [
   '.nimi/spec/sdk/kernel/runtime-delegation-client-contract.md',
   '.nimi/spec/sdk/kernel/runtime-agent-participation-client-contract.md',
   '.nimi/spec/sdk/kernel/realm-group-agent-participation-client-contract.md',
+  '.nimi/spec/sdk/kernel/companion-participation-client-contract.md',
+  '.nimi/spec/sdk/kernel/runtime-avatar-control-client-contract.md',
   '.nimi/spec/sdk/kernel/world-contract.md',
   '.nimi/spec/sdk/kernel/world-evolution-engine-projection-contract.md',
   '.nimi/spec/sdk/kernel/world-evolution-engine-consumer-contract.md',
@@ -35,6 +37,10 @@ const kernelFiles = [
   '.nimi/spec/sdk/kernel/tables/sdk-testing-gates.yaml',
   '.nimi/spec/sdk/kernel/tables/runtime-agent-participation-methods.yaml',
   '.nimi/spec/sdk/kernel/tables/rule-evidence.yaml',
+  '.nimi/spec/sdk/kernel/tables/rule-evidence.catalog.yaml',
+  '.nimi/spec/sdk/kernel/tables/rule-evidence.rules-core-surface.yaml',
+  '.nimi/spec/sdk/kernel/tables/rule-evidence.rules-runtime-client.yaml',
+  '.nimi/spec/sdk/kernel/tables/rule-evidence.rules-domain-adapters.yaml',
 ];
 
 const domainFiles = listDomainMarkdownFiles('.nimi/spec/sdk');
@@ -50,7 +56,7 @@ function read(rel) {
 }
 
 function readYaml(rel) {
-  return YAML.parse(read(rel));
+  return readYamlWithFragments(path.join(cwd, rel));
 }
 
 for (const rel of kernelFiles) {
@@ -66,9 +72,6 @@ for (const rel of domainFiles) {
   if (!content.includes('Normative Imports: `.nimi/spec/sdk/kernel/*`')) {
     fail(`${rel} must declare kernel imports`);
   }
-  if (!/\bS-[A-Z]+-\d{3}\b/.test(content)) {
-    fail(`${rel} must reference at least one sdk kernel Rule ID`);
-  }
   checkNoLocalRuleIds(content, rel);
   checkNoRuleDefinitionHeadings(content, rel);
   if (/\b(listTokenProviderModels|checkTokenProviderHealth|TokenProvider[A-Za-z0-9_]*)\b/.test(content)) {
@@ -80,13 +83,6 @@ if (domainFiles.length === 0) {
 }
 
 checkDomainSection0ImportsCoveredInBody();
-
-for (const rel of ['.nimi/spec/sdk/scope.md', '.nimi/spec/sdk/mod.md']) {
-  const content = read(rel);
-  if (!content.includes('kernel/transport-contract.md')) {
-    fail(`${rel} must import transport contract and declare stream applicability`);
-  }
-}
 
 const allSdkSpecs = walk(path.join(cwd, '.nimi/spec/sdk')).filter((p) => p.endsWith('.md') || p.endsWith('.yaml'));
 const sdkRuntimeSourceFiles = walk(path.join(cwd, 'sdk/src/runtime'))
@@ -335,17 +331,17 @@ function checkRuleEvidenceTraceability(sdkKernelRules) {
     fail(`${evidencePath} rules must not be empty`);
     return;
   }
-  const declaredTotal = Number(doc.rule_compliance?.total_s_rules);
+  const declaredTotal = Number(doc.rule_registry?.total_s_rules);
   if (!Number.isInteger(declaredTotal) || declaredTotal <= 0) {
-    fail(`${evidencePath} rule_compliance.total_s_rules must be a positive integer`);
+    fail(`${evidencePath} rule_registry.total_s_rules must be a positive integer`);
   } else if (declaredTotal !== rules.length) {
-    fail(`${evidencePath} rule_compliance.total_s_rules (${declaredTotal}) must match resolved rule rows (${rules.length})`);
+    fail(`${evidencePath} rule_registry.total_s_rules (${declaredTotal}) must match resolved rule rows (${rules.length})`);
   }
 
   const seen = new Set();
   for (const item of rules) {
     const ruleId = String(item?.rule_id || '').trim();
-    const status = String(item?.status || '').trim().toLowerCase();
+    const requirement = String(item?.evidence_requirement || '').trim().toLowerCase();
     const refs = Array.isArray(item?.evidence_refs) ? item.evidence_refs : [];
     const naReason = String(item?.na_reason || '').trim();
     if (!/^S-[A-Z]+-\d{3}[a-z]?$/u.test(ruleId)) {
@@ -360,16 +356,16 @@ function checkRuleEvidenceTraceability(sdkKernelRules) {
     if (!sdkKernelRules.has(ruleId)) {
       fail(`${evidencePath} references unknown sdk kernel rule: ${ruleId}`);
     }
-    if (status !== 'covered' && status !== 'na') {
-      fail(`${evidencePath} ${ruleId} has invalid status: ${status || '<empty>'} (allowed: covered|na)`);
+    if (requirement !== 'required' && requirement !== 'not_applicable') {
+      fail(`${evidencePath} ${ruleId} has invalid evidence_requirement: ${requirement || '<empty>'} (allowed: required|not_applicable)`);
       continue;
     }
-    if (status === 'na') {
-      if (!naReason) fail(`${evidencePath} ${ruleId} status=na requires na_reason`);
+    if (requirement === 'not_applicable') {
+      if (!naReason) fail(`${evidencePath} ${ruleId} evidence_requirement=not_applicable requires na_reason`);
       continue;
     }
     if (refs.length === 0) {
-      fail(`${evidencePath} ${ruleId} status=covered requires non-empty evidence_refs`);
+      fail(`${evidencePath} ${ruleId} evidence_requirement=required requires non-empty evidence_refs`);
       continue;
     }
     for (const rawRef of refs) {
@@ -421,9 +417,8 @@ function checkSdkLocalReasonCodesRegistered(sdkErrorCodesTable) {
 
 function checkOrphanRules() {
   const allRefs = [];
-  for (const rel of [...kernelFiles, ...domainFiles]) {
+  for (const rel of kernelFiles) {
     if (!fs.existsSync(path.join(cwd, rel))) continue;
-    if (rel.endsWith('rule-evidence.yaml')) continue;
     const content = read(rel);
     for (const m of content.matchAll(/\bS-[A-Z]+-\d{3}[a-z]?\b/g)) {
       allRefs.push(m[0]);
@@ -524,7 +519,7 @@ function boundarySourceRules(rule) {
 
 function checkProviderNameAlignment() {
   // Verify testing-gates S-GATE-070 references provider-catalog or has a name mapping
-  const testingGatesPath = '.nimi/spec/sdk/testing-gates.md';
+  const testingGatesPath = '.nimi/spec/sdk/kernel/testing-gates-contract.md';
   const providerCatalogPath = '.nimi/spec/runtime/kernel/tables/provider-catalog.yaml';
   const mappingReportPath = '.local/report/sdk-provider-compatibility.md';
 

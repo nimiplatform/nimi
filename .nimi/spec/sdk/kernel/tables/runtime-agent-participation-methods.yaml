@@ -1,4 +1,23 @@
 version: 1
+table_family: protocol_surface
+protocol_id: sdk_runtime_agent_participation_methods
+surfaces:
+  - runtime.agentParticipation.describeProfiles
+  - runtime.agentParticipation.describeContextBlocks
+  - runtime.agentParticipation.validateRequest
+  - runtime.agentParticipation.execute
+  - runtime.agentParticipation.getCandidate
+  - runtime.agentParticipation.getVerdicts
+  - runtime.agentParticipation.listAuditEvents
+  - runtime.agentParticipation.getReplay
+  - any
+  - Record<string, unknown>
+  - free_form_map
+  - raw_prompt_blob
+  - raw_mcp
+  - raw_a2a
+  - raw_provider_payload
+  - raw_memory_payload
 owner: .nimi/spec/sdk
 source_rule: S-RUNTIME-217
 status: active

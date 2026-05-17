@@ -1,14 +1,48 @@
 import assert from 'node:assert/strict';
 import { E2E_IDS } from './selectors.mjs';
 
-export async function waitForTestId(id, timeout = 15000) {
+const DEFAULT_WAIT_TIMEOUT_MS = 15000;
+const BOOTSTRAP_WAIT_TIMEOUT_MS = 60000;
+
+function timeoutForTestId(id, timeout) {
+  if (Number.isFinite(timeout) && timeout > 0) {
+    return timeout;
+  }
+  if (id === E2E_IDS.mainShell || id === E2E_IDS.chatPage || String(id).startsWith('panel:')) {
+    return BOOTSTRAP_WAIT_TIMEOUT_MS;
+  }
+  return DEFAULT_WAIT_TIMEOUT_MS;
+}
+
+async function currentBootstrapErrorText() {
+  const errorScreen = await $(`[data-testid="${E2E_IDS.appBootstrapErrorScreen}"]`);
+  if (!(await errorScreen.isExisting())) {
+    return '';
+  }
+  return (await errorScreen.getText()).trim();
+}
+
+export async function waitForTestId(id, timeout = 0) {
   const selector = `[data-testid="${id}"]`;
   const element = await $(selector);
-  await element.waitForExist({ timeout });
+  const effectiveTimeout = timeoutForTestId(id, timeout);
+  await browser.waitUntil(async () => {
+    if (await element.isExisting()) {
+      return true;
+    }
+    const bootstrapError = await currentBootstrapErrorText();
+    if (bootstrapError) {
+      throw new Error(`bootstrap failed before ${id} became available: ${bootstrapError}`);
+    }
+    return false;
+  }, {
+    timeout: effectiveTimeout,
+    timeoutMsg: `expected ${id} to exist within ${effectiveTimeout}ms`,
+  });
   return element;
 }
 
-export async function clickByTestId(id, timeout = 15000) {
+export async function clickByTestId(id, timeout = 0) {
   const element = await waitForTestId(id, timeout);
   await element.click();
   return element;
@@ -37,6 +71,20 @@ export async function updateRuntimeBridgeStatus(status) {
     body: JSON.stringify(status),
   });
   assert.equal(response.ok, true, `runtime-bridge-status control failed: ${response.status}`);
+  return response.json();
+}
+
+export async function updateRealmRestOnline(online) {
+  const baseUrl = String(process.env.NIMI_E2E_FIXTURE_CONTROL_URL || '').trim();
+  assert.ok(baseUrl, 'NIMI_E2E_FIXTURE_CONTROL_URL is required');
+  const response = await fetch(`${baseUrl}/rest-online`, {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+    },
+    body: JSON.stringify({ online }),
+  });
+  assert.equal(response.ok, true, `rest-online control failed: ${response.status}`);
   return response.json();
 }
 

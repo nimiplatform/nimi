@@ -1,9 +1,10 @@
 use super::{
     avatar_runtime_env_pairs, build_avatar_close_handoff_uri, build_avatar_handoff_uri,
-    confirm_dialog, ConfirmDialogPayload, DesktopAvatarCloseHandoffPayload,
-    DesktopAvatarLaunchHandoffPayload,
+    confirm_dialog, require_fresh_inferred_avatar_target, ConfirmDialogPayload,
+    DesktopAvatarCloseHandoffPayload, DesktopAvatarLaunchHandoffPayload,
 };
 use crate::test_support::test_guard;
+use std::time::Duration;
 use std::{fs, path::PathBuf};
 
 fn make_temp_dir(prefix: &str) -> PathBuf {
@@ -18,12 +19,9 @@ fn make_temp_dir(prefix: &str) -> PathBuf {
 
 fn launch_payload() -> DesktopAvatarLaunchHandoffPayload {
     DesktopAvatarLaunchHandoffPayload {
-        owner_user_id: "owner-1".to_string(),
-        realm_agent_id: "agent-1".to_string(),
-        local_agent_ref: "local-agent:owner-1:agent-1".to_string(),
+        agent_id: "agent-1".to_string(),
         avatar_instance_id: Some("instance-1".to_string()),
-        launch_source: None,
-        source_surface: Some("desktop-agent-chat".to_string()),
+        launch_source: Some("desktop-agent-chat".to_string()),
     }
 }
 
@@ -82,15 +80,33 @@ fn avatar_handoff_uri_includes_only_minimal_launch_intent() {
     let uri = build_avatar_handoff_uri(&launch_payload()).expect("valid handoff uri");
 
     assert!(uri.starts_with("nimi-avatar://launch?"));
-    assert!(uri.contains("owner_user_id=owner-1"));
-    assert!(uri.contains("realm_agent_id=agent-1"));
-    assert!(uri.contains("local_agent_ref=local-agent%3Aowner-1%3Aagent-1"));
-    assert!(uri.contains("avatar_instance_id=instance-1"));
-    assert!(uri.contains("launch_source=desktop-agent-chat"));
+    let parsed = url::Url::parse(uri.as_str()).expect("parse handoff uri");
+    let query: std::collections::BTreeMap<String, String> =
+        parsed.query_pairs().into_owned().collect();
+    assert_eq!(query.get("agent_id").map(String::as_str), Some("agent-1"));
+    assert_eq!(
+        query.get("avatar_instance_id").map(String::as_str),
+        Some("instance-1")
+    );
+    assert_eq!(
+        query.get("launch_source").map(String::as_str),
+        Some("desktop-agent-chat")
+    );
+    assert_eq!(
+        query.keys().cloned().collect::<Vec<_>>(),
+        vec![
+            "agent_id".to_string(),
+            "avatar_instance_id".to_string(),
+            "launch_source".to_string(),
+        ]
+    );
+    assert!(!uri.contains("owner_user_id"));
+    assert!(!uri.contains("realm_agent_id"));
+    assert!(!uri.contains("local_agent_ref"));
+    assert!(!uri.contains("conversation_anchor_id"));
     assert!(!uri.contains("avatar_package_kind"));
     assert!(!uri.contains("avatar_package_id"));
     assert!(!uri.contains("avatar_package_schema_version"));
-    assert!(!uri.contains("conversation_anchor_id"));
     assert!(!uri.contains("runtime_app_id"));
     assert!(!uri.contains("world_id"));
     assert!(!uri.contains("binding_id"));
@@ -129,7 +145,10 @@ fn avatar_runtime_env_pairs_forward_runtime_defaults_without_realm_or_token() {
         "NIMI_RUNTIME_GRPC_ADDR",
         "NIMI_RUNTIME_HTTP_ADDR",
         "NIMI_RUNTIME_LOCAL_STATE_PATH",
+        "NIMI_RUNTIME_LOCK_PATH",
+        "NIMI_RUNTIME_BRIDGE_MODE",
         "NIMI_RUNTIME_BRIDGE_DEBUG",
+        "NIMI_E2E_BACKEND_LOG_PATH",
     ];
     let saved: Vec<(&str, Option<String>)> = keys
         .iter()
@@ -167,7 +186,16 @@ fn avatar_runtime_env_pairs_forward_runtime_defaults_without_realm_or_token() {
         "NIMI_RUNTIME_LOCAL_STATE_PATH",
         fixture_dir.join("runtime-state.json").as_os_str(),
     );
+    std::env::set_var(
+        "NIMI_RUNTIME_LOCK_PATH",
+        fixture_dir.join("runtime.lock").as_os_str(),
+    );
+    std::env::set_var("NIMI_RUNTIME_BRIDGE_MODE", "RELEASE");
     std::env::set_var("NIMI_RUNTIME_BRIDGE_DEBUG", "1");
+    std::env::set_var(
+        "NIMI_E2E_BACKEND_LOG_PATH",
+        fixture_dir.join("backend.log").as_os_str(),
+    );
 
     let pairs = avatar_runtime_env_pairs().expect("avatar env pairs");
 
@@ -180,10 +208,7 @@ fn avatar_runtime_env_pairs_forward_runtime_defaults_without_realm_or_token() {
 
     assert!(pairs.contains(&("NIMI_WORLD_ID", "world-e2e-1".to_string())));
     assert!(pairs.contains(&("NIMI_AGENT_ID", "agent-e2e-alpha".to_string())));
-    assert!(pairs.contains(&(
-        "NIMI_E2E_PROFILE",
-        "chat.live2d-avatar-product-smoke".to_string()
-    )));
+    assert!(!pairs.iter().any(|(key, _)| *key == "NIMI_E2E_PROFILE"));
     assert!(pairs.contains(&(
         "NIMI_E2E_FIXTURE_PATH",
         fixture_path.to_string_lossy().to_string()
@@ -204,6 +229,22 @@ fn avatar_runtime_env_pairs_forward_runtime_defaults_without_realm_or_token() {
             .to_string_lossy()
             .to_string()
     )));
+    assert!(pairs.contains(&(
+        "NIMI_RUNTIME_LOCK_PATH",
+        fixture_dir
+            .join("runtime.lock")
+            .to_string_lossy()
+            .to_string()
+    )));
+    assert!(pairs.contains(&("NIMI_RUNTIME_BRIDGE_MODE", "RUNTIME".to_string())));
+    assert!(!pairs.contains(&("NIMI_RUNTIME_BRIDGE_MODE", "RELEASE".to_string())));
+    assert!(pairs.contains(&(
+        "NIMI_E2E_BACKEND_LOG_PATH",
+        fixture_dir
+            .join("backend.log")
+            .to_string_lossy()
+            .to_string()
+    )));
     assert!(!pairs.iter().any(|(key, _)| key.starts_with("NIMI_REALM")));
     assert!(!pairs.iter().any(|(key, _)| key.contains("AUTH_SESSION")));
     assert!(!pairs.iter().any(|(key, _)| key.contains("ACCESS_TOKEN")));
@@ -211,14 +252,69 @@ fn avatar_runtime_env_pairs_forward_runtime_defaults_without_realm_or_token() {
 }
 
 #[test]
-fn avatar_handoff_uri_rejects_missing_local_agent_ref() {
+fn inferred_avatar_target_rejects_source_newer_than_binary() {
+    let temp = make_temp_dir("avatar-target-stale");
+    let repo = temp.join("repo");
+    let binary = repo
+        .join("apps")
+        .join("avatar")
+        .join("src-tauri")
+        .join("target")
+        .join("release")
+        .join("nimiplatform-avatar");
+    fs::create_dir_all(binary.parent().expect("binary parent")).expect("create binary parent");
+    fs::write(&binary, "old avatar binary").expect("write binary");
+    std::thread::sleep(Duration::from_millis(50));
+    let source = repo
+        .join("apps")
+        .join("avatar")
+        .join("src-tauri")
+        .join("src")
+        .join("agent_center_avatar_asset.rs");
+    fs::create_dir_all(source.parent().expect("source parent")).expect("create source parent");
+    fs::write(&source, "fn main() {}").expect("write source");
+
+    let error = require_fresh_inferred_avatar_target(&repo, &binary)
+        .expect_err("stale repo-local Avatar target must fail");
+
+    assert!(error.contains("repo-local Avatar target is older than Avatar source"));
+    assert!(error.contains("pnpm build:avatar"));
+    let _ = fs::remove_dir_all(temp);
+}
+
+#[test]
+fn inferred_avatar_target_accepts_binary_newer_than_source() {
+    let temp = make_temp_dir("avatar-target-fresh");
+    let repo = temp.join("repo");
+    let source = repo
+        .join("apps")
+        .join("avatar")
+        .join("src-tauri")
+        .join("src")
+        .join("agent_center_avatar_asset.rs");
+    fs::create_dir_all(source.parent().expect("source parent")).expect("create source parent");
+    fs::write(&source, "fn main() {}").expect("write source");
+    std::thread::sleep(Duration::from_millis(50));
+    let binary = repo
+        .join("apps")
+        .join("avatar")
+        .join("src-tauri")
+        .join("target")
+        .join("release")
+        .join("nimiplatform-avatar");
+    fs::create_dir_all(binary.parent().expect("binary parent")).expect("create binary parent");
+    fs::write(&binary, "fresh avatar binary").expect("write binary");
+
+    require_fresh_inferred_avatar_target(&repo, &binary).expect("fresh target should pass");
+    let _ = fs::remove_dir_all(temp);
+}
+
+#[test]
+fn avatar_handoff_uri_rejects_missing_agent_id() {
     let error = build_avatar_handoff_uri(&DesktopAvatarLaunchHandoffPayload {
-        owner_user_id: "owner-1".to_string(),
-        realm_agent_id: "agent-1".to_string(),
-        local_agent_ref: " ".to_string(),
+        agent_id: " ".to_string(),
         avatar_instance_id: Some("instance-1".to_string()),
         launch_source: None,
-        source_surface: Some("desktop-agent-chat".to_string()),
     })
     .expect_err("missing agent should fail");
 
@@ -230,6 +326,23 @@ fn avatar_handoff_uri_rejects_missing_local_agent_ref() {
             .and_then(serde_json::Value::as_str),
         Some("DESKTOP_AVATAR_HANDOFF_INVALID"),
     );
+}
+
+#[test]
+fn avatar_launch_payload_rejects_old_authority_fields() {
+    let payload = serde_json::json!({
+        "agentId": "agent-1",
+        "ownerUserId": "owner-1",
+        "realmAgentId": "agent-1",
+        "localAgentRef": "local-agent:owner-1:agent-1",
+        "conversationAnchorId": "anchor-1",
+        "avatarInstanceId": "instance-1",
+        "avatarPackageRef": "pkg-avatar-1",
+        "materializationRef": "agent-center://avatar/pkg-avatar-1"
+    });
+    let error = serde_json::from_value::<DesktopAvatarLaunchHandoffPayload>(payload)
+        .expect_err("old launch authority fields must fail closed");
+    assert!(error.to_string().contains("unknown field"));
 }
 
 #[test]

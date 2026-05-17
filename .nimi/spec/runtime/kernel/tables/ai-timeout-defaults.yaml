@@ -1,4 +1,16 @@
 version: 1
+table_family: product_catalog
+owner: runtime
+catalog_id: runtime_ai_timeout_defaults
+entries:
+  - timeouts_1
+  - timeouts_2
+  - timeouts_3
+  - timeouts_4
+  - timeouts_5
+  - timeouts_6
+  - timeouts_7
+  - timeouts_8
 timeouts:
   - operation: ExecuteScenario_text_generate
     default_ms: 120000

@@ -1,5 +1,11 @@
 import { invoke } from '@tauri-apps/api/core';
 
+declare global {
+  interface Window {
+    __NIMI_AVATAR_RENDERER_MODULE_ENTRY__?: boolean;
+  }
+}
+
 function toErrorDetail(error: unknown): Record<string, unknown> {
   if (error instanceof Error) {
     return {
@@ -26,6 +32,8 @@ function recordEarlyEvidence(kind: 'avatar.renderer.entry-loaded' | 'avatar.rend
     },
   }).catch(() => {});
 }
+
+window.__NIMI_AVATAR_RENDERER_MODULE_ENTRY__ = true;
 
 recordEarlyEvidence('avatar.renderer.entry-loaded', {
   source: 'avatar-renderer',

@@ -1,3 +1,6 @@
+table_family: gate_registry
+owner: platform
+registry_id: platform_release_gate_registry
 # Release Gate Registry
 #
 # Single source of release gate identity, governed by P-RELG-001..014
@@ -13,8 +16,6 @@
 schema_version: release-gate-registry/v1
 registry_version: "1.0.0"
 profile_id: nimi
-generated_at: 2026-05-10T10:30:00Z
-
 # -----------------------------------------------------------------------
 # Tier definitions (P-RELG-012 tier membership constraint)
 # -----------------------------------------------------------------------
@@ -35,8 +36,6 @@ tiers:
     semantic: desktop_release_blocking_subset
   - id: release-target:web
     semantic: web_release_blocking_subset
-  - id: release-target:nimicoding
-    semantic: nimicoding_release_blocking_subset
   - id: release-target:mods
     semantic: mods_release_blocking_subset
   - id: live
@@ -811,40 +810,12 @@ gates:
   # =====================================================================
   # owner: nimicoding (nimi-coding methodology package)
   # =====================================================================
-  - id: gate.nimicoding.test
-    description: nimi-coding package test suite.
-    command: pnpm --filter @nimiplatform/nimi-coding test
-    runner: pnpm
-    tiers: [fast, release, release-target:nimicoding]
-    targets: [nimicoding]
-    timeout_seconds: 600
-    requires_binaries: [pnpm]
-    evidence:
-      shape: command_exit
-    p_relg_anchors: [P-RELG-001]
-    parent_p_gov_anchors: [P-GOV-003]
-    experimental: false
-
-  - id: gate.nimicoding.pack-dry-run
-    description: nimi-coding npm pack dry-run for release readiness.
-    command: pnpm --filter @nimiplatform/nimi-coding check:pack
-    runner: pnpm
-    tiers: [release, release-target:nimicoding]
-    targets: [nimicoding]
-    timeout_seconds: 60
-    requires_binaries: [pnpm]
-    evidence:
-      shape: command_exit
-    p_relg_anchors: [P-RELG-001]
-    parent_p_gov_anchors: [P-GOV-003]
-    experimental: false
-
   - id: gate.nimicoding.cli-help-smoke
-    description: nimi-coding CLI entrypoint smoke (--help must succeed).
-    command: pnpm --filter @nimiplatform/nimi-coding exec nimicoding --help
+    description: Host-installed nimicoding CLI entrypoint smoke (--help must succeed).
+    command: pnpm exec nimicoding --help
     runner: pnpm
-    tiers: [release, release-target:nimicoding]
-    targets: [nimicoding]
+    tiers: [fast, release]
+    targets: [any]
     timeout_seconds: 60
     requires_binaries: [pnpm]
     evidence:
@@ -2109,25 +2080,6 @@ gates:
     p_relg_anchors: [P-RELG-001]
     parent_p_gov_anchors: [P-GOV-003]
     experimental: false
-
-  - id: gate.spec-governance.validate-spec-audit
-    description: Validate spec generation audit (typed contract; ok=true required).
-    command: pnpm exec nimicoding validate-spec-audit
-    runner: pnpm
-    tiers: [fast, release]
-    targets: [any]
-    timeout_seconds: 60
-    requires_binaries: [pnpm]
-    evidence:
-      shape: command_exit
-    p_relg_anchors: [P-RELG-001]
-    parent_p_gov_anchors: [P-GOV-003]
-    experimental: false
-    notes: |
-      Per Auditor Precedence sub-rule C, the JSON ok field is the
-      authoritative verdict signal for this gate. The runner is
-      expected to inspect ok in evidence emission, not just the exit
-      code.
 
   - id: gate.spec-governance.validate-ai-governance
     description: Validate AI governance (--scope all covers agents-freshness, context-budget, structure-budget, high-risk-doc-metadata).

@@ -387,6 +387,12 @@ export type AgentMemoryBindStandardResult = {
   bank: JsonObject;
 };
 
+export type AgentMemoryStandardFixtureStatusResult = {
+  available: boolean;
+  alreadyBound: boolean;
+  bank: JsonObject;
+};
+
 export type MemoryEmbeddingScopeRef = {
   kind: string;
   ownerId: string;
@@ -464,6 +470,7 @@ export type DesktopMacosSmokeContext = {
   artifactsDir?: string;
   disableRuntimeBootstrap?: boolean;
   bootstrapTimeoutMs?: number;
+  avatarProductLocalAssetFault?: JsonObject;
 };
 
 export type DesktopMacosSmokeReportPayload = {

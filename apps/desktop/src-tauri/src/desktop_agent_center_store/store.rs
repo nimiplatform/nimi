@@ -140,7 +140,7 @@ pub(super) fn validate_background_id(value: &str, field_name: &str) -> Result<()
     validate_hex_suffix(value, "bg_", field_name)
 }
 
-pub(super) fn validate_package_id(value: &str, field_name: &str) -> Result<(), String> {
+pub(super) fn validate_local_asset_id(value: &str, field_name: &str) -> Result<(), String> {
     if value.starts_with("live2d_") {
         return validate_hex_suffix(value, "live2d_", field_name);
     }
@@ -201,22 +201,46 @@ fn validate_agent_center_config(config: &AgentCenterLocalConfig) -> Result<(), S
     }
 
     validate_module_version(
-        config.modules.avatar_package.schema_version,
-        "modules.avatar_package.schema_version",
+        config.modules.avatar_asset.schema_version,
+        "modules.avatar_asset.schema_version",
     )?;
-    if let Some(package_ref) = &config.modules.avatar_package.avatar_package_ref {
-        validate_normalized_id(package_ref, "modules.avatar_package.avatar_package_ref")?;
+    if let Some(local_asset_ref) = &config.modules.avatar_asset.local_avatar_asset_ref {
+        validate_normalized_id(
+            local_asset_ref,
+            "modules.avatar_asset.local_avatar_asset_ref",
+        )?;
+        match config.modules.avatar_asset.backend_kind {
+            AgentCenterAvatarBackendKind::Live2d if !local_asset_ref.starts_with("live2d_") => {
+                return Err(
+                    "modules.avatar_asset.backend_kind must match local Avatar asset id prefix"
+                        .to_string(),
+                );
+            }
+            AgentCenterAvatarBackendKind::Vrm if !local_asset_ref.starts_with("vrm_") => {
+                return Err(
+                    "modules.avatar_asset.backend_kind must match local Avatar asset id prefix"
+                        .to_string(),
+                );
+            }
+            AgentCenterAvatarBackendKind::Future => {
+                return Err(
+                    "modules.avatar_asset.backend_kind future cannot be selected for a local Avatar asset"
+                        .to_string(),
+                );
+            }
+            _ => {}
+        }
     }
-    match config.modules.avatar_package.live2d_adapter_manifest_source {
+    match config.modules.avatar_asset.live2d_adapter_manifest_source {
         AgentCenterLive2dAdapterManifestSource::None => {
             if config
                 .modules
-                .avatar_package
+                .avatar_asset
                 .live2d_adapter_manifest_ref
                 .is_some()
             {
                 return Err(
-                    "modules.avatar_package.live2d_adapter_manifest_ref requires external sidecar source"
+                    "modules.avatar_asset.live2d_adapter_manifest_ref requires external sidecar source"
                         .to_string(),
                 );
             }
@@ -224,55 +248,55 @@ fn validate_agent_center_config(config: &AgentCenterLocalConfig) -> Result<(), S
         AgentCenterLive2dAdapterManifestSource::EmbeddedCreatorManifest => {
             if config
                 .modules
-                .avatar_package
+                .avatar_asset
                 .live2d_adapter_manifest_ref
                 .is_some()
             {
                 return Err(
-                    "modules.avatar_package.live2d_adapter_manifest_ref must be empty for embedded source"
+                    "modules.avatar_asset.live2d_adapter_manifest_ref must be empty for embedded source"
                         .to_string(),
                 );
             }
-            if config.modules.avatar_package.backend_kind != AgentCenterAvatarBackendKind::Live2d {
+            if config.modules.avatar_asset.backend_kind != AgentCenterAvatarBackendKind::Live2d {
                 return Err(
-                    "modules.avatar_package.live2d_adapter_manifest_source requires live2d backend"
+                    "modules.avatar_asset.live2d_adapter_manifest_source requires live2d backend"
                         .to_string(),
                 );
             }
         }
         AgentCenterLive2dAdapterManifestSource::ExternalSidecarManifest => {
-            if config.modules.avatar_package.backend_kind != AgentCenterAvatarBackendKind::Live2d {
+            if config.modules.avatar_asset.backend_kind != AgentCenterAvatarBackendKind::Live2d {
                 return Err(
-                    "modules.avatar_package.live2d_adapter_manifest_source requires live2d backend"
+                    "modules.avatar_asset.live2d_adapter_manifest_source requires live2d backend"
                         .to_string(),
                 );
             }
-            let Some(manifest_ref) = &config.modules.avatar_package.live2d_adapter_manifest_ref
+            let Some(manifest_ref) = &config.modules.avatar_asset.live2d_adapter_manifest_ref
             else {
                 return Err(
-                    "modules.avatar_package.live2d_adapter_manifest_ref is required for external sidecar source"
+                    "modules.avatar_asset.live2d_adapter_manifest_ref is required for external sidecar source"
                         .to_string(),
                 );
             };
             validate_live2d_adapter_manifest_ref(
                 manifest_ref,
-                "modules.avatar_package.live2d_adapter_manifest_ref",
+                "modules.avatar_asset.live2d_adapter_manifest_ref",
             )?;
         }
     }
-    if let Some(profile_ref) = &config.modules.avatar_package.backend_capability_profile_ref {
+    if let Some(profile_ref) = &config.modules.avatar_asset.backend_capability_profile_ref {
         validate_normalized_id(
             profile_ref,
-            "modules.avatar_package.backend_capability_profile_ref",
+            "modules.avatar_asset.backend_capability_profile_ref",
         )?;
     }
     validate_utc_timestamp(
-        &config.modules.avatar_package.updated_at,
-        "modules.avatar_package.updated_at",
+        &config.modules.avatar_asset.updated_at,
+        "modules.avatar_asset.updated_at",
     )?;
     validate_normalized_id(
-        &config.modules.avatar_package.provenance.evidence_ref,
-        "modules.avatar_package.provenance.evidence_ref",
+        &config.modules.avatar_asset.provenance.evidence_ref,
+        "modules.avatar_asset.provenance.evidence_ref",
     )?;
     validate_module_version(
         config.modules.local_history.schema_version,
@@ -304,10 +328,10 @@ fn default_config(account_id: String, scope: LocalAgentScope) -> AgentCenterLoca
                 background_asset_id: None,
                 motion: AgentCenterMotionPreference::System,
             },
-            avatar_package: AgentCenterAvatarPackageModule {
+            avatar_asset: AgentCenterAvatarAssetModule {
                 schema_version: AGENT_CENTER_CONFIG_SCHEMA_VERSION,
                 conversation_anchor_scope: AgentCenterAvatarConversationAnchorScope::CurrentAnchor,
-                avatar_package_ref: None,
+                local_avatar_asset_ref: None,
                 live2d_adapter_manifest_source: AgentCenterLive2dAdapterManifestSource::None,
                 live2d_adapter_manifest_ref: None,
                 avatar_instance_policy: AgentCenterAvatarInstancePolicy::ReuseActiveInstance,
@@ -511,8 +535,9 @@ mod tests {
 
     fn valid_config() -> AgentCenterLocalConfig {
         let mut config = default_config("account_1".to_string(), local_scope());
-        config.modules.avatar_package.avatar_package_ref = Some("live2d_ab12cd34ef56".to_string());
-        config.modules.avatar_package.backend_kind = AgentCenterAvatarBackendKind::Live2d;
+        config.modules.avatar_asset.local_avatar_asset_ref =
+            Some("live2d_ab12cd34ef56".to_string());
+        config.modules.avatar_asset.backend_kind = AgentCenterAvatarBackendKind::Live2d;
         config
     }
 
@@ -539,7 +564,7 @@ mod tests {
         with_env(&[("HOME", home.to_str())], || {
             let config = desktop_agent_center_config_get(scope_payload()).expect("default config");
             assert_eq!(config.config_kind, AGENT_CENTER_CONFIG_KIND);
-            assert!(config.modules.avatar_package.avatar_package_ref.is_none());
+            assert!(config.modules.avatar_asset.local_avatar_asset_ref.is_none());
             assert!(!home
                 .join(format!(
                     ".nimi/data/accounts/account_1/agents/{}/agent-center/config.json",
@@ -564,9 +589,33 @@ mod tests {
             .expect("put config");
             let loaded = desktop_agent_center_config_get(scope_payload()).expect("get config");
             assert_eq!(
-                loaded.modules.avatar_package.avatar_package_ref.as_deref(),
+                loaded
+                    .modules
+                    .avatar_asset
+                    .local_avatar_asset_ref
+                    .as_deref(),
                 Some("live2d_ab12cd34ef56")
             );
+        });
+    }
+
+    #[test]
+    fn put_rejects_avatar_backend_kind_mismatch_for_selected_local_asset() {
+        let home = temp_home("avatar-backend-mismatch");
+        with_env(&[("HOME", home.to_str())], || {
+            let mut config = valid_config();
+            config.modules.avatar_asset.local_avatar_asset_ref =
+                Some("live2d_ab12cd34ef56".to_string());
+            config.modules.avatar_asset.backend_kind = AgentCenterAvatarBackendKind::Vrm;
+            let err = desktop_agent_center_config_put(DesktopAgentCenterConfigPutPayload {
+                account_id: "account_1".to_string(),
+                owner_user_id: owner_user_id(),
+                realm_agent_id: realm_agent_id(),
+                local_agent_ref: local_agent_ref(),
+                config,
+            })
+            .expect_err("backend mismatch rejected");
+            assert!(err.contains("backend_kind must match local Avatar asset id prefix"));
         });
     }
 
@@ -607,11 +656,11 @@ mod tests {
                   "runtime_profile": "forbidden",
                   "modules": {
                     "appearance": {"schema_version": 1, "background_asset_id": null, "motion": "system"},
-                    "avatar_package": {
+                    "avatar_asset": {
                       "schema_version": 1,
                       "selected_package": null,
                       "conversation_anchor_scope": "current_anchor",
-                      "avatar_package_ref": null,
+                      "local_avatar_asset_ref": null,
                       "live2d_adapter_manifest_source": "none",
                       "live2d_adapter_manifest_ref": null,
                       "avatar_instance_policy": "reuse_active_instance",

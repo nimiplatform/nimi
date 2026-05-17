@@ -1,0 +1,163 @@
+version: 1
+contract:
+  id: nimicoding.placement-contract.v1
+  owner: nimi-coding
+  purpose: Bind roots to surface classes and fail closed on mismatches.
+required_top_level_fields:
+  - version
+  - placement_rules
+  - root_policy
+  - forbidden_roots
+  - fail_closed_cases
+placement_rule_required_fields:
+  - root_pattern
+  - allowed_classes
+  - owner
+  - tracking_policy
+  - requires_admission
+  - validator_scope
+shared_enum_ref: shared-enums.yaml
+placement_rules:
+  - root_pattern: .nimi/spec/<domain>/kernel/*.md
+    allowed_classes: [product_authority]
+    owner: product_domain
+    tracking_policy: tracked_required
+    requires_admission: domain_admission
+    validator_scope: product_authority
+  - root_pattern: .nimi/spec/<domain>/kernel/tables/*.yaml
+    allowed_classes: [product_authority_table, support_registry]
+    owner: product_domain
+    tracking_policy: tracked_required
+    requires_admission: domain_admission_and_table_family
+    validator_scope: table_family
+  - root_pattern: .nimi/spec/<domain>/*.md
+    allowed_classes: [thin_guidance]
+    owner: product_domain
+    tracking_policy: tracked_required
+    requires_admission: domain_admission
+    validator_scope: thin_guidance
+  - root_pattern: .nimi/spec/INDEX.md
+    allowed_classes: [thin_guidance]
+    owner: product_domain
+    tracking_policy: tracked_required
+    requires_admission: none
+    validator_scope: thin_guidance
+  - root_pattern: .nimi/spec/high-risk-admissions.yaml
+    allowed_classes: [product_admission_registry]
+    owner: product_governance
+    tracking_policy: tracked_required
+    requires_admission: packaged_schema
+    validator_scope: product_admission_registry
+  - root_pattern: .nimi/spec/_meta/<package>-admission-anchor.yaml
+    allowed_classes: [host_projection_anchor]
+    owner: host_projection
+    tracking_policy: tracked_only_with_explicit_admission
+    requires_admission: projection_edge
+    validator_scope: host_projection
+  - root_pattern: .nimi/config/host-overlay.yaml
+    allowed_classes: [host_projection_anchor]
+    owner: host_projection
+    tracking_policy: tracked_only_with_explicit_admission
+    requires_admission: projection_edge
+    validator_scope: host_overlay
+  - root_pattern: .nimi/{config,contracts,methodology}/**
+    allowed_classes: [nimicoding_managed_projection]
+    owner: nimi_coding_package_projection
+    tracking_policy: tracked_required
+    requires_admission: nimicoding_init_or_sync_projection
+    validator_scope: nimicoding_managed_projection
+  - root_pattern: package://@nimiplatform/nimi-coding/{spec,methodology,contracts,config}/**
+    allowed_classes: [methodology_authority, support_registry]
+    owner: nimi_coding_package
+    tracking_policy: tracked_required
+    requires_admission: package_authority
+    validator_scope: package_authority
+  - root_pattern: .nimi/topics/**
+    allowed_classes: [lifecycle_progress_state, candidate_roadmap]
+    owner: topic_lifecycle
+    tracking_policy: local_only
+    requires_admission: none
+    validator_scope: topic_lifecycle
+  - root_pattern: .nimi/local/state/**
+    allowed_classes: [spec_generation_state, lifecycle_progress_state, operational_local_artifact]
+    owner: execution_workflow
+    tracking_policy: local_only
+    requires_admission: none
+    validator_scope: local_state
+  - root_pattern: .nimi/local/audit/**
+    allowed_classes: [audit_evidence_state, operational_local_artifact]
+    owner: audit_workflow
+    tracking_policy: local_only
+    requires_admission: none
+    validator_scope: audit_state
+  - root_pattern: .nimi/{derived,state,audit,roadmap}/**
+    allowed_classes: [derived_view, spec_generation_state, audit_evidence_state, candidate_roadmap]
+    owner: tracked_output_admission
+    tracking_policy: tracked_only_with_explicit_admission
+    requires_admission: tracked_output_admission
+    validator_scope: tracked_output
+allowed_spec_meta_rules:
+  - root_pattern: .nimi/spec/_meta/<package>-admission-anchor.yaml
+    allowed_classes: [host_projection_anchor]
+    required_fields: [package_id, package_version, package_truth_root, projection_edges, must_not_override]
+  - root_pattern: .nimi/spec/_meta/**
+    allowed_classes: []
+    allowed_dispositions: [move_package, move_local, delete]
+  - root_pattern: .nimi/config/host-overlay.yaml
+    allowed_classes: [host_projection_anchor]
+    required_fields: [package_id, package_version, package_truth_root, overlay_fields, drift_check_command]
+root_policy:
+  product_authority_root: .nimi/spec
+  package_authority_root: package://@nimiplatform/nimi-coding
+  topic_lifecycle_root: .nimi/topics
+  local_artifact_root: .nimi/local
+  tracked_non_product_roots:
+    default: disabled
+    roots:
+      - .nimi/derived
+      - .nimi/state
+      - .nimi/audit
+      - .nimi/roadmap
+forbidden_roots:
+  candidate_roadmap:
+    - .nimi/spec/**
+  derived_view:
+    - .nimi/spec/**/kernel/generated/**
+    - .nimi/spec/generated/**
+    - .nimi/local/derived/**
+  spec_generation_state:
+    - .nimi/spec/_meta/spec-generation-audit/**
+    - .nimi/spec/_meta/spec-generation-audit.yaml
+  audit_evidence_state:
+    - .nimi/spec/**/kernel/**
+    - .nimi/spec/_meta/**
+  lifecycle_progress_state:
+    - .nimi/spec/**
+  methodology_authority:
+    - .nimi/spec/**
+forbidden_root_exceptions:
+  nimicoding_managed_projection:
+    - .nimi/methodology/**
+    - .nimi/contracts/**
+    - .nimi/config/**
+tracking_policy_notes:
+  .nimi/topics/**:
+    tracking_policy: local_only
+    meaning: local_human_authored_lifecycle_workspace_not_product_authority
+  .nimi/{config,contracts,methodology}/**:
+    tracking_policy: tracked_required
+    meaning: project_local_nimicoding_managed_projection_created_by_init_or_sync_not_product_authority
+fail_closed_cases:
+  - class_root_mismatch
+  - file_under_.nimi/spec_without_product_or_minimal_anchor_class
+  - file_under_kernel_tables_without_table_family
+  - _meta_file_without_minimal_anchor_or_package_migration_disposition
+  - tracked_non_product_file_without_admission
+  - nimicoding_managed_projection_promoted_to_product_authority
+  - future_or_backlog_under_.nimi/spec
+  - product_admission_registry_contains_package_methodology_body
+semantic_constraints:
+  - path_shape_is_never_sufficient_authority_proof
+  - keep_move_package_move_local_split_rewrite_delete_block_must_be_explicit
+  - product_semantic_forks_block_for_user_confirmation
+  - high_risk_admission_records_stay_product_governance_truth_while_schema_and_cli_stay_package_owned

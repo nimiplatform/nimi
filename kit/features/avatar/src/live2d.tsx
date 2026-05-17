@@ -243,7 +243,7 @@ function renderDefaultLive2dSurface(context: AvatarStageRendererContext): ReactN
       <span className="absolute inset-x-[28%] top-[16%] h-[44%] rounded-[44%_44%_38%_38%] border border-cyan-200/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.94),rgba(224,242,254,0.72))]" />
       <span className="absolute inset-x-[24%] bottom-[16%] top-[42%] rounded-[999px_999px_34%_34%] border border-sky-200/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.88),rgba(224,242,254,0.54))]" />
       <span className="absolute bottom-3 rounded-full border border-white/80 bg-slate-900/84 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-white">
-        Live2D
+        {formatAvatarVrmAssetLabel(context.snapshot.presentation.avatarAssetRef) || 'avatar'}
       </span>
     </div>
   );

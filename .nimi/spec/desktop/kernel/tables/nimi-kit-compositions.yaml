@@ -1,4 +1,9 @@
 version: 1
+table_family: product_catalog
+owner: desktop
+catalog_id: desktop_nimi_kit_compositions
+entries:
+  - desktop.chat.contact_rail
 app: desktop
 components:
   - id: desktop.chat.contact_rail

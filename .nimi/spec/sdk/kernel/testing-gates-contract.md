@@ -52,7 +52,7 @@ SDK 覆盖率必须达到项目设定阈值。
 
 ## S-GATE-070 Provider Catalog Alignment Gate
 
-provider 名称与 runtime provider catalog 必须对齐。
+provider 名称与 runtime `provider-catalog.yaml` 必须对齐。
 
 执行命令：
 

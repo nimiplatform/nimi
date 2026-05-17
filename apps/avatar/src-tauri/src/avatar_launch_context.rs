@@ -4,6 +4,7 @@ use url::Url;
 pub const AVATAR_LAUNCH_SCHEME: &str = "nimi-avatar";
 pub const AVATAR_LAUNCH_HOST: &str = "launch";
 pub const AVATAR_CLOSE_HOST: &str = "close";
+const LOCAL_AGENT_REF_PREFIX: &str = "local-agent:";
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
@@ -36,6 +37,27 @@ fn normalize_required_query_value(value: Option<String>, field: &str) -> Result<
     Ok(normalized)
 }
 
+fn normalize_required_local_agent_ref(
+    value: Option<String>,
+    field: &str,
+) -> Result<String, String> {
+    let normalized = normalize_required_query_value(value, field)?;
+    let rest = normalized
+        .strip_prefix(LOCAL_AGENT_REF_PREFIX)
+        .unwrap_or_default();
+    let Some((owner_user_id, realm_agent_id)) = rest.split_once(':') else {
+        return Err(format!(
+            "avatar launch context requires {field} to be a local-agent ref"
+        ));
+    };
+    if owner_user_id.trim().is_empty() || realm_agent_id.trim().is_empty() {
+        return Err(format!(
+            "avatar launch context requires {field} to be a local-agent ref"
+        ));
+    }
+    Ok(normalized)
+}
+
 fn normalize_optional_query_value(value: Option<String>) -> Option<String> {
     let normalized = value.unwrap_or_default().trim().to_string();
     if normalized.is_empty() {
@@ -51,12 +73,20 @@ fn forbidden_launch_query_parameter(key: &str) -> bool {
         "avatar_package"
             | "avatar_package_kind"
             | "avatar_package_id"
+            | "avatar_package_ref"
             | "avatar_package_schema_version"
+            | "avatar_asset"
+            | "avatar_asset_kind"
+            | "avatar_asset_id"
+            | "avatar_asset_schema_version"
+            | "local_avatar_asset_ref"
+            | "backend_capability_profile_ref"
+            | "materialization_ref"
+            | "local_materialization_ref"
             | "manifest_path"
             | "package_path"
             | "source_path"
             | "config_path"
-            | "conversation_anchor_id"
             | "anchor_mode"
             | "runtime_app_id"
             | "world_id"
@@ -79,6 +109,10 @@ fn forbidden_launch_query_parameter(key: &str) -> bool {
             | "reason_code"
             | "agent_center_account_id"
             | "account_id"
+            | "owner_user_id"
+            | "realm_agent_id"
+            | "local_agent_ref"
+            | "conversation_anchor_id"
             | "user_id"
             | "subject_user_id"
             | "access_token"
@@ -127,8 +161,10 @@ pub fn parse_avatar_launch_context(raw_url: &str) -> Result<AvatarLaunchContext,
         }
     }
 
+    let agent_id = normalize_required_local_agent_ref(agent_id, "agent_id")?;
+
     Ok(AvatarLaunchContext {
-        agent_id: normalize_required_query_value(agent_id, "agent_id")?,
+        agent_id,
         avatar_instance_id: normalize_optional_query_value(avatar_instance_id),
         launch_source: normalize_optional_query_value(launch_source),
     })
@@ -217,29 +253,39 @@ mod tests {
     #[test]
     fn parse_avatar_launch_context_accepts_minimal_intent() {
         let parsed = parse_avatar_launch_context(&format!(
-            "{AVATAR_LAUNCH_SCHEME}://{AVATAR_LAUNCH_HOST}?agent_id=agent-1&avatar_instance_id=instance-1&launch_source=desktop-agent-chat",
+            "{AVATAR_LAUNCH_SCHEME}://{AVATAR_LAUNCH_HOST}?agent_id=local-agent%3Aowner-1%3Aagent-1&avatar_instance_id=instance-1&launch_source=desktop-agent-chat",
         ))
         .expect("valid launch context");
 
-        assert_eq!(parsed.agent_id, "agent-1");
+        assert_eq!(parsed.agent_id, "local-agent:owner-1:agent-1");
         assert_eq!(parsed.avatar_instance_id.as_deref(), Some("instance-1"));
         assert_eq!(parsed.launch_source.as_deref(), Some("desktop-agent-chat"));
     }
 
     #[test]
-    fn parse_avatar_launch_context_accepts_agent_id_only() {
+    fn parse_avatar_launch_context_rejects_bare_realm_agent_id() {
+        let error = parse_avatar_launch_context(&format!(
+            "{AVATAR_LAUNCH_SCHEME}://{AVATAR_LAUNCH_HOST}?agent_id=agent-1&avatar_instance_id=instance-1",
+        ))
+        .expect_err("bare realm agent id should fail");
+
+        assert!(error.contains("local-agent ref"));
+    }
+
+    #[test]
+    fn parse_avatar_launch_context_accepts_local_agent_identity_only() {
         let parsed = parse_avatar_launch_context(&format!(
-            "{AVATAR_LAUNCH_SCHEME}://{AVATAR_LAUNCH_HOST}?agent_id=agent-1",
+            "{AVATAR_LAUNCH_SCHEME}://{AVATAR_LAUNCH_HOST}?agent_id=local-agent%3Aowner-1%3Aagent-1",
         ))
         .expect("valid launch context");
 
-        assert_eq!(parsed.agent_id, "agent-1");
+        assert_eq!(parsed.agent_id, "local-agent:owner-1:agent-1");
         assert_eq!(parsed.avatar_instance_id, None);
         assert_eq!(parsed.launch_source, None);
     }
 
     #[test]
-    fn parse_avatar_launch_context_rejects_missing_agent_id() {
+    fn parse_avatar_launch_context_rejects_missing_local_agent_ref() {
         let error = parse_avatar_launch_context(&format!(
             "{AVATAR_LAUNCH_SCHEME}://{AVATAR_LAUNCH_HOST}?avatar_instance_id=instance-1",
         ))
@@ -253,8 +299,11 @@ mod tests {
         for key in [
             "avatar_package_kind",
             "avatar_package_id",
+            "avatar_package_ref",
             "avatar_package_schema_version",
-            "conversation_anchor_id",
+            "backend_capability_profile_ref",
+            "materialization_ref",
+            "local_materialization_ref",
             "anchor_mode",
             "runtime_app_id",
             "world_id",
@@ -263,6 +312,10 @@ mod tests {
             "binding_scopes",
             "scoped_binding",
             "account_id",
+            "owner_user_id",
+            "realm_agent_id",
+            "local_agent_ref",
+            "conversation_anchor_id",
             "user_id",
             "subject_user_id",
             "realm_base_url",
@@ -273,7 +326,7 @@ mod tests {
             "package_path",
         ] {
             let error = parse_avatar_launch_context(&format!(
-                "{AVATAR_LAUNCH_SCHEME}://{AVATAR_LAUNCH_HOST}?agent_id=agent-1&{key}=forbidden",
+                "{AVATAR_LAUNCH_SCHEME}://{AVATAR_LAUNCH_HOST}?agent_id=local-agent%3Aowner-1%3Aagent-1&{key}=forbidden",
             ))
             .expect_err("old field should fail");
             assert!(
@@ -308,7 +361,7 @@ mod tests {
     #[test]
     fn parse_avatar_deep_link_request_routes_by_host() {
         let launch = parse_avatar_deep_link_request(&format!(
-            "{AVATAR_LAUNCH_SCHEME}://{AVATAR_LAUNCH_HOST}?agent_id=agent-1&avatar_instance_id=instance-1",
+            "{AVATAR_LAUNCH_SCHEME}://{AVATAR_LAUNCH_HOST}?agent_id=local-agent%3Aowner-1%3Aagent-1&avatar_instance_id=instance-1",
         ))
         .expect("launch request");
         let close = parse_avatar_deep_link_request(&format!(

@@ -46,6 +46,7 @@ DataSync facade 提供以下基础设施能力，业务流规则按需使用：
 - 使用基础设施：上下文锁、轮询管理、错误日志、初始数据加载。
 - `syncChatEvents` 通过 `PollingManager` 定期轮询。
 - `flushChatOutbox` 处理离线消息队列。
+- Desktop chat surface 可以承载 `human`、`ai`、`agent` 三类会话宿主，但 human chat 的会话列表与消息流只消费 Realm typed DTO。Agent / AI thread 不得伪装成 human `ChatViewDto` 进入 core data-sync contract。
 
 ## D-DSYNC-004 — Social 数据流
 

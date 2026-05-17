@@ -1,4 +1,18 @@
 version: 1
+table_family: closed_enum
+owner: runtime
+enum_id: runtime_metadata_keys
+values:
+  - x-nimi-key-source
+  - x-nimi-provider-type
+  - x-nimi-provider-endpoint
+  - x-nimi-provider-api-key
+  - x-nimi-app-id
+  - x-nimi-app-instance-id
+  - x-nimi-client-id
+  - x-nimi-idempotency-key
+  - authorization
+  - x-nimi-runtime-version
 keys:
   - key: x-nimi-key-source
     allowed_values: [inline, managed]

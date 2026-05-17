@@ -143,7 +143,7 @@ worker 提交一份 packet 申请准入。manager 复核：
 
 ## 来源依据
 
-- [`.nimi/methodology/role-separation-policy.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/role-separation-policy.yaml)
-- [`.nimi/methodology/authority-convergence-policy.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/authority-convergence-policy.yaml)
-- [`.nimi/contracts/topic-step-decision.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/topic-step-decision.schema.yaml)
-- [`.nimi/contracts/authority-convergence-audit.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/authority-convergence-audit.schema.yaml)
+- [`nimi-coding/methodology/role-separation-policy.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/methodology/role-separation-policy.yaml)
+- [`nimi-coding/methodology/authority-convergence-policy.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/methodology/authority-convergence-policy.yaml)
+- [`nimi-coding/contracts/topic-step-decision.schema.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/contracts/topic-step-decision.schema.yaml)
+- [`nimi-coding/contracts/authority-convergence-audit.schema.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/contracts/authority-convergence-audit.schema.yaml)

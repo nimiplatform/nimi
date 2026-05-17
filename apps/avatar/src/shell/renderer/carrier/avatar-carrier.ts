@@ -21,6 +21,7 @@ import {
   type Live2DCarrierVisualHost,
 } from '../live2d/carrier-visual-host.js';
 import type { EmbodimentProjectionApi } from '../nas/embodiment-projection-api.js';
+import { createSmoothedProjection, type ProjectionSmoothingHandle } from '../nas/projection-smoothing.js';
 import {
   resolveAvatarModelManifest,
   type AvatarModelManifest,
@@ -225,15 +226,14 @@ export async function startAvatarVisualCarrier(input: {
 
   const commandBus = backendHandle.commandBus;
   const backendSession = backendHandle.backendSession;
-  const legacyProjection = backendHandle.legacyProjection;
-  const interactionPhysics = legacyProjection
-    ? createInteractionPhysicsController({ projection: legacyProjection })
-    : null;
+  const cueProjection = backendHandle.cueProjection;
   const executor = new HandlerExecutor();
 
   let unwireDispatch: (() => void) | null = null;
   let unwireVoiceLipsync: (() => void) | null = null;
   let continuous: ContinuousScheduler | null = null;
+  let projectionSmoothing: ProjectionSmoothingHandle | null = null;
+  let interactionPhysics: ReturnType<typeof createInteractionPhysicsController> | null = null;
   let attachedDriver: AgentDataDriver | null = null;
   const detachRuntimeDriver = () => {
     continuous?.stop();
@@ -246,6 +246,10 @@ export async function startAvatarVisualCarrier(input: {
       console.warn(`[avatar:nas] failed to stop hot reload watcher: ${err instanceof Error ? err.message : String(err)}`);
     });
     stopNasHotReload = null;
+    interactionPhysics?.reset();
+    interactionPhysics = null;
+    projectionSmoothing?.dispose();
+    projectionSmoothing = null;
     attachedDriver = null;
   };
   store.setModelLoaded(model.modelId);
@@ -256,15 +260,18 @@ export async function startAvatarVisualCarrier(input: {
     nas_handler_count: countHandlers(registry),
     backend_kind: backendHandle.branch.kind,
     backend_metadata: backendHandle.branch.metadata(),
-    // Wave_1 transitional fields preserved for evidence stability; the
-    // backend-specific compatibility/adapter ids now live inside
-    // backend.metadata() per backend-branch-contract §2.8.
+    // Branch metadata remains the canonical backend evidence surface; these
+    // fields keep model-load evidence easy to query.
     compatibility_tier:
       backendSession?.compatibility.tier ?? null,
     adapter_id: backendSession?.compatibility.adapter?.adapter_id ?? null,
   };
   recordAvatarEvidenceEventually({
     kind: 'avatar.visual.model-loaded',
+    detail: modelLoadDetail,
+  });
+  recordAvatarEvidenceEventually({
+    kind: 'avatar.model.load',
     detail: modelLoadDetail,
   });
   const modelLoadEvent = {
@@ -310,12 +317,19 @@ export async function startAvatarVisualCarrier(input: {
           backendKind: model.kind,
         });
       }
-      if (legacyProjection && interactionPhysics) {
+      projectionSmoothing = cueProjection
+        ? createSmoothedProjection({ projection: cueProjection })
+        : null;
+      const runtimeCueProjection = projectionSmoothing?.projection ?? null;
+      interactionPhysics = runtimeCueProjection
+        ? createInteractionPhysicsController({ projection: runtimeCueProjection })
+        : null;
+      if (runtimeCueProjection && interactionPhysics) {
         unwireDispatch = wireEventDispatch({
           driver,
           registry,
           executor,
-          projection: legacyProjection,
+          projection: runtimeCueProjection,
           backendProjection: backendHandle.branch.projection,
           live2dExtension:
             backendHandle.branch.kind === 'live2d'
@@ -334,24 +348,19 @@ export async function startAvatarVisualCarrier(input: {
       unwireVoiceLipsync = wireAvatarVoiceLipsync({
         driver,
       });
-      if (legacyProjection) {
+      if (runtimeCueProjection) {
         continuous = new ContinuousScheduler(
           registry,
           () => driver.getBundle(),
-          legacyProjection,
+          runtimeCueProjection,
         );
         continuous.start();
       }
       driver.emit(modelLoadEvent);
-      recordAvatarEvidenceEventually({
-        kind: 'avatar.model.load',
-        detail: modelLoadEvent.detail,
-      });
     },
     detachRuntimeDriver,
     shutdown() {
       detachRuntimeDriver();
-      interactionPhysics?.reset();
       executor.cancelAll();
       disposeRegistry(registry);
       backendHandle.shutdown();

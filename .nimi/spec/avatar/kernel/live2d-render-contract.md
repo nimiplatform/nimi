@@ -2,7 +2,7 @@
 
 > **App**: `@nimiplatform/avatar`
 > **Authority**: Avatar kernel contract
-> **Status**: Phase 1 baseline; Wave 0 of topic
+> **Status**: Live2D branch baseline; Wave 0 of topic
 >   `2026-04-30-avatar-vrm-backend-branch` re-scopes this contract to
 >   **`kind: 'live2d'` BackendBranch implementation detail**.
 > **Sibling contracts**:
@@ -146,7 +146,7 @@ support.
 
 - NAS continuous scheduler 运行于 `requestAnimationFrame`，目标 60fps（浏览器 vsync）
 - Current Avatar app backend-session applies commands and calls Cubism `model.update()` when command-state changes.
-- Avatar carrier WebGL `preDraw` / `draw` / `postDraw` proof is not admitted in Phase 1. A later visual-render wave must add deterministic canvas proof before this contract may claim Avatar carrier draw-loop closure.
+- Avatar carrier WebGL `preDraw` / `draw` / `postDraw` proof is not admitted by the current Live2D branch evidence. A visual-render acceptance wave must add deterministic canvas proof before this contract may claim Avatar carrier draw-loop closure.
 
 ### 3.2 Delta Time
 
@@ -177,7 +177,7 @@ For each continuous handler h:
 
 - 单个 continuous handler 预算：`1000 / fps * 0.5` ms
 - 超预算 → `console.warn` + skip 下一帧（不禁用 handler）
-- 连续 10 帧超预算 → emit `avatar.model.handler.throttled` event (not implemented in current Phase 1; this event remains blocked until frame-budget enforcement lands)
+- 连续 10 帧超预算 → emit `avatar.model.handler.throttled` event (not implemented by the current Live2D branch; this event remains blocked until frame-budget enforcement lands)
 
 ---
 
@@ -373,4 +373,4 @@ Avatar shell 在 click 时 call `hitTestArea` 填入 `avatar.user.click.detail.r
 
 ---
 
-**Phase 1 scope**: Cubism SDK for Web 集成 + Plugin API v1。Phase 2+ 加入 voice-driven lipsync 和 advanced physics；Phase 3 考虑多 backend 抽象（VRM / 3D）。
+**Current Live2D branch scope**: Cubism SDK for Web 集成 + Plugin API v1，voice-driven lipsync 通过已 admit 的 voice/lipsync wave 接入；multi-backend 抽象已由 BackendBranch + VRM branch authority 接管。

@@ -45,8 +45,6 @@ spec_governance:
       - pnpm check:apps-avatar-isolation
     realm-consistency:
       - node scripts/check-realm-spec-kernel-consistency.mjs
-    future-consistency:
-      - node scripts/check-future-spec-kernel-consistency.mjs
     release-gate-consistency:
       - node scripts/check-release-gate-registry-coherence.mjs
   generate_commands:
@@ -64,8 +62,6 @@ spec_governance:
       - node scripts/generate-avatar-spec-kernel-docs.mjs
     realm:
       - node scripts/generate-realm-spec-kernel-docs.mjs
-    future:
-      - node scripts/generate-future-spec-kernel-docs.mjs
     spec-human-doc:
       - node scripts/generate-spec-human-doc.mjs
     release-gate-projection:
@@ -201,8 +197,6 @@ ai_governance:
         - .nimi/spec/runtime/kernel/tables/rule-evidence.rules.yaml
       release_gate_registry:
         - .nimi/spec/platform/kernel/tables/release-gate-registry.yaml
-      temporary_large_generated:
-        - .nimi/spec/_meta/spec-generation-audit.yaml
       proto_schema:
         - proto/**/*.proto
       scripts:

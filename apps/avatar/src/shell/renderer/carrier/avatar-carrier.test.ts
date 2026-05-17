@@ -48,7 +48,7 @@ function createBundle(): AgentDataBundle {
       name: 'happy',
       category: 'emotion',
       intensity: 'moderate',
-      source: 'runtime_projection',
+      source: 'apml_output',
     },
     posture: {
       posture_class: 'baseline',
@@ -460,7 +460,7 @@ describe('avatar runtime carrier', () => {
   });
 
   // Wave 0 of topic 2026-04-30-avatar-vrm-backend-branch hard-cut: the two
-  // legacy carrier tests that exercised the deleted frame_batch consume path
+  // carrier tests that exercised the deleted frame_batch consume path
   // and the runtime voice_timing → Live2D mouth bridge are removed. Per-frame
   // mouth movement now flows through BackendAudioConsumer.snapshot() in the
   // surface useFrame loop, written by the wLipSync driver. wave_1 lands the

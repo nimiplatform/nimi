@@ -266,10 +266,10 @@ import type {
 import type {
   CancelHookRequest,
   CancelHookResponse,
+  CancelCompanionParticipationRequest,
+  CancelCompanionParticipationResponse,
   DisableAutonomyRequest,
   DisableAutonomyResponse,
-  ExecuteDelegatedCapabilityRequest,
-  ExecuteDelegatedCapabilityResponse,
   GetConversationAnchorSnapshotRequest,
   GetConversationAnchorSnapshotResponse,
   EnableAutonomyRequest,
@@ -282,51 +282,69 @@ import type {
   GetAvatarDebugReplayResponse,
   GetAvatarDebugSnapshotRequest,
   GetAvatarDebugSnapshotResponse,
+  GetCompanionParticipationProjectionRequest,
+  GetCompanionParticipationProjectionResponse,
   InitializeAgentRequest,
   InitializeAgentResponse,
-  GetDelegatedControlSurfaceSnapshotRequest,
-  GetDelegatedControlSurfaceSnapshotResponse,
-  GetDelegatedReplayTraceRequest,
-  GetDelegatedReplayTraceResponse,
   ListAgentsRequest,
   ListAgentsResponse,
-  ListDelegatedApprovalRequestsRequest,
-  ListDelegatedApprovalRequestsResponse,
-  ListDelegatedDiagnosticsRequest,
-  ListDelegatedDiagnosticsResponse,
-  ListDelegatedProviderProfilesRequest,
-  ListDelegatedProviderProfilesResponse,
   ListAvatarDebugProbeResultsRequest,
   ListAvatarDebugProbeResultsResponse,
   ListPendingHooksRequest,
   ListPendingHooksResponse,
   OpenConversationAnchorRequest,
   OpenConversationAnchorResponse,
+  OpenCompanionParticipationReplayRequest,
+  OpenCompanionParticipationReplayResponse,
+  RegisterAvatarLiveInstanceBindingRequest,
+  RegisterAvatarLiveInstanceBindingResponse,
+  ResolveAvatarLiveInstanceBindingRequest,
+  ResolveAvatarLiveInstanceBindingResponse,
   GetPublicChatSessionSnapshotRequest,
   GetPublicChatSessionSnapshotResponse,
   QueryAgentMemoryRequest,
   QueryAgentMemoryResponse,
   RequestAvatarDebugProbeRequest,
   RequestAvatarDebugProbeResponse,
+  RequestCompanionParticipationRequest,
+  RequestCompanionParticipationResponse,
   SetAgentPresentationProfileRequest,
   SetAgentPresentationProfileResponse,
-  SetDelegatedProviderStateRequest,
-  SetDelegatedProviderStateResponse,
   SetAutonomyConfigRequest,
   SetAutonomyConfigResponse,
-  SubmitDelegatedApprovalDecisionRequest,
-  SubmitDelegatedApprovalDecisionResponse,
   SubscribeAgentEventsRequest,
   AgentEvent,
   TerminateAgentRequest,
   TerminateAgentResponse,
   UpdateAgentStateRequest,
   UpdateAgentStateResponse,
-  UpsertDelegatedProviderProfileRequest,
-  UpsertDelegatedProviderProfileResponse,
   WriteAgentMemoryRequest,
   WriteAgentMemoryResponse,
 } from './generated/runtime/v1/agent_service';
+import type {
+  ResolveAvatarPackageLaunchProjectionRequest,
+  ResolveAvatarPackageLaunchProjectionResponse,
+} from './generated/runtime/v1/avatar_package';
+import type {
+  ExecuteDelegatedCapabilityRequest,
+  ExecuteDelegatedCapabilityResponse,
+  GetDelegatedControlSurfaceSnapshotRequest,
+  GetDelegatedControlSurfaceSnapshotResponse,
+  GetDelegatedReplayTraceRequest,
+  GetDelegatedReplayTraceResponse,
+  ListDelegatedApprovalRequestsRequest,
+  ListDelegatedApprovalRequestsResponse,
+  ListDelegatedDiagnosticsRequest,
+  ListDelegatedDiagnosticsResponse,
+  ListDelegatedProviderProfilesRequest,
+  ListDelegatedProviderProfilesResponse,
+  SetDelegatedProviderStateRequest,
+  SetDelegatedProviderStateResponse,
+  SubmitDelegatedApprovalDecisionRequest,
+  SubmitDelegatedApprovalDecisionResponse,
+  UpsertDelegatedProviderProfileRequest,
+  UpsertDelegatedProviderProfileResponse,
+} from './generated/runtime/v1/delegated_control';
 import type {
   CreateRealmGroupMessageCandidateRequest,
   CreateRealmGroupMessageCandidateResponse,
@@ -518,10 +536,34 @@ export type RuntimeAgentClient = {
     request: GetConversationAnchorSnapshotRequest,
     options?: RuntimeCallOptions,
   ): Promise<GetConversationAnchorSnapshotResponse>;
+  registerAvatarLiveInstanceBinding(
+    request: RegisterAvatarLiveInstanceBindingRequest,
+    options?: RuntimeCallOptions,
+  ): Promise<RegisterAvatarLiveInstanceBindingResponse>;
+  resolveAvatarLiveInstanceBinding(
+    request: ResolveAvatarLiveInstanceBindingRequest,
+    options?: RuntimeCallOptions,
+  ): Promise<ResolveAvatarLiveInstanceBindingResponse>;
   getPublicChatSessionSnapshot(
     request: GetPublicChatSessionSnapshotRequest,
     options?: RuntimeCallOptions,
   ): Promise<GetPublicChatSessionSnapshotResponse>;
+  getCompanionParticipationProjection(
+    request: GetCompanionParticipationProjectionRequest,
+    options?: RuntimeCallOptions,
+  ): Promise<GetCompanionParticipationProjectionResponse>;
+  requestCompanionParticipation(
+    request: RequestCompanionParticipationRequest,
+    options?: RuntimeCallOptions,
+  ): Promise<RequestCompanionParticipationResponse>;
+  cancelCompanionParticipation(
+    request: CancelCompanionParticipationRequest,
+    options?: RuntimeCallOptions,
+  ): Promise<CancelCompanionParticipationResponse>;
+  openCompanionParticipationReplay(
+    request: OpenCompanionParticipationReplayRequest,
+    options?: RuntimeCallOptions,
+  ): Promise<OpenCompanionParticipationReplayResponse>;
   createRealmGroupMessageCandidate(
     request: CreateRealmGroupMessageCandidateRequest,
     options?: RuntimeCallOptions,
@@ -546,6 +588,10 @@ export type RuntimeAgentClient = {
     request: GetAvatarDebugReplayRequest,
     options?: RuntimeCallOptions,
   ): Promise<GetAvatarDebugReplayResponse>;
+  resolveAvatarPackageLaunchProjection(
+    request: ResolveAvatarPackageLaunchProjectionRequest,
+    options?: RuntimeCallOptions,
+  ): Promise<ResolveAvatarPackageLaunchProjectionResponse>;
   listDelegatedProviderProfiles(
     request: ListDelegatedProviderProfilesRequest,
     options?: RuntimeCallOptions,

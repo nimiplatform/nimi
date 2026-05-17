@@ -15,5 +15,4 @@ export type {
 } from '@nimiplatform/nimi-kit/shell/renderer/bridge';
 export type {
   AvatarLaunchContext,
-  AvatarScopedBindingProjection,
 } from './launch-context.js';

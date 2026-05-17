@@ -1,4 +1,4 @@
-use crate::agent_center_avatar_package::ModelManifest;
+use crate::agent_center_avatar_asset::ModelManifest;
 use notify::{Config, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
 use serde::Serialize;
 use std::collections::HashMap;
@@ -64,57 +64,11 @@ fn is_agent_center_visual_package_file(path: &Path, home: &Path) -> bool {
     let package_file = segments.windows(7).any(|window| {
         window[0] == "agent-center"
             && window[1] == "modules"
-            && window[2] == "avatar_package"
+            && window[2] == "avatar_asset"
             && window[3] == "packages"
             && window[6] == "files"
     });
-    package_file || is_selected_agent_center_live2d_adapter_manifest(&account_data_root, &segments)
-}
-
-fn is_selected_agent_center_live2d_adapter_manifest(
-    account_data_root: &Path,
-    segments: &[&str],
-) -> bool {
-    if segments.len() != 9
-        || segments[1] != "agents"
-        || segments[3] != "agent-center"
-        || segments[4] != "modules"
-        || segments[5] != "avatar_package"
-        || segments[6] != "adapter_manifests"
-        || segments[8] != "live2d-adapter.json"
-    {
-        return false;
-    }
-    let manifest_ref = segments[7];
-    let Some(suffix) = manifest_ref.strip_prefix("live2d_adapter_") else {
-        return false;
-    };
-    if suffix.len() != 12
-        || !suffix
-            .chars()
-            .all(|ch| ch.is_ascii_hexdigit() && !ch.is_ascii_uppercase())
-    {
-        return false;
-    }
-    let config_path = account_data_root
-        .join(segments[0])
-        .join("agents")
-        .join(segments[2])
-        .join("agent-center")
-        .join("config.json");
-    let Ok(raw) = fs::read_to_string(config_path) else {
-        return false;
-    };
-    if raw.len() > 262_144 {
-        return false;
-    }
-    let Ok(value) = serde_json::from_str::<serde_json::Value>(&raw) else {
-        return false;
-    };
-    let module = &value["modules"]["avatar_package"];
-    module["selected_package"]["kind"].as_str() == Some("live2d")
-        && module["live2d_adapter_manifest_source"].as_str() == Some("external_sidecar_manifest")
-        && module["live2d_adapter_manifest_ref"].as_str() == Some(manifest_ref)
+    package_file
 }
 
 pub(crate) fn validated_avatar_visual_path(path: &Path) -> Result<PathBuf, String> {

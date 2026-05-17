@@ -364,6 +364,8 @@ export function buildCanonicalTranscriptGroups(
 
 export type CanonicalTranscriptViewProps = {
   messages: readonly ConversationCanonicalMessage[];
+  dataTestId?: string;
+  activeConversationId?: string | null;
   loading?: boolean;
   error?: string | null;
   pendingFirstBeat?: boolean;
@@ -402,6 +404,8 @@ export type CanonicalTranscriptViewProps = {
 
 export function CanonicalTranscriptView({
   messages,
+  dataTestId,
+  activeConversationId = null,
   loading = false,
   error = null,
   pendingFirstBeat = false,
@@ -528,6 +532,8 @@ export function CanonicalTranscriptView({
           scrollViewportPositionClassName,
           scrollViewportWidthClassName,
         )}
+        data-testid={dataTestId}
+        data-active-chat-id={String(activeConversationId || '')}
         data-canonical-transcript-root="true"
         onScroll={handleScroll}
         onWheelCapture={handleWheelCapture}

@@ -78,6 +78,24 @@ Fixed rules:
 - `runtime.agent.turn.request` may reference only an existing committed
   `conversation_anchor_id`; client-side shadow anchor creation is not admitted
 
+## K-AGCORE-138 Avatar Live Instance Binding Recovery
+
+Runtime owns the recovery binding between an explicit Avatar window instance
+and an existing `ConversationAnchor`.
+
+Fixed rules:
+
+- Desktop may register `avatar_instance_id -> conversation_anchor_id` only
+  after opening or recovering the anchor through Runtime.
+- Avatar may resolve the binding only after validating the minimal launch
+  `agent_id` selector through Runtime/SDK into local agent identity.
+- the binding must be keyed by explicit `avatar_instance_id` plus local agent
+  identity; same-agent identity alone must not imply conversation continuity
+- registration and resolution must return a committed `ConversationAnchorSnapshot`
+  and must fail closed on identity mismatch, missing anchor, or missing binding
+- registration must not create anchors, choose packages, or widen Avatar launch
+  payload authority
+
 ## Fact Sources
 
 - `.nimi/spec/runtime/kernel/runtime-agent-service-contract.md`

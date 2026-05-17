@@ -13,6 +13,7 @@ import {
   AgentEvent,
   AgentEventType,
   AgentExecutionState,
+  AgentPresentationEventFamily,
   AgentStateEventFamily,
   ConversationAnchor,
   ConversationAnchorStatus,
@@ -183,6 +184,7 @@ test('runtime agent turns subscribe parses Wave 2 hook projection events with or
     assert.deepEqual(capturedAgentSubscribeRequest?.eventFilters, [
       AgentEventType.HOOK,
       AgentEventType.STATE,
+      AgentEventType.PRESENTATION,
     ]);
     assert.deepEqual(events.map((event) => event.eventName), [
       'runtime.agent.hook.intent_proposed',
@@ -223,6 +225,138 @@ test('runtime agent turns subscribe parses Wave 2 hook projection events with or
         idleForMs: 120000,
       });
       assert.equal(rejected.detail.observedAt, '2023-11-14T22:15:01.000Z');
+    }
+  } finally {
+    clearNodeGrpcBridge();
+  }
+});
+
+test('runtime agent turns subscribe consumes presentation AgentEvent projections', async () => {
+  let capturedAgentSubscribeRequest: SubscribeAgentEventsRequest | null = null;
+
+  installNodeGrpcBridge({
+    invokeUnary: async (_config, input) => {
+      if (input.methodId === RuntimeMethodIds.auth.registerApp) {
+        return RegisterAppResponse.toBinary(RegisterAppResponse.create({
+          accepted: true,
+        }));
+      }
+      if (input.methodId === RuntimeMethodIds.appAuth.authorizeExternalPrincipal) {
+        const request = AuthorizeExternalPrincipalRequest.fromBinary(input.request);
+        assert.ok(
+          request.scopes.length === 1
+          && (request.scopes[0] === 'runtime.agent.turn.read' || request.scopes[0] === 'runtime.agent.read'),
+        );
+        return AuthorizeExternalPrincipalResponse.toBinary(AuthorizeExternalPrincipalResponse.create({
+          tokenId: 'token-read',
+          appId: APP_ID,
+          subjectUserId: 'subject-1',
+          externalPrincipalId: APP_ID,
+          effectiveScopes: request.scopes,
+          policyVersion: '1.0.0',
+          issuedScopeCatalogVersion: '1.0.0',
+          canDelegate: false,
+          secret: 'secret-read',
+        }));
+      }
+      throw new Error(`unexpected method: ${input.methodId}`);
+    },
+    openStream: async (_config, input) => {
+      if (input.methodId === RuntimeMethodIds.app.subscribeAppMessages) {
+        return {
+          async *[Symbol.asyncIterator]() {},
+        };
+      }
+      if (input.methodId === RuntimeMethodIds.agent.subscribeEvents) {
+        capturedAgentSubscribeRequest = SubscribeAgentEventsRequest.fromBinary(input.request);
+        return {
+          async *[Symbol.asyncIterator]() {
+            yield createAgentEvent({
+              eventType: AgentEventType.PRESENTATION,
+              ...LOCAL_AGENT_IDENTITY,
+              detail: {
+                oneofKind: 'presentation',
+                presentation: {
+                  family: AgentPresentationEventFamily.EXPRESSION_REQUESTED,
+                  conversationAnchorId: 'anchor-1',
+                  turnId: 'turn-presentation',
+                  streamId: 'stream-presentation',
+                  expressionId: 'joy',
+                  expressionExpectedDurationMs: '800',
+                },
+              },
+            });
+            yield createAgentEvent({
+              eventType: AgentEventType.PRESENTATION,
+              ...LOCAL_AGENT_IDENTITY,
+              detail: {
+                oneofKind: 'presentation',
+                presentation: {
+                  family: AgentPresentationEventFamily.ACTIVITY_REQUESTED,
+                  conversationAnchorId: 'anchor-1',
+                  turnId: 'turn-presentation',
+                  streamId: 'stream-presentation',
+                  activityName: 'greet',
+                  activityCategory: 'interaction',
+                  activityIntensity: 'moderate',
+                  activitySource: 'apml_output',
+                },
+              },
+            });
+          },
+        };
+      }
+      throw new Error(`unexpected stream method: ${input.methodId}`);
+    },
+    closeStream: async () => {},
+  });
+
+  try {
+    const runtime = new Runtime({
+      appId: APP_ID,
+      transport: {
+        type: 'node-grpc',
+        endpoint: '127.0.0.1:46371',
+      },
+      subjectContext: {
+        subjectUserId: 'subject-1',
+      },
+    });
+
+    const stream = await runtime.agent.turns.subscribe({
+      ...LOCAL_AGENT_IDENTITY,
+      conversationAnchorId: 'anchor-1',
+    });
+    const events = await collectRuntimeAgentEvents(stream);
+
+    assert.deepEqual(capturedAgentSubscribeRequest?.eventFilters, [
+      AgentEventType.HOOK,
+      AgentEventType.STATE,
+      AgentEventType.PRESENTATION,
+    ]);
+    assert.deepEqual(events.map((event) => event.eventName), [
+      'runtime.agent.presentation.expression_requested',
+      'runtime.agent.presentation.activity_requested',
+    ]);
+
+    const expression = events[0];
+    assert.equal(expression?.eventName, 'runtime.agent.presentation.expression_requested');
+    if (expression?.eventName === 'runtime.agent.presentation.expression_requested') {
+      assert.equal(expression.conversationAnchorId, 'anchor-1');
+      assert.equal(expression.turnId, 'turn-presentation');
+      assert.equal(expression.streamId, 'stream-presentation');
+      assert.equal(expression.detail.expressionId, 'joy');
+      assert.equal(expression.detail.expectedDurationMs, 800);
+    }
+
+    const activity = events[1];
+    assert.equal(activity?.eventName, 'runtime.agent.presentation.activity_requested');
+    if (activity?.eventName === 'runtime.agent.presentation.activity_requested') {
+      assert.equal(activity.conversationAnchorId, 'anchor-1');
+      assert.equal(activity.detail.activityName, 'greet');
+      assert.equal(activity.detail.category, 'interaction');
+      assert.equal(activity.detail.intensity, 'moderate');
+      assert.equal(activity.detail.source, 'apml_output');
     }
   } finally {
     clearNodeGrpcBridge();
@@ -285,7 +419,7 @@ test('runtime agent session snapshot recovery stays anchor-native and consumer-o
             transcript_message_count: 2,
             transcript: [{ role: 'user', content: 'hello' }, { role: 'assistant', content: 'hi there' }],
             execution_binding: { route: 'local', model_id: 'local/qwen2.5' },
-            active_turn: { turn_id: 'turn-1', status: 'running', stream_sequence: 3 },
+            active_turn: { turn_id: 'turn-1', stream_id: 'stream-1', status: 'running', stream_sequence: 3 },
           } as never),
         }));
       }
@@ -335,6 +469,7 @@ test('runtime agent session snapshot recovery stays anchor-native and consumer-o
     assert.deepEqual(snapshot.transcript, [{ role: 'user', content: 'hello' }, { role: 'assistant', content: 'hi there' }]);
     assert.equal(snapshot.executionBinding?.modelId, 'local/qwen2.5');
     assert.equal(snapshot.activeTurn?.turnId, 'turn-1');
+    assert.equal(snapshot.activeTurn?.streamId, 'stream-1');
     assert.equal(snapshot.activeTurn?.streamSequence, 3);
     assert.equal('sessionId' in (snapshot as Record<string, unknown>), false);
   } finally {

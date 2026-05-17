@@ -1,4 +1,39 @@
 version: 1
+table_family: closed_enum
+owner: runtime
+enum_id: runtime_activation_gate_reason_codes
+values:
+  - engine_package_missing
+  - model_asset_missing
+  - companion_asset_missing
+  - selected_source_record_missing
+  - accelerator_runtime_missing
+  - accelerator_runtime_unconfirmed
+  - uv_missing
+  - python_runtime_missing
+  - python_venv_missing
+  - python_package_set_missing
+  - torch_wheel_missing
+  - vulkan_runtime_unavailable
+  - metal_runtime_unavailable
+  - unsupported
+  - repair_required
+  - failed
+  - cancelled
+  - setup_in_progress
+  - setup_required
+  - ready
+  - reason codes are Runtime-owned activation projection and must not be
+    invented by consumers
+  - dependency-family reason codes require dependency family, dependency id,
+    environment key, selected source record id when present, dependency state,
+    activation state, and bounded detail
+  - host capability projection reason codes must not create dependency families
+    or selected source records
+  - speech driver readiness is folded into python.package-set evidence and uses
+    python_package_set_missing when blocked
+  - non-ready activation states must not project active, degraded-ready,
+    best-effort-ready, endpoint-ready, or import-ready
 
 # Canonical activation gate reason-code ownership.
 # Activation reasons are Runtime projection, not consumer-local readiness truth.

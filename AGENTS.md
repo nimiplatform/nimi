@@ -4,7 +4,7 @@
 ## Scope
 - Applies repo-wide. Nearest `AGENTS.md` wins.
 ## Hard Boundaries
-- Repo-wide normative authority lives under `.nimi/spec/**`; retired pre-cutover authority history now lives in Git and must not regain active truth. Admitted app slices may live under `apps/**/spec/**` if they do not create parallel truth. `nimi-coding/**` owns methodology/bootstrap sources under `nimi-coding/{config,contracts,methodology,spec}/**`; host-local truth lives under `.nimi/**`; human-authored topic lifecycle reports live under `.nimi/topics/{proposal,ongoing,pending,closed}/**`; `.local/**` is legacy local execution/evidence compatibility space, not the primary human report workspace; tracked support inputs live under `config/**`; `dev/**` is inactive.
+- Repo-wide normative authority lives under `.nimi/spec/**`; retired pre-cutover authority history now lives in Git and must not regain active truth. Admitted app slices may live under `apps/**/spec/**` if they do not create parallel truth. Nimicoding package authority lives in the external `@nimiplatform/nimi-coding` package; this host consumes it only through `pnpm exec nimicoding` and injected `.nimi/{config,contracts,methodology}/**` projections. Host-local truth lives under `.nimi/**`; human-authored topic lifecycle reports live under `.nimi/topics/{proposal,ongoing,pending,closed}/**`; `.local/**` is legacy local execution/evidence compatibility space, not the primary human report workspace; tracked support inputs live under `config/**`; `dev/**` is inactive.
 - High-risk authority-bearing work needs preflight before implementation with `Spec Status`, `Authority Owner`, `Work Type`, and `Parallel Truth`.
 - `Work Type=alignment` must align to existing authority with no parallel truth. `Work Type=redesign` changes authority/canonical ownership and must not proceed without prior `/.nimi/spec/**` alignment.
 - Debug/fix order: `runtime` → `sdk` → `apps/desktop`/`apps/web` → `nimi-mods`. Reuse `nimi-kit` first for UI work via `kit/README.md` and `.nimi/spec/platform/kernel/tables/nimi-kit-registry.yaml`.
@@ -12,7 +12,7 @@
 - Boundary enforcement: Desktop/Web must not import `runtime/internal/**`; SDK must not cross `realm`/`runtime` private boundaries; Mods must not bypass `nimi-hook`; Runtime must not import `sdk/**` or `apps/**`; no file collisions or forwarding shells outside `index.ts`.
 - Ralph/topic runner: do not emulate the loop by generating long `topic run-ledger record` primitive command chains. Use packaged `pnpm exec nimicoding topic-runner run|step ...` when available; otherwise use `topic run-next-step --json` and stop on every non-`continue` stop class.
 ## Retrieval Defaults
-- Start: `runtime/internal`, `runtime/cmd/nimi`, `sdk/src`, `apps/**/src`, `apps/**/src-tauri/src`, `.nimi/spec/*/kernel`, `scripts`, `nimi-coding/**`, `.local/**`, `.nimi/**`, `config/**`.
+- Start: `runtime/internal`, `runtime/cmd/nimi`, `sdk/src`, `apps/**/src`, `apps/**/src-tauri/src`, `.nimi/spec/*/kernel`, `scripts`, `.local/**`, `.nimi/**`, `config/**`.
 - Skip: `_external/**`, `.iterate/**`, `.cache/**`, `archive/**`, `docs/**`, `**/generated/**`, `**/gen/**`, lockfiles, large assets.
 ## Verification Commands
 - Guardrails: `pnpm nimicoding:validate-ai-governance --profile nimi --scope all`, `pnpm check:no-retired-methodology-refs`, `pnpm check:no-legacy-imports`, `pnpm check:no-absolute-user-paths`, `pnpm check:no-app-realm-rest-bypass`.

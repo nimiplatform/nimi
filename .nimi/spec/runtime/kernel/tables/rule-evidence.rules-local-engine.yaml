@@ -1,0 +1,165 @@
+table_family: support_registry
+registry_id: runtime_rule_evidence_local_engine_rules
+owner: runtime
+schema_ref: .nimi/contracts/table-family.schema.yaml#support_registry
+allowed_fields:
+  - rule_id
+  - evidence_requirement
+  - evidence_refs
+  - note
+  - na_reason
+  - evidence_scope_note
+  - test_files
+forbidden_state_fields:
+  - done
+  - covered
+  - coverage_status
+  - audit_date
+  - evidence_report
+  - current
+  - proposed
+  - backlog_status
+  - migration_status
+  - mapping_status
+  - run_id
+  - ledger_ref
+entries:
+  - K-LENG-001
+  - K-LENG-002
+  - K-LENG-003
+  - K-LENG-004
+  - K-LENG-005
+  - K-LENG-006
+  - K-LENG-007
+  - K-LENG-008
+  - K-LENG-009
+  - K-LENG-010
+  - K-LENG-011
+  - K-LENG-012
+  - K-LENG-013
+  - K-LENG-014
+  - K-LENG-015
+  - K-LENG-016
+  - K-LENG-017
+  - K-LENG-018
+  - K-LENG-019
+  - K-LENG-020
+  - K-LENG-021
+  - K-LENG-022
+  - K-LENG-023
+rules:
+  - rule_id: K-LENG-001
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-LENG-002
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-LENG-003
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-LENG-004
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-LENG-005
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-LENG-006
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-LENG-007
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-LENG-008
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-LENG-009
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-LENG-010
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-LENG-011
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-LENG-012
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-LENG-013
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-LENG-014
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-LENG-015
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-LENG-016
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-LENG-017
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-LENG-018
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-LENG-019
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-LENG-020
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-LENG-021
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-LENG-022
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-LENG-023
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required

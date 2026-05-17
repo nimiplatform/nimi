@@ -1,4 +1,49 @@
 version: 1
+table_family: product_catalog
+owner: runtime
+catalog_id: runtime_workspace_binding_relation
+entries:
+  - binding_id
+  - runtime_app_id
+  - app_instance_id
+  - device_id
+  - account_id
+  - realm_environment_id
+  - workspace_id
+  - purpose
+  - scopes
+  - issued_at
+  - expires_at
+  - state
+  - reason_code
+  - allowed
+  - forbidden
+  - ALLOW
+  - DENY_MISSING_ATTACHMENT
+  - DENY_MALFORMED_ATTACHMENT
+  - DENY_NOT_FOUND
+  - DENY_REVOKED
+  - DENY_EXPIRED
+  - DENY_REPLAY
+  - DENY_ACCOUNT_UNAVAILABLE
+  - DENY_CALLER_MISMATCH
+  - DENY_WORKSPACE_MISMATCH
+  - DENY_ENV_MISMATCH
+  - DENY_DEVICE_MISMATCH
+  - DENY_SCOPE_MISSING
+  - logout
+  - account_switch
+  - membership_loss
+  - realm_environment_change
+  - custody_unavailable
+  - refresh_failure
+  - reauth_required
+  - account_expired
+  - device_mismatch
+  - scope_changed
+  - replay_detected
+  - policy_revoked
+  - daemon_restart_no_recovery
 source_rules:
   - K-ACCSVC-018
   - K-ACCSVC-019

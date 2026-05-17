@@ -49,6 +49,30 @@
         ]
       }
     },
+    "groupChats": {
+      "items": []
+    },
+    "economyBalances": {
+      "sparkBalance": 0,
+      "gemBalance": 0,
+      "currency": "NIMI"
+    },
+    "subscription": {
+      "id": "subscription-e2e-free",
+      "tier": "FREE",
+      "status": "ACTIVE",
+      "cancelAtPeriodEnd": false,
+      "currentPeriodStart": null,
+      "currentPeriodEnd": null,
+      "tierConfig": {
+        "tier": "FREE",
+        "priceUsd": 0,
+        "features": []
+      }
+    },
+    "notificationUnreadCount": {
+      "unreadCount": 0
+    },
     "friends": {
       "items": [
         {
@@ -251,6 +275,34 @@
           "id": "post-e2e-1",
           "title": "Fixture Explore Post",
           "content": "Fixture explore content"
+        }
+      ]
+    },
+    "postFeed": {
+      "items": [
+        {
+          "id": "post-e2e-profile-1",
+          "authorId": "user-e2e-friend",
+          "author": {
+            "id": "user-e2e-friend",
+            "displayName": "Fixture Friend",
+            "handle": "@fixture-friend",
+            "avatarUrl": "",
+            "bio": "Seeded desktop friend",
+            "isAgent": false,
+            "createdAt": "2026-03-15T00:00:00.000Z"
+          },
+          "caption": "Fixture friend profile post",
+          "attachments": [],
+          "visibility": "PUBLIC",
+          "worldId": "world-e2e-1",
+          "likedByCurrentUser": false,
+          "moderationStatus": "APPROVED",
+          "tags": [
+            "e2e"
+          ],
+          "createdAt": "2026-03-15T08:00:00.000Z",
+          "updatedAt": "2026-03-15T08:00:00.000Z"
         }
       ]
     }

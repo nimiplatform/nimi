@@ -59,7 +59,7 @@ function sampleTarget(): AgentLocalTargetSnapshot {
     handle: 'companion',
     avatarUrl: null,
     presentationProfile: {
-      backendKind: 'canvas2d',
+      backendKind: 'live2d',
       avatarAssetRef: 'fallback://companion',
       expressionProfileRef: null,
       idlePreset: null,

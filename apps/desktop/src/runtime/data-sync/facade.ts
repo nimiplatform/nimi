@@ -276,6 +276,9 @@ export class DataSync {
 
   private emitDataSyncError(action: string, error: unknown, details: Record<string, unknown> = {}) {
     const errorFields = extractRuntimeErrorFields(error);
+    if (errorFields.reasonCode === ReasonCode.REALM_UNAVAILABLE || isRealmOfflineError(error)) {
+      getOfflineCoordinator().markRealmRestReachable(false);
+    }
     emitRuntimeLog({
       level: 'error',
       area: 'datasync',

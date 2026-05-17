@@ -2,7 +2,7 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
-import YAML from 'yaml';
+import { readYamlWithFragments } from './lib/read-yaml-with-fragments.mjs';
 
 const PROJECT_ROOT = process.cwd();
 const REALM_ROOT = path.join(PROJECT_ROOT, '.nimi', 'spec', 'realm');
@@ -64,8 +64,7 @@ function resolveWorkspacePath(filePath) {
 }
 
 function readYaml(absPath) {
-  const raw = fs.readFileSync(absPath, 'utf8');
-  return YAML.parse(raw) ?? {};
+  return readYamlWithFragments(absPath) ?? {};
 }
 
 function asStringArray(value) {
@@ -458,12 +457,12 @@ function main() {
         pushIssue(issues, 'alignment-map', `${externalId}: local anchor missing ${anchor}`);
       }
     }
-    const coverageStatus = String(row.coverage_status || '').trim();
-    if (coverageStatus !== 'mapped' && coverageStatus !== 'blocked') {
-      pushIssue(issues, 'alignment-map', `${externalId}: coverage_status must be mapped or blocked`);
+    const alignmentPosture = String(row.alignment_posture || '').trim();
+    if (alignmentPosture !== 'aligned' && alignmentPosture !== 'blocked') {
+      pushIssue(issues, 'alignment-map', `${externalId}: alignment_posture must be aligned or blocked`);
     }
-    if (coverageStatus === 'blocked' && !BLOCKED_BIND_RULE_ID_PATTERN.test(externalId)) {
-      pushIssue(issues, 'alignment-map', `${externalId}: blocked coverage_status is reserved for R-BIND rows`);
+    if (alignmentPosture === 'blocked' && !BLOCKED_BIND_RULE_ID_PATTERN.test(externalId)) {
+      pushIssue(issues, 'alignment-map', `${externalId}: blocked alignment_posture is reserved for R-BIND rows`);
     }
   }
 

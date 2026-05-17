@@ -15,6 +15,7 @@ import {
   AgentEvent,
   AgentEventType,
   AgentExecutionState,
+  AgentPresentationEventFamily,
   AgentStateEventFamily,
   ConversationAnchor,
   ConversationAnchorStatus,
@@ -27,6 +28,10 @@ import {
   HookTriggerFamily,
   OpenConversationAnchorRequest,
   OpenConversationAnchorResponse,
+  RegisterAvatarLiveInstanceBindingRequest,
+  RegisterAvatarLiveInstanceBindingResponse,
+  ResolveAvatarLiveInstanceBindingRequest,
+  ResolveAvatarLiveInstanceBindingResponse,
   SubscribeAgentEventsRequest,
 } from '../../src/runtime/generated/runtime/v1/agent_service.js';
 import {
@@ -51,6 +56,8 @@ const LOCAL_AGENT_IDENTITY = {
 } as const;
 const OPEN_CONVERSATION_ANCHOR_METHOD = '/nimi.runtime.v1.RuntimeAgentService/OpenConversationAnchor';
 const GET_CONVERSATION_ANCHOR_SNAPSHOT_METHOD = '/nimi.runtime.v1.RuntimeAgentService/GetConversationAnchorSnapshot';
+const REGISTER_AVATAR_LIVE_INSTANCE_BINDING_METHOD = '/nimi.runtime.v1.RuntimeAgentService/RegisterAvatarLiveInstanceBinding';
+const RESOLVE_AVATAR_LIVE_INSTANCE_BINDING_METHOD = '/nimi.runtime.v1.RuntimeAgentService/ResolveAvatarLiveInstanceBinding';
 const TIMELINE_STARTED_AT = '2026-04-25T00:00:00.000Z';
 
 function timelineChannelForTestEvent(messageType: string): 'text' | 'state' | '' {
@@ -180,6 +187,7 @@ export {
   AgentEvent,
   AgentEventType,
   AgentExecutionState,
+  AgentPresentationEventFamily,
   AgentStateEventFamily,
   ConversationAnchor,
   ConversationAnchorStatus,
@@ -192,6 +200,10 @@ export {
   HookTriggerFamily,
   OpenConversationAnchorRequest,
   OpenConversationAnchorResponse,
+  RegisterAvatarLiveInstanceBindingRequest,
+  RegisterAvatarLiveInstanceBindingResponse,
+  ResolveAvatarLiveInstanceBindingRequest,
+  ResolveAvatarLiveInstanceBindingResponse,
   SubscribeAgentEventsRequest,
   AuthorizeExternalPrincipalRequest,
   AuthorizeExternalPrincipalResponse,
@@ -207,6 +219,8 @@ export {
   LOCAL_AGENT_IDENTITY,
   OPEN_CONVERSATION_ANCHOR_METHOD,
   GET_CONVERSATION_ANCHOR_SNAPSHOT_METHOD,
+  REGISTER_AVATAR_LIVE_INSTANCE_BINDING_METHOD,
+  RESOLVE_AVATAR_LIVE_INSTANCE_BINDING_METHOD,
   TIMELINE_STARTED_AT,
   timelineChannelForTestEvent,
   withRuntimeTimeline,

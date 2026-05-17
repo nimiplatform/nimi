@@ -12,26 +12,6 @@
     {
       "file": ".nimi/spec/realm/world-creator-economy.md",
       "rule_prefix": "R-ECON-0"
-    },
-    {
-      "file": ".nimi/spec/future/kernel/tables/backlog-items.yaml",
-      "rule_prefix": "F-"
-    },
-    {
-      "file": ".nimi/spec/future/kernel/generated/backlog-items.md",
-      "rule_prefix": "F-"
-    },
-    {
-      "file": ".nimi/spec/future/kernel/tables/graduation-log.yaml",
-      "rule_prefix": "F-"
-    },
-    {
-      "file": ".nimi/spec/future/kernel/generated/graduation-log.md",
-      "rule_prefix": "F-"
-    },
-    {
-      "file": ".nimi/spec/generated/nimi-spec.md",
-      "rule_prefix": "F-"
     }
   ]
 }

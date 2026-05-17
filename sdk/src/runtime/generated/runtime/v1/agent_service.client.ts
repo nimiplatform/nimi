@@ -12,24 +12,24 @@ import type { WriteAgentMemoryResponse } from "./agent_service";
 import type { WriteAgentMemoryRequest } from "./agent_service";
 import type { QueryAgentMemoryResponse } from "./agent_service";
 import type { QueryAgentMemoryRequest } from "./agent_service";
-import type { ExecuteDelegatedCapabilityResponse } from "./agent_service";
-import type { ExecuteDelegatedCapabilityRequest } from "./agent_service";
-import type { GetDelegatedControlSurfaceSnapshotResponse } from "./agent_service";
-import type { GetDelegatedControlSurfaceSnapshotRequest } from "./agent_service";
-import type { GetDelegatedReplayTraceResponse } from "./agent_service";
-import type { GetDelegatedReplayTraceRequest } from "./agent_service";
-import type { ListDelegatedDiagnosticsResponse } from "./agent_service";
-import type { ListDelegatedDiagnosticsRequest } from "./agent_service";
-import type { SubmitDelegatedApprovalDecisionResponse } from "./agent_service";
-import type { SubmitDelegatedApprovalDecisionRequest } from "./agent_service";
-import type { ListDelegatedApprovalRequestsResponse } from "./agent_service";
-import type { ListDelegatedApprovalRequestsRequest } from "./agent_service";
-import type { SetDelegatedProviderStateResponse } from "./agent_service";
-import type { SetDelegatedProviderStateRequest } from "./agent_service";
-import type { UpsertDelegatedProviderProfileResponse } from "./agent_service";
-import type { UpsertDelegatedProviderProfileRequest } from "./agent_service";
-import type { ListDelegatedProviderProfilesResponse } from "./agent_service";
-import type { ListDelegatedProviderProfilesRequest } from "./agent_service";
+import type { ExecuteDelegatedCapabilityResponse } from "./delegated_control";
+import type { ExecuteDelegatedCapabilityRequest } from "./delegated_control";
+import type { GetDelegatedControlSurfaceSnapshotResponse } from "./delegated_control";
+import type { GetDelegatedControlSurfaceSnapshotRequest } from "./delegated_control";
+import type { GetDelegatedReplayTraceResponse } from "./delegated_control";
+import type { GetDelegatedReplayTraceRequest } from "./delegated_control";
+import type { ListDelegatedDiagnosticsResponse } from "./delegated_control";
+import type { ListDelegatedDiagnosticsRequest } from "./delegated_control";
+import type { SubmitDelegatedApprovalDecisionResponse } from "./delegated_control";
+import type { SubmitDelegatedApprovalDecisionRequest } from "./delegated_control";
+import type { ListDelegatedApprovalRequestsResponse } from "./delegated_control";
+import type { ListDelegatedApprovalRequestsRequest } from "./delegated_control";
+import type { SetDelegatedProviderStateResponse } from "./delegated_control";
+import type { SetDelegatedProviderStateRequest } from "./delegated_control";
+import type { UpsertDelegatedProviderProfileResponse } from "./delegated_control";
+import type { UpsertDelegatedProviderProfileRequest } from "./delegated_control";
+import type { ListDelegatedProviderProfilesResponse } from "./delegated_control";
+import type { ListDelegatedProviderProfilesRequest } from "./delegated_control";
 import type { CancelHookResponse } from "./agent_service";
 import type { CancelHookRequest } from "./agent_service";
 import type { ListPendingHooksResponse } from "./agent_service";
@@ -46,6 +46,8 @@ import type { UpdateAgentStateResponse } from "./agent_service";
 import type { UpdateAgentStateRequest } from "./agent_service";
 import type { GetAgentStateResponse } from "./agent_service";
 import type { GetAgentStateRequest } from "./agent_service";
+import type { ResolveAvatarPackageLaunchProjectionResponse } from "./avatar_package";
+import type { ResolveAvatarPackageLaunchProjectionRequest } from "./avatar_package";
 import type { GetAvatarDebugReplayResponse } from "./agent_service";
 import type { GetAvatarDebugReplayRequest } from "./agent_service";
 import type { ListAvatarDebugProbeResultsResponse } from "./agent_service";
@@ -58,8 +60,20 @@ import type { GetRealmGroupMessageCandidateEvidenceResponse } from "./agent_grou
 import type { GetRealmGroupMessageCandidateEvidenceRequest } from "./agent_group_message_candidate";
 import type { CreateRealmGroupMessageCandidateResponse } from "./agent_group_message_candidate";
 import type { CreateRealmGroupMessageCandidateRequest } from "./agent_group_message_candidate";
+import type { OpenCompanionParticipationReplayResponse } from "./agent_service";
+import type { OpenCompanionParticipationReplayRequest } from "./agent_service";
+import type { CancelCompanionParticipationResponse } from "./agent_service";
+import type { CancelCompanionParticipationRequest } from "./agent_service";
+import type { RequestCompanionParticipationResponse } from "./agent_service";
+import type { RequestCompanionParticipationRequest } from "./agent_service";
+import type { GetCompanionParticipationProjectionResponse } from "./agent_service";
+import type { GetCompanionParticipationProjectionRequest } from "./agent_service";
 import type { GetPublicChatSessionSnapshotResponse } from "./agent_service";
 import type { GetPublicChatSessionSnapshotRequest } from "./agent_service";
+import type { ResolveAvatarLiveInstanceBindingResponse } from "./agent_service";
+import type { ResolveAvatarLiveInstanceBindingRequest } from "./agent_service";
+import type { RegisterAvatarLiveInstanceBindingResponse } from "./agent_service";
+import type { RegisterAvatarLiveInstanceBindingRequest } from "./agent_service";
 import type { GetConversationAnchorSnapshotResponse } from "./agent_service";
 import type { GetConversationAnchorSnapshotRequest } from "./agent_service";
 import type { OpenConversationAnchorResponse } from "./agent_service";
@@ -104,9 +118,33 @@ export interface IRuntimeAgentServiceClient {
      */
     getConversationAnchorSnapshot(input: GetConversationAnchorSnapshotRequest, options?: RpcOptions): UnaryCall<GetConversationAnchorSnapshotRequest, GetConversationAnchorSnapshotResponse>;
     /**
+     * @generated from protobuf rpc: RegisterAvatarLiveInstanceBinding
+     */
+    registerAvatarLiveInstanceBinding(input: RegisterAvatarLiveInstanceBindingRequest, options?: RpcOptions): UnaryCall<RegisterAvatarLiveInstanceBindingRequest, RegisterAvatarLiveInstanceBindingResponse>;
+    /**
+     * @generated from protobuf rpc: ResolveAvatarLiveInstanceBinding
+     */
+    resolveAvatarLiveInstanceBinding(input: ResolveAvatarLiveInstanceBindingRequest, options?: RpcOptions): UnaryCall<ResolveAvatarLiveInstanceBindingRequest, ResolveAvatarLiveInstanceBindingResponse>;
+    /**
      * @generated from protobuf rpc: GetPublicChatSessionSnapshot
      */
     getPublicChatSessionSnapshot(input: GetPublicChatSessionSnapshotRequest, options?: RpcOptions): UnaryCall<GetPublicChatSessionSnapshotRequest, GetPublicChatSessionSnapshotResponse>;
+    /**
+     * @generated from protobuf rpc: GetCompanionParticipationProjection
+     */
+    getCompanionParticipationProjection(input: GetCompanionParticipationProjectionRequest, options?: RpcOptions): UnaryCall<GetCompanionParticipationProjectionRequest, GetCompanionParticipationProjectionResponse>;
+    /**
+     * @generated from protobuf rpc: RequestCompanionParticipation
+     */
+    requestCompanionParticipation(input: RequestCompanionParticipationRequest, options?: RpcOptions): UnaryCall<RequestCompanionParticipationRequest, RequestCompanionParticipationResponse>;
+    /**
+     * @generated from protobuf rpc: CancelCompanionParticipation
+     */
+    cancelCompanionParticipation(input: CancelCompanionParticipationRequest, options?: RpcOptions): UnaryCall<CancelCompanionParticipationRequest, CancelCompanionParticipationResponse>;
+    /**
+     * @generated from protobuf rpc: OpenCompanionParticipationReplay
+     */
+    openCompanionParticipationReplay(input: OpenCompanionParticipationReplayRequest, options?: RpcOptions): UnaryCall<OpenCompanionParticipationReplayRequest, OpenCompanionParticipationReplayResponse>;
     /**
      * @generated from protobuf rpc: CreateRealmGroupMessageCandidate
      */
@@ -131,6 +169,10 @@ export interface IRuntimeAgentServiceClient {
      * @generated from protobuf rpc: GetAvatarDebugReplay
      */
     getAvatarDebugReplay(input: GetAvatarDebugReplayRequest, options?: RpcOptions): UnaryCall<GetAvatarDebugReplayRequest, GetAvatarDebugReplayResponse>;
+    /**
+     * @generated from protobuf rpc: ResolveAvatarPackageLaunchProjection
+     */
+    resolveAvatarPackageLaunchProjection(input: ResolveAvatarPackageLaunchProjectionRequest, options?: RpcOptions): UnaryCall<ResolveAvatarPackageLaunchProjectionRequest, ResolveAvatarPackageLaunchProjectionResponse>;
     /**
      * @generated from protobuf rpc: GetAgentState
      */
@@ -264,192 +306,241 @@ export class RuntimeAgentServiceClient implements IRuntimeAgentServiceClient, Se
         return stackIntercept<GetConversationAnchorSnapshotRequest, GetConversationAnchorSnapshotResponse>("unary", this._transport, method, opt, input);
     }
     /**
+     * @generated from protobuf rpc: RegisterAvatarLiveInstanceBinding
+     */
+    registerAvatarLiveInstanceBinding(input: RegisterAvatarLiveInstanceBindingRequest, options?: RpcOptions): UnaryCall<RegisterAvatarLiveInstanceBindingRequest, RegisterAvatarLiveInstanceBindingResponse> {
+        const method = this.methods[6], opt = this._transport.mergeOptions(options);
+        return stackIntercept<RegisterAvatarLiveInstanceBindingRequest, RegisterAvatarLiveInstanceBindingResponse>("unary", this._transport, method, opt, input);
+    }
+    /**
+     * @generated from protobuf rpc: ResolveAvatarLiveInstanceBinding
+     */
+    resolveAvatarLiveInstanceBinding(input: ResolveAvatarLiveInstanceBindingRequest, options?: RpcOptions): UnaryCall<ResolveAvatarLiveInstanceBindingRequest, ResolveAvatarLiveInstanceBindingResponse> {
+        const method = this.methods[7], opt = this._transport.mergeOptions(options);
+        return stackIntercept<ResolveAvatarLiveInstanceBindingRequest, ResolveAvatarLiveInstanceBindingResponse>("unary", this._transport, method, opt, input);
+    }
+    /**
      * @generated from protobuf rpc: GetPublicChatSessionSnapshot
      */
     getPublicChatSessionSnapshot(input: GetPublicChatSessionSnapshotRequest, options?: RpcOptions): UnaryCall<GetPublicChatSessionSnapshotRequest, GetPublicChatSessionSnapshotResponse> {
-        const method = this.methods[6], opt = this._transport.mergeOptions(options);
+        const method = this.methods[8], opt = this._transport.mergeOptions(options);
         return stackIntercept<GetPublicChatSessionSnapshotRequest, GetPublicChatSessionSnapshotResponse>("unary", this._transport, method, opt, input);
+    }
+    /**
+     * @generated from protobuf rpc: GetCompanionParticipationProjection
+     */
+    getCompanionParticipationProjection(input: GetCompanionParticipationProjectionRequest, options?: RpcOptions): UnaryCall<GetCompanionParticipationProjectionRequest, GetCompanionParticipationProjectionResponse> {
+        const method = this.methods[9], opt = this._transport.mergeOptions(options);
+        return stackIntercept<GetCompanionParticipationProjectionRequest, GetCompanionParticipationProjectionResponse>("unary", this._transport, method, opt, input);
+    }
+    /**
+     * @generated from protobuf rpc: RequestCompanionParticipation
+     */
+    requestCompanionParticipation(input: RequestCompanionParticipationRequest, options?: RpcOptions): UnaryCall<RequestCompanionParticipationRequest, RequestCompanionParticipationResponse> {
+        const method = this.methods[10], opt = this._transport.mergeOptions(options);
+        return stackIntercept<RequestCompanionParticipationRequest, RequestCompanionParticipationResponse>("unary", this._transport, method, opt, input);
+    }
+    /**
+     * @generated from protobuf rpc: CancelCompanionParticipation
+     */
+    cancelCompanionParticipation(input: CancelCompanionParticipationRequest, options?: RpcOptions): UnaryCall<CancelCompanionParticipationRequest, CancelCompanionParticipationResponse> {
+        const method = this.methods[11], opt = this._transport.mergeOptions(options);
+        return stackIntercept<CancelCompanionParticipationRequest, CancelCompanionParticipationResponse>("unary", this._transport, method, opt, input);
+    }
+    /**
+     * @generated from protobuf rpc: OpenCompanionParticipationReplay
+     */
+    openCompanionParticipationReplay(input: OpenCompanionParticipationReplayRequest, options?: RpcOptions): UnaryCall<OpenCompanionParticipationReplayRequest, OpenCompanionParticipationReplayResponse> {
+        const method = this.methods[12], opt = this._transport.mergeOptions(options);
+        return stackIntercept<OpenCompanionParticipationReplayRequest, OpenCompanionParticipationReplayResponse>("unary", this._transport, method, opt, input);
     }
     /**
      * @generated from protobuf rpc: CreateRealmGroupMessageCandidate
      */
     createRealmGroupMessageCandidate(input: CreateRealmGroupMessageCandidateRequest, options?: RpcOptions): UnaryCall<CreateRealmGroupMessageCandidateRequest, CreateRealmGroupMessageCandidateResponse> {
-        const method = this.methods[7], opt = this._transport.mergeOptions(options);
+        const method = this.methods[13], opt = this._transport.mergeOptions(options);
         return stackIntercept<CreateRealmGroupMessageCandidateRequest, CreateRealmGroupMessageCandidateResponse>("unary", this._transport, method, opt, input);
     }
     /**
      * @generated from protobuf rpc: GetRealmGroupMessageCandidateEvidence
      */
     getRealmGroupMessageCandidateEvidence(input: GetRealmGroupMessageCandidateEvidenceRequest, options?: RpcOptions): UnaryCall<GetRealmGroupMessageCandidateEvidenceRequest, GetRealmGroupMessageCandidateEvidenceResponse> {
-        const method = this.methods[8], opt = this._transport.mergeOptions(options);
+        const method = this.methods[14], opt = this._transport.mergeOptions(options);
         return stackIntercept<GetRealmGroupMessageCandidateEvidenceRequest, GetRealmGroupMessageCandidateEvidenceResponse>("unary", this._transport, method, opt, input);
     }
     /**
      * @generated from protobuf rpc: GetAvatarDebugSnapshot
      */
     getAvatarDebugSnapshot(input: GetAvatarDebugSnapshotRequest, options?: RpcOptions): UnaryCall<GetAvatarDebugSnapshotRequest, GetAvatarDebugSnapshotResponse> {
-        const method = this.methods[9], opt = this._transport.mergeOptions(options);
+        const method = this.methods[15], opt = this._transport.mergeOptions(options);
         return stackIntercept<GetAvatarDebugSnapshotRequest, GetAvatarDebugSnapshotResponse>("unary", this._transport, method, opt, input);
     }
     /**
      * @generated from protobuf rpc: RequestAvatarDebugProbe
      */
     requestAvatarDebugProbe(input: RequestAvatarDebugProbeRequest, options?: RpcOptions): UnaryCall<RequestAvatarDebugProbeRequest, RequestAvatarDebugProbeResponse> {
-        const method = this.methods[10], opt = this._transport.mergeOptions(options);
+        const method = this.methods[16], opt = this._transport.mergeOptions(options);
         return stackIntercept<RequestAvatarDebugProbeRequest, RequestAvatarDebugProbeResponse>("unary", this._transport, method, opt, input);
     }
     /**
      * @generated from protobuf rpc: ListAvatarDebugProbeResults
      */
     listAvatarDebugProbeResults(input: ListAvatarDebugProbeResultsRequest, options?: RpcOptions): UnaryCall<ListAvatarDebugProbeResultsRequest, ListAvatarDebugProbeResultsResponse> {
-        const method = this.methods[11], opt = this._transport.mergeOptions(options);
+        const method = this.methods[17], opt = this._transport.mergeOptions(options);
         return stackIntercept<ListAvatarDebugProbeResultsRequest, ListAvatarDebugProbeResultsResponse>("unary", this._transport, method, opt, input);
     }
     /**
      * @generated from protobuf rpc: GetAvatarDebugReplay
      */
     getAvatarDebugReplay(input: GetAvatarDebugReplayRequest, options?: RpcOptions): UnaryCall<GetAvatarDebugReplayRequest, GetAvatarDebugReplayResponse> {
-        const method = this.methods[12], opt = this._transport.mergeOptions(options);
+        const method = this.methods[18], opt = this._transport.mergeOptions(options);
         return stackIntercept<GetAvatarDebugReplayRequest, GetAvatarDebugReplayResponse>("unary", this._transport, method, opt, input);
+    }
+    /**
+     * @generated from protobuf rpc: ResolveAvatarPackageLaunchProjection
+     */
+    resolveAvatarPackageLaunchProjection(input: ResolveAvatarPackageLaunchProjectionRequest, options?: RpcOptions): UnaryCall<ResolveAvatarPackageLaunchProjectionRequest, ResolveAvatarPackageLaunchProjectionResponse> {
+        const method = this.methods[19], opt = this._transport.mergeOptions(options);
+        return stackIntercept<ResolveAvatarPackageLaunchProjectionRequest, ResolveAvatarPackageLaunchProjectionResponse>("unary", this._transport, method, opt, input);
     }
     /**
      * @generated from protobuf rpc: GetAgentState
      */
     getAgentState(input: GetAgentStateRequest, options?: RpcOptions): UnaryCall<GetAgentStateRequest, GetAgentStateResponse> {
-        const method = this.methods[13], opt = this._transport.mergeOptions(options);
+        const method = this.methods[20], opt = this._transport.mergeOptions(options);
         return stackIntercept<GetAgentStateRequest, GetAgentStateResponse>("unary", this._transport, method, opt, input);
     }
     /**
      * @generated from protobuf rpc: UpdateAgentState
      */
     updateAgentState(input: UpdateAgentStateRequest, options?: RpcOptions): UnaryCall<UpdateAgentStateRequest, UpdateAgentStateResponse> {
-        const method = this.methods[14], opt = this._transport.mergeOptions(options);
+        const method = this.methods[21], opt = this._transport.mergeOptions(options);
         return stackIntercept<UpdateAgentStateRequest, UpdateAgentStateResponse>("unary", this._transport, method, opt, input);
     }
     /**
      * @generated from protobuf rpc: SetAgentPresentationProfile
      */
     setAgentPresentationProfile(input: SetAgentPresentationProfileRequest, options?: RpcOptions): UnaryCall<SetAgentPresentationProfileRequest, SetAgentPresentationProfileResponse> {
-        const method = this.methods[15], opt = this._transport.mergeOptions(options);
+        const method = this.methods[22], opt = this._transport.mergeOptions(options);
         return stackIntercept<SetAgentPresentationProfileRequest, SetAgentPresentationProfileResponse>("unary", this._transport, method, opt, input);
     }
     /**
      * @generated from protobuf rpc: EnableAutonomy
      */
     enableAutonomy(input: EnableAutonomyRequest, options?: RpcOptions): UnaryCall<EnableAutonomyRequest, EnableAutonomyResponse> {
-        const method = this.methods[16], opt = this._transport.mergeOptions(options);
+        const method = this.methods[23], opt = this._transport.mergeOptions(options);
         return stackIntercept<EnableAutonomyRequest, EnableAutonomyResponse>("unary", this._transport, method, opt, input);
     }
     /**
      * @generated from protobuf rpc: DisableAutonomy
      */
     disableAutonomy(input: DisableAutonomyRequest, options?: RpcOptions): UnaryCall<DisableAutonomyRequest, DisableAutonomyResponse> {
-        const method = this.methods[17], opt = this._transport.mergeOptions(options);
+        const method = this.methods[24], opt = this._transport.mergeOptions(options);
         return stackIntercept<DisableAutonomyRequest, DisableAutonomyResponse>("unary", this._transport, method, opt, input);
     }
     /**
      * @generated from protobuf rpc: SetAutonomyConfig
      */
     setAutonomyConfig(input: SetAutonomyConfigRequest, options?: RpcOptions): UnaryCall<SetAutonomyConfigRequest, SetAutonomyConfigResponse> {
-        const method = this.methods[18], opt = this._transport.mergeOptions(options);
+        const method = this.methods[25], opt = this._transport.mergeOptions(options);
         return stackIntercept<SetAutonomyConfigRequest, SetAutonomyConfigResponse>("unary", this._transport, method, opt, input);
     }
     /**
      * @generated from protobuf rpc: ListPendingHooks
      */
     listPendingHooks(input: ListPendingHooksRequest, options?: RpcOptions): UnaryCall<ListPendingHooksRequest, ListPendingHooksResponse> {
-        const method = this.methods[19], opt = this._transport.mergeOptions(options);
+        const method = this.methods[26], opt = this._transport.mergeOptions(options);
         return stackIntercept<ListPendingHooksRequest, ListPendingHooksResponse>("unary", this._transport, method, opt, input);
     }
     /**
      * @generated from protobuf rpc: CancelHook
      */
     cancelHook(input: CancelHookRequest, options?: RpcOptions): UnaryCall<CancelHookRequest, CancelHookResponse> {
-        const method = this.methods[20], opt = this._transport.mergeOptions(options);
+        const method = this.methods[27], opt = this._transport.mergeOptions(options);
         return stackIntercept<CancelHookRequest, CancelHookResponse>("unary", this._transport, method, opt, input);
     }
     /**
      * @generated from protobuf rpc: ListDelegatedProviderProfiles
      */
     listDelegatedProviderProfiles(input: ListDelegatedProviderProfilesRequest, options?: RpcOptions): UnaryCall<ListDelegatedProviderProfilesRequest, ListDelegatedProviderProfilesResponse> {
-        const method = this.methods[21], opt = this._transport.mergeOptions(options);
+        const method = this.methods[28], opt = this._transport.mergeOptions(options);
         return stackIntercept<ListDelegatedProviderProfilesRequest, ListDelegatedProviderProfilesResponse>("unary", this._transport, method, opt, input);
     }
     /**
      * @generated from protobuf rpc: UpsertDelegatedProviderProfile
      */
     upsertDelegatedProviderProfile(input: UpsertDelegatedProviderProfileRequest, options?: RpcOptions): UnaryCall<UpsertDelegatedProviderProfileRequest, UpsertDelegatedProviderProfileResponse> {
-        const method = this.methods[22], opt = this._transport.mergeOptions(options);
+        const method = this.methods[29], opt = this._transport.mergeOptions(options);
         return stackIntercept<UpsertDelegatedProviderProfileRequest, UpsertDelegatedProviderProfileResponse>("unary", this._transport, method, opt, input);
     }
     /**
      * @generated from protobuf rpc: SetDelegatedProviderState
      */
     setDelegatedProviderState(input: SetDelegatedProviderStateRequest, options?: RpcOptions): UnaryCall<SetDelegatedProviderStateRequest, SetDelegatedProviderStateResponse> {
-        const method = this.methods[23], opt = this._transport.mergeOptions(options);
+        const method = this.methods[30], opt = this._transport.mergeOptions(options);
         return stackIntercept<SetDelegatedProviderStateRequest, SetDelegatedProviderStateResponse>("unary", this._transport, method, opt, input);
     }
     /**
      * @generated from protobuf rpc: ListDelegatedApprovalRequests
      */
     listDelegatedApprovalRequests(input: ListDelegatedApprovalRequestsRequest, options?: RpcOptions): UnaryCall<ListDelegatedApprovalRequestsRequest, ListDelegatedApprovalRequestsResponse> {
-        const method = this.methods[24], opt = this._transport.mergeOptions(options);
+        const method = this.methods[31], opt = this._transport.mergeOptions(options);
         return stackIntercept<ListDelegatedApprovalRequestsRequest, ListDelegatedApprovalRequestsResponse>("unary", this._transport, method, opt, input);
     }
     /**
      * @generated from protobuf rpc: SubmitDelegatedApprovalDecision
      */
     submitDelegatedApprovalDecision(input: SubmitDelegatedApprovalDecisionRequest, options?: RpcOptions): UnaryCall<SubmitDelegatedApprovalDecisionRequest, SubmitDelegatedApprovalDecisionResponse> {
-        const method = this.methods[25], opt = this._transport.mergeOptions(options);
+        const method = this.methods[32], opt = this._transport.mergeOptions(options);
         return stackIntercept<SubmitDelegatedApprovalDecisionRequest, SubmitDelegatedApprovalDecisionResponse>("unary", this._transport, method, opt, input);
     }
     /**
      * @generated from protobuf rpc: ListDelegatedDiagnostics
      */
     listDelegatedDiagnostics(input: ListDelegatedDiagnosticsRequest, options?: RpcOptions): UnaryCall<ListDelegatedDiagnosticsRequest, ListDelegatedDiagnosticsResponse> {
-        const method = this.methods[26], opt = this._transport.mergeOptions(options);
+        const method = this.methods[33], opt = this._transport.mergeOptions(options);
         return stackIntercept<ListDelegatedDiagnosticsRequest, ListDelegatedDiagnosticsResponse>("unary", this._transport, method, opt, input);
     }
     /**
      * @generated from protobuf rpc: GetDelegatedReplayTrace
      */
     getDelegatedReplayTrace(input: GetDelegatedReplayTraceRequest, options?: RpcOptions): UnaryCall<GetDelegatedReplayTraceRequest, GetDelegatedReplayTraceResponse> {
-        const method = this.methods[27], opt = this._transport.mergeOptions(options);
+        const method = this.methods[34], opt = this._transport.mergeOptions(options);
         return stackIntercept<GetDelegatedReplayTraceRequest, GetDelegatedReplayTraceResponse>("unary", this._transport, method, opt, input);
     }
     /**
      * @generated from protobuf rpc: GetDelegatedControlSurfaceSnapshot
      */
     getDelegatedControlSurfaceSnapshot(input: GetDelegatedControlSurfaceSnapshotRequest, options?: RpcOptions): UnaryCall<GetDelegatedControlSurfaceSnapshotRequest, GetDelegatedControlSurfaceSnapshotResponse> {
-        const method = this.methods[28], opt = this._transport.mergeOptions(options);
+        const method = this.methods[35], opt = this._transport.mergeOptions(options);
         return stackIntercept<GetDelegatedControlSurfaceSnapshotRequest, GetDelegatedControlSurfaceSnapshotResponse>("unary", this._transport, method, opt, input);
     }
     /**
      * @generated from protobuf rpc: ExecuteDelegatedCapability
      */
     executeDelegatedCapability(input: ExecuteDelegatedCapabilityRequest, options?: RpcOptions): UnaryCall<ExecuteDelegatedCapabilityRequest, ExecuteDelegatedCapabilityResponse> {
-        const method = this.methods[29], opt = this._transport.mergeOptions(options);
+        const method = this.methods[36], opt = this._transport.mergeOptions(options);
         return stackIntercept<ExecuteDelegatedCapabilityRequest, ExecuteDelegatedCapabilityResponse>("unary", this._transport, method, opt, input);
     }
     /**
      * @generated from protobuf rpc: QueryAgentMemory
      */
     queryAgentMemory(input: QueryAgentMemoryRequest, options?: RpcOptions): UnaryCall<QueryAgentMemoryRequest, QueryAgentMemoryResponse> {
-        const method = this.methods[30], opt = this._transport.mergeOptions(options);
+        const method = this.methods[37], opt = this._transport.mergeOptions(options);
         return stackIntercept<QueryAgentMemoryRequest, QueryAgentMemoryResponse>("unary", this._transport, method, opt, input);
     }
     /**
      * @generated from protobuf rpc: WriteAgentMemory
      */
     writeAgentMemory(input: WriteAgentMemoryRequest, options?: RpcOptions): UnaryCall<WriteAgentMemoryRequest, WriteAgentMemoryResponse> {
-        const method = this.methods[31], opt = this._transport.mergeOptions(options);
+        const method = this.methods[38], opt = this._transport.mergeOptions(options);
         return stackIntercept<WriteAgentMemoryRequest, WriteAgentMemoryResponse>("unary", this._transport, method, opt, input);
     }
     /**
      * @generated from protobuf rpc: SubscribeAgentEvents
      */
     subscribeAgentEvents(input: SubscribeAgentEventsRequest, options?: RpcOptions): ServerStreamingCall<SubscribeAgentEventsRequest, AgentEvent> {
-        const method = this.methods[32], opt = this._transport.mergeOptions(options);
+        const method = this.methods[39], opt = this._transport.mergeOptions(options);
         return stackIntercept<SubscribeAgentEventsRequest, AgentEvent>("serverStreaming", this._transport, method, opt, input);
     }
 }

@@ -34,6 +34,7 @@ export const E2E_IDS = {
   chatCreateGroupButton: 'chat-create-group-button',
   chatHeaderProfileToggle: 'chat-header-profile-toggle',
   chatSettingsToggle: 'chat-settings-toggle',
+  chatAgentCenterSection: (sectionId: string) => `chat-agent-center-section:${sectionId}`,
   chatOpenUserProfile: 'chat-open-user-profile',
   chatMemoryModeCard: 'chat-memory-mode-card',
   chatMemoryModeStatus: 'chat-memory-mode-status',

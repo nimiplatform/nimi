@@ -9,9 +9,6 @@ import {
 test('runtime agent presentation profile admits only runtime backend kinds', () => {
   assert.equal(normalizeRuntimeAgentPresentationBackendKind('vrm'), 1);
   assert.equal(normalizeRuntimeAgentPresentationBackendKind('live2d'), 2);
-  assert.equal(normalizeRuntimeAgentPresentationBackendKind('sprite2d'), 3);
-  assert.equal(normalizeRuntimeAgentPresentationBackendKind('canvas2d'), 4);
-  assert.equal(normalizeRuntimeAgentPresentationBackendKind('video'), 5);
   assert.equal(normalizeRuntimeAgentPresentationBackendKind('unknown' as 'vrm'), null);
 });
 

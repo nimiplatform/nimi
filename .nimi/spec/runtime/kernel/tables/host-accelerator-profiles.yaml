@@ -1,4 +1,10 @@
 version: 1
+table_family: product_catalog
+owner: runtime
+catalog_id: runtime_host_accelerator_profiles
+entries:
+  - profiles_1
+  - profiles_2
 
 # Canonical host accelerator profile authority.
 # Runtime owns probe, refresh, evidence, and state. Desktop, SDK, mods, model

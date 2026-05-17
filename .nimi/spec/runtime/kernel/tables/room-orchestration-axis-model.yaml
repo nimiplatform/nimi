@@ -1,4 +1,23 @@
 version: 1
+table_family: product_catalog
+owner: runtime
+catalog_id: runtime_room_orchestration_axis_model
+entries:
+  - room_session_owner
+  - participant_set_source
+  - trigger_arbitration
+  - turn_ordering
+  - fairness_starvation_policy
+  - budget_owner
+  - queue_status_projection
+  - cancellation_timeout_owner
+  - external_participant_admission
+  - commit_race_handoff
+  - source_rule
+  - open_string_axis_values_allowed
+  - new_axis_requires_new_authority_admission
+  - wave_2_axis_first_definition
+  - runtime_participation_axis_reopen
 source_rule: K-AGCORE-109
 closed_axis_registry: true
 parent_participation_axis_registry: .nimi/spec/runtime/kernel/tables/agent-participation-axis-model.yaml

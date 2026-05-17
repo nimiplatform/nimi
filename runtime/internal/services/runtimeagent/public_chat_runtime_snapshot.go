@@ -22,6 +22,51 @@ func (r publicChatRuntime) buildSessionSnapshot(
 	if err != nil {
 		return nil, publicChatAnchorState{}, false, false, false, err
 	}
+	return r.buildSessionSnapshotFromState(startedAt, callerAppID, requestID, session, activeTurn, lastTurn, pendingFollowUp)
+}
+
+func (r publicChatRuntime) buildAvatarLiveInstanceSessionSnapshot(
+	callerAppID string,
+	anchorID string,
+	requestID string,
+	identity localAgentIdentity,
+) (*structpb.Struct, publicChatAnchorState, bool, bool, bool, error) {
+	startedAt := time.Now()
+	if r.svc == nil || r.svc.isClosed() {
+		return nil, publicChatAnchorState{}, false, false, false, status.Error(codes.FailedPrecondition, "runtime public chat surface unavailable")
+	}
+	session, activeTurn, lastTurn, pendingFollowUp, err := r.svc.snapshotPublicChatAnchorForAvatarLiveInstance(strings.TrimSpace(callerAppID), anchorID, identity)
+	if err != nil {
+		return nil, publicChatAnchorState{}, false, false, false, err
+	}
+	return r.buildSessionSnapshotFromState(startedAt, callerAppID, requestID, session, activeTurn, lastTurn, pendingFollowUp)
+}
+
+func (r publicChatRuntime) buildScopedBindingSessionSnapshot(
+	callerAppID string,
+	anchorID string,
+	requestID string,
+) (*structpb.Struct, publicChatAnchorState, bool, bool, bool, error) {
+	startedAt := time.Now()
+	if r.svc == nil || r.svc.isClosed() {
+		return nil, publicChatAnchorState{}, false, false, false, status.Error(codes.FailedPrecondition, "runtime public chat surface unavailable")
+	}
+	session, activeTurn, lastTurn, pendingFollowUp, err := r.svc.snapshotPublicChatAnchorForScopedBinding(anchorID)
+	if err != nil {
+		return nil, publicChatAnchorState{}, false, false, false, err
+	}
+	return r.buildSessionSnapshotFromState(startedAt, callerAppID, requestID, session, activeTurn, lastTurn, pendingFollowUp)
+}
+
+func (r publicChatRuntime) buildSessionSnapshotFromState(
+	startedAt time.Time,
+	callerAppID string,
+	requestID string,
+	session publicChatAnchorState,
+	activeTurn *publicChatTurnProjectionState,
+	lastTurn *publicChatTurnProjectionState,
+	pendingFollowUp *publicChatFollowUpState,
+) (*structpb.Struct, publicChatAnchorState, bool, bool, bool, error) {
 	// Full public chat session snapshot is a unary query projection. Runtime
 	// carrier execution truth (model_resolved, trace_id, transcript metadata,
 	// follow-up state, etc.) lives in this snapshot, never on turn delta events.

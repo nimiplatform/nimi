@@ -20,6 +20,14 @@ const historyPanelSource = fs.readFileSync(
   path.join(desktopRoot, 'src/shell/renderer/features/chat/chat-agent-history-panel.tsx'),
   'utf8',
 );
+const agentCenterPanelSource = fs.readFileSync(
+  path.join(desktopRoot, 'src/shell/renderer/features/chat/chat-agent-center-panel.tsx'),
+  'utf8',
+);
+const agentShellAdapterSource = fs.readFileSync(
+  path.join(desktopRoot, 'src/shell/renderer/features/chat/chat-agent-shell-adapter.tsx'),
+  'utf8',
+);
 const rightPanelSource = fs.readFileSync(
   path.join(desktopRoot, 'src/shell/renderer/features/chat/chat-right-panel-character-rail.tsx'),
   'utf8',
@@ -61,17 +69,26 @@ test('chat memory standard bind fixture carries tauri bind and confirm overrides
 
 test('chat memory standard bind journey exposes stable Memory Mode test ids', () => {
   assert.match(e2eIdsSource, /chatSettingsToggle: 'chat-settings-toggle',/);
+  assert.match(e2eIdsSource, /chatAgentCenterSection:\s*\(sectionId: string\) => `chat-agent-center-section:\$\{sectionId\}`/);
   assert.match(e2eIdsSource, /chatMemoryModeCard: 'chat-memory-mode-card',/);
   assert.match(e2eIdsSource, /chatMemoryModeStatus: 'chat-memory-mode-status',/);
   assert.match(e2eIdsSource, /chatMemoryModeUpgradeButton: 'chat-memory-mode-upgrade-button',/);
 
   assert.match(e2eSelectorsSource, /chatSettingsToggle: 'chat-settings-toggle',/);
+  assert.match(e2eSelectorsSource, /chatAgentCenterSection:\s*\(sectionId\) => `chat-agent-center-section:\$\{sectionId\}`/);
   assert.match(e2eSelectorsSource, /chatMemoryModeCard: 'chat-memory-mode-card',/);
   assert.match(e2eSelectorsSource, /chatMemoryModeStatus: 'chat-memory-mode-status',/);
   assert.match(e2eSelectorsSource, /chatMemoryModeUpgradeButton: 'chat-memory-mode-upgrade-button',/);
   assert.match(rightPanelSource, /data-testid=\{E2E_IDS\.chatSettingsToggle\}/);
+  assert.match(agentCenterPanelSource, /data-testid=\{E2E_IDS\.chatAgentCenterSection\(section\.id\)\}/);
   assert.match(historyPanelSource, /data-testid=\{E2E_IDS\.chatMemoryModeCard\}/);
   assert.match(historyPanelSource, /data-testid=\{E2E_IDS\.chatMemoryModeStatus\}/);
   assert.match(historyPanelSource, /data-memory-mode=\{memoryModeValue\}/);
   assert.match(historyPanelSource, /data-testid=\{E2E_IDS\.chatMemoryModeUpgradeButton\}/);
+});
+
+test('Agent Center wires Standard memory upgrade to the runtime bridge surface', () => {
+  assert.match(agentShellAdapterSource, /handleUpgradeStandardMemory/);
+  assert.match(agentShellAdapterSource, /onUpgradeStandardMemory=\{handleUpgradeStandardMemory\}/);
+  assert.match(agentShellAdapterSource, /allowMemoryUpgrade/);
 });

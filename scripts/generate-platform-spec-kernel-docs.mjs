@@ -3,7 +3,8 @@
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import YAML from 'yaml';
+import { derivedViewMode, finalizeDerivedViews } from './lib/spec-derived-view-output.mjs';
+import { readYamlWithFragments } from './lib/read-yaml-with-fragments.mjs';
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '..');
@@ -350,12 +351,12 @@ function renderNimiKitRegistry(doc, sourceName) {
 function renderPackageAuthorityAdmissions(doc, sourceName) {
   const admissions = Array.isArray(doc?.admissions) ? doc.admissions : [];
   let out = header('Generated Package Authority Admissions', sourceName);
-  out += '| ID | Status | Owner Domain | Authority Root | Evidence Roots | May Not Override | Source |\n';
+  out += '| ID | Admission Posture | Owner Domain | Authority Root | Evidence Roots | May Not Override | Source |\n';
   out += '|---|---|---|---|---|---|---|\n';
   for (const item of admissions) {
     const evidenceRoots = Array.isArray(item?.evidence_roots) ? item.evidence_roots : [];
     const mayNotOverride = Array.isArray(item?.may_not_override) ? item.may_not_override : [];
-    out += `| \`${String(item?.id || '')}\` | \`${String(item?.status || '')}\` | \`${String(item?.owner_domain || '')}\` | \`${String(item?.authority_root || '')}\` | ${evidenceRoots.map((ref) => `\`${String(ref)}\``).join(', ') || '—'} | ${mayNotOverride.map((ref) => `\`${String(ref)}\``).join(', ') || '—'} | \`${String(item?.source_rule || '')}\` |\n`;
+    out += `| \`${String(item?.id || '')}\` | \`${String(item?.admission_posture || '')}\` | \`${String(item?.owner_domain || '')}\` | \`${String(item?.authority_root || '')}\` | ${evidenceRoots.map((ref) => `\`${String(ref)}\``).join(', ') || '—'} | ${mayNotOverride.map((ref) => `\`${String(ref)}\``).join(', ') || '—'} | \`${String(item?.source_rule || '')}\` |\n`;
   }
   out += '\n';
   const projectionRows = admissions
@@ -392,13 +393,13 @@ function renderRuleEvidence(doc, sourceName) {
     const item = value && typeof value === 'object' ? value : {};
     out += `| \`${ref}\` | \`${String(item.type || '').trim() || '—'}\` | \`${String(item.evidence_type || '').trim() || '—'}\` | \`${String(item.command || '').trim() || '—'}\` | \`${String(item.path || '').trim() || '—'}\` | ${String(item.description || '').trim() || '—'} |\n`;
   }
-  const hasCoverageNote = rules.some((item) => item?.coverage_note);
-  out += '\n## Rule Coverage Matrix\n\n';
-  if (hasCoverageNote) {
-    out += '| Rule ID | Status | Evidence Refs | Coverage Note |\n';
+  const hasScopeNote = rules.some((item) => item?.evidence_scope_note);
+  out += '\n## Rule Evidence Requirements\n\n';
+  if (hasScopeNote) {
+    out += '| Rule ID | Evidence Requirement | Evidence Refs | Scope Note |\n';
     out += '|---|---|---|---|\n';
   } else {
-    out += '| Rule ID | Status | Evidence Refs |\n';
+    out += '| Rule ID | Evidence Requirement | Evidence Refs |\n';
     out += '|---|---|---|\n';
   }
   for (const item of rules) {
@@ -406,11 +407,12 @@ function renderRuleEvidence(doc, sourceName) {
     if (!ruleId) continue;
     const refs = Array.isArray(item?.evidence_refs) ? item.evidence_refs : [];
     const refsText = refs.length > 0 ? refs.map((ref) => `\`${String(ref)}\``).join(', ') : '—';
-    if (hasCoverageNote) {
-      const note = String(item?.coverage_note || '').trim() || '—';
-      out += `| \`${ruleId}\` | \`${String(item?.status || '').trim() || '—'}\` | ${refsText} | ${note} |\n`;
+    const requirement = String(item?.evidence_requirement || '').trim() || '—';
+    if (hasScopeNote) {
+      const note = String(item?.evidence_scope_note || '').trim() || '—';
+      out += `| \`${ruleId}\` | \`${requirement}\` | ${refsText} | ${note} |\n`;
     } else {
-      out += `| \`${ruleId}\` | \`${String(item?.status || '').trim() || '—'}\` | ${refsText} |\n`;
+      out += `| \`${ruleId}\` | \`${requirement}\` | ${refsText} |\n`;
     }
   }
   out += '\n';
@@ -436,14 +438,11 @@ function renderGeneratedIndex(entries) {
 }
 
 async function parseYamlFile(filePath) {
-  const raw = await fs.readFile(filePath, 'utf8');
-  return YAML.parse(raw);
+  return readYamlWithFragments(filePath);
 }
 
 async function main() {
-  const checkMode = process.argv.includes('--check');
-
-  await fs.mkdir(outDir, { recursive: true });
+  const { checkMode } = derivedViewMode();
 
   const renderedEntries = [];
   for (const spec of specs) {
@@ -456,45 +455,13 @@ async function main() {
   const indexPath = path.join(outDir, 'index.md');
   const indexRendered = renderGeneratedIndex(specs);
 
-  if (checkMode) {
-    const drifted = [];
-    for (const entry of renderedEntries) {
-      let current = '';
-      try {
-        current = await fs.readFile(entry.outputPath, 'utf8');
-      } catch {
-        drifted.push(entry.outputPath);
-        continue;
-      }
-      if (current !== entry.rendered) drifted.push(entry.outputPath);
-    }
-
-    let currentIndex = '';
-    try {
-      currentIndex = await fs.readFile(indexPath, 'utf8');
-    } catch {
-      drifted.push(indexPath);
-    }
-    if (currentIndex !== indexRendered) drifted.push(indexPath);
-
-    if (drifted.length > 0) {
-      process.stderr.write('platform kernel generated docs drift detected:\n');
-      for (const file of drifted) {
-        process.stderr.write(`  - ${path.relative(repoRoot, file)}\n`);
-      }
-      process.stderr.write('run `pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope platform` to regenerate.\n');
-      process.exitCode = 1;
-      return;
-    }
-    process.stdout.write(`platform kernel generated docs are up-to-date (${renderedEntries.length + 1} files)\n`);
-    return;
-  }
-
-  for (const entry of renderedEntries) {
-    await fs.writeFile(entry.outputPath, entry.rendered, 'utf8');
-  }
-  await fs.writeFile(indexPath, indexRendered, 'utf8');
-  process.stdout.write(`generated platform kernel docs (${renderedEntries.length + 1} files)\n`);
+  await finalizeDerivedViews({
+    checkMode,
+    repoRoot,
+    outDir,
+    scopeLabel: 'platform kernel',
+    entries: [...renderedEntries, { outputPath: indexPath, rendered: indexRendered }],
+  });
 }
 
 main().catch((error) => {

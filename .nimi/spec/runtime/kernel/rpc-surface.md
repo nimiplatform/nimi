@@ -90,7 +90,7 @@ Runtime kernel 的 RPC 覆盖范围为 admitted proto 服务与已定义的 desi
 14. `UpsertCatalogModelOverlay`
 15. `DeleteCatalogModelOverlay`
 
-ConnectorService 当前与 proto `RuntimeConnectorService` 对齐（见 `tables/rpc-migration-map.yaml` 中 `mapping_status=aligned`）。
+ConnectorService 当前与 proto `RuntimeConnectorService` 对齐（见 `tables/rpc-migration-map.yaml` 中 `mapping_posture=aligned`）。
 
 ConnectorService 在 `CreateConnector` / `UpdateConnector` 上的 credential request shape 固定为：
 
@@ -344,17 +344,23 @@ name。design/proto 关系以 `tables/rpc-migration-map.yaml` 为准。
 4. `ListAgents`
 5. `OpenConversationAnchor`
 6. `GetConversationAnchorSnapshot`
-7. `GetPublicChatSessionSnapshot`
-8. `GetAgentState`
-9. `UpdateAgentState`
-10. `EnableAutonomy`
-11. `DisableAutonomy`
-12. `SetAutonomyConfig`
-13. `ListPendingHooks`
-14. `CancelHook`
-15. `QueryAgentMemory`
-16. `WriteAgentMemory`
-17. `SubscribeAgentEvents`
+7. `RegisterAvatarLiveInstanceBinding`
+8. `ResolveAvatarLiveInstanceBinding`
+9. `GetPublicChatSessionSnapshot`
+10. `GetCompanionParticipationProjection`
+11. `RequestCompanionParticipation`
+12. `CancelCompanionParticipation`
+13. `OpenCompanionParticipationReplay`
+14. `GetAgentState`
+15. `UpdateAgentState`
+16. `EnableAutonomy`
+17. `DisableAutonomy`
+18. `SetAutonomyConfig`
+19. `ListPendingHooks`
+20. `CancelHook`
+21. `QueryAgentMemory`
+22. `WriteAgentMemory`
+23. `SubscribeAgentEvents`
 
 固定约束：
 
@@ -379,8 +385,10 @@ name。design/proto 关系以 `tables/rpc-migration-map.yaml` 为准。
 最小 access matrix：
 
 - `InitializeAgent` / `TerminateAgent`：`runtime.agent.admin`
-- `GetAgent` / `ListAgents` / `GetConversationAnchorSnapshot` / `GetPublicChatSessionSnapshot` / `GetAgentState` / `ListPendingHooks` / `QueryAgentMemory` / `SubscribeAgentEvents`：`runtime.agent.read`
-- `OpenConversationAnchor`：`runtime.agent.write`
+- `GetAgent` / `ListAgents` / `GetConversationAnchorSnapshot` / `ResolveAvatarLiveInstanceBinding` / `GetPublicChatSessionSnapshot` / `GetAgentState` / `ListPendingHooks` / `QueryAgentMemory` / `SubscribeAgentEvents`：`runtime.agent.read`
+- `GetCompanionParticipationProjection` / `OpenCompanionParticipationReplay`：`runtime.agent.companion_participation.read`
+- `OpenConversationAnchor` / `RegisterAvatarLiveInstanceBinding`：`runtime.agent.write`
+- `RequestCompanionParticipation` / `CancelCompanionParticipation`：`runtime.agent.companion_participation.write`
 - `UpdateAgentState` / `WriteAgentMemory` / `CancelHook`：`runtime.agent.write`
 - `EnableAutonomy` / `DisableAutonomy` / `SetAutonomyConfig`：`runtime.agent.autonomy.write`
 

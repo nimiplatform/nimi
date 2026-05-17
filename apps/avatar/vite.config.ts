@@ -89,6 +89,7 @@ export default defineConfig(() => {
 
   return {
     root: path.resolve(__dirname, 'src/shell/renderer'),
+    base: './',
     envDir: workspaceRoot,
     envPrefix: ['VITE_', 'NIMI_'],
     define: {

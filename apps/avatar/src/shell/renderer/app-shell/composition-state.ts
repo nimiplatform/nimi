@@ -29,6 +29,8 @@ export type CompositionDerivation = {
   accountReasonCode: string | null;
   actionHint: string | null;
   stage: string | null;
+  source: string | null;
+  retryable: boolean | null;
   // True iff embodiment-stage + companion-surface should mount.
   // False iff only degraded-surface should mount.
   ready: boolean;
@@ -111,6 +113,8 @@ export function deriveCompositionState(input: CompositionInput): CompositionDeri
       accountReasonCode: null,
       actionHint: null,
       stage: null,
+      source: null,
+      retryable: null,
       ready: false,
     };
   }
@@ -125,6 +129,8 @@ export function deriveCompositionState(input: CompositionInput): CompositionDeri
       accountReasonCode: null,
       actionHint: null,
       stage: null,
+      source: null,
+      retryable: null,
       ready: false,
     };
   }
@@ -138,6 +144,8 @@ export function deriveCompositionState(input: CompositionInput): CompositionDeri
       accountReasonCode: null,
       actionHint: null,
       stage: null,
+      source: null,
+      retryable: null,
       ready: false,
     };
   }
@@ -152,6 +160,8 @@ export function deriveCompositionState(input: CompositionInput): CompositionDeri
       accountReasonCode: null,
       actionHint: null,
       stage: null,
+      source: null,
+      retryable: null,
       ready: true,
     };
   }
@@ -163,10 +173,12 @@ export function deriveCompositionState(input: CompositionInput): CompositionDeri
       state: classifyDegradedReason(reason),
       variant: 'degraded',
       reason,
-      reasonCode: null,
-      accountReasonCode: null,
-      actionHint: null,
-      stage: null,
+      reasonCode: input.runtimeBinding.reasonCode,
+      accountReasonCode: input.runtimeBinding.accountReasonCode,
+      actionHint: input.runtimeBinding.actionHint,
+      stage: input.runtimeBinding.stage,
+      source: input.runtimeBinding.source,
+      retryable: input.runtimeBinding.retryable,
       ready: false,
     };
   }
@@ -181,6 +193,8 @@ export function deriveCompositionState(input: CompositionInput): CompositionDeri
       accountReasonCode: null,
       actionHint: null,
       stage: null,
+      source: null,
+      retryable: null,
       ready: false,
     };
   }
@@ -193,6 +207,8 @@ export function deriveCompositionState(input: CompositionInput): CompositionDeri
     accountReasonCode: null,
     actionHint: null,
     stage: null,
+    source: null,
+    retryable: null,
     ready: true,
   };
 }

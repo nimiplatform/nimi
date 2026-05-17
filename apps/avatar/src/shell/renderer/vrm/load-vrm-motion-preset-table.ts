@@ -5,12 +5,10 @@
 // chunk 3-A `load-vrm-emote-table.ts` Vite `?raw` + `yaml` parse pattern
 // for cross-module consistency.
 //
-// Wave 0 admit lists 4 entries: idle_subtle (MIT fork-copy from airi) +
-// listen_lean / nod_yes / shake_no (internal author targets). The 3
-// external-source entries (greet_wave / wave_hello / think_chin_touch)
-// are commented out in the YAML pre-wave_3-flip; this loader does not
-// fail when they are absent. Chunk 3-D un-comments those entries once
-// concrete license + source values are locked.
+// Topic 2026-05-15-avatar-vrm-deferral-and-authority-reconciliation wave 2
+// hard-cuts stale unbacked .vrma rows: only idle_subtle is admitted as a
+// built-in interchange asset. Runtime motion support is governed by the
+// generated motion provider, not this registry.
 //
 // Validation here is defense-in-depth (fail-close) for placeholder
 // license/source strings — see drift_check in vrm-motion-presets.yaml
@@ -43,15 +41,11 @@ export type VrmMotionPresetTable = {
 };
 
 /**
- * The 4 wave_0 admitted ids; presence is asserted at load time so a YAML
- * regression that removes any of them surfaces as a load failure rather
- * than as a missing-preset fail-close at runtime.
+ * Built-in interchange ids that must physically exist in the shipped asset
+ * directory. Generated motion route ids are intentionally not listed here.
  */
-export const WAVE_0_ADMITTED_PRESET_IDS: ReadonlyArray<string> = [
+export const ADMITTED_INTERCHANGE_PRESET_IDS: ReadonlyArray<string> = [
   'idle_subtle',
-  'listen_lean',
-  'nod_yes',
-  'shake_no',
 ];
 
 /**
@@ -177,11 +171,11 @@ export function normalizeVrmMotionPresetTable(raw: unknown): VrmMotionPresetTabl
     seen.add(normalized.id);
     presets.push(normalized);
   });
-  // Wave_0 admit invariant: the 4 anchor ids must remain present.
-  for (const required of WAVE_0_ADMITTED_PRESET_IDS) {
+  // Interchange invariant: every admitted built-in asset id must remain present.
+  for (const required of ADMITTED_INTERCHANGE_PRESET_IDS) {
     if (!seen.has(required)) {
       throw new Error(
-        `load-vrm-motion-preset-table: missing wave_0 admitted preset "${required}"`,
+        `load-vrm-motion-preset-table: missing admitted interchange preset "${required}"`,
       );
     }
   }

@@ -1,4 +1,17 @@
 version: 1
+table_family: product_catalog
+owner: sdk
+catalog_id: sdk_sdk_runtime_behavioral_checks
+entries:
+  - construction
+  - connection
+  - events
+  - retry
+  - phase
+  - auth
+  - media
+  - ai_output
+  - transport
 projections:
   # --- runtime behavioral checks ---
   - area: construction

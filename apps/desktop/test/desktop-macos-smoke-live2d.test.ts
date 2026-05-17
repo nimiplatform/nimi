@@ -1,6 +1,66 @@
 import test from 'node:test';
 
 import { assert, E2E_IDS, createBaseDriver, runDesktopMacosSmokeScenario } from './desktop-macos-smoke-test-helpers';
+import { waitForAvatarCarrierEvidence } from '../src/shell/renderer/infra/bootstrap/desktop-macos-smoke-avatar-evidence';
+
+function createAvatarLocalAssetResolvedRecord(recordedAt = '2026-04-26T00:00:02.000Z') {
+  return {
+    kind: 'avatar.visual.local-asset-resolved',
+    recordedAt,
+    detail: {
+      conversation_anchor_id: 'anchor-1',
+      local_asset_ref: 'live2d_ab12cd34ef56',
+      backend_kind: 'live2d',
+      asset_authority: 'local_avatar_asset',
+      resolver_authority: 'avatar_local_materialization',
+    },
+  };
+}
+
+function createAvatarCarrierVisualReadyRecord(recordedAt = '2026-04-26T00:00:05.000Z') {
+  return {
+    kind: 'avatar.carrier.visual',
+    recordedAt,
+    detail: {
+      conversation_anchor_id: 'anchor-1',
+      status: 'ready',
+      source: 'live2d-carrier-surface',
+      visible_pixels: 12,
+      visible_drawable_count: 24,
+      texture_binding_count: 1,
+      sampled_pixels: 96,
+      sampled_pixel_checksum: 123456,
+      canvas_width: 360,
+      canvas_height: 480,
+      human_visible_artifact_path: '/tmp/nimi-avatar-evidence/artifacts/instance/live2d-visible-frame.png',
+      artifact_mime_type: 'image/png',
+      artifact_byte_length: 128,
+    },
+  };
+}
+
+function createAvatarCarrierInteractionRecord(recordedAt = '2026-04-26T00:00:06.000Z') {
+  return {
+    kind: 'avatar.carrier.interaction',
+    recordedAt,
+    detail: {
+      conversation_anchor_id: 'anchor-1',
+      status: 'ready',
+      source: 'live2d-carrier-surface',
+      active_motion_group: 'Idle',
+      active_expression_id: 'exp_01',
+      motion_frame_applied: true,
+      expression_frame_applied: true,
+      visible_pixels: 12,
+      visible_drawable_count: 24,
+      texture_binding_count: 1,
+      sampled_pixels: 96,
+      sampled_pixel_checksum: 789012,
+      canvas_width: 360,
+      canvas_height: 480,
+    },
+  };
+}
 
 test('desktop macos smoke live2d render scenario waits for visible pixels before passing', async () => {
   for (const scenarioId of ['chat.live2d-render-smoke', 'chat.live2d-render-smoke-mark', 'chat.live2d-render-smoke-wanko'] as const) {
@@ -60,7 +120,7 @@ test('desktop macos smoke live2d render scenario waits for visible pixels before
       },
     }));
 
-    assert.deepEqual(clicked, [E2E_IDS.chatTarget('agent-e2e-alpha')]);
+    assert.deepEqual(clicked, [E2E_IDS.chatTarget('local-agent:user-e2e-primary:agent-e2e-alpha')]);
     assert.deepEqual(selectorsWaited, ['[data-avatar-live2d-status]']);
     assert.equal(tinyHostPulseRequests, 1);
     assert.deepEqual(dprPulseRequests, [1.75]);
@@ -399,10 +459,10 @@ test('desktop macos smoke live2d avatar product scenario waits for same-anchor A
       staleAnchorsCleared = true;
     },
     async verifyRuntimeConversationAnchor(input) {
-      runtimeAnchorVerified = input.agentId === 'agent-e2e-alpha' && input.conversationAnchorId === 'anchor-1';
+      runtimeAnchorVerified = input.agentId === 'local-agent:user-e2e-primary:agent-e2e-alpha' && input.conversationAnchorId === 'anchor-1';
     },
     async readRuntimeProductPathEvidence(input) {
-      runtimeProductEvidenceRead = input.agentId === 'agent-e2e-alpha' && input.conversationAnchorId === 'anchor-1';
+      runtimeProductEvidenceRead = input.agentId === 'local-agent:user-e2e-primary:agent-e2e-alpha' && input.conversationAnchorId === 'anchor-1';
       return {
         runtime_health: { status: 'healthy', sampled_at: '2026-04-26T00:00:00.000Z' },
         runtime_authenticated: true,
@@ -422,18 +482,18 @@ test('desktop macos smoke live2d avatar product scenario waits for same-anchor A
     async readLocalStorageItem() {
       return JSON.stringify([{
         threadId: 'agent-thread-1',
-        agentId: 'agent-e2e-alpha',
+        localAgentRef: 'local-agent:user-e2e-primary:agent-e2e-alpha',
         conversationAnchorId: 'anchor-1',
         updatedAtMs: Date.now(),
       }]);
     },
     async listAvatarLiveInstances(agentId) {
-      assert.equal(agentId, 'agent-e2e-alpha');
+      assert.equal(agentId, 'local-agent:user-e2e-primary:agent-e2e-alpha');
       return [{
         avatarInstanceId: 'desktop-avatar-agent-e2e-alpha-anchor-1',
         ownerUserId: 'desktop-smoke',
         realmAgentId: 'agent-e2e-alpha',
-        localAgentRef: 'local-agent:desktop-smoke:agent-e2e-alpha',
+        localAgentRef: 'local-agent:user-e2e-primary:agent-e2e-alpha',
         launchSource: 'desktop-agent-chat',
       }];
     },
@@ -444,32 +504,65 @@ test('desktop macos smoke live2d avatar product scenario waits for same-anchor A
         evidencePath: '/tmp/avatar-evidence.json',
         evidence: {
           launchContext: {
-            agentId: 'agent-e2e-alpha',
+            agentId: 'local-agent:user-e2e-primary:agent-e2e-alpha',
             avatarInstanceId,
             conversationAnchorId: 'anchor-1',
           },
           records: [
             {
               kind: 'avatar.startup.runtime-bound',
+              recordedAt: '2026-04-26T00:00:01.000Z',
               detail: { driver_kind: 'sdk', authority: 'runtime', conversation_anchor_id: 'anchor-1' },
+            },
+            createAvatarLocalAssetResolvedRecord('2026-04-26T00:00:01.500Z'),
+            {
+              kind: 'avatar.runtime.consume-ready',
+              recordedAt: '2026-04-26T00:00:02.000Z',
+              detail: {
+                conversation_anchor_id: 'anchor-1',
+                driver_status: 'running',
+                session_id: 'anchor-1',
+                session_status: 'idle',
+                latest_committed_message_id: 'message-1',
+                latest_committed_turn_id: 'turn-1',
+                scoped_binding_attached: true,
+              },
             },
             {
               kind: 'avatar.model.load',
+              recordedAt: '2026-04-26T00:00:03.000Z',
               detail: {
                 conversation_anchor_id: 'anchor-1',
                 model_id: 'ren',
+                backend_kind: 'live2d',
                 compatibility_tier: 'semantic_basic',
                 adapter_id: 'ren-basic',
+                backend_metadata: {
+                  model_kind: 'live2d',
+                  hit_region_default: {
+                    body: { left: 0, top: 0, right: 1, bottom: 1 },
+                    drag: { left: 0, top: 0, right: 1, bottom: 1 },
+                  },
+                },
               },
             },
             {
               kind: 'avatar.carrier.visual',
+              recordedAt: '2026-04-26T00:00:04.000Z',
               detail: {
                 conversation_anchor_id: 'anchor-1',
-                status: 'ready',
-                visible_pixels: evidenceReads >= 2 ? 12 : 0,
+                lifecycle: 'mounted',
+                source: 'live2d-carrier-surface',
               },
             },
+            evidenceReads >= 2
+              ? createAvatarCarrierVisualReadyRecord('2026-04-26T00:00:05.000Z')
+              : {
+                  kind: 'avatar.carrier.visual',
+                  recordedAt: '2026-04-26T00:00:05.000Z',
+                  detail: { conversation_anchor_id: 'anchor-1', status: 'ready', visible_pixels: 0 },
+                },
+            ...(evidenceReads >= 3 ? [createAvatarCarrierInteractionRecord()] : []),
           ],
         },
       };
@@ -486,21 +579,29 @@ test('desktop macos smoke live2d avatar product scenario waits for same-anchor A
   }));
 
   assert.deepEqual(clicked, [
-    E2E_IDS.chatTarget('agent-e2e-alpha'),
-    E2E_IDS.chatSettingsToggle,
-    E2E_IDS.chatAvatarLaunchCurrentButton,
+    E2E_IDS.chatTarget('local-agent:user-e2e-primary:agent-e2e-alpha'),
   ]);
-  assert.deepEqual(clickedSelectors, ['[data-chat-composer-send="true"]']);
-  assert.deepEqual(values, [{
-    selector: '[data-chat-composer-textarea="true"]',
-    value: 'Wave 2 product smoke anchor turn.',
-  }]);
+  assert.deepEqual(clickedSelectors, [
+    '[data-chat-composer-send="true"]',
+    '[data-agent-composer-avatar="ready_stopped"]',
+    '[data-chat-composer-send="true"]',
+  ]);
+  assert.deepEqual(values, [
+    {
+      selector: '[data-chat-composer-textarea="true"]',
+      value: 'Wave 2 product smoke anchor turn.',
+    },
+    {
+      selector: '[data-chat-composer-textarea="true"]',
+      value: 'Wave 2 product smoke interaction turn.',
+    },
+  ]);
   assert.equal(runtimeAccountProjectionVerified, true);
   assert.equal(routeConfigured, true);
   assert.equal(staleAnchorsCleared, true);
   assert.equal(runtimeAnchorVerified, true);
   assert.equal(runtimeProductEvidenceRead, true);
-  assert.equal(evidenceReads, 2);
+  assert.equal(evidenceReads, 3);
   assert.equal(writtenReports.length, 1);
   const report = writtenReports[0] as Record<string, unknown>;
   assert.equal(report.ok, true);
@@ -512,13 +613,17 @@ test('desktop macos smoke live2d avatar product scenario waits for same-anchor A
     'wait-agent-target-selected',
     'configure-runtime-text-route',
     'submit-anchor-turn',
+    'wait-anchor-send-ready',
     'wait-runtime-anchor-binding',
     'wait-runtime-product-path-evidence',
-    'open-settings',
-    'wait-avatar-launch-card',
+    'wait-avatar-composer-ready',
     'launch-avatar-current-anchor',
     'wait-avatar-same-anchor-registry',
     'wait-avatar-carrier-evidence',
+    'wait-avatar-interaction-composer-ready',
+    'submit-avatar-interaction-turn',
+    'wait-avatar-interaction-send-ready',
+    'wait-avatar-live2d-interaction-evidence',
     'write-pass-report',
   ]);
   const details = report.details as { avatarProductPath?: Record<string, unknown> };
@@ -527,7 +632,7 @@ test('desktop macos smoke live2d avatar product scenario waits for same-anchor A
     runtime_authenticated: true,
     runtime_auth_scopes: ['runtime.agent.read'],
     same_anchor: true,
-    agent_id: 'agent-e2e-alpha',
+    agent_id: 'local-agent:user-e2e-primary:agent-e2e-alpha',
     conversation_anchor_id: 'anchor-1',
     anchor_snapshot: {
       last_turn_id: 'turn-1',
@@ -537,4 +642,555 @@ test('desktop macos smoke live2d avatar product scenario waits for same-anchor A
     },
     has_runtime_turn: true,
   });
+  assert.deepEqual(details.avatarProductPath?.consumeReady, {
+    kind: 'avatar.runtime.consume-ready',
+    recordedAt: '2026-04-26T00:00:02.000Z',
+    detail: {
+      conversation_anchor_id: 'anchor-1',
+      driver_status: 'running',
+      session_id: 'anchor-1',
+      session_status: 'idle',
+      latest_committed_message_id: 'message-1',
+      latest_committed_turn_id: 'turn-1',
+      scoped_binding_attached: true,
+    },
+  });
+  assert.deepEqual(
+    details.avatarProductPath?.localAssetResolved,
+    createAvatarLocalAssetResolvedRecord('2026-04-26T00:00:01.500Z'),
+  );
+  assert.deepEqual(details.avatarProductPath?.modelLoad, {
+    kind: 'avatar.model.load',
+    recordedAt: '2026-04-26T00:00:03.000Z',
+    detail: {
+      conversation_anchor_id: 'anchor-1',
+      model_id: 'ren',
+      backend_kind: 'live2d',
+      compatibility_tier: 'semantic_basic',
+      adapter_id: 'ren-basic',
+      backend_metadata: {
+        model_kind: 'live2d',
+        hit_region_default: {
+          body: { left: 0, top: 0, right: 1, bottom: 1 },
+          drag: { left: 0, top: 0, right: 1, bottom: 1 },
+        },
+      },
+    },
+  });
+  assert.deepEqual(details.avatarProductPath?.lifecycleMounted, {
+    kind: 'avatar.carrier.visual',
+    recordedAt: '2026-04-26T00:00:04.000Z',
+    detail: {
+      conversation_anchor_id: 'anchor-1',
+      lifecycle: 'mounted',
+      source: 'live2d-carrier-surface',
+    },
+  });
+  assert.deepEqual(details.avatarProductPath?.visual, createAvatarCarrierVisualReadyRecord('2026-04-26T00:00:05.000Z'));
+  assert.deepEqual(details.avatarProductPath?.interaction, createAvatarCarrierInteractionRecord());
+});
+
+test('desktop macos smoke live2d avatar local asset missing scenario requires typed degraded evidence', async () => {
+  const clickedSelectors: string[] = [];
+  const values: Array<{ selector: string; value: string }> = [];
+  const appliedFaults: string[] = [];
+  const writtenReports: Array<Record<string, unknown>> = [];
+
+  await runDesktopMacosSmokeScenario('chat.live2d-avatar-local-asset-missing-smoke', createBaseDriver({
+    async clickSelector(selector) {
+      clickedSelectors.push(selector);
+    },
+    async setValueBySelector(selector, value) {
+      values.push({ selector, value });
+    },
+    async readRuntimeProductPathEvidence(input) {
+      return {
+        runtime_health: { status: 'healthy', sampled_at: '2026-04-26T00:00:00.000Z' },
+        runtime_authenticated: true,
+        runtime_auth_scopes: ['runtime.agent.read'],
+        same_anchor: true,
+        agent_id: input.agentId,
+        conversation_anchor_id: input.conversationAnchorId,
+        anchor_snapshot: {
+          last_turn_id: 'turn-1',
+          active_turn_id: null,
+          active_stream_id: null,
+          last_message_id: 'message-1',
+        },
+        has_runtime_turn: true,
+      };
+    },
+    async readLocalStorageItem() {
+      return JSON.stringify([{
+        threadId: 'agent-thread-1',
+        localAgentRef: 'local-agent:user-e2e-primary:agent-e2e-alpha',
+        conversationAnchorId: 'anchor-1',
+        updatedAtMs: Date.now(),
+      }]);
+    },
+    async listAvatarLiveInstances(agentId) {
+      assert.equal(agentId, 'local-agent:user-e2e-primary:agent-e2e-alpha');
+      return [{
+        avatarInstanceId: 'desktop-avatar-agent-e2e-alpha-anchor-1',
+        ownerUserId: 'desktop-smoke',
+        realmAgentId: 'agent-e2e-alpha',
+        localAgentRef: 'local-agent:user-e2e-primary:agent-e2e-alpha',
+        launchSource: 'desktop-agent-chat',
+      }];
+    },
+    async readAvatarEvidence(avatarInstanceId) {
+      assert.equal(avatarInstanceId, 'desktop-avatar-agent-e2e-alpha-anchor-1');
+      return {
+        evidencePath: '/tmp/avatar-evidence-local-asset-missing.json',
+        evidence: {
+          records: [
+            {
+              kind: 'avatar.runtime.bind-failed',
+              recordedAt: '2026-04-26T00:00:02.000Z',
+              detail: {
+                conversation_anchor_id: 'anchor-1',
+                error_stage: 'local_avatar_asset_manifest',
+                error_reason_code: 'LOCAL_AVATAR_ASSET_RESOLVE_FAILED',
+                error_action_hint: 'reimport_or_select_local_avatar_asset',
+                error_source: 'avatar_local_materialization',
+                error_retryable: false,
+              },
+            },
+            {
+              kind: 'avatar.composition.transition',
+              recordedAt: '2026-04-26T00:00:02.500Z',
+              detail: {
+                from: 'loading',
+                to: 'degraded_runtime_unavailable',
+                stage: 'local_avatar_asset_manifest',
+                reason_code: 'LOCAL_AVATAR_ASSET_RESOLVE_FAILED',
+                action_hint: 'reimport_or_select_local_avatar_asset',
+                source: 'avatar_local_materialization',
+                retryable: false,
+              },
+            },
+            {
+              kind: 'avatar.composition.surface-mounted',
+              recordedAt: '2026-04-26T00:00:03.000Z',
+              detail: {
+                surface: 'degraded-surface',
+                composition_state: 'degraded_runtime_unavailable',
+              },
+            },
+          ],
+        },
+      };
+    },
+    async applyAvatarProductLocalAssetFault(faultKind) {
+      appliedFaults.push(faultKind);
+      return {
+        faultKind,
+        manifestPath: '/tmp/avatar-asset/manifest.json',
+        removedEntryPath: '/tmp/avatar-asset/files/Hiyori.model3.json',
+      };
+    },
+    async writeReport(payload) {
+      writtenReports.push(payload as unknown as Record<string, unknown>);
+    },
+    currentRoute() {
+      return '/chat';
+    },
+    currentHtml() {
+      return '<html>avatar-product-local-asset-missing</html>';
+    },
+  }));
+
+  assert.deepEqual(clickedSelectors, [
+    '[data-chat-composer-send="true"]',
+    '[data-agent-composer-avatar="ready_stopped"]',
+  ]);
+  assert.deepEqual(appliedFaults, ['missing_entry_file']);
+  assert.deepEqual(values, [{
+    selector: '[data-chat-composer-textarea="true"]',
+    value: 'Wave 2 local asset missing degraded turn.',
+  }]);
+  assert.equal(writtenReports.length, 1);
+  const report = writtenReports[0] as Record<string, unknown>;
+  assert.equal(report.ok, true);
+  assert.deepEqual(report.steps, [
+    'wait-chat-panel',
+    'verify-runtime-account-projection',
+    'clear-stale-anchor-bindings',
+    'select-agent-target',
+    'wait-agent-target-selected',
+    'configure-runtime-text-route',
+    'submit-anchor-turn',
+    'wait-anchor-send-ready',
+    'wait-runtime-anchor-binding',
+    'wait-runtime-product-path-evidence',
+    'wait-avatar-composer-ready',
+    'apply-avatar-local-asset-fault',
+    'launch-avatar-current-anchor',
+    'wait-avatar-same-anchor-registry',
+    'wait-avatar-local-asset-degraded-evidence',
+    'write-pass-report',
+  ]);
+  const details = report.details as { avatarProductDegradedPath?: Record<string, unknown> };
+  assert.equal(details.avatarProductDegradedPath?.conversationAnchorId, 'anchor-1');
+  assert.equal(details.avatarProductDegradedPath?.evidencePath, '/tmp/avatar-evidence-local-asset-missing.json');
+  assert.deepEqual(details.avatarProductDegradedPath?.localAssetFault, {
+    faultKind: 'missing_entry_file',
+    manifestPath: '/tmp/avatar-asset/manifest.json',
+    removedEntryPath: '/tmp/avatar-asset/files/Hiyori.model3.json',
+  });
+  assert.deepEqual(details.avatarProductDegradedPath?.bindFailure, {
+    kind: 'avatar.runtime.bind-failed',
+    recordedAt: '2026-04-26T00:00:02.000Z',
+    detail: {
+      conversation_anchor_id: 'anchor-1',
+      error_stage: 'local_avatar_asset_manifest',
+      error_reason_code: 'LOCAL_AVATAR_ASSET_RESOLVE_FAILED',
+      error_action_hint: 'reimport_or_select_local_avatar_asset',
+      error_source: 'avatar_local_materialization',
+      error_retryable: false,
+    },
+  });
+});
+
+test('desktop macos smoke live2d avatar product scenario fails without local Avatar asset evidence', async () => {
+  const writtenReports: Array<Record<string, unknown>> = [];
+
+  await assert.rejects(
+    runDesktopMacosSmokeScenario('chat.live2d-avatar-product-smoke', createBaseDriver({
+      avatarCarrierEvidenceTimeoutMs: 1,
+      async readLocalStorageItem() {
+        return JSON.stringify([{
+          threadId: 'agent-thread-1',
+          localAgentRef: 'local-agent:user-e2e-primary:agent-e2e-alpha',
+          conversationAnchorId: 'anchor-1',
+          updatedAtMs: Date.now(),
+        }]);
+      },
+      async listAvatarLiveInstances(agentId) {
+        assert.equal(agentId, 'local-agent:user-e2e-primary:agent-e2e-alpha');
+        return [{
+          avatarInstanceId: 'desktop-avatar-agent-e2e-alpha-anchor-1',
+          ownerUserId: 'desktop-smoke',
+          realmAgentId: 'agent-e2e-alpha',
+          localAgentRef: 'local-agent:user-e2e-primary:agent-e2e-alpha',
+          launchSource: 'desktop-agent-chat',
+        }];
+      },
+      async readAvatarEvidence(avatarInstanceId) {
+        assert.equal(avatarInstanceId, 'desktop-avatar-agent-e2e-alpha-anchor-1');
+        return {
+          evidencePath: '/tmp/avatar-evidence.json',
+          evidence: {
+            records: [
+              {
+                kind: 'avatar.startup.runtime-bound',
+                recordedAt: '2026-04-26T00:00:01.000Z',
+                detail: { conversation_anchor_id: 'anchor-1' },
+              },
+              {
+                kind: 'avatar.runtime.consume-ready',
+                recordedAt: '2026-04-26T00:00:02.000Z',
+                detail: {
+                  conversation_anchor_id: 'anchor-1',
+                  driver_status: 'running',
+                  scoped_binding_attached: true,
+                },
+              },
+              {
+                kind: 'avatar.model.load',
+                recordedAt: '2026-04-26T00:00:03.000Z',
+                detail: {
+                  conversation_anchor_id: 'anchor-1',
+                  model_id: 'ren',
+                  backend_kind: 'live2d',
+                  backend_metadata: {
+                    model_kind: 'live2d',
+                    hit_region_default: {
+                      body: { left: 0, top: 0, right: 1, bottom: 1 },
+                      drag: { left: 0, top: 0, right: 1, bottom: 1 },
+                    },
+                  },
+                },
+              },
+              {
+                kind: 'avatar.carrier.visual',
+                recordedAt: '2026-04-26T00:00:04.000Z',
+                detail: {
+                  conversation_anchor_id: 'anchor-1',
+                  lifecycle: 'mounted',
+                  source: 'live2d-carrier-surface',
+                },
+              },
+              createAvatarCarrierVisualReadyRecord('2026-04-26T00:00:05.000Z'),
+            ],
+          },
+        };
+      },
+      async writeReport(payload) {
+        writtenReports.push(payload as unknown as Record<string, unknown>);
+      },
+      currentRoute() {
+        return '/chat';
+      },
+      currentHtml() {
+        return '<html>avatar-product-missing-local-asset</html>';
+      },
+    })),
+    /missing same-anchor Avatar local asset\/SDK\/model\/visual evidence/,
+  );
+
+  assert.equal(writtenReports.length, 1);
+  assert.equal(writtenReports[0]?.ok, false);
+  assert.equal(writtenReports[0]?.failedStep, 'wait-avatar-carrier-evidence');
+  assert.match(String(writtenReports[0]?.errorMessage || ''), /localAssetResolved:false/);
+  assert.match(String(writtenReports[0]?.errorMessage || ''), /live2dLocalAssetResolved:false/);
+  assert.match(String(writtenReports[0]?.errorMessage || ''), /consumeReady:true/);
+  assert.match(String(writtenReports[0]?.errorMessage || ''), /visual:true/);
+});
+
+test('desktop macos smoke avatar carrier evidence requires human-visible artifact metadata', async () => {
+  await assert.rejects(
+    waitForAvatarCarrierEvidence(createBaseDriver({
+      async readAvatarEvidence() {
+        return {
+          evidencePath: '/tmp/avatar-evidence.json',
+          evidence: {
+            records: [
+              {
+                kind: 'avatar.startup.runtime-bound',
+                recordedAt: '2026-04-26T00:00:00.000Z',
+                conversationAnchorId: 'anchor-1',
+                detail: { conversation_anchor_id: 'anchor-1' },
+              },
+              {
+                kind: 'avatar.runtime.consume-ready',
+                recordedAt: '2026-04-26T00:00:01.000Z',
+                conversationAnchorId: 'anchor-1',
+                detail: { conversation_anchor_id: 'anchor-1' },
+              },
+              createAvatarLocalAssetResolvedRecord('2026-04-26T00:00:02.000Z'),
+              {
+                kind: 'avatar.model.load',
+                recordedAt: '2026-04-26T00:00:03.000Z',
+                detail: {
+                  conversation_anchor_id: 'anchor-1',
+                  model_id: 'ren',
+                  backend_kind: 'live2d',
+                  backend_metadata: {
+                    model_kind: 'live2d',
+                    hit_region_default: {
+                      body: { left: 0, top: 0, right: 1, bottom: 1 },
+                      drag: { left: 0, top: 0, right: 1, bottom: 1 },
+                    },
+                  },
+                },
+              },
+              {
+                kind: 'avatar.carrier.visual',
+                recordedAt: '2026-04-26T00:00:04.000Z',
+                detail: {
+                  conversation_anchor_id: 'anchor-1',
+                  lifecycle: 'mounted',
+                  source: 'live2d-carrier-surface',
+                },
+              },
+              {
+                kind: 'avatar.carrier.visual',
+                recordedAt: '2026-04-26T00:00:05.000Z',
+                detail: {
+                  conversation_anchor_id: 'anchor-1',
+                  status: 'ready',
+                  visible_pixels: 12,
+                  canvas_width: 360,
+                  canvas_height: 480,
+                },
+              },
+            ],
+          },
+        };
+      },
+    }), 'avatar-instance-1', 'anchor-1', 1),
+    /visual:true visualArtifact:false/,
+  );
+});
+
+test('desktop macos smoke live2d avatar product scenario fails without Runtime consume-ready evidence', async () => {
+  const writtenReports: Array<Record<string, unknown>> = [];
+
+  await assert.rejects(
+    runDesktopMacosSmokeScenario('chat.live2d-avatar-product-smoke', createBaseDriver({
+      avatarCarrierEvidenceTimeoutMs: 1,
+      async readLocalStorageItem() {
+        return JSON.stringify([{
+          threadId: 'agent-thread-1',
+          localAgentRef: 'local-agent:user-e2e-primary:agent-e2e-alpha',
+          conversationAnchorId: 'anchor-1',
+          updatedAtMs: Date.now(),
+        }]);
+      },
+      async listAvatarLiveInstances(agentId) {
+        assert.equal(agentId, 'local-agent:user-e2e-primary:agent-e2e-alpha');
+        return [{
+          avatarInstanceId: 'desktop-avatar-agent-e2e-alpha-anchor-1',
+          ownerUserId: 'desktop-smoke',
+          realmAgentId: 'agent-e2e-alpha',
+          localAgentRef: 'local-agent:user-e2e-primary:agent-e2e-alpha',
+          launchSource: 'desktop-agent-chat',
+        }];
+      },
+      async readAvatarEvidence(avatarInstanceId) {
+        assert.equal(avatarInstanceId, 'desktop-avatar-agent-e2e-alpha-anchor-1');
+        return {
+          evidencePath: '/tmp/avatar-evidence.json',
+          evidence: {
+            records: [
+              {
+                kind: 'avatar.startup.runtime-bound',
+                recordedAt: '2026-04-26T00:00:01.000Z',
+                detail: { conversation_anchor_id: 'anchor-1' },
+              },
+              createAvatarLocalAssetResolvedRecord('2026-04-26T00:00:01.500Z'),
+              {
+                kind: 'avatar.model.load',
+                recordedAt: '2026-04-26T00:00:02.000Z',
+                detail: {
+                  conversation_anchor_id: 'anchor-1',
+                  model_id: 'ren',
+                  backend_kind: 'live2d',
+                  backend_metadata: {
+                    model_kind: 'live2d',
+                    hit_region_default: {
+                      body: { left: 0, top: 0, right: 1, bottom: 1 },
+                      drag: { left: 0, top: 0, right: 1, bottom: 1 },
+                    },
+                  },
+                },
+              },
+              {
+                kind: 'avatar.carrier.visual',
+                recordedAt: '2026-04-26T00:00:03.000Z',
+                detail: {
+                  conversation_anchor_id: 'anchor-1',
+                  lifecycle: 'mounted',
+                  source: 'live2d-carrier-surface',
+                },
+              },
+              createAvatarCarrierVisualReadyRecord('2026-04-26T00:00:04.000Z'),
+            ],
+          },
+        };
+      },
+      async writeReport(payload) {
+        writtenReports.push(payload as unknown as Record<string, unknown>);
+      },
+      currentRoute() {
+        return '/chat';
+      },
+      currentHtml() {
+        return '<html>avatar-product-missing-consume-ready</html>';
+      },
+    })),
+    /missing same-anchor Avatar local asset\/SDK\/model\/visual evidence/,
+  );
+
+  assert.equal(writtenReports.length, 1);
+  assert.equal(writtenReports[0]?.ok, false);
+  assert.equal(writtenReports[0]?.failedStep, 'wait-avatar-carrier-evidence');
+  assert.match(String(writtenReports[0]?.errorMessage || ''), /consumeReady:false/);
+  assert.match(String(writtenReports[0]?.errorMessage || ''), /localAssetResolved:true/);
+  assert.match(String(writtenReports[0]?.errorMessage || ''), /avatar\.startup\.runtime-bound:anchor-1/);
+  assert.match(String(writtenReports[0]?.errorMessage || ''), /avatar\.visual\.local-asset-resolved:anchor-1/);
+  assert.match(String(writtenReports[0]?.errorMessage || ''), /avatar\.model\.load:anchor-1/);
+  assert.match(String(writtenReports[0]?.errorMessage || ''), /avatar\.carrier\.visual:anchor-1/);
+});
+
+test('desktop macos smoke live2d avatar product scenario fails without hit-region evidence', async () => {
+  const writtenReports: Array<Record<string, unknown>> = [];
+
+  await assert.rejects(
+    runDesktopMacosSmokeScenario('chat.live2d-avatar-product-smoke', createBaseDriver({
+      avatarCarrierEvidenceTimeoutMs: 1,
+      async readLocalStorageItem() {
+        return JSON.stringify([{
+          threadId: 'agent-thread-1',
+          localAgentRef: 'local-agent:user-e2e-primary:agent-e2e-alpha',
+          conversationAnchorId: 'anchor-1',
+          updatedAtMs: Date.now(),
+        }]);
+      },
+      async listAvatarLiveInstances(agentId) {
+        assert.equal(agentId, 'local-agent:user-e2e-primary:agent-e2e-alpha');
+        return [{
+          avatarInstanceId: 'desktop-avatar-agent-e2e-alpha-anchor-1',
+          ownerUserId: 'desktop-smoke',
+          realmAgentId: 'agent-e2e-alpha',
+          localAgentRef: 'local-agent:user-e2e-primary:agent-e2e-alpha',
+          launchSource: 'desktop-agent-chat',
+        }];
+      },
+      async readAvatarEvidence(avatarInstanceId) {
+        assert.equal(avatarInstanceId, 'desktop-avatar-agent-e2e-alpha-anchor-1');
+        return {
+          evidencePath: '/tmp/avatar-evidence.json',
+          evidence: {
+            records: [
+              {
+                kind: 'avatar.startup.runtime-bound',
+                recordedAt: '2026-04-26T00:00:01.000Z',
+                detail: { conversation_anchor_id: 'anchor-1' },
+              },
+              createAvatarLocalAssetResolvedRecord('2026-04-26T00:00:01.500Z'),
+              {
+                kind: 'avatar.runtime.consume-ready',
+                recordedAt: '2026-04-26T00:00:02.000Z',
+                detail: {
+                  conversation_anchor_id: 'anchor-1',
+                  driver_status: 'running',
+                  scoped_binding_attached: true,
+                },
+              },
+              {
+                kind: 'avatar.model.load',
+                recordedAt: '2026-04-26T00:00:03.000Z',
+                detail: {
+                  conversation_anchor_id: 'anchor-1',
+                  model_id: 'ren',
+                  backend_kind: 'live2d',
+                  backend_metadata: {
+                    model_kind: 'live2d',
+                  },
+                },
+              },
+              {
+                kind: 'avatar.carrier.visual',
+                recordedAt: '2026-04-26T00:00:04.000Z',
+                detail: {
+                  conversation_anchor_id: 'anchor-1',
+                  lifecycle: 'mounted',
+                  source: 'live2d-carrier-surface',
+                },
+              },
+              createAvatarCarrierVisualReadyRecord('2026-04-26T00:00:05.000Z'),
+            ],
+          },
+        };
+      },
+      async writeReport(payload) {
+        writtenReports.push(payload as unknown as Record<string, unknown>);
+      },
+      currentRoute() {
+        return '/chat';
+      },
+      currentHtml() {
+        return '<html>avatar-product-missing-hit-region</html>';
+      },
+    })),
+    /missing same-anchor Avatar local asset\/SDK\/model\/visual evidence/,
+  );
+
+  assert.equal(writtenReports.length, 1);
+  assert.equal(writtenReports[0]?.ok, false);
+  assert.equal(writtenReports[0]?.failedStep, 'wait-avatar-carrier-evidence');
+  assert.match(String(writtenReports[0]?.errorMessage || ''), /hitRegionDefault:false/);
+  assert.match(String(writtenReports[0]?.errorMessage || ''), /lifecycleMounted:true/);
 });

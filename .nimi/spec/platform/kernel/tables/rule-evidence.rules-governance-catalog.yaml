@@ -1,0 +1,91 @@
+table_family: support_registry
+registry_id: platform_rule_evidence_requirement_rules_governance_catalog
+owner: platform
+schema_ref: .nimi/contracts/table-family.schema.yaml#support_registry
+allowed_fields:
+  - rule_id
+  - evidence_requirement
+  - evidence_refs
+  - note
+  - na_reason
+  - evidence_scope_note
+  - test_files
+forbidden_state_fields:
+  - done
+  - covered
+  - coverage_status
+  - audit_date
+  - evidence_report
+  - current
+  - proposed
+  - backlog_status
+  - migration_status
+  - mapping_status
+  - run_id
+  - ledger_ref
+entries:
+  - P-CAPCAT-001
+  - P-CAPCAT-002
+  - P-CAPCAT-003
+  - P-GOV-001
+  - P-GOV-002
+  - P-GOV-003
+  - P-GOV-010
+  - P-GOV-011
+  - P-GOV-020
+  - P-GOV-021
+  - P-GOV-022
+  - P-GOV-023
+rules:
+  - rule_id: P-CAPCAT-001
+    evidence_refs:
+      - platform_kernel_consistency
+      - canonical_capability_catalog_gate
+    evidence_requirement: required
+  - rule_id: P-CAPCAT-002
+    evidence_refs:
+      - canonical_capability_catalog_gate
+    evidence_requirement: required
+  - rule_id: P-CAPCAT-003
+    evidence_refs:
+      - canonical_capability_catalog_gate
+    evidence_requirement: required
+  - rule_id: P-GOV-001
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: required
+  - rule_id: P-GOV-002
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: required
+  - rule_id: P-GOV-003
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: required
+  - rule_id: P-GOV-010
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: required
+  - rule_id: P-GOV-011
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: required
+  - rule_id: P-GOV-020
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: required
+  - rule_id: P-GOV-021
+    evidence_refs:
+      - platform_kernel_consistency
+      - audit_evidence_root_gate
+    evidence_requirement: required
+  - rule_id: P-GOV-022
+    evidence_refs:
+      - platform_kernel_consistency
+      - audit_evidence_root_gate
+    evidence_requirement: required
+  - rule_id: P-GOV-023
+    evidence_refs:
+      - platform_kernel_consistency
+      - audit_evidence_root_gate
+    evidence_requirement: required

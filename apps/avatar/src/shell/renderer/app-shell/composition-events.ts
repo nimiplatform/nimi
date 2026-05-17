@@ -28,7 +28,10 @@ export function emitCompositionTransition(
       to: next.state,
       reason_code: next.reasonCode,
       account_reason_code: next.accountReasonCode,
+      action_hint: next.actionHint,
       stage: next.stage,
+      source: next.source,
+      retryable: next.retryable,
       reason: next.reason,
       recorded_at: new Date().toISOString(),
     },
@@ -82,12 +85,10 @@ export function emitSurfaceUnmounted(
 }
 
 // React hook used by surface root components. Emits surface-mounted on first
-// mount and surface-unmounted on unmount. The composition state is captured
-// via ref so unmount records the state observed at unmount time, not the
-// initial mount time. Re-emission on composition state change while still
-// mounted is intentionally avoided — that would conflict with the spec
-// semantics where mount/unmount frame the surface lifecycle, not its
-// composition transitions (which are covered by `transition` events).
+// mount and whenever the same surface enters a new composition posture. The
+// latter matters for degraded-surface: it is intentionally reused for loading
+// and degraded states, but evidence consumers still need the exact posture
+// where the human-visible degraded surface became active.
 export function useSurfaceMountEvidence(
   surface: AvatarCompositionSurface,
   compositionState: string,
@@ -95,9 +96,10 @@ export function useSurfaceMountEvidence(
   const stateRef = useRef(compositionState);
   stateRef.current = compositionState;
   useEffect(() => {
-    emitSurfaceMounted(surface, stateRef.current);
+    const mountedState = stateRef.current;
+    emitSurfaceMounted(surface, mountedState);
     return () => {
-      emitSurfaceUnmounted(surface, stateRef.current);
+      emitSurfaceUnmounted(surface, mountedState);
     };
-  }, [surface]);
+  }, [surface, compositionState]);
 }

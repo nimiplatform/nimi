@@ -97,9 +97,6 @@ for (const rel of domainFiles) {
   if (!content.includes('Normative Imports: `.nimi/spec/runtime/kernel/*`')) {
     fail(`${rel} must declare kernel imports`);
   }
-  if (!/\bK-[A-Z]+-\d{3}[a-z]?\b/.test(content)) {
-    fail(`${rel} must reference at least one kernel Rule ID`);
-  }
   checkNoLocalRuleIds(content, rel);
   checkNoRuleDefinitionHeadings(content, rel);
 }
@@ -133,8 +130,6 @@ checkKeySourceTruthTable();
 checkErrorMappingMatrix();
 checkRpcMigrationMapCoverageImpl({ fail, fs, protoRoot, readYaml, walk });
 checkA2AFutureSeamNegativeGates();
-checkDomainSection0ImportsCoveredInBody();
-checkDomainPrimaryRuleCoverage();
 checkConfigPathConsistency();
 checkConfigOverrideTraceabilityMain();
 checkProbeTargetProviderCoverage();
@@ -583,26 +578,14 @@ function checkStateTransitionCoverage(kernelRuleSet) {
 
 function checkDomainProviderTableAnchors() {
   const requirements = [
-    {
-      file: '.nimi/spec/runtime/connector.md',
-      mustInclude: ['kernel/tables/provider-catalog.yaml', 'kernel/tables/provider-capabilities.yaml'],
-    },
-    {
-      file: '.nimi/spec/runtime/nimillm.md',
-      mustInclude: ['kernel/tables/provider-catalog.yaml', 'kernel/tables/provider-capabilities.yaml'],
-    },
-    {
-      file: '.nimi/spec/runtime/local-model.md',
-      mustInclude: ['kernel/tables/local-engine-catalog.yaml', 'kernel/tables/local-adapter-routing.yaml'],
-    },
+    '.nimi/spec/runtime/kernel/tables/provider-catalog.yaml',
+    '.nimi/spec/runtime/kernel/tables/provider-capabilities.yaml',
+    '.nimi/spec/runtime/kernel/tables/local-engine-catalog.yaml',
+    '.nimi/spec/runtime/kernel/tables/local-adapter-routing.yaml',
   ];
-
-  for (const requirement of requirements) {
-    const content = read(requirement.file);
-    for (const token of requirement.mustInclude) {
-      if (!content.includes(token)) {
-        fail(`${requirement.file} must reference ${token}`);
-      }
+  for (const rel of requirements) {
+    if (!fs.existsSync(path.join(cwd, rel))) {
+      fail(`missing runtime authority table: ${rel}`);
     }
   }
 }

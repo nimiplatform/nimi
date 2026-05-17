@@ -72,6 +72,14 @@ import {
   type RuntimeAvatarDebugModule,
 } from './runtime-avatar-debug.js';
 import {
+  createRuntimeAvatarPackageModule,
+  type RuntimeAvatarPackageModule,
+} from './runtime-avatar-package.js';
+import {
+  createRuntimeCompanionParticipationModule,
+  type RuntimeCompanionParticipationModule,
+} from './runtime-companion-participation.js';
+import {
   type RuntimeArtifactsModule,
   createRuntimeArtifactsModule,
 } from './runtime-artifacts.js';
@@ -135,6 +143,8 @@ export class Runtime {
   readonly memory: RuntimeMemoryClient;
   readonly agent: RuntimeAgentModule;
   readonly avatarDebug: RuntimeAvatarDebugModule;
+  readonly avatarPackage: RuntimeAvatarPackageModule;
+  readonly companionParticipation: RuntimeCompanionParticipationModule;
   readonly app: {
     sendMessage: RuntimeClient['app']['sendAppMessage'];
     subscribeMessages: RuntimeClient['app']['subscribeAppMessages'];
@@ -327,6 +337,18 @@ export class Runtime {
       }),
     });
     this.avatarDebug = createRuntimeAvatarDebugModule({
+      appId: this.appId,
+      agent: passthrough.agent,
+      protectedAccess: protectedScopeHelper,
+      resolveSubjectUserId: (explicit) => this.#ctx.resolveSubjectUserId(explicit),
+    });
+    this.avatarPackage = createRuntimeAvatarPackageModule({
+      appId: this.appId,
+      agent: passthrough.agent,
+      protectedAccess: protectedScopeHelper,
+      resolveSubjectUserId: (explicit) => this.#ctx.resolveSubjectUserId(explicit),
+    });
+    this.companionParticipation = createRuntimeCompanionParticipationModule({
       appId: this.appId,
       agent: passthrough.agent,
       protectedAccess: protectedScopeHelper,

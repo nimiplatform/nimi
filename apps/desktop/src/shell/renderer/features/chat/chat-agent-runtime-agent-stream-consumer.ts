@@ -84,6 +84,7 @@ export function createRuntimeAgentTurnStream(input: RuntimeAgentTurnStreamInput)
       let messageCommittedAt = 0;
       let terminalProjected = false;
       let snapshotRecoveryProjected = false;
+      const requestStartedAtMs = nowMs();
       const snapshotRecoveryController = new AbortController();
       const runtimeProjectionEvents: RuntimeAgentProjectionSummary[] = [];
       const runtimeTurnTimelines: RuntimeAgentTimelineSummary[] = [];
@@ -109,6 +110,7 @@ export function createRuntimeAgentTurnStream(input: RuntimeAgentTurnStreamInput)
           request,
           requestId,
           requestMessageId,
+          requestStartedAtMs,
           currentTurnAccepted,
           currentRuntimeTurnId: runtimeTurnRef.turnId,
           currentRuntimeStreamId: runtimeTurnRef.streamId,

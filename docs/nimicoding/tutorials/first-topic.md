@@ -51,7 +51,8 @@ The CLI walks through:
 2. Confirm or accept managed AI entrypoints (`AGENTS.md`,
    `CLAUDE.md` blocks).
 3. Project package source into project paths.
-4. Seed `.nimi/spec/_meta` and bootstrap files.
+4. Seed `.nimi/config`, `.nimi/contracts`, and `.nimi/methodology`
+   bootstrap files.
 5. Update `.gitignore` for local runtime state.
 6. Prepare a JSON handoff payload for `spec_reconstruction`.
 7. Print a paste-ready prompt directly in the terminal.
@@ -63,7 +64,6 @@ After this step, the project root has:
 | `.nimi/methodology/` | Methodology source (policies) |
 | `.nimi/contracts/` | Schema source |
 | `.nimi/config/` | Bootstrap config |
-| `.nimi/spec/_meta/` | Spec generation metadata seed |
 | `AGENTS.md` (or block within) | Managed Nimi Coding block |
 | `CLAUDE.md` (or block within) | Managed Nimi Coding block |
 | `.gitignore` | Updated with local-state ignore patterns |
@@ -152,7 +152,7 @@ any admitted host.
 
 ## Source Basis
 
-- [`nimi-coding/README.md`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/README.md)
-- [`nimi-coding/cli/`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/cli/) (CLI implementation)
-- [`nimi-coding/methodology/spec-reconstruction.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/methodology/spec-reconstruction.yaml)
-- [`nimi-coding/methodology/skill-handoff.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/methodology/skill-handoff.yaml)
+- [`nimi-coding/README.md`](https://github.com/nimiplatform/nimi-coding/blob/main/README.md)
+- [`nimi-coding/cli/`](https://github.com/nimiplatform/nimi-coding/blob/main/cli/) (CLI implementation)
+- [`nimi-coding/methodology/spec-reconstruction.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/methodology/spec-reconstruction.yaml)
+- [`nimi-coding/methodology/skill-handoff.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/methodology/skill-handoff.yaml)

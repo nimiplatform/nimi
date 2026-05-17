@@ -14,6 +14,14 @@ test('Agent Chat Settings Avatar surface exposes closed configuration controls',
     join(repoRoot, 'src/shell/renderer/features/chat/chat-agent-shell-presentation.tsx'),
     'utf8',
   );
+  const localAvatarControlsSource = readFileSync(
+    join(repoRoot, 'src/shell/renderer/features/chat/chat-agent-shell-local-avatar-controls.ts'),
+    'utf8',
+  );
+  const bridgeSource = readFileSync(
+    join(repoRoot, 'src/shell/renderer/bridge/runtime-bridge/chat-agent-center-local-config-store.ts'),
+    'utf8',
+  );
   const mutationSource = readFileSync(
     join(repoRoot, 'src/shell/renderer/features/chat/chat-agent-center-avatar-config-mutation.ts'),
     'utf8',
@@ -30,48 +38,63 @@ test('Agent Chat Settings Avatar surface exposes closed configuration controls',
     assert.match(settingsSource, new RegExp(requiredControl, 'u'));
   }
 
-  assert.match(presentationSource, /useAgentCenterAvatarConfigMutation/u);
+  assert.match(localAvatarControlsSource, /useAgentCenterAvatarConfigMutation/u);
+  assert.match(localAvatarControlsSource, /importAgentCenterAvatarAsset/u);
+  assert.match(localAvatarControlsSource, /listAgentCenterAvatarAssets/u);
+  assert.match(localAvatarControlsSource, /selectAgentCenterAvatarAsset/u);
+  assert.match(localAvatarControlsSource, /pickAgentCenterAvatarAssetSource/u);
+  assert.match(localAvatarControlsSource, /removeAgentCenterAvatarAsset/u);
+  assert.match(localAvatarControlsSource, /importAgentCenterLive2dAdapterManifest/u);
   assert.match(mutationSource, /putAgentCenterLocalConfig/u);
+  assert.match(mutationSource, /backend_kind/u);
+  assert.doesNotMatch(settingsSource, /onChange: \(backend_kind\) => avatarConfigMutation\.mutate\(\{ backend_kind \}\)/u);
+  assert.match(bridgeSource, /desktop_agent_center_avatar_asset_import/u);
+  assert.match(bridgeSource, /desktop_agent_center_avatar_asset_list/u);
+  assert.match(bridgeSource, /desktop_agent_center_avatar_asset_select/u);
+  assert.match(bridgeSource, /desktop_agent_center_avatar_asset_pick_live2d_source/u);
+  assert.match(bridgeSource, /desktop_agent_center_avatar_asset_pick_vrm_source/u);
+  assert.match(bridgeSource, /desktop_agent_center_avatar_asset_remove/u);
   assert.doesNotMatch(mutationSource, /selected_package/u);
   assert.doesNotMatch(mutationSource, /last_validated_at/u);
-  assert.doesNotMatch(presentationSource, /importAgentCenterAvatarPackage/u);
-  assert.doesNotMatch(presentationSource, /validateAgentCenterAvatarPackage/u);
+  assert.doesNotMatch(presentationSource, /chat-agent-avatar-store/u);
+  assert.doesNotMatch(bridgeSource, /desktop_agent_avatar_store/u);
 });
 
 test('Agent Chat Settings Avatar surface does not widen Avatar launch handoff', () => {
   const presentationSource = readFileSync(
-    join(repoRoot, 'src/shell/renderer/features/chat/chat-agent-shell-presentation.tsx'),
+    join(repoRoot, 'src/shell/renderer/features/chat/chat-agent-shell-local-avatar-controls.ts'),
     'utf8',
   );
   const launchCall = presentationSource.match(/launchDesktopAvatarHandoff\(\{[\s\S]*?\}\)/u);
   assert.ok(launchCall, 'launchDesktopAvatarHandoff call must stay visible to the guard');
-  assert.match(launchCall[0], /ownerUserId/u);
-  assert.match(launchCall[0], /realmAgentId/u);
-  assert.match(launchCall[0], /localAgentRef/u);
+  assert.match(launchCall[0], /agentId/u);
+  assert.match(launchCall[0], /activeTarget\.localAgentRef/u);
   assert.match(launchCall[0], /avatarInstanceId/u);
-  assert.match(launchCall[0], /sourceSurface/u);
+  assert.match(launchCall[0], /launchSource/u);
+  assert.doesNotMatch(launchCall[0], /activeTarget\.realmAgentId/u);
+  assert.doesNotMatch(launchCall[0], /\b(ownerUserId|realmAgentId|localAgentRef|conversationAnchorId|sourceSurface)\s*:/u);
   assert.doesNotMatch(launchCall[0], /package|descriptor|path|profile|token|account|binding|carrier/u);
 });
 
-test('Agent Chat composer Avatar launch fails closed without package and backend evidence', () => {
+test('Agent Chat composer Avatar launch fails closed without local asset and backend evidence', () => {
   const presentationSource = readFileSync(
-    join(repoRoot, 'src/shell/renderer/features/chat/chat-agent-shell-presentation.tsx'),
+    join(repoRoot, 'src/shell/renderer/features/chat/chat-agent-shell-local-avatar-controls.ts'),
     'utf8',
   );
-  const actionState = presentationSource.match(/const avatarComposerActionState = avatarActionPending[\s\S]*?: 'ready_stopped';/u);
+  const actionState = presentationSource.match(/const avatarComposerActionState(?:: AvatarComposerActionState)? = avatarActionPending[\s\S]*?: 'ready_stopped';/u);
   assert.ok(actionState, 'avatarComposerActionState must stay visible to the guard');
   assert.match(actionState[0], /!avatarConfigured/u);
   assert.match(actionState[0], /'not_configured'/u);
-  assert.match(actionState[0], /!avatarPackageValid/u);
-  assert.match(actionState[0], /'package_invalid'/u);
+  assert.match(actionState[0], /!avatarAssetValid/u);
+  assert.match(actionState[0], /'local_asset_invalid'/u);
 
-  const invalidEvidenceGuard = presentationSource.match(/if \(!avatarRunning && !avatarPackageValid\) \{[\s\S]*?\n {4}\}/u);
+  const invalidEvidenceGuard = presentationSource.match(/if \(!avatarRunning && !avatarAssetValid\) \{[\s\S]*?\n {4}\}/u);
   assert.ok(invalidEvidenceGuard, 'Avatar launch must guard resolver and backend evidence before handoff');
   assert.match(invalidEvidenceGuard[0], /input\.onOpenAgentCenter\?\.\(\)/u);
   assert.match(invalidEvidenceGuard[0], /Chat\.agentCenterAvatarStartBackendEvidenceRequired/u);
-  assert.match(invalidEvidenceGuard[0], /Chat\.agentCenterAvatarStartPackageEvidenceRequired/u);
+  assert.match(invalidEvidenceGuard[0], /Chat\.agentCenterAvatarStartLocalAssetRequired/u);
 
-  const guardIndex = presentationSource.indexOf('if (!avatarRunning && !avatarPackageValid)');
+  const guardIndex = presentationSource.indexOf('if (!avatarRunning && !avatarAssetValid)');
   const launchIndex = presentationSource.indexOf('launchDesktopAvatarHandoff({');
   assert.ok(guardIndex >= 0 && launchIndex >= 0 && guardIndex < launchIndex);
 });

@@ -2,8 +2,8 @@
 //
 // AudioPipelineController test (renamed from AudioPlaybackController).
 // Verifies hard-cut surface:
-//   - Bytes are read via `runtime.artifacts.readBytes`; the legacy
-//     caller-injected byte fetcher no longer exists.
+//   - Bytes are read via `runtime.artifacts.readBytes`; the caller-injected
+//     byte fetcher no longer exists.
 //   - `registerLipsyncSink(consumer)` connects a BackendAudioConsumer; the
 //     pipeline calls `attachAudioSource` after `source.start()` and `silent`
 //     on synthetic / fail / stop / reset.

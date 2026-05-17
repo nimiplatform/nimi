@@ -1,3 +1,11 @@
+table_family: product_catalog
+owner: desktop
+catalog_id: desktop_store_slices
+entries:
+  - auth
+  - runtime
+  - mod-workspace
+  - ui
 # Desktop Zustand Store Slices
 # Source: apps/desktop/src/shell/renderer/app-shell/providers/app-store.ts
 

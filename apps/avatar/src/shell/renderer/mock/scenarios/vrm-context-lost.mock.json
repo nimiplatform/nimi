@@ -1,0 +1,86 @@
+{
+  "scenario_id": "vrm-context-lost",
+  "version": "1",
+  "description": "Wave 3 of topic 2026-05-15-avatar-vrm-deferral-and-authority-reconciliation. Isolates the VRM lifecycle context-loss proof from the broader lifecycle scenario: first webglcontextlost must recover through the admitted 1500ms retry window; second loss before recovery must fail closed with context_lost_twice.",
+  "duration_ms": 7000,
+  "loop": false,
+
+  "agent_bootstrap": {
+    "active_world_id": "world-mock-vrm-context-lost",
+    "active_user_id": "user-mock-vrm-context-lost",
+    "locale": "zh-CN",
+    "initial_posture": {
+      "posture_class": "baseline_observer",
+      "action_family": "observe",
+      "interrupt_mode": "welcome",
+      "transition_reason": "scenario_start",
+      "truth_basis_ids": []
+    },
+    "initial_status_text": "vrm context lost fixture",
+    "initial_execution_state": "IDLE"
+  },
+
+  "events": [
+    { "kind": "time", "at_ms": 0, "type": "runtime.agent.presentation.activity_requested", "detail": { "activity_name": "idle", "category": "state", "intensity": null, "source": "mock" } }
+  ],
+
+  "vrm_mock_scenario": {
+    "category": "vrm_lifecycle",
+    "model_manifest": {
+      "kind": "vrm",
+      "modelId": "vrm-mock-context-lost",
+      "runtimeDir": ".cache/assets/vrm-models",
+      "vrm": {
+        "vrmFile": ".cache/assets/vrm-models/VRM1_Constraint_Twist_Sample.vrm",
+        "motionPresetsDir": null
+      },
+      "nimiDir": null,
+      "posterPath": null
+    },
+    "drives": [
+      { "atMs": 1000, "kind": "inject_webglcontextlost" },
+      { "atMs": 4000, "kind": "inject_webglcontextlost" },
+      { "atMs": 4100, "kind": "inject_second_webglcontextlost" }
+    ],
+    "expected": [
+      { "kind": "lifecycle_evidence", "where": "vrm-runtime", "details": { "kind": "context_lost" } },
+      { "kind": "lifecycle_evidence", "where": "vrm-runtime", "details": { "kind": "context_restored" } },
+      { "kind": "lifecycle_evidence", "where": "vrm-runtime", "details": { "kind": "failed_closed", "reason": "context_lost_twice" } }
+    ],
+    "human_acceptance_checks": [
+      "first context loss recovers without permanent fallback",
+      "second context loss fails closed instead of pretending visual readiness"
+    ]
+  },
+
+  "vrm_context_lost": {
+    "model_manifest": {
+      "kind": "vrm",
+      "modelId": "vrm1-constraint-twist",
+      "runtimeDir": ".cache/assets/vrm-models",
+      "vrm": {
+        "vrmFile": ".cache/assets/vrm-models/VRM1_Constraint_Twist_Sample.vrm",
+        "motionPresetsDir": null
+      },
+      "nimiDir": null,
+      "posterPath": null
+    },
+    "expected_evidence": [
+      "context_lost",
+      "context_restored",
+      "failed_closed"
+    ],
+    "fixture_steps": [
+      { "atMs": 0, "kind": "ready_expected" },
+      { "atMs": 1000, "kind": "inject_webglcontextlost" },
+      { "atMs": 2500, "kind": "context_restored_expected" },
+      { "atMs": 4000, "kind": "inject_webglcontextlost" },
+      { "atMs": 4100, "kind": "inject_second_webglcontextlost" },
+      { "atMs": 4200, "kind": "failed_closed_expected", "reason": "context_lost_twice" }
+    ],
+    "human_acceptance_checks": [
+      "first context loss recovers without permanent fallback",
+      "second context loss fails closed instead of pretending visual readiness"
+    ]
+  }
+}

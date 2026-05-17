@@ -171,11 +171,7 @@ export function createRuntimeSpecTraceabilityChecks({
   }
   
   function checkOrphanRules(kernelRuleSet) {
-    const files = [...new Set([
-      ...runtimeMarkdownFiles,
-      ...kernelFiles.filter((rel) => rel.endsWith('.yaml')),
-      ...domainFiles,
-    ])];
+    const files = [...new Set(kernelFiles)];
     const refCounts = new Map();
     for (const rel of files) {
       if (!fs.existsSync(path.join(cwd, rel))) continue;
@@ -236,7 +232,7 @@ export function createRuntimeSpecTraceabilityChecks({
     const catalog = table.evidence_catalog || {};
     const catalogKeys = new Set(Object.keys(catalog));
     const rules = Array.isArray(table.rules) ? table.rules : [];
-    const declaredTotal = Number(table?.rule_compliance?.total_k_rules);
+    const declaredTotal = Number(table?.rule_registry?.total_k_rules);
   
     if (rules.length === 0) {
       fail('rule-evidence.yaml: rules list is empty');
@@ -244,7 +240,7 @@ export function createRuntimeSpecTraceabilityChecks({
     }
 
     if (!Number.isInteger(declaredTotal) || declaredTotal <= 0) {
-      fail('rule-evidence.yaml: rule_compliance.total_k_rules must be a positive integer');
+      fail('rule-evidence.yaml: rule_registry.total_k_rules must be a positive integer');
     }
   
     const evidenceRuleIds = new Set();
@@ -263,14 +259,14 @@ export function createRuntimeSpecTraceabilityChecks({
         fail(`rule-evidence.yaml: rule_id not found in kernel: ${rid}`);
       }
   
-      const status = String(entry?.status || '').trim();
-      if (!['covered', 'na', 'deferred'].includes(status)) {
-        fail(`rule-evidence.yaml ${rid}: invalid status: ${status}`);
+      const requirement = String(entry?.evidence_requirement || '').trim();
+      if (!['required', 'not_applicable', 'deferred'].includes(requirement)) {
+        fail(`rule-evidence.yaml ${rid}: invalid evidence_requirement: ${requirement}`);
       }
   
       const refs = Array.isArray(entry?.evidence_refs) ? entry.evidence_refs : [];
-      if (status === 'covered' && refs.length === 0) {
-        fail(`rule-evidence.yaml ${rid}: covered rule must have at least one evidence_ref`);
+      if (requirement === 'required' && refs.length === 0) {
+        fail(`rule-evidence.yaml ${rid}: required evidence must have at least one evidence_ref`);
       }
       for (const ref of refs) {
         if (!catalogKeys.has(String(ref))) {
@@ -282,12 +278,12 @@ export function createRuntimeSpecTraceabilityChecks({
     // Every kernel rule must appear in rule-evidence
     for (const kid of kernelRuleSet) {
       if (!evidenceRuleIds.has(kid)) {
-        fail(`rule-evidence.yaml: missing coverage for kernel rule: ${kid}`);
+      fail(`rule-evidence.yaml: missing evidence requirement for kernel rule: ${kid}`);
       }
     }
 
     if (declaredTotal !== evidenceRuleIds.size) {
-      fail(`rule-evidence.yaml: rule_compliance.total_k_rules (${declaredTotal}) must match resolved rule evidence rows (${evidenceRuleIds.size})`);
+      fail(`rule-evidence.yaml: rule_registry.total_k_rules (${declaredTotal}) must match resolved rule evidence rows (${evidenceRuleIds.size})`);
     }
   }
   

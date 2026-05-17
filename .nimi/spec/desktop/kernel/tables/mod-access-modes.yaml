@@ -1,3 +1,9 @@
+table_family: closed_enum
+owner: desktop
+enum_id: desktop_mod_access_modes
+values:
+  - local-dev
+  - sideload
 # Desktop Mod Access Modes
 # Source: apps/desktop/src/runtime/execution-kernel/contracts/types.ts (AccessMode)
 

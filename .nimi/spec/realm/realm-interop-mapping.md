@@ -1,44 +1,43 @@
----
-id: SPEC-REALM-INTEROP-MAPPING-001
-title: Realm Interop Mapping Bridge
-status: active
-owner: "@team"
-updated: 2026-04-18
----
-
 # Realm Interop Mapping
 
 ## Normative Imports
 
-- `kernel/world-state-contract.md` (`R-WSTATE-002`, `R-WSTATE-005`, `R-WSTATE-006`)
-- `kernel/world-history-contract.md` (`R-WHIST-003`, `R-WHIST-004`, `R-WHIST-006`)
-- `kernel/transit-contract.md` (`R-TRANSIT-002`)
+- `.nimi/spec/realm/kernel/*`
+- `.nimi/spec/realm/kernel/tables/*`
 
 ## Scope
 
-Bridge-only document for interop semantics. It binds explicit commit and append anchors to the mirrored kernel implementation anchors and keeps rule authority in kernel contracts and tables.
-
-## Mapping Declaration
-
-| External Anchor | Local Kernel Anchor |
-| --- | --- |
-| `R-WSTATE-002` | `R-WSTATE-002` |
-| `R-WSTATE-005` | `R-WSTATE-005` |
-| `R-WSTATE-006` | `R-WSTATE-006` |
-| `R-WHIST-003` | `R-WHIST-003` |
-| `R-WHIST-004` | `R-WHIST-004` |
-| `R-WHIST-006` | `R-WHIST-006` |
-| `R-TRANSIT-002` | `R-TRANSIT-002` |
+This guide points to Realm authority surfaces for realm-interop-mapping. It does not define product rules.
 
 ## Reading Path
 
-1. `kernel/index.md`
-2. `kernel/world-state-contract.md`
-3. `kernel/world-history-contract.md`
-4. `kernel/transit-contract.md`
+- `.nimi/spec/realm/kernel/index.md`
+- `.nimi/spec/realm/kernel/asset-contract.md`
+- `.nimi/spec/realm/kernel/attachment-contract.md`
+- `.nimi/spec/realm/kernel/binding-contract.md`
+- `.nimi/spec/realm/kernel/bundle-contract.md`
+- `.nimi/spec/realm/kernel/chat-contract.md`
+- `.nimi/spec/realm/kernel/economy-contract.md`
+- `.nimi/spec/realm/kernel/group-agent-participation-contract.md`
+- `.nimi/spec/realm/kernel/oauth-authority-contract.md`
+- `.nimi/spec/realm/kernel/projection-contract.md`
+- `.nimi/spec/realm/kernel/resource-contract.md`
+- `.nimi/spec/realm/kernel/social-contract.md`
+- `.nimi/spec/realm/kernel/transit-contract.md`
 
-## Non-goals
+## Tables
 
-- No new primitive definitions in open spec.
-- No status dashboard for PARTIAL/COVERED in this file.
-- No CI execution evidence output in this file.
+- `.nimi/spec/realm/kernel/tables/asset-contract.yaml`
+- `.nimi/spec/realm/kernel/tables/attachment-contract.yaml`
+- `.nimi/spec/realm/kernel/tables/binding-contract.yaml`
+- `.nimi/spec/realm/kernel/tables/bundle-contract.yaml`
+- `.nimi/spec/realm/kernel/tables/chat-contract.yaml`
+- `.nimi/spec/realm/kernel/tables/commit-authorization-matrix.yaml`
+- `.nimi/spec/realm/kernel/tables/domain-enums.yaml`
+- `.nimi/spec/realm/kernel/tables/domain-state-machines.yaml`
+- `.nimi/spec/realm/kernel/tables/economy-contract.yaml`
+- `.nimi/spec/realm/kernel/tables/group-agent-participation-contract.yaml`
+
+## Mapping Declaration
+
+Realm open-spec alignment entries anchor here when this guide participates in an external mapping. Mapping facts live in `.nimi/spec/realm/kernel/tables/open-spec-alignment-map.yaml`.

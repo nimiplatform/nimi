@@ -19,28 +19,14 @@ import {
 } from '@nimiplatform/sdk/runtime';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import { getDesktopMemoryEmbeddingConfigService } from '@renderer/app-shell/providers/desktop-memory-embedding-config-service';
+import { getAgentMemoryStandardFixtureStatus } from '@renderer/bridge/runtime-bridge/agent-memory';
 import { listLocalRuntimeAssets } from '@renderer/bridge/runtime-bridge/local-ai';
 import { getDesktopMacosSmokeContext } from '@renderer/bridge/runtime-bridge/macos-smoke';
+import { canonicalMemoryViewToDesktopRecord } from './runtime-agent-memory-records';
+import type { DesktopAgentMemoryRecord } from './runtime-agent-memory-records';
 
-export type DesktopAgentMemoryRecord = {
-  actorRefs: Array<Record<string, never>>;
-  appId: string;
-  commitId: string;
-  id: string;
-  content: string;
-  createdAt: string;
-  createdBy: string;
-  effectClass: 'MEMORY_ONLY';
-  importance: number;
-  reason: string;
-  schemaId: string;
-  schemaVersion: string;
-  sessionId: string;
-  type: 'PUBLIC_SHARED' | 'WORLD_SHARED' | 'DYADIC';
-  userId: string | null;
-  worldId: string | null;
-  metadata: Record<string, unknown> | undefined;
-};
+export type { DesktopAgentMemoryRecord } from './runtime-agent-memory-records';
+export { canonicalMemoryViewToDesktopRecord, summarizeCanonicalMemoryView } from './runtime-agent-memory-records';
 
 export type CanonicalMemoryMode = 'baseline' | 'standard' | 'unavailable';
 
@@ -64,6 +50,7 @@ type RuntimeAgentMemoryDeps = {
   getSubjectUserId?: () => string | undefined | Promise<string | undefined>;
   getMemoryEmbeddingConfigService?: () => DesktopMemoryEmbeddingConfigService;
   getMemoryEmbeddingScopeRef?: () => AIScopeRef;
+  getAgentMemoryStandardFixtureStatus?: typeof getAgentMemoryStandardFixtureStatus;
   listLocalRuntimeAssets?: typeof listLocalRuntimeAssets;
   now?: () => Date;
 };
@@ -120,7 +107,6 @@ type RuntimeAgentSession = {
   protectedAccess: ReturnType<typeof createRuntimeProtectedScopeHelper>;
 };
 
-const EPOCH_ISO = '1970-01-01T00:00:00.000Z';
 const RUNTIME_MEMORY_PROMOTION_TARGET_ID = 'RUNTIME_MEMORY_OR_COGNITION';
 const CANONICAL_AGENT_CHAT_SOURCE_PROFILE = 'canonical_agent_chat';
 
@@ -151,22 +137,6 @@ function buildAgentRequestContext(runtime: RuntimeClient, subjectUserId: string,
     subjectUserId,
     ...parseLocalAgentIdentity(localAgentRef),
   };
-}
-
-function timestampToIso(timestamp?: { seconds: string; nanos: number }): string {
-  if (!timestamp) {
-    return EPOCH_ISO;
-  }
-  const seconds = Number(timestamp.seconds);
-  const nanos = Number(timestamp.nanos);
-  if (!Number.isFinite(seconds)) {
-    return EPOCH_ISO;
-  }
-  const millis = seconds * 1000 + (Number.isFinite(nanos) ? Math.floor(nanos / 1_000_000) : 0);
-  if (!Number.isFinite(millis)) {
-    return EPOCH_ISO;
-  }
-  return new Date(millis).toISOString();
 }
 
 function toTimestamp(date: Date): { seconds: string; nanos: number } {
@@ -234,18 +204,6 @@ function isRuntimeMemoryUnavailable(error: unknown): boolean {
     || message.includes('memory embedding profile is unavailable');
 }
 
-function requireCanonicalType(value: MemoryCanonicalClass): DesktopAgentMemoryRecord['type'] {
-  switch (value) {
-    case MemoryCanonicalClass.DYADIC:
-      return 'DYADIC';
-    case MemoryCanonicalClass.WORLD_SHARED:
-      return 'WORLD_SHARED';
-    case MemoryCanonicalClass.PUBLIC_SHARED:
-    default:
-      return 'PUBLIC_SHARED';
-  }
-}
-
 function isRuntimeNotFound(error: unknown): boolean {
   const normalized = asNimiError(error, {
     reasonCode: ReasonCode.RUNTIME_CALL_FAILED,
@@ -276,67 +234,13 @@ function isStandardCanonicalBankStatus(value: string | undefined): boolean {
     || normalized === 'cutover_ready';
 }
 
-export function summarizeCanonicalMemoryView(view: CanonicalMemoryView): string {
-  const payload = view.record?.payload;
-  switch (payload?.oneofKind) {
-    case 'observational':
-      return normalizeText(payload.observational.observation);
-    case 'episodic':
-      return normalizeText(payload.episodic.summary);
-    case 'semantic':
-      return [
-        normalizeText(payload.semantic.subject),
-        normalizeText(payload.semantic.predicate),
-        normalizeText(payload.semantic.object),
-      ].filter(Boolean).join(' ');
-    default:
-      return '';
-  }
-}
-
-export function canonicalMemoryViewToDesktopRecord(view: CanonicalMemoryView): DesktopAgentMemoryRecord | null {
-  const memoryId = normalizeText(view.record?.memoryId);
-  if (!memoryId) {
-    return null;
-  }
-
-  const owner = view.sourceBank?.owner;
-  const summary = summarizeCanonicalMemoryView(view);
-  const canonicalType = requireCanonicalType(view.canonicalClass);
-  const userId = owner?.oneofKind === 'agentDyadic'
-    ? normalizeText(owner.agentDyadic.userId) || null
-    : null;
-  const worldId = owner?.oneofKind === 'worldShared'
-    ? normalizeText(owner.worldShared.worldId) || null
-    : null;
-
-  return {
-    actorRefs: [],
-    appId: normalizeText(view.record?.provenance?.sourceSystem) || 'runtime.agent',
-    commitId: memoryId,
-    id: memoryId,
-    content: summary,
-    createdAt: timestampToIso(view.record?.createdAt || view.record?.updatedAt),
-    createdBy: normalizeText(view.record?.provenance?.authorId) || 'runtime.agent',
-    effectClass: 'MEMORY_ONLY',
-    importance: 1,
-    reason: normalizeText(view.policyReason) || 'runtime_agent_projection',
-    schemaId: 'runtime.agent.canonical_memory',
-    schemaVersion: '1',
-    sessionId: normalizeText(view.record?.provenance?.traceId),
-    type: canonicalType,
-    userId,
-    worldId,
-    metadata: view.record?.metadata as Record<string, unknown> | undefined,
-  };
-}
-
 export function createRuntimeAgentMemoryAdapter(deps: RuntimeAgentMemoryDeps = {}) {
   const getRuntime = deps.getRuntime ?? (() => getPlatformClient().runtime);
   const getMemoryEmbeddingConfigService = deps.getMemoryEmbeddingConfigService
     ?? (() => getDesktopMemoryEmbeddingConfigService());
   const getMemoryEmbeddingScopeRef = deps.getMemoryEmbeddingScopeRef
     ?? (() => createDefaultAIScopeRef());
+  const getFixtureStatus = deps.getAgentMemoryStandardFixtureStatus ?? getAgentMemoryStandardFixtureStatus;
   const listAssets = deps.listLocalRuntimeAssets ?? listLocalRuntimeAssets;
   const now = deps.now ?? (() => new Date());
   let protectedAccess: ReturnType<typeof createRuntimeProtectedScopeHelper> | null = null;
@@ -384,7 +288,7 @@ export function createRuntimeAgentMemoryAdapter(deps: RuntimeAgentMemoryDeps = {
       try {
         await protectedAccess.withScopes(['runtime.agent.admin'], (options) => runtime.agent.initializeAgent({
           context,
-          agentId,
+          agentId: '',
           ownerUserId: context.ownerUserId,
           realmAgentId: context.realmAgentId,
           localAgentRef: context.localAgentRef,
@@ -503,6 +407,31 @@ export function createRuntimeAgentMemoryAdapter(deps: RuntimeAgentMemoryDeps = {
     };
   };
 
+  const getDesktopE2EAgentMemoryFixtureStatus = async (
+    agentId: string,
+  ): Promise<CanonicalMemoryBankStatus | null> => {
+    const result = await getFixtureStatus({ agentId });
+    if (!result.available) {
+      return null;
+    }
+    const bankId = normalizeText(result.bank.bankId);
+    const embeddingProfile = result.bank.embeddingProfile;
+    const embeddingProfileModelId = embeddingProfile && typeof embeddingProfile === 'object'
+      ? normalizeText((embeddingProfile as Record<string, unknown>).modelId)
+      : '';
+    if (result.alreadyBound) {
+      return {
+        mode: 'standard',
+        bankId: bankId || undefined,
+        embeddingProfileModelId: embeddingProfileModelId || undefined,
+      };
+    }
+    return {
+      mode: 'baseline',
+      bankId: bankId || undefined,
+    };
+  };
+
   const getLegacyCanonicalBankStatus = async (agentId: string): Promise<CanonicalMemoryBankStatus> => {
     try {
       const metadata = await readCanonicalBankMetadata(agentId);
@@ -519,11 +448,19 @@ export function createRuntimeAgentMemoryAdapter(deps: RuntimeAgentMemoryDeps = {
           bankId: metadata.bankId,
         };
       }
+      const fixtureStatus = await getDesktopE2EAgentMemoryFixtureStatus(agentId);
+      if (fixtureStatus) {
+        return fixtureStatus;
+      }
       return {
         mode: 'unavailable',
         bankId: metadata.bankId,
       };
     } catch (error) {
+      const fixtureStatus = await getDesktopE2EAgentMemoryFixtureStatus(agentId);
+      if (fixtureStatus) {
+        return fixtureStatus;
+      }
       if (isRuntimeMemoryUnavailable(error)) {
         return { mode: 'unavailable' };
       }
@@ -566,6 +503,10 @@ export function createRuntimeAgentMemoryAdapter(deps: RuntimeAgentMemoryDeps = {
       if (!isRuntimeNotFound(error) && !isRuntimeMemoryUnavailable(error)) {
         throw error;
       }
+      const fixtureStatus = await getDesktopE2EAgentMemoryFixtureStatus(agentId);
+      if (fixtureStatus) {
+        return fixtureStatus;
+      }
     }
 
     if (metadata.embeddingProfileModelId || isStandardCanonicalBankStatus(state.canonicalBankStatus)) {
@@ -594,6 +535,11 @@ export function createRuntimeAgentMemoryAdapter(deps: RuntimeAgentMemoryDeps = {
         bankId: metadata.bankId,
         bindingSourceKind: 'local',
       };
+    }
+
+    const fixtureStatus = await getDesktopE2EAgentMemoryFixtureStatus(agentId);
+    if (fixtureStatus) {
+      return fixtureStatus;
     }
 
     return {
@@ -640,6 +586,10 @@ export function createRuntimeAgentMemoryAdapter(deps: RuntimeAgentMemoryDeps = {
       const normalizedAgentID = normalizeText(agentId);
       if (!normalizedAgentID) {
         throw new Error('AGENT_ID_REQUIRED');
+      }
+      const fixtureStatus = await getDesktopE2EAgentMemoryFixtureStatus(normalizedAgentID);
+      if (fixtureStatus) {
+        return fixtureStatus;
       }
       try {
         const memoryEmbeddingService = getMemoryEmbeddingConfigService();

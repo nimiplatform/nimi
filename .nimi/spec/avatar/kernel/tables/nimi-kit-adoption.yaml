@@ -1,10 +1,13 @@
 version: 1
+table_family: product_catalog
+owner: avatar
+catalog_id: avatar_nimi_kit_adoption
 app: avatar
 app_entry:
   style: apps/avatar/src/shell/renderer/app.css
   bootstrap: apps/avatar/src/shell/renderer/main.tsx
   theme_provider: apps/avatar/src/shell/renderer/main.tsx
-modules:
+modules: &avatar_nimi_kit_adoption_entries
   - id: avatar.shell.app
     app: avatar
     module: apps/avatar/src/shell/renderer/App.tsx
@@ -70,3 +73,4 @@ forbidden_patterns:
     scope: apps/avatar/src/shell/renderer/app-shell/tokens.css
     pattern: ':root\s*\{[\s\S]*--(?:color|surface|spacing|motion|font|line-height|companion|degraded|settings|nimi)-'
     reason: Avatar renderer token authority must come from nimi-kit semantic tokens, not app-local root registries.
+entries: *avatar_nimi_kit_adoption_entries

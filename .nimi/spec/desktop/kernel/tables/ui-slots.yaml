@@ -1,3 +1,15 @@
+table_family: closed_enum
+owner: desktop
+enum_id: desktop_ui_slots
+values:
+  - auth.login.form.footer
+  - chat.sidebar.header
+  - chat.chat.list.item.trailing
+  - chat.turn.input.toolbar
+  - settings.panel.section
+  - ui-extension.app.sidebar.mods
+  - ui-extension.app.content.routes
+  - ui-extension.runtime.devtools.panel
 # Desktop UI Extension Slots
 # Source: apps/desktop/src/runtime/hook/contracts/capabilities.ts (DEFAULT_UI_SLOTS)
 

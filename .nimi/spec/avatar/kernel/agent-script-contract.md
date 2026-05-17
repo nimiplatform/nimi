@@ -375,7 +375,7 @@ interface AgentDataBundle {
     name: string;                       // "happy", "ext:grateful", "mod-weather:storm-watching"
     category: "emotion" | "interaction" | "state";
     intensity: "weak" | "moderate" | "strong" | null;
-    source: "runtime_projection" | "direct_api";
+    source: "apml_output" | "direct_api" | "mock";
   };
   // Posture (always from runtime.agent.state)
   posture: {

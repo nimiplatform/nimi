@@ -27,7 +27,9 @@ export type OfficialCubismFrameworkRuntime = {
     getMotionFadeInTimeValue: (groupName: string, index: number) => number;
     getMotionFadeOutTimeValue: (groupName: string, index: number) => number;
     getEyeBlinkParameterCount: () => number;
+    getEyeBlinkParameterId: (index: number) => unknown;
     getLipSyncParameterCount: () => number;
+    getLipSyncParameterId: (index: number) => unknown;
   };
   CubismMotion: {
     create: (buffer: ArrayBuffer, size: number) => {

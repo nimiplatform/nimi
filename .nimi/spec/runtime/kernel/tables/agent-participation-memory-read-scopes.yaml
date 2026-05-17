@@ -1,4 +1,16 @@
 version: 1
+table_family: product_catalog
+owner: runtime
+catalog_id: runtime_agent_participation_memory_read_scopes
+entries:
+  - CANONICAL_OWNER_POLICY
+  - DYADIC_PRIVATE_ALLOWED
+  - DYADIC_PRIVATE_EXCLUDED
+  - PUBLIC_SHARED_ONLY
+  - DOMAIN_SHARED_ONLY
+  - NO_MEMORY_READ
+  - non_canonical_private_canonical_memory_read_default
+  - broadening_requires_explicit_authority
 source_rule: K-AGCORE-067
 memory_read_scopes:
   - id: CANONICAL_OWNER_POLICY

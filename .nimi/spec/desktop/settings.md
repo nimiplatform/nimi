@@ -1,51 +1,36 @@
-# Settings Domain Spec
+# Settings
 
 > Normative Imports: `.nimi/spec/desktop/kernel/*`
 
 ## Scope
 
-设置功能域 — 用户设置、通知偏好、创作者资格、Mod 设置扩展。
+This guide points to the desktop authority surfaces for settings. It does not define product rules.
 
-## Module Map
+## Reading Path
 
-- `features/settings/` — 设置面板（页面路由、资源、持久化）
-- `runtime/data-sync/flows/settings-flow.ts` — 设置数据流
+- `.nimi/spec/desktop/kernel/index.md`
+- `.nimi/spec/desktop/kernel/agent-avatar-configuration-contract.md`
+- `.nimi/spec/desktop/kernel/agent-avatar-debug-workbench-contract.md`
+- `.nimi/spec/desktop/kernel/agent-avatar-surface-contract.md`
+- `.nimi/spec/desktop/kernel/agent-chat-behavior-contract.md`
+- `.nimi/spec/desktop/kernel/agent-chat-message-action-contract.md`
+- `.nimi/spec/desktop/kernel/agent-chat-voice-executor-contract.md`
+- `.nimi/spec/desktop/kernel/agent-chat-voice-session-contract.md`
+- `.nimi/spec/desktop/kernel/agent-chat-voice-workflow-contract.md`
+- `.nimi/spec/desktop/kernel/agent-delegation-control-surface-contract.md`
+- `.nimi/spec/desktop/kernel/ai-profile-config-contract.md`
+- `.nimi/spec/desktop/kernel/auth-session-contract.md`
+- `.nimi/spec/desktop/kernel/bootstrap-contract.md`
 
-## Kernel References
+## Tables
 
-### DataSync (D-DSYNC-010)
-
-设置数据流（方法清单见 `D-DSYNC-010`）。
-
-### State (D-STATE-004)
-
-- `activeTab = 'settings'` 时渲染 SettingsPanel。
-
-### Hook (D-HOOK-004)
-
-Settings 可用扩展槽位以 `.nimi/spec/desktop/kernel/tables/ui-slots.yaml` 为准；本域只引用 `D-HOOK-004`。
-
-### Shell (D-SHELL-002)
-
-`enableSettingsExtensions` feature flag 控制扩展区域是否渲染。
-
-### Sidebar Family (D-SHELL-023, D-SHELL-024, D-SHELL-025)
-
-Settings 内部左侧栏属于 desktop governed sidebar family：
-
-- `settings-panel-body` 必须登记到 `renderer-design-sidebars.yaml`。
-- sectioned nav 只能使用 `nav-row` item kind。
-- sidebar 背景、active row、section label 与 resize handle 必须通过 shared sidebar primitive 与 sidebar token 统一。
-
-### Bootstrap / IPC (D-BOOT-001, D-IPC-014, D-IPC-015)
-
-Settings 的 Application Update 区域必须投影 desktop self-update 状态：
-
-- 展示当前 desktop 版本、bundled runtime 版本、目标版本、当前 updater 状态。
-- `autoUpdate` 语义固定为“自动检查并下载”；安装完成后仍需显式重启。
-- runtime staging / release metadata 错误必须在设置页中可见，不得靠 fallback 版本信息掩盖。
-- updater availability 与禁用/告警投影遵循 `.nimi/spec/desktop/kernel/self-update-contract.md` 的 `Updater Availability Projection`，此处不重复定义规则正文。
-
-## CI 门禁引用
-
-本域涉及的 CI 门禁：`pnpm exec nimicoding validate-spec-governance --profile nimi --scope desktop-consistency`（Check 1, 4, 9, 11, 13~14 相关规则）。
+- `.nimi/spec/desktop/kernel/tables/agent-avatar-configuration.schema.yaml`
+- `.nimi/spec/desktop/kernel/tables/agent-avatar-debug-remediation-states.yaml`
+- `.nimi/spec/desktop/kernel/tables/agent-avatar-debug-workbench-probes.yaml`
+- `.nimi/spec/desktop/kernel/tables/app-tabs.yaml`
+- `.nimi/spec/desktop/kernel/tables/bootstrap-phases.yaml`
+- `.nimi/spec/desktop/kernel/tables/build-chunks.yaml`
+- `.nimi/spec/desktop/kernel/tables/codegen-acceptance-gates.yaml`
+- `.nimi/spec/desktop/kernel/tables/codegen-capability-tiers.yaml`
+- `.nimi/spec/desktop/kernel/tables/codegen-import-allowlist.yaml`
+- `.nimi/spec/desktop/kernel/tables/codegen-static-scan-deny-patterns.yaml`

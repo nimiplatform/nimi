@@ -1,4 +1,7 @@
 version: 1
+table_family: protocol_surface
+owner: cognition
+protocol_id: cognition_public_surface
 surfaces:
   - surface_id: cognition.new
     surface_kind: constructor

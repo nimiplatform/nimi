@@ -141,6 +141,7 @@ struct DesktopMacosSmokeContextResult {
     artifacts_dir: Option<String>,
     disable_runtime_bootstrap: bool,
     bootstrap_timeout_ms: Option<u64>,
+    avatar_product_local_asset_fault: Option<serde_json::Value>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -171,6 +172,20 @@ struct DesktopMacosSmokeAvatarEvidenceReadPayload {
     avatar_instance_id: String,
 }
 
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct DesktopMacosSmokeAvatarProductLocalAssetFaultApplyPayload {
+    fault_kind: String,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct DesktopMacosSmokeAvatarProductLocalAssetFaultApplyResult {
+    fault_kind: String,
+    manifest_path: String,
+    removed_entry_path: String,
+}
+
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 struct DesktopMacosSmokeAvatarEvidenceReadResult {
@@ -189,12 +204,9 @@ struct DesktopMacosSmokeReportResult {
 #[serde(deny_unknown_fields)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct DesktopAvatarLaunchHandoffPayload {
-    owner_user_id: String,
-    realm_agent_id: String,
-    local_agent_ref: String,
+    agent_id: String,
     avatar_instance_id: Option<String>,
     launch_source: Option<String>,
-    source_surface: Option<String>,
 }
 
 #[derive(Debug, Serialize)]

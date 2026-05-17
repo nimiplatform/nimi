@@ -23,6 +23,9 @@ export type ChatComposerLeadingAvatarProps = {
   fallbackLabel?: string | null;
   kind: 'agent' | 'human';
   preview?: ChatComposerLeadingAvatarPreviewTarget | null;
+  triggerTestId?: string;
+  openProfileTestId?: string;
+  onOpenProfilePage?: (targetId: string) => void;
 };
 
 const HOVER_OPEN_DELAY_MS = 180;
@@ -64,6 +67,9 @@ export function ChatComposerLeadingAvatar(props: ChatComposerLeadingAvatarProps)
       handleHint={preview.handle || null}
       worldNameHint={preview.worldName || null}
       targetId={preview.targetId}
+      triggerTestId={props.triggerTestId}
+      openProfileTestId={props.openProfileTestId}
+      onOpenProfilePage={props.onOpenProfilePage}
     >
       {visual}
     </ChatComposerAvatarHoverPreview>
@@ -77,6 +83,9 @@ function ChatComposerAvatarHoverPreview(props: {
   handleHint: string | null;
   worldNameHint: string | null;
   targetId: string;
+  triggerTestId?: string;
+  openProfileTestId?: string;
+  onOpenProfilePage?: (targetId: string) => void;
   children: ReactNode;
 }) {
   const { t } = useTranslation();
@@ -141,8 +150,17 @@ function ChatComposerAvatarHoverPreview(props: {
     if (!props.targetId) {
       return;
     }
+    if (props.onOpenProfilePage) {
+      props.onOpenProfilePage(props.targetId);
+      return;
+    }
     setProfileModalOpen(true);
-  }, [cancelTimers, props.targetId]);
+  }, [cancelTimers, props.onOpenProfilePage, props.targetId]);
+
+  const handleTriggerClick = useCallback(() => {
+    cancelTimers();
+    setOpen(true);
+  }, [cancelTimers]);
 
   const ariaLabel = props.kind === 'agent'
     ? t('Chat.composerAvatarOpenAgent', { defaultValue: 'Open agent profile' })
@@ -166,12 +184,13 @@ function ChatComposerAvatarHoverPreview(props: {
           <button
             type="button"
             data-chat-shared-composer-leading-avatar="true"
+            data-testid={props.triggerTestId}
             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-transparent p-0 transition-transform hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#4ECCA3]/60"
             onMouseEnter={scheduleOpen}
             onMouseLeave={scheduleClose}
             onFocus={scheduleOpen}
             onBlur={scheduleClose}
-            onClick={handleOpenProfile}
+            onClick={handleTriggerClick}
             aria-label={ariaLabel}
           >
             {props.children}
@@ -194,6 +213,7 @@ function ChatComposerAvatarHoverPreview(props: {
             kind={props.kind}
             isLoading={isLoading}
             onOpenProfile={handleOpenProfile}
+            openProfileTestId={props.openProfileTestId}
           />
         </PopoverContent>
       </Popover>
@@ -214,6 +234,7 @@ function ChatComposerAvatarPreviewCard(props: {
   kind: 'agent' | 'human';
   isLoading: boolean;
   onOpenProfile: () => void;
+  openProfileTestId?: string;
 }) {
   const { t } = useTranslation();
   const profile = props.profile;
@@ -232,6 +253,7 @@ function ChatComposerAvatarPreviewCard(props: {
     <button
       type="button"
       onClick={props.onOpenProfile}
+      data-testid={props.openProfileTestId}
       className="flex w-full flex-col gap-3 p-4 text-left transition hover:bg-[color-mix(in_srgb,var(--nimi-surface-overlay)_92%,#4ECCA3_8%)] focus:outline-none"
     >
       <div className="flex items-start gap-3">

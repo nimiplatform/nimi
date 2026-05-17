@@ -17,7 +17,7 @@
       "assetProtocol": {
         "enable": true,
         "scope": [
-          "$HOME/.nimi/data/accounts/*/agents/*/agent-center/modules/avatar_package/packages/*/*/files/**",
+          "$HOME/.nimi/data/accounts/*/agents/*/agent-center/modules/avatar_asset/packages/*/*/files/**",
           "$HOME/ai/**"
         ]
       },
@@ -25,7 +25,7 @@
     }
   },
   "bundle": {
-    "active": false,
+    "active": true,
     "targets": "all",
     "icon": [
       "icons/icon.png",

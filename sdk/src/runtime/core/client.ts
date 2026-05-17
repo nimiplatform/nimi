@@ -18,39 +18,57 @@ import {
   RuntimeUnaryMethodCodecs,
 } from './method-codecs.js';
 import {
-  ExecuteDelegatedCapabilityRequest,
-  ExecuteDelegatedCapabilityResponse,
+  CancelCompanionParticipationRequest,
+  CancelCompanionParticipationResponse,
   GetAvatarDebugReplayRequest,
   GetAvatarDebugReplayResponse,
   GetAvatarDebugSnapshotRequest,
   GetAvatarDebugSnapshotResponse,
+  GetCompanionParticipationProjectionRequest,
+  GetCompanionParticipationProjectionResponse,
   GetConversationAnchorSnapshotRequest,
   GetConversationAnchorSnapshotResponse,
-  GetDelegatedControlSurfaceSnapshotRequest,
-  GetDelegatedControlSurfaceSnapshotResponse,
-  GetDelegatedReplayTraceRequest,
-  GetDelegatedReplayTraceResponse,
   GetPublicChatSessionSnapshotRequest,
   GetPublicChatSessionSnapshotResponse,
   ListAvatarDebugProbeResultsRequest,
   ListAvatarDebugProbeResultsResponse,
+  OpenConversationAnchorRequest,
+  OpenConversationAnchorResponse,
+  OpenCompanionParticipationReplayRequest,
+  OpenCompanionParticipationReplayResponse,
+  RegisterAvatarLiveInstanceBindingRequest,
+  RegisterAvatarLiveInstanceBindingResponse,
+  ResolveAvatarLiveInstanceBindingRequest,
+  ResolveAvatarLiveInstanceBindingResponse,
+  RequestAvatarDebugProbeRequest,
+  RequestAvatarDebugProbeResponse,
+  RequestCompanionParticipationRequest,
+  RequestCompanionParticipationResponse,
+} from '../generated/runtime/v1/agent_service.js';
+import {
+  ResolveAvatarPackageLaunchProjectionRequest,
+  ResolveAvatarPackageLaunchProjectionResponse,
+} from '../generated/runtime/v1/avatar_package.js';
+import {
+  ExecuteDelegatedCapabilityRequest,
+  ExecuteDelegatedCapabilityResponse,
+  GetDelegatedControlSurfaceSnapshotRequest,
+  GetDelegatedControlSurfaceSnapshotResponse,
+  GetDelegatedReplayTraceRequest,
+  GetDelegatedReplayTraceResponse,
   ListDelegatedApprovalRequestsRequest,
   ListDelegatedApprovalRequestsResponse,
   ListDelegatedDiagnosticsRequest,
   ListDelegatedDiagnosticsResponse,
   ListDelegatedProviderProfilesRequest,
   ListDelegatedProviderProfilesResponse,
-  OpenConversationAnchorRequest,
-  OpenConversationAnchorResponse,
-  RequestAvatarDebugProbeRequest,
-  RequestAvatarDebugProbeResponse,
   SetDelegatedProviderStateRequest,
   SetDelegatedProviderStateResponse,
   SubmitDelegatedApprovalDecisionRequest,
   SubmitDelegatedApprovalDecisionResponse,
   UpsertDelegatedProviderProfileRequest,
   UpsertDelegatedProviderProfileResponse,
-} from '../generated/runtime/v1/agent_service.js';
+} from '../generated/runtime/v1/delegated_control.js';
 import {
   CreateRealmGroupMessageCandidateRequest,
   CreateRealmGroupMessageCandidateResponse,
@@ -426,9 +444,33 @@ export function createRuntimeClient(input: RuntimeClientConfig): RuntimeClient {
         requestType: GetConversationAnchorSnapshotRequest,
         responseType: GetConversationAnchorSnapshotResponse,
       }),
+      registerAvatarLiveInstanceBinding: customUnary(RuntimeMethodIds.agent.registerAvatarLiveInstanceBinding, {
+        requestType: RegisterAvatarLiveInstanceBindingRequest,
+        responseType: RegisterAvatarLiveInstanceBindingResponse,
+      }),
+      resolveAvatarLiveInstanceBinding: customUnary(RuntimeMethodIds.agent.resolveAvatarLiveInstanceBinding, {
+        requestType: ResolveAvatarLiveInstanceBindingRequest,
+        responseType: ResolveAvatarLiveInstanceBindingResponse,
+      }),
       getPublicChatSessionSnapshot: customUnary(RuntimeMethodIds.agent.getPublicChatSessionSnapshot, {
         requestType: GetPublicChatSessionSnapshotRequest,
         responseType: GetPublicChatSessionSnapshotResponse,
+      }),
+      getCompanionParticipationProjection: customUnary(RuntimeMethodIds.agent.getCompanionParticipationProjection, {
+        requestType: GetCompanionParticipationProjectionRequest,
+        responseType: GetCompanionParticipationProjectionResponse,
+      }),
+      requestCompanionParticipation: customUnary(RuntimeMethodIds.agent.requestCompanionParticipation, {
+        requestType: RequestCompanionParticipationRequest,
+        responseType: RequestCompanionParticipationResponse,
+      }),
+      cancelCompanionParticipation: customUnary(RuntimeMethodIds.agent.cancelCompanionParticipation, {
+        requestType: CancelCompanionParticipationRequest,
+        responseType: CancelCompanionParticipationResponse,
+      }),
+      openCompanionParticipationReplay: customUnary(RuntimeMethodIds.agent.openCompanionParticipationReplay, {
+        requestType: OpenCompanionParticipationReplayRequest,
+        responseType: OpenCompanionParticipationReplayResponse,
       }),
       createRealmGroupMessageCandidate: customUnary(RuntimeMethodIds.agent.createRealmGroupMessageCandidate, {
         requestType: CreateRealmGroupMessageCandidateRequest,
@@ -453,6 +495,10 @@ export function createRuntimeClient(input: RuntimeClientConfig): RuntimeClient {
       getAvatarDebugReplay: customUnary(RuntimeMethodIds.agent.getAvatarDebugReplay, {
         requestType: GetAvatarDebugReplayRequest,
         responseType: GetAvatarDebugReplayResponse,
+      }),
+      resolveAvatarPackageLaunchProjection: customUnary(RuntimeMethodIds.agent.resolveAvatarPackageLaunchProjection, {
+        requestType: ResolveAvatarPackageLaunchProjectionRequest,
+        responseType: ResolveAvatarPackageLaunchProjectionResponse,
       }),
       listDelegatedProviderProfiles: customUnary(RuntimeMethodIds.agent.listDelegatedProviderProfiles, {
         requestType: ListDelegatedProviderProfilesRequest,

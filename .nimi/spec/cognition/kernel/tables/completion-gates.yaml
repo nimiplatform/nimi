@@ -1,5 +1,8 @@
 version: 1
-gates:
+table_family: product_catalog
+owner: cognition
+catalog_id: cognition_completion_gates
+gates: &cognition_completion_gate_entries
   - gate_id: no_downgrade_gate
     closure_class: semantic_closure
     gate_statement: every runtime overlap concern claimed by cognition must map to equal-or-stronger standalone semantics
@@ -60,3 +63,4 @@ gates:
     minimum_evidence: standalone `go test -race ./...` evidence
     failure_condition: production-grade closeout depends on hidden single-thread assumptions or runtime-side synchronization
     source_rule: C-COG-053
+entries: *cognition_completion_gate_entries

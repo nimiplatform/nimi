@@ -29,6 +29,7 @@ type ProductionConfig struct {
 	TokenURL         string
 	ClientID         string
 	RedirectURI      string
+	CustodyPartition string
 	HTTPClient       *http.Client
 	AppRegistry      *appregistry.Registry
 }
@@ -75,6 +76,7 @@ func NewProduction(logger *slog.Logger, cfg ProductionConfig) *Service {
 	return New(logger,
 		WithProductionActivation(),
 		WithCustody(osKeychainCustody{}),
+		WithCustodyPartition(resolved.CustodyPartition),
 		WithLoginExchanger(newRealmOAuthExchanger(resolved)),
 		WithRefresher(newRealmTokenRefresher(resolved)),
 		WithAppRegistry(resolved.AppRegistry),
@@ -112,6 +114,10 @@ func resolveProductionConfig(cfg ProductionConfig) ProductionConfig {
 		os.Getenv("NIMI_RUNTIME_ACCOUNT_REDIRECT_URI"),
 		"http://localhost:46373/auth/callback",
 	)
+	custodyPartition := firstNonEmpty(
+		cfg.CustodyPartition,
+		os.Getenv("NIMI_RUNTIME_ACCOUNT_CUSTODY_PARTITION"),
+	)
 	httpClient := cfg.HTTPClient
 	if httpClient == nil {
 		httpClient = &http.Client{Timeout: 20 * time.Second}
@@ -122,6 +128,7 @@ func resolveProductionConfig(cfg ProductionConfig) ProductionConfig {
 		TokenURL:         strings.TrimSpace(tokenURL),
 		ClientID:         strings.TrimSpace(clientID),
 		RedirectURI:      strings.TrimSpace(redirectURI),
+		CustodyPartition: strings.TrimSpace(custodyPartition),
 		HTTPClient:       httpClient,
 		AppRegistry:      cfg.AppRegistry,
 	}

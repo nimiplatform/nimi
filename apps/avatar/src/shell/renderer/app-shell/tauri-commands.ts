@@ -42,3 +42,21 @@ export async function constrainWindowToVisibleArea(minVisibleRatio = 0.2): Promi
 export async function setAlwaysOnTop(alwaysOnTop: boolean): Promise<void> {
   await invoke('nimi_avatar_set_always_on_top', { alwaysOnTop });
 }
+
+export async function bindAvatarRuntimeIdentity(input: {
+  avatarInstanceId: string;
+  ownerUserId: string;
+  realmAgentId: string;
+  localAgentRef: string;
+  launchSource?: string | null;
+}): Promise<void> {
+  await invoke('nimi_avatar_bind_runtime_identity', {
+    payload: {
+      avatarInstanceId: input.avatarInstanceId,
+      ownerUserId: input.ownerUserId,
+      realmAgentId: input.realmAgentId,
+      localAgentRef: input.localAgentRef,
+      launchSource: input.launchSource || null,
+    },
+  });
+}

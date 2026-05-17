@@ -91,10 +91,10 @@ function formatRuntimeBindingReason(reason: string): {
       recovery: 'Check the agent and Runtime anchor service, then relaunch this surface.',
     };
   }
-  if (lowered.includes('avatar_package_manifest')) {
+  if (lowered.includes('local_avatar_asset_manifest') || lowered.includes('avatar_package_manifest')) {
     return {
-      label: 'Avatar package manifest is not available',
-      recovery: 'Verify the agent visual package, then relaunch this surface.',
+      label: 'Local Avatar asset is not available',
+      recovery: 'Verify the agent local Live2D/VRM asset import, then relaunch this surface.',
     };
   }
   if (lowered.includes('driver_create') || lowered.includes('driver_start')) {
@@ -298,7 +298,7 @@ export function deriveSurfacePresentation(
   }
 
   const readyAccent = readyPresence;
-  const agentValue = shortenId(input.consume.agentId || input.launchContext?.localAgentRef);
+  const agentValue = shortenId(input.consume.agentId || input.launchContext?.agentId);
   return {
     tone: 'ready',
     badge: 'Live companion',

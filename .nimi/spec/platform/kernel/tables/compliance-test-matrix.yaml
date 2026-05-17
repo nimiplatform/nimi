@@ -1,4 +1,15 @@
 version: 1
+table_family: owner_matrix
+owner: platform
+matrix_id: platform_compliance_test_matrix
+rows:
+  - layers_1
+  - layers_2
+  - layers_3
+  - layers_4
+  - layers_5
+  - layers_6
+  - layers_7
 layers:
   - layer: L0
     label: "Core Envelope (全体强制)"

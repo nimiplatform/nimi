@@ -1,4 +1,43 @@
 version: 1
+table_family: product_catalog
+owner: desktop
+catalog_id: desktop_renderer_design_tokens
+entries:
+  - brand.primary
+  - brand.primary_hover
+  - surface.canvas
+  - surface.panel
+  - surface.card
+  - surface.overlay
+  - surface.sidebar_canvas
+  - text.primary
+  - text.secondary
+  - typography.page_title
+  - typography.section_title
+  - typography.sidebar_section_label
+  - spacing.section
+  - spacing.stack
+  - spacing.sidebar_header_height
+  - stroke.subtle
+  - stroke.strong
+  - stroke.sidebar_border
+  - state.selected
+  - state.danger
+  - state.sidebar_item_default
+  - state.sidebar_item_active
+  - state.sidebar_item_hover
+  - state.sidebar_search
+  - state.sidebar_resize_handle
+  - radius.sm
+  - radius.lg
+  - radius.xl
+  - elevation.base
+  - elevation.floating
+  - elevation.modal
+  - z.dialog
+  - z.tooltip
+  - motion.fast
+  - motion.slow
 tokens:
   - id: brand.primary
     category: brand

@@ -12,6 +12,11 @@ import {
   waitForSpeakingLive2dPose,
   waitForVisibleLive2dPixels,
 } from './desktop-macos-smoke-live2d';
+import {
+  waitForAvatarCarrierEvidence,
+  waitForAvatarLocalAssetDegradedEvidence,
+  waitForAvatarLive2dInteractionEvidence,
+} from './desktop-macos-smoke-avatar-evidence';
 import { AGENT_CHAT_ANCHOR_BINDINGS_STORAGE_KEY } from '@renderer/app-shell/providers/agent-conversation-anchor-binding-storage';
 import {
   assertStableVrmFramingSignature,
@@ -24,57 +29,27 @@ import {
   waitForVrmPostureEvidence,
 } from './desktop-macos-smoke-vrm';
 
-function readEvidenceRecords(evidence: Record<string, unknown>): Array<Record<string, unknown>> {
-  return Array.isArray(evidence.records)
-    ? evidence.records.filter((item): item is Record<string, unknown> => Boolean(item && typeof item === 'object' && !Array.isArray(item)))
-    : [];
-}
-
-function recordKind(record: Record<string, unknown>): string {
-  return typeof record.kind === 'string' ? record.kind : '';
-}
-
-function recordDetail(record: Record<string, unknown>): Record<string, unknown> {
-  return record.detail && typeof record.detail === 'object' && !Array.isArray(record.detail)
-    ? record.detail as Record<string, unknown>
-    : {};
-}
-
-function recordConsume(record: Record<string, unknown>): Record<string, unknown> {
-  return record.consume && typeof record.consume === 'object' && !Array.isArray(record.consume)
-    ? record.consume as Record<string, unknown>
-    : {};
-}
-
-function recordConversationAnchorId(record: Record<string, unknown>): string {
-  const detail = recordDetail(record);
-  const consume = recordConsume(record);
-  return String(
-    consume.conversationAnchorId
-    || consume.conversation_anchor_id
-    || detail.conversation_anchor_id
-    || detail.conversationAnchorId
-    || '',
-  ).trim();
-}
-
-function recordTimeMs(record: Record<string, unknown>): number {
-  const value = typeof record.recordedAt === 'string' ? Date.parse(record.recordedAt) : NaN;
-  return Number.isFinite(value) ? value : 0;
-}
+const E2E_PRIMARY_REALM_AGENT_ID = 'agent-e2e-alpha';
+const E2E_PRIMARY_LOCAL_AGENT_REF = `local-agent:user-e2e-primary:${E2E_PRIMARY_REALM_AGENT_ID}`;
+const E2E_PRIMARY_AGENT_TARGET_ID = E2E_IDS.chatTarget(E2E_PRIMARY_LOCAL_AGENT_REF);
+const AVATAR_PRODUCT_LIVE_INSTANCE_TIMEOUT_MS = 45_000;
 
 async function waitForAvatarLiveInstance(
   deps: DesktopMacosSmokeDriverDeps,
   realmAgentId: string,
+  localAgentRef: string,
   _expectedConversationAnchorId: string | null = null,
   timeoutMs = SMOKE_STEP_TIMEOUT_MS,
 ) {
   const deadline = Date.now() + timeoutMs;
   let lastCount = 0;
   while (Date.now() < deadline) {
-    const instances = await deps.listAvatarLiveInstances(realmAgentId);
+    const instances = await deps.listAvatarLiveInstances(localAgentRef);
     lastCount = instances.length;
-    const current = instances.find((instance) => instance.realmAgentId === realmAgentId);
+    const current = instances.find((instance) => (
+      instance.realmAgentId === realmAgentId
+      && instance.localAgentRef === localAgentRef
+    ));
     if (current) {
       return current;
     }
@@ -88,7 +63,10 @@ async function waitForAvatarLiveInstance(
 
 async function waitForAgentConversationAnchorBinding(
   deps: DesktopMacosSmokeDriverDeps,
-  agentId: string,
+  input: {
+    realmAgentId: string;
+    localAgentRef: string;
+  },
   notBeforeMs = 0,
   timeoutMs = 20_000,
 ): Promise<string> {
@@ -104,7 +82,10 @@ async function waitForAgentConversationAnchorBinding(
             item
             && typeof item === 'object'
             && !Array.isArray(item)
-            && (item as Record<string, unknown>).agentId === agentId
+            && (
+              (item as Record<string, unknown>).localAgentRef === input.localAgentRef
+              || (item as Record<string, unknown>).realmAgentId === input.realmAgentId
+            )
             && typeof (item as Record<string, unknown>).conversationAnchorId === 'string'
             && String((item as Record<string, unknown>).conversationAnchorId).trim()
           )) as Record<string, unknown> | undefined;
@@ -114,7 +95,7 @@ async function waitForAgentConversationAnchorBinding(
           const updatedAtMs = Number(binding?.updatedAtMs || 0);
           if (anchor && Number.isFinite(updatedAtMs) && updatedAtMs >= notBeforeMs) {
             await deps.verifyRuntimeConversationAnchor({
-              agentId,
+              agentId: input.localAgentRef,
               conversationAnchorId: anchor,
             });
             return anchor;
@@ -126,70 +107,7 @@ async function waitForAgentConversationAnchorBinding(
     }
     await new Promise((resolve) => setTimeout(resolve, 250));
   }
-  throw new Error(`missing explicit conversation anchor binding for ${agentId}; storage=${lastRaw || 'empty'}`);
-}
-
-async function waitForAvatarCarrierEvidence(
-  deps: DesktopMacosSmokeDriverDeps,
-  avatarInstanceId: string,
-  expectedConversationAnchorId: string,
-  timeoutMs = 90_000,
-) {
-  const deadline = Date.now() + timeoutMs;
-  let lastError = '';
-  while (Date.now() < deadline) {
-    try {
-      const result = await deps.readAvatarEvidence(avatarInstanceId);
-      const records = readEvidenceRecords(result.evidence);
-      const latestRecords = [...records].reverse();
-      const startupTerminal = latestRecords.find((record) => {
-        if (recordConversationAnchorId(record) !== expectedConversationAnchorId) {
-          return false;
-        }
-        const kind = recordKind(record);
-        return kind === 'avatar.startup.runtime-bound' || kind === 'avatar.startup.failed';
-      }) || null;
-      if (startupTerminal && recordKind(startupTerminal) === 'avatar.startup.failed') {
-        const detail = recordDetail(startupTerminal);
-        throw new Error(`Avatar runtime-bound startup failed: ${String(detail.error || 'unknown startup failure')}`);
-      }
-      const startup = startupTerminal && recordKind(startupTerminal) === 'avatar.startup.runtime-bound'
-        ? startupTerminal
-        : null;
-      const startupRecordedAt = startup ? recordTimeMs(startup) : 0;
-      const recordsForCurrentStartup = startupRecordedAt > 0
-        ? latestRecords.filter((record) => recordTimeMs(record) >= startupRecordedAt)
-        : latestRecords;
-      const modelLoad = recordsForCurrentStartup.find((record) => (
-        recordKind(record) === 'avatar.model.load'
-        && recordConversationAnchorId(record) === expectedConversationAnchorId
-      )) || null;
-      const visual = recordsForCurrentStartup.find((record) => {
-        if (recordKind(record) !== 'avatar.carrier.visual') {
-          return false;
-        }
-        if (recordConversationAnchorId(record) !== expectedConversationAnchorId) {
-          return false;
-        }
-        const detail = recordDetail(record);
-        return detail.status === 'ready' && Number(detail.visible_pixels || 0) > 0;
-      }) || null;
-      if (startup && modelLoad && visual) {
-        return {
-          evidencePath: result.evidencePath,
-          evidence: result.evidence,
-          startup,
-          modelLoad,
-          visual,
-        };
-      }
-      lastError = `anchor=${expectedConversationAnchorId} records=${records.map((record) => `${recordKind(record)}:${recordConversationAnchorId(record) || 'no-anchor'}`).join(',') || 'none'}`;
-    } catch (error) {
-      lastError = error instanceof Error ? error.message : String(error || 'unknown evidence read error');
-    }
-    await new Promise((resolve) => setTimeout(resolve, 300));
-  }
-  throw new Error(`missing same-anchor Avatar SDK/model/visual evidence for ${avatarInstanceId} anchor=${expectedConversationAnchorId}: ${lastError}`);
+  throw new Error(`missing explicit conversation anchor binding for ${input.localAgentRef}; storage=${lastRaw || 'empty'}`);
 }
 
 async function waitForRuntimeProductPathEvidence(
@@ -252,29 +170,16 @@ export async function runDesktopMacosSmokeScenario(
   const steps: string[] = [];
   const record = (step: string) => {
     steps.push(step);
+    deps.onStepStart?.(step, steps);
   };
-  const openRuntimePanel = async () => {
-    try {
-      await deps.clickByTestId(E2E_IDS.navTab('runtime'));
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error || '');
-      if (!message.includes(`missing test id ${E2E_IDS.navTab('runtime')}`)) {
-        throw error;
-      }
-      await deps.clickByTestId(E2E_IDS.topbarRuntimeButton);
-    }
-  };
-
   try {
     switch (scenarioId) {
       case 'boot.anonymous.login-screen':
         record('wait-main-shell');
         await deps.waitForTestId(E2E_IDS.mainShell);
-        record('open-runtime-panel');
-        await openRuntimePanel();
-        record('wait-runtime-overview');
-        await deps.waitForTestId(E2E_IDS.panel('runtime'));
-        await deps.waitForTestId(E2E_IDS.runtimePageRoot('overview'));
+        record('wait-chat-default');
+        await deps.waitForTestId(E2E_IDS.panel('chat'));
+        await deps.waitForTestId(E2E_IDS.chatPage);
         try {
           record('wait-login-button');
           await deps.waitForTestId(E2E_IDS.topbarLoginButton, 750);
@@ -293,11 +198,11 @@ export async function runDesktopMacosSmokeScenario(
             await deps.clickByTestId(E2E_IDS.loginAlternativeToggle);
             await deps.waitForTestId(E2E_IDS.loginAlternativePanel);
           }
-          record('return-runtime-panel');
+          record('return-chat-panel');
           await deps.clickByTestId(E2E_IDS.loginBackButton);
           await deps.waitForTestId(E2E_IDS.mainShell);
-          await openRuntimePanel();
-          await deps.waitForTestId(E2E_IDS.panel('runtime'));
+          await deps.waitForTestId(E2E_IDS.panel('chat'));
+          await deps.waitForTestId(E2E_IDS.chatPage);
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error || '');
           if (!message.includes(`missing test id ${E2E_IDS.topbarLoginButton}`)) {
@@ -318,7 +223,7 @@ export async function runDesktopMacosSmokeScenario(
         record('wait-chat-panel');
         await deps.waitForTestId(E2E_IDS.panel('chat'));
         record('select-agent-target');
-        await deps.clickByTestId(E2E_IDS.chatTarget('agent-e2e-alpha'));
+        await deps.clickByTestId(E2E_PRIMARY_AGENT_TARGET_ID);
         record('open-settings');
         await deps.clickByTestId(E2E_IDS.chatSettingsToggle);
         record('wait-baseline');
@@ -378,7 +283,7 @@ export async function runDesktopMacosSmokeScenario(
         record('clear-stale-anchor-bindings');
         await deps.clearAgentConversationAnchorBindings();
         record('select-agent-target');
-        await deps.clickByTestId(E2E_IDS.chatTarget('agent-e2e-alpha'));
+        await deps.clickByTestId(E2E_PRIMARY_AGENT_TARGET_ID);
         record('wait-agent-target-selected');
         await new Promise((resolve) => setTimeout(resolve, 750));
         record('configure-runtime-text-route');
@@ -386,33 +291,57 @@ export async function runDesktopMacosSmokeScenario(
         const anchorWriteNotBeforeMs = Date.now();
         record('submit-anchor-turn');
         await deps.setValueBySelector('[data-chat-composer-textarea="true"]', 'Wave 2 product smoke anchor turn.');
+        record('wait-anchor-send-ready');
+        await deps.waitForSelectorEnabled('[data-chat-composer-send="true"]');
         await deps.clickSelector('[data-chat-composer-send="true"]');
         record('wait-runtime-anchor-binding');
         const conversationAnchorId = await waitForAgentConversationAnchorBinding(
           deps,
-          'agent-e2e-alpha',
+          {
+            realmAgentId: E2E_PRIMARY_REALM_AGENT_ID,
+            localAgentRef: E2E_PRIMARY_LOCAL_AGENT_REF,
+          },
           anchorWriteNotBeforeMs,
         );
         record('wait-runtime-product-path-evidence');
         const runtimeProductEvidence = await waitForRuntimeProductPathEvidence(deps, {
-          agentId: 'agent-e2e-alpha',
+          agentId: E2E_PRIMARY_LOCAL_AGENT_REF,
           conversationAnchorId,
         });
-        record('open-settings');
-        await deps.clickByTestId(E2E_IDS.chatSettingsToggle);
-        record('wait-avatar-launch-card');
-        await deps.waitForTestId(E2E_IDS.chatAvatarLaunchCard);
+        record('wait-avatar-composer-ready');
+        await deps.waitForSelector('[data-agent-composer-avatar="ready_stopped"]');
         record('launch-avatar-current-anchor');
-        await deps.clickByTestId(E2E_IDS.chatAvatarLaunchCurrentButton);
+        await deps.clickSelector('[data-agent-composer-avatar="ready_stopped"]');
         record('wait-avatar-same-anchor-registry');
         const liveInstance = await waitForAvatarLiveInstance(
           deps,
-          'agent-e2e-alpha',
+          E2E_PRIMARY_REALM_AGENT_ID,
+          E2E_PRIMARY_LOCAL_AGENT_REF,
           conversationAnchorId,
-          20_000,
+          AVATAR_PRODUCT_LIVE_INSTANCE_TIMEOUT_MS,
         );
         record('wait-avatar-carrier-evidence');
-        const carrierEvidence = await waitForAvatarCarrierEvidence(deps, liveInstance.avatarInstanceId, conversationAnchorId);
+        const carrierEvidence = await waitForAvatarCarrierEvidence(
+          deps,
+          liveInstance.avatarInstanceId,
+          conversationAnchorId,
+          Number.isFinite(deps.avatarCarrierEvidenceTimeoutMs)
+            ? Math.max(1, Number(deps.avatarCarrierEvidenceTimeoutMs))
+            : undefined,
+        );
+        record('wait-avatar-interaction-composer-ready');
+        await deps.waitForSelectorEnabled('[data-chat-composer-textarea="true"]', 60_000);
+        record('submit-avatar-interaction-turn');
+        await deps.setValueBySelector('[data-chat-composer-textarea="true"]', 'Wave 2 product smoke interaction turn.');
+        record('wait-avatar-interaction-send-ready');
+        await deps.waitForSelectorEnabled('[data-chat-composer-send="true"]');
+        await deps.clickSelector('[data-chat-composer-send="true"]');
+        record('wait-avatar-live2d-interaction-evidence');
+        const interactionEvidence = await waitForAvatarLive2dInteractionEvidence(
+          deps,
+          liveInstance.avatarInstanceId,
+          conversationAnchorId,
+        );
         record('write-pass-report');
         await deps.writeReport({
           ok: true,
@@ -426,8 +355,87 @@ export async function runDesktopMacosSmokeScenario(
               liveInstance,
               evidencePath: carrierEvidence.evidencePath,
               startup: carrierEvidence.startup,
+              consumeReady: carrierEvidence.consumeReady,
+              localAssetResolved: carrierEvidence.localAssetResolved,
               modelLoad: carrierEvidence.modelLoad,
+              lifecycleMounted: carrierEvidence.lifecycleMounted,
               visual: carrierEvidence.visual,
+              interaction: interactionEvidence.interaction,
+            },
+          },
+        });
+        return;
+      }
+
+      case 'chat.live2d-avatar-local-asset-missing-smoke': {
+        record('wait-chat-panel');
+        await deps.waitForTestId(E2E_IDS.panel('chat'));
+        record('verify-runtime-account-projection');
+        await deps.verifyRuntimeAccountProjection();
+        record('clear-stale-anchor-bindings');
+        await deps.clearAgentConversationAnchorBindings();
+        record('select-agent-target');
+        await deps.clickByTestId(E2E_PRIMARY_AGENT_TARGET_ID);
+        record('wait-agent-target-selected');
+        await new Promise((resolve) => setTimeout(resolve, 750));
+        record('configure-runtime-text-route');
+        await deps.configureRuntimeTextRoute();
+        const anchorWriteNotBeforeMs = Date.now();
+        record('submit-anchor-turn');
+        await deps.setValueBySelector('[data-chat-composer-textarea="true"]', 'Wave 2 local asset missing degraded turn.');
+        record('wait-anchor-send-ready');
+        await deps.waitForSelectorEnabled('[data-chat-composer-send="true"]');
+        await deps.clickSelector('[data-chat-composer-send="true"]');
+        record('wait-runtime-anchor-binding');
+        const conversationAnchorId = await waitForAgentConversationAnchorBinding(
+          deps,
+          {
+            realmAgentId: E2E_PRIMARY_REALM_AGENT_ID,
+            localAgentRef: E2E_PRIMARY_LOCAL_AGENT_REF,
+          },
+          anchorWriteNotBeforeMs,
+        );
+        record('wait-runtime-product-path-evidence');
+        const runtimeProductEvidence = await waitForRuntimeProductPathEvidence(deps, {
+          agentId: E2E_PRIMARY_LOCAL_AGENT_REF,
+          conversationAnchorId,
+        });
+        record('wait-avatar-composer-ready');
+        await deps.waitForSelector('[data-agent-composer-avatar="ready_stopped"]');
+        record('apply-avatar-local-asset-fault');
+        const localAssetFault = await deps.applyAvatarProductLocalAssetFault('missing_entry_file');
+        record('launch-avatar-current-anchor');
+        await deps.clickSelector('[data-agent-composer-avatar="ready_stopped"]');
+        record('wait-avatar-same-anchor-registry');
+        const liveInstance = await waitForAvatarLiveInstance(
+          deps,
+          E2E_PRIMARY_REALM_AGENT_ID,
+          E2E_PRIMARY_LOCAL_AGENT_REF,
+          conversationAnchorId,
+          AVATAR_PRODUCT_LIVE_INSTANCE_TIMEOUT_MS,
+        );
+        record('wait-avatar-local-asset-degraded-evidence');
+        const degradedEvidence = await waitForAvatarLocalAssetDegradedEvidence(
+          deps,
+          liveInstance.avatarInstanceId,
+          conversationAnchorId,
+        );
+        record('write-pass-report');
+        await deps.writeReport({
+          ok: true,
+          steps,
+          route: deps.currentRoute(),
+          htmlSnapshot: deps.currentHtml(),
+          details: {
+            avatarProductDegradedPath: {
+              conversationAnchorId,
+              runtime: runtimeProductEvidence,
+              liveInstance,
+              localAssetFault,
+              evidencePath: degradedEvidence.evidencePath,
+              bindFailure: degradedEvidence.bindFailure,
+              degradedTransition: degradedEvidence.degradedTransition,
+              degradedSurface: degradedEvidence.degradedSurface,
             },
           },
         });
@@ -527,7 +535,7 @@ export async function runDesktopMacosSmokeScenario(
           record('wait-chat-panel');
           await deps.waitForTestId(E2E_IDS.panel('chat'));
           record('select-agent-target');
-          await deps.clickByTestId(E2E_IDS.chatTarget('agent-e2e-alpha'));
+          await deps.clickByTestId(E2E_PRIMARY_AGENT_TARGET_ID);
           record('wait-vrm-viewport');
           await deps.waitForSelector('[data-avatar-vrm-status]');
           record('wait-vrm-ready-lifecycle');
@@ -569,7 +577,7 @@ export async function runDesktopMacosSmokeScenario(
           record('wait-chat-panel');
           await deps.waitForTestId(E2E_IDS.panel('chat'));
           record('select-agent-target');
-          await deps.clickByTestId(E2E_IDS.chatTarget('agent-e2e-alpha'));
+          await deps.clickByTestId(E2E_PRIMARY_AGENT_TARGET_ID);
           record('wait-vrm-viewport');
           await deps.waitForSelector('[data-avatar-vrm-status]');
           record('wait-vrm-ready-lifecycle');
@@ -615,7 +623,7 @@ export async function runDesktopMacosSmokeScenario(
           record('wait-vrm-viewport-teardown');
           await deps.waitForSelectorGone('[data-avatar-vrm-status]', 12_000);
           record('switch-back-to-vrm-target');
-          await deps.clickByTestId(E2E_IDS.chatTarget('agent-e2e-alpha'));
+          await deps.clickByTestId(E2E_PRIMARY_AGENT_TARGET_ID);
           record('wait-vrm-viewport-rebound');
           await deps.waitForSelector('[data-avatar-vrm-status]');
           record('wait-vrm-ready-lifecycle-after-rebind');
@@ -625,7 +633,7 @@ export async function runDesktopMacosSmokeScenario(
           record('wait-vrm-viewport-second-teardown');
           await deps.waitForSelectorGone('[data-avatar-vrm-status]', 12_000);
           record('repeat-vrm-churn-back');
-          await deps.clickByTestId(E2E_IDS.chatTarget('agent-e2e-alpha'));
+          await deps.clickByTestId(E2E_PRIMARY_AGENT_TARGET_ID);
           record('wait-vrm-ready-lifecycle-after-second-rebind');
           const afterSecondRebindStats = await waitForVisibleVrmPixels(deps, 20_000);
 
@@ -681,7 +689,7 @@ export async function runDesktopMacosSmokeScenario(
         record('wait-chat-panel');
         await deps.waitForTestId(E2E_IDS.panel('chat'));
         record('select-agent-target');
-        await deps.clickByTestId(E2E_IDS.chatTarget('agent-e2e-alpha'));
+        await deps.clickByTestId(E2E_PRIMARY_AGENT_TARGET_ID);
         record('wait-live2d-viewport');
         await deps.waitForSelector('[data-avatar-live2d-status]');
         record('wait-live2d-visible-pixels');

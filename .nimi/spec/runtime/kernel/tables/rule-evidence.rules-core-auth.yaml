@@ -1,0 +1,389 @@
+table_family: support_registry
+registry_id: runtime_rule_evidence_core_auth_rules
+owner: runtime
+schema_ref: .nimi/contracts/table-family.schema.yaml#support_registry
+allowed_fields:
+  - rule_id
+  - evidence_requirement
+  - evidence_refs
+  - note
+  - na_reason
+  - evidence_scope_note
+  - test_files
+forbidden_state_fields:
+  - done
+  - covered
+  - coverage_status
+  - audit_date
+  - evidence_report
+  - current
+  - proposed
+  - backlog_status
+  - migration_status
+  - mapping_status
+  - run_id
+  - ledger_ref
+entries:
+  - K-AUTH-001
+  - K-AUTH-002
+  - K-AUTH-003
+  - K-AUTH-004
+  - K-AUTH-005
+  - K-AUTH-006
+  - K-AUTH-007
+  - K-AUTHN-001
+  - K-AUTHN-002
+  - K-AUTHN-003
+  - K-AUTHN-004
+  - K-AUTHN-005
+  - K-AUTHN-006
+  - K-AUTHN-007
+  - K-AUTHN-008
+  - K-AUTHN-009
+  - K-AUTHSVC-001
+  - K-AUTHSVC-002
+  - K-AUTHSVC-003
+  - K-AUTHSVC-004
+  - K-AUTHSVC-005
+  - K-AUTHSVC-006
+  - K-AUTHSVC-007
+  - K-AUTHSVC-008
+  - K-AUTHSVC-009
+  - K-AUTHSVC-010
+  - K-AUTHSVC-011
+  - K-AUTHSVC-012
+  - K-AUTHSVC-013
+  - K-ACCSVC-001
+  - K-ACCSVC-002
+  - K-ACCSVC-003
+  - K-ACCSVC-004
+  - K-ACCSVC-005
+  - K-ACCSVC-006
+  - K-ACCSVC-007
+  - K-ACCSVC-008
+  - K-ACCSVC-009
+  - K-ACCSVC-010
+  - K-ACCSVC-011
+  - K-ACCSVC-012
+  - K-ACCSVC-013
+  - K-ACCSVC-014
+  - K-ACCSVC-015
+  - K-ACCSVC-016
+  - K-ACCSVC-017
+  - K-ACCSVC-018
+  - K-ACCSVC-019
+  - K-ACCSVC-020
+  - K-GRANT-001
+  - K-GRANT-002
+  - K-GRANT-003
+  - K-GRANT-004
+  - K-GRANT-005
+  - K-GRANT-006
+  - K-GRANT-007
+  - K-GRANT-008
+  - K-GRANT-009
+  - K-GRANT-010
+  - K-GRANT-011
+  - K-GRANT-012
+  - K-GRANT-013
+  - K-SEC-001
+  - K-SEC-002
+  - K-SEC-003
+  - K-SEC-004
+  - K-SEC-005
+rules:
+  - rule_id: K-AUTH-001
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-AUTH-002
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-AUTH-003
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-AUTH-004
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-AUTH-005
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-AUTH-006
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-AUTH-007
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-AUTHN-001
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-AUTHN-002
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-AUTHN-003
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-AUTHN-004
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-AUTHN-005
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-AUTHN-006
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-AUTHN-007
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-AUTHN-008
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-AUTHN-009
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-AUTHSVC-001
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-AUTHSVC-002
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-AUTHSVC-003
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-AUTHSVC-004
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-AUTHSVC-005
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-AUTHSVC-006
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-AUTHSVC-007
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-AUTHSVC-008
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-AUTHSVC-009
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-AUTHSVC-010
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-AUTHSVC-011
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-AUTHSVC-012
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-AUTHSVC-013
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-ACCSVC-001
+    evidence_refs: []
+    evidence_requirement: deferred
+  - rule_id: K-ACCSVC-002
+    evidence_refs: []
+    evidence_requirement: deferred
+  - rule_id: K-ACCSVC-003
+    evidence_refs: []
+    evidence_requirement: deferred
+  - rule_id: K-ACCSVC-004
+    evidence_refs: []
+    evidence_requirement: deferred
+  - rule_id: K-ACCSVC-005
+    evidence_refs: []
+    evidence_requirement: deferred
+  - rule_id: K-ACCSVC-006
+    evidence_refs: []
+    evidence_requirement: deferred
+  - rule_id: K-ACCSVC-007
+    evidence_refs: []
+    evidence_requirement: deferred
+  - rule_id: K-ACCSVC-008
+    evidence_refs: []
+    evidence_requirement: deferred
+  - rule_id: K-ACCSVC-009
+    evidence_refs: []
+    evidence_requirement: deferred
+  - rule_id: K-ACCSVC-010
+    evidence_refs: []
+    evidence_requirement: deferred
+  - rule_id: K-ACCSVC-011
+    evidence_refs: []
+    evidence_requirement: deferred
+  - rule_id: K-ACCSVC-012
+    evidence_refs: []
+    evidence_requirement: deferred
+  - rule_id: K-ACCSVC-013
+    evidence_refs: []
+    evidence_requirement: deferred
+  - rule_id: K-ACCSVC-014
+    evidence_refs: []
+    evidence_requirement: deferred
+  - rule_id: K-ACCSVC-015
+    evidence_refs: []
+    evidence_requirement: deferred
+  - rule_id: K-ACCSVC-016
+    evidence_refs: []
+    evidence_requirement: deferred
+  - rule_id: K-ACCSVC-017
+    evidence_refs: []
+    evidence_requirement: deferred
+  - rule_id: K-ACCSVC-018
+    evidence_refs: []
+    evidence_requirement: deferred
+  - rule_id: K-ACCSVC-019
+    evidence_refs: []
+    evidence_requirement: deferred
+  - rule_id: K-ACCSVC-020
+    evidence_refs: []
+    evidence_requirement: deferred
+  - rule_id: K-GRANT-001
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-GRANT-002
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-GRANT-003
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-GRANT-004
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-GRANT-005
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-GRANT-006
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-GRANT-007
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-GRANT-008
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-GRANT-009
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-GRANT-010
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-GRANT-011
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-GRANT-012
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-GRANT-013
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-SEC-001
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-SEC-002
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-SEC-003
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-SEC-004
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-SEC-005
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required

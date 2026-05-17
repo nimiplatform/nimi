@@ -1,0 +1,62 @@
+syntax = "proto3";
+package nimi.runtime.v1;
+option go_package = "github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1";
+import "runtime/v1/agent_common.proto";
+
+message ResolveAvatarPackageLaunchProjectionRequest {
+  AgentRequestContext context = 1;
+  string avatar_instance_id = 2;
+}
+
+message RuntimeAvatarPackageCompatibilityDiagnostic {
+  string code = 1;
+  string severity = 2;
+  string message = 3;
+  string source = 4;
+}
+
+message RuntimeAvatarPackageLive2DLayout {
+  string model3_json_asset_id = 1;
+  string model3_json_path = 2;
+}
+
+message RuntimeAvatarPackageVrmLayout {
+  string vrm_asset_id = 1;
+  string vrm_file_path = 2;
+}
+
+message RuntimeAvatarPackageModelLayout {
+  int32 layout_version = 1;
+  string backend_kind = 2;
+  string entry_asset_id = 3;
+  string runtime_root = 4;
+  repeated string required_asset_ids = 5;
+  RuntimeAvatarPackageLive2DLayout live2d = 6;
+  RuntimeAvatarPackageVrmLayout vrm = 7;
+}
+
+message RuntimeAvatarPackageProvenance {
+  string source_type = 1;
+  string source_fingerprint = 2;
+  string admitted_at = 3;
+  string validator = 4;
+}
+
+message ResolveAvatarPackageLaunchProjectionResponse {
+  string avatar_package_ref = 1;
+  string package_kind = 2;
+  string package_id = 3;
+  string bundle_id = 4;
+  repeated string bundle_member_asset_ids = 5;
+  string backend_kind = 6;
+  string backend_capability_profile_ref = 7;
+  RuntimeAvatarPackageModelLayout avatar_model_layout = 8;
+  RuntimeAvatarPackageProvenance provenance = 9;
+  repeated RuntimeAvatarPackageCompatibilityDiagnostic compatibility_diagnostics = 10;
+  string status = 11;
+  bool is_ready = 12;
+  repeated string readiness_issues = 13;
+  int32 version = 14;
+  string materialization_ref = 15;
+  string observed_at = 16;
+}

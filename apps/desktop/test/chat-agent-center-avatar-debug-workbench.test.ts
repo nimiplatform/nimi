@@ -15,16 +15,19 @@ import {
   avatarDebugProbePresentationStatusLabel,
   avatarDebugProbeRemediation,
   avatarDebugProbeStatusLabel,
+  buildDesktopCompanionParticipationProjectionRequest,
   buildAvatarDebugWorkbenchDiagnostics,
   buildAvatarDebugWorkbenchLaunchHealth,
+  desktopCompanionParticipationRemediation,
+  desktopCompanionParticipationStatusLabel,
 } from '../src/shell/renderer/features/chat/chat-agent-center-avatar-debug-workbench.js';
-import type { AgentCenterAvatarPackageModule } from '../src/shell/renderer/features/chat/chat-agent-center-avatar-config-types.js';
+import type { AgentCenterAvatarAssetModule } from '../src/shell/renderer/features/chat/chat-agent-center-avatar-config-types.js';
 
-function buildConfig(overrides: Partial<AgentCenterAvatarPackageModule> = {}): AgentCenterAvatarPackageModule {
+function buildConfig(overrides: Partial<AgentCenterAvatarAssetModule> = {}): AgentCenterAvatarAssetModule {
   return {
     schema_version: 1,
     conversation_anchor_scope: 'current_anchor',
-    avatar_package_ref: 'avatar-package:pkg-vrm-1',
+    local_avatar_asset_ref: 'vrm_ab12cd34ef56',
     live2d_adapter_manifest_source: 'none',
     live2d_adapter_manifest_ref: null,
     avatar_instance_policy: 'reuse_active_instance',
@@ -68,22 +71,22 @@ function buildReplayRef(overrides: Partial<AvatarDebugReplayRef> = {}): AvatarDe
 
 test('avatar debug workbench launch health is fail-closed before typed Runtime probes can run', () => {
   assert.equal(buildAvatarDebugWorkbenchLaunchHealth({
-    avatarPackageValid: true,
-    avatarPackageChecking: false,
+    avatarAssetValid: true,
+    avatarAssetChecking: false,
     conversationAnchorId: null,
     routeReady: true,
   }).status, 'needs_anchor');
 
   assert.equal(buildAvatarDebugWorkbenchLaunchHealth({
-    avatarPackageValid: false,
-    avatarPackageChecking: false,
+    avatarAssetValid: false,
+    avatarAssetChecking: false,
     conversationAnchorId: 'anchor-1',
     routeReady: true,
   }).status, 'needs_package');
 
   assert.equal(buildAvatarDebugWorkbenchLaunchHealth({
-    avatarPackageValid: true,
-    avatarPackageChecking: false,
+    avatarAssetValid: true,
+    avatarAssetChecking: false,
     conversationAnchorId: 'anchor-1',
     routeReady: false,
   }).status, 'runtime_unavailable');
@@ -92,18 +95,18 @@ test('avatar debug workbench launch health is fail-closed before typed Runtime p
 test('avatar debug workbench diagnostics treats package/profile refs as opaque control state', () => {
   assert.deepEqual(buildAvatarDebugWorkbenchDiagnostics(buildConfig()), {
     backendKind: 'vrm',
-    packageRefState: 'linked',
+    localAssetRefState: 'linked',
     profileRefState: 'linked',
     generatedMotionPolicy: 'require_profile_support',
     debugProfile: 'route_matrix',
   });
 
   assert.deepEqual(buildAvatarDebugWorkbenchDiagnostics(buildConfig({
-    avatar_package_ref: null,
+    local_avatar_asset_ref: null,
     backend_capability_profile_ref: null,
   })), {
     backendKind: 'vrm',
-    packageRefState: 'missing',
+    localAssetRefState: 'missing',
     profileRefState: 'pending',
     generatedMotionPolicy: 'require_profile_support',
     debugProfile: 'route_matrix',
@@ -154,4 +157,39 @@ test('avatar debug workbench presents passed only when required evidence and rep
   assert.equal(avatarDebugProbeFailClosedReason(result, replayRef), null);
   assert.equal(avatarDebugProbePresentationStatusLabel(result, replayRef), 'Passed');
   assert.match(avatarDebugProbeRemediation(result, replayRef), /Evidence is linked/);
+});
+
+test('desktop avatar debug workbench requests typed companion participation projection', () => {
+  assert.deepEqual(buildDesktopCompanionParticipationProjectionRequest({
+    ownerUserId: 'owner-1',
+    realmAgentId: 'agent-1',
+    localAgentRef: 'local-agent:owner-1:agent-1',
+    conversationAnchorId: 'anchor-1',
+  }), {
+    ownerUserId: 'owner-1',
+    realmAgentId: 'agent-1',
+    localAgentRef: 'local-agent:owner-1:agent-1',
+    conversationAnchorId: 'anchor-1',
+    surfaceKind: 'avatar_debug_workbench',
+    triggerSource: 'user_explicit',
+  });
+});
+
+test('desktop companion participation presentation fails visible on Runtime refusal states', () => {
+  const projection = {
+    projectionId: 'projection-1',
+    agentId: 'local-agent:owner-1:agent-1',
+    surfaceKind: 'avatar_debug_workbench',
+    profileRef: 'runtime.agent.profile/local-agent:owner-1:agent-1',
+    roomOrchestrationRef: 'runtime.room_orchestration/avatar_companion_presentation_room',
+    triggerSource: 'user_explicit',
+    status: 'blocked',
+    refusalReason: 'runtime_policy_blocked',
+    auditRef: 'runtime.audit.companion_participation/projection-1',
+    conversationAnchorId: 'anchor-1',
+  } as const;
+
+  assert.equal(desktopCompanionParticipationStatusLabel(projection), 'Blocked');
+  assert.equal(desktopCompanionParticipationRemediation(projection), 'runtime_policy_blocked');
+  assert.match(desktopCompanionParticipationRemediation(null), /Refresh participation projection/);
 });

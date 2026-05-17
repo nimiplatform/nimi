@@ -192,8 +192,20 @@ func protectedCapabilityForUnary(fullMethod string, req any) (string, bool) {
 		return "runtime.agent.write", true
 	case "/nimi.runtime.v1.RuntimeAgentService/GetConversationAnchorSnapshot":
 		return "runtime.agent.read", true
+	case "/nimi.runtime.v1.RuntimeAgentService/RegisterAvatarLiveInstanceBinding":
+		return "runtime.agent.write", true
+	case "/nimi.runtime.v1.RuntimeAgentService/ResolveAvatarLiveInstanceBinding":
+		return "runtime.agent.read", true
 	case "/nimi.runtime.v1.RuntimeAgentService/GetPublicChatSessionSnapshot":
 		return "runtime.agent.read", true
+	case "/nimi.runtime.v1.RuntimeAgentService/GetCompanionParticipationProjection":
+		return "runtime.agent.companion_participation.read", true
+	case "/nimi.runtime.v1.RuntimeAgentService/RequestCompanionParticipation":
+		return "runtime.agent.companion_participation.write", true
+	case "/nimi.runtime.v1.RuntimeAgentService/CancelCompanionParticipation":
+		return "runtime.agent.companion_participation.write", true
+	case "/nimi.runtime.v1.RuntimeAgentService/OpenCompanionParticipationReplay":
+		return "runtime.agent.companion_participation.read", true
 	case "/nimi.runtime.v1.RuntimeAgentService/CreateRealmGroupMessageCandidate":
 		return "runtime.agent.create_realm_group_message_candidate", true
 	case "/nimi.runtime.v1.RuntimeAgentService/GetRealmGroupMessageCandidateEvidence":
@@ -206,6 +218,8 @@ func protectedCapabilityForUnary(fullMethod string, req any) (string, bool) {
 		return "runtime.agent.avatar_debug.read", true
 	case "/nimi.runtime.v1.RuntimeAgentService/GetAvatarDebugReplay":
 		return "runtime.agent.avatar_debug.read", true
+	case "/nimi.runtime.v1.RuntimeAgentService/ResolveAvatarPackageLaunchProjection":
+		return "runtime.agent.avatar_package.read", true
 	case "/nimi.runtime.v1.RuntimeAgentService/ListDelegatedProviderProfiles":
 		return "runtime.agent.delegation.read", true
 	case "/nimi.runtime.v1.RuntimeAgentService/UpsertDelegatedProviderProfile":

@@ -1,4 +1,50 @@
 version: 1
+table_family: protocol_surface
+owner: runtime
+protocol_id: runtime_runtime_agent_event_projection
+surfaces:
+  - source_rule
+  - required_fields
+  - extra_fields_by_event
+  - timeline
+  - optional_origin_fields
+  - PostureProjection
+  - stable_projection_payload_schema_truth
+  - breaking_change_requires
+  - runtime.agent.turn.accepted
+  - runtime.agent.turn.started
+  - runtime.agent.turn.reasoning_delta
+  - runtime.agent.turn.text_delta
+  - runtime.agent.turn.structured
+  - runtime.agent.turn.message_committed
+  - runtime.agent.turn.post_turn
+  - runtime.agent.turn.completed
+  - runtime.agent.turn.failed
+  - runtime.agent.turn.interrupted
+  - runtime.agent.turn.interrupt_ack
+  - runtime.agent.avatar_debug.probe_requested
+  - runtime.agent.avatar_debug.probe_result
+  - runtime.agent.avatar_debug.replay_linked
+  - runtime.agent.presentation.activity_requested
+  - runtime.agent.presentation.motion_requested
+  - runtime.agent.presentation.expression_requested
+  - runtime.agent.presentation.pose_requested
+  - runtime.agent.presentation.pose_cleared
+  - runtime.agent.presentation.lookat_requested
+  - runtime.agent.presentation.voice_playback_requested
+  - runtime.agent.presentation.lipsync_frame_batch
+  - runtime.agent.state.status_text_changed
+  - runtime.agent.state.execution_state_changed
+  - runtime.agent.state.emotion_changed
+  - runtime.agent.state.posture_changed
+  - runtime.agent.hook.intent_proposed
+  - runtime.agent.hook.pending
+  - runtime.agent.hook.rejected
+  - runtime.agent.hook.running
+  - runtime.agent.hook.completed
+  - runtime.agent.hook.failed
+  - runtime.agent.hook.canceled
+  - runtime.agent.hook.rescheduled
 
 turn_envelope:
   source_rule: K-AGCORE-037

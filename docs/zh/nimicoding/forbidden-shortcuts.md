@@ -2,7 +2,7 @@
 
 Nimi Coding 自带一份**包内维护的具名反模式目录**。每一种被拒绝的快捷方式都有名字、有 key，packet 可以直接引用。
 
-这套设计的特点是：目录在"议题可声明本地扩展"的意义上是开放的，但**所有被拒绝的模式都有名字**。不存在"杂项坏模式"这种箱子。
+这套目录允许 topic 声明本地扩展，但**所有被拒绝的模式都必须有名字**。不存在"杂项坏模式"这种箱子。
 
 ## 目录
 
@@ -19,7 +19,7 @@ Nimi Coding 自带一份**包内维护的具名反模式目录**。每一种被�
 | `app_local_shadow_truth` | 应用本地的"方便状态"悄悄变成隐藏权威 |
 | `silent_owner_cut_reopen` | 在下游执行 wave 内部重开所有者域真相 |
 
-包目录的这 10 项是基础。议题可声明额外的本地扩展，但只能使用包级 key 或显式声明的本地扩展，不能用自由文本。
+包目录的这 10 项是基础。 topic 可声明额外的本地扩展，但只能使用包级 key 或显式声明的本地扩展，不能用自由文本。
 
 ## 为什么要做目录而不是自由式拒绝
 
@@ -127,18 +127,18 @@ forbidden_shortcuts:
   - silent_owner_cut_reopen
 ```
 
-议题也可以声明本地扩展：
+topic 也可以声明本地扩展：
 
 ```yaml
 forbidden_shortcuts:
   # 包级 key
   - mvp_subset_contract
   - legacy_alias
-  # 议题本地扩展
+  # topic 本地扩展
   - sidebar_links_to_unwritten_pages
 ```
 
-议题本地扩展必须**显式声明、有名字**，不能是自由文本。
+topic 本地扩展必须**显式声明、有名字**，不能是自由文本。
 
 ## 读者场景：审计抓到一个禁用模式
 
@@ -155,5 +155,5 @@ forbidden_shortcuts:
 
 ## 来源依据
 
-- [`.nimi/contracts/forbidden-shortcuts.catalog.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/forbidden-shortcuts.catalog.yaml)
-- [`.nimi/contracts/packet.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/packet.schema.yaml)
+- [`nimi-coding/contracts/forbidden-shortcuts.catalog.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/contracts/forbidden-shortcuts.catalog.yaml)
+- [`nimi-coding/contracts/packet.schema.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/contracts/packet.schema.yaml)

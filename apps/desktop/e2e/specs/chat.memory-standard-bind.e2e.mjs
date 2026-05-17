@@ -10,8 +10,9 @@ describe('chat.memory-standard-bind', () => {
   it('keeps Baseline until explicit confirmation and refreshes to Standard after bind', async () => {
     assertScenario('chat.memory-standard-bind');
     await waitForTestId(E2E_IDS.panel('chat'));
-    await clickByTestId(E2E_IDS.chatTarget('agent-e2e-alpha'));
+    await clickByTestId(E2E_IDS.chatTarget(E2E_IDS.localAgentRef('user-e2e-primary', 'agent-e2e-alpha')));
     await clickByTestId(E2E_IDS.chatSettingsToggle);
+    await clickByTestId(E2E_IDS.chatAgentCenterSection('cognition'));
 
     const status = await waitForTestId(E2E_IDS.chatMemoryModeStatus);
     await browser.waitUntil(async () => (await status.getText()) === 'Baseline', {

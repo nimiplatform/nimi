@@ -1,0 +1,70 @@
+version: 1
+contract:
+  id: nimicoding.tracked-output-admission.v1
+  owner: nimi-coding
+  purpose: Define the only allowed path for tracked non-product artifacts.
+required_top_level_fields:
+  - version
+  - admissions
+  - allowed_roots
+  - privacy_posture_enum
+  - semantic_constraints
+admission_required_fields:
+  - artifact_class
+  - root
+  - owner
+  - schema_ref
+  - privacy_posture
+  - retention
+  - regeneration_or_review_command
+  - drift_check_command
+  - forbidden_fields
+  - max_size_policy
+  - non_parallel_truth_basis
+shared_enum_ref: shared-enums.yaml
+artifact_class_enum:
+  - derived_manifest
+  - derived_summary
+  - state_manifest
+  - audit_index
+  - audit_summary
+  - roadmap_index
+  - roadmap_summary
+admissions: []
+allowed_roots:
+  - .nimi/derived/**
+  - .nimi/state/**
+  - .nimi/audit/**
+  - .nimi/roadmap/**
+privacy_posture_enum:
+  - non_private
+  - redacted
+retention_enum:
+  - compact_manifest
+  - compact_summary
+  - compact_index
+max_size_policy_required_fields:
+  - max_files
+  - max_bytes_per_file
+  - max_rows_per_file
+non_parallel_truth_basis_enum:
+  - indexes_authority_refs_without_rule_body
+  - summarizes_redacted_evidence_without_raw_payload
+  - records_regeneration_metadata_without_generated_body
+  - records_product_facing_roadmap_without_implementation_authority
+forbidden_fields:
+  - raw_audit_transcript
+  - private_prompt
+  - private_finding_detail
+  - product_rule_body
+  - package_methodology_body
+  - current_run_ledger
+  - raw_evidence_payload
+  - personal_or_secret_data
+semantic_constraints:
+  - tracked_non_product_roots_are_disabled_without_admission
+  - empty_admissions_means_all_tracked_non_product_roots_fail_closed
+  - admission_must_prove_artifact_is_compact_non_private_and_non_parallel_truth
+  - audit_raw_materials_are_never_tracked_by_this_contract
+  - generated_views_must_be_reproducible_if_tracked
+  - roadmap_records_must_not_authorize_implementation

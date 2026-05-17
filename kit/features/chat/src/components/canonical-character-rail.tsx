@@ -4,7 +4,7 @@ import {
   AvatarStage,
   createAvatarStageSnapshot,
   resolveAvatarPresentationProfile,
-  resolveSpriteAvatarImageUrl,
+  resolveAvatarStagePosterUrl,
 } from '@nimiplatform/nimi-kit/features/avatar';
 import type { ConversationCharacterData, ConversationTargetSummary } from '../types.js';
 export const CANONICAL_NO_BIO_FALLBACK = 'This Agent has no public bio.';
@@ -100,7 +100,7 @@ export function CanonicalCharacterRail(props: CanonicalCharacterRailProps) {
     fallbackAssetRef: props.characterData?.avatarUrl || null,
     fallbackProfileRef: 'fallback://character',
   });
-  const avatarImageUrl = resolveSpriteAvatarImageUrl(
+  const avatarImageUrl = resolveAvatarStagePosterUrl(
     avatarPresentationProfile,
     props.characterData?.avatarUrl || null,
   );

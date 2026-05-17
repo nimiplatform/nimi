@@ -168,6 +168,9 @@ export class OfflineCoordinator {
     if (this.getTier() !== 'L1') {
       return false;
     }
+    if (!this.getStatus().realm.restReachable) {
+      return true;
+    }
     if (this.cacheFallbackActive) {
       return true;
     }

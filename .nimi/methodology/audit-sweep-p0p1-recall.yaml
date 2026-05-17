@@ -1,7 +1,7 @@
 version: 1
 methodology:
   id: audit_sweep_p0p1_recall
-  owner: nimi-coding/audit-sweep
+  owner: nimicoding/audit-sweep
   purpose: Increase critical/high finding recall without turning every sweep into
     an unbounded full audit.
   activation_criteria:

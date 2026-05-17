@@ -1,4 +1,24 @@
 version: 1
+table_family: closed_enum
+owner: runtime
+enum_id: runtime_workflow_node_types
+values:
+  - UNSPECIFIED
+  - AI_GENERATE
+  - AI_STREAM
+  - AI_EMBED
+  - AI_IMAGE
+  - AI_VIDEO
+  - AI_TTS
+  - AI_STT
+  - AI_TTS_CREATE_VOICE
+  - AI_TTS_SYNTHESIZE
+  - TRANSFORM_EXTRACT
+  - TRANSFORM_TEMPLATE
+  - TRANSFORM_SCRIPT
+  - CONTROL_BRANCH
+  - CONTROL_MERGE
+  - CONTROL_NOOP
 node_types:
   - type: UNSPECIFIED
     enum_value: 0

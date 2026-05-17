@@ -50,7 +50,9 @@ Evidence shape is pinned by `tables/avatar-debug-session.schema.yaml`.
 ## Resolver Execution
 
 Avatar performs package descriptor and backend capability profile resolver
-execution after authorized Runtime/SDK projection.
+execution after authorized Runtime/SDK projection. Current Agent Center resolver
+plumbing may materialize local files, but it is not package lifecycle,
+inventory, or activation authority.
 
 Desktop stores opaque refs only. Runtime owns authorization and probe semantics.
 SDK carries typed refs and methods only. No owner may create a second resolver

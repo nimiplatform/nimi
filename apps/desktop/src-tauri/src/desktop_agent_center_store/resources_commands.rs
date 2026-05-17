@@ -3,7 +3,7 @@ use super::*;
 pub(super) fn select_imported_live2d_adapter_manifest(
     account_id: &str,
     scope: &LocalAgentScope,
-    package_id: &str,
+    local_asset_id: &str,
     manifest_ref: &str,
 ) -> Result<(), String> {
     let mut config = desktop_agent_center_config_get(DesktopAgentCenterConfigScopePayload {
@@ -12,19 +12,24 @@ pub(super) fn select_imported_live2d_adapter_manifest(
         realm_agent_id: scope.realm_agent_id.clone(),
         local_agent_ref: scope.local_agent_ref.clone(),
     })?;
-    if config.modules.avatar_package.backend_kind != AgentCenterAvatarBackendKind::Live2d
-        || config.modules.avatar_package.avatar_package_ref.as_deref() != Some(package_id)
+    if config.modules.avatar_asset.backend_kind != AgentCenterAvatarBackendKind::Live2d
+        || config
+            .modules
+            .avatar_asset
+            .local_avatar_asset_ref
+            .as_deref()
+            != Some(local_asset_id)
     {
         return Err(
-            "external Live2D adapter manifest requires matching runtime-projected Live2D package evidence".to_string(),
+            "external Live2D adapter manifest requires matching runtime-projected Live2D asset evidence".to_string(),
         );
     }
-    config.modules.avatar_package.live2d_adapter_manifest_source =
+    config.modules.avatar_asset.live2d_adapter_manifest_source =
         AgentCenterLive2dAdapterManifestSource::ExternalSidecarManifest;
-    config.modules.avatar_package.live2d_adapter_manifest_ref = Some(manifest_ref.to_string());
-    config.modules.avatar_package.updated_at =
+    config.modules.avatar_asset.live2d_adapter_manifest_ref = Some(manifest_ref.to_string());
+    config.modules.avatar_asset.updated_at =
         chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Millis, true);
-    config.modules.avatar_package.provenance = AgentCenterAvatarConfigProvenance {
+    config.modules.avatar_asset.provenance = AgentCenterAvatarConfigProvenance {
         source: AgentCenterAvatarConfigProvenanceSource::ImportValidation,
         evidence_ref: manifest_ref.to_string(),
     };
@@ -301,9 +306,9 @@ pub(crate) fn desktop_agent_center_live2d_adapter_manifest_import_blocking(
         &payload.realm_agent_id,
         &payload.local_agent_ref,
     )?;
-    validate_package_id(&payload.package_id, "packageId")?;
-    if !payload.package_id.starts_with("live2d_") {
-        return Err("packageId must reference a Live2D package".to_string());
+    validate_local_asset_id(&payload.local_asset_id, "localAssetId")?;
+    if !payload.local_asset_id.starts_with("live2d_") {
+        return Err("localAssetId must reference a Live2D asset".to_string());
     }
     let source_path = PathBuf::from(&payload.source_path);
     let metadata = fs::symlink_metadata(&source_path).map_err(|error| {
@@ -381,7 +386,7 @@ pub(crate) fn desktop_agent_center_live2d_adapter_manifest_import_blocking(
     let custody = Live2dAdapterManifestCustody {
         custody_version: 1,
         manifest_ref: manifest_ref.clone(),
-        package_id: payload.package_id.clone(),
+        local_asset_id: payload.local_asset_id.clone(),
         manifest_kind: "nimi.avatar.live2d.adapter".to_string(),
         schema_version: 1,
         sha256: sha256.clone(),
@@ -395,7 +400,7 @@ pub(crate) fn desktop_agent_center_live2d_adapter_manifest_import_blocking(
         select_imported_live2d_adapter_manifest(
             &account_id,
             &scope,
-            &payload.package_id,
+            &payload.local_asset_id,
             &manifest_ref,
         )?;
     }
@@ -403,7 +408,7 @@ pub(crate) fn desktop_agent_center_live2d_adapter_manifest_import_blocking(
         &account_id,
         &scope.local_agent_ref,
         "live2d_adapter_manifest_import",
-        "avatar_package",
+        "avatar_asset",
         &manifest_ref,
         "completed",
         "user_imported",
@@ -411,7 +416,7 @@ pub(crate) fn desktop_agent_center_live2d_adapter_manifest_import_blocking(
 
     Ok(DesktopAgentCenterLive2dAdapterManifestImportResult {
         manifest_ref,
-        package_id: payload.package_id,
+        local_asset_id: payload.local_asset_id,
         selected,
         sha256,
         bytes,

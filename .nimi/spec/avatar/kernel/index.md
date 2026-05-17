@@ -60,16 +60,65 @@ parameter-id path is now Live2D-only escape hatch via `Live2DBackendExtension`):
 - shell consumes projection-produced surface bounds / hit masks
 - backend-specific execution is delegated to renderer branches
 
+### [`projection-backpressure-smoothing-contract.md`](projection-backpressure-smoothing-contract.md)
+
+Renderer-local projection smoothing:
+
+- smooths only `EmbodimentProjectionApi.setSignal` / `addSignal` hot-path writes
+- preserves read-your-write behavior for pending signal values
+- flushes pending signal writes before motion, expression, pose, wait, bounds,
+  or default-activity calls
+- inherits Runtime PresentationTimeline authority (`K-AGCORE-051`) and does not
+  own activity ordering, speech, lipsync, cancellation, or generated motion truth
+
 ### [`app-shell-contract.md`](app-shell-contract.md)
 
 Desktop shell and window surface:
 
 - Transparent, always-on-top window without chrome
 - Dynamic window size based on active embodiment surface bounds
-- Window drag (reposition pet on desktop)
+- Window drag (reposition Avatar embodiment on desktop)
 - Click-through outside model hit region
-- Small UI button near pet for chat trigger (Phase 2 surface)
+- Always-visible Companion Surface bound to the Avatar embodiment footprint
 - App lifecycle events (`avatar.app.*`)
+
+### [`avatar-package-consumption-contract.md`](avatar-package-consumption-contract.md)
+
+Avatar local asset consumption boundary:
+
+- consumes selected local Avatar assets as the primary Live2D / VRM source
+- treats Realm / Asset Market `Package` records as optional upstream sources
+  that must first materialize into the same local asset store
+- accepts only launched `live2d | vrm` backend kinds
+- keeps resolver execution in Avatar after Runtime validates the launch agent
+- forbids Avatar-local remote package lifecycle, inventory, activation, review,
+  or UGC truth
+- fails closed on missing local selection, unsupported backend, blocking
+  compatibility evidence, or local materialization failure
+
+### [`avatar-external-entry-consumer-contract.md`](avatar-external-entry-consumer-contract.md)
+
+Avatar external-entry consumer boundary:
+
+- consumes Runtime-admitted external-entry presentation projection only
+- inherits `K-AGCORE-079..094` and external-entry boundary matrix semantics
+- treats `direct_api` as Runtime provenance, not local raw state write authority
+- forbids Avatar-local HTTP/WebSocket/state endpoints, protocol adapters,
+  token/rate-limit/consent posture, provider/model routing, credential custody,
+  and writeback
+- fails closed on missing admission/verdict/provenance evidence
+
+### [`companion-participation-consumer-contract.md`](companion-participation-consumer-contract.md)
+
+Avatar companion/persona/debug participation consumer boundary:
+
+- consumes Runtime-owned `CompanionParticipationProjection`
+- defines surface kinds, trigger posture, status semantics, and fail-closed
+  rendering requirements
+- forbids app-local prompt execution, provider/model routing, raw APML/debug
+  truth, memory/cognition writes, private schedulers, and domain commit
+- keeps persona/package variants as Avatar configuration, not separate product
+  or surface-kind truth
 
 ### [`kit-ui-consumption-contract.md`](kit-ui-consumption-contract.md)
 
@@ -90,7 +139,7 @@ Current shipped backend-specific rendering branch:
 - Cubism SDK for Web integration boundaries
 - Model loading from `<model-pkg>/runtime/` (official Live2D folder structure)
 - Live2D backend driver + parameter API
-- Default lipsync behavior (Phase 2)
+- Default lipsync behavior through admitted voice/lipsync wave authority
 - Physics / expression / motion playback
 
 ### [`live2d-asset-compatibility-contract.md`](live2d-asset-compatibility-contract.md)
@@ -134,7 +183,7 @@ NimiAgentScript (NAS) handler convention:
 - `avatar.user.*` (click / drag / hover)
 - `avatar.activity.*` (activity start / end / cancel)
 - `avatar.motion.*` / `avatar.expression.*` / `avatar.pose.*` / `avatar.lookat.*`
-- `avatar.speak.*` / `avatar.lipsync.*` (Phase 2)
+- `avatar.speak.*` / `avatar.lipsync.*`
 - `avatar.app.*` lifecycle
 
 ### [`avatar-debug-session-contract.md`](avatar-debug-session-contract.md)
@@ -163,7 +212,16 @@ Explicit fixture tooling:
 
 ### [`tables/feature-matrix.yaml`](tables/feature-matrix.yaml)
 
-Phase 1 / 2 / 3 feature phasing. **Drift check**: code features must map to declared phase.
+Wave-based feature delivery matrix. **Drift check**: code features must map to the declared wave authority.
+
+### [`tables/companion-participation-surface-kinds.yaml`](tables/companion-participation-surface-kinds.yaml)
+
+Closed Avatar-owned companion participation surface-kind vocabulary.
+
+### [`tables/companion-participation-trigger-policy.yaml`](tables/companion-participation-trigger-policy.yaml)
+
+Closed trigger source policy for Avatar companion/persona/debug participation
+consumers.
 
 ### [`tables/activity-mapping.yaml`](tables/activity-mapping.yaml)
 
@@ -198,10 +256,17 @@ preset bundle. Wave 0 of topic `2026-04-30-avatar-vrm-backend-branch` admit;
 
 ### [`tables/vrm-motion-presets.yaml`](tables/vrm-motion-presets.yaml)
 
-Legacy/interchange VRM motion preset registry — preset id → `.vrma` asset +
+Interchange-only VRM motion preset registry — preset id → `.vrma` asset +
 license + source. It is superseded by generated motion provider authority for
 APML auto-adapter runtime support and may be used only as authoring or
 interchange evidence.
+
+### [`tables/vrm-sample-catalog.yaml`](tables/vrm-sample-catalog.yaml)
+
+Representative VRM sample catalog for Avatar acceptance. Binaries are fetched
+on demand into the app-local cache and must have concrete license/provenance,
+minimum-size, and acceptance-purpose metadata before they can close carrier or
+smoke proof.
 
 ### [`tables/generated-motion-routes.yaml`](tables/generated-motion-routes.yaml)
 
@@ -252,7 +317,7 @@ These are **not** redefined here. App consumes them:
 | Runtime transient presentation seam | `.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md` |
 | Event contract + app convention | `.nimi/spec/runtime/kernel/agent-hook-intent-contract.md`, `.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md`, and this Avatar-local `avatar-event-contract.md` |
 | SDK Event API | `.nimi/spec/sdk/kernel/runtime-contract.md` |
-| Presentation Timeline | Deferred candidate only unless later admitted by `.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md`; current active surface is runtime turn/presentation/state projection |
+| Presentation Timeline | Not admitted here unless later admitted by `.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md`; current active surface is runtime turn/presentation/state projection |
 
 When upstream changes, impact on this kernel is reviewed and documented per-contract.
 

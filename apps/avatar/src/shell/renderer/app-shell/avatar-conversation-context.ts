@@ -1,19 +1,19 @@
 import type { Runtime } from '@nimiplatform/sdk/runtime/browser';
 
-const STORAGE_KEY = 'nimi.avatar.conversation-context.v1';
-const SCHEMA_VERSION = 1;
+const STORAGE_KEY = 'nimi.avatar.conversation-context.v2';
+const SCHEMA_VERSION = 2;
 
 type PersistedConversationContext = {
-  schemaVersion: 1;
+  schemaVersion: 2;
   accountId: string;
-  agentId: string;
+  localAgentRef: string;
   avatarInstanceId: string;
   conversationAnchorId: string;
   updatedAtMs: number;
 };
 
 type PersistedConversationContextFile = {
-  schemaVersion: 1;
+  schemaVersion: 2;
   records: PersistedConversationContext[];
 };
 
@@ -27,19 +27,21 @@ function normalizeText(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
 }
 
-function annotateConversationContextError(stage: string, error: unknown): never {
-  if (error && typeof error === 'object') {
-    const record = error as Record<string, unknown>;
-    if (typeof record.avatarBootstrapStage !== 'string' || !record.avatarBootstrapStage.trim()) {
-      record.avatarBootstrapStage = stage;
-    }
-    throw error;
+function errorField(error: unknown, key: string): string {
+  if (!error || typeof error !== 'object') {
+    return '';
   }
-  const wrapped = new Error(String(error || 'avatar_conversation_context_unavailable')) as Error & {
-    avatarBootstrapStage?: string;
-  };
-  wrapped.avatarBootstrapStage = stage;
-  throw wrapped;
+  const value = (error as Record<string, unknown>)[key];
+  return typeof value === 'string' ? value.trim() : '';
+}
+
+function isMissingAvatarLiveInstanceBinding(error: unknown): boolean {
+  const reasonCode = errorField(error, 'reasonCode') || errorField(error, 'code');
+  if (reasonCode === 'RUNTIME_GRPC_NOT_FOUND') {
+    return true;
+  }
+  const message = error instanceof Error ? error.message : String(error || '');
+  return message.toLowerCase().includes('avatar live instance binding not found');
 }
 
 function storage(): Storage | null {
@@ -52,10 +54,10 @@ function storage(): Storage | null {
 
 function contextKey(input: {
   accountId: string;
-  agentId: string;
+  localAgentRef: string;
   avatarInstanceId: string;
 }): string {
-  return `${input.accountId}\u001f${input.agentId}\u001f${input.avatarInstanceId}`;
+  return `${input.accountId}\u001f${input.localAgentRef}\u001f${input.avatarInstanceId}`;
 }
 
 function readPersistedFile(): PersistedConversationContextFile {
@@ -71,7 +73,7 @@ function readPersistedFile(): PersistedConversationContextFile {
     const records = parsed.records.filter((record): record is PersistedConversationContext => (
       record?.schemaVersion === SCHEMA_VERSION
       && Boolean(normalizeText(record.accountId))
-      && Boolean(normalizeText(record.agentId))
+      && Boolean(normalizeText(record.localAgentRef))
       && Boolean(normalizeText(record.avatarInstanceId))
       && Boolean(normalizeText(record.conversationAnchorId))
       && typeof record.updatedAtMs === 'number'
@@ -91,18 +93,9 @@ function writePersistedFile(file: PersistedConversationContextFile): void {
   target.setItem(STORAGE_KEY, JSON.stringify(file));
 }
 
-function readPersistedContext(input: {
-  accountId: string;
-  agentId: string;
-  avatarInstanceId: string;
-}): PersistedConversationContext | null {
-  const key = contextKey(input);
-  return readPersistedFile().records.find((record) => contextKey(record) === key) ?? null;
-}
-
 function writePersistedContext(input: {
   accountId: string;
-  agentId: string;
+  localAgentRef: string;
   avatarInstanceId: string;
   conversationAnchorId: string;
   nowMs?: number;
@@ -112,7 +105,7 @@ function writePersistedContext(input: {
   const nextRecord: PersistedConversationContext = {
     schemaVersion: SCHEMA_VERSION,
     accountId: input.accountId,
-    agentId: input.agentId,
+    localAgentRef: input.localAgentRef,
     avatarInstanceId: input.avatarInstanceId,
     conversationAnchorId: input.conversationAnchorId,
     updatedAtMs: input.nowMs ?? Date.now(),
@@ -126,28 +119,27 @@ function writePersistedContext(input: {
   });
 }
 
-function forgetPersistedContext(input: {
+function readPersistedContext(input: {
   accountId: string;
-  agentId: string;
+  localAgentRef: string;
   avatarInstanceId: string;
-}): void {
+}): PersistedConversationContext | null {
   const key = contextKey(input);
-  const file = readPersistedFile();
-  writePersistedFile({
-    schemaVersion: SCHEMA_VERSION,
-    records: file.records.filter((record) => contextKey(record) !== key),
-  });
+  return readPersistedFile().records.find((record) => contextKey(record) === key) ?? null;
 }
 
 async function validatePersistedAnchor(input: {
   runtime: Runtime;
-  accountId: string;
-  agentId: string;
+  ownerUserId: string;
+  realmAgentId: string;
+  localAgentRef: string;
   conversationAnchorId: string;
 }): Promise<AvatarConversationContextResult | null> {
   try {
     const snapshot = await input.runtime.agent.anchors.getSnapshot({
-      agentId: input.agentId,
+      ownerUserId: input.ownerUserId,
+      realmAgentId: input.realmAgentId,
+      localAgentRef: input.localAgentRef,
       conversationAnchorId: input.conversationAnchorId,
     });
     const anchor = snapshot.anchor;
@@ -156,8 +148,8 @@ async function validatePersistedAnchor(input: {
     const subjectUserId = normalizeText(anchor?.subjectUserId);
     if (
       conversationAnchorId !== input.conversationAnchorId
-      || anchorAgentId !== input.agentId
-      || subjectUserId !== input.accountId
+      || anchorAgentId !== input.localAgentRef
+      || subjectUserId !== input.ownerUserId
     ) {
       return null;
     }
@@ -171,61 +163,130 @@ async function validatePersistedAnchor(input: {
   }
 }
 
-export async function resolveAvatarConversationContext(input: {
+async function resolveRegisteredLiveInstanceAnchor(input: {
   runtime: Runtime;
-  accountId: string;
-  agentId: string;
+  ownerUserId: string;
+  realmAgentId: string;
+  localAgentRef: string;
   avatarInstanceId: string;
-  launchSource: string | null;
-}): Promise<AvatarConversationContextResult> {
-  const persisted = readPersistedContext(input);
-  if (persisted) {
-    const recovered = await validatePersistedAnchor({
-      runtime: input.runtime,
-      accountId: input.accountId,
-      agentId: input.agentId,
-      conversationAnchorId: persisted.conversationAnchorId,
-    });
-    if (recovered) {
-      return recovered;
-    }
-    forgetPersistedContext(input);
-  }
-
+}): Promise<AvatarConversationContextResult | null> {
   try {
-    const snapshot = await input.runtime.agent.anchors.open({
-      agentId: input.agentId,
-      metadata: {
-        launch_source: input.launchSource,
-        avatar_instance_id: input.avatarInstanceId,
-        surface: 'avatar-first-party',
-      },
+    const result = await input.runtime.agent.anchors.resolveAvatarLiveInstance({
+      ownerUserId: input.ownerUserId,
+      realmAgentId: input.realmAgentId,
+      localAgentRef: input.localAgentRef,
+      avatarInstanceId: input.avatarInstanceId,
     });
+    const binding = result.binding;
+    const snapshot = result.snapshot;
     const anchor = snapshot.anchor;
     const conversationAnchorId = normalizeText(anchor?.conversationAnchorId);
+    const bindingConversationAnchorId = normalizeText(binding.conversationAnchorId);
+    const bindingAvatarInstanceId = normalizeText(binding.avatarInstanceId);
     const anchorAgentId = normalizeText(anchor?.agentId);
     const subjectUserId = normalizeText(anchor?.subjectUserId);
-    if (!conversationAnchorId) {
-      throw new Error('Runtime did not return an Avatar conversation anchor');
+    if (
+      !conversationAnchorId
+      || conversationAnchorId !== bindingConversationAnchorId
+      || bindingAvatarInstanceId !== input.avatarInstanceId
+      || anchorAgentId !== input.localAgentRef
+      || normalizeText(binding.localAgentRef) !== input.localAgentRef
+      || normalizeText(binding.ownerUserId) !== input.ownerUserId
+      || normalizeText(binding.realmAgentId) !== input.realmAgentId
+      || subjectUserId !== input.ownerUserId
+    ) {
+      return null;
     }
-    if (anchorAgentId !== input.agentId) {
-      throw new Error('Runtime returned an Avatar conversation anchor for a different agent');
-    }
-    if (subjectUserId !== input.accountId) {
-      throw new Error('Runtime returned an Avatar conversation anchor for a different account');
-    }
-    writePersistedContext({
-      accountId: input.accountId,
-      agentId: input.agentId,
-      avatarInstanceId: input.avatarInstanceId,
-      conversationAnchorId,
-    });
     return {
       conversationAnchorId,
       subjectUserId,
-      recovered: false,
+      recovered: true,
     };
   } catch (error) {
-    annotateConversationContextError('conversation_anchor_open', error);
+    if (!isMissingAvatarLiveInstanceBinding(error)) {
+      throw error;
+    }
+    return null;
   }
+}
+
+export async function resolveAvatarConversationContext(input: {
+  runtime: Runtime;
+  accountId: string;
+  ownerUserId: string;
+  realmAgentId: string;
+  localAgentRef: string;
+  avatarInstanceId: string;
+}): Promise<AvatarConversationContextResult> {
+  if (input.accountId !== input.ownerUserId) {
+    throw new Error('Avatar resolved ownerUserId does not match Runtime account projection');
+  }
+  const registered = await resolveRegisteredLiveInstanceAnchor({
+    runtime: input.runtime,
+    ownerUserId: input.ownerUserId,
+    realmAgentId: input.realmAgentId,
+    localAgentRef: input.localAgentRef,
+    avatarInstanceId: input.avatarInstanceId,
+  });
+  if (registered) {
+    writePersistedContext({
+      accountId: input.accountId,
+      localAgentRef: input.localAgentRef,
+      avatarInstanceId: input.avatarInstanceId,
+      conversationAnchorId: registered.conversationAnchorId,
+    });
+    return registered;
+  }
+
+  const persisted = readPersistedContext({
+    accountId: input.accountId,
+    localAgentRef: input.localAgentRef,
+    avatarInstanceId: input.avatarInstanceId,
+  });
+  if (persisted) {
+    const recovered = await validatePersistedAnchor({
+      runtime: input.runtime,
+      ownerUserId: input.ownerUserId,
+      realmAgentId: input.realmAgentId,
+      localAgentRef: input.localAgentRef,
+      conversationAnchorId: persisted.conversationAnchorId,
+    });
+    if (recovered) {
+      writePersistedContext({
+        accountId: input.accountId,
+        localAgentRef: input.localAgentRef,
+        avatarInstanceId: input.avatarInstanceId,
+        conversationAnchorId: recovered.conversationAnchorId,
+      });
+      return recovered;
+    }
+  }
+
+  const opened = await input.runtime.agent.anchors.open({
+    ownerUserId: input.ownerUserId,
+    realmAgentId: input.realmAgentId,
+    localAgentRef: input.localAgentRef,
+  });
+  const anchor = opened.anchor;
+  const conversationAnchorId = normalizeText(anchor?.conversationAnchorId);
+  const anchorAgentId = normalizeText(anchor?.agentId);
+  const subjectUserId = normalizeText(anchor?.subjectUserId);
+  if (
+    !conversationAnchorId
+    || anchorAgentId !== input.localAgentRef
+    || subjectUserId !== input.ownerUserId
+  ) {
+    throw new Error('Runtime opened Avatar conversation anchor projection is invalid');
+  }
+  writePersistedContext({
+    accountId: input.accountId,
+    localAgentRef: input.localAgentRef,
+    avatarInstanceId: input.avatarInstanceId,
+    conversationAnchorId,
+  });
+  return {
+    conversationAnchorId,
+    subjectUserId,
+    recovered: false,
+  };
 }

@@ -232,6 +232,7 @@ export async function recoverRuntimeAgentTerminalSnapshot(options: {
   request: AgentLocalChatRuntimeRequest;
   requestId: string;
   requestMessageId: string;
+  requestStartedAtMs: number;
   currentTurnAccepted: boolean;
   currentRuntimeTurnId: string;
   currentRuntimeStreamId: string;
@@ -298,6 +299,52 @@ export async function recoverRuntimeAgentTerminalSnapshot(options: {
       detail: { requestId: options.requestId },
     } as RuntimeAgentConsumeEvent);
     return 'bound';
+  }
+  const turnUpdatedAtMs = Date.parse(normalizeText(turn?.updatedAt));
+  const terminalAfterRequest = Number.isFinite(turnUpdatedAtMs)
+    && Number.isFinite(options.requestStartedAtMs)
+    && turnUpdatedAtMs >= options.requestStartedAtMs - 1000;
+  if (!options.currentTurnAccepted && snapshotTurnIsTerminal(turn) && terminalAfterRequest) {
+    if (!snapshotCompletedTurnHasRecoverableContent(turn)) {
+      return 'none';
+    }
+    const events = buildRuntimeAgentSnapshotRecoveryEvents({
+      turn,
+      ownerUserId: options.request.ownerUserId,
+      realmAgentId: options.request.realmAgentId,
+      localAgentRef: options.request.localAgentRef,
+      conversationAnchorId: options.request.conversationAnchorId,
+      requestId: options.requestId,
+      requestMessageId: options.requestMessageId,
+      currentTurnAccepted: false,
+      currentRuntimeTurnId: '',
+      currentRuntimeStreamId: options.currentRuntimeStreamId,
+      hasStructuredEnvelope: options.hasStructuredEnvelope,
+      hasCommittedMessage: options.hasCommittedMessage,
+    });
+    if (events.length === 0) {
+      return 'none';
+    }
+    options.logEvent({
+      level: 'warn',
+      area: 'agent-chat-runtime',
+      message: 'action:runtime-agent-turn:snapshot-recovered',
+      details: {
+        agentId: options.request.localAgentRef,
+        conversationAnchorId: options.request.conversationAnchorId,
+        threadId: options.request.threadId,
+        requestId: options.requestId,
+        reason: options.reason,
+        runtimeTurnId: turn.turnId,
+        status: normalizeText(turn.status) || null,
+        finishReason: normalizeText(turn.finishReason) || null,
+        recoveredWithoutAcceptedEvent: true,
+      },
+    });
+    for (const event of events) {
+      options.enqueue(event);
+    }
+    return 'terminal';
   }
   if (!snapshotTurnIsTerminal(turn)) {
     return 'none';

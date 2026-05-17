@@ -30,3 +30,17 @@ The current saved object is the package itself, not a creator or a single asset.
 Library does not currently split out a separate imported section.
 
 Import is a downstream consumption action; it does not define current library structure.
+
+## AM-LIB-005: Avatar Package Acquisition and Import
+
+Avatar package acquisition records access to the Asset Market `Package`; it does not mutate Realm `Bundle` truth and does not create Desktop or Agent Center package authority.
+
+Avatar import produces an authorized opaque package ref and local materialization eligibility for Avatar consumers. It must fail closed unless:
+
+- the package is published and `package_kind = avatar`
+- the selected backend is `live2d` or `vrm`
+- package readiness is true
+- compatibility diagnostics contain no blocking finding
+- the target consumer is admitted for Avatar package consumption
+
+The output of import is an opaque ref plus materialization evidence. It is not a launch payload package descriptor and not a loose file activation path.

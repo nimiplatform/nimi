@@ -1,4 +1,12 @@
 version: 2026-04-18
+table_family: owner_matrix
+matrix_id: realm_commit_authorization_matrix
+rows:
+  - run_modes_1
+  - run_modes_2
+  - app_policies_1
+  - app_policies_2
+  - app_policies_3
 updated_at: '2026-04-18'
 owner: '@team'
 description: Explicit run-mode authorization matrix for Realm state/history commit envelopes after realm memory decommission.

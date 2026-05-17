@@ -1,0 +1,252 @@
+table_family: support_registry
+registry_id: runtime_rule_evidence_local_model_catalog_rules
+owner: runtime
+schema_ref: .nimi/contracts/table-family.schema.yaml#support_registry
+allowed_fields:
+  - rule_id
+  - evidence_requirement
+  - evidence_refs
+  - note
+  - na_reason
+  - evidence_scope_note
+  - test_files
+forbidden_state_fields:
+  - done
+  - covered
+  - coverage_status
+  - audit_date
+  - evidence_report
+  - current
+  - proposed
+  - backlog_status
+  - migration_status
+  - mapping_status
+  - run_id
+  - ledger_ref
+entries:
+  - K-MCAT-001
+  - K-MCAT-002
+  - K-MCAT-003
+  - K-MCAT-004
+  - K-MCAT-005
+  - K-MCAT-006
+  - K-MCAT-007
+  - K-MCAT-008
+  - K-MCAT-009
+  - K-MCAT-010
+  - K-MCAT-011
+  - K-MCAT-012
+  - K-MCAT-013
+  - K-MCAT-014
+  - K-MCAT-014a
+  - K-MCAT-015
+  - K-MCAT-016
+  - K-MCAT-017
+  - K-MCAT-018
+  - K-MCAT-019
+  - K-MCAT-020
+  - K-MCAT-021
+  - K-MCAT-022
+  - K-MCAT-023
+  - K-MCAT-024
+  - K-MCAT-025
+  - K-MCAT-026
+  - K-MCAT-027
+  - K-MCAT-028
+  - K-MCAT-029
+  - K-MCAT-030
+  - K-MCAT-031
+rules:
+  - rule_id: K-MCAT-001
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_catalog_drift
+    evidence_requirement: required
+  - rule_id: K-MCAT-002
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_catalog_drift
+    evidence_requirement: required
+  - rule_id: K-MCAT-003
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_catalog_drift
+    evidence_requirement: required
+  - rule_id: K-MCAT-004
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_catalog_drift
+    evidence_requirement: required
+  - rule_id: K-MCAT-005
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_catalog_drift
+    evidence_requirement: required
+  - rule_id: K-MCAT-006
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_catalog_drift
+    evidence_requirement: required
+  - rule_id: K-MCAT-007
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_catalog_drift
+    evidence_requirement: required
+  - rule_id: K-MCAT-008
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_catalog_drift
+    evidence_requirement: required
+  - rule_id: K-MCAT-009
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_catalog_drift
+    evidence_requirement: required
+  - rule_id: K-MCAT-010
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_catalog_drift
+    evidence_requirement: required
+  - rule_id: K-MCAT-011
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_catalog_drift
+    evidence_requirement: required
+  - rule_id: K-MCAT-012
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_catalog_drift
+    evidence_requirement: required
+  - rule_id: K-MCAT-013
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_catalog_drift
+    evidence_requirement: required
+  - rule_id: K-MCAT-014
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_catalog_drift
+    evidence_requirement: required
+  - rule_id: K-MCAT-014a
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_catalog_drift
+    evidence_requirement: required
+  - rule_id: K-MCAT-015
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_catalog_drift
+    evidence_requirement: required
+  - rule_id: K-MCAT-016
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_catalog_drift
+    evidence_requirement: required
+  - rule_id: K-MCAT-017
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_catalog_drift
+    evidence_requirement: required
+  - rule_id: K-MCAT-018
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_catalog_drift
+    evidence_requirement: required
+  - rule_id: K-MCAT-019
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_catalog_drift
+    evidence_requirement: required
+  - rule_id: K-MCAT-020
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_catalog_drift
+    evidence_requirement: required
+  - rule_id: K-MCAT-021
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_catalog_drift
+    evidence_requirement: required
+  - rule_id: K-MCAT-022
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_catalog_drift
+    evidence_requirement: required
+  - rule_id: K-MCAT-023
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_catalog_drift
+    evidence_requirement: required
+  - rule_id: K-MCAT-024
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_catalog_drift
+    evidence_requirement: required
+  - rule_id: K-MCAT-025
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_catalog_drift
+    evidence_requirement: required
+  - rule_id: K-MCAT-026
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_catalog_drift
+    evidence_requirement: required
+  - rule_id: K-MCAT-027
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_catalog_drift
+    evidence_requirement: required
+  - rule_id: K-MCAT-028
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_catalog_drift
+    evidence_requirement: required
+  - rule_id: K-MCAT-029
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_catalog_drift
+    evidence_requirement: required
+  - rule_id: K-MCAT-030
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_catalog_drift
+      - runtime_selection_freshness
+    evidence_requirement: required
+  - rule_id: K-MCAT-031
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_catalog_drift
+    evidence_requirement: required

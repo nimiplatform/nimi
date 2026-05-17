@@ -3,6 +3,25 @@ kind: runtime-rpc-auth-posture-shard
 parent: nimicoding.runtime-rpc-auth-posture.v1
 version: 1
 generated: false
+table_family: protocol_surface
+owner: runtime
+protocol_id: runtime_audit_artifact_workflow
+surfaces:
+  - RuntimeAuditService
+  - RuntimeArtifactService
+  - RuntimeWorkflowService
+  - methods_1
+  - methods_2
+  - methods_3
+  - methods_4
+  - methods_5
+  - methods_6
+  - methods_7
+  - methods_8
+  - methods_9
+  - methods_10
+  - methods_11
+  - methods_12
 description: Audit, artifact, and workflow posture entries.
 services:
   - RuntimeAuditService

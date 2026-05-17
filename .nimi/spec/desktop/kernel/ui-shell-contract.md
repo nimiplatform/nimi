@@ -278,6 +278,7 @@ baseline surface 的共享 action、surface、dialog、popover 与 tooltip 必�
   - `sectionLabel*`
   - `itemList+`
   - `resizeHandle?`
+- `contacts` 的 `search?` slot 使用 `SidebarSearch` 的 collapsible 模式：未输入时呈现 icon trigger，展开后显示输入框，空值 blur 或 `Escape` 后回到折叠态。该交互属于 sidebar primitive contract，不由 contacts feature 本地复写。
 - `chat` surface 的最外层 contact rail 属于主 shell 级 target rail 组合，不属于本规则范围；该 rail 可以作为 app-owned composition 存在，但不得反向声明自己是 `desktop-sidebar-v1`。
 
 ## D-SHELL-024 — Sidebar Item Taxonomy

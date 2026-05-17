@@ -1,4 +1,14 @@
 version: 1
+table_family: product_catalog
+owner: runtime
+catalog_id: runtime_runtime_agent_service_typed_family
+entries:
+  - families_1
+  - families_2
+  - families_3
+  - families_4
+  - families_5
+  - families_6
 families:
   - family: HOOK_INTENT
     source_rule: K-AGCORE-006

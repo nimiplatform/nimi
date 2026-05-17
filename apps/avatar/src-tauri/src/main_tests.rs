@@ -1,5 +1,5 @@
 use super::*;
-use crate::agent_center_avatar_package::agent_center_path_segment;
+use crate::agent_center_avatar_asset::agent_center_path_segment;
 use std::fs;
 use std::path::{Path, PathBuf};
 

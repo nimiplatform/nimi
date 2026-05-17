@@ -1,0 +1,289 @@
+table_family: support_registry
+registry_id: sdk_rule_evidence_domain_adapter_rules
+owner: sdk
+schema_ref: .nimi/contracts/table-family.schema.yaml#support_registry
+allowed_fields:
+  - rule_id
+  - evidence_requirement
+  - evidence_refs
+  - note
+  - na_reason
+  - evidence_scope_note
+  - test_files
+forbidden_state_fields:
+  - done
+  - covered
+  - coverage_status
+  - audit_date
+  - evidence_report
+  - current
+  - proposed
+  - backlog_status
+  - migration_status
+  - mapping_status
+  - run_id
+  - ledger_ref
+entries:
+  - S-MOD-001
+  - S-MOD-002
+  - S-MOD-003
+  - S-MOD-004
+  - S-MOD-005
+  - S-MOD-006
+  - S-MOD-010
+  - S-MOD-011
+  - S-MOD-012
+  - S-MOD-013
+  - S-MOD-014
+  - S-MOD-015
+  - S-REALM-010
+  - S-REALM-011
+  - S-REALM-012
+  - S-REALM-013
+  - S-REALM-014
+  - S-REALM-015
+  - S-REALM-019
+  - S-REALM-027
+  - S-REALM-028
+  - S-REALM-029
+  - S-REALM-031
+  - S-REALM-035
+  - S-REALM-036
+  - S-REALM-037
+  - S-REALM-038
+  - S-WORLD-001
+  - S-WORLD-002
+  - S-WORLD-003
+  - S-WORLD-004
+  - S-WORLD-005
+  - S-WORLD-006
+  - S-WORLD-007
+  - S-PKG-001
+  - S-PKG-002
+  - S-PKG-003
+  - S-PKG-004
+rules:
+  - rule_id: S-MOD-001
+    evidence_refs:
+      - sdk_behavioral_test
+      - sdk_kernel_consistency
+    test_files:
+      - sdk/test/mod/mod-runtime-context.test.ts
+    evidence_requirement: required
+  - rule_id: S-MOD-002
+    evidence_refs:
+      - sdk_behavioral_test
+      - sdk_kernel_consistency
+    test_files:
+      - sdk/test/mod/mod-runtime-context.test.ts
+    evidence_requirement: required
+  - rule_id: S-MOD-003
+    evidence_refs:
+      - sdk_behavioral_test
+      - sdk_kernel_consistency
+    test_files:
+      - sdk/test/mod/mod-runtime-context.test.ts
+    evidence_requirement: required
+  - rule_id: S-MOD-004
+    evidence_refs:
+      - sdk_kernel_consistency
+      - sdk_mod_hardcut_gate
+    note: Hardcut enforcement rule; mod hardcut gate verifies no legacy surface re-emergence
+    evidence_requirement: required
+  - rule_id: S-MOD-005
+    evidence_refs:
+      - sdk_behavioral_test
+      - sdk_kernel_consistency
+    test_files:
+      - sdk/test/mod/mod-runtime-context.test.ts
+    evidence_requirement: required
+  - rule_id: S-MOD-006
+    evidence_refs:
+      - sdk_kernel_consistency
+      - sdk_test_gate
+    note: Shell facade boundary; indirectly validated by test suite and mod import structure
+    evidence_requirement: required
+  - rule_id: S-MOD-010
+    evidence_refs:
+      - sdk_kernel_consistency
+    note: Source-type coordination rule; consistency gate verifies desktop hook allowlist alignment
+    evidence_requirement: required
+  - rule_id: S-MOD-011
+    evidence_refs:
+      - sdk_kernel_consistency
+    na_reason: Phase 2 deferred; RuntimeAppService (app_service_projection) not yet projected
+    evidence_requirement: not_applicable
+  - rule_id: S-MOD-012
+    evidence_refs:
+      - sdk_behavioral_test
+      - sdk_kernel_consistency
+    test_files:
+      - sdk/test/mod/mod-runtime-local-profiles.test.ts
+    evidence_requirement: required
+  - rule_id: S-MOD-013
+    evidence_refs:
+      - sdk_behavioral_test
+      - sdk_kernel_consistency
+    test_files:
+      - sdk/test/mod/mod-runtime-local-profiles.test.ts
+    evidence_requirement: required
+  - rule_id: S-MOD-014
+    evidence_refs:
+      - sdk_kernel_consistency
+      - sdk_boundary_gate
+    note: World Evolution Engine mod-facing candidate families remain host-injected logical facades and may not degrade into host bridge passthrough or private bypass surface
+    evidence_requirement: required
+  - rule_id: S-MOD-015
+    evidence_refs:
+      - sdk_kernel_consistency
+      - sdk_boundary_gate
+    note: Mod-facing selector-read stable publication must preserve the same semantic matrix as app-facing publication and may differ only by host-injected access path
+    evidence_requirement: required
+  - rule_id: S-REALM-010
+    evidence_refs:
+      - sdk_behavioral_test
+      - sdk_kernel_consistency
+    test_files:
+      - sdk/test/realm/realm-client.test.ts
+    evidence_requirement: required
+  - rule_id: S-REALM-011
+    evidence_refs:
+      - sdk_behavioral_test
+      - sdk_kernel_consistency
+    test_files:
+      - sdk/test/realm/realm-client.test.ts
+    evidence_requirement: required
+  - rule_id: S-REALM-012
+    evidence_refs:
+      - sdk_behavioral_test
+      - sdk_kernel_consistency
+    test_files:
+      - sdk/test/realm/realm-client.test.ts
+      - sdk/test/realm/realm-no-auth.test.ts
+    evidence_requirement: required
+  - rule_id: S-REALM-013
+    evidence_refs:
+      - sdk_behavioral_test
+      - sdk_kernel_consistency
+    test_files:
+      - sdk/test/realm/realm-client.test.ts
+    evidence_requirement: required
+  - rule_id: S-REALM-014
+    evidence_refs:
+      - sdk_behavioral_test
+      - sdk_kernel_consistency
+    test_files:
+      - sdk/test/realm/realm-client.test.ts
+    evidence_requirement: required
+  - rule_id: S-REALM-015
+    evidence_refs:
+      - sdk_behavioral_test
+      - sdk_kernel_consistency
+    test_files:
+      - sdk/test/realm/realm-client.test.ts
+    evidence_requirement: required
+  - rule_id: S-REALM-019
+    evidence_refs:
+      - sdk_behavioral_test
+      - sdk_kernel_consistency
+    test_files:
+      - sdk/test/realm/realm-client.test.ts
+    evidence_requirement: required
+  - rule_id: S-REALM-027
+    evidence_refs:
+      - sdk_behavioral_test
+      - sdk_kernel_consistency
+    test_files:
+      - sdk/test/realm/realm-client.test.ts
+    evidence_requirement: required
+  - rule_id: S-REALM-028
+    evidence_refs:
+      - sdk_behavioral_test
+      - sdk_kernel_consistency
+    test_files:
+      - sdk/test/realm/realm-client.test.ts
+    evidence_requirement: required
+  - rule_id: S-REALM-029
+    evidence_refs:
+      - sdk_behavioral_test
+      - sdk_kernel_consistency
+    test_files:
+      - sdk/test/realm/realm-client.test.ts
+    evidence_requirement: required
+  - rule_id: S-REALM-031
+    evidence_refs:
+      - sdk_behavioral_test
+      - sdk_kernel_consistency
+    test_files:
+      - sdk/test/realm/realm-client.test.ts
+    evidence_requirement: required
+  - rule_id: S-REALM-035
+    na_reason: Realtime client not in SDK scope; rule constrains auth/state/reconnect governance boundary
+    evidence_requirement: not_applicable
+  - rule_id: S-REALM-036
+    na_reason: Realtime reconnect delivery guarantee; no realtime transport in SDK
+    evidence_requirement: not_applicable
+  - rule_id: S-REALM-037
+    na_reason: Event name ownership; SDK does not maintain authoritative event enum
+    evidence_requirement: not_applicable
+  - rule_id: S-REALM-038
+    evidence_refs:
+      - sdk_behavioral_test
+      - sdk_kernel_consistency
+    note: Unauthenticated decision routing; checkEmail/requestEmailOtp/verifyEmailOtp/passwordLogin allowed without token
+    evidence_requirement: required
+  - rule_id: S-WORLD-001
+    evidence_refs:
+      - sdk_kernel_consistency
+    note: sdk/world is the SDK kernel authority home for the world-domain facade and must not re-own Realm truth, Runtime execution, renderer-driver, or simulation semantics
+    evidence_requirement: required
+  - rule_id: S-WORLD-002
+    evidence_refs:
+      - sdk_kernel_consistency
+    note: Baseline family set is closed to truth, generate, fixture, render, and session in coarse-grained form
+    evidence_requirement: required
+  - rule_id: S-WORLD-003
+    evidence_refs:
+      - sdk_kernel_consistency
+    note: World generation inputs must pass through world-domain projection before provider-bound request shaping; provider-native payloads are not the first public input shape
+    evidence_requirement: required
+  - rule_id: S-WORLD-004
+    evidence_refs:
+      - sdk_kernel_consistency
+    note: Fixture package is the public local materialization object and remains distinct from raw provider payloads
+    evidence_requirement: required
+  - rule_id: S-WORLD-005
+    evidence_refs:
+      - sdk_kernel_consistency
+    note: Renderer orchestration consume stays in sdk/world while renderer-driver implementation and native handles remain outside the public facade
+    evidence_requirement: required
+  - rule_id: S-WORLD-006
+    evidence_refs:
+      - sdk_kernel_consistency
+    note: World session is a composition object and does not transfer chat, agent, cognition, or renderer truth ownership into sdk/world
+    evidence_requirement: required
+  - rule_id: S-WORLD-007
+    evidence_refs:
+      - sdk_kernel_consistency
+    note: Baseline exclusions keep shared projection truth, simulation semantics, provider-native authoring, renderer-driver APIs, and direct Realm mutation outside the sdk/world cut
+    evidence_requirement: required
+  - rule_id: S-PKG-001
+    evidence_refs:
+      - sdk_kernel_consistency
+    note: SDK root package metadata is admitted as evidence through platform audit evidence root admission and governed structurally by SDK kernel consistency.
+    evidence_requirement: required
+  - rule_id: S-PKG-002
+    evidence_refs:
+      - sdk_kernel_consistency
+    note: Root SDK support documents remain projection/support evidence and must not override SDK kernel authority.
+    evidence_requirement: required
+  - rule_id: S-PKG-003
+    evidence_refs:
+      - sdk_kernel_consistency
+    note: Package release behavior remains aligned to S-GATE, S-SURFACE, and S-BOUNDARY authority.
+    evidence_requirement: required
+  - rule_id: S-PKG-004
+    evidence_refs:
+      - sdk_kernel_consistency
+    note: Spec-first audit evidence admission is validated by audit-sweep plan validation and platform audit evidence root gate.
+    evidence_requirement: required

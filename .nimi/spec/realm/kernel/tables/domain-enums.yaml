@@ -1,4 +1,26 @@
 version: 1
+table_family: closed_enum
+enum_id: realm_domain_enums
+values:
+  - enums_1
+  - enums_2
+  - enums_3
+  - enums_4
+  - enums_5
+  - enums_6
+  - enums_7
+  - enums_8
+  - enums_9
+  - enums_10
+  - enums_11
+  - enums_12
+  - enums_13
+  - enums_14
+  - enums_15
+  - enums_16
+  - enums_17
+  - enums_18
+  - enums_19
 updated_at: 2026-04-18
 owner: "@team"
 enums:

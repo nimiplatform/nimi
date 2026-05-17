@@ -1,0 +1,81 @@
+table_family: support_registry
+registry_id: platform_rule_evidence_catalog
+owner: platform
+schema_ref: .nimi/contracts/table-family.schema.yaml#support_registry
+allowed_fields:
+  - type
+  - command
+  - path
+  - description
+  - evidence_type
+  - validation_scope
+forbidden_state_fields:
+  - done
+  - covered
+  - coverage_status
+  - audit_date
+  - evidence_report
+  - current
+  - proposed
+  - backlog_status
+  - migration_status
+  - mapping_status
+  - run_id
+  - ledger_ref
+entries:
+  - platform_kernel_consistency
+  - nimi_ui_pattern
+  - nimi_ui_lib_drift
+  - nimi_kit_gate
+  - app_slice_admission_gate
+  - audit_evidence_root_gate
+  - package_authority_admission_gate
+  - canonical_capability_catalog_gate
+platform_kernel_consistency:
+  type: static_gate
+  evidence_type: structural
+  command: pnpm exec nimicoding validate-spec-governance --profile nimi --scope platform-consistency
+  path: scripts/check-platform-spec-kernel-consistency.mjs
+  description: Kernel rule integrity, error code uniqueness, primitive completeness, compliance matrix, and authorization preset checks for Platform domain.
+nimi_ui_pattern:
+  type: static_gate
+  evidence_type: structural
+  command: pnpm check:nimi-ui-pattern
+  path: scripts/check-nimi-ui-pattern.mjs
+  description: Cross-app Nimi design pattern gate for shared lib imports, theme pack entrypoints, governed module adoption, and raw style hardcuts.
+nimi_ui_lib_drift:
+  type: generated_projection
+  evidence_type: structural
+  command: pnpm check:nimi-ui-lib-drift
+  path: scripts/generate-nimi-ui-lib.mjs
+  description: Generated Nimi design shared-lib projection drift check for tokens and theme packs.
+nimi_kit_gate:
+  type: static_gate
+  evidence_type: structural
+  command: pnpm check:nimi-kit
+  path: scripts/check-nimi-kit.mjs
+  description: Nimi kit hard gate for registry parity, surface topology, integration taxonomy, and cross-layer boundary enforcement.
+app_slice_admission_gate:
+  type: static_gate
+  evidence_type: structural
+  command: node scripts/check-platform-spec-kernel-consistency.mjs
+  path: scripts/check-platform-spec-kernel-consistency.mjs
+  description: Platform kernel gate validating app-slice admission rows, authority roots, evidence roots, and source rule linkage.
+audit_evidence_root_gate:
+  type: static_gate
+  evidence_type: structural
+  command: node scripts/check-platform-spec-kernel-consistency.mjs
+  path: scripts/check-platform-spec-kernel-consistency.mjs
+  description: Platform kernel gate validating authority-specific audit evidence roots and source rule linkage.
+package_authority_admission_gate:
+  type: static_gate
+  evidence_type: structural
+  command: node scripts/check-platform-spec-kernel-consistency.mjs
+  path: scripts/check-platform-spec-kernel-consistency.mjs
+  description: Platform kernel gate validating package authority admissions, package-vs-host projection boundaries, authority roots, evidence roots, and source rule linkage.
+canonical_capability_catalog_gate:
+  type: static_gate
+  evidence_type: structural
+  command: pnpm check:canonical-capability-catalog
+  path: scripts/check-canonical-capability-catalog.mjs
+  description: Platform kernel gate validating canonical capability catalog row consistency against runtime tables, completeness against the admitted capability union, deferred entry admission fields, and codegen idempotency.

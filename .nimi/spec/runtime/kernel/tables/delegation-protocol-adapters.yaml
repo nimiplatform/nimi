@@ -1,11 +1,18 @@
 version: 1
+table_family: protocol_surface
+owner: runtime
+protocol_id: runtime_delegation_protocol_adapters
+surfaces:
+  - adapters_1
+  - adapters_2
+  - adapters_3
 source_rule: K-DELEG-100
 adapters:
   - adapter_id: mcp_stdio_command
     protocol: MCP
     protocol_role: tool_provider
     transport_kind: stdio_command
-    production_status: admitted
+    adapter_production_posture: admitted
     source_rule: K-DELEG-103
     dependency_rule: K-DELEG-101
     output_posture: quarantined_gateway_evidence
@@ -16,7 +23,7 @@ adapters:
     protocol: MCP
     protocol_role: tool_provider
     transport_kind: remote_http
-    production_status: deferred
+    adapter_production_posture: deferred
     source_rule: K-DELEG-103
     dependency_rule: K-DELEG-101
     output_posture: quarantined_gateway_evidence
@@ -27,7 +34,7 @@ adapters:
     protocol: A2A
     protocol_role: remote_agent_seam
     transport_kind: future
-    production_status: future_seam_only
+    adapter_production_posture: future_seam_only
     source_rule: K-DELEG-120
     output_posture: no_output
     pre_firewall_consumption: forbidden

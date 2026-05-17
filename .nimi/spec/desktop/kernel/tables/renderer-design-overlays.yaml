@@ -1,4 +1,18 @@
 version: 1
+table_family: product_catalog
+owner: desktop
+catalog_id: desktop_renderer_design_overlays
+entries:
+  - shared.tooltip
+  - explore.quick_add_friend
+  - contacts.block_confirm
+  - contacts.restore_confirm
+  - notification.reject_gift
+  - contacts.profile_detail_modal
+  - economy.send_gift
+  - profile.create_post
+  - profile.create_post_popovers
+  - profile.top_supporters
 overlays:
   - id: shared.tooltip
     module: components/tooltip.tsx

@@ -7,9 +7,11 @@ import {
   type AvatarDebugProbeResultEnvelope,
   type AvatarDebugReplayRef,
   type GetAvatarDebugSnapshotResponse,
+  type RuntimeCompanionParticipationProjection,
+  type RuntimeCompanionParticipationSurfaceKind,
 } from '@nimiplatform/sdk/runtime';
 import type { UseAgentConversationPresentationInput } from './chat-agent-shell-presentation-types';
-import type { AgentCenterAvatarPackageModule } from './chat-agent-center-avatar-config-types';
+import type { AgentCenterAvatarAssetModule } from './chat-agent-center-avatar-config-types';
 
 export type AvatarDebugWorkbenchProbe = {
   kind: AvatarDebugProbeKind;
@@ -25,25 +27,34 @@ export type AvatarDebugWorkbenchLaunchHealth = {
 
 export type AvatarDebugWorkbenchDiagnostics = {
   backendKind: string;
-  packageRefState: 'linked' | 'missing';
+  localAssetRefState: 'linked' | 'missing';
   profileRefState: 'linked' | 'pending';
   generatedMotionPolicy: string;
   debugProfile: string;
 };
 
+export type DesktopCompanionParticipationProjectionRequest = {
+  ownerUserId: string;
+  realmAgentId: string;
+  localAgentRef: string;
+  conversationAnchorId: string;
+  surfaceKind: RuntimeCompanionParticipationSurfaceKind;
+  triggerSource: 'user_explicit';
+};
+
 type AgentCenterAvatarDebugWorkbenchProps = {
   input: UseAgentConversationPresentationInput;
-  avatarPackageConfig: AgentCenterAvatarPackageModule | null;
-  avatarPackageValid: boolean;
-  avatarPackageChecking: boolean;
+  avatarAssetConfig: AgentCenterAvatarAssetModule | null;
+  avatarAssetValid: boolean;
+  avatarAssetChecking: boolean;
   validationMessage: string | null;
 };
 
 const PROBES: readonly AvatarDebugWorkbenchProbe[] = [
   {
     kind: AvatarDebugProbeKind.PACKAGE_VALIDATION,
-    label: 'Package',
-    summary: 'Validate the selected avatar package record.',
+    label: 'Local asset',
+    summary: 'Validate the selected local Avatar asset record.',
   },
   {
     kind: AvatarDebugProbeKind.LAUNCH_READINESS,
@@ -102,8 +113,8 @@ const REQUIRED_EVIDENCE_REF_COUNTS_BY_PROBE_KIND: Partial<Record<AvatarDebugProb
 };
 
 export function buildAvatarDebugWorkbenchLaunchHealth(input: {
-  avatarPackageValid: boolean;
-  avatarPackageChecking: boolean;
+  avatarAssetValid: boolean;
+  avatarAssetChecking: boolean;
   conversationAnchorId: string | null;
   routeReady: boolean;
 }): AvatarDebugWorkbenchLaunchHealth {
@@ -114,18 +125,18 @@ export function buildAvatarDebugWorkbenchLaunchHealth(input: {
       detail: 'Open an agent conversation before running avatar debug probes.',
     };
   }
-  if (input.avatarPackageChecking) {
+  if (input.avatarAssetChecking) {
     return {
       status: 'checking',
       label: 'Checking',
-      detail: 'Desktop is validating the current avatar package record.',
+      detail: 'Desktop is validating the current local Avatar asset record.',
     };
   }
-  if (!input.avatarPackageValid) {
+  if (!input.avatarAssetValid) {
     return {
       status: 'needs_package',
-      label: 'Needs package',
-      detail: 'Runtime-projected avatar package and backend evidence are required before probe execution.',
+      label: 'Needs asset',
+      detail: 'A selected local Avatar asset and backend evidence are required before probe execution.',
     };
   }
   if (!input.routeReady) {
@@ -143,12 +154,12 @@ export function buildAvatarDebugWorkbenchLaunchHealth(input: {
 }
 
 export function buildAvatarDebugWorkbenchDiagnostics(
-  config: AgentCenterAvatarPackageModule | null,
+  config: AgentCenterAvatarAssetModule | null,
 ): AvatarDebugWorkbenchDiagnostics {
   const backendKind = config?.backend_kind || 'live2d';
   return {
     backendKind,
-    packageRefState: config?.avatar_package_ref ? 'linked' : 'missing',
+    localAssetRefState: config?.local_avatar_asset_ref ? 'linked' : 'missing',
     profileRefState: config?.backend_capability_profile_ref ? 'linked' : 'pending',
     generatedMotionPolicy: config?.generated_motion_provider_policy || 'require_profile_support',
     debugProfile: config?.debug_profile || 'standard',
@@ -228,14 +239,81 @@ export function avatarDebugProbeRemediation(
     case AvatarDebugProbeStatus.UNSUPPORTED:
       return 'Select a backend/profile that supports this route, or disable the related capability policy.';
     case AvatarDebugProbeStatus.BLOCKED:
-      return 'Runtime policy blocked this probe. Review approval, scope, and package validation state.';
+      return 'Runtime policy blocked this probe. Review approval, scope, and local asset validation state.';
     case AvatarDebugProbeStatus.INVALID:
       return 'The probe request was invalid. Refresh the conversation anchor and retry.';
     case AvatarDebugProbeStatus.FAILED:
-      return 'Inspect package validation, backend load state, and capability profile evidence.';
+      return 'Inspect local asset validation, backend load state, and capability profile evidence.';
     default:
       return 'Run a probe to produce Runtime-owned evidence and replay links.';
   }
+}
+
+export function buildDesktopCompanionParticipationProjectionRequest(input: {
+  ownerUserId: string;
+  realmAgentId: string;
+  localAgentRef: string;
+  conversationAnchorId: string;
+  surfaceKind?: RuntimeCompanionParticipationSurfaceKind;
+}): DesktopCompanionParticipationProjectionRequest {
+  return {
+    ownerUserId: input.ownerUserId,
+    realmAgentId: input.realmAgentId,
+    localAgentRef: input.localAgentRef,
+    conversationAnchorId: input.conversationAnchorId,
+    surfaceKind: input.surfaceKind || 'avatar_debug_workbench',
+    triggerSource: 'user_explicit',
+  };
+}
+
+export async function requestDesktopCompanionParticipationProjection(input: {
+  ownerUserId: string;
+  realmAgentId: string;
+  localAgentRef: string;
+  conversationAnchorId: string;
+  surfaceKind?: RuntimeCompanionParticipationSurfaceKind;
+}): Promise<RuntimeCompanionParticipationProjection> {
+  return getPlatformClient().runtime.companionParticipation.getProjection(
+    buildDesktopCompanionParticipationProjectionRequest(input),
+  );
+}
+
+export function desktopCompanionParticipationStatusLabel(
+  projection: RuntimeCompanionParticipationProjection | null | undefined,
+): string {
+  if (!projection) return 'Not requested';
+  switch (projection.status) {
+    case 'idle':
+      return 'Idle';
+    case 'admission_pending':
+      return 'Admission pending';
+    case 'blocked':
+      return 'Blocked';
+    case 'running':
+      return 'Running';
+    case 'candidate_ready':
+      return 'Candidate ready';
+    case 'committed_by_owner':
+      return 'Committed';
+    case 'failed':
+      return 'Failed';
+    case 'canceled':
+      return 'Canceled';
+    default:
+      return 'Invalid';
+  }
+}
+
+export function desktopCompanionParticipationRemediation(
+  projection: RuntimeCompanionParticipationProjection | null | undefined,
+): string {
+  if (!projection) {
+    return 'Refresh participation projection before treating this debug surface as ready.';
+  }
+  if (projection.status === 'blocked' || projection.status === 'failed' || projection.status === 'canceled') {
+    return projection.refusalReason || `Runtime companion participation is ${projection.status}.`;
+  }
+  return 'Runtime companion participation projection is typed and visible to Desktop.';
 }
 
 export async function requestAvatarDebugWorkbenchProbe(input: {
@@ -257,10 +335,11 @@ export async function requestAvatarDebugWorkbenchProbe(input: {
 }
 
 export function AgentCenterAvatarDebugWorkbench(props: AgentCenterAvatarDebugWorkbenchProps) {
-  const { input, avatarPackageConfig, avatarPackageValid, avatarPackageChecking, validationMessage } = props;
+  const { input, avatarAssetConfig, avatarAssetValid, avatarAssetChecking, validationMessage } = props;
   const [snapshot, setSnapshot] = useState<GetAvatarDebugSnapshotResponse | null>(null);
   const [latestResult, setLatestResult] = useState<AvatarDebugProbeResultEnvelope | null>(null);
   const [latestReplay, setLatestReplay] = useState<AvatarDebugReplayRef | null>(null);
+  const [latestParticipationProjection, setLatestParticipationProjection] = useState<RuntimeCompanionParticipationProjection | null>(null);
   const [pendingKind, setPendingKind] = useState<AvatarDebugProbeKind | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -269,18 +348,18 @@ export function AgentCenterAvatarDebugWorkbench(props: AgentCenterAvatarDebugWor
   const realmAgentId = input.activeTarget?.realmAgentId || '';
   const conversationAnchorId = input.activeConversationAnchorId || '';
   const launchHealth = useMemo(() => buildAvatarDebugWorkbenchLaunchHealth({
-    avatarPackageValid,
-    avatarPackageChecking,
+    avatarAssetValid,
+    avatarAssetChecking,
     conversationAnchorId: input.activeConversationAnchorId,
     routeReady: input.agentRouteReady,
   }), [
-    avatarPackageChecking,
-    avatarPackageValid,
+    avatarAssetChecking,
+    avatarAssetValid,
     input.activeConversationAnchorId,
     input.agentRouteReady,
   ]);
-  const diagnostics = useMemo(() => buildAvatarDebugWorkbenchDiagnostics(avatarPackageConfig), [
-    avatarPackageConfig,
+  const diagnostics = useMemo(() => buildAvatarDebugWorkbenchDiagnostics(avatarAssetConfig), [
+    avatarAssetConfig,
   ]);
   const canRequestProbe = Boolean(localAgentRef && ownerUserId && realmAgentId && conversationAnchorId && launchHealth.status === 'ready');
 
@@ -301,6 +380,12 @@ export function AgentCenterAvatarDebugWorkbench(props: AgentCenterAvatarDebugWor
       setSnapshot(nextSnapshot);
       setLatestResult(nextSnapshot.probeResults[0] || null);
       setLatestReplay(nextSnapshot.replayRefs[0] || null);
+      setLatestParticipationProjection(await requestDesktopCompanionParticipationProjection({
+        ownerUserId,
+        realmAgentId,
+        localAgentRef,
+        conversationAnchorId,
+      }));
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : input.t('Chat.agentCenterAvatarDebugRefreshFailed', { defaultValue: 'Could not refresh avatar debug state.' }));
     } finally {
@@ -332,6 +417,12 @@ export function AgentCenterAvatarDebugWorkbench(props: AgentCenterAvatarDebugWor
         conversationAnchorId,
       });
       setSnapshot(nextSnapshot);
+      setLatestParticipationProjection(await requestDesktopCompanionParticipationProjection({
+        ownerUserId,
+        realmAgentId,
+        localAgentRef,
+        conversationAnchorId,
+      }));
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : input.t('Chat.agentCenterAvatarDebugProbeFailed', { defaultValue: 'Avatar debug probe failed.' }));
     } finally {
@@ -356,6 +447,12 @@ export function AgentCenterAvatarDebugWorkbench(props: AgentCenterAvatarDebugWor
       });
       setLatestResult(replay.result || latestResult);
       setLatestReplay(replay.replayRef || latestReplay);
+      setLatestParticipationProjection(await requestDesktopCompanionParticipationProjection({
+        ownerUserId,
+        realmAgentId,
+        localAgentRef,
+        conversationAnchorId,
+      }));
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : input.t('Chat.agentCenterAvatarDebugReplayFailed', { defaultValue: 'Avatar debug replay is unavailable.' }));
     } finally {
@@ -364,6 +461,7 @@ export function AgentCenterAvatarDebugWorkbench(props: AgentCenterAvatarDebugWor
   }, [conversationAnchorId, input, latestReplay, latestResult, localAgentRef, ownerUserId, realmAgentId]);
 
   const latestStatus = avatarDebugProbePresentationStatusLabel(latestResult, latestReplay);
+  const participationStatus = desktopCompanionParticipationStatusLabel(latestParticipationProjection);
   const latestEvidence = latestResult?.evidenceRefs.length ? latestResult.evidenceRefs.join(', ') : input.t('Chat.agentCenterAvatarDebugNoEvidence', { defaultValue: 'No evidence linked yet' });
   const snapshotCount = snapshot?.probeResults.length || 0;
 
@@ -385,7 +483,7 @@ export function AgentCenterAvatarDebugWorkbench(props: AgentCenterAvatarDebugWor
 
       <div className="mt-3 grid gap-2 text-[11px] leading-4 text-slate-600 sm:grid-cols-2">
         <DebugFact label={input.t('Chat.agentCenterAvatarDebugBackend', { defaultValue: 'Backend' })} value={diagnostics.backendKind.toUpperCase()} />
-        <DebugFact label={input.t('Chat.agentCenterAvatarDebugPackageRef', { defaultValue: 'Package ref' })} value={diagnostics.packageRefState === 'linked' ? input.t('Chat.agentCenterLinked', { defaultValue: 'Linked' }) : input.t('Chat.agentCenterMissing', { defaultValue: 'Missing' })} />
+        <DebugFact label={input.t('Chat.agentCenterAvatarDebugAssetRef', { defaultValue: 'Asset ref' })} value={diagnostics.localAssetRefState === 'linked' ? input.t('Chat.agentCenterLinked', { defaultValue: 'Linked' }) : input.t('Chat.agentCenterMissing', { defaultValue: 'Missing' })} />
         <DebugFact label={input.t('Chat.agentCenterAvatarDebugProfileRef', { defaultValue: 'Profile ref' })} value={diagnostics.profileRefState === 'linked' ? input.t('Chat.agentCenterLinked', { defaultValue: 'Linked' }) : input.t('Chat.agentCenterPending', { defaultValue: 'Pending' })} />
         <DebugFact label={input.t('Chat.agentCenterAvatarDebugPolicy', { defaultValue: 'Motion policy' })} value={diagnostics.generatedMotionPolicy.replaceAll('_', ' ')} />
         <DebugFact label={input.t('Chat.agentCenterAvatarDebugProfile', { defaultValue: 'Debug profile' })} value={diagnostics.debugProfile.replaceAll('_', ' ')} />
@@ -435,6 +533,12 @@ export function AgentCenterAvatarDebugWorkbench(props: AgentCenterAvatarDebugWor
         <div className="mt-1">{avatarDebugProbeRemediation(latestResult, latestReplay)}</div>
         <div className="mt-2 text-slate-500">
           {input.t('Chat.agentCenterAvatarDebugEvidence', { defaultValue: 'Evidence' })}: {latestEvidence}
+        </div>
+        <div className="mt-2 text-slate-500">
+          {input.t('Chat.agentCenterAvatarDebugParticipation', { defaultValue: 'Participation' })}: {participationStatus}
+        </div>
+        <div className="mt-1 text-slate-500">
+          {desktopCompanionParticipationRemediation(latestParticipationProjection)}
         </div>
         {latestReplay?.replayRef ? (
           <button

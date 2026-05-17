@@ -16,19 +16,20 @@ import type {
   AgentCenterAvatarDebugProfile,
   AgentCenterAvatarInstancePolicy,
   AgentCenterAvatarLaunchMode,
-  AgentCenterAvatarPackageModule,
+  AgentCenterAvatarAssetModule,
   AgentCenterGeneratedMotionProviderPolicy,
   AgentCenterLive2dAdapterManifestSource,
 } from './chat-agent-center-avatar-config-types';
 
 const NORMALIZED_ID_PATTERN = /^(?=.*[A-Za-z0-9])(?!\.{1,2}$)(?!.*:\/\/)[A-Za-z0-9._~:@+-]{1,256}$/u;
+const LOCAL_AVATAR_ASSET_ID_PATTERN = /^(live2d|vrm)_[a-f0-9]{12}$/u;
 const LIVE2D_ADAPTER_MANIFEST_REF_PATTERN = /^live2d_adapter_[a-f0-9]{12}$/u;
 const ISO_TIMESTAMP_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,9})?Z$/u;
 const AVATAR_CONFIG_PROVENANCE_KEYS = ['source', 'evidence_ref'] as const;
-const AVATAR_PACKAGE_KEYS = [
+const AVATAR_ASSET_KEYS = [
   'schema_version',
   'conversation_anchor_scope',
-  'avatar_package_ref',
+  'local_avatar_asset_ref',
   'live2d_adapter_manifest_source',
   'live2d_adapter_manifest_ref',
   'avatar_instance_policy',
@@ -144,10 +145,10 @@ function validateAvatarConfigProvenance(value: unknown, path: string, errors: st
   };
 }
 
-export function validateAvatarPackageModule(value: unknown, errors: string[]): AgentCenterAvatarPackageModule {
-  const path = 'modules.avatar_package';
+export function validateAvatarAssetModule(value: unknown, errors: string[]): AgentCenterAvatarAssetModule {
+  const path = 'modules.avatar_asset';
   const record = requireRecord(value, path, errors) ?? {};
-  collectUnknownKeys(record, AVATAR_PACKAGE_KEYS, path, errors);
+  collectUnknownKeys(record, AVATAR_ASSET_KEYS, path, errors);
   if (record.schema_version !== 1) {
     errors.push(`${path}.schema_version: expected 1`);
   }
@@ -159,7 +160,17 @@ export function validateAvatarPackageModule(value: unknown, errors: string[]): A
     'live2d',
     'invalid backend kind',
   );
-  const avatarPackageRef = validateNullableNormalizedId(record.avatar_package_ref, `${path}.avatar_package_ref`, errors);
+  const localAvatarAssetRef = validateNullableNormalizedId(record.local_avatar_asset_ref, `${path}.local_avatar_asset_ref`, errors);
+  if (localAvatarAssetRef !== null) {
+    if (!LOCAL_AVATAR_ASSET_ID_PATTERN.test(localAvatarAssetRef)) {
+      errors.push(`${path}.local_avatar_asset_ref: invalid local Avatar asset id`);
+    }
+    if (backendKind === 'future') {
+      errors.push(`${path}.backend_kind: future backend cannot be selected for a local Avatar asset`);
+    } else if (!localAvatarAssetRef.startsWith(`${backendKind}_`)) {
+      errors.push(`${path}.backend_kind: must match local Avatar asset id prefix`);
+    }
+  }
   const manifestSource = validateEnum<AgentCenterLive2dAdapterManifestSource>(
     record.live2d_adapter_manifest_source,
     `${path}.live2d_adapter_manifest_source`,
@@ -182,7 +193,7 @@ export function validateAvatarPackageModule(value: unknown, errors: string[]): A
   return {
     schema_version: 1,
     conversation_anchor_scope: validateEnum<AgentCenterAvatarConversationAnchorScope>(record.conversation_anchor_scope, `${path}.conversation_anchor_scope`, errors, new Set(AVATAR_CONVERSATION_ANCHOR_SCOPE_VALUES), 'current_anchor', 'invalid anchor scope'),
-    avatar_package_ref: avatarPackageRef,
+    local_avatar_asset_ref: localAvatarAssetRef,
     live2d_adapter_manifest_source: manifestSource,
     live2d_adapter_manifest_ref: manifestRef,
     avatar_instance_policy: validateEnum<AgentCenterAvatarInstancePolicy>(record.avatar_instance_policy, `${path}.avatar_instance_policy`, errors, new Set(AVATAR_INSTANCE_POLICY_VALUES), 'reuse_active_instance', 'invalid avatar instance policy'),

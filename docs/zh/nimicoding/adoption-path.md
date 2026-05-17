@@ -19,12 +19,12 @@ Nimi Coding 最强的证据不是某项基准跑分，而是 Nimi 在自己身�
 在 Nimi 仓库里，Nimi Coding 用于：
 
 - 重建并校验权威 `.nimi/spec/**` 树；
-- 用议题驱动的设计与修复，替代无界的自由式 AI 会话；
+- 用 topic 驱动的设计与修复，替代无界的自由式 AI 会话；
 - 把长审计拆成 sweep audit 分块，证据逐块记录；
-- 把审计 finding 转成 sweep design worksets 与候选议题 wave；
+- 把审计 finding 转成 sweep design worksets 与候选 topic wave；
 - 让大型跨域修复在 Runtime、SDK、桌面端、文档以及 Nimi Coding 自身之间保持可审视。
 
-这并不能证明方法论在任何地方都是对的。它的作用是让宣称变得**可证伪**——如果工件出现漂移、如果议题在没有证据的情况下被 close、如果规范审计被破坏、或者消费方接受度缺位，失败会出现在它要求别的项目采用的同一套机器证据里。
+这并不能证明方法论在任何地方都是对的。它的作用是让宣称变得**可证伪**——如果工件出现漂移、如果 topic 在没有证据的情况下被 close、如果规范审计被破坏、或者消费方接受度缺位，失败会出现在它要求别的项目采用的同一套机器证据里。
 
 ## 重度依赖 AI 的单人创业者
 
@@ -58,7 +58,7 @@ Nimi Coding 提供：
 
 - 审计与评审在结构上分离。团队的 PR 走常规评审；针对四闭合的审计是另一个回路。
 - 即便复核员疲劳，禁用快捷方式目录也能抓到模式。
-- 议题 / wave 纪律让团队在同一时间内只盯着一条主迭代线。
+- topic / wave 纪律让团队在同一时间内只盯着一条主迭代线。
 
 对小团队而言，价值是**不靠扩编也能扩展的复核冗余**。
 
@@ -131,16 +131,16 @@ Nimi Coding 提供：
 | 一次性脚本 | 否 |
 | 抛弃式原型 | 否 |
 
-把方法论强加到小改动上，只增加成本而不带来闭合价值。小改动的默认姿态是"常规工程卫生，不走议题纪律"。
+把方法论强加到小改动上，只增加成本而不带来闭合价值。小改动的默认姿态是"常规工程卫生，不走 topic 纪律"。
 
 ## 读者场景：单人创业者首次采纳 Nimi Coding
 
 一位单人创业者重度借助 AI 在构建一个有野心的系统。
 
-1. **取包。**从 npm 安装 `@nimiplatform/nimi-coding`；详见 [Installation](/nimicoding/installation)。
+1. **取包。**从 npm 安装 `@nimiplatform/nimi-coding`；详见 [安装指南](/zh/nimicoding/installation)。
 2. **运行 `nimicoding start`。**完成 bootstrap 准入。
 3. **重建规范。**`nimicoding handoff --skill spec_reconstruction --json`，发送给已准入宿主。
-4. **下一项高风险改动采纳方法论。**写议题；准入 wave；冻结 packet。
+4. **下一项高风险改动采纳方法论。**写 topic；准入 wave；冻结 packet。
 5. **路由审计。**审计员角色用另一个 AI 会话承担。
 6. **闭合 wave。**走完四个维度。
 7. **继续。**后续高风险改动按同一套纪律推进。
@@ -153,7 +153,7 @@ Nimi Coding 提供：
 
 1. **作为 dev 依赖加入。**把 Nimi Coding 加到项目里。
 2. **在主分支 bootstrap `.nimi/**`。**方法论与规范结构成为项目的一部分。
-3. **更新贡献者指南。**AI 撰写的 PR 必须附带议题 / wave / packet 工件。
+3. **更新贡献者指南。**AI 撰写的 PR 必须附带 topic / wave / packet 工件。
 4. **评审者读工件。**冻结 packet + 审计 + 收尾，构成 PR 评审的一部分。
 5. **闭合后合并。**wave 收尾通过，PR 即可合并。
 
@@ -161,6 +161,6 @@ Nimi Coding 提供：
 
 ## 来源依据
 
-- [`nimi-coding/README.md`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/README.md)
-- [`.nimi/methodology/topic-lifecycle-report.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/topic-lifecycle-report.yaml)
-- [`.nimi/methodology/role-separation-policy.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/role-separation-policy.yaml)
+- [`nimi-coding/README.md`](https://github.com/nimiplatform/nimi-coding/blob/main/README.md)
+- [`nimi-coding/methodology/topic-lifecycle-report.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/methodology/topic-lifecycle-report.yaml)
+- [`nimi-coding/methodology/role-separation-policy.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/methodology/role-separation-policy.yaml)

@@ -4,6 +4,7 @@ import type { DesktopMacosSmokeAvatarEvidenceReadResult } from '@renderer/bridge
 
 export const SMOKE_STEP_TIMEOUT_MS = 15000;
 export const SMOKE_BOOTSTRAP_TIMEOUT_MS = 60000;
+export const SMOKE_SCENARIO_TIMEOUT_MS = 150000;
 
 export const LIVE2D_VIEWPORT_SELECTOR = '[data-avatar-live2d-status]';
 export const VRM_VIEWPORT_SELECTOR = '[data-avatar-vrm-status]';
@@ -42,6 +43,7 @@ export type DesktopMacosSmokeCanvasStats = {
 export type DesktopMacosSmokeDriverDeps = {
   waitForTestId: (id: string, timeoutMs?: number) => Promise<void>;
   waitForSelector: (selector: string, timeoutMs?: number) => Promise<void>;
+  waitForSelectorEnabled: (selector: string, timeoutMs?: number) => Promise<void>;
   waitForSelectorGone: (selector: string, timeoutMs?: number) => Promise<void>;
   clickByTestId: (id: string, timeoutMs?: number) => Promise<void>;
   clickSelector: (selector: string, timeoutMs?: number) => Promise<void>;
@@ -64,8 +66,12 @@ export type DesktopMacosSmokeDriverDeps = {
   readAttributeByTestId: (id: string, name: string) => Promise<string | null>;
   readLive2dCanvasStats: (selector: string) => Promise<Live2dCanvasStats>;
   readVrmCanvasStats: (selector: string) => Promise<VrmCanvasStats>;
-  listAvatarLiveInstances: (agentId: string) => Promise<DesktopAvatarLiveInstanceRecord[]>;
+  listAvatarLiveInstances: (localAgentRef: string) => Promise<DesktopAvatarLiveInstanceRecord[]>;
   readAvatarEvidence: (avatarInstanceId: string) => Promise<DesktopMacosSmokeAvatarEvidenceReadResult>;
+  applyAvatarProductLocalAssetFault: (faultKind: 'missing_entry_file') => Promise<Record<string, unknown>>;
+  avatarCarrierEvidenceTimeoutMs?: number;
+  onStepStart?: (step: string, steps: readonly string[]) => void;
+  isReportOpen?: () => boolean;
   writeReport: (payload: DesktopMacosSmokeReportPayload) => Promise<void>;
   currentRoute: () => string;
   currentHtml: () => string;

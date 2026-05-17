@@ -47,7 +47,7 @@ Nimi Coding 包最具辨识度的属性是**厂商中立、宿主无关**。包�
 | `.nimi/spec/**`（项目权威真相） | 是 | — |
 | `.nimi/methodology/**`（策略） | 是 | — |
 | `.nimi/contracts/**`（schema） | 是 | — |
-| 议题工件（已闭合与 pending） | 是 | — |
+| topic 工件（已闭合与 pending） | 是 | — |
 | 适配器 overlay 路径 | — | 是（与宿主相关） |
 
 变化的是适配器。方法论本身可移植。
@@ -80,7 +80,7 @@ Nimi Coding 包最具辨识度的属性是**厂商中立、宿主无关**。包�
 
 1. **项目状态。**`.nimi/**` 工件齐全。
 2. **接入宿主 B。**新增或准入 B 的适配器 overlay（`adapters/B/profile.yaml`）。
-3. **新工作切到宿主 B。**新议题 / wave / packet 走宿主 B；宿主 A 下的旧工件依然有效。
+3. **新工作切到宿主 B。**新 topic / wave / packet 走宿主 B；宿主 A 下的旧工件依然有效。
 4. **跨宿主审计。**宿主 A 之下创作的 wave，可由宿主 B 审计（独立回路保证）。
 5. **方法论保持不变。**同一套四闭合、同一套角色分离、同一份禁用快捷方式目录。
 
@@ -121,9 +121,12 @@ Nimi Coding 包最具辨识度的属性是**厂商中立、宿主无关**。包�
 
 ## 来源依据
 
-- [`nimi-coding/AGENTS.md`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/AGENTS.md)
-- [`nimi-coding/config/host-profile.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/config/host-profile.yaml)
-- [`nimi-coding/config/host-adapter.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/config/host-adapter.yaml)
-- [`nimi-coding/methodology/skill-runtime.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/methodology/skill-runtime.yaml)
-- [`nimi-coding/contracts/external-host-compatibility.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/contracts/external-host-compatibility.yaml)
-- [`nimi-coding/adapters/oh-my-codex/profile.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/adapters/oh-my-codex/profile.yaml)
+- [`nimi-coding/AGENTS.md`](https://github.com/nimiplatform/nimi-coding/blob/main/AGENTS.md)
+- [`nimi-coding/config/host-profile.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/config/host-profile.yaml)
+- [`nimi-coding/config/host-adapter.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/config/host-adapter.yaml)
+- [`nimi-coding/methodology/skill-runtime.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/methodology/skill-runtime.yaml)
+- [`nimi-coding/contracts/external-host-compatibility.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/contracts/external-host-compatibility.yaml)
+- [`nimi-coding/adapters/README.md`](https://github.com/nimiplatform/nimi-coding/blob/main/adapters/README.md)
+- [`nimi-coding/adapters/codex/profile.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/adapters/codex/profile.yaml)
+- [`nimi-coding/adapters/claude/profile.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/adapters/claude/profile.yaml)
+- [`nimi-coding/adapters/oh-my-codex/profile.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/adapters/oh-my-codex/profile.yaml)

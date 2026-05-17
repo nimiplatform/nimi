@@ -26,10 +26,9 @@
 //      evidence carries restoreDurationMs near 1500.
 //   5. Second context loss before retry fires -> failed_closed
 //      (`context_lost_twice`).
-//   6. avatar.carrier.visual evidence — DEFERRED to wave_5 (visible-pixel
-//      proof landing per design-10). The current carrier-surface emits
-//      load_started + lifecycle hooks; the visible-pixels evidence kind
-//      is out of scope for chunk 2-D.
+//   6. avatar.carrier.visual visible-pixel evidence is owned by the carrier
+//      visual acceptance path. This lifecycle test emits load_started +
+//      lifecycle hooks only.
 
 import { act, render } from '@testing-library/react';
 import type { VRM } from '@pixiv/three-vrm';
@@ -393,8 +392,6 @@ describe('VRM lifecycle end-to-end (chunk 2-D)', () => {
   });
 });
 
-// avatar.carrier.visual visible_pixels evidence: DEFERRED to wave_5
-// (design-10 visual proof landing). The current chunk 2-D scope ships
-// the carrier-surface lifecycle wiring (load_started / context_lost /
-// context_restored / failed_closed); pixel-level proof remains a
-// future increment.
+// avatar.carrier.visual visible_pixels evidence is owned by the carrier visual
+// acceptance path. This lifecycle test covers carrier-surface lifecycle wiring
+// (load_started / context_lost / context_restored / failed_closed).

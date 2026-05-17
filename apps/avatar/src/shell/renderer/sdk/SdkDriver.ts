@@ -1,19 +1,29 @@
 import type { Runtime } from '@nimiplatform/sdk/runtime/browser';
 import type {
-  RuntimeAgentConsumeEvent as SdkRuntimeAgentConsumeEvent,
-  RuntimeAgentSessionSnapshot as SdkRuntimeAgentSessionSnapshot,
-  RuntimeScopedBindingAttachment,
-} from '@nimiplatform/sdk/runtime/browser';
-import type {
   AgentDataBundle,
-  AgentBundleHistory,
   AgentDataDriver,
   AgentEvent,
   AppOriginEvent,
   DriverStatus,
 } from '../driver/types.js';
 import { createEventBus } from '../infra/event-bus.js';
-import { ulid } from '../infra/ids.js';
+import {
+  clearTurnCueRecord,
+  mapExecutionState,
+  mergeCustomRecord,
+  mergeHistory,
+  normalizeRuntimeTimelineForAvatar,
+  optionalRuntimePreviousEmotion,
+  readSnapshotStatusCue,
+  requireRuntimeActivityCategory,
+  requireRuntimeActivityIntensity,
+  requireRuntimeCurrentEmotion,
+  requireRuntimeProjectionSource,
+  requireRuntimeSourceText,
+  toRuntimeAgentEvent,
+  type RuntimeAgentConsumeEvent,
+  type RuntimeAgentSessionSnapshot,
+} from './sdk-driver-event-helpers.js';
 
 type InternalEvents = {
   'agent-event': AgentEvent;
@@ -21,70 +31,14 @@ type InternalEvents = {
   'status-change': DriverStatus;
 };
 
-type RuntimeAgentTimelineForAvatar = {
-  turnId: string;
-  streamId: string;
-  channel: 'text' | 'voice' | 'avatar' | 'state' | 'lipsync';
-  offsetMs: number;
-  sequence: number;
-  startedAtWall: string;
-  observedAtWall: string;
-  timebaseOwner: 'runtime';
-  projectionRuleId: 'K-AGCORE-051';
-  clockBasis: 'monotonic_with_wall_anchor';
-  providerNeutral: true;
-  appLocalAuthority: false;
-};
-
-type RuntimeAgentVoicePlaybackEvent = {
-  eventName: 'runtime.agent.presentation.voice_playback_requested';
-  agentId: string;
-  conversationAnchorId: string;
-  turnId: string;
-  streamId: string;
-  timeline: RuntimeAgentTimelineForAvatar;
-  detail: {
-    audioArtifactId: string;
-    audioMimeType: string;
-    playbackState: 'requested' | 'started' | 'completed' | 'interrupted' | 'canceled' | 'failed';
-    durationMs?: number;
-    deadlineOffsetMs?: number;
-    reason?: string;
-  };
-};
-
-// The deprecated runtime presentation per-frame mouth-batch consume path
-// was deleted at wave 0 of topic 2026-04-30-avatar-vrm-backend-branch
-// (design-09 §"kill list"). Per-frame mouth movement now flows through
-// `BackendAudioConsumer.snapshot()` in the surface useFrame loop, written
-// by the wLipSync driver. Platform-side emit deprecation is a separate
-// topic; the deprecated event name string is intentionally NOT spelled
-// here so the hard-cut grep gate stays at 0 hits.
-
-type RuntimeAgentConsumeEvent =
-  | SdkRuntimeAgentConsumeEvent
-  | RuntimeAgentVoicePlaybackEvent;
-
-type RuntimeAgentSessionSnapshot = SdkRuntimeAgentSessionSnapshot;
-
-type RuntimeAgentExecutionStateValue =
-  | 'idle'
-  | 'chat_active'
-  | 'life_pending'
-  | 'life_running'
-  | 'suspended';
-
-type BundleActivityCategory = NonNullable<AgentDataBundle['activity']>['category'];
-type BundleActivityIntensity = NonNullable<AgentDataBundle['activity']>['intensity'];
-type BundleCurrentEmotion = NonNullable<AgentDataBundle['emotion']>['current'];
-
 export type SdkDriverOptions = {
   runtime: Runtime;
-  agentId: string;
+  ownerUserId: string;
+  realmAgentId: string;
+  localAgentRef: string;
   conversationAnchorId: string;
   activeWorldId: string;
   activeUserId: string;
-  scopedBinding?: RuntimeScopedBindingAttachment;
   locale: string;
   sessionId?: string;
   now?: () => number;
@@ -92,147 +46,16 @@ export type SdkDriverOptions = {
   cursorInfo?: () => { x: number; y: number };
 };
 
-function mapExecutionState(value?: RuntimeAgentExecutionStateValue): AgentDataBundle['execution_state'] {
-  switch (value) {
-    case 'chat_active':
-      return 'CHAT_ACTIVE';
-    case 'life_pending':
-      return 'LIFE_PENDING';
-    case 'life_running':
-      return 'LIFE_RUNNING';
-    case 'suspended':
-      return 'SUSPENDED';
-    case 'idle':
-    default:
-      return 'IDLE';
-  }
-}
-
-function requireRuntimeActivityCategory(value: unknown): BundleActivityCategory {
-  if (value === 'emotion' || value === 'interaction' || value === 'state') {
-    return value;
-  }
-  throw new Error('avatar sdk driver received malformed runtime activity projection category');
-}
-
-function requireRuntimeActivityIntensity(value: unknown): BundleActivityIntensity {
-  if (value === undefined || value === null || value === '') {
-    return null;
-  }
-  if (value === 'weak' || value === 'moderate' || value === 'strong') {
-    return value;
-  }
-  throw new Error('avatar sdk driver received malformed runtime activity projection intensity');
-}
-
-function requireRuntimeProjectionSource(value: unknown, label: string): string {
-  if (typeof value === 'string' && value.trim()) {
-    return value.trim();
-  }
-  throw new Error(`avatar sdk driver received malformed ${label} source`);
-}
-
-function requireRuntimeCurrentEmotion(value: unknown): BundleCurrentEmotion {
-  if (
-    value === 'neutral'
-    || value === 'joy'
-    || value === 'focus'
-    || value === 'calm'
-    || value === 'playful'
-    || value === 'concerned'
-    || value === 'surprised'
-  ) {
-    return value;
-  }
-  throw new Error('avatar sdk driver received malformed runtime current emotion');
-}
-
-function optionalRuntimePreviousEmotion(value: unknown): BundleCurrentEmotion | null {
-  if (value === undefined || value === null || value === '') {
-    return null;
-  }
-  return requireRuntimeCurrentEmotion(value);
-}
-
-function toRuntimeAgentEvent(
-  name: string,
-  detail: Record<string, unknown>,
-  now: number,
-): AgentEvent {
-  return {
-    event_id: ulid(now),
-    name,
-    timestamp: new Date(now).toISOString(),
-    detail,
-  };
-}
-
-function mergeHistory(
-  current: AgentBundleHistory | undefined,
-  next: Partial<AgentBundleHistory>,
-): AgentBundleHistory {
-  return {
-    last_activity: next.last_activity ?? current?.last_activity ?? null,
-    last_motion: next.last_motion ?? current?.last_motion ?? null,
-    last_expression: next.last_expression ?? current?.last_expression ?? null,
-  };
-}
-
-function mergeCustomRecord(
-  current: AgentDataBundle['custom'],
-  next: Record<string, unknown>,
-): Record<string, unknown> {
-  return {
-    ...(current || {}),
-    ...next,
-  };
-}
-
-function clearTurnCueRecord(
-  current: AgentDataBundle['custom'],
-  next?: Record<string, unknown>,
-): Record<string, unknown> {
-  return {
-    ...(current || {}),
-    active_turn_id: null,
-    active_turn_stream_id: null,
-    active_turn_phase: null,
-    active_turn_text: null,
-    active_turn_updated_at: null,
-    ...(next || {}),
-  };
-}
-
-function normalizeRuntimeTimelineForAvatar(event: RuntimeAgentConsumeEvent): Record<string, unknown> | null {
-  const timeline = 'timeline' in event ? event.timeline : undefined;
-  if (!timeline) {
-    return null;
-  }
-  return {
-    turn_id: timeline.turnId,
-    stream_id: timeline.streamId,
-    channel: timeline.channel,
-    offset_ms: timeline.offsetMs,
-    sequence: timeline.sequence,
-    started_at_wall: timeline.startedAtWall,
-    observed_at_wall: timeline.observedAtWall,
-    timebase_owner: timeline.timebaseOwner,
-    projection_rule_id: timeline.projectionRuleId,
-    clock_basis: timeline.clockBasis,
-    provider_neutral: timeline.providerNeutral,
-    app_local_authority: timeline.appLocalAuthority,
-  };
-}
-
 export class SdkDriver implements AgentDataDriver {
   readonly kind = 'sdk' as const;
   private _status: DriverStatus = 'idle';
   private readonly runtime: Runtime;
-  private readonly agentId: string;
+  private readonly ownerUserId: string;
+  private readonly realmAgentId: string;
+  private readonly localAgentRef: string;
   private readonly conversationAnchorId: string;
   private readonly activeWorldId: string;
   private readonly activeUserId: string;
-  private readonly scopedBinding?: RuntimeScopedBindingAttachment;
   private readonly locale: string;
   private readonly sessionId: string;
   private readonly now: () => number;
@@ -244,11 +67,12 @@ export class SdkDriver implements AgentDataDriver {
 
   constructor(options: SdkDriverOptions) {
     this.runtime = options.runtime;
-    this.agentId = options.agentId;
+    this.ownerUserId = options.ownerUserId;
+    this.realmAgentId = options.realmAgentId;
+    this.localAgentRef = options.localAgentRef;
     this.conversationAnchorId = options.conversationAnchorId;
     this.activeWorldId = options.activeWorldId;
     this.activeUserId = options.activeUserId;
-    this.scopedBinding = options.scopedBinding;
     this.locale = options.locale;
     this.sessionId = options.sessionId ?? options.conversationAnchorId;
     this.now = options.now ?? (() => Date.now());
@@ -271,19 +95,21 @@ export class SdkDriver implements AgentDataDriver {
     try {
       const snapshot = await this.runtime.agent.turns.getSessionSnapshot(
         {
-	          agentId: this.agentId,
+	          ownerUserId: this.ownerUserId,
+	          realmAgentId: this.realmAgentId,
+	          localAgentRef: this.localAgentRef,
 	          conversationAnchorId: this.conversationAnchorId,
 	          ...(this.activeWorldId ? { worldId: this.activeWorldId } : {}),
-	          ...(this.scopedBinding ? { scopedBinding: this.scopedBinding } : {}),
 	        },
         { signal: this.streamAbort.signal },
       );
       this.applySessionSnapshot(snapshot);
       const stream = await this.runtime.agent.turns.subscribe(
         {
-	          agentId: this.agentId,
+	          ownerUserId: this.ownerUserId,
+	          realmAgentId: this.realmAgentId,
+	          localAgentRef: this.localAgentRef,
 	          conversationAnchorId: this.conversationAnchorId,
-	          ...(this.scopedBinding ? { scopedBinding: this.scopedBinding } : {}),
 	        },
         { signal: this.streamAbort.signal },
       );
@@ -372,7 +198,7 @@ export class SdkDriver implements AgentDataDriver {
         locale: this.locale,
       },
       custom: {
-        agent_id: this.agentId,
+        agent_id: this.localAgentRef,
         conversation_anchor_id: this.conversationAnchorId,
       },
     };
@@ -510,6 +336,43 @@ export class SdkDriver implements AgentDataDriver {
     });
     this.touchRuntimeNow();
     this.publishBundle();
+    this.emitSnapshotStatusCueCatchup(snapshot);
+  }
+
+  private emitSnapshotStatusCueCatchup(snapshot: RuntimeAgentSessionSnapshot): void {
+    const cue = readSnapshotStatusCue(snapshot);
+    if (!cue) {
+      return;
+    }
+    const timestampNow = this.now();
+    if (cue.expressionId) {
+      requireRuntimeCurrentEmotion(cue.expressionId);
+      this.emitAgentEvent(toRuntimeAgentEvent('runtime.agent.presentation.expression_requested', {
+        expression_id: cue.expressionId,
+        expected_duration_ms: null,
+        agent_id: this.localAgentRef,
+        conversation_anchor_id: this.conversationAnchorId,
+        turn_id: cue.turnId,
+        stream_id: cue.streamId,
+        source: 'apml_output',
+        catchup_source: 'session_snapshot',
+      }, timestampNow));
+    }
+    if (cue.activityName) {
+      const category = requireRuntimeActivityCategory(cue.activityCategory);
+      const intensity = requireRuntimeActivityIntensity(cue.activityIntensity);
+      this.emitAgentEvent(toRuntimeAgentEvent('runtime.agent.presentation.activity_requested', {
+        activity_name: cue.activityName,
+        category,
+        intensity,
+        source: 'apml_output',
+        agent_id: this.localAgentRef,
+        conversation_anchor_id: this.conversationAnchorId,
+        turn_id: cue.turnId,
+        stream_id: cue.streamId,
+        catchup_source: 'session_snapshot',
+      }, timestampNow));
+    }
   }
 
   private async consumeStream(
@@ -549,7 +412,7 @@ export class SdkDriver implements AgentDataDriver {
             name: event.detail.activityName,
             category,
             intensity,
-            source: 'runtime_projection',
+            source: runtimeSource,
           },
           history: mergeHistory(this.bundle.history, {
             last_activity: {
@@ -570,7 +433,7 @@ export class SdkDriver implements AgentDataDriver {
           category,
           intensity,
           source: runtimeSource,
-          agent_id: event.agentId,
+          agent_id: event.localAgentRef,
           conversation_anchor_id: event.conversationAnchorId,
           turn_id: event.turnId,
           stream_id: event.streamId,
@@ -601,7 +464,7 @@ export class SdkDriver implements AgentDataDriver {
         this.emitAgentEvent(toRuntimeAgentEvent(event.eventName, {
           expression_id: event.detail.expressionId,
           expected_duration_ms: event.detail.expectedDurationMs ?? null,
-          agent_id: event.agentId,
+          agent_id: event.localAgentRef,
           conversation_anchor_id: event.conversationAnchorId,
           turn_id: event.turnId,
           stream_id: event.streamId,
@@ -623,7 +486,7 @@ export class SdkDriver implements AgentDataDriver {
       case 'runtime.agent.state.emotion_changed': {
         const currentEmotion = requireRuntimeCurrentEmotion(event.detail.currentEmotion);
         const previousEmotion = optionalRuntimePreviousEmotion(event.detail.previousEmotion);
-        const runtimeSource = requireRuntimeProjectionSource(event.detail.source, 'runtime emotion projection');
+        const runtimeSource = requireRuntimeSourceText(event.detail.source, 'runtime emotion projection');
         this.bundle = {
           ...this.bundle,
           emotion: {
@@ -759,7 +622,7 @@ export class SdkDriver implements AgentDataDriver {
     const runtimeTimeline = normalizeRuntimeTimelineForAvatar(event);
     return toRuntimeAgentEvent(event.eventName, {
       ...event.detail,
-      agent_id: event.agentId,
+      agent_id: event.localAgentRef,
       conversation_anchor_id: event.conversationAnchorId,
       originating_turn_id: 'originatingTurnId' in event ? event.originatingTurnId ?? null : null,
       originating_stream_id: 'originatingStreamId' in event ? event.originatingStreamId ?? null : null,

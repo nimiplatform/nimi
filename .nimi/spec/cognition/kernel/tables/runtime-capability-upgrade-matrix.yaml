@@ -1,5 +1,8 @@
 version: 1
-capabilities:
+table_family: owner_matrix
+owner: cognition
+matrix_id: cognition_runtime_capability_upgrade_matrix
+capabilities: &cognition_runtime_capability_upgrade_rows
   - concern_id: memory_artifact_mutation
     runtime_source_contract: K-MEM-006
     runtime_capability: typed retain/delete mutation over local memory records
@@ -117,3 +120,4 @@ capabilities:
     admitted_shape: standalone-local fail-close knowledge semantics without runtime ownership leakage
     forbidden_downgrade: permissive graph writes, silent ingest coercion, or lexical fallback masquerading as hybrid search are not admitted
     source_rule: C-COG-037
+rows: *cognition_runtime_capability_upgrade_rows

@@ -37,11 +37,12 @@ test('desktop macos smoke bootstrap failure payload uses explicit failed-step cl
       buildDesktopMacosSmokeFailureReportPayload({
         failedStep: 'bootstrap-timeout-before-ready',
         message: 'timed out',
+        steps: ['wait-chat-panel', 'configure-runtime-text-route'],
       }),
       {
         ok: false,
         failedStep: 'bootstrap-timeout-before-ready',
-        steps: ['bootstrap-timeout-before-ready'],
+        steps: ['wait-chat-panel', 'configure-runtime-text-route'],
         errorMessage: 'timed out',
         errorName: undefined,
         errorStack: undefined,
@@ -98,7 +99,9 @@ test('desktop macos smoke renderer sources include mounted ping markers', () => 
   assert.match(appSource, /app-mounted/);
   assert.match(bootstrapSource, /macos-smoke-context-ready/);
   assert.match(bootstrapSource, /macos-smoke-scenario-start/);
+  assert.match(bootstrapSource, /macos-smoke-step-start/);
   assert.match(bootstrapSource, /macos-smoke-scenario-finished/);
+  assert.match(bootstrapSource, /desktop macOS smoke scenario/);
   assert.match(bootstrapSource, /smoke-context-load-failed/);
   assert.match(bootstrapSource, /bootstrap-timeout-before-ready/);
   assert.match(bootstrapSource, /bootstrap-error-screen/);

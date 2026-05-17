@@ -42,9 +42,6 @@ for (const rel of domainFiles) {
   if (!content.includes('Normative Imports: `.nimi/spec/desktop/kernel/*`')) {
     fail(`${rel} must declare kernel imports`);
   }
-  if (!/\bD-[A-Z]+-\d{3}\b/.test(content)) {
-    fail(`${rel} must reference at least one kernel Rule ID`);
-  }
   checkNoLocalRuleIds(content, rel, fail);
   checkNoRuleDefinitionHeadings(content, rel, fail);
 }
@@ -70,7 +67,7 @@ checkAppTabsConsistency();
 
 checkRetryStatusCodesConsistency();
 
-checkDomainSection0ImportsCoveredInBody();
+checkDomainGuidesDoNotOwnRuleRefs();
 
 checkSourceRuleReferentialIntegrity();
 
@@ -79,7 +76,6 @@ checkNoKernelRuleDefinitionsInDomainDocs();
 checkRuleIdReferencesResolvable();
 
 checkRendererDesignTables(fail);
-checkDesignDomainAnchors();
 
 checkCrossDomainRuleReferences(
   kernelFiles.filter((f) => f.endsWith('.md') && !f.includes('/generated/')),
@@ -481,18 +477,13 @@ function checkRetryStatusCodesConsistency() {
   }
 }
 
-function checkDomainSection0ImportsCoveredInBody() {
+function checkDomainGuidesDoNotOwnRuleRefs() {
   for (const rel of domainFiles) {
     if (!fileExists(rel)) continue;
     const content = read(rel);
-
-    // Extract D-* references from Kernel References sections
-    const ruleRefs = new Set(
-      [...content.matchAll(/\bD-[A-Z]+-\d{3}\b/g)].map((m) => m[0]),
-    );
-
-    if (ruleRefs.size === 0) {
-      fail(`${rel} has no D-* Rule ID references`);
+    const refs = [...content.matchAll(/\bD-[A-Z]+-\d{3}\b/g)].map((m) => m[0]);
+    if (refs.length > 0) {
+      fail(`${rel} must remain thin guidance and avoid direct D-* Rule ID references`);
     }
   }
 }
@@ -520,29 +511,6 @@ function checkNoKernelRuleDefinitionsInDomainDocs() {
     let match;
     while ((match = headingPattern.exec(content)) !== null) {
       fail(`${rel} defines kernel Rule ID ${match[1]} — rule definitions belong in kernel contracts only`);
-    }
-  }
-}
-
-function checkDesignDomainAnchors() {
-  const requiredAnchors = [
-    ['.nimi/spec/desktop/chat.md', 'D-SHELL-019'],
-    ['.nimi/spec/desktop/explore.md', 'D-SHELL-019'],
-    ['.nimi/spec/desktop/contacts.md', 'D-SHELL-019'],
-    ['.nimi/spec/desktop/chat.md', 'D-SHELL-023'],
-    ['.nimi/spec/desktop/contacts.md', 'D-SHELL-023'],
-    ['.nimi/spec/desktop/home.md', 'D-SHELL-015'],
-    ['.nimi/spec/desktop/notification.md', 'D-SHELL-015'],
-    ['.nimi/spec/desktop/profile.md', 'D-SHELL-015'],
-    ['.nimi/spec/desktop/settings.md', 'D-SHELL-023'],
-    ['.nimi/spec/desktop/runtime-config.md', 'D-SHELL-023'],
-    ['.nimi/spec/desktop/world-detail.md', 'D-SHELL-020'],
-  ];
-  for (const [rel, ruleId] of requiredAnchors) {
-    if (!fileExists(rel)) continue;
-    const content = read(rel);
-    if (!content.includes(ruleId)) {
-      fail(`${rel} must reference ${ruleId} for desktop design pilot anchoring`);
     }
   }
 }
@@ -858,7 +826,7 @@ function checkRuleEvidenceTraceability() {
   const seen = new Set();
   for (const item of rules) {
     const ruleId = String(item?.rule_id || '').trim();
-    const status = String(item?.status || '').trim().toLowerCase();
+    const requirement = String(item?.evidence_requirement || '').trim().toLowerCase();
     const refs = Array.isArray(item?.evidence_refs) ? item.evidence_refs : [];
     const naReason = String(item?.na_reason || '').trim();
 
@@ -876,20 +844,20 @@ function checkRuleEvidenceTraceability() {
       fail(`${evidencePath} references unknown desktop kernel rule: ${ruleId}`);
     }
 
-    if (status !== 'covered' && status !== 'na') {
-      fail(`${evidencePath} ${ruleId} has invalid status: ${status || '<empty>'} (allowed: covered|na)`);
+    if (requirement !== 'required' && requirement !== 'not_applicable') {
+      fail(`${evidencePath} ${ruleId} has invalid evidence_requirement: ${requirement || '<empty>'} (allowed: required|not_applicable)`);
       continue;
     }
 
-    if (status === 'na') {
+    if (requirement === 'not_applicable') {
       if (!naReason) {
-        fail(`${evidencePath} ${ruleId} status=na requires na_reason`);
+        fail(`${evidencePath} ${ruleId} evidence_requirement=not_applicable requires na_reason`);
       }
       continue;
     }
 
     if (refs.length === 0) {
-      fail(`${evidencePath} ${ruleId} status=covered requires non-empty evidence_refs`);
+      fail(`${evidencePath} ${ruleId} evidence_requirement=required requires non-empty evidence_refs`);
       continue;
     }
 

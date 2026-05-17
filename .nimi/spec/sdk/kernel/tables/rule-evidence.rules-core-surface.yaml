@@ -1,0 +1,554 @@
+table_family: support_registry
+registry_id: sdk_rule_evidence_core_surface_rules
+owner: sdk
+schema_ref: .nimi/contracts/table-family.schema.yaml#support_registry
+allowed_fields:
+  - rule_id
+  - evidence_requirement
+  - evidence_refs
+  - note
+  - na_reason
+  - evidence_scope_note
+  - test_files
+forbidden_state_fields:
+  - done
+  - covered
+  - coverage_status
+  - audit_date
+  - evidence_report
+  - current
+  - proposed
+  - backlog_status
+  - migration_status
+  - mapping_status
+  - run_id
+  - ledger_ref
+entries:
+  - S-AIP-001
+  - S-AIP-002
+  - S-AIP-003
+  - S-AIP-004
+  - S-AIP-005
+  - S-AIP-006
+  - S-BOUNDARY-001
+  - S-BOUNDARY-002
+  - S-BOUNDARY-003
+  - S-BOUNDARY-004
+  - S-BOUNDARY-005
+  - S-BOUNDARY-006
+  - S-ERROR-001
+  - S-ERROR-002
+  - S-ERROR-003
+  - S-ERROR-004
+  - S-ERROR-005
+  - S-ERROR-006
+  - S-ERROR-007
+  - S-ERROR-008
+  - S-ERROR-009
+  - S-ERROR-010
+  - S-ERROR-011
+  - S-ERROR-012
+  - S-ERROR-013
+  - S-ERROR-014
+  - S-ERROR-015
+  - S-ERROR-016
+  - S-GATE-001
+  - S-GATE-010
+  - S-GATE-020
+  - S-GATE-030
+  - S-GATE-040
+  - S-GATE-050
+  - S-GATE-060
+  - S-GATE-070
+  - S-GATE-080
+  - S-GATE-090
+  - S-GATE-091
+  - S-SCOPE-001
+  - S-SCOPE-002
+  - S-SCOPE-003
+  - S-SCOPE-004
+  - S-SCOPE-005
+  - S-SURFACE-001
+  - S-SURFACE-002
+  - S-SURFACE-003
+  - S-SURFACE-004
+  - S-SURFACE-005
+  - S-SURFACE-006
+  - S-SURFACE-007
+  - S-SURFACE-008
+  - S-SURFACE-009
+  - S-SURFACE-010
+  - S-SURFACE-011
+  - S-SURFACE-012
+  - S-SURFACE-013
+  - S-SURFACE-014
+  - S-TRANSPORT-001
+  - S-TRANSPORT-002
+  - S-TRANSPORT-003
+  - S-TRANSPORT-004
+  - S-TRANSPORT-005
+  - S-TRANSPORT-006
+  - S-TRANSPORT-007
+  - S-TRANSPORT-008
+  - S-TRANSPORT-009
+  - S-TRANSPORT-010
+  - S-TRANSPORT-011
+  - S-TRANSPORT-012
+  - S-TRANSPORT-013
+rules:
+  - rule_id: S-AIP-001
+    evidence_refs:
+      - sdk_behavioral_test
+      - sdk_kernel_consistency
+    test_files:
+      - sdk/test/ai-provider/provider.test.ts
+    evidence_requirement: required
+  - rule_id: S-AIP-002
+    evidence_refs:
+      - sdk_behavioral_test
+      - sdk_kernel_consistency
+    test_files:
+      - sdk/test/ai-provider/provider.test.ts
+    evidence_requirement: required
+  - rule_id: S-AIP-003
+    evidence_refs:
+      - sdk_behavioral_test
+      - sdk_kernel_consistency
+    test_files:
+      - sdk/test/ai-provider/provider.test.ts
+    evidence_requirement: required
+  - rule_id: S-AIP-004
+    evidence_refs:
+      - sdk_kernel_consistency
+    note: Structural alignment rule; provider catalog alignment verified by consistency gate
+    evidence_requirement: required
+  - rule_id: S-AIP-005
+    evidence_refs:
+      - sdk_behavioral_test
+      - sdk_kernel_consistency
+    test_files:
+      - sdk/test/ai-provider/provider.test.ts
+    evidence_requirement: required
+  - rule_id: S-AIP-006
+    evidence_refs:
+      - sdk_kernel_consistency
+    note: Authority boundary rule for world.generate projection; enforced structurally by sdk consistency gate
+    evidence_requirement: required
+  - rule_id: S-BOUNDARY-001
+    evidence_refs:
+      - sdk_kernel_consistency
+      - sdk_boundary_gate
+      - sdk_test_gate
+    note: Import boundary structurally enforced by boundary gate; test suite provides indirect validation
+    evidence_requirement: required
+  - rule_id: S-BOUNDARY-002
+    evidence_refs:
+      - sdk_kernel_consistency
+      - sdk_boundary_gate
+      - sdk_test_gate
+    note: Import boundary structurally enforced by boundary gate; test suite provides indirect validation
+    evidence_requirement: required
+  - rule_id: S-BOUNDARY-003
+    evidence_refs:
+      - sdk_behavioral_test
+      - sdk_kernel_consistency
+    test_files:
+      - sdk/test/mod/mod-runtime-context.test.ts
+    evidence_requirement: required
+  - rule_id: S-BOUNDARY-004
+    evidence_refs:
+      - sdk_kernel_consistency
+      - sdk_boundary_gate
+    note: Structural boundary rule; boundary gate verifies no prohibited imports
+    evidence_requirement: required
+  - rule_id: S-BOUNDARY-005
+    evidence_refs:
+      - sdk_kernel_consistency
+      - sdk_boundary_gate
+      - sdk_test_gate
+    note: Import boundary structurally enforced by boundary gate; test suite provides indirect validation
+    evidence_requirement: required
+  - rule_id: S-BOUNDARY-006
+    evidence_refs:
+      - sdk_behavioral_test
+      - sdk_kernel_consistency
+    note: Behavioral coverage is inherited through runtime projection tests; this rule has no dedicated standalone test file
+    evidence_requirement: required
+  - rule_id: S-ERROR-001
+    evidence_refs:
+      - sdk_behavioral_test
+      - sdk_kernel_consistency
+      - sdk_lint_gate
+    test_files:
+      - sdk/test/runtime/runtime-client-metadata.test.ts
+    evidence_requirement: required
+  - rule_id: S-ERROR-002
+    evidence_refs:
+      - sdk_kernel_consistency
+    note: Source-of-truth governance rule; check:reason-code-constants verifies constants match runtime spec
+    evidence_requirement: required
+  - rule_id: S-ERROR-003
+    evidence_refs:
+      - sdk_kernel_consistency
+    note: Source-of-truth governance rule; sdk-error-codes.yaml is authoritative, consistency gate validates
+    evidence_requirement: required
+  - rule_id: S-ERROR-004
+    evidence_refs:
+      - sdk_behavioral_test
+      - sdk_kernel_consistency
+    test_files:
+      - sdk/test/runtime/runtime-class.test.ts
+    evidence_requirement: required
+  - rule_id: S-ERROR-005
+    evidence_refs:
+      - sdk_behavioral_test
+      - sdk_kernel_consistency
+    test_files:
+      - sdk/test/realm/realm-client.test.ts
+    evidence_requirement: required
+  - rule_id: S-ERROR-006
+    evidence_refs:
+      - sdk_behavioral_test
+      - sdk_kernel_consistency
+    test_files:
+      - sdk/test/runtime/runtime-class.test.ts
+      - sdk/test/runtime/runtime-version-compat.test.ts
+    evidence_requirement: required
+  - rule_id: S-ERROR-007
+    evidence_refs:
+      - sdk_behavioral_test
+      - sdk_kernel_consistency
+    test_files:
+      - sdk/test/runtime/runtime-class.test.ts
+    evidence_requirement: required
+  - rule_id: S-ERROR-008
+    evidence_refs:
+      - sdk_behavioral_test
+      - sdk_kernel_consistency
+    test_files:
+      - sdk/test/runtime/runtime-class.test.ts
+    evidence_requirement: required
+  - rule_id: S-ERROR-009
+    evidence_refs:
+      - sdk_behavioral_test
+      - sdk_kernel_consistency
+    test_files:
+      - sdk/test/runtime/runtime-non-error-terminal.test.ts
+    evidence_requirement: required
+  - rule_id: S-ERROR-010
+    evidence_refs:
+      - sdk_kernel_consistency
+    note: Synthetic ReasonCode governance rule; consistency gate verifies registration in sdk-error-codes.yaml
+    evidence_requirement: required
+  - rule_id: S-ERROR-011
+    evidence_refs:
+      - sdk_behavioral_test
+      - sdk_kernel_consistency
+    test_files:
+      - sdk/test/runtime/runtime-class.test.ts
+    evidence_requirement: required
+  - rule_id: S-ERROR-012
+    evidence_refs:
+      - sdk_behavioral_test
+      - sdk_kernel_consistency
+    test_files:
+      - sdk/test/runtime/runtime-class.test.ts
+    evidence_requirement: required
+  - rule_id: S-ERROR-013
+    evidence_refs:
+      - sdk_behavioral_test
+      - sdk_kernel_consistency
+    test_files:
+      - sdk/test/runtime/runtime-client-metadata.test.ts
+    evidence_requirement: required
+  - rule_id: S-ERROR-014
+    evidence_refs:
+      - sdk_behavioral_test
+      - sdk_kernel_consistency
+    test_files:
+      - sdk/test/runtime/transport-error-parity.test.ts
+    evidence_requirement: required
+  - rule_id: S-ERROR-015
+    evidence_refs:
+      - sdk_behavioral_test
+      - sdk_kernel_consistency
+    test_files:
+      - sdk/test/runtime/runtime-client-metadata.test.ts
+    evidence_requirement: required
+  - rule_id: S-ERROR-016
+    evidence_refs:
+      - sdk_behavioral_test
+      - sdk_kernel_consistency
+      - sdk_lint_gate
+    test_files:
+      - sdk/test/runtime/runtime-media-wait.test.ts
+      - sdk/test/ai-provider/helpers-scenario.test.ts
+    evidence_requirement: required
+  - rule_id: S-GATE-001
+    evidence_refs:
+      - sdk_kernel_consistency
+    note: "Meta-rule: layered test policy; verified by gate infrastructure existence"
+    evidence_requirement: required
+  - rule_id: S-GATE-010
+    evidence_refs:
+      - sdk_kernel_consistency
+      - sdk_test_gate
+    note: "Meta-rule: unit/module/consumer baseline; gates themselves are the evidence"
+    evidence_requirement: required
+  - rule_id: S-GATE-020
+    evidence_refs:
+      - sdk_kernel_consistency
+      - sdk_boundary_gate
+    note: "Meta-rule: contract & boundary gate; gates themselves are the evidence"
+    evidence_requirement: required
+  - rule_id: S-GATE-030
+    evidence_refs:
+      - sdk_kernel_consistency
+    note: "Meta-rule: vNext matrix gate"
+    evidence_requirement: required
+  - rule_id: S-GATE-040
+    evidence_refs:
+      - sdk_kernel_consistency
+      - sdk_mod_hardcut_gate
+    note: "Meta-rule: mod/scope gate"
+    evidence_requirement: required
+  - rule_id: S-GATE-050
+    evidence_refs:
+      - sdk_kernel_consistency
+    note: "Meta-rule: runtime projection gate"
+    evidence_requirement: required
+  - rule_id: S-GATE-060
+    evidence_refs:
+      - sdk_kernel_consistency
+    note: "Meta-rule: coverage gate; check:sdk-coverage enforces threshold"
+    evidence_requirement: required
+  - rule_id: S-GATE-070
+    evidence_refs:
+      - sdk_kernel_consistency
+    note: "Meta-rule: provider catalog alignment gate"
+    evidence_requirement: required
+  - rule_id: S-GATE-080
+    evidence_refs:
+      - sdk_kernel_consistency
+    note: "Meta-rule: live smoke gate"
+    evidence_requirement: required
+  - rule_id: S-GATE-090
+    evidence_refs:
+      - sdk_kernel_consistency
+    note: "Meta-rule: release parity gate; check:sdk-version-matrix enforces"
+    evidence_requirement: required
+  - rule_id: S-GATE-091
+    evidence_refs:
+      - sdk_kernel_consistency
+    note: "Meta-rule: docs drift gate; pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope sdk --check enforces"
+    evidence_requirement: required
+  - rule_id: S-SCOPE-001
+    evidence_refs:
+      - sdk_behavioral_test
+      - sdk_kernel_consistency
+    test_files:
+      - sdk/test/scope/module.test.ts
+    evidence_requirement: required
+  - rule_id: S-SCOPE-002
+    evidence_refs:
+      - sdk_kernel_consistency
+    note: Conceptual rule; scope expresses authorization pre-conditions only, compliance verified by architectural design review
+    evidence_requirement: required
+  - rule_id: S-SCOPE-003
+    evidence_refs:
+      - sdk_kernel_consistency
+    note: Transport consistency rule; scope uses same error/transport semantics as runtime, compliance by design
+    evidence_requirement: required
+  - rule_id: S-SCOPE-004
+    evidence_refs:
+      - sdk_behavioral_test
+      - sdk_kernel_consistency
+    test_files:
+      - sdk/test/scope/module.test.ts
+    evidence_requirement: required
+  - rule_id: S-SCOPE-005
+    evidence_refs:
+      - sdk_kernel_consistency
+      - sdk_boundary_gate
+    note: Structural boundary rule; boundary gate verifies scope import isolation
+    evidence_requirement: required
+  - rule_id: S-SURFACE-001
+    evidence_refs:
+      - sdk_kernel_consistency
+    note: Subpath set structural rule; check:sdk-single-package-layout verifies single-package constraint
+    evidence_requirement: required
+  - rule_id: S-SURFACE-002
+    evidence_refs:
+      - sdk_behavioral_test
+      - sdk_kernel_consistency
+    test_files:
+      - sdk/test/runtime/runtime-bridge-method-parity.test.ts
+    evidence_requirement: required
+  - rule_id: S-SURFACE-003
+    evidence_refs:
+      - sdk_behavioral_test
+      - sdk_kernel_consistency
+    test_files:
+      - sdk/test/realm/realm-facade-naming.test.ts
+    evidence_requirement: required
+  - rule_id: S-SURFACE-004
+    evidence_refs:
+      - sdk_behavioral_test
+      - sdk_kernel_consistency
+    test_files:
+      - sdk/test/realm/realm-client.test.ts
+      - sdk/test/scope/module.test.ts
+      - sdk/test/mod/mod-runtime-context.test.ts
+    evidence_requirement: required
+  - rule_id: S-SURFACE-005
+    evidence_refs:
+      - sdk_behavioral_test
+      - sdk_kernel_consistency
+      - sdk_realm_legacy_gate
+    test_files:
+      - sdk/test/realm/realm-facade-naming.test.ts
+    evidence_requirement: required
+  - rule_id: S-SURFACE-006
+    evidence_refs:
+      - sdk_kernel_consistency
+      - sdk_app_realm_boundary_gate
+    note: Repo-level guardrail rule; explicit allowlist enforced by check:no-app-realm-rest-bypass
+    evidence_requirement: required
+  - rule_id: S-SURFACE-007
+    evidence_refs:
+      - sdk_kernel_consistency
+      - sdk_unsafe_raw_gate
+    note: Unsafe raw escape hatches are naming-gated by check:sdk-unsafe-raw-usage
+    evidence_requirement: required
+  - rule_id: S-SURFACE-008
+    evidence_refs:
+      - sdk_kernel_consistency
+      - sdk_generated_type_quality_gate
+    note: App-facing realm DTO quality is enforced by check:sdk-generated-type-quality
+    evidence_requirement: required
+  - rule_id: S-SURFACE-009
+    evidence_refs:
+      - sdk_kernel_consistency
+    note: Governance rule; runtime-method-groups.yaml maintained as structured fact source, consistency gate validates
+    evidence_requirement: required
+  - rule_id: S-SURFACE-010
+    evidence_refs:
+      - sdk_kernel_consistency
+      - sdk_generated_type_quality_gate
+    note: Every realm unknown-map field must be explicitly allowlisted as a dynamic envelope or promoted to a named schema
+    evidence_requirement: required
+  - rule_id: S-SURFACE-011
+    evidence_refs:
+      - sdk_kernel_consistency
+      - sdk_runtime_stable_ai_output_gate
+    note: Stable runtime AI product surfaces are locked to typed ScenarioOutput/ScenarioStreamDelta consumption and may not regress to Struct or record reparsing
+    evidence_requirement: required
+  - rule_id: S-SURFACE-012
+    evidence_refs:
+      - sdk_kernel_consistency
+    note: World Evolution Engine logical facades must stay on existing SDK public surfaces and must not be misregistered as a new subpath or runtime RPC method group
+    evidence_requirement: required
+  - rule_id: S-SURFACE-013
+    evidence_refs:
+      - sdk_kernel_consistency
+    note: Selector-read stable methods must remain on existing composition surfaces; no new subpath, runtime-subpath method publication, or RPC parity registration is allowed
+    evidence_requirement: required
+  - rule_id: S-SURFACE-014
+    evidence_refs:
+      - sdk_kernel_consistency
+    note: sdk/world is the stable world-domain subpath inside the single SDK package and must not be misread as runtime RPC parity or K-WEV renaming
+    evidence_requirement: required
+  - rule_id: S-TRANSPORT-001
+    evidence_refs:
+      - sdk_behavioral_test
+      - sdk_kernel_consistency
+      - sdk_lint_gate
+    test_files:
+      - sdk/test/runtime/runtime-convenience.test.ts
+    evidence_requirement: required
+  - rule_id: S-TRANSPORT-002
+    evidence_refs:
+      - sdk_behavioral_test
+      - sdk_kernel_consistency
+      - sdk_lint_gate
+    test_files:
+      - sdk/test/runtime/runtime-client-write-semantics.test.ts
+      - sdk/test/runtime/runtime-client-metadata.test.ts
+    evidence_requirement: required
+  - rule_id: S-TRANSPORT-003
+    evidence_refs:
+      - sdk_behavioral_test
+      - sdk_kernel_consistency
+    test_files:
+      - sdk/test/runtime/runtime-class.test.ts
+      - sdk/test/ai-provider/provider.test.ts
+    evidence_requirement: required
+  - rule_id: S-TRANSPORT-004
+    evidence_refs:
+      - sdk_behavioral_test
+      - sdk_kernel_consistency
+    test_files:
+      - sdk/test/realm/realm-client.test.ts
+    evidence_requirement: required
+  - rule_id: S-TRANSPORT-005
+    evidence_refs:
+      - sdk_behavioral_test
+      - sdk_kernel_consistency
+    test_files:
+      - sdk/test/runtime/runtime-version-compat.test.ts
+      - sdk/test/runtime/runtime-class.test.ts
+    evidence_requirement: required
+  - rule_id: S-TRANSPORT-006
+    evidence_refs:
+      - sdk_behavioral_test
+      - sdk_kernel_consistency
+    test_files:
+      - sdk/test/runtime/runtime-client-metadata.test.ts
+    evidence_requirement: required
+  - rule_id: S-TRANSPORT-007
+    evidence_refs:
+      - sdk_behavioral_test
+      - sdk_kernel_consistency
+    test_files:
+      - sdk/test/runtime/runtime-class.test.ts
+      - sdk/test/runtime/runtime-class-coverage.test.ts
+    evidence_requirement: required
+  - rule_id: S-TRANSPORT-008
+    evidence_refs:
+      - sdk_kernel_consistency
+    note: Design-level rule; SDK does not add client-side timeouts, compliance by absence of timeout injection
+    evidence_requirement: required
+  - rule_id: S-TRANSPORT-009
+    evidence_refs:
+      - sdk_kernel_consistency
+    note: Design-level rule; SDK does not re-split/merge chunks, compliance by absence of chunk manipulation
+    evidence_requirement: required
+  - rule_id: S-TRANSPORT-010
+    evidence_refs:
+      - sdk_behavioral_test
+      - sdk_kernel_consistency
+    test_files:
+      - sdk/test/runtime/runtime-client-write-semantics.test.ts
+    evidence_requirement: required
+  - rule_id: S-TRANSPORT-011
+    evidence_refs:
+      - sdk_behavioral_test
+      - sdk_kernel_consistency
+    test_files:
+      - sdk/test/runtime/runtime-client-tauri-ipc.test.ts
+    evidence_requirement: required
+  - rule_id: S-TRANSPORT-012
+    evidence_refs:
+      - sdk_behavioral_test
+      - sdk_kernel_consistency
+    test_files:
+      - sdk/test/runtime/runtime-client-tauri-ipc.test.ts
+    evidence_requirement: required
+  - rule_id: S-TRANSPORT-013
+    evidence_refs:
+      - sdk_behavioral_test
+      - sdk_kernel_consistency
+    test_files:
+      - sdk/test/runtime/runtime-class.test.ts
+      - sdk/test/ai-provider/provider.test.ts
+    evidence_requirement: required

@@ -206,6 +206,14 @@ function requireConversationAnchorId(anchorId: unknown, actionHint = 'open_runti
   return normalized;
 }
 
+function requireAvatarInstanceId(avatarInstanceId: unknown, actionHint = 'provide_avatar_instance_id'): string {
+  const normalized = optionalString(avatarInstanceId);
+  if (!normalized) {
+    runtimeAgentInputError('runtime agent request requires avatarInstanceId', actionHint);
+  }
+  return normalized;
+}
+
 function optionalRuntimeCursor(cursor: unknown): string {
   const normalized = optionalString(cursor);
   if (!normalized) {
@@ -353,6 +361,50 @@ export function createRuntimeAgentAnchorsModule(input: {
       }
       return response.snapshot;
     },
+    async registerAvatarLiveInstance(request, options) {
+      const identity = requireLocalAgentIdentity(request);
+      const avatarInstanceId = requireAvatarInstanceId(request.avatarInstanceId);
+      const conversationAnchorId = requireConversationAnchorId(request.conversationAnchorId);
+      const subjectUserId = await input.resolveSubjectUserId(request.subjectUserId || identity.ownerUserId);
+      const registerOptions = options?.protectedAccessToken
+        ? baseCallOptions(options)
+        : await input.protectedAccess.getCallOptions([AGENT_WRITE_SCOPE], options);
+      const response = await input.agent.registerAvatarLiveInstanceBinding({
+        avatarInstanceId,
+        conversationAnchorId,
+        context: runtimeAgentRequestContext(input.appId, subjectUserId, identity),
+      }, registerOptions);
+      if (!response.binding || !response.snapshot) {
+        throw createNimiError({
+          message: 'RegisterAvatarLiveInstanceBinding response missing binding or snapshot',
+          reasonCode: ReasonCode.SDK_RUNTIME_RESPONSE_DECODE_FAILED,
+          actionHint: 'check_runtime_agent_avatar_live_instance_binding',
+          source: 'sdk',
+        });
+      }
+      return { binding: response.binding, snapshot: response.snapshot };
+    },
+    async resolveAvatarLiveInstance(request, options) {
+      const identity = requireLocalAgentIdentity(request);
+      const avatarInstanceId = requireAvatarInstanceId(request.avatarInstanceId);
+      const subjectUserId = await input.resolveSubjectUserId(request.subjectUserId || identity.ownerUserId);
+      const resolveOptions = options?.protectedAccessToken
+        ? baseCallOptions(options)
+        : await input.protectedAccess.getCallOptions([AGENT_READ_SCOPE], options);
+      const response = await input.agent.resolveAvatarLiveInstanceBinding({
+        avatarInstanceId,
+        context: runtimeAgentRequestContext(input.appId, subjectUserId, identity),
+      }, resolveOptions);
+      if (!response.binding || !response.snapshot) {
+        throw createNimiError({
+          message: 'ResolveAvatarLiveInstanceBinding response missing binding or snapshot',
+          reasonCode: ReasonCode.SDK_RUNTIME_RESPONSE_DECODE_FAILED,
+          actionHint: 'check_runtime_agent_avatar_live_instance_binding',
+          source: 'sdk',
+        });
+      }
+      return { binding: response.binding, snapshot: response.snapshot };
+    },
   };
 }
 export function createRuntimeAgentTurnsModule(input: {
@@ -393,7 +445,7 @@ export function createRuntimeAgentTurnsModule(input: {
         ? await input.agent.subscribeEvents({
           agentId: '',
           cursor,
-          eventFilters: [AgentEventType.HOOK, AgentEventType.STATE],
+          eventFilters: [AgentEventType.HOOK, AgentEventType.STATE, AgentEventType.PRESENTATION],
           context: scopedBinding
             ? runtimeAgentRequestContext(input.appId, '', identity, scopedBinding)
             : runtimeAgentRequestContext(input.appId, subjectUserId || '', identity),

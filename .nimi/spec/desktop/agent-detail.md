@@ -1,36 +1,36 @@
-# Agent Detail Domain Spec
+# Agent Detail
 
 > Normative Imports: `.nimi/spec/desktop/kernel/*`
 
 ## Scope
 
-Agent 详情功能域 — Agent 详情页、Agent 列表、公开资料展示。
+This guide points to the desktop authority surfaces for agent-detail. It does not define product rules.
 
-## Module Map
+## Reading Path
 
-- `features/agent-detail/` — Agent 详情面板
-- `runtime/data-sync/flows/agent-runtime-flow.ts` — Agent 公开详情读取与 bounded display 输入
-- `runtime/data-sync/flows/agent-flow.ts` — 我的 Agent / Creator Agent 列表与创建数据流
+- `.nimi/spec/desktop/kernel/index.md`
+- `.nimi/spec/desktop/kernel/agent-avatar-configuration-contract.md`
+- `.nimi/spec/desktop/kernel/agent-avatar-debug-workbench-contract.md`
+- `.nimi/spec/desktop/kernel/agent-avatar-surface-contract.md`
+- `.nimi/spec/desktop/kernel/agent-chat-behavior-contract.md`
+- `.nimi/spec/desktop/kernel/agent-chat-message-action-contract.md`
+- `.nimi/spec/desktop/kernel/agent-chat-voice-executor-contract.md`
+- `.nimi/spec/desktop/kernel/agent-chat-voice-session-contract.md`
+- `.nimi/spec/desktop/kernel/agent-chat-voice-workflow-contract.md`
+- `.nimi/spec/desktop/kernel/agent-delegation-control-surface-contract.md`
+- `.nimi/spec/desktop/kernel/ai-profile-config-contract.md`
+- `.nimi/spec/desktop/kernel/auth-session-contract.md`
+- `.nimi/spec/desktop/kernel/bootstrap-contract.md`
 
-## Kernel References
+## Tables
 
-### DataSync (D-DSYNC-011)
-
-Agent 数据流（方法清单见 `D-DSYNC-011`）。Desktop core product 仅承载 Agent 列表与公开详情读取，不承载 Agent LLM memory 或 chat route。
-
-### State (D-STATE-004)
-
-- `activeTab = 'agent-detail'` 时渲染 Agent 详情面板。
-- 从 Explore 或 Chat 导航到 Agent 详情：`navigateToProfile(id, 'agent-detail')`。
-
-### DataSync (D-DSYNC-008)
-
-探索页的 `loadAgentDetails` 获取 Agent 公开详情，用于 Agent 详情预览。
-
-## Data Projection Boundary
-
-Agent Detail page 当前通过 bounded `AgentDisplayDetail` seam 消费公开展示信息。`loadAgentDetails` 仍然是 raw public detail read surface，但 page 不再直接承担 mixed envelope 解释权，也不再在 panel 内做最终展示字段修补。
-
-## CI 门禁引用
-
-本域涉及的 CI 门禁：`pnpm exec nimicoding validate-spec-governance --profile nimi --scope desktop-consistency`。
+- `.nimi/spec/desktop/kernel/tables/agent-avatar-configuration.schema.yaml`
+- `.nimi/spec/desktop/kernel/tables/agent-avatar-debug-remediation-states.yaml`
+- `.nimi/spec/desktop/kernel/tables/agent-avatar-debug-workbench-probes.yaml`
+- `.nimi/spec/desktop/kernel/tables/app-tabs.yaml`
+- `.nimi/spec/desktop/kernel/tables/bootstrap-phases.yaml`
+- `.nimi/spec/desktop/kernel/tables/build-chunks.yaml`
+- `.nimi/spec/desktop/kernel/tables/codegen-acceptance-gates.yaml`
+- `.nimi/spec/desktop/kernel/tables/codegen-capability-tiers.yaml`
+- `.nimi/spec/desktop/kernel/tables/codegen-import-allowlist.yaml`
+- `.nimi/spec/desktop/kernel/tables/codegen-static-scan-deny-patterns.yaml`

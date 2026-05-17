@@ -2,6 +2,22 @@ contract_id: WORLD-HISTORY-CONTRACT-001
 domain: world-history
 status: ACTIVE
 version: 2026-03-22
+table_family: product_catalog
+catalog_id: realm_world_history_contract
+entries:
+  - human_spec
+  - openapi
+  - prisma
+  - services
+  - R-WHIST-001
+  - R-WHIST-002
+  - R-WHIST-003
+  - R-WHIST-004
+  - R-WHIST-005
+  - R-WHIST-006
+  - WorldHistoryEvent
+  - required_operations
+  - secondary_operations
 owner: '@team'
 sources:
   human_spec: ../world-history-contract.md

@@ -9,6 +9,8 @@ const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const cwd = path.resolve(scriptDir, '..');
 
 let failed = false;
+const cognitionKernelImport = 'Normative Imports: `.nimi/spec/cognition/kernel/*`';
+const cognitionKernelRefPattern = /(?:\.nimi\/spec\/cognition\/kernel\/|kernel\/(?:cognition|family|surface|runtime-bridge|runtime-upgrade|memory-service|knowledge-service|skill-service|reference|prompt-serving|completion)-contract\.md)/u;
 
 function fail(msg) {
   failed = true;
@@ -47,7 +49,6 @@ const requiredFiles = [
   '.nimi/spec/cognition/kernel/tables/admitted-reference-matrix.yaml',
   '.nimi/spec/cognition/kernel/tables/prompt-serving-lanes.yaml',
   '.nimi/spec/cognition/kernel/tables/completion-gates.yaml',
-  '.nimi/spec/cognition/kernel/tables/rule-evidence.yaml',
 ];
 
 for (const rel of requiredFiles) {
@@ -63,11 +64,11 @@ if (domainFiles.length === 0) {
 
 for (const rel of domainFiles) {
   const content = read(rel);
-  if (!content.includes('Normative Imports: `.nimi/spec/cognition/kernel/*`')) {
+  if (!content.includes(cognitionKernelImport)) {
     fail(`${rel} must declare cognition kernel imports`);
   }
-  if (!/\bC-COG-\d{3}\b/u.test(content)) {
-    fail(`${rel} must reference at least one cognition kernel Rule ID`);
+  if (!cognitionKernelRefPattern.test(content)) {
+    fail(`${rel} must reference cognition kernel authority files`);
   }
   checkNoLocalRuleIds(content, rel);
   checkNoRuleDefinitionHeadings(content, rel);
@@ -154,9 +155,6 @@ validateCompletionGates(completionGates?.gates, completionGatesRel);
 
 validatePublicSurfaceCapabilityMappings(publicSurfaceTable?.surfaces, upgradeMatrix?.capabilities, '.nimi/spec/cognition/kernel/tables/public-surface.yaml');
 
-const evidenceTableRel = '.nimi/spec/cognition/kernel/tables/rule-evidence.yaml';
-const evidenceTable = readYaml(evidenceTableRel);
-checkRuleEvidence(definitionMap, evidenceTable, evidenceTableRel);
 validateSQLiteOnlyBackendFreeze();
 validateSupportDocsAlignment();
 validateCorePublicSurface(publicSurfaceTable?.surfaces);
@@ -238,9 +236,9 @@ function checkSourceRuleTable(rel, entries, idField, definitionMap) {
 }
 
 function checkRuleEvidence(definitionMap, doc, rel) {
-  const totalRules = Number(doc?.rule_compliance?.total_c_rules);
+  const totalRules = Number(doc?.rule_registry?.total_c_rules);
   if (!Number.isInteger(totalRules)) {
-    fail(`${rel} must declare integer rule_compliance.total_c_rules`);
+    fail(`${rel} must declare integer rule_registry.total_c_rules`);
   } else if (totalRules !== definitionMap.size) {
     fail(`${rel} total_c_rules=${totalRules} does not match defined cognition rules=${definitionMap.size}`);
   }
@@ -256,7 +254,7 @@ function checkRuleEvidence(definitionMap, doc, rel) {
   if (rules.length !== definitionMap.size) {
     fail(`${rel} must contain one rule-evidence entry per cognition rule`);
   }
-  const allowedStatuses = new Set(['covered', 'deferred', 'na']);
+  const allowedRequirements = new Set(['required', 'deferred', 'not_applicable']);
 
   const seenRules = new Set();
   for (const entry of rules) {
@@ -273,11 +271,11 @@ function checkRuleEvidence(definitionMap, doc, rel) {
     }
     seenRules.add(ruleID);
 
-    const status = String(entry?.status || '').trim();
-    if (!status) {
-      fail(`${rel} rule ${ruleID} must declare status`);
-    } else if (!allowedStatuses.has(status)) {
-      fail(`${rel} rule ${ruleID} uses illegal status: ${status}`);
+    const requirement = String(entry?.evidence_requirement || '').trim();
+    if (!requirement) {
+      fail(`${rel} rule ${ruleID} must declare evidence_requirement`);
+    } else if (!allowedRequirements.has(requirement)) {
+      fail(`${rel} rule ${ruleID} uses illegal evidence_requirement: ${requirement}`);
     }
 
     const evidenceRefs = Array.isArray(entry?.evidence_refs) ? entry.evidence_refs : [];

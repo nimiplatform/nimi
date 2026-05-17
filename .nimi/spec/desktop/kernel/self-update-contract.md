@@ -38,3 +38,5 @@ Desktop 自更新与 bundled runtime 发布契约。该契约是 `D-BOOT-001`、
 - `DesktopReleaseInfo` 必须暴露 `updaterAvailable`，并可选暴露 `updaterUnavailableReason`。
 - Bootstrap 与 Settings UI 必须使用该投影判定 desktop self-update actions 是否可用。
 - 当 `updaterAvailable=false` 时，静默检查必须 no-op；手动 update 操作必须直接展示 `updaterUnavailableReason`，而不是调用已知会失败的 updater command。
+- Settings 的 Application Update 区域投影当前 desktop version、bundled runtime version、target version 与 updater state。`autoUpdate` 表示自动检查并下载；安装完成后的 restart 仍由显式用户动作触发。
+- Runtime staging 或 release metadata 错误在 Settings 中保持可见，不由 fallback version info 掩盖。

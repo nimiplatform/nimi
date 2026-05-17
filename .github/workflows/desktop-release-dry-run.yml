@@ -159,14 +159,11 @@ jobs:
         if: steps.nimi_mods_access.outputs.available == 'true' && matrix.platform != 'macos-latest'
         run: cargo install tauri-driver --locked
 
-      - name: Probe or install Windows native driver
+      - name: Install matching Windows native driver
+        id: windows_native_driver
         if: steps.nimi_mods_access.outputs.available == 'true' && matrix.platform == 'windows-2025-vs2026'
         shell: pwsh
-        run: |
-          if (-not (Get-Command msedgedriver -ErrorAction SilentlyContinue)) {
-            winget install --exact --id Microsoft.EdgeWebDriver --silent --accept-package-agreements --accept-source-agreements
-          }
-          Get-Command msedgedriver | Out-String | Write-Host
+        run: ./scripts/release/install-matching-msedgedriver.ps1
 
       - name: Build SDK surfaces (desktop runtime dependency)
         if: steps.nimi_mods_access.outputs.available == 'true'
@@ -202,14 +199,14 @@ jobs:
         id: desktop_e2e_smoke_windows
         if: steps.nimi_mods_access.outputs.available == 'true' && matrix.platform == 'windows-2025-vs2026'
         env:
-          NIMI_E2E_NATIVE_DRIVER: msedgedriver
+          NIMI_E2E_NATIVE_DRIVER: ${{ steps.windows_native_driver.outputs.msedgedriver_path }}
         run: pnpm check:desktop-e2e-smoke
 
       - name: Run desktop E2E journeys (Windows)
         id: desktop_e2e_journeys_windows
         if: steps.nimi_mods_access.outputs.available == 'true' && matrix.platform == 'windows-2025-vs2026'
         env:
-          NIMI_E2E_NATIVE_DRIVER: msedgedriver
+          NIMI_E2E_NATIVE_DRIVER: ${{ steps.windows_native_driver.outputs.msedgedriver_path }}
         run: pnpm check:desktop-e2e-journeys
 
       - name: Generate desktop E2E evidence (Linux)
@@ -241,13 +238,14 @@ jobs:
             --commit "${GITHUB_SHA}" \
             --smoke-outcome "${SMOKE_OUTCOME}" \
             --journeys-outcome "${JOURNEYS_OUTCOME}" \
-            --native-driver msedgedriver \
+            --native-driver "${NATIVE_DRIVER}" \
             --tauri-driver tauri-driver \
             --app-mode packaged \
             --artifact-upload-path "apps/desktop/reports/e2e/**"
         env:
           SMOKE_OUTCOME: ${{ steps.desktop_e2e_smoke_windows.outcome }}
           JOURNEYS_OUTCOME: ${{ steps.desktop_e2e_journeys_windows.outcome }}
+          NATIVE_DRIVER: ${{ steps.windows_native_driver.outputs.msedgedriver_path }}
 
       - name: Upload desktop E2E evidence
         if: always() && steps.nimi_mods_access.outputs.available == 'true' && matrix.platform != 'macos-latest'

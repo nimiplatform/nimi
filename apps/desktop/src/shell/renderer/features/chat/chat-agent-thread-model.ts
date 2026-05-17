@@ -2,10 +2,7 @@ import type {
   ConversationMessageViewModel,
   ConversationThreadSummary,
 } from '@nimiplatform/nimi-kit/features/chat/headless';
-import {
-  resolveSpriteAvatarImageUrl,
-  type AvatarPresentationProfile,
-} from '@nimiplatform/nimi-kit/features/avatar/headless';
+import type { AvatarPresentationProfile } from '@nimiplatform/nimi-kit/features/avatar/headless';
 import type {
   AgentLocalMessageRecord,
   AgentLocalTargetSnapshot,
@@ -51,9 +48,6 @@ function parseAvatarBackendKind(value: unknown): AvatarPresentationProfile['back
   if (
     normalized === 'vrm'
     || normalized === 'live2d'
-    || normalized === 'sprite2d'
-    || normalized === 'canvas2d'
-    || normalized === 'video'
   ) {
     return normalized;
   }
@@ -87,17 +81,7 @@ function resolveTargetPresentationProfile(input: {
   if (explicitPresentation) {
     return explicitPresentation;
   }
-  if (!input.avatarUrl) {
-    return null;
-  }
-  return {
-    backendKind: 'sprite2d',
-    avatarAssetRef: input.avatarUrl,
-    expressionProfileRef: null,
-    idlePreset: null,
-    interactionPolicyRef: null,
-    defaultVoiceReference: null,
-  };
+  return null;
 }
 
 export function mergeAgentTargetWithPresentationProfile(
@@ -108,7 +92,7 @@ export function mergeAgentTargetWithPresentationProfile(
     return null;
   }
   const nextPresentationProfile = presentationProfile || target.presentationProfile || null;
-  const nextAvatarUrl = resolveSpriteAvatarImageUrl(nextPresentationProfile, target.avatarUrl || null);
+  const nextAvatarUrl = target.avatarUrl || null;
   if (nextPresentationProfile === (target.presentationProfile || null) && nextAvatarUrl === (target.avatarUrl || null)) {
     return target;
   }

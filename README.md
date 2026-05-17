@@ -206,7 +206,6 @@ original Chinese content, not sentence-by-sentence translation.
 | `proto/` | Protocol Buffers and gRPC definitions |
 | `apps/` | Showcase apps (Desktop, Web, Avatar, Forge, …) |
 | `nimi-mods/` | Mod ecosystem workspace |
-| `nimi-coding/` | Nimi Coding methodology package source |
 | `nimi-cognition/` | Cognition implementation workspace |
 | `docs/` | Public documentation source (VitePress) |
 | `examples/` | SDK / runtime / app / mod scaffold templates |

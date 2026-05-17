@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import http from 'node:http';
 import { Server as SocketIOServer } from 'socket.io';
+import { ReasonCode } from '@nimiplatform/sdk/types';
 
 function readJsonFile(filePath) {
   return JSON.parse(fs.readFileSync(filePath, 'utf8'));
@@ -80,6 +81,78 @@ function lookupWorld(manifest, worldId) {
   return worlds.find((item) => String(item?.id || '') === String(worldId || '')) || null;
 }
 
+function positiveInt(value, fallback) {
+  const parsed = Number.parseInt(String(value || ''), 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+function nullableString(value) {
+  const text = String(value || '').trim();
+  return text || null;
+}
+
+function runtimeAccessTokenFromFixture(manifest) {
+  return nullableString(manifest.tauriFixture?.runtimeDefaults?.realm?.accessToken);
+}
+
+function runtimeAccountTokenResponse(manifest) {
+  const fixture = manifest.realmFixture || {};
+  const currentUser = fixture.currentUser || {};
+  const now = new Date().toISOString();
+  return {
+    access_token: runtimeAccessTokenFromFixture(manifest) || 'e2e-runtime-access-token',
+    refresh_token: `e2e-runtime-refresh-${String(currentUser.id || 'user-e2e-primary')}`,
+    expires_in: 3600,
+    account_id: String(currentUser.id || 'user-e2e-primary'),
+    display_name: String(currentUser.displayName || currentUser.handle || 'E2E User'),
+    realm_environment_id: String(fixture.realmEnvironmentId || 'realm-e2e-local'),
+    workspace_memberships: Array.isArray(fixture.workspaceMemberships)
+      ? fixture.workspaceMemberships
+      : [{
+          workspaceId: String(fixture.workspaceId || 'workspace-e2e-local'),
+          membershipState: 'active',
+          realmEnvironmentId: String(fixture.realmEnvironmentId || 'realm-e2e-local'),
+          observedAt: now,
+          displayMetadata: {
+            name: String(fixture.workspaceName || 'E2E Workspace'),
+          },
+        }],
+  };
+}
+
+function feedItems(fixture) {
+  if (Array.isArray(fixture.postFeed?.items)) {
+    return fixture.postFeed.items;
+  }
+  if (Array.isArray(fixture.posts?.items)) {
+    return fixture.posts.items;
+  }
+  return [];
+}
+
+function buildPostFeedResponse(fixture, requestUrl) {
+  const visibility = nullableString(requestUrl.searchParams.get('visibility'));
+  const worldId = nullableString(requestUrl.searchParams.get('worldId'));
+  const authorId = nullableString(requestUrl.searchParams.get('authorId'));
+  const cursor = nullableString(requestUrl.searchParams.get('cursor'));
+  const limit = positiveInt(requestUrl.searchParams.get('limit'), 15);
+  const offset = positiveInt(cursor, 0);
+  const items = feedItems(fixture)
+    .filter((post) => !authorId || String(post?.authorId || '') === authorId)
+    .filter((post) => !worldId || String(post?.worldId || '') === worldId)
+    .filter((post) => !visibility || String(post?.visibility || '') === visibility);
+  const pageItems = items.slice(offset, offset + limit);
+  const nextOffset = offset + pageItems.length;
+  return {
+    items: pageItems,
+    page: {
+      cursor,
+      limit,
+      nextCursor: nextOffset < items.length ? String(nextOffset) : null,
+    },
+  };
+}
+
 async function handleControl(request, response, manifestPath) {
   const pathname = new URL(request.url, 'http://127.0.0.1').pathname;
   const body = await parseBody(request);
@@ -133,6 +206,9 @@ function handleApi(request, response, manifestPath) {
 
   if (fixture.restOnline === false) {
     json(response, 503, {
+      reasonCode: ReasonCode.REALM_UNAVAILABLE,
+      actionHint: 'retry_realm_request',
+      retryable: true,
       message: 'fixture rest offline',
       scenarioId: manifest.scenarioId,
     });
@@ -152,6 +228,14 @@ function handleApi(request, response, manifestPath) {
     return undefined;
   }
 
+  if (
+    request.method === 'POST'
+    && (pathname === '/api/auth/oauth/token' || pathname === '/api/auth/refresh')
+  ) {
+    json(response, 200, runtimeAccountTokenResponse(manifest));
+    return undefined;
+  }
+
   if (request.method === 'GET' && pathname === '/api/human/me') {
     if (!fixture.currentUser) {
       json(response, 401, { message: 'unauthorized' });
@@ -163,6 +247,42 @@ function handleApi(request, response, manifestPath) {
 
   if (request.method === 'GET' && pathname === '/api/human/chats') {
     json(response, 200, fixture.chats || { items: [] });
+    return undefined;
+  }
+
+  if (request.method === 'GET' && pathname === '/api/human/group-chats') {
+    json(response, 200, fixture.groupChats || { items: [] });
+    return undefined;
+  }
+
+  if (request.method === 'GET' && pathname === '/api/economy/balances') {
+    json(response, 200, fixture.economyBalances || {
+      sparkBalance: 0,
+      gemBalance: 0,
+      currency: 'NIMI',
+    });
+    return undefined;
+  }
+
+  if (request.method === 'GET' && pathname === '/api/economy/subscription') {
+    json(response, 200, fixture.subscription || {
+      id: 'subscription-e2e-free',
+      tier: 'FREE',
+      status: 'ACTIVE',
+      cancelAtPeriodEnd: false,
+      currentPeriodStart: null,
+      currentPeriodEnd: null,
+      tierConfig: {
+        tier: 'FREE',
+        priceUsd: 0,
+        features: [],
+      },
+    });
+    return undefined;
+  }
+
+  if (request.method === 'GET' && pathname === '/api/human/notifications/unread-count') {
+    json(response, 200, fixture.notificationUnreadCount || { unreadCount: 0 });
     return undefined;
   }
 
@@ -284,6 +404,11 @@ function handleApi(request, response, manifestPath) {
   if (request.method === 'GET' && worldviewSnapshotsMatch) {
     const world = lookupWorld(manifest, decodeURIComponent(worldviewSnapshotsMatch[1]));
     json(response, 200, Array.isArray(world?.worldviewSnapshots) ? world.worldviewSnapshots : []);
+    return undefined;
+  }
+
+  if (request.method === 'GET' && pathname === '/api/world/posts') {
+    json(response, 200, buildPostFeedResponse(fixture, requestUrl));
     return undefined;
   }
 

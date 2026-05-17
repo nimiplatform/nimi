@@ -51,9 +51,15 @@ export {
   AvatarDebugProbeKind,
   AvatarDebugProbeStatus,
   AvatarDebugRequestedBy,
+  CompanionParticipationStatus,
+  CompanionParticipationSurfaceKind,
+  CompanionParticipationTriggerSource,
   HookAdmissionState,
   AgentLifecycleStatus,
   AgentTrackType,
+  HookTriggerFamily,
+} from './generated/runtime/v1/agent_service.js';
+export {
   DelegatedApprovalDecision,
   DelegatedApprovalMode,
   DelegatedApprovalRequestState,
@@ -63,8 +69,13 @@ export {
   DelegatedReplayOutcome,
   DelegatedTraceStageKind,
   DelegatedTransportKind,
-  HookTriggerFamily,
-} from './generated/runtime/v1/agent_service.js';
+} from './generated/runtime/v1/delegated_control.js';
+export type {
+  DelegatedControlSurfaceSnapshot,
+  DelegatedDiagnostic,
+  DelegatedProviderProfile,
+  DelegatedReplayTrace,
+} from './generated/runtime/v1/delegated_control.js';
 export { RealmGroupMessageCandidateCommitDisposition } from './generated/runtime/v1/agent_group_message_candidate.js';
 export type {
   CatalogModelDetail,
@@ -155,3 +166,18 @@ export { createRuntimeClient } from './core/client.js';
 export { createRuntimeProtectedScopeHelper } from './protected-access.js';
 export { toProtoStruct } from './helpers.js';
 export { Runtime } from './runtime.js';
+export {
+  decodeCompanionParticipationProjection,
+} from './runtime-companion-participation.js';
+export type {
+  RuntimeCompanionParticipationBaseRequest,
+  RuntimeCompanionParticipationCancelRequest,
+  RuntimeCompanionParticipationModule,
+  RuntimeCompanionParticipationProjection,
+  RuntimeCompanionParticipationReplay,
+  RuntimeCompanionParticipationReplayRequest,
+  RuntimeCompanionParticipationRequest,
+  RuntimeCompanionParticipationStatus,
+  RuntimeCompanionParticipationSurfaceKind,
+  RuntimeCompanionParticipationTriggerSource,
+} from './runtime-companion-participation.js';

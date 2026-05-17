@@ -1,4 +1,4 @@
-import type { AgentDataBundle, AgentDataDriver, AgentEvent } from '../driver/types.js';
+import type { ActivitySource, AgentDataBundle, AgentDataDriver, AgentEvent } from '../driver/types.js';
 import type {
   BackendProjection,
   Live2DBackendExtension,
@@ -18,13 +18,12 @@ export type DispatchContext = {
   driver: AgentDataDriver;
   registry: HandlerRegistry;
   executor: HandlerExecutor;
-  /** Legacy backend-neutral cue surface; passed through to handlers
-   *  (sandbox + default-activity fallback) until the input-object
-   *  hard-cut lands in a follow-up wave_1 step. */
+  /** Backend-neutral cue surface passed through to handlers, the sandbox,
+   *  and default-activity fallback. */
   projection: EmbodimentProjectionApi;
   /** Ontology surface (BackendProjection). When provided, runtime
    *  expression / activity events are projected through this surface
-   *  before falling back to the legacy `setExpression` path. New
+   *  before falling back to the cue-level `setExpression` path. New
    *  callers MUST supply this; existing tests omit it for
    *  behavior-equivalent dispatch. */
   backendProjection?: BackendProjection;
@@ -67,8 +66,12 @@ function parseRuntimeActivityProjection(event: AgentEvent): NonNullable<AgentDat
     name: activityName,
     category,
     intensity: intensity === undefined ? null : intensity,
-    source: 'runtime_projection',
+    source,
   };
+}
+
+function parseRuntimeProjectionSource(value: unknown): ActivitySource {
+  return value === 'direct_api' || value === 'mock' ? value : 'apml_output';
 }
 
 function parseRuntimeExpressionProjection(event: AgentEvent): string | null {
@@ -87,10 +90,9 @@ export function wireEventDispatch(context: DispatchContext): () => void {
     live2dExtension,
     interactionPhysics,
   } = context;
-  // `backendProjection` is part of DispatchContext (forward-compat for
-  // input-object NAS handlers in a follow-up wave_1 step); ignore at
-  // runtime to keep behavior equivalence with the legacy command-bus
-  // path (see comments at the activity / expression dispatch sites).
+  // `backendProjection` is part of DispatchContext for ontology-level
+  // dispatch. Ignore at runtime here to keep behavior equivalence with the
+  // cue-level command-bus path used by the current handler sandbox.
   void context.backendProjection;
   const defaultActivity = createDefaultActivityHandler();
   const extensionBag: NasHandlerExtension | undefined = live2dExtension
@@ -120,23 +122,20 @@ export function wireEventDispatch(context: DispatchContext): () => void {
           activity_name: activity.name,
           category: activity.category,
           intensity: activity.intensity,
-          source: 'runtime_projection',
-          runtime_source: event.detail['source'],
+          source: activity.source,
         },
       });
       const activityName = activity.name;
       const entry = registry.activity.get(activityHandlerKey(activityName)) ?? null;
       const handler = entry?.handler ?? defaultActivity;
       const key = `activity:${activityName}`;
-      // BackendProjection.applyActivity is intentionally NOT invoked
-      // here at wave_1 step_3: the legacy default-activity fallback
-      // already routes through the Live2D plugin-api command bus,
-      // and the Live2D BackendProjection adapter writes to the same
-      // bus. Calling both would produce duplicate motion commands.
-      // The BackendProjection surface is exposed to NAS handlers
-      // through the executor (input-object signature lands in a
-      // follow-up step); only `applyExpression` short-circuits the
-      // legacy fallback below.
+      // BackendProjection.applyActivity is intentionally not invoked here:
+      // the default-activity fallback already routes through the Live2D
+      // plugin-api command bus, and the Live2D BackendProjection adapter writes
+      // to the same bus. Calling both would produce duplicate motion commands.
+      // The BackendProjection surface is exposed to NAS handlers through the
+      // executor; only `applyExpression` short-circuits the cue-level fallback
+      // below.
       void executor.run(key, handler, ctx, projection, runOptionsFor(entry)).then((result) => {
         if (result.status === 'success') {
           driver.emit({
@@ -176,18 +175,17 @@ export function wireEventDispatch(context: DispatchContext): () => void {
         );
         return;
       }
-      // Behavior-equivalent path: continue routing through the legacy
+      // Behavior-equivalent path: continue routing through the cue-level
       // setExpression (which writes the same Cubism command-bus event
       // the BackendProjection adapter would emit). Switching this
-      // dispatch path to BackendProjection.applyExpression is deferred
-      // until the projection adapter and legacy plugin-api share a
-      // single owner — see follow-up wave_1 step.
+      // dispatch path to BackendProjection.applyExpression requires the
+      // projection adapter and plugin API to share one owner.
       void projection.setExpression(expressionId).then(() => {
         driver.emit({
           name: 'avatar.expression.change',
           detail: {
             expression_id: expressionId,
-            source: 'runtime_projection',
+            source: parseRuntimeProjectionSource(event.detail['source']),
           },
         });
       }).catch((err: unknown) => {

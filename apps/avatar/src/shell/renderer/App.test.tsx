@@ -19,25 +19,19 @@ const reloadAvatarShellMock = vi.fn();
 let tauriRuntime = false;
 let launchContextUpdatedHandler:
   | ((payload: {
-    ownerUserId: string;
-    realmAgentId: string;
-    localAgentRef: string;
+    agentId: string;
     avatarInstanceId: string | null;
     launchSource: string | null;
   }) => void)
   | null = null;
 
 function launchContext(overrides: Partial<{
-  ownerUserId: string;
-  realmAgentId: string;
-  localAgentRef: string;
+  agentId: string;
   avatarInstanceId: string | null;
   launchSource: string | null;
 }> = {}) {
   return {
-    ownerUserId: 'owner-product',
-    realmAgentId: 'agent-product-01',
-    localAgentRef: 'local-agent:owner-product:agent-product-01',
+    agentId: 'agent-product-01',
     avatarInstanceId: 'avatar-instance-01',
     launchSource: 'desktop-avatar-launcher',
     ...overrides,
@@ -85,6 +79,21 @@ function createDeferred<T>() {
   return { promise, resolve, reject };
 }
 
+function createCompanionParticipationProjection() {
+  return {
+    projectionId: 'companion_participation_projection/anchor-01/avatar_companion/turn-01',
+    agentId: 'local-agent:owner-product:agent-product-01',
+    surfaceKind: 'avatar_companion',
+    profileRef: 'runtime.agent.profile/local-agent:owner-product:agent-product-01',
+    roomOrchestrationRef: 'runtime.room_orchestration/avatar_companion_presentation_room',
+    triggerSource: 'user_explicit',
+    status: 'running',
+    auditRef: 'runtime.audit.companion_participation/anchor-01',
+    conversationAnchorId: 'anchor-01',
+    turnId: 'turn-01',
+  } as const;
+}
+
 function createBootstrapHandle(): BootstrapHandle {
   return {
     driver: {
@@ -105,8 +114,8 @@ function createBootstrapHandle(): BootstrapHandle {
       cancel: vi.fn(),
     })),
     submitVoiceCaptureTurn: vi.fn(async () => ({ transcript: 'voice hello' })),
-    interruptTurn: vi.fn(async () => {}),
-    requestTextTurn: vi.fn(async () => {}),
+    cancelCompanionParticipation: vi.fn(async () => createCompanionParticipationProjection()),
+    requestCompanionParticipation: vi.fn(async () => createCompanionParticipationProjection()),
     shutdown: vi.fn(async () => {}),
   } as unknown as BootstrapHandle;
 }
@@ -308,9 +317,7 @@ describe('App composition state machine', () => {
 
     act(() => {
       launchContextUpdatedHandler?.({
-        ownerUserId: 'owner-product',
-        realmAgentId: 'agent-product-02',
-        localAgentRef: 'local-agent:owner-product:agent-product-02',
+        agentId: 'agent-product-02',
         avatarInstanceId: 'avatar-instance-02',
         launchSource: 'desktop-avatar-launcher',
       });
@@ -344,7 +351,7 @@ describe('App composition state machine', () => {
 });
 
 describe('Companion surface interactions (ready)', () => {
-  it('composer Enter submits a bounded text turn through bootstrapHandle', async () => {
+  it('composer Enter submits through companion participation', async () => {
     const handle = createBootstrapHandle();
     bootstrapAvatarMock.mockResolvedValue(handle);
 
@@ -366,12 +373,44 @@ describe('Companion surface interactions (ready)', () => {
     fireEvent.keyDown(textarea, { key: 'Enter', shiftKey: false });
 
     await waitFor(() => {
-      expect(handle.requestTextTurn).toHaveBeenCalledWith({
+      expect(handle.requestCompanionParticipation).toHaveBeenCalledWith({
         agentId: 'local-agent:owner-product:agent-product-01',
         conversationAnchorId: 'anchor-01',
         text: 'hello agent',
       });
     });
+  });
+
+  it('composer treats blocked companion participation projection as visible failure', async () => {
+    const handle = createBootstrapHandle();
+    (handle.requestCompanionParticipation as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      ...createCompanionParticipationProjection(),
+      status: 'blocked',
+      refusalReason: 'runtime_policy_blocked',
+    });
+    bootstrapAvatarMock.mockResolvedValue(handle);
+
+    render(<App />);
+
+    act(() => {
+      seedReadyState();
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('avatar-companion-composer')).toBeTruthy();
+    });
+
+    const textarea = screen
+      .getByTestId('avatar-companion-composer')
+      .querySelector('textarea') as HTMLTextAreaElement;
+
+    fireEvent.change(textarea, { target: { value: 'blocked text' } });
+    fireEvent.keyDown(textarea, { key: 'Enter', shiftKey: false });
+
+    await waitFor(() => {
+      expect(screen.getByRole('alert').textContent).toContain('runtime_policy_blocked');
+    });
+    expect(textarea.value).toBe('blocked text');
   });
 
   it('mic button triggers startVoiceCapture in idle state', async () => {

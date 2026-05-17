@@ -30,7 +30,7 @@ export type HandlerRunOptions = {
   /** Controls extension materialization: when `requiresLive2DExtension`
    *  is true AND `extension.live2d` is present, the executor passes a
    *  `{ live2d }` extension surface to the handler. Otherwise the
-   *  handler receives no extension (legacy path). */
+   *  handler receives no extension. */
   requiresLive2DExtension?: boolean;
   extension?: NasHandlerExtension;
 };

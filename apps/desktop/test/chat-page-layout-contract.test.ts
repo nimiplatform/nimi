@@ -17,6 +17,7 @@ const chatAgentSceneBackgroundSource = readWorkspaceFile('src/shell/renderer/fea
 const chatAgentModeSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-mode-content.tsx');
 const chatAgentPresentationSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-shell-presentation.tsx');
 const chatAgentPresentationSettingsSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-shell-presentation-settings.tsx');
+const chatAgentLocalAvatarControlsSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-shell-local-avatar-controls.ts');
 const chatAgentCanonicalComposerSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-canonical-composer.tsx');
 const chatGroupModeSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-group-mode-content.tsx');
 const chatSideSheetSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-shared-side-sheet.tsx');
@@ -73,8 +74,9 @@ test('agent shell presentation disables stage panel props so desktop chat cannot
   assert.match(chatAgentPresentationSource, /stagePanelProps:\s*undefined/);
   assert.match(chatAgentPresentationSource, /topContent:\s*schedulingFeedbackNode/);
   assert.match(chatAgentPresentationSettingsSource, /AgentCenterPanel/);
-  assert.doesNotMatch(chatAgentPresentationSource, /importAgentCenterAvatarPackage/);
-  assert.match(chatAgentPresentationSource, /getAgentCenterBackgroundAsset/);
+  assert.match(chatAgentLocalAvatarControlsSource, /importAgentCenterAvatarAsset/);
+  assert.doesNotMatch(chatAgentPresentationSource, /chat-agent-avatar-store/);
+  assert.match(chatAgentLocalAvatarControlsSource, /getAgentCenterBackgroundAsset/);
   assert.doesNotMatch(chatAgentPresentationSource, /ChatAgentAvatarSettingsPanel/u);
   assert.doesNotMatch(chatAgentPresentationSource, /desktopAgentBackdropBindingQueryKey/u);
   assert.doesNotMatch(chatAgentPresentationSource, /avatarStagePlacement/u);
@@ -87,7 +89,7 @@ test('agent composer avatar action is keyboard reachable and package preview rem
   assert.match(chatAgentCanonicalComposerSource, /title=\{avatarTitle\}/);
   assert.match(chatAgentCanonicalComposerSource, /disabled=\{avatarDisabled\}/);
   assert.match(chatAgentPresentationSource, /onConfigure:\s*input\.onOpenAgentCenter/);
-  assert.match(chatAgentPresentationSource, /onActivate:\s*handleComposerAvatarAction/);
+  assert.match(chatAgentPresentationSource, /onActivate:\s*localAvatar\.handleComposerAvatarAction/);
   assert.doesNotMatch(chatAgentPresentationSource, /previewLoader|PackagePreview|Preview Avatar/u);
   assert.doesNotMatch(chatAgentCanonicalComposerSource, /previewLoader|PackagePreview|Preview Avatar/u);
 });

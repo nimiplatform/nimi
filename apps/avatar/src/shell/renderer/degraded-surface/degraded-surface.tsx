@@ -132,6 +132,18 @@ export function DegradedSurface(props: DegradedSurfaceProps) {
                 <dd>{composition.stage}</dd>
               </div>
             ) : null}
+            {composition.source ? (
+              <div>
+                <dt>{t('Avatar.degraded.diagnostics.source')}</dt>
+                <dd>{composition.source}</dd>
+              </div>
+            ) : null}
+            {typeof composition.retryable === 'boolean' ? (
+              <div>
+                <dt>{t('Avatar.degraded.diagnostics.retryable')}</dt>
+                <dd>{composition.retryable ? t('Avatar.degraded.diagnostics.yes') : t('Avatar.degraded.diagnostics.no')}</dd>
+              </div>
+            ) : null}
           </dl>
         </details>
       ) : null}

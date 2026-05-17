@@ -1,13 +1,13 @@
 import { createLocalFirstPartyRuntimePlatformClient } from '@nimiplatform/sdk';
 import { getSharedAudioPipelineController } from '../audio/audio-pipeline.js';
 import {
-  AccountCallerMode,
-  type AccountCaller,
+  type RuntimeCompanionParticipationProjection,
+  type Runtime,
 } from '@nimiplatform/sdk/runtime/browser';
-import { getDaemonStatus, getRuntimeDefaults, hasTauriInvoke, startDaemon } from '@renderer/bridge';
+import { getRuntimeDefaults, hasTauriInvoke } from '@renderer/bridge';
 import { startAvatarRuntimeCarrier } from '../carrier/avatar-carrier.js';
 import { createDriver, resolveDriverKind } from '../driver/factory.js';
-import { resolveAgentCenterAvatarPackageManifest } from '../carrier/model-resolver.js';
+import { resolveLocalAvatarAssetManifest } from '../carrier/model-resolver.js';
 import type { AvatarRuntimeCarrier } from '../carrier/avatar-carrier.js';
 import { readAvatarShellSettings } from '../settings-state.js';
 import type { AgentDataDriver } from '../driver/types.js';
@@ -16,8 +16,13 @@ import { recordAvatarEvidenceEventually } from './avatar-evidence.js';
 import { detectDeviceTier } from './device-tier-detector.js';
 import { resolveAvatarConversationContext } from './avatar-conversation-context.js';
 import { useAvatarStore } from './app-store.js';
+import {
+  createAvatarAccountCaller,
+  resolveLaunchAgentIdentity,
+} from './app-bootstrap-runtime-binding.js';
+import { recordLocalAvatarAssetResolved } from './app-bootstrap-package-evidence.js';
 import { isTauriRuntime, onShellReady } from './tauri-lifecycle.js';
-import { setAlwaysOnTop } from './tauri-commands.js';
+import { bindAvatarRuntimeIdentity, setAlwaysOnTop } from './tauri-commands.js';
 import {
   applyLaunchContextRuntimeDefaults,
   errorMessage,
@@ -25,226 +30,23 @@ import {
   loadDefaultMockScenarioJson,
   readNormalizedString,
   resolveCapabilityBinding,
-  resolveExecutionBinding,
   resolveRuntimeAppId,
   waitForAvatarLaunchContext,
 } from './app-bootstrap-helpers.js';
+import {
+  diagnosticEnumString,
+  ensureRuntimeDaemonReady,
+  firstPartyUnavailableDetail,
+  readEnumName,
+  recordDriverStartFailure,
+  runFirstPartyStage,
+  runFirstPartyStageWithTimeout,
+  setRuntimeBindingUnavailable,
+} from './app-bootstrap-first-party-diagnostics.js';
 
 const AVATAR_FIRST_PARTY_APP_ID = 'nimi.avatar';
-const AVATAR_FIRST_PARTY_APP_INSTANCE_ID = `${AVATAR_FIRST_PARTY_APP_ID}.local-first-party`;
-const AVATAR_FIRST_PARTY_DEVICE_ID = 'local-first-party-device';
 const ACCOUNT_SESSION_STATE_AUTHENTICATED = 3;
 const AVATAR_FIRST_PARTY_DRIVER_START_TIMEOUT_MS = 12_000;
-
-type FirstPartyBootstrapStage =
-  | 'runtime_daemon_prepare'
-  | 'platform_client'
-  | 'account_session_status'
-  | 'account_access_token'
-  | 'conversation_context'
-  | 'avatar_package_manifest'
-  | 'driver_create'
-  | 'runtime_carrier_start'
-  | 'driver_start';
-
-type FirstPartyBootstrapErrorDetail = {
-  reason: string;
-  stage: string | null;
-  reasonCode: string | null;
-  accountReasonCode: string | null;
-  actionHint: string | null;
-  source: string | null;
-  retryable: boolean | null;
-  message: string | null;
-};
-
-function createAvatarAccountCaller(appId: string): AccountCaller {
-  return {
-    appId,
-    appInstanceId: AVATAR_FIRST_PARTY_APP_INSTANCE_ID,
-    deviceId: AVATAR_FIRST_PARTY_DEVICE_ID,
-    mode: AccountCallerMode.LOCAL_FIRST_PARTY_APP,
-    scopes: [],
-  };
-}
-
-function readErrorField(error: unknown, field: string): string {
-  if (!error || typeof error !== 'object') {
-    return '';
-  }
-  const value = (error as Record<string, unknown>)[field];
-  return typeof value === 'string' ? value.trim() : '';
-}
-
-function readErrorBooleanField(error: unknown, field: string): boolean | null {
-  if (!error || typeof error !== 'object') {
-    return null;
-  }
-  const value = (error as Record<string, unknown>)[field];
-  return typeof value === 'boolean' ? value : null;
-}
-
-function truncateErrorText(value: string, limit = 220): string {
-  const normalized = value.replace(/\s+/g, ' ').trim();
-  return normalized.length > limit ? `${normalized.slice(0, limit)}...` : normalized;
-}
-
-function describeRuntimeDaemonStatus(status: {
-  running?: boolean;
-  managed?: boolean;
-  launchMode?: string;
-  grpcAddr?: string;
-  lastError?: string;
-} | null | undefined): string {
-  if (!status) {
-    return 'missing status';
-  }
-  const parts = [
-    `running=${status.running === true ? 'true' : 'false'}`,
-    `managed=${status.managed === true ? 'true' : 'false'}`,
-    `mode=${readNormalizedString(status.launchMode) || 'unknown'}`,
-  ];
-  const grpcAddr = readNormalizedString(status.grpcAddr);
-  if (grpcAddr) {
-    parts.push(`grpc=${grpcAddr}`);
-  }
-  const lastError = readNormalizedString(status.lastError);
-  if (lastError) {
-    parts.push(`error=${lastError}`);
-  }
-  return parts.join(' ');
-}
-
-function runtimeDaemonUnavailableError(status: {
-  running?: boolean;
-  managed?: boolean;
-  launchMode?: string;
-  grpcAddr?: string;
-  lastError?: string;
-} | null | undefined): Error {
-  return Object.assign(
-    new Error(`runtime daemon unavailable after start: ${describeRuntimeDaemonStatus(status)}`),
-    {
-      reasonCode: readNormalizedString(status?.lastError) || 'RUNTIME_BRIDGE_DAEMON_UNAVAILABLE',
-      actionHint: 'start_runtime_daemon',
-      source: 'runtime',
-      retryable: true,
-    },
-  );
-}
-
-async function ensureRuntimeDaemonReady(): Promise<void> {
-  const current = await getDaemonStatus();
-  if (current.running) {
-    return;
-  }
-  const started = await startDaemon();
-  if (!started.running) {
-    throw runtimeDaemonUnavailableError(started);
-  }
-}
-
-function annotateFirstPartyBootstrapError(stage: FirstPartyBootstrapStage, error: unknown): never {
-  if (error && typeof error === 'object') {
-    const record = error as Record<string, unknown>;
-    if (typeof record.avatarBootstrapStage !== 'string' || !record.avatarBootstrapStage.trim()) {
-      record.avatarBootstrapStage = stage;
-    }
-    throw error;
-  }
-  const wrapped = new Error(String(error || 'avatar_first_party_runtime_unavailable')) as Error & {
-    avatarBootstrapStage?: string;
-  };
-  wrapped.avatarBootstrapStage = stage;
-  throw wrapped;
-}
-
-async function runFirstPartyStage<T>(
-  stage: FirstPartyBootstrapStage,
-  operation: () => Promise<T>,
-): Promise<T> {
-  try {
-    return await operation();
-  } catch (error) {
-    annotateFirstPartyBootstrapError(stage, error);
-  }
-}
-
-async function runFirstPartyStageWithTimeout<T>(
-  stage: FirstPartyBootstrapStage,
-  timeoutMs: number,
-  operation: () => Promise<T>,
-): Promise<T> {
-  let timeoutId: number | null = null;
-  try {
-    return await runFirstPartyStage(stage, () => Promise.race([
-      operation(),
-      new Promise<T>((_, reject) => {
-        timeoutId = window.setTimeout(() => {
-          reject(new Error(`${stage} timed out after ${timeoutMs}ms`));
-        }, timeoutMs);
-      }),
-    ]));
-  } finally {
-    if (timeoutId !== null) {
-      window.clearTimeout(timeoutId);
-    }
-  }
-}
-
-function firstPartyUnavailableDetail(error: unknown): FirstPartyBootstrapErrorDetail {
-  const stage = readErrorField(error, 'avatarBootstrapStage') || null;
-  const accountReasonCode = readErrorField(error, 'accountReasonCode') || null;
-  const reasonCode = readErrorField(error, 'reasonCode') || null;
-  const actionHint = readErrorField(error, 'actionHint') || null;
-  const source = readErrorField(error, 'source') || null;
-  const message = error instanceof Error
-    ? truncateErrorText(error.message)
-    : truncateErrorText(String(error || 'avatar_first_party_runtime_unavailable'));
-  const primary = accountReasonCode || reasonCode || message || 'avatar_first_party_runtime_unavailable';
-  const suffix = actionHint ? ` / ${actionHint}` : '';
-  return {
-    reason: stage ? `${stage}: ${primary}${suffix}` : `${primary}${suffix}`,
-    stage,
-    reasonCode,
-    accountReasonCode,
-    actionHint,
-    source,
-    retryable: readErrorBooleanField(error, 'retryable'),
-    message: message || null,
-  };
-}
-
-function recordDriverStartFailure(error: unknown, input: {
-  agentId: string;
-  avatarInstanceId: string | null;
-  launchSource: string | null;
-  runtimeAppId: string;
-}): void {
-  const unavailable = firstPartyUnavailableDetail(error);
-  useAvatarStore.getState().setRuntimeBindingStatus({
-    status: 'unavailable',
-    reason: unavailable.reason,
-  });
-  useAvatarStore.getState().setDriverStatus('error');
-  recordAvatarEvidenceEventually({
-    kind: 'avatar.runtime.bind-failed',
-    detail: {
-      agentId: input.agentId,
-      avatar_instance_id: input.avatarInstanceId,
-      launch_source: input.launchSource,
-      runtime_app_id: input.runtimeAppId,
-      reason: unavailable.reason,
-      error_stage: unavailable.stage,
-      error_reason_code: unavailable.reasonCode,
-      error_account_reason_code: unavailable.accountReasonCode,
-      error_action_hint: unavailable.actionHint,
-      error_source: unavailable.source,
-      error_retryable: unavailable.retryable,
-      error_message: unavailable.message,
-    },
-  });
-}
 
 export type BootstrapHandle = {
   driver?: AgentDataDriver | null;
@@ -271,17 +73,18 @@ export type BootstrapHandle = {
   }): Promise<{
     transcript: string;
   }>;
-  interruptTurn(input: {
+  cancelCompanionParticipation(input: {
     agentId: string;
     conversationAnchorId: string;
+    projectionId?: string;
     turnId?: string;
     reason?: string;
-  }): Promise<void>;
-  requestTextTurn(input: {
+  }): Promise<RuntimeCompanionParticipationProjection>;
+  requestCompanionParticipation(input: {
     agentId: string;
     conversationAnchorId: string;
     text: string;
-  }): Promise<void>;
+  }): Promise<RuntimeCompanionParticipationProjection>;
   shutdown(): Promise<void>;
 };
 
@@ -303,10 +106,10 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
   let submitVoiceCaptureTurn: BootstrapHandle['submitVoiceCaptureTurn'] = async () => {
     throw new Error('Foreground voice is unavailable outside runtime-bound mode');
   };
-  let interruptTurn: BootstrapHandle['interruptTurn'] = async () => {
+  let cancelCompanionParticipation: BootstrapHandle['cancelCompanionParticipation'] = async () => {
     throw new Error('Foreground voice is unavailable outside runtime-bound mode');
   };
-  let requestTextTurn: BootstrapHandle['requestTextTurn'] = async () => {
+  let requestCompanionParticipation: BootstrapHandle['requestCompanionParticipation'] = async () => {
     throw new Error('avatar companion input is unavailable outside runtime-bound mode');
   };
   const cleanup = async () => {
@@ -332,8 +135,8 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
     getVoiceInputAvailability,
     startVoiceCapture,
     submitVoiceCaptureTurn,
-    interruptTurn,
-    requestTextTurn,
+    cancelCompanionParticipation,
+    requestCompanionParticipation,
     async shutdown() {
       await cleanup();
     },
@@ -404,10 +207,6 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
       );
       useAvatarStore.getState().setRuntimeDefaults(runtimeDefaults);
 
-      const agentId = readNormalizedString(launchContext.localAgentRef);
-      if (!agentId) {
-        throw new Error('avatar launch context is missing localAgentRef');
-      }
       useAvatarStore.getState().setConsumeMode({
         mode: 'sdk',
         authority: 'runtime',
@@ -417,6 +216,9 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
       const runtimeAppId = resolveRuntimeAppId(launchContext);
       useAvatarStore.getState().clearBundle();
       useAvatarStore.getState().clearRuntimeBinding();
+      let evidenceAgentId = readNormalizedString(launchContext.agentId);
+      let currentConversationAnchorId: string | null = null;
+      let currentAvatarInstanceId: string | null = readNormalizedString(launchContext.avatarInstanceId);
       try {
         await runFirstPartyStage('runtime_daemon_prepare', () => ensureRuntimeDaemonReady());
         const platformClient = await runFirstPartyStage('platform_client', () => createLocalFirstPartyRuntimePlatformClient({
@@ -440,24 +242,62 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
         const accountStatus = await runFirstPartyStage('account_session_status', () => runtime.account.getAccountSessionStatus({ caller: accountCaller }));
         const accountId = readNormalizedString(accountStatus.accountProjection?.accountId);
         if (accountStatus.state !== ACCOUNT_SESSION_STATE_AUTHENTICATED || !accountId) {
+          const accountStatusRecord = accountStatus as unknown as Record<string, unknown>;
           useAvatarStore.getState().setRuntimeBindingStatus({
             status: 'unavailable',
             reason: 'runtime_account_session_unavailable',
+            reasonCode: diagnosticEnumString(accountStatus.reasonCode),
+            accountReasonCode: diagnosticEnumString(accountStatus.accountReasonCode),
+            actionHint: 'authenticate_runtime_account',
+            stage: 'account_session_status',
+            source: 'runtime',
+            retryable: true,
           });
           useAvatarStore.getState().setDriverStatus('stopped');
           recordAvatarEvidenceEventually({
             kind: 'avatar.runtime.bind-failed',
             detail: {
-              agentId,
+              agentId: evidenceAgentId,
               avatar_instance_id: launchContext.avatarInstanceId || null,
               launch_source: launchContext.launchSource,
               runtime_app_id: runtimeAppId,
               account_state: accountStatus.state,
+              account_state_name: readEnumName(
+                // Numeric protobuf enums expose a reverse lookup in the generated runtime.
+                // Keep this evidence local so product logic stays keyed on the numeric contract.
+                { 0: 'UNSPECIFIED', 1: 'ANONYMOUS', 2: 'LOGIN_PENDING', 3: 'AUTHENTICATED', 4: 'REFRESH_PENDING', 5: 'EXPIRED', 6: 'REAUTH_REQUIRED', 7: 'SWITCHING', 8: 'LOGGING_OUT', 9: 'LOGGED_OUT', 10: 'UNAVAILABLE' },
+                accountStatus.state,
+              ),
+              reason_code: accountStatus.reasonCode,
+              reason_code_name: readEnumName(
+                { 0: 'REASON_CODE_UNSPECIFIED', 1: 'ACTION_EXECUTED', 5: 'PRINCIPAL_UNAUTHORIZED', 6: 'AUTH_CONTEXT_MISSING', 7: 'SESSION_EXPIRED' },
+                accountStatus.reasonCode,
+              ),
+              account_reason_code: accountStatus.accountReasonCode,
+              account_projection_present: Boolean(accountStatus.accountProjection),
+              account_projection_account_id: accountId || null,
+              production_inert: accountStatus.productionInert,
+              caller_app_id: accountCaller.appId,
+              caller_app_instance_id: accountCaller.appInstanceId,
+              caller_mode: accountCaller.mode,
+              raw_account_reason_code: accountStatusRecord.accountReasonCode ?? null,
+              raw_reason_code: accountStatusRecord.reasonCode ?? null,
               reason: 'runtime_account_session_unavailable',
             },
           });
           return buildHandle();
         }
+
+        const {
+          ownerUserId,
+          realmAgentId,
+          localAgentRef,
+        } = resolveLaunchAgentIdentity({
+          agentId: launchContext.agentId,
+          accountId,
+        });
+        evidenceAgentId = localAgentRef;
+        const agentId = localAgentRef;
 
         const tokenResponse = await runFirstPartyStage('account_access_token', () => runtime.account.getAccessToken({
           caller: accountCaller,
@@ -467,6 +307,12 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
           useAvatarStore.getState().setRuntimeBindingStatus({
             status: 'unavailable',
             reason: 'runtime_account_access_token_unavailable',
+            reasonCode: diagnosticEnumString(tokenResponse.reasonCode),
+            accountReasonCode: diagnosticEnumString(tokenResponse.accountReasonCode),
+            actionHint: 'refresh_runtime_account_access',
+            stage: 'account_access_token',
+            source: 'runtime',
+            retryable: true,
           });
           useAvatarStore.getState().setDriverStatus('stopped');
           recordAvatarEvidenceEventually({
@@ -485,24 +331,43 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
         }
 
         const avatarInstanceId = readNormalizedString(launchContext.avatarInstanceId) || `avatar-${Date.now()}`;
+        currentAvatarInstanceId = avatarInstanceId;
         const conversationContext = await runFirstPartyStage('conversation_context', () => resolveAvatarConversationContext({
           runtime,
           accountId,
-          agentId,
+          ownerUserId,
+          realmAgentId,
+          localAgentRef,
           avatarInstanceId,
-          launchSource: launchContext.launchSource,
         }));
         const { conversationAnchorId, subjectUserId } = conversationContext;
-
-        const modelManifest = await runFirstPartyStage('avatar_package_manifest', () => resolveAgentCenterAvatarPackageManifest({
-          accountId,
+        currentConversationAnchorId = conversationAnchorId;
+        await runFirstPartyStage('runtime_identity_binding', () => bindAvatarRuntimeIdentity({
+          avatarInstanceId,
+          ownerUserId,
+          realmAgentId,
+          localAgentRef,
+          launchSource: launchContext.launchSource,
+        }));
+        useAvatarStore.getState().setRuntimeConsumeContext({
+          avatarInstanceId,
+          conversationAnchorId,
           agentId,
+          worldId: '',
+        });
+        const modelManifest = await runFirstPartyStage('local_avatar_asset_manifest', () => resolveLocalAvatarAssetManifest({
+          accountId,
+          ownerUserId,
+          realmAgentId,
+          localAgentRef,
         }));
         driver = await runFirstPartyStage('driver_create', async () => createDriver({
           kind: 'sdk',
           sdk: {
             runtime,
-            agentId,
+            ownerUserId,
+            realmAgentId,
+            localAgentRef,
             conversationAnchorId,
             activeWorldId: '',
             activeUserId: subjectUserId,
@@ -515,6 +380,20 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
           conversationAnchorId,
           agentId,
           worldId: '',
+        });
+        recordAvatarEvidenceEventually({
+          kind: 'avatar.startup.runtime-bound',
+          detail: {
+            runtime_app_id: AVATAR_FIRST_PARTY_APP_ID,
+            avatar_instance_id: avatarInstanceId,
+            launch_source: launchContext.launchSource,
+          },
+        });
+        recordLocalAvatarAssetResolved({
+          localAgentRef,
+          avatarInstanceId,
+          conversationAnchorId,
+          manifest: modelManifest,
         });
         getVoiceInputAvailability = async () => {
           try {
@@ -530,26 +409,22 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
           });
           return activeVoiceCapture;
         };
-        const requestRuntimeTextTurn = async (input: {
+        const requestRuntimeCompanionParticipation = async (input: {
           agentId: string;
           conversationAnchorId: string;
           text: string;
         }) => {
-          const executionBinding = resolveExecutionBinding({
-            runtimeDefaults: useAvatarStore.getState().runtime.defaults,
-            bundle: useAvatarStore.getState().bundle,
-          });
-          if (!executionBinding) {
-            throw new Error('avatar companion input requires an admitted execution route.');
-          }
-          await runtime.agent.turns.request({
-            agentId: input.agentId,
+          return runtime.companionParticipation.request({
+            ownerUserId,
+            realmAgentId,
+            localAgentRef: input.agentId,
             conversationAnchorId: input.conversationAnchorId,
-            messages: [{ role: 'user', content: input.text }],
-            executionBinding,
+            surfaceKind: 'avatar_companion',
+            triggerSource: 'user_explicit',
+            text: input.text,
           });
         };
-        requestTextTurn = requestRuntimeTextTurn;
+        requestCompanionParticipation = requestRuntimeCompanionParticipation;
         submitVoiceCaptureTurn = async (input) => {
           const transcribeBinding = await resolveCapabilityBinding(runtime, 'audio.transcribe');
           const result = await runtime.media.stt.transcribe({
@@ -564,21 +439,24 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
           if (!transcript) {
             throw new Error('Foreground voice transcription returned an empty transcript.');
           }
-          await requestRuntimeTextTurn({
+          await requestRuntimeCompanionParticipation({
             agentId: input.agentId,
             conversationAnchorId: input.conversationAnchorId,
             text: transcript,
           });
           return { transcript };
         };
-        interruptTurn = async (input) => {
-          await runtime.agent.turns.interrupt({
-            agentId: input.agentId,
-            conversationAnchorId: input.conversationAnchorId,
-            ...(input.turnId ? { turnId: input.turnId } : {}),
-            ...(input.reason ? { reason: input.reason } : {}),
-          });
-        };
+        cancelCompanionParticipation = async (input) => runtime.companionParticipation.cancel({
+          ownerUserId,
+          realmAgentId,
+          localAgentRef: input.agentId,
+          conversationAnchorId: input.conversationAnchorId,
+          surfaceKind: 'avatar_companion',
+          triggerSource: 'user_explicit',
+          ...(input.projectionId ? { projectionId: input.projectionId } : {}),
+          ...(input.turnId ? { turnId: input.turnId } : {}),
+          ...(input.reason ? { reason: input.reason } : {}),
+        });
         const activeDriver = driver;
         if (!activeDriver) {
           throw new Error('Avatar runtime driver was not created');
@@ -590,7 +468,7 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
         recordAvatarEvidenceEventually({
           kind: 'avatar.runtime.bound',
           detail: {
-            agentId,
+            agentId: evidenceAgentId,
             avatar_instance_id: launchContext.avatarInstanceId || null,
             launch_source: launchContext.launchSource,
             runtime_app_id: runtimeAppId,
@@ -607,18 +485,16 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
           driver = null;
         }
         const unavailable = firstPartyUnavailableDetail(error);
-        useAvatarStore.getState().setRuntimeBindingStatus({
-          status: 'unavailable',
-          reason: unavailable.reason,
-        });
+        setRuntimeBindingUnavailable(unavailable);
         useAvatarStore.getState().setDriverStatus('stopped');
         recordAvatarEvidenceEventually({
           kind: 'avatar.runtime.bind-failed',
           detail: {
-            agentId,
-            avatar_instance_id: launchContext.avatarInstanceId || null,
+            agentId: evidenceAgentId,
+            avatar_instance_id: currentAvatarInstanceId || launchContext.avatarInstanceId || null,
             launch_source: launchContext.launchSource,
             runtime_app_id: runtimeAppId,
+            conversation_anchor_id: currentConversationAnchorId,
             reason: unavailable.reason,
             error_stage: unavailable.stage,
             error_reason_code: unavailable.reasonCode,
@@ -646,26 +522,50 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
     });
 
     const activeDriver = driver;
-    if (activeDriver?.kind === 'sdk') {
-      void runFirstPartyStageWithTimeout(
-        'driver_start',
-        AVATAR_FIRST_PARTY_DRIVER_START_TIMEOUT_MS,
-        () => activeDriver.start(),
-      ).catch((error) => {
-        const state = useAvatarStore.getState();
-        recordDriverStartFailure(error, {
-          agentId: state.consume.agentId || state.launch.context?.localAgentRef || '',
-          avatarInstanceId: state.consume.avatarInstanceId || state.launch.context?.avatarInstanceId || null,
-          launchSource: state.launch.context?.launchSource || null,
-          runtimeAppId: AVATAR_FIRST_PARTY_APP_ID,
-        });
-      });
-    } else {
+    try {
       await runFirstPartyStageWithTimeout(
         'driver_start',
         AVATAR_FIRST_PARTY_DRIVER_START_TIMEOUT_MS,
         () => activeDriver?.start() ?? Promise.resolve(),
       );
+      if (activeDriver?.kind === 'sdk') {
+        const state = useAvatarStore.getState();
+        const bundle = activeDriver.getBundle();
+        const custom = bundle.custom || {};
+        recordAvatarEvidenceEventually({
+          kind: 'avatar.runtime.consume-ready',
+          detail: {
+            agentId: state.consume.agentId || state.launch.context?.agentId || '',
+            avatar_instance_id: state.consume.avatarInstanceId || state.launch.context?.avatarInstanceId || null,
+            launch_source: state.launch.context?.launchSource || null,
+            runtime_app_id: AVATAR_FIRST_PARTY_APP_ID,
+            conversation_anchor_id: state.consume.conversationAnchorId || null,
+            driver_status: activeDriver.status,
+            session_id: bundle.runtime.session_id,
+            session_status: custom.session_status ?? null,
+            transcript_message_count: custom.transcript_message_count ?? null,
+            latest_committed_message_id: custom.latest_committed_message_id ?? null,
+            latest_committed_turn_id: custom.latest_committed_turn_id ?? null,
+            scoped_binding_attached: false,
+          },
+        });
+      }
+    } catch (error) {
+      const state = useAvatarStore.getState();
+      recordDriverStartFailure(error, {
+        agentId: state.consume.agentId || state.launch.context?.agentId || '',
+        avatarInstanceId: state.consume.avatarInstanceId || state.launch.context?.avatarInstanceId || null,
+        launchSource: state.launch.context?.launchSource || null,
+        runtimeAppId: AVATAR_FIRST_PARTY_APP_ID,
+      });
+      carrier?.shutdown();
+      carrier = null;
+      if (driver) {
+        await driver.stop().catch(() => {});
+        driver = null;
+      }
+      useAvatarStore.getState().setDriverStatus('error');
+      return buildHandle();
     }
 
     return buildHandle();

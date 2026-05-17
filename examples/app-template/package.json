@@ -6,7 +6,7 @@
     "start": "tsx index.ts"
   },
   "dependencies": {
-    "@nimiplatform/sdk": "^0.5.4"
+    "@nimiplatform/sdk": "^0.5.7"
   },
   "devDependencies": {
     "tsx": "^4.21.0",

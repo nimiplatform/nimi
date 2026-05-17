@@ -1,0 +1,278 @@
+syntax = "proto3";
+package nimi.runtime.v1;
+option go_package = "github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1";
+import "google/protobuf/duration.proto";
+import "google/protobuf/struct.proto";
+import "google/protobuf/timestamp.proto";
+import "runtime/v1/agent_common.proto";
+
+enum DelegatedProviderKind {
+  DELEGATED_PROVIDER_KIND_UNSPECIFIED = 0;
+  DELEGATED_PROVIDER_KIND_MCP_TOOL_PROVIDER = 1;
+  DELEGATED_PROVIDER_KIND_REMOTE_AGENT_SEAM = 2;
+  DELEGATED_PROVIDER_KIND_RUNTIME_NATIVE_PROVIDER = 3;
+  DELEGATED_PROVIDER_KIND_CONTROLLED_TEST_PROVIDER = 4;
+}
+
+enum DelegatedProviderTrustTier {
+  DELEGATED_PROVIDER_TRUST_TIER_UNSPECIFIED = 0;
+  DELEGATED_PROVIDER_TRUST_TIER_CONTROLLED_LOCAL = 1;
+  DELEGATED_PROVIDER_TRUST_TIER_USER_ADDED_REVIEWED = 2;
+  DELEGATED_PROVIDER_TRUST_TIER_ORG_MANAGED = 3;
+  DELEGATED_PROVIDER_TRUST_TIER_BLOCKED = 4;
+}
+
+enum DelegatedProviderState {
+  DELEGATED_PROVIDER_STATE_UNSPECIFIED = 0;
+  DELEGATED_PROVIDER_STATE_REGISTERED = 1;
+  DELEGATED_PROVIDER_STATE_DISCOVERING = 2;
+  DELEGATED_PROVIDER_STATE_READY = 3;
+  DELEGATED_PROVIDER_STATE_DEGRADED = 4;
+  DELEGATED_PROVIDER_STATE_DISABLED = 5;
+  DELEGATED_PROVIDER_STATE_QUARANTINED = 6;
+  DELEGATED_PROVIDER_STATE_REMOVED = 7;
+}
+
+enum DelegatedTransportKind {
+  DELEGATED_TRANSPORT_KIND_UNSPECIFIED = 0;
+  DELEGATED_TRANSPORT_KIND_STDIO_COMMAND = 1;
+}
+
+enum DelegatedApprovalMode {
+  DELEGATED_APPROVAL_MODE_UNSPECIFIED = 0;
+  DELEGATED_APPROVAL_MODE_RUNTIME_POLICY = 1;
+  DELEGATED_APPROVAL_MODE_REQUIRE_USER = 2;
+  DELEGATED_APPROVAL_MODE_DISABLED = 3;
+}
+
+enum DelegatedApprovalRequestState {
+  DELEGATED_APPROVAL_REQUEST_STATE_UNSPECIFIED = 0;
+  DELEGATED_APPROVAL_REQUEST_STATE_PENDING = 1;
+  DELEGATED_APPROVAL_REQUEST_STATE_APPROVED = 2;
+  DELEGATED_APPROVAL_REQUEST_STATE_REJECTED = 3;
+  DELEGATED_APPROVAL_REQUEST_STATE_EXPIRED = 4;
+}
+
+enum DelegatedApprovalDecision {
+  DELEGATED_APPROVAL_DECISION_UNSPECIFIED = 0;
+  DELEGATED_APPROVAL_DECISION_APPROVE = 1;
+  DELEGATED_APPROVAL_DECISION_REJECT = 2;
+}
+
+enum DelegatedReplayOutcome {
+  DELEGATED_REPLAY_OUTCOME_UNSPECIFIED = 0;
+  DELEGATED_REPLAY_OUTCOME_RECONSTRUCTED = 1;
+  DELEGATED_REPLAY_OUTCOME_PARTIAL_REDACTED = 2;
+  DELEGATED_REPLAY_OUTCOME_PARTIAL_MISSING_EVIDENCE = 3;
+  DELEGATED_REPLAY_OUTCOME_BLOCKED_BY_POLICY = 4;
+  DELEGATED_REPLAY_OUTCOME_INVALID_LINEAGE = 5;
+}
+
+enum DelegatedTraceStageKind {
+  DELEGATED_TRACE_STAGE_KIND_UNSPECIFIED = 0;
+  DELEGATED_TRACE_STAGE_KIND_REQUEST = 1;
+  DELEGATED_TRACE_STAGE_KIND_GATEWAY_EVIDENCE = 2;
+  DELEGATED_TRACE_STAGE_KIND_FIREWALL_VERDICT = 3;
+  DELEGATED_TRACE_STAGE_KIND_APPROVAL_DECISION = 4;
+  DELEGATED_TRACE_STAGE_KIND_RUNTIME_DECISION = 5;
+  DELEGATED_TRACE_STAGE_KIND_PROJECTION_DISPOSITION = 6;
+}
+
+message DelegatedToolAllowlistEntry {
+  string tool_name = 1;
+  string input_schema_digest = 2;
+}
+
+message DelegatedProviderProfile {
+  string provider_profile_id = 1;
+  string display_name = 2;
+  DelegatedProviderKind provider_kind = 3;
+  DelegatedTransportKind transport_kind = 4;
+  DelegatedProviderState state = 5;
+  repeated DelegatedToolAllowlistEntry allowed_tools = 6;
+  string credential_ref = 7;
+  google.protobuf.Duration timeout = 8;
+  google.protobuf.Timestamp created_at = 9;
+  google.protobuf.Timestamp updated_at = 10;
+  string transport_ref = 11;
+  DelegatedProviderTrustTier trust_tier = 12;
+  string lifecycle_reason_code = 13;
+  string command = 14;
+  repeated string args = 15;
+}
+
+message DelegatedControlSurfaceSnapshot {
+  string agent_id = 1;
+  string conversation_anchor_id = 2;
+  DelegatedApprovalMode approval_mode = 3;
+  repeated DelegatedProviderProfile provider_profiles = 4;
+  repeated DelegatedApprovalRequest approval_requests = 5;
+  repeated DelegatedDiagnostic diagnostics = 6;
+  google.protobuf.Timestamp observed_at = 7;
+}
+
+message ListDelegatedProviderProfilesRequest {
+  AgentRequestContext context = 1;
+  string agent_id = 2;
+}
+
+message ListDelegatedProviderProfilesResponse {
+  repeated DelegatedProviderProfile provider_profiles = 1;
+}
+
+message UpsertDelegatedProviderProfileRequest {
+  AgentRequestContext context = 1;
+  string agent_id = 2;
+  DelegatedProviderProfile provider_profile = 3;
+}
+
+message UpsertDelegatedProviderProfileResponse {
+  DelegatedProviderProfile provider_profile = 1;
+}
+
+message SetDelegatedProviderStateRequest {
+  AgentRequestContext context = 1;
+  string agent_id = 2;
+  string provider_profile_id = 3;
+  DelegatedProviderState state = 4;
+  string lifecycle_reason_code = 5;
+}
+
+message SetDelegatedProviderStateResponse {
+  DelegatedProviderProfile provider_profile = 1;
+}
+
+message DelegatedApprovalRequest {
+  string approval_request_id = 1;
+  string agent_id = 2;
+  string conversation_anchor_id = 3;
+  string turn_id = 4;
+  string provider_profile_id = 5;
+  string capability_id = 6;
+  string tool_name = 7;
+  string firewall_verdict = 8;
+  string reason_code = 9;
+  DelegatedApprovalRequestState state = 10;
+  google.protobuf.Struct detail = 11;
+  google.protobuf.Timestamp created_at = 12;
+  google.protobuf.Timestamp updated_at = 13;
+  google.protobuf.Timestamp expires_at = 14;
+}
+
+message ListDelegatedApprovalRequestsRequest {
+  AgentRequestContext context = 1;
+  string agent_id = 2;
+  string conversation_anchor_id = 3;
+}
+
+message ListDelegatedApprovalRequestsResponse {
+  repeated DelegatedApprovalRequest approval_requests = 1;
+}
+
+message SubmitDelegatedApprovalDecisionRequest {
+  AgentRequestContext context = 1;
+  string agent_id = 2;
+  string approval_request_id = 3;
+  DelegatedApprovalDecision decision = 4;
+  string decision_reason = 5;
+}
+
+message SubmitDelegatedApprovalDecisionResponse {
+  DelegatedApprovalRequest approval_request = 1;
+}
+
+message DelegatedDiagnostic {
+  string diagnostic_id = 1;
+  string agent_id = 2;
+  string conversation_anchor_id = 3;
+  string turn_id = 4;
+  string provider_profile_id = 5;
+  string capability_id = 6;
+  string tool_name = 7;
+  string gateway_evidence_id = 8;
+  string firewall_input_id = 9;
+  string firewall_verdict = 10;
+  string runtime_decision = 11;
+  string reason_code = 12;
+  google.protobuf.Timestamp observed_at = 13;
+}
+
+message DelegatedReplayTraceStage {
+  DelegatedTraceStageKind kind = 1;
+  string stage_id = 2;
+  string state = 3;
+  string reason_code = 4;
+  string redacted_summary = 5;
+  google.protobuf.Timestamp observed_at = 6;
+}
+
+message DelegatedReplayTrace {
+  string replay_id = 1;
+  string agent_id = 2;
+  string conversation_anchor_id = 3;
+  string turn_id = 4;
+  string provider_profile_id = 5;
+  string capability_id = 6;
+  string tool_name = 7;
+  DelegatedReplayOutcome outcome = 8;
+  string reason_code = 9;
+  repeated DelegatedReplayTraceStage stages = 10;
+  string projection_disposition = 11;
+  string action_disposition = 12;
+  bool redacted = 13;
+  google.protobuf.Timestamp observed_at = 14;
+}
+
+message ListDelegatedDiagnosticsRequest {
+  AgentRequestContext context = 1;
+  string agent_id = 2;
+  string conversation_anchor_id = 3;
+}
+
+message ListDelegatedDiagnosticsResponse {
+  repeated DelegatedDiagnostic diagnostics = 1;
+}
+
+message GetDelegatedReplayTraceRequest {
+  AgentRequestContext context = 1;
+  string agent_id = 2;
+  string decision_id = 3;
+  string conversation_anchor_id = 4;
+  string turn_id = 5;
+}
+
+message GetDelegatedReplayTraceResponse {
+  DelegatedReplayTrace trace = 1;
+}
+
+message GetDelegatedControlSurfaceSnapshotRequest {
+  AgentRequestContext context = 1;
+  string agent_id = 2;
+  string conversation_anchor_id = 3;
+}
+
+message GetDelegatedControlSurfaceSnapshotResponse {
+  DelegatedControlSurfaceSnapshot snapshot = 1;
+}
+
+message ExecuteDelegatedCapabilityRequest {
+  AgentRequestContext context = 1;
+  string agent_id = 2;
+  string conversation_anchor_id = 3;
+  string turn_id = 4;
+  string stream_id = 5;
+  string request_id = 6;
+  string provider_profile_id = 7;
+  string capability_id = 8;
+  string tool_name = 9;
+  google.protobuf.Struct arguments = 10;
+  string descriptor_hash = 11;
+  string protocol_revision = 12;
+  string output_kind = 13;
+  bool requires_approval = 14;
+}
+
+message ExecuteDelegatedCapabilityResponse {
+  DelegatedDiagnostic diagnostic = 1;
+  DelegatedReplayTrace replay_trace = 2;
+}

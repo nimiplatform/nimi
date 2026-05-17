@@ -1,4 +1,13 @@
 version: 1
+table_family: product_catalog
+catalog_id: realm_domain_state_machines
+entries:
+  - state_machines_1
+  - state_machines_2
+  - state_machines_3
+  - state_machines_4
+  - state_machines_5
+  - state_machines_6
 updated_at: 2026-03-26
 owner: '@team'
 state_machines:

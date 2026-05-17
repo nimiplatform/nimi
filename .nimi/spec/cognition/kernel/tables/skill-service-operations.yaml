@@ -1,5 +1,8 @@
 version: 1
-operations:
+table_family: protocol_surface
+owner: cognition
+protocol_id: cognition_skill_service_operations
+operations: &cognition_skill_service_operation_surfaces
   - operation_id: skill_save
     entrypoint: SkillService.Save
     admitted_inputs: one typed skill bundle in one cognition scope
@@ -77,3 +80,4 @@ operations:
     fail_closed_reasons: illegal scope
     non_ownership_boundary: identifier listing must not be treated as runtime execution registry parity
     source_rule: C-COG-056
+surfaces: *cognition_skill_service_operation_surfaces

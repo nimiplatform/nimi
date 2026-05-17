@@ -7,7 +7,7 @@
 | 属性 | 取值 |
 | --- | --- |
 | 包名 | `@nimiplatform/nimi-coding` |
-| 仓库阶段 | bootstrap |
+| 当前版本 | `0.2.1` |
 | 是否自托管运行时 | 否（运行时由外部 AI 宿主负责） |
 | 厂商中立 | 是 |
 | 宿主类别 | `ai_native_coding_host` |
@@ -26,7 +26,7 @@
 | `spec/` | bootstrap 规范种子（`bootstrap-state`、`product-scope`） |
 | `cli/` | CLI 实现 |
 | `bin/nimicoding.mjs` | 入口二进制 |
-| `adapters/` | 宿主适配 overlay（如 `oh-my-codex`） |
+| `adapters/` | 宿主适配 overlay（`codex`、`claude`、`oh-my-codex`） |
 
 `nimicoding start` 在宿主项目内执行时，会把包内的源写入项目本地的 `.nimi/**`：
 
@@ -72,13 +72,23 @@
 - 包自有的 bootstrap 源写入
 - 重建、文档-规范审计、高风险执行结果的机器可读契约
 - 包自有的高风险准入 schema 契约
+- 产品权威表的 table-family 校验，包括发布关卡注册表使用的
+  `gate_registry` 表族
 - 仅种子的高风险执行 schema（packet、orchestration-state、prompt、worker-output、acceptance）
 - 厂商中立的外部 host-profile 种子
 - 包自有的外部宿主兼容契约种子
 - 用于受限外部执行宿主互通的 host-adapter 种子
-- 已准入的包自有 host-profile overlay 种子（`oh_my_codex`）
-- 一个边界明确的独立 CLI，覆盖分阶段的 `start`、校验、handoff、本地 closeout 写出、显式准入和机械化执行工件校验
+- 已准入的包自有 host adapter overlay（`codex`、`claude`、`oh-my-codex`）
+- 一个边界明确的独立 CLI，覆盖分阶段的 `start`、校验、`sync`、handoff、本地 closeout 写出、topic 生命周期、sweep audit、sweep design、显式准入、治理校验器和机械执行工件校验
 - 面向外部 AI 宿主的、宿主无关的语义 + 互通边界
+
+## Release Boundary
+
+`0.2.0` 是独立公开包的切换版本。它发布的是 bootstrap、校验、交接、本地 closeout、topic 生命周期、sweep audit、sweep design 和高风险执行关卡的 CLI 边界。
+
+`0.2.1` 保持这个包边界不变，并新增 `gate_registry` 表族，用于产品自有的发布关卡注册表。发布关卡注册表不是闭合枚举，也不是通用产品目录；它承载 registry 元数据、profile、tier、target、reason code 和 gate 条目，这些内容属于产品权威。
+
+Runtime 执行、调度、通知、provider 调用和自托管方法论执行仍在包边界之外。适配器特定 helper 不会改变这个边界。
 
 ## Bootstrap 形态
 
@@ -135,7 +145,7 @@ bootstrap 状态声明 `runtime_installed: false`、`installation_mode: deferred
 
 某个项目希望采用 Nimi Coding 方法论。
 
-1. **获取包**。按 [Installation](/zh/nimicoding/installation) 从 npm 安装 `@nimiplatform/nimi-coding`。
+1. **获取包**。按 [安装指南](/zh/nimicoding/installation) 从 npm 安装 `@nimiplatform/nimi-coding`。
 2. **运行 bootstrap**。`nimicoding start` 在项目根目录初始化 `.nimi/**`。
 3. **包内源被写入项目**。methodology / contracts / config / spec 写入对应路径。
 4. **`spec_reconstruction` 技能可用**。项目可把任务交给已准入的外部 AI 宿主完成规范重建。
@@ -167,11 +177,14 @@ bootstrap 状态声明 `runtime_installed: false`、`installation_mode: deferred
 
 ## 来源依据
 
-- [`nimi-coding/README.md`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/README.md)
-- [`nimi-coding/package.json`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/package.json)
-- [`nimi-coding/AGENTS.md`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/AGENTS.md)
-- [`nimi-coding/config/bootstrap.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/config/bootstrap.yaml)
-- [`nimi-coding/config/skills.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/config/skills.yaml)
-- [`nimi-coding/config/host-profile.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/config/host-profile.yaml)
-- [`nimi-coding/spec/bootstrap-state.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/spec/bootstrap-state.yaml)
-- [`nimi-coding/spec/product-scope.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/spec/product-scope.yaml)
+- [`nimi-coding/README.md`](https://github.com/nimiplatform/nimi-coding/blob/main/README.md)
+- [`nimi-coding/package.json`](https://github.com/nimiplatform/nimi-coding/blob/main/package.json)
+- [`nimi-coding/CHANGELOG.md`](https://github.com/nimiplatform/nimi-coding/blob/main/CHANGELOG.md)
+- [`nimi-coding/AGENTS.md`](https://github.com/nimiplatform/nimi-coding/blob/main/AGENTS.md)
+- [`nimi-coding/contracts/table-family.schema.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/contracts/table-family.schema.yaml)
+- [`nimi-coding/config/bootstrap.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/config/bootstrap.yaml)
+- [`nimi-coding/config/skills.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/config/skills.yaml)
+- [`nimi-coding/config/host-profile.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/config/host-profile.yaml)
+- [`nimi-coding/adapters/README.md`](https://github.com/nimiplatform/nimi-coding/blob/main/adapters/README.md)
+- [`nimi-coding/spec/bootstrap-state.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/spec/bootstrap-state.yaml)
+- [`nimi-coding/spec/product-scope.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/spec/product-scope.yaml)

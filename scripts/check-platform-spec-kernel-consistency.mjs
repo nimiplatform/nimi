@@ -2,8 +2,8 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
-import YAML from 'yaml';
 import { checkNimiDesignTables } from './lib/platform-spec-design-table-checks.mjs';
+import { readYamlWithFragments } from './lib/read-yaml-with-fragments.mjs';
 
 const cwd = process.cwd();
 
@@ -23,7 +23,7 @@ function read(rel) {
 }
 
 function readYaml(rel) {
-  return YAML.parse(read(rel));
+  return readYamlWithFragments(path.join(cwd, rel));
 }
 
 // --- Load tables ---
@@ -488,9 +488,6 @@ for (const rel of domainDocs) {
   if (!/^##\s+0\.\s+Normative Imports\b/mu.test(content)) {
     fail(`${rel} must define Section 0 Normative Imports`);
   }
-  if (!/\bP-[A-Z]+-\d{3}\b/u.test(content)) {
-    fail(`${rel} must reference at least one platform kernel Rule ID`);
-  }
   if (/^##\s+P-[A-Z]+-\d{3}\b/gmu.test(content)) {
     fail(`${rel} must not define kernel Rule IDs directly`);
   }
@@ -704,10 +701,10 @@ function checkRuleEvidenceTraceability(definedRuleIds) {
   const seen = new Set();
   for (const item of rules) {
     const ruleId = String(item?.rule_id || '').trim();
-    const status = String(item?.status || '').trim().toLowerCase();
+    const requirement = String(item?.evidence_requirement || '').trim().toLowerCase();
     const refs = Array.isArray(item?.evidence_refs) ? item.evidence_refs : [];
     const naReason = String(item?.na_reason || '').trim();
-    const coverageNote = String(item?.coverage_note || '').trim();
+    const evidenceScopeNote = String(item?.evidence_scope_note || '').trim();
     if (!/^P-[A-Z]{2,12}-\d{3}$/u.test(ruleId)) {
       fail(`${rel} has invalid rule_id format: ${ruleId || '<empty>'}`);
       continue;
@@ -720,16 +717,16 @@ function checkRuleEvidenceTraceability(definedRuleIds) {
     if (!definedRuleIds.has(ruleId)) {
       fail(`${rel} references unknown platform kernel rule: ${ruleId}`);
     }
-    if (status !== 'covered' && status !== 'partial' && status !== 'na') {
-      fail(`${rel} ${ruleId} has invalid status: ${status || '<empty>'}`);
+    if (requirement !== 'required' && requirement !== 'structural_required' && requirement !== 'not_applicable') {
+      fail(`${rel} ${ruleId} has invalid evidence_requirement: ${requirement || '<empty>'}`);
       continue;
     }
-    if (status === 'na') {
-      if (!naReason) fail(`${rel} ${ruleId} status=na requires na_reason`);
+    if (requirement === 'not_applicable') {
+      if (!naReason) fail(`${rel} ${ruleId} evidence_requirement=not_applicable requires na_reason`);
       continue;
     }
     if (refs.length === 0) {
-      fail(`${rel} ${ruleId} status=${status} requires non-empty evidence_refs`);
+      fail(`${rel} ${ruleId} evidence_requirement=${requirement} requires non-empty evidence_refs`);
       continue;
     }
     for (const rawRef of refs) {
@@ -749,19 +746,19 @@ function checkRuleEvidenceTraceability(definedRuleIds) {
       return String(record?.evidence_type || '').trim() === 'structural';
     });
     if (allStructural && structuralOnlyCoverageRuleIds.has(ruleId)) {
-      if (status !== 'partial') {
-        fail(`${rel} ${ruleId} uses structural-only evidence and must use status=partial`);
+      if (requirement !== 'structural_required') {
+        fail(`${rel} ${ruleId} uses structural-only evidence and must use evidence_requirement=structural_required`);
       }
-      if (!coverageNote) {
-        fail(`${rel} ${ruleId} uses structural-only evidence and must declare coverage_note`);
+      if (!evidenceScopeNote) {
+        fail(`${rel} ${ruleId} uses structural-only evidence and must declare evidence_scope_note`);
         continue;
       }
-      if (!/structural\s*-?\s*only/i.test(coverageNote)) {
-        fail(`${rel} ${ruleId} coverage_note must explicitly state structural only scope`);
+      if (!/structural\s*-?\s*only/i.test(evidenceScopeNote)) {
+        fail(`${rel} ${ruleId} evidence_scope_note must explicitly state structural only scope`);
       }
     }
-    if (/structural\s*-?\s*only/i.test(coverageNote) && status !== 'partial') {
-      fail(`${rel} ${ruleId} declares structural-only coverage_note and must use status=partial`);
+    if (/structural\s*-?\s*only/i.test(evidenceScopeNote) && requirement !== 'structural_required') {
+      fail(`${rel} ${ruleId} declares structural-only evidence_scope_note and must use evidence_requirement=structural_required`);
     }
   }
 
@@ -779,7 +776,7 @@ function checkAppSliceAdmissions(definedRuleIds) {
     return;
   }
   const seen = new Set();
-  const allowedStatus = new Set(['active', 'inactive']);
+  const allowedPosture = new Set(['active', 'inactive']);
   const requiredMayNotOverride = [
     '.nimi/spec/runtime/**',
     '.nimi/spec/sdk/**',
@@ -787,11 +784,12 @@ function checkAppSliceAdmissions(definedRuleIds) {
     '.nimi/spec/platform/**',
     '.nimi/spec/desktop/**',
     '.nimi/spec/cognition/**',
+    '.nimi/spec/avatar/**',
   ];
   for (const row of admissions) {
     const appId = String(row?.app_id || '').trim();
     const ownerDomain = String(row?.owner_domain || '').trim();
-    const status = String(row?.status || '').trim();
+    const admissionPosture = String(row?.admission_posture || '').trim();
     const authorityRoot = String(row?.authority_root || '').trim();
     const source = String(row?.source_rule || '').trim();
     const evidenceRoots = Array.isArray(row?.evidence_roots) ? row.evidence_roots.map((item) => String(item || '').trim()).filter(Boolean) : [];
@@ -806,7 +804,7 @@ function checkAppSliceAdmissions(definedRuleIds) {
       continue;
     }
     if (!ownerDomain) fail(`${rel}: ${appId} missing owner_domain`);
-    if (!allowedStatus.has(status)) fail(`${rel}: ${appId} has invalid status ${status || '<empty>'}`);
+    if (!allowedPosture.has(admissionPosture)) fail(`${rel}: ${appId} has invalid admission_posture ${admissionPosture || '<empty>'}`);
     if (authorityRoot !== `apps/${appId}/spec`) {
       fail(`${rel}: ${appId} authority_root must be apps/${appId}/spec`);
     } else if (!fs.existsSync(path.join(cwd, authorityRoot))) {
@@ -837,6 +835,34 @@ function sameStringSet(actual, expected) {
   return expected.every((entry) => actualSet.has(entry));
 }
 
+function isProductAuthorityRef(ref) {
+  return ref.startsWith('.nimi/spec/');
+}
+
+function isPackageSourceRef(ref) {
+  return ref === 'package://@nimiplatform/nimi-coding'
+    || ref.startsWith('package://@nimiplatform/nimi-coding/');
+}
+
+function isExternalPackageRef(ref) {
+  return ref === 'package://@nimiplatform/nimi-coding'
+    || ref.startsWith('package://@nimiplatform/nimi-coding/');
+}
+
+function isAllowedHostProjectionRef(ref) {
+  return ref.startsWith('.nimi/config/')
+    || ref.startsWith('.nimi/contracts/')
+    || ref.startsWith('.nimi/methodology/')
+    || ref.startsWith('.nimi/spec/');
+}
+
+function isAllowedPackageProjectionRef(ref) {
+  return ref.startsWith('package://@nimiplatform/nimi-coding/config/')
+    || ref.startsWith('package://@nimiplatform/nimi-coding/contracts/')
+    || ref.startsWith('package://@nimiplatform/nimi-coding/methodology/')
+    || ref.startsWith('package://@nimiplatform/nimi-coding/spec/');
+}
+
 function checkAuditEvidenceRoots(definedRuleIds) {
   const rel = '.nimi/spec/platform/kernel/tables/audit-evidence-roots.yaml';
   const roots = Array.isArray(auditEvidenceRootsTable?.roots) ? auditEvidenceRootsTable.roots : [];
@@ -860,11 +886,16 @@ function checkAuditEvidenceRoots(definedRuleIds) {
     if (authorityRefs.length === 0) fail(`${rel}: ${id} must declare authority_refs`);
     if (evidenceRoots.length === 0) fail(`${rel}: ${id} must declare evidence_roots`);
     for (const authorityRef of authorityRefs) {
-      if (!authorityRef.startsWith('.nimi/spec/') || !fs.existsSync(path.join(cwd, authorityRef))) {
+      if (isPackageSourceRef(authorityRef)) {
+        fail(`${rel}: ${id} package source ref must be evidence_root or package authority admission, not authority_ref: ${authorityRef}`);
+      } else if (!isProductAuthorityRef(authorityRef) || !fs.existsSync(path.join(cwd, authorityRef))) {
         fail(`${rel}: ${id} invalid authority_ref ${authorityRef}`);
       }
     }
     for (const evidenceRoot of evidenceRoots) {
+      if (isExternalPackageRef(evidenceRoot)) {
+        continue;
+      }
       if (evidenceRoot.startsWith('.nimi/spec/') || evidenceRoot.includes('..') || path.isAbsolute(evidenceRoot) || !fs.existsSync(path.join(cwd, evidenceRoot))) {
         fail(`${rel}: ${id} invalid evidence_root ${evidenceRoot}`);
       }
@@ -883,11 +914,20 @@ function checkPackageAuthorityAdmissions(definedRuleIds) {
     return;
   }
   const seen = new Set();
-  const allowedStatus = new Set(['active', 'inactive']);
+  const allowedPosture = new Set(['active', 'inactive']);
+  const requiredMayNotOverride = [
+    '.nimi/spec/runtime/**',
+    '.nimi/spec/sdk/**',
+    '.nimi/spec/realm/**',
+    '.nimi/spec/platform/**',
+    '.nimi/spec/desktop/**',
+    '.nimi/spec/cognition/**',
+    '.nimi/spec/avatar/**',
+  ];
   for (const row of admissions) {
     const id = String(row?.id || '').trim();
     const ownerDomain = String(row?.owner_domain || '').trim();
-    const status = String(row?.status || '').trim();
+    const admissionPosture = String(row?.admission_posture || '').trim();
     const authorityRoot = String(row?.authority_root || '').trim();
     const source = String(row?.source_rule || '').trim();
     const evidenceRoots = Array.isArray(row?.evidence_roots) ? row.evidence_roots.map((item) => String(item || '').trim()).filter(Boolean) : [];
@@ -899,16 +939,22 @@ function checkPackageAuthorityAdmissions(definedRuleIds) {
     }
     seen.add(id);
     if (!ownerDomain) fail(`${rel}: ${id} missing owner_domain`);
-    if (!allowedStatus.has(status)) fail(`${rel}: ${id} has invalid status ${status || '<empty>'}`);
+    if (!allowedPosture.has(admissionPosture)) fail(`${rel}: ${id} has invalid admission_posture ${admissionPosture || '<empty>'}`);
     if (!authorityRoot || authorityRoot.startsWith('.nimi/spec/') || authorityRoot.includes('..') || path.isAbsolute(authorityRoot) || !authorityRoot.endsWith('/spec')) {
       fail(`${rel}: ${id} invalid authority_root ${authorityRoot || '<empty>'}`);
-    } else if (!fs.existsSync(path.join(cwd, authorityRoot))) {
+    } else if (!isExternalPackageRef(authorityRoot) && !fs.existsSync(path.join(cwd, authorityRoot))) {
       fail(`${rel}: ${id} authority_root does not exist: ${authorityRoot}`);
     }
     if (evidenceRoots.length === 0) {
       fail(`${rel}: ${id} must declare evidence_roots`);
     }
     for (const evidenceRoot of evidenceRoots) {
+      if (isExternalPackageRef(evidenceRoot)) {
+        if (authorityRoot && !authorityRoot.startsWith(`${evidenceRoot.replace(/\/$/u, '')}/`)) {
+          fail(`${rel}: ${id} evidence root ${evidenceRoot} must contain authority_root ${authorityRoot}`);
+        }
+        continue;
+      }
       if (evidenceRoot.startsWith('.nimi/spec/') || evidenceRoot.includes('..') || path.isAbsolute(evidenceRoot) || !fs.existsSync(path.join(cwd, evidenceRoot))) {
         fail(`${rel}: ${id} invalid evidence_root ${evidenceRoot}`);
       } else if (authorityRoot && !authorityRoot.startsWith(`${evidenceRoot.replace(/\/$/u, '')}/`)) {
@@ -917,6 +963,8 @@ function checkPackageAuthorityAdmissions(definedRuleIds) {
     }
     if (mayNotOverride.length === 0) {
       fail(`${rel}: ${id} must declare may_not_override`);
+    } else if (!sameStringSet(mayNotOverride, requiredMayNotOverride)) {
+      fail(`${rel}: ${id} may_not_override must exactly match product authority fence set: ${requiredMayNotOverride.join(', ')}`);
     }
     if (!projectionBoundary) {
       fail(`${rel}: ${id} must declare projection_boundary`);
@@ -944,10 +992,10 @@ function checkPackageAuthorityAdmissions(definedRuleIds) {
       for (const projectionRef of hostAuthorityProjectionRefs) {
         const hostRef = String(projectionRef?.host_ref || '').trim();
         const packageRef = String(projectionRef?.package_ref || '').trim();
-        if (!hostRef.startsWith('.nimi/spec/') || hostRef.includes('..') || path.isAbsolute(hostRef) || !fs.existsSync(path.join(cwd, hostRef))) {
+        if (!isAllowedHostProjectionRef(hostRef) || hostRef.includes('..') || path.isAbsolute(hostRef) || !fs.existsSync(path.join(cwd, hostRef))) {
           fail(`${rel}: ${id} invalid host_authority_projection_refs host_ref ${hostRef || '<empty>'}`);
         }
-        if (!packageRef.startsWith(`${authorityRoot.replace(/\/$/u, '')}/`) || packageRef.includes('..') || path.isAbsolute(packageRef) || !fs.existsSync(path.join(cwd, packageRef))) {
+        if (!isAllowedPackageProjectionRef(packageRef) || packageRef.includes('..') || path.isAbsolute(packageRef)) {
           fail(`${rel}: ${id} invalid host_authority_projection_refs package_ref ${packageRef || '<empty>'}`);
         }
         if (seenHostProjectionRefs.has(hostRef)) {
