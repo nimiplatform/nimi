@@ -5,6 +5,8 @@ import { useAppStore } from '../../app-shell/app-store.js';
 import { getGrowthReports } from '../../bridge/sqlite-bridge.js';
 import { GROWTH_STANDARDS } from '../../knowledge-base/index.js';
 import { catchLog } from '../../infra/telemetry/catch-log.js';
+import { NoActiveChildPlaceholder } from './_shared/no-active-child-placeholder.js';
+import { ProfileDetailShell } from './_shared/profile-detail-shell.js';
 
 /* ── types ────────────────────────────────────────────────── */
 
@@ -98,26 +100,30 @@ export default function ReportHistoryPage() {
 
   const grouped = useMemo(() => groupByMonth(reports), [reports]);
 
-  if (!child) return <div className="flex items-center justify-center h-full text-[var(--nimi-text-muted)]">请先添加孩子档案</div>;
+  if (!child) {
+    return (
+      <ProfileDetailShell title="单据记录">
+        <NoActiveChildPlaceholder />
+      </ProfileDetailShell>
+    );
+  }
 
   return (
-    <div className="max-w-3xl mx-auto px-6 pb-6 pt-[72px] min-h-full">
-      <div className="flex items-center gap-2 mb-5">
-        <Link to="/profile" className="text-[14px] hover:underline text-[var(--nimi-text-muted)]">← 返回档案</Link>
-      </div>
-
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-xl font-bold text-[var(--nimi-text-primary)]">单据记录</h1>
-          <p className="text-[14px] mt-0.5 text-[var(--nimi-text-muted)]">
+    <ProfileDetailShell
+      title={
+        <span className="flex flex-col">
+          <span>单据记录</span>
+          <span className="text-[14px] font-normal mt-0.5 text-[var(--nimi-text-muted)]">
             共 {reports.length} 份已识别的医疗报告
-          </p>
-        </div>
+          </span>
+        </span>
+      }
+      actions={
         <Button asChild tone="primary" size="md">
           <Link to="/profile">+ 上传新报告</Link>
         </Button>
-      </div>
-
+      }
+    >
       {reports.length === 0 ? (
         /* Empty state */
         <Surface tone="card" material="solid" elevation="raised" padding="none" className="p-10 flex flex-col items-center">
@@ -207,6 +213,6 @@ export default function ReportHistoryPage() {
           ))}
         </div>
       )}
-    </div>
+    </ProfileDetailShell>
   );
 }

@@ -54,6 +54,9 @@ const cases: Array<{ slug: string; title: string; loader: () => Promise<{ defaul
   { slug: 'medical-events', title: '就医记录', loader: () => import('../medical-events-page.js') },
   { slug: 'vaccine', title: '疫苗接种', loader: () => import('../vaccine-page.js') },
   { slug: 'posture', title: '体态档案', loader: () => import('../posture-page.js') },
+  // wave-3
+  { slug: 'report-history', title: '单据记录', loader: () => import('../report-history-page.js') },
+  { slug: 'report-upload', title: '智能识别 & 影像档案', loader: () => import('../report-upload-page.js') },
 ];
 
 describe('profile detail pages: no-active-child empty state', () => {

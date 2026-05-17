@@ -1,6 +1,5 @@
-import { Button, Surface, TextField } from '@nimiplatform/nimi-kit/ui';
+import { Button, DashedAddButton, Surface, TextField } from '@nimiplatform/nimi-kit/ui';
 import { useState, useEffect, useMemo } from 'react';
-import { Link } from 'react-router-dom';
 import { computeAgeMonthsAt, useAppStore } from '../../app-shell/app-store.js';
 import { convertFileSrc } from '@tauri-apps/api/core';
 import { insertMeasurement, getMeasurements, saveAttachment, getAttachments, deleteAttachment } from '../../bridge/sqlite-bridge.js';
@@ -16,6 +15,8 @@ import {
   type OCRMeasurementCandidate,
 } from './checkup-ocr.js';
 import { ProfileDatePicker } from './profile-date-picker.js';
+import { NoActiveChildPlaceholder } from './_shared/no-active-child-placeholder.js';
+import { ProfileDetailShell } from './_shared/profile-detail-shell.js';
 
 type Status = 'idle' | 'analyzing' | 'review' | 'importing' | 'done';
 
@@ -134,7 +135,11 @@ export default function ReportUploadPage() {
   };
 
   if (!child) {
-    return <div className="flex items-center justify-center h-full text-[var(--nimi-text-muted)]">请先添加孩子档案</div>;
+    return (
+      <ProfileDetailShell title="智能识别 & 影像档案">
+        <NoActiveChildPlaceholder />
+      </ProfileDetailShell>
+    );
   }
 
   const handleFileSelect = async (file: File | null) => {
@@ -243,13 +248,10 @@ export default function ReportUploadPage() {
   };
 
   return (
-    <div className="max-w-3xl mx-auto min-h-full px-6 pb-6 pt-[72px]">
-      <div className="flex items-center gap-2 mb-5">
-        <Link to="/profile" className="text-[14px] hover:underline text-[var(--nimi-text-muted)]">← 返回档案</Link>
-      </div>
-      <div className="flex items-center justify-between mb-2">
-        <h1 className="text-xl font-bold text-[var(--nimi-text-primary)]">智能识别 & 影像档案</h1>
-        <div className="flex items-center gap-2">
+    <ProfileDetailShell
+      title="智能识别 & 影像档案"
+      actions={
+        <>
           {reportGroups.length > 0 && (
             <span className="rounded-full bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,var(--nimi-surface-card))] px-2.5 py-0.5 text-[13px] text-[var(--nimi-action-primary-bg)]">
               {reportGroups.length} 份报告
@@ -260,22 +262,24 @@ export default function ReportUploadPage() {
               {allAttachments.length} 张影像
             </span>
           )}
+        </>
+      }
+      subnav={
+        <div className="flex flex-col gap-3">
+          <p className="text-[14px] text-[var(--nimi-text-muted)]">
+            上传医院报告自动提取数据，所有影像资料统一归档
+          </p>
+          <div className="flex gap-1 rounded-full bg-[var(--nimi-action-ghost-hover)] p-1 w-fit">
+            {([['upload', '📄 上传报告'], ['library', '📚 报告库'], ['attachments', '🖼️ 影像档案']] as const).map(([k, l]) => (
+              <button key={k} onClick={() => setActiveView(k)}
+                className={`px-4 py-1.5 text-[13px] font-medium rounded-full transition-all ${activeView === k ? 'bg-[var(--nimi-surface-card)] text-[var(--nimi-text-primary)] shadow-[var(--nimi-elevation-base)]' : 'text-[var(--nimi-text-muted)]'}`}>
+                {l}
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
-      <p className="text-[14px] mb-4 text-[var(--nimi-text-muted)]">
-        上传医院报告自动提取数据，所有影像资料统一归档
-      </p>
-
-      {/* ── Tab toggle ─────────────────────────────────────── */}
-      <div className="flex gap-1 rounded-full bg-[var(--nimi-action-ghost-hover)] p-1 mb-5 w-fit">
-        {([['upload', '📄 上传报告'], ['library', '📚 报告库'], ['attachments', '🖼️ 影像档案']] as const).map(([k, l]) => (
-          <button key={k} onClick={() => setActiveView(k)}
-            className={`px-4 py-1.5 text-[13px] font-medium rounded-full transition-all ${activeView === k ? 'bg-[var(--nimi-surface-card)] text-[var(--nimi-text-primary)] shadow-[var(--nimi-elevation-base)]' : 'text-[var(--nimi-text-muted)]'}`}>
-            {l}
-          </button>
-        ))}
-      </div>
-
+      }
+    >
       {/* ════════════════════════════════════════════════════════
          UPLOAD VIEW
          ════════════════════════════════════════════════════════ */}
@@ -285,14 +289,19 @@ export default function ReportUploadPage() {
       {status !== 'done' && (
         <Surface tone="card" material="glass-regular" elevation="raised" padding="lg" className="mb-4 rounded-3xl">
           {!imagePreview ? (
-            /* Drop zone */
-            <label className="flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[var(--nimi-border-subtle)] py-10 transition-colors hover:border-[var(--nimi-action-primary-bg)] hover:bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_8%,transparent)]">
-              <span className="text-[36px] mb-2">📄</span>
-              <p className="text-[14px] font-medium text-[var(--nimi-text-primary)]">点击选择或拖放报告图片</p>
-              <p className="text-[13px] mt-1 text-[var(--nimi-text-muted)]">支持 JPG、PNG 格式</p>
-              <input type="file" accept="image/*" className="hidden"
-                onChange={(e) => void handleFileSelect(e.target.files?.[0] ?? null)} />
-            </label>
+            <DashedAddButton
+              shape="dropzone"
+              icon={<span className="text-[36px]">📄</span>}
+              label="点击选择或拖放报告图片"
+              description="支持 JPG、PNG 格式"
+              onClick={() => {
+                const input = document.createElement('input');
+                input.type = 'file';
+                input.accept = 'image/*';
+                input.onchange = () => void handleFileSelect(input.files?.[0] ?? null);
+                input.click();
+              }}
+            />
           ) : (
             /* Preview + analyze */
             <div className="flex gap-4">
@@ -615,6 +624,6 @@ export default function ReportUploadPage() {
           </button>
         </div>
       )}
-    </div>
+    </ProfileDetailShell>
   );
 }
