@@ -108,7 +108,7 @@ function syncDocumentState(locale: SupportedLocale): void {
   document.documentElement.lang = resolveDocumentLang(locale);
   document.title = translateOrFallback(
     DOCUMENT_TITLE_TRANSLATION_KEY,
-    'Nimi Desktop Runtime',
+    'Nimi',
   );
 }
 

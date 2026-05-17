@@ -60,11 +60,16 @@ export function getShellFeatureFlags(): ShellFeatureFlags {
   const isTauriShell = isDesktop || isForge;
   const enableMenuBarShell = isDesktop && isMacDesktopEnvironment();
 
+  // Per closed Nimi Home Platform Entry Redesign (P-NAPP-012, P-MOEX-006),
+  // Mod Hub is retired from ordinary-user product surfaces. Developer
+  // builds may re-enable it by setting VITE_NIMI_ENABLE_MOD_DEVELOPER_UI=true.
+  const developerModUiOptIn = readBundledEnv('VITE_NIMI_ENABLE_MOD_DEVELOPER_UI').toLowerCase() === 'true';
+
   cachedFlags = {
     mode,
     enableRuntimeTab: isDesktop,
-    enableModUi: isDesktop,
-    enableModWorkspaceTabs: isDesktop,
+    enableModUi: isDesktop && developerModUiOptIn,
+    enableModWorkspaceTabs: isDesktop && developerModUiOptIn,
     enableSettingsExtensions: isTauriShell,
     enableTitlebarDrag: isTauriShell,
     enableMenuBarShell,
