@@ -645,6 +645,7 @@ export function parseDesktopMacosSmokeContext(value: unknown): DesktopMacosSmoke
     artifactsDir: parseOptionalString(record.artifactsDir),
     disableRuntimeBootstrap: Boolean(record.disableRuntimeBootstrap),
     bootstrapTimeoutMs: parseOptionalNumber(record.bootstrapTimeoutMs),
+    avatarProductLocalAssetFault: parseOptionalJsonObject(record.avatarProductLocalAssetFault) || undefined,
   };
 }
 

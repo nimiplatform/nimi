@@ -14,6 +14,7 @@ import {
 } from './desktop-macos-smoke-live2d';
 import {
   waitForAvatarCarrierEvidence,
+  waitForAvatarLocalAssetDegradedEvidence,
   waitForAvatarLive2dInteractionEvidence,
 } from './desktop-macos-smoke-avatar-evidence';
 import { AGENT_CHAT_ANCHOR_BINDINGS_STORAGE_KEY } from '@renderer/app-shell/providers/agent-conversation-anchor-binding-storage';
@@ -31,6 +32,7 @@ import {
 const E2E_PRIMARY_REALM_AGENT_ID = 'agent-e2e-alpha';
 const E2E_PRIMARY_LOCAL_AGENT_REF = `local-agent:user-e2e-primary:${E2E_PRIMARY_REALM_AGENT_ID}`;
 const E2E_PRIMARY_AGENT_TARGET_ID = E2E_IDS.chatTarget(E2E_PRIMARY_LOCAL_AGENT_REF);
+const AVATAR_PRODUCT_LIVE_INSTANCE_TIMEOUT_MS = 45_000;
 
 async function waitForAvatarLiveInstance(
   deps: DesktopMacosSmokeDriverDeps,
@@ -316,7 +318,7 @@ export async function runDesktopMacosSmokeScenario(
           E2E_PRIMARY_REALM_AGENT_ID,
           E2E_PRIMARY_LOCAL_AGENT_REF,
           conversationAnchorId,
-          20_000,
+          AVATAR_PRODUCT_LIVE_INSTANCE_TIMEOUT_MS,
         );
         record('wait-avatar-carrier-evidence');
         const carrierEvidence = await waitForAvatarCarrierEvidence(
@@ -359,6 +361,81 @@ export async function runDesktopMacosSmokeScenario(
               lifecycleMounted: carrierEvidence.lifecycleMounted,
               visual: carrierEvidence.visual,
               interaction: interactionEvidence.interaction,
+            },
+          },
+        });
+        return;
+      }
+
+      case 'chat.live2d-avatar-local-asset-missing-smoke': {
+        record('wait-chat-panel');
+        await deps.waitForTestId(E2E_IDS.panel('chat'));
+        record('verify-runtime-account-projection');
+        await deps.verifyRuntimeAccountProjection();
+        record('clear-stale-anchor-bindings');
+        await deps.clearAgentConversationAnchorBindings();
+        record('select-agent-target');
+        await deps.clickByTestId(E2E_PRIMARY_AGENT_TARGET_ID);
+        record('wait-agent-target-selected');
+        await new Promise((resolve) => setTimeout(resolve, 750));
+        record('configure-runtime-text-route');
+        await deps.configureRuntimeTextRoute();
+        const anchorWriteNotBeforeMs = Date.now();
+        record('submit-anchor-turn');
+        await deps.setValueBySelector('[data-chat-composer-textarea="true"]', 'Wave 2 local asset missing degraded turn.');
+        record('wait-anchor-send-ready');
+        await deps.waitForSelectorEnabled('[data-chat-composer-send="true"]');
+        await deps.clickSelector('[data-chat-composer-send="true"]');
+        record('wait-runtime-anchor-binding');
+        const conversationAnchorId = await waitForAgentConversationAnchorBinding(
+          deps,
+          {
+            realmAgentId: E2E_PRIMARY_REALM_AGENT_ID,
+            localAgentRef: E2E_PRIMARY_LOCAL_AGENT_REF,
+          },
+          anchorWriteNotBeforeMs,
+        );
+        record('wait-runtime-product-path-evidence');
+        const runtimeProductEvidence = await waitForRuntimeProductPathEvidence(deps, {
+          agentId: E2E_PRIMARY_LOCAL_AGENT_REF,
+          conversationAnchorId,
+        });
+        record('wait-avatar-composer-ready');
+        await deps.waitForSelector('[data-agent-composer-avatar="ready_stopped"]');
+        record('apply-avatar-local-asset-fault');
+        const localAssetFault = await deps.applyAvatarProductLocalAssetFault('missing_entry_file');
+        record('launch-avatar-current-anchor');
+        await deps.clickSelector('[data-agent-composer-avatar="ready_stopped"]');
+        record('wait-avatar-same-anchor-registry');
+        const liveInstance = await waitForAvatarLiveInstance(
+          deps,
+          E2E_PRIMARY_REALM_AGENT_ID,
+          E2E_PRIMARY_LOCAL_AGENT_REF,
+          conversationAnchorId,
+          AVATAR_PRODUCT_LIVE_INSTANCE_TIMEOUT_MS,
+        );
+        record('wait-avatar-local-asset-degraded-evidence');
+        const degradedEvidence = await waitForAvatarLocalAssetDegradedEvidence(
+          deps,
+          liveInstance.avatarInstanceId,
+          conversationAnchorId,
+        );
+        record('write-pass-report');
+        await deps.writeReport({
+          ok: true,
+          steps,
+          route: deps.currentRoute(),
+          htmlSnapshot: deps.currentHtml(),
+          details: {
+            avatarProductDegradedPath: {
+              conversationAnchorId,
+              runtime: runtimeProductEvidence,
+              liveInstance,
+              localAssetFault,
+              evidencePath: degradedEvidence.evidencePath,
+              bindFailure: degradedEvidence.bindFailure,
+              degradedTransition: degradedEvidence.degradedTransition,
+              degradedSurface: degradedEvidence.degradedSurface,
             },
           },
         });

@@ -333,7 +333,7 @@ for (const field of ['ownerUserId', 'realmAgentId', 'localAgentRef', 'conversati
   }
 }
 requireIncludes(FILES.desktopLauncher, [
-  "const agentId = normalizeRequiredString(input.agentId, 'agentId');",
+  "const agentId = normalizeRequiredLocalAgentRef(input.agentId, 'agentId');",
   'const launchSource = normalizeOptionalString(input.launchSource) ?? normalizeOptionalString(input.sourceSurface);',
 ]);
 
@@ -350,8 +350,8 @@ for (const needle of [
   requireIncludes(relPath, [needle]);
 }
 const desktopLaunchCall = desktopPresentation.match(/launchDesktopAvatarHandoff\(\{(?<body>[\s\S]*?)\n {6}\}\)/u)?.groups?.body || '';
-if (!desktopLaunchCall.includes('agentId: input.activeTarget.realmAgentId')) {
-  fail(`${FILES.desktopPresentation} Avatar launch call must pass only agentId selector`);
+if (!desktopLaunchCall.includes('agentId: input.activeTarget.localAgentRef')) {
+  fail(`${FILES.desktopPresentation} Avatar launch call must pass local-agent ref through the agentId selector`);
 }
 for (const field of ['ownerUserId', 'realmAgentId', 'localAgentRef', 'conversationAnchorId', 'sourceSurface']) {
   if (new RegExp(`\\b${field}\\s*:`, 'u').test(desktopLaunchCall)) {

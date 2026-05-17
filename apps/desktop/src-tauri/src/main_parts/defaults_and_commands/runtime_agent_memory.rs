@@ -30,9 +30,8 @@ pub(crate) fn agent_memory_standard_fixture_status_get(
     if agent_id.is_empty() {
         return Err("agentId is required".to_string());
     }
-    let Some(override_payload) =
-        crate::desktop_e2e_fixture::agent_memory_bind_standard_override()
-            .map_err(|error| error.to_string())?
+    let Some(override_payload) = crate::desktop_e2e_fixture::agent_memory_bind_standard_override()
+        .map_err(|error| error.to_string())?
     else {
         return Ok(AgentMemoryStandardFixtureStatusResult {
             available: false,

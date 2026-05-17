@@ -851,6 +851,52 @@ describe('bootstrapAvatar', () => {
     await handle.shutdown();
   });
 
+  it('fails closed with typed local Avatar asset diagnostics after Runtime anchor recovery', async () => {
+    resolveLocalAvatarAssetManifestMock.mockRejectedValue(
+      new Error('selected local Avatar asset entry file is missing'),
+    );
+    const { bootstrapAvatar } = await import('./app-bootstrap.js');
+
+    const handle = await bootstrapAvatar();
+
+    expect(bindAvatarRuntimeIdentityMock).toHaveBeenCalledTimes(1);
+    expect(createDriverMock).not.toHaveBeenCalled();
+    expect(startAvatarRuntimeCarrierMock).not.toHaveBeenCalled();
+    expect(useAvatarStore.getState().consume).toEqual(expect.objectContaining({
+      avatarInstanceId: 'instance-1',
+      conversationAnchorId: 'anchor-runtime',
+      agentId: LOCAL_AGENT_REF,
+    }));
+    expect(useAvatarStore.getState().runtime.binding).toEqual(expect.objectContaining({
+      status: 'unavailable',
+      reason: 'local_avatar_asset_manifest: LOCAL_AVATAR_ASSET_RESOLVE_FAILED / reimport_or_select_local_avatar_asset',
+      reasonCode: 'LOCAL_AVATAR_ASSET_RESOLVE_FAILED',
+      actionHint: 'reimport_or_select_local_avatar_asset',
+      stage: 'local_avatar_asset_manifest',
+      source: 'avatar_local_materialization',
+      retryable: false,
+    }));
+    expect(recordAvatarEvidenceEventuallyMock).toHaveBeenCalledWith(expect.objectContaining({
+      kind: 'avatar.runtime.bind-failed',
+      detail: expect.objectContaining({
+        agentId: LOCAL_AGENT_REF,
+        avatar_instance_id: 'instance-1',
+        conversation_anchor_id: 'anchor-runtime',
+        reason: 'local_avatar_asset_manifest: LOCAL_AVATAR_ASSET_RESOLVE_FAILED / reimport_or_select_local_avatar_asset',
+        error_stage: 'local_avatar_asset_manifest',
+        error_reason_code: 'LOCAL_AVATAR_ASSET_RESOLVE_FAILED',
+        error_action_hint: 'reimport_or_select_local_avatar_asset',
+        error_source: 'avatar_local_materialization',
+        error_retryable: false,
+        error_message: 'selected local Avatar asset entry file is missing',
+      }),
+    }));
+    expect(handle.driver).toBeNull();
+    expect(handle.carrier).toBeNull();
+
+    await handle.shutdown();
+  });
+
   it('fails closed when driver start hangs before Runtime consume is ready', async () => {
     vi.useFakeTimers();
     createDriverMock.mockReturnValue({

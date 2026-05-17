@@ -95,6 +95,9 @@ export function createBaseDriver(
         evidence: {},
       };
     },
+    async applyAvatarProductLocalAssetFault() {
+      return {};
+    },
     async writeReport() {},
     currentRoute() {
       return '/';

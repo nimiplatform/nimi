@@ -205,7 +205,10 @@ fn validate_agent_center_config(config: &AgentCenterLocalConfig) -> Result<(), S
         "modules.avatar_asset.schema_version",
     )?;
     if let Some(local_asset_ref) = &config.modules.avatar_asset.local_avatar_asset_ref {
-        validate_normalized_id(local_asset_ref, "modules.avatar_asset.local_avatar_asset_ref")?;
+        validate_normalized_id(
+            local_asset_ref,
+            "modules.avatar_asset.local_avatar_asset_ref",
+        )?;
     }
     match config.modules.avatar_asset.live2d_adapter_manifest_source {
         AgentCenterLive2dAdapterManifestSource::None => {
@@ -511,7 +514,8 @@ mod tests {
 
     fn valid_config() -> AgentCenterLocalConfig {
         let mut config = default_config("account_1".to_string(), local_scope());
-        config.modules.avatar_asset.local_avatar_asset_ref = Some("live2d_ab12cd34ef56".to_string());
+        config.modules.avatar_asset.local_avatar_asset_ref =
+            Some("live2d_ab12cd34ef56".to_string());
         config.modules.avatar_asset.backend_kind = AgentCenterAvatarBackendKind::Live2d;
         config
     }
@@ -564,7 +568,11 @@ mod tests {
             .expect("put config");
             let loaded = desktop_agent_center_config_get(scope_payload()).expect("get config");
             assert_eq!(
-                loaded.modules.avatar_asset.local_avatar_asset_ref.as_deref(),
+                loaded
+                    .modules
+                    .avatar_asset
+                    .local_avatar_asset_ref
+                    .as_deref(),
                 Some("live2d_ab12cd34ef56")
             );
         });

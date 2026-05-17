@@ -13,7 +13,12 @@ pub(super) fn select_imported_live2d_adapter_manifest(
         local_agent_ref: scope.local_agent_ref.clone(),
     })?;
     if config.modules.avatar_asset.backend_kind != AgentCenterAvatarBackendKind::Live2d
-        || config.modules.avatar_asset.local_avatar_asset_ref.as_deref() != Some(local_asset_id)
+        || config
+            .modules
+            .avatar_asset
+            .local_avatar_asset_ref
+            .as_deref()
+            != Some(local_asset_id)
     {
         return Err(
             "external Live2D adapter manifest requires matching runtime-projected Live2D asset evidence".to_string(),

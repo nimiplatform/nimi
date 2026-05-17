@@ -14,6 +14,7 @@ export const CUBISM_WEB_SDK_VERSION = '5-r.5';
 export const DEFAULT_CUBISM_SAMPLE_MODEL = 'Hiyori';
 export const LIVE2D_SMOKE_SCENARIO_PREFIX = 'chat.live2d-render-smoke-';
 export const LIVE2D_AVATAR_PRODUCT_SMOKE_SCENARIO = 'chat.live2d-avatar-product-smoke';
+export const LIVE2D_AVATAR_LOCAL_ASSET_MISSING_SMOKE_SCENARIO = 'chat.live2d-avatar-local-asset-missing-smoke';
 export const LIVE2D_AVATAR_PRODUCT_BOOTSTRAP_TIMEOUT_MS = 120000;
 export const VRM_SAMPLE_CATALOG = {
   'chat.vrm-lifecycle-smoke': {
@@ -329,11 +330,16 @@ export function runtimeProductSmokeTauriFixture(profile, scenarioId) {
   const fixture = {
     ...(profile.tauriFixture || {}),
   };
-  if (scenarioId === LIVE2D_AVATAR_PRODUCT_SMOKE_SCENARIO) {
+  if (isLive2dAvatarProductScenario(scenarioId)) {
     delete fixture.runtimeBridgeStatus;
     delete fixture.desktopReleaseInfo;
   }
   return fixture;
+}
+
+export function isLive2dAvatarProductScenario(scenarioId) {
+  return scenarioId === LIVE2D_AVATAR_PRODUCT_SMOKE_SCENARIO
+    || scenarioId === LIVE2D_AVATAR_LOCAL_ASSET_MISSING_SMOKE_SCENARIO;
 }
 
 export function cloneJson(value) {
@@ -663,6 +669,25 @@ export function seedAvatarProductSmokeAgentCenterConfig(avatarProductLive2dPacka
   };
 }
 
+export function applyAvatarProductSmokeLocalAssetFault(agentCenterConfig, faultKind) {
+  if (!agentCenterConfig || faultKind !== 'missing_entry_file') {
+    return null;
+  }
+  const manifestPath = path.join(agentCenterConfig.packageDir, 'manifest.json');
+  const manifest = readJson(manifestPath);
+  const entryFile = typeof manifest.entry_file === 'string' ? manifest.entry_file.trim() : '';
+  if (!entryFile) {
+    throw new Error(`cannot apply Avatar product local asset fault without manifest entry_file: ${manifestPath}`);
+  }
+  const entryPath = path.join(agentCenterConfig.packageDir, entryFile);
+  fs.rmSync(entryPath, { force: true });
+  return {
+    faultKind,
+    manifestPath,
+    removedEntryPath: entryPath,
+  };
+}
+
 function sanitizeAvatarProjectionComponent(input) {
   const raw = String(input || '').trim();
   let out = '';
@@ -754,7 +779,7 @@ export function withAgentPresentationProfile(agent, presentationProfile) {
 
 export function applyAvatarProductPresentationProfile(profile, scenarioId, presentationProfile) {
   const next = cloneJson(profile);
-  if (scenarioId !== LIVE2D_AVATAR_PRODUCT_SMOKE_SCENARIO || !presentationProfile) {
+  if (!isLive2dAvatarProductScenario(scenarioId) || !presentationProfile) {
     return next;
   }
   const realmFixture = next.realmFixture || {};

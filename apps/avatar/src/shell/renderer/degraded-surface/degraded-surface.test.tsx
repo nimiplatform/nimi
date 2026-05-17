@@ -35,6 +35,8 @@ function makeComposition(state: CompositionState, overrides: Partial<Composition
     accountReasonCode: null,
     actionHint: null,
     stage: null,
+    source: null,
+    retryable: null,
     ready: state === 'ready' || state === 'fixture_active',
     ...overrides,
   };
@@ -85,6 +87,27 @@ describe('DegradedSurface — reason interpolation', () => {
       screen.getByText('The local Runtime is not currently delivering the avatar carrier.'),
     ).toBeTruthy();
   });
+
+  it('renders typed diagnostics fields for fail-closed bootstrap details', () => {
+    render(
+      <DegradedSurface
+        composition={makeComposition('degraded_runtime_unavailable', {
+          reason: 'local_avatar_asset_manifest: LOCAL_AVATAR_ASSET_RESOLVE_FAILED / reimport_or_select_local_avatar_asset',
+          reasonCode: 'LOCAL_AVATAR_ASSET_RESOLVE_FAILED',
+          actionHint: 'reimport_or_select_local_avatar_asset',
+          stage: 'local_avatar_asset_manifest',
+          source: 'avatar_local_materialization',
+          retryable: false,
+        })}
+      />,
+    );
+
+    expect(screen.getByText('LOCAL_AVATAR_ASSET_RESOLVE_FAILED')).toBeTruthy();
+    expect(screen.getByText('reimport_or_select_local_avatar_asset')).toBeTruthy();
+    expect(screen.getByText('local_avatar_asset_manifest')).toBeTruthy();
+    expect(screen.getByText('avatar_local_materialization')).toBeTruthy();
+    expect(screen.getByText('No')).toBeTruthy();
+  });
 });
 
 describe('DegradedSurface — reload affordance', () => {
@@ -99,6 +122,21 @@ describe('DegradedSurface — reload affordance', () => {
 describe('DegradedSurface — composition evidence emit', () => {
   it('emits avatar.composition.surface-mounted on mount with composition_state', () => {
     render(<DegradedSurface composition={makeComposition('degraded_runtime_unavailable')} />);
+    expect(recordAvatarEvidenceEventuallyMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        kind: 'avatar.composition.surface-mounted',
+        detail: expect.objectContaining({
+          surface: 'degraded-surface',
+          composition_state: 'degraded_runtime_unavailable',
+        }),
+      }),
+    );
+  });
+
+  it('emits avatar.composition.surface-mounted when reused surface enters degraded state', () => {
+    const { rerender } = render(<DegradedSurface composition={makeComposition('loading')} />);
+    recordAvatarEvidenceEventuallyMock.mockClear();
+    rerender(<DegradedSurface composition={makeComposition('degraded_runtime_unavailable')} />);
     expect(recordAvatarEvidenceEventuallyMock).toHaveBeenCalledWith(
       expect.objectContaining({
         kind: 'avatar.composition.surface-mounted',

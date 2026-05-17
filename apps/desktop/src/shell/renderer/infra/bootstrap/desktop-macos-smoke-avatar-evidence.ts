@@ -41,6 +41,20 @@ function recordTimeMs(record: Record<string, unknown>): number {
   return Number.isFinite(value) ? value : 0;
 }
 
+function describeAvatarFailureRecord(record: Record<string, unknown>): string {
+  const detail = recordDetail(record);
+  const parts = [
+    `kind=${recordKind(record)}`,
+    `source=${String(detail.source || 'unknown')}`,
+    `phase=${String(detail.phase || 'unknown')}`,
+    `message=${String(detail.message || detail.reason || detail.error || 'unknown')}`,
+  ];
+  if (typeof detail.window_label === 'string' && detail.window_label.trim().length > 0) {
+    parts.push(`window=${detail.window_label}`);
+  }
+  return parts.join(' ');
+}
+
 function hasLive2dHitRegionDefault(record: Record<string, unknown> | null): boolean {
   const detail = record ? recordDetail(record) : {};
   const metadata = detail.backend_metadata && typeof detail.backend_metadata === 'object' && !Array.isArray(detail.backend_metadata)
@@ -167,6 +181,13 @@ export async function waitForAvatarCarrierEvidence(
         const detail = recordDetail(bindFailure);
         throw new Error(`Avatar Runtime consume failed: ${String(detail.reason || detail.error_message || 'unknown bind failure')}`);
       }
+      const terminalFailure = recordsForCurrentStartup.find((record) => {
+        const kind = recordKind(record);
+        return kind === 'avatar.renderer.failed' || kind === 'avatar.window.destroyed';
+      }) || null;
+      if (terminalFailure) {
+        throw new Error(`Avatar renderer/window lifecycle failed before visual readiness: ${describeAvatarFailureRecord(terminalFailure)}`);
+      }
       const consumeReady = recordsForCurrentStartup.find((record) => (
         recordKind(record) === 'avatar.runtime.consume-ready'
         && recordConversationAnchorId(record) === expectedConversationAnchorId
@@ -261,4 +282,84 @@ export async function waitForAvatarLive2dInteractionEvidence(
     await new Promise((resolve) => setTimeout(resolve, 300));
   }
   throw new Error(`missing same-anchor Avatar Live2D motion/expression interaction evidence for ${avatarInstanceId} anchor=${expectedConversationAnchorId}: ${lastError}`);
+}
+
+export async function waitForAvatarLocalAssetDegradedEvidence(
+  deps: DesktopMacosSmokeDriverDeps,
+  avatarInstanceId: string,
+  expectedConversationAnchorId: string,
+  timeoutMs = 45_000,
+) {
+  const deadline = Date.now() + timeoutMs;
+  let lastError = '';
+  while (Date.now() < deadline) {
+    try {
+      const result = await deps.readAvatarEvidence(avatarInstanceId);
+      const records = readEvidenceRecords(result.evidence);
+      const latestRecords = [...records].reverse();
+      const bindFailure = latestRecords.find((record) => {
+        if (recordKind(record) !== 'avatar.runtime.bind-failed') {
+          return false;
+        }
+        if (recordConversationAnchorId(record) !== expectedConversationAnchorId) {
+          return false;
+        }
+        const detail = recordDetail(record);
+        return (
+          detail.error_stage === 'local_avatar_asset_manifest'
+          && detail.error_reason_code === 'LOCAL_AVATAR_ASSET_RESOLVE_FAILED'
+          && detail.error_action_hint === 'reimport_or_select_local_avatar_asset'
+          && detail.error_source === 'avatar_local_materialization'
+          && detail.error_retryable === false
+        );
+      }) || null;
+      const bindFailureTime = bindFailure ? recordTimeMs(bindFailure) : 0;
+      const degradedTransition = latestRecords.find((record) => {
+        if (recordKind(record) !== 'avatar.composition.transition') {
+          return false;
+        }
+        if (bindFailureTime > 0 && recordTimeMs(record) < bindFailureTime) {
+          return false;
+        }
+        const detail = recordDetail(record);
+        return (
+          detail.to === 'degraded_runtime_unavailable'
+          && detail.stage === 'local_avatar_asset_manifest'
+          && detail.reason_code === 'LOCAL_AVATAR_ASSET_RESOLVE_FAILED'
+          && detail.action_hint === 'reimport_or_select_local_avatar_asset'
+          && detail.source === 'avatar_local_materialization'
+          && detail.retryable === false
+        );
+      }) || null;
+      const degradedSurface = latestRecords.find((record) => {
+        if (recordKind(record) !== 'avatar.composition.surface-mounted') {
+          return false;
+        }
+        if (bindFailureTime > 0 && recordTimeMs(record) < bindFailureTime) {
+          return false;
+        }
+        const detail = recordDetail(record);
+        return (
+          detail.surface === 'degraded-surface'
+          && detail.composition_state === 'degraded_runtime_unavailable'
+        );
+      }) || null;
+      if (bindFailure && degradedTransition && degradedSurface) {
+        return {
+          evidencePath: result.evidencePath,
+          evidence: result.evidence,
+          bindFailure,
+          degradedTransition,
+          degradedSurface,
+        };
+      }
+      lastError = `anchor=${expectedConversationAnchorId} requirements=`
+        + `bindFailure:${Boolean(bindFailure)} degradedTransition:${Boolean(degradedTransition)} degradedSurface:${Boolean(degradedSurface)} `
+        + `records=${records.map((record) => `${recordKind(record)}:${recordConversationAnchorId(record) || 'no-anchor'}`).join(',') || 'none'}`;
+    } catch (error) {
+      lastError = error instanceof Error ? error.message : String(error || 'unknown evidence read error');
+    }
+    await new Promise((resolve) => setTimeout(resolve, 300));
+  }
+  throw new Error(`missing same-anchor Avatar local asset degraded evidence for ${avatarInstanceId} anchor=${expectedConversationAnchorId}: ${lastError}`);
 }

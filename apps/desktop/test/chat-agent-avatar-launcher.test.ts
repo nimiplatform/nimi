@@ -80,13 +80,13 @@ test('desktop avatar launcher rejects conversation anchor based instance identit
 
 test('desktop avatar launcher builds minimal launch intent payload', () => {
   const payload = buildDesktopAvatarLaunchHandoffPayload({
-    agentId: ' agent-1 ',
+    agentId: ' local-agent:owner-1:agent-1 ',
     avatarInstanceId: ' instance-1 ',
     sourceSurface: ' desktop-agent-chat ',
   });
 
   assert.deepEqual(payload, {
-    agentId: 'agent-1',
+    agentId: 'local-agent:owner-1:agent-1',
     avatarInstanceId: 'instance-1',
     launchSource: 'desktop-agent-chat',
   });
@@ -94,7 +94,7 @@ test('desktop avatar launcher builds minimal launch intent payload', () => {
     assert.equal(field in payload, false, `payload must not contain ${field}`);
   }
   assert.deepEqual(parseAvatarLaunchContext(payload), {
-    agentId: 'agent-1',
+    agentId: 'local-agent:owner-1:agent-1',
     avatarInstanceId: 'instance-1',
     launchSource: 'desktop-agent-chat',
   });
@@ -102,17 +102,27 @@ test('desktop avatar launcher builds minimal launch intent payload', () => {
 
 test('desktop avatar launcher allows required agent selector only', () => {
   const payload = buildDesktopAvatarLaunchHandoffPayload({
-    agentId: 'agent-1',
+    agentId: 'local-agent:owner-1:agent-1',
   });
 
   assert.deepEqual(payload, {
-    agentId: 'agent-1',
+    agentId: 'local-agent:owner-1:agent-1',
   });
   assert.deepEqual(parseAvatarLaunchContext(payload), {
-    agentId: 'agent-1',
+    agentId: 'local-agent:owner-1:agent-1',
     avatarInstanceId: null,
     launchSource: null,
   });
+});
+
+test('desktop avatar launcher rejects bare realm agent ids', () => {
+  assert.throws(
+    () => buildDesktopAvatarLaunchHandoffPayload({
+      agentId: 'agent-1',
+      avatarInstanceId: 'instance-1',
+    }),
+    /local-agent ref/,
+  );
 });
 
 test('desktop avatar launcher rejects missing agentId before invoking avatar', async () => {
@@ -124,7 +134,7 @@ test('desktop avatar launcher rejects missing agentId before invoking avatar', a
     }, {
       invokeLaunchHandoff: async () => {
         invoked = true;
-        return { opened: true, handoffUri: 'nimi-avatar://launch?agent_id=agent-1' };
+        return { opened: true, handoffUri: 'nimi-avatar://launch?agent_id=local-agent%3Aowner-1%3Aagent-1' };
       },
     }),
     /agentId/,
@@ -135,22 +145,22 @@ test('desktop avatar launcher rejects missing agentId before invoking avatar', a
 test('desktop avatar launcher no longer reserves anchors or issues scoped bindings', async () => {
   const calls: string[] = [];
   const result = await launchDesktopAvatarHandoff({
-    agentId: 'agent-1',
+    agentId: 'local-agent:owner-1:agent-1',
     avatarInstanceId: 'instance-1',
     launchSource: 'desktop-agent-chat',
   }, {
     invokeLaunchHandoff: async (payload) => {
       calls.push(`invoke:${payload.agentId}`);
       assert.deepEqual(payload, {
-        agentId: 'agent-1',
+        agentId: 'local-agent:owner-1:agent-1',
         avatarInstanceId: 'instance-1',
         launchSource: 'desktop-agent-chat',
       });
-      return { opened: true, handoffUri: 'nimi-avatar://launch?agent_id=agent-1' };
+      return { opened: true, handoffUri: 'nimi-avatar://launch?agent_id=local-agent%3Aowner-1%3Aagent-1' };
     },
   });
 
-  assert.deepEqual(calls, ['invoke:agent-1']);
+  assert.deepEqual(calls, ['invoke:local-agent:owner-1:agent-1']);
   assert.equal(result.opened, true);
 });
 
@@ -174,7 +184,7 @@ test('desktop avatar prepared payload rejects old launch authority tuple inputs'
 
 test('avatar launch parser rejects old binding package anchor and auth fields', () => {
   const basePayload = {
-    agentId: 'agent-1',
+    agentId: 'local-agent:owner-1:agent-1',
     avatarInstanceId: 'instance-1',
   };
   for (const field of forbiddenLaunchFields) {
@@ -208,11 +218,11 @@ test('desktop avatar launcher parses handoff results', () => {
   assert.deepEqual(
     parseDesktopAvatarLaunchHandoffResult({
       opened: true,
-      handoffUri: 'nimi-avatar://launch?agent_id=agent-1',
+      handoffUri: 'nimi-avatar://launch?agent_id=local-agent%3Aowner-1%3Aagent-1',
     }),
     {
       opened: true,
-      handoffUri: 'nimi-avatar://launch?agent_id=agent-1',
+      handoffUri: 'nimi-avatar://launch?agent_id=local-agent%3Aowner-1%3Aagent-1',
     },
   );
 });

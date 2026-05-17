@@ -140,6 +140,16 @@ fn attach_avatar_window_lifecycle(window: &WebviewWindow, app: &tauri::AppHandle
     window.on_window_event(move |event| {
         if matches!(event, tauri::WindowEvent::Destroyed) {
             let registry = app_handle.state::<AvatarInstanceRegistry>();
+            if let Ok(Some(context)) = registry.context_for_window(&window_label) {
+                record_avatar_backend_evidence(
+                    &context,
+                    "avatar.window.destroyed",
+                    json!({
+                        "source": "avatar-backend",
+                        "window_label": window_label,
+                    }),
+                );
+            }
             let _ = registry.remove_window(&window_label);
             sync_avatar_instance_projection(&registry);
         }
@@ -374,6 +384,15 @@ fn route_avatar_launch_context(
         }
     };
     attach_avatar_window_lifecycle(&window, app);
+    record_avatar_backend_evidence(
+        &context,
+        "avatar.window.created",
+        json!({
+            "source": "avatar-backend",
+            "window_label": window.label(),
+            "window_reused": false
+        }),
+    );
     sync_avatar_window_to_launch_context(&window, &context, false);
     sync_avatar_instance_projection(registry);
     record_avatar_backend_evidence(
@@ -460,10 +479,18 @@ async fn nimi_avatar_bind_runtime_identity(
             owner_user_id: payload.owner_user_id,
             realm_agent_id: payload.realm_agent_id,
             local_agent_ref: payload.local_agent_ref,
-            launch_source: payload.launch_source.or(context.launch_source),
+            launch_source: payload.launch_source.or(context.launch_source.clone()),
         },
     )?;
     sync_avatar_instance_projection(&registry);
+    record_avatar_backend_evidence(
+        &context,
+        "avatar.runtime.identity-bound",
+        json!({
+            "source": "avatar-backend",
+            "window_label": window.label(),
+        }),
+    );
     Ok(())
 }
 

@@ -76,6 +76,14 @@ pub struct DesktopE2EMacosSmokeOverride {
     pub artifacts_dir: Option<String>,
     pub disable_runtime_bootstrap: Option<bool>,
     pub bootstrap_timeout_ms: Option<u64>,
+    pub avatar_product_local_asset_fault: Option<DesktopE2EMacosSmokeAvatarProductLocalAssetFault>,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DesktopE2EMacosSmokeAvatarProductLocalAssetFault {
+    pub fault_kind: String,
+    pub package_dir: String,
 }
 
 fn confirm_dialog_override_index_store() -> &'static Mutex<usize> {
@@ -170,7 +178,14 @@ fn uses_real_runtime_account_projection(manifest: &DesktopE2EFixtureManifest) ->
         .and_then(|fixture| fixture.macos_smoke.as_ref())
         .and_then(|smoke| smoke.scenario_id.as_deref())
         .map(str::trim)
-        == Some("chat.live2d-avatar-product-smoke")
+        .is_some_and(is_live2d_avatar_product_smoke_scenario)
+}
+
+fn is_live2d_avatar_product_smoke_scenario(scenario_id: &str) -> bool {
+    matches!(
+        scenario_id,
+        "chat.live2d-avatar-product-smoke" | "chat.live2d-avatar-local-asset-missing-smoke"
+    )
 }
 
 fn runtime_account_status_response(
@@ -353,4 +368,45 @@ pub fn macos_smoke_override() -> Result<Option<DesktopE2EMacosSmokeOverride>, St
         override_payload.is_some()
     ));
     Ok(override_payload)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn manifest_for_scenario(scenario_id: &str) -> DesktopE2EFixtureManifest {
+        DesktopE2EFixtureManifest {
+            tauri_fixture: Some(DesktopE2ETauriFixture {
+                bootstrap_error: None,
+                runtime_defaults: None,
+                runtime_bridge_status: None,
+                desktop_release_info: None,
+                confirm_dialog: None,
+                agent_memory_bind_standard: None,
+                macos_smoke: Some(DesktopE2EMacosSmokeOverride {
+                    enabled: true,
+                    scenario_id: Some(scenario_id.to_string()),
+                    report_path: None,
+                    artifacts_dir: None,
+                    disable_runtime_bootstrap: None,
+                    bootstrap_timeout_ms: None,
+                    avatar_product_local_asset_fault: None,
+                }),
+            }),
+            realm_fixture: None,
+        }
+    }
+
+    #[test]
+    fn real_runtime_account_projection_covers_avatar_product_smoke_matrix() {
+        assert!(uses_real_runtime_account_projection(
+            &manifest_for_scenario("chat.live2d-avatar-product-smoke",)
+        ));
+        assert!(uses_real_runtime_account_projection(
+            &manifest_for_scenario("chat.live2d-avatar-local-asset-missing-smoke",)
+        ));
+        assert!(!uses_real_runtime_account_projection(
+            &manifest_for_scenario("chat.live2d-render-smoke",)
+        ));
+    }
 }

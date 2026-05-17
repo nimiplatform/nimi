@@ -129,6 +129,18 @@ namespaces: &avatar_i18n_key_entries
       - key: Avatar.degraded.diagnostics.stage
         english_baseline: "Stage"
         usage: "src/shell/renderer/degraded-surface/degraded-surface.tsx"
+      - key: Avatar.degraded.diagnostics.source
+        english_baseline: "Source"
+        usage: "src/shell/renderer/degraded-surface/degraded-surface.tsx"
+      - key: Avatar.degraded.diagnostics.retryable
+        english_baseline: "Retryable"
+        usage: "src/shell/renderer/degraded-surface/degraded-surface.tsx"
+      - key: Avatar.degraded.diagnostics.yes
+        english_baseline: "Yes"
+        usage: "src/shell/renderer/degraded-surface/degraded-surface.tsx"
+      - key: Avatar.degraded.diagnostics.no
+        english_baseline: "No"
+        usage: "src/shell/renderer/degraded-surface/degraded-surface.tsx"
       - key: Avatar.degraded.diagnostics.audio_artifact_synthetic
         english_baseline: "Audio is a synthetic frame-only artifact; no playback was attempted."
         usage: "src/shell/renderer/degraded-surface/degraded-surface.tsx"

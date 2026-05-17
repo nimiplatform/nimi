@@ -208,10 +208,7 @@ fn avatar_runtime_env_pairs_forward_runtime_defaults_without_realm_or_token() {
 
     assert!(pairs.contains(&("NIMI_WORLD_ID", "world-e2e-1".to_string())));
     assert!(pairs.contains(&("NIMI_AGENT_ID", "agent-e2e-alpha".to_string())));
-    assert!(pairs.contains(&(
-        "NIMI_E2E_PROFILE",
-        "chat.live2d-avatar-product-smoke".to_string()
-    )));
+    assert!(!pairs.iter().any(|(key, _)| *key == "NIMI_E2E_PROFILE"));
     assert!(pairs.contains(&(
         "NIMI_E2E_FIXTURE_PATH",
         fixture_path.to_string_lossy().to_string()

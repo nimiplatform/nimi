@@ -68,6 +68,7 @@ export type DesktopMacosSmokeDriverDeps = {
   readVrmCanvasStats: (selector: string) => Promise<VrmCanvasStats>;
   listAvatarLiveInstances: (localAgentRef: string) => Promise<DesktopAvatarLiveInstanceRecord[]>;
   readAvatarEvidence: (avatarInstanceId: string) => Promise<DesktopMacosSmokeAvatarEvidenceReadResult>;
+  applyAvatarProductLocalAssetFault: (faultKind: 'missing_entry_file') => Promise<Record<string, unknown>>;
   avatarCarrierEvidenceTimeoutMs?: number;
   onStepStart?: (step: string, steps: readonly string[]) => void;
   isReportOpen?: () => boolean;

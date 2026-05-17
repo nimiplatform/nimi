@@ -1,7 +1,7 @@
 use super::*;
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::process::Command;
+use std::process::{Command, Stdio};
 use std::time::SystemTime;
 
 const AVATAR_HANDOFF_SCHEME: &str = "nimi-avatar";
@@ -144,11 +144,9 @@ fn spawn_avatar_handoff_binary(path: PathBuf, uri: &str) -> Result<(), String> {
     }
     let mut command = Command::new(path);
     apply_avatar_runtime_env(&mut command)?;
-    command
-        .arg(uri)
-        .spawn()
-        .map_err(|error| format!("spawn avatar binary failed: {error}"))?;
-    Ok(())
+    command.arg(uri);
+    spawn_avatar_handoff_process(command, "binary")
+        .map_err(|error| format!("spawn avatar binary failed: {error}"))
 }
 
 fn open_avatar_handoff_binary(uri: &str) -> Result<(), String> {
@@ -203,7 +201,6 @@ fn avatar_runtime_env_pairs() -> Result<Vec<(&'static str, String)>, String> {
         "NIMI_RUNTIME_LOCK_PATH",
         "NIMI_RUNTIME_ACCOUNT_CUSTODY_PARTITION",
         "NIMI_RUNTIME_BRIDGE_DEBUG",
-        "NIMI_E2E_PROFILE",
         "NIMI_E2E_FIXTURE_PATH",
         "NIMI_E2E_BACKEND_LOG_PATH",
     ] {
@@ -220,6 +217,76 @@ fn apply_avatar_runtime_env(command: &mut Command) -> Result<(), String> {
     for (key, value) in avatar_runtime_env_pairs()? {
         command.env(key, value);
     }
+    Ok(())
+}
+
+fn avatar_handoff_backend_log_path() -> Option<String> {
+    std::env::var("NIMI_E2E_BACKEND_LOG_PATH")
+        .ok()
+        .map(|value| value.trim().to_string())
+        .filter(|value| !value.is_empty())
+}
+
+fn append_avatar_handoff_backend_log(message: &str) {
+    crate::desktop_e2e_fixture::append_backend_log_message(message);
+}
+
+fn attach_avatar_child_logs(command: &mut Command, launch_kind: &str) {
+    let Some(log_path) = avatar_handoff_backend_log_path() else {
+        return;
+    };
+    let stdout = fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(log_path.as_str());
+    let stderr = fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(log_path.as_str());
+    match (stdout, stderr) {
+        (Ok(stdout), Ok(stderr)) => {
+            command.stdout(Stdio::from(stdout));
+            command.stderr(Stdio::from(stderr));
+        }
+        (stdout_result, stderr_result) => {
+            append_avatar_handoff_backend_log(&format!(
+                "avatar-handoff-child-log-attach-failed launch_kind={launch_kind} stdout_error={} stderr_error={}",
+                stdout_result
+                    .err()
+                    .map(|error| error.to_string())
+                    .unwrap_or_else(|| "none".to_string()),
+                stderr_result
+                    .err()
+                    .map(|error| error.to_string())
+                    .unwrap_or_else(|| "none".to_string())
+            ));
+        }
+    }
+}
+
+fn spawn_avatar_handoff_process(mut command: Command, launch_kind: &str) -> Result<(), String> {
+    let executable = command.get_program().to_string_lossy().to_string();
+    append_avatar_handoff_backend_log(&format!(
+        "avatar-handoff-spawn-start launch_kind={launch_kind} executable={executable}"
+    ));
+    attach_avatar_child_logs(&mut command, launch_kind);
+    let mut child = command.spawn().map_err(|error| error.to_string())?;
+    let pid = child.id();
+    append_avatar_handoff_backend_log(&format!(
+        "avatar-handoff-spawned launch_kind={launch_kind} pid={pid} executable={executable}"
+    ));
+    let launch_kind = launch_kind.to_string();
+    std::thread::spawn(move || {
+        let status = child.wait();
+        match status {
+            Ok(status) => append_avatar_handoff_backend_log(&format!(
+                "avatar-handoff-exited launch_kind={launch_kind} pid={pid} status={status}"
+            )),
+            Err(error) => append_avatar_handoff_backend_log(&format!(
+                "avatar-handoff-wait-failed launch_kind={launch_kind} pid={pid} error={error}"
+            )),
+        }
+    });
     Ok(())
 }
 
@@ -249,11 +316,9 @@ fn spawn_avatar_handoff_app(path: PathBuf, uri: &str) -> Result<(), String> {
     }
     let mut command = Command::new(executable_path);
     apply_avatar_runtime_env(&mut command)?;
-    command
-        .arg(uri)
-        .spawn()
-        .map_err(|error| format!("spawn avatar app executable failed: {error}"))?;
-    Ok(())
+    command.arg(uri);
+    spawn_avatar_handoff_process(command, "app")
+        .map_err(|error| format!("spawn avatar app executable failed: {error}"))
 }
 
 #[cfg(target_os = "macos")]

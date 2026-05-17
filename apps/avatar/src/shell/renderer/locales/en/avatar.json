@@ -38,6 +38,10 @@
         "account_reason_code": "Account reason code",
         "action_hint": "Action hint",
         "stage": "Stage",
+        "source": "Source",
+        "retryable": "Retryable",
+        "yes": "Yes",
+        "no": "No",
         "audio_artifact_synthetic": "Audio is a synthetic frame-only artifact; no playback was attempted."
       },
       "loading": {

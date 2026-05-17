@@ -19,6 +19,7 @@ export const scenarioRegistry = new Map([
   ['chat.live2d-render-smoke-mark', { bucket: 'journeys', profile: 'chat.live2d-render-smoke-mark.json', spec: 'apps/desktop/e2e/specs/chat.live2d-render-smoke.e2e.mjs' }],
   ['chat.live2d-render-smoke-mark-speaking', { bucket: 'journeys', profile: 'chat.live2d-render-smoke-mark.json', spec: 'apps/desktop/e2e/specs/chat.live2d-render-smoke.e2e.mjs' }],
   ['chat.live2d-avatar-product-smoke', { bucket: 'journeys', profile: 'chat.live2d-render-smoke-mark.json', spec: 'apps/desktop/e2e/specs/chat.live2d-render-smoke.e2e.mjs' }],
+  ['chat.live2d-avatar-local-asset-missing-smoke', { bucket: 'journeys', profile: 'chat.live2d-render-smoke-mark.json', spec: 'apps/desktop/e2e/specs/chat.live2d-render-smoke.e2e.mjs' }],
   ['chat.vrm-lifecycle-smoke', { bucket: 'journeys', profile: 'chat.vrm-lifecycle-smoke.json', spec: 'apps/desktop/e2e/specs/chat.live2d-render-smoke.e2e.mjs' }],
   ['chat.vrm-speaking-smoke', { bucket: 'journeys', profile: 'chat.vrm-lifecycle-smoke.json', spec: 'apps/desktop/e2e/specs/chat.live2d-render-smoke.e2e.mjs' }],
   ['chat.vrm-speaking-smoke-no-viseme', { bucket: 'journeys', profile: 'chat.vrm-lifecycle-smoke.json', spec: 'apps/desktop/e2e/specs/chat.live2d-render-smoke.e2e.mjs' }],

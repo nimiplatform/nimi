@@ -505,7 +505,7 @@ export function useAgentConversationPresentation(
         subjectUserId: input.accountId,
       });
       const result = await launchDesktopAvatarHandoff({
-        agentId: input.activeTarget.realmAgentId,
+        agentId: input.activeTarget.localAgentRef,
         avatarInstanceId,
         launchSource: 'desktop-agent-chat',
       });

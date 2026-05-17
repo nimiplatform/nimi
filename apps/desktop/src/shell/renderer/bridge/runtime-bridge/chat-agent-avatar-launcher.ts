@@ -119,6 +119,8 @@ const FORBIDDEN_LAUNCH_INPUT_FIELDS = [
   'shared_auth_session',
 ] as const;
 
+const LOCAL_AGENT_REF_PREFIX = 'local-agent:';
+
 export type DesktopAvatarLaunchHandoffDeps = {
   invokeLaunchHandoff?: (payload: DesktopAvatarLaunchHandoffPayload) => Promise<DesktopAvatarLaunchHandoffResult>;
 };
@@ -140,6 +142,20 @@ function normalizeRequiredString(value: string, field: string): string {
   const normalized = String(value || '').trim();
   if (!normalized) {
     throw new Error(`desktop avatar handoff requires ${field}`);
+  }
+  return normalized;
+}
+
+function normalizeRequiredLocalAgentRef(value: string, field: string): string {
+  const normalized = normalizeRequiredString(value, field);
+  const rest = normalized.startsWith(LOCAL_AGENT_REF_PREFIX)
+    ? normalized.slice(LOCAL_AGENT_REF_PREFIX.length)
+    : '';
+  const separatorIndex = rest.indexOf(':');
+  const ownerUserId = separatorIndex >= 0 ? rest.slice(0, separatorIndex).trim() : '';
+  const realmAgentId = separatorIndex >= 0 ? rest.slice(separatorIndex + 1).trim() : '';
+  if (!ownerUserId || !realmAgentId) {
+    throw new Error(`desktop avatar handoff requires ${field} to be a local-agent ref`);
   }
   return normalized;
 }
@@ -175,7 +191,7 @@ export function buildDesktopAvatarLaunchHandoffPayload(
       throw new Error(`desktop avatar handoff contains forbidden field: ${field}`);
     }
   }
-  const agentId = normalizeRequiredString(input.agentId, 'agentId');
+  const agentId = normalizeRequiredLocalAgentRef(input.agentId, 'agentId');
   const avatarInstanceId = normalizeOptionalString(input.avatarInstanceId);
   const launchSource = normalizeOptionalString(input.launchSource) ?? normalizeOptionalString(input.sourceSurface);
   return {

@@ -58,8 +58,10 @@ test('Agent Chat Settings Avatar surface does not widen Avatar launch handoff', 
   const launchCall = presentationSource.match(/launchDesktopAvatarHandoff\(\{[\s\S]*?\}\)/u);
   assert.ok(launchCall, 'launchDesktopAvatarHandoff call must stay visible to the guard');
   assert.match(launchCall[0], /agentId/u);
+  assert.match(launchCall[0], /activeTarget\.localAgentRef/u);
   assert.match(launchCall[0], /avatarInstanceId/u);
   assert.match(launchCall[0], /launchSource/u);
+  assert.doesNotMatch(launchCall[0], /activeTarget\.realmAgentId/u);
   assert.doesNotMatch(launchCall[0], /\b(ownerUserId|realmAgentId|localAgentRef|conversationAnchorId|sourceSurface)\s*:/u);
   assert.doesNotMatch(launchCall[0], /package|descriptor|path|profile|token|account|binding|carrier/u);
 });

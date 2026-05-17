@@ -105,10 +105,16 @@ fn status_for_avatar_asset_errors(
     if errors.iter().any(|entry| entry.code == "selection_missing") {
         return AgentCenterAvatarAssetValidationStatus::SelectionMissing;
     }
-    if errors.iter().any(|entry| entry.code == "unsupported_backend") {
+    if errors
+        .iter()
+        .any(|entry| entry.code == "unsupported_backend")
+    {
         return AgentCenterAvatarAssetValidationStatus::UnsupportedBackend;
     }
-    if errors.iter().any(|entry| entry.code == "avatar_asset_missing") {
+    if errors
+        .iter()
+        .any(|entry| entry.code == "avatar_asset_missing")
+    {
         return AgentCenterAvatarAssetValidationStatus::AssetMissing;
     }
     if errors.iter().any(|entry| entry.code == "path_rejected") {
@@ -139,9 +145,8 @@ fn write_avatar_asset_validation_sidecar(
     if !asset_dir.exists() {
         return Ok(());
     }
-    let raw = serde_json::to_string_pretty(result).map_err(|error| {
-        format!("failed to serialize avatar asset validation sidecar: {error}")
-    })?;
+    let raw = serde_json::to_string_pretty(result)
+        .map_err(|error| format!("failed to serialize avatar asset validation sidecar: {error}"))?;
     fs::write(asset_dir.join(VALIDATION_FILE_NAME), raw)
         .map_err(|error| format!("failed to write avatar asset validation sidecar: {error}"))
 }
@@ -484,7 +489,13 @@ fn clear_selected_avatar_asset(
         realm_agent_id: scope.realm_agent_id.clone(),
         local_agent_ref: scope.local_agent_ref.clone(),
     })?;
-    if config.modules.avatar_asset.local_avatar_asset_ref.as_deref() == Some(local_asset_id) {
+    if config
+        .modules
+        .avatar_asset
+        .local_avatar_asset_ref
+        .as_deref()
+        == Some(local_asset_id)
+    {
         config.modules.avatar_asset.local_avatar_asset_ref = None;
         config.modules.avatar_asset.backend_capability_profile_ref = None;
         config.modules.avatar_asset.live2d_adapter_manifest_source =
@@ -522,7 +533,11 @@ fn validate_avatar_asset_manifest(
                 Some(expected_kind),
                 Some(expected_capability_profile_ref.to_string()),
                 AgentCenterAvatarAssetValidationStatus::UnsupportedBackend,
-                vec![error("unsupported_backend", &message, Some("backend_kind".to_string()))],
+                vec![error(
+                    "unsupported_backend",
+                    &message,
+                    Some("backend_kind".to_string()),
+                )],
                 vec![],
             );
         }
@@ -639,9 +654,7 @@ fn validate_avatar_asset_manifest(
     if !is_safe_relative_path(&manifest.entry_file)
         || !manifest.entry_file.starts_with("files/")
         || match expected_kind {
-            AgentCenterAvatarBackendKind::Live2d => {
-                !manifest.entry_file.ends_with(".model3.json")
-            }
+            AgentCenterAvatarBackendKind::Live2d => !manifest.entry_file.ends_with(".model3.json"),
             AgentCenterAvatarBackendKind::Vrm => extension_for(&manifest.entry_file) != "vrm",
             AgentCenterAvatarBackendKind::Future => true,
         }

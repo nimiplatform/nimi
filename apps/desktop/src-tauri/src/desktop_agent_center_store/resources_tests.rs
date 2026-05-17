@@ -202,7 +202,11 @@ fn imports_live2d_avatar_asset_transactionally_and_selects_it() {
         })
         .expect("config");
         assert_eq!(
-            config.modules.avatar_asset.local_avatar_asset_ref.as_deref(),
+            config
+                .modules
+                .avatar_asset
+                .local_avatar_asset_ref
+                .as_deref(),
             Some(result.local_asset_id.as_str())
         );
         assert_eq!(
@@ -233,7 +237,10 @@ fn imports_live2d_avatar_asset_transactionally_and_selects_it() {
             validation.status,
             AgentCenterAvatarAssetValidationStatus::Valid
         );
-        assert_eq!(validation.local_asset_id.as_deref(), Some(result.local_asset_id.as_str()));
+        assert_eq!(
+            validation.local_asset_id.as_deref(),
+            Some(result.local_asset_id.as_str())
+        );
         assert!(dir.join(VALIDATION_FILE_NAME).exists());
     });
 }
@@ -279,7 +286,10 @@ fn avatar_asset_validation_fails_closed_when_entry_file_is_missing() {
             validation.status,
             AgentCenterAvatarAssetValidationStatus::MissingEntry
         );
-        assert!(validation.errors.iter().any(|entry| entry.code == "missing_entry"));
+        assert!(validation
+            .errors
+            .iter()
+            .any(|entry| entry.code == "missing_entry"));
     });
 }
 
@@ -328,7 +338,11 @@ fn imports_vrm_avatar_asset_transactionally_and_selects_it() {
         })
         .expect("config");
         assert_eq!(
-            config.modules.avatar_asset.local_avatar_asset_ref.as_deref(),
+            config
+                .modules
+                .avatar_asset
+                .local_avatar_asset_ref
+                .as_deref(),
             Some(result.local_asset_id.as_str())
         );
         assert_eq!(

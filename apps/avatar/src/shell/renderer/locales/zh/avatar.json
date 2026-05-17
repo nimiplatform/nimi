@@ -38,6 +38,10 @@
         "account_reason_code": "账户原因代码",
         "action_hint": "操作提示",
         "stage": "阶段",
+        "source": "来源",
+        "retryable": "可重试",
+        "yes": "是",
+        "no": "否",
         "audio_artifact_synthetic": "当前音频载体为合成的纯帧 artifact，不会发起播放。"
       },
       "loading": {

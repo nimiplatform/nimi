@@ -40,6 +40,12 @@ export type AvatarAppState = {
     binding: {
       status: RuntimeBindingStatus;
       reason: string | null;
+      reasonCode: string | null;
+      accountReasonCode: string | null;
+      actionHint: string | null;
+      stage: string | null;
+      source: string | null;
+      retryable: boolean | null;
     };
   };
   driver: {
@@ -66,9 +72,21 @@ export type AvatarAppState = {
     agentId: string;
     worldId: string;
   }): void;
+  setRuntimeConsumeContext(input: {
+    avatarInstanceId: string;
+    conversationAnchorId: string;
+    agentId: string;
+    worldId: string;
+  }): void;
   setRuntimeBindingStatus(input: {
     status: RuntimeBindingStatus;
     reason?: string | null;
+    reasonCode?: string | null;
+    accountReasonCode?: string | null;
+    actionHint?: string | null;
+    stage?: string | null;
+    source?: string | null;
+    retryable?: boolean | null;
   }): void;
   clearRuntimeBinding(): void;
   setLaunchContext(context: AvatarLaunchContext): void;
@@ -109,6 +127,12 @@ export const useAvatarStore = create<AvatarAppState>((set) => ({
     binding: {
       status: 'unavailable',
       reason: null,
+      reasonCode: null,
+      accountReasonCode: null,
+      actionHint: null,
+      stage: null,
+      source: null,
+      retryable: null,
     },
   },
   driver: {
@@ -165,7 +189,24 @@ export const useAvatarStore = create<AvatarAppState>((set) => ({
         binding: {
           status: 'active',
           reason: null,
+          reasonCode: null,
+          accountReasonCode: null,
+          actionHint: null,
+          stage: null,
+          source: null,
+          retryable: null,
         },
+      },
+    }));
+  },
+  setRuntimeConsumeContext(input) {
+    set((state) => ({
+      consume: {
+        ...state.consume,
+        avatarInstanceId: input.avatarInstanceId,
+        conversationAnchorId: input.conversationAnchorId,
+        agentId: input.agentId,
+        worldId: input.worldId,
       },
     }));
   },
@@ -176,6 +217,12 @@ export const useAvatarStore = create<AvatarAppState>((set) => ({
         binding: {
           status: input.status,
           reason: input.reason ?? null,
+          reasonCode: input.reasonCode ?? null,
+          accountReasonCode: input.accountReasonCode ?? null,
+          actionHint: input.actionHint ?? null,
+          stage: input.stage ?? null,
+          source: input.source ?? null,
+          retryable: input.retryable ?? null,
         },
       },
     }));
@@ -194,6 +241,12 @@ export const useAvatarStore = create<AvatarAppState>((set) => ({
         binding: {
           status: 'unavailable',
           reason: null,
+          reasonCode: null,
+          accountReasonCode: null,
+          actionHint: null,
+          stage: null,
+          source: null,
+          retryable: null,
         },
       },
     }));

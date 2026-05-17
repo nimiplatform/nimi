@@ -1,7 +1,7 @@
 use super::store::{
     agent_center_dir, desktop_agent_center_config_get, desktop_agent_center_config_put,
     local_scope_path_segment, validate_background_id, validate_live2d_adapter_manifest_ref,
-    validate_local_agent_scope, validate_normalized_id, validate_local_asset_id,
+    validate_local_agent_scope, validate_local_asset_id, validate_normalized_id,
     validate_utc_timestamp, LocalAgentScope,
 };
 use super::types::*;

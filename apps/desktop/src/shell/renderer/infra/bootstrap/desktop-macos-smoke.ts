@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { hasTauriInvoke } from '@renderer/bridge/runtime-bridge/env';
 import {
+  applyDesktopMacosSmokeAvatarProductLocalAssetFault,
   getDesktopMacosSmokeContext,
   pingDesktopMacosSmoke,
   readDesktopMacosSmokeAvatarEvidence,
@@ -35,6 +36,7 @@ export { shouldStartDesktopMacosSmoke } from './desktop-macos-smoke-shared';
 export { runDesktopMacosSmokeScenario } from './desktop-macos-smoke-scenarios';
 
 type DesktopMacosSmokeDriverDepsOptions = {
+  context?: DesktopMacosSmokeContext | null;
   onStepStart?: DesktopMacosSmokeDriverDeps['onStepStart'];
   onReportWrite?: () => void;
   isReportOpen?: DesktopMacosSmokeDriverDeps['isReportOpen'];
@@ -622,6 +624,16 @@ function createDomDriverDeps(options: DesktopMacosSmokeDriverDepsOptions = {}): 
     async readAvatarEvidence(avatarInstanceId: string) {
       return readDesktopMacosSmokeAvatarEvidence(avatarInstanceId);
     },
+    async applyAvatarProductLocalAssetFault(faultKind: 'missing_entry_file') {
+      if (options.context?.avatarProductLocalAssetFault?.faultKind !== faultKind) {
+        throw new Error(`Avatar product local asset fault is not configured for ${faultKind}`);
+      }
+      return withSmokeTimeout(
+        'desktop_macos_smoke_avatar_product_local_asset_fault_apply',
+        applyDesktopMacosSmokeAvatarProductLocalAssetFault(faultKind),
+        3_000,
+      );
+    },
     async writeReport(payload) {
       if (options.isReportOpen && !options.isReportOpen()) {
         return;
@@ -797,6 +809,7 @@ export function useDesktopMacosSmokeBootstrap(
             scenarioId: context.scenarioId,
           }).catch(() => {});
           const deps = createDomDriverDeps({
+            context,
             onStepStart(step, steps) {
               currentStep = step;
               recordedSteps = [...steps];
