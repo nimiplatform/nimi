@@ -14,6 +14,10 @@ test('Agent Chat Settings Avatar surface exposes closed configuration controls',
     join(repoRoot, 'src/shell/renderer/features/chat/chat-agent-shell-presentation.tsx'),
     'utf8',
   );
+  const localAvatarControlsSource = readFileSync(
+    join(repoRoot, 'src/shell/renderer/features/chat/chat-agent-shell-local-avatar-controls.ts'),
+    'utf8',
+  );
   const bridgeSource = readFileSync(
     join(repoRoot, 'src/shell/renderer/bridge/runtime-bridge/chat-agent-center-local-config-store.ts'),
     'utf8',
@@ -34,12 +38,14 @@ test('Agent Chat Settings Avatar surface exposes closed configuration controls',
     assert.match(settingsSource, new RegExp(requiredControl, 'u'));
   }
 
-  assert.match(presentationSource, /useAgentCenterAvatarConfigMutation/u);
-  assert.match(presentationSource, /importAgentCenterAvatarAsset/u);
-  assert.match(presentationSource, /pickAgentCenterAvatarAssetSource/u);
-  assert.match(presentationSource, /removeAgentCenterAvatarAsset/u);
-  assert.match(presentationSource, /importAgentCenterLive2dAdapterManifest/u);
+  assert.match(localAvatarControlsSource, /useAgentCenterAvatarConfigMutation/u);
+  assert.match(localAvatarControlsSource, /importAgentCenterAvatarAsset/u);
+  assert.match(localAvatarControlsSource, /pickAgentCenterAvatarAssetSource/u);
+  assert.match(localAvatarControlsSource, /removeAgentCenterAvatarAsset/u);
+  assert.match(localAvatarControlsSource, /importAgentCenterLive2dAdapterManifest/u);
   assert.match(mutationSource, /putAgentCenterLocalConfig/u);
+  assert.match(mutationSource, /backend_kind/u);
+  assert.doesNotMatch(settingsSource, /onChange: \(backend_kind\) => avatarConfigMutation\.mutate\(\{ backend_kind \}\)/u);
   assert.match(bridgeSource, /desktop_agent_center_avatar_asset_import/u);
   assert.match(bridgeSource, /desktop_agent_center_avatar_asset_pick_live2d_source/u);
   assert.match(bridgeSource, /desktop_agent_center_avatar_asset_pick_vrm_source/u);
@@ -52,7 +58,7 @@ test('Agent Chat Settings Avatar surface exposes closed configuration controls',
 
 test('Agent Chat Settings Avatar surface does not widen Avatar launch handoff', () => {
   const presentationSource = readFileSync(
-    join(repoRoot, 'src/shell/renderer/features/chat/chat-agent-shell-presentation.tsx'),
+    join(repoRoot, 'src/shell/renderer/features/chat/chat-agent-shell-local-avatar-controls.ts'),
     'utf8',
   );
   const launchCall = presentationSource.match(/launchDesktopAvatarHandoff\(\{[\s\S]*?\}\)/u);
@@ -68,10 +74,10 @@ test('Agent Chat Settings Avatar surface does not widen Avatar launch handoff', 
 
 test('Agent Chat composer Avatar launch fails closed without local asset and backend evidence', () => {
   const presentationSource = readFileSync(
-    join(repoRoot, 'src/shell/renderer/features/chat/chat-agent-shell-presentation.tsx'),
+    join(repoRoot, 'src/shell/renderer/features/chat/chat-agent-shell-local-avatar-controls.ts'),
     'utf8',
   );
-  const actionState = presentationSource.match(/const avatarComposerActionState = avatarActionPending[\s\S]*?: 'ready_stopped';/u);
+  const actionState = presentationSource.match(/const avatarComposerActionState(?:: AvatarComposerActionState)? = avatarActionPending[\s\S]*?: 'ready_stopped';/u);
   assert.ok(actionState, 'avatarComposerActionState must stay visible to the guard');
   assert.match(actionState[0], /!avatarConfigured/u);
   assert.match(actionState[0], /'not_configured'/u);

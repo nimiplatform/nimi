@@ -27,6 +27,7 @@ import {
 import type { AgentCenterAvatarAssetKind } from './chat-agent-center-local-config';
 import { registerDesktopAvatarLiveInstanceBinding } from './chat-agent-avatar-live-instance-runtime-binding';
 import { useAgentCenterAvatarConfigMutation } from './chat-agent-center-avatar-config-mutation';
+import { buildAvatarAssetValidationPresentation } from './chat-agent-shell-avatar-asset-diagnostics';
 import { assetUrlFromFileUrl } from './chat-agent-shell-presentation-status';
 import type { UseAgentConversationPresentationInput } from './chat-agent-shell-presentation-types';
 
@@ -120,6 +121,13 @@ export function useAgentConversationLocalAvatarControls(input: UseAgentConversat
       && avatarAssetValidation?.status === 'valid',
   );
   const avatarAssetChecking = avatarAssetValidationQuery.isFetching;
+  const avatarAssetValidationPresentation = buildAvatarAssetValidationPresentation({
+    config: avatarAssetConfig,
+    validation: avatarAssetValidation,
+    configured: avatarConfigured,
+    valid: avatarAssetValid,
+    checking: avatarAssetChecking,
+  });
   const avatarConfigMutation = useAgentCenterAvatarConfigMutation(input, queryClient, agentCenterLocalConfigQuery.data);
   const avatarAssetImportMutation = useMutation({
     mutationFn: async (kind: AgentCenterAvatarAssetKind) => {
@@ -440,6 +448,7 @@ export function useAgentConversationLocalAvatarControls(input: UseAgentConversat
     backgroundValid,
     avatarAssetChecking,
     avatarAssetConfig,
+    avatarAssetValidationPresentation,
     avatarConfigMutation,
     avatarAssetImportMutation,
     avatarImportDisabled,
@@ -461,6 +470,7 @@ export function useAgentConversationLocalAvatarControls(input: UseAgentConversat
     backgroundValid,
     avatarAssetChecking,
     avatarAssetConfig,
+    avatarAssetValidationPresentation,
     avatarConfigMutation,
     avatarAssetImportMutation,
     avatarImportDisabled,

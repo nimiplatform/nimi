@@ -285,6 +285,7 @@ export function useAgentConversationPresentation(
         backgroundValid={localAvatar.backgroundValid}
         avatarAssetChecking={localAvatar.avatarAssetChecking}
         avatarAssetConfig={localAvatar.avatarAssetConfig}
+        avatarAssetValidationPresentation={localAvatar.avatarAssetValidationPresentation}
         avatarConfigMutation={localAvatar.avatarConfigMutation}
         avatarAssetImportMutation={localAvatar.avatarAssetImportMutation}
         avatarImportDisabled={localAvatar.avatarImportDisabled}

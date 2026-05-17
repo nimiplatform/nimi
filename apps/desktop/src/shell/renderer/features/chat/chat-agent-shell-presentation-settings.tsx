@@ -13,6 +13,7 @@ import type {
   AgentCenterGeneratedMotionProviderPolicy,
 } from './chat-agent-center-avatar-config-types';
 import type { AgentCenterAvatarAssetKind } from './chat-agent-center-local-config';
+import type { AvatarAssetValidationPresentation } from './chat-agent-shell-avatar-asset-diagnostics';
 
 const ChatSettingsPanel = lazy(async () => {
   const mod = await import('./chat-shared-settings-panel');
@@ -47,6 +48,7 @@ type AgentConversationSettingsContentProps = {
   backgroundValid: boolean;
   avatarAssetChecking: boolean;
   avatarAssetConfig: AgentCenterAvatarAssetModule | null;
+  avatarAssetValidationPresentation: AvatarAssetValidationPresentation;
   avatarConfigMutation: MutationLike<AgentCenterAvatarConfigPatch>;
   avatarAssetImportMutation: MutationLike<AgentCenterAvatarAssetKind>;
   avatarImportDisabled: boolean;
@@ -113,6 +115,7 @@ export function AgentConversationSettingsContent(props: AgentConversationSetting
     backgroundValid,
     avatarAssetChecking,
     avatarAssetConfig,
+    avatarAssetValidationPresentation,
     avatarConfigMutation,
     avatarAssetImportMutation,
     avatarImportDisabled,
@@ -193,6 +196,15 @@ export function AgentConversationSettingsContent(props: AgentConversationSetting
               <div className="mt-3 grid gap-2 text-[11px] leading-4 text-slate-500 sm:grid-cols-2">
                 <div className="rounded-md bg-white px-2.5 py-2">
                   <span className="font-semibold text-slate-700">
+                    {input.t('Chat.agentCenterAvatarSelectedAsset', { defaultValue: 'Selected asset' })}
+                  </span>
+                  <span className="ml-1 break-all">
+                    {avatarAssetValidationPresentation.selectedAssetId
+                      || input.t('Chat.agentCenterMissing', { defaultValue: 'Missing' })}
+                  </span>
+                </div>
+                <div className="rounded-md bg-white px-2.5 py-2">
+                  <span className="font-semibold text-slate-700">
                     {input.t('Chat.agentCenterAvatarBackend', { defaultValue: 'Backend' })}
                   </span>
                   <span className="ml-1 uppercase">{avatarBackendKind}</span>
@@ -219,7 +231,32 @@ export function AgentConversationSettingsContent(props: AgentConversationSetting
                         : input.t('Chat.agentCenterLive2dAdapterNone', { defaultValue: 'Not selected' })}
                   </span>
                 </div>
+                <div className="rounded-md bg-white px-2.5 py-2">
+                  <span className="font-semibold text-slate-700">
+                    {input.t('Chat.agentCenterAvatarValidationStatus', { defaultValue: 'Validation' })}
+                  </span>
+                  <span className="ml-1">
+                    {avatarAssetValidationPresentation.validationStatus.replaceAll('_', ' ')}
+                  </span>
+                </div>
               </div>
+              {avatarAssetValidationPresentation.message ? (
+                <div className={`mt-3 rounded-md border px-3 py-2 text-[11px] leading-4 ${
+                  avatarAssetValidationPresentation.status === 'invalid'
+                    ? 'border-rose-200 bg-rose-50 text-rose-700'
+                    : 'border-amber-200 bg-amber-50 text-amber-800'
+                }`}
+                >
+                  {avatarAssetValidationPresentation.message}
+                </div>
+              ) : null}
+              {avatarAssetValidationPresentation.issueRows.length > 1 ? (
+                <div className="mt-2 rounded-md bg-white px-3 py-2 text-[11px] leading-4 text-slate-600">
+                  {avatarAssetValidationPresentation.issueRows.map((issue) => (
+                    <div key={issue} className="break-words">{issue}</div>
+                  ))}
+                </div>
+              ) : null}
             </div>
             <div className="grid gap-2 sm:grid-cols-2">
               <button
@@ -278,16 +315,6 @@ export function AgentConversationSettingsContent(props: AgentConversationSetting
               </button>
             </div>
             <div className="grid gap-2 sm:grid-cols-2">
-              {renderOptionSelect<'live2d' | 'vrm' | 'future'>({
-                label: input.t('Chat.agentCenterAvatarBackendKind', { defaultValue: 'Backend kind' }),
-                value: avatarBackendKind,
-                options: [
-                  { value: 'live2d', label: 'Live2D' },
-                  { value: 'vrm', label: 'VRM' },
-                  { value: 'future', label: input.t('Chat.agentCenterAvatarBackendFuture', { defaultValue: 'Future' }) },
-                ],
-                onChange: (backend_kind) => avatarConfigMutation.mutate({ backend_kind }),
-              })}
               {renderOptionSelect<AgentCenterAvatarInstancePolicy>({
                 label: input.t('Chat.agentCenterAvatarInstancePolicy', { defaultValue: 'Instance policy' }),
                 value: avatarInstancePolicy,
@@ -344,7 +371,7 @@ export function AgentConversationSettingsContent(props: AgentConversationSetting
               avatarAssetConfig={avatarAssetConfig}
               avatarAssetValid={avatarAssetValid}
               avatarAssetChecking={avatarAssetChecking}
-              validationMessage={null}
+              validationMessage={avatarAssetValidationPresentation.message}
             />
           </div>
         )}

@@ -209,6 +209,27 @@ fn validate_agent_center_config(config: &AgentCenterLocalConfig) -> Result<(), S
             local_asset_ref,
             "modules.avatar_asset.local_avatar_asset_ref",
         )?;
+        match config.modules.avatar_asset.backend_kind {
+            AgentCenterAvatarBackendKind::Live2d if !local_asset_ref.starts_with("live2d_") => {
+                return Err(
+                    "modules.avatar_asset.backend_kind must match local Avatar asset id prefix"
+                        .to_string(),
+                );
+            }
+            AgentCenterAvatarBackendKind::Vrm if !local_asset_ref.starts_with("vrm_") => {
+                return Err(
+                    "modules.avatar_asset.backend_kind must match local Avatar asset id prefix"
+                        .to_string(),
+                );
+            }
+            AgentCenterAvatarBackendKind::Future => {
+                return Err(
+                    "modules.avatar_asset.backend_kind future cannot be selected for a local Avatar asset"
+                        .to_string(),
+                );
+            }
+            _ => {}
+        }
     }
     match config.modules.avatar_asset.live2d_adapter_manifest_source {
         AgentCenterLive2dAdapterManifestSource::None => {
@@ -575,6 +596,26 @@ mod tests {
                     .as_deref(),
                 Some("live2d_ab12cd34ef56")
             );
+        });
+    }
+
+    #[test]
+    fn put_rejects_avatar_backend_kind_mismatch_for_selected_local_asset() {
+        let home = temp_home("avatar-backend-mismatch");
+        with_env(&[("HOME", home.to_str())], || {
+            let mut config = valid_config();
+            config.modules.avatar_asset.local_avatar_asset_ref =
+                Some("live2d_ab12cd34ef56".to_string());
+            config.modules.avatar_asset.backend_kind = AgentCenterAvatarBackendKind::Vrm;
+            let err = desktop_agent_center_config_put(DesktopAgentCenterConfigPutPayload {
+                account_id: "account_1".to_string(),
+                owner_user_id: owner_user_id(),
+                realm_agent_id: realm_agent_id(),
+                local_agent_ref: local_agent_ref(),
+                config,
+            })
+            .expect_err("backend mismatch rejected");
+            assert!(err.contains("backend_kind must match local Avatar asset id prefix"));
         });
     }
 

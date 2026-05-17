@@ -104,6 +104,32 @@ test('Agent Center avatar asset module rejects retired selected package truth', 
   }
 });
 
+test('Agent Center avatar asset module rejects backend drift from selected local asset', () => {
+  const config = createConfig();
+  config.modules.avatar_asset.local_avatar_asset_ref = 'live2d_ab12cd34ef56';
+  config.modules.avatar_asset.backend_kind = 'vrm';
+
+  const result = validateAgentCenterLocalConfig(config);
+
+  assert.equal(result.ok, false);
+  if (!result.ok) {
+    assert.ok(result.errors.some((error) => error.includes('backend_kind: must match local Avatar asset id prefix')));
+  }
+});
+
+test('Agent Center avatar asset module rejects future backend for selected local asset', () => {
+  const config = createConfig();
+  config.modules.avatar_asset.local_avatar_asset_ref = 'vrm_ab12cd34ef56';
+  config.modules.avatar_asset.backend_kind = 'future';
+
+  const result = validateAgentCenterLocalConfig(config);
+
+  assert.equal(result.ok, false);
+  if (!result.ok) {
+    assert.ok(result.errors.some((error) => error.includes('future backend cannot be selected')));
+  }
+});
+
 test('Agent Center local config rejects non-NFC identifiers', () => {
   const config = {
     ...createConfig(),

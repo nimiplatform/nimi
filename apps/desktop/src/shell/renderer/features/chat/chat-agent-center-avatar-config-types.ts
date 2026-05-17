@@ -37,7 +37,6 @@ export type AgentCenterAvatarAssetModule = {
 export type AgentCenterAvatarConfigPatch = Partial<Pick<
   AgentCenterAvatarAssetModule,
   | 'avatar_instance_policy'
-  | 'backend_kind'
   | 'generated_motion_provider_policy'
   | 'launch_mode'
   | 'debug_profile'

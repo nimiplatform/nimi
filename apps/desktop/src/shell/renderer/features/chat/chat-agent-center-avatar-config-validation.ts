@@ -22,6 +22,7 @@ import type {
 } from './chat-agent-center-avatar-config-types';
 
 const NORMALIZED_ID_PATTERN = /^(?=.*[A-Za-z0-9])(?!\.{1,2}$)(?!.*:\/\/)[A-Za-z0-9._~:@+-]{1,256}$/u;
+const LOCAL_AVATAR_ASSET_ID_PATTERN = /^(live2d|vrm)_[a-f0-9]{12}$/u;
 const LIVE2D_ADAPTER_MANIFEST_REF_PATTERN = /^live2d_adapter_[a-f0-9]{12}$/u;
 const ISO_TIMESTAMP_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,9})?Z$/u;
 const AVATAR_CONFIG_PROVENANCE_KEYS = ['source', 'evidence_ref'] as const;
@@ -160,6 +161,16 @@ export function validateAvatarAssetModule(value: unknown, errors: string[]): Age
     'invalid backend kind',
   );
   const localAvatarAssetRef = validateNullableNormalizedId(record.local_avatar_asset_ref, `${path}.local_avatar_asset_ref`, errors);
+  if (localAvatarAssetRef !== null) {
+    if (!LOCAL_AVATAR_ASSET_ID_PATTERN.test(localAvatarAssetRef)) {
+      errors.push(`${path}.local_avatar_asset_ref: invalid local Avatar asset id`);
+    }
+    if (backendKind === 'future') {
+      errors.push(`${path}.backend_kind: future backend cannot be selected for a local Avatar asset`);
+    } else if (!localAvatarAssetRef.startsWith(`${backendKind}_`)) {
+      errors.push(`${path}.backend_kind: must match local Avatar asset id prefix`);
+    }
+  }
   const manifestSource = validateEnum<AgentCenterLive2dAdapterManifestSource>(
     record.live2d_adapter_manifest_source,
     `${path}.live2d_adapter_manifest_source`,

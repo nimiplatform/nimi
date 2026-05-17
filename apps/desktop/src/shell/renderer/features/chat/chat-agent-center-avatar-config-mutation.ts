@@ -16,6 +16,11 @@ export function useAgentCenterAvatarConfigMutation(input: UseAgentConversationPr
           defaultValue: 'Select an agent before changing Avatar configuration.',
         }));
       }
+      if (Object.prototype.hasOwnProperty.call(patch, 'backend_kind')) {
+        throw new Error(input.t('Chat.agentCenterAvatarBackendDerivedFromLocalAsset', {
+          defaultValue: 'Avatar backend kind is derived from the selected local asset. Import or select a Live2D/VRM asset to switch backend.',
+        }));
+      }
       const nextAvatarAsset = {
         ...currentConfig.modules.avatar_asset,
         ...patch,
