@@ -1,7 +1,8 @@
 import { invoke } from '@tauri-apps/api/core';
 
-// Agent Center package resolution is current local materialization plumbing for
-// authorized opaque refs. Package lifecycle and activation truth live upstream.
+// Local Avatar asset resolution is current private-skin materialization
+// plumbing. Realm/Asset Market distribution may feed this local store later,
+// but the launched carrier consumes local materialized assets.
 
 export type ModelManifest = {
   runtimeDir: string;
@@ -20,6 +21,13 @@ export type AgentCenterAvatarPackageReference = {
   backendKind: 'live2d' | 'vrm';
   backendCapabilityProfileRef: string;
   materializationRef: string;
+};
+
+export type LocalAvatarAssetReference = {
+  accountId: string;
+  ownerUserId: string;
+  realmAgentId: string;
+  localAgentRef: string;
 };
 
 type RustModelManifest = {
@@ -45,6 +53,21 @@ export async function resolveAgentCenterAvatarPackageManifest(
   reference: AgentCenterAvatarPackageReference,
 ): Promise<ModelManifest> {
   const raw = await invoke<RustModelManifest>('nimi_avatar_resolve_agent_center_avatar_package', {
+    payload: reference,
+  });
+  return {
+    runtimeDir: raw.runtime_dir,
+    modelId: raw.model_id,
+    model3JsonPath: raw.model3_json_path,
+    nimiDir: raw.nimi_dir,
+    adapterManifestPath: raw.adapter_manifest_path ?? null,
+  };
+}
+
+export async function resolveLocalAvatarAssetManifest(
+  reference: LocalAvatarAssetReference,
+): Promise<ModelManifest> {
+  const raw = await invoke<RustModelManifest>('nimi_avatar_resolve_local_avatar_asset', {
     payload: reference,
   });
   return {

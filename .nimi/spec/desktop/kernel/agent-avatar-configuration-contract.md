@@ -117,8 +117,8 @@ Configuration status MUST fail closed when required typed evidence is missing.
 
 Desktop MUST distinguish:
 
-- no package ref selected
-- package ref selected but unresolved by authorized projection
+- no local Avatar asset selected
+- local Avatar asset selected but unresolved by Avatar local materialization
 - backend profile missing
 - backend profile unsupported
 - generated motion provider unavailable
@@ -128,21 +128,25 @@ Desktop MUST distinguish:
 Unsupported or missing capability is not success and must not fall back to idle
 motion, local binding, or static carrier proof.
 
-## D-LLM-099 — Avatar Package Control Surface Boundary
+## D-LLM-099 — Avatar Local Asset Control Surface Boundary
 
-Desktop MAY present Avatar package controls only as a consumer of typed
-SDK/Runtime/Asset Market projections.
+Desktop MAY present local Avatar asset controls for private Live2D / VRM import,
+selection, and status. Local import is the primary Avatar asset path.
 
 Desktop MUST NOT become a package registry, package lifecycle authority,
 package inventory authority, activation authority, review authority, or local
-Avatar carrier registry.
+remote-package carrier registry.
+
+Realm / Asset Market package acquisition may appear in the same product area as
+a secondary source. It must materialize into the same local Avatar asset store
+before Avatar consumes it.
 
 ## D-LLM-100 — Opaque Ref Storage
 
-Desktop persisted configuration may store only opaque refs and bounded status
-summaries:
+Desktop persisted configuration may store only local Avatar asset refs, source
+provenance, and bounded status summaries:
 
-- `avatar_package_ref`
+- `local_avatar_asset_ref` or current storage-equivalent local selection ref
 - `backend_capability_profile_ref`
 - selected `backend_kind`
 - readiness/status summary
@@ -155,29 +159,35 @@ activation bindings, or raw Asset Market API payloads as configuration truth.
 
 ## D-LLM-101 — Acquisition And Import UX
 
-Desktop MAY initiate Avatar package acquisition/import only through typed SDK or
-Asset Market projections admitted by `AM-LIB-005` and `AM-API-005`.
+Desktop MAY initiate private local Live2D / VRM import into the local Avatar
+asset store.
+
+Desktop MAY also initiate Realm / Asset Market acquisition only through typed
+SDK or Asset Market projections admitted by `AM-LIB-005` and `AM-API-005`.
+Those remote sources must download / subscribe / materialize into the same
+local Avatar asset store before becoming launchable.
 
 Desktop MUST NOT create:
 
 - a browser-reachable Avatar-local install endpoint
 - a Petdex-style local driver protocol
 - a Desktop-owned package install daemon
-- a direct filesystem activation path
+- a direct filesystem activation path outside the admitted local Avatar asset
+  import/materialization flow
 - an Agent Center package inventory surface
 
 ## D-LLM-102 — Readiness And Failure UX
 
-Desktop readiness UX MUST fail closed when package or capability evidence is
-missing.
+Desktop readiness UX MUST fail closed when local asset or capability evidence
+is missing.
 
 Desktop MUST distinguish:
 
-- no Avatar package selected
-- package selected but unresolved by authorized projection
+- no local Avatar asset selected
+- local Avatar asset selected but unresolved by Avatar local materialization
 - unsupported `backend_kind`
 - missing backend capability profile
-- missing Avatar model layout
+- missing renderer entry file
 - blocking compatibility diagnostic
 - local materialization unavailable
 - probe required before launch
@@ -187,15 +197,15 @@ success, local binding success, or launch-ready status.
 
 ## D-LLM-103 — Launch Payload And Resolver Hard Cut
 
-Avatar package controls MUST NOT widen the Avatar launch payload.
+Avatar local asset controls MUST NOT widen the Avatar launch payload.
 
-Desktop may store opaque refs in its configuration record and may render status
-from typed projections. Actual package descriptor resolution, backend capability
-profile resolution, and local materialized file use belong to Avatar after
-authorized Runtime/SDK projection.
+Desktop may store local Avatar asset selection refs in its configuration record
+and may render status from typed projections. Actual renderer file resolution,
+backend capability profile resolution, and local materialized file use belong
+to Avatar after Runtime validates `agent_id` and the local agent projection.
 
-Agent Center resolver plumbing, when present, is local materialization plumbing
-only. It is not package authority.
+Agent Center resolver plumbing, when present, is local Avatar asset
+materialization storage only. It is not remote package authority.
 
 ## Traceability
 

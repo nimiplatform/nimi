@@ -1,8 +1,8 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 
-// Local materialization resolver for Runtime/Desktop-authorized opaque Avatar
-// package refs. Agent Center paths are storage plumbing, not package lifecycle,
+// Local Avatar asset materialization resolver. Agent Center paths are current
+// Desktop storage plumbing for user-imported private skins, not package lifecycle,
 // inventory, or activation authority.
 
 use serde::{Deserialize, Serialize};
@@ -34,6 +34,41 @@ pub(crate) struct AgentCenterAvatarPackageResolvePayload {
     pub(crate) avatar_package_ref: String,
     pub(crate) backend_capability_profile_ref: String,
     pub(crate) materialization_ref: String,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub(crate) struct LocalAvatarAssetResolvePayload {
+    pub(crate) account_id: String,
+    pub(crate) owner_user_id: String,
+    pub(crate) realm_agent_id: String,
+    pub(crate) local_agent_ref: String,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct AgentCenterLocalConfigFile {
+    schema_version: u8,
+    config_kind: String,
+    account_id: String,
+    owner_user_id: String,
+    realm_agent_id: String,
+    local_agent_ref: String,
+    modules: AgentCenterLocalConfigModules,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct AgentCenterLocalConfigModules {
+    avatar_package: AgentCenterLocalAvatarAssetSelection,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct AgentCenterLocalAvatarAssetSelection {
+    avatar_package_ref: Option<String>,
+    backend_kind: String,
+    backend_capability_profile_ref: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -169,6 +204,37 @@ fn expected_materialization_ref(
         agent_center_path_segment(account_id),
         agent_center_path_segment(local_agent_ref),
     )
+}
+
+fn read_local_avatar_asset_selection(
+    data_root: &Path,
+    account_id: &str,
+    owner_user_id: &str,
+    realm_agent_id: &str,
+    local_agent_ref: &str,
+) -> Result<AgentCenterLocalAvatarAssetSelection, String> {
+    let config_path = data_root
+        .join("accounts")
+        .join(agent_center_path_segment(account_id))
+        .join("agents")
+        .join(agent_center_path_segment(local_agent_ref))
+        .join("agent-center")
+        .join("config.json");
+    let raw = fs::read_to_string(&config_path)
+        .map_err(|error| format!("local Avatar asset config is unavailable: {error}"))?;
+    let config: AgentCenterLocalConfigFile = serde_json::from_str(&raw)
+        .map_err(|error| format!("local Avatar asset config is invalid: {error}"))?;
+    if config.schema_version != 1 || config.config_kind != "agent_center_local_config" {
+        return Err("local Avatar asset config kind is invalid".to_string());
+    }
+    if config.account_id != account_id
+        || config.owner_user_id != owner_user_id
+        || config.realm_agent_id != realm_agent_id
+        || config.local_agent_ref != local_agent_ref
+    {
+        return Err("local Avatar asset config scope mismatch".to_string());
+    }
+    Ok(config.modules.avatar_package)
 }
 
 fn is_safe_package_relative_path(value: &str) -> bool {
@@ -319,7 +385,7 @@ pub(crate) async fn nimi_avatar_resolve_agent_center_avatar_package(
     }
     if manifest.package_id != package_id || manifest.kind != kind {
         return Err(
-            "avatar package manifest identity does not match authorized Avatar package handoff"
+            "avatar package manifest identity does not match local Avatar asset selection"
                 .to_string(),
         );
     }
@@ -491,4 +557,60 @@ pub(crate) async fn nimi_avatar_resolve_agent_center_avatar_package(
         motion_presets_dir,
         adapter_manifest_path,
     })
+}
+
+#[tauri::command]
+pub(crate) async fn nimi_avatar_resolve_local_avatar_asset(
+    payload: LocalAvatarAssetResolvePayload,
+) -> Result<ModelManifest, String> {
+    let account_id = validate_agent_center_id(&payload.account_id, "account_id")?;
+    let owner_user_id = validate_agent_center_id(&payload.owner_user_id, "owner_user_id")?;
+    let realm_agent_id = validate_agent_center_id(&payload.realm_agent_id, "realm_agent_id")?;
+    let local_agent_ref = validate_agent_center_id(&payload.local_agent_ref, "local_agent_ref")?;
+    if account_id != owner_user_id {
+        return Err("local Avatar asset account_id must equal owner_user_id".to_string());
+    }
+    if local_agent_ref != format!("local-agent:{owner_user_id}:{realm_agent_id}") {
+        return Err(
+            "local Avatar asset local_agent_ref must equal local-agent:${owner_user_id}:${realm_agent_id}"
+                .to_string(),
+        );
+    }
+    let data_root = resolve_home_data_root()?;
+    let selection = read_local_avatar_asset_selection(
+        &data_root,
+        &account_id,
+        &owner_user_id,
+        &realm_agent_id,
+        &local_agent_ref,
+    )?;
+    let kind = selection.backend_kind.trim().to_string();
+    let avatar_package_ref = selection
+        .avatar_package_ref
+        .as_deref()
+        .unwrap_or("")
+        .trim()
+        .to_string();
+    let backend_capability_profile_ref = selection
+        .backend_capability_profile_ref
+        .as_deref()
+        .unwrap_or("")
+        .trim()
+        .to_string();
+    if avatar_package_ref.is_empty() || backend_capability_profile_ref.is_empty() {
+        return Err("local Avatar asset selection is incomplete".to_string());
+    }
+    let materialization_ref =
+        expected_materialization_ref(&account_id, &local_agent_ref, kind.as_str(), &avatar_package_ref);
+    nimi_avatar_resolve_agent_center_avatar_package(AgentCenterAvatarPackageResolvePayload {
+        account_id,
+        owner_user_id,
+        realm_agent_id,
+        local_agent_ref,
+        backend_kind: kind,
+        avatar_package_ref,
+        backend_capability_profile_ref,
+        materialization_ref,
+    })
+    .await
 }

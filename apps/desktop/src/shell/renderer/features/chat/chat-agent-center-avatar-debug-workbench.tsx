@@ -54,7 +54,7 @@ const PROBES: readonly AvatarDebugWorkbenchProbe[] = [
   {
     kind: AvatarDebugProbeKind.PACKAGE_VALIDATION,
     label: 'Package',
-    summary: 'Validate the selected avatar package record.',
+    summary: 'Validate the selected local Avatar asset record.',
   },
   {
     kind: AvatarDebugProbeKind.LAUNCH_READINESS,
@@ -129,14 +129,14 @@ export function buildAvatarDebugWorkbenchLaunchHealth(input: {
     return {
       status: 'checking',
       label: 'Checking',
-      detail: 'Desktop is validating the current avatar package record.',
+      detail: 'Desktop is validating the current local Avatar asset record.',
     };
   }
   if (!input.avatarPackageValid) {
     return {
       status: 'needs_package',
-      label: 'Needs package',
-      detail: 'Runtime-projected avatar package and backend evidence are required before probe execution.',
+      label: 'Needs asset',
+      detail: 'A selected local Avatar asset and backend evidence are required before probe execution.',
     };
   }
   if (!input.routeReady) {
@@ -239,11 +239,11 @@ export function avatarDebugProbeRemediation(
     case AvatarDebugProbeStatus.UNSUPPORTED:
       return 'Select a backend/profile that supports this route, or disable the related capability policy.';
     case AvatarDebugProbeStatus.BLOCKED:
-      return 'Runtime policy blocked this probe. Review approval, scope, and package validation state.';
+      return 'Runtime policy blocked this probe. Review approval, scope, and local asset validation state.';
     case AvatarDebugProbeStatus.INVALID:
       return 'The probe request was invalid. Refresh the conversation anchor and retry.';
     case AvatarDebugProbeStatus.FAILED:
-      return 'Inspect package validation, backend load state, and capability profile evidence.';
+      return 'Inspect local asset validation, backend load state, and capability profile evidence.';
     default:
       return 'Run a probe to produce Runtime-owned evidence and replay links.';
   }
@@ -483,7 +483,7 @@ export function AgentCenterAvatarDebugWorkbench(props: AgentCenterAvatarDebugWor
 
       <div className="mt-3 grid gap-2 text-[11px] leading-4 text-slate-600 sm:grid-cols-2">
         <DebugFact label={input.t('Chat.agentCenterAvatarDebugBackend', { defaultValue: 'Backend' })} value={diagnostics.backendKind.toUpperCase()} />
-        <DebugFact label={input.t('Chat.agentCenterAvatarDebugPackageRef', { defaultValue: 'Package ref' })} value={diagnostics.packageRefState === 'linked' ? input.t('Chat.agentCenterLinked', { defaultValue: 'Linked' }) : input.t('Chat.agentCenterMissing', { defaultValue: 'Missing' })} />
+        <DebugFact label={input.t('Chat.agentCenterAvatarDebugPackageRef', { defaultValue: 'Asset ref' })} value={diagnostics.packageRefState === 'linked' ? input.t('Chat.agentCenterLinked', { defaultValue: 'Linked' }) : input.t('Chat.agentCenterMissing', { defaultValue: 'Missing' })} />
         <DebugFact label={input.t('Chat.agentCenterAvatarDebugProfileRef', { defaultValue: 'Profile ref' })} value={diagnostics.profileRefState === 'linked' ? input.t('Chat.agentCenterLinked', { defaultValue: 'Linked' }) : input.t('Chat.agentCenterPending', { defaultValue: 'Pending' })} />
         <DebugFact label={input.t('Chat.agentCenterAvatarDebugPolicy', { defaultValue: 'Motion policy' })} value={diagnostics.generatedMotionPolicy.replaceAll('_', ' ')} />
         <DebugFact label={input.t('Chat.agentCenterAvatarDebugProfile', { defaultValue: 'Debug profile' })} value={diagnostics.debugProfile.replaceAll('_', ' ')} />

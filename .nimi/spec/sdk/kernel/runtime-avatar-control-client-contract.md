@@ -67,12 +67,18 @@ backend resolver execution.
 ## S-RUNTIME-231 Avatar Package Client Boundary
 
 SDK may expose Avatar package client types only as a typed consumer projection
-for Asset Market packages with `package_kind: "avatar"` and Runtime/Desktop
-authorized avatar configuration flows.
+for secondary Realm / Asset Market sources with `package_kind: "avatar"`.
+Those sources are not the default Avatar launch path; they become launchable
+only after acquisition and local materialization into the same local Avatar
+asset store used by private imports.
 
 SDK does not own package lifecycle, package inventory, activation truth,
 publication, review, moderation, backend file resolution, or Avatar render
 success.
+
+The primary Avatar launch path is local Avatar asset selection plus Runtime
+agent/session validation. SDK package projection must not be required for a
+private locally imported Live2D / VRM carrier.
 
 ## S-RUNTIME-232 Opaque Ref Projection
 
@@ -98,8 +104,8 @@ storage records.
 
 ## S-RUNTIME-233 Acquisition And Import Projection
 
-SDK may expose request/result shapes for Avatar package acquisition and import
-only when they align to Asset Market authority:
+SDK may expose request/result shapes for secondary Avatar package acquisition
+and import only when they align to Asset Market authority:
 
 - `AM-LIB-005` for library acquisition/import semantics
 - `AM-API-005` for package-kind-aware API posture
@@ -107,7 +113,8 @@ only when they align to Asset Market authority:
 
 SDK must not introduce a direct app-local install endpoint, browser-reachable
 Avatar driver protocol, local package registry, or fallback package activation
-path.
+path. SDK acquisition output must become a local Avatar asset materialization
+input, not a parallel launch-time remote package truth.
 
 ## S-RUNTIME-234 Readiness And Compatibility Decoding
 
@@ -129,8 +136,9 @@ or blocking diagnostics must be represented as non-launchable status.
 
 ## S-RUNTIME-235 Avatar Handoff Projection
 
-SDK may carry an authorized Avatar handoff record to Desktop or Avatar only as
-typed refs and status summaries.
+SDK may carry an authorized Avatar package handoff record to Desktop or Avatar
+only for the secondary package-source path, and only as typed refs and status
+summaries.
 
 The handoff record must require an opaque `materialization_ref`; the earlier
 Runtime projection may observe an unmaterialized package, but launch handoff must
@@ -170,16 +178,17 @@ Avatar, Asset Market, Agent Center, or app-local REST surfaces.
 
 ## S-RUNTIME-238 Contract-Only Fail Closed Status
 
-Until Runtime and Asset Market implement the real source for
-`ResolveAvatarPackageLaunchProjection`, SDK must not report production support.
+Until Runtime and Asset Market implement the real secondary package-source
+projection for `ResolveAvatarPackageLaunchProjection`, SDK must not report
+production support.
 
 The SDK method may expose the method shape and route to the Runtime client when
 the Runtime method exists. If the Runtime client method is missing, unavailable,
 or returns a non-launch-eligible projection, SDK consumers must fail closed.
 
 SDK must not fabricate a successful package handoff, read Agent Center local
-config as package authority, call an app-local install endpoint, or return a
-placeholder success.
+config as package authority, call an app-local install endpoint, require the
+package path for private local import launch, or return a placeholder success.
 
 ## S-RUNTIME-239 Public Surface Narrowing
 

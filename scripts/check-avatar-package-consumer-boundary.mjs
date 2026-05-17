@@ -1,10 +1,12 @@
 #!/usr/bin/env node
-// Guard for Avatar package consumer boundaries across SDK, Desktop, and Avatar.
+// Guard for Avatar local asset and secondary package-source boundaries across
+// SDK, Desktop, and Avatar.
 //
 // Enforces:
+//   - local Avatar asset import/materialization is the primary launch path
 //   - SDK/Desktop/Avatar are consumer/control projection layers only
-//   - Asset Market remains package lifecycle authority
-//   - Avatar package refs stay opaque until authorized Avatar resolver execution
+//   - Asset Market remains secondary package-source lifecycle authority
+//   - Avatar does not require Runtime package projection for private local import launch
 //   - launched Avatar backends remain live2d | vrm only
 
 import { existsSync, readFileSync } from 'node:fs';
@@ -30,6 +32,8 @@ const FILES = {
   sdkMethodIds: 'sdk/src/runtime/method-ids.ts',
   sdkTest: 'sdk/test/runtime/runtime-avatar-package.test.ts',
   avatarRuntimeBinding: 'apps/avatar/src/shell/renderer/app-shell/app-bootstrap-runtime-binding.ts',
+  avatarBootstrap: 'apps/avatar/src/shell/renderer/app-shell/app-bootstrap.ts',
+  avatarEvidence: 'apps/avatar/src/shell/renderer/app-shell/app-bootstrap-package-evidence.ts',
   avatarLaunchContextTs: 'apps/avatar/src/shell/renderer/bridge/launch-context.ts',
   avatarLaunchContextRust: 'apps/avatar/src-tauri/src/avatar_launch_context.rs',
   desktopLauncher: 'apps/desktop/src/shell/renderer/bridge/runtime-bridge/chat-agent-avatar-launcher.ts',
@@ -86,6 +90,9 @@ requireIncludes(FILES.sdkContract, [
   'S-RUNTIME-237 Resolve Launch Projection Method',
   'S-RUNTIME-238 Contract-Only Fail Closed Status',
   'S-RUNTIME-239 Public Surface Narrowing',
+  'The primary Avatar launch path is local Avatar asset selection plus Runtime',
+  'secondary Realm / Asset Market sources',
+  'must not be required for a\nprivate locally imported Live2D / VRM carrier',
   'SDK does not own package lifecycle',
   'AM-LIB-005',
   'AM-API-005',
@@ -108,12 +115,14 @@ requireIncludes(FILES.desktopContract, [
   'D-LLM-101',
   'D-LLM-102',
   'D-LLM-103',
+  'local Avatar asset controls',
+  'Local import is the primary Avatar asset path',
   'Desktop MUST NOT become a package registry',
   'Desktop MUST NOT persist or pass package descriptors',
   'browser-reachable Avatar-local install endpoint',
-  'Avatar package controls MUST NOT widen the Avatar launch payload',
+  'Avatar local asset controls MUST NOT widen the Avatar launch payload',
   'Agent Center resolver plumbing',
-  'not package authority',
+  'local Avatar asset\nmaterialization storage',
 ]);
 requireExcludes(FILES.desktopContract, [
   'Desktop owns package lifecycle',
@@ -122,13 +131,16 @@ requireExcludes(FILES.desktopContract, [
 ]);
 
 requireIncludes(FILES.avatarContract, [
-  'Package` records with `package_kind: "avatar"`',
+  'Local import is the primary product path',
+  'Avatar consumes local Avatar assets, not remote package records',
+  'Realm / Asset Market `Package` records with `package_kind: "avatar"` are an\noptional upstream source',
   '`backend_kind: "live2d"` or `backend_kind: "vrm"`',
   '`sprite2d`, `canvas2d`, and `video` are not launched Avatar backend kinds',
-  'Avatar MUST NOT define a second package manifest',
-  'Resolver execution may turn opaque refs into local materialized Live2D or VRM',
+  'Avatar MUST NOT define a second remote package manifest',
+  'Resolver execution may turn a local Avatar asset selection into materialized',
+  'avatar.visual.local-asset-resolved',
   'Refusal must render the admitted degraded surface',
-  'Package consumption MUST NOT widen `BackendKind`',
+  'Local asset consumption MUST NOT widen `BackendKind`',
 ]);
 requireExcludes(FILES.avatarContract, [
   'Avatar owns package lifecycle',
@@ -137,7 +149,7 @@ requireExcludes(FILES.avatarContract, [
   'fallback to Sprite2D',
 ]);
 
-requireIncludes(FILES.sdkIndex, ['Asset Market Avatar package refs']);
+requireIncludes(FILES.sdkIndex, ['secondary Runtime Avatar package-source projection']);
 requireIncludes(FILES.desktopIndex, ['package control surface']);
 requireIncludes(FILES.avatarIndex, ['avatar-package-consumption-contract.md']);
 requireIncludes(FILES.runtimeContract, [
@@ -146,6 +158,9 @@ requireIncludes(FILES.runtimeContract, [
   'K-AGCORE-135 Launch Eligibility Gate',
   'K-AGCORE-136 Agent Center Non-Authority',
   'K-AGCORE-137 Runtime Emit Implementation Gate',
+  'secondary Realm / Asset Market Avatar package projection',
+  'not the default Avatar launch path',
+  'primary launch path',
   'runtime.avatarPackage.resolveLaunchProjection',
   'ResolveAvatarPackageLaunchProjection',
   'runtime.agent.avatar_package.read',
@@ -232,6 +247,22 @@ requireIncludes(FILES.sdkTest, [
   'rejects non-launched backend kinds and preview package kinds',
   'future_reviewed_ugc requires AM-MOD admission',
   'must not include package.packageDescriptor',
+]);
+requireExcludes(FILES.avatarBootstrap, [
+  'resolveRuntimeAvatarPackageHandoff',
+  'avatar_package_handoff',
+]);
+requireIncludes(FILES.avatarBootstrap, [
+  'resolveLocalAvatarAssetManifest',
+  'local_avatar_asset_manifest',
+  'recordLocalAvatarAssetResolved',
+]);
+requireIncludes(FILES.avatarEvidence, [
+  'avatar.visual.local-asset-resolved',
+  'asset_authority',
+  'local_avatar_asset',
+  'resolver_authority',
+  'avatar_local_materialization',
 ]);
 requireIncludes(FILES.avatarRuntimeBinding, [
   'input.runtime.avatarPackage.resolveLaunchProjection',

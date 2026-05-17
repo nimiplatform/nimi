@@ -8,7 +8,7 @@ Nimi Avatar（阿凡达）— 桌面悬浮 embodiment carrier，承载 Nimi agen
 
 ## Status
 
-**Productization gate active（runtime/SDK primary）**
+**Productization gate active（local Avatar asset primary）**
 
 ## Quick Links
 
@@ -30,14 +30,12 @@ Nimi Avatar（阿凡达）— 桌面悬浮 embodiment carrier，承载 Nimi agen
 
 ## Launch Model
 
-`apps/avatar` 现在不是一个“自己默认选 agent 然后独立跑起来”的 carrier。当前 canonical 正常路径是 desktop bridge / handoff：
+`apps/avatar` 现在不是一个“自己默认选 agent 然后独立跑起来”的 carrier。当前 canonical 正常路径是 desktop bridge / handoff + local Avatar asset：
 
-- 正常启动必须带 Desktop-selected minimal launch context：required `owner_user_id`、`realm_agent_id`、`local_agent_ref`、`conversation_anchor_id`；optional `avatar_instance_id`、optional non-authoritative `launch_source`
-- `local_agent_ref` 必须等于 `local-agent:${owner_user_id}:${realm_agent_id}`；bare `realm_agent_id` 不具备启动 authority
+- 正常启动必须带 Desktop-selected minimal launch context：required `agent_id`；optional `avatar_instance_id`、optional non-authoritative `launch_source`
+- `agent_id` 是 selector，不是 authorization proof；Avatar 必须通过 Runtime / SDK 验证当前 agent/session projection
 - 缺少 launch context：fail closed；avatar app 不会默认 bootstrap 单个 agent
-- visual bootstrap 来自 Desktop/Runtime-authorized opaque package refs；当前
-  implementation may materialize through local Agent Center resolver plumbing,
-  but that plumbing is not package authority
+- visual bootstrap 的主路径是 selected local Avatar asset。用户本地导入的 Live2D / VRM 是一等来源；Realm / Asset Market package 未来下载或订阅后也必须 materialize 到同一本地资产路径，再按本地资产消费
 - runtime bootstrap 只通过 Desktop/Runtime IPC bridge；Avatar 不读取 shared auth、不创建 Realm HTTP client、不拥有 login/session truth
 - handoff payload 不携带 raw JWT、refresh token、`subject_user_id`、或 Realm base URL
 - runtime binding 不可用时，Avatar 停止 interaction/voice/activity consume，
@@ -47,7 +45,7 @@ Nimi Avatar（阿凡达）— 桌面悬浮 embodiment carrier，承载 Nimi agen
 
 `apps/avatar` 当前正常启动路径已经切到 real runtime/SDK consume chain。Mock fixtures 仍保留，但只作为显式 dev/test evidence surface：
 
-- 默认正常路径：desktop-selected launch context + local visual package + runtime IPC bridge + SDK consume
+- 默认正常路径：desktop-selected launch context + local Avatar asset + runtime IPC bridge + SDK consume
 - 显式 fixture：`VITE_AVATAR_DRIVER=mock`
 - runtime 不可用：interaction/voice/activity fail closed；不会 silent fallback
   到 mock，visual carrier 不保持为可交互/可见正常态

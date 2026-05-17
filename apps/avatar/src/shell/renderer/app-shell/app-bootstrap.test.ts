@@ -27,11 +27,10 @@ const requestTurnMock = vi.fn();
 const interruptTurnMock = vi.fn();
 const requestCompanionParticipationMock = vi.fn();
 const cancelCompanionParticipationMock = vi.fn();
-const resolveLaunchAvatarPackageProjectionMock = vi.fn();
 const transcribeMock = vi.fn();
 const listRouteOptionsMock = vi.fn();
 const checkRouteHealthMock = vi.fn();
-const resolveAgentCenterAvatarPackageManifestMock = vi.fn();
+const resolveLocalAvatarAssetManifestMock = vi.fn();
 const startAvatarRuntimeCarrierMock = vi.fn();
 const carrierShutdownMock = vi.fn();
 const recordAvatarEvidenceEventuallyMock = vi.fn();
@@ -59,9 +58,7 @@ const runtimeMock = {
     request: (...args: unknown[]) => requestCompanionParticipationMock(...args),
     cancel: (...args: unknown[]) => cancelCompanionParticipationMock(...args),
   },
-  avatarPackage: {
-    resolveLaunchProjection: (...args: unknown[]) => resolveLaunchAvatarPackageProjectionMock(...args),
-  },
+  avatarPackage: {},
   media: {
     stt: {
       transcribe: (...args: unknown[]) => transcribeMock(...args),
@@ -77,10 +74,6 @@ const REALM_AGENT_ID = 'agent-launch';
 const OWNER_USER_ID = 'account-runtime';
 const LOCAL_AGENT_REF = `local-agent:${OWNER_USER_ID}:${REALM_AGENT_ID}`;
 const OTHER_LOCAL_AGENT_REF = `local-agent:${OWNER_USER_ID}:agent-other`;
-const AVATAR_PACKAGE_REF = 'live2d_ab12cd34ef56';
-const BACKEND_CAPABILITY_PROFILE_REF = 'avatar.backend_profile/live2d/basic';
-const AVATAR_MATERIALIZATION_REF = 'agent-center-avatar-package:account-runtime:id_8f0290aacb07e123ae912240:live2d:live2d_ab12cd34ef56';
-
 function launchContext(overrides: Partial<{
   agentId: string;
   avatarInstanceId: string | null;
@@ -91,40 +84,6 @@ function launchContext(overrides: Partial<{
     avatarInstanceId: 'instance-1',
     launchSource: 'desktop-agent-chat',
     ...overrides,
-  };
-}
-
-function launchEligibleAvatarPackageProjection() {
-  return {
-    avatar_package_ref: AVATAR_PACKAGE_REF,
-    package_kind: 'avatar',
-    package_id: AVATAR_PACKAGE_REF,
-    bundle_id: 'bundle-avatar-ren',
-    bundle_member_asset_ids: ['asset-model3'],
-    backend_kind: 'live2d',
-    backend_capability_profile_ref: BACKEND_CAPABILITY_PROFILE_REF,
-    avatar_model_layout: {
-      layout_version: 1,
-      backend_kind: 'live2d',
-      entry_asset_id: 'asset-model3',
-      runtime_root: 'files',
-      required_asset_ids: ['asset-model3'],
-      live2d: {
-        model3_json_asset_id: 'asset-model3',
-        model3_json_path: 'files/ren.model3.json',
-      },
-    },
-    provenance: {
-      source_type: 'imported_local_materialization',
-      source_fingerprint: 'sha256:avatar',
-      admitted_at: '2026-05-16T00:00:00Z',
-      validator: 'avatar-test',
-    },
-    compatibility_diagnostics: [],
-    status: 'published',
-    is_ready: true,
-    readiness_issues: [],
-    materialization_ref: AVATAR_MATERIALIZATION_REF,
   };
 }
 
@@ -150,8 +109,8 @@ vi.mock('../mock/scenarios/default.mock.json?raw', () => ({
 }));
 
 vi.mock('../carrier/model-resolver.js', () => ({
-  resolveAgentCenterAvatarPackageManifest: (...args: unknown[]) =>
-    resolveAgentCenterAvatarPackageManifestMock(...args),
+  resolveLocalAvatarAssetManifest: (...args: unknown[]) =>
+    resolveLocalAvatarAssetManifestMock(...args),
 }));
 
 vi.mock('../carrier/avatar-carrier.js', () => ({
@@ -284,11 +243,10 @@ describe('bootstrapAvatar', () => {
     interruptTurnMock.mockReset();
     requestCompanionParticipationMock.mockReset();
     cancelCompanionParticipationMock.mockReset();
-    resolveLaunchAvatarPackageProjectionMock.mockReset();
     transcribeMock.mockReset();
     listRouteOptionsMock.mockReset();
     checkRouteHealthMock.mockReset();
-    resolveAgentCenterAvatarPackageManifestMock.mockReset();
+    resolveLocalAvatarAssetManifestMock.mockReset();
     startAvatarRuntimeCarrierMock.mockReset();
     carrierShutdownMock.mockReset();
     recordAvatarEvidenceEventuallyMock.mockReset();
@@ -373,12 +331,16 @@ describe('bootstrapAvatar', () => {
       },
     });
     subscribeTurnsMock.mockResolvedValue((async function* emptyStream() {})());
-    resolveAgentCenterAvatarPackageManifestMock.mockResolvedValue({
+    resolveLocalAvatarAssetManifestMock.mockResolvedValue({
+      kind: 'live2d',
       runtimeDir: '/models/ren/files',
       modelId: 'ren',
-      model3JsonPath: '/models/ren/files/ren.model3.json',
       nimiDir: null,
-      adapterManifestPath: null,
+      posterPath: null,
+      live2d: {
+        modelJson: '/models/ren/files/ren.model3.json',
+        adapterManifestPath: null,
+      },
     });
     startAvatarRuntimeCarrierMock.mockResolvedValue({
       shutdown: carrierShutdownMock,
@@ -407,7 +369,6 @@ describe('bootstrapAvatar', () => {
       conversationAnchorId: 'anchor-runtime',
       turnId: 'turn-runtime',
     });
-    resolveLaunchAvatarPackageProjectionMock.mockResolvedValue(launchEligibleAvatarPackageProjection());
   });
 
   afterEach(() => {
@@ -462,44 +423,31 @@ describe('bootstrapAvatar', () => {
       realmAgentId: REALM_AGENT_ID,
       localAgentRef: LOCAL_AGENT_REF,
     });
-    expect(resolveLaunchAvatarPackageProjectionMock).toHaveBeenCalledWith({
+    expect(resolveLocalAvatarAssetManifestMock).toHaveBeenCalledWith({
       accountId: OWNER_USER_ID,
       ownerUserId: OWNER_USER_ID,
       realmAgentId: REALM_AGENT_ID,
       localAgentRef: LOCAL_AGENT_REF,
-      avatarInstanceId: 'instance-1',
     });
-    expect(resolveAgentCenterAvatarPackageManifestMock).toHaveBeenCalledWith({
-      accountId: OWNER_USER_ID,
-      ownerUserId: OWNER_USER_ID,
-      realmAgentId: REALM_AGENT_ID,
-      localAgentRef: LOCAL_AGENT_REF,
-      avatarPackageRef: AVATAR_PACKAGE_REF,
-      backendKind: 'live2d',
-      backendCapabilityProfileRef: BACKEND_CAPABILITY_PROFILE_REF,
-      materializationRef: AVATAR_MATERIALIZATION_REF,
-    });
-    const packageResolvedCall = recordAvatarEvidenceEventuallyMock.mock.calls.find(([payload]) => (
+    const localAssetResolvedCall = recordAvatarEvidenceEventuallyMock.mock.calls.find(([payload]) => (
       payload
       && typeof payload === 'object'
-      && (payload as Record<string, unknown>).kind === 'avatar.visual.package-resolved'
+      && (payload as Record<string, unknown>).kind === 'avatar.visual.local-asset-resolved'
     ));
-    expect(packageResolvedCall?.[0]).toEqual(expect.objectContaining({
-      kind: 'avatar.visual.package-resolved',
+    expect(localAssetResolvedCall?.[0]).toEqual(expect.objectContaining({
+      kind: 'avatar.visual.local-asset-resolved',
       detail: expect.objectContaining({
         agentId: LOCAL_AGENT_REF,
         avatar_instance_id: 'instance-1',
         conversation_anchor_id: 'anchor-runtime',
-        avatar_package_ref: AVATAR_PACKAGE_REF,
+        local_asset_ref: 'ren',
         backend_kind: 'live2d',
-        backend_capability_profile_ref: BACKEND_CAPABILITY_PROFILE_REF,
-        materialization_ref: AVATAR_MATERIALIZATION_REF,
-        package_authority: 'runtime_avatar_package_projection',
-        resolver_authority: 'local_materialization_only',
+        asset_authority: 'local_avatar_asset',
+        resolver_authority: 'avatar_local_materialization',
       }),
     }));
-    expect((packageResolvedCall?.[0] as { detail?: Record<string, unknown> } | undefined)?.detail).not.toHaveProperty('model3_json_path');
-    expect((packageResolvedCall?.[0] as { detail?: Record<string, unknown> } | undefined)?.detail).not.toHaveProperty('model_path');
+    expect((localAssetResolvedCall?.[0] as { detail?: Record<string, unknown> } | undefined)?.detail).not.toHaveProperty('model3_json_path');
+    expect((localAssetResolvedCall?.[0] as { detail?: Record<string, unknown> } | undefined)?.detail).not.toHaveProperty('model_path');
     expect(useAvatarStore.getState().launch.context).toEqual({
       agentId: REALM_AGENT_ID,
       avatarInstanceId: 'instance-1',

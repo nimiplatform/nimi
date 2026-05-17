@@ -203,7 +203,7 @@ export function useAgentConversationPresentation(
     mutationFn: async (kind: AgentCenterAvatarPackageKind) => {
       if (!input.accountId || !input.activeTarget?.localAgentRef) {
         throw new Error(input.t('Chat.agentCenterAvatarImportAgentRequired', {
-          defaultValue: 'Select an agent before importing an avatar package.',
+          defaultValue: 'Select an agent before importing a local Avatar asset.',
         }));
       }
       const sourcePath = await pickAgentCenterAvatarPackageSource(kind);
@@ -236,12 +236,12 @@ export function useAgentConversationPresentation(
     mutationFn: async () => {
       if (!input.accountId || !input.activeTarget?.localAgentRef || !avatarPackageConfig?.avatar_package_ref) {
         throw new Error(input.t('Chat.agentCenterLive2dAdapterManifestPackageRequired', {
-          defaultValue: 'Import and select a Live2D avatar package before linking its adapter manifest.',
+          defaultValue: 'Import and select a Live2D Avatar asset before linking its adapter manifest.',
         }));
       }
       if (avatarPackageConfig.backend_kind !== 'live2d') {
         throw new Error(input.t('Chat.agentCenterLive2dAdapterImportLive2dRequired', {
-          defaultValue: 'Live2D adapter manifests can only be linked to Live2D avatar packages.',
+          defaultValue: 'Live2D adapter manifests can only be linked to Live2D Avatar assets.',
         }));
       }
       const sourcePath = await pickAgentCenterLive2dAdapterManifestSource();
@@ -443,8 +443,8 @@ export function useAgentConversationPresentation(
           ? 'Chat.agentCenterAvatarStartBackendEvidenceRequired'
           : 'Chat.agentCenterAvatarStartPackageEvidenceRequired', {
           defaultValue: avatarConfigured
-            ? 'Avatar launch requires backend capability evidence from the authorized resolver.'
-            : 'Avatar launch requires Runtime-projected avatar package evidence.',
+            ? 'Avatar launch requires backend capability evidence from the local Avatar asset resolver.'
+            : 'Avatar launch requires a selected local Avatar asset.',
         }),
       };
     }

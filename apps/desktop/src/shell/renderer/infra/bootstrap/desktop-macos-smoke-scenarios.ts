@@ -335,7 +335,7 @@ export async function runDesktopMacosSmokeScenario(
               evidencePath: carrierEvidence.evidencePath,
               startup: carrierEvidence.startup,
               consumeReady: carrierEvidence.consumeReady,
-              packageResolved: carrierEvidence.packageResolved,
+              localAssetResolved: carrierEvidence.localAssetResolved,
               modelLoad: carrierEvidence.modelLoad,
               lifecycleMounted: carrierEvidence.lifecycleMounted,
               visual: carrierEvidence.visual,

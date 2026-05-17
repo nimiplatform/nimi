@@ -432,10 +432,10 @@ Degraded Surface 是 ready 之外所有 composition state 的唯一渲染表面�
 2. Renderer bootstrap (React mount)
 3. Emit avatar.app.start (composition state = loading)
 4. Register / identify as Runtime-admitted local first-party app (`nimi.avatar`)
-5. Validate launch `agent_id` and resolve authorized visual package descriptor
-   through Runtime / SDK authority (Live2D / VRM branch)
+5. Validate launch `agent_id` through Runtime / SDK authority
 6. Prepare SDK Runtime-backed protected access provider (typed admitted)
-7. Load local visual files from the authorized descriptor
+7. Resolve the selected local Avatar asset and load materialized Live2D / VRM
+   files
 8. Create or recover Avatar-owned conversation context
 9. Scan <model>/runtime/nimi/ for NAS handlers (§agent-script-contract)
 10. Compute initial hit region + resize window to surface bounds + companion footprint
@@ -460,10 +460,13 @@ Normal path boundary:
 - protected access bootstrap：Avatar 通过 SDK local first-party
   Runtime-backed token provider 为 `runtime.agent` turns API 获取
   request-time capability token；默认路径不 issue scoped binding
-- visual bootstrap：Runtime / SDK-authorized opaque visual package ref →
-  Avatar resolves local materialized Live2D/VRM files. Current Agent Center
-  resolver plumbing is local materialization only; it is not package lifecycle,
-  inventory, or activation authority.
+- visual bootstrap：Avatar resolves the selected local Avatar asset into
+  materialized Live2D/VRM files after Runtime validates `agent_id`. Realm /
+  Asset Market packages may become a local Avatar asset only after acquisition
+  and local materialization; they are not the default launch-time source of
+  visual truth. Current Agent Center resolver plumbing is local Avatar asset
+  materialization storage, not marketplace package lifecycle, inventory, or
+  activation authority.
 - data bootstrap：Runtime / SDK validates `agent_id` for the current Runtime
   account projection before private agent/user data or authorized local visual
   materialization loads
@@ -658,16 +661,17 @@ guardrail 必须在合规 wave 落地（见 `negative-test-matrix.md` 与 `guard
 
 Avatar 必须：
 
-- 在加载 private agent data 或 authorized local visual materialization 前验证
-  `agent_id`
-- 仅从 Runtime / SDK-authorized opaque package refs 的本地 materialization
-  读取 visual package files
+- 在加载 private agent data 或 selected local Avatar asset materialization 前
+  验证 `agent_id`
+- 仅从 Avatar local asset resolver 返回的 materialized Live2D/VRM files 读取
+  visual files；Realm / Asset Market package records 必须先 materialize 到同一
+  local asset store 后才可被 Avatar 消费
 - 创建或恢复 Avatar-owned conversation context
 - 通过 Runtime / SDK `K-AGCORE-138` live-instance binding 恢复 Desktop-current
   conversation anchor；缺失绑定时不得从 same-agent identity 推断同一 conversation
 - 支持同一 `agent_id` 的多个 `avatar_instance_id` 并存
 
-Desktop 不得预解析或透传 agent authorization、visual package truth、或
+Desktop 不得预解析或透传 agent authorization、remote package truth、或
 conversation anchor truth。
 
 ## K-NAV-SHELL-FIRST-PARTY-RUNTIME-006 Binding-Only Mode Exclusion

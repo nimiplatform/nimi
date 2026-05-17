@@ -179,7 +179,7 @@ export function AgentConversationSettingsContent(props: AgentConversationSetting
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <div className="text-xs font-semibold text-slate-950">
-                    {input.t('Chat.agentCenterAvatarPackage', { defaultValue: 'Avatar package' })}
+                    {input.t('Chat.agentCenterAvatarPackage', { defaultValue: 'Avatar asset' })}
                   </div>
                 </div>
                 <span className="shrink-0 rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-semibold text-slate-600">
@@ -274,7 +274,7 @@ export function AgentConversationSettingsContent(props: AgentConversationSetting
               >
                 {clearAvatarPackageMutation.isPending
                   ? input.t('Chat.agentCenterAvatarClearing', { defaultValue: 'Removing...' })
-                  : input.t('Chat.agentCenterClearAvatarSelection', { defaultValue: 'Remove avatar package' })}
+                  : input.t('Chat.agentCenterClearAvatarSelection', { defaultValue: 'Remove Avatar asset' })}
               </button>
             </div>
             <div className="grid gap-2 sm:grid-cols-2">

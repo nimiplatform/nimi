@@ -7,7 +7,7 @@ import {
 import { getDaemonStatus, getRuntimeDefaults, hasTauriInvoke, startDaemon } from '@renderer/bridge';
 import { startAvatarRuntimeCarrier } from '../carrier/avatar-carrier.js';
 import { createDriver, resolveDriverKind } from '../driver/factory.js';
-import { resolveAgentCenterAvatarPackageManifest } from '../carrier/model-resolver.js';
+import { resolveLocalAvatarAssetManifest } from '../carrier/model-resolver.js';
 import type { AvatarRuntimeCarrier } from '../carrier/avatar-carrier.js';
 import { readAvatarShellSettings } from '../settings-state.js';
 import type { AgentDataDriver } from '../driver/types.js';
@@ -20,9 +20,8 @@ import {
   createAvatarAccountCaller,
   issueAvatarRuntimeScopedBinding,
   resolveLaunchAgentIdentity,
-  resolveRuntimeAvatarPackageHandoff,
 } from './app-bootstrap-runtime-binding.js';
-import { recordRuntimeAuthorizedAvatarPackageResolved } from './app-bootstrap-package-evidence.js';
+import { recordLocalAvatarAssetResolved } from './app-bootstrap-package-evidence.js';
 import { isTauriRuntime, onShellReady } from './tauri-lifecycle.js';
 import { bindAvatarRuntimeIdentity, setAlwaysOnTop } from './tauri-commands.js';
 import {
@@ -48,8 +47,7 @@ type FirstPartyBootstrapStage =
   | 'conversation_context'
   | 'runtime_identity_binding'
   | 'scoped_binding_issue'
-  | 'avatar_package_handoff'
-  | 'avatar_package_manifest'
+  | 'local_avatar_asset_manifest'
   | 'driver_create'
   | 'runtime_carrier_start'
   | 'driver_start';
@@ -545,23 +543,11 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
         }));
         runtimeScopedBindingIssued = true;
 
-        const avatarPackageHandoff = await runFirstPartyStage('avatar_package_handoff', () => resolveRuntimeAvatarPackageHandoff({
-          runtime,
+        const modelManifest = await runFirstPartyStage('local_avatar_asset_manifest', () => resolveLocalAvatarAssetManifest({
           accountId,
           ownerUserId,
           realmAgentId,
           localAgentRef,
-          avatarInstanceId,
-        }));
-        const modelManifest = await runFirstPartyStage('avatar_package_manifest', () => resolveAgentCenterAvatarPackageManifest({
-          accountId,
-          ownerUserId,
-          realmAgentId,
-          localAgentRef,
-          avatarPackageRef: avatarPackageHandoff.avatarPackageRef,
-          backendKind: avatarPackageHandoff.backendKind,
-          backendCapabilityProfileRef: avatarPackageHandoff.backendCapabilityProfileRef,
-          materializationRef: avatarPackageHandoff.materializationRef,
         }));
         driver = await runFirstPartyStage('driver_create', async () => createDriver({
           kind: 'sdk',
@@ -592,11 +578,11 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
             launch_source: launchContext.launchSource,
           },
         });
-        recordRuntimeAuthorizedAvatarPackageResolved({
+        recordLocalAvatarAssetResolved({
           localAgentRef,
           avatarInstanceId,
           conversationAnchorId,
-          handoff: avatarPackageHandoff,
+          manifest: modelManifest,
         });
         getVoiceInputAvailability = async () => {
           try {

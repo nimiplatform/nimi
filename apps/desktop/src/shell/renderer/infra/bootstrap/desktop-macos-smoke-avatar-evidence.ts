@@ -80,22 +80,18 @@ function isLive2dModelLoadWithHitRegionDefault(record: Record<string, unknown> |
   return backendKind === 'live2d' && modelKind === 'live2d' && hasLive2dHitRegionDefault(record);
 }
 
-function isLive2dRuntimeAuthorizedPackageResolved(record: Record<string, unknown> | null): boolean {
+function isLive2dLocalAvatarAssetResolved(record: Record<string, unknown> | null): boolean {
   if (!record) {
     return false;
   }
   const detail = recordDetail(record);
   return (
-    recordKind(record) === 'avatar.visual.package-resolved'
+    recordKind(record) === 'avatar.visual.local-asset-resolved'
     && detail.backend_kind === 'live2d'
-    && detail.package_authority === 'runtime_avatar_package_projection'
-    && detail.resolver_authority === 'local_materialization_only'
-    && typeof detail.avatar_package_ref === 'string'
-    && detail.avatar_package_ref.trim().length > 0
-    && typeof detail.backend_capability_profile_ref === 'string'
-    && detail.backend_capability_profile_ref.trim().length > 0
-    && typeof detail.materialization_ref === 'string'
-    && detail.materialization_ref.trim().length > 0
+    && detail.asset_authority === 'local_avatar_asset'
+    && detail.resolver_authority === 'avatar_local_materialization'
+    && typeof detail.local_asset_ref === 'string'
+    && detail.local_asset_ref.trim().length > 0
   );
 }
 
@@ -154,8 +150,8 @@ export async function waitForAvatarCarrierEvidence(
         recordKind(record) === 'avatar.runtime.consume-ready'
         && recordConversationAnchorId(record) === expectedConversationAnchorId
       )) || null;
-      const packageResolved = recordsForCurrentStartup.find((record) => (
-        recordKind(record) === 'avatar.visual.package-resolved'
+      const localAssetResolved = recordsForCurrentStartup.find((record) => (
+        recordKind(record) === 'avatar.visual.local-asset-resolved'
         && recordConversationAnchorId(record) === expectedConversationAnchorId
       )) || null;
       const modelLoad = recordsForCurrentStartup.find((record) => (
@@ -185,23 +181,23 @@ export async function waitForAvatarCarrierEvidence(
       }) || null;
       const hitRegionDefault = hasLive2dHitRegionDefault(modelLoad);
       const live2dModelLoad = isLive2dModelLoadWithHitRegionDefault(modelLoad);
-      const live2dPackageResolved = isLive2dRuntimeAuthorizedPackageResolved(packageResolved);
+      const live2dLocalAssetResolved = isLive2dLocalAvatarAssetResolved(localAssetResolved);
       const visualArtifact = hasHumanVisibleArtifact(visibleFrame);
-      if (startup && consumeReady && live2dPackageResolved && live2dModelLoad && lifecycleMounted && visual) {
+      if (startup && consumeReady && live2dLocalAssetResolved && live2dModelLoad && lifecycleMounted && visual) {
         return {
           evidencePath: result.evidencePath,
           evidence: result.evidence,
           startup,
           consumeReady,
-          packageResolved,
+          localAssetResolved,
           modelLoad,
           lifecycleMounted,
           visual,
         };
       }
       lastError = `anchor=${expectedConversationAnchorId} requirements=`
-        + `startup:${Boolean(startup)} consumeReady:${Boolean(consumeReady)} packageResolved:${Boolean(packageResolved)} `
-        + `live2dPackageResolved:${live2dPackageResolved} modelLoad:${Boolean(modelLoad)} `
+        + `startup:${Boolean(startup)} consumeReady:${Boolean(consumeReady)} localAssetResolved:${Boolean(localAssetResolved)} `
+        + `live2dLocalAssetResolved:${live2dLocalAssetResolved} modelLoad:${Boolean(modelLoad)} `
         + `live2dModelLoad:${live2dModelLoad} hitRegionDefault:${hitRegionDefault} `
         + `lifecycleMounted:${Boolean(lifecycleMounted)} visual:${Boolean(visibleFrame)} visualArtifact:${visualArtifact} `
         + `records=${records.map((record) => `${recordKind(record)}:${recordConversationAnchorId(record) || 'no-anchor'}`).join(',') || 'none'}`;
@@ -210,5 +206,5 @@ export async function waitForAvatarCarrierEvidence(
     }
     await new Promise((resolve) => setTimeout(resolve, 300));
   }
-  throw new Error(`missing same-anchor Avatar package/SDK/model/visual evidence for ${avatarInstanceId} anchor=${expectedConversationAnchorId}: ${lastError}`);
+  throw new Error(`missing same-anchor Avatar local asset/SDK/model/visual evidence for ${avatarInstanceId} anchor=${expectedConversationAnchorId}: ${lastError}`);
 }

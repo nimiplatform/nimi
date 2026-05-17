@@ -84,14 +84,17 @@ Desktop shell and window surface:
 
 ### [`avatar-package-consumption-contract.md`](avatar-package-consumption-contract.md)
 
-Avatar package consumption boundary:
+Avatar local asset consumption boundary:
 
-- consumes authorized Asset Market `Package` records with `package_kind: "avatar"`
+- consumes selected local Avatar assets as the primary Live2D / VRM source
+- treats Realm / Asset Market `Package` records as optional upstream sources
+  that must first materialize into the same local asset store
 - accepts only launched `live2d | vrm` backend kinds
-- keeps resolver execution in Avatar after Runtime/SDK authorization
-- forbids Avatar-local package lifecycle, inventory, activation, review, or UGC truth
-- fails closed on missing package kind, backend capability, model layout,
-  compatibility evidence, or local materialization
+- keeps resolver execution in Avatar after Runtime validates the launch agent
+- forbids Avatar-local remote package lifecycle, inventory, activation, review,
+  or UGC truth
+- fails closed on missing local selection, unsupported backend, blocking
+  compatibility evidence, or local materialization failure
 
 ### [`avatar-external-entry-consumer-contract.md`](avatar-external-entry-consumer-contract.md)
 

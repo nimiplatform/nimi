@@ -2,9 +2,10 @@
 // Guard for Avatar Agent Center resolver reinterpretation.
 //
 // Enforces the current decision:
-//   - Agent Center resolver names may remain as storage/materialization plumbing
-//   - Package lifecycle, inventory, activation, and publish truth stay upstream
-//   - Avatar consumes authorized opaque refs and local materialized files only
+//   - local Avatar asset import/materialization is the primary launch path
+//   - Agent Center resolver names may remain as current storage/materialization plumbing
+//   - Remote package lifecycle, inventory, activation, and publish truth stay upstream
+//   - Avatar consumes selected local Avatar assets and materialized files only
 
 import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
@@ -58,67 +59,66 @@ if (existsSync(path.join(ROOT, '.nimi', 'spec', 'asset-market'))) {
 }
 
 requireIncludes(FILES.appShell, [
-  'Runtime / SDK-authorized opaque visual package ref',
-  'local materialization only',
-  'not package lifecycle',
-  'not package lifecycle,\n  inventory, or activation authority',
+  'selected local Avatar asset',
+  'Asset Market packages may become a local Avatar asset only after acquisition',
+  'Agent Center resolver plumbing is local Avatar asset',
+  'not marketplace package lifecycle',
 ]);
 requireExcludes(FILES.appShell, [
+  'Runtime / SDK-authorized opaque visual package ref',
   'Agent Center package descriptor',
   'local Agent Center package',
   'Agent Center owns',
 ]);
 
 requireIncludes(FILES.carrierVisual, [
-  'Runtime/SDK-authorized opaque visual package ref',
+  'selected local Avatar asset',
   'local materialization resolver',
 ]);
 requireExcludes(FILES.carrierVisual, ['local Agent Center package']);
 
 requireIncludes(FILES.debugSession, [
-  'authorized Runtime/SDK projection',
   'local files',
   'not package lifecycle',
 ]);
 
 requireIncludes(FILES.desktopConfig, [
-  '`avatar_package_ref` and `backend_capability_profile_ref` are opaque refs',
+  'local Avatar asset controls',
+  'Local import is the primary Avatar asset path',
+  'Realm / Asset Market package acquisition may appear',
   'Desktop MUST NOT dereference package descriptors',
-  'Desktop stores opaque refs and renders status.',
+  'Agent Center resolver plumbing',
 ]);
 
 requireIncludes(FILES.modelResolver, [
-  'resolveAgentCenterAvatarPackageManifest',
-  'local materialization',
+  'resolveLocalAvatarAssetManifest',
+  'local materialized Avatar asset',
   'not package lifecycle',
-  'not package lifecycle,\n// inventory, or activation authority',
+  'inventory, or activation authority',
 ]);
 
 requireIncludes(FILES.live2dLoader, [
-  'resolveAgentCenterAvatarPackageManifest',
-  'local materialization plumbing',
-  'Package lifecycle and activation truth live upstream',
-  'avatarPackageRef',
-  'backendCapabilityProfileRef',
-  'materializationRef',
+  'resolveLocalAvatarAssetManifest',
+  'Local Avatar asset resolution',
+  'Realm/Asset Market distribution may feed this local store later',
 ]);
 
 requireIncludes(FILES.rustResolver, [
+  'nimi_avatar_resolve_local_avatar_asset',
   'nimi_avatar_resolve_agent_center_avatar_package',
-  'Local materialization resolver',
+  'Local Avatar asset materialization resolver',
   'not package lifecycle',
-  'not package lifecycle,\n// inventory, or activation authority',
+  'inventory, or activation authority',
+  'AgentCenterLocalConfigFile',
   'avatar_package_ref',
   'backend_capability_profile_ref',
-  'materialization_ref',
   'expected_materialization_ref',
-  'authorized Avatar package handoff',
+  'local Avatar asset selection',
 ]);
 requireExcludes(FILES.rustResolver, [
-  'struct AgentCenterLocalConfig',
   'fn read_selected_avatar_package',
-  'config.modules.avatar_package',
   'agent center local config is unavailable',
+  'authorized Avatar package handoff',
 ]);
 
 for (const relPath of [FILES.appShell, FILES.carrierVisual, FILES.debugSession, FILES.desktopConfig]) {

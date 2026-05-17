@@ -4,14 +4,15 @@
 // resolved package and returns a discriminated union the rest of the
 // renderer consumes (BackendBranch factory + carrier wiring).
 //
-// The Tauri resolver returns a Runtime/Desktop-authorized local materialization
-// record. Agent Center naming here is storage plumbing, not package lifecycle,
-// inventory, or activation authority.
+// The Tauri resolver returns a local materialized Avatar asset. Agent Center
+// naming here is current Desktop storage plumbing for private imports.
+// It is not package lifecycle, inventory, or activation authority.
 
 import { invoke } from '@tauri-apps/api/core';
 import {
   resolveModelManifest as resolveLive2DTauriManifest,
   type AgentCenterAvatarPackageReference,
+  type LocalAvatarAssetReference,
   type ModelManifest as Live2DTauriManifest,
 } from '../live2d/model-loader.js';
 
@@ -42,6 +43,7 @@ export type VrmAvatarModelManifest = {
 export type AvatarModelManifest = Live2DAvatarModelManifest | VrmAvatarModelManifest;
 
 export type { AgentCenterAvatarPackageReference };
+export type { LocalAvatarAssetReference };
 
 type TauriAvatarModelManifest = {
   kind?: string;
@@ -124,6 +126,15 @@ export async function resolveAgentCenterAvatarPackageManifest(
   reference: AgentCenterAvatarPackageReference,
 ): Promise<AvatarModelManifest> {
   const raw = await invoke<TauriAvatarModelManifest>('nimi_avatar_resolve_agent_center_avatar_package', {
+    payload: reference,
+  });
+  return fromTauriAvatarModelManifest(raw);
+}
+
+export async function resolveLocalAvatarAssetManifest(
+  reference: LocalAvatarAssetReference,
+): Promise<AvatarModelManifest> {
+  const raw = await invoke<TauriAvatarModelManifest>('nimi_avatar_resolve_local_avatar_asset', {
     payload: reference,
   });
   return fromTauriAvatarModelManifest(raw);
