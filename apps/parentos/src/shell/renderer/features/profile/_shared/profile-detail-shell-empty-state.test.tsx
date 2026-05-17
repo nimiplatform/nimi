@@ -34,6 +34,7 @@ vi.mock('react-i18next', () => ({
     t: (key: string, options?: { defaultValue?: string }) => {
       if (key === 'Profile.rich.common.addChildFirst') return '请先添加孩子';
       if (key === 'Profile.rich.common.backToProfile') return '返回档案';
+      if (key === 'Profile.rich.growth.title') return '生长曲线';
       return options?.defaultValue ?? key;
     },
   }),
@@ -57,6 +58,9 @@ const cases: Array<{ slug: string; title: string; loader: () => Promise<{ defaul
   // wave-3
   { slug: 'report-history', title: '单据记录', loader: () => import('../report-history-page.js') },
   { slug: 'report-upload', title: '智能识别 & 影像档案', loader: () => import('../report-upload-page.js') },
+  // wave-4
+  { slug: 'growth-curve', title: '生长曲线', loader: () => import('../growth-curve-page.js') },
+  { slug: 'vision', title: '视力档案', loader: () => import('../vision-page.js') },
 ];
 
 describe('profile detail pages: no-active-child empty state', () => {

@@ -1,4 +1,4 @@
-import { Button } from '@nimiplatform/nimi-kit/ui';
+import { Button, Timeline, TimelineGroup } from '@nimiplatform/nimi-kit/ui';
 /**
  * Vision archive page — timeline-document view.
  *
@@ -12,7 +12,6 @@ import { Button } from '@nimiplatform/nimi-kit/ui';
  * Both streams are merged into a single ExamView list via `buildExamViews`.
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { computeAgeMonths, useAppStore } from '../../app-shell/app-store.js';
 import { deleteMeasurement, getMeasurements, getMedicalEvents } from '../../bridge/sqlite-bridge.js';
@@ -20,6 +19,8 @@ import type { MeasurementRow, MedicalEventRow } from '../../bridge/sqlite-bridge
 import type { GrowthTypeId } from '../../knowledge-base/gen/growth-standards.gen.js';
 import { catchLog } from '../../infra/telemetry/catch-log.js';
 import { AISummaryCard } from './ai-summary-card.js';
+import { NoActiveChildPlaceholder } from './_shared/no-active-child-placeholder.js';
+import { ProfileDetailShell } from './_shared/profile-detail-shell.js';
 import { readImageFileAsDataUrl, analyzeCheckupSheetOCR } from './checkup-ocr.js';
 import type { OCRMeasurementCandidate } from './checkup-ocr.js';
 import {
@@ -138,9 +139,9 @@ export default function VisionPage() {
 
   if (!child) {
     return (
-      <div className="flex h-full items-center justify-center text-[var(--nimi-text-muted)]">
-        {t('Profile.empty.noActiveChild')}
-      </div>
+      <ProfileDetailShell title="视力档案">
+        <NoActiveChildPlaceholder />
+      </ProfileDetailShell>
     );
   }
 
@@ -179,22 +180,15 @@ export default function VisionPage() {
   };
 
   return (
-      <div className="max-w-3xl mx-auto min-h-full px-6 pb-6 pt-[72px]">
-      <div className="flex items-center gap-2 mb-4">
-        <Link to="/profile" className="text-[14px] text-[var(--nimi-text-muted)] hover:underline">← {t('Profile.rich.common.backToProfile')}</Link>
-      </div>
-
-      {/* Page header */}
-      <header className="flex items-center gap-4 mb-5 flex-wrap">
-        <div className="flex items-center gap-3 flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <h1 className="text-xl font-bold text-[var(--nimi-text-primary)]">
-              {t('Profile.rich.vision.title', { name: child.displayName })}
-            </h1>
-            <SourcesTooltip />
-          </div>
-        </div>
-        <div className="flex shrink-0 flex-wrap items-center justify-end gap-1.5">
+    <ProfileDetailShell
+      title={
+        <span className="flex items-center gap-2">
+          <span>{t('Profile.rich.vision.title', { name: child.displayName })}</span>
+          <SourcesTooltip />
+        </span>
+      }
+      actions={
+        <>
           {supportsQuantitative && (
             <button
               onClick={() => setShowGuide(!showGuide)}
@@ -241,9 +235,9 @@ export default function VisionPage() {
               {t('Profile.rich.vision.recordData')}
             </Button>
           )}
-        </div>
-      </header>
-
+        </>
+      }
+    >
       {/* OCR file input + error */}
       <input
         ref={ocrInputRef}
@@ -389,48 +383,59 @@ export default function VisionPage() {
           {exams.length === 0 ? (
             <EmptyTimelineCard message={supportsQuantitative ? t('Profile.rich.vision.emptyTimelineFull') : t('Profile.rich.vision.emptyTimeline')} />
           ) : (
-            <div className="relative" style={{ paddingLeft: 24 }}>
-              <div
-                style={{
-                  left: 9, top: 16, bottom: 16, width: 2,
-                }}
-                className="absolute rounded-px bg-[linear-gradient(to_bottom,color-mix(in_srgb,var(--nimi-text-primary)_10%,transparent),color-mix(in_srgb,var(--nimi-text-primary)_4%,transparent))]"
-              />
-              <div className="flex flex-col gap-3.5">
-                {recentExams.map((e, i) => (
-                  <ExamTimelineCard
+            <Timeline>
+              {recentExams.map((e, i) => {
+                const isLatest = i === 0 && filteredExams[0]?.id === e.id;
+                const isLastVisible =
+                  i === recentExams.length - 1 && olderExams.length === 0;
+                return (
+                  <TimelineGroup
                     key={e.id}
-                    exam={e}
-                    prev={recentExams[i + 1] ?? olderExams[0]}
-                    gender={child.gender}
-                    isLatest={i === 0 && filteredExams[0]?.id === e.id}
-                    isOpen={openExamId === e.id}
-                    onToggle={() => setOpenExamId(openExamId === e.id ? null : e.id)}
-                    onEdit={e.source === 'measurement' && e.record ? () => {
-                      const rec = e.record!;
-                      setOCRDraft(null);
-                      setOCRError(null);
-                      setEditingRecord(rec);
-                      setShowForm(true);
-                      window.scrollTo({ top: 0, behavior: 'smooth' });
-                    } : undefined}
-                    onDelete={e.source === 'measurement' && e.record ? () => {
-                      void handleDeleteRecord(e.record!);
-                    } : undefined}
-                  />
-                ))}
+                    variant="past"
+                    tone={isLatest ? 'success' : 'neutral'}
+                    isLast={isLastVisible}
+                  >
+                    <ExamTimelineCard
+                      exam={e}
+                      prev={recentExams[i + 1] ?? olderExams[0]}
+                      gender={child.gender}
+                      isLatest={isLatest}
+                      isOpen={openExamId === e.id}
+                      onToggle={() => setOpenExamId(openExamId === e.id ? null : e.id)}
+                      onEdit={e.source === 'measurement' && e.record ? () => {
+                        const rec = e.record!;
+                        setOCRDraft(null);
+                        setOCRError(null);
+                        setEditingRecord(rec);
+                        setShowForm(true);
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                      } : undefined}
+                      onDelete={e.source === 'measurement' && e.record ? () => {
+                        void handleDeleteRecord(e.record!);
+                      } : undefined}
+                    />
+                  </TimelineGroup>
+                );
+              })}
 
-                {olderExams.length > 0 && (
+              {olderExams.length > 0 && (
+                <div className="mb-6">
                   <OlderRecordsToggle
                     count={olderExams.length}
                     expanded={showAllOlder}
                     onToggle={() => setShowAllOlder((s) => !s)}
                   />
-                )}
+                </div>
+              )}
 
-                {showAllOlder && olderExams.map((e, i) => (
+              {showAllOlder && olderExams.map((e, i) => (
+                <TimelineGroup
+                  key={e.id}
+                  variant="past"
+                  tone="neutral"
+                  isLast={i === olderExams.length - 1}
+                >
                   <ExamTimelineCard
-                    key={e.id}
                     exam={e}
                     prev={olderExams[i + 1]}
                     gender={child.gender}
@@ -449,9 +454,9 @@ export default function VisionPage() {
                       void handleDeleteRecord(e.record!);
                     } : undefined}
                   />
-                ))}
-              </div>
-            </div>
+                </TimelineGroup>
+              ))}
+            </Timeline>
           )}
         </div>
 
@@ -468,7 +473,7 @@ export default function VisionPage() {
           </div>
         </div>
       </div>
-    </div>
+    </ProfileDetailShell>
   );
 }
 

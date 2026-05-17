@@ -1,6 +1,6 @@
 import { Button, IconButton, Tooltip } from '@nimiplatform/nimi-kit/ui';
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { computeAgeMonths, computeAgeMonthsAt, useAppStore } from '../../app-shell/app-store.js';
 import { getMeasurements, insertMeasurement, updateMeasurement, deleteMeasurement } from '../../bridge/sqlite-bridge.js';
@@ -11,6 +11,8 @@ import { catchLog, catchLogThen } from '../../infra/telemetry/catch-log.js';
 import type { GrowthTypeId } from '../../knowledge-base/gen/growth-standards.gen.js';
 import { canRenderWHOLMS, loadWHOLMS, type WHOLMSDataset, type GrowthStandard } from './who-lms-loader.js';
 import { AISummaryCard } from './ai-summary-card.js';
+import { NoActiveChildPlaceholder } from './_shared/no-active-child-placeholder.js';
+import { ProfileDetailShell } from './_shared/profile-detail-shell.js';
 import {
   analyzeCheckupSheetOCR,
   getCheckupOCRDisplayMessage,
@@ -83,7 +85,11 @@ export default function GrowthCurvePage() {
   const latestW = useMemo(() => getLatestMeasurement(measurements, 'weight'), [measurements]);
 
   if (!child) {
-    return <div className="p-8 text-[var(--nimi-text-muted)]">Please add a child profile first.</div>;
+    return (
+      <ProfileDetailShell title={t('Profile.rich.growth.title')}>
+        <NoActiveChildPlaceholder />
+      </ProfileDetailShell>
+    );
   }
 
   const typeInfo = GROWTH_STANDARDS.find((standard) => standard.typeId === selectedType);
@@ -243,40 +249,37 @@ export default function GrowthCurvePage() {
   };
 
   return (
-    <div className={"max-w-3xl mx-auto px-6 pb-6 pt-[72px]"} style={{ paddingTop: 72, minHeight: '100%' }}>
-      <div className="flex items-center gap-2 mb-6">
-        <Link to="/profile" className="text-[14px] hover:underline text-[var(--nimi-text-muted)]">← {t('Profile.rich.common.backToProfile')}</Link>
-      </div>
-      <div className="flex items-center justify-between mb-1">
-        <div className="flex items-center gap-2">
-          <h1 className="text-2xl font-bold text-[var(--nimi-text-primary)]">{t('Profile.rich.growth.title')}</h1>
+    <ProfileDetailShell
+      title={
+        <span className="flex items-center gap-2">
+          <span>{t('Profile.rich.growth.title')}</span>
           <Tooltip
             placement="bottom"
             contentClassName="w-[360px] p-4 text-[13px] leading-relaxed text-[var(--nimi-text-secondary)]"
             content={(
               <>
                 <p className="mb-2.5 text-[14px] font-semibold text-[var(--nimi-text-primary)]">数据参考文献</p>
-              <ul className="space-y-2.5">
-                <li>
-                  <span className="font-medium text-[var(--nimi-status-success)]">身高 · 体重 · BMI 百分位曲线（0-5岁）</span>
-                  <span className="mt-0.5 block text-[12px] text-[var(--nimi-text-secondary)]">WHO Child Growth Standards (2006). Length/height-for-age, weight-for-age, BMI-for-age.</span>
-                  <span className="block text-[12px] text-[var(--nimi-text-muted)]">World Health Organization Multicentre Growth Reference Study Group</span>
-                </li>
-                <li>
-                  <span className="font-medium text-[var(--nimi-status-success)]">身高 · 体重 · BMI 百分位曲线（5-19岁）</span>
-                  <span className="mt-0.5 block text-[12px] text-[var(--nimi-text-secondary)]">WHO Growth References (2007). Height-for-age, weight-for-age, BMI-for-age references for school-age children and adolescents.</span>
-                  <span className="block text-[12px] text-[var(--nimi-text-muted)]">de Onis M, et al. Bull World Health Organ 2007;85:660-667</span>
-                </li>
-                <li>
-                  <span className="font-medium text-[var(--nimi-status-success)]">头围百分位曲线（0-36月）</span>
-                  <span className="mt-0.5 block text-[12px] text-[var(--nimi-text-secondary)]">WHO Child Growth Standards (2006). Head circumference-for-age.</span>
-                  <span className="block text-[12px] text-[var(--nimi-text-muted)]">覆盖: 0-36个月 · 分男/女 · P3-P97 百分位线</span>
-                </li>
-                <li>
-                  <span className="font-medium text-[var(--nimi-status-success)]">骨龄评估</span>
-                  <span className="mt-0.5 block text-[12px] text-[var(--nimi-text-secondary)]">Greulich-Pyle Atlas / Tanner-Whitehouse 3 (TW3) 骨龄评估标准</span>
-                </li>
-              </ul>
+                <ul className="space-y-2.5">
+                  <li>
+                    <span className="font-medium text-[var(--nimi-status-success)]">身高 · 体重 · BMI 百分位曲线（0-5岁）</span>
+                    <span className="mt-0.5 block text-[12px] text-[var(--nimi-text-secondary)]">WHO Child Growth Standards (2006). Length/height-for-age, weight-for-age, BMI-for-age.</span>
+                    <span className="block text-[12px] text-[var(--nimi-text-muted)]">World Health Organization Multicentre Growth Reference Study Group</span>
+                  </li>
+                  <li>
+                    <span className="font-medium text-[var(--nimi-status-success)]">身高 · 体重 · BMI 百分位曲线（5-19岁）</span>
+                    <span className="mt-0.5 block text-[12px] text-[var(--nimi-text-secondary)]">WHO Growth References (2007). Height-for-age, weight-for-age, BMI-for-age references for school-age children and adolescents.</span>
+                    <span className="block text-[12px] text-[var(--nimi-text-muted)]">de Onis M, et al. Bull World Health Organ 2007;85:660-667</span>
+                  </li>
+                  <li>
+                    <span className="font-medium text-[var(--nimi-status-success)]">头围百分位曲线（0-36月）</span>
+                    <span className="mt-0.5 block text-[12px] text-[var(--nimi-text-secondary)]">WHO Child Growth Standards (2006). Head circumference-for-age.</span>
+                    <span className="block text-[12px] text-[var(--nimi-text-muted)]">覆盖: 0-36个月 · 分男/女 · P3-P97 百分位线</span>
+                  </li>
+                  <li>
+                    <span className="font-medium text-[var(--nimi-status-success)]">骨龄评估</span>
+                    <span className="mt-0.5 block text-[12px] text-[var(--nimi-text-secondary)]">Greulich-Pyle Atlas / Tanner-Whitehouse 3 (TW3) 骨龄评估标准</span>
+                  </li>
+                </ul>
                 <p className="mt-2.5 border-t border-[var(--nimi-border-subtle)] pt-2 text-[12px] text-[var(--nimi-text-muted)]">百分位线: P3 · P10 · P25 · P50 (中位数) · P75 · P90 · P97 · 低于P3或高于P97建议咨询专业人士</p>
               </>
             )}
@@ -293,9 +296,10 @@ export default function GrowthCurvePage() {
               )}
             />
           </Tooltip>
-        </div>
-        {/* Action buttons */}
-        <div className="flex items-center gap-2">
+        </span>
+      }
+      actions={
+        <>
           <Tooltip content={t('Profile.rich.growth.ocrHint')} contentClassName="whitespace-nowrap text-[13px]">
             <Button
               onClick={() => setShowOCR(!showOCR)}
@@ -319,12 +323,15 @@ export default function GrowthCurvePage() {
           >
             + {t('Profile.rich.common.addRecord')}
           </Button>
-        </div>
-      </div>
-      <AISummaryCard domain="growth" childName={child.displayName} childId={child.childId}
-        ageLabel={`${Math.floor(ageMonths/12)}岁${ageMonths%12}个月`} gender={child.gender}
-        dataContext={buildGrowthSummaryContext(measurements, computedBmi)}
-      />
+        </>
+      }
+      aiSummary={
+        <AISummaryCard domain="growth" childName={child.displayName} childId={child.childId}
+          ageLabel={`${Math.floor(ageMonths/12)}岁${ageMonths%12}个月`} gender={child.gender}
+          dataContext={buildGrowthSummaryContext(measurements, computedBmi)}
+        />
+      }
+    >
       <GrowthCurveControls
         measurements={measurements}
         selectedType={selectedType}
@@ -423,6 +430,6 @@ export default function GrowthCurvePage() {
         onCancelDelete={() => setDeletingId(null)}
         onConfirmDelete={(measurementId) => void handleDeleteMeasurement(measurementId)}
       />
-    </div>
+    </ProfileDetailShell>
   );
 }

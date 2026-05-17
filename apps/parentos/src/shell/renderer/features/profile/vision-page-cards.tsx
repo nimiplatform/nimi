@@ -513,16 +513,7 @@ export function ExamTimelineCard({
   onDelete?: () => void;
 }) {
   return (
-    <div className="relative" data-exam-id={exam.id}>
-      <span
-        className="absolute -left-[22px] top-[18px] w-3.5 h-3.5 rounded-full bg-white"
-        style={{
-          boxShadow: isLatest
-            ? '0 0 0 2px var(--nimi-accent), 0 0 0 5px rgba(78,204,163,0.20)'
-            : '0 0 0 2px rgba(15,23,42,0.20)',
-          zIndex: 1,
-        }}
-      />
+    <div data-exam-id={exam.id}>
       <article
         className="overflow-hidden nimi-material-glass-regular bg-[var(--nimi-material-glass-regular-bg)] border border-[var(--nimi-material-glass-regular-border)] backdrop-blur-[var(--nimi-backdrop-blur-regular)] rounded-[var(--nimi-radius-xl)] shadow-[0_8px_32px_rgba(31,38,135,0.04)]"
       >
