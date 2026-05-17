@@ -55,16 +55,16 @@ pub(super) fn live2d_adapter_manifest_dir(
 ) -> Result<PathBuf, String> {
     Ok(agent_center_dir(account_id, local_agent_ref)?
         .join("modules")
-        .join("avatar_package")
+        .join("avatar_asset")
         .join("adapter_manifests")
         .join(manifest_ref))
 }
 
-pub(super) fn avatar_package_dir(
+pub(super) fn avatar_asset_dir(
     account_id: &str,
     local_agent_ref: &str,
     kind: AgentCenterAvatarBackendKind,
-    package_id: &str,
+    local_asset_id: &str,
 ) -> Result<PathBuf, String> {
     let kind_segment = match kind {
         AgentCenterAvatarBackendKind::Live2d => "live2d",
@@ -75,10 +75,10 @@ pub(super) fn avatar_package_dir(
     };
     Ok(agent_center_dir(account_id, local_agent_ref)?
         .join("modules")
-        .join("avatar_package")
+        .join("avatar_asset")
         .join("packages")
         .join(kind_segment)
-        .join(package_id))
+        .join(local_asset_id))
 }
 
 pub(super) fn is_safe_relative_path(value: &str) -> bool {

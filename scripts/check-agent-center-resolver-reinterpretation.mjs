@@ -20,7 +20,7 @@ const FILES = {
   desktopConfig: '.nimi/spec/desktop/kernel/agent-avatar-configuration-contract.md',
   modelResolver: 'apps/avatar/src/shell/renderer/carrier/model-resolver.ts',
   live2dLoader: 'apps/avatar/src/shell/renderer/live2d/model-loader.ts',
-  rustResolver: 'apps/avatar/src-tauri/src/agent_center_avatar_package.rs',
+  rustResolver: 'apps/avatar/src-tauri/src/agent_center_avatar_asset.rs',
 };
 
 let failures = 0;
@@ -86,7 +86,7 @@ requireIncludes(FILES.desktopConfig, [
   'local Avatar asset controls',
   'Local import is the primary Avatar asset path',
   'Realm / Asset Market package acquisition may appear',
-  'Desktop MUST NOT dereference package descriptors',
+  'Desktop MUST validate local Avatar asset materialization',
   'Agent Center resolver plumbing',
 ]);
 
@@ -105,18 +105,18 @@ requireIncludes(FILES.live2dLoader, [
 
 requireIncludes(FILES.rustResolver, [
   'nimi_avatar_resolve_local_avatar_asset',
-  'nimi_avatar_resolve_agent_center_avatar_package',
+  'nimi_avatar_resolve_agent_center_avatar_asset',
   'Local Avatar asset materialization resolver',
   'not package lifecycle',
   'inventory, or activation authority',
   'AgentCenterLocalConfigFile',
-  'avatar_package_ref',
+  'local_avatar_asset_ref',
   'backend_capability_profile_ref',
   'expected_materialization_ref',
   'local Avatar asset selection',
 ]);
 requireExcludes(FILES.rustResolver, [
-  'fn read_selected_avatar_package',
+  'fn read_selected_avatar_asset',
   'agent center local config is unavailable',
   'authorized Avatar package handoff',
 ]);

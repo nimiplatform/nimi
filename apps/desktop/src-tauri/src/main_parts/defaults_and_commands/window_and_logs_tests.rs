@@ -272,7 +272,7 @@ fn inferred_avatar_target_rejects_source_newer_than_binary() {
         .join("avatar")
         .join("src-tauri")
         .join("src")
-        .join("agent_center_avatar_package.rs");
+        .join("agent_center_avatar_asset.rs");
     fs::create_dir_all(source.parent().expect("source parent")).expect("create source parent");
     fs::write(&source, "fn main() {}").expect("write source");
 
@@ -293,7 +293,7 @@ fn inferred_avatar_target_accepts_binary_newer_than_source() {
         .join("avatar")
         .join("src-tauri")
         .join("src")
-        .join("agent_center_avatar_package.rs");
+        .join("agent_center_avatar_asset.rs");
     fs::create_dir_all(source.parent().expect("source parent")).expect("create source parent");
     fs::write(&source, "fn main() {}").expect("write source");
     std::thread::sleep(Duration::from_millis(50));

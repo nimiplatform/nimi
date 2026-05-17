@@ -73,7 +73,7 @@ test('agent shell presentation disables stage panel props so desktop chat cannot
   assert.match(chatAgentPresentationSource, /stagePanelProps:\s*undefined/);
   assert.match(chatAgentPresentationSource, /topContent:\s*schedulingFeedbackNode/);
   assert.match(chatAgentPresentationSettingsSource, /AgentCenterPanel/);
-  assert.match(chatAgentPresentationSource, /importAgentCenterAvatarPackage/);
+  assert.match(chatAgentPresentationSource, /importAgentCenterAvatarAsset/);
   assert.doesNotMatch(chatAgentPresentationSource, /chat-agent-avatar-store/);
   assert.match(chatAgentPresentationSource, /getAgentCenterBackgroundAsset/);
   assert.doesNotMatch(chatAgentPresentationSource, /ChatAgentAvatarSettingsPanel/u);

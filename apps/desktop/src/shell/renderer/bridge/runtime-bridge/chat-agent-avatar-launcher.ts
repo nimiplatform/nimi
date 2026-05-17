@@ -48,6 +48,8 @@ const FORBIDDEN_LAUNCH_INPUT_FIELDS = [
   'avatar_package_ref',
   'avatarPackageSchemaVersion',
   'avatar_package_schema_version',
+  'localAvatarAssetRef',
+  'local_avatar_asset_ref',
   'backendCapabilityProfileRef',
   'backend_capability_profile_ref',
   'materializationRef',

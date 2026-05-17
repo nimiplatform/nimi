@@ -18,7 +18,6 @@ import { resolveAvatarConversationContext } from './avatar-conversation-context.
 import { useAvatarStore } from './app-store.js';
 import {
   createAvatarAccountCaller,
-  issueAvatarRuntimeScopedBinding,
   resolveLaunchAgentIdentity,
 } from './app-bootstrap-runtime-binding.js';
 import { recordLocalAvatarAssetResolved } from './app-bootstrap-package-evidence.js';
@@ -46,7 +45,6 @@ type FirstPartyBootstrapStage =
   | 'account_access_token'
   | 'conversation_context'
   | 'runtime_identity_binding'
-  | 'scoped_binding_issue'
   | 'local_avatar_asset_manifest'
   | 'driver_create'
   | 'runtime_carrier_start'
@@ -295,7 +293,6 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
   let unsubscribeBundle = () => {};
   let activeVoiceCapture: AvatarVoiceCaptureSession | null = null;
   let cleanedUp = false;
-  let runtimeScopedBindingIssued = false;
   let getVoiceInputAvailability: BootstrapHandle['getVoiceInputAvailability'] = async () => ({
     available: false,
     reason: 'Foreground voice is unavailable outside runtime-bound mode.',
@@ -533,16 +530,6 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
           localAgentRef,
           launchSource: launchContext.launchSource,
         }));
-        const scopedBinding = await runFirstPartyStage('scoped_binding_issue', () => issueAvatarRuntimeScopedBinding({
-          runtime,
-          accountCaller,
-          runtimeAppId,
-          avatarInstanceId,
-          localAgentRef,
-          conversationAnchorId,
-        }));
-        runtimeScopedBindingIssued = true;
-
         const modelManifest = await runFirstPartyStage('local_avatar_asset_manifest', () => resolveLocalAvatarAssetManifest({
           accountId,
           ownerUserId,
@@ -557,7 +544,6 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
             realmAgentId,
             localAgentRef,
             conversationAnchorId,
-            scopedBinding,
             activeWorldId: '',
             activeUserId: subjectUserId,
             locale: typeof navigator !== 'undefined' ? navigator.language : 'en-US',
@@ -737,7 +723,7 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
             transcript_message_count: custom.transcript_message_count ?? null,
             latest_committed_message_id: custom.latest_committed_message_id ?? null,
             latest_committed_turn_id: custom.latest_committed_turn_id ?? null,
-            scoped_binding_attached: runtimeScopedBindingIssued,
+            scoped_binding_attached: false,
           },
         });
       }

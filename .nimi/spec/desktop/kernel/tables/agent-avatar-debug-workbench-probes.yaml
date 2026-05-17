@@ -2,7 +2,7 @@ version: 1
 table_family: product_catalog
 catalog_id: desktop_agent_avatar_debug_workbench_probes
 entries:
-  - package_validation
+  - local_asset_validation
   - launch_readiness
   - backend_load
   - capability_profile
@@ -20,9 +20,9 @@ owner: .nimi/spec/desktop
 source_rule: D-LLM-085
 status: active
 probe_categories:
-  - id: package_validation
+  - id: local_asset_validation
     required_evidence:
-      - avatar_package_ref
+      - local_avatar_asset_ref
       - import_validation_ref
     semantic_owner: desktop_control_surface
   - id: launch_readiness
@@ -73,4 +73,3 @@ invariants:
   - No probe category may report success without all required evidence.
   - Desktop categories are product views and do not own Runtime or Avatar semantics.
   - Raw APML, MCP/A2A, provider, or app data is not admissible evidence.
-

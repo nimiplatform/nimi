@@ -376,6 +376,19 @@ function sha256FileHex(filePath) {
   return hash.digest('hex');
 }
 
+function avatarAssetContentDigest(files) {
+  const hash = crypto.createHash('sha256');
+  for (const file of files) {
+    hash.update(file.path);
+    hash.update(Buffer.from([0]));
+    hash.update(file.sha256);
+    hash.update(Buffer.from([0]));
+    hash.update(String(file.bytes));
+    hash.update(Buffer.from([0]));
+  }
+  return hash.digest('hex');
+}
+
 function createAvatarProductSmokeLive2dAdapterManifest(avatarProductLive2dPackage) {
   const modelId = avatarProductLive2dPackage.modelFilename.replace(/\.model3\.json$/, '');
   return {
@@ -488,7 +501,7 @@ export function seedAvatarProductSmokeAgentCenterConfig(avatarProductLive2dPacka
     .digest('hex')
     .slice(0, 12);
   const dataDir = resolveNimiDataDir();
-  const packageId = `live2d_${packageHash}`;
+  const localAssetId = `live2d_${packageHash}`;
   const packageDir = path.join(
     dataDir,
     'accounts',
@@ -497,10 +510,10 @@ export function seedAvatarProductSmokeAgentCenterConfig(avatarProductLive2dPacka
     localScopePathSegment(localAgentRef),
     'agent-center',
     'modules',
-    'avatar_package',
+    'avatar_asset',
     'packages',
     'live2d',
-    packageId,
+    localAssetId,
   );
   const filesDir = path.join(packageDir, 'files');
   fs.rmSync(packageDir, { recursive: true, force: true });
@@ -519,43 +532,62 @@ export function seedAvatarProductSmokeAgentCenterConfig(avatarProductLive2dPacka
   const entrySha256 = sha256FileHex(entryPath);
   const adapterManifestBytes = fs.statSync(adapterManifestPath).size;
   const adapterManifestSha256 = sha256FileHex(adapterManifestPath);
+  const profileRef = `avatar_profile_live2d_${profileHash}`;
+  const manifestFiles = [
+    {
+      path: entryFile,
+      sha256: entrySha256,
+      bytes: entryBytes,
+      mime: 'application/json',
+    },
+    {
+      path: adapterManifestFile,
+      sha256: adapterManifestSha256,
+      bytes: adapterManifestBytes,
+      mime: 'application/json',
+    },
+  ];
   writeJson(path.join(packageDir, 'manifest.json'), {
     manifest_version: 1,
-    package_version: '1.0.0',
-    package_id: packageId,
+    asset_version: '1.0.0',
+    local_asset_id: localAssetId,
     kind: 'live2d',
     loader_min_version: '1.0.0',
     display_name: avatarProductLive2dPackage.modelFilename.replace(/\.model3\.json$/, ''),
     display_name_i18n: {},
     entry_file: entryFile,
     required_files: [entryFile, adapterManifestFile],
-    content_digest: `sha256:${entrySha256}`,
-    files: [
-      {
-        path: entryFile,
-        sha256: entrySha256,
-        bytes: entryBytes,
-        mime: 'application/json',
-      },
-      {
-        path: adapterManifestFile,
-        sha256: adapterManifestSha256,
-        bytes: adapterManifestBytes,
-        mime: 'application/json',
-      },
-    ],
+    content_digest: avatarAssetContentDigest(manifestFiles),
+    files: manifestFiles,
     limits: {
       max_manifest_bytes: 262144,
-      max_package_bytes: 524288000,
+      max_asset_bytes: 524288000,
       max_file_bytes: 104857600,
       max_file_count: 2048,
     },
-    capabilities: {},
+    capabilities: {
+      backend_kind: 'live2d',
+      generated_motion_supported: false,
+      embedded_live2d_adapter_manifest: true,
+      capability_profile_ref: profileRef,
+    },
     import: {
       imported_at: new Date().toISOString(),
-      source_label: avatarProductLive2dPackage.sampleRoot,
-      source_fingerprint: `sha256:${entrySha256}`,
+      source_label: path.basename(avatarProductLive2dPackage.sampleRoot),
+      source_fingerprint: crypto.createHash('sha256').update(entrySha256).digest('hex'),
     },
+  });
+  writeJson(path.join(packageDir, 'capability-profile.json'), {
+    schema_version: 1,
+    profile_ref: profileRef,
+    local_asset_id: localAssetId,
+    backend_kind: 'live2d',
+    evidence_ref: localAssetId,
+    file_count: manifestFiles.length,
+    asset_bytes: manifestFiles.reduce((sum, file) => sum + file.bytes, 0),
+    generated_motion_supported: false,
+    embedded_live2d_adapter_manifest: true,
+    imported_at: new Date().toISOString(),
   });
 
   const config = {
@@ -571,15 +603,15 @@ export function seedAvatarProductSmokeAgentCenterConfig(avatarProductLive2dPacka
         background_asset_id: null,
         motion: 'system',
       },
-      avatar_package: {
+      avatar_asset: {
         schema_version: 1,
         conversation_anchor_scope: 'current_anchor',
-        avatar_package_ref: packageId,
+        local_avatar_asset_ref: localAssetId,
         live2d_adapter_manifest_source: 'embedded_creator_manifest',
         live2d_adapter_manifest_ref: null,
         avatar_instance_policy: 'reuse_active_instance',
         backend_kind: 'live2d',
-        backend_capability_profile_ref: `profile_${profileHash}`,
+        backend_capability_profile_ref: profileRef,
         generated_motion_provider_policy: 'require_profile_support',
         launch_mode: 'manual',
         debug_profile: 'strict_backend_evidence',
@@ -617,8 +649,8 @@ export function seedAvatarProductSmokeAgentCenterConfig(avatarProductLive2dPacka
     realmAgentId,
     localAgentRef,
     packageDir,
-    avatarPackageRef: config.modules.avatar_package.avatar_package_ref,
-    backendCapabilityProfileRef: config.modules.avatar_package.backend_capability_profile_ref,
+    avatarAssetRef: config.modules.avatar_asset.local_avatar_asset_ref,
+    backendCapabilityProfileRef: config.modules.avatar_asset.backend_capability_profile_ref,
   };
 }
 

@@ -9,10 +9,10 @@ import type {
   AgentCenterAvatarConfigPatch,
   AgentCenterAvatarInstancePolicy,
   AgentCenterAvatarLaunchMode,
-  AgentCenterAvatarPackageModule,
+  AgentCenterAvatarAssetModule,
   AgentCenterGeneratedMotionProviderPolicy,
 } from './chat-agent-center-avatar-config-types';
-import type { AgentCenterAvatarPackageKind } from './chat-agent-center-local-config';
+import type { AgentCenterAvatarAssetKind } from './chat-agent-center-local-config';
 
 const ChatSettingsPanel = lazy(async () => {
   const mod = await import('./chat-shared-settings-panel');
@@ -43,15 +43,15 @@ type BackgroundValidation = {
 type AgentConversationSettingsContentProps = {
   input: UseAgentConversationPresentationInput;
   diagnosticsContent: ReactNode;
-  avatarPackageValid: boolean;
+  avatarAssetValid: boolean;
   backgroundValid: boolean;
-  avatarPackageChecking: boolean;
-  avatarPackageConfig: AgentCenterAvatarPackageModule | null;
+  avatarAssetChecking: boolean;
+  avatarAssetConfig: AgentCenterAvatarAssetModule | null;
   avatarConfigMutation: MutationLike<AgentCenterAvatarConfigPatch>;
-  avatarPackageImportMutation: MutationLike<AgentCenterAvatarPackageKind>;
+  avatarAssetImportMutation: MutationLike<AgentCenterAvatarAssetKind>;
   avatarImportDisabled: boolean;
   avatarImportError: string | null;
-  clearAvatarPackageMutation: MutationLike;
+  clearAvatarAssetMutation: MutationLike;
   live2dAdapterManifestImportMutation: MutationLike;
   selectedBackgroundAssetId: string | null | undefined;
   backgroundAssetQuery: BackgroundQueryLike;
@@ -109,15 +109,15 @@ export function AgentConversationSettingsContent(props: AgentConversationSetting
   const {
     input,
     diagnosticsContent,
-    avatarPackageValid,
+    avatarAssetValid,
     backgroundValid,
-    avatarPackageChecking,
-    avatarPackageConfig,
+    avatarAssetChecking,
+    avatarAssetConfig,
     avatarConfigMutation,
-    avatarPackageImportMutation,
+    avatarAssetImportMutation,
     avatarImportDisabled,
     avatarImportError,
-    clearAvatarPackageMutation,
+    clearAvatarAssetMutation,
     live2dAdapterManifestImportMutation,
     selectedBackgroundAssetId,
     backgroundAssetQuery,
@@ -127,19 +127,19 @@ export function AgentConversationSettingsContent(props: AgentConversationSetting
     backgroundImportDisabled,
     backgroundImportMutation,
   } = props;
-  const avatarBackendKind = avatarPackageConfig?.backend_kind || 'live2d';
-  const avatarInstancePolicy = avatarPackageConfig?.avatar_instance_policy || 'reuse_active_instance';
-  const generatedMotionProviderPolicy = avatarPackageConfig?.generated_motion_provider_policy || 'require_profile_support';
-  const avatarLaunchMode = avatarPackageConfig?.launch_mode || 'manual';
-  const avatarDebugProfile = avatarPackageConfig?.debug_profile || 'standard';
-  const live2dAdapterManifestSource = avatarPackageConfig?.live2d_adapter_manifest_source || 'none';
+  const avatarBackendKind = avatarAssetConfig?.backend_kind || 'live2d';
+  const avatarInstancePolicy = avatarAssetConfig?.avatar_instance_policy || 'reuse_active_instance';
+  const generatedMotionProviderPolicy = avatarAssetConfig?.generated_motion_provider_policy || 'require_profile_support';
+  const avatarLaunchMode = avatarAssetConfig?.launch_mode || 'manual';
+  const avatarDebugProfile = avatarAssetConfig?.debug_profile || 'standard';
+  const live2dAdapterManifestSource = avatarAssetConfig?.live2d_adapter_manifest_source || 'none';
   const avatarConfigDisabled = avatarConfigMutation.isPending || !hasTauriInvoke();
-  const selectedAvatarPackageId = avatarPackageConfig?.avatar_package_ref || null;
+  const selectedAvatarAssetId = avatarAssetConfig?.local_avatar_asset_ref || null;
   const live2dAdapterImportDisabled = avatarImportDisabled
     || live2dAdapterManifestImportMutation.isPending
     || avatarBackendKind !== 'live2d'
-    || !selectedAvatarPackageId;
-  const clearAvatarPackageDisabled = !selectedAvatarPackageId || clearAvatarPackageMutation.isPending;
+    || !selectedAvatarAssetId;
+  const clearAvatarAssetDisabled = !selectedAvatarAssetId || clearAvatarAssetMutation.isPending;
   const renderOptionSelect = <TValue extends string>(inputProps: {
     label: string;
     value: TValue;
@@ -171,7 +171,7 @@ export function AgentConversationSettingsContent(props: AgentConversationSetting
         runtimeInspectLoading={input.runtimeInspectLoading}
         routeReady={input.agentRouteReady}
         mutationPendingAction={input.mutationPendingAction}
-        avatarConfigured={avatarPackageValid}
+        avatarConfigured={avatarAssetValid}
         backgroundConfigured={Boolean(backgroundValid)}
         avatarContent={(
           <div className="space-y-3">
@@ -179,13 +179,13 @@ export function AgentConversationSettingsContent(props: AgentConversationSetting
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <div className="text-xs font-semibold text-slate-950">
-                    {input.t('Chat.agentCenterAvatarPackage', { defaultValue: 'Avatar asset' })}
+                    {input.t('Chat.agentCenterAvatarAsset', { defaultValue: 'Avatar asset' })}
                   </div>
                 </div>
                 <span className="shrink-0 rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-semibold text-slate-600">
-                  {avatarPackageValid
+                  {avatarAssetValid
                     ? input.t('Chat.agentCenterReady', { defaultValue: 'Ready' })
-                    : avatarPackageChecking
+                    : avatarAssetChecking
                       ? input.t('Chat.agentCenterChecking', { defaultValue: 'Checking' })
                       : input.t('Chat.agentCenterNeedsSetup', { defaultValue: 'Needs setup' })}
                 </span>
@@ -202,7 +202,7 @@ export function AgentConversationSettingsContent(props: AgentConversationSetting
                     {input.t('Chat.agentCenterAvatarCapabilityProfile', { defaultValue: 'Capability profile' })}
                   </span>
                   <span className="ml-1">
-                    {avatarPackageConfig?.backend_capability_profile_ref
+                    {avatarAssetConfig?.backend_capability_profile_ref
                       ? input.t('Chat.agentCenterAvatarProfileLinked', { defaultValue: 'Linked' })
                       : input.t('Chat.agentCenterAvatarProfilePending', { defaultValue: 'Pending evidence' })}
                   </span>
@@ -225,7 +225,7 @@ export function AgentConversationSettingsContent(props: AgentConversationSetting
               <button
                 type="button"
                 disabled={avatarImportDisabled}
-                onClick={() => avatarPackageImportMutation.mutate('live2d')}
+                onClick={() => avatarAssetImportMutation.mutate('live2d')}
                 className="group flex min-h-[72px] flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-slate-300 bg-white/70 px-3 py-3 text-center text-xs font-semibold text-slate-700 transition-all duration-200 ease-out hover:-translate-y-[1px] hover:border-emerald-400 hover:bg-emerald-50/60 hover:text-emerald-700 hover:shadow-[0_8px_20px_rgba(16,185,129,0.08)] disabled:cursor-not-allowed disabled:opacity-55 disabled:hover:translate-y-0 disabled:hover:border-slate-300 disabled:hover:bg-white/70 disabled:hover:text-slate-700 disabled:hover:shadow-none"
               >
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 text-slate-400 transition-colors group-hover:text-emerald-500">
@@ -234,7 +234,7 @@ export function AgentConversationSettingsContent(props: AgentConversationSetting
                   <line x1="12" y1="3" x2="12" y2="15" />
                 </svg>
                 <span>
-                  {avatarPackageImportMutation.isPending
+                  {avatarAssetImportMutation.isPending
                     ? input.t('Chat.agentCenterAvatarImporting', { defaultValue: 'Importing...' })
                     : input.t('Chat.agentCenterImportLive2d', { defaultValue: 'Import Live2D folder' })}
                 </span>
@@ -242,7 +242,7 @@ export function AgentConversationSettingsContent(props: AgentConversationSetting
               <button
                 type="button"
                 disabled={avatarImportDisabled}
-                onClick={() => avatarPackageImportMutation.mutate('vrm')}
+                onClick={() => avatarAssetImportMutation.mutate('vrm')}
                 className="group flex min-h-[72px] flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-slate-300 bg-white/70 px-3 py-3 text-center text-xs font-semibold text-slate-700 transition-all duration-200 ease-out hover:-translate-y-[1px] hover:border-emerald-400 hover:bg-emerald-50/60 hover:text-emerald-700 hover:shadow-[0_8px_20px_rgba(16,185,129,0.08)] disabled:cursor-not-allowed disabled:opacity-55 disabled:hover:translate-y-0 disabled:hover:border-slate-300 disabled:hover:bg-white/70 disabled:hover:text-slate-700 disabled:hover:shadow-none"
               >
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 text-slate-400 transition-colors group-hover:text-emerald-500">
@@ -251,7 +251,7 @@ export function AgentConversationSettingsContent(props: AgentConversationSetting
                   <line x1="12" y1="3" x2="12" y2="15" />
                 </svg>
                 <span>
-                  {avatarPackageImportMutation.isPending
+                  {avatarAssetImportMutation.isPending
                     ? input.t('Chat.agentCenterAvatarImporting', { defaultValue: 'Importing...' })
                     : input.t('Chat.agentCenterImportVrm', { defaultValue: 'Import VRM file' })}
                 </span>
@@ -268,11 +268,11 @@ export function AgentConversationSettingsContent(props: AgentConversationSetting
               </button>
               <button
                 type="button"
-                disabled={clearAvatarPackageDisabled}
-                onClick={() => clearAvatarPackageMutation.mutate()}
+                disabled={clearAvatarAssetDisabled}
+                onClick={() => clearAvatarAssetMutation.mutate()}
                 className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-left text-xs font-semibold text-slate-600 transition-colors hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-55"
               >
-                {clearAvatarPackageMutation.isPending
+                {clearAvatarAssetMutation.isPending
                   ? input.t('Chat.agentCenterAvatarClearing', { defaultValue: 'Removing...' })
                   : input.t('Chat.agentCenterClearAvatarSelection', { defaultValue: 'Remove Avatar asset' })}
               </button>
@@ -341,9 +341,9 @@ export function AgentConversationSettingsContent(props: AgentConversationSetting
             ) : null}
             <AgentCenterAvatarDebugWorkbench
               input={input}
-              avatarPackageConfig={avatarPackageConfig}
-              avatarPackageValid={avatarPackageValid}
-              avatarPackageChecking={avatarPackageChecking}
+              avatarAssetConfig={avatarAssetConfig}
+              avatarAssetValid={avatarAssetValid}
+              avatarAssetChecking={avatarAssetChecking}
               validationMessage={null}
             />
           </div>

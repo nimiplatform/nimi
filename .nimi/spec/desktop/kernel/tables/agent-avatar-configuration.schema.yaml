@@ -10,13 +10,13 @@ surfaces:
   - debug_profile
   - updated_at
   - provenance
-  - avatar_package_ref
+  - local_avatar_asset_ref
   - live2d_adapter_manifest_ref
   - backend_capability_profile_ref
   - generated_motion_provider_policy
   - package_descriptor
   - package_path
-  - launch_package_id
+  - launch_local_asset_id
   - live2d_adapter_manifest_payload
   - live2d_adapter_manifest_path
   - live2d_adapter_manifest_absolute_path
@@ -73,7 +73,7 @@ fields:
       - current_anchor
       - explicit_debug_anchor
       - no_anchor
-  avatar_package_ref:
+  local_avatar_asset_ref:
     type: string_optional
     semantics: opaque_control_ref
     forbidden_as:
@@ -154,7 +154,7 @@ fields:
 forbidden_fields:
   - package_descriptor
   - package_path
-  - launch_package_id
+  - launch_local_asset_id
   - live2d_adapter_manifest_payload
   - live2d_adapter_manifest_path
   - live2d_adapter_manifest_absolute_path

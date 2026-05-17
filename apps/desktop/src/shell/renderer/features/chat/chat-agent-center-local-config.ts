@@ -1,6 +1,6 @@
-import { createDefaultAgentCenterAvatarPackageModule } from './chat-agent-center-avatar-config-types';
-import type { AgentCenterAvatarPackageModule } from './chat-agent-center-avatar-config-types';
-import { validateAvatarPackageModule } from './chat-agent-center-avatar-config-validation';
+import { createDefaultAgentCenterAvatarAssetModule } from './chat-agent-center-avatar-config-types';
+import type { AgentCenterAvatarAssetModule } from './chat-agent-center-avatar-config-types';
+import { validateAvatarAssetModule } from './chat-agent-center-avatar-config-validation';
 
 export type {
   AgentCenterAvatarBackendKind,
@@ -10,7 +10,7 @@ export type {
   AgentCenterAvatarDebugProfile,
   AgentCenterAvatarInstancePolicy,
   AgentCenterAvatarLaunchMode,
-  AgentCenterAvatarPackageModule,
+  AgentCenterAvatarAssetModule,
   AgentCenterGeneratedMotionProviderPolicy,
   AgentCenterLive2dAdapterManifestSource,
 } from './chat-agent-center-avatar-config-types';
@@ -20,7 +20,7 @@ export const AGENT_CENTER_LOCAL_CONFIG_KIND = 'agent_center_local_config';
 
 export const AGENT_CENTER_LOCAL_CONFIG_MODULE_IDS = [
   'appearance',
-  'avatar_package',
+  'avatar_asset',
   'local_history',
   'ui',
 ] as const;
@@ -35,7 +35,7 @@ export type AgentCenterLocalConfigSectionId =
   | 'cognition'
   | 'advanced';
 
-export type AgentCenterAvatarPackageKind = 'live2d' | 'vrm';
+export type AgentCenterAvatarAssetKind = 'live2d' | 'vrm';
 
 export type AgentCenterAppearanceModule = {
   schema_version: 1;
@@ -62,7 +62,7 @@ export type AgentCenterLocalConfig = {
   local_agent_ref: string;
   modules: {
     appearance: AgentCenterAppearanceModule;
-    avatar_package: AgentCenterAvatarPackageModule;
+    avatar_asset: AgentCenterAvatarAssetModule;
     local_history: AgentCenterLocalHistoryModule;
     ui: AgentCenterUiModule;
   };
@@ -83,7 +83,7 @@ export type AgentCenterValidationIssue = {
 
 export type AgentCenterLive2dAdapterManifestImportResult = {
   manifest_ref: string;
-  package_id: string;
+  local_asset_id: string;
   selected: boolean;
   sha256: string;
   bytes: number;
@@ -94,23 +94,49 @@ export type AgentCenterLive2dAdapterManifestImportParseResult =
   | { ok: true; result: AgentCenterLive2dAdapterManifestImportResult }
   | { ok: false; errors: string[] };
 
-export type AgentCenterAvatarPackageImportResult = {
-  package_id: string;
-  backend_kind: AgentCenterAvatarPackageKind;
+export type AgentCenterAvatarAssetImportResult = {
+  local_asset_id: string;
+  backend_kind: AgentCenterAvatarAssetKind;
   backend_capability_profile_ref: string;
   selected: boolean;
   manifest_sha256: string;
-  package_bytes: number;
+  asset_bytes: number;
   file_count: number;
   imported_at: string;
 };
 
-export type AgentCenterAvatarPackageImportParseResult =
-  | { ok: true; result: AgentCenterAvatarPackageImportResult }
+export type AgentCenterAvatarAssetImportParseResult =
+  | { ok: true; result: AgentCenterAvatarAssetImportResult }
+  | { ok: false; errors: string[] };
+
+export type AgentCenterAvatarAssetValidationStatus =
+  | 'valid'
+  | 'invalid_manifest'
+  | 'missing_entry'
+  | 'permission_denied'
+  | 'path_rejected'
+  | 'unsupported_backend'
+  | 'asset_missing'
+  | 'digest_mismatch'
+  | 'selection_missing';
+
+export type AgentCenterAvatarAssetValidationResult = {
+  schema_version: 1;
+  local_asset_id: string | null;
+  backend_kind: AgentCenterAvatarAssetKind | null;
+  backend_capability_profile_ref: string | null;
+  checked_at: string;
+  status: AgentCenterAvatarAssetValidationStatus;
+  errors: AgentCenterValidationIssue[];
+  warnings: AgentCenterValidationIssue[];
+};
+
+export type AgentCenterAvatarAssetValidationParseResult =
+  | { ok: true; result: AgentCenterAvatarAssetValidationResult }
   | { ok: false; errors: string[] };
 
 export type AgentCenterLocalResourceRemoveResult = {
-  resource_kind: 'avatar_package' | 'background' | 'agent_local_resources' | 'account_local_resources';
+  resource_kind: 'avatar_asset' | 'background' | 'agent_local_resources' | 'account_local_resources';
   resource_id: string;
   quarantined: boolean;
   operation_id: string;
@@ -187,8 +213,19 @@ const UI_KEYS = ['schema_version', 'last_section'] as const;
 
 const MOTION_VALUES = new Set(['system', 'reduced', 'full']);
 const SECTION_VALUES = new Set(['overview', 'appearance', 'chat_behavior', 'model', 'cognition', 'advanced']);
-const AVATAR_PACKAGE_KIND_VALUES = new Set(['live2d', 'vrm']);
+const AVATAR_ASSET_KIND_VALUES = new Set(['live2d', 'vrm']);
 const VALIDATION_SEVERITY_VALUES = new Set(['error', 'warning']);
+const AVATAR_ASSET_VALIDATION_STATUS_VALUES = new Set([
+  'valid',
+  'invalid_manifest',
+  'missing_entry',
+  'permission_denied',
+  'path_rejected',
+  'unsupported_backend',
+  'asset_missing',
+  'digest_mismatch',
+  'selection_missing',
+]);
 const BACKGROUND_VALIDATION_STATUS_VALUES = new Set([
   'valid',
   'invalid_manifest',
@@ -200,7 +237,7 @@ const BACKGROUND_VALIDATION_STATUS_VALUES = new Set([
   'digest_mismatch',
 ]);
 const LOCAL_RESOURCE_KIND_VALUES = new Set([
-  'avatar_package',
+  'avatar_asset',
   'background',
   'agent_local_resources',
   'account_local_resources',
@@ -295,7 +332,7 @@ function validateBackgroundId(value: unknown, path: string, errors: string[]): s
 function validatePackageId(value: unknown, path: string, errors: string[]): string | null {
   const id = readNullableString(value, path, errors);
   if (id !== null && !PACKAGE_ID_PATTERN.test(id)) {
-    errors.push(`${path}: invalid package id`);
+    errors.push(`${path}: invalid local Avatar asset id`);
   }
   return id;
 }
@@ -398,7 +435,7 @@ export function validateAgentCenterLocalConfig(value: unknown): AgentCenterLocal
     local_agent_ref: localAgentRef,
     modules: {
       appearance: validateAppearanceModule(modules.appearance, errors),
-      avatar_package: validateAvatarPackageModule(modules.avatar_package, errors),
+      avatar_asset: validateAvatarAssetModule(modules.avatar_asset, errors),
       local_history: validateLocalHistoryModule(modules.local_history, errors),
       ui: validateUiModule(modules.ui, errors),
     },
@@ -429,7 +466,7 @@ export function createDefaultAgentCenterLocalConfig(input: {
         background_asset_id: null,
         motion: 'system',
       },
-      avatar_package: createDefaultAgentCenterAvatarPackageModule(),
+      avatar_asset: createDefaultAgentCenterAvatarAssetModule(),
       local_history: {
         schema_version: 1,
         last_cleared_at: null,
@@ -478,14 +515,14 @@ export function validateAgentCenterLive2dAdapterManifestImportResult(
   if (!root) {
     return { ok: false, errors };
   }
-  collectUnknownKeys(root, ['manifest_ref', 'package_id', 'selected', 'sha256', 'bytes', 'imported_at'], 'live2dAdapterManifestImportResult', errors);
+  collectUnknownKeys(root, ['manifest_ref', 'local_asset_id', 'selected', 'sha256', 'bytes', 'imported_at'], 'live2dAdapterManifestImportResult', errors);
   const manifestRef = readString(root.manifest_ref, 'live2dAdapterManifestImportResult.manifest_ref', errors) || '';
   if (manifestRef && !LIVE2D_ADAPTER_MANIFEST_REF_PATTERN.test(manifestRef)) {
     errors.push('live2dAdapterManifestImportResult.manifest_ref: invalid Live2D adapter manifest ref');
   }
-  const packageId = validatePackageId(root.package_id, 'live2dAdapterManifestImportResult.package_id', errors) || '';
-  if (packageId && !packageId.startsWith('live2d_')) {
-    errors.push('live2dAdapterManifestImportResult.package_id: expected Live2D package id');
+  const localAssetId = validatePackageId(root.local_asset_id, 'live2dAdapterManifestImportResult.local_asset_id', errors) || '';
+  if (localAssetId && !localAssetId.startsWith('live2d_')) {
+    errors.push('live2dAdapterManifestImportResult.local_asset_id: expected Live2D package id');
   }
   if (typeof root.selected !== 'boolean') {
     errors.push('live2dAdapterManifestImportResult.selected: expected boolean');
@@ -505,7 +542,7 @@ export function validateAgentCenterLive2dAdapterManifestImportResult(
     ok: true,
     result: {
       manifest_ref: manifestRef,
-      package_id: packageId,
+      local_asset_id: localAssetId,
       selected: root.selected as boolean,
       sha256,
       bytes: root.bytes as number,
@@ -514,65 +551,117 @@ export function validateAgentCenterLive2dAdapterManifestImportResult(
   };
 }
 
-export function validateAgentCenterAvatarPackageImportResult(
+export function validateAgentCenterAvatarAssetImportResult(
   value: unknown,
-): AgentCenterAvatarPackageImportParseResult {
+): AgentCenterAvatarAssetImportParseResult {
   const errors: string[] = [];
-  const root = requireRecord(value, 'avatarPackageImportResult', errors);
+  const root = requireRecord(value, 'avatarAssetImportResult', errors);
   if (!root) {
     return { ok: false, errors };
   }
   collectUnknownKeys(root, [
-    'package_id',
+    'local_asset_id',
     'backend_kind',
     'backend_capability_profile_ref',
     'selected',
     'manifest_sha256',
-    'package_bytes',
+    'asset_bytes',
     'file_count',
     'imported_at',
-  ], 'avatarPackageImportResult', errors);
-  const packageId = validatePackageId(root.package_id, 'avatarPackageImportResult.package_id', errors) || '';
-  const backendKind = readString(root.backend_kind, 'avatarPackageImportResult.backend_kind', errors) || '';
-  if (backendKind && !AVATAR_PACKAGE_KIND_VALUES.has(backendKind)) {
-    errors.push('avatarPackageImportResult.backend_kind: invalid backend kind');
+  ], 'avatarAssetImportResult', errors);
+  const localAssetId = validatePackageId(root.local_asset_id, 'avatarAssetImportResult.local_asset_id', errors) || '';
+  const backendKind = readString(root.backend_kind, 'avatarAssetImportResult.backend_kind', errors) || '';
+  if (backendKind && !AVATAR_ASSET_KIND_VALUES.has(backendKind)) {
+    errors.push('avatarAssetImportResult.backend_kind: invalid backend kind');
   }
-  if (backendKind && packageId && !packageId.startsWith(`${backendKind}_`)) {
-    errors.push('avatarPackageImportResult.package_id: backend kind mismatch');
+  if (backendKind && localAssetId && !localAssetId.startsWith(`${backendKind}_`)) {
+    errors.push('avatarAssetImportResult.local_asset_id: backend kind mismatch');
   }
   const backendCapabilityProfileRef = validateNormalizedId(
     root.backend_capability_profile_ref,
-    'avatarPackageImportResult.backend_capability_profile_ref',
+    'avatarAssetImportResult.backend_capability_profile_ref',
     errors,
   );
   if (typeof root.selected !== 'boolean') {
-    errors.push('avatarPackageImportResult.selected: expected boolean');
+    errors.push('avatarAssetImportResult.selected: expected boolean');
   }
-  const manifestSha256 = readString(root.manifest_sha256, 'avatarPackageImportResult.manifest_sha256', errors) || '';
+  const manifestSha256 = readString(root.manifest_sha256, 'avatarAssetImportResult.manifest_sha256', errors) || '';
   if (manifestSha256 && !/^[a-f0-9]{64}$/u.test(manifestSha256)) {
-    errors.push('avatarPackageImportResult.manifest_sha256: invalid sha256');
+    errors.push('avatarAssetImportResult.manifest_sha256: invalid sha256');
   }
-  if (typeof root.package_bytes !== 'number' || !Number.isSafeInteger(root.package_bytes) || root.package_bytes <= 0) {
-    errors.push('avatarPackageImportResult.package_bytes: expected positive integer');
+  if (typeof root.asset_bytes !== 'number' || !Number.isSafeInteger(root.asset_bytes) || root.asset_bytes <= 0) {
+    errors.push('avatarAssetImportResult.asset_bytes: expected positive integer');
   }
   if (typeof root.file_count !== 'number' || !Number.isSafeInteger(root.file_count) || root.file_count <= 0) {
-    errors.push('avatarPackageImportResult.file_count: expected positive integer');
+    errors.push('avatarAssetImportResult.file_count: expected positive integer');
   }
-  const importedAt = validateTimestamp(root.imported_at, 'avatarPackageImportResult.imported_at', errors) || '';
+  const importedAt = validateTimestamp(root.imported_at, 'avatarAssetImportResult.imported_at', errors) || '';
   if (errors.length > 0) {
     return { ok: false, errors };
   }
   return {
     ok: true,
     result: {
-      package_id: packageId,
-      backend_kind: backendKind as AgentCenterAvatarPackageKind,
+      local_asset_id: localAssetId,
+      backend_kind: backendKind as AgentCenterAvatarAssetKind,
       backend_capability_profile_ref: backendCapabilityProfileRef,
       selected: root.selected as boolean,
       manifest_sha256: manifestSha256,
-      package_bytes: root.package_bytes as number,
+      asset_bytes: root.asset_bytes as number,
       file_count: root.file_count as number,
       imported_at: importedAt,
+    },
+  };
+}
+
+export function validateAgentCenterAvatarAssetValidationResult(
+  value: unknown,
+): AgentCenterAvatarAssetValidationParseResult {
+  const errors: string[] = [];
+  const root = requireRecord(value, 'avatarAssetValidation', errors);
+  if (!root) {
+    return { ok: false, errors };
+  }
+  collectUnknownKeys(root, [
+    'schema_version',
+    'local_asset_id',
+    'backend_kind',
+    'backend_capability_profile_ref',
+    'checked_at',
+    'status',
+    'errors',
+    'warnings',
+  ], 'avatarAssetValidation', errors);
+  requireSchemaVersion(root, 'avatarAssetValidation', errors);
+  const localAssetId = validatePackageId(root.local_asset_id, 'avatarAssetValidation.local_asset_id', errors);
+  const backendKind = readNullableString(root.backend_kind, 'avatarAssetValidation.backend_kind', errors);
+  if (backendKind !== null && !AVATAR_ASSET_KIND_VALUES.has(backendKind)) {
+    errors.push('avatarAssetValidation.backend_kind: invalid backend kind');
+  }
+  const backendCapabilityProfileRef = root.backend_capability_profile_ref === null
+    ? null
+    : validateNormalizedId(root.backend_capability_profile_ref, 'avatarAssetValidation.backend_capability_profile_ref', errors);
+  const checkedAt = validateTimestamp(root.checked_at, 'avatarAssetValidation.checked_at', errors) || '';
+  const status = readString(root.status, 'avatarAssetValidation.status', errors);
+  if (status && !AVATAR_ASSET_VALIDATION_STATUS_VALUES.has(status)) {
+    errors.push('avatarAssetValidation.status: invalid status');
+  }
+  const validationErrors = validateValidationIssues(root.errors, 'avatarAssetValidation.errors', errors);
+  const warnings = validateValidationIssues(root.warnings, 'avatarAssetValidation.warnings', errors);
+  if (errors.length > 0) {
+    return { ok: false, errors };
+  }
+  return {
+    ok: true,
+    result: {
+      schema_version: 1,
+      local_asset_id: localAssetId,
+      backend_kind: backendKind as AgentCenterAvatarAssetKind | null,
+      backend_capability_profile_ref: backendCapabilityProfileRef,
+      checked_at: checkedAt,
+      status: status as AgentCenterAvatarAssetValidationStatus,
+      errors: validationErrors,
+      warnings,
     },
   };
 }
@@ -591,8 +680,8 @@ export function validateAgentCenterLocalResourceRemoveResult(
     errors.push('removeResult.resource_kind: invalid resource kind');
   }
   const resourceId = readString(root.resource_id, 'removeResult.resource_id', errors) || '';
-  if (resourceKind === 'avatar_package' && !PACKAGE_ID_PATTERN.test(resourceId)) {
-    errors.push('removeResult.resource_id: invalid avatar package id');
+  if (resourceKind === 'avatar_asset' && !PACKAGE_ID_PATTERN.test(resourceId)) {
+    errors.push('removeResult.resource_id: invalid local Avatar asset id');
   }
   if (resourceKind === 'background' && !BACKGROUND_ID_PATTERN.test(resourceId)) {
     errors.push('removeResult.resource_id: invalid background id');

@@ -3,8 +3,8 @@ table_family: closed_enum
 enum_id: desktop_agent_avatar_debug_remediation_states
 values:
   - ready
-  - package_missing
-  - package_unresolved
+  - local_asset_missing
+  - local_asset_unresolved
   - launch_payload_invalid
   - runtime_authorization_missing
   - runtime_probe_missing
@@ -24,12 +24,12 @@ states:
   - id: ready
     terminal: false
     meaning: all_required_typed_evidence_present
-  - id: package_missing
+  - id: local_asset_missing
     terminal: true
-    meaning: no_avatar_package_ref_selected
-  - id: package_unresolved
+    meaning: no_avatar_asset_ref_selected
+  - id: local_asset_unresolved
     terminal: true
-    meaning: avatar_package_ref_not_resolved_by_authorized_projection
+    meaning: local_avatar_asset_ref_not_resolved_by_local_materialization
   - id: launch_payload_invalid
     terminal: true
     meaning: launch_payload_shape_would_violate_minimal_avatar_launch_contract
@@ -61,4 +61,3 @@ states:
 invariants:
   - Terminal states must not be rendered as success.
   - User remediation may propose actions but may not mutate Runtime or Avatar truth locally.
-

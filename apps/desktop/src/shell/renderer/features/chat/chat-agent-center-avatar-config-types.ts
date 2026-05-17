@@ -1,6 +1,6 @@
-import type { AgentCenterAvatarPackageKind } from './chat-agent-center-local-config';
+import type { AgentCenterAvatarAssetKind } from './chat-agent-center-local-config';
 
-export type AgentCenterAvatarBackendKind = AgentCenterAvatarPackageKind | 'future';
+export type AgentCenterAvatarBackendKind = AgentCenterAvatarAssetKind | 'future';
 export type AgentCenterAvatarConversationAnchorScope = 'current_anchor' | 'explicit_debug_anchor' | 'no_anchor';
 export type AgentCenterAvatarInstancePolicy = 'reuse_active_instance' | 'launch_new_instance' | 'require_user_selection';
 export type AgentCenterGeneratedMotionProviderPolicy = 'require_profile_support' | 'disable_generated_motion' | 'debug_only';
@@ -18,10 +18,10 @@ export type AgentCenterAvatarConfigProvenance = {
   evidence_ref: string;
 };
 
-export type AgentCenterAvatarPackageModule = {
+export type AgentCenterAvatarAssetModule = {
   schema_version: 1;
   conversation_anchor_scope: AgentCenterAvatarConversationAnchorScope;
-  avatar_package_ref: string | null;
+  local_avatar_asset_ref: string | null;
   live2d_adapter_manifest_source: AgentCenterLive2dAdapterManifestSource;
   live2d_adapter_manifest_ref: string | null;
   avatar_instance_policy: AgentCenterAvatarInstancePolicy;
@@ -35,7 +35,7 @@ export type AgentCenterAvatarPackageModule = {
 };
 
 export type AgentCenterAvatarConfigPatch = Partial<Pick<
-  AgentCenterAvatarPackageModule,
+  AgentCenterAvatarAssetModule,
   | 'avatar_instance_policy'
   | 'backend_kind'
   | 'generated_motion_provider_policy'
@@ -52,11 +52,11 @@ export const AVATAR_DEBUG_PROFILE_VALUES = ['standard', 'strict_backend_evidence
 export const LIVE2D_ADAPTER_MANIFEST_SOURCE_VALUES = ['none', 'embedded_creator_manifest', 'external_sidecar_manifest'] as const;
 export const AVATAR_CONFIG_PROVENANCE_SOURCE_VALUES = ['user_selection', 'import_validation', 'runtime_projection', 'avatar_backend_evidence'] as const;
 
-export function createDefaultAgentCenterAvatarPackageModule(): AgentCenterAvatarPackageModule {
+export function createDefaultAgentCenterAvatarAssetModule(): AgentCenterAvatarAssetModule {
   return {
     schema_version: 1,
     conversation_anchor_scope: 'current_anchor',
-    avatar_package_ref: null,
+    local_avatar_asset_ref: null,
     live2d_adapter_manifest_source: 'none',
     live2d_adapter_manifest_ref: null,
     avatar_instance_policy: 'reuse_active_instance',

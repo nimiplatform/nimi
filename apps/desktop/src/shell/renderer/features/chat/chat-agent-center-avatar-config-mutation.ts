@@ -16,8 +16,8 @@ export function useAgentCenterAvatarConfigMutation(input: UseAgentConversationPr
           defaultValue: 'Select an agent before changing Avatar configuration.',
         }));
       }
-      const nextAvatarPackage = {
-        ...currentConfig.modules.avatar_package,
+      const nextAvatarAsset = {
+        ...currentConfig.modules.avatar_asset,
         ...patch,
         updated_at: new Date().toISOString(),
         provenance: {
@@ -25,9 +25,9 @@ export function useAgentCenterAvatarConfigMutation(input: UseAgentConversationPr
           evidence_ref: 'agent-center-avatar-settings',
         },
       };
-      if (nextAvatarPackage.backend_kind !== 'live2d') {
-        nextAvatarPackage.live2d_adapter_manifest_source = 'none';
-        nextAvatarPackage.live2d_adapter_manifest_ref = null;
+      if (nextAvatarAsset.backend_kind !== 'live2d') {
+        nextAvatarAsset.live2d_adapter_manifest_source = 'none';
+        nextAvatarAsset.live2d_adapter_manifest_ref = null;
       }
       return putAgentCenterLocalConfig({
         accountId: input.accountId,
@@ -38,7 +38,7 @@ export function useAgentCenterAvatarConfigMutation(input: UseAgentConversationPr
           ...currentConfig,
           modules: {
             ...currentConfig.modules,
-            avatar_package: nextAvatarPackage,
+            avatar_asset: nextAvatarAsset,
           },
         },
       });

@@ -885,25 +885,25 @@ rules:
   - rule_id: D-LLM-099
     evidence_refs:
       - desktop_kernel_consistency
-    note: Desktop Avatar package control surface consumer boundary admitted as contract truth.
+    note: Desktop Avatar local asset control surface consumer boundary admitted as contract truth.
     evidence_requirement: required
   - rule_id: D-LLM-100
     evidence_refs:
       - desktop_kernel_consistency
-    note: Desktop Avatar package control surface opaque ref storage admitted as contract truth.
+    note: Desktop Avatar local asset control surface local asset ref storage admitted as contract truth.
     evidence_requirement: required
   - rule_id: D-LLM-101
     evidence_refs:
       - desktop_kernel_consistency
-    note: Desktop Avatar package acquisition/import UX must route through typed Asset Market/SDK projections.
+    note: Desktop Avatar local import and secondary acquisition UX must route through typed Asset Market/SDK projections.
     evidence_requirement: required
   - rule_id: D-LLM-102
     evidence_refs:
       - desktop_kernel_consistency
-    note: Desktop Avatar package readiness and failure UX must fail closed.
+    note: Desktop Avatar local asset readiness and failure UX must fail closed.
     evidence_requirement: required
   - rule_id: D-LLM-103
     evidence_refs:
       - desktop_kernel_consistency
-    note: Desktop Avatar package control must not widen launch payload or own resolver truth.
+    note: Desktop Avatar local asset control must not widen launch payload or own resolver truth.
     evidence_requirement: required

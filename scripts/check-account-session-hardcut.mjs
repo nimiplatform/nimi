@@ -71,7 +71,16 @@ const DESKTOP_AVATAR_LAUNCH_FORBIDDEN_FIELDS = [
   'avatarPackage',
   'avatarPackageKind',
   'avatarPackageId',
+  'avatarPackageRef',
   'avatarPackageSchemaVersion',
+  'avatarAsset',
+  'avatarAssetKind',
+  'avatarAssetId',
+  'avatarAssetSchemaVersion',
+  'localAvatarAssetRef',
+  'backendCapabilityProfileRef',
+  'materializationRef',
+  'localMaterializationRef',
   'conversationAnchorId',
   'anchorMode',
   'runtimeAppId',
@@ -100,7 +109,16 @@ export const AVATAR_LAUNCH_FORBIDDEN_QUERY_PARAMETERS = [
   'avatar_package',
   'avatar_package_kind',
   'avatar_package_id',
+  'avatar_package_ref',
   'avatar_package_schema_version',
+  'avatar_asset',
+  'avatar_asset_kind',
+  'avatar_asset_id',
+  'avatar_asset_schema_version',
+  'local_avatar_asset_ref',
+  'backend_capability_profile_ref',
+  'materialization_ref',
+  'local_materialization_ref',
   'conversation_anchor_id',
   'anchor_mode',
   'runtime_app_id',
@@ -565,14 +583,14 @@ function scanAvatarAssetScope(files, violations) {
         'Desktop-launched Avatar asset protocol must not expose shared .nimi auth/session/account truth',
       );
     }
-    if (value.includes('$HOME/.nimi/') && !value.includes('/agent-center/modules/avatar_package/packages/') && !value.includes('/files/')) {
+    if (value.includes('$HOME/.nimi/') && !value.includes('/agent-center/modules/avatar_asset/packages/') && !value.includes('/files/')) {
       pushViolation(
         violations,
         file.relPath,
         source,
         source.indexOf(value) >= 0 ? source.indexOf(value) : 0,
         'Avatar non-visual .nimi asset scope',
-        'Any .nimi asset scope must be narrowed to Agent Center avatar package files',
+        'Any .nimi asset scope must be narrowed to Agent Center avatar asset files',
       );
     }
   }

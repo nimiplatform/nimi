@@ -11,7 +11,7 @@
 import { invoke } from '@tauri-apps/api/core';
 import {
   resolveModelManifest as resolveLive2DTauriManifest,
-  type AgentCenterAvatarPackageReference,
+  type AgentCenterLocalAvatarAssetReference,
   type LocalAvatarAssetReference,
   type ModelManifest as Live2DTauriManifest,
 } from '../live2d/model-loader.js';
@@ -42,7 +42,7 @@ export type VrmAvatarModelManifest = {
 
 export type AvatarModelManifest = Live2DAvatarModelManifest | VrmAvatarModelManifest;
 
-export type { AgentCenterAvatarPackageReference };
+export type { AgentCenterLocalAvatarAssetReference };
 export type { LocalAvatarAssetReference };
 
 type TauriAvatarModelManifest = {
@@ -122,10 +122,10 @@ export async function resolveAvatarModelManifest(modelPath: string): Promise<Ava
   return fromLive2DTauriManifest(raw);
 }
 
-export async function resolveAgentCenterAvatarPackageManifest(
-  reference: AgentCenterAvatarPackageReference,
+export async function resolveAgentCenterAvatarAssetManifest(
+  reference: AgentCenterLocalAvatarAssetReference,
 ): Promise<AvatarModelManifest> {
-  const raw = await invoke<TauriAvatarModelManifest>('nimi_avatar_resolve_agent_center_avatar_package', {
+  const raw = await invoke<TauriAvatarModelManifest>('nimi_avatar_resolve_agent_center_avatar_asset', {
     payload: reference,
   });
   return fromTauriAvatarModelManifest(raw);

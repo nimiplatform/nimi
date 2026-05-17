@@ -2,7 +2,6 @@ import type { Runtime } from '@nimiplatform/sdk/runtime/browser';
 import type {
   RuntimeAgentConsumeEvent as SdkRuntimeAgentConsumeEvent,
   RuntimeAgentSessionSnapshot as SdkRuntimeAgentSessionSnapshot,
-  RuntimeScopedBindingAttachment,
 } from '@nimiplatform/sdk/runtime/browser';
 import type {
   ActivitySource,
@@ -87,7 +86,6 @@ export type SdkDriverOptions = {
   conversationAnchorId: string;
   activeWorldId: string;
   activeUserId: string;
-  scopedBinding?: RuntimeScopedBindingAttachment;
   locale: string;
   sessionId?: string;
   now?: () => number;
@@ -244,7 +242,6 @@ export class SdkDriver implements AgentDataDriver {
   private readonly conversationAnchorId: string;
   private readonly activeWorldId: string;
   private readonly activeUserId: string;
-  private readonly scopedBinding?: RuntimeScopedBindingAttachment;
   private readonly locale: string;
   private readonly sessionId: string;
   private readonly now: () => number;
@@ -262,7 +259,6 @@ export class SdkDriver implements AgentDataDriver {
     this.conversationAnchorId = options.conversationAnchorId;
     this.activeWorldId = options.activeWorldId;
     this.activeUserId = options.activeUserId;
-    this.scopedBinding = options.scopedBinding;
     this.locale = options.locale;
     this.sessionId = options.sessionId ?? options.conversationAnchorId;
     this.now = options.now ?? (() => Date.now());
@@ -290,7 +286,6 @@ export class SdkDriver implements AgentDataDriver {
 	          localAgentRef: this.localAgentRef,
 	          conversationAnchorId: this.conversationAnchorId,
 	          ...(this.activeWorldId ? { worldId: this.activeWorldId } : {}),
-	          ...(this.scopedBinding ? { scopedBinding: this.scopedBinding } : {}),
 	        },
         { signal: this.streamAbort.signal },
       );
@@ -301,7 +296,6 @@ export class SdkDriver implements AgentDataDriver {
 	          realmAgentId: this.realmAgentId,
 	          localAgentRef: this.localAgentRef,
 	          conversationAnchorId: this.conversationAnchorId,
-	          ...(this.scopedBinding ? { scopedBinding: this.scopedBinding } : {}),
 	        },
         { signal: this.streamAbort.signal },
       );

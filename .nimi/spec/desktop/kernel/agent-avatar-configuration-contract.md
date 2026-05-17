@@ -9,9 +9,9 @@ This contract owns the Desktop Agent Chat Settings Avatar configuration product
 surface. It defines what Desktop may store and present as a user-facing control
 record for an agent avatar.
 
-It does not own Avatar carrier truth, package descriptor resolution, backend
-capability facts, Runtime probe semantics, Runtime authorization semantics, or
-SDK transport shape.
+It does not own Avatar carrier truth, remote package descriptor resolution,
+backend capability facts, Runtime probe semantics, Runtime authorization
+semantics, or SDK transport shape.
 
 ## D-LLM-078 — Avatar Configuration Authority Home
 
@@ -21,13 +21,14 @@ reviewing avatar configuration.
 Fixed rules:
 
 - configuration is a Desktop product control record, not a launch payload
-- `avatar_package_ref` and `backend_capability_profile_ref` are opaque refs
-- Desktop MUST NOT dereference package descriptors or backend capability
-  profiles
+- `local_avatar_asset_ref` and `backend_capability_profile_ref` are opaque refs
+- Desktop MUST validate local Avatar asset materialization before launch, but
+  MUST NOT dereference remote package descriptors or own backend capability
+  profile truth
 - Desktop MUST NOT create a local avatar carrier registry or per-agent local
   avatar binding truth
-- package/profile resolver execution belongs to Avatar after authorized
-  Runtime/SDK projection
+- local asset resolver execution belongs to Avatar after Runtime validates the
+  launch agent selector
 
 ## D-LLM-079 — Closed Configuration Record
 
@@ -38,7 +39,7 @@ Admitted fields:
 
 - `agent_id`
 - `conversation_anchor_scope`
-- `avatar_package_ref`
+- `local_avatar_asset_ref`
 - `live2d_adapter_manifest_source`
 - `live2d_adapter_manifest_ref`
 - `avatar_instance_policy`
@@ -78,10 +79,10 @@ fallback carrier truth when resolver evidence is missing.
 
 Resolver ownership is single-cut:
 
-- Desktop stores opaque refs and renders status.
-- Runtime/SDK provide authorized account, agent, package, and probe projection.
-- Avatar performs package descriptor and backend capability profile resolver
-  execution and emits backend evidence.
+- Desktop stores local asset refs and renders validation status.
+- Runtime/SDK provide authorized account, agent, optional secondary package,
+  and probe projection.
+- Avatar performs local asset resolver execution and emits backend evidence.
 
 No Desktop or Runtime contract admitted by this topic may become a second
 Avatar backend file resolver.
@@ -118,7 +119,7 @@ Configuration status MUST fail closed when required typed evidence is missing.
 Desktop MUST distinguish:
 
 - no local Avatar asset selected
-- local Avatar asset selected but unresolved by Avatar local materialization
+- local Avatar asset selected but unresolved by local materialization
 - backend profile missing
 - backend profile unsupported
 - generated motion provider unavailable
@@ -184,7 +185,7 @@ is missing.
 Desktop MUST distinguish:
 
 - no local Avatar asset selected
-- local Avatar asset selected but unresolved by Avatar local materialization
+- local Avatar asset selected but unresolved by local materialization
 - unsupported `backend_kind`
 - missing backend capability profile
 - missing renderer entry file

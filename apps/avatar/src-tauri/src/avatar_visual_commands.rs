@@ -1,4 +1,4 @@
-use crate::agent_center_avatar_package::ModelManifest;
+use crate::agent_center_avatar_asset::ModelManifest;
 use notify::{Config, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
 use serde::Serialize;
 use std::collections::HashMap;
@@ -64,7 +64,7 @@ fn is_agent_center_visual_package_file(path: &Path, home: &Path) -> bool {
     let package_file = segments.windows(7).any(|window| {
         window[0] == "agent-center"
             && window[1] == "modules"
-            && window[2] == "avatar_package"
+            && window[2] == "avatar_asset"
             && window[3] == "packages"
             && window[6] == "files"
     });

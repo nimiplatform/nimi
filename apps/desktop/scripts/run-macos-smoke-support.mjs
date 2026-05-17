@@ -249,7 +249,7 @@ export async function runScenario({ scenarioId, runIndex, runRoot, timeoutMs }) 
           package_dir: path.relative(repoRoot, avatarProductAgentCenterConfig.packageDir),
           account_id: avatarProductAgentCenterConfig.accountId,
           local_agent_ref: avatarProductAgentCenterConfig.localAgentRef,
-          avatar_package_ref: avatarProductAgentCenterConfig.avatarPackageRef,
+          local_avatar_asset_ref: avatarProductAgentCenterConfig.avatarAssetRef,
           backend_capability_profile_ref: avatarProductAgentCenterConfig.backendCapabilityProfileRef,
         }
       : null,

@@ -25,13 +25,13 @@ pub(crate) struct ModelManifest {
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub(crate) struct AgentCenterAvatarPackageResolvePayload {
+pub(crate) struct AgentCenterAvatarAssetResolvePayload {
     pub(crate) account_id: String,
     pub(crate) owner_user_id: String,
     pub(crate) realm_agent_id: String,
     pub(crate) local_agent_ref: String,
     pub(crate) backend_kind: String,
-    pub(crate) avatar_package_ref: String,
+    pub(crate) local_avatar_asset_ref: String,
     pub(crate) backend_capability_profile_ref: String,
     pub(crate) materialization_ref: String,
 }
@@ -60,23 +60,23 @@ struct AgentCenterLocalConfigFile {
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct AgentCenterLocalConfigModules {
-    avatar_package: AgentCenterLocalAvatarAssetSelection,
+    avatar_asset: AgentCenterLocalAvatarAssetSelection,
 }
 
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct AgentCenterLocalAvatarAssetSelection {
-    avatar_package_ref: Option<String>,
+    local_avatar_asset_ref: Option<String>,
     backend_kind: String,
     backend_capability_profile_ref: Option<String>,
 }
 
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
-struct AgentCenterAvatarPackageManifest {
+struct AgentCenterAvatarAssetManifest {
     manifest_version: u8,
-    package_version: String,
-    package_id: String,
+    asset_version: String,
+    local_asset_id: String,
     kind: String,
     loader_min_version: String,
     display_name: String,
@@ -85,15 +85,15 @@ struct AgentCenterAvatarPackageManifest {
     entry_file: String,
     required_files: Vec<String>,
     content_digest: String,
-    files: Vec<AgentCenterAvatarPackageManifestFile>,
-    limits: AgentCenterAvatarPackageManifestLimits,
+    files: Vec<AgentCenterAvatarAssetManifestFile>,
+    limits: AgentCenterAvatarAssetManifestLimits,
     capabilities: serde_json::Value,
-    import: AgentCenterAvatarPackageManifestImport,
+    import: AgentCenterAvatarAssetManifestImport,
 }
 
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
-struct AgentCenterAvatarPackageManifestFile {
+struct AgentCenterAvatarAssetManifestFile {
     path: String,
     sha256: String,
     bytes: u64,
@@ -102,16 +102,16 @@ struct AgentCenterAvatarPackageManifestFile {
 
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
-struct AgentCenterAvatarPackageManifestLimits {
+struct AgentCenterAvatarAssetManifestLimits {
     max_manifest_bytes: u64,
-    max_package_bytes: u64,
+    max_asset_bytes: u64,
     max_file_bytes: u64,
     max_file_count: usize,
 }
 
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
-struct AgentCenterAvatarPackageManifestImport {
+struct AgentCenterAvatarAssetManifestImport {
     imported_at: String,
     source_label: String,
     source_fingerprint: String,
@@ -163,11 +163,11 @@ pub(crate) fn agent_center_path_segment(value: &str) -> String {
     format!("id_{}", &digest[..24])
 }
 
-fn validate_avatar_package_id(value: &str, kind: &str) -> Result<String, String> {
+fn validate_avatar_asset_id(value: &str, kind: &str) -> Result<String, String> {
     let normalized = value.trim();
     let expected_prefix = format!("{kind}_");
     if !normalized.starts_with(expected_prefix.as_str()) {
-        return Err("avatar_package_id must match avatar_package_kind".to_string());
+        return Err("avatar_asset_id must match avatar_asset_kind".to_string());
     }
     let suffix = &normalized[expected_prefix.len()..];
     if suffix.len() != 12
@@ -176,7 +176,7 @@ fn validate_avatar_package_id(value: &str, kind: &str) -> Result<String, String>
             .all(|ch| ch.is_ascii_hexdigit() && !ch.is_ascii_uppercase())
     {
         return Err(
-            "avatar_package_id must use a 12-character lowercase hex digest suffix".to_string(),
+            "avatar_asset_id must use a 12-character lowercase hex digest suffix".to_string(),
         );
     }
     Ok(normalized.to_string())
@@ -197,10 +197,10 @@ fn expected_materialization_ref(
     account_id: &str,
     local_agent_ref: &str,
     kind: &str,
-    package_id: &str,
+    local_asset_id: &str,
 ) -> String {
     format!(
-        "agent-center-avatar-package:{}:{}:{kind}:{package_id}",
+        "agent-center-avatar-asset:{}:{}:{kind}:{local_asset_id}",
         agent_center_path_segment(account_id),
         agent_center_path_segment(local_agent_ref),
     )
@@ -234,10 +234,10 @@ fn read_local_avatar_asset_selection(
     {
         return Err("local Avatar asset config scope mismatch".to_string());
     }
-    Ok(config.modules.avatar_package)
+    Ok(config.modules.avatar_asset)
 }
 
-fn is_safe_package_relative_path(value: &str) -> bool {
+fn is_safe_asset_relative_path(value: &str) -> bool {
     let path = Path::new(value);
     !value.trim().is_empty()
         && !value.contains('\\')
@@ -273,12 +273,12 @@ fn resolve_home_data_root() -> Result<PathBuf, String> {
     Ok(home.join(".nimi").join("data"))
 }
 
-fn resolve_agent_center_avatar_package_dir(
+fn resolve_agent_center_avatar_asset_dir(
     data_root: &Path,
     account_id: &str,
     agent_id: &str,
     kind: &str,
-    package_id: &str,
+    local_asset_id: &str,
 ) -> Result<PathBuf, String> {
     Ok(data_root
         .join("accounts")
@@ -287,30 +287,30 @@ fn resolve_agent_center_avatar_package_dir(
         .join(agent_center_path_segment(agent_id))
         .join("agent-center")
         .join("modules")
-        .join("avatar_package")
+        .join("avatar_asset")
         .join("packages")
         .join(kind)
-        .join(package_id))
+        .join(local_asset_id))
 }
 
-fn find_agent_center_avatar_package_dir(
+fn find_agent_center_avatar_asset_dir(
     data_root: &Path,
     account_id: &str,
     agent_id: &str,
     kind: &str,
-    package_id: &str,
+    local_asset_id: &str,
 ) -> Result<PathBuf, String> {
     let candidate =
-        resolve_agent_center_avatar_package_dir(data_root, account_id, agent_id, kind, package_id)?;
+        resolve_agent_center_avatar_asset_dir(data_root, account_id, agent_id, kind, local_asset_id)?;
     if candidate.exists() {
         return Ok(candidate);
     }
-    Err("avatar package is unavailable".to_string())
+    Err("avatar asset is unavailable".to_string())
 }
 
 #[tauri::command]
-pub(crate) async fn nimi_avatar_resolve_agent_center_avatar_package(
-    payload: AgentCenterAvatarPackageResolvePayload,
+pub(crate) async fn nimi_avatar_resolve_agent_center_avatar_asset(
+    payload: AgentCenterAvatarAssetResolvePayload,
 ) -> Result<ModelManifest, String> {
     let account_id = validate_agent_center_id(&payload.account_id, "account_id")?;
     let owner_user_id = validate_agent_center_id(&payload.owner_user_id, "owner_user_id")?;
@@ -318,9 +318,9 @@ pub(crate) async fn nimi_avatar_resolve_agent_center_avatar_package(
     let local_agent_ref = validate_agent_center_id(&payload.local_agent_ref, "local_agent_ref")?;
     let kind = payload.backend_kind.trim().to_string();
     if kind != "live2d" && kind != "vrm" {
-        return Err("avatar_package_kind must be live2d or vrm".to_string());
+        return Err("avatar_asset_kind must be live2d or vrm".to_string());
     }
-    let package_id = validate_avatar_package_id(&payload.avatar_package_ref, kind.as_str())?;
+    let local_asset_id = validate_avatar_asset_id(&payload.local_avatar_asset_ref, kind.as_str())?;
     let _backend_capability_profile_ref = validate_handoff_ref(
         &payload.backend_capability_profile_ref,
         "backend_capability_profile_ref",
@@ -343,70 +343,70 @@ pub(crate) async fn nimi_avatar_resolve_agent_center_avatar_package(
         &account_id,
         &local_agent_ref,
         kind.as_str(),
-        package_id.as_str(),
+        local_asset_id.as_str(),
     );
     if materialization_ref != expected_ref {
         return Err(
-            "materialization_ref does not match the authorized local Avatar package".to_string(),
+            "materialization_ref does not match the authorized local Avatar asset".to_string(),
         );
     }
-    let package_dir = find_agent_center_avatar_package_dir(
+    let asset_dir = find_agent_center_avatar_asset_dir(
         &data_root,
         &account_id,
         &local_agent_ref,
         kind.as_str(),
-        package_id.as_str(),
+        local_asset_id.as_str(),
     )?;
     let canonical_data_root = data_root
         .canonicalize()
         .map_err(|error| format!("agent center data root is unavailable: {error}"))?;
-    let canonical_package_dir = package_dir
+    let canonical_asset_dir = asset_dir
         .canonicalize()
-        .map_err(|error| format!("avatar package is unavailable: {error}"))?;
-    if !canonical_package_dir.starts_with(&canonical_data_root) {
-        return Err("avatar package path escaped the Agent Center data root".to_string());
+        .map_err(|error| format!("avatar asset is unavailable: {error}"))?;
+    if !canonical_asset_dir.starts_with(&canonical_data_root) {
+        return Err("avatar asset path escaped the Agent Center data root".to_string());
     }
 
-    let manifest_path = canonical_package_dir.join("manifest.json");
+    let manifest_path = canonical_asset_dir.join("manifest.json");
     let manifest_meta = fs::symlink_metadata(&manifest_path)
-        .map_err(|error| format!("avatar package manifest is unavailable: {error}"))?;
+        .map_err(|error| format!("avatar asset manifest is unavailable: {error}"))?;
     if !manifest_meta.is_file() || manifest_meta.file_type().is_symlink() {
-        return Err("avatar package manifest must be a regular file".to_string());
+        return Err("avatar asset manifest must be a regular file".to_string());
     }
     if manifest_meta.len() > 262_144 {
-        return Err("avatar package manifest exceeds the admitted size cap".to_string());
+        return Err("avatar asset manifest exceeds the admitted size cap".to_string());
     }
     let manifest_raw = fs::read_to_string(&manifest_path)
-        .map_err(|error| format!("failed to read avatar package manifest: {error}"))?;
-    let manifest: AgentCenterAvatarPackageManifest = serde_json::from_str(&manifest_raw)
-        .map_err(|error| format!("invalid avatar package manifest: {error}"))?;
+        .map_err(|error| format!("failed to read avatar asset manifest: {error}"))?;
+    let manifest: AgentCenterAvatarAssetManifest = serde_json::from_str(&manifest_raw)
+        .map_err(|error| format!("invalid avatar asset manifest: {error}"))?;
     if manifest.manifest_version != 1 {
-        return Err("avatar package manifest_version must be 1".to_string());
+        return Err("avatar asset manifest_version must be 1".to_string());
     }
-    if manifest.package_id != package_id || manifest.kind != kind {
+    if manifest.local_asset_id != local_asset_id || manifest.kind != kind {
         return Err(
-            "avatar package manifest identity does not match local Avatar asset selection"
+            "avatar asset manifest identity does not match local Avatar asset selection"
                 .to_string(),
         );
     }
     if manifest.loader_min_version.trim() != "1.0.0" {
-        return Err("avatar package loader_min_version is not admitted".to_string());
+        return Err("avatar asset loader_min_version is not admitted".to_string());
     }
-    if !is_safe_package_relative_path(&manifest.entry_file)
+    if !is_safe_asset_relative_path(&manifest.entry_file)
         || !manifest.entry_file.starts_with("files/")
     {
-        return Err("avatar package entry_file must point under files/".to_string());
+        return Err("avatar asset entry_file must point under files/".to_string());
     }
     match kind.as_str() {
         "live2d" if !manifest.entry_file.ends_with(".model3.json") => {
             return Err(
-                "avatar package entry_file must point at a Live2D model3 file under files/"
+                "avatar asset entry_file must point at a Live2D model3 file under files/"
                     .to_string(),
             );
         }
         "vrm" if !manifest.entry_file.ends_with(".vrm") => {
             return Err(
-                "avatar package entry_file must point at a VRM file under files/".to_string(),
+                "avatar asset entry_file must point at a VRM file under files/".to_string(),
             );
         }
         _ => {}
@@ -416,27 +416,27 @@ pub(crate) async fn nimi_avatar_resolve_agent_center_avatar_package(
         .iter()
         .any(|path| path == &manifest.entry_file)
     {
-        return Err("avatar package required_files must include entry_file".to_string());
+        return Err("avatar asset required_files must include entry_file".to_string());
     }
     if manifest.limits.max_manifest_bytes != 262_144
-        || manifest.limits.max_package_bytes != 524_288_000
+        || manifest.limits.max_asset_bytes != 524_288_000
         || manifest.limits.max_file_bytes != 104_857_600
         || manifest.limits.max_file_count != 2_048
     {
-        return Err("avatar package limits do not match the admitted loader caps".to_string());
+        return Err("avatar asset limits do not match the admitted loader caps".to_string());
     }
 
     let entry_file_record = manifest
         .files
         .iter()
         .find(|file| file.path == manifest.entry_file)
-        .ok_or_else(|| "avatar package files must describe entry_file".to_string())?;
+        .ok_or_else(|| "avatar asset files must describe entry_file".to_string())?;
     match kind.as_str() {
         "live2d" if entry_file_record.mime != "application/json" => {
-            return Err("avatar package entry_file must be application/json".to_string());
+            return Err("avatar asset entry_file must be application/json".to_string());
         }
         "vrm" if entry_file_record.mime != "model/vrm" => {
-            return Err("avatar package entry_file must be model/vrm".to_string());
+            return Err("avatar asset entry_file must be model/vrm".to_string());
         }
         _ => {}
     }
@@ -446,19 +446,19 @@ pub(crate) async fn nimi_avatar_resolve_agent_center_avatar_package(
         .all(|ch| ch.is_ascii_hexdigit() && !ch.is_ascii_uppercase())
         || entry_file_record.sha256.len() != 64
     {
-        return Err("avatar package entry_file digest is invalid".to_string());
+        return Err("avatar asset entry_file digest is invalid".to_string());
     }
-    let entry_path = canonical_package_dir.join(&manifest.entry_file);
+    let entry_path = canonical_asset_dir.join(&manifest.entry_file);
     let entry_meta = fs::symlink_metadata(&entry_path)
-        .map_err(|error| format!("avatar package entry_file is unavailable: {error}"))?;
+        .map_err(|error| format!("avatar asset entry_file is unavailable: {error}"))?;
     if !entry_meta.is_file() || entry_meta.file_type().is_symlink() {
-        return Err("avatar package entry_file must be a regular file".to_string());
+        return Err("avatar asset entry_file must be a regular file".to_string());
     }
     let canonical_entry_path = entry_path
         .canonicalize()
-        .map_err(|error| format!("avatar package entry_file cannot be resolved: {error}"))?;
-    if !canonical_entry_path.starts_with(&canonical_package_dir) {
-        return Err("avatar package entry_file escaped the package root".to_string());
+        .map_err(|error| format!("avatar asset entry_file cannot be resolved: {error}"))?;
+    if !canonical_entry_path.starts_with(&canonical_asset_dir) {
+        return Err("avatar asset entry_file escaped the asset root".to_string());
     }
     // Offload entry-file hashing to the blocking pool. VRM payloads can be
     // 50–500MB; doing a synchronous read+SHA256 on the Tauri command worker
@@ -469,27 +469,27 @@ pub(crate) async fn nimi_avatar_resolve_agent_center_avatar_package(
     let (entry_bytes, entry_sha256) =
         tokio::task::spawn_blocking(move || sha256_file_hex(&hash_path))
             .await
-            .map_err(|error| format!("avatar package digest task failed: {error}"))??;
+            .map_err(|error| format!("avatar asset digest task failed: {error}"))??;
     if entry_bytes != entry_file_record.bytes || entry_sha256 != entry_file_record.sha256 {
-        return Err("avatar package entry_file content differs from manifest".to_string());
+        return Err("avatar asset entry_file content differs from manifest".to_string());
     }
     let runtime_dir = canonical_entry_path
         .parent()
-        .ok_or_else(|| "avatar package entry_file has no parent directory".to_string())?
+        .ok_or_else(|| "avatar asset entry_file has no parent directory".to_string())?
         .to_path_buf();
     let model_id = match kind.as_str() {
         "live2d" => canonical_entry_path
             .file_name()
             .and_then(|value| value.to_str())
             .and_then(|value| value.strip_suffix(".model3.json"))
-            .ok_or_else(|| "failed to infer model_id from package entry_file".to_string())?
+            .ok_or_else(|| "failed to infer model_id from asset entry_file".to_string())?
             .to_string(),
         "vrm" => canonical_entry_path
             .file_stem()
             .and_then(|value| value.to_str())
-            .ok_or_else(|| "failed to infer model_id from package entry_file".to_string())?
+            .ok_or_else(|| "failed to infer model_id from asset entry_file".to_string())?
             .to_string(),
-        _ => return Err("avatar_package_kind must be live2d or vrm".to_string()),
+        _ => return Err("avatar_asset_kind must be live2d or vrm".to_string()),
     };
     let nimi_dir = {
         let candidate = runtime_dir.join("nimi");
@@ -511,8 +511,8 @@ pub(crate) async fn nimi_avatar_resolve_agent_center_avatar_package(
             let canonical = candidate.canonicalize().map_err(|error| {
                 format!("embedded Live2D adapter manifest cannot be resolved: {error}")
             })?;
-            if !canonical.starts_with(&canonical_package_dir) {
-                return Err("embedded Live2D adapter manifest escaped the package root".to_string());
+            if !canonical.starts_with(&canonical_asset_dir) {
+                return Err("embedded Live2D adapter manifest escaped the asset root".to_string());
             }
             Some(canonical.display().to_string())
         } else {
@@ -530,7 +530,7 @@ pub(crate) async fn nimi_avatar_resolve_agent_center_avatar_package(
         }
     };
     let _ = (
-        manifest.package_version,
+        manifest.asset_version,
         manifest.display_name,
         manifest.display_name_i18n,
         manifest.content_digest,
@@ -585,8 +585,8 @@ pub(crate) async fn nimi_avatar_resolve_local_avatar_asset(
         &local_agent_ref,
     )?;
     let kind = selection.backend_kind.trim().to_string();
-    let avatar_package_ref = selection
-        .avatar_package_ref
+    let local_avatar_asset_ref = selection
+        .local_avatar_asset_ref
         .as_deref()
         .unwrap_or("")
         .trim()
@@ -597,18 +597,18 @@ pub(crate) async fn nimi_avatar_resolve_local_avatar_asset(
         .unwrap_or("")
         .trim()
         .to_string();
-    if avatar_package_ref.is_empty() || backend_capability_profile_ref.is_empty() {
+    if local_avatar_asset_ref.is_empty() || backend_capability_profile_ref.is_empty() {
         return Err("local Avatar asset selection is incomplete".to_string());
     }
     let materialization_ref =
-        expected_materialization_ref(&account_id, &local_agent_ref, kind.as_str(), &avatar_package_ref);
-    nimi_avatar_resolve_agent_center_avatar_package(AgentCenterAvatarPackageResolvePayload {
+        expected_materialization_ref(&account_id, &local_agent_ref, kind.as_str(), &local_avatar_asset_ref);
+    nimi_avatar_resolve_agent_center_avatar_asset(AgentCenterAvatarAssetResolvePayload {
         account_id,
         owner_user_id,
         realm_agent_id,
         local_agent_ref,
         backend_kind: kind,
-        avatar_package_ref,
+        local_avatar_asset_ref,
         backend_capability_profile_ref,
         materialization_ref,
     })

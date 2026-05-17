@@ -1,15 +1,15 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
-mod agent_center_avatar_package;
+mod agent_center_avatar_asset;
 mod avatar_evidence_projection;
 mod avatar_instance_projection;
 mod avatar_instance_registry;
 mod avatar_launch_context;
 mod avatar_visual_commands;
-use agent_center_avatar_package::{
-    nimi_avatar_resolve_agent_center_avatar_package, nimi_avatar_resolve_local_avatar_asset,
+use agent_center_avatar_asset::{
+    nimi_avatar_resolve_agent_center_avatar_asset, nimi_avatar_resolve_local_avatar_asset,
 };
 #[cfg(test)]
-use agent_center_avatar_package::AgentCenterAvatarPackageResolvePayload;
+use agent_center_avatar_asset::AgentCenterAvatarAssetResolvePayload;
 use avatar_evidence_projection::{
     AvatarEvidenceArtifactInput, AvatarEvidenceArtifactWriteResult, AvatarEvidenceRecordInput,
 };
@@ -607,7 +607,7 @@ fn main() {
             nimi_avatar_record_evidence,
             nimi_avatar_write_evidence_artifact,
             nimi_avatar_resolve_model,
-            nimi_avatar_resolve_agent_center_avatar_package,
+            nimi_avatar_resolve_agent_center_avatar_asset,
             nimi_avatar_resolve_local_avatar_asset,
             nimi_avatar_scan_nas_handlers,
             nimi_avatar_read_text_file,

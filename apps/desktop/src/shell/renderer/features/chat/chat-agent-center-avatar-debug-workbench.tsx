@@ -11,7 +11,7 @@ import {
   type RuntimeCompanionParticipationSurfaceKind,
 } from '@nimiplatform/sdk/runtime';
 import type { UseAgentConversationPresentationInput } from './chat-agent-shell-presentation-types';
-import type { AgentCenterAvatarPackageModule } from './chat-agent-center-avatar-config-types';
+import type { AgentCenterAvatarAssetModule } from './chat-agent-center-avatar-config-types';
 
 export type AvatarDebugWorkbenchProbe = {
   kind: AvatarDebugProbeKind;
@@ -27,7 +27,7 @@ export type AvatarDebugWorkbenchLaunchHealth = {
 
 export type AvatarDebugWorkbenchDiagnostics = {
   backendKind: string;
-  packageRefState: 'linked' | 'missing';
+  localAssetRefState: 'linked' | 'missing';
   profileRefState: 'linked' | 'pending';
   generatedMotionPolicy: string;
   debugProfile: string;
@@ -44,16 +44,16 @@ export type DesktopCompanionParticipationProjectionRequest = {
 
 type AgentCenterAvatarDebugWorkbenchProps = {
   input: UseAgentConversationPresentationInput;
-  avatarPackageConfig: AgentCenterAvatarPackageModule | null;
-  avatarPackageValid: boolean;
-  avatarPackageChecking: boolean;
+  avatarAssetConfig: AgentCenterAvatarAssetModule | null;
+  avatarAssetValid: boolean;
+  avatarAssetChecking: boolean;
   validationMessage: string | null;
 };
 
 const PROBES: readonly AvatarDebugWorkbenchProbe[] = [
   {
     kind: AvatarDebugProbeKind.PACKAGE_VALIDATION,
-    label: 'Package',
+    label: 'Local asset',
     summary: 'Validate the selected local Avatar asset record.',
   },
   {
@@ -113,8 +113,8 @@ const REQUIRED_EVIDENCE_REF_COUNTS_BY_PROBE_KIND: Partial<Record<AvatarDebugProb
 };
 
 export function buildAvatarDebugWorkbenchLaunchHealth(input: {
-  avatarPackageValid: boolean;
-  avatarPackageChecking: boolean;
+  avatarAssetValid: boolean;
+  avatarAssetChecking: boolean;
   conversationAnchorId: string | null;
   routeReady: boolean;
 }): AvatarDebugWorkbenchLaunchHealth {
@@ -125,14 +125,14 @@ export function buildAvatarDebugWorkbenchLaunchHealth(input: {
       detail: 'Open an agent conversation before running avatar debug probes.',
     };
   }
-  if (input.avatarPackageChecking) {
+  if (input.avatarAssetChecking) {
     return {
       status: 'checking',
       label: 'Checking',
       detail: 'Desktop is validating the current local Avatar asset record.',
     };
   }
-  if (!input.avatarPackageValid) {
+  if (!input.avatarAssetValid) {
     return {
       status: 'needs_package',
       label: 'Needs asset',
@@ -154,12 +154,12 @@ export function buildAvatarDebugWorkbenchLaunchHealth(input: {
 }
 
 export function buildAvatarDebugWorkbenchDiagnostics(
-  config: AgentCenterAvatarPackageModule | null,
+  config: AgentCenterAvatarAssetModule | null,
 ): AvatarDebugWorkbenchDiagnostics {
   const backendKind = config?.backend_kind || 'live2d';
   return {
     backendKind,
-    packageRefState: config?.avatar_package_ref ? 'linked' : 'missing',
+    localAssetRefState: config?.local_avatar_asset_ref ? 'linked' : 'missing',
     profileRefState: config?.backend_capability_profile_ref ? 'linked' : 'pending',
     generatedMotionPolicy: config?.generated_motion_provider_policy || 'require_profile_support',
     debugProfile: config?.debug_profile || 'standard',
@@ -335,7 +335,7 @@ export async function requestAvatarDebugWorkbenchProbe(input: {
 }
 
 export function AgentCenterAvatarDebugWorkbench(props: AgentCenterAvatarDebugWorkbenchProps) {
-  const { input, avatarPackageConfig, avatarPackageValid, avatarPackageChecking, validationMessage } = props;
+  const { input, avatarAssetConfig, avatarAssetValid, avatarAssetChecking, validationMessage } = props;
   const [snapshot, setSnapshot] = useState<GetAvatarDebugSnapshotResponse | null>(null);
   const [latestResult, setLatestResult] = useState<AvatarDebugProbeResultEnvelope | null>(null);
   const [latestReplay, setLatestReplay] = useState<AvatarDebugReplayRef | null>(null);
@@ -348,18 +348,18 @@ export function AgentCenterAvatarDebugWorkbench(props: AgentCenterAvatarDebugWor
   const realmAgentId = input.activeTarget?.realmAgentId || '';
   const conversationAnchorId = input.activeConversationAnchorId || '';
   const launchHealth = useMemo(() => buildAvatarDebugWorkbenchLaunchHealth({
-    avatarPackageValid,
-    avatarPackageChecking,
+    avatarAssetValid,
+    avatarAssetChecking,
     conversationAnchorId: input.activeConversationAnchorId,
     routeReady: input.agentRouteReady,
   }), [
-    avatarPackageChecking,
-    avatarPackageValid,
+    avatarAssetChecking,
+    avatarAssetValid,
     input.activeConversationAnchorId,
     input.agentRouteReady,
   ]);
-  const diagnostics = useMemo(() => buildAvatarDebugWorkbenchDiagnostics(avatarPackageConfig), [
-    avatarPackageConfig,
+  const diagnostics = useMemo(() => buildAvatarDebugWorkbenchDiagnostics(avatarAssetConfig), [
+    avatarAssetConfig,
   ]);
   const canRequestProbe = Boolean(localAgentRef && ownerUserId && realmAgentId && conversationAnchorId && launchHealth.status === 'ready');
 
@@ -483,7 +483,7 @@ export function AgentCenterAvatarDebugWorkbench(props: AgentCenterAvatarDebugWor
 
       <div className="mt-3 grid gap-2 text-[11px] leading-4 text-slate-600 sm:grid-cols-2">
         <DebugFact label={input.t('Chat.agentCenterAvatarDebugBackend', { defaultValue: 'Backend' })} value={diagnostics.backendKind.toUpperCase()} />
-        <DebugFact label={input.t('Chat.agentCenterAvatarDebugPackageRef', { defaultValue: 'Asset ref' })} value={diagnostics.packageRefState === 'linked' ? input.t('Chat.agentCenterLinked', { defaultValue: 'Linked' }) : input.t('Chat.agentCenterMissing', { defaultValue: 'Missing' })} />
+        <DebugFact label={input.t('Chat.agentCenterAvatarDebugAssetRef', { defaultValue: 'Asset ref' })} value={diagnostics.localAssetRefState === 'linked' ? input.t('Chat.agentCenterLinked', { defaultValue: 'Linked' }) : input.t('Chat.agentCenterMissing', { defaultValue: 'Missing' })} />
         <DebugFact label={input.t('Chat.agentCenterAvatarDebugProfileRef', { defaultValue: 'Profile ref' })} value={diagnostics.profileRefState === 'linked' ? input.t('Chat.agentCenterLinked', { defaultValue: 'Linked' }) : input.t('Chat.agentCenterPending', { defaultValue: 'Pending' })} />
         <DebugFact label={input.t('Chat.agentCenterAvatarDebugPolicy', { defaultValue: 'Motion policy' })} value={diagnostics.generatedMotionPolicy.replaceAll('_', ' ')} />
         <DebugFact label={input.t('Chat.agentCenterAvatarDebugProfile', { defaultValue: 'Debug profile' })} value={diagnostics.debugProfile.replaceAll('_', ' ')} />

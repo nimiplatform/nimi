@@ -11,6 +11,16 @@ const FORBIDDEN_LAUNCH_FIELDS = [
   'avatar_package_ref',
   'avatarPackageSchemaVersion',
   'avatar_package_schema_version',
+  'avatarAsset',
+  'avatar_asset',
+  'avatarAssetKind',
+  'avatar_asset_kind',
+  'avatarAssetId',
+  'avatar_asset_id',
+  'avatarAssetSchemaVersion',
+  'avatar_asset_schema_version',
+  'localAvatarAssetRef',
+  'local_avatar_asset_ref',
   'backendCapabilityProfileRef',
   'backend_capability_profile_ref',
   'materializationRef',
@@ -94,24 +104,6 @@ export type AvatarLaunchContext = {
   agentId: string;
   avatarInstanceId: string | null;
   launchSource: string | null;
-};
-
-export type AvatarScopedBindingProjection = {
-  bindingId: string;
-  bindingHandle: string | null;
-  runtimeAppId: string;
-  appInstanceId: string;
-  windowId: string;
-  avatarInstanceId: string;
-  agentId: string;
-  conversationAnchorId: string;
-  worldId: string | null;
-  purpose: string;
-  scopes: string[];
-  issuedAt: string | null;
-  expiresAt: string | null;
-  state: string;
-  reasonCode: string;
 };
 
 function assertNoForbiddenFields(record: Record<string, unknown>, context: string) {

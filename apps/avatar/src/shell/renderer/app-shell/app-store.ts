@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { AvatarScopedBindingProjection, RuntimeDefaults } from '../bridge/index.js';
+import type { RuntimeDefaults } from '../bridge/index.js';
 import type { AvatarLaunchContext } from '../bridge/index.js';
 import type { AgentDataBundle, DriverStatus } from '../driver/types.js';
 
@@ -38,7 +38,6 @@ export type AvatarAppState = {
   runtime: {
     defaults: RuntimeDefaults | null;
     binding: {
-      projection: AvatarScopedBindingProjection | null;
       status: RuntimeBindingStatus;
       reason: string | null;
     };
@@ -66,7 +65,6 @@ export type AvatarAppState = {
     conversationAnchorId: string;
     agentId: string;
     worldId: string;
-    scopedBinding?: AvatarScopedBindingProjection;
   }): void;
   setRuntimeBindingStatus(input: {
     status: RuntimeBindingStatus;
@@ -109,7 +107,6 @@ export const useAvatarStore = create<AvatarAppState>((set) => ({
   runtime: {
     defaults: null,
     binding: {
-      projection: null,
       status: 'unavailable',
       reason: null,
     },
@@ -166,7 +163,6 @@ export const useAvatarStore = create<AvatarAppState>((set) => ({
       runtime: {
         ...state.runtime,
         binding: {
-          projection: input.scopedBinding ?? state.runtime.binding.projection,
           status: 'active',
           reason: null,
         },
@@ -178,7 +174,6 @@ export const useAvatarStore = create<AvatarAppState>((set) => ({
       runtime: {
         ...state.runtime,
         binding: {
-          ...state.runtime.binding,
           status: input.status,
           reason: input.reason ?? null,
         },
@@ -197,7 +192,6 @@ export const useAvatarStore = create<AvatarAppState>((set) => ({
       runtime: {
         ...state.runtime,
         binding: {
-          ...state.runtime.binding,
           status: 'unavailable',
           reason: null,
         },

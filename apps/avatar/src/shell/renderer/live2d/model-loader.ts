@@ -12,12 +12,12 @@ export type ModelManifest = {
   adapterManifestPath?: string | null;
 };
 
-export type AgentCenterAvatarPackageReference = {
+export type AgentCenterLocalAvatarAssetReference = {
   accountId: string;
   ownerUserId: string;
   realmAgentId: string;
   localAgentRef: string;
-  avatarPackageRef: string;
+  localAvatarAssetRef: string;
   backendKind: 'live2d' | 'vrm';
   backendCapabilityProfileRef: string;
   materializationRef: string;
@@ -49,10 +49,10 @@ export async function resolveModelManifest(modelPath: string): Promise<ModelMani
   };
 }
 
-export async function resolveAgentCenterAvatarPackageManifest(
-  reference: AgentCenterAvatarPackageReference,
+export async function resolveAgentCenterAvatarAssetManifest(
+  reference: AgentCenterLocalAvatarAssetReference,
 ): Promise<ModelManifest> {
-  const raw = await invoke<RustModelManifest>('nimi_avatar_resolve_agent_center_avatar_package', {
+  const raw = await invoke<RustModelManifest>('nimi_avatar_resolve_agent_center_avatar_asset', {
     payload: reference,
   });
   return {

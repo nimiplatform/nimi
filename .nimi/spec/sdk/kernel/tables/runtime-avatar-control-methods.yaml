@@ -58,7 +58,7 @@ methods:
     semantic_owner: runtime_avatar_package_projection
     auth_scope: runtime.agent.avatar_package.read
     public_sdk_decoder: decodeAvatarPackageHandoff
-    implementation_status: runtime_emit_rpc_available
+    implementation_status: secondary_source_contract_only_fail_closed
   - name: runtime.agent.anchors.registerAvatarLiveInstance
     category: write
     method_id: /nimi.runtime.v1.RuntimeAgentService/RegisterAvatarLiveInstanceBinding

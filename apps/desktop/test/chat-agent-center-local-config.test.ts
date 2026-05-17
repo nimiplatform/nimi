@@ -19,15 +19,15 @@ test('Agent Center local config validates the admitted module platform shape', (
   const config = createConfig();
 
   config.modules.appearance.background_asset_id = 'bg_ab12cd34ef56';
-  config.modules.avatar_package.avatar_package_ref = 'runtime-avatar-ref:live2d_ab12cd34ef56';
-  config.modules.avatar_package.backend_capability_profile_ref = 'runtime-profile-ref:live2d_ab12cd34ef56';
+  config.modules.avatar_asset.local_avatar_asset_ref = 'live2d_ab12cd34ef56';
+  config.modules.avatar_asset.backend_capability_profile_ref = 'avatar_profile_live2d_ab12cd34ef56';
 
   const result = validateAgentCenterLocalConfig(config);
 
   assert.equal(result.ok, true);
   if (result.ok) {
     assert.equal(result.config.config_kind, AGENT_CENTER_LOCAL_CONFIG_KIND);
-    assert.equal(result.config.modules.avatar_package.avatar_package_ref, 'runtime-avatar-ref:live2d_ab12cd34ef56');
+    assert.equal(result.config.modules.avatar_asset.local_avatar_asset_ref, 'live2d_ab12cd34ef56');
   }
 });
 
@@ -87,13 +87,13 @@ test('Agent Center local config rejects runtime-owned truth fields', () => {
   }
 });
 
-test('Agent Center avatar package module rejects retired selected package truth', () => {
+test('Agent Center avatar asset module rejects retired selected package truth', () => {
   const config = createConfig() as unknown as Record<string, unknown>;
   const modules = config.modules as Record<string, unknown>;
-  const avatarPackage = modules.avatar_package as Record<string, unknown>;
-  avatarPackage.selected_package = {
+  const avatarAsset = modules.avatar_asset as Record<string, unknown>;
+  avatarAsset.selected_package = {
     kind: 'vrm',
-    package_id: 'live2d_ab12cd34ef56',
+    local_asset_id: 'live2d_ab12cd34ef56',
   };
 
   const result = validateAgentCenterLocalConfig(config);

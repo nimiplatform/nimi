@@ -4,10 +4,8 @@ import {
 } from '@nimiplatform/sdk/runtime';
 import {
   AccountCallerMode,
-  ScopedAppBindingPurpose,
   type AccountCaller,
   type Runtime,
-  type RuntimeScopedBindingAttachment,
 } from '@nimiplatform/sdk/runtime/browser';
 import { readNormalizedString } from './app-bootstrap-helpers.js';
 
@@ -22,53 +20,6 @@ export function createAvatarAccountCaller(appId: string): AccountCaller {
     deviceId: AVATAR_FIRST_PARTY_DEVICE_ID,
     mode: AccountCallerMode.LOCAL_FIRST_PARTY_APP,
     scopes: [],
-  };
-}
-
-export async function issueAvatarRuntimeScopedBinding(input: {
-  runtime: Runtime;
-  accountCaller: AccountCaller;
-  runtimeAppId: string;
-  avatarInstanceId: string;
-  localAgentRef: string;
-  conversationAnchorId: string;
-}): Promise<RuntimeScopedBindingAttachment> {
-  const relation = {
-    bindingId: '',
-    runtimeAppId: input.runtimeAppId,
-    appInstanceId: AVATAR_FIRST_PARTY_APP_INSTANCE_ID,
-    windowId: input.avatarInstanceId,
-    avatarInstanceId: input.avatarInstanceId,
-    agentId: input.localAgentRef,
-    conversationAnchorId: input.conversationAnchorId,
-    worldId: '',
-    purpose: ScopedAppBindingPurpose.AVATAR_INTERACTION_CONSUME,
-    scopes: [
-      'runtime.agent.turn.read',
-      'runtime.agent.state.read',
-      'runtime.agent.presentation.read',
-    ],
-    state: 0,
-    reasonCode: 0,
-  };
-  const issued = await input.runtime.account.issueScopedAppBinding({
-    caller: input.accountCaller,
-    relation,
-    ttlSeconds: 600,
-  });
-  if (!issued.accepted || !issued.bindingId || !issued.relation) {
-    throw new Error(`Avatar runtime scoped binding rejected: ${issued.accountReasonCode || issued.reasonCode || 'unknown'}`);
-  }
-  return {
-    bindingId: issued.bindingId,
-    bindingHandle: issued.bindingCarrier || '',
-    runtimeAppId: issued.relation.runtimeAppId,
-    appInstanceId: issued.relation.appInstanceId,
-    windowId: issued.relation.windowId,
-    avatarInstanceId: issued.relation.avatarInstanceId,
-    localAgentRef: issued.relation.agentId,
-    conversationAnchorId: issued.relation.conversationAnchorId,
-    worldId: issued.relation.worldId,
   };
 }
 

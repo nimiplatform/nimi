@@ -170,7 +170,7 @@ requireIncludes(FILES.sdkMethodTable, [
   'runtime.avatarPackage.resolveLaunchProjection',
   '/nimi.runtime.v1.RuntimeAgentService/ResolveAvatarPackageLaunchProjection',
   'runtime.agent.avatar_package.read',
-  'runtime_emit_rpc_available',
+  'secondary_source_contract_only_fail_closed',
 ]);
 
 for (const rule of [
@@ -250,6 +250,7 @@ requireIncludes(FILES.sdkTest, [
 ]);
 requireExcludes(FILES.avatarBootstrap, [
   'resolveRuntimeAvatarPackageHandoff',
+  'runtime.avatarPackage.resolveLaunchProjection',
   'avatar_package_handoff',
 ]);
 requireIncludes(FILES.avatarBootstrap, [
@@ -271,7 +272,7 @@ requireIncludes(FILES.avatarRuntimeBinding, [
 
 for (const relPath of [FILES.avatarLaunchContextTs, FILES.avatarLaunchContextRust]) {
   requireIncludes(relPath, [
-    'avatar_package_ref',
+    'local_avatar_asset_ref',
     'backend_capability_profile_ref',
     'materialization_ref',
     'local_materialization_ref',
@@ -326,7 +327,7 @@ for (const [typeName, typeBody] of [
     }
   }
 }
-for (const field of ['ownerUserId', 'realmAgentId', 'localAgentRef', 'conversationAnchorId', 'materializationRef', 'avatarPackageRef']) {
+for (const field of ['ownerUserId', 'realmAgentId', 'localAgentRef', 'conversationAnchorId', 'materializationRef', 'localAvatarAssetRef']) {
   if (!desktopLauncher.includes(`'${field}'`)) {
     fail(`${FILES.desktopLauncher} must reject forbidden Desktop launch input field ${field}`);
   }
@@ -337,6 +338,17 @@ requireIncludes(FILES.desktopLauncher, [
 ]);
 
 const desktopPresentation = read(FILES.desktopPresentation);
+for (const needle of [
+  'validateAgentCenterAvatarAsset',
+  "'agent-center-avatar-asset-validation'",
+  "avatarAssetValidation?.status === 'valid'",
+  'desktop_agent_center_avatar_asset_validate',
+]) {
+  const relPath = needle === 'desktop_agent_center_avatar_asset_validate'
+    ? 'apps/desktop/src/shell/renderer/bridge/runtime-bridge/chat-agent-center-local-config-store.ts'
+    : FILES.desktopPresentation;
+  requireIncludes(relPath, [needle]);
+}
 const desktopLaunchCall = desktopPresentation.match(/launchDesktopAvatarHandoff\(\{(?<body>[\s\S]*?)\n {6}\}\)/u)?.groups?.body || '';
 if (!desktopLaunchCall.includes('agentId: input.activeTarget.realmAgentId')) {
   fail(`${FILES.desktopPresentation} Avatar launch call must pass only agentId selector`);

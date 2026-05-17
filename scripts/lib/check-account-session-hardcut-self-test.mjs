@@ -47,7 +47,7 @@ export function runAccountSessionHardcutSelfTest({
           security: {
             assetProtocol: {
               scope: [
-                '$HOME/.nimi/data/accounts/*/agents/*/agent-center/modules/avatar_package/packages/*/*/files/**',
+                '$HOME/.nimi/data/accounts/*/agents/*/agent-center/modules/avatar_asset/packages/*/*/files/**',
                 '$HOME/ai/**',
               ],
             },
@@ -110,7 +110,7 @@ func (s *Service) ObserveRefreshToken() { s.revokeBindingsLocked(reason) }
     },
     {
       relPath: 'apps/desktop/src/shell/renderer/bridge/runtime-bridge/chat-agent-avatar-launcher.ts',
-      source: 'export const payload = { agentId, avatarPackageId };',
+      source: 'export const payload = { agentId, avatarAssetId, avatarPackageId };',
     },
     {
       relPath: 'apps/desktop/src-tauri/src/main_parts/defaults_and_commands/window_and_logs.rs',
@@ -129,8 +129,8 @@ func (s *Service) ObserveRefreshToken() { s.revokeBindingsLocked(reason) }
       source: AVATAR_LAUNCH_FORBIDDEN_QUERY_PARAMETERS.join('\n'),
     },
     {
-      relPath: 'apps/avatar/src-tauri/src/agent_center_avatar_package.rs',
-      source: 'struct Payload { agent_id: String, avatar_package_id: String }',
+      relPath: 'apps/avatar/src-tauri/src/agent_center_avatar_asset.rs',
+      source: 'struct Payload { agent_id: String, avatar_asset_id: String }',
     },
     {
       relPath: 'apps/web/src/desktop-adapter/runtime-bootstrap.web.ts',
@@ -247,7 +247,7 @@ func (s *Service) ObserveRefreshToken() {}
       source: AVATAR_LAUNCH_FORBIDDEN_QUERY_PARAMETERS.join('\n'),
     },
     {
-      relPath: 'apps/avatar/src-tauri/src/agent_center_avatar_package.rs',
+      relPath: 'apps/avatar/src-tauri/src/agent_center_avatar_asset.rs',
       source: 'struct Payload { agent_center_account_id: String, subject_user_id: String }',
     },
     {
