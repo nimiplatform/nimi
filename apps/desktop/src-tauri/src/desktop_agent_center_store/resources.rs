@@ -100,6 +100,10 @@ struct AgentCenterResourceOperationRecord {
 
 #[path = "resources_avatar_asset.rs"]
 mod resources_avatar_asset;
+#[path = "resources_avatar_asset_manifest.rs"]
+mod resources_avatar_asset_manifest;
+#[path = "resources_avatar_asset_source.rs"]
+mod resources_avatar_asset_source;
 #[path = "resources_commands.rs"]
 mod resources_commands;
 #[path = "resources_manifest_validation.rs"]
@@ -111,6 +115,8 @@ mod resources_remove_commands;
 #[path = "resources_validation.rs"]
 mod resources_validation;
 
+use resources_avatar_asset_manifest::*;
+use resources_avatar_asset_source::*;
 use resources_manifest_validation::*;
 use resources_operations::*;
 use resources_validation::*;
