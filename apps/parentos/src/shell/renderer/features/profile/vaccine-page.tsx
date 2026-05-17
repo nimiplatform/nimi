@@ -1,6 +1,6 @@
 import { Button, Surface, TextareaField, TextField } from '@nimiplatform/nimi-kit/ui';
 import { useState, useEffect, useMemo } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { useAppStore, computeAgeMonths, computeAgeMonthsAt, formatAge } from '../../app-shell/app-store.js';
 import { REMINDER_RULES } from '../../knowledge-base/index.js';
 import type { ReminderRule } from '../../knowledge-base/gen/reminder-rules.gen.js';
@@ -10,6 +10,8 @@ import { ulid, isoNow } from '../../bridge/ulid.js';
 import { catchLog } from '../../infra/telemetry/catch-log.js';
 import { AISummaryCard } from './ai-summary-card.js';
 import { completeReminderByRule } from '../../engine/reminder-actions.js';
+import { NoActiveChildPlaceholder } from './_shared/no-active-child-placeholder.js';
+import { ProfileDetailShell } from './_shared/profile-detail-shell.js';
 import { ProfileDatePicker } from './profile-date-picker.js';
 
 /* ── helpers ──────────────────────────────────────────────── */
@@ -363,7 +365,13 @@ export default function VaccinePage() {
     if (activeChildId) getVaccineRecords(activeChildId).then(setRecords).catch(catchLog('vaccine', 'action:load-vaccine-records-failed'));
   }, [activeChildId]);
 
-  if (!child) return <div className="p-8 text-[var(--nimi-text-muted)]">请先添加孩子</div>;
+  if (!child) {
+    return (
+      <ProfileDetailShell title="疫苗接种">
+        <NoActiveChildPlaceholder />
+      </ProfileDetailShell>
+    );
+  }
 
   const ageMonths = computeAgeMonths(child.birthDate);
   const vaccineRules = REMINDER_RULES.filter((r) => r.domain === 'vaccine');
@@ -418,23 +426,18 @@ export default function VaccinePage() {
   const recordingRule = recordingRuleId ? vaccineRules.find((r) => r.ruleId === recordingRuleId) : null;
 
   return (
-    <div className="max-w-3xl mx-auto min-h-full px-6 pb-6 pt-[72px]">
-      <div className="flex items-center gap-2 mb-5">
-        <Link to="/profile" className="text-[14px] hover:underline text-[var(--nimi-text-muted)]">← 返回档案</Link>
-      </div>
-
-      {/* Header */}
-      <div className="flex items-center justify-between mb-1">
-        <div className="flex items-center gap-2">
-          <h1 className="text-xl font-bold text-[var(--nimi-text-primary)]">疫苗接种</h1>
-          <div className="group relative">
-            <div className="w-[18px] h-[18px] rounded-full flex items-center justify-center cursor-help transition-colors hover:bg-[var(--nimi-action-ghost-hover)] text-[var(--nimi-text-muted)]">
+    <ProfileDetailShell
+      title={
+        <span className="flex items-center gap-2">
+          <span>疫苗接种</span>
+          <span className="group relative inline-flex">
+            <span className="w-[18px] h-[18px] rounded-full inline-flex items-center justify-center cursor-help transition-colors hover:bg-[var(--nimi-action-ghost-hover)] text-[var(--nimi-text-muted)]">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                 <circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" />
               </svg>
-            </div>
-            <div className="pointer-events-none absolute left-0 top-7 z-50 w-[360px] rounded-xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-overlay)] p-4 text-[13px] leading-relaxed text-[var(--nimi-text-secondary)] opacity-0 shadow-[var(--nimi-elevation-floating)] transition-opacity duration-200 group-hover:pointer-events-auto group-hover:opacity-100">
-              <p className="text-[14px] font-semibold text-[var(--nimi-text-primary)] mb-2.5">数据参考文献</p>
+            </span>
+            <span className="pointer-events-none absolute left-0 top-7 z-50 w-[360px] rounded-xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-overlay)] p-4 text-[13px] leading-relaxed text-[var(--nimi-text-secondary)] opacity-0 shadow-[var(--nimi-elevation-floating)] transition-opacity duration-200 group-hover:pointer-events-auto group-hover:opacity-100">
+              <span className="block text-[14px] font-semibold text-[var(--nimi-text-primary)] mb-2.5">数据参考文献</span>
               <ul className="space-y-2.5">
                 <li>
                   <span className="text-[var(--nimi-action-primary-bg)] font-medium">国家免疫规划疫苗（免费）</span>
@@ -452,11 +455,13 @@ export default function VaccinePage() {
                   <span className="block text-[12px] text-[var(--nimi-text-muted)]">覆盖: BCG · 乙肝 · 百白破 · 脊灰 · 麻腮风 · 流脑 · 乙脑 · 甲肝等</span>
                 </li>
               </ul>
-              <p className="text-[12px] mt-2.5 pt-2 border-t border-[var(--nimi-border-subtle)] text-[var(--nimi-text-muted)]">接种窗口和时间表以国家免疫规划为准 · 自费疫苗仅供参考 · 具体请遵医嘱</p>
-            </div>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
+              <span className="block text-[12px] mt-2.5 pt-2 border-t border-[var(--nimi-border-subtle)] text-[var(--nimi-text-muted)]">接种窗口和时间表以国家免疫规划为准 · 自费疫苗仅供参考 · 具体请遵医嘱</span>
+            </span>
+          </span>
+        </span>
+      }
+      actions={
+        <>
           <Button onClick={() => setShowCustomModal(true)} tone="primary" size="sm">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
             自定义疫苗
@@ -464,9 +469,14 @@ export default function VaccinePage() {
           <span className="text-[14px] px-3 py-1 rounded-full bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,var(--nimi-surface-card))] text-[var(--nimi-action-primary-bg)]">
             {completedCount}/{vaccineRules.length} · {pct}%
           </span>
-        </div>
-      </div>
-
+        </>
+      }
+      aiSummary={
+        <AISummaryCard domain="vaccine" childName={child.displayName} childId={child.childId}
+          ageLabel={`${Math.floor(ageMonths / 12)}岁${ageMonths % 12}个月`} gender={child.gender}
+          dataContext={completedCount > 0 ? `已接种 ${completedCount}/${vaccineRules.length} 项疫苗 (${pct}%)。${upcoming.length > 0 ? `待接种: ${upcoming.map((r) => r.title).join('、')}` : '所有疫苗已完成'}` : ''} />
+      }
+    >
       {/* Progress bar */}
       <Surface tone="card" material="glass-regular" elevation="raised" padding="md" className="mb-5 rounded-3xl">
         <div className="flex items-center justify-between mb-2">
@@ -477,11 +487,6 @@ export default function VaccinePage() {
           <div className="h-full rounded-full bg-[var(--nimi-action-primary-bg)] transition-all duration-500" style={{ width: `${pct}%` }} />
         </div>
       </Surface>
-
-      {/* AI Summary */}
-      <AISummaryCard domain="vaccine" childName={child.displayName} childId={child.childId}
-        ageLabel={`${Math.floor(ageMonths / 12)}岁${ageMonths % 12}个月`} gender={child.gender}
-        dataContext={completedCount > 0 ? `已接种 ${completedCount}/${vaccineRules.length} 项疫苗 (${pct}%)。${upcoming.length > 0 ? `待接种: ${upcoming.map((r) => r.title).join('、')}` : '所有疫苗已完成'}` : ''} />
 
       {/* ── Upcoming vaccines (主动推送) ──────────────────── */}
       {upcoming.length > 0 && (
@@ -681,6 +686,6 @@ export default function VaccinePage() {
           onClose={() => setShowCustomModal(false)}
         />
       )}
-    </div>
+    </ProfileDetailShell>
   );
 }

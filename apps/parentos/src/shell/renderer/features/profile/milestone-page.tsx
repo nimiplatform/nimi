@@ -1,6 +1,5 @@
 import { Button, Surface, TextareaField } from '@nimiplatform/nimi-kit/ui';
 import { useState, useEffect, useMemo } from 'react';
-import { Link } from 'react-router-dom';
 import { useAppStore, computeAgeMonths, formatAge } from '../../app-shell/app-store.js';
 import { MILESTONE_CATALOG } from '../../knowledge-base/index.js';
 import type { MilestoneDomain } from '../../knowledge-base/gen/milestone-catalog.gen.js';
@@ -10,6 +9,8 @@ import { ulid, isoNow } from '../../bridge/ulid.js';
 import { catchLog } from '../../infra/telemetry/catch-log.js';
 import { AISummaryCard } from './ai-summary-card.js';
 import { readImageFileAsDataUrl } from './checkup-ocr.js';
+import { NoActiveChildPlaceholder } from './_shared/no-active-child-placeholder.js';
+import { ProfileDetailShell } from './_shared/profile-detail-shell.js';
 import { ProfileDatePicker } from './profile-date-picker.js';
 
 /* ── domain config ───────────────────────────────────────── */
@@ -194,7 +195,13 @@ export default function MilestonePage() {
     if (activeChildId) getMilestoneRecords(activeChildId).then(setRecords).catch(catchLog('milestone', 'action:load-milestone-records-failed'));
   }, [activeChildId]);
 
-  if (!child) return <div className="p-8 text-[var(--nimi-text-muted)]">请先添加孩子</div>;
+  if (!child) {
+    return (
+      <ProfileDetailShell title="发育里程碑">
+        <NoActiveChildPlaceholder />
+      </ProfileDetailShell>
+    );
+  }
 
   const ageMonths = computeAgeMonths(child.birthDate);
   const isArchive = ageMonths > 72; // 6+ years: read-only archive view
@@ -283,21 +290,16 @@ export default function MilestonePage() {
   const editTarget = editingMilestone ? MILESTONE_CATALOG.find((m) => m.milestoneId === editingMilestone) : null;
 
   return (
-    <div className="mx-auto min-h-full max-w-3xl px-6 pb-6 pt-[72px]">
-      <div className="flex items-center gap-2 mb-5">
-        <Link to="/profile" className="text-[14px] hover:underline text-[var(--nimi-text-muted)]">← 返回档案</Link>
-      </div>
-
-      {/* Header */}
-      <div className="flex items-center justify-between mb-1">
-        <div className="flex items-center gap-2">
-          <h1 className="text-xl font-bold text-[var(--nimi-text-primary)]">{isArchive ? '早期发育记录' : '发育里程碑'}</h1>
-          <div className="group relative">
-            <div className="w-[18px] h-[18px] rounded-full flex items-center justify-center cursor-help transition-colors hover:bg-[var(--nimi-action-ghost-hover)] text-[var(--nimi-text-muted)]">
+    <ProfileDetailShell
+      title={
+        <span className="flex items-center gap-2">
+          <span>{isArchive ? '早期发育记录' : '发育里程碑'}</span>
+          <span className="group relative inline-flex">
+            <span className="w-[18px] h-[18px] rounded-full inline-flex items-center justify-center cursor-help transition-colors hover:bg-[var(--nimi-action-ghost-hover)] text-[var(--nimi-text-muted)]">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                 <circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" />
               </svg>
-            </div>
+            </span>
             <Surface
               tone="overlay"
               material="glass-thick"
@@ -324,24 +326,26 @@ export default function MilestonePage() {
               </ul>
               <p className="text-[12px] mt-2.5 pt-2 border-t border-[var(--nimi-border-subtle)] text-[var(--nimi-text-subtle)]">每项标注中位月龄和正常范围 · 超过警示月龄未达成建议咨询专业人士</p>
             </Surface>
-          </div>
-        </div>
+          </span>
+        </span>
+      }
+      actions={
         <span className="text-[14px] px-3 py-1 rounded-full bg-[var(--nimi-surface-active)] text-[var(--nimi-action-primary-bg)]">
           已达成 {achievedCount}/{MILESTONE_CATALOG.length}
         </span>
-      </div>
-
-      {/* AI Summary */}
-      <AISummaryCard domain="milestone" childName={child.displayName} childId={child.childId}
-        ageLabel={`${Math.floor(ageMonths / 12)}岁${ageMonths % 12}个月`} gender={child.gender}
-        dataContext={achievedCount > 0
-          ? `已达成 ${achievedCount}/${MILESTONE_CATALOG.length} 个里程碑。${DOMAINS.map((d) => {
-            const ms = MILESTONE_CATALOG.filter((m) => m.domain === d.key);
-            const ac = ms.filter((m) => recordMap.get(m.milestoneId)?.achievedAt).length;
-            return `${d.label}: ${ac}/${ms.length}`;
-          }).join(', ')}`
-          : ''} />
-
+      }
+      aiSummary={
+        <AISummaryCard domain="milestone" childName={child.displayName} childId={child.childId}
+          ageLabel={`${Math.floor(ageMonths / 12)}岁${ageMonths % 12}个月`} gender={child.gender}
+          dataContext={achievedCount > 0
+            ? `已达成 ${achievedCount}/${MILESTONE_CATALOG.length} 个里程碑。${DOMAINS.map((d) => {
+              const ms = MILESTONE_CATALOG.filter((m) => m.domain === d.key);
+              const ac = ms.filter((m) => recordMap.get(m.milestoneId)?.achievedAt).length;
+              return `${d.label}: ${ac}/${ms.length}`;
+            }).join(', ')}`
+            : ''} />
+      }
+    >
       {/* ── 4. Upcoming milestones (主动推送, hidden in archive mode) ── */}
       {!isArchive && upcoming.length > 0 && (
         <Surface tone="card" material="glass-regular" elevation="raised" padding="md" className="mb-5 rounded-3xl">
@@ -741,6 +745,6 @@ export default function MilestonePage() {
           onClose={() => setEditingMilestone(null)}
         />
       )}
-    </div>
+    </ProfileDetailShell>
   );
 }

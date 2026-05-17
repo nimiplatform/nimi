@@ -1,4 +1,12 @@
-import { IconButton, StatusBadge, Surface, cn, type StatusTone } from '@nimiplatform/nimi-kit/ui';
+import {
+  IconButton,
+  StatusBadge,
+  Surface,
+  Timeline,
+  TimelineGroup,
+  cn,
+  type StatusTone,
+} from '@nimiplatform/nimi-kit/ui';
 import { formatAge } from '../../app-shell/app-store.js';
 import type { MedicalEventRow } from '../../bridge/sqlite-bridge.js';
 import {
@@ -90,27 +98,23 @@ export function MedicalEventsTimeline({
   }
 
   return (
-    <div className="relative">
+    <>
       {searchQuery ? (
         <p className="text-[13px] mb-3 text-[var(--nimi-text-muted)]">
           找到 {filteredEvents.length} 条匹配记录
         </p>
       ) : null}
 
-      <div className="absolute bottom-0 left-[18px] top-0 w-px bg-[var(--nimi-border-subtle)]" />
-
-      {timelineGroups.map(([yearMonth, monthEvents]) => (
-        <div key={yearMonth} className="relative pl-10 pb-6">
-          <div className="absolute left-[11px] top-1 flex h-4 w-4 items-center justify-center rounded-full border-2 border-[var(--nimi-action-primary-bg)] bg-[var(--nimi-surface-card)]">
-            <div className="h-1.5 w-1.5 rounded-full bg-[var(--nimi-action-primary-bg)]" />
-          </div>
-
-          <div className="flex items-center gap-2 mb-2">
-            <span className="text-[14px] font-bold text-[var(--nimi-text-primary)]">{formatMonthLabel(yearMonth)}</span>
-            <span className="text-[12px] text-[var(--nimi-text-muted)]">{monthEvents.length} 条记录</span>
-          </div>
-
-          <div className="space-y-1.5">
+      <Timeline>
+        {timelineGroups.map(([yearMonth, monthEvents], gi) => (
+          <TimelineGroup
+            key={yearMonth}
+            variant="past"
+            dotVariant="ring"
+            date={formatMonthLabel(yearMonth)}
+            secondaryLabel={`${monthEvents.length} 条记录`}
+            isLast={gi === timelineGroups.length - 1}
+          >
             {monthEvents.map((event) => {
               const eventTypeToneClass = EVENT_TYPE_TONE_CLASS[event.eventType] ?? EVENT_TYPE_TONE_CLASS_DEFAULT;
               const eventTypeBadgeTone = EVENT_TYPE_BADGE_TONE[event.eventType] ?? 'neutral';
@@ -231,9 +235,9 @@ export function MedicalEventsTimeline({
                 </div>
               );
             })}
-          </div>
-        </div>
-      ))}
-    </div>
+          </TimelineGroup>
+        ))}
+      </Timeline>
+    </>
   );
 }

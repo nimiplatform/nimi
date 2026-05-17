@@ -1,12 +1,13 @@
 import { Button, Surface } from '@nimiplatform/nimi-kit/ui';
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { useAppStore, computeAgeMonths, computeAgeMonthsAt } from '../../app-shell/app-store.js';
 import { insertTannerAssessment, getTannerAssessments, getMeasurements, insertMeasurement } from '../../bridge/sqlite-bridge.js';
 import type { TannerAssessmentRow, MeasurementRow } from '../../bridge/sqlite-bridge.js';
 import { ulid, isoNow } from '../../bridge/ulid.js';
 import { AISummaryCard } from './ai-summary-card.js';
 import { catchLog } from '../../infra/telemetry/catch-log.js';
+import { NoActiveChildPlaceholder } from './_shared/no-active-child-placeholder.js';
+import { ProfileDetailShell } from './_shared/profile-detail-shell.js';
 import { TannerAssessmentForm } from './tanner-assessment-form.js';
 import { TannerGuidePanel } from './tanner-guide-panel.js';
 import { TannerOverviewCards } from './tanner-overview-cards.js';
@@ -46,7 +47,13 @@ export default function TannerPage() {
     if (activeChildId) loadAll(activeChildId).catch(catchLog('tanner', 'action:load-tanner-data-failed'));
   }, [activeChildId]);
 
-  if (!child) return <div className="p-8 text-[var(--nimi-text-muted)]">请先添加孩子</div>;
+  if (!child) {
+    return (
+      <ProfileDetailShell title="青春期发育评估">
+        <NoActiveChildPlaceholder />
+      </ProfileDetailShell>
+    );
+  }
 
   const ageMonths = computeAgeMonths(child.birthDate);
   const isFemale = child.gender === 'female';
@@ -93,24 +100,18 @@ export default function TannerPage() {
   };
 
   return (
-    <div className="mx-auto min-h-full max-w-3xl px-6 pb-6 pt-[72px]">
-      <div className="flex items-center gap-2 mb-5">
-        <Link to="/profile" className="text-[14px] hover:underline text-[var(--nimi-text-muted)]">← 返回档案</Link>
-      </div>
-
-      {/* Header */}
-      <div className="flex items-center justify-between mb-1">
-        <div className="flex items-center gap-2">
-          <h1 className="text-xl font-bold text-[var(--nimi-text-primary)]">青春期发育评估</h1>
-          {/* Info tooltip */}
-          <div className="group relative">
-            <div className="flex h-[18px] w-[18px] cursor-help items-center justify-center rounded-full text-[var(--nimi-text-muted)] hover:bg-[var(--nimi-action-ghost-hover)]">
+    <ProfileDetailShell
+      title={
+        <span className="flex items-center gap-2">
+          <span>青春期发育评估</span>
+          <span className="group relative inline-flex">
+            <span className="flex h-[18px] w-[18px] cursor-help items-center justify-center rounded-full text-[var(--nimi-text-muted)] hover:bg-[var(--nimi-action-ghost-hover)]">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                 <circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" />
               </svg>
-            </div>
-            <div className="pointer-events-none absolute left-0 top-7 z-50 w-[320px] rounded-xl bg-[var(--nimi-surface-overlay)] p-4 text-[13px] leading-relaxed text-[var(--nimi-text-secondary)] opacity-0 shadow-[var(--nimi-elevation-floating)] transition-opacity duration-200 group-hover:pointer-events-auto group-hover:opacity-100">
-              <p className="mb-2 text-[14px] font-semibold text-[var(--nimi-text-primary)]">参考标准</p>
+            </span>
+            <span className="pointer-events-none absolute left-0 top-7 z-50 w-[320px] rounded-xl bg-[var(--nimi-surface-overlay)] p-4 text-[13px] leading-relaxed text-[var(--nimi-text-secondary)] opacity-0 shadow-[var(--nimi-elevation-floating)] transition-opacity duration-200 group-hover:pointer-events-auto group-hover:opacity-100">
+              <span className="mb-2 block text-[14px] font-semibold text-[var(--nimi-text-primary)]">参考标准</span>
               <ul className="space-y-2">
                 <li>
                   <span className="font-medium text-[var(--nimi-action-primary-bg)]">Tanner 分期标准</span>
@@ -122,11 +123,13 @@ export default function TannerPage() {
                   <span className="mt-0.5 block text-[12px] text-[var(--nimi-text-muted)]">中华医学会儿科学分会内分泌遗传代谢学组. 中枢性性早熟诊断与治疗专家共识（2022）</span>
                 </li>
               </ul>
-              <p className="mt-2 border-t border-[color-mix(in_srgb,var(--nimi-border-subtle)_70%,transparent)] pt-2 text-[12px] text-[var(--nimi-text-muted)]">女孩 B2 通常 8-13 岁出现 · 男孩 G2 通常 9-14 岁出现</p>
-            </div>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
+              <span className="mt-2 block border-t border-[color-mix(in_srgb,var(--nimi-border-subtle)_70%,transparent)] pt-2 text-[12px] text-[var(--nimi-text-muted)]">女孩 B2 通常 8-13 岁出现 · 男孩 G2 通常 9-14 岁出现</span>
+            </span>
+          </span>
+        </span>
+      }
+      actions={
+        <>
           <button onClick={() => setShowGuide(!showGuide)}
             className={`flex items-center gap-1 rounded-2xl px-3 py-1.5 text-[13px] font-medium transition-all ${showGuide ? 'bg-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)]' : 'bg-[var(--nimi-surface-panel)] text-[var(--nimi-text-muted)]'}`}>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -140,8 +143,14 @@ export default function TannerPage() {
               添加评估
             </Button>
           )}
-        </div>
-      </div>
+        </>
+      }
+      aiSummary={
+        <AISummaryCard domain="tanner" childName={child.displayName} childId={child.childId}
+          ageLabel={`${Math.floor(ageMonths / 12)}岁${ageMonths % 12}个月`} gender={child.gender}
+          dataContext={assessments.length > 0 ? `共 ${assessments.length} 次评估` : ''} />
+      }
+    >
       <div className="mb-4">
         <p className="text-[13px] text-[var(--nimi-text-muted)]">{isFemale ? '女孩' : '男孩'} · 共 {assessments.length} 次评估</p>
       </div>
@@ -199,10 +208,6 @@ export default function TannerPage() {
         </Surface>
       )}
 
-      <AISummaryCard domain="tanner" childName={child.displayName} childId={child.childId}
-        ageLabel={`${Math.floor(ageMonths / 12)}岁${ageMonths % 12}个月`} gender={child.gender}
-        dataContext={assessments.length > 0 ? `共 ${assessments.length} 次评估` : ''} />
-
       {showForm && (
         <TannerAssessmentForm
           bgLabel={bgLabel}
@@ -239,6 +244,6 @@ export default function TannerPage() {
         {sorted.length > 0 ? `评估记录（${sorted.length} 次）` : '暂无评估记录'}
       </h2>
       <TannerTimeline assessments={sorted} bgStages={bgStages} isFemale={isFemale} showForm={showForm} />
-    </div>
+    </ProfileDetailShell>
   );
 }

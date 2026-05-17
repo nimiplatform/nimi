@@ -1,11 +1,12 @@
 import { Button, Surface } from '@nimiplatform/nimi-kit/ui';
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { useAppStore, computeAgeMonths, formatAge } from '../../app-shell/app-store.js';
 import { deleteSleepRecord, getSleepRecords } from '../../bridge/sqlite-bridge.js';
 import type { SleepRecordRow } from '../../bridge/sqlite-bridge.js';
 import { AISummaryCard } from './ai-summary-card.js';
 import { catchLog } from '../../infra/telemetry/catch-log.js';
+import { NoActiveChildPlaceholder } from './_shared/no-active-child-placeholder.js';
+import { ProfileDetailShell } from './_shared/profile-detail-shell.js';
 import { SleepRecordForm } from './sleep-record-form.js';
 import { SleepRecordCard } from './sleep-record-card.js';
 import {
@@ -36,7 +37,13 @@ export default function SleepPage() {
     if (activeChildId) getSleepRecords(activeChildId).then(setRecords).catch(catchLog('sleep', 'action:load-sleep-records-failed'));
   }, [activeChildId]);
 
-  if (!child) return <div className="p-8 text-[var(--nimi-text-muted)]">请先添加孩子</div>;
+  if (!child) {
+    return (
+      <ProfileDetailShell title="睡眠记录">
+        <NoActiveChildPlaceholder />
+      </ProfileDetailShell>
+    );
+  }
 
   const sortedRecords = sortSleepRecordsDesc(records);
   const [refLo, refHi] = referenceSleepRange(ageMonths);
@@ -67,22 +74,20 @@ export default function SleepPage() {
   };
 
   return (
-    <div className="mx-auto min-h-full max-w-3xl px-6 pb-6 pt-[72px]">
-      <div className="flex items-center gap-2 mb-6">
-        <Link to="/profile" className="text-[14px] hover:underline text-[var(--nimi-text-muted)]">&larr; 返回档案</Link>
-      </div>
-      <div className="flex items-center justify-between mb-1">
-        <h1 className="text-xl font-bold text-[var(--nimi-text-primary)]">睡眠记录</h1>
-        {!showForm && (
-          <Button tone="primary" size="sm" onClick={() => setShowForm(true)} className="rounded-2xl">
-            添加记录
-          </Button>
-        )}
-      </div>
-      <AISummaryCard domain="sleep" childName={child.displayName} childId={child.childId}
-        ageLabel={`${Math.floor(ageMonths / 12)}岁${ageMonths % 12}个月`} gender={child.gender}
-        dataContext={records.length > 0 ? `近期 ${records.length} 条睡眠记录，最近一次: ${records[0]?.sleepDate ?? ''}` : ''}
-      />
+    <ProfileDetailShell
+      title="睡眠记录"
+      actions={!showForm ? (
+        <Button tone="primary" size="sm" onClick={() => setShowForm(true)} className="rounded-2xl">
+          添加记录
+        </Button>
+      ) : null}
+      aiSummary={
+        <AISummaryCard domain="sleep" childName={child.displayName} childId={child.childId}
+          ageLabel={`${Math.floor(ageMonths / 12)}岁${ageMonths % 12}个月`} gender={child.gender}
+          dataContext={records.length > 0 ? `近期 ${records.length} 条睡眠记录，最近一次: ${records[0]?.sleepDate ?? ''}` : ''}
+        />
+      }
+    >
       <p className="text-sm mb-4 text-[var(--nimi-text-muted)]">
         参考睡眠时长: {refLo}-{refHi} 小时/天（{formatAge(ageMonths)} · {TIER_LABELS[tier]}）</p>
 
@@ -128,6 +133,6 @@ export default function SleepPage() {
           </Surface>
         </div>
       ) : null}
-    </div>
+    </ProfileDetailShell>
   );
 }

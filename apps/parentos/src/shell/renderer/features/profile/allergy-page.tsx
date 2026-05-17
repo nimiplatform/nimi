@@ -1,6 +1,5 @@
-import { Button, Surface, TextareaField, TextField } from '@nimiplatform/nimi-kit/ui';
+import { Button, DashedAddButton, Surface, TextareaField, TextField } from '@nimiplatform/nimi-kit/ui';
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
 import { useAppStore, computeAgeMonths, computeAgeMonthsAt } from '../../app-shell/app-store.js';
 import { insertAllergyRecord, updateAllergyRecord, getAllergyRecords, upsertReminderState } from '../../bridge/sqlite-bridge.js';
 import type { AllergyRecordRow } from '../../bridge/sqlite-bridge.js';
@@ -8,6 +7,8 @@ import { generateAllergyFollowups } from '../../engine/smart-alerts.js';
 import { ulid, isoNow } from '../../bridge/ulid.js';
 import { AISummaryCard } from './ai-summary-card.js';
 import { catchLog } from '../../infra/telemetry/catch-log.js';
+import { NoActiveChildPlaceholder } from './_shared/no-active-child-placeholder.js';
+import { ProfileDetailShell } from './_shared/profile-detail-shell.js';
 import { ProfileDatePicker } from './profile-date-picker.js';
 
 /* ── Constants ───────────────────────────────────────────── */
@@ -110,7 +111,13 @@ export default function AllergyPage() {
     if (activeChildId) getAllergyRecords(activeChildId).then(setRecords).catch(catchLog('allergy', 'action:load-allergy-records-failed'));
   }, [activeChildId]);
 
-  if (!child) return <div className="p-8 text-[var(--nimi-text-muted)]">请先添加孩子</div>;
+  if (!child) {
+    return (
+      <ProfileDetailShell title="过敏记录">
+        <NoActiveChildPlaceholder />
+      </ProfileDetailShell>
+    );
+  }
 
   const ageMonths = computeAgeMonths(child.birthDate);
   const ageY = Math.floor(ageMonths / 12), ageR = ageMonths % 12;
@@ -200,26 +207,20 @@ export default function AllergyPage() {
   };
 
   return (
-    <div className="max-w-3xl mx-auto min-h-full px-6 pb-6 pt-[72px]">
-      <div className="flex items-center gap-2 mb-5">
-        <Link to="/profile" className="text-[14px] hover:underline text-[var(--nimi-text-muted)]">← 返回档案</Link>
-      </div>
-
-      {/* Header */}
-      <div className="flex items-center justify-between mb-1">
-        <h1 className="text-xl font-bold text-[var(--nimi-text-primary)]">过敏记录</h1>
-        {!showForm && (
-          <Button onClick={() => setShowForm(true)} tone="primary" size="md">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
-            记录过敏
-          </Button>
-        )}
-      </div>
-
-      <AISummaryCard domain="allergy" childName={child.displayName} childId={child.childId}
-        ageLabel={`${ageY}岁${ageR}个月`} gender={child.gender}
-        dataContext={activeRecords.length > 0 ? `活跃过敏原: ${activeRecords.map((r) => `${r.allergen}(${SEVERITY_LABELS[r.severity] ?? r.severity})`).join('、')}` : ''} />
-
+    <ProfileDetailShell
+      title="过敏记录"
+      actions={!showForm ? (
+        <Button onClick={() => setShowForm(true)} tone="primary" size="md">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
+          记录过敏
+        </Button>
+      ) : null}
+      aiSummary={
+        <AISummaryCard domain="allergy" childName={child.displayName} childId={child.childId}
+          ageLabel={`${ageY}岁${ageR}个月`} gender={child.gender}
+          dataContext={activeRecords.length > 0 ? `活跃过敏原: ${activeRecords.map((r) => `${r.allergen}(${SEVERITY_LABELS[r.severity] ?? r.severity})`).join('、')}` : ''} />
+      }
+    >
       {/* ── Form ─────────────────────────────────────────── */}
       {showForm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--nimi-scrim-modal)]" onClick={() => resetForm()}>
@@ -338,22 +339,19 @@ export default function AllergyPage() {
                       className="shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-[12px] text-[var(--nimi-text-muted)] opacity-0 group-hover:opacity-100 transition-opacity hover:bg-[color-mix(in_srgb,var(--nimi-status-danger)_10%,transparent)] hover:text-[var(--nimi-status-danger)]">✕</button>
                   </div>
                 ) : (
-                  <button onClick={() => {
-                    const input = document.createElement('input');
-                    input.type = 'file'; input.accept = 'image/*'; input.multiple = true;
-                    input.onchange = () => {
-                      const files = input.files;
-                      if (files && files.length > 0) setFormPhotoName(Array.from(files).map((f) => f.name).join(', '));
-                    };
-                    input.click();
-                  }}
-                    className="group w-full h-20 rounded-2xl flex flex-col items-center justify-center gap-1.5 cursor-pointer border-2 border-dashed border-[var(--nimi-border-subtle)] bg-[var(--nimi-field-bg)] transition-colors hover:border-[var(--nimi-action-primary-bg)]">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" strokeWidth="1.5" strokeLinecap="round"
-                      className="stroke-[var(--nimi-text-muted)] transition-transform group-hover:scale-110 group-hover:stroke-[var(--nimi-text-primary)]">
-                      <rect x="3" y="5" width="18" height="14" rx="2" /><circle cx="12" cy="12" r="3" /><path d="M3 8h2l2-3h10l2 3h2" />
-                    </svg>
-                    <span className="text-[13px] text-[var(--nimi-text-muted)] transition-colors group-hover:text-[var(--nimi-text-primary)]">点击拍照或选择照片</span>
-                  </button>
+                  <DashedAddButton
+                    shape="tile"
+                    onClick={() => {
+                      const input = document.createElement('input');
+                      input.type = 'file'; input.accept = 'image/*'; input.multiple = true;
+                      input.onchange = () => {
+                        const files = input.files;
+                        if (files && files.length > 0) setFormPhotoName(Array.from(files).map((f) => f.name).join(', '));
+                      };
+                      input.click();
+                    }}
+                    label="点击拍照或选择照片"
+                  />
                 )}
               </div>
             </div>
@@ -477,7 +475,7 @@ export default function AllergyPage() {
           <p className="text-[13px] mt-1 text-[var(--nimi-text-muted)]">记录已知的过敏原，方便就医时快速参考</p>
         </Surface>
       )}
-    </div>
+    </ProfileDetailShell>
   );
 }
 

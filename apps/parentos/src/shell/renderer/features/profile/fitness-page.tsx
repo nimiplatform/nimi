@@ -1,11 +1,12 @@
 import { Button, Surface } from '@nimiplatform/nimi-kit/ui';
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
 import { useAppStore, computeAgeMonths } from '../../app-shell/app-store.js';
 import { getFitnessAssessments } from '../../bridge/sqlite-bridge.js';
 import type { FitnessAssessmentRow } from '../../bridge/sqlite-bridge.js';
 import { AISummaryCard } from './ai-summary-card.js';
 import { catchLog } from '../../infra/telemetry/catch-log.js';
+import { NoActiveChildPlaceholder } from './_shared/no-active-child-placeholder.js';
+import { ProfileDetailShell } from './_shared/profile-detail-shell.js';
 import { FitnessAssessmentModal, ageTier } from './fitness-assessment-form.js';
 
 const AGE_TIER_LABELS: Record<string, string> = {
@@ -42,7 +43,13 @@ export default function FitnessPage() {
     }
   }, [activeChildId]);
 
-  if (!child) return <div className="p-8 text-[var(--nimi-text-muted)]">请先添加孩子</div>;
+  if (!child) {
+    return (
+      <ProfileDetailShell title="体能评估">
+        <NoActiveChildPlaceholder />
+      </ProfileDetailShell>
+    );
+  }
 
   const ageMonths = computeAgeMonths(child.birthDate);
 
@@ -55,23 +62,20 @@ export default function FitnessPage() {
   };
 
   return (
-    <div className="mx-auto min-h-full max-w-3xl px-6 pb-6 pt-[72px]">
-      <div className="flex items-center gap-2 mb-6">
-        <Link to="/profile" className="text-[14px] hover:underline text-[var(--nimi-text-muted)]">&larr; 返回档案</Link>
-      </div>
-      <div className="flex items-center justify-between mb-1">
-        <h1 className="text-xl font-bold text-[var(--nimi-text-primary)]">体能评估</h1>
-        {!showForm && (
-          <Button tone="primary" size="sm" onClick={() => setShowForm(true)} className="rounded-2xl">
-            添加评估
-          </Button>
-        )}
-      </div>
-      <AISummaryCard domain="fitness" childName={child.displayName} childId={child.childId}
-        ageLabel={`${Math.floor(ageMonths/12)}岁${ageMonths%12}个月`} gender={child.gender}
-        dataContext={assessments.length > 0 ? `共 ${assessments.length} 次体能测评` : ''}
-      />
-
+    <ProfileDetailShell
+      title="体能评估"
+      actions={!showForm ? (
+        <Button tone="primary" size="sm" onClick={() => setShowForm(true)} className="rounded-2xl">
+          添加评估
+        </Button>
+      ) : null}
+      aiSummary={
+        <AISummaryCard domain="fitness" childName={child.displayName} childId={child.childId}
+          ageLabel={`${Math.floor(ageMonths/12)}岁${ageMonths%12}个月`} gender={child.gender}
+          dataContext={assessments.length > 0 ? `共 ${assessments.length} 次体能测评` : ''}
+        />
+      }
+    >
       {/* Add Form */}
       {showForm && (
         <FitnessAssessmentModal
@@ -167,6 +171,6 @@ export default function FitnessPage() {
           </div>
         )}
       </section>
-    </div>
+    </ProfileDetailShell>
   );
 }

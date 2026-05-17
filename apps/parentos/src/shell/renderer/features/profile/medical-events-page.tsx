@@ -1,12 +1,13 @@
 import { Button } from '@nimiplatform/nimi-kit/ui';
 import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { useAppStore, computeAgeMonths } from '../../app-shell/app-store.js';
 import { getMedicalEvents } from '../../bridge/sqlite-bridge.js';
 import type { MedicalEventRow } from '../../bridge/sqlite-bridge.js';
 import { AppSelect } from '../../app-shell/app-select.js';
 import { AISummaryCard } from './ai-summary-card.js';
 import { catchLog } from '../../infra/telemetry/catch-log.js';
+import { NoActiveChildPlaceholder } from './_shared/no-active-child-placeholder.js';
+import { ProfileDetailShell } from './_shared/profile-detail-shell.js';
 import { MedicalEventsAnalysisPanel } from './medical-events-analysis-panel.js';
 import { MedicalEventsForm } from './medical-events-form.js';
 import {
@@ -53,20 +54,21 @@ export default function MedicalEventsPage() {
     );
   }, [events, filterType, searchQuery]);
 
-  if (!child) return <div className="p-8 text-[var(--nimi-text-muted)]">请先添加孩子</div>;
+  if (!child) {
+    return (
+      <ProfileDetailShell title="就医记录">
+        <NoActiveChildPlaceholder />
+      </ProfileDetailShell>
+    );
+  }
 
   const ageMonths = computeAgeMonths(child.birthDate);
 
   return (
-    <div className="mx-auto min-h-full max-w-3xl px-6 pb-6 pt-[72px]">
-      <div className="flex items-center gap-2 mb-6">
-        <Link to="/profile" className="text-[14px] hover:underline text-[var(--nimi-text-muted)]">&larr; 返回档案</Link>
-      </div>
-
-      {/* ── Header ── */}
-      <div className="flex items-center justify-between mb-1">
-        <h1 className="text-xl font-bold text-[var(--nimi-text-primary)]">就医记录</h1>
-        <div className="flex gap-2">
+    <ProfileDetailShell
+      title="就医记录"
+      actions={
+        <>
           {events.length > 0 ? (
             <Button
               tone={insights.showAnalysis ? 'secondary' : 'primary'}
@@ -90,15 +92,15 @@ export default function MedicalEventsPage() {
               添加事件
             </Button>
           ) : null}
-        </div>
-      </div>
-
-      {/* AI Summary */}
-      <AISummaryCard domain="medical" childName={child.displayName} childId={child.childId}
-        ageLabel={`${Math.floor(ageMonths / 12)}岁${ageMonths % 12}个月`} gender={child.gender}
-        dataContext={events.length > 0 ? `共 ${events.length} 条就医记录` : ''}
-      />
-
+        </>
+      }
+      aiSummary={
+        <AISummaryCard domain="medical" childName={child.displayName} childId={child.childId}
+          ageLabel={`${Math.floor(ageMonths / 12)}岁${ageMonths % 12}个月`} gender={child.gender}
+          dataContext={events.length > 0 ? `共 ${events.length} 条就医记录` : ''}
+        />
+      }
+    >
       {events.length > 0 && insights.analysis && insights.showAnalysis ? (
         <MedicalEventsAnalysisPanel
           analysis={insights.analysis}
@@ -195,6 +197,6 @@ export default function MedicalEventsPage() {
           onCloseAI={insights.closeEventAnalysis}
         />
       </section>
-    </div>
+    </ProfileDetailShell>
   );
 }

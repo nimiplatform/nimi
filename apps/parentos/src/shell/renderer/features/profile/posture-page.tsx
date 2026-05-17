@@ -1,11 +1,12 @@
-import { Button, Surface, TextareaField, TextField } from '@nimiplatform/nimi-kit/ui';
+import { Button, DashedAddButton, Surface, TextareaField, TextField } from '@nimiplatform/nimi-kit/ui';
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { Link } from 'react-router-dom';
 import { useAppStore, computeAgeMonths, computeAgeMonthsAt } from '../../app-shell/app-store.js';
 import { getMeasurements, insertMeasurement, getFitnessAssessments } from '../../bridge/sqlite-bridge.js';
 import type { MeasurementRow, FitnessAssessmentRow } from '../../bridge/sqlite-bridge.js';
 import { ulid, isoNow } from '../../bridge/ulid.js';
 import { AISummaryCard } from './ai-summary-card.js';
+import { NoActiveChildPlaceholder } from './_shared/no-active-child-placeholder.js';
+import { ProfileDetailShell } from './_shared/profile-detail-shell.js';
 import { ProfileDatePicker } from './profile-date-picker.js';
 import { catchLog } from '../../infra/telemetry/catch-log.js';
 import { PostureGuide } from './posture-guide.js';
@@ -161,7 +162,13 @@ export default function PosturePage() {
 
   useEffect(() => { if (activeChildId) loadData(activeChildId).catch(catchLog('posture', 'action:load-posture-data-failed')); }, [activeChildId]);
 
-  if (!child) return <div className="p-8 text-[var(--nimi-text-muted)]">请先添加孩子</div>;
+  if (!child) {
+    return (
+      <ProfileDetailShell title="体态档案">
+        <NoActiveChildPlaceholder />
+      </ProfileDetailShell>
+    );
+  }
 
   const ageMonths = computeAgeMonths(child.birthDate);
   const cobbRecords = measurements.filter((m) => m.typeId === 'scoliosis-cobb-angle').sort((a, b) => b.measuredAt.localeCompare(a.measuredAt));
@@ -234,12 +241,10 @@ export default function PosturePage() {
   }, [cobbRecords, shoulderRecords]);
 
   return (
-    <div className="max-w-3xl mx-auto min-h-full px-6 pb-6 pt-[72px]">
-      <Link to="/profile" className="text-[14px] hover:underline mb-5 inline-block text-[var(--nimi-text-muted)]">← 返回档案</Link>
-
-      <div className="flex items-center justify-between mb-1">
-        <h1 className="text-xl font-bold text-[var(--nimi-text-primary)]">体态档案</h1>
-        <div className="flex items-center gap-2">
+    <ProfileDetailShell
+      title="体态档案"
+      actions={
+        <>
           <Button
             onClick={() => setShowGuide((prev) => !prev)}
             tone={showGuide ? 'primary' : 'secondary'}
@@ -257,18 +262,19 @@ export default function PosturePage() {
               + 添加记录
             </Button>
           )}
-        </div>
-      </div>
-
-      <AISummaryCard domain="posture" childName={child.displayName} childId={child.childId}
-        ageLabel={fmtAge(ageMonths)} gender={child.gender}
-        dataContext={(() => {
-          const lines: string[] = [];
-          if (cobbRecords[0]) lines.push(`Cobb角: ${cobbRecords[0].value}° (${cobbRecords[0].measuredAt.split('T')[0]})`);
-          if (latestFootArch?.footArchStatus) lines.push(`足弓: ${FOOT_ARCH_LABELS[latestFootArch.footArchStatus] ?? latestFootArch.footArchStatus}`);
-          return lines.join('\n');
-        })()} />
-
+        </>
+      }
+      aiSummary={
+        <AISummaryCard domain="posture" childName={child.displayName} childId={child.childId}
+          ageLabel={fmtAge(ageMonths)} gender={child.gender}
+          dataContext={(() => {
+            const lines: string[] = [];
+            if (cobbRecords[0]) lines.push(`Cobb角: ${cobbRecords[0].value}° (${cobbRecords[0].measuredAt.split('T')[0]})`);
+            if (latestFootArch?.footArchStatus) lines.push(`足弓: ${FOOT_ARCH_LABELS[latestFootArch.footArchStatus] ?? latestFootArch.footArchStatus}`);
+            return lines.join('\n');
+          })()} />
+      }
+    >
       {showGuide && <PostureGuide onClose={() => setShowGuide(false)} />}
 
       {/* Quick overview */}
@@ -441,14 +447,11 @@ export default function PosturePage() {
                             >✕</button>
                           </div>
                         ) : (
-                          <button type="button"
+                          <DashedAddButton
+                            shape="tile"
                             onClick={() => { photoSlotRef.current = currentPhotoKey; photoInputRef.current?.click(); }}
-                            className="w-full h-24 rounded-2xl flex flex-col items-center justify-center gap-1.5 cursor-pointer border-2 border-dashed border-[var(--nimi-border-subtle)] bg-[var(--nimi-field-bg)]">
-                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" strokeWidth="1.5" strokeLinecap="round" className="stroke-[var(--nimi-text-muted)]">
-                              <rect x="3" y="3" width="18" height="18" rx="2" ry="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" />
-                            </svg>
-                            <span className="text-[13px] text-[var(--nimi-text-muted)]">点击上传照片</span>
-                          </button>
+                            label="点击上传照片"
+                          />
                         );
                       })()}
 
@@ -569,6 +572,6 @@ export default function PosturePage() {
           </Surface>
         ))}
       </div>
-    </div>
+    </ProfileDetailShell>
   );
 }
