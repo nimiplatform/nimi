@@ -15,8 +15,8 @@ const mainLayoutTopbarSource = readWorkspaceFile('src/shell/renderer/app-shell/l
 const loginPageSource = readWorkspaceFile('src/shell/renderer/features/auth/login-page.tsx');
 const e2eIdsSource = readWorkspaceFile('src/shell/renderer/testability/e2e-ids.ts');
 
-test('anonymous chat shell: default app tab is chat', () => {
-  assert.match(uiSliceSource, /activeTab: 'chat',/);
+test('anonymous Nimi Home shell: default app tab is home', () => {
+  assert.match(uiSliceSource, /activeTab: 'home',/);
   assert.match(uiSliceSource, /const target = state\.previousTab \|\| 'chat';/);
 });
 
