@@ -44,6 +44,12 @@ export type AvatarEvidencePayload = {
   detail: Record<string, unknown>;
 };
 
+export type AvatarEvidenceArtifactWriteResult = {
+  artifactPath: string;
+  artifactMimeType: string;
+  artifactByteLength: number;
+};
+
 function snapshotEvidenceContext() {
   const state = useAvatarStore.getState();
   return {
@@ -73,6 +79,18 @@ export async function recordAvatarEvidence(input: AvatarEvidencePayload): Promis
       detail: input.detail,
       consume: snapshot.consume,
       model: snapshot.model,
+    },
+  });
+}
+
+export async function writeAvatarEvidenceArtifact(input: {
+  artifactId: string;
+  dataUrl: string;
+}): Promise<AvatarEvidenceArtifactWriteResult> {
+  return invoke<AvatarEvidenceArtifactWriteResult>('nimi_avatar_write_evidence_artifact', {
+    payload: {
+      artifactId: input.artifactId,
+      dataUrl: input.dataUrl,
     },
   });
 }

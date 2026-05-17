@@ -1,6 +1,7 @@
 import test from 'node:test';
 
 import { assert, E2E_IDS, createBaseDriver, runDesktopMacosSmokeScenario } from './desktop-macos-smoke-test-helpers';
+import { waitForAvatarCarrierEvidence } from '../src/shell/renderer/infra/bootstrap/desktop-macos-smoke-avatar-evidence';
 
 function createAvatarPackageResolvedRecord(recordedAt = '2026-04-26T00:00:02.000Z') {
   return {
@@ -14,6 +15,28 @@ function createAvatarPackageResolvedRecord(recordedAt = '2026-04-26T00:00:02.000
       materialization_ref: 'agent-center-avatar-package:desktop-smoke:id_8f0290aacb07e123ae912240:live2d:live2d_ab12cd34ef56',
       package_authority: 'runtime_avatar_package_projection',
       resolver_authority: 'local_materialization_only',
+    },
+  };
+}
+
+function createAvatarCarrierVisualReadyRecord(recordedAt = '2026-04-26T00:00:05.000Z') {
+  return {
+    kind: 'avatar.carrier.visual',
+    recordedAt,
+    detail: {
+      conversation_anchor_id: 'anchor-1',
+      status: 'ready',
+      source: 'live2d-carrier-surface',
+      visible_pixels: 12,
+      visible_drawable_count: 24,
+      texture_binding_count: 1,
+      sampled_pixels: 96,
+      sampled_pixel_checksum: 123456,
+      canvas_width: 360,
+      canvas_height: 480,
+      human_visible_artifact_path: '/tmp/nimi-avatar-evidence/artifacts/instance/live2d-visible-frame.png',
+      artifact_mime_type: 'image/png',
+      artifact_byte_length: 128,
     },
   };
 }
@@ -511,21 +534,13 @@ test('desktop macos smoke live2d avatar product scenario waits for same-anchor A
                 source: 'live2d-carrier-surface',
               },
             },
-            {
-              kind: 'avatar.carrier.visual',
-              recordedAt: '2026-04-26T00:00:05.000Z',
-              detail: {
-                conversation_anchor_id: 'anchor-1',
-                status: 'ready',
-                visible_pixels: evidenceReads >= 2 ? 12 : 0,
-                visible_drawable_count: 24,
-                texture_binding_count: 1,
-                sampled_pixels: 96,
-                sampled_pixel_checksum: 123456,
-                canvas_width: 360,
-                canvas_height: 480,
-              },
-            },
+            evidenceReads >= 2
+              ? createAvatarCarrierVisualReadyRecord('2026-04-26T00:00:05.000Z')
+              : {
+                  kind: 'avatar.carrier.visual',
+                  recordedAt: '2026-04-26T00:00:05.000Z',
+                  detail: { conversation_anchor_id: 'anchor-1', status: 'ready', visible_pixels: 0 },
+                },
           ],
         },
       };
@@ -637,21 +652,7 @@ test('desktop macos smoke live2d avatar product scenario waits for same-anchor A
       source: 'live2d-carrier-surface',
     },
   });
-  assert.deepEqual(details.avatarProductPath?.visual, {
-    kind: 'avatar.carrier.visual',
-    recordedAt: '2026-04-26T00:00:05.000Z',
-    detail: {
-      conversation_anchor_id: 'anchor-1',
-      status: 'ready',
-      visible_pixels: 12,
-      visible_drawable_count: 24,
-      texture_binding_count: 1,
-      sampled_pixels: 96,
-      sampled_pixel_checksum: 123456,
-      canvas_width: 360,
-      canvas_height: 480,
-    },
-  });
+  assert.deepEqual(details.avatarProductPath?.visual, createAvatarCarrierVisualReadyRecord('2026-04-26T00:00:05.000Z'));
 });
 
 test('desktop macos smoke live2d avatar product scenario fails without Runtime package handoff evidence', async () => {
@@ -723,11 +724,7 @@ test('desktop macos smoke live2d avatar product scenario fails without Runtime p
                   source: 'live2d-carrier-surface',
                 },
               },
-              {
-                kind: 'avatar.carrier.visual',
-                recordedAt: '2026-04-26T00:00:05.000Z',
-                detail: { conversation_anchor_id: 'anchor-1', status: 'ready', visible_pixels: 12 },
-              },
+              createAvatarCarrierVisualReadyRecord('2026-04-26T00:00:05.000Z'),
             ],
           },
         };
@@ -752,6 +749,72 @@ test('desktop macos smoke live2d avatar product scenario fails without Runtime p
   assert.match(String(writtenReports[0]?.errorMessage || ''), /live2dPackageResolved:false/);
   assert.match(String(writtenReports[0]?.errorMessage || ''), /consumeReady:true/);
   assert.match(String(writtenReports[0]?.errorMessage || ''), /visual:true/);
+});
+
+test('desktop macos smoke avatar carrier evidence requires human-visible artifact metadata', async () => {
+  await assert.rejects(
+    waitForAvatarCarrierEvidence(createBaseDriver({
+      async readAvatarEvidence() {
+        return {
+          evidencePath: '/tmp/avatar-evidence.json',
+          evidence: {
+            records: [
+              {
+                kind: 'avatar.startup.runtime-bound',
+                recordedAt: '2026-04-26T00:00:00.000Z',
+                conversationAnchorId: 'anchor-1',
+                detail: { conversation_anchor_id: 'anchor-1' },
+              },
+              {
+                kind: 'avatar.runtime.consume-ready',
+                recordedAt: '2026-04-26T00:00:01.000Z',
+                conversationAnchorId: 'anchor-1',
+                detail: { conversation_anchor_id: 'anchor-1' },
+              },
+              createAvatarPackageResolvedRecord('2026-04-26T00:00:02.000Z'),
+              {
+                kind: 'avatar.model.load',
+                recordedAt: '2026-04-26T00:00:03.000Z',
+                detail: {
+                  conversation_anchor_id: 'anchor-1',
+                  model_id: 'ren',
+                  backend_kind: 'live2d',
+                  backend_metadata: {
+                    model_kind: 'live2d',
+                    hit_region_default: {
+                      body: { left: 0, top: 0, right: 1, bottom: 1 },
+                      drag: { left: 0, top: 0, right: 1, bottom: 1 },
+                    },
+                  },
+                },
+              },
+              {
+                kind: 'avatar.carrier.visual',
+                recordedAt: '2026-04-26T00:00:04.000Z',
+                detail: {
+                  conversation_anchor_id: 'anchor-1',
+                  lifecycle: 'mounted',
+                  source: 'live2d-carrier-surface',
+                },
+              },
+              {
+                kind: 'avatar.carrier.visual',
+                recordedAt: '2026-04-26T00:00:05.000Z',
+                detail: {
+                  conversation_anchor_id: 'anchor-1',
+                  status: 'ready',
+                  visible_pixels: 12,
+                  canvas_width: 360,
+                  canvas_height: 480,
+                },
+              },
+            ],
+          },
+        };
+      },
+    }), 'avatar-instance-1', 'anchor-1', 1),
+    /visual:true visualArtifact:false/,
+  );
 });
 
 test('desktop macos smoke live2d avatar product scenario fails without Runtime consume-ready evidence', async () => {
@@ -815,11 +878,7 @@ test('desktop macos smoke live2d avatar product scenario fails without Runtime c
                   source: 'live2d-carrier-surface',
                 },
               },
-              {
-                kind: 'avatar.carrier.visual',
-                recordedAt: '2026-04-26T00:00:04.000Z',
-                detail: { conversation_anchor_id: 'anchor-1', status: 'ready', visible_pixels: 12 },
-              },
+              createAvatarCarrierVisualReadyRecord('2026-04-26T00:00:04.000Z'),
             ],
           },
         };
@@ -914,11 +973,7 @@ test('desktop macos smoke live2d avatar product scenario fails without hit-regio
                   source: 'live2d-carrier-surface',
                 },
               },
-              {
-                kind: 'avatar.carrier.visual',
-                recordedAt: '2026-04-26T00:00:05.000Z',
-                detail: { conversation_anchor_id: 'anchor-1', status: 'ready', visible_pixels: 12 },
-              },
+              createAvatarCarrierVisualReadyRecord('2026-04-26T00:00:05.000Z'),
             ],
           },
         };

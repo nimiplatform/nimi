@@ -99,6 +99,18 @@ function isLive2dRuntimeAuthorizedPackageResolved(record: Record<string, unknown
   );
 }
 
+function hasHumanVisibleArtifact(record: Record<string, unknown> | null): boolean {
+  const detail = record ? recordDetail(record) : {};
+  return (
+    typeof detail.human_visible_artifact_path === 'string'
+    && detail.human_visible_artifact_path.trim().length > 0
+    && detail.artifact_mime_type === 'image/png'
+    && Number(detail.artifact_byte_length || 0) > 0
+    && Number(detail.canvas_width || 0) > 0
+    && Number(detail.canvas_height || 0) > 0
+  );
+}
+
 export async function waitForAvatarCarrierEvidence(
   deps: DesktopMacosSmokeDriverDeps,
   avatarInstanceId: string,
@@ -150,7 +162,7 @@ export async function waitForAvatarCarrierEvidence(
         recordKind(record) === 'avatar.model.load'
         && recordConversationAnchorId(record) === expectedConversationAnchorId
       )) || null;
-      const visual = recordsForCurrentStartup.find((record) => {
+      const visibleFrame = recordsForCurrentStartup.find((record) => {
         if (recordKind(record) !== 'avatar.carrier.visual') {
           return false;
         }
@@ -160,6 +172,7 @@ export async function waitForAvatarCarrierEvidence(
         const detail = recordDetail(record);
         return detail.status === 'ready' && Number(detail.visible_pixels || 0) > 0;
       }) || null;
+      const visual = visibleFrame && hasHumanVisibleArtifact(visibleFrame) ? visibleFrame : null;
       const lifecycleMounted = recordsForCurrentStartup.find((record) => {
         if (recordKind(record) !== 'avatar.carrier.visual') {
           return false;
@@ -173,6 +186,7 @@ export async function waitForAvatarCarrierEvidence(
       const hitRegionDefault = hasLive2dHitRegionDefault(modelLoad);
       const live2dModelLoad = isLive2dModelLoadWithHitRegionDefault(modelLoad);
       const live2dPackageResolved = isLive2dRuntimeAuthorizedPackageResolved(packageResolved);
+      const visualArtifact = hasHumanVisibleArtifact(visibleFrame);
       if (startup && consumeReady && live2dPackageResolved && live2dModelLoad && lifecycleMounted && visual) {
         return {
           evidencePath: result.evidencePath,
@@ -189,7 +203,7 @@ export async function waitForAvatarCarrierEvidence(
         + `startup:${Boolean(startup)} consumeReady:${Boolean(consumeReady)} packageResolved:${Boolean(packageResolved)} `
         + `live2dPackageResolved:${live2dPackageResolved} modelLoad:${Boolean(modelLoad)} `
         + `live2dModelLoad:${live2dModelLoad} hitRegionDefault:${hitRegionDefault} `
-        + `lifecycleMounted:${Boolean(lifecycleMounted)} visual:${Boolean(visual)} `
+        + `lifecycleMounted:${Boolean(lifecycleMounted)} visual:${Boolean(visibleFrame)} visualArtifact:${visualArtifact} `
         + `records=${records.map((record) => `${recordKind(record)}:${recordConversationAnchorId(record) || 'no-anchor'}`).join(',') || 'none'}`;
     } catch (error) {
       lastError = error instanceof Error ? error.message : String(error || 'unknown evidence read error');

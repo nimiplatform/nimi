@@ -8,7 +8,9 @@ mod avatar_visual_commands;
 use agent_center_avatar_package::nimi_avatar_resolve_agent_center_avatar_package;
 #[cfg(test)]
 use agent_center_avatar_package::AgentCenterAvatarPackageResolvePayload;
-use avatar_evidence_projection::AvatarEvidenceRecordInput;
+use avatar_evidence_projection::{
+    AvatarEvidenceArtifactInput, AvatarEvidenceArtifactWriteResult, AvatarEvidenceRecordInput,
+};
 use avatar_instance_projection::{persist_projection, projection_record_from_registry_entry};
 use avatar_instance_registry::{AvatarInstanceRegistry, AvatarInstanceRuntimeIdentity};
 use avatar_launch_context::{
@@ -384,6 +386,21 @@ async fn nimi_avatar_record_evidence(
 }
 
 #[tauri::command]
+async fn nimi_avatar_write_evidence_artifact(
+    window: WebviewWindow,
+    registry: State<'_, AvatarInstanceRegistry>,
+    payload: AvatarEvidenceArtifactInput,
+) -> Result<AvatarEvidenceArtifactWriteResult, String> {
+    let context = registry
+        .context_for_window(window.label())?
+        .ok_or_else(|| {
+            "avatar evidence artifact requires launch context; launch from desktop orchestrator"
+                .to_string()
+        })?;
+    avatar_evidence_projection::write_visual_artifact(context, payload)
+}
+
+#[tauri::command]
 async fn nimi_avatar_start_window_drag(window: WebviewWindow) -> Result<(), String> {
     window.start_dragging().map_err(|e| e.to_string())
 }
@@ -586,6 +603,7 @@ fn main() {
             nimi_avatar_get_launch_context,
             nimi_avatar_bind_runtime_identity,
             nimi_avatar_record_evidence,
+            nimi_avatar_write_evidence_artifact,
             nimi_avatar_resolve_model,
             nimi_avatar_resolve_agent_center_avatar_package,
             nimi_avatar_scan_nas_handlers,

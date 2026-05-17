@@ -43,6 +43,10 @@ Carrier visual proof must include current executable evidence for:
 - model load success through the Avatar app Live2D branch
 - at least one frame where the carrier path produces non-placeholder visible
   pixels after model load
+- for real runtime path closure, a human-visible image artifact written by the
+  Avatar app process and referenced from the same `avatar.carrier.visual`
+  evidence record (`human_visible_artifact_path`, `artifact_mime_type`,
+  `artifact_byte_length`)
 - resilience evidence for resize or host-bound changes when the implementation
   claims responsive surface behavior
 - failure evidence showing missing/invalid model input does not render a
