@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAppStore, computeAgeMonths } from '../../app-shell/app-store.js';
 import { WelcomePage } from './welcome-page.js';
 import { REMINDER_RULES, SENSITIVE_PERIODS } from '../../knowledge-base/index.js';
@@ -34,11 +35,39 @@ import { getActiveDimensions } from '../../engine/observation-matcher.js';
 import { computeObservationNudges } from './timeline-observation-nudges.js';
 import { ReminderPanel } from './timeline-page-panels.js';
 import { HealthCaptureModal } from '../profile/health-capture-modal.js';
-import type { HealthCaptureIntent } from '../profile/health-capture-orchestrator.js';
-import { buildRecordDataCaptureIntent } from '../reminders/record-data-capture.js';
+import type { LinkedHealthRecordReminder } from '../profile/health-capture-orchestrator.js';
+import { getRecordDataReminderSelection } from '../reminders/record-data-capture.js';
+import { parseOrthodonticReminderBinding } from '../reminders/orthodontic-record-data-capture.js';
+import { OrthodonticExpanderActivationModal } from '../profile/orthodontic-expander-activation-modal.js';
+import { OrthodonticAlignerSwitchModal } from '../profile/orthodontic-aligner-switch-modal.js';
+import {
+  getOrthodonticCheckins,
+  getOrthodonticDashboard,
+  getUnwearIntervals,
+  type OrthodonticApplianceRow,
+  type OrthodonticCheckinRow,
+  type OrthodonticUnwearIntervalRow,
+} from '../../bridge/sqlite-bridge.js';
 import { DashboardTaskList, type DashboardTaskCaptureIntent } from './dashboard-task-list.js';
+import { buildDashboardTaskProjection } from './dashboard-task-projection.js';
+import {
+  DASHBOARD_TASK_CATALOG,
+  HEALTH_CAPTURE_PROTOCOLS,
+  type HealthCaptureProtocolId,
+} from '../../knowledge-base/index.js';
+
+const PROTOCOL_GROUP_LOOKUP = new Map(
+  HEALTH_CAPTURE_PROTOCOLS.map((protocol) => [protocol.protocolId, protocol.groupId] as const),
+);
+
+interface HealthCaptureSelection {
+  groupId: string;
+  metricId?: string | null;
+  linkedReminder?: LinkedHealthRecordReminder | null;
+}
 
 export default function TimelinePage() {
+  const navigate = useNavigate();
   const { activeChildId, children: childList } = useAppStore();
   const child = childList.find((item) => item.childId === activeChildId);
   const { d, loading, reload } = useDash(activeChildId);
@@ -46,15 +75,29 @@ export default function TimelinePage() {
   const localToday = getLocalToday();
   const [freqOverrides, setFreqOverrides] = useState<FreqOverrideMap>(new Map());
   const [freqModalReminder, setFreqModalReminder] = useState<ActiveReminder | null>(null);
-  const [captureIntent, setCaptureIntent] = useState<HealthCaptureIntent | null>(null);
+  // Both 待办事项 → 记录 (dashboard catalog row) and reminder 记录数据 open the
+  // same sidebar modal as the profile page's 添加健康数据. When `linkedReminder`
+  // is set, the per-group form forwards it into the insert so
+  // health_record_events.linkedReminderStateId/RuleId is written per
+  // capture-orchestrator-contract.md / local-storage.yaml.
+  const [captureSelection, setCaptureSelection] = useState<HealthCaptureSelection | null>(null);
   const [captureError, setCaptureError] = useState<string | null>(null);
-  // Wave-4 dashboard task proof: the typed `dashboard_task` intent is held
-  // here for downstream consumption. Wave-5 will translate it into the
-  // existing `HealthCaptureIntent` shape once PO-CAPT-005a admission lands
-  // on the TypeScript side; until then, this state proves the projection
-  // produces well-formed capture payloads (see
-  // `apps/parentos/spec/kernel/capture-orchestrator-contract.md#PO-CAPT-005a`).
-  const [dashboardTaskIntent, setDashboardTaskIntent] = useState<DashboardTaskCaptureIntent | null>(null);
+  // Orthodontic record_data dispatch (PO-ORTHO-EXPANDER-ACTIVATION /
+  // PO-ORTHO-ALIGNER-CHANGE). These rules deliberately bypass
+  // reminder-capture-targets.yaml (per orthodontic-protocols.yaml constraint)
+  // and route the click straight to the existing per-appliance modals so the
+  // parent never has to leave the dashboard to record a turn / switch.
+  const [orthoCapture, setOrthoCapture] = useState<
+    | { kind: 'expander-activation'; appliance: OrthodonticApplianceRow }
+    | {
+        kind: 'aligner-change';
+        appliance: OrthodonticApplianceRow;
+        intervals: OrthodonticUnwearIntervalRow[];
+        checkins: OrthodonticCheckinRow[];
+        nowIso: string;
+      }
+    | null
+  >(null);
   const autoGenTriggered = useRef(false);
 
   const repeatableRuleIds = useMemo(
@@ -147,6 +190,21 @@ export default function TimelinePage() {
     return computeObservationNudges(activeDims, d.journalEntries);
   }, [child, ageMonths, d.journalEntries]);
 
+  // Catalog-only count for the 待办事项 → 今天 tab badge and default-tab pick.
+  // Mirrors the projection that <DashboardTaskList showOnly="catalog" /> builds
+  // internally; both stay deterministic per PO-TIME-010.a so the counts agree.
+  const dashboardCatalogCount = useMemo(() => {
+    if (!child || !agenda) return 0;
+    const projection = buildDashboardTaskProjection({
+      today: localToday,
+      child: { childId: child.childId, birthDate: child.birthDate },
+      reminderAgenda: agenda,
+      customTodos: d.customTodos,
+      catalogRows: DASHBOARD_TASK_CATALOG,
+    });
+    return projection.mainList.filter((entry) => entry.source === 'catalog').length;
+  }, [child, agenda, localToday, d.customTodos]);
+
   useEffect(() => {
     if (!child || !agenda) return;
     persistAgendaPlan(child.childId, agenda, d.reminderStates)
@@ -183,15 +241,87 @@ export default function TimelinePage() {
     await reload();
   }, [child, reload]);
 
-  const openRecordDataCapture = useCallback((reminder: ActiveReminder) => {
+  const openRecordDataCapture = useCallback(async (reminder: ActiveReminder) => {
+    setCaptureError(null);
+    // Orthodontic protocol reminders route to per-appliance modals instead of
+    // the generic HealthCaptureModal — their capture surface is governed by
+    // orthodontic-protocols.yaml checkinType bindings, not
+    // reminder-capture-targets.yaml.
+    let orthoBinding: ReturnType<typeof parseOrthodonticReminderBinding>;
     try {
-      setCaptureError(null);
-      setCaptureIntent(buildRecordDataCaptureIntent(reminder, localToday));
+      orthoBinding = parseOrthodonticReminderBinding(reminder);
+    } catch (parseError) {
+      setCaptureSelection(null);
+      setOrthoCapture(null);
+      setCaptureError(parseError instanceof Error ? parseError.message : String(parseError));
+      return;
+    }
+    if (orthoBinding) {
+      if (!child) return;
+      try {
+        if (orthoBinding.kind === 'unwear-open') {
+          // Closing an open wear-gap interval is a per-appliance action with no
+          // dashboard-resident modal yet; jump to /profile so the parent can
+          // manage the interval from the orthodontic surface.
+          navigate('/profile');
+          return;
+        }
+        const dashboard = await getOrthodonticDashboard(child.childId);
+        const appliance = dashboard.activeAppliances.find(
+          (row) => row.applianceId === orthoBinding!.applianceId,
+        );
+        if (!appliance) {
+          throw new Error(`找不到提醒绑定的矫治器（applianceId=${orthoBinding.applianceId}）`);
+        }
+        if (orthoBinding.kind === 'expander-activation') {
+          setCaptureSelection(null);
+          setOrthoCapture({ kind: 'expander-activation', appliance });
+          return;
+        }
+        // aligner-change needs intervals + checkins to compute the cycle
+        // progress that drives the modal's next-tray default.
+        const [intervals, checkins] = await Promise.all([
+          getUnwearIntervals({ applianceId: appliance.applianceId, limit: null }),
+          getOrthodonticCheckins({ applianceId: appliance.applianceId, limitDays: null }),
+        ]);
+        setCaptureSelection(null);
+        setOrthoCapture({
+          kind: 'aligner-change',
+          appliance,
+          intervals,
+          checkins,
+          nowIso: new Date().toISOString(),
+        });
+      } catch (loadError) {
+        setCaptureSelection(null);
+        setOrthoCapture(null);
+        setCaptureError(loadError instanceof Error ? loadError.message : String(loadError));
+      }
+      return;
+    }
+    try {
+      setCaptureSelection(getRecordDataReminderSelection(reminder));
     } catch (nextError) {
-      setCaptureIntent(null);
+      setCaptureSelection(null);
       setCaptureError(nextError instanceof Error ? nextError.message : String(nextError));
     }
-  }, [localToday]);
+  }, [child, navigate]);
+
+  // Dashboard task `maintain` card → HealthCaptureModal sidebar selection.
+  // The catalog row's captureProtocolId maps to a sidebar group; the 记录
+  // button opens the same per-group form that the profile page's 添加健康
+  // 数据 entry uses. metricIds[0] is forwarded as initialMetricId so the form
+  // can highlight the metric the catalog row asks to capture.
+  const openDashboardTaskCapture = useCallback((intent: DashboardTaskCaptureIntent) => {
+    setCaptureError(null);
+    const groupId = PROTOCOL_GROUP_LOOKUP.get(intent.captureProtocolId as HealthCaptureProtocolId);
+    if (!groupId) {
+      setCaptureSelection(null);
+      setCaptureError(`未识别的 captureProtocolId: ${intent.captureProtocolId}`);
+      return;
+    }
+    setCaptureSelection({ groupId, metricId: intent.metricIds[0] ?? null });
+  }, []);
 
   if (!child) {
     return <WelcomePage />;
@@ -240,21 +370,6 @@ export default function TimelinePage() {
           <ChildContextCard child={child} ageMonths={ageMonths} />
           <RecentChangesHeroCard items={homeVm.recentChanges} />
         </div>
-        <DashboardTaskList
-          today={localToday}
-          child={{ childId: child.childId, birthDate: child.birthDate }}
-          reminderAgenda={agenda}
-          customTodos={d.customTodos}
-          onDashboardTaskCapture={setDashboardTaskIntent}
-        />
-        {dashboardTaskIntent ? (
-          <div
-            data-testid="pending-dashboard-task-intent"
-            data-task-id={dashboardTaskIntent.dashboardTaskId}
-            data-protocol-id={dashboardTaskIntent.captureProtocolId}
-            style={{ display: 'none' }}
-          />
-        ) : null}
         <div className="grid auto-rows-min grid-cols-8 gap-6">
           <QuickLinksStrip ageMonths={ageMonths} />
           {/* Growth snapshot (left) + Sleep trend & Vision (right, stacked) */}
@@ -281,6 +396,10 @@ export default function TimelinePage() {
       </div>
 
       <div className="relative z-[1]">
+        {/* Catalog-only DashboardTaskList renders inside the 待办事项 panel's
+         * 今天 tab via the `dashboardTodayContent` slot. showOnly='catalog' +
+         * headerless skips reminder/personal rows (already owned by the panel)
+         * and strips the outer 今日任务 card so the cards inline cleanly. */}
         <ReminderPanel
           todayFocus={todayFocus}
           upcoming={upcoming}
@@ -298,6 +417,18 @@ export default function TimelinePage() {
           onOpenCapture={openRecordDataCapture}
           onCustomTodoChanged={reload}
           observationNudges={observationNudges}
+          dashboardTodayCount={dashboardCatalogCount}
+          dashboardTodayContent={
+            <DashboardTaskList
+              today={localToday}
+              child={{ childId: child.childId, birthDate: child.birthDate }}
+              reminderAgenda={agenda}
+              customTodos={d.customTodos}
+              onDashboardTaskCapture={openDashboardTaskCapture}
+              showOnly="catalog"
+              headerless
+            />
+          }
         />
       </div>
 
@@ -307,19 +438,49 @@ export default function TimelinePage() {
         </div>
       ) : null}
 
-      {captureIntent ? (
+      {captureSelection ? (
         <HealthCaptureModal
           open
           childId={child.childId}
           childBirthDate={child.birthDate}
-          initialIntent={captureIntent}
+          initialGroupId={captureSelection.groupId}
+          initialMetricId={captureSelection.metricId ?? null}
+          linkedReminder={captureSelection.linkedReminder ?? null}
           onClose={() => {
-            setCaptureIntent(null);
+            setCaptureSelection(null);
           }}
           onSaved={() => {
-            setCaptureIntent(null);
-            void reload();
+            const groupId = captureSelection.groupId;
+            setCaptureSelection(null);
+            navigate(`/profile?focus=${encodeURIComponent(groupId)}`);
           }}
+        />
+      ) : null}
+
+      {orthoCapture?.kind === 'expander-activation' ? (
+        <OrthodonticExpanderActivationModal
+          appliance={orthoCapture.appliance}
+          onClose={() => setOrthoCapture(null)}
+          onSaved={async () => {
+            setOrthoCapture(null);
+            await reload();
+          }}
+          onError={setCaptureError}
+        />
+      ) : null}
+
+      {orthoCapture?.kind === 'aligner-change' ? (
+        <OrthodonticAlignerSwitchModal
+          appliance={orthoCapture.appliance}
+          intervals={orthoCapture.intervals}
+          checkins={orthoCapture.checkins}
+          nowIso={orthoCapture.nowIso}
+          onClose={() => setOrthoCapture(null)}
+          onSaved={async () => {
+            setOrthoCapture(null);
+            await reload();
+          }}
+          onError={setCaptureError}
         />
       ) : null}
 

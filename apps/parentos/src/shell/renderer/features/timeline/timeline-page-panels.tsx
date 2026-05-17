@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { canMarkNotApplicable, defaultSnoozeUntil, type ReminderActionType } from '../../engine/reminder-actions.js';
 import { getLocalToday, type ActiveReminder } from '../../engine/reminder-engine.js';
@@ -348,6 +348,8 @@ export function ReminderPanel({
   onOpenCapture,
   onCustomTodoChanged,
   observationNudges,
+  dashboardTodayContent,
+  dashboardTodayCount = 0,
 }: {
   todayFocus: EnhancedReminder[];
   upcoming: EnhancedReminder[];
@@ -370,15 +372,22 @@ export function ReminderPanel({
   onOpenCapture: (reminder: ActiveReminder) => void;
   onCustomTodoChanged: () => void;
   observationNudges: ObservationNudge[];
+  /** Dashboard task surface (PO-TIME-010) catalog cards rendered inside the
+   *  今天 tab. Caller passes `<DashboardTaskList headerless showOnly="catalog" />`. */
+  dashboardTodayContent?: ReactNode;
+  /** Visible catalog-task count; included in the 今天 tab badge and default-tab
+   *  selection so the user lands on 今天 when only catalog tasks are present. */
+  dashboardTodayCount?: number;
 }) {
-  const defaultTab = todayFocus.length > 0 ? 'today' : 'upcoming';
+  const todayTotal = todayFocus.length + dashboardTodayCount;
+  const defaultTab = todayTotal > 0 ? 'today' : 'upcoming';
   const [tab, setTab] = useState<'today' | 'upcoming'>(defaultTab);
   const [optimisticTodo, setOptimisticTodo] = useState<CustomTodoRow | null>(null);
   const [animatedTodoId, setAnimatedTodoId] = useState<string | null>(null);
   const [activeReminder, setActiveReminder] = useState<ActiveReminder | null>(null);
 
-  useEffect(() => { setTab(todayFocus.length > 0 ? 'today' : 'upcoming'); }, [todayFocus.length]);
-  const showTabs = todayFocus.length > 0 || upcoming.length > 0;
+  useEffect(() => { setTab(todayTotal > 0 ? 'today' : 'upcoming'); }, [todayTotal]);
+  const showTabs = todayTotal > 0 || upcoming.length > 0;
   const items = tab === 'today' ? todayFocus : upcoming;
   const customTodoList = useMemo(() => {
     if (!optimisticTodo) return customTodos;
@@ -408,7 +417,7 @@ export function ReminderPanel({
       {showTabs && (
         <div className="mx-3 mb-5 flex gap-0.5 rounded-full p-[3px]" style={{ background: 'rgba(0,0,0,0.04)' }}>
           {([
-            ['today', '今天', todayFocus.length],
+            ['today', '今天', todayTotal],
             ['upcoming', '近期 7 天', upcoming.length],
           ] as const).map(([key, label, count]) => {
             const active = tab === key;
@@ -450,7 +459,9 @@ export function ReminderPanel({
       </div>
 
       <div className="flex-1 overflow-y-auto px-1">
-        {items.length === 0 ? (
+        {tab === 'today' && dashboardTodayContent ? dashboardTodayContent : null}
+
+        {items.length === 0 && !(tab === 'today' && dashboardTodayCount > 0) ? (
           <p className="py-10 text-center text-[14px]" style={{ color: '#64748b' }}>暂无事项</p>
         ) : (
           <>

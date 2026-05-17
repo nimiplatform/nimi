@@ -59,6 +59,8 @@ pub fn insert_tanner_assessment(
     assessed_by: Option<String>,
     notes: Option<String>,
     now: String,
+    linked_reminder_state_id: Option<String>,
+    linked_reminder_rule_id: Option<String>,
 ) -> Result<(), String> {
     if let Some(stage) = breast_or_genital_stage {
         if !(1..=5).contains(&stage) {
@@ -99,6 +101,11 @@ pub fn insert_tanner_assessment(
             ))
         }
     };
+    let source_surface = if linked_reminder_state_id.is_some() || linked_reminder_rule_id.is_some() {
+        "reminder"
+    } else {
+        "profile_detail"
+    };
     let tx = conn
         .transaction()
         .map_err(|e| format!("insert_tanner_assessment begin transaction: {e}"))?;
@@ -106,14 +113,18 @@ pub fn insert_tanner_assessment(
     tx.execute(
         "INSERT INTO health_record_events (
             eventId, childId, protocolId, groupId, recordKind, sourceSurface,
-            recordedAt, effectiveDate, ageMonths, notes, metadataJson, createdAt, updatedAt
-        ) VALUES (?1, ?2, ?3, 'development', 'manual', 'profile_detail', ?4, ?4, ?5, ?6, ?7, ?8, ?8)",
+            recordedAt, effectiveDate, ageMonths, linkedReminderStateId, linkedReminderRuleId,
+            notes, metadataJson, createdAt, updatedAt
+        ) VALUES (?1, ?2, ?3, 'development', 'manual', ?4, ?5, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?11)",
         params![
             &event_id,
             &child_id,
             protocol_id,
+            source_surface,
             &assessed_at,
             age_months,
+            &linked_reminder_state_id,
+            &linked_reminder_rule_id,
             &notes,
             serde_json::json!({
                 "legacyTannerAssessmentApi": true,
@@ -251,6 +262,8 @@ pub fn insert_fitness_assessment(
     foot_arch_status: Option<String>,
     notes: Option<String>,
     now: String,
+    linked_reminder_state_id: Option<String>,
+    linked_reminder_rule_id: Option<String>,
 ) -> Result<(), String> {
     let numeric_values: [(&str, &str, Option<f64>, Option<&str>); 14] = [
         (
@@ -349,6 +362,11 @@ pub fn insert_fitness_assessment(
             "insert_fitness_assessment requires at least one admitted fitness metric".to_string(),
         );
     }
+    let source_surface = if linked_reminder_state_id.is_some() || linked_reminder_rule_id.is_some() {
+        "reminder"
+    } else {
+        "profile_detail"
+    };
     let mut conn = get_conn()?.lock().map_err(|e| e.to_string())?;
     let tx = conn
         .transaction()
@@ -357,13 +375,17 @@ pub fn insert_fitness_assessment(
     tx.execute(
         "INSERT INTO health_record_events (
             eventId, childId, protocolId, groupId, recordKind, sourceSurface,
-            recordedAt, effectiveDate, ageMonths, notes, metadataJson, createdAt, updatedAt
-        ) VALUES (?1, ?2, 'fitness-school-assessment', 'fitness', 'manual', 'profile_detail', ?3, ?3, ?4, ?5, ?6, ?7, ?7)",
+            recordedAt, effectiveDate, ageMonths, linkedReminderStateId, linkedReminderRuleId,
+            notes, metadataJson, createdAt, updatedAt
+        ) VALUES (?1, ?2, 'fitness-school-assessment', 'fitness', 'manual', ?3, ?4, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?10)",
         params![
             &event_id,
             &child_id,
+            source_surface,
             &assessed_at,
             age_months,
+            &linked_reminder_state_id,
+            &linked_reminder_rule_id,
             &notes,
             serde_json::json!({
                 "legacyFitnessAssessmentApi": true,

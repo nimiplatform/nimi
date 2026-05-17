@@ -3957,6 +3957,94 @@ export const REMINDER_RULES: readonly ReminderRule[] = [
     ]
   },
   {
+    "ruleId": "PO-REM-POS-003",
+    "domain": "posture",
+    "category": "stage",
+    "kind": "task",
+    "title": "本月体态自查",
+    "description": "拍背面 / 侧面 / 前屈三张照片，比对上次看肩、腰、骨盆有没有变化。",
+    "triggerAge": {
+      "startMonths": 96,
+      "endMonths": 192
+    },
+    "priority": "P2",
+    "nurtureMode": {
+      "relaxed": "silent",
+      "balanced": "push",
+      "advanced": "push"
+    },
+    "actionType": "go_hospital",
+    "repeatRule": {
+      "intervalMonths": 1,
+      "maxRepeats": 96
+    },
+    "explain": {
+      "whyNow": "8-16 岁身高变化快，每月一次三角度照片对比能在脊柱侧弯、骨盆倾斜等问题刚出现时就被发现，比一年一筛能争取更长的可干预窗口。",
+      "howTo": [
+        "孩子穿贴身衣服，分别拍正背面、侧面、前屈（Adam 试验）三张照片。",
+        "对照上个月照片，看肩高、肩胛、腰窝、骨盆是否对称，前屈时背部有无单侧隆起。",
+        "在 ParentOS 体态档案里上传照片 + 勾选当月自查结论。",
+        "发现明显不对称或前屈隆起时，转去做一次专业评估（参考 PO-REM-POS-001）。"
+      ],
+      "doneWhen": "本月自查照片和结论已录入体态档案。",
+      "sources": [
+        {
+          "citation": "SOSORT-2016"
+        },
+        {
+          "citation": "AAP-scoliosis-screening-2018"
+        }
+      ]
+    },
+    "tags": [
+      "posture",
+      "self-check",
+      "monthly"
+    ]
+  },
+  {
+    "ruleId": "PO-REM-POS-004",
+    "domain": "posture",
+    "category": "stage",
+    "kind": "task",
+    "title": "季度体态测量",
+    "description": "每季度做一次站立位足印 / 颈前倾角 / 骨盆侧倾的小量测，看趋势。",
+    "triggerAge": {
+      "startMonths": 96,
+      "endMonths": 192
+    },
+    "priority": "P2",
+    "nurtureMode": {
+      "relaxed": "silent",
+      "balanced": "push",
+      "advanced": "push"
+    },
+    "actionType": "go_hospital",
+    "repeatRule": {
+      "intervalMonths": 3,
+      "maxRepeats": 32
+    },
+    "explain": {
+      "whyNow": "月度照片捕捉外观变化，季度做一次结构化量测（足弓 / 颈部 / 骨盆）能形成可量化的趋势线，比单看照片更早识别需要专业介入的情况。",
+      "howTo": [
+        "用手机简易测量：足印（站立踩湿脚印）、颈前倾角（侧面照片量耳-肩连线）、骨盆侧倾（背面照片量左右髂骨等高）。",
+        "条件允许时去骨科 / 康复科做一次专业量测。",
+        "在 ParentOS 体态档案里录入数值，附上测量方式说明。"
+      ],
+      "doneWhen": "本季度结构化量测数值已录入档案。",
+      "sources": [
+        {
+          "citation": "SOSORT-2016"
+        }
+      ]
+    },
+    "tags": [
+      "posture",
+      "measurement",
+      "quarterly"
+    ]
+  },
+  {
     "ruleId": "PO-REM-FIT-001",
     "domain": "fitness",
     "category": "stage",
@@ -3996,6 +4084,51 @@ export const REMINDER_RULES: readonly ReminderRule[] = [
       "fitness",
       "school",
       "annual"
+    ]
+  },
+  {
+    "ruleId": "PO-REM-FIT-002",
+    "domain": "fitness",
+    "category": "stage",
+    "kind": "task",
+    "title": "季度家庭体能小测",
+    "description": "在家做 50m / 立定跳远 / 坐位体前屈 / 一分钟跳绳，10 分钟跑完一组。",
+    "triggerAge": {
+      "startMonths": 72,
+      "endMonths": 216
+    },
+    "priority": "P2",
+    "nurtureMode": {
+      "relaxed": "silent",
+      "balanced": "push",
+      "advanced": "push"
+    },
+    "actionType": "record_data",
+    "repeatRule": {
+      "intervalMonths": 3,
+      "maxRepeats": 48
+    },
+    "explain": {
+      "whyNow": "学校体测一年一次太稀疏，体能训练的可见变化以周-月为单位。季度家庭小测能在两次校测之间形成趋势，看出训练有没有效果。",
+      "howTo": [
+        "选 4 个项目即可（推荐：50m 跑、立定跳远、坐位体前屈、一分钟跳绳）。",
+        "提前热身，每个项目做两次取最好成绩。",
+        "在 ParentOS 体能档案里录入数值，标记 '家庭测' 作为来源。"
+      ],
+      "doneWhen": "本季度家庭体能小测成绩已录入档案。",
+      "sources": [
+        {
+          "citation": "national-student-fitness-standard-2014"
+        },
+        {
+          "citation": "ACSM-youth-fitness-2021"
+        }
+      ]
+    },
+    "tags": [
+      "fitness",
+      "home",
+      "quarterly"
     ]
   },
   {

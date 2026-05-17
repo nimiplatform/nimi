@@ -24,6 +24,8 @@ export function insertMeasurement(params: {
   source: string | null;
   notes: string | null;
   now: string;
+  linkedReminderStateId?: string | null;
+  linkedReminderRuleId?: string | null;
 }) {
   return invoke<void>('insert_measurement', params);
 }

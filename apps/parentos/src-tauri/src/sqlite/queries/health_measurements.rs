@@ -158,6 +158,8 @@ pub fn insert_measurement(
     source: Option<String>,
     notes: Option<String>,
     now: String,
+    linked_reminder_state_id: Option<String>,
+    linked_reminder_rule_id: Option<String>,
 ) -> Result<(), String> {
     let Some(metric_id) = legacy_measurement_type_to_metric_id(type_id.trim()) else {
         return Err(format!(
@@ -173,6 +175,11 @@ pub fn insert_measurement(
     if !value.is_finite() {
         return Err("insert_measurement requires a finite value".to_string());
     }
+    let source_surface = if linked_reminder_state_id.is_some() || linked_reminder_rule_id.is_some() {
+        "reminder"
+    } else {
+        legacy_measurement_source_to_surface(source.as_deref())
+    };
     let mut conn = get_conn()?.lock().map_err(|e| e.to_string())?;
     let tx = conn
         .transaction()
@@ -180,17 +187,20 @@ pub fn insert_measurement(
     tx.execute(
         "INSERT INTO health_record_events (
             eventId, childId, protocolId, groupId, recordKind, sourceSurface,
-            recordedAt, effectiveDate, ageMonths, notes, metadataJson, createdAt, updatedAt
-        ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?7, ?8, ?9, ?10, ?11, ?11)",
+            recordedAt, effectiveDate, ageMonths, linkedReminderStateId, linkedReminderRuleId,
+            notes, metadataJson, createdAt, updatedAt
+        ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?13)",
         params![
             generated_detail_event_id(&measurement_id),
             child_id,
             protocol_id,
             group_id,
             legacy_measurement_source_to_event_kind(source.as_deref()),
-            legacy_measurement_source_to_surface(source.as_deref()),
+            source_surface,
             measured_at,
             age_months,
+            linked_reminder_state_id,
+            linked_reminder_rule_id,
             notes,
             serde_json::json!({
                 "legacyMeasurementApi": true,

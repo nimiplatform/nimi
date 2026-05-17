@@ -10,7 +10,7 @@
 // no renderer-local catalog rules.
 
 import { useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Cd, Hdr, textMain, textMuted, textSoft } from './timeline-card-primitives.js';
 import type { CustomTodoRow } from '../../bridge/sqlite-bridge.js';
 import type { ActiveReminder, ReminderAgenda } from '../../engine/reminder-engine.js';
@@ -39,6 +39,15 @@ export interface DashboardTaskListProps {
   /** Called when a `maintain` card's primary action fires. Caller wires the
    *  intent into the existing `HealthCaptureModal` state. */
   onDashboardTaskCapture: (intent: DashboardTaskCaptureIntent) => void;
+  /** Default `'all'` renders the full projection (reminder rows + catalog
+   *  cards + personal rows). `'catalog'` renders only catalog cards plus the
+   *  downgrade-indicator badge — used when mounting alongside `ReminderPanel`,
+   *  which already owns reminder + custom-todo rendering. */
+  showOnly?: 'all' | 'catalog';
+  /** When true, omit the outer card wrapper and "今日任务" header so the list
+   *  can be embedded inside another surface (e.g. the 待办事项 panel's 今天
+   *  tab). */
+  headerless?: boolean;
 }
 
 function catalogTitle(row: DashboardTaskCatalogRow): string {
@@ -60,18 +69,6 @@ function catalogTitle(row: DashboardTaskCatalogRow): string {
   }
 }
 
-function catalogDetail(row: DashboardTaskCatalogRow): string {
-  if (row.family === 'maintain') return '20 秒记录一下，生长曲线会更完整。';
-  if (row.family === 'observe') return '记一段小观察，留住这个阶段的真实变化。';
-  return '';
-}
-
-function catalogActionLabel(row: DashboardTaskCatalogRow): string {
-  if (row.family === 'maintain') return '记录';
-  if (row.family === 'observe') return '记到成长随记';
-  return '';
-}
-
 function reminderTitle(reminder: ActiveReminder): string {
   // Re-use the rule's `title` field when present; fall back to ruleId.
   // The full title resolution lives in the existing reminder rendering surface; the dashboard
@@ -80,7 +77,7 @@ function reminderTitle(reminder: ActiveReminder): string {
   return rule.title ?? rule.ruleId;
 }
 
-function CatalogCard({
+function CatalogRow({
   entry,
   childId,
   onDashboardTaskCapture,
@@ -89,54 +86,68 @@ function CatalogCard({
   childId: string;
   onDashboardTaskCapture: (intent: DashboardTaskCaptureIntent) => void;
 }) {
+  const navigate = useNavigate();
   const row = entry.catalogRow!;
   const title = catalogTitle(row);
-  const detail = catalogDetail(row);
-  const actionLabel = catalogActionLabel(row);
 
-  if (row.family === 'maintain') {
-    const intent = buildDashboardTaskCaptureIntent(row, childId);
-    return (
-      <Cd cls="mb-3" material="glass-regular">
-        <div data-testid={`dashboard-task-card-${row.taskId}`} className="flex flex-col gap-2">
-          <h4 className="text-[15px] font-semibold" style={{ color: textMain }}>{title}</h4>
-          {detail ? <p className="text-[13px]" style={{ color: textMuted }}>{detail}</p> : null}
-          <button
-            type="button"
-            className="self-start rounded-full px-3 py-1 text-[13px] font-medium"
-            style={{ color: textMain, background: '#e2e8f0' }}
-            onClick={() => intent && onDashboardTaskCapture(intent)}
-            data-testid={`dashboard-task-action-${row.taskId}`}
-          >
-            {actionLabel}
-          </button>
-        </div>
-      </Cd>
-    );
-  }
+  // Catalog rows are rendered inline with reminder rows in the 待办事项 today
+  // tab (see timeline-page-panels.tsx). Visual parity with TimelineReminderRow
+  // keeps the panel reading as one unified list. testids preserved for tests.
+  const handleActivate = () => {
+    if (row.family === 'maintain') {
+      const intent = buildDashboardTaskCaptureIntent(row, childId);
+      if (intent) onDashboardTaskCapture(intent);
+      return;
+    }
+    if (row.family === 'observe') {
+      navigate('/journal');
+    }
+  };
 
-  if (row.family === 'observe') {
-    return (
-      <Cd cls="mb-3" material="glass-regular">
-        <div data-testid={`dashboard-task-card-${row.taskId}`} className="flex flex-col gap-2">
-          <h4 className="text-[15px] font-semibold" style={{ color: textMain }}>{title}</h4>
-          {detail ? <p className="text-[13px]" style={{ color: textMuted }}>{detail}</p> : null}
-          <Link
-            to="/journal"
-            className="self-start rounded-full px-3 py-1 text-[13px] font-medium no-underline"
-            style={{ color: textMain, background: '#e2e8f0' }}
-            data-testid={`dashboard-task-action-${row.taskId}`}
-          >
-            {actionLabel}
-          </Link>
-        </div>
-      </Cd>
-    );
-  }
+  // connect / must-do catalog rows are not admitted in wave-2; skip rendering
+  // so the schema is honored without exposing unfinished surfaces.
+  if (row.family !== 'maintain' && row.family !== 'observe') return null;
 
-  // connect / must-do catalog rows are not admitted in wave-2; render a
-  // neutral row so the schema is honored without exposing unfinished surfaces.
-  return null;
+  const buttonLabel = row.family === 'maintain' ? '记录' : '写一条';
+  const buttonTitle = row.family === 'maintain' ? '记录数据' : '写一条成长随记';
+
+  return (
+    <div
+      data-testid={`dashboard-task-card-${row.taskId}`}
+      role="button"
+      tabIndex={0}
+      onClick={handleActivate}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          handleActivate();
+        }
+      }}
+      className="group flex items-center gap-3 rounded-[12px] px-3 py-3.5 transition-colors hover:bg-white cursor-pointer"
+    >
+      <span
+        aria-hidden="true"
+        className="mt-[2px] flex h-[15px] w-[15px] shrink-0 items-center justify-center rounded-full border"
+        style={{ borderColor: '#D0D3D8' }}
+      />
+      <div className="min-w-0 flex-1">
+        <p className="text-[14px] font-medium leading-snug" style={{ color: textMain }}>{title}</p>
+      </div>
+      <button
+        type="button"
+        title={buttonTitle}
+        data-testid={`dashboard-task-action-${row.taskId}`}
+        onClick={(event) => {
+          event.stopPropagation();
+          handleActivate();
+        }}
+        className="shrink-0 rounded-full px-2.5 py-1 text-[12px] font-medium transition-colors hover:bg-[#cbd5e1]"
+        style={{ color: textMain, background: '#e2e8f0' }}
+      >
+        {buttonLabel}
+      </button>
+    </div>
+  );
 }
 
 function ReminderRow({ entry }: { entry: DashboardTaskEntry }) {
@@ -179,6 +190,8 @@ export function DashboardTaskList(props: DashboardTaskListProps) {
     customTodos,
     catalogRows = DASHBOARD_TASK_CATALOG,
     onDashboardTaskCapture,
+    showOnly = 'all',
+    headerless = false,
   } = props;
 
   const projection = useMemo(
@@ -192,34 +205,51 @@ export function DashboardTaskList(props: DashboardTaskListProps) {
     [today, child, reminderAgenda, customTodos, catalogRows],
   );
 
+  const visibleEntries = showOnly === 'catalog'
+    ? projection.mainList.filter((entry) => entry.source === 'catalog')
+    : projection.mainList;
+
+  // When this list is mounted alongside ReminderPanel via showOnly='catalog',
+  // an empty card next to the panel header looks broken — render nothing
+  // instead.
+  if (showOnly === 'catalog' && visibleEntries.length === 0 && projection.downgradeIndicatorCount === 0) {
+    return null;
+  }
+
+  const body = (
+    <div data-testid="dashboard-task-list">
+      {visibleEntries.map((entry) => {
+        if (entry.source === 'reminder') return <ReminderRow key={entry.key} entry={entry} />;
+        if (entry.source === 'catalog') {
+          return (
+            <CatalogRow
+              key={entry.key}
+              entry={entry}
+              childId={child.childId}
+              onDashboardTaskCapture={onDashboardTaskCapture}
+            />
+          );
+        }
+        return <PersonalRow key={entry.key} entry={entry} />;
+      })}
+      {projection.downgradeIndicatorCount > 0 ? (
+        <div
+          data-testid="dashboard-task-downgrade-indicator"
+          className="mt-2 rounded-md p-2 text-[12px]"
+          style={{ background: '#f8fafc', color: textSoft }}
+        >
+          档案有 {projection.downgradeIndicatorCount} 项可更新
+        </div>
+      ) : null}
+    </div>
+  );
+
+  if (headerless) return body;
+
   return (
     <Cd cls="mb-4">
       <Hdr title="今日任务" />
-      <div data-testid="dashboard-task-list">
-        {projection.mainList.map((entry) => {
-          if (entry.source === 'reminder') return <ReminderRow key={entry.key} entry={entry} />;
-          if (entry.source === 'catalog') {
-            return (
-              <CatalogCard
-                key={entry.key}
-                entry={entry}
-                childId={child.childId}
-                onDashboardTaskCapture={onDashboardTaskCapture}
-              />
-            );
-          }
-          return <PersonalRow key={entry.key} entry={entry} />;
-        })}
-        {projection.downgradeIndicatorCount > 0 ? (
-          <div
-            data-testid="dashboard-task-downgrade-indicator"
-            className="mt-2 rounded-md p-2 text-[12px]"
-            style={{ background: '#f8fafc', color: textSoft }}
-          >
-            档案有 {projection.downgradeIndicatorCount} 项可更新
-          </div>
-        ) : null}
-      </div>
+      {body}
     </Cd>
   );
 }

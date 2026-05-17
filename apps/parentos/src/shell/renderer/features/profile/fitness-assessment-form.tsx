@@ -3,6 +3,7 @@ import '@nimiplatform/nimi-kit/ui';
 import { computeAgeMonthsAt } from '../../app-shell/app-store.js';
 import { insertFitnessAssessment } from '../../bridge/sqlite-bridge.js';
 import { isoNow, ulid } from '../../bridge/ulid.js';
+import type { LinkedHealthRecordReminder } from './health-capture-orchestrator.js';
 import {
   CancelButton,
   DateField,
@@ -105,9 +106,10 @@ type FitnessFormContentProps = {
   ageMonths: number;
   onSaved: () => void | Promise<void>;
   onClose: () => void;
+  linkedReminder?: LinkedHealthRecordReminder | null;
 };
 
-export function FitnessAssessmentFormContent({ child, ageMonths, onSaved, onClose }: FitnessFormContentProps) {
+export function FitnessAssessmentFormContent({ child, ageMonths, onSaved, onClose, linkedReminder }: FitnessFormContentProps) {
   const tier = ageTier(ageMonths);
   const isFemale = child.gender === 'female';
   const fields = visibleFields(tier, isFemale);
@@ -159,6 +161,8 @@ export function FitnessAssessmentFormContent({ child, ageMonths, onSaved, onClos
         footArchStatus: null,
         notes: formNotes || null,
         now,
+        linkedReminderStateId: linkedReminder?.stateId ?? null,
+        linkedReminderRuleId: linkedReminder?.ruleId ?? null,
       });
       await onSaved();
       onClose();

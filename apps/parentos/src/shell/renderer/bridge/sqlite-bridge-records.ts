@@ -378,6 +378,8 @@ export function insertTannerAssessment(params: {
   assessedBy: string | null;
   notes: string | null;
   now: string;
+  linkedReminderStateId?: string | null;
+  linkedReminderRuleId?: string | null;
 }) {
   return invoke<void>('insert_tanner_assessment', params);
 }
@@ -434,6 +436,8 @@ export function insertFitnessAssessment(params: {
   footArchStatus: string | null;
   notes: string | null;
   now: string;
+  linkedReminderStateId?: string | null;
+  linkedReminderRuleId?: string | null;
 }) {
   return invoke<void>('insert_fitness_assessment', params);
 }
@@ -471,6 +475,8 @@ export function insertOutdoorRecord(params: {
   durationMinutes: number;
   note: string | null;
   now: string;
+  linkedReminderStateId?: string | null;
+  linkedReminderRuleId?: string | null;
 }) {
   return invoke<void>('insert_outdoor_record', params);
 }

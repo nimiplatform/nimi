@@ -6,7 +6,7 @@ export type HealthMetricGroupId = 'growth' | 'vision' | 'fitness' | 'sleep' | 'o
 export type HealthMetricId = 'growth.height' | 'growth.weight' | 'growth.head_circumference' | 'growth.bmi' | 'vision.left_visual_acuity' | 'vision.right_visual_acuity' | 'vision.left_axial_length' | 'vision.right_axial_length' | 'vision.left_iop' | 'vision.right_iop' | 'fitness.run_50m' | 'fitness.vital_capacity' | 'fitness.run_800m' | 'fitness.run_1000m' | 'fitness.run_50x8' | 'fitness.sit_and_reach' | 'fitness.standing_long_jump' | 'fitness.sit_ups' | 'fitness.pull_ups' | 'fitness.rope_skipping' | 'fitness.run_10m_shuttle' | 'fitness.tennis_ball_throw' | 'fitness.double_foot_jump' | 'fitness.balance_beam' | 'fitness.foot_arch_status' | 'development.tanner_breast_stage' | 'development.tanner_genital_stage' | 'development.tanner_pubic_hair_stage' | 'development.bone_age_years' | 'development.body_fat_percentage' | 'sleep.duration_minutes' | 'outdoor.weekly_goal_minutes' | 'outdoor.activity_minutes' | 'vaccine.administration' | 'dental.event' | 'medical.event' | 'development.milestone';
 export type HealthEvaluationPolicyId = 'growth.percentile-band' | 'growth.bmi-percentile-band' | 'vision.age-reference-band' | 'vision.axial-reference-band' | 'vision.iop-reference-band' | 'fitness.standard-grade' | 'development.tanner-stage-reference' | 'sleep.age-reference-band' | 'outdoor.goal-presence' | 'outdoor.goal-progress' | 'vaccine.rule-completion' | 'dental.event-severity' | 'medical.result-projection' | 'development.catalog-window';
 export type HealthCaptureProtocolId = 'growth-infant-monthly' | 'growth-child-quarterly' | 'growth-school-biannual' | 'vision-basic' | 'vision-full-exam' | 'fitness-school-assessment' | 'tanner-female-self-assessment' | 'tanner-male-self-assessment' | 'development-auxiliary-measurement' | 'outdoor-goal' | 'outdoor-activity' | 'sleep-night' | 'vaccine-administration' | 'dental-event' | 'medical-event' | 'milestone-achievement';
-export type HealthRecordDataRuleId = 'PO-REM-OUTD-001' | 'PO-REM-OUTD-002' | 'PO-REM-GRO-001' | 'PO-REM-GRO-002' | 'PO-REM-GRO-003' | 'PO-REM-FIT-001' | 'PO-REM-TAN-001' | 'PO-REM-TAN-002';
+export type HealthRecordDataRuleId = 'PO-REM-OUTD-001' | 'PO-REM-OUTD-002' | 'PO-REM-GRO-001' | 'PO-REM-GRO-002' | 'PO-REM-GRO-003' | 'PO-REM-FIT-001' | 'PO-REM-FIT-002' | 'PO-REM-TAN-001' | 'PO-REM-TAN-002';
 
 export type HealthValueShape = 'number' | 'enum' | 'boolean' | 'text' | 'date' | 'duration' | 'composite' | 'event';
 export type HealthValueCardinality = 'single' | 'left_right_pair' | 'multi_metric_set' | 'event_payload';
@@ -1573,7 +1573,8 @@ export const HEALTH_CAPTURE_PROTOCOLS: readonly HealthCaptureProtocol[] = [
     "modeSupport": [
       "manual",
       "prefilled",
-      "guided"
+      "guided",
+      "reminder"
     ],
     "metricIds": [
       "fitness.run_50m",
@@ -1612,7 +1613,8 @@ export const HEALTH_CAPTURE_PROTOCOLS: readonly HealthCaptureProtocol[] = [
     ],
     "sourceSupport": [
       "manual",
-      "imported"
+      "imported",
+      "reminder"
     ],
     "storageTarget": "health_record_event",
     "completionPolicy": "At least one admitted fitness metric must be recorded in the event."
@@ -1929,6 +1931,19 @@ export const HEALTH_REMINDER_CAPTURE_TARGETS: readonly HealthReminderCaptureTarg
     "completionPolicy": "Complete only after one school-year fitness assessment event persists at least one admitted fitness metric for the target child."
   },
   {
+    "ruleId": "PO-REM-FIT-002",
+    "actionType": "record_data",
+    "captureProtocolId": "fitness-school-assessment",
+    "targetMetricIds": [
+      "fitness.run_50m",
+      "fitness.standing_long_jump",
+      "fitness.sit_and_reach",
+      "fitness.rope_skipping"
+    ],
+    "dateDefaultPolicy": "today",
+    "completionPolicy": "Complete only after one home fitness mini-test event persists at least one admitted fitness metric for the target child."
+  },
+  {
     "ruleId": "PO-REM-TAN-001",
     "actionType": "record_data",
     "captureProtocolId": "tanner-female-self-assessment",
@@ -1954,4 +1969,4 @@ export const HEALTH_REMINDER_CAPTURE_TARGETS: readonly HealthReminderCaptureTarg
 export const HEALTH_METRIC_IDS = ["growth.height","growth.weight","growth.head_circumference","growth.bmi","vision.left_visual_acuity","vision.right_visual_acuity","vision.left_axial_length","vision.right_axial_length","vision.left_iop","vision.right_iop","fitness.run_50m","fitness.vital_capacity","fitness.run_800m","fitness.run_1000m","fitness.run_50x8","fitness.sit_and_reach","fitness.standing_long_jump","fitness.sit_ups","fitness.pull_ups","fitness.rope_skipping","fitness.run_10m_shuttle","fitness.tennis_ball_throw","fitness.double_foot_jump","fitness.balance_beam","fitness.foot_arch_status","development.tanner_breast_stage","development.tanner_genital_stage","development.tanner_pubic_hair_stage","development.bone_age_years","development.body_fat_percentage","sleep.duration_minutes","outdoor.weekly_goal_minutes","outdoor.activity_minutes","vaccine.administration","dental.event","medical.event","development.milestone"] as const;
 export const HEALTH_CAPTURE_PROTOCOL_IDS = ["growth-infant-monthly","growth-child-quarterly","growth-school-biannual","vision-basic","vision-full-exam","fitness-school-assessment","tanner-female-self-assessment","tanner-male-self-assessment","development-auxiliary-measurement","outdoor-goal","outdoor-activity","sleep-night","vaccine-administration","dental-event","medical-event","milestone-achievement"] as const;
 export const HEALTH_EVALUATION_POLICY_IDS = ["growth.percentile-band","growth.bmi-percentile-band","vision.age-reference-band","vision.axial-reference-band","vision.iop-reference-band","fitness.standard-grade","development.tanner-stage-reference","sleep.age-reference-band","outdoor.goal-presence","outdoor.goal-progress","vaccine.rule-completion","dental.event-severity","medical.result-projection","development.catalog-window"] as const;
-export const HEALTH_RECORD_DATA_RULE_IDS = ["PO-REM-OUTD-001","PO-REM-OUTD-002","PO-REM-GRO-001","PO-REM-GRO-002","PO-REM-GRO-003","PO-REM-FIT-001","PO-REM-TAN-001","PO-REM-TAN-002"] as const;
+export const HEALTH_RECORD_DATA_RULE_IDS = ["PO-REM-OUTD-001","PO-REM-OUTD-002","PO-REM-GRO-001","PO-REM-GRO-002","PO-REM-GRO-003","PO-REM-FIT-001","PO-REM-FIT-002","PO-REM-TAN-001","PO-REM-TAN-002"] as const;

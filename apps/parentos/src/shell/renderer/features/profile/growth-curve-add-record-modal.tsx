@@ -4,6 +4,7 @@ import { computeAgeMonthsAt } from '../../app-shell/app-store.js';
 import { insertMeasurement, saveAttachment } from '../../bridge/sqlite-bridge.js';
 import { isoNow, ulid } from '../../bridge/ulid.js';
 import { bmiLabel, computeBMI } from './growth-curve-page-shared.js';
+import type { LinkedHealthRecordReminder } from './health-capture-orchestrator.js';
 import { PhotoGrid, type PendingPhoto } from './photo-grid.js';
 import {
   CancelButton,
@@ -26,6 +27,7 @@ type GrowthAddRecordContentProps = {
   isUnder6: boolean;
   onSaved: () => void | Promise<void>;
   onClose: () => void;
+  linkedReminder?: LinkedHealthRecordReminder | null;
 };
 
 export function GrowthAddRecordContent({
@@ -34,6 +36,7 @@ export function GrowthAddRecordContent({
   isUnder6,
   onSaved,
   onClose,
+  linkedReminder,
 }: GrowthAddRecordContentProps) {
   const [formDate, setFormDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [formHeight, setFormHeight] = useState('');
@@ -61,26 +64,28 @@ export function GrowthAddRecordContent({
     const notes = formNotes.trim() || null;
 
     setSaving(true);
+    const linkedReminderStateId = linkedReminder?.stateId ?? null;
+    const linkedReminderRuleId = linkedReminder?.ruleId ?? null;
     try {
       let photoOwnerId: string | null = null;
       if (h != null) {
         const id = ulid();
-        await insertMeasurement({ measurementId: id, childId, typeId: 'height', value: h, measuredAt: formDate, ageMonths: age, percentile: null, source: 'manual', notes, now });
+        await insertMeasurement({ measurementId: id, childId, typeId: 'height', value: h, measuredAt: formDate, ageMonths: age, percentile: null, source: 'manual', notes, now, linkedReminderStateId, linkedReminderRuleId });
         photoOwnerId = photoOwnerId ?? id;
       }
       if (w != null) {
         const id = ulid();
-        await insertMeasurement({ measurementId: id, childId, typeId: 'weight', value: w, measuredAt: formDate, ageMonths: age, percentile: null, source: 'manual', notes, now });
+        await insertMeasurement({ measurementId: id, childId, typeId: 'weight', value: w, measuredAt: formDate, ageMonths: age, percentile: null, source: 'manual', notes, now, linkedReminderStateId, linkedReminderRuleId });
         photoOwnerId = photoOwnerId ?? id;
       }
       if (hc != null) {
         const id = ulid();
-        await insertMeasurement({ measurementId: id, childId, typeId: 'head-circumference', value: hc, measuredAt: formDate, ageMonths: age, percentile: null, source: 'manual', notes, now });
+        await insertMeasurement({ measurementId: id, childId, typeId: 'head-circumference', value: hc, measuredAt: formDate, ageMonths: age, percentile: null, source: 'manual', notes, now, linkedReminderStateId, linkedReminderRuleId });
         photoOwnerId = photoOwnerId ?? id;
       }
       if (h != null && w != null) {
         const bmiValue = computeBMI(h, w);
-        await insertMeasurement({ measurementId: ulid(), childId, typeId: 'bmi', value: bmiValue, measuredAt: formDate, ageMonths: age, percentile: null, source: 'computed', notes: null, now });
+        await insertMeasurement({ measurementId: ulid(), childId, typeId: 'bmi', value: bmiValue, measuredAt: formDate, ageMonths: age, percentile: null, source: 'computed', notes: null, now, linkedReminderStateId, linkedReminderRuleId });
       }
 
       if (photoOwnerId && formPhotos.length > 0) {

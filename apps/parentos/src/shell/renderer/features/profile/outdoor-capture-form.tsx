@@ -2,6 +2,7 @@ import { useState } from 'react';
 import '@nimiplatform/nimi-kit/ui';
 import { insertOutdoorRecord } from '../../bridge/sqlite-bridge.js';
 import { isoNow, ulid } from '../../bridge/ulid.js';
+import type { LinkedHealthRecordReminder } from './health-capture-orchestrator.js';
 import {
   CancelButton,
   ChipGroup,
@@ -22,9 +23,10 @@ type OutdoorCaptureProps = {
   child: { childId: string };
   onSaved: () => void | Promise<void>;
   onClose: () => void;
+  linkedReminder?: LinkedHealthRecordReminder | null;
 };
 
-export function OutdoorCaptureContent({ child, onSaved, onClose }: OutdoorCaptureProps) {
+export function OutdoorCaptureContent({ child, onSaved, onClose, linkedReminder }: OutdoorCaptureProps) {
   const [activityDate, setActivityDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [durationMinutes, setDurationMinutes] = useState('60');
   const [note, setNote] = useState('');
@@ -49,6 +51,8 @@ export function OutdoorCaptureContent({ child, onSaved, onClose }: OutdoorCaptur
         durationMinutes: minutes,
         note: note.trim() || null,
         now: isoNow(),
+        linkedReminderStateId: linkedReminder?.stateId ?? null,
+        linkedReminderRuleId: linkedReminder?.ruleId ?? null,
       });
       await onSaved();
       onClose();

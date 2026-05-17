@@ -109,12 +109,30 @@ export function TimelineReminderRow({ reminder, onOpen, onAction, onOpenCapture,
       <div className="min-w-0 flex-1">
         <div className="flex items-baseline justify-between gap-2">
           <p className="text-[14px] font-medium leading-snug" style={{ color: '#1e293b' }}>{reminder.rule.title}</p>
-          <span className="shrink-0 text-[12px]" style={{ color: '#64748b' }}>{statusLabel}</span>
+          {recordData ? null : (
+            <span className="shrink-0 text-[12px]" style={{ color: '#64748b' }}>{statusLabel}</span>
+          )}
         </div>
         {progressionNote ? (
           <p className="mt-0.5 text-[12px]" style={{ color: '#64748b' }}>{progressionNote}</p>
+        ) : recordData ? (
+          <p className="mt-0.5 text-[12px]" style={{ color: '#64748b' }}>{statusLabel}</p>
         ) : null}
       </div>
+      {recordData ? (
+        <button
+          type="button"
+          title="记录数据"
+          onClick={(event) => {
+            event.stopPropagation();
+            onOpenCapture(reminder);
+          }}
+          className="shrink-0 self-center rounded-full px-2.5 py-1 text-[12px] font-medium transition-colors hover:bg-[#cbd5e1]"
+          style={{ color: '#1e293b', background: '#e2e8f0' }}
+        >
+          记录
+        </button>
+      ) : null}
     </div>
   );
 }

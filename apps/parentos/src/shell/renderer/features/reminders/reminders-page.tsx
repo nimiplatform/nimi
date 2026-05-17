@@ -32,11 +32,11 @@ import type { ReminderActionType } from '../../engine/reminder-actions.js';
 import { loadAllFreqOverrides, type FreqOverrideMap } from '../../engine/reminder-freq-overrides.js';
 import { catchLog, catchLogThen } from '../../infra/telemetry/catch-log.js';
 import { HealthCaptureModal } from '../profile/health-capture-modal.js';
-import type { HealthCaptureIntent } from '../profile/health-capture-orchestrator.js';
 import {
-  buildRecordDataCaptureIntent,
   canDirectlyCompleteReminder,
+  getRecordDataReminderSelection,
   isRecordDataReminder,
+  type RecordDataReminderSelection,
 } from './record-data-capture.js';
 
 const textPrimaryClass = 'text-[var(--nimi-text-primary)]';
@@ -285,7 +285,7 @@ export default function RemindersPage() {
   const [freqOverrides, setFreqOverrides] = useState<FreqOverrideMap>(new Map());
   const [freqModalReminder, setFreqModalReminder] = useState<ActiveReminder | null>(null);
   const [activeReminder, setActiveReminder] = useState<ActiveReminder | null>(null);
-  const [captureIntent, setCaptureIntent] = useState<HealthCaptureIntent | null>(null);
+  const [captureSelection, setCaptureSelection] = useState<RecordDataReminderSelection | null>(null);
   const [captureError, setCaptureError] = useState<string | null>(null);
   const ageMonths = child ? computeAgeMonths(child.birthDate) : 0;
   const localToday = getLocalToday();
@@ -328,12 +328,12 @@ export default function RemindersPage() {
   const openRecordDataCapture = useCallback((reminder: ActiveReminder) => {
     try {
       setCaptureError(null);
-      setCaptureIntent(buildRecordDataCaptureIntent(reminder, localToday));
+      setCaptureSelection(getRecordDataReminderSelection(reminder));
     } catch (nextError) {
-      setCaptureIntent(null);
+      setCaptureSelection(null);
       setCaptureError(nextError instanceof Error ? nextError.message : String(nextError));
     }
-  }, [localToday]);
+  }, []);
 
   const handleSchedule = useCallback((reminder: ActiveReminder) => {
     const suggestion = reminder.state?.scheduledDate ?? localToday;
@@ -540,17 +540,19 @@ export default function RemindersPage() {
         ) : null}
       </div>
 
-      {child && captureIntent ? (
+      {child && captureSelection ? (
         <HealthCaptureModal
           open
           childId={child.childId}
           childBirthDate={child.birthDate}
-          initialIntent={captureIntent}
+          initialGroupId={captureSelection.groupId}
+          initialMetricId={captureSelection.metricId ?? null}
+          linkedReminder={captureSelection.linkedReminder}
           onClose={() => {
-            setCaptureIntent(null);
+            setCaptureSelection(null);
           }}
           onSaved={() => {
-            setCaptureIntent(null);
+            setCaptureSelection(null);
             void reload();
           }}
         />

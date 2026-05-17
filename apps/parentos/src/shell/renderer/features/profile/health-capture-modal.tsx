@@ -1,18 +1,9 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { computeAgeMonths, computeAgeMonthsAt } from '../../app-shell/app-store.js';
-import { saveHealthRecordCapture, type SaveHealthRecordCaptureResult } from '../../bridge/sqlite-bridge.js';
-import { isoNow, ulid } from '../../bridge/ulid.js';
-import type { HealthCaptureProtocolId, HealthMetricDefinition, HealthMetricId } from '../../knowledge-base/index.js';
-import {
-  buildHealthCaptureEventInput,
-  createDefaultHealthCaptureIntent,
-  getCaptureMetrics,
-  getHealthRecordEventCaptureProtocolOptions,
-  type HealthCaptureDraftValue,
-  type HealthCaptureIntent,
-} from './health-capture-orchestrator.js';
-import { groupLabel, metricLabel, protocolLabel } from './health-record-display.js';
+import { computeAgeMonths } from '../../app-shell/app-store.js';
+import type { SaveHealthRecordCaptureResult } from '../../bridge/sqlite-bridge.js';
+import { getHealthRecordEventCaptureProtocolOptions, type LinkedHealthRecordReminder } from './health-capture-orchestrator.js';
+import { groupLabel } from './health-record-display.js';
 import { GrowthAddRecordContent } from './growth-curve-add-record-modal.js';
 import { VisionBatchFormContent } from './vision-batch-form.js';
 import { SleepFormContent } from './sleep-record-form.js';
@@ -32,21 +23,14 @@ import { useAppStore } from '../../app-shell/app-store.js';
 import {
   CancelButton,
   ChipGroup,
-  DateField,
-  FormField,
-  FormGrid,
   HEALTH_MODAL_TOKENS,
   HealthRecordModalShell,
   HealthRecordSidebar,
   type HealthRecordSidebarItem,
   type HealthModalSize,
-  InlineError,
-  Input,
   ModalContent,
   ModalFooter,
   ModalHeader,
-  PrimaryButton,
-  SectionCard,
   SmartInputButton,
 } from './health-record-modal-shell.js';
 
@@ -54,9 +38,15 @@ interface HealthCaptureModalProps {
   open: boolean;
   childId: string;
   childBirthDate: string;
-  initialIntent?: HealthCaptureIntent | null;
   initialGroupId?: string | null;
   initialMetricId?: string | null;
+  /**
+   * Set when the modal is opened from a record_data reminder. Per-group forms
+   * thread these IDs into the underlying insert so health_record_events rows
+   * land with linkedReminderStateId/linkedReminderRuleId (capture-orchestrator-
+   * contract.md, local-storage.yaml).
+   */
+  linkedReminder?: LinkedHealthRecordReminder | null;
   onClose: () => void;
   onSaved?: (result: SaveHealthRecordCaptureResult) => void;
 }
@@ -120,9 +110,6 @@ function sortOptionsForSidebar<T extends { group: { groupId: string } }>(options
 
 export function HealthCaptureModal(props: HealthCaptureModalProps) {
   if (!props.open) return null;
-  if (props.initialIntent) {
-    return <LegacyHealthCaptureModal {...props} />;
-  }
   return <SidebarHealthCaptureModal {...props} />;
 }
 
@@ -131,6 +118,7 @@ function SidebarHealthCaptureModal({
   childBirthDate,
   initialGroupId,
   initialMetricId,
+  linkedReminder,
   onClose,
   onSaved,
 }: HealthCaptureModalProps) {
@@ -190,6 +178,7 @@ function SidebarHealthCaptureModal({
           isUnder6={isUnder6}
           onSaved={handleSavedFromGroup}
           onClose={onClose}
+          linkedReminder={linkedReminder}
         />
       );
     }
@@ -219,6 +208,7 @@ function SidebarHealthCaptureModal({
           ageMonths={ageMonths}
           onSaved={handleSavedFromGroup}
           onClose={onClose}
+          linkedReminder={linkedReminder}
         />
       );
     }
@@ -256,12 +246,18 @@ function SidebarHealthCaptureModal({
           ageMonths={ageMonths}
           onClose={onClose}
           onSaved={handleSavedFromGroup}
+          linkedReminder={linkedReminder}
         />
       );
     }
     if (selectedGroupId === 'outdoor') {
       return (
-        <OutdoorCaptureContent child={{ childId }} onSaved={handleSavedFromGroup} onClose={onClose} />
+        <OutdoorCaptureContent
+          child={{ childId }}
+          onSaved={handleSavedFromGroup}
+          onClose={onClose}
+          linkedReminder={linkedReminder}
+        />
       );
     }
     if (selectedGroupId === 'dental') {
@@ -331,6 +327,7 @@ type DevelopmentTabContentProps = {
   ageMonths: number;
   onClose: () => void;
   onSaved: () => void;
+  linkedReminder?: LinkedHealthRecordReminder | null;
 };
 
 function DevelopmentTabContent({
@@ -344,6 +341,7 @@ function DevelopmentTabContent({
   ageMonths,
   onClose,
   onSaved,
+  linkedReminder,
 }: DevelopmentTabContentProps) {
   const trailing =
     tabs.length > 1 ? (
@@ -372,6 +370,7 @@ function DevelopmentTabContent({
       onSaved={onSaved}
       onClose={onClose}
       headerTrailing={trailing}
+      linkedReminder={linkedReminder}
     />
   );
 }
@@ -398,261 +397,5 @@ function ComingSoonPanel({ onClose }: { onClose: () => void }) {
         <CancelButton onClick={onClose}>关闭</CancelButton>
       </ModalFooter>
     </>
-  );
-}
-
-/* ── Legacy capture modal (intent-driven; kept for reminder/protocol flow) ─ */
-
-function LegacyHealthCaptureModal({
-  childId,
-  childBirthDate,
-  initialIntent,
-  onClose,
-  onSaved,
-}: HealthCaptureModalProps) {
-  const { t } = useTranslation();
-  const options = useMemo(() => sortOptionsForSidebar(getHealthRecordEventCaptureProtocolOptions()), []);
-  const firstProtocol = options[0]?.protocols[0];
-  const initialProtocolId = initialIntent?.protocolId ?? firstProtocol?.protocolId;
-  const [selectedGroupId, setSelectedGroupId] = useState(initialIntent?.protocolId ? null : options[0]?.group.groupId ?? null);
-  const [protocolId, setProtocolId] = useState<HealthCaptureProtocolId | null>(initialProtocolId ?? null);
-  const [effectiveDate, setEffectiveDate] = useState(initialIntent?.effectiveDate ?? new Date().toISOString().slice(0, 10));
-  const [notes, setNotes] = useState(initialIntent?.notes ?? '');
-  const [draftValues, setDraftValues] = useState<Partial<Record<HealthMetricId, HealthCaptureDraftValue>>>(
-    initialIntent?.prefillValues ?? {},
-  );
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [missingMetricIds, setMissingMetricIds] = useState<ReadonlySet<HealthMetricId>>(() => new Set());
-  const protocolLocked = initialIntent?.mode === 'reminder';
-
-  useEffect(() => {
-    const nextProtocolId = initialIntent?.protocolId ?? firstProtocol?.protocolId ?? null;
-    setProtocolId(nextProtocolId);
-    setSelectedGroupId(
-      options.find((option) => option.protocols.some((protocol) => protocol.protocolId === nextProtocolId))?.group.groupId ??
-        options[0]?.group.groupId ??
-        null,
-    );
-    setEffectiveDate(initialIntent?.effectiveDate ?? new Date().toISOString().slice(0, 10));
-    setNotes(initialIntent?.notes ?? '');
-    setDraftValues(initialIntent?.prefillValues ?? {});
-    setError(null);
-    setMissingMetricIds(new Set());
-  }, [firstProtocol?.protocolId, initialIntent, options]);
-
-  const selectedOption = options.find((option) => option.group.groupId === selectedGroupId) ?? options[0] ?? null;
-  const selectedProtocol =
-    selectedOption?.protocols.find((protocol) => protocol.protocolId === protocolId) ??
-    options.flatMap((option) => option.protocols).find((protocol) => protocol.protocolId === protocolId) ??
-    selectedOption?.protocols[0] ??
-    null;
-  const metricSections = selectedProtocol ? getCaptureMetrics(selectedProtocol) : { required: [], optional: [] };
-
-  const setMetricValue = (metricId: HealthMetricId, value: string) => {
-    setDraftValues((previous) => ({ ...previous, [metricId]: { ...(previous[metricId] ?? {}), value } }));
-    if (missingMetricIds.has(metricId) && value.trim().length > 0) {
-      setMissingMetricIds((previous) => {
-        const next = new Set(previous);
-        next.delete(metricId);
-        return next;
-      });
-    }
-  };
-
-  const handleProtocolChange = (nextProtocolId: HealthCaptureProtocolId) => {
-    setProtocolId(nextProtocolId);
-    setDraftValues({});
-    setError(null);
-    setMissingMetricIds(new Set());
-  };
-
-  const handleSave = async () => {
-    if (!selectedProtocol) return;
-
-    const missing = metricSections.required
-      .filter((metric) => {
-        const draft = draftValues[metric.metricId];
-        return !draft || draft.value.trim().length === 0;
-      })
-      .map((metric) => metric.metricId);
-
-    if (missing.length > 0) {
-      setMissingMetricIds(new Set(missing));
-      setError(t('Profile.capture.fixRequiredFields', { defaultValue: 'Some required fields are missing — please complete them before saving.' }));
-      return;
-    }
-
-    setMissingMetricIds(new Set());
-    setSaving(true);
-    setError(null);
-    const nowIso = isoNow();
-    try {
-      const intent: HealthCaptureIntent = initialIntent
-        ? { ...initialIntent, protocolId: selectedProtocol.protocolId, effectiveDate, notes }
-        : createDefaultHealthCaptureIntent(selectedProtocol.protocolId, 'manual', effectiveDate);
-      const capture = buildHealthCaptureEventInput({
-        childId,
-        ageMonths: computeAgeMonthsAt(childBirthDate, effectiveDate),
-        intent: { ...intent, effectiveDate, notes },
-        draftValues,
-        nowIso,
-        makeId: ulid,
-      });
-      const result = await saveHealthRecordCapture(capture);
-      onSaved?.(result);
-      onClose();
-    } catch (nextError) {
-      setError(nextError instanceof Error ? nextError.message : t('Profile.capture.saveFailed', { defaultValue: 'Capture save failed.' }));
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const sidebarItems: HealthRecordSidebarItem[] = options.map((option) => ({
-    id: option.group.groupId,
-    emoji: GROUP_EMOJI[option.group.groupId],
-    label: groupLabel(option.group.groupId, option.group.displayName, t),
-    disabled: protocolLocked,
-  }));
-
-  const protocolChipOptions = selectedOption?.protocols.map((protocol) => ({
-    value: protocol.protocolId,
-    label: protocolLabel(protocol.protocolId, protocol.displayName, t),
-  })) ?? [];
-
-  return (
-    <HealthRecordModalShell
-      open
-      size="M"
-      onClose={onClose}
-      sidebar={
-        <HealthRecordSidebar
-          items={sidebarItems}
-          selected={selectedGroupId ?? ''}
-          onSelect={(id) => {
-            if (protocolLocked) return;
-            const option = options.find((item) => item.group.groupId === id);
-            if (!option) return;
-            setSelectedGroupId(option.group.groupId);
-            handleProtocolChange(option.protocols[0]!.protocolId);
-          }}
-        />
-      }
-    >
-      <ModalHeader
-        title={t('Profile.capture.title', { defaultValue: 'Add health data' })}
-        subtitle={
-          selectedProtocol
-            ? protocolLabel(selectedProtocol.protocolId, selectedProtocol.displayName, t)
-            : t('Profile.capture.selectProtocol', { defaultValue: 'Select a protocol' })
-        }
-        onClose={onClose}
-      />
-      <ModalContent>
-        <div className="space-y-4">
-          {protocolChipOptions.length > 1 ? (
-            <ChipGroup
-              size="sm"
-              options={protocolChipOptions}
-              value={selectedProtocol?.protocolId ?? ''}
-              onChange={(value) => {
-                if (protocolLocked) return;
-                handleProtocolChange(value as HealthCaptureProtocolId);
-              }}
-            />
-          ) : null}
-
-          <FormGrid cols={2}>
-            <FormField label={t('Profile.capture.recordDate', { defaultValue: 'Record date' })}>
-              <DateField value={effectiveDate} onChange={setEffectiveDate} />
-            </FormField>
-            <FormField label={t('Profile.capture.notes', { defaultValue: 'Notes' })}>
-              <Input value={notes} onChange={(event) => setNotes(event.target.value)} />
-            </FormField>
-          </FormGrid>
-
-          <MetricFieldSet
-            title={t('Profile.capture.required', { defaultValue: 'Required' })}
-            metrics={metricSections.required}
-            values={draftValues}
-            onChange={setMetricValue}
-            t={t}
-            isRequired
-            missingMetricIds={missingMetricIds}
-          />
-          {metricSections.optional.length > 0 ? (
-            <MetricFieldSet
-              title={t('Profile.capture.optional', { defaultValue: 'Optional' })}
-              metrics={metricSections.optional}
-              values={draftValues}
-              onChange={setMetricValue}
-              t={t}
-            />
-          ) : null}
-
-          {error ? <InlineError>{error}</InlineError> : null}
-        </div>
-      </ModalContent>
-      <ModalFooter>
-        <CancelButton onClick={onClose}>{t('Profile.capture.cancel', { defaultValue: 'Cancel' })}</CancelButton>
-        <PrimaryButton onClick={() => void handleSave()} disabled={saving || !selectedProtocol}>
-          {saving
-            ? t('Profile.capture.saving', { defaultValue: 'Saving' })
-            : t('Profile.capture.save', { defaultValue: 'Save' })}
-        </PrimaryButton>
-      </ModalFooter>
-    </HealthRecordModalShell>
-  );
-}
-
-function MetricFieldSet({
-  title,
-  metrics,
-  values,
-  onChange,
-  t,
-  isRequired = false,
-  missingMetricIds,
-}: {
-  title: string;
-  metrics: readonly HealthMetricDefinition[];
-  values: Partial<Record<HealthMetricId, HealthCaptureDraftValue>>;
-  onChange: (metricId: HealthMetricId, value: string) => void;
-  t: ReturnType<typeof useTranslation>['t'];
-  isRequired?: boolean;
-  missingMetricIds?: ReadonlySet<HealthMetricId>;
-}) {
-  if (metrics.length === 0) return null;
-  return (
-    <SectionCard title={title}>
-      <FormGrid cols={2}>
-        {metrics.map((metric) => {
-          const label = metricLabel(metric, t);
-          const isMissing = isRequired && (missingMetricIds?.has(metric.metricId) ?? false);
-          const labelText = `${label}${metric.unit ? ` (${metric.unit})` : ''}`;
-          return (
-            <FormField
-              key={metric.metricId}
-              label={labelText}
-              required={isRequired}
-              error={
-                isMissing
-                  ? t('Profile.capture.fieldRequired', { field: label, defaultValue: `Please enter ${label}` })
-                  : null
-              }
-            >
-              <Input
-                type={metric.valueShape === 'number' || metric.valueShape === 'duration' ? 'number' : 'text'}
-                step={metric.precision != null ? String(1 / 10 ** metric.precision) : undefined}
-                value={values[metric.metricId]?.value ?? ''}
-                onChange={(event) => onChange(metric.metricId, event.target.value)}
-                invalid={isMissing}
-              />
-            </FormField>
-          );
-        })}
-      </FormGrid>
-    </SectionCard>
   );
 }

@@ -151,4 +151,55 @@ describe('DashboardTaskList', () => {
     expect(screen.queryByTestId('dashboard-task-downgrade-indicator')).toBeNull();
     expect(screen.getByTestId('dashboard-task-card-dashboard-maintain-expired')).toBeTruthy();
   });
+
+  it('showOnly="catalog" does not render P0 reminder rows even when P0 is in the agenda', () => {
+    renderInRouter(
+      <DashboardTaskList
+        today="2026-05-15"
+        child={child}
+        reminderAgenda={makeAgenda({ todayFocus: [makeP0Reminder()] })}
+        customTodos={[]}
+        catalogRows={[
+          {
+            taskId: 'dashboard-maintain-sleep',
+            family: 'maintain',
+            ownerContract: 'apps/parentos/spec/kernel/timeline-contract.md',
+            cadencePolicy: 'interval',
+            biologicalAnchor: 'none',
+            slotPreference: 'weekday-evening-light',
+            dispersionWindow: 'rolling',
+            mutualExclusionGroup: 'profile-maintenance',
+            displayWindowDays: 2,
+            snoozeDefaultDays: 1,
+            decayStrategy: 'low-disturbance-downgrade',
+            metricIdRefs: ['sleep.duration_minutes'],
+            captureProtocolIdRef: 'sleep-night',
+            featureId: 'PO-FEAT-056',
+          },
+        ]}
+        onDashboardTaskCapture={vi.fn()}
+        showOnly="catalog"
+      />,
+    );
+
+    expect(screen.getByTestId('dashboard-task-card-dashboard-maintain-sleep')).toBeTruthy();
+    expect(screen.queryByTestId('dashboard-task-reminder-PO-VAC-P0')).toBeNull();
+  });
+
+  it('showOnly="catalog" renders nothing when the catalog filter is empty and no downgrade indicator', () => {
+    renderInRouter(
+      <DashboardTaskList
+        today="2026-05-15"
+        child={child}
+        reminderAgenda={makeAgenda()}
+        customTodos={[]}
+        catalogRows={[]}
+        onDashboardTaskCapture={vi.fn()}
+        showOnly="catalog"
+      />,
+    );
+
+    expect(screen.queryByTestId('dashboard-task-list')).toBeNull();
+    expect(screen.queryByTestId('dashboard-task-downgrade-indicator')).toBeNull();
+  });
 });

@@ -49,6 +49,12 @@ targets:
     targetMetricIds: [fitness.run_50m, fitness.vital_capacity]
     dateDefaultPolicy: scheduledDate
     completionPolicy: "Complete only after one school-year fitness assessment event persists at least one admitted fitness metric for the target child."
+  - ruleId: PO-REM-FIT-002
+    actionType: record_data
+    captureProtocolId: fitness-school-assessment
+    targetMetricIds: [fitness.run_50m, fitness.standing_long_jump, fitness.sit_and_reach, fitness.rope_skipping]
+    dateDefaultPolicy: today
+    completionPolicy: "Complete only after one home fitness mini-test event persists at least one admitted fitness metric for the target child."
   - ruleId: PO-REM-TAN-001
     actionType: record_data
     captureProtocolId: tanner-female-self-assessment

@@ -3,6 +3,7 @@ import '@nimiplatform/nimi-kit/ui';
 import { computeAgeMonthsAt } from '../../app-shell/app-store.js';
 import { insertMeasurement, insertTannerAssessment } from '../../bridge/sqlite-bridge.js';
 import { isoNow, ulid } from '../../bridge/ulid.js';
+import type { LinkedHealthRecordReminder } from './health-capture-orchestrator.js';
 import { TannerStageSelector } from './tanner-stage-selector.js';
 import {
   ASSESSED_BY_LABELS,
@@ -184,9 +185,10 @@ type TannerCaptureContentProps = {
   onClose: () => void;
   /** Optional trailing slot in the header (e.g., milestone/tanner tab switcher). */
   headerTrailing?: ReactNode;
+  linkedReminder?: LinkedHealthRecordReminder | null;
 };
 
-export function TannerCaptureContent({ child, onSaved, onClose, headerTrailing }: TannerCaptureContentProps) {
+export function TannerCaptureContent({ child, onSaved, onClose, headerTrailing, linkedReminder }: TannerCaptureContentProps) {
   const isFemale = child.gender === 'female';
   const bgLabel = isFemale ? '乳房发育 (B期)' : '外生殖器发育 (G期)';
   const bgStages: StageDesc[] = isFemale ? BREAST_STAGES : GENITAL_STAGES;
@@ -205,6 +207,8 @@ export function TannerCaptureContent({ child, onSaved, onClose, headerTrailing }
     setSaving(true);
     const now = isoNow();
     const ageMonths = computeAgeMonthsAt(child.birthDate, assessedAt);
+    const linkedReminderStateId = linkedReminder?.stateId ?? null;
+    const linkedReminderRuleId = linkedReminder?.ruleId ?? null;
     try {
       await insertTannerAssessment({
         assessmentId: ulid(),
@@ -216,6 +220,8 @@ export function TannerCaptureContent({ child, onSaved, onClose, headerTrailing }
         assessedBy: assessedBy || null,
         notes: notes.trim() || null,
         now,
+        linkedReminderStateId,
+        linkedReminderRuleId,
       });
       if (boneAge.trim()) {
         await insertMeasurement({
@@ -229,6 +235,8 @@ export function TannerCaptureContent({ child, onSaved, onClose, headerTrailing }
           source: 'manual',
           notes: null,
           now,
+          linkedReminderStateId,
+          linkedReminderRuleId,
         });
       }
       if (bodyFat.trim()) {
@@ -243,6 +251,8 @@ export function TannerCaptureContent({ child, onSaved, onClose, headerTrailing }
           source: 'manual',
           notes: null,
           now,
+          linkedReminderStateId,
+          linkedReminderRuleId,
         });
       }
       await onSaved();

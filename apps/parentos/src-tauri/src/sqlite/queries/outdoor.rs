@@ -47,6 +47,8 @@ pub fn insert_outdoor_record(
     duration_minutes: i32,
     note: Option<String>,
     now: String,
+    linked_reminder_state_id: Option<String>,
+    linked_reminder_rule_id: Option<String>,
 ) -> Result<(), String> {
     if duration_minutes <= 0 {
         return Err("insert_outdoor_record: durationMinutes must be > 0".to_string());
@@ -60,6 +62,11 @@ pub fn insert_outdoor_record(
         )
         .map_err(|e| format!("insert_outdoor_record query child birthDate: {e}"))?;
     let age_months = age_months_at_birth_date(&birth_date, &activity_date)?;
+    let source_surface = if linked_reminder_state_id.is_some() || linked_reminder_rule_id.is_some() {
+        "reminder"
+    } else {
+        "profile_detail"
+    };
     let tx = conn
         .transaction()
         .map_err(|e| format!("insert_outdoor_record begin transaction: {e}"))?;
@@ -67,13 +74,17 @@ pub fn insert_outdoor_record(
     tx.execute(
         "INSERT INTO health_record_events (
             eventId, childId, protocolId, groupId, recordKind, sourceSurface,
-            recordedAt, effectiveDate, ageMonths, notes, metadataJson, createdAt, updatedAt
-        ) VALUES (?1, ?2, 'outdoor-activity', 'outdoor', 'manual', 'profile_detail', ?3, ?3, ?4, ?5, ?6, ?7, ?7)",
+            recordedAt, effectiveDate, ageMonths, linkedReminderStateId, linkedReminderRuleId,
+            notes, metadataJson, createdAt, updatedAt
+        ) VALUES (?1, ?2, 'outdoor-activity', 'outdoor', 'manual', ?3, ?4, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?10)",
         params![
             &event_id,
             &child_id,
+            source_surface,
             &activity_date,
             age_months,
+            &linked_reminder_state_id,
+            &linked_reminder_rule_id,
             &note,
             serde_json::json!({
                 "legacyOutdoorRecordApi": true,
