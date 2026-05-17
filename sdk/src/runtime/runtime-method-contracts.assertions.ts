@@ -12,6 +12,10 @@ import type {
   OpenCompanionParticipationReplayResponse,
   OpenConversationAnchorRequest,
   OpenConversationAnchorResponse,
+  RegisterAvatarLiveInstanceBindingRequest,
+  RegisterAvatarLiveInstanceBindingResponse,
+  ResolveAvatarLiveInstanceBindingRequest,
+  ResolveAvatarLiveInstanceBindingResponse,
   RequestCompanionParticipationRequest,
   RequestCompanionParticipationResponse,
   QueryAgentMemoryRequest,
@@ -75,6 +79,12 @@ const runtimeAgentPresentationResult = runtime.call(
 );
 const runtimeAgentOpenAnchorResult = runtime.agent.openConversationAnchor({} as OpenConversationAnchorRequest);
 const runtimeAgentGetAnchorSnapshotResult = runtime.agent.getConversationAnchorSnapshot({} as GetConversationAnchorSnapshotRequest);
+const runtimeAgentRegisterAvatarLiveInstanceBindingResult = runtime.agent.registerAvatarLiveInstanceBinding(
+  {} as RegisterAvatarLiveInstanceBindingRequest,
+);
+const runtimeAgentResolveAvatarLiveInstanceBindingResult = runtime.agent.resolveAvatarLiveInstanceBinding(
+  {} as ResolveAvatarLiveInstanceBindingRequest,
+);
 const runtimeAgentGetPublicChatSessionSnapshotResult = runtime.agent.getPublicChatSessionSnapshot({} as GetPublicChatSessionSnapshotRequest);
 const runtimeAgentGetCompanionParticipationProjectionResult = runtime.agent.getCompanionParticipationProjection(
   {} as GetCompanionParticipationProjectionRequest,
@@ -152,6 +162,14 @@ type _GuardRuntimeAgentOpenAnchorResult = Assert<IsEqual<
 type _GuardRuntimeAgentGetAnchorSnapshotResult = Assert<IsEqual<
   Awaited<typeof runtimeAgentGetAnchorSnapshotResult>,
   GetConversationAnchorSnapshotResponse
+>>;
+type _GuardRuntimeAgentRegisterAvatarLiveInstanceBindingResult = Assert<IsEqual<
+  Awaited<typeof runtimeAgentRegisterAvatarLiveInstanceBindingResult>,
+  RegisterAvatarLiveInstanceBindingResponse
+>>;
+type _GuardRuntimeAgentResolveAvatarLiveInstanceBindingResult = Assert<IsEqual<
+  Awaited<typeof runtimeAgentResolveAvatarLiveInstanceBindingResult>,
+  ResolveAvatarLiveInstanceBindingResponse
 >>;
 type _GuardRuntimeAgentGetPublicChatSessionSnapshotResult = Assert<IsEqual<
   Awaited<typeof runtimeAgentGetPublicChatSessionSnapshotResult>,

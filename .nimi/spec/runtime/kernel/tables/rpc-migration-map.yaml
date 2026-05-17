@@ -834,6 +834,16 @@ method_mappings:
     proto_method: GetConversationAnchorSnapshot
     mapping_posture: aligned
   - design_service: RuntimeAgentService
+    design_method: RegisterAvatarLiveInstanceBinding
+    proto_service: RuntimeAgentService
+    proto_method: RegisterAvatarLiveInstanceBinding
+    mapping_posture: aligned
+  - design_service: RuntimeAgentService
+    design_method: ResolveAvatarLiveInstanceBinding
+    proto_service: RuntimeAgentService
+    proto_method: ResolveAvatarLiveInstanceBinding
+    mapping_posture: aligned
+  - design_service: RuntimeAgentService
     design_method: GetPublicChatSessionSnapshot
     proto_service: RuntimeAgentService
     proto_method: GetPublicChatSessionSnapshot

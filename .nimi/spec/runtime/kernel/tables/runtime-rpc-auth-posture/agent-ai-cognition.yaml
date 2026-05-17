@@ -91,6 +91,8 @@ surfaces:
   - methods_78
   - methods_79
   - methods_80
+  - methods_81
+  - methods_82
 description: Agent, AI, realtime, and cognition posture entries.
 services:
   - RuntimeAgentService
@@ -134,6 +136,20 @@ methods:
     kernel_refs:
       - K-AUTHN-001
       - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeAgentService/RegisterAvatarLiveInstanceBinding
+    posture: protected_or_scoped_binding_write
+    rationale: runtime-owned Avatar live-instance binding mutates anchor recovery state and requires protected Runtime access
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+      - K-AGCORE-138
+  - method_id: /nimi.runtime.v1.RuntimeAgentService/ResolveAvatarLiveInstanceBinding
+    posture: protected_or_scoped_binding_read
+    rationale: runtime-owned Avatar live-instance binding returns explicit anchor recovery truth and requires protected Runtime access
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+      - K-AGCORE-138
   - method_id: /nimi.runtime.v1.RuntimeAgentService/GetPublicChatSessionSnapshot
     posture: anonymous_read
     rationale: id-based snapshot read with no JWT validation

@@ -36,6 +36,10 @@ import {
   OpenConversationAnchorResponse,
   OpenCompanionParticipationReplayRequest,
   OpenCompanionParticipationReplayResponse,
+  RegisterAvatarLiveInstanceBindingRequest,
+  RegisterAvatarLiveInstanceBindingResponse,
+  ResolveAvatarLiveInstanceBindingRequest,
+  ResolveAvatarLiveInstanceBindingResponse,
   RequestAvatarDebugProbeRequest,
   RequestAvatarDebugProbeResponse,
   RequestCompanionParticipationRequest,
@@ -439,6 +443,14 @@ export function createRuntimeClient(input: RuntimeClientConfig): RuntimeClient {
       getConversationAnchorSnapshot: customUnary(RuntimeMethodIds.agent.getConversationAnchorSnapshot, {
         requestType: GetConversationAnchorSnapshotRequest,
         responseType: GetConversationAnchorSnapshotResponse,
+      }),
+      registerAvatarLiveInstanceBinding: customUnary(RuntimeMethodIds.agent.registerAvatarLiveInstanceBinding, {
+        requestType: RegisterAvatarLiveInstanceBindingRequest,
+        responseType: RegisterAvatarLiveInstanceBindingResponse,
+      }),
+      resolveAvatarLiveInstanceBinding: customUnary(RuntimeMethodIds.agent.resolveAvatarLiveInstanceBinding, {
+        requestType: ResolveAvatarLiveInstanceBindingRequest,
+        responseType: ResolveAvatarLiveInstanceBindingResponse,
       }),
       getPublicChatSessionSnapshot: customUnary(RuntimeMethodIds.agent.getPublicChatSessionSnapshot, {
         requestType: GetPublicChatSessionSnapshotRequest,

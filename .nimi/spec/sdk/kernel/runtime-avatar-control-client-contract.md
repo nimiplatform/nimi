@@ -192,3 +192,19 @@ The public `@nimiplatform/sdk/runtime` index may expose only:
 It must not export full Runtime Avatar package projection, model layout,
 Live2D/VRM layout, provenance, bundle membership, readiness internals, or
 package lifecycle types.
+
+## S-RUNTIME-240 Avatar Live Instance Binding Client
+
+SDK admits `runtime.agent.anchors.registerAvatarLiveInstance` and
+`runtime.agent.anchors.resolveAvatarLiveInstance` as the only client methods
+that map Desktop/Avatar live-instance recovery to Runtime `K-AGCORE-138`.
+
+Fixed rules:
+
+- registration requires protected `runtime.agent.write`
+- resolution requires protected `runtime.agent.read`
+- both methods must require local agent identity and explicit
+  `avatarInstanceId`
+- registration must also require explicit `conversationAnchorId`
+- SDK must return Runtime's binding plus `ConversationAnchorSnapshot`; it must
+  not infer anchor continuity from same-agent identity or app-local storage

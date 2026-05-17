@@ -23,10 +23,11 @@ const (
 // truth per K-AGCORE-034. The JSON top-level key is `anchors` to make the
 // continuity scope explicit; legacy `sessions` JSON is not read.
 type persistedPublicChatSurfaceState struct {
-	Version   uint64                        `json:"version"`
-	SavedAt   string                        `json:"savedAt"`
-	Anchors   []persistedPublicChatAnchor   `json:"anchors"`
-	FollowUps []persistedPublicChatFollowUp `json:"followUps"`
+	Version             uint64                               `json:"version"`
+	SavedAt             string                               `json:"savedAt"`
+	Anchors             []persistedPublicChatAnchor          `json:"anchors"`
+	FollowUps           []persistedPublicChatFollowUp        `json:"followUps"`
+	AvatarLiveInstances []persistedAvatarLiveInstanceBinding `json:"avatarLiveInstances"`
 }
 
 type persistedPublicChatAnchor struct {
@@ -99,13 +100,27 @@ type persistedPublicChatFollowUp struct {
 	HookIntent           json.RawMessage `json:"hookIntent,omitempty"`
 }
 
+type persistedAvatarLiveInstanceBinding struct {
+	AvatarInstanceID     string `json:"avatarInstanceId"`
+	ConversationAnchorID string `json:"conversationAnchorId"`
+	AgentID              string `json:"agentId"`
+	LocalAgentRef        string `json:"localAgentRef"`
+	OwnerUserID          string `json:"ownerUserId"`
+	RealmAgentID         string `json:"realmAgentId"`
+	CallerAppID          string `json:"callerAppId"`
+	SubjectUserID        string `json:"subjectUserId"`
+	RegisteredAt         string `json:"registeredAt,omitempty"`
+	UpdatedAt            string `json:"updatedAt,omitempty"`
+}
+
 func (s *Service) capturePublicChatSurfaceSnapshotLocked() (persistedPublicChatSurfaceState, error) {
 	s.chatSurfaceVersion++
 	snapshot := persistedPublicChatSurfaceState{
-		Version:   s.chatSurfaceVersion,
-		SavedAt:   time.Now().UTC().Format(time.RFC3339Nano),
-		Anchors:   make([]persistedPublicChatAnchor, 0, len(s.chatAnchors)),
-		FollowUps: make([]persistedPublicChatFollowUp, 0, len(s.chatFollowUps)),
+		Version:             s.chatSurfaceVersion,
+		SavedAt:             time.Now().UTC().Format(time.RFC3339Nano),
+		Anchors:             make([]persistedPublicChatAnchor, 0, len(s.chatAnchors)),
+		FollowUps:           make([]persistedPublicChatFollowUp, 0, len(s.chatFollowUps)),
+		AvatarLiveInstances: make([]persistedAvatarLiveInstanceBinding, 0, len(s.avatarLiveInstanceBindings)),
 	}
 	marshal := protojson.MarshalOptions{UseProtoNames: true}
 	for _, session := range s.chatAnchors {
@@ -178,6 +193,28 @@ func (s *Service) capturePublicChatSurfaceSnapshotLocked() (persistedPublicChatS
 			item.HookIntent = append(json.RawMessage(nil), raw...)
 		}
 		snapshot.FollowUps = append(snapshot.FollowUps, item)
+	}
+	for _, binding := range s.avatarLiveInstanceBindings {
+		if binding == nil {
+			continue
+		}
+		item := persistedAvatarLiveInstanceBinding{
+			AvatarInstanceID:     binding.AvatarInstanceID,
+			ConversationAnchorID: binding.ConversationAnchorID,
+			AgentID:              binding.AgentID,
+			LocalAgentRef:        binding.LocalAgentRef,
+			OwnerUserID:          binding.OwnerUserID,
+			RealmAgentID:         binding.RealmAgentID,
+			CallerAppID:          binding.CallerAppID,
+			SubjectUserID:        binding.SubjectUserID,
+		}
+		if !binding.RegisteredAt.IsZero() {
+			item.RegisteredAt = binding.RegisteredAt.UTC().Format(time.RFC3339Nano)
+		}
+		if !binding.UpdatedAt.IsZero() {
+			item.UpdatedAt = binding.UpdatedAt.UTC().Format(time.RFC3339Nano)
+		}
+		snapshot.AvatarLiveInstances = append(snapshot.AvatarLiveInstances, item)
 	}
 	return snapshot, nil
 }
@@ -365,6 +402,9 @@ func (r *publicChatSurfaceStateRepository) loadPublicChatSurfaceStateFromDB(s *S
 	for key := range s.chatFollowUps {
 		delete(s.chatFollowUps, key)
 	}
+	for key := range s.avatarLiveInstanceBindings {
+		delete(s.avatarLiveInstanceBindings, key)
+	}
 	for key := range s.chatActiveByAgent {
 		delete(s.chatActiveByAgent, key)
 	}
@@ -429,6 +469,44 @@ func (r *publicChatSurfaceStateRepository) loadPublicChatSurfaceStateFromDB(s *S
 			restored.LastTurnSnapshot = recovered
 			restored.ActiveTurnSnapshot = nil
 			restored.ActiveTurnID = ""
+		}
+	}
+	for _, item := range persisted.AvatarLiveInstances {
+		if _, err := validateLocalAgentIdentity(item.OwnerUserID, item.RealmAgentID, item.LocalAgentRef); err != nil {
+			return fmt.Errorf("persisted avatar live instance %s local identity invalid: %w", item.AvatarInstanceID, err)
+		}
+		if strings.TrimSpace(item.AvatarInstanceID) == "" || strings.TrimSpace(item.ConversationAnchorID) == "" {
+			return fmt.Errorf("persisted avatar live instance binding is incomplete")
+		}
+		if anchor := s.chatAnchors[item.ConversationAnchorID]; anchor == nil {
+			continue
+		} else if anchor.LocalAgentRef != item.LocalAgentRef || anchor.OwnerUserID != item.OwnerUserID || anchor.RealmAgentID != item.RealmAgentID {
+			return fmt.Errorf("persisted avatar live instance %s anchor identity mismatch", item.AvatarInstanceID)
+		}
+		registeredAt := time.Time{}
+		updatedAt := time.Time{}
+		if strings.TrimSpace(item.RegisteredAt) != "" {
+			if parsed, err := time.Parse(time.RFC3339Nano, item.RegisteredAt); err == nil {
+				registeredAt = parsed.UTC()
+			}
+		}
+		if strings.TrimSpace(item.UpdatedAt) != "" {
+			if parsed, err := time.Parse(time.RFC3339Nano, item.UpdatedAt); err == nil {
+				updatedAt = parsed.UTC()
+			}
+		}
+		key := avatarLiveInstanceBindingKey(item.LocalAgentRef, item.AvatarInstanceID)
+		s.avatarLiveInstanceBindings[key] = &avatarLiveInstanceBindingState{
+			AvatarInstanceID:     item.AvatarInstanceID,
+			ConversationAnchorID: item.ConversationAnchorID,
+			AgentID:              item.AgentID,
+			LocalAgentRef:        item.LocalAgentRef,
+			OwnerUserID:          item.OwnerUserID,
+			RealmAgentID:         item.RealmAgentID,
+			CallerAppID:          item.CallerAppID,
+			SubjectUserID:        item.SubjectUserID,
+			RegisteredAt:         registeredAt,
+			UpdatedAt:            updatedAt,
 		}
 	}
 	for _, item := range persisted.FollowUps {

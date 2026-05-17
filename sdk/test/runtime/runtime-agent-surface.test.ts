@@ -25,6 +25,10 @@ import {
   HookTriggerFamily,
   OpenConversationAnchorRequest,
   OpenConversationAnchorResponse,
+  RegisterAvatarLiveInstanceBindingRequest,
+  RegisterAvatarLiveInstanceBindingResponse,
+  ResolveAvatarLiveInstanceBindingRequest,
+  ResolveAvatarLiveInstanceBindingResponse,
   SubscribeAgentEventsRequest,
   AuthorizeExternalPrincipalRequest,
   AuthorizeExternalPrincipalResponse,
@@ -39,6 +43,8 @@ import {
   LOCAL_AGENT_IDENTITY,
   OPEN_CONVERSATION_ANCHOR_METHOD,
   GET_CONVERSATION_ANCHOR_SNAPSHOT_METHOD,
+  REGISTER_AVATAR_LIVE_INSTANCE_BINDING_METHOD,
+  RESOLVE_AVATAR_LIVE_INSTANCE_BINDING_METHOD,
   TIMELINE_STARTED_AT,
   timelineChannelForTestEvent,
   withRuntimeTimeline,
@@ -54,6 +60,8 @@ import type { RuntimeAgentConsumeEvent } from './runtime-agent-surface-test-util
 test('runtime agent anchors project explicit localAgentRef and conversationAnchorId through runtime truth', async () => {
   let capturedOpenRequest: OpenConversationAnchorRequest | null = null;
   let capturedSnapshotRequest: GetConversationAnchorSnapshotRequest | null = null;
+  let capturedRegisterRequest: RegisterAvatarLiveInstanceBindingRequest | null = null;
+  let capturedResolveRequest: ResolveAvatarLiveInstanceBindingRequest | null = null;
   const authorizeRequests: AuthorizeExternalPrincipalRequest[] = [];
   const protectedTokens: Array<{ methodId: string; tokenId: string; secret: string }> = [];
   let registerCalls = 0;
@@ -105,6 +113,46 @@ test('runtime agent anchors project explicit localAgentRef and conversationAncho
           snapshot: createAnchorSnapshot('anchor-1', 'agent-1'),
         }));
       }
+      if (input.methodId === REGISTER_AVATAR_LIVE_INSTANCE_BINDING_METHOD) {
+        capturedRegisterRequest = RegisterAvatarLiveInstanceBindingRequest.fromBinary(input.request);
+        protectedTokens.push({
+          methodId: input.methodId,
+          tokenId: input.protectedAccessToken?.tokenId || '',
+          secret: input.protectedAccessToken?.secret || '',
+        });
+        return RegisterAvatarLiveInstanceBindingResponse.toBinary(RegisterAvatarLiveInstanceBindingResponse.create({
+          binding: {
+            avatarInstanceId: 'avatar-instance-1',
+            conversationAnchorId: 'anchor-1',
+            agentId: LOCAL_AGENT_REF,
+            localAgentRef: LOCAL_AGENT_REF,
+            ownerUserId: 'subject-1',
+            realmAgentId: REALM_AGENT_ID,
+            subjectUserId: 'subject-1',
+          },
+          snapshot: createAnchorSnapshot('anchor-1', 'agent-1'),
+        }));
+      }
+      if (input.methodId === RESOLVE_AVATAR_LIVE_INSTANCE_BINDING_METHOD) {
+        capturedResolveRequest = ResolveAvatarLiveInstanceBindingRequest.fromBinary(input.request);
+        protectedTokens.push({
+          methodId: input.methodId,
+          tokenId: input.protectedAccessToken?.tokenId || '',
+          secret: input.protectedAccessToken?.secret || '',
+        });
+        return ResolveAvatarLiveInstanceBindingResponse.toBinary(ResolveAvatarLiveInstanceBindingResponse.create({
+          binding: {
+            avatarInstanceId: 'avatar-instance-1',
+            conversationAnchorId: 'anchor-1',
+            agentId: LOCAL_AGENT_REF,
+            localAgentRef: LOCAL_AGENT_REF,
+            ownerUserId: 'subject-1',
+            realmAgentId: REALM_AGENT_ID,
+            subjectUserId: 'subject-1',
+          },
+          snapshot: createAnchorSnapshot('anchor-1', 'agent-1'),
+        }));
+      }
       throw new Error(`unexpected method: ${input.methodId}`);
     },
     openStream: async () => {
@@ -133,9 +181,20 @@ test('runtime agent anchors project explicit localAgentRef and conversationAncho
       ...LOCAL_AGENT_IDENTITY,
       conversationAnchorId: 'anchor-1',
     });
+    const registeredLiveInstance = await runtime.agent.anchors.registerAvatarLiveInstance({
+      ...LOCAL_AGENT_IDENTITY,
+      avatarInstanceId: 'avatar-instance-1',
+      conversationAnchorId: 'anchor-1',
+    });
+    const resolvedLiveInstance = await runtime.agent.anchors.resolveAvatarLiveInstance({
+      ...LOCAL_AGENT_IDENTITY,
+      avatarInstanceId: 'avatar-instance-1',
+    });
 
     assert.equal(opened.anchor?.conversationAnchorId, 'anchor-1');
     assert.equal(recovered.anchor?.conversationAnchorId, 'anchor-1');
+    assert.equal(registeredLiveInstance.binding.conversationAnchorId, 'anchor-1');
+    assert.equal(resolvedLiveInstance.snapshot.anchor?.conversationAnchorId, 'anchor-1');
     assert.equal(capturedOpenRequest?.agentId, '');
     assert.equal(capturedOpenRequest?.localAgentRef, LOCAL_AGENT_REF);
     assert.equal(capturedOpenRequest?.ownerUserId, 'subject-1');
@@ -154,6 +213,11 @@ test('runtime agent anchors project explicit localAgentRef and conversationAncho
     assert.equal(capturedSnapshotRequest?.context?.localAgentRef, LOCAL_AGENT_REF);
     assert.equal(capturedSnapshotRequest?.context?.ownerUserId, 'subject-1');
     assert.equal(capturedSnapshotRequest?.context?.realmAgentId, REALM_AGENT_ID);
+    assert.equal(capturedRegisterRequest?.avatarInstanceId, 'avatar-instance-1');
+    assert.equal(capturedRegisterRequest?.conversationAnchorId, 'anchor-1');
+    assert.equal(capturedRegisterRequest?.context?.localAgentRef, LOCAL_AGENT_REF);
+    assert.equal(capturedResolveRequest?.avatarInstanceId, 'avatar-instance-1');
+    assert.equal(capturedResolveRequest?.context?.localAgentRef, LOCAL_AGENT_REF);
     assert.equal(registerCalls, 1);
     assert.deepEqual(authorizeRequests.map((request) => request.scopes), [
       ['runtime.agent.write'],
@@ -167,6 +231,16 @@ test('runtime agent anchors project explicit localAgentRef and conversationAncho
       },
       {
         methodId: GET_CONVERSATION_ANCHOR_SNAPSHOT_METHOD,
+        tokenId: 'anchor-token-2',
+        secret: 'anchor-secret-2',
+      },
+      {
+        methodId: REGISTER_AVATAR_LIVE_INSTANCE_BINDING_METHOD,
+        tokenId: 'anchor-token-1',
+        secret: 'anchor-secret-1',
+      },
+      {
+        methodId: RESOLVE_AVATAR_LIVE_INSTANCE_BINDING_METHOD,
         tokenId: 'anchor-token-2',
         secret: 'anchor-secret-2',
       },

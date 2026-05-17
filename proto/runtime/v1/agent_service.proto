@@ -602,6 +602,40 @@ message GetConversationAnchorSnapshotRequest {
 message GetConversationAnchorSnapshotResponse {
   ConversationAnchorSnapshot snapshot = 1;
 }
+// K-AGCORE-138 AvatarLiveInstanceBinding boundary: runtime-owned recovery
+// binding from an Avatar window instance to an already-open ConversationAnchor.
+// Desktop may register this binding after opening an anchor; Avatar may resolve
+// it after validating launch `agent_id` through Runtime/SDK. This binding is
+// not launch payload authority and MUST NOT create anchors.
+message AvatarLiveInstanceBinding {
+  string avatar_instance_id = 1;
+  string conversation_anchor_id = 2;
+  string agent_id = 3;
+  string subject_user_id = 4;
+  google.protobuf.Timestamp registered_at = 5;
+  google.protobuf.Timestamp updated_at = 6;
+  string local_agent_ref = 20;
+  string owner_user_id = 21;
+  string realm_agent_id = 22;
+  string caller_app_id = 23;
+}
+message RegisterAvatarLiveInstanceBindingRequest {
+  AgentRequestContext context = 1;
+  string avatar_instance_id = 2;
+  string conversation_anchor_id = 3;
+}
+message RegisterAvatarLiveInstanceBindingResponse {
+  AvatarLiveInstanceBinding binding = 1;
+  ConversationAnchorSnapshot snapshot = 2;
+}
+message ResolveAvatarLiveInstanceBindingRequest {
+  AgentRequestContext context = 1;
+  string avatar_instance_id = 2;
+}
+message ResolveAvatarLiveInstanceBindingResponse {
+  AvatarLiveInstanceBinding binding = 1;
+  ConversationAnchorSnapshot snapshot = 2;
+}
 message GetPublicChatSessionSnapshotRequest {
   AgentRequestContext context = 1;
   string agent_id = 2;
@@ -734,6 +768,8 @@ service RuntimeAgentService {
   rpc ListAgents(ListAgentsRequest) returns (ListAgentsResponse);
   rpc OpenConversationAnchor(OpenConversationAnchorRequest) returns (OpenConversationAnchorResponse);
   rpc GetConversationAnchorSnapshot(GetConversationAnchorSnapshotRequest) returns (GetConversationAnchorSnapshotResponse);
+  rpc RegisterAvatarLiveInstanceBinding(RegisterAvatarLiveInstanceBindingRequest) returns (RegisterAvatarLiveInstanceBindingResponse);
+  rpc ResolveAvatarLiveInstanceBinding(ResolveAvatarLiveInstanceBindingRequest) returns (ResolveAvatarLiveInstanceBindingResponse);
   rpc GetPublicChatSessionSnapshot(GetPublicChatSessionSnapshotRequest) returns (GetPublicChatSessionSnapshotResponse);
   rpc GetCompanionParticipationProjection(GetCompanionParticipationProjectionRequest) returns (GetCompanionParticipationProjectionResponse);
   rpc RequestCompanionParticipation(RequestCompanionParticipationRequest) returns (RequestCompanionParticipationResponse);

@@ -250,6 +250,8 @@ const AGENT_METHODS = [
   'listAgents',
   'openConversationAnchor',
   'getConversationAnchorSnapshot',
+  'registerAvatarLiveInstanceBinding',
+  'resolveAvatarLiveInstanceBinding',
   'getPublicChatSessionSnapshot',
   'getCompanionParticipationProjection',
   'requestCompanionParticipation',

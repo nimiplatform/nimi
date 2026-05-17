@@ -344,21 +344,23 @@ name。design/proto 关系以 `tables/rpc-migration-map.yaml` 为准。
 4. `ListAgents`
 5. `OpenConversationAnchor`
 6. `GetConversationAnchorSnapshot`
-7. `GetPublicChatSessionSnapshot`
-8. `GetCompanionParticipationProjection`
-9. `RequestCompanionParticipation`
-10. `CancelCompanionParticipation`
-11. `OpenCompanionParticipationReplay`
-12. `GetAgentState`
-13. `UpdateAgentState`
-14. `EnableAutonomy`
-15. `DisableAutonomy`
-16. `SetAutonomyConfig`
-17. `ListPendingHooks`
-18. `CancelHook`
-19. `QueryAgentMemory`
-20. `WriteAgentMemory`
-21. `SubscribeAgentEvents`
+7. `RegisterAvatarLiveInstanceBinding`
+8. `ResolveAvatarLiveInstanceBinding`
+9. `GetPublicChatSessionSnapshot`
+10. `GetCompanionParticipationProjection`
+11. `RequestCompanionParticipation`
+12. `CancelCompanionParticipation`
+13. `OpenCompanionParticipationReplay`
+14. `GetAgentState`
+15. `UpdateAgentState`
+16. `EnableAutonomy`
+17. `DisableAutonomy`
+18. `SetAutonomyConfig`
+19. `ListPendingHooks`
+20. `CancelHook`
+21. `QueryAgentMemory`
+22. `WriteAgentMemory`
+23. `SubscribeAgentEvents`
 
 固定约束：
 
@@ -383,9 +385,9 @@ name。design/proto 关系以 `tables/rpc-migration-map.yaml` 为准。
 最小 access matrix：
 
 - `InitializeAgent` / `TerminateAgent`：`runtime.agent.admin`
-- `GetAgent` / `ListAgents` / `GetConversationAnchorSnapshot` / `GetPublicChatSessionSnapshot` / `GetAgentState` / `ListPendingHooks` / `QueryAgentMemory` / `SubscribeAgentEvents`：`runtime.agent.read`
+- `GetAgent` / `ListAgents` / `GetConversationAnchorSnapshot` / `ResolveAvatarLiveInstanceBinding` / `GetPublicChatSessionSnapshot` / `GetAgentState` / `ListPendingHooks` / `QueryAgentMemory` / `SubscribeAgentEvents`：`runtime.agent.read`
 - `GetCompanionParticipationProjection` / `OpenCompanionParticipationReplay`：`runtime.agent.companion_participation.read`
-- `OpenConversationAnchor`：`runtime.agent.write`
+- `OpenConversationAnchor` / `RegisterAvatarLiveInstanceBinding`：`runtime.agent.write`
 - `RequestCompanionParticipation` / `CancelCompanionParticipation`：`runtime.agent.companion_participation.write`
 - `UpdateAgentState` / `WriteAgentMemory` / `CancelHook`：`runtime.agent.write`
 - `EnableAutonomy` / `DisableAutonomy` / `SetAutonomyConfig`：`runtime.agent.autonomy.write`

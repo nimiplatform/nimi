@@ -637,6 +637,12 @@ shared auth payload、auth UX route。
 `agent_id` 是 selector，不是 authorization proof。Avatar 必须通过 Runtime /
 SDK 验证。
 
+如果 Desktop 已经拥有当前 Runtime `ConversationAnchor`，它只能通过 Runtime
+`K-AGCORE-138` 注册 `avatar_instance_id -> conversation_anchor_id` 绑定。
+Avatar 启动后可通过 SDK 解析该绑定恢复同一 anchor；不得把
+`conversation_anchor_id`、owner/account/user truth 或 scoped binding 放入 launch
+payload。
+
 ## K-NAV-SHELL-FIRST-PARTY-RUNTIME-004 Tauri Permission 排除
 
 Avatar Tauri capability 文件不允许包含：
@@ -657,6 +663,8 @@ Avatar 必须：
 - 仅从 Runtime / SDK-authorized opaque package refs 的本地 materialization
   读取 visual package files
 - 创建或恢复 Avatar-owned conversation context
+- 通过 Runtime / SDK `K-AGCORE-138` live-instance binding 恢复 Desktop-current
+  conversation anchor；缺失绑定时不得从 same-agent identity 推断同一 conversation
 - 支持同一 `agent_id` 的多个 `avatar_instance_id` 并存
 
 Desktop 不得预解析或透传 agent authorization、visual package truth、或

@@ -119,6 +119,7 @@ entries:
   - S-RUNTIME-237
   - S-RUNTIME-238
   - S-RUNTIME-239
+  - S-RUNTIME-240
 rules:
   - rule_id: S-RUNTIME-010
     evidence_refs:
@@ -644,4 +645,9 @@ rules:
     evidence_refs:
       - sdk_kernel_consistency
     note: SDK public runtime index must expose only consumer-safe Avatar package handoff APIs and types.
+    evidence_requirement: required
+  - rule_id: S-RUNTIME-240
+    evidence_refs:
+      - sdk_kernel_consistency
+    note: SDK Avatar live-instance binding client methods admitted as Runtime-owned anchor recovery consumers.
     evidence_requirement: required

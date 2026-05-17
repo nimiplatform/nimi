@@ -296,6 +296,10 @@ import type {
   OpenConversationAnchorResponse,
   OpenCompanionParticipationReplayRequest,
   OpenCompanionParticipationReplayResponse,
+  RegisterAvatarLiveInstanceBindingRequest,
+  RegisterAvatarLiveInstanceBindingResponse,
+  ResolveAvatarLiveInstanceBindingRequest,
+  ResolveAvatarLiveInstanceBindingResponse,
   GetPublicChatSessionSnapshotRequest,
   GetPublicChatSessionSnapshotResponse,
   QueryAgentMemoryRequest,
@@ -532,6 +536,14 @@ export type RuntimeAgentClient = {
     request: GetConversationAnchorSnapshotRequest,
     options?: RuntimeCallOptions,
   ): Promise<GetConversationAnchorSnapshotResponse>;
+  registerAvatarLiveInstanceBinding(
+    request: RegisterAvatarLiveInstanceBindingRequest,
+    options?: RuntimeCallOptions,
+  ): Promise<RegisterAvatarLiveInstanceBindingResponse>;
+  resolveAvatarLiveInstanceBinding(
+    request: ResolveAvatarLiveInstanceBindingRequest,
+    options?: RuntimeCallOptions,
+  ): Promise<ResolveAvatarLiveInstanceBindingResponse>;
   getPublicChatSessionSnapshot(
     request: GetPublicChatSessionSnapshotRequest,
     options?: RuntimeCallOptions,

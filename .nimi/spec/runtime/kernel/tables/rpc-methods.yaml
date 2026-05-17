@@ -360,6 +360,10 @@ services:
         type: unary
       - name: GetConversationAnchorSnapshot
         type: unary
+      - name: RegisterAvatarLiveInstanceBinding
+        type: unary
+      - name: ResolveAvatarLiveInstanceBinding
+        type: unary
       - name: GetPublicChatSessionSnapshot
         type: unary
       - name: GetCompanionParticipationProjection

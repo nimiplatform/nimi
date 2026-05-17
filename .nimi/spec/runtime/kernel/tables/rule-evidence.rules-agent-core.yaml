@@ -163,6 +163,7 @@ entries:
   - K-AGCORE-135
   - K-AGCORE-136
   - K-AGCORE-137
+  - K-AGCORE-138
 rules:
   - rule_id: K-AGCORE-001
     evidence_refs: []
@@ -805,4 +806,9 @@ rules:
     evidence_refs:
       - runtime_kernel_consistency
     note: Avatar package projection remains contract-only until Asset Market and Runtime emit implementation land.
+    evidence_requirement: required
+  - rule_id: K-AGCORE-138
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Avatar live-instance binding recovery admitted as Runtime-owned anchor continuity truth.
     evidence_requirement: required

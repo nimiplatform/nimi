@@ -90,6 +90,10 @@ type Service struct {
 	chatAnchors   map[string]*publicChatAnchorState
 	chatTurns     map[string]*publicChatTurnState
 	chatFollowUps map[string]*publicChatFollowUpState
+	// avatarLiveInstanceBindings maps explicit Avatar window instances to
+	// Runtime-owned ConversationAnchor ids. It lets late-joining Avatar windows
+	// recover Desktop's current anchor without widening launch payload truth.
+	avatarLiveInstanceBindings map[string]*avatarLiveInstanceBindingState
 	// chatActiveByAgent tracks the currently-active chat turn per agent.
 	// With per-anchor isolation, each agent may still run only one active
 	// chat turn at a time across anchors to preserve single-speaker truth.
@@ -143,6 +147,7 @@ func New(logger *slog.Logger, localStatePath string, memorySvc *memoryservice.Se
 		chatAnchors:                    make(map[string]*publicChatAnchorState),
 		chatTurns:                      make(map[string]*publicChatTurnState),
 		chatFollowUps:                  make(map[string]*publicChatFollowUpState),
+		avatarLiveInstanceBindings:     make(map[string]*avatarLiveInstanceBindingState),
 		chatActiveByAgent:              make(map[string]string),
 		realmGroupCandidates:           make(map[string]*realmGroupMessageCandidateEvidenceRecord),
 		realmGroupCandidateIdempotency: make(map[string]string),

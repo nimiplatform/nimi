@@ -353,6 +353,8 @@ groups:
       - ListAgents
       - OpenConversationAnchor
       - GetConversationAnchorSnapshot
+      - RegisterAvatarLiveInstanceBinding
+      - ResolveAvatarLiveInstanceBinding
       - GetPublicChatSessionSnapshot
       - GetCompanionParticipationProjection
       - RequestCompanionParticipation

@@ -1724,6 +1724,113 @@ export interface GetConversationAnchorSnapshotResponse {
     snapshot?: ConversationAnchorSnapshot;
 }
 /**
+ * K-AGCORE-138 AvatarLiveInstanceBinding boundary: runtime-owned recovery
+ * binding from an Avatar window instance to an already-open ConversationAnchor.
+ * Desktop may register this binding after opening an anchor; Avatar may resolve
+ * it after validating launch `agent_id` through Runtime/SDK. This binding is
+ * not launch payload authority and MUST NOT create anchors.
+ *
+ * @generated from protobuf message nimi.runtime.v1.AvatarLiveInstanceBinding
+ */
+export interface AvatarLiveInstanceBinding {
+    /**
+     * @generated from protobuf field: string avatar_instance_id = 1
+     */
+    avatarInstanceId: string;
+    /**
+     * @generated from protobuf field: string conversation_anchor_id = 2
+     */
+    conversationAnchorId: string;
+    /**
+     * @generated from protobuf field: string agent_id = 3
+     */
+    agentId: string;
+    /**
+     * @generated from protobuf field: string subject_user_id = 4
+     */
+    subjectUserId: string;
+    /**
+     * @generated from protobuf field: google.protobuf.Timestamp registered_at = 5
+     */
+    registeredAt?: Timestamp;
+    /**
+     * @generated from protobuf field: google.protobuf.Timestamp updated_at = 6
+     */
+    updatedAt?: Timestamp;
+    /**
+     * @generated from protobuf field: string local_agent_ref = 20
+     */
+    localAgentRef: string;
+    /**
+     * @generated from protobuf field: string owner_user_id = 21
+     */
+    ownerUserId: string;
+    /**
+     * @generated from protobuf field: string realm_agent_id = 22
+     */
+    realmAgentId: string;
+    /**
+     * @generated from protobuf field: string caller_app_id = 23
+     */
+    callerAppId: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.RegisterAvatarLiveInstanceBindingRequest
+ */
+export interface RegisterAvatarLiveInstanceBindingRequest {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AgentRequestContext context = 1
+     */
+    context?: AgentRequestContext;
+    /**
+     * @generated from protobuf field: string avatar_instance_id = 2
+     */
+    avatarInstanceId: string;
+    /**
+     * @generated from protobuf field: string conversation_anchor_id = 3
+     */
+    conversationAnchorId: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.RegisterAvatarLiveInstanceBindingResponse
+ */
+export interface RegisterAvatarLiveInstanceBindingResponse {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AvatarLiveInstanceBinding binding = 1
+     */
+    binding?: AvatarLiveInstanceBinding;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ConversationAnchorSnapshot snapshot = 2
+     */
+    snapshot?: ConversationAnchorSnapshot;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.ResolveAvatarLiveInstanceBindingRequest
+ */
+export interface ResolveAvatarLiveInstanceBindingRequest {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AgentRequestContext context = 1
+     */
+    context?: AgentRequestContext;
+    /**
+     * @generated from protobuf field: string avatar_instance_id = 2
+     */
+    avatarInstanceId: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.ResolveAvatarLiveInstanceBindingResponse
+ */
+export interface ResolveAvatarLiveInstanceBindingResponse {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AvatarLiveInstanceBinding binding = 1
+     */
+    binding?: AvatarLiveInstanceBinding;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ConversationAnchorSnapshot snapshot = 2
+     */
+    snapshot?: ConversationAnchorSnapshot;
+}
+/**
  * @generated from protobuf message nimi.runtime.v1.GetPublicChatSessionSnapshotRequest
  */
 export interface GetPublicChatSessionSnapshotRequest {
@@ -7932,6 +8039,345 @@ class GetConversationAnchorSnapshotResponse$Type extends MessageType<GetConversa
  */
 export const GetConversationAnchorSnapshotResponse = new GetConversationAnchorSnapshotResponse$Type();
 // @generated message type with reflection information, may provide speed optimized methods
+class AvatarLiveInstanceBinding$Type extends MessageType<AvatarLiveInstanceBinding> {
+    constructor() {
+        super("nimi.runtime.v1.AvatarLiveInstanceBinding", [
+            { no: 1, name: "avatar_instance_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "conversation_anchor_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "agent_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "subject_user_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "registered_at", kind: "message", T: () => Timestamp },
+            { no: 6, name: "updated_at", kind: "message", T: () => Timestamp },
+            { no: 20, name: "local_agent_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 21, name: "owner_user_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 22, name: "realm_agent_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 23, name: "caller_app_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<AvatarLiveInstanceBinding>): AvatarLiveInstanceBinding {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.avatarInstanceId = "";
+        message.conversationAnchorId = "";
+        message.agentId = "";
+        message.subjectUserId = "";
+        message.localAgentRef = "";
+        message.ownerUserId = "";
+        message.realmAgentId = "";
+        message.callerAppId = "";
+        if (value !== undefined)
+            reflectionMergePartial<AvatarLiveInstanceBinding>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: AvatarLiveInstanceBinding): AvatarLiveInstanceBinding {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string avatar_instance_id */ 1:
+                    message.avatarInstanceId = reader.string();
+                    break;
+                case /* string conversation_anchor_id */ 2:
+                    message.conversationAnchorId = reader.string();
+                    break;
+                case /* string agent_id */ 3:
+                    message.agentId = reader.string();
+                    break;
+                case /* string subject_user_id */ 4:
+                    message.subjectUserId = reader.string();
+                    break;
+                case /* google.protobuf.Timestamp registered_at */ 5:
+                    message.registeredAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.registeredAt);
+                    break;
+                case /* google.protobuf.Timestamp updated_at */ 6:
+                    message.updatedAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.updatedAt);
+                    break;
+                case /* string local_agent_ref */ 20:
+                    message.localAgentRef = reader.string();
+                    break;
+                case /* string owner_user_id */ 21:
+                    message.ownerUserId = reader.string();
+                    break;
+                case /* string realm_agent_id */ 22:
+                    message.realmAgentId = reader.string();
+                    break;
+                case /* string caller_app_id */ 23:
+                    message.callerAppId = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: AvatarLiveInstanceBinding, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string avatar_instance_id = 1; */
+        if (message.avatarInstanceId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.avatarInstanceId);
+        /* string conversation_anchor_id = 2; */
+        if (message.conversationAnchorId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.conversationAnchorId);
+        /* string agent_id = 3; */
+        if (message.agentId !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.agentId);
+        /* string subject_user_id = 4; */
+        if (message.subjectUserId !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.subjectUserId);
+        /* google.protobuf.Timestamp registered_at = 5; */
+        if (message.registeredAt)
+            Timestamp.internalBinaryWrite(message.registeredAt, writer.tag(5, WireType.LengthDelimited).fork(), options).join();
+        /* google.protobuf.Timestamp updated_at = 6; */
+        if (message.updatedAt)
+            Timestamp.internalBinaryWrite(message.updatedAt, writer.tag(6, WireType.LengthDelimited).fork(), options).join();
+        /* string local_agent_ref = 20; */
+        if (message.localAgentRef !== "")
+            writer.tag(20, WireType.LengthDelimited).string(message.localAgentRef);
+        /* string owner_user_id = 21; */
+        if (message.ownerUserId !== "")
+            writer.tag(21, WireType.LengthDelimited).string(message.ownerUserId);
+        /* string realm_agent_id = 22; */
+        if (message.realmAgentId !== "")
+            writer.tag(22, WireType.LengthDelimited).string(message.realmAgentId);
+        /* string caller_app_id = 23; */
+        if (message.callerAppId !== "")
+            writer.tag(23, WireType.LengthDelimited).string(message.callerAppId);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.AvatarLiveInstanceBinding
+ */
+export const AvatarLiveInstanceBinding = new AvatarLiveInstanceBinding$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class RegisterAvatarLiveInstanceBindingRequest$Type extends MessageType<RegisterAvatarLiveInstanceBindingRequest> {
+    constructor() {
+        super("nimi.runtime.v1.RegisterAvatarLiveInstanceBindingRequest", [
+            { no: 1, name: "context", kind: "message", T: () => AgentRequestContext },
+            { no: 2, name: "avatar_instance_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "conversation_anchor_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<RegisterAvatarLiveInstanceBindingRequest>): RegisterAvatarLiveInstanceBindingRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.avatarInstanceId = "";
+        message.conversationAnchorId = "";
+        if (value !== undefined)
+            reflectionMergePartial<RegisterAvatarLiveInstanceBindingRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: RegisterAvatarLiveInstanceBindingRequest): RegisterAvatarLiveInstanceBindingRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.AgentRequestContext context */ 1:
+                    message.context = AgentRequestContext.internalBinaryRead(reader, reader.uint32(), options, message.context);
+                    break;
+                case /* string avatar_instance_id */ 2:
+                    message.avatarInstanceId = reader.string();
+                    break;
+                case /* string conversation_anchor_id */ 3:
+                    message.conversationAnchorId = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: RegisterAvatarLiveInstanceBindingRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.AgentRequestContext context = 1; */
+        if (message.context)
+            AgentRequestContext.internalBinaryWrite(message.context, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* string avatar_instance_id = 2; */
+        if (message.avatarInstanceId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.avatarInstanceId);
+        /* string conversation_anchor_id = 3; */
+        if (message.conversationAnchorId !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.conversationAnchorId);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.RegisterAvatarLiveInstanceBindingRequest
+ */
+export const RegisterAvatarLiveInstanceBindingRequest = new RegisterAvatarLiveInstanceBindingRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class RegisterAvatarLiveInstanceBindingResponse$Type extends MessageType<RegisterAvatarLiveInstanceBindingResponse> {
+    constructor() {
+        super("nimi.runtime.v1.RegisterAvatarLiveInstanceBindingResponse", [
+            { no: 1, name: "binding", kind: "message", T: () => AvatarLiveInstanceBinding },
+            { no: 2, name: "snapshot", kind: "message", T: () => ConversationAnchorSnapshot }
+        ]);
+    }
+    create(value?: PartialMessage<RegisterAvatarLiveInstanceBindingResponse>): RegisterAvatarLiveInstanceBindingResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<RegisterAvatarLiveInstanceBindingResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: RegisterAvatarLiveInstanceBindingResponse): RegisterAvatarLiveInstanceBindingResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.AvatarLiveInstanceBinding binding */ 1:
+                    message.binding = AvatarLiveInstanceBinding.internalBinaryRead(reader, reader.uint32(), options, message.binding);
+                    break;
+                case /* nimi.runtime.v1.ConversationAnchorSnapshot snapshot */ 2:
+                    message.snapshot = ConversationAnchorSnapshot.internalBinaryRead(reader, reader.uint32(), options, message.snapshot);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: RegisterAvatarLiveInstanceBindingResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.AvatarLiveInstanceBinding binding = 1; */
+        if (message.binding)
+            AvatarLiveInstanceBinding.internalBinaryWrite(message.binding, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.ConversationAnchorSnapshot snapshot = 2; */
+        if (message.snapshot)
+            ConversationAnchorSnapshot.internalBinaryWrite(message.snapshot, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.RegisterAvatarLiveInstanceBindingResponse
+ */
+export const RegisterAvatarLiveInstanceBindingResponse = new RegisterAvatarLiveInstanceBindingResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ResolveAvatarLiveInstanceBindingRequest$Type extends MessageType<ResolveAvatarLiveInstanceBindingRequest> {
+    constructor() {
+        super("nimi.runtime.v1.ResolveAvatarLiveInstanceBindingRequest", [
+            { no: 1, name: "context", kind: "message", T: () => AgentRequestContext },
+            { no: 2, name: "avatar_instance_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<ResolveAvatarLiveInstanceBindingRequest>): ResolveAvatarLiveInstanceBindingRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.avatarInstanceId = "";
+        if (value !== undefined)
+            reflectionMergePartial<ResolveAvatarLiveInstanceBindingRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ResolveAvatarLiveInstanceBindingRequest): ResolveAvatarLiveInstanceBindingRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.AgentRequestContext context */ 1:
+                    message.context = AgentRequestContext.internalBinaryRead(reader, reader.uint32(), options, message.context);
+                    break;
+                case /* string avatar_instance_id */ 2:
+                    message.avatarInstanceId = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ResolveAvatarLiveInstanceBindingRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.AgentRequestContext context = 1; */
+        if (message.context)
+            AgentRequestContext.internalBinaryWrite(message.context, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* string avatar_instance_id = 2; */
+        if (message.avatarInstanceId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.avatarInstanceId);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ResolveAvatarLiveInstanceBindingRequest
+ */
+export const ResolveAvatarLiveInstanceBindingRequest = new ResolveAvatarLiveInstanceBindingRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ResolveAvatarLiveInstanceBindingResponse$Type extends MessageType<ResolveAvatarLiveInstanceBindingResponse> {
+    constructor() {
+        super("nimi.runtime.v1.ResolveAvatarLiveInstanceBindingResponse", [
+            { no: 1, name: "binding", kind: "message", T: () => AvatarLiveInstanceBinding },
+            { no: 2, name: "snapshot", kind: "message", T: () => ConversationAnchorSnapshot }
+        ]);
+    }
+    create(value?: PartialMessage<ResolveAvatarLiveInstanceBindingResponse>): ResolveAvatarLiveInstanceBindingResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<ResolveAvatarLiveInstanceBindingResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ResolveAvatarLiveInstanceBindingResponse): ResolveAvatarLiveInstanceBindingResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.AvatarLiveInstanceBinding binding */ 1:
+                    message.binding = AvatarLiveInstanceBinding.internalBinaryRead(reader, reader.uint32(), options, message.binding);
+                    break;
+                case /* nimi.runtime.v1.ConversationAnchorSnapshot snapshot */ 2:
+                    message.snapshot = ConversationAnchorSnapshot.internalBinaryRead(reader, reader.uint32(), options, message.snapshot);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ResolveAvatarLiveInstanceBindingResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.AvatarLiveInstanceBinding binding = 1; */
+        if (message.binding)
+            AvatarLiveInstanceBinding.internalBinaryWrite(message.binding, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.ConversationAnchorSnapshot snapshot = 2; */
+        if (message.snapshot)
+            ConversationAnchorSnapshot.internalBinaryWrite(message.snapshot, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ResolveAvatarLiveInstanceBindingResponse
+ */
+export const ResolveAvatarLiveInstanceBindingResponse = new ResolveAvatarLiveInstanceBindingResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
 class GetPublicChatSessionSnapshotRequest$Type extends MessageType<GetPublicChatSessionSnapshotRequest> {
     constructor() {
         super("nimi.runtime.v1.GetPublicChatSessionSnapshotRequest", [
@@ -9460,6 +9906,8 @@ export const RuntimeAgentService = new ServiceType("nimi.runtime.v1.RuntimeAgent
     { name: "ListAgents", options: {}, I: ListAgentsRequest, O: ListAgentsResponse },
     { name: "OpenConversationAnchor", options: {}, I: OpenConversationAnchorRequest, O: OpenConversationAnchorResponse },
     { name: "GetConversationAnchorSnapshot", options: {}, I: GetConversationAnchorSnapshotRequest, O: GetConversationAnchorSnapshotResponse },
+    { name: "RegisterAvatarLiveInstanceBinding", options: {}, I: RegisterAvatarLiveInstanceBindingRequest, O: RegisterAvatarLiveInstanceBindingResponse },
+    { name: "ResolveAvatarLiveInstanceBinding", options: {}, I: ResolveAvatarLiveInstanceBindingRequest, O: ResolveAvatarLiveInstanceBindingResponse },
     { name: "GetPublicChatSessionSnapshot", options: {}, I: GetPublicChatSessionSnapshotRequest, O: GetPublicChatSessionSnapshotResponse },
     { name: "GetCompanionParticipationProjection", options: {}, I: GetCompanionParticipationProjectionRequest, O: GetCompanionParticipationProjectionResponse },
     { name: "RequestCompanionParticipation", options: {}, I: RequestCompanionParticipationRequest, O: RequestCompanionParticipationResponse },

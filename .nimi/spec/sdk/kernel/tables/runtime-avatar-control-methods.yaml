@@ -59,6 +59,22 @@ methods:
     auth_scope: runtime.agent.avatar_package.read
     public_sdk_decoder: decodeAvatarPackageHandoff
     implementation_status: runtime_emit_rpc_available
+  - name: runtime.agent.anchors.registerAvatarLiveInstance
+    category: write
+    method_id: /nimi.runtime.v1.RuntimeAgentService/RegisterAvatarLiveInstanceBinding
+    input_ref: .nimi/spec/runtime/kernel/agent-conversation-anchor-contract.md#K-AGCORE-138
+    output_ref: .nimi/spec/runtime/kernel/agent-conversation-anchor-contract.md#K-AGCORE-138
+    semantic_owner: runtime_conversation_anchor
+    auth_scope: runtime.agent.write
+    implementation_status: runtime_emit_rpc_available
+  - name: runtime.agent.anchors.resolveAvatarLiveInstance
+    category: read
+    method_id: /nimi.runtime.v1.RuntimeAgentService/ResolveAvatarLiveInstanceBinding
+    input_ref: .nimi/spec/runtime/kernel/agent-conversation-anchor-contract.md#K-AGCORE-138
+    output_ref: .nimi/spec/runtime/kernel/agent-conversation-anchor-contract.md#K-AGCORE-138
+    semantic_owner: runtime_conversation_anchor
+    auth_scope: runtime.agent.read
+    implementation_status: runtime_emit_rpc_available
 
 forbidden_type_shapes:
   - any

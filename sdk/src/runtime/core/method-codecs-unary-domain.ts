@@ -88,6 +88,10 @@ import {
   OpenConversationAnchorResponse,
   OpenCompanionParticipationReplayRequest,
   OpenCompanionParticipationReplayResponse,
+  RegisterAvatarLiveInstanceBindingRequest,
+  RegisterAvatarLiveInstanceBindingResponse,
+  ResolveAvatarLiveInstanceBindingRequest,
+  ResolveAvatarLiveInstanceBindingResponse,
   QueryAgentMemoryRequest,
   QueryAgentMemoryResponse,
   RequestAvatarDebugProbeRequest,
@@ -368,6 +372,14 @@ export const runtimeUnaryMethodCodecsDomain: Partial<RuntimeUnaryMethodCodecMap>
   [RuntimeMethodIds.agent.getConversationAnchorSnapshot]: {
     requestType: GetConversationAnchorSnapshotRequest,
     responseType: GetConversationAnchorSnapshotResponse,
+  },
+  [RuntimeMethodIds.agent.registerAvatarLiveInstanceBinding]: {
+    requestType: RegisterAvatarLiveInstanceBindingRequest,
+    responseType: RegisterAvatarLiveInstanceBindingResponse,
+  },
+  [RuntimeMethodIds.agent.resolveAvatarLiveInstanceBinding]: {
+    requestType: ResolveAvatarLiveInstanceBindingRequest,
+    responseType: ResolveAvatarLiveInstanceBindingResponse,
   },
   [RuntimeMethodIds.agent.getPublicChatSessionSnapshot]: {
     requestType: GetPublicChatSessionSnapshotRequest,

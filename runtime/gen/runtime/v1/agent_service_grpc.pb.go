@@ -25,6 +25,8 @@ const (
 	RuntimeAgentService_ListAgents_FullMethodName                            = "/nimi.runtime.v1.RuntimeAgentService/ListAgents"
 	RuntimeAgentService_OpenConversationAnchor_FullMethodName                = "/nimi.runtime.v1.RuntimeAgentService/OpenConversationAnchor"
 	RuntimeAgentService_GetConversationAnchorSnapshot_FullMethodName         = "/nimi.runtime.v1.RuntimeAgentService/GetConversationAnchorSnapshot"
+	RuntimeAgentService_RegisterAvatarLiveInstanceBinding_FullMethodName     = "/nimi.runtime.v1.RuntimeAgentService/RegisterAvatarLiveInstanceBinding"
+	RuntimeAgentService_ResolveAvatarLiveInstanceBinding_FullMethodName      = "/nimi.runtime.v1.RuntimeAgentService/ResolveAvatarLiveInstanceBinding"
 	RuntimeAgentService_GetPublicChatSessionSnapshot_FullMethodName          = "/nimi.runtime.v1.RuntimeAgentService/GetPublicChatSessionSnapshot"
 	RuntimeAgentService_GetCompanionParticipationProjection_FullMethodName   = "/nimi.runtime.v1.RuntimeAgentService/GetCompanionParticipationProjection"
 	RuntimeAgentService_RequestCompanionParticipation_FullMethodName         = "/nimi.runtime.v1.RuntimeAgentService/RequestCompanionParticipation"
@@ -69,6 +71,8 @@ type RuntimeAgentServiceClient interface {
 	ListAgents(ctx context.Context, in *ListAgentsRequest, opts ...grpc.CallOption) (*ListAgentsResponse, error)
 	OpenConversationAnchor(ctx context.Context, in *OpenConversationAnchorRequest, opts ...grpc.CallOption) (*OpenConversationAnchorResponse, error)
 	GetConversationAnchorSnapshot(ctx context.Context, in *GetConversationAnchorSnapshotRequest, opts ...grpc.CallOption) (*GetConversationAnchorSnapshotResponse, error)
+	RegisterAvatarLiveInstanceBinding(ctx context.Context, in *RegisterAvatarLiveInstanceBindingRequest, opts ...grpc.CallOption) (*RegisterAvatarLiveInstanceBindingResponse, error)
+	ResolveAvatarLiveInstanceBinding(ctx context.Context, in *ResolveAvatarLiveInstanceBindingRequest, opts ...grpc.CallOption) (*ResolveAvatarLiveInstanceBindingResponse, error)
 	GetPublicChatSessionSnapshot(ctx context.Context, in *GetPublicChatSessionSnapshotRequest, opts ...grpc.CallOption) (*GetPublicChatSessionSnapshotResponse, error)
 	GetCompanionParticipationProjection(ctx context.Context, in *GetCompanionParticipationProjectionRequest, opts ...grpc.CallOption) (*GetCompanionParticipationProjectionResponse, error)
 	RequestCompanionParticipation(ctx context.Context, in *RequestCompanionParticipationRequest, opts ...grpc.CallOption) (*RequestCompanionParticipationResponse, error)
@@ -165,6 +169,26 @@ func (c *runtimeAgentServiceClient) GetConversationAnchorSnapshot(ctx context.Co
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GetConversationAnchorSnapshotResponse)
 	err := c.cc.Invoke(ctx, RuntimeAgentService_GetConversationAnchorSnapshot_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeAgentServiceClient) RegisterAvatarLiveInstanceBinding(ctx context.Context, in *RegisterAvatarLiveInstanceBindingRequest, opts ...grpc.CallOption) (*RegisterAvatarLiveInstanceBindingResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RegisterAvatarLiveInstanceBindingResponse)
+	err := c.cc.Invoke(ctx, RuntimeAgentService_RegisterAvatarLiveInstanceBinding_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeAgentServiceClient) ResolveAvatarLiveInstanceBinding(ctx context.Context, in *ResolveAvatarLiveInstanceBindingRequest, opts ...grpc.CallOption) (*ResolveAvatarLiveInstanceBindingResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ResolveAvatarLiveInstanceBindingResponse)
+	err := c.cc.Invoke(ctx, RuntimeAgentService_ResolveAvatarLiveInstanceBinding_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -510,6 +534,8 @@ type RuntimeAgentServiceServer interface {
 	ListAgents(context.Context, *ListAgentsRequest) (*ListAgentsResponse, error)
 	OpenConversationAnchor(context.Context, *OpenConversationAnchorRequest) (*OpenConversationAnchorResponse, error)
 	GetConversationAnchorSnapshot(context.Context, *GetConversationAnchorSnapshotRequest) (*GetConversationAnchorSnapshotResponse, error)
+	RegisterAvatarLiveInstanceBinding(context.Context, *RegisterAvatarLiveInstanceBindingRequest) (*RegisterAvatarLiveInstanceBindingResponse, error)
+	ResolveAvatarLiveInstanceBinding(context.Context, *ResolveAvatarLiveInstanceBindingRequest) (*ResolveAvatarLiveInstanceBindingResponse, error)
 	GetPublicChatSessionSnapshot(context.Context, *GetPublicChatSessionSnapshotRequest) (*GetPublicChatSessionSnapshotResponse, error)
 	GetCompanionParticipationProjection(context.Context, *GetCompanionParticipationProjectionRequest) (*GetCompanionParticipationProjectionResponse, error)
 	RequestCompanionParticipation(context.Context, *RequestCompanionParticipationRequest) (*RequestCompanionParticipationResponse, error)
@@ -568,6 +594,12 @@ func (UnimplementedRuntimeAgentServiceServer) OpenConversationAnchor(context.Con
 }
 func (UnimplementedRuntimeAgentServiceServer) GetConversationAnchorSnapshot(context.Context, *GetConversationAnchorSnapshotRequest) (*GetConversationAnchorSnapshotResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetConversationAnchorSnapshot not implemented")
+}
+func (UnimplementedRuntimeAgentServiceServer) RegisterAvatarLiveInstanceBinding(context.Context, *RegisterAvatarLiveInstanceBindingRequest) (*RegisterAvatarLiveInstanceBindingResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method RegisterAvatarLiveInstanceBinding not implemented")
+}
+func (UnimplementedRuntimeAgentServiceServer) ResolveAvatarLiveInstanceBinding(context.Context, *ResolveAvatarLiveInstanceBindingRequest) (*ResolveAvatarLiveInstanceBindingResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ResolveAvatarLiveInstanceBinding not implemented")
 }
 func (UnimplementedRuntimeAgentServiceServer) GetPublicChatSessionSnapshot(context.Context, *GetPublicChatSessionSnapshotRequest) (*GetPublicChatSessionSnapshotResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetPublicChatSessionSnapshot not implemented")
@@ -789,6 +821,42 @@ func _RuntimeAgentService_GetConversationAnchorSnapshot_Handler(srv interface{},
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(RuntimeAgentServiceServer).GetConversationAnchorSnapshot(ctx, req.(*GetConversationAnchorSnapshotRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeAgentService_RegisterAvatarLiveInstanceBinding_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RegisterAvatarLiveInstanceBindingRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAgentServiceServer).RegisterAvatarLiveInstanceBinding(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAgentService_RegisterAvatarLiveInstanceBinding_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAgentServiceServer).RegisterAvatarLiveInstanceBinding(ctx, req.(*RegisterAvatarLiveInstanceBindingRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeAgentService_ResolveAvatarLiveInstanceBinding_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ResolveAvatarLiveInstanceBindingRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAgentServiceServer).ResolveAvatarLiveInstanceBinding(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAgentService_ResolveAvatarLiveInstanceBinding_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAgentServiceServer).ResolveAvatarLiveInstanceBinding(ctx, req.(*ResolveAvatarLiveInstanceBindingRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -1392,6 +1460,14 @@ var RuntimeAgentService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetConversationAnchorSnapshot",
 			Handler:    _RuntimeAgentService_GetConversationAnchorSnapshot_Handler,
+		},
+		{
+			MethodName: "RegisterAvatarLiveInstanceBinding",
+			Handler:    _RuntimeAgentService_RegisterAvatarLiveInstanceBinding_Handler,
+		},
+		{
+			MethodName: "ResolveAvatarLiveInstanceBinding",
+			Handler:    _RuntimeAgentService_ResolveAvatarLiveInstanceBinding_Handler,
 		},
 		{
 			MethodName: "GetPublicChatSessionSnapshot",
