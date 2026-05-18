@@ -195,10 +195,10 @@ export function useAgentConversationPresentation(
     labels: {
       emptyEyebrow: resolvedAgentDisplayName,
       emptyTitle: input.t('Chat.agentTranscriptEmptyTitle', {
-        defaultValue: 'Say hello when you are ready',
+        defaultValue: 'Start a conversation',
       }),
       emptyDescription: input.t('Chat.agentTranscriptEmpty', {
-        defaultValue: 'Say hello, ask a question, or start with whatever is on your mind.',
+        defaultValue: 'Ask a question, share an idea, or tell this agent what you want to explore.',
       }),
       loadingLabel: input.t('Chat.agentTranscriptLoading', { defaultValue: 'Loading local agent conversation…' }),
     },
