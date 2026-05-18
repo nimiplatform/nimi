@@ -28,6 +28,8 @@ const kernelFiles = [
   '.nimi/spec/sdk/kernel/mod-contract.md',
   '.nimi/spec/sdk/kernel/testing-gates-contract.md',
   '.nimi/spec/sdk/kernel/package-governance-contract.md',
+  '.nimi/spec/sdk/kernel/nimi-app-client-contract.md',
+  '.nimi/spec/sdk/kernel/nimi-permission-client-contract.md',
   '.nimi/spec/sdk/kernel/tables/sdk-surfaces.yaml',
   '.nimi/spec/sdk/kernel/tables/runtime-method-groups.yaml',
   '.nimi/spec/sdk/kernel/tables/import-boundaries.yaml',
@@ -41,6 +43,8 @@ const kernelFiles = [
   '.nimi/spec/sdk/kernel/tables/rule-evidence.rules-core-surface.yaml',
   '.nimi/spec/sdk/kernel/tables/rule-evidence.rules-runtime-client.yaml',
   '.nimi/spec/sdk/kernel/tables/rule-evidence.rules-domain-adapters.yaml',
+  '.nimi/spec/sdk/kernel/tables/rule-evidence.rules-nimi-app-client.yaml',
+  '.nimi/spec/sdk/kernel/tables/rule-evidence.rules-nimi-permission-client.yaml',
 ];
 
 const domainFiles = listDomainMarkdownFiles('.nimi/spec/sdk');

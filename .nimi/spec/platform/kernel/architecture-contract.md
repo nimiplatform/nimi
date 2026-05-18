@@ -4,7 +4,15 @@
 
 ## P-ARCH-001 — 六层执行架构定义
 
-Nimi 平台采用固定六层执行架构：nimi-realm（云端持久世界）、nimi-runtime（本地 AI 运行时）、nimi-sdk（开发者接口层）、desktop（第一方应用 / mod host）、nimi-hook（desktop mod 接口层）、mods（独立包/独立仓的扩展层）。`nimi-apps` 为独立应用总称。
+Nimi 平台的长期用户面产品是可安装的 `Nimi`。`Nimi Home` 是入口壳 /
+entry shell；当前由 desktop host 承载。历史执行拓扑中的
+`desktop`、`nimi-hook`、`mods` 只保留为现有实现与 retirement/internalization
+对账对象，不再构成公开产品类目。
+
+公开外部分发、安装、授权单位固定为 `Nimi App`。Public Mods 与 Public
+Extensions 不被 admitted。任何仍存在的 hook/mod 实现面只允许作为
+developer/internal/retirement surface 存在，不能被产品文案、registry、
+Library/Discovery、或第三方接入文档描述为 Nimi 生态入口。
 
 `nimi-cognition` 作为独立 authority domain 存在，由 runtime / sdk bridge 与 consume；它不是第七条执行宿主层，也不得被 platform text 静默压回 realm 或 runtime 子章节。
 
@@ -20,7 +28,10 @@ repo 或 mods workspace 的 semantic owner 静默迁回当前 public root。
 
 ## P-ARCH-002 — 层间通信规则
 
-`MUST`: Realm 与 Runtime 并列互不依赖，通过 SDK 桥接。App 通过 `@nimiplatform/sdk` 统一接入。Mods 通过 nimi-hook 访问能力。通信协议固定：Realm=REST+WS，Runtime=gRPC。
+`MUST`: Realm 与 Runtime 并列互不依赖，通过 SDK 桥接。Nimi Apps 通过
+`@nimiplatform/sdk` 统一接入。Public Mods / Extensions 不被 admitted；历史
+`nimi-hook` 只允许作为 developer/internal/retirement surface，不得作为普通用户
+或第三方产品通信入口。通信协议固定：Realm=REST+WS，Runtime=gRPC。
 
 ## P-ARCH-003 — Realm 职责边界
 
@@ -53,7 +64,36 @@ persistence read path 继续落在 Truth / World State / World History / Chat �
 
 ## P-ARCH-021 — Desktop 定位
 
-`MUST`: Desktop 是平台旗舰应用，架构上无特殊地位。独有特性：nimi-hook、Core UI、Runtime Console、App Store 入口。
+`MUST`: Desktop 是当前 desktop-hosted Nimi Home shell 实现，不是公开产品
+ontology owner，也不是独立旗舰产品名。用户安装和打开的产品名是 `Nimi`。
+Desktop-hosted Home 可以投影 Runtime Console、diagnostics、settings、Library
+与 Discovery，但这些 surface 不拥有 Runtime materialization、Nimi App
+registry/admission、Realm/Cognition truth、或 marketplace economy truth。
+
+历史 `App Store` wording superseded 为 Nimi App `Library` / `Discovery`
+projection；历史 `nimi-hook` 特性 superseded 为 developer/internal/retirement
+surface，不得作为 public Mod/Extension product promise。
+
+ordinary-user 默认 AI 体验（first-run、scope-bound apply、admitted
+first-party Nimi App 的 default-experience hint）的 product
+recommendation/catalog authority 由 `default-experience-profile-contract.md`
+（`P-DXP-001..P-DXP-012`）独立拥有；`P-ARCH-*` 不重新解释 provider / model /
+host detection / local materialization 的所有权。Default Experience Profile
+仍按 Desktop `D-AIPC-001..D-AIPC-012` 与 Runtime
+`K-LENG-024..K-LENG-028` / `K-LENV-MAT-*` / `K-LENV-ACT-*` 的既有 owner 链
+落地，不在 `P-ARCH-*` 层引入 vendor / model 默认。
+
+`Nimi Home` 作为产品入口 / 壳层 authority 由
+`nimi-home-contract.md`（`P-HOME-001..P-HOME-010`）独立拥有；产品
+self-update authority 由 `nimi-self-update-contract.md`
+（`P-SUPD-001..P-SUPD-008`）独立拥有；package / release / update identity 由
+`nimi-package-release-contract.md`（`P-PKGREL-001..P-PKGREL-008`）独立拥有；
+cold-start authority owner split 由 `cold-start-authority-contract.md`
+（`P-COLD-001..P-COLD-008`）独立拥有。`P-ARCH-*` 不重新解释 Home 壳层 IA、
+release channel identity、updater endpoint / pubkey policy、Runtime daemon
+handoff、selected source record ownership 等 truth；上述 authority 与
+existing Desktop kernel hosted-shell 合同（`D-HOME-*`、`D-SHELL-*` 等）
+互不重叠。
 
 ## P-ARCH-022 — World Evolution Engine Placement
 

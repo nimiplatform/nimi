@@ -67,6 +67,7 @@ func hasInvalidScopePrefix(scopes []string) bool {
 		case strings.HasPrefix(scope, "runtime."):
 		case strings.HasPrefix(scope, "realm."):
 		case strings.HasPrefix(scope, "app."):
+		case strings.HasPrefix(scope, "ai."):
 		case strings.HasPrefix(scope, "read:"):
 		case strings.HasPrefix(scope, "write:"):
 		case strings.HasPrefix(scope, "grant:"):

@@ -22,6 +22,18 @@ Every platform domain document (vision, architecture, protocol, ai-last-mile, de
 | `APP` | App-slice admission contract | `app-slice-admission-contract.md` |
 | `WEB` | Web and release gateway contract | `web-release-contract.md` |
 | `PKG` | Package authority admission and host-local projection | `package-authority-admission-contract.md` |
+| `DXP` | Default Experience Profile recommendation/catalog contract | `default-experience-profile-contract.md` |
+| `HOME` | Nimi Home product entry/shell authority | `nimi-home-contract.md` |
+| `SUPD` | Nimi product self-update authority | `nimi-self-update-contract.md` |
+| `PKGREL` | Nimi package/release/update identity authority | `nimi-package-release-contract.md` |
+| `COLD` | Cold-start authority owner split | `cold-start-authority-contract.md` |
+| `NAPP` | Nimi App admission contract | `nimi-app-admission-contract.md` |
+| `MOEX` | Mod / Extension retirement contract | `mod-extension-retirement-contract.md` |
+| `AGID` | Agent identity primitive floor contract | `agent-identity-floor-contract.md` |
+| `PERM` | App permission product-facing authority contract | `app-permission-contract.md` |
+| `FPI` | Nimi first-party integration contract | `nimi-first-party-integration-contract.md` |
+| `FPM` | Nimi first-party migration contract | `nimi-first-party-migration-contract.md` |
+| `ECO` | Nimi ecosystem (third-party / world-game / engine-seam / economy / no-Steam-copy) contract | `nimi-ecosystem-contract.md` |
 | `GOV` | Governance contract | `governance-contract.md` |
 | `RELG` | Release gate contract (operational refinement of `P-GOV-003/011/021/023`) | `release-gate-contract.md` |
 
@@ -43,6 +55,18 @@ Every platform domain document (vision, architecture, protocol, ai-last-mile, de
 | 110–119 | App-slice admission and subordinate authority |
 | 120–129 | Web and release gateway ownership |
 | 130–139 | Package authority admission and host-local projection |
+| 140–149 | Default Experience Profile recommendation/catalog authority |
+| 150–159 | Nimi Home product entry/shell authority |
+| 160–169 | Nimi product self-update authority |
+| 170–179 | Nimi package/release/update identity authority |
+| 180–189 | Cold-start authority owner split |
+| 190–199 | Nimi App admission authority |
+| 200–209 | Mod / Extension retirement authority |
+| 210–219 | Agent identity primitive floor authority |
+| 220–229 | App permission product-facing authority |
+| 230–239 | Nimi first-party integration authority |
+| 240–249 | Nimi first-party migration authority |
+| 250–259 | Nimi ecosystem authority (third-party / world-game / engine-seam / economy / no-Steam-copy) |
 
 ## Document Ownership Matrix
 
@@ -58,6 +82,18 @@ Every platform domain document (vision, architecture, protocol, ai-last-mile, de
 | `app-slice-admission-contract.md` | `P-APP-*` | App-local spec admission, subordinate authority scope, evidence roots, and audit expansion rules |
 | `web-release-contract.md` | `P-WEB-*` | Web surface, install gateway, Cloudflare adapter, and release evidence ownership |
 | `package-authority-admission-contract.md` | `P-PKG-*` | Package-local spec admission, package-vs-host projection boundary, and audit expansion rules |
+| `default-experience-profile-contract.md` | `P-DXP-*` | Default Experience Profile recommendation/catalog authority, dimensioned alias matrix, apply chain into `AIProfile`/`AIConfig`/`AISnapshot`, host/profile selection matrix consumption, cloud/local/hybrid/privacy posture rules, materialization projection contract, no-provider-model-constant guard, first-party app hint rule |
+| `nimi-home-contract.md` | `P-HOME-*` | Nimi Home product entry/shell authority, hosted-shell binding, non-owner rules, surface registry requirement, default-experience consumption, Agent Chat placement boundary, mandatory `AIScopeRef`, no-private-path rule, Library/Discovery non-owner rule, first-screen rule |
+| `nimi-self-update-contract.md` | `P-SUPD-*` | Nimi product self-update policy, release channel/trust/compatibility/rollback owner split with Home / Runtime / App registry / Runtime local environment, fail-closed self-update, existing desktop self-update supersession, web self-update boundary |
+| `nimi-package-release-contract.md` | `P-PKGREL-*` | Installable product name, atomic bundle identity, release channel identity, updater endpoint/pubkey policy, install-gateway handoff scope, failure projection requirement, three-distinct-update-surface rule, no-child-wave-split rule |
+| `cold-start-authority-contract.md` | `P-COLD-*` | Cold-start authority owner split (process start, Runtime bootstrap, account unauthenticated, host capability detection, default profile recommendation, local dependency setup, first app/library projection), fail-closed-only state set |
+| `nimi-app-admission-contract.md` | `P-NAPP-*` | Nimi App admission authority, registry row schema (app_id, publisher, trust_tier_ref, package_kind, signature/update policy refs, default-experience alias hint, capability set / local compute pack / runtime registration mode / permission scope refs, health/repair projection, admission_status), app-slice admission orthogonality, first-party seed scope, mechanical guard `check:no-public-mod-extension-admission` |
+| `mod-extension-retirement-contract.md` | `P-MOEX-*` | Public Mod / Public Extension non-admission, developer/internal/retirement-only posture for existing nimi-hook / mod governance / mod workspace / SDK mod surfaces, no shared Nimi Content Pack channel, app-internal content package boundary, Asset Market non-generic-channel disposition |
+| `agent-identity-floor-contract.md` | `P-AGID-*` | Account-scoped durable agent identity primitive floor, family / persona / projection semantics, app-specific projection lifecycle, Runtime `ConversationAnchor` continuity binding rule, Agent Chat transcript / history owner rule, chat-derived memory projection rule, no-app-local-mint rule |
+| `app-permission-contract.md` | `P-PERM-*` | App permission product-facing authority: closed permission taxonomy, grant lifecycle, audit event mapping, fail-closed denial state machine, cross-app authorization rules, permission_scope_ref schema, spend metering, first-party seed grant set, cross-kernel backend retention |
+| `nimi-first-party-integration-contract.md` | `P-FPI-*` | First-party Nimi App integration contract: hardcut targets (Avatar, ParentOS), single registry source, Default Experience alias hint consumption, permission scope ref consumption, runtime registration consumer relationship, Avatar master gate dependency, no-standalone-ordinary-user-truth rule, Avatar kernel authority retention |
+| `nimi-first-party-migration-contract.md` | `P-FPM-*` | First-party migration contract: required migration questions, migration failure fail-closed state machine, no-silent-user-state-reset rule, source-development marker rule, zero-dual-track-period-after-hard-cut, per-app implementation plan requirement |
+| `nimi-ecosystem-contract.md` | `P-ECO-*` | Nimi ecosystem authority: third-party developer onboarding, trust tier behavior expansion (ceiling / review / kill-switch), world / game app class posture, engine SDK future-seam boundary, economy posture child-proposal reference, no-Steam-copy negative gate list, cross-wave invariants |
 | `governance-contract.md` | `P-GOV-*` | License matrix, release gates, governance tasks |
 | `release-gate-contract.md` | `P-RELG-*` | Release-gate registry authority, projection-only execution surfaces (preflight, lint chain, CI step blocks), evidence JSON shape, verdict semantics, drift gate self-bootstrap |
 
@@ -82,8 +118,12 @@ Every platform domain document (vision, architecture, protocol, ai-last-mile, de
 | `tables/canonical-capability-catalog.yaml` | `capability-catalog-contract.md` | Canonical `CanonicalCapabilityId` rows with structured sourceRef, i18n keys, runtime evidence class, and deferred entries |
 | `tables/app-slice-admissions.yaml` | `app-slice-admission-contract.md` | Active app-local spec slices admitted by `.nimi/spec` as subordinate audit authority |
 | `tables/package-authority-admissions.yaml` | `package-authority-admission-contract.md` | Active package-local spec roots admitted by `.nimi/spec` as package audit authority |
+| `tables/default-experience-profiles.yaml` | `default-experience-profile-contract.md` | Admitted Default Experience Profile rows dimensioned over privacy_posture x compute_posture x capability_set x routing_policy with typed references into Runtime host capability profiles, local compute packs, and local environment dependency families |
+| `.nimi/spec/desktop/kernel/tables/nimi-home-surfaces.yaml` | `nimi-home-contract.md`, `.nimi/spec/desktop/kernel/nimi-home-shell-contract.md` | Desktop-hosted Nimi Home surface placement registry consumed by `D-HOME-*` rows; non-owner cross-reference recorded here so the Platform `Nimi Home` ontology has a clear view of the hosted-shell surface registry source |
+| `tables/nimi-app-registry.yaml` | `nimi-app-admission-contract.md` | Admitted Nimi App registry rows (first-party seed for Avatar and ParentOS) with typed references to trust tier, default-experience alias, canonical capability ids, local compute packs, runtime registration mode, permission scope (Wave 4 placeholder), and admission status |
+| `tables/nimi-app-trust-tiers.yaml` | `nimi-app-admission-contract.md` (Wave 3) and Wave 6 ecosystem expansion | Trust tier enum rows `nimi-first-party`, `nimi-verified-partner`, `nimi-community` with Wave 3 signature/permission/review/kill-switch seam placeholders; Wave 6 expands behavior |
 | `tables/audit-evidence-roots.yaml` | `web-release-contract.md`, `kit-contract.md`, `package-authority-admission-contract.md` | Authority-specific implementation and host-local evidence roots admitted for spec-first audit planning |
-| `tables/rule-evidence.yaml` | `protocol-contract.md`, `architecture-contract.md`, `ai-last-mile-contract.md`, `ai-scope-contract.md`, `design-pattern-contract.md`, `kit-contract.md`, `capability-catalog-contract.md`, `governance-contract.md` | Platform formal rule → executable evidence mapping |
+| `tables/rule-evidence.yaml` | `protocol-contract.md`, `architecture-contract.md`, `ai-last-mile-contract.md`, `ai-scope-contract.md`, `design-pattern-contract.md`, `kit-contract.md`, `capability-catalog-contract.md`, `default-experience-profile-contract.md`, `nimi-home-contract.md`, `nimi-self-update-contract.md`, `nimi-package-release-contract.md`, `cold-start-authority-contract.md`, `nimi-app-admission-contract.md`, `mod-extension-retirement-contract.md`, `agent-identity-floor-contract.md`, `app-permission-contract.md`, `nimi-first-party-integration-contract.md`, `nimi-first-party-migration-contract.md`, `nimi-ecosystem-contract.md`, `governance-contract.md` | Platform formal rule → executable evidence mapping |
 | `tables/release-gate-registry.yaml` | `release-gate-contract.md` | Single source of release-gate identity (gate id, command, tier, target, prerequisites, evidence shape, blocker semantics) projected into preflight, lint chain, and CI step blocks. Populated in topic `2026-05-10-release-preflight-gate-authority-hardcut` Wave 1. |
 
 ## Version Terminology

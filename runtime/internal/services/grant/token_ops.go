@@ -13,6 +13,7 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/grantlifecycle"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/pagination"
 )
@@ -37,6 +38,16 @@ func (s *Service) ValidateAppAccessToken(ctx context.Context, req *runtimev1.Val
 		s.mu.RUnlock()
 		s.emitAudit(ctx, "ValidateAppAccessToken", appID, "", runtimev1.ReasonCode_APP_GRANT_INVALID)
 		return &runtimev1.ValidateAppAccessTokenResponse{Valid: false, ReasonCode: runtimev1.ReasonCode_APP_GRANT_INVALID, ActionHint: "reauthorize_external_principal"}, nil
+	}
+	if token.LifecycleState == grantlifecycle.GrantStateRevoked {
+		s.mu.RUnlock()
+		s.emitAudit(ctx, "ValidateAppAccessToken", appID, token.SubjectUserID, runtimev1.ReasonCode_APP_TOKEN_REVOKED)
+		return &runtimev1.ValidateAppAccessTokenResponse{Valid: false, ReasonCode: runtimev1.ReasonCode_APP_TOKEN_REVOKED, ActionHint: "reauthorize_external_principal"}, nil
+	}
+	if token.LifecycleState == grantlifecycle.GrantStateSuperseded {
+		s.mu.RUnlock()
+		s.emitAudit(ctx, "ValidateAppAccessToken", appID, token.SubjectUserID, runtimev1.ReasonCode_APP_GRANT_INVALID)
+		return &runtimev1.ValidateAppAccessTokenResponse{Valid: false, ReasonCode: runtimev1.ReasonCode_APP_GRANT_INVALID, ActionHint: "refresh_authorization_policy"}, nil
 	}
 	if token.Revoked {
 		s.mu.RUnlock()
@@ -202,6 +213,18 @@ func (s *Service) IssueDelegatedAccessToken(ctx context.Context, req *runtimev1.
 	if err != nil {
 		return nil, status.Error(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL.String())
 	}
+	lifecycleState, lifecycleErr := grantedLifecycleState(
+		tokenID,
+		parent.AppID,
+		parent.SubjectUserID,
+		lifecycleScopeKey(scopes),
+		now,
+		expiresAt,
+		"delegated authorization accepted",
+	)
+	if lifecycleErr != nil {
+		return nil, status.Error(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL.String())
+	}
 	childCanDelegate := parent.CanDelegate && parent.MaxDelegationDepth > 1 && childDepth < parent.MaxDelegationDepth
 	child := tokenRecord{
 		TokenID:             tokenID,
@@ -217,6 +240,7 @@ func (s *Service) IssueDelegatedAccessToken(ctx context.Context, req *runtimev1.
 		DelegationDepth:     childDepth,
 		ParentTokenID:       parent.TokenID,
 		ConsentRef:          cloneConsent(parent.ConsentRef),
+		LifecycleState:      lifecycleState,
 		IssuedAt:            now,
 		ExpiresAt:           expiresAt,
 		Secret:              secret,

@@ -1,0 +1,231 @@
+table_family: support_registry
+registry_id: platform_rule_evidence_requirement_rules_nimi_home
+owner: platform
+schema_ref: .nimi/contracts/table-family.schema.yaml#support_registry
+allowed_fields:
+  - rule_id
+  - evidence_requirement
+  - evidence_refs
+  - note
+  - na_reason
+  - evidence_scope_note
+  - test_files
+forbidden_state_fields:
+  - done
+  - covered
+  - coverage_status
+  - audit_date
+  - evidence_report
+  - current
+  - proposed
+  - backlog_status
+  - migration_status
+  - mapping_status
+  - run_id
+  - ledger_ref
+entries:
+  - P-HOME-001
+  - P-HOME-002
+  - P-HOME-003
+  - P-HOME-004
+  - P-HOME-005
+  - P-HOME-006
+  - P-HOME-007
+  - P-HOME-008
+  - P-HOME-009
+  - P-HOME-010
+  - P-SUPD-001
+  - P-SUPD-002
+  - P-SUPD-003
+  - P-SUPD-004
+  - P-SUPD-005
+  - P-SUPD-006
+  - P-SUPD-007
+  - P-SUPD-008
+  - P-PKGREL-001
+  - P-PKGREL-002
+  - P-PKGREL-003
+  - P-PKGREL-004
+  - P-PKGREL-005
+  - P-PKGREL-006
+  - P-PKGREL-007
+  - P-PKGREL-008
+  - P-COLD-001
+  - P-COLD-002
+  - P-COLD-003
+  - P-COLD-004
+  - P-COLD-005
+  - P-COLD-006
+  - P-COLD-007
+  - P-COLD-008
+rules:
+  - rule_id: P-HOME-001
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; behavioral guarantee that Nimi Home does not regrow product ontology requires Wave 1 hosted-shell consumer validation
+  - rule_id: P-HOME-002
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; hosted-shell binding behavior requires desktop kernel consistency validation
+  - rule_id: P-HOME-003
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; non-owner enforcement requires Runtime/Realm/Cognition/Avatar/SDK consumer validation
+  - rule_id: P-HOME-004
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; surface registry coverage is enforced by desktop kernel consistency check on `tables/nimi-home-surfaces.yaml`
+  - rule_id: P-HOME-005
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; runtime enforcement of no-provider/no-model constants is owned by Wave 1 mechanical guard `check:no-default-experience-provider-model-constants`
+  - rule_id: P-HOME-006
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; Agent Chat transcript/identity/grant/memory boundaries are enforced by Wave 4 permission fabric
+  - rule_id: P-HOME-007
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; mechanical guard `check:home-shell-aiscoperef-required` is Wave 1 implementation close
+  - rule_id: P-HOME-008
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; mechanical guard `check:home-shell-no-runtime-internal-import` is Wave 1 implementation close
+  - rule_id: P-HOME-009
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; Library/Discovery row schema enforcement is Wave 3 Nimi App registry consumer validation
+  - rule_id: P-HOME-010
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; first-screen content enforcement is Wave 1 hosted-shell consumer validation
+  - rule_id: P-SUPD-001
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; release channel/trust/compatibility/rollback runtime behavior requires desktop/runtime/app registry/runtime local environment consumer validation
+  - rule_id: P-SUPD-002
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; user-facing self-update UI behavior is enforced by Wave 1 hosted-shell consumer validation
+  - rule_id: P-SUPD-003
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; runtime daemon handoff behavior is Runtime consumer validation
+  - rule_id: P-SUPD-004
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; app registry update boundary is enforced by Wave 3 Nimi App registry admission
+  - rule_id: P-SUPD-005
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; non-mutation of selected source records is enforced by Runtime materializer consumer validation
+  - rule_id: P-SUPD-006
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; fail-closed self-update behavior is enforced by Wave 1 hosted-shell consumer validation
+  - rule_id: P-SUPD-007
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; existing desktop self-update supersession is recorded in `desktop-kernel-supersession-schedule.md`
+  - rule_id: P-SUPD-008
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; web self-update boundary is enforced by `web-release-contract.md` cut criteria
+  - rule_id: P-PKGREL-001
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; mechanical guard `check:no-desktop-as-user-facing-name` is Wave 1 implementation close
+  - rule_id: P-PKGREL-002
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; atomic bundle identity behavior is enforced by Wave 1 packaging consumer validation
+  - rule_id: P-PKGREL-003
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; release channel identity enforcement is owned by `release-gate-registry.yaml`
+  - rule_id: P-PKGREL-004
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; updater endpoint and pubkey policy enforcement is desktop builder consumer validation
+  - rule_id: P-PKGREL-005
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; install gateway handoff scope enforcement is `web-release-contract.md` consumer validation
+  - rule_id: P-PKGREL-006
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; failure projection behavior is enforced by Wave 1 hosted-shell consumer validation
+  - rule_id: P-PKGREL-007
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; three-update-surface independence is enforced by Runtime / app registry / Runtime local environment consumer validation
+  - rule_id: P-PKGREL-008
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; no-child-wave-split rule is enforced by topic-runner closeout audit
+  - rule_id: P-COLD-001
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; fail-closed-only state set enforcement is Wave 1 hosted-shell consumer validation
+  - rule_id: P-COLD-002
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; process-start owner split is enforced by Wave 1 hosted-shell consumer validation
+  - rule_id: P-COLD-003
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; Runtime bootstrap owner split is enforced by Runtime consumer validation
+  - rule_id: P-COLD-004
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; account-unauthenticated owner split is enforced by Realm / Runtime / Wave 4 permission fabric consumer validation
+  - rule_id: P-COLD-005
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; host capability detection owner split is enforced by Runtime consumer validation
+  - rule_id: P-COLD-006
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; Default Experience Profile recommendation owner split is enforced by Wave 2 `P-DXP-*` consumer validation
+  - rule_id: P-COLD-007
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; local dependency setup owner split is enforced by Runtime materializer consumer validation
+  - rule_id: P-COLD-008
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; first app/library projection owner split is enforced by Wave 3 Nimi App registry consumer validation

@@ -150,6 +150,8 @@ func isRecognizedScope(scope string) bool {
 		return hasValidScopeSuffix(scope, "realm.")
 	case strings.HasPrefix(scope, "app."):
 		return hasValidScopeSuffix(scope, "app.")
+	case strings.HasPrefix(scope, "ai."):
+		return hasValidScopeSuffix(scope, "ai.")
 	case strings.HasPrefix(scope, "read:"):
 		return hasValidScopeSuffix(scope, "read:")
 	case strings.HasPrefix(scope, "write:"):

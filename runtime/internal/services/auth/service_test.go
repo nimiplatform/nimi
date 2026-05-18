@@ -15,7 +15,9 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/appregistrycatalog"
 	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
+	"github.com/nimiplatform/nimi/runtime/internal/firstpartymigration"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
@@ -80,6 +82,46 @@ func sessionContext(sessionID string, sessionToken string) context.Context {
 		"x-nimi-session-id", sessionID,
 		"x-nimi-session-token", sessionToken,
 	))
+}
+
+func validFullAppModeManifest() *runtimev1.AppModeManifest {
+	return &runtimev1.AppModeManifest{
+		AppMode:         runtimev1.AppMode_APP_MODE_FULL,
+		RuntimeRequired: true,
+		RealmRequired:   true,
+		WorldRelation:   runtimev1.WorldRelation_WORLD_RELATION_NONE,
+	}
+}
+
+func testNimiAppRegistryCatalog() *appregistrycatalog.Registry {
+	return &appregistrycatalog.Registry{
+		Version:     1,
+		TableFamily: "product_catalog",
+		Owner:       "platform",
+		CatalogID:   "test_nimi_app_registry",
+		Apps: []appregistrycatalog.App{
+			{
+				AppID:                   "nimi.parentos",
+				DisplayLabel:            "ParentOS",
+				Publisher:               "nimi-first-party",
+				TrustTierRef:            appregistrycatalog.TrustTierFirstParty,
+				PackageKind:             appregistrycatalog.PackageKindNimiApp,
+				RuntimeRegistrationMode: appregistrycatalog.RuntimeRegistrationModeAppManaged,
+				AdmissionStatus:         appregistrycatalog.AdmissionStatusAdmitted,
+				SourceRule:              "P-NAPP-011",
+			},
+			{
+				AppID:                   "nimi.avatar",
+				DisplayLabel:            "Avatar",
+				Publisher:               "nimi-first-party",
+				TrustTierRef:            appregistrycatalog.TrustTierFirstParty,
+				PackageKind:             appregistrycatalog.PackageKindNimiApp,
+				RuntimeRegistrationMode: appregistrycatalog.RuntimeRegistrationModeAppManaged,
+				AdmissionStatus:         appregistrycatalog.AdmissionStatusGatedByAvatarMasterGate,
+				SourceRule:              "P-NAPP-011",
+			},
+		},
+	}
 }
 
 func TestAppSessionLifecycle(t *testing.T) {
@@ -176,6 +218,102 @@ func TestRegisterAppMaintainsPerAppIndexOncePerInstance(t *testing.T) {
 	}
 	if !svc.appRegisteredLocked("nimi.desktop") {
 		t.Fatalf("appRegisteredLocked should use maintained index")
+	}
+}
+
+func TestRegisterAppFailsClosedForNimiAppWithoutRegistryProjection(t *testing.T) {
+	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)))
+
+	resp, err := svc.RegisterApp(context.Background(), &runtimev1.RegisterAppRequest{
+		AppId:        "nimi.parentos",
+		ModeManifest: validFullAppModeManifest(),
+	})
+	if err != nil {
+		t.Fatalf("register app: %v", err)
+	}
+	if resp.GetAccepted() {
+		t.Fatalf("expected Platform-governed Nimi App to fail closed without registry projection")
+	}
+	if resp.GetReasonCode() != runtimev1.ReasonCode_APP_NOT_REGISTERED {
+		t.Fatalf("unexpected reason code: %v", resp.GetReasonCode())
+	}
+}
+
+func TestRegisterAppChecksNimiAppRegistryProjection(t *testing.T) {
+	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	svc.SetNimiAppRegistryCatalog(testNimiAppRegistryCatalog())
+
+	parentResp, err := svc.RegisterApp(context.Background(), &runtimev1.RegisterAppRequest{
+		AppId:        "app.nimi.parentos",
+		ModeManifest: validFullAppModeManifest(),
+	})
+	if err != nil {
+		t.Fatalf("register parentos: %v", err)
+	}
+	if !parentResp.GetAccepted() {
+		t.Fatalf("expected admitted ParentOS registry row to register, reason=%v", parentResp.GetReasonCode())
+	}
+
+	avatarResp, err := svc.RegisterApp(context.Background(), &runtimev1.RegisterAppRequest{
+		AppId:        "nimi.avatar",
+		ModeManifest: validFullAppModeManifest(),
+	})
+	if err != nil {
+		t.Fatalf("register avatar: %v", err)
+	}
+	if avatarResp.GetAccepted() {
+		t.Fatalf("expected Avatar row gated by master gate to be rejected")
+	}
+	if avatarResp.GetReasonCode() != runtimev1.ReasonCode_APP_AUTHORIZATION_DENIED {
+		t.Fatalf("unexpected avatar reason code: %v", avatarResp.GetReasonCode())
+	}
+}
+
+func TestRegisterAppAppliesFirstPartyMigrationGate(t *testing.T) {
+	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	svc.SetNimiAppRegistryCatalog(testNimiAppRegistryCatalog())
+	svc.SetFirstPartyMigrationLaunchGate(firstpartymigration.NewLaunchGate(
+		firstpartymigration.WithMigrationState("nimi.parentos", firstpartymigration.MigrationStatePending),
+	))
+
+	blocked, err := svc.RegisterApp(context.Background(), &runtimev1.RegisterAppRequest{
+		AppId:        "nimi.parentos",
+		ModeManifest: validFullAppModeManifest(),
+	})
+	if err != nil {
+		t.Fatalf("register parentos pending migration: %v", err)
+	}
+	if blocked.GetAccepted() || blocked.GetReasonCode() != runtimev1.ReasonCode_APP_AUTHORIZATION_DENIED {
+		t.Fatalf("expected pending migration to block registration, got accepted=%v reason=%v", blocked.GetAccepted(), blocked.GetReasonCode())
+	}
+
+	svc.SetFirstPartyMigrationLaunchGate(firstpartymigration.NewLaunchGate(
+		firstpartymigration.WithMigrationState("nimi.parentos", firstpartymigration.MigrationStateCompleted),
+	))
+	admitted, err := svc.RegisterApp(context.Background(), &runtimev1.RegisterAppRequest{
+		AppId:        "nimi.parentos",
+		ModeManifest: validFullAppModeManifest(),
+	})
+	if err != nil {
+		t.Fatalf("register parentos completed migration: %v", err)
+	}
+	if !admitted.GetAccepted() {
+		t.Fatalf("expected completed migration to admit registration, reason=%v", admitted.GetReasonCode())
+	}
+}
+
+func TestRegisterAppKeepsDesktopHostOutsideNimiAppRegistry(t *testing.T) {
+	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)))
+
+	resp, err := svc.RegisterApp(context.Background(), &runtimev1.RegisterAppRequest{
+		AppId:        "nimi.desktop",
+		ModeManifest: validFullAppModeManifest(),
+	})
+	if err != nil {
+		t.Fatalf("register desktop: %v", err)
+	}
+	if !resp.GetAccepted() {
+		t.Fatalf("desktop host registration must remain accepted, reason=%v", resp.GetReasonCode())
 	}
 }
 

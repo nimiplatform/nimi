@@ -21,6 +21,7 @@ updated: 2026-04-16
 - `reference-contract.md` (`C-COG-*`)
 - `prompt-serving-contract.md` (`C-COG-*`)
 - `completion-contract.md` (`C-COG-*`)
+- `app-memory-access-contract.md` (`C-APMEM-*`)
 
 ## Tables
 

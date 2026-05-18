@@ -115,6 +115,19 @@ func (s *Service) AuthorizeExternalPrincipal(ctx context.Context, req *runtimev1
 		maxDepth = 0
 	}
 
+	lifecycleState, lifecycleErr := grantedLifecycleState(
+		tokenID,
+		appID,
+		subjectUserID,
+		lifecycleScopeKey(effectiveScopes),
+		issuedAt,
+		expiresAt,
+		"authorization accepted",
+	)
+	if lifecycleErr != nil {
+		return nil, status.Error(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL.String())
+	}
+
 	policyKey := policyKey(appID, subjectUserID, externalID)
 
 	s.mu.Lock()
@@ -141,10 +154,11 @@ func (s *Service) AuthorizeExternalPrincipal(ctx context.Context, req *runtimev1
 			ConsentId:      strings.TrimSpace(req.GetConsentId()),
 			ConsentVersion: strings.TrimSpace(req.GetConsentVersion()),
 		},
-		IssuedAt:  issuedAt,
-		ExpiresAt: expiresAt,
-		Secret:    secret,
-		Revoked:   false,
+		LifecycleState: lifecycleState,
+		IssuedAt:       issuedAt,
+		ExpiresAt:      expiresAt,
+		Secret:         secret,
+		Revoked:        false,
 	}
 	s.tokens[tokenID] = recordToken
 	if s.policyTokens[policyKey] == nil {

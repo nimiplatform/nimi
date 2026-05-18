@@ -292,6 +292,31 @@ func TestLoadFlatFileConfig(t *testing.T) {
 	}
 }
 
+func TestLoadAppRegistryPathEnvOverridesFile(t *testing.T) {
+	configPath := filepath.Join(t.TempDir(), "runtime-config.json")
+	configBody := `{
+  "schemaVersion": 1,
+  "appRegistryPath": "~/from-file/nimi-app-registry.yaml"
+}`
+	if err := os.WriteFile(configPath, []byte(configBody), 0o600); err != nil {
+		t.Fatalf("write config file: %v", err)
+	}
+
+	homeDir := t.TempDir()
+	setRuntimeTestHome(t, homeDir)
+	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", configPath)
+	clearRuntimeConfigEnv(t)
+	t.Setenv("NIMI_RUNTIME_APP_REGISTRY_PATH", "~/from-env/nimi-app-registry.yaml")
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load returned error: %v", err)
+	}
+	if cfg.AppRegistryPath != filepath.Join(homeDir, "from-env/nimi-app-registry.yaml") {
+		t.Fatalf("app registry env override mismatch: %q", cfg.AppRegistryPath)
+	}
+}
+
 func TestLoadRejectsOutOfRangeNumericConfig(t *testing.T) {
 	configPath := filepath.Join(t.TempDir(), "runtime-config.json")
 	configBody := `{
@@ -322,6 +347,7 @@ func clearRuntimeConfigEnv(t *testing.T) {
 		"NIMI_RUNTIME_SHUTDOWN_TIMEOUT",
 		"NIMI_RUNTIME_LOCAL_STATE_PATH",
 		"NIMI_RUNTIME_LOCAL_MODELS_PATH",
+		"NIMI_RUNTIME_APP_REGISTRY_PATH",
 		"NIMI_RUNTIME_DEFAULT_CLOUD_PROVIDER",
 		"NIMI_RUNTIME_AI_HTTP_TIMEOUT",
 		"NIMI_RUNTIME_AI_HEALTH_INTERVAL",

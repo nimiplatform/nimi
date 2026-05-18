@@ -5,6 +5,7 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/appregistry"
 	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
+	"github.com/nimiplatform/nimi/runtime/internal/grantlifecycle"
 	"github.com/nimiplatform/nimi/runtime/internal/protocol/envelope"
 	"github.com/nimiplatform/nimi/runtime/internal/scopecatalog"
 	"log/slog"
@@ -27,6 +28,7 @@ type tokenRecord struct {
 	DelegationDepth     int32
 	ParentTokenID       string
 	ConsentRef          *runtimev1.ConsentRef
+	LifecycleState      grantlifecycle.GrantState
 	IssuedAt            time.Time
 	ExpiresAt           time.Time
 	Secret              string
@@ -125,4 +127,51 @@ func (s *Service) emitAudit(ctx context.Context, operation string, appID string,
 		ReasonCode:    reasonCode,
 		TraceId:       strings.TrimSpace(envelope.ParseTraceIDFromContext(ctx)),
 	})
+}
+
+func grantedLifecycleState(tokenID string, appID string, subjectUserID string, scopeKey string, issuedAt time.Time, expiresAt time.Time, detail string) (grantlifecycle.GrantState, error) {
+	pending := &grantlifecycle.Grant{
+		GrantID:       tokenID,
+		AppID:         appID,
+		SubjectUserID: subjectUserID,
+		ScopeKey:      scopeKey,
+		State:         grantlifecycle.GrantStatePending,
+		IssuedAt:      issuedAt.Unix(),
+		ExpiresAt:     expiresAt.Unix(),
+	}
+	granted, err := grantlifecycle.Transition(pending, grantlifecycle.GrantStateGranted, issuedAt.Unix(), detail)
+	if err != nil {
+		return "", err
+	}
+	return granted.State, nil
+}
+
+func lifecycleScopeKey(scopes []string) string {
+	normalized := normalizeScopes(scopes)
+	if len(normalized) == 0 {
+		return ""
+	}
+	return strings.Join(normalized, " ")
+}
+
+func transitionTokenLifecycle(token tokenRecord, next grantlifecycle.GrantState, at time.Time, detail string) tokenRecord {
+	current := token.LifecycleState
+	if current == "" {
+		current = grantlifecycle.GrantStateGranted
+	}
+	grant := &grantlifecycle.Grant{
+		GrantID:       token.TokenID,
+		AppID:         token.AppID,
+		SubjectUserID: token.SubjectUserID,
+		ScopeKey:      lifecycleScopeKey(token.Scopes),
+		State:         current,
+		IssuedAt:      token.IssuedAt.Unix(),
+		ExpiresAt:     token.ExpiresAt.Unix(),
+	}
+	transitioned, err := grantlifecycle.Transition(grant, next, at.UTC().Unix(), detail)
+	if err != nil {
+		return token
+	}
+	token.LifecycleState = transitioned.State
+	return token
 }

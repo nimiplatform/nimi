@@ -82,6 +82,7 @@ func TestValidateScopesRecognizedPrefixes(t *testing.T) {
 		"runtime.health",
 		"realm.settings",
 		"app.messages",
+		"ai.spend.meter",
 		"read:profile",
 		"write:data",
 		"grant:admin",

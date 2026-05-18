@@ -109,6 +109,7 @@ func Load() (Config, error) {
 		AIHealthIntervalSeconds:         aiHealthIntervalSeconds,
 		AIHTTPTimeoutSeconds:            aiHTTPTimeoutSeconds,
 		ModelCatalogCustomDir:           resolveModelCatalogCustomDir(fileCfg),
+		AppRegistryPath:                 resolveAppRegistryPath(fileCfg),
 		GlobalConcurrencyLimit:          globalConcurrencyLimit,
 		PerAppConcurrencyLimit:          perAppConcurrencyLimit,
 		IdempotencyCapacity:             idempotencyCapacity,

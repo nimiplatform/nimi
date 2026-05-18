@@ -1,0 +1,132 @@
+version: 1
+table_family: product_catalog
+owner: platform
+catalog_id: platform_nimi_app_registry
+entries:
+  - apps_1
+  - apps_2
+  - registry rows must reference admitted trust tier, package signature policy, release channel, default experience profile alias, canonical capability ids, and local compute pack rows
+  - registry must not admit a row with package_kind outside nimi-app
+  - registry rows must not embed provider, connector, engine, or model identifier strings
+  - avatar registry row admission_status must remain gated_by_avatar_master_gate until the avatar productization master gate clears
+  - permission_scope_ref is the wave 4 permission fabric placeholder and must remain pending_wave_4 until wave 4 close
+
+# Canonical Nimi App registry — Platform admission/catalog authority.
+# See nimi-app-admission-contract.md (P-NAPP-001..P-NAPP-012).
+
+app_schema:
+  owner: platform_nimi_app_registry
+  fields:
+    - app_id
+    - display_label
+    - publisher
+    - trust_tier_ref
+    - package_kind
+    - package_signature_policy_ref
+    - update_channel_ref
+    - default_experience_alias_ref
+    - capability_set_refs
+    - local_compute_pack_refs
+    - runtime_registration_mode
+    - permission_scope_ref
+    - health_repair_projection
+    - admission_status
+    - source_rule
+  enums:
+    package_kind:
+      - nimi-app
+    runtime_registration_mode:
+      - app-managed
+    admission_status:
+      - admitted
+      - gated_by_avatar_master_gate
+      - pending_wave_4
+      - deferred
+      - retired
+    health_repair_projection:
+      - unavailable
+      - setup-required
+      - needs-confirmation
+      - in-progress
+      - failed
+      - unsupported
+      - repair-required
+      - stale-projection
+
+apps:
+  - app_id: nimi.avatar
+    display_label: Avatar
+    publisher: nimi-first-party
+    trust_tier_ref: nimi-first-party
+    package_kind: nimi-app
+    package_signature_policy_ref: nimi-first-party-signature-policy
+    update_channel_ref: stable
+    default_experience_alias_ref: local-gpu
+    capability_set_refs:
+      - text.generate
+      - audio.synthesize
+      - audio.transcribe
+      - image.generate
+    local_compute_pack_refs:
+      - local-text
+      - local-speech
+      - local-image-native
+      - local-gpu-support
+    runtime_registration_mode: app-managed
+    permission_scope_ref:
+      - { appId: nimi.avatar, scopeFamily: account, scopeName: account.session.read }
+      - { appId: nimi.avatar, scopeFamily: agent, scopeName: agent.identity.project }
+      - { appId: nimi.avatar, scopeFamily: memory, scopeName: memory.read.bounded, qualifier: persona-scoped }
+      - { appId: nimi.avatar, scopeFamily: memory, scopeName: memory.write.admitted, qualifier: session-scoped }
+      - { appId: nimi.avatar, scopeFamily: ai_spend, scopeName: ai.spend.meter }
+      - { appId: nimi.avatar, scopeFamily: file_device, scopeName: device.use.scoped }
+      - { appId: nimi.avatar, scopeFamily: file_device, scopeName: file.read.scoped }
+      - { appId: nimi.avatar, scopeFamily: default_experience, scopeName: default_experience.alias.consume }
+    health_repair_projection:
+      - unavailable
+      - setup-required
+      - needs-confirmation
+      - in-progress
+      - failed
+      - unsupported
+      - repair-required
+      - stale-projection
+    admission_status: gated_by_avatar_master_gate
+    source_rule: P-NAPP-011
+
+  - app_id: nimi.parentos
+    display_label: ParentOS
+    publisher: nimi-first-party
+    trust_tier_ref: nimi-first-party
+    package_kind: nimi-app
+    package_signature_policy_ref: nimi-first-party-signature-policy
+    update_channel_ref: stable
+    default_experience_alias_ref: hybrid-recommended
+    capability_set_refs:
+      - text.generate
+      - text.embed
+      - audio.synthesize
+      - audio.transcribe
+    local_compute_pack_refs:
+      - local-text
+      - local-speech
+    runtime_registration_mode: app-managed
+    permission_scope_ref:
+      - { appId: nimi.parentos, scopeFamily: account, scopeName: account.session.read }
+      - { appId: nimi.parentos, scopeFamily: agent, scopeName: agent.identity.project }
+      - { appId: nimi.parentos, scopeFamily: memory, scopeName: memory.read.bounded, qualifier: persona-scoped }
+      - { appId: nimi.parentos, scopeFamily: knowledge, scopeName: knowledge.read.bounded }
+      - { appId: nimi.parentos, scopeFamily: ai_spend, scopeName: ai.spend.meter }
+      - { appId: nimi.parentos, scopeFamily: notification, scopeName: notification.send }
+      - { appId: nimi.parentos, scopeFamily: default_experience, scopeName: default_experience.alias.consume }
+    health_repair_projection:
+      - unavailable
+      - setup-required
+      - needs-confirmation
+      - in-progress
+      - failed
+      - unsupported
+      - repair-required
+      - stale-projection
+    admission_status: admitted
+    source_rule: P-NAPP-011

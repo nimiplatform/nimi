@@ -113,7 +113,7 @@ function publishReadyBanner(targetVersion: string): void {
     kind: 'warning',
     message: i18n.t('Performance.updateReadyBanner', {
       version: targetVersion,
-      defaultValue: `Nimi Desktop v${targetVersion} is ready. Restart to finish updating.`,
+      defaultValue: `Nimi v${targetVersion} is ready. Restart to finish updating.`,
     }),
     actionLabel: i18n.t('Performance.restartNow', { defaultValue: 'Restart now' }),
     onAction: () => {
@@ -142,7 +142,7 @@ export async function runDesktopUpdateCheck(input: {
         useAppStore.getState().setStatusBanner({
           kind: 'info',
           message: i18n.t('Performance.updateCheckUpToDate', {
-            defaultValue: 'Nimi Desktop is already up to date.',
+            defaultValue: 'Nimi is already up to date.',
           }),
         });
       }

@@ -26,6 +26,7 @@ func DefaultFileConfig() FileConfig {
 		SessionTTLMinSeconds:    intPtr(60),
 		SessionTTLMaxSeconds:    intPtr(86400),
 		ModelCatalogCustomDir:   "~/" + defaultModelCatalogCustomRelPath,
+		AppRegistryPath:         "",
 		Providers:               map[string]RuntimeFileTarget{},
 	}
 }

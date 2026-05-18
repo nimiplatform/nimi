@@ -15,7 +15,7 @@
 ## 3. Rule ID 规范
 
 - 格式：`D-<DOMAIN>-NNN`
-- `DOMAIN` 固定枚举：`BOOT` `IPC` `STATE` `AUTH` `DSYNC` `HOOK` `MOD` `LLM` `SHELL` `MBAR` `ERR` `TEL` `NET` `SEC` `STRM` `OFFLINE` `CODEGEN` `GATE`
+- `DOMAIN` 固定枚举：`BOOT` `IPC` `STATE` `AUTH` `DSYNC` `HOOK` `MOD` `LLM` `SHELL` `MBAR` `HOME` `ERR` `TEL` `NET` `SEC` `STRM` `OFFLINE` `CODEGEN` `GATE`
 - `NNN` 三位递增编号，不复用。
 
 ## 4. 文档所有权
@@ -46,6 +46,7 @@
 | `agent-chat-voice-session-contract.md` | `D-LLM-*` | Agent chat broader voice session authority：explicit entry / exit、same-anchor text/voice continuity、admitted listening modes（`push-to-talk` / foreground `hands-free`）、interruption、transcript/caption rules；不拥有 voice executor / workflow / wake-word / background continuation truth |
 | `agent-chat-voice-workflow-contract.md` | `D-LLM-*` | Agent chat richer voice workflow authority：`voice_workflow.voice_clone` / `voice_workflow.voice_design` admission、voice identity / `VoiceReference`、preset/custom voice selection、packet-bounded clone/design trigger、workflow return-path truth；不拥有 APML-projected resolved message/action / runtime workflow substrate / broader voice session truth |
 | `ui-shell-contract.md` | `D-SHELL-*` | 导航、布局、路由、分包 |
+| `nimi-home-shell-contract.md` | `D-HOME-*` | Desktop-hosted Nimi Home shell IA、first-run / return-run state machine、surface registry placement、Agent Chat in-shell reference placement、`AIScopeRef` enforcement、no-private-path enforcement、self-update UI projection、first-screen rule、failure-projection as first-class surface |
 | `kit-ui-consumption-contract.md` | `D-SHELL-*` | Desktop 对 `@nimiplatform/nimi-kit/ui` 的消费清单、保留 composition、allowlist 与受控例外 |
 | `menu-bar-shell-contract.md` | `D-MBAR-*` | macOS menu bar shell 入口、导航与 close/hide 语义 |
 | `error-boundary-contract.md` | `D-ERR-*` | 错误边界与归一化映射 |
@@ -93,6 +94,7 @@
 - `tables/agent-avatar-configuration.schema.yaml`
 - `tables/agent-avatar-debug-workbench-probes.yaml`
 - `tables/agent-avatar-debug-remediation-states.yaml`
+- `tables/nimi-home-surfaces.yaml`
 - `tables/rule-evidence.yaml`（fragment directive；实际内容委托给 `tables/rule-evidence.catalog.yaml` 与 `tables/rule-evidence.rules-*.yaml`）
 - `tables/codegen-import-allowlist.yaml`
 - `tables/codegen-capability-tiers.yaml`

@@ -1,0 +1,53 @@
+version: 1
+table_family: product_catalog
+owner: platform
+catalog_id: platform_nimi_app_trust_tiers
+entries:
+  - tiers_1
+  - wave 3 freezes the closed enum tier_id values nimi-first-party, nimi-verified-partner, nimi-community
+  - wave 6 expands signature_policy_ref, permission_ceiling_ref, review_posture_ref, and kill_switch_ref behavior
+  - tier_id values must remain stable; wave 6 must not rename or rotate them silently
+
+# Canonical Nimi App trust tier enum — Wave 0 floor + Wave 3 registry consumer.
+# See nimi-app-admission-contract.md (P-NAPP-004) and trust-tier-enum-floor.md.
+
+tier_schema:
+  owner: platform_nimi_app_trust_tiers
+  fields:
+    - tier_id
+    - tier_label
+    - signature_policy_ref
+    - permission_ceiling_ref
+    - review_posture_ref
+    - kill_switch_ref
+    - source_rule
+  enums:
+    tier_id:
+      - nimi-first-party
+      - nimi-verified-partner
+      - nimi-community
+
+tiers:
+  - tier_id: nimi-first-party
+    tier_label: Nimi First-Party
+    signature_policy_ref: nimi-first-party-signature-policy
+    permission_ceiling_ref: permission-ceiling-first-party-full
+    review_posture_ref: review-internal
+    kill_switch_ref: kill-switch-coordinated
+    source_rule: P-NAPP-004
+
+  - tier_id: nimi-verified-partner
+    tier_label: Nimi Verified Partner
+    signature_policy_ref: nimi-verified-partner-signature-policy
+    permission_ceiling_ref: permission-ceiling-verified-partner-curated
+    review_posture_ref: review-manual-full
+    kill_switch_ref: kill-switch-coordinated
+    source_rule: P-NAPP-004
+
+  - tier_id: nimi-community
+    tier_label: Nimi Community
+    signature_policy_ref: nimi-community-signature-policy
+    permission_ceiling_ref: permission-ceiling-community-narrow
+    review_posture_ref: review-automated-with-manual-kill-switch
+    kill_switch_ref: kill-switch-immediate
+    source_rule: P-NAPP-004

@@ -79,7 +79,7 @@ export function createUiSlice(set: AppStoreSet): UiSlice {
     desktopReleaseInfo: null,
     desktopReleaseError: null,
     desktopUpdateState: null,
-    activeTab: 'chat',
+    activeTab: 'home',
     previousTab: null,
     chatMode: 'ai',
     chatThinkingPreference: initialChatThinkingPreference,

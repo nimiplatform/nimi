@@ -11,7 +11,9 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/appregistry"
+	"github.com/nimiplatform/nimi/runtime/internal/appregistrycatalog"
 	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
+	"github.com/nimiplatform/nimi/runtime/internal/firstpartymigration"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/protocol/envelope"
 	"github.com/oklog/ulid/v2"
@@ -67,6 +69,8 @@ type Service struct {
 	runtimev1.UnimplementedRuntimeAuthServiceServer
 	logger     *slog.Logger
 	registry   *appregistry.Registry
+	nimiApps   *appregistrycatalog.Registry
+	migrations *firstpartymigration.LaunchGate
 	auditStore *auditlog.Store
 
 	// TTL bounds (K-AUTHSVC-004).
@@ -114,6 +118,14 @@ func NewWithDependencies(logger *slog.Logger, registry *appregistry.Registry, au
 	}
 }
 
+func (s *Service) SetNimiAppRegistryCatalog(registry *appregistrycatalog.Registry) {
+	s.nimiApps = registry
+}
+
+func (s *Service) SetFirstPartyMigrationLaunchGate(gate *firstpartymigration.LaunchGate) {
+	s.migrations = gate
+}
+
 func (s *Service) pruneExpiredSessionsLocked(now time.Time) {
 	for sessionID, session := range s.appSessions {
 		if !session.ExpiresAt.IsZero() && !session.ExpiresAt.After(now) {
@@ -138,6 +150,26 @@ func (s *Service) RegisterApp(ctx context.Context, req *runtimev1.RegisterAppReq
 	}
 	if reasonCode, _, ok := appregistry.ValidateManifest(req.GetModeManifest()); !ok {
 		s.emitAudit(ctx, "RegisterApp", appID, "", reasonCode)
+		return &runtimev1.RegisterAppResponse{
+			Accepted:   false,
+			ReasonCode: reasonCode,
+		}, nil
+	}
+	if reasonCode, eligibilityReason, ok := s.checkNimiAppRegistryEligibility(appID); !ok {
+		s.emitAuditWithPayload(ctx, "RegisterApp", appID, "", reasonCode, map[string]any{
+			"eligibility_reason": eligibilityReason,
+			"registry_app_id":    normalizeNimiAppRegistryID(appID),
+		})
+		return &runtimev1.RegisterAppResponse{
+			Accepted:   false,
+			ReasonCode: reasonCode,
+		}, nil
+	}
+	if reasonCode, migrationReason, ok := s.checkFirstPartyMigrationGate(appID); !ok {
+		s.emitAuditWithPayload(ctx, "RegisterApp", appID, "", reasonCode, map[string]any{
+			"migration_reason": migrationReason,
+			"registry_app_id":  normalizeNimiAppRegistryID(appID),
+		})
 		return &runtimev1.RegisterAppResponse{
 			Accepted:   false,
 			ReasonCode: reasonCode,
@@ -179,6 +211,57 @@ func (s *Service) RegisterApp(ctx context.Context, req *runtimev1.RegisterAppReq
 		Accepted:      true,
 		ReasonCode:    runtimev1.ReasonCode_ACTION_EXECUTED,
 	}, nil
+}
+
+func (s *Service) checkNimiAppRegistryEligibility(appID string) (runtimev1.ReasonCode, string, bool) {
+	registryAppID := normalizeNimiAppRegistryID(appID)
+	if !isPlatformGovernedNimiAppID(registryAppID) {
+		return runtimev1.ReasonCode_ACTION_EXECUTED, "", true
+	}
+	if registryAppID == "nimi.desktop" {
+		return runtimev1.ReasonCode_ACTION_EXECUTED, "", true
+	}
+	if s.nimiApps == nil {
+		return runtimev1.ReasonCode_APP_NOT_REGISTERED, "app-registry-projection-missing", false
+	}
+	eligibility, err := s.nimiApps.CheckCallerEligibility(registryAppID)
+	if err != nil {
+		return runtimev1.ReasonCode_APP_NOT_REGISTERED, err.Error(), false
+	}
+	if eligibility.Eligible {
+		return runtimev1.ReasonCode_ACTION_EXECUTED, eligibility.Reason, true
+	}
+	return mapNimiAppEligibilityReason(eligibility.Reason), eligibility.Reason, false
+}
+
+func (s *Service) checkFirstPartyMigrationGate(appID string) (runtimev1.ReasonCode, string, bool) {
+	if s.migrations == nil {
+		return runtimev1.ReasonCode_ACTION_EXECUTED, "", true
+	}
+	decision := s.migrations.Evaluate(appID)
+	if decision.Admitted {
+		return runtimev1.ReasonCode_ACTION_EXECUTED, decision.Reason, true
+	}
+	return runtimev1.ReasonCode_APP_AUTHORIZATION_DENIED, decision.Reason, false
+}
+
+func normalizeNimiAppRegistryID(appID string) string {
+	appID = strings.TrimSpace(appID)
+	if strings.HasPrefix(appID, "app.nimi.") {
+		return "nimi." + strings.TrimPrefix(appID, "app.nimi.")
+	}
+	return appID
+}
+
+func isPlatformGovernedNimiAppID(appID string) bool {
+	return strings.HasPrefix(strings.TrimSpace(appID), "nimi.")
+}
+
+func mapNimiAppEligibilityReason(reason string) runtimev1.ReasonCode {
+	if reason == string(appregistrycatalog.EligibilityReasonAppNotRegistered) {
+		return runtimev1.ReasonCode_APP_NOT_REGISTERED
+	}
+	return runtimev1.ReasonCode_APP_AUTHORIZATION_DENIED
 }
 
 func (s *Service) OpenSession(ctx context.Context, req *runtimev1.OpenSessionRequest) (*runtimev1.OpenSessionResponse, error) {

@@ -39,6 +39,7 @@ const requiredFiles = [
   '.nimi/spec/cognition/kernel/reference-contract.md',
   '.nimi/spec/cognition/kernel/prompt-serving-contract.md',
   '.nimi/spec/cognition/kernel/completion-contract.md',
+  '.nimi/spec/cognition/kernel/app-memory-access-contract.md',
   '.nimi/spec/cognition/kernel/tables/artifact-families.yaml',
   '.nimi/spec/cognition/kernel/tables/public-surface.yaml',
   '.nimi/spec/cognition/kernel/tables/runtime-bridge-boundary.yaml',
@@ -86,6 +87,7 @@ const definitionMap = collectRuleDefinitions([
   '.nimi/spec/cognition/kernel/reference-contract.md',
   '.nimi/spec/cognition/kernel/prompt-serving-contract.md',
   '.nimi/spec/cognition/kernel/completion-contract.md',
+  '.nimi/spec/cognition/kernel/app-memory-access-contract.md',
 ]);
 
 if (definitionMap.size === 0) {

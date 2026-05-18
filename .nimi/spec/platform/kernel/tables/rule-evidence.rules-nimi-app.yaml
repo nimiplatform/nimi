@@ -1,0 +1,137 @@
+table_family: support_registry
+registry_id: platform_rule_evidence_requirement_rules_nimi_app
+owner: platform
+schema_ref: .nimi/contracts/table-family.schema.yaml#support_registry
+allowed_fields:
+  - rule_id
+  - evidence_requirement
+  - evidence_refs
+  - note
+  - na_reason
+  - evidence_scope_note
+  - test_files
+forbidden_state_fields:
+  - done
+  - covered
+  - coverage_status
+  - audit_date
+  - evidence_report
+  - current
+  - proposed
+  - backlog_status
+  - migration_status
+  - mapping_status
+  - run_id
+  - ledger_ref
+entries:
+  - P-NAPP-001
+  - P-NAPP-002
+  - P-NAPP-003
+  - P-NAPP-004
+  - P-NAPP-005
+  - P-NAPP-006
+  - P-NAPP-007
+  - P-NAPP-008
+  - P-NAPP-009
+  - P-NAPP-010
+  - P-NAPP-011
+  - P-NAPP-012
+  - P-MOEX-001
+  - P-MOEX-002
+  - P-MOEX-003
+  - P-MOEX-004
+  - P-MOEX-005
+  - P-MOEX-006
+rules:
+  - rule_id: P-NAPP-001
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; admission authority enforcement requires Wave 3 implementation guard `check:no-public-mod-extension-admission`
+  - rule_id: P-NAPP-002
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; registry row schema cross-table resolution is enforced by `tables/nimi-app-registry.yaml` consumer validation
+  - rule_id: P-NAPP-003
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; default experience alias resolution requires Wave 2 `P-DXP-009` consumer validation
+  - rule_id: P-NAPP-004
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; trust tier enum reference enforcement is owned by `tables/nimi-app-trust-tiers.yaml` consumer validation
+  - rule_id: P-NAPP-005
+    evidence_refs:
+      - platform_kernel_consistency
+      - canonical_capability_catalog_gate
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; capability and compute pack resolution is a Runtime / Platform consumer validation
+  - rule_id: P-NAPP-006
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; Runtime registration ownership is enforced by Runtime consumer validation
+  - rule_id: P-NAPP-007
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; package trust / signature / update channel behavior is enforced by `release-gate-registry.yaml` consumer validation
+  - rule_id: P-NAPP-008
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; fail-closed health/repair projection behavior is enforced by Wave 1 hosted-shell consumer validation and SDK projection consumer validation
+  - rule_id: P-NAPP-009
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; library/discovery non-owner enforcement is Wave 1 `D-HOME-004` / `D-HOME-005` consumer validation
+  - rule_id: P-NAPP-010
+    evidence_refs:
+      - platform_kernel_consistency
+      - app_slice_admission_gate
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; orthogonality between app-slice admission and Nimi App admission is enforced by both admission tables
+  - rule_id: P-NAPP-011
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; first-party seed enforcement is Wave 3 implementation validation and Avatar productization master gate consumer validation
+  - rule_id: P-NAPP-012
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; mechanical guard `check:no-public-mod-extension-admission` registration is verified by `enforcement-gates-required.md`
+  - rule_id: P-MOEX-001
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; public mod/extension non-admission enforcement is the mechanical guard `check:no-public-mod-extension-admission`
+  - rule_id: P-MOEX-002
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; existing surfaces as developer/internal/retirement-only posture is recorded in `desktop-kernel-supersession-schedule.md`
+  - rule_id: P-MOEX-003
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; no shared Nimi Content Pack channel enforcement is a registry admission constraint enforced by `tables/nimi-app-registry.yaml` consumer validation
+  - rule_id: P-MOEX-004
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; app-internal content package boundary enforcement is app-slice admission consumer validation
+  - rule_id: P-MOEX-005
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; Asset Market disposition enforcement requires Wave 5 first-party app integration consumer validation
+  - rule_id: P-MOEX-006
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; mechanical guard `check:no-public-mod-extension-admission` registration is verified by `enforcement-gates-required.md`

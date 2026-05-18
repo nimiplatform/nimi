@@ -56,6 +56,22 @@
     "./scope": {
       "types": "./dist/scope/index.d.ts",
       "default": "./dist/scope/index.js"
+    },
+    "./scope/default-experience": {
+      "types": "./dist/scope/default-experience/index.d.ts",
+      "default": "./dist/scope/default-experience/index.js"
+    },
+    "./scope/permission": {
+      "types": "./dist/scope/permission/index.d.ts",
+      "default": "./dist/scope/permission/index.js"
+    },
+    "./runtime/agent-identity": {
+      "types": "./dist/runtime/agent-identity/index.d.ts",
+      "default": "./dist/runtime/agent-identity/index.js"
+    },
+    "./app": {
+      "types": "./dist/app/index.d.ts",
+      "default": "./dist/app/index.js"
     }
   },
   "files": [

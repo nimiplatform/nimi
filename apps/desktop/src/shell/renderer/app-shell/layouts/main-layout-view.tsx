@@ -81,8 +81,8 @@ const WorldList = lazy(async () => {
   return { default: mod.WorldList };
 });
 const HomePanel = lazy(async () => {
-  const mod = await import('@renderer/features/home/home-panel');
-  return { default: mod.HomePanel };
+  const mod = await import('@renderer/features/nimi-home/nimi-home-panel');
+  return { default: mod.NimiHomePanel };
 });
 const ModsPanel = lazy(async () => {
   const mod = await import('@renderer/features/mods/mods-panel');
@@ -214,7 +214,6 @@ export function MainLayoutView(props: MainLayoutViewProps) {
   const quickNavItems = getQuickNavItems();
   const primaryCoreNavItems = coreNavItems.filter((item) => item.id !== 'settings' && item.id !== 'home');
   const [settingsMenuOpen, setSettingsMenuOpen] = useState(false);
-  const [createPostRequestKey] = useState(0);
   const [collapsedSettingsMenuPosition, setCollapsedSettingsMenuPosition] = useState<{ top: number; left: number } | null>(null);
   const settingsTriggerRef = useRef<HTMLDivElement>(null);
   const settingsMenuRef = useRef<HTMLDivElement>(null);
@@ -534,7 +533,7 @@ export function MainLayoutView(props: MainLayoutViewProps) {
           <Suspense fallback={props.activeTab === 'world-detail' ? <WorldDetailRouteLoading /> : <div className="flex min-h-0 flex-1" />}>
             {props.activeTab === 'home' ? (
               <div data-testid={E2E_IDS.panel('home')} className="flex min-h-0 flex-1 flex-col">
-                <HomePanel createPostRequestKey={createPostRequestKey} />
+                <HomePanel />
               </div>
             ) : null}
 
