@@ -1,24 +1,23 @@
 import { useState } from 'react';
-import '@nimiplatform/nimi-kit/ui';
+import { Button, TextField } from '@nimiplatform/nimi-kit/ui';
+import { AppSelect } from '../../app-shell/app-select.js';
 import { computeAgeMonthsAt } from '../../app-shell/app-store.js';
 import { insertFitnessAssessment } from '../../bridge/sqlite-bridge.js';
 import { isoNow, ulid } from '../../bridge/ulid.js';
 import type { LinkedHealthRecordReminder } from './health-capture-orchestrator.js';
+import { ProfileDatePicker } from './profile-date-picker.js';
 import {
-  CancelButton,
-  DateField,
   FormField,
   FormGrid,
   HealthRecordModalShell,
   InfoBanner,
-  Input,
   ModalContent,
   ModalFooter,
   ModalHeader,
-  PrimaryButton,
   SectionCard,
-  Select,
 } from './health-record-modal-shell.js';
+
+const NUMBER_INPUT_CLASS = '[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none';
 
 const SOURCE_OPTIONS = ['school-pe', 'sports-club', 'clinic', 'self'] as const;
 const SOURCE_LABELS: Record<string, string> = {
@@ -180,13 +179,15 @@ export function FitnessAssessmentFormContent({ child, ageMonths, onSaved, onClos
     opts?: { step?: string; min?: string; placeholder?: string },
   ) => (
     <FormField key={label} label={label}>
-      <Input
+      <TextField
         type="number"
         step={opts?.step}
         min={opts?.min}
         placeholder={opts?.placeholder ?? '--'}
         value={value}
         onChange={(event) => onChange(event.target.value)}
+        className="w-full min-h-12"
+        inputClassName={NUMBER_INPUT_CLASS}
       />
     </FormField>
   );
@@ -232,13 +233,15 @@ export function FitnessAssessmentFormContent({ child, ageMonths, onSaved, onClos
 
           <FormGrid cols={2}>
             <FormField label="评估日期">
-              <DateField value={formAssessedAt} onChange={setFormAssessedAt} />
+              <ProfileDatePicker value={formAssessedAt} onChange={setFormAssessedAt} className="h-12" />
             </FormField>
             <FormField label="来源">
-              <Select
+              <AppSelect
                 value={formSource}
                 onChange={setFormSource}
                 options={SOURCE_OPTIONS.map((v) => ({ value: v, label: SOURCE_LABELS[v] ?? v }))}
+                className="min-h-12"
+                contentClassName="z-[120]"
               />
             </FormField>
           </FormGrid>
@@ -271,19 +274,20 @@ export function FitnessAssessmentFormContent({ child, ageMonths, onSaved, onClos
           ) : null}
 
           <FormField label="备注">
-            <Input
+            <TextField
               placeholder="记录一些观察..."
               value={formNotes}
               onChange={(event) => setFormNotes(event.target.value)}
+              className="w-full min-h-12"
             />
           </FormField>
         </div>
       </ModalContent>
       <ModalFooter>
-        <CancelButton onClick={onClose} />
-        <PrimaryButton onClick={() => void handleSubmit()} disabled={saving}>
+        <Button type="button" onClick={onClose} tone="ghost" size="md">取消</Button>
+        <Button type="button" onClick={() => void handleSubmit()} disabled={saving} tone="primary" size="md">
           {saving ? '保存中...' : '保存'}
-        </PrimaryButton>
+        </Button>
       </ModalFooter>
     </>
   );

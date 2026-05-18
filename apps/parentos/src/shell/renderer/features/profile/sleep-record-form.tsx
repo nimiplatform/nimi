@@ -19,21 +19,21 @@ import {
   TIER_DEFAULTS,
   unpackNotes,
 } from './sleep-page-shared.js';
+import { Button, TextField } from '@nimiplatform/nimi-kit/ui';
+import { AppSelect } from '../../app-shell/app-select.js';
+import { ProfileDatePicker } from './profile-date-picker.js';
 import {
-  CancelButton,
-  DateField,
   FormField,
   FormGrid,
   HEALTH_MODAL_TOKENS,
   HealthRecordModalShell,
   InlineError,
-  Input,
   ModalContent,
   ModalFooter,
   ModalHeader,
-  PrimaryButton,
-  Select,
 } from './health-record-modal-shell.js';
+
+const NUMBER_INPUT_CLASS = '[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none';
 
 type NapRow = { start: string; end: string };
 
@@ -119,14 +119,14 @@ export function SleepFormContent({ child, initialRecord, onSaved, onClose }: Sle
     <>
       <ModalHeader
         title={isEditing ? '编辑睡眠记录' : '新增睡眠记录'}
-        icon={<Moon size={18} strokeWidth={1.5} style={{ color: HEALTH_MODAL_TOKENS.accent }} />}
+        icon={<Moon size={18} strokeWidth={1.5} style={{ color: 'var(--nimi-action-primary-bg)' }} />}
         onClose={onClose}
       />
       <ModalContent>
         <div className="space-y-5">
           <FormGrid cols={3}>
             <FormField label="日期">
-              <DateField value={formSleepDate} onChange={setFormSleepDate} />
+              <ProfileDatePicker value={formSleepDate} onChange={setFormSleepDate} className="h-12" />
             </FormField>
             <FormField label="入睡时间">
               <TimePickerInput value={formBedtime} onChange={setFormBedtime} icon={Moon} />
@@ -137,7 +137,7 @@ export function SleepFormContent({ child, initialRecord, onSaved, onClose }: Sle
           </FormGrid>
 
           {autoDuration !== null ? (
-            <p className="-mt-2 text-[13px] font-medium" style={{ color: HEALTH_MODAL_TOKENS.accent }}>
+            <p className="-mt-2 text-[13px] font-medium" style={{ color: 'var(--nimi-action-primary-bg)' }}>
               夜间 {fmtDuration(autoDuration)}
             </p>
           ) : null}
@@ -145,13 +145,15 @@ export function SleepFormContent({ child, initialRecord, onSaved, onClose }: Sle
           {showNightWakings ? (
             <FormField label="夜醒次数">
               <div className="w-32">
-                <Input
+                <TextField
                   type="number"
                   min="0"
                   max="20"
                   placeholder="0"
                   value={formNightWakings}
                   onChange={(event) => setFormNightWakings(event.target.value)}
+                  className="w-full min-h-12"
+                  inputClassName={NUMBER_INPUT_CLASS}
                 />
               </div>
             </FormField>
@@ -159,11 +161,11 @@ export function SleepFormContent({ child, initialRecord, onSaved, onClose }: Sle
 
           <div>
             <div className="mb-2 flex items-center justify-between">
-              <span className="text-[13px] font-medium" style={{ color: HEALTH_MODAL_TOKENS.text }}>
+              <span className="text-[13px] font-medium" style={{ color: 'var(--nimi-text-primary)' }}>
                 {napLabel}
               </span>
               {napCount > 0 ? (
-                <span className="text-[13px] font-medium" style={{ color: HEALTH_MODAL_TOKENS.accent }}>
+                <span className="text-[13px] font-medium" style={{ color: 'var(--nimi-action-primary-bg)' }}>
                   {napCount} 次 · {fmtDuration(totalNapMinutes)}
                 </span>
               ) : null}
@@ -176,14 +178,14 @@ export function SleepFormContent({ child, initialRecord, onSaved, onClose }: Sle
                   className="flex items-center gap-2 px-3 py-2"
                   style={{
                     borderRadius: HEALTH_MODAL_TOKENS.fieldRadius,
-                    background: HEALTH_MODAL_TOKENS.fieldBg,
-                    border: `1px solid ${HEALTH_MODAL_TOKENS.fieldBorder}`,
+                    background: 'var(--nimi-field-bg)',
+                    border: `1px solid ${'var(--nimi-field-border)'}`,
                   }}
                 >
                   <div className="flex-1">
                     <TimePickerInput value={row.start} onChange={(value) => updateNapRow(index, 'start', value)} icon={Clock} size="small" />
                   </div>
-                  <span className="shrink-0 text-[13px]" style={{ color: HEALTH_MODAL_TOKENS.sub }}>
+                  <span className="shrink-0 text-[13px]" style={{ color: 'var(--nimi-text-muted)' }}>
                     至
                   </span>
                   <div className="flex-1">
@@ -192,7 +194,7 @@ export function SleepFormContent({ child, initialRecord, onSaved, onClose }: Sle
                   {(napDurations[index] ?? 0) > 0 ? (
                     <span
                       className="w-10 shrink-0 text-right text-[13px] font-medium"
-                      style={{ color: HEALTH_MODAL_TOKENS.accent }}
+                      style={{ color: 'var(--nimi-action-primary-bg)' }}
                     >
                       {fmtDuration(napDurations[index] ?? 0)}
                     </span>
@@ -200,7 +202,7 @@ export function SleepFormContent({ child, initialRecord, onSaved, onClose }: Sle
                   <button
                     onClick={() => removeNapRow(index)}
                     className="grid h-6 w-6 shrink-0 place-items-center rounded-full transition-colors hover:bg-red-50"
-                    style={{ color: HEALTH_MODAL_TOKENS.sub }}
+                    style={{ color: 'var(--nimi-text-muted)' }}
                   >
                     <X size={14} strokeWidth={1.5} />
                   </button>
@@ -215,8 +217,8 @@ export function SleepFormContent({ child, initialRecord, onSaved, onClose }: Sle
               className="mt-2 flex w-full cursor-pointer flex-col items-center justify-center gap-1 py-3"
               style={{
                 borderRadius: HEALTH_MODAL_TOKENS.fieldRadius,
-                border: `2px dashed ${napAddHover ? HEALTH_MODAL_TOKENS.accent : '#d0d0cc'}`,
-                background: HEALTH_MODAL_TOKENS.fieldBg,
+                border: `2px dashed ${napAddHover ? 'var(--nimi-action-primary-bg)' : '#d0d0cc'}`,
+                background: 'var(--nimi-field-bg)',
                 transition: 'border-color 0.25s ease',
               }}
             >
@@ -224,14 +226,14 @@ export function SleepFormContent({ child, initialRecord, onSaved, onClose }: Sle
                 size={18}
                 strokeWidth={1.5}
                 style={{
-                  color: napAddHover ? HEALTH_MODAL_TOKENS.text : '#b0b0aa',
+                  color: napAddHover ? 'var(--nimi-text-primary)' : '#b0b0aa',
                   transform: napAddHover ? 'scale(1.15)' : 'scale(1)',
                   transition: 'color 0.25s ease, transform 0.25s ease',
                 }}
               />
               <span
                 className="text-[13px] font-medium"
-                style={{ color: napAddHover ? HEALTH_MODAL_TOKENS.text : '#a0a0a0', transition: 'color 0.25s ease' }}
+                style={{ color: napAddHover ? 'var(--nimi-text-primary)' : '#a0a0a0', transition: 'color 0.25s ease' }}
               >
                 添加{napLabel === '日间小睡' ? '小睡' : '午睡'}
               </span>
@@ -240,17 +242,20 @@ export function SleepFormContent({ child, initialRecord, onSaved, onClose }: Sle
 
           <FormGrid cols={2}>
             <FormField label="睡眠质量">
-              <Select
+              <AppSelect
                 value={formQuality}
                 onChange={setFormQuality}
                 options={QUALITY_OPTIONS.map((value) => ({ value, label: QUALITY_LABELS[value] ?? value }))}
+                className="min-h-12"
+                contentClassName="z-[120]"
               />
             </FormField>
             <FormField label="备注">
-              <Input
+              <TextField
                 placeholder="补充今天的睡眠细节..."
                 value={formNotes}
                 onChange={(event) => setFormNotes(event.target.value)}
+                className="w-full min-h-12"
               />
             </FormField>
           </FormGrid>
@@ -259,10 +264,10 @@ export function SleepFormContent({ child, initialRecord, onSaved, onClose }: Sle
         </div>
       </ModalContent>
       <ModalFooter>
-        <CancelButton onClick={onClose} />
-        <PrimaryButton onClick={() => void handleSave()} disabled={saving}>
+        <Button type="button" onClick={onClose} tone="ghost" size="md">取消</Button>
+        <Button type="button" onClick={() => void handleSave()} disabled={saving} tone="primary" size="md">
           {saving ? '保存中...' : '保存'}
-        </PrimaryButton>
+        </Button>
       </ModalFooter>
     </>
   );

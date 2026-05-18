@@ -22,24 +22,22 @@ import type {
   MedicalEventsFormMedication,
 } from './medical-events-page-types.js';
 import { useMedicalEventsFormState } from './medical-events-page-form-state.js';
+import { Button, TextField, TextareaField } from '@nimiplatform/nimi-kit/ui';
+import { ProfileDatePicker } from './profile-date-picker.js';
 import {
-  CancelButton,
   ChipGroup,
   type ChipOption,
-  DateField,
   FormField,
   FormGrid,
-  HEALTH_MODAL_TOKENS,
   HealthRecordModalShell,
   InlineError,
-  Input,
   ModalContent,
   ModalFooter,
   ModalHeader,
-  PrimaryButton,
   SectionCard,
-  TextArea,
 } from './health-record-modal-shell.js';
+
+const NUMBER_INPUT_CLASS = '[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none';
 
 export function MedicalEventsForm(props: MedicalEventsFormProps) {
   return (
@@ -283,16 +281,16 @@ function MedicalEventsFormBody({
                 className="flex items-center gap-3 rounded-[16px] px-4 py-3"
                 style={{
                   background: 'linear-gradient(135deg, #f1f5f9, #e8f0e8)',
-                  border: `1px solid ${HEALTH_MODAL_TOKENS.border}`,
+                  border: `1px solid ${'var(--nimi-border-subtle)'}`,
                 }}
               >
                 <span className="text-[24px]">{ocrLoading ? '⏳' : '🤖'}</span>
                 <div className="min-w-0 flex-1">
-                  <p className="text-[14px] font-semibold" style={{ color: HEALTH_MODAL_TOKENS.text }}>
+                  <p className="text-[14px] font-semibold" style={{ color: 'var(--nimi-text-primary)' }}>
                     智能录入
                   </p>
                   {ocrLoading ? (
-                    <p className="text-[12px]" style={{ color: HEALTH_MODAL_TOKENS.accent }}>
+                    <p className="text-[12px]" style={{ color: 'var(--nimi-action-primary-bg)' }}>
                       正在识别 {ocrImageName}...
                     </p>
                   ) : ocrError ? (
@@ -300,11 +298,11 @@ function MedicalEventsFormBody({
                       {ocrError}
                     </p>
                   ) : ocrImageName ? (
-                    <p className="text-[12px]" style={{ color: HEALTH_MODAL_TOKENS.accent }}>
+                    <p className="text-[12px]" style={{ color: 'var(--nimi-action-primary-bg)' }}>
                       ✓ 已从 {ocrImageName} 提取信息，请确认并补充
                     </p>
                   ) : (
-                    <p className="text-[12px]" style={{ color: HEALTH_MODAL_TOKENS.sub }}>
+                    <p className="text-[12px]" style={{ color: 'var(--nimi-text-muted)' }}>
                       上传病历/处方单图片，AI 自动提取关键信息填入表单
                     </p>
                   )}
@@ -313,7 +311,7 @@ function MedicalEventsFormBody({
                   onClick={() => ocrInputRef.current?.click()}
                   disabled={ocrLoading}
                   className="shrink-0 rounded-[12px] px-3 py-1.5 text-[13px] font-medium text-white transition-colors hover:brightness-110 disabled:opacity-50"
-                  style={{ background: HEALTH_MODAL_TOKENS.accent }}
+                  style={{ background: 'var(--nimi-action-primary-bg)' }}
                 >
                   {ocrLoading ? '识别中...' : '上传识别'}
                 </button>
@@ -328,19 +326,19 @@ function MedicalEventsFormBody({
                   options={visitChips}
                   value={formEventType}
                   onChange={setFormEventType}
-                  activeColor={EVENT_TYPE_COLORS[formEventType] ?? HEALTH_MODAL_TOKENS.accent}
+                  activeColor={EVENT_TYPE_COLORS[formEventType] ?? 'var(--nimi-action-primary-bg)'}
                 />
               </FormField>
 
               <FormGrid cols={2}>
                 <FormField label="就诊日期">
-                  <DateField value={formEventDate} onChange={setFormEventDate} />
+                  <ProfileDatePicker value={formEventDate} onChange={setFormEventDate} className="h-12" />
                 </FormField>
                 <FormField label={formShowEndDate ? '结束日期' : '持续治疗/住院'}>
                   {formShowEndDate ? (
                     <div className="flex items-center gap-2">
                       <div className="flex-1">
-                        <DateField value={formEndDate} onChange={setFormEndDate} allowClear />
+                        <ProfileDatePicker value={formEndDate} onChange={setFormEndDate} allowClear className="h-12" />
                       </div>
                       <button
                         onClick={() => {
@@ -348,7 +346,7 @@ function MedicalEventsFormBody({
                           setFormEndDate('');
                         }}
                         className="text-[12px]"
-                        style={{ color: HEALTH_MODAL_TOKENS.sub }}
+                        style={{ color: 'var(--nimi-text-muted)' }}
                       >
                         取消
                       </button>
@@ -360,10 +358,11 @@ function MedicalEventsFormBody({
               </FormGrid>
 
               <FormField label="就诊机构">
-                <Input
+                <TextField
                   value={formHospital}
                   onChange={(event) => setFormHospital(event.target.value)}
                   placeholder="医院/诊所名称"
+                  className="w-full min-h-12"
                 />
               </FormField>
             </div>
@@ -373,10 +372,11 @@ function MedicalEventsFormBody({
             <SectionCard title="病情与诊断">
               <div className="space-y-4">
                 <FormField label="确诊疾病/主要症状">
-                  <Input
+                  <TextField
                     value={formTitle}
                     onChange={(event) => setFormTitle(event.target.value)}
                     placeholder="如：手足口病、急性上呼吸道感染"
+                    className="w-full min-h-12"
                   />
                 </FormField>
 
@@ -396,11 +396,11 @@ function MedicalEventsFormBody({
                           className="inline-flex h-9 items-center rounded-[12px] px-3 text-[13px] transition-all"
                           style={
                             active
-                              ? { background: HEALTH_MODAL_TOKENS.accent, color: '#fff' }
+                              ? { background: 'var(--nimi-action-primary-bg)', color: '#fff' }
                               : {
-                                  border: `1px solid ${HEALTH_MODAL_TOKENS.fieldBorder}`,
-                                  color: HEALTH_MODAL_TOKENS.sub,
-                                  background: HEALTH_MODAL_TOKENS.fieldBg,
+                                  border: `1px solid ${'var(--nimi-field-border)'}`,
+                                  color: 'var(--nimi-text-muted)',
+                                  background: 'var(--nimi-field-bg)',
                                 }
                           }
                         >
@@ -418,7 +418,7 @@ function MedicalEventsFormBody({
                     onChange={setFormSeverity}
                     layout="fill"
                     clearable
-                    activeColor={SEVERITY_COLORS[formSeverity] ?? HEALTH_MODAL_TOKENS.accent}
+                    activeColor={SEVERITY_COLORS[formSeverity] ?? 'var(--nimi-action-primary-bg)'}
                   />
                 </FormField>
 
@@ -436,12 +436,12 @@ function MedicalEventsFormBody({
                   <div key={item.key} className="flex items-center gap-2">
                     <label
                       className="w-16 shrink-0 text-[13px] font-medium"
-                      style={{ color: HEALTH_MODAL_TOKENS.text }}
+                      style={{ color: 'var(--nimi-text-primary)' }}
                     >
                       {item.label}
                     </label>
                     <div className="flex-1">
-                      <Input
+                      <TextField
                         type="number"
                         step="0.1"
                         placeholder={item.unit}
@@ -449,11 +449,13 @@ function MedicalEventsFormBody({
                         onChange={(event) =>
                           setFormLabValues({ ...formLabValues, [item.key]: event.target.value })
                         }
+                        className="w-full min-h-12"
+                        inputClassName={NUMBER_INPUT_CLASS}
                       />
                     </div>
                     <span
                       className="w-14 shrink-0 text-[12px]"
-                      style={{ color: HEALTH_MODAL_TOKENS.sub }}
+                      style={{ color: 'var(--nimi-text-muted)' }}
                     >
                       {item.unit}
                     </span>
@@ -468,7 +470,7 @@ function MedicalEventsFormBody({
               title="用药与处置"
               trailing={
                 formMeds.length > 0 ? (
-                  <span className="text-[12px]" style={{ color: HEALTH_MODAL_TOKENS.sub }}>
+                  <span className="text-[12px]" style={{ color: 'var(--nimi-text-muted)' }}>
                     {formMeds.length} 种药品
                   </span>
                 ) : null
@@ -479,7 +481,7 @@ function MedicalEventsFormBody({
                   <div
                     key={index}
                     className="space-y-2 rounded-[14px] px-3 py-3"
-                    style={{ background: HEALTH_MODAL_TOKENS.fieldBg, border: `1px solid ${HEALTH_MODAL_TOKENS.fieldBorder}` }}
+                    style={{ background: 'var(--nimi-field-bg)', border: `1px solid ${'var(--nimi-field-border)'}` }}
                   >
                     <div className="flex items-center gap-2">
                       <DrugComboBox
@@ -508,7 +510,7 @@ function MedicalEventsFormBody({
                       <button
                         onClick={() => setFormMeds((prev) => prev.filter((_, i) => i !== index))}
                         className="grid h-6 w-6 shrink-0 place-items-center rounded-full transition-colors hover:bg-red-50"
-                        style={{ color: HEALTH_MODAL_TOKENS.sub }}
+                        style={{ color: 'var(--nimi-text-muted)' }}
                       >
                         ✕
                       </button>
@@ -521,11 +523,11 @@ function MedicalEventsFormBody({
                         }
                         placeholder="剂量"
                         className="w-16 rounded-[10px] px-2 py-1.5 text-[14px] outline-none transition-shadow focus:ring-2 focus:ring-[#4ECCA3]/35"
-                        style={{ border: `1px solid ${HEALTH_MODAL_TOKENS.fieldBorder}`, background: '#fff', color: HEALTH_MODAL_TOKENS.text }}
+                        style={{ border: `1px solid ${'var(--nimi-field-border)'}`, background: '#fff', color: 'var(--nimi-text-primary)' }}
                       />
                       <span
                         className="rounded-[10px] px-2 py-1 text-[13px]"
-                        style={{ background: '#f1f5f9', color: HEALTH_MODAL_TOKENS.accent }}
+                        style={{ background: '#f1f5f9', color: 'var(--nimi-action-primary-bg)' }}
                       >
                         {med.unit || '次'}
                       </span>
@@ -538,7 +540,7 @@ function MedicalEventsFormBody({
                         }
                         placeholder="频次（如每日3次）"
                         className="min-w-0 flex-1 rounded-[10px] px-2 py-1.5 text-[14px] outline-none transition-shadow focus:ring-2 focus:ring-[#4ECCA3]/35"
-                        style={{ border: `1px solid ${HEALTH_MODAL_TOKENS.fieldBorder}`, background: '#fff', color: HEALTH_MODAL_TOKENS.text }}
+                        style={{ border: `1px solid ${'var(--nimi-field-border)'}`, background: '#fff', color: 'var(--nimi-text-primary)' }}
                       />
                       <input
                         value={med.days}
@@ -547,15 +549,15 @@ function MedicalEventsFormBody({
                         }
                         placeholder="天"
                         className="w-12 rounded-[10px] px-2 py-1.5 text-center text-[14px] outline-none transition-shadow focus:ring-2 focus:ring-[#4ECCA3]/35"
-                        style={{ border: `1px solid ${HEALTH_MODAL_TOKENS.fieldBorder}`, background: '#fff', color: HEALTH_MODAL_TOKENS.text }}
+                        style={{ border: `1px solid ${'var(--nimi-field-border)'}`, background: '#fff', color: 'var(--nimi-text-primary)' }}
                       />
-                      <span className="shrink-0 text-[13px]" style={{ color: HEALTH_MODAL_TOKENS.sub }}>
+                      <span className="shrink-0 text-[13px]" style={{ color: 'var(--nimi-text-muted)' }}>
                         天
                       </span>
                     </div>
                     {med.tags.length > 0 ? (
                       <div className="flex flex-wrap gap-1 pt-0.5">
-                        <span className="text-[12px]" style={{ color: HEALTH_MODAL_TOKENS.sub }}>
+                        <span className="text-[12px]" style={{ color: 'var(--nimi-text-muted)' }}>
                           常见用法参考：
                         </span>
                         {med.tags.map((tag) => (
@@ -585,11 +587,12 @@ function MedicalEventsFormBody({
 
           <SectionCard title="附件与备注">
             <FormField label="补充说明">
-              <TextArea
+              <TextareaField
                 value={formNotes}
                 onChange={(event) => setFormNotes(event.target.value)}
                 placeholder="医嘱、复诊安排、其他需要记录的信息..."
                 rows={2}
+                className="w-full"
               />
             </FormField>
           </SectionCard>
@@ -598,10 +601,10 @@ function MedicalEventsFormBody({
         </div>
       </ModalContent>
       <ModalFooter>
-        <CancelButton onClick={onClose} />
-        <PrimaryButton onClick={onSubmit} disabled={saving}>
+        <Button type="button" onClick={onClose} tone="ghost" size="md">取消</Button>
+        <Button type="button" onClick={onSubmit} disabled={saving} tone="primary" size="md">
           {saving ? '保存中...' : editingEventId ? '更新记录' : '保存记录'}
-        </PrimaryButton>
+        </Button>
       </ModalFooter>
     </>
   );

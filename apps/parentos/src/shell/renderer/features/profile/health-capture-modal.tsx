@@ -19,11 +19,10 @@ import { DentalCaptureContent } from './dental-capture-form.js';
 import { hasMilestoneCandidatesForAge } from './milestone-capture-form.js';
 import { TannerCaptureContent } from './tanner-assessment-form.js';
 import { PostureCaptureContent } from './posture-capture-form.js';
+import { Button } from '@nimiplatform/nimi-kit/ui';
 import { useAppStore } from '../../app-shell/app-store.js';
 import {
-  CancelButton,
   ChipGroup,
-  HEALTH_MODAL_TOKENS,
   HealthRecordModalShell,
   HealthRecordSidebar,
   type HealthRecordSidebarItem,
@@ -385,16 +384,16 @@ function ComingSoonPanel({ onClose }: { onClose: () => void }) {
       <ModalContent>
         <div className="flex h-full flex-col items-center justify-center py-16 text-center">
           <div className="mb-4 text-[40px]">🚧</div>
-          <p className="mb-2 text-[15px] font-semibold" style={{ color: HEALTH_MODAL_TOKENS.text }}>
+          <p className="mb-2 text-[15px] font-semibold" style={{ color: 'var(--nimi-text-primary)' }}>
             {t('Profile.capture.comingSoonTitle', { defaultValue: '该分组录入即将上线' })}
           </p>
-          <p className="text-[13px]" style={{ color: HEALTH_MODAL_TOKENS.sub }}>
+          <p className="text-[13px]" style={{ color: 'var(--nimi-text-muted)' }}>
             {t('Profile.capture.comingSoonDesc', { defaultValue: '该分类正在迁移到统一录入界面。' })}
           </p>
         </div>
       </ModalContent>
       <ModalFooter>
-        <CancelButton onClick={onClose}>关闭</CancelButton>
+        <Button type="button" onClick={onClose} tone="ghost" size="md">关闭</Button>
       </ModalFooter>
     </>
   );

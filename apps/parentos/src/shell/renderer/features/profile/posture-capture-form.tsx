@@ -1,26 +1,22 @@
 import { X } from 'lucide-react';
-import { DashedAddButton, StatusBadge } from '@nimiplatform/nimi-kit/ui';
+import { Button, DashedAddButton, StatusBadge, TextField, TextareaField } from '@nimiplatform/nimi-kit/ui';
 import { useRef, useState } from 'react';
 import { computeAgeMonthsAt } from '../../app-shell/app-store.js';
 import { insertMeasurement } from '../../bridge/sqlite-bridge.js';
 import { isoNow, ulid } from '../../bridge/ulid.js';
 import { catchLog } from '../../infra/telemetry/catch-log.js';
 import { readImageFileAsDataUrl } from './checkup-ocr.js';
+import { ProfileDatePicker } from './profile-date-picker.js';
 import {
-  CancelButton,
   ChipGroup,
-  DateField,
   FormField,
   FormGrid,
   HealthRecordModalShell,
   InlineError,
-  Input,
   ModalContent,
   ModalFooter,
   ModalHeader,
-  PrimaryButton,
   SectionCard,
-  TextArea,
 } from './health-record-modal-shell.js';
 
 const SOURCE_OPTIONS = [
@@ -275,7 +271,7 @@ export function PostureCaptureContent({ child, onSaved, onClose }: PostureCaptur
           <SectionCard title="基础信息">
             <FormGrid cols={2}>
               <FormField label="评估日期">
-                <DateField value={formDate} onChange={setFormDate} />
+                <ProfileDatePicker value={formDate} onChange={setFormDate} className="h-12" />
               </FormField>
               <FormField label="数据来源">
                 <ChipGroup
@@ -420,7 +416,7 @@ export function PostureCaptureContent({ child, onSaved, onClose }: PostureCaptur
           >
             <FormField label="Cobb 角（°）" hint="来自 X 光报告">
               <div className="flex items-center gap-3">
-                <Input
+                <TextField
                   type="number"
                   step="1"
                   min="0"
@@ -429,6 +425,8 @@ export function PostureCaptureContent({ child, onSaved, onClose }: PostureCaptur
                   onChange={(e) => setFormCobb(e.target.value)}
                   disabled={!isMedical}
                   placeholder="--"
+                  className="w-full min-h-12"
+                  inputClassName="[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                 />
                 {formCobb && parseFloat(formCobb) > 0 ? (() => {
                   const level = cobbLevel(parseFloat(formCobb));
@@ -443,11 +441,12 @@ export function PostureCaptureContent({ child, onSaved, onClose }: PostureCaptur
           </SectionCard>
 
           <FormField label="备注">
-            <TextArea
+            <TextareaField
               rows={2}
               value={formNotes}
               onChange={(e) => setFormNotes(e.target.value)}
               placeholder="其他观察到的情况..."
+              className="w-full"
             />
           </FormField>
 
@@ -455,10 +454,10 @@ export function PostureCaptureContent({ child, onSaved, onClose }: PostureCaptur
         </div>
       </ModalContent>
       <ModalFooter>
-        <CancelButton onClick={onClose} />
-        <PrimaryButton onClick={() => void handleSubmit()} disabled={saving}>
+        <Button type="button" onClick={onClose} tone="ghost" size="md">取消</Button>
+        <Button type="button" onClick={() => void handleSubmit()} disabled={saving} tone="primary" size="md">
           {saving ? '保存中...' : '保存'}
-        </PrimaryButton>
+        </Button>
       </ModalFooter>
     </>
   );

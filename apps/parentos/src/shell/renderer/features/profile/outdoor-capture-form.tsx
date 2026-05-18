@@ -1,20 +1,16 @@
 import { useState } from 'react';
-import '@nimiplatform/nimi-kit/ui';
+import { Button, TextField, TextareaField } from '@nimiplatform/nimi-kit/ui';
 import { insertOutdoorRecord } from '../../bridge/sqlite-bridge.js';
 import { isoNow, ulid } from '../../bridge/ulid.js';
 import type { LinkedHealthRecordReminder } from './health-capture-orchestrator.js';
+import { ProfileDatePicker } from './profile-date-picker.js';
 import {
-  CancelButton,
   ChipGroup,
-  DateField,
   FormField,
   InlineError,
-  Input,
   ModalContent,
   ModalFooter,
   ModalHeader,
-  PrimaryButton,
-  TextArea,
 } from './health-record-modal-shell.js';
 
 const PRESET_DURATIONS = [15, 30, 45, 60, 90, 120] as const;
@@ -74,15 +70,17 @@ export function OutdoorCaptureContent({ child, onSaved, onClose, linkedReminder 
       <ModalContent>
         <div className="space-y-5">
           <FormField label="活动日期">
-            <DateField value={activityDate} onChange={setActivityDate} />
+            <ProfileDatePicker value={activityDate} onChange={setActivityDate} className="h-12" />
           </FormField>
 
           <FormField label="时长（分钟）">
-            <Input
+            <TextField
               type="number"
               min="1"
               value={durationMinutes}
               onChange={(event) => setDurationMinutes(event.target.value)}
+              className="w-full min-h-12"
+              inputClassName="[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
             />
             <div className="mt-2">
               <ChipGroup
@@ -95,11 +93,12 @@ export function OutdoorCaptureContent({ child, onSaved, onClose, linkedReminder 
           </FormField>
 
           <FormField label="备注">
-            <TextArea
+            <TextareaField
               rows={2}
               value={note}
               onChange={(event) => setNote(event.target.value)}
               placeholder="例如：公园骑车、放风筝..."
+              className="w-full"
             />
           </FormField>
 
@@ -107,10 +106,10 @@ export function OutdoorCaptureContent({ child, onSaved, onClose, linkedReminder 
         </div>
       </ModalContent>
       <ModalFooter>
-        <CancelButton onClick={onClose} />
-        <PrimaryButton onClick={() => void handleSave()} disabled={saving}>
+        <Button type="button" onClick={onClose} tone="ghost" size="md">取消</Button>
+        <Button type="button" onClick={() => void handleSave()} disabled={saving} tone="primary" size="md">
           {saving ? '保存中...' : '保存'}
-        </PrimaryButton>
+        </Button>
       </ModalFooter>
     </>
   );

@@ -1,25 +1,22 @@
 import { useState } from 'react';
-import { cn } from '@nimiplatform/nimi-kit/ui';
+import { Button, cn, TextField, TextareaField } from '@nimiplatform/nimi-kit/ui';
 import { computeAgeMonthsAt } from '../../app-shell/app-store.js';
 import { insertMeasurement, saveAttachment } from '../../bridge/sqlite-bridge.js';
 import { isoNow, ulid } from '../../bridge/ulid.js';
 import { bmiLabel, computeBMI } from './growth-curve-page-shared.js';
 import type { LinkedHealthRecordReminder } from './health-capture-orchestrator.js';
 import { PhotoGrid, type PendingPhoto } from './photo-grid.js';
+import { ProfileDatePicker } from './profile-date-picker.js';
 import {
-  CancelButton,
-  DateField,
   FormField,
   FormGrid,
   HealthRecordModalShell,
-  Input,
   ModalContent,
   ModalFooter,
   ModalHeader,
-  PrimaryButton,
-  TextArea,
-  UploadBox,
 } from './health-record-modal-shell.js';
+
+const NUMBER_INPUT_CLASS = '[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none';
 
 type GrowthAddRecordContentProps = {
   childId: string;
@@ -119,36 +116,42 @@ export function GrowthAddRecordContent({
       <ModalContent>
         <div className="space-y-5">
           <FormField label="测量日期">
-            <DateField value={formDate} onChange={setFormDate} />
+            <ProfileDatePicker value={formDate} onChange={setFormDate} className="h-12" />
           </FormField>
 
           <FormGrid cols={isUnder6 ? 3 : 2}>
             <FormField label="身高 (cm)">
-              <Input
+              <TextField
                 type="number"
                 step="0.1"
                 placeholder="120.5"
                 value={formHeight}
                 onChange={(event) => setFormHeight(event.target.value)}
+                className="w-full min-h-12"
+                inputClassName={NUMBER_INPUT_CLASS}
               />
             </FormField>
             <FormField label="体重 (kg)">
-              <Input
+              <TextField
                 type="number"
                 step="0.01"
                 placeholder="22.5"
                 value={formWeight}
                 onChange={(event) => setFormWeight(event.target.value)}
+                className="w-full min-h-12"
+                inputClassName={NUMBER_INPUT_CLASS}
               />
             </FormField>
             {isUnder6 ? (
               <FormField label="头围 (cm)">
-                <Input
+                <TextField
                   type="number"
                   step="0.1"
                   placeholder="48.0"
                   value={formHeadCirc}
                   onChange={(event) => setFormHeadCirc(event.target.value)}
+                  className="w-full min-h-12"
+                  inputClassName={NUMBER_INPUT_CLASS}
                 />
               </FormField>
             ) : null}
@@ -182,31 +185,32 @@ export function GrowthAddRecordContent({
           </div>
 
           <FormField label="备注">
-            <TextArea
+            <TextareaField
               rows={2}
               value={formNotes}
               onChange={(event) => setFormNotes(event.target.value)}
               placeholder="记录一些观察..."
+              className="w-full"
             />
           </FormField>
 
           <FormField label={`照片${formPhotos.length > 0 ? ` (${formPhotos.length}/9)` : ''}`}>
-            <UploadBox>
+            <div className="space-y-2">
               <PhotoGrid
                 photos={formPhotos}
                 maxPhotos={9}
                 hint="点击或拖拽上传照片（最多 9 张）"
                 onChange={setFormPhotos}
               />
-            </UploadBox>
+            </div>
           </FormField>
         </div>
       </ModalContent>
       <ModalFooter>
-        <CancelButton onClick={onClose} />
-        <PrimaryButton onClick={() => void handleSave()} disabled={saving}>
+        <Button type="button" onClick={onClose} tone="ghost" size="md">取消</Button>
+        <Button type="button" onClick={() => void handleSave()} disabled={saving} tone="primary" size="md">
           {saving ? '保存中...' : '保存'}
-        </PrimaryButton>
+        </Button>
       </ModalFooter>
     </>
   );

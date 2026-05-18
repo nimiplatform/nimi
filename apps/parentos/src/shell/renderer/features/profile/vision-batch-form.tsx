@@ -12,23 +12,23 @@ import {
   EYE_SET, FORM_SECTIONS, PUPIL_OPTIONS, getPickerConfig,
   type VisionRecord,
 } from './vision-data.js';
+import { Button, TextField } from '@nimiplatform/nimi-kit/ui';
+import { ProfileDatePicker } from './profile-date-picker.js';
 import {
-  CancelButton,
   ChipGroup,
   type ChipOption,
-  DateField,
   FormField,
   FormGrid,
   HEALTH_MODAL_TOKENS,
   HealthRecordModalShell,
   InlineError,
-  Input,
   ModalContent,
   ModalFooter,
   ModalHeader,
-  PrimaryButton,
   SectionCard,
 } from './health-record-modal-shell.js';
+
+const NUMBER_INPUT_CLASS = '[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none';
 
 const NOTE_PREFIXES = {
   hospital: '医院: ',
@@ -187,7 +187,7 @@ export function NumberPickerPopover({ typeId, label, unit, value, onSelect, onCl
       <div className="w-full max-w-lg rounded-t-2xl shadow-2xl animate-slide-up" style={{ background: '#f0f0ec' }} onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between px-4 py-3" style={{ background: '#e0e4e0' }}>
           {step === 'dec' && (
-            <button onClick={() => setStep('int')} className="text-[14px] font-medium" style={{ color: HEALTH_MODAL_TOKENS.accent }}>
+            <button onClick={() => setStep('int')} className="text-[14px] font-medium" style={{ color: 'var(--nimi-action-primary-bg)' }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="inline -mt-0.5 mr-1"><path d="M15 18l-6-6 6-6" /></svg>
               返回
             </button>
@@ -195,15 +195,15 @@ export function NumberPickerPopover({ typeId, label, unit, value, onSelect, onCl
           {step === 'int' && <span />}
           <div className="text-center flex-1">
             {eyeLabel && <span className="text-[14px] font-bold mr-2" style={{ color: '#e67e22' }}>{eyeLabel}</span>}
-            <span className="text-[16px] font-bold" style={{ color: HEALTH_MODAL_TOKENS.text }}>{label}</span>
-            {unit && <span className="text-[13px] ml-1.5" style={{ color: HEALTH_MODAL_TOKENS.sub }}>{unit}</span>}
+            <span className="text-[16px] font-bold" style={{ color: 'var(--nimi-text-primary)' }}>{label}</span>
+            {unit && <span className="text-[13px] ml-1.5" style={{ color: 'var(--nimi-text-muted)' }}>{unit}</span>}
           </div>
-          <button onClick={onClose} className="w-7 h-7 rounded-full flex items-center justify-center" style={{ color: HEALTH_MODAL_TOKENS.sub }}>✕</button>
+          <button onClick={onClose} className="w-7 h-7 rounded-full flex items-center justify-center" style={{ color: 'var(--nimi-text-muted)' }}>✕</button>
         </div>
 
         {(intPart != null || value) && (
           <div className="text-center py-2">
-            <span className="text-[20px] font-bold" style={{ color: HEALTH_MODAL_TOKENS.text }}>
+            <span className="text-[20px] font-bold" style={{ color: 'var(--nimi-text-primary)' }}>
               {intPart != null ? `${intPart}.` : value}
             </span>
           </div>
@@ -215,7 +215,7 @@ export function NumberPickerPopover({ typeId, label, unit, value, onSelect, onCl
               {ints.map((n) => (
                 <button key={n} onClick={() => handleIntSelect(n)}
                   className={`py-3 text-[16px] font-semibold rounded-xl transition-all ${intPart === n ? 'text-white' : 'hover:bg-white'}`}
-                  style={intPart === n ? { background: HEALTH_MODAL_TOKENS.accent, color: '#fff' } : { background: '#fafafa', color: HEALTH_MODAL_TOKENS.text }}>
+                  style={intPart === n ? { background: 'var(--nimi-action-primary-bg)', color: '#fff' } : { background: '#fafafa', color: 'var(--nimi-text-primary)' }}>
                   {n}
                 </button>
               ))}
@@ -225,7 +225,7 @@ export function NumberPickerPopover({ typeId, label, unit, value, onSelect, onCl
               {decimals.map((d) => (
                 <button key={d} onClick={() => handleDecSelect(d)}
                   className="py-3 text-[16px] font-semibold rounded-xl transition-all hover:bg-white"
-                  style={{ background: '#fafafa', color: HEALTH_MODAL_TOKENS.text }}>
+                  style={{ background: '#fafafa', color: 'var(--nimi-text-primary)' }}>
                   {d < 10 && decimals.some((x) => x >= 10) ? `0${d}` : String(d)}
                 </button>
               ))}
@@ -237,9 +237,9 @@ export function NumberPickerPopover({ typeId, label, unit, value, onSelect, onCl
           <input type="number" placeholder="或手动输入..." value={value}
             onChange={(e) => onSelect(e.target.value)}
             className="flex-1 rounded-xl px-3 py-2 text-[14px] border-0 outline-none"
-            style={{ background: '#fff', color: HEALTH_MODAL_TOKENS.text }} />
+            style={{ background: '#fff', color: 'var(--nimi-text-primary)' }} />
           <button onClick={onClose} className="px-4 py-2 rounded-xl text-[14px] font-medium text-white"
-            style={{ background: HEALTH_MODAL_TOKENS.accent }}>确定</button>
+            style={{ background: 'var(--nimi-action-primary-bg)' }}>确定</button>
         </div>
       </div>
     </div>
@@ -257,13 +257,13 @@ export function ValueCell({ typeId, label, unit, value, onChange }: {
       {hasPicker ? (
         <button onClick={() => setShowPicker(true)}
           className="w-full text-center text-[14px] font-medium rounded-lg py-1.5 transition-all hover:ring-2 hover:ring-[#BDE0F5]/30"
-          style={{ background: value ? '#eef3ee' : '#f5f3ef', color: value ? HEALTH_MODAL_TOKENS.text : '#c0bdb8' }}>
+          style={{ background: value ? '#eef3ee' : '#f5f3ef', color: value ? 'var(--nimi-text-primary)' : '#c0bdb8' }}>
           {value || '—'}
         </button>
       ) : (
         <input type="number" placeholder="—" value={value} onChange={(e) => onChange(e.target.value)}
           className="w-full text-center text-[14px] font-medium rounded-lg py-1.5 border-0 outline-none focus:ring-2 focus:ring-[#BDE0F5]/30"
-          style={{ background: '#f5f3ef', color: HEALTH_MODAL_TOKENS.text }} />
+          style={{ background: '#f5f3ef', color: 'var(--nimi-text-primary)' }} />
       )}
       {showPicker && (
         <NumberPickerPopover typeId={typeId} label={label} unit={unit} value={value}
@@ -480,7 +480,7 @@ export function VisionBatchFormContent({ childId, birthDate, onSave, onClose, in
       onClick={() => void handleOCR()}
       disabled={ocrBusy}
       className="inline-flex h-9 items-center gap-1.5 rounded-[12px] px-3 text-[13px] font-medium text-white transition-all hover:opacity-90 disabled:opacity-50"
-      style={{ background: HEALTH_MODAL_TOKENS.accent }}
+      style={{ background: 'var(--nimi-action-primary-bg)' }}
     >
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
         <rect x="3" y="3" width="18" height="18" rx="2" />
@@ -504,7 +504,7 @@ export function VisionBatchFormContent({ childId, birthDate, onSave, onClose, in
 
           <FormGrid cols={2}>
             <FormField label={t('Profile.rich.visionBatch.examDate')} required>
-              <DateField value={date} onChange={setDate} />
+              <ProfileDatePicker value={date} onChange={setDate} className="h-12" />
             </FormField>
             <FormField label={t('Profile.rich.visionBatch.pupilStatus')}>
               <ChipGroup options={pupilChips} value={pupil} onChange={setPupil} layout="fill" clearable />
@@ -513,17 +513,19 @@ export function VisionBatchFormContent({ childId, birthDate, onSave, onClose, in
 
           <FormGrid cols={2}>
             <FormField label={t('Profile.rich.visionBatch.hospital')}>
-              <Input
+              <TextField
                 value={hospital}
                 onChange={(event) => setHospital(event.target.value)}
                 placeholder={t('Profile.rich.common.optional')}
+                className="w-full min-h-12"
               />
             </FormField>
             <FormField label={t('Profile.rich.visionBatch.doctor')}>
-              <Input
+              <TextField
                 value={doctor}
                 onChange={(event) => setDoctor(event.target.value)}
                 placeholder={t('Profile.rich.common.optional')}
+                className="w-full min-h-12"
               />
             </FormField>
           </FormGrid>
@@ -533,7 +535,7 @@ export function VisionBatchFormContent({ childId, birthDate, onSave, onClose, in
               <div className="overflow-hidden rounded-[14px] border" style={{ borderColor: '#f1f5f9' }}>
                 <div
                   className="grid grid-cols-[1.5fr_1fr_1fr] px-3 py-2 text-center text-[12px] font-medium"
-                  style={{ background: '#f8faf9', color: HEALTH_MODAL_TOKENS.sub }}
+                  style={{ background: '#f8faf9', color: 'var(--nimi-text-muted)' }}
                 >
                   <span className="text-left">{t('Profile.rich.visionBatch.item')}</span>
                   <span>{t('Profile.rich.visionBatch.od')}</span>
@@ -546,8 +548,8 @@ export function VisionBatchFormContent({ childId, birthDate, onSave, onClose, in
                     style={{ borderColor: '#f0f0ec', background: i % 2 === 0 ? '#ffffff' : '#fafcfb' }}
                   >
                     <div>
-                      <span className="text-[13px]" style={{ color: HEALTH_MODAL_TOKENS.text }}>{f.label}</span>
-                      {f.unit && <span className="ml-1 text-[12px]" style={{ color: HEALTH_MODAL_TOKENS.sub }}>({f.unit})</span>}
+                      <span className="text-[13px]" style={{ color: 'var(--nimi-text-primary)' }}>{f.label}</span>
+                      {f.unit && <span className="ml-1 text-[12px]" style={{ color: 'var(--nimi-text-muted)' }}>({f.unit})</span>}
                     </div>
                     <ValueCell typeId={f.od} label={f.label} unit={f.unit} value={values[f.od] ?? ''} onChange={(v) => set(f.od, v)} />
                     <ValueCell typeId={f.os} label={f.label} unit={f.unit} value={values[f.os] ?? ''} onChange={(v) => set(f.os, v)} />
@@ -562,7 +564,7 @@ export function VisionBatchFormContent({ childId, birthDate, onSave, onClose, in
               <div className="w-32">
                 <ValueCell typeId="hyperopia-reserve" label={t('Profile.rich.visionBatch.hyperopiaReserve')} unit="D" value={hrValue} onChange={setHrValue} />
               </div>
-              <span className="text-[13px]" style={{ color: HEALTH_MODAL_TOKENS.sub }}>D</span>
+              <span className="text-[13px]" style={{ color: 'var(--nimi-text-muted)' }}>D</span>
             </div>
           </SectionCard>
 
@@ -579,17 +581,19 @@ export function VisionBatchFormContent({ childId, birthDate, onSave, onClose, in
 
           <FormGrid cols={2}>
             <FormField label={t('Profile.rich.visionBatch.controlMeasures')}>
-              <Input
+              <TextField
                 value={controls}
                 onChange={(event) => setControls(event.target.value)}
                 placeholder={t('Profile.rich.visionBatch.controlMeasuresPlaceholder')}
+                className="w-full min-h-12"
               />
             </FormField>
             <FormField label={t('Profile.rich.visionBatch.controlNotes')}>
-              <Input
+              <TextField
                 value={notes}
                 onChange={(event) => setNotes(event.target.value)}
                 placeholder={t('Profile.rich.visionBatch.controlNotesPlaceholder')}
+                className="w-full min-h-12"
               />
             </FormField>
           </FormGrid>
@@ -597,19 +601,22 @@ export function VisionBatchFormContent({ childId, birthDate, onSave, onClose, in
       </ModalContent>
       <ModalFooter
         leading={
-          <span className="text-[13px]" style={{ color: HEALTH_MODAL_TOKENS.sub }}>
+          <span className="text-[13px]" style={{ color: 'var(--nimi-text-muted)' }}>
             {t('Profile.rich.common.itemsFilled', { count: filledCount })}
           </span>
         }
       >
-        <CancelButton onClick={onClose}>{t('Profile.rich.common.cancel')}</CancelButton>
-        <PrimaryButton
+        <Button type="button" onClick={onClose} tone="ghost" size="md">{t('Profile.rich.common.cancel')}</Button>
+        <Button
+          type="button"
           onClick={() => void handleSubmit()}
           disabled={saving || filledCount === 0}
-          ariaLabel="vision-record-save"
+          aria-label="vision-record-save"
+          tone="primary"
+          size="md"
         >
           {saving ? t('Profile.rich.common.saving') : t('Profile.rich.visionBatch.saveRecord')}
-        </PrimaryButton>
+        </Button>
       </ModalFooter>
     </>
   );

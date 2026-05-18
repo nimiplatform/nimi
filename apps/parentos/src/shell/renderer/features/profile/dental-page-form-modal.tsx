@@ -1,24 +1,18 @@
 import { convertFileSrc } from '@tauri-apps/api/core';
-import { cn, DashedAddButton } from '@nimiplatform/nimi-kit/ui';
+import { Button, cn, DashedAddButton, TextField, TextareaField } from '@nimiplatform/nimi-kit/ui';
 import type { AttachmentRow } from '../../bridge/sqlite-bridge.js';
 import type { ReactNode } from 'react';
+import { ProfileDatePicker } from './profile-date-picker.js';
 import {
-  CancelButton,
   ChipGroup,
   type ChipOption,
-  DateField,
   FormField,
   FormGrid,
-  HEALTH_MODAL_TOKENS,
   HealthRecordModalShell,
-  Input,
   ModalContent,
   ModalFooter,
   ModalHeader,
-  PrimaryButton,
   SectionCard,
-  TextArea,
-  UploadBox,
 } from './health-record-modal-shell.js';
 import {
   EVENT_TYPES,
@@ -76,7 +70,7 @@ export function DentalRecordFormModal(props: DentalRecordFormModalProps) {
 
 const SEVERITY_OPTIONS = ['mild', 'moderate', 'severe'] as const;
 const SEVERITY_ACTIVE_BG: Record<(typeof SEVERITY_OPTIONS)[number], string> = {
-  mild: HEALTH_MODAL_TOKENS.accent,
+  mild: 'var(--nimi-action-primary-bg)',
   moderate: 'var(--nimi-status-warning)',
   severe: 'var(--nimi-status-danger)',
 };
@@ -104,13 +98,14 @@ export function DentalRecordFormBody(props: DentalRecordFormModalProps) {
         <div className="space-y-5">
           <FormGrid cols={2}>
             <FormField label="就诊日期">
-              <DateField value={props.formEventDate} onChange={props.setFormEventDate} />
+              <ProfileDatePicker value={props.formEventDate} onChange={props.setFormEventDate} className="h-12" />
             </FormField>
             <FormField label="医院/诊所">
-              <Input
+              <TextField
                 value={props.formHospital}
                 onChange={(event) => props.setFormHospital(event.target.value)}
                 placeholder="选填"
+                className="w-full min-h-12"
               />
             </FormField>
           </FormGrid>
@@ -226,7 +221,7 @@ export function DentalRecordFormBody(props: DentalRecordFormModalProps) {
                           onChange={(value) =>
                             props.updateEntry(idx, { severity: value as (typeof SEVERITY_OPTIONS)[number] })
                           }
-                          activeColor={SEVERITY_ACTIVE_BG[entry.severity as (typeof SEVERITY_OPTIONS)[number]] ?? HEALTH_MODAL_TOKENS.accent}
+                          activeColor={SEVERITY_ACTIVE_BG[entry.severity as (typeof SEVERITY_OPTIONS)[number]] ?? 'var(--nimi-action-primary-bg)'}
                         />
                       </FormField>
                     ) : null}
@@ -241,11 +236,12 @@ export function DentalRecordFormBody(props: DentalRecordFormModalProps) {
           ) : null}
 
           <FormField label="备注">
-            <TextArea
+            <TextareaField
               value={props.formNotes}
               onChange={(event) => props.setFormNotes(event.target.value)}
               placeholder="选填"
               rows={2}
+              className="w-full"
             />
           </FormField>
 
@@ -253,7 +249,7 @@ export function DentalRecordFormBody(props: DentalRecordFormModalProps) {
             title={`照片${props.formPhotoFiles.length > 0 ? ` (${props.formPhotoFiles.length}/${PHOTO_MAX})` : ''}`}
             variant="plain"
           >
-            <UploadBox>
+            <div className="space-y-2">
               <div
                 onDragOver={(event) => {
                   event.preventDefault();
@@ -315,17 +311,17 @@ export function DentalRecordFormBody(props: DentalRecordFormModalProps) {
                   />
                 ) : null}
               </div>
-            </UploadBox>
+            </div>
           </SectionCard>
 
           {props.inlineFooterContent}
         </div>
       </ModalContent>
       <ModalFooter>
-        <CancelButton onClick={props.resetForm} />
-        <PrimaryButton onClick={() => void props.handleSubmit()}>
+        <Button type="button" onClick={props.resetForm} tone="ghost" size="md">取消</Button>
+        <Button type="button" onClick={() => void props.handleSubmit()} tone="primary" size="md">
           {props.isEditing ? '保存修改' : '保存'}
-        </PrimaryButton>
+        </Button>
       </ModalFooter>
     </>
   );

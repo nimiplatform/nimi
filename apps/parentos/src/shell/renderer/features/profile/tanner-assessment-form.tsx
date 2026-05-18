@@ -1,9 +1,10 @@
 import { useState, type ReactNode } from 'react';
-import '@nimiplatform/nimi-kit/ui';
+import { Button, TextField } from '@nimiplatform/nimi-kit/ui';
 import { computeAgeMonthsAt } from '../../app-shell/app-store.js';
 import { insertMeasurement, insertTannerAssessment } from '../../bridge/sqlite-bridge.js';
 import { isoNow, ulid } from '../../bridge/ulid.js';
 import type { LinkedHealthRecordReminder } from './health-capture-orchestrator.js';
+import { ProfileDatePicker } from './profile-date-picker.js';
 import { TannerStageSelector } from './tanner-stage-selector.js';
 import {
   ASSESSED_BY_LABELS,
@@ -14,19 +15,17 @@ import {
   type StageDesc,
 } from './tanner-page-shared.js';
 import {
-  CancelButton,
   ChipGroup,
   type ChipOption,
-  DateField,
   FormField,
   FormGrid,
   HealthRecordModalShell,
-  Input,
   ModalContent,
   ModalFooter,
   ModalHeader,
-  PrimaryButton,
 } from './health-record-modal-shell.js';
+
+const NUMBER_INPUT_CLASS = '[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none';
 
 type TannerAssessmentFormProps = {
   bgLabel: string;
@@ -98,8 +97,8 @@ export function TannerAssessmentForm({
         />
       </ModalContent>
       <ModalFooter>
-        <CancelButton onClick={onClose} />
-        <PrimaryButton onClick={onSave}>保存评估</PrimaryButton>
+        <Button type="button" onClick={onClose} tone="ghost" size="md">取消</Button>
+        <Button type="button" onClick={onSave} tone="primary" size="md">保存评估</Button>
       </ModalFooter>
     </HealthRecordModalShell>
   );
@@ -129,7 +128,7 @@ function TannerFormFields({
     <div className="space-y-5">
       <FormGrid cols={2}>
         <FormField label="评估日期">
-          <DateField value={formAssessedAt} onChange={setFormAssessedAt} />
+          <ProfileDatePicker value={formAssessedAt} onChange={setFormAssessedAt} className="h-12" />
         </FormField>
         <FormField label="评估人">
           <ChipGroup
@@ -149,30 +148,35 @@ function TannerFormFields({
 
       <FormGrid cols={2}>
         <FormField label="🦴 骨龄（岁，可选）">
-          <Input
+          <TextField
             type="number"
             step="0.1"
             value={formBoneAge}
             onChange={(event) => setFormBoneAge(event.target.value)}
             placeholder="如 12.5"
+            className="w-full min-h-12"
+            inputClassName={NUMBER_INPUT_CLASS}
           />
         </FormField>
         <FormField label="📊 体脂率（%，可选）">
-          <Input
+          <TextField
             type="number"
             step="0.1"
             value={formBodyFat}
             onChange={(event) => setFormBodyFat(event.target.value)}
             placeholder="如 18.5"
+            className="w-full min-h-12"
+            inputClassName={NUMBER_INPUT_CLASS}
           />
         </FormField>
       </FormGrid>
 
       <FormField label="备注">
-        <Input
+        <TextField
           value={formNotes}
           onChange={(event) => setFormNotes(event.target.value)}
           placeholder="如：与上次对比有进展..."
+          className="w-full min-h-12"
         />
       </FormField>
     </div>
@@ -288,10 +292,10 @@ export function TannerCaptureContent({ child, onSaved, onClose, headerTrailing, 
         />
       </ModalContent>
       <ModalFooter>
-        <CancelButton onClick={onClose} />
-        <PrimaryButton onClick={() => void handleSubmit()} disabled={saving}>
+        <Button type="button" onClick={onClose} tone="ghost" size="md">取消</Button>
+        <Button type="button" onClick={() => void handleSubmit()} disabled={saving} tone="primary" size="md">
           {saving ? '保存中…' : '保存评估'}
-        </PrimaryButton>
+        </Button>
       </ModalFooter>
     </>
   );

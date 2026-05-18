@@ -1,22 +1,18 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import { Surface } from '@nimiplatform/nimi-kit/ui';
+import { Button, Surface, TextareaField } from '@nimiplatform/nimi-kit/ui';
 import { saveAttachment, upsertMilestoneRecord } from '../../bridge/sqlite-bridge.js';
 import { isoNow, ulid } from '../../bridge/ulid.js';
 import { MILESTONE_CATALOG } from '../../knowledge-base/index.js';
 import type { MilestoneDomain } from '../../knowledge-base/gen/milestone-catalog.gen.js';
 import { PhotoGrid, type PendingPhoto } from './photo-grid.js';
+import { ProfileDatePicker } from './profile-date-picker.js';
 import {
-  CancelButton,
   ChipGroup,
   type ChipOption,
-  DateField,
   FormField,
   ModalContent,
   ModalFooter,
   ModalHeader,
-  PrimaryButton,
-  TextArea,
-  UploadBox,
 } from './health-record-modal-shell.js';
 
 const DOMAINS: Array<{ key: MilestoneDomain; label: string; emoji: string }> = [
@@ -135,7 +131,7 @@ export function MilestoneCaptureContent({ child, ageMonths, onSaved, onClose, he
           </div>
         </ModalContent>
         <ModalFooter>
-          <CancelButton onClick={onClose}>关闭</CancelButton>
+          <Button type="button" onClick={onClose} tone="ghost" size="md">关闭</Button>
         </ModalFooter>
       </>
     );
@@ -214,37 +210,38 @@ export function MilestoneCaptureContent({ child, ageMonths, onSaved, onClose, he
           {milestone ? (
             <>
               <FormField label="达成日期">
-                <DateField value={date} onChange={setDate} />
+                <ProfileDatePicker value={date} onChange={setDate} className="h-12" />
               </FormField>
 
               <FormField label="记录小故事">
-                <TextArea
+                <TextareaField
                   value={notes}
                   onChange={(event) => setNotes(event.target.value)}
                   placeholder="例如：第一次找到藏起来的球，开心地咯咯笑..."
                   rows={3}
+                  className="w-full"
                 />
               </FormField>
 
               <FormField label={`照片${photos.length > 0 ? ` (${photos.length}/9)` : ''}`}>
-                <UploadBox>
+                <div className="space-y-2">
                   <PhotoGrid
                     photos={photos}
                     maxPhotos={9}
                     hint="点击或拖拽上传里程碑照片（最多 9 张）"
                     onChange={setPhotos}
                   />
-                </UploadBox>
+                </div>
               </FormField>
             </>
           ) : null}
         </div>
       </ModalContent>
       <ModalFooter>
-        <CancelButton onClick={onClose} />
-        <PrimaryButton onClick={() => void handleSave()} disabled={saving || !milestone}>
+        <Button type="button" onClick={onClose} tone="ghost" size="md">取消</Button>
+        <Button type="button" onClick={() => void handleSave()} disabled={saving || !milestone} tone="primary" size="md">
           {saving ? '保存中...' : '记录达成'}
-        </PrimaryButton>
+        </Button>
       </ModalFooter>
     </>
   );
