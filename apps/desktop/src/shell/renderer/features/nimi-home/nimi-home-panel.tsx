@@ -122,7 +122,7 @@ function useAppRegistryProjections(liveBridge: DesktopHomeLiveBridge): {
 
 function LoadingProjection({ label }: { label: string }): ReactElement {
   return (
-    <section data-testid={`nimi-home-${label}-loading`} className="text-sm text-[var(--nimi-text-secondary)]">
+    <section data-testid={`nimi-home-${label}-loading`} className="flex min-h-32 animate-pulse items-center justify-center rounded-lg border border-dashed border-[color:var(--nimi-border-subtle)] text-sm text-[var(--nimi-text-secondary)]">
       Loading {label}...
     </section>
   );
@@ -149,29 +149,34 @@ export function NimiHomePanel(): ReactElement {
       <ScrollArea
         className="flex-1"
         viewportClassName="bg-transparent"
-        contentClassName="mx-auto flex w-full max-w-6xl flex-col gap-4 px-5 py-5"
+        contentClassName="mx-auto flex w-full max-w-6xl flex-col gap-5 px-5 py-5"
       >
-        <header className="flex flex-col gap-2">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--nimi-text-secondary)]">
-            Nimi
-          </p>
-          <h1 className="text-2xl font-semibold text-[var(--nimi-text-primary)]">Home</h1>
+        <header className="flex flex-col gap-3">
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <p className="text-xs font-semibold uppercase text-[var(--nimi-text-secondary)]">Nimi</p>
+              <h1 className="mt-2 text-3xl font-semibold text-[var(--nimi-text-primary)]">Home</h1>
+            </div>
+            <span className="rounded-full border border-[color:var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_78%,transparent)] px-3 py-1 text-xs font-medium text-[color:var(--nimi-text-secondary)]">
+              {readiness?.isReady ? 'Ready' : 'Setup in progress'}
+            </span>
+          </div>
         </header>
 
-        <div className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
-          <Surface tone="panel" material="glass-regular" padding="none" className="p-5">
+        <div className="grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
+          <Surface tone="panel" material="glass-regular" padding="none" className="min-h-[258px] p-5 shadow-[0_16px_44px_rgba(15,23,42,0.06)]">
             {readiness ? <FirstRunReadinessView projection={readiness} /> : <LoadingProjection label="readiness" />}
           </Surface>
-          <Surface tone="panel" material="glass-regular" padding="none" className="p-5">
+          <Surface tone="panel" material="glass-regular" padding="none" className="min-h-[258px] p-5 shadow-[0_16px_44px_rgba(15,23,42,0.06)]">
             <AgentChatReference binding={agentChatBinding} executor={agentChatExecutor} />
           </Surface>
         </div>
 
         <div className="grid gap-4 lg:grid-cols-2">
-          <Surface tone="panel" material="glass-regular" padding="none" className="p-5">
+          <Surface tone="panel" material="glass-regular" padding="none" className="min-h-[148px] p-5 shadow-[0_16px_44px_rgba(15,23,42,0.06)]">
             {library ? <LibraryView projection={library} /> : <LoadingProjection label="library" />}
           </Surface>
-          <Surface tone="panel" material="glass-regular" padding="none" className="p-5">
+          <Surface tone="panel" material="glass-regular" padding="none" className="min-h-[148px] p-5 shadow-[0_16px_44px_rgba(15,23,42,0.06)]">
             {discovery ? <DiscoveryView projection={discovery} /> : <LoadingProjection label="discovery" />}
           </Surface>
         </div>
