@@ -101,9 +101,14 @@ const NO_BACKDROP_FILTER_DECLS = ['backdrop-filter', '-webkit-backdrop-filter']
   .join('\n');
 
 /**
- * Stylesheet injected while the capture runs. Neutralises styling
- * that html-to-image flattens to dark artefacts in the SVG snapshot.
- * Scoped to `[data-report-exporting]` so on-screen UI is untouched.
+ * Stylesheet injected while the capture runs. Scope is intentionally
+ * minimal — html-to-image already captures the live DOM as-is; we only
+ * neutralise things that the SVG <foreignObject> renderer genuinely
+ * cannot reproduce, and hide UI affordances (edit pencils, etc.) that
+ * shouldn't appear in an exported document.
+ *
+ * Do NOT add layout overrides here (padding, max-width, grid columns,
+ * borders). The export should look exactly like the on-screen report.
  */
 const EXPORT_CAPTURE_CSS = `
 [data-report-exporting] *,
@@ -111,55 +116,12 @@ const EXPORT_CAPTURE_CSS = `
   ${NO_BACKDROP_FILTER_DECLS}
   mix-blend-mode: normal !important;
 }
-[data-report-exporting].report-monthly-page,
-[data-report-exporting] .report-monthly-page {
-  border: 0 !important;
-  border-radius: 0 !important;
-  box-shadow: none !important;
-  filter: none !important;
-  outline: 0 !important;
-  overflow: hidden !important;
-}
-[data-report-exporting].report-monthly-page {
-  padding-left: 56px !important;
-  padding-right: 56px !important;
-}
 [data-report-exporting] .hide-on-print,
 [data-report-exporting] .edit-pencil,
 [data-report-exporting] .report-monthly-edit-pencil,
 [data-report-exporting] .report-note-actions,
 [data-report-exporting] .report-note-composer {
   display: none !important;
-}
-[data-report-exporting] .report-monthly-header,
-[data-report-exporting] .report-monthly-title,
-[data-report-exporting] .report-monthly-intro,
-[data-report-exporting] .report-monthly-hero,
-[data-report-exporting] .report-monthly-pullquote,
-[data-report-exporting] .report-monthly-highlights,
-[data-report-exporting] .report-monthly-timeline,
-[data-report-exporting] .report-monthly-watch,
-[data-report-exporting] .report-monthly-actions,
-[data-report-exporting] .report-monthly-caregiver,
-[data-report-exporting] .report-monthly-signoff,
-[data-report-exporting] .report-monthly-footer {
-  margin-left: auto !important;
-  margin-right: auto !important;
-  max-width: 472px !important;
-  width: 100% !important;
-}
-[data-report-exporting] .report-monthly-highlight {
-  grid-template-columns: 48px minmax(0, 1fr) !important;
-}
-[data-report-exporting] .report-monthly-timeline-item {
-  grid-template-columns: 24px minmax(0, 1fr) !important;
-}
-[data-report-exporting] .report-monthly-highlight-title,
-[data-report-exporting] .report-monthly-timeline-title,
-[data-report-exporting] .report-monthly-timeline-body,
-[data-report-exporting] .report-monthly-action-title,
-[data-report-exporting] .report-monthly-watch-copy {
-  max-width: 100% !important;
 }
 `;
 

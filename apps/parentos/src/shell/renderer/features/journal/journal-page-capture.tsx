@@ -1,6 +1,6 @@
 import { createPortal } from 'react-dom';
 import type { RefObject } from 'react';
-import { Button, IconButton, Surface, TextareaField, cn } from '@nimiplatform/nimi-kit/ui';
+import { Button, IconButton, NimiText, Surface, TextareaField, cn } from '@nimiplatform/nimi-kit/ui';
 import { PhotoBar } from './journal-sub-components.js';
 import { VoiceIdleEntry, VoiceRecordingPanel, VoicePreviewPanel } from './journal-voice-card.js';
 import type { VoiceRecordingSession } from './voice-observation-recorder.js';
@@ -69,12 +69,32 @@ export function JournalPageCapture(props: {
   onDismissExperiment: () => void;
   recordedAt: string | null;
   onRecordedAtChange: (value: string | null) => void;
+  monthlyEntryCount: number;
+  totalEntryCount: number;
+  keepsakeEntryCount: number;
 }) {
   return (
     <>
-      <div className="mb-5">
-        <h1 className="text-xl font-bold text-[var(--nimi-text-primary)]">成长随记</h1>
-      </div>
+      <header className="mb-6 flex flex-wrap items-end justify-between gap-x-8 gap-y-5">
+        <div className="min-w-0 flex-1">
+          <h1 className="parentos-journal-hero-title parentos-journal-hero-title__bold text-[44px] leading-[1.05] tracking-tight text-[var(--nimi-text-primary)]">
+            成长
+            <span className="parentos-journal-hero-title__tail">
+              随记
+              <span className="parentos-journal-hero-title__dot" aria-hidden="true" />
+            </span>
+          </h1>
+          <NimiText as="p" role="body" className="mt-3 text-[14px] leading-relaxed">
+            <span className="font-semibold text-[var(--nimi-text-primary)]">不评判，只观察。</span>
+            <span className="text-[var(--nimi-text-muted)]">每一条都是他长大后回望自己的一扇小窗。</span>
+          </NimiText>
+        </div>
+        <dl className="flex shrink-0 items-end gap-7">
+          <JournalHeroStat label="本月" value={props.monthlyEntryCount} />
+          <JournalHeroStat label="累计" value={props.totalEntryCount} />
+          <JournalHeroStat label="珍藏" value={props.keepsakeEntryCount} />
+        </dl>
+      </header>
 
       <div className="relative mb-6">
         <div
@@ -185,7 +205,7 @@ export function JournalPageCapture(props: {
                 placeholder={props.guidedContext || props.observationFocus ? '参考上面的引导问题，记录你观察到的情况...' : '他刚刚做了什么？说了什么？如果遇到了困难，他是如何解决的...'}
                 tone="quiet"
                 className="w-full border-0 bg-transparent px-5 py-0 text-[14px] leading-relaxed focus-within:border-transparent focus-within:ring-0"
-                textareaClassName="min-h-[120px] resize-none px-0 py-3"
+                textareaClassName="min-h-[120px] resize-none px-0 pt-6 pb-3"
                 rows={5}
               />
 
@@ -201,7 +221,7 @@ export function JournalPageCapture(props: {
                   onClick={() => props.onCaptureModeChange('voice')}
                   tone="secondary"
                   size="sm"
-                  className="voice-note-btn min-h-0 parentos-radius-sm px-3 py-1.5 text-[13px] text-[var(--nimi-text-muted)]"
+                  className="voice-note-btn min-h-0 parentos-radius-sm border-transparent bg-[var(--nimi-action-secondary-bg)] px-3 py-1.5 text-[13px] text-[var(--nimi-text-muted)] hover:border-transparent hover:bg-[var(--nimi-action-ghost-hover)] hover:shadow-none hover:translate-y-0"
                   leadingIcon={
                     <span className="voice-note-btn__icon">
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
@@ -214,6 +234,7 @@ export function JournalPageCapture(props: {
                   <span className="voice-note-btn__ripple" aria-hidden="true" />
                   语音记事
                 </Button>
+                <span aria-hidden="true" className="mx-1 h-4 w-px bg-[var(--nimi-border-subtle)]" />
                 <IconButton
                   type="button"
                   onClick={() => props.photoInputRef.current?.click()}
@@ -297,9 +318,9 @@ export function JournalPageCapture(props: {
                   type="button"
                   onClick={props.onRequestSave}
                   disabled={props.saving || !props.canSaveText}
-                  tone={props.canSaveText ? 'primary' : 'secondary'}
+                  tone="primary"
                   size="sm"
-                  className="parentos-radius-sm px-5 py-2 text-[14px] font-medium"
+                  className="min-h-0 rounded-xl border-transparent bg-[var(--nimi-text-primary)] px-4 py-1.5 text-[13px] font-medium text-[var(--nimi-text-inverse)] shadow-[var(--nimi-elevation-base)] hover:border-transparent hover:bg-[var(--nimi-text-primary)]"
                 >
                   {props.saving ? '保存中...' : props.editingEntryId ? '保存修改' : '保存'}
                 </Button>
@@ -374,7 +395,7 @@ export function JournalPageCapture(props: {
                   disabled={props.saving || !props.canSaveVoice}
                   tone="primary"
                   size="sm"
-                  className="parentos-radius-sm px-5 py-2 text-[14px] font-medium"
+                  className="min-h-0 rounded-xl border-transparent bg-[var(--nimi-text-primary)] px-4 py-1.5 text-[13px] font-medium text-[var(--nimi-text-inverse)] shadow-[var(--nimi-elevation-base)] hover:border-transparent hover:bg-[var(--nimi-text-primary)]"
                 >
                   {props.saving ? '保存中...' : props.editingEntryId ? '保存修改' : '保存'}
                 </Button>
@@ -419,5 +440,19 @@ export function JournalPageCapture(props: {
         </Surface>
       ) : null}
     </>
+  );
+}
+
+function JournalHeroStat({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="flex flex-col items-start gap-1">
+      <dt className="text-[12px] font-medium text-[var(--nimi-text-muted)]">{label}</dt>
+      <dd className="flex items-baseline gap-2">
+        <span className="text-[32px] font-bold leading-none tracking-tight text-[var(--nimi-text-primary)]">
+          {value}
+        </span>
+        <span className="text-[12px] text-[var(--nimi-text-muted)]">条</span>
+      </dd>
+    </div>
   );
 }

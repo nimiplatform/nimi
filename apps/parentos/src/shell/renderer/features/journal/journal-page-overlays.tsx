@@ -1,10 +1,11 @@
-import { createPortal } from 'react-dom';
 import { useEffect, useRef, useState, type CSSProperties, type RefObject } from 'react';
-import { Button, IconButton, StatusBadge, Surface, TextField, cn } from '@nimiplatform/nimi-kit/ui';
+import { Button, DialogTitle, IconButton, OverlayShell, StatusBadge, Surface, TextField, cn } from '@nimiplatform/nimi-kit/ui';
 import type { JournalEntryRow } from '../../bridge/sqlite-bridge.js';
 import {
   EMOJI_CATEGORIES,
   getKeepsakeReasonLabel,
+  getLocalDateKey,
+  getLocalTimeLabel,
   KEEPSAKE_REASON_OPTIONS,
   parseSelectedTags,
   type EmojiCategory,
@@ -107,43 +108,39 @@ export function DeleteJournalEntryModal({
   const previewText = entry.textContent?.trim() || '这是一条语音或图片记录。';
   const mediaCount = parseSelectedTags(entry.photoPaths).length + (entry.voicePath ? 1 : 0);
 
-  return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--nimi-scrim-modal)] p-4" onClick={onCancel}>
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-label="删除随手记"
-        className="w-full max-w-[420px]"
-        onClick={(event) => event.stopPropagation()}
-      >
-        <Surface tone="overlay" elevation="modal" padding="md" className="parentos-radius-xl p-5">
-          <div className="mb-4">
-            <h3 className="text-[16px] font-semibold text-[var(--nimi-text-primary)]">删除这条随手记？</h3>
-            <p className="mt-1 text-[14px] leading-relaxed text-[var(--nimi-text-muted)]">
-              删除后会从列表中移除这条随手记，关联的本地语音和图片也会一起清理。
-            </p>
-          </div>
-          <Surface tone="card" elevation="base" padding="sm" className="mb-4 parentos-radius-sm p-3">
-            <p className="mb-1 text-[13px] font-medium text-[var(--nimi-text-primary)]">
-              {entry.recordedAt.split('T')[0]} {entry.recordedAt.split('T')[1]?.slice(0, 5)}
-            </p>
-            <p className="line-clamp-3 text-[14px] leading-relaxed text-[var(--nimi-text-muted)]">{previewText}</p>
-            {mediaCount > 0 ? (
-              <p className="mt-2 text-[13px] text-[var(--nimi-status-warning)]">包含 {mediaCount} 个本地媒体附件</p>
-            ) : null}
-          </Surface>
-          <div className="flex items-center justify-end gap-2">
-            <Button type="button" onClick={onCancel} disabled={deleting} tone="ghost" size="sm">
-              取消
-            </Button>
-            <Button type="button" onClick={onConfirm} disabled={deleting} tone="danger" size="sm">
-              {deleting ? '删除中...' : '确认删除'}
-            </Button>
-          </div>
-        </Surface>
+  return (
+    <OverlayShell
+      open
+      kind="dialog"
+      onClose={onCancel}
+      panelClassName="w-full max-w-[420px] parentos-radius-xl"
+      contentClassName="!p-5"
+    >
+      <DialogTitle className="sr-only">删除随手记</DialogTitle>
+      <div className="mb-4">
+        <h3 aria-hidden="true" className="text-[16px] font-semibold text-[var(--nimi-text-primary)]">删除这条随手记？</h3>
+        <p className="mt-1 text-[14px] leading-relaxed text-[var(--nimi-text-muted)]">
+          删除后会从列表中移除这条随手记，关联的本地语音和图片也会一起清理。
+        </p>
       </div>
-    </div>,
-    document.body,
+      <Surface tone="card" elevation="base" padding="sm" className="mb-4 parentos-radius-sm p-3">
+        <p className="mb-1 text-[13px] font-medium text-[var(--nimi-text-primary)]">
+          {getLocalDateKey(entry.recordedAt)} {getLocalTimeLabel(entry.recordedAt)}
+        </p>
+        <p className="line-clamp-3 text-[14px] leading-relaxed text-[var(--nimi-text-muted)]">{previewText}</p>
+        {mediaCount > 0 ? (
+          <p className="mt-2 text-[13px] text-[var(--nimi-status-warning)]">包含 {mediaCount} 个本地媒体附件</p>
+        ) : null}
+      </Surface>
+      <div className="flex items-center justify-end gap-2">
+        <Button type="button" onClick={onCancel} disabled={deleting} tone="ghost" size="sm">
+          取消
+        </Button>
+        <Button type="button" onClick={onConfirm} disabled={deleting} tone="danger" size="sm">
+          {deleting ? '删除中...' : '确认删除'}
+        </Button>
+      </div>
+    </OverlayShell>
   );
 }
 
@@ -192,96 +189,88 @@ export function KeepsakePromptModal({
         savingLabel: '保存中...',
       };
 
-  return createPortal(
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--nimi-scrim-modal)] p-4"
-      onClick={onSkip}
+  return (
+    <OverlayShell
+      open
+      kind="dialog"
+      onClose={onSkip}
+      panelClassName="flex max-h-[85vh] w-full max-w-[680px] flex-col overflow-y-auto parentos-radius-xl"
+      contentClassName="!p-0 flex flex-col"
     >
-      <Surface
-        role="dialog"
-        aria-modal="true"
-        aria-label={copy.ariaLabel}
-        tone="overlay"
-        elevation="modal"
-        padding="none"
-        className="flex max-h-[85vh] w-full max-w-[680px] flex-col overflow-y-auto parentos-radius-xl"
-        onClick={(event) => event.stopPropagation()}
-      >
-        <div className="flex items-center justify-between px-6 pt-6 pb-3">
-          <div className="flex items-center gap-2">
-            <span className="text-[20px]">⭐</span>
-            <h3 className="text-[16px] font-bold text-[var(--nimi-text-primary)]">{copy.heading}</h3>
-          </div>
-          <IconButton
-            type="button"
-            onClick={onSkip}
-            disabled={saving}
-            tone="ghost"
-            size="sm"
-            className="h-7 min-h-0 w-7 parentos-radius-full text-[var(--nimi-text-muted)]"
-            aria-label="关闭"
-            title="关闭"
-            icon="✕"
-          />
+      <DialogTitle className="sr-only">{copy.ariaLabel}</DialogTitle>
+      <div className="flex items-center justify-between px-6 pt-6 pb-3">
+        <div className="flex items-center gap-2">
+          <span className="text-[20px]">⭐</span>
+          <h3 aria-hidden="true" className="text-[16px] font-bold text-[var(--nimi-text-primary)]">{copy.heading}</h3>
         </div>
+        <IconButton
+          type="button"
+          onClick={onSkip}
+          disabled={saving}
+          tone="ghost"
+          size="sm"
+          className="h-7 min-h-0 w-7 parentos-radius-full text-[var(--nimi-text-muted)]"
+          aria-label="关闭"
+          title="关闭"
+          icon="✕"
+        />
+      </div>
 
-        <div className="px-6 pb-2 space-y-4 flex-1">
-          <Surface tone="card" elevation="base" padding="sm" className="parentos-radius-sm border-[color-mix(in_srgb,var(--nimi-status-warning)_22%,var(--nimi-border-subtle))] bg-[color-mix(in_srgb,var(--nimi-status-warning)_8%,var(--nimi-surface-card))] px-4 py-3">
-            <p className="text-[14px] font-medium text-[var(--nimi-status-warning)]">{copy.bannerTitle}</p>
-            <p className="mt-1 text-[13px] leading-relaxed text-[var(--nimi-text-muted)]">
-              {copy.bannerBody}
-            </p>
-          </Surface>
+      <div className="px-6 pb-2 space-y-4 flex-1">
+        <Surface tone="card" elevation="base" padding="sm" className="parentos-radius-sm border-[color-mix(in_srgb,var(--nimi-status-warning)_22%,var(--nimi-border-subtle))] bg-[color-mix(in_srgb,var(--nimi-status-warning)_8%,var(--nimi-surface-card))] px-4 py-3">
+          <p className="text-[14px] font-medium text-[var(--nimi-status-warning)]">{copy.bannerTitle}</p>
+          <p className="mt-1 text-[13px] leading-relaxed text-[var(--nimi-text-muted)]">
+            {copy.bannerBody}
+          </p>
+        </Surface>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <p className="mb-1 text-[13px] text-[var(--nimi-text-muted)]">标题（可选）</p>
-              <TextField
-                type="text"
-                value={title}
-                maxLength={60}
-                onChange={(event) => onTitleChange(event.target.value)}
-                placeholder="比如：第一次独自上台分享"
-                className="w-full parentos-radius-sm text-[14px]"
-              />
-            </div>
-
-            <div>
-              <p className="mb-1 text-[13px] text-[var(--nimi-text-muted)]">为什么值得珍藏（可选）</p>
-              <select
-                value={reason ?? ''}
-                onChange={(event) => onReasonChange(event.target.value ? event.target.value as KeepsakeReason : null)}
-                className="min-h-[var(--nimi-sizing-field-md-height)] w-full cursor-pointer appearance-none parentos-radius-sm border border-[var(--nimi-field-border)] bg-[var(--nimi-field-bg)] px-3 text-[14px] text-[var(--nimi-field-text)] outline-none transition-colors focus:border-[var(--nimi-field-focus)] focus:ring-[length:var(--nimi-focus-ring-width)] focus:ring-[var(--nimi-focus-ring-color)]"
-              >
-                <option value="">暂不选择</option>
-                {KEEPSAKE_REASON_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>{option.label}</option>
-                ))}
-              </select>
-            </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <p className="mb-1 text-[13px] text-[var(--nimi-text-muted)]">标题（可选）</p>
+            <TextField
+              type="text"
+              value={title}
+              maxLength={60}
+              onChange={(event) => onTitleChange(event.target.value)}
+              placeholder="比如：第一次独自上台分享"
+              className="w-full parentos-radius-sm text-[14px]"
+            />
           </div>
 
-          {reason ? (
-            <div className="flex justify-start">
-              <StatusBadge tone="warning" className="parentos-radius-full px-2.5 py-1 text-[12px] font-medium">
-                {getKeepsakeReasonLabel(reason)}
-              </StatusBadge>
-            </div>
-          ) : null}
-        </div>
-
-        <div className="mt-1 px-6 pt-3 pb-5">
-          <div className="flex items-center justify-end gap-2">
-            <Button type="button" onClick={onSkip} disabled={saving} tone="ghost" size="sm" className="parentos-radius-sm px-4 py-2 text-[14px]">
-              {copy.skipLabel}
-            </Button>
-            <Button type="button" onClick={onSave} disabled={saving} tone="primary" size="sm" className="parentos-radius-sm px-5 py-2 text-[14px] font-medium">
-              {saving ? copy.savingLabel : copy.saveLabel}
-            </Button>
+          <div>
+            <p className="mb-1 text-[13px] text-[var(--nimi-text-muted)]">为什么值得珍藏（可选）</p>
+            <select
+              value={reason ?? ''}
+              onChange={(event) => onReasonChange(event.target.value ? event.target.value as KeepsakeReason : null)}
+              className="min-h-[var(--nimi-sizing-field-md-height)] w-full cursor-pointer appearance-none parentos-radius-sm border border-[var(--nimi-field-border)] bg-[var(--nimi-field-bg)] px-3 text-[14px] text-[var(--nimi-field-text)] outline-none transition-colors focus:border-[var(--nimi-field-focus)] focus:ring-[length:var(--nimi-focus-ring-width)] focus:ring-[var(--nimi-focus-ring-color)]"
+            >
+              <option value="">暂不选择</option>
+              {KEEPSAKE_REASON_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>{option.label}</option>
+              ))}
+            </select>
           </div>
         </div>
-      </Surface>
-    </div>,
-    document.body,
+
+        {reason ? (
+          <div className="flex justify-start">
+            <StatusBadge tone="warning" className="parentos-radius-full px-2.5 py-1 text-[12px] font-medium">
+              {getKeepsakeReasonLabel(reason)}
+            </StatusBadge>
+          </div>
+        ) : null}
+      </div>
+
+      <div className="mt-1 px-6 pt-3 pb-5">
+        <div className="flex items-center justify-end gap-2">
+          <Button type="button" onClick={onSkip} disabled={saving} tone="ghost" size="sm" className="parentos-radius-sm px-4 py-2 text-[14px]">
+            {copy.skipLabel}
+          </Button>
+          <Button type="button" onClick={onSave} disabled={saving} tone="primary" size="sm" className="parentos-radius-sm px-5 py-2 text-[14px] font-medium">
+            {saving ? copy.savingLabel : copy.saveLabel}
+          </Button>
+        </div>
+      </div>
+    </OverlayShell>
   );
 }

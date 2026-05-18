@@ -26,6 +26,8 @@ import {
   EMPTY_VOICE_DRAFT,
   type EmojiCategory,
   parseSelectedTags,
+  getLocalDateKey,
+  getLocalTimeLabel,
 } from './journal-page-helpers.js';
 import { SaveConfirmationModal } from './journal-sub-components.js';
 import { JournalEntryTimeline } from './journal-entry-timeline.js';
@@ -584,11 +586,27 @@ export default function JournalPage() {
   );
   const canSaveVoice = captureMode === 'voice' && Boolean(voiceDraft.blob) && voiceDraft.status !== 'recording' && voiceDraft.status !== 'transcribing';
   const editingEntryLabel = editingEntry
-    ? `${editingEntry.recordedAt.split('T')[0]} ${editingEntry.recordedAt.split('T')[1]?.slice(0, 5) ?? ''}`.trim()
+    ? `${getLocalDateKey(editingEntry.recordedAt)} ${getLocalTimeLabel(editingEntry.recordedAt)}`.trim()
     : null;
   const draftStatusLabel = !editingEntryId && currentLocalDraftPayload && hasMeaningfulJournalLocalDraft(currentLocalDraftPayload)
     ? (currentLocalDraftSignature === lastSavedDraftSignature && lastAutosavedAt ? '已自动保存' : '未保存')
     : null;
+
+  const { monthlyEntryCount, totalEntryCount, keepsakeEntryCount } = useMemo(() => {
+    const now = new Date();
+    const monthPrefix = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    let monthly = 0;
+    let keepsake = 0;
+    for (const entry of entries) {
+      if (getLocalDateKey(entry.recordedAt).startsWith(monthPrefix)) monthly += 1;
+      if (entry.keepsake === 1) keepsake += 1;
+    }
+    return {
+      monthlyEntryCount: monthly,
+      totalEntryCount: entries.length,
+      keepsakeEntryCount: keepsake,
+    };
+  }, [entries]);
 
   /* ════════════════════════════════════════════════════════
      RENDER
@@ -668,6 +686,9 @@ export default function JournalPage() {
         onDismissExperiment={handleDismissExperiment}
         recordedAt={recordedAt}
         onRecordedAtChange={setRecordedAt}
+        monthlyEntryCount={monthlyEntryCount}
+        totalEntryCount={totalEntryCount}
+        keepsakeEntryCount={keepsakeEntryCount}
       />
 
       {/* ── Timeline entries ── */}

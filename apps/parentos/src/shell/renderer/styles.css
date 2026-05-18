@@ -57,6 +57,32 @@
   outline: 1px solid var(--nimi-border-subtle);
 }
 
+.parentos-journal-hero-title {
+  font-family:
+    "Source Han Serif SC", "Noto Serif SC", "Songti SC", "STSong",
+    "SimSun", Georgia, "Times New Roman", serif;
+}
+
+.parentos-journal-hero-title__bold {
+  font-weight: 700;
+}
+
+.parentos-journal-hero-title__tail {
+  position: relative;
+  display: inline-block;
+}
+
+.parentos-journal-hero-title__dot {
+  position: absolute;
+  right: -10px;
+  bottom: 4px;
+  display: block;
+  width: 8px;
+  height: 8px;
+  border-radius: 9999px;
+  background: var(--nimi-action-primary-bg);
+}
+
 .journal-capture-glow {
   background:
     radial-gradient(ellipse at 30% 50%, color-mix(in srgb, var(--nimi-status-info) 14%, transparent) 0%, transparent 60%),
@@ -469,7 +495,7 @@ input[type="time"]::-webkit-calendar-picker-indicator {
 .report-monthly-page {
   --report-monthly-serif: var(--font-serif, "Noto Serif SC", "Source Han Serif SC", "Songti SC", "STSong", Georgia, serif);
   --report-monthly-mono: var(--nimi-font-mono, "JetBrains Mono", "SF Mono", ui-monospace, monospace);
-  max-width: 640px;
+  max-width: 100%;
   margin: 0 auto;
   padding: 56px 48px 80px;
   background: linear-gradient(180deg, color-mix(in srgb, var(--nimi-surface-card) 92%, var(--nimi-status-warning) 8%) 0%, var(--nimi-surface-card) 52%, color-mix(in srgb, var(--nimi-surface-card) 92%, var(--nimi-surface-panel) 8%) 100%);

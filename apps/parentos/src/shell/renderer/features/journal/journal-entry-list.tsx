@@ -1,7 +1,7 @@
 import type { ChildProfile } from '../../app-shell/app-store.js';
 import { OBSERVATION_DIMENSIONS } from '../../knowledge-base/index.js';
 import type { JournalEntryRow } from '../../bridge/sqlite-bridge.js';
-import { parseSelectedTags } from './journal-page-helpers.js';
+import { getLocalDateKey, parseSelectedTags } from './journal-page-helpers.js';
 
 type JournalEntryListProps = {
   child: ChildProfile;
@@ -26,7 +26,7 @@ export function JournalEntryList({ child, entries, onEdit }: JournalEntryListPro
         return (
           <div key={entry.entryId} className="rounded-lg border p-4">
             <div className="mb-2 flex flex-wrap items-center gap-2">
-              <span className="text-xs text-gray-400">{entry.recordedAt.split('T')[0]}</span>
+              <span className="text-xs text-gray-400">{getLocalDateKey(entry.recordedAt)}</span>
               {onEdit && (
                 <button onClick={() => onEdit(entry.entryId)} title="编辑"
                   className="ml-auto w-6 h-6 rounded-full flex items-center justify-center transition-colors hover:bg-gray-100"

@@ -9,6 +9,7 @@ import {
   groupEntriesByDate,
   formatDateLabel,
   getKeepsakeReasonLabel,
+  getLocalTimeLabel,
 } from './journal-page-helpers.js';
 
 export interface RecorderProfile {
@@ -227,15 +228,15 @@ export function JournalEntryTimeline({
                       padding="none"
                       className="group overflow-hidden parentos-radius-xl transition-all"
                     >
-                      <div
-                        className={cn('h-[3px]', isKeepsake ? 'bg-[var(--nimi-status-warning)]' : 'bg-[var(--nimi-action-primary-bg)]')}
-                      />
+                      {isKeepsake ? (
+                        <div className="h-[3px] bg-[var(--nimi-status-warning)]" />
+                      ) : null}
 
                       <div className="p-4">
                         <div className="mb-2.5 flex items-center justify-between gap-3">
                           <div className="flex flex-wrap items-center gap-2">
                             <span className="text-[13px] font-medium text-[var(--nimi-text-primary)]">
-                              {entry.recordedAt.split('T')[1]?.slice(0, 5)}
+                              {getLocalTimeLabel(entry.recordedAt)}
                             </span>
                             {dimension ? (
                               <StatusBadge tone="success" className="gap-1 px-2 py-0.5 text-[12px] font-medium">

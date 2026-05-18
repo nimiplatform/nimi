@@ -336,10 +336,28 @@ export function parseSelectedTags(selectedTags: string | null) {
   }
 }
 
+function pad2(n: number): string {
+  return n < 10 ? `0${n}` : String(n);
+}
+
+/** Convert an ISO timestamp to a local-time "YYYY-MM-DD" key. */
+export function getLocalDateKey(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso.split('T')[0] ?? iso;
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+}
+
+/** Convert an ISO timestamp to a local-time "HH:MM" label. */
+export function getLocalTimeLabel(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso.split('T')[1]?.slice(0, 5) ?? '';
+  return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+}
+
 export function groupEntriesByDate(entries: JournalEntryRow[]): [string, JournalEntryRow[]][] {
   const map = new Map<string, JournalEntryRow[]>();
   for (const e of entries) {
-    const d = e.recordedAt.split('T')[0]!;
+    const d = getLocalDateKey(e.recordedAt);
     const list = map.get(d);
     if (list) list.push(e);
     else map.set(d, [e]);
@@ -348,9 +366,12 @@ export function groupEntriesByDate(entries: JournalEntryRow[]): [string, Journal
 }
 
 export function formatDateLabel(iso: string): string {
-  const today = new Date().toISOString().slice(0, 10);
+  const now = new Date();
+  const today = `${now.getFullYear()}-${pad2(now.getMonth() + 1)}-${pad2(now.getDate())}`;
   if (iso === today) return '今天';
-  const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+  const y = new Date(now);
+  y.setDate(y.getDate() - 1);
+  const yesterday = `${y.getFullYear()}-${pad2(y.getMonth() + 1)}-${pad2(y.getDate())}`;
   if (iso === yesterday) return '昨天';
   const [, m, d] = iso.split('-');
   return `${parseInt(m!, 10)}月${parseInt(d!, 10)}日`;

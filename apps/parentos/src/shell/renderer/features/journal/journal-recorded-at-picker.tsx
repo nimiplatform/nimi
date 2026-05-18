@@ -29,7 +29,7 @@ export function RecordedAtPicker(props: {
           'min-h-0 parentos-radius-sm px-2.5 py-1.5 text-[13px]',
           isCustom
             ? 'border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_30%,transparent)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)] text-[var(--nimi-action-primary-bg)]'
-            : 'border-transparent bg-[var(--nimi-action-secondary-bg)] text-[var(--nimi-text-muted)] hover:bg-[var(--nimi-action-ghost-hover)]',
+            : 'border-transparent bg-transparent text-[var(--nimi-text-muted)] shadow-none hover:border-transparent hover:bg-[var(--nimi-action-ghost-hover)] hover:shadow-none hover:translate-y-0',
         )}
         leadingIcon={
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">

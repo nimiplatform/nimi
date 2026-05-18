@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Button, StatusBadge, Surface, TextareaField } from '@nimiplatform/nimi-kit/ui';
+import { Button, NimiText, StatusBadge, Surface, TextareaField } from '@nimiplatform/nimi-kit/ui';
 import { ArrowRight, ChevronDown, Eye, Pencil, Star } from 'lucide-react';
 import { ProfileDatePicker } from '../profile/profile-date-picker.js';
 import { useAppStore } from '../../app-shell/app-store.js';
@@ -386,10 +386,18 @@ export default function ReportsPage() {
   return (
     <div className="report-page-shell hide-scrollbar overflow-y-auto">
       <div className="report-page-container">
-        <div className="mb-5">
-          <h1 className="report-page-title">成长报告</h1>
-          <p className="report-page-subtitle">基于本地数据自动生成，每月更新</p>
-        </div>
+        <header className="mb-6">
+          <h1 className="parentos-journal-hero-title parentos-journal-hero-title__bold text-[44px] leading-[1.05] tracking-tight text-[var(--nimi-text-primary)]">
+            成长
+            <span className="parentos-journal-hero-title__tail">
+              报告
+              <span className="parentos-journal-hero-title__dot" aria-hidden="true" />
+            </span>
+          </h1>
+          <NimiText as="p" role="body" className="mt-3 text-[14px] leading-relaxed text-[var(--nimi-text-muted)]">
+            基于本地数据自动生成，每月更新
+          </NimiText>
+        </header>
 
         {errorMessage && <div className="report-message report-message--error">{errorMessage}</div>}
         {infoMessage && <div className="report-message report-message--success">{infoMessage}</div>}
