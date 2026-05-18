@@ -53,7 +53,7 @@ rules:
     evidence_refs:
       - platform_kernel_consistency
     evidence_requirement: structural_required
-    evidence_scope_note: structural only; default-experience alias hint consumption is SDK `S-AICONF-001` consumer validation
+    evidence_scope_note: structural only; AIProfile selection reference consumption is SDK `S-AICONF-001` consumer validation
   - rule_id: P-FPI-004
     evidence_refs:
       - platform_kernel_consistency

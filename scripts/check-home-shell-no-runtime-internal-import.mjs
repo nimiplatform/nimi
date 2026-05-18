@@ -8,8 +8,8 @@ import { fileURLToPath } from 'node:url';
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '..');
 
-// Paths that are Home shell / Desktop renderer / Desktop default-experience
-// bridge. These paths must only consume the SDK / typed adapter interface;
+// Paths that are Home shell / Desktop renderer AIProfile consumer code.
+// These paths must only consume the SDK / typed Runtime client interface;
 // they must NOT import any Runtime-internal Go path (the Go package is in a
 // separate process / language, so TS imports cannot literally cross the
 // boundary, but the check prevents accidental re-export of runtime-internal
@@ -17,7 +17,7 @@ const repoRoot = path.resolve(scriptDir, '..');
 // imports from runtime/internal-* TS packages if any exist).
 const TARGET_GLOBS = [
   'apps/desktop/src/shell/renderer',
-  'apps/desktop/src/runtime/default-experience-bridge',
+  'apps/desktop/src/runtime/platform-catalog',
 ];
 
 const SOURCE_EXTENSIONS = new Set(['.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs']);
@@ -92,7 +92,7 @@ async function runSelfTest() {
   const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'check-home-runtime-internal-'));
   const negative = path.join(tempRoot, 'negative.ts');
   const positive = path.join(tempRoot, 'positive.ts');
-  await fs.writeFile(negative, "import { DefaultExperienceClient } from '@nimiplatform/sdk/runtime';\n", 'utf8');
+  await fs.writeFile(negative, "import { NimiAppClient } from '@nimiplatform/sdk/runtime';\n", 'utf8');
   await fs.writeFile(positive, "import { x } from '@nimiplatform/sdk/runtime/internal/private';\n", 'utf8');
   try {
     const neg = await collectViolations([negative]);
@@ -116,7 +116,7 @@ async function main() {
   }
   const violations = await collectViolations(files);
   if (violations.length > 0) {
-    process.stderr.write('Home shell + Desktop default-experience bridge must NOT import runtime-internal paths.\n');
+    process.stderr.write('Home shell + Desktop platform-catalog must NOT import runtime-internal paths.\n');
     for (const v of violations) process.stderr.write(`- ${v}\n`);
     process.exitCode = 1;
     return;

@@ -3,8 +3,8 @@
 // (P-COLD-001..P-COLD-008).
 //
 // Cold start spans the time between process launch and when all
-// upstream authorities (Runtime daemon, account, default experience
-// profile, materialization, app registry, cognition memory) report
+// upstream authorities (Runtime daemon, account, factory AIProfile
+// selection, materialization, app registry, cognition memory) report
 // ready. The package enforces P-COLD-001's closed enum of allowed
 // fail-closed states and forbids projecting empty success or
 // best-effort-ready.
@@ -55,12 +55,12 @@ func (s State) IsNonReady() bool {
 // States. An empty value (zero String) is treated as `unavailable` to
 // enforce fail-closed semantics.
 type UpstreamInputs struct {
-	RuntimeDaemon          State
-	Account                State
-	DefaultExperienceProfile State
-	Materialization        State
-	AppRegistry            State
-	CognitionMemory        State
+	RuntimeDaemon      State
+	Account            State
+	AIProfileSelection State
+	Materialization    State
+	AppRegistry        State
+	CognitionMemory    State
 }
 
 // Projection is the aggregated cold-start state plus the upstream input

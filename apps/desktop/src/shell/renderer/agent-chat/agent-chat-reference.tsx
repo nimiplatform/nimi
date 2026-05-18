@@ -28,8 +28,8 @@ export interface AgentChatBinding {
 }
 
 // AgentChatExecutor mirrors the typed apply path. The concrete
-// implementation is wired by the SDK Default Experience client; this
-// interface keeps the renderer decoupled from transport.
+// implementation is wired by the host-side AIProfile apply surface;
+// this interface keeps the renderer decoupled from transport.
 export interface AgentChatExecutor {
   applyProfile(scopeRef: AIScopeRef, profileId: string): Promise<{ applied: boolean }>;
 }
@@ -46,8 +46,8 @@ export interface AgentChatReferenceProps {
 // for AIScopeRef alongside aiProfile.apply) is satisfied.
 //
 // Note: aiProfile.apply is the canonical atomic overwrite path per
-// P-DXP-001 D-AIPC-005; the renderer must never construct or mutate
-// AIConfig directly.
+// D-AIPC-005 (Desktop AIConfig authority); the renderer must never
+// construct or mutate AIConfig directly.
 export function AgentChatReference({ binding, executor }: AgentChatReferenceProps): ReactElement {
   // Demonstrate the apply-via-AIScopeRef pattern so the gate sees both
   // identifiers. Real wiring is event-driven (onClick handler etc.); this
@@ -55,7 +55,7 @@ export function AgentChatReference({ binding, executor }: AgentChatReferenceProp
   // component composes it.
   const handleApplyProfile = async (): Promise<void> => {
     if (!binding.profileId) return;
-    // aiProfile.apply(scopeRef, profileId) per P-DXP-001
+    // aiProfile.apply(scopeRef, profileId) per D-AIPC-005
     await executor.applyProfile(binding.scopeRef, binding.profileId);
   };
 

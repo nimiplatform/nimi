@@ -76,18 +76,18 @@
 每个 surface 行必须显式列出其 source authority 与 forbidden ownership；不允许
 出现"集中式 generic surface"既消费多 authority 又不声明边界。
 
-## P-HOME-005 — Default Experience Consumption
+## P-HOME-005 — AIProfile Selection Consumption
 
 `MUST`：`Nimi Home` 必须通过
 `aiProfile.apply(scopeRef, profileId)`（`S-AICONF-001`）消费
-`Default Experience Profile`（`P-DXP-001..P-DXP-012`）的 alias 投影。
+Platform-owned AIProfile selection policy（`P-AIPS-001..P-AIPS-012`）输出的
+factory AIProfile reference。
 
-UI / first-run / shell / first-party app default-experience 绑定代码均不得
-内嵌 provider / connector / engine / model 字符串常量。
+UI / first-run / shell / first-party app AIProfile 绑定代码均不得内嵌
+provider / connector / engine / model 字符串常量。
 
-mechanical guard：
-`check:no-default-experience-provider-model-constants`（见
-`enforcement-gates-required.md` 与 `P-DXP-008`）。
+mechanical guard：Wave 4 重命名后的 no-provider/no-model gate（见
+`enforcement-gates-required.md` 与 `P-AIPS-008`）。
 
 ## P-HOME-006 — Agent Chat Placement Boundary
 
@@ -145,7 +145,7 @@ health、Library/Discovery 等）。
 
 - `.nimi/spec/platform/kernel/architecture-contract.md` — `P-ARCH-001..P-ARCH-021`
 - `.nimi/spec/platform/kernel/ai-scope-contract.md` — `P-AISC-001..P-AISC-005`
-- `.nimi/spec/platform/kernel/default-experience-profile-contract.md` — `P-DXP-001..P-DXP-012`
+- `.nimi/spec/platform/kernel/ai-profile-selection-policy-contract.md` — `P-AIPS-001..P-AIPS-012`
 - `.nimi/spec/platform/kernel/nimi-self-update-contract.md` — `P-SUPD-001..P-SUPD-008`
 - `.nimi/spec/platform/kernel/nimi-package-release-contract.md` — `P-PKGREL-001..P-PKGREL-008`
 - `.nimi/spec/platform/kernel/cold-start-authority-contract.md` — `P-COLD-001..P-COLD-008`

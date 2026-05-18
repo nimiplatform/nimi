@@ -19,8 +19,7 @@ import {
   type LibraryProjection,
   type UpstreamInputs,
 } from '../../first-run/index.js';
-import { DefaultExperienceBridge } from '../../../../runtime/default-experience-bridge/index.js';
-import { createDesktopHomeLiveBridge, type DesktopDefaultExperienceProjection, type DesktopHomeLiveBridge } from './nimi-home-live-bridge.js';
+import { createDesktopHomeLiveBridge, type NimiHomeAIProfileProjection, type DesktopHomeLiveBridge } from './nimi-home-live-bridge.js';
 
 const UNAVAILABLE_AGENT_ANCHOR_ID = 'runtime-anchor-unavailable';
 
@@ -39,15 +38,15 @@ function runtimeDefaultsState(hasRuntimeDefaults: boolean): ColdStartState {
   return hasRuntimeDefaults ? 'ready' : 'setup-required';
 }
 
-function useDefaultExperienceProjection(liveBridge: DesktopHomeLiveBridge): DesktopDefaultExperienceProjection {
-  const [projection, setProjection] = useState<DesktopDefaultExperienceProjection>({
+function useAIProfileSelectionProjection(liveBridge: DesktopHomeLiveBridge): NimiHomeAIProfileProjection {
+  const [projection, setProjection] = useState<NimiHomeAIProfileProjection>({
     profileState: 'in-progress',
     materializationState: 'in-progress',
   });
 
   useEffect(() => {
     let cancelled = false;
-    void liveBridge.projectDefaultExperience().then((next) => {
+    void liveBridge.projectAIProfileSelection().then((next) => {
       if (!cancelled) setProjection(next);
     });
     return () => {
@@ -59,38 +58,36 @@ function useDefaultExperienceProjection(liveBridge: DesktopHomeLiveBridge): Desk
 }
 
 function useFirstRunReadinessProjection(
-  liveBridge: DesktopHomeLiveBridge,
-  defaultExperience: DesktopDefaultExperienceProjection,
+  aiProfileSelection: NimiHomeAIProfileProjection,
   appRegistryState: ColdStartState,
 ): FirstRunReadinessProjection | null {
   const bootstrapReady = useAppStore((state) => state.bootstrapReady);
   const bootstrapError = useAppStore((state) => state.bootstrapError);
   const authStatus = useAppStore((state) => state.auth.status);
   const runtimeDefaults = useAppStore((state) => state.runtimeDefaults);
-  const bridge = useMemo(() => new DefaultExperienceBridge(liveBridge.defaultExperienceBridge), [liveBridge]);
   const inputs = useMemo<UpstreamInputs>(() => {
     return {
       runtimeDaemon: runtimeDaemonState(bootstrapReady, bootstrapError),
       account: accountState(authStatus),
-      defaultExperienceProfile: defaultExperience.profileState,
-      materialization: defaultExperience.materializationState === 'unavailable' && runtimeDefaults
+      aiProfileSelection: aiProfileSelection.profileState,
+      materialization: aiProfileSelection.materializationState === 'unavailable' && runtimeDefaults
         ? runtimeDefaultsState(Boolean(runtimeDefaults))
-        : defaultExperience.materializationState,
+        : aiProfileSelection.materializationState,
       appRegistry: appRegistryState,
       cognitionMemory: 'unavailable',
     };
-  }, [appRegistryState, authStatus, bootstrapError, bootstrapReady, defaultExperience, runtimeDefaults]);
+  }, [aiProfileSelection, appRegistryState, authStatus, bootstrapError, bootstrapReady, runtimeDefaults]);
   const [projection, setProjection] = useState<FirstRunReadinessProjection | null>(null);
 
   useEffect(() => {
     let cancelled = false;
-    void projectFirstRunReadiness(bridge, inputs).then((next) => {
+    void projectFirstRunReadiness(inputs).then((next) => {
       if (!cancelled) setProjection(next);
     });
     return () => {
       cancelled = true;
     };
-  }, [bridge, inputs]);
+  }, [inputs]);
 
   return projection;
 }
@@ -130,14 +127,14 @@ function LoadingProjection({ label }: { label: string }): ReactElement {
 
 export function NimiHomePanel(): ReactElement {
   const liveBridge = useMemo(() => createDesktopHomeLiveBridge(), []);
-  const defaultExperience = useDefaultExperienceProjection(liveBridge);
+  const aiProfileSelection = useAIProfileSelectionProjection(liveBridge);
   const { library, discovery, appRegistryState } = useAppRegistryProjections(liveBridge);
-  const readiness = useFirstRunReadinessProjection(liveBridge, defaultExperience, appRegistryState);
+  const readiness = useFirstRunReadinessProjection(aiProfileSelection, appRegistryState);
   const agentChatBinding = useMemo<AgentChatBinding>(() => ({
     scopeRef: { kind: 'first-run', scopeId: 'nimi-home-agent-chat' },
     conversationAnchorId: UNAVAILABLE_AGENT_ANCHOR_ID,
-    profileId: defaultExperience.profileId,
-  }), [defaultExperience.profileId]);
+    profileId: aiProfileSelection.profileId,
+  }), [aiProfileSelection.profileId]);
   const agentChatExecutor = useMemo<AgentChatExecutor>(() => ({
     async applyProfile(scopeRef, profileId) {
       return liveBridge.applyAgentChatProfile(scopeRef, profileId);

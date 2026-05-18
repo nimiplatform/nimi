@@ -46,7 +46,7 @@ const nimiKitRegistryTable = readYaml('.nimi/spec/platform/kernel/tables/nimi-ki
 const appSliceAdmissionsTable = readYaml('.nimi/spec/platform/kernel/tables/app-slice-admissions.yaml');
 const auditEvidenceRootsTable = readYaml('.nimi/spec/platform/kernel/tables/audit-evidence-roots.yaml');
 const packageAuthorityAdmissionsTable = readYaml('.nimi/spec/platform/kernel/tables/package-authority-admissions.yaml');
-const defaultExperienceProfilesTable = readYaml('.nimi/spec/platform/kernel/tables/default-experience-profiles.yaml');
+const aiProfileFactoryCatalogTable = readYaml('.nimi/spec/platform/kernel/tables/ai-profile-factory-catalog.yaml');
 const nimiAppRegistryTable = readYaml('.nimi/spec/platform/kernel/tables/nimi-app-registry.yaml');
 const nimiAppTrustTiersTable = readYaml('.nimi/spec/platform/kernel/tables/nimi-app-trust-tiers.yaml');
 const ruleEvidenceTable = readYaml('.nimi/spec/platform/kernel/tables/rule-evidence.yaml');
@@ -343,7 +343,7 @@ const requiredKernelFiles = [
   'app-slice-admission-contract.md',
   'web-release-contract.md',
   'package-authority-admission-contract.md',
-  'default-experience-profile-contract.md',
+  'ai-profile-selection-policy-contract.md',
   'nimi-home-contract.md',
   'nimi-self-update-contract.md',
   'nimi-package-release-contract.md',
@@ -361,7 +361,7 @@ const requiredKernelFiles = [
   'tables/app-slice-admissions.yaml',
   'tables/audit-evidence-roots.yaml',
   'tables/package-authority-admissions.yaml',
-  'tables/default-experience-profiles.yaml',
+  'tables/ai-profile-factory-catalog.yaml',
   'tables/nimi-app-registry.yaml',
   'tables/nimi-app-trust-tiers.yaml',
   'tables/error-code-mapping.yaml',
@@ -396,7 +396,7 @@ const kernelContracts = [
   'app-slice-admission-contract.md',
   'web-release-contract.md',
   'package-authority-admission-contract.md',
-  'default-experience-profile-contract.md',
+  'ai-profile-selection-policy-contract.md',
   'nimi-home-contract.md',
   'nimi-self-update-contract.md',
   'nimi-package-release-contract.md',
@@ -467,7 +467,7 @@ const yamlTables = [
   { name: 'app-slice-admissions.yaml', data: appSliceAdmissionsTable },
   { name: 'audit-evidence-roots.yaml', data: auditEvidenceRootsTable },
   { name: 'package-authority-admissions.yaml', data: packageAuthorityAdmissionsTable },
-  { name: 'default-experience-profiles.yaml', data: defaultExperienceProfilesTable },
+  { name: 'ai-profile-factory-catalog.yaml', data: aiProfileFactoryCatalogTable },
   { name: 'nimi-app-registry.yaml', data: nimiAppRegistryTable },
   { name: 'nimi-app-trust-tiers.yaml', data: nimiAppTrustTiersTable },
 ];

@@ -34,14 +34,14 @@ surfaces:
     owner: desktop_nimi_home_shell
     source_authority:
       - .nimi/spec/platform/kernel/cold-start-authority-contract.md
-      - .nimi/spec/platform/kernel/default-experience-profile-contract.md
+      - .nimi/spec/platform/kernel/ai-profile-selection-policy-contract.md
       - .nimi/spec/runtime/kernel/local-environment-consumer-activation-contract.md
     allowed_projection_scope:
       - cold_start_state_per_P_COLD_001
-      - default_experience_profile_state_per_P_DXP_010
+      - ai_profile_state_per_P_AIPS_010
       - runtime_activation_gate_state_per_K_LENV_ACT_005
     forbidden_ownership:
-      - default_experience_alias_definition
+      - ai_profile_selection_authority
       - host_capability_profile_authority
       - selected_source_record_authority
       - provider_or_model_constant
@@ -143,12 +143,12 @@ surfaces:
     owner: desktop_nimi_home_shell
     source_authority:
       - .nimi/spec/desktop/kernel/ai-profile-config-contract.md
-      - .nimi/spec/platform/kernel/default-experience-profile-contract.md
+      - .nimi/spec/platform/kernel/ai-profile-selection-policy-contract.md
     allowed_projection_scope:
       - scope_bound_aiconfig_edit_per_D_AIPC_011
-      - default_experience_alias_selection_per_P_DXP_010
+      - ai_profile_selection_per_P_AIPS_010
     forbidden_ownership:
-      - provider_or_model_constant_per_P_DXP_008
+      - provider_or_model_constant_per_P_AIPS_008
       - selected_source_record_authority
     source_rule: D-HOME-009
 

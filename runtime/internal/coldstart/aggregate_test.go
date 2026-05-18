@@ -7,12 +7,12 @@ import (
 
 func allReady() UpstreamInputs {
 	return UpstreamInputs{
-		RuntimeDaemon:          StateReady,
-		Account:                StateReady,
-		DefaultExperienceProfile: StateReady,
-		Materialization:        StateReady,
-		AppRegistry:            StateReady,
-		CognitionMemory:        StateReady,
+		RuntimeDaemon:      StateReady,
+		Account:            StateReady,
+		AIProfileSelection: StateReady,
+		Materialization:    StateReady,
+		AppRegistry:        StateReady,
+		CognitionMemory:    StateReady,
 	}
 }
 
@@ -151,7 +151,7 @@ func TestAggregate_NeverReturnsReadyWhenAnyUpstreamIsNotReady(t *testing.T) {
 	}{
 		{"runtime-daemon", func(i *UpstreamInputs, s State) { i.RuntimeDaemon = s }},
 		{"account", func(i *UpstreamInputs, s State) { i.Account = s }},
-		{"default-experience-profile", func(i *UpstreamInputs, s State) { i.DefaultExperienceProfile = s }},
+		{"ai-profile-selection", func(i *UpstreamInputs, s State) { i.AIProfileSelection = s }},
 		{"materialization", func(i *UpstreamInputs, s State) { i.Materialization = s }},
 		{"app-registry", func(i *UpstreamInputs, s State) { i.AppRegistry = s }},
 		{"cognition-memory", func(i *UpstreamInputs, s State) { i.CognitionMemory = s }},
@@ -176,7 +176,7 @@ func TestAggregate_AllUpstreamsConsidered(t *testing.T) {
 	expected := map[string]func(i *UpstreamInputs){
 		"runtime-daemon":             func(i *UpstreamInputs) { i.RuntimeDaemon = StateFailed },
 		"account":                    func(i *UpstreamInputs) { i.Account = StateFailed },
-		"default-experience-profile": func(i *UpstreamInputs) { i.DefaultExperienceProfile = StateFailed },
+		"ai-profile-selection":       func(i *UpstreamInputs) { i.AIProfileSelection = StateFailed },
 		"materialization":            func(i *UpstreamInputs) { i.Materialization = StateFailed },
 		"app-registry":               func(i *UpstreamInputs) { i.AppRegistry = StateFailed },
 		"cognition-memory":           func(i *UpstreamInputs) { i.CognitionMemory = StateFailed },

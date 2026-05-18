@@ -83,7 +83,7 @@ rules:
     evidence_refs:
       - platform_kernel_consistency
     evidence_requirement: structural_required
-    evidence_scope_note: structural only; runtime enforcement of no-provider/no-model constants is owned by Wave 1 mechanical guard `check:no-default-experience-provider-model-constants`
+    evidence_scope_note: structural only; runtime enforcement of no-provider/no-model constants is owned by the Wave 4 mechanical guard registered under `P-AIPS-008`
   - rule_id: P-HOME-006
     evidence_refs:
       - platform_kernel_consistency
@@ -218,7 +218,7 @@ rules:
     evidence_refs:
       - platform_kernel_consistency
     evidence_requirement: structural_required
-    evidence_scope_note: structural only; Default Experience Profile recommendation owner split is enforced by Wave 2 `P-DXP-*` consumer validation
+    evidence_scope_note: structural only; AIProfile selection policy owner split is enforced by Wave 2 `P-AIPS-*` consumer validation
   - rule_id: P-COLD-007
     evidence_refs:
       - platform_kernel_consistency

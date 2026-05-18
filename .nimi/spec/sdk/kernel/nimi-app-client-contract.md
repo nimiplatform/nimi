@@ -70,9 +70,9 @@ collapse 多种 fail-closed reason。
 ## S-APP-006 — Projection Family Reuse
 
 `MUST`：SDK Nimi App client surface 复用 `S-AICONF-001..S-AICONF-006`
-与 `S-RUNTIME-119` 的 typed projection paths；与 default-experience
-alias / runtime local environment 的 binding 通过这些 projection 一致
-表达。
+与 `S-RUNTIME-119` 的 typed projection paths；与 factory AIProfile
+selection / runtime local environment 的 binding 通过这些 projection
+一致表达。
 
 `MUST NOT`：不引入第二套 projection family；不暴露 raw runtime / realm /
 cognition transport。
@@ -103,6 +103,6 @@ permission fabric 与 Realm audit 拥有 audit truth。
 - `.nimi/spec/platform/kernel/mod-extension-retirement-contract.md` — `P-MOEX-001..P-MOEX-006`
 - `.nimi/spec/platform/kernel/tables/nimi-app-registry.yaml`
 - `.nimi/spec/platform/kernel/tables/nimi-app-trust-tiers.yaml`
-- `.nimi/spec/platform/kernel/default-experience-profile-contract.md` — `P-DXP-001..P-DXP-012`
+- `.nimi/spec/platform/kernel/ai-profile-selection-policy-contract.md` — `P-AIPS-001..P-AIPS-012`
 - `.nimi/spec/platform/kernel/ai-scope-contract.md` — `P-AISC-001..P-AISC-005`
 - `.nimi/spec/runtime/kernel/local-engine-contract.md` — `K-LENG-024..K-LENG-028`

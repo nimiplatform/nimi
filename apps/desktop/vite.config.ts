@@ -264,7 +264,6 @@ export default defineConfig(({ mode }) => {
         { find: '@nimiplatform/sdk/ai-provider', replacement: path.resolve(__dirname, '../../sdk/src/ai-provider/index.ts') },
         { find: '@nimiplatform/sdk/app', replacement: path.resolve(__dirname, '../../sdk/src/app/index.ts') },
         { find: '@nimiplatform/sdk/runtime/agent-identity', replacement: path.resolve(__dirname, '../../sdk/src/runtime/agent-identity/index.ts') },
-        { find: '@nimiplatform/sdk/scope/default-experience', replacement: path.resolve(__dirname, '../../sdk/src/scope/default-experience/index.ts') },
         { find: '@nimiplatform/sdk/scope/permission', replacement: path.resolve(__dirname, '../../sdk/src/scope/permission/index.ts') },
         { find: '@nimiplatform/sdk/scope', replacement: path.resolve(__dirname, '../../sdk/src/scope/index.ts') },
         { find: '@nimiplatform/sdk/mod/lifecycle', replacement: path.resolve(__dirname, '../../sdk/src/mod/lifecycle.ts') },

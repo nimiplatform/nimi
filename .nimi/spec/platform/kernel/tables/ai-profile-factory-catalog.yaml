@@ -1,7 +1,7 @@
 version: 1
 table_family: product_catalog
 owner: platform
-catalog_id: platform_default_experience_profiles
+catalog_id: platform_ai_profile_factory_catalog
 entries:
   - profiles_1
   - profiles_2
@@ -15,12 +15,18 @@ entries:
   - cloud-only profiles must not request local environment activation
   - applicable_scopes is a closed enum of first-run, first-party-app, scope-bound-apply
 
-# Canonical Default Experience Profile catalog — platform recommendation/catalog authority.
-# See default-experience-profile-contract.md (P-DXP-001..P-DXP-012).
+# Canonical factory AIProfile catalog — Platform-owned authority for the
+# factory `AIProfile` rows admitted under the AIProfile selection policy
+# (see ai-profile-selection-policy-contract.md, P-AIPS-001..P-AIPS-012).
 # Rows are dimensioned over privacy_posture x compute_posture x capability_set x routing_policy.
+# AIProfile portable payload is owned by Desktop kernel (D-AIPC-002, D-AIPC-007);
+# this table records the admitted readable aliases plus the selection-policy
+# inputs consumed by the Platform-owned AIProfile selection policy. The
+# selection-policy input fields are NOT part of the live AIConfig and are NOT
+# written by aiProfile.apply.
 
 profile_schema:
-  owner: platform_default_experience_profile_catalog
+  owner: platform_ai_profile_factory_catalog
   fields:
     - alias
     - privacy_posture
@@ -76,7 +82,7 @@ profiles:
       - first-run
       - first-party-app
       - scope-bound-apply
-    source_rule: P-DXP-002
+    source_rule: P-AIPS-002
 
   - alias: local-standard
     privacy_posture: local-preferred
@@ -99,7 +105,7 @@ profiles:
       - first-run
       - first-party-app
       - scope-bound-apply
-    source_rule: P-DXP-002
+    source_rule: P-AIPS-002
 
   - alias: local-speech-ready
     privacy_posture: local-preferred
@@ -129,7 +135,7 @@ profiles:
       - first-run
       - first-party-app
       - scope-bound-apply
-    source_rule: P-DXP-002
+    source_rule: P-AIPS-002
 
   - alias: local-gpu
     privacy_posture: local-preferred
@@ -167,7 +173,7 @@ profiles:
       - first-run
       - first-party-app
       - scope-bound-apply
-    source_rule: P-DXP-002
+    source_rule: P-AIPS-002
 
   - alias: hybrid-recommended
     privacy_posture: cloud-ok
@@ -204,4 +210,4 @@ profiles:
       - first-run
       - first-party-app
       - scope-bound-apply
-    source_rule: P-DXP-002
+    source_rule: P-AIPS-002

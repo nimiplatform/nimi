@@ -16,7 +16,7 @@ import type {
 const STEP_LABELS: Record<FirstRunStep, string> = {
   runtimeDaemon: 'Runtime',
   account: 'Account',
-  defaultExperienceProfile: 'Default Experience Profile',
+  aiProfileSelection: 'AIProfile Selection',
   materialization: 'Local Environment',
   appRegistry: 'App Registry',
   cognitionMemory: 'Memory',

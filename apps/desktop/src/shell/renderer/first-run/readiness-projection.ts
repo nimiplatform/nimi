@@ -1,52 +1,86 @@
 // First-Run Readiness Projection logic.
 //
-// Pure function that takes the Wave 1 DefaultExperienceBridge and an
-// UpstreamInputs snapshot, returns a FirstRunReadinessProjection
-// suitable for React rendering. Fail-closed: when bridge throws or
-// returns non-canonical state, the projection reports the upstream as
-// `unavailable`, never `ready`.
+// Pure function that takes an `UpstreamInputs` snapshot and returns a
+// `FirstRunReadinessProjection` suitable for React rendering.
+// Fail-closed: if any upstream is not strictly `ready`, the projection
+// surfaces the worst-state upstream and never claims `ready`.
 
-import { DefaultExperienceBridge } from '../../../runtime/default-experience-bridge/index.js';
 import type {
   ColdStartProjection,
   ColdStartState,
   UpstreamInputs,
-} from '../../../runtime/default-experience-bridge/index.js';
+} from './types.js';
 import { FIRST_RUN_STEPS, type FirstRunReadinessProjection, type FirstRunStep, type FirstRunStepProjection } from './types.js';
+
+const STATE_PRIORITY: readonly ColdStartState[] = [
+  'unsupported',
+  'failed',
+  'unavailable',
+  'stale-projection',
+  'setup-required',
+  'needs-confirmation',
+  'in-progress',
+  'ready',
+];
+
+const CANONICAL_STATES: ReadonlySet<ColdStartState> = new Set(STATE_PRIORITY);
+
+function isCanonicalState(value: unknown): value is ColdStartState {
+  return typeof value === 'string' && CANONICAL_STATES.has(value as ColdStartState);
+}
+
+function normalizeStateOrUnavailable(state: ColdStartState): ColdStartState {
+  return isCanonicalState(state) ? state : 'unavailable';
+}
+
+function priorityIndex(state: ColdStartState): number {
+  const idx = STATE_PRIORITY.indexOf(state);
+  return idx >= 0 ? idx : -1;
+}
 
 function pickStateForStep(inputs: UpstreamInputs, step: FirstRunStep): ColdStartState {
   switch (step) {
     case 'runtimeDaemon': return inputs.runtimeDaemon;
     case 'account': return inputs.account;
-    case 'defaultExperienceProfile': return inputs.defaultExperienceProfile;
+    case 'aiProfileSelection': return inputs.aiProfileSelection;
     case 'materialization': return inputs.materialization;
     case 'appRegistry': return inputs.appRegistry;
     case 'cognitionMemory': return inputs.cognitionMemory;
   }
 }
 
+function aggregateOverall(inputs: UpstreamInputs): ColdStartProjection {
+  const entries: ReadonlyArray<{ owner: string; state: ColdStartState }> = [
+    { owner: 'runtime-daemon', state: normalizeStateOrUnavailable(inputs.runtimeDaemon) },
+    { owner: 'account', state: normalizeStateOrUnavailable(inputs.account) },
+    { owner: 'ai-profile-selection', state: normalizeStateOrUnavailable(inputs.aiProfileSelection) },
+    { owner: 'materialization', state: normalizeStateOrUnavailable(inputs.materialization) },
+    { owner: 'app-registry', state: normalizeStateOrUnavailable(inputs.appRegistry) },
+    { owner: 'cognition-memory', state: normalizeStateOrUnavailable(inputs.cognitionMemory) },
+  ];
+  let worst = entries[0]!;
+  for (const candidate of entries) {
+    if (priorityIndex(candidate.state) < priorityIndex(worst.state)) {
+      worst = candidate;
+    }
+  }
+  if (worst.state === 'ready') {
+    return { state: 'ready' };
+  }
+  return {
+    state: worst.state,
+    reasonOwner: worst.owner,
+    detail: `upstream ${worst.owner} reports state "${worst.state}"`,
+  };
+}
+
 /**
- * Compute the first-run readiness projection for the current UpstreamInputs.
- *
- * The function calls `bridge.projectReadiness(inputs)` and combines the
- * resulting overall ColdStartProjection with per-step projections. When the
- * bridge call fails or yields a non-canonical overall state, the function
- * returns a projection with `isReady: false` and overall state `unavailable`.
+ * Compute the first-run readiness projection for the current
+ * `UpstreamInputs`. Returns an `isReady: true` result only when every
+ * upstream reports `ready`.
  */
-export async function projectFirstRunReadiness(
-  bridge: DefaultExperienceBridge,
-  inputs: UpstreamInputs,
-): Promise<FirstRunReadinessProjection> {
-  if (!bridge) {
-    return buildFailClosed('first-run readiness: bridge is required', inputs);
-  }
-  let overall: ColdStartProjection;
-  try {
-    overall = await bridge.projectReadiness(inputs);
-  } catch (error) {
-    const detail = error instanceof Error ? error.message : 'unknown error';
-    return buildFailClosed(`first-run readiness: bridge.projectReadiness failed: ${detail}`, inputs);
-  }
+export async function projectFirstRunReadiness(inputs: UpstreamInputs): Promise<FirstRunReadinessProjection> {
+  const overall = aggregateOverall(inputs);
   const steps: FirstRunStepProjection[] = FIRST_RUN_STEPS.map((step) => ({
     step,
     state: pickStateForStep(inputs, step),
@@ -55,13 +89,5 @@ export async function projectFirstRunReadiness(
     overall,
     steps,
     isReady: overall.state === 'ready' && steps.every((s) => s.state === 'ready'),
-  };
-}
-
-function buildFailClosed(detail: string, inputs: UpstreamInputs): FirstRunReadinessProjection {
-  return {
-    overall: { state: 'unavailable', detail },
-    steps: FIRST_RUN_STEPS.map((step) => ({ step, state: pickStateForStep(inputs, step) })),
-    isReady: false,
   };
 }

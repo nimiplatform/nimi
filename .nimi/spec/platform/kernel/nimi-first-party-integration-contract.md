@@ -31,14 +31,14 @@ Shiji、Realm Drift、Lookdev、Video Food Map、Overtone 等条目）。
 `MUST NOT`：Wave 5 不得引入与 registry 并列的第二份 install / launch
 truth；不得让 Desktop hosted shell 或 first-party app 自行实现安装逻辑。
 
-## P-FPI-003 — Default Experience Alias Hint Consumption
+## P-FPI-003 — AIProfile Selection Hint Consumption
 
-`MUST`：first-party 集成应用 `default_experience_alias_ref` 通过
+`MUST`：first-party 集成应用 `ai_profile_selection_ref` 通过
 `aiProfile.apply(scopeRef, profileId)`（`S-AICONF-001`）进入 scope-bound
 `AIConfig`（`D-AIPC-005`）。
 
-`MUST NOT`：first-party app default-experience 绑定代码不得内嵌
-provider / connector / engine / model 字符串常量（`P-DXP-008`、
+`MUST NOT`：first-party app factory AIProfile 绑定代码不得内嵌
+provider / connector / engine / model 字符串常量（`P-AIPS-008`、
 `P-HOME-005`）。
 
 ## P-FPI-004 — Permission Scope Ref Consumption
@@ -105,7 +105,7 @@ spec admission。
 - `.nimi/spec/platform/kernel/nimi-app-admission-contract.md` — `P-NAPP-001..P-NAPP-012`
 - `.nimi/spec/platform/kernel/app-permission-contract.md` — `P-PERM-001..P-PERM-010`
 - `.nimi/spec/platform/kernel/agent-identity-floor-contract.md` — `P-AGID-001..P-AGID-008`
-- `.nimi/spec/platform/kernel/default-experience-profile-contract.md` — `P-DXP-001..P-DXP-012`
+- `.nimi/spec/platform/kernel/ai-profile-selection-policy-contract.md` — `P-AIPS-001..P-AIPS-012`
 - `.nimi/spec/platform/kernel/nimi-home-contract.md` — `P-HOME-001..P-HOME-010`
 - `.nimi/spec/platform/kernel/nimi-first-party-migration-contract.md` — `P-FPM-001..P-FPM-006`
 - `.nimi/spec/platform/kernel/tables/nimi-app-registry.yaml`

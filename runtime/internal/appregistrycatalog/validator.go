@@ -3,14 +3,19 @@ package appregistrycatalog
 import (
 	"errors"
 	"fmt"
-
-	"github.com/nimiplatform/nimi/runtime/internal/defaultexperience"
 )
 
 // ValidationContext bundles cross-table inputs that the registry rows
 // must resolve against. Each input is required.
+//
+// `AdmittedAIProfileAliases` is the opaque set of factory AIProfile
+// aliases / profileIds admitted by the Platform-owned factory AIProfile
+// catalog (`P-AIPS-002`, `tables/ai-profile-factory-catalog.yaml`). The
+// validator does not parse the catalog itself; callers supply the set
+// from whatever source they choose, keeping `appregistrycatalog` free of
+// any Runtime-side product-selection ownership.
 type ValidationContext struct {
-	DefaultExperienceCatalog *defaultexperience.Catalog
+	AdmittedAIProfileAliases []string
 	AdmittedTrustTiers       []TrustTier
 }
 
@@ -38,7 +43,7 @@ func (r *Registry) CrossTableValidate(ctx ValidationContext) []CrossTableViolati
 	if r == nil {
 		return nil
 	}
-	if ctx.DefaultExperienceCatalog == nil || len(ctx.AdmittedTrustTiers) == 0 {
+	if len(ctx.AdmittedAIProfileAliases) == 0 || len(ctx.AdmittedTrustTiers) == 0 {
 		return []CrossTableViolation{{
 			Field:  "<context>",
 			Reason: ErrValidationContextMissing.Error(),
@@ -47,6 +52,10 @@ func (r *Registry) CrossTableValidate(ctx ValidationContext) []CrossTableViolati
 	tierAdmitted := make(map[TrustTier]bool, len(ctx.AdmittedTrustTiers))
 	for _, tier := range ctx.AdmittedTrustTiers {
 		tierAdmitted[tier] = true
+	}
+	aliasAdmitted := make(map[string]bool, len(ctx.AdmittedAIProfileAliases))
+	for _, alias := range ctx.AdmittedAIProfileAliases {
+		aliasAdmitted[alias] = true
 	}
 	violations := []CrossTableViolation{}
 	for index := range r.Apps {
@@ -59,13 +68,13 @@ func (r *Registry) CrossTableValidate(ctx ValidationContext) []CrossTableViolati
 				Reason: "not in admitted trust tier set",
 			})
 		}
-		if app.DefaultExperienceAliasRef != "" {
-			if _, ok := ctx.DefaultExperienceCatalog.FindByAlias(app.DefaultExperienceAliasRef); !ok {
+		if app.AIProfileSelectionRef != "" {
+			if !aliasAdmitted[app.AIProfileSelectionRef] {
 				violations = append(violations, CrossTableViolation{
 					AppID:  app.AppID,
-					Field:  "default_experience_alias_ref",
-					Value:  app.DefaultExperienceAliasRef,
-					Reason: "alias not present in Default Experience Profile catalog",
+					Field:  "ai_profile_selection_ref",
+					Value:  app.AIProfileSelectionRef,
+					Reason: "alias not present in admitted factory AIProfile catalog",
 				})
 			}
 		}

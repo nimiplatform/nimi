@@ -57,7 +57,7 @@ rules:
     evidence_refs:
       - platform_kernel_consistency
     evidence_requirement: structural_required
-    evidence_scope_note: structural only; default experience alias resolution requires Wave 2 `P-DXP-009` consumer validation
+    evidence_scope_note: structural only; factory AIProfile selection reference resolution requires Wave 2 `P-AIPS-009` consumer validation
   - rule_id: P-NAPP-004
     evidence_refs:
       - platform_kernel_consistency

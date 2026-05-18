@@ -97,7 +97,7 @@ cache；session lifecycle 结束后必须 release projection。
 
 - `.nimi/spec/platform/kernel/agent-identity-floor-contract.md` — `P-AGID-001..P-AGID-008`
 - `.nimi/spec/platform/kernel/ai-scope-contract.md` — `P-AISC-001..P-AISC-005`
-- `.nimi/spec/platform/kernel/default-experience-profile-contract.md` — `P-DXP-001..P-DXP-012`
+- `.nimi/spec/platform/kernel/ai-profile-selection-policy-contract.md` — `P-AIPS-001..P-AIPS-012`
 - `.nimi/spec/platform/kernel/app-permission-contract.md` — `P-PERM-001..P-PERM-010`
 - `.nimi/spec/cognition/kernel/memory-service-contract.md` — `C-COG-*` memory subset
 - `.nimi/spec/cognition/kernel/knowledge-service-contract.md` — `C-COG-*` knowledge subset

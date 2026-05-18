@@ -22,10 +22,10 @@ ontology 由 Platform `P-HOME-001..P-HOME-010` 拥有。
 
 ## D-HOME-002 — First-Run State Machine
 
-`MUST`：first-run state machine 必须消费 `P-DXP-010` 的 Default
-Experience Profile 状态（`default-experience-profile-pending` /
-`accepted` / `materializing` / `active` / `failed`）以及 `P-COLD-*` 的
-fail-closed cold-start 状态。
+`MUST`：first-run state machine 必须消费 `P-AIPS-010` 的 factory
+AIProfile 状态（`ai-profile-pending` / `ai-profile-accepted` /
+`ai-profile-materializing` / `ai-profile-active` / `ai-profile-failed`）
+以及 `P-COLD-*` 的 fail-closed cold-start 状态。
 
 `MUST NOT`：first-run 不得在 `active` evidence 缺失时投影 `ready`、
 `available`、或 generic `done`；不得直接跳过 alias 接受步骤；不得在
@@ -133,7 +133,7 @@ upstream authority 非 ready 状态都必须经由该 surface 显式呈现给用
 - `.nimi/spec/platform/kernel/nimi-self-update-contract.md` — `P-SUPD-001..P-SUPD-008`
 - `.nimi/spec/platform/kernel/nimi-package-release-contract.md` — `P-PKGREL-001..P-PKGREL-008`
 - `.nimi/spec/platform/kernel/cold-start-authority-contract.md` — `P-COLD-001..P-COLD-008`
-- `.nimi/spec/platform/kernel/default-experience-profile-contract.md` — `P-DXP-001..P-DXP-012`
+- `.nimi/spec/platform/kernel/ai-profile-selection-policy-contract.md` — `P-AIPS-001..P-AIPS-012`
 - `.nimi/spec/platform/kernel/ai-scope-contract.md` — `P-AISC-001..P-AISC-005`
 - `.nimi/spec/desktop/kernel/ui-shell-contract.md` — desktop shell 既有 `D-SHELL-*` 与本契约 placement 互不重叠
 - `.nimi/spec/desktop/kernel/self-update-contract.md` — desktop-host 实现细节

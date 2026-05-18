@@ -9,7 +9,7 @@
 canonical 规则。
 
 冷启动指 process 启动之后、account / Runtime / 本地依赖 / app registry /
-Default Experience Profile 中任何 authority 尚未 ready 的时间段。
+factory AIProfile selection 中任何 authority 尚未 ready 的时间段。
 
 ## P-COLD-001 — Fail-Closed Only State Set
 
@@ -52,11 +52,11 @@ projection"作为 ready。
 |---|---|---|---|
 | Host capability detection | Runtime | probe / project host profile（`K-LENG-024` 与 `tables/host-capability-profiles.yaml`） | Home GPU / CUDA / Python probing 或 installer 逻辑 |
 
-## P-COLD-006 — Default Profile Recommendation Owner Split
+## P-COLD-006 — AIProfile Selection Policy Owner Split
 
 | Concern | Owner | Allowed | Forbidden |
 |---|---|---|---|
-| Default profile recommendation | Platform policy consuming Runtime projection | 按 `P-DXP-006` 推荐 posture / profile；按 `D-AIPC-005` apply 到 AIConfig | UI 中 provider / model 常量（`P-DXP-008`） |
+| factory AIProfile selection | Platform-owned AIProfile selection policy consuming Runtime evidence | 按 `P-AIPS-004` / `P-AIPS-006` 选择 factory AIProfile；按 `D-AIPC-005` apply 到 AIConfig | UI 中 provider / model 常量（`P-AIPS-008`） |
 
 ## P-COLD-007 — Local Dependency Setup Owner Split
 
@@ -75,7 +75,7 @@ projection"作为 ready。
 `MUST`：本契约的每条规则均依赖下列下游 wave 与对应 authority；它们的关闭
 事件不变 invariant：
 
-- Wave 2 `P-DXP-*` Default Experience Profile recommendation。
+- Wave 2 `P-AIPS-*` AIProfile selection policy。
 - Wave 3 Nimi App registry / 申请 / 跨 wave joins。
 - Wave 4 permission fabric（account、data、agent identity、AI spend、
   memory / cognition access）。
@@ -90,7 +90,7 @@ upstream authority。
 - `.nimi/spec/platform/kernel/nimi-home-contract.md` — `P-HOME-001..P-HOME-010`
 - `.nimi/spec/platform/kernel/nimi-self-update-contract.md` — `P-SUPD-001..P-SUPD-008`
 - `.nimi/spec/platform/kernel/nimi-package-release-contract.md` — `P-PKGREL-001..P-PKGREL-008`
-- `.nimi/spec/platform/kernel/default-experience-profile-contract.md` — `P-DXP-001..P-DXP-012`
+- `.nimi/spec/platform/kernel/ai-profile-selection-policy-contract.md` — `P-AIPS-001..P-AIPS-012`
 - `.nimi/spec/platform/kernel/ai-scope-contract.md` — `P-AISC-001..P-AISC-005`
 - `.nimi/spec/runtime/kernel/local-engine-contract.md` — `K-LENG-024..K-LENG-028`
 - `.nimi/spec/runtime/kernel/local-environment-materializers-contract.md`

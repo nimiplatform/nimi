@@ -39,7 +39,7 @@ fragments:
     - rule-evidence.rules-ai-scope.yaml
     - rule-evidence.rules-app-package-slices.yaml
     - rule-evidence.rules-protocol.yaml
-    - rule-evidence.rules-default-experience-profile.yaml
+    - rule-evidence.rules-ai-profile-selection-policy.yaml
     - rule-evidence.rules-nimi-home.yaml
     - rule-evidence.rules-nimi-app.yaml
     - rule-evidence.rules-agent-identity-floor.yaml

@@ -75,10 +75,10 @@ projection；历史 `nimi-hook` 特性 superseded 为 developer/internal/retirem
 surface，不得作为 public Mod/Extension product promise。
 
 ordinary-user 默认 AI 体验（first-run、scope-bound apply、admitted
-first-party Nimi App 的 default-experience hint）的 product
-recommendation/catalog authority 由 `default-experience-profile-contract.md`
-（`P-DXP-001..P-DXP-012`）独立拥有；`P-ARCH-*` 不重新解释 provider / model /
-host detection / local materialization 的所有权。Default Experience Profile
+first-party Nimi App 的 AIProfile selection hint）的 Platform factory catalog
+与 selection policy authority 由 `ai-profile-selection-policy-contract.md`
+（`P-AIPS-001..P-AIPS-012`）独立拥有；`P-ARCH-*` 不重新解释 provider / model /
+host detection / local materialization 的所有权。factory AIProfile selection
 仍按 Desktop `D-AIPC-001..D-AIPC-012` 与 Runtime
 `K-LENG-024..K-LENG-028` / `K-LENV-MAT-*` / `K-LENV-ACT-*` 的既有 owner 链
 落地，不在 `P-ARCH-*` 层引入 vendor / model 默认。
