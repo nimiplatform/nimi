@@ -1184,7 +1184,6 @@ forbidden_patterns:
       - { path: apps/parentos/src/shell/renderer/features/journal/journal-sub-components.tsx, count: 1 }
       - { path: apps/parentos/src/shell/renderer/features/profile/dental-photo-lightbox.tsx, count: 1 }
       - { path: apps/parentos/src/shell/renderer/features/profile/health-record-modal-shell.tsx, count: 1 }
-      - { path: apps/parentos/src/shell/renderer/features/profile/orthodontic-modal-primitives.tsx, count: 1 }
       - { path: apps/parentos/src/shell/renderer/features/profile/orthodontic-stage-confirm-dialog.tsx, count: 1 }
       - { path: apps/parentos/src/shell/renderer/features/profile/orthodontic-unwear-form.tsx, count: 1 }
       - { path: apps/parentos/src/shell/renderer/features/profile/profile-todo-drawer.tsx, count: 1 }

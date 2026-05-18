@@ -11,10 +11,11 @@
  *   5 → 2×2 hero + 1 compact
  *   N → even: N/2 hero rows; odd: (N-1)/2 hero rows + 1 compact
  *
- * The hero appliances' forward actions are externalised into the next-action
- * row; the compact appliance embeds its own. Input is expected pre-sorted by
- * appliance priority so the highest-priority appliance leads and the lowest
- * is the one promoted to compact.
+ * The hero appliances' forward actions live in `ApplianceNextActionRow`, which
+ * is rendered by the parent shell adjacent to the case-level review card so
+ * the two "next steps" surfaces share one horizontal row. Input is expected
+ * pre-sorted by appliance priority so the highest-priority appliance leads
+ * and the lowest is the one promoted to compact.
  */
 import type {
   OrthodonticApplianceRow,
@@ -24,13 +25,30 @@ import type {
 } from '../../bridge/sqlite-bridge.js';
 import { ApplianceHeroCard } from './appliance-hero-card.js';
 import { ApplianceCompactCard } from './appliance-compact-card.js';
-import { ApplianceNextActionRow } from './appliance-next-action-row.js';
 import type { ApplianceCardHandlers } from './appliance-card-shared.js';
 
 export interface ApplianceGridItem {
   appliance: OrthodonticApplianceRow;
   intervals: OrthodonticUnwearIntervalRow[];
   checkins: OrthodonticCheckinRow[];
+}
+
+/**
+ * Split a sorted appliance list into the hero appliances (rendered as large
+ * cards, paired side-by-side) and an optional compact appliance (the
+ * lowest-priority one when the total count is odd). Exported so the shell can
+ * derive hero appliances for the externalised next-action row without
+ * re-deriving the count formula.
+ */
+export function splitApplianceGridItems(items: ApplianceGridItem[]): {
+  heroItems: ApplianceGridItem[];
+  compactItem: ApplianceGridItem | null;
+} {
+  const count = items.length;
+  const isOdd = count > 1 && count % 2 === 1;
+  const heroItems = isOdd ? items.slice(0, count - 1) : items;
+  const compactItem = isOdd ? items[count - 1]! : null;
+  return { heroItems, compactItem };
 }
 
 export function OrthodonticAppliancesGrid({
@@ -47,10 +65,7 @@ export function OrthodonticAppliancesGrid({
   nowIso: string;
   handlers: ApplianceCardHandlers;
 }) {
-  const count = items.length;
-  const isOdd = count > 1 && count % 2 === 1;
-  const heroItems = isOdd ? items.slice(0, count - 1) : items;
-  const compactItem = isOdd ? items[count - 1]! : null;
+  const { heroItems, compactItem } = splitApplianceGridItems(items);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -75,12 +90,6 @@ export function OrthodonticAppliancesGrid({
           />
         ))}
       </div>
-
-      <ApplianceNextActionRow
-        appliances={heroItems}
-        nowIso={nowIso}
-        onNextAction={handlers.onNextAction}
-      />
 
       {compactItem && (
         <ApplianceCompactCard

@@ -311,13 +311,23 @@ The unit of measurement is the *aligner cycle* (clear-aligner) or the
 ```
 cycleAnchor          = max(latest aligner-change checkinAt ?? checkinDate@00:00Z, appliance.startedAt)  -- prefer checkinAt (sub-day precision); legacy rows fall back to checkinDate at 00:00 UTC
 cycleElapsedHours    = (now − cycleAnchor) in hours, clamped to >= 0
-sumGapHoursInCycle   = Σ (closed_gap.endAt − closed_gap.startAt) for closed gaps overlapping [cycleAnchor, now]
-                       + (now − open_gap.startAt) if an open gap overlaps the cycle (open gap is treated as still accumulating)
-cycleNetWearHours    = max(0, cycleElapsedHours − sumGapHoursInCycle)
 cycleTargetHours     = daysPerAligner × prescribedHoursPerDay      -- daysPerAligner from the appliance row; prescribedHoursPerDay defaults to 22 when null
+
+-- Per-UTC-day baseline-gap accounting. Real life never has zero gaps —
+-- a parent who logs nothing should not silently receive 24 h/day wear
+-- credit. So each UTC-day segment inside [cycleAnchor, now] is graded
+-- "trust the log if any" else "assume baseline gap":
+for each UTC-day segment d overlapping [cycleAnchor, now]:
+  segmentHours_d       = duration of intersect(d, [cycleAnchor, now])      -- partial at anchor / now edges
+  loggedGapHours_d     = Σ overlap(gap, intersect(d, [cycleAnchor, now]))  -- closed + open gaps
+  effectiveGapHours_d  = loggedGapHours_d  if  loggedGapHours_d > 0
+                        else segmentHours_d × (24 − prescribedHoursPerDay) / 24
+effectiveGapHoursInCycle = Σ effectiveGapHours_d
+cycleNetWearHours        = max(0, cycleElapsedHours − effectiveGapHoursInCycle)
+
 cycleProgressRatio   = cycleNetWearHours / cycleTargetHours        -- 0..1+; 1 = on schedule, <1 = behind
-predictedSwitchDate  = cycleAnchor + (cycleTargetHours / netWearRate) days
-                       where netWearRate = cycleNetWearHours / cycleElapsedHours, fallback to 22/24 when no data yet
+predictedSwitchDate  = now + (cycleTargetHours − cycleNetWearHours) / netWearRate hours
+                       where netWearRate = cycleNetWearHours / cycleElapsedHours, fallback to prescribedHoursPerDay/24 when no data yet
 daysShifted          = predictedSwitchDate − (cycleAnchor + daysPerAligner)  -- 0 = on schedule, +N = pushed back N days
 ```
 
@@ -326,6 +336,7 @@ Constraints:
 - There is no `daily compliance bucket`. The cycle projection MUST NOT be re-bucketed into "今日达成 / 部分 / 缺席" verdict labels; the cycle metric wording stays cycle-relative ("本副已净戴 X / Y 小时", "下次换套预计 5/15（推后 1 天）"). The daily net-wear *view* admitted below is a raw tally, not a verdict bucket, and is the only daily-framed surface permitted.
 - UI MUST label the metric as "任务达成率近似" / "净戴时长近似" and MUST NOT present `cycleNetWearHours` as a clinically precise wear-time reconstruction.
 - The projection MUST reflect open intervals (still accumulating un-wear), so the displayed `cycleNetWearHours` updates monotonically while the appliance is out.
+- Per-day baseline gap semantics: a UTC-day segment with ZERO logged gap hours is credited a presumed gap of `segmentHours × (24 − prescribedHoursPerDay) / 24` (≈ 2 h/day at the standard 22 h prescription). Any segment with non-zero logged gap hours uses the logged total verbatim — parents who actively record their own gaps are trusted even when the recorded total is below the baseline (e.g. a 1 h take-out day). The baseline exists so unrecorded days do not silently award 24 h/day wear credit, NOT to override actively-logged data.
 - For non-clear-aligner removable appliances (twin-block / activator / retainer-removable) the same projection applies, with `cycleTargetHours` = (review interval days × prescribedHoursPerDay) since they have no aligner index.
 - A future `compliance-v2` may extend this (e.g., smart-device ingest). It is intentionally out of scope for v1.
 

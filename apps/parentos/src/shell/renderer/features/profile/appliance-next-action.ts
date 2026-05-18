@@ -37,9 +37,24 @@ export interface ApplianceNextAction {
 }
 
 function daysBetween(targetYmd: string, nowIso: string): number {
-  const targetMs = new Date(`${targetYmd}T00:00:00.000Z`).getTime();
-  const nowMs = new Date(nowIso).getTime();
-  return Math.round((targetMs - nowMs) / (1000 * 60 * 60 * 24));
+  // Calendar-day diff in UTC: how many wall days from today to target. The
+  // earlier `Math.round((target − now) / 24h)` form mixed midnight-target
+  // with wall-clock-now, so a target on day+2 read as "1 day" whenever it
+  // was already past noon (35h / 24 = 1.46 → round 1). The home dashboard's
+  // `deriveOrthoCycle` uses the same calendar-day model — keeping them
+  // aligned is what makes "下次换套" days-away consistent across surfaces.
+  const targetMs = Date.UTC(
+    Number(targetYmd.slice(0, 4)),
+    Number(targetYmd.slice(5, 7)) - 1,
+    Number(targetYmd.slice(8, 10)),
+  );
+  const now = new Date(nowIso);
+  const todayMs = Date.UTC(
+    now.getUTCFullYear(),
+    now.getUTCMonth(),
+    now.getUTCDate(),
+  );
+  return Math.round((targetMs - todayMs) / (1000 * 60 * 60 * 24));
 }
 
 export function computeApplianceNextAction(params: {
@@ -58,12 +73,15 @@ export function computeApplianceNextAction(params: {
       nowIso,
     });
     const date = cycle.predictedSwitchDate.slice(0, 10);
+    // On-schedule (daysShifted === 0) renders no detail line — the date +
+    // days-away pill already convey "you're on track", and the redundant
+    // "按计划" word felt like editorialising for the common-case parent.
     const detail =
       cycle.daysShifted > 0
         ? `预计推后 ${cycle.daysShifted} 天`
         : cycle.daysShifted < 0
           ? `预计提前 ${-cycle.daysShifted} 天`
-          : '按计划';
+          : null;
     return {
       label: '下次换套',
       date,

@@ -9,7 +9,7 @@ overlays:
     z_token: --nimi-z-dialog
     testid_required: false
     reduced_motion: true
-    current_provider: orthodontic-modal-primitives#Modal
+    current_provider: OverlayShell
     target_provider: OverlayShell
     migration_wave: wave-2
     exception_policy: controlled_exception
@@ -35,7 +35,7 @@ overlays:
     z_token: --nimi-z-dialog
     testid_required: false
     reduced_motion: true
-    current_provider: orthodontic-modal-primitives#Modal
+    current_provider: OverlayShell
     target_provider: OverlayShell
     migration_wave: wave-2
     exception_policy: controlled_exception
@@ -48,7 +48,7 @@ overlays:
     z_token: --nimi-z-dialog
     testid_required: false
     reduced_motion: true
-    current_provider: orthodontic-modal-primitives#Modal
+    current_provider: OverlayShell
     target_provider: OverlayShell
     migration_wave: wave-2
     exception_policy: controlled_exception
@@ -61,7 +61,7 @@ overlays:
     z_token: --nimi-z-dialog
     testid_required: false
     reduced_motion: true
-    current_provider: orthodontic-modal-primitives#Modal
+    current_provider: OverlayShell
     target_provider: OverlayShell
     migration_wave: wave-2
     exception_policy: controlled_exception
@@ -74,7 +74,7 @@ overlays:
     z_token: --nimi-z-dialog
     testid_required: false
     reduced_motion: true
-    current_provider: orthodontic-modal-primitives#Modal
+    current_provider: OverlayShell
     target_provider: OverlayShell
     migration_wave: wave-2
     exception_policy: controlled_exception

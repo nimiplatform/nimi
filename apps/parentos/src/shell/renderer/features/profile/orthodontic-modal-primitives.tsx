@@ -1,52 +1,47 @@
-import { Button, SelectField, Surface, TextareaField, TextField } from '@nimiplatform/nimi-kit/ui';
-import { useEffect, type ReactNode } from 'react';
+import { Button, DialogTitle, OverlayShell, SelectField, Surface, TextareaField, TextField } from '@nimiplatform/nimi-kit/ui';
+import type { ReactNode } from 'react';
 
 /* ── Primitives ────────────────────────────────────────── */
 
+/**
+ * Orthodontic-modal shell — a registered ParentOS domain composition
+ * (PO-KITUI-004) over the platform `OverlayShell` (P-DESIGN-013 / PO-KITUI-005).
+ *
+ * Owns only the orthodontic-flavored header convention (16px title + circular
+ * × close button, in one flex row) and the orthodontic panel sizing
+ * (`min-w-[360px] max-w-[460px]`, `rounded-lg`, `p-6` / `gap-3` body layout).
+ * Backdrop scrim, panel surface (bg / border / shadow), Escape-to-close, and
+ * backdrop-click-to-close are all delegated to `OverlayShell` so this primitive
+ * does not redefine primitive visual contract.
+ *
+ * The sr-only `<DialogTitle>` gives Radix an explicit `aria-labelledby` target,
+ * which is strictly stronger than the previous outer-`<div>` `aria-label`.
+ */
 export function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: ReactNode }) {
-  // Escape key closes — standard modal behavior. Registered once per mount so
-  // multiple open modals don't double-fire (only the topmost should listen,
-  // but we don't stack modals in this surface in practice).
-  useEffect(() => {
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', handleKey);
-    return () => window.removeEventListener('keydown', handleKey);
-  }, [onClose]);
-
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-label={title}
-      onClick={onClose}
-      className="fixed inset-0 z-[100] grid place-items-center bg-[var(--nimi-scrim-modal)]"
+    <OverlayShell
+      open
+      kind="dialog"
+      onClose={onClose}
+      panelClassName="w-auto min-w-[360px] max-w-[460px] rounded-lg"
+      contentClassName="!p-6 flex flex-col gap-3"
     >
-      <Surface
-        tone="overlay"
-        material="glass-thick"
-        elevation="modal"
-        padding="lg"
-        className="flex min-w-[360px] max-w-[460px] flex-col gap-3 rounded-lg"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-center justify-between">
-          <h3 className="m-0 text-[16px] font-semibold text-[var(--nimi-text-primary)]">{title}</h3>
-          <Button
-            type="button"
-            onClick={onClose}
-            tone="ghost"
-            size="sm"
-            className="h-7 min-h-7 w-7 rounded-full px-0 text-[18px]"
-            aria-label="关闭"
-          >
-            ×
-          </Button>
-        </div>
-        {children}
-      </Surface>
-    </div>
+      <DialogTitle className="sr-only">{title}</DialogTitle>
+      <div className="flex items-center justify-between">
+        <h3 aria-hidden="true" className="m-0 text-[16px] font-semibold text-[var(--nimi-text-primary)]">{title}</h3>
+        <Button
+          type="button"
+          onClick={onClose}
+          tone="ghost"
+          size="sm"
+          className="h-7 min-h-7 w-7 rounded-full px-0 text-[18px]"
+          aria-label="关闭"
+        >
+          ×
+        </Button>
+      </div>
+      {children}
+    </OverlayShell>
   );
 }
 

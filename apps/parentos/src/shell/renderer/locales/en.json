@@ -320,7 +320,6 @@
       "dental": {
         "aiRecognizeTeeth": "AI tooth recognition",
         "aiRecognizeHint": "Upload an oral photo or panoramic image to recognize eruption status",
-        "statusOverview": "Status overview",
         "history": "History",
         "empty": "No dental records yet",
         "emptyHint": "A dental checkup every six months is recommended.",

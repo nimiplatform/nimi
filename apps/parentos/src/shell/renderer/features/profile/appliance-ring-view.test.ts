@@ -74,7 +74,7 @@ describe('computeApplianceRingView', () => {
     if (view.kind === 'metric') {
       // cycle-relative caption from computeTreatmentRingCopy.
       expect(view.caption).toBe('本副已戴');
-      expect(view.accent).toBe('#14b8a6');
+      expect(view.accent).toBe('#818CF8');
     }
   });
 
@@ -198,6 +198,35 @@ describe('computeApplianceNextAction', () => {
     expect(action.actionKind).toBe('log-activation');
     expect(action.date).toBe('2026-04-13'); // 2026-04-10 + 3 days
     expect(action.detail).toBe('每 3 天转一次');
+  });
+
+  it('clear-aligner daysAway uses calendar-day diff, not 24h rounding', () => {
+    // Regression: target = 2026-05-19 (anchor 5-12 + 7d), now = 5-17T13:00Z.
+    // The pre-fix code did Math.round((target − now)/24h) = round(35/24) =
+    // round(1.46) = 1, so the profile read "还有 1 天" while the home
+    // widget (which uses calendar-day diff) read "还有 2 天". Calendar diff
+    // matches the parent's mental model ("5-17 → 5-19 is 2 days") and the
+    // home widget's projection, so they stay consistent across surfaces.
+    const appliance = makeAppliance({
+      startedAt: '2026-05-04',
+      daysPerAligner: 7,
+      prescribedHoursPerDay: 22,
+      totalAligners: 35,
+    });
+    const action = computeApplianceNextAction({
+      appliance,
+      intervals: [],
+      checkins: [
+        makeCheckin({
+          checkinType: 'aligner-change',
+          checkinDate: '2026-05-12',
+          alignerIndex: 2,
+        }),
+      ],
+      nowIso: '2026-05-17T13:00:00.000Z',
+    });
+    expect(action.date).toBe('2026-05-19');
+    expect(action.daysAway).toBe(2);
   });
 
   it('fixed braces → 下次复诊 / log-review with the parent-entered agenda', () => {

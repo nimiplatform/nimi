@@ -1,4 +1,5 @@
 import { Button, Surface } from '@nimiplatform/nimi-kit/ui';
+import type { CSSProperties } from 'react';
 /**
  * Full-width compact card for the appliance that would otherwise be left
  * unpaired in the grid (PO-ORTHO-003a). Instead of shrinking a hero, the odd
@@ -13,10 +14,12 @@ import type {
   OrthodonticCheckinRow,
   OrthodonticUnwearIntervalRow,
 } from '../../bridge/sqlite-bridge.js';
+import { applianceIdentity } from './appliance-identity.js';
 import { computeApplianceRingView } from './appliance-ring-view.js';
 import { ApplianceRing } from './appliance-ring.js';
 import { computeApplianceNextAction } from './appliance-next-action.js';
 import {
+  AlignerIndexPill,
   ApplianceCardHeader,
   ApplianceMetaLine,
   AppliancePhasePill,
@@ -27,6 +30,7 @@ import {
 import {
   applianceSupportsWearGap,
   computeAppliancePhaseProgress,
+  computeCycleProgress,
 } from './orthodontic-derive.js';
 
 function StackButton({
@@ -72,6 +76,18 @@ export function ApplianceCompactCard({
   const phase = computeAppliancePhaseProgress(appliance, nowIso);
   const nextAction = computeApplianceNextAction({ appliance, intervals, checkins, nowIso });
   const supportsWearGap = applianceSupportsWearGap(appliance.applianceType);
+  const identityStyle = {
+    '--appliance-identity': applianceIdentity(appliance.applianceType).solid,
+  } as CSSProperties;
+  const alignerIndex =
+    appliance.applianceType === 'clear-aligner'
+      ? computeCycleProgress({
+          appliance,
+          intervals,
+          alignerChangeCheckins: checkins,
+          nowIso,
+        }).currentAlignerIndex
+      : null;
   // log-review actions are owned by the case-level review card (PO-ORTHO-015);
   // surfacing the same 下次复诊 inline would just duplicate it. Drop the
   // embedded panel + primary button when that's the only action.
@@ -87,7 +103,11 @@ export function ApplianceCompactCard({
       className="flex items-stretch overflow-hidden rounded-3xl"
     >
       {/* left identity bar */}
-      <div className={`w-1.5 shrink-0 ${applianceIdentityBarClassName(appliance.applianceType)}`} aria-hidden="true" />
+      <div
+        className={`w-1.5 shrink-0 ${applianceIdentityBarClassName(appliance.applianceType)}`}
+        style={identityStyle}
+        aria-hidden="true"
+      />
 
       <div
         className="flex flex-1 flex-wrap items-center gap-6 px-6 py-5"
@@ -103,6 +123,14 @@ export function ApplianceCompactCard({
             <ApplianceCardHeader
               appliance={appliance}
               onEditAppliance={handlers.onEditAppliance}
+              inline={
+                alignerIndex !== null ? (
+                  <AlignerIndexPill
+                    currentAlignerIndex={alignerIndex}
+                    totalAligners={appliance.totalAligners}
+                  />
+                ) : null
+              }
             />
             <ApplianceMetaLine appliance={appliance} childBirthDate={childBirthDate} />
           </div>
@@ -163,7 +191,12 @@ export function ApplianceCompactCard({
 }
 
 function applianceIdentityBarClassName(type: OrthodonticApplianceType): string {
-  if (type === 'clear-aligner') return 'bg-[var(--nimi-status-success)]';
+  // Clear-aligner uses the indigo identity defined in
+  // `appliance-identity.ts`; the kit's --nimi-status-success would mismatch
+  // the hero card's top bar / ring stroke since the identity is no longer
+  // teal/green. The other types still ride the semantic kit tokens since
+  // their hue already aligns with the corresponding kit role.
+  if (type === 'clear-aligner') return 'bg-[var(--appliance-identity)]';
   if (type === 'expander' || type === 'retainer-fixed') return 'bg-[var(--nimi-status-info)]';
   if (type === 'retainer-removable') return 'bg-[var(--nimi-status-danger)]';
   if (type === 'metal-braces' || type === 'ceramic-braces') return 'bg-[var(--nimi-text-muted)]';

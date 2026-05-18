@@ -126,6 +126,46 @@ export function computeOpenIntervalState(
   };
 }
 
+// ── Latest aligner-change derivation ────────────────────────────────────
+
+export interface LatestAlignerChange {
+  /** ISO datetime — `checkinAt` when present, else `checkinDate` at 00:00 UTC. */
+  at: string;
+  /** 1-based aligner index on that row. Clamped to >= 1. */
+  index: number;
+}
+
+/**
+ * Picks the LATEST-by-time `aligner-change` row for an appliance and returns
+ * its anchor time + alignerIndex. PO-ORTHO-008's "latest-by-time" semantic is
+ * the single source of which-tray-is-current truth — exported so the home
+ * dashboard widget (`deriveOrthoCycle`) can't drift back to `Math.max`, which
+ * traps a parent who mis-clicked 换下一副 (logging a stale higher index) into
+ * never being able to correct themselves by logging a newer lower index.
+ *
+ * `checkinAt` (sub-day precision) is preferred over `checkinDate` (00:00 UTC
+ * fallback for legacy rows) so a same-day correction overrides earlier rows
+ * even when one row uses the legacy date-only format.
+ */
+export function findLatestAlignerChange(
+  checkins: OrthodonticCheckinRow[],
+  applianceId: string,
+): LatestAlignerChange | null {
+  const sorted = checkins
+    .filter((c) => c.checkinType === 'aligner-change' && c.applianceId === applianceId)
+    .map((c) => ({
+      at: c.checkinAt ?? ymdToIsoMidnight(c.checkinDate),
+      idx: c.alignerIndex,
+    }))
+    .sort((a, b) => a.at.localeCompare(b.at));
+  if (sorted.length === 0) return null;
+  const latest = sorted[sorted.length - 1]!;
+  return {
+    at: latest.at,
+    index: latest.idx !== null && latest.idx > 0 ? latest.idx : 1,
+  };
+}
+
 // ── Cycle progress (PO-ORTHO-008) ───────────────────────────────────────
 
 export interface CycleProgress {
@@ -178,22 +218,7 @@ export function computeCycleProgress(params: {
   })();
   const cycleTargetHours = cycleDays * prescribedHours;
 
-  // Cycle anchor + current-aligner index (PO-ORTHO-008): both derive from
-  // the LATEST aligner-change row by event time, NOT max(alignerIndex).
-  // Latest-by-time means a parent who mis-clicked 换下一副 (creating an idx=3
-  // row) can correct themselves by logging a new change with idx=2 — the
-  // newer event overrides. Prefer `checkinAt` (sub-day precision) when
-  // present; legacy rows (pre-v19) fall back to `checkinDate` at 00:00 UTC.
-  const relevantChanges = alignerChangeCheckins
-    .filter((c) => c.checkinType === 'aligner-change' && c.applianceId === appliance.applianceId)
-    .map((c) => ({
-      at: c.checkinAt ?? ymdToIsoMidnight(c.checkinDate),
-      idx: c.alignerIndex,
-    }))
-    .sort((a, b) => a.at.localeCompare(b.at));
-  const latestChange = relevantChanges.length > 0
-    ? relevantChanges[relevantChanges.length - 1]
-    : null;
+  const latestChange = findLatestAlignerChange(alignerChangeCheckins, appliance.applianceId);
   const cycleAnchor = latestChange
     ? latestChange.at
     : ymdToIsoMidnight(appliance.startedAt);
@@ -202,16 +227,19 @@ export function computeCycleProgress(params: {
   const nowMs = parseIso(nowIso);
   const cycleElapsedHours = Math.max(0, (nowMs - anchorMs) / HOUR_MS);
 
-  // Σ gap hours within the cycle window.
-  let cycleGapHours = 0;
-  for (const iv of intervals) {
-    const startMs = parseIso(iv.startAt);
-    const endMs = iv.endAt ? parseIso(iv.endAt) : nowMs;
-    if (endMs <= anchorMs || startMs >= nowMs) continue;
-    const overlapStart = Math.max(startMs, anchorMs);
-    const overlapEnd = Math.min(endMs, nowMs);
-    cycleGapHours += Math.max(0, (overlapEnd - overlapStart) / HOUR_MS);
-  }
+  // PO-ORTHO-008 per-day baseline-gap accounting. Walk each UTC-day segment
+  // inside the cycle window: if the parent logged any gap that overlaps the
+  // segment, trust the logged total verbatim; otherwise presume a baseline
+  // gap of `(24 − prescribedHoursPerDay)` h scaled to the segment length.
+  // This keeps the "I logged 1 h take-out today" case truthful while
+  // preventing un-logged days from silently awarding 24 h/day wear credit.
+  const baselineGapRatePerHour = Math.max(0, Math.min(1, (24 - prescribedHours) / 24));
+  const cycleGapHours = sumEffectiveGapHours(
+    intervals,
+    anchorMs,
+    nowMs,
+    baselineGapRatePerHour,
+  );
 
   const cycleNetWearHours = Math.max(0, cycleElapsedHours - cycleGapHours);
   const cycleProgressRatio = cycleTargetHours > 0 ? cycleNetWearHours / cycleTargetHours : 0;
@@ -229,12 +257,9 @@ export function computeCycleProgress(params: {
   const daysShifted = Math.round((predictedSwitchMs - idealSwitchMs) / DAY_MS);
 
   // Current aligner = the index on the LATEST-by-time aligner-change row
-  // (see the sorted `relevantChanges` above). Falls back to 1 before the
-  // first logged change. Critically NOT `Math.max(alignerIndex)` — that
-  // semantic prevents the parent from ever correcting a mis-clicked higher
-  // index by logging a new lower one.
-  const latestIndex = latestChange && latestChange.idx !== null ? latestChange.idx : 0;
-  const currentAlignerIndex = Math.max(1, latestIndex);
+  // (see `findLatestAlignerChange` above). Falls back to 1 before the first
+  // logged change.
+  const currentAlignerIndex = latestChange?.index ?? 1;
   const totalAligners = appliance.totalAligners ?? null;
   const cycleSeriesComplete =
     totalAligners !== null && currentAlignerIndex >= totalAligners && cycleProgressRatio >= 1;
@@ -251,6 +276,59 @@ export function computeCycleProgress(params: {
     cycleSeriesComplete,
     currentAlignerIndex,
   };
+}
+
+/**
+ * Walks `[fromMs, toMs)` one UTC-day segment at a time and accumulates the
+ * "effective" gap hours per PO-ORTHO-008: trust per-day logged totals when
+ * any gap overlaps the segment, otherwise presume `baselineGapRatePerHour`
+ * of the segment's hours are gap.
+ */
+function sumEffectiveGapHours(
+  intervals: OrthodonticUnwearIntervalRow[],
+  fromMs: number,
+  toMs: number,
+  baselineGapRatePerHour: number,
+): number {
+  if (toMs <= fromMs) return 0;
+  // Pre-resolve each interval to its [startMs, endMs] in cycle, treating an
+  // open interval as still accumulating up to `toMs`.
+  const resolved: Array<{ startMs: number; endMs: number }> = [];
+  for (const iv of intervals) {
+    const ivStart = parseIso(iv.startAt);
+    const ivEnd = iv.endAt ? parseIso(iv.endAt) : toMs;
+    if (ivEnd <= fromMs || ivStart >= toMs) continue;
+    resolved.push({
+      startMs: Math.max(ivStart, fromMs),
+      endMs: Math.min(ivEnd, toMs),
+    });
+  }
+  let total = 0;
+  let cursor = fromMs;
+  while (cursor < toMs) {
+    const nextMidnight = nextUtcMidnightMs(cursor);
+    const segEnd = Math.min(toMs, nextMidnight);
+    const segmentHours = (segEnd - cursor) / HOUR_MS;
+    let loggedHoursInSegment = 0;
+    for (const iv of resolved) {
+      if (iv.endMs <= cursor || iv.startMs >= segEnd) continue;
+      const overlap = Math.min(iv.endMs, segEnd) - Math.max(iv.startMs, cursor);
+      if (overlap > 0) loggedHoursInSegment += overlap / HOUR_MS;
+    }
+    total +=
+      loggedHoursInSegment > 0
+        ? loggedHoursInSegment
+        : segmentHours * baselineGapRatePerHour;
+    cursor = segEnd;
+  }
+  return total;
+}
+
+/** First UTC midnight strictly after `ms`. */
+function nextUtcMidnightMs(ms: number): number {
+  const d = new Date(ms);
+  d.setUTCHours(24, 0, 0, 0);
+  return d.getTime();
 }
 
 // ── Per-appliance treatment phase (PO-ORTHO-013) ────────────────────────

@@ -637,14 +637,10 @@ export function DentalHistoryView() {
         </div>
       )}
 
-      {/* Section label */}
-      <div
-        className="mb-3 px-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--nimi-text-muted)]"
-      >
-        {t('Profile.rich.dental.statusOverview')}
-      </div>
-
-      {/* Tooth status overview — top of dental record */}
+      {/* Tooth status overview — top of dental record. The standalone
+          "状态总览" eyebrow label was dropped: the card itself carries a
+          "牙齿状态总览" heading right inside, so the eyebrow was a
+          duplicate that just added vertical noise above the surface. */}
       <ToothStatusOverview records={records} />
 
       {/* KPI strip */}

@@ -320,7 +320,6 @@
       "dental": {
         "aiRecognizeTeeth": "AI 识别牙齿",
         "aiRecognizeHint": "上传口腔照片或全景片，由 AI 识别萌出情况",
-        "statusOverview": "状态总览",
         "history": "历史记录",
         "empty": "还没有口腔记录",
         "emptyHint": "建议每半年进行一次口腔检查",

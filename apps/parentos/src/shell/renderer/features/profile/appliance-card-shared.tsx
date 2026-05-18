@@ -48,14 +48,18 @@ export function DaysAwayPill({ daysAway }: { daysAway: number }) {
   );
 }
 
-/** Color dot + appliance name + (optional) gear button. */
+/** Color dot + appliance name + (optional) inline pill + (optional) gear button. */
 export function ApplianceCardHeader({
   appliance,
   onEditAppliance,
+  inline,
   trailing,
 }: {
   appliance: OrthodonticApplianceRow;
   onEditAppliance: (appliance: OrthodonticApplianceRow) => void;
+  /** Sits right after the appliance name (e.g. `AlignerIndexPill`). */
+  inline?: ReactNode;
+  /** Right-aligned next to the gear icon. */
   trailing?: ReactNode;
 }) {
   return (
@@ -69,6 +73,7 @@ export function ApplianceCardHeader({
       >
         {applianceTypeLabel(appliance.applianceType)}
       </span>
+      {inline}
       <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 4 }}>
         {trailing}
         <IconButton
@@ -97,6 +102,32 @@ export function ApplianceMetaLine({
     <div className="mt-1 text-[12px] text-[var(--nimi-text-muted)]">
       起始 {appliance.startedAt} · {ageAtLabel(childBirthDate, appliance.startedAt)}
     </div>
+  );
+}
+
+/**
+ * "第 N / 共 M 副" indicator for clear-aligners only. Rides inline next to
+ * the appliance name in `ApplianceCardHeader` so the which-tray-of-the-series
+ * context sits right next to the appliance identity, not buried by the phase
+ * pill row. When `totalAligners` is null the indicator degrades to "第 N 副".
+ */
+export function AlignerIndexPill({
+  currentAlignerIndex,
+  totalAligners,
+}: {
+  currentAlignerIndex: number;
+  totalAligners: number | null;
+}) {
+  const label =
+    totalAligners !== null
+      ? `第 ${currentAlignerIndex} / 共 ${totalAligners} 副`
+      : `第 ${currentAlignerIndex} 副`;
+  return (
+    <span
+      className="inline-flex min-h-7 items-center gap-1.5 whitespace-nowrap rounded-full bg-[color-mix(in_srgb,var(--nimi-text-primary)_5%,transparent)] px-3 text-[12px] font-semibold text-[var(--nimi-text-primary)]"
+    >
+      {label}
+    </span>
   );
 }
 

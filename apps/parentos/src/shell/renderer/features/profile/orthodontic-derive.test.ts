@@ -17,6 +17,7 @@ import {
   computeStageOptions,
   defaultPrescribedHoursPerDay,
   defaultReviewIntervalDays,
+  findLatestAlignerChange,
   formatHours,
 } from './orthodontic-derive.js';
 
@@ -165,11 +166,76 @@ describe('computeOpenIntervalState', () => {
   });
 });
 
+describe('findLatestAlignerChange', () => {
+  it('returns null when no aligner-change row exists for the appliance', () => {
+    expect(findLatestAlignerChange([], 'appl-1')).toBeNull();
+  });
+
+  it('uses LATEST-by-time, not max(alignerIndex) — a same-day correction wins', () => {
+    // Regression scenario lifted from the Snow case: parent mis-clicked
+    // 换下一副 at 23:40 yesterday (logging idx=3) and then corrected at
+    // 00:00 today by re-logging idx=2. Both rows must lose to "latest at"
+    // = the 00:00 row → idx=2. The home dashboard widget used to do
+    // Math.max(alignerIndex) and would print "第 3 / 35 副" forever, even
+    // though the profile correctly showed "第 2 / 35 副".
+    const latest = findLatestAlignerChange(
+      [
+        makeCheckin({
+          checkinType: 'aligner-change',
+          checkinDate: '2026-05-11',
+          checkinAt: '2026-05-11T23:40:00.000Z',
+          alignerIndex: 3,
+        }),
+        makeCheckin({
+          checkinType: 'aligner-change',
+          checkinDate: '2026-05-12',
+          checkinAt: null,
+          alignerIndex: 2,
+        }),
+      ],
+      'appl-1',
+    );
+    expect(latest).toEqual({ at: '2026-05-12T00:00:00.000Z', index: 2 });
+  });
+
+  it('clamps a null/zero alignerIndex up to 1', () => {
+    const latest = findLatestAlignerChange(
+      [
+        makeCheckin({
+          checkinType: 'aligner-change',
+          checkinDate: '2026-05-12',
+          alignerIndex: null,
+        }),
+      ],
+      'appl-1',
+    );
+    expect(latest).toEqual({ at: '2026-05-12T00:00:00.000Z', index: 1 });
+  });
+
+  it('ignores checkins for other appliances', () => {
+    const latest = findLatestAlignerChange(
+      [
+        makeCheckin({
+          checkinType: 'aligner-change',
+          checkinDate: '2026-05-12',
+          alignerIndex: 5,
+          applianceId: 'other-appl',
+        }),
+      ],
+      'appl-1',
+    );
+    expect(latest).toBeNull();
+  });
+});
+
 describe('computeCycleProgress (clear-aligner)', () => {
-  it('on schedule when no gaps and we are mid-cycle', () => {
-    // Anchor = 2026-04-10 (via aligner-change), now = 2026-04-12T18:00 → 2.75d elapsed
-    // Target = 7d × 22h = 154h. Net wear = 2.75 × 24 = 66h. No gaps means rate = 1.0,
-    // so predictedSwitch ≈ anchor + 7d = ideal day; daysShifted ≈ 0.
+  it('on schedule when no logged gaps and we are mid-cycle (baseline-gap floor applies)', () => {
+    // Anchor = 2026-04-10 (via aligner-change), now = 2026-04-12T18:00 → 2.75d elapsed.
+    // Target = 7d × 22h = 154h. Per PO-ORTHO-008 per-day baseline: each UTC-day
+    // segment with no logged gap is presumed to have (24−22)/24 = 1/12 of its
+    // hours as gap. Days: 4-10 (24h→2h), 4-11 (24h→2h), 4-12 partial 18h→1.5h
+    // → total presumed gap = 5.5h. Net wear = 66 − 5.5 = 60.5h. Observed rate
+    // collapses to 22/24, so predicted switch ≈ anchor + 7d = ideal day.
     const appliance = makeAppliance();
     const cycle = computeCycleProgress({
       appliance,
@@ -180,16 +246,23 @@ describe('computeCycleProgress (clear-aligner)', () => {
       nowIso: NOW,
     });
     expect(cycle.cycleTargetHours).toBe(154);
-    expect(cycle.cycleGapHours).toBe(0);
-    expect(cycle.cycleNetWearHours).toBeCloseTo(2.75 * 24, 1);
+    expect(cycle.cycleGapHours).toBeCloseTo(5.5, 3);
+    expect(cycle.cycleNetWearHours).toBeCloseTo(2.75 * 22, 1);
     expect(Math.abs(cycle.daysShifted)).toBeLessThanOrEqual(1);
   });
 
-  it('predicted switch pushes back when there are gaps', () => {
+  it('logged gap on a day fully replaces the baseline for that day (PO-ORTHO-008 trust-the-log)', () => {
+    // 11.75 days elapsed (anchor=startedAt 4-01, no aligner-change rows).
+    // 9 days have no logged gap → 9 × 2h = 18h presumed.
+    // 4-04 has 8h logged → use 8h (not max(8, 2) = 8h either, but the rule is
+    //   "trust the log").
+    // 4-08 has 8h logged → use 8h.
+    // 4-12 is partial 18h, no logged → 18/24 × 2 = 1.5h.
+    // Total effective gap = 18 + 8 + 8 + 1.5 = 35.5h.
     const appliance = makeAppliance({ daysPerAligner: 7, prescribedHoursPerDay: 22 });
     const intervals = [
-      makeInterval({ startAt: '2026-04-04T12:00:00.000Z', endAt: '2026-04-04T20:00:00.000Z' }), // 8h gap
-      makeInterval({ startAt: '2026-04-08T08:00:00.000Z', endAt: '2026-04-08T16:00:00.000Z' }), // 8h gap
+      makeInterval({ startAt: '2026-04-04T12:00:00.000Z', endAt: '2026-04-04T20:00:00.000Z' }),
+      makeInterval({ startAt: '2026-04-08T08:00:00.000Z', endAt: '2026-04-08T16:00:00.000Z' }),
     ];
     const cycle = computeCycleProgress({
       appliance,
@@ -197,14 +270,42 @@ describe('computeCycleProgress (clear-aligner)', () => {
       alignerChangeCheckins: [],
       nowIso: NOW,
     });
-    expect(cycle.cycleGapHours).toBe(16);
-    expect(cycle.cycleNetWearHours).toBeCloseTo(11.75 * 24 - 16, 1);
+    expect(cycle.cycleGapHours).toBeCloseTo(35.5, 3);
+    expect(cycle.cycleNetWearHours).toBeCloseTo(11.75 * 24 - 35.5, 1);
   });
 
-  it('open interval continues to accumulate gap time', () => {
+  it('1h logged gap on a day yields 23h net wear, not 22h (trust under baseline)', () => {
+    // PO-ORTHO-008: a parent who logs a 1h take-out is taken at their word
+    // even though it's less than the 2h baseline. Without this rule, careful
+    // loggers would be penalized vs. silent ones.
+    const appliance = makeAppliance({
+      startedAt: '2026-04-12',
+      daysPerAligner: 7,
+      prescribedHoursPerDay: 22,
+    });
+    const intervals = [
+      // 4-12 has exactly 1h logged.
+      makeInterval({ startAt: '2026-04-12T07:00:00.000Z', endAt: '2026-04-12T08:00:00.000Z' }),
+    ];
+    const cycle = computeCycleProgress({
+      appliance,
+      intervals,
+      alignerChangeCheckins: [],
+      nowIso: '2026-04-12T18:00:00.000Z', // 18h elapsed inside the 4-12 segment
+    });
+    // 4-12 partial segment 18h has logged 1h → effective gap 1h (not 1.5h baseline).
+    expect(cycle.cycleGapHours).toBeCloseTo(1, 3);
+    expect(cycle.cycleNetWearHours).toBeCloseTo(17, 3);
+  });
+
+  it('open interval continues to accumulate gap time (and replaces baseline on overlapping days)', () => {
+    // Anchor=2026-04-01, now=4-12T18, total elapsed = 282h.
+    // Days 4-01 .. 4-11 (11 full days, no logged) → 11 × 2 = 22h presumed.
+    // 4-12 segment is 18h with an open interval [12:00, 18:00) logged → 6h.
+    // Total effective gap = 22 + 6 = 28h.
     const appliance = makeAppliance();
     const intervals = [
-      makeInterval({ startAt: '2026-04-12T12:00:00.000Z', endAt: null }), // open 6h
+      makeInterval({ startAt: '2026-04-12T12:00:00.000Z', endAt: null }),
     ];
     const cycle = computeCycleProgress({
       appliance,
@@ -212,7 +313,7 @@ describe('computeCycleProgress (clear-aligner)', () => {
       alignerChangeCheckins: [],
       nowIso: NOW,
     });
-    expect(cycle.cycleGapHours).toBeCloseTo(6, 1);
+    expect(cycle.cycleGapHours).toBeCloseTo(28, 3);
   });
 
   it('uses latest aligner-change as cycle anchor', () => {

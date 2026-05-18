@@ -175,7 +175,7 @@ export function EditApplianceFormModal({
     <Modal title="编辑矫治器设置" onClose={onClose}>
       {localError && <ModalErrorBanner message={localError} onDismiss={() => setLocalError(null)} />}
 
-      <Surface tone="card" material="solid" elevation="base" padding="none" className="rounded-md border border-[color-mix(in_srgb,var(--nimi-border-subtle)_70%,transparent)] bg-[color-mix(in_srgb,var(--nimi-text-primary)_4%,transparent)] px-3 py-2 text-[13px] text-[var(--nimi-text-muted)]">
+      <Surface tone="panel" material="solid" elevation="base" padding="none" className="px-3 py-2 text-[13px] text-[var(--nimi-text-muted)]">
         矫治器类型 <strong className="ml-1.5 text-[var(--nimi-text-primary)]">{applianceTypeLabel(appliance.applianceType)}</strong>
         <span className="ml-3">启用日期</span>
         <strong className="ml-1.5 text-[var(--nimi-text-primary)]">{appliance.startedAt}</strong>

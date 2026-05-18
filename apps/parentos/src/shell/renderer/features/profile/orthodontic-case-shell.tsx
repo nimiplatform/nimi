@@ -31,9 +31,12 @@ import {
 } from './orthodontic-stage-confirm-dialog.js';
 import {
   OrthodonticAppliancesGrid,
+  splitApplianceGridItems,
   type ApplianceGridItem,
 } from './orthodontic-appliances-grid.js';
 import { OrthodonticCaseReviewCard } from './orthodontic-case-review-card.js';
+import { ApplianceNextActionRow } from './appliance-next-action-row.js';
+import { ApplianceHeroCard } from './appliance-hero-card.js';
 import type { ApplianceCardHandlers } from './appliance-card-shared.js';
 
 export interface OrthodonticCaseShellHandlers extends ApplianceCardHandlers {
@@ -114,8 +117,10 @@ export function OrthodonticCaseShell({
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       {/* ── header strip: parallel-appliance count only. Per-appliance
           identity + start date live on each card below, so duplicating
-          them here just clutters the chrome. ── */}
-      {items.length > 0 && (
+          them here just clutters the chrome. Hidden at count=1 because the
+          "1 件" wording carries zero information when there's no parallel
+          set to size up — it's just visual debt above the single hero. ── */}
+      {items.length > 1 && (
         <Surface
           tone="card"
           material="glass-regular"
@@ -135,20 +140,93 @@ export function OrthodonticCaseShell({
       {items.length === 0 ? (
         <NoActiveApplianceCard canAdd={!isLegacy && canAddAppliance} onAdd={handlers.onAddAppliance} />
       ) : (
-        <>
-          <OrthodonticAppliancesGrid
-            items={items}
-            caseRow={caseRow}
-            childBirthDate={childBirthDate}
-            nowIso={nowIso}
-            handlers={handlers}
-          />
-          <OrthodonticCaseReviewCard
-            appliances={appliances}
-            nowIso={nowIso}
-            onLogClinicalEvent={handlers.onLogClinicalEvent}
-          />
-        </>
+        (() => {
+          const { heroItems } = splitApplianceGridItems(items);
+          const hasForwardAction = heroItems.some(
+            ({ appliance }) =>
+              appliance.applianceType === 'clear-aligner'
+              || appliance.applianceType === 'expander',
+          );
+          const nextActionEl = hasForwardAction ? (
+            <ApplianceNextActionRow
+              appliances={heroItems}
+              nowIso={nowIso}
+              onNextAction={handlers.onNextAction}
+            />
+          ) : null;
+          const reviewEl = (
+            <OrthodonticCaseReviewCard
+              appliances={appliances}
+              nowIso={nowIso}
+              onLogClinicalEvent={handlers.onLogClinicalEvent}
+            />
+          );
+
+          // Single-appliance layout: hero on the left, the two forward
+          // surfaces stacked on the right (next-action on top, review under
+          // it). The grid uses the default `align-items: stretch`, so the
+          // right column inherits the hero's full height; an inner 2-row
+          // grid (`1fr 1fr`) splits that height evenly between the two
+          // cards. Each card's inner flex uses `items-center`, which lifts
+          // the content into the visual centre once the card is stretched
+          // taller than its natural height — so the two right-side cards
+          // visually balance the tall hero instead of floating at the top.
+          //
+          // When there is no forward action the hero still occupies the
+          // left column and the right column shrinks to just the review
+          // card so the wide hero doesn't end up beside dead space.
+          if (items.length === 1) {
+            const onlyItem = items[0]!;
+            return (
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <ApplianceHeroCard
+                  appliance={onlyItem.appliance}
+                  caseRow={caseRow}
+                  childBirthDate={childBirthDate}
+                  intervals={onlyItem.intervals}
+                  checkins={onlyItem.checkins}
+                  nowIso={nowIso}
+                  handlers={handlers}
+                />
+                {nextActionEl ? (
+                  <div
+                    className="grid gap-4"
+                    style={{ gridTemplateRows: 'minmax(0, 1fr) minmax(0, 1fr)' }}
+                  >
+                    {nextActionEl}
+                    {reviewEl}
+                  </div>
+                ) : (
+                  reviewEl
+                )}
+              </div>
+            );
+          }
+
+          // 2+ appliances: keep the existing grid-then-row layout. Hero
+          // appliances render in pairs (PO-ORTHO-003a) above, and the two
+          // forward surfaces share one horizontal row below. When every
+          // hero is review-only the row collapses to a full-width review.
+          return (
+            <>
+              <OrthodonticAppliancesGrid
+                items={items}
+                caseRow={caseRow}
+                childBirthDate={childBirthDate}
+                nowIso={nowIso}
+                handlers={handlers}
+              />
+              {hasForwardAction ? (
+                <div className="grid grid-cols-1 items-start gap-4 md:grid-cols-2">
+                  {nextActionEl}
+                  {reviewEl}
+                </div>
+              ) : (
+                reviewEl
+              )}
+            </>
+          );
+        })()
       )}
 
       {/* ── bottom: case-level 疗程总进度 strip + ⋯ menu ── */}

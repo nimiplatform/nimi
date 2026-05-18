@@ -1,4 +1,5 @@
 import { Button } from '@nimiplatform/nimi-kit/ui';
+import type { CSSProperties } from 'react';
 /**
  * Row of per-appliance "next action" cards for the hero appliances in the
  * grid. Hero cards are narrow, so their forward-looking action (下次换套 /
@@ -13,10 +14,10 @@ import { Button } from '@nimiplatform/nimi-kit/ui';
  */
 import type {
   OrthodonticApplianceRow,
-  OrthodonticApplianceType,
   OrthodonticCheckinRow,
   OrthodonticUnwearIntervalRow,
 } from '../../bridge/sqlite-bridge.js';
+import { applianceIdentity } from './appliance-identity.js';
 import { applianceTypeLabel } from './orthodontic-derive.js';
 import { computeApplianceNextAction } from './appliance-next-action.js';
 import {
@@ -51,16 +52,24 @@ export function ApplianceNextActionRow({
     <div
       style={{
         display: 'grid',
-        gridTemplateColumns: `repeat(${Math.min(rowItems.length, 2)}, minmax(0, 1fr))`,
-        gap: 16,
+        gridTemplateColumns: '1fr',
+        gap: 12,
       }}
     >
       {rowItems.map(({ appliance, action }) => {
-        const identityClass = applianceIdentityClassNames(appliance.applianceType);
+        // Background tint is derived from the appliance identity via a local
+        // CSS variable. Keeping the colour value out of the Tailwind arbitrary
+        // class avoids extractor drift while preserving the governed visual
+        // source in `appliance-identity`.
+        const identity = applianceIdentity(appliance.applianceType);
+        const identityStyle = {
+          '--appliance-identity': identity.solid,
+        } as CSSProperties;
         return (
           <div
             key={appliance.applianceId}
-            className={`flex items-center gap-3.5 rounded-2xl px-[18px] py-3.5 ${identityClass.card}`}
+            className="flex items-center gap-3.5 rounded-2xl bg-[color-mix(in_srgb,var(--appliance-identity)_12%,var(--nimi-surface-card))] px-[18px] py-3.5"
+            style={identityStyle}
           >
             <div style={{ flex: 1, minWidth: 0 }}>
               <div
@@ -68,7 +77,8 @@ export function ApplianceNextActionRow({
               >
                 <span
                   aria-hidden="true"
-                  className={`h-1.5 w-1.5 rounded-full ${identityClass.dot}`}
+                  className="h-1.5 w-1.5 rounded-full bg-[var(--appliance-identity)]"
+                  style={identityStyle}
                 />
                 {applianceTypeLabel(appliance.applianceType)} · {action.label}
                 {action.daysAway !== null && <DaysAwayPill daysAway={action.daysAway} />}
@@ -95,35 +105,4 @@ export function ApplianceNextActionRow({
       })}
     </div>
   );
-}
-
-function applianceIdentityClassNames(type: OrthodonticApplianceType): { card: string; dot: string } {
-  if (type === 'clear-aligner') {
-    return {
-      card: 'bg-[color-mix(in_srgb,var(--nimi-status-success)_12%,var(--nimi-surface-card))]',
-      dot: 'bg-[var(--nimi-status-success)]',
-    };
-  }
-  if (type === 'expander' || type === 'retainer-fixed') {
-    return {
-      card: 'bg-[color-mix(in_srgb,var(--nimi-status-info)_12%,var(--nimi-surface-card))]',
-      dot: 'bg-[var(--nimi-status-info)]',
-    };
-  }
-  if (type === 'retainer-removable') {
-    return {
-      card: 'bg-[color-mix(in_srgb,var(--nimi-status-danger)_10%,var(--nimi-surface-card))]',
-      dot: 'bg-[var(--nimi-status-danger)]',
-    };
-  }
-  if (type === 'metal-braces' || type === 'ceramic-braces') {
-    return {
-      card: 'bg-[color-mix(in_srgb,var(--nimi-text-muted)_12%,var(--nimi-surface-card))]',
-      dot: 'bg-[var(--nimi-text-muted)]',
-    };
-  }
-  return {
-    card: 'bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_12%,var(--nimi-surface-card))]',
-    dot: 'bg-[var(--nimi-action-primary-bg)]',
-  };
 }

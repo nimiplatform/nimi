@@ -15,6 +15,7 @@ import { applianceIdentity } from './appliance-identity.js';
 import { computeApplianceRingView } from './appliance-ring-view.js';
 import { ApplianceRing } from './appliance-ring.js';
 import {
+  AlignerIndexPill,
   ApplianceCardHeader,
   ApplianceLogActions,
   ApplianceMetaLine,
@@ -24,6 +25,7 @@ import {
 import {
   applianceSupportsWearGap,
   computeAppliancePhaseProgress,
+  computeCycleProgress,
 } from './orthodontic-derive.js';
 
 export function ApplianceHeroCard({
@@ -47,6 +49,15 @@ export function ApplianceHeroCard({
   const ringView = computeApplianceRingView({ appliance, caseRow, intervals, checkins, nowIso });
   const phase = computeAppliancePhaseProgress(appliance, nowIso);
   const supportsWearGap = applianceSupportsWearGap(appliance.applianceType);
+  const alignerIndex =
+    appliance.applianceType === 'clear-aligner'
+      ? computeCycleProgress({
+          appliance,
+          intervals,
+          alignerChangeCheckins: checkins,
+          nowIso,
+        }).currentAlignerIndex
+      : null;
 
   return (
     <section
@@ -72,11 +83,22 @@ export function ApplianceHeroCard({
         }}
       >
         <div>
-          <ApplianceCardHeader appliance={appliance} onEditAppliance={handlers.onEditAppliance} />
+          <ApplianceCardHeader
+            appliance={appliance}
+            onEditAppliance={handlers.onEditAppliance}
+            inline={
+              alignerIndex !== null ? (
+                <AlignerIndexPill
+                  currentAlignerIndex={alignerIndex}
+                  totalAligners={appliance.totalAligners}
+                />
+              ) : null
+            }
+          />
           <ApplianceMetaLine appliance={appliance} childBirthDate={childBirthDate} />
         </div>
 
-        <div>
+        <div className="flex flex-wrap items-center gap-2">
           <AppliancePhasePill
             appliance={appliance}
             phase={phase}

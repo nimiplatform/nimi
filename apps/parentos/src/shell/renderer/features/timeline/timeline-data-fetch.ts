@@ -17,6 +17,7 @@ import {
   type OrthodonticCheckinRow,
 } from '../../bridge/sqlite-bridge.js';
 import { mapReminderStateRow, getLocalToday } from '../../engine/reminder-engine.js';
+import { findLatestAlignerChange } from '../profile/orthodontic-derive.js';
 import type { DashData, OrthoCycleSummary } from './timeline-data-types.js';
 
 const EMPTY: DashData = {
@@ -50,16 +51,13 @@ function deriveOrthoCycle(
   ) {
     return null;
   }
-  const alignerChangeCheckins = checkins
-    .filter((c) => c.applianceId === appliance.applianceId && c.checkinType === 'aligner-change')
-    .sort((a, b) => a.checkinDate.localeCompare(b.checkinDate));
-  const latestChange = alignerChangeCheckins[alignerChangeCheckins.length - 1] ?? null;
-  const cycleAnchor = latestChange?.checkinDate ?? appliance.startedAt;
-  const latestIndex = alignerChangeCheckins.reduce(
-    (acc, c) => (c.alignerIndex !== null ? Math.max(acc, c.alignerIndex) : acc),
-    0,
-  );
-  const currentAlignerIndex = Math.max(1, latestIndex);
+  // Shared latest-by-time semantic with the profile's `computeCycleProgress`
+  // — see `findLatestAlignerChange` for why Math.max is wrong here. The home
+  // widget is calendar-based and slices the anchor to a yyyy-mm-dd, so a
+  // sub-day correction that lands on a later calendar day is what matters.
+  const latestChange = findLatestAlignerChange(checkins, appliance.applianceId);
+  const cycleAnchor = latestChange ? latestChange.at.slice(0, 10) : appliance.startedAt;
+  const currentAlignerIndex = latestChange?.index ?? 1;
   const todayMs = Date.UTC(
     Number(localToday.slice(0, 4)),
     Number(localToday.slice(5, 7)) - 1,

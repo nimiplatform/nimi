@@ -24,7 +24,11 @@ const IDENTITY: Record<OrthodonticApplianceType, ApplianceIdentity> = {
   activator: { solid: '#8b5cf6', tint: 'rgba(139,92,246,0.12)', tintText: '#6d28d9' },
   'metal-braces': { solid: '#64748b', tint: 'rgba(100,116,139,0.14)', tintText: '#475569' },
   'ceramic-braces': { solid: '#a98467', tint: 'rgba(169,132,103,0.16)', tintText: '#8a6a52' },
-  'clear-aligner': { solid: '#14b8a6', tint: 'rgba(20,184,166,0.12)', tintText: '#0f766e' },
+  // Clear-aligner identity = the dashboard sleep-bar indigo (#818CF8). It's
+  // the only orthodontic appliance type a parent also sees aggregated on the
+  // home dashboard's right-rail "牙套周期" widget, so matching that hue keeps
+  // "this is the aligner thing" visually consistent across surfaces.
+  'clear-aligner': { solid: '#818CF8', tint: 'rgba(129,140,248,0.14)', tintText: '#4f46e5' },
   'retainer-fixed': { solid: '#06b6d4', tint: 'rgba(6,182,212,0.12)', tintText: '#0e7490' },
   'retainer-removable': { solid: '#ec4899', tint: 'rgba(236,72,153,0.12)', tintText: '#be185d' },
 };
