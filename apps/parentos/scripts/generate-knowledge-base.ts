@@ -13,6 +13,11 @@ import { fileURLToPath } from 'node:url';
 import { parse as parseYaml } from 'yaml';
 import { readKnowledgeAssetData } from './knowledge-json-asset.js';
 import { loadKnowledgeAsset } from './knowledge-asset-kernel.js';
+import {
+  ACTION_TYPE_TO_KIND,
+  liftOrthodonticRules,
+  type BaseReminderRule,
+} from './generate-knowledge-base-reminders.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, '..');
@@ -67,152 +72,10 @@ function writeRustGen(filename: string, content: string) {
 
 // ── reminder-rules ──────────────────────────────────────────
 
-type ReminderKindLiteral = 'task' | 'guide' | 'practice' | 'consult';
-
-const ACTION_TYPE_TO_KIND: Record<string, ReminderKindLiteral> = {
-  go_hospital: 'task',
-  record_data: 'task',
-  start_training: 'task',
-  read_guide: 'guide',
-  observe: 'practice',
-  ai_consult: 'consult',
-};
-
-interface ReminderExplainSource {
-  citation: string;
-  url?: string;
-}
-
-interface ReminderExplainShape {
-  whyNow: string;
-  howTo: string[];
-  doneWhen: string;
-  ifNotNow?: string;
-  pitfalls?: string[];
-  sources: ReminderExplainSource[];
-}
-
-interface BaseReminderRule {
-  ruleId: string;
-  domain: string;
-  category: string;
-  kind: ReminderKindLiteral;
-  title: string;
-  description: string;
-  triggerAge: { startMonths: number; endMonths: number };
-  triggerCondition?: { dataField: string; operator: string; value: unknown };
-  priority: string;
-  nurtureMode: { relaxed: string; balanced: string; advanced: string };
-  actionType: string;
-  repeatRule?: { intervalMonths: number; maxRepeats: number };
-  explain?: ReminderExplainShape;
-  expiryMonths?: number;
-  tags?: string[];
-}
-
-/**
- * Lift orthodontic-protocols.yaml#rules and #dentalFollowUpRules into the
- * shared ReminderRule shape. These rules are state-gated (per
- * timeline-contract.md#PO-TIME-009) rather than age-gated, so we mark them
- * `category: personalized` with a synthetic `triggerCondition`: that keeps
- * `computeEligibleReminders` from auto-surfacing them in the age-based engine
- * while still admitting their ruleIds into the compiled catalog so
- * reminder_states referencing `PO-ORTHO-*` / `PO-DEN-FOLLOWUP-*` do not trip
- * the PO-TIME-007 unknown-ruleId fail-close.
- *
- * Runtime surfaces that care (the orthodontic tab) read these ruleIds
- * directly from the protocol catalog + reminder_states rows.
- */
-function liftOrthodonticRules(): BaseReminderRule[] {
-  const spec = readYaml('orthodontic-protocols.yaml') as {
-    rules?: Array<{
-      ruleId: string;
-      domain: string;
-      title: string;
-      description: string;
-      priority: string;
-      actionType: string;
-      cadence: string;
-      defaultIntervalDays?: number;
-      nurtureMode: { relaxed: string; balanced: string; advanced: string };
-      source: string;
-      applianceTypes?: string[];
-    }>;
-    dentalFollowUpRules?: Array<{
-      ruleId: string;
-      domain: string;
-      title: string;
-      description: string;
-      intervalMonths: number;
-      priority: string;
-      actionType: string;
-      nurtureMode: { relaxed: string; balanced: string; advanced: string };
-      triggeredBy: { dentalEventType: string };
-      source: string;
-    }>;
-  };
-
-  const out: BaseReminderRule[] = [];
-  for (const rule of spec.rules ?? []) {
-    const kind = ACTION_TYPE_TO_KIND[rule.actionType];
-    if (kind !== 'task') {
-      throw new Error(
-        `liftOrthodonticRules: rule "${rule.ruleId}" actionType '${rule.actionType}' maps to kind '${kind}', but orthodontic protocol rules are admitted only as kind='task' (PO-REMI-002)`,
-      );
-    }
-    out.push({
-      ruleId: rule.ruleId,
-      domain: rule.domain,
-      category: 'personalized',
-      kind: 'task',
-      title: rule.title,
-      description: rule.description,
-      triggerAge: { startMonths: 0, endMonths: 216 },
-      triggerCondition: {
-        dataField: 'orthodontic_appliance.status',
-        operator: '=',
-        value: 'active',
-      },
-      priority: rule.priority,
-      nurtureMode: rule.nurtureMode,
-      actionType: rule.actionType,
-      tags: ['orthodontic-protocol', ...(rule.applianceTypes ?? []).map((t) => `appliance:${t}`)],
-    });
-  }
-  for (const rule of spec.dentalFollowUpRules ?? []) {
-    const kind = ACTION_TYPE_TO_KIND[rule.actionType];
-    if (kind !== 'task') {
-      throw new Error(
-        `liftOrthodonticRules: dental follow-up rule "${rule.ruleId}" actionType '${rule.actionType}' maps to kind '${kind}', but dental follow-up rules are admitted only as kind='task' (PO-REMI-002)`,
-      );
-    }
-    out.push({
-      ruleId: rule.ruleId,
-      domain: rule.domain,
-      category: 'personalized',
-      kind: 'task',
-      title: rule.title,
-      description: rule.description,
-      triggerAge: { startMonths: 0, endMonths: 216 },
-      triggerCondition: {
-        dataField: 'dental_records.eventType',
-        operator: '=',
-        value: rule.triggeredBy.dentalEventType,
-      },
-      priority: rule.priority,
-      nurtureMode: rule.nurtureMode,
-      actionType: rule.actionType,
-      repeatRule: { intervalMonths: rule.intervalMonths, maxRepeats: -1 },
-      tags: ['dental-followup', `trigger:${rule.triggeredBy.dentalEventType}`],
-    });
-  }
-  return out;
-}
-
 function generateReminderRules() {
   const data = readYaml('reminder-rules.yaml') as { rules: BaseReminderRule[] };
   const extendedData = readYaml('reminder-rules-extended.yaml') as { rules: BaseReminderRule[] };
-  const orthoRules = liftOrthodonticRules();
+  const orthoRules = liftOrthodonticRules(readYaml);
   const merged: BaseReminderRule[] = [...data.rules, ...extendedData.rules, ...orthoRules];
 
   // Enforce unique ruleIds across the union.
