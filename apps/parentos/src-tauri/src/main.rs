@@ -191,7 +191,8 @@ fn main() {
             journal_photo::delete_journal_photo,
             dropped_file::read_dropped_image_as_base64,
             dropped_file::pick_image_files,
-            report_export::save_report_file,
+            report_export::pick_report_save_path,
+            report_export::write_report_file_at,
             // Family & Children
             sqlite::queries::create_family,
             sqlite::queries::get_family,

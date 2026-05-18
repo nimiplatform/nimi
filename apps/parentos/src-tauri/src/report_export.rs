@@ -19,13 +19,37 @@ fn filter_for_kind(kind: &str) -> (&'static str, &'static [&'static str]) {
     }
 }
 
+/// Opens the OS-native "Save as" dialog without producing any file
+/// content. Returning the chosen path up front lets the renderer show
+/// the dialog *immediately* on click — render + encode then happens
+/// while the user is already committed to a destination.
+///
+/// Returns `Ok(None)` if the user cancels.
 #[tauri::command]
-pub fn save_report_file(
-    base64_data: String,
+pub fn pick_report_save_path(
     default_filename: String,
     kind: String,
     title: Option<String>,
 ) -> Result<Option<String>, String> {
+    let trimmed_filename = default_filename.trim();
+    if trimmed_filename.is_empty() {
+        return Err("default filename is required".to_string());
+    }
+
+    let (filter_label, filter_exts) = filter_for_kind(kind.as_str());
+    let dialog = rfd::FileDialog::new()
+        .set_directory(picker_start_dir())
+        .set_file_name(trimmed_filename)
+        .set_title(title.as_deref().unwrap_or("保存报告"))
+        .add_filter(filter_label, filter_exts);
+
+    Ok(dialog.save_file().map(|p| p.to_string_lossy().to_string()))
+}
+
+/// Writes the encoded report bytes to a pre-chosen absolute path.
+/// Pair with [`pick_report_save_path`].
+#[tauri::command]
+pub fn write_report_file_at(path: String, base64_data: String) -> Result<String, String> {
     let bytes = BASE64_STANDARD
         .decode(base64_data.as_bytes())
         .map_err(|error| format!("invalid base64 payload: {error}"))?;
@@ -39,28 +63,17 @@ pub fn save_report_file(
         ));
     }
 
-    let trimmed_filename = default_filename.trim();
-    if trimmed_filename.is_empty() {
-        return Err("default filename is required".to_string());
+    let target = PathBuf::from(path.trim());
+    if !target.is_absolute() {
+        return Err("report save path must be absolute".to_string());
     }
 
-    let (filter_label, filter_exts) = filter_for_kind(kind.as_str());
-    let dialog = rfd::FileDialog::new()
-        .set_directory(picker_start_dir())
-        .set_file_name(trimmed_filename)
-        .set_title(title.as_deref().unwrap_or("保存报告"))
-        .add_filter(filter_label, filter_exts);
-
-    let Some(chosen) = dialog.save_file() else {
-        return Ok(None);
-    };
-
-    std::fs::write(&chosen, &bytes).map_err(|error| {
+    std::fs::write(&target, &bytes).map_err(|error| {
         format!(
             "failed to write report export ({}): {error}",
-            chosen.display()
+            target.display()
         )
     })?;
 
-    Ok(Some(chosen.to_string_lossy().to_string()))
+    Ok(target.to_string_lossy().to_string())
 }

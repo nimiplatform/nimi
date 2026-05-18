@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Button, Surface } from '@nimiplatform/nimi-kit/ui';
 import { Check, FileImage, GraduationCap, LoaderCircle, Pencil, Printer } from 'lucide-react';
+import { describeError, logRendererEvent } from '../../infra/telemetry/renderer-log.js';
 
 const SERIF = "var(--font-serif, 'Noto Serif SC', 'Source Han Serif SC', 'Songti SC', 'STSong', Georgia, serif)";
 const MONO = "var(--nimi-font-mono, 'JetBrains Mono', 'SF Mono', ui-monospace, monospace)";
@@ -278,7 +279,12 @@ export function ReportActionBar({
       else if (error && typeof error === 'object') detail = JSON.stringify(error);
       const prefix = kind === 'pdf' ? 'PDF 生成失败' : '图片生成失败';
       showToast(detail ? `${prefix}:${detail}` : `${prefix},请稍后重试`);
-      console.error('[parentos:reports] save failed', { kind, error });
+      logRendererEvent({
+        level: 'error',
+        area: 'reports',
+        message: 'action:save-failed',
+        details: { kind, ...describeError(error) },
+      });
     } finally {
       setBusy(null);
     }
