@@ -32,6 +32,8 @@ import {
 import { buildGrowthDetailSnapshot } from './growth-detail-projection.js';
 import { GrowthHeroCard } from './growth-hero-card.js';
 import { GrowthInsightStrip } from './growth-insight-strip.js';
+import { GrowthMilestonesCard } from './growth-milestones-card.js';
+import { GrowthNextCheckCard } from './growth-next-check-card.js';
 import type {
   HealthRecordEvent,
   HealthRecordEventKind,
@@ -481,6 +483,18 @@ export default function GrowthCurvePage() {
         measurements={measurements}
         ageMonths={ageMonths}
       />
+
+      {growthDetailSnapshot ? (
+        <>
+          <GrowthMilestonesCard milestones={growthDetailSnapshot.milestones} />
+          <GrowthNextCheckCard
+            nextCheck={growthDetailSnapshot.nextCheck}
+            trendStats={growthDetailSnapshot.trendStats}
+            childId={growthDetailSnapshot.child.childId}
+            metricId={growthDetailSnapshot.selectedMetric.metricId}
+          />
+        </>
+      ) : null}
 
       <div className="flex flex-wrap gap-3">
         {showForm ? (

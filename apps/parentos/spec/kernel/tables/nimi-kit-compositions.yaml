@@ -97,3 +97,35 @@ components:
     shared_families: []
     shared_targets: []
     source_rule: P-DESIGN-019
+  - id: parentos.profile.growth_hero_card
+    app: parentos
+    module: apps/parentos/src/shell/renderer/features/profile/growth-hero-card.tsx
+    component: GrowthHeroCard
+    classification: app_owned_composition
+    shared_families: []
+    shared_targets: []
+    source_rule: P-DESIGN-019
+  - id: parentos.profile.growth_insight_strip
+    app: parentos
+    module: apps/parentos/src/shell/renderer/features/profile/growth-insight-strip.tsx
+    component: GrowthInsightStrip
+    classification: app_owned_composition
+    shared_families: []
+    shared_targets: []
+    source_rule: P-DESIGN-019
+  - id: parentos.profile.growth_milestones_card
+    app: parentos
+    module: apps/parentos/src/shell/renderer/features/profile/growth-milestones-card.tsx
+    component: GrowthMilestonesCard
+    classification: app_owned_composition
+    shared_families: []
+    shared_targets: []
+    source_rule: P-DESIGN-019
+  - id: parentos.profile.growth_next_check_card
+    app: parentos
+    module: apps/parentos/src/shell/renderer/features/profile/growth-next-check-card.tsx
+    component: GrowthNextCheckCard
+    classification: app_owned_composition
+    shared_families: []
+    shared_targets: []
+    source_rule: P-DESIGN-019

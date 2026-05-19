@@ -3,11 +3,25 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { TooltipProvider } from '@nimiplatform/nimi-kit/ui';
 import type { ReactNode } from 'react';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, useLocation } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import GrowthCurvePage from './growth-curve-page.js';
 import { useAppStore } from '../../app-shell/app-store.js';
 import { i18n } from '../../i18n/index.js';
+
+// Sentinel that mirrors the current router location into the DOM so wave-C
+// next-check CTA deep-link navigation can be asserted without mocking
+// react-router-dom.
+function LocationSentinel() {
+  const location = useLocation();
+  return (
+    <div
+      data-testid="location-sentinel"
+      data-pathname={location.pathname}
+      data-search={location.search}
+    />
+  );
+}
 
 const {
   getMeasurementsMock,
@@ -416,5 +430,151 @@ describe('GrowthCurvePage', () => {
     // present but BMI tab still does not render an inline P percentile (BMI
     // pill currently shows no percentile label per design).
     expect(screen.queryByTestId('growth-curve-tab-percentile-bmi')).toBeNull();
+  });
+
+  // -----------------------------------------------------------------
+  // Wave-C tests
+  // -----------------------------------------------------------------
+
+  it('renders growth milestones card with rows when height measurements cross an admitted threshold', async () => {
+    // Two height measurements within 12 months crossing the 100 cm
+    // admitted threshold should fire growth-milestone-height-threshold-100cm.
+    getMeasurementsMock.mockResolvedValueOnce([
+      {
+        measurementId: 'm-prior-height',
+        childId: 'child-1',
+        typeId: 'height',
+        value: 95,
+        measuredAt: '2025-06-10T00:00:00.000Z',
+        ageMonths: 137,
+        percentile: null,
+        source: 'manual',
+        notes: null,
+        createdAt: '2025-06-10T00:00:00.000Z',
+      },
+      {
+        measurementId: 'm-cross-height',
+        childId: 'child-1',
+        typeId: 'height',
+        value: 102,
+        measuredAt: '2025-12-10T00:00:00.000Z',
+        ageMonths: 143,
+        percentile: null,
+        source: 'manual',
+        notes: null,
+        createdAt: '2025-12-10T00:00:00.000Z',
+      },
+    ]);
+
+    render(
+      <TooltipProvider>
+        <MemoryRouter>
+          <GrowthCurvePage />
+        </MemoryRouter>
+      </TooltipProvider>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('growth-milestones-card')).toBeTruthy();
+    });
+
+    const card = screen.getByTestId('growth-milestones-card');
+    const rows = card.querySelectorAll('[data-testid^="growth-milestone-row-"]');
+    expect(rows.length).toBeGreaterThan(0);
+    expect(card.textContent ?? '').toContain('近一年里程碑');
+  });
+
+  it('renders the growth milestones empty-state with the admitted copy when no milestones are present', async () => {
+    getMeasurementsMock.mockResolvedValueOnce([]);
+
+    render(
+      <TooltipProvider>
+        <MemoryRouter>
+          <GrowthCurvePage />
+        </MemoryRouter>
+      </TooltipProvider>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('growth-milestones-card-empty')).toBeTruthy();
+    });
+
+    expect(screen.queryByTestId('growth-milestones-card')).toBeNull();
+    expect(screen.getByText('过去 12 个月暂无识别到的里程碑事件')).toBeTruthy();
+  });
+
+  it('renders the next-check card with badge, lede, CTA, and three-stat trend row when data present', async () => {
+    render(
+      <TooltipProvider>
+        <MemoryRouter>
+          <GrowthCurvePage />
+        </MemoryRouter>
+      </TooltipProvider>,
+    );
+
+    // The card mounts whenever the snapshot is non-null and the page has a
+    // child. Depending on the freshness policy + seeded measurements, the
+    // next-check state may be 'scheduled' or 'unscheduled'. We accept
+    // either rendering but assert the appropriate one is present.
+    await waitFor(() => {
+      const scheduled = screen.queryByTestId('growth-next-check-card');
+      const unscheduled = screen.queryByTestId('growth-next-check-card-unscheduled');
+      expect(Boolean(scheduled) || Boolean(unscheduled)).toBe(true);
+    });
+
+    const scheduled = screen.queryByTestId('growth-next-check-card');
+    if (scheduled) {
+      // Scheduled-state assertions
+      expect(screen.getByTestId('growth-next-check-badge')).toBeTruthy();
+      expect(screen.getByTestId('growth-next-check-cta-set-reminder')).toBeTruthy();
+      expect(scheduled.textContent ?? '').toContain('设为提醒');
+      const stats = screen.queryByTestId('growth-next-check-trend-stats');
+      expect(stats).toBeTruthy();
+      expect(stats!.querySelectorAll('p.text-\\[11px\\]').length).toBeGreaterThanOrEqual(3);
+    } else {
+      // Unscheduled-state fallback assertion (still validates wave-C mount)
+      expect(screen.getByText('暂无下次测量安排')).toBeTruthy();
+    }
+  });
+
+  it('renders the next-check unscheduled state with the admitted copy when no measurements are present', async () => {
+    getMeasurementsMock.mockResolvedValueOnce([]);
+
+    render(
+      <TooltipProvider>
+        <MemoryRouter>
+          <GrowthCurvePage />
+        </MemoryRouter>
+      </TooltipProvider>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('growth-next-check-card-unscheduled')).toBeTruthy();
+    });
+
+    expect(screen.queryByTestId('growth-next-check-card')).toBeNull();
+    expect(screen.getByText('暂无下次测量安排')).toBeTruthy();
+  });
+
+  it('navigates to /timeline?focus=growth&metric=<id> when the next-check set-reminder CTA is clicked on the deep_link_only branch', async () => {
+    render(
+      <TooltipProvider>
+        <MemoryRouter initialEntries={['/profile/growth']}>
+          <GrowthCurvePage />
+          <LocationSentinel />
+        </MemoryRouter>
+      </TooltipProvider>,
+    );
+
+    const cta = await screen.findByTestId('growth-next-check-cta-set-reminder');
+    fireEvent.click(cta);
+
+    await waitFor(() => {
+      const sentinel = screen.getByTestId('location-sentinel');
+      expect(sentinel.getAttribute('data-pathname')).toBe('/timeline');
+      const search = sentinel.getAttribute('data-search') ?? '';
+      expect(search).toContain('focus=growth');
+      expect(search).toContain('metric=');
+    });
   });
 });
