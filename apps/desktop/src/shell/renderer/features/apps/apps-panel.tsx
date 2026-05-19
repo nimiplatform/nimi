@@ -1,13 +1,15 @@
 import { useEffect, useMemo, useState, type ReactElement } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ScrollArea, Surface } from '@nimiplatform/nimi-kit/ui';
-import { LibraryView, projectLibrary, type LibraryProjection } from '../../first-run/index.js';
 import { createDesktopHomeLiveBridge } from '../nimi-home/nimi-home-live-bridge.js';
+import { projectAppsPanel, type DesktopAppsPanelProjection } from './apps-panel-projection.js';
+import { AppsPanelView } from './apps-panel-view.js';
 
 function LoadingAppsProjection(): ReactElement {
+  const { t } = useTranslation();
   return (
     <section data-testid="apps-panel-loading" className="flex min-h-32 animate-pulse items-center justify-center rounded-lg border border-dashed border-[color:var(--nimi-border-subtle)] text-sm text-[var(--nimi-text-secondary)]">
-      Loading apps...
+      {t('Apps.loading')}
     </section>
   );
 }
@@ -15,12 +17,12 @@ function LoadingAppsProjection(): ReactElement {
 export function AppsPanel(): ReactElement {
   const { t } = useTranslation();
   const liveBridge = useMemo(() => createDesktopHomeLiveBridge(), []);
-  const [library, setLibrary] = useState<LibraryProjection | null>(null);
+  const [projection, setProjection] = useState<DesktopAppsPanelProjection | null>(null);
 
   useEffect(() => {
     let cancelled = false;
-    void projectLibrary(liveBridge.appClient).then((next) => {
-      if (!cancelled) setLibrary(next);
+    void projectAppsPanel(liveBridge.appClient).then((next) => {
+      if (!cancelled) setProjection(next);
     });
     return () => {
       cancelled = true;
@@ -42,7 +44,7 @@ export function AppsPanel(): ReactElement {
         </header>
 
         <Surface tone="panel" material="glass-regular" padding="none" className="min-h-[220px] p-5 shadow-[0_16px_44px_rgba(15,23,42,0.06)]">
-          {library ? <LibraryView projection={library} /> : <LoadingAppsProjection />}
+          {projection ? <AppsPanelView projection={projection} /> : <LoadingAppsProjection />}
         </Surface>
       </ScrollArea>
     </div>

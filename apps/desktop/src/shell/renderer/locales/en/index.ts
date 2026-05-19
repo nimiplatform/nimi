@@ -53,6 +53,7 @@ import section51 from './52-I18n.json';
 import section52 from './53-BridgeErrors.json';
 import section53 from './54-Tester.json';
 import section54 from './55-ModelConfig.json';
+import section55 from './56-Apps.json';
 
 const messages = {
   "Navigation": section0,
@@ -110,6 +111,7 @@ const messages = {
   "BridgeErrors": section52,
   "Tester": section53,
   "ModelConfig": section54,
+  "Apps": section55,
 };
 
 export default messages;
