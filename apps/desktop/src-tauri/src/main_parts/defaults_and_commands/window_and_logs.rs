@@ -7,6 +7,7 @@ use std::time::SystemTime;
 const AVATAR_HANDOFF_SCHEME: &str = "nimi-avatar";
 const AVATAR_HANDOFF_LAUNCH_HOST: &str = "launch";
 const AVATAR_HANDOFF_CLOSE_HOST: &str = "close";
+const LOCAL_AGENT_REF_PREFIX: &str = "local-agent:";
 
 fn structured_avatar_handoff_error(reason_code: &str, message: &str) -> String {
     json!({
@@ -27,6 +28,26 @@ fn normalize_required_handoff_value(value: &str, field: &str) -> Result<String, 
     Ok(normalized.to_string())
 }
 
+fn normalize_required_local_agent_handoff_value(value: &str, field: &str) -> Result<String, String> {
+    let normalized = normalize_required_handoff_value(value, field)?;
+    let rest = normalized
+        .strip_prefix(LOCAL_AGENT_REF_PREFIX)
+        .unwrap_or_default();
+    let Some((owner_user_id, realm_agent_id)) = rest.split_once(':') else {
+        return Err(structured_avatar_handoff_error(
+            "DESKTOP_AVATAR_HANDOFF_INVALID",
+            &format!("avatar handoff requires {field} to be a local-agent ref"),
+        ));
+    };
+    if owner_user_id.trim().is_empty() || realm_agent_id.trim().is_empty() {
+        return Err(structured_avatar_handoff_error(
+            "DESKTOP_AVATAR_HANDOFF_INVALID",
+            &format!("avatar handoff requires {field} to be a local-agent ref"),
+        ));
+    }
+    Ok(normalized)
+}
+
 fn normalize_optional_handoff_value(value: Option<&str>) -> Option<String> {
     let normalized = value.unwrap_or_default().trim();
     if normalized.is_empty() {
@@ -37,7 +58,8 @@ fn normalize_optional_handoff_value(value: Option<&str>) -> Option<String> {
 }
 
 fn build_avatar_handoff_uri(payload: &DesktopAvatarLaunchHandoffPayload) -> Result<String, String> {
-    let agent_id = normalize_required_handoff_value(payload.agent_id.as_str(), "agent_id")?;
+    let agent_id =
+        normalize_required_local_agent_handoff_value(payload.agent_id.as_str(), "agent_id")?;
     let avatar_instance_id =
         normalize_optional_handoff_value(payload.avatar_instance_id.as_deref());
     let launch_source = normalize_optional_handoff_value(payload.launch_source.as_deref());

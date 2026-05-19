@@ -25,22 +25,12 @@ class StubTransport implements NimiAppTransport {
     if (this.behavior.list !== undefined) return this.behavior.list;
     return [
       {
-        appId: 'avatar',
-        appKind: 'nimi-app',
-        displayName: 'Avatar',
-        trustTier: 'nimi-first-party',
-        publisher: 'Nimi',
-        releaseDescriptorRef: 'avatar.bundled',
-        installStoragePolicyRef: 'nimi-data-app-roots',
-        sourceRule: 'P-NAPP-004',
-      },
-      {
-        appId: 'parentos',
+        appId: 'nimi.parentos',
         appKind: 'nimi-app',
         displayName: 'ParentOS',
         trustTier: 'nimi-first-party',
         publisher: 'Nimi',
-        releaseDescriptorRef: 'parentos.bundled',
+        releaseDescriptorRef: 'nimi.parentos.bundled',
         installStoragePolicyRef: 'nimi-data-app-roots',
         sourceRule: 'P-NAPP-004',
       },
@@ -98,9 +88,8 @@ describe('NimiAppClient', () => {
   it('list returns admitted rows', async () => {
     const client = new NimiAppClient(new StubTransport());
     const rows = await client.list();
-    assert.equal(rows.length, 2);
-    assert.equal(rows[0]!.appId, 'avatar');
-    assert.equal(rows[1]!.appId, 'parentos');
+    assert.equal(rows.length, 1);
+    assert.equal(rows[0]!.appId, 'nimi.parentos');
   });
 
   it('list rejects rows with non-admitted appKind (no public mod/extension)', async () => {
@@ -183,18 +172,18 @@ describe('NimiAppClient', () => {
 
   it('status returns canonical launchReadiness', async () => {
     const client = new NimiAppClient(new StubTransport());
-    const status = await client.status('avatar');
-    assert.equal(status.appId, 'avatar');
+    const status = await client.status('nimi.parentos');
+    assert.equal(status.appId, 'nimi.parentos');
     assert.equal(status.launchReadiness, 'install-required');
   });
 
   it('status rejects non-canonical launchReadiness', async () => {
     const bad: NimiAppStatus = {
-      appId: 'avatar',
+      appId: 'nimi.parentos',
       launchReadiness: 'best-effort-ready' as 'ready',
     };
     const client = new NimiAppClient(new StubTransport({ status: bad }));
-    await assert.rejects(client.status('avatar'), (err: unknown) => {
+    await assert.rejects(client.status('nimi.parentos'), (err: unknown) => {
       assert.ok(err instanceof NimiAppClientError);
       assert.equal((err as NimiAppClientError).code, 'non-canonical-response');
       return true;
@@ -203,18 +192,18 @@ describe('NimiAppClient', () => {
 
   it('status blocked-by-master-gate is a canonical readiness state', async () => {
     const bad: NimiAppStatus = {
-      appId: 'avatar',
+      appId: 'gated-internal-app',
       launchReadiness: 'blocked-by-master-gate',
-      detail: 'avatar master gate not yet true-closed',
+      detail: 'master gate not yet true-closed',
     };
     const client = new NimiAppClient(new StubTransport({ status: bad }));
-    const status = await client.status('avatar');
+    const status = await client.status('gated-internal-app');
     assert.equal(status.launchReadiness, 'blocked-by-master-gate');
   });
 
   it('status wraps transport errors', async () => {
     const client = new NimiAppClient(new StubTransport({ status: new Error('boom') }));
-    await assert.rejects(client.status('avatar'), (err: unknown) => {
+    await assert.rejects(client.status('nimi.parentos'), (err: unknown) => {
       assert.ok(err instanceof NimiAppClientError);
       assert.equal((err as NimiAppClientError).code, 'transport-error');
       return true;
@@ -223,18 +212,18 @@ describe('NimiAppClient', () => {
 
   it('status rejects null response', async () => {
     const client = new NimiAppClient(new StubTransport({ status: null }));
-    await assert.rejects(client.status('avatar'), NimiAppClientError);
+    await assert.rejects(client.status('nimi.parentos'), NimiAppClientError);
   });
 
   it('exposes install as typed fail-closed projection', async () => {
     const client = new NimiAppClient(new StubTransport());
-    const result = await client.install('parentos');
+    const result = await client.install('nimi.parentos');
     assert.equal(result.state, 'unsupported');
     assert.equal(result.reason, 'install-gateway-not-connected');
   });
 
   it('requires explicit launch scope', async () => {
     const client = new NimiAppClient(new StubTransport());
-    await assert.rejects(client.launch('parentos', null as unknown as NimiAppLaunchScopeRef), NimiAppClientError);
+    await assert.rejects(client.launch('nimi.parentos', null as unknown as NimiAppLaunchScopeRef), NimiAppClientError);
   });
 });
