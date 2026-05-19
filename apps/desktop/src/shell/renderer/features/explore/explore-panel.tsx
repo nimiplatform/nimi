@@ -408,6 +408,9 @@ export function ExplorePanel() {
         categories={categories}
         topAgents={topAgents}
         worldBanners={worldBanners}
+        worldCatalogItems={worldsQuery.data ?? []}
+        worldsLoading={worldsQuery.isPending}
+        worldsError={worldsQuery.isError}
         fetchPostPage={fetchPostPage}
         postFeedKey={postFeedKey}
         onPostDelete={() => setRefreshKey((k) => k + 1)}

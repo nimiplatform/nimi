@@ -13,6 +13,7 @@ import {
   OasisWorldDetailPage,
 } from './world-detail-template';
 import type { WorldAgent } from './world-detail-types';
+import { worldAdmitsUserCreatedRealmAgents } from './world-create-agent-admission';
 import type { WorldListItem } from './world-list-model';
 import {
   fetchWorldDisplayDetail,
@@ -62,6 +63,7 @@ export function WorldDetail({ world, onBack }: WorldDetailProps) {
   const pageError = initialError || supplementalError;
   const worldData = display?.world ?? toWorldDisplayFallback(world);
   const agents: WorldAgent[] = display?.agents ?? [];
+  const createAgentAdmitted = worldAdmitsUserCreatedRealmAgents(worldData);
   const safeHistory = display?.history ?? { items: [], summary: null };
   const safeSemantic = display?.semantic ?? {
     operationTitle: null,
@@ -328,6 +330,11 @@ export function WorldDetail({ world, onBack }: WorldDetailProps) {
       dnaPrimary: '' | 'CARING' | 'PLAYFUL' | 'INTELLECTUAL' | 'CONFIDENT' | 'MYSTERIOUS' | 'ROMANTIC';
       dnaSecondary: string[];
     }) => {
+      if (!worldAdmitsUserCreatedRealmAgents(worldData)) {
+        throw new Error(i18n.t('World.createAgent.notAdmitted', {
+          defaultValue: 'This World is not admitting new user-created RealmAgents.',
+        }));
+      }
       let resolvedImageUrl: string | undefined;
       if (input.referenceImageFile) {
         const upload = await dataSync.createImageDirectUpload();
@@ -398,7 +405,7 @@ export function WorldDetail({ world, onBack }: WorldDetailProps) {
           onChatAgent={handleChatAgent}
           onVoiceAgent={handleVoiceAgent}
           onViewAgent={handleViewAgent}
-          onCreateAgent={(input) => createAgentMutation.mutate(input)}
+          onCreateAgent={createAgentAdmitted ? (input) => createAgentMutation.mutate(input) : undefined}
           createAgentMutating={createAgentMutation.isPending}
         />
       ) : (
@@ -422,7 +429,7 @@ export function WorldDetail({ world, onBack }: WorldDetailProps) {
           onChatAgent={handleChatAgent}
           onVoiceAgent={handleVoiceAgent}
           onViewAgent={handleViewAgent}
-          onCreateAgent={(input) => createAgentMutation.mutate(input)}
+          onCreateAgent={createAgentAdmitted ? (input) => createAgentMutation.mutate(input) : undefined}
           createAgentMutating={createAgentMutation.isPending}
         />
       )}

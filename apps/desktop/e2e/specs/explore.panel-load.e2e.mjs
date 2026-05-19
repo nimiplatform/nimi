@@ -7,5 +7,6 @@ describe('explore.panel-load', () => {
     await waitForTestId(E2E_IDS.mainShell);
     await clickByTestId(E2E_IDS.navTab('explore'));
     await waitForTestId(E2E_IDS.panel('explore'));
+    await waitForTestId('explore-worlds-section');
   });
 });
