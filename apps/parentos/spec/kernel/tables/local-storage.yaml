@@ -392,24 +392,45 @@ growth_measurement_canonical_migration:
       halt_action: wave-0c HALT for post-cutover violations; pre-cutover rows do not trigger HALT
 
   retirement_plan:
-    growth_measurements_status_during_topic: deprecated_pending_retirement_wave_0d
-    growth_measurements_status_after_topic_closure: dropped_OR_permanently_read_only_with_runner_enforced_no_write_guard
-    decision_fork: phased_retirement_halt_and_manager_decision_per_topic_yaml_phased_retirement_guardrail
-    phased_retirement_pointer: ../topic.yaml#phased_retirement_guardrail  # relative to .nimi/topics/ongoing/2026-05-19-parentos-growth-canonical-write-migration/
+    # REVISED 2026-05-19 per the topic's wave decomposition revision
+    # (.nimi/topics/ongoing/2026-05-19-parentos-growth-canonical-write-migration/wave-decomposition-revision-2026-05-19.md).
+    # The original 5-wave plan assumed the storage layer was still on
+    # the legacy table; an entry probe during wave-0b proved that
+    # insert_measurement / update_measurement / delete_measurement /
+    # get_measurements already operate on canonical health_record_events
+    # + health_record_values (per
+    # apps/parentos/src-tauri/src/sqlite/queries/health_measurements.rs).
+    # The wave plan was reduced from 5 to 4 waves; wave-0c was
+    # retargeted from "atomic-cutover" to "legacy-table-retirement";
+    # wave-0d "read-path-and-legacy-retirement" was COLLAPSED into 0c;
+    # the original wave-0e "verification-and-parent-unblock" was
+    # renumbered to wave-0d.
 
-    canonical_tables_become_sole_admitted_growth_write_target_at_wave_0d_closure: true
-    canonical_tables_already_sole_admitted_growth_WRITE_target_at_wave_0c_closure: true
-    # Wave-0c lands the legacy write-guard (runner-enforced no-write on
-    # growth_measurements after the atomic cutover commit). The legacy
-    # table remains READ-active until wave-0d swaps the read path and
-    # drops the table.
+    status: COMPLETE  # retirement lands at wave-0c
+    completion_wave: wave-0c-legacy-table-retirement
+    completion_migration: v21  # apps/parentos/src-tauri/src/sqlite/migrations_v21.rs
+    growth_measurements_status_after_topic_closure: dropped_via_sqlite_migration_v21
 
-    no_write_guard_runner_enforcement_wave: wave-0c-atomic-cutover
-    legacy_table_drop_implementation_wave: wave-0d-read-path-and-legacy-retirement
-    final_local_storage_yaml_amendment_wave: wave-0d-read-path-and-legacy-retirement
-    # Wave-0d removes the growth_measurements admission at lines 81-98
-    # of local-storage.yaml (current as of wave-0a admission). Wave-0a
-    # does NOT modify those lines.
+    canonical_tables_already_sole_admitted_growth_write_target: true
+    canonical_tables_already_sole_admitted_growth_read_target: true
+    # Storage layer was already canonical-only since v13 hard cut; the
+    # legacy table has been dormant (no reads, no writes) since then.
+    # The Rust commands insert_measurement / update_measurement /
+    # delete_measurement / get_measurements are legacy-API-SHAPE FACADES
+    # over canonical storage — they accept legacy-shape inputs and
+    # translate to canonical-shape rows in health_record_events +
+    # health_record_values. No code reads or writes growth_measurements
+    # after the v13 cutover.
+
+    legacy_table_drop_implementation_wave: wave-0c-legacy-table-retirement
+    final_local_storage_yaml_amendment_wave: wave-0c-legacy-table-retirement
+    # Wave-0c removes the growth_measurements table block from the
+    # tables: section of this file AND adds the v21 SQLite migration
+    # that DROPs the table + 2 indexes (idempotent via DROP IF EXISTS).
+    # The mapping / backfill_semantics / loss_criteria blocks above
+    # are preserved as documentary spec authority for the v13 backfill
+    # history; that history is permanent spec evidence even after the
+    # physical table is dropped.
 
     irrecoverable_pre_cutover_losses:
       - linkedReminderStateId
@@ -419,6 +440,20 @@ growth_measurement_canonical_migration:
     # explicitly admitted as a one-time loss for legacy data, not an
     # ongoing dual-truth situation. Post-cutover writes carry these
     # fields correctly via saveHealthRecordCapture.
+
+    rust_legacy_api_facade_retirement:
+      status: deferred_out_of_scope_for_this_topic
+      rationale: |
+        The Rust commands insert_measurement / update_measurement /
+        delete_measurement / get_measurements remain registered after
+        wave-0c because they write/read canonical storage and pose no
+        parallel-truth risk after the legacy table is dropped. Their
+        only remaining renderer consumers are the OCR import path in
+        growth-curve-page.tsx and the legacy bridge module
+        sqlite-bridge-growth.ts, both of which are parent topic
+        2026-05-18-parentos-growth-curve-page-redesign wave-D
+        territory (or a future cleanup topic).
+      cleanup_pointer: parent topic 2026-05-18-parentos-growth-curve-page-redesign wave-D or a successor cleanup topic
 
   references:
     pohrec_004: apps/parentos/spec/kernel/health-record-console-contract.md#PO-HREC-004
@@ -465,24 +500,13 @@ tables:
       - { columns: [familyId] }
       - { columns: [birthDate] }
 
-  - name: growth_measurements
-    description: "Structured child growth measurements."
-    authorityStatus: folded_after_pohrec_hard_cut
-    replacementTables: [health_record_events, health_record_values]
-    columns:
-      - { name: measurementId, type: TEXT, pk: true, description: "ULID" }
-      - { name: childId, type: TEXT, nullable: false, fk: "children.childId" }
-      - { name: typeId, type: TEXT, nullable: false, description: "References growth-standards data asset typeId" }
-      - { name: value, type: REAL, nullable: false }
-      - { name: measuredAt, type: TEXT, nullable: false, description: "ISO 8601 datetime" }
-      - { name: ageMonths, type: INTEGER, nullable: false }
-      - { name: percentile, type: REAL, nullable: true }
-      - { name: source, type: TEXT, nullable: true, description: "manual | ocr | imported" }
-      - { name: notes, type: TEXT, nullable: true }
-      - { name: createdAt, type: TEXT, nullable: false, description: "ISO 8601 datetime" }
-    indexes:
-      - { columns: [childId, typeId, measuredAt] }
-      - { columns: [childId, ageMonths] }
+  # growth_measurements: RETIRED at SQLite migration v21 per
+  # growth_measurement_canonical_migration.retirement_plan above
+  # (topic 2026-05-19-parentos-growth-canonical-write-migration wave-0c).
+  # Canonical storage is health_record_events + health_record_values
+  # (PO-HREC-004). Historical backfill mapping is preserved in the
+  # growth_measurement_canonical_migration section above as
+  # documentary spec authority.
 
   - name: milestone_records
     description: "Achievement records for spec-backed milestones."

@@ -97,6 +97,34 @@ fn migration_v13_backfills_existing_growth_measurements_into_health_records() {
     run_migrations(&conn).expect("run migrations");
     seed_family_and_child(&conn);
 
+    // v21 retired the legacy growth_measurements table (see
+    // apps/parentos/src-tauri/src/sqlite/migrations_v21.rs and
+    // apps/parentos/spec/kernel/tables/local-storage.yaml#growth_measurement_canonical_migration.retirement_plan).
+    // To preserve coverage of the v13 backfill semantics (a historical
+    // one-time migration whose mapping authority is still spec-bound),
+    // we recreate the legacy table here as a test fixture, populate it
+    // with pre-cutover-shape rows, then call run_migrations again to
+    // trigger the v13 backfill via repair_missing_tables. v21 will
+    // drop the table again at the end of the repair chain, which is
+    // correct end-state behaviour.
+    conn.execute_batch(
+        "CREATE TABLE growth_measurements (
+            measurementId TEXT PRIMARY KEY NOT NULL,
+            childId       TEXT NOT NULL REFERENCES children(childId) ON DELETE CASCADE,
+            typeId        TEXT NOT NULL,
+            value         REAL NOT NULL,
+            measuredAt    TEXT NOT NULL,
+            ageMonths     INTEGER NOT NULL,
+            percentile    REAL,
+            source        TEXT,
+            notes         TEXT,
+            createdAt     TEXT NOT NULL
+        );
+         CREATE INDEX idx_growth_child_type_date ON growth_measurements (childId, typeId, measuredAt);
+         CREATE INDEX idx_growth_child_age ON growth_measurements (childId, ageMonths);",
+    )
+    .expect("recreate legacy growth_measurements fixture for v13 backfill test");
+
     conn.execute(
         "INSERT INTO growth_measurements (
             measurementId, childId, typeId, value, measuredAt, ageMonths,

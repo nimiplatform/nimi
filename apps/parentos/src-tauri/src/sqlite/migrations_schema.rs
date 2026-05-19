@@ -29,21 +29,12 @@ pub(super) const V1_SCHEMA_SQL: &str = r#"
         CREATE INDEX IF NOT EXISTS idx_children_family ON children (familyId);
         CREATE INDEX IF NOT EXISTS idx_children_birth ON children (birthDate);
 
-        -- Growth Measurements
-        CREATE TABLE IF NOT EXISTS growth_measurements (
-            measurementId TEXT PRIMARY KEY NOT NULL,
-            childId       TEXT NOT NULL REFERENCES children(childId) ON DELETE CASCADE,
-            typeId        TEXT NOT NULL,
-            value         REAL NOT NULL,
-            measuredAt    TEXT NOT NULL,
-            ageMonths     INTEGER NOT NULL,
-            percentile    REAL,
-            source        TEXT,
-            notes         TEXT,
-            createdAt     TEXT NOT NULL
-        );
-        CREATE INDEX IF NOT EXISTS idx_growth_child_type_date ON growth_measurements (childId, typeId, measuredAt);
-        CREATE INDEX IF NOT EXISTS idx_growth_child_age ON growth_measurements (childId, ageMonths);
+        -- Growth Measurements: RETIRED at v21 per
+        -- apps/parentos/spec/kernel/tables/local-storage.yaml#growth_measurement_canonical_migration.retirement_plan
+        -- (topic 2026-05-19-parentos-growth-canonical-write-migration wave-0c).
+        -- Storage moved to canonical health_record_events + health_record_values
+        -- (PO-HREC-004) at v13; v21 drops the legacy table outright. Fresh
+        -- installs never create it. Upgraded installs drop it via apply_v21.
 
         -- Milestone Records
         CREATE TABLE IF NOT EXISTS milestone_records (
