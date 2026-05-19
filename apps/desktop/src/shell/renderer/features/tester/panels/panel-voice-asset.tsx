@@ -7,6 +7,7 @@ import { asString } from '../tester-utils.js';
 import { resolveEffectiveBinding } from '../tester-route.js';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import { listTesterVoiceAssets, type TesterVoiceAsset } from '../tester-voice-assets';
+import { TESTER_RUNTIME_CLIENT_ID } from '../tester-app-identity';
 import { VoiceClonePanel, VoiceDesignPanel } from './panel-voice-stubs.js';
 
 const CHEVRON_DOWN = (
@@ -166,7 +167,7 @@ function VoiceAssetInventory(props: {
     setError('');
     void (async () => {
       try {
-        const modClient = createModRuntimeClient('core:runtime');
+        const modClient = createModRuntimeClient(TESTER_RUNTIME_CLIENT_ID);
         const response = await listTesterVoiceAssets(modClient, {
           modelId: '',
           targetModelId: '',

@@ -16,6 +16,7 @@ import {
 import { normalizeStoredStateV11 } from '../src/shell/renderer/features/runtime-config/runtime-config-storage-normalize';
 import { persistRuntimeConfigStateV11 } from '../src/shell/renderer/features/runtime-config/runtime-config-storage-persist';
 import { RUNTIME_PAGE_META } from '../src/shell/renderer/features/runtime-config/runtime-config-meta-v11';
+import { RUNTIME_SIDEBAR_ITEMS } from '../src/shell/renderer/features/runtime-config/runtime-config-sidebar';
 
 // ---------------------------------------------------------------------------
 // normalizePageIdV11
@@ -28,8 +29,9 @@ test('normalizePageIdV11: current values pass through unchanged', () => {
   assert.equal(normalizePageIdV11('cloud'), 'cloud');
   assert.equal(normalizePageIdV11('catalog'), 'catalog');
   assert.equal(normalizePageIdV11('runtime'), 'runtime');
-  assert.equal(normalizePageIdV11('mods'), 'mods');
   assert.equal(normalizePageIdV11('profiles'), 'profiles');
+  assert.equal(normalizePageIdV11('data-management'), 'data-management');
+  assert.equal(normalizePageIdV11('performance'), 'performance');
 });
 
 test('normalizePageIdV11: unknown values fall back to "overview"', () => {
@@ -40,6 +42,11 @@ test('normalizePageIdV11: unknown values fall back to "overview"', () => {
   assert.equal(normalizePageIdV11('nonexistent'), 'overview');
   assert.equal(normalizePageIdV11('knowledge'), 'overview');
   assert.equal(normalizePageIdV11({}), 'overview');
+});
+
+test('normalizePageIdV11: retired Runtime page ids fall back to "overview"', () => {
+  assert.equal(normalizePageIdV11('mods'), 'overview');
+  assert.equal(normalizePageIdV11('mod-developer'), 'overview');
 });
 
 // ---------------------------------------------------------------------------
@@ -66,7 +73,7 @@ test('createDefaultStateV11: state shape keeps current navigation field only', (
 
 test('RUNTIME_PAGE_META covers all current pages', () => {
   const expectedPages: Array<
-    'overview' | 'recommend' | 'local' | 'cloud' | 'catalog' | 'runtime' | 'profiles' | 'mods' | 'data-management' | 'performance' | 'mod-developer'
+    'overview' | 'recommend' | 'local' | 'cloud' | 'catalog' | 'runtime' | 'profiles' | 'data-management' | 'performance'
   > = [
     'overview',
     'recommend',
@@ -75,10 +82,8 @@ test('RUNTIME_PAGE_META covers all current pages', () => {
     'catalog',
     'runtime',
     'profiles',
-    'mods',
     'data-management',
     'performance',
-    'mod-developer',
   ];
 
   for (const page of expectedPages) {
@@ -87,7 +92,28 @@ test('RUNTIME_PAGE_META covers all current pages', () => {
     assert.ok(RUNTIME_PAGE_META[page].description, `RUNTIME_PAGE_META["${page}"].description must be non-empty`);
   }
 
-  assert.equal(Object.keys(RUNTIME_PAGE_META).length, 11, 'RUNTIME_PAGE_META must have exactly 11 entries');
+  assert.equal(Object.keys(RUNTIME_PAGE_META).length, 9, 'RUNTIME_PAGE_META must have exactly 9 entries');
+});
+
+test('ordinary Runtime sidebar excludes Mods and developer pages', () => {
+  const pageIds = RUNTIME_SIDEBAR_ITEMS.map((item) => item.id);
+  const labels = RUNTIME_SIDEBAR_ITEMS.map((item) => item.label);
+
+  assert.deepEqual(pageIds, [
+    'overview',
+    'recommend',
+    'local',
+    'cloud',
+    'catalog',
+    'runtime',
+    'profiles',
+    'data-management',
+    'performance',
+  ]);
+  assert.equal((pageIds as string[]).includes('mods'), false);
+  assert.equal((pageIds as string[]).includes('mod-developer'), false);
+  assert.equal(labels.includes('Mods'), false);
+  assert.equal(labels.includes('Mod Developer'), false);
 });
 
 test('normalizeStoredStateV11: new activePage field takes precedence', () => {
@@ -113,6 +139,33 @@ test('normalizeStoredStateV11: new activePage field takes precedence', () => {
 
   const result = normalizeStoredStateV11(seed, stored as never);
   assert.equal(result.activePage, 'cloud');
+});
+
+test('normalizeStoredStateV11: retired Runtime pages are not restored as ordinary UI', () => {
+  const seed = { localProviderEndpoint: 'http://127.0.0.1:1234/v1' };
+
+  for (const retiredPage of ['mods', 'mod-developer']) {
+    const stored = {
+      version: 12 as const,
+      initializedByV11: true,
+      activePage: retiredPage,
+      diagnosticsCollapsed: true,
+      uiMode: 'simple',
+      selectedSource: 'local',
+      activeCapability: 'chat',
+      local: {
+        endpoint: 'http://127.0.0.1:1234/v1',
+        models: [],
+        nodeMatrix: [],
+        status: 'idle',
+        lastCheckedAt: null,
+        lastDetail: '',
+      },
+    };
+
+    const result = normalizeStoredStateV11(seed, stored as never);
+    assert.equal(result.activePage, 'overview');
+  }
 });
 
 test('normalizeStoredStateV11: accepts v12 snapshots and preserves local provider hints', () => {
@@ -215,7 +268,7 @@ test('persistRuntimeConfigStateV11: persists activePage to localStorage', () => 
 
   try {
     const state = createDefaultStateV11({ localProviderEndpoint: 'http://127.0.0.1:1234/v1' });
-    state.activePage = 'mods';
+    state.activePage = 'profiles';
 
     persistRuntimeConfigStateV11(state);
 
@@ -225,7 +278,7 @@ test('persistRuntimeConfigStateV11: persists activePage to localStorage', () => 
     const parsed = JSON.parse(raw);
     assert.equal(store.has(RUNTIME_CONFIG_STORAGE_KEY_V11), false, 'legacy V11 storage key should not be written');
     assert.equal(parsed.version, 12, 'persisted snapshot should be upgraded to V12');
-    assert.equal(parsed.activePage, 'mods', 'activePage should be persisted');
+    assert.equal(parsed.activePage, 'profiles', 'activePage should be persisted');
   } finally {
     delete (globalThis as Record<string, unknown>).localStorage;
   }

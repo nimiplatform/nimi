@@ -245,6 +245,7 @@ export function bootstrapRuntime(): Promise<void> {
           macosSmokeContext.scenarioId === 'chat.live2d-avatar-product-smoke';
         daemonStatus = await syncRuntimeLocalModelsConfig({
           daemonStatus,
+          dataRootPath: runtimeStorageDirs.nimiDataDir,
           localModelsPath: runtimeStorageDirs.localModelsDir,
           localStatePath: preserveMacosSmokeRuntimeStatePath
             ? undefined

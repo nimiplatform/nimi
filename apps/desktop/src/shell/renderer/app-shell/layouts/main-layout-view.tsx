@@ -31,7 +31,6 @@ import {
   getCoreNavItems,
   getQuickNavItems,
   NavLink,
-  type NavItem,
   renderShellNavIcon,
 } from './navigation-config';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
@@ -47,6 +46,10 @@ const ContactsPanel = lazy(async () => {
 const ExplorePanel = lazy(async () => {
   const mod = await import('@renderer/features/explore/explore-panel');
   return { default: mod.ExplorePanel };
+});
+const AppsPanel = lazy(async () => {
+  const mod = await import('@renderer/features/apps/apps-panel');
+  return { default: mod.AppsPanel };
 });
 const SettingsPanelBody = lazy(async () => {
   const mod = await import('@renderer/features/settings/settings-panel-body');
@@ -76,10 +79,6 @@ const WorldDetailPanel = lazy(async () => {
   const mod = await loadWorldDetailPanelModule();
   return { default: mod.WorldDetailActivePanel };
 });
-const WorldList = lazy(async () => {
-  const mod = await import('@renderer/features/world/world-list');
-  return { default: mod.WorldList };
-});
 const HomePanel = lazy(async () => {
   const mod = await import('@renderer/features/nimi-home/nimi-home-panel');
   return { default: mod.NimiHomePanel };
@@ -95,10 +94,6 @@ const PrivacyPolicyView = lazy(async () => {
 const TermsOfServiceView = lazy(async () => {
   const mod = await import('@renderer/features/legal/terms-of-service-view');
   return { default: mod.TermsOfServiceView };
-});
-const TesterPage = lazy(async () => {
-  const mod = await import('@renderer/features/tester/tester-page');
-  return { default: mod.TesterPage };
 });
 const SlotHost = lazy(async () => {
   const mod = await import('@renderer/mod-ui/host/slot-host');
@@ -201,8 +196,6 @@ export function MainLayoutView(props: MainLayoutViewProps) {
   const flags = getShellFeatureFlags();
   const selectedProfileId = useAppStore((state) => state.selectedProfileId);
   const profileDetailOverlayOpen = useAppStore((state) => state.profileDetailOverlayOpen);
-  const runtimeModFailures = useAppStore((state) => state.runtimeModFailures);
-  const fusedRuntimeMods = useAppStore((state) => state.fusedRuntimeMods);
   const authUser = useAppStore((state) => state.auth.user);
   const isAnonymousShell = props.authStatus !== 'authenticated';
   const notificationIdentityRef = useMemo(
@@ -212,23 +205,17 @@ export function MainLayoutView(props: MainLayoutViewProps) {
   const notificationQueryIdentityRef = notificationIdentityRef ?? 'missing-auth-identity';
   const coreNavItems = getCoreNavItems();
   const quickNavItems = getQuickNavItems();
-  const primaryCoreNavItems = coreNavItems.filter((item) => item.id !== 'settings' && item.id !== 'home');
+  const primaryCoreNavItems = coreNavItems.filter((item) => item.id !== 'home');
   const [settingsMenuOpen, setSettingsMenuOpen] = useState(false);
   const [collapsedSettingsMenuPosition, setCollapsedSettingsMenuPosition] = useState<{ top: number; left: number } | null>(null);
   const settingsTriggerRef = useRef<HTMLDivElement>(null);
   const settingsMenuRef = useRef<HTMLDivElement>(null);
-  const modsNavItem: NavItem = {
-    id: 'mods',
-    label: t('Navigation.mods'),
-    icon: renderShellNavIcon('puzzle'),
-  };
-  const modsHasIssues = runtimeModFailures.length > 0 || Object.keys(fusedRuntimeMods).length > 0;
   const sidebarWidthClass = 'w-[60px]';
   const titlebarLeftInsetClass = flags.enableTitlebarDrag ? 'pl-[92px]' : 'pl-3';
 
   // Keep-alive: once the runtime tab is visited, keep the component mounted (display:none
   // when inactive) so that subsequent visits are instant — no re-init, no re-hydration.
-  const runtimeActive = props.activeTab === 'runtime' && flags.enableRuntimeTab;
+  const runtimeActive = props.activeTab === 'runtime';
   const runtimeEverMountedRef = useRef(false);
   if (runtimeActive) runtimeEverMountedRef.current = true;
   const runtimeEverMounted = runtimeEverMountedRef.current;
@@ -496,15 +483,6 @@ export function MainLayoutView(props: MainLayoutViewProps) {
                       onClick={() => props.onNav(item.id)}
                     />
                   ))}
-                  {flags.enableModUi ? (
-                    <NavLink
-                      item={modsNavItem}
-                      active={props.activeTab === 'mods' || activeModTab}
-                      collapsed
-                      badge={modsHasIssues ? <span className="inline-flex h-2 w-2 rounded-full bg-[var(--nimi-status-warning)]" /> : null}
-                      onClick={() => props.onNav('mods')}
-                    />
-                  ) : null}
                 </div>
               </ScrollArea>
             </nav>
@@ -555,6 +533,12 @@ export function MainLayoutView(props: MainLayoutViewProps) {
               </div>
             ) : null}
 
+            {props.activeTab === 'apps' ? (
+              <div data-testid={E2E_IDS.panel('apps')} className="flex min-h-0 flex-1 flex-col">
+                <AppsPanel />
+              </div>
+            ) : null}
+
             {props.activeTab === 'notification' ? (
               <div data-testid={E2E_IDS.panel('notification')} className="flex min-h-0 flex-1 flex-col">
                 <NotificationPanel />
@@ -585,11 +569,6 @@ export function MainLayoutView(props: MainLayoutViewProps) {
               </div>
             ) : null}
 
-            {props.activeTab === 'world' ? (
-              <div data-testid={E2E_IDS.panel('world')} className="flex min-h-0 flex-1 flex-col">
-                <WorldList />
-              </div>
-            ) : null}
             {props.activeTab === 'world-detail' ? (
               <div data-testid={E2E_IDS.panel('world-detail')} className="flex min-h-0 flex-1 flex-col">
                 <WorldDetailPanel />
@@ -599,12 +578,6 @@ export function MainLayoutView(props: MainLayoutViewProps) {
             {props.activeTab === 'mods' && flags.enableModUi ? (
               <div data-testid={E2E_IDS.panel('mods')} className="flex min-h-0 flex-1 flex-col">
                 <ModsPanel />
-              </div>
-            ) : null}
-
-            {props.activeTab === 'tester' && flags.enableRuntimeTab ? (
-              <div data-testid={E2E_IDS.panel('tester')} className="flex min-h-0 flex-1 flex-col">
-                <TesterPage />
               </div>
             ) : null}
 

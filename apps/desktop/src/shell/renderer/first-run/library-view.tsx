@@ -5,6 +5,7 @@
 // banner — never falls back to an empty Library list as if success.
 
 import type { ReactElement } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { LibraryProjection } from './library-projection.js';
 import type { AppLaunchReadiness, TrustTierId } from '@nimiplatform/sdk/app';
 
@@ -39,10 +40,11 @@ export interface LibraryViewProps {
 }
 
 export function LibraryView({ projection }: LibraryViewProps): ReactElement {
+  const { t } = useTranslation();
   if (projection.status === 'error') {
     return (
       <section data-testid="library-view" aria-labelledby="library-view-title" className="flex h-full flex-col gap-3">
-        <h2 id="library-view-title" className="text-base font-semibold text-[color:var(--nimi-text-primary)]">Library</h2>
+        <h2 id="library-view-title" className="text-base font-semibold text-[color:var(--nimi-text-primary)]">{t('Home.library.title')}</h2>
         <p data-testid="library-error" data-state="error" className="rounded-lg border border-[color-mix(in_srgb,var(--nimi-status-danger)_24%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-danger)_8%,transparent)] px-3 py-2 text-sm leading-6 text-[var(--nimi-status-danger)]">
           Unable to load the app registry: {projection.detail}
         </p>
@@ -53,8 +55,8 @@ export function LibraryView({ projection }: LibraryViewProps): ReactElement {
     <section data-testid="library-view" aria-labelledby="library-view-title" className="flex h-full flex-col gap-4">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h2 id="library-view-title" className="text-base font-semibold text-[color:var(--nimi-text-primary)]">Library</h2>
-          <p className="mt-1 text-sm text-[color:var(--nimi-text-secondary)]">Installed and admitted Nimi apps.</p>
+          <h2 id="library-view-title" className="text-base font-semibold text-[color:var(--nimi-text-primary)]">{t('Home.library.title')}</h2>
+          <p className="mt-1 text-sm text-[color:var(--nimi-text-secondary)]">{t('Home.library.description')}</p>
         </div>
         <span className="rounded-full bg-[color-mix(in_srgb,var(--nimi-surface-card)_80%,transparent)] px-3 py-1 text-xs font-medium text-[color:var(--nimi-text-muted)]">
           {projection.entries.length}

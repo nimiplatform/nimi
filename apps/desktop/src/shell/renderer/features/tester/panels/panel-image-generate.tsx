@@ -23,6 +23,7 @@ import { makeEmptyDiagnostics } from '../tester-state.js';
 import { bindingToRouteInfo } from '../tester-runtime.js';
 import { DiagnosticsPanel, ErrorBox, RawJsonSection } from '../tester-diagnostics.js';
 import { createModRuntimeClient, type ModRuntimeBoundImageGenerateInput } from '@nimiplatform/sdk/mod';
+import { TESTER_RUNTIME_CLIENT_ID } from '../tester-app-identity';
 import { ImageAdvancedParamsPopover } from './panel-image-generate-advanced.js';
 import {
   buildProfileOverrides,
@@ -66,29 +67,49 @@ export function ImageGeneratePanel(props: ImageGeneratePanelProps) {
   const [history, setHistory] = React.useState<ImageGenerationRecord[]>([]);
 
   React.useEffect(() => {
-    void loadImageHistory().then(setHistory);
-  }, []);
+    void loadImageHistory().then(setHistory).catch((error) => {
+      onStateChange((prev) => ({
+        ...prev,
+        error: error instanceof Error ? error.message : String(error || 'Failed to load Tester image history.'),
+      }));
+    });
+  }, [onStateChange]);
 
   const appendHistory = React.useCallback((record: ImageGenerationRecord) => {
     setHistory((prev) => {
       const next = [record, ...prev].slice(0, 20);
-      void saveImageHistory(next);
+      void saveImageHistory(next).catch((error) => {
+        onStateChange((current) => ({
+          ...current,
+          error: error instanceof Error ? error.message : String(error || 'Failed to save Tester image history.'),
+        }));
+      });
       return next;
     });
-  }, []);
+  }, [onStateChange]);
 
   const deleteHistoryRecord = React.useCallback((id: string) => {
     setHistory((prev) => {
       const next = prev.filter((r) => r.id !== id);
-      void saveImageHistory(next);
+      void saveImageHistory(next).catch((error) => {
+        onStateChange((current) => ({
+          ...current,
+          error: error instanceof Error ? error.message : String(error || 'Failed to save Tester image history.'),
+        }));
+      });
       return next;
     });
-  }, []);
+  }, [onStateChange]);
 
   const clearHistory = React.useCallback(() => {
     setHistory([]);
-    void saveImageHistory([]);
-  }, []);
+    void saveImageHistory([]).catch((error) => {
+      onStateChange((current) => ({
+        ...current,
+        error: error instanceof Error ? error.message : String(error || 'Failed to clear Tester image history.'),
+      }));
+    });
+  }, [onStateChange]);
 
   const effectiveBinding = React.useMemo(() => resolveEffectiveBinding(state.snapshot, state.binding), [state.snapshot, state.binding]);
   const usesLocalImageWorkflow = shouldUseLocalImageWorkflowExtensions(effectiveBinding);
@@ -150,7 +171,7 @@ export function ImageGeneratePanel(props: ImageGeneratePanelProps) {
     let artifactFetchError = '';
     let artifactsResponse: { artifacts: Array<{ uri?: string; bytes?: Uint8Array; mimeType?: string }>; traceId?: string } = { artifacts: [] };
     try {
-      const modClient = createModRuntimeClient('core:runtime');
+      const modClient = createModRuntimeClient(TESTER_RUNTIME_CLIENT_ID);
       const response = await modClient.media.jobs.getArtifacts(input.jobId);
       artifactsResponse = {
         artifacts: Array.isArray(response.artifacts) ? response.artifacts : [],
@@ -232,7 +253,7 @@ export function ImageGeneratePanel(props: ImageGeneratePanelProps) {
       }));
     };
     onStateChange((prev) => ({ ...prev, busy: true, busyLabel: 'Watching job...', error: '', output: [], diagnostics: { requestParams: input.requestParams, resolvedRoute: input.routeInfo as any, responseMetadata: { jobId: input.jobId } } }));
-    const modClient = createModRuntimeClient('core:runtime');
+    const modClient = createModRuntimeClient(TESTER_RUNTIME_CLIENT_ID);
     let currentJob = input.initialJob || await modClient.media.jobs.get(input.jobId) as unknown as Record<string, unknown>;
     if (watchToken !== watchSequenceRef.current) return;
     pushJobEvent('submitted', currentJob);
@@ -270,7 +291,7 @@ export function ImageGeneratePanel(props: ImageGeneratePanelProps) {
     const requestParams = requestContext.requestParams;
     try {
       const routeInfo = bindingToRouteInfo(binding);
-      const modClient = createModRuntimeClient('core:runtime');
+      const modClient = createModRuntimeClient(TESTER_RUNTIME_CLIENT_ID);
       const job = await modClient.media.jobs.submit({ modal: 'image', input: requestParams as unknown as ModRuntimeBoundImageGenerateInput });
       await watchAsyncImageJob({
         jobId: asString((job as unknown as Record<string, unknown>)?.jobId),

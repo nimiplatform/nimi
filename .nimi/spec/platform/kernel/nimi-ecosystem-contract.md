@@ -137,7 +137,7 @@ ecosystem marketing 都不得违反上述负面闸门。
 
 - `P-PERM-005` fail-closed denial state machine
 - `P-AIPS-008` no-provider/no-model constant rule
-- `P-NAPP-009` Library / Discovery non-owner rule
+- `P-NAPP-009` Apps non-owner rule
 - `P-FPI-007` no standalone ordinary-user truth after hard cut
 - `P-AGID-001..P-AGID-008` agent identity floor
 
@@ -145,7 +145,7 @@ ecosystem marketing 都不得违反上述负面闸门。
 
 ## Fact Sources
 
-- `.nimi/spec/platform/kernel/nimi-app-admission-contract.md` — `P-NAPP-001..P-NAPP-012`
+- `.nimi/spec/platform/kernel/nimi-app-admission-contract.md` — `P-NAPP-001..P-NAPP-015`
 - `.nimi/spec/platform/kernel/mod-extension-retirement-contract.md` — `P-MOEX-001..P-MOEX-006`
 - `.nimi/spec/platform/kernel/app-permission-contract.md` — `P-PERM-001..P-PERM-010`
 - `.nimi/spec/platform/kernel/agent-identity-floor-contract.md` — `P-AGID-001..P-AGID-008`

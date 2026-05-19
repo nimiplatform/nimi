@@ -26,6 +26,10 @@ const (
 	EligibilityReasonAppPendingWave4          EligibilityReason = "app-pending-wave-4"
 	EligibilityReasonAvatarMasterGateBlocked  EligibilityReason = "avatar-master-gate-blocked"
 	EligibilityReasonAppKindNotAdmitted       EligibilityReason = "app-kind-not-admitted"
+	EligibilityReasonNotOrdinaryVisible       EligibilityReason = "app-not-ordinary-visible"
+	EligibilityReasonReleaseDescriptorMissing EligibilityReason = "app-release-descriptor-missing"
+	EligibilityReasonStoragePolicyMissing     EligibilityReason = "app-storage-policy-missing"
+	EligibilityReasonInstallRequired          EligibilityReason = "app-install-required"
 )
 
 var (
@@ -33,10 +37,11 @@ var (
 )
 
 // CheckCallerEligibility evaluates whether the given app_id is eligible
-// for caller registration + launch. Honors admission_status semantics
-// from nimi-app-admission-contract.md: only admitted rows succeed;
-// gated_by_avatar_master_gate blocks until the Avatar master gate
-// clears; pending_wave_4 / deferred / retired all fail-closed.
+// for caller registration + launch. Registry admission alone is not
+// executable readiness: admitted ordinary-visible rows still fail closed
+// with app-install-required until descriptor-backed install verification
+// is available; gated_by_avatar_master_gate, pending_wave_4, deferred, and
+// retired rows all fail closed.
 func (r *Registry) CheckCallerEligibility(appID string) (CallerEligibility, error) {
 	if appID == "" {
 		return CallerEligibility{}, fmt.Errorf("appregistrycatalog CheckCallerEligibility: %w", ErrEligibilityAppIDRequired)
@@ -60,9 +65,30 @@ func (r *Registry) CheckCallerEligibility(appID string) (CallerEligibility, erro
 			Reason:   string(EligibilityReasonAppKindNotAdmitted),
 		}, nil
 	}
+	if app.ReleaseDescriptorRef == "" {
+		return CallerEligibility{
+			Eligible: false,
+			Reason:   string(EligibilityReasonReleaseDescriptorMissing),
+		}, nil
+	}
+	if app.InstallStoragePolicyRef == "" {
+		return CallerEligibility{
+			Eligible: false,
+			Reason:   string(EligibilityReasonStoragePolicyMissing),
+		}, nil
+	}
 	switch app.AdmissionStatus {
 	case AdmissionStatusAdmitted:
-		return CallerEligibility{Eligible: true, Reason: string(EligibilityReasonOK)}, nil
+		if app.OrdinaryVisibility != OrdinaryVisibilityOrdinaryVisible {
+			return CallerEligibility{
+				Eligible: false,
+				Reason:   string(EligibilityReasonNotOrdinaryVisible),
+			}, nil
+		}
+		return CallerEligibility{
+			Eligible: false,
+			Reason:   string(EligibilityReasonInstallRequired),
+		}, nil
 	case AdmissionStatusGatedByAvatarMasterGate:
 		return CallerEligibility{
 			Eligible: false,

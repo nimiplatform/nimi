@@ -9,8 +9,6 @@ import (
 )
 
 func TestSpeechCommandEnvIncludesDriverConfiguration(t *testing.T) {
-	modelsRoot := filepath.Join(t.TempDir(), "models")
-	t.Setenv("NIMI_RUNTIME_LOCAL_MODELS_PATH", modelsRoot)
 	t.Setenv("NIMI_RUNTIME_SPEECH_QWEN3_TTS_CMD", "python3 /tmp/qwen3_tts_driver.py")
 	t.Setenv("NIMI_RUNTIME_SPEECH_QWEN3_ASR_CMD", "python3 /tmp/qwen3_asr_driver.py")
 	t.Setenv("NIMI_RUNTIME_SPEECH_DRIVER_TIMEOUT_MS", "45000")
@@ -20,8 +18,8 @@ func TestSpeechCommandEnvIncludesDriverConfiguration(t *testing.T) {
 	if got := env["PYTHONUNBUFFERED"]; got != "1" {
 		t.Fatalf("PYTHONUNBUFFERED = %q", got)
 	}
-	if got := env["NIMI_RUNTIME_LOCAL_MODELS_PATH"]; got != modelsRoot {
-		t.Fatalf("NIMI_RUNTIME_LOCAL_MODELS_PATH = %q, want %q", got, modelsRoot)
+	if _, ok := env["NIMI_RUNTIME_LOCAL_MODELS_PATH"]; ok {
+		t.Fatal("speech env must not synthesize local model root")
 	}
 	if got := env["NIMI_RUNTIME_SPEECH_QWEN3_TTS_CMD"]; got != "python3 /tmp/qwen3_tts_driver.py" {
 		t.Fatalf("NIMI_RUNTIME_SPEECH_QWEN3_TTS_CMD = %q", got)
@@ -48,7 +46,7 @@ func TestEnsureSpeechDoesNotMaterializeHiddenDependencies(t *testing.T) {
 	}
 }
 
-func TestSpeechCommandEnvFallsBackToDefaultModelsRoot(t *testing.T) {
+func TestSpeechCommandEnvDoesNotFallbackToDefaultModelsRoot(t *testing.T) {
 	originalValue, hadOriginal := os.LookupEnv("NIMI_RUNTIME_LOCAL_MODELS_PATH")
 	originalTTS, hadTTS := os.LookupEnv("NIMI_RUNTIME_SPEECH_QWEN3_TTS_CMD")
 	originalSTT, hadSTT := os.LookupEnv("NIMI_RUNTIME_SPEECH_QWEN3_ASR_CMD")
@@ -85,8 +83,8 @@ func TestSpeechCommandEnvFallsBackToDefaultModelsRoot(t *testing.T) {
 	if got := env["PYTHONUNBUFFERED"]; got != "1" {
 		t.Fatalf("PYTHONUNBUFFERED = %q", got)
 	}
-	if got := env["NIMI_RUNTIME_LOCAL_MODELS_PATH"]; got == "" {
-		t.Fatal("expected default models root to be populated")
+	if _, ok := env["NIMI_RUNTIME_LOCAL_MODELS_PATH"]; ok {
+		t.Fatal("unexpected default models root")
 	}
 	if _, ok := env["NIMI_RUNTIME_SPEECH_QWEN3_TTS_CMD"]; ok {
 		t.Fatal("unexpected qwen3_tts driver when env is unset")

@@ -26,6 +26,32 @@ func ensureAuthJWTConfig(fileCfg *config.FileConfig) *config.FileConfigJWT {
 	return fileCfg.Auth.JWT
 }
 
+func ensureManagedRootsConfig(fileCfg *config.FileConfig) *config.FileConfigManagedRoots {
+	if fileCfg == nil {
+		return &config.FileConfigManagedRoots{}
+	}
+	if fileCfg.ManagedRoots == nil {
+		fileCfg.ManagedRoots = &config.FileConfigManagedRoots{}
+	} else {
+		managedRootsCopy := *fileCfg.ManagedRoots
+		fileCfg.ManagedRoots = &managedRootsCopy
+	}
+	return fileCfg.ManagedRoots
+}
+
+func pruneEmptyManagedRootsConfig(fileCfg *config.FileConfig) {
+	if fileCfg == nil || fileCfg.ManagedRoots == nil {
+		return
+	}
+	if strings.TrimSpace(fileCfg.ManagedRoots.Models) == "" &&
+		strings.TrimSpace(fileCfg.ManagedRoots.Dependencies) == "" &&
+		strings.TrimSpace(fileCfg.ManagedRoots.Environments) == "" &&
+		strings.TrimSpace(fileCfg.ManagedRoots.Logs) == "" &&
+		strings.TrimSpace(fileCfg.ManagedRoots.Audit) == "" {
+		fileCfg.ManagedRoots = nil
+	}
+}
+
 func pruneEmptyAuthConfig(fileCfg *config.FileConfig) {
 	if fileCfg == nil || fileCfg.Auth == nil {
 		return

@@ -1,0 +1,26 @@
+{
+  "title": "Apps",
+  "description": "当前安装中已准入的普通可见 Nimi Apps。",
+  "empty": "暂无已准入的普通 Apps。",
+  "error": "无法加载 Apps：{{detail}}",
+  "loading": "正在加载 Apps...",
+  "trustTier": {
+    "firstParty": "第一方",
+    "verifiedPartner": "认证伙伴",
+    "community": "社区"
+  },
+  "state": {
+    "notInstalledInstallable": "需要安装",
+    "installing": "安装中",
+    "installedReady": "可用",
+    "updateAvailable": "有更新",
+    "updateRequired": "需要更新",
+    "permissionRequired": "需要授权",
+    "repairRequired": "需要修复",
+    "unsupportedOnThisDevice": "当前设备不支持",
+    "blockedByPolicy": "已阻止",
+    "installFailed": "安装失败",
+    "uninstalling": "卸载中",
+    "statusUnavailable": "状态不可用"
+  }
+}

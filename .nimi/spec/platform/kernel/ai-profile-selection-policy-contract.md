@@ -84,9 +84,9 @@ privacy_posture x compute_posture x capability_set x routing_policy
   model intent、policy / style metadata、profile-level UX metadata
   （`title`/`description`/`tags`）。本表为最小可识别的占位字段
   （`alias`、`capability_set`、`routing_policy`、`applicable_scopes`、
-  `source_rule`），不在本表内重复维护完整 portable payload；真实 portable
-  payload 由 Wave 3 regenerate 出的 catalog snapshot 与 Desktop AIProfile
-  schema 校验共同保证。
+  `first_run_install_levels`、`source_rule`），不在本表内重复维护完整
+  portable payload；真实 portable payload 由 Wave 3 regenerate 出的
+  catalog snapshot 与 Desktop AIProfile schema 校验共同保证。
 - **Selection policy inputs**（仅供 Platform-owned selection policy 消费）：
   `privacy_posture`、`compute_posture`、`host_capability_profile_refs`、
   `local_compute_pack_refs`、`dependency_family_refs`、
@@ -369,8 +369,18 @@ factory `AIProfile` row 的 `applicable_scopes` 字段是封闭枚举：
 `MUST`:
 
 - 至少声明一种 applicable scope。
-- `first-run` 的 alias 必须能在没有任何额外用户输入的情况下安全接受
-  （未 ready 时仍按 P-AIPS-010 投影状态）。
+- `first-run` 的 alias 必须绑定 `first_run_install_levels` 中的
+  `minimal`、`recommended` 或二者之一；没有 first-run 适用性的 alias
+  必须把该字段设为空列表。
+- `first-run` 的 alias 必须是 local baseline profile：不得声明
+  `compute_posture=cloud-only`，不得声明 `routing_policy=cloud-first` 或
+  `hybrid-explicit`，不得包含 `video.generate`，不得要求 cloud connector 或
+  app-specific pack 才能达到 first-run readiness。
+- `first_run_install_levels=minimal` 的 alias 必须至少覆盖本地 text/chat、
+  basic STT、basic TTS 对应的 admitted local compute packs。`recommended`
+  可以在 Runtime evidence 与用户确认支撑下增加 embedding、image、GPU
+  support 等 admitted local packs，但不得静默加入 video、cloud connector、
+  或 app-specific pack。
 - `first-party-app` 的 alias 必须满足 P-AIPS-009 的 typed reference 形状。
 - `scope-bound-apply` 的 alias 可用于任意 `AIScopeRef`（`P-AISC-001`）内的
   apply 操作。
@@ -379,6 +389,10 @@ factory `AIProfile` row 的 `applicable_scopes` 字段是封闭枚举：
 
 - 不得通过 `applicable_scopes` 实现一种"未来才注入"的隐式扩展面；任何新
   scope 类型必须在本契约中显式 admit。
+- 不得把 Cloud API、cloud-only、cloud-first、hybrid recommended、或
+  connector setup 作为 first-run candidate；这些路径只能在
+  post-initialization Runtime / app setup 中出现，除非未来产品 authority
+  显式修订。
 
 ## Fact Sources
 

@@ -1,0 +1,26 @@
+{
+  "title": "Apps",
+  "description": "Admitted ordinary Nimi Apps for this installation.",
+  "empty": "No admitted ordinary Apps yet.",
+  "error": "Unable to load Apps: {{detail}}",
+  "loading": "Loading apps...",
+  "trustTier": {
+    "firstParty": "First-Party",
+    "verifiedPartner": "Verified Partner",
+    "community": "Community"
+  },
+  "state": {
+    "notInstalledInstallable": "Install Required",
+    "installing": "Installing",
+    "installedReady": "Ready",
+    "updateAvailable": "Update Available",
+    "updateRequired": "Update Required",
+    "permissionRequired": "Permission Required",
+    "repairRequired": "Repair Required",
+    "unsupportedOnThisDevice": "Unsupported",
+    "blockedByPolicy": "Blocked",
+    "installFailed": "Install Failed",
+    "uninstalling": "Uninstalling",
+    "statusUnavailable": "Status Unavailable"
+  }
+}

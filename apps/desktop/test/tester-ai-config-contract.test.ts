@@ -24,11 +24,15 @@ function getLocalePath(locale: Record<string, unknown>, dottedPath: string): unk
 
 test('tester model config contract: tester settings uses dedicated AIConfig scope and kit hub', () => {
   const scopeSource = readDesktopSource('tester-ai-config.ts');
+  const identitySource = readDesktopSource('tester-app-identity.ts');
   const pageSource = readDesktopSource('tester-page.tsx');
   const settingsSource = readDesktopSource('tester-settings-dialog.tsx');
   const hookSource = readDesktopSource('tester-model-config-hook.ts');
 
-  assert.match(scopeSource, /surfaceId:\s*'tester'/);
+  assert.match(identitySource, /TESTER_APP_ID\s*=\s*'nimi\.tester'/);
+  assert.match(identitySource, /ownerId:\s*TESTER_APP_ID/);
+  assert.match(identitySource, /surfaceId:\s*TESTER_AI_SURFACE_ID/);
+  assert.match(scopeSource, /TESTER_AI_SCOPE_REF/);
   assert.match(hookSource, /useModelConfigProfileController/);
   assert.match(settingsSource, /ModelConfigCapabilityDetail/);
   assert.match(settingsSource, /ProfileConfigSection/);
@@ -58,6 +62,43 @@ test('tester model config contract: tester execution reads canonical scope bindi
   assert.match(hookSource, /kind:\s*'voice_asset_id'/);
   assert.match(videoPanelSource, /params:\s*VideoParamsState/);
   assert.match(videoPanelSource, /props\.binding \?\? state\.binding/);
+});
+
+test('tester app identity contract: embedded implementation no longer claims desktop-shaped Tester identity', () => {
+  const files = [
+    'tester-ai-config.ts',
+    'tester-runtime.ts',
+    'tester-voice-assets.ts',
+    'tester-model-config-hook.ts',
+    path.join('panels', 'panel-image-generate.tsx'),
+    path.join('panels', 'panel-video-generate.tsx'),
+    path.join('panels', 'panel-audio-synthesize.tsx'),
+    path.join('panels', 'panel-voice-asset.tsx'),
+    path.join('panels', 'panel-world-tour.tsx'),
+  ];
+  for (const file of files) {
+    const source = readDesktopSource(file);
+    assert.doesNotMatch(source, /ownerId:\s*'desktop'/, file);
+    assert.doesNotMatch(source, /core\.tester/, file);
+    assert.doesNotMatch(source, /core:runtime/, file);
+    assert.doesNotMatch(source, /appId:\s*'nimi\.desktop'/, file);
+    assert.doesNotMatch(source, /nimi\.desktop\.local-first-party/, file);
+  }
+});
+
+test('tester app storage contract: durable renderer history uses Tester App storage commands', () => {
+  const historySource = readDesktopSource('tester-history.ts');
+  const utilsSource = readDesktopSource('tester-utils.ts');
+  const worldTourSharedSource = readDesktopSource('world-tour-shared.ts');
+
+  assert.match(historySource, /tester_run_history_load/);
+  assert.match(historySource, /tester_run_history_save/);
+  assert.match(utilsSource, /tester_image_history_load/);
+  assert.match(utilsSource, /tester_image_history_save/);
+  assert.match(worldTourSharedSource, /world_tour_render_acceptance_load/);
+  assert.match(worldTourSharedSource, /world_tour_render_acceptance_save/);
+  assert.doesNotMatch(historySource, /localStorage/);
+  assert.doesNotMatch(worldTourSharedSource, /localStorage/);
 });
 
 test('tester model config contract: audio synthesize editor locale keys exist', () => {

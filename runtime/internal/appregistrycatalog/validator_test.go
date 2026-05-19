@@ -29,6 +29,21 @@ func loadRegistryForValidator(t *testing.T) *Registry {
 	return registry
 }
 
+func releaseDescriptorFixture() []ReleaseDescriptorValidationRef {
+	return []ReleaseDescriptorValidationRef{
+		{
+			DescriptorID:     "nimi.avatar.bundled-with-nimi",
+			AppID:            "nimi.avatar",
+			StoragePolicyRef: "nimi-data-app-roots",
+		},
+		{
+			DescriptorID:     "nimi.parentos.bundled-with-nimi",
+			AppID:            "nimi.parentos",
+			StoragePolicyRef: "nimi-data-app-roots",
+		},
+	}
+}
+
 func TestCrossTableValidate_NoViolationsOnHealthyCatalogs(t *testing.T) {
 	registry := loadRegistryForValidator(t)
 	ctx := ValidationContext{
@@ -38,6 +53,8 @@ func TestCrossTableValidate_NoViolationsOnHealthyCatalogs(t *testing.T) {
 			TrustTierVerifiedPartner,
 			TrustTierCommunity,
 		},
+		ReleaseDescriptors: releaseDescriptorFixture(),
+		StoragePolicyRefs:  []string{"nimi-data-app-roots"},
 	}
 	violations := registry.CrossTableValidate(ctx)
 	if len(violations) != 0 {
@@ -53,6 +70,8 @@ func TestCrossTableValidate_FlagsUnresolvedProfileAlias(t *testing.T) {
 	ctx := ValidationContext{
 		AdmittedAIProfileAliases: []string{"cloud-first"},
 		AdmittedTrustTiers:       []TrustTier{TrustTierFirstParty},
+		ReleaseDescriptors:       releaseDescriptorFixture(),
+		StoragePolicyRefs:        []string{"nimi-data-app-roots"},
 	}
 	violations := registry.CrossTableValidate(ctx)
 	flagged := false
@@ -71,10 +90,100 @@ func TestCrossTableValidate_FlagsUnadmittedTrustTier(t *testing.T) {
 	ctx := ValidationContext{
 		AdmittedAIProfileAliases: admittedAliasFixture(),
 		AdmittedTrustTiers:       []TrustTier{TrustTierCommunity},
+		ReleaseDescriptors:       releaseDescriptorFixture(),
+		StoragePolicyRefs:        []string{"nimi-data-app-roots"},
 	}
 	violations := registry.CrossTableValidate(ctx)
 	if len(violations) == 0 {
 		t.Errorf("expected first-party-tier-only apps to be flagged; got 0 violations")
+	}
+}
+
+func TestCrossTableValidate_FlagsUnresolvedReleaseDescriptor(t *testing.T) {
+	registry := loadRegistryForValidator(t)
+	ctx := ValidationContext{
+		AdmittedAIProfileAliases: admittedAliasFixture(),
+		AdmittedTrustTiers:       []TrustTier{TrustTierFirstParty},
+		ReleaseDescriptors: []ReleaseDescriptorValidationRef{
+			{
+				DescriptorID:     "nimi.avatar.bundled-with-nimi",
+				AppID:            "nimi.avatar",
+				StoragePolicyRef: "nimi-data-app-roots",
+			},
+		},
+		StoragePolicyRefs: []string{"nimi-data-app-roots"},
+	}
+	violations := registry.CrossTableValidate(ctx)
+	flagged := false
+	for _, v := range violations {
+		if v.AppID == "nimi.parentos" && v.Field == "release_descriptor_ref" {
+			flagged = true
+		}
+	}
+	if !flagged {
+		t.Errorf("expected parentos release descriptor to be flagged; got %v", violations)
+	}
+}
+
+func TestCrossTableValidate_FlagsCrossAppReleaseDescriptor(t *testing.T) {
+	registry := loadRegistryForValidator(t)
+	ctx := ValidationContext{
+		AdmittedAIProfileAliases: admittedAliasFixture(),
+		AdmittedTrustTiers:       []TrustTier{TrustTierFirstParty},
+		ReleaseDescriptors: []ReleaseDescriptorValidationRef{
+			{
+				DescriptorID:     "nimi.avatar.bundled-with-nimi",
+				AppID:            "nimi.avatar",
+				StoragePolicyRef: "nimi-data-app-roots",
+			},
+			{
+				DescriptorID:     "nimi.parentos.bundled-with-nimi",
+				AppID:            "nimi.avatar",
+				StoragePolicyRef: "nimi-data-app-roots",
+			},
+		},
+		StoragePolicyRefs: []string{"nimi-data-app-roots"},
+	}
+	violations := registry.CrossTableValidate(ctx)
+	flagged := false
+	for _, v := range violations {
+		if v.AppID == "nimi.parentos" && v.Field == "release_descriptor_ref" && v.Reason == "release descriptor belongs to a different app" {
+			flagged = true
+		}
+	}
+	if !flagged {
+		t.Errorf("expected parentos cross-app descriptor to be flagged; got %v", violations)
+	}
+}
+
+func TestCrossTableValidate_FlagsDescriptorStorageMismatch(t *testing.T) {
+	registry := loadRegistryForValidator(t)
+	ctx := ValidationContext{
+		AdmittedAIProfileAliases: admittedAliasFixture(),
+		AdmittedTrustTiers:       []TrustTier{TrustTierFirstParty},
+		ReleaseDescriptors: []ReleaseDescriptorValidationRef{
+			{
+				DescriptorID:     "nimi.avatar.bundled-with-nimi",
+				AppID:            "nimi.avatar",
+				StoragePolicyRef: "nimi-data-app-roots",
+			},
+			{
+				DescriptorID:     "nimi.parentos.bundled-with-nimi",
+				AppID:            "nimi.parentos",
+				StoragePolicyRef: "other-storage-policy",
+			},
+		},
+		StoragePolicyRefs: []string{"nimi-data-app-roots", "other-storage-policy"},
+	}
+	violations := registry.CrossTableValidate(ctx)
+	flagged := false
+	for _, v := range violations {
+		if v.AppID == "nimi.parentos" && v.Field == "release_descriptor_ref" && v.Reason == "release descriptor storage policy does not match install_storage_policy_ref" {
+			flagged = true
+		}
+	}
+	if !flagged {
+		t.Errorf("expected parentos descriptor storage mismatch to be flagged; got %v", violations)
 	}
 }
 

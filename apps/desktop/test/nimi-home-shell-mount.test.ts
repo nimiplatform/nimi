@@ -22,9 +22,9 @@ test('Nimi Home shell mounts the dedicated Nimi Home panel on the home tab', () 
   assert.match(mainLayoutViewSource, /default:\s*mod\.NimiHomePanel/);
 });
 
-test('Nimi Home is the initial desktop shell tab', () => {
-  assert.match(uiSliceSource, /activeTab:\s*'home'/);
-  assert.doesNotMatch(uiSliceSource, /activeTab:\s*'chat'/);
+test('ready Desktop entry starts at Chat while Nimi Home remains a primary destination', () => {
+  assert.match(uiSliceSource, /activeTab:\s*'chat'/);
+  assert.match(mainLayoutViewSource, /E2E_IDS\.navTab\('home'\)/);
 });
 
 test('Nimi Home panel reaches readiness, Library, Discovery, and Agent Chat reference surfaces', () => {

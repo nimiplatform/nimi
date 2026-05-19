@@ -31,8 +31,11 @@ func mergeFileConfigWithDefaults(raw config.FileConfig) config.FileConfig {
 	if v := strings.TrimSpace(raw.LocalStatePath); v != "" {
 		merged.LocalStatePath = v
 	}
-	if v := strings.TrimSpace(raw.LocalModelsPath); v != "" {
-		merged.LocalModelsPath = v
+	merged.DataRootRef = strings.TrimSpace(raw.DataRootRef)
+	if raw.ManagedRoots != nil {
+		managedRootsCopy := *raw.ManagedRoots
+		merged.ManagedRoots = &managedRootsCopy
+		pruneEmptyManagedRootsConfig(&merged)
 	}
 	if v := strings.TrimSpace(raw.DefaultLocalTextModel); v != "" {
 		merged.DefaultLocalTextModel = v
@@ -122,6 +125,10 @@ func cloneFileConfig(fileCfg config.FileConfig) config.FileConfig {
 			Llama: cloneFileConfigEngine(fileCfg.Engines.Llama),
 			Media: cloneFileConfigEngine(fileCfg.Engines.Media),
 		}
+	}
+	if fileCfg.ManagedRoots != nil {
+		managedRootsCopy := *fileCfg.ManagedRoots
+		cloned.ManagedRoots = &managedRootsCopy
 	}
 	return cloned
 }

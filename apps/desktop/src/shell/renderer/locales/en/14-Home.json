@@ -31,6 +31,28 @@
   "openChatFailed": "Failed to open chat",
   "likes": "Likes",
   "modifyVisibility": "Modify visibility",
+  "nimiHomeTitle": "Home",
+  "firstRun": {
+    "readinessMetric": "Readiness"
+  },
+  "library": {
+    "title": "Library",
+    "description": "Installed and admitted Nimi apps."
+  },
+  "discovery": {
+    "title": "Discovery",
+    "description": "Apps available for this Nimi install."
+  },
+  "agentChat": {
+    "title": "Agent Chat",
+    "scope": "Scope",
+    "anchor": "Anchor"
+  },
+  "loading": {
+    "readiness": "Loading readiness...",
+    "library": "Loading library...",
+    "discovery": "Loading discovery..."
+  },
   "noContent": "No content",
   "noPosts": "No posts yet",
   "postPublishFailed": "Failed to publish post",

@@ -100,6 +100,8 @@ const FORBIDDEN_LAUNCH_FIELDS = [
   'conversation_anchor_id',
 ] as const;
 
+const LOCAL_AGENT_REF_PREFIX = 'local-agent:';
+
 export type AvatarLaunchContext = {
   agentId: string;
   avatarInstanceId: string | null;
@@ -122,6 +124,20 @@ function normalizeRequiredString(value: unknown, field: string): string {
   return normalized;
 }
 
+function normalizeRequiredLocalAgentRef(value: unknown, field: string): string {
+  const normalized = normalizeRequiredString(value, field);
+  const rest = normalized.startsWith(LOCAL_AGENT_REF_PREFIX)
+    ? normalized.slice(LOCAL_AGENT_REF_PREFIX.length)
+    : '';
+  const separatorIndex = rest.indexOf(':');
+  const ownerUserId = separatorIndex >= 0 ? rest.slice(0, separatorIndex).trim() : '';
+  const realmAgentId = separatorIndex >= 0 ? rest.slice(separatorIndex + 1).trim() : '';
+  if (!ownerUserId || !realmAgentId) {
+    throw new Error(`avatar launch context requires ${field} to be a local-agent ref`);
+  }
+  return normalized;
+}
+
 function normalizeOptionalString(value: unknown): string | null {
   const normalized = typeof value === 'string' ? value.trim() : '';
   return normalized || null;
@@ -137,7 +153,7 @@ export function parseAvatarLaunchContext(value: unknown): AvatarLaunchContext {
     ?? normalizeOptionalString(record.sourceSurface)
     ?? normalizeOptionalString(record.source_surface)
     ?? normalizeOptionalString(record.launch_source);
-  const agentId = normalizeRequiredString(record.agentId ?? record.agent_id, 'agentId');
+  const agentId = normalizeRequiredLocalAgentRef(record.agentId ?? record.agent_id, 'agentId');
   return {
     agentId,
     avatarInstanceId: normalizeOptionalString(record.avatarInstanceId ?? record.avatar_instance_id),

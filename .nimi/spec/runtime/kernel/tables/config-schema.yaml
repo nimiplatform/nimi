@@ -17,6 +17,12 @@ surfaces:
   - auditRingBufferSize
   - usageStatsBufferSize
   - localAuditCapacity
+  - dataRootRef
+  - managedRoots.models
+  - managedRoots.dependencies
+  - managedRoots.environments
+  - managedRoots.logs
+  - managedRoots.audit
   - sessionTtlMinSeconds
   - sessionTtlMaxSeconds
   - auth.jwt.issuer
@@ -39,7 +45,6 @@ surfaces:
   - defaultLocalTextModel
   - defaultCloudProvider
   - logLevel
-  - localModelsPath
   - modelCatalogCustomDir
   - appRegistryPath
   - allowLoopbackProviderEndpoint
@@ -53,7 +58,7 @@ surfaces:
   - restart
   - hot
   - immutable
-# Phase 1 配置文件 schema (~/.nimi/config.json) 权威字段清单
+# Phase 1 配置文件 schema (~/.nimi/runtime/config.json) 权威字段清单
 # Source rule: K-CFG-017, K-DAEMON-009
 fields:
   - key: schemaVersion
@@ -92,11 +97,53 @@ fields:
     source_rule: K-LOCAL-016
     authority_note: Runtime-owned local AI state path; the single active state truth for local assets, transfers, dependency setup jobs, cutover evidence, and health projection. Retired Desktop-local state files are cutover inputs only, never fallback truth.
 
-  - key: appRegistryPath
+  - key: dataRootRef
     type: string
     default: ""
     reload: restart
-    description: Platform Nimi App registry 的本地投影文件路径；空值时 Runtime 启动但 Platform-governed Nimi App 注册/启动 fail-closed
+    description: User-selected nimi_data root reconciled from ~/.nimi/nimi.json; empty means local materialization and app install fail closed until product setup records a root
+    source_rule: K-CFG-018
+
+  - key: managedRoots.models
+    type: string
+    default: "<dataRootRef>/models"
+    reload: restart
+    description: Runtime-managed local model payload root derived from selected nimi_data
+    source_rule: K-CFG-018
+
+  - key: managedRoots.dependencies
+    type: string
+    default: "<dataRootRef>/dependencies"
+    reload: restart
+    description: Runtime-managed dependency payload root derived from selected nimi_data
+    source_rule: K-CFG-018
+
+  - key: managedRoots.environments
+    type: string
+    default: "<dataRootRef>/environments"
+    reload: restart
+    description: Runtime-managed executable environment root derived from selected nimi_data
+    source_rule: K-CFG-018
+
+  - key: managedRoots.logs
+    type: string
+    default: "<dataRootRef>/logs"
+    reload: restart
+    description: Runtime/product operational log root derived from selected nimi_data
+    source_rule: K-CFG-018
+
+  - key: managedRoots.audit
+    type: string
+    default: "<dataRootRef>/audit"
+    reload: restart
+    description: Runtime audit projection root derived from selected nimi_data
+    source_rule: K-CFG-018
+
+  - key: appRegistryPath
+    type: string
+    default: "~/.nimi/apps/registry.json"
+    reload: restart
+    description: Platform Nimi App registry 的本地投影文件路径；缺失/不可解析时 Platform-governed Nimi App 注册/启动 fail-closed
     source_rule: K-CFG-017
     authority_note: Runtime consumes this file read-only as the explicit daemon projection source for Platform app admission. Runtime must not hardcode .nimi/spec/** as the source and must not own registry truth.
 
@@ -316,14 +363,6 @@ fields:
     reload: hot
     description: 日志级别（debug/info/warn/error）
     source_rule: K-CFG-017
-
-  - key: localModelsPath
-    type: string
-    default: "~/.nimi/data/models"
-    reload: restart
-    description: 本地模型存储路径
-    source_rule: K-LOCAL-016
-    authority_note: Runtime-owned local model payload root. Desktop Nimi data-dir changes must reconcile this field through Runtime config authority before Local Model Center treats payload files as usable.
 
   - key: modelCatalogCustomDir
     type: string

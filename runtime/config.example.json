@@ -4,7 +4,14 @@
   "httpAddr": "127.0.0.1:46372",
   "shutdownTimeoutSeconds": 10,
   "localStatePath": "~/.nimi/runtime/local-state.json",
-  "localModelsPath": "~/.nimi/data/models",
+  "dataRootRef": "/absolute/path/to/nimi_data",
+  "managedRoots": {
+    "models": "/absolute/path/to/nimi_data/models",
+    "dependencies": "/absolute/path/to/nimi_data/dependencies",
+    "environments": "/absolute/path/to/nimi_data/environments",
+    "logs": "/absolute/path/to/nimi_data/logs",
+    "audit": "/absolute/path/to/nimi_data/audit"
+  },
   "aiHealthIntervalSeconds": 8,
   "aiHttpTimeoutSeconds": 30,
   "globalConcurrencyLimit": 8,

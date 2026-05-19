@@ -74,7 +74,7 @@ chunks:
     includes:
       - features/runtime
     lazy: true
-    description: AI Runtime configuration panel
+    description: Runtime configuration panel
     source_rule: D-SHELL-004
 
   - chunk: mods-panel

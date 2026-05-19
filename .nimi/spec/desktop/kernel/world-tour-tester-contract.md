@@ -4,9 +4,14 @@
 
 ## Scope
 
-Desktop tester `world tour` product semantics。定义 baseline
-`world.generate` 的 tester acceptance surface、required in-app chain、以及
-fail-close acceptance behavior。
+Tester App `world tour` product semantics。定义 baseline `world.generate` 的
+developer/internal acceptance surface、required in-app chain、以及 fail-close
+acceptance behavior。
+
+当前 Desktop-embedded Tester 只能作为 frozen internal source/validation
+surface，直到 `nimi.tester` stability evidence 允许后续 hard-cut retirement。
+World Tour 的长期 product owner 是 developer-only `nimi.tester` App，不是
+ordinary Desktop primary navigation 或 Explore 世界浏览入口。
 
 不拥有：
 
@@ -16,8 +21,8 @@ fail-close acceptance behavior。
 
 ## D-LLM-066 — World Tour Acceptance Surface
 
-Desktop tester 必须把 `world tour` 作为 `world.generate` 的 baseline
-operator-visible acceptance surface。
+`nimi.tester` 必须把 `world tour` 作为 `world.generate` 的 baseline
+developer/operator-visible acceptance surface。
 
 - `world tour` 是最终端到端验收入口，不是可选 demo。
 - web-only render、API-only success、或 runtime-only job success 均不构成最终验收。
@@ -42,3 +47,15 @@ operator-visible acceptance surface。
 - 外部打开 provider viewer URL，不得替代 in-app Spark render 成功。
 - connector -> runtime -> provider -> result -> render 任一关键段失败时，
   tester 必须呈现失败语义，而不是部分成功。
+
+## D-LLM-104 — App-Owned Fixture Custody
+
+`MUST`：World Tour fixture custody belongs to `nimi.tester` app-owned storage
+and fixture roots. Manifest asset refs must be manifest-relative or otherwise
+admitted by app-owned fixture policy, canonicalize under the app-owned fixture
+root, and carry digest/provenance evidence before render.
+
+`MUST NOT`：workspace `.nimi/cache/worldlabs/world-tour`、absolute manifest
+asset paths、recursive broad asset protocol allowance、or direct Desktop
+`/world-tour-viewer` routing may become long-term product truth for World Tour
+acceptance.

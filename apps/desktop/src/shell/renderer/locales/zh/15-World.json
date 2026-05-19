@@ -79,6 +79,7 @@
     "avatarImageRequired": "请选择图片文件。",
     "avatarTooLarge": "头像图片必须不超过 5MB。",
     "avatarReadFailed": "读取头像图片失败。",
+    "notAdmitted": "当前入口未 admission 创建 Agent。",
     "sections": {
       "identity": "身份",
       "character": "角色",

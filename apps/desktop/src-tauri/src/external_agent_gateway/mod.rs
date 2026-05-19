@@ -155,11 +155,15 @@ pub struct ExternalAgentClaims {
 pub struct ExternalAgentGatewayConfig {
     pub bind_address: String,
     pub issuer: String,
-    pub jws_secret: String,
+    pub jws_secret: Option<String>,
+    pub disabled_reason_code: Option<String>,
 }
 
 const EXTERNAL_AGENT_SECRET_KV_KEY: &str = "external-agent.gateway.jws-secret";
 const DEFAULT_EXTERNAL_AGENT_BIND_ADDRESS: &str = "127.0.0.1:44777";
+const EXTERNAL_AGENT_GATEWAY_PRODUCT_DATA_UNAVAILABLE: &str =
+    "EXTERNAL_AGENT_GATEWAY_PRODUCT_DATA_UNAVAILABLE";
+const EXTERNAL_AGENT_GATEWAY_SECRET_UNAVAILABLE: &str = "EXTERNAL_AGENT_GATEWAY_SECRET_UNAVAILABLE";
 
 fn now_rfc3339() -> String {
     chrono::Utc::now().to_rfc3339()
@@ -249,19 +253,36 @@ impl ExternalAgentGatewayConfig {
             .ok()
             .filter(|value| !value.trim().is_empty())
             .unwrap_or_else(|| "local".to_string());
-        let jws_secret = read_or_create_gateway_secret(app)
-            .unwrap_or_else(|error| panic!("EXTERNAL_AGENT_GATEWAY_SECRET_INIT_FAILED: {error}"));
+        let (jws_secret, disabled_reason_code) = match read_or_create_gateway_secret(app) {
+            Ok(value) => (Some(value), None),
+            Err(error) => {
+                let reason_code = if error.contains("~/.nimi/nimi.json")
+                    || error.contains("selected nimi_data")
+                    || error.contains("selected absolute dataRoot.path")
+                {
+                    EXTERNAL_AGENT_GATEWAY_PRODUCT_DATA_UNAVAILABLE
+                } else {
+                    EXTERNAL_AGENT_GATEWAY_SECRET_UNAVAILABLE
+                };
+                eprintln!(
+                    "EXTERNAL_AGENT_GATEWAY_SECRET_INIT_DISABLED: reason_code={}, error={}",
+                    reason_code, error
+                );
+                (None, Some(reason_code.to_string()))
+            }
+        };
         Self {
             bind_address,
             issuer,
             jws_secret,
+            disabled_reason_code,
         }
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::normalize_external_agent_bind_address;
+    use super::{normalize_external_agent_bind_address, ExternalAgentServerStatus};
 
     #[test]
     fn normalize_external_agent_bind_address_accepts_loopback_only() {
@@ -279,6 +300,19 @@ mod tests {
         );
         assert!(normalize_external_agent_bind_address("0.0.0.0:44777").is_err());
         assert!(normalize_external_agent_bind_address("http://127.0.0.1:44777").is_err());
+    }
+
+    #[test]
+    fn disabled_gateway_status_is_fail_closed_and_concrete() {
+        let status = ExternalAgentServerStatus::Disabled(
+            "EXTERNAL_AGENT_GATEWAY_PRODUCT_DATA_UNAVAILABLE".to_string(),
+        );
+        assert!(!status.enabled());
+        assert_eq!(status.status_label(), "disabled");
+        assert_eq!(
+            status.reason_code(),
+            "EXTERNAL_AGENT_GATEWAY_PRODUCT_DATA_UNAVAILABLE"
+        );
     }
 }
 
@@ -305,6 +339,7 @@ pub struct ExternalAgentExecutionOwner {
 pub enum ExternalAgentServerStatus {
     Starting,
     Listening,
+    Disabled(String),
     Failed(String),
     Stopped(String),
 }
@@ -324,17 +359,19 @@ impl ExternalAgentServerStatus {
         match self {
             Self::Starting => "starting",
             Self::Listening => "listening",
+            Self::Disabled(_) => "disabled",
             Self::Failed(_) => "failed",
             Self::Stopped(_) => "stopped",
         }
     }
 
-    fn reason_code(&self) -> &'static str {
+    fn reason_code(&self) -> String {
         match self {
-            Self::Starting => "EXTERNAL_AGENT_GATEWAY_STARTING",
-            Self::Listening => "EXTERNAL_AGENT_GATEWAY_LISTENING",
-            Self::Failed(_) => "EXTERNAL_AGENT_GATEWAY_FAILED",
-            Self::Stopped(_) => "EXTERNAL_AGENT_GATEWAY_STOPPED",
+            Self::Starting => "EXTERNAL_AGENT_GATEWAY_STARTING".to_string(),
+            Self::Listening => "EXTERNAL_AGENT_GATEWAY_LISTENING".to_string(),
+            Self::Disabled(reason_code) => reason_code.clone(),
+            Self::Failed(_) => "EXTERNAL_AGENT_GATEWAY_FAILED".to_string(),
+            Self::Stopped(_) => "EXTERNAL_AGENT_GATEWAY_STOPPED".to_string(),
         }
     }
 }
@@ -437,16 +474,41 @@ pub struct ExternalAgentGatewayState {
 
 impl ExternalAgentGatewayState {
     pub fn new(app: AppHandle) -> Self {
+        let config = ExternalAgentGatewayConfig::from_app(&app);
+        let server_status = config
+            .disabled_reason_code
+            .as_ref()
+            .map(|reason_code| ExternalAgentServerStatus::Disabled(reason_code.clone()))
+            .unwrap_or_default();
         Self {
-            config: ExternalAgentGatewayConfig::from_app(&app),
             app,
-            inner: Arc::new(Mutex::new(ExternalAgentGatewayInner::default())),
+            config,
+            inner: Arc::new(Mutex::new(ExternalAgentGatewayInner {
+                server_status,
+                ..ExternalAgentGatewayInner::default()
+            })),
         }
+    }
+
+    pub fn gateway_secret(&self) -> Result<&str, String> {
+        self.config.jws_secret.as_deref().ok_or_else(|| {
+            self.config
+                .disabled_reason_code
+                .clone()
+                .unwrap_or_else(|| EXTERNAL_AGENT_GATEWAY_SECRET_UNAVAILABLE.to_string())
+        })
     }
 }
 
 pub fn start_external_agent_gateway(state: ExternalAgentGatewayState) {
     let bind_address = state.config.bind_address.clone();
+    if let Some(reason_code) = state.config.disabled_reason_code.as_deref() {
+        eprintln!(
+            "EXTERNAL_AGENT_GATEWAY_DISABLED: bind={}, reason_code={}",
+            bind_address, reason_code
+        );
+        return;
+    }
     tauri::async_runtime::spawn(async move {
         if let Err(error) = server::run_loopback_server(state.clone()).await {
             {
@@ -558,7 +620,7 @@ pub async fn external_agent_gateway_status(
         issuer: state.config.issuer.clone(),
         action_count: guard.actions.len(),
         status: server_status.status_label().to_string(),
-        reason_code: server_status.reason_code().to_string(),
+        reason_code: server_status.reason_code(),
     })
 }
 
@@ -590,6 +652,7 @@ fn to_external_agent_token_record(
 pub async fn external_agent_list_tokens(
     state: tauri::State<'_, ExternalAgentGatewayState>,
 ) -> Result<Vec<ExternalAgentTokenRecord>, String> {
+    state.gateway_secret()?;
     let conn = open_db(&state.app)?;
     let rows = list_external_agent_token_records(&conn, 500)?;
     Ok(rows
@@ -603,6 +666,9 @@ pub async fn external_agent_verify_execution_context(
     state: tauri::State<'_, ExternalAgentGatewayState>,
     payload: ExternalAgentVerifyExecutionContextPayload,
 ) -> Result<bool, String> {
+    if state.gateway_secret().is_err() {
+        return Ok(false);
+    }
     let execution_id = payload.bridge_execution_id.unwrap_or_default();
     if execution_id.trim().is_empty() {
         return Ok(false);

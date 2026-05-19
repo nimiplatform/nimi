@@ -32,6 +32,9 @@ entries:
   - S-APP-006
   - S-APP-007
   - S-APP-008
+  - S-APP-009
+  - S-APP-010
+  - S-APP-011
 rules:
   - rule_id: S-APP-001
     evidence_refs:
@@ -64,4 +67,19 @@ rules:
   - rule_id: S-APP-008
     evidence_refs:
       - sdk_kernel_consistency
+    evidence_requirement: required
+  - rule_id: S-APP-009
+    evidence_refs:
+      - sdk_kernel_consistency
+    note: Ordinary-visible filter implementation evidence lands with Apps registry/install/storage child topic.
+    evidence_requirement: required
+  - rule_id: S-APP-010
+    evidence_refs:
+      - sdk_kernel_consistency
+    note: Install descriptor sha256 verification implementation evidence lands with SDK/Desktop install tests.
+    evidence_requirement: required
+  - rule_id: S-APP-011
+    evidence_refs:
+      - sdk_kernel_consistency
+    note: Install storage projection implementation evidence lands with SDK/Desktop install and uninstall tests.
     evidence_requirement: required

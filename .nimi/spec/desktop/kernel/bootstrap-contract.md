@@ -10,7 +10,10 @@ Desktop 应用启动序列契约。定义 renderer 进程从 `bootstrapRuntime()
 
 启动序列的首个异步操作。通过 IPC 桥接调用 `runtime_defaults` 获取 `RealmDefaults`（realmBaseUrl、realtimeUrl、accessToken、jwksUrl、revocationUrl、jwtIssuer、jwtAudience）和 `RuntimeExecutionDefaults`（provider、model 与可透传的 runtime execution 字段）。
 
-Desktop 只允许使用 canonical runtime 配置路径 `.nimi/config.json`；legacy 路径 `.nimi/runtime/config.json` 已硬切移除，不得在 bootstrap 或 backend fallback 中回流。
+Desktop 只允许使用 canonical runtime 配置路径 `~/.nimi/runtime/config.json`。
+Product readiness state is owned by `~/.nimi/nimi.json`; bootstrap may not treat
+Runtime config, `desktop-paths.json`, or old root-level `~/.nimi/config.json` as
+product readiness truth.
 
 - `runtime_defaults` 读取不要求 daemon 已运行。
 - packaged desktop 必须先完成 bundled runtime staging。release 模式下不允许依赖 `PATH`、用户手工 binary、或产品语义上的 `NIMI_RUNTIME_BINARY` 覆盖。
@@ -45,7 +48,9 @@ Desktop 只允许使用 canonical runtime 配置路径 `.nimi/config.json`；leg
 使用 `D-BOOT-001` 获取的 realmBaseUrl 与 resolved bootstrap auth session 初始化 SDK 根导出的 `createPlatformClient()`。
 
 - 必须在 DataSync 初始化之前完成。
-- resolved bootstrap auth session 的优先级：env override → `auth_session_load` 读取的共享持久会话 → anonymous。
+- resolved bootstrap auth session 必须来自 Runtime account session projection
+  or admitted recovery/debug override。Anonymous fallback is not ordinary product
+  readiness.
 
 ## D-BOOT-003 — DataSync Facade 初始化
 
@@ -121,12 +126,18 @@ hydration 伪装成空成功。
 - 成功时设置 `auth.status = 'authenticated'`。
 - 失败时设置 `auth.status = 'anonymous'`。
 - source=`persisted` 且 bootstrap 期间发生 unauthorized / decrypt / schema 失败时，必须清空共享 auth session 文件。
-- `auth.status = 'anonymous'` 时，desktop shell 仍进入主壳并默认落到 `AI Runtime`；外层主导航隐藏，右上角提供显式 `Login` 入口，登录页可返回当前 Runtime 子页。
+- `auth.status = 'anonymous'` 时，Desktop must route to `not_logged_in` /
+  login-gate product state. It must not enter ordinary shell or default to
+  Runtime as normal product use.
 
 ## D-BOOT-008 — Bootstrap 完成 / 错误处理
 
 正常路径：
 - `bootstrapReady = true`、`bootstrapError = null`。
+- `bootstrapReady=true` only means shell bootstrap completed. Ordinary product
+  use additionally requires `~/.nimi/nimi.json` state `ready_for_use`, selected
+  `nimi_data`, authenticated account session projection, and first-run baseline
+  evidence.
 - 日志级别：shell/bootstrap 致命失败为 `error`；post-ready mod hydration 失败只影响 mod failure projection，
   不得反向改写 bootstrap success。
 

@@ -408,55 +408,58 @@ function Sidebar({
     </aside>
   );
 }
-function WorldsLoadingSkeleton() {
+export function WorldsLoadingSkeleton({ embedded = false }: { embedded?: boolean }) {
+  const content = (
+    <div className="mx-auto max-w-[1240px] space-y-6">
+      <div className="space-y-2">
+        <div className="h-3 w-32 animate-pulse rounded bg-white/60" />
+        <div className="h-7 w-40 animate-pulse rounded-lg bg-white/70" />
+        <div className="h-4 w-80 animate-pulse rounded bg-white/50" />
+      </div>
+      <div className="h-48 animate-pulse rounded-3xl bg-white/60" />
+      <div className="h-11 animate-pulse rounded-2xl bg-white/60" />
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {Array.from({ length: 6 }).map((_, index) => (
+          <div key={index} className="h-60 animate-pulse rounded-2xl bg-white/60" />
+        ))}
+      </div>
+    </div>
+  );
+  if (embedded) {
+    return <div className="py-6">{content}</div>;
+  }
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <ScrollArea className="flex-1" contentClassName="px-6 py-6">
-        <div className="mx-auto max-w-[1240px] space-y-6">
-          <div className="space-y-2">
-            <div className="h-3 w-32 animate-pulse rounded bg-white/60" />
-            <div className="h-7 w-40 animate-pulse rounded-lg bg-white/70" />
-            <div className="h-4 w-80 animate-pulse rounded bg-white/50" />
-          </div>
-          <div className="h-48 animate-pulse rounded-3xl bg-white/60" />
-          <div className="h-11 animate-pulse rounded-2xl bg-white/60" />
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {Array.from({ length: 6 }).map((_, index) => (
-              <div key={index} className="h-60 animate-pulse rounded-2xl bg-white/60" />
-            ))}
-          </div>
-        </div>
+        {content}
       </ScrollArea>
     </div>
   );
 }
-export function WorldList() {
+
+export function WorldsLoadError({ embedded = false }: { embedded?: boolean }) {
   const { t } = useTranslation();
-  const navigateToWorld = useAppStore((state) => state.navigateToWorld);
+  return (
+    <div className={`flex ${embedded ? 'min-h-[220px]' : 'h-full'} items-center justify-center`}>
+      <span className="text-sm text-red-600">{t('World.loadError')}</span>
+    </div>
+  );
+}
+
+export function WorldCatalogContent({
+  worlds,
+  onOpenWorld,
+  embedded = false,
+}: {
+  worlds: WorldListItem[];
+  onOpenWorld: (worldId: string) => void;
+  embedded?: boolean;
+}) {
+  const { t } = useTranslation();
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<FilterId>('all');
   const [sort, setSort] = useState<SortId>('active');
   const [view, setView] = useState<ViewMode>('grid');
-  const openWorldDetail = (worldId: string) => {
-    prefetchWorldDetailPanel();
-    prefetchWorldDetailAndHistory(worldId);
-    navigateToWorld(worldId);
-  };
-  const worldsQuery = useQuery({
-    queryKey: worldListQueryKey(),
-    queryFn: async () => (await fetchWorldListItems()).map((item) => toWorldListItemFromTruth(item)),
-  });
-  if (worldsQuery.isPending) {
-    return <WorldsLoadingSkeleton />;
-  }
-  if (worldsQuery.isError) {
-    return (
-      <div className="flex h-full items-center justify-center">
-        <span className="text-sm text-red-600">{t('World.loadError')}</span>
-      </div>
-    );
-  }
-  const worlds = worldsQuery.data ?? [];
   const mainWorld = worlds.find((world) => isMainWorld(world));
   const counts: Record<FilterId, number> = {
     all: worlds.length,
@@ -471,78 +474,114 @@ export function WorldList() {
     : filteredBase;
   const searched = withoutHero.filter((world) => matchesQuery(world, query));
   const sorted = sortWorlds(searched, sort);
+  const content = (
+    <div
+      className="mx-auto grid w-full max-w-[1240px] gap-6"
+      style={{ gridTemplateColumns: embedded ? 'minmax(0, 1fr) minmax(220px, 260px)' : 'minmax(0, 1fr) 260px' }}
+      data-testid="explore-worlds-catalog"
+    >
+      <div className="flex min-w-0 flex-col gap-6">
+        <div className="px-0.5">
+          <Kicker style={{ marginBottom: 4 }}>
+            {embedded
+              ? t('Explore.worldsKicker', { defaultValue: 'Explore · Worlds' })
+              : t('World.header.kicker')}
+          </Kicker>
+          <h2
+            style={{
+              margin: 0,
+              fontFamily: 'var(--nimi-font-display)',
+              fontSize: embedded ? 26 : 28,
+              fontWeight: 700,
+              letterSpacing: '-0.02em',
+              color: 'var(--nimi-text-primary)',
+            }}
+          >
+            {embedded
+              ? t('Explore.worldsTitle', { defaultValue: 'Worlds' })
+              : t('World.title')}
+          </h2>
+        </div>
+        {showFeaturedHero && mainWorld ? (
+          <FeaturedWorldCard world={mainWorld} onOpen={() => onOpenWorld(mainWorld.id)} />
+        ) : null}
+        <ToolBar
+          view={view}
+          setView={setView}
+          sort={sort}
+          setSort={setSort}
+          query={query}
+          setQuery={setQuery}
+          count={sorted.length}
+        />
+        {sorted.length === 0 ? (
+          <div
+            className="nimi-material-glass-regular backdrop-blur-[var(--nimi-backdrop-blur-regular)]"
+            style={{
+              padding: 48,
+              textAlign: 'center',
+              color: 'var(--nimi-text-muted)',
+              fontSize: 13,
+              background: 'var(--nimi-material-glass-regular-bg)',
+              border: '1px solid var(--nimi-material-glass-regular-border)',
+              borderRadius: 'var(--nimi-radius-lg)',
+            }}
+          >
+            {query ? t('World.noSearchResults') : t('World.card.noMatch')}
+          </div>
+        ) : view === 'grid' ? (
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+              gap: 16,
+            }}
+          >
+            {sorted.map((world) => (
+              <WorldCard key={world.id} world={world} onOpen={() => onOpenWorld(world.id)} />
+            ))}
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {sorted.map((world) => (
+              <WorldListRow key={world.id} world={world} onOpen={() => onOpenWorld(world.id)} />
+            ))}
+          </div>
+        )}
+      </div>
+      <Sidebar worlds={worlds} filter={filter} setFilter={setFilter} counts={counts} />
+    </div>
+  );
+
+  if (embedded) {
+    return content;
+  }
+
   return (
     <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
       <ScrollArea className="flex-1" contentClassName="px-6 pb-10 pt-6">
-        <div
-          className="mx-auto grid w-full max-w-[1240px] gap-6"
-          style={{ gridTemplateColumns: 'minmax(0, 1fr) 260px' }}
-        >
-          <div className="flex min-w-0 flex-col gap-6">
-            <div className="px-0.5">
-              <Kicker style={{ marginBottom: 4 }}>{t('World.header.kicker')}</Kicker>
-              <h1
-                style={{
-                  margin: 0,
-                  fontFamily: 'var(--nimi-font-display)',
-                  fontSize: 28,
-                  fontWeight: 700,
-                  letterSpacing: '-0.02em',
-                  color: 'var(--nimi-text-primary)',
-                }}
-              >
-                {t('World.title')}
-              </h1>
-            </div>
-            {showFeaturedHero && mainWorld ? (
-              <FeaturedWorldCard world={mainWorld} onOpen={() => openWorldDetail(mainWorld.id)} />
-            ) : null}
-            <ToolBar
-              view={view}
-              setView={setView}
-              sort={sort}
-              setSort={setSort}
-              query={query}
-              setQuery={setQuery}
-              count={sorted.length}
-            />
-            {sorted.length === 0 ? (
-              <div
-                className="nimi-material-glass-regular backdrop-blur-[var(--nimi-backdrop-blur-regular)]"
-                style={{
-                  padding: 48,
-                  textAlign: 'center',
-                  color: 'var(--nimi-text-muted)',
-                  fontSize: 13,
-                  background: 'var(--nimi-material-glass-regular-bg)',
-                  border: '1px solid var(--nimi-material-glass-regular-border)',                  borderRadius: 'var(--nimi-radius-lg)',
-                }}
-              >
-                {query ? t('World.noSearchResults') : t('World.card.noMatch')}
-              </div>
-            ) : view === 'grid' ? (
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-                  gap: 16,
-                }}
-              >
-                {sorted.map((world) => (
-                  <WorldCard key={world.id} world={world} onOpen={() => openWorldDetail(world.id)} />
-                ))}
-              </div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {sorted.map((world) => (
-                  <WorldListRow key={world.id} world={world} onOpen={() => openWorldDetail(world.id)} />
-                ))}
-              </div>
-            )}
-          </div>
-          <Sidebar worlds={worlds} filter={filter} setFilter={setFilter} counts={counts} />
-        </div>
+        {content}
       </ScrollArea>
     </div>
   );
+}
+
+export function WorldList() {
+  const navigateToWorld = useAppStore((state) => state.navigateToWorld);
+  const worldsQuery = useQuery({
+    queryKey: worldListQueryKey(),
+    queryFn: async () => (await fetchWorldListItems()).map((item) => toWorldListItemFromTruth(item)),
+  });
+  const openWorldDetail = (worldId: string) => {
+    prefetchWorldDetailPanel();
+    prefetchWorldDetailAndHistory(worldId);
+    navigateToWorld(worldId);
+  };
+  if (worldsQuery.isPending) {
+    return <WorldsLoadingSkeleton />;
+  }
+  if (worldsQuery.isError) {
+    return <WorldsLoadError />;
+  }
+  return <WorldCatalogContent worlds={worldsQuery.data ?? []} onOpenWorld={openWorldDetail} />;
 }

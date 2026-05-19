@@ -36,6 +36,10 @@ entries:
   - P-NAPP-010
   - P-NAPP-011
   - P-NAPP-012
+  - P-NAPP-013
+  - P-NAPP-014
+  - P-NAPP-015
+  - P-NAPP-016
   - P-MOEX-001
   - P-MOEX-002
   - P-MOEX-003
@@ -88,7 +92,7 @@ rules:
     evidence_refs:
       - platform_kernel_consistency
     evidence_requirement: structural_required
-    evidence_scope_note: structural only; library/discovery non-owner enforcement is Wave 1 `D-HOME-004` / `D-HOME-005` consumer validation
+    evidence_scope_note: structural only; Apps non-owner and ordinary-visible filtering enforcement is `D-HOME-004` / `D-HOME-005` plus SDK consumer validation
   - rule_id: P-NAPP-010
     evidence_refs:
       - platform_kernel_consistency
@@ -105,6 +109,27 @@ rules:
       - platform_kernel_consistency
     evidence_requirement: structural_required
     evidence_scope_note: structural only; mechanical guard `check:no-public-mod-extension-admission` registration is verified by `enforcement-gates-required.md`
+  - rule_id: P-NAPP-013
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; third-party PR admission implementation evidence lands with Apps registry/install/storage child topic
+  - rule_id: P-NAPP-014
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; release descriptor digest verification implementation evidence lands with SDK/Desktop install tests
+  - rule_id: P-NAPP-015
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; app install storage enforcement lands with Runtime/SDK/Desktop install and uninstall tests
+  - rule_id: P-NAPP-016
+    evidence_refs:
+      - platform_kernel_consistency
+      - canonical_capability_catalog_gate
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; developer-only Tester App admission is enforced by registry/descriptor cross-table validation and SDK ordinary projection filtering
   - rule_id: P-MOEX-001
     evidence_refs:
       - platform_kernel_consistency

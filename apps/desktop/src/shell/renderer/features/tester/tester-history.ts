@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { invokeTauri } from '@runtime/tauri-api';
 import type { CapabilityId, CapabilityState, CapabilityStates } from './tester-types.js';
 import { asString } from './tester-utils.js';
 
@@ -20,28 +21,19 @@ export type TesterHistoryEntry = {
 
 export type TesterHistoryByCap = Record<CapabilityId, TesterHistoryEntry[]>;
 
-const STORAGE_KEY = 'nimi.tester.history.v1';
 const MAX_PER_CAP = 30;
 
-function readFromStorage(): TesterHistoryByCap {
-  try {
-    const raw = typeof window !== 'undefined' ? window.localStorage.getItem(STORAGE_KEY) : null;
-    if (!raw) return {} as TesterHistoryByCap;
-    const parsed = JSON.parse(raw);
-    if (!parsed || typeof parsed !== 'object') return {} as TesterHistoryByCap;
-    return parsed as TesterHistoryByCap;
-  } catch {
-    return {} as TesterHistoryByCap;
+async function readFromStorage(): Promise<TesterHistoryByCap> {
+  const raw = await invokeTauri<string>('tester_run_history_load');
+  const parsed = JSON.parse(raw);
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    throw new Error('Tester run history payload must be an object.');
   }
+  return parsed as TesterHistoryByCap;
 }
 
-function writeToStorage(history: TesterHistoryByCap) {
-  try {
-    if (typeof window === 'undefined') return;
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
-  } catch {
-    // ignore quota or access errors
-  }
+async function writeToStorage(history: TesterHistoryByCap): Promise<void> {
+  await invokeTauri('tester_run_history_save', { payload: { recordsJson: JSON.stringify(history) } });
 }
 
 function summarizeOutput(state: CapabilityState): string {
@@ -98,9 +90,27 @@ function buildEntry(
 }
 
 export function useTesterHistory(states: CapabilityStates) {
-  const [history, setHistory] = useState<TesterHistoryByCap>(() => readFromStorage());
+  const [history, setHistory] = useState<TesterHistoryByCap>({} as TesterHistoryByCap);
+  const [storageError, setStorageError] = useState('');
   const lastRecordedStampRef = useRef<Record<string, string>>({});
   const previousBusyRef = useRef<Record<string, boolean>>({});
+
+  useEffect(() => {
+    let cancelled = false;
+    void readFromStorage().then((loaded) => {
+      if (!cancelled) {
+        setHistory(loaded);
+        setStorageError('');
+      }
+    }).catch((error) => {
+      if (!cancelled) {
+        setStorageError(error instanceof Error ? error.message : String(error || 'Failed to load Tester run history.'));
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     const pendingEntries: Array<{ capabilityId: CapabilityId; entry: TesterHistoryEntry }> = [];
@@ -133,7 +143,9 @@ export function useTesterHistory(states: CapabilityStates) {
         const existing = nextHistory[capabilityId] ?? [];
         nextHistory[capabilityId] = [entry, ...existing].slice(0, MAX_PER_CAP);
       }
-      writeToStorage(nextHistory);
+      void writeToStorage(nextHistory).then(() => setStorageError('')).catch((error) => {
+        setStorageError(error instanceof Error ? error.message : String(error || 'Failed to save Tester run history.'));
+      });
       return nextHistory;
     });
   }, [states]);
@@ -142,7 +154,9 @@ export function useTesterHistory(states: CapabilityStates) {
     setHistory((prev) => {
       if (!prev[capabilityId] || prev[capabilityId].length === 0) return prev;
       const next = { ...prev, [capabilityId]: [] };
-      writeToStorage(next);
+      void writeToStorage(next).then(() => setStorageError('')).catch((error) => {
+        setStorageError(error instanceof Error ? error.message : String(error || 'Failed to save Tester run history.'));
+      });
       return next;
     });
   }, []);
@@ -154,10 +168,12 @@ export function useTesterHistory(states: CapabilityStates) {
       const remaining = entries.filter((entry) => entry.id !== entryId);
       if (remaining.length === entries.length) return prev;
       const next = { ...prev, [capabilityId]: remaining };
-      writeToStorage(next);
+      void writeToStorage(next).then(() => setStorageError('')).catch((error) => {
+        setStorageError(error instanceof Error ? error.message : String(error || 'Failed to save Tester run history.'));
+      });
       return next;
     });
   }, []);
 
-  return { history, clearCapability, removeEntry };
+  return { history, clearCapability, removeEntry, storageError };
 }

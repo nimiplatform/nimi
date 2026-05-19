@@ -41,24 +41,29 @@ developer-mode toggles 的状态变迁。
 `MUST NOT`：return-run 不得跳过 cold-start fail-closed 投影；任何 upstream
 authority 缺失仍按 `P-COLD-001` 状态投影。
 
-## D-HOME-004 — Library Surface Placement
+## D-HOME-004 — Apps Surface Placement
 
-`MUST`：Library surface placement 落在 Home 内一级入口。Library 行的
-数据 source 由 Wave 3 Nimi App registry / Runtime registration projection
-提供；本契约只锁定 placement 与非 owner 边界。
+`MUST`：Apps surface placement 是 Desktop primary navigation 的 ordinary
+入口之一。Apps 行的数据 source 由 Nimi App registry / package projection、
+SDK Nimi App client projection、与 Runtime registration projection 提供；本
+契约只锁定 placement 与非 owner 边界。
 
-`MUST NOT`：Library 不得拥有 app admission truth、marketplace truth、或
-package trust truth。
+`MUST NOT`：Apps 不得拥有 app admission truth、marketplace truth、或
+package trust truth；不得读取 app-local spec、workspace source tree、Mods、
+Extensions、或未 admitted registry row 作为可见性来源；不得显示 Avatar。
 
-## D-HOME-005 — Discovery Surface Placement
+## D-HOME-005 — Apps Card State Placement
 
-`MUST`：Discovery surface placement 与 Library 并列。Discovery 必须以
-显式 typed projection 区分 `admitted-but-uninstalled`、`installing`、
-`update-available`、`unsupported`、`failed`、`hidden-by-trust-policy` 等
-状态。
+`MUST`：Apps 必须以显式 typed projection 区分
+`not_installed_installable`、`installing`、`installed_ready`、
+`update_available`、`update_required`、`permission_required`、
+`repair_required`、`unsupported_on_this_device`、`blocked_by_policy`、
+`install_failed`、`uninstalling` 等状态。
 
-`MUST NOT`：Discovery 不得自创 app registry truth；admission state 由
-Wave 3 Nimi App registry 拥有。
+`MUST NOT`：Apps 不得自创 app registry truth；不得把 distinct
+fail-closed 状态压缩为单一 `Unavailable` / `Blocked`；admission state 由
+Nimi App registry 拥有，package readiness 由 package/runtime projection
+拥有。
 
 ## D-HOME-006 — Agent Chat Placement
 
@@ -114,7 +119,7 @@ record 或 local environment dependency state（`P-SUPD-005`）。
 `MUST`：Home 首屏必须落在 Platform `P-HOME-010` 定义的 usable product
 control。允许首屏直接展示 cold-start fail-closed 状态（含 setup-required、
 needs-confirmation、in-progress），但必须同时给到可操作控制（setup、
-account、Runtime health、settings、Library / Discovery 入口）。
+account、Runtime health、settings、Apps 入口）。
 
 `MUST NOT`：首屏不得是 marketing copy、landing page、第三方 placeholder、
 或 generic loading 屏。

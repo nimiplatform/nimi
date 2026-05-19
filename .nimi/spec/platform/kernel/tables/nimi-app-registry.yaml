@@ -9,6 +9,11 @@ entries:
   - registry must not admit a row with package_kind outside nimi-app
   - registry rows must not embed provider, connector, engine, or model identifier strings
   - avatar registry row admission_status must remain gated_by_avatar_master_gate until the avatar productization master gate clears
+  - ordinary Apps visibility requires admission_status admitted and ordinary_visibility ordinary-visible
+  - Avatar must remain hidden-internal for ordinary Apps even when package/update coordination rows exist
+  - Tester is admitted only as developer-only first-party App in this cut and
+    must not appear in ordinary Apps
+  - every installable non-bundled version must resolve to an immutable release descriptor with digest verification before unpack or execution
   - permission_scope_ref is the wave 4 permission fabric placeholder and must remain pending_wave_4 until wave 4 close
 
 # Canonical Nimi App registry — Platform admission/catalog authority.
@@ -30,6 +35,9 @@ app_schema:
     - runtime_registration_mode
     - permission_scope_ref
     - health_repair_projection
+    - ordinary_visibility
+    - release_descriptor_ref
+    - install_storage_policy_ref
     - admission_status
     - source_rule
   enums:
@@ -43,6 +51,11 @@ app_schema:
       - pending_wave_4
       - deferred
       - retired
+    ordinary_visibility:
+      - ordinary-visible
+      - hidden-internal
+      - developer-only
+      - not-admitted-visible
     health_repair_projection:
       - unavailable
       - setup-required
@@ -91,6 +104,9 @@ apps:
       - unsupported
       - repair-required
       - stale-projection
+    ordinary_visibility: hidden-internal
+    release_descriptor_ref: nimi.avatar.bundled-with-nimi
+    install_storage_policy_ref: nimi-data-app-roots
     admission_status: gated_by_avatar_master_gate
     source_rule: P-NAPP-011
 
@@ -128,5 +144,54 @@ apps:
       - unsupported
       - repair-required
       - stale-projection
+    ordinary_visibility: ordinary-visible
+    release_descriptor_ref: nimi.parentos.bundled-with-nimi
+    install_storage_policy_ref: nimi-data-app-roots
     admission_status: admitted
     source_rule: P-NAPP-011
+
+  - app_id: nimi.tester
+    display_label: Tester
+    publisher: nimi-first-party
+    trust_tier_ref: nimi-first-party
+    package_kind: nimi-app
+    package_signature_policy_ref: nimi-first-party-signature-policy
+    update_channel_ref: stable
+    ai_profile_selection_ref: hybrid-recommended
+    capability_set_refs:
+      - text.generate
+      - text.embed
+      - audio.synthesize
+      - audio.transcribe
+      - image.generate
+      - video.generate
+      - world.generate
+    local_compute_pack_refs:
+      - local-text
+      - local-speech
+      - local-image-native
+      - local-image-python
+      - local-video-python
+      - local-gpu-support
+    runtime_registration_mode: app-managed
+    permission_scope_ref:
+      - { appId: nimi.tester, scopeFamily: account, scopeName: account.session.read }
+      - { appId: nimi.tester, scopeFamily: ai_profile, scopeName: ai_profile.selection.consume }
+      - { appId: nimi.tester, scopeFamily: ai_spend, scopeName: ai.spend.meter }
+      - { appId: nimi.tester, scopeFamily: file_device, scopeName: file.read.scoped, qualifier: tester-fixture-root }
+      - { appId: nimi.tester, scopeFamily: file_device, scopeName: file.write.scoped, qualifier: tester-app-storage }
+      - { appId: nimi.tester, scopeFamily: audit, scopeName: audit.read.scoped, qualifier: tester-run-evidence }
+    health_repair_projection:
+      - unavailable
+      - setup-required
+      - needs-confirmation
+      - in-progress
+      - failed
+      - unsupported
+      - repair-required
+      - stale-projection
+    ordinary_visibility: developer-only
+    release_descriptor_ref: nimi.tester.bundled-with-nimi
+    install_storage_policy_ref: nimi-data-app-roots
+    admission_status: admitted
+    source_rule: P-NAPP-016

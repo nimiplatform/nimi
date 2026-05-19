@@ -161,6 +161,7 @@ entries:
   - D-LLM-101
   - D-LLM-102
   - D-LLM-103
+  - D-LLM-104
 rules:
   - rule_id: D-DSYNC-000
     evidence_refs: &a1
@@ -906,4 +907,9 @@ rules:
     evidence_refs:
       - desktop_kernel_consistency
     note: Desktop Avatar local asset control must not widen launch payload or own resolver truth.
+    evidence_requirement: required
+  - rule_id: D-LLM-104
+    evidence_refs:
+      - desktop_kernel_consistency
+    note: Tester App World Tour app-owned fixture custody authority; executable coverage lands with downstream Tester implementation.
     evidence_requirement: required

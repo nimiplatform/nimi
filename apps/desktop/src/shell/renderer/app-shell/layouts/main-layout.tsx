@@ -73,10 +73,6 @@ export function MainLayout() {
   const userEmail = typeof user?.email === 'string' ? user.email : null;
 
   useEffect(() => {
-    if (!flags.enableRuntimeTab && activeTab === 'runtime') {
-      setActiveTab('chat');
-      return;
-    }
     if (!flags.enableModUi && activeTab === 'mods') {
       setActiveTab('chat');
       return;

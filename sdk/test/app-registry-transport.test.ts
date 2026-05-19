@@ -5,68 +5,279 @@ import {
   createNimiAppRegistryTransport,
 } from '../src/app/index.js';
 import type { NimiAppRegistrySourceRow } from '../src/app/index.js';
+import type { NimiAppInstallEvidenceRow, NimiAppReleaseDescriptorRow } from '../src/app/index.js';
 
 const rows: readonly NimiAppRegistrySourceRow[] = [
   {
     appId: 'nimi.avatar',
+    appKind: 'nimi-app',
     displayName: 'Avatar',
     publisher: 'nimi-first-party',
     trustTier: 'nimi-first-party',
+    ordinaryVisibility: 'hidden-internal',
+    releaseDescriptorRef: 'nimi.avatar.bundled-with-nimi',
+    installStoragePolicyRef: 'nimi-data-app-roots',
     sourceRule: 'P-NAPP-011',
     admissionStatus: 'gated_by_avatar_master_gate',
     detail: 'Avatar master gate remains open',
   },
   {
     appId: 'nimi.parentos',
+    appKind: 'nimi-app',
     displayName: 'ParentOS',
     publisher: 'nimi-first-party',
     trustTier: 'nimi-first-party',
+    ordinaryVisibility: 'ordinary-visible',
+    releaseDescriptorRef: 'nimi.parentos.bundled-with-nimi',
+    installStoragePolicyRef: 'nimi-data-app-roots',
     sourceRule: 'P-NAPP-011',
+    admissionStatus: 'admitted',
+  },
+  {
+    appId: 'nimi.tester',
+    appKind: 'nimi-app',
+    displayName: 'Tester',
+    publisher: 'nimi-first-party',
+    trustTier: 'nimi-first-party',
+    ordinaryVisibility: 'developer-only',
+    releaseDescriptorRef: 'nimi.tester.bundled-with-nimi',
+    installStoragePolicyRef: 'nimi-data-app-roots',
+    sourceRule: 'P-NAPP-016',
     admissionStatus: 'admitted',
   },
 ];
 
+const descriptors: readonly NimiAppReleaseDescriptorRow[] = [
+  {
+    descriptorId: 'nimi.avatar.bundled-with-nimi',
+    appId: 'nimi.avatar',
+    version: 'bundled-with-current-nimi-release',
+    descriptorClass: 'bundled-with-nimi',
+    sourceKind: 'nimi-bundle',
+    sourceRef: 'current-atomic-nimi-release',
+    artifactLocator: 'current-nimi-release-bundle',
+    digestAlgorithm: 'sha256',
+    sha256: 'avatar-sha',
+    size: '100',
+    provenanceRef: 'nimi-first-party-signature-policy',
+    packageKind: 'nimi-app',
+    entryRef: 'avatar-runtime-registration',
+    sandboxRef: 'first-party-bundled-app',
+    permissionsRef: 'nimi.avatar.permission_scope_ref',
+    storagePolicyRef: 'nimi-data-app-roots',
+    admissionPath: 'first-party-bundled-release',
+    mutableSourceAllowed: false,
+    installDigestVerificationRequired: 'inherited_from_atomic_bundle',
+    sourceRule: 'P-NAPP-014',
+  },
+  {
+    descriptorId: 'nimi.parentos.bundled-with-nimi',
+    appId: 'nimi.parentos',
+    version: 'bundled-with-current-nimi-release',
+    descriptorClass: 'bundled-with-nimi',
+    sourceKind: 'nimi-bundle',
+    sourceRef: 'current-atomic-nimi-release',
+    artifactLocator: 'current-nimi-release-bundle',
+    digestAlgorithm: 'sha256',
+    sha256: 'parentos-sha',
+    size: '200',
+    provenanceRef: 'nimi-first-party-signature-policy',
+    packageKind: 'nimi-app',
+    entryRef: 'parentos-runtime-registration',
+    sandboxRef: 'first-party-bundled-app',
+    permissionsRef: 'nimi.parentos.permission_scope_ref',
+    storagePolicyRef: 'nimi-data-app-roots',
+    admissionPath: 'first-party-bundled-release',
+    mutableSourceAllowed: false,
+    installDigestVerificationRequired: 'inherited_from_atomic_bundle',
+    sourceRule: 'P-NAPP-014',
+  },
+  {
+    descriptorId: 'nimi.tester.bundled-with-nimi',
+    appId: 'nimi.tester',
+    version: 'bundled-with-current-nimi-release',
+    descriptorClass: 'bundled-with-nimi',
+    sourceKind: 'nimi-bundle',
+    sourceRef: 'current-atomic-nimi-release',
+    artifactLocator: 'current-nimi-release-bundle',
+    digestAlgorithm: 'sha256',
+    sha256: 'tester-sha',
+    size: '300',
+    provenanceRef: 'nimi-first-party-signature-policy',
+    packageKind: 'nimi-app',
+    entryRef: 'tester-runtime-registration',
+    sandboxRef: 'first-party-bundled-app',
+    permissionsRef: 'nimi.tester.permission_scope_ref',
+    storagePolicyRef: 'nimi-data-app-roots',
+    admissionPath: 'first-party-bundled-release',
+    mutableSourceAllowed: false,
+    installDigestVerificationRequired: 'inherited_from_atomic_bundle',
+    sourceRule: 'P-NAPP-016',
+  },
+];
+
+const verifiedParentOSEvidence: readonly NimiAppInstallEvidenceRow[] = [
+  {
+    appId: 'nimi.parentos',
+    releaseDescriptorRef: 'nimi.parentos.bundled-with-nimi',
+    storagePolicyRef: 'nimi-data-app-roots',
+    installedVersion: 'bundled-with-current-nimi-release',
+    sha256: 'parentos-sha',
+    verificationState: 'digest-verified',
+    storageRoots: {
+      releaseRoot: '/tmp/nimi/apps/nimi.parentos/releases/bundled-with-current-nimi-release',
+      dataRoot: '/tmp/nimi/apps/nimi.parentos/data',
+      cacheRoot: '/tmp/nimi/apps/nimi.parentos/cache',
+      tempRoot: '/tmp/nimi/apps/nimi.parentos/tmp',
+    },
+  },
+];
+
 describe('Nimi App registry transport', () => {
-  it('projects source registry rows into canonical SDK rows', async () => {
-    const transport = createNimiAppRegistryTransport({ loadRows: () => rows });
-    const registryRows = await transport.listRegistry();
-    assert.equal(registryRows.length, 2);
+  it('projects only ordinary-visible resolved source rows into canonical SDK rows', async () => {
+    const transport = createNimiAppRegistryTransport({ loadRows: () => rows, loadReleaseDescriptors: () => descriptors });
+    const registryRows = await transport.list();
+    assert.equal(registryRows.length, 1);
     assert.equal(registryRows[0]!.appKind, 'nimi-app');
-    assert.equal(registryRows[0]!.displayName, 'Avatar');
+    assert.equal(registryRows[0]!.displayName, 'ParentOS');
+    assert.equal(registryRows[0]!.releaseDescriptorRef, 'nimi.parentos.bundled-with-nimi');
   });
 
-  it('maps Avatar master gate to blocked launch readiness', async () => {
-    const transport = createNimiAppRegistryTransport({ loadRows: () => rows });
-    const status = await transport.getAppStatus('nimi.avatar');
-    assert.equal(status.launchReadiness, 'blocked-by-master-gate');
-    assert.match(status.detail ?? '', /master gate/);
+  it('blocks Avatar status from the ordinary app surface', async () => {
+    const transport = createNimiAppRegistryTransport({ loadRows: () => rows, loadReleaseDescriptors: () => descriptors });
+    await assert.rejects(transport.status('nimi.avatar'), NimiAppRegistryTransportError);
   });
 
   it('maps admitted app to install-required by default without claiming readiness', async () => {
-    const transport = createNimiAppRegistryTransport({ loadRows: () => rows });
-    const status = await transport.getAppStatus('nimi.parentos');
+    const transport = createNimiAppRegistryTransport({ loadRows: () => rows, loadReleaseDescriptors: () => descriptors });
+    const status = await transport.status('nimi.parentos');
     assert.equal(status.launchReadiness, 'install-required');
   });
 
-  it('allows host-owned status resolver to override launch status', async () => {
+  it('maps digest-verified install evidence to ready status', async () => {
     const transport = createNimiAppRegistryTransport({
       loadRows: () => rows,
-      resolveStatus: (row) => ({ appId: row.appId, launchReadiness: 'ready', installedVersion: 'dev' }),
+      loadReleaseDescriptors: () => descriptors,
+      loadInstallEvidence: () => verifiedParentOSEvidence,
     });
-    const status = await transport.getAppStatus('nimi.parentos');
+    const status = await transport.status('nimi.parentos');
     assert.equal(status.launchReadiness, 'ready');
-    assert.equal(status.installedVersion, 'dev');
+    assert.equal(status.verificationState, 'digest-verified');
+    assert.equal(status.storageRoots?.dataRoot, '/tmp/nimi/apps/nimi.parentos/data');
+  });
+
+  it('fails closed for install until runtime install gateway is connected', async () => {
+    const transport = createNimiAppRegistryTransport({ loadRows: () => rows, loadReleaseDescriptors: () => descriptors });
+    const result = await transport.install('nimi.parentos');
+    assert.equal(result.state, 'unsupported');
+    assert.equal(result.reason, 'install-gateway-not-connected');
+    assert.match(result.detail ?? '', /release descriptor/);
+  });
+
+  it('blocks hidden rows from ordinary get projection', async () => {
+    const transport = createNimiAppRegistryTransport({ loadRows: () => rows, loadReleaseDescriptors: () => descriptors });
+    await assert.rejects(transport.get('nimi.avatar'), NimiAppRegistryTransportError);
+  });
+
+  it('blocks developer-only Tester from ordinary app projection', async () => {
+    const transport = createNimiAppRegistryTransport({ loadRows: () => rows, loadReleaseDescriptors: () => descriptors });
+    assert.deepEqual((await transport.list()).map((row) => row.appId), ['nimi.parentos']);
+    await assert.rejects(transport.get('nimi.tester'), NimiAppRegistryTransportError);
+    await assert.rejects(transport.status('nimi.tester'), NimiAppRegistryTransportError);
+  });
+
+  it('does not let host install evidence mark ready without matching descriptor digest', async () => {
+    const transport = createNimiAppRegistryTransport({
+      loadRows: () => rows,
+      loadReleaseDescriptors: () => descriptors,
+      loadInstallEvidence: () => [{
+        ...verifiedParentOSEvidence[0]!,
+        sha256: 'wrong-sha',
+      }],
+    });
+    const status = await transport.status('nimi.parentos');
+    assert.equal(status.launchReadiness, 'install-required');
+  });
+
+  it('does not let host install evidence mark ready without storage roots', async () => {
+    const transport = createNimiAppRegistryTransport({
+      loadRows: () => rows,
+      loadReleaseDescriptors: () => descriptors,
+      loadInstallEvidence: () => [{
+        ...verifiedParentOSEvidence[0]!,
+        storageRoots: undefined,
+      }],
+    });
+    const status = await transport.status('nimi.parentos');
+    assert.equal(status.launchReadiness, 'install-required');
+  });
+
+  it('does not let host install evidence mark ready without installed version', async () => {
+    const transport = createNimiAppRegistryTransport({
+      loadRows: () => rows,
+      loadReleaseDescriptors: () => descriptors,
+      loadInstallEvidence: () => [{
+        ...verifiedParentOSEvidence[0]!,
+        installedVersion: undefined,
+      }],
+    });
+    const status = await transport.status('nimi.parentos');
+    assert.equal(status.launchReadiness, 'install-required');
+  });
+
+  it('maps digest-verified stale version evidence to update-required, not ready', async () => {
+    const transport = createNimiAppRegistryTransport({
+      loadRows: () => rows,
+      loadReleaseDescriptors: () => descriptors,
+      loadInstallEvidence: () => [{
+        ...verifiedParentOSEvidence[0]!,
+        installedVersion: 'older-version',
+      }],
+    });
+    const status = await transport.status('nimi.parentos');
+    assert.equal(status.launchReadiness, 'update-required');
+  });
+
+  it('excludes external descriptors with mutable source refs from ordinary projection', async () => {
+    for (const descriptor of [
+      { sourceKind: 'github-release' as const, sourceRef: 'git+https://github.com/org/repo#main' },
+      { sourceKind: 'github-release' as const, sourceRef: 'v1.2.3' },
+      { sourceKind: 'github-release' as const, sourceRef: 'github.com/org/repo/releases/download/latest/app.tgz' },
+      { sourceKind: 'github-release' as const, sourceRef: 'github.com/org/repo/releases/download/main/app.tgz' },
+      { sourceKind: 'npm-package' as const, sourceRef: 'pkg@beta' },
+      { sourceKind: 'npm-package' as const, sourceRef: 'pkg@1.2' },
+    ]) {
+      const transport = createNimiAppRegistryTransport({
+        loadRows: () => [{
+          ...rows[1]!,
+          appId: 'community.clock',
+          releaseDescriptorRef: 'community.clock.v1',
+        }],
+        loadReleaseDescriptors: () => [{
+          ...descriptors[1]!,
+          descriptorId: 'community.clock.v1',
+          appId: 'community.clock',
+          descriptorClass: 'external-immutable-artifact',
+          sourceKind: descriptor.sourceKind,
+          sourceRef: descriptor.sourceRef,
+        }],
+      });
+      assert.deepEqual(await transport.list(), []);
+      await assert.rejects(transport.get('community.clock'), NimiAppRegistryTransportError);
+      await assert.rejects(transport.status('community.clock'), NimiAppRegistryTransportError);
+    }
   });
 
   it('fails closed when app row is absent', async () => {
-    const transport = createNimiAppRegistryTransport({ loadRows: () => rows });
-    await assert.rejects(transport.getAppStatus('missing.app'), NimiAppRegistryTransportError);
+    const transport = createNimiAppRegistryTransport({ loadRows: () => rows, loadReleaseDescriptors: () => descriptors });
+    await assert.rejects(transport.status('missing.app'), NimiAppRegistryTransportError);
   });
 
   it('fails closed when registry source is not an array', async () => {
     const transport = createNimiAppRegistryTransport({
       loadRows: () => 'not-an-array' as unknown as readonly NimiAppRegistrySourceRow[],
+      loadReleaseDescriptors: () => descriptors,
     });
-    await assert.rejects(transport.listRegistry(), NimiAppRegistryTransportError);
+    await assert.rejects(transport.list(), NimiAppRegistryTransportError);
   });
 });

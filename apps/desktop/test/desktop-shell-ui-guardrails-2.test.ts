@@ -143,7 +143,9 @@ test('governed roots and overlays expose stable testability hooks', () => {
 
 test('dialog primitive keeps data-testid passthrough and panel style support for governed overlays', () => {
   assert.match(dialogPrimitiveSource, /data-testid=\{dataTestId\}/);
-  assert.match(dialogPrimitiveSource, /style=\{panelStyle\}/);
+  assert.match(dialogPrimitiveSource, /panelStyle\?: CSSProperties/);
+  assert.match(dialogPrimitiveSource, /\.\.\.panelStyle/);
+  assert.match(dialogPrimitiveSource, /style=\{mergedPanelStyle\}/);
 });
 
 test('profile post feeds keep a stable two-column breakpoint instead of a late private width threshold', () => {

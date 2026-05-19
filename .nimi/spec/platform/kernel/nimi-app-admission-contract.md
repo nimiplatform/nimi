@@ -45,6 +45,13 @@ Pack、Asset Market generic content channel 作为可安装 product unit。
 - `permission_scope_ref` — Wave 4 permission fabric 的占位引用；在 Wave 4 close
   前，admitted placeholder 为 `pending_wave_4`。
 - `health_repair_projection` — fail-closed 状态集合（见 `P-NAPP-008`）。
+- `ordinary_visibility` — `ordinary-visible`、`hidden-internal`、
+  `developer-only`、`not-admitted-visible` 之一。Apps 只能显示
+  `ordinary-visible` 且 `admission_status=admitted` 的 row。
+- `release_descriptor_ref` — 引用
+  `tables/nimi-app-release-descriptors.yaml` 中的 installable release
+  descriptor；bundled first-party app 可引用 atomic Nimi bundle descriptor。
+- `install_storage_policy_ref` — 引用 `P-NAPP-015` 的 storage policy。
 - `admission_status` — admitted 值集合：`admitted`,
   `gated_by_avatar_master_gate`, `pending_wave_4`, `deferred`,
   `retired`。
@@ -110,13 +117,20 @@ parallel package trust source。
 从 file existence、endpoint reachability、process liveness、transfer
 completion 推断 `ready`。
 
-## P-NAPP-009 — Library / Discovery Non-Owner Rule
+## P-NAPP-009 — Apps Non-Owner Rule
 
-`MUST`：Wave 1 Library / Discovery surface（`D-HOME-004` / `D-HOME-005`）
-仅消费 registry projection。
+`MUST`：Desktop `Apps` surface（`D-HOME-004` / `D-HOME-005`）仅消费
+registry/package/SDK projection。Ordinary Apps visibility 的闭合条件为：
 
-`MUST NOT`：Library / Discovery 不得拥有 admission truth、marketplace
-truth、economy truth、package trust truth。
+- `admission_status=admitted`
+- `ordinary_visibility=ordinary-visible`
+- registry row resolves trust tier、package kind、release descriptor、
+  permission/runtime requirements、and storage policy
+- host/runtime projection does not fail-close the row as unsupported or blocked
+
+`MUST NOT`：Apps 不得拥有 admission truth、marketplace truth、economy
+truth、package trust truth；不得读取 source workspace、app-local spec、Mods、
+Extensions、or unadmitted registry rows to decide visibility.
 
 ## P-NAPP-010 — App-Slice Admission Orthogonality
 
@@ -133,7 +147,10 @@ subordinate authority semantics 与本契约 admission 并行存在；两者互�
 `MUST`：Wave 3 seed row 仅包含 Wave 5 hardcut targets：
 
 - `nimi.avatar` — `admission_status: gated_by_avatar_master_gate`。Wave 5
-  必须先由 Avatar 产品化 master gate 清场，才能切换为 `admitted`。
+  必须先由 Avatar 产品化 master gate 清场，才能切换为 `admitted`。即使
+  future status becomes `admitted` for package/update coordination, ordinary
+  Apps visibility remains `hidden-internal` unless a later product authority
+  explicitly changes Avatar Apps posture.
 - `nimi.parentos` — `admission_status: admitted`。
 
 其余 `first-party-hardcut-scope-ledger.md` 中的 deferred app（Forge,
@@ -145,6 +162,90 @@ Map, Overtone）暂不进入 Wave 3 seed。
 `MUST`：mechanical guard `check:no-public-mod-extension-admission` 在
 `enforcement-gates-required.md` 中以 `Required before: Wave 3 close` 注册，
 并 block：registry/package rows admitting public Mods or Extensions。
+
+## P-NAPP-013 — Third-Party Admission Path
+
+`MUST`：early third-party app admission may begin as a GitHub PR into the
+Platform-owned Nimi App registry/package tables. The PR must admit, in the same
+reviewable change set:
+
+- registry row metadata;
+- permission requirements;
+- Runtime registration requirements;
+- AIConfig/profile requirement hints;
+- exact version;
+- immutable source reference;
+- release descriptor reference;
+- artifact digest, size, signature or provenance evidence where applicable;
+- storage policy.
+
+`MUST NOT`：GitHub repository ownership、npm package name、source directory、
+or app-local spec presence is not Nimi App admission. Direct `npm install`,
+direct `npx`, mutable git branch/tag, direct clone/build/run, or installer
+script execution is not ordinary-user product install truth.
+
+## P-NAPP-014 — Release Descriptor And Digest Verification
+
+`MUST`：every installable non-bundled app version must resolve to an immutable
+release descriptor in `tables/nimi-app-release-descriptors.yaml`. The descriptor
+must include exact `app_id`, `version`, source kind/ref, artifact locator,
+`sha256`, size, signature/provenance reference, runtime package kind/entry,
+permissions, and storage policy.
+
+Install must:
+
+- download only from the descriptor source;
+- compute `sha256` over downloaded bytes before unpack/register/execute;
+- compare computed digest with descriptor `sha256`;
+- fail closed before unpacking when the digest does not match;
+- continue manifest, permission, Runtime, and storage validation only after
+  digest match.
+
+`MUST NOT`：hash match is not a safety proof by itself. Review must still
+evaluate permissions, entry point, lifecycle scripts, dependency behavior,
+Runtime sandbox fit, and file/storage boundaries.
+
+## P-NAPP-015 — App Install Storage Policy
+
+`MUST`：app package/data storage is rooted under selected `nimi_data`:
+
+```text
+<nimi_data>/apps/<app-id>/releases/<version>
+<nimi_data>/apps/<app-id>/data
+<nimi_data>/apps/<app-id>/cache
+<nimi_data>/apps/<app-id>/tmp
+```
+
+Uninstall removes release payloads by default and keeps durable app data unless
+the user explicitly confirms destructive data deletion with impact preview.
+
+`MUST NOT`：ordinary app install may not write outside these roots except
+through an admitted Runtime-managed dependency/materialization path. App
+uninstall must not delete shared models, Runtime dependencies, account data, or
+other app data by implication.
+
+## P-NAPP-016 — Developer-Only Tester App Admission
+
+`MUST`：当前 Product/UI alignment cut admits `nimi.tester` only as a
+first-party developer-only Nimi App:
+
+- `admission_status: admitted`
+- `ordinary_visibility: developer-only`
+- `package_kind: nimi-app`
+- `release_descriptor_ref: nimi.tester.bundled-with-nimi`
+- `install_storage_policy_ref: nimi-data-app-roots`
+
+`MUST`：`nimi.tester` 的 release descriptor 使用 bundled first-party
+posture，绑定当前 atomic Nimi release bundle，不授权外部 mutable download。
+
+`MUST NOT`：`nimi.tester` 不得作为 ordinary primary navigation entry，
+不得出现在 ordinary-visible Apps projection，且不得以 Desktop-embedded
+Tester、workspace fixture cache、Tauri command name、source folder、GitHub repo
+或 npm package 作为 App admission/install truth。
+
+`MUST NOT`：该 admission 不删除 Desktop-embedded Tester。Desktop-embedded
+Tester 只能作为 frozen internal source/validation surface，后续 hard-cut
+retirement 必须等待 `nimi.tester` stability evidence。
 
 ## Fact Sources
 
@@ -160,6 +261,7 @@ Map, Overtone）暂不进入 Wave 3 seed。
 - `.nimi/spec/platform/kernel/package-authority-admission-contract.md` — `P-PKG-*`
 - `.nimi/spec/platform/kernel/mod-extension-retirement-contract.md` — `P-MOEX-001..P-MOEX-006`
 - `.nimi/spec/platform/kernel/tables/nimi-app-registry.yaml`
+- `.nimi/spec/platform/kernel/tables/nimi-app-release-descriptors.yaml`
 - `.nimi/spec/platform/kernel/tables/nimi-app-trust-tiers.yaml`
 - `.nimi/spec/sdk/kernel/nimi-app-client-contract.md` — `S-APP-001..S-APP-008`
 - `.nimi/spec/runtime/kernel/local-engine-contract.md` — `K-LENG-024..K-LENG-028`

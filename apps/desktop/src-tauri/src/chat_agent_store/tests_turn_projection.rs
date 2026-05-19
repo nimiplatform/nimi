@@ -1,7 +1,7 @@
 #[test]
 fn chat_agent_truth_source_commit_context_cancel_and_rebuild_projection_round_trip() {
     let home = temp_home("truth-source");
-    with_env(&[("HOME", home.to_str())], || {
+    with_product_data_home(&home, || {
         let path = crate::desktop_paths::resolve_nimi_data_dir()
             .expect("nimi data dir")
             .join("chat-agent")

@@ -31,6 +31,28 @@
   "openChatFailed": "打开聊天失败",
   "likes": "点赞",
   "modifyVisibility": "修改可见范围",
+  "nimiHomeTitle": "主页",
+  "firstRun": {
+    "readinessMetric": "就绪度"
+  },
+  "library": {
+    "title": "应用库",
+    "description": "已安装且已准入的 Nimi 应用。"
+  },
+  "discovery": {
+    "title": "发现",
+    "description": "当前 Nimi 安装可用的应用。"
+  },
+  "agentChat": {
+    "title": "Agent Chat",
+    "scope": "作用域",
+    "anchor": "锚点"
+  },
+  "loading": {
+    "readiness": "正在加载就绪度...",
+    "library": "正在加载应用库...",
+    "discovery": "正在加载发现..."
+  },
   "noContent": "暂无内容",
   "noPosts": "还没有帖子",
   "postPublishFailed": "发布帖子失败",

@@ -661,3 +661,36 @@ Fixed rules:
   external-principal paths, but it is never scoped binding proof.
 - Default local first-party Avatar must not be forced through this binding
   attachment path solely because Desktop launched it.
+
+## K-AGCORE-139 Nimi Guide Ordinary LocalAgent Projection
+
+`RuntimeAgentService` may project the user's Nimi guide LocalAgent only through
+the same ordinary AgentFriend mechanics used for any RealmAgent.
+
+For the Nimi-authored guide agent, Runtime must:
+
+- consume the ordinary RealmAgent and AgentFriend projection through admitted
+  Realm/SDK projection, not through Desktop fixtures;
+- require the account's ordinary AgentFriend relationship to exist before local
+  projection;
+- create or repair one account-scoped LocalAgent projection for that ordinary
+  AgentFriend idempotently;
+- preserve conversation anchor and RuntimeAgentService lifecycle semantics;
+- expose provisioning failures as typed repair/blocked states.
+
+`MUST NOT`: Runtime must not create the guide as a standalone local-only agent,
+fake contact, server-bot bypass, Avatar instance, privileged Agent class,
+special official-guide path, quota bypass, or default global agent.
+
+## K-AGCORE-140 Nimi Guide Prompt And Documentation Context
+
+When the Nimi guide LocalAgent is available through ordinary AgentFriend
+projection, Runtime may initialize the first conversation from Nimi guide
+welcome copy and may attach built-in Nimi usage documentation as product
+knowledge/context.
+
+`MUST NOT`: prompt/docs context must not create Agent authority, memory truth,
+permission grant truth, Runtime setup truth, or profile/app configuration truth.
+The guide may direct the user to product surfaces but cannot bypass setup
+confirmations, permissions, install plans, app admission, or ordinary LocalAgent
+mechanics.

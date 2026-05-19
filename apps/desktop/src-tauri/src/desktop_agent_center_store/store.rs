@@ -499,7 +499,7 @@ pub(crate) fn desktop_agent_center_config_put(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::test_support::with_env;
+    use crate::test_support::with_product_data_home;
 
     fn temp_home(prefix: &str) -> PathBuf {
         let dir = std::env::temp_dir().join(format!("nimi-agent-center-{prefix}-{}", now_nanos()));
@@ -561,7 +561,7 @@ mod tests {
     #[test]
     fn missing_config_returns_default_without_creating_file() {
         let home = temp_home("default");
-        with_env(&[("HOME", home.to_str())], || {
+        with_product_data_home(&home, || {
             let config = desktop_agent_center_config_get(scope_payload()).expect("default config");
             assert_eq!(config.config_kind, AGENT_CENTER_CONFIG_KIND);
             assert!(config.modules.avatar_asset.local_avatar_asset_ref.is_none());
@@ -577,7 +577,7 @@ mod tests {
     #[test]
     fn put_persists_and_get_reads_valid_config() {
         let home = temp_home("persist");
-        with_env(&[("HOME", home.to_str())], || {
+        with_product_data_home(&home, || {
             let config = valid_config();
             desktop_agent_center_config_put(DesktopAgentCenterConfigPutPayload {
                 account_id: "account_1".to_string(),
@@ -602,7 +602,7 @@ mod tests {
     #[test]
     fn put_rejects_avatar_backend_kind_mismatch_for_selected_local_asset() {
         let home = temp_home("avatar-backend-mismatch");
-        with_env(&[("HOME", home.to_str())], || {
+        with_product_data_home(&home, || {
             let mut config = valid_config();
             config.modules.avatar_asset.local_avatar_asset_ref =
                 Some("live2d_ab12cd34ef56".to_string());
@@ -622,7 +622,7 @@ mod tests {
     #[test]
     fn put_rejects_scope_mismatch() {
         let home = temp_home("scope");
-        with_env(&[("HOME", home.to_str())], || {
+        with_product_data_home(&home, || {
             let err = desktop_agent_center_config_put(DesktopAgentCenterConfigPutPayload {
                 account_id: "account_1".to_string(),
                 owner_user_id: owner_user_id(),
@@ -638,7 +638,7 @@ mod tests {
     #[test]
     fn get_rejects_unknown_fields_in_stored_json() {
         let home = temp_home("unknown");
-        with_env(&[("HOME", home.to_str())], || {
+        with_product_data_home(&home, || {
             let dir = home.join(format!(
                 ".nimi/data/accounts/account_1/agents/{}/agent-center",
                 local_scope_path_segment(&local_agent_ref())

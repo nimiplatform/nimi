@@ -8,10 +8,10 @@ import {
   ensureRuntimeLocalModelWarm,
   resolveSourceAndModel,
 } from '@runtime/llm-adapter/execution/runtime-ai-bridge.js';
+import { TESTER_RUNTIME_CLIENT_ID } from './tester-app-identity.js';
 
 export { getRuntimeClient } from '@runtime/llm-adapter/execution/runtime-ai-bridge.js';
 
-const TESTER_MOD_ID = 'core.tester';
 const TESTER_DEFAULT_WARM_TIMEOUT_MS = 120_000;
 const LOCAL_ASSET_LIST_PAGE_SIZE = 100;
 const LOCAL_ASSET_LIST_MAX_PAGES = 20;
@@ -135,7 +135,7 @@ export async function resolveCallParams(binding: RuntimeRouteBinding | undefined
     const normalizedEngine = warmEngine.toLowerCase();
     if (!normalizedEngine || normalizedEngine === 'llama' || normalizedEngine === 'local') {
       await ensureRuntimeLocalModelWarm({
-        modId: TESTER_MOD_ID,
+        modId: TESTER_RUNTIME_CLIENT_ID,
         source: 'local',
         modelId: resolvedModel,
         localModelId: asString(binding.localModelId) || undefined,

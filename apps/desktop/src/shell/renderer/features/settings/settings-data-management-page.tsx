@@ -164,6 +164,7 @@ export function DataManagementPage() {
         const daemonStatus = await desktopBridge.getRuntimeBridgeStatus();
         await syncRuntimeLocalModelsConfig({
           daemonStatus,
+          dataRootPath: dirs.nimiDataDir,
           localModelsPath: dirs.localModelsDir,
           localStatePath: dirs.localRuntimeStatePath,
           bridge: {

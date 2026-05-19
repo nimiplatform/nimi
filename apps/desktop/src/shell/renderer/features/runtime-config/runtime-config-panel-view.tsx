@@ -20,11 +20,9 @@ import { LocalPage } from './runtime-config-page-local';
 import { CloudPage } from './runtime-config-page-cloud';
 import { CatalogPage } from './runtime-config-page-catalog';
 import { RuntimePage } from './runtime-config-page-runtime';
-import { ModsPage } from './runtime-config-page-mods';
 import { ProfileCatalogPage } from './runtime-config-page-profiles';
 import { DataManagementPage } from '../settings/settings-data-management-page';
 import { PerformancePage } from '../settings/settings-performance-page';
-import { DeveloperPage } from '../settings/settings-developer-page';
 import type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-types';
 import { useRuntimeConfigPanelController } from './runtime-config-panel-controller';
 import { InlineFeedback } from '@renderer/ui/feedback/inline-feedback';
@@ -157,7 +155,7 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
         width={sidebarWidth}
         data-testid={E2E_IDS.panel('runtime-sidebar')}
       >
-        <SidebarHeader title={<h1 className={`nimi-type-page-title text-[color:var(--nimi-text-primary)]`}>{t('runtimeConfig.panel.title', { defaultValue: 'AI Runtime' })}</h1>} className="px-5" />
+        <SidebarHeader title={<h1 className={`nimi-type-page-title text-[color:var(--nimi-text-primary)]`}>{t('runtimeConfig.panel.title', { defaultValue: 'Runtime' })}</h1>} className="px-5" />
         <ScrollArea className="flex-1" contentClassName="px-3 pb-3 pt-2">
           <div className="space-y-5">
             {Object.entries(sidebarSections).map(([section, items]) => (
@@ -236,10 +234,6 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
             <div data-testid={E2E_IDS.runtimePageRoot('performance')}>
               <PerformancePage />
             </div>
-          ) : activePage === 'mod-developer' ? (
-            <div data-testid={E2E_IDS.runtimePageRoot('mod-developer')}>
-              <DeveloperPage />
-            </div>
           ) : (
             <>
               {activePage === 'overview' && (
@@ -270,11 +264,6 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
               {activePage === 'profiles' && (
                 <div data-testid={E2E_IDS.runtimePageRoot('profiles')}>
                   <ProfileCatalogPage />
-                </div>
-              )}
-              {activePage === 'mods' && (
-                <div data-testid={E2E_IDS.runtimePageRoot('mods')}>
-                  <ModsPage model={model} state={state} />
                 </div>
               )}
             </>

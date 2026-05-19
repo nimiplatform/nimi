@@ -256,7 +256,7 @@ export function OverviewPage({ model, state }: OverviewPageProps) {
         <SectionTitle>
           {t('runtimeConfig.overview.snapshotTitle', { defaultValue: 'Overview Snapshot' })}
         </SectionTitle>
-        <div className="mt-3 grid grid-cols-4 gap-4">
+        <div className="mt-3 grid grid-cols-3 gap-4">
           <StatTile
             title={t('runtimeConfig.overview.installedModels', { defaultValue: 'Installed Models' })}
             value={installedModelCount}
@@ -273,12 +273,6 @@ export function OverviewPage({ model, state }: OverviewPageProps) {
             title={t('runtimeConfig.overview.vaultEntries', { defaultValue: 'Vault Entries' })}
             value={model.vaultEntryCount}
             subtitle={t('runtimeConfig.overview.credentialsStored', { defaultValue: 'credentials stored' })}
-          />
-          <StatTile
-            title={t('runtimeConfig.overview.aiMods', { defaultValue: 'AI Mods' })}
-            value={model.runtimeProfileTargets.length}
-            subtitle={t('runtimeConfig.overview.withAiProfiles', { defaultValue: 'with AI profiles' })}
-            onClick={() => model.onChangePage('mods')}
           />
         </div>
       </section>
@@ -518,7 +512,7 @@ export function OverviewPage({ model, state }: OverviewPageProps) {
         <SectionTitle>
           {t('runtimeConfig.overview.quickNavigationTitle', { defaultValue: 'Quick Navigation' })}
         </SectionTitle>
-        <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
           <QuickLinkCard
             title={t('runtimeConfig.overview.manageModels', { defaultValue: 'Manage Models' })}
             description={t('runtimeConfig.overview.manageModelsDescription', { defaultValue: 'Install, start, stop local assets' })}
@@ -533,11 +527,6 @@ export function OverviewPage({ model, state }: OverviewPageProps) {
             title={t('runtimeConfig.overview.runtimeAudit', { defaultValue: 'Runtime & Audit' })}
             description={t('runtimeConfig.overview.runtimeAuditDescription', { defaultValue: 'Health, logs, EAA tokens' })}
             onClick={() => model.onChangePage('runtime')}
-          />
-          <QuickLinkCard
-            title={t('runtimeConfig.overview.modProfiles', { defaultValue: 'Mod Dependencies' })}
-            description={t('runtimeConfig.overview.modProfilesDescription', { defaultValue: 'Configure AI for mods' })}
-            onClick={() => model.onChangePage('mods')}
           />
         </div>
       </section>

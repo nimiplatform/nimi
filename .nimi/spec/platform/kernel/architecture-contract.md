@@ -12,7 +12,7 @@ entry shell；当前由 desktop host 承载。历史执行拓扑中的
 公开外部分发、安装、授权单位固定为 `Nimi App`。Public Mods 与 Public
 Extensions 不被 admitted。任何仍存在的 hook/mod 实现面只允许作为
 developer/internal/retirement surface 存在，不能被产品文案、registry、
-Library/Discovery、或第三方接入文档描述为 Nimi 生态入口。
+Apps、或第三方接入文档描述为 Nimi 生态入口。
 
 `nimi-cognition` 作为独立 authority domain 存在，由 runtime / sdk bridge 与 consume；它不是第七条执行宿主层，也不得被 platform text 静默压回 realm 或 runtime 子章节。
 
@@ -67,11 +67,12 @@ persistence read path 继续落在 Truth / World State / World History / Chat �
 `MUST`: Desktop 是当前 desktop-hosted Nimi Home shell 实现，不是公开产品
 ontology owner，也不是独立旗舰产品名。用户安装和打开的产品名是 `Nimi`。
 Desktop-hosted Home 可以投影 Runtime Console、diagnostics、settings、Library
-与 Discovery，但这些 surface 不拥有 Runtime materialization、Nimi App
+与 Discovery 作为 lower-level historical projection names；ordinary product
+surface is `Apps`. These surfaces do not own Runtime materialization、Nimi App
 registry/admission、Realm/Cognition truth、或 marketplace economy truth。
 
-历史 `App Store` wording superseded 为 Nimi App `Library` / `Discovery`
-projection；历史 `nimi-hook` 特性 superseded 为 developer/internal/retirement
+历史 `App Store`、`Library`、`Discovery` ordinary product wording superseded 为
+Nimi `Apps` projection；历史 `nimi-hook` 特性 superseded 为 developer/internal/retirement
 surface，不得作为 public Mod/Extension product promise。
 
 ordinary-user 默认 AI 体验（first-run、scope-bound apply、admitted

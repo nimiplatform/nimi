@@ -7,6 +7,12 @@ import { PostCard, type PostCardAuthorProfileTarget } from '../home/post-card';
 import { usePostCardActionAdapter } from '../home/post-card-action-adapter';
 import { PostFeed } from '../home/post-feed';
 import {
+  WorldCatalogContent,
+  WorldsLoadError,
+  WorldsLoadingSkeleton,
+} from '../world/world-list';
+import type { WorldListItem } from '../world/world-list-model';
+import {
   AgentRecommendationCard,
   type ExploreAgentCardData,
 } from './explore-cards';
@@ -38,6 +44,9 @@ type ExploreViewProps = {
   categories: string[];
   topAgents: ExploreAgentCardData[];
   worldBanners: WorldBanner[];
+  worldCatalogItems: WorldListItem[];
+  worldsLoading: boolean;
+  worldsError: boolean;
   fetchPostPage: (cursor: string | null) => Promise<{ items: PostDto[]; nextCursor: string | null }>;
   postFeedKey: string;
   onPostDelete?: () => void;
@@ -589,8 +598,22 @@ export function ExploreView(props: ExploreViewProps) {
             </section>
           )}
 
+          <section className="mb-10" data-testid="explore-worlds-section">
+            {props.worldsLoading ? (
+              <WorldsLoadingSkeleton embedded />
+            ) : props.worldsError ? (
+              <WorldsLoadError embedded />
+            ) : (
+              <WorldCatalogContent
+                worlds={props.worldCatalogItems}
+                onOpenWorld={(worldId) => props.onWorldOpen?.(worldId)}
+                embedded
+              />
+            )}
+          </section>
+
           {props.topAgents.length > 0 && (
-            <section className="mb-10">
+            <section className="mb-10" data-testid="explore-realmagents-section">
               <div className="mb-4 flex items-end justify-between gap-4">
                 <div>
                   <h2

@@ -33,7 +33,8 @@ test('world tour panel keeps world.generate submit flow and launch-only desktop 
   assert.match(source, /WORLD_TOUR_CACHE_MANIFEST_PATH/);
   assert.match(source, /resolve_world_tour_fixture/);
   assert.match(source, /open_world_tour_window/);
-  assert.match(source, /WORLD_TOUR_RENDER_ACCEPTANCE_STORAGE_KEY/);
+  assert.match(source, /readWorldTourRenderAcceptance/);
+  assert.doesNotMatch(source, /localStorage/);
   assert.match(source, /spark-render-acceptance-pending/);
   assert.match(source, /spark-render-accepted/);
   assert.doesNotMatch(source, /finishReason:\s*'cached-fixture'/);
@@ -54,6 +55,8 @@ test('dedicated world tour viewer route owns Spark renderer lifecycle', () => {
   assert.match(source, /resolve_world_tour_fixture/);
   assert.match(source, /Booting world tour viewer/);
   assert.match(source, /writeWorldTourRenderAcceptance/);
+  assert.match(source, /hasVerifiedSpzIntegrity/);
+  assert.match(source, /digest\/provenance/);
   assert.match(source, /status:\s*'passed'/);
   assert.match(source, /status:\s*'failed'/);
   assert.match(source, /const WORLD_TOUR_UPRIGHT_QUATERNION = new THREE\.Quaternion\(1,\s*0,\s*0,\s*0\)/);

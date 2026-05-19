@@ -19,7 +19,7 @@ fn make_temp_dir(prefix: &str) -> PathBuf {
 
 fn launch_payload() -> DesktopAvatarLaunchHandoffPayload {
     DesktopAvatarLaunchHandoffPayload {
-        agent_id: "agent-1".to_string(),
+        agent_id: "local-agent:owner-1:agent-1".to_string(),
         avatar_instance_id: Some("instance-1".to_string()),
         launch_source: Some("desktop-agent-chat".to_string()),
     }
@@ -83,7 +83,10 @@ fn avatar_handoff_uri_includes_only_minimal_launch_intent() {
     let parsed = url::Url::parse(uri.as_str()).expect("parse handoff uri");
     let query: std::collections::BTreeMap<String, String> =
         parsed.query_pairs().into_owned().collect();
-    assert_eq!(query.get("agent_id").map(String::as_str), Some("agent-1"));
+    assert_eq!(
+        query.get("agent_id").map(String::as_str),
+        Some("local-agent:owner-1:agent-1")
+    );
     assert_eq!(
         query.get("avatar_instance_id").map(String::as_str),
         Some("instance-1")
@@ -329,9 +332,35 @@ fn avatar_handoff_uri_rejects_missing_agent_id() {
 }
 
 #[test]
+fn avatar_handoff_uri_rejects_bare_agent_id() {
+    let error = build_avatar_handoff_uri(&DesktopAvatarLaunchHandoffPayload {
+        agent_id: "agent-1".to_string(),
+        avatar_instance_id: Some("instance-1".to_string()),
+        launch_source: None,
+    })
+    .expect_err("bare agent id should fail");
+
+    let payload: serde_json::Value =
+        serde_json::from_str(error.as_str()).expect("structured error json");
+    assert_eq!(
+        payload
+            .get("reasonCode")
+            .and_then(serde_json::Value::as_str),
+        Some("DESKTOP_AVATAR_HANDOFF_INVALID"),
+    );
+    assert!(
+        payload
+            .get("message")
+            .and_then(serde_json::Value::as_str)
+            .unwrap_or_default()
+            .contains("local-agent ref")
+    );
+}
+
+#[test]
 fn avatar_launch_payload_rejects_old_authority_fields() {
     let payload = serde_json::json!({
-        "agentId": "agent-1",
+        "agentId": "local-agent:owner-1:agent-1",
         "ownerUserId": "owner-1",
         "realmAgentId": "agent-1",
         "localAgentRef": "local-agent:owner-1:agent-1",

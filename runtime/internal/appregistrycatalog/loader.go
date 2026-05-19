@@ -37,6 +37,9 @@ type rawApp struct {
 	RuntimeRegistrationMode   string               `yaml:"runtime_registration_mode"`
 	PermissionScopeRef        []rawPermissionScope `yaml:"permission_scope_ref"`
 	HealthRepairProjection    string               `yaml:"health_repair_projection"`
+	OrdinaryVisibility        string               `yaml:"ordinary_visibility"`
+	ReleaseDescriptorRef      string               `yaml:"release_descriptor_ref"`
+	InstallStoragePolicyRef   string               `yaml:"install_storage_policy_ref"`
 	AdmissionStatus           string               `yaml:"admission_status"`
 	SourceRule                string               `yaml:"source_rule"`
 }
@@ -90,7 +93,8 @@ func LoadRegistryFromFile(path string) (*Registry, error) {
 }
 
 func convertApp(raw rawApp) (App, error) {
-	if raw.AppID == "" || raw.DisplayLabel == "" || raw.Publisher == "" || raw.SourceRule == "" {
+	if raw.AppID == "" || raw.DisplayLabel == "" || raw.Publisher == "" || raw.SourceRule == "" ||
+		raw.ReleaseDescriptorRef == "" || raw.InstallStoragePolicyRef == "" {
 		return App{}, ErrAppMissingRequiredField
 	}
 	kind := PackageKind(raw.PackageKind)
@@ -108,6 +112,10 @@ func convertApp(raw rawApp) (App, error) {
 	status := AdmissionStatus(raw.AdmissionStatus)
 	if !status.Valid() {
 		return App{}, fmt.Errorf("%w: %q", ErrAppUnknownAdmissionStatus, raw.AdmissionStatus)
+	}
+	visibility := OrdinaryVisibility(raw.OrdinaryVisibility)
+	if !visibility.Valid() {
+		return App{}, fmt.Errorf("%w: %q", ErrAppUnknownOrdinaryVisibility, raw.OrdinaryVisibility)
 	}
 	scopes := make([]PermissionScopeRef, 0, len(raw.PermissionScopeRef))
 	for _, scope := range raw.PermissionScopeRef {
@@ -132,6 +140,9 @@ func convertApp(raw rawApp) (App, error) {
 		RuntimeRegistrationMode:   mode,
 		PermissionScopeRefs:       scopes,
 		HealthRepairProjection:    raw.HealthRepairProjection,
+		OrdinaryVisibility:        visibility,
+		ReleaseDescriptorRef:      raw.ReleaseDescriptorRef,
+		InstallStoragePolicyRef:   raw.InstallStoragePolicyRef,
 		AdmissionStatus:           status,
 		SourceRule:                raw.SourceRule,
 	}, nil
@@ -148,11 +159,4 @@ func (r *Registry) FindByID(appID string) (*App, error) {
 		}
 	}
 	return nil, fmt.Errorf("appregistry FindByID (%q): %w", appID, ErrAppNotFound)
-}
-
-// IsLaunchAdmitted reports whether the app is currently admitted for
-// ordinary-user launch. Avatar's gated_by_avatar_master_gate status
-// blocks launch admission until the master gate clears.
-func (a *App) IsLaunchAdmitted() bool {
-	return a != nil && a.AdmissionStatus == AdmissionStatusAdmitted
 }

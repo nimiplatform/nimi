@@ -1,17 +1,19 @@
 use std::fs;
-use std::io::Write;
+use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use sha2::{Digest, Sha256};
 use tauri::{Manager, WebviewUrl, WebviewWindowBuilder};
 use url::form_urlencoded::Serializer;
 
-use super::tester_storage::{resolve_tester_fixture_path, tester_world_tour_cache_root};
+use super::tester_storage::{
+    resolve_tester_fixture_path, tester_app_tmp_root, tester_world_tour_cache_root,
+};
 
-const DEFAULT_WORLD_TOUR_MANIFEST_REL: &str =
-    ".nimi/cache/worldlabs/world-tour/latest/fixture-manifest.json";
+const DEFAULT_WORLD_TOUR_MANIFEST_REL: &str = "latest/fixture-manifest.json";
 const VIEWER_PRESET_FILE_NAME: &str = "viewer-preset.json";
 const WORLD_TOUR_WINDOW_LABEL_PREFIX: &str = "world-tour";
 
@@ -67,6 +69,23 @@ pub struct WorldTourViewerPreset {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct WorldTourAssetIntegrityEvidence {
+    pub sha256: String,
+    pub provenance_ref: String,
+    pub verification_state: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct WorldTourFixtureIntegrity {
+    pub spz_local_path: Option<WorldTourAssetIntegrityEvidence>,
+    pub thumbnail_local_path: Option<WorldTourAssetIntegrityEvidence>,
+    pub pano_local_path: Option<WorldTourAssetIntegrityEvidence>,
+    pub collider_mesh_local_path: Option<WorldTourAssetIntegrityEvidence>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ResolvedWorldTourFixture {
     pub manifest_path: String,
     pub fixture_root: String,
@@ -82,6 +101,7 @@ pub struct ResolvedWorldTourFixture {
     pub thumbnail_local_path: Option<String>,
     pub pano_local_path: Option<String>,
     pub collider_mesh_local_path: Option<String>,
+    pub asset_integrity: WorldTourFixtureIntegrity,
     pub semantics_metadata: Option<Value>,
     pub viewer_preset: Option<WorldTourViewerPreset>,
 }
@@ -99,6 +119,18 @@ pub struct SaveWorldTourViewerPresetResponse {
     pub manifest_path: String,
     pub preset_path: String,
     pub viewer_preset: WorldTourViewerPreset,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WorldTourRenderAcceptance {
+    pub manifest_path: String,
+    pub status: String,
+    pub accepted_at: String,
+    pub renderer: String,
+    pub world_id: Option<String>,
+    pub spz_asset_ref: Option<String>,
+    pub reason: Option<String>,
 }
 
 fn fixture_manifest_path(input: Option<&str>) -> String {
@@ -146,10 +178,100 @@ fn validate_viewer_preset(input: WorldTourViewerPreset) -> Result<WorldTourViewe
     Ok(input)
 }
 
-fn manifest_relative_path_to_canonical(
+fn normalize_sha256(value: &str) -> Result<String, String> {
+    let normalized = value
+        .trim()
+        .trim_start_matches("sha256:")
+        .to_ascii_lowercase();
+    if normalized.len() != 64 || !normalized.chars().all(|ch| ch.is_ascii_hexdigit()) {
+        return Err("sha256 digest 必须是 64 位 hex".to_string());
+    }
+    Ok(normalized)
+}
+
+fn sha256_file_hex(path: &Path) -> Result<String, String> {
+    let mut file = fs::File::open(path).map_err(|error| {
+        format!(
+            "读取 world-tour fixture 资产失败 ({}): {error}",
+            path.display()
+        )
+    })?;
+    let mut hasher = Sha256::new();
+    let mut buffer = [0_u8; 64 * 1024];
+    loop {
+        let read = file.read(&mut buffer).map_err(|error| {
+            format!(
+                "计算 world-tour fixture digest 失败 ({}): {error}",
+                path.display()
+            )
+        })?;
+        if read == 0 {
+            break;
+        }
+        hasher.update(&buffer[..read]);
+    }
+    Ok(format!("{:x}", hasher.finalize()))
+}
+
+fn manifest_asset_integrity(
+    manifest: &Value,
+    field: &str,
+) -> Result<WorldTourAssetIntegrityEvidence, String> {
+    let integrity_root = manifest
+        .get("asset_integrity")
+        .and_then(Value::as_object)
+        .ok_or_else(|| "world-tour fixture manifest 缺少 asset_integrity".to_string())?;
+    let record = integrity_root
+        .get(field)
+        .and_then(Value::as_object)
+        .ok_or_else(|| format!("world-tour fixture asset_integrity 缺少 {field}"))?;
+    let sha256 = record
+        .get("sha256")
+        .and_then(Value::as_str)
+        .ok_or_else(|| format!("world-tour fixture {field} 缺少 sha256"))?;
+    let provenance_ref = record
+        .get("provenance_ref")
+        .or_else(|| record.get("provenanceRef"))
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .ok_or_else(|| format!("world-tour fixture {field} 缺少 provenance_ref"))?;
+    Ok(WorldTourAssetIntegrityEvidence {
+        sha256: normalize_sha256(sha256)?,
+        provenance_ref: provenance_ref.to_string(),
+        verification_state: "digest-verified".to_string(),
+    })
+}
+
+fn verify_manifest_asset_integrity(
+    manifest: &Value,
+    field: &str,
+    path: &Path,
+) -> Result<WorldTourAssetIntegrityEvidence, String> {
+    let evidence = manifest_asset_integrity(manifest, field)?;
+    let actual_sha256 = sha256_file_hex(path)?;
+    if actual_sha256 != evidence.sha256 {
+        return Err(format!(
+            "world-tour fixture {field} digest mismatch: expected {}, got {actual_sha256}",
+            evidence.sha256
+        ));
+    }
+    if evidence.provenance_ref == "local-unverified" || evidence.provenance_ref == "unknown" {
+        return Err(format!(
+            "world-tour fixture {field} provenance_ref 不可为 {}",
+            evidence.provenance_ref
+        ));
+    }
+    Ok(evidence)
+}
+
+fn manifest_local_asset_to_canonical(
+    fixture_root: &Path,
     manifest_dir: &Path,
+    manifest: &Value,
+    field: &str,
     value: Option<String>,
-) -> Result<Option<String>, String> {
+) -> Result<Option<(String, WorldTourAssetIntegrityEvidence)>, String> {
     let Some(raw) = value else {
         return Ok(None);
     };
@@ -162,17 +284,21 @@ fn manifest_relative_path_to_canonical(
             )
         })?
     } else {
-        match resolve_tester_fixture_path(raw.as_str()) {
-            Ok(canonical) => canonical,
-            Err(_) => manifest_dir.join(path).canonicalize().map_err(|error| {
-                format!(
-                    "解析 world-tour fixture 资产路径失败 ({}): {error}",
-                    manifest_dir.join(raw.as_str()).display()
-                )
-            })?,
-        }
+        manifest_dir.join(path).canonicalize().map_err(|error| {
+            format!(
+                "解析 world-tour fixture 资产路径失败 ({}): {error}",
+                manifest_dir.join(raw.as_str()).display()
+            )
+        })?
     };
-    Ok(Some(canonical.to_string_lossy().to_string()))
+    if !canonical.starts_with(fixture_root) {
+        return Err(format!(
+            "world-tour fixture {field} 超出 Tester App fixture 根目录: {}",
+            canonical.display()
+        ));
+    }
+    let evidence = verify_manifest_asset_integrity(manifest, field, &canonical)?;
+    Ok(Some((canonical.to_string_lossy().to_string(), evidence)))
 }
 
 fn resolve_world_tour_manifest_path(manifest_path: &str) -> Result<(PathBuf, PathBuf), String> {
@@ -266,6 +392,50 @@ fn resolve_world_tour_fixture_from_manifest_path(
         .parent()
         .ok_or_else(|| "world-tour fixture manifest 缺少父目录".to_string())?;
     let viewer_preset = read_viewer_preset_from_manifest(&canonical_manifest)?;
+    let spz_local_asset = manifest_local_asset_to_canonical(
+        &root,
+        manifest_dir,
+        &manifest,
+        "spz_local_path",
+        json_optional_string(&manifest, "spz_local_path"),
+    )?;
+    if spz_local_asset.is_none() {
+        return Err(
+            "world-tour fixture manifest 必须提供 verified local spz_local_path".to_string(),
+        );
+    }
+    let collider_mesh_local_asset = manifest_local_asset_to_canonical(
+        &root,
+        manifest_dir,
+        &manifest,
+        "collider_mesh_local_path",
+        json_optional_string(&manifest, "collider_mesh_local_path"),
+    )?;
+    if collider_mesh_local_asset.is_none()
+        && json_optional_string(&manifest, "collider_mesh_remote_url").is_some()
+    {
+        return Err("world-tour fixture collider remote-only asset is not admitted".to_string());
+    }
+    let thumbnail_local_asset = manifest_local_asset_to_canonical(
+        &root,
+        manifest_dir,
+        &manifest,
+        "thumbnail_local_path",
+        json_optional_string(&manifest, "thumbnail_local_path"),
+    )?;
+    let pano_local_asset = manifest_local_asset_to_canonical(
+        &root,
+        manifest_dir,
+        &manifest,
+        "pano_local_path",
+        json_optional_string(&manifest, "pano_local_path"),
+    )?;
+    let spz_local_path = spz_local_asset.as_ref().map(|(path, _)| path.clone());
+    let collider_mesh_local_path = collider_mesh_local_asset
+        .as_ref()
+        .map(|(path, _)| path.clone());
+    let thumbnail_local_path = thumbnail_local_asset.as_ref().map(|(path, _)| path.clone());
+    let pano_local_path = pano_local_asset.as_ref().map(|(path, _)| path.clone());
 
     Ok(ResolvedWorldTourFixture {
         manifest_path: canonical_manifest.to_string_lossy().to_string(),
@@ -278,25 +448,91 @@ fn resolve_world_tour_fixture_from_manifest_path(
         thumbnail_remote_url: json_optional_string(&manifest, "thumbnail_remote_url"),
         pano_remote_url: json_optional_string(&manifest, "pano_remote_url"),
         collider_mesh_remote_url: json_optional_string(&manifest, "collider_mesh_remote_url"),
-        spz_local_path: manifest_relative_path_to_canonical(
-            manifest_dir,
-            json_optional_string(&manifest, "spz_local_path"),
-        )?,
-        thumbnail_local_path: manifest_relative_path_to_canonical(
-            manifest_dir,
-            json_optional_string(&manifest, "thumbnail_local_path"),
-        )?,
-        pano_local_path: manifest_relative_path_to_canonical(
-            manifest_dir,
-            json_optional_string(&manifest, "pano_local_path"),
-        )?,
-        collider_mesh_local_path: manifest_relative_path_to_canonical(
-            manifest_dir,
-            json_optional_string(&manifest, "collider_mesh_local_path"),
-        )?,
+        spz_local_path,
+        thumbnail_local_path,
+        pano_local_path,
+        collider_mesh_local_path,
+        asset_integrity: WorldTourFixtureIntegrity {
+            spz_local_path: spz_local_asset.map(|(_, evidence)| evidence),
+            thumbnail_local_path: thumbnail_local_asset.map(|(_, evidence)| evidence),
+            pano_local_path: pano_local_asset.map(|(_, evidence)| evidence),
+            collider_mesh_local_path: collider_mesh_local_asset.map(|(_, evidence)| evidence),
+        },
         semantics_metadata: manifest.get("semantics_metadata").cloned(),
         viewer_preset,
     })
+}
+
+fn render_acceptance_path() -> Result<PathBuf, String> {
+    Ok(tester_app_tmp_root()?.join("world-tour-render-acceptance.json"))
+}
+
+fn validate_render_acceptance(record: &WorldTourRenderAcceptance) -> Result<(), String> {
+    if record.manifest_path.trim().is_empty() {
+        return Err("world-tour render acceptance manifestPath is required".to_string());
+    }
+    if record.renderer.trim() != "spark-2.0" {
+        return Err("world-tour render acceptance renderer must be spark-2.0".to_string());
+    }
+    if record.status != "passed" && record.status != "failed" {
+        return Err("world-tour render acceptance status must be passed or failed".to_string());
+    }
+    if record.accepted_at.trim().is_empty() {
+        return Err("world-tour render acceptance acceptedAt is required".to_string());
+    }
+    Ok(())
+}
+
+fn write_render_acceptance(record: &WorldTourRenderAcceptance) -> Result<PathBuf, String> {
+    validate_render_acceptance(record)?;
+    let path = render_acceptance_path()?;
+    let temp_path = path.with_extension("json.tmp");
+    let payload = serde_json::to_vec_pretty(record)
+        .map_err(|error| format!("序列化 world-tour render acceptance 失败: {error}"))?;
+    let write_result: Result<(), String> = (|| {
+        let mut file = fs::OpenOptions::new()
+            .create(true)
+            .truncate(true)
+            .write(true)
+            .open(&temp_path)
+            .map_err(|error| format!("创建 render acceptance 临时文件失败: {error}"))?;
+        file.write_all(&payload)
+            .map_err(|error| format!("写入 render acceptance 临时文件失败: {error}"))?;
+        file.write_all(b"\n")
+            .map_err(|error| format!("写入 render acceptance 换行失败: {error}"))?;
+        file.flush()
+            .map_err(|error| format!("刷新 render acceptance 临时文件失败: {error}"))?;
+        file.sync_all()
+            .map_err(|error| format!("同步 render acceptance 临时文件失败: {error}"))?;
+        drop(file);
+        fs::rename(&temp_path, &path)
+            .map_err(|error| format!("提交 render acceptance 文件失败: {error}"))?;
+        Ok(())
+    })();
+    if let Err(error) = write_result {
+        if temp_path.exists() {
+            let _ = fs::remove_file(&temp_path);
+        }
+        return Err(error);
+    }
+    Ok(path)
+}
+
+fn read_render_acceptance() -> Result<Option<WorldTourRenderAcceptance>, String> {
+    let path = render_acceptance_path()?;
+    if !path.exists() {
+        return Ok(None);
+    }
+    let raw = fs::read_to_string(&path).map_err(|error| {
+        format!(
+            "读取 world-tour render acceptance 失败 ({}): {error}",
+            path.display()
+        )
+    })?;
+    let record = serde_json::from_str::<WorldTourRenderAcceptance>(&raw)
+        .map_err(|error| format!("world-tour render acceptance JSON 无效: {error}"))?;
+    validate_render_acceptance(&record)?;
+    Ok(Some(record))
 }
 
 fn allow_world_tour_asset_paths<R: tauri::Runtime>(
@@ -312,10 +548,6 @@ fn allow_world_tour_asset_paths<R: tauri::Runtime>(
         .parent()
         .map(Path::to_path_buf)
         .ok_or_else(|| "world-tour manifest 缺少父目录".to_string())?;
-    scope
-        .allow_directory(&world_dir, true)
-        .map_err(|error| format!("放行 world-tour fixture 目录失败: {error}"))?;
-
     let preset_path = world_dir.join(VIEWER_PRESET_FILE_NAME);
     if preset_path.exists() {
         scope
@@ -337,6 +569,17 @@ fn allow_world_tour_asset_paths<R: tauri::Runtime>(
             .map_err(|error| format!("放行 world-tour 资产失败 ({}): {error}", local_path))?;
     }
     Ok(())
+}
+
+#[tauri::command]
+pub fn world_tour_render_acceptance_save(payload: WorldTourRenderAcceptance) -> Result<(), String> {
+    write_render_acceptance(&payload)?;
+    Ok(())
+}
+
+#[tauri::command]
+pub fn world_tour_render_acceptance_load() -> Result<Option<WorldTourRenderAcceptance>, String> {
+    read_render_acceptance()
 }
 
 fn build_world_tour_window_route(manifest_path: &str) -> String {
@@ -424,7 +667,7 @@ mod tests {
         resolve_world_tour_fixture_from_manifest_path, validate_viewer_preset, ViewerPresetVector,
         WorldTourViewerPreset, WorldTourViewerPresetCamera, DEFAULT_WORLD_TOUR_MANIFEST_REL,
     };
-    use crate::test_support::with_env;
+    use crate::test_support::with_product_data_home;
     use std::fs;
     use std::path::PathBuf;
     use std::time::{SystemTime, UNIX_EPOCH};
@@ -440,9 +683,11 @@ mod tests {
     }
 
     fn write_fixture(root: &PathBuf) -> PathBuf {
-        let workspace = root.join("workspace");
-        let fixture_dir = workspace
+        let fixture_dir = root
             .join(".nimi")
+            .join("data")
+            .join("apps")
+            .join("nimi.tester")
             .join("cache")
             .join("worldlabs")
             .join("world-tour")
@@ -452,6 +697,8 @@ mod tests {
         let collider = fixture_dir.join("collider.glb");
         fs::write(&spz, b"spz").expect("write spz");
         fs::write(&collider, b"glb").expect("write collider");
+        let spz_sha256 = super::sha256_file_hex(&spz).expect("spz sha256");
+        let collider_sha256 = super::sha256_file_hex(&collider).expect("collider sha256");
         let manifest_path = fixture_dir.join("fixture-manifest.json");
         fs::write(
             &manifest_path,
@@ -463,13 +710,25 @@ mod tests {
   "spz_local_path": "{}",
   "collider_mesh_local_path": "{}",
   "thumbnail_remote_url": "https://example.invalid/thumb.webp",
+  "asset_integrity": {{
+    "spz_local_path": {{
+      "sha256": "{}",
+      "provenance_ref": "worldlabs-job:job-1"
+    }},
+    "collider_mesh_local_path": {{
+      "sha256": "{}",
+      "provenance_ref": "worldlabs-job:job-1"
+    }}
+  }},
   "semantics_metadata": {{
     "ground_plane_offset": 0,
     "metric_scale_factor": 1.2
   }}
 }}"#,
                 spz.display(),
-                collider.display()
+                collider.display(),
+                spz_sha256,
+                collider_sha256
             ),
         )
         .expect("write manifest");
@@ -498,76 +757,60 @@ mod tests {
 
     #[test]
     fn fixture_resolution_returns_canonical_local_paths() {
-        let root = temp_dir("resolve");
-        let manifest_path = write_fixture(&root);
-        let workspace = root.join("workspace");
-        let nested = workspace.join("apps").join("desktop");
-        fs::create_dir_all(&nested).expect("create nested dir");
-        with_env(
-            &[("PWD", workspace.to_str()), ("HOME", root.to_str())],
-            || {
-                let previous = std::env::current_dir().expect("current dir");
-                std::env::set_current_dir(&nested).expect("set current dir");
-                let fixture =
-                    resolve_world_tour_fixture_from_manifest_path(DEFAULT_WORLD_TOUR_MANIFEST_REL)
-                        .expect("resolve fixture");
-                std::env::set_current_dir(previous).expect("restore current dir");
-                assert_eq!(
-                    fixture.manifest_path,
-                    manifest_path
-                        .canonicalize()
-                        .expect("canonical manifest")
-                        .to_string_lossy()
-                );
-                assert!(fixture
-                    .spz_local_path
-                    .as_deref()
-                    .is_some_and(|value| value.ends_with("world.spz")));
-                assert!(fixture
-                    .collider_mesh_local_path
-                    .as_deref()
-                    .is_some_and(|value| value.ends_with("collider.glb")));
-                assert_eq!(fixture.model.as_deref(), Some("marble-1.1"));
-                assert!(fixture.viewer_preset.is_none());
-            },
-        );
+        let home = temp_dir("resolve");
+        with_product_data_home(&home, || {
+            let manifest_path = write_fixture(&home);
+            let fixture =
+                resolve_world_tour_fixture_from_manifest_path(DEFAULT_WORLD_TOUR_MANIFEST_REL)
+                    .expect("resolve fixture");
+            assert_eq!(
+                fixture.manifest_path,
+                manifest_path
+                    .canonicalize()
+                    .expect("canonical manifest")
+                    .to_string_lossy()
+            );
+            assert!(fixture
+                .spz_local_path
+                .as_deref()
+                .is_some_and(|value| value.ends_with("world.spz")));
+            assert!(fixture
+                .collider_mesh_local_path
+                .as_deref()
+                .is_some_and(|value| value.ends_with("collider.glb")));
+            assert_eq!(fixture.model.as_deref(), Some("marble-1.1"));
+            assert!(fixture.viewer_preset.is_none());
+        });
     }
 
     #[test]
     fn fixture_resolution_merges_viewer_preset_when_present() {
-        let root = temp_dir("merge-preset");
-        let manifest_path = write_fixture(&root);
-        let preset = sample_preset("manual");
-        persist_viewer_preset_to_manifest(&manifest_path, &preset).expect("persist preset");
-        let workspace = root.join("workspace");
-        let nested = workspace.join("apps").join("desktop");
-        fs::create_dir_all(&nested).expect("create nested dir");
-        with_env(
-            &[("PWD", workspace.to_str()), ("HOME", root.to_str())],
-            || {
-                let previous = std::env::current_dir().expect("current dir");
-                std::env::set_current_dir(&nested).expect("set current dir");
-                let fixture =
-                    resolve_world_tour_fixture_from_manifest_path(DEFAULT_WORLD_TOUR_MANIFEST_REL)
-                        .expect("resolve fixture");
-                std::env::set_current_dir(previous).expect("restore current dir");
-                assert_eq!(fixture.viewer_preset, Some(preset));
-            },
-        );
+        let home = temp_dir("merge-preset");
+        with_product_data_home(&home, || {
+            let manifest_path = write_fixture(&home);
+            let preset = sample_preset("manual");
+            persist_viewer_preset_to_manifest(&manifest_path, &preset).expect("persist preset");
+            let fixture =
+                resolve_world_tour_fixture_from_manifest_path(DEFAULT_WORLD_TOUR_MANIFEST_REL)
+                    .expect("resolve fixture");
+            assert_eq!(fixture.viewer_preset, Some(preset));
+        });
     }
 
     #[test]
     fn viewer_preset_persistence_roundtrips() {
-        let root = temp_dir("persist-preset");
-        let manifest_path = write_fixture(&root);
-        let preset = sample_preset("manual");
-        let preset_path =
-            persist_viewer_preset_to_manifest(&manifest_path, &preset).expect("persist preset");
-        let loaded = read_viewer_preset_from_manifest(&manifest_path)
-            .expect("read preset")
-            .expect("preset exists");
-        assert!(preset_path.ends_with("viewer-preset.json"));
-        assert_eq!(loaded, preset);
+        let home = temp_dir("persist-preset");
+        with_product_data_home(&home, || {
+            let manifest_path = write_fixture(&home);
+            let preset = sample_preset("manual");
+            let preset_path =
+                persist_viewer_preset_to_manifest(&manifest_path, &preset).expect("persist preset");
+            let loaded = read_viewer_preset_from_manifest(&manifest_path)
+                .expect("read preset")
+                .expect("preset exists");
+            assert!(preset_path.ends_with("viewer-preset.json"));
+            assert_eq!(loaded, preset);
+        });
     }
 
     #[test]
@@ -579,26 +822,61 @@ mod tests {
 
     #[test]
     fn fixture_resolution_fails_closed_outside_cache_root() {
-        let root = temp_dir("reject");
-        let workspace = root.join("workspace");
-        fs::create_dir_all(workspace.join("apps")).expect("create apps dir");
-        let outside_dir = workspace.join("outside");
-        fs::create_dir_all(&outside_dir).expect("create outside dir");
-        let manifest_path = outside_dir.join("fixture-manifest.json");
-        fs::write(&manifest_path, "{}").expect("write outside manifest");
+        let home = temp_dir("reject");
+        with_product_data_home(&home, || {
+            let outside_dir = home.join("outside");
+            fs::create_dir_all(&outside_dir).expect("create outside dir");
+            let manifest_path = outside_dir.join("fixture-manifest.json");
+            fs::write(&manifest_path, "{}").expect("write outside manifest");
+            let err = resolve_world_tour_fixture_from_manifest_path(
+                manifest_path.to_string_lossy().as_ref(),
+            )
+            .expect_err("outside fixture should fail");
+            assert!(err.contains("Tester App cache") || err.contains("超出允许目录"));
+        });
+    }
 
-        with_env(
-            &[("PWD", workspace.to_str()), ("HOME", root.to_str())],
-            || {
-                let err = resolve_world_tour_fixture_from_manifest_path(
-                    manifest_path.to_string_lossy().as_ref(),
-                )
-                .expect_err("outside fixture should fail");
-                assert!(
-                    err.contains("超出允许目录")
-                        || err.contains("未找到 tester world-tour cache 根目录")
-                );
-            },
-        );
+    #[test]
+    fn fixture_resolution_fails_closed_without_asset_integrity() {
+        let home = temp_dir("missing-integrity");
+        with_product_data_home(&home, || {
+            let manifest_path = write_fixture(&home);
+            let raw = fs::read_to_string(&manifest_path).expect("read manifest");
+            let stripped = raw
+                .split("  \"asset_integrity\"")
+                .next()
+                .expect("manifest head")
+                .trim_end_matches(",\n")
+                .to_string()
+                + "\n}";
+            fs::write(&manifest_path, stripped).expect("write stripped manifest");
+            let err =
+                resolve_world_tour_fixture_from_manifest_path(DEFAULT_WORLD_TOUR_MANIFEST_REL)
+                    .expect_err("missing integrity should fail");
+            assert!(err.contains("asset_integrity"));
+        });
+    }
+
+    #[test]
+    fn fixture_resolution_fails_closed_on_digest_mismatch() {
+        let home = temp_dir("digest-mismatch");
+        with_product_data_home(&home, || {
+            let manifest_path = write_fixture(&home);
+            let raw = fs::read_to_string(&manifest_path).expect("read manifest");
+            fs::write(
+                &manifest_path,
+                raw.replace("worldlabs-job:job-1", "worldlabs-job:job-1"),
+            )
+            .expect("rewrite manifest");
+            let spz = manifest_path
+                .parent()
+                .expect("manifest dir")
+                .join("world.spz");
+            fs::write(&spz, b"tampered").expect("tamper spz");
+            let err =
+                resolve_world_tour_fixture_from_manifest_path(DEFAULT_WORLD_TOUR_MANIFEST_REL)
+                    .expect_err("digest mismatch should fail");
+            assert!(err.contains("digest mismatch"));
+        });
     }
 }

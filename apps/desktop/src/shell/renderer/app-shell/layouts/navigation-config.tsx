@@ -3,7 +3,6 @@ import { useState, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Surface } from '@nimiplatform/nimi-kit/ui';
 import type { AppTab } from '@renderer/app-shell/providers/app-store';
-import { getShellFeatureFlags } from '@nimiplatform/nimi-kit/core/shell-mode';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import {
   SHELL_CHROME_INTERACTIVE_RADIUS_CLASS,
@@ -147,7 +146,7 @@ export function renderShellNavIcon(icon: string): ReactNode {
   if (normalized === 'runtime') return ICON_RUNTIME;
   if (normalized === 'profile') return ICON_PROFILE;
   if (normalized === 'settings') return ICON_SETTINGS;
-  if (normalized === 'store') return ICON_STORE;
+  if (normalized === 'apps' || normalized === 'store') return ICON_STORE;
   if (normalized === 'globe') return ICON_GLOBE;
   if (normalized === 'world') return ICON_WORLD;
   if (normalized === 'wallet') return ICON_WALLET;
@@ -163,21 +162,13 @@ const BASE_CORE_NAV_ITEMS: NavItem[] = [
   { id: 'home', label: 'Home', icon: renderShellNavIcon('home') },
   { id: 'chat', label: 'Chat', icon: renderShellNavIcon('chat') },
   { id: 'contacts', label: 'Contacts', icon: renderShellNavIcon('contacts') },
-  { id: 'world', label: 'World', icon: renderShellNavIcon('world') },
   { id: 'explore', label: 'Explore', icon: renderShellNavIcon('explore') },
-  { id: 'runtime', label: 'AI Runtime', icon: renderShellNavIcon('runtime') },
-  { id: 'tester', label: 'AI Tester', icon: renderShellNavIcon('tester') },
-  { id: 'settings', label: 'Settings', icon: renderShellNavIcon('settings') },
+  { id: 'apps', label: 'Apps', icon: renderShellNavIcon('apps') },
+  { id: 'runtime', label: 'Runtime', icon: renderShellNavIcon('runtime') },
 ];
 
 export function getCoreNavItems(): NavItem[] {
-  const flags = getShellFeatureFlags();
-  return BASE_CORE_NAV_ITEMS.filter((item) => {
-    if (item.id === 'runtime' || item.id === 'tester') {
-      return flags.enableRuntimeTab;
-    }
-    return true;
-  });
+  return BASE_CORE_NAV_ITEMS;
 }
 
 export function getQuickNavItems(): NavItem[] {

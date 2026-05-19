@@ -13,6 +13,7 @@ entries:
   - R-SOC-002
   - R-SOC-003
   - R-SOC-004
+  - R-SOC-005
   - Friendship
   - SocialPrecondition
   - required_operations
@@ -44,6 +45,10 @@ rules:
     level: must
     title: social-gates-human-chat-agent-chat-stays-outside
     statement: "Social may gate human chat via preconditions, but canonical chat surface lives in Realm Chat and agent chat runtime stays outside Realm."
+  - rule_id: R-SOC-005
+    level: must
+    title: nimi-guide-agentfriend-is-ordinary
+    statement: "Nimi-authored guide agents use the same Realm social mechanics as any ordinary RealmAgent. Their AgentFriend relationships are ordinary Friendship rows and do not create privileged Agent classes, special social schema, hidden quota exceptions, or authority-bearing official-agent status."
 entities:
   - name: Friendship
     prisma_model: Friendship

@@ -3,7 +3,7 @@ use super::*;
 #[test]
 fn removes_agent_local_resources_by_quarantining_agent_center_tree() {
     let home = temp_home("remove-agent-tree");
-    with_env(&[("HOME", home.to_str())], || {
+    with_product_data_home(&home, || {
         let agent_center = agent_center_marker(&home, &local_agent_ref());
 
         let result = desktop_agent_center_agent_local_resources_remove_blocking(
@@ -41,7 +41,7 @@ fn removes_agent_local_resources_by_quarantining_agent_center_tree() {
 #[test]
 fn removes_account_local_resources_by_quarantining_each_agent_center_tree() {
     let home = temp_home("remove-account-tree");
-    with_env(&[("HOME", home.to_str())], || {
+    with_product_data_home(&home, || {
         let agent_one = agent_center_marker(&home, &local_agent_ref());
         let agent_two = agent_center_marker(&home, &local_agent_ref_two());
 
@@ -76,7 +76,7 @@ fn removes_account_local_resources_by_quarantining_each_agent_center_tree() {
 #[test]
 fn removes_account_local_resources_for_opaque_account_ids() {
     let home = temp_home("remove-opaque-account-tree");
-    with_env(&[("HOME", home.to_str())], || {
+    with_product_data_home(&home, || {
         let account_id = "account:abc.def+1";
         let account_segment = local_scope_path_segment(account_id);
         let opaque_local_agent_ref = "local-agent:owner_1:agent:abc.def+1";
@@ -110,7 +110,7 @@ fn removes_account_local_resources_for_opaque_account_ids() {
 #[test]
 fn import_rejects_svg_background_before_staging() {
     let home = temp_home("import-background-svg");
-    with_env(&[("HOME", home.to_str())], || {
+    with_product_data_home(&home, || {
         let source = home.join("source-background.svg");
         fs::write(&source, b"<svg></svg>").expect("svg");
         let err = desktop_agent_center_background_import_blocking(
@@ -137,7 +137,7 @@ fn import_rejects_svg_background_before_staging() {
 #[test]
 fn validates_background_and_writes_sidecar() {
     let home = temp_home("background");
-    with_env(&[("HOME", home.to_str())], || {
+    with_product_data_home(&home, || {
         let dir = write_valid_background(&home);
         let result = desktop_agent_center_background_validate_blocking(
             DesktopAgentCenterBackgroundValidatePayload {
@@ -157,7 +157,7 @@ fn validates_background_and_writes_sidecar() {
 #[test]
 fn rejects_svg_background_manifest() {
     let home = temp_home("background-svg");
-    with_env(&[("HOME", home.to_str())], || {
+    with_product_data_home(&home, || {
         let dir = write_valid_background(&home);
         let mut value: serde_json::Value = serde_json::from_str(
             &fs::read_to_string(dir.join(MANIFEST_FILE_NAME)).expect("read manifest"),

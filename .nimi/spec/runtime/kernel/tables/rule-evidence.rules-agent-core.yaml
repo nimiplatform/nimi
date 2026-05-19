@@ -812,3 +812,13 @@ rules:
       - runtime_kernel_consistency
     note: Avatar live-instance binding recovery admitted as Runtime-owned anchor continuity truth.
     evidence_requirement: required
+  - rule_id: K-AGCORE-139
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Nimi guide LocalAgent projection consumes ordinary RealmAgent and AgentFriend projection only; implementation evidence lands with the guide bootstrap child topic.
+    evidence_requirement: required
+  - rule_id: K-AGCORE-140
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Nimi guide prompt and built-in docs are product knowledge/context only and must not create Agent authority, memory, grant, setup, profile, or app truth.
+    evidence_requirement: required

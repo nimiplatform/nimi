@@ -42,6 +42,8 @@ function pickStateForStep(inputs: UpstreamInputs, step: FirstRunStep): ColdStart
   switch (step) {
     case 'runtimeDaemon': return inputs.runtimeDaemon;
     case 'account': return inputs.account;
+    case 'productControlRecord': return inputs.productControlRecord;
+    case 'dataRoot': return inputs.dataRoot;
     case 'aiProfileSelection': return inputs.aiProfileSelection;
     case 'materialization': return inputs.materialization;
     case 'appRegistry': return inputs.appRegistry;
@@ -53,6 +55,8 @@ function aggregateOverall(inputs: UpstreamInputs): ColdStartProjection {
   const entries: ReadonlyArray<{ owner: string; state: ColdStartState }> = [
     { owner: 'runtime-daemon', state: normalizeStateOrUnavailable(inputs.runtimeDaemon) },
     { owner: 'account', state: normalizeStateOrUnavailable(inputs.account) },
+    { owner: 'product-control-record', state: normalizeStateOrUnavailable(inputs.productControlRecord) },
+    { owner: 'data-root', state: normalizeStateOrUnavailable(inputs.dataRoot) },
     { owner: 'ai-profile-selection', state: normalizeStateOrUnavailable(inputs.aiProfileSelection) },
     { owner: 'materialization', state: normalizeStateOrUnavailable(inputs.materialization) },
     { owner: 'app-registry', state: normalizeStateOrUnavailable(inputs.appRegistry) },
@@ -88,6 +92,6 @@ export async function projectFirstRunReadiness(inputs: UpstreamInputs): Promise<
   return {
     overall,
     steps,
-    isReady: overall.state === 'ready' && steps.every((s) => s.state === 'ready'),
+    isReady: inputs.readyForUse && overall.state === 'ready' && steps.every((s) => s.state === 'ready'),
   };
 }

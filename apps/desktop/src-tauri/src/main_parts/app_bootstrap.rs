@@ -312,6 +312,10 @@ fn build_desktop_app() -> Result<tauri::App<tauri::Wry>, tauri::Error> {
             desktop_updates::desktop_update_download,
             desktop_updates::desktop_update_install,
             desktop_updates::desktop_update_restart,
+            crate::desktop_product_control::product_control_record_get,
+            crate::desktop_product_control::product_control_record_mark_ready_for_use,
+            crate::desktop_product_control::product_control_record_select_data_root,
+            crate::desktop_product_control::product_control_record_set_first_run_install_level,
             super::defaults_and_commands::system_resources::get_system_resource_snapshot,
             super::defaults_and_commands::http_request,
             crate::oauth_commands::open_external_url,
@@ -489,9 +493,13 @@ fn build_desktop_app() -> Result<tauri::App<tauri::Wry>, tauri::Error> {
             local_runtime::commands::runtime_local_assets_scaffold_orphan,
             super::defaults_and_commands::tester_storage::tester_image_history_load,
             super::defaults_and_commands::tester_storage::tester_image_history_save,
+            super::defaults_and_commands::tester_storage::tester_run_history_load,
+            super::defaults_and_commands::tester_storage::tester_run_history_save,
             super::defaults_and_commands::tester_storage::tester_fixture_read_file,
             super::defaults_and_commands::world_tour::resolve_world_tour_fixture,
             super::defaults_and_commands::world_tour::save_world_tour_viewer_preset,
+            super::defaults_and_commands::world_tour::world_tour_render_acceptance_load,
+            super::defaults_and_commands::world_tour::world_tour_render_acceptance_save,
             super::defaults_and_commands::world_tour::open_world_tour_window
         ])
         .build(tauri::generate_context!())
@@ -507,10 +515,8 @@ pub(super) fn normalize_runtime_config_page_id(page_id: Option<&str>) -> Option<
         "cloud" => Some("cloud"),
         "catalog" => Some("catalog"),
         "runtime" => Some("runtime"),
-        "mods" => Some("mods"),
         "data-management" => Some("data-management"),
         "performance" => Some("performance"),
-        "mod-developer" => Some("mod-developer"),
         _ => None,
     }
 }

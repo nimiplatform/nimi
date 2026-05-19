@@ -14,14 +14,10 @@
     "runtimeDesc": "守护进程、审计与 EAA",
     "profiles": "AI 配置文件",
     "profilesDesc": "浏览、创建和管理配置文件",
-    "mods": "Mods",
-    "modsDesc": "AI profile 配置",
     "data-management": "数据管理",
     "data-managementDesc": "存储、缓存与账户数据",
     "performance": "性能",
     "performanceDesc": "渲染偏好、更新与运行时信息",
-    "mod-developer": "Mod 开发者",
-    "mod-developerDesc": "开发者模式与诊断工具",
     "section": {
       "core": "核心",
       "connectors": "连接器",
@@ -712,7 +708,7 @@
     "inPattern": "{{value}}{{unit}}后"
   },
   "panel": {
-    "title": "AI 运行时",
+    "title": "运行时",
     "loading": "正在加载运行时配置...",
     "resizeSidebar": "调整运行时侧边栏宽度",
     "discovering": "发现中...",

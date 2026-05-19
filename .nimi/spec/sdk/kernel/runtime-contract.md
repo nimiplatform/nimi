@@ -51,7 +51,10 @@ high-level convenience targeting 必须满足：
 
 其中 high-level `model` 只表示具体模型，不承担 provider/route alias 语义；fully-qualified remote model id 必须留在低层 `runtime.ai.text.*` surface，不得作为 high-level convenience public contract。
 
-SDK 不解析 `~/.nimi/config.json`；模型默认值（`defaultLocalTextModel`、`defaultCloudProvider`、`provider.defaultModel`）由 runtime 按 K-CFG-002 优先级解析后通过 RPC 响应返回。SDK convenience 方法仅传递调用方意图，不做本地 config 回退。
+SDK 不解析 `~/.nimi/runtime/config.json` 或 `~/.nimi/nimi.json`；模型默认值
+（`defaultLocalTextModel`、`defaultCloudProvider`、`provider.defaultModel`）由
+runtime 按 K-CFG-002 优先级解析后通过 RPC 响应返回。SDK convenience 方法仅
+传递调用方意图，不做本地 config 回退。
 
 high-level local targeting 只允许：
 

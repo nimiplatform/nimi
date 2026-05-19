@@ -226,14 +226,15 @@ Runtime must distinguish these path roles:
 - `localStatePath`: the single active Runtime local AI state file for assets,
   transfers, dependency assets, setup jobs, cutover evidence, and local health
   projection.
-- `localModelsPath`: the filesystem root for model and asset payload files.
+- `managedRoots.models`: the filesystem root for model and asset payload files,
+  derived from `dataRootRef` unless explicitly reconciled by Runtime config.
 - Nimi data dir: a product storage root that may contain models, mods, caches,
   and dependency payloads, but is not itself local AI state truth.
 
 When Desktop or another admitted host surface changes Nimi data dir, Runtime
 must receive or produce a reconciliation plan before local AI state is assumed
 usable. The plan must include the effective `localStatePath`, effective
-`localModelsPath`, dependency install root, detected retired state inputs,
+`dataRootRef`, managed roots, dependency install root, detected retired state inputs,
 asset counts, conflicts, and whether user confirmation is required.
 
 Retired Desktop-local state such as `<nimi_data_dir>/state.json` may only be

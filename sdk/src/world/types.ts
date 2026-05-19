@@ -325,6 +325,11 @@ export type WorldFixturePackage = {
   thumbnailLocalPath?: string;
   panoLocalPath?: string;
   colliderMeshLocalPath?: string;
+  assetIntegrity?: Record<string, {
+    sha256: string;
+    provenanceRef: string;
+    verificationState: 'digest-verified';
+  }>;
   viewerPreset?: WorldInspectViewPreset;
 };
 
@@ -343,6 +348,11 @@ export type WorldResolvedFixtureInput = {
   thumbnailLocalPath?: string;
   panoLocalPath?: string;
   colliderMeshLocalPath?: string;
+  assetIntegrity?: Record<string, {
+    sha256: string;
+    provenanceRef: string;
+    verificationState: 'digest-verified';
+  }>;
   semanticsMetadata?: {
     groundPlaneOffset?: number;
     metricScaleFactor?: number;

@@ -98,7 +98,9 @@ That flag is not part of the public first-run happy path, which stays on bare `n
 
 Config precedence stays:
 
-`CLI flags > environment variables > ~/.nimi/config.json > built-in defaults`
+`CLI flags > environment variables > ~/.nimi/runtime/config.json > built-in defaults`
+
+`~/.nimi/config.json` is migration input only; it is not fallback runtime truth.
 
 ## Runtime Surface
 
@@ -143,7 +145,9 @@ Health endpoints:
 
 ## Config Notes
 
-- Canonical config path: `~/.nimi/config.json`
+- Canonical config path: `~/.nimi/runtime/config.json`
+- Runtime roots come from `dataRootRef` and `managedRoots`; `localModelsPath` is
+  not an active config owner.
 - Provider credentials may use `apiKey` or `apiKeyEnv`, but never both
 - User-facing setup should prefer env-backed credentials; inline `apiKey` is fallback-only
 - `config` changes that touch runtime wiring remain restart-scoped

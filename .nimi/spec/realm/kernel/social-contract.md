@@ -30,3 +30,10 @@ Social defines relationship and admission facts. It does not define agent-chat r
 ## R-SOC-004
 
 Social may gate human chat via preconditions, but canonical chat surface lives in Realm Chat and agent chat runtime stays outside Realm.
+
+## R-SOC-005
+
+Nimi-authored guide agents use the same Realm social mechanics as any ordinary
+RealmAgent. Their AgentFriend relationships are ordinary Friendship rows and do
+not create privileged Agent classes, special social schema, hidden quota
+exceptions, or authority-bearing official-agent status.
