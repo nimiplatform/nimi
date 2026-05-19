@@ -17,6 +17,11 @@ const MainLayout = lazy(async () => {
   return { default: mod.MainLayout };
 });
 
+const NimiHomePanel = lazy(async () => {
+  const mod = await import('@renderer/features/nimi-home/nimi-home-panel');
+  return { default: mod.NimiHomePanel };
+});
+
 const WorldTourViewerRoute = lazy(async () => {
   const mod = await import('@renderer/features/tester/world-tour-viewer-route');
   return { default: mod.WorldTourViewerRoute };
@@ -226,6 +231,109 @@ function BootstrapErrorScreen({ message }: { message: string }) {
   );
 }
 
+type DesktopOrdinaryShellAdmission = 'checking' | 'not-ready' | 'ready';
+
+function useDesktopOrdinaryShellAdmission(authStatus: 'bootstrapping' | 'anonymous' | 'authenticated'): DesktopOrdinaryShellAdmission {
+  const [admission, setAdmission] = useState<DesktopOrdinaryShellAdmission>('checking');
+
+  useEffect(() => {
+    if (authStatus !== 'authenticated') {
+      setAdmission('checking');
+      return;
+    }
+    let cancelled = false;
+    let timer: number | null = null;
+
+    const refresh = async () => {
+      try {
+        const projection = await desktopBridge.getProductControlRecord();
+        if (cancelled) return;
+        const next: DesktopOrdinaryShellAdmission = projection.state === 'ready_for_use' ? 'ready' : 'not-ready';
+        setAdmission(next);
+        if (next !== 'ready') {
+          timer = window.setTimeout(refresh, 1500);
+        }
+      } catch {
+        if (!cancelled) {
+          setAdmission('not-ready');
+          timer = window.setTimeout(refresh, 1500);
+        }
+      }
+    };
+
+    setAdmission('checking');
+    void refresh();
+    return () => {
+      cancelled = true;
+      if (timer !== null) {
+        window.clearTimeout(timer);
+      }
+    };
+  }, [authStatus]);
+
+  return admission;
+}
+
+function DesktopFirstRunGate() {
+  return (
+    <AmbientBackground
+      variant="mesh"
+      className="min-h-screen overflow-hidden bg-[var(--nimi-surface-canvas)] text-[var(--nimi-text-primary)]"
+    >
+      <div data-testid="desktop-first-run-gate" className="flex min-h-screen min-w-0">
+        <Suspense fallback={<LoadingScreen />}>
+          <NimiHomePanel />
+        </Suspense>
+      </div>
+    </AmbientBackground>
+  );
+}
+
+function ReadyDesktopShell() {
+  const activeTab = useAppStore((state) => state.activeTab);
+  const chatMode = useAppStore((state) => state.chatMode);
+  const setActiveTab = useAppStore((state) => state.setActiveTab);
+  const setChatMode = useAppStore((state) => state.setChatMode);
+
+  useEffect(() => {
+    if (chatMode !== 'ai') {
+      setChatMode('ai');
+    }
+    if (activeTab !== 'chat') {
+      setActiveTab('chat');
+    }
+  }, [activeTab, chatMode, setActiveTab, setChatMode]);
+
+  if (activeTab !== 'chat' || chatMode !== 'ai') {
+    return <LoadingScreen />;
+  }
+
+  return <MainLayout />;
+}
+
+function DesktopOrdinaryShellGate() {
+  const authStatus = useAppStore((state) => state.auth.status);
+  const admission = useDesktopOrdinaryShellAdmission(authStatus);
+
+  if (authStatus === 'bootstrapping') {
+    return <LoadingScreen />;
+  }
+  if (authStatus !== 'authenticated') {
+    return <Navigate to="/login" replace />;
+  }
+  if (admission === 'checking') {
+    return <LoadingScreen />;
+  }
+  if (admission !== 'ready') {
+    return <DesktopFirstRunGate />;
+  }
+  return (
+    <Suspense fallback={<LoadingScreen />}>
+      <ReadyDesktopShell />
+    </Suspense>
+  );
+}
+
 export function AppRoutes() {
   const flags = getShellFeatureFlags();
   const standaloneWorldTour = isStandaloneWorldTourRoute();
@@ -254,12 +362,7 @@ export function AppRoutes() {
               </Suspense>
             )}
           />
-          <Route path="/" element={(
-            <Suspense fallback={<LoadingScreen />}>
-              <MainLayout />
-            </Suspense>
-          )}
-          />
+          <Route path="/" element={<DesktopOrdinaryShellGate />} />
           <Route
             path="/login"
             element={(

@@ -13,14 +13,14 @@ const selectorsSource = fs.readFileSync(
   'utf8',
 );
 
-test('tester speech bundle journey is registered in the desktop E2E registry', () => {
-  assert.match(
+test('tester speech bundle journey is not registered as ordinary desktop E2E product evidence', () => {
+  assert.doesNotMatch(
     registrySource,
     /\['tester\.speech-bundle-panels',\s*\{\s*bucket:\s*'journeys',\s*profile:\s*'tester\.speech-bundle-panels\.json',\s*spec:\s*'apps\/desktop\/e2e\/specs\/tester\.speech-bundle-panels\.e2e\.mjs'\s*\}\]/,
   );
 });
 
-test('tester speech bundle journey fixture and spec files exist', () => {
+test('tester speech bundle internal fixture and spec files remain available for admission-specific topics', () => {
   const fixturePath = path.join(desktopRoot, 'e2e/fixtures/profiles/tester.speech-bundle-panels.json');
   const specPath = path.join(desktopRoot, 'e2e/specs/tester.speech-bundle-panels.e2e.mjs');
 

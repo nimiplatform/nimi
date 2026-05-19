@@ -53,8 +53,8 @@ test('mods actions use page-context feedback instead of global banners', () => {
   assert.doesNotMatch(modHubSource, /setStatusBanner\(\{/);
 
   const navSource = read('shell/renderer/app-shell/layouts/main-layout-view.tsx');
-  assert.match(navSource, /modsHasIssues/);
-  assert.match(navSource, /badge=\{modsHasIssues/);
+  assert.doesNotMatch(navSource, /modsHasIssues/);
+  assert.doesNotMatch(navSource, /badge=\{modsHasIssues/);
 });
 
 test('phase-2 migrated surfaces no longer write global status banners directly', () => {

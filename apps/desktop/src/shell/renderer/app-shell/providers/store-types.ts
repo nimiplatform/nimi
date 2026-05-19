@@ -40,8 +40,8 @@ export type AppTab =
   | 'home'
   | 'chat'
   | 'contacts'
-  | 'world'
   | 'explore'
+  | 'apps'
   | 'runtime'
   | 'settings'
   | 'mods'
@@ -50,7 +50,6 @@ export type AppTab =
   | 'world-detail'
   | 'gift-inbox'
   | 'notification'
-  | 'tester'
   | 'privacy-policy'
   | 'terms-of-service'
   | `mod:${string}`;

@@ -175,40 +175,21 @@ export async function runDesktopMacosSmokeScenario(
   try {
     switch (scenarioId) {
       case 'boot.anonymous.login-screen':
-        record('wait-main-shell');
-        await deps.waitForTestId(E2E_IDS.mainShell);
-        record('wait-chat-default');
-        await deps.waitForTestId(E2E_IDS.panel('chat'));
-        await deps.waitForTestId(E2E_IDS.chatPage);
-        try {
-          record('wait-login-button');
-          await deps.waitForTestId(E2E_IDS.topbarLoginButton, 750);
-          record('verify-anonymous-sidebar-absent');
-          await deps.waitForSelectorGone(`[data-testid="${E2E_IDS.shellSidebarRail}"]`, 500);
-          record('open-login');
-          await deps.clickByTestId(E2E_IDS.topbarLoginButton);
-          record('wait-login-screen');
-          await deps.waitForTestId(E2E_IDS.loginScreen);
-          await deps.waitForTestId(E2E_IDS.loginBackButton);
-          if (deps.currentHtml().includes('data-auth-mode="embedded"')) {
-            record('open-embedded-email-login');
-            await deps.clickByTestId(E2E_IDS.loginLogoTrigger);
-            await deps.waitForTestId(E2E_IDS.loginEmailInput);
-            record('open-alternative-login-panel');
-            await deps.clickByTestId(E2E_IDS.loginAlternativeToggle);
-            await deps.waitForTestId(E2E_IDS.loginAlternativePanel);
-          }
-          record('return-chat-panel');
-          await deps.clickByTestId(E2E_IDS.loginBackButton);
-          await deps.waitForTestId(E2E_IDS.mainShell);
-          await deps.waitForTestId(E2E_IDS.panel('chat'));
-          await deps.waitForTestId(E2E_IDS.chatPage);
-        } catch (error) {
-          const message = error instanceof Error ? error.message : String(error || '');
-          if (!message.includes(`missing test id ${E2E_IDS.topbarLoginButton}`)) {
-            throw error;
-          }
-          record('observed-persisted-authenticated-shell');
+        record('wait-login-screen');
+        await deps.waitForTestId(E2E_IDS.loginScreen);
+        record('verify-anonymous-sidebar-absent');
+        await deps.waitForSelectorGone(`[data-testid="${E2E_IDS.shellSidebarRail}"]`, 500);
+        record('verify-anonymous-main-shell-absent');
+        await deps.waitForSelectorGone(`[data-testid="${E2E_IDS.mainShell}"]`, 500);
+        record('verify-anonymous-chat-panel-absent');
+        await deps.waitForSelectorGone(`[data-testid="${E2E_IDS.panel('chat')}"]`, 500);
+        if (deps.currentHtml().includes('data-auth-mode="embedded"')) {
+          record('open-embedded-email-login');
+          await deps.clickByTestId(E2E_IDS.loginLogoTrigger);
+          await deps.waitForTestId(E2E_IDS.loginEmailInput);
+          record('open-alternative-login-panel');
+          await deps.clickByTestId(E2E_IDS.loginAlternativeToggle);
+          await deps.waitForTestId(E2E_IDS.loginAlternativePanel);
         }
         record('write-pass-report');
         await deps.writeReport({
@@ -247,33 +228,7 @@ export async function runDesktopMacosSmokeScenario(
         return;
 
       case 'tester.speech-bundle-panels':
-        record('open-tester-tab');
-        await deps.clickByTestId(E2E_IDS.navTab('tester'));
-        record('wait-tester-panel');
-        await deps.waitForTestId(E2E_IDS.panel('tester'));
-        record('open-tts-panel');
-        await deps.clickByTestId(E2E_IDS.testerCapabilityTab('audio.synthesize'));
-        record('wait-tts-input');
-        await deps.waitForTestId(E2E_IDS.testerPanel('audio.synthesize'));
-        await deps.waitForTestId(E2E_IDS.testerInput('audio-synthesize-text'));
-        record('open-create-voice');
-        await deps.clickByTestId(E2E_IDS.testerInput('create-voice'));
-        record('wait-create-voice-input');
-        await deps.waitForTestId(E2E_IDS.testerPanel('voice_workflow.asset'));
-        await deps.waitForTestId(E2E_IDS.testerInput('voice-design-instruction'));
-        record('open-stt-panel');
-        await deps.clickByTestId(E2E_IDS.testerCapabilityTab('audio.transcribe'));
-        record('wait-stt-input');
-        await deps.waitForTestId(E2E_IDS.testerPanel('audio.transcribe'));
-        await deps.waitForTestId(E2E_IDS.testerInput('audio-transcribe-file'));
-        record('write-pass-report');
-        await deps.writeReport({
-          ok: true,
-          steps,
-          route: deps.currentRoute(),
-          htmlSnapshot: deps.currentHtml(),
-        });
-        return;
+        throw new Error('tester.speech-bundle-panels is blocked: AI Tester is not an ordinary primary navigation entry in the Product/UI alignment cut');
 
       case 'chat.live2d-avatar-product-smoke': {
         record('wait-chat-panel');

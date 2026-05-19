@@ -34,7 +34,7 @@ test('desktop macos smoke only starts when bootstrap is ready and a scenario is 
   }), false);
 });
 
-test('desktop macos smoke anonymous boot scenario asserts chat default and login roundtrip', async () => {
+test('desktop macos smoke anonymous boot scenario asserts login gate and no ordinary shell', async () => {
   const clicked: string[] = [];
   const waited: string[] = [];
   const goneSelectors: string[] = [];
@@ -61,35 +61,23 @@ test('desktop macos smoke anonymous boot scenario asserts chat default and login
     },
   }));
 
-  assert.deepEqual(clicked, [
-    E2E_IDS.topbarLoginButton,
-    E2E_IDS.loginBackButton,
-  ]);
+  assert.deepEqual(clicked, []);
   assert.deepEqual(goneSelectors, [
     `[data-testid="${E2E_IDS.shellSidebarRail}"]`,
+    `[data-testid="${E2E_IDS.mainShell}"]`,
+    `[data-testid="${E2E_IDS.panel('chat')}"]`,
   ]);
   assert.deepEqual(waited, [
-    E2E_IDS.mainShell,
-    E2E_IDS.panel('chat'),
-    E2E_IDS.chatPage,
-    E2E_IDS.topbarLoginButton,
     E2E_IDS.loginScreen,
-    E2E_IDS.loginBackButton,
-    E2E_IDS.mainShell,
-    E2E_IDS.panel('chat'),
-    E2E_IDS.chatPage,
   ]);
   assert.equal(writtenReports.length, 1);
   assert.deepEqual(writtenReports[0], {
     ok: true,
     steps: [
-      'wait-main-shell',
-      'wait-chat-default',
-      'wait-login-button',
-      'verify-anonymous-sidebar-absent',
-      'open-login',
       'wait-login-screen',
-      'return-chat-panel',
+      'verify-anonymous-sidebar-absent',
+      'verify-anonymous-main-shell-absent',
+      'verify-anonymous-chat-panel-absent',
       'write-pass-report',
     ],
     route: '/',
@@ -163,59 +151,9 @@ test('desktop macos smoke chat memory bind scenario follows the expected step or
   });
 });
 
-test('desktop macos smoke tester speech bundle scenario follows the expected step order', async () => {
-  const clicked: string[] = [];
-  const waited: string[] = [];
-  const writtenReports: Array<Record<string, unknown>> = [];
-
-  await runDesktopMacosSmokeScenario('tester.speech-bundle-panels', createBaseDriver({
-    async waitForTestId(id) {
-      waited.push(id);
-    },
-    async clickByTestId(id) {
-      clicked.push(id);
-    },
-    async writeReport(payload) {
-      writtenReports.push(payload as unknown as Record<string, unknown>);
-    },
-    currentRoute() {
-      return '/tester';
-    },
-    currentHtml() {
-      return '<html>tester</html>';
-    },
-  }));
-
-  assert.deepEqual(clicked, [
-    E2E_IDS.navTab('tester'),
-    E2E_IDS.testerCapabilityTab('audio.synthesize'),
-    E2E_IDS.testerInput('create-voice'),
-    E2E_IDS.testerCapabilityTab('audio.transcribe'),
-  ]);
-  assert.deepEqual(waited, [
-    E2E_IDS.panel('tester'),
-    E2E_IDS.testerPanel('audio.synthesize'),
-    E2E_IDS.testerInput('audio-synthesize-text'),
-    E2E_IDS.testerPanel('voice_workflow.asset'),
-    E2E_IDS.testerInput('voice-design-instruction'),
-    E2E_IDS.testerPanel('audio.transcribe'),
-    E2E_IDS.testerInput('audio-transcribe-file'),
-  ]);
-  assert.equal(writtenReports.length, 1);
-  assert.deepEqual(writtenReports[0], {
-    ok: true,
-    steps: [
-      'open-tester-tab',
-      'wait-tester-panel',
-      'open-tts-panel',
-      'wait-tts-input',
-      'open-create-voice',
-      'wait-create-voice-input',
-      'open-stt-panel',
-      'wait-stt-input',
-      'write-pass-report',
-    ],
-    route: '/tester',
-    htmlSnapshot: '<html>tester</html>',
-  });
+test('desktop macos smoke tester scenario is blocked from ordinary primary navigation', async () => {
+  await assert.rejects(
+    () => runDesktopMacosSmokeScenario('tester.speech-bundle-panels', createBaseDriver()),
+    /AI Tester is not an ordinary primary navigation entry/,
+  );
 });

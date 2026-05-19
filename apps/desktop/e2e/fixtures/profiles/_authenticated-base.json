@@ -345,6 +345,42 @@
       "commit": "e2e-fixture",
       "builtAt": "2026-03-15T00:00:00.000Z",
       "runtimeReady": true
+    },
+    "productControlRecord": {
+      "schemaVersion": 1,
+      "installId": "e2e-ready-install",
+      "productVersion": "0.1.0",
+      "state": "ready_for_use",
+      "dataRoot": {
+        "path": "/tmp/nimi-e2e-data",
+        "status": "ready",
+        "selectedAt": "2026-03-15T00:00:00.000Z",
+        "verifiedAt": "2026-03-15T00:00:00.000Z",
+        "selectedAtUnixMs": 1773532800000,
+        "verifiedAtUnixMs": 1773532800000
+      },
+      "firstRun": {
+        "installLevel": "minimal",
+        "aiProfileAlias": "minimal",
+        "completed": true,
+        "completedAt": "2026-03-15T00:00:00.000Z",
+        "initializationPlanId": "e2e-first-run-plan",
+        "baselineProfileRef": "ai-profile:minimal",
+        "baselineCommitId": "e2e-fixture",
+        "accountDefaultProfileRef": "account-default:e2e",
+        "builtInAiConfigRefs": [
+          "ai-config:nimi-chat:e2e"
+        ],
+        "runtimeBaselineRef": "runtime-baseline:e2e",
+        "executionEvidenceRef": "e2e-ready-entry"
+      },
+      "pointers": {
+        "runtimeConfigPath": "/tmp/nimi-e2e-runtime/config.json"
+      },
+      "repair": {
+        "required": false,
+        "reason": null
+      }
     }
   },
   "artifactPolicy": {
