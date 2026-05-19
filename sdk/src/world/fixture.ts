@@ -15,6 +15,21 @@ function normalizeNumber(value: unknown): number | undefined {
   return Number.isFinite(parsed) ? parsed : undefined;
 }
 
+function normalizeAssetIntegrity(value: unknown): WorldFixturePackage['assetIntegrity'] {
+  const record = asRecord(value);
+  const entries = Object.entries(record).flatMap(([key, raw]) => {
+    const item = asRecord(raw);
+    const sha256 = normalizeString(item.sha256).replace(/^sha256:/i, '').toLowerCase();
+    const provenanceRef = normalizeString(item.provenanceRef ?? item.provenance_ref);
+    const verificationState = normalizeString(item.verificationState ?? item.verification_state);
+    if (!key || !/^[a-f0-9]{64}$/u.test(sha256) || !provenanceRef || verificationState !== 'digest-verified') {
+      return [];
+    }
+    return [[key, { sha256, provenanceRef, verificationState: 'digest-verified' as const }]];
+  });
+  return entries.length > 0 ? Object.fromEntries(entries) : undefined;
+}
+
 export function normalizeWorldInspectVector(
   value: unknown,
 ): WorldInspectVector | undefined {
@@ -99,6 +114,7 @@ export function normalizeWorldFixturePackage(
     thumbnailLocalPath: normalizeString(record.thumbnailLocalPath),
     panoLocalPath: normalizeString(record.panoLocalPath),
     colliderMeshLocalPath: normalizeString(record.colliderMeshLocalPath),
+    assetIntegrity: normalizeAssetIntegrity(record.assetIntegrity),
     viewerPreset: normalizeWorldInspectViewPreset(record.viewerPreset),
     artifacts,
   };
@@ -116,6 +132,7 @@ export function normalizeWorldFixturePackage(
       || normalized.thumbnailLocalPath
       || normalized.panoLocalPath
       || normalized.colliderMeshLocalPath
+      || (normalized.assetIntegrity && Object.keys(normalized.assetIntegrity).length > 0)
       || normalized.viewerPreset
       || (normalized.spzUrls && Object.keys(normalized.spzUrls).length > 0)
       || (normalized.artifacts && normalized.artifacts.length > 0)
@@ -146,6 +163,7 @@ export function worldFixtureFromResolvedPaths(
     thumbnailLocalPath: input.thumbnailLocalPath,
     panoLocalPath: input.panoLocalPath,
     colliderMeshLocalPath: input.colliderMeshLocalPath,
+    assetIntegrity: input.assetIntegrity,
     semanticsMetadata: input.semanticsMetadata,
     viewerPreset: input.viewerPreset,
   });

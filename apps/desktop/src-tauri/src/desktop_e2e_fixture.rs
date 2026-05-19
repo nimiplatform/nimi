@@ -1,5 +1,5 @@
-use crate::desktop_release::DesktopReleaseInfo;
 use crate::desktop_product_control::ProductControlRecord;
+use crate::desktop_release::DesktopReleaseInfo;
 use crate::runtime_bridge::{
     generated as runtime_bridge_generated, RuntimeBridgeDaemonStatus, RuntimeBridgeUnaryPayload,
     RuntimeBridgeUnaryResult,

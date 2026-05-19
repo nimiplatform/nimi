@@ -1,11 +1,11 @@
 import { getPlatformClient } from '@nimiplatform/sdk';
 import { createModRuntimeClient } from '@nimiplatform/sdk/mod';
 import { asString } from './tester-utils.js';
+import { TESTER_APP_ID, TESTER_APP_INSTANCE_ID } from './tester-app-identity.js';
 
-const TESTER_RUNTIME_APP_ID = 'nimi.desktop';
 const TESTER_ACCOUNT_CALLER = {
-  appId: TESTER_RUNTIME_APP_ID,
-  appInstanceId: 'nimi.desktop.local-first-party',
+  appId: TESTER_APP_ID,
+  appInstanceId: TESTER_APP_INSTANCE_ID,
   deviceId: 'desktop-shell',
   mode: 2,
   scopes: [],
@@ -22,7 +22,7 @@ export async function resolveTesterVoiceAssetScope(): Promise<{ appId: string; s
     caller: TESTER_ACCOUNT_CALLER,
   });
   return {
-    appId: TESTER_RUNTIME_APP_ID,
+    appId: TESTER_APP_ID,
     subjectUserId: asString(status.accountProjection?.accountId),
   };
 }

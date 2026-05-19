@@ -1,4 +1,4 @@
-import { convertTauriFileSrc } from '@runtime/tauri-api';
+import { convertTauriFileSrc, invokeTauri } from '@runtime/tauri-api';
 import {
   fixture as worldFixture,
   normalizeWorldInspectViewPreset,
@@ -22,6 +22,17 @@ export type WorldTourRenderAcceptance = {
   reason?: string;
 };
 
+export type WorldTourAssetIntegrityEvidence = {
+  sha256: string;
+  provenanceRef: string;
+  verificationState: 'digest-verified';
+};
+
+export type WorldTourFixtureIntegrity = Partial<Record<
+  'spzLocalPath' | 'thumbnailLocalPath' | 'panoLocalPath' | 'colliderMeshLocalPath',
+  WorldTourAssetIntegrityEvidence
+>>;
+
 export type ResolvedWorldTourFixture = {
   manifestPath: string;
   fixtureRoot: string;
@@ -38,6 +49,7 @@ export type ResolvedWorldTourFixture = {
   thumbnailLocalPath?: string;
   panoLocalPath?: string;
   colliderMeshLocalPath?: string;
+  assetIntegrity?: WorldTourFixtureIntegrity;
   semanticsMetadata?: {
     groundPlaneOffset?: number;
     metricScaleFactor?: number;
@@ -45,8 +57,7 @@ export type ResolvedWorldTourFixture = {
   viewerPreset?: WorldTourViewerPreset;
 };
 
-export const WORLD_TOUR_CACHE_MANIFEST_PATH = '.nimi/cache/worldlabs/world-tour/latest/fixture-manifest.json';
-export const WORLD_TOUR_RENDER_ACCEPTANCE_STORAGE_KEY = 'nimi.worldTour.renderAcceptance.v1';
+export const WORLD_TOUR_CACHE_MANIFEST_PATH = 'latest/fixture-manifest.json';
 
 export function asOptionalString(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
@@ -86,6 +97,7 @@ export function worldTourFixtureToWorldResult(fixture: ResolvedWorldTourFixture)
     thumbnailLocalPath: fixture.thumbnailLocalPath,
     panoLocalPath: fixture.panoLocalPath,
     colliderMeshLocalPath: fixture.colliderMeshLocalPath,
+    assetIntegrity: fixture.assetIntegrity,
     semanticsMetadata: fixture.semanticsMetadata,
     viewerPreset: fixture.viewerPreset,
   });
@@ -128,12 +140,12 @@ export function parseWorldTourRenderAcceptance(value: unknown): WorldTourRenderA
   };
 }
 
-export function writeWorldTourRenderAcceptance(record: WorldTourRenderAcceptance): void {
-  try {
-    window.localStorage.setItem(WORLD_TOUR_RENDER_ACCEPTANCE_STORAGE_KEY, JSON.stringify(record));
-  } catch {
-    // Storage is the cross-window acceptance channel; panel state stays fail-closed on failure.
-  }
+export async function readWorldTourRenderAcceptance(): Promise<WorldTourRenderAcceptance | null> {
+  return invokeTauri<WorldTourRenderAcceptance | null>('world_tour_render_acceptance_load');
+}
+
+export async function writeWorldTourRenderAcceptance(record: WorldTourRenderAcceptance): Promise<void> {
+  await invokeTauri('world_tour_render_acceptance_save', { payload: record });
 }
 
 export function worldTourTitle(world: WorldResultRecord | null): string {

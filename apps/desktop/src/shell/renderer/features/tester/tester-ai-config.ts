@@ -2,12 +2,8 @@ import type { AIScopeRef, RuntimeRouteBinding } from '@nimiplatform/sdk/mod';
 import type { AIConfig } from '@nimiplatform/sdk/mod';
 import { createEmptyAIConfig } from '@nimiplatform/sdk/mod';
 import type { CapabilityId } from './tester-types.js';
-
-export const TESTER_AI_SCOPE_REF: AIScopeRef = {
-  kind: 'app',
-  ownerId: 'desktop',
-  surfaceId: 'tester',
-};
+import { TESTER_AI_SCOPE_REF } from './tester-app-identity.js';
+export { TESTER_AI_SCOPE_REF } from './tester-app-identity.js';
 
 export function createEmptyTesterAIConfig(): AIConfig {
   return createEmptyAIConfig(TESTER_AI_SCOPE_REF);

@@ -22,14 +22,15 @@ import {
 import { resolveEffectiveBinding } from '../tester-route.js';
 import { makeEmptyDiagnostics } from '../tester-state.js';
 import { bindingToRouteInfo } from '../tester-runtime.js';
+import { TESTER_RUNTIME_CLIENT_ID } from '../tester-app-identity';
 import { DiagnosticsPanel, ErrorBox, InfoBox, RawJsonSection, RunButton } from '../tester-diagnostics.js';
 import { WorldResultSummary } from './panel-world-tour-result-summary.js';
 import {
   normalizeWorldGenerateOutput,
   parseWorldTourRenderAcceptance,
+  readWorldTourRenderAcceptance,
   type ResolvedWorldTourFixture,
   WORLD_TOUR_CACHE_MANIFEST_PATH,
-  WORLD_TOUR_RENDER_ACCEPTANCE_STORAGE_KEY,
   worldTourFixtureToWorldResult,
   type WorldResultRecord,
 } from '../world-tour-shared';
@@ -164,19 +165,27 @@ export function WorldTourPanel(props: WorldTourPanelProps) {
   }, [launchableFixture, onStateChange]);
 
   React.useEffect(() => {
-    const handleStorage = (event: StorageEvent) => {
-      if (event.key === WORLD_TOUR_RENDER_ACCEPTANCE_STORAGE_KEY) {
-        applyRenderAcceptance(event.newValue);
+    if (!launchableFixture) return;
+    let cancelled = false;
+    const pollAcceptance = async () => {
+      try {
+        const acceptance = await readWorldTourRenderAcceptance();
+        if (!cancelled) {
+          applyRenderAcceptance(acceptance);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setLaunchError(error instanceof Error ? error.message : String(error || 'Failed to read render acceptance.'));
+        }
       }
     };
-    window.addEventListener('storage', handleStorage);
-    try {
-      applyRenderAcceptance(window.localStorage.getItem(WORLD_TOUR_RENDER_ACCEPTANCE_STORAGE_KEY));
-    } catch {
-      // ignore unavailable localStorage; viewer launch remains fail-closed.
-    }
-    return () => window.removeEventListener('storage', handleStorage);
-  }, [applyRenderAcceptance]);
+    void pollAcceptance();
+    const timer = window.setInterval(() => { void pollAcceptance(); }, 1000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, [applyRenderAcceptance, launchableFixture]);
 
   const finalizeWorldJob = React.useCallback(async (input: {
     jobId: string;
@@ -192,7 +201,7 @@ export function WorldTourPanel(props: WorldTourPanelProps) {
       output?: unknown;
     } = { artifacts: [] };
     try {
-      const modClient = createModRuntimeClient('core:runtime');
+      const modClient = createModRuntimeClient(TESTER_RUNTIME_CLIENT_ID);
       const response = await modClient.media.jobs.getArtifacts(input.jobId) as unknown as {
         artifacts?: Array<Record<string, unknown>>;
         traceId?: string;
@@ -337,7 +346,7 @@ export function WorldTourPanel(props: WorldTourPanelProps) {
       },
     }));
 
-    const modClient = createModRuntimeClient('core:runtime');
+    const modClient = createModRuntimeClient(TESTER_RUNTIME_CLIENT_ID);
     let currentJob = input.initialJob || await modClient.media.jobs.get(input.jobId) as unknown as Record<string, unknown>;
     if (watchToken !== watchSequenceRef.current) return;
     pushJobEvent('submitted', currentJob);
@@ -420,7 +429,7 @@ export function WorldTourPanel(props: WorldTourPanelProps) {
         runtimeInput,
         ...(binding ? { binding } : {}),
       };
-      const modClient = createModRuntimeClient('core:runtime');
+      const modClient = createModRuntimeClient(TESTER_RUNTIME_CLIENT_ID);
       const job = await modClient.media.world.generate({
         ...runtimeInput,
         binding,

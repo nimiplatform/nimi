@@ -17,6 +17,7 @@ import { makeEmptyDiagnostics } from '../tester-state.js';
 import { getRuntimeClient, resolveCallParams, bindingToRouteInfo } from '../tester-runtime.js';
 import { DiagnosticsPanel, ErrorBox, RawJsonSection } from '../tester-diagnostics.js';
 import { createModRuntimeClient, type ModRuntimeBoundVideoGenerateInput } from '@nimiplatform/sdk/mod';
+import { TESTER_RUNTIME_CLIENT_ID } from '../tester-app-identity';
 
 // ---------------------------------------------------------------------------
 // Types & constants
@@ -115,7 +116,7 @@ export function VideoGeneratePanel(props: VideoGeneratePanelProps) {
     let artifactFetchError = '';
     let artifactsResponse: { artifacts: Array<{ uri?: string; bytes?: Uint8Array; mimeType?: string }>; traceId?: string } = { artifacts: [] };
     try {
-      const modClient = createModRuntimeClient('core:runtime');
+      const modClient = createModRuntimeClient(TESTER_RUNTIME_CLIENT_ID);
       const response = await modClient.media.jobs.getArtifacts(input.jobId);
       artifactsResponse = {
         artifacts: Array.isArray(response.artifacts) ? response.artifacts : [],
@@ -215,7 +216,7 @@ export function VideoGeneratePanel(props: VideoGeneratePanelProps) {
       output: null,
       diagnostics: { requestParams: input.requestParams, resolvedRoute: input.routeInfo as any, responseMetadata: { jobId: input.jobId } },
     }));
-    const modClient = createModRuntimeClient('core:runtime');
+    const modClient = createModRuntimeClient(TESTER_RUNTIME_CLIENT_ID);
     let currentJob = input.initialJob || await modClient.media.jobs.get(input.jobId) as unknown as Record<string, unknown>;
     if (watchToken !== watchSequenceRef.current) return;
     pushJobEvent('submitted', currentJob);
@@ -260,7 +261,7 @@ export function VideoGeneratePanel(props: VideoGeneratePanelProps) {
     };
     try {
       const routeInfo = bindingToRouteInfo(binding);
-      const modClient = createModRuntimeClient('core:runtime');
+      const modClient = createModRuntimeClient(TESTER_RUNTIME_CLIENT_ID);
       const job = await modClient.media.jobs.submit({
         modal: 'video',
         input: {

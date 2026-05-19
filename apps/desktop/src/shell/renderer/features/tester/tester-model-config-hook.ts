@@ -19,6 +19,7 @@ import { useLocalAssets } from '../chat/capability-settings-shared';
 import { bindingFromTesterConfig, TESTER_AI_SCOPE_REF } from './tester-ai-config';
 import { createModRuntimeClient } from '@nimiplatform/sdk/mod';
 import { listTesterVoiceAssets, type TesterVoiceAsset } from './tester-voice-assets';
+import { TESTER_RUNTIME_CLIENT_ID } from './tester-app-identity';
 
 const TESTER_ENABLED_CAPABILITIES = [
   'text.generate',
@@ -60,7 +61,7 @@ export function useTesterModelConfigController(config: AIConfig, voiceAssetRefre
     let cancelled = false;
     void (async () => {
       try {
-        const client = createModRuntimeClient('core:runtime');
+        const client = createModRuntimeClient(TESTER_RUNTIME_CLIENT_ID);
         const [voiceResponse, assetResponse] = await Promise.all([
           client.media.tts.listVoices({ binding: ttsBinding }),
           listTesterVoiceAssets(client, {

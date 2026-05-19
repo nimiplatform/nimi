@@ -87,6 +87,16 @@ function computedViewToPreset(
   };
 }
 
+function hasVerifiedSpzIntegrity(fixture: ResolvedWorldTourFixture): boolean {
+  const evidence = fixture.assetIntegrity?.spzLocalPath;
+  return Boolean(
+    evidence
+      && evidence.verificationState === 'digest-verified'
+      && /^[a-f0-9]{64}$/u.test(evidence.sha256)
+      && evidence.provenanceRef.trim(),
+  );
+}
+
 function presetToComputedView(preset: WorldTourViewerPreset): ComputedInspectView | null {
   const position = normalizeViewerPresetVector(preset.camera.position);
   const target = normalizeViewerPresetVector(preset.camera.target);
@@ -654,6 +664,9 @@ function WorldTourViewerCanvas(props: { fixture: ResolvedWorldTourFixture; onClo
     };
 
     const boot = async () => {
+      if (!hasVerifiedSpzIntegrity(props.fixture)) {
+        throw new Error('World tour fixture lacks verified SPZ digest/provenance evidence.');
+      }
       const splatUrl = resolveWorldTourAssetUrl(
         props.fixture.spzLocalPath,
         props.fixture.spzRemoteUrl,
@@ -676,7 +689,7 @@ function WorldTourViewerCanvas(props: { fixture: ResolvedWorldTourFixture; onClo
         applyComputedView(initialView);
       }
       setBooting(false);
-      writeWorldTourRenderAcceptance({
+      await writeWorldTourRenderAcceptance({
         manifestPath: props.fixture.manifestPath,
         status: 'passed',
         acceptedAt: new Date().toISOString(),
@@ -690,18 +703,24 @@ function WorldTourViewerCanvas(props: { fixture: ResolvedWorldTourFixture; onClo
       });
     };
 
-    void boot().catch((loadError) => {
+    void boot().catch(async (loadError) => {
       if (disposed) return;
       const message = loadError instanceof Error ? loadError.message : String(loadError || 'Failed to boot world-tour viewer.');
-      writeWorldTourRenderAcceptance({
-        manifestPath: props.fixture.manifestPath,
-        status: 'failed',
-        acceptedAt: new Date().toISOString(),
-        renderer: 'spark-2.0',
-        worldId: props.fixture.worldId,
-        spzAssetRef: props.fixture.spzLocalPath || props.fixture.spzRemoteUrl,
-        reason: message,
-      });
+      try {
+        await writeWorldTourRenderAcceptance({
+          manifestPath: props.fixture.manifestPath,
+          status: 'failed',
+          acceptedAt: new Date().toISOString(),
+          renderer: 'spark-2.0',
+          worldId: props.fixture.worldId,
+          spzAssetRef: props.fixture.spzLocalPath || props.fixture.spzRemoteUrl,
+          reason: message,
+        });
+      } catch (writeError) {
+        setError(writeError instanceof Error ? writeError.message : String(writeError || 'Failed to persist render acceptance.'));
+        setBooting(false);
+        return;
+      }
       setError(message);
       setBooting(false);
     });

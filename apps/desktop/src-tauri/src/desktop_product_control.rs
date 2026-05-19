@@ -377,8 +377,9 @@ pub fn read_product_control_projection() -> Result<ProductControlRecordProjectio
 
 pub fn selected_product_data_root() -> Result<PathBuf, String> {
     if let Some(record) = crate::desktop_e2e_fixture::product_control_record_override()? {
-        return selected_data_root_path(&record)
-            .ok_or_else(|| "E2E product control override has no selected absolute dataRoot.path".to_string());
+        return selected_data_root_path(&record).ok_or_else(|| {
+            "E2E product control override has no selected absolute dataRoot.path".to_string()
+        });
     }
     let path = product_control_record_path()?;
     let record = read_existing_record(&path)?.ok_or_else(|| {

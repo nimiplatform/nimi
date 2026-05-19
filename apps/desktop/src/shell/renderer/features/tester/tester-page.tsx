@@ -347,7 +347,7 @@ export function TesterPage() {
     });
     setActiveCapability('audio.synthesize');
   }, [persistTesterConfig]);
-  const { history, clearCapability, removeEntry } = useTesterHistory(states);
+  const { history, clearCapability, removeEntry, storageError: historyStorageError } = useTesterHistory(states);
   const activeHistory = history[activeCapability] ?? [];
   const activeMeta = CAP_META[activeCapability];
   const activeBinding = activeState.binding;
@@ -512,6 +512,11 @@ export function TesterPage() {
               && activeCapability !== 'video.create-job'
               && activeCapability !== 'video.generate' ? (
               <React.Suspense fallback={null}>
+                {historyStorageError ? (
+                  <div className="mb-2 rounded-[var(--nimi-radius-md)] border border-[var(--nimi-status-danger)] bg-[var(--nimi-status-danger-bg)] px-3 py-2 text-xs text-[var(--nimi-status-danger)]">
+                    {historyStorageError}
+                  </div>
+                ) : null}
                 <TesterHistoryPanel
                   capabilityLabel={activeLabels.label}
                   entries={activeHistory}
