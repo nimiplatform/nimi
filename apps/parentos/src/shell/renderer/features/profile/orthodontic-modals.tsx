@@ -1,5 +1,6 @@
-import { SelectField, Surface } from '@nimiplatform/nimi-kit/ui';
+import { Button, cn, SelectField, Surface, TextField, TextareaField } from '@nimiplatform/nimi-kit/ui';
 import { useMemo, useState, type ReactNode } from 'react';
+import { ProfileDatePicker } from './profile-date-picker.js';
 import {
   insertOrthodonticAppliance,
   insertOrthodonticCase,
@@ -42,18 +43,19 @@ import {
   ModalFooter,
 } from './orthodontic-modal-primitives.js';
 import {
-  CancelButton,
-  DateField,
   FormField,
   HealthRecordModalShell,
   InlineError,
-  Input,
   ModalContent,
   ModalFooter as ShellModalFooter,
   ModalHeader,
-  PrimaryButton,
-  TextArea,
 } from './health-record-modal-shell.js';
+
+const NUMBER_INPUT_CLASS = '[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none';
+// ProfileDatePicker is an app-local domain component (not a kit primitive). Per the user's
+// authorization, the DateField invalid visual is preserved via consumer-side className —
+// the danger token + ring matches the new kit field danger-tone visual contract from Phase 1.
+const DANGER_DATE_FIELD_CLASS = 'border-[var(--nimi-status-danger)] ring-[length:var(--nimi-focus-ring-width)] ring-[var(--nimi-status-danger)]';
 
 function ModalSuccessNote({ children }: { children: ReactNode }) {
   return (
@@ -523,30 +525,32 @@ export function ApplianceFormModal({
             label="开始日期"
             error={dateIsBeforeBirth ? '开始日期不能早于孩子出生日。' : undefined}
           >
-            <DateField
+            <ProfileDatePicker
               value={startedAt}
               onChange={setStartedAt}
-              invalid={Boolean(dateIsBeforeBirth)}
+              className={cn('h-12', dateIsBeforeBirth && DANGER_DATE_FIELD_CLASS)}
             />
           </FormField>
           <FormField label="医嘱佩戴小时/天" required={needsPrescribedHours}>
-            <Input type="number" value={prescribedHours} onChange={(event) => setPrescribedHours(event.target.value)} />
+            <TextField type="number" value={prescribedHours} onChange={(event) => setPrescribedHours(event.target.value)} className="w-full min-h-12" inputClassName={NUMBER_INPUT_CLASS} />
           </FormField>
           {isExpander && (
             <>
               <FormField label="扩弓总激活次数">
-                <Input type="number" value={prescribedActivations} onChange={(event) => setPrescribedActivations(event.target.value)} />
+                <TextField type="number" value={prescribedActivations} onChange={(event) => setPrescribedActivations(event.target.value)} className="w-full min-h-12" inputClassName={NUMBER_INPUT_CLASS} />
               </FormField>
               <FormField
                 label="扩弓转动周期（天，可选）"
                 error={!activationIntervalValid ? '转动周期必须是大于 0 的整数。' : undefined}
               >
-                <Input
+                <TextField
                   type="number"
+                  tone={activationIntervalValid ? 'default' : 'danger'}
                   value={activationInterval}
                   onChange={(event) => setActivationInterval(event.target.value)}
                   placeholder="例如 3"
-                  invalid={!activationIntervalValid}
+                  className="w-full min-h-12"
+                  inputClassName={NUMBER_INPUT_CLASS}
                 />
               </FormField>
             </>
@@ -557,30 +561,34 @@ export function ApplianceFormModal({
                 label="牙套总副数"
                 error={!totalAlignersValid ? '总副数必须是大于 0 的整数。' : undefined}
               >
-                <Input
+                <TextField
                   type="number"
+                  tone={totalAlignersValid ? 'default' : 'danger'}
                   value={totalAligners}
                   onChange={(event) => setTotalAligners(event.target.value)}
                   placeholder="例如 30"
-                  invalid={!totalAlignersValid}
+                  className="w-full min-h-12"
+                  inputClassName={NUMBER_INPUT_CLASS}
                 />
               </FormField>
               <FormField
                 label="每副佩戴天数"
                 error={!daysPerAlignerValid ? '每副佩戴天数必须是大于 0 的整数。' : undefined}
               >
-                <Input
+                <TextField
                   type="number"
+                  tone={daysPerAlignerValid ? 'default' : 'danger'}
                   value={daysPerAligner}
                   onChange={(event) => setDaysPerAligner(event.target.value)}
                   placeholder="例如 7"
-                  invalid={!daysPerAlignerValid}
+                  className="w-full min-h-12"
+                  inputClassName={NUMBER_INPUT_CLASS}
                 />
               </FormField>
             </>
           )}
           <FormField label="复诊间隔（天）">
-            <Input type="number" value={reviewIntervalDays} onChange={(event) => setReviewIntervalDays(event.target.value)} />
+            <TextField type="number" value={reviewIntervalDays} onChange={(event) => setReviewIntervalDays(event.target.value)} className="w-full min-h-12" inputClassName={NUMBER_INPUT_CLASS} />
           </FormField>
           <FormField label="初始治疗阶段（可选）">
             <SelectField
@@ -592,11 +600,12 @@ export function ApplianceFormModal({
             />
           </FormField>
           <FormField label="下次复诊议程（可选）">
-            <TextArea
+            <TextareaField
               value={nextReviewAgenda}
               onChange={(event) => setNextReviewAgenda(event.target.value)}
               placeholder="例如 评估扩弓量 / 换主弓丝"
               rows={3}
+              className="w-full"
             />
           </FormField>
           {startedAt && childBirthDate && !dateIsBeforeBirth && (
@@ -607,8 +616,9 @@ export function ApplianceFormModal({
         </div>
       </ModalContent>
       <ShellModalFooter>
-        <CancelButton onClick={onClose} />
-        <PrimaryButton
+        <Button type="button" onClick={onClose} tone="ghost" size="md">取消</Button>
+        <Button
+          type="button"
           onClick={() => void handleSubmit()}
           disabled={
             eligibleTypes.length === 0
@@ -617,9 +627,11 @@ export function ApplianceFormModal({
             || (isClearAligner && (!totalAlignersValid || !daysPerAlignerValid))
             || !activationIntervalValid
           }
+          tone="primary"
+          size="md"
         >
           保存
-        </PrimaryButton>
+        </Button>
       </ShellModalFooter>
     </HealthRecordModalShell>
   );
