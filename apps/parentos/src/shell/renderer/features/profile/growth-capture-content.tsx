@@ -1,3 +1,12 @@
+// Relocated from growth-curve-add-record-modal.tsx during parent topic
+// 2026-05-18-parentos-growth-curve-page-redesign wave-D (history-and-capture-
+// migration). The Add CTA on the growth detail surface now mounts
+// HealthCaptureModal with initialGroupId='growth'; HealthCaptureModal renders
+// this GrowthAddRecordContent as the per-group form body (capture-orchestrator-
+// contract.md PO-CAPT-006). The body is byte-equivalent to the post-wave-0b
+// state of GrowthAddRecordContent (commit 29b797559) — calls
+// saveHealthRecordCapture (canonical-API) per
+// apps/parentos/spec/kernel/tables/local-storage.yaml#growth_measurement_canonical_migration.
 import { useState } from 'react';
 import { Button, cn, TextField, TextareaField } from '@nimiplatform/nimi-kit/ui';
 import { computeAgeMonthsAt } from '../../app-shell/app-store.js';
@@ -11,7 +20,6 @@ import { ProfileDatePicker } from './profile-date-picker.js';
 import {
   FormField,
   FormGrid,
-  HealthRecordModalShell,
   ModalContent,
   ModalFooter,
   ModalHeader,
@@ -65,15 +73,6 @@ export function GrowthAddRecordContent({
     const linkedReminderStateId = linkedReminder?.stateId ?? null;
     const linkedReminderRuleId = linkedReminder?.ruleId ?? null;
 
-    // Per spec admission of growth_measurement_canonical_migration in
-    // apps/parentos/spec/kernel/tables/local-storage.yaml (wave-0a),
-    // growth writes route directly through saveHealthRecordCapture
-    // (canonical-shape API) rather than through the legacy
-    // insertMeasurement (legacy-shape facade). Each metric becomes one
-    // canonical event with one value, preserving the 1:1 mapping
-    // admitted in wave-0a. BMI is intentionally NOT stored directly —
-    // canonical convention computes derived BMI at read time via
-    // recomputeDerivedHealthRecordValues (parent topic wave-A pattern).
     type CanonicalMetricSpec = {
       metricId: string;
       protocolId: string;
@@ -273,32 +272,4 @@ function bmiToneClassName(tag: string): string {
   if (tag.includes('正常')) return 'text-[var(--nimi-status-success)]';
   if (tag.includes('偏重')) return 'text-[var(--nimi-status-warning)]';
   return 'text-[var(--nimi-status-danger)]';
-}
-
-type GrowthCurveAddRecordModalProps = {
-  childId: string;
-  birthDate: string;
-  isUnder6: boolean;
-  onSaved: () => void | Promise<void>;
-  onClose: () => void;
-};
-
-export function GrowthCurveAddRecordModal({
-  childId,
-  birthDate,
-  isUnder6,
-  onSaved,
-  onClose,
-}: GrowthCurveAddRecordModalProps) {
-  return (
-    <HealthRecordModalShell open size="M" onClose={onClose}>
-      <GrowthAddRecordContent
-        childId={childId}
-        birthDate={birthDate}
-        isUnder6={isUnder6}
-        onSaved={onSaved}
-        onClose={onClose}
-      />
-    </HealthRecordModalShell>
-  );
 }

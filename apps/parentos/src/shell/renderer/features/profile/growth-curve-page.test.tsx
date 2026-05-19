@@ -577,4 +577,248 @@ describe('GrowthCurvePage', () => {
       expect(search).toContain('metric=');
     });
   });
+
+  // ── Wave-D additions: history-table pagination/filter/export + Add CTA ──
+  //
+  // Per .nimi/topics/ongoing/2026-05-18-parentos-growth-curve-page-redesign/
+  // packet-wave-d-history-and-capture-migration.md acceptance_invariants the
+  // history table now exposes client-side pagination (10/page), time-range
+  // filter (all/1y/6m/3m), source filter (all/manual/ocr/imported/reminder),
+  // CSV export with admitted column order, and the Add CTA opens
+  // HealthCaptureModal with initialGroupId='growth'.
+
+  it('renders history pagination controls when typeMeasurements has more than ten rows', async () => {
+    const today = new Date();
+    const dayMs = 86400000;
+    const rows = Array.from({ length: 12 }, (_, index) => {
+      const measuredAt = new Date(today.getTime() - (12 - index) * 14 * dayMs).toISOString();
+      return {
+        measurementId: `m-page-${index + 1}`,
+        childId: 'child-1',
+        typeId: 'height',
+        value: 95 + index,
+        measuredAt,
+        ageMonths: 130 + index,
+        percentile: null,
+        source: 'manual',
+        notes: null,
+        createdAt: measuredAt,
+      };
+    });
+    getMeasurementsMock.mockResolvedValueOnce(rows);
+
+    render(
+      <TooltipProvider>
+        <MemoryRouter>
+          <GrowthCurvePage />
+        </MemoryRouter>
+      </TooltipProvider>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByLabelText('next page')).toBeTruthy();
+    });
+
+    // First page renders exactly 10 rows; the 11th + 12th sit on page 2.
+    const tbody = document.querySelector('table tbody');
+    expect(tbody).toBeTruthy();
+    expect(tbody!.querySelectorAll('tr').length).toBe(10);
+
+    fireEvent.click(screen.getByLabelText('next page'));
+
+    await waitFor(() => {
+      const after = document.querySelector('table tbody')!.querySelectorAll('tr').length;
+      expect(after).toBe(2);
+    });
+  });
+
+  it('narrows visible history rows when the time-range filter switches to "近 3 月"', async () => {
+    const todayMs = Date.now();
+    const dayMs = 86400000;
+    const recent = new Date(todayMs - 10 * dayMs).toISOString();
+    const old = new Date(todayMs - 200 * dayMs).toISOString();
+    getMeasurementsMock.mockResolvedValueOnce([
+      {
+        measurementId: 'm-recent',
+        childId: 'child-1',
+        typeId: 'height',
+        value: 100,
+        measuredAt: recent,
+        ageMonths: 130,
+        percentile: null,
+        source: 'manual',
+        notes: null,
+        createdAt: recent,
+      },
+      {
+        measurementId: 'm-old',
+        childId: 'child-1',
+        typeId: 'height',
+        value: 92,
+        measuredAt: old,
+        ageMonths: 124,
+        percentile: null,
+        source: 'manual',
+        notes: null,
+        createdAt: old,
+      },
+    ]);
+
+    render(
+      <TooltipProvider>
+        <MemoryRouter>
+          <GrowthCurvePage />
+        </MemoryRouter>
+      </TooltipProvider>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByLabelText('time-range filter')).toBeTruthy();
+    });
+
+    // Both rows visible under the "all" default.
+    expect(document.querySelector('table tbody')!.querySelectorAll('tr').length).toBe(2);
+
+    fireEvent.change(screen.getByLabelText('time-range filter'), { target: { value: '3m' } });
+
+    await waitFor(() => {
+      const rows = document.querySelector('table tbody')!.querySelectorAll('tr').length;
+      expect(rows).toBe(1);
+    });
+  });
+
+  it('narrows visible history rows when the source filter switches to OCR', async () => {
+    getMeasurementsMock.mockResolvedValueOnce([
+      {
+        measurementId: 'm-manual',
+        childId: 'child-1',
+        typeId: 'height',
+        value: 100,
+        measuredAt: '2025-12-10T00:00:00.000Z',
+        ageMonths: 130,
+        percentile: null,
+        source: 'manual',
+        notes: null,
+        createdAt: '2025-12-10T00:00:00.000Z',
+      },
+      {
+        measurementId: 'm-ocr',
+        childId: 'child-1',
+        typeId: 'height',
+        value: 101,
+        measuredAt: '2025-12-15T00:00:00.000Z',
+        ageMonths: 131,
+        percentile: null,
+        source: 'ocr',
+        notes: null,
+        createdAt: '2025-12-15T00:00:00.000Z',
+      },
+    ]);
+
+    render(
+      <TooltipProvider>
+        <MemoryRouter>
+          <GrowthCurvePage />
+        </MemoryRouter>
+      </TooltipProvider>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByLabelText('source filter')).toBeTruthy();
+    });
+
+    expect(document.querySelector('table tbody')!.querySelectorAll('tr').length).toBe(2);
+
+    fireEvent.change(screen.getByLabelText('source filter'), { target: { value: 'ocr' } });
+
+    await waitFor(() => {
+      const rows = document.querySelector('table tbody')!.querySelectorAll('tr').length;
+      expect(rows).toBe(1);
+    });
+  });
+
+  it('emits a CSV blob with the admitted column order on history export', async () => {
+    const captured: Blob[] = [];
+    const originalCreateObjectURL = URL.createObjectURL;
+    const originalRevokeObjectURL = URL.revokeObjectURL;
+    // Capture the blob handed to the download trigger; jsdom does not
+    // simulate <a download> navigation, but URL.createObjectURL still
+    // receives the constructed blob.
+    URL.createObjectURL = vi.fn((blob: Blob) => {
+      captured.push(blob);
+      return 'blob:mock';
+    }) as unknown as typeof URL.createObjectURL;
+    URL.revokeObjectURL = vi.fn();
+
+    try {
+      getMeasurementsMock.mockResolvedValueOnce([
+        {
+          measurementId: 'm-csv-1',
+          childId: 'child-1',
+          typeId: 'height',
+          value: 100.5,
+          measuredAt: '2025-12-10T00:00:00.000Z',
+          ageMonths: 130,
+          percentile: 50,
+          source: 'manual',
+          notes: null,
+          createdAt: '2025-12-10T00:00:00.000Z',
+        },
+      ]);
+
+      render(
+        <TooltipProvider>
+          <MemoryRouter>
+            <GrowthCurvePage />
+          </MemoryRouter>
+        </TooltipProvider>,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByLabelText('export csv')).toBeTruthy();
+      });
+
+      fireEvent.click(screen.getByLabelText('export csv'));
+
+      await waitFor(() => {
+        expect(captured.length).toBe(1);
+      });
+
+      const text = await captured[0]!.text();
+      const lines = text.split('\n');
+      // First line is the header in the admitted order.
+      expect(lines[0]).toBe('effective_date,age_label,value,unit,source,percentile');
+      // Second line is the seeded row.
+      expect(lines[1]).toContain('2025-12-10');
+      expect(lines[1]).toContain('100.5');
+      expect(lines[1]).toContain('手动');
+      expect(lines[1]).toContain('P50');
+    } finally {
+      URL.createObjectURL = originalCreateObjectURL;
+      URL.revokeObjectURL = originalRevokeObjectURL;
+    }
+  });
+
+  it('opens HealthCaptureModal with initialGroupId="growth" + initialMetricId from the selected metric when the Add CTA is clicked', async () => {
+    render(
+      <TooltipProvider>
+        <MemoryRouter>
+          <GrowthCurvePage />
+        </MemoryRouter>
+      </TooltipProvider>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /添加记录/ })).toBeTruthy();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /添加记录/ }));
+
+    // HealthCaptureModal renders the growth group's form body when
+    // initialGroupId='growth' — the form's own ModalHeader carries the
+    // "添加生长记录" title (per growth-capture-content.tsx).
+    await waitFor(() => {
+      expect(screen.getByText('添加生长记录')).toBeTruthy();
+    });
+  });
 });

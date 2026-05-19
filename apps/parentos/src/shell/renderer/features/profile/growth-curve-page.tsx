@@ -19,7 +19,7 @@ import {
   hasCheckupOCRRuntime,
   readImageFileAsDataUrl,
 } from './checkup-ocr.js';
-import { GrowthCurveAddRecordModal } from './growth-curve-add-record-modal.js';
+import { HealthCaptureModal } from './health-capture-modal.js';
 import { GrowthCurveChartPanel } from './growth-curve-chart-panel.js';
 import { GrowthCurveControls } from './growth-curve-controls.js';
 import { GrowthCurveHistoryTable } from './growth-curve-history-table.js';
@@ -216,7 +216,6 @@ export default function GrowthCurvePage() {
   }));
 
   const ageMonths = computeAgeMonths(child.birthDate);
-  const isUnder6 = ageMonths <= 72;
   const computedBmi = latestH && latestW ? computeBMI(latestH.value, latestW.value) : null;
   const availableTypes = GROWTH_STANDARDS.filter(
     (standard) => ageMonths >= standard.ageRange.startMonths && ageMonths <= standard.ageRange.endMonths,
@@ -498,12 +497,15 @@ export default function GrowthCurvePage() {
 
       <div className="flex flex-wrap gap-3">
         {showForm ? (
-          <GrowthCurveAddRecordModal
+          <HealthCaptureModal
+            open
             childId={child.childId}
-            birthDate={child.birthDate}
-            isUnder6={isUnder6}
-            onSaved={refreshMeasurements}
+            childBirthDate={child.birthDate}
+            initialGroupId="growth"
+            initialMetricId={growthDetailSnapshot?.selectedMetric.metricId ?? 'growth.height'}
+            linkedReminder={null}
             onClose={() => setShowForm(false)}
+            onSaved={() => void refreshMeasurements()}
           />
         ) : null}
 

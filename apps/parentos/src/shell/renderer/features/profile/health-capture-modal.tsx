@@ -4,7 +4,7 @@ import { computeAgeMonths } from '../../app-shell/app-store.js';
 import type { SaveHealthRecordCaptureResult } from '../../bridge/sqlite-bridge.js';
 import { getHealthRecordEventCaptureProtocolOptions, type LinkedHealthRecordReminder } from './health-capture-orchestrator.js';
 import { groupLabel } from './health-record-display.js';
-import { GrowthAddRecordContent } from './growth-curve-add-record-modal.js';
+import { GrowthAddRecordContent } from './growth-capture-content.js';
 import { VisionBatchFormContent } from './vision-batch-form.js';
 import { SleepFormContent } from './sleep-record-form.js';
 import { FitnessAssessmentFormContent } from './fitness-assessment-form.js';
