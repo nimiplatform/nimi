@@ -29,6 +29,89 @@ import {
   computeBMI,
   getLatestMeasurement,
 } from './growth-curve-page-shared.js';
+import { buildGrowthDetailSnapshot } from './growth-detail-projection.js';
+import { GrowthHeroCard } from './growth-hero-card.js';
+import { GrowthInsightStrip } from './growth-insight-strip.js';
+import type {
+  HealthRecordEvent,
+  HealthRecordEventKind,
+  HealthRecordValue,
+} from '../../engine/health-record-domain.js';
+import type { HealthMetricId } from '../../knowledge-base/index.js';
+
+// ---------------------------------------------------------------------------
+// In-page adapters (wave-B). Convert the legacy MeasurementRow stream into
+// the canonical HealthRecordEvent + HealthRecordValue shape consumed by the
+// wave-A projection (`buildGrowthDetailSnapshot`). Bounded to wave-B; the
+// canonical writer migration is wave-D.
+// ---------------------------------------------------------------------------
+
+const LEGACY_TYPE_TO_METRIC_ID: Record<string, HealthMetricId> = {
+  height: 'growth.height',
+  weight: 'growth.weight',
+  'head-circumference': 'growth.head_circumference',
+  bmi: 'growth.bmi',
+  'bone-age': 'development.bone_age_years',
+};
+
+const LEGACY_TYPE_TO_UNIT: Record<string, string> = {
+  height: 'cm',
+  weight: 'kg',
+  'head-circumference': 'cm',
+  bmi: 'kg/m²',
+  'bone-age': 'year',
+};
+
+function legacySourceToRecordKind(source: MeasurementRow['source']): HealthRecordEventKind {
+  if (source === 'ocr') return 'ocr_confirmed';
+  if (source === 'computed') return 'derived';
+  return 'manual';
+}
+
+function measurementsToHealthRecordSlice(
+  measurements: MeasurementRow[],
+): { events: HealthRecordEvent[]; values: HealthRecordValue[] } {
+  const events: HealthRecordEvent[] = [];
+  const values: HealthRecordValue[] = [];
+  for (const measurement of measurements) {
+    const metricId = LEGACY_TYPE_TO_METRIC_ID[measurement.typeId];
+    if (!metricId) continue;
+    const createdAt = measurement.createdAt ?? measurement.measuredAt;
+    events.push({
+      eventId: measurement.measurementId,
+      childId: measurement.childId,
+      protocolId: 'growth-child-quarterly',
+      groupId: 'growth',
+      recordKind: legacySourceToRecordKind(measurement.source),
+      sourceSurface: 'profile_detail',
+      recordedAt: createdAt,
+      effectiveDate: measurement.measuredAt,
+      ageMonths: measurement.ageMonths,
+      recorderId: null,
+      linkedReminderStateId: null,
+      linkedReminderRuleId: null,
+      notes: measurement.notes ?? null,
+      metadataJson: null,
+      createdAt,
+      updatedAt: createdAt,
+    });
+    values.push({
+      valueId: `${measurement.measurementId}:value`,
+      eventId: measurement.measurementId,
+      childId: measurement.childId,
+      metricId,
+      valueNumber: measurement.value,
+      valueText: null,
+      valueJson: null,
+      unit: LEGACY_TYPE_TO_UNIT[measurement.typeId] ?? null,
+      qualifier: null,
+      recordKind: 'measured',
+      sourceValueIds: null,
+      createdAt,
+    });
+  }
+  return { events, values };
+}
 
 export default function GrowthCurvePage() {
   const { t } = useTranslation();
@@ -83,6 +166,33 @@ export default function GrowthCurvePage() {
 
   const latestH = useMemo(() => getLatestMeasurement(measurements, 'height'), [measurements]);
   const latestW = useMemo(() => getLatestMeasurement(measurements, 'weight'), [measurements]);
+  const nowIso = useMemo(() => isoNow(), [measurements]);
+  const growthDetailSnapshot = useMemo(() => {
+    if (!child) return null;
+    const slice = measurementsToHealthRecordSlice(measurements);
+    const selectedMetricId = LEGACY_TYPE_TO_METRIC_ID[selectedType] ?? 'growth.height';
+    try {
+      return buildGrowthDetailSnapshot({
+        child: {
+          childId: child.childId,
+          displayName: child.displayName,
+          gender: child.gender === 'female' ? 'F' : 'M',
+          birthDate: child.birthDate,
+        },
+        selectedMetricId,
+        growthStandard,
+        events: slice.events,
+        values: slice.values,
+        whoDataset,
+        page: 1,
+        perPage: 10,
+        filters: { dateRangeKey: 'all', sourceKey: 'all' },
+        nowIso,
+      });
+    } catch {
+      return null;
+    }
+  }, [child, measurements, selectedType, growthStandard, whoDataset, nowIso]);
 
   if (!child) {
     return (
@@ -338,9 +448,28 @@ export default function GrowthCurvePage() {
         ageMonths={ageMonths}
         availableTypes={availableTypes}
         growthStandard={growthStandard}
+        whoDataset={whoDataset}
+        nowIso={nowIso}
         onSelectType={setSelectedType}
         onSelectGrowthStandard={setGrowthStandard}
       />
+
+      {growthDetailSnapshot ? (
+        <>
+          <GrowthHeroCard
+            headline={growthDetailSnapshot.headline}
+            crossMetric={growthDetailSnapshot.crossMetric}
+            selectedMetricDisplayName={growthDetailSnapshot.selectedMetric.displayName || typeInfo?.displayName || selectedType}
+            selectedMetricUnit={growthDetailSnapshot.selectedMetric.unit || typeInfo?.unit || ''}
+            childDisplayName={growthDetailSnapshot.child.displayName}
+            ageLabel={growthDetailSnapshot.child.ageLabel}
+          />
+          <GrowthInsightStrip
+            snapshot={growthDetailSnapshot}
+            selectedMetricId={growthDetailSnapshot.selectedMetric.metricId}
+          />
+        </>
+      ) : null}
 
       <GrowthCurveChartPanel
         chartData={chartData}

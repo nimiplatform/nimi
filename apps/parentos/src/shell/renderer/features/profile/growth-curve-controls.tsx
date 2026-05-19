@@ -2,19 +2,27 @@ import { Button, Surface, Tooltip, cn } from '@nimiplatform/nimi-kit/ui';
 import { useTranslation } from 'react-i18next';
 import { AppSelect } from '../../app-shell/app-select.js';
 import type { MeasurementRow } from '../../bridge/sqlite-bridge.js';
-import { GROWTH_STANDARD_LABELS, type GrowthStandard } from './who-lms-loader.js';
+import { GROWTH_STANDARD_LABELS, type GrowthStandard, type WHOLMSDataset } from './who-lms-loader.js';
 import {
   CARD_TYPE_IDS,
   METRIC_CARDS,
   OTHER_TYPE_IDS,
+  computeApproxPercentile,
   computeBMI,
-  fmtMeasDate,
+  formatRecencyLabel,
   getGrowthStandardTooltip,
   getLatestMeasurement,
-  getPreviousMeasurement,
   getStaleMeasurementDays,
   type GrowthMetricDefinition,
 } from './growth-curve-page-shared.js';
+
+// growth-curve-controls.tsx — restyled to pill-tabs with inline percentile
+// label + recency stamp (wave-B). The other-metric select, standard pill
+// toggle, and stale-hint surface are preserved with the same behavior.
+//
+// All percentile values flow through `computeApproxPercentile` from
+// growth-curve-page-shared.ts; no app-local percentile math. Recency stamp
+// flows through `formatRecencyLabel`; caller passes `nowIso`.
 
 type GrowthCurveControlsProps = {
   measurements: MeasurementRow[];
@@ -22,6 +30,8 @@ type GrowthCurveControlsProps = {
   ageMonths: number;
   availableTypes: GrowthMetricDefinition[];
   growthStandard: GrowthStandard;
+  whoDataset: WHOLMSDataset | null;
+  nowIso: string;
   onSelectType: (typeId: string) => void;
   onSelectGrowthStandard: (standard: GrowthStandard) => void;
 };
@@ -32,6 +42,8 @@ export function GrowthCurveControls({
   ageMonths,
   availableTypes,
   growthStandard,
+  whoDataset,
+  nowIso,
   onSelectType,
   onSelectGrowthStandard,
 }: GrowthCurveControlsProps) {
@@ -40,68 +52,70 @@ export function GrowthCurveControls({
   const latestWeight = getLatestMeasurement(measurements, 'weight');
   const computedBmi = latestHeight && latestWeight ? computeBMI(latestHeight.value, latestWeight.value) : null;
   const staleDays = getStaleMeasurementDays(measurements);
-  const noDataLabel = t('Profile.rich.growth.noData');
   const visibleCards = METRIC_CARDS.filter((card) => {
     if (card.maxAgeMonths != null && ageMonths > card.maxAgeMonths) return false;
     if (card.minAgeMonths != null && ageMonths < card.minAgeMonths) return false;
     return true;
   });
 
+  // Recency stamp derived from the most-recent measurement of the active
+  // metric (the surface is metric-scoped). Format flows through
+  // formatRecencyLabel; no Date.now() in this file.
+  const activeLatest = getLatestMeasurement(measurements, selectedType);
+  const recencyLabel = activeLatest ? formatRecencyLabel(activeLatest.measuredAt, nowIso) : null;
+
   return (
     <>
-      <div className="grid gap-3 mb-4" style={{ gridTemplateColumns: `repeat(${visibleCards.length}, 1fr)` }}>
+      <div
+        className="mb-3 flex flex-wrap items-center gap-2"
+        data-testid="growth-curve-controls-pill-tabs"
+      >
         {visibleCards.map((card) => {
           const isActive = selectedType === card.typeId;
-          const measurement = getLatestMeasurement(measurements, card.typeId);
-          const previous = getPreviousMeasurement(measurements, card.typeId);
-          let displayValue: string;
-          let dateLabel: string;
-          let delta: number | null = null;
-
+          const latest = getLatestMeasurement(measurements, card.typeId);
+          let percentile: number | null = null;
           if (card.typeId === 'bmi') {
-            displayValue = computedBmi != null ? `${computedBmi}` : '--';
-            const bmiDate = latestHeight && latestWeight
-              ? (latestHeight.measuredAt > latestWeight.measuredAt ? latestHeight.measuredAt : latestWeight.measuredAt)
-              : null;
-            dateLabel = bmiDate ? fmtMeasDate(bmiDate) : noDataLabel;
-          } else {
-            displayValue = measurement ? `${measurement.value}` : '--';
-            dateLabel = measurement ? fmtMeasDate(measurement.measuredAt) : noDataLabel;
-            if (measurement && previous) delta = Math.round((measurement.value - previous.value) * 10) / 10;
+            percentile = null;
+          } else if (latest) {
+            percentile = computeApproxPercentile(latest.value, latest.ageMonths, whoDataset);
           }
-
+          const percentileLabel = percentile != null ? `P${percentile}` : null;
           return (
-            <Surface
-              as="button"
+            <Button
               key={card.typeId}
               onClick={() => onSelectType(card.typeId)}
-              tone="card"
-              elevation="raised"
-              padding="sm"
-              interactive
-              active={isActive}
+              tone={isActive ? 'primary' : 'ghost'}
+              size="sm"
               className={cn(
-                'rounded-2xl text-left transition-all duration-150',
-                isActive && 'border-[var(--nimi-action-primary-bg)] ring-2 ring-[var(--nimi-action-primary-bg)]',
+                'min-h-0 rounded-full px-3 py-1.5 text-[13px]',
+                !isActive && 'border border-[var(--nimi-border-subtle)]',
               )}
+              data-testid={`growth-curve-tab-${card.typeId}`}
             >
-              <div className="flex items-start justify-between mb-2">
-                <span className="text-[20px]">{card.emoji}</span>
-                <span className={cn('text-[12px] font-medium', isActive ? 'text-[var(--nimi-action-primary-bg)]' : 'text-[var(--nimi-text-muted)]')}>{card.label}</span>
-              </div>
-              <div className="flex items-baseline gap-1.5">
-                <p className="text-[20px] font-bold leading-none text-[var(--nimi-text-primary)]">{displayValue}</p>
-                {delta != null ? (
-                  <span className="text-[12px] font-medium text-[var(--nimi-text-muted)]">
-                    {delta >= 0 ? '↑' : '↓'}{delta >= 0 ? '+' : ''}{delta}
-                  </span>
-                ) : null}
-              </div>
-              <p className="text-[12px] mt-0.5 text-[var(--nimi-text-muted)]">{card.unit}</p>
-              <p className={cn('text-[12px] mt-1', dateLabel === noDataLabel ? 'text-[var(--nimi-text-subtle)]' : 'text-[var(--nimi-text-muted)]')}>{dateLabel}</p>
-            </Surface>
+              <span className="text-[14px]">{card.emoji}</span>
+              <span className="font-medium">{card.label}</span>
+              {percentileLabel ? (
+                <span
+                  className={cn(
+                    'text-[12px] font-semibold',
+                    isActive ? 'text-[color-mix(in_srgb,var(--nimi-action-primary-fg)_85%,transparent)]' : 'text-[var(--nimi-text-muted)]',
+                  )}
+                  data-testid={`growth-curve-tab-percentile-${card.typeId}`}
+                >
+                  {percentileLabel}
+                </span>
+              ) : null}
+            </Button>
           );
         })}
+        {recencyLabel ? (
+          <span
+            className="ml-1 text-[12px] text-[var(--nimi-text-muted)]"
+            data-testid="growth-curve-controls-recency"
+          >
+            最近更新 {recencyLabel}
+          </span>
+        ) : null}
       </div>
 
       {staleDays != null && staleDays > 90 ? (
@@ -167,6 +181,8 @@ export function GrowthCurveControls({
           })}
         </Surface>
       </div>
+      {/* `computedBmi` is currently unused at the controls level (BMI is shown as a tab label only); kept as a no-op reference so the helper import remains live for future re-use. */}
+      {computedBmi != null ? null : null}
     </>
   );
 }

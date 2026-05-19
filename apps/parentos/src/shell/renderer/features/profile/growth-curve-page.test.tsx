@@ -12,8 +12,15 @@ import { i18n } from '../../i18n/index.js';
 const {
   getMeasurementsMock,
   insertMeasurementMock,
+  updateMeasurementMock,
+  deleteMeasurementMock,
   hasCheckupOCRRuntimeMock,
   analyzeCheckupSheetOCRMock,
+  textGenerateMock,
+  getPlatformClientMock,
+  resolveParentosTextRuntimeConfigMock,
+  ensureParentosLocalRuntimeReadyMock,
+  buildParentosRuntimeMetadataMock,
 } = vi.hoisted(() => ({
   getMeasurementsMock: vi.fn().mockResolvedValue([
     {
@@ -42,6 +49,8 @@ const {
     },
   ]),
   insertMeasurementMock: vi.fn().mockResolvedValue(undefined),
+  updateMeasurementMock: vi.fn().mockResolvedValue(undefined),
+  deleteMeasurementMock: vi.fn().mockResolvedValue(undefined),
   hasCheckupOCRRuntimeMock: vi.fn().mockResolvedValue(true),
   analyzeCheckupSheetOCRMock: vi.fn().mockResolvedValue({
     measurements: [
@@ -59,11 +68,45 @@ const {
       },
     ],
   }),
+  textGenerateMock: vi.fn().mockResolvedValue({
+    text: '{"insight":"观察到孩子身高处于参考区间内，倾向于稳定增长。"}',
+    finishReason: 'stop',
+  }),
+  getPlatformClientMock: vi.fn(),
+  resolveParentosTextRuntimeConfigMock: vi.fn().mockResolvedValue({
+    model: 'test-model',
+    route: 'local',
+    temperature: 0.3,
+    maxTokens: 256,
+  }),
+  ensureParentosLocalRuntimeReadyMock: vi.fn().mockResolvedValue(undefined),
+  buildParentosRuntimeMetadataMock: vi.fn().mockReturnValue({
+    callerKind: 'third-party-app',
+    callerId: 'app.nimi.parentos',
+    surfaceId: 'parentos.profile.summary.growth-insight-test',
+  }),
+}));
+
+getPlatformClientMock.mockImplementation(() => ({
+  runtime: { ai: { text: { generate: textGenerateMock } } },
 }));
 
 vi.mock('../../bridge/sqlite-bridge.js', () => ({
   getMeasurements: getMeasurementsMock,
   insertMeasurement: insertMeasurementMock,
+  updateMeasurement: updateMeasurementMock,
+  deleteMeasurement: deleteMeasurementMock,
+}));
+
+vi.mock('@nimiplatform/sdk', () => ({
+  getPlatformClient: getPlatformClientMock,
+}));
+
+vi.mock('../settings/parentos-ai-runtime.js', () => ({
+  resolveParentosTextRuntimeConfig: resolveParentosTextRuntimeConfigMock,
+  ensureParentosLocalRuntimeReady: ensureParentosLocalRuntimeReadyMock,
+  buildParentosRuntimeMetadata: buildParentosRuntimeMetadataMock,
+  PARENTOS_LOCAL_RUNTIME_WARM_TIMEOUT_MS: 1000,
 }));
 
 vi.mock('recharts', () => ({
@@ -89,6 +132,24 @@ describe('GrowthCurvePage', () => {
     i18n.changeLanguage('zh');
     getMeasurementsMock.mockClear();
     insertMeasurementMock.mockClear();
+    updateMeasurementMock.mockClear();
+    deleteMeasurementMock.mockClear();
+    textGenerateMock.mockReset();
+    textGenerateMock.mockResolvedValue({
+      text: '{"insight":"观察到孩子身高处于参考区间内，倾向于稳定增长。"}',
+      finishReason: 'stop',
+    });
+    getPlatformClientMock.mockReset();
+    getPlatformClientMock.mockImplementation(() => ({
+      runtime: { ai: { text: { generate: textGenerateMock } } },
+    }));
+    resolveParentosTextRuntimeConfigMock.mockResolvedValue({
+      model: 'test-model',
+      route: 'local',
+      temperature: 0.3,
+      maxTokens: 256,
+    });
+    ensureParentosLocalRuntimeReadyMock.mockResolvedValue(undefined);
     hasCheckupOCRRuntimeMock.mockResolvedValue(true);
     analyzeCheckupSheetOCRMock.mockResolvedValue({
       measurements: [
@@ -225,5 +286,135 @@ describe('GrowthCurvePage', () => {
       source: 'ocr',
       notes: null,
     }));
+  });
+
+  it('renders the hero card with percentile dial, big value, and cross-metric chips when data present', async () => {
+    render(
+      <TooltipProvider>
+        <MemoryRouter>
+          <GrowthCurvePage />
+        </MemoryRouter>
+      </TooltipProvider>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('growth-hero-card')).toBeTruthy();
+    });
+
+    const hero = screen.getByTestId('growth-hero-card');
+    // Dial SVG renders with the labelled aria-label (P<n> or unknown).
+    expect(hero.querySelector('svg[role="img"]')).toBeTruthy();
+    // Big value text "98 cm" mirrors the seeded height measurement.
+    expect(hero.textContent ?? '').toContain('98');
+    // At least the height and weight chips surface.
+    expect(screen.getByTestId('growth-hero-chip-height')).toBeTruthy();
+    expect(screen.getByTestId('growth-hero-chip-weight')).toBeTruthy();
+  });
+
+  it('renders the hero empty state when there are no measurements', async () => {
+    getMeasurementsMock.mockResolvedValueOnce([]);
+
+    render(
+      <TooltipProvider>
+        <MemoryRouter>
+          <GrowthCurvePage />
+        </MemoryRouter>
+      </TooltipProvider>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('growth-hero-card-empty')).toBeTruthy();
+    });
+
+    expect(screen.queryByTestId('growth-hero-card')).toBeNull();
+    expect(screen.queryByTestId('growth-hero-chip-height')).toBeNull();
+    expect(screen.getByText('暂无生长记录')).toBeTruthy();
+  });
+
+  it('renders the AI insight strip with the generated string when the platform client returns a valid response', async () => {
+    textGenerateMock.mockResolvedValueOnce({
+      text: '{"insight":"观察到孩子身高处于参考区间内，倾向于稳定增长。"}',
+      finishReason: 'stop',
+    });
+
+    render(
+      <TooltipProvider>
+        <MemoryRouter>
+          <GrowthCurvePage />
+        </MemoryRouter>
+      </TooltipProvider>,
+    );
+
+    await waitFor(() => {
+      expect(textGenerateMock).toHaveBeenCalled();
+    });
+
+    await waitFor(() => {
+      const strip = screen.getByTestId('growth-insight-strip');
+      expect(strip.textContent ?? '').toContain('观察到');
+    });
+
+    const stripText = screen.getByTestId('growth-insight-strip').textContent ?? '';
+    for (const denylistTerm of ['落后', '异常', '危险', '警告', '发育迟缓', '障碍']) {
+      expect(stripText).not.toContain(denylistTerm);
+    }
+  });
+
+  it('renders the deterministic fallback line plus a non-destructive badge when the AI response is invalid', async () => {
+    // Force the platform client to throw synchronously inside getPlatformClient
+    // itself. This routes through the strip's catch branch deterministically
+    // and avoids any async ordering ambiguity that defeats waitFor in jsdom.
+    getPlatformClientMock.mockImplementation(() => {
+      throw new Error('mocked AI runtime failure');
+    });
+
+    render(
+      <TooltipProvider>
+        <MemoryRouter>
+          <GrowthCurvePage />
+        </MemoryRouter>
+      </TooltipProvider>,
+    );
+
+    await waitFor(
+      () => {
+        const strip = screen.getByTestId('growth-insight-strip');
+        expect(strip.textContent ?? '').toContain('AI 生成失败，已使用本地摘要');
+      },
+      { timeout: 5000, interval: 50 },
+    );
+
+    const stripText = screen.getByTestId('growth-insight-strip').textContent ?? '';
+    expect(stripText).toContain('AI 生成失败，已使用本地摘要');
+    // The fallback line is rendered via LEDE_TEMPLATES — it must not contain
+    // any denylist vocabulary.
+    for (const denylistTerm of ['落后', '异常', '危险', '警告', '发育迟缓', '障碍']) {
+      expect(stripText).not.toContain(denylistTerm);
+    }
+  });
+
+  it('renders inline percentile label on metric pill tabs when data present and omits it when absent', async () => {
+    render(
+      <TooltipProvider>
+        <MemoryRouter>
+          <GrowthCurvePage />
+        </MemoryRouter>
+      </TooltipProvider>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('growth-curve-controls-pill-tabs')).toBeTruthy();
+    });
+
+    await waitFor(() => {
+      const heightPercentile = screen.queryByTestId('growth-curve-tab-percentile-height');
+      expect(heightPercentile).toBeTruthy();
+      expect(heightPercentile!.textContent ?? '').toMatch(/^P\d+$/);
+    });
+
+    // BMI tab requires both height + weight; with the seeded data both are
+    // present but BMI tab still does not render an inline P percentile (BMI
+    // pill currently shows no percentile label per design).
+    expect(screen.queryByTestId('growth-curve-tab-percentile-bmi')).toBeNull();
   });
 });

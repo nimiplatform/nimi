@@ -106,10 +106,10 @@ export function GrowthCurveChartPanel({
             const hasBands = canShowWhoLines && whoDataset;
             return (
               <ResponsiveContainer width="100%" height={340}>
-                <ComposedChart data={merged} margin={{ top: 10, right: 38, bottom: 28, left: 2 }}>
+                <ComposedChart data={merged} margin={{ top: 10, right: 64, bottom: 28, left: 2 }}>
                   <defs>
                     <linearGradient id="gc-user-grad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor={userColor} stopOpacity={0.18} />
+                      <stop offset="0%" stopColor={userColor} stopOpacity={0.22} />
                       <stop offset="100%" stopColor={userColor} stopOpacity={0.02} />
                     </linearGradient>
                   </defs>
@@ -221,12 +221,91 @@ export function GrowthCurveChartPanel({
                     stroke={userColor}
                     strokeWidth={2.5}
                     dot={(props: unknown) => {
-                      const { cx, cy, value } = props as { cx: number; cy: number; value: unknown };
+                      const { cx, cy, value, index, payload } = props as {
+                        cx: number;
+                        cy: number;
+                        value: unknown;
+                        index: number;
+                        payload: MergedPoint;
+                      };
                       if (value == null || typeof cx !== 'number' || typeof cy !== 'number') return <g />;
-                      return (
+                      const userPoints = merged.filter((point) => point.value != null);
+                      const lastUserPoint = userPoints[userPoints.length - 1];
+                      const isLastUserPoint = lastUserPoint != null && payload?.age === lastUserPoint.age;
+                      const dot = (
                         <g>
                           <circle cx={cx} cy={cy} r={6} fill={userColor} opacity={0.12} />
                           <circle cx={cx} cy={cy} r={3.5} fill="var(--nimi-surface-card)" stroke={userColor} strokeWidth={2} />
+                        </g>
+                      );
+                      if (!isLastUserPoint) return dot;
+                      const pct = getPercentileHint(value as number, {
+                        p3: payload?.p3,
+                        p10: payload?.p10,
+                        p25: payload?.p25,
+                        p50: payload?.p50,
+                        p75: payload?.p75,
+                        p90: payload?.p90,
+                        p97: payload?.p97,
+                      });
+                      const ageLabel = formatAgeLabel(payload?.age ?? 0);
+                      const dateLabel = payload?.date ? ` · ${payload.date}` : '';
+                      const lineOne = `${ageLabel}${dateLabel}`;
+                      const lineTwo = `${value} ${typeInfo?.unit ?? ''}${pct ? ` · ${pct.text}` : ''}`;
+                      // Auto-flip left/up to stay inside chart viewport.
+                      const flipUp = cy < 60;
+                      const flipLeft = cx > 220; // chart inner width ~ 320-360px
+                      const calloutW = 168;
+                      const calloutH = 44;
+                      const padX = 10;
+                      const padY = 14;
+                      const calloutX = flipLeft ? cx - calloutW - padX : cx + padX;
+                      const calloutY = flipUp ? cy + padY : cy - calloutH - padY;
+                      const pointerX = flipLeft ? cx - padX + 2 : cx + padX - 2;
+                      const pointerY = flipUp ? cy + padY : cy - padY;
+                      void index; // referenced for prop-typing; logic uses payload identity
+                      return (
+                        <g>
+                          {dot}
+                          <g pointerEvents="none">
+                            <line
+                              x1={cx}
+                              y1={cy}
+                              x2={pointerX}
+                              y2={pointerY}
+                              stroke="var(--nimi-text-primary)"
+                              strokeWidth={1}
+                              opacity={0.55}
+                            />
+                            <rect
+                              x={calloutX}
+                              y={calloutY}
+                              rx={8}
+                              ry={8}
+                              width={calloutW}
+                              height={calloutH}
+                              fill="var(--nimi-text-primary)"
+                              opacity={0.92}
+                            />
+                            <text
+                              x={calloutX + 10}
+                              y={calloutY + 16}
+                              fontSize={11}
+                              fill="var(--nimi-surface-card)"
+                              opacity={0.75}
+                            >
+                              {lineOne}
+                            </text>
+                            <text
+                              x={calloutX + 10}
+                              y={calloutY + 32}
+                              fontSize={12}
+                              fontWeight={600}
+                              fill="var(--nimi-surface-card)"
+                            >
+                              {lineTwo}
+                            </text>
+                          </g>
                         </g>
                       );
                     }}
