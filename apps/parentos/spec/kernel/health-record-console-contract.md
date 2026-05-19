@@ -221,6 +221,11 @@ health-record write from a detail surface must route through PO-CAPT, or through
 an explicitly retained owner contract for non-folded stateful domains such as
 vaccines, milestones, allergies, and orthodontic entities.
 
+See also `growth-curve-detail-contract.md#PO-GROWTH-DETAIL-001` for the
+`/profile/growth` detail-surface contract; that contract consumes
+PO-HREC and PO-CAPT by reference and does not modify the PO-HREC
+projection or write-path boundary.
+
 ## PO-HREC-008 Profile Contract Disposition
 
 The old profile index section-summary contract is replaced:

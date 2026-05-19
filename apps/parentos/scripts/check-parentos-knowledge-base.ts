@@ -331,6 +331,55 @@ for (const ruleId of recordDataRules.keys()) {
 }
 pass(`Validated ${healthMetricIds.size} health metrics, ${healthProtocolById.size} capture protocols, ${healthEvaluationPolicyIds.size} evaluation policies, and ${recordDataRules.size} record_data reminder targets`);
 
+console.log('\n--- growth-milestone-rules.yaml constraints ---');
+
+interface GrowthMilestoneRuleRow {
+  ruleId: string;
+  kind?: string;
+  appliesToMetricIds?: string[];
+  triggerCondition?: { evidenceWindowMonths?: number };
+}
+
+const growthMilestoneData = parseYaml(
+  readFileSync(resolve(TABLES, 'growth-milestone-rules.yaml'), 'utf-8'),
+) as { rules?: GrowthMilestoneRuleRow[] };
+
+const GROWTH_MILESTONE_RULE_ID_PATTERN = /^growth-milestone-[a-z0-9-]+$/;
+const GROWTH_MILESTONE_EVIDENCE_WINDOW_MONTHS_MIN = 1;
+const GROWTH_MILESTONE_EVIDENCE_WINDOW_MONTHS_MAX = 24;
+const growthMilestoneRuleIds = new Set<string>();
+
+for (const rule of growthMilestoneData.rules ?? []) {
+  if (!rule.ruleId) {
+    fail('growth-milestone-rules.yaml rule is missing ruleId');
+    continue;
+  }
+  if (!GROWTH_MILESTONE_RULE_ID_PATTERN.test(rule.ruleId)) {
+    fail(`growth-milestone-rules.yaml ruleId ${rule.ruleId} does not match ${GROWTH_MILESTONE_RULE_ID_PATTERN}`);
+  }
+  if (growthMilestoneRuleIds.has(rule.ruleId)) {
+    fail(`Duplicate growth-milestone ruleId: ${rule.ruleId}`);
+  }
+  growthMilestoneRuleIds.add(rule.ruleId);
+  for (const metricId of rule.appliesToMetricIds ?? []) {
+    if (!healthMetricIds.has(metricId)) {
+      fail(`growth-milestone-rules.yaml rule ${rule.ruleId} references unknown metricId ${metricId}`);
+    }
+  }
+  const evidenceWindowMonths = rule.triggerCondition?.evidenceWindowMonths;
+  if (typeof evidenceWindowMonths !== 'number') {
+    fail(`growth-milestone-rules.yaml rule ${rule.ruleId} triggerCondition.evidenceWindowMonths must be a number`);
+  } else if (
+    evidenceWindowMonths < GROWTH_MILESTONE_EVIDENCE_WINDOW_MONTHS_MIN ||
+    evidenceWindowMonths > GROWTH_MILESTONE_EVIDENCE_WINDOW_MONTHS_MAX
+  ) {
+    fail(
+      `growth-milestone-rules.yaml rule ${rule.ruleId} triggerCondition.evidenceWindowMonths ${evidenceWindowMonths} is outside admitted range [${GROWTH_MILESTONE_EVIDENCE_WINDOW_MONTHS_MIN}, ${GROWTH_MILESTONE_EVIDENCE_WINDOW_MONTHS_MAX}]`,
+    );
+  }
+}
+pass(`Validated growth-milestone-rules constraints for ${growthMilestoneData.rules?.length ?? 0} rules`);
+
 console.log('\n--- reference-data-assets.yaml constraints ---');
 const referenceAssetData = readTableYaml('reference-data-assets.yaml') as {
   assets?: Array<{
@@ -507,6 +556,7 @@ const genFiles: Array<{ source: KnowledgeSourceRef; gen: string; root?: string }
   { source: { kind: 'table', file: 'health-evaluation-rules.yaml' }, gen: 'health-record.gen.ts' },
   { source: { kind: 'table', file: 'health-capture-protocols.yaml' }, gen: 'health-record.gen.ts' },
   { source: { kind: 'table', file: 'reminder-capture-targets.yaml' }, gen: 'health-record.gen.ts' },
+  { source: { kind: 'table', file: 'growth-milestone-rules.yaml' }, gen: 'growth-milestone-rules.gen.ts' },
 ];
 
 for (const { source, gen, root } of genFiles) {

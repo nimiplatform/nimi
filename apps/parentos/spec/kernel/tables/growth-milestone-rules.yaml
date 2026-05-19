@@ -1,0 +1,151 @@
+version: 1
+# Admitted by `apps/parentos/spec/kernel/growth-curve-detail-contract.md#PO-GROWTH-DETAIL-002`.
+# Wave-0 of topic `2026-05-18-parentos-growth-curve-page-redesign`.
+#
+# This table is the only authority for growth milestone-event derivation
+# semantics. The renderer reads only the generated TypeScript constants
+# emitted from this file by `scripts/generate-knowledge-base.ts` and must
+# not inline its own thresholds, percentile-shift magnitudes, or density
+# windows.
+#
+# This table defines NO metric ids. Every `appliesToMetricIds[j]` is a
+# foreign key into `tables/health-metric-registry.yaml#metrics[].metricId`.
+# The runner constraint `appliesToMetricIdsMustResolveInHealthMetricRegistry`
+# is enforced by `scripts/check-parentos-knowledge-base.ts`.
+constraints:
+  ruleIdPattern: "^growth-milestone-[a-z0-9-]+$"
+  uniqueRuleId: true
+  appliesToMetricIdsMustResolveInHealthMetricRegistry: true
+  evidenceWindowMonths:
+    min: 1
+    max: 24
+rules:
+  - ruleId: growth-milestone-height-threshold-100cm
+    kind: threshold_crossed
+    appliesToMetricIds: [growth.height]
+    triggerCondition:
+      type: threshold_cross
+      thresholdValue: 100
+      thresholdUnit: cm
+      direction: upward
+      evidenceWindowMonths: 12
+    titleTemplate: "突破 {thresholdValue} {thresholdUnit}"
+    deltaMagnitudeTemplate: "+{deltaSinceLastYearRounded}"
+    deltaUnitLabel: "CM · 12 月"
+  - ruleId: growth-milestone-height-threshold-110cm
+    kind: threshold_crossed
+    appliesToMetricIds: [growth.height]
+    triggerCondition:
+      type: threshold_cross
+      thresholdValue: 110
+      thresholdUnit: cm
+      direction: upward
+      evidenceWindowMonths: 12
+    titleTemplate: "突破 {thresholdValue} {thresholdUnit}"
+    deltaMagnitudeTemplate: "+{deltaSinceLastYearRounded}"
+    deltaUnitLabel: "CM · 12 月"
+  - ruleId: growth-milestone-height-threshold-120cm
+    kind: threshold_crossed
+    appliesToMetricIds: [growth.height]
+    triggerCondition:
+      type: threshold_cross
+      thresholdValue: 120
+      thresholdUnit: cm
+      direction: upward
+      evidenceWindowMonths: 12
+    titleTemplate: "突破 {thresholdValue} {thresholdUnit}"
+    deltaMagnitudeTemplate: "+{deltaSinceLastYearRounded}"
+    deltaUnitLabel: "CM · 12 月"
+  - ruleId: growth-milestone-height-threshold-130cm
+    kind: threshold_crossed
+    appliesToMetricIds: [growth.height]
+    triggerCondition:
+      type: threshold_cross
+      thresholdValue: 130
+      thresholdUnit: cm
+      direction: upward
+      evidenceWindowMonths: 12
+    titleTemplate: "突破 {thresholdValue} {thresholdUnit}"
+    deltaMagnitudeTemplate: "+{deltaSinceLastYearRounded}"
+    deltaUnitLabel: "CM · 12 月"
+  - ruleId: growth-milestone-height-threshold-140cm
+    kind: threshold_crossed
+    appliesToMetricIds: [growth.height]
+    triggerCondition:
+      type: threshold_cross
+      thresholdValue: 140
+      thresholdUnit: cm
+      direction: upward
+      evidenceWindowMonths: 12
+    titleTemplate: "突破 {thresholdValue} {thresholdUnit}"
+    deltaMagnitudeTemplate: "+{deltaSinceLastYearRounded}"
+    deltaUnitLabel: "CM · 12 月"
+  - ruleId: growth-milestone-height-threshold-150cm
+    kind: threshold_crossed
+    appliesToMetricIds: [growth.height]
+    triggerCondition:
+      type: threshold_cross
+      thresholdValue: 150
+      thresholdUnit: cm
+      direction: upward
+      evidenceWindowMonths: 12
+    titleTemplate: "突破 {thresholdValue} {thresholdUnit}"
+    deltaMagnitudeTemplate: "+{deltaSinceLastYearRounded}"
+    deltaUnitLabel: "CM · 12 月"
+  - ruleId: growth-milestone-height-threshold-160cm
+    kind: threshold_crossed
+    appliesToMetricIds: [growth.height]
+    triggerCondition:
+      type: threshold_cross
+      thresholdValue: 160
+      thresholdUnit: cm
+      direction: upward
+      evidenceWindowMonths: 12
+    titleTemplate: "突破 {thresholdValue} {thresholdUnit}"
+    deltaMagnitudeTemplate: "+{deltaSinceLastYearRounded}"
+    deltaUnitLabel: "CM · 12 月"
+  - ruleId: growth-milestone-height-threshold-170cm
+    kind: threshold_crossed
+    appliesToMetricIds: [growth.height]
+    triggerCondition:
+      type: threshold_cross
+      thresholdValue: 170
+      thresholdUnit: cm
+      direction: upward
+      evidenceWindowMonths: 12
+    titleTemplate: "突破 {thresholdValue} {thresholdUnit}"
+    deltaMagnitudeTemplate: "+{deltaSinceLastYearRounded}"
+    deltaUnitLabel: "CM · 12 月"
+  - ruleId: growth-milestone-percentile-shift-up
+    kind: percentile_shift
+    appliesToMetricIds: [growth.height, growth.weight]
+    triggerCondition:
+      type: percentile_shift
+      minMagnitudePoints: 5
+      direction: upward
+      evidenceWindowMonths: 12
+    titleTemplate: "从 P{startPercentile} 升至 P{endPercentile}"
+    deltaMagnitudeTemplate: "↑{magnitudePoints}"
+    deltaUnitLabel: "PCT · 跃升"
+  - ruleId: growth-milestone-percentile-shift-down
+    kind: percentile_shift
+    appliesToMetricIds: [growth.height, growth.weight]
+    triggerCondition:
+      type: percentile_shift
+      minMagnitudePoints: 5
+      direction: downward
+      evidenceWindowMonths: 12
+    titleTemplate: "从 P{startPercentile} 降至 P{endPercentile}"
+    deltaMagnitudeTemplate: "↓{magnitudePoints}"
+    deltaUnitLabel: "PCT · 回落"
+  - ruleId: growth-milestone-measurement-density-spike
+    kind: measurement_density
+    appliesToMetricIds: [growth.height, growth.weight, growth.head_circumference]
+    triggerCondition:
+      type: measurement_density
+      windowDays: 1
+      minCount: 5
+      evidenceWindowMonths: 3
+    titleTemplate: "近三个月密集测量"
+    deltaMagnitudeTemplate: "{count}"
+    deltaUnitLabel: "条 · 测量"

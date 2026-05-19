@@ -46,6 +46,17 @@ export type {
 export { KNOWLEDGE_ASSET_PROJECTION_FINGERPRINTS } from './gen/knowledge-asset-fingerprints.gen.js';
 export type { KnowledgeAssetProjectionFingerprint } from './gen/knowledge-asset-fingerprints.gen.js';
 
+export { GROWTH_MILESTONE_RULES, GROWTH_MILESTONE_RULE_IDS } from './gen/growth-milestone-rules.gen.js';
+export type {
+  GrowthMilestoneRule,
+  GrowthMilestoneRuleId,
+  GrowthMilestoneRuleKind,
+  GrowthMilestoneTriggerCondition,
+  GrowthMilestoneThresholdCrossedTrigger,
+  GrowthMilestonePercentileShiftTrigger,
+  GrowthMilestoneMeasurementDensityTrigger,
+} from './gen/growth-milestone-rules.gen.js';
+
 export {
   HEALTH_METRIC_GROUPS,
   HEALTH_METRICS,

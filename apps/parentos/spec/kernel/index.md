@@ -12,6 +12,7 @@ Normative surfaces:
 - `reminder-interaction-contract.md` for the reminder kind taxonomy, per-kind progression state machines, explain authoring contract, action enumeration, and advisor consultation writeback
 - `health-record-console-contract.md` for the `/profile` first-screen health record console, metric registry consumption, latest-status projection, evaluation semantics, freshness, and next-record display
 - `capture-orchestrator-contract.md` for the unified add-data modal, typed capture intent, protocol-driven fields, save transaction, and reminder-linked completion
+- `growth-curve-detail-contract.md` for the `/profile/growth` detail surface projection, bounded inline AI insight, Add CTA prop threading into PO-CAPT, next-check reminder branch selection, history export, and milestone derivation consumption
 - `profile-contract.md` for child profile and health-record surfaces
 - `kit-ui-consumption-contract.md` for ParentOS-specific `@nimiplatform/nimi-kit/ui` adoption, app-owned composition boundaries, and renderer design hard gates
 - `journal-contract.md` for journaling, voice capture, and closed-set tag suggestion
@@ -23,6 +24,7 @@ Normative surfaces:
 - `tables/health-evaluation-rules.yaml` for non-diagnostic health evaluation status semantics and rule references
 - `tables/health-capture-protocols.yaml` for unified capture protocols and required metric sets
 - `tables/reminder-capture-targets.yaml` for canonical `record_data` reminder to capture-protocol bindings
+- `tables/growth-milestone-rules.yaml` for admitted growth milestone-event derivation rules (threshold-crossed, percentile-shift, measurement-density) consumed by `growth-curve-detail-contract.md`
 - `tables/reference-data-assets.yaml` for the admitted knowledge asset registry
 - `tables/dashboard-task-catalog.yaml` for the dashboard task orchestration catalog consumed by `timeline-contract.md#PO-TIME-010`
 - `tables/nimi-kit-adoption.yaml` for concrete ParentOS governed renderer modules consuming `@nimiplatform/nimi-kit/ui`

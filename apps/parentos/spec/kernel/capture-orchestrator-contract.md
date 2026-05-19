@@ -54,6 +54,12 @@ CaptureIntent {
 The orchestrator must reject an intent whose protocol or metric ids do not
 resolve in canonical tables.
 
+See also `growth-curve-detail-contract.md#PO-GROWTH-DETAIL-004` for how
+the `/profile/growth` Add CTA threads `initialGroupId` and
+`initialMetricId` into `HealthCaptureModal`; the orchestrator's internal
+intent construction at protocol-selection time is unchanged and the
+`origin` enum is not modified.
+
 ## PO-CAPT-002 Modes
 
 The modal supports exactly these modes:

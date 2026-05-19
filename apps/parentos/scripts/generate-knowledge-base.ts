@@ -652,6 +652,35 @@ export const HEALTH_RECORD_DATA_RULE_IDS = ${JSON.stringify(targetRuleIds)} as c
   writeGen('health-record.gen.ts', ts);
 }
 
+// ── growth-milestone-rules ─────────────────────────────────
+
+function generateGrowthMilestoneRules() {
+  const data = readYaml('growth-milestone-rules.yaml') as {
+    rules?: Array<{ ruleId: string; kind: string }>;
+  };
+  const rules = data.rules ?? [];
+  const ruleIds = rules.map((rule) => rule.ruleId);
+  const kinds = [...new Set(rules.map((rule) => rule.kind))].sort();
+  const kindUnion = kinds.length > 0
+    ? kinds.map((kind) => `'${kind}'`).join(' | ')
+    : "'threshold_crossed' | 'percentile_shift' | 'measurement_density'";
+  const ruleIdUnion = ruleIds.length > 0
+    ? ruleIds.map((id) => `'${id}'`).join(' | ')
+    : 'string';
+  const ts = `
+export type GrowthMilestoneRuleKind = ${kindUnion};
+export interface GrowthMilestoneThresholdCrossedTrigger { type: 'threshold_cross'; thresholdValue: number; thresholdUnit: string; direction: 'upward' | 'downward'; evidenceWindowMonths: number; }
+export interface GrowthMilestonePercentileShiftTrigger { type: 'percentile_shift'; minMagnitudePoints: number; direction: 'upward' | 'downward'; evidenceWindowMonths: number; }
+export interface GrowthMilestoneMeasurementDensityTrigger { type: 'measurement_density'; windowDays: number; minCount: number; evidenceWindowMonths: number; }
+export type GrowthMilestoneTriggerCondition = GrowthMilestoneThresholdCrossedTrigger | GrowthMilestonePercentileShiftTrigger | GrowthMilestoneMeasurementDensityTrigger;
+export interface GrowthMilestoneRule { ruleId: string; kind: GrowthMilestoneRuleKind; appliesToMetricIds: readonly string[]; triggerCondition: GrowthMilestoneTriggerCondition; titleTemplate: string; deltaMagnitudeTemplate: string; deltaUnitLabel: string; }
+export const GROWTH_MILESTONE_RULES = ${JSON.stringify(rules, null, 2)} as const;
+export type GrowthMilestoneRuleId = ${ruleIdUnion};
+export const GROWTH_MILESTONE_RULE_IDS = ${JSON.stringify(ruleIds)} as const;
+`;
+  writeGen('growth-milestone-rules.gen.ts', ts);
+}
+
 // -- knowledge asset projection fingerprints -------------------------------
 
 function generateKnowledgeAssetProjectionFingerprints() {
@@ -696,5 +725,6 @@ generateNurtureModes();
 generateKnowledgeSourceReadiness();
 generateDashboardTaskCatalog();
 generateHealthRecordAuthority();
+generateGrowthMilestoneRules();
 generateKnowledgeAssetProjectionFingerprints();
 console.log('Done.');

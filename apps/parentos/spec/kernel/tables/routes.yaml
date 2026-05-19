@@ -2,7 +2,7 @@ routes:
   - path: /timeline
     displayName: "成长时间线"
     feature: timeline
-    description: "主页。展示今日重点、本周安排、阶段关注和逾期摘要。"
+    description: "主页。展示今日重点、本周安排、阶段关注和逾期摘要；通过 ?focus=growth&metric=<healthMetricId> 由 /profile/growth 详情页的下次测量 CTA 深链定位到对应生长指标的复测提醒（按 growth-curve-detail-contract.md#PO-GROWTH-DETAIL-006 deep_link_only 分支）。"
     isDefault: true
     nav: true
     icon: calendar
@@ -30,7 +30,7 @@ routes:
     surfaceKind: health-record-domain-detail
     displayName: "生长曲线"
     feature: profile
-    description: "身高体重头围与其他结构化测量图表。"
+    description: "身高体重头围与其他结构化测量图表；通过 ?metric=<healthMetricId> 深链激活对应指标 tab（按 growth-curve-detail-contract.md#PO-GROWTH-DETAIL-002 GrowthDetailSnapshot 投影消费 health-metric-registry.yaml 中已登记的 growth.* 指标 id）。"
     parent: /profile
     routeKind: detail
     authority: health-record-console-contract.md

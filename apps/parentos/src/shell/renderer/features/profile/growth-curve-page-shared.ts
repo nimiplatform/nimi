@@ -261,3 +261,120 @@ export function getGrowthStandardTooltip(standard: 'china' | 'who'): string {
   }
   return 'WHO Child Growth Standards (2006)\n0-5岁多中心生长参照研究\n\nWHO Growth Reference (2007)\n5-19岁生长参照数据';
 }
+
+// ===== LEDE_TEMPLATES (PO-GROWTH-DETAIL-002 ledeTemplate registry) =====
+//
+// Deterministic lede-paragraph templates consumed by the growth detail
+// projection. Each template returns ≤ 140 Chinese characters and uses
+// descriptive vocabulary only (per parentos AGENTS.md + advisor-contract:
+// "观察到", "倾向于", "处于…水平"; never "异常", "落后", "警告", etc.).
+//
+// All templates take the same `LedeTemplateInputs` shape so the projection
+// can fill them with already-computed display strings without re-deriving.
+
+export type LedeTemplateId =
+  | 'height_steady_above_p50'
+  | 'height_steady_below_p50'
+  | 'height_accelerating'
+  | 'height_decelerating'
+  | 'height_plateau'
+  | 'weight_steady'
+  | 'weight_accelerating'
+  | 'weight_decelerating'
+  | 'bmi_in_range'
+  | 'bmi_above_range'
+  | 'bmi_below_range'
+  | 'head_steady'
+  | 'no_data';
+
+export interface LedeTemplateInputs {
+  currentValueDisplay: string;
+  unit: string;
+  measuredAt: string;
+  yearOverYearDeltaDisplay: string;
+  currentPercentileLabel: string;
+}
+
+export const LEDE_TEMPLATES: Record<LedeTemplateId, (inputs: LedeTemplateInputs) => string> = {
+  height_steady_above_p50: (i) =>
+    `当前身高 ${i.currentValueDisplay}，${i.currentPercentileLabel}，近一年增长 ${i.yearOverYearDeltaDisplay}，处于同龄中等偏上水平，倾向于稳定增长。`,
+  height_steady_below_p50: (i) =>
+    `当前身高 ${i.currentValueDisplay}，${i.currentPercentileLabel}，近一年增长 ${i.yearOverYearDeltaDisplay}，观察到稳定增长节奏，处于同龄中等水平。`,
+  height_accelerating: (i) =>
+    `当前身高 ${i.currentValueDisplay}，${i.currentPercentileLabel}，近一年增长 ${i.yearOverYearDeltaDisplay}，观察到增长速度有所加快。`,
+  height_decelerating: (i) =>
+    `当前身高 ${i.currentValueDisplay}，${i.currentPercentileLabel}，近一年增长 ${i.yearOverYearDeltaDisplay}，观察到增长速度有所放缓，建议持续记录。`,
+  height_plateau: (i) =>
+    `当前身高 ${i.currentValueDisplay}，${i.currentPercentileLabel}，近一年增长 ${i.yearOverYearDeltaDisplay}，倾向于平台期，建议持续记录并咨询专业人士。`,
+  weight_steady: (i) =>
+    `当前体重 ${i.currentValueDisplay}，${i.currentPercentileLabel}，近一年变化 ${i.yearOverYearDeltaDisplay}，倾向于稳定。`,
+  weight_accelerating: (i) =>
+    `当前体重 ${i.currentValueDisplay}，${i.currentPercentileLabel}，近一年变化 ${i.yearOverYearDeltaDisplay}，观察到增重速度有所加快。`,
+  weight_decelerating: (i) =>
+    `当前体重 ${i.currentValueDisplay}，${i.currentPercentileLabel}，近一年变化 ${i.yearOverYearDeltaDisplay}，观察到增重速度有所放缓。`,
+  bmi_in_range: (i) =>
+    `当前 BMI ${i.currentValueDisplay}，${i.currentPercentileLabel}，处于同龄常见范围。`,
+  bmi_above_range: (i) =>
+    `当前 BMI ${i.currentValueDisplay}，${i.currentPercentileLabel}，超出同龄常见范围，建议咨询专业人士。`,
+  bmi_below_range: (i) =>
+    `当前 BMI ${i.currentValueDisplay}，${i.currentPercentileLabel}，低于同龄常见范围，建议咨询专业人士。`,
+  head_steady: (i) =>
+    `当前头围 ${i.currentValueDisplay}，${i.currentPercentileLabel}，近一年变化 ${i.yearOverYearDeltaDisplay}，倾向于稳定增长。`,
+  no_data: () => '尚未记录该指标的数据，添加首次测量后即可生成描述。',
+};
+
+// ===== Formatters =====
+//
+// All formatters are pure and take explicit `nowIso` where current-time
+// context is needed. None of them call `Date.now()`.
+
+export function formatYearOverYearDelta(
+  currentValue: number,
+  priorValue: number | null,
+  unit: string,
+): string {
+  if (priorValue == null) return `— ${unit}`;
+  const delta = Math.round((currentValue - priorValue) * 10) / 10;
+  const sign = delta > 0 ? '+' : delta < 0 ? '−' : '±';
+  const magnitude = Math.abs(delta);
+  return `${sign}${magnitude} ${unit}`;
+}
+
+export function formatDistanceToP50(
+  currentValue: number,
+  p50Value: number | null,
+  unit: string,
+): string {
+  if (p50Value == null) return `— ${unit}`;
+  const delta = Math.round((currentValue - p50Value) * 10) / 10;
+  const sign = delta > 0 ? '+' : delta < 0 ? '−' : '±';
+  const magnitude = Math.abs(delta);
+  return `${sign}${magnitude} ${unit}`;
+}
+
+export function formatPercentileChange6m(
+  currentPercentile: number | null,
+  priorPercentile: number | null,
+): string {
+  if (currentPercentile == null || priorPercentile == null) return '—';
+  const delta = currentPercentile - priorPercentile;
+  if (delta === 0) return '持平';
+  const sign = delta > 0 ? '↑' : '↓';
+  return `${sign}${Math.abs(delta)}`;
+}
+
+export function formatRecencyLabel(
+  measuredAt: string | null,
+  nowIso: string,
+): string | null {
+  if (measuredAt == null) return null;
+  const measuredMs = Date.parse(measuredAt);
+  const nowMs = Date.parse(nowIso);
+  if (Number.isNaN(measuredMs) || Number.isNaN(nowMs)) return null;
+  const diffMs = nowMs - measuredMs;
+  const diffDays = Math.floor(diffMs / 86400000);
+  if (diffDays <= 0) return '今天';
+  if (diffDays < 7) return `${diffDays} 天前`;
+  const weeks = Math.floor(diffDays / 7);
+  return `${weeks} 周前`;
+}
