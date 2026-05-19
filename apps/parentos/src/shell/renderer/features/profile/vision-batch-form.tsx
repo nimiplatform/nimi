@@ -19,7 +19,6 @@ import {
   type ChipOption,
   FormField,
   FormGrid,
-  HEALTH_MODAL_TOKENS,
   HealthRecordModalShell,
   InlineError,
   ModalContent,
@@ -27,8 +26,6 @@ import {
   ModalHeader,
   SectionCard,
 } from './health-record-modal-shell.js';
-
-const NUMBER_INPUT_CLASS = '[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none';
 
 const NOTE_PREFIXES = {
   hospital: '医院: ',
@@ -621,4 +618,3 @@ export function VisionBatchFormContent({ childId, birthDate, onSave, onClose, in
     </>
   );
 }
-
