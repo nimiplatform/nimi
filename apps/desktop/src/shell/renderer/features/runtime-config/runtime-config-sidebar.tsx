@@ -7,7 +7,6 @@ export type RuntimeSidebarProps = {
   activeModelCount: number;
   connectorCount: number;
   healthyConnectorCount: number;
-  modCount: number;
   daemonRunning: boolean;
 };
 
@@ -65,20 +64,6 @@ const ICON_PROFILES = (
   </svg>
 );
 
-const ICON_MODS = (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M14 7h7" />
-    <path d="M14 12h7" />
-    <path d="M14 17h7" />
-    <path d="M3 7h.01" />
-    <path d="M3 12h.01" />
-    <path d="M3 17h.01" />
-    <path d="M6 7h4" />
-    <path d="M6 12h4" />
-    <path d="M6 17h4" />
-  </svg>
-);
-
 const ICON_DATA_MANAGEMENT = (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <ellipse cx="12" cy="5" rx="9" ry="3" /><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" />
@@ -89,12 +74,6 @@ const ICON_DATA_MANAGEMENT = (
 const ICON_PERFORMANCE = (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-  </svg>
-);
-
-const ICON_MOD_DEVELOPER = (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <polyline points="16 18 22 12 16 6" /><polyline points="8 6 2 12 8 18" />
   </svg>
 );
 
@@ -147,12 +126,6 @@ export const RUNTIME_SIDEBAR_ITEMS: Array<{
     icon: ICON_PROFILES,
   },
   {
-    id: 'mods',
-    section: 'Operations',
-    label: 'Mods',
-    icon: ICON_MODS,
-  },
-  {
     id: 'data-management',
     section: 'System',
     label: 'Data Management',
@@ -163,12 +136,6 @@ export const RUNTIME_SIDEBAR_ITEMS: Array<{
     section: 'System',
     label: 'Performance',
     icon: ICON_PERFORMANCE,
-  },
-  {
-    id: 'mod-developer',
-    section: 'System',
-    label: 'Mod Developer',
-    icon: ICON_MOD_DEVELOPER,
   },
 ];
 
@@ -181,9 +148,6 @@ export function getRuntimeSidebarBadge(
   }
   if (item.id === 'cloud') {
     return `${props.healthyConnectorCount}/${props.connectorCount}`;
-  }
-  if (item.id === 'mods' && props.modCount > 0) {
-    return String(props.modCount);
   }
   return null;
 }

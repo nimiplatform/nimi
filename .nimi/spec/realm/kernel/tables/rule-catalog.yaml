@@ -68,10 +68,6 @@ entries:
   - R-SOC-003
   - R-SOC-004
   - R-SOC-005
-  - R-SOC-006
-  - R-SOC-007
-  - R-SOC-008
-  - R-SOC-009
   - R-ECON-001
   - R-ECON-002
   - R-ECON-003
@@ -515,32 +511,8 @@ rules:
   - rule_id: R-SOC-005
     domain: social
     level: must
-    title: official-guide-agentfriend-quota-exception
-    statement: Official guide AgentFriend relationships admitted by R-SOC official seed rows do not count against ordinary AgentFriend quota only when quota_policy=official_guide_exception; the exception must not generalize to ordinary RealmAgents.
-    source: .nimi/spec/realm/kernel/social-contract.md
-  - rule_id: R-SOC-006
-    domain: social
-    level: must
-    title: official-realmagent-seed-authority
-    statement: Realm owns official RealmAgent seed truth; Desktop, Runtime, SDK, and app-local fixtures must not create fake official guides without a Realm official seed.
-    source: .nimi/spec/realm/kernel/social-contract.md
-  - rule_id: R-SOC-007
-    domain: social
-    level: must
-    title: archivist-seed-admitted
-    statement: Archivist / @archivist.nimi is an admitted official RealmAgent seed with official Nimi guide provenance and OASIS/system main World association.
-    source: .nimi/spec/realm/kernel/social-contract.md
-  - rule_id: R-SOC-008
-    domain: social
-    level: must
-    title: official-relationship-provisioning-source
-    statement: Realm owns the official relationship source fact that new registered accounts receive an AgentFriend relationship to admitted official guide seeds when auto_provision.agent_friend=true.
-    source: .nimi/spec/realm/kernel/social-contract.md
-  - rule_id: R-SOC-009
-    domain: social
-    level: must
-    title: official-guide-quota-exception
-    statement: Official guide AgentFriend relationships declared with quota_policy=official_guide_exception do not count against ordinary AgentFriend quota and must remain an explicit exception.
+    title: nimi-guide-agentfriend-is-ordinary
+    statement: Nimi-authored guide agents use the same Realm social mechanics as any ordinary RealmAgent. Their AgentFriend relationships are ordinary Friendship rows and do not create privileged Agent classes, special social schema, hidden quota exceptions, or authority-bearing official-agent status.
     source: .nimi/spec/realm/kernel/social-contract.md
   - rule_id: R-ECON-001
     domain: economy

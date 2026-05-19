@@ -662,35 +662,35 @@ Fixed rules:
 - Default local first-party Avatar must not be forced through this binding
   attachment path solely because Desktop launched it.
 
-## K-AGCORE-139 Official Guide LocalAgent Provisioning
+## K-AGCORE-139 Nimi Guide Ordinary LocalAgent Projection
 
-`RuntimeAgentService` consumes Realm official guide seed and AgentFriend
-projection to provision the user's LocalAgent for admitted official guide
-RealmAgents.
+`RuntimeAgentService` may project the user's Nimi guide LocalAgent only through
+the same ordinary AgentFriend mechanics used for any RealmAgent.
 
-For `Archivist / @archivist.nimi`, Runtime must:
+For the Nimi-authored guide agent, Runtime must:
 
-- consume the Realm seed from `.nimi/spec/realm/kernel/tables/official-agent-seeds.yaml`
-  through admitted Realm/SDK projection, not through Desktop fixtures;
-- require the account's official AgentFriend relationship to exist or be
-  created through the Realm provisioning path;
-- create or repair one account-scoped LocalAgent projection for that
+- consume the ordinary RealmAgent and AgentFriend projection through admitted
+  Realm/SDK projection, not through Desktop fixtures;
+- require the account's ordinary AgentFriend relationship to exist before local
+  projection;
+- create or repair one account-scoped LocalAgent projection for that ordinary
   AgentFriend idempotently;
 - preserve conversation anchor and RuntimeAgentService lifecycle semantics;
 - expose provisioning failures as typed repair/blocked states.
 
-`MUST NOT`: Runtime must not create Archivist as a standalone local-only agent,
-fake contact, server-bot bypass, Avatar instance, or default global agent.
-Quota exception truth remains Realm/social official-guide authority; Runtime may
-consume the exception but may not generalize it.
+`MUST NOT`: Runtime must not create the guide as a standalone local-only agent,
+fake contact, server-bot bypass, Avatar instance, privileged Agent class,
+special official-guide path, quota bypass, or default global agent.
 
-## K-AGCORE-140 Official Guide First Conversation Projection
+## K-AGCORE-140 Nimi Guide Prompt And Documentation Context
 
-When an official guide LocalAgent is provisioned, Runtime may initialize the
-first conversation projection from the Realm official seed first-message floor.
-That projection is welcome copy and onboarding context only.
+When the Nimi guide LocalAgent is available through ordinary AgentFriend
+projection, Runtime may initialize the first conversation from Nimi guide
+welcome copy and may attach built-in Nimi usage documentation as product
+knowledge/context.
 
-`MUST NOT`: first-message projection must not create memory truth, permission
-grant truth, Runtime setup truth, or profile/app configuration truth. Archivist
-may guide the user to product surfaces but cannot bypass setup confirmations,
-permissions, install plans, or app admission.
+`MUST NOT`: prompt/docs context must not create Agent authority, memory truth,
+permission grant truth, Runtime setup truth, or profile/app configuration truth.
+The guide may direct the user to product surfaces but cannot bypass setup
+confirmations, permissions, install plans, app admission, or ordinary LocalAgent
+mechanics.

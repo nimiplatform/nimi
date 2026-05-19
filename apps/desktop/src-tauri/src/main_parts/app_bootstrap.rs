@@ -515,10 +515,8 @@ pub(super) fn normalize_runtime_config_page_id(page_id: Option<&str>) -> Option<
         "cloud" => Some("cloud"),
         "catalog" => Some("catalog"),
         "runtime" => Some("runtime"),
-        "mods" => Some("mods"),
         "data-management" => Some("data-management"),
         "performance" => Some("performance"),
-        "mod-developer" => Some("mod-developer"),
         _ => None,
     }
 }

@@ -815,10 +815,10 @@ rules:
   - rule_id: K-AGCORE-139
     evidence_refs:
       - runtime_kernel_consistency
-    note: Official guide LocalAgent provisioning consumes Realm official seed and AgentFriend projection; implementation evidence lands with Archivist child topic.
+    note: Nimi guide LocalAgent projection consumes ordinary RealmAgent and AgentFriend projection only; implementation evidence lands with the guide bootstrap child topic.
     evidence_requirement: required
   - rule_id: K-AGCORE-140
     evidence_refs:
       - runtime_kernel_consistency
-    note: Official guide first conversation projection is welcome copy only and must not create memory, grant, setup, profile, or app truth.
+    note: Nimi guide prompt and built-in docs are product knowledge/context only and must not create Agent authority, memory, grant, setup, profile, or app truth.
     evidence_requirement: required

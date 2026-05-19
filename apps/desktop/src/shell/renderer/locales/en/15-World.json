@@ -79,6 +79,7 @@
     "avatarImageRequired": "Please choose an image file.",
     "avatarTooLarge": "Avatar image must be 5MB or smaller.",
     "avatarReadFailed": "Failed to read avatar image.",
+    "notAdmitted": "Create Agent is not admitted in this surface.",
     "sections": {
       "identity": "Identity",
       "character": "Character",

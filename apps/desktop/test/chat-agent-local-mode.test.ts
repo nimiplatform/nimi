@@ -61,6 +61,39 @@ test('agent local mode filters social snapshot to agent friends and fails close 
   }, /displayName is required/);
 });
 
+test('agent local mode treats Archivist as an ordinary agent friend target', () => {
+  const targets = toAgentFriendTargetsFromSocialSnapshot({
+    ownerUserId: 'user-1',
+    friends: [
+      {
+        id: 'nimi-guide-archivist',
+        displayName: 'Archivist',
+        handle: '~archivist',
+        isAgent: true,
+        worldId: 'oasis',
+        worldName: 'OASIS',
+        bio: 'Nimi guide agent',
+        ownershipType: 'MASTER_OWNED',
+      },
+    ],
+  });
+
+  assert.deepEqual(targets, [{
+    ownerUserId: 'user-1',
+    realmAgentId: 'nimi-guide-archivist',
+    localAgentRef: 'local-agent:user-1:nimi-guide-archivist',
+    displayName: 'Archivist',
+    handle: '~archivist',
+    avatarUrl: null,
+    presentationProfile: null,
+    worldId: 'oasis',
+    worldName: 'OASIS',
+    bio: 'Nimi guide agent',
+    ownershipType: 'MASTER_OWNED',
+  }]);
+  assert.notEqual(targets[0]?.handle, '@archivist.nimi');
+});
+
 test('agent local mode resolves the selected agent to its existing thread before falling back to last selection', () => {
   const threads: AgentLocalThreadSummary[] = [
     {

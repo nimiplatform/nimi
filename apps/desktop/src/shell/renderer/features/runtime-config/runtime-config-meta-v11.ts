@@ -29,10 +29,6 @@ export const RUNTIME_PAGE_META: Record<RuntimePageIdV11, { name: string; descrip
     name: 'AI Profiles',
     description: 'Browse, create, edit, import and export AI capability profiles.',
   },
-  mods: {
-    name: 'Mods',
-    description: 'Recommended local AI profile setup for registered mods.',
-  },
   'data-management': {
     name: 'Data Management',
     description: 'Storage usage, cache, and account data controls.',
@@ -40,10 +36,6 @@ export const RUNTIME_PAGE_META: Record<RuntimePageIdV11, { name: string; descrip
   performance: {
     name: 'Performance',
     description: 'Rendering preferences, updates, and runtime info.',
-  },
-  'mod-developer': {
-    name: 'Mod Developer',
-    description: 'Developer mode, mod sources, diagnostics, and reload tools.',
   },
 };
 
