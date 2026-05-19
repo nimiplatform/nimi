@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Button, cn, TextField, TextareaField } from '@nimiplatform/nimi-kit/ui';
 import { computeAgeMonthsAt } from '../../app-shell/app-store.js';
-import { insertMeasurement, saveAttachment } from '../../bridge/sqlite-bridge.js';
+import { saveAttachment, saveHealthRecordCapture } from '../../bridge/sqlite-bridge.js';
+import type { SaveHealthRecordCaptureInput } from '../../bridge/sqlite-bridge.js';
 import { isoNow, ulid } from '../../bridge/ulid.js';
 import { bmiLabel, computeBMI } from './growth-curve-page-shared.js';
 import type { LinkedHealthRecordReminder } from './health-capture-orchestrator.js';
@@ -63,35 +64,86 @@ export function GrowthAddRecordContent({
     setSaving(true);
     const linkedReminderStateId = linkedReminder?.stateId ?? null;
     const linkedReminderRuleId = linkedReminder?.ruleId ?? null;
+
+    // Per spec admission of growth_measurement_canonical_migration in
+    // apps/parentos/spec/kernel/tables/local-storage.yaml (wave-0a),
+    // growth writes route directly through saveHealthRecordCapture
+    // (canonical-shape API) rather than through the legacy
+    // insertMeasurement (legacy-shape facade). Each metric becomes one
+    // canonical event with one value, preserving the 1:1 mapping
+    // admitted in wave-0a. BMI is intentionally NOT stored directly —
+    // canonical convention computes derived BMI at read time via
+    // recomputeDerivedHealthRecordValues (parent topic wave-A pattern).
+    type CanonicalMetricSpec = {
+      metricId: string;
+      protocolId: string;
+      unit: string;
+      value: number;
+    };
+    const metricsToWrite: CanonicalMetricSpec[] = [];
+    if (h != null) {
+      metricsToWrite.push({ metricId: 'growth.height', protocolId: 'growth-child-quarterly', unit: 'cm', value: h });
+    }
+    if (w != null) {
+      metricsToWrite.push({ metricId: 'growth.weight', protocolId: 'growth-child-quarterly', unit: 'kg', value: w });
+    }
+    if (hc != null) {
+      metricsToWrite.push({ metricId: 'growth.head_circumference', protocolId: 'growth-infant-monthly', unit: 'cm', value: hc });
+    }
+
+    const recordKind: SaveHealthRecordCaptureInput['recordKind'] = linkedReminderStateId
+      ? 'reminder_linked'
+      : 'manual';
+    const sourceSurface: SaveHealthRecordCaptureInput['sourceSurface'] = linkedReminderStateId
+      ? 'reminder'
+      : 'profile_detail';
+
     try {
-      let photoOwnerId: string | null = null;
-      if (h != null) {
-        const id = ulid();
-        await insertMeasurement({ measurementId: id, childId, typeId: 'height', value: h, measuredAt: formDate, ageMonths: age, percentile: null, source: 'manual', notes, now, linkedReminderStateId, linkedReminderRuleId });
-        photoOwnerId = photoOwnerId ?? id;
-      }
-      if (w != null) {
-        const id = ulid();
-        await insertMeasurement({ measurementId: id, childId, typeId: 'weight', value: w, measuredAt: formDate, ageMonths: age, percentile: null, source: 'manual', notes, now, linkedReminderStateId, linkedReminderRuleId });
-        photoOwnerId = photoOwnerId ?? id;
-      }
-      if (hc != null) {
-        const id = ulid();
-        await insertMeasurement({ measurementId: id, childId, typeId: 'head-circumference', value: hc, measuredAt: formDate, ageMonths: age, percentile: null, source: 'manual', notes, now, linkedReminderStateId, linkedReminderRuleId });
-        photoOwnerId = photoOwnerId ?? id;
-      }
-      if (h != null && w != null) {
-        const bmiValue = computeBMI(h, w);
-        await insertMeasurement({ measurementId: ulid(), childId, typeId: 'bmi', value: bmiValue, measuredAt: formDate, ageMonths: age, percentile: null, source: 'computed', notes: null, now, linkedReminderStateId, linkedReminderRuleId });
+      let firstEventId: string | null = null;
+      for (const metric of metricsToWrite) {
+        const eventId = ulid();
+        const valueId = ulid();
+        const input: SaveHealthRecordCaptureInput = {
+          eventId,
+          childId,
+          protocolId: metric.protocolId,
+          groupId: 'growth',
+          recordKind,
+          sourceSurface,
+          recordedAt: now,
+          effectiveDate: formDate,
+          ageMonths: age,
+          recorderId: null,
+          linkedReminderStateId,
+          linkedReminderRuleId,
+          notes,
+          metadataJson: null,
+          now,
+          values: [
+            {
+              valueId,
+              metricId: metric.metricId,
+              valueNumber: metric.value,
+              valueText: null,
+              valueJson: null,
+              unit: metric.unit,
+              qualifier: null,
+              recordKind: 'measured',
+              sourceValueIds: null,
+            },
+          ],
+        };
+        await saveHealthRecordCapture(input);
+        firstEventId = firstEventId ?? eventId;
       }
 
-      if (photoOwnerId && formPhotos.length > 0) {
+      if (firstEventId && formPhotos.length > 0) {
         for (const photo of formPhotos) {
           await saveAttachment({
             attachmentId: ulid(),
             childId,
-            ownerTable: 'measurements',
-            ownerId: photoOwnerId,
+            ownerTable: 'health_record_events',
+            ownerId: firstEventId,
             fileName: photo.fileName,
             mimeType: photo.mimeType,
             imageBase64: photo.base64,
