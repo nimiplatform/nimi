@@ -12,6 +12,42 @@ import { buildStructuredTrendSignals, type StructuredTrendSignal } from './trend
 
 export type GrowthReportType = 'monthly' | 'quarterly' | 'quarterly-letter' | 'custom';
 
+/**
+ * Keywords that must never become the hero "本月关键词". Two families:
+ *   1. Generic domain/state/time nouns ("成长"、"健康"、"本月"…)
+ *   2. Single discrete events that don't describe the child's monthly theme
+ *      ("疫苗接种"、"体检"…). Events are facts about the calendar, not arcs
+ *      of growth — they slip into the legacy fallback path because the
+ *      AI narrative often opens with the most recent event.
+ *
+ * Used by both the AI keyword validator (narrative-prompt.ts) and the
+ * legacy-format hero derivation (reports-monthly-letter.tsx) so the two
+ * code paths apply identical rules.
+ */
+export const PLACEHOLDER_KEYWORDS: ReadonlySet<string> = new Set([
+  '本月', '这个月', '一月', '二月', '三月', '四月', '五月', '六月',
+  '七月', '八月', '九月', '十月', '十一月', '十二月',
+  '本季度', '季度', '月度',
+  '成长', '发育', '进步', '继续', '健康', '正常', '稳定', '平稳',
+  '学习', '作息', '睡眠', '饮食', '运动', '情感', '情绪',
+  '数学', '语文', '英语', '编程', '阅读',
+  '里程碑', '成就', '记录',
+  '疫苗', '接种', '疫苗接种', '接种疫苗', '打针',
+  '体检', '检查', '复诊', '就医', '看病', '问诊',
+  '化验', '抽血', '验血', '拍片', '拍照',
+]);
+
+/**
+ * Returns true when `keyword` should be rejected as low-signal. Callers
+ * still need to apply per-report checks (e.g. matches child name) on top.
+ */
+export function isPlaceholderKeyword(keyword: string | null | undefined): boolean {
+  if (!keyword) return true;
+  const t = keyword.trim();
+  if (!t || t.length > 8) return true;
+  return PLACEHOLDER_KEYWORDS.has(t);
+}
+
 const GROWTH_REPORT_TYPES = ['monthly', 'quarterly', 'quarterly-letter', 'custom'] as const satisfies readonly GrowthReportType[];
 
 export interface StructuredGrowthReportMetric {

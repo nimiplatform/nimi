@@ -149,7 +149,11 @@ async function renderTargetToCanvas(
   options: ExportOptions,
 ): Promise<HTMLCanvasElement> {
   const { toCanvas } = await import('html-to-image');
-  const pixelRatio = options.scale ?? Math.min(window.devicePixelRatio || 1, 2);
+  // Bump to 3x for export so the resulting bitmap survives both a 2x
+  // HiDPI PDF viewer and the rescaling jsPDF does when fitting the
+  // image into A4. Lower than this and Chinese text gets noticeably
+  // soft at typical viewing zooms.
+  const pixelRatio = options.scale ?? Math.max(2, Math.min(window.devicePixelRatio || 2, 3));
   // Lock the capture region to the element's own bounding rect — the
   // article uses `max-width: 640px; margin: 0 auto`, so without this
   // html-to-image can capture a wider area and leave blank gutters.
@@ -159,6 +163,14 @@ async function renderTargetToCanvas(
 
   target.setAttribute('data-report-exporting', '');
   const uninstallStyles = installCaptureStyles();
+  // Wait for web fonts (Noto Sans SC / Inter, loaded from Google Fonts
+  // CDN) to finish loading before snapshot. If a font is still loading,
+  // html-to-image's foreignObject path falls back to system fonts with
+  // different metrics — Chinese text re-wraps at different break points
+  // than what's on screen.
+  if (typeof document !== 'undefined' && document.fonts && document.fonts.ready) {
+    try { await document.fonts.ready; } catch { /* fonts.ready can reject on some browsers — fall through */ }
+  }
   // Wait one paint so the injected style takes effect before snapshot.
   await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
   try {

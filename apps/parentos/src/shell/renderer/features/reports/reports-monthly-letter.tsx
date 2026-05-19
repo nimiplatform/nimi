@@ -6,7 +6,7 @@ import { NoteAnchor } from './report-user-notes.js';
 import { exportReportAsImage, exportReportAsPdf, printReport } from './report-export.js';
 import { ReportActionBar } from './reports-action-bar.js';
 import { ProfessionalSummaryModal } from './reports-professional-view.js';
-import type { NarrativeReportContent, NarrativeSection } from './structured-report.js';
+import { isPlaceholderKeyword, type NarrativeReportContent, type NarrativeSection } from './structured-report.js';
 
 const KIND_META: Record<string, { label: string; className: string }> = {
   growth:    { label: '成长', className: 'report-monthly-kind-growth' },
@@ -215,7 +215,7 @@ export function MonthlyLetterViewer({
     const t = k.trim().toLowerCase();
     return !t || t === nameLower || t.startsWith(nameLower) || nameLower.startsWith(t);
   };
-  if (content.keyword && content.keyword.trim() && !keywordIsName(content.keyword)) {
+  if (content.keyword && content.keyword.trim() && !keywordIsName(content.keyword) && !isPlaceholderKeyword(content.keyword)) {
     heroKeyword = content.keyword.trim();
     heroSub = (content.keywordSub && content.keywordSub.trim()) || '';
   } else {
@@ -226,7 +226,7 @@ export function MonthlyLetterViewer({
     ].filter((s): s is string => Boolean(s));
     for (const src of sources) {
       const split = splitTeaser(src);
-      if (split.keyword && !keywordIsName(split.keyword)) {
+      if (split.keyword && !keywordIsName(split.keyword) && !isPlaceholderKeyword(split.keyword)) {
         heroKeyword = split.keyword;
         heroSub = split.sub;
         break;

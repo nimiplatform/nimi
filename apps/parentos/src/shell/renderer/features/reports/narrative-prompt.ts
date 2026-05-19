@@ -17,6 +17,7 @@ import { MILESTONE_CATALOG, NEEDS_REVIEW_DOMAINS, REVIEWED_DOMAINS, REMINDER_RUL
 import { buildMeasurementComparisons, buildSleepComparison, buildStructuredTrendSignals } from './trend-analysis.js';
 import {
   buildNarrativeActionItems,
+  isPlaceholderKeyword,
   type BuiltStructuredGrowthReport,
   type GrowthReportType,
   type NarrativeReportContent,
@@ -532,24 +533,14 @@ export async function generateNarrativeReportForPeriod(input: {
   const subtitle = `${period.start.slice(0, 10)} 至 ${period.end.slice(0, 10)} · ${ageMonthsStart}-${ageMonthsEnd}个月`;
 
   // Keyword sanitation: reject if absent, matches the child's name, or is a
-  // low-signal placeholder. Keep output short (2–6 chars).
+  // low-signal placeholder. Keep output short (2–6 chars). The placeholder
+  // blocklist lives in structured-report.ts so the legacy fallback path
+  // applies the same rules.
   const childNameLower = child.displayName.trim().toLowerCase();
-  // Reject keywords that are pure domain nouns, time placeholders, or bare
-  // state words — we want descriptive/verbal phrases (先行动、找到节奏、敢开口了).
-  const placeholderKeywords = new Set([
-    '本月', '这个月', '四月', '三月', '五月', '本季度', '季度', '月度',
-    '成长', '发育', '进步', '继续', '健康', '正常', '稳定', '平稳',
-    '学习', '作息', '睡眠', '饮食', '运动', '情感', '情绪',
-    '数学', '语文', '英语', '编程', '阅读',
-    '里程碑', '成就', '记录',
-  ]);
   const isUsableKeyword = (k: string | null): k is string => {
     if (!k) return false;
-    const t = k.trim();
-    if (!t || t.length > 8) return false;
-    if (t.toLowerCase().includes(childNameLower)) return false;
-    if (placeholderKeywords.has(t)) return false;
-    return true;
+    if (k.trim().toLowerCase().includes(childNameLower)) return false;
+    return !isPlaceholderKeyword(k);
   };
   const keyword = isUsableKeyword(aiOutput.keyword)
     ? safetyFilterString(aiOutput.keyword, '') || undefined
