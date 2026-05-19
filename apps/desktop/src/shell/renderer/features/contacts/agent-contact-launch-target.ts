@@ -1,0 +1,69 @@
+import type { AgentLocalTargetSnapshot } from '@renderer/bridge/runtime-bridge/types';
+import type { ProfileData } from '@renderer/features/profile/profile-model';
+import type { ContactRecord } from './contacts-model';
+
+type AgentContactLaunchSource = {
+  id: string;
+  displayName: string;
+  handle: string;
+  avatarUrl: string | null;
+  bio: string | null;
+  isAgent: boolean;
+  worldId?: string | null;
+  worldName?: string | null;
+  agentWorldId?: string | null;
+  agentOwnershipType?: string | null;
+};
+
+function normalizeRequiredText(value: unknown, field: string): string {
+  const normalized = String(value || '').trim();
+  if (!normalized) {
+    throw new Error(`agent conversation launch requires ${field}`);
+  }
+  return normalized;
+}
+
+function normalizeOwnershipType(value: unknown): AgentLocalTargetSnapshot['ownershipType'] {
+  const normalized = String(value || '').trim();
+  if (normalized === 'MASTER_OWNED' || normalized === 'WORLD_OWNED') {
+    return normalized;
+  }
+  return null;
+}
+
+export function toAgentContactLaunchTarget(
+  source: AgentContactLaunchSource,
+  ownerUserIdInput: string | null | undefined,
+): AgentLocalTargetSnapshot {
+  if (!source.isAgent) {
+    throw new Error('agent conversation launch requires an agent contact');
+  }
+  const ownerUserId = normalizeRequiredText(ownerUserIdInput, 'ownerUserId');
+  const realmAgentId = normalizeRequiredText(source.id, 'realmAgentId');
+  return {
+    ownerUserId,
+    realmAgentId,
+    localAgentRef: `local-agent:${ownerUserId}:${realmAgentId}`,
+    displayName: normalizeRequiredText(source.displayName, 'displayName'),
+    handle: String(source.handle || '').trim(),
+    avatarUrl: source.avatarUrl || null,
+    worldId: source.agentWorldId || source.worldId || null,
+    worldName: source.worldName || null,
+    bio: source.bio || null,
+    ownershipType: normalizeOwnershipType(source.agentOwnershipType),
+  };
+}
+
+export function toAgentContactLaunchTargetFromContact(
+  contact: ContactRecord,
+  ownerUserId: string | null | undefined,
+): AgentLocalTargetSnapshot {
+  return toAgentContactLaunchTarget(contact, ownerUserId);
+}
+
+export function toAgentContactLaunchTargetFromProfile(
+  profile: ProfileData,
+  ownerUserId: string | null | undefined,
+): AgentLocalTargetSnapshot {
+  return toAgentContactLaunchTarget(profile, ownerUserId);
+}

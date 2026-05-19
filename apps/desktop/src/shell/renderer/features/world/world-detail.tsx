@@ -189,7 +189,7 @@ export function WorldDetail({ world, onBack }: WorldDetailProps) {
       },
     });
     try {
-      const launch = await launchAgentVoiceFromDisplay({
+      const launch = await launchAgentConversationFromDisplay({
         target: toAgentConversationTarget(agent),
         setActiveTab,
         setChatMode,
@@ -245,7 +245,7 @@ export function WorldDetail({ world, onBack }: WorldDetailProps) {
       },
     });
     try {
-      const launch = await launchAgentConversationFromDisplay({
+      const launch = await launchAgentVoiceFromDisplay({
         target: toAgentConversationTarget(agent),
         setActiveTab,
         setChatMode,

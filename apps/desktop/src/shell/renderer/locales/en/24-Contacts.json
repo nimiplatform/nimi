@@ -111,6 +111,8 @@
   "userUnblocked": "Unblocked {{name}}.",
   "unblockUserFailed": "Failed to unblock user",
   "openChatFailed": "Failed to open chat",
+  "agentFriendRequiredForChat": "Add this Agent as a friend before opening local chat.",
+  "blockedContactChatUnavailable": "Unblock this contact before opening chat.",
   "giftSentTo": "Gift sent to {{name}}",
   "blockConfirmMessagePrefix": "Are you sure you want to block",
   "blockConfirmMessageSuffix": "They will be moved to your Blocked list, you won't see their posts anymore, and they won't be able to contact you.",

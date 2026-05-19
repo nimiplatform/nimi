@@ -20,6 +20,8 @@ import { ContactsView } from './contacts-view';
 import { AddContactModal } from './add-contact-modal';
 import { resolveAgentFriendLimit } from './agent-friend-limit';
 import type { InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
+import { launchAgentConversationFromDisplay } from '@renderer/features/chat/agent-conversation-launcher.js';
+import { toAgentContactLaunchTargetFromContact } from './agent-contact-launch-target.js';
 
 type SocialSnapshot = Awaited<ReturnType<typeof dataSync.loadSocialSnapshot>>;
 
@@ -38,7 +40,10 @@ export function ContactsPanel() {
   const authStatus = useAppStore((state) => state.auth.status);
   const currentUserId = String(useAppStore((state) => state.auth.user?.id || '')).trim() || null;
   const setActiveTab = useAppStore((state) => state.setActiveTab);
+  const setChatMode = useAppStore((state) => state.setChatMode);
   const setSelectedChatId = useAppStore((state) => state.setSelectedChatId);
+  const setSelectedTargetForSource = useAppStore((state) => state.setSelectedTargetForSource);
+  const setAgentConversationSelection = useAppStore((state) => state.setAgentConversationSelection);
   const setRuntimeFields = useAppStore((state) => state.setRuntimeFields);
   const queryClient = useQueryClient();
   const [searchText, setSearchText] = useState('');
@@ -292,11 +297,22 @@ export function ContactsPanel() {
   }, [refetchContacts, t]);
 
   const onMessage = useCallback(async (contact: ContactRecord) => {
-    if (contact.isAgent) {
-      return;
-    }
-
     try {
+      if (blockedIds.has(contact.id)) {
+        throw new Error(t('Contacts.blockedContactChatUnavailable', { defaultValue: 'Unblock this contact before opening chat.' }));
+      }
+      if (contact.isAgent) {
+        await launchAgentConversationFromDisplay({
+          target: toAgentContactLaunchTargetFromContact(contact, currentUserId),
+          setActiveTab,
+          setChatMode,
+          setSelectedTargetForSource,
+          setAgentConversationSelection,
+        });
+        setFeedback(null);
+        return;
+      }
+
       const result = await dataSync.startChat(contact.id);
       if (result?.chatId) {
         setSelectedChatId(String(result.chatId));
@@ -316,7 +332,18 @@ export function ContactsPanel() {
         message: toErrorMessage(error, t('Contacts.openChatFailed', { defaultValue: 'Failed to open chat' })),
       });
     }
-  }, [queryClient, setActiveTab, setRuntimeFields, setSelectedChatId, t]);
+  }, [
+    blockedIds,
+    currentUserId,
+    queryClient,
+    setActiveTab,
+    setAgentConversationSelection,
+    setChatMode,
+    setRuntimeFields,
+    setSelectedChatId,
+    setSelectedTargetForSource,
+    t,
+  ]);
 
   return (
     <>

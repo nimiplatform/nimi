@@ -111,6 +111,8 @@
   "userUnblocked": "已取消屏蔽 {{name}}。",
   "unblockUserFailed": "取消屏蔽用户失败",
   "openChatFailed": "打开聊天失败",
+  "agentFriendRequiredForChat": "先将这个 Agent 加为好友，才能打开本地聊天。",
+  "blockedContactChatUnavailable": "先解除屏蔽，才能打开聊天。",
   "giftSentTo": "已向 {{name}} 送出礼物",
   "blockConfirmMessagePrefix": "确定要屏蔽",
   "blockConfirmMessageSuffix": "吗？对方会被移入你的黑名单、其帖子将对你隐藏，并且无法再联系你。",

@@ -384,13 +384,20 @@ export function ContactsView(props: ContactsViewProps) {
     retry: (failureCount, error) => !isPrivateProfileAccessError(error) && failureCount < 1,
   });
 
+  const selectedContactIsBlocked = Boolean(
+    selectedContact && (selectedCategory === 'blocks' || blockedUsers.has(selectedContact.id)),
+  );
+
   const selectedProfile: ProfileData | null = useMemo(() => {
     if (!selectedContact || !profileQuery.data) return null;
+    if (selectedContactIsBlocked) {
+      return { ...profileQuery.data, isFriend: false };
+    }
     if (!profileQuery.data.isFriend) {
       return { ...profileQuery.data, isFriend: true };
     }
     return profileQuery.data;
-  }, [profileQuery.data, selectedContact]);
+  }, [profileQuery.data, selectedContact, selectedContactIsBlocked]);
 
   // Profile 加载和错误状态
   const profileError = profileQuery.isError && !!selectedContact;
@@ -573,13 +580,14 @@ export function ContactsView(props: ContactsViewProps) {
             profile={selectedProfile}
             loading={false}
             error={false}
+            isBlockedProfile={selectedContactIsBlocked}
             isRestrictedProfile={selectedProfile.accessState === 'restricted'}
             onClose={() => {
               setSelectedContact(null);
               setSelectedProfileId(null);
               setSelectedProfileIsAgent(null);
             }}
-            onMessage={selectedProfile.accessState === 'restricted' ? () => {} : () => {
+            onMessage={selectedProfile.accessState === 'restricted' || selectedContactIsBlocked ? () => {} : () => {
               if (selectedContact) {
                 props.onMessage(selectedContact);
               }
@@ -593,7 +601,11 @@ export function ContactsView(props: ContactsViewProps) {
             }}
             onBlock={selectedContact ? () => setBlockingContact(selectedContact) : undefined}
             onRemove={selectedContact ? () => setRemovingContact(selectedContact) : undefined}
-            showMessageButton={!selectedProfile?.isAgent && selectedProfile.accessState !== 'restricted'}
+            showMessageButton={
+              selectedProfile.accessState !== 'restricted'
+              && !selectedContactIsBlocked
+              && (!selectedProfile.isAgent || (selectedContact?.isAgent === true && selectedProfile.isFriend))
+            }
             hideBackButton
           />
         ) : selectedContact && profileError ? (

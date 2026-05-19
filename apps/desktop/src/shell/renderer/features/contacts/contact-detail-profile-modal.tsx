@@ -18,6 +18,8 @@ import {
   isPrivateProfileAccessError,
   toRestrictedContactProfileData,
 } from './contact-private-profile.js';
+import { launchAgentConversationFromDisplay } from '@renderer/features/chat/agent-conversation-launcher.js';
+import { toAgentContactLaunchTargetFromProfile } from './agent-contact-launch-target.js';
 
 export type ContactDetailProfileSeed = {
   id: string;
@@ -61,9 +63,13 @@ export function ContactDetailProfileModal(props: ContactDetailProfileModalProps)
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const setActiveTab = useAppStore((state) => state.setActiveTab);
+  const setChatMode = useAppStore((state) => state.setChatMode);
   const setSelectedChatId = useAppStore((state) => state.setSelectedChatId);
+  const setSelectedTargetForSource = useAppStore((state) => state.setSelectedTargetForSource);
+  const setAgentConversationSelection = useAppStore((state) => state.setAgentConversationSelection);
   const setProfileDetailOverlayOpen = useAppStore((state) => state.setProfileDetailOverlayOpen);
   const setRuntimeFields = useAppStore((state) => state.setRuntimeFields);
+  const ownerUserId = String(useAppStore((state) => state.auth.user?.id || '')).trim();
   const [giftModalOpen, setGiftModalOpen] = useState(false);
   const [feedback, setFeedback] = useState<InlineFeedbackState | null>(null);
   const [removeConfirmOpen, setRemoveConfirmOpen] = useState(false);
@@ -118,11 +124,26 @@ export function ContactDetailProfileModal(props: ContactDetailProfileModalProps)
     if (!profile) {
       return;
     }
-    if (profile.isAgent || isBlockedProfile) {
+    if (isBlockedProfile) {
       return;
     }
 
     try {
+      if (profile.isAgent) {
+        if (!profile.isFriend) {
+          throw new Error(t('Contacts.agentFriendRequiredForChat', { defaultValue: 'Add this Agent as a friend before opening local chat.' }));
+        }
+        await launchAgentConversationFromDisplay({
+          target: toAgentContactLaunchTargetFromProfile(profile, ownerUserId),
+          setActiveTab,
+          setChatMode,
+          setSelectedTargetForSource,
+          setAgentConversationSelection,
+        });
+        props.onClose();
+        return;
+      }
+
       const result = await dataSync.startChat(profile.id);
       if (!result?.chatId) {
         throw new Error(INTERNAL_OPEN_CHAT_ERROR_CODE);
@@ -147,13 +168,18 @@ export function ContactDetailProfileModal(props: ContactDetailProfileModalProps)
     }
   }, [
     isBlockedProfile,
+    ownerUserId,
     profile,
     props,
     queryClient,
+    setActiveTab,
+    setAgentConversationSelection,
+    setChatMode,
     setRuntimeFields,
     setSelectedChatId,
-    t,
+    setSelectedTargetForSource,
     toChatErrorMessage,
+    t,
   ]);
 
   const handleBlock = useCallback(async () => {
@@ -251,7 +277,11 @@ export function ContactDetailProfileModal(props: ContactDetailProfileModalProps)
                 void handleBlock();
               } : undefined}
               onRemove={!isBlockedProfile && profile.isFriend ? () => setRemoveConfirmOpen(true) : undefined}
-              showMessageButton={!profile.isAgent && !isBlockedProfile && profile.accessState !== 'restricted'}
+              showMessageButton={
+                !isBlockedProfile
+                && profile.accessState !== 'restricted'
+                && (!profile.isAgent || profile.isFriend)
+              }
             />
           ) : profileQuery.isError ? (
             <div className="flex h-full items-center justify-center bg-white">

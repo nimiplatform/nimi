@@ -44,6 +44,11 @@ test('Contact detail renders restricted profiles as private content, not error c
   assert.match(detailContentSource, /profile\.accessState === 'restricted'/);
   assert.match(detailContentSource, /contacts-private-profile-state/);
   assert.match(detailContentSource, /isBlockedProfile=\{input\.isBlockedProfile \|\| isRestrictedProfile\}/);
-  assert.match(contactsViewSource, /showMessageButton=\{!selectedProfile\?\.isAgent && selectedProfile\.accessState !== 'restricted'\}/);
-  assert.match(profileModalSource, /showMessageButton=\{!profile\.isAgent && !isBlockedProfile && profile\.accessState !== 'restricted'\}/);
+  assert.match(contactsViewSource, /selectedProfile\.accessState !== 'restricted'/);
+  assert.match(contactsViewSource, /!selectedContactIsBlocked/);
+  assert.match(contactsViewSource, /selectedContact\?\.isAgent === true/);
+  assert.match(contactsViewSource, /selectedProfile\.isFriend/);
+  assert.match(profileModalSource, /profile\.accessState !== 'restricted'/);
+  assert.match(profileModalSource, /!isBlockedProfile/);
+  assert.match(profileModalSource, /!profile\.isAgent \|\| profile\.isFriend/);
 });
