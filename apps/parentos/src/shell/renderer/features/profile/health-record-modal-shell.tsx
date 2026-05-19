@@ -23,16 +23,13 @@
  */
 
 import {
-  forwardRef,
   useRef,
   type CSSProperties,
   type ReactNode,
 } from 'react';
 import { createPortal } from 'react-dom';
 import { X, type LucideIcon } from 'lucide-react';
-import { Button as KitButton, Surface, TextareaField, TextField } from '@nimiplatform/nimi-kit/ui';
-import { ProfileDatePicker } from './profile-date-picker.js';
-import { AppSelect, type AppSelectOption } from '../../app-shell/app-select.js';
+import { Surface } from '@nimiplatform/nimi-kit/ui';
 
 /* ── Tokens ─────────────────────────────────────────────────────────────── */
 
@@ -346,39 +343,6 @@ export function ModalFooter({ children, leading }: ModalFooterProps) {
   );
 }
 
-/* ── Buttons (footer actions) ───────────────────────────────────────────── */
-
-type ButtonProps = {
-  onClick?: React.MouseEventHandler<HTMLButtonElement>;
-  disabled?: boolean;
-  children: ReactNode;
-  type?: 'button' | 'submit';
-  ariaLabel?: string;
-};
-
-export function CancelButton({ onClick, disabled, children = '取消', ariaLabel }: Partial<ButtonProps>) {
-  return (
-    <KitButton type="button" onClick={onClick} disabled={disabled} aria-label={ariaLabel} tone="ghost" size="md">
-      {children}
-    </KitButton>
-  );
-}
-
-export function PrimaryButton({ onClick, disabled, children, type = 'button', ariaLabel }: ButtonProps) {
-  return (
-    <KitButton
-      type={type}
-      onClick={onClick}
-      disabled={disabled}
-      aria-label={ariaLabel}
-      tone="primary"
-      size="md"
-    >
-      {children}
-    </KitButton>
-  );
-}
-
 /* ── SectionCard ────────────────────────────────────────────────────────── */
 
 type SectionCardProps = {
@@ -470,91 +434,6 @@ export function FormField({ label, required, hint, error, children, className }:
   );
 }
 
-/* ── Field primitives (uniform 48px / radius-14) ───────────────────────── */
-
-type InputProps = Omit<React.InputHTMLAttributes<HTMLInputElement>, 'style'> & {
-  invalid?: boolean;
-  size?: 'normal' | 'compact';
-};
-
-export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
-  { invalid, size = 'normal', className, type, ...rest },
-  ref,
-) {
-  const numberInputClassName = type === 'number'
-    ? '[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none'
-    : '';
-
-  return (
-    <TextField
-      ref={ref}
-      {...rest}
-      type={type}
-      className={`w-full ${size === 'compact' ? 'min-h-10' : 'min-h-12'} ${invalid ? 'border-[var(--nimi-status-danger)] ring-[length:var(--nimi-focus-ring-width)] ring-[var(--nimi-status-danger)]' : ''} ${className ?? ''}`}
-      inputClassName={numberInputClassName}
-      aria-invalid={invalid || undefined}
-    />
-  );
-});
-
-type TextAreaProps = Omit<React.TextareaHTMLAttributes<HTMLTextAreaElement>, 'style'> & {
-  invalid?: boolean;
-};
-
-export function TextArea({ invalid, className, rows = 3, ...rest }: TextAreaProps) {
-  return (
-    <TextareaField
-      {...rest}
-      rows={rows}
-      className={`w-full ${invalid ? 'border-[var(--nimi-status-danger)] ring-[length:var(--nimi-focus-ring-width)] ring-[var(--nimi-status-danger)]' : ''} ${className ?? ''}`}
-      aria-invalid={invalid || undefined}
-    />
-  );
-}
-
-/* Select — wraps the existing AppSelect to provide uniform sizing. */
-type SelectProps = {
-  value: string;
-  onChange: (value: string) => void;
-  options: AppSelectOption[];
-  placeholder?: string;
-  className?: string;
-};
-
-export function Select({ value, onChange, options, placeholder, className }: SelectProps) {
-  return (
-    <AppSelect
-      value={value}
-      onChange={onChange}
-      options={options}
-      placeholder={placeholder}
-      className={`min-h-12 ${className ?? ''}`}
-      contentClassName="z-[120]"
-    />
-  );
-}
-
-/* DateField — wraps ProfileDatePicker with uniform sizing. */
-type DateFieldProps = {
-  value: string;
-  onChange: (value: string) => void;
-  allowClear?: boolean;
-  maxDate?: string;
-  invalid?: boolean;
-};
-
-export function DateField({ value, onChange, allowClear, maxDate, invalid }: DateFieldProps) {
-  return (
-    <ProfileDatePicker
-      value={value}
-      onChange={onChange}
-      allowClear={allowClear}
-      maxDate={maxDate}
-      className={`h-12 ${invalid ? 'border-[var(--nimi-status-danger)] ring-[length:var(--nimi-focus-ring-width)] ring-[var(--nimi-status-danger)]' : ''}`}
-    />
-  );
-}
-
 /* ── ChipGroup ─────────────────────────────────────────────────────────── */
 
 export type ChipOption<V extends string = string> = {
@@ -619,27 +498,6 @@ export function ChipGroup<V extends string = string>({
           </button>
         );
       })}
-    </div>
-  );
-}
-
-/* ── UploadBox ─────────────────────────────────────────────────────────── */
-
-type UploadBoxProps = {
-  hint?: ReactNode;
-  /** Used when the consumer wraps a complex grid (PhotoGrid) and only needs label/hint chrome. */
-  children: ReactNode;
-};
-
-export function UploadBox({ hint, children }: UploadBoxProps) {
-  return (
-    <div className="space-y-2">
-      {hint ? (
-        <p className="text-[12.5px] text-[var(--nimi-text-muted)]">
-          {hint}
-        </p>
-      ) : null}
-      {children}
     </div>
   );
 }

@@ -2,15 +2,16 @@
 
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { Button, TextField } from '@nimiplatform/nimi-kit/ui';
 import {
   HealthRecordModalShell,
-  DateField,
-  Input,
   ModalContent,
   ModalFooter,
   ModalHeader,
-  PrimaryButton,
 } from './health-record-modal-shell.js';
+import { ProfileDatePicker } from './profile-date-picker.js';
+
+const NUMBER_INPUT_CLASS = '[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none';
 
 describe('HealthRecordModalShell', () => {
   afterEach(() => {
@@ -25,10 +26,16 @@ describe('HealthRecordModalShell', () => {
       <HealthRecordModalShell open size="M" ariaLabel="growth-record-modal" onClose={vi.fn()}>
         <ModalHeader title="添加生长记录" icon="📏" onClose={vi.fn()} />
         <ModalContent>
-          <Input aria-label="height" type="number" defaultValue="120.5" />
+          <TextField
+            aria-label="height"
+            type="number"
+            defaultValue="120.5"
+            className="w-full min-h-12"
+            inputClassName={NUMBER_INPUT_CLASS}
+          />
         </ModalContent>
         <ModalFooter>
-          <PrimaryButton onClick={vi.fn()}>保存</PrimaryButton>
+          <Button type="button" onClick={vi.fn()} tone="primary" size="md">保存</Button>
         </ModalFooter>
       </HealthRecordModalShell>,
       { container: host },
@@ -62,7 +69,7 @@ describe('HealthRecordModalShell', () => {
       <HealthRecordModalShell open size="M" ariaLabel="growth-record-modal" onClose={vi.fn()}>
         <ModalHeader title="添加生长记录" icon="📏" onClose={vi.fn()} />
         <ModalContent>
-          <DateField value="2026-05-14" onChange={vi.fn()} />
+          <ProfileDatePicker value="2026-05-14" onChange={vi.fn()} className="h-12" />
         </ModalContent>
       </HealthRecordModalShell>,
     );
