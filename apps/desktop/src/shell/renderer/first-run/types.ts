@@ -1,20 +1,39 @@
 // First-Run Readiness Projection — view-model types.
 //
-// Re-exports the typed cold-start enum from the Wave 1 Desktop default-experience
-// bridge so first-run UI components project canonical P-COLD-001 states only.
+// Local definitions for `ColdStartState`, `ColdStartProjection`, and
+// `UpstreamInputs`. Canonical state values mirror `P-COLD-001` exactly.
 
-export type {
-  ColdStartState,
-  ColdStartProjection,
-  UpstreamInputs,
-} from '../../../runtime/default-experience-bridge/index.js';
+export type ColdStartState =
+  | 'unavailable'
+  | 'setup-required'
+  | 'needs-confirmation'
+  | 'in-progress'
+  | 'failed'
+  | 'unsupported'
+  | 'stale-projection'
+  | 'ready';
+
+export interface ColdStartProjection {
+  readonly state: ColdStartState;
+  readonly reasonOwner?: string;
+  readonly detail?: string;
+}
+
+export interface UpstreamInputs {
+  readonly runtimeDaemon: ColdStartState;
+  readonly account: ColdStartState;
+  readonly aiProfileSelection: ColdStartState;
+  readonly materialization: ColdStartState;
+  readonly appRegistry: ColdStartState;
+  readonly cognitionMemory: ColdStartState;
+}
 
 // FirstRunStep enumerates the upstream owners surfaced in first-run UI.
 // Mirrors `UpstreamInputs` fields plus stable display ordering.
 export const FIRST_RUN_STEPS = [
   'runtimeDaemon',
   'account',
-  'defaultExperienceProfile',
+  'aiProfileSelection',
   'materialization',
   'appRegistry',
   'cognitionMemory',
@@ -24,12 +43,12 @@ export type FirstRunStep = (typeof FIRST_RUN_STEPS)[number];
 
 export interface FirstRunStepProjection {
   readonly step: FirstRunStep;
-  readonly state: import('../../../runtime/default-experience-bridge/index.js').ColdStartState;
+  readonly state: ColdStartState;
   readonly detail?: string;
 }
 
 export interface FirstRunReadinessProjection {
-  readonly overall: import('../../../runtime/default-experience-bridge/index.js').ColdStartProjection;
+  readonly overall: ColdStartProjection;
   readonly steps: readonly FirstRunStepProjection[];
   readonly isReady: boolean;
 }

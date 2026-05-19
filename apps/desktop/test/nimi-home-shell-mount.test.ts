@@ -38,10 +38,12 @@ test('Nimi Home panel reaches readiness, Library, Discovery, and Agent Chat refe
   }
 });
 
-test('Nimi Home panel uses fail-closed unavailable states for missing live bridges', () => {
-  assert.match(nimiHomePanelSource, /appRegistry:\s*'unavailable'/);
+test('Nimi Home panel uses live Desktop bridge adapters and keeps Cognition residual fail-closed', () => {
+  assert.match(nimiHomePanelSource, /createDesktopHomeLiveBridge/);
+  assert.doesNotMatch(nimiHomePanelSource, /Nimi App registry bridge is not mounted yet/);
+  assert.doesNotMatch(nimiHomePanelSource, /Host profile bridge is not mounted yet/);
+  assert.doesNotMatch(nimiHomePanelSource, /AIProfile recommendation bridge is not mounted yet/);
   assert.match(nimiHomePanelSource, /cognitionMemory:\s*'unavailable'/);
-  assert.match(nimiHomePanelSource, /Nimi App registry bridge is not mounted yet/);
 });
 
 test('Nimi Home panel carries explicit AIScopeRef posture through Agent Chat binding', () => {

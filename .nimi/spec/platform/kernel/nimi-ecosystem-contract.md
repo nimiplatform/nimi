@@ -136,7 +136,7 @@ ecosystem marketing 都不得违反上述负面闸门。
 `MUST`：Wave 6 扩展必须遵守：
 
 - `P-PERM-005` fail-closed denial state machine
-- `P-DXP-008` no-provider/no-model constant rule
+- `P-AIPS-008` no-provider/no-model constant rule
 - `P-NAPP-009` Library / Discovery non-owner rule
 - `P-FPI-007` no standalone ordinary-user truth after hard cut
 - `P-AGID-001..P-AGID-008` agent identity floor
@@ -149,7 +149,7 @@ ecosystem marketing 都不得违反上述负面闸门。
 - `.nimi/spec/platform/kernel/mod-extension-retirement-contract.md` — `P-MOEX-001..P-MOEX-006`
 - `.nimi/spec/platform/kernel/app-permission-contract.md` — `P-PERM-001..P-PERM-010`
 - `.nimi/spec/platform/kernel/agent-identity-floor-contract.md` — `P-AGID-001..P-AGID-008`
-- `.nimi/spec/platform/kernel/default-experience-profile-contract.md` — `P-DXP-001..P-DXP-012`
+- `.nimi/spec/platform/kernel/ai-profile-selection-policy-contract.md` — `P-AIPS-001..P-AIPS-012`
 - `.nimi/spec/platform/kernel/nimi-first-party-integration-contract.md` — `P-FPI-001..P-FPI-008`
 - `.nimi/spec/platform/kernel/nimi-first-party-migration-contract.md` — `P-FPM-001..P-FPM-006`
 - `.nimi/spec/platform/kernel/architecture-contract.md` — `P-ARCH-022..P-ARCH-027`

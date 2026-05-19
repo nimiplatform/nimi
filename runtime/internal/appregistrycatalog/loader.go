@@ -31,7 +31,7 @@ type rawApp struct {
 	PackageKind               string               `yaml:"package_kind"`
 	PackageSignaturePolicyRef string               `yaml:"package_signature_policy_ref"`
 	UpdateChannelRef          string               `yaml:"update_channel_ref"`
-	DefaultExperienceAliasRef string               `yaml:"default_experience_alias_ref"`
+	AIProfileSelectionRef     string               `yaml:"ai_profile_selection_ref"`
 	CapabilitySetRefs         []string             `yaml:"capability_set_refs"`
 	LocalComputePackRefs      []string             `yaml:"local_compute_pack_refs"`
 	RuntimeRegistrationMode   string               `yaml:"runtime_registration_mode"`
@@ -126,7 +126,7 @@ func convertApp(raw rawApp) (App, error) {
 		PackageKind:               kind,
 		PackageSignaturePolicyRef: raw.PackageSignaturePolicyRef,
 		UpdateChannelRef:          raw.UpdateChannelRef,
-		DefaultExperienceAliasRef: raw.DefaultExperienceAliasRef,
+		AIProfileSelectionRef:     raw.AIProfileSelectionRef,
 		CapabilitySetRefs:         append([]string(nil), raw.CapabilitySetRefs...),
 		LocalComputePackRefs:      append([]string(nil), raw.LocalComputePackRefs...),
 		RuntimeRegistrationMode:   mode,

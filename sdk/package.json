@@ -57,10 +57,6 @@
       "types": "./dist/scope/index.d.ts",
       "default": "./dist/scope/index.js"
     },
-    "./scope/default-experience": {
-      "types": "./dist/scope/default-experience/index.d.ts",
-      "default": "./dist/scope/default-experience/index.js"
-    },
     "./scope/permission": {
       "types": "./dist/scope/permission/index.d.ts",
       "default": "./dist/scope/permission/index.js"

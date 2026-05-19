@@ -1,5 +1,5 @@
 table_family: support_registry
-registry_id: platform_rule_evidence_requirement_rules_default_experience_profile
+registry_id: platform_rule_evidence_requirement_rules_ai_profile_selection_policy
 owner: platform
 schema_ref: .nimi/contracts/table-family.schema.yaml#support_registry
 allowed_fields:
@@ -24,77 +24,77 @@ forbidden_state_fields:
   - run_id
   - ledger_ref
 entries:
-  - P-DXP-001
-  - P-DXP-002
-  - P-DXP-003
-  - P-DXP-004
-  - P-DXP-005
-  - P-DXP-006
-  - P-DXP-007
-  - P-DXP-008
-  - P-DXP-009
-  - P-DXP-010
-  - P-DXP-011
-  - P-DXP-012
+  - P-AIPS-001
+  - P-AIPS-002
+  - P-AIPS-003
+  - P-AIPS-004
+  - P-AIPS-005
+  - P-AIPS-006
+  - P-AIPS-007
+  - P-AIPS-008
+  - P-AIPS-009
+  - P-AIPS-010
+  - P-AIPS-011
+  - P-AIPS-012
 rules:
-  - rule_id: P-DXP-001
+  - rule_id: P-AIPS-001
     evidence_refs:
       - platform_kernel_consistency
     evidence_requirement: structural_required
-    evidence_scope_note: structural only; behavioral guarantee that Default Experience Profile never owns live AIConfig or install state requires Wave 1 Home shell and Wave 5 first-party app consumer validation
-  - rule_id: P-DXP-002
+    evidence_scope_note: structural only; behavioral guarantee that factory AIProfile catalog and AIProfile selection policy never own live AIConfig or install state requires Wave 1 Home shell and Wave 5 first-party app consumer validation
+  - rule_id: P-AIPS-002
     evidence_refs:
       - platform_kernel_consistency
     evidence_requirement: structural_required
     evidence_scope_note: structural only; dimensioned matrix integrity and alias-as-projection enforcement requires Wave 1 first-run consumer validation
-  - rule_id: P-DXP-003
+  - rule_id: P-AIPS-003
     evidence_refs:
       - platform_kernel_consistency
     evidence_requirement: structural_required
     evidence_scope_note: structural only; AIProfile/AIConfig/AISnapshot apply-chain behavior requires Desktop and Runtime consumer validation
-  - rule_id: P-DXP-004
+  - rule_id: P-AIPS-004
     evidence_refs:
       - platform_kernel_consistency
     evidence_requirement: structural_required
-    evidence_scope_note: structural only; host_capability_profile_refs, local_compute_pack_refs, dependency_family_refs cross-table resolution requires runtime catalog drift consumer validation
-  - rule_id: P-DXP-005
+    evidence_scope_note: structural only; selection policy input/output behavior and Runtime evidence consumption requires Wave 2 Runtime kernel and Wave 3 Home consumer validation
+  - rule_id: P-AIPS-005
     evidence_refs:
       - platform_kernel_consistency
       - canonical_capability_catalog_gate
     evidence_requirement: structural_required
     evidence_scope_note: structural only; CanonicalCapabilityId resolution behavior remains a Runtime/SDK consumer concern
-  - rule_id: P-DXP-006
+  - rule_id: P-AIPS-006
     evidence_refs:
       - platform_kernel_consistency
     evidence_requirement: structural_required
-    evidence_scope_note: structural only; cloud/local/hybrid/privacy posture routing behavior requires Runtime route resolution and Wave 4 spend/permission consumer validation
-  - rule_id: P-DXP-007
+    evidence_scope_note: structural only; cloud/local/hybrid/privacy posture routing behavior requires Runtime route resolution and spend/permission consumer validation
+  - rule_id: P-AIPS-007
     evidence_refs:
       - platform_kernel_consistency
     evidence_requirement: structural_required
     evidence_scope_note: structural only; materialization projection state machine behavior requires Runtime local environment and SDK projection consumer validation
-  - rule_id: P-DXP-008
+  - rule_id: P-AIPS-008
     evidence_refs:
       - platform_kernel_consistency
     evidence_requirement: structural_required
-    evidence_scope_note: structural only; mechanical no-provider/no-model guard binary is owned by Wave 1 implementation close and Wave 5 first-party app implementation close per enforcement-gates-required.md
-  - rule_id: P-DXP-009
+    evidence_scope_note: structural only; mechanical no-provider/no-model guard binary is owned by Wave 4 implementation close per the topic foundation-validation gate
+  - rule_id: P-AIPS-009
     evidence_refs:
       - platform_kernel_consistency
     evidence_requirement: structural_required
-    evidence_scope_note: structural only; first-party Nimi App default-experience hint binding behavior requires Wave 3 Nimi App registry and Wave 5 first-party app consumer validation
-  - rule_id: P-DXP-010
+    evidence_scope_note: structural only; first-party Nimi App AIProfile hint binding behavior requires Wave 3 Nimi App registry and Wave 5 first-party app consumer validation
+  - rule_id: P-AIPS-010
     evidence_refs:
       - platform_kernel_consistency
     evidence_requirement: structural_required
-    evidence_scope_note: structural only; first-run / scope-bound apply state machine behavior requires Wave 1 Home shell implementation validation
-  - rule_id: P-DXP-011
+    evidence_scope_note: structural only; first-run / scope-bound apply state machine behavior requires Wave 3 Home shell consumer validation
+  - rule_id: P-AIPS-011
     evidence_refs:
       - platform_kernel_consistency
     evidence_requirement: structural_required
     evidence_scope_note: structural only; cloud-only alias constraint behavior requires Runtime activation gate consumer validation
-  - rule_id: P-DXP-012
+  - rule_id: P-AIPS-012
     evidence_refs:
       - platform_kernel_consistency
     evidence_requirement: structural_required
-    evidence_scope_note: structural only; applicable_scopes admission enforcement requires Wave 1, Wave 3, and Wave 5 consumer validation
+    evidence_scope_note: structural only; applicable_scopes admission enforcement requires Wave 3 and Wave 5 consumer validation

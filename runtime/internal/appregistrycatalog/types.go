@@ -81,7 +81,7 @@ type App struct {
 	PackageKind                 PackageKind
 	PackageSignaturePolicyRef   string
 	UpdateChannelRef            string
-	DefaultExperienceAliasRef   string
+	AIProfileSelectionRef       string
 	CapabilitySetRefs           []string
 	LocalComputePackRefs        []string
 	RuntimeRegistrationMode     RuntimeRegistrationMode

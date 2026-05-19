@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useEffect, useRef, type MouseEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import {
@@ -9,6 +9,7 @@ import {
 } from '@nimiplatform/nimi-kit/ui';
 import {
   SidebarHeader,
+  SidebarResizeHandle,
   SidebarSearch,
   SidebarSection,
   SidebarShell,
@@ -127,7 +128,9 @@ function ContactsLoadingSkeleton() {
   );
 }
 
-const CONTACTS_SIDEBAR_FIXED_WIDTH = 340;
+const CONTACTS_SIDEBAR_DEFAULT_WIDTH = 340;
+const CONTACTS_SIDEBAR_MIN_WIDTH = 280;
+const CONTACTS_SIDEBAR_MAX_WIDTH = 420;
 
 export function ContactsView(props: ContactsViewProps) {
   const { t } = useTranslation();
@@ -135,6 +138,9 @@ export function ContactsView(props: ContactsViewProps) {
   const setSelectedProfileIsAgent = useAppStore((state) => state.setSelectedProfileIsAgent);
   const setSelectedProfileId = useAppStore((state) => state.setSelectedProfileId);
   const containerRef = useRef<HTMLDivElement>(null);
+  const resizingRef = useRef(false);
+  const dragCleanupRef = useRef<(() => void) | null>(null);
+  const [sidebarWidth, setSidebarWidth] = useState(CONTACTS_SIDEBAR_DEFAULT_WIDTH);
   const [blockingContact, setBlockingContact] = useState<ContactRecord | null>(null);
   const [unblockingContact, setUnblockingContact] = useState<ContactRecord | null>(null);
   const [removingContact, setRemovingContact] = useState<ContactRecord | null>(null);
@@ -150,6 +156,49 @@ export function ContactsView(props: ContactsViewProps) {
     setSelectedContact(null);
     setSelectedRequest(null);
     setSelectedCategory(null);
+  };
+
+  // 处理联系人侧栏拖拽缩放，宽度只属于本地布局状态，不成为联系人数据真相。
+  useEffect(() => {
+    return () => {
+      dragCleanupRef.current?.();
+    };
+  }, []);
+
+  const startResize = (event: MouseEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    resizingRef.current = true;
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+
+    const cleanup = () => {
+      resizingRef.current = false;
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+      dragCleanupRef.current = null;
+    };
+
+    const onMouseMove = (moveEvent: globalThis.MouseEvent) => {
+      if (!resizingRef.current || !containerRef.current) {
+        return;
+      }
+      const rect = containerRef.current.getBoundingClientRect();
+      const nextWidth = Math.min(
+        CONTACTS_SIDEBAR_MAX_WIDTH,
+        Math.max(CONTACTS_SIDEBAR_MIN_WIDTH, Math.round(moveEvent.clientX - rect.left)),
+      );
+      setSidebarWidth(nextWidth);
+    };
+
+    const onMouseUp = () => {
+      cleanup();
+    };
+
+    dragCleanupRef.current = cleanup;
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
   };
 
   // 本地状态：被拉黑的用户列表（包含完整联系人和之前的分类信息）
@@ -345,6 +394,22 @@ export function ContactsView(props: ContactsViewProps) {
 
   // Profile 加载和错误状态
   const profileError = profileQuery.isError && !!selectedContact;
+  const addContactAction = (
+    <Tooltip content={t('Contacts.addContact', { defaultValue: 'Add Friend' })} placement="bottom">
+      <IconButton
+        onClick={props.onOpenAddContact}
+        tone="ghost"
+        icon={(
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <line x1="12" y1="5" x2="12" y2="19" />
+            <line x1="5" y1="12" x2="19" y2="12" />
+          </svg>
+        )}
+        className="h-9 w-9 shrink-0 text-[var(--nimi-text-muted)] hover:text-[var(--nimi-text-primary)]"
+        aria-label={t('Contacts.addContact', { defaultValue: 'Add Friend' })}
+      />
+    </Tooltip>
+  );
 
   if (props.loading) {
     return <ContactsLoadingSkeleton />;
@@ -366,10 +431,9 @@ export function ContactsView(props: ContactsViewProps) {
 
   return (
     <div ref={containerRef} data-testid={E2E_IDS.panel('contacts')} className="flex h-full gap-2 text-[var(--nimi-text-primary)]">
-      {/* 左侧联系人列表（定宽，不可拖拽缩放） */}
       <SidebarShell
-        width={CONTACTS_SIDEBAR_FIXED_WIDTH}
-        className="rounded-3xl border border-white/60 bg-[var(--nimi-sidebar-canvas)] shadow-[0_18px_44px_rgba(15,23,42,0.06)]"
+        width={sidebarWidth}
+        className="rounded-3xl border border-white/60 border-r-[color-mix(in_srgb,var(--nimi-border-subtle)_82%,white)] bg-[var(--nimi-sidebar-canvas)] shadow-[0_18px_44px_rgba(15,23,42,0.06)]"
         data-testid={E2E_IDS.panel('contacts')}
       >
         <SidebarHeader
@@ -381,20 +445,6 @@ export function ContactsView(props: ContactsViewProps) {
                   {t('Contacts.totalCount', { defaultValue: '{{count}} contacts', count: counts.humansCount + counts.agentsCount + counts.myAgentsCount })}
                 </p>
               </div>
-              <Tooltip content={t('Contacts.addContact', { defaultValue: 'Add Friend' })} placement="bottom">
-                <IconButton
-                  onClick={props.onOpenAddContact}
-                  tone="ghost"
-                  icon={(
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <line x1="12" y1="5" x2="12" y2="19" />
-                      <line x1="5" y1="12" x2="19" y2="12" />
-                    </svg>
-                  )}
-                  className="h-9 w-9 shrink-0 text-[var(--nimi-text-muted)] hover:text-[var(--nimi-text-primary)]"
-                  aria-label={t('Contacts.addContact', { defaultValue: 'Add Friend' })}
-                />
-              </Tooltip>
             </div>
           )}
           className="px-4 pt-5 pb-4"
@@ -414,6 +464,7 @@ export function ContactsView(props: ContactsViewProps) {
             onClear={closeSearch}
             placeholder={t('Contacts.searchPlaceholder', { defaultValue: 'Search friends' })}
             clearLabel={t('Home.clear', { defaultValue: 'Clear' })}
+            primaryAction={addContactAction}
           />
         </div>
 
@@ -453,6 +504,10 @@ export function ContactsView(props: ContactsViewProps) {
             )}
           </SidebarSection>
         </ScrollArea>
+        <SidebarResizeHandle
+          ariaLabel={t('Contacts.resizeSidebar', { defaultValue: 'Resize contacts sidebar' })}
+          onMouseDown={startResize}
+        />
       </SidebarShell>
 
       {/* 右侧详情区 - 使用共享 profile 详情页 */}

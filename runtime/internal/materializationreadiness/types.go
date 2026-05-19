@@ -1,5 +1,5 @@
 // Package materializationreadiness implements the Runtime-owned
-// readiness projection for default-experience materialization per
+// readiness projection for factory AIProfile materialization per
 // .nimi/spec/runtime/kernel/local-environment-materializers-contract.md.
 //
 // Activation states and reason codes are sourced from the canonical

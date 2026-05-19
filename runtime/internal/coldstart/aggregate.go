@@ -47,7 +47,7 @@ func Aggregate(inputs UpstreamInputs) (Projection, error) {
 	entries := []entry{
 		{owner: "runtime-daemon", state: normalizeUpstream(inputs.RuntimeDaemon)},
 		{owner: "account", state: normalizeUpstream(inputs.Account)},
-		{owner: "default-experience-profile", state: normalizeUpstream(inputs.DefaultExperienceProfile)},
+		{owner: "ai-profile-selection", state: normalizeUpstream(inputs.AIProfileSelection)},
 		{owner: "materialization", state: normalizeUpstream(inputs.Materialization)},
 		{owner: "app-registry", state: normalizeUpstream(inputs.AppRegistry)},
 		{owner: "cognition-memory", state: normalizeUpstream(inputs.CognitionMemory)},

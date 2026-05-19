@@ -5,10 +5,10 @@
 ## Scope
 
 定义 `Nimi App` 作为公开可安装 product unit 的 admission authority。本契约拥有
-admission row schema、admitted package kind set、trust tier reference、Default
-Experience Profile alias hint reference、capability_set / local compute pack /
-runtime registration mode / permission scope reference、与 app health/repair
-projection 的 fail-closed semantics。
+admission row schema、admitted package kind set、trust tier reference、factory
+AIProfile selection reference、capability_set / local compute pack / runtime
+registration mode / permission scope reference、与 app health/repair projection
+的 fail-closed semantics。
 
 ## P-NAPP-001 — Admission Authority And Package Kind
 
@@ -32,8 +32,9 @@ Pack、Asset Market generic content channel 作为可安装 product unit。
   signature policy。
 - `update_channel_ref` — 引用 `release-gate-registry.yaml` 已 admit 的
   release channel identity。
-- `default_experience_alias_ref` — 引用
-  `tables/default-experience-profiles.yaml` 中已 admit 的 alias（`P-DXP-009`）。
+- `ai_profile_selection_ref` — 引用
+  `tables/ai-profile-factory-catalog.yaml` 中已 admit 的 factory AIProfile
+  alias / profileId（`P-AIPS-009`）。
 - `capability_set_refs` — 引用
   `tables/canonical-capability-catalog.yaml` 中已 admit 的
   `CanonicalCapabilityId` 列表。
@@ -49,10 +50,11 @@ Pack、Asset Market generic content channel 作为可安装 product unit。
   `retired`。
 - `source_rule` — `P-NAPP-NNN` 引用。
 
-## P-NAPP-003 — Default Experience Profile Hint Resolution
+## P-NAPP-003 — AIProfile Selection Hint Resolution
 
-`MUST`：`default_experience_alias_ref` 必须指向
-`tables/default-experience-profiles.yaml` 中已 admit 的 alias（`P-DXP-009`）。
+`MUST`：`ai_profile_selection_ref` 必须指向
+`tables/ai-profile-factory-catalog.yaml` 中已 admit 的 factory AIProfile
+alias / profileId（`P-AIPS-009`）。
 
 `MUST NOT`：不得在 registry row 中内嵌 provider id / connector id /
 engine id / model id 字符串常量。任何 vendor 倾向必须 alias-driven。
@@ -151,7 +153,7 @@ Map, Overtone）暂不进入 Wave 3 seed。
 - `.nimi/spec/platform/kernel/nimi-self-update-contract.md` — `P-SUPD-001..P-SUPD-008`
 - `.nimi/spec/platform/kernel/nimi-package-release-contract.md` — `P-PKGREL-001..P-PKGREL-008`
 - `.nimi/spec/platform/kernel/cold-start-authority-contract.md` — `P-COLD-001..P-COLD-008`
-- `.nimi/spec/platform/kernel/default-experience-profile-contract.md` — `P-DXP-001..P-DXP-012`
+- `.nimi/spec/platform/kernel/ai-profile-selection-policy-contract.md` — `P-AIPS-001..P-AIPS-012`
 - `.nimi/spec/platform/kernel/ai-scope-contract.md` — `P-AISC-001..P-AISC-005`
 - `.nimi/spec/platform/kernel/capability-catalog-contract.md` — `P-CAPCAT-*`
 - `.nimi/spec/platform/kernel/app-slice-admission-contract.md` — `P-APP-*`

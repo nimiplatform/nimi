@@ -18,7 +18,7 @@ apps:
     package_kind: nimi-app
     package_signature_policy_ref: nimi-first-party-signature-policy
     update_channel_ref: stable
-    default_experience_alias_ref: local-gpu
+    ai_profile_selection_ref: local-gpu
     capability_set_refs: [text.generate]
     local_compute_pack_refs: [local-gpu-support]
     runtime_registration_mode: app-managed
@@ -34,7 +34,7 @@ apps:
     package_kind: nimi-app
     package_signature_policy_ref: nimi-first-party-signature-policy
     update_channel_ref: stable
-    default_experience_alias_ref: cloud-first
+    ai_profile_selection_ref: cloud-first
     capability_set_refs: [text.generate]
     local_compute_pack_refs: []
     runtime_registration_mode: app-managed

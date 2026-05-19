@@ -47,7 +47,7 @@ taxonomy 或 fail-closed denial state machine。
 - `file.write.scoped`
 - `device.use.scoped`
 - `audit.read.scoped`
-- `default_experience.alias.consume`
+- `ai_profile.selection.consume`
 
 `MUST NOT`：不得 admit 开放字符串 scope；新增 scope 必须修改本契约并触发
 governance gate。
@@ -96,7 +96,7 @@ filesystem、socket 等私有 channel 实现 cross-app 数据访问。
 ```
 {
   appId: string,
-  scopeFamily: 'account' | 'data' | 'agent' | 'ai_spend' | 'memory' | 'knowledge' | 'notification' | 'file_device' | 'audit' | 'default_experience',
+  scopeFamily: 'account' | 'data' | 'agent' | 'ai_spend' | 'memory' | 'knowledge' | 'notification' | 'file_device' | 'audit' | 'ai_profile',
   scopeName: <one of P-PERM-002 enum entries>,
   qualifier?: string
 }
@@ -122,11 +122,11 @@ schema；Wave 3 `pending_wave_4` 占位字符串在 Wave 4 close 后必须全部
   `memory.read.bounded` (qualifier=persona-scoped),
   `memory.write.admitted` (qualifier=session-scoped),
   `ai.spend.meter`, `device.use.scoped`, `file.read.scoped`,
-  `default_experience.alias.consume`。
+  `ai_profile.selection.consume`。
 - `nimi.parentos`：`account.session.read`, `agent.identity.project`,
   `memory.read.bounded` (qualifier=persona-scoped),
   `knowledge.read.bounded`, `ai.spend.meter`, `notification.send`,
-  `default_experience.alias.consume`。
+  `ai_profile.selection.consume`。
 
 `MUST NOT`：first-party seed grant 不得 admit 超出本枚举的 scope；
 Avatar Wave 5 集成仍受 Avatar 产品化 master gate 约束。
@@ -151,7 +151,7 @@ Avatar Wave 5 集成仍受 Avatar 产品化 master gate 约束。
 - `.nimi/spec/platform/kernel/nimi-app-admission-contract.md` — `P-NAPP-001..P-NAPP-012`
 - `.nimi/spec/platform/kernel/tables/nimi-app-registry.yaml`
 - `.nimi/spec/platform/kernel/tables/nimi-app-trust-tiers.yaml`
-- `.nimi/spec/platform/kernel/default-experience-profile-contract.md` — `P-DXP-001..P-DXP-012`
+- `.nimi/spec/platform/kernel/ai-profile-selection-policy-contract.md` — `P-AIPS-001..P-AIPS-012`
 - `.nimi/spec/realm/kernel/social-contract.md` — `R-SOC-*`
 - `.nimi/spec/realm/kernel/oauth-authority-contract.md` — `R-OAUTH-*`
 - `.nimi/spec/cognition/kernel/app-memory-access-contract.md` — `C-APMEM-001..C-APMEM-008`

@@ -8,16 +8,20 @@ import { fileURLToPath } from 'node:url';
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '..');
 
+// AIProfile consumer paths admitted by P-AIPS-008. These globs are the
+// only places allowed to consume factory AIProfile / AIConfig apply
+// surfaces, and they must not embed provider / connector / engine /
+// model identifier string constants. The generated `platform-catalog`
+// file is intentionally excluded — it is a regenerated projection of
+// the Platform-owned factory `AIProfile` catalog table, which is the
+// canonical owner of admitted dependency identifiers (e.g.,
+// `native-engine-package.llama`, `accelerator.cuda.runtime`) and is
+// not consumer code.
 const TARGET_GLOBS = [
-  'apps/desktop/src/runtime/config-bridge',
-  'apps/desktop/src/runtime/default-experience',
-  'apps/desktop/src/runtime/default-experience-bridge',
-  'apps/desktop/src/shell/first-run',
-  'apps/desktop/src/shell/default-experience',
-  'sdk/src/scope/default-experience',
-  'sdk/src/runtime/default-experience',
-  'apps/avatar/src/default-experience',
-  'apps/parentos/src/default-experience',
+  'apps/desktop/src/shell/renderer/features/nimi-home',
+  'apps/desktop/src/shell/renderer/first-run',
+  'apps/avatar/src/ai-profile',
+  'apps/parentos/src/ai-profile',
 ];
 
 const SOURCE_EXTENSIONS = new Set(['.ts', '.tsx', '.js', '.mjs', '.cjs', '.mts', '.cts', '.go', '.rs']);
@@ -92,7 +96,7 @@ async function collectFiles(dir) {
 
 async function collectViolations(files) {
   const violations = [];
-  const thisFile = path.join(repoRoot, 'scripts', 'check-no-default-experience-provider-model-constants.mjs');
+  const thisFile = path.join(repoRoot, 'scripts', 'check-no-ai-profile-provider-model-constants.mjs');
   for (const file of files) {
     if (file === thisFile) {
       continue;
@@ -105,7 +109,7 @@ async function collectViolations(files) {
       if (literal && FORBIDDEN_PROVIDER_PATTERN.test(literal)) {
         const { line, column } = getLineColumn(source, match.index);
         const relative = path.relative(repoRoot, file).replaceAll(path.sep, '/');
-        violations.push(`${relative}:${line}:${column}: forbidden default-experience provider/model identifier "${literal}"`);
+        violations.push(`${relative}:${line}:${column}: forbidden factory AIProfile provider/model identifier "${literal}"`);
       }
       match = STRING_LITERAL_PATTERN.exec(source);
     }
@@ -114,16 +118,16 @@ async function collectViolations(files) {
 }
 
 async function runSelfTest() {
-  const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'check-no-dxp-pmc-'));
+  const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'check-no-aips-pmc-'));
   const negativePath = path.join(tempRoot, 'negative.ts');
   const positivePath = path.join(tempRoot, 'positive.ts');
 
   await fs.writeFile(
     negativePath,
     [
-      "import { applyDefaultExperienceProfile } from '@nimiplatform/sdk';",
+      "import { applyAIProfileToConfig } from '@nimiplatform/sdk/mod';",
       'const profileId = scopeRef.resolveProfileAlias();',
-      'await applyDefaultExperienceProfile(scopeRef, profileId);',
+      'await applyAIProfileToConfig(baseConfig, profile);',
       '',
     ].join('\n'),
     'utf8',
@@ -132,9 +136,9 @@ async function runSelfTest() {
   await fs.writeFile(
     positivePath,
     [
-      "import { applyDefaultExperienceProfile } from '@nimiplatform/sdk';",
+      "import { applyAIProfileToConfig } from '@nimiplatform/sdk/mod';",
       "const profileId = 'gpt-4o';",
-      'await applyDefaultExperienceProfile(scopeRef, profileId);',
+      'await applyAIProfileToConfig(baseConfig, profile);',
       '',
     ].join('\n'),
     'utf8',
@@ -151,7 +155,7 @@ async function runSelfTest() {
       throw new Error('self-test failed: positive fixture (gpt-4o constant) was not flagged');
     }
 
-    process.stdout.write('check-no-default-experience-provider-model-constants self-test passed\n');
+    process.stdout.write('check-no-ai-profile-provider-model-constants self-test passed\n');
   } finally {
     await fs.rm(tempRoot, { recursive: true, force: true });
   }
@@ -170,8 +174,8 @@ async function main() {
   const violations = await collectViolations(files);
 
   if (violations.length > 0) {
-    process.stderr.write('Default Experience Profile consumer code must not embed provider/connector/engine/model identifier string constants.\n');
-    process.stderr.write('Reference: .nimi/spec/platform/kernel/default-experience-profile-contract.md (P-DXP-008).\n');
+    process.stderr.write('Factory AIProfile consumer code must not embed provider/connector/engine/model identifier string constants.\n');
+    process.stderr.write('Reference: .nimi/spec/platform/kernel/ai-profile-selection-policy-contract.md (P-AIPS-008).\n');
     process.stderr.write('Catalog rows are the only authorized location; use scopeRef + profileId references instead of string constants.\n');
     for (const violation of violations) {
       process.stderr.write(`- ${violation}\n`);
@@ -180,10 +184,10 @@ async function main() {
     return;
   }
 
-  process.stdout.write(`check-no-default-experience-provider-model-constants passed (${files.length} default-experience consumer file(s) scanned across ${TARGET_GLOBS.length} target glob(s))\n`);
+  process.stdout.write(`check-no-ai-profile-provider-model-constants passed (${files.length} factory AIProfile consumer file(s) scanned across ${TARGET_GLOBS.length} target glob(s))\n`);
 }
 
 main().catch((error) => {
-  process.stderr.write(`check-no-default-experience-provider-model-constants failed: ${String(error)}\n`);
+  process.stderr.write(`check-no-ai-profile-provider-model-constants failed: ${String(error)}\n`);
   process.exitCode = 1;
 });

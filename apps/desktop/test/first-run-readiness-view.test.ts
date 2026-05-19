@@ -12,7 +12,7 @@ test('FirstRunReadinessView source includes one branch per canonical FirstRunSte
   const expectedSteps = [
     'runtimeDaemon',
     'account',
-    'defaultExperienceProfile',
+    'aiProfileSelection',
     'materialization',
     'appRegistry',
     'cognitionMemory',
