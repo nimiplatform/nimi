@@ -228,4 +228,29 @@ rules:
     evidence_refs:
       - platform_kernel_consistency
     evidence_requirement: structural_required
-    evidence_scope_note: structural only; first app/library projection owner split is enforced by Wave 3 Nimi App registry consumer validation
+    evidence_scope_note: structural only; first app/Apps projection owner split is enforced by Nimi App registry and Desktop Apps consumer validation
+  - rule_id: P-COLD-009
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; product-local control record implementation evidence lands with first-run local baseline child topic
+  - rule_id: P-COLD-010
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; selected nimi_data implementation evidence lands with first-run local baseline child topic
+  - rule_id: P-COLD-011
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; Minimal/Recommended local install level enforcement depends on AIProfile catalog and Desktop first-run consumer validation
+  - rule_id: P-COLD-012
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; ready entry and auth gate implementation evidence lands with Desktop primary IA child topic
+  - rule_id: P-COLD-013
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; Runtime config owner split implementation evidence lands with runtime config/data-root child topic

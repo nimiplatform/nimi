@@ -812,3 +812,13 @@ rules:
       - runtime_kernel_consistency
     note: Avatar live-instance binding recovery admitted as Runtime-owned anchor continuity truth.
     evidence_requirement: required
+  - rule_id: K-AGCORE-139
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Official guide LocalAgent provisioning consumes Realm official seed and AgentFriend projection; implementation evidence lands with Archivist child topic.
+    evidence_requirement: required
+  - rule_id: K-AGCORE-140
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Official guide first conversation projection is welcome copy only and must not create memory, grant, setup, profile, or app truth.
+    evidence_requirement: required

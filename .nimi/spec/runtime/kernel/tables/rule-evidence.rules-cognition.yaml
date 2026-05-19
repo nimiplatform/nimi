@@ -41,6 +41,7 @@ entries:
   - K-CFG-015
   - K-CFG-016
   - K-CFG-017
+  - K-CFG-018
   - K-KEYSRC-001
   - K-KEYSRC-002
   - K-KEYSRC-003
@@ -183,6 +184,12 @@ rules:
     evidence_refs:
       - runtime_kernel_consistency
       - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-CFG-018
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    note: dataRootRef and managed root owner split admitted as Runtime config boundary; implementation evidence lands with product-local first-run/data-root child topic.
     evidence_requirement: required
   - rule_id: K-KEYSRC-001
     evidence_refs:

@@ -1,0 +1,122 @@
+version: 1
+table_family: product_catalog
+owner: platform
+catalog_id: platform_nimi_app_release_descriptors
+entries:
+  - descriptors_1
+  - release descriptor is the install truth for each installable app version
+  - third-party install must verify sha256 before unpack, registration, or execution
+  - GitHub and npm are source/distribution inputs only, not admission truth
+  - bundled first-party descriptors bind to the atomic Nimi release bundle and do not authorize external download
+
+descriptor_schema:
+  owner: platform_nimi_app_release_descriptors
+  fields:
+    - descriptor_id
+    - app_id
+    - version
+    - descriptor_class
+    - source
+    - artifact
+    - runtime
+    - permissions_ref
+    - storage_policy_ref
+    - review
+    - source_rule
+  enums:
+    descriptor_class:
+      - bundled-with-nimi
+      - external-immutable-artifact
+    source.kind:
+      - nimi-bundle
+      - github-release
+      - github-commit
+      - npm-package
+    artifact.digest_algorithm:
+      - sha256
+    runtime.package_kind:
+      - nimi-app
+
+descriptors:
+  - descriptor_id: nimi.avatar.bundled-with-nimi
+    app_id: nimi.avatar
+    version: bundled-with-current-nimi-release
+    descriptor_class: bundled-with-nimi
+    source:
+      kind: nimi-bundle
+      ref: current-atomic-nimi-release
+    artifact:
+      locator: current-nimi-release-bundle
+      digest_algorithm: sha256
+      sha256: inherited-from-atomic-nimi-release-manifest
+      size: inherited-from-atomic-nimi-release-manifest
+      signature_or_provenance_ref: nimi-first-party-signature-policy
+    runtime:
+      package_kind: nimi-app
+      entry_ref: avatar-runtime-registration
+      sandbox_ref: first-party-bundled-app
+    permissions_ref: nimi.avatar.permission_scope_ref
+    storage_policy_ref: nimi-data-app-roots
+    review:
+      admission_path: first-party-bundled-release
+      mutable_source_allowed: false
+      install_digest_verification_required: inherited_from_atomic_bundle
+    source_rule: P-NAPP-014
+
+  - descriptor_id: nimi.parentos.bundled-with-nimi
+    app_id: nimi.parentos
+    version: bundled-with-current-nimi-release
+    descriptor_class: bundled-with-nimi
+    source:
+      kind: nimi-bundle
+      ref: current-atomic-nimi-release
+    artifact:
+      locator: current-nimi-release-bundle
+      digest_algorithm: sha256
+      sha256: inherited-from-atomic-nimi-release-manifest
+      size: inherited-from-atomic-nimi-release-manifest
+      signature_or_provenance_ref: nimi-first-party-signature-policy
+    runtime:
+      package_kind: nimi-app
+      entry_ref: parentos-runtime-registration
+      sandbox_ref: first-party-bundled-app
+    permissions_ref: nimi.parentos.permission_scope_ref
+    storage_policy_ref: nimi-data-app-roots
+    review:
+      admission_path: first-party-bundled-release
+      mutable_source_allowed: false
+      install_digest_verification_required: inherited_from_atomic_bundle
+    source_rule: P-NAPP-014
+
+third_party_descriptor_floor:
+  required_fields:
+    - descriptor_id
+    - app_id
+    - version
+    - source.kind
+    - source.ref
+    - artifact.locator
+    - artifact.sha256
+    - artifact.size
+    - artifact.signature_or_provenance_ref
+    - runtime.package_kind
+    - runtime.entry_ref
+    - runtime.sandbox_ref
+    - permissions_ref
+    - storage_policy_ref
+    - review.admission_path
+  allowed_source_kinds:
+    - github-release
+    - github-commit
+    - npm-package
+  forbidden_install_inputs:
+    - mutable_git_branch
+    - mutable_git_tag_without_protection
+    - npm_dist_tag
+    - npm_version_range
+    - direct_npx
+    - direct_clone_build_run
+    - arbitrary_install_script_as_product_truth
+  verification:
+    before_unpack_register_execute: sha256_must_match_descriptor
+    mismatch: fail_closed_no_install_no_execution

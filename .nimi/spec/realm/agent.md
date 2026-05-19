@@ -20,6 +20,7 @@ This guide points to Realm authority surfaces for agent. It does not define prod
 - `.nimi/spec/realm/kernel/economy-contract.md`
 - `.nimi/spec/realm/kernel/group-agent-participation-contract.md`
 - `.nimi/spec/realm/kernel/oauth-authority-contract.md`
+- `.nimi/spec/realm/kernel/official-agent-contract.md`
 - `.nimi/spec/realm/kernel/projection-contract.md`
 - `.nimi/spec/realm/kernel/resource-contract.md`
 - `.nimi/spec/realm/kernel/social-contract.md`
@@ -37,6 +38,7 @@ This guide points to Realm authority surfaces for agent. It does not define prod
 - `.nimi/spec/realm/kernel/tables/domain-state-machines.yaml`
 - `.nimi/spec/realm/kernel/tables/economy-contract.yaml`
 - `.nimi/spec/realm/kernel/tables/group-agent-participation-contract.yaml`
+- `.nimi/spec/realm/kernel/tables/official-agent-seeds.yaml`
 
 ## Mapping Declaration
 

@@ -62,8 +62,7 @@
 `nimi-home-surfaces.yaml` 拥有）必须包含以下入口的 placement 行：
 
 - `first-run`
-- `library`
-- `discovery`
+- `apps`
 - `agent-chat`
 - `runtime-health`
 - `app-health`
@@ -120,15 +119,21 @@ mechanical guard：`check:home-shell-aiscoperef-required`。
 
 mechanical guard：`check:home-shell-no-runtime-internal-import`。
 
-## P-HOME-009 — Library / Discovery Non-Owner Rule
+## P-HOME-009 — Apps Non-Owner Rule
 
-`MUST`：`Library` 与 `Discovery` surface 消费 Wave 3 Nimi App registry
-与 Runtime registration / enforcement projection。
+`MUST`：`Apps` surface 消费 Nimi App registry / package projection、SDK Nimi
+App client projection、与 Runtime registration / enforcement projection。
+`Library` 与 `Discovery` 只能作为 lower-level projection 或历史实现名，不得
+定义最终 ordinary primary navigation label。
 
 `MUST NOT`:
 
 - 不得拥有 admission truth、marketplace truth、economy truth、package
   trust truth、或第二份 app discovery 平面。
+- 不得从 app-local spec、workspace source tree、Mods、Extensions、或未
+  admitted registry row 推导 ordinary Apps 可见性。
+- 不得在 ordinary Apps 中显示 Avatar；隐藏 Avatar 也不得把 package /
+  install / update truth 移入 Agent Chat。
 - 不得引入“Home tab as Home”命名递归（参见 Wave 0
   `naming-and-kernel-ontology.md`）。
 
@@ -139,7 +144,7 @@ mechanical guard：`check:home-shell-no-runtime-internal-import`。
 `MUST NOT`：首屏不得是 marketing copy、landing page、或第三方 placeholder。
 首屏可以 fail-closed 展示 cold-start authority 状态（`P-COLD-001`），但
 必须直接给到用户可操作的产品控制面（settings、setup、account、Runtime
-health、Library/Discovery 等）。
+health、Apps 等）。
 
 ## Fact Sources
 

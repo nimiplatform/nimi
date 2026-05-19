@@ -8,15 +8,31 @@ Desktop UI Shell 契约。定义导航 Tab 体系、布局结构、路由映射�
 
 ## D-SHELL-001 — 导航 Tab 体系
 
-导航由 `navigation-config.tsx` 定义，分为三组：
+导航由 `navigation-config.tsx` 定义。普通用户 primary navigation 固定为：
 
-1. **Core Nav**（`getCoreNavItems()`）：home、chat、contacts、world、explore、runtime（gated）、settings
-2. **Mod Nav**（sidebar puzzle icon）：mods（gated by `enableModUi`）— 仅作为
-   developer/internal/retirement surface；不得作为 Nimi Home 普通用户公开产品入口。
-3. **Detail Tab**：profile、agent-detail、world-detail、notification、gift-inbox、privacy-policy、terms-of-service
+```text
+Home | Chat | Contacts | Explore | Apps | Runtime
+```
+
+Tab 分组：
+
+1. **Core Nav**（`getCoreNavItems()`）：home、chat、contacts、explore、apps、runtime。
+2. **Secondary/System**：settings 等系统入口。它们可由菜单、账户区或设置入口打开，
+   但不得作为普通 primary nav 项。
+3. **Developer/Internal**：mods、mod workspace、developer mode、diagnostics。
+   这些 surface 仅作为 developer/internal/retirement surface；不得作为 Nimi
+   Home 普通用户公开产品入口。
+4. **Detail Tab**：profile、agent-detail、world-detail、notification、
+   gift-inbox、privacy-policy、terms-of-service。
+
+`World` 必须折入 `Explore`；`AI Runtime` 的普通产品 label 必须为
+`Runtime`；`AI Tester` 只能作为 Nimi App admission candidate 或
+developer/internal surface，不得作为普通 primary nav 项。
 
 Feature flag 门控：
-- `enableRuntimeTab` 控制 runtime tab 可见性。
+- `enableRuntimeTab` 不得控制普通 Runtime primary nav 是否存在；Runtime 是
+  baseline primary nav。该 flag 只能在实现迁移期作为 internal hardcut guard，
+  不得进入产品 close evidence。
 - `enableModUi` 控制 mods tab 可见性（sidebar puzzle icon + guard clause）。
   新 Nimi 产品 posture 下该入口必须保持 developer/internal/retirement-only，
   不能进入 ordinary-user Nimi Home close evidence。
@@ -78,8 +94,8 @@ Mods Panel（`features/mods/mods-panel.tsx`）直接承载单页 Mod Hub：
 Content 面板映射：
 - `chat` → `ChatPage`
 - `contacts` → `ContactsPanel`
-- `world` → `WorldList`
 - `explore` → `ExplorePanel`
+- `apps` → `AppsPanel`
 - `settings` → `SettingsPanel`
 - `profile` → `ProfilePanel`（承载共享 profile detail surface）
 - `gift-inbox` → `GiftInboxPanel`（礼物交易列表与详情入口，作为 full-page detail route）
@@ -92,6 +108,8 @@ Content 面板映射：
 `renderShellNavIcon(icon)` 提供内联 SVG 图标：
 
 - 支持的图标名：home、chat、contacts、explore、runtime、profile、settings、store、globe、wallet、agent/agents/my-agents/bot、terms/file/document、privacy/shield、logout
+- `apps` 必须使用 app/grid/store 类熟悉图标，不得使用未知 fallback 作为
+  close evidence。
 - 未知图标名回退到 puzzle 图标。
 
 ## D-SHELL-008 — Shell Mode 检测

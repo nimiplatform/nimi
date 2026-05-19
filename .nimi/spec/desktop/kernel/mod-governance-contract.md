@@ -9,7 +9,7 @@ Desktop Mod 治理契约。定义 8 阶段执行内核、2 种 runtime access mo
 Under the Nimi Home product posture, this contract is retained only as
 developer/internal/retirement authority for existing mod surfaces. It does not
 admit public Mods or Extensions as ordinary-user product categories, and it must
-not be used as Nimi App registry, Library, Discovery, or third-party ecosystem
+not be used as Nimi App registry, Apps projection, or third-party ecosystem
 truth.
 
 ## D-MOD-001 — Discovery 阶段
@@ -158,8 +158,11 @@ Desktop App 的产品定位是第三方 mod 的运行、开发与测试宿主，
 
 Desktop 必须维护一个显式注册的 mod source directory 列表，而不是扫描固定仓路径：
 
-- `nimi_dir` 固定为 `~/.nimi`，只保存核心配置。
-- `nimi_data_dir` 默认是 `~/.nimi/data`，installed mod 目录固定为 `{nimi_data_dir}/mods`。
+- `nimi_dir` 固定为 `~/.nimi`，只保存核心配置和 product-local control
+  projections.
+- `nimi_data_dir` must resolve from selected `nimi_data` in
+  `~/.nimi/nimi.json`; installed mod retirement/developer payloads may live
+  under `{nimi_data_dir}/mods` only after product data-root reconciliation.
 - Desktop 只允许 1 个 Desktop-managed installed source；用户不能新增、编辑或删除 installed source。
 - 用户可在 App 内添加额外 `dev` source directories。
 - source directory 类型只影响展示、reload 和管理行为，不影响冲突裁决。
@@ -179,7 +182,9 @@ Desktop 必须维护一个显式注册的 mod source directory 列表，而不�
 面向第三方 mod 作者的 Desktop 开发流程必须满足 UI-only host 原则：
 
 - Desktop 侧所有开发相关操作必须可以在 App 界面内完成，例如：开启 Developer Mode、添加 dev 目录、查看冲突、触发 reload、查看日志。
-- `nimi_data_dir` 必须在 App 内可配置；切换后立即生效，但 Desktop 不得自动迁移旧数据，只能提示用户手动复制。
+- `nimi_data_dir` must not be edited through the legacy mod panel as an
+  independent owner. Data-root changes after first-run must route through the
+  admitted `nimi_data` migration/repair flow with impact preview.
 - 启动参数、环境变量、CLI 或手工 symlink 只允许作为内部调试/测试路径，不得成为第三方作者主流程。
 - 第三方作者唯一需要的终端操作应发生在自己的 mod 仓中，例如 `pnpm dev`、`pnpm test`、`pnpm pack`。
 

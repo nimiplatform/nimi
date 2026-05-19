@@ -25,6 +25,7 @@ updated: 2026-04-18
 - `bundle-contract.md` (`R-BNDL-*`)
 - `transit-contract.md` (`R-TRANSIT-*`)
 - `oauth-authority-contract.md` (`R-OAUTH-*`)
+- `official-agent-contract.md` (`R-SOC-006..R-SOC-009`)
 
 ## Tables
 
@@ -48,6 +49,7 @@ updated: 2026-04-18
 - `tables/bundle-contract.yaml`
 - `tables/transit-contract.yaml`
 - `tables/oauth-authority-contract.yaml`
+- `tables/official-agent-seeds.yaml`
 - `tables/domain-enums.yaml`
 - `tables/domain-state-machines.yaml`
 - `tables/open-spec-alignment-map.yaml`

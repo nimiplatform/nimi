@@ -83,8 +83,9 @@ truth 层不得保留 standalone install / launch / update 路径；只允许
 Nimi App registry 行作为 ordinary-user product truth。
 
 `MUST NOT`：不得保留 standalone Avatar / ParentOS 安装包作为 ordinary-
-user product channel；不得让 desktop hosted shell 暴露独立 Avatar /
-ParentOS 入口绕过 Library / Discovery。
+user product channel；不得让 desktop hosted shell 暴露独立 ParentOS Apps
+入口绕过 Nimi App registry / SDK projection。Avatar remains hidden from
+ordinary Apps while package/update coordination stays registry/package-owned.
 
 source-development workflows 可继续以 standalone 方式启动，但必须遵守
 `P-FPM-004` 的 source-development marker rule。

@@ -78,7 +78,7 @@
 | `delegated-a2a-future-seam-contract.md` | `K-DELEG-*` | Future A2A adapter seam only、no production A2A support、no protocol authority promotion、and no app/Desktop/Avatar/mod bypass |
 | `app-messaging-contract.md` | `K-APP-*` | 应用间消息、事件流 |
 | `cli-onboarding-contract.md` | `K-CLI-*` | CLI 首次使用、provider-first cloud setup 与 author tooling 边界 |
-| `config-contract.md` | `K-CFG-*` | 配置路径、优先级、secret policy、写入语义 |
+| `config-contract.md` | `K-CFG-*` | Runtime config path `~/.nimi/runtime/config.json`, source priority, secret policy, atomic writes, schema migration, and selected `nimi_data` dataRootRef boundary |
 | `connector-contract.md` | `K-CONN-*` | connector 托管、字段约束、补偿与并发安全 |
 | `nimillm-contract.md` | `K-NIMI-*` | remote 执行边界、流式与审计对齐 |
 | `model-catalog-contract.md` | `K-MCAT-*` | 模型/voice catalog SSOT、远程覆写与 fail-close 语义 |

@@ -11,7 +11,7 @@ entries:
   - surface placement is owned by desktop-hosted shell per D-HOME-001
   - each row must declare source_authority and forbidden_ownership
   - failure-projection is a first-class surface and must not be collapsed into a generic unavailable label
-  - library and discovery rows consume Wave 3 Nimi App registry; placement is frozen now, row schema reference is Wave 3 dependent
+  - apps row consumes Nimi App registry, package projection, SDK app client, and Runtime registration projection
 
 # Canonical Nimi Home surface placement registry — desktop-hosted shell IA.
 # See nimi-home-shell-contract.md (D-HOME-001..D-HOME-012) and Platform
@@ -47,35 +47,25 @@ surfaces:
       - provider_or_model_constant
     source_rule: D-HOME-002
 
-  - surface_id: library
-    surface_label: Library
+  - surface_id: apps
+    surface_label: Apps
     owner: desktop_nimi_home_shell
     source_authority:
       - .nimi/spec/platform/kernel/nimi-home-contract.md
+      - .nimi/spec/platform/kernel/nimi-app-admission-contract.md
+      - .nimi/spec/sdk/kernel/nimi-app-client-contract.md
     allowed_projection_scope:
-      - installed_nimi_app_listing_consumed_from_wave_3_registry
-      - app_update_state_consumed_from_wave_3_registry
+      - ordinary_visible_nimi_app_listing_consumed_from_registry_projection
+      - install_update_uninstall_card_states_consumed_from_sdk_projection
       - app_health_consumed_from_runtime_registration_projection
+      - avatar_filtered_from_ordinary_apps
     forbidden_ownership:
       - app_registry_admission_authority
       - marketplace_economy_truth
       - package_trust_authority
+      - app_local_spec_discovery_truth
+      - avatar_package_install_update_authority
     source_rule: D-HOME-004
-
-  - surface_id: discovery
-    surface_label: Discovery
-    owner: desktop_nimi_home_shell
-    source_authority:
-      - .nimi/spec/platform/kernel/nimi-home-contract.md
-    allowed_projection_scope:
-      - admitted_first_party_app_listing_consumed_from_wave_3_registry
-      - app_admission_state_distinct_from_install_state
-      - trust_tier_label_consumed_from_wave_0_floor
-    forbidden_ownership:
-      - app_admission_authority
-      - third_party_marketplace_authority
-      - package_trust_authority
-    source_rule: D-HOME-005
 
   - surface_id: agent-chat
     surface_label: Agent Chat

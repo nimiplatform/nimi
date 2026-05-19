@@ -94,6 +94,11 @@ entries:
   - R-SOC-002
   - R-SOC-003
   - R-SOC-004
+  - R-SOC-005
+  - R-SOC-006
+  - R-SOC-007
+  - R-SOC-008
+  - R-SOC-009
   - R-ECON-001
   - R-ECON-002
   - R-ECON-003
@@ -484,6 +489,31 @@ rules:
   R-SOC-004:
     domain: social
     spec_anchor: .nimi/spec/realm/kernel/social-contract.md#R-SOC-004
+    profile_refs:
+      - social
+  R-SOC-005:
+    domain: social
+    spec_anchor: .nimi/spec/realm/kernel/social-contract.md#R-SOC-005
+    profile_refs:
+      - social
+  R-SOC-006:
+    domain: social
+    spec_anchor: .nimi/spec/realm/kernel/social-contract.md#R-SOC-006
+    profile_refs:
+      - social
+  R-SOC-007:
+    domain: social
+    spec_anchor: .nimi/spec/realm/kernel/social-contract.md#R-SOC-007
+    profile_refs:
+      - social
+  R-SOC-008:
+    domain: social
+    spec_anchor: .nimi/spec/realm/kernel/social-contract.md#R-SOC-008
+    profile_refs:
+      - social
+  R-SOC-009:
+    domain: social
+    spec_anchor: .nimi/spec/realm/kernel/social-contract.md#R-SOC-009
     profile_refs:
       - social
   R-ECON-001:

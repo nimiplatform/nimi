@@ -18,7 +18,7 @@ flags:
   - flag: enableRuntimeTab
     default_desktop: true
     default_web: false
-    description: Show AI Runtime tab in sidebar navigation
+    description: Internal migration guard only; Runtime is an ordinary primary nav item in product authority
     source_rule: D-SHELL-001
 
   - flag: enableModUi

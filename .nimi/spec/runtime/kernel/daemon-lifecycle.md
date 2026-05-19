@@ -128,7 +128,7 @@ AI 执行路径使用双层信号量控制并发：
 配置通过多源合并，优先级从高到低：
 
 1. **环境变量**（`NIMI_RUNTIME_*`）
-2. **配置文件**（`~/.nimi/config.json`，JSON 格式，`schemaVersion=1`）
+2. **配置文件**（`~/.nimi/runtime/config.json`，JSON 格式，`schemaVersion=1`）
 3. **硬编码默认值**
 
 关键配置项的权威字段清单见 `tables/config-schema.yaml`（K-CFG-017）。
@@ -137,7 +137,9 @@ AI 执行路径使用双层信号量控制并发：
 - 地址必须为合法 `host:port` 格式。
 - `ShutdownTimeout > 0`。
 
-仅支持 canonical 配置路径：`~/.nimi/config.json`。Runtime 不读取、不迁移 legacy 路径 `~/.nimi/runtime/config.json`。
+仅支持 canonical 配置路径：`~/.nimi/runtime/config.json`。Root-level
+`~/.nimi/config.json` 仅可作为显式 migration input；迁移后不得作为 fallback
+truth。
 
 Phase 1 配置文件 schema 权威字段清单见 `tables/config-schema.yaml`（`K-CFG-017`）。
 

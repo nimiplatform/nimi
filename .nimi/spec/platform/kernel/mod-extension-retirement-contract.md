@@ -17,7 +17,7 @@ Pack` 与 `Asset Market` 的 non-admission 与 admission 边界。
 `MUST`：Public Mod 与 Public Extension 不是 Nimi 新一轮产品的 admitted
 external installable / distributable / user-authorized product category。
 
-`MUST NOT`：registry / SDK / Home Library / Home Discovery / install
+`MUST NOT`：registry / SDK / Apps / install
 gateway / release channel 不得通过任何 alias 重新引入 Public Mod 或
 Public Extension。
 
@@ -39,7 +39,7 @@ internalization，并按 `desktop-kernel-supersession-schedule.md` 顺序退役�
 
 `MUST`：Nimi 不创建共享的 `Nimi Content Pack` 产品 / channel。
 
-`MUST NOT`：Registry / Library / Discovery / SDK 不得引入跨 app 的通用内容包
+`MUST NOT`：Registry / Apps / SDK 不得引入跨 app 的通用内容包
 admission；任何"通用内容渠道"提案视为 reopen condition（参见 Wave 0
 `mod-extension-retirement-map.md`）。
 

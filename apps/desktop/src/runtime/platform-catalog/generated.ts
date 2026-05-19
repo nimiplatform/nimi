@@ -21,6 +21,7 @@ export interface PlatformAIProfileFactoryRow {
   readonly dependencyFamilyRefs: readonly string[];
   readonly materializationConfirmationRequired: boolean;
   readonly applicableScopes: readonly string[];
+  readonly firstRunInstallLevels: readonly string[];
   readonly sourceRule: string;
 }
 
@@ -48,10 +49,10 @@ export const PLATFORM_AI_PROFILE_FACTORY_ROWS = [
     "dependencyFamilyRefs": [],
     "materializationConfirmationRequired": false,
     "applicableScopes": [
-      "first-run",
       "first-party-app",
       "scope-bound-apply"
     ],
+    "firstRunInstallLevels": [],
     "sourceRule": "P-AIPS-002"
   },
   {
@@ -77,10 +78,10 @@ export const PLATFORM_AI_PROFILE_FACTORY_ROWS = [
     ],
     "materializationConfirmationRequired": true,
     "applicableScopes": [
-      "first-run",
       "first-party-app",
       "scope-bound-apply"
     ],
+    "firstRunInstallLevels": [],
     "sourceRule": "P-AIPS-002"
   },
   {
@@ -116,6 +117,10 @@ export const PLATFORM_AI_PROFILE_FACTORY_ROWS = [
       "first-run",
       "first-party-app",
       "scope-bound-apply"
+    ],
+    "firstRunInstallLevels": [
+      "minimal",
+      "recommended"
     ],
     "sourceRule": "P-AIPS-002"
   },
@@ -161,6 +166,9 @@ export const PLATFORM_AI_PROFILE_FACTORY_ROWS = [
       "first-party-app",
       "scope-bound-apply"
     ],
+    "firstRunInstallLevels": [
+      "recommended"
+    ],
     "sourceRule": "P-AIPS-002"
   },
   {
@@ -200,10 +208,10 @@ export const PLATFORM_AI_PROFILE_FACTORY_ROWS = [
     ],
     "materializationConfirmationRequired": true,
     "applicableScopes": [
-      "first-run",
       "first-party-app",
       "scope-bound-apply"
     ],
+    "firstRunInstallLevels": [],
     "sourceRule": "P-AIPS-002"
   }
 ] as const satisfies readonly PlatformAIProfileFactoryRow[];

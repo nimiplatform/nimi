@@ -65,6 +65,7 @@ function normalizeAIProfileFactoryRows(doc) {
       dependencyFamilyRefs: stringArray(row?.dependency_family_refs, `${alias}.dependency_family_refs`),
       materializationConfirmationRequired: Boolean(row?.materialization_confirmation_required),
       applicableScopes: stringArray(row?.applicable_scopes, `${alias}.applicable_scopes`),
+      firstRunInstallLevels: stringArray(row?.first_run_install_levels, `${alias}.first_run_install_levels`),
       sourceRule: asString(row?.source_rule, `${alias}.source_rule`),
     };
   });
@@ -136,6 +137,7 @@ function render(factoryRows, appRows, aiProfiles) {
     '  readonly dependencyFamilyRefs: readonly string[];',
     '  readonly materializationConfirmationRequired: boolean;',
     '  readonly applicableScopes: readonly string[];',
+    '  readonly firstRunInstallLevels: readonly string[];',
     '  readonly sourceRule: string;',
     '}',
     '',

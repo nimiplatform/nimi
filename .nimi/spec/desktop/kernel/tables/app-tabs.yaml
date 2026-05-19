@@ -5,10 +5,9 @@ entries:
   - home
   - chat
   - contacts
-  - world
   - explore
+  - apps
   - runtime
-  - tester
   - settings
   - mods
   - profile
@@ -24,7 +23,8 @@ entries:
 #         apps/desktop/src/shell/renderer/app-shell/layouts/navigation-config.tsx
 
 tabs:
-  # Core navigation (always visible unless feature-gated)
+  # Ordinary primary navigation. Product target:
+  # Home | Chat | Contacts | Explore | Apps | Runtime
   - id: home
     nav_group: core
     label: Home
@@ -43,39 +43,34 @@ tabs:
     gated_by: null
     source_rule: D-SHELL-001
 
-  - id: world
-    nav_group: core
-    label: World
-    gated_by: null
-    source_rule: D-SHELL-001
-
   - id: explore
     nav_group: core
     label: Explore
     gated_by: null
     source_rule: D-SHELL-001
 
+  - id: apps
+    nav_group: core
+    label: Apps
+    gated_by: null
+    source_rule: D-SHELL-001
+
   - id: runtime
     nav_group: core
-    label: AI Runtime
-    gated_by: enableRuntimeTab
+    label: Runtime
+    gated_by: null
     source_rule: D-SHELL-001
 
-  - id: tester
-    nav_group: core
-    label: AI Tester
-    gated_by: enableRuntimeTab
-    source_rule: D-SHELL-001
-
+  # Secondary/system surfaces. They are not ordinary primary nav entries.
   - id: settings
-    nav_group: core
+    nav_group: secondary
     label: Settings
     gated_by: null
     source_rule: D-SHELL-001
 
-  # Mod navigation (sidebar, separately rendered)
+  # Developer/internal surfaces. They are not ordinary primary nav entries.
   - id: mods
-    nav_group: mod-nav
+    nav_group: developer
     label: Mods
     gated_by: enableModUi
     source_rule: D-SHELL-002
@@ -125,7 +120,7 @@ tabs:
 
   # Dynamic mod tabs (pattern: mod:${modId})
   - id: "mod:*"
-    nav_group: mod
+    nav_group: developer
     label: Mod Workspace
     gated_by: enableModWorkspaceTabs
     source_rule: D-SHELL-001

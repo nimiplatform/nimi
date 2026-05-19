@@ -102,7 +102,7 @@ Mod 本地持久化与审计命令集（`runtime_mod::commands`）：
 
 - `runtime_mod_list_local_manifests`：列出 runtime mods 目录中的本地 mod 清单摘要。
 - `runtime_mod_list_installed`：列出已安装 mod 清单。
-- `runtime_mod_install` / `runtime_mod_update` / `runtime_mod_uninstall`：mod 安装生命周期命令。`runtime_mod_uninstall` 只卸载 package，不删除 `{nimi_data_dir}/mod-data/{mod_id}`。
+- `runtime_mod_install` / `runtime_mod_update` / `runtime_mod_uninstall`：developer/internal mod 安装生命周期命令。`runtime_mod_uninstall` 只卸载 package，不删除 `{nimi_data_dir}/mod-data/{mod_id}`。`nimi_data_dir` 必须来自已选择并调和的 product `nimi_data`。
 - `runtime_mod_read_manifest`：读取已安装 mod manifest。
 - `runtime_mod_install_progress`：查询安装进度事件。
 - `runtime_mod_read_local_entry`：读取 mod 入口源码。
@@ -118,7 +118,7 @@ Mod 本地持久化与审计命令集（`runtime_mod::commands`）：
 
 存储边界固定如下：
 
-- installed mod package 继续位于 `{nimi_data_dir}/mods`。
+- installed mod package 继续位于 `{nimi_data_dir}/mods`，但该 surface 是 developer/internal/retirement-only，不是 ordinary Apps install storage。
 - mod 持久化数据固定位于 `{nimi_data_dir}/mod-data/{mod_id}`。
 - `files` 仅允许访问 `files/` 子树，拒绝绝对路径、空路径、`..` 与符号链接越界。
 - `sqlite` 仅允许访问 `sqlite/main.db`，并拒绝 `ATTACH`、`DETACH`、`VACUUM INTO`、`load_extension`。
@@ -312,7 +312,7 @@ Local-runtime Tauri 命令使用 `runtime_local_assets_*` 前缀。旧 `runtime_
 Desktop 作为 mod developer host 时，开发态 source 管理与 reload 能力必须通过受管 IPC surface 暴露，而不是要求用户改启动参数：
 
 - source registry：`runtime_mod_sources_list`、`runtime_mod_sources_upsert`、`runtime_mod_sources_remove` — 列出、添加/更新、移除 mod source directories。
-- storage dirs：`runtime_mod_storage_dirs_get`、`runtime_mod_data_dir_set` — 读取当前 `nimi_dir` / `nimi_data_dir` / installed mods 路径，并更新 `nimi_data_dir`。
+- storage dirs：`runtime_mod_storage_dirs_get` — 读取当前 `nimi_dir` / `nimi_data_dir` / installed mods 路径。`runtime_mod_data_dir_set` is not admitted as an ordinary data-root owner; after product-local data-root admission it may only route to the `nimi_data` migration/repair flow or fail closed.
 - developer mode：`runtime_mod_dev_mode_get`、`runtime_mod_dev_mode_set` — 读取和切换 App 内的 Developer Mode 状态。
 - reload controls：`runtime_mod_reload`、`runtime_mod_reload_all` — 对 `dev` source 中的单个 mod 或全部 mod 执行 reload。
 - diagnostics：`runtime_mod_diagnostics_list` — 列出 source 扫描结果、重复 `mod id` 冲突、最近 reload 结果。

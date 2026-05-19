@@ -4,7 +4,9 @@
 
 ## K-CFG-001 Canonical Config Path
 
-Runtime 配置文件唯一 canonical 路径为 `~/.nimi/config.json`。不读取 legacy 路径。
+Runtime 配置文件唯一 canonical 路径为 `~/.nimi/runtime/config.json`。
+Root-level `~/.nimi/config.json` 不再是 future product authority。读取旧路径
+只能作为显式迁移输入，并且不得在迁移后继续作为 fallback truth。
 
 ## K-CFG-002 Source Priority
 
@@ -95,6 +97,21 @@ Desktop/CLI/SDK 对 runtime 配置行为的投影必须与本契约保持语义�
 
 ## K-CFG-017 Phase 1 Field Authority
 
-Phase 1 配置文件 `~/.nimi/config.json` 的权威字段清单由 `tables/config-schema.yaml` 定义。该表包含每个字段的类型、默认值、reload 语义（`restart`/`hot`/`immutable`）与来源规则引用。
+Phase 1 配置文件 `~/.nimi/runtime/config.json` 的权威字段清单由
+`tables/config-schema.yaml` 定义。该表包含每个字段的类型、默认值、reload
+语义（`restart`/`hot`/`immutable`）与来源规则引用。
 
 配置字段的新增或修改必须先更新 `tables/config-schema.yaml`，再同步相关合约文档。
+
+## K-CFG-018 Data Root Reference Boundary
+
+Runtime config may store `dataRootRef` and derived managed roots for models,
+dependencies, environments, logs, and audit. These fields are Runtime-owned
+daemon/materialization configuration and must be reconciled from the product
+control record selected `nimi_data`.
+
+Runtime config does not own first-run product state, install level, account app
+library, account profile library, permission grants, or app durable data.
+Conflicts between Runtime config roots and `~/.nimi/nimi.json` selected
+`nimi_data` must fail closed into repair/migration rather than silently choosing
+one path.

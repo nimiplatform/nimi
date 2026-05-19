@@ -13,6 +13,11 @@ entries:
   - R-SOC-002
   - R-SOC-003
   - R-SOC-004
+  - R-SOC-005
+  - R-SOC-006
+  - R-SOC-007
+  - R-SOC-008
+  - R-SOC-009
   - Friendship
   - SocialPrecondition
   - required_operations
@@ -44,6 +49,26 @@ rules:
     level: must
     title: social-gates-human-chat-agent-chat-stays-outside
     statement: "Social may gate human chat via preconditions, but canonical chat surface lives in Realm Chat and agent chat runtime stays outside Realm."
+  - rule_id: R-SOC-005
+    level: must
+    title: official-guide-agentfriend-quota-exception
+    statement: "Official guide AgentFriend relationships admitted by R-SOC official seed rows do not count against ordinary AgentFriend quota only when quota_policy=official_guide_exception; the exception must not generalize to ordinary RealmAgents."
+  - rule_id: R-SOC-006
+    level: must
+    title: official-realmagent-seed-authority
+    statement: "Realm owns official RealmAgent seed truth; Desktop, Runtime, SDK, and app-local fixtures must not create fake official guides without a Realm official seed."
+  - rule_id: R-SOC-007
+    level: must
+    title: archivist-seed-admitted
+    statement: "Archivist / @archivist.nimi is an admitted official RealmAgent seed with official Nimi guide provenance and OASIS/system main World association."
+  - rule_id: R-SOC-008
+    level: must
+    title: official-relationship-provisioning-source
+    statement: "Realm owns the official relationship source fact that new registered accounts receive an AgentFriend relationship to admitted official guide seeds when auto_provision.agent_friend=true."
+  - rule_id: R-SOC-009
+    level: must
+    title: official-guide-quota-exception
+    statement: "Official guide AgentFriend relationships declared with quota_policy=official_guide_exception do not count against ordinary AgentFriend quota and must remain an explicit exception."
 entities:
   - name: Friendship
     prisma_model: Friendship

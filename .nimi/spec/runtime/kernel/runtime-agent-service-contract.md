@@ -661,3 +661,36 @@ Fixed rules:
   external-principal paths, but it is never scoped binding proof.
 - Default local first-party Avatar must not be forced through this binding
   attachment path solely because Desktop launched it.
+
+## K-AGCORE-139 Official Guide LocalAgent Provisioning
+
+`RuntimeAgentService` consumes Realm official guide seed and AgentFriend
+projection to provision the user's LocalAgent for admitted official guide
+RealmAgents.
+
+For `Archivist / @archivist.nimi`, Runtime must:
+
+- consume the Realm seed from `.nimi/spec/realm/kernel/tables/official-agent-seeds.yaml`
+  through admitted Realm/SDK projection, not through Desktop fixtures;
+- require the account's official AgentFriend relationship to exist or be
+  created through the Realm provisioning path;
+- create or repair one account-scoped LocalAgent projection for that
+  AgentFriend idempotently;
+- preserve conversation anchor and RuntimeAgentService lifecycle semantics;
+- expose provisioning failures as typed repair/blocked states.
+
+`MUST NOT`: Runtime must not create Archivist as a standalone local-only agent,
+fake contact, server-bot bypass, Avatar instance, or default global agent.
+Quota exception truth remains Realm/social official-guide authority; Runtime may
+consume the exception but may not generalize it.
+
+## K-AGCORE-140 Official Guide First Conversation Projection
+
+When an official guide LocalAgent is provisioned, Runtime may initialize the
+first conversation projection from the Realm official seed first-message floor.
+That projection is welcome copy and onboarding context only.
+
+`MUST NOT`: first-message projection must not create memory truth, permission
+grant truth, Runtime setup truth, or profile/app configuration truth. Archivist
+may guide the user to product surfaces but cannot bypass setup confirmations,
+permissions, install plans, or app admission.
