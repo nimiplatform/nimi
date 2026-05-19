@@ -1,5 +1,5 @@
 use super::*;
-use crate::test_support::with_env;
+use crate::test_support::with_product_data_home;
 use serde_json::json;
 
 fn temp_home(prefix: &str) -> PathBuf {
@@ -161,7 +161,7 @@ fn agent_center_marker_for_account(
 #[test]
 fn imports_live2d_avatar_asset_transactionally_and_selects_it() {
     let home = temp_home("import-live2d-avatar");
-    with_env(&[("HOME", home.to_str())], || {
+    with_product_data_home(&home, || {
         let source = write_live2d_avatar_source(&home);
         let result = desktop_agent_center_avatar_asset_import_blocking(
             DesktopAgentCenterAvatarAssetImportPayload {
@@ -248,7 +248,7 @@ fn imports_live2d_avatar_asset_transactionally_and_selects_it() {
 #[test]
 fn avatar_asset_validation_fails_closed_when_entry_file_is_missing() {
     let home = temp_home("validate-avatar-missing-entry");
-    with_env(&[("HOME", home.to_str())], || {
+    with_product_data_home(&home, || {
         let source = write_vrm_avatar_source(&home);
         let imported = desktop_agent_center_avatar_asset_import_blocking(
             DesktopAgentCenterAvatarAssetImportPayload {
@@ -296,7 +296,7 @@ fn avatar_asset_validation_fails_closed_when_entry_file_is_missing() {
 #[test]
 fn imports_vrm_avatar_asset_transactionally_and_selects_it() {
     let home = temp_home("import-vrm-avatar");
-    with_env(&[("HOME", home.to_str())], || {
+    with_product_data_home(&home, || {
         let source = write_vrm_avatar_source(&home);
         let result = desktop_agent_center_avatar_asset_import_blocking(
             DesktopAgentCenterAvatarAssetImportPayload {
@@ -355,7 +355,7 @@ fn imports_vrm_avatar_asset_transactionally_and_selects_it() {
 #[test]
 fn lists_avatar_asset_library_and_switches_existing_selection() {
     let home = temp_home("avatar-library-select");
-    with_env(&[("HOME", home.to_str())], || {
+    with_product_data_home(&home, || {
         let live2d_source = write_live2d_avatar_source(&home);
         let live2d = desktop_agent_center_avatar_asset_import_blocking(
             DesktopAgentCenterAvatarAssetImportPayload {
@@ -456,7 +456,7 @@ fn lists_avatar_asset_library_and_switches_existing_selection() {
 #[test]
 fn removes_selected_avatar_asset_by_clearing_config_and_quarantining_directory() {
     let home = temp_home("remove-avatar-package");
-    with_env(&[("HOME", home.to_str())], || {
+    with_product_data_home(&home, || {
         let source = write_vrm_avatar_source(&home);
         let imported = desktop_agent_center_avatar_asset_import_blocking(
             DesktopAgentCenterAvatarAssetImportPayload {
@@ -519,7 +519,7 @@ fn removes_selected_avatar_asset_by_clearing_config_and_quarantining_directory()
 #[test]
 fn imports_background_transactionally_and_selects_it() {
     let home = temp_home("import-background");
-    with_env(&[("HOME", home.to_str())], || {
+    with_product_data_home(&home, || {
         let source = write_background_import_source(&home);
         let result = desktop_agent_center_background_import_blocking(
             DesktopAgentCenterBackgroundImportPayload {
@@ -579,7 +579,7 @@ fn imports_background_transactionally_and_selects_it() {
 #[test]
 fn same_realm_agent_id_does_not_share_agent_center_resources_across_owners() {
     let home = temp_home("owner-isolation");
-    with_env(&[("HOME", home.to_str())], || {
+    with_product_data_home(&home, || {
         let source = write_background_import_source(&home);
         let owner_one = desktop_agent_center_background_import_blocking(
             DesktopAgentCenterBackgroundImportPayload {
@@ -629,7 +629,7 @@ fn same_realm_agent_id_does_not_share_agent_center_resources_across_owners() {
 #[test]
 fn removes_selected_background_by_clearing_config_and_quarantining_directory() {
     let home = temp_home("remove-background");
-    with_env(&[("HOME", home.to_str())], || {
+    with_product_data_home(&home, || {
         let background_root = write_valid_background(&home);
         select_imported_background("account_1", &local_scope(), "bg_ab12cd34ef56")
             .expect("select background");

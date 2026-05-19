@@ -102,6 +102,8 @@ func Load() (Config, error) {
 		ShutdownTimeout:                 10 * time.Second,
 		LocalStatePath:                  resolveLocalStatePath(fileCfg),
 		LocalModelsPath:                 resolveLocalModelsPath(fileCfg),
+		DataRootRef:                     resolveDataRootRef(fileCfg),
+		ManagedRoots:                    resolveManagedRoots(fileCfg),
 		DefaultLocalTextModel:           readStringWithFileConfigFallback("NIMI_RUNTIME_DEFAULT_LOCAL_TEXT_MODEL", fileCfg.DefaultLocalTextModel, ""),
 		DefaultCloudProvider:            normalizeDefaultCloudProvider(readStringWithFileConfigFallback("NIMI_RUNTIME_DEFAULT_CLOUD_PROVIDER", fileCfg.DefaultCloudProvider, "")),
 		SessionTTLMinSeconds:            sessionTTLMinSeconds,

@@ -20,6 +20,12 @@ import {
 import { getSystemResourceSnapshot } from './runtime-bridge/system-resources';
 import { proxyHttp } from './runtime-bridge/http';
 import { getRuntimeDefaults } from './runtime-bridge/runtime-defaults';
+import {
+  getProductControlRecord,
+  markProductReadyForUse,
+  selectProductDataRoot,
+  setProductFirstRunInstallLevel,
+} from './runtime-bridge/product-control';
 import { clearAuthSession, loadAuthSession, saveAuthSession } from './runtime-bridge/auth-session';
 import { oauthListenForCode, oauthTokenExchange } from './runtime-bridge/oauth';
 import {
@@ -87,6 +93,12 @@ import {
 export type LocalRuntimeWriteOptions = {
   caller?: LocalRuntimeLifecycleCaller;
 };
+
+export type {
+  ProductControlRecord,
+  ProductControlRecordProjection,
+  ProductControlState,
+} from './runtime-bridge/product-control';
 
 export type {
   DesktopReleaseInfo,
@@ -181,6 +193,10 @@ export {
   setRuntimeBridgeConfig,
   proxyHttp,
   getRuntimeDefaults,
+  getProductControlRecord,
+  markProductReadyForUse,
+  selectProductDataRoot,
+  setProductFirstRunInstallLevel,
   loadAuthSession,
   saveAuthSession,
   clearAuthSession,
@@ -265,6 +281,10 @@ export const desktopBridge = {
   restartRuntimeBridge,
   setRuntimeBridgeConfig,
   getRuntimeDefaults,
+  getProductControlRecord,
+  markProductReadyForUse,
+  selectProductDataRoot,
+  setProductFirstRunInstallLevel,
   startWindowDrag,
   proxyHttp,
   openExternalUrl,

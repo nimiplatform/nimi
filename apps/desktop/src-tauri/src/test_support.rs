@@ -3,6 +3,8 @@ use std::cell::RefCell;
 #[cfg(test)]
 use std::collections::HashMap;
 #[cfg(test)]
+use std::path::{Path, PathBuf};
+#[cfg(test)]
 use std::sync::{Mutex, MutexGuard, OnceLock};
 #[cfg(test)]
 use std::thread_local;
@@ -90,4 +92,22 @@ pub(crate) fn with_env<R>(updates: &[(&str, Option<&str>)], run: impl FnOnce() -
         Ok(value) => value,
         Err(payload) => std::panic::resume_unwind(payload),
     }
+}
+
+#[cfg(test)]
+pub(crate) fn select_test_product_data_root(home: &Path) -> PathBuf {
+    let data_root = home.join(".nimi").join("data");
+    crate::desktop_product_control::select_product_data_root(
+        data_root.to_str().expect("test data root path"),
+    )
+    .expect("select test product data root");
+    data_root
+}
+
+#[cfg(test)]
+pub(crate) fn with_product_data_home<R>(home: &Path, run: impl FnOnce() -> R) -> R {
+    with_env(&[("HOME", home.to_str())], || {
+        let _data_root = select_test_product_data_root(home);
+        run()
+    })
 }

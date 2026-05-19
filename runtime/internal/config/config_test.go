@@ -70,9 +70,14 @@ func TestLoadDefaultsWithoutConfigFile(t *testing.T) {
 	if cfg.LocalStatePath != expectedStatePath {
 		t.Fatalf("state path mismatch: got=%q want=%q", cfg.LocalStatePath, expectedStatePath)
 	}
-	expectedModelsPath := filepath.Join(homeDir, defaultLocalModelsRelPath)
-	if cfg.LocalModelsPath != expectedModelsPath {
-		t.Fatalf("models path mismatch: got=%q want=%q", cfg.LocalModelsPath, expectedModelsPath)
+	if cfg.LocalModelsPath != "" {
+		t.Fatalf("models path should fail closed without dataRootRef: got=%q", cfg.LocalModelsPath)
+	}
+	if cfg.DataRootRef != "" {
+		t.Fatalf("dataRootRef default mismatch: got=%q want empty", cfg.DataRootRef)
+	}
+	if cfg.ManagedRoots.Models != "" {
+		t.Fatalf("managed models root should fail closed without dataRootRef: got=%q", cfg.ManagedRoots.Models)
 	}
 
 	if cfg.AIHealthIntervalSeconds != 8 {
@@ -124,7 +129,10 @@ func TestLoadFromConfigFileAppliesRuntimeAndProviderDefaults(t *testing.T) {
   "httpAddr": "127.0.0.1:50002",
   "shutdownTimeoutSeconds": 13,
   "localStatePath": "~/runtime/custom-state.json",
-  "localModelsPath": "~/runtime/custom-models",
+  "dataRootRef": "~/runtime/nimi-data",
+  "managedRoots": {
+    "models": "~/runtime/nimi-data/custom-models"
+  },
   "appRegistryPath": "~/runtime/nimi-app-registry.yaml",
   "defaultCloudProvider": "gemini",
   "aiHttpTimeoutSeconds": 21,
@@ -162,7 +170,10 @@ func TestLoadFromConfigFileAppliesRuntimeAndProviderDefaults(t *testing.T) {
 	if cfg.LocalStatePath != filepath.Join(homeDir, "runtime/custom-state.json") {
 		t.Fatalf("local runtime state path mismatch: %q", cfg.LocalStatePath)
 	}
-	if cfg.LocalModelsPath != filepath.Join(homeDir, "runtime/custom-models") {
+	if cfg.DataRootRef != filepath.Join(homeDir, "runtime/nimi-data") {
+		t.Fatalf("dataRootRef mismatch: %q", cfg.DataRootRef)
+	}
+	if cfg.LocalModelsPath != filepath.Join(homeDir, "runtime/nimi-data/custom-models") {
 		t.Fatalf("local models path mismatch: %q", cfg.LocalModelsPath)
 	}
 	if cfg.AppRegistryPath != filepath.Join(homeDir, "runtime/nimi-app-registry.yaml") {
@@ -739,7 +750,7 @@ func TestLoadIgnoresLegacyRuntimeConfigPath(t *testing.T) {
 	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", "")
 	clearRuntimeConfigEnv(t)
 
-	legacyPath := filepath.Join(homeDir, ".nimi/runtime/config.json")
+	legacyPath := filepath.Join(homeDir, ".nimi/config.json")
 	if err := os.MkdirAll(filepath.Dir(legacyPath), 0o755); err != nil {
 		t.Fatalf("mkdir legacy dir: %v", err)
 	}
@@ -758,7 +769,7 @@ func TestLoadIgnoresLegacyRuntimeConfigPath(t *testing.T) {
 	if _, statErr := os.Stat(legacyPath); statErr != nil {
 		t.Fatalf("legacy config should not be touched: %v", statErr)
 	}
-	if _, statErr := os.Stat(filepath.Join(homeDir, ".nimi/config.json")); !os.IsNotExist(statErr) {
+	if _, statErr := os.Stat(filepath.Join(homeDir, ".nimi/runtime/config.json")); !os.IsNotExist(statErr) {
 		t.Fatalf("canonical config should not be auto-created")
 	}
 }

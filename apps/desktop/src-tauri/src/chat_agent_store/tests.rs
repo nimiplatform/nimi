@@ -1,5 +1,5 @@
 use super::*;
-use crate::test_support::with_env;
+use crate::test_support::with_product_data_home;
 use rusqlite::{params, Connection};
 use std::fs;
 use std::path::PathBuf;
@@ -63,7 +63,7 @@ fn sample_create_thread_input(
 #[test]
 fn chat_agent_db_path_stays_under_nimi_data_dir() {
     let home = temp_home("db-path");
-    with_env(&[("HOME", home.to_str())], || {
+    with_product_data_home(&home, || {
         let path = super::db::db_path().expect("db path");
         assert_eq!(
             path,
@@ -78,7 +78,7 @@ fn chat_agent_db_path_stays_under_nimi_data_dir() {
 #[test]
 fn chat_agent_open_db_initializes_schema_idempotently() {
     let home = temp_home("schema");
-    with_env(&[("HOME", home.to_str())], || {
+    with_product_data_home(&home, || {
         let path = crate::desktop_paths::resolve_nimi_data_dir()
             .expect("nimi data dir")
             .join("chat-agent")
@@ -98,7 +98,7 @@ fn chat_agent_open_db_initializes_schema_idempotently() {
 #[test]
 fn chat_agent_store_round_trip_thread_message_and_draft() {
     let home = temp_home("roundtrip");
-    with_env(&[("HOME", home.to_str())], || {
+    with_product_data_home(&home, || {
         let path = crate::desktop_paths::resolve_nimi_data_dir()
             .expect("nimi data dir")
             .join("chat-agent")
@@ -172,7 +172,7 @@ fn chat_agent_store_round_trip_thread_message_and_draft() {
 #[test]
 fn chat_agent_store_rejects_missing_thread_reuses_duplicate_agent_and_invalid_json() {
     let home = temp_home("errors");
-    with_env(&[("HOME", home.to_str())], || {
+    with_product_data_home(&home, || {
         let path = crate::desktop_paths::resolve_nimi_data_dir()
             .expect("nimi data dir")
             .join("chat-agent")
@@ -256,7 +256,7 @@ fn chat_agent_store_rejects_missing_thread_reuses_duplicate_agent_and_invalid_js
 #[test]
 fn chat_agent_store_isolates_same_realm_agent_across_owners() {
     let home = temp_home("owner-isolation");
-    with_env(&[("HOME", home.to_str())], || {
+    with_product_data_home(&home, || {
         let path = crate::desktop_paths::resolve_nimi_data_dir()
             .expect("nimi data dir")
             .join("chat-agent")
@@ -322,7 +322,7 @@ fn chat_agent_store_isolates_same_realm_agent_across_owners() {
 #[test]
 fn chat_agent_store_rejects_invalid_local_agent_identity() {
     let home = temp_home("identity-negative");
-    with_env(&[("HOME", home.to_str())], || {
+    with_product_data_home(&home, || {
         let path = crate::desktop_paths::resolve_nimi_data_dir()
             .expect("nimi data dir")
             .join("chat-agent")
@@ -382,7 +382,7 @@ fn chat_agent_store_rejects_invalid_local_agent_identity() {
 #[test]
 fn chat_agent_draft_put_overwrites_and_delete_clears() {
     let home = temp_home("draft");
-    with_env(&[("HOME", home.to_str())], || {
+    with_product_data_home(&home, || {
         let path = crate::desktop_paths::resolve_nimi_data_dir()
             .expect("nimi data dir")
             .join("chat-agent")
@@ -427,7 +427,7 @@ fn chat_agent_draft_put_overwrites_and_delete_clears() {
 #[test]
 fn chat_agent_delete_message_and_delete_thread_remove_local_history() {
     let home = temp_home("delete-history");
-    with_env(&[("HOME", home.to_str())], || {
+    with_product_data_home(&home, || {
         let path = crate::desktop_paths::resolve_nimi_data_dir()
             .expect("nimi data dir")
             .join("chat-agent")
@@ -578,7 +578,7 @@ include!("tests_turn_projection.rs");
 #[test]
 fn chat_agent_store_rejects_multi_text_beat_assistant_turns() {
     let home = temp_home("single-message-hardcut");
-    with_env(&[("HOME", home.to_str())], || {
+    with_product_data_home(&home, || {
         let path = crate::desktop_paths::resolve_nimi_data_dir()
             .expect("nimi data dir")
             .join("chat-agent")
@@ -717,7 +717,7 @@ fn chat_agent_store_rejects_multi_text_beat_assistant_turns() {
 #[test]
 fn chat_agent_store_rejects_tail_cancel_scope() {
     let home = temp_home("tail-cancel-hardcut");
-    with_env(&[("HOME", home.to_str())], || {
+    with_product_data_home(&home, || {
         let path = crate::desktop_paths::resolve_nimi_data_dir()
             .expect("nimi data dir")
             .join("chat-agent")

@@ -7,9 +7,8 @@ const (
 	defaultGRPCAddr                  = "127.0.0.1:46371"
 	defaultHTTPAddr                  = "127.0.0.1:46372"
 	defaultLocalStateRelPath         = ".nimi/runtime/local-state.json"
-	defaultLocalModelsRelPath        = ".nimi/data/models"
 	defaultModelCatalogCustomRelPath = ".nimi/runtime/model-catalog/providers"
-	defaultRuntimeConfigRelPath      = ".nimi/config.json"
+	defaultRuntimeConfigRelPath      = ".nimi/runtime/config.json"
 	defaultCloudGeminiBaseURL        = "https://generativelanguage.googleapis.com/v1beta/openai"
 )
 
@@ -20,6 +19,8 @@ type Config struct {
 	ShutdownTimeout       time.Duration
 	LocalStatePath        string
 	LocalModelsPath       string
+	DataRootRef           string
+	ManagedRoots          ManagedRootsConfig
 	DefaultLocalTextModel string
 	DefaultCloudProvider  string
 
@@ -190,14 +191,15 @@ type Config struct {
 // config file; inline secrets remain mutually exclusive with env references.
 // Pointer types distinguish "not set" from zero value for three-level fallback.
 type FileConfig struct {
-	SchemaVersion          int    `json:"schemaVersion"`
-	GRPCAddr               string `json:"grpcAddr,omitempty"`
-	HTTPAddr               string `json:"httpAddr,omitempty"`
-	ShutdownTimeoutSeconds *int   `json:"shutdownTimeoutSeconds,omitempty"`
-	LocalStatePath         string `json:"localStatePath,omitempty"`
-	LocalModelsPath        string `json:"localModelsPath,omitempty"`
-	DefaultLocalTextModel  string `json:"defaultLocalTextModel,omitempty"`
-	DefaultCloudProvider   string `json:"defaultCloudProvider,omitempty"`
+	SchemaVersion          int                     `json:"schemaVersion"`
+	GRPCAddr               string                  `json:"grpcAddr,omitempty"`
+	HTTPAddr               string                  `json:"httpAddr,omitempty"`
+	ShutdownTimeoutSeconds *int                    `json:"shutdownTimeoutSeconds,omitempty"`
+	LocalStatePath         string                  `json:"localStatePath,omitempty"`
+	DataRootRef            string                  `json:"dataRootRef,omitempty"`
+	ManagedRoots           *FileConfigManagedRoots `json:"managedRoots,omitempty"`
+	DefaultLocalTextModel  string                  `json:"defaultLocalTextModel,omitempty"`
+	DefaultCloudProvider   string                  `json:"defaultCloudProvider,omitempty"`
 
 	AIHealthIntervalSeconds *int   `json:"aiHealthIntervalSeconds,omitempty"`
 	AIHTTPTimeoutSeconds    *int   `json:"aiHttpTimeoutSeconds,omitempty"`
@@ -218,6 +220,22 @@ type FileConfig struct {
 	Providers  map[string]RuntimeFileTarget `json:"providers,omitempty"`
 	Engines    *FileConfigEngines           `json:"engines,omitempty"`
 	Scheduling *FileConfigScheduling        `json:"scheduling,omitempty"`
+}
+
+type ManagedRootsConfig struct {
+	Models       string
+	Dependencies string
+	Environments string
+	Logs         string
+	Audit        string
+}
+
+type FileConfigManagedRoots struct {
+	Models       string `json:"models,omitempty"`
+	Dependencies string `json:"dependencies,omitempty"`
+	Environments string `json:"environments,omitempty"`
+	Logs         string `json:"logs,omitempty"`
+	Audit        string `json:"audit,omitempty"`
 }
 
 // FileConfigScheduling holds scheduling risk threshold configuration.

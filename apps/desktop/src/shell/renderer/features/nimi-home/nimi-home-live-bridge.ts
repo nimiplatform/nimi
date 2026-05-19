@@ -89,17 +89,35 @@ export function createDesktopHomeLiveBridge(): DesktopHomeLiveBridge {
 }
 
 function selectFactoryAIProfile(rows: readonly PlatformAIProfileFactoryRow[]): PlatformAIProfileFactoryRow | null {
-  // Deterministic fallback selection while the Platform-owned AIProfile
-  // selection policy (P-AIPS-004) is wired through typed inputs. The
-  // selection here picks the first admitted row that lists `first-run`
-  // in its applicable scopes; foundation-correction scope explicitly
-  // excludes redesigning the product selection UX.
+  // Product first-run can only choose local Minimal / Recommended baselines.
+  // Keep this fail-closed even if a stale generated projection reintroduces
+  // broader first-run scopes.
   for (const row of rows) {
-    if (row.applicableScopes.includes('first-run')) {
+    if (isAdmittedFirstRunLocalBaseline(row)) {
       return row;
     }
   }
-  return rows[0] ?? null;
+  return null;
+}
+
+function isAdmittedFirstRunLocalBaseline(row: PlatformAIProfileFactoryRow): boolean {
+  const levels = new Set(row.firstRunInstallLevels.map((level) => level.trim().toLowerCase()));
+  if (!levels.has('minimal') && !levels.has('recommended')) {
+    return false;
+  }
+  if (!row.applicableScopes.includes('first-run')) {
+    return false;
+  }
+  if (row.computePosture === 'cloud-only') {
+    return false;
+  }
+  if (row.routingPolicy === 'cloud-first' || row.routingPolicy === 'hybrid-explicit') {
+    return false;
+  }
+  if (row.capabilitySet.includes('video.generate')) {
+    return false;
+  }
+  return row.localComputePackRefs.length > 0 && row.dependencyFamilyRefs.length > 0;
 }
 
 interface InternalScopeRef {

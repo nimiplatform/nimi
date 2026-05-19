@@ -43,14 +43,7 @@ func resolveLocalModelsPath(configuredPath string) string {
 	if value := strings.TrimSpace(configuredPath); value != "" {
 		return value
 	}
-	if value := strings.TrimSpace(os.Getenv("NIMI_RUNTIME_LOCAL_MODELS_PATH")); value != "" {
-		return value
-	}
-	home, err := os.UserHomeDir()
-	if err != nil || strings.TrimSpace(home) == "" {
-		return ""
-	}
-	return filepath.Join(home, ".nimi", "data", "models")
+	return ""
 }
 
 func resolveGeneratedLlamaModelsConfigPath(configuredPath string) string {

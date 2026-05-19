@@ -1,4 +1,5 @@
 use crate::desktop_release::DesktopReleaseInfo;
+use crate::desktop_product_control::ProductControlRecord;
 use crate::runtime_bridge::{
     generated as runtime_bridge_generated, RuntimeBridgeDaemonStatus, RuntimeBridgeUnaryPayload,
     RuntimeBridgeUnaryResult,
@@ -28,6 +29,7 @@ struct DesktopE2ETauriFixture {
     runtime_defaults: Option<RuntimeDefaults>,
     runtime_bridge_status: Option<RuntimeBridgeDaemonStatus>,
     desktop_release_info: Option<DesktopReleaseInfo>,
+    product_control_record: Option<ProductControlRecord>,
     confirm_dialog: Option<DesktopE2EConfirmDialogOverride>,
     agent_memory_bind_standard: Option<DesktopE2EAgentMemoryBindStandardOverride>,
     macos_smoke: Option<DesktopE2EMacosSmokeOverride>,
@@ -316,6 +318,17 @@ pub fn desktop_release_info_override() -> Result<Option<DesktopReleaseInfo>, Str
     Ok(info)
 }
 
+pub fn product_control_record_override() -> Result<Option<ProductControlRecord>, String> {
+    let record = load_fixture_manifest()?
+        .and_then(|manifest| manifest.tauri_fixture)
+        .and_then(|fixture| fixture.product_control_record);
+    append_backend_log(&format!(
+        "product_control_record_override override_present={}",
+        record.is_some()
+    ));
+    Ok(record)
+}
+
 pub fn next_confirm_dialog_override() -> Result<Option<bool>, String> {
     let responses = load_fixture_manifest()?
         .and_then(|manifest| manifest.tauri_fixture)
@@ -381,6 +394,7 @@ mod tests {
                 runtime_defaults: None,
                 runtime_bridge_status: None,
                 desktop_release_info: None,
+                product_control_record: None,
                 confirm_dialog: None,
                 agent_memory_bind_standard: None,
                 macos_smoke: Some(DesktopE2EMacosSmokeOverride {

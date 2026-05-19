@@ -39,7 +39,6 @@ func RunDaemonFromArgs(program string, args []string, version ...string) error {
 	httpAddr := fs.String("http-addr", baseCfg.HTTPAddr, "HTTP listen address")
 	shutdownTimeoutRaw := fs.String("shutdown-timeout", baseCfg.ShutdownTimeout.String(), "graceful shutdown timeout")
 	localStatePath := fs.String("local-state-path", baseCfg.LocalStatePath, "local runtime state persistence path")
-	localModelsPath := fs.String("local-models-path", baseCfg.LocalModelsPath, "local models root path")
 	logLevel := fs.String("log-level", baseCfg.LogLevel, "log level (debug, info, warn, error)")
 
 	if err := fs.Parse(args); err != nil {
@@ -57,7 +56,6 @@ func RunDaemonFromArgs(program string, args []string, version ...string) error {
 	cfg.HTTPAddr = *httpAddr
 	cfg.ShutdownTimeout = shutdownTimeout
 	cfg.LocalStatePath = *localStatePath
-	cfg.LocalModelsPath = *localModelsPath
 	cfg.LogLevel = *logLevel
 	if err := cfg.Validate(); err != nil {
 		return err

@@ -18,19 +18,28 @@ function createDaemonStatus(overrides: Partial<RuntimeBridgeDaemonStatus> = {}):
   };
 }
 
-test('mergeRuntimeLocalModelsConfig writes localModelsPath and localStatePath when they differ', () => {
+test('mergeRuntimeLocalModelsConfig writes dataRootRef, managedRoots, and localStatePath when they differ', () => {
   const { nextConfig, changed } = mergeRuntimeLocalModelsConfig(
     {
       schemaVersion: 1,
       localModelsPath: 'C:\\Users\\Eric\\.nimi\\data\\models',
       localStatePath: 'C:\\Users\\Eric\\.nimi\\runtime\\local-state.json',
     },
+    'D:\\nimi_data',
     'D:\\nimi_data\\models',
     'D:\\nimi_data\\state.json',
   );
 
   assert.equal(changed, true);
-  assert.equal(nextConfig.localModelsPath, 'D:\\nimi_data\\models');
+  assert.equal(nextConfig.localModelsPath, undefined);
+  assert.equal(nextConfig.dataRootRef, 'D:\\nimi_data');
+  assert.deepEqual(nextConfig.managedRoots, {
+    models: 'D:\\nimi_data\\models',
+    dependencies: 'D:\\nimi_data/dependencies',
+    environments: 'D:\\nimi_data/environments',
+    logs: 'D:\\nimi_data/logs',
+    audit: 'D:\\nimi_data/audit',
+  });
   assert.equal(nextConfig.localStatePath, 'D:\\nimi_data\\state.json');
 });
 
@@ -41,6 +50,7 @@ test('syncRuntimeLocalModelsConfig restarts managed running daemon on CONFIG_RES
 
   const result = await syncRuntimeLocalModelsConfig({
     daemonStatus: createDaemonStatus({ running: true, managed: true, pid: 1001 }),
+    dataRootPath: 'D:\\nimi_data',
     localModelsPath: 'D:\\nimi_data\\models',
     localStatePath: 'D:\\nimi_data\\state.json',
     bridge: {
@@ -76,7 +86,9 @@ test('syncRuntimeLocalModelsConfig restarts managed running daemon on CONFIG_RES
   assert.equal(result.pid, 2002);
 
   const parsed = JSON.parse(writtenConfig) as Record<string, unknown>;
-  assert.equal(parsed.localModelsPath, 'D:\\nimi_data\\models');
+  assert.equal(parsed.localModelsPath, undefined);
+  assert.equal(parsed.dataRootRef, 'D:\\nimi_data');
+  assert.equal((parsed.managedRoots as Record<string, unknown>).models, 'D:\\nimi_data\\models');
   assert.equal(parsed.localStatePath, 'D:\\nimi_data\\state.json');
 });
 
@@ -85,6 +97,7 @@ test('syncRuntimeLocalModelsConfig does not restart when daemon is stopped', asy
 
   const result = await syncRuntimeLocalModelsConfig({
     daemonStatus: createDaemonStatus({ running: false, managed: true }),
+    dataRootPath: 'D:\\nimi_data',
     localModelsPath: 'D:\\nimi_data\\models',
     bridge: {
       async getRuntimeBridgeConfig() {
@@ -118,6 +131,7 @@ test('syncRuntimeLocalModelsConfig throws for unmanaged running daemon when rest
   await assert.rejects(
     async () => syncRuntimeLocalModelsConfig({
       daemonStatus: createDaemonStatus({ running: true, managed: false }),
+      dataRootPath: 'D:\\nimi_data',
       localModelsPath: 'D:\\nimi_data\\models',
       bridge: {
         async getRuntimeBridgeConfig() {
@@ -150,11 +164,12 @@ test('syncRuntimeLocalModelsConfig throws for unmanaged running daemon when rest
   assert.equal(restartCalls, 0);
 });
 
-test('syncRuntimeLocalModelsConfig skips write when localModelsPath already matches', async () => {
+test('syncRuntimeLocalModelsConfig skips write when product data root and managed roots already match', async () => {
   let setCalls = 0;
 
   const result = await syncRuntimeLocalModelsConfig({
     daemonStatus: createDaemonStatus({ running: true, managed: true, pid: 3003 }),
+    dataRootPath: 'D:\\nimi_data',
     localModelsPath: 'D:\\nimi_data\\models',
     localStatePath: 'D:\\nimi_data\\state.json',
     bridge: {
@@ -163,7 +178,14 @@ test('syncRuntimeLocalModelsConfig skips write when localModelsPath already matc
           path: '/tmp/config.json',
           config: {
             schemaVersion: 1,
-            localModelsPath: 'D:\\nimi_data\\models',
+            dataRootRef: 'D:\\nimi_data',
+            managedRoots: {
+              models: 'D:\\nimi_data\\models',
+              dependencies: 'D:\\nimi_data/dependencies',
+              environments: 'D:\\nimi_data/environments',
+              logs: 'D:\\nimi_data/logs',
+              audit: 'D:\\nimi_data/audit',
+            },
             localStatePath: 'D:\\nimi_data\\state.json',
           },
         };

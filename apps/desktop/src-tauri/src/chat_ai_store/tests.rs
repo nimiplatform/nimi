@@ -1,5 +1,5 @@
 use super::*;
-use crate::test_support::with_env;
+use crate::test_support::with_product_data_home;
 use rusqlite::{params, Connection};
 use serde_json::Map as JsonMap;
 use std::fs;
@@ -40,7 +40,7 @@ fn ai_thread_columns(conn: &Connection) -> Vec<String> {
 #[test]
 fn chat_ai_db_path_stays_under_nimi_data_dir() {
     let home = temp_home("db-path");
-    with_env(&[("HOME", home.to_str())], || {
+    with_product_data_home(&home, || {
         let path = super::db::db_path().expect("db path");
         assert_eq!(
             path,
@@ -55,7 +55,7 @@ fn chat_ai_db_path_stays_under_nimi_data_dir() {
 #[test]
 fn chat_ai_open_db_initializes_schema_idempotently() {
     let home = temp_home("schema");
-    with_env(&[("HOME", home.to_str())], || {
+    with_product_data_home(&home, || {
         let path = crate::desktop_paths::resolve_nimi_data_dir()
             .expect("nimi data dir")
             .join("chat-ai")
@@ -98,7 +98,7 @@ fn chat_ai_open_db_initializes_schema_idempotently() {
 #[test]
 fn chat_ai_schema_migrates_legacy_thread_route_columns_and_preserves_data() {
     let home = temp_home("legacy-route-columns");
-    with_env(&[("HOME", home.to_str())], || {
+    with_product_data_home(&home, || {
         let path = crate::desktop_paths::resolve_nimi_data_dir()
             .expect("nimi data dir")
             .join("chat-ai")
@@ -181,7 +181,7 @@ fn chat_ai_schema_migrates_legacy_thread_route_columns_and_preserves_data() {
 #[test]
 fn chat_ai_store_round_trip_thread_message_and_draft() {
     let home = temp_home("roundtrip");
-    with_env(&[("HOME", home.to_str())], || {
+    with_product_data_home(&home, || {
         let path = crate::desktop_paths::resolve_nimi_data_dir()
             .expect("nimi data dir")
             .join("chat-ai")
@@ -255,7 +255,7 @@ fn chat_ai_store_round_trip_thread_message_and_draft() {
 #[test]
 fn chat_ai_store_allows_empty_pending_assistant_placeholder_content() {
     let home = temp_home("empty-placeholder");
-    with_env(&[("HOME", home.to_str())], || {
+    with_product_data_home(&home, || {
         let path = crate::desktop_paths::resolve_nimi_data_dir()
             .expect("nimi data dir")
             .join("chat-ai")
@@ -342,7 +342,7 @@ fn chat_ai_store_allows_empty_pending_assistant_placeholder_content() {
 #[test]
 fn chat_ai_store_rejects_missing_thread_duplicate_id_and_invalid_json() {
     let home = temp_home("errors");
-    with_env(&[("HOME", home.to_str())], || {
+    with_product_data_home(&home, || {
         let path = crate::desktop_paths::resolve_nimi_data_dir()
             .expect("nimi data dir")
             .join("chat-ai")
@@ -427,7 +427,7 @@ fn chat_ai_store_rejects_missing_thread_duplicate_id_and_invalid_json() {
 #[test]
 fn chat_ai_draft_put_overwrites_and_delete_clears() {
     let home = temp_home("draft");
-    with_env(&[("HOME", home.to_str())], || {
+    with_product_data_home(&home, || {
         let path = crate::desktop_paths::resolve_nimi_data_dir()
             .expect("nimi data dir")
             .join("chat-ai")

@@ -15,7 +15,7 @@ func TestLoadMigratesLegacyNestedRuntimeObjectAtCanonicalPath(t *testing.T) {
 	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", "")
 	clearRuntimeConfigEnv(t)
 
-	configPath := filepath.Join(homeDir, ".nimi", "config.json")
+	configPath := filepath.Join(homeDir, ".nimi", "runtime", "config.json")
 	if err := os.MkdirAll(filepath.Dir(configPath), 0o755); err != nil {
 		t.Fatalf("mkdir canonical config dir: %v", err)
 	}
@@ -260,7 +260,10 @@ func TestLoadFlatFileConfig(t *testing.T) {
   "httpAddr": "127.0.0.1:50002",
   "shutdownTimeoutSeconds": 15,
   "localStatePath": "~/custom/state.json",
-  "localModelsPath": "~/custom/models"
+  "dataRootRef": "~/custom/nimi-data",
+  "managedRoots": {
+    "models": "~/custom/nimi-data/models"
+  }
 }`
 	if err := os.WriteFile(configPath, []byte(configBody), 0o600); err != nil {
 		t.Fatalf("write config file: %v", err)
@@ -287,7 +290,10 @@ func TestLoadFlatFileConfig(t *testing.T) {
 	if cfg.LocalStatePath != filepath.Join(homeDir, "custom/state.json") {
 		t.Fatalf("state path mismatch: %q", cfg.LocalStatePath)
 	}
-	if cfg.LocalModelsPath != filepath.Join(homeDir, "custom/models") {
+	if cfg.DataRootRef != filepath.Join(homeDir, "custom/nimi-data") {
+		t.Fatalf("dataRootRef mismatch: %q", cfg.DataRootRef)
+	}
+	if cfg.LocalModelsPath != filepath.Join(homeDir, "custom/nimi-data/models") {
 		t.Fatalf("models path mismatch: %q", cfg.LocalModelsPath)
 	}
 }

@@ -52,7 +52,24 @@ func applyConfigSetOperation(cfg *config.FileConfig, key string, value string) e
 		cfg.LocalStatePath = value
 		return nil
 	case "localModelsPath":
-		cfg.LocalModelsPath = value
+		return fmt.Errorf("localModelsPath is no longer settable; use dataRootRef or managedRoots.models")
+	case "dataRootRef":
+		cfg.DataRootRef = value
+		return nil
+	case "managedRoots.models":
+		ensureManagedRootsConfig(cfg).Models = value
+		return nil
+	case "managedRoots.dependencies":
+		ensureManagedRootsConfig(cfg).Dependencies = value
+		return nil
+	case "managedRoots.environments":
+		ensureManagedRootsConfig(cfg).Environments = value
+		return nil
+	case "managedRoots.logs":
+		ensureManagedRootsConfig(cfg).Logs = value
+		return nil
+	case "managedRoots.audit":
+		ensureManagedRootsConfig(cfg).Audit = value
 		return nil
 	case "defaultLocalTextModel":
 		cfg.DefaultLocalTextModel = strings.TrimSpace(value)
@@ -236,7 +253,29 @@ func applyConfigUnsetOperation(cfg *config.FileConfig, key string) error {
 		cfg.LocalStatePath = defaultCfg.LocalStatePath
 		return nil
 	case "localModelsPath":
-		cfg.LocalModelsPath = defaultCfg.LocalModelsPath
+		return fmt.Errorf("localModelsPath is no longer settable; use dataRootRef or managedRoots.models")
+	case "dataRootRef":
+		cfg.DataRootRef = defaultCfg.DataRootRef
+		return nil
+	case "managedRoots.models":
+		ensureManagedRootsConfig(cfg).Models = ""
+		pruneEmptyManagedRootsConfig(cfg)
+		return nil
+	case "managedRoots.dependencies":
+		ensureManagedRootsConfig(cfg).Dependencies = ""
+		pruneEmptyManagedRootsConfig(cfg)
+		return nil
+	case "managedRoots.environments":
+		ensureManagedRootsConfig(cfg).Environments = ""
+		pruneEmptyManagedRootsConfig(cfg)
+		return nil
+	case "managedRoots.logs":
+		ensureManagedRootsConfig(cfg).Logs = ""
+		pruneEmptyManagedRootsConfig(cfg)
+		return nil
+	case "managedRoots.audit":
+		ensureManagedRootsConfig(cfg).Audit = ""
+		pruneEmptyManagedRootsConfig(cfg)
 		return nil
 	case "defaultLocalTextModel":
 		cfg.DefaultLocalTextModel = strings.TrimSpace(defaultCfg.DefaultLocalTextModel)

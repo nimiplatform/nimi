@@ -7,6 +7,7 @@
 // says otherwise.
 
 import type { ReactElement } from 'react';
+import { useTranslation } from 'react-i18next';
 import type {
   ColdStartState,
   FirstRunReadinessProjection,
@@ -16,6 +17,8 @@ import type {
 const STEP_LABELS: Record<FirstRunStep, string> = {
   runtimeDaemon: 'Runtime',
   account: 'Account',
+  productControlRecord: 'Product Record',
+  dataRoot: 'Data Root',
   aiProfileSelection: 'AIProfile Selection',
   materialization: 'Local Environment',
   appRegistry: 'App Registry',
@@ -49,6 +52,7 @@ export interface FirstRunReadinessViewProps {
 }
 
 export function FirstRunReadinessView({ projection }: FirstRunReadinessViewProps): ReactElement {
+  const { t } = useTranslation();
   const overallLabel = STATE_LABELS[projection.overall.state];
   const readyCount = projection.steps.filter((step) => step.state === 'ready').length;
   return (
@@ -79,7 +83,7 @@ export function FirstRunReadinessView({ projection }: FirstRunReadinessViewProps
       ) : null}
 
       <div className="flex items-center justify-between border-y border-[color:var(--nimi-border-subtle)] py-3 text-sm">
-        <span className="text-[color:var(--nimi-text-muted)]">Readiness</span>
+        <span className="text-[color:var(--nimi-text-muted)]">{t('Home.firstRun.readinessMetric')}</span>
         <span className="font-medium text-[color:var(--nimi-text-primary)]">{readyCount}/{projection.steps.length}</span>
       </div>
 

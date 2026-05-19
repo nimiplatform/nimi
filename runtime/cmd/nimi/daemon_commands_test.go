@@ -47,7 +47,7 @@ func TestRunRuntimeStatusPrintsProcessStatus(t *testing.T) {
 				Process:         "running",
 				PID:             123,
 				GRPCAddr:        "127.0.0.1:46371",
-				ConfigPath:      "~/.nimi/config.json",
+				ConfigPath:      "~/.nimi/runtime/config.json",
 				HealthSummary:   "RUNTIME_HEALTH_STATUS_READY",
 				HealthReachable: true,
 			},
@@ -76,7 +76,7 @@ func TestRunRuntimeStatusStoppedPrintsNextStep(t *testing.T) {
 				Mode:       daemonctl.ModeStopped,
 				Process:    "stopped",
 				GRPCAddr:   "127.0.0.1:46371",
-				ConfigPath: "~/.nimi/config.json",
+				ConfigPath: "~/.nimi/runtime/config.json",
 			},
 		}
 	}
@@ -107,7 +107,7 @@ func TestRunRuntimeStatusReturnsStoppedExitCode(t *testing.T) {
 				Mode:       daemonctl.ModeStopped,
 				Process:    "stopped",
 				GRPCAddr:   "127.0.0.1:46371",
-				ConfigPath: "~/.nimi/config.json",
+				ConfigPath: "~/.nimi/runtime/config.json",
 			},
 		}
 	}
@@ -134,7 +134,7 @@ func TestRunRuntimeStatusReturnsUnreachableExitCode(t *testing.T) {
 				Process:         "running",
 				PID:             124,
 				GRPCAddr:        "127.0.0.1:46371",
-				ConfigPath:      "~/.nimi/config.json",
+				ConfigPath:      "~/.nimi/runtime/config.json",
 				HealthSummary:   "unreachable",
 				HealthReachable: false,
 				HealthError:     "dial failed",

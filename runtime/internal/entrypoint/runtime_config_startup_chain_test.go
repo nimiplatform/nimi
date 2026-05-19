@@ -31,7 +31,7 @@ func TestRunDaemonFromArgsDoesNotMigrateLegacyRuntimeConfigOnStartup(t *testing.
 	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", "")
 	clearRuntimeConfigEnvForStartupTest(t)
 
-	legacyPath := filepath.Join(homeDir, ".nimi/runtime/config.json")
+	legacyPath := filepath.Join(homeDir, ".nimi/config.json")
 	if err := os.MkdirAll(filepath.Dir(legacyPath), 0o755); err != nil {
 		t.Fatalf("mkdir legacy config dir: %v", err)
 	}
@@ -56,7 +56,7 @@ func TestRunDaemonFromArgsDoesNotMigrateLegacyRuntimeConfigOnStartup(t *testing.
 	if _, statErr := os.Stat(legacyPath); statErr != nil {
 		t.Fatalf("legacy config should not be touched: %v", statErr)
 	}
-	newPath := filepath.Join(homeDir, ".nimi/config.json")
+	newPath := filepath.Join(homeDir, ".nimi/runtime/config.json")
 	if _, statErr := os.Stat(newPath); !os.IsNotExist(statErr) {
 		t.Fatalf("canonical config should not be auto-created on startup")
 	}

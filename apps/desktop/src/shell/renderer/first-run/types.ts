@@ -22,10 +22,13 @@ export interface ColdStartProjection {
 export interface UpstreamInputs {
   readonly runtimeDaemon: ColdStartState;
   readonly account: ColdStartState;
+  readonly productControlRecord: ColdStartState;
+  readonly dataRoot: ColdStartState;
   readonly aiProfileSelection: ColdStartState;
   readonly materialization: ColdStartState;
   readonly appRegistry: ColdStartState;
   readonly cognitionMemory: ColdStartState;
+  readonly readyForUse: boolean;
 }
 
 // FirstRunStep enumerates the upstream owners surfaced in first-run UI.
@@ -33,6 +36,8 @@ export interface UpstreamInputs {
 export const FIRST_RUN_STEPS = [
   'runtimeDaemon',
   'account',
+  'productControlRecord',
+  'dataRoot',
   'aiProfileSelection',
   'materialization',
   'appRegistry',

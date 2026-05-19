@@ -25,11 +25,6 @@ func speechCommandEnv() map[string]string {
 	env := map[string]string{
 		"PYTHONUNBUFFERED": "1",
 	}
-	if strings.TrimSpace(os.Getenv("NIMI_RUNTIME_LOCAL_MODELS_PATH")) != "" {
-		env["NIMI_RUNTIME_LOCAL_MODELS_PATH"] = strings.TrimSpace(os.Getenv("NIMI_RUNTIME_LOCAL_MODELS_PATH"))
-	} else if homeDir, err := os.UserHomeDir(); err == nil {
-		env["NIMI_RUNTIME_LOCAL_MODELS_PATH"] = filepath.Join(homeDir, ".nimi", "data", "models")
-	}
 	for _, key := range speechPassThroughEnvKeys {
 		if value := strings.TrimSpace(os.Getenv(key)); value != "" {
 			env[key] = value
