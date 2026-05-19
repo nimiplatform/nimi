@@ -93,6 +93,8 @@
 - `Dialog` / `DialogContent` are lower-level Radix-backed parts for kit-internal and explicitly controlled overlay surfaces; they must still emit the canonical overlay slot classes when rendering governed content.
 - `Popover` / `PopoverContent` and `Tooltip` / `TooltipContent` are lower-level Radix-backed overlay parts for popover and tooltip surfaces; their content layers must emit the canonical overlay-family classes admitted in `nimi-ui-primitives.yaml`.
 - Governed overlays must keep reduced-motion behavior and stable testability surfaces.
+- Admitted overlay panel size IDs for `OverlayShell`: `S` (480px), `M` (720px), `L` (960px), `XL` (1120px), `full` (`calc(100vw - 32px)`). All sized panels also apply `max-width: calc(100vw - 32px)` to stay viewport-safe. The structured size enumeration lives in `nimi-ui-primitives.yaml#primitive.overlay.class_groups.size`; the kit implementation may bind these via the generator-owned `nimi-overlay-panel--size-*` selectors and/or inline `style.width`/`style.maxWidth`. When no `size` is supplied, the panel preserves the default `max-w-md` layout for backward compatibility.
+- `OverlayShell` admits an opt-in `sidebar` slot for 2-column overlay layouts. When set, the panel becomes a left aside (`nimi-overlay-sidebar`, default `200px` width, kit-owned border-right and padding) plus a main column carrying the existing title / content / footer composition. Aside chrome (width default, border, padding) is kit-owned; aside content is caller-provided. Single-column behavior remains the default when `sidebar` is not supplied.
 
 ## P-DESIGN-014 — Sidebar / Nav Contract
 

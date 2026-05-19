@@ -370,6 +370,13 @@ primitives:
           padding: var(--nimi-space-3) var(--nimi-space-4)
           font-size: var(--nimi-type-caption-size)
           line-height: var(--nimi-type-caption-line-height)
+      - id: sidebar
+        class_name: nimi-overlay-sidebar
+        styles:
+          flex: 0 0 auto
+          width: 200px
+          padding: var(--nimi-space-5)
+          border-right: var(--nimi-border-width-default) solid var(--nimi-border-subtle)
     class_groups:
       kind_backdrop:
         - id: dialog
@@ -411,6 +418,32 @@ primitives:
           styles:
             max-width: 22rem
             box-shadow: var(--nimi-elevation-floating)
+      size:
+        - id: S
+          class_name: nimi-overlay-panel--size-s
+          styles:
+            width: 480px
+            max-width: calc(100vw - 32px)
+        - id: M
+          class_name: nimi-overlay-panel--size-m
+          styles:
+            width: 720px
+            max-width: calc(100vw - 32px)
+        - id: L
+          class_name: nimi-overlay-panel--size-l
+          styles:
+            width: 960px
+            max-width: calc(100vw - 32px)
+        - id: XL
+          class_name: nimi-overlay-panel--size-xl
+          styles:
+            width: 1120px
+            max-width: calc(100vw - 32px)
+        - id: full
+          class_name: nimi-overlay-panel--size-full
+          styles:
+            width: calc(100vw - 32px)
+            max-width: calc(100vw - 32px)
     source_rule: P-DESIGN-013
   - id: primitive.sidebar
     family: sidebar

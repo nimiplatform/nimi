@@ -21,6 +21,7 @@ import {
   NimiText,
   NumberStepper,
   OverlayShell,
+  OVERLAY_SHELL_SIZE_WIDTH,
   Popover,
   PopoverContent,
   ProgressIndicator,
@@ -411,6 +412,120 @@ test('textarea field non-danger tones preserve pre-existing render (backward-com
   expect(defaultHtml).toBe(defaultExplicitHtml);
   expect(quietHtml).toMatch(/border-transparent/);
   expect(quietHtml).toMatch(/bg-transparent/);
+});
+
+test('overlay shell size width mapping exports admitted px values', () => {
+  expect(OVERLAY_SHELL_SIZE_WIDTH).toEqual({
+    S: '480px',
+    M: '720px',
+    L: '960px',
+    XL: '1120px',
+    full: 'calc(100vw - 32px)',
+  });
+});
+
+test('overlay shell applies size width style and size class when size prop is set', async () => {
+  container = document.createElement('div');
+  document.body.appendChild(container);
+  root = createRoot(container);
+
+  await act(async () => {
+    root?.render(
+      <OverlayShell open size="M" dataTestId="size-m">
+        Content
+      </OverlayShell>,
+    );
+    await flush();
+  });
+
+  const panel = document.querySelector('[data-testid="size-m"]') as HTMLElement | null;
+  expect(panel).toBeTruthy();
+  expect(panel!.style.width).toBe('720px');
+  expect(panel!.style.maxWidth).toBe('calc(100vw - 32px)');
+  expect(panel!.className).toContain('nimi-overlay-panel--size-m');
+  expect(panel!.className).not.toContain('max-w-md');
+});
+
+test('overlay shell without size preserves default max-w-md and no inline width', async () => {
+  container = document.createElement('div');
+  document.body.appendChild(container);
+  root = createRoot(container);
+
+  await act(async () => {
+    root?.render(
+      <OverlayShell open dataTestId="size-default">
+        Content
+      </OverlayShell>,
+    );
+    await flush();
+  });
+
+  const panel = document.querySelector('[data-testid="size-default"]') as HTMLElement | null;
+  expect(panel).toBeTruthy();
+  expect(panel!.className).toContain('max-w-md');
+  expect(panel!.style.width).toBe('');
+  expect(panel!.style.maxWidth).toBe('');
+  expect(panel!.className).not.toMatch(/nimi-overlay-panel--size-/);
+});
+
+test('overlay shell renders 2-column layout with sidebar slot when sidebar prop is set', async () => {
+  container = document.createElement('div');
+  document.body.appendChild(container);
+  root = createRoot(container);
+
+  await act(async () => {
+    root?.render(
+      <OverlayShell
+        open
+        title="Title"
+        footer={<span>Footer</span>}
+        sidebar={<nav data-testid="aside-nav">Nav</nav>}
+        dataTestId="with-sidebar"
+      >
+        Body content
+      </OverlayShell>,
+    );
+    await flush();
+  });
+
+  const panel = document.querySelector('[data-testid="with-sidebar"]') as HTMLElement | null;
+  expect(panel).toBeTruthy();
+  const aside = panel!.querySelector('aside.nimi-overlay-sidebar') as HTMLElement | null;
+  expect(aside).toBeTruthy();
+  expect(aside!.className).toContain('w-[200px]');
+  expect(aside!.className).toContain('border-r');
+  expect(aside!.querySelector('[data-testid="aside-nav"]')).toBeTruthy();
+  // Title/content/footer all live in the main column, not the aside.
+  expect(panel!.querySelector('.nimi-overlay-title')).toBeTruthy();
+  expect(panel!.querySelector('.nimi-overlay-content')).toBeTruthy();
+  expect(panel!.querySelector('.nimi-overlay-footer')).toBeTruthy();
+  expect(aside!.querySelector('.nimi-overlay-title')).toBeNull();
+});
+
+test('overlay shell composes size and sidebar together', async () => {
+  container = document.createElement('div');
+  document.body.appendChild(container);
+  root = createRoot(container);
+
+  await act(async () => {
+    root?.render(
+      <OverlayShell
+        open
+        size="L"
+        sidebar={<div>Side</div>}
+        dataTestId="size-and-sidebar"
+      >
+        Body
+      </OverlayShell>,
+    );
+    await flush();
+  });
+
+  const panel = document.querySelector('[data-testid="size-and-sidebar"]') as HTMLElement | null;
+  expect(panel).toBeTruthy();
+  expect(panel!.style.width).toBe('960px');
+  expect(panel!.className).toContain('nimi-overlay-panel--size-l');
+  expect(panel!.querySelector('aside.nimi-overlay-sidebar')).toBeTruthy();
 });
 
 test('select field ignores empty option values reserved by Radix', () => {
