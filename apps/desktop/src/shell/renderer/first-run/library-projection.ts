@@ -46,15 +46,15 @@ export async function projectLibrary(client: NimiAppClient): Promise<LibraryProj
   }
   let registry: readonly NimiAppRow[];
   try {
-    registry = await client.listRegistry();
+    registry = await client.list();
   } catch (error) {
     const detail = error instanceof Error ? error.message : 'unknown error';
-    return { status: 'error', detail: `listRegistry failed: ${detail}` };
+    return { status: 'error', detail: `list failed: ${detail}` };
   }
   const entries: LibraryEntry[] = [];
   for (const app of registry) {
     try {
-      const status = await client.getAppStatus(app.appId);
+      const status = await client.status(app.appId);
       if (!CANONICAL_LAUNCH_READINESS_SET.has(status.launchReadiness)) {
         entries.push({ app, fetchError: `non-canonical launchReadiness "${String(status.launchReadiness)}"` });
         continue;
@@ -62,7 +62,7 @@ export async function projectLibrary(client: NimiAppClient): Promise<LibraryProj
       entries.push({ app, status });
     } catch (error) {
       const detail = error instanceof Error ? error.message : 'unknown error';
-      entries.push({ app, fetchError: `getAppStatus failed: ${detail}` });
+      entries.push({ app, fetchError: `status failed: ${detail}` });
     }
   }
   return { status: 'loaded', entries };

@@ -2,9 +2,11 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { projectLibrary } from '../src/shell/renderer/first-run/library-projection.js';
 import type {
+  NimiAppOperationResult,
   NimiAppClient,
   NimiAppRow,
   NimiAppStatus,
+  NimiAppSubscription,
   NimiAppTransport,
 } from '@nimiplatform/sdk/app';
 import { NimiAppClient as NimiAppClientCtor } from '@nimiplatform/sdk/app';
@@ -14,14 +16,20 @@ function makeClient(behavior: {
   status?: (appId: string) => NimiAppStatus | Error;
 } = {}): NimiAppClient {
   const transport: NimiAppTransport = {
-    async listRegistry() {
+    async list() {
       if (behavior.list instanceof Error) throw behavior.list;
       if (behavior.list !== undefined) return behavior.list;
       return [
-        { appId: 'avatar', appKind: 'nimi-app', displayName: 'Avatar', trustTier: 'nimi-first-party', publisher: 'Nimi', sourceRule: 'P-NAPP-004' },
+        buildRow('parentos', 'ParentOS'),
       ];
     },
-    async getAppStatus(appId: string) {
+    async get(appId: string) {
+      const rows = await this.list();
+      const row = rows.find((candidate) => candidate.appId === appId);
+      if (!row) throw new Error('missing');
+      return row;
+    },
+    async status(appId: string) {
       if (behavior.status) {
         const result = behavior.status(appId);
         if (result instanceof Error) throw result;
@@ -29,8 +37,39 @@ function makeClient(behavior: {
       }
       return { appId, launchReadiness: 'install-required' };
     },
+    async install(appId: string): Promise<NimiAppOperationResult> {
+      return { appId, operation: 'install', state: 'unsupported', reason: 'install-gateway-not-connected' };
+    },
+    async update(appId: string): Promise<NimiAppOperationResult> {
+      return { appId, operation: 'update', state: 'unsupported', reason: 'not-connected' };
+    },
+    async uninstall(appId: string): Promise<NimiAppOperationResult> {
+      return { appId, operation: 'uninstall', state: 'unsupported', reason: 'not-connected' };
+    },
+    async launch(appId: string): Promise<NimiAppOperationResult> {
+      return { appId, operation: 'launch', state: 'unsupported', reason: 'not-connected' };
+    },
+    subscribe(): NimiAppSubscription {
+      return { subscribed: false, reason: 'not-connected', unsubscribe: () => {} };
+    },
+    async healthRepair(appId: string): Promise<NimiAppOperationResult> {
+      return { appId, operation: 'health-repair', state: 'unsupported', reason: 'not-connected' };
+    },
   };
   return new NimiAppClientCtor(transport);
+}
+
+function buildRow(appId: string, displayName: string): NimiAppRow {
+  return {
+    appId,
+    appKind: 'nimi-app',
+    displayName,
+    trustTier: 'nimi-first-party',
+    publisher: 'Nimi',
+    releaseDescriptorRef: `${appId}.bundled`,
+    installStoragePolicyRef: 'nimi-data-app-roots',
+    sourceRule: 'P-NAPP-004',
+  };
 }
 
 describe('projectLibrary', () => {
@@ -39,24 +78,24 @@ describe('projectLibrary', () => {
     assert.equal(projection.status, 'loaded');
     if (projection.status === 'loaded') {
       assert.equal(projection.entries.length, 1);
-      assert.equal(projection.entries[0]!.app.appId, 'avatar');
+      assert.equal(projection.entries[0]!.app.appId, 'parentos');
       assert.equal(projection.entries[0]!.status?.launchReadiness, 'install-required');
     }
   });
 
-  it('returns error projection when listRegistry throws (no silent empty list)', async () => {
+  it('returns error projection when list throws (no silent empty list)', async () => {
     const projection = await projectLibrary(makeClient({ list: new Error('reg boom') }));
     assert.equal(projection.status, 'error');
     if (projection.status === 'error') {
-      assert.match(projection.detail, /reg boom|listRegistry failed/);
+      assert.match(projection.detail, /reg boom|list failed|list transport error/);
     }
   });
 
   it('captures per-app status errors per entry, does not collapse the projection', async () => {
     const client = makeClient({
       list: [
-        { appId: 'avatar', appKind: 'nimi-app', displayName: 'Avatar', trustTier: 'nimi-first-party', publisher: 'Nimi', sourceRule: 'P-NAPP-004' },
-        { appId: 'parentos', appKind: 'nimi-app', displayName: 'ParentOS', trustTier: 'nimi-first-party', publisher: 'Nimi', sourceRule: 'P-NAPP-004' },
+        buildRow('avatar', 'Avatar'),
+        buildRow('parentos', 'ParentOS'),
       ],
       status: (id) => (id === 'parentos' ? new Error('status boom') : { appId: id, launchReadiness: 'ready' as const }),
     });

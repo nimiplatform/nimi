@@ -24,6 +24,9 @@ apps:
     runtime_registration_mode: app-managed
     permission_scope_ref: []
     health_repair_projection: unavailable
+    ordinary_visibility: hidden-internal
+    release_descriptor_ref: nimi.avatar.bundled-with-nimi
+    install_storage_policy_ref: nimi-data-app-roots
     admission_status: gated_by_avatar_master_gate
     source_rule: P-NAPP-004
 
@@ -40,6 +43,9 @@ apps:
     runtime_registration_mode: app-managed
     permission_scope_ref: []
     health_repair_projection: unavailable
+    ordinary_visibility: ordinary-visible
+    release_descriptor_ref: nimi.parentos.bundled-with-nimi
+    install_storage_policy_ref: nimi-data-app-roots
     admission_status: admitted
     source_rule: P-NAPP-004
 `
@@ -131,19 +137,14 @@ func TestFindByID_NotFound(t *testing.T) {
 	}
 }
 
-func TestIsLaunchAdmitted_AvatarMasterGatePending(t *testing.T) {
-	r, _ := LoadRegistry(strings.NewReader(sampleRegistryYAML))
-	avatar, _ := r.FindByID("nimi.avatar")
-	if avatar.IsLaunchAdmitted() {
-		t.Error("avatar IsLaunchAdmitted should be false while gated_by_avatar_master_gate")
+func TestLoadRegistry_RejectsNonCanonicalOrdinaryVisibility(t *testing.T) {
+	bad := strings.Replace(sampleRegistryYAML, "ordinary_visibility: ordinary-visible", "ordinary_visibility: public", 1)
+	_, err := LoadRegistry(strings.NewReader(bad))
+	if err == nil {
+		t.Fatal("LoadRegistry accepted non-canonical ordinary visibility")
 	}
-}
-
-func TestIsLaunchAdmitted_ParentOSAdmitted(t *testing.T) {
-	r, _ := LoadRegistry(strings.NewReader(sampleRegistryYAML))
-	parentos, _ := r.FindByID("nimi.parentos")
-	if !parentos.IsLaunchAdmitted() {
-		t.Error("parentos IsLaunchAdmitted should be true when admission_status=admitted")
+	if !errors.Is(err, ErrAppUnknownOrdinaryVisibility) {
+		t.Errorf("error = %v, want wrapped ErrAppUnknownOrdinaryVisibility", err)
 	}
 }
 

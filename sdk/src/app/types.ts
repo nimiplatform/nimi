@@ -26,6 +26,23 @@ export function isCanonicalAppKind(value: unknown): value is AppKind {
   return typeof value === 'string' && CANONICAL_APP_KINDS.includes(value as AppKind);
 }
 
+export type NimiAppOrdinaryVisibility =
+  | 'ordinary-visible'
+  | 'hidden-internal'
+  | 'developer-only'
+  | 'not-admitted-visible';
+
+export const CANONICAL_ORDINARY_VISIBILITY: readonly NimiAppOrdinaryVisibility[] = [
+  'ordinary-visible',
+  'hidden-internal',
+  'developer-only',
+  'not-admitted-visible',
+];
+
+export function isCanonicalOrdinaryVisibility(value: unknown): value is NimiAppOrdinaryVisibility {
+  return typeof value === 'string' && CANONICAL_ORDINARY_VISIBILITY.includes(value as NimiAppOrdinaryVisibility);
+}
+
 // AppLaunchReadiness enumerates the admitted launch readiness states.
 // `blocked_by_master_gate` is the explicit gated state required by
 // Avatar master gate coordination (see avatar-master-gate-coordination.md).
@@ -58,13 +75,116 @@ export interface NimiAppRow {
   readonly displayName: string;
   readonly trustTier: TrustTierId;
   readonly publisher: string;
+  readonly releaseDescriptorRef: string;
+  readonly installStoragePolicyRef: string;
   readonly sourceRule: string;
 }
 
 export interface NimiAppStatus {
   readonly appId: string;
   readonly launchReadiness: AppLaunchReadiness;
+  readonly releaseDescriptorRef?: string;
+  readonly installStoragePolicyRef?: string;
+  readonly storageRoots?: NimiAppStorageRoots;
+  readonly verificationState?: NimiAppInstallVerificationState;
   readonly installedVersion?: string;
   readonly availableVersion?: string;
   readonly detail?: string;
+}
+
+export type NimiAppReleaseDescriptorClass =
+  | 'bundled-with-nimi'
+  | 'external-immutable-artifact';
+
+export type NimiAppReleaseSourceKind =
+  | 'nimi-bundle'
+  | 'github-release'
+  | 'github-commit'
+  | 'npm-package';
+
+export interface NimiAppReleaseDescriptorRow {
+  readonly descriptorId: string;
+  readonly appId: string;
+  readonly version: string;
+  readonly descriptorClass: NimiAppReleaseDescriptorClass;
+  readonly sourceKind: NimiAppReleaseSourceKind;
+  readonly sourceRef: string;
+  readonly artifactLocator: string;
+  readonly digestAlgorithm: 'sha256';
+  readonly sha256: string;
+  readonly size: string;
+  readonly provenanceRef: string;
+  readonly packageKind: AppKind;
+  readonly entryRef: string;
+  readonly sandboxRef: string;
+  readonly permissionsRef: string;
+  readonly storagePolicyRef: string;
+  readonly admissionPath: string;
+  readonly mutableSourceAllowed: boolean;
+  readonly installDigestVerificationRequired: string;
+  readonly sourceRule: string;
+}
+
+export type NimiAppInstallVerificationState =
+  | 'not-installed'
+  | 'digest-verified'
+  | 'digest-mismatch'
+  | 'blocked'
+  | 'unsupported';
+
+export interface NimiAppInstallEvidenceRow {
+  readonly appId: string;
+  readonly releaseDescriptorRef: string;
+  readonly storagePolicyRef: string;
+  readonly installedVersion?: string;
+  readonly sha256?: string;
+  readonly verificationState: NimiAppInstallVerificationState;
+  readonly storageRoots?: NimiAppStorageRoots;
+  readonly detail?: string;
+}
+
+export interface NimiAppStorageRoots {
+  readonly releaseRoot: string;
+  readonly dataRoot: string;
+  readonly cacheRoot: string;
+  readonly tempRoot: string;
+}
+
+export type NimiAppLifecycleOperation =
+  | 'install'
+  | 'update'
+  | 'uninstall'
+  | 'launch'
+  | 'health-repair';
+
+export type NimiAppOperationState =
+  | 'accepted'
+  | 'install-required'
+  | 'blocked'
+  | 'unsupported'
+  | 'failed';
+
+export interface NimiAppOperationResult {
+  readonly appId: string;
+  readonly operation: NimiAppLifecycleOperation;
+  readonly state: NimiAppOperationState;
+  readonly reason: string;
+  readonly detail?: string;
+}
+
+export interface NimiAppLaunchScopeRef {
+  readonly kind: 'account' | 'app' | 'workspace' | 'first-run';
+  readonly scopeId: string;
+}
+
+export type NimiAppHealthRepairAction = 'cancel' | 'retry' | 'repair' | 'reinstall';
+
+export type NimiAppLifecycleEvent =
+  | { readonly type: 'installed' | 'updated' | 'uninstalled' | 'launching' | 'launched'; readonly appId: string }
+  | { readonly type: 'failed' | 'repair-required'; readonly appId: string; readonly reason: string; readonly detail?: string };
+
+export interface NimiAppSubscription {
+  readonly subscribed: boolean;
+  readonly reason?: string;
+  readonly unsubscribe: () => void;
 }

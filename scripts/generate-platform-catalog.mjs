@@ -12,6 +12,7 @@ const checkMode = args.has('--check');
 
 const profileTablePath = path.join(repoRoot, '.nimi/spec/platform/kernel/tables/ai-profile-factory-catalog.yaml');
 const appRegistryTablePath = path.join(repoRoot, '.nimi/spec/platform/kernel/tables/nimi-app-registry.yaml');
+const appReleaseDescriptorTablePath = path.join(repoRoot, '.nimi/spec/platform/kernel/tables/nimi-app-release-descriptors.yaml');
 const outputPath = path.join(repoRoot, 'apps/desktop/src/runtime/platform-catalog/generated.ts');
 
 function asArray(value, label) {
@@ -32,6 +33,13 @@ function asString(value, label) {
 function optionalString(value) {
   const normalized = String(value ?? '').trim();
   return normalized || undefined;
+}
+
+function asBoolean(value, label) {
+  if (typeof value !== 'boolean') {
+    throw new Error(`${label} must be a boolean`);
+  }
+  return value;
 }
 
 function stringArray(value, label) {
@@ -76,9 +84,13 @@ function normalizeNimiAppRegistryRows(doc) {
     const appId = asString(row?.app_id, `apps[${index}].app_id`);
     return {
       appId,
+      appKind: asString(row?.package_kind, `${appId}.package_kind`),
       displayName: asString(row?.display_label, `${appId}.display_label`),
       publisher: asString(row?.publisher, `${appId}.publisher`),
       trustTier: asString(row?.trust_tier_ref, `${appId}.trust_tier_ref`),
+      ordinaryVisibility: asString(row?.ordinary_visibility, `${appId}.ordinary_visibility`),
+      releaseDescriptorRef: asString(row?.release_descriptor_ref, `${appId}.release_descriptor_ref`),
+      installStoragePolicyRef: asString(row?.install_storage_policy_ref, `${appId}.install_storage_policy_ref`),
       sourceRule: asString(row?.source_rule, `${appId}.source_rule`),
       admissionStatus: asString(row?.admission_status, `${appId}.admission_status`),
       availableVersion: optionalString(row?.available_version),
@@ -86,6 +98,57 @@ function normalizeNimiAppRegistryRows(doc) {
       detail: optionalString(row?.detail),
     };
   });
+}
+
+function normalizeNimiAppReleaseDescriptorRows(doc) {
+  return asArray(doc?.descriptors, 'nimi app release descriptors').map((row, index) => {
+    const descriptorId = asString(row?.descriptor_id, `descriptors[${index}].descriptor_id`);
+    const artifact = row?.artifact ?? {};
+    const runtime = row?.runtime ?? {};
+    const source = row?.source ?? {};
+    const review = row?.review ?? {};
+    return {
+      descriptorId,
+      appId: asString(row?.app_id, `${descriptorId}.app_id`),
+      version: asString(row?.version, `${descriptorId}.version`),
+      descriptorClass: asString(row?.descriptor_class, `${descriptorId}.descriptor_class`),
+      sourceKind: asString(source?.kind, `${descriptorId}.source.kind`),
+      sourceRef: asString(source?.ref, `${descriptorId}.source.ref`),
+      artifactLocator: asString(artifact?.locator, `${descriptorId}.artifact.locator`),
+      digestAlgorithm: asString(artifact?.digest_algorithm, `${descriptorId}.artifact.digest_algorithm`),
+      sha256: asString(artifact?.sha256, `${descriptorId}.artifact.sha256`),
+      size: asString(artifact?.size, `${descriptorId}.artifact.size`),
+      provenanceRef: asString(artifact?.signature_or_provenance_ref, `${descriptorId}.artifact.signature_or_provenance_ref`),
+      packageKind: asString(runtime?.package_kind, `${descriptorId}.runtime.package_kind`),
+      entryRef: asString(runtime?.entry_ref, `${descriptorId}.runtime.entry_ref`),
+      sandboxRef: asString(runtime?.sandbox_ref, `${descriptorId}.runtime.sandbox_ref`),
+      permissionsRef: asString(row?.permissions_ref, `${descriptorId}.permissions_ref`),
+      storagePolicyRef: asString(row?.storage_policy_ref, `${descriptorId}.storage_policy_ref`),
+      admissionPath: asString(review?.admission_path, `${descriptorId}.review.admission_path`),
+      mutableSourceAllowed: asBoolean(review?.mutable_source_allowed, `${descriptorId}.review.mutable_source_allowed`),
+      installDigestVerificationRequired: asString(
+        review?.install_digest_verification_required,
+        `${descriptorId}.review.install_digest_verification_required`,
+      ),
+      sourceRule: asString(row?.source_rule, `${descriptorId}.source_rule`),
+    };
+  });
+}
+
+function assertAppRegistryRefsResolve(appRows, releaseDescriptorRows) {
+  const descriptorIds = new Set(releaseDescriptorRows.map((row) => row.descriptorId));
+  for (const row of appRows) {
+    if (!descriptorIds.has(row.releaseDescriptorRef)) {
+      throw new Error(`${row.appId}.release_descriptor_ref does not resolve: ${row.releaseDescriptorRef}`);
+    }
+    const descriptor = releaseDescriptorRows.find((candidate) => candidate.descriptorId === row.releaseDescriptorRef);
+    if (descriptor?.appId !== row.appId) {
+      throw new Error(`${row.appId}.release_descriptor_ref resolves to descriptor for ${descriptor?.appId || 'unknown app'}`);
+    }
+    if (descriptor.storagePolicyRef !== row.installStoragePolicyRef) {
+      throw new Error(`${row.appId}.install_storage_policy_ref does not match release descriptor storage policy`);
+    }
+  }
 }
 
 function deriveAiProfiles(factoryRows) {
@@ -112,18 +175,19 @@ function stableStringify(value) {
   return JSON.stringify(value, null, 2);
 }
 
-function render(factoryRows, appRows, aiProfiles) {
+function render(factoryRows, appRows, releaseDescriptorRows, aiProfiles) {
   return [
     '/*',
     ' * @generated by scripts/generate-platform-catalog.mjs',
     ' * Source: .nimi/spec/platform/kernel/tables/ai-profile-factory-catalog.yaml',
     ' * Source: .nimi/spec/platform/kernel/tables/nimi-app-registry.yaml',
+    ' * Source: .nimi/spec/platform/kernel/tables/nimi-app-release-descriptors.yaml',
     ' *',
     ' * This file is a packaged Platform catalog projection for Desktop Home.',
     ' * It is not a canonical row source.',
     ' */',
     '',
-    "import type { NimiAppRegistrySourceRow } from '@nimiplatform/sdk/app';",
+    "import type { NimiAppRegistrySourceRow, NimiAppReleaseDescriptorRow } from '@nimiplatform/sdk/app';",
     "import type { AIProfile } from '@nimiplatform/sdk/mod';",
     '',
     'export interface PlatformAIProfileFactoryRow {',
@@ -141,9 +205,13 @@ function render(factoryRows, appRows, aiProfiles) {
     '  readonly sourceRule: string;',
     '}',
     '',
+    'export type PlatformNimiAppReleaseDescriptorRow = NimiAppReleaseDescriptorRow;',
+    '',
     `export const PLATFORM_AI_PROFILE_FACTORY_ROWS = ${stableStringify(factoryRows)} as const satisfies readonly PlatformAIProfileFactoryRow[];`,
     '',
     `export const PLATFORM_NIMI_APP_REGISTRY_ROWS = ${stableStringify(appRows)} as const satisfies readonly NimiAppRegistrySourceRow[];`,
+    '',
+    `export const PLATFORM_NIMI_APP_RELEASE_DESCRIPTOR_ROWS = ${stableStringify(releaseDescriptorRows)} as const satisfies readonly PlatformNimiAppReleaseDescriptorRow[];`,
     '',
     `export const PLATFORM_AI_PROFILE_FACTORY_CATALOG = ${stableStringify(aiProfiles)} as const satisfies readonly AIProfile[];`,
     '',
@@ -155,6 +223,10 @@ function render(factoryRows, appRows, aiProfiles) {
     '  return PLATFORM_NIMI_APP_REGISTRY_ROWS;',
     '}',
     '',
+    'export function loadPlatformNimiAppReleaseDescriptorRows(): readonly PlatformNimiAppReleaseDescriptorRow[] {',
+    '  return PLATFORM_NIMI_APP_RELEASE_DESCRIPTOR_ROWS;',
+    '}',
+    '',
     'export function loadPlatformAIProfileFactoryCatalog(): readonly AIProfile[] {',
     '  return PLATFORM_AI_PROFILE_FACTORY_CATALOG;',
     '}',
@@ -163,14 +235,17 @@ function render(factoryRows, appRows, aiProfiles) {
 }
 
 async function main() {
-  const [profileDoc, appRegistryDoc] = await Promise.all([
+  const [profileDoc, appRegistryDoc, releaseDescriptorDoc] = await Promise.all([
     readYaml(profileTablePath),
     readYaml(appRegistryTablePath),
+    readYaml(appReleaseDescriptorTablePath),
   ]);
   const factoryRows = normalizeAIProfileFactoryRows(profileDoc);
   const appRows = normalizeNimiAppRegistryRows(appRegistryDoc);
+  const releaseDescriptorRows = normalizeNimiAppReleaseDescriptorRows(releaseDescriptorDoc);
+  assertAppRegistryRefsResolve(appRows, releaseDescriptorRows);
   const aiProfiles = deriveAiProfiles(factoryRows);
-  const rendered = render(factoryRows, appRows, aiProfiles);
+  const rendered = render(factoryRows, appRows, releaseDescriptorRows, aiProfiles);
 
   if (checkMode) {
     let current = '';

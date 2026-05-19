@@ -20,6 +20,7 @@ import { getDesktopAIConfigService } from '@renderer/app-shell/providers/desktop
 import {
   loadPlatformAIProfileFactoryCatalog,
   loadPlatformAIProfileFactoryRows,
+  loadPlatformNimiAppReleaseDescriptorRows,
   loadPlatformNimiAppRegistryRows,
   type PlatformAIProfileFactoryRow,
 } from '../../../../runtime/platform-catalog/index.js';
@@ -49,6 +50,7 @@ export interface DesktopHomeLiveBridge {
 export function createDesktopHomeLiveBridge(): DesktopHomeLiveBridge {
   const appClient = new NimiAppClient(createNimiAppRegistryTransport({
     loadRows: loadPlatformNimiAppRegistryRows,
+    loadReleaseDescriptors: loadPlatformNimiAppReleaseDescriptorRows,
   }));
 
   return {

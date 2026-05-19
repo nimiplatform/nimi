@@ -6,17 +6,17 @@ import (
 	"testing"
 )
 
-func TestCheckCallerEligibility_ParentOSAdmitted(t *testing.T) {
+func TestCheckCallerEligibility_ParentOSInstallRequired(t *testing.T) {
 	r, _ := LoadRegistry(strings.NewReader(sampleRegistryYAML))
 	result, err := r.CheckCallerEligibility("nimi.parentos")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if !result.Eligible {
-		t.Error("parentos should be eligible")
+	if result.Eligible {
+		t.Error("parentos should not be executable from admission alone")
 	}
-	if result.Reason != string(EligibilityReasonOK) {
-		t.Errorf("reason = %q, want %q", result.Reason, EligibilityReasonOK)
+	if result.Reason != string(EligibilityReasonInstallRequired) {
+		t.Errorf("reason = %q, want %q", result.Reason, EligibilityReasonInstallRequired)
 	}
 }
 

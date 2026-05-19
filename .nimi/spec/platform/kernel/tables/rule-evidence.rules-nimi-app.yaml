@@ -36,6 +36,10 @@ entries:
   - P-NAPP-010
   - P-NAPP-011
   - P-NAPP-012
+  - P-NAPP-013
+  - P-NAPP-014
+  - P-NAPP-015
+  - P-NAPP-016
   - P-MOEX-001
   - P-MOEX-002
   - P-MOEX-003
@@ -120,6 +124,12 @@ rules:
       - platform_kernel_consistency
     evidence_requirement: structural_required
     evidence_scope_note: structural only; app install storage enforcement lands with Runtime/SDK/Desktop install and uninstall tests
+  - rule_id: P-NAPP-016
+    evidence_refs:
+      - platform_kernel_consistency
+      - canonical_capability_catalog_gate
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; developer-only Tester App admission is enforced by registry/descriptor cross-table validation and SDK ordinary projection filtering
   - rule_id: P-MOEX-001
     evidence_refs:
       - platform_kernel_consistency

@@ -107,6 +107,9 @@ func testNimiAppRegistryCatalog() *appregistrycatalog.Registry {
 				TrustTierRef:            appregistrycatalog.TrustTierFirstParty,
 				PackageKind:             appregistrycatalog.PackageKindNimiApp,
 				RuntimeRegistrationMode: appregistrycatalog.RuntimeRegistrationModeAppManaged,
+				OrdinaryVisibility:      appregistrycatalog.OrdinaryVisibilityOrdinaryVisible,
+				ReleaseDescriptorRef:    "nimi.parentos.bundled-with-nimi",
+				InstallStoragePolicyRef: "nimi-data-app-roots",
 				AdmissionStatus:         appregistrycatalog.AdmissionStatusAdmitted,
 				SourceRule:              "P-NAPP-011",
 			},
@@ -117,6 +120,9 @@ func testNimiAppRegistryCatalog() *appregistrycatalog.Registry {
 				TrustTierRef:            appregistrycatalog.TrustTierFirstParty,
 				PackageKind:             appregistrycatalog.PackageKindNimiApp,
 				RuntimeRegistrationMode: appregistrycatalog.RuntimeRegistrationModeAppManaged,
+				OrdinaryVisibility:      appregistrycatalog.OrdinaryVisibilityHiddenInternal,
+				ReleaseDescriptorRef:    "nimi.avatar.bundled-with-nimi",
+				InstallStoragePolicyRef: "nimi-data-app-roots",
 				AdmissionStatus:         appregistrycatalog.AdmissionStatusGatedByAvatarMasterGate,
 				SourceRule:              "P-NAPP-011",
 			},
@@ -250,8 +256,11 @@ func TestRegisterAppChecksNimiAppRegistryProjection(t *testing.T) {
 	if err != nil {
 		t.Fatalf("register parentos: %v", err)
 	}
-	if !parentResp.GetAccepted() {
-		t.Fatalf("expected admitted ParentOS registry row to register, reason=%v", parentResp.GetReasonCode())
+	if parentResp.GetAccepted() {
+		t.Fatalf("expected admitted ParentOS row to fail closed until descriptor install is verified")
+	}
+	if parentResp.GetReasonCode() != runtimev1.ReasonCode_APP_AUTHORIZATION_DENIED {
+		t.Fatalf("unexpected ParentOS reason code: %v", parentResp.GetReasonCode())
 	}
 
 	avatarResp, err := svc.RegisterApp(context.Background(), &runtimev1.RegisterAppRequest{
@@ -297,8 +306,11 @@ func TestRegisterAppAppliesFirstPartyMigrationGate(t *testing.T) {
 	if err != nil {
 		t.Fatalf("register parentos completed migration: %v", err)
 	}
-	if !admitted.GetAccepted() {
-		t.Fatalf("expected completed migration to admit registration, reason=%v", admitted.GetReasonCode())
+	if admitted.GetAccepted() {
+		t.Fatalf("completed migration must not bypass descriptor install verification")
+	}
+	if admitted.GetReasonCode() != runtimev1.ReasonCode_APP_AUTHORIZATION_DENIED {
+		t.Fatalf("expected descriptor/install fail-close after migration, reason=%v", admitted.GetReasonCode())
 	}
 }
 

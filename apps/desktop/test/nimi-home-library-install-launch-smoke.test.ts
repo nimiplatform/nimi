@@ -3,20 +3,18 @@ import { describe, it } from 'node:test';
 import {
   NimiAppClient,
   createNimiAppRegistryTransport,
-  type NimiAppStatus,
 } from '@nimiplatform/sdk/app';
 import {
+  loadPlatformNimiAppReleaseDescriptorRows,
   loadPlatformNimiAppRegistryRows,
 } from '../src/runtime/platform-catalog/index.js';
 import { projectDiscovery } from '../src/shell/renderer/first-run/discovery-projection.js';
 import { projectLibrary } from '../src/shell/renderer/first-run/library-projection.js';
 
-function createPlatformRegistryClient(resolveStatus?: (appId: string) => NimiAppStatus): NimiAppClient {
+function createPlatformRegistryClient(): NimiAppClient {
   return new NimiAppClient(createNimiAppRegistryTransport({
     loadRows: loadPlatformNimiAppRegistryRows,
-    resolveStatus: resolveStatus
-      ? (row) => resolveStatus(row.appId)
-      : undefined,
+    loadReleaseDescriptors: loadPlatformNimiAppReleaseDescriptorRows,
   }));
 }
 
@@ -32,7 +30,7 @@ describe('Nimi Home Library / install / launch smoke', () => {
     assert.notEqual(parentOS.status?.launchReadiness, 'ready');
   });
 
-  it('keeps Avatar blocked by master gate and out of installable Discovery', async () => {
+  it('keeps hidden and developer-only Apps out of ordinary Library and installable Discovery', async () => {
     const client = createPlatformRegistryClient();
     const library = await projectLibrary(client);
     const discovery = await projectDiscovery(client);
@@ -41,35 +39,42 @@ describe('Nimi Home Library / install / launch smoke', () => {
     if (library.status !== 'loaded' || discovery.status !== 'loaded') return;
 
     const avatar = library.entries.find((entry) => entry.app.appId === 'nimi.avatar');
-    assert.ok(avatar, 'Avatar registry row must be projected');
-    assert.equal(avatar.status?.launchReadiness, 'blocked-by-master-gate');
+    assert.equal(avatar, undefined, 'Avatar must not be projected in ordinary Library');
     assert.equal(
       discovery.entries.some((entry) => entry.app.appId === 'nimi.avatar'),
       false,
       'Avatar must not appear in installable Discovery while master gate is open',
     );
+    const tester = library.entries.find((entry) => entry.app.appId === 'nimi.tester');
+    assert.equal(tester, undefined, 'Tester must not be projected in ordinary Library');
+    assert.equal(
+      discovery.entries.some((entry) => entry.app.appId === 'nimi.tester'),
+      false,
+      'Tester must not appear in installable Discovery while developer-only',
+    );
   });
 
   it('fails closed when a registry status row is missing', async () => {
     await assert.rejects(
-      createPlatformRegistryClient().getAppStatus('missing.registry.row'),
-      /missing registry row|getAppStatus transport error/i,
+      createPlatformRegistryClient().status('missing.registry.row'),
+      /missing registry row|status transport error/i,
     );
   });
 
-  it('surfaces permission-required launch posture without mapping it to ready', async () => {
-    const library = await projectLibrary(createPlatformRegistryClient((appId) => ({
-      appId,
-      launchReadiness: appId === 'nimi.parentos' ? 'permission-required' : 'blocked-by-master-gate',
-      detail: appId === 'nimi.parentos' ? 'grant unavailable' : 'Avatar master gate remains open',
-    })));
+  it('install operation does not claim success without the runtime install gateway', async () => {
+    const result = await createPlatformRegistryClient().install('nimi.parentos');
+    assert.equal(result.state, 'unsupported');
+    assert.equal(result.reason, 'install-gateway-not-connected');
+  });
+
+  it('status cannot be promoted to ready without digest-verified install evidence', async () => {
+    const library = await projectLibrary(createPlatformRegistryClient());
     assert.equal(library.status, 'loaded');
     if (library.status !== 'loaded') return;
 
     const parentOS = library.entries.find((entry) => entry.app.appId === 'nimi.parentos');
     assert.ok(parentOS, 'ParentOS registry row must be projected');
-    assert.equal(parentOS.status?.launchReadiness, 'permission-required');
+    assert.equal(parentOS.status?.verificationState, 'not-installed');
     assert.notEqual(parentOS.status?.launchReadiness, 'ready');
-    assert.match(parentOS.status?.detail ?? '', /grant unavailable/);
   });
 });
