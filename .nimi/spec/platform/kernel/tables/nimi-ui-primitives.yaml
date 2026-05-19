@@ -654,6 +654,10 @@ primitives:
           styles:
             background: transparent
             border-color: transparent
+        - id: danger
+          class_name: nimi-field--danger
+          styles:
+            border-color: var(--nimi-status-danger)
       modifier:
         - id: textarea
           class_name: nimi-field--textarea
@@ -666,6 +670,11 @@ primitives:
           styles:
             border-color: var(--nimi-field-focus)
             box-shadow: 0 0 0 var(--nimi-focus-ring-width) var(--nimi-focus-ring-color)
+        - id: focus_danger
+          selector: .nimi-field--danger:focus-within
+          styles:
+            border-color: var(--nimi-status-danger)
+            box-shadow: 0 0 0 var(--nimi-focus-ring-width) var(--nimi-status-danger)
         - id: placeholder_input
           selector: .nimi-field__input::placeholder
           styles:

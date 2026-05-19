@@ -41,6 +41,8 @@ import {
   SidebarShell,
   StatusBadge,
   Surface,
+  TextField,
+  TextareaField,
   Toggle,
   Tooltip,
   TooltipProvider,
@@ -309,6 +311,106 @@ test('overlay primitives emit canonical overlay slots', async () => {
   expect(hasClass(html, 'nimi-overlay-footer')).toBe(true);
   expect(hasClass(html, 'nimi-tooltip-layer')).toBe(true);
   expect(hasClass(html, 'nimi-tooltip-bubble')).toBe(true);
+});
+
+test('text field danger tone applies danger chrome and auto-sets aria-invalid', async () => {
+  container = document.createElement('div');
+  document.body.appendChild(container);
+  root = createRoot(container);
+
+  await act(async () => {
+    root?.render(
+      <div>
+        <TextField tone="danger" data-testid="tf-danger" />
+        <TextField tone="danger" aria-invalid={false} data-testid="tf-danger-explicit-false" />
+        <TextField tone="danger" aria-invalid={true} data-testid="tf-danger-explicit-true" />
+      </div>,
+    );
+    await flush();
+  });
+
+  const autoInput = document.querySelector('[data-testid="tf-danger"]') as HTMLInputElement | null;
+  expect(autoInput).toBeTruthy();
+  expect(autoInput!.getAttribute('aria-invalid')).toBe('true');
+  const autoLabel = autoInput!.closest('label') as HTMLLabelElement | null;
+  expect(autoLabel).toBeTruthy();
+  expect(autoLabel!.className).toMatch(/nimi-field--danger/);
+  expect(autoLabel!.className).toMatch(/border-\[var\(--nimi-status-danger\)\]/);
+  expect(autoLabel!.className).toMatch(/focus-within:border-\[var\(--nimi-status-danger\)\]/);
+  expect(autoLabel!.className).toMatch(/focus-within:ring-\[var\(--nimi-status-danger\)\]/);
+
+  const explicitFalseInput = document.querySelector('[data-testid="tf-danger-explicit-false"]') as HTMLInputElement | null;
+  expect(explicitFalseInput).toBeTruthy();
+  expect(explicitFalseInput!.getAttribute('aria-invalid')).toBe('false');
+
+  const explicitTrueInput = document.querySelector('[data-testid="tf-danger-explicit-true"]') as HTMLInputElement | null;
+  expect(explicitTrueInput).toBeTruthy();
+  expect(explicitTrueInput!.getAttribute('aria-invalid')).toBe('true');
+});
+
+test('textarea field danger tone applies danger chrome and auto-sets aria-invalid', async () => {
+  container = document.createElement('div');
+  document.body.appendChild(container);
+  root = createRoot(container);
+
+  await act(async () => {
+    root?.render(
+      <div>
+        <TextareaField tone="danger" data-testid="ta-danger" />
+        <TextareaField tone="danger" aria-invalid={false} data-testid="ta-danger-explicit-false" />
+      </div>,
+    );
+    await flush();
+  });
+
+  const autoTextarea = document.querySelector('[data-testid="ta-danger"]') as HTMLTextAreaElement | null;
+  expect(autoTextarea).toBeTruthy();
+  expect(autoTextarea!.getAttribute('aria-invalid')).toBe('true');
+  const autoLabel = autoTextarea!.closest('label') as HTMLLabelElement | null;
+  expect(autoLabel).toBeTruthy();
+  expect(autoLabel!.className).toMatch(/nimi-field--danger/);
+  expect(autoLabel!.className).toMatch(/border-\[var\(--nimi-status-danger\)\]/);
+
+  const explicitFalseTextarea = document.querySelector('[data-testid="ta-danger-explicit-false"]') as HTMLTextAreaElement | null;
+  expect(explicitFalseTextarea).toBeTruthy();
+  expect(explicitFalseTextarea!.getAttribute('aria-invalid')).toBe('false');
+});
+
+test('text field non-danger tones preserve pre-existing render (backward-compat)', () => {
+  const defaultHtml = renderToStaticMarkup(<TextField />);
+  const defaultExplicitHtml = renderToStaticMarkup(<TextField tone="default" />);
+  const searchHtml = renderToStaticMarkup(<TextField tone="search" />);
+  const quietHtml = renderToStaticMarkup(<TextField tone="quiet" />);
+
+  // None of the non-danger renders should leak the danger tokens or class.
+  for (const html of [defaultHtml, defaultExplicitHtml, searchHtml, quietHtml]) {
+    expect(html).not.toMatch(/nimi-field--danger/);
+    expect(html).not.toMatch(/var\(--nimi-status-danger\)/);
+    expect(html).not.toMatch(/aria-invalid="true"/);
+  }
+
+  // Default and explicit-default must render identically.
+  expect(defaultHtml).toBe(defaultExplicitHtml);
+
+  // Tone-specific classes still appear.
+  expect(searchHtml).toMatch(/rounded-\[var\(--nimi-radius-full\)\]/);
+  expect(quietHtml).toMatch(/border-transparent/);
+  expect(quietHtml).toMatch(/bg-transparent/);
+});
+
+test('textarea field non-danger tones preserve pre-existing render (backward-compat)', () => {
+  const defaultHtml = renderToStaticMarkup(<TextareaField />);
+  const defaultExplicitHtml = renderToStaticMarkup(<TextareaField tone="default" />);
+  const quietHtml = renderToStaticMarkup(<TextareaField tone="quiet" />);
+
+  for (const html of [defaultHtml, defaultExplicitHtml, quietHtml]) {
+    expect(html).not.toMatch(/nimi-field--danger/);
+    expect(html).not.toMatch(/var\(--nimi-status-danger\)/);
+    expect(html).not.toMatch(/aria-invalid="true"/);
+  }
+  expect(defaultHtml).toBe(defaultExplicitHtml);
+  expect(quietHtml).toMatch(/border-transparent/);
+  expect(quietHtml).toMatch(/bg-transparent/);
 });
 
 test('select field ignores empty option values reserved by Radix', () => {

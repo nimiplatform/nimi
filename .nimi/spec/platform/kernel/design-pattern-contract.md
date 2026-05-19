@@ -104,6 +104,8 @@
 
 - `TextField`, `SearchField`, `TextareaField`, and `SelectField` are the shared field primitives for shell-level and publish/settings surfaces.
 - Governed field surfaces must resolve background, stroke, placeholder, and focus states through semantic tokens.
+- Admitted field tone IDs for `TextField` and `TextareaField`: `default`, `search`, `quiet`, `danger`. The `danger` tone signals an invalid input state and must resolve its chrome (border, focus ring) through `--nimi-status-danger`. The structured tone enumeration lives in `nimi-ui-primitives.yaml#primitive.field.class_groups.tone`; the kit implementation may bind these via Tailwind utility classes or the generator-owned `nimi-field--*` selectors, matching the existing implementation pattern for `default`/`search`/`quiet`.
+- When `tone="danger"` is set on `TextField` or `TextareaField`, the inner control receives `aria-invalid="true"` by default for screen-reader semantics. An explicit caller-supplied `aria-invalid` always wins (kit convention: caller-provided HTML attributes are never overwritten by kit-internal defaults).
 
 ## P-DESIGN-016 — Typography Contract
 

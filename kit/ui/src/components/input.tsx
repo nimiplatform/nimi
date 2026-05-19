@@ -10,6 +10,7 @@ const fieldVariants = cva(
         default: 'px-3',
         search: 'px-3 rounded-[var(--nimi-radius-full)]',
         quiet: 'border-transparent bg-transparent px-0',
+        danger: 'nimi-field--danger px-3 border-[var(--nimi-status-danger)] focus-within:border-[var(--nimi-status-danger)] focus-within:ring-[var(--nimi-status-danger)]',
       },
     },
     defaultVariants: { tone: 'default' },
@@ -41,16 +42,26 @@ export const TextField = forwardRef<HTMLInputElement, TextFieldProps>(function T
   },
   ref,
 ) {
+  // Per P-DESIGN-015: tone="danger" auto-sets aria-invalid="true" on the inner control.
+  // Explicit caller value always wins (kit convention: caller-provided HTML attributes
+  // are never overwritten by kit-internal defaults).
+  const callerAriaInvalid = rest['aria-invalid'];
+  const resolvedAriaInvalid = callerAriaInvalid !== undefined
+    ? callerAriaInvalid
+    : tone === 'danger' ? true : undefined;
+  const { 'aria-invalid': _omitAriaInvalid, ...inputRest } = rest;
+
   return (
     <label className={cn(fieldVariants({ tone }), className)}>
       {leading ? <span className="shrink-0 text-[var(--nimi-text-muted)]">{leading}</span> : null}
       <input
         ref={ref}
+        aria-invalid={resolvedAriaInvalid}
         className={cn(
           'min-w-0 flex-1 bg-transparent outline-none placeholder:text-[var(--nimi-field-placeholder)]',
           inputClassName,
         )}
-        {...rest}
+        {...inputRest}
       />
       {trailing ? <span className="shrink-0">{trailing}</span> : null}
     </label>
