@@ -47,6 +47,14 @@ function useManifestPath(): string {
   }, [location.search]);
 }
 
+function useLaunchToken(): string {
+  const location = useLocation();
+  return React.useMemo(() => {
+    const params = new URLSearchParams(location.search);
+    return asOptionalString(params.get('launchToken'));
+  }, [location.search]);
+}
+
 function closeViewerWindow(fallback: () => void) {
   try {
     window.close();
@@ -183,6 +191,7 @@ function resolvePilotSpawnPoint(box: any, raycastMeshes: any[]): any | null {
 export function WorldTourViewerRoute() {
   const navigate = useNavigate();
   const manifestPath = useManifestPath();
+  const launchToken = useLaunchToken();
   const [fixture, setFixture] = React.useState<ResolvedWorldTourFixture | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState('');
@@ -194,10 +203,15 @@ export function WorldTourViewerRoute() {
       setLoading(false);
       return;
     }
+    if (!launchToken) {
+      setError('World Tour viewer requires a Tester-owned desktop launch token.');
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     setError('');
-    void invokeTauri<ResolveWorldTourFixtureResponse>('resolve_world_tour_fixture', {
-      payload: { manifestPath },
+    void invokeTauri<ResolveWorldTourFixtureResponse>('claim_world_tour_viewer_launch', {
+      payload: { manifestPath, launchToken },
     }).then((response) => {
       if (cancelled) return;
       setFixture(response);
@@ -210,7 +224,7 @@ export function WorldTourViewerRoute() {
     return () => {
       cancelled = true;
     };
-  }, [manifestPath]);
+  }, [launchToken, manifestPath]);
 
   const fallbackClose = React.useCallback(() => {
     navigate('/', { replace: true });

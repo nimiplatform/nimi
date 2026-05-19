@@ -31,7 +31,15 @@ function isStandaloneWorldTourRoute(): boolean {
   if (typeof window === 'undefined') {
     return false;
   }
-  return window.location.hash.startsWith('#/world-tour-viewer');
+  if (!window.location.hash.startsWith('#/world-tour-viewer')) {
+    return false;
+  }
+  const queryIndex = window.location.hash.indexOf('?');
+  if (queryIndex < 0) {
+    return false;
+  }
+  const params = new URLSearchParams(window.location.hash.slice(queryIndex + 1));
+  return Boolean(params.get('launchToken')?.trim());
 }
 
 function NimiLogoMark({ className = 'h-12 w-12' }: { className?: string }) {

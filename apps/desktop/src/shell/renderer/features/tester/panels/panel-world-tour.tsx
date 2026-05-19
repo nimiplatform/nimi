@@ -8,7 +8,7 @@ import {
   generate as worldGenerate,
 } from '@nimiplatform/sdk/world';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
-import { hasTauriRuntime, invokeTauri } from '@runtime/tauri-api';
+import { invokeTauri } from '@runtime/tauri-api';
 import type { CapabilityState } from '../tester-types.js';
 import {
   asString,
@@ -86,13 +86,6 @@ function extractWorldGenerateOutput(output: unknown): WorldResultRecord | null {
 
 function sparkRenderAcceptancePendingMessage(): string {
   return 'Spark render acceptance pending: launch the World Tour viewer and wait for in-app SPZ render acceptance before marking baseline acceptance passed.';
-}
-
-function openWorldTourWindowFallback(manifestPath: string): void {
-  const base = `${window.location.origin}${window.location.pathname}`;
-  const query = new URLSearchParams({ manifestPath }).toString();
-  const href = `${base}#/world-tour-viewer?${query}`;
-  window.open(href, '_blank', 'noopener,noreferrer,width=1440,height=920');
 }
 
 export function WorldTourPanel(props: WorldTourPanelProps) {
@@ -469,15 +462,10 @@ export function WorldTourPanel(props: WorldTourPanelProps) {
     setLaunchError('');
     setLaunchStatus('');
     try {
-      if (hasTauriRuntime()) {
-        const response = await invokeTauri<{ windowLabel: string; manifestPath: string }>('open_world_tour_window', {
-          payload: { manifestPath: launchableFixture.manifestPath },
-        });
-        setLaunchStatus(`Opened dedicated world-tour window: ${response.windowLabel}`);
-      } else {
-        openWorldTourWindowFallback(launchableFixture.manifestPath);
-        setLaunchStatus('Opened browser fallback world-tour window.');
-      }
+      const response = await invokeTauri<{ windowLabel: string; manifestPath: string }>('open_world_tour_window', {
+        payload: { manifestPath: launchableFixture.manifestPath },
+      });
+      setLaunchStatus(`Opened dedicated world-tour window: ${response.windowLabel}`);
     } catch (error) {
       setLaunchError(error instanceof Error ? error.message : String(error || 'Failed to launch world-tour window.'));
     } finally {

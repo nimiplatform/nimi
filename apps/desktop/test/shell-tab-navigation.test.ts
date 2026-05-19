@@ -68,6 +68,8 @@ test('D-SHELL-001: core nav source is the product primary order', () => {
   const coreIds = itemMatches.map((match) => match[1]);
   const labelsById = new Map(itemMatches.map((match) => [match[1], match[2]]));
   assert.deepEqual(coreIds, ['home', 'chat', 'contacts', 'explore', 'apps', 'runtime']);
+  assert.equal(coreIds.includes('tester'), false);
+  assert.equal(coreIds.includes('world'), false);
   assert.equal(labelsById.get('runtime'), 'Runtime');
   assert.equal(labelsById.get('apps'), 'Apps');
 });

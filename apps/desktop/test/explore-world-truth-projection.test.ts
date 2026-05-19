@@ -23,6 +23,7 @@ test('ExploreView takes featured world data only from World truth banners', () =
   assert.doesNotMatch(exploreViewSource, /featuredWorlds/);
   assert.doesNotMatch(exploreCardsSource, /FeaturedWorldCard/);
   assert.doesNotMatch(exploreCardsSource, /FeaturedWorldCardData/);
+  assert.doesNotMatch(`${explorePanelSource}\n${exploreViewSource}\n${exploreCardsSource}`, /world-tour|World Tour|tester/i);
   assert.match(exploreViewSource, /worldsWithBanners = props\.worldBanners\.filter/);
   assert.match(exploreViewSource, /props\.onWorldOpen\?\.\(currentBanner\.id\)/);
 });

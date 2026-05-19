@@ -16,6 +16,7 @@ use super::tester_storage::{
 const DEFAULT_WORLD_TOUR_MANIFEST_REL: &str = "latest/fixture-manifest.json";
 const VIEWER_PRESET_FILE_NAME: &str = "viewer-preset.json";
 const WORLD_TOUR_WINDOW_LABEL_PREFIX: &str = "world-tour";
+const WORLD_TOUR_LAUNCH_TOKEN_PREFIX: &str = "world-tour-viewer-launch";
 
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -27,6 +28,13 @@ pub struct ResolveWorldTourFixturePayload {
 #[serde(rename_all = "camelCase")]
 pub struct OpenWorldTourWindowPayload {
     pub manifest_path: Option<String>,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ClaimWorldTourViewerLaunchPayload {
+    pub manifest_path: String,
+    pub launch_token: String,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -338,6 +346,86 @@ fn read_viewer_preset_from_manifest(
     Ok(Some(validate_viewer_preset(preset)?))
 }
 
+fn generate_launch_token() -> Result<String, String> {
+    let mut bytes = [0_u8; 32];
+    getrandom::getrandom(&mut bytes)
+        .map_err(|error| format!("生成 world-tour viewer launch token 失败: {error}"))?;
+    Ok(bytes.iter().map(|byte| format!("{byte:02x}")).collect())
+}
+
+fn launch_token_path(token: &str) -> Result<PathBuf, String> {
+    let normalized = token.trim();
+    if normalized.len() != 64 || !normalized.chars().all(|ch| ch.is_ascii_hexdigit()) {
+        return Err("world-tour viewer launch token 无效".to_string());
+    }
+    Ok(tester_app_tmp_root()?.join(format!(
+        "{WORLD_TOUR_LAUNCH_TOKEN_PREFIX}-{normalized}.json"
+    )))
+}
+
+fn write_launch_token(manifest_path: &Path) -> Result<String, String> {
+    let token = generate_launch_token()?;
+    let path = launch_token_path(&token)?;
+    let temp_path = path.with_extension("json.tmp");
+    let payload = serde_json::json!({
+        "manifestPath": manifest_path.to_string_lossy(),
+        "launchToken": token,
+    });
+    let bytes = serde_json::to_vec_pretty(&payload)
+        .map_err(|error| format!("序列化 world-tour viewer launch token 失败: {error}"))?;
+    let write_result: Result<(), String> = (|| {
+        let mut file = fs::OpenOptions::new()
+            .create(true)
+            .truncate(true)
+            .write(true)
+            .open(&temp_path)
+            .map_err(|error| format!("创建 viewer launch token 临时文件失败: {error}"))?;
+        file.write_all(&bytes)
+            .map_err(|error| format!("写入 viewer launch token 失败: {error}"))?;
+        file.write_all(b"\n")
+            .map_err(|error| format!("写入 viewer launch token 换行失败: {error}"))?;
+        file.flush()
+            .map_err(|error| format!("刷新 viewer launch token 失败: {error}"))?;
+        file.sync_all()
+            .map_err(|error| format!("同步 viewer launch token 失败: {error}"))?;
+        drop(file);
+        fs::rename(&temp_path, &path)
+            .map_err(|error| format!("提交 viewer launch token 失败: {error}"))?;
+        Ok(())
+    })();
+    if let Err(error) = write_result {
+        if temp_path.exists() {
+            let _ = fs::remove_file(&temp_path);
+        }
+        return Err(error);
+    }
+    Ok(token)
+}
+
+fn claim_launch_token(manifest_path: &Path, token: &str) -> Result<(), String> {
+    let path = launch_token_path(token)?;
+    let raw = fs::read_to_string(&path).map_err(|error| {
+        format!(
+            "读取 world-tour viewer launch token 失败 ({}): {error}",
+            path.display()
+        )
+    })?;
+    let _ = fs::remove_file(&path);
+    let record = serde_json::from_str::<Value>(&raw)
+        .map_err(|error| format!("world-tour viewer launch token JSON 无效: {error}"))?;
+    let stored_manifest = json_optional_string(&record, "manifestPath")
+        .ok_or_else(|| "world-tour viewer launch token 缺少 manifestPath".to_string())?;
+    let stored_token = json_optional_string(&record, "launchToken")
+        .ok_or_else(|| "world-tour viewer launch token 缺少 launchToken".to_string())?;
+    if stored_token != token.trim() {
+        return Err("world-tour viewer launch token 不匹配".to_string());
+    }
+    if stored_manifest != manifest_path.to_string_lossy() {
+        return Err("world-tour viewer launch token manifest 不匹配".to_string());
+    }
+    Ok(())
+}
+
 fn persist_viewer_preset_to_manifest(
     manifest_path: &Path,
     preset: &WorldTourViewerPreset,
@@ -582,9 +670,10 @@ pub fn world_tour_render_acceptance_load() -> Result<Option<WorldTourRenderAccep
     read_render_acceptance()
 }
 
-fn build_world_tour_window_route(manifest_path: &str) -> String {
+fn build_world_tour_window_route(manifest_path: &str, launch_token: &str) -> String {
     let query = Serializer::new(String::new())
         .append_pair("manifestPath", manifest_path)
+        .append_pair("launchToken", launch_token)
         .finish();
     format!("/#/world-tour-viewer?{query}")
 }
@@ -596,6 +685,20 @@ pub fn resolve_world_tour_fixture(
 ) -> Result<ResolvedWorldTourFixture, String> {
     let manifest_path = fixture_manifest_path(payload.manifest_path.as_deref());
     let fixture = resolve_world_tour_fixture_from_manifest_path(&manifest_path)?;
+    allow_world_tour_asset_paths(&app, &fixture)?;
+    Ok(fixture)
+}
+
+#[tauri::command]
+pub fn claim_world_tour_viewer_launch(
+    app: tauri::AppHandle,
+    payload: ClaimWorldTourViewerLaunchPayload,
+) -> Result<ResolvedWorldTourFixture, String> {
+    let (_, canonical_manifest) = resolve_world_tour_manifest_path(payload.manifest_path.as_str())?;
+    claim_launch_token(&canonical_manifest, payload.launch_token.as_str())?;
+    let fixture = resolve_world_tour_fixture_from_manifest_path(
+        canonical_manifest.to_string_lossy().as_ref(),
+    )?;
     allow_world_tour_asset_paths(&app, &fixture)?;
     Ok(fixture)
 }
@@ -630,6 +733,7 @@ pub async fn open_world_tour_window(
     let manifest_path = fixture_manifest_path(payload.manifest_path.as_deref());
     let fixture = resolve_world_tour_fixture_from_manifest_path(&manifest_path)?;
     allow_world_tour_asset_paths(&app, &fixture)?;
+    let launch_token = write_launch_token(&PathBuf::from(fixture.manifest_path.as_str()))?;
 
     for (label, window) in app.webview_windows() {
         if label.starts_with(WORLD_TOUR_WINDOW_LABEL_PREFIX) {
@@ -642,7 +746,7 @@ pub async fn open_world_tour_window(
         .unwrap_or_default()
         .as_millis();
     let window_label = format!("{WORLD_TOUR_WINDOW_LABEL_PREFIX}-{unique}");
-    let route = build_world_tour_window_route(&fixture.manifest_path);
+    let route = build_world_tour_window_route(&fixture.manifest_path, &launch_token);
     let window = WebviewWindowBuilder::new(&app, &window_label, WebviewUrl::App(route.into()))
         .title("World Tour")
         .inner_size(1440.0, 920.0)
@@ -663,9 +767,10 @@ pub async fn open_world_tour_window(
 #[cfg(test)]
 mod tests {
     use super::{
-        persist_viewer_preset_to_manifest, read_viewer_preset_from_manifest,
-        resolve_world_tour_fixture_from_manifest_path, validate_viewer_preset, ViewerPresetVector,
-        WorldTourViewerPreset, WorldTourViewerPresetCamera, DEFAULT_WORLD_TOUR_MANIFEST_REL,
+        claim_launch_token, persist_viewer_preset_to_manifest, read_viewer_preset_from_manifest,
+        resolve_world_tour_fixture_from_manifest_path, validate_viewer_preset, write_launch_token,
+        ViewerPresetVector, WorldTourViewerPreset, WorldTourViewerPresetCamera,
+        DEFAULT_WORLD_TOUR_MANIFEST_REL,
     };
     use crate::test_support::with_product_data_home;
     use std::fs;
@@ -818,6 +923,40 @@ mod tests {
         let err =
             validate_viewer_preset(sample_preset("bad-source")).expect_err("preset should fail");
         assert!(err.contains("source"));
+    }
+
+    #[test]
+    fn viewer_launch_token_is_one_time_and_manifest_bound() {
+        let home = temp_dir("launch-token");
+        with_product_data_home(&home, || {
+            let manifest_path = write_fixture(&home)
+                .canonicalize()
+                .expect("canonical manifest");
+            let token = write_launch_token(&manifest_path).expect("write launch token");
+            claim_launch_token(&manifest_path, &token).expect("claim token");
+            let err = claim_launch_token(&manifest_path, &token)
+                .expect_err("claimed token should fail closed");
+            assert!(err.contains("launch token"));
+        });
+    }
+
+    #[test]
+    fn viewer_launch_token_rejects_manifest_mismatch() {
+        let home = temp_dir("launch-token-mismatch");
+        with_product_data_home(&home, || {
+            let manifest_path = write_fixture(&home)
+                .canonicalize()
+                .expect("canonical manifest");
+            let other_manifest = manifest_path
+                .parent()
+                .expect("manifest dir")
+                .join("other-fixture-manifest.json");
+            fs::write(&other_manifest, "{}").expect("write other manifest");
+            let token = write_launch_token(&manifest_path).expect("write launch token");
+            let err = claim_launch_token(&other_manifest, &token)
+                .expect_err("wrong manifest should fail");
+            assert!(err.contains("manifest"));
+        });
     }
 
     #[test]
