@@ -14,6 +14,7 @@ entries:
   - R-SOC-003
   - R-SOC-004
   - R-SOC-005
+  - R-SOC-006
   - Friendship
   - SocialPrecondition
   - required_operations
@@ -49,6 +50,10 @@ rules:
     level: must
     title: nimi-guide-agentfriend-is-ordinary
     statement: "Nimi-authored guide agents use the same Realm social mechanics as any ordinary RealmAgent. Their AgentFriend relationships are ordinary Friendship rows and do not create privileged Agent classes, special social schema, hidden quota exceptions, or authority-bearing official-agent status."
+  - rule_id: R-SOC-006
+    level: must
+    title: nimi-guide-agentfriend-provisioning-validates-realm-payload
+    statement: "New-user initialization may seed a Nimi guide AgentFriend relationship only through ordinary Realm social admission. Before creating or repairing that relationship, the backend path must validate the guide Agent account, required RealmAgent identity, and required AgentProfile / Realm payload needed for the ordinary relationship. Missing or invalid payloads fail closed as typed provisioning or repair states. Guide AgentFriend provisioning must not create a privileged official-agent class, social schema fork, quota bypass, server-bot bypass, Runtime local-only agent, Desktop fixture, or prompt/docs authority shortcut."
 entities:
   - name: Friendship
     prisma_model: Friendship
