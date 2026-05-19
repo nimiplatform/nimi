@@ -151,6 +151,30 @@ where
     }
 }
 
+fn decode_unary_request<Request>(payload: &RuntimeBridgeUnaryPayload) -> Result<Request, String>
+where
+    Request: Message + Default,
+{
+    let bytes = base64::engine::general_purpose::STANDARD
+        .decode(payload.request_bytes_base64.trim())
+        .map_err(|_| "DESKTOP_E2E_RUNTIME_BRIDGE_REQUEST_DECODE_FAILED".to_string())?;
+    Request::decode(bytes.as_slice())
+        .map_err(|error| format!("DESKTOP_E2E_RUNTIME_BRIDGE_REQUEST_INVALID: {error}"))
+}
+
+fn runtime_register_app_response(
+    payload: &RuntimeBridgeUnaryPayload,
+) -> Result<RuntimeBridgeUnaryResult, String> {
+    let request: runtime_bridge_generated::RegisterAppRequest = decode_unary_request(payload)?;
+    Ok(encode_unary_response(
+        runtime_bridge_generated::RegisterAppResponse {
+            app_instance_id: request.app_instance_id,
+            accepted: true,
+            reason_code: runtime_bridge_generated::ReasonCode::ActionExecuted as i32,
+        },
+    ))
+}
+
 fn account_projection_from_fixture(
     fixture: Option<&DesktopE2ERealmFixture>,
 ) -> Option<runtime_bridge_generated::AccountProjection> {
@@ -245,6 +269,10 @@ pub fn runtime_bridge_unary_override(
     }
     let projection = account_projection_from_fixture(manifest.realm_fixture.as_ref());
     match payload.method_id.trim() {
+        "/nimi.runtime.v1.RuntimeAuthService/RegisterApp" => {
+            append_backend_log("runtime_auth_fixture method=registerApp accepted=true");
+            runtime_register_app_response(payload).map(Some)
+        }
         "/nimi.runtime.v1.RuntimeAccountService/GetAccountSessionStatus" => {
             append_backend_log(&format!(
                 "runtime_account_fixture method=getAccountSessionStatus authenticated={}",
@@ -422,5 +450,40 @@ mod tests {
         assert!(!uses_real_runtime_account_projection(
             &manifest_for_scenario("chat.live2d-render-smoke",)
         ));
+    }
+
+    #[test]
+    fn runtime_register_app_fixture_accepts_local_first_party_registration() {
+        let request = runtime_bridge_generated::RegisterAppRequest {
+            app_id: "nimi.desktop".to_string(),
+            app_instance_id: "nimi.desktop.local-first-party".to_string(),
+            device_id: "desktop-shell".to_string(),
+            app_version: "1".to_string(),
+            capabilities: Vec::new(),
+            mode_manifest: None,
+        };
+        let payload = RuntimeBridgeUnaryPayload {
+            method_id: "/nimi.runtime.v1.RuntimeAuthService/RegisterApp".to_string(),
+            request_bytes_base64: base64::engine::general_purpose::STANDARD
+                .encode(request.encode_to_vec()),
+            metadata: None,
+            authorization: None,
+            protected_access_token: None,
+            app_session: None,
+            timeout_ms: None,
+        };
+
+        let result = runtime_register_app_response(&payload).expect("register app response");
+        let bytes = base64::engine::general_purpose::STANDARD
+            .decode(result.response_bytes_base64)
+            .expect("decode response");
+        let response = runtime_bridge_generated::RegisterAppResponse::decode(bytes.as_slice())
+            .expect("decode register response");
+        assert!(response.accepted);
+        assert_eq!(response.app_instance_id, "nimi.desktop.local-first-party");
+        assert_eq!(
+            response.reason_code,
+            runtime_bridge_generated::ReasonCode::ActionExecuted as i32
+        );
     }
 }

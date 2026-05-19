@@ -28,6 +28,7 @@ pub async fn verify_external_agent_token(
     state: &ExternalAgentGatewayState,
     token: &str,
 ) -> Result<ExternalAgentClaims, String> {
+    let jws_secret = state.gateway_secret()?;
     let mut validation = Validation::new(Algorithm::HS256);
     validation.validate_exp = true;
     validation.set_issuer(&[state.config.issuer.as_str()]);
@@ -41,7 +42,7 @@ pub async fn verify_external_agent_token(
     ]);
     let decoded = decode::<ExternalAgentClaims>(
         token,
-        &DecodingKey::from_secret(state.config.jws_secret.as_bytes()),
+        &DecodingKey::from_secret(jws_secret.as_bytes()),
         &validation,
     )
     .map_err(|error| format!("EXTERNAL_AGENT_TOKEN_INVALID: {error}"))?;

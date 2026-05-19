@@ -37,8 +37,26 @@ test('external agent renderer bridge does not subscribe to action request bypass
 test('external agent gateway status derives enabled from live server status', () => {
   const gatewaySource = readDesktopFile('src-tauri/src/external_agent_gateway/mod.rs');
   assert.match(gatewaySource, /enabled:\s*server_status\.enabled\(\)/);
-  assert.match(gatewaySource, /reason_code:\s*server_status\.reason_code\(\)\.to_string\(\)/);
+  assert.match(gatewaySource, /reason_code:\s*server_status\.reason_code\(\)/);
   assert.doesNotMatch(gatewaySource, /enabled:\s*true/);
+});
+
+test('external agent gateway fails closed when product data is not ready', () => {
+  const gatewaySource = readDesktopFile('src-tauri/src/external_agent_gateway/mod.rs');
+  const tokenIssuerSource = readDesktopFile('src-tauri/src/external_agent_gateway/token_issuer.rs');
+  const authSource = readDesktopFile('src-tauri/src/external_agent_gateway/auth.rs');
+  const anonymousFixture = readDesktopFile('e2e/fixtures/profiles/boot.anonymous.login-screen.json');
+
+  assert.match(gatewaySource, /EXTERNAL_AGENT_GATEWAY_PRODUCT_DATA_UNAVAILABLE/);
+  assert.match(gatewaySource, /ExternalAgentServerStatus::Disabled/);
+  assert.match(gatewaySource, /EXTERNAL_AGENT_GATEWAY_DISABLED/);
+  assert.match(gatewaySource, /pub fn gateway_secret\(&self\) -> Result<&str, String>/);
+  assert.doesNotMatch(gatewaySource, /panic!\("EXTERNAL_AGENT_GATEWAY_SECRET_INIT_FAILED/);
+  assert.match(tokenIssuerSource, /let jws_secret = state\.gateway_secret\(\)\?;/);
+  assert.match(tokenIssuerSource, /state\.gateway_secret\(\)\?;/);
+  assert.match(authSource, /let jws_secret = state\.gateway_secret\(\)\?;/);
+  assert.doesNotMatch(anonymousFixture, /"productControlRecord"/);
+  assert.doesNotMatch(anonymousFixture, /"ready_for_use"/);
 });
 
 test('delegated capability panel preserves gateway firewall and runtime diagnostics fields', () => {

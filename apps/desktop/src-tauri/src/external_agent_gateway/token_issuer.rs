@@ -60,6 +60,7 @@ pub async fn issue_token(
     state: &ExternalAgentGatewayState,
     payload: ExternalAgentIssueTokenPayload,
 ) -> Result<ExternalAgentIssueTokenResult, String> {
+    let jws_secret = state.gateway_secret()?;
     let principal_id = payload.principal_id.trim();
     if principal_id.is_empty() {
         return Err("EXTERNAL_AGENT_PRINCIPAL_ID_REQUIRED".to_string());
@@ -159,7 +160,7 @@ pub async fn issue_token(
     let token = encode(
         &header,
         &claims,
-        &EncodingKey::from_secret(state.config.jws_secret.as_bytes()),
+        &EncodingKey::from_secret(jws_secret.as_bytes()),
     )
     .map_err(|error| format!("EXTERNAL_AGENT_TOKEN_ISSUE_FAILED: {error}"))?;
 
@@ -213,6 +214,7 @@ pub async fn revoke_token(
     state: &ExternalAgentGatewayState,
     payload: ExternalAgentRevokeTokenPayload,
 ) -> Result<(), String> {
+    state.gateway_secret()?;
     let token_id = payload.token_id.trim();
     if token_id.is_empty() {
         return Err("EXTERNAL_AGENT_TOKEN_ID_REQUIRED".to_string());
