@@ -52,14 +52,28 @@ test('Agent Detail module map resolves to live agent DataSync evidence', () => {
   assertRepoFile('apps/desktop/src/runtime/data-sync/flows/agent-flow.ts');
 });
 
-test('Agent Detail domain does not launch agent chat routes', () => {
+test('Agent Detail reaches Agent Chat only through the friend-state LocalAgent path', () => {
+  // T5-2 (`9d558335d`) introduced the D-EXPL-006 friend-state primary action.
+  // For a befriended RealmAgent, Agent Detail's `friend` -> Open Agent Chat
+  // action opens the one-to-one LocalAgent Chat. It must NOT construct a chat
+  // session from a bare RealmAgent id: the panel routes exclusively through
+  // `openRealmAgentLocalChat`, which materializes the deterministic
+  // `local-agent:` ref and delegates to the shared LocalAgent launcher.
   const panelSource = readRepo('apps/desktop/src/shell/renderer/features/agent-detail/agent-detail-panel.tsx');
   const viewSource = readRepo('apps/desktop/src/shell/renderer/features/agent-detail/agent-detail-view.tsx');
 
+  // Agent Detail never imports or calls the raw launcher directly; the only
+  // chat entry point is the LocalAgent-projecting `openRealmAgentLocalChat`.
   assert.doesNotMatch(panelSource, /launchAgentConversationFromDisplay/);
-  assert.doesNotMatch(panelSource, /setAgentConversationSelection|setChatMode|setRuntimeFields/);
-  assert.doesNotMatch(viewSource, /onChat/);
-  assert.doesNotMatch(viewSource, /AgentDetail\.chat/);
+  assert.doesNotMatch(panelSource, /launchRealmAgentChat|launchRealmAgentConversation/);
+  assert.match(panelSource, /openRealmAgentLocalChat/);
+
+  // The view's primary action for the `friend` state is onOpenChat, which the
+  // panel wires to the LocalAgent chat path — there is no direct-RealmAgent
+  // chat affordance.
+  assert.match(viewSource, /onOpenChat/);
+  assert.match(viewSource, /describeRealmAgentPrimaryAction/);
+  assert.doesNotMatch(viewSource, /launchRealmAgentChat|launchRealmAgentConversation/);
 });
 
 test('Economy Wallet module map resolves to the current settings wallet page', () => {

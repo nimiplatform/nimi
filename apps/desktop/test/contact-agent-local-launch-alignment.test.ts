@@ -43,23 +43,36 @@ test('Contacts detail surface does not hide ordinary agent-friend message action
   assert.doesNotMatch(source, /showMessageButton=\{!selectedProfile\?\.isAgent &&/);
 });
 
-test('World detail chat and voice actions call their matching LocalAgent launchers', () => {
+test('World detail offers View profile only for a RealmAgent — no direct chat/voice path', () => {
+  // T5-2 (`9d558335d`) removed the world-detail RealmAgent direct-chat drift:
+  // `handleChatAgent` / `handleVoiceAgent` synthesized a `localAgentRef` from a
+  // non-befriended RealmAgent and launched a session directly. Per D-EXPL-006
+  // a RealmAgent in a World is NOT chat-reachable from World detail; chat is
+  // reachable solely via friend -> Open Agent Chat -> LocalAgent Chat. World
+  // detail's agent affordance is now View profile only.
   const source = readRepo('apps/desktop/src/shell/renderer/features/world/world-detail.tsx');
-  const chatStart = source.indexOf('const handleChatAgent');
-  const voiceStart = source.indexOf('const handleVoiceAgent');
-  const viewStart = source.indexOf('const handleViewAgent');
+  const templateSource = readRepo(
+    'apps/desktop/src/shell/renderer/features/world/world-detail-template.tsx',
+  );
 
-  assert.notEqual(chatStart, -1);
-  assert.notEqual(voiceStart, -1);
-  assert.notEqual(viewStart, -1);
+  // The removed direct-launch handlers must not reappear.
+  assert.doesNotMatch(source, /const handleChatAgent/);
+  assert.doesNotMatch(source, /const handleVoiceAgent/);
+  assert.doesNotMatch(source, /launchAgentConversationFromDisplay/);
+  assert.doesNotMatch(source, /launchAgentVoiceFromDisplay/);
 
-  const chatBlock = source.slice(chatStart, voiceStart);
-  const voiceBlock = source.slice(voiceStart, viewStart);
+  // The sole RealmAgent affordance is View profile, routed to agent-detail
+  // where the friend-state primary action lives.
+  assert.match(source, /const handleViewAgent = \(agent: WorldAgent\) => \{/);
+  assert.match(source, /navigateToProfile\(agent\.id, 'agent-detail'\)/);
+  assert.match(source, /onViewAgent=\{handleViewAgent\}/);
 
-  assert.match(chatBlock, /launchAgentConversationFromDisplay/);
-  assert.doesNotMatch(chatBlock, /launchAgentVoiceFromDisplay/);
-  assert.match(voiceBlock, /launchAgentVoiceFromDisplay/);
-  assert.doesNotMatch(voiceBlock, /launchAgentConversationFromDisplay/);
+  // The template exposes only an onViewAgent affordance — no chat/voice props.
+  // A real prop is the `onXAgent?: (...)` typed form; the only textual mention
+  // of chat/voice is a comment explaining the deliberate absence.
+  assert.match(templateSource, /onViewAgent\?: \(agent: WorldAgent\) => void;/);
+  assert.doesNotMatch(templateSource, /onChatAgent\?: \(/);
+  assert.doesNotMatch(templateSource, /onVoiceAgent\?: \(/);
 });
 
 test('agent contact launch target fails closed and builds owner-scoped LocalAgent identity', () => {

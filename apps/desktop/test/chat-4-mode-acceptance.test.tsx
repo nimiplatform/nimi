@@ -235,16 +235,18 @@ test('T3-3 proof: Agent Chat always means LocalAgent Chat — no direct-RealmAge
   assert.match(launcherSource, /findAgentConversationThreadByLocalAgentRef/);
   assert.match(launcherSource, /createAgentThread\(input\.target\)/);
 
-  // The RealmAgent / Explore surfaces (world detail, contacts) only ever call
-  // the LocalAgent launcher; they never construct a chat session from a bare
-  // RealmAgent id. World detail materializes a `local-agent:` ref for the
-  // selected world agent before launching — that is the befriend/LocalAgent
-  // boundary, not a direct-RealmAgent chat.
+  // The RealmAgent / Explore surfaces never construct a chat session from a
+  // bare RealmAgent id. T5-2 (`9d558335d`) hardened this further: World detail
+  // has NO chat path at all — a RealmAgent in a World offers View profile
+  // only, and chat is reachable solely through friend -> Open Agent Chat ->
+  // LocalAgent Chat. The previous world-detail `handleChatAgent` that
+  // synthesized a `local-agent:` ref from a non-befriended RealmAgent is gone.
   const worldDetailSource = readWorkspaceFile(
     'src/shell/renderer/features/world/world-detail.tsx',
   );
-  assert.match(worldDetailSource, /launchAgentConversationFromDisplay/);
-  assert.match(worldDetailSource, /localAgentRef: `local-agent:\$\{ownerUserId\}:\$\{agent\.id\}`/);
+  assert.doesNotMatch(worldDetailSource, /launchAgentConversationFromDisplay/);
+  assert.doesNotMatch(worldDetailSource, /launchAgentVoiceFromDisplay/);
+  assert.doesNotMatch(worldDetailSource, /const handleChatAgent/);
 
   const contactsPanelSource = readWorkspaceFile(
     'src/shell/renderer/features/contacts/contacts-panel.tsx',
