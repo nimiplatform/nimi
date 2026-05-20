@@ -13,6 +13,12 @@ function initialLetter(name: string): string {
 function worldTagline(world: WorldListItem): string {
   return world.description || world.tagline || '';
 }
+// D-EXPL-003 `lineage`: World type / lineage label. Reads the Realm world
+// projection's `type` only; never synthesizes a value.
+function worldLineageLabel(world: WorldListItem): string | null {
+  const raw = world.type?.trim();
+  return raw ? raw : null;
+}
 function worldTags(world: WorldListItem): string[] {
   const out: string[] = [];
   if (world.genre) out.push(world.genre);
@@ -120,7 +126,8 @@ export function FeaturedWorldCard({ world, onOpen }: { world: WorldListItem; onO
                   activeLabel={t('World.status.active')}
                   idleLabel={t('World.status.idle')}
                 />
-                <Chip>{world.nativeCreationState}</Chip>
+                {/* D-EXPL-003 `lineage`: conditional, shrinks when absent. */}
+                {worldLineageLabel(world) ? <Chip>{worldLineageLabel(world)}</Chip> : null}
               </div>
               {tags.length > 0 ? (
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
@@ -288,25 +295,30 @@ export function WorldCard({ world, onOpen }: { world: WorldListItem; onOpen: () 
                 activeLabel={t('World.status.active')}
                 idleLabel={t('World.status.idle')}
               />
-              <span
-                style={{
-                  width: 3,
-                  height: 3,
-                  borderRadius: 999,
-                  background: 'rgba(148,163,184,0.6)',
-                }}
-              />
-              <span
-                style={{
-                  fontSize: 11,
-                  color: 'var(--nimi-text-muted)',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.08em',
-                  fontWeight: 600,
-                }}
-              >
-                {world.nativeCreationState}
-              </span>
+              {/* D-EXPL-003 `lineage`: conditional, shrinks when absent. */}
+              {worldLineageLabel(world) ? (
+                <>
+                  <span
+                    style={{
+                      width: 3,
+                      height: 3,
+                      borderRadius: 999,
+                      background: 'rgba(148,163,184,0.6)',
+                    }}
+                  />
+                  <span
+                    style={{
+                      fontSize: 11,
+                      color: 'var(--nimi-text-muted)',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.08em',
+                      fontWeight: 600,
+                    }}
+                  >
+                    {worldLineageLabel(world)}
+                  </span>
+                </>
+              ) : null}
             </div>
           </div>
         </div>

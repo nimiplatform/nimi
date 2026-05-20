@@ -1,16 +1,8 @@
 import { useMemo, useState, type CSSProperties } from 'react';
-import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { ScrollArea } from '@nimiplatform/nimi-kit/ui';
-import { useAppStore } from '@renderer/app-shell/providers/app-store';
-import {
-  fetchWorldListItems,
-  prefetchWorldDetailAndHistory,
-  worldListQueryKey,
-} from './world-detail-queries';
-import { prefetchWorldDetailPanel } from './world-detail-route-state';
 import { FeaturedWorldCard, WorldCard, WorldListRow } from './world-list-cards';
-import { isMainWorld, toWorldListItemFromTruth, type WorldListItem } from './world-list-model';
+import { isMainWorld, type WorldListItem } from './world-list-model';
 import { Chip, Kicker, Stat, formatNum } from './world-list-atoms';
 type FilterId = 'all' | 'main' | 'sub' | 'archived';
 type SortId = 'active' | 'recent' | 'alpha' | 'inhabitants';
@@ -564,24 +556,4 @@ export function WorldCatalogContent({
       </ScrollArea>
     </div>
   );
-}
-
-export function WorldList() {
-  const navigateToWorld = useAppStore((state) => state.navigateToWorld);
-  const worldsQuery = useQuery({
-    queryKey: worldListQueryKey(),
-    queryFn: async () => (await fetchWorldListItems()).map((item) => toWorldListItemFromTruth(item)),
-  });
-  const openWorldDetail = (worldId: string) => {
-    prefetchWorldDetailPanel();
-    prefetchWorldDetailAndHistory(worldId);
-    navigateToWorld(worldId);
-  };
-  if (worldsQuery.isPending) {
-    return <WorldsLoadingSkeleton />;
-  }
-  if (worldsQuery.isError) {
-    return <WorldsLoadError />;
-  }
-  return <WorldCatalogContent worlds={worldsQuery.data ?? []} onOpenWorld={openWorldDetail} />;
 }

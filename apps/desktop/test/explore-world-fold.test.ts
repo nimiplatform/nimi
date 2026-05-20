@@ -35,11 +35,22 @@ test('Explore fold mounts complete Worlds catalog under Explore', () => {
 
 test('Explore fold keeps RealmAgent discovery as Explore-owned discovery without direct RealmAgent chat', () => {
   assert.match(explorePanelSource, /dataSync\.loadExploreAgents/);
-  assert.match(exploreViewSource, /data-testid="explore-realmagents-section"/);
+  assert.match(exploreViewSource, /data-testid="explore-agents-section"/);
   assert.match(exploreViewSource, /<AgentRecommendationCard/);
   assert.match(agentRecommendationCardSource, /worldName/);
   assert.match(agentRecommendationCardSource, /friendshipAdd/);
   assert.doesNotMatch(exploreViewSource, /<ExploreAgentCard/);
+});
+
+test('Explore exposes the canonical four-section discovery IA', () => {
+  // D-EXPL-002: Worlds / Agents / Activity / Create Agent.
+  assert.match(exploreViewSource, /data-testid="explore-worlds-section"/);
+  assert.match(exploreViewSource, /data-testid="explore-agents-section"/);
+  assert.match(exploreViewSource, /data-testid="explore-activity-section"/);
+  assert.match(exploreViewSource, /ExploreCreateAgentSection/);
+  assert.match(exploreViewSource, /ExploreSectionNav/);
+  // Agents section is a full discovery grid, not a truncated carousel.
+  assert.doesNotMatch(explorePanelSource, /TOP_AGENTS_COUNT/);
 });
 
 test('Create Agent is admitted only by selected World projection and fails closed otherwise', () => {

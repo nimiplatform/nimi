@@ -32,9 +32,12 @@ const uiSliceSource = fs.readFileSync(
   'utf8',
 );
 
-test('world list routes detail entry through navigateToWorld unified path', () => {
-  assert.match(worldListSource, /const navigateToWorld = useAppStore\(\(state\) => state\.navigateToWorld\)/);
-  assert.match(worldListSource, /navigateToWorld\(worldId\)/);
+test('Explore-owned World list routes detail entry through navigateToWorld unified path', () => {
+  // D-EXPL-001: the standalone World surface folds into Explore; the World
+  // list lives in the Explore panel, not a parallel standalone WorldList.
+  assert.doesNotMatch(worldListSource, /export function WorldList\b/);
+  assert.match(explorePanelSource, /const navigateToWorld = useAppStore\(\(state\) => state\.navigateToWorld\)/);
+  assert.match(explorePanelSource, /navigateToWorld\(worldId\)/);
 });
 
 test('world detail tab renders active world detail panel through route-state loader', () => {
@@ -48,11 +51,12 @@ test('world detail uses explicit initial loading state to avoid first-render fli
   assert.match(worldDetailSource, /loading=\{initialLoading\}/);
 });
 
-test('world list click prefetches world detail and history before navigation', () => {
-  assert.match(worldListSource, /fetchWorldListItems\(\)/);
-  assert.match(worldListSource, /prefetchWorldDetailPanel\(\)/);
-  assert.match(worldListSource, /prefetchWorldDetailAndHistory\(worldId\)/);
-  assert.doesNotMatch(worldListSource, /dataSync\.loadWorlds\(/);
+test('Explore World list click prefetches world detail and history before navigation', () => {
+  // World list navigation now lives in the Explore panel (D-EXPL-001 fold).
+  assert.match(explorePanelSource, /fetchWorldListItems\(\)/);
+  assert.match(explorePanelSource, /prefetchWorldDetailPanel\(\)/);
+  assert.match(explorePanelSource, /prefetchWorldDetailAndHistory\(worldId\)/);
+  assert.doesNotMatch(explorePanelSource, /dataSync\.loadWorlds\(/);
 });
 
 test('explore world banner click prefetches world detail and history before navigation', () => {

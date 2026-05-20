@@ -25,7 +25,6 @@ type PostDto = RealmModel<'PostDto'>;
 
 const PAGE_SIZE = 20;
 const DEFAULT_CATEGORIES = ['Research', 'Coding', 'Writing', 'Analysis', 'Creative', 'Education', 'Health & Finance'];
-const TOP_AGENTS_COUNT = 5;
 
 function toRecord(value: unknown): JsonObject | null {
   return parseOptionalJsonObject(value) ?? null;
@@ -286,11 +285,6 @@ export function ExplorePanel() {
     return Array.from(new Set(combined)).slice(0, 16);
   }, [agents]);
 
-  const topAgents = useMemo(
-    () => agents.slice(0, TOP_AGENTS_COUNT),
-    [agents],
-  );
-
   // fetchPostPage for PostFeed — PostFeed manages its own pagination internally
   const fetchPostPage = useCallback(
     async (cursor: string | null) => {
@@ -406,7 +400,7 @@ export function ExplorePanel() {
         searchText={searchText}
         selectedCategory={selectedCategory}
         categories={categories}
-        topAgents={topAgents}
+        agents={agents}
         worldBanners={worldBanners}
         worldCatalogItems={worldsQuery.data ?? []}
         worldsLoading={worldsQuery.isPending}
