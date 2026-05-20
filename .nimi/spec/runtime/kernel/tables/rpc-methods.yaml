@@ -175,6 +175,10 @@ services:
         type: unary
       - name: ResolveLocalEnvironmentActivationGate
         type: unary
+      - name: MintRuntimeBaselineReadiness
+        type: unary
+      - name: ResolveRuntimeBaselineReadiness
+        type: unary
       - name: ResolveLocalStateReconciliation
         type: unary
       - name: ExecuteLocalStateCutover

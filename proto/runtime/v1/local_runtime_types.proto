@@ -398,6 +398,59 @@ message LocalEnvironmentActivationGate {
   repeated LocalEnvironmentPlanDependency dependencies = 7;
 }
 
+// === Runtime-owned First-Run Baseline Readiness (K-LENV-ACT-011) ===
+
+// RuntimeBaselineActivationDependencyEvidence is the per-dependency readiness
+// projection captured into a runtimeBaselineRef. It is owner-verifiable
+// evidence, not a probe result.
+message RuntimeBaselineActivationDependencyEvidence {
+  string dependency_family = 1;
+  string dependency_id = 2;
+  string environment_key = 3;
+  string selected_source_record_id = 4;
+  string source_kind = 5;
+  // dependency_state is always ready_system or ready_managed for a valid ref.
+  string dependency_state = 6;
+  string canonical_root = 7;
+  // materialization_or_system_source_verification_evidence carries the
+  // materialization job terminal evidence ref or the system-source
+  // verification evidence ref that produced the selected source record.
+  string materialization_or_system_source_verification_evidence = 8;
+}
+
+// RuntimeBaselineActivationConsumerEvidence is the per-consumer activation
+// response projection captured into a runtimeBaselineRef.
+message RuntimeBaselineActivationConsumerEvidence {
+  string consumer_id = 1;
+  string pack_id = 2;
+  // activation_state is always ready for a valid ref.
+  string activation_state = 3;
+  string reason_code = 4;
+  repeated RuntimeBaselineActivationDependencyEvidence dependencies = 5;
+  // bound_asset_id is the model asset id bound to this consumer; it is
+  // re-supplied to the activation gate on baseline ref re-verification.
+  string bound_asset_id = 6;
+}
+
+// RuntimeBaselineReadinessRef is the durable, owner-verifiable first-run
+// runtime baseline readiness evidence record owned by RuntimeLocalService
+// per K-LENV-ACT-011. It is minted only after fresh activation succeeds for
+// every required first-run baseline consumer.
+message RuntimeBaselineReadinessRef {
+  string runtime_baseline_ref = 1;
+  string selected_local_factory_ai_profile_ref = 2;
+  // install_level is minimal or recommended.
+  string install_level = 3;
+  string runtime_data_root_or_data_root_ref = 4;
+  repeated string required_dependency_families = 5;
+  repeated string selected_source_record_ids = 6;
+  repeated RuntimeBaselineActivationConsumerEvidence activation_ready_responses = 7;
+  repeated string materialization_or_system_source_verification_evidence = 8;
+  string observed_at = 9;
+  string runtime_verifier_identity = 10;
+  repeated string runtime_audit_sequence = 11;
+}
+
 // === Execution Descriptors ===
 
 message LocalExecutionOptionDescriptor {

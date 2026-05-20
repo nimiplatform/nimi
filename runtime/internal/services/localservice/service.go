@@ -91,6 +91,7 @@ type Service struct {
 	localEnvironmentHostProfiles    map[string]localEnvironmentHostProfileState
 	localEnvironmentSelectedSources map[string]localEnvironmentSelectedSourceRecordState
 	localEnvironmentDependencyJobs  map[string]localEnvironmentDependencyJobState
+	runtimeBaselineReadinessRecords map[string]runtimeBaselineReadinessRecord
 	managedLlamaLoadMu              sync.Mutex
 
 	profileRegistry *ProfileRegistry

@@ -32,6 +32,7 @@ type localStateSnapshot struct {
 	LocalEnvironmentHostProfiles    []localEnvironmentHostProfileState          `json:"localEnvironmentHostProfiles,omitempty"`
 	LocalEnvironmentSelectedSources []localEnvironmentSelectedSourceRecordState `json:"localEnvironmentSelectedSourceRecords,omitempty"`
 	LocalEnvironmentDependencyJobs  []localEnvironmentDependencyJobState        `json:"localEnvironmentDependencyJobs,omitempty"`
+	RuntimeBaselineReadinessRecords []runtimeBaselineReadinessRecord            `json:"runtimeBaselineReadinessRecords,omitempty"`
 }
 
 // localStateAssetState is the unified persistence row for all asset kinds.
@@ -302,6 +303,13 @@ func (s *Service) restoreState() error {
 		}
 		s.localEnvironmentDependencyJobs[item.JobID] = item
 	}
+	s.runtimeBaselineReadinessRecords = make(map[string]runtimeBaselineReadinessRecord, len(snapshot.RuntimeBaselineReadinessRecords))
+	for _, item := range snapshot.RuntimeBaselineReadinessRecords {
+		if strings.TrimSpace(item.RuntimeBaselineRef) == "" {
+			continue
+		}
+		s.runtimeBaselineReadinessRecords[item.RuntimeBaselineRef] = item
+	}
 	if healedSnapshot {
 		s.persistStateLocked()
 	}
@@ -325,6 +333,7 @@ func (s *Service) persistStateLocked() {
 		LocalEnvironmentHostProfiles:    make([]localEnvironmentHostProfileState, 0, len(s.localEnvironmentHostProfiles)),
 		LocalEnvironmentSelectedSources: make([]localEnvironmentSelectedSourceRecordState, 0, len(s.localEnvironmentSelectedSources)),
 		LocalEnvironmentDependencyJobs:  make([]localEnvironmentDependencyJobState, 0, len(s.localEnvironmentDependencyJobs)),
+		RuntimeBaselineReadinessRecords: make([]runtimeBaselineReadinessRecord, 0, len(s.runtimeBaselineReadinessRecords)),
 	}
 
 	assetIDs := make([]string, 0, len(s.assets))
@@ -477,6 +486,15 @@ func (s *Service) persistStateLocked() {
 	sort.Strings(dependencyJobIDs)
 	for _, id := range dependencyJobIDs {
 		snapshot.LocalEnvironmentDependencyJobs = append(snapshot.LocalEnvironmentDependencyJobs, s.localEnvironmentDependencyJobs[id])
+	}
+
+	runtimeBaselineRefs := make([]string, 0, len(s.runtimeBaselineReadinessRecords))
+	for ref := range s.runtimeBaselineReadinessRecords {
+		runtimeBaselineRefs = append(runtimeBaselineRefs, ref)
+	}
+	sort.Strings(runtimeBaselineRefs)
+	for _, ref := range runtimeBaselineRefs {
+		snapshot.RuntimeBaselineReadinessRecords = append(snapshot.RuntimeBaselineReadinessRecords, s.runtimeBaselineReadinessRecords[ref])
 	}
 
 	if err := saveLocalStateSnapshot(path, snapshot); err != nil {

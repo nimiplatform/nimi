@@ -301,6 +301,61 @@ message ResolveLocalEnvironmentActivationGateResponse {
   LocalEnvironmentActivationGate gate = 1;
 }
 
+// RuntimeBaselineConsumerBinding pins a first-run baseline consumer to the
+// model asset selected by the first-run factory AIProfile. Consumers whose
+// pack requires a model.asset dependency family supply asset identity here.
+message RuntimeBaselineConsumerBinding {
+  string consumer_id = 1;
+  // asset_id is the selected baseline model asset id for model.asset
+  // dependency resolution.
+  string asset_id = 2;
+  // local_asset_id optionally identifies an installed local asset whose
+  // asset id is resolved by Runtime when asset_id is not supplied directly.
+  string local_asset_id = 3;
+}
+
+// MintRuntimeBaselineReadinessRequest requests minting a first-run runtime
+// baseline readiness evidence ref (K-LENV-ACT-011). RuntimeLocalService runs
+// a fresh activation gate for every required first-run baseline consumer and
+// mints the ref only when all required dependencies are ready_system or
+// ready_managed.
+message MintRuntimeBaselineReadinessRequest {
+  string selected_local_factory_ai_profile_ref = 1;
+  // install_level is minimal or recommended.
+  string install_level = 2;
+  string runtime_data_root_or_data_root_ref = 3;
+  LocalDeviceProfile host_profile = 4;
+  // baseline_consumers pins the first-run baseline consumer set and the model
+  // asset bound to each consumer. When empty the canonical consumer set for
+  // install_level is resolved by Runtime.
+  repeated RuntimeBaselineConsumerBinding baseline_consumers = 5;
+}
+
+message MintRuntimeBaselineReadinessResponse {
+  RuntimeBaselineReadinessRef ref = 1;
+  // state is ready when minted, otherwise the fail-closed projection state.
+  string state = 2;
+  string reason_code = 3;
+  string detail = 4;
+}
+
+// ResolveRuntimeBaselineReadinessRequest re-verifies a stored runtimeBaselineRef
+// against fresh activation evidence (K-LENV-ACT-011). This is the seam product
+// ready admission step 5 (P-COLD-016) consumes.
+message ResolveRuntimeBaselineReadinessRequest {
+  string runtime_baseline_ref = 1;
+  LocalDeviceProfile host_profile = 2;
+}
+
+message ResolveRuntimeBaselineReadinessResponse {
+  RuntimeBaselineReadinessRef ref = 1;
+  // state is ready when the ref still resolves, otherwise the fail-closed
+  // projection state.
+  string state = 2;
+  string reason_code = 3;
+  string detail = 4;
+}
+
 message StartLocalEnvironmentDependencyJobRequest {
   string environment_key = 1;
   string dependency_family = 2;
@@ -574,6 +629,8 @@ service RuntimeLocalService {
   rpc ListLocalEnvironmentSelectedSources(ListLocalEnvironmentSelectedSourcesRequest) returns (ListLocalEnvironmentSelectedSourcesResponse);
   rpc ListLocalEnvironmentDependencyJobs(ListLocalEnvironmentDependencyJobsRequest) returns (ListLocalEnvironmentDependencyJobsResponse);
   rpc ResolveLocalEnvironmentActivationGate(ResolveLocalEnvironmentActivationGateRequest) returns (ResolveLocalEnvironmentActivationGateResponse);
+  rpc MintRuntimeBaselineReadiness(MintRuntimeBaselineReadinessRequest) returns (MintRuntimeBaselineReadinessResponse);
+  rpc ResolveRuntimeBaselineReadiness(ResolveRuntimeBaselineReadinessRequest) returns (ResolveRuntimeBaselineReadinessResponse);
   rpc StartLocalEnvironmentDependencyJob(StartLocalEnvironmentDependencyJobRequest) returns (StartLocalEnvironmentDependencyJobResponse);
   rpc CancelLocalEnvironmentDependencyJob(CancelLocalEnvironmentDependencyJobRequest) returns (CancelLocalEnvironmentDependencyJobResponse);
   rpc RetryLocalEnvironmentDependencyJob(RetryLocalEnvironmentDependencyJobRequest) returns (RetryLocalEnvironmentDependencyJobResponse);

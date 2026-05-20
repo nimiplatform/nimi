@@ -1023,6 +1023,148 @@ export interface LocalEnvironmentActivationGate {
      */
     dependencies: LocalEnvironmentPlanDependency[];
 }
+// === Runtime-owned First-Run Baseline Readiness (K-LENV-ACT-011) ===
+
+/**
+ * RuntimeBaselineActivationDependencyEvidence is the per-dependency readiness
+ * projection captured into a runtimeBaselineRef. It is owner-verifiable
+ * evidence, not a probe result.
+ *
+ * @generated from protobuf message nimi.runtime.v1.RuntimeBaselineActivationDependencyEvidence
+ */
+export interface RuntimeBaselineActivationDependencyEvidence {
+    /**
+     * @generated from protobuf field: string dependency_family = 1
+     */
+    dependencyFamily: string;
+    /**
+     * @generated from protobuf field: string dependency_id = 2
+     */
+    dependencyId: string;
+    /**
+     * @generated from protobuf field: string environment_key = 3
+     */
+    environmentKey: string;
+    /**
+     * @generated from protobuf field: string selected_source_record_id = 4
+     */
+    selectedSourceRecordId: string;
+    /**
+     * @generated from protobuf field: string source_kind = 5
+     */
+    sourceKind: string;
+    /**
+     * dependency_state is always ready_system or ready_managed for a valid ref.
+     *
+     * @generated from protobuf field: string dependency_state = 6
+     */
+    dependencyState: string;
+    /**
+     * @generated from protobuf field: string canonical_root = 7
+     */
+    canonicalRoot: string;
+    /**
+     * materialization_or_system_source_verification_evidence carries the
+     * materialization job terminal evidence ref or the system-source
+     * verification evidence ref that produced the selected source record.
+     *
+     * @generated from protobuf field: string materialization_or_system_source_verification_evidence = 8
+     */
+    materializationOrSystemSourceVerificationEvidence: string;
+}
+/**
+ * RuntimeBaselineActivationConsumerEvidence is the per-consumer activation
+ * response projection captured into a runtimeBaselineRef.
+ *
+ * @generated from protobuf message nimi.runtime.v1.RuntimeBaselineActivationConsumerEvidence
+ */
+export interface RuntimeBaselineActivationConsumerEvidence {
+    /**
+     * @generated from protobuf field: string consumer_id = 1
+     */
+    consumerId: string;
+    /**
+     * @generated from protobuf field: string pack_id = 2
+     */
+    packId: string;
+    /**
+     * activation_state is always ready for a valid ref.
+     *
+     * @generated from protobuf field: string activation_state = 3
+     */
+    activationState: string;
+    /**
+     * @generated from protobuf field: string reason_code = 4
+     */
+    reasonCode: string;
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.RuntimeBaselineActivationDependencyEvidence dependencies = 5
+     */
+    dependencies: RuntimeBaselineActivationDependencyEvidence[];
+    /**
+     * bound_asset_id is the model asset id bound to this consumer; it is
+     * re-supplied to the activation gate on baseline ref re-verification.
+     *
+     * @generated from protobuf field: string bound_asset_id = 6
+     */
+    boundAssetId: string;
+}
+/**
+ * RuntimeBaselineReadinessRef is the durable, owner-verifiable first-run
+ * runtime baseline readiness evidence record owned by RuntimeLocalService
+ * per K-LENV-ACT-011. It is minted only after fresh activation succeeds for
+ * every required first-run baseline consumer.
+ *
+ * @generated from protobuf message nimi.runtime.v1.RuntimeBaselineReadinessRef
+ */
+export interface RuntimeBaselineReadinessRef {
+    /**
+     * @generated from protobuf field: string runtime_baseline_ref = 1
+     */
+    runtimeBaselineRef: string;
+    /**
+     * @generated from protobuf field: string selected_local_factory_ai_profile_ref = 2
+     */
+    selectedLocalFactoryAiProfileRef: string;
+    /**
+     * install_level is minimal or recommended.
+     *
+     * @generated from protobuf field: string install_level = 3
+     */
+    installLevel: string;
+    /**
+     * @generated from protobuf field: string runtime_data_root_or_data_root_ref = 4
+     */
+    runtimeDataRootOrDataRootRef: string;
+    /**
+     * @generated from protobuf field: repeated string required_dependency_families = 5
+     */
+    requiredDependencyFamilies: string[];
+    /**
+     * @generated from protobuf field: repeated string selected_source_record_ids = 6
+     */
+    selectedSourceRecordIds: string[];
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.RuntimeBaselineActivationConsumerEvidence activation_ready_responses = 7
+     */
+    activationReadyResponses: RuntimeBaselineActivationConsumerEvidence[];
+    /**
+     * @generated from protobuf field: repeated string materialization_or_system_source_verification_evidence = 8
+     */
+    materializationOrSystemSourceVerificationEvidence: string[];
+    /**
+     * @generated from protobuf field: string observed_at = 9
+     */
+    observedAt: string;
+    /**
+     * @generated from protobuf field: string runtime_verifier_identity = 10
+     */
+    runtimeVerifierIdentity: string;
+    /**
+     * @generated from protobuf field: repeated string runtime_audit_sequence = 11
+     */
+    runtimeAuditSequence: string[];
+}
 // === Execution Descriptors ===
 
 /**
@@ -4721,6 +4863,323 @@ class LocalEnvironmentActivationGate$Type extends MessageType<LocalEnvironmentAc
  * @generated MessageType for protobuf message nimi.runtime.v1.LocalEnvironmentActivationGate
  */
 export const LocalEnvironmentActivationGate = new LocalEnvironmentActivationGate$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class RuntimeBaselineActivationDependencyEvidence$Type extends MessageType<RuntimeBaselineActivationDependencyEvidence> {
+    constructor() {
+        super("nimi.runtime.v1.RuntimeBaselineActivationDependencyEvidence", [
+            { no: 1, name: "dependency_family", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "dependency_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "environment_key", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "selected_source_record_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "source_kind", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "dependency_state", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 7, name: "canonical_root", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 8, name: "materialization_or_system_source_verification_evidence", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<RuntimeBaselineActivationDependencyEvidence>): RuntimeBaselineActivationDependencyEvidence {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.dependencyFamily = "";
+        message.dependencyId = "";
+        message.environmentKey = "";
+        message.selectedSourceRecordId = "";
+        message.sourceKind = "";
+        message.dependencyState = "";
+        message.canonicalRoot = "";
+        message.materializationOrSystemSourceVerificationEvidence = "";
+        if (value !== undefined)
+            reflectionMergePartial<RuntimeBaselineActivationDependencyEvidence>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: RuntimeBaselineActivationDependencyEvidence): RuntimeBaselineActivationDependencyEvidence {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string dependency_family */ 1:
+                    message.dependencyFamily = reader.string();
+                    break;
+                case /* string dependency_id */ 2:
+                    message.dependencyId = reader.string();
+                    break;
+                case /* string environment_key */ 3:
+                    message.environmentKey = reader.string();
+                    break;
+                case /* string selected_source_record_id */ 4:
+                    message.selectedSourceRecordId = reader.string();
+                    break;
+                case /* string source_kind */ 5:
+                    message.sourceKind = reader.string();
+                    break;
+                case /* string dependency_state */ 6:
+                    message.dependencyState = reader.string();
+                    break;
+                case /* string canonical_root */ 7:
+                    message.canonicalRoot = reader.string();
+                    break;
+                case /* string materialization_or_system_source_verification_evidence */ 8:
+                    message.materializationOrSystemSourceVerificationEvidence = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: RuntimeBaselineActivationDependencyEvidence, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string dependency_family = 1; */
+        if (message.dependencyFamily !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.dependencyFamily);
+        /* string dependency_id = 2; */
+        if (message.dependencyId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.dependencyId);
+        /* string environment_key = 3; */
+        if (message.environmentKey !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.environmentKey);
+        /* string selected_source_record_id = 4; */
+        if (message.selectedSourceRecordId !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.selectedSourceRecordId);
+        /* string source_kind = 5; */
+        if (message.sourceKind !== "")
+            writer.tag(5, WireType.LengthDelimited).string(message.sourceKind);
+        /* string dependency_state = 6; */
+        if (message.dependencyState !== "")
+            writer.tag(6, WireType.LengthDelimited).string(message.dependencyState);
+        /* string canonical_root = 7; */
+        if (message.canonicalRoot !== "")
+            writer.tag(7, WireType.LengthDelimited).string(message.canonicalRoot);
+        /* string materialization_or_system_source_verification_evidence = 8; */
+        if (message.materializationOrSystemSourceVerificationEvidence !== "")
+            writer.tag(8, WireType.LengthDelimited).string(message.materializationOrSystemSourceVerificationEvidence);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.RuntimeBaselineActivationDependencyEvidence
+ */
+export const RuntimeBaselineActivationDependencyEvidence = new RuntimeBaselineActivationDependencyEvidence$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class RuntimeBaselineActivationConsumerEvidence$Type extends MessageType<RuntimeBaselineActivationConsumerEvidence> {
+    constructor() {
+        super("nimi.runtime.v1.RuntimeBaselineActivationConsumerEvidence", [
+            { no: 1, name: "consumer_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "pack_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "activation_state", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "reason_code", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "dependencies", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => RuntimeBaselineActivationDependencyEvidence },
+            { no: 6, name: "bound_asset_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<RuntimeBaselineActivationConsumerEvidence>): RuntimeBaselineActivationConsumerEvidence {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.consumerId = "";
+        message.packId = "";
+        message.activationState = "";
+        message.reasonCode = "";
+        message.dependencies = [];
+        message.boundAssetId = "";
+        if (value !== undefined)
+            reflectionMergePartial<RuntimeBaselineActivationConsumerEvidence>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: RuntimeBaselineActivationConsumerEvidence): RuntimeBaselineActivationConsumerEvidence {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string consumer_id */ 1:
+                    message.consumerId = reader.string();
+                    break;
+                case /* string pack_id */ 2:
+                    message.packId = reader.string();
+                    break;
+                case /* string activation_state */ 3:
+                    message.activationState = reader.string();
+                    break;
+                case /* string reason_code */ 4:
+                    message.reasonCode = reader.string();
+                    break;
+                case /* repeated nimi.runtime.v1.RuntimeBaselineActivationDependencyEvidence dependencies */ 5:
+                    message.dependencies.push(RuntimeBaselineActivationDependencyEvidence.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                case /* string bound_asset_id */ 6:
+                    message.boundAssetId = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: RuntimeBaselineActivationConsumerEvidence, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string consumer_id = 1; */
+        if (message.consumerId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.consumerId);
+        /* string pack_id = 2; */
+        if (message.packId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.packId);
+        /* string activation_state = 3; */
+        if (message.activationState !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.activationState);
+        /* string reason_code = 4; */
+        if (message.reasonCode !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.reasonCode);
+        /* repeated nimi.runtime.v1.RuntimeBaselineActivationDependencyEvidence dependencies = 5; */
+        for (let i = 0; i < message.dependencies.length; i++)
+            RuntimeBaselineActivationDependencyEvidence.internalBinaryWrite(message.dependencies[i], writer.tag(5, WireType.LengthDelimited).fork(), options).join();
+        /* string bound_asset_id = 6; */
+        if (message.boundAssetId !== "")
+            writer.tag(6, WireType.LengthDelimited).string(message.boundAssetId);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.RuntimeBaselineActivationConsumerEvidence
+ */
+export const RuntimeBaselineActivationConsumerEvidence = new RuntimeBaselineActivationConsumerEvidence$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class RuntimeBaselineReadinessRef$Type extends MessageType<RuntimeBaselineReadinessRef> {
+    constructor() {
+        super("nimi.runtime.v1.RuntimeBaselineReadinessRef", [
+            { no: 1, name: "runtime_baseline_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "selected_local_factory_ai_profile_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "install_level", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "runtime_data_root_or_data_root_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "required_dependency_families", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "selected_source_record_ids", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
+            { no: 7, name: "activation_ready_responses", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => RuntimeBaselineActivationConsumerEvidence },
+            { no: 8, name: "materialization_or_system_source_verification_evidence", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
+            { no: 9, name: "observed_at", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 10, name: "runtime_verifier_identity", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 11, name: "runtime_audit_sequence", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<RuntimeBaselineReadinessRef>): RuntimeBaselineReadinessRef {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.runtimeBaselineRef = "";
+        message.selectedLocalFactoryAiProfileRef = "";
+        message.installLevel = "";
+        message.runtimeDataRootOrDataRootRef = "";
+        message.requiredDependencyFamilies = [];
+        message.selectedSourceRecordIds = [];
+        message.activationReadyResponses = [];
+        message.materializationOrSystemSourceVerificationEvidence = [];
+        message.observedAt = "";
+        message.runtimeVerifierIdentity = "";
+        message.runtimeAuditSequence = [];
+        if (value !== undefined)
+            reflectionMergePartial<RuntimeBaselineReadinessRef>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: RuntimeBaselineReadinessRef): RuntimeBaselineReadinessRef {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string runtime_baseline_ref */ 1:
+                    message.runtimeBaselineRef = reader.string();
+                    break;
+                case /* string selected_local_factory_ai_profile_ref */ 2:
+                    message.selectedLocalFactoryAiProfileRef = reader.string();
+                    break;
+                case /* string install_level */ 3:
+                    message.installLevel = reader.string();
+                    break;
+                case /* string runtime_data_root_or_data_root_ref */ 4:
+                    message.runtimeDataRootOrDataRootRef = reader.string();
+                    break;
+                case /* repeated string required_dependency_families */ 5:
+                    message.requiredDependencyFamilies.push(reader.string());
+                    break;
+                case /* repeated string selected_source_record_ids */ 6:
+                    message.selectedSourceRecordIds.push(reader.string());
+                    break;
+                case /* repeated nimi.runtime.v1.RuntimeBaselineActivationConsumerEvidence activation_ready_responses */ 7:
+                    message.activationReadyResponses.push(RuntimeBaselineActivationConsumerEvidence.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                case /* repeated string materialization_or_system_source_verification_evidence */ 8:
+                    message.materializationOrSystemSourceVerificationEvidence.push(reader.string());
+                    break;
+                case /* string observed_at */ 9:
+                    message.observedAt = reader.string();
+                    break;
+                case /* string runtime_verifier_identity */ 10:
+                    message.runtimeVerifierIdentity = reader.string();
+                    break;
+                case /* repeated string runtime_audit_sequence */ 11:
+                    message.runtimeAuditSequence.push(reader.string());
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: RuntimeBaselineReadinessRef, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string runtime_baseline_ref = 1; */
+        if (message.runtimeBaselineRef !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.runtimeBaselineRef);
+        /* string selected_local_factory_ai_profile_ref = 2; */
+        if (message.selectedLocalFactoryAiProfileRef !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.selectedLocalFactoryAiProfileRef);
+        /* string install_level = 3; */
+        if (message.installLevel !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.installLevel);
+        /* string runtime_data_root_or_data_root_ref = 4; */
+        if (message.runtimeDataRootOrDataRootRef !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.runtimeDataRootOrDataRootRef);
+        /* repeated string required_dependency_families = 5; */
+        for (let i = 0; i < message.requiredDependencyFamilies.length; i++)
+            writer.tag(5, WireType.LengthDelimited).string(message.requiredDependencyFamilies[i]);
+        /* repeated string selected_source_record_ids = 6; */
+        for (let i = 0; i < message.selectedSourceRecordIds.length; i++)
+            writer.tag(6, WireType.LengthDelimited).string(message.selectedSourceRecordIds[i]);
+        /* repeated nimi.runtime.v1.RuntimeBaselineActivationConsumerEvidence activation_ready_responses = 7; */
+        for (let i = 0; i < message.activationReadyResponses.length; i++)
+            RuntimeBaselineActivationConsumerEvidence.internalBinaryWrite(message.activationReadyResponses[i], writer.tag(7, WireType.LengthDelimited).fork(), options).join();
+        /* repeated string materialization_or_system_source_verification_evidence = 8; */
+        for (let i = 0; i < message.materializationOrSystemSourceVerificationEvidence.length; i++)
+            writer.tag(8, WireType.LengthDelimited).string(message.materializationOrSystemSourceVerificationEvidence[i]);
+        /* string observed_at = 9; */
+        if (message.observedAt !== "")
+            writer.tag(9, WireType.LengthDelimited).string(message.observedAt);
+        /* string runtime_verifier_identity = 10; */
+        if (message.runtimeVerifierIdentity !== "")
+            writer.tag(10, WireType.LengthDelimited).string(message.runtimeVerifierIdentity);
+        /* repeated string runtime_audit_sequence = 11; */
+        for (let i = 0; i < message.runtimeAuditSequence.length; i++)
+            writer.tag(11, WireType.LengthDelimited).string(message.runtimeAuditSequence[i]);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.RuntimeBaselineReadinessRef
+ */
+export const RuntimeBaselineReadinessRef = new RuntimeBaselineReadinessRef$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class LocalExecutionOptionDescriptor$Type extends MessageType<LocalExecutionOptionDescriptor> {
     constructor() {

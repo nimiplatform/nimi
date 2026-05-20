@@ -324,6 +324,18 @@ methods:
     kernel_refs:
       - K-AUTHN-001
       - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/MintRuntimeBaselineReadiness
+    posture: anonymous_read
+    rationale: first-run runtime baseline readiness mint; local desktop runtime; no JWT validation
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/ResolveRuntimeBaselineReadiness
+    posture: anonymous_read
+    rationale: first-run runtime baseline readiness resolution; local desktop runtime; no JWT validation
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
   - method_id: /nimi.runtime.v1.RuntimeLocalService/StartLocalEnvironmentDependencyJob
     posture: anonymous_read
     rationale: local environment job start; no JWT validation

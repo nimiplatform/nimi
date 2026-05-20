@@ -93,6 +93,105 @@ func (s *Service) ResolveLocalEnvironmentActivationGate(_ context.Context, req *
 	}, nil
 }
 
+// MintRuntimeBaselineReadiness mints a durable first-run runtime baseline
+// readiness evidence ref (K-LENV-ACT-011) after running a fresh activation
+// gate for every required first-run baseline consumer.
+func (s *Service) MintRuntimeBaselineReadiness(_ context.Context, req *runtimev1.MintRuntimeBaselineReadinessRequest) (*runtimev1.MintRuntimeBaselineReadinessResponse, error) {
+	record, state, reasonCode, detail := s.mintRuntimeBaselineReadiness(runtimeBaselineResolveRequest{
+		SelectedLocalFactoryAIProfileRef: req.GetSelectedLocalFactoryAiProfileRef(),
+		InstallLevel:                     req.GetInstallLevel(),
+		RuntimeDataRootOrDataRootRef:     req.GetRuntimeDataRootOrDataRootRef(),
+		HostProfile:                      req.GetHostProfile(),
+		BaselineConsumers:                runtimeBaselineConsumerBindingsFromProto(req.GetBaselineConsumers()),
+	})
+	resp := &runtimev1.MintRuntimeBaselineReadinessResponse{
+		State:      state,
+		ReasonCode: reasonCode,
+		Detail:     detail,
+	}
+	if state == runtimeBaselineStateReady {
+		resp.Ref = runtimeBaselineReadinessRecordToProto(record)
+	}
+	return resp, nil
+}
+
+// ResolveRuntimeBaselineReadiness re-verifies a stored runtimeBaselineRef
+// against fresh activation evidence (K-LENV-ACT-011). It fails closed for a
+// string-only ref, a missing ref, a ref with no backing durable record, a ref
+// bound to a divergent selection, or a ref whose dependency set no longer
+// resolves ready.
+func (s *Service) ResolveRuntimeBaselineReadiness(_ context.Context, req *runtimev1.ResolveRuntimeBaselineReadinessRequest) (*runtimev1.ResolveRuntimeBaselineReadinessResponse, error) {
+	record, state, reasonCode, detail := s.resolveRuntimeBaselineReadiness(req.GetRuntimeBaselineRef(), req.GetHostProfile())
+	resp := &runtimev1.ResolveRuntimeBaselineReadinessResponse{
+		State:      state,
+		ReasonCode: reasonCode,
+		Detail:     detail,
+	}
+	if state == runtimeBaselineStateReady {
+		resp.Ref = runtimeBaselineReadinessRecordToProto(record)
+	}
+	return resp, nil
+}
+
+func runtimeBaselineReadinessRecordToProto(record runtimeBaselineReadinessRecord) *runtimev1.RuntimeBaselineReadinessRef {
+	out := &runtimev1.RuntimeBaselineReadinessRef{
+		RuntimeBaselineRef:                                record.RuntimeBaselineRef,
+		SelectedLocalFactoryAiProfileRef:                  record.SelectedLocalFactoryAIProfileRef,
+		InstallLevel:                                      record.InstallLevel,
+		RuntimeDataRootOrDataRootRef:                      record.RuntimeDataRootOrDataRootRef,
+		RequiredDependencyFamilies:                        append([]string(nil), record.RequiredDependencyFamilies...),
+		SelectedSourceRecordIds:                           append([]string(nil), record.SelectedSourceRecordIDs...),
+		MaterializationOrSystemSourceVerificationEvidence: append([]string(nil), record.MaterializationOrSystemSourceVerificationEvidence...),
+		ObservedAt:                                        record.ObservedAt,
+		RuntimeVerifierIdentity:                           record.RuntimeVerifierIdentity,
+		RuntimeAuditSequence:                              append([]string(nil), record.RuntimeAuditSequence...),
+		ActivationReadyResponses:                          make([]*runtimev1.RuntimeBaselineActivationConsumerEvidence, 0, len(record.ActivationReadyResponses)),
+	}
+	for _, consumer := range record.ActivationReadyResponses {
+		out.ActivationReadyResponses = append(out.ActivationReadyResponses, runtimeBaselineConsumerEvidenceToProto(consumer))
+	}
+	return out
+}
+
+func runtimeBaselineConsumerBindingsFromProto(bindings []*runtimev1.RuntimeBaselineConsumerBinding) []runtimeBaselineConsumerBinding {
+	out := make([]runtimeBaselineConsumerBinding, 0, len(bindings))
+	for _, binding := range bindings {
+		if binding == nil {
+			continue
+		}
+		out = append(out, runtimeBaselineConsumerBinding{
+			ConsumerID:   binding.GetConsumerId(),
+			AssetID:      binding.GetAssetId(),
+			LocalAssetID: binding.GetLocalAssetId(),
+		})
+	}
+	return out
+}
+
+func runtimeBaselineConsumerEvidenceToProto(consumer runtimeBaselineActivationConsumerEvidence) *runtimev1.RuntimeBaselineActivationConsumerEvidence {
+	out := &runtimev1.RuntimeBaselineActivationConsumerEvidence{
+		ConsumerId:      consumer.ConsumerID,
+		PackId:          consumer.PackID,
+		ActivationState: consumer.ActivationState,
+		ReasonCode:      consumer.ReasonCode,
+		BoundAssetId:    consumer.BoundAssetID,
+		Dependencies:    make([]*runtimev1.RuntimeBaselineActivationDependencyEvidence, 0, len(consumer.Dependencies)),
+	}
+	for _, dep := range consumer.Dependencies {
+		out.Dependencies = append(out.Dependencies, &runtimev1.RuntimeBaselineActivationDependencyEvidence{
+			DependencyFamily:       dep.DependencyFamily,
+			DependencyId:           dep.DependencyID,
+			EnvironmentKey:         dep.EnvironmentKey,
+			SelectedSourceRecordId: dep.SelectedSourceRecordID,
+			SourceKind:             dep.SourceKind,
+			DependencyState:        dep.DependencyState,
+			CanonicalRoot:          dep.CanonicalRoot,
+			MaterializationOrSystemSourceVerificationEvidence: dep.VerificationEvidence,
+		})
+	}
+	return out
+}
+
 func localEnvironmentPlanToProto(plan localEnvironmentPlan) *runtimev1.LocalEnvironmentPlan {
 	out := &runtimev1.LocalEnvironmentPlan{
 		PlanId:          plan.PlanID,

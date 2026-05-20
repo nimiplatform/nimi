@@ -32,6 +32,7 @@ import { LocalProfileApplyResult } from "./local_runtime_types";
 import { LocalProfileResolutionPlan } from "./local_runtime_types";
 import { ProfileEntryOverride } from "./local_runtime_types";
 import { LocalProfileDescriptor } from "./local_runtime_types";
+import { RuntimeBaselineReadinessRef } from "./local_runtime_types";
 import { LocalEnvironmentActivationGate } from "./local_runtime_types";
 import { LocalEnvironmentDependencyJob } from "./local_runtime_types";
 import { LocalEnvironmentSelectedSourceRecord } from "./local_runtime_types";
@@ -846,6 +847,134 @@ export interface ResolveLocalEnvironmentActivationGateResponse {
      * @generated from protobuf field: nimi.runtime.v1.LocalEnvironmentActivationGate gate = 1
      */
     gate?: LocalEnvironmentActivationGate;
+}
+/**
+ * RuntimeBaselineConsumerBinding pins a first-run baseline consumer to the
+ * model asset selected by the first-run factory AIProfile. Consumers whose
+ * pack requires a model.asset dependency family supply asset identity here.
+ *
+ * @generated from protobuf message nimi.runtime.v1.RuntimeBaselineConsumerBinding
+ */
+export interface RuntimeBaselineConsumerBinding {
+    /**
+     * @generated from protobuf field: string consumer_id = 1
+     */
+    consumerId: string;
+    /**
+     * asset_id is the selected baseline model asset id for model.asset
+     * dependency resolution.
+     *
+     * @generated from protobuf field: string asset_id = 2
+     */
+    assetId: string;
+    /**
+     * local_asset_id optionally identifies an installed local asset whose
+     * asset id is resolved by Runtime when asset_id is not supplied directly.
+     *
+     * @generated from protobuf field: string local_asset_id = 3
+     */
+    localAssetId: string;
+}
+/**
+ * MintRuntimeBaselineReadinessRequest requests minting a first-run runtime
+ * baseline readiness evidence ref (K-LENV-ACT-011). RuntimeLocalService runs
+ * a fresh activation gate for every required first-run baseline consumer and
+ * mints the ref only when all required dependencies are ready_system or
+ * ready_managed.
+ *
+ * @generated from protobuf message nimi.runtime.v1.MintRuntimeBaselineReadinessRequest
+ */
+export interface MintRuntimeBaselineReadinessRequest {
+    /**
+     * @generated from protobuf field: string selected_local_factory_ai_profile_ref = 1
+     */
+    selectedLocalFactoryAiProfileRef: string;
+    /**
+     * install_level is minimal or recommended.
+     *
+     * @generated from protobuf field: string install_level = 2
+     */
+    installLevel: string;
+    /**
+     * @generated from protobuf field: string runtime_data_root_or_data_root_ref = 3
+     */
+    runtimeDataRootOrDataRootRef: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LocalDeviceProfile host_profile = 4
+     */
+    hostProfile?: LocalDeviceProfile;
+    /**
+     * baseline_consumers pins the first-run baseline consumer set and the model
+     * asset bound to each consumer. When empty the canonical consumer set for
+     * install_level is resolved by Runtime.
+     *
+     * @generated from protobuf field: repeated nimi.runtime.v1.RuntimeBaselineConsumerBinding baseline_consumers = 5
+     */
+    baselineConsumers: RuntimeBaselineConsumerBinding[];
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.MintRuntimeBaselineReadinessResponse
+ */
+export interface MintRuntimeBaselineReadinessResponse {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.RuntimeBaselineReadinessRef ref = 1
+     */
+    ref?: RuntimeBaselineReadinessRef;
+    /**
+     * state is ready when minted, otherwise the fail-closed projection state.
+     *
+     * @generated from protobuf field: string state = 2
+     */
+    state: string;
+    /**
+     * @generated from protobuf field: string reason_code = 3
+     */
+    reasonCode: string;
+    /**
+     * @generated from protobuf field: string detail = 4
+     */
+    detail: string;
+}
+/**
+ * ResolveRuntimeBaselineReadinessRequest re-verifies a stored runtimeBaselineRef
+ * against fresh activation evidence (K-LENV-ACT-011). This is the seam product
+ * ready admission step 5 (P-COLD-016) consumes.
+ *
+ * @generated from protobuf message nimi.runtime.v1.ResolveRuntimeBaselineReadinessRequest
+ */
+export interface ResolveRuntimeBaselineReadinessRequest {
+    /**
+     * @generated from protobuf field: string runtime_baseline_ref = 1
+     */
+    runtimeBaselineRef: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LocalDeviceProfile host_profile = 2
+     */
+    hostProfile?: LocalDeviceProfile;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.ResolveRuntimeBaselineReadinessResponse
+ */
+export interface ResolveRuntimeBaselineReadinessResponse {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.RuntimeBaselineReadinessRef ref = 1
+     */
+    ref?: RuntimeBaselineReadinessRef;
+    /**
+     * state is ready when the ref still resolves, otherwise the fail-closed
+     * projection state.
+     *
+     * @generated from protobuf field: string state = 2
+     */
+    state: string;
+    /**
+     * @generated from protobuf field: string reason_code = 3
+     */
+    reasonCode: string;
+    /**
+     * @generated from protobuf field: string detail = 4
+     */
+    detail: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.StartLocalEnvironmentDependencyJobRequest
@@ -4430,6 +4559,341 @@ class ResolveLocalEnvironmentActivationGateResponse$Type extends MessageType<Res
  */
 export const ResolveLocalEnvironmentActivationGateResponse = new ResolveLocalEnvironmentActivationGateResponse$Type();
 // @generated message type with reflection information, may provide speed optimized methods
+class RuntimeBaselineConsumerBinding$Type extends MessageType<RuntimeBaselineConsumerBinding> {
+    constructor() {
+        super("nimi.runtime.v1.RuntimeBaselineConsumerBinding", [
+            { no: 1, name: "consumer_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "asset_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "local_asset_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<RuntimeBaselineConsumerBinding>): RuntimeBaselineConsumerBinding {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.consumerId = "";
+        message.assetId = "";
+        message.localAssetId = "";
+        if (value !== undefined)
+            reflectionMergePartial<RuntimeBaselineConsumerBinding>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: RuntimeBaselineConsumerBinding): RuntimeBaselineConsumerBinding {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string consumer_id */ 1:
+                    message.consumerId = reader.string();
+                    break;
+                case /* string asset_id */ 2:
+                    message.assetId = reader.string();
+                    break;
+                case /* string local_asset_id */ 3:
+                    message.localAssetId = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: RuntimeBaselineConsumerBinding, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string consumer_id = 1; */
+        if (message.consumerId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.consumerId);
+        /* string asset_id = 2; */
+        if (message.assetId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.assetId);
+        /* string local_asset_id = 3; */
+        if (message.localAssetId !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.localAssetId);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.RuntimeBaselineConsumerBinding
+ */
+export const RuntimeBaselineConsumerBinding = new RuntimeBaselineConsumerBinding$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class MintRuntimeBaselineReadinessRequest$Type extends MessageType<MintRuntimeBaselineReadinessRequest> {
+    constructor() {
+        super("nimi.runtime.v1.MintRuntimeBaselineReadinessRequest", [
+            { no: 1, name: "selected_local_factory_ai_profile_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "install_level", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "runtime_data_root_or_data_root_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "host_profile", kind: "message", T: () => LocalDeviceProfile },
+            { no: 5, name: "baseline_consumers", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => RuntimeBaselineConsumerBinding }
+        ]);
+    }
+    create(value?: PartialMessage<MintRuntimeBaselineReadinessRequest>): MintRuntimeBaselineReadinessRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.selectedLocalFactoryAiProfileRef = "";
+        message.installLevel = "";
+        message.runtimeDataRootOrDataRootRef = "";
+        message.baselineConsumers = [];
+        if (value !== undefined)
+            reflectionMergePartial<MintRuntimeBaselineReadinessRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: MintRuntimeBaselineReadinessRequest): MintRuntimeBaselineReadinessRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string selected_local_factory_ai_profile_ref */ 1:
+                    message.selectedLocalFactoryAiProfileRef = reader.string();
+                    break;
+                case /* string install_level */ 2:
+                    message.installLevel = reader.string();
+                    break;
+                case /* string runtime_data_root_or_data_root_ref */ 3:
+                    message.runtimeDataRootOrDataRootRef = reader.string();
+                    break;
+                case /* nimi.runtime.v1.LocalDeviceProfile host_profile */ 4:
+                    message.hostProfile = LocalDeviceProfile.internalBinaryRead(reader, reader.uint32(), options, message.hostProfile);
+                    break;
+                case /* repeated nimi.runtime.v1.RuntimeBaselineConsumerBinding baseline_consumers */ 5:
+                    message.baselineConsumers.push(RuntimeBaselineConsumerBinding.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: MintRuntimeBaselineReadinessRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string selected_local_factory_ai_profile_ref = 1; */
+        if (message.selectedLocalFactoryAiProfileRef !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.selectedLocalFactoryAiProfileRef);
+        /* string install_level = 2; */
+        if (message.installLevel !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.installLevel);
+        /* string runtime_data_root_or_data_root_ref = 3; */
+        if (message.runtimeDataRootOrDataRootRef !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.runtimeDataRootOrDataRootRef);
+        /* nimi.runtime.v1.LocalDeviceProfile host_profile = 4; */
+        if (message.hostProfile)
+            LocalDeviceProfile.internalBinaryWrite(message.hostProfile, writer.tag(4, WireType.LengthDelimited).fork(), options).join();
+        /* repeated nimi.runtime.v1.RuntimeBaselineConsumerBinding baseline_consumers = 5; */
+        for (let i = 0; i < message.baselineConsumers.length; i++)
+            RuntimeBaselineConsumerBinding.internalBinaryWrite(message.baselineConsumers[i], writer.tag(5, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.MintRuntimeBaselineReadinessRequest
+ */
+export const MintRuntimeBaselineReadinessRequest = new MintRuntimeBaselineReadinessRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class MintRuntimeBaselineReadinessResponse$Type extends MessageType<MintRuntimeBaselineReadinessResponse> {
+    constructor() {
+        super("nimi.runtime.v1.MintRuntimeBaselineReadinessResponse", [
+            { no: 1, name: "ref", kind: "message", T: () => RuntimeBaselineReadinessRef },
+            { no: 2, name: "state", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "reason_code", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "detail", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<MintRuntimeBaselineReadinessResponse>): MintRuntimeBaselineReadinessResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.state = "";
+        message.reasonCode = "";
+        message.detail = "";
+        if (value !== undefined)
+            reflectionMergePartial<MintRuntimeBaselineReadinessResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: MintRuntimeBaselineReadinessResponse): MintRuntimeBaselineReadinessResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.RuntimeBaselineReadinessRef ref */ 1:
+                    message.ref = RuntimeBaselineReadinessRef.internalBinaryRead(reader, reader.uint32(), options, message.ref);
+                    break;
+                case /* string state */ 2:
+                    message.state = reader.string();
+                    break;
+                case /* string reason_code */ 3:
+                    message.reasonCode = reader.string();
+                    break;
+                case /* string detail */ 4:
+                    message.detail = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: MintRuntimeBaselineReadinessResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.RuntimeBaselineReadinessRef ref = 1; */
+        if (message.ref)
+            RuntimeBaselineReadinessRef.internalBinaryWrite(message.ref, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* string state = 2; */
+        if (message.state !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.state);
+        /* string reason_code = 3; */
+        if (message.reasonCode !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.reasonCode);
+        /* string detail = 4; */
+        if (message.detail !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.detail);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.MintRuntimeBaselineReadinessResponse
+ */
+export const MintRuntimeBaselineReadinessResponse = new MintRuntimeBaselineReadinessResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ResolveRuntimeBaselineReadinessRequest$Type extends MessageType<ResolveRuntimeBaselineReadinessRequest> {
+    constructor() {
+        super("nimi.runtime.v1.ResolveRuntimeBaselineReadinessRequest", [
+            { no: 1, name: "runtime_baseline_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "host_profile", kind: "message", T: () => LocalDeviceProfile }
+        ]);
+    }
+    create(value?: PartialMessage<ResolveRuntimeBaselineReadinessRequest>): ResolveRuntimeBaselineReadinessRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.runtimeBaselineRef = "";
+        if (value !== undefined)
+            reflectionMergePartial<ResolveRuntimeBaselineReadinessRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ResolveRuntimeBaselineReadinessRequest): ResolveRuntimeBaselineReadinessRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string runtime_baseline_ref */ 1:
+                    message.runtimeBaselineRef = reader.string();
+                    break;
+                case /* nimi.runtime.v1.LocalDeviceProfile host_profile */ 2:
+                    message.hostProfile = LocalDeviceProfile.internalBinaryRead(reader, reader.uint32(), options, message.hostProfile);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ResolveRuntimeBaselineReadinessRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string runtime_baseline_ref = 1; */
+        if (message.runtimeBaselineRef !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.runtimeBaselineRef);
+        /* nimi.runtime.v1.LocalDeviceProfile host_profile = 2; */
+        if (message.hostProfile)
+            LocalDeviceProfile.internalBinaryWrite(message.hostProfile, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ResolveRuntimeBaselineReadinessRequest
+ */
+export const ResolveRuntimeBaselineReadinessRequest = new ResolveRuntimeBaselineReadinessRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ResolveRuntimeBaselineReadinessResponse$Type extends MessageType<ResolveRuntimeBaselineReadinessResponse> {
+    constructor() {
+        super("nimi.runtime.v1.ResolveRuntimeBaselineReadinessResponse", [
+            { no: 1, name: "ref", kind: "message", T: () => RuntimeBaselineReadinessRef },
+            { no: 2, name: "state", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "reason_code", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "detail", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<ResolveRuntimeBaselineReadinessResponse>): ResolveRuntimeBaselineReadinessResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.state = "";
+        message.reasonCode = "";
+        message.detail = "";
+        if (value !== undefined)
+            reflectionMergePartial<ResolveRuntimeBaselineReadinessResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ResolveRuntimeBaselineReadinessResponse): ResolveRuntimeBaselineReadinessResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.RuntimeBaselineReadinessRef ref */ 1:
+                    message.ref = RuntimeBaselineReadinessRef.internalBinaryRead(reader, reader.uint32(), options, message.ref);
+                    break;
+                case /* string state */ 2:
+                    message.state = reader.string();
+                    break;
+                case /* string reason_code */ 3:
+                    message.reasonCode = reader.string();
+                    break;
+                case /* string detail */ 4:
+                    message.detail = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ResolveRuntimeBaselineReadinessResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.RuntimeBaselineReadinessRef ref = 1; */
+        if (message.ref)
+            RuntimeBaselineReadinessRef.internalBinaryWrite(message.ref, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* string state = 2; */
+        if (message.state !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.state);
+        /* string reason_code = 3; */
+        if (message.reasonCode !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.reasonCode);
+        /* string detail = 4; */
+        if (message.detail !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.detail);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ResolveRuntimeBaselineReadinessResponse
+ */
+export const ResolveRuntimeBaselineReadinessResponse = new ResolveRuntimeBaselineReadinessResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
 class StartLocalEnvironmentDependencyJobRequest$Type extends MessageType<StartLocalEnvironmentDependencyJobRequest> {
     constructor() {
         super("nimi.runtime.v1.StartLocalEnvironmentDependencyJobRequest", [
@@ -6790,6 +7254,8 @@ export const RuntimeLocalService = new ServiceType("nimi.runtime.v1.RuntimeLocal
     { name: "ListLocalEnvironmentSelectedSources", options: {}, I: ListLocalEnvironmentSelectedSourcesRequest, O: ListLocalEnvironmentSelectedSourcesResponse },
     { name: "ListLocalEnvironmentDependencyJobs", options: {}, I: ListLocalEnvironmentDependencyJobsRequest, O: ListLocalEnvironmentDependencyJobsResponse },
     { name: "ResolveLocalEnvironmentActivationGate", options: {}, I: ResolveLocalEnvironmentActivationGateRequest, O: ResolveLocalEnvironmentActivationGateResponse },
+    { name: "MintRuntimeBaselineReadiness", options: {}, I: MintRuntimeBaselineReadinessRequest, O: MintRuntimeBaselineReadinessResponse },
+    { name: "ResolveRuntimeBaselineReadiness", options: {}, I: ResolveRuntimeBaselineReadinessRequest, O: ResolveRuntimeBaselineReadinessResponse },
     { name: "StartLocalEnvironmentDependencyJob", options: {}, I: StartLocalEnvironmentDependencyJobRequest, O: StartLocalEnvironmentDependencyJobResponse },
     { name: "CancelLocalEnvironmentDependencyJob", options: {}, I: CancelLocalEnvironmentDependencyJobRequest, O: CancelLocalEnvironmentDependencyJobResponse },
     { name: "RetryLocalEnvironmentDependencyJob", options: {}, I: RetryLocalEnvironmentDependencyJobRequest, O: RetryLocalEnvironmentDependencyJobResponse },

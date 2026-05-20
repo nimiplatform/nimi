@@ -354,6 +354,16 @@ method_mappings:
     proto_method: ResolveLocalEnvironmentActivationGate
     mapping_posture: aligned
   - design_service: RuntimeLocalService
+    design_method: MintRuntimeBaselineReadiness
+    proto_service: RuntimeLocalService
+    proto_method: MintRuntimeBaselineReadiness
+    mapping_posture: aligned
+  - design_service: RuntimeLocalService
+    design_method: ResolveRuntimeBaselineReadiness
+    proto_service: RuntimeLocalService
+    proto_method: ResolveRuntimeBaselineReadiness
+    mapping_posture: aligned
+  - design_service: RuntimeLocalService
     design_method: StartLocalEnvironmentDependencyJob
     proto_service: RuntimeLocalService
     proto_method: StartLocalEnvironmentDependencyJob
