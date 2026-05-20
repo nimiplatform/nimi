@@ -165,6 +165,34 @@ setup ownership remains in `~/.nimi/nimi.json`.
 owners. Migration may read old files only as explicit migration evidence and
 must fail closed on ambiguous conflicts.
 
+## P-COLD-014 — Canonical First-Run State Machine
+
+`MUST`：first-run product states, entry conditions, allowed user actions, exit
+conditions, and copy floor are canonically recorded in
+`tables/first-run-state-machine.yaml`.
+
+`MUST`：Desktop first-run UI must consume the product-control state semantics
+from this table. Generic cold-start diagnostics may be displayed as secondary
+status, but must not replace the first-run workflow state.
+
+`MUST NOT`：Desktop may not collapse the first-run workflow into generic
+`ready` / `available` / `done` states, and may not show technical enum names as
+the primary user-facing copy.
+
+## P-COLD-015 — Product-Control Record Schema Invariants
+
+`MUST`：the canonical product-control record schema invariants are recorded in
+`tables/product-control-record-schema.yaml`.
+
+`MUST`：any path that transitions `~/.nimi/nimi.json` to `ready_for_use` must
+validate selected `nimi_data`, local install level, Account Default Profile,
+built-in `AIConfig` refs, Runtime baseline ref, and execution evidence ref.
+
+`MUST NOT`：Runtime config, Desktop path cache, file existence, transfer
+completion, import success, endpoint probe, script exit, or renderer-local
+state may satisfy product readiness without the `ready_for_use` product-control
+record and required evidence fields.
+
 ## Cross-Wave Closure
 
 `MUST`：本契约的每条规则均依赖下列下游 wave 与对应 authority；它们的关闭
@@ -191,4 +219,6 @@ upstream authority。
 - `.nimi/spec/runtime/kernel/config-contract.md` — `K-CFG-*`
 - `.nimi/spec/runtime/kernel/local-environment-materializers-contract.md`
 - `.nimi/spec/runtime/kernel/local-environment-consumer-activation-contract.md`
+- `.nimi/spec/platform/kernel/tables/first-run-state-machine.yaml`
+- `.nimi/spec/platform/kernel/tables/product-control-record-schema.yaml`
 - `.nimi/topics/closed/2026-05-17-nimi-home-platform-entry-redesign/cold-start-authority-contract.md`

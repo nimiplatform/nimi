@@ -22,8 +22,8 @@ import {
   loadPlatformAIProfileFactoryRows,
   loadPlatformNimiAppReleaseDescriptorRows,
   loadPlatformNimiAppRegistryRows,
-  type PlatformAIProfileFactoryRow,
 } from '../../../../runtime/platform-catalog/index.js';
+import { selectFactoryAIProfileForFirstRun } from '../../first-run/install-level-policy.js';
 import type { ColdStartState } from '../../first-run/types.js';
 
 export interface NimiHomeAIProfileProjection {
@@ -57,7 +57,7 @@ export function createDesktopHomeLiveBridge(): DesktopHomeLiveBridge {
     appClient,
     projectAIProfileSelection: async () => {
       const rows = loadPlatformAIProfileFactoryRows();
-      const recommendation = selectFactoryAIProfile(rows);
+      const recommendation = selectFactoryAIProfileForFirstRun(rows, 'minimal');
       if (!recommendation) {
         return {
           profileState: 'unavailable',
@@ -88,38 +88,6 @@ export function createDesktopHomeLiveBridge(): DesktopHomeLiveBridge {
       applyFactoryAIProfile({ kind: scopeRef.kind, id: scopeRef.scopeId }, profileId)
         .then((result) => ({ applied: result.applied })),
   };
-}
-
-function selectFactoryAIProfile(rows: readonly PlatformAIProfileFactoryRow[]): PlatformAIProfileFactoryRow | null {
-  // Product first-run can only choose local Minimal / Recommended baselines.
-  // Keep this fail-closed even if a stale generated projection reintroduces
-  // broader first-run scopes.
-  for (const row of rows) {
-    if (isAdmittedFirstRunLocalBaseline(row)) {
-      return row;
-    }
-  }
-  return null;
-}
-
-function isAdmittedFirstRunLocalBaseline(row: PlatformAIProfileFactoryRow): boolean {
-  const levels = new Set(row.firstRunInstallLevels.map((level) => level.trim().toLowerCase()));
-  if (!levels.has('minimal') && !levels.has('recommended')) {
-    return false;
-  }
-  if (!row.applicableScopes.includes('first-run')) {
-    return false;
-  }
-  if (row.computePosture === 'cloud-only') {
-    return false;
-  }
-  if (row.routingPolicy === 'cloud-first' || row.routingPolicy === 'hybrid-explicit') {
-    return false;
-  }
-  if (row.capabilitySet.includes('video.generate')) {
-    return false;
-  }
-  return row.localComputePackRefs.length > 0 && row.dependencyFamilyRefs.length > 0;
 }
 
 interface InternalScopeRef {

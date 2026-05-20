@@ -22,9 +22,9 @@ import { proxyHttp } from './runtime-bridge/http';
 import { getRuntimeDefaults } from './runtime-bridge/runtime-defaults';
 import {
   getProductControlRecord,
-  markProductReadyForUse,
   selectProductDataRoot,
   setProductFirstRunInstallLevel,
+  setProductFirstRunSetupState,
 } from './runtime-bridge/product-control';
 import { clearAuthSession, loadAuthSession, saveAuthSession } from './runtime-bridge/auth-session';
 import { oauthListenForCode, oauthTokenExchange } from './runtime-bridge/oauth';
@@ -194,9 +194,9 @@ export {
   proxyHttp,
   getRuntimeDefaults,
   getProductControlRecord,
-  markProductReadyForUse,
   selectProductDataRoot,
   setProductFirstRunInstallLevel,
+  setProductFirstRunSetupState,
   loadAuthSession,
   saveAuthSession,
   clearAuthSession,
@@ -282,9 +282,9 @@ export const desktopBridge = {
   setRuntimeBridgeConfig,
   getRuntimeDefaults,
   getProductControlRecord,
-  markProductReadyForUse,
   selectProductDataRoot,
   setProductFirstRunInstallLevel,
+  setProductFirstRunSetupState,
   startWindowDrag,
   proxyHttp,
   openExternalUrl,

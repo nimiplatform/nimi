@@ -17,9 +17,9 @@ const MainLayout = lazy(async () => {
   return { default: mod.MainLayout };
 });
 
-const NimiHomePanel = lazy(async () => {
-  const mod = await import('@renderer/features/nimi-home/nimi-home-panel');
-  return { default: mod.NimiHomePanel };
+const FirstRunGatePanel = lazy(async () => {
+  const mod = await import('@renderer/features/nimi-home/first-run-gate-panel');
+  return { default: mod.FirstRunGatePanel };
 });
 
 const WorldTourViewerRoute = lazy(async () => {
@@ -290,7 +290,7 @@ function DesktopFirstRunGate() {
     >
       <div data-testid="desktop-first-run-gate" className="flex min-h-screen min-w-0">
         <Suspense fallback={<LoadingScreen />}>
-          <NimiHomePanel />
+          <FirstRunGatePanel />
         </Suspense>
       </div>
     </AmbientBackground>

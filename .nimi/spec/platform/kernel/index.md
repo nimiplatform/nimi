@@ -60,6 +60,7 @@ Every platform domain document (vision, architecture, protocol, ai-last-mile, de
 | 160–169 | Nimi product self-update authority |
 | 170–179 | Nimi package/release/update identity authority |
 | 180–189 | Cold-start authority owner split |
+| 186–189 | First-run state machine and product-control record schema invariants |
 | 190–199 | Nimi App admission authority |
 | 200–209 | Mod / Extension retirement authority |
 | 210–219 | Agent identity primitive floor authority |
@@ -119,6 +120,8 @@ Every platform domain document (vision, architecture, protocol, ai-last-mile, de
 | `tables/app-slice-admissions.yaml` | `app-slice-admission-contract.md` | Active app-local spec slices admitted by `.nimi/spec` as subordinate audit authority |
 | `tables/package-authority-admissions.yaml` | `package-authority-admission-contract.md` | Active package-local spec roots admitted by `.nimi/spec` as package audit authority |
 | `tables/ai-profile-factory-catalog.yaml` | `ai-profile-selection-policy-contract.md` | Admitted factory AIProfile rows dimensioned over privacy_posture x compute_posture x capability_set x routing_policy with selection-policy inputs referencing Runtime host capability profiles, local compute packs, and local environment dependency families |
+| `tables/first-run-state-machine.yaml` | `cold-start-authority-contract.md` | Canonical first-run product-control state machine with state copy floor, entry conditions, allowed user actions, and exit conditions |
+| `tables/product-control-record-schema.yaml` | `cold-start-authority-contract.md` | Canonical `~/.nimi/nimi.json` product-control record schema invariants, selected `nimi_data` rules, local install-level rules, and `ready_for_use` evidence requirements |
 | `.nimi/spec/desktop/kernel/tables/nimi-home-surfaces.yaml` | `nimi-home-contract.md`, `.nimi/spec/desktop/kernel/nimi-home-shell-contract.md` | Desktop-hosted Nimi Home surface placement registry consumed by `D-HOME-*` rows; non-owner cross-reference recorded here so the Platform `Nimi Home` ontology has a clear view of the hosted-shell surface registry source |
 | `tables/nimi-app-registry.yaml` | `nimi-app-admission-contract.md` | Admitted Nimi App registry rows (first-party seed for Avatar and ParentOS) with typed references to trust tier, factory AIProfile selection, canonical capability ids, local compute packs, runtime registration mode, permission scope (Wave 4 placeholder), and admission status |
 | `tables/nimi-app-release-descriptors.yaml` | `nimi-app-admission-contract.md` | Immutable release descriptor schema and admitted bundled first-party descriptors; external app versions must freeze source ref, artifact locator, sha256, size, signature/provenance, runtime entry, permissions, and storage policy before install |

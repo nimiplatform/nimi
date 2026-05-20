@@ -58,6 +58,8 @@ entries:
   - P-COLD-006
   - P-COLD-007
   - P-COLD-008
+  - P-COLD-014
+  - P-COLD-015
 rules:
   - rule_id: P-HOME-001
     evidence_refs:
@@ -254,3 +256,13 @@ rules:
       - platform_kernel_consistency
     evidence_requirement: structural_required
     evidence_scope_note: structural only; Runtime config owner split implementation evidence lands with runtime config/data-root child topic
+  - rule_id: P-COLD-014
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; Desktop first-run workflow implementation evidence lands with product first-run state-machine child topic
+  - rule_id: P-COLD-015
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; product-control schema enforcement evidence lands with desktop_product_control focused tests

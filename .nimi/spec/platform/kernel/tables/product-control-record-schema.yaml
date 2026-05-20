@@ -1,0 +1,63 @@
+version: 1
+table_family: product_record_schema
+owner: platform
+record_id: nimi_product_control_record
+path: ~/.nimi/nimi.json
+source_rule: P-COLD-015
+schema_version: 1
+required_top_level_fields:
+  - schemaVersion
+  - installId
+  - productVersion
+  - state
+  - dataRoot
+  - firstRun
+  - pointers
+  - repair
+state_field:
+  owner: platform_cold_start
+  enum_ref: P-COLD-009
+  ready_state: ready_for_use
+invariants:
+  - id: product-control-record-owner
+    requirement: ~/.nimi/nimi.json is the only installed product readiness control record.
+  - id: selected-data-root-required-before-heavy-setup
+    requirement: dataRoot.path must be an absolute user-selected nimi_data path before downloads, dependency installation, app package install, model materialization, or environment setup.
+  - id: selected-data-root-evidence
+    requirement: dataRoot selectedAt and verifiedAt evidence must exist after selection; ready_for_use requires dataRoot.status=ready.
+  - id: local-install-level-only
+    requirement: firstRun.installLevel must be minimal or recommended; cloud, hybrid, connector, video, and app-specific levels are invalid.
+  - id: ready-evidence-required
+    requirement: ready_for_use requires firstRun.completed=true, completedAt, initializationPlanId, baselineProfileRef, baselineCommitId, accountDefaultProfileRef, non-empty builtInAiConfigRefs, runtimeBaselineRef, and executionEvidenceRef.
+  - id: runtime-config-pointer-non-owner
+    requirement: pointers.runtimeConfigPath may point to ~/.nimi/runtime/config.json, but Runtime config is not product readiness truth.
+  - id: repair-fail-closed
+    requirement: repair.required or invalid product-control shape routes to repair_required or blocked, never ordinary ready.
+fields:
+  dataRoot:
+    required_when_states:
+      - data_root_selected
+      - ai_environment_unconfigured
+      - local_ai_profile_selected_assets_missing
+      - local_ai_profile_selected_environment_not_ready
+      - local_ai_assets_downloaded_environment_not_ready
+      - local_ai_ready
+      - ready_for_use
+    fields:
+      path: absolute user-selected nimi_data path
+      status: selected | ready | repair_required
+      selectedAt: timestamp for user selection
+      verifiedAt: timestamp for writability and required directory verification
+  firstRun:
+    fields:
+      installLevel: minimal | recommended
+      aiProfileAlias: admitted first-run local factory AIProfile alias
+      completed: boolean
+      completedAt: timestamp
+      initializationPlanId: Runtime/Desktop initialization plan evidence ref
+      baselineProfileRef: selected local baseline profile ref
+      baselineCommitId: baseline profile commit ref
+      accountDefaultProfileRef: Account Default Profile evidence ref
+      builtInAiConfigRefs: non-empty built-in AIConfig refs
+      runtimeBaselineRef: Runtime baseline readiness evidence ref
+      executionEvidenceRef: baseline execution evidence ref

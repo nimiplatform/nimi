@@ -114,7 +114,10 @@ function useFirstRunReadinessProjection(
   return projection;
 }
 
-function useProductControlRecord(): ProductControlRecordProjection | null {
+function useProductControlRecord(): {
+  projection: ProductControlRecordProjection | null;
+  setProjection: (projection: ProductControlRecordProjection) => void;
+} {
   const [projection, setProjection] = useState<ProductControlRecordProjection | null>(null);
 
   useEffect(() => {
@@ -137,7 +140,7 @@ function useProductControlRecord(): ProductControlRecordProjection | null {
     };
   }, []);
 
-  return projection;
+  return { projection, setProjection };
 }
 
 function useAppRegistryProjections(liveBridge: DesktopHomeLiveBridge): {
@@ -176,7 +179,7 @@ function LoadingProjection({ slot, label }: { slot: 'readiness' | 'library' | 'd
 export function NimiHomePanel(): ReactElement {
   const { t } = useTranslation();
   const liveBridge = useMemo(() => createDesktopHomeLiveBridge(), []);
-  const productControl = useProductControlRecord();
+  const { projection: productControl } = useProductControlRecord();
   const aiProfileSelection = useAIProfileSelectionProjection(liveBridge);
   const { library, discovery, appRegistryState } = useAppRegistryProjections(liveBridge);
   const readiness = useFirstRunReadinessProjection(aiProfileSelection, appRegistryState, productControl);
@@ -210,14 +213,15 @@ export function NimiHomePanel(): ReactElement {
           </div>
         </header>
 
-        <div className="grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
-          <Surface tone="panel" material="glass-regular" padding="none" className="min-h-[258px] p-5 shadow-[0_16px_44px_rgba(15,23,42,0.06)]">
-            {readiness ? <FirstRunReadinessView projection={readiness} /> : <LoadingProjection slot="readiness" label={t('Home.loading.readiness')} />}
-          </Surface>
+        <div className="grid gap-4">
           <Surface tone="panel" material="glass-regular" padding="none" className="min-h-[258px] p-5 shadow-[0_16px_44px_rgba(15,23,42,0.06)]">
             <AgentChatReference binding={agentChatBinding} executor={agentChatExecutor} />
           </Surface>
         </div>
+
+        <Surface tone="panel" material="glass-regular" padding="none" className="min-h-[180px] p-5 shadow-[0_16px_44px_rgba(15,23,42,0.06)]">
+          {readiness ? <FirstRunReadinessView projection={readiness} /> : <LoadingProjection slot="readiness" label={t('Home.loading.readiness')} />}
+        </Surface>
 
         <div className="grid gap-4 lg:grid-cols-2">
           <Surface tone="panel" material="glass-regular" padding="none" className="min-h-[148px] p-5 shadow-[0_16px_44px_rgba(15,23,42,0.06)]">

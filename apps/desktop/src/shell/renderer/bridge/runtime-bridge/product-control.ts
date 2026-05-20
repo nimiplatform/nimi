@@ -205,19 +205,14 @@ export async function setProductFirstRunInstallLevel(input: {
   }, parseProjection);
 }
 
-export async function markProductReadyForUse(input: {
-  initializationPlanId: string;
-  baselineProfileRef: string;
-  baselineCommitId: string;
-  accountDefaultProfileRef: string;
-  builtInAiConfigRefs: readonly string[];
-  runtimeBaselineRef: string;
-  executionEvidenceRef: string;
+export async function setProductFirstRunSetupState(input: {
+  state: Exclude<ProductControlState, 'ready_for_use' | 'local_ai_ready' | 'config_missing' | 'data_root_missing' | 'data_root_selected' | 'ai_environment_unconfigured' | 'not_logged_in'>;
+  reason?: string | null;
 }): Promise<ProductControlRecordProjection> {
   if (!hasTauriInvoke()) {
-    throw new Error('product_control_record_mark_ready_for_use requires Tauri runtime');
+    throw new Error('product_control_record_set_first_run_setup_state requires Tauri runtime');
   }
-  return invokeChecked('product_control_record_mark_ready_for_use', {
+  return invokeChecked('product_control_record_set_first_run_setup_state', {
     payload: input,
   }, parseProjection);
 }

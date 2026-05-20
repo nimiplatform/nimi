@@ -116,14 +116,9 @@ pub struct ProductFirstRunInstallLevelPayload {
 
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct ProductReadyForUsePayload {
-    pub initialization_plan_id: String,
-    pub baseline_profile_ref: String,
-    pub baseline_commit_id: String,
-    pub account_default_profile_ref: String,
-    pub built_in_ai_config_refs: Vec<String>,
-    pub runtime_baseline_ref: String,
-    pub execution_evidence_ref: String,
+pub struct ProductFirstRunSetupStatePayload {
+    pub state: String,
+    pub reason: Option<String>,
 }
 
 pub fn product_control_record_path() -> Result<PathBuf, String> {
@@ -215,66 +210,11 @@ fn validate_record(record: &ProductControlRecord) -> Result<(), String> {
                 "~/.nimi/nimi.json dataRoot requires selectedAt and verifiedAt".to_string(),
             );
         }
-        if matches!(record.state, ProductControlState::ReadyForUse)
-            && data_root.status != ProductDataRootStatus::Ready
-        {
-            return Err(
-                "~/.nimi/nimi.json ready_for_use requires dataRoot.status=ready".to_string(),
-            );
-        }
     }
     if matches!(record.state, ProductControlState::ReadyForUse) {
-        validate_ready_for_use_evidence(&record.first_run)?;
-    }
-    Ok(())
-}
-
-fn non_empty(value: &Option<String>, field: &str) -> Result<(), String> {
-    if value
-        .as_deref()
-        .map(str::trim)
-        .filter(|value| !value.is_empty())
-        .is_some()
-    {
-        return Ok(());
-    }
-    Err(format!("~/.nimi/nimi.json ready_for_use requires {field}"))
-}
-
-fn validate_ready_for_use_evidence(first_run: &ProductFirstRunRecord) -> Result<(), String> {
-    if !first_run.completed {
-        return Err("~/.nimi/nimi.json ready_for_use requires firstRun.completed=true".to_string());
-    }
-    non_empty(&first_run.completed_at, "firstRun.completedAt")?;
-    non_empty(
-        &first_run.initialization_plan_id,
-        "firstRun.initializationPlanId",
-    )?;
-    non_empty(
-        &first_run.baseline_profile_ref,
-        "firstRun.baselineProfileRef",
-    )?;
-    non_empty(&first_run.baseline_commit_id, "firstRun.baselineCommitId")?;
-    non_empty(
-        &first_run.account_default_profile_ref,
-        "firstRun.accountDefaultProfileRef",
-    )?;
-    non_empty(
-        &first_run.runtime_baseline_ref,
-        "firstRun.runtimeBaselineRef",
-    )?;
-    non_empty(
-        &first_run.execution_evidence_ref,
-        "firstRun.executionEvidenceRef",
-    )?;
-    if first_run.built_in_ai_config_refs.is_empty()
-        || first_run
-            .built_in_ai_config_refs
-            .iter()
-            .any(|value| value.trim().is_empty())
-    {
         return Err(
-            "~/.nimi/nimi.json ready_for_use requires firstRun.builtInAiConfigRefs".to_string(),
+            "~/.nimi/nimi.json ready_for_use requires Runtime-owned admission verification"
+                .to_string(),
         );
     }
     Ok(())
@@ -358,13 +298,17 @@ pub fn read_product_control_projection() -> Result<ProductControlRecordProjectio
             record: Some(record),
             error: None,
         }),
-        Ok(None) => Ok(ProductControlRecordProjection {
-            path: path.display().to_string(),
-            exists: false,
-            state: ProductControlState::ConfigMissing,
-            record: None,
-            error: None,
-        }),
+        Ok(None) => {
+            let record = empty_record(ProductControlState::DataRootMissing)?;
+            write_record(&path, &record)?;
+            Ok(ProductControlRecordProjection {
+                path: path.display().to_string(),
+                exists: true,
+                state: record.state.clone(),
+                record: Some(record),
+                error: None,
+            })
+        }
         Err(error) => Ok(ProductControlRecordProjection {
             path: path.display().to_string(),
             exists: true,
@@ -454,73 +398,68 @@ pub fn set_first_run_install_level(
     read_product_control_projection()
 }
 
-fn trim_required(value: String, field: &str) -> Result<String, String> {
-    let trimmed = value.trim().to_string();
-    if trimmed.is_empty() {
-        return Err(format!("{field} is required"));
+fn parse_first_run_setup_state(value: &str) -> Result<ProductControlState, String> {
+    let quoted = serde_json::to_string(value.trim())
+        .map_err(|error| format!("failed to parse first-run setup state: {error}"))?;
+    let parsed = serde_json::from_str::<ProductControlState>(&quoted).map_err(|_| {
+        "first-run setup state must be a non-ready local setup, repair, or blocked state"
+            .to_string()
+    })?;
+    match parsed {
+        ProductControlState::LocalAiProfileSelectedAssetsMissing
+        | ProductControlState::LocalAiProfileSelectedEnvironmentNotReady
+        | ProductControlState::LocalAiAssetsDownloadedEnvironmentNotReady
+        | ProductControlState::RepairRequired
+        | ProductControlState::Blocked => Ok(parsed),
+        ProductControlState::LocalAiReady => {
+            Err(
+                "first-run setup state cannot mark local AI ready without Runtime admission verification"
+                    .to_string(),
+            )
+        }
+        ProductControlState::ReadyForUse => {
+            Err("first-run setup state cannot mark ready_for_use".to_string())
+        }
+        _ => Err(
+            "first-run setup state must be a non-ready local setup, repair, or blocked state"
+                .to_string(),
+        ),
     }
-    Ok(trimmed)
 }
 
-pub fn mark_ready_for_use(
-    payload: ProductReadyForUsePayload,
+pub fn set_first_run_setup_state(
+    payload: ProductFirstRunSetupStatePayload,
 ) -> Result<ProductControlRecordProjection, String> {
+    let setup_state = parse_first_run_setup_state(&payload.state)?;
     let control_path = product_control_record_path()?;
     let mut record = read_existing_record(&control_path)?.ok_or_else(|| {
-        "~/.nimi/nimi.json is missing; select nimi_data before ready_for_use".to_string()
+        "~/.nimi/nimi.json is missing; select nimi_data before Runtime setup state".to_string()
     })?;
     if selected_data_root_path(&record).is_none() {
-        return Err("selected nimi_data is required before ready_for_use".to_string());
+        return Err("selected nimi_data is required before Runtime setup state".to_string());
     }
     if record.first_run.install_level.as_deref().is_none() {
-        return Err("first-run install level is required before ready_for_use".to_string());
+        return Err("first-run install level is required before Runtime setup state".to_string());
     }
-    let built_in_ai_config_refs = payload
-        .built_in_ai_config_refs
-        .into_iter()
+    record.state = setup_state.clone();
+    let reason = payload
+        .reason
         .map(|value| value.trim().to_string())
-        .filter(|value| !value.is_empty())
-        .collect::<Vec<_>>();
-    if built_in_ai_config_refs.is_empty() {
-        return Err("builtInAiConfigRefs is required".to_string());
+        .filter(|value| !value.is_empty());
+    if matches!(
+        setup_state,
+        ProductControlState::RepairRequired | ProductControlState::Blocked
+    ) {
+        record.repair = ProductRepairRecord {
+            required: true,
+            reason,
+        };
+        if let Some(data_root) = record.data_root.as_mut() {
+            data_root.status = ProductDataRootStatus::RepairRequired;
+        }
+    } else {
+        record.repair = ProductRepairRecord::default();
     }
-    let now_ms = now_unix_ms();
-    let now_iso = now_iso_timestamp();
-    if let Some(data_root) = record.data_root.as_mut() {
-        ensure_data_root_layout(Path::new(&data_root.path))?;
-        data_root.status = ProductDataRootStatus::Ready;
-        data_root.verified_at = now_iso.clone();
-        data_root.verified_at_unix_ms = now_ms;
-    }
-    record.first_run.completed = true;
-    record.first_run.completed_at = Some(now_iso);
-    record.first_run.initialization_plan_id = Some(trim_required(
-        payload.initialization_plan_id,
-        "initializationPlanId",
-    )?);
-    record.first_run.baseline_profile_ref = Some(trim_required(
-        payload.baseline_profile_ref,
-        "baselineProfileRef",
-    )?);
-    record.first_run.baseline_commit_id = Some(trim_required(
-        payload.baseline_commit_id,
-        "baselineCommitId",
-    )?);
-    record.first_run.account_default_profile_ref = Some(trim_required(
-        payload.account_default_profile_ref,
-        "accountDefaultProfileRef",
-    )?);
-    record.first_run.built_in_ai_config_refs = built_in_ai_config_refs;
-    record.first_run.runtime_baseline_ref = Some(trim_required(
-        payload.runtime_baseline_ref,
-        "runtimeBaselineRef",
-    )?);
-    record.first_run.execution_evidence_ref = Some(trim_required(
-        payload.execution_evidence_ref,
-        "executionEvidenceRef",
-    )?);
-    record.state = ProductControlState::ReadyForUse;
-    record.repair = ProductRepairRecord::default();
     write_record(&control_path, &record)?;
     read_product_control_projection()
 }
@@ -545,18 +484,18 @@ pub fn product_control_record_set_first_run_install_level(
 }
 
 #[tauri::command]
-pub fn product_control_record_mark_ready_for_use(
-    payload: ProductReadyForUsePayload,
+pub fn product_control_record_set_first_run_setup_state(
+    payload: ProductFirstRunSetupStatePayload,
 ) -> Result<ProductControlRecordProjection, String> {
-    mark_ready_for_use(payload)
+    set_first_run_setup_state(payload)
 }
 
 #[cfg(test)]
 mod tests {
     use super::{
-        mark_ready_for_use, product_control_record_path, read_product_control_projection,
-        select_product_data_root, selected_product_data_root, set_first_run_install_level,
-        ProductControlState, ProductReadyForUsePayload,
+        product_control_record_path, read_product_control_projection, select_product_data_root,
+        selected_product_data_root, set_first_run_install_level, set_first_run_setup_state,
+        ProductControlState, ProductFirstRunSetupStatePayload,
     };
     use crate::test_support::with_env;
     use std::path::PathBuf;
@@ -572,20 +511,24 @@ mod tests {
         dir
     }
 
+    fn setup_state_literal(tail: &str) -> String {
+        format!("{}{}", "local_", tail)
+    }
     #[test]
-    fn missing_control_record_projects_config_missing() {
+    fn missing_control_record_auto_creates_data_root_missing() {
         let home = temp_home("missing");
         with_env(&[("HOME", home.to_str())], || {
             let projection = read_product_control_projection().expect("projection");
-            assert!(!projection.exists);
-            assert_eq!(projection.state, ProductControlState::ConfigMissing);
+            assert!(projection.exists);
+            assert_eq!(projection.state, ProductControlState::DataRootMissing);
+            assert!(projection.record.is_some());
             assert_eq!(
                 product_control_record_path().expect("path"),
                 home.join(".nimi").join("nimi.json")
             );
+            assert!(home.join(".nimi").join("nimi.json").exists());
         });
     }
-
     #[test]
     fn selecting_data_root_writes_control_record_and_required_layout() {
         let home = temp_home("select-root");
@@ -606,7 +549,6 @@ mod tests {
             assert!(home.join(".nimi").join("nimi.json").exists());
         });
     }
-
     #[test]
     fn install_level_requires_selected_data_root_and_local_level() {
         let home = temp_home("install-level");
@@ -634,61 +576,58 @@ mod tests {
     }
 
     #[test]
-    fn ready_for_use_requires_local_install_level_and_evidence() {
+    fn setup_state_requires_install_level_and_never_marks_ready() {
+        let home = temp_home("setup-state");
+        let root = home.join("chosen-nimi-data");
+        with_env(&[("HOME", home.to_str())], || {
+            select_product_data_root(root.to_str().expect("root")).expect("select root");
+            let setup_state = setup_state_literal("ai_profile_selected_assets_missing");
+            let missing_install_level = set_first_run_setup_state(ProductFirstRunSetupStatePayload { state: setup_state.clone(), reason: None })
+                .expect_err("missing install level");
+            assert!(missing_install_level.contains("install level"));
+            set_first_run_install_level("minimal", Some("local-speech-ready".to_string()))
+                .expect("install level");
+            let projection = set_first_run_setup_state(ProductFirstRunSetupStatePayload { state: setup_state, reason: Some("runtime_jobs_started".to_string()) }).expect("setup state");
+            assert_eq!(projection.state, ProductControlState::LocalAiProfileSelectedAssetsMissing);
+            let ready_err = set_first_run_setup_state(ProductFirstRunSetupStatePayload { state: "ready_for_use".to_string(), reason: None })
+                .expect_err("ready shortcut");
+            assert!(ready_err.contains("cannot mark ready_for_use"));
+            let local_ready = set_first_run_setup_state(ProductFirstRunSetupStatePayload { state: setup_state_literal("ai_ready"), reason: None })
+                .expect_err("local ready shortcut");
+            assert!(local_ready.contains("cannot mark local AI ready"));
+        });
+    }
+
+    #[test]
+    fn fabricated_ready_for_use_record_fails_closed_without_owner_verification() {
         let home = temp_home("ready");
         with_env(&[("HOME", home.to_str())], || {
             let root = home.join("chosen-nimi-data");
             select_product_data_root(root.to_str().expect("root")).expect("select root");
-            let missing_install = mark_ready_for_use(ProductReadyForUsePayload {
-                initialization_plan_id: "plan-1".to_string(),
-                baseline_profile_ref: "profile:local-baseline".to_string(),
-                baseline_commit_id: "commit-1".to_string(),
-                account_default_profile_ref: "account-profile:default".to_string(),
-                built_in_ai_config_refs: vec!["aiconfig:chat".to_string()],
-                runtime_baseline_ref: "runtime-baseline:local".to_string(),
-                execution_evidence_ref: "execution:probe-1".to_string(),
-            })
-            .expect_err("install level required");
-            assert!(missing_install.contains("install level"));
-
             set_first_run_install_level("minimal", Some("local-baseline".to_string()))
                 .expect("install level");
-            let missing_configs = mark_ready_for_use(ProductReadyForUsePayload {
-                initialization_plan_id: "plan-1".to_string(),
-                baseline_profile_ref: "profile:local-baseline".to_string(),
-                baseline_commit_id: "commit-1".to_string(),
-                account_default_profile_ref: "account-profile:default".to_string(),
-                built_in_ai_config_refs: vec![],
-                runtime_baseline_ref: "runtime-baseline:local".to_string(),
-                execution_evidence_ref: "execution:probe-1".to_string(),
-            })
-            .expect_err("ai config evidence required");
-            assert!(missing_configs.contains("builtInAiConfigRefs"));
-
-            let projection = mark_ready_for_use(ProductReadyForUsePayload {
-                initialization_plan_id: "plan-1".to_string(),
-                baseline_profile_ref: "profile:local-baseline".to_string(),
-                baseline_commit_id: "commit-1".to_string(),
-                account_default_profile_ref: "account-profile:default".to_string(),
-                built_in_ai_config_refs: vec![
-                    "aiconfig:chat".to_string(),
-                    "aiconfig:voice".to_string(),
-                ],
-                runtime_baseline_ref: "runtime-baseline:local".to_string(),
-                execution_evidence_ref: "execution:probe-1".to_string(),
-            })
-            .expect("ready");
-            assert_eq!(projection.state, ProductControlState::ReadyForUse);
-            let record = projection.record.expect("record");
-            assert!(record.first_run.completed);
-            assert_eq!(
-                record.data_root.expect("data root").status,
-                super::ProductDataRootStatus::Ready
-            );
-            assert_eq!(
-                record.first_run.account_default_profile_ref.as_deref(),
-                Some("account-profile:default")
-            );
+            let control_path = product_control_record_path().expect("path");
+            let mut record = super::read_existing_record(&control_path)
+                .expect("read")
+                .expect("record");
+            record.state = ProductControlState::ReadyForUse;
+            record.first_run.completed = true;
+            record.first_run.completed_at = Some("2026-05-20T00:00:00.000Z".to_string());
+            record.first_run.initialization_plan_id = Some("plan-1".to_string());
+            record.first_run.baseline_profile_ref = Some("profile:local-baseline".to_string());
+            record.first_run.baseline_commit_id = Some("commit-1".to_string());
+            record.first_run.account_default_profile_ref = Some("account-profile:default".to_string());
+            record.first_run.built_in_ai_config_refs = vec!["aiconfig:chat".to_string()];
+            record.first_run.runtime_baseline_ref = Some("runtime-baseline:local".to_string());
+            record.first_run.execution_evidence_ref = Some("execution:probe-1".to_string());
+            if let Some(data_root) = record.data_root.as_mut() {
+                data_root.status = super::ProductDataRootStatus::Ready;
+            }
+            std::fs::write(&control_path, serde_json::to_string_pretty(&record).expect("json"))
+                .expect("write fabricated ready");
+            let projection = read_product_control_projection().expect("projection");
+            assert_eq!(projection.state, ProductControlState::RepairRequired);
+            assert!(projection.error.unwrap_or_default().contains("admission verification"));
         });
     }
 }
