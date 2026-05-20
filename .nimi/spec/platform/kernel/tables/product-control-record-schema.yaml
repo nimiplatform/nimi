@@ -121,14 +121,14 @@ evidence_contracts:
     required_scopes:
       - scope_id: desktop.chat.nimi
         scopeRef:
-          kind: app
-          ownerId: desktop.chat.nimi
-          surfaceId: chat
+          kind: feature
+          ownerId: desktop.chat
+          surfaceId: nimi
       - scope_id: desktop.chat.agent
         scopeRef:
-          kind: app
-          ownerId: desktop.chat.agent
-          surfaceId: chat
+          kind: feature
+          ownerId: desktop.chat
+          surfaceId: agent
     ref_semantics: durable refs to committed full materialized AIConfig records for every required built-in chat scope
     required_projection:
       - scopeRef

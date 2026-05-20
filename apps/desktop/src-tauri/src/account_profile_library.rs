@@ -1089,9 +1089,9 @@ mod tests {
         let ai_config = serde_json::json!({
             "schemaVersion": 1,
             "scopeRef": {
-                "kind": "app",
-                "ownerId": "desktop.chat.nimi",
-                "surfaceId": "chat"
+                "kind": "feature",
+                "ownerId": "desktop.chat",
+                "surfaceId": "nimi"
             },
             "aiProfileRef": "factory:local-speech-ready",
             "aiConfigVersion": 7,

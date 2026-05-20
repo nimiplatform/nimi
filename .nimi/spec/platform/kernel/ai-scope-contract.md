@@ -86,21 +86,26 @@ scope identities：
 
 | Scope | Canonical `AIScopeRef` | Owner |
 |---|---|---|
-| `desktop.chat.nimi` | `{ kind: 'app', ownerId: 'desktop.chat.nimi', surfaceId: 'chat' }` | Desktop host AIConfig service |
-| `desktop.chat.agent` | `{ kind: 'app', ownerId: 'desktop.chat.agent', surfaceId: 'chat' }` | Desktop host AIConfig service |
+| `desktop.chat.nimi` | `{ kind: 'feature', ownerId: 'desktop.chat', surfaceId: 'nimi' }` | Desktop host AIConfig service |
+| `desktop.chat.agent` | `{ kind: 'feature', ownerId: 'desktop.chat', surfaceId: 'agent' }` | Desktop host AIConfig service |
 
 这些 scope 是 first-run `builtInAiConfigRefs` 的唯一 required built-in chat
-scope set。它们是 product shell 的 stable built-in app scopes，不是 route、
+scope set。它们是 desktop product shell 内置 chat feature owner `desktop.chat`
+下的两个 stable 子面 (`surfaceId: 'nimi'` 与 `surfaceId: 'agent'`)，不是 route、
 thread、conversation、renderer tab、agent id、message id、或 generic active
-chat key。
+chat key。built-in Chat 是 desktop shell 的 feature owner，不是 Nimi App，因此
+`kind` 固定为 `'feature'` 而非 `'app'`（见 `P-AISC-001` 的 `kind` 语义约束）。
 
 `MUST NOT`：first-run 不得把 `{ kind: 'app', ownerId: 'desktop', surfaceId:
-'chat' }`、省略 `surfaceId` 的 app scope、consumer-local string key、或任何
-generic fallback chat scope 当作上述两个 built-in scope 的替身。
+'chat' }`、`{ kind: 'app', ownerId: 'desktop.chat.nimi' | 'desktop.chat.agent',
+surfaceId: 'chat' }`、把两个子面合并到单一 `desktop.chat` scope、省略
+`surfaceId` 的 feature scope、consumer-local string key、或任何 generic
+fallback chat scope 当作上述两个 built-in scope 的替身。
 
 ## Fact Sources
 
 - 本契约无 YAML 表。Phase 1 scope kind 值域为封闭枚举 `'app' | 'mod' | 'module' | 'feature'`；若需扩展，须修改本规则并通过 spec consistency check。
 - Phase 1 mod-scoped AIConfig canonical workspace identity 固定为 `{ kind: 'mod', ownerId: <modManifestId>, surfaceId: 'workspace' }`。
-- First-run built-in chat scope identities固定为 `P-AISC-006` 中的
-  `desktop.chat.nimi` 与 `desktop.chat.agent`。
+- First-run built-in chat scope identities固定为 `P-AISC-006` 中
+  feature owner `desktop.chat` 下的 `{ surfaceId: 'nimi' }` 与
+  `{ surfaceId: 'agent' }` 两个子面。
