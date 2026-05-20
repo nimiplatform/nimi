@@ -16,6 +16,11 @@ const ACCOUNT_PROFILE_LOCAL_LIBRARY_SOURCE: &str = "local_account_profile_librar
 const PROFILE_REVISION_FACTORY_SEED: &str = "factory_seed";
 const PROFILE_REVISION_LOCAL_EDIT: &str = "local_edit";
 const PROFILE_REVISION_LOCAL_REPLACEMENT: &str = "local_replacement";
+/// Account Default Profile `source.kind` per the product manual
+/// `~/.nimi/accounts/<account-id>/profiles/default.json` schema.
+const ACCOUNT_DEFAULT_PROFILE_SOURCE_KIND: &str = "factory-policy";
+/// Manual fixed `displayName` for the seeded Account Default Profile template.
+const ACCOUNT_DEFAULT_PROFILE_DISPLAY_NAME: &str = "Default Profile";
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
@@ -56,31 +61,61 @@ pub struct AccountDefaultProfileRevisionProvenance {
     pub changed_at: String,
 }
 
+/// Manual-named nested `source` object for the Account Default Profile record.
+///
+/// Product manual `~/.nimi/accounts/<account-id>/profiles/default.json` schema:
+/// `source { kind: "factory-policy", policyRef, catalogVersion }`.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct AccountDefaultProfileSource {
+    pub kind: String,
+    pub policy_ref: String,
+    pub catalog_version: u32,
+    /// Additive wave-10 provenance: which factory catalog the policy resolves
+    /// against. The manual's named trio is `kind`/`policyRef`/`catalogVersion`;
+    /// `catalogId` and `catalogRowSourceRule` stay as additive verification
+    /// facts so factory-row provenance remains hash-chained.
+    pub catalog_id: String,
+    pub catalog_row_source_rule: String,
+}
+
+/// Manual-named nested `profile` object for the Account Default Profile record.
+///
+/// Product manual schema: `profile { aiProfileVersion }`. Wave-10's verified
+/// AIProfile payload + payload hash stay as additive fields on the same object
+/// so the seeded profile content remains hash-chained.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct AccountDefaultProfileBody {
+    pub ai_profile_version: u64,
+    pub payload: AccountDefaultAIProfilePayload,
+    pub payload_hash: String,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct AccountDefaultProfileRecord {
     pub schema_version: u32,
+    pub profile_id: String,
+    pub display_name: String,
+    pub source: AccountDefaultProfileSource,
+    pub editable: bool,
+    pub removable: bool,
+    pub profile: AccountDefaultProfileBody,
+    pub updated_at: String,
+    // --- additive wave-10 verification / provenance / binding fields ---
     pub account_id: String,
     pub data_root_ref: String,
-    pub profile_id: String,
-    pub profile_version: u64,
     pub ai_profile_alias: String,
     pub install_level: String,
-    pub source_policy_ref: String,
-    pub source_catalog_id: String,
-    pub source_catalog_version: u32,
-    pub source_catalog_row_source_rule: String,
     pub capability_set: Vec<String>,
     pub routing_policy: String,
-    pub profile_payload: AccountDefaultAIProfilePayload,
-    pub profile_payload_hash: String,
     pub factory_seed_profile_payload: AccountDefaultAIProfilePayload,
     pub factory_seed_profile_payload_hash: String,
     pub factory_provenance: AccountDefaultFactoryProvenance,
     pub factory_provenance_hash: String,
     pub profile_revision: AccountDefaultProfileRevisionProvenance,
     pub created_at: String,
-    pub updated_at: String,
     pub content_hash: String,
 }
 
@@ -176,52 +211,48 @@ fn record_hash_payload(record: &AccountDefaultProfileRecord) -> Result<Vec<u8>, 
     #[serde(rename_all = "camelCase")]
     struct HashPayload<'a> {
         schema_version: u32,
+        profile_id: &'a str,
+        display_name: &'a str,
+        source: &'a AccountDefaultProfileSource,
+        editable: bool,
+        removable: bool,
+        profile: &'a AccountDefaultProfileBody,
+        updated_at: &'a str,
         account_id: &'a str,
         data_root_ref: &'a str,
-        profile_id: &'a str,
-        profile_version: u64,
         ai_profile_alias: &'a str,
         install_level: &'a str,
-        source_policy_ref: &'a str,
-        source_catalog_id: &'a str,
-        source_catalog_version: u32,
-        source_catalog_row_source_rule: &'a str,
         capability_set: &'a [String],
         routing_policy: &'a str,
-        profile_payload: &'a AccountDefaultAIProfilePayload,
-        profile_payload_hash: &'a str,
         factory_seed_profile_payload: &'a AccountDefaultAIProfilePayload,
         factory_seed_profile_payload_hash: &'a str,
         factory_provenance: &'a AccountDefaultFactoryProvenance,
         factory_provenance_hash: &'a str,
         profile_revision: &'a AccountDefaultProfileRevisionProvenance,
         created_at: &'a str,
-        updated_at: &'a str,
     }
 
     let payload = HashPayload {
         schema_version: record.schema_version,
+        profile_id: &record.profile_id,
+        display_name: &record.display_name,
+        source: &record.source,
+        editable: record.editable,
+        removable: record.removable,
+        profile: &record.profile,
+        updated_at: &record.updated_at,
         account_id: &record.account_id,
         data_root_ref: &record.data_root_ref,
-        profile_id: &record.profile_id,
-        profile_version: record.profile_version,
         ai_profile_alias: &record.ai_profile_alias,
         install_level: &record.install_level,
-        source_policy_ref: &record.source_policy_ref,
-        source_catalog_id: &record.source_catalog_id,
-        source_catalog_version: record.source_catalog_version,
-        source_catalog_row_source_rule: &record.source_catalog_row_source_rule,
         capability_set: &record.capability_set,
         routing_policy: &record.routing_policy,
-        profile_payload: &record.profile_payload,
-        profile_payload_hash: &record.profile_payload_hash,
         factory_seed_profile_payload: &record.factory_seed_profile_payload,
         factory_seed_profile_payload_hash: &record.factory_seed_profile_payload_hash,
         factory_provenance: &record.factory_provenance,
         factory_provenance_hash: &record.factory_provenance_hash,
         profile_revision: &record.profile_revision,
         created_at: &record.created_at,
-        updated_at: &record.updated_at,
     };
     serde_json::to_vec(&payload)
         .map_err(|error| format!("serialize profile hash payload failed: {error}"))
@@ -392,10 +423,10 @@ fn verify_profile_revision(
     {
         return Err("Account Default Profile revision timestamp is missing or stale".to_string());
     }
-    let payload_is_factory_seed = record.profile_payload == *factory_seed_payload;
+    let payload_is_factory_seed = record.profile.payload == *factory_seed_payload;
     match record.profile_revision.revision_kind.as_str() {
         PROFILE_REVISION_FACTORY_SEED => {
-            if !payload_is_factory_seed || record.profile_version != 1 {
+            if !payload_is_factory_seed || record.profile.ai_profile_version != 1 {
                 return Err(
                     "Account Default Profile factory seed revision cannot carry edited payload"
                         .to_string(),
@@ -409,7 +440,7 @@ fn verify_profile_revision(
             }
         }
         PROFILE_REVISION_LOCAL_EDIT | PROFILE_REVISION_LOCAL_REPLACEMENT => {
-            if record.profile_version <= 1 || record.updated_at == record.created_at {
+            if record.profile.ai_profile_version <= 1 || record.updated_at == record.created_at {
                 return Err("Account Default Profile local edit/replacement requires advanced version and updated timestamp".to_string());
             }
             let Some(previous_hash) = record.profile_revision.previous_content_hash.as_deref()
@@ -449,7 +480,7 @@ fn row_from_record(
     record: &AccountDefaultProfileRecord,
 ) -> Result<&'static PlatformAIProfileFactoryRow, String> {
     let row = verify_first_run_factory_ai_profile(&record.ai_profile_alias, &record.install_level)?;
-    if row.source_rule != record.source_catalog_row_source_rule {
+    if row.source_rule != record.source.catalog_row_source_rule {
         return Err("Account Default Profile source catalog row source rule mismatch".to_string());
     }
     Ok(row)
@@ -467,6 +498,15 @@ fn verify_record_fields(
     if record.profile_id != ACCOUNT_DEFAULT_PROFILE_ID {
         return Err("Account Default Profile profileId must be default".to_string());
     }
+    if record.display_name.trim().is_empty() {
+        return Err("Account Default Profile displayName is required".to_string());
+    }
+    if !record.editable {
+        return Err("Account Default Profile editable must be true".to_string());
+    }
+    if record.removable {
+        return Err("Account Default Profile removable must be false".to_string());
+    }
     if record.account_id != account_id {
         return Err(
             "Account Default Profile account_id does not match authenticated Runtime account"
@@ -478,16 +518,19 @@ fn verify_record_fields(
             "Account Default Profile dataRootRef does not match selected data root".to_string(),
         );
     }
-    if record.profile_version == 0 {
+    if record.profile.ai_profile_version == 0 {
         return Err("Account Default Profile profile version is required".to_string());
     }
-    if record.source_policy_ref != PLATFORM_AI_PROFILE_SELECTION_POLICY_REF {
+    if record.source.kind != ACCOUNT_DEFAULT_PROFILE_SOURCE_KIND {
+        return Err("Account Default Profile source kind must be factory-policy".to_string());
+    }
+    if record.source.policy_ref != PLATFORM_AI_PROFILE_SELECTION_POLICY_REF {
         return Err(
             "Account Default Profile source policy ref is missing or unresolvable".to_string(),
         );
     }
-    if record.source_catalog_id != PLATFORM_AI_PROFILE_FACTORY_CATALOG_ID
-        || record.source_catalog_version != PLATFORM_AI_PROFILE_FACTORY_CATALOG_VERSION
+    if record.source.catalog_id != PLATFORM_AI_PROFILE_FACTORY_CATALOG_ID
+        || record.source.catalog_version != PLATFORM_AI_PROFILE_FACTORY_CATALOG_VERSION
     {
         return Err(
             "Account Default Profile source catalog version is missing or unresolvable".to_string(),
@@ -497,12 +540,12 @@ fn verify_record_fields(
         return Err("Account Default Profile createdAt/updatedAt evidence is required".to_string());
     }
     let row = row_from_record(record)?;
-    validate_sdk_ai_profile_payload(&record.profile_payload)?;
+    validate_sdk_ai_profile_payload(&record.profile.payload)?;
     let expected_payload_hash = stable_json_hash(
-        &record.profile_payload,
+        &record.profile.payload,
         "Account Default Profile AIProfile payload",
     )?;
-    if record.profile_payload_hash != expected_payload_hash {
+    if record.profile.payload_hash != expected_payload_hash {
         return Err(
             "Account Default Profile profile payload hash is missing or mismatched".to_string(),
         );
@@ -568,15 +611,15 @@ fn evidence_from_record(
         account_id: record.account_id.clone(),
         data_root_ref: record.data_root_ref.clone(),
         profile_id: record.profile_id.clone(),
-        profile_version: record.profile_version,
+        profile_version: record.profile.ai_profile_version,
         content_hash: record.content_hash.clone(),
-        source_policy_ref: record.source_policy_ref.clone(),
-        source_catalog_id: record.source_catalog_id.clone(),
-        source_catalog_version: record.source_catalog_version,
+        source_policy_ref: record.source.policy_ref.clone(),
+        source_catalog_id: record.source.catalog_id.clone(),
+        source_catalog_version: record.source.catalog_version,
         created_at: record.created_at.clone(),
         updated_at: record.updated_at.clone(),
         ai_profile_alias: record.ai_profile_alias.clone(),
-        profile_payload_hash: record.profile_payload_hash.clone(),
+        profile_payload_hash: record.profile.payload_hash.clone(),
         factory_provenance_hash: record.factory_provenance_hash.clone(),
     })
 }
@@ -647,31 +690,39 @@ fn new_profile_record(
     )?;
     let mut record = AccountDefaultProfileRecord {
         schema_version: ACCOUNT_PROFILE_SCHEMA_VERSION,
+        profile_id: ACCOUNT_DEFAULT_PROFILE_ID.to_string(),
+        display_name: ACCOUNT_DEFAULT_PROFILE_DISPLAY_NAME.to_string(),
+        source: AccountDefaultProfileSource {
+            kind: ACCOUNT_DEFAULT_PROFILE_SOURCE_KIND.to_string(),
+            policy_ref: PLATFORM_AI_PROFILE_SELECTION_POLICY_REF.to_string(),
+            catalog_version: PLATFORM_AI_PROFILE_FACTORY_CATALOG_VERSION,
+            catalog_id: PLATFORM_AI_PROFILE_FACTORY_CATALOG_ID.to_string(),
+            catalog_row_source_rule: row.source_rule.to_string(),
+        },
+        editable: true,
+        removable: false,
+        profile: AccountDefaultProfileBody {
+            ai_profile_version: 1,
+            payload: profile_payload,
+            payload_hash: profile_payload_hash,
+        },
+        updated_at: now.clone(),
         account_id: validate_account_id(account_id)?,
         data_root_ref: data_root_ref.to_string(),
-        profile_id: ACCOUNT_DEFAULT_PROFILE_ID.to_string(),
-        profile_version: 1,
         ai_profile_alias: row.alias.to_string(),
         install_level: install_level.trim().to_string(),
-        source_policy_ref: PLATFORM_AI_PROFILE_SELECTION_POLICY_REF.to_string(),
-        source_catalog_id: PLATFORM_AI_PROFILE_FACTORY_CATALOG_ID.to_string(),
-        source_catalog_version: PLATFORM_AI_PROFILE_FACTORY_CATALOG_VERSION,
-        source_catalog_row_source_rule: row.source_rule.to_string(),
         capability_set: row
             .capability_set
             .iter()
             .map(|value| value.to_string())
             .collect(),
         routing_policy: row.routing_policy.to_string(),
-        profile_payload,
-        profile_payload_hash,
         factory_seed_profile_payload,
         factory_seed_profile_payload_hash,
         factory_provenance,
         factory_provenance_hash,
         profile_revision: factory_seed_revision(&now),
-        created_at: now.clone(),
-        updated_at: now,
+        created_at: now,
         content_hash: String::new(),
     };
     record.content_hash = compute_record_hash(&record)?;
@@ -801,15 +852,16 @@ mod tests {
         title: &str,
     ) {
         let previous_hash = record.content_hash.clone();
-        record.profile_version += 1;
-        record.updated_at = format!("2026-05-20T00:00:0{}.000Z", record.profile_version);
-        record.profile_payload.title = title.to_string();
+        record.profile.ai_profile_version += 1;
+        record.updated_at = format!("2026-05-20T00:00:0{}.000Z", record.profile.ai_profile_version);
+        record.profile.payload.title = title.to_string();
         record
-            .profile_payload
+            .profile
+            .payload
             .tags
             .push("locally-edited".to_string());
-        record.profile_payload_hash = super::stable_json_hash(
-            &record.profile_payload,
+        record.profile.payload_hash = super::stable_json_hash(
+            &record.profile.payload,
             "Account Default Profile AIProfile payload",
         )
         .expect("payload hash");
@@ -848,14 +900,30 @@ mod tests {
             assert!(!profile_path.starts_with(&root));
             assert!(profile_path.exists());
             let record = read_record(&profile_path);
-            assert_eq!(record.profile_payload.profile_id, "default");
+            // Manual-named conformant fields.
+            assert_eq!(record.profile_id, "default");
+            assert_eq!(record.display_name, "Default Profile");
+            assert!(record.editable);
+            assert!(!record.removable);
+            assert_eq!(record.source.kind, "factory-policy");
+            assert_eq!(
+                record.source.policy_ref,
+                super::PLATFORM_AI_PROFILE_SELECTION_POLICY_REF
+            );
+            assert_eq!(
+                record.source.catalog_version,
+                PLATFORM_AI_PROFILE_FACTORY_CATALOG_VERSION
+            );
+            assert_eq!(record.profile.ai_profile_version, 1);
+            assert_eq!(record.profile.payload.profile_id, "default");
             assert!(record
-                .profile_payload
+                .profile
+                .payload
                 .capabilities
                 .contains_key("text.generate"));
-            assert_eq!(record.profile_payload, record.factory_seed_profile_payload);
+            assert_eq!(record.profile.payload, record.factory_seed_profile_payload);
             assert_eq!(
-                record.profile_payload_hash,
+                record.profile.payload_hash,
                 record.factory_seed_profile_payload_hash
             );
             assert_eq!(record.profile_revision.revision_kind, "factory_seed");
@@ -1021,7 +1089,7 @@ mod tests {
             let path = account_default_profile_path("account_1").expect("profile path");
 
             let mut record = read_record(&path);
-            record.source_policy_ref.clear();
+            record.source.policy_ref.clear();
             write_record(&path, &record);
             let source_policy = verify_account_default_profile_ref(
                 &root,
@@ -1034,8 +1102,8 @@ mod tests {
             ensure_account_default_profile(&root, "account_1", "local-speech-ready", "minimal")
                 .expect_err("invalid existing profile must fail closed instead of overwrite");
             let mut record = read_record(&path);
-            record.source_policy_ref = super::PLATFORM_AI_PROFILE_SELECTION_POLICY_REF.to_string();
-            record.source_catalog_version = PLATFORM_AI_PROFILE_FACTORY_CATALOG_VERSION + 1;
+            record.source.policy_ref = super::PLATFORM_AI_PROFILE_SELECTION_POLICY_REF.to_string();
+            record.source.catalog_version = PLATFORM_AI_PROFILE_FACTORY_CATALOG_VERSION + 1;
             write_record(&path, &record);
             let source_catalog = verify_account_default_profile_ref(
                 &root,
@@ -1046,7 +1114,7 @@ mod tests {
             assert!(source_catalog.contains("source catalog"));
 
             let mut record = read_record(&path);
-            record.source_catalog_version = PLATFORM_AI_PROFILE_FACTORY_CATALOG_VERSION;
+            record.source.catalog_version = PLATFORM_AI_PROFILE_FACTORY_CATALOG_VERSION;
             record.content_hash = "sha256:bad".to_string();
             write_record(&path, &record);
             let hash = verify_account_default_profile_ref(
@@ -1069,11 +1137,14 @@ mod tests {
             let path = account_default_profile_path("account_1").expect("profile path");
             let valid_record = read_record(&path);
 
+            // The manual-conformant record nests the AIProfile payload inside
+            // the `profile` object; removing it makes the named `profile`
+            // object itself absent.
             let mut missing_payload = serde_json::to_value(&valid_record).expect("record json");
             missing_payload
                 .as_object_mut()
                 .expect("object")
-                .remove("profilePayload");
+                .remove("profile");
             write_json(&path, missing_payload);
             let missing_payload_error = verify_account_default_profile_ref(
                 &root,
@@ -1082,12 +1153,12 @@ mod tests {
             )
             .expect_err("missing profile payload must fail");
             assert!(
-                missing_payload_error.contains("profilePayload")
+                missing_payload_error.contains("profile")
                     || missing_payload_error.contains("cannot be parsed")
             );
 
             let mut payload_hash_mismatch = valid_record.clone();
-            payload_hash_mismatch.profile_payload_hash = "sha256:bad".to_string();
+            payload_hash_mismatch.profile.payload_hash = "sha256:bad".to_string();
             refresh_content_hash(&mut payload_hash_mismatch);
             write_record(&path, &payload_hash_mismatch);
             let payload_hash_error = verify_account_default_profile_ref(
@@ -1128,9 +1199,9 @@ mod tests {
             assert!(provenance_hash_error.contains("factory provenance hash"));
 
             let mut malformed_payload = valid_record.clone();
-            malformed_payload.profile_payload.title.clear();
-            malformed_payload.profile_payload_hash = super::stable_json_hash(
-                &malformed_payload.profile_payload,
+            malformed_payload.profile.payload.title.clear();
+            malformed_payload.profile.payload_hash = super::stable_json_hash(
+                &malformed_payload.profile.payload,
                 "Account Default Profile AIProfile payload",
             )
             .expect("payload hash");
@@ -1155,14 +1226,14 @@ mod tests {
                     .expect("ensure profile");
             let path = account_default_profile_path("account_1").expect("profile path");
             let mut record = read_record(&path);
-            assert_eq!(record.profile_payload, record.factory_seed_profile_payload);
+            assert_eq!(record.profile.payload, record.factory_seed_profile_payload);
             apply_local_payload_change(
                 &mut record,
                 super::PROFILE_REVISION_LOCAL_EDIT,
                 "Edited Local Default",
             );
-            assert_ne!(record.profile_payload, record.factory_seed_profile_payload);
-            assert_eq!(record.profile_version, 2);
+            assert_ne!(record.profile.payload, record.factory_seed_profile_payload);
+            assert_eq!(record.profile.ai_profile_version, 2);
             assert_eq!(record.profile_revision.revision_kind, "local_edit");
             write_record(&path, &record);
             let edited_evidence =
