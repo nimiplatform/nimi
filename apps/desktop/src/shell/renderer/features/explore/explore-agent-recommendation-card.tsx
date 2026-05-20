@@ -4,6 +4,7 @@ import { DesktopCardSurface } from '@renderer/components/surface';
 import { getSemanticAgentPalette } from '@renderer/components/agent-theme.js';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
 import type { ExploreAgentCardData } from './explore-cards';
+import { describeRealmAgentPrimaryAction, type RealmAgentFriendState } from './realm-agent-friend-state';
 
 // Hash an identifier into a stable 12-point curve in [0.3, 1]. This powers the
 // decorative activity sparkline on the agent card — we have no time-series
@@ -43,7 +44,11 @@ function MiniSparkline({ seed, width = 52, height = 18 }: { seed: string; width?
     </svg>
   );
 }
-function friendPillStyle(state: 'none' | 'pending' | 'friend'): CSSProperties {
+// Pill styling per friend-state. `friend` (Open Agent Chat) reads as the
+// accent primary action; `not_friend` (Add friend) is a neutral outlined
+// affordance; `pending` is muted/disabled; `limit_reached` (Manage Agent
+// friends) is a soft warning-ish neutral.
+function friendPillStyle(state: RealmAgentFriendState): CSSProperties {
   if (state === 'friend') {
     return {
       background: 'var(--nimi-accent-soft)',
@@ -58,6 +63,13 @@ function friendPillStyle(state: 'none' | 'pending' | 'friend'): CSSProperties {
       borderColor: 'var(--nimi-border-subtle)',
     };
   }
+  if (state === 'limit_reached') {
+    return {
+      background: 'transparent',
+      color: 'var(--nimi-fg-2)',
+      borderColor: 'var(--nimi-border-strong)',
+    };
+  }
   return {
     background: 'transparent',
     color: 'var(--nimi-fg-1)',
@@ -69,6 +81,41 @@ function formatCompact(n: number): string {
   if (n >= 1_000) return `${(n / 1000).toFixed(2).replace(/\.?0+$/, '')}k`;
   return String(n);
 }
+// Friend-state primary-action icon. `add_friend` shows a plus, `open_agent_chat`
+// a chat bubble, `pending` a clock, `manage_agent_friends` a gear. The chat
+// bubble is the LocalAgent Chat entry, not RealmAgent direct chat.
+function PrimaryActionIcon({ action }: { action: RealmAgentPrimaryActionGlyph }) {
+  if (action === 'open_agent_chat') {
+    return (
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+      </svg>
+    );
+  }
+  if (action === 'pending') {
+    return (
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="9" />
+        <path d="M12 7v5l3 3" />
+      </svg>
+    );
+  }
+  if (action === 'manage_agent_friends') {
+    return (
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="3" />
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+      </svg>
+    );
+  }
+  return (
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="12" y1="5" x2="12" y2="19" />
+      <line x1="5" y1="12" x2="19" y2="12" />
+    </svg>
+  );
+}
+type RealmAgentPrimaryActionGlyph = ReturnType<typeof describeRealmAgentPrimaryAction>['action'];
 // Compact Agent Card for horizontal scrolling recommendation section.
 // Layout: rank kicker + Public pill · aurora blob · glyph tile + name/role ·
 // Origin meta row · footer (sparkline + count + stateful friend pill). Every
@@ -77,10 +124,14 @@ function formatCompact(n: number): string {
 export function AgentRecommendationCard({
   agent,
   onAddFriend,
+  onOpenChat,
+  onManageFriends,
   onOpen,
 }: {
   agent: ExploreAgentCardData;
   onAddFriend?: () => Promise<void> | void;
+  onOpenChat?: () => Promise<void> | void;
+  onManageFriends?: () => Promise<void> | void;
   onOpen?: () => void;
 }) {
   const palette = getSemanticAgentPalette({
@@ -98,11 +149,30 @@ export function AgentRecommendationCard({
   const postsCount = typeof agent.postsCount === 'number' ? agent.postsCount : 0;
   const isPublic = agent.accountVisibility === 'PUBLIC';
   const glyph = agent.name ? agent.name.trim().charAt(0).toUpperCase() : '·';
+  // D-EXPL-006 friend-state → primary-action. `friendState` comes from Realm
+  // social truth; default to `not_friend` only as the safe fail-closed posture
+  // when the projection has not resolved yet (no chat affordance leaks).
+  const friendState: RealmAgentFriendState = agent.friendState ?? 'not_friend';
+  const primaryAction = describeRealmAgentPrimaryAction(friendState);
+  // RealmAgent cards MUST NOT offer direct RealmAgent chat (D-EXPL-006). The
+  // only chat path is `friend` → Open Agent Chat, which routes to the
+  // one-to-one LocalAgent Chat via `onOpenChat`.
   const handleFriendClick = (event: MouseEvent<HTMLButtonElement>) => {
     event.stopPropagation();
-    void onAddFriend?.();
+    if (primaryAction.action === 'open_agent_chat') {
+      void onOpenChat?.();
+      return;
+    }
+    if (primaryAction.action === 'manage_agent_friends') {
+      void onManageFriends?.();
+      return;
+    }
+    if (primaryAction.action === 'add_friend') {
+      void onAddFriend?.();
+    }
+    // `pending` is non-actionable: no duplicate friend request.
   };
-  const pillLabel = i18n.t('Explore.friendshipAdd', { defaultValue: 'Add friend' });
+  const pillLabel = primaryAction.label;
   return (
     <DesktopCardSurface
       kind="promoted-glass"
@@ -266,20 +336,20 @@ export function AgentRecommendationCard({
         <button
           type="button"
           onClick={handleFriendClick}
-          className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1 transition-colors"
+          disabled={primaryAction.disabled}
+          data-friend-state={friendState}
+          data-primary-action={primaryAction.action}
+          className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1 transition-colors disabled:cursor-default"
           style={{
             fontFamily: 'var(--nimi-font-sans)',
             fontSize: 11,
             fontWeight: 600,
-            ...friendPillStyle('none'),
+            ...friendPillStyle(friendState),
           }}
           title={pillLabel}
           aria-label={pillLabel}
         >
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <line x1="12" y1="5" x2="12" y2="19" />
-            <line x1="5" y1="12" x2="19" y2="12" />
-          </svg>
+          <PrimaryActionIcon action={primaryAction.action} />
           {pillLabel}
         </button>
       </div>

@@ -50,6 +50,9 @@
   "defaultRole": "伙伴",
   "chatsLabel": "帖子",
   "friendshipAdd": "加为好友",
+  "friendshipPending": "申请中",
+  "friendshipOpenAgentChat": "打开 Agent 对话",
+  "friendshipManageAgentFriends": "管理 Agent 好友",
   "friendshipRequested": "已申请",
   "friendshipFriends": "已是好友",
   "worldOwned": "世界归属"

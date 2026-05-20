@@ -259,13 +259,9 @@ export function WorldScenesSection({
 function FullAgentCard({
   agent,
   onSelectAgent,
-  onChatAgent,
-  onVoiceAgent,
 }: {
   agent: WorldAgent;
   onSelectAgent?: (agent: WorldAgent) => void;
-  onChatAgent?: (agent: WorldAgent) => void;
-  onVoiceAgent?: (agent: WorldAgent) => void;
 }) {
   const { t } = useTranslation();
   const palette = getSemanticAgentPalette({
@@ -307,27 +303,9 @@ function FullAgentCard({
           <div className="mt-3 text-[11px] text-[#d8efe4]/45">{t('WorldDetail.xianxia.v2.agents.vitality')} {agent.stats.vitalityScore}</div>
         ) : null}
       </button>
-
-      {(onChatAgent || onVoiceAgent) ? (
-        <div className="mt-4 flex gap-2">
-          {onChatAgent ? (
-            <button
-              onClick={() => onChatAgent(agent)}
-              className="rounded-full border border-[#4ECCA3]/18 bg-[#4ECCA3]/10 px-3 py-1 text-xs text-[#dffdf2] transition-colors hover:bg-[#4ECCA3]/16"
-            >
-              {t('WorldDetail.xianxia.v2.agents.chat')}
-            </button>
-          ) : null}
-          {onVoiceAgent ? (
-            <button
-              onClick={() => onVoiceAgent(agent)}
-              className="rounded-full border border-[#4ECCA3]/18 bg-black/18 px-3 py-1 text-xs text-[#d8efe4]/72 transition-colors hover:border-[#4ECCA3]/28 hover:text-[#effff8]"
-            >
-              {t('WorldDetail.xianxia.v2.agents.voice')}
-            </button>
-          ) : null}
-        </div>
-      ) : null}
+      {/* No chat/voice action on a World RealmAgent card. RealmAgent direct
+          chat is not admitted (D-EXPL-006 / T3); the card opens the quick-sheet
+          whose only action is View profile → agent-detail. */}
     </article>
   );
 }
@@ -337,15 +315,11 @@ export function WorldAgentsSection({
   agentsLoading,
   onCreateAgent,
   onSelectAgent,
-  onChatAgent,
-  onVoiceAgent,
 }: {
   agents: WorldAgent[];
   agentsLoading?: boolean;
   onCreateAgent?: () => void;
   onSelectAgent?: (agent: WorldAgent) => void;
-  onChatAgent?: (agent: WorldAgent) => void;
-  onVoiceAgent?: (agent: WorldAgent) => void;
 }) {
   const { t } = useTranslation();
   const [expanded, setExpanded] = useState(false);
@@ -389,8 +363,6 @@ export function WorldAgentsSection({
                     key={agent.id}
                     agent={agent}
                     onSelectAgent={onSelectAgent}
-                    onChatAgent={onChatAgent}
-                    onVoiceAgent={onVoiceAgent}
                   />
                 ))}
               </div>

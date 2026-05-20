@@ -50,6 +50,9 @@
   "defaultRole": "Companion",
   "chatsLabel": "Posts",
   "friendshipAdd": "Add friend",
+  "friendshipPending": "Pending",
+  "friendshipOpenAgentChat": "Open Agent Chat",
+  "friendshipManageAgentFriends": "Manage Agent friends",
   "friendshipRequested": "Requested",
   "friendshipFriends": "Friends",
   "worldOwned": "World owned"

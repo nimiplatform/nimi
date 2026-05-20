@@ -60,6 +60,8 @@ type ExploreViewProps = {
   onSearchTextChange: (value: string) => void;
   onToggleCategory: (category: string) => void;
   onAgentAddFriend: (agentId: string) => void;
+  onAgentOpenChat: (agentId: string) => void;
+  onAgentManageFriends: () => void;
   onAgentSendGift?: (agentId: string) => void;
   onAgentOpen?: (agentId: string) => void;
   onPostAuthorOpen?: (target: PostCardAuthorProfileTarget) => void;
@@ -432,10 +434,14 @@ function FeaturedWorldHero({
 function ExploreAgentsSection({
   agents,
   onAgentAddFriend,
+  onAgentOpenChat,
+  onAgentManageFriends,
   onAgentOpen,
 }: {
   agents: ExploreAgentCardData[];
   onAgentAddFriend: (agentId: string) => void;
+  onAgentOpenChat: (agentId: string) => void;
+  onAgentManageFriends: () => void;
   onAgentOpen?: (agentId: string) => void;
 }) {
   const { t } = useTranslation();
@@ -466,6 +472,8 @@ function ExploreAgentsSection({
           key={agent.id}
           agent={agent}
           onAddFriend={() => onAgentAddFriend(agent.id)}
+          onOpenChat={() => onAgentOpenChat(agent.id)}
+          onManageFriends={onAgentManageFriends}
           onOpen={() => onAgentOpen?.(agent.id)}
         />
       ))}
@@ -639,6 +647,8 @@ export function ExploreView(props: ExploreViewProps) {
             <ExploreAgentsSection
               agents={props.agents}
               onAgentAddFriend={props.onAgentAddFriend}
+              onAgentOpenChat={props.onAgentOpenChat}
+              onAgentManageFriends={props.onAgentManageFriends}
               onAgentOpen={props.onAgentOpen}
             />
           </section>

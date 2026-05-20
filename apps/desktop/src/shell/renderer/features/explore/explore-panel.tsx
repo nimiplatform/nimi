@@ -20,6 +20,12 @@ import {
 import { prefetchWorldDetailPanel } from '../world/world-detail-route-state';
 import { QuickAddFriendModal } from './quick-add-friend-modal';
 import { resolveAgentFriendLimit } from '../contacts/agent-friend-limit';
+import {
+  loadRealmAgentSocialProjection,
+  realmAgentSocialProjectionQueryKey,
+  resolveRealmAgentFriendState,
+} from './realm-agent-friend-state';
+import { addRealmAgentFriend, openRealmAgentLocalChat } from './realm-agent-friend-actions';
 
 type PostDto = RealmModel<'PostDto'>;
 
@@ -217,6 +223,10 @@ export function ExplorePanel() {
   const { t } = useTranslation();
   const authStatus = useAppStore((state) => state.auth.status);
   const navigateToWorld = useAppStore((state) => state.navigateToWorld);
+  const setActiveTab = useAppStore((state) => state.setActiveTab);
+  const setChatMode = useAppStore((state) => state.setChatMode);
+  const setSelectedTargetForSource = useAppStore((state) => state.setSelectedTargetForSource);
+  const setAgentConversationSelection = useAppStore((state) => state.setAgentConversationSelection);
   const [searchText, setSearchText] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedProfileTarget, setSelectedProfileTarget] = useState<PostCardAuthorProfileTarget | null>(null);
@@ -266,9 +276,26 @@ export function ExplorePanel() {
     enabled: authStatus === 'authenticated',
   });
 
+  // Realm social-truth projection (AgentFriend / Friendship graph + quota).
+  // Drives every RealmAgent card's friendState (D-EXPL-005). Resolved once and
+  // shared by id lookup — not guessed per card.
+  const socialProjectionQuery = useQuery({
+    queryKey: realmAgentSocialProjectionQueryKey,
+    queryFn: async () => loadRealmAgentSocialProjection(),
+    enabled: authStatus === 'authenticated',
+    staleTime: 15_000,
+  });
+
   const agents = useMemo(
-    () => parseAgents(agentsQuery.data, worldsMap),
-    [agentsQuery.data, worldsMap],
+    () => {
+      const mapped = parseAgents(agentsQuery.data, worldsMap);
+      const projection = socialProjectionQuery.data ?? null;
+      return mapped.map((agent) => ({
+        ...agent,
+        friendState: resolveRealmAgentFriendState(agent.id, projection),
+      }));
+    },
+    [agentsQuery.data, worldsMap, socialProjectionQuery.data],
   );
 
   const categories = useMemo(() => {
@@ -341,14 +368,63 @@ export function ExplorePanel() {
     [agents],
   );
 
+  // D-EXPL-007 Add Friend dual-effect: create the AgentFriend relation AND
+  // ensure the idempotent account-scoped LocalAgent projection. The LocalAgent
+  // projection is ensured here at Add Friend time, not deferred to first
+  // chat-open. On success, the social projection is refetched so the card's
+  // friendState transitions to `friend` / `pending`.
   const onAddFriend = useCallback(async (agentId: string, message?: string) => {
     if (agentLimitQuery.data && !agentLimitQuery.data.canAdd) {
       throw new Error(agentLimitQuery.data.reason || t('Contacts.agentFriendLimitReachedShort', { defaultValue: 'Agent friend limit reached' }));
     }
-    await dataSync.requestOrAcceptFriend(agentId, message);
+    const target = agents.find((item) => item.id === agentId) ?? null;
+    await addRealmAgentFriend(
+      {
+        realmAgentId: agentId,
+        displayName: target?.name ?? agentId,
+        handle: target?.handle ?? '',
+        avatarUrl: target?.avatarUrl ?? null,
+        worldId: target?.worldId ?? null,
+        worldName: target?.worldName ?? null,
+        bio: target?.bio ?? null,
+      },
+      message,
+    );
+    await Promise.all([
+      socialProjectionQuery.refetch(),
+      agentLimitQuery.refetch(),
+    ]);
     setAddContactModalOpen(false);
     setSelectedAgentForAdd(null);
-  }, [agentLimitQuery.data, t]);
+  }, [agentLimitQuery, agents, socialProjectionQuery, t]);
+
+  // `friend` → Open Agent Chat. Opens the one-to-one LocalAgent Chat for the
+  // RealmAgent's deterministic localAgentRef. The only chat entry for a
+  // RealmAgent — there is no RealmAgent direct chat (D-EXPL-006).
+  const onAgentOpenChat = useCallback(async (agentId: string) => {
+    const target = agents.find((item) => item.id === agentId);
+    if (!target) {
+      return;
+    }
+    await openRealmAgentLocalChat(
+      {
+        realmAgentId: target.id,
+        displayName: target.name,
+        handle: target.handle,
+        avatarUrl: target.avatarUrl,
+        worldId: target.worldId,
+        worldName: target.worldName,
+        bio: target.bio,
+      },
+      { setActiveTab, setChatMode, setSelectedTargetForSource, setAgentConversationSelection },
+    );
+  }, [agents, setActiveTab, setChatMode, setSelectedTargetForSource, setAgentConversationSelection]);
+
+  // `limit_reached` → Manage Agent friends. Routes the user to Contacts where
+  // an AgentFriend can be removed to free quota.
+  const onAgentManageFriends = useCallback(() => {
+    setActiveTab('contacts');
+  }, [setActiveTab]);
 
   const onAgentSendGift = useCallback(
     (agentId: string) => {
@@ -412,6 +488,8 @@ export function ExplorePanel() {
         onSearchTextChange={setSearchText}
         onToggleCategory={onToggleCategory}
         onAgentAddFriend={onAgentAddFriend}
+        onAgentOpenChat={onAgentOpenChat}
+        onAgentManageFriends={onAgentManageFriends}
         onAgentSendGift={onAgentSendGift}
         onAgentOpen={onAgentOpen}
         onPostAuthorOpen={setSelectedProfileTarget}

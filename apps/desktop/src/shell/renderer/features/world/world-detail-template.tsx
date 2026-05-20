@@ -44,8 +44,9 @@ export type WorldDetailPageProps = {
   onBack?: () => void;
   onEnterEdit?: () => void;
   onCreateSubWorld?: () => void;
-  onChatAgent?: (agent: WorldAgent) => void;
-  onVoiceAgent?: (agent: WorldAgent) => void;
+  // No onChatAgent / onVoiceAgent: a RealmAgent in a World offers View profile
+  // only. RealmAgent direct chat is not admitted (D-EXPL-006 / T3) — chat is
+  // reachable solely via friend → Open Agent Chat on the agent-detail surface.
   onViewAgent?: (agent: WorldAgent) => void;
   onCreateAgent?: (input: CreateAgentInput) => void;
   createAgentMutating?: boolean;
@@ -230,8 +231,6 @@ function WorldDetailPageBody({
         agentsLoading={props.agentsLoading}
         onCreateAgent={props.onCreateAgent ? () => setShowCreateAgent(true) : undefined}
         onSelectAgent={(agent) => setSelectedAgentId(agent.id)}
-        onChatAgent={props.onChatAgent}
-        onVoiceAgent={props.onVoiceAgent}
       />
     ),
     extended: (
@@ -349,35 +348,18 @@ function WorldDetailPageBody({
                 </div>
               </div>
 
-              {(props.onChatAgent || props.onVoiceAgent) ? (
+              {/* RealmAgent quick-sheet offers View profile only — no direct
+                  chat/voice. Chat is friend-gated and lives on agent-detail
+                  (D-EXPL-006 / T3). */}
+              {props.onViewAgent ? (
                 <div className="mt-5 flex flex-wrap gap-2">
-                  {props.onChatAgent ? (
-                    <button
-                      type="button"
-                      onClick={() => props.onChatAgent?.(selectedAgent)}
-                      className="rounded-full border border-[#4ECCA3]/18 bg-[#4ECCA3]/10 px-4 py-2 text-sm text-[#dffdf2] transition-colors hover:bg-[#4ECCA3]/16"
-                    >
-                      {t('WorldDetail.xianxia.v2.agents.chat')}
-                    </button>
-                  ) : null}
-                  {props.onVoiceAgent ? (
-                    <button
-                      type="button"
-                      onClick={() => props.onVoiceAgent?.(selectedAgent)}
-                      className="rounded-full border border-[#4ECCA3]/18 bg-black/18 px-4 py-2 text-sm text-[#d8efe4]/72 transition-colors hover:border-[#4ECCA3]/28 hover:text-[#effff8]"
-                    >
-                      {t('WorldDetail.xianxia.v2.agents.voice')}
-                    </button>
-                  ) : null}
-                  {props.onViewAgent ? (
-                    <button
-                      type="button"
-                      onClick={() => props.onViewAgent?.(selectedAgent)}
-                      className="rounded-full border border-[#4ECCA3]/18 bg-black/18 px-4 py-2 text-sm text-[#d8efe4]/72 transition-colors hover:border-[#4ECCA3]/28 hover:text-[#effff8]"
-                    >
-                      {t('WorldDetail.xianxia.v2.agents.quickSheetViewProfile')}
-                    </button>
-                  ) : null}
+                  <button
+                    type="button"
+                    onClick={() => props.onViewAgent?.(selectedAgent)}
+                    className="rounded-full border border-[#4ECCA3]/18 bg-black/18 px-4 py-2 text-sm text-[#d8efe4]/72 transition-colors hover:border-[#4ECCA3]/28 hover:text-[#effff8]"
+                  >
+                    {t('WorldDetail.xianxia.v2.agents.quickSheetViewProfile')}
+                  </button>
                 </div>
               ) : null}
               </ScrollArea>

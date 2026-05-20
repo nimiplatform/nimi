@@ -7,7 +7,12 @@ import { QuickAddFriendModal } from '@renderer/features/explore/quick-add-friend
 import { resolveAgentFriendLimit } from '@renderer/features/contacts/agent-friend-limit';
 import { prefetchWorldDetailAndHistory } from '@renderer/features/world/world-detail-queries.js';
 import { prefetchWorldDetailPanel } from '@renderer/features/world/world-detail-route-state';
-import { dataSync } from '@runtime/data-sync';
+import { queryClient } from '@renderer/infra/query-client/query-client';
+import {
+  addRealmAgentFriend,
+  openRealmAgentLocalChat,
+} from '@renderer/features/explore/realm-agent-friend-actions';
+import { realmAgentSocialProjectionQueryKey } from '@renderer/features/explore/realm-agent-friend-state';
 import {
   agentDisplayDetailQueryKey,
   fetchAgentDisplayDetail,
@@ -20,6 +25,10 @@ export function AgentDetailPanel() {
   const selectedProfileId = useAppStore((state) => state.selectedProfileId);
   const navigateBack = useAppStore((state) => state.navigateBack);
   const navigateToWorld = useAppStore((state) => state.navigateToWorld);
+  const setActiveTab = useAppStore((state) => state.setActiveTab);
+  const setChatMode = useAppStore((state) => state.setChatMode);
+  const setSelectedTargetForSource = useAppStore((state) => state.setSelectedTargetForSource);
+  const setAgentConversationSelection = useAppStore((state) => state.setAgentConversationSelection);
   const [giftModalOpen, setGiftModalOpen] = useState(false);
   const [addFriendModalOpen, setAddFriendModalOpen] = useState(false);
   const [feedback, setFeedback] = useState<InlineFeedbackState | null>(null);
@@ -72,10 +81,60 @@ export function AgentDetailPanel() {
     setAddFriendModalOpen(true);
   };
 
-  const handleAddFriendSubmit = async (agentId: string, _message?: string) => {
-    await dataSync.requestOrAcceptFriend(agentId);
+  // D-EXPL-007 Add Friend dual-effect: AgentFriend relation + idempotent
+  // account-scoped LocalAgent projection ensured at Add Friend time.
+  const handleAddFriendSubmit = async (agentId: string, message?: string) => {
+    await addRealmAgentFriend(
+      {
+        realmAgentId: agentId,
+        displayName: agent?.displayName ?? agentId,
+        handle: agent?.handle ?? '',
+        avatarUrl: agent?.avatarUrl ?? null,
+        worldId: agent?.worldId ?? null,
+        worldName: null,
+        bio: agent?.bio ?? null,
+      },
+      message,
+    );
     setFeedback(null);
-    void agentLimitQuery.refetch();
+    await Promise.all([
+      agentLimitQuery.refetch(),
+      queryClient.invalidateQueries({ queryKey: realmAgentSocialProjectionQueryKey }),
+      queryClient.invalidateQueries({ queryKey: agentDisplayDetailQueryKey(agentIdentifier) }),
+    ]);
+  };
+
+  // `friend` → Open Agent Chat — opens the one-to-one LocalAgent Chat.
+  const handleOpenChat = async () => {
+    if (!agent) {
+      return;
+    }
+    try {
+      await openRealmAgentLocalChat(
+        {
+          realmAgentId: agent.id,
+          displayName: agent.displayName,
+          handle: agent.handle,
+          avatarUrl: agent.avatarUrl,
+          worldId: agent.worldId,
+          worldName: null,
+          bio: agent.bio,
+        },
+        { setActiveTab, setChatMode, setSelectedTargetForSource, setAgentConversationSelection },
+      );
+    } catch (error) {
+      setFeedback({
+        kind: 'error',
+        message: error instanceof Error
+          ? error.message
+          : i18n.t('Contacts.openChatFailed', { defaultValue: 'Failed to open chat' }),
+      });
+    }
+  };
+
+  // `limit_reached` → Manage Agent friends.
+  const handleManageFriends = () => {
+    setActiveTab('contacts');
   };
 
   if (!agentIdentifier) {
@@ -117,20 +176,9 @@ export function AgentDetailPanel() {
           navigateToWorld(agent.worldId);
         }}
         onAddFriend={handleAddFriendClick}
-        canAddFriend={agentLimitQuery.data?.canAdd !== false}
-        addFriendHint={agentLimitQuery.data
-          ? (
-            agentLimitQuery.data.reason
-            || i18n.t('Contacts.agentFriendLimitReached', {
-              used: agentLimitQuery.data.used,
-              limit: agentLimitQuery.data.limit,
-              tier: agentLimitQuery.data.tier,
-              defaultValue: 'Agent friend limit reached ({{used}}/{{limit}}, tier: {{tier}})',
-            })
-          )
-          : null}
+        onOpenChat={() => { void handleOpenChat(); }}
+        onManageFriends={handleManageFriends}
         onSendGift={() => setGiftModalOpen(true)}
-        isFriend={agent?.isFriend === true}
       />
       <SendGiftModal
         open={giftModalOpen}

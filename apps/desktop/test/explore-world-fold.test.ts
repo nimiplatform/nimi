@@ -38,8 +38,15 @@ test('Explore fold keeps RealmAgent discovery as Explore-owned discovery without
   assert.match(exploreViewSource, /data-testid="explore-agents-section"/);
   assert.match(exploreViewSource, /<AgentRecommendationCard/);
   assert.match(agentRecommendationCardSource, /worldName/);
-  assert.match(agentRecommendationCardSource, /friendshipAdd/);
+  // D-EXPL-006: the RealmAgent card renders the friend-state primary action
+  // via the shared friend-state model — never an unconditional Add Friend, and
+  // never a direct RealmAgent chat affordance.
+  assert.match(agentRecommendationCardSource, /describeRealmAgentPrimaryAction/);
   assert.doesNotMatch(exploreViewSource, /<ExploreAgentCard/);
+  // No RealmAgent direct-chat path: world-detail's handleChatAgent declaration
+  // and onChatAgent prop binding drift is removed (T3 / D-EXPL-006).
+  assert.doesNotMatch(worldDetailSource, /const handleChatAgent\b/);
+  assert.doesNotMatch(worldDetailSource, /onChatAgent=\{/);
 });
 
 test('Explore exposes the canonical four-section discovery IA', () => {

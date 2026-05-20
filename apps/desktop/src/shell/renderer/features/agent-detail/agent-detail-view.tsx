@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { getSemanticAgentPalette } from '@renderer/components/agent-theme.js';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
 import { ScrollArea } from '@nimiplatform/nimi-kit/ui';
+import { describeRealmAgentPrimaryAction } from '@renderer/features/explore/realm-agent-friend-state';
 import type { AgentDetailData } from './agent-detail-model.js';
 import { getStateBadgeColor } from './agent-detail-model.js';
 
@@ -13,11 +14,13 @@ type AgentDetailViewProps = {
   error: boolean;
   onBack: () => void;
   onOpenWorld: () => void;
+  // D-EXPL-006 friend-state primary actions. `not_friend` → onAddFriend;
+  // `friend` → onOpenChat (LocalAgent Chat); `limit_reached` → onManageFriends.
+  // `pending` is non-actionable.
   onAddFriend: () => void;
-  canAddFriend?: boolean;
-  addFriendHint?: string | null;
+  onOpenChat: () => void;
+  onManageFriends: () => void;
   onSendGift: () => void;
-  isFriend?: boolean;
 };
 
 // Score progress bar with rainbow gradient
@@ -94,6 +97,46 @@ function OnlineIndicator({ isOnline }: { isOnline?: boolean }) {
   );
 }
 
+// Friend-state primary-action icon for the agent-detail surface. The chat
+// bubble for `open_agent_chat` opens LocalAgent Chat — not RealmAgent chat.
+function AgentDetailPrimaryActionIcon({
+  action,
+}: {
+  action: ReturnType<typeof describeRealmAgentPrimaryAction>['action'];
+}) {
+  if (action === 'open_agent_chat') {
+    return (
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+      </svg>
+    );
+  }
+  if (action === 'pending') {
+    return (
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="9" />
+        <path d="M12 7v5l3 3" />
+      </svg>
+    );
+  }
+  if (action === 'manage_agent_friends') {
+    return (
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+        <circle cx="9" cy="7" r="4" />
+        <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+      </svg>
+    );
+  }
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="12" y1="5" x2="12" y2="19" />
+      <line x1="5" y1="12" x2="19" y2="12" />
+    </svg>
+  );
+}
+
 export function AgentDetailView(props: AgentDetailViewProps) {
   const { t } = useTranslation();
 
@@ -127,6 +170,25 @@ export function AgentDetailView(props: AgentDetailViewProps) {
     description: agent.bio || agent.category,
     tags: agent.tags,
   });
+  // D-EXPL-006 friend-state → primary-action. RealmAgent detail MUST NOT offer
+  // direct RealmAgent chat: `friend` routes to LocalAgent Chat via onOpenChat.
+  const primaryAction = describeRealmAgentPrimaryAction(agent.friendState);
+  const handlePrimaryAction = () => {
+    switch (primaryAction.action) {
+      case 'open_agent_chat':
+        props.onOpenChat();
+        return;
+      case 'manage_agent_friends':
+        props.onManageFriends();
+        return;
+      case 'add_friend':
+        props.onAddFriend();
+        return;
+      default:
+        // `pending` is non-actionable: no duplicate friend request.
+        return;
+    }
+  };
 
   return (
     <div className="flex min-h-0 flex-1 flex-col bg-gray-50">
@@ -176,24 +238,18 @@ export function AgentDetailView(props: AgentDetailViewProps) {
               )}
             </div>
 
-            {/* Add Button - Top Right */}
+            {/* Friend-state primary action — Top Right (D-EXPL-006) */}
             <button
               type="button"
-              onClick={props.onAddFriend}
-              disabled={props.canAddFriend === false || props.isFriend}
-              className="absolute top-4 right-4 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 text-gray-700 shadow-md hover:bg-white disabled:cursor-not-allowed disabled:opacity-50 transition-all z-10"
-              title={props.isFriend ? t('Contacts.friends') : t('AgentDetail.addFriend')}
+              onClick={handlePrimaryAction}
+              disabled={primaryAction.disabled}
+              data-friend-state={agent.friendState}
+              data-primary-action={primaryAction.action}
+              className="absolute top-4 right-4 z-10 flex h-8 items-center gap-1.5 rounded-full bg-white/90 px-3 text-xs font-medium text-gray-700 shadow-md transition-all hover:bg-white disabled:cursor-default disabled:opacity-60"
+              title={primaryAction.label}
             >
-              {props.isFriend ? (
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M20 6L9 17l-5-5" />
-                </svg>
-              ) : (
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <line x1="12" y1="5" x2="12" y2="19" />
-                  <line x1="5" y1="12" x2="19" y2="12" />
-                </svg>
-              )}
+              <AgentDetailPrimaryActionIcon action={primaryAction.action} />
+              {primaryAction.label}
             </button>
 
             {/* Avatar Section */}

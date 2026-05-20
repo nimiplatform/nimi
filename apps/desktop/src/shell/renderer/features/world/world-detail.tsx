@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { dataSync } from '@runtime/data-sync';
-import type { AgentLocalTargetSnapshot } from '@renderer/bridge/runtime-bridge/types';
 import { queryClient } from '@renderer/infra/query-client/query-client';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { ScrollArea } from '@nimiplatform/nimi-kit/ui';
@@ -20,10 +19,6 @@ import {
   toWorldDisplayFallback,
   worldDisplayDetailQueryKey,
 } from './world-detail-queries';
-import {
-  launchAgentConversationFromDisplay,
-  launchAgentVoiceFromDisplay,
-} from '@renderer/features/chat/agent-conversation-launcher.js';
 
 type WorldDetailProps = {
   world: WorldListItem;
@@ -32,12 +27,7 @@ type WorldDetailProps = {
 
 export function WorldDetail({ world, onBack }: WorldDetailProps) {
   const authStatus = useAppStore((state) => state.auth.status);
-  const ownerUserId = useAppStore((state) => String((state.auth.user as Record<string, unknown> | null)?.id || '').trim());
   const navigateToProfile = useAppStore((state) => state.navigateToProfile);
-  const setActiveTab = useAppStore((state) => state.setActiveTab);
-  const setChatMode = useAppStore((state) => state.setChatMode);
-  const setSelectedTargetForSource = useAppStore((state) => state.setSelectedTargetForSource);
-  const setAgentConversationSelection = useAppStore((state) => state.setAgentConversationSelection);
   const isReady = authStatus === 'authenticated' && !!world.id;
   const [feedback, setFeedback] = useState<InlineFeedbackState | null>(null);
   const flowIdRef = useRef('');
@@ -165,131 +155,14 @@ export function WorldDetail({ world, onBack }: WorldDetailProps) {
     });
   }, [display, world.id]);
 
-  const toAgentConversationTarget = (agent: WorldAgent): AgentLocalTargetSnapshot => ({
-    ownerUserId,
-    realmAgentId: agent.id,
-    localAgentRef: `local-agent:${ownerUserId}:${agent.id}`,
-    displayName: agent.name,
-    handle: agent.handle,
-    avatarUrl: agent.avatarUrl ?? null,
-    worldId: worldData.id || world.id,
-    worldName: worldData.name || world.name,
-    bio: agent.bio || null,
-    ownershipType: null,
-  });
-
-  const handleChatAgent = async (agent: WorldAgent) => {
-    logRendererEvent({
-      level: 'info',
-      area: 'world-detail',
-      message: 'action:chat-agent:clicked',
-      details: {
-        worldId: world.id,
-        agentId: agent.id,
-      },
-    });
-    try {
-      const launch = await launchAgentConversationFromDisplay({
-        target: toAgentConversationTarget(agent),
-        setActiveTab,
-        setChatMode,
-        setSelectedTargetForSource,
-        setAgentConversationSelection,
-      });
-      setFeedback({
-        kind: 'info',
-        message: i18n.t('WorldDetail.xianxia.v2.agents.chatOpensInConversation', {
-          defaultValue: 'Chat opens inside the agent conversation surface.',
-        }),
-      });
-      logRendererEvent({
-        level: 'info',
-        area: 'world-detail',
-        message: 'action:chat-agent:opened',
-        details: {
-          worldId: world.id,
-          agentId: agent.id,
-          threadId: launch.threadId,
-          createdThread: launch.createdThread,
-          routedSurface: launch.routedSurface,
-        },
-      });
-    } catch (error) {
-      setFeedback({
-        kind: 'error',
-        message: error instanceof Error
-          ? error.message
-          : i18n.t('Contacts.openChatFailed', { defaultValue: 'Failed to open chat' }),
-      });
-      logRendererEvent({
-        level: 'warn',
-        area: 'world-detail',
-        message: 'action:chat-agent:failed',
-        details: {
-          worldId: world.id,
-          agentId: agent.id,
-          error: error instanceof Error ? error.message : String(error || ''),
-        },
-      });
-    }
-  };
-
-  const handleVoiceAgent = async (agent: WorldAgent) => {
-    logRendererEvent({
-      level: 'info',
-      area: 'world-detail',
-      message: 'action:voice-agent:clicked',
-      details: {
-        worldId: world.id,
-        agentId: agent.id,
-      },
-    });
-    try {
-      const launch = await launchAgentVoiceFromDisplay({
-        target: toAgentConversationTarget(agent),
-        setActiveTab,
-        setChatMode,
-        setSelectedTargetForSource,
-        setAgentConversationSelection,
-      });
-      setFeedback({
-        kind: 'info',
-        message: i18n.t('WorldDetail.xianxia.v2.agents.voiceOpensInConversation', {
-          defaultValue: 'Voice interaction opens inside the agent conversation surface.',
-        }),
-      });
-      logRendererEvent({
-        level: 'info',
-        area: 'world-detail',
-        message: 'action:voice-agent:opened',
-        details: {
-          worldId: world.id,
-          agentId: agent.id,
-          threadId: launch.threadId,
-          createdThread: launch.createdThread,
-          routedSurface: launch.routedSurface,
-        },
-      });
-    } catch (error) {
-      setFeedback({
-        kind: 'error',
-        message: error instanceof Error
-          ? error.message
-          : i18n.t('Contacts.openChatFailed', { defaultValue: 'Failed to open chat' }),
-      });
-      logRendererEvent({
-        level: 'warn',
-        area: 'world-detail',
-        message: 'action:voice-agent:failed',
-        details: {
-          worldId: world.id,
-          agentId: agent.id,
-          error: error instanceof Error ? error.message : String(error || ''),
-        },
-      });
-    }
-  };
-
+  // A RealmAgent in a World is NOT chat-reachable from World detail. Per
+  // D-EXPL-006 / T3 there is no RealmAgent direct-chat path: chat is reachable
+  // ONLY after friendship, via the `friend` → Open Agent Chat action that
+  // routes to the one-to-one LocalAgent Chat. The previous `handleChatAgent` /
+  // `handleVoiceAgent` synthesized a `localAgentRef` from a non-befriended
+  // RealmAgent and launched a session directly — that drift is removed. World
+  // detail's agent affordance is View profile → agent-detail, where the
+  // friend-state primary action lives.
   const handleViewAgent = (agent: WorldAgent) => {
     navigateToProfile(agent.id, 'agent-detail');
   };
@@ -402,8 +275,6 @@ export function WorldDetail({ world, onBack }: WorldDetailProps) {
           onBack={onBack}
           onEnterEdit={handleEnterEdit}
           onCreateSubWorld={handleCreateSubWorld}
-          onChatAgent={handleChatAgent}
-          onVoiceAgent={handleVoiceAgent}
           onViewAgent={handleViewAgent}
           onCreateAgent={createAgentAdmitted ? (input) => createAgentMutation.mutate(input) : undefined}
           createAgentMutating={createAgentMutation.isPending}
@@ -426,8 +297,6 @@ export function WorldDetail({ world, onBack }: WorldDetailProps) {
           onBack={onBack}
           onEnterEdit={handleEnterEdit}
           onCreateSubWorld={handleCreateSubWorld}
-          onChatAgent={handleChatAgent}
-          onVoiceAgent={handleVoiceAgent}
           onViewAgent={handleViewAgent}
           onCreateAgent={createAgentAdmitted ? (input) => createAgentMutation.mutate(input) : undefined}
           createAgentMutating={createAgentMutation.isPending}

@@ -1,4 +1,5 @@
 import { parseOptionalJsonObject, type JsonObject } from '@renderer/bridge/runtime-bridge/shared';
+import type { RealmAgentFriendState } from '@renderer/features/explore/realm-agent-friend-state';
 
 export type AgentDetailData = {
   id: string;
@@ -19,6 +20,10 @@ export type AgentDetailData = {
   worldId: string | null;
   ownerWorldId: string | null;
   isFriend: boolean;
+  // RealmAgent friend state from Realm social truth (D-EXPL-005). Resolved by
+  // the agent-detail query against the AgentFriend / Friendship graph; drives
+  // the D-EXPL-006 primary action on the detail surface.
+  friendState: RealmAgentFriendState;
   worldBannerUrl: string | null;
 };
 
@@ -27,7 +32,10 @@ function readOptionalString(record: JsonObject | undefined, key: string): string
   return typeof value === 'string' ? value : null;
 }
 
-export function toAgentDetailData(raw: JsonObject): AgentDetailData {
+export function toAgentDetailData(
+  raw: JsonObject,
+  friendState: RealmAgentFriendState,
+): AgentDetailData {
   const agent = parseOptionalJsonObject(raw.agent);
   const agentProfile = parseOptionalJsonObject(raw.agentProfile);
   const world = parseOptionalJsonObject(raw.world);
@@ -64,6 +72,7 @@ export function toAgentDetailData(raw: JsonObject): AgentDetailData {
       || readOptionalString(agentProfile, 'ownerWorldId')
     ),
     isFriend: raw.isFriend === true,
+    friendState,
     worldBannerUrl: (
       (typeof raw.worldBannerUrl === 'string' ? raw.worldBannerUrl : null)
       || readOptionalString(agentProfile, 'worldBannerUrl')
