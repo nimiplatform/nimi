@@ -79,7 +79,28 @@ AIScopeRef {
 - consumer 不得扩展 `AIScopeRef` schema（如添加 consumer-local fields）；如需额外标注，必须在 consumer 侧建立独立 annotation，不修改 `AIScopeRef` 本体。
 - mod-facing AIConfig consumer 通过 Desktop/Web host bridge 消费 `AIScopeRef` 时，仍必须使用本契约定义的 canonical identity；不得退回 consumer-local key schema。
 
+## P-AISC-006 — Built-In First-Run Chat Scopes
+
+`MUST`：Nimi product first-run 内置 chat AIConfig 只 admit 以下 canonical
+scope identities：
+
+| Scope | Canonical `AIScopeRef` | Owner |
+|---|---|---|
+| `desktop.chat.nimi` | `{ kind: 'app', ownerId: 'desktop.chat.nimi', surfaceId: 'chat' }` | Desktop host AIConfig service |
+| `desktop.chat.agent` | `{ kind: 'app', ownerId: 'desktop.chat.agent', surfaceId: 'chat' }` | Desktop host AIConfig service |
+
+这些 scope 是 first-run `builtInAiConfigRefs` 的唯一 required built-in chat
+scope set。它们是 product shell 的 stable built-in app scopes，不是 route、
+thread、conversation、renderer tab、agent id、message id、或 generic active
+chat key。
+
+`MUST NOT`：first-run 不得把 `{ kind: 'app', ownerId: 'desktop', surfaceId:
+'chat' }`、省略 `surfaceId` 的 app scope、consumer-local string key、或任何
+generic fallback chat scope 当作上述两个 built-in scope 的替身。
+
 ## Fact Sources
 
 - 本契约无 YAML 表。Phase 1 scope kind 值域为封闭枚举 `'app' | 'mod' | 'module' | 'feature'`；若需扩展，须修改本规则并通过 spec consistency check。
 - Phase 1 mod-scoped AIConfig canonical workspace identity 固定为 `{ kind: 'mod', ownerId: <modManifestId>, surfaceId: 'workspace' }`。
+- First-run built-in chat scope identities固定为 `P-AISC-006` 中的
+  `desktop.chat.nimi` 与 `desktop.chat.agent`。

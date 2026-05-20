@@ -77,11 +77,11 @@ states:
     copy_floor: Nimi has the files, but the local environment still needs repair.
   - state: local_ai_ready
     surface: finalization_progress
-    entry_condition: local baseline route is ready, but account Default Profile, built-in AIConfigs, or snapshots are not fully committed
+    entry_condition: Runtime baseline readiness evidence exists, but Account Default Profile, required built-in AIConfig refs, or baseline execution evidence are not fully verified by their owners
     allowed_user_actions:
       - wait
       - retry_finalization_on_failure
-    exit_condition: Account Default Profile exists, built-in AIConfig scopes are applied, and baseline execution evidence is valid
+    exit_condition: accountDefaultProfileRef resolves through RuntimeAccountService, builtInAiConfigRefs resolve for desktop.chat.nimi and desktop.chat.agent through Desktop host AIConfig service, runtimeBaselineRef resolves through RuntimeLocalService, and executionEvidenceRef resolves through Runtime execution evidence
     copy_floor: Nimi is finishing your default AI setup.
   - state: repair_required
     surface: repair_flow
@@ -105,9 +105,25 @@ states:
     copy_floor: Nimi cannot continue safely yet.
   - state: ready_for_use
     surface: ordinary_shell_chat_nimi_chat
-    entry_condition: login, config, nimi_data, Account Default Profile, built-in AIConfigs, Runtime baseline, and execution evidence are valid
+    entry_condition: backend product-control admission has atomically written ready_for_use after verifying login, config, nimi_data, accountDefaultProfileRef, builtInAiConfigRefs, runtimeBaselineRef, and executionEvidenceRef in canonical owner order
     allowed_user_actions:
       - use_nimi
       - open_runtime_for_optional_changes
-    exit_condition: remains ready until required evidence becomes invalid, then repair_required or not_logged_in
+    exit_condition: remains ready until required owner evidence becomes invalid, then repair_required, blocked, or not_logged_in according to the failed owner
     copy_floor: Nimi is ready.
+forbidden_ready_inputs:
+  - renderer_local_state
+  - localStorage
+  - renderer_provided_string_refs
+  - generic_chat_scope
+  - runtime_route_health
+  - endpoint_probe
+  - file_existence
+  - runtime_config_alone
+  - cloud_api
+  - cloud_only_profile
+  - cloud_first_profile
+  - hybrid_profile
+  - video_generation_pack
+  - connector_setup
+  - app_specific_pack

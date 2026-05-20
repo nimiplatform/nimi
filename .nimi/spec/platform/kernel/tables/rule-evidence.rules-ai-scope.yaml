@@ -29,6 +29,7 @@ entries:
   - P-AISC-003
   - P-AISC-004
   - P-AISC-005
+  - P-AISC-006
 rules:
   - rule_id: P-AISC-001
     evidence_refs:
@@ -53,3 +54,8 @@ rules:
       - platform_kernel_consistency
     evidence_requirement: structural_required
     evidence_scope_note: structural only; allowed-consumer schema enforcement still requires downstream consumer boundary checks
+  - rule_id: P-AISC-006
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; built-in first-run chat scope behavior requires Desktop/SDK AIConfig consumer validation

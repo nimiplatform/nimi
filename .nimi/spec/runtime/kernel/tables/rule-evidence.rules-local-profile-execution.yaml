@@ -41,6 +41,7 @@ entries:
   - K-AIEXEC-004
   - K-AIEXEC-005
   - K-AIEXEC-006
+  - K-AIEXEC-007
   - K-LENG-024
   - K-LENG-025
   - K-LENG-026
@@ -118,6 +119,10 @@ rules:
   - rule_id: K-AIEXEC-006
     evidence_refs: []
     evidence_requirement: deferred
+  - rule_id: K-AIEXEC-007
+    evidence_refs: []
+    evidence_requirement: deferred
+    evidence_scope_note: structural only; first-run baseline execution evidence verifier implementation lands with product first-run admission waves
   - rule_id: K-LENG-024
     evidence_refs:
       - runtime_kernel_consistency

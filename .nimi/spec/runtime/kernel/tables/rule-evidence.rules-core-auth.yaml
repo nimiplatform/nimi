@@ -73,6 +73,7 @@ entries:
   - K-ACCSVC-018
   - K-ACCSVC-019
   - K-ACCSVC-020
+  - K-ACCSVC-021
   - K-GRANT-001
   - K-GRANT-002
   - K-GRANT-003
@@ -297,6 +298,10 @@ rules:
   - rule_id: K-ACCSVC-020
     evidence_refs: []
     evidence_requirement: deferred
+  - rule_id: K-ACCSVC-021
+    evidence_refs: []
+    evidence_requirement: deferred
+    evidence_scope_note: structural only; Account Default Profile evidence verifier implementation lands with product first-run admission waves
   - rule_id: K-GRANT-001
     evidence_refs:
       - runtime_kernel_consistency

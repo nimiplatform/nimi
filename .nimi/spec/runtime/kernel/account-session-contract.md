@@ -360,3 +360,33 @@ Fixed rules:
 - daemon restart 后无法恢复 custody
 - remote revocation 检测失败但无法证明本地 session 仍有效
 - account projection 缺少必需字段
+
+## K-ACCSVC-021 Account Default Profile Evidence
+
+`RuntimeAccountService` owns the backend-verifiable Account Default Profile
+evidence consumed by product first-run ready admission.
+
+`accountDefaultProfileRef` is a durable evidence ref, not a caller-provided
+profile string. It is valid only when Runtime can resolve it to the active
+authenticated account projection and the account default profile projection
+observed during login, refresh, custody recovery, or an admitted account-profile
+refresh owned by `RuntimeAccountService`.
+
+Minimum verifiable evidence:
+
+- `account_id`
+- `realm_environment_id`
+- redacted account default profile id / version or content hash
+- `observed_at`
+- source account event sequence or custody recovery sequence
+- verifier owner `RuntimeAccountService`
+
+Failure projection:
+
+- missing account default profile evidence routes first-run to `local_ai_ready`
+  or `blocked`, not `ready_for_use`
+- stale, realm-environment mismatched, unavailable, caller-provided, or
+  string-only account default profile refs fail closed
+- renderer state, Desktop profile UI state, SDK cache, app-local cache,
+  `subject_user_id`, and decoded token claims are not evidence for
+  `accountDefaultProfileRef`

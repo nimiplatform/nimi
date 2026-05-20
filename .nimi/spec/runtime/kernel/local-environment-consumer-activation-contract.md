@@ -161,3 +161,37 @@ response fields in `K-LENV-ACT-004`. The concrete transport may be a new RPC
 method or a versioned extension of the existing local environment plan surface,
 but the request, response, reason ownership, fail-closed state mapping, and
 ordinary-user boundary in this contract are normative.
+
+## K-LENV-ACT-011 First-Run Runtime Baseline Readiness Evidence
+
+RuntimeLocalService owns `runtimeBaselineRef` for product first-run ready
+admission. The ref is durable evidence for the selected local first-run baseline
+activation state; it is not a route probe id, file path, process health result,
+or renderer-supplied string.
+
+`runtimeBaselineRef` is valid only when it resolves to:
+
+- selected first-run local factory `AIProfile` ref and install level
+- selected `runtime_data_root` / `dataRootRef`
+- all required dependency families and selected source record ids for the
+  selected baseline
+- activation responses for each required consumer showing every required
+  dependency as `ready_system` or `ready_managed` per `K-LENV-ACT-004`
+- materialization job terminal evidence or system-source verification evidence
+  that produced the selected source records
+- `observed_at`, Runtime verifier identity, and audit/evidence sequence
+
+Activation and materialization relation:
+
+- materialization jobs may produce selected source records, but materialization
+  success alone is not readiness
+- activation consumes selected source records and verifies repair,
+  compatibility, and dependency readiness for the selected consumer set
+- `runtimeBaselineRef` can be minted only after activation succeeds for the
+  selected baseline; a previous materialization terminal state cannot be reused
+  without fresh activation verification
+
+`MUST NOT`: file existence, directory presence, endpoint reachability,
+`runtime.route.checkHealth`, process liveness, import success, route health,
+transfer completion, script exit, warmup success, or previous health success may
+mint or satisfy `runtimeBaselineRef` without the activation evidence above.

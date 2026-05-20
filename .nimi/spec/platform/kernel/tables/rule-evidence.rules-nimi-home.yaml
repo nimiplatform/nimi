@@ -60,6 +60,7 @@ entries:
   - P-COLD-008
   - P-COLD-014
   - P-COLD-015
+  - P-COLD-016
 rules:
   - rule_id: P-HOME-001
     evidence_refs:
@@ -266,3 +267,8 @@ rules:
       - platform_kernel_consistency
     evidence_requirement: structural_required
     evidence_scope_note: structural only; product-control schema enforcement evidence lands with desktop_product_control focused tests
+  - rule_id: P-COLD-016
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; backend ready admission implementation and owner ref verification land in later product-control implementation waves

@@ -264,10 +264,40 @@ profile 与 config 的 probe 分为三类：
 
 UI 必须根据 probe 类别展示对应级别的状态信息。不允许将不同类别的 probe failure 混为同一个 generic "unavailable" 标签。当 `schedulingJudgement` 可用时，UI 应展示 scheduling state 的具体含义（queue、slowdown、denied），而不是仅展示 aggregate `status`。
 
+## D-AIPC-013 — Built-In First-Run AIConfig Evidence
+
+Desktop host AIConfig service owns first-run built-in `AIConfig` materialization
+for `desktop.chat.nimi` and `desktop.chat.agent` as defined by `P-AISC-006`.
+
+`MUST`:
+
+- first-run must apply the selected local baseline factory `AIProfile` to both
+  canonical scopes through `D-AIPC-005` atomic apply semantics
+- each built-in config evidence item must bind the exact canonical
+  `scopeRef`, the applied `AIProfile` ref / hash, the committed `AIConfig`
+  version or content hash, the Desktop host writer identity, and `committedAt`
+- `builtInAiConfigRefs` in `~/.nimi/nimi.json` must contain backend-verifiable
+  durable refs for both required scopes; the refs are valid only when the host
+  AIConfig service can resolve them to committed full materialized configs for
+  those exact scopes
+- apply or verification failure for either required scope fails first-run
+  finalization closed; no partial built-in chat set may enter `ready_for_use`
+
+`MUST NOT`:
+
+- renderer-local state, localStorage, route health, current tab selection,
+  conversation state, or string-only `scopeRef` values may serve as readiness
+  truth for built-in AIConfig evidence
+- `desktop.chat.nimi` and `desktop.chat.agent` may not share a generic fallback
+  chat scope, inherit config from one another, or be represented by a single
+  global active profile
+- built-in first-run config may not hardcode provider, connector, engine, or
+  model identifiers outside the admitted `AIProfile` / `AIConfig` authority
+
 ## Fact Sources
 
 - `agent-chat-behavior-contract.md` — D-LLM-022 ~ D-LLM-026 behavior authority boundary
 - `conversation-capability-contract.md` — D-LLM-015 ~ D-LLM-021 conversation capability submodel rules
 - `llm-adapter-contract.md` — D-LLM-001 ~ D-LLM-014 provider adaptation and routing rules
-- `.nimi/spec/platform/kernel/ai-scope-contract.md` — P-AISC-001 ~ P-AISC-005 AIScopeRef identity contract
+- `.nimi/spec/platform/kernel/ai-scope-contract.md` — P-AISC-001 ~ P-AISC-006 AIScopeRef identity contract
 - `.nimi/spec/runtime/kernel/scheduling-contract.md` — K-SCHED-001 ~ K-SCHED-007 scheduling judgement contract

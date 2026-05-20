@@ -193,6 +193,38 @@ completion, import success, endpoint probe, script exit, or renderer-local
 state may satisfy product readiness without the `ready_for_use` product-control
 record and required evidence fields.
 
+## P-COLD-016 — Product Ready Admission Evidence Composition
+
+`MUST`：transition to `ready_for_use` is admitted only by the local
+product-control backend admission operation defined in
+`tables/product-control-record-schema.yaml`. The renderer may request or display
+finalization, but it cannot write `ready_for_use`, mint evidence refs, or
+declare refs valid.
+
+Admission composes evidence in this order:
+
+1. product-control record shape, `installId`, `productVersion`, selected
+   `nimi_data`, and local first-run install level
+2. authenticated Runtime account session plus backend-verifiable
+   `accountDefaultProfileRef` from `K-ACCSVC-021`
+3. selected first-run local factory `AIProfile` refs and baseline commit refs
+   from `P-AIPS-*`
+4. Runtime local baseline readiness `runtimeBaselineRef` from
+   `K-LENV-ACT-011`
+5. built-in Desktop AIConfig refs for `desktop.chat.nimi` and
+   `desktop.chat.agent` from `P-AISC-006` / `D-AIPC-013`
+6. Runtime baseline execution `executionEvidenceRef` from `K-AIEXEC-007`
+7. atomic `~/.nimi/nimi.json` write to `ready_for_use`
+
+`MUST`：each ref is a durable, owner-verifiable evidence ref. String shape,
+field presence, UUID/ULID format, or renderer-provided equality checks are not
+verification.
+
+`MUST NOT`：Cloud API, cloud-only, cloud-first, hybrid, video generation,
+connector setup, app-specific packs, Runtime route health, file existence,
+localStorage, Desktop path cache, Runtime config alone, endpoint probes, or
+app-level REST calls may participate as positive ready evidence.
+
 ## Cross-Wave Closure
 
 `MUST`：本契约的每条规则均依赖下列下游 wave 与对应 authority；它们的关闭

@@ -123,6 +123,38 @@ memory embedding 的 editable binding intent 可以由 Desktop host 持有，但
   runtime 必须返回 fail-close result，不得静默回退到别的 connector、provider、
   或本地默认 embedding target
 
+## K-AIEXEC-007 — First-Run Baseline Execution Evidence
+
+Runtime owns the executable proof behind product first-run
+`executionEvidenceRef`. The ref is durable execution evidence for the selected
+local first-run baseline, not a Desktop snapshot id by itself and not a route
+health or probe result.
+
+`executionEvidenceRef` is valid only when it resolves to a Runtime audit /
+execution evidence record that:
+
+- binds the selected first-run local factory `AIProfile` ref, install level,
+  `runtimeBaselineRef`, `dataRootRef`, and local execution target evidence
+- proves execution against the selected local baseline capability set; Minimal
+  baseline must include local chat/text plus basic local STT and TTS capability
+  proof, and Recommended must include every additional required local baseline
+  capability selected by the confirmed plan
+- records the submit-specific execution target scheduling judgement when one
+  was evaluated, and never substitutes a scope aggregate judgement for
+  submit-time evidence
+- records terminal success/failure, timestamps, verifier identity, and audit
+  evidence sequence
+
+The selected local first-run baseline proof must execute through the admitted
+Runtime local execution path and consume the previously verified
+`runtimeBaselineRef`. Cloud API, cloud-only, cloud-first, hybrid, video,
+connector setup, app-specific packs, synthetic snapshots, warmup-only checks,
+or route probes cannot satisfy `executionEvidenceRef`.
+
+Desktop `AISnapshot` may reference this Runtime execution evidence, but the
+Desktop snapshot cannot replace the Runtime evidence record as the verifier for
+product ready admission.
+
 ## Fact Sources
 
 - `local-category-capability.md` — K-LOCAL-013~015, K-LOCAL-014a (`ResolveProfile`, `ApplyProfile`)

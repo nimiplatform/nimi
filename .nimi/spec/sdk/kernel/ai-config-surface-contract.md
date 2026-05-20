@@ -129,11 +129,37 @@ SDK 必须提供 AIConfig 变更订阅：
 - 用于驱动 `ConversationCapabilityProjection` 重算（D-LLM-017）。
 - subscription 同样适用于 mod scope；mod consumer 不得把自己的 route-options polling 或 domain store watch 伪装成 `AIConfig` subscription owner。
 
+## S-AICONF-007 — First-Run Evidence Ref Consumption
+
+SDK may expose typed helpers for first-run built-in AIConfig finalization, but
+it does not own the resulting ready evidence refs.
+
+`MUST`:
+
+- any SDK helper that applies first-run built-in configs must require explicit
+  canonical `AIScopeRef` values and must preserve the exact `desktop.chat.nimi`
+  and `desktop.chat.agent` identities from `P-AISC-006`
+- returned `builtInAiConfigRefs` are host/backend-issued durable evidence refs
+  that the product-control admission backend must verify through Desktop host
+  AIConfig authority; SDK callers cannot mint or validate them by string shape
+- SDK surfaces must keep `accountDefaultProfileRef`, `runtimeBaselineRef`, and
+  `executionEvidenceRef` opaque and typed; verification belongs to
+  `RuntimeAccountService`, `RuntimeLocalService`, Runtime execution evidence,
+  and product-control admission
+
+`MUST NOT`:
+
+- SDK must not accept renderer/localStorage values, app-local caches,
+  route-health probes, file paths, or caller-provided strings as sufficient
+  first-run readiness evidence
+- SDK must not expose a fallback chat scope or infer `desktop.chat.nimi` /
+  `desktop.chat.agent` from an omitted scope
+
 ## Fact Sources
 
 - `.nimi/spec/desktop/kernel/ai-profile-config-contract.md` — D-AIPC-001~012
-- `.nimi/spec/platform/kernel/ai-scope-contract.md` — P-AISC-001~005
-- `.nimi/spec/runtime/kernel/ai-profile-execution-contract.md` — K-AIEXEC-001~005
+- `.nimi/spec/platform/kernel/ai-scope-contract.md` — P-AISC-001~006
+- `.nimi/spec/runtime/kernel/ai-profile-execution-contract.md` — K-AIEXEC-001~007
 - `.nimi/spec/runtime/kernel/runtime-memory-service-contract.md` — K-MEM-004~006b
 - `.nimi/spec/runtime/kernel/scheduling-contract.md` — K-SCHED-001~007
 - `.nimi/spec/sdk/kernel/runtime-route-contract.md` — S-RUNTIME-074~078
