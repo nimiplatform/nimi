@@ -1030,6 +1030,55 @@ mod tests {
     }
 
     #[test]
+    fn stale_data_root_record_routes_repair_required_without_recreating_pointers() {
+        // Cross-layer acceptance (manual scenario 5 + the migration gate): an
+        // existing product-control record with a stale / corrupt shape — here a
+        // record that selected a data root but no longer carries the
+        // dataRoot.path the state requires — must route to repair_required and
+        // must NOT be silently replaced with a fresh data_root_missing record.
+        // Silently recreating the pointers would orphan the user's existing
+        // data root. read-for-entry fails closed: state=repair_required,
+        // record=None, and the on-disk file is left byte-for-byte intact for
+        // the admitted repair flow.
+        let home = temp_home("stale-data-root");
+        with_env(&[("HOME", home.to_str())], || {
+            let root = home.join("chosen-nimi-data");
+            select_product_data_root(root.to_str().expect("root")).expect("select root");
+            set_first_run_install_level("minimal", Some("local-speech-ready".to_string()))
+                .expect("install level");
+            let control_path = product_control_record_path().expect("path");
+
+            // Corrupt the record into a stale shape: a data-root-bearing state
+            // with the dataRoot pointer dropped. validate_record rejects this,
+            // so read-for-entry must route to repair_required.
+            let mut record = serde_json::from_str::<serde_json::Value>(
+                &std::fs::read_to_string(&control_path).expect("read record"),
+            )
+            .expect("parse record");
+            record
+                .as_object_mut()
+                .expect("object")
+                .insert("dataRoot".to_string(), serde_json::Value::Null);
+            let stale_raw = serde_json::to_string_pretty(&record).expect("json");
+            std::fs::write(&control_path, &stale_raw).expect("write stale record");
+
+            let projection = read_product_control_projection().expect("projection");
+            assert_eq!(projection.state, ProductControlState::RepairRequired);
+            // The migration gate does not hand back a recreated record.
+            assert!(projection.record.is_none());
+            assert!(projection
+                .error
+                .clone()
+                .unwrap_or_default()
+                .contains("dataRoot.path"));
+            // The on-disk file is untouched — no silent pointer recreation that
+            // would orphan the user's selected data root.
+            let after_raw = std::fs::read_to_string(&control_path).expect("read after");
+            assert_eq!(after_raw, stale_raw);
+        });
+    }
+
+    #[test]
     fn fabricated_ready_for_use_record_fails_closed_without_owner_verification() {
         let home = temp_home("ready");
         with_env(&[("HOME", home.to_str())], || {

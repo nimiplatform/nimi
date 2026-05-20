@@ -654,6 +654,7 @@ mod tests {
     const TEST_ACCOUNT_ID: &str = "account-admission-test";
     const TEST_ALIAS: &str = "local-speech-ready";
     const TEST_INSTALL_LEVEL: &str = "minimal";
+    const RECOMMENDED_INSTALL_LEVEL: &str = "recommended";
     const VALID_RUNTIME_BASELINE_REF: &str = "runtime-baseline:test-valid";
     const VALID_EXECUTION_EVIDENCE_REF: &str = "execution-evidence:test-valid";
 
@@ -740,23 +741,45 @@ mod tests {
         runtime_baseline_ref: &str,
         execution_evidence_ref: &str,
     ) -> PathBuf {
+        seed_pre_admission_record_at_level(
+            home,
+            TEST_INSTALL_LEVEL,
+            account_ref_override,
+            aiconfig_refs_override,
+            runtime_baseline_ref,
+            execution_evidence_ref,
+        )
+    }
+
+    /// Install-level-parameterized variant of [`seed_pre_admission_record`].
+    /// Every owner evidence file is seeded for `install_level`, so the
+    /// composed 8-step admission can be exercised for both Minimal and
+    /// Recommended local install levels.
+    fn seed_pre_admission_record_at_level(
+        home: &Path,
+        install_level: &str,
+        account_ref_override: Option<String>,
+        aiconfig_refs_override: Option<Vec<String>>,
+        runtime_baseline_ref: &str,
+        execution_evidence_ref: &str,
+    ) -> PathBuf {
         let data_root = home.join("chosen-nimi-data");
         select_product_data_root(data_root.to_str().expect("root")).expect("select root");
-        set_first_run_install_level(TEST_INSTALL_LEVEL, Some(TEST_ALIAS.to_string()))
+        set_first_run_install_level(install_level, Some(TEST_ALIAS.to_string()))
             .expect("install level");
 
         let account_evidence = crate::account_profile_library::ensure_account_default_profile(
             &data_root,
             TEST_ACCOUNT_ID,
             TEST_ALIAS,
-            TEST_INSTALL_LEVEL,
+            install_level,
         )
         .expect("seed account default profile");
         let aiconfig_set = crate::desktop_ai_config_library::ensure_built_in_ai_config_evidence_set(
             &data_root,
             TEST_ACCOUNT_ID,
             TEST_ALIAS,
-            TEST_INSTALL_LEVEL,
+            install_level,
         )
         .expect("seed built-in aiconfig set");
 
@@ -1074,6 +1097,132 @@ mod tests {
                 assert_ne!(reread.state, ProductControlState::ReadyForUse);
             });
         });
+    }
+
+    /// Cross-layer acceptance (manual scenario 3): the 8-step admission
+    /// composition writes `ready_for_use` for a Recommended local install
+    /// level, not only the Minimal alias. The Runtime baseline resolution must
+    /// be bound to `recommended` (admission step 5 rejects an install-level
+    /// mismatch), and every locally-owned owner record is seeded at the
+    /// Recommended level.
+    #[test]
+    fn admission_for_recommended_install_level_writes_ready_for_use() {
+        let home = temp_home("recommended");
+        with_env(&[("HOME", home.to_str())], || {
+            run_async(async {
+                seed_pre_admission_record_at_level(
+                    &home,
+                    RECOMMENDED_INSTALL_LEVEL,
+                    None,
+                    None,
+                    VALID_RUNTIME_BASELINE_REF,
+                    VALID_EXECUTION_EVIDENCE_REF,
+                );
+                let mut resolvers = FakeResolvers::all_valid();
+                // Step 5 binds the Runtime baseline readiness to the recorded
+                // install level; a Recommended record requires a Recommended
+                // baseline resolution.
+                resolvers.baseline = Ok(RuntimeBaselineResolution {
+                    runtime_baseline_ref: VALID_RUNTIME_BASELINE_REF.to_string(),
+                    install_level: RECOMMENDED_INSTALL_LEVEL.to_string(),
+                    runtime_data_root_or_data_root_ref: "data-root:test".to_string(),
+                });
+                let projection = admit_product_ready_for_use(&resolvers)
+                    .await
+                    .expect("admission");
+                assert_eq!(projection.state, ProductControlState::ReadyForUse);
+                let record = projection.record.expect("record");
+                assert!(record.first_run.completed);
+                assert_eq!(
+                    record.first_run.install_level.as_deref(),
+                    Some(RECOMMENDED_INSTALL_LEVEL)
+                );
+                assert!(record
+                    .first_run
+                    .completed_at
+                    .as_deref()
+                    .is_some_and(|value| !value.trim().is_empty()));
+            });
+        });
+    }
+
+    /// Cross-layer acceptance: a Recommended record whose Runtime baseline
+    /// readiness resolves bound to the Minimal install level is rejected by
+    /// admission step 5 (install-level binding mismatch) and never reaches
+    /// `ready_for_use`.
+    #[test]
+    fn admission_rejects_install_level_mismatch_between_record_and_runtime_baseline() {
+        let home = temp_home("level-mismatch");
+        with_env(&[("HOME", home.to_str())], || {
+            run_async(async {
+                seed_pre_admission_record_at_level(
+                    &home,
+                    RECOMMENDED_INSTALL_LEVEL,
+                    None,
+                    None,
+                    VALID_RUNTIME_BASELINE_REF,
+                    VALID_EXECUTION_EVIDENCE_REF,
+                );
+                // FakeResolvers::all_valid reports the Minimal install level.
+                let projection = admit_product_ready_for_use(&FakeResolvers::all_valid())
+                    .await
+                    .expect("admission");
+                assert_ne!(projection.state, ProductControlState::ReadyForUse);
+                assert_eq!(
+                    projection.state,
+                    ProductControlState::LocalAiProfileSelectedEnvironmentNotReady
+                );
+                assert!(projection
+                    .error
+                    .unwrap_or_default()
+                    .contains("different install level"));
+            });
+        });
+    }
+
+    /// Cross-layer negative (distinct from the per-owner Go negatives): a
+    /// record whose only first-run "evidence" is a transfer/probe/liveness
+    /// signal — a `transfer_completion`, an `endpoint_probe`, or a
+    /// `process_liveness` value placed in the recorded evidence refs — is
+    /// rejected by the admission op itself. None of these are owner-minted
+    /// evidence; admission re-resolves each ref through its owner/verifier and
+    /// fails closed without ever writing `ready_for_use`.
+    #[test]
+    fn admission_rejects_transfer_probe_liveness_signals_as_first_run_evidence() {
+        let signals = [
+            ("transfer_completion", "transfer_completion:bytes-copied-ok"),
+            ("endpoint_probe", "endpoint_probe:127.0.0.1:health-200"),
+            ("process_liveness", "process_liveness:runtime-daemon-up"),
+        ];
+        for (label, signal_value) in signals {
+            let home = temp_home(&format!("signal-{label}"));
+            with_env(&[("HOME", home.to_str())], || {
+                run_async(async {
+                    // The recorded accountDefaultProfileRef is a transfer /
+                    // probe / liveness signal instead of an owner-minted
+                    // Account Default Profile library ref.
+                    seed_pre_admission_record(
+                        &home,
+                        Some(signal_value.to_string()),
+                        None,
+                        VALID_RUNTIME_BASELINE_REF,
+                        VALID_EXECUTION_EVIDENCE_REF,
+                    );
+                    let projection = admit_product_ready_for_use(&FakeResolvers::all_valid())
+                        .await
+                        .expect("admission");
+                    assert_ne!(
+                        projection.state,
+                        ProductControlState::ReadyForUse,
+                        "{label} signal must not admit ready_for_use"
+                    );
+                    assert!(projection
+                        .error
+                        .unwrap_or_default()
+                        .contains("Account Default Profile owner verification failed"));
+                });
+            });
+        }
     }
 
     /// Renderer-bypass-rejected: a direct file edit of a ready_for_use record

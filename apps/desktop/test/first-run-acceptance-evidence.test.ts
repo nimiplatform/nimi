@@ -46,6 +46,14 @@ const desktopProductControlSource = readFileSync(
   resolve(import.meta.dirname, '../src-tauri/src/desktop_product_control.rs'),
   'utf8',
 );
+const appBootstrapSource = readFileSync(
+  resolve(import.meta.dirname, '../src-tauri/src/main_parts/app_bootstrap.rs'),
+  'utf8',
+);
+const desktopMainSource = readFileSync(
+  resolve(import.meta.dirname, '../src-tauri/src/main.rs'),
+  'utf8',
+);
 const productControlWorkflowSource = readFileSync(
   resolve(import.meta.dirname, '../src/shell/renderer/first-run/product-control-workflow.tsx'),
   'utf8',
@@ -192,6 +200,47 @@ test('renderer evidence: repair and blocked states are explicit failure surfaces
   assert.match(renderWorkflow('blocked'), /cannot continue safely yet/);
 });
 
+test('renderer copy-floor: every first-run state incl. repair_required and blocked has copy-floor markup and no raw enum primary copy', () => {
+  // Each first-run product-control state renders a human copy-floor: a
+  // non-empty <h2> title and a <p> body. The raw enum identifier may appear
+  // only in data-testid / data-product-state attributes — never as the
+  // primary user-facing copy (no enum-name collapse).
+  const allStates: ProductControlState[] = [
+    'config_missing',
+    'data_root_missing',
+    'data_root_selected',
+    'ai_environment_unconfigured',
+    'local_ai_profile_selected_assets_missing',
+    'local_ai_profile_selected_environment_not_ready',
+    'local_ai_assets_downloaded_environment_not_ready',
+    'local_ai_ready',
+    'repair_required',
+    'blocked',
+    'ready_for_use',
+  ];
+  for (const state of allStates) {
+    const markup = renderWorkflow(state);
+    // Copy-floor markup: a primary heading exists and is non-empty.
+    const heading = markup.match(/<h2[^>]*>([^<]+)<\/h2>/);
+    assert.ok(heading?.[1], `${state} must render a copy-floor <h2> title`);
+    const title = heading[1].trim();
+    assert.ok(title.length > 0, `${state} title must not be empty`);
+    // The primary copy must not be the raw enum identifier.
+    assert.notEqual(title, state, `${state} must not use its raw enum name as the title`);
+    assert.doesNotMatch(
+      title,
+      /^[a-z][a-z0-9_]*$/,
+      `${state} title "${title}" looks like a raw enum identifier, not user copy`,
+    );
+    // A copy-floor body paragraph is rendered alongside the heading.
+    assert.match(
+      markup,
+      /<p class="text-sm leading-6[^>]*>[^<]+<\/p>/,
+      `${state} must render a copy-floor body paragraph`,
+    );
+  }
+});
+
 test('factory AIProfile first-run candidates are local-only and fail closed against cloud, hybrid, and video', () => {
   assert.ok(firstRunRows().length > 0);
   for (const row of firstRunRows()) {
@@ -211,7 +260,10 @@ test('ready_for_use has no production renderer/Tauri mark-ready shortcut and rou
   assert.doesNotMatch(rendererBridgeSource, /markProductReadyForUse/);
   assert.doesNotMatch(desktopProductControlSource, /ProductReadyForUsePayload/);
   assert.doesNotMatch(desktopProductControlSource, /product_control_record_mark_ready_for_use/);
-  assert.match(desktopProductControlSource, /ready_for_use requires Runtime-owned admission verification/);
+  assert.match(desktopProductControlSource, /ready_for_use failed owner admission verification/);
+  // the admission keystone command/module is the only entry point that writes ready_for_use.
+  assert.match(desktopMainSource, /mod desktop_product_control_admission;/);
+  assert.match(appBootstrapSource, /product_control_record_admit_ready_for_use/);
   for (const required of [
     /account_default_profile_ref/,
     /built_in_ai_config_refs/,

@@ -918,6 +918,48 @@ mod tests {
     }
 
     #[test]
+    fn verifier_rejects_realm_token_shaped_refs_as_account_default_profile_truth() {
+        // product-control-record-schema.yaml accountDefaultProfileRef
+        // forbidden_as_truth: realm_oauth_token, realm_profile_projection,
+        // subject_user_id, decoded_token_claims. None of these are a durable
+        // local Account Default Profile library ref. With a valid library
+        // record already seeded, each realm-token-shaped value must still be
+        // rejected as caller-provided / not owner-minted — a realm session
+        // artifact is never product readiness truth.
+        let root = temp_data_root("realm-token-negative");
+        let evidence =
+            ensure_account_default_profile(&root, "account_1", "local-speech-ready", "minimal")
+                .expect("ensure profile");
+        // sanity: the owner-minted ref still verifies.
+        verify_account_default_profile_ref(
+            &root,
+            "account_1",
+            &evidence.account_default_profile_ref,
+        )
+        .expect("owner-minted ref verifies");
+
+        let realm_token_shaped_refs = [
+            // realm_oauth_token — a JWT-shaped bearer string.
+            "eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJhY2NvdW50XzEifQ.c2lnbmF0dXJl",
+            // realm_profile_projection — a realm-side profile projection blob.
+            "realm-profile-projection:account_1:displayName=Nimi",
+            // subject_user_id — the decoded token subject claim.
+            "account_1",
+            // decoded_token_claims — a serialized claims object.
+            "{\"sub\":\"account_1\",\"scope\":\"realm.profile\"}",
+        ];
+        for realm_ref in realm_token_shaped_refs {
+            let error =
+                verify_account_default_profile_ref(&root, "account_1", realm_ref)
+                    .expect_err("realm-token-shaped ref must be rejected as truth");
+            assert!(
+                error.contains("caller-provided, stale, or string-only"),
+                "realm-token-shaped ref {realm_ref} routed unexpected error: {error}"
+            );
+        }
+    }
+
+    #[test]
     fn verifier_rejects_source_and_hash_tampering() {
         let root = temp_data_root("tamper");
         let evidence =

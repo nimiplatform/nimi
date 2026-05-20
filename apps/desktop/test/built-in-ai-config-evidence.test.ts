@@ -99,7 +99,7 @@ test('product control materializes built-in AIConfig refs and exposes the wave-6
   // wave-6 resolve/verify seam exists and does NOT write ready_for_use.
   assert.match(
     desktopProductControlSource,
-    /pub async fn resolve_built_in_ai_config_refs_for_admission/,
+    /pub fn resolve_built_in_ai_config_refs_for_admission/,
   );
   assert.doesNotMatch(desktopProductControlSource, /product_control_record_mark_ready_for_use/);
   // tauri command is registered.

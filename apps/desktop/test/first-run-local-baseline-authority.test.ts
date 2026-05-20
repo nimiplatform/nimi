@@ -134,7 +134,7 @@ test('product control ready_for_use has no production renderer/Tauri admission s
   assert.doesNotMatch(desktopProductControlSource, /ProductReadyForUsePayload/);
   assert.doesNotMatch(desktopProductControlSource, /mark_ready_for_use/);
   assert.doesNotMatch(desktopProductControlSource, /product_control_record_mark_ready_for_use/);
-  assert.match(desktopProductControlSource, /ready_for_use requires Runtime-owned admission verification/);
+  assert.match(desktopProductControlSource, /ready_for_use failed owner admission verification/);
   assert.doesNotMatch(productControlBridgeSource, /markProductReadyForUse/);
   assert.doesNotMatch(productControlBridgeSource, /product_control_record_mark_ready_for_use/);
   assert.match(productControlBridgeSource, /Exclude<ProductControlState,[^>]*'local_ai_ready'/);
