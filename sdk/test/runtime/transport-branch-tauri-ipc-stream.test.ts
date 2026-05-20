@@ -158,6 +158,67 @@ test('tauri-ipc: input _responseMetadataObserver takes precedence over config', 
   }
 });
 
+test('tauri-ipc: responseMetadataObserver accepts snake_case bridge metadata', async () => {
+  let observedMeta: Record<string, string> | null = null;
+  const restoreTauri = installTauriRuntime({
+    core: {
+      invoke: async () => ({
+        responseBytesBase64: '',
+        response_metadata: {
+          'x-nimi-route-describe-result': 'route-describe-payload',
+        },
+      }),
+    },
+    event: { listen: () => () => {} },
+  });
+
+  try {
+    const transport = createTauriIpcTransport({ type: 'tauri-ipc' });
+    await transport.invokeUnary({
+      methodId: 'test',
+      request: new Uint8Array(0),
+      metadata: {} as RuntimeUnaryCall['metadata'],
+      _responseMetadataObserver: (meta) => { observedMeta = meta; },
+    });
+    assert.deepEqual(observedMeta, {
+      'x-nimi-route-describe-result': 'route-describe-payload',
+    });
+  } finally {
+    restoreTauri();
+  }
+});
+
+test('tauri-ipc: responseMetadataObserver keeps non-empty snake_case metadata when camelCase is empty', async () => {
+  let observedMeta: Record<string, string> | null = null;
+  const restoreTauri = installTauriRuntime({
+    core: {
+      invoke: async () => ({
+        responseBytesBase64: '',
+        responseMetadata: {},
+        response_metadata: {
+          'x-nimi-route-describe-result': 'route-describe-payload',
+        },
+      }),
+    },
+    event: { listen: () => () => {} },
+  });
+
+  try {
+    const transport = createTauriIpcTransport({ type: 'tauri-ipc' });
+    await transport.invokeUnary({
+      methodId: 'test',
+      request: new Uint8Array(0),
+      metadata: {} as RuntimeUnaryCall['metadata'],
+      _responseMetadataObserver: (meta) => { observedMeta = meta; },
+    });
+    assert.deepEqual(observedMeta, {
+      'x-nimi-route-describe-result': 'route-describe-payload',
+    });
+  } finally {
+    restoreTauri();
+  }
+});
+
 // ---------------------------------------------------------------------------
 // tauri-ipc: stream open returns empty streamId
 // ---------------------------------------------------------------------------

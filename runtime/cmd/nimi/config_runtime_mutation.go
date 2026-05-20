@@ -56,6 +56,9 @@ func applyConfigSetOperation(cfg *config.FileConfig, key string, value string) e
 	case "dataRootRef":
 		cfg.DataRootRef = value
 		return nil
+	case "appRegistryPath":
+		cfg.AppRegistryPath = value
+		return nil
 	case "managedRoots.models":
 		ensureManagedRootsConfig(cfg).Models = value
 		return nil
@@ -166,6 +169,15 @@ func applyConfigSetOperation(cfg *config.FileConfig, key string, value string) e
 	case "auth.jwt.revocationUrl":
 		ensureAuthJWTConfig(cfg).RevocationURL = value
 		return nil
+	case "auth.account.realmBaseUrl":
+		ensureAuthAccountConfig(cfg).RealmBaseURL = value
+		return nil
+	case "auth.account.authorizationUrl":
+		ensureAuthAccountConfig(cfg).AuthorizationURL = value
+		return nil
+	case "auth.account.tokenUrl":
+		ensureAuthAccountConfig(cfg).TokenURL = value
+		return nil
 	case "engines.llama.enabled":
 		parsed, err := parseBooleanConfigValue(value)
 		if err != nil {
@@ -257,6 +269,9 @@ func applyConfigUnsetOperation(cfg *config.FileConfig, key string) error {
 	case "dataRootRef":
 		cfg.DataRootRef = defaultCfg.DataRootRef
 		return nil
+	case "appRegistryPath":
+		cfg.AppRegistryPath = defaultCfg.AppRegistryPath
+		return nil
 	case "managedRoots.models":
 		ensureManagedRootsConfig(cfg).Models = ""
 		pruneEmptyManagedRootsConfig(cfg)
@@ -330,6 +345,18 @@ func applyConfigUnsetOperation(cfg *config.FileConfig, key string) error {
 		return nil
 	case "auth.jwt.revocationUrl":
 		ensureAuthJWTConfig(cfg).RevocationURL = ""
+		pruneEmptyAuthConfig(cfg)
+		return nil
+	case "auth.account.realmBaseUrl":
+		ensureAuthAccountConfig(cfg).RealmBaseURL = ""
+		pruneEmptyAuthConfig(cfg)
+		return nil
+	case "auth.account.authorizationUrl":
+		ensureAuthAccountConfig(cfg).AuthorizationURL = ""
+		pruneEmptyAuthConfig(cfg)
+		return nil
+	case "auth.account.tokenUrl":
+		ensureAuthAccountConfig(cfg).TokenURL = ""
 		pruneEmptyAuthConfig(cfg)
 		return nil
 	case "engines.llama.enabled":

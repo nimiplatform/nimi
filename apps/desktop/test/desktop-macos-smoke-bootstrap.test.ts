@@ -108,3 +108,14 @@ test('desktop macos smoke renderer sources include mounted ping markers', () => 
   assert.match(live2dViewportSource, /webglcontextrestored/);
   assert.match(live2dViewportSource, /action:live2d-model-rebuilt/);
 });
+
+test('desktop macos smoke DOM driver forwards step callbacks to the scenario runner', () => {
+  const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+  const driverSource = fs.readFileSync(
+    path.join(root, 'src/shell/renderer/infra/bootstrap/desktop-macos-smoke-driver-deps.ts'),
+    'utf8',
+  );
+
+  assert.match(driverSource, /onStepStart:\s*options\.onStepStart/);
+  assert.match(driverSource, /isReportOpen:\s*options\.isReportOpen/);
+});

@@ -37,7 +37,8 @@ const FILES = {
   avatarLaunchContextTs: 'apps/avatar/src/shell/renderer/bridge/launch-context.ts',
   avatarLaunchContextRust: 'apps/avatar/src-tauri/src/avatar_launch_context.rs',
   desktopLauncher: 'apps/desktop/src/shell/renderer/bridge/runtime-bridge/chat-agent-avatar-launcher.ts',
-  desktopPresentation: 'apps/desktop/src/shell/renderer/features/chat/chat-agent-shell-presentation.tsx',
+  desktopLocalAvatarControls: 'apps/desktop/src/shell/renderer/features/chat/chat-agent-shell-local-avatar-controls.ts',
+  desktopSmokeAvatarEvidence: 'apps/desktop/src/shell/renderer/infra/bootstrap/desktop-macos-smoke-avatar-evidence.ts',
   desktopRustPayload: 'apps/desktop/src-tauri/src/main_parts/mod.rs',
   desktopRustHandoff: 'apps/desktop/src-tauri/src/main_parts/defaults_and_commands/window_and_logs.rs',
   desktopLaunchTest: 'apps/desktop/test/chat-agent-avatar-launcher.test.ts',
@@ -337,7 +338,7 @@ requireIncludes(FILES.desktopLauncher, [
   'const launchSource = normalizeOptionalString(input.launchSource) ?? normalizeOptionalString(input.sourceSurface);',
 ]);
 
-const desktopPresentation = read(FILES.desktopPresentation);
+const desktopLocalAvatarControls = read(FILES.desktopLocalAvatarControls);
 for (const needle of [
   'validateAgentCenterAvatarAsset',
   "'agent-center-avatar-asset-validation'",
@@ -346,18 +347,25 @@ for (const needle of [
 ]) {
   const relPath = needle === 'desktop_agent_center_avatar_asset_validate'
     ? 'apps/desktop/src/shell/renderer/bridge/runtime-bridge/chat-agent-center-local-config-store.ts'
-    : FILES.desktopPresentation;
+    : FILES.desktopLocalAvatarControls;
   requireIncludes(relPath, [needle]);
 }
-const desktopLaunchCall = desktopPresentation.match(/launchDesktopAvatarHandoff\(\{(?<body>[\s\S]*?)\n {6}\}\)/u)?.groups?.body || '';
+const desktopLaunchCall = desktopLocalAvatarControls.match(/launchDesktopAvatarHandoff\(\{(?<body>[\s\S]*?)\n {6}\}\)/u)?.groups?.body || '';
 if (!desktopLaunchCall.includes('agentId: input.activeTarget.localAgentRef')) {
-  fail(`${FILES.desktopPresentation} Avatar launch call must pass local-agent ref through the agentId selector`);
+  fail(`${FILES.desktopLocalAvatarControls} Avatar launch call must pass local-agent ref through the agentId selector`);
 }
 for (const field of ['ownerUserId', 'realmAgentId', 'localAgentRef', 'conversationAnchorId', 'sourceSurface']) {
   if (new RegExp(`\\b${field}\\s*:`, 'u').test(desktopLaunchCall)) {
-    fail(`${FILES.desktopPresentation} Avatar launch call must not pass ${field}`);
+    fail(`${FILES.desktopLocalAvatarControls} Avatar launch call must not pass ${field}`);
   }
 }
+
+requireIncludes(FILES.desktopSmokeAvatarEvidence, [
+  'localAssetResolvedBeforeModelLoad',
+  'localAssetResolvedBeforeVisibleFrame',
+  'avatar.visual.local-asset-resolved',
+  'avatar.model.load',
+]);
 
 const desktopRustPayload = read(FILES.desktopRustPayload);
 const desktopRustLaunchStruct = desktopRustPayload.match(/pub\(crate\) struct DesktopAvatarLaunchHandoffPayload \{(?<body>[\s\S]*?)\n\}/u)?.groups?.body || '';

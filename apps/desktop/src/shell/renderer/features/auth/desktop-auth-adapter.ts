@@ -21,6 +21,7 @@ import {
   toCheckEmailResponseDto,
   toOAuthLoginResultDto,
 } from './auth-session-utils.js';
+import { validateRuntimeOAuthAuthorizationUrl } from './desktop-runtime-oauth-url.js';
 
 export const desktopOAuthBridge: TauriOAuthBridge = {
   hasTauriInvoke: () => desktopBridge.hasTauriInvoke(),
@@ -60,6 +61,7 @@ export function createDesktopRuntimeAccountBrowserBroker() {
       if (!response.accepted || !response.loginAttemptId || !response.oauthAuthorizationUrl || !response.state || !response.nonce) {
         throw new Error(`Runtime account login could not start: ${String(response.accountReasonCode || response.reasonCode || 'unknown')}`);
       }
+      const authorizationUrl = validateRuntimeOAuthAuthorizationUrl(response.oauthAuthorizationUrl);
       // R-OAUTH / K-ACCSVC-008: the kit MUST drive the user agent to the
       // realm OAuth authorize endpoint that runtime constructed (with
       // PKCE S256 challenge bound to runtime-held verifier). Rebuilding the
@@ -67,7 +69,7 @@ export function createDesktopRuntimeAccountBrowserBroker() {
       // shape and de-bind PKCE.
       return {
         loginAttemptId: response.loginAttemptId,
-        authorizationUrl: response.oauthAuthorizationUrl,
+        authorizationUrl,
         state: response.state,
         nonce: response.nonce,
       };

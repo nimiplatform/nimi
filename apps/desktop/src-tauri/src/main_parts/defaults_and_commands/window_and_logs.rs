@@ -28,7 +28,10 @@ fn normalize_required_handoff_value(value: &str, field: &str) -> Result<String, 
     Ok(normalized.to_string())
 }
 
-fn normalize_required_local_agent_handoff_value(value: &str, field: &str) -> Result<String, String> {
+fn normalize_required_local_agent_handoff_value(
+    value: &str,
+    field: &str,
+) -> Result<String, String> {
     let normalized = normalize_required_handoff_value(value, field)?;
     let rest = normalized
         .strip_prefix(LOCAL_AGENT_REF_PREFIX)
@@ -183,7 +186,11 @@ fn open_avatar_handoff_binary(uri: &str) -> Result<(), String> {
 
 fn avatar_runtime_env_pairs() -> Result<Vec<(&'static str, String)>, String> {
     let defaults = runtime_defaults()?;
+    let nimi_data_root = crate::desktop_paths::resolve_nimi_data_dir()?
+        .display()
+        .to_string();
     let mut pairs = vec![
+        ("NIMI_DATA_ROOT", nimi_data_root),
         (
             "NIMI_LOCAL_PROVIDER_ENDPOINT",
             defaults.runtime.local_provider_endpoint,

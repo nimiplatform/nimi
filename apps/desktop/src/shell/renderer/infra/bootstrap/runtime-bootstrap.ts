@@ -240,22 +240,6 @@ export function bootstrapRuntime(): Promise<void> {
     let bootstrapRuntimeConfigWarning: string | null = null;
     if (desktopBridge.hasTauriInvoke()) {
       try {
-        const runtimeStorageDirs = await desktopBridge.getRuntimeModStorageDirs();
-        const preserveMacosSmokeRuntimeStatePath =
-          macosSmokeContext.scenarioId === 'chat.live2d-avatar-product-smoke';
-        daemonStatus = await syncRuntimeLocalModelsConfig({
-          daemonStatus,
-          dataRootPath: runtimeStorageDirs.nimiDataDir,
-          localModelsPath: runtimeStorageDirs.localModelsDir,
-          localStatePath: preserveMacosSmokeRuntimeStatePath
-            ? undefined
-            : runtimeStorageDirs.localRuntimeStatePath,
-          bridge: {
-            getRuntimeBridgeConfig: () => desktopBridge.getRuntimeBridgeConfig(),
-            setRuntimeBridgeConfig: (configJson: string) => desktopBridge.setRuntimeBridgeConfig(configJson),
-            restartRuntimeBridge: () => desktopBridge.restartRuntimeBridge(),
-          },
-        });
         daemonStatus = await syncRuntimeJwtConfig({
           daemonStatus,
           realmDefaults: defaults.realm,
@@ -278,6 +262,41 @@ export function bootstrapRuntime(): Promise<void> {
           flowId,
           details: {
             error: bootstrapRuntimeConfigWarning,
+            step: 'runtime account auth config sync',
+          },
+        });
+      }
+      try {
+        const runtimeStorageDirs = await desktopBridge.getRuntimeModStorageDirs();
+        const preserveMacosSmokeRuntimeStatePath =
+          macosSmokeContext.scenarioId === 'chat.live2d-avatar-product-smoke';
+        daemonStatus = await syncRuntimeLocalModelsConfig({
+          daemonStatus,
+          dataRootPath: runtimeStorageDirs.nimiDataDir,
+          localModelsPath: runtimeStorageDirs.localModelsDir,
+          localStatePath: preserveMacosSmokeRuntimeStatePath
+            ? undefined
+            : runtimeStorageDirs.localRuntimeStatePath,
+          bridge: {
+            getRuntimeBridgeConfig: () => desktopBridge.getRuntimeBridgeConfig(),
+            setRuntimeBridgeConfig: (configJson: string) => desktopBridge.setRuntimeBridgeConfig(configJson),
+            restartRuntimeBridge: () => desktopBridge.restartRuntimeBridge(),
+          },
+        });
+        runtimeUnavailable = runtimeDaemonUnavailable(daemonStatus);
+      } catch (error) {
+        if (isRuntimeConfigManualRestartRequiredError(error)) {
+          throw error;
+        }
+        bootstrapRuntimeConfigWarning = safeErrorMessage(error);
+        logRendererEvent({
+          level: 'warn',
+          area: 'renderer-bootstrap',
+          message: 'phase:runtime-config-sync:degraded',
+          flowId,
+          details: {
+            error: bootstrapRuntimeConfigWarning,
+            step: 'runtime local storage config sync',
           },
         });
       }

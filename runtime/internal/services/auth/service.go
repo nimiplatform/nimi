@@ -235,6 +235,12 @@ func (s *Service) checkNimiAppRegistryEligibility(appID string) (runtimev1.Reaso
 }
 
 func (s *Service) checkFirstPartyMigrationGate(appID string) (runtimev1.ReasonCode, string, bool) {
+	if s.nimiApps != nil {
+		if app, err := s.nimiApps.FindByID(normalizeNimiAppRegistryID(appID)); err == nil &&
+			app.AdmissionStatus == appregistrycatalog.AdmissionStatusAdmitted {
+			return runtimev1.ReasonCode_ACTION_EXECUTED, "registry-admitted", true
+		}
+	}
 	if s.migrations == nil {
 		return runtimev1.ReasonCode_ACTION_EXECUTED, "", true
 	}

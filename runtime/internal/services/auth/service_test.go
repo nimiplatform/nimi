@@ -130,6 +130,16 @@ func testNimiAppRegistryCatalog() *appregistrycatalog.Registry {
 	}
 }
 
+func testNimiAppRegistryCatalogWithAvatarAdmitted() *appregistrycatalog.Registry {
+	registry := testNimiAppRegistryCatalog()
+	for index := range registry.Apps {
+		if registry.Apps[index].AppID == "nimi.avatar" {
+			registry.Apps[index].AdmissionStatus = appregistrycatalog.AdmissionStatusAdmitted
+		}
+	}
+	return registry
+}
+
 func TestAppSessionLifecycle(t *testing.T) {
 	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)))
 	ctx := context.Background()
@@ -275,6 +285,18 @@ func TestRegisterAppChecksNimiAppRegistryProjection(t *testing.T) {
 	}
 	if avatarResp.GetReasonCode() != runtimev1.ReasonCode_APP_AUTHORIZATION_DENIED {
 		t.Fatalf("unexpected avatar reason code: %v", avatarResp.GetReasonCode())
+	}
+
+	svc.SetNimiAppRegistryCatalog(testNimiAppRegistryCatalogWithAvatarAdmitted())
+	admittedAvatarResp, err := svc.RegisterApp(context.Background(), &runtimev1.RegisterAppRequest{
+		AppId:        "nimi.avatar",
+		ModeManifest: validFullAppModeManifest(),
+	})
+	if err != nil {
+		t.Fatalf("register admitted avatar: %v", err)
+	}
+	if !admittedAvatarResp.GetAccepted() {
+		t.Fatalf("expected internal admitted Avatar row to register, reason=%v", admittedAvatarResp.GetReasonCode())
 	}
 }
 

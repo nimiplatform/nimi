@@ -37,11 +37,10 @@ var (
 )
 
 // CheckCallerEligibility evaluates whether the given app_id is eligible
-// for caller registration + launch. Registry admission alone is not
-// executable readiness: admitted ordinary-visible rows still fail closed
-// with app-install-required until descriptor-backed install verification
-// is available; gated_by_avatar_master_gate, pending_wave_4, deferred, and
-// retired rows all fail closed.
+// for Runtime caller registration. Ordinary-visible apps still require the
+// app install path before launch; hidden/internal admitted first-party rows
+// are already bound to bundled release descriptors and may register with
+// Runtime while remaining absent from ordinary Apps projection.
 func (r *Registry) CheckCallerEligibility(appID string) (CallerEligibility, error) {
 	if appID == "" {
 		return CallerEligibility{}, fmt.Errorf("appregistrycatalog CheckCallerEligibility: %w", ErrEligibilityAppIDRequired)
@@ -81,8 +80,8 @@ func (r *Registry) CheckCallerEligibility(appID string) (CallerEligibility, erro
 	case AdmissionStatusAdmitted:
 		if app.OrdinaryVisibility != OrdinaryVisibilityOrdinaryVisible {
 			return CallerEligibility{
-				Eligible: false,
-				Reason:   string(EligibilityReasonNotOrdinaryVisible),
+				Eligible: true,
+				Reason:   string(EligibilityReasonOK),
 			}, nil
 		}
 		return CallerEligibility{

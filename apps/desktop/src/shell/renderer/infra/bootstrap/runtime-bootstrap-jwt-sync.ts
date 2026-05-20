@@ -31,12 +31,15 @@ export function mergeRuntimeJwtConfig(
   const currentConfig = asRecord(baseConfig);
   const currentAuth = asRecord(currentConfig.auth);
   const currentJwt = asRecord(currentAuth.jwt);
+  const currentAccount = asRecord(currentAuth.account);
 
+  const nextRealmBaseUrl = normalize(realmDefaults.realmBaseUrl);
   const nextIssuer = normalize(realmDefaults.jwtIssuer);
   const nextAudience = normalize(realmDefaults.jwtAudience);
   const nextJwksUrl = normalize(realmDefaults.jwksUrl);
   const nextRevocationUrl = normalize(realmDefaults.revocationUrl);
 
+  const currentRealmBaseUrl = normalize(currentAccount.realmBaseUrl);
   const currentIssuer = normalize(currentJwt.issuer);
   const currentAudience = normalize(currentJwt.audience);
   const currentJwksUrl = normalize(currentJwt.jwksUrl);
@@ -45,7 +48,8 @@ export function mergeRuntimeJwtConfig(
   const changed = currentIssuer !== nextIssuer
     || currentAudience !== nextAudience
     || currentJwksUrl !== nextJwksUrl
-    || currentRevocationUrl !== nextRevocationUrl;
+    || currentRevocationUrl !== nextRevocationUrl
+    || currentRealmBaseUrl !== nextRealmBaseUrl;
 
   if (!changed) {
     return {
@@ -59,6 +63,10 @@ export function mergeRuntimeJwtConfig(
       ...currentConfig,
       auth: {
         ...currentAuth,
+        account: {
+          ...currentAccount,
+          realmBaseUrl: nextRealmBaseUrl,
+        },
         jwt: {
           ...currentJwt,
           issuer: nextIssuer,

@@ -196,6 +196,8 @@ export function createDomDriverDeps(options: DesktopMacosSmokeDriverDepsOptions 
   };
 
   return {
+    onStepStart: options.onStepStart,
+    isReportOpen: options.isReportOpen,
     async waitForTestId(id: string, timeoutMs = SMOKE_STEP_TIMEOUT_MS) {
       const deadline = Date.now() + timeoutMs;
       while (Date.now() < deadline) {
@@ -276,7 +278,7 @@ export function createDomDriverDeps(options: DesktopMacosSmokeDriverDepsOptions 
     },
     async clearAgentConversationAnchorBindings() {
       clearAllAgentConversationAnchorBindings();
-      await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+      await new Promise<void>((resolve) => setTimeout(resolve, 0));
     },
     async configureRuntimeTextRoute() {
       const scopeRef = getActiveScope();
@@ -308,6 +310,15 @@ export function createDomDriverDeps(options: DesktopMacosSmokeDriverDepsOptions 
         refreshConversationCapabilityProjections(['text.generate']),
         SMOKE_STEP_TIMEOUT_MS,
       );
+      const projection = useAppStore.getState().conversationCapabilityProjectionByCapability['text.generate'] || null;
+      if (!projection?.supported || !projection.resolvedBinding) {
+        throw new Error(
+          'Runtime text route projection unavailable after smoke configuration'
+          + `; reason=${projection?.reasonCode || 'missing_projection'}`
+          + `; selected=${JSON.stringify(projection?.selectedBinding || null)}`
+          + `; health=${JSON.stringify(projection?.health || null)}`,
+        );
+      }
     },
     async verifyRuntimeConversationAnchor(input) {
       const auth = useAppStore.getState().auth;

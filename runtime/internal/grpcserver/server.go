@@ -118,8 +118,10 @@ func New(cfg config.Config, state *health.State, logger *slog.Logger, version st
 	authSvc.SetNimiAppRegistryCatalog(nimiAppRegistry)
 	authSvc.SetFirstPartyMigrationLaunchGate(defaultFirstPartyMigrationLaunchGate())
 	accountSvc := accountservice.NewProduction(logger, accountservice.ProductionConfig{
-		RealmBaseURL: cfg.AuthJWTIssuer,
-		AppRegistry:  appRegistry,
+		RealmBaseURL:     cfg.AccountRealmBaseURL,
+		AuthorizationURL: cfg.AccountAuthorizationURL,
+		TokenURL:         cfg.AccountTokenURL,
+		AppRegistry:      appRegistry,
 	})
 
 	// AuthN validator — JWKS mode (K-AUTHN-004)

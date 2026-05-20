@@ -299,20 +299,15 @@ function DesktopFirstRunGate() {
 
 function ReadyDesktopShell() {
   const activeTab = useAppStore((state) => state.activeTab);
-  const chatMode = useAppStore((state) => state.chatMode);
   const setActiveTab = useAppStore((state) => state.setActiveTab);
-  const setChatMode = useAppStore((state) => state.setChatMode);
 
   useEffect(() => {
-    if (chatMode !== 'ai') {
-      setChatMode('ai');
-    }
     if (activeTab !== 'chat') {
       setActiveTab('chat');
     }
-  }, [activeTab, chatMode, setActiveTab, setChatMode]);
+  }, [activeTab, setActiveTab]);
 
-  if (activeTab !== 'chat' || chatMode !== 'ai') {
+  if (activeTab !== 'chat') {
     return <LoadingScreen />;
   }
 

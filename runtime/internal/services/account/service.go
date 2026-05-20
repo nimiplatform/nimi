@@ -3,7 +3,6 @@ package account
 import (
 	"context"
 	"errors"
-	"fmt"
 	"strings"
 	"time"
 
@@ -90,13 +89,11 @@ func (s *Service) BeginLogin(ctx context.Context, req *runtimev1.BeginLoginReque
 	if s.state == runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_LOGIN_PENDING {
 		for _, record := range s.loginAttempts {
 			if !record.consumed && record.attempt.ExpiresAt.After(now) {
-				authorizationURL := fmt.Sprintf("https://auth.nimi.invalid/oauth/authorize?state=%s&challenge=%s", record.attempt.State, record.attempt.PKCEChallenge)
-				if provider, ok := s.exchanger.(LoginAuthorizationURLProvider); ok {
-					if resolved := provider.AuthorizationURL(record.attempt); resolved != "" {
-						authorizationURL = resolved
-					}
-				}
+				authorizationURL, ok := s.authorizationURLForAttempt(record.attempt)
 				s.mu.RUnlock()
+				if !ok {
+					return s.loginExchangeUnavailableResponse(), nil
+				}
 				return &runtimev1.BeginLoginResponse{
 					Accepted:              true,
 					LoginAttemptId:        record.attempt.LoginAttemptID,
@@ -134,11 +131,9 @@ func (s *Service) BeginLogin(ctx context.Context, req *runtimev1.BeginLoginReque
 		ExpiresAt:      now.Add(ttl),
 	}
 	attempt.PKCEChallenge = pkceChallenge(attempt.PKCEVerifier)
-	authorizationURL := fmt.Sprintf("https://auth.nimi.invalid/oauth/authorize?state=%s&challenge=%s", attempt.State, attempt.PKCEChallenge)
-	if provider, ok := s.exchanger.(LoginAuthorizationURLProvider); ok {
-		if resolved := provider.AuthorizationURL(attempt); resolved != "" {
-			authorizationURL = resolved
-		}
+	authorizationURL, ok := s.authorizationURLForAttempt(attempt)
+	if !ok {
+		return s.loginExchangeUnavailableResponse(), nil
 	}
 
 	s.mu.Lock()
@@ -162,6 +157,26 @@ func (s *Service) BeginLogin(ctx context.Context, req *runtimev1.BeginLoginReque
 		ReasonCode:            runtimev1.ReasonCode_ACTION_EXECUTED,
 		AccountReasonCode:     runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED,
 	}, nil
+}
+
+func (s *Service) authorizationURLForAttempt(attempt LoginAttempt) (string, bool) {
+	provider, ok := s.exchanger.(LoginAuthorizationURLProvider)
+	if !ok {
+		return "", false
+	}
+	resolved := strings.TrimSpace(provider.AuthorizationURL(attempt))
+	if resolved == "" {
+		return "", false
+	}
+	return resolved, true
+}
+
+func (s *Service) loginExchangeUnavailableResponse() *runtimev1.BeginLoginResponse {
+	return &runtimev1.BeginLoginResponse{
+		Accepted:          false,
+		ReasonCode:        commonReason(runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_LOGIN_EXCHANGE_UNAVAILABLE),
+		AccountReasonCode: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_LOGIN_EXCHANGE_UNAVAILABLE,
+	}
 }
 
 func (s *Service) CompleteLogin(ctx context.Context, req *runtimev1.CompleteLoginRequest) (*runtimev1.CompleteLoginResponse, error) {

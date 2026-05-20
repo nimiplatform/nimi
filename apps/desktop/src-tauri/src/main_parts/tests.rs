@@ -237,7 +237,10 @@ fn runtime_config_deep_links_only_accept_known_pages() {
         Some("data-management"),
     );
     assert_eq!(normalize_runtime_config_page_id(Some("mods")), None);
-    assert_eq!(normalize_runtime_config_page_id(Some("mod-developer")), None);
+    assert_eq!(
+        normalize_runtime_config_page_id(Some("mod-developer")),
+        None
+    );
     assert_eq!(normalize_runtime_config_page_id(Some("danger-zone")), None);
     assert_eq!(normalize_runtime_config_page_id(Some("../runtime")), None);
 }

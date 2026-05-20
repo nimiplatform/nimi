@@ -4,6 +4,7 @@ mod avatar_evidence_projection;
 mod avatar_instance_projection;
 mod avatar_instance_registry;
 mod avatar_launch_context;
+mod avatar_paths;
 mod avatar_visual_commands;
 #[cfg(test)]
 use agent_center_avatar_asset::AgentCenterAvatarAssetResolvePayload;

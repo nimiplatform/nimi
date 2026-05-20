@@ -76,15 +76,30 @@ func mergeFileConfigWithDefaults(raw config.FileConfig) config.FileConfig {
 	if raw.SessionTTLMaxSeconds != nil {
 		merged.SessionTTLMaxSeconds = raw.SessionTTLMaxSeconds
 	}
+	if v := strings.TrimSpace(raw.AppRegistryPath); v != "" {
+		merged.AppRegistryPath = v
+	}
 	if raw.Auth != nil && raw.Auth.JWT != nil {
-		merged.Auth = &config.FileConfigAuth{
-			JWT: &config.FileConfigJWT{
-				Issuer:        strings.TrimSpace(raw.Auth.JWT.Issuer),
-				Audience:      strings.TrimSpace(raw.Auth.JWT.Audience),
-				JWKSURL:       strings.TrimSpace(raw.Auth.JWT.JWKSURL),
-				RevocationURL: strings.TrimSpace(raw.Auth.JWT.RevocationURL),
-			},
+		if merged.Auth == nil {
+			merged.Auth = &config.FileConfigAuth{}
 		}
+		merged.Auth.JWT = &config.FileConfigJWT{
+			Issuer:        strings.TrimSpace(raw.Auth.JWT.Issuer),
+			Audience:      strings.TrimSpace(raw.Auth.JWT.Audience),
+			JWKSURL:       strings.TrimSpace(raw.Auth.JWT.JWKSURL),
+			RevocationURL: strings.TrimSpace(raw.Auth.JWT.RevocationURL),
+		}
+	}
+	if raw.Auth != nil && raw.Auth.Account != nil {
+		if merged.Auth == nil {
+			merged.Auth = &config.FileConfigAuth{}
+		}
+		merged.Auth.Account = &config.FileConfigAccount{
+			RealmBaseURL:     strings.TrimSpace(raw.Auth.Account.RealmBaseURL),
+			AuthorizationURL: strings.TrimSpace(raw.Auth.Account.AuthorizationURL),
+			TokenURL:         strings.TrimSpace(raw.Auth.Account.TokenURL),
+		}
+		pruneEmptyAuthConfig(&merged)
 	}
 	if raw.Providers != nil {
 		mergedProviders := map[string]config.RuntimeFileTarget{}
@@ -111,6 +126,10 @@ func cloneFileConfig(fileCfg config.FileConfig) config.FileConfig {
 		if fileCfg.Auth.JWT != nil {
 			jwtCopy := *fileCfg.Auth.JWT
 			cloned.Auth.JWT = &jwtCopy
+		}
+		if fileCfg.Auth.Account != nil {
+			accountCopy := *fileCfg.Auth.Account
+			cloned.Auth.Account = &accountCopy
 		}
 	}
 	if fileCfg.Providers != nil {

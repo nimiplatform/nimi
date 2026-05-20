@@ -606,8 +606,8 @@ test('desktop macos smoke live2d avatar product scenario waits for same-anchor A
   const report = writtenReports[0] as Record<string, unknown>;
   assert.equal(report.ok, true);
   assert.deepEqual(report.steps, [
-    'wait-chat-panel',
     'verify-runtime-account-projection',
+    'wait-chat-panel',
     'clear-stale-anchor-bindings',
     'select-agent-target',
     'wait-agent-target-selected',
@@ -813,8 +813,8 @@ test('desktop macos smoke live2d avatar local asset missing scenario requires ty
   const report = writtenReports[0] as Record<string, unknown>;
   assert.equal(report.ok, true);
   assert.deepEqual(report.steps, [
-    'wait-chat-panel',
     'verify-runtime-account-projection',
+    'wait-chat-panel',
     'clear-stale-anchor-bindings',
     'select-agent-target',
     'wait-agent-target-selected',
@@ -948,6 +948,78 @@ test('desktop macos smoke live2d avatar product scenario fails without local Ava
   assert.match(String(writtenReports[0]?.errorMessage || ''), /visual:true/);
 });
 
+test('desktop macos smoke avatar carrier evidence reports pre-anchor runtime bind failure detail', async () => {
+  const writtenReports: Array<Record<string, unknown>> = [];
+
+  await assert.rejects(
+    runDesktopMacosSmokeScenario('chat.live2d-avatar-product-smoke', createBaseDriver({
+      avatarCarrierEvidenceTimeoutMs: 1,
+      async readLocalStorageItem() {
+        return JSON.stringify([{
+          threadId: 'agent-thread-1',
+          localAgentRef: 'local-agent:user-e2e-primary:agent-e2e-alpha',
+          conversationAnchorId: 'anchor-1',
+          updatedAtMs: Date.now(),
+        }]);
+      },
+      async listAvatarLiveInstances(agentId) {
+        assert.equal(agentId, 'local-agent:user-e2e-primary:agent-e2e-alpha');
+        return [{
+          avatarInstanceId: 'desktop-avatar-agent-e2e-alpha-anchor-1',
+          ownerUserId: 'desktop-smoke',
+          realmAgentId: 'agent-e2e-alpha',
+          localAgentRef: 'local-agent:user-e2e-primary:agent-e2e-alpha',
+          launchSource: 'desktop-agent-chat',
+        }];
+      },
+      async readAvatarEvidence(avatarInstanceId) {
+        assert.equal(avatarInstanceId, 'desktop-avatar-agent-e2e-alpha-anchor-1');
+        return {
+          evidencePath: '/tmp/avatar-evidence-runtime-bind-failed.json',
+          evidence: {
+            records: [{
+              kind: 'avatar.runtime.bind-failed',
+              recordedAt: '2026-04-26T00:00:02.000Z',
+              detail: {
+                avatar_instance_id: 'desktop-avatar-agent-e2e-alpha-anchor-1',
+                agentId: 'local-agent:user-e2e-primary:agent-e2e-alpha',
+                runtime_app_id: 'nimi.avatar',
+                reason: 'platform_client: RUNTIME_CALL_FAILED / register_runtime_app_first',
+                error_stage: 'platform_client',
+                error_reason_code: 'RUNTIME_CALL_FAILED',
+                error_action_hint: 'register_runtime_app_first',
+                error_source: 'runtime',
+                error_retryable: false,
+                error_message: 'local first-party Runtime account caller registration rejected: 5',
+              },
+            }],
+          },
+        };
+      },
+      async writeReport(payload) {
+        writtenReports.push(payload as unknown as Record<string, unknown>);
+      },
+      currentRoute() {
+        return '/chat';
+      },
+      currentHtml() {
+        return '<html>avatar-product-runtime-bind-failed</html>';
+      },
+    })),
+    /Avatar Runtime consume failed before anchor binding/,
+  );
+
+  assert.equal(writtenReports.length, 1);
+  assert.equal(writtenReports[0]?.ok, false);
+  assert.equal(writtenReports[0]?.failedStep, 'wait-avatar-carrier-evidence');
+  assert.match(String(writtenReports[0]?.errorMessage || ''), /register_runtime_app_first/);
+  assert.match(String(writtenReports[0]?.errorMessage || ''), /local first-party Runtime account caller registration rejected: 5/);
+  const details = writtenReports[0]?.details as { avatarCarrierEvidence?: { bindFailure?: Record<string, unknown> } };
+  assert.equal(details.avatarCarrierEvidence?.bindFailure?.errorActionHint, 'register_runtime_app_first');
+  assert.equal(details.avatarCarrierEvidence?.bindFailure?.errorMessage, 'local first-party Runtime account caller registration rejected: 5');
+  assert.equal(details.avatarCarrierEvidence?.bindFailure?.runtimeAppId, 'nimi.avatar');
+});
+
 test('desktop macos smoke avatar carrier evidence requires human-visible artifact metadata', async () => {
   await assert.rejects(
     waitForAvatarCarrierEvidence(createBaseDriver({
@@ -1011,6 +1083,62 @@ test('desktop macos smoke avatar carrier evidence requires human-visible artifac
       },
     }), 'avatar-instance-1', 'anchor-1', 1),
     /visual:true visualArtifact:false/,
+  );
+});
+
+test('desktop macos smoke avatar carrier evidence requires local asset resolution before model and visual evidence', async () => {
+  await assert.rejects(
+    waitForAvatarCarrierEvidence(createBaseDriver({
+      async readAvatarEvidence() {
+        return {
+          evidencePath: '/tmp/avatar-evidence.json',
+          evidence: {
+            records: [
+              {
+                kind: 'avatar.startup.runtime-bound',
+                recordedAt: '2026-04-26T00:00:00.000Z',
+                conversationAnchorId: 'anchor-1',
+                detail: { conversation_anchor_id: 'anchor-1' },
+              },
+              {
+                kind: 'avatar.runtime.consume-ready',
+                recordedAt: '2026-04-26T00:00:01.000Z',
+                conversationAnchorId: 'anchor-1',
+                detail: { conversation_anchor_id: 'anchor-1' },
+              },
+              {
+                kind: 'avatar.model.load',
+                recordedAt: '2026-04-26T00:00:02.000Z',
+                detail: {
+                  conversation_anchor_id: 'anchor-1',
+                  model_id: 'ren',
+                  backend_kind: 'live2d',
+                  backend_metadata: {
+                    model_kind: 'live2d',
+                    hit_region_default: {
+                      body: { left: 0, top: 0, right: 1, bottom: 1 },
+                      drag: { left: 0, top: 0, right: 1, bottom: 1 },
+                    },
+                  },
+                },
+              },
+              {
+                kind: 'avatar.carrier.visual',
+                recordedAt: '2026-04-26T00:00:03.000Z',
+                detail: {
+                  conversation_anchor_id: 'anchor-1',
+                  lifecycle: 'mounted',
+                  source: 'live2d-carrier-surface',
+                },
+              },
+              createAvatarCarrierVisualReadyRecord('2026-04-26T00:00:04.000Z'),
+              createAvatarLocalAssetResolvedRecord('2026-04-26T00:00:05.000Z'),
+            ],
+          },
+        };
+      },
+    }), 'avatar-instance-1', 'anchor-1', 1),
+    /localAssetResolvedBeforeModelLoad:false/,
   );
 });
 

@@ -35,9 +35,10 @@ test('Gate 7: Desktop root route is guarded by auth and product ready_for_use', 
 
 test('Gate 7: ready Desktop shell lands at Chat -> Nimi Chat', () => {
   assert.match(uiSliceSource, /activeTab:\s*'chat'/);
+  assert.match(uiSliceSource, /chatMode:\s*'ai'/);
   assert.match(appRoutesSource, /function ReadyDesktopShell/);
-  assert.match(appRoutesSource, /setChatMode\('ai'\)/);
   assert.match(appRoutesSource, /setActiveTab\('chat'\)/);
+  assert.doesNotMatch(appRoutesSource, /setChatMode\('ai'\)/);
 });
 
 test('Gate 7: logged-out Desktop login no longer exposes back-to-chat or Runtime shortcuts', () => {

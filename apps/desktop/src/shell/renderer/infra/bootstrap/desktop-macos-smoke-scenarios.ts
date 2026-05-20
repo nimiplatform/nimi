@@ -34,6 +34,16 @@ const E2E_PRIMARY_LOCAL_AGENT_REF = `local-agent:user-e2e-primary:${E2E_PRIMARY_
 const E2E_PRIMARY_AGENT_TARGET_ID = E2E_IDS.chatTarget(E2E_PRIMARY_LOCAL_AGENT_REF);
 const AVATAR_PRODUCT_LIVE_INSTANCE_TIMEOUT_MS = 45_000;
 
+function smokeDetailsFromError(error: unknown): Record<string, unknown> | undefined {
+  if (!error || typeof error !== 'object' || Array.isArray(error)) {
+    return undefined;
+  }
+  const details = (error as { smokeDetails?: unknown }).smokeDetails;
+  return details && typeof details === 'object' && !Array.isArray(details)
+    ? details as Record<string, unknown>
+    : undefined;
+}
+
 async function waitForAvatarLiveInstance(
   deps: DesktopMacosSmokeDriverDeps,
   realmAgentId: string,
@@ -231,10 +241,10 @@ export async function runDesktopMacosSmokeScenario(
         throw new Error('tester.speech-bundle-panels is blocked: AI Tester is not an ordinary primary navigation entry in the Product/UI alignment cut');
 
       case 'chat.live2d-avatar-product-smoke': {
-        record('wait-chat-panel');
-        await deps.waitForTestId(E2E_IDS.panel('chat'));
         record('verify-runtime-account-projection');
         await deps.verifyRuntimeAccountProjection();
+        record('wait-chat-panel');
+        await deps.waitForTestId(E2E_IDS.panel('chat'));
         record('clear-stale-anchor-bindings');
         await deps.clearAgentConversationAnchorBindings();
         record('select-agent-target');
@@ -323,10 +333,10 @@ export async function runDesktopMacosSmokeScenario(
       }
 
       case 'chat.live2d-avatar-local-asset-missing-smoke': {
-        record('wait-chat-panel');
-        await deps.waitForTestId(E2E_IDS.panel('chat'));
         record('verify-runtime-account-projection');
         await deps.verifyRuntimeAccountProjection();
+        record('wait-chat-panel');
+        await deps.waitForTestId(E2E_IDS.panel('chat'));
         record('clear-stale-anchor-bindings');
         await deps.clearAgentConversationAnchorBindings();
         record('select-agent-target');
@@ -707,6 +717,7 @@ export async function runDesktopMacosSmokeScenario(
   } catch (error) {
     const live2dStats = (error as Live2dVisiblePixelsTimeoutError | null | undefined)?.live2dStats;
     const vrmStats = (error as VrmVisiblePixelsTimeoutError | null | undefined)?.vrmStats;
+    const smokeDetails = smokeDetailsFromError(error);
     await deps.writeReport({
       ok: false,
       failedStep: steps[steps.length - 1] || 'bootstrap',
@@ -721,7 +732,7 @@ export async function runDesktopMacosSmokeScenario(
         ? { live2d: { failureSnapshot: toLive2dCanvasStatsReport(live2dStats) } }
         : vrmStats
           ? { vrm: { failureSnapshot: toVrmCanvasStatsReport(vrmStats) } }
-          : undefined,
+          : smokeDetails,
     });
     throw error;
   }

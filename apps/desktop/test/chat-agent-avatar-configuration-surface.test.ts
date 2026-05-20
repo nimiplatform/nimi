@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { resolveAvatarComposerActionState } from '../src/shell/renderer/features/chat/chat-agent-shell-local-avatar-controls';
 
 const repoRoot = join(import.meta.dirname, '..');
 
@@ -81,12 +82,30 @@ test('Agent Chat composer Avatar launch fails closed without local asset and bac
     join(repoRoot, 'src/shell/renderer/features/chat/chat-agent-shell-local-avatar-controls.ts'),
     'utf8',
   );
-  const actionState = presentationSource.match(/const avatarComposerActionState(?:: AvatarComposerActionState)? = avatarActionPending[\s\S]*?: 'ready_stopped';/u);
-  assert.ok(actionState, 'avatarComposerActionState must stay visible to the guard');
-  assert.match(actionState[0], /!avatarConfigured/u);
-  assert.match(actionState[0], /'not_configured'/u);
-  assert.match(actionState[0], /!avatarAssetValid/u);
-  assert.match(actionState[0], /'local_asset_invalid'/u);
+  assert.equal(resolveAvatarComposerActionState({
+    avatarActionPending: false,
+    avatarHandoffReady: true,
+    avatarRuntimeAccountReady: true,
+    avatarRunning: false,
+    avatarConfigured: false,
+    avatarAssetValid: false,
+  }), 'not_configured');
+  assert.equal(resolveAvatarComposerActionState({
+    avatarActionPending: false,
+    avatarHandoffReady: true,
+    avatarRuntimeAccountReady: true,
+    avatarRunning: false,
+    avatarConfigured: true,
+    avatarAssetValid: false,
+  }), 'local_asset_invalid');
+  assert.equal(resolveAvatarComposerActionState({
+    avatarActionPending: false,
+    avatarHandoffReady: true,
+    avatarRuntimeAccountReady: true,
+    avatarRunning: false,
+    avatarConfigured: true,
+    avatarAssetValid: true,
+  }), 'ready_stopped');
 
   const invalidEvidenceGuard = presentationSource.match(/if \(!avatarRunning && !avatarAssetValid\) \{[\s\S]*?\n {4}\}/u);
   assert.ok(invalidEvidenceGuard, 'Avatar launch must guard resolver and backend evidence before handoff');

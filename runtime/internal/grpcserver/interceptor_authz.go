@@ -131,6 +131,9 @@ func protectedCapabilityForUnary(fullMethod string, req any) (string, bool) {
 	case "/nimi.runtime.v1.RuntimeModelService/RemoveModel":
 		return "runtime.model.remove", true
 	case "/nimi.runtime.v1.RuntimeAiService/ExecuteScenario":
+		if isRouteDescribeExecuteScenarioRequest(req) {
+			return "", false
+		}
 		return "ai.spend.meter", true
 	case "/nimi.runtime.v1.RuntimeAiService/SubmitScenarioJob":
 		return "ai.spend.meter", true
@@ -287,6 +290,59 @@ func protectedCapabilityForUnary(fullMethod string, req any) (string, bool) {
 	default:
 		return "", false
 	}
+}
+
+func isRouteDescribeExecuteScenarioRequest(req any) bool {
+	executeReq, ok := req.(*runtimev1.ExecuteScenarioRequest)
+	if !ok || executeReq == nil {
+		return false
+	}
+	expectedNamespace := routeDescribeExtensionNamespaceForScenarioType(executeReq.GetScenarioType())
+	if expectedNamespace == "" {
+		return false
+	}
+	matched := false
+	for _, extension := range executeReq.GetExtensions() {
+		if !isMatchingRouteDescribeProbeExtension(extension, expectedNamespace) {
+			return false
+		}
+		if matched {
+			return false
+		}
+		matched = true
+	}
+	return matched
+}
+
+func routeDescribeExtensionNamespaceForScenarioType(scenarioType runtimev1.ScenarioType) string {
+	switch scenarioType {
+	case runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE:
+		return "nimi.scenario.text_generate.route_describe"
+	case runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE:
+		return "nimi.scenario.speech_synthesize.route_describe"
+	case runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE:
+		return "nimi.scenario.speech_transcribe.route_describe"
+	case runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE:
+		return "nimi.scenario.voice_clone.route_describe"
+	case runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN:
+		return "nimi.scenario.voice_design.route_describe"
+	default:
+		return ""
+	}
+}
+
+func isMatchingRouteDescribeProbeExtension(extension *runtimev1.ScenarioExtension, expectedNamespace string) bool {
+	if extension == nil || strings.TrimSpace(extension.GetNamespace()) != expectedNamespace {
+		return false
+	}
+	payload := extension.GetPayload()
+	if payload == nil {
+		return false
+	}
+	fields := payload.GetFields()
+	version := strings.TrimSpace(fields["version"].GetStringValue())
+	resolvedBindingRef := strings.TrimSpace(fields["resolvedBindingRef"].GetStringValue())
+	return version == "v1" && resolvedBindingRef != ""
 }
 
 func protectedCapabilityForStream(fullMethod string, req any) (string, bool) {

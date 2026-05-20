@@ -1,5 +1,15 @@
 import type { DesktopMacosSmokeDriverDeps } from './desktop-macos-smoke-shared';
 
+export class AvatarCarrierEvidenceFailureError extends Error {
+  readonly smokeDetails: Record<string, unknown>;
+
+  constructor(message: string, smokeDetails: Record<string, unknown>) {
+    super(message);
+    this.name = 'AvatarCarrierEvidenceFailureError';
+    this.smokeDetails = smokeDetails;
+  }
+}
+
 function readEvidenceRecords(evidence: Record<string, unknown>): Array<Record<string, unknown>> {
   return Array.isArray(evidence.records)
     ? evidence.records.filter((item): item is Record<string, unknown> => Boolean(item && typeof item === 'object' && !Array.isArray(item)))
@@ -36,9 +46,77 @@ function recordConversationAnchorId(record: Record<string, unknown>): string {
   ).trim();
 }
 
+function recordAvatarInstanceId(record: Record<string, unknown>): string {
+  const detail = recordDetail(record);
+  const consume = recordConsume(record);
+  return String(
+    record.avatarInstanceId
+    || record.avatar_instance_id
+    || consume.avatarInstanceId
+    || consume.avatar_instance_id
+    || detail.avatar_instance_id
+    || detail.avatarInstanceId
+    || '',
+  ).trim();
+}
+
 function recordTimeMs(record: Record<string, unknown>): number {
   const value = typeof record.recordedAt === 'string' ? Date.parse(record.recordedAt) : NaN;
   return Number.isFinite(value) ? value : 0;
+}
+
+function compactRuntimeBindFailure(record: Record<string, unknown>): Record<string, unknown> {
+  const detail = recordDetail(record);
+  return {
+    kind: recordKind(record),
+    recordedAt: typeof record.recordedAt === 'string' ? record.recordedAt : null,
+    conversationAnchorId: recordConversationAnchorId(record) || null,
+    avatarInstanceId: recordAvatarInstanceId(record) || null,
+    agentId: typeof detail.agentId === 'string' ? detail.agentId : null,
+    runtimeAppId: typeof detail.runtime_app_id === 'string' ? detail.runtime_app_id : null,
+    reason: typeof detail.reason === 'string' ? detail.reason : null,
+    errorMessage: typeof detail.error_message === 'string' ? detail.error_message : null,
+    errorStage: typeof detail.error_stage === 'string' ? detail.error_stage : null,
+    errorReasonCode: typeof detail.error_reason_code === 'string' ? detail.error_reason_code : null,
+    errorAccountReasonCode: typeof detail.error_account_reason_code === 'string' ? detail.error_account_reason_code : null,
+    errorActionHint: typeof detail.error_action_hint === 'string' ? detail.error_action_hint : null,
+    errorSource: typeof detail.error_source === 'string' ? detail.error_source : null,
+    errorRetryable: typeof detail.error_retryable === 'boolean' ? detail.error_retryable : null,
+  };
+}
+
+function describeRuntimeBindFailure(record: Record<string, unknown>): string {
+  const compact = compactRuntimeBindFailure(record);
+  return [
+    `reason=${String(compact.reason || 'unknown')}`,
+    `message=${String(compact.errorMessage || 'unknown')}`,
+    `stage=${String(compact.errorStage || 'unknown')}`,
+    `reasonCode=${String(compact.errorReasonCode || 'unknown')}`,
+    `accountReasonCode=${String(compact.errorAccountReasonCode || 'unknown')}`,
+    `actionHint=${String(compact.errorActionHint || 'unknown')}`,
+    `source=${String(compact.errorSource || 'unknown')}`,
+    `runtimeAppId=${String(compact.runtimeAppId || 'unknown')}`,
+    `avatarInstanceId=${String(compact.avatarInstanceId || 'unknown')}`,
+  ].join(' ');
+}
+
+function avatarCarrierEvidenceFailure(
+  message: string,
+  input: {
+    avatarInstanceId: string;
+    expectedConversationAnchorId: string;
+    evidencePath: string;
+    bindFailure: Record<string, unknown>;
+  },
+): AvatarCarrierEvidenceFailureError {
+  return new AvatarCarrierEvidenceFailureError(message, {
+    avatarCarrierEvidence: {
+      avatarInstanceId: input.avatarInstanceId,
+      expectedConversationAnchorId: input.expectedConversationAnchorId,
+      evidencePath: input.evidencePath,
+      bindFailure: compactRuntimeBindFailure(input.bindFailure),
+    },
+  });
 }
 
 function describeAvatarFailureRecord(record: Record<string, unknown>): string {
@@ -178,8 +256,31 @@ export async function waitForAvatarCarrierEvidence(
         && recordConversationAnchorId(record) === expectedConversationAnchorId
       )) || null;
       if (bindFailure) {
-        const detail = recordDetail(bindFailure);
-        throw new Error(`Avatar Runtime consume failed: ${String(detail.reason || detail.error_message || 'unknown bind failure')}`);
+        throw avatarCarrierEvidenceFailure(
+          `Avatar Runtime consume failed: ${describeRuntimeBindFailure(bindFailure)}`,
+          {
+            avatarInstanceId,
+            expectedConversationAnchorId,
+            evidencePath: result.evidencePath,
+            bindFailure,
+          },
+        );
+      }
+      const preAnchorBindFailure = recordsForCurrentStartup.find((record) => (
+        recordKind(record) === 'avatar.runtime.bind-failed'
+        && recordConversationAnchorId(record) === ''
+        && recordAvatarInstanceId(record) === avatarInstanceId
+      )) || null;
+      if (preAnchorBindFailure) {
+        throw avatarCarrierEvidenceFailure(
+          `Avatar Runtime consume failed before anchor binding: ${describeRuntimeBindFailure(preAnchorBindFailure)}`,
+          {
+            avatarInstanceId,
+            expectedConversationAnchorId,
+            evidencePath: result.evidencePath,
+            bindFailure: preAnchorBindFailure,
+          },
+        );
       }
       const terminalFailure = recordsForCurrentStartup.find((record) => {
         const kind = recordKind(record);
@@ -224,8 +325,26 @@ export async function waitForAvatarCarrierEvidence(
       const hitRegionDefault = hasLive2dHitRegionDefault(modelLoad);
       const live2dModelLoad = isLive2dModelLoadWithHitRegionDefault(modelLoad);
       const live2dLocalAssetResolved = isLive2dLocalAvatarAssetResolved(localAssetResolved);
+      const localAssetResolvedTime = localAssetResolved ? recordTimeMs(localAssetResolved) : 0;
+      const modelLoadTime = modelLoad ? recordTimeMs(modelLoad) : 0;
+      const visibleFrameTime = visibleFrame ? recordTimeMs(visibleFrame) : 0;
+      const localAssetResolvedBeforeModelLoad = localAssetResolvedTime > 0
+        && modelLoadTime > 0
+        && localAssetResolvedTime <= modelLoadTime;
+      const localAssetResolvedBeforeVisibleFrame = localAssetResolvedTime > 0
+        && visibleFrameTime > 0
+        && localAssetResolvedTime <= visibleFrameTime;
       const visualArtifact = hasHumanVisibleArtifact(visibleFrame);
-      if (startup && consumeReady && live2dLocalAssetResolved && live2dModelLoad && lifecycleMounted && visual) {
+      if (
+        startup
+        && consumeReady
+        && live2dLocalAssetResolved
+        && localAssetResolvedBeforeModelLoad
+        && localAssetResolvedBeforeVisibleFrame
+        && live2dModelLoad
+        && lifecycleMounted
+        && visual
+      ) {
         return {
           evidencePath: result.evidencePath,
           evidence: result.evidence,
@@ -240,10 +359,15 @@ export async function waitForAvatarCarrierEvidence(
       lastError = `anchor=${expectedConversationAnchorId} requirements=`
         + `startup:${Boolean(startup)} consumeReady:${Boolean(consumeReady)} localAssetResolved:${Boolean(localAssetResolved)} `
         + `live2dLocalAssetResolved:${live2dLocalAssetResolved} modelLoad:${Boolean(modelLoad)} `
+        + `localAssetResolvedBeforeModelLoad:${localAssetResolvedBeforeModelLoad} `
+        + `localAssetResolvedBeforeVisibleFrame:${localAssetResolvedBeforeVisibleFrame} `
         + `live2dModelLoad:${live2dModelLoad} hitRegionDefault:${hitRegionDefault} `
         + `lifecycleMounted:${Boolean(lifecycleMounted)} visual:${Boolean(visibleFrame)} visualArtifact:${visualArtifact} `
         + `records=${records.map((record) => `${recordKind(record)}:${recordConversationAnchorId(record) || 'no-anchor'}`).join(',') || 'none'}`;
     } catch (error) {
+      if (error instanceof AvatarCarrierEvidenceFailureError) {
+        throw error;
+      }
       lastError = error instanceof Error ? error.message : String(error || 'unknown evidence read error');
     }
     await new Promise((resolve) => setTimeout(resolve, 300));

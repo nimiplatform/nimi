@@ -10,6 +10,14 @@ func fileConfigJWTField(fileCfg FileConfig, getter func(*FileConfigJWT) string) 
 	return ""
 }
 
+// fileConfigAccountField extracts a string field from the optional FileConfig Auth Account section.
+func fileConfigAccountField(fileCfg FileConfig, getter func(*FileConfigAccount) string) string {
+	if fileCfg.Auth != nil && fileCfg.Auth.Account != nil {
+		return getter(fileCfg.Auth.Account)
+	}
+	return ""
+}
+
 func isCanonicalProviderName(raw string) bool {
 	trimmed := strings.TrimSpace(raw)
 	if trimmed == "" {

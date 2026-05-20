@@ -21,6 +21,9 @@ func restartRequiredFieldsChanged(before, after config.FileConfig) bool {
 	if strings.TrimSpace(before.DataRootRef) != strings.TrimSpace(after.DataRootRef) {
 		return true
 	}
+	if strings.TrimSpace(before.AppRegistryPath) != strings.TrimSpace(after.AppRegistryPath) {
+		return true
+	}
 	if !fileConfigManagedRootsEqual(before.ManagedRoots, after.ManagedRoots) {
 		return true
 	}
@@ -43,6 +46,15 @@ func restartRequiredFieldsChanged(before, after config.FileConfig) bool {
 		return true
 	}
 	if authJWTFieldValue(before, func(jwtCfg *config.FileConfigJWT) string { return jwtCfg.RevocationURL }) != authJWTFieldValue(after, func(jwtCfg *config.FileConfigJWT) string { return jwtCfg.RevocationURL }) {
+		return true
+	}
+	if authAccountFieldValue(before, func(accountCfg *config.FileConfigAccount) string { return accountCfg.RealmBaseURL }) != authAccountFieldValue(after, func(accountCfg *config.FileConfigAccount) string { return accountCfg.RealmBaseURL }) {
+		return true
+	}
+	if authAccountFieldValue(before, func(accountCfg *config.FileConfigAccount) string { return accountCfg.AuthorizationURL }) != authAccountFieldValue(after, func(accountCfg *config.FileConfigAccount) string { return accountCfg.AuthorizationURL }) {
+		return true
+	}
+	if authAccountFieldValue(before, func(accountCfg *config.FileConfigAccount) string { return accountCfg.TokenURL }) != authAccountFieldValue(after, func(accountCfg *config.FileConfigAccount) string { return accountCfg.TokenURL }) {
 		return true
 	}
 	if !runtimeProvidersEqual(before.Providers, after.Providers) {
@@ -70,6 +82,13 @@ func authJWTFieldValue(fileCfg config.FileConfig, selector func(*config.FileConf
 		return ""
 	}
 	return strings.TrimSpace(selector(fileCfg.Auth.JWT))
+}
+
+func authAccountFieldValue(fileCfg config.FileConfig, selector func(*config.FileConfigAccount) string) string {
+	if fileCfg.Auth == nil || fileCfg.Auth.Account == nil {
+		return ""
+	}
+	return strings.TrimSpace(selector(fileCfg.Auth.Account))
 }
 
 func intPtrValue(p *int) int {

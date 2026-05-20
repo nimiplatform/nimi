@@ -20,6 +20,27 @@ func TestCheckCallerEligibility_ParentOSInstallRequired(t *testing.T) {
 	}
 }
 
+func TestCheckCallerEligibility_InternalAdmittedAppCanRegisterRuntimeCaller(t *testing.T) {
+	yaml := strings.NewReplacer(
+		"admission_status: gated_by_avatar_master_gate", "admission_status: admitted",
+		"ordinary_visibility: hidden-internal", "ordinary_visibility: hidden-internal",
+	).Replace(sampleRegistryYAML)
+	r, err := LoadRegistry(strings.NewReader(yaml))
+	if err != nil {
+		t.Fatalf("LoadRegistry: %v", err)
+	}
+	result, err := r.CheckCallerEligibility("nimi.avatar")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !result.Eligible {
+		t.Fatalf("internal admitted Avatar should be eligible for Runtime caller registration, reason=%q", result.Reason)
+	}
+	if result.Reason != string(EligibilityReasonOK) {
+		t.Errorf("reason = %q, want %q", result.Reason, EligibilityReasonOK)
+	}
+}
+
 func TestCheckCallerEligibility_AvatarBlockedByMasterGate(t *testing.T) {
 	r, _ := LoadRegistry(strings.NewReader(sampleRegistryYAML))
 	result, err := r.CheckCallerEligibility("nimi.avatar")

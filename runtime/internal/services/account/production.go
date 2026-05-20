@@ -70,7 +70,7 @@ type realmTokenRefresher struct {
 
 func NewProduction(logger *slog.Logger, cfg ProductionConfig) *Service {
 	resolved := resolveProductionConfig(cfg)
-	if strings.TrimSpace(resolved.RealmBaseURL) == "" && logger != nil {
+	if strings.TrimSpace(resolved.AuthorizationURL) == "" && logger != nil {
 		logger.Warn("runtime account production activation has no Realm auth base URL; login exchange will fail closed")
 	}
 	return New(logger,
@@ -124,7 +124,7 @@ func resolveProductionConfig(cfg ProductionConfig) ProductionConfig {
 	}
 	return ProductionConfig{
 		RealmBaseURL:     realmBaseURL,
-		AuthorizationURL: strings.TrimSpace(authorizationURL),
+		AuthorizationURL: normalizeOAuthAuthorizeEndpoint(authorizationURL),
 		TokenURL:         strings.TrimSpace(tokenURL),
 		ClientID:         strings.TrimSpace(clientID),
 		RedirectURI:      strings.TrimSpace(redirectURI),
@@ -402,6 +402,42 @@ func (r realmOAuthExchanger) AuthorizationURL(attempt LoginAttempt) string {
 	q.Set("state", attempt.State)
 	u.RawQuery = q.Encode()
 	u.Fragment = ""
+	return u.String()
+}
+
+func normalizeOAuthAuthorizeEndpoint(raw string) string {
+	value := strings.TrimSpace(raw)
+	if value == "" {
+		return ""
+	}
+	if strings.Contains(value, "desktop_callback=") ||
+		strings.Contains(value, "desktop_state=") ||
+		strings.Contains(value, "#/login") {
+		return ""
+	}
+	u, err := url.Parse(value)
+	if err != nil {
+		return ""
+	}
+	if u.Scheme != "https" && u.Scheme != "http" {
+		return ""
+	}
+	if strings.TrimSpace(u.Host) == "" {
+		return ""
+	}
+	if strings.EqualFold(u.Hostname(), "auth.nimi.invalid") {
+		return ""
+	}
+	if u.Fragment != "" {
+		return ""
+	}
+	if !strings.HasSuffix(strings.TrimRight(u.EscapedPath(), "/"), "/oauth/authorize") {
+		return ""
+	}
+	q := u.Query()
+	if q.Has("desktop_callback") || q.Has("desktop_state") {
+		return ""
+	}
 	return u.String()
 }
 

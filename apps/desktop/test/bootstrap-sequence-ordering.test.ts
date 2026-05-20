@@ -298,14 +298,24 @@ describe('bootstrap sequence ordering (D-BOOT)', () => {
     );
   });
 
-  test('D-BOOT-016: runtime local models config sync runs before runtime jwt sync', () => {
+  test('D-BOOT-016: runtime account auth config sync is independent of product data storage sync', () => {
     const localModelsSyncIndex = bootstrapSource.indexOf('syncRuntimeLocalModelsConfig({');
     const jwtSyncIndex = bootstrapSource.indexOf('syncRuntimeJwtConfig({');
     assert.ok(localModelsSyncIndex !== -1, 'syncRuntimeLocalModelsConfig({ must appear in bootstrap source');
     assert.ok(jwtSyncIndex !== -1, 'syncRuntimeJwtConfig({ must appear in bootstrap source');
     assert.ok(
-      localModelsSyncIndex < jwtSyncIndex,
-      'runtime local models config sync must run before runtime jwt sync',
+      jwtSyncIndex < localModelsSyncIndex,
+      'runtime account auth config sync must run before product data storage sync can degrade',
+    );
+    assert.match(
+      bootstrapSource,
+      /step:\s*'runtime account auth config sync'/,
+      'account auth config sync degradation must be identified separately',
+    );
+    assert.match(
+      bootstrapSource,
+      /step:\s*'runtime local storage config sync'/,
+      'local storage config sync degradation must not mask account auth sync',
     );
   });
 });

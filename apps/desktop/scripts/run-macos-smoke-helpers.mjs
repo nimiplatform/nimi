@@ -26,6 +26,7 @@ export {
   runtimeProductSmokeTauriFixture,
   seedAvatarProductSmokeAgentCenterConfig,
   withAgentPresentationProfile,
+  writeAvatarProductSmokeAppRegistryProjection,
 } from './run-macos-smoke-avatar-product.mjs';
 export const VRM_SAMPLE_CATALOG = {
   'chat.vrm-lifecycle-smoke': {

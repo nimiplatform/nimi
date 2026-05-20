@@ -28,6 +28,7 @@ type StreamOpenResponse = {
 type UnaryResponse = {
   responseBytesBase64: string;
   responseMetadata?: Record<string, string>;
+  response_metadata?: Record<string, string>;
 };
 
 type StreamEventEnvelope = {
@@ -217,6 +218,23 @@ function asObject(value: unknown): Record<string, unknown> {
   return value as Record<string, unknown>;
 }
 
+function normalizeResponseMetadata(response: Partial<UnaryResponse>): Record<string, string> | null {
+  const candidates = [response.responseMetadata, response.response_metadata];
+  for (const metadata of candidates) {
+    if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) {
+      continue;
+    }
+    if (Object.keys(metadata).length > 0) {
+      return metadata;
+    }
+  }
+  const metadata = candidates.find((item) => item && typeof item === 'object' && !Array.isArray(item));
+  if (!metadata) {
+    return null;
+  }
+  return metadata;
+}
+
 function toBase64(bytes: Uint8Array): string {
   if (typeof Buffer !== 'undefined') {
     return Buffer.from(bytes).toString('base64');
@@ -317,11 +335,9 @@ export function createTauriIpcTransport(
           });
         }
         const observer = input._responseMetadataObserver || internalConfig._responseMetadataObserver;
-        if (observer && response.responseMetadata) {
-          const meta = response.responseMetadata;
-          if (typeof meta === 'object' && Object.keys(meta).length > 0) {
-            observer(meta);
-          }
+        const meta = normalizeResponseMetadata(response);
+        if (observer && meta && Object.keys(meta).length > 0) {
+          observer(meta);
         }
         return fromBase64(response.responseBytesBase64);
       } catch (error) {

@@ -321,7 +321,7 @@ func TestProductionActivationCodeStateExchangeCustodyAndTokenProjection(t *testi
 	defer func() { authServer.Close() }()
 	exchanger := newRealmOAuthExchanger(resolveProductionConfig(ProductionConfig{
 		RealmBaseURL:     authServer.URL,
-		AuthorizationURL: authServer.URL + "/authorize",
+		AuthorizationURL: authServer.URL + "/api/auth/oauth/authorize",
 		TokenURL:         authServer.URL + "/token",
 		ClientID:         "desktop-test",
 		RedirectURI:      "http://localhost/callback",
@@ -393,6 +393,71 @@ func TestProductionActivationCodeStateExchangeCustodyAndTokenProjection(t *testi
 	}
 	if !token.GetAccepted() || token.GetAccessToken() != "access-prod" {
 		t.Fatalf("Runtime token projection mismatch: %+v", token)
+	}
+}
+
+func TestProductionBeginLoginMissingOAuthAuthorityFailsClosed(t *testing.T) {
+	t.Setenv("NIMI_RUNTIME_ACCOUNT_AUTHORIZATION_URL", "")
+	t.Setenv("NIMI_RUNTIME_ACCOUNT_REALM_BASE_URL", "")
+	t.Setenv("NIMI_RUNTIME_ACCOUNT_TOKEN_URL", "")
+	t.Setenv("NIMI_REALM_URL", "")
+	exchanger := newRealmOAuthExchanger(resolveProductionConfig(ProductionConfig{
+		ClientID:    "desktop-test",
+		RedirectURI: "http://localhost:46373/oauth/callback",
+		HTTPClient:  http.DefaultClient,
+	}))
+	svc := newProductionHarnessService(t, &memoryCustody{}, WithLoginExchanger(exchanger))
+	begin, err := svc.BeginLogin(context.Background(), &runtimev1.BeginLoginRequest{
+		Caller:      firstPartyCaller(),
+		RedirectUri: "http://localhost:46373/oauth/callback",
+	})
+	if err != nil {
+		t.Fatalf("BeginLogin: %v", err)
+	}
+	if begin.GetAccepted() {
+		t.Fatalf("missing OAuth authority must not be accepted: %+v", begin)
+	}
+	if begin.GetAccountReasonCode() != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_LOGIN_EXCHANGE_UNAVAILABLE {
+		t.Fatalf("reason = %v, want LOGIN_EXCHANGE_UNAVAILABLE", begin.GetAccountReasonCode())
+	}
+	if strings.Contains(begin.GetOauthAuthorizationUrl(), "auth.nimi.invalid") {
+		t.Fatalf("sentinel URL must not be returned on fail-closed begin: %+v", begin)
+	}
+	if svc.currentState() == runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_LOGIN_PENDING {
+		t.Fatalf("missing OAuth authority must not create a pending login attempt")
+	}
+}
+
+func TestProductionBeginLoginSentinelOAuthAuthorityFailsClosed(t *testing.T) {
+	t.Setenv("NIMI_RUNTIME_ACCOUNT_AUTHORIZATION_URL", "")
+	t.Setenv("NIMI_RUNTIME_ACCOUNT_REALM_BASE_URL", "")
+	t.Setenv("NIMI_RUNTIME_ACCOUNT_TOKEN_URL", "")
+	t.Setenv("NIMI_REALM_URL", "")
+	exchanger := newRealmOAuthExchanger(resolveProductionConfig(ProductionConfig{
+		AuthorizationURL: "https://auth.nimi.invalid/oauth/authorize",
+		ClientID:         "desktop-test",
+		RedirectURI:      "http://localhost:46373/oauth/callback",
+		HTTPClient:       http.DefaultClient,
+	}))
+	svc := newProductionHarnessService(t, &memoryCustody{}, WithLoginExchanger(exchanger))
+	begin, err := svc.BeginLogin(context.Background(), &runtimev1.BeginLoginRequest{
+		Caller:      firstPartyCaller(),
+		RedirectUri: "http://localhost:46373/oauth/callback",
+	})
+	if err != nil {
+		t.Fatalf("BeginLogin: %v", err)
+	}
+	if begin.GetAccepted() {
+		t.Fatalf("sentinel OAuth authority must not be accepted: %+v", begin)
+	}
+	if begin.GetAccountReasonCode() != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_LOGIN_EXCHANGE_UNAVAILABLE {
+		t.Fatalf("reason = %v, want LOGIN_EXCHANGE_UNAVAILABLE", begin.GetAccountReasonCode())
+	}
+	if strings.Contains(begin.GetOauthAuthorizationUrl(), "auth.nimi.invalid") {
+		t.Fatalf("sentinel URL must not be returned on fail-closed begin: %+v", begin)
+	}
+	if svc.currentState() == runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_LOGIN_PENDING {
+		t.Fatalf("sentinel OAuth authority must not create a pending login attempt")
 	}
 }
 
@@ -530,8 +595,8 @@ func TestProductionAuthorizationURLEmitsPKCEOauthShape(t *testing.T) {
 			authorizationURL: "https://realm.nimi.test/api/auth/oauth/authorize?audience=desktop",
 		},
 		{
-			name:             "legacy fragment in config is stripped",
-			authorizationURL: "https://realm.nimi.test/api/auth/oauth/authorize#/login",
+			name:             "explicit staging override",
+			authorizationURL: "https://override.nimi.test/oauth/authorize",
 		},
 	}
 	for _, tc := range cases {
@@ -587,10 +652,46 @@ func TestProductionAuthorizationURLEmitsPKCEOauthShape(t *testing.T) {
 				t.Fatalf("pre-existing query param must be preserved, got %q", raw)
 			}
 			// Path segment from config must be preserved.
-			if !strings.HasPrefix(raw, "https://realm.nimi.test/api/auth/oauth/authorize") {
+			if parsed.Path != "/api/auth/oauth/authorize" && parsed.Path != "/oauth/authorize" {
 				t.Fatalf("authorize URL must preserve configured path, got %q", raw)
 			}
 		})
+	}
+}
+
+func TestProductionAuthorizationURLRejectsLegacyOverrideShape(t *testing.T) {
+	for _, raw := range []string{
+		"https://realm.nimi.test/api/auth/oauth/authorize#/login",
+		"https://realm.nimi.test/login?desktop_callback=http%3A%2F%2Flocalhost",
+		"https://realm.nimi.test/api/auth/oauth/authorize?desktop_state=state",
+		"https://auth.nimi.invalid/oauth/authorize",
+	} {
+		t.Run(raw, func(t *testing.T) {
+			resolved := resolveProductionConfig(ProductionConfig{
+				AuthorizationURL: raw,
+				ClientID:         "nimi-desktop",
+				RedirectURI:      "http://127.0.0.1:34939/oauth/callback",
+				HTTPClient:       http.DefaultClient,
+			})
+			if resolved.AuthorizationURL != "" {
+				t.Fatalf("legacy override %q resolved to %q", raw, resolved.AuthorizationURL)
+			}
+		})
+	}
+}
+
+func TestProductionAuthorizationURLRejectsSentinelEnvOverride(t *testing.T) {
+	t.Setenv("NIMI_RUNTIME_ACCOUNT_AUTHORIZATION_URL", "https://auth.nimi.invalid/oauth/authorize")
+	t.Setenv("NIMI_RUNTIME_ACCOUNT_REALM_BASE_URL", "")
+	t.Setenv("NIMI_REALM_URL", "")
+	resolved := resolveProductionConfig(ProductionConfig{
+		RealmBaseURL: "https://realm.nimi.test",
+		ClientID:     "nimi-desktop",
+		RedirectURI:  "http://127.0.0.1:34939/oauth/callback",
+		HTTPClient:   http.DefaultClient,
+	})
+	if resolved.AuthorizationURL != "" {
+		t.Fatalf("sentinel env override resolved to %q", resolved.AuthorizationURL)
 	}
 }
 

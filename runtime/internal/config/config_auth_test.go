@@ -87,6 +87,77 @@ func TestLoadAuthJWTEnvOverridesConfigFile(t *testing.T) {
 	}
 }
 
+func TestLoadAccountOAuthAuthorityFromConfigFile(t *testing.T) {
+	configPath := filepath.Join(t.TempDir(), "runtime-config.json")
+	configBody := `{
+  "schemaVersion": 1,
+  "auth": {
+    "account": {
+      "realmBaseUrl": "https://realm.nimi.ai",
+      "authorizationUrl": "https://realm.override.test/oauth/authorize",
+      "tokenUrl": "https://realm.override.test/oauth/token"
+    }
+  }
+}`
+	if err := os.WriteFile(configPath, []byte(configBody), 0o600); err != nil {
+		t.Fatalf("write config file: %v", err)
+	}
+
+	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", configPath)
+	clearRuntimeConfigEnv(t)
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load returned error: %v", err)
+	}
+	if cfg.AccountRealmBaseURL != "https://realm.nimi.ai" {
+		t.Fatalf("account realmBaseUrl mismatch: %q", cfg.AccountRealmBaseURL)
+	}
+	if cfg.AccountAuthorizationURL != "https://realm.override.test/oauth/authorize" {
+		t.Fatalf("account authorizationUrl mismatch: %q", cfg.AccountAuthorizationURL)
+	}
+	if cfg.AccountTokenURL != "https://realm.override.test/oauth/token" {
+		t.Fatalf("account tokenUrl mismatch: %q", cfg.AccountTokenURL)
+	}
+}
+
+func TestLoadAccountOAuthEnvOverridesConfigFile(t *testing.T) {
+	configPath := filepath.Join(t.TempDir(), "runtime-config.json")
+	configBody := `{
+  "schemaVersion": 1,
+  "auth": {
+    "account": {
+      "realmBaseUrl": "https://realm.config.test",
+      "authorizationUrl": "https://realm.config.test/oauth/authorize",
+      "tokenUrl": "https://realm.config.test/oauth/token"
+    }
+  }
+}`
+	if err := os.WriteFile(configPath, []byte(configBody), 0o600); err != nil {
+		t.Fatalf("write config file: %v", err)
+	}
+
+	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", configPath)
+	clearRuntimeConfigEnv(t)
+	t.Setenv("NIMI_RUNTIME_ACCOUNT_REALM_BASE_URL", "https://realm.env.test")
+	t.Setenv("NIMI_RUNTIME_ACCOUNT_AUTHORIZATION_URL", "https://realm.env.test/oauth/authorize")
+	t.Setenv("NIMI_RUNTIME_ACCOUNT_TOKEN_URL", "https://realm.env.test/oauth/token")
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load returned error: %v", err)
+	}
+	if cfg.AccountRealmBaseURL != "https://realm.env.test" {
+		t.Fatalf("account realm env override mismatch: %q", cfg.AccountRealmBaseURL)
+	}
+	if cfg.AccountAuthorizationURL != "https://realm.env.test/oauth/authorize" {
+		t.Fatalf("account authorization env override mismatch: %q", cfg.AccountAuthorizationURL)
+	}
+	if cfg.AccountTokenURL != "https://realm.env.test/oauth/token" {
+		t.Fatalf("account token env override mismatch: %q", cfg.AccountTokenURL)
+	}
+}
+
 func TestLoadRejectsInvalidIntegerEnvOverride(t *testing.T) {
 	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", filepath.Join(t.TempDir(), "missing-config.json"))
 	clearRuntimeConfigEnv(t)

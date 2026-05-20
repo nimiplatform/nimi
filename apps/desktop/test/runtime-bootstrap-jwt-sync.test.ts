@@ -33,13 +33,15 @@ function createDaemonStatus(overrides: Partial<RuntimeBridgeDaemonStatus> = {}):
   };
 }
 
-test('mergeRuntimeJwtConfig injects auth.jwt fields', () => {
+test('mergeRuntimeJwtConfig injects account realm and auth.jwt fields', () => {
   const realmDefaults = createRealmDefaults();
   const { nextConfig, changed } = mergeRuntimeJwtConfig({ schemaVersion: 1 }, realmDefaults);
 
   assert.equal(changed, true);
   const auth = (nextConfig.auth ?? {}) as Record<string, unknown>;
+  const account = (auth.account ?? {}) as Record<string, unknown>;
   const jwt = (auth.jwt ?? {}) as Record<string, unknown>;
+  assert.equal(account.realmBaseUrl, realmDefaults.realmBaseUrl);
   assert.equal(jwt.issuer, realmDefaults.jwtIssuer);
   assert.equal(jwt.audience, realmDefaults.jwtAudience);
   assert.equal(jwt.jwksUrl, realmDefaults.jwksUrl);
@@ -85,7 +87,9 @@ test('syncRuntimeJwtConfig restarts managed running daemon on CONFIG_RESTART_REQ
 
   const parsed = JSON.parse(writtenConfig) as Record<string, unknown>;
   const auth = (parsed.auth ?? {}) as Record<string, unknown>;
+  const account = (auth.account ?? {}) as Record<string, unknown>;
   const jwt = (auth.jwt ?? {}) as Record<string, unknown>;
+  assert.equal(account.realmBaseUrl, realmDefaults.realmBaseUrl);
   assert.equal(jwt.jwksUrl, realmDefaults.jwksUrl);
   assert.equal(jwt.issuer, realmDefaults.jwtIssuer);
   assert.equal(jwt.audience, realmDefaults.jwtAudience);
@@ -179,6 +183,9 @@ test('syncRuntimeJwtConfig skips write when config already matches', async () =>
           config: {
             schemaVersion: 1,
             auth: {
+              account: {
+                realmBaseUrl: realmDefaults.realmBaseUrl,
+              },
               jwt: {
                 issuer: realmDefaults.jwtIssuer,
                 audience: realmDefaults.jwtAudience,

@@ -26,6 +26,25 @@ func ensureAuthJWTConfig(fileCfg *config.FileConfig) *config.FileConfigJWT {
 	return fileCfg.Auth.JWT
 }
 
+func ensureAuthAccountConfig(fileCfg *config.FileConfig) *config.FileConfigAccount {
+	if fileCfg == nil {
+		return &config.FileConfigAccount{}
+	}
+	if fileCfg.Auth == nil {
+		fileCfg.Auth = &config.FileConfigAuth{}
+	} else {
+		authCopy := *fileCfg.Auth
+		fileCfg.Auth = &authCopy
+	}
+	if fileCfg.Auth.Account == nil {
+		fileCfg.Auth.Account = &config.FileConfigAccount{}
+	} else {
+		accountCopy := *fileCfg.Auth.Account
+		fileCfg.Auth.Account = &accountCopy
+	}
+	return fileCfg.Auth.Account
+}
+
 func ensureManagedRootsConfig(fileCfg *config.FileConfig) *config.FileConfigManagedRoots {
 	if fileCfg == nil {
 		return &config.FileConfigManagedRoots{}
@@ -64,7 +83,14 @@ func pruneEmptyAuthConfig(fileCfg *config.FileConfig) {
 			fileCfg.Auth.JWT = nil
 		}
 	}
-	if fileCfg.Auth.JWT == nil {
+	if fileCfg.Auth.Account != nil {
+		if strings.TrimSpace(fileCfg.Auth.Account.RealmBaseURL) == "" &&
+			strings.TrimSpace(fileCfg.Auth.Account.AuthorizationURL) == "" &&
+			strings.TrimSpace(fileCfg.Auth.Account.TokenURL) == "" {
+			fileCfg.Auth.Account = nil
+		}
+	}
+	if fileCfg.Auth.JWT == nil && fileCfg.Auth.Account == nil {
 		fileCfg.Auth = nil
 	}
 }

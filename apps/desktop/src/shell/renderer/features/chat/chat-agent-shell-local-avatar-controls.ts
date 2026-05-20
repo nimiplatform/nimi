@@ -41,6 +41,27 @@ type AvatarComposerActionState =
   | 'local_asset_invalid'
   | 'ready_stopped';
 
+export function resolveAvatarComposerActionState(input: {
+  avatarActionPending: boolean;
+  avatarHandoffReady: boolean;
+  avatarRuntimeAccountReady: boolean;
+  avatarRunning: boolean;
+  avatarConfigured: boolean;
+  avatarAssetValid: boolean;
+}): AvatarComposerActionState {
+  return input.avatarActionPending
+    ? 'pending'
+    : !input.avatarHandoffReady || !input.avatarRuntimeAccountReady
+      ? 'unavailable'
+      : input.avatarRunning
+        ? 'running'
+        : !input.avatarConfigured
+          ? 'not_configured'
+          : !input.avatarAssetValid
+            ? 'local_asset_invalid'
+            : 'ready_stopped';
+}
+
 export function useAgentConversationLocalAvatarControls(input: UseAgentConversationPresentationInput) {
   const queryClient = useQueryClient();
   const agentCenterLocalConfigQuery = useQuery({
@@ -482,17 +503,14 @@ export function useAgentConversationLocalAvatarControls(input: UseAgentConversat
     input.onOpenAgentCenter,
     input.t,
   ]);
-  const avatarComposerActionState: AvatarComposerActionState = avatarActionPending
-    ? 'pending'
-    : !avatarHandoffReady || !avatarRuntimeAccountReady
-      ? 'unavailable'
-      : avatarRunning
-        ? 'running'
-        : !avatarConfigured
-          ? 'not_configured'
-          : !avatarAssetValid
-            ? 'local_asset_invalid'
-            : 'ready_stopped';
+  const avatarComposerActionState = resolveAvatarComposerActionState({
+    avatarActionPending,
+    avatarHandoffReady,
+    avatarRuntimeAccountReady,
+    avatarRunning,
+    avatarConfigured,
+    avatarAssetValid,
+  });
 
   return useMemo(() => ({
     backdropImageUrl,

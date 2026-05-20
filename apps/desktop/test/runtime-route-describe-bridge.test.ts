@@ -38,6 +38,7 @@ function unwrapPayload(payload: unknown): Record<string, unknown> {
 function installTauriRuntime(
   calls: TauriInvokeCall[],
   responseMetadata?: Record<string, string>,
+  responseMetadataKey: 'responseMetadata' | 'response_metadata' = 'responseMetadata',
 ): () => void {
   const target = globalThis as unknown as MutableGlobalTauri;
   const previousRoot = target.__NIMI_TAURI_TEST__;
@@ -50,7 +51,7 @@ function installTauriRuntime(
     });
     return {
       responseBytesBase64: '',
-      ...(responseMetadata ? { responseMetadata } : {}),
+      ...(responseMetadata ? { [responseMetadataKey]: responseMetadata } : {}),
     };
   };
 
@@ -135,6 +136,68 @@ test('describeRuntimeRouteMetadata decodes text.generate typed metadata from run
     assert.equal(requestText.includes('desktop-local-asset-1'), true);
     assert.equal(requestText.includes('runtime-local-asset-1'), true);
     assert.equal(requestText.includes('qwen3-chat'), true);
+  } finally {
+    clearPlatformClient();
+    restoreTauri();
+  }
+});
+
+test('describeRuntimeRouteMetadata preserves text.generate metadata from snake_case Tauri bridge payloads', async () => {
+  const calls: TauriInvokeCall[] = [];
+  const encoded = Buffer.from(JSON.stringify({
+    capability: 'text.generate',
+    metadataVersion: 'v1',
+    resolvedBindingRef: 'binding-local-snake-001',
+    metadataKind: 'text.generate',
+    metadata: {
+      supportsThinking: true,
+      traceModeSupport: 'separate',
+      supportsImageInput: false,
+      supportsAudioInput: false,
+      supportsVideoInput: false,
+      supportsArtifactRefInput: false,
+    },
+  }), 'utf8').toString('base64');
+  const restoreTauri = installTauriRuntime(calls, {
+    'x-nimi-route-describe-result': encoded,
+  }, 'response_metadata');
+
+  try {
+    clearPlatformClient();
+    await createPlatformClient({
+      authMode: 'external-principal',
+      realmBaseUrl: 'http://localhost:3002',
+      subjectUserIdProvider: () => 'subject-user-001',
+    });
+
+    const result = await describeRuntimeRouteMetadata({
+      modId: 'core:runtime',
+      capability: 'text.generate',
+      resolvedBindingRef: 'binding-local-snake-001',
+      resolvedBinding: {
+        capability: 'text.generate',
+        source: 'local',
+        provider: 'llama',
+        model: 'e2e-live2d-text-route',
+        modelId: 'e2e-live2d-text-route',
+        localModelId: 'local-e2e-live2d-text-route',
+        goRuntimeLocalModelId: 'local-e2e-live2d-text-route',
+        engine: 'llama',
+        connectorId: '',
+      },
+    });
+
+    assert.equal(result.metadataKind, 'text.generate');
+    assert.equal(result.metadata.supportsThinking, true);
+    assert.equal(result.metadata.traceModeSupport, 'separate');
+
+    const unaryCall = findRuntimeBridgeUnary(calls);
+    assert.ok(unaryCall);
+    const requestBytesBase64 = String(unaryCall?.payload.requestBytesBase64 || '').trim();
+    const requestText = Buffer.from(requestBytesBase64, 'base64').toString('utf8');
+    assert.equal(requestText.includes('nimi.scenario.text_generate.route_describe'), true);
+    assert.equal(requestText.includes('binding-local-snake-001'), true);
+    assert.equal(requestText.includes('local-e2e-live2d-text-route'), true);
   } finally {
     clearPlatformClient();
     restoreTauri();

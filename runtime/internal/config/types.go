@@ -95,6 +95,19 @@ type Config struct {
 	// endpoint consulted after successful JWT validation.
 	AuthJWTRevocationURL string
 
+	// AccountRealmBaseURL is the Realm API origin used by RuntimeAccountService
+	// to derive OAuth authorize/token endpoints. It is distinct from JWT issuer
+	// because deployments may use an issuer value that is not the API base URL.
+	AccountRealmBaseURL string
+
+	// AccountAuthorizationURL is an explicit RuntimeAccountService OAuth
+	// authorize endpoint override for staging/test environments.
+	AccountAuthorizationURL string
+
+	// AccountTokenURL is an explicit RuntimeAccountService OAuth token endpoint
+	// override for staging/test environments.
+	AccountTokenURL string
+
 	// Providers holds the parsed config.json providers section for cloud connector
 	// auto-registration at startup.
 	Providers map[string]RuntimeFileTarget
@@ -263,7 +276,8 @@ type FileConfigEngine struct {
 
 // FileConfigAuth holds JWT authentication configuration in the config file.
 type FileConfigAuth struct {
-	JWT *FileConfigJWT `json:"jwt,omitempty"`
+	JWT     *FileConfigJWT     `json:"jwt,omitempty"`
+	Account *FileConfigAccount `json:"account,omitempty"`
 }
 
 // FileConfigJWT holds JWT-specific authentication configuration.
@@ -272,6 +286,13 @@ type FileConfigJWT struct {
 	Audience      string `json:"audience,omitempty"`
 	JWKSURL       string `json:"jwksUrl,omitempty"`
 	RevocationURL string `json:"revocationUrl,omitempty"`
+}
+
+// FileConfigAccount holds RuntimeAccountService OAuth authority configuration.
+type FileConfigAccount struct {
+	RealmBaseURL     string `json:"realmBaseUrl,omitempty"`
+	AuthorizationURL string `json:"authorizationUrl,omitempty"`
+	TokenURL         string `json:"tokenUrl,omitempty"`
 }
 
 type RuntimeFileTarget struct {

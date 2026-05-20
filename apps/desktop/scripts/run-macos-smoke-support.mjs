@@ -46,6 +46,7 @@ import {
   waitForBackendLogPattern,
   waitForFixtureHealth,
   waitForReport,
+  writeAvatarProductSmokeAppRegistryProjection,
   writeAvatarProductRuntimeLocalState,
   writeJson,
   writeSyntheticFailureReport,
@@ -90,8 +91,14 @@ export async function runScenario({ scenarioId, runIndex, runRoot, timeoutMs }) 
   const avatarProductLive2dPackage = isAvatarProductScenario
     ? createAvatarProductSmokeLive2dPackage(artifactsDir, cubismSample)
     : null;
+  const avatarProductTauriFixture = isAvatarProductScenario
+    ? runtimeProductSmokeTauriFixture(baseProfile, scenarioId)
+    : null;
   const avatarProductAgentCenterConfig = isAvatarProductScenario
-    ? seedAvatarProductSmokeAgentCenterConfig(avatarProductLive2dPackage)
+    ? seedAvatarProductSmokeAgentCenterConfig(
+        avatarProductLive2dPackage,
+        avatarProductTauriFixture?.productControlRecord || null,
+      )
     : null;
   const avatarProductLocalAssetFaultPlan = scenarioId === LIVE2D_AVATAR_LOCAL_ASSET_MISSING_SMOKE_SCENARIO && avatarProductAgentCenterConfig
     ? {
@@ -114,7 +121,7 @@ export async function runScenario({ scenarioId, runIndex, runRoot, timeoutMs }) 
   const vrmSample = vrmSampleDefinition
     ? await ensureVrmSample(vrmSampleDefinition)
     : null;
-  const tauriFixture = runtimeProductSmokeTauriFixture(profile, scenarioId);
+  const tauriFixture = avatarProductTauriFixture || runtimeProductSmokeTauriFixture(profile, scenarioId);
   const avatarProductSmokeLaunchTarget = isAvatarProductScenario
     ? ensureAvatarProductSmokeLaunchTarget()
     : { appPath: '', binaryPath: '' };
@@ -134,6 +141,9 @@ export async function runScenario({ scenarioId, runIndex, runRoot, timeoutMs }) 
   const avatarProductRuntimeConfigPath = isAvatarProductScenario
     ? path.join(artifactsDir, 'runtime', 'config.json')
     : '';
+  const avatarProductAppRegistryProjection = isAvatarProductScenario
+    ? writeAvatarProductSmokeAppRegistryProjection(path.join(artifactsDir, 'runtime'))
+    : null;
   const avatarProductSmokeProvider = isAvatarProductScenario
     ? await startOpenAiCompatibleSmokeProvider()
     : null;
@@ -167,6 +177,7 @@ export async function runScenario({ scenarioId, runIndex, runRoot, timeoutMs }) 
       grpcAddr: runtimeGrpcAddr,
       httpAddr: runtimeHttpAddr,
       localStatePath: avatarProductRuntimeStatePath,
+      appRegistryPath: avatarProductAppRegistryProjection?.registryPath,
       auth: {
         jwt: {
           issuer: fixtureServer.origin,
@@ -230,6 +241,14 @@ export async function runScenario({ scenarioId, runIndex, runRoot, timeoutMs }) 
     runtime_config: avatarProductRuntimeConfigPath
       ? path.relative(repoRoot, avatarProductRuntimeConfigPath)
       : null,
+    runtime_app_registry_projection: avatarProductAppRegistryProjection
+      ? {
+          registry_path: path.relative(repoRoot, avatarProductAppRegistryProjection.registryPath),
+          release_descriptors_path: path.relative(repoRoot, avatarProductAppRegistryProjection.releaseDescriptorsPath),
+          avatar_admission_status: 'admitted',
+          avatar_ordinary_visibility: 'hidden-internal',
+        }
+      : null,
     runtime_grpc_addr: runtimeGrpcAddr || null,
     runtime_http_addr: runtimeHttpAddr || null,
     runtime_text_route_provider: avatarProductSmokeProvider
@@ -256,6 +275,7 @@ export async function runScenario({ scenarioId, runIndex, runRoot, timeoutMs }) 
       ? {
           config_path: path.relative(repoRoot, avatarProductAgentCenterConfig.configPath),
           package_dir: path.relative(repoRoot, avatarProductAgentCenterConfig.packageDir),
+          data_dir: avatarProductAgentCenterConfig.dataDir,
           account_id: avatarProductAgentCenterConfig.accountId,
           local_agent_ref: avatarProductAgentCenterConfig.localAgentRef,
           local_avatar_asset_ref: avatarProductAgentCenterConfig.avatarAssetRef,

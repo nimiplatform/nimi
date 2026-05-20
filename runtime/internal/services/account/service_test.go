@@ -77,6 +77,15 @@ func (s staticExchanger) Exchange(context.Context, LoginAttempt, string) (Accoun
 	return s.material, nil
 }
 
+func (s staticExchanger) AuthorizationURL(attempt LoginAttempt) string {
+	u := "https://realm.test/api/auth/oauth/authorize?response_type=code&client_id=nimi-desktop"
+	u += "&redirect_uri=http%3A%2F%2Flocalhost%3A46373%2Fauth%2Fcallback"
+	u += "&code_challenge=" + attempt.PKCEChallenge
+	u += "&code_challenge_method=S256"
+	u += "&state=" + attempt.State
+	return u
+}
+
 type staticRefresher struct {
 	material AccountMaterial
 	err      error

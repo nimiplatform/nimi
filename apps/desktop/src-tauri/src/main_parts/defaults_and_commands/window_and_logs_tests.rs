@@ -152,14 +152,60 @@ fn avatar_runtime_env_pairs_forward_runtime_defaults_without_realm_or_token() {
         "NIMI_RUNTIME_BRIDGE_MODE",
         "NIMI_RUNTIME_BRIDGE_DEBUG",
         "NIMI_E2E_BACKEND_LOG_PATH",
+        "NIMI_DATA_ROOT",
     ];
     let saved: Vec<(&str, Option<String>)> = keys
         .iter()
         .map(|key| (*key, std::env::var(key).ok()))
         .collect();
     let fixture_dir = make_temp_dir("avatar-runtime-env");
+    let selected_data_root = fixture_dir.join("selected-nimi-data");
     let fixture_path = fixture_dir.join("fixture.json");
-    fs::write(&fixture_path, "{}").expect("write fixture");
+    fs::write(
+        &fixture_path,
+        format!(
+            r#"{{
+  "tauriFixture": {{
+    "productControlRecord": {{
+      "schemaVersion": 1,
+      "installId": "e2e-ready-install",
+      "productVersion": "0.1.0",
+      "state": "ready_for_use",
+      "dataRoot": {{
+        "path": "{}",
+        "status": "ready",
+        "selectedAt": "2026-03-15T00:00:00.000Z",
+        "verifiedAt": "2026-03-15T00:00:00.000Z",
+        "selectedAtUnixMs": 1773532800000,
+        "verifiedAtUnixMs": 1773532800000
+      }},
+      "firstRun": {{
+        "installLevel": "minimal",
+        "aiProfileAlias": "minimal",
+        "completed": true,
+        "completedAt": "2026-03-15T00:00:00.000Z",
+        "initializationPlanId": "e2e-first-run-plan",
+        "baselineProfileRef": "ai-profile:minimal",
+        "baselineCommitId": "e2e-fixture",
+        "accountDefaultProfileRef": "account-default:e2e",
+        "builtInAiConfigRefs": ["ai-config:nimi-chat:e2e"],
+        "runtimeBaselineRef": "runtime-baseline:e2e",
+        "executionEvidenceRef": "e2e-ready-entry"
+      }},
+      "pointers": {{
+        "runtimeConfigPath": "/tmp/nimi-e2e-runtime/config.json"
+      }},
+      "repair": {{
+        "required": false,
+        "reason": null
+      }}
+    }}
+  }}
+}}"#,
+            selected_data_root.display()
+        ),
+    )
+    .expect("write fixture");
     std::env::remove_var("NIMI_E2E_FIXTURE_PATH");
     std::env::set_var("NIMI_REALM_URL", "http://127.0.0.1:50803");
     std::env::set_var(
@@ -195,6 +241,7 @@ fn avatar_runtime_env_pairs_forward_runtime_defaults_without_realm_or_token() {
     );
     std::env::set_var("NIMI_RUNTIME_BRIDGE_MODE", "RELEASE");
     std::env::set_var("NIMI_RUNTIME_BRIDGE_DEBUG", "1");
+    std::env::set_var("NIMI_DATA_ROOT", "/tmp/must-not-forward-raw-env");
     std::env::set_var(
         "NIMI_E2E_BACKEND_LOG_PATH",
         fixture_dir.join("backend.log").as_os_str(),
@@ -241,6 +288,14 @@ fn avatar_runtime_env_pairs_forward_runtime_defaults_without_realm_or_token() {
     )));
     assert!(pairs.contains(&("NIMI_RUNTIME_BRIDGE_MODE", "RUNTIME".to_string())));
     assert!(!pairs.contains(&("NIMI_RUNTIME_BRIDGE_MODE", "RELEASE".to_string())));
+    assert!(pairs.contains(&(
+        "NIMI_DATA_ROOT",
+        selected_data_root.to_string_lossy().to_string()
+    )));
+    assert!(!pairs.contains(&(
+        "NIMI_DATA_ROOT",
+        "/tmp/must-not-forward-raw-env".to_string()
+    )));
     assert!(pairs.contains(&(
         "NIMI_E2E_BACKEND_LOG_PATH",
         fixture_dir
@@ -348,13 +403,11 @@ fn avatar_handoff_uri_rejects_bare_agent_id() {
             .and_then(serde_json::Value::as_str),
         Some("DESKTOP_AVATAR_HANDOFF_INVALID"),
     );
-    assert!(
-        payload
-            .get("message")
-            .and_then(serde_json::Value::as_str)
-            .unwrap_or_default()
-            .contains("local-agent ref")
-    );
+    assert!(payload
+        .get("message")
+        .and_then(serde_json::Value::as_str)
+        .unwrap_or_default()
+        .contains("local-agent ref"));
 }
 
 #[test]
