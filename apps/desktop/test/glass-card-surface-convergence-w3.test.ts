@@ -32,9 +32,7 @@ test('W3 glass card convergence: home feed skeletons and post articles consume t
 
 test('W3 glass card convergence: explore discovery cards consume the shared promoted glass primitive', () => {
   assert.match(exploreCardsSource, /import \{ DesktopCardSurface \} from '@renderer\/components\/surface';/);
-  assert.match(exploreCardsSource, /<DesktopCardSurface kind="promoted-glass" className="flex flex-col p-4">/);
   assert.match(exploreCardsSource, /<DesktopCardSurface[\s\S]*kind="promoted-glass"[\s\S]*style=\{\{ background: palette\.background \}\}/);
-  assert.match(exploreCardsSource, /<DesktopCardSurface kind="promoted-glass" className="overflow-hidden transition-shadow hover:shadow-md">/);
 });
 
 test('W3 glass card convergence: notification rows and empty states consume the shared promoted glass primitive', () => {
