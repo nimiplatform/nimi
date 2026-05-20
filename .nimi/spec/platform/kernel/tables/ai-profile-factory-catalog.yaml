@@ -19,7 +19,7 @@ entries:
 
 # Canonical factory AIProfile catalog — Platform-owned authority for the
 # factory `AIProfile` rows admitted under the AIProfile selection policy
-# (see ai-profile-selection-policy-contract.md, P-AIPS-001..P-AIPS-012).
+# (see ai-profile-selection-policy-contract.md, P-AIPS-001..P-AIPS-013).
 # Rows are dimensioned over privacy_posture x compute_posture x capability_set x routing_policy.
 # AIProfile portable payload is owned by Desktop kernel (D-AIPC-002, D-AIPC-007);
 # this table records the admitted readable aliases plus the selection-policy

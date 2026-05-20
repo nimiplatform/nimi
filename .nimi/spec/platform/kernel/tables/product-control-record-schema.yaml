@@ -54,7 +54,8 @@ ready_admission:
       - direct_file_edit
   composition_order:
     - product_control_record_shape_and_selected_data_root
-    - runtime_account_session_and_account_default_profile
+    - authenticated_runtime_account_session
+    - account_default_profile_library_evidence
     - selected_local_first_run_factory_profile
     - runtime_baseline_readiness
     - built_in_ai_config_evidence
@@ -89,21 +90,27 @@ ready_admission:
     - repair or invalidation of any required evidence after ready_for_use must route to repair_required, blocked, or not_logged_in according to the failed owner.
 evidence_contracts:
   accountDefaultProfileRef:
-    owner_rule_ref: K-ACCSVC-021
-    owner: runtime_account_service
-    verifier: RuntimeAccountService
-    ref_semantics: durable account default profile evidence bound to the authenticated Runtime account session projection
+    owner_rule_ref: P-AIPS-013
+    owner: account_profile_library
+    verifier: local_product_profile_library
+    ref_semantics: durable local Account Default Profile library record bound to authenticated account_id and selected dataRootRef
     required_projection:
       - account_id
-      - realm_environment_id
-      - default_profile_id_or_hash
-      - observed_at
-      - account_event_or_custody_sequence
+      - dataRootRef
+      - profile_id_default
+      - profile_version_or_hash
+      - source_policy_ref
+      - source_catalog_version
+      - createdAt_or_updatedAt
+    prerequisite_evidence:
+      - authenticated_runtime_account_session
     failure_projection: local_ai_ready_or_blocked
     forbidden_as_truth:
       - renderer_profile_state
       - sdk_cache
       - app_local_cache
+      - realm_oauth_token
+      - realm_profile_projection
       - subject_user_id
       - decoded_token_claims
       - string_only_ref

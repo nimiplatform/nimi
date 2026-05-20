@@ -394,6 +394,38 @@ factory `AIProfile` row 的 `applicable_scopes` 字段是封闭枚举：
   post-initialization Runtime / app setup 中出现，除非未来产品 authority
   显式修订。
 
+## P-AIPS-013 — Account Default Profile Local Library Evidence
+
+Account Default Profile 是 account-scoped local AI profile library default，
+固定路径为 `~/.nimi/accounts/<account-id>/profiles/default.json`。它由
+first-run 按机器能力、install level、factory `AIProfile` selection policy、
+catalog row、以及用户确认的 first-run plan seed 或 restore。Realm /
+Runtime account session 只证明当前 authenticated `account_id`；不得作为
+Account Default Profile content source。
+
+`MUST`:
+
+- `accountDefaultProfileRef` 必须解析到 durable account profile library
+  record，并与 authenticated Runtime account binding 的 `account_id` 和
+  selected `dataRootRef` 精确匹配。
+- profile record 必须至少包含 `profileId=default`、profile version 或
+  content hash、source policy ref、source catalog version、以及
+  `createdAt` 或 `updatedAt`。
+- source 必须是 Platform factory `AIProfile` policy / catalog seed、或显式
+  restore flow；官方 factory update 不得静默覆盖已存在的 Account Default
+  Profile。
+- missing、stale、unhashable、wrong-account、wrong-data-root、
+  caller-provided、string-only、或 source policy/catalog 不可解析的 ref
+  must fail closed for product ready admission.
+
+`MUST NOT`:
+
+- RuntimeAccountService、Realm OAuth token、Realm profile projection、decoded
+  token claims、`subject_user_id`、renderer profile state、SDK cache、或
+  app-local cache 不得成为 Account Default Profile content evidence。
+- Editing or replacing Account Default Profile must not mutate existing
+  scope-bound `AIConfig`; applying it to scopes remains explicit and atomic.
+
 ## Fact Sources
 
 - `.nimi/spec/platform/kernel/ai-scope-contract.md` — `P-AISC-001..P-AISC-005`

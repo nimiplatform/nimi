@@ -156,7 +156,7 @@ Avatar Wave 5 集成仍受 Avatar 产品化 master gate 约束。
 - `.nimi/spec/platform/kernel/nimi-app-admission-contract.md` — `P-NAPP-001..P-NAPP-012`
 - `.nimi/spec/platform/kernel/tables/nimi-app-registry.yaml`
 - `.nimi/spec/platform/kernel/tables/nimi-app-trust-tiers.yaml`
-- `.nimi/spec/platform/kernel/ai-profile-selection-policy-contract.md` — `P-AIPS-001..P-AIPS-012`
+- `.nimi/spec/platform/kernel/ai-profile-selection-policy-contract.md` — `P-AIPS-001..P-AIPS-013`
 - `.nimi/spec/realm/kernel/social-contract.md` — `R-SOC-*`
 - `.nimi/spec/realm/kernel/oauth-authority-contract.md` — `R-OAUTH-*`
 - `.nimi/spec/cognition/kernel/app-memory-access-contract.md` — `C-APMEM-001..C-APMEM-008`

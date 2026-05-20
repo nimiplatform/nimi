@@ -36,6 +36,7 @@ entries:
   - P-AIPS-010
   - P-AIPS-011
   - P-AIPS-012
+  - P-AIPS-013
 rules:
   - rule_id: P-AIPS-001
     evidence_refs:
@@ -98,3 +99,8 @@ rules:
       - platform_kernel_consistency
     evidence_requirement: structural_required
     evidence_scope_note: structural only; applicable_scopes admission enforcement requires Wave 3 and Wave 5 consumer validation
+  - rule_id: P-AIPS-013
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; Account Default Profile local library record verifier implementation lands with product first-run admission waves

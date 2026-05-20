@@ -205,16 +205,18 @@ Admission composes evidence in this order:
 
 1. product-control record shape, `installId`, `productVersion`, selected
    `nimi_data`, and local first-run install level
-2. authenticated Runtime account session plus backend-verifiable
-   `accountDefaultProfileRef` from `K-ACCSVC-021`
-3. selected first-run local factory `AIProfile` refs and baseline commit refs
+2. authenticated Runtime account session / account binding from
+   `RuntimeAccountService`
+3. local account profile library `accountDefaultProfileRef` from `P-AIPS-013`,
+   bound to the authenticated `account_id` and selected data root
+4. selected first-run local factory `AIProfile` refs and baseline commit refs
    from `P-AIPS-*`
-4. Runtime local baseline readiness `runtimeBaselineRef` from
+5. Runtime local baseline readiness `runtimeBaselineRef` from
    `K-LENV-ACT-011`
-5. built-in Desktop AIConfig refs for `desktop.chat.nimi` and
+6. built-in Desktop AIConfig refs for `desktop.chat.nimi` and
    `desktop.chat.agent` from `P-AISC-006` / `D-AIPC-013`
-6. Runtime baseline execution `executionEvidenceRef` from `K-AIEXEC-007`
-7. atomic `~/.nimi/nimi.json` write to `ready_for_use`
+7. Runtime baseline execution `executionEvidenceRef` from `K-AIEXEC-007`
+8. atomic `~/.nimi/nimi.json` write to `ready_for_use`
 
 `MUST`：each ref is a durable, owner-verifiable evidence ref. String shape,
 field presence, UUID/ULID format, or renderer-provided equality checks are not
@@ -245,7 +247,7 @@ upstream authority。
 - `.nimi/spec/platform/kernel/nimi-home-contract.md` — `P-HOME-001..P-HOME-010`
 - `.nimi/spec/platform/kernel/nimi-self-update-contract.md` — `P-SUPD-001..P-SUPD-008`
 - `.nimi/spec/platform/kernel/nimi-package-release-contract.md` — `P-PKGREL-001..P-PKGREL-008`
-- `.nimi/spec/platform/kernel/ai-profile-selection-policy-contract.md` — `P-AIPS-001..P-AIPS-012`
+- `.nimi/spec/platform/kernel/ai-profile-selection-policy-contract.md` — `P-AIPS-001..P-AIPS-013`
 - `.nimi/spec/platform/kernel/ai-scope-contract.md` — `P-AISC-001..P-AISC-005`
 - `.nimi/spec/runtime/kernel/local-engine-contract.md` — `K-LENG-024..K-LENG-028`
 - `.nimi/spec/runtime/kernel/config-contract.md` — `K-CFG-*`

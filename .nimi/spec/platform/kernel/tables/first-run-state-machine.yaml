@@ -81,7 +81,7 @@ states:
     allowed_user_actions:
       - wait
       - retry_finalization_on_failure
-    exit_condition: accountDefaultProfileRef resolves through RuntimeAccountService, builtInAiConfigRefs resolve for desktop.chat.nimi and desktop.chat.agent through Desktop host AIConfig service, runtimeBaselineRef resolves through RuntimeLocalService, and executionEvidenceRef resolves through Runtime execution evidence
+    exit_condition: authenticated Runtime account binding exists, accountDefaultProfileRef resolves through the local account profile library for the same account_id and selected dataRootRef, builtInAiConfigRefs resolve for desktop.chat.nimi and desktop.chat.agent through Desktop host AIConfig service, runtimeBaselineRef resolves through RuntimeLocalService, and executionEvidenceRef resolves through Runtime execution evidence
     copy_floor: Nimi is finishing your default AI setup.
   - state: repair_required
     surface: repair_flow
