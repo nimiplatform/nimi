@@ -45,6 +45,7 @@ export interface ProductControlRecord {
   };
   readonly pointers: {
     readonly runtimeConfigPath?: string | null;
+    readonly factoryProfileIndex?: string | null;
   };
   readonly repair: {
     readonly required: boolean;
@@ -152,6 +153,7 @@ function parseRecord(value: unknown): ProductControlRecord | null {
     },
     pointers: {
       runtimeConfigPath: parseOptionalString(pointers.runtimeConfigPath),
+      factoryProfileIndex: parseOptionalString(pointers.factoryProfileIndex),
     },
     repair: {
       required: repair.required === true,

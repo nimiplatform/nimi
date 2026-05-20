@@ -1,0 +1,553 @@
+//! `~/.nimi/profiles/factory-index.json` — installed projection of the official
+//! Platform factory profile catalog plus selection policy.
+//!
+//! Product owner: Platform / Nimi Profile Policy Logic projection
+//! (product manual `~/.nimi/profiles/factory-index.json` subsection;
+//! `P-AIPS-001..P-AIPS-013`).
+//!
+//! This file is a READ-ONLY projection of official catalog truth. It is
+//! regenerated deterministically from the packaged Platform factory catalog
+//! (`platform_ai_profile_factory_catalog.rs`, itself generated from
+//! `.nimi/spec/platform/kernel/tables/ai-profile-factory-catalog.yaml`). It is
+//! never hand-edited and never carries user edits.
+//!
+//! It is NOT the user's editable profile library and it does NOT own or mutate
+//! the Account Default Profile (`~/.nimi/accounts/<id>/profiles/default.json`,
+//! `account_profile_library.rs`). Any seed/restore of the Account Default
+//! Profile from this index is an explicit product flow owned elsewhere; this
+//! module never writes account-scoped records.
+
+use crate::desktop_paths::resolve_nimi_dir;
+use crate::platform_ai_profile_factory_catalog::{
+    PlatformAIProfileFactoryRow, PLATFORM_AI_PROFILE_FACTORY_CATALOG_VERSION,
+    PLATFORM_AI_PROFILE_FACTORY_ROWS, PLATFORM_AI_PROFILE_SELECTION_POLICY_REF,
+};
+use serde::{Deserialize, Serialize};
+use std::fs;
+use std::path::{Path, PathBuf};
+use std::time::{SystemTime, UNIX_EPOCH};
+
+const FACTORY_PROFILE_INDEX_SCHEMA_VERSION: u32 = 1;
+/// Stable typed ref prefix for a factory `AIProfile` row. The catalog `alias`
+/// is the readable projection of the four-dimensional matrix; it is not a
+/// schema owner, so the projected `profileRef` keeps the catalog id + alias
+/// rather than re-using the alias as a bare identifier.
+const FACTORY_PROFILE_REF_PREFIX: &str = "factory-ai-profile";
+/// `~/.nimi`-relative location of the factory profile index projection. This
+/// is the manual `~/.nimi/nimi.json` `pointers.factoryProfileIndex` value and
+/// is used to assert the resolved on-disk path stays under `~/.nimi/profiles`.
+pub const FACTORY_PROFILE_INDEX_POINTER: &str = "profiles/factory-index.json";
+
+/// One projected factory profile row. The minimum product fields are fixed by
+/// the manual `~/.nimi/profiles/factory-index.json` schema.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct FactoryProfileIndexRow {
+    pub profile_ref: String,
+    pub alias: String,
+    pub mode: String,
+    pub os: Vec<String>,
+    pub device_class: String,
+    pub capabilities: Vec<String>,
+    pub applicable_scopes: Vec<String>,
+    pub first_run_install_levels: Vec<String>,
+}
+
+/// Official selection policy refs projected alongside the catalog rows.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct FactoryProfileIndexPolicies {
+    pub baseline: String,
+    pub recommended: String,
+}
+
+/// `~/.nimi/profiles/factory-index.json` record shape.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct FactoryProfileIndexRecord {
+    pub schema_version: u32,
+    pub catalog_version: String,
+    pub updated_at: String,
+    pub policies: FactoryProfileIndexPolicies,
+    pub profiles: Vec<FactoryProfileIndexRow>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FactoryProfileIndexProjection {
+    pub path: String,
+    pub record: FactoryProfileIndexRecord,
+}
+
+fn now_iso_timestamp() -> String {
+    chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Millis, true)
+}
+
+fn now_unix_ms() -> u128 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_millis()
+}
+
+/// On-disk path of the installed factory profile index projection.
+///
+/// Fixed under the `~/.nimi` CONTROL root at `profiles/factory-index.json`,
+/// matching the manual user-local config shape and the `nimi.json`
+/// `pointers.factoryProfileIndex` value.
+pub fn factory_profile_index_path() -> Result<PathBuf, String> {
+    let mut path = resolve_nimi_dir()?;
+    for segment in FACTORY_PROFILE_INDEX_POINTER.split('/') {
+        path.push(segment);
+    }
+    Ok(path)
+}
+
+/// Stable typed `profileRef` for a factory catalog row.
+fn profile_ref_for_alias(alias: &str) -> String {
+    format!("{FACTORY_PROFILE_REF_PREFIX}:v{PLATFORM_AI_PROFILE_FACTORY_CATALOG_VERSION}:{alias}")
+}
+
+/// Derive the projected OS list from the catalog row's
+/// `host_capability_profile_refs`. The catalog keys hosts by
+/// `<os>-<arch>-<accelerator>` profile refs; the product-facing index projects
+/// only the deduplicated OS axis (`macos` | `windows` | `linux`).
+fn os_axis_from_host_refs(host_refs: &[&'static str]) -> Vec<String> {
+    let mut out: Vec<String> = Vec::new();
+    for host_ref in host_refs {
+        let os = match host_ref.split('-').next().unwrap_or_default() {
+            "darwin" | "macos" => "macos",
+            "windows" => "windows",
+            "linux" => "linux",
+            _ => continue,
+        };
+        let os = os.to_string();
+        if !out.contains(&os) {
+            out.push(os);
+        }
+    }
+    out
+}
+
+/// Derive the product-facing `deviceClass` from the catalog row's
+/// `compute_posture`. `compute_posture` is the Platform-owned closed enum
+/// (`cpu-only | metal-capable | cuda-capable | cloud-only`); the index projects
+/// it to the manual device-class vocabulary.
+fn device_class_from_compute_posture(compute_posture: &str) -> Result<String, String> {
+    let class = match compute_posture {
+        "cpu-only" => "cpu-standard",
+        "metal-capable" => "apple-silicon",
+        "cuda-capable" => "gpu-recommended",
+        "cloud-only" => "cloud-only",
+        other => {
+            return Err(format!(
+                "factory catalog row has an unknown compute_posture: {other}"
+            ));
+        }
+    };
+    Ok(class.to_string())
+}
+
+/// Derive the projected `mode` for a catalog row.
+///
+/// `recommended` install level wins over `minimal` (a `recommended`-capable row
+/// is the device-aware highlighted choice); a row with no first-run install
+/// level is projected as a `scope-bound` factory profile, not a first-run
+/// baseline.
+fn mode_from_install_levels(first_run_install_levels: &[&'static str]) -> String {
+    if first_run_install_levels.contains(&"recommended") {
+        "recommended".to_string()
+    } else if first_run_install_levels.contains(&"minimal") {
+        "baseline".to_string()
+    } else {
+        "scope-bound".to_string()
+    }
+}
+
+fn project_row(row: &PlatformAIProfileFactoryRow) -> Result<FactoryProfileIndexRow, String> {
+    Ok(FactoryProfileIndexRow {
+        profile_ref: profile_ref_for_alias(row.alias),
+        alias: row.alias.to_string(),
+        mode: mode_from_install_levels(row.first_run_install_levels),
+        os: os_axis_from_host_refs(row.host_capability_profile_refs),
+        device_class: device_class_from_compute_posture(row.compute_posture)?,
+        capabilities: row
+            .capability_set
+            .iter()
+            .map(|value| value.to_string())
+            .collect(),
+        applicable_scopes: row
+            .applicable_scopes
+            .iter()
+            .map(|value| value.to_string())
+            .collect(),
+        first_run_install_levels: row
+            .first_run_install_levels
+            .iter()
+            .map(|value| value.to_string())
+            .collect(),
+    })
+}
+
+/// Build the factory profile index record from the packaged Platform factory
+/// catalog. The record is derived purely from catalog truth — no row is
+/// invented and no user state is read.
+pub fn build_factory_profile_index_record() -> Result<FactoryProfileIndexRecord, String> {
+    let mut profiles = Vec::with_capacity(PLATFORM_AI_PROFILE_FACTORY_ROWS.len());
+    for row in PLATFORM_AI_PROFILE_FACTORY_ROWS {
+        profiles.push(project_row(row)?);
+    }
+    if profiles.is_empty() {
+        return Err("Platform factory catalog projected zero profile rows".to_string());
+    }
+    Ok(FactoryProfileIndexRecord {
+        schema_version: FACTORY_PROFILE_INDEX_SCHEMA_VERSION,
+        catalog_version: format!("v{PLATFORM_AI_PROFILE_FACTORY_CATALOG_VERSION}"),
+        updated_at: now_iso_timestamp(),
+        policies: FactoryProfileIndexPolicies {
+            // Baseline and recommended first-run plans are both governed by the
+            // single Platform-owned AIProfile selection policy (P-AIPS-004).
+            baseline: PLATFORM_AI_PROFILE_SELECTION_POLICY_REF.to_string(),
+            recommended: PLATFORM_AI_PROFILE_SELECTION_POLICY_REF.to_string(),
+        },
+        profiles,
+    })
+}
+
+/// Structural validation of a factory profile index record read from disk.
+///
+/// An unknown future `schemaVersion` fails closed: the cross-cutting migration
+/// mechanics are owned elsewhere (T10), so this read just rejects unsupported
+/// versions rather than attempting a migration.
+fn validate_record(record: &FactoryProfileIndexRecord) -> Result<(), String> {
+    if record.schema_version != FACTORY_PROFILE_INDEX_SCHEMA_VERSION {
+        return Err(format!(
+            "unsupported ~/.nimi/profiles/factory-index.json schemaVersion={} expected={FACTORY_PROFILE_INDEX_SCHEMA_VERSION}",
+            record.schema_version
+        ));
+    }
+    if record.catalog_version.trim().is_empty() {
+        return Err("~/.nimi/profiles/factory-index.json catalogVersion is required".to_string());
+    }
+    if record.updated_at.trim().is_empty() {
+        return Err("~/.nimi/profiles/factory-index.json updatedAt is required".to_string());
+    }
+    if record.policies.baseline.trim().is_empty()
+        || record.policies.recommended.trim().is_empty()
+    {
+        return Err(
+            "~/.nimi/profiles/factory-index.json policies.baseline and policies.recommended are required"
+                .to_string(),
+        );
+    }
+    if record.profiles.is_empty() {
+        return Err(
+            "~/.nimi/profiles/factory-index.json must project at least one factory profile row"
+                .to_string(),
+        );
+    }
+    for profile in &record.profiles {
+        if profile.profile_ref.trim().is_empty() {
+            return Err(
+                "~/.nimi/profiles/factory-index.json profile row requires profileRef".to_string(),
+            );
+        }
+        if profile.mode.trim().is_empty() {
+            return Err(
+                "~/.nimi/profiles/factory-index.json profile row requires mode".to_string(),
+            );
+        }
+        if profile.device_class.trim().is_empty() {
+            return Err(
+                "~/.nimi/profiles/factory-index.json profile row requires deviceClass".to_string(),
+            );
+        }
+        if profile.os.is_empty() {
+            return Err(
+                "~/.nimi/profiles/factory-index.json profile row requires a non-empty os list"
+                    .to_string(),
+            );
+        }
+        if profile.capabilities.is_empty() {
+            return Err(
+                "~/.nimi/profiles/factory-index.json profile row requires a non-empty capabilities list"
+                    .to_string(),
+            );
+        }
+    }
+    Ok(())
+}
+
+fn write_record(path: &Path, record: &FactoryProfileIndexRecord) -> Result<(), String> {
+    validate_record(record)?;
+    let parent = path.parent().ok_or_else(|| {
+        "~/.nimi/profiles/factory-index.json path has no parent directory".to_string()
+    })?;
+    fs::create_dir_all(parent).map_err(|error| {
+        format!(
+            "create ~/.nimi/profiles directory failed ({}): {error}",
+            parent.display()
+        )
+    })?;
+    let raw = serde_json::to_string_pretty(record).map_err(|error| {
+        format!("serialize ~/.nimi/profiles/factory-index.json failed: {error}")
+    })?;
+    let tmp_path =
+        path.with_extension(format!("json.tmp.{}.{}", std::process::id(), now_unix_ms()));
+    fs::write(&tmp_path, raw).map_err(|error| {
+        format!(
+            "write ~/.nimi/profiles/factory-index.json temporary file failed ({}): {error}",
+            tmp_path.display()
+        )
+    })?;
+    fs::rename(&tmp_path, path).map_err(|error| {
+        format!(
+            "commit ~/.nimi/profiles/factory-index.json failed ({}): {error}",
+            path.display()
+        )
+    })
+}
+
+/// Read the installed factory profile index projection, if present.
+///
+/// Fails closed on a parse failure or an unsupported `schemaVersion`; returns
+/// `Ok(None)` only when the file does not exist.
+///
+/// This is the projection reader half of the writer/reader pair. The Runtime
+/// IA surface (wave T2.4) is its first non-test consumer; until that wave
+/// lands the reader is exercised only by this module's tests.
+#[allow(dead_code)]
+pub fn read_factory_profile_index() -> Result<Option<FactoryProfileIndexRecord>, String> {
+    let path = factory_profile_index_path()?;
+    if !path.exists() {
+        return Ok(None);
+    }
+    let raw = fs::read_to_string(&path).map_err(|error| {
+        format!(
+            "read ~/.nimi/profiles/factory-index.json failed ({}): {error}",
+            path.display()
+        )
+    })?;
+    let record = serde_json::from_str::<FactoryProfileIndexRecord>(&raw).map_err(|error| {
+        format!(
+            "parse ~/.nimi/profiles/factory-index.json failed ({}): {error}",
+            path.display()
+        )
+    })?;
+    validate_record(&record)?;
+    Ok(Some(record))
+}
+
+/// Regenerate `~/.nimi/profiles/factory-index.json` from the packaged Platform
+/// factory catalog and return the installed projection.
+///
+/// This is a deterministic catalog projection: it always derives the record
+/// from catalog truth and overwrites any prior projection. It never reads,
+/// seeds, or restores the Account Default Profile.
+pub fn ensure_factory_profile_index() -> Result<FactoryProfileIndexProjection, String> {
+    let path = factory_profile_index_path()?;
+    let record = build_factory_profile_index_record()?;
+    write_record(&path, &record)?;
+    Ok(FactoryProfileIndexProjection {
+        path: path.display().to_string(),
+        record,
+    })
+}
+
+#[tauri::command]
+pub fn factory_profile_index_get() -> Result<FactoryProfileIndexProjection, String> {
+    ensure_factory_profile_index()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{
+        build_factory_profile_index_record, ensure_factory_profile_index,
+        factory_profile_index_path, read_factory_profile_index, FactoryProfileIndexRecord,
+        FACTORY_PROFILE_INDEX_POINTER,
+    };
+    use crate::test_support::with_env;
+    use std::path::PathBuf;
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    fn temp_home(prefix: &str) -> PathBuf {
+        let unique = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("time")
+            .as_nanos();
+        let dir = std::env::temp_dir().join(format!("nimi-factory-index-{prefix}-{unique}"));
+        std::fs::create_dir_all(&dir).expect("create temp home");
+        dir
+    }
+
+    #[test]
+    fn projection_sources_every_catalog_row_without_inventing_rows() {
+        let record = build_factory_profile_index_record().expect("record");
+        // The projection is derived purely from the packaged Platform factory
+        // catalog: one row per catalog row, no invented entries.
+        assert_eq!(
+            record.profiles.len(),
+            super::PLATFORM_AI_PROFILE_FACTORY_ROWS.len()
+        );
+        assert_eq!(record.schema_version, super::FACTORY_PROFILE_INDEX_SCHEMA_VERSION);
+        assert_eq!(
+            record.catalog_version,
+            format!("v{}", super::PLATFORM_AI_PROFILE_FACTORY_CATALOG_VERSION)
+        );
+        assert_eq!(
+            record.policies.baseline,
+            super::PLATFORM_AI_PROFILE_SELECTION_POLICY_REF
+        );
+        for catalog_row in super::PLATFORM_AI_PROFILE_FACTORY_ROWS {
+            let projected = record
+                .profiles
+                .iter()
+                .find(|row| row.alias == catalog_row.alias)
+                .expect("every catalog alias is projected");
+            assert_eq!(
+                projected.capabilities.len(),
+                catalog_row.capability_set.len()
+            );
+        }
+    }
+
+    #[test]
+    fn baseline_and_recommended_modes_are_derived_from_install_levels() {
+        let record = build_factory_profile_index_record().expect("record");
+        // local-speech-ready is admitted for minimal + recommended -> recommended.
+        let speech = record
+            .profiles
+            .iter()
+            .find(|row| row.alias == "local-speech-ready")
+            .expect("speech row");
+        assert_eq!(speech.mode, "recommended");
+        // local-gpu is admitted for recommended only -> recommended.
+        let gpu = record
+            .profiles
+            .iter()
+            .find(|row| row.alias == "local-gpu")
+            .expect("gpu row");
+        assert_eq!(gpu.mode, "recommended");
+        assert_eq!(gpu.device_class, "gpu-recommended");
+        // cloud-first has no first-run install level -> scope-bound, not a
+        // first-run baseline.
+        let cloud = record
+            .profiles
+            .iter()
+            .find(|row| row.alias == "cloud-first")
+            .expect("cloud row");
+        assert_eq!(cloud.mode, "scope-bound");
+        assert_eq!(cloud.device_class, "cloud-only");
+    }
+
+    #[test]
+    fn os_axis_is_projected_from_host_capability_profile_refs() {
+        let record = build_factory_profile_index_record().expect("record");
+        let speech = record
+            .profiles
+            .iter()
+            .find(|row| row.alias == "local-speech-ready")
+            .expect("speech row");
+        assert!(speech.os.contains(&"macos".to_string()));
+        assert!(speech.os.contains(&"windows".to_string()));
+    }
+
+    #[test]
+    fn ensure_writes_projection_under_nimi_profiles_and_reads_back() {
+        let home = temp_home("ensure");
+        with_env(&[("HOME", home.to_str())], || {
+            let projection = ensure_factory_profile_index().expect("ensure");
+            let path = factory_profile_index_path().expect("path");
+            assert!(path.exists());
+            assert!(path.starts_with(home.join(".nimi").join("profiles")));
+            assert_eq!(path.display().to_string(), projection.path);
+            // The pointer value recorded in nimi.json must resolve to this file.
+            assert!(path.ends_with(FACTORY_PROFILE_INDEX_POINTER));
+
+            let read_back = read_factory_profile_index()
+                .expect("read")
+                .expect("record present");
+            assert_eq!(read_back, projection.record);
+        });
+    }
+
+    #[test]
+    fn read_returns_none_when_projection_is_absent() {
+        let home = temp_home("absent");
+        with_env(&[("HOME", home.to_str())], || {
+            assert!(read_factory_profile_index().expect("read").is_none());
+        });
+    }
+
+    #[test]
+    fn unknown_future_schema_version_fails_closed_on_read() {
+        let home = temp_home("future-schema");
+        with_env(&[("HOME", home.to_str())], || {
+            ensure_factory_profile_index().expect("ensure");
+            let path = factory_profile_index_path().expect("path");
+            let mut record = serde_json::from_str::<serde_json::Value>(
+                &std::fs::read_to_string(&path).expect("read"),
+            )
+            .expect("parse");
+            record
+                .as_object_mut()
+                .expect("object")
+                .insert("schemaVersion".to_string(), serde_json::json!(9999));
+            std::fs::write(&path, serde_json::to_string_pretty(&record).expect("json"))
+                .expect("write future schema");
+            let error = read_factory_profile_index().expect_err("unknown schema fails closed");
+            assert!(error.contains("unsupported"));
+            assert!(error.contains("schemaVersion"));
+        });
+    }
+
+    #[test]
+    fn corrupt_projection_fails_closed_on_read() {
+        let home = temp_home("corrupt");
+        with_env(&[("HOME", home.to_str())], || {
+            let path = factory_profile_index_path().expect("path");
+            std::fs::create_dir_all(path.parent().expect("parent")).expect("mkdir");
+            std::fs::write(&path, "{ not valid json").expect("write corrupt");
+            let error = read_factory_profile_index().expect_err("corrupt fails closed");
+            assert!(error.contains("parse"));
+        });
+    }
+
+    #[test]
+    fn regeneration_does_not_touch_account_default_profile() {
+        let home = temp_home("account-isolation");
+        with_env(&[("HOME", home.to_str())], || {
+            // Seed a stand-in Account Default Profile record under the account
+            // control root. The factory index projection must never read,
+            // overwrite, or otherwise mutate it.
+            let account_default_profile = home
+                .join(".nimi")
+                .join("accounts")
+                .join("account_1")
+                .join("profiles")
+                .join("default.json");
+            std::fs::create_dir_all(account_default_profile.parent().expect("parent"))
+                .expect("mkdir");
+            let account_default_contents = "{\"profileId\":\"default\",\"editedLocally\":true}";
+            std::fs::write(&account_default_profile, account_default_contents)
+                .expect("write account default");
+
+            ensure_factory_profile_index().expect("ensure 1");
+            ensure_factory_profile_index().expect("ensure 2 (idempotent regeneration)");
+
+            assert_eq!(
+                std::fs::read_to_string(&account_default_profile).expect("read account default"),
+                account_default_contents
+            );
+        });
+    }
+
+    #[test]
+    fn serde_round_trip_preserves_record() {
+        let record = build_factory_profile_index_record().expect("record");
+        let raw = serde_json::to_string_pretty(&record).expect("serialize");
+        let parsed: FactoryProfileIndexRecord =
+            serde_json::from_str(&raw).expect("deserialize");
+        assert_eq!(record, parsed);
+    }
+}

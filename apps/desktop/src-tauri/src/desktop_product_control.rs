@@ -71,6 +71,13 @@ pub struct ProductFirstRunRecord {
 #[serde(rename_all = "camelCase")]
 pub struct ProductPointersRecord {
     pub runtime_config_path: Option<String>,
+    /// Discoverability pointer to `~/.nimi/profiles/factory-index.json`, the
+    /// installed projection of the official Platform factory profile catalog
+    /// (`factory_profile_index.rs`). Like `runtime_config_path`, this is a
+    /// non-owner discovery pointer: the factory profile index is a read-only
+    /// catalog projection, not product readiness truth, and it is never the
+    /// Account Default Profile library.
+    pub factory_profile_index: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -156,6 +163,17 @@ fn runtime_config_path() -> Result<String, String> {
         .to_string())
 }
 
+/// Regenerate the installed factory profile catalog projection and return its
+/// absolute path for the `pointers.factoryProfileIndex` discovery pointer.
+///
+/// The projection is a deterministic read-only derivation of the packaged
+/// Platform factory catalog (`factory_profile_index.rs`). It is regenerated
+/// here so the pointer never advertises a stale or missing file. It is NOT the
+/// Account Default Profile and this call never touches account-scoped records.
+fn ensure_factory_profile_index_pointer() -> Result<String, String> {
+    Ok(crate::factory_profile_index::ensure_factory_profile_index()?.path)
+}
+
 fn empty_record(state: ProductControlState) -> Result<ProductControlRecord, String> {
     Ok(ProductControlRecord {
         schema_version: PRODUCT_CONTROL_SCHEMA_VERSION,
@@ -166,6 +184,7 @@ fn empty_record(state: ProductControlState) -> Result<ProductControlRecord, Stri
         first_run: ProductFirstRunRecord::default(),
         pointers: ProductPointersRecord {
             runtime_config_path: Some(runtime_config_path()?),
+            factory_profile_index: Some(ensure_factory_profile_index_pointer()?),
         },
         repair: ProductRepairRecord::default(),
     })
@@ -602,6 +621,7 @@ pub fn select_product_data_root(path: &str) -> Result<ProductControlRecordProjec
         verified_at_unix_ms: now,
     });
     record.pointers.runtime_config_path = Some(runtime_config_path()?);
+    record.pointers.factory_profile_index = Some(ensure_factory_profile_index_pointer()?);
     record.repair = ProductRepairRecord::default();
     write_record(&control_path, &record)?;
     read_product_control_projection()
