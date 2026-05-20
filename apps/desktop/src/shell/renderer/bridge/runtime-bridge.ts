@@ -22,11 +22,20 @@ import { proxyHttp } from './runtime-bridge/http';
 import { getRuntimeDefaults } from './runtime-bridge/runtime-defaults';
 import {
   admitProductReadyForUse,
+  getAccountDefaultProfileForScopeInit,
   getProductControlRecord,
   selectProductDataRoot,
   setProductFirstRunInstallLevel,
   setProductFirstRunSetupState,
 } from './runtime-bridge/product-control';
+import {
+  createAccountProfileLibraryProfile,
+  deleteAccountProfileLibraryProfile,
+  editAccountProfileLibraryProfile,
+  exportAccountProfileLibraryProfiles,
+  importAccountProfileLibraryProfiles,
+  listAccountProfileLibrary,
+} from './runtime-bridge/account-profile-library';
 import { clearAuthSession, loadAuthSession, saveAuthSession } from './runtime-bridge/auth-session';
 import { oauthListenForCode, oauthTokenExchange } from './runtime-bridge/oauth';
 import {
@@ -99,7 +108,15 @@ export type {
   ProductControlRecord,
   ProductControlRecordProjection,
   ProductControlState,
+  AccountDefaultProfileAIProfile,
 } from './runtime-bridge/product-control';
+
+export type {
+  AccountProfileLibraryProjection,
+  LibraryIndexEntry,
+  LibraryProfile,
+  LibraryProfileOrigin,
+} from './runtime-bridge/account-profile-library';
 
 export type {
   DesktopReleaseInfo,
@@ -199,6 +216,13 @@ export {
   setProductFirstRunInstallLevel,
   setProductFirstRunSetupState,
   admitProductReadyForUse,
+  getAccountDefaultProfileForScopeInit,
+  listAccountProfileLibrary,
+  createAccountProfileLibraryProfile,
+  editAccountProfileLibraryProfile,
+  importAccountProfileLibraryProfiles,
+  exportAccountProfileLibraryProfiles,
+  deleteAccountProfileLibraryProfile,
   loadAuthSession,
   saveAuthSession,
   clearAuthSession,

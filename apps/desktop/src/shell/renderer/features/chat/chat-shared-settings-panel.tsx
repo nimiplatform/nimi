@@ -6,7 +6,10 @@ import { confirmDialog } from '@renderer/bridge/runtime-bridge/ui';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { getDesktopAIConfigService } from '@renderer/app-shell/providers/desktop-ai-config-service';
 import { dispatchRuntimeConfigOpenPage } from '../runtime-config/runtime-config-navigation-events';
-import { loadUserProfiles } from '../runtime-config/runtime-config-profile-storage';
+import {
+  ensureAccountProfileLibraryLoaded,
+  getCachedAccountProfileLibraryProfiles,
+} from '../runtime-config/runtime-config-profile-library';
 import { getDesktopRouteModelPickerProvider } from '../runtime-config/desktop-route-model-picker-provider';
 import { useSchedulingFeasibility, schedulingDetailKeyForJudgement, schedulingTitleKey } from './chat-shared-execution-scheduling-guard';
 import type {
@@ -290,7 +293,17 @@ function AiModeSettings(props: {
     i18n: { t },
   }), [aiConfig.scopeRef, aiConfigService, assetsQuery.data, assetsQuery.isLoading, projectionByCapability, t]);
   const profileCopy = useMemo(() => defaultModelConfigProfileCopy(t), [t]);
-  const userProfilesSource = useMemo(() => ({ list: () => loadUserProfiles() }), []);
+  // Prime the read-through projection of the Rust-owned account profile
+  // library so the synchronous kit `userProfilesSource.list()` reflects host
+  // truth. The library file family is the source of truth (P-AIPS-013); this
+  // is only its renderer projection.
+  useEffect(() => {
+    void ensureAccountProfileLibraryLoaded();
+  }, []);
+  const userProfilesSource = useMemo(
+    () => ({ list: () => getCachedAccountProfileLibraryProfiles() }),
+    [],
+  );
   const currentOrigin = useMemo(
     () => (aiConfig.profileOrigin
       ? { profileId: aiConfig.profileOrigin.profileId, title: aiConfig.profileOrigin.title }

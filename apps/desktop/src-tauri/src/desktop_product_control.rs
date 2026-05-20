@@ -750,6 +750,31 @@ pub async fn ensure_account_default_profile_for_product_control(
     read_product_control_projection()
 }
 
+/// Read + verify the Account Default Profile and project it as a portable
+/// AIProfile payload for the Desktop host AIConfig scope-init rule
+/// (product manual "Profile And AIConfig Model").
+///
+/// A new AIConfig scope initializes its config from the Account Default
+/// Profile ONLY when no prior AIConfig exists for that scope; the renderer
+/// reads this projection for that one-time initialization. It is the verified
+/// content of the durable `default.json` record — never realm session or
+/// app-local state.
+pub async fn read_account_default_profile_for_scope_init(
+) -> Result<crate::account_profile_library::AccountDefaultProfileAIProfile, String> {
+    let control_path = product_control_record_path()?;
+    let record = read_existing_record(&control_path)?.ok_or_else(|| {
+        "~/.nimi/nimi.json is missing; select nimi_data before Account Default Profile".to_string()
+    })?;
+    let data_root = selected_data_root_path(&record).ok_or_else(|| {
+        "selected nimi_data is required before Account Default Profile".to_string()
+    })?;
+    let account_id = authenticated_runtime_account_id().await?;
+    crate::account_profile_library::read_account_default_profile_ai_profile(
+        &data_root,
+        &account_id,
+    )
+}
+
 pub async fn ensure_built_in_ai_config_for_product_control(
 ) -> Result<ProductControlRecordProjection, String> {
     let control_path = product_control_record_path()?;
@@ -913,6 +938,12 @@ pub async fn product_control_record_ensure_account_default_profile(
 pub async fn product_control_record_ensure_built_in_ai_config(
 ) -> Result<ProductControlRecordProjection, String> {
     ensure_built_in_ai_config_for_product_control().await
+}
+
+#[tauri::command]
+pub async fn account_default_profile_for_scope_init(
+) -> Result<crate::account_profile_library::AccountDefaultProfileAIProfile, String> {
+    read_account_default_profile_for_scope_init().await
 }
 
 #[tauri::command]

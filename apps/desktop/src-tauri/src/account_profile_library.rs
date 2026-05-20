@@ -729,6 +729,47 @@ fn new_profile_record(
     Ok(record)
 }
 
+/// The Account Default Profile projected as a portable AIProfile-shaped
+/// payload, for the AIConfig scope-init rule.
+///
+/// Carries the same `profileId` / `title` / `description` / `tags` /
+/// `capabilities` shape as the SDK `AIProfile` template. It is the verified
+/// content of the durable `default.json` record — the renderer never
+/// reconstructs it from realm session or app-local state.
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct AccountDefaultProfileAIProfile {
+    pub profile_id: String,
+    pub title: String,
+    pub description: String,
+    pub tags: Vec<String>,
+    pub capabilities: serde_json::Map<String, serde_json::Value>,
+}
+
+/// Read + verify the durable Account Default Profile record and project its
+/// AIProfile payload for the AIConfig scope-init rule (P-AIPS-013 / product
+/// manual "Profile And AIConfig Model").
+///
+/// The record's structural / hash / provenance fields are fully verified
+/// against the authenticated account and selected data root before the payload
+/// is returned, so a missing / tampered / wrong-account record fails closed.
+pub fn read_account_default_profile_ai_profile(
+    data_root: &Path,
+    authenticated_account_id: &str,
+) -> Result<AccountDefaultProfileAIProfile, String> {
+    let path = account_default_profile_path(authenticated_account_id)?;
+    let expected_data_root_ref = data_root_ref(data_root)?;
+    let record = read_profile_record(&path)?;
+    verify_record_fields(&record, authenticated_account_id, &expected_data_root_ref)?;
+    Ok(AccountDefaultProfileAIProfile {
+        profile_id: record.profile.payload.profile_id,
+        title: record.profile.payload.title,
+        description: record.profile.payload.description,
+        tags: record.profile.payload.tags,
+        capabilities: record.profile.payload.capabilities,
+    })
+}
+
 pub fn verify_account_default_profile_ref(
     data_root: &Path,
     authenticated_account_id: &str,

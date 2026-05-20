@@ -11,6 +11,7 @@ import {
   applyAIProfileToConfig,
   computeAIConfigDiff,
   computeAIConfigVersion,
+  createEmptyAIConfig,
   validateAIProfile,
   type AIConfig,
   type AIConfigProbeResult,
@@ -41,6 +42,7 @@ import {
   getConversationCapabilityRouteRuntime,
   type ConversationCapabilityRouteRuntime,
 } from '@renderer/features/chat/conversation-capability.js';
+import { getAccountDefaultProfileForScopeInit } from '@renderer/bridge/runtime-bridge/product-control.js';
 
 // ---------------------------------------------------------------------------
 // Snapshot store — in-memory ring buffer (S-AICONF-005: host-local persistence)
@@ -180,6 +182,54 @@ export function pushDesktopAIConfigToBoundStore(scopeRef: AIScopeRef): void {
     return;
   }
   appStoreSetter(scopeKey(scopeRef), getConfigForScope(scopeRef));
+}
+
+/**
+ * AIConfig scope-init rule (product manual "Profile And AIConfig Model").
+ *
+ * A new AIConfig scope initializes its config from the Account Default Profile
+ * ONLY when no prior `AIConfig` exists for that scope. When the scope already
+ * has a persisted (or in-memory) `AIConfig`, this is a no-op — the scope's
+ * config is never re-initialized and never silently overwritten by a Default
+ * Profile change. Editing/replacing the Account Default Profile therefore never
+ * mutates an existing scope's `AIConfig`.
+ *
+ * The Account Default Profile content is the verified durable `default.json`
+ * record resolved through the Rust host; the renderer never reconstructs it
+ * from realm session or app-local state (P-AIPS-013).
+ *
+ * Returns `true` when this call materialized the scope's first config from the
+ * Account Default Profile, `false` when the scope already had a config.
+ */
+export async function initializeScopeFromAccountDefaultProfile(
+  scopeRef: AIScopeRef,
+): Promise<boolean> {
+  // Never re-initialize / overwrite a scope that already has an AIConfig.
+  if (scopeHasPersistedConfig(scopeRef)) {
+    return false;
+  }
+  const accountDefaultProfile = await getAccountDefaultProfileForScopeInit();
+  const profile: AIProfile = {
+    profileId: accountDefaultProfile.profileId,
+    title: accountDefaultProfile.title,
+    description: accountDefaultProfile.description,
+    tags: [...accountDefaultProfile.tags],
+    capabilities: accountDefaultProfile.capabilities as AIProfile['capabilities'],
+  };
+  const validation = validateAIProfile(profile);
+  if (!validation.valid) {
+    throw new Error(
+      `Account Default Profile is schema-invalid: ${validation.errors.join(', ')}`,
+    );
+  }
+  // Re-check after the await: a concurrent path may have created the config.
+  // The scope-init rule must never overwrite an already-initialized scope.
+  if (scopeHasPersistedConfig(scopeRef)) {
+    return false;
+  }
+  const initialConfig = applyAIProfileToConfig(createEmptyAIConfig(scopeRef), profile);
+  commitConfig(initialConfig);
+  return true;
 }
 
 // ---------------------------------------------------------------------------

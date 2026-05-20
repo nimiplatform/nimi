@@ -13,7 +13,10 @@ import {
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { getDesktopAIConfigService } from '@renderer/app-shell/providers/desktop-ai-config-service';
 import { dispatchRuntimeConfigOpenPage } from '../runtime-config/runtime-config-navigation-events';
-import { loadUserProfiles } from '../runtime-config/runtime-config-profile-storage';
+import {
+  ensureAccountProfileLibraryLoaded,
+  getCachedAccountProfileLibraryProfiles,
+} from '../runtime-config/runtime-config-profile-library';
 import { getDesktopRouteModelPickerProvider } from '../runtime-config/desktop-route-model-picker-provider';
 import { useLocalAssets } from '../chat/capability-settings-shared';
 import { bindingFromTesterConfig, TESTER_AI_SCOPE_REF } from './tester-ai-config';
@@ -130,7 +133,16 @@ export function useTesterModelConfigController(config: AIConfig, voiceAssetRefre
   }), [aiConfigService, assetsQuery.data, assetsQuery.isLoading, t, ttsVoiceOptions]);
 
   const profileCopy = useMemo(() => defaultModelConfigProfileCopy(t), [t]);
-  const userProfilesSource = useMemo(() => ({ list: () => loadUserProfiles() }), []);
+  // Prime the read-through projection of the Rust-owned account profile
+  // library so the synchronous kit `userProfilesSource.list()` reflects host
+  // truth (P-AIPS-013: the library file family is the source of truth).
+  useEffect(() => {
+    void ensureAccountProfileLibraryLoaded();
+  }, []);
+  const userProfilesSource = useMemo(
+    () => ({ list: () => getCachedAccountProfileLibraryProfiles() }),
+    [],
+  );
   const currentOrigin = useMemo(
     () => (config.profileOrigin
       ? { profileId: config.profileOrigin.profileId, title: config.profileOrigin.title }

@@ -5,6 +5,8 @@ use nimi_kit_shell_tauri::oauth_commands;
 use nimi_kit_shell_tauri::runtime_bridge;
 use nimi_kit_shell_tauri::session_logging;
 mod account_profile_library;
+mod account_profile_library_commands;
+mod account_profile_library_files;
 mod chat_agent_store;
 mod chat_ai_store;
 mod desktop_agent_center_store;

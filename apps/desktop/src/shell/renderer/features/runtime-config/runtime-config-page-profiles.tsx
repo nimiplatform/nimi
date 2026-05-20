@@ -6,22 +6,24 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { AIProfile } from '@nimiplatform/sdk/mod';
+import { validateAIProfile } from '@nimiplatform/sdk/mod';
 import { cn } from '@nimiplatform/nimi-kit/ui';
 import { getDesktopAIConfigService } from '@renderer/app-shell/providers/desktop-ai-config-service.js';
 import { useAppStore } from '@renderer/app-shell/providers/app-store.js';
 import { RuntimePageShell } from './runtime-config-page-shell.js';
 import { ProfileEditor } from './runtime-config-profile-editor.js';
 import {
-  loadUserProfiles,
-  saveUserProfile,
-  deleteUserProfile,
-  exportProfiles,
-  importProfiles,
-  createEmptyUserProfile,
-  generateProfileId,
-} from './runtime-config-profile-storage.js';
+  createAccountProfileLibraryEntry,
+  createEmptyLibraryProfile,
+  deleteAccountProfileLibraryEntry,
+  editAccountProfileLibraryEntry,
+  exportAccountProfileLibraryEntries,
+  generateLibraryProfileId,
+  importAccountProfileLibraryEntries,
+  loadAccountProfileLibrary,
+} from './runtime-config-profile-library.js';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -48,8 +50,18 @@ function useRuntimeProfiles() {
   });
 }
 
-function useUserProfiles(version: number) {
-  return useMemo(() => loadUserProfiles(), [version]);
+const USER_PROFILE_LIBRARY_QUERY_KEY = ['account-profile-library'] as const;
+
+function useUserProfiles() {
+  const query = useQuery({
+    queryKey: USER_PROFILE_LIBRARY_QUERY_KEY,
+    queryFn: () => loadAccountProfileLibrary(),
+    staleTime: 30_000,
+  });
+  return useMemo(
+    () => (query.data?.profiles ?? []).map((entry) => entry.profile),
+    [query.data],
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -266,9 +278,9 @@ function GhostCard(props: { onClick: () => void; label: string }) {
 
 export function ProfileCatalogPage() {
   const { t } = useTranslation();
+  const queryClient = useQueryClient();
   const runtimeQuery = useRuntimeProfiles();
-  const [userVersion, setUserVersion] = useState(0);
-  const userProfiles = useUserProfiles(userVersion);
+  const userProfiles = useUserProfiles();
   const [editingProfile, setEditingProfile] = useState<AIProfile | null>(null);
   const [applying, setApplying] = useState(false);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
@@ -292,12 +304,16 @@ export function ProfileCatalogPage() {
   }, [runtimeQuery.data, userProfiles]);
 
   const customEntries = catalogEntries.filter((e) => e.origin === 'custom');
+  const customProfileIds = useMemo(
+    () => new Set(userProfiles.map((entry) => entry.profileId)),
+    [userProfiles],
+  );
 
-  // -- Actions (unchanged) --
+  // -- Actions --
 
   const refreshUserProfiles = useCallback(() => {
-    setUserVersion((v) => v + 1);
-  }, []);
+    void queryClient.invalidateQueries({ queryKey: USER_PROFILE_LIBRARY_QUERY_KEY });
+  }, [queryClient]);
 
   const handleApply = useCallback(async (profileId: string) => {
     setApplying(true);
@@ -316,41 +332,68 @@ export function ProfileCatalogPage() {
     }
   }, [surface, scopeRef, t]);
 
-  const handleSaveProfile = useCallback((profile: AIProfile) => {
-    saveUserProfile(profile);
-    refreshUserProfiles();
-    setEditingProfile(null);
-    setFeedback({ type: 'success', message: t('runtimeConfig.profiles.saved', { defaultValue: 'Profile saved.' }) });
-  }, [refreshUserProfiles, t]);
+  const handleSaveProfile = useCallback(async (profile: AIProfile) => {
+    try {
+      if (customProfileIds.has(profile.profileId)) {
+        await editAccountProfileLibraryEntry(profile);
+      } else {
+        await createAccountProfileLibraryEntry(profile);
+      }
+      refreshUserProfiles();
+      setEditingProfile(null);
+      setFeedback({ type: 'success', message: t('runtimeConfig.profiles.saved', { defaultValue: 'Profile saved.' }) });
+    } catch (error: unknown) {
+      setFeedback({
+        type: 'error',
+        message: error instanceof Error ? error.message : 'Failed to save profile.',
+      });
+    }
+  }, [customProfileIds, refreshUserProfiles, t]);
 
-  const handleDeleteProfile = useCallback((profileId: string) => {
-    deleteUserProfile(profileId);
-    refreshUserProfiles();
-    setFeedback({ type: 'success', message: t('runtimeConfig.profiles.deleted', { defaultValue: 'Profile deleted.' }) });
+  const handleDeleteProfile = useCallback(async (profileId: string) => {
+    try {
+      await deleteAccountProfileLibraryEntry(profileId);
+      refreshUserProfiles();
+      setFeedback({ type: 'success', message: t('runtimeConfig.profiles.deleted', { defaultValue: 'Profile deleted.' }) });
+    } catch (error: unknown) {
+      setFeedback({
+        type: 'error',
+        message: error instanceof Error ? error.message : 'Failed to delete profile.',
+      });
+    }
   }, [refreshUserProfiles, t]);
 
   const handleDuplicate = useCallback((profile: AIProfile) => {
     const copy = structuredClone(profile);
-    copy.profileId = generateProfileId();
+    copy.profileId = generateLibraryProfileId();
     copy.title = `${profile.title} (Copy)`;
     setEditingProfile(copy);
   }, []);
 
   const handleCreate = useCallback(() => {
-    setEditingProfile(createEmptyUserProfile());
+    setEditingProfile(createEmptyLibraryProfile());
   }, []);
 
-  const handleExport = useCallback(() => {
-    const profilesToExport = customEntries.map((e) => e.profile);
-    if (profilesToExport.length === 0) return;
-    const json = exportProfiles(profilesToExport);
-    const blob = new Blob([json], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `ai-profiles-${Date.now()}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
+  const handleExport = useCallback(async () => {
+    if (customEntries.length === 0) return;
+    try {
+      const profilesToExport = await exportAccountProfileLibraryEntries(
+        customEntries.map((e) => e.profile.profileId),
+      );
+      const json = JSON.stringify(profilesToExport, null, 2);
+      const blob = new Blob([json], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `ai-profiles-${Date.now()}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (error: unknown) {
+      setFeedback({
+        type: 'error',
+        message: error instanceof Error ? error.message : 'Failed to export profiles.',
+      });
+    }
   }, [customEntries]);
 
   const handleImportClick = useCallback(() => {
@@ -362,23 +405,48 @@ export function ProfileCatalogPage() {
     if (!file) return;
     const reader = new FileReader();
     reader.onload = () => {
-      const result = importProfiles(reader.result as string);
-      for (const profile of result.imported) {
-        saveUserProfile(profile);
-      }
-      refreshUserProfiles();
-      if (result.imported.length > 0) {
-        setFeedback({
-          type: 'success',
-          message: t('runtimeConfig.profiles.importSuccess', {
-            defaultValue: 'Imported {{count}} profile(s).',
-            count: result.imported.length,
-          }),
-        });
-      }
-      if (result.errors.length > 0) {
-        setFeedback({ type: 'error', message: result.errors.join('; ') });
-      }
+      void (async () => {
+        let parsed: unknown;
+        try {
+          parsed = JSON.parse(String(reader.result || ''));
+        } catch {
+          setFeedback({ type: 'error', message: 'Invalid JSON' });
+          return;
+        }
+        const items = Array.isArray(parsed) ? parsed : [parsed];
+        const candidates: AIProfile[] = [];
+        const errors: string[] = [];
+        for (let index = 0; index < items.length; index++) {
+          const result = validateAIProfile(items[index]);
+          if (result.valid) {
+            candidates.push(items[index] as AIProfile);
+          } else {
+            errors.push(`Item ${index}: ${result.errors.join(', ')}`);
+          }
+        }
+        if (candidates.length > 0) {
+          try {
+            await importAccountProfileLibraryEntries(candidates);
+            refreshUserProfiles();
+            setFeedback({
+              type: 'success',
+              message: t('runtimeConfig.profiles.importSuccess', {
+                defaultValue: 'Imported {{count}} profile(s).',
+                count: candidates.length,
+              }),
+            });
+          } catch (error: unknown) {
+            setFeedback({
+              type: 'error',
+              message: error instanceof Error ? error.message : 'Failed to import profiles.',
+            });
+            return;
+          }
+        }
+        if (errors.length > 0) {
+          setFeedback({ type: 'error', message: errors.join('; ') });
+        }
+      })();
     };
     reader.readAsText(file);
     event.target.value = '';

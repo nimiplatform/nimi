@@ -226,6 +226,59 @@ export async function setProductFirstRunSetupState(input: {
   }, parseProjection);
 }
 
+/** The Account Default Profile projected as a portable AIProfile payload. */
+export interface AccountDefaultProfileAIProfile {
+  readonly profileId: string;
+  readonly title: string;
+  readonly description: string;
+  readonly tags: readonly string[];
+  readonly capabilities: Record<string, unknown>;
+}
+
+function parseAccountDefaultProfileAIProfile(value: unknown): AccountDefaultProfileAIProfile {
+  const record = asRecord(value, 'account_default_profile_for_scope_init');
+  const profileId = String(record.profileId || '').trim();
+  const title = String(record.title || '').trim();
+  if (!profileId) {
+    throw new Error('Account Default Profile payload is missing profileId');
+  }
+  if (!title) {
+    throw new Error('Account Default Profile payload is missing title');
+  }
+  if (!record.capabilities || typeof record.capabilities !== 'object'
+    || Array.isArray(record.capabilities)) {
+    throw new Error('Account Default Profile payload capabilities must be an object');
+  }
+  return {
+    profileId,
+    title,
+    description: typeof record.description === 'string' ? record.description : '',
+    tags: Array.isArray(record.tags)
+      ? record.tags.map((tag) => String(tag || '')).filter(Boolean)
+      : [],
+    capabilities: record.capabilities as Record<string, unknown>,
+  };
+}
+
+/**
+ * Read + verify the Account Default Profile as a portable AIProfile payload.
+ *
+ * Used by the Desktop host AIConfig scope-init rule (product manual "Profile
+ * And AIConfig Model"): a new AIConfig scope initializes from the Account
+ * Default Profile only when no prior AIConfig exists for that scope. The
+ * payload is the verified content of the durable `default.json` record.
+ */
+export async function getAccountDefaultProfileForScopeInit(): Promise<AccountDefaultProfileAIProfile> {
+  if (!hasTauriInvoke()) {
+    throw new Error('account_default_profile_for_scope_init requires Tauri runtime');
+  }
+  return invokeChecked(
+    'account_default_profile_for_scope_init',
+    {},
+    parseAccountDefaultProfileAIProfile,
+  );
+}
+
 /**
  * Requests backend admission of the first-run transition into `ready_for_use`.
  *

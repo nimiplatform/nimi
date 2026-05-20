@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import type { AIProfile } from '@nimiplatform/sdk/mod';
 import { getDesktopAIConfigService } from '@renderer/app-shell/providers/desktop-ai-config-service.js';
-import { loadUserProfiles } from '@renderer/features/runtime-config/runtime-config-profile-storage.js';
+import { loadAccountProfileLibrary } from '@renderer/features/runtime-config/runtime-config-profile-library.js';
 
 type TesterProfileSelectProps = {
   selectedProfileId: string;
@@ -19,7 +19,8 @@ export function TesterProfileSelect(props: TesterProfileSelectProps) {
     queryFn: async () => {
       const service = getDesktopAIConfigService();
       const builtIn = await service.aiProfile.list();
-      const userProfiles = loadUserProfiles();
+      const library = await loadAccountProfileLibrary();
+      const userProfiles = library.profiles.map((entry) => entry.profile);
       return [...builtIn, ...userProfiles];
     },
     staleTime: 30_000,
