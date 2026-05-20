@@ -389,14 +389,19 @@ fn ready_for_use_local_owner_verification_state(
 }
 
 /// Enumerate every account id that has a local Account Default Profile record
-/// under `data_root/accounts/*/profiles/default.json`.
+/// under `~/.nimi/accounts/*/profiles/default.json`.
 ///
-/// This is a read-only directory scan used to discover candidate authenticated
-/// account ids for the sync read-for-entry re-verification. It never trusts the
+/// P-AIPS-013 fixes the Account Default Profile library under the `~/.nimi`
+/// CONTROL root, not the user-selected `nimi_data` DATA root. This is a
+/// read-only directory scan used to discover candidate authenticated account
+/// ids for the sync read-for-entry re-verification. It never trusts the
 /// product-control record for the account binding. The percent-encoded path
 /// segment is decoded back to the canonical account id.
-fn account_ids_with_default_profile(data_root: &Path) -> Vec<String> {
-    let accounts_dir = data_root.join("accounts");
+fn account_ids_with_default_profile() -> Vec<String> {
+    let Ok(nimi_dir) = resolve_nimi_dir() else {
+        return Vec::new();
+    };
+    let accounts_dir = nimi_dir.join("accounts");
     let Ok(entries) = fs::read_dir(&accounts_dir) else {
         return Vec::new();
     };
@@ -469,7 +474,7 @@ fn verify_ready_for_use_local_owners(
                 "ready_for_use record is missing accountDefaultProfileRef".to_string(),
             )
         })?;
-    let candidate_account_ids = account_ids_with_default_profile(data_root);
+    let candidate_account_ids = account_ids_with_default_profile();
     if candidate_account_ids.is_empty() {
         return Err((
             ProductControlState::LocalAiReady,
