@@ -153,6 +153,114 @@ func runtimeBaselineReadinessRecordToProto(record runtimeBaselineReadinessRecord
 	return out
 }
 
+// MintFirstRunExecutionEvidence executes every selected first-run baseline
+// capability through the admitted Runtime local execution path and mints a
+// durable executionEvidenceRef only when every execution resolved to a local
+// route target (K-AIEXEC-007).
+func (s *Service) MintFirstRunExecutionEvidence(_ context.Context, req *runtimev1.MintFirstRunExecutionEvidenceRequest) (*runtimev1.MintFirstRunExecutionEvidenceResponse, error) {
+	record, state, reasonCode, detail := s.mintFirstRunExecutionEvidence(firstRunExecutionMintRequest{
+		RuntimeBaselineRef:               req.GetRuntimeBaselineRef(),
+		SelectedLocalFactoryAIProfileRef: req.GetSelectedLocalFactoryAiProfileRef(),
+		InstallLevel:                     req.GetInstallLevel(),
+		DataRootRef:                      req.GetDataRootRef(),
+		HostProfile:                      req.GetHostProfile(),
+		RecommendedCapabilities:          req.GetRecommendedCapabilities(),
+		SubmitSchedulingEvaluated:        req.GetSubmitSchedulingEvaluated(),
+	})
+	resp := &runtimev1.MintFirstRunExecutionEvidenceResponse{
+		State:      state,
+		ReasonCode: reasonCode,
+		Detail:     detail,
+	}
+	if state == firstRunExecutionStateReady {
+		resp.Ref = firstRunExecutionEvidenceRecordToProto(record)
+	}
+	return resp, nil
+}
+
+// ResolveFirstRunExecutionEvidence re-verifies a stored executionEvidenceRef
+// against fresh evidence (K-AIEXEC-007). It fails closed for a string-only ref,
+// a missing ref, a ref with no backing durable record, a ref bound to a
+// divergent composition input, an incomplete capability set, or any ref whose
+// recorded route was cloud / non-local.
+func (s *Service) ResolveFirstRunExecutionEvidence(_ context.Context, req *runtimev1.ResolveFirstRunExecutionEvidenceRequest) (*runtimev1.ResolveFirstRunExecutionEvidenceResponse, error) {
+	record, state, reasonCode, detail := s.resolveFirstRunExecutionEvidence(firstRunExecutionResolveRequest{
+		ExecutionEvidenceRef:       req.GetExecutionEvidenceRef(),
+		ExpectedRuntimeBaselineRef: req.GetExpectedRuntimeBaselineRef(),
+		ExpectedDataRootRef:        req.GetExpectedDataRootRef(),
+		ExpectedInstallLevel:       req.GetExpectedInstallLevel(),
+		HostProfile:                req.GetHostProfile(),
+	})
+	resp := &runtimev1.ResolveFirstRunExecutionEvidenceResponse{
+		State:      state,
+		ReasonCode: reasonCode,
+		Detail:     detail,
+	}
+	if state == firstRunExecutionStateReady {
+		resp.Ref = firstRunExecutionEvidenceRecordToProto(record)
+	}
+	return resp, nil
+}
+
+func firstRunExecutionEvidenceRecordToProto(record firstRunExecutionEvidenceRecord) *runtimev1.ExecutionEvidenceRef {
+	out := &runtimev1.ExecutionEvidenceRef{
+		ExecutionEvidenceRef:             record.ExecutionEvidenceRef,
+		SelectedLocalFactoryAiProfileRef: record.SelectedLocalFactoryAIProfileRef,
+		InstallLevel:                     record.InstallLevel,
+		RuntimeBaselineRef:               record.RuntimeBaselineRef,
+		DataRootRef:                      record.DataRootRef,
+		LocalExecutionTargetEvidence:     append([]string(nil), record.LocalExecutionTargetEvidence...),
+		TerminalResult:                   record.TerminalResult,
+		ObservedAt:                       record.ObservedAt,
+		RuntimeAuditSequence:             append([]string(nil), record.RuntimeAuditSequence...),
+		RuntimeVerifierIdentity:          record.RuntimeVerifierIdentity,
+		SelectedBaselineCapabilityProof:  make([]*runtimev1.ExecutionBaselineCapabilityProof, 0, len(record.SelectedBaselineCapabilityProof)),
+	}
+	for _, proof := range record.SelectedBaselineCapabilityProof {
+		out.SelectedBaselineCapabilityProof = append(out.SelectedBaselineCapabilityProof, &runtimev1.ExecutionBaselineCapabilityProof{
+			Capability:       proof.Capability,
+			ScenarioType:     parseScenarioTypeName(proof.ScenarioType),
+			BoundConsumerId:  proof.BoundConsumerID,
+			BoundAssetId:     proof.BoundAssetID,
+			LocalRouteTarget: proof.LocalRouteTarget,
+			RoutePolicy:      parseRoutePolicyName(proof.RoutePolicy),
+			ModelResolved:    proof.ModelResolved,
+			TerminalResult:   proof.TerminalResult,
+			ReasonCode:       proof.ReasonCode,
+			TraceId:          proof.TraceID,
+			ExecutedAt:       proof.ExecutedAt,
+		})
+	}
+	if record.SubmitSpecificSchedulingJudgement != nil {
+		out.SubmitSpecificSchedulingJudgement = &runtimev1.ExecutionSchedulingJudgement{
+			Evaluated:       record.SubmitSpecificSchedulingJudgement.Evaluated,
+			Capability:      record.SubmitSpecificSchedulingJudgement.Capability,
+			SchedulingState: record.SubmitSpecificSchedulingJudgement.SchedulingState,
+			Detail:          record.SubmitSpecificSchedulingJudgement.Detail,
+			EvaluatedAt:     record.SubmitSpecificSchedulingJudgement.EvaluatedAt,
+		}
+	}
+	return out
+}
+
+// parseScenarioTypeName maps a stored ScenarioType enum name back to the proto
+// enum value. An unknown name resolves to UNSPECIFIED.
+func parseScenarioTypeName(name string) runtimev1.ScenarioType {
+	if value, ok := runtimev1.ScenarioType_value[strings.TrimSpace(name)]; ok {
+		return runtimev1.ScenarioType(value)
+	}
+	return runtimev1.ScenarioType_SCENARIO_TYPE_UNSPECIFIED
+}
+
+// parseRoutePolicyName maps a stored RoutePolicy enum name back to the proto
+// enum value. An unknown name resolves to UNSPECIFIED.
+func parseRoutePolicyName(name string) runtimev1.RoutePolicy {
+	if value, ok := runtimev1.RoutePolicy_value[strings.TrimSpace(name)]; ok {
+		return runtimev1.RoutePolicy(value)
+	}
+	return runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED
+}
+
 func runtimeBaselineConsumerBindingsFromProto(bindings []*runtimev1.RuntimeBaselineConsumerBinding) []runtimeBaselineConsumerBinding {
 	out := make([]runtimeBaselineConsumerBinding, 0, len(bindings))
 	for _, binding := range bindings {

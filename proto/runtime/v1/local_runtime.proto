@@ -356,6 +356,65 @@ message ResolveRuntimeBaselineReadinessResponse {
   string detail = 4;
 }
 
+// MintFirstRunExecutionEvidenceRequest requests minting a first-run baseline
+// execution evidence ref (K-AIEXEC-007). RuntimeLocalService re-confirms the
+// supplied runtimeBaselineRef, then executes every selected first-run baseline
+// capability through the admitted Runtime local execution path and mints the
+// ref only when every execution resolved to a local route target.
+message MintFirstRunExecutionEvidenceRequest {
+  // runtime_baseline_ref is the previously verified runtimeBaselineRef the
+  // execution proof binds to. It is re-confirmed before any execution runs.
+  string runtime_baseline_ref = 1;
+  string selected_local_factory_ai_profile_ref = 2;
+  // install_level is minimal or recommended.
+  string install_level = 3;
+  string data_root_ref = 4;
+  LocalDeviceProfile host_profile = 5;
+  // recommended_capabilities pins the additional Recommended-only baseline
+  // capability ids selected by the confirmed plan. When install_level is
+  // recommended every entry must resolve to an admitted local scenario.
+  repeated string recommended_capabilities = 6;
+  // submit_scheduling_evaluated, when true, indicates a submit-specific Peek
+  // was evaluated for the baseline capabilities; the resulting target
+  // judgement is recorded into the evidence. When false no scheduling
+  // judgement is recorded (a scope aggregate judgement is never substituted).
+  bool submit_scheduling_evaluated = 7;
+}
+
+message MintFirstRunExecutionEvidenceResponse {
+  ExecutionEvidenceRef ref = 1;
+  // state is local_ai_ready when minted, otherwise the fail-closed projection
+  // (local_ai_blocked).
+  string state = 2;
+  string reason_code = 3;
+  string detail = 4;
+}
+
+// ResolveFirstRunExecutionEvidenceRequest re-verifies a stored
+// executionEvidenceRef (K-AIEXEC-007). This is the seam product ready
+// admission step 7 (P-COLD-016) consumes.
+message ResolveFirstRunExecutionEvidenceRequest {
+  string execution_evidence_ref = 1;
+  // expected_runtime_baseline_ref / expected_data_root_ref /
+  // expected_install_level are the composition inputs the caller already
+  // verified; the resolver fails closed when the stored evidence no longer
+  // matches them. They are optional — when empty only the stored binding is
+  // re-confirmed.
+  string expected_runtime_baseline_ref = 2;
+  string expected_data_root_ref = 3;
+  string expected_install_level = 4;
+  LocalDeviceProfile host_profile = 5;
+}
+
+message ResolveFirstRunExecutionEvidenceResponse {
+  ExecutionEvidenceRef ref = 1;
+  // state is local_ai_ready when the ref still resolves, otherwise the
+  // fail-closed projection (local_ai_blocked).
+  string state = 2;
+  string reason_code = 3;
+  string detail = 4;
+}
+
 message StartLocalEnvironmentDependencyJobRequest {
   string environment_key = 1;
   string dependency_family = 2;
@@ -631,6 +690,8 @@ service RuntimeLocalService {
   rpc ResolveLocalEnvironmentActivationGate(ResolveLocalEnvironmentActivationGateRequest) returns (ResolveLocalEnvironmentActivationGateResponse);
   rpc MintRuntimeBaselineReadiness(MintRuntimeBaselineReadinessRequest) returns (MintRuntimeBaselineReadinessResponse);
   rpc ResolveRuntimeBaselineReadiness(ResolveRuntimeBaselineReadinessRequest) returns (ResolveRuntimeBaselineReadinessResponse);
+  rpc MintFirstRunExecutionEvidence(MintFirstRunExecutionEvidenceRequest) returns (MintFirstRunExecutionEvidenceResponse);
+  rpc ResolveFirstRunExecutionEvidence(ResolveFirstRunExecutionEvidenceRequest) returns (ResolveFirstRunExecutionEvidenceResponse);
   rpc StartLocalEnvironmentDependencyJob(StartLocalEnvironmentDependencyJobRequest) returns (StartLocalEnvironmentDependencyJobResponse);
   rpc CancelLocalEnvironmentDependencyJob(CancelLocalEnvironmentDependencyJobRequest) returns (CancelLocalEnvironmentDependencyJobResponse);
   rpc RetryLocalEnvironmentDependencyJob(RetryLocalEnvironmentDependencyJobRequest) returns (RetryLocalEnvironmentDependencyJobResponse);

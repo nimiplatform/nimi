@@ -364,6 +364,16 @@ method_mappings:
     proto_method: ResolveRuntimeBaselineReadiness
     mapping_posture: aligned
   - design_service: RuntimeLocalService
+    design_method: MintFirstRunExecutionEvidence
+    proto_service: RuntimeLocalService
+    proto_method: MintFirstRunExecutionEvidence
+    mapping_posture: aligned
+  - design_service: RuntimeLocalService
+    design_method: ResolveFirstRunExecutionEvidence
+    proto_service: RuntimeLocalService
+    proto_method: ResolveFirstRunExecutionEvidence
+    mapping_posture: aligned
+  - design_service: RuntimeLocalService
     design_method: StartLocalEnvironmentDependencyJob
     proto_service: RuntimeLocalService
     proto_method: StartLocalEnvironmentDependencyJob

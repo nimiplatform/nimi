@@ -11,6 +11,8 @@ import { UnknownFieldHandler } from "@protobuf-ts/runtime";
 import type { PartialMessage } from "@protobuf-ts/runtime";
 import { reflectionMergePartial } from "@protobuf-ts/runtime";
 import { MessageType } from "@protobuf-ts/runtime";
+import { RoutePolicy } from "./ai";
+import { ScenarioType } from "./ai";
 import { ReasonCode } from "./common";
 import { Struct } from "../../google/protobuf/struct";
 // === Source ===
@@ -1164,6 +1166,218 @@ export interface RuntimeBaselineReadinessRef {
      * @generated from protobuf field: repeated string runtime_audit_sequence = 11
      */
     runtimeAuditSequence: string[];
+}
+// === Runtime-owned First-Run Baseline Execution Evidence (K-AIEXEC-007) ===
+
+/**
+ * ExecutionBaselineCapabilityProof is the durable per-capability execution
+ * proof captured into an executionEvidenceRef. Each entry proves one selected
+ * local first-run baseline capability actually executed through the admitted
+ * Runtime local execution path against a runtimeBaselineRef-bound model asset.
+ * It is owner-verifiable execution evidence, never a probe or warmup result.
+ *
+ * @generated from protobuf message nimi.runtime.v1.ExecutionBaselineCapabilityProof
+ */
+export interface ExecutionBaselineCapabilityProof {
+    /**
+     * capability is the canonical baseline capability id, e.g.
+     * local_text_chat_execution / local_basic_stt_execution /
+     * local_basic_tts_execution.
+     *
+     * @generated from protobuf field: string capability = 1
+     */
+    capability: string;
+    /**
+     * scenario_type is the runtime ScenarioType the proof executed. Only
+     * TEXT_GENERATE, SPEECH_SYNTHESIZE, SPEECH_TRANSCRIBE are admitted for the
+     * first-run baseline; every other scenario fails closed.
+     *
+     * @generated from protobuf field: nimi.runtime.v1.ScenarioType scenario_type = 2
+     */
+    scenarioType: ScenarioType;
+    /**
+     * bound_consumer_id is the runtimeBaselineRef baseline consumer this proof
+     * executed against (llama.cpp.cpu / speech.qwen3-asr.python /
+     * speech.qwen3-tts.python).
+     *
+     * @generated from protobuf field: string bound_consumer_id = 3
+     */
+    boundConsumerId: string;
+    /**
+     * bound_asset_id is the runtimeBaselineRef-bound local model asset id this
+     * capability executed against.
+     *
+     * @generated from protobuf field: string bound_asset_id = 4
+     */
+    boundAssetId: string;
+    /**
+     * local_route_target is the resolved local execution route target. It is
+     * always a local route (route_policy ROUTE_POLICY_LOCAL); a cloud / remote
+     * target fails the evidence closed.
+     *
+     * @generated from protobuf field: string local_route_target = 5
+     */
+    localRouteTarget: string;
+    /**
+     * route_policy is the resolved route policy. A valid proof is always
+     * ROUTE_POLICY_LOCAL.
+     *
+     * @generated from protobuf field: nimi.runtime.v1.RoutePolicy route_policy = 6
+     */
+    routePolicy: RoutePolicy;
+    /**
+     * model_resolved is the runtime-resolved local model id the local execution
+     * path ran.
+     *
+     * @generated from protobuf field: string model_resolved = 7
+     */
+    modelResolved: string;
+    /**
+     * terminal_result is local_executed for a successful proof, otherwise the
+     * fail-closed terminal projection.
+     *
+     * @generated from protobuf field: string terminal_result = 8
+     */
+    terminalResult: string;
+    /**
+     * @generated from protobuf field: string reason_code = 9
+     */
+    reasonCode: string;
+    /**
+     * trace_id is the execution trace id stamped by the local execution path.
+     *
+     * @generated from protobuf field: string trace_id = 10
+     */
+    traceId: string;
+    /**
+     * @generated from protobuf field: string executed_at = 11
+     */
+    executedAt: string;
+}
+/**
+ * ExecutionSchedulingJudgement carries a submit-specific execution target
+ * scheduling judgement (K-AIEXEC-003 / K-SCHED-002). It is recorded into
+ * executionEvidenceRef only when a submit-specific Peek was evaluated for the
+ * capability about to execute; a scope aggregate judgement is never recorded
+ * here. When no submit-specific Peek was evaluated this message is absent.
+ *
+ * @generated from protobuf message nimi.runtime.v1.ExecutionSchedulingJudgement
+ */
+export interface ExecutionSchedulingJudgement {
+    /**
+     * evaluated is always true when this message is present.
+     *
+     * @generated from protobuf field: bool evaluated = 1
+     */
+    evaluated: boolean;
+    /**
+     * capability is the submit-specific capability the Peek target evaluated.
+     *
+     * @generated from protobuf field: string capability = 2
+     */
+    capability: string;
+    /**
+     * scheduling_state is the five-state K-SCHED-002 judgement.
+     *
+     * @generated from protobuf field: string scheduling_state = 3
+     */
+    schedulingState: string;
+    /**
+     * @generated from protobuf field: string detail = 4
+     */
+    detail: string;
+    /**
+     * @generated from protobuf field: string evaluated_at = 5
+     */
+    evaluatedAt: string;
+}
+/**
+ * ExecutionEvidenceRef is the durable, owner-verifiable first-run baseline
+ * execution evidence record owned by RuntimeLocalService runtime execution
+ * (K-AIEXEC-007). It is minted only after every selected first-run baseline
+ * capability executes through the admitted Runtime local execution path and
+ * every execution resolved to a local route target. It carries all ten
+ * required_projection fields declared by product-control-record-schema.yaml ->
+ * evidence_contracts.executionEvidenceRef.
+ *
+ * @generated from protobuf message nimi.runtime.v1.ExecutionEvidenceRef
+ */
+export interface ExecutionEvidenceRef {
+    /**
+     * @generated from protobuf field: string execution_evidence_ref = 1
+     */
+    executionEvidenceRef: string;
+    /**
+     * 1. selected_local_factory_aiProfile_ref
+     *
+     * @generated from protobuf field: string selected_local_factory_ai_profile_ref = 2
+     */
+    selectedLocalFactoryAiProfileRef: string;
+    /**
+     * 2. install_level (minimal or recommended)
+     *
+     * @generated from protobuf field: string install_level = 3
+     */
+    installLevel: string;
+    /**
+     * 3. runtimeBaselineRef — the previously verified runtime baseline ref this
+     * execution proof was bound to and re-confirmed against.
+     *
+     * @generated from protobuf field: string runtime_baseline_ref = 4
+     */
+    runtimeBaselineRef: string;
+    /**
+     * 4. dataRootRef
+     *
+     * @generated from protobuf field: string data_root_ref = 5
+     */
+    dataRootRef: string;
+    /**
+     * 5. local_execution_target_evidence — the de-duplicated set of resolved
+     * local route targets every baseline capability executed against.
+     *
+     * @generated from protobuf field: repeated string local_execution_target_evidence = 6
+     */
+    localExecutionTargetEvidence: string[];
+    /**
+     * 6. selected_baseline_capability_proof — one proof per selected first-run
+     * baseline capability.
+     *
+     * @generated from protobuf field: repeated nimi.runtime.v1.ExecutionBaselineCapabilityProof selected_baseline_capability_proof = 7
+     */
+    selectedBaselineCapabilityProof: ExecutionBaselineCapabilityProof[];
+    /**
+     * 7. submit_specific_scheduling_judgement_when_evaluated — present only when
+     * a submit-specific Peek was evaluated, else absent.
+     *
+     * @generated from protobuf field: nimi.runtime.v1.ExecutionSchedulingJudgement submit_specific_scheduling_judgement = 8
+     */
+    submitSpecificSchedulingJudgement?: ExecutionSchedulingJudgement;
+    /**
+     * 8. terminal_result — local_ai_ready when every proof executed locally,
+     * otherwise the fail-closed projection (local_ai_blocked).
+     *
+     * @generated from protobuf field: string terminal_result = 9
+     */
+    terminalResult: string;
+    /**
+     * 9. timestamps — observed_at is the mint/verify timestamp.
+     *
+     * @generated from protobuf field: string observed_at = 10
+     */
+    observedAt: string;
+    /**
+     * 10. runtime_audit_sequence — durable Runtime audit evidence sequence.
+     *
+     * @generated from protobuf field: repeated string runtime_audit_sequence = 11
+     */
+    runtimeAuditSequence: string[];
+    /**
+     * runtime_verifier_identity stamps the Runtime execution verifier.
+     *
+     * @generated from protobuf field: string runtime_verifier_identity = 12
+     */
+    runtimeVerifierIdentity: string;
 }
 // === Execution Descriptors ===
 
@@ -5180,6 +5394,346 @@ class RuntimeBaselineReadinessRef$Type extends MessageType<RuntimeBaselineReadin
  * @generated MessageType for protobuf message nimi.runtime.v1.RuntimeBaselineReadinessRef
  */
 export const RuntimeBaselineReadinessRef = new RuntimeBaselineReadinessRef$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ExecutionBaselineCapabilityProof$Type extends MessageType<ExecutionBaselineCapabilityProof> {
+    constructor() {
+        super("nimi.runtime.v1.ExecutionBaselineCapabilityProof", [
+            { no: 1, name: "capability", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "scenario_type", kind: "enum", T: () => ["nimi.runtime.v1.ScenarioType", ScenarioType, "SCENARIO_TYPE_"] },
+            { no: 3, name: "bound_consumer_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "bound_asset_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "local_route_target", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "route_policy", kind: "enum", T: () => ["nimi.runtime.v1.RoutePolicy", RoutePolicy, "ROUTE_POLICY_"] },
+            { no: 7, name: "model_resolved", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 8, name: "terminal_result", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 9, name: "reason_code", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 10, name: "trace_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 11, name: "executed_at", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<ExecutionBaselineCapabilityProof>): ExecutionBaselineCapabilityProof {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.capability = "";
+        message.scenarioType = 0;
+        message.boundConsumerId = "";
+        message.boundAssetId = "";
+        message.localRouteTarget = "";
+        message.routePolicy = 0;
+        message.modelResolved = "";
+        message.terminalResult = "";
+        message.reasonCode = "";
+        message.traceId = "";
+        message.executedAt = "";
+        if (value !== undefined)
+            reflectionMergePartial<ExecutionBaselineCapabilityProof>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ExecutionBaselineCapabilityProof): ExecutionBaselineCapabilityProof {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string capability */ 1:
+                    message.capability = reader.string();
+                    break;
+                case /* nimi.runtime.v1.ScenarioType scenario_type */ 2:
+                    message.scenarioType = reader.int32();
+                    break;
+                case /* string bound_consumer_id */ 3:
+                    message.boundConsumerId = reader.string();
+                    break;
+                case /* string bound_asset_id */ 4:
+                    message.boundAssetId = reader.string();
+                    break;
+                case /* string local_route_target */ 5:
+                    message.localRouteTarget = reader.string();
+                    break;
+                case /* nimi.runtime.v1.RoutePolicy route_policy */ 6:
+                    message.routePolicy = reader.int32();
+                    break;
+                case /* string model_resolved */ 7:
+                    message.modelResolved = reader.string();
+                    break;
+                case /* string terminal_result */ 8:
+                    message.terminalResult = reader.string();
+                    break;
+                case /* string reason_code */ 9:
+                    message.reasonCode = reader.string();
+                    break;
+                case /* string trace_id */ 10:
+                    message.traceId = reader.string();
+                    break;
+                case /* string executed_at */ 11:
+                    message.executedAt = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ExecutionBaselineCapabilityProof, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string capability = 1; */
+        if (message.capability !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.capability);
+        /* nimi.runtime.v1.ScenarioType scenario_type = 2; */
+        if (message.scenarioType !== 0)
+            writer.tag(2, WireType.Varint).int32(message.scenarioType);
+        /* string bound_consumer_id = 3; */
+        if (message.boundConsumerId !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.boundConsumerId);
+        /* string bound_asset_id = 4; */
+        if (message.boundAssetId !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.boundAssetId);
+        /* string local_route_target = 5; */
+        if (message.localRouteTarget !== "")
+            writer.tag(5, WireType.LengthDelimited).string(message.localRouteTarget);
+        /* nimi.runtime.v1.RoutePolicy route_policy = 6; */
+        if (message.routePolicy !== 0)
+            writer.tag(6, WireType.Varint).int32(message.routePolicy);
+        /* string model_resolved = 7; */
+        if (message.modelResolved !== "")
+            writer.tag(7, WireType.LengthDelimited).string(message.modelResolved);
+        /* string terminal_result = 8; */
+        if (message.terminalResult !== "")
+            writer.tag(8, WireType.LengthDelimited).string(message.terminalResult);
+        /* string reason_code = 9; */
+        if (message.reasonCode !== "")
+            writer.tag(9, WireType.LengthDelimited).string(message.reasonCode);
+        /* string trace_id = 10; */
+        if (message.traceId !== "")
+            writer.tag(10, WireType.LengthDelimited).string(message.traceId);
+        /* string executed_at = 11; */
+        if (message.executedAt !== "")
+            writer.tag(11, WireType.LengthDelimited).string(message.executedAt);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ExecutionBaselineCapabilityProof
+ */
+export const ExecutionBaselineCapabilityProof = new ExecutionBaselineCapabilityProof$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ExecutionSchedulingJudgement$Type extends MessageType<ExecutionSchedulingJudgement> {
+    constructor() {
+        super("nimi.runtime.v1.ExecutionSchedulingJudgement", [
+            { no: 1, name: "evaluated", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 2, name: "capability", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "scheduling_state", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "detail", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "evaluated_at", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<ExecutionSchedulingJudgement>): ExecutionSchedulingJudgement {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.evaluated = false;
+        message.capability = "";
+        message.schedulingState = "";
+        message.detail = "";
+        message.evaluatedAt = "";
+        if (value !== undefined)
+            reflectionMergePartial<ExecutionSchedulingJudgement>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ExecutionSchedulingJudgement): ExecutionSchedulingJudgement {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* bool evaluated */ 1:
+                    message.evaluated = reader.bool();
+                    break;
+                case /* string capability */ 2:
+                    message.capability = reader.string();
+                    break;
+                case /* string scheduling_state */ 3:
+                    message.schedulingState = reader.string();
+                    break;
+                case /* string detail */ 4:
+                    message.detail = reader.string();
+                    break;
+                case /* string evaluated_at */ 5:
+                    message.evaluatedAt = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ExecutionSchedulingJudgement, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* bool evaluated = 1; */
+        if (message.evaluated !== false)
+            writer.tag(1, WireType.Varint).bool(message.evaluated);
+        /* string capability = 2; */
+        if (message.capability !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.capability);
+        /* string scheduling_state = 3; */
+        if (message.schedulingState !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.schedulingState);
+        /* string detail = 4; */
+        if (message.detail !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.detail);
+        /* string evaluated_at = 5; */
+        if (message.evaluatedAt !== "")
+            writer.tag(5, WireType.LengthDelimited).string(message.evaluatedAt);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ExecutionSchedulingJudgement
+ */
+export const ExecutionSchedulingJudgement = new ExecutionSchedulingJudgement$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ExecutionEvidenceRef$Type extends MessageType<ExecutionEvidenceRef> {
+    constructor() {
+        super("nimi.runtime.v1.ExecutionEvidenceRef", [
+            { no: 1, name: "execution_evidence_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "selected_local_factory_ai_profile_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "install_level", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "runtime_baseline_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "data_root_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "local_execution_target_evidence", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
+            { no: 7, name: "selected_baseline_capability_proof", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => ExecutionBaselineCapabilityProof },
+            { no: 8, name: "submit_specific_scheduling_judgement", kind: "message", T: () => ExecutionSchedulingJudgement },
+            { no: 9, name: "terminal_result", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 10, name: "observed_at", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 11, name: "runtime_audit_sequence", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
+            { no: 12, name: "runtime_verifier_identity", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<ExecutionEvidenceRef>): ExecutionEvidenceRef {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.executionEvidenceRef = "";
+        message.selectedLocalFactoryAiProfileRef = "";
+        message.installLevel = "";
+        message.runtimeBaselineRef = "";
+        message.dataRootRef = "";
+        message.localExecutionTargetEvidence = [];
+        message.selectedBaselineCapabilityProof = [];
+        message.terminalResult = "";
+        message.observedAt = "";
+        message.runtimeAuditSequence = [];
+        message.runtimeVerifierIdentity = "";
+        if (value !== undefined)
+            reflectionMergePartial<ExecutionEvidenceRef>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ExecutionEvidenceRef): ExecutionEvidenceRef {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string execution_evidence_ref */ 1:
+                    message.executionEvidenceRef = reader.string();
+                    break;
+                case /* string selected_local_factory_ai_profile_ref */ 2:
+                    message.selectedLocalFactoryAiProfileRef = reader.string();
+                    break;
+                case /* string install_level */ 3:
+                    message.installLevel = reader.string();
+                    break;
+                case /* string runtime_baseline_ref */ 4:
+                    message.runtimeBaselineRef = reader.string();
+                    break;
+                case /* string data_root_ref */ 5:
+                    message.dataRootRef = reader.string();
+                    break;
+                case /* repeated string local_execution_target_evidence */ 6:
+                    message.localExecutionTargetEvidence.push(reader.string());
+                    break;
+                case /* repeated nimi.runtime.v1.ExecutionBaselineCapabilityProof selected_baseline_capability_proof */ 7:
+                    message.selectedBaselineCapabilityProof.push(ExecutionBaselineCapabilityProof.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                case /* nimi.runtime.v1.ExecutionSchedulingJudgement submit_specific_scheduling_judgement */ 8:
+                    message.submitSpecificSchedulingJudgement = ExecutionSchedulingJudgement.internalBinaryRead(reader, reader.uint32(), options, message.submitSpecificSchedulingJudgement);
+                    break;
+                case /* string terminal_result */ 9:
+                    message.terminalResult = reader.string();
+                    break;
+                case /* string observed_at */ 10:
+                    message.observedAt = reader.string();
+                    break;
+                case /* repeated string runtime_audit_sequence */ 11:
+                    message.runtimeAuditSequence.push(reader.string());
+                    break;
+                case /* string runtime_verifier_identity */ 12:
+                    message.runtimeVerifierIdentity = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ExecutionEvidenceRef, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string execution_evidence_ref = 1; */
+        if (message.executionEvidenceRef !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.executionEvidenceRef);
+        /* string selected_local_factory_ai_profile_ref = 2; */
+        if (message.selectedLocalFactoryAiProfileRef !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.selectedLocalFactoryAiProfileRef);
+        /* string install_level = 3; */
+        if (message.installLevel !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.installLevel);
+        /* string runtime_baseline_ref = 4; */
+        if (message.runtimeBaselineRef !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.runtimeBaselineRef);
+        /* string data_root_ref = 5; */
+        if (message.dataRootRef !== "")
+            writer.tag(5, WireType.LengthDelimited).string(message.dataRootRef);
+        /* repeated string local_execution_target_evidence = 6; */
+        for (let i = 0; i < message.localExecutionTargetEvidence.length; i++)
+            writer.tag(6, WireType.LengthDelimited).string(message.localExecutionTargetEvidence[i]);
+        /* repeated nimi.runtime.v1.ExecutionBaselineCapabilityProof selected_baseline_capability_proof = 7; */
+        for (let i = 0; i < message.selectedBaselineCapabilityProof.length; i++)
+            ExecutionBaselineCapabilityProof.internalBinaryWrite(message.selectedBaselineCapabilityProof[i], writer.tag(7, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.ExecutionSchedulingJudgement submit_specific_scheduling_judgement = 8; */
+        if (message.submitSpecificSchedulingJudgement)
+            ExecutionSchedulingJudgement.internalBinaryWrite(message.submitSpecificSchedulingJudgement, writer.tag(8, WireType.LengthDelimited).fork(), options).join();
+        /* string terminal_result = 9; */
+        if (message.terminalResult !== "")
+            writer.tag(9, WireType.LengthDelimited).string(message.terminalResult);
+        /* string observed_at = 10; */
+        if (message.observedAt !== "")
+            writer.tag(10, WireType.LengthDelimited).string(message.observedAt);
+        /* repeated string runtime_audit_sequence = 11; */
+        for (let i = 0; i < message.runtimeAuditSequence.length; i++)
+            writer.tag(11, WireType.LengthDelimited).string(message.runtimeAuditSequence[i]);
+        /* string runtime_verifier_identity = 12; */
+        if (message.runtimeVerifierIdentity !== "")
+            writer.tag(12, WireType.LengthDelimited).string(message.runtimeVerifierIdentity);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ExecutionEvidenceRef
+ */
+export const ExecutionEvidenceRef = new ExecutionEvidenceRef$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class LocalExecutionOptionDescriptor$Type extends MessageType<LocalExecutionOptionDescriptor> {
     constructor() {

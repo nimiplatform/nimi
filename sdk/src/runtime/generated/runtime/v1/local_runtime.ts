@@ -32,6 +32,7 @@ import { LocalProfileApplyResult } from "./local_runtime_types";
 import { LocalProfileResolutionPlan } from "./local_runtime_types";
 import { ProfileEntryOverride } from "./local_runtime_types";
 import { LocalProfileDescriptor } from "./local_runtime_types";
+import { ExecutionEvidenceRef } from "./local_runtime_types";
 import { RuntimeBaselineReadinessRef } from "./local_runtime_types";
 import { LocalEnvironmentActivationGate } from "./local_runtime_types";
 import { LocalEnvironmentDependencyJob } from "./local_runtime_types";
@@ -963,6 +964,142 @@ export interface ResolveRuntimeBaselineReadinessResponse {
     /**
      * state is ready when the ref still resolves, otherwise the fail-closed
      * projection state.
+     *
+     * @generated from protobuf field: string state = 2
+     */
+    state: string;
+    /**
+     * @generated from protobuf field: string reason_code = 3
+     */
+    reasonCode: string;
+    /**
+     * @generated from protobuf field: string detail = 4
+     */
+    detail: string;
+}
+/**
+ * MintFirstRunExecutionEvidenceRequest requests minting a first-run baseline
+ * execution evidence ref (K-AIEXEC-007). RuntimeLocalService re-confirms the
+ * supplied runtimeBaselineRef, then executes every selected first-run baseline
+ * capability through the admitted Runtime local execution path and mints the
+ * ref only when every execution resolved to a local route target.
+ *
+ * @generated from protobuf message nimi.runtime.v1.MintFirstRunExecutionEvidenceRequest
+ */
+export interface MintFirstRunExecutionEvidenceRequest {
+    /**
+     * runtime_baseline_ref is the previously verified runtimeBaselineRef the
+     * execution proof binds to. It is re-confirmed before any execution runs.
+     *
+     * @generated from protobuf field: string runtime_baseline_ref = 1
+     */
+    runtimeBaselineRef: string;
+    /**
+     * @generated from protobuf field: string selected_local_factory_ai_profile_ref = 2
+     */
+    selectedLocalFactoryAiProfileRef: string;
+    /**
+     * install_level is minimal or recommended.
+     *
+     * @generated from protobuf field: string install_level = 3
+     */
+    installLevel: string;
+    /**
+     * @generated from protobuf field: string data_root_ref = 4
+     */
+    dataRootRef: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LocalDeviceProfile host_profile = 5
+     */
+    hostProfile?: LocalDeviceProfile;
+    /**
+     * recommended_capabilities pins the additional Recommended-only baseline
+     * capability ids selected by the confirmed plan. When install_level is
+     * recommended every entry must resolve to an admitted local scenario.
+     *
+     * @generated from protobuf field: repeated string recommended_capabilities = 6
+     */
+    recommendedCapabilities: string[];
+    /**
+     * submit_scheduling_evaluated, when true, indicates a submit-specific Peek
+     * was evaluated for the baseline capabilities; the resulting target
+     * judgement is recorded into the evidence. When false no scheduling
+     * judgement is recorded (a scope aggregate judgement is never substituted).
+     *
+     * @generated from protobuf field: bool submit_scheduling_evaluated = 7
+     */
+    submitSchedulingEvaluated: boolean;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.MintFirstRunExecutionEvidenceResponse
+ */
+export interface MintFirstRunExecutionEvidenceResponse {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ExecutionEvidenceRef ref = 1
+     */
+    ref?: ExecutionEvidenceRef;
+    /**
+     * state is local_ai_ready when minted, otherwise the fail-closed projection
+     * (local_ai_blocked).
+     *
+     * @generated from protobuf field: string state = 2
+     */
+    state: string;
+    /**
+     * @generated from protobuf field: string reason_code = 3
+     */
+    reasonCode: string;
+    /**
+     * @generated from protobuf field: string detail = 4
+     */
+    detail: string;
+}
+/**
+ * ResolveFirstRunExecutionEvidenceRequest re-verifies a stored
+ * executionEvidenceRef (K-AIEXEC-007). This is the seam product ready
+ * admission step 7 (P-COLD-016) consumes.
+ *
+ * @generated from protobuf message nimi.runtime.v1.ResolveFirstRunExecutionEvidenceRequest
+ */
+export interface ResolveFirstRunExecutionEvidenceRequest {
+    /**
+     * @generated from protobuf field: string execution_evidence_ref = 1
+     */
+    executionEvidenceRef: string;
+    /**
+     * expected_runtime_baseline_ref / expected_data_root_ref /
+     * expected_install_level are the composition inputs the caller already
+     * verified; the resolver fails closed when the stored evidence no longer
+     * matches them. They are optional — when empty only the stored binding is
+     * re-confirmed.
+     *
+     * @generated from protobuf field: string expected_runtime_baseline_ref = 2
+     */
+    expectedRuntimeBaselineRef: string;
+    /**
+     * @generated from protobuf field: string expected_data_root_ref = 3
+     */
+    expectedDataRootRef: string;
+    /**
+     * @generated from protobuf field: string expected_install_level = 4
+     */
+    expectedInstallLevel: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LocalDeviceProfile host_profile = 5
+     */
+    hostProfile?: LocalDeviceProfile;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.ResolveFirstRunExecutionEvidenceResponse
+ */
+export interface ResolveFirstRunExecutionEvidenceResponse {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ExecutionEvidenceRef ref = 1
+     */
+    ref?: ExecutionEvidenceRef;
+    /**
+     * state is local_ai_ready when the ref still resolves, otherwise the
+     * fail-closed projection (local_ai_blocked).
      *
      * @generated from protobuf field: string state = 2
      */
@@ -4894,6 +5031,318 @@ class ResolveRuntimeBaselineReadinessResponse$Type extends MessageType<ResolveRu
  */
 export const ResolveRuntimeBaselineReadinessResponse = new ResolveRuntimeBaselineReadinessResponse$Type();
 // @generated message type with reflection information, may provide speed optimized methods
+class MintFirstRunExecutionEvidenceRequest$Type extends MessageType<MintFirstRunExecutionEvidenceRequest> {
+    constructor() {
+        super("nimi.runtime.v1.MintFirstRunExecutionEvidenceRequest", [
+            { no: 1, name: "runtime_baseline_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "selected_local_factory_ai_profile_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "install_level", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "data_root_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "host_profile", kind: "message", T: () => LocalDeviceProfile },
+            { no: 6, name: "recommended_capabilities", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
+            { no: 7, name: "submit_scheduling_evaluated", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
+        ]);
+    }
+    create(value?: PartialMessage<MintFirstRunExecutionEvidenceRequest>): MintFirstRunExecutionEvidenceRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.runtimeBaselineRef = "";
+        message.selectedLocalFactoryAiProfileRef = "";
+        message.installLevel = "";
+        message.dataRootRef = "";
+        message.recommendedCapabilities = [];
+        message.submitSchedulingEvaluated = false;
+        if (value !== undefined)
+            reflectionMergePartial<MintFirstRunExecutionEvidenceRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: MintFirstRunExecutionEvidenceRequest): MintFirstRunExecutionEvidenceRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string runtime_baseline_ref */ 1:
+                    message.runtimeBaselineRef = reader.string();
+                    break;
+                case /* string selected_local_factory_ai_profile_ref */ 2:
+                    message.selectedLocalFactoryAiProfileRef = reader.string();
+                    break;
+                case /* string install_level */ 3:
+                    message.installLevel = reader.string();
+                    break;
+                case /* string data_root_ref */ 4:
+                    message.dataRootRef = reader.string();
+                    break;
+                case /* nimi.runtime.v1.LocalDeviceProfile host_profile */ 5:
+                    message.hostProfile = LocalDeviceProfile.internalBinaryRead(reader, reader.uint32(), options, message.hostProfile);
+                    break;
+                case /* repeated string recommended_capabilities */ 6:
+                    message.recommendedCapabilities.push(reader.string());
+                    break;
+                case /* bool submit_scheduling_evaluated */ 7:
+                    message.submitSchedulingEvaluated = reader.bool();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: MintFirstRunExecutionEvidenceRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string runtime_baseline_ref = 1; */
+        if (message.runtimeBaselineRef !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.runtimeBaselineRef);
+        /* string selected_local_factory_ai_profile_ref = 2; */
+        if (message.selectedLocalFactoryAiProfileRef !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.selectedLocalFactoryAiProfileRef);
+        /* string install_level = 3; */
+        if (message.installLevel !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.installLevel);
+        /* string data_root_ref = 4; */
+        if (message.dataRootRef !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.dataRootRef);
+        /* nimi.runtime.v1.LocalDeviceProfile host_profile = 5; */
+        if (message.hostProfile)
+            LocalDeviceProfile.internalBinaryWrite(message.hostProfile, writer.tag(5, WireType.LengthDelimited).fork(), options).join();
+        /* repeated string recommended_capabilities = 6; */
+        for (let i = 0; i < message.recommendedCapabilities.length; i++)
+            writer.tag(6, WireType.LengthDelimited).string(message.recommendedCapabilities[i]);
+        /* bool submit_scheduling_evaluated = 7; */
+        if (message.submitSchedulingEvaluated !== false)
+            writer.tag(7, WireType.Varint).bool(message.submitSchedulingEvaluated);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.MintFirstRunExecutionEvidenceRequest
+ */
+export const MintFirstRunExecutionEvidenceRequest = new MintFirstRunExecutionEvidenceRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class MintFirstRunExecutionEvidenceResponse$Type extends MessageType<MintFirstRunExecutionEvidenceResponse> {
+    constructor() {
+        super("nimi.runtime.v1.MintFirstRunExecutionEvidenceResponse", [
+            { no: 1, name: "ref", kind: "message", T: () => ExecutionEvidenceRef },
+            { no: 2, name: "state", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "reason_code", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "detail", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<MintFirstRunExecutionEvidenceResponse>): MintFirstRunExecutionEvidenceResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.state = "";
+        message.reasonCode = "";
+        message.detail = "";
+        if (value !== undefined)
+            reflectionMergePartial<MintFirstRunExecutionEvidenceResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: MintFirstRunExecutionEvidenceResponse): MintFirstRunExecutionEvidenceResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.ExecutionEvidenceRef ref */ 1:
+                    message.ref = ExecutionEvidenceRef.internalBinaryRead(reader, reader.uint32(), options, message.ref);
+                    break;
+                case /* string state */ 2:
+                    message.state = reader.string();
+                    break;
+                case /* string reason_code */ 3:
+                    message.reasonCode = reader.string();
+                    break;
+                case /* string detail */ 4:
+                    message.detail = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: MintFirstRunExecutionEvidenceResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.ExecutionEvidenceRef ref = 1; */
+        if (message.ref)
+            ExecutionEvidenceRef.internalBinaryWrite(message.ref, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* string state = 2; */
+        if (message.state !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.state);
+        /* string reason_code = 3; */
+        if (message.reasonCode !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.reasonCode);
+        /* string detail = 4; */
+        if (message.detail !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.detail);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.MintFirstRunExecutionEvidenceResponse
+ */
+export const MintFirstRunExecutionEvidenceResponse = new MintFirstRunExecutionEvidenceResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ResolveFirstRunExecutionEvidenceRequest$Type extends MessageType<ResolveFirstRunExecutionEvidenceRequest> {
+    constructor() {
+        super("nimi.runtime.v1.ResolveFirstRunExecutionEvidenceRequest", [
+            { no: 1, name: "execution_evidence_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "expected_runtime_baseline_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "expected_data_root_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "expected_install_level", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "host_profile", kind: "message", T: () => LocalDeviceProfile }
+        ]);
+    }
+    create(value?: PartialMessage<ResolveFirstRunExecutionEvidenceRequest>): ResolveFirstRunExecutionEvidenceRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.executionEvidenceRef = "";
+        message.expectedRuntimeBaselineRef = "";
+        message.expectedDataRootRef = "";
+        message.expectedInstallLevel = "";
+        if (value !== undefined)
+            reflectionMergePartial<ResolveFirstRunExecutionEvidenceRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ResolveFirstRunExecutionEvidenceRequest): ResolveFirstRunExecutionEvidenceRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string execution_evidence_ref */ 1:
+                    message.executionEvidenceRef = reader.string();
+                    break;
+                case /* string expected_runtime_baseline_ref */ 2:
+                    message.expectedRuntimeBaselineRef = reader.string();
+                    break;
+                case /* string expected_data_root_ref */ 3:
+                    message.expectedDataRootRef = reader.string();
+                    break;
+                case /* string expected_install_level */ 4:
+                    message.expectedInstallLevel = reader.string();
+                    break;
+                case /* nimi.runtime.v1.LocalDeviceProfile host_profile */ 5:
+                    message.hostProfile = LocalDeviceProfile.internalBinaryRead(reader, reader.uint32(), options, message.hostProfile);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ResolveFirstRunExecutionEvidenceRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string execution_evidence_ref = 1; */
+        if (message.executionEvidenceRef !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.executionEvidenceRef);
+        /* string expected_runtime_baseline_ref = 2; */
+        if (message.expectedRuntimeBaselineRef !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.expectedRuntimeBaselineRef);
+        /* string expected_data_root_ref = 3; */
+        if (message.expectedDataRootRef !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.expectedDataRootRef);
+        /* string expected_install_level = 4; */
+        if (message.expectedInstallLevel !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.expectedInstallLevel);
+        /* nimi.runtime.v1.LocalDeviceProfile host_profile = 5; */
+        if (message.hostProfile)
+            LocalDeviceProfile.internalBinaryWrite(message.hostProfile, writer.tag(5, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ResolveFirstRunExecutionEvidenceRequest
+ */
+export const ResolveFirstRunExecutionEvidenceRequest = new ResolveFirstRunExecutionEvidenceRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ResolveFirstRunExecutionEvidenceResponse$Type extends MessageType<ResolveFirstRunExecutionEvidenceResponse> {
+    constructor() {
+        super("nimi.runtime.v1.ResolveFirstRunExecutionEvidenceResponse", [
+            { no: 1, name: "ref", kind: "message", T: () => ExecutionEvidenceRef },
+            { no: 2, name: "state", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "reason_code", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "detail", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<ResolveFirstRunExecutionEvidenceResponse>): ResolveFirstRunExecutionEvidenceResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.state = "";
+        message.reasonCode = "";
+        message.detail = "";
+        if (value !== undefined)
+            reflectionMergePartial<ResolveFirstRunExecutionEvidenceResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ResolveFirstRunExecutionEvidenceResponse): ResolveFirstRunExecutionEvidenceResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.ExecutionEvidenceRef ref */ 1:
+                    message.ref = ExecutionEvidenceRef.internalBinaryRead(reader, reader.uint32(), options, message.ref);
+                    break;
+                case /* string state */ 2:
+                    message.state = reader.string();
+                    break;
+                case /* string reason_code */ 3:
+                    message.reasonCode = reader.string();
+                    break;
+                case /* string detail */ 4:
+                    message.detail = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ResolveFirstRunExecutionEvidenceResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.ExecutionEvidenceRef ref = 1; */
+        if (message.ref)
+            ExecutionEvidenceRef.internalBinaryWrite(message.ref, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* string state = 2; */
+        if (message.state !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.state);
+        /* string reason_code = 3; */
+        if (message.reasonCode !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.reasonCode);
+        /* string detail = 4; */
+        if (message.detail !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.detail);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ResolveFirstRunExecutionEvidenceResponse
+ */
+export const ResolveFirstRunExecutionEvidenceResponse = new ResolveFirstRunExecutionEvidenceResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
 class StartLocalEnvironmentDependencyJobRequest$Type extends MessageType<StartLocalEnvironmentDependencyJobRequest> {
     constructor() {
         super("nimi.runtime.v1.StartLocalEnvironmentDependencyJobRequest", [
@@ -7256,6 +7705,8 @@ export const RuntimeLocalService = new ServiceType("nimi.runtime.v1.RuntimeLocal
     { name: "ResolveLocalEnvironmentActivationGate", options: {}, I: ResolveLocalEnvironmentActivationGateRequest, O: ResolveLocalEnvironmentActivationGateResponse },
     { name: "MintRuntimeBaselineReadiness", options: {}, I: MintRuntimeBaselineReadinessRequest, O: MintRuntimeBaselineReadinessResponse },
     { name: "ResolveRuntimeBaselineReadiness", options: {}, I: ResolveRuntimeBaselineReadinessRequest, O: ResolveRuntimeBaselineReadinessResponse },
+    { name: "MintFirstRunExecutionEvidence", options: {}, I: MintFirstRunExecutionEvidenceRequest, O: MintFirstRunExecutionEvidenceResponse },
+    { name: "ResolveFirstRunExecutionEvidence", options: {}, I: ResolveFirstRunExecutionEvidenceRequest, O: ResolveFirstRunExecutionEvidenceResponse },
     { name: "StartLocalEnvironmentDependencyJob", options: {}, I: StartLocalEnvironmentDependencyJobRequest, O: StartLocalEnvironmentDependencyJobResponse },
     { name: "CancelLocalEnvironmentDependencyJob", options: {}, I: CancelLocalEnvironmentDependencyJobRequest, O: CancelLocalEnvironmentDependencyJobResponse },
     { name: "RetryLocalEnvironmentDependencyJob", options: {}, I: RetryLocalEnvironmentDependencyJobRequest, O: RetryLocalEnvironmentDependencyJobResponse },

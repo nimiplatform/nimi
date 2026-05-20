@@ -179,6 +179,10 @@ services:
         type: unary
       - name: ResolveRuntimeBaselineReadiness
         type: unary
+      - name: MintFirstRunExecutionEvidence
+        type: unary
+      - name: ResolveFirstRunExecutionEvidence
+        type: unary
       - name: ResolveLocalStateReconciliation
         type: unary
       - name: ExecuteLocalStateCutover

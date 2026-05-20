@@ -23,16 +23,17 @@ const (
 // the legacy models[] + artifacts[] dual structure. SchemaVersion must be 2.
 // Runtime does NOT read v1 state — hard cut per plan §0.
 type localStateSnapshot struct {
-	SchemaVersion                   int                                         `json:"schemaVersion"`
-	SavedAt                         string                                      `json:"savedAt"`
-	Assets                          []localStateAssetState                      `json:"assets"`
-	Services                        []localStateServiceState                    `json:"services"`
-	Transfers                       []localStateTransferState                   `json:"transfers,omitempty"`
-	Audits                          []localStateAuditState                      `json:"audits,omitempty"`
-	LocalEnvironmentHostProfiles    []localEnvironmentHostProfileState          `json:"localEnvironmentHostProfiles,omitempty"`
-	LocalEnvironmentSelectedSources []localEnvironmentSelectedSourceRecordState `json:"localEnvironmentSelectedSourceRecords,omitempty"`
-	LocalEnvironmentDependencyJobs  []localEnvironmentDependencyJobState        `json:"localEnvironmentDependencyJobs,omitempty"`
-	RuntimeBaselineReadinessRecords []runtimeBaselineReadinessRecord            `json:"runtimeBaselineReadinessRecords,omitempty"`
+	SchemaVersion                    int                                         `json:"schemaVersion"`
+	SavedAt                          string                                      `json:"savedAt"`
+	Assets                           []localStateAssetState                      `json:"assets"`
+	Services                         []localStateServiceState                    `json:"services"`
+	Transfers                        []localStateTransferState                   `json:"transfers,omitempty"`
+	Audits                           []localStateAuditState                      `json:"audits,omitempty"`
+	LocalEnvironmentHostProfiles     []localEnvironmentHostProfileState          `json:"localEnvironmentHostProfiles,omitempty"`
+	LocalEnvironmentSelectedSources  []localEnvironmentSelectedSourceRecordState `json:"localEnvironmentSelectedSourceRecords,omitempty"`
+	LocalEnvironmentDependencyJobs   []localEnvironmentDependencyJobState        `json:"localEnvironmentDependencyJobs,omitempty"`
+	RuntimeBaselineReadinessRecords  []runtimeBaselineReadinessRecord            `json:"runtimeBaselineReadinessRecords,omitempty"`
+	FirstRunExecutionEvidenceRecords []firstRunExecutionEvidenceRecord           `json:"firstRunExecutionEvidenceRecords,omitempty"`
 }
 
 // localStateAssetState is the unified persistence row for all asset kinds.
@@ -310,6 +311,13 @@ func (s *Service) restoreState() error {
 		}
 		s.runtimeBaselineReadinessRecords[item.RuntimeBaselineRef] = item
 	}
+	s.firstRunExecutionEvidenceRecords = make(map[string]firstRunExecutionEvidenceRecord, len(snapshot.FirstRunExecutionEvidenceRecords))
+	for _, item := range snapshot.FirstRunExecutionEvidenceRecords {
+		if strings.TrimSpace(item.ExecutionEvidenceRef) == "" {
+			continue
+		}
+		s.firstRunExecutionEvidenceRecords[item.ExecutionEvidenceRef] = item
+	}
 	if healedSnapshot {
 		s.persistStateLocked()
 	}
@@ -324,16 +332,17 @@ func (s *Service) persistStateLocked() {
 	}
 
 	snapshot := localStateSnapshot{
-		SchemaVersion:                   localStateSchemaVersion,
-		SavedAt:                         time.Now().UTC().Format(time.RFC3339Nano),
-		Assets:                          make([]localStateAssetState, 0, len(s.assets)),
-		Services:                        make([]localStateServiceState, 0, len(s.services)),
-		Transfers:                       make([]localStateTransferState, 0, len(s.transfers)),
-		Audits:                          make([]localStateAuditState, 0, len(s.audits)),
-		LocalEnvironmentHostProfiles:    make([]localEnvironmentHostProfileState, 0, len(s.localEnvironmentHostProfiles)),
-		LocalEnvironmentSelectedSources: make([]localEnvironmentSelectedSourceRecordState, 0, len(s.localEnvironmentSelectedSources)),
-		LocalEnvironmentDependencyJobs:  make([]localEnvironmentDependencyJobState, 0, len(s.localEnvironmentDependencyJobs)),
-		RuntimeBaselineReadinessRecords: make([]runtimeBaselineReadinessRecord, 0, len(s.runtimeBaselineReadinessRecords)),
+		SchemaVersion:                    localStateSchemaVersion,
+		SavedAt:                          time.Now().UTC().Format(time.RFC3339Nano),
+		Assets:                           make([]localStateAssetState, 0, len(s.assets)),
+		Services:                         make([]localStateServiceState, 0, len(s.services)),
+		Transfers:                        make([]localStateTransferState, 0, len(s.transfers)),
+		Audits:                           make([]localStateAuditState, 0, len(s.audits)),
+		LocalEnvironmentHostProfiles:     make([]localEnvironmentHostProfileState, 0, len(s.localEnvironmentHostProfiles)),
+		LocalEnvironmentSelectedSources:  make([]localEnvironmentSelectedSourceRecordState, 0, len(s.localEnvironmentSelectedSources)),
+		LocalEnvironmentDependencyJobs:   make([]localEnvironmentDependencyJobState, 0, len(s.localEnvironmentDependencyJobs)),
+		RuntimeBaselineReadinessRecords:  make([]runtimeBaselineReadinessRecord, 0, len(s.runtimeBaselineReadinessRecords)),
+		FirstRunExecutionEvidenceRecords: make([]firstRunExecutionEvidenceRecord, 0, len(s.firstRunExecutionEvidenceRecords)),
 	}
 
 	assetIDs := make([]string, 0, len(s.assets))
@@ -495,6 +504,15 @@ func (s *Service) persistStateLocked() {
 	sort.Strings(runtimeBaselineRefs)
 	for _, ref := range runtimeBaselineRefs {
 		snapshot.RuntimeBaselineReadinessRecords = append(snapshot.RuntimeBaselineReadinessRecords, s.runtimeBaselineReadinessRecords[ref])
+	}
+
+	executionEvidenceRefs := make([]string, 0, len(s.firstRunExecutionEvidenceRecords))
+	for ref := range s.firstRunExecutionEvidenceRecords {
+		executionEvidenceRefs = append(executionEvidenceRefs, ref)
+	}
+	sort.Strings(executionEvidenceRefs)
+	for _, ref := range executionEvidenceRefs {
+		snapshot.FirstRunExecutionEvidenceRecords = append(snapshot.FirstRunExecutionEvidenceRecords, s.firstRunExecutionEvidenceRecords[ref])
 	}
 
 	if err := saveLocalStateSnapshot(path, snapshot); err != nil {

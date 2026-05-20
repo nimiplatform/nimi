@@ -44,6 +44,8 @@ const (
 	RuntimeLocalService_ResolveLocalEnvironmentActivationGate_FullMethodName = "/nimi.runtime.v1.RuntimeLocalService/ResolveLocalEnvironmentActivationGate"
 	RuntimeLocalService_MintRuntimeBaselineReadiness_FullMethodName          = "/nimi.runtime.v1.RuntimeLocalService/MintRuntimeBaselineReadiness"
 	RuntimeLocalService_ResolveRuntimeBaselineReadiness_FullMethodName       = "/nimi.runtime.v1.RuntimeLocalService/ResolveRuntimeBaselineReadiness"
+	RuntimeLocalService_MintFirstRunExecutionEvidence_FullMethodName         = "/nimi.runtime.v1.RuntimeLocalService/MintFirstRunExecutionEvidence"
+	RuntimeLocalService_ResolveFirstRunExecutionEvidence_FullMethodName      = "/nimi.runtime.v1.RuntimeLocalService/ResolveFirstRunExecutionEvidence"
 	RuntimeLocalService_StartLocalEnvironmentDependencyJob_FullMethodName    = "/nimi.runtime.v1.RuntimeLocalService/StartLocalEnvironmentDependencyJob"
 	RuntimeLocalService_CancelLocalEnvironmentDependencyJob_FullMethodName   = "/nimi.runtime.v1.RuntimeLocalService/CancelLocalEnvironmentDependencyJob"
 	RuntimeLocalService_RetryLocalEnvironmentDependencyJob_FullMethodName    = "/nimi.runtime.v1.RuntimeLocalService/RetryLocalEnvironmentDependencyJob"
@@ -104,6 +106,8 @@ type RuntimeLocalServiceClient interface {
 	ResolveLocalEnvironmentActivationGate(ctx context.Context, in *ResolveLocalEnvironmentActivationGateRequest, opts ...grpc.CallOption) (*ResolveLocalEnvironmentActivationGateResponse, error)
 	MintRuntimeBaselineReadiness(ctx context.Context, in *MintRuntimeBaselineReadinessRequest, opts ...grpc.CallOption) (*MintRuntimeBaselineReadinessResponse, error)
 	ResolveRuntimeBaselineReadiness(ctx context.Context, in *ResolveRuntimeBaselineReadinessRequest, opts ...grpc.CallOption) (*ResolveRuntimeBaselineReadinessResponse, error)
+	MintFirstRunExecutionEvidence(ctx context.Context, in *MintFirstRunExecutionEvidenceRequest, opts ...grpc.CallOption) (*MintFirstRunExecutionEvidenceResponse, error)
+	ResolveFirstRunExecutionEvidence(ctx context.Context, in *ResolveFirstRunExecutionEvidenceRequest, opts ...grpc.CallOption) (*ResolveFirstRunExecutionEvidenceResponse, error)
 	StartLocalEnvironmentDependencyJob(ctx context.Context, in *StartLocalEnvironmentDependencyJobRequest, opts ...grpc.CallOption) (*StartLocalEnvironmentDependencyJobResponse, error)
 	CancelLocalEnvironmentDependencyJob(ctx context.Context, in *CancelLocalEnvironmentDependencyJobRequest, opts ...grpc.CallOption) (*CancelLocalEnvironmentDependencyJobResponse, error)
 	RetryLocalEnvironmentDependencyJob(ctx context.Context, in *RetryLocalEnvironmentDependencyJobRequest, opts ...grpc.CallOption) (*RetryLocalEnvironmentDependencyJobResponse, error)
@@ -404,6 +408,26 @@ func (c *runtimeLocalServiceClient) ResolveRuntimeBaselineReadiness(ctx context.
 	return out, nil
 }
 
+func (c *runtimeLocalServiceClient) MintFirstRunExecutionEvidence(ctx context.Context, in *MintFirstRunExecutionEvidenceRequest, opts ...grpc.CallOption) (*MintFirstRunExecutionEvidenceResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(MintFirstRunExecutionEvidenceResponse)
+	err := c.cc.Invoke(ctx, RuntimeLocalService_MintFirstRunExecutionEvidence_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeLocalServiceClient) ResolveFirstRunExecutionEvidence(ctx context.Context, in *ResolveFirstRunExecutionEvidenceRequest, opts ...grpc.CallOption) (*ResolveFirstRunExecutionEvidenceResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ResolveFirstRunExecutionEvidenceResponse)
+	err := c.cc.Invoke(ctx, RuntimeLocalService_ResolveFirstRunExecutionEvidence_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *runtimeLocalServiceClient) StartLocalEnvironmentDependencyJob(ctx context.Context, in *StartLocalEnvironmentDependencyJobRequest, opts ...grpc.CallOption) (*StartLocalEnvironmentDependencyJobResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(StartLocalEnvironmentDependencyJobResponse)
@@ -678,6 +702,8 @@ type RuntimeLocalServiceServer interface {
 	ResolveLocalEnvironmentActivationGate(context.Context, *ResolveLocalEnvironmentActivationGateRequest) (*ResolveLocalEnvironmentActivationGateResponse, error)
 	MintRuntimeBaselineReadiness(context.Context, *MintRuntimeBaselineReadinessRequest) (*MintRuntimeBaselineReadinessResponse, error)
 	ResolveRuntimeBaselineReadiness(context.Context, *ResolveRuntimeBaselineReadinessRequest) (*ResolveRuntimeBaselineReadinessResponse, error)
+	MintFirstRunExecutionEvidence(context.Context, *MintFirstRunExecutionEvidenceRequest) (*MintFirstRunExecutionEvidenceResponse, error)
+	ResolveFirstRunExecutionEvidence(context.Context, *ResolveFirstRunExecutionEvidenceRequest) (*ResolveFirstRunExecutionEvidenceResponse, error)
 	StartLocalEnvironmentDependencyJob(context.Context, *StartLocalEnvironmentDependencyJobRequest) (*StartLocalEnvironmentDependencyJobResponse, error)
 	CancelLocalEnvironmentDependencyJob(context.Context, *CancelLocalEnvironmentDependencyJobRequest) (*CancelLocalEnvironmentDependencyJobResponse, error)
 	RetryLocalEnvironmentDependencyJob(context.Context, *RetryLocalEnvironmentDependencyJobRequest) (*RetryLocalEnvironmentDependencyJobResponse, error)
@@ -792,6 +818,12 @@ func (UnimplementedRuntimeLocalServiceServer) MintRuntimeBaselineReadiness(conte
 }
 func (UnimplementedRuntimeLocalServiceServer) ResolveRuntimeBaselineReadiness(context.Context, *ResolveRuntimeBaselineReadinessRequest) (*ResolveRuntimeBaselineReadinessResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ResolveRuntimeBaselineReadiness not implemented")
+}
+func (UnimplementedRuntimeLocalServiceServer) MintFirstRunExecutionEvidence(context.Context, *MintFirstRunExecutionEvidenceRequest) (*MintFirstRunExecutionEvidenceResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method MintFirstRunExecutionEvidence not implemented")
+}
+func (UnimplementedRuntimeLocalServiceServer) ResolveFirstRunExecutionEvidence(context.Context, *ResolveFirstRunExecutionEvidenceRequest) (*ResolveFirstRunExecutionEvidenceResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ResolveFirstRunExecutionEvidence not implemented")
 }
 func (UnimplementedRuntimeLocalServiceServer) StartLocalEnvironmentDependencyJob(context.Context, *StartLocalEnvironmentDependencyJobRequest) (*StartLocalEnvironmentDependencyJobResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method StartLocalEnvironmentDependencyJob not implemented")
@@ -1324,6 +1356,42 @@ func _RuntimeLocalService_ResolveRuntimeBaselineReadiness_Handler(srv interface{
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(RuntimeLocalServiceServer).ResolveRuntimeBaselineReadiness(ctx, req.(*ResolveRuntimeBaselineReadinessRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeLocalService_MintFirstRunExecutionEvidence_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(MintFirstRunExecutionEvidenceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeLocalServiceServer).MintFirstRunExecutionEvidence(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeLocalService_MintFirstRunExecutionEvidence_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeLocalServiceServer).MintFirstRunExecutionEvidence(ctx, req.(*MintFirstRunExecutionEvidenceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeLocalService_ResolveFirstRunExecutionEvidence_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ResolveFirstRunExecutionEvidenceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeLocalServiceServer).ResolveFirstRunExecutionEvidence(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeLocalService_ResolveFirstRunExecutionEvidence_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeLocalServiceServer).ResolveFirstRunExecutionEvidence(ctx, req.(*ResolveFirstRunExecutionEvidenceRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -1862,6 +1930,14 @@ var RuntimeLocalService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ResolveRuntimeBaselineReadiness",
 			Handler:    _RuntimeLocalService_ResolveRuntimeBaselineReadiness_Handler,
+		},
+		{
+			MethodName: "MintFirstRunExecutionEvidence",
+			Handler:    _RuntimeLocalService_MintFirstRunExecutionEvidence_Handler,
+		},
+		{
+			MethodName: "ResolveFirstRunExecutionEvidence",
+			Handler:    _RuntimeLocalService_ResolveFirstRunExecutionEvidence_Handler,
 		},
 		{
 			MethodName: "StartLocalEnvironmentDependencyJob",
