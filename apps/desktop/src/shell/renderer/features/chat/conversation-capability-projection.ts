@@ -48,23 +48,30 @@ export function refreshAgentEffectiveCapabilityResolution(): void {
 
 // ---------------------------------------------------------------------------
 // Surface subscription — S-AICONF-006 driven projection refresh
-// Phase 6: follows active scope, rebinds on scope switch.
+// T3-1: follows the mode-aware active chat scope, rebinds on chat-mode switch.
 // ---------------------------------------------------------------------------
 
 let surfaceSubscriptionUnsubscribe: (() => void) | null = null;
 let activeScopeUnsubscribe: (() => void) | null = null;
 
 /**
- * Bind the config subscription for the current active scope.
+ * Bind the config subscription for the current active chat scope.
  * Unsubscribes from any previous scope first.
+ *
+ * When the active scope is `null` (Human / Group mode bind no built-in chat
+ * AIConfig scope) no subscription is bound — the chat path holds no generic
+ * fallback scope subscription.
  */
 function bindSubscriptionForScope(): void {
   if (surfaceSubscriptionUnsubscribe) {
     surfaceSubscriptionUnsubscribe();
     surfaceSubscriptionUnsubscribe = null;
   }
-  const surface = getDesktopAIConfigService();
   const scopeRef = getActiveScope();
+  if (!scopeRef) {
+    return;
+  }
+  const surface = getDesktopAIConfigService();
   surfaceSubscriptionUnsubscribe = surface.aiConfig.subscribe(scopeRef, () => {
     void refreshConversationCapabilityProjections();
   });
@@ -75,8 +82,9 @@ function bindSubscriptionForScope(): void {
  * When AIConfig changes through any surface write path (apply / update / setCapabilityBinding),
  * the subscription fires and triggers projection rebuild.
  *
- * Phase 6: also listens for active scope changes and rebinds the subscription
- * to the new scope. This means projection refresh always tracks the active scope.
+ * T3-1: also listens for active chat scope changes and rebinds the subscription
+ * to the new per-mode scope. Projection refresh always tracks the mode-aware
+ * active chat scope.
  *
  * Must be called once at bootstrap time, after `bindDesktopAIConfigAppStore()`.
  */

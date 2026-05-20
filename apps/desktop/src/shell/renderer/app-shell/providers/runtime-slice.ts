@@ -42,14 +42,26 @@ type RuntimeSlice = Pick<AppStoreState,
 >;
 
 export function createRuntimeSlice(set: AppStoreSet): RuntimeSlice {
-  const initialAIConfig = getDesktopAIConfigService().aiConfig.get(getActiveScope());
+  // T3-1: the active chat scope is mode-aware. The chat surface boots in `ai`
+  // mode, so the initial active scope is always the canonical Nimi built-in
+  // chat scope (feature:desktop.chat:nimi). A `null` active scope at slice
+  // construction means the chat surface default mode no longer binds a
+  // built-in chat scope — fail closed rather than fabricate a generic scope.
+  const initialActiveScope = getActiveScope();
+  if (!initialActiveScope) {
+    throw new Error(
+      'runtime-slice: chat surface default mode resolved no built-in chat AIScopeRef',
+    );
+  }
+  const initialAIConfig = getDesktopAIConfigService().aiConfig.get(initialActiveScope);
 
   // Bind the surface so it can push config updates to the store.
   // Surface is the unified write owner; store is a read projection.
-  // Phase 6: dynamically checks getActiveScope() so scope switches
-  // are immediately reflected in the filter.
+  // The filter dynamically checks getActiveScope() so chat-mode scope
+  // switches are immediately reflected.
   bindDesktopAIConfigAppStore((updatedScopeKey, config) => {
-    if (updatedScopeKey === scopeKeyFromRef(getActiveScope())) {
+    const activeScope = getActiveScope();
+    if (activeScope && updatedScopeKey === scopeKeyFromRef(activeScope)) {
       set({ aiConfig: config });
     }
   });

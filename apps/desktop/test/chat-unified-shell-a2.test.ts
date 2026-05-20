@@ -240,8 +240,10 @@ test('chat unified shell a2: AIConfig is the umbrella authority over conversatio
   assert.match(storeTypesSource, /setAIConfig:/);
   assert.match(storeTypesSource, /applyAIProfile:/);
 
-  // Runtime slice initializes from active scope AIConfig and delegates writes to surface — no legacy store in public shape
-  assert.match(runtimeSliceSource, /getDesktopAIConfigService\(\)\.aiConfig\.get\(getActiveScope\(\)\)/);
+  // Runtime slice initializes from the mode-aware active chat scope AIConfig
+  // and delegates writes to surface — no legacy store in public shape.
+  assert.match(runtimeSliceSource, /getActiveScope\(\)/);
+  assert.match(runtimeSliceSource, /getDesktopAIConfigService\(\)\.aiConfig\.get\(initialActiveScope\)/);
   assert.match(runtimeSliceSource, /getDesktopAIConfigService/);
   assert.match(runtimeSliceSource, /bindDesktopAIConfigAppStore/);
   assert.match(runtimeSliceSource, /applyAIProfileToConfig/);

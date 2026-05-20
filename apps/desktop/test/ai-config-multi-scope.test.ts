@@ -76,11 +76,13 @@ test('multi-scope: shared Desktop host service subscribe is scoped (S-AICONF-006
   assert.match(serviceSource, /if \(sub\.scopeKey === key\)/);
 });
 
-test('multi-scope: runtime-slice dynamically checks active scope for store sync (Phase 6)', () => {
+test('multi-scope: runtime-slice dynamically checks the mode-aware active chat scope for store sync', () => {
   // Uses getActiveScope() dynamically, not a fixed capture at bootstrap
   assert.match(runtimeSliceSource, /getActiveScope\(\)/);
-  assert.match(runtimeSliceSource, /scopeKeyFromRef\(getActiveScope\(\)\)/);
-  assert.match(runtimeSliceSource, /getDesktopAIConfigService\(\)\.aiConfig\.get\(getActiveScope\(\)\)/);
+  // Store-sync filter guards against a null active scope (Human/Group mode)
+  assert.match(runtimeSliceSource, /const activeScope = getActiveScope\(\)/);
+  assert.match(runtimeSliceSource, /scopeKeyFromRef\(activeScope\)/);
+  assert.match(runtimeSliceSource, /getDesktopAIConfigService\(\)\.aiConfig\.get\(initialActiveScope\)/);
   // No fixed activeScopeKey const
   assert.doesNotMatch(runtimeSliceSource, /const activeScopeKey\b/);
 });
@@ -159,60 +161,121 @@ test('multi-scope: parseScopeKey rejects invalid keys', async () => {
 });
 
 // ---------------------------------------------------------------------------
-// Phase 6: Active scope orchestration structural tests
+// T3-1: Mode-aware built-in chat scope orchestration structural tests
 // ---------------------------------------------------------------------------
 
 const projectionSource = readSource('src/shell/renderer/features/chat/conversation-capability-projection.ts');
 
-test('Phase 6: surface exports active scope orchestration API', () => {
-  assert.match(activeScopeSource, /export function getActiveScope\(\): AIScopeRef/);
-  assert.match(activeScopeSource, /export function setActiveScope\(scopeRef: AIScopeRef\): void/);
+test('T3-1: active-scope module exports mode-aware orchestration API', () => {
+  assert.match(activeScopeSource, /export function resolveChatModeAIScopeRef\(mode: ConversationMode\): AIScopeRef \| null/);
+  assert.match(activeScopeSource, /export function getActiveScope\(\): AIScopeRef \| null/);
+  assert.match(activeScopeSource, /export function setActiveScopeForMode\(mode: ConversationMode\): void/);
   assert.match(activeScopeSource, /export function onActiveScopeChange\(/);
 });
 
-test('Phase 6: setActiveScope pushes new config to app store and notifies listeners', () => {
-  // Pushes config for new scope to store
-  assert.match(activeScopeSource, /pushDesktopAIConfigToBoundStore\(scopeRef\)/);
+test('T3-1: active-scope module hard-cuts the generic chat scope', () => {
+  // No generic app:desktop:chat scope anywhere in the chat live path module
+  assert.doesNotMatch(activeScopeSource, /createDefaultAIScopeRef/);
+  assert.doesNotMatch(activeScopeSource, /DEFAULT_SCOPE/);
+  // Mode resolution uses the canonical built-in chat scope factory
+  assert.match(activeScopeSource, /createBuiltInChatAIScopeRef\('nimi'\)/);
+  assert.match(activeScopeSource, /createBuiltInChatAIScopeRef\('agent'\)/);
+});
+
+test('T3-1: setActiveScopeForMode pushes new config to app store and notifies listeners', () => {
+  // Pushes config for the new scope to store when the scope is non-null
+  assert.match(activeScopeSource, /pushDesktopAIConfigToBoundStore\(nextScopeRef\)/);
   // Notifies listeners
   assert.match(activeScopeSource, /for \(const listener of activeScopeListeners\)/);
 });
 
-test('Phase 6: projection subscription follows active scope, not hardcoded default', () => {
-  // Uses getActiveScope, not createDefaultAIScopeRef
-  assert.match(projectionSource, /getActiveScope/);
-  assert.doesNotMatch(projectionSource, /createDefaultAIScopeRef/);
-  // Rebinds on scope change
-  assert.match(projectionSource, /onActiveScopeChange/);
-  assert.match(projectionSource, /bindSubscriptionForScope/);
+test('T3-1: chat-mode store transition rebinds the active built-in chat scope', () => {
+  const uiSliceSource = readSource('src/shell/renderer/app-shell/providers/ui-slice.ts');
+  assert.match(uiSliceSource, /setActiveScopeForMode/);
+  assert.match(uiSliceSource, /setChatMode: \(mode\) => \{/);
 });
 
-test('Phase 6: projection rebind triggers immediate refresh on scope switch', () => {
+test('T3-1: projection subscription follows the mode-aware active chat scope', () => {
+  // Uses getActiveScope, never the generic default scope
+  assert.match(projectionSource, /getActiveScope/);
+  assert.doesNotMatch(projectionSource, /createDefaultAIScopeRef/);
+  // Rebinds on chat-mode scope change
+  assert.match(projectionSource, /onActiveScopeChange/);
+  assert.match(projectionSource, /bindSubscriptionForScope/);
+  // Skips binding when no built-in chat scope is active (Human/Group)
+  assert.match(projectionSource, /if \(!scopeRef\) \{\s*return;/);
+});
+
+test('T3-1: projection rebind triggers immediate refresh on scope switch', () => {
   // onActiveScopeChange callback triggers refresh
   assert.match(projectionSource, /void refreshConversationCapabilityProjections\(\)/);
 });
 
-test('Phase 6: active scope helper switches current scope and notifies listeners once per change', async () => {
+test('T3-1: resolveChatModeAIScopeRef binds each mode to its canonical built-in scope', async () => {
+  const {
+    resolveChatModeAIScopeRef,
+  } = await import('../src/shell/renderer/features/chat/chat-shared-active-ai-config-scope.js');
+
+  assert.deepEqual(resolveChatModeAIScopeRef('ai'), {
+    kind: 'feature',
+    ownerId: 'desktop.chat',
+    surfaceId: 'nimi',
+  });
+  assert.deepEqual(resolveChatModeAIScopeRef('agent'), {
+    kind: 'feature',
+    ownerId: 'desktop.chat',
+    surfaceId: 'agent',
+  });
+  // Human and Group bind no built-in chat AIConfig scope (T3-2 owns Group reuse)
+  assert.equal(resolveChatModeAIScopeRef('human'), null);
+  assert.equal(resolveChatModeAIScopeRef('group'), null);
+});
+
+test('T3-1: setActiveScopeForMode switches the active scope per mode and notifies once per change', async () => {
   const {
     getActiveScope,
-    setActiveScope,
+    getActiveScopeMode,
+    setActiveScopeForMode,
     onActiveScopeChange,
   } = await import('../src/shell/renderer/features/chat/chat-shared-active-ai-config-scope.js');
 
-  const originalScope = getActiveScope();
-  const nextScope: AIScopeRef = { kind: 'app', ownerId: 'desktop', surfaceId: 'alt-chat' };
-  const notifications: AIScopeRef[] = [];
-  const unsubscribe = onActiveScopeChange((scopeRef: AIScopeRef) => {
+  const originalMode = getActiveScopeMode();
+  const notifications: (AIScopeRef | null)[] = [];
+  const unsubscribe = onActiveScopeChange((scopeRef: AIScopeRef | null) => {
     notifications.push(scopeRef);
   });
 
   try {
-    setActiveScope(nextScope);
-    assert.deepEqual(getActiveScope(), nextScope);
-    setActiveScope(nextScope);
+    // Default chat mode is `ai` -> Nimi built-in chat scope
+    assert.deepEqual(getActiveScope(), {
+      kind: 'feature',
+      ownerId: 'desktop.chat',
+      surfaceId: 'nimi',
+    });
+
+    // Switch to Agent rebinds to the agent built-in chat scope
+    setActiveScopeForMode('agent');
+    assert.deepEqual(getActiveScope(), {
+      kind: 'feature',
+      ownerId: 'desktop.chat',
+      surfaceId: 'agent',
+    });
+    // Idempotent within the same mode — no duplicate notification
+    setActiveScopeForMode('agent');
     assert.equal(notifications.length, 1);
-    assert.deepEqual(notifications[0], nextScope);
+    assert.deepEqual(notifications[0], {
+      kind: 'feature',
+      ownerId: 'desktop.chat',
+      surfaceId: 'agent',
+    });
+
+    // Switch to Human clears the active built-in chat scope
+    setActiveScopeForMode('human');
+    assert.equal(getActiveScope(), null);
+    assert.equal(notifications.length, 2);
+    assert.equal(notifications[1], null);
   } finally {
     unsubscribe();
-    setActiveScope(originalScope);
+    setActiveScopeForMode(originalMode);
   }
 });

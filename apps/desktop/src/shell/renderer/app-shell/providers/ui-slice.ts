@@ -10,6 +10,7 @@ import {
   EMPTY_NIMI_CONVERSATION_SELECTION,
 } from '@renderer/features/chat/chat-shell-types';
 import { loadStoredChatThinkingPreference, persistStoredChatThinkingPreference } from '@renderer/features/chat/chat-settings-storage';
+import { setActiveScopeForMode } from '@renderer/features/chat/chat-shared-active-ai-config-scope';
 import type { AppStoreSet, AppStoreState } from './store-types';
 
 const initialChatThinkingPreference = loadStoredChatThinkingPreference();
@@ -112,6 +113,12 @@ export function createUiSlice(set: AppStoreSet): UiSlice {
       });
     },
     setChatMode: (mode) => {
+      // Rebind the active built-in chat AIConfig scope to the mode's canonical
+      // scope (T3-1): `ai` -> feature:desktop.chat:nimi, `agent` ->
+      // feature:desktop.chat:agent, `human`/`group` -> no built-in chat scope.
+      // This rewires the AIConfig projection only; per-mode thread/session
+      // selection state is independent and untouched.
+      setActiveScopeForMode(mode);
       startTransition(() => {
         set({ chatMode: mode });
       });

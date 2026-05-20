@@ -282,6 +282,11 @@ export function createDomDriverDeps(options: DesktopMacosSmokeDriverDepsOptions 
     },
     async configureRuntimeTextRoute() {
       const scopeRef = getActiveScope();
+      if (!scopeRef) {
+        throw new Error(
+          'cannot configure Runtime text route: active chat mode binds no built-in chat AIConfig scope',
+        );
+      }
       const service = getDesktopAIConfigService();
       const current = service.aiConfig.get(scopeRef);
       service.aiConfig.update(scopeRef, {
