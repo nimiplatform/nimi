@@ -61,6 +61,9 @@ surfaces:
   - registered_command_families_27
   - registered_command_families_28
   - registered_command_families_29
+  - registered_command_families_30
+  - registered_command_families_31
+  - registered_command_families_32
   - dormant_command_families_1
 # Desktop Tauri command execution classification.
 # Source of truth for D-GATE-092..D-GATE-096.
@@ -647,6 +650,20 @@ registered_command_families:
       - std_fs
     source_rule: D-GATE-092
 
+  - family: apps_projection
+    match:
+      exact:
+        - apps_registry_get
+        - apps_packages_get
+        - apps_bridge_projection_get
+    origin_crate: apps/desktop/src-tauri
+    owner_domain: desktop-apps-projection
+    execution_class: bounded_blocking_with_admission
+    remediation_required: false
+    admitted_risks:
+      - std_fs
+    source_rule: D-GATE-092
+
   - family: account_profile_library
     match:
       prefix: account_profile_library_
@@ -659,6 +676,33 @@ registered_command_families:
       - cpu_hash_or_codec
       - runtime_bridge_block_on
       - block_on_variants
+      - sync_lock_contention
+    source_rule: D-GATE-092
+
+  - family: desktop_agent_center_avatar_assets
+    match:
+      prefix: desktop_agent_center_avatar_
+    origin_crate: apps/desktop/src-tauri
+    owner_domain: desktop-agent-center-resource-store
+    execution_class: bounded_blocking_with_admission
+    remediation_required: false
+    admitted_risks:
+      - std_fs
+      - cpu_hash_or_codec
+      - native_dialog
+      - spawn_blocking
+      - sync_lock_contention
+    source_rule: D-GATE-094
+
+  - family: world_tour_launch_and_acceptance
+    match:
+      regex: "^(claim_world_tour_viewer_launch|world_tour_render_acceptance_load|world_tour_render_acceptance_save)$"
+    origin_crate: apps/desktop/src-tauri
+    owner_domain: desktop-test-fixtures
+    execution_class: bounded_blocking_with_admission
+    remediation_required: false
+    admitted_risks:
+      - std_fs
       - sync_lock_contention
     source_rule: D-GATE-092
 

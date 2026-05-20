@@ -11,6 +11,7 @@ import {
   focusMainWindow,
   getDesktopReleaseInfo,
   getDesktopUpdateState,
+  getAppsBridgeProjection,
   getProductControlRecord,
   getRuntimeBridgeConfig,
   getRuntimeBridgeStatus,
@@ -217,11 +218,14 @@ export type {
 
 export {
   completeMenuBarQuit,
+  getAppsBridgeProjection,
   logRendererEvent,
   stopRuntimeBridge,
   syncMenuBarRuntimeHealth,
   toRendererLogMessage,
 };
+
+export type { AppsBridgeProjection } from '@renderer/bridge/runtime-bridge';
 
 export const desktopBridge = {
   hasTauriInvoke: runtimeDesktopBridge.hasTauriInvoke,

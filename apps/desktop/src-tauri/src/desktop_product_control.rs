@@ -78,6 +78,17 @@ pub struct ProductPointersRecord {
     /// catalog projection, not product readiness truth, and it is never the
     /// Account Default Profile library.
     pub factory_profile_index: Option<String>,
+    /// Discoverability pointer to `~/.nimi/apps/registry.json`, the installed
+    /// projection of the admitted ordinary Nimi App registry
+    /// (`apps_registry_projection.rs`). Non-owner discovery pointer: the
+    /// registry projection is a read-only catalog projection, not product
+    /// readiness truth. This is the manual `pointers.appRegistry` value.
+    pub app_registry: Option<String>,
+    /// Discoverability pointer to `~/.nimi/apps/packages.json`, the installed
+    /// projection of Nimi App package readiness sourced from the Runtime
+    /// `appstorage` install evidence (`apps_packages_projection.rs`). This is
+    /// the manual `pointers.appPackages` value.
+    pub app_packages: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -174,6 +185,28 @@ fn ensure_factory_profile_index_pointer() -> Result<String, String> {
     Ok(crate::factory_profile_index::ensure_factory_profile_index()?.path)
 }
 
+/// Resolve the three non-owner discovery pointers recorded in `nimi.json`
+/// `pointers`. Each is a discoverability path, not product readiness truth:
+/// - `runtime_config_path`: `~/.nimi/runtime/config.json` (Runtime-owned);
+/// - `factory_profile_index`: regenerated factory profile catalog projection;
+/// - `app_registry`: regenerated `~/.nimi/apps/registry.json` projection
+///   (`apps_registry_projection.rs`), a catalog-only derivation;
+/// - `app_packages`: the `~/.nimi/apps/packages.json` path
+///   (`apps_packages_projection.rs`); the file is materialized on demand by
+///   the Apps bridge projection seam, so only the path is advertised here.
+fn resolve_product_pointers() -> Result<ProductPointersRecord, String> {
+    Ok(ProductPointersRecord {
+        runtime_config_path: Some(runtime_config_path()?),
+        factory_profile_index: Some(ensure_factory_profile_index_pointer()?),
+        app_registry: Some(crate::apps_registry_projection::ensure_apps_registry()?.path),
+        app_packages: Some(
+            crate::apps_packages_projection::apps_packages_path()?
+                .display()
+                .to_string(),
+        ),
+    })
+}
+
 fn empty_record(state: ProductControlState) -> Result<ProductControlRecord, String> {
     Ok(ProductControlRecord {
         schema_version: PRODUCT_CONTROL_SCHEMA_VERSION,
@@ -182,10 +215,7 @@ fn empty_record(state: ProductControlState) -> Result<ProductControlRecord, Stri
         state,
         data_root: None,
         first_run: ProductFirstRunRecord::default(),
-        pointers: ProductPointersRecord {
-            runtime_config_path: Some(runtime_config_path()?),
-            factory_profile_index: Some(ensure_factory_profile_index_pointer()?),
-        },
+        pointers: resolve_product_pointers()?,
         repair: ProductRepairRecord::default(),
     })
 }
@@ -620,8 +650,7 @@ pub fn select_product_data_root(path: &str) -> Result<ProductControlRecordProjec
         selected_at_unix_ms: now,
         verified_at_unix_ms: now,
     });
-    record.pointers.runtime_config_path = Some(runtime_config_path()?);
-    record.pointers.factory_profile_index = Some(ensure_factory_profile_index_pointer()?);
+    record.pointers = resolve_product_pointers()?;
     record.repair = ProductRepairRecord::default();
     write_record(&control_path, &record)?;
     read_product_control_projection()

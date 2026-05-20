@@ -8,6 +8,13 @@
 // - the platform catalog for factory AIProfile rows
 // - the Desktop host `AIConfig` service for atomic config writes
 // - the local Runtime client for host capability evidence
+//
+// T4 Fork C: the Nimi App registry / package status the `NimiAppClient`
+// consumes is sourced from the runtime `~/.nimi/apps/registry.json` +
+// `~/.nimi/apps/packages.json` projections (via the `apps_bridge_projection_get`
+// Tauri command), NOT from the build-time `platform-catalog/generated.ts`
+// catalog. `generated.ts` is retired as the Apps bridge source; it remains the
+// source only for the factory AIProfile catalog/rows used below.
 
 import { NimiAppClient, createNimiAppRegistryTransport } from '@nimiplatform/sdk/app';
 import {
@@ -17,11 +24,10 @@ import {
 } from '@nimiplatform/sdk/mod';
 import { localRuntime } from '@runtime/local-runtime';
 import { getDesktopAIConfigService } from '@renderer/app-shell/providers/desktop-ai-config-service.js';
+import { getAppsBridgeProjection } from '@renderer/bridge';
 import {
   loadPlatformAIProfileFactoryCatalog,
   loadPlatformAIProfileFactoryRows,
-  loadPlatformNimiAppReleaseDescriptorRows,
-  loadPlatformNimiAppRegistryRows,
 } from '../../../../runtime/platform-catalog/index.js';
 import { selectFactoryAIProfileForFirstRun } from '../../first-run/install-level-policy.js';
 import type { ColdStartState } from '../../first-run/types.js';
@@ -48,9 +54,22 @@ export interface DesktopHomeLiveBridge {
 }
 
 export function createDesktopHomeLiveBridge(): DesktopHomeLiveBridge {
+  // T4 Fork C: the Nimi App registry transport is fed by the runtime
+  // `~/.nimi/apps` projections. `getAppsBridgeProjection()` materializes
+  // `registry.json` + `packages.json` and returns the three SDK transport
+  // loader payloads. The projection is fetched once per bridge instance and
+  // shared by every loader so the three loaders see one consistent snapshot.
+  let projectionPromise: ReturnType<typeof getAppsBridgeProjection> | null = null;
+  const loadProjection = (): ReturnType<typeof getAppsBridgeProjection> => {
+    if (!projectionPromise) {
+      projectionPromise = getAppsBridgeProjection();
+    }
+    return projectionPromise;
+  };
   const appClient = new NimiAppClient(createNimiAppRegistryTransport({
-    loadRows: loadPlatformNimiAppRegistryRows,
-    loadReleaseDescriptors: loadPlatformNimiAppReleaseDescriptorRows,
+    loadRows: async () => (await loadProjection()).registryRows,
+    loadReleaseDescriptors: async () => (await loadProjection()).releaseDescriptors,
+    loadInstallEvidence: async () => (await loadProjection()).installEvidence,
   }));
 
   return {

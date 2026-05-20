@@ -4,10 +4,14 @@ import {
   NimiAppClient,
   createNimiAppRegistryTransport,
 } from '@nimiplatform/sdk/app';
+// T4 Fork C: the live Apps bridge no longer reads `platform-catalog/index.ts`
+// for the Nimi App registry — it reads the runtime `~/.nimi/apps` projections.
+// This smoke test still exercises the SDK transport against the generated
+// catalog projection used purely as a row fixture.
 import {
   loadPlatformNimiAppReleaseDescriptorRows,
   loadPlatformNimiAppRegistryRows,
-} from '../src/runtime/platform-catalog/index.js';
+} from '../src/runtime/platform-catalog/generated.js';
 import { projectDiscovery } from '../src/shell/renderer/first-run/discovery-projection.js';
 import { projectLibrary } from '../src/shell/renderer/first-run/library-projection.js';
 

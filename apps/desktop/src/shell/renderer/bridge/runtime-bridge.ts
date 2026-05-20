@@ -28,6 +28,7 @@ import {
   setProductFirstRunInstallLevel,
   setProductFirstRunSetupState,
 } from './runtime-bridge/product-control';
+import { getAppsBridgeProjection } from './runtime-bridge/apps-projection';
 import {
   createAccountProfileLibraryProfile,
   deleteAccountProfileLibraryProfile,
@@ -110,6 +111,8 @@ export type {
   ProductControlState,
   AccountDefaultProfileAIProfile,
 } from './runtime-bridge/product-control';
+
+export type { AppsBridgeProjection } from './runtime-bridge/apps-projection';
 
 export type {
   AccountProfileLibraryProjection,
@@ -217,6 +220,7 @@ export {
   setProductFirstRunSetupState,
   admitProductReadyForUse,
   getAccountDefaultProfileForScopeInit,
+  getAppsBridgeProjection,
   listAccountProfileLibrary,
   createAccountProfileLibraryProfile,
   editAccountProfileLibraryProfile,
@@ -312,6 +316,7 @@ export const desktopBridge = {
   setProductFirstRunInstallLevel,
   setProductFirstRunSetupState,
   admitProductReadyForUse,
+  getAppsBridgeProjection,
   startWindowDrag,
   proxyHttp,
   openExternalUrl,

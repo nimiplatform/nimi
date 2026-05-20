@@ -34,6 +34,7 @@ import {
   startWindowDrag,
 } from '@desktop-public/bridge';
 import type {
+  AppsBridgeProjection,
   DesktopReleaseInfo,
   DesktopUpdateCheckResult,
   DesktopUpdateState,
@@ -139,6 +140,16 @@ export { hasTauriInvoke, loadAuthSession, saveAuthSession, clearAuthSession };
 
 export async function getDesktopReleaseInfo(): Promise<DesktopReleaseInfo> {
   unsupportedDesktopRuntime('Application release metadata is only available in desktop runtime');
+}
+
+export async function getAppsBridgeProjection(): Promise<AppsBridgeProjection> {
+  // The Apps registry / package projections live under the desktop-local
+  // `~/.nimi/apps` control root and are materialized by the desktop Tauri
+  // host. The web shell has no `~/.nimi` filesystem, so the Apps bridge
+  // projection is desktop-runtime only.
+  unsupportedDesktopRuntime(
+    'The Apps registry projection is only available in desktop runtime',
+  );
 }
 
 export async function getDesktopUpdateState(): Promise<DesktopUpdateState> {
