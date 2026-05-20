@@ -7,6 +7,7 @@ import {
   VideoParamsEditor,
   type ModelConfigPanelProps,
 } from '../src/index.js';
+import { previewCopyFields } from './profile-preview-fixtures.js';
 
 (
   globalThis as typeof globalThis & {
@@ -84,11 +85,14 @@ describe('ModelConfigPanel', () => {
           cancelLabel: 'Cancel',
           confirmLabel: 'Confirm & Apply',
           applyingLabel: 'Applying...',
+          ...previewCopyFields,
         },
         onSelectedProfileChange: () => undefined,
         onApply: (profileId) => {
           appliedProfileId = profileId;
         },
+        onConfirmApply: () => undefined,
+        onCancelPreview: () => undefined,
       },
       sections: [
         {

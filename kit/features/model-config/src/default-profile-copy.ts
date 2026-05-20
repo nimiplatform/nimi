@@ -35,5 +35,15 @@ export function defaultModelConfigProfileCopy(
     applyingLabel: t('ModelConfig.profile.applyingLabel'),
     reloadLabel: t('ModelConfig.profile.reloadLabel'),
     importLabel: t('ModelConfig.profile.importLabel'),
+    previewTitle: t('ModelConfig.profile.previewTitle'),
+    previewHint: t('ModelConfig.profile.previewHint'),
+    previewingLabel: t('ModelConfig.profile.previewingLabel'),
+    previewFirstApplyLabel: t('ModelConfig.profile.previewFirstApplyLabel'),
+    previewNoChangeLabel: t('ModelConfig.profile.previewNoChangeLabel'),
+    previewBeforeLabel: t('ModelConfig.profile.previewBeforeLabel'),
+    previewAfterLabel: t('ModelConfig.profile.previewAfterLabel'),
+    previewWarningsLabel: t('ModelConfig.profile.previewWarningsLabel'),
+    previewConfirmLabel: t('ModelConfig.profile.previewConfirmLabel'),
+    previewBackLabel: t('ModelConfig.profile.previewBackLabel'),
   };
 }

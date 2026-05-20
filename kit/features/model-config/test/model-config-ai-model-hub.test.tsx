@@ -10,6 +10,7 @@ import type {
   AIConfig,
   AIScopeRef,
 } from '@nimiplatform/sdk/mod';
+import { previewCopyFields } from './profile-preview-fixtures.js';
 import type { ModelConfigProfileController } from '../src/types.js';
 
 (
@@ -70,6 +71,7 @@ function stubService(): SharedAIConfigService {
     },
     aiProfile: {
       list: async () => [],
+      previewApply: async () => { throw new Error('stub'); },
       apply: async () => ({ success: false, config: null, failureReason: 'stub', probeWarnings: [] }),
     },
   };
@@ -99,9 +101,12 @@ const emptyProfileController: ModelConfigProfileController = {
     confirmLabel: 'Apply',
     applyingLabel: 'Applying...',
     importLabel: 'Import AI Profile',
+    ...previewCopyFields,
   },
   onSelectedProfileChange: () => undefined,
   onApply: () => undefined,
+  onConfirmApply: () => undefined,
+  onCancelPreview: () => undefined,
 };
 
 const ALL_SECTION_CAPABILITIES = [

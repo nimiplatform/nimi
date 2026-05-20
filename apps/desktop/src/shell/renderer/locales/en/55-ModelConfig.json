@@ -15,7 +15,17 @@
     "confirmLabel": "Confirm & Apply",
     "applyingLabel": "Applying...",
     "reloadLabel": "Reload",
-    "importLabel": "Import AI Profile"
+    "importLabel": "Import AI Profile",
+    "previewTitle": "Review changes",
+    "previewHint": "Review the before and after configuration. Nothing is saved until you confirm.",
+    "previewingLabel": "Computing preview...",
+    "previewFirstApplyLabel": "This scope has no AI configuration yet — applying this profile creates it.",
+    "previewNoChangeLabel": "This profile matches the current configuration. Applying it changes nothing.",
+    "previewBeforeLabel": "Current",
+    "previewAfterLabel": "After apply",
+    "previewWarningsLabel": "Warnings",
+    "previewConfirmLabel": "Confirm & Apply",
+    "previewBackLabel": "Back"
   },
   "section": {
     "chat": {

@@ -13,6 +13,7 @@ import type {
   AIConfig,
   AIProfile,
   AIProfileApplyResult,
+  AIProfilePreviewResult,
   AIProfileRef,
   AIScopeRef,
 } from '@nimiplatform/sdk/mod';
@@ -40,6 +41,12 @@ export interface SharedAIConfigService {
   };
   readonly aiProfile: {
     list(): Promise<AIProfile[]>;
+    /**
+     * D-AIPC-014 / S-AICONF-008 non-committing apply preview. Computes the
+     * typed before→after AIConfig diff without mutating live config. The kit
+     * apply flow gates `apply` behind an explicit confirm of this preview.
+     */
+    previewApply(scopeRef: AIScopeRef, profileId: string): Promise<AIProfilePreviewResult>;
     apply(scopeRef: AIScopeRef, profileId: string): Promise<AIProfileApplyResult>;
   };
 }
@@ -203,6 +210,40 @@ export interface ResolveApplyPathInput {
 export interface ResolveApplyPathNetworkErrorInput {
   readonly profileId: string;
   readonly error: unknown;
+}
+
+// ---------------------------------------------------------------------------
+// Profile apply preview (D-AIPC-014 / S-AICONF-008).
+// ---------------------------------------------------------------------------
+
+/**
+ * A single human-readable before→after row projected from one AIConfigDiff
+ * field change. Pure-logic projection; no React or formatting concerns.
+ */
+export interface ModelConfigDiffRow {
+  readonly path: string;
+  readonly changeKind: 'added' | 'removed' | 'changed';
+  readonly beforeText: string;
+  readonly afterText: string;
+}
+
+/**
+ * Pure-logic projection of an `AIProfilePreviewResult` into a displayable
+ * shape for the preview→confirm step. Holds no live config truth.
+ */
+export interface ModelConfigPreviewState {
+  readonly profileId: string;
+  /** True for a first apply (scope had no AIConfig); diff is full creation. */
+  readonly isFirstApply: boolean;
+  /** True when before and after are equivalent (apply would be a no-op). */
+  readonly identical: boolean;
+  readonly rows: ReadonlyArray<ModelConfigDiffRow>;
+  /** CAS freshness token of the previewed base config (D-AIPC-014). */
+  readonly baseVersion: string;
+  /** Typed availability / feasibility warnings carried by the preview. */
+  readonly probeWarnings: ReadonlyArray<string>;
+  /** The full preview result, retained so the caller can commit afterwards. */
+  readonly preview: AIProfilePreviewResult;
 }
 
 // ---------------------------------------------------------------------------

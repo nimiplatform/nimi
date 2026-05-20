@@ -71,6 +71,7 @@ function stubService(): SharedAIConfigService {
     },
     aiProfile: {
       list: async () => [],
+      previewApply: async () => { throw new Error('stub'); },
       apply: async () => ({ success: false, config: null, failureReason: 'stub', probeWarnings: [] }),
     },
   };
@@ -168,6 +169,7 @@ describe('ModelConfigCapabilityDetail editorKind routing', () => {
       },
       aiProfile: {
         list: async () => [],
+        previewApply: async () => { throw new Error('stub'); },
         apply: async () => ({ success: false, config: null, failureReason: 'stub', probeWarnings: [] }),
       },
     };

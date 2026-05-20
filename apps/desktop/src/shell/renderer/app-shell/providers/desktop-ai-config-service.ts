@@ -9,6 +9,8 @@
 import { createModRuntimeClient } from '@nimiplatform/sdk/mod';
 import {
   applyAIProfileToConfig,
+  computeAIConfigDiff,
+  computeAIConfigVersion,
   validateAIProfile,
   type AIConfig,
   type AIConfigProbeResult,
@@ -16,6 +18,7 @@ import {
   type AIConfigSurface,
   type AIProfile,
   type AIProfileApplyResult,
+  type AIProfilePreviewResult,
   type AIProfileSurface,
   type AIProfileValidationResult,
   type AIProbeStatus,
@@ -130,6 +133,20 @@ function ensureHydrated(): void {
 }
 
 /**
+ * True when the scope already has a persisted (or in-memory) AIConfig.
+ * Used by `previewApply` to decide whether `before` is a real config or an
+ * explicit `null` first-apply (D-AIPC-014).
+ */
+function scopeHasPersistedConfig(scopeRef: AIScopeRef): boolean {
+  ensureHydrated();
+  const key = scopeKey(scopeRef);
+  if (configByScope.has(key)) {
+    return true;
+  }
+  return listPersistedScopeKeys().includes(key);
+}
+
+/**
  * Get the in-memory config for a scope, loading from persistence if needed.
  */
 function getConfigForScope(scopeRef: AIScopeRef): AIConfig {
@@ -188,6 +205,52 @@ function createAIProfileSurface(): AIProfileSurface {
       return validateAIProfile(profile);
     },
 
+    async previewApply(
+      scopeRef: AIScopeRef,
+      profileId: string,
+    ): Promise<AIProfilePreviewResult> {
+      // D-AIPC-014 / S-AICONF-008: non-committing apply preview.
+      // Computes the before→after AIConfig diff a D-AIPC-005 apply would
+      // produce, with the SAME full-materialization overwrite semantics.
+      // It MUST NOT commitConfig / persist / notify subscribers / record a
+      // snapshot. Fails closed on schema-invalid input.
+      const profile = await this.get(profileId);
+      if (!profile) {
+        throw new Error(`Profile not found: ${profileId}`);
+      }
+
+      const validation = this.validate(profile);
+      if (!validation.valid) {
+        throw new Error(`Profile schema invalid: ${validation.errors.join(', ')}`);
+      }
+
+      // `before` is the scope's current AIConfig, or explicit null on first
+      // apply (D-AIPC-014: diff represents full creation).
+      const before = scopeHasPersistedConfig(scopeRef)
+        ? getConfigForScope(scopeRef)
+        : null;
+
+      // `after` uses the exact D-AIPC-005 materialization. The base config a
+      // commit would overwrite is the current config (or an empty one for
+      // first apply); apply is a full overwrite, not a merge.
+      const baseConfig = before ?? getConfigForScope(scopeRef);
+      const after = applyAIProfileToConfig(baseConfig, profile);
+
+      // baseVersion is the CAS freshness token for `before` (or for an empty
+      // config when there is no current config).
+      const baseVersion = computeAIConfigVersion(baseConfig);
+
+      const probeWarnings = collectProfileSchemaProbeWarnings(profile);
+
+      return {
+        before,
+        after,
+        diff: computeAIConfigDiff(before, after),
+        baseVersion,
+        probeWarnings,
+      };
+    },
+
     async apply(scopeRef: AIScopeRef, profileId: string): Promise<AIProfileApplyResult> {
       const profile = await this.get(profileId);
       if (!profile) {
@@ -232,6 +295,33 @@ function createAIProfileSurface(): AIProfileSurface {
       return matched.entries;
     },
   };
+}
+
+/**
+ * Static-schema preview warnings (D-AIPC-012 layer 1 / D-AIPC-014).
+ *
+ * Preview may carry availability / feasibility warnings without blocking the
+ * diff. This collects only the static-schema-derivable ones — capability
+ * intents that would materialize with no binding and no local profile ref,
+ * i.e. an unexecutable capability. Runtime availability / resource feasibility
+ * remain D-AIPC-005 commit-time concerns; preview does not go online.
+ */
+function collectProfileSchemaProbeWarnings(profile: AIProfile): string[] {
+  const warnings: string[] = [];
+  for (const capability of Object.keys(profile.capabilities).sort()) {
+    const intent = profile.capabilities[capability];
+    if (!intent) {
+      continue;
+    }
+    const hasBinding = intent.binding !== undefined && intent.binding !== null;
+    const hasLocalRef = intent.localProfileRef !== undefined && intent.localProfileRef !== null;
+    if (!hasBinding && !hasLocalRef) {
+      warnings.push(
+        `Capability "${capability}" has no model binding; it will not be executable until configured.`,
+      );
+    }
+  }
+  return warnings;
 }
 
 // ---------------------------------------------------------------------------

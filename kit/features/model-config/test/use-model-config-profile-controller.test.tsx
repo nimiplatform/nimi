@@ -23,6 +23,7 @@ import type {
   ModelConfigProfileController,
   ModelConfigProfileCopy,
 } from '../src/types.js';
+import { makePreviewApplyStub, previewCopyFields } from './profile-preview-fixtures.js';
 
 (
   globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }
@@ -81,6 +82,7 @@ const copy: ModelConfigProfileCopy = {
   cancelLabel: 'Cancel',
   confirmLabel: 'Apply',
   applyingLabel: 'Applying...',
+  ...previewCopyFields,
 };
 
 const remoteProfile: AIProfile = {
@@ -165,6 +167,7 @@ describe('useModelConfigProfileController apply paths', () => {
           listCalls += 1;
           return [remoteProfile];
         },
+        previewApply: async () => { throw new Error('not exercised'); },
         apply: async () => ({
           success: true,
           config: appliedConfig,
@@ -186,7 +189,7 @@ describe('useModelConfigProfileController apply paths', () => {
     expect(listCalls).toBe(1);
   });
 
-  it('path 1 — apply-success commits remote nextConfig through SharedAIConfigService', async () => {
+  it('path 1 — apply-success previews then commits remote nextConfig on confirm', async () => {
     let currentConfig = baseConfig;
     const updates: AIConfig[] = [];
     const service: SharedAIConfigService = {
@@ -200,6 +203,10 @@ describe('useModelConfigProfileController apply paths', () => {
       },
       aiProfile: {
         list: async () => [remoteProfile],
+        previewApply: makePreviewApplyStub({
+          currentConfig: () => currentConfig,
+          profilesById: [remoteProfile],
+        }),
         apply: async () => ({
           success: true,
           config: appliedConfig,
@@ -219,8 +226,18 @@ describe('useModelConfigProfileController apply paths', () => {
     );
 
     const button = container?.querySelector('button');
+    // onApply previews; nothing is committed yet (D-AIPC-014).
     await act(async () => {
       button?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      await flush();
+      await flush();
+    });
+    expect(updates).toHaveLength(0);
+    expect(captured.controller?.preview).toBeTruthy();
+
+    // Explicit confirm commits.
+    await act(async () => {
+      captured.controller?.onConfirmApply();
       await flush();
       await flush();
     });
@@ -229,9 +246,10 @@ describe('useModelConfigProfileController apply paths', () => {
     expect(updates[0].profileOrigin?.profileId).toBe('remote-profile');
     expect(captured.controller?.error).toBeNull();
     expect(captured.controller?.applying).toBe(false);
+    expect(captured.controller?.preview).toBeNull();
   });
 
-  it('path 2 — apply-remote-fail-with-user-profile falls through to local apply (D-AIPC-005 atomic)', async () => {
+  it('path 2 — apply-remote-fail-with-user-profile previews locally then commits on confirm', async () => {
     let currentConfig = baseConfig;
     const updates: AIConfig[] = [];
     const service: SharedAIConfigService = {
@@ -245,6 +263,9 @@ describe('useModelConfigProfileController apply paths', () => {
       },
       aiProfile: {
         list: async () => [],
+        // Remote preview rejects (profile not in remote catalog); the hook
+        // falls back to a local preview computed from the user profile.
+        previewApply: async () => { throw new Error('remote unavailable'); },
         apply: async () => ({
           success: false,
           config: null,
@@ -270,13 +291,22 @@ describe('useModelConfigProfileController apply paths', () => {
       await flush();
       await flush();
     });
+    // Local preview surfaced; no commit yet.
+    expect(updates).toHaveLength(0);
+    expect(captured.controller?.preview?.profileId).toBe('local-user-profile');
+
+    await act(async () => {
+      captured.controller?.onConfirmApply();
+      await flush();
+      await flush();
+    });
 
     expect(updates).toHaveLength(1);
     expect(updates[0].profileOrigin?.profileId).toBe('local-user-profile');
     expect(captured.controller?.error).toBeNull();
   });
 
-  it('path 3 — apply-remote-fail-without-user-profile surfaces failureReason and does not commit', async () => {
+  it('path 3 — preview without a known profile fails closed and never commits', async () => {
     let currentConfig = baseConfig;
     const updates: AIConfig[] = [];
     const service: SharedAIConfigService = {
@@ -290,6 +320,8 @@ describe('useModelConfigProfileController apply paths', () => {
       },
       aiProfile: {
         list: async () => [],
+        // Preview fails closed: profile not in remote catalog, no user profile.
+        previewApply: async () => { throw new Error('profile not in catalog'); },
         apply: async () => ({
           success: false,
           config: null,
@@ -317,13 +349,21 @@ describe('useModelConfigProfileController apply paths', () => {
     });
 
     expect(updates).toHaveLength(0);
+    expect(captured.controller?.preview).toBeNull();
     expect(captured.controller?.error).toBe('profile not in catalog');
-    expect(captured.controller?.applying).toBe(false);
+    expect(captured.controller?.previewing).toBe(false);
   });
 
-  it('path 4 — apply-network-error preserves error message and does not commit', async () => {
+  it('path 4 — apply-network-error on confirm preserves error message and does not commit', async () => {
     let currentConfig = baseConfig;
     const updates: AIConfig[] = [];
+    const networkProfile: AIProfile = {
+      profileId: 'any-profile',
+      title: 'Any profile',
+      description: '',
+      tags: [],
+      capabilities: {},
+    };
     const service: SharedAIConfigService = {
       aiConfig: {
         get: () => currentConfig,
@@ -334,7 +374,12 @@ describe('useModelConfigProfileController apply paths', () => {
         subscribe: () => () => undefined,
       },
       aiProfile: {
-        list: async () => [],
+        list: async () => [networkProfile],
+        // Preview succeeds; the network failure happens at commit time.
+        previewApply: makePreviewApplyStub({
+          currentConfig: () => currentConfig,
+          profilesById: [networkProfile],
+        }),
         apply: async () => {
           throw new Error('network boom');
         },
@@ -353,6 +398,13 @@ describe('useModelConfigProfileController apply paths', () => {
     const button = container?.querySelector('button');
     await act(async () => {
       button?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      await flush();
+      await flush();
+    });
+    expect(captured.controller?.preview).toBeTruthy();
+
+    await act(async () => {
+      captured.controller?.onConfirmApply();
       await flush();
       await flush();
     });

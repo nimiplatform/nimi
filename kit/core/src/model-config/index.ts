@@ -10,8 +10,10 @@ export type {
   ModelConfigBindingSnapshot,
   ModelConfigI18nBinding,
   ModelConfigI18nFormatter,
+  ModelConfigDiffRow,
   ModelConfigLocalAssetDescriptor,
   ModelConfigLocalAssetSource,
+  ModelConfigPreviewState,
   ModelConfigProfileApplyPath,
   ModelConfigProfileCopyCore,
   ModelConfigProfileControllerCoreInput,
@@ -41,4 +43,5 @@ export type {
 } from './profile-controller-core.js';
 export {
   createModelConfigProfileControllerCore,
+  summarizeProfilePreview,
 } from './profile-controller-core.js';

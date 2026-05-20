@@ -83,6 +83,37 @@ export type ModelConfigProfileCopy = {
   applyingLabel: string;
   reloadLabel?: string;
   importLabel?: string;
+  /** Preview→confirm step (D-AIPC-014 apply preview). */
+  previewTitle: string;
+  previewHint: string;
+  previewingLabel: string;
+  previewFirstApplyLabel: string;
+  previewNoChangeLabel: string;
+  previewBeforeLabel: string;
+  previewAfterLabel: string;
+  previewWarningsLabel: string;
+  previewConfirmLabel: string;
+  previewBackLabel: string;
+};
+
+export type ModelConfigProfileDiffRow = {
+  path: string;
+  changeKind: 'added' | 'removed' | 'changed';
+  beforeText: string;
+  afterText: string;
+};
+
+/**
+ * Displayable preview state surfaced by the controller between `onApply`
+ * (which previews) and `onConfirmApply` (which commits). D-AIPC-014.
+ */
+export type ModelConfigProfilePreview = {
+  profileId: string;
+  profileTitle: string;
+  isFirstApply: boolean;
+  identical: boolean;
+  rows: ModelConfigProfileDiffRow[];
+  probeWarnings: string[];
 };
 
 export type ModelConfigProfileController = {
@@ -96,9 +127,25 @@ export type ModelConfigProfileController = {
   isReloading?: boolean;
   error?: string | null;
   applying?: boolean;
+  /** True while a non-committing apply preview (D-AIPC-014) is being computed. */
+  previewing?: boolean;
+  /**
+   * The computed before→after preview awaiting explicit confirm. Null when no
+   * profile has been previewed or after a commit / cancel.
+   */
+  preview?: ModelConfigProfilePreview | null;
   copy: ModelConfigProfileCopy;
   onSelectedProfileChange: (profileId: string | null) => void;
+  /**
+   * Begin a profile apply: computes the D-AIPC-014 preview. Does NOT commit.
+   * The committed write happens only on `onConfirmApply` after the user
+   * confirms the surfaced diff.
+   */
   onApply: (profileId: string) => void;
+  /** Commit the pending previewed profile via D-AIPC-005 atomic apply. */
+  onConfirmApply: () => void;
+  /** Discard the pending preview without committing. */
+  onCancelPreview: () => void;
   onManage?: () => void;
   onReload?: () => void;
 };

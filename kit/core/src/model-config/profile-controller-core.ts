@@ -15,9 +15,12 @@ import type {
   AIConfig,
   AIProfile,
   AIProfileApplyResult,
+  AIProfilePreviewResult,
   AIProfileRef,
 } from '@nimiplatform/sdk/mod';
 import type {
+  ModelConfigDiffRow,
+  ModelConfigPreviewState,
   ModelConfigProfileApplyPath,
   ModelConfigProfileControllerCoreInput,
   UserProfilesSource,
@@ -77,6 +80,53 @@ function buildProfileOrigin(profile: AIProfile, now: () => string): AIProfileRef
     profileId: profile.profileId,
     title: profile.title || profile.profileId,
     appliedAt: now(),
+  };
+}
+
+function diffValueToText(value: unknown): string {
+  if (value === undefined || value === null) {
+    return '—';
+  }
+  if (typeof value === 'string') {
+    return value || '""';
+  }
+  if (typeof value === 'number' || typeof value === 'boolean') {
+    return String(value);
+  }
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return String(value);
+  }
+}
+
+/**
+ * Project an `AIProfilePreviewResult` (D-AIPC-014 / S-AICONF-008) into a
+ * displayable preview state for the preview→confirm step.
+ *
+ * Pure logic: it only reshapes the typed diff; it never commits, mutates, or
+ * persists. The full preview result is retained so the caller can commit via
+ * `aiProfile.apply` after explicit user confirmation.
+ */
+export function summarizeProfilePreview(input: {
+  readonly profileId: string;
+  readonly preview: AIProfilePreviewResult;
+}): ModelConfigPreviewState {
+  const { profileId, preview } = input;
+  const rows: ModelConfigDiffRow[] = preview.diff.fields.map((field) => ({
+    path: field.path,
+    changeKind: field.changeKind,
+    beforeText: diffValueToText(field.before),
+    afterText: diffValueToText(field.after),
+  }));
+  return {
+    profileId,
+    isFirstApply: preview.before === null,
+    identical: preview.diff.identical,
+    rows,
+    baseVersion: preview.baseVersion,
+    probeWarnings: preview.probeWarnings,
+    preview,
   };
 }
 

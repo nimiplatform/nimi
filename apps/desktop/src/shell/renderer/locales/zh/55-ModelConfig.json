@@ -15,7 +15,17 @@
     "confirmLabel": "确认应用",
     "applyingLabel": "应用中...",
     "reloadLabel": "刷新",
-    "importLabel": "导入 AI 预设"
+    "importLabel": "导入 AI 预设",
+    "previewTitle": "查看变更",
+    "previewHint": "查看应用前后的配置对比。在确认之前不会保存任何更改。",
+    "previewingLabel": "正在计算预览...",
+    "previewFirstApplyLabel": "该范围尚无 AI 配置 —— 应用此预设将创建配置。",
+    "previewNoChangeLabel": "此预设与当前配置一致，应用它不会产生任何变更。",
+    "previewBeforeLabel": "当前",
+    "previewAfterLabel": "应用后",
+    "previewWarningsLabel": "提示",
+    "previewConfirmLabel": "确认应用",
+    "previewBackLabel": "返回"
   },
   "section": {
     "chat": {

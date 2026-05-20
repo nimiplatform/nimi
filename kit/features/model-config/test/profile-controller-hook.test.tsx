@@ -8,7 +8,11 @@ import type {
   AIScopeRef,
 } from '@nimiplatform/sdk/mod';
 import type { SharedAIConfigService } from '@nimiplatform/nimi-kit/core/model-config';
-import type { ModelConfigProfileCopy } from '../src/types.js';
+import type {
+  ModelConfigProfileController,
+  ModelConfigProfileCopy,
+} from '../src/types.js';
+import { makePreviewApplyStub, previewCopyFields } from './profile-preview-fixtures.js';
 
 (
   globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }
@@ -80,9 +84,13 @@ const copy: ModelConfigProfileCopy = {
   cancelLabel: 'Cancel',
   confirmLabel: 'Apply',
   applyingLabel: 'Applying...',
+  ...previewCopyFields,
 };
 
-function HookHarness(props: { service: SharedAIConfigService }) {
+function HookHarness(props: {
+  service: SharedAIConfigService;
+  captured: { controller: ModelConfigProfileController | null };
+}) {
   const controller = useModelConfigProfileController({
     scopeRef,
     aiConfigService: props.service,
@@ -90,6 +98,7 @@ function HookHarness(props: { service: SharedAIConfigService }) {
     currentOrigin: null,
     applyAIProfileToConfig: (config) => config,
   });
+  props.captured.controller = controller;
   return (
     <button type="button" onClick={() => controller.onApply('remote-profile')}>
       apply
@@ -98,7 +107,7 @@ function HookHarness(props: { service: SharedAIConfigService }) {
 }
 
 describe('useModelConfigProfileController', () => {
-  it('commits remote-success nextConfig through SharedAIConfigService', async () => {
+  it('previews before commit, then commits remote-success only on explicit confirm', async () => {
     let currentConfig = baseConfig;
     const updates: AIConfig[] = [];
     const service: SharedAIConfigService = {
@@ -112,6 +121,10 @@ describe('useModelConfigProfileController', () => {
       },
       aiProfile: {
         list: async () => [remoteProfile],
+        previewApply: makePreviewApplyStub({
+          currentConfig: () => currentConfig,
+          profilesById: [remoteProfile],
+        }),
         apply: async () => ({
           success: true,
           config: appliedConfig,
@@ -121,17 +134,75 @@ describe('useModelConfigProfileController', () => {
       },
     };
 
-    await render(<HookHarness service={service} />);
+    const captured: { controller: ModelConfigProfileController | null } = { controller: null };
+    await render(<HookHarness service={service} captured={captured} />);
     const button = container?.querySelector('button');
     expect(button).toBeTruthy();
+
+    // Step 1: onApply previews only — no commit yet (D-AIPC-014).
+    await act(async () => {
+      button?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      await flush();
+      await flush();
+    });
+    expect(updates).toHaveLength(0);
+    expect(captured.controller?.preview).toBeTruthy();
+    expect(captured.controller?.preview?.profileId).toBe('remote-profile');
+
+    // Step 2: explicit confirm commits via D-AIPC-005 atomic apply.
+    await act(async () => {
+      captured.controller?.onConfirmApply();
+      await flush();
+      await flush();
+    });
+    expect(updates).toHaveLength(1);
+    expect(updates[0].profileOrigin?.profileId).toBe('remote-profile');
+    expect(captured.controller?.preview).toBeNull();
+  });
+
+  it('cancelling the preview discards it without committing', async () => {
+    let currentConfig = baseConfig;
+    const updates: AIConfig[] = [];
+    const service: SharedAIConfigService = {
+      aiConfig: {
+        get: () => currentConfig,
+        update: (_scope, next) => {
+          currentConfig = next;
+          updates.push(next);
+        },
+        subscribe: () => () => undefined,
+      },
+      aiProfile: {
+        list: async () => [remoteProfile],
+        previewApply: makePreviewApplyStub({
+          currentConfig: () => currentConfig,
+          profilesById: [remoteProfile],
+        }),
+        apply: async () => ({
+          success: true,
+          config: appliedConfig,
+          failureReason: null,
+          probeWarnings: [],
+        }),
+      },
+    };
+
+    const captured: { controller: ModelConfigProfileController | null } = { controller: null };
+    await render(<HookHarness service={service} captured={captured} />);
+    const button = container?.querySelector('button');
 
     await act(async () => {
       button?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
       await flush();
       await flush();
     });
+    expect(captured.controller?.preview).toBeTruthy();
 
-    expect(updates).toHaveLength(1);
-    expect(updates[0].profileOrigin?.profileId).toBe('remote-profile');
+    await act(async () => {
+      captured.controller?.onCancelPreview();
+      await flush();
+    });
+    expect(captured.controller?.preview).toBeNull();
+    expect(updates).toHaveLength(0);
   });
 });

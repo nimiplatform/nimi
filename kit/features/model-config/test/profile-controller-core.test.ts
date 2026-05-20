@@ -27,6 +27,7 @@ const fakeService: SharedAIConfigService = {
   },
   aiProfile: {
     list: async () => [],
+    previewApply: async () => { throw new Error('test'); },
     apply: async () => ({ success: false, config: null, failureReason: 'test', probeWarnings: [] }),
   },
 };

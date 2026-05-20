@@ -603,6 +603,132 @@ export type AIProfileValidationResult = {
 };
 
 // ---------------------------------------------------------------------------
+// Profile apply preview  (D-AIPC-014 / S-AICONF-008)
+// ---------------------------------------------------------------------------
+
+/** One field-level before→after change inside an AIConfig diff. */
+export type AIConfigFieldDiff = {
+  /** Dot-path of the changed materialized field, e.g. `capabilities.selectedBindings.text.generate`. */
+  path: string;
+  changeKind: 'added' | 'removed' | 'changed';
+  before: unknown;
+  after: unknown;
+};
+
+/**
+ * Typed before→after diff of a `D-AIPC-005` apply (D-AIPC-014).
+ *
+ * Covers the full materialized `AIConfig` shape (`capabilities`,
+ * `profileOrigin`, and any other materialized fields) — never a free-form
+ * summary or a partial field subset.
+ */
+export type AIConfigDiff = {
+  /** True when `before` and `after` are byte-equivalent (no-op apply). */
+  identical: boolean;
+  fields: AIConfigFieldDiff[];
+};
+
+/**
+ * Result of a non-committing profile apply preview (D-AIPC-014 / S-AICONF-008).
+ *
+ * `previewApply` returns this without mutating live config, notifying
+ * subscribers, or recording a snapshot. The caller still commits via
+ * `aiProfile.apply`.
+ */
+export type AIProfilePreviewResult = {
+  /** Current AIConfig for the scope, or `null` on first apply (full creation). */
+  before: AIConfig | null;
+  /** Full-materialization overwrite result that `D-AIPC-005` apply would write. */
+  after: AIConfig;
+  /** Typed before→after diff covering all materialized AIConfig fields. */
+  diff: AIConfigDiff;
+  /**
+   * Content hash / version of `before` (or of an empty config when `before`
+   * is null) so the caller can detect a stale preview before commit.
+   */
+  baseVersion: string;
+  /** Typed availability / feasibility warnings; advisory, never block the diff. */
+  probeWarnings: string[];
+};
+
+/**
+ * Compute the canonical content hash / version token of an AIConfig.
+ * Used as the `baseVersion` for `AIProfilePreviewResult` CAS freshness checks.
+ */
+export function computeAIConfigVersion(config: AIConfig): string {
+  const canonical = canonicalizeAIConfigJsonValue(config);
+  return hashCanonicalAIConfigJson(JSON.stringify(canonical));
+}
+
+function diffAIConfigJsonValue(
+  path: string,
+  before: unknown,
+  after: unknown,
+  out: AIConfigFieldDiff[],
+): void {
+  const beforeDefined = before !== undefined;
+  const afterDefined = after !== undefined;
+  if (!beforeDefined && !afterDefined) {
+    return;
+  }
+  const bothObjects = before !== null && after !== null
+    && typeof before === 'object' && typeof after === 'object'
+    && !Array.isArray(before) && !Array.isArray(after);
+  if (bothObjects) {
+    const beforeRecord = before as Record<string, unknown>;
+    const afterRecord = after as Record<string, unknown>;
+    const keys = Array.from(
+      new Set([...Object.keys(beforeRecord), ...Object.keys(afterRecord)]),
+    ).sort();
+    for (const key of keys) {
+      diffAIConfigJsonValue(
+        path ? `${path}.${key}` : key,
+        beforeRecord[key],
+        afterRecord[key],
+        out,
+      );
+    }
+    return;
+  }
+  const beforeJson = beforeDefined
+    ? JSON.stringify(canonicalizeAIConfigJsonValue(before))
+    : undefined;
+  const afterJson = afterDefined
+    ? JSON.stringify(canonicalizeAIConfigJsonValue(after))
+    : undefined;
+  if (beforeJson === afterJson) {
+    return;
+  }
+  let changeKind: AIConfigFieldDiff['changeKind'];
+  if (!beforeDefined) {
+    changeKind = 'added';
+  } else if (!afterDefined) {
+    changeKind = 'removed';
+  } else {
+    changeKind = 'changed';
+  }
+  out.push({
+    path,
+    changeKind,
+    before: beforeDefined ? before : null,
+    after: afterDefined ? after : null,
+  });
+}
+
+/**
+ * Compute a typed before→after `AIConfigDiff` for two AIConfig values
+ * (D-AIPC-014). `before` is `null` for a first apply (full creation).
+ */
+export function computeAIConfigDiff(
+  before: AIConfig | null,
+  after: AIConfig,
+): AIConfigDiff {
+  const fields: AIConfigFieldDiff[] = [];
+  diffAIConfigJsonValue('', before ?? {}, after, fields);
+  return { identical: fields.length === 0, fields };
+}
+
+// ---------------------------------------------------------------------------
 // SDK typed surface  (S-AICONF-001)
 // ---------------------------------------------------------------------------
 
@@ -611,6 +737,13 @@ export type AIProfileSurface = {
   list(): Promise<AIProfile[]>;
   get(profileId: string): Promise<AIProfile | null>;
   validate(profile: AIProfile): AIProfileValidationResult;
+  /**
+   * Compute (without committing) the typed before→after `AIConfig` diff that a
+   * `D-AIPC-005` apply would produce for `scopeRef` + `profileId`
+   * (D-AIPC-014 / S-AICONF-008). Does not mutate live config, notify
+   * subscribers, or record a snapshot. Fails closed on schema-invalid input.
+   */
+  previewApply(scopeRef: AIScopeRef, profileId: string): Promise<AIProfilePreviewResult>;
   apply(scopeRef: AIScopeRef, profileId: string): Promise<AIProfileApplyResult>;
   resolveLocalDependencies(profileId: string): Promise<unknown[]>;
 };
