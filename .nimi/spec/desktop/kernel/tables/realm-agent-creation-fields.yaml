@@ -1,0 +1,42 @@
+table_family: product_catalog
+owner: desktop
+catalog_id: desktop_realm_agent_creation_fields
+authority_refs:
+  - D-EXPL-009
+entries:
+  - id: selected-world
+    name: selectedWorld
+    semantics: Required owning World; sourced from the World detail entry context.
+  - id: handle
+    name: handle
+    semantics: RealmAgent handle.
+  - id: display-name
+    name: displayName
+    semantics: RealmAgent display name.
+  - id: concept
+    name: concept
+    semantics: Short concept of the RealmAgent.
+  - id: description
+    name: description
+    semantics: Description / bio.
+  - id: scenario
+    name: scenario
+    semantics: Scenario context.
+  - id: greeting
+    name: greeting
+    semantics: Greeting message.
+  - id: avatar
+    name: avatar
+    semantics: Avatar / reference image.
+  - id: wake-strategy
+    name: wakeStrategy
+    semantics: Wake strategy.
+  - id: primary-trait
+    name: primaryTrait
+    semantics: Primary trait.
+  - id: secondary-traits
+    name: secondaryTraits
+    semantics: Optional secondary traits.
+  - id: visibility
+    name: visibility
+    semantics: Visibility / publish posture, only where admitted.

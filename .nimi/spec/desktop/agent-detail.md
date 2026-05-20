@@ -9,6 +9,7 @@ This guide points to the desktop authority surfaces for agent-detail. It does no
 ## Reading Path
 
 - `.nimi/spec/desktop/kernel/index.md`
+- `.nimi/spec/desktop/kernel/explore-surface-contract.md`
 - `.nimi/spec/desktop/kernel/agent-avatar-configuration-contract.md`
 - `.nimi/spec/desktop/kernel/agent-avatar-debug-workbench-contract.md`
 - `.nimi/spec/desktop/kernel/agent-avatar-surface-contract.md`
@@ -24,6 +25,7 @@ This guide points to the desktop authority surfaces for agent-detail. It does no
 
 ## Tables
 
+- `.nimi/spec/desktop/kernel/tables/realm-agent-friend-actions.yaml`
 - `.nimi/spec/desktop/kernel/tables/agent-avatar-configuration.schema.yaml`
 - `.nimi/spec/desktop/kernel/tables/agent-avatar-debug-remediation-states.yaml`
 - `.nimi/spec/desktop/kernel/tables/agent-avatar-debug-workbench-probes.yaml`

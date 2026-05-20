@@ -1,0 +1,18 @@
+table_family: product_catalog
+owner: desktop
+catalog_id: desktop_explore_sections
+authority_refs:
+  - D-EXPL-002
+entries:
+  - id: worlds
+    name: Worlds
+    semantics: Browse admitted Realm Worlds and enter World detail.
+  - id: agents
+    name: Agents
+    semantics: Discover RealmAgents across Worlds.
+  - id: activity
+    name: Activity
+    semantics: Public Realm activity from Worlds, friends, and Agents where admitted.
+  - id: create-agent
+    name: Create Agent
+    semantics: Lightweight RealmAgent creation inside a selected World.
