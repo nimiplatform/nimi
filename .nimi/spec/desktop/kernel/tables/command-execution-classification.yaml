@@ -58,6 +58,9 @@ surfaces:
   - registered_command_families_24
   - registered_command_families_25
   - registered_command_families_26
+  - registered_command_families_27
+  - registered_command_families_28
+  - registered_command_families_29
   - dormant_command_families_1
 # Desktop Tauri command execution classification.
 # Source of truth for D-GATE-092..D-GATE-096.
@@ -616,6 +619,48 @@ registered_command_families:
       - spawn_blocking
       - sync_lock_contention
     source_rule: D-GATE-094
+
+  - family: product_control
+    match:
+      regex: "^(product_control_record_.*|account_default_profile_for_scope_init)$"
+    origin_crate: apps/desktop/src-tauri
+    owner_domain: desktop-product-control
+    execution_class: request_response_async
+    remediation_required: false
+    admitted_risks:
+      - std_fs
+      - cpu_hash_or_codec
+      - runtime_bridge_block_on
+      - block_on_variants
+      - sync_lock_contention
+    source_rule: D-GATE-092
+
+  - family: factory_profile_index
+    match:
+      exact:
+        - factory_profile_index_get
+    origin_crate: apps/desktop/src-tauri
+    owner_domain: desktop-factory-profile-index
+    execution_class: bounded_blocking_with_admission
+    remediation_required: false
+    admitted_risks:
+      - std_fs
+    source_rule: D-GATE-092
+
+  - family: account_profile_library
+    match:
+      prefix: account_profile_library_
+    origin_crate: apps/desktop/src-tauri
+    owner_domain: desktop-account-profile-library
+    execution_class: request_response_async
+    remediation_required: false
+    admitted_risks:
+      - std_fs
+      - cpu_hash_or_codec
+      - runtime_bridge_block_on
+      - block_on_variants
+      - sync_lock_contention
+    source_rule: D-GATE-092
 
 dormant_command_families:
   - family: desktop_agent_avatar_store_unregistered
