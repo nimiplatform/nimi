@@ -167,6 +167,14 @@ import type {
   ResolveLocalEnvironmentActivationGateResponse,
   ResolveLocalEnvironmentPlanRequest,
   ResolveLocalEnvironmentPlanResponse,
+  MintRuntimeBaselineReadinessRequest,
+  MintRuntimeBaselineReadinessResponse,
+  ResolveRuntimeBaselineReadinessRequest,
+  ResolveRuntimeBaselineReadinessResponse,
+  MintFirstRunExecutionEvidenceRequest,
+  MintFirstRunExecutionEvidenceResponse,
+  ResolveFirstRunExecutionEvidenceRequest,
+  ResolveFirstRunExecutionEvidenceResponse,
   ResolveLocalStateReconciliationRequest,
   ResolveLocalStateReconciliationResponse,
   ResolveProfileRequest,
@@ -671,6 +679,10 @@ export type RuntimeLocalServiceClient = {
   listLocalEnvironmentSelectedSources(request: ListLocalEnvironmentSelectedSourcesRequest, options?: RuntimeCallOptions): Promise<ListLocalEnvironmentSelectedSourcesResponse>;
   listLocalEnvironmentDependencyJobs(request: ListLocalEnvironmentDependencyJobsRequest, options?: RuntimeCallOptions): Promise<ListLocalEnvironmentDependencyJobsResponse>;
   resolveLocalEnvironmentActivationGate(request: ResolveLocalEnvironmentActivationGateRequest, options?: RuntimeCallOptions): Promise<ResolveLocalEnvironmentActivationGateResponse>;
+  mintRuntimeBaselineReadiness(request: MintRuntimeBaselineReadinessRequest, options?: RuntimeCallOptions): Promise<MintRuntimeBaselineReadinessResponse>;
+  resolveRuntimeBaselineReadiness(request: ResolveRuntimeBaselineReadinessRequest, options?: RuntimeCallOptions): Promise<ResolveRuntimeBaselineReadinessResponse>;
+  mintFirstRunExecutionEvidence(request: MintFirstRunExecutionEvidenceRequest, options?: RuntimeCallOptions): Promise<MintFirstRunExecutionEvidenceResponse>;
+  resolveFirstRunExecutionEvidence(request: ResolveFirstRunExecutionEvidenceRequest, options?: RuntimeCallOptions): Promise<ResolveFirstRunExecutionEvidenceResponse>;
   startLocalEnvironmentDependencyJob(request: StartLocalEnvironmentDependencyJobRequest, options?: RuntimeCallOptions): Promise<StartLocalEnvironmentDependencyJobResponse>;
   cancelLocalEnvironmentDependencyJob(request: CancelLocalEnvironmentDependencyJobRequest, options?: RuntimeCallOptions): Promise<CancelLocalEnvironmentDependencyJobResponse>;
   retryLocalEnvironmentDependencyJob(request: RetryLocalEnvironmentDependencyJobRequest, options?: RuntimeCallOptions): Promise<RetryLocalEnvironmentDependencyJobResponse>;

@@ -5858,6 +5858,4078 @@ pub mod runtime_ai_realtime_service_client {
     }
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAssetSource {
+    #[prost(string, tag = "1")]
+    pub repo: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub revision: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalHostRequirements {
+    #[prost(bool, tag = "1")]
+    pub gpu_required: bool,
+    #[prost(bool, tag = "2")]
+    pub python_runtime_required: bool,
+    #[prost(string, repeated, tag = "3")]
+    pub supported_platforms: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(string, repeated, tag = "4")]
+    pub required_backends: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct LocalAssetRecord {
+    #[prost(string, tag = "1")]
+    pub local_asset_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub asset_id: ::prost::alloc::string::String,
+    #[prost(enumeration = "LocalAssetKind", tag = "3")]
+    pub kind: i32,
+    #[prost(string, tag = "4")]
+    pub engine: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub entry: ::prost::alloc::string::String,
+    #[prost(string, repeated, tag = "6")]
+    pub files: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(string, tag = "7")]
+    pub license: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "8")]
+    pub source: ::core::option::Option<LocalAssetSource>,
+    #[prost(map = "string, string", tag = "9")]
+    pub hashes: ::std::collections::HashMap<
+        ::prost::alloc::string::String,
+        ::prost::alloc::string::String,
+    >,
+    #[prost(enumeration = "LocalAssetStatus", tag = "10")]
+    pub status: i32,
+    #[prost(string, tag = "11")]
+    pub installed_at: ::prost::alloc::string::String,
+    #[prost(string, tag = "12")]
+    pub updated_at: ::prost::alloc::string::String,
+    #[prost(string, tag = "13")]
+    pub health_detail: ::prost::alloc::string::String,
+    /// Runnable-only fields
+    #[prost(string, repeated, tag = "20")]
+    pub capabilities: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(string, tag = "21")]
+    pub logical_model_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "22")]
+    pub family: ::prost::alloc::string::String,
+    #[prost(string, repeated, tag = "23")]
+    pub artifact_roles: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(string, tag = "24")]
+    pub preferred_engine: ::prost::alloc::string::String,
+    #[prost(string, repeated, tag = "25")]
+    pub fallback_engines: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(enumeration = "LocalBundleState", tag = "26")]
+    pub bundle_state: i32,
+    #[prost(enumeration = "LocalWarmState", tag = "27")]
+    pub warm_state: i32,
+    #[prost(message, optional, tag = "28")]
+    pub host_requirements: ::core::option::Option<LocalHostRequirements>,
+    #[prost(string, tag = "29")]
+    pub local_invoke_profile_id: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "30")]
+    pub engine_config: ::core::option::Option<::prost_types::Struct>,
+    #[prost(string, tag = "31")]
+    pub endpoint: ::prost::alloc::string::String,
+    #[prost(enumeration = "ReasonCode", tag = "32")]
+    pub reason_code: i32,
+    /// Passive-only fields
+    #[prost(message, optional, tag = "40")]
+    pub metadata: ::core::option::Option<::prost_types::Struct>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAssetHealth {
+    #[prost(string, tag = "1")]
+    pub local_asset_id: ::prost::alloc::string::String,
+    #[prost(enumeration = "LocalAssetStatus", tag = "2")]
+    pub status: i32,
+    #[prost(string, tag = "3")]
+    pub detail: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub endpoint: ::prost::alloc::string::String,
+    #[prost(enumeration = "ReasonCode", tag = "5")]
+    pub reason_code: i32,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct LocalVerifiedAssetDescriptor {
+    #[prost(string, tag = "1")]
+    pub template_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub title: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub description: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub asset_id: ::prost::alloc::string::String,
+    #[prost(enumeration = "LocalAssetKind", tag = "5")]
+    pub kind: i32,
+    #[prost(string, tag = "6")]
+    pub engine: ::prost::alloc::string::String,
+    #[prost(string, tag = "7")]
+    pub entry: ::prost::alloc::string::String,
+    #[prost(string, repeated, tag = "8")]
+    pub files: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(string, tag = "9")]
+    pub license: ::prost::alloc::string::String,
+    #[prost(string, tag = "10")]
+    pub repo: ::prost::alloc::string::String,
+    #[prost(string, tag = "11")]
+    pub revision: ::prost::alloc::string::String,
+    #[prost(map = "string, string", tag = "12")]
+    pub hashes: ::std::collections::HashMap<
+        ::prost::alloc::string::String,
+        ::prost::alloc::string::String,
+    >,
+    #[prost(int32, tag = "13")]
+    pub file_count: i32,
+    #[prost(int64, tag = "14")]
+    pub total_size_bytes: i64,
+    #[prost(string, repeated, tag = "15")]
+    pub tags: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(message, optional, tag = "16")]
+    pub metadata: ::core::option::Option<::prost_types::Struct>,
+    /// Runnable-only fields
+    #[prost(string, tag = "20")]
+    pub install_kind: ::prost::alloc::string::String,
+    #[prost(string, tag = "21")]
+    pub logical_model_id: ::prost::alloc::string::String,
+    #[prost(string, repeated, tag = "22")]
+    pub capabilities: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(string, repeated, tag = "23")]
+    pub artifact_roles: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(string, tag = "24")]
+    pub preferred_engine: ::prost::alloc::string::String,
+    #[prost(string, repeated, tag = "25")]
+    pub fallback_engines: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(message, optional, tag = "26")]
+    pub engine_config: ::core::option::Option<::prost_types::Struct>,
+    #[prost(string, tag = "27")]
+    pub endpoint: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "28")]
+    pub host_requirements: ::core::option::Option<LocalHostRequirements>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalProviderHintsLlama {
+    #[prost(string, tag = "1")]
+    pub backend: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub preferred_adapter: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub multimodal_projector: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalProviderHintsMedia {
+    #[prost(string, tag = "1")]
+    pub backend: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub preferred_adapter: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub family: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub image_driver: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub video_driver: ::prost::alloc::string::String,
+    #[prost(string, tag = "6")]
+    pub device: ::prost::alloc::string::String,
+    #[prost(string, tag = "7")]
+    pub fallback_driver: ::prost::alloc::string::String,
+    #[prost(string, tag = "8")]
+    pub fallback_reason: ::prost::alloc::string::String,
+    #[prost(string, tag = "9")]
+    pub policy_gate: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalProviderHintsSpeech {
+    #[prost(string, tag = "1")]
+    pub backend: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub preferred_adapter: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub family: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub driver: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub device: ::prost::alloc::string::String,
+    #[prost(string, tag = "6")]
+    pub voice_workflow_driver: ::prost::alloc::string::String,
+    #[prost(string, tag = "7")]
+    pub policy_gate: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalProviderHintsSidecar {
+    #[prost(string, tag = "1")]
+    pub preferred_adapter: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub backend: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct LocalProviderHints {
+    #[prost(message, optional, tag = "1")]
+    pub llama: ::core::option::Option<LocalProviderHintsLlama>,
+    #[prost(message, optional, tag = "2")]
+    pub media: ::core::option::Option<LocalProviderHintsMedia>,
+    #[prost(message, optional, tag = "3")]
+    pub speech: ::core::option::Option<LocalProviderHintsSpeech>,
+    #[prost(message, optional, tag = "4")]
+    pub sidecar: ::core::option::Option<LocalProviderHintsSidecar>,
+    #[prost(map = "string, string", tag = "10")]
+    pub extra: ::std::collections::HashMap<
+        ::prost::alloc::string::String,
+        ::prost::alloc::string::String,
+    >,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct LocalCatalogModelDescriptor {
+    #[prost(string, tag = "1")]
+    pub item_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub source: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub title: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub description: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub model_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "6")]
+    pub repo: ::prost::alloc::string::String,
+    #[prost(string, tag = "7")]
+    pub revision: ::prost::alloc::string::String,
+    #[prost(string, tag = "8")]
+    pub template_id: ::prost::alloc::string::String,
+    #[prost(string, repeated, tag = "9")]
+    pub capabilities: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(string, tag = "10")]
+    pub engine: ::prost::alloc::string::String,
+    #[prost(enumeration = "LocalEngineRuntimeMode", tag = "11")]
+    pub engine_runtime_mode: i32,
+    #[prost(string, tag = "12")]
+    pub install_kind: ::prost::alloc::string::String,
+    #[prost(bool, tag = "13")]
+    pub install_available: bool,
+    #[prost(string, tag = "14")]
+    pub endpoint: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "15")]
+    pub provider_hints: ::core::option::Option<LocalProviderHints>,
+    #[prost(string, tag = "16")]
+    pub entry: ::prost::alloc::string::String,
+    #[prost(string, repeated, tag = "17")]
+    pub files: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(string, tag = "18")]
+    pub license: ::prost::alloc::string::String,
+    #[prost(map = "string, string", tag = "19")]
+    pub hashes: ::std::collections::HashMap<
+        ::prost::alloc::string::String,
+        ::prost::alloc::string::String,
+    >,
+    #[prost(string, repeated, tag = "20")]
+    pub tags: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(int64, tag = "21")]
+    pub downloads: i64,
+    #[prost(int64, tag = "22")]
+    pub likes: i64,
+    #[prost(string, tag = "23")]
+    pub last_modified: ::prost::alloc::string::String,
+    #[prost(bool, tag = "24")]
+    pub verified: bool,
+    #[prost(message, optional, tag = "25")]
+    pub engine_config: ::core::option::Option<::prost_types::Struct>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct LocalInstallPlanDescriptor {
+    #[prost(string, tag = "1")]
+    pub plan_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub item_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub source: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub template_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub model_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "6")]
+    pub repo: ::prost::alloc::string::String,
+    #[prost(string, tag = "7")]
+    pub revision: ::prost::alloc::string::String,
+    #[prost(string, repeated, tag = "8")]
+    pub capabilities: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(string, tag = "9")]
+    pub engine: ::prost::alloc::string::String,
+    #[prost(enumeration = "LocalEngineRuntimeMode", tag = "10")]
+    pub engine_runtime_mode: i32,
+    #[prost(string, tag = "11")]
+    pub install_kind: ::prost::alloc::string::String,
+    #[prost(bool, tag = "12")]
+    pub install_available: bool,
+    #[prost(string, tag = "13")]
+    pub endpoint: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "14")]
+    pub provider_hints: ::core::option::Option<LocalProviderHints>,
+    #[prost(string, tag = "15")]
+    pub entry: ::prost::alloc::string::String,
+    #[prost(string, repeated, tag = "16")]
+    pub files: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(string, tag = "17")]
+    pub license: ::prost::alloc::string::String,
+    #[prost(map = "string, string", tag = "18")]
+    pub hashes: ::std::collections::HashMap<
+        ::prost::alloc::string::String,
+        ::prost::alloc::string::String,
+    >,
+    #[prost(string, repeated, tag = "19")]
+    pub warnings: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(string, tag = "20")]
+    pub reason_code: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "21")]
+    pub engine_config: ::core::option::Option<::prost_types::Struct>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalGpuProfile {
+    #[prost(bool, tag = "1")]
+    pub available: bool,
+    #[prost(string, tag = "2")]
+    pub vendor: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub model: ::prost::alloc::string::String,
+    /// K-DEV-001: VRAM fields. Zero means probe unavailable (not "0 bytes").
+    #[prost(int64, tag = "4")]
+    pub total_vram_bytes: i64,
+    #[prost(int64, tag = "5")]
+    pub available_vram_bytes: i64,
+    #[prost(enumeration = "GpuMemoryModel", tag = "6")]
+    pub memory_model: i32,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalPythonProfile {
+    #[prost(bool, tag = "1")]
+    pub available: bool,
+    #[prost(string, tag = "2")]
+    pub version: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalNpuProfile {
+    #[prost(bool, tag = "1")]
+    pub available: bool,
+    #[prost(bool, tag = "2")]
+    pub ready: bool,
+    #[prost(string, tag = "3")]
+    pub vendor: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub runtime: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub detail: ::prost::alloc::string::String,
+}
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalPortAvailability {
+    #[prost(int32, tag = "1")]
+    pub port: i32,
+    #[prost(bool, tag = "2")]
+    pub available: bool,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct LocalDeviceProfile {
+    #[prost(string, tag = "1")]
+    pub os: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub arch: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "3")]
+    pub gpu: ::core::option::Option<LocalGpuProfile>,
+    #[prost(message, optional, tag = "4")]
+    pub python: ::core::option::Option<LocalPythonProfile>,
+    #[prost(message, optional, tag = "5")]
+    pub npu: ::core::option::Option<LocalNpuProfile>,
+    #[prost(int64, tag = "6")]
+    pub disk_free_bytes: i64,
+    #[prost(message, repeated, tag = "7")]
+    pub ports: ::prost::alloc::vec::Vec<LocalPortAvailability>,
+    /// K-DEV-001: Host memory fields. Zero means probe unavailable.
+    #[prost(int64, tag = "8")]
+    pub total_ram_bytes: i64,
+    #[prost(int64, tag = "9")]
+    pub available_ram_bytes: i64,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalEnvironmentPlanDependency {
+    #[prost(string, tag = "1")]
+    pub dependency_family: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub dependency_id: ::prost::alloc::string::String,
+    #[prost(bool, tag = "3")]
+    pub required: bool,
+    #[prost(string, tag = "4")]
+    pub state: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub source_kind: ::prost::alloc::string::String,
+    #[prost(bool, tag = "6")]
+    pub confirmation_required: bool,
+    #[prost(string, tag = "7")]
+    pub selected_source_record_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "8")]
+    pub environment_key: ::prost::alloc::string::String,
+    #[prost(string, tag = "9")]
+    pub canonical_root: ::prost::alloc::string::String,
+    #[prost(string, tag = "10")]
+    pub reason_code: ::prost::alloc::string::String,
+    #[prost(string, tag = "11")]
+    pub detail: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct LocalEnvironmentPlan {
+    #[prost(string, tag = "1")]
+    pub plan_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub pack_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub product_label: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub host_profile_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub platform_tuple: ::prost::alloc::string::String,
+    #[prost(string, tag = "6")]
+    pub runtime_data_root: ::prost::alloc::string::String,
+    #[prost(string, tag = "7")]
+    pub consumer_scope: ::prost::alloc::string::String,
+    #[prost(string, tag = "8")]
+    pub cloud_only_impact: ::prost::alloc::string::String,
+    #[prost(string, tag = "9")]
+    pub state: ::prost::alloc::string::String,
+    #[prost(string, tag = "10")]
+    pub reason_code: ::prost::alloc::string::String,
+    #[prost(message, repeated, tag = "11")]
+    pub dependencies: ::prost::alloc::vec::Vec<LocalEnvironmentPlanDependency>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct LocalEnvironmentSelectedSourceRecord {
+    #[prost(string, tag = "1")]
+    pub record_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub dependency_family: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub dependency_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub environment_key: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub source_kind: ::prost::alloc::string::String,
+    #[prost(string, tag = "6")]
+    pub canonical_root: ::prost::alloc::string::String,
+    #[prost(string, tag = "7")]
+    pub version: ::prost::alloc::string::String,
+    #[prost(string, repeated, tag = "8")]
+    pub compatibility_evidence: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(string, repeated, tag = "9")]
+    pub verified_artifacts: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(map = "string, string", tag = "10")]
+    pub hashes: ::std::collections::HashMap<
+        ::prost::alloc::string::String,
+        ::prost::alloc::string::String,
+    >,
+    #[prost(string, repeated, tag = "11")]
+    pub selected_consumers: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(string, repeated, tag = "12")]
+    pub activation_env_delta: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(string, tag = "13")]
+    pub selected_at: ::prost::alloc::string::String,
+    #[prost(string, tag = "14")]
+    pub last_verified_at: ::prost::alloc::string::String,
+    #[prost(string, tag = "15")]
+    pub repair_state: ::prost::alloc::string::String,
+    #[prost(string, tag = "16")]
+    pub audit_reason_code: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalEnvironmentDependencyJob {
+    #[prost(string, tag = "1")]
+    pub job_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub environment_key: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub dependency_family: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub dependency_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub state: ::prost::alloc::string::String,
+    #[prost(string, tag = "6")]
+    pub source_kind: ::prost::alloc::string::String,
+    #[prost(string, tag = "7")]
+    pub canonical_root: ::prost::alloc::string::String,
+    #[prost(string, tag = "8")]
+    pub selected_source_record_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "9")]
+    pub failure_detail: ::prost::alloc::string::String,
+    #[prost(bool, tag = "10")]
+    pub retryable: bool,
+    #[prost(string, tag = "11")]
+    pub created_at: ::prost::alloc::string::String,
+    #[prost(string, tag = "12")]
+    pub updated_at: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct LocalEnvironmentActivationGate {
+    #[prost(string, tag = "1")]
+    pub consumer_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub pack_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub state: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub reason_code: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub detail: ::prost::alloc::string::String,
+    #[prost(message, repeated, tag = "6")]
+    pub blocking_dependencies: ::prost::alloc::vec::Vec<LocalEnvironmentPlanDependency>,
+    #[prost(message, repeated, tag = "7")]
+    pub dependencies: ::prost::alloc::vec::Vec<LocalEnvironmentPlanDependency>,
+}
+/// RuntimeBaselineActivationDependencyEvidence is the per-dependency readiness
+/// projection captured into a runtimeBaselineRef. It is owner-verifiable
+/// evidence, not a probe result.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RuntimeBaselineActivationDependencyEvidence {
+    #[prost(string, tag = "1")]
+    pub dependency_family: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub dependency_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub environment_key: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub selected_source_record_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub source_kind: ::prost::alloc::string::String,
+    /// dependency_state is always ready_system or ready_managed for a valid ref.
+    #[prost(string, tag = "6")]
+    pub dependency_state: ::prost::alloc::string::String,
+    #[prost(string, tag = "7")]
+    pub canonical_root: ::prost::alloc::string::String,
+    /// materialization_or_system_source_verification_evidence carries the
+    /// materialization job terminal evidence ref or the system-source
+    /// verification evidence ref that produced the selected source record.
+    #[prost(string, tag = "8")]
+    pub materialization_or_system_source_verification_evidence: ::prost::alloc::string::String,
+}
+/// RuntimeBaselineActivationConsumerEvidence is the per-consumer activation
+/// response projection captured into a runtimeBaselineRef.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct RuntimeBaselineActivationConsumerEvidence {
+    #[prost(string, tag = "1")]
+    pub consumer_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub pack_id: ::prost::alloc::string::String,
+    /// activation_state is always ready for a valid ref.
+    #[prost(string, tag = "3")]
+    pub activation_state: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub reason_code: ::prost::alloc::string::String,
+    #[prost(message, repeated, tag = "5")]
+    pub dependencies: ::prost::alloc::vec::Vec<
+        RuntimeBaselineActivationDependencyEvidence,
+    >,
+    /// bound_asset_id is the model asset id bound to this consumer; it is
+    /// re-supplied to the activation gate on baseline ref re-verification.
+    #[prost(string, tag = "6")]
+    pub bound_asset_id: ::prost::alloc::string::String,
+}
+/// RuntimeBaselineReadinessRef is the durable, owner-verifiable first-run
+/// runtime baseline readiness evidence record owned by RuntimeLocalService
+/// per K-LENV-ACT-011. It is minted only after fresh activation succeeds for
+/// every required first-run baseline consumer.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct RuntimeBaselineReadinessRef {
+    #[prost(string, tag = "1")]
+    pub runtime_baseline_ref: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub selected_local_factory_ai_profile_ref: ::prost::alloc::string::String,
+    /// install_level is minimal or recommended.
+    #[prost(string, tag = "3")]
+    pub install_level: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub runtime_data_root_or_data_root_ref: ::prost::alloc::string::String,
+    #[prost(string, repeated, tag = "5")]
+    pub required_dependency_families: ::prost::alloc::vec::Vec<
+        ::prost::alloc::string::String,
+    >,
+    #[prost(string, repeated, tag = "6")]
+    pub selected_source_record_ids: ::prost::alloc::vec::Vec<
+        ::prost::alloc::string::String,
+    >,
+    #[prost(message, repeated, tag = "7")]
+    pub activation_ready_responses: ::prost::alloc::vec::Vec<
+        RuntimeBaselineActivationConsumerEvidence,
+    >,
+    #[prost(string, repeated, tag = "8")]
+    pub materialization_or_system_source_verification_evidence: ::prost::alloc::vec::Vec<
+        ::prost::alloc::string::String,
+    >,
+    #[prost(string, tag = "9")]
+    pub observed_at: ::prost::alloc::string::String,
+    #[prost(string, tag = "10")]
+    pub runtime_verifier_identity: ::prost::alloc::string::String,
+    #[prost(string, repeated, tag = "11")]
+    pub runtime_audit_sequence: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+}
+/// ExecutionBaselineCapabilityProof is the durable per-capability execution
+/// proof captured into an executionEvidenceRef. Each entry proves one selected
+/// local first-run baseline capability actually executed through the admitted
+/// Runtime local execution path against a runtimeBaselineRef-bound model asset.
+/// It is owner-verifiable execution evidence, never a probe or warmup result.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ExecutionBaselineCapabilityProof {
+    /// capability is the canonical baseline capability id, e.g.
+    /// local_text_chat_execution / local_basic_stt_execution /
+    /// local_basic_tts_execution.
+    #[prost(string, tag = "1")]
+    pub capability: ::prost::alloc::string::String,
+    /// scenario_type is the runtime ScenarioType the proof executed. Only
+    /// TEXT_GENERATE, SPEECH_SYNTHESIZE, SPEECH_TRANSCRIBE are admitted for the
+    /// first-run baseline; every other scenario fails closed.
+    #[prost(enumeration = "ScenarioType", tag = "2")]
+    pub scenario_type: i32,
+    /// bound_consumer_id is the runtimeBaselineRef baseline consumer this proof
+    /// executed against (llama.cpp.cpu / speech.qwen3-asr.python /
+    /// speech.qwen3-tts.python).
+    #[prost(string, tag = "3")]
+    pub bound_consumer_id: ::prost::alloc::string::String,
+    /// bound_asset_id is the runtimeBaselineRef-bound local model asset id this
+    /// capability executed against.
+    #[prost(string, tag = "4")]
+    pub bound_asset_id: ::prost::alloc::string::String,
+    /// local_route_target is the resolved local execution route target. It is
+    /// always a local route (route_policy ROUTE_POLICY_LOCAL); a cloud / remote
+    /// target fails the evidence closed.
+    #[prost(string, tag = "5")]
+    pub local_route_target: ::prost::alloc::string::String,
+    /// route_policy is the resolved route policy. A valid proof is always
+    /// ROUTE_POLICY_LOCAL.
+    #[prost(enumeration = "RoutePolicy", tag = "6")]
+    pub route_policy: i32,
+    /// model_resolved is the runtime-resolved local model id the local execution
+    /// path ran.
+    #[prost(string, tag = "7")]
+    pub model_resolved: ::prost::alloc::string::String,
+    /// terminal_result is local_executed for a successful proof, otherwise the
+    /// fail-closed terminal projection.
+    #[prost(string, tag = "8")]
+    pub terminal_result: ::prost::alloc::string::String,
+    #[prost(string, tag = "9")]
+    pub reason_code: ::prost::alloc::string::String,
+    /// trace_id is the execution trace id stamped by the local execution path.
+    #[prost(string, tag = "10")]
+    pub trace_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "11")]
+    pub executed_at: ::prost::alloc::string::String,
+}
+/// ExecutionSchedulingJudgement carries a submit-specific execution target
+/// scheduling judgement (K-AIEXEC-003 / K-SCHED-002). It is recorded into
+/// executionEvidenceRef only when a submit-specific Peek was evaluated for the
+/// capability about to execute; a scope aggregate judgement is never recorded
+/// here. When no submit-specific Peek was evaluated this message is absent.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ExecutionSchedulingJudgement {
+    /// evaluated is always true when this message is present.
+    #[prost(bool, tag = "1")]
+    pub evaluated: bool,
+    /// capability is the submit-specific capability the Peek target evaluated.
+    #[prost(string, tag = "2")]
+    pub capability: ::prost::alloc::string::String,
+    /// scheduling_state is the five-state K-SCHED-002 judgement.
+    #[prost(string, tag = "3")]
+    pub scheduling_state: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub detail: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub evaluated_at: ::prost::alloc::string::String,
+}
+/// ExecutionEvidenceRef is the durable, owner-verifiable first-run baseline
+/// execution evidence record owned by RuntimeLocalService runtime execution
+/// (K-AIEXEC-007). It is minted only after every selected first-run baseline
+/// capability executes through the admitted Runtime local execution path and
+/// every execution resolved to a local route target. It carries all ten
+/// required_projection fields declared by product-control-record-schema.yaml ->
+/// evidence_contracts.executionEvidenceRef.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ExecutionEvidenceRef {
+    #[prost(string, tag = "1")]
+    pub execution_evidence_ref: ::prost::alloc::string::String,
+    /// 1. selected_local_factory_aiProfile_ref
+    #[prost(string, tag = "2")]
+    pub selected_local_factory_ai_profile_ref: ::prost::alloc::string::String,
+    /// 2. install_level (minimal or recommended)
+    #[prost(string, tag = "3")]
+    pub install_level: ::prost::alloc::string::String,
+    /// 3. runtimeBaselineRef — the previously verified runtime baseline ref this
+    ///    execution proof was bound to and re-confirmed against.
+    #[prost(string, tag = "4")]
+    pub runtime_baseline_ref: ::prost::alloc::string::String,
+    /// 4. dataRootRef
+    #[prost(string, tag = "5")]
+    pub data_root_ref: ::prost::alloc::string::String,
+    /// 5. local_execution_target_evidence — the de-duplicated set of resolved
+    ///    local route targets every baseline capability executed against.
+    #[prost(string, repeated, tag = "6")]
+    pub local_execution_target_evidence: ::prost::alloc::vec::Vec<
+        ::prost::alloc::string::String,
+    >,
+    /// 6. selected_baseline_capability_proof — one proof per selected first-run
+    ///    baseline capability.
+    #[prost(message, repeated, tag = "7")]
+    pub selected_baseline_capability_proof: ::prost::alloc::vec::Vec<
+        ExecutionBaselineCapabilityProof,
+    >,
+    /// 7. submit_specific_scheduling_judgement_when_evaluated — present only when
+    ///    a submit-specific Peek was evaluated, else absent.
+    #[prost(message, optional, tag = "8")]
+    pub submit_specific_scheduling_judgement: ::core::option::Option<
+        ExecutionSchedulingJudgement,
+    >,
+    /// 8. terminal_result — local_ai_ready when every proof executed locally,
+    ///    otherwise the fail-closed projection (local_ai_blocked).
+    #[prost(string, tag = "9")]
+    pub terminal_result: ::prost::alloc::string::String,
+    /// 9. timestamps — observed_at is the mint/verify timestamp.
+    #[prost(string, tag = "10")]
+    pub observed_at: ::prost::alloc::string::String,
+    /// 10. runtime_audit_sequence — durable Runtime audit evidence sequence.
+    #[prost(string, repeated, tag = "11")]
+    pub runtime_audit_sequence: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    /// runtime_verifier_identity stamps the Runtime execution verifier.
+    #[prost(string, tag = "12")]
+    pub runtime_verifier_identity: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalExecutionOptionDescriptor {
+    #[prost(string, tag = "1")]
+    pub entry_id: ::prost::alloc::string::String,
+    #[prost(enumeration = "LocalExecutionEntryKind", tag = "2")]
+    pub kind: i32,
+    #[prost(string, tag = "3")]
+    pub capability: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub title: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub model_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "6")]
+    pub repo: ::prost::alloc::string::String,
+    #[prost(string, tag = "7")]
+    pub service_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "8")]
+    pub node_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "10")]
+    pub engine: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct LocalExecutionAlternativeDescriptor {
+    #[prost(string, tag = "1")]
+    pub alternative_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub preferred_entry_id: ::prost::alloc::string::String,
+    #[prost(message, repeated, tag = "3")]
+    pub options: ::prost::alloc::vec::Vec<LocalExecutionOptionDescriptor>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct LocalExecutionDeclarationDescriptor {
+    #[prost(message, repeated, tag = "1")]
+    pub required: ::prost::alloc::vec::Vec<LocalExecutionOptionDescriptor>,
+    #[prost(message, repeated, tag = "2")]
+    pub optional: ::prost::alloc::vec::Vec<LocalExecutionOptionDescriptor>,
+    #[prost(message, repeated, tag = "3")]
+    pub alternatives: ::prost::alloc::vec::Vec<LocalExecutionAlternativeDescriptor>,
+    #[prost(map = "string, string", tag = "4")]
+    pub preferred: ::std::collections::HashMap<
+        ::prost::alloc::string::String,
+        ::prost::alloc::string::String,
+    >,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalExecutionEntryDescriptor {
+    #[prost(string, tag = "1")]
+    pub entry_id: ::prost::alloc::string::String,
+    #[prost(enumeration = "LocalExecutionEntryKind", tag = "2")]
+    pub kind: i32,
+    #[prost(string, tag = "3")]
+    pub capability: ::prost::alloc::string::String,
+    #[prost(bool, tag = "4")]
+    pub required: bool,
+    #[prost(bool, tag = "5")]
+    pub selected: bool,
+    #[prost(bool, tag = "6")]
+    pub preferred: bool,
+    #[prost(string, tag = "7")]
+    pub model_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "8")]
+    pub repo: ::prost::alloc::string::String,
+    #[prost(string, tag = "9")]
+    pub engine: ::prost::alloc::string::String,
+    #[prost(string, tag = "10")]
+    pub service_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "11")]
+    pub node_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "13")]
+    pub reason_code: ::prost::alloc::string::String,
+    #[prost(string, repeated, tag = "14")]
+    pub warnings: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalPreflightDecision {
+    #[prost(string, tag = "1")]
+    pub entry_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub target: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub check: ::prost::alloc::string::String,
+    #[prost(bool, tag = "4")]
+    pub ok: bool,
+    #[prost(string, tag = "5")]
+    pub reason_code: ::prost::alloc::string::String,
+    #[prost(string, tag = "6")]
+    pub detail: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalExecutionSelectionRationale {
+    #[prost(string, tag = "1")]
+    pub entry_id: ::prost::alloc::string::String,
+    #[prost(bool, tag = "2")]
+    pub selected: bool,
+    #[prost(string, tag = "3")]
+    pub reason_code: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub detail: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct LocalExecutionPlan {
+    #[prost(string, tag = "1")]
+    pub plan_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub mod_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub capability: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "4")]
+    pub device_profile: ::core::option::Option<LocalDeviceProfile>,
+    #[prost(message, repeated, tag = "5")]
+    pub entries: ::prost::alloc::vec::Vec<LocalExecutionEntryDescriptor>,
+    #[prost(message, repeated, tag = "6")]
+    pub selection_rationale: ::prost::alloc::vec::Vec<LocalExecutionSelectionRationale>,
+    #[prost(message, repeated, tag = "7")]
+    pub preflight_decisions: ::prost::alloc::vec::Vec<LocalPreflightDecision>,
+    #[prost(string, repeated, tag = "8")]
+    pub warnings: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(string, tag = "9")]
+    pub reason_code: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalExecutionStageResult {
+    #[prost(string, tag = "1")]
+    pub stage: ::prost::alloc::string::String,
+    #[prost(bool, tag = "2")]
+    pub ok: bool,
+    #[prost(string, tag = "3")]
+    pub reason_code: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub detail: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalServiceDescriptor {
+    #[prost(string, tag = "1")]
+    pub service_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub title: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub engine: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub artifact_type: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub endpoint: ::prost::alloc::string::String,
+    #[prost(string, repeated, tag = "6")]
+    pub capabilities: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(string, tag = "7")]
+    pub local_model_id: ::prost::alloc::string::String,
+    #[prost(enumeration = "LocalServiceStatus", tag = "8")]
+    pub status: i32,
+    #[prost(string, tag = "9")]
+    pub detail: ::prost::alloc::string::String,
+    #[prost(string, tag = "10")]
+    pub installed_at: ::prost::alloc::string::String,
+    #[prost(string, tag = "11")]
+    pub updated_at: ::prost::alloc::string::String,
+    #[prost(enumeration = "ReasonCode", tag = "12")]
+    pub reason_code: i32,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct LocalExecutionApplyResult {
+    #[prost(string, tag = "1")]
+    pub plan_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub mod_id: ::prost::alloc::string::String,
+    #[prost(message, repeated, tag = "3")]
+    pub entries: ::prost::alloc::vec::Vec<LocalExecutionEntryDescriptor>,
+    #[prost(message, repeated, tag = "4")]
+    pub installed_assets: ::prost::alloc::vec::Vec<LocalAssetRecord>,
+    #[prost(message, repeated, tag = "5")]
+    pub services: ::prost::alloc::vec::Vec<LocalServiceDescriptor>,
+    #[prost(string, repeated, tag = "6")]
+    pub capabilities: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(message, repeated, tag = "7")]
+    pub stage_results: ::prost::alloc::vec::Vec<LocalExecutionStageResult>,
+    #[prost(message, repeated, tag = "8")]
+    pub preflight_decisions: ::prost::alloc::vec::Vec<LocalPreflightDecision>,
+    #[prost(bool, tag = "9")]
+    pub rollback_applied: bool,
+    #[prost(string, repeated, tag = "10")]
+    pub warnings: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(string, tag = "11")]
+    pub reason_code: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct LocalProfileRequirementDescriptor {
+    #[prost(double, tag = "1")]
+    pub min_gpu_memory_gb: f64,
+    #[prost(int64, tag = "2")]
+    pub min_disk_bytes: i64,
+    #[prost(string, repeated, tag = "3")]
+    pub platforms: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(string, repeated, tag = "4")]
+    pub notes: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalProfileEntryDescriptor {
+    #[prost(string, tag = "1")]
+    pub entry_id: ::prost::alloc::string::String,
+    #[prost(enumeration = "LocalProfileEntryKind", tag = "2")]
+    pub kind: i32,
+    #[prost(string, tag = "3")]
+    pub title: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub description: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub capability: ::prost::alloc::string::String,
+    #[prost(bool, optional, tag = "6")]
+    pub required: ::core::option::Option<bool>,
+    #[prost(bool, optional, tag = "7")]
+    pub preferred: ::core::option::Option<bool>,
+    #[prost(string, tag = "9")]
+    pub repo: ::prost::alloc::string::String,
+    #[prost(string, tag = "10")]
+    pub service_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "11")]
+    pub node_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "12")]
+    pub engine: ::prost::alloc::string::String,
+    #[prost(string, tag = "15")]
+    pub template_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "16")]
+    pub revision: ::prost::alloc::string::String,
+    #[prost(string, repeated, tag = "17")]
+    pub tags: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    /// Unified asset fields
+    #[prost(string, tag = "20")]
+    pub asset_id: ::prost::alloc::string::String,
+    #[prost(enumeration = "LocalAssetKind", tag = "21")]
+    pub asset_kind: i32,
+    #[prost(string, tag = "22")]
+    pub engine_slot: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct LocalProfileDescriptor {
+    #[prost(string, tag = "1")]
+    pub id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub title: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub description: ::prost::alloc::string::String,
+    #[prost(bool, tag = "4")]
+    pub recommended: bool,
+    #[prost(string, repeated, tag = "5")]
+    pub consume_capabilities: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(message, repeated, tag = "6")]
+    pub entries: ::prost::alloc::vec::Vec<LocalProfileEntryDescriptor>,
+    #[prost(message, optional, tag = "7")]
+    pub requirements: ::core::option::Option<LocalProfileRequirementDescriptor>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ProfileEntryOverride {
+    #[prost(string, tag = "1")]
+    pub entry_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub local_asset_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct LocalProfileResolutionPlan {
+    #[prost(string, tag = "1")]
+    pub plan_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub mod_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub profile_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub title: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub description: ::prost::alloc::string::String,
+    #[prost(bool, tag = "6")]
+    pub recommended: bool,
+    #[prost(string, repeated, tag = "7")]
+    pub consume_capabilities: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(message, optional, tag = "8")]
+    pub requirements: ::core::option::Option<LocalProfileRequirementDescriptor>,
+    #[prost(message, optional, tag = "9")]
+    pub execution_plan: ::core::option::Option<LocalExecutionPlan>,
+    #[prost(string, repeated, tag = "11")]
+    pub warnings: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(string, tag = "12")]
+    pub reason_code: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct LocalProfileApplyResult {
+    #[prost(string, tag = "1")]
+    pub plan_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub mod_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub profile_id: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "4")]
+    pub execution_result: ::core::option::Option<LocalExecutionApplyResult>,
+    #[prost(message, repeated, tag = "5")]
+    pub installed_assets: ::prost::alloc::vec::Vec<LocalAssetRecord>,
+    #[prost(string, repeated, tag = "6")]
+    pub warnings: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(string, tag = "7")]
+    pub reason_code: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct LocalNodeDescriptor {
+    #[prost(string, tag = "1")]
+    pub node_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub title: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub service_id: ::prost::alloc::string::String,
+    #[prost(string, repeated, tag = "4")]
+    pub capabilities: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(string, tag = "5")]
+    pub provider: ::prost::alloc::string::String,
+    #[prost(string, tag = "6")]
+    pub adapter: ::prost::alloc::string::String,
+    #[prost(string, tag = "7")]
+    pub backend: ::prost::alloc::string::String,
+    #[prost(string, tag = "8")]
+    pub backend_source: ::prost::alloc::string::String,
+    #[prost(bool, tag = "9")]
+    pub available: bool,
+    #[prost(string, tag = "10")]
+    pub reason_code: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "11")]
+    pub provider_hints: ::core::option::Option<LocalProviderHints>,
+    #[prost(string, tag = "12")]
+    pub policy_gate: ::prost::alloc::string::String,
+    #[prost(string, tag = "13")]
+    pub api_path: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "14")]
+    pub input_schema: ::core::option::Option<::prost_types::Struct>,
+    #[prost(message, optional, tag = "15")]
+    pub output_schema: ::core::option::Option<::prost_types::Struct>,
+    #[prost(bool, tag = "16")]
+    pub read_only: bool,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct LocalAuditEvent {
+    #[prost(string, tag = "1")]
+    pub id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub event_type: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub occurred_at: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub source: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub modality: ::prost::alloc::string::String,
+    #[prost(string, tag = "6")]
+    pub reason_code: ::prost::alloc::string::String,
+    #[prost(string, tag = "7")]
+    pub detail: ::prost::alloc::string::String,
+    #[prost(string, tag = "8")]
+    pub model_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "9")]
+    pub local_model_id: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "10")]
+    pub payload: ::core::option::Option<::prost_types::Struct>,
+    #[prost(string, tag = "11")]
+    pub trace_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "12")]
+    pub app_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "13")]
+    pub domain: ::prost::alloc::string::String,
+    #[prost(string, tag = "14")]
+    pub operation: ::prost::alloc::string::String,
+    #[prost(string, tag = "15")]
+    pub subject_user_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAuditTimeRange {
+    #[prost(string, tag = "1")]
+    pub from: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub to: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalUnregisteredAssetDeclaration {
+    #[prost(enumeration = "LocalAssetKind", tag = "3")]
+    pub asset_kind: i32,
+    #[prost(string, tag = "4")]
+    pub engine: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalUnregisteredAssetDescriptor {
+    #[prost(string, tag = "1")]
+    pub filename: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub path: ::prost::alloc::string::String,
+    #[prost(int64, tag = "3")]
+    pub size_bytes: i64,
+    #[prost(message, optional, tag = "4")]
+    pub declaration: ::core::option::Option<LocalUnregisteredAssetDeclaration>,
+    #[prost(string, tag = "5")]
+    pub suggestion_source: ::prost::alloc::string::String,
+    #[prost(string, tag = "6")]
+    pub confidence: ::prost::alloc::string::String,
+    #[prost(bool, tag = "7")]
+    pub auto_importable: bool,
+    #[prost(bool, tag = "8")]
+    pub requires_manual_review: bool,
+    #[prost(string, tag = "9")]
+    pub folder_name: ::prost::alloc::string::String,
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum LocalAssetKind {
+    Unspecified = 0,
+    /// Runnable kinds
+    Chat = 1,
+    Image = 2,
+    Video = 3,
+    Tts = 4,
+    Stt = 5,
+    Embedding = 6,
+    /// Passive kinds
+    Vae = 10,
+    Clip = 11,
+    Lora = 12,
+    Controlnet = 13,
+    Auxiliary = 14,
+}
+impl LocalAssetKind {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "LOCAL_ASSET_KIND_UNSPECIFIED",
+            Self::Chat => "LOCAL_ASSET_KIND_CHAT",
+            Self::Image => "LOCAL_ASSET_KIND_IMAGE",
+            Self::Video => "LOCAL_ASSET_KIND_VIDEO",
+            Self::Tts => "LOCAL_ASSET_KIND_TTS",
+            Self::Stt => "LOCAL_ASSET_KIND_STT",
+            Self::Embedding => "LOCAL_ASSET_KIND_EMBEDDING",
+            Self::Vae => "LOCAL_ASSET_KIND_VAE",
+            Self::Clip => "LOCAL_ASSET_KIND_CLIP",
+            Self::Lora => "LOCAL_ASSET_KIND_LORA",
+            Self::Controlnet => "LOCAL_ASSET_KIND_CONTROLNET",
+            Self::Auxiliary => "LOCAL_ASSET_KIND_AUXILIARY",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "LOCAL_ASSET_KIND_UNSPECIFIED" => Some(Self::Unspecified),
+            "LOCAL_ASSET_KIND_CHAT" => Some(Self::Chat),
+            "LOCAL_ASSET_KIND_IMAGE" => Some(Self::Image),
+            "LOCAL_ASSET_KIND_VIDEO" => Some(Self::Video),
+            "LOCAL_ASSET_KIND_TTS" => Some(Self::Tts),
+            "LOCAL_ASSET_KIND_STT" => Some(Self::Stt),
+            "LOCAL_ASSET_KIND_EMBEDDING" => Some(Self::Embedding),
+            "LOCAL_ASSET_KIND_VAE" => Some(Self::Vae),
+            "LOCAL_ASSET_KIND_CLIP" => Some(Self::Clip),
+            "LOCAL_ASSET_KIND_LORA" => Some(Self::Lora),
+            "LOCAL_ASSET_KIND_CONTROLNET" => Some(Self::Controlnet),
+            "LOCAL_ASSET_KIND_AUXILIARY" => Some(Self::Auxiliary),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum LocalAssetStatus {
+    Unspecified = 0,
+    Installed = 1,
+    Active = 2,
+    Unhealthy = 3,
+    Removed = 4,
+}
+impl LocalAssetStatus {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "LOCAL_ASSET_STATUS_UNSPECIFIED",
+            Self::Installed => "LOCAL_ASSET_STATUS_INSTALLED",
+            Self::Active => "LOCAL_ASSET_STATUS_ACTIVE",
+            Self::Unhealthy => "LOCAL_ASSET_STATUS_UNHEALTHY",
+            Self::Removed => "LOCAL_ASSET_STATUS_REMOVED",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "LOCAL_ASSET_STATUS_UNSPECIFIED" => Some(Self::Unspecified),
+            "LOCAL_ASSET_STATUS_INSTALLED" => Some(Self::Installed),
+            "LOCAL_ASSET_STATUS_ACTIVE" => Some(Self::Active),
+            "LOCAL_ASSET_STATUS_UNHEALTHY" => Some(Self::Unhealthy),
+            "LOCAL_ASSET_STATUS_REMOVED" => Some(Self::Removed),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum LocalServiceStatus {
+    Unspecified = 0,
+    Installed = 1,
+    Active = 2,
+    Unhealthy = 3,
+    Removed = 4,
+}
+impl LocalServiceStatus {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "LOCAL_SERVICE_STATUS_UNSPECIFIED",
+            Self::Installed => "LOCAL_SERVICE_STATUS_INSTALLED",
+            Self::Active => "LOCAL_SERVICE_STATUS_ACTIVE",
+            Self::Unhealthy => "LOCAL_SERVICE_STATUS_UNHEALTHY",
+            Self::Removed => "LOCAL_SERVICE_STATUS_REMOVED",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "LOCAL_SERVICE_STATUS_UNSPECIFIED" => Some(Self::Unspecified),
+            "LOCAL_SERVICE_STATUS_INSTALLED" => Some(Self::Installed),
+            "LOCAL_SERVICE_STATUS_ACTIVE" => Some(Self::Active),
+            "LOCAL_SERVICE_STATUS_UNHEALTHY" => Some(Self::Unhealthy),
+            "LOCAL_SERVICE_STATUS_REMOVED" => Some(Self::Removed),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum LocalEngineRuntimeMode {
+    Unspecified = 0,
+    Supervised = 1,
+    AttachedEndpoint = 2,
+}
+impl LocalEngineRuntimeMode {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "LOCAL_ENGINE_RUNTIME_MODE_UNSPECIFIED",
+            Self::Supervised => "LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED",
+            Self::AttachedEndpoint => "LOCAL_ENGINE_RUNTIME_MODE_ATTACHED_ENDPOINT",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "LOCAL_ENGINE_RUNTIME_MODE_UNSPECIFIED" => Some(Self::Unspecified),
+            "LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED" => Some(Self::Supervised),
+            "LOCAL_ENGINE_RUNTIME_MODE_ATTACHED_ENDPOINT" => Some(Self::AttachedEndpoint),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum LocalBundleState {
+    Unspecified = 0,
+    Resolving = 1,
+    Ready = 2,
+    Degraded = 3,
+    Invalid = 4,
+    Removed = 5,
+}
+impl LocalBundleState {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "LOCAL_BUNDLE_STATE_UNSPECIFIED",
+            Self::Resolving => "LOCAL_BUNDLE_STATE_RESOLVING",
+            Self::Ready => "LOCAL_BUNDLE_STATE_READY",
+            Self::Degraded => "LOCAL_BUNDLE_STATE_DEGRADED",
+            Self::Invalid => "LOCAL_BUNDLE_STATE_INVALID",
+            Self::Removed => "LOCAL_BUNDLE_STATE_REMOVED",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "LOCAL_BUNDLE_STATE_UNSPECIFIED" => Some(Self::Unspecified),
+            "LOCAL_BUNDLE_STATE_RESOLVING" => Some(Self::Resolving),
+            "LOCAL_BUNDLE_STATE_READY" => Some(Self::Ready),
+            "LOCAL_BUNDLE_STATE_DEGRADED" => Some(Self::Degraded),
+            "LOCAL_BUNDLE_STATE_INVALID" => Some(Self::Invalid),
+            "LOCAL_BUNDLE_STATE_REMOVED" => Some(Self::Removed),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum LocalWarmState {
+    Unspecified = 0,
+    Cold = 1,
+    Warming = 2,
+    Ready = 3,
+    Failed = 4,
+}
+impl LocalWarmState {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "LOCAL_WARM_STATE_UNSPECIFIED",
+            Self::Cold => "LOCAL_WARM_STATE_COLD",
+            Self::Warming => "LOCAL_WARM_STATE_WARMING",
+            Self::Ready => "LOCAL_WARM_STATE_READY",
+            Self::Failed => "LOCAL_WARM_STATE_FAILED",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "LOCAL_WARM_STATE_UNSPECIFIED" => Some(Self::Unspecified),
+            "LOCAL_WARM_STATE_COLD" => Some(Self::Cold),
+            "LOCAL_WARM_STATE_WARMING" => Some(Self::Warming),
+            "LOCAL_WARM_STATE_READY" => Some(Self::Ready),
+            "LOCAL_WARM_STATE_FAILED" => Some(Self::Failed),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum LocalExecutionEntryKind {
+    Unspecified = 0,
+    Model = 1,
+    Service = 2,
+    Node = 3,
+}
+impl LocalExecutionEntryKind {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "LOCAL_EXECUTION_ENTRY_KIND_UNSPECIFIED",
+            Self::Model => "LOCAL_EXECUTION_ENTRY_KIND_MODEL",
+            Self::Service => "LOCAL_EXECUTION_ENTRY_KIND_SERVICE",
+            Self::Node => "LOCAL_EXECUTION_ENTRY_KIND_NODE",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "LOCAL_EXECUTION_ENTRY_KIND_UNSPECIFIED" => Some(Self::Unspecified),
+            "LOCAL_EXECUTION_ENTRY_KIND_MODEL" => Some(Self::Model),
+            "LOCAL_EXECUTION_ENTRY_KIND_SERVICE" => Some(Self::Service),
+            "LOCAL_EXECUTION_ENTRY_KIND_NODE" => Some(Self::Node),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum LocalProfileEntryKind {
+    Unspecified = 0,
+    Service = 3,
+    Node = 4,
+    Asset = 5,
+}
+impl LocalProfileEntryKind {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "LOCAL_PROFILE_ENTRY_KIND_UNSPECIFIED",
+            Self::Service => "LOCAL_PROFILE_ENTRY_KIND_SERVICE",
+            Self::Node => "LOCAL_PROFILE_ENTRY_KIND_NODE",
+            Self::Asset => "LOCAL_PROFILE_ENTRY_KIND_ASSET",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "LOCAL_PROFILE_ENTRY_KIND_UNSPECIFIED" => Some(Self::Unspecified),
+            "LOCAL_PROFILE_ENTRY_KIND_SERVICE" => Some(Self::Service),
+            "LOCAL_PROFILE_ENTRY_KIND_NODE" => Some(Self::Node),
+            "LOCAL_PROFILE_ENTRY_KIND_ASSET" => Some(Self::Asset),
+            _ => None,
+        }
+    }
+}
+/// K-DEV-001: GPU memory architecture model.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum GpuMemoryModel {
+    Unspecified = 0,
+    Discrete = 1,
+    Unified = 2,
+}
+impl GpuMemoryModel {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "GPU_MEMORY_MODEL_UNSPECIFIED",
+            Self::Discrete => "GPU_MEMORY_MODEL_DISCRETE",
+            Self::Unified => "GPU_MEMORY_MODEL_UNIFIED",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "GPU_MEMORY_MODEL_UNSPECIFIED" => Some(Self::Unspecified),
+            "GPU_MEMORY_MODEL_DISCRETE" => Some(Self::Discrete),
+            "GPU_MEMORY_MODEL_UNIFIED" => Some(Self::Unified),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalEngineDescriptor {
+    #[prost(string, tag = "1")]
+    pub engine: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub version: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub endpoint: ::prost::alloc::string::String,
+    #[prost(int32, tag = "4")]
+    pub port: i32,
+    #[prost(enumeration = "LocalEngineStatus", tag = "5")]
+    pub status: i32,
+    #[prost(int32, tag = "6")]
+    pub pid: i32,
+    #[prost(string, tag = "7")]
+    pub platform: ::prost::alloc::string::String,
+    #[prost(int64, tag = "8")]
+    pub binary_size_bytes: i64,
+    #[prost(string, tag = "9")]
+    pub started_at: ::prost::alloc::string::String,
+    #[prost(string, tag = "10")]
+    pub last_healthy_at: ::prost::alloc::string::String,
+    #[prost(int32, tag = "11")]
+    pub consecutive_failures: i32,
+    #[prost(string, tag = "12")]
+    pub binary_path: ::prost::alloc::string::String,
+}
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ListEnginesRequest {}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ListEnginesResponse {
+    #[prost(message, repeated, tag = "1")]
+    pub engines: ::prost::alloc::vec::Vec<LocalEngineDescriptor>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct EnsureEngineRequest {
+    #[prost(string, tag = "1")]
+    pub engine: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub version: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct EnsureEngineResponse {
+    #[prost(message, optional, tag = "1")]
+    pub engine: ::core::option::Option<LocalEngineDescriptor>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct StartEngineRequest {
+    #[prost(string, tag = "1")]
+    pub engine: ::prost::alloc::string::String,
+    #[prost(int32, tag = "2")]
+    pub port: i32,
+    #[prost(string, tag = "3")]
+    pub version: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct StartEngineResponse {
+    #[prost(message, optional, tag = "1")]
+    pub engine: ::core::option::Option<LocalEngineDescriptor>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct StopEngineRequest {
+    #[prost(string, tag = "1")]
+    pub engine: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct StopEngineResponse {
+    #[prost(message, optional, tag = "1")]
+    pub engine: ::core::option::Option<LocalEngineDescriptor>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetEngineStatusRequest {
+    #[prost(string, tag = "1")]
+    pub engine: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetEngineStatusResponse {
+    #[prost(message, optional, tag = "1")]
+    pub engine: ::core::option::Option<LocalEngineDescriptor>,
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum LocalEngineStatus {
+    Unspecified = 0,
+    Stopped = 1,
+    Starting = 2,
+    Healthy = 3,
+    Unhealthy = 4,
+}
+impl LocalEngineStatus {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "LOCAL_ENGINE_STATUS_UNSPECIFIED",
+            Self::Stopped => "LOCAL_ENGINE_STATUS_STOPPED",
+            Self::Starting => "LOCAL_ENGINE_STATUS_STARTING",
+            Self::Healthy => "LOCAL_ENGINE_STATUS_HEALTHY",
+            Self::Unhealthy => "LOCAL_ENGINE_STATUS_UNHEALTHY",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "LOCAL_ENGINE_STATUS_UNSPECIFIED" => Some(Self::Unspecified),
+            "LOCAL_ENGINE_STATUS_STOPPED" => Some(Self::Stopped),
+            "LOCAL_ENGINE_STATUS_STARTING" => Some(Self::Starting),
+            "LOCAL_ENGINE_STATUS_HEALTHY" => Some(Self::Healthy),
+            "LOCAL_ENGINE_STATUS_UNHEALTHY" => Some(Self::Unhealthy),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ListLocalAssetsRequest {
+    #[prost(enumeration = "LocalAssetStatus", tag = "1")]
+    pub status_filter: i32,
+    #[prost(enumeration = "LocalAssetKind", tag = "2")]
+    pub kind_filter: i32,
+    #[prost(string, tag = "3")]
+    pub engine_filter: ::prost::alloc::string::String,
+    #[prost(int32, tag = "4")]
+    pub page_size: i32,
+    #[prost(string, tag = "5")]
+    pub page_token: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ListLocalAssetsResponse {
+    #[prost(message, repeated, tag = "1")]
+    pub assets: ::prost::alloc::vec::Vec<LocalAssetRecord>,
+    #[prost(string, tag = "2")]
+    pub next_page_token: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ListVerifiedAssetsRequest {
+    #[prost(enumeration = "LocalAssetKind", tag = "1")]
+    pub kind_filter: i32,
+    #[prost(string, tag = "2")]
+    pub engine_filter: ::prost::alloc::string::String,
+    #[prost(int32, tag = "3")]
+    pub page_size: i32,
+    #[prost(string, tag = "4")]
+    pub page_token: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ListVerifiedAssetsResponse {
+    #[prost(message, repeated, tag = "1")]
+    pub assets: ::prost::alloc::vec::Vec<LocalVerifiedAssetDescriptor>,
+    #[prost(string, tag = "2")]
+    pub next_page_token: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct InstallVerifiedAssetRequest {
+    #[prost(string, tag = "1")]
+    pub template_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub endpoint: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct InstallVerifiedAssetResponse {
+    #[prost(message, optional, tag = "1")]
+    pub asset: ::core::option::Option<LocalAssetRecord>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ImportLocalAssetRequest {
+    #[prost(string, tag = "1")]
+    pub manifest_path: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub endpoint: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "3")]
+    pub engine_config: ::core::option::Option<::prost_types::Struct>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ImportLocalAssetResponse {
+    #[prost(message, optional, tag = "1")]
+    pub asset: ::core::option::Option<LocalAssetRecord>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ImportLocalAssetFileRequest {
+    #[prost(string, tag = "1")]
+    pub file_path: ::prost::alloc::string::String,
+    #[prost(enumeration = "LocalAssetKind", tag = "2")]
+    pub kind: i32,
+    #[prost(string, tag = "3")]
+    pub engine: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub asset_name: ::prost::alloc::string::String,
+    #[prost(string, repeated, tag = "5")]
+    pub capabilities: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(string, tag = "6")]
+    pub endpoint: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ImportLocalAssetFileResponse {
+    #[prost(message, optional, tag = "1")]
+    pub asset: ::core::option::Option<LocalAssetRecord>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ScaffoldOrphanAssetRequest {
+    #[prost(string, tag = "1")]
+    pub path: ::prost::alloc::string::String,
+    #[prost(enumeration = "LocalAssetKind", tag = "2")]
+    pub kind: i32,
+    #[prost(string, tag = "3")]
+    pub engine: ::prost::alloc::string::String,
+    #[prost(string, repeated, tag = "4")]
+    pub capabilities: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(string, tag = "5")]
+    pub endpoint: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ScaffoldOrphanAssetResponse {
+    #[prost(message, optional, tag = "1")]
+    pub asset: ::core::option::Option<LocalAssetRecord>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RemoveLocalAssetRequest {
+    #[prost(string, tag = "1")]
+    pub local_asset_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct RemoveLocalAssetResponse {
+    #[prost(message, optional, tag = "1")]
+    pub asset: ::core::option::Option<LocalAssetRecord>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct SearchCatalogModelsRequest {
+    #[prost(string, tag = "1")]
+    pub query: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub capability: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub category_filter: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub engine_filter: ::prost::alloc::string::String,
+    #[prost(int32, tag = "6")]
+    pub page_size: i32,
+    #[prost(string, tag = "7")]
+    pub page_token: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct SearchCatalogModelsResponse {
+    #[prost(message, repeated, tag = "1")]
+    pub items: ::prost::alloc::vec::Vec<LocalCatalogModelDescriptor>,
+    #[prost(string, tag = "2")]
+    pub next_page_token: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ResolveModelInstallPlanRequest {
+    #[prost(string, tag = "1")]
+    pub item_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub source: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub template_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub model_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub repo: ::prost::alloc::string::String,
+    #[prost(string, tag = "6")]
+    pub revision: ::prost::alloc::string::String,
+    #[prost(string, repeated, tag = "7")]
+    pub capabilities: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(string, tag = "8")]
+    pub engine: ::prost::alloc::string::String,
+    #[prost(string, tag = "9")]
+    pub entry: ::prost::alloc::string::String,
+    #[prost(string, repeated, tag = "10")]
+    pub files: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(string, tag = "11")]
+    pub license: ::prost::alloc::string::String,
+    #[prost(map = "string, string", tag = "12")]
+    pub hashes: ::std::collections::HashMap<
+        ::prost::alloc::string::String,
+        ::prost::alloc::string::String,
+    >,
+    #[prost(string, tag = "13")]
+    pub endpoint: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "14")]
+    pub engine_config: ::core::option::Option<::prost_types::Struct>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ResolveModelInstallPlanResponse {
+    #[prost(message, optional, tag = "1")]
+    pub plan: ::core::option::Option<LocalInstallPlanDescriptor>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct StartLocalAssetRequest {
+    #[prost(string, tag = "1")]
+    pub local_asset_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct StartLocalAssetResponse {
+    #[prost(message, optional, tag = "1")]
+    pub asset: ::core::option::Option<LocalAssetRecord>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct StopLocalAssetRequest {
+    #[prost(string, tag = "1")]
+    pub local_asset_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct StopLocalAssetResponse {
+    #[prost(message, optional, tag = "1")]
+    pub asset: ::core::option::Option<LocalAssetRecord>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct CheckLocalAssetHealthRequest {
+    #[prost(string, tag = "1")]
+    pub local_asset_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct CheckLocalAssetHealthResponse {
+    #[prost(message, repeated, tag = "1")]
+    pub assets: ::prost::alloc::vec::Vec<LocalAssetHealth>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct WarmLocalAssetRequest {
+    #[prost(string, tag = "1")]
+    pub local_asset_id: ::prost::alloc::string::String,
+    #[prost(int32, tag = "2")]
+    pub timeout_ms: i32,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct WarmLocalAssetResponse {
+    #[prost(string, tag = "1")]
+    pub local_asset_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub asset_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub model_resolved: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub endpoint: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub engine: ::prost::alloc::string::String,
+    #[prost(bool, tag = "6")]
+    pub already_warm: bool,
+    #[prost(int64, tag = "7")]
+    pub latency_ms: i64,
+    #[prost(string, tag = "8")]
+    pub trace_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ScanUnregisteredAssetsRequest {}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ScanUnregisteredAssetsResponse {
+    #[prost(message, repeated, tag = "1")]
+    pub items: ::prost::alloc::vec::Vec<LocalUnregisteredAssetDescriptor>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalTransferSessionSummary {
+    #[prost(string, tag = "1")]
+    pub install_session_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub asset_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub local_asset_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "6")]
+    pub session_kind: ::prost::alloc::string::String,
+    #[prost(string, tag = "7")]
+    pub phase: ::prost::alloc::string::String,
+    #[prost(string, tag = "8")]
+    pub state: ::prost::alloc::string::String,
+    #[prost(int64, tag = "9")]
+    pub bytes_received: i64,
+    #[prost(int64, tag = "10")]
+    pub bytes_total: i64,
+    #[prost(int64, tag = "11")]
+    pub speed_bytes_per_sec: i64,
+    #[prost(int64, tag = "12")]
+    pub eta_seconds: i64,
+    #[prost(string, tag = "13")]
+    pub message: ::prost::alloc::string::String,
+    #[prost(string, tag = "14")]
+    pub reason_code: ::prost::alloc::string::String,
+    #[prost(bool, tag = "15")]
+    pub retryable: bool,
+    #[prost(string, tag = "16")]
+    pub created_at: ::prost::alloc::string::String,
+    #[prost(string, tag = "17")]
+    pub updated_at: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalTransferProgressEvent {
+    #[prost(string, tag = "1")]
+    pub install_session_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub asset_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub local_asset_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "6")]
+    pub session_kind: ::prost::alloc::string::String,
+    #[prost(string, tag = "7")]
+    pub phase: ::prost::alloc::string::String,
+    #[prost(int64, tag = "8")]
+    pub bytes_received: i64,
+    #[prost(int64, tag = "9")]
+    pub bytes_total: i64,
+    #[prost(int64, tag = "10")]
+    pub speed_bytes_per_sec: i64,
+    #[prost(int64, tag = "11")]
+    pub eta_seconds: i64,
+    #[prost(string, tag = "12")]
+    pub message: ::prost::alloc::string::String,
+    #[prost(string, tag = "13")]
+    pub state: ::prost::alloc::string::String,
+    #[prost(string, tag = "14")]
+    pub reason_code: ::prost::alloc::string::String,
+    #[prost(bool, tag = "15")]
+    pub retryable: bool,
+    #[prost(bool, tag = "16")]
+    pub done: bool,
+    #[prost(bool, tag = "17")]
+    pub success: bool,
+    #[prost(string, tag = "18")]
+    pub created_at: ::prost::alloc::string::String,
+    #[prost(string, tag = "19")]
+    pub updated_at: ::prost::alloc::string::String,
+}
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ListLocalTransfersRequest {}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ListLocalTransfersResponse {
+    #[prost(message, repeated, tag = "1")]
+    pub transfers: ::prost::alloc::vec::Vec<LocalTransferSessionSummary>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct PauseLocalTransferRequest {
+    #[prost(string, tag = "1")]
+    pub install_session_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct PauseLocalTransferResponse {
+    #[prost(message, optional, tag = "1")]
+    pub transfer: ::core::option::Option<LocalTransferSessionSummary>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ResumeLocalTransferRequest {
+    #[prost(string, tag = "1")]
+    pub install_session_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ResumeLocalTransferResponse {
+    #[prost(message, optional, tag = "1")]
+    pub transfer: ::core::option::Option<LocalTransferSessionSummary>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct CancelLocalTransferRequest {
+    #[prost(string, tag = "1")]
+    pub install_session_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct CancelLocalTransferResponse {
+    #[prost(message, optional, tag = "1")]
+    pub transfer: ::core::option::Option<LocalTransferSessionSummary>,
+}
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct WatchLocalTransfersRequest {}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ResolveLocalEnvironmentPlanRequest {
+    #[prost(string, tag = "1")]
+    pub pack_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub consumer_scope: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "3")]
+    pub host_profile: ::core::option::Option<LocalDeviceProfile>,
+    #[prost(string, tag = "4")]
+    pub runtime_data_root: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub asset_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "6")]
+    pub local_asset_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "7")]
+    pub companion_asset_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "8")]
+    pub parent_asset_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ResolveLocalEnvironmentPlanResponse {
+    #[prost(message, optional, tag = "1")]
+    pub plan: ::core::option::Option<LocalEnvironmentPlan>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ListLocalEnvironmentSelectedSourcesRequest {
+    #[prost(string, tag = "1")]
+    pub dependency_family: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub consumer_scope: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ListLocalEnvironmentSelectedSourcesResponse {
+    #[prost(message, repeated, tag = "1")]
+    pub sources: ::prost::alloc::vec::Vec<LocalEnvironmentSelectedSourceRecord>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ListLocalEnvironmentDependencyJobsRequest {
+    #[prost(string, tag = "1")]
+    pub environment_key: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub state: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ListLocalEnvironmentDependencyJobsResponse {
+    #[prost(message, repeated, tag = "1")]
+    pub jobs: ::prost::alloc::vec::Vec<LocalEnvironmentDependencyJob>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ResolveLocalEnvironmentActivationGateRequest {
+    #[prost(string, tag = "1")]
+    pub consumer_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub pack_id: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "3")]
+    pub host_profile: ::core::option::Option<LocalDeviceProfile>,
+    #[prost(string, tag = "4")]
+    pub runtime_data_root: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub asset_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "6")]
+    pub local_asset_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "7")]
+    pub companion_asset_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "8")]
+    pub parent_asset_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ResolveLocalEnvironmentActivationGateResponse {
+    #[prost(message, optional, tag = "1")]
+    pub gate: ::core::option::Option<LocalEnvironmentActivationGate>,
+}
+/// RuntimeBaselineConsumerBinding pins a first-run baseline consumer to the
+/// model asset selected by the first-run factory AIProfile. Consumers whose
+/// pack requires a model.asset dependency family supply asset identity here.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RuntimeBaselineConsumerBinding {
+    #[prost(string, tag = "1")]
+    pub consumer_id: ::prost::alloc::string::String,
+    /// asset_id is the selected baseline model asset id for model.asset
+    /// dependency resolution.
+    #[prost(string, tag = "2")]
+    pub asset_id: ::prost::alloc::string::String,
+    /// local_asset_id optionally identifies an installed local asset whose
+    /// asset id is resolved by Runtime when asset_id is not supplied directly.
+    #[prost(string, tag = "3")]
+    pub local_asset_id: ::prost::alloc::string::String,
+}
+/// MintRuntimeBaselineReadinessRequest requests minting a first-run runtime
+/// baseline readiness evidence ref (K-LENV-ACT-011). RuntimeLocalService runs
+/// a fresh activation gate for every required first-run baseline consumer and
+/// mints the ref only when all required dependencies are ready_system or
+/// ready_managed.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct MintRuntimeBaselineReadinessRequest {
+    #[prost(string, tag = "1")]
+    pub selected_local_factory_ai_profile_ref: ::prost::alloc::string::String,
+    /// install_level is minimal or recommended.
+    #[prost(string, tag = "2")]
+    pub install_level: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub runtime_data_root_or_data_root_ref: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "4")]
+    pub host_profile: ::core::option::Option<LocalDeviceProfile>,
+    /// baseline_consumers pins the first-run baseline consumer set and the model
+    /// asset bound to each consumer. When empty the canonical consumer set for
+    /// install_level is resolved by Runtime.
+    #[prost(message, repeated, tag = "5")]
+    pub baseline_consumers: ::prost::alloc::vec::Vec<RuntimeBaselineConsumerBinding>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct MintRuntimeBaselineReadinessResponse {
+    #[prost(message, optional, tag = "1")]
+    pub r#ref: ::core::option::Option<RuntimeBaselineReadinessRef>,
+    /// state is ready when minted, otherwise the fail-closed projection state.
+    #[prost(string, tag = "2")]
+    pub state: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub reason_code: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub detail: ::prost::alloc::string::String,
+}
+/// ResolveRuntimeBaselineReadinessRequest re-verifies a stored runtimeBaselineRef
+/// against fresh activation evidence (K-LENV-ACT-011). This is the seam product
+/// ready admission step 5 (P-COLD-016) consumes.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ResolveRuntimeBaselineReadinessRequest {
+    #[prost(string, tag = "1")]
+    pub runtime_baseline_ref: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "2")]
+    pub host_profile: ::core::option::Option<LocalDeviceProfile>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ResolveRuntimeBaselineReadinessResponse {
+    #[prost(message, optional, tag = "1")]
+    pub r#ref: ::core::option::Option<RuntimeBaselineReadinessRef>,
+    /// state is ready when the ref still resolves, otherwise the fail-closed
+    /// projection state.
+    #[prost(string, tag = "2")]
+    pub state: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub reason_code: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub detail: ::prost::alloc::string::String,
+}
+/// MintFirstRunExecutionEvidenceRequest requests minting a first-run baseline
+/// execution evidence ref (K-AIEXEC-007). RuntimeLocalService re-confirms the
+/// supplied runtimeBaselineRef, then executes every selected first-run baseline
+/// capability through the admitted Runtime local execution path and mints the
+/// ref only when every execution resolved to a local route target.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct MintFirstRunExecutionEvidenceRequest {
+    /// runtime_baseline_ref is the previously verified runtimeBaselineRef the
+    /// execution proof binds to. It is re-confirmed before any execution runs.
+    #[prost(string, tag = "1")]
+    pub runtime_baseline_ref: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub selected_local_factory_ai_profile_ref: ::prost::alloc::string::String,
+    /// install_level is minimal or recommended.
+    #[prost(string, tag = "3")]
+    pub install_level: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub data_root_ref: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "5")]
+    pub host_profile: ::core::option::Option<LocalDeviceProfile>,
+    /// recommended_capabilities pins the additional Recommended-only baseline
+    /// capability ids selected by the confirmed plan. When install_level is
+    /// recommended every entry must resolve to an admitted local scenario.
+    #[prost(string, repeated, tag = "6")]
+    pub recommended_capabilities: ::prost::alloc::vec::Vec<
+        ::prost::alloc::string::String,
+    >,
+    /// submit_scheduling_evaluated, when true, indicates a submit-specific Peek
+    /// was evaluated for the baseline capabilities; the resulting target
+    /// judgement is recorded into the evidence. When false no scheduling
+    /// judgement is recorded (a scope aggregate judgement is never substituted).
+    #[prost(bool, tag = "7")]
+    pub submit_scheduling_evaluated: bool,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct MintFirstRunExecutionEvidenceResponse {
+    #[prost(message, optional, tag = "1")]
+    pub r#ref: ::core::option::Option<ExecutionEvidenceRef>,
+    /// state is local_ai_ready when minted, otherwise the fail-closed projection
+    /// (local_ai_blocked).
+    #[prost(string, tag = "2")]
+    pub state: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub reason_code: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub detail: ::prost::alloc::string::String,
+}
+/// ResolveFirstRunExecutionEvidenceRequest re-verifies a stored
+/// executionEvidenceRef (K-AIEXEC-007). This is the seam product ready
+/// admission step 7 (P-COLD-016) consumes.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ResolveFirstRunExecutionEvidenceRequest {
+    #[prost(string, tag = "1")]
+    pub execution_evidence_ref: ::prost::alloc::string::String,
+    /// expected_runtime_baseline_ref / expected_data_root_ref /
+    /// expected_install_level are the composition inputs the caller already
+    /// verified; the resolver fails closed when the stored evidence no longer
+    /// matches them. They are optional — when empty only the stored binding is
+    /// re-confirmed.
+    #[prost(string, tag = "2")]
+    pub expected_runtime_baseline_ref: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub expected_data_root_ref: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub expected_install_level: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "5")]
+    pub host_profile: ::core::option::Option<LocalDeviceProfile>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ResolveFirstRunExecutionEvidenceResponse {
+    #[prost(message, optional, tag = "1")]
+    pub r#ref: ::core::option::Option<ExecutionEvidenceRef>,
+    /// state is local_ai_ready when the ref still resolves, otherwise the
+    /// fail-closed projection (local_ai_blocked).
+    #[prost(string, tag = "2")]
+    pub state: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub reason_code: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub detail: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct StartLocalEnvironmentDependencyJobRequest {
+    #[prost(string, tag = "1")]
+    pub environment_key: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub dependency_family: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub dependency_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub source_kind: ::prost::alloc::string::String,
+    #[prost(bool, tag = "5")]
+    pub confirmed: bool,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct StartLocalEnvironmentDependencyJobResponse {
+    #[prost(message, optional, tag = "1")]
+    pub job: ::core::option::Option<LocalEnvironmentDependencyJob>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct CancelLocalEnvironmentDependencyJobRequest {
+    #[prost(string, tag = "1")]
+    pub job_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct CancelLocalEnvironmentDependencyJobResponse {
+    #[prost(message, optional, tag = "1")]
+    pub job: ::core::option::Option<LocalEnvironmentDependencyJob>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RetryLocalEnvironmentDependencyJobRequest {
+    #[prost(string, tag = "1")]
+    pub job_id: ::prost::alloc::string::String,
+    #[prost(bool, tag = "2")]
+    pub confirmed: bool,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RetryLocalEnvironmentDependencyJobResponse {
+    #[prost(message, optional, tag = "1")]
+    pub job: ::core::option::Option<LocalEnvironmentDependencyJob>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RepairLocalEnvironmentDependencyRequest {
+    #[prost(string, tag = "1")]
+    pub environment_key: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub dependency_family: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub dependency_id: ::prost::alloc::string::String,
+    #[prost(bool, tag = "4")]
+    pub confirmed: bool,
+    #[prost(string, tag = "5")]
+    pub reason_code: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RepairLocalEnvironmentDependencyResponse {
+    #[prost(message, optional, tag = "1")]
+    pub job: ::core::option::Option<LocalEnvironmentDependencyJob>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalStateReconciliationPlan {
+    #[prost(string, tag = "1")]
+    pub plan_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub state: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub reason_code: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub message: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub active_state_path: ::prost::alloc::string::String,
+    #[prost(string, tag = "6")]
+    pub local_models_path: ::prost::alloc::string::String,
+    #[prost(string, tag = "7")]
+    pub nimi_data_dir: ::prost::alloc::string::String,
+    #[prost(string, tag = "8")]
+    pub retired_state_path: ::prost::alloc::string::String,
+    #[prost(bool, tag = "9")]
+    pub retired_state_detected: bool,
+    #[prost(bool, tag = "10")]
+    pub active_state_detected: bool,
+    #[prost(bool, tag = "11")]
+    pub confirmation_required: bool,
+    #[prost(int32, tag = "12")]
+    pub active_asset_count: i32,
+    #[prost(int32, tag = "13")]
+    pub active_service_count: i32,
+    #[prost(int32, tag = "14")]
+    pub active_transfer_count: i32,
+    #[prost(int32, tag = "15")]
+    pub active_audit_count: i32,
+    #[prost(int32, tag = "16")]
+    pub retired_asset_count: i32,
+    #[prost(int32, tag = "17")]
+    pub retired_service_count: i32,
+    #[prost(int32, tag = "18")]
+    pub retired_transfer_count: i32,
+    #[prost(int32, tag = "19")]
+    pub retired_audit_count: i32,
+    #[prost(int32, tag = "20")]
+    pub conflict_count: i32,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ResolveLocalStateReconciliationRequest {
+    #[prost(string, tag = "1")]
+    pub nimi_data_dir: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ResolveLocalStateReconciliationResponse {
+    #[prost(message, optional, tag = "1")]
+    pub plan: ::core::option::Option<LocalStateReconciliationPlan>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ExecuteLocalStateCutoverRequest {
+    #[prost(string, tag = "1")]
+    pub nimi_data_dir: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub plan_id: ::prost::alloc::string::String,
+    #[prost(bool, tag = "3")]
+    pub confirmed: bool,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ExecuteLocalStateCutoverResponse {
+    #[prost(message, optional, tag = "1")]
+    pub plan: ::core::option::Option<LocalStateReconciliationPlan>,
+    #[prost(message, optional, tag = "2")]
+    pub transfer: ::core::option::Option<LocalTransferSessionSummary>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct CollectDeviceProfileRequest {
+    #[prost(int32, repeated, tag = "1")]
+    pub extra_ports: ::prost::alloc::vec::Vec<i32>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct CollectDeviceProfileResponse {
+    #[prost(message, optional, tag = "1")]
+    pub profile: ::core::option::Option<LocalDeviceProfile>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ResolveProfileRequest {
+    #[prost(string, tag = "1")]
+    pub mod_id: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "2")]
+    pub profile: ::core::option::Option<LocalProfileDescriptor>,
+    #[prost(string, tag = "3")]
+    pub capability: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "4")]
+    pub device_profile: ::core::option::Option<LocalDeviceProfile>,
+    #[prost(message, repeated, tag = "5")]
+    pub entry_overrides: ::prost::alloc::vec::Vec<ProfileEntryOverride>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ResolveProfileResponse {
+    #[prost(message, optional, tag = "1")]
+    pub plan: ::core::option::Option<LocalProfileResolutionPlan>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ApplyProfileRequest {
+    #[prost(message, optional, tag = "1")]
+    pub plan: ::core::option::Option<LocalProfileResolutionPlan>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ApplyProfileResponse {
+    #[prost(message, optional, tag = "1")]
+    pub result: ::core::option::Option<LocalProfileApplyResult>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ListLocalServicesRequest {
+    #[prost(enumeration = "LocalServiceStatus", tag = "1")]
+    pub status_filter: i32,
+    #[prost(int32, tag = "2")]
+    pub page_size: i32,
+    #[prost(string, tag = "3")]
+    pub page_token: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ListLocalServicesResponse {
+    #[prost(message, repeated, tag = "1")]
+    pub services: ::prost::alloc::vec::Vec<LocalServiceDescriptor>,
+    #[prost(string, tag = "2")]
+    pub next_page_token: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct InstallLocalServiceRequest {
+    #[prost(string, tag = "1")]
+    pub service_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub title: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub engine: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub endpoint: ::prost::alloc::string::String,
+    #[prost(string, repeated, tag = "5")]
+    pub capabilities: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(string, tag = "6")]
+    pub local_model_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct InstallLocalServiceResponse {
+    #[prost(message, optional, tag = "1")]
+    pub service: ::core::option::Option<LocalServiceDescriptor>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct StartLocalServiceRequest {
+    #[prost(string, tag = "1")]
+    pub service_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct StartLocalServiceResponse {
+    #[prost(message, optional, tag = "1")]
+    pub service: ::core::option::Option<LocalServiceDescriptor>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct StopLocalServiceRequest {
+    #[prost(string, tag = "1")]
+    pub service_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct StopLocalServiceResponse {
+    #[prost(message, optional, tag = "1")]
+    pub service: ::core::option::Option<LocalServiceDescriptor>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct CheckLocalServiceHealthRequest {
+    #[prost(string, tag = "1")]
+    pub service_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct CheckLocalServiceHealthResponse {
+    #[prost(message, repeated, tag = "1")]
+    pub services: ::prost::alloc::vec::Vec<LocalServiceDescriptor>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RemoveLocalServiceRequest {
+    #[prost(string, tag = "1")]
+    pub service_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RemoveLocalServiceResponse {
+    #[prost(message, optional, tag = "1")]
+    pub service: ::core::option::Option<LocalServiceDescriptor>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ListNodeCatalogRequest {
+    #[prost(string, tag = "1")]
+    pub capability: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub service_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub provider: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub type_filter: ::prost::alloc::string::String,
+    #[prost(int32, tag = "5")]
+    pub page_size: i32,
+    #[prost(string, tag = "6")]
+    pub page_token: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ListNodeCatalogResponse {
+    #[prost(message, repeated, tag = "1")]
+    pub nodes: ::prost::alloc::vec::Vec<LocalNodeDescriptor>,
+    #[prost(string, tag = "2")]
+    pub next_page_token: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ListLocalAuditsRequest {
+    #[prost(string, tag = "2")]
+    pub event_type: ::prost::alloc::string::String,
+    #[prost(string, repeated, tag = "3")]
+    pub event_types: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(string, tag = "4")]
+    pub source: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub modality: ::prost::alloc::string::String,
+    #[prost(string, tag = "6")]
+    pub local_model_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "7")]
+    pub mod_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "8")]
+    pub reason_code: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "9")]
+    pub time_range: ::core::option::Option<LocalAuditTimeRange>,
+    #[prost(int32, tag = "10")]
+    pub page_size: i32,
+    #[prost(string, tag = "11")]
+    pub page_token: ::prost::alloc::string::String,
+    #[prost(string, tag = "12")]
+    pub app_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "13")]
+    pub subject_user_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ListLocalAuditsResponse {
+    #[prost(message, repeated, tag = "1")]
+    pub events: ::prost::alloc::vec::Vec<LocalAuditEvent>,
+    #[prost(string, tag = "2")]
+    pub next_page_token: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct AppendInferenceAuditRequest {
+    #[prost(string, tag = "1")]
+    pub event_type: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub mod_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub source: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub provider: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub modality: ::prost::alloc::string::String,
+    #[prost(string, tag = "6")]
+    pub adapter: ::prost::alloc::string::String,
+    #[prost(string, tag = "7")]
+    pub model: ::prost::alloc::string::String,
+    #[prost(string, tag = "8")]
+    pub local_model_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "9")]
+    pub endpoint: ::prost::alloc::string::String,
+    #[prost(string, tag = "10")]
+    pub reason_code: ::prost::alloc::string::String,
+    #[prost(string, tag = "11")]
+    pub detail: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "12")]
+    pub policy_gate: ::core::option::Option<::prost_types::Struct>,
+    #[prost(message, optional, tag = "13")]
+    pub extra: ::core::option::Option<::prost_types::Struct>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct AppendRuntimeAuditRequest {
+    #[prost(string, tag = "1")]
+    pub event_type: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub model_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub local_model_id: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "4")]
+    pub payload: ::core::option::Option<::prost_types::Struct>,
+}
+/// Generated client implementations.
+pub mod runtime_local_service_client {
+    #![allow(
+        unused_variables,
+        dead_code,
+        missing_docs,
+        clippy::wildcard_imports,
+        clippy::let_unit_value,
+    )]
+    use tonic::codegen::*;
+    use tonic::codegen::http::Uri;
+    #[derive(Debug, Clone)]
+    pub struct RuntimeLocalServiceClient<T> {
+        inner: tonic::client::Grpc<T>,
+    }
+    impl RuntimeLocalServiceClient<tonic::transport::Channel> {
+        /// Attempt to create a new client by connecting to a given endpoint.
+        pub async fn connect<D>(dst: D) -> Result<Self, tonic::transport::Error>
+        where
+            D: TryInto<tonic::transport::Endpoint>,
+            D::Error: Into<StdError>,
+        {
+            let conn = tonic::transport::Endpoint::new(dst)?.connect().await?;
+            Ok(Self::new(conn))
+        }
+    }
+    impl<T> RuntimeLocalServiceClient<T>
+    where
+        T: tonic::client::GrpcService<tonic::body::Body>,
+        T::Error: Into<StdError>,
+        T::ResponseBody: Body<Data = Bytes> + std::marker::Send + 'static,
+        <T::ResponseBody as Body>::Error: Into<StdError> + std::marker::Send,
+    {
+        pub fn new(inner: T) -> Self {
+            let inner = tonic::client::Grpc::new(inner);
+            Self { inner }
+        }
+        pub fn with_origin(inner: T, origin: Uri) -> Self {
+            let inner = tonic::client::Grpc::with_origin(inner, origin);
+            Self { inner }
+        }
+        pub fn with_interceptor<F>(
+            inner: T,
+            interceptor: F,
+        ) -> RuntimeLocalServiceClient<InterceptedService<T, F>>
+        where
+            F: tonic::service::Interceptor,
+            T::ResponseBody: Default,
+            T: tonic::codegen::Service<
+                http::Request<tonic::body::Body>,
+                Response = http::Response<
+                    <T as tonic::client::GrpcService<tonic::body::Body>>::ResponseBody,
+                >,
+            >,
+            <T as tonic::codegen::Service<
+                http::Request<tonic::body::Body>,
+            >>::Error: Into<StdError> + std::marker::Send + std::marker::Sync,
+        {
+            RuntimeLocalServiceClient::new(InterceptedService::new(inner, interceptor))
+        }
+        /// Compress requests with the given encoding.
+        ///
+        /// This requires the server to support it otherwise it might respond with an
+        /// error.
+        #[must_use]
+        pub fn send_compressed(mut self, encoding: CompressionEncoding) -> Self {
+            self.inner = self.inner.send_compressed(encoding);
+            self
+        }
+        /// Enable decompressing responses.
+        #[must_use]
+        pub fn accept_compressed(mut self, encoding: CompressionEncoding) -> Self {
+            self.inner = self.inner.accept_compressed(encoding);
+            self
+        }
+        /// Limits the maximum size of a decoded message.
+        ///
+        /// Default: `4MB`
+        #[must_use]
+        pub fn max_decoding_message_size(mut self, limit: usize) -> Self {
+            self.inner = self.inner.max_decoding_message_size(limit);
+            self
+        }
+        /// Limits the maximum size of an encoded message.
+        ///
+        /// Default: `usize::MAX`
+        #[must_use]
+        pub fn max_encoding_message_size(mut self, limit: usize) -> Self {
+            self.inner = self.inner.max_encoding_message_size(limit);
+            self
+        }
+        /// Asset CRUD (unified)
+        pub async fn list_local_assets(
+            &mut self,
+            request: impl tonic::IntoRequest<super::ListLocalAssetsRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ListLocalAssetsResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeLocalService/ListLocalAssets",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeLocalService",
+                        "ListLocalAssets",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn list_verified_assets(
+            &mut self,
+            request: impl tonic::IntoRequest<super::ListVerifiedAssetsRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ListVerifiedAssetsResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeLocalService/ListVerifiedAssets",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeLocalService",
+                        "ListVerifiedAssets",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn install_verified_asset(
+            &mut self,
+            request: impl tonic::IntoRequest<super::InstallVerifiedAssetRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::InstallVerifiedAssetResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeLocalService/InstallVerifiedAsset",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeLocalService",
+                        "InstallVerifiedAsset",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn import_local_asset(
+            &mut self,
+            request: impl tonic::IntoRequest<super::ImportLocalAssetRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ImportLocalAssetResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeLocalService/ImportLocalAsset",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeLocalService",
+                        "ImportLocalAsset",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn import_local_asset_file(
+            &mut self,
+            request: impl tonic::IntoRequest<super::ImportLocalAssetFileRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ImportLocalAssetFileResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeLocalService/ImportLocalAssetFile",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeLocalService",
+                        "ImportLocalAssetFile",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn scan_unregistered_assets(
+            &mut self,
+            request: impl tonic::IntoRequest<super::ScanUnregisteredAssetsRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ScanUnregisteredAssetsResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeLocalService/ScanUnregisteredAssets",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeLocalService",
+                        "ScanUnregisteredAssets",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn scaffold_orphan_asset(
+            &mut self,
+            request: impl tonic::IntoRequest<super::ScaffoldOrphanAssetRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ScaffoldOrphanAssetResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeLocalService/ScaffoldOrphanAsset",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeLocalService",
+                        "ScaffoldOrphanAsset",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn remove_local_asset(
+            &mut self,
+            request: impl tonic::IntoRequest<super::RemoveLocalAssetRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::RemoveLocalAssetResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeLocalService/RemoveLocalAsset",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeLocalService",
+                        "RemoveLocalAsset",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        /// Catalog & Install
+        pub async fn search_catalog_models(
+            &mut self,
+            request: impl tonic::IntoRequest<super::SearchCatalogModelsRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::SearchCatalogModelsResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeLocalService/SearchCatalogModels",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeLocalService",
+                        "SearchCatalogModels",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn resolve_model_install_plan(
+            &mut self,
+            request: impl tonic::IntoRequest<super::ResolveModelInstallPlanRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ResolveModelInstallPlanResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeLocalService/ResolveModelInstallPlan",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeLocalService",
+                        "ResolveModelInstallPlan",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        /// Asset lifecycle (runnable assets)
+        pub async fn start_local_asset(
+            &mut self,
+            request: impl tonic::IntoRequest<super::StartLocalAssetRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::StartLocalAssetResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeLocalService/StartLocalAsset",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeLocalService",
+                        "StartLocalAsset",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn stop_local_asset(
+            &mut self,
+            request: impl tonic::IntoRequest<super::StopLocalAssetRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::StopLocalAssetResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeLocalService/StopLocalAsset",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeLocalService",
+                        "StopLocalAsset",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn check_local_asset_health(
+            &mut self,
+            request: impl tonic::IntoRequest<super::CheckLocalAssetHealthRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::CheckLocalAssetHealthResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeLocalService/CheckLocalAssetHealth",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeLocalService",
+                        "CheckLocalAssetHealth",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn warm_local_asset(
+            &mut self,
+            request: impl tonic::IntoRequest<super::WarmLocalAssetRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::WarmLocalAssetResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeLocalService/WarmLocalAsset",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeLocalService",
+                        "WarmLocalAsset",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        /// Transfers
+        pub async fn list_local_transfers(
+            &mut self,
+            request: impl tonic::IntoRequest<super::ListLocalTransfersRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ListLocalTransfersResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeLocalService/ListLocalTransfers",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeLocalService",
+                        "ListLocalTransfers",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn pause_local_transfer(
+            &mut self,
+            request: impl tonic::IntoRequest<super::PauseLocalTransferRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::PauseLocalTransferResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeLocalService/PauseLocalTransfer",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeLocalService",
+                        "PauseLocalTransfer",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn resume_local_transfer(
+            &mut self,
+            request: impl tonic::IntoRequest<super::ResumeLocalTransferRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ResumeLocalTransferResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeLocalService/ResumeLocalTransfer",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeLocalService",
+                        "ResumeLocalTransfer",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn cancel_local_transfer(
+            &mut self,
+            request: impl tonic::IntoRequest<super::CancelLocalTransferRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::CancelLocalTransferResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeLocalService/CancelLocalTransfer",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeLocalService",
+                        "CancelLocalTransfer",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn watch_local_transfers(
+            &mut self,
+            request: impl tonic::IntoRequest<super::WatchLocalTransfersRequest>,
+        ) -> std::result::Result<
+            tonic::Response<tonic::codec::Streaming<super::LocalTransferProgressEvent>>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeLocalService/WatchLocalTransfers",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeLocalService",
+                        "WatchLocalTransfers",
+                    ),
+                );
+            self.inner.server_streaming(req, path, codec).await
+        }
+        /// Runtime-owned local environment
+        pub async fn resolve_local_environment_plan(
+            &mut self,
+            request: impl tonic::IntoRequest<super::ResolveLocalEnvironmentPlanRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ResolveLocalEnvironmentPlanResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeLocalService/ResolveLocalEnvironmentPlan",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeLocalService",
+                        "ResolveLocalEnvironmentPlan",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn list_local_environment_selected_sources(
+            &mut self,
+            request: impl tonic::IntoRequest<
+                super::ListLocalEnvironmentSelectedSourcesRequest,
+            >,
+        ) -> std::result::Result<
+            tonic::Response<super::ListLocalEnvironmentSelectedSourcesResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeLocalService/ListLocalEnvironmentSelectedSources",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeLocalService",
+                        "ListLocalEnvironmentSelectedSources",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn list_local_environment_dependency_jobs(
+            &mut self,
+            request: impl tonic::IntoRequest<
+                super::ListLocalEnvironmentDependencyJobsRequest,
+            >,
+        ) -> std::result::Result<
+            tonic::Response<super::ListLocalEnvironmentDependencyJobsResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeLocalService/ListLocalEnvironmentDependencyJobs",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeLocalService",
+                        "ListLocalEnvironmentDependencyJobs",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn resolve_local_environment_activation_gate(
+            &mut self,
+            request: impl tonic::IntoRequest<
+                super::ResolveLocalEnvironmentActivationGateRequest,
+            >,
+        ) -> std::result::Result<
+            tonic::Response<super::ResolveLocalEnvironmentActivationGateResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeLocalService/ResolveLocalEnvironmentActivationGate",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeLocalService",
+                        "ResolveLocalEnvironmentActivationGate",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn mint_runtime_baseline_readiness(
+            &mut self,
+            request: impl tonic::IntoRequest<super::MintRuntimeBaselineReadinessRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::MintRuntimeBaselineReadinessResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeLocalService/MintRuntimeBaselineReadiness",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeLocalService",
+                        "MintRuntimeBaselineReadiness",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn resolve_runtime_baseline_readiness(
+            &mut self,
+            request: impl tonic::IntoRequest<
+                super::ResolveRuntimeBaselineReadinessRequest,
+            >,
+        ) -> std::result::Result<
+            tonic::Response<super::ResolveRuntimeBaselineReadinessResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeLocalService/ResolveRuntimeBaselineReadiness",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeLocalService",
+                        "ResolveRuntimeBaselineReadiness",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn mint_first_run_execution_evidence(
+            &mut self,
+            request: impl tonic::IntoRequest<super::MintFirstRunExecutionEvidenceRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::MintFirstRunExecutionEvidenceResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeLocalService/MintFirstRunExecutionEvidence",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeLocalService",
+                        "MintFirstRunExecutionEvidence",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn resolve_first_run_execution_evidence(
+            &mut self,
+            request: impl tonic::IntoRequest<
+                super::ResolveFirstRunExecutionEvidenceRequest,
+            >,
+        ) -> std::result::Result<
+            tonic::Response<super::ResolveFirstRunExecutionEvidenceResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeLocalService/ResolveFirstRunExecutionEvidence",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeLocalService",
+                        "ResolveFirstRunExecutionEvidence",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn start_local_environment_dependency_job(
+            &mut self,
+            request: impl tonic::IntoRequest<
+                super::StartLocalEnvironmentDependencyJobRequest,
+            >,
+        ) -> std::result::Result<
+            tonic::Response<super::StartLocalEnvironmentDependencyJobResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeLocalService/StartLocalEnvironmentDependencyJob",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeLocalService",
+                        "StartLocalEnvironmentDependencyJob",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn cancel_local_environment_dependency_job(
+            &mut self,
+            request: impl tonic::IntoRequest<
+                super::CancelLocalEnvironmentDependencyJobRequest,
+            >,
+        ) -> std::result::Result<
+            tonic::Response<super::CancelLocalEnvironmentDependencyJobResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeLocalService/CancelLocalEnvironmentDependencyJob",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeLocalService",
+                        "CancelLocalEnvironmentDependencyJob",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn retry_local_environment_dependency_job(
+            &mut self,
+            request: impl tonic::IntoRequest<
+                super::RetryLocalEnvironmentDependencyJobRequest,
+            >,
+        ) -> std::result::Result<
+            tonic::Response<super::RetryLocalEnvironmentDependencyJobResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeLocalService/RetryLocalEnvironmentDependencyJob",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeLocalService",
+                        "RetryLocalEnvironmentDependencyJob",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn repair_local_environment_dependency(
+            &mut self,
+            request: impl tonic::IntoRequest<
+                super::RepairLocalEnvironmentDependencyRequest,
+            >,
+        ) -> std::result::Result<
+            tonic::Response<super::RepairLocalEnvironmentDependencyResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeLocalService/RepairLocalEnvironmentDependency",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeLocalService",
+                        "RepairLocalEnvironmentDependency",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        /// Runtime-owned local state reconciliation
+        pub async fn resolve_local_state_reconciliation(
+            &mut self,
+            request: impl tonic::IntoRequest<
+                super::ResolveLocalStateReconciliationRequest,
+            >,
+        ) -> std::result::Result<
+            tonic::Response<super::ResolveLocalStateReconciliationResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeLocalService/ResolveLocalStateReconciliation",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeLocalService",
+                        "ResolveLocalStateReconciliation",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn execute_local_state_cutover(
+            &mut self,
+            request: impl tonic::IntoRequest<super::ExecuteLocalStateCutoverRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ExecuteLocalStateCutoverResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeLocalService/ExecuteLocalStateCutover",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeLocalService",
+                        "ExecuteLocalStateCutover",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        /// Device
+        pub async fn collect_device_profile(
+            &mut self,
+            request: impl tonic::IntoRequest<super::CollectDeviceProfileRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::CollectDeviceProfileResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeLocalService/CollectDeviceProfile",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeLocalService",
+                        "CollectDeviceProfile",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        /// Profile
+        pub async fn resolve_profile(
+            &mut self,
+            request: impl tonic::IntoRequest<super::ResolveProfileRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ResolveProfileResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeLocalService/ResolveProfile",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeLocalService",
+                        "ResolveProfile",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn apply_profile(
+            &mut self,
+            request: impl tonic::IntoRequest<super::ApplyProfileRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ApplyProfileResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeLocalService/ApplyProfile",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeLocalService",
+                        "ApplyProfile",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        /// Services
+        pub async fn list_local_services(
+            &mut self,
+            request: impl tonic::IntoRequest<super::ListLocalServicesRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ListLocalServicesResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeLocalService/ListLocalServices",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeLocalService",
+                        "ListLocalServices",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn install_local_service(
+            &mut self,
+            request: impl tonic::IntoRequest<super::InstallLocalServiceRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::InstallLocalServiceResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeLocalService/InstallLocalService",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeLocalService",
+                        "InstallLocalService",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn start_local_service(
+            &mut self,
+            request: impl tonic::IntoRequest<super::StartLocalServiceRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::StartLocalServiceResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeLocalService/StartLocalService",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeLocalService",
+                        "StartLocalService",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn stop_local_service(
+            &mut self,
+            request: impl tonic::IntoRequest<super::StopLocalServiceRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::StopLocalServiceResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeLocalService/StopLocalService",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeLocalService",
+                        "StopLocalService",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn check_local_service_health(
+            &mut self,
+            request: impl tonic::IntoRequest<super::CheckLocalServiceHealthRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::CheckLocalServiceHealthResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeLocalService/CheckLocalServiceHealth",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeLocalService",
+                        "CheckLocalServiceHealth",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn remove_local_service(
+            &mut self,
+            request: impl tonic::IntoRequest<super::RemoveLocalServiceRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::RemoveLocalServiceResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeLocalService/RemoveLocalService",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeLocalService",
+                        "RemoveLocalService",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        /// Nodes
+        pub async fn list_node_catalog(
+            &mut self,
+            request: impl tonic::IntoRequest<super::ListNodeCatalogRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ListNodeCatalogResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeLocalService/ListNodeCatalog",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeLocalService",
+                        "ListNodeCatalog",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        /// Audits
+        pub async fn list_local_audits(
+            &mut self,
+            request: impl tonic::IntoRequest<super::ListLocalAuditsRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ListLocalAuditsResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeLocalService/ListLocalAudits",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeLocalService",
+                        "ListLocalAudits",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn append_inference_audit(
+            &mut self,
+            request: impl tonic::IntoRequest<super::AppendInferenceAuditRequest>,
+        ) -> std::result::Result<tonic::Response<super::Ack>, tonic::Status> {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeLocalService/AppendInferenceAudit",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeLocalService",
+                        "AppendInferenceAudit",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn append_runtime_audit(
+            &mut self,
+            request: impl tonic::IntoRequest<super::AppendRuntimeAuditRequest>,
+        ) -> std::result::Result<tonic::Response<super::Ack>, tonic::Status> {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeLocalService/AppendRuntimeAudit",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeLocalService",
+                        "AppendRuntimeAudit",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        /// Engine management RPCs (K-LENG-004: SUPERVISED mode)
+        pub async fn list_engines(
+            &mut self,
+            request: impl tonic::IntoRequest<super::ListEnginesRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ListEnginesResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeLocalService/ListEngines",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new("nimi.runtime.v1.RuntimeLocalService", "ListEngines"),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn ensure_engine(
+            &mut self,
+            request: impl tonic::IntoRequest<super::EnsureEngineRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::EnsureEngineResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeLocalService/EnsureEngine",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeLocalService",
+                        "EnsureEngine",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn start_engine(
+            &mut self,
+            request: impl tonic::IntoRequest<super::StartEngineRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::StartEngineResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeLocalService/StartEngine",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new("nimi.runtime.v1.RuntimeLocalService", "StartEngine"),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn stop_engine(
+            &mut self,
+            request: impl tonic::IntoRequest<super::StopEngineRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::StopEngineResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeLocalService/StopEngine",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new("nimi.runtime.v1.RuntimeLocalService", "StopEngine"),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn get_engine_status(
+            &mut self,
+            request: impl tonic::IntoRequest<super::GetEngineStatusRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::GetEngineStatusResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeLocalService/GetEngineStatus",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeLocalService",
+                        "GetEngineStatus",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+    }
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct WorkflowEdge {
     #[prost(string, tag = "1")]
     pub from_node_id: ::prost::alloc::string::String,
@@ -6729,1252 +10801,6 @@ pub mod runtime_workflow_service_client {
                     ),
                 );
             self.inner.server_streaming(req, path, codec).await
-        }
-    }
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct LocalAssetSource {
-    #[prost(string, tag = "1")]
-    pub repo: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub revision: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct LocalHostRequirements {
-    #[prost(bool, tag = "1")]
-    pub gpu_required: bool,
-    #[prost(bool, tag = "2")]
-    pub python_runtime_required: bool,
-    #[prost(string, repeated, tag = "3")]
-    pub supported_platforms: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-    #[prost(string, repeated, tag = "4")]
-    pub required_backends: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct LocalAssetRecord {
-    #[prost(string, tag = "1")]
-    pub local_asset_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub asset_id: ::prost::alloc::string::String,
-    #[prost(enumeration = "LocalAssetKind", tag = "3")]
-    pub kind: i32,
-    #[prost(string, tag = "4")]
-    pub engine: ::prost::alloc::string::String,
-    #[prost(string, tag = "5")]
-    pub entry: ::prost::alloc::string::String,
-    #[prost(string, repeated, tag = "6")]
-    pub files: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-    #[prost(string, tag = "7")]
-    pub license: ::prost::alloc::string::String,
-    #[prost(message, optional, tag = "8")]
-    pub source: ::core::option::Option<LocalAssetSource>,
-    #[prost(map = "string, string", tag = "9")]
-    pub hashes: ::std::collections::HashMap<
-        ::prost::alloc::string::String,
-        ::prost::alloc::string::String,
-    >,
-    #[prost(enumeration = "LocalAssetStatus", tag = "10")]
-    pub status: i32,
-    #[prost(string, tag = "11")]
-    pub installed_at: ::prost::alloc::string::String,
-    #[prost(string, tag = "12")]
-    pub updated_at: ::prost::alloc::string::String,
-    #[prost(string, tag = "13")]
-    pub health_detail: ::prost::alloc::string::String,
-    /// Runnable-only fields
-    #[prost(string, repeated, tag = "20")]
-    pub capabilities: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-    #[prost(string, tag = "21")]
-    pub logical_model_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "22")]
-    pub family: ::prost::alloc::string::String,
-    #[prost(string, repeated, tag = "23")]
-    pub artifact_roles: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-    #[prost(string, tag = "24")]
-    pub preferred_engine: ::prost::alloc::string::String,
-    #[prost(string, repeated, tag = "25")]
-    pub fallback_engines: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-    #[prost(enumeration = "LocalBundleState", tag = "26")]
-    pub bundle_state: i32,
-    #[prost(enumeration = "LocalWarmState", tag = "27")]
-    pub warm_state: i32,
-    #[prost(message, optional, tag = "28")]
-    pub host_requirements: ::core::option::Option<LocalHostRequirements>,
-    #[prost(string, tag = "29")]
-    pub local_invoke_profile_id: ::prost::alloc::string::String,
-    #[prost(message, optional, tag = "30")]
-    pub engine_config: ::core::option::Option<::prost_types::Struct>,
-    #[prost(string, tag = "31")]
-    pub endpoint: ::prost::alloc::string::String,
-    #[prost(enumeration = "ReasonCode", tag = "32")]
-    pub reason_code: i32,
-    /// Passive-only fields
-    #[prost(message, optional, tag = "40")]
-    pub metadata: ::core::option::Option<::prost_types::Struct>,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct LocalAssetHealth {
-    #[prost(string, tag = "1")]
-    pub local_asset_id: ::prost::alloc::string::String,
-    #[prost(enumeration = "LocalAssetStatus", tag = "2")]
-    pub status: i32,
-    #[prost(string, tag = "3")]
-    pub detail: ::prost::alloc::string::String,
-    #[prost(string, tag = "4")]
-    pub endpoint: ::prost::alloc::string::String,
-    #[prost(enumeration = "ReasonCode", tag = "5")]
-    pub reason_code: i32,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct LocalVerifiedAssetDescriptor {
-    #[prost(string, tag = "1")]
-    pub template_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub title: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub description: ::prost::alloc::string::String,
-    #[prost(string, tag = "4")]
-    pub asset_id: ::prost::alloc::string::String,
-    #[prost(enumeration = "LocalAssetKind", tag = "5")]
-    pub kind: i32,
-    #[prost(string, tag = "6")]
-    pub engine: ::prost::alloc::string::String,
-    #[prost(string, tag = "7")]
-    pub entry: ::prost::alloc::string::String,
-    #[prost(string, repeated, tag = "8")]
-    pub files: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-    #[prost(string, tag = "9")]
-    pub license: ::prost::alloc::string::String,
-    #[prost(string, tag = "10")]
-    pub repo: ::prost::alloc::string::String,
-    #[prost(string, tag = "11")]
-    pub revision: ::prost::alloc::string::String,
-    #[prost(map = "string, string", tag = "12")]
-    pub hashes: ::std::collections::HashMap<
-        ::prost::alloc::string::String,
-        ::prost::alloc::string::String,
-    >,
-    #[prost(int32, tag = "13")]
-    pub file_count: i32,
-    #[prost(int64, tag = "14")]
-    pub total_size_bytes: i64,
-    #[prost(string, repeated, tag = "15")]
-    pub tags: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-    #[prost(message, optional, tag = "16")]
-    pub metadata: ::core::option::Option<::prost_types::Struct>,
-    /// Runnable-only fields
-    #[prost(string, tag = "20")]
-    pub install_kind: ::prost::alloc::string::String,
-    #[prost(string, tag = "21")]
-    pub logical_model_id: ::prost::alloc::string::String,
-    #[prost(string, repeated, tag = "22")]
-    pub capabilities: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-    #[prost(string, repeated, tag = "23")]
-    pub artifact_roles: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-    #[prost(string, tag = "24")]
-    pub preferred_engine: ::prost::alloc::string::String,
-    #[prost(string, repeated, tag = "25")]
-    pub fallback_engines: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-    #[prost(message, optional, tag = "26")]
-    pub engine_config: ::core::option::Option<::prost_types::Struct>,
-    #[prost(string, tag = "27")]
-    pub endpoint: ::prost::alloc::string::String,
-    #[prost(message, optional, tag = "28")]
-    pub host_requirements: ::core::option::Option<LocalHostRequirements>,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct LocalProviderHintsLlama {
-    #[prost(string, tag = "1")]
-    pub backend: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub preferred_adapter: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub multimodal_projector: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct LocalProviderHintsMedia {
-    #[prost(string, tag = "1")]
-    pub backend: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub preferred_adapter: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub family: ::prost::alloc::string::String,
-    #[prost(string, tag = "4")]
-    pub image_driver: ::prost::alloc::string::String,
-    #[prost(string, tag = "5")]
-    pub video_driver: ::prost::alloc::string::String,
-    #[prost(string, tag = "6")]
-    pub device: ::prost::alloc::string::String,
-    #[prost(string, tag = "7")]
-    pub fallback_driver: ::prost::alloc::string::String,
-    #[prost(string, tag = "8")]
-    pub fallback_reason: ::prost::alloc::string::String,
-    #[prost(string, tag = "9")]
-    pub policy_gate: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct LocalProviderHintsSpeech {
-    #[prost(string, tag = "1")]
-    pub backend: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub preferred_adapter: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub family: ::prost::alloc::string::String,
-    #[prost(string, tag = "4")]
-    pub driver: ::prost::alloc::string::String,
-    #[prost(string, tag = "5")]
-    pub device: ::prost::alloc::string::String,
-    #[prost(string, tag = "6")]
-    pub voice_workflow_driver: ::prost::alloc::string::String,
-    #[prost(string, tag = "7")]
-    pub policy_gate: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct LocalProviderHintsSidecar {
-    #[prost(string, tag = "1")]
-    pub preferred_adapter: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub backend: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct LocalProviderHints {
-    #[prost(message, optional, tag = "1")]
-    pub llama: ::core::option::Option<LocalProviderHintsLlama>,
-    #[prost(message, optional, tag = "2")]
-    pub media: ::core::option::Option<LocalProviderHintsMedia>,
-    #[prost(message, optional, tag = "3")]
-    pub speech: ::core::option::Option<LocalProviderHintsSpeech>,
-    #[prost(message, optional, tag = "4")]
-    pub sidecar: ::core::option::Option<LocalProviderHintsSidecar>,
-    #[prost(map = "string, string", tag = "10")]
-    pub extra: ::std::collections::HashMap<
-        ::prost::alloc::string::String,
-        ::prost::alloc::string::String,
-    >,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct LocalCatalogModelDescriptor {
-    #[prost(string, tag = "1")]
-    pub item_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub source: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub title: ::prost::alloc::string::String,
-    #[prost(string, tag = "4")]
-    pub description: ::prost::alloc::string::String,
-    #[prost(string, tag = "5")]
-    pub model_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "6")]
-    pub repo: ::prost::alloc::string::String,
-    #[prost(string, tag = "7")]
-    pub revision: ::prost::alloc::string::String,
-    #[prost(string, tag = "8")]
-    pub template_id: ::prost::alloc::string::String,
-    #[prost(string, repeated, tag = "9")]
-    pub capabilities: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-    #[prost(string, tag = "10")]
-    pub engine: ::prost::alloc::string::String,
-    #[prost(enumeration = "LocalEngineRuntimeMode", tag = "11")]
-    pub engine_runtime_mode: i32,
-    #[prost(string, tag = "12")]
-    pub install_kind: ::prost::alloc::string::String,
-    #[prost(bool, tag = "13")]
-    pub install_available: bool,
-    #[prost(string, tag = "14")]
-    pub endpoint: ::prost::alloc::string::String,
-    #[prost(message, optional, tag = "15")]
-    pub provider_hints: ::core::option::Option<LocalProviderHints>,
-    #[prost(string, tag = "16")]
-    pub entry: ::prost::alloc::string::String,
-    #[prost(string, repeated, tag = "17")]
-    pub files: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-    #[prost(string, tag = "18")]
-    pub license: ::prost::alloc::string::String,
-    #[prost(map = "string, string", tag = "19")]
-    pub hashes: ::std::collections::HashMap<
-        ::prost::alloc::string::String,
-        ::prost::alloc::string::String,
-    >,
-    #[prost(string, repeated, tag = "20")]
-    pub tags: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-    #[prost(int64, tag = "21")]
-    pub downloads: i64,
-    #[prost(int64, tag = "22")]
-    pub likes: i64,
-    #[prost(string, tag = "23")]
-    pub last_modified: ::prost::alloc::string::String,
-    #[prost(bool, tag = "24")]
-    pub verified: bool,
-    #[prost(message, optional, tag = "25")]
-    pub engine_config: ::core::option::Option<::prost_types::Struct>,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct LocalInstallPlanDescriptor {
-    #[prost(string, tag = "1")]
-    pub plan_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub item_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub source: ::prost::alloc::string::String,
-    #[prost(string, tag = "4")]
-    pub template_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "5")]
-    pub model_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "6")]
-    pub repo: ::prost::alloc::string::String,
-    #[prost(string, tag = "7")]
-    pub revision: ::prost::alloc::string::String,
-    #[prost(string, repeated, tag = "8")]
-    pub capabilities: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-    #[prost(string, tag = "9")]
-    pub engine: ::prost::alloc::string::String,
-    #[prost(enumeration = "LocalEngineRuntimeMode", tag = "10")]
-    pub engine_runtime_mode: i32,
-    #[prost(string, tag = "11")]
-    pub install_kind: ::prost::alloc::string::String,
-    #[prost(bool, tag = "12")]
-    pub install_available: bool,
-    #[prost(string, tag = "13")]
-    pub endpoint: ::prost::alloc::string::String,
-    #[prost(message, optional, tag = "14")]
-    pub provider_hints: ::core::option::Option<LocalProviderHints>,
-    #[prost(string, tag = "15")]
-    pub entry: ::prost::alloc::string::String,
-    #[prost(string, repeated, tag = "16")]
-    pub files: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-    #[prost(string, tag = "17")]
-    pub license: ::prost::alloc::string::String,
-    #[prost(map = "string, string", tag = "18")]
-    pub hashes: ::std::collections::HashMap<
-        ::prost::alloc::string::String,
-        ::prost::alloc::string::String,
-    >,
-    #[prost(string, repeated, tag = "19")]
-    pub warnings: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-    #[prost(string, tag = "20")]
-    pub reason_code: ::prost::alloc::string::String,
-    #[prost(message, optional, tag = "21")]
-    pub engine_config: ::core::option::Option<::prost_types::Struct>,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct LocalGpuProfile {
-    #[prost(bool, tag = "1")]
-    pub available: bool,
-    #[prost(string, tag = "2")]
-    pub vendor: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub model: ::prost::alloc::string::String,
-    /// K-DEV-001: VRAM fields. Zero means probe unavailable (not "0 bytes").
-    #[prost(int64, tag = "4")]
-    pub total_vram_bytes: i64,
-    #[prost(int64, tag = "5")]
-    pub available_vram_bytes: i64,
-    #[prost(enumeration = "GpuMemoryModel", tag = "6")]
-    pub memory_model: i32,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct LocalPythonProfile {
-    #[prost(bool, tag = "1")]
-    pub available: bool,
-    #[prost(string, tag = "2")]
-    pub version: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct LocalNpuProfile {
-    #[prost(bool, tag = "1")]
-    pub available: bool,
-    #[prost(bool, tag = "2")]
-    pub ready: bool,
-    #[prost(string, tag = "3")]
-    pub vendor: ::prost::alloc::string::String,
-    #[prost(string, tag = "4")]
-    pub runtime: ::prost::alloc::string::String,
-    #[prost(string, tag = "5")]
-    pub detail: ::prost::alloc::string::String,
-}
-#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct LocalPortAvailability {
-    #[prost(int32, tag = "1")]
-    pub port: i32,
-    #[prost(bool, tag = "2")]
-    pub available: bool,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct LocalDeviceProfile {
-    #[prost(string, tag = "1")]
-    pub os: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub arch: ::prost::alloc::string::String,
-    #[prost(message, optional, tag = "3")]
-    pub gpu: ::core::option::Option<LocalGpuProfile>,
-    #[prost(message, optional, tag = "4")]
-    pub python: ::core::option::Option<LocalPythonProfile>,
-    #[prost(message, optional, tag = "5")]
-    pub npu: ::core::option::Option<LocalNpuProfile>,
-    #[prost(int64, tag = "6")]
-    pub disk_free_bytes: i64,
-    #[prost(message, repeated, tag = "7")]
-    pub ports: ::prost::alloc::vec::Vec<LocalPortAvailability>,
-    /// K-DEV-001: Host memory fields. Zero means probe unavailable.
-    #[prost(int64, tag = "8")]
-    pub total_ram_bytes: i64,
-    #[prost(int64, tag = "9")]
-    pub available_ram_bytes: i64,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct LocalEnvironmentPlanDependency {
-    #[prost(string, tag = "1")]
-    pub dependency_family: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub dependency_id: ::prost::alloc::string::String,
-    #[prost(bool, tag = "3")]
-    pub required: bool,
-    #[prost(string, tag = "4")]
-    pub state: ::prost::alloc::string::String,
-    #[prost(string, tag = "5")]
-    pub source_kind: ::prost::alloc::string::String,
-    #[prost(bool, tag = "6")]
-    pub confirmation_required: bool,
-    #[prost(string, tag = "7")]
-    pub selected_source_record_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "8")]
-    pub environment_key: ::prost::alloc::string::String,
-    #[prost(string, tag = "9")]
-    pub canonical_root: ::prost::alloc::string::String,
-    #[prost(string, tag = "10")]
-    pub reason_code: ::prost::alloc::string::String,
-    #[prost(string, tag = "11")]
-    pub detail: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct LocalEnvironmentPlan {
-    #[prost(string, tag = "1")]
-    pub plan_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub pack_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub product_label: ::prost::alloc::string::String,
-    #[prost(string, tag = "4")]
-    pub host_profile_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "5")]
-    pub platform_tuple: ::prost::alloc::string::String,
-    #[prost(string, tag = "6")]
-    pub runtime_data_root: ::prost::alloc::string::String,
-    #[prost(string, tag = "7")]
-    pub consumer_scope: ::prost::alloc::string::String,
-    #[prost(string, tag = "8")]
-    pub cloud_only_impact: ::prost::alloc::string::String,
-    #[prost(string, tag = "9")]
-    pub state: ::prost::alloc::string::String,
-    #[prost(string, tag = "10")]
-    pub reason_code: ::prost::alloc::string::String,
-    #[prost(message, repeated, tag = "11")]
-    pub dependencies: ::prost::alloc::vec::Vec<LocalEnvironmentPlanDependency>,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct LocalEnvironmentSelectedSourceRecord {
-    #[prost(string, tag = "1")]
-    pub record_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub dependency_family: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub dependency_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "4")]
-    pub environment_key: ::prost::alloc::string::String,
-    #[prost(string, tag = "5")]
-    pub source_kind: ::prost::alloc::string::String,
-    #[prost(string, tag = "6")]
-    pub canonical_root: ::prost::alloc::string::String,
-    #[prost(string, tag = "7")]
-    pub version: ::prost::alloc::string::String,
-    #[prost(string, repeated, tag = "8")]
-    pub compatibility_evidence: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-    #[prost(string, repeated, tag = "9")]
-    pub verified_artifacts: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-    #[prost(map = "string, string", tag = "10")]
-    pub hashes: ::std::collections::HashMap<
-        ::prost::alloc::string::String,
-        ::prost::alloc::string::String,
-    >,
-    #[prost(string, repeated, tag = "11")]
-    pub selected_consumers: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-    #[prost(string, repeated, tag = "12")]
-    pub activation_env_delta: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-    #[prost(string, tag = "13")]
-    pub selected_at: ::prost::alloc::string::String,
-    #[prost(string, tag = "14")]
-    pub last_verified_at: ::prost::alloc::string::String,
-    #[prost(string, tag = "15")]
-    pub repair_state: ::prost::alloc::string::String,
-    #[prost(string, tag = "16")]
-    pub audit_reason_code: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct LocalEnvironmentDependencyJob {
-    #[prost(string, tag = "1")]
-    pub job_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub environment_key: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub dependency_family: ::prost::alloc::string::String,
-    #[prost(string, tag = "4")]
-    pub dependency_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "5")]
-    pub state: ::prost::alloc::string::String,
-    #[prost(string, tag = "6")]
-    pub source_kind: ::prost::alloc::string::String,
-    #[prost(string, tag = "7")]
-    pub canonical_root: ::prost::alloc::string::String,
-    #[prost(string, tag = "8")]
-    pub selected_source_record_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "9")]
-    pub failure_detail: ::prost::alloc::string::String,
-    #[prost(bool, tag = "10")]
-    pub retryable: bool,
-    #[prost(string, tag = "11")]
-    pub created_at: ::prost::alloc::string::String,
-    #[prost(string, tag = "12")]
-    pub updated_at: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct LocalEnvironmentActivationGate {
-    #[prost(string, tag = "1")]
-    pub consumer_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub pack_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub state: ::prost::alloc::string::String,
-    #[prost(string, tag = "4")]
-    pub reason_code: ::prost::alloc::string::String,
-    #[prost(string, tag = "5")]
-    pub detail: ::prost::alloc::string::String,
-    #[prost(message, repeated, tag = "6")]
-    pub blocking_dependencies: ::prost::alloc::vec::Vec<LocalEnvironmentPlanDependency>,
-    #[prost(message, repeated, tag = "7")]
-    pub dependencies: ::prost::alloc::vec::Vec<LocalEnvironmentPlanDependency>,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct LocalExecutionOptionDescriptor {
-    #[prost(string, tag = "1")]
-    pub entry_id: ::prost::alloc::string::String,
-    #[prost(enumeration = "LocalExecutionEntryKind", tag = "2")]
-    pub kind: i32,
-    #[prost(string, tag = "3")]
-    pub capability: ::prost::alloc::string::String,
-    #[prost(string, tag = "4")]
-    pub title: ::prost::alloc::string::String,
-    #[prost(string, tag = "5")]
-    pub model_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "6")]
-    pub repo: ::prost::alloc::string::String,
-    #[prost(string, tag = "7")]
-    pub service_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "8")]
-    pub node_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "10")]
-    pub engine: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct LocalExecutionAlternativeDescriptor {
-    #[prost(string, tag = "1")]
-    pub alternative_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub preferred_entry_id: ::prost::alloc::string::String,
-    #[prost(message, repeated, tag = "3")]
-    pub options: ::prost::alloc::vec::Vec<LocalExecutionOptionDescriptor>,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct LocalExecutionDeclarationDescriptor {
-    #[prost(message, repeated, tag = "1")]
-    pub required: ::prost::alloc::vec::Vec<LocalExecutionOptionDescriptor>,
-    #[prost(message, repeated, tag = "2")]
-    pub optional: ::prost::alloc::vec::Vec<LocalExecutionOptionDescriptor>,
-    #[prost(message, repeated, tag = "3")]
-    pub alternatives: ::prost::alloc::vec::Vec<LocalExecutionAlternativeDescriptor>,
-    #[prost(map = "string, string", tag = "4")]
-    pub preferred: ::std::collections::HashMap<
-        ::prost::alloc::string::String,
-        ::prost::alloc::string::String,
-    >,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct LocalExecutionEntryDescriptor {
-    #[prost(string, tag = "1")]
-    pub entry_id: ::prost::alloc::string::String,
-    #[prost(enumeration = "LocalExecutionEntryKind", tag = "2")]
-    pub kind: i32,
-    #[prost(string, tag = "3")]
-    pub capability: ::prost::alloc::string::String,
-    #[prost(bool, tag = "4")]
-    pub required: bool,
-    #[prost(bool, tag = "5")]
-    pub selected: bool,
-    #[prost(bool, tag = "6")]
-    pub preferred: bool,
-    #[prost(string, tag = "7")]
-    pub model_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "8")]
-    pub repo: ::prost::alloc::string::String,
-    #[prost(string, tag = "9")]
-    pub engine: ::prost::alloc::string::String,
-    #[prost(string, tag = "10")]
-    pub service_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "11")]
-    pub node_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "13")]
-    pub reason_code: ::prost::alloc::string::String,
-    #[prost(string, repeated, tag = "14")]
-    pub warnings: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct LocalPreflightDecision {
-    #[prost(string, tag = "1")]
-    pub entry_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub target: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub check: ::prost::alloc::string::String,
-    #[prost(bool, tag = "4")]
-    pub ok: bool,
-    #[prost(string, tag = "5")]
-    pub reason_code: ::prost::alloc::string::String,
-    #[prost(string, tag = "6")]
-    pub detail: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct LocalExecutionSelectionRationale {
-    #[prost(string, tag = "1")]
-    pub entry_id: ::prost::alloc::string::String,
-    #[prost(bool, tag = "2")]
-    pub selected: bool,
-    #[prost(string, tag = "3")]
-    pub reason_code: ::prost::alloc::string::String,
-    #[prost(string, tag = "4")]
-    pub detail: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct LocalExecutionPlan {
-    #[prost(string, tag = "1")]
-    pub plan_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub mod_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub capability: ::prost::alloc::string::String,
-    #[prost(message, optional, tag = "4")]
-    pub device_profile: ::core::option::Option<LocalDeviceProfile>,
-    #[prost(message, repeated, tag = "5")]
-    pub entries: ::prost::alloc::vec::Vec<LocalExecutionEntryDescriptor>,
-    #[prost(message, repeated, tag = "6")]
-    pub selection_rationale: ::prost::alloc::vec::Vec<LocalExecutionSelectionRationale>,
-    #[prost(message, repeated, tag = "7")]
-    pub preflight_decisions: ::prost::alloc::vec::Vec<LocalPreflightDecision>,
-    #[prost(string, repeated, tag = "8")]
-    pub warnings: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-    #[prost(string, tag = "9")]
-    pub reason_code: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct LocalExecutionStageResult {
-    #[prost(string, tag = "1")]
-    pub stage: ::prost::alloc::string::String,
-    #[prost(bool, tag = "2")]
-    pub ok: bool,
-    #[prost(string, tag = "3")]
-    pub reason_code: ::prost::alloc::string::String,
-    #[prost(string, tag = "4")]
-    pub detail: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct LocalServiceDescriptor {
-    #[prost(string, tag = "1")]
-    pub service_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub title: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub engine: ::prost::alloc::string::String,
-    #[prost(string, tag = "4")]
-    pub artifact_type: ::prost::alloc::string::String,
-    #[prost(string, tag = "5")]
-    pub endpoint: ::prost::alloc::string::String,
-    #[prost(string, repeated, tag = "6")]
-    pub capabilities: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-    #[prost(string, tag = "7")]
-    pub local_model_id: ::prost::alloc::string::String,
-    #[prost(enumeration = "LocalServiceStatus", tag = "8")]
-    pub status: i32,
-    #[prost(string, tag = "9")]
-    pub detail: ::prost::alloc::string::String,
-    #[prost(string, tag = "10")]
-    pub installed_at: ::prost::alloc::string::String,
-    #[prost(string, tag = "11")]
-    pub updated_at: ::prost::alloc::string::String,
-    #[prost(enumeration = "ReasonCode", tag = "12")]
-    pub reason_code: i32,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct LocalExecutionApplyResult {
-    #[prost(string, tag = "1")]
-    pub plan_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub mod_id: ::prost::alloc::string::String,
-    #[prost(message, repeated, tag = "3")]
-    pub entries: ::prost::alloc::vec::Vec<LocalExecutionEntryDescriptor>,
-    #[prost(message, repeated, tag = "4")]
-    pub installed_assets: ::prost::alloc::vec::Vec<LocalAssetRecord>,
-    #[prost(message, repeated, tag = "5")]
-    pub services: ::prost::alloc::vec::Vec<LocalServiceDescriptor>,
-    #[prost(string, repeated, tag = "6")]
-    pub capabilities: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-    #[prost(message, repeated, tag = "7")]
-    pub stage_results: ::prost::alloc::vec::Vec<LocalExecutionStageResult>,
-    #[prost(message, repeated, tag = "8")]
-    pub preflight_decisions: ::prost::alloc::vec::Vec<LocalPreflightDecision>,
-    #[prost(bool, tag = "9")]
-    pub rollback_applied: bool,
-    #[prost(string, repeated, tag = "10")]
-    pub warnings: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-    #[prost(string, tag = "11")]
-    pub reason_code: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct LocalProfileRequirementDescriptor {
-    #[prost(double, tag = "1")]
-    pub min_gpu_memory_gb: f64,
-    #[prost(int64, tag = "2")]
-    pub min_disk_bytes: i64,
-    #[prost(string, repeated, tag = "3")]
-    pub platforms: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-    #[prost(string, repeated, tag = "4")]
-    pub notes: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct LocalProfileEntryDescriptor {
-    #[prost(string, tag = "1")]
-    pub entry_id: ::prost::alloc::string::String,
-    #[prost(enumeration = "LocalProfileEntryKind", tag = "2")]
-    pub kind: i32,
-    #[prost(string, tag = "3")]
-    pub title: ::prost::alloc::string::String,
-    #[prost(string, tag = "4")]
-    pub description: ::prost::alloc::string::String,
-    #[prost(string, tag = "5")]
-    pub capability: ::prost::alloc::string::String,
-    #[prost(bool, optional, tag = "6")]
-    pub required: ::core::option::Option<bool>,
-    #[prost(bool, optional, tag = "7")]
-    pub preferred: ::core::option::Option<bool>,
-    #[prost(string, tag = "9")]
-    pub repo: ::prost::alloc::string::String,
-    #[prost(string, tag = "10")]
-    pub service_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "11")]
-    pub node_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "12")]
-    pub engine: ::prost::alloc::string::String,
-    #[prost(string, tag = "15")]
-    pub template_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "16")]
-    pub revision: ::prost::alloc::string::String,
-    #[prost(string, repeated, tag = "17")]
-    pub tags: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-    /// Unified asset fields
-    #[prost(string, tag = "20")]
-    pub asset_id: ::prost::alloc::string::String,
-    #[prost(enumeration = "LocalAssetKind", tag = "21")]
-    pub asset_kind: i32,
-    #[prost(string, tag = "22")]
-    pub engine_slot: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct LocalProfileDescriptor {
-    #[prost(string, tag = "1")]
-    pub id: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub title: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub description: ::prost::alloc::string::String,
-    #[prost(bool, tag = "4")]
-    pub recommended: bool,
-    #[prost(string, repeated, tag = "5")]
-    pub consume_capabilities: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-    #[prost(message, repeated, tag = "6")]
-    pub entries: ::prost::alloc::vec::Vec<LocalProfileEntryDescriptor>,
-    #[prost(message, optional, tag = "7")]
-    pub requirements: ::core::option::Option<LocalProfileRequirementDescriptor>,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct ProfileEntryOverride {
-    #[prost(string, tag = "1")]
-    pub entry_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub local_asset_id: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct LocalProfileResolutionPlan {
-    #[prost(string, tag = "1")]
-    pub plan_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub mod_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub profile_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "4")]
-    pub title: ::prost::alloc::string::String,
-    #[prost(string, tag = "5")]
-    pub description: ::prost::alloc::string::String,
-    #[prost(bool, tag = "6")]
-    pub recommended: bool,
-    #[prost(string, repeated, tag = "7")]
-    pub consume_capabilities: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-    #[prost(message, optional, tag = "8")]
-    pub requirements: ::core::option::Option<LocalProfileRequirementDescriptor>,
-    #[prost(message, optional, tag = "9")]
-    pub execution_plan: ::core::option::Option<LocalExecutionPlan>,
-    #[prost(string, repeated, tag = "11")]
-    pub warnings: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-    #[prost(string, tag = "12")]
-    pub reason_code: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct LocalProfileApplyResult {
-    #[prost(string, tag = "1")]
-    pub plan_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub mod_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub profile_id: ::prost::alloc::string::String,
-    #[prost(message, optional, tag = "4")]
-    pub execution_result: ::core::option::Option<LocalExecutionApplyResult>,
-    #[prost(message, repeated, tag = "5")]
-    pub installed_assets: ::prost::alloc::vec::Vec<LocalAssetRecord>,
-    #[prost(string, repeated, tag = "6")]
-    pub warnings: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-    #[prost(string, tag = "7")]
-    pub reason_code: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct LocalNodeDescriptor {
-    #[prost(string, tag = "1")]
-    pub node_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub title: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub service_id: ::prost::alloc::string::String,
-    #[prost(string, repeated, tag = "4")]
-    pub capabilities: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-    #[prost(string, tag = "5")]
-    pub provider: ::prost::alloc::string::String,
-    #[prost(string, tag = "6")]
-    pub adapter: ::prost::alloc::string::String,
-    #[prost(string, tag = "7")]
-    pub backend: ::prost::alloc::string::String,
-    #[prost(string, tag = "8")]
-    pub backend_source: ::prost::alloc::string::String,
-    #[prost(bool, tag = "9")]
-    pub available: bool,
-    #[prost(string, tag = "10")]
-    pub reason_code: ::prost::alloc::string::String,
-    #[prost(message, optional, tag = "11")]
-    pub provider_hints: ::core::option::Option<LocalProviderHints>,
-    #[prost(string, tag = "12")]
-    pub policy_gate: ::prost::alloc::string::String,
-    #[prost(string, tag = "13")]
-    pub api_path: ::prost::alloc::string::String,
-    #[prost(message, optional, tag = "14")]
-    pub input_schema: ::core::option::Option<::prost_types::Struct>,
-    #[prost(message, optional, tag = "15")]
-    pub output_schema: ::core::option::Option<::prost_types::Struct>,
-    #[prost(bool, tag = "16")]
-    pub read_only: bool,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct LocalAuditEvent {
-    #[prost(string, tag = "1")]
-    pub id: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub event_type: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub occurred_at: ::prost::alloc::string::String,
-    #[prost(string, tag = "4")]
-    pub source: ::prost::alloc::string::String,
-    #[prost(string, tag = "5")]
-    pub modality: ::prost::alloc::string::String,
-    #[prost(string, tag = "6")]
-    pub reason_code: ::prost::alloc::string::String,
-    #[prost(string, tag = "7")]
-    pub detail: ::prost::alloc::string::String,
-    #[prost(string, tag = "8")]
-    pub model_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "9")]
-    pub local_model_id: ::prost::alloc::string::String,
-    #[prost(message, optional, tag = "10")]
-    pub payload: ::core::option::Option<::prost_types::Struct>,
-    #[prost(string, tag = "11")]
-    pub trace_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "12")]
-    pub app_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "13")]
-    pub domain: ::prost::alloc::string::String,
-    #[prost(string, tag = "14")]
-    pub operation: ::prost::alloc::string::String,
-    #[prost(string, tag = "15")]
-    pub subject_user_id: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct LocalAuditTimeRange {
-    #[prost(string, tag = "1")]
-    pub from: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub to: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct LocalUnregisteredAssetDeclaration {
-    #[prost(enumeration = "LocalAssetKind", tag = "3")]
-    pub asset_kind: i32,
-    #[prost(string, tag = "4")]
-    pub engine: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct LocalUnregisteredAssetDescriptor {
-    #[prost(string, tag = "1")]
-    pub filename: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub path: ::prost::alloc::string::String,
-    #[prost(int64, tag = "3")]
-    pub size_bytes: i64,
-    #[prost(message, optional, tag = "4")]
-    pub declaration: ::core::option::Option<LocalUnregisteredAssetDeclaration>,
-    #[prost(string, tag = "5")]
-    pub suggestion_source: ::prost::alloc::string::String,
-    #[prost(string, tag = "6")]
-    pub confidence: ::prost::alloc::string::String,
-    #[prost(bool, tag = "7")]
-    pub auto_importable: bool,
-    #[prost(bool, tag = "8")]
-    pub requires_manual_review: bool,
-    #[prost(string, tag = "9")]
-    pub folder_name: ::prost::alloc::string::String,
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum LocalAssetKind {
-    Unspecified = 0,
-    /// Runnable kinds
-    Chat = 1,
-    Image = 2,
-    Video = 3,
-    Tts = 4,
-    Stt = 5,
-    Embedding = 6,
-    /// Passive kinds
-    Vae = 10,
-    Clip = 11,
-    Lora = 12,
-    Controlnet = 13,
-    Auxiliary = 14,
-}
-impl LocalAssetKind {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "LOCAL_ASSET_KIND_UNSPECIFIED",
-            Self::Chat => "LOCAL_ASSET_KIND_CHAT",
-            Self::Image => "LOCAL_ASSET_KIND_IMAGE",
-            Self::Video => "LOCAL_ASSET_KIND_VIDEO",
-            Self::Tts => "LOCAL_ASSET_KIND_TTS",
-            Self::Stt => "LOCAL_ASSET_KIND_STT",
-            Self::Embedding => "LOCAL_ASSET_KIND_EMBEDDING",
-            Self::Vae => "LOCAL_ASSET_KIND_VAE",
-            Self::Clip => "LOCAL_ASSET_KIND_CLIP",
-            Self::Lora => "LOCAL_ASSET_KIND_LORA",
-            Self::Controlnet => "LOCAL_ASSET_KIND_CONTROLNET",
-            Self::Auxiliary => "LOCAL_ASSET_KIND_AUXILIARY",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "LOCAL_ASSET_KIND_UNSPECIFIED" => Some(Self::Unspecified),
-            "LOCAL_ASSET_KIND_CHAT" => Some(Self::Chat),
-            "LOCAL_ASSET_KIND_IMAGE" => Some(Self::Image),
-            "LOCAL_ASSET_KIND_VIDEO" => Some(Self::Video),
-            "LOCAL_ASSET_KIND_TTS" => Some(Self::Tts),
-            "LOCAL_ASSET_KIND_STT" => Some(Self::Stt),
-            "LOCAL_ASSET_KIND_EMBEDDING" => Some(Self::Embedding),
-            "LOCAL_ASSET_KIND_VAE" => Some(Self::Vae),
-            "LOCAL_ASSET_KIND_CLIP" => Some(Self::Clip),
-            "LOCAL_ASSET_KIND_LORA" => Some(Self::Lora),
-            "LOCAL_ASSET_KIND_CONTROLNET" => Some(Self::Controlnet),
-            "LOCAL_ASSET_KIND_AUXILIARY" => Some(Self::Auxiliary),
-            _ => None,
-        }
-    }
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum LocalAssetStatus {
-    Unspecified = 0,
-    Installed = 1,
-    Active = 2,
-    Unhealthy = 3,
-    Removed = 4,
-}
-impl LocalAssetStatus {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "LOCAL_ASSET_STATUS_UNSPECIFIED",
-            Self::Installed => "LOCAL_ASSET_STATUS_INSTALLED",
-            Self::Active => "LOCAL_ASSET_STATUS_ACTIVE",
-            Self::Unhealthy => "LOCAL_ASSET_STATUS_UNHEALTHY",
-            Self::Removed => "LOCAL_ASSET_STATUS_REMOVED",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "LOCAL_ASSET_STATUS_UNSPECIFIED" => Some(Self::Unspecified),
-            "LOCAL_ASSET_STATUS_INSTALLED" => Some(Self::Installed),
-            "LOCAL_ASSET_STATUS_ACTIVE" => Some(Self::Active),
-            "LOCAL_ASSET_STATUS_UNHEALTHY" => Some(Self::Unhealthy),
-            "LOCAL_ASSET_STATUS_REMOVED" => Some(Self::Removed),
-            _ => None,
-        }
-    }
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum LocalServiceStatus {
-    Unspecified = 0,
-    Installed = 1,
-    Active = 2,
-    Unhealthy = 3,
-    Removed = 4,
-}
-impl LocalServiceStatus {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "LOCAL_SERVICE_STATUS_UNSPECIFIED",
-            Self::Installed => "LOCAL_SERVICE_STATUS_INSTALLED",
-            Self::Active => "LOCAL_SERVICE_STATUS_ACTIVE",
-            Self::Unhealthy => "LOCAL_SERVICE_STATUS_UNHEALTHY",
-            Self::Removed => "LOCAL_SERVICE_STATUS_REMOVED",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "LOCAL_SERVICE_STATUS_UNSPECIFIED" => Some(Self::Unspecified),
-            "LOCAL_SERVICE_STATUS_INSTALLED" => Some(Self::Installed),
-            "LOCAL_SERVICE_STATUS_ACTIVE" => Some(Self::Active),
-            "LOCAL_SERVICE_STATUS_UNHEALTHY" => Some(Self::Unhealthy),
-            "LOCAL_SERVICE_STATUS_REMOVED" => Some(Self::Removed),
-            _ => None,
-        }
-    }
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum LocalEngineRuntimeMode {
-    Unspecified = 0,
-    Supervised = 1,
-    AttachedEndpoint = 2,
-}
-impl LocalEngineRuntimeMode {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "LOCAL_ENGINE_RUNTIME_MODE_UNSPECIFIED",
-            Self::Supervised => "LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED",
-            Self::AttachedEndpoint => "LOCAL_ENGINE_RUNTIME_MODE_ATTACHED_ENDPOINT",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "LOCAL_ENGINE_RUNTIME_MODE_UNSPECIFIED" => Some(Self::Unspecified),
-            "LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED" => Some(Self::Supervised),
-            "LOCAL_ENGINE_RUNTIME_MODE_ATTACHED_ENDPOINT" => Some(Self::AttachedEndpoint),
-            _ => None,
-        }
-    }
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum LocalBundleState {
-    Unspecified = 0,
-    Resolving = 1,
-    Ready = 2,
-    Degraded = 3,
-    Invalid = 4,
-    Removed = 5,
-}
-impl LocalBundleState {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "LOCAL_BUNDLE_STATE_UNSPECIFIED",
-            Self::Resolving => "LOCAL_BUNDLE_STATE_RESOLVING",
-            Self::Ready => "LOCAL_BUNDLE_STATE_READY",
-            Self::Degraded => "LOCAL_BUNDLE_STATE_DEGRADED",
-            Self::Invalid => "LOCAL_BUNDLE_STATE_INVALID",
-            Self::Removed => "LOCAL_BUNDLE_STATE_REMOVED",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "LOCAL_BUNDLE_STATE_UNSPECIFIED" => Some(Self::Unspecified),
-            "LOCAL_BUNDLE_STATE_RESOLVING" => Some(Self::Resolving),
-            "LOCAL_BUNDLE_STATE_READY" => Some(Self::Ready),
-            "LOCAL_BUNDLE_STATE_DEGRADED" => Some(Self::Degraded),
-            "LOCAL_BUNDLE_STATE_INVALID" => Some(Self::Invalid),
-            "LOCAL_BUNDLE_STATE_REMOVED" => Some(Self::Removed),
-            _ => None,
-        }
-    }
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum LocalWarmState {
-    Unspecified = 0,
-    Cold = 1,
-    Warming = 2,
-    Ready = 3,
-    Failed = 4,
-}
-impl LocalWarmState {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "LOCAL_WARM_STATE_UNSPECIFIED",
-            Self::Cold => "LOCAL_WARM_STATE_COLD",
-            Self::Warming => "LOCAL_WARM_STATE_WARMING",
-            Self::Ready => "LOCAL_WARM_STATE_READY",
-            Self::Failed => "LOCAL_WARM_STATE_FAILED",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "LOCAL_WARM_STATE_UNSPECIFIED" => Some(Self::Unspecified),
-            "LOCAL_WARM_STATE_COLD" => Some(Self::Cold),
-            "LOCAL_WARM_STATE_WARMING" => Some(Self::Warming),
-            "LOCAL_WARM_STATE_READY" => Some(Self::Ready),
-            "LOCAL_WARM_STATE_FAILED" => Some(Self::Failed),
-            _ => None,
-        }
-    }
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum LocalExecutionEntryKind {
-    Unspecified = 0,
-    Model = 1,
-    Service = 2,
-    Node = 3,
-}
-impl LocalExecutionEntryKind {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "LOCAL_EXECUTION_ENTRY_KIND_UNSPECIFIED",
-            Self::Model => "LOCAL_EXECUTION_ENTRY_KIND_MODEL",
-            Self::Service => "LOCAL_EXECUTION_ENTRY_KIND_SERVICE",
-            Self::Node => "LOCAL_EXECUTION_ENTRY_KIND_NODE",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "LOCAL_EXECUTION_ENTRY_KIND_UNSPECIFIED" => Some(Self::Unspecified),
-            "LOCAL_EXECUTION_ENTRY_KIND_MODEL" => Some(Self::Model),
-            "LOCAL_EXECUTION_ENTRY_KIND_SERVICE" => Some(Self::Service),
-            "LOCAL_EXECUTION_ENTRY_KIND_NODE" => Some(Self::Node),
-            _ => None,
-        }
-    }
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum LocalProfileEntryKind {
-    Unspecified = 0,
-    Service = 3,
-    Node = 4,
-    Asset = 5,
-}
-impl LocalProfileEntryKind {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "LOCAL_PROFILE_ENTRY_KIND_UNSPECIFIED",
-            Self::Service => "LOCAL_PROFILE_ENTRY_KIND_SERVICE",
-            Self::Node => "LOCAL_PROFILE_ENTRY_KIND_NODE",
-            Self::Asset => "LOCAL_PROFILE_ENTRY_KIND_ASSET",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "LOCAL_PROFILE_ENTRY_KIND_UNSPECIFIED" => Some(Self::Unspecified),
-            "LOCAL_PROFILE_ENTRY_KIND_SERVICE" => Some(Self::Service),
-            "LOCAL_PROFILE_ENTRY_KIND_NODE" => Some(Self::Node),
-            "LOCAL_PROFILE_ENTRY_KIND_ASSET" => Some(Self::Asset),
-            _ => None,
-        }
-    }
-}
-/// K-DEV-001: GPU memory architecture model.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum GpuMemoryModel {
-    Unspecified = 0,
-    Discrete = 1,
-    Unified = 2,
-}
-impl GpuMemoryModel {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "GPU_MEMORY_MODEL_UNSPECIFIED",
-            Self::Discrete => "GPU_MEMORY_MODEL_DISCRETE",
-            Self::Unified => "GPU_MEMORY_MODEL_UNIFIED",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "GPU_MEMORY_MODEL_UNSPECIFIED" => Some(Self::Unspecified),
-            "GPU_MEMORY_MODEL_DISCRETE" => Some(Self::Discrete),
-            "GPU_MEMORY_MODEL_UNIFIED" => Some(Self::Unified),
-            _ => None,
         }
     }
 }

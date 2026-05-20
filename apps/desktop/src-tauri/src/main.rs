@@ -13,6 +13,7 @@ mod desktop_avatar_instance_registry;
 mod desktop_e2e_fixture;
 mod desktop_paths;
 mod desktop_product_control;
+mod desktop_product_control_admission;
 mod desktop_release;
 mod desktop_updates;
 mod external_agent_gateway;

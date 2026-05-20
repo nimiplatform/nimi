@@ -51,6 +51,14 @@ import {
   ResolveLocalEnvironmentActivationGateResponse,
   ResolveLocalEnvironmentPlanRequest,
   ResolveLocalEnvironmentPlanResponse,
+  MintRuntimeBaselineReadinessRequest,
+  MintRuntimeBaselineReadinessResponse,
+  ResolveRuntimeBaselineReadinessRequest,
+  ResolveRuntimeBaselineReadinessResponse,
+  MintFirstRunExecutionEvidenceRequest,
+  MintFirstRunExecutionEvidenceResponse,
+  ResolveFirstRunExecutionEvidenceRequest,
+  ResolveFirstRunExecutionEvidenceResponse,
   ResolveModelInstallPlanRequest,
   ResolveModelInstallPlanResponse,
   ResolveProfileRequest,
@@ -252,6 +260,22 @@ export const runtimeUnaryMethodCodecsLocal: Partial<RuntimeUnaryMethodCodecMap> 
   [RuntimeMethodIds.local.resolveLocalEnvironmentActivationGate]: {
     requestType: ResolveLocalEnvironmentActivationGateRequest,
     responseType: ResolveLocalEnvironmentActivationGateResponse,
+  },
+  [RuntimeMethodIds.local.mintRuntimeBaselineReadiness]: {
+    requestType: MintRuntimeBaselineReadinessRequest,
+    responseType: MintRuntimeBaselineReadinessResponse,
+  },
+  [RuntimeMethodIds.local.resolveRuntimeBaselineReadiness]: {
+    requestType: ResolveRuntimeBaselineReadinessRequest,
+    responseType: ResolveRuntimeBaselineReadinessResponse,
+  },
+  [RuntimeMethodIds.local.mintFirstRunExecutionEvidence]: {
+    requestType: MintFirstRunExecutionEvidenceRequest,
+    responseType: MintFirstRunExecutionEvidenceResponse,
+  },
+  [RuntimeMethodIds.local.resolveFirstRunExecutionEvidence]: {
+    requestType: ResolveFirstRunExecutionEvidenceRequest,
+    responseType: ResolveFirstRunExecutionEvidenceResponse,
   },
   [RuntimeMethodIds.local.startLocalEnvironmentDependencyJob]: {
     requestType: StartLocalEnvironmentDependencyJobRequest,

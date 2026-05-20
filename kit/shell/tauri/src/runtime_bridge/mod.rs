@@ -371,4 +371,21 @@ mod tests {
         assert!(!is_stream_method(unknown));
         assert!(!is_allowlisted_method(unknown));
     }
+
+    #[test]
+    fn first_run_ready_admission_resolve_methods_are_allowlisted() {
+        // P-COLD-016 product ready admission steps 5 and 7 consume these two
+        // RuntimeLocalService resolve RPCs through the desktop runtime bridge.
+        // They must pass the allowlist or the bridge fails them closed with
+        // RUNTIME_BRIDGE_METHOD_FORBIDDEN.
+        let baseline =
+            "/nimi.runtime.v1.RuntimeLocalService/ResolveRuntimeBaselineReadiness";
+        let execution =
+            "/nimi.runtime.v1.RuntimeLocalService/ResolveFirstRunExecutionEvidence";
+        assert!(is_allowlisted_method(baseline));
+        assert!(is_allowlisted_method(execution));
+        // Both are unary resolve calls, not streams.
+        assert!(!is_stream_method(baseline));
+        assert!(!is_stream_method(execution));
+    }
 }

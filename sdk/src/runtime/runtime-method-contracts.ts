@@ -80,6 +80,10 @@ export type RuntimeUnaryMethodContractMap = {
   [RuntimeMethodIds.local.listLocalEnvironmentSelectedSources]: RuntimeClientMethodContract<'local', 'listLocalEnvironmentSelectedSources'>;
   [RuntimeMethodIds.local.listLocalEnvironmentDependencyJobs]: RuntimeClientMethodContract<'local', 'listLocalEnvironmentDependencyJobs'>;
   [RuntimeMethodIds.local.resolveLocalEnvironmentActivationGate]: RuntimeClientMethodContract<'local', 'resolveLocalEnvironmentActivationGate'>;
+  [RuntimeMethodIds.local.mintRuntimeBaselineReadiness]: RuntimeClientMethodContract<'local', 'mintRuntimeBaselineReadiness'>;
+  [RuntimeMethodIds.local.resolveRuntimeBaselineReadiness]: RuntimeClientMethodContract<'local', 'resolveRuntimeBaselineReadiness'>;
+  [RuntimeMethodIds.local.mintFirstRunExecutionEvidence]: RuntimeClientMethodContract<'local', 'mintFirstRunExecutionEvidence'>;
+  [RuntimeMethodIds.local.resolveFirstRunExecutionEvidence]: RuntimeClientMethodContract<'local', 'resolveFirstRunExecutionEvidence'>;
   [RuntimeMethodIds.local.startLocalEnvironmentDependencyJob]: RuntimeClientMethodContract<'local', 'startLocalEnvironmentDependencyJob'>;
   [RuntimeMethodIds.local.cancelLocalEnvironmentDependencyJob]: RuntimeClientMethodContract<'local', 'cancelLocalEnvironmentDependencyJob'>;
   [RuntimeMethodIds.local.retryLocalEnvironmentDependencyJob]: RuntimeClientMethodContract<'local', 'retryLocalEnvironmentDependencyJob'>;

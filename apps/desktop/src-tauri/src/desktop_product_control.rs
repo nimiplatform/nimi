@@ -134,7 +134,7 @@ fn now_unix_ms() -> u128 {
         .as_millis()
 }
 
-fn now_iso_timestamp() -> String {
+pub(crate) fn now_iso_timestamp() -> String {
     chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Millis, true)
 }
 
@@ -171,7 +171,7 @@ fn empty_record(state: ProductControlState) -> Result<ProductControlRecord, Stri
     })
 }
 
-fn read_existing_record(path: &Path) -> Result<Option<ProductControlRecord>, String> {
+pub(crate) fn read_existing_record(path: &Path) -> Result<Option<ProductControlRecord>, String> {
     if !path.exists() {
         return Ok(None);
     }
@@ -183,6 +183,18 @@ fn read_existing_record(path: &Path) -> Result<Option<ProductControlRecord>, Str
     Ok(Some(record))
 }
 
+/// Structural validation of `~/.nimi/nimi.json`.
+///
+/// `ready_for_use` is admission-gated, not hard-rejected: a `ready_for_use`
+/// record must carry the full `ready-evidence-required` field set
+/// (`product-control-record-schema.yaml`). This is a shape gate only — it does
+/// NOT trust the refs as valid. Owner re-verification of every first-run
+/// evidence ref happens at read-for-entry in
+/// [`read_product_control_projection`] (local owners) and in the backend
+/// `AdmitProductReadyForUse` operation (all four owners, P-COLD-016). A
+/// `ready_for_use` record with populated-but-unverified refs, or a direct file
+/// edit, still fails closed to a non-ready state because the refs never
+/// resolve through their owners.
 fn validate_record(record: &ProductControlRecord) -> Result<(), String> {
     if record.schema_version != PRODUCT_CONTROL_SCHEMA_VERSION {
         return Err(format!(
@@ -192,6 +204,9 @@ fn validate_record(record: &ProductControlRecord) -> Result<(), String> {
     }
     if record.install_id.trim().is_empty() {
         return Err("~/.nimi/nimi.json installId is required".to_string());
+    }
+    if record.product_version.trim().is_empty() {
+        return Err("~/.nimi/nimi.json productVersion is required".to_string());
     }
     if matches!(
         record.state,
@@ -214,15 +229,75 @@ fn validate_record(record: &ProductControlRecord) -> Result<(), String> {
         }
     }
     if matches!(record.state, ProductControlState::ReadyForUse) {
+        validate_ready_for_use_shape(record)?;
+    }
+    Ok(())
+}
+
+/// Shape gate for a `ready_for_use` record: every `ready-evidence-required`
+/// field must be present and non-empty, and `dataRoot.status` must be `ready`.
+///
+/// This guarantees a `ready_for_use` record is structurally complete before it
+/// is admitted for owner re-verification; it never asserts the refs are valid.
+fn validate_ready_for_use_shape(record: &ProductControlRecord) -> Result<(), String> {
+    let data_root = record
+        .data_root
+        .as_ref()
+        .ok_or_else(|| "~/.nimi/nimi.json ready_for_use requires dataRoot".to_string())?;
+    if !matches!(data_root.status, ProductDataRootStatus::Ready) {
+        return Err("~/.nimi/nimi.json ready_for_use requires dataRoot.status=ready".to_string());
+    }
+    let first_run = &record.first_run;
+    if !first_run.completed {
+        return Err("~/.nimi/nimi.json ready_for_use requires firstRun.completed=true".to_string());
+    }
+    let required_present = first_run
+        .completed_at
+        .as_deref()
+        .is_some_and(|value| !value.trim().is_empty())
+        && first_run
+            .install_level
+            .as_deref()
+            .is_some_and(|value| !value.trim().is_empty())
+        && first_run
+            .initialization_plan_id
+            .as_deref()
+            .is_some_and(|value| !value.trim().is_empty())
+        && first_run
+            .baseline_profile_ref
+            .as_deref()
+            .is_some_and(|value| !value.trim().is_empty())
+        && first_run
+            .baseline_commit_id
+            .as_deref()
+            .is_some_and(|value| !value.trim().is_empty())
+        && first_run
+            .account_default_profile_ref
+            .as_deref()
+            .is_some_and(|value| !value.trim().is_empty())
+        && !first_run.built_in_ai_config_refs.is_empty()
+        && first_run
+            .built_in_ai_config_refs
+            .iter()
+            .all(|value| !value.trim().is_empty())
+        && first_run
+            .runtime_baseline_ref
+            .as_deref()
+            .is_some_and(|value| !value.trim().is_empty())
+        && first_run
+            .execution_evidence_ref
+            .as_deref()
+            .is_some_and(|value| !value.trim().is_empty());
+    if !required_present {
         return Err(
-            "~/.nimi/nimi.json ready_for_use requires Runtime-owned admission verification"
+            "~/.nimi/nimi.json ready_for_use requires the full first-run ready evidence field set"
                 .to_string(),
         );
     }
     Ok(())
 }
 
-fn selected_data_root_path(record: &ProductControlRecord) -> Option<PathBuf> {
+pub(crate) fn selected_data_root_path(record: &ProductControlRecord) -> Option<PathBuf> {
     let value = record.data_root.as_ref()?.path.trim();
     if value.is_empty() {
         return None;
@@ -234,7 +309,7 @@ fn selected_data_root_path(record: &ProductControlRecord) -> Option<PathBuf> {
     Some(normalize_desktop_absolute_path(&path))
 }
 
-fn write_record(path: &Path, record: &ProductControlRecord) -> Result<(), String> {
+pub(crate) fn write_record(path: &Path, record: &ProductControlRecord) -> Result<(), String> {
     validate_record(record)?;
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent)
@@ -281,6 +356,153 @@ fn ensure_data_root_layout(path: &Path) -> Result<(), String> {
     Ok(())
 }
 
+/// Re-verify a `ready_for_use` record's locally-owned evidence refs at
+/// read-for-entry.
+///
+/// `ready_for_use` is never trusted from disk: a record claiming it must still
+/// resolve `accountDefaultProfileRef` and every `builtInAiConfigRefs` entry
+/// through their local filesystem owner/verifier. Any rejection (a fabricated
+/// ref, a string-only ref, a stale ref, a direct file edit) fails closed.
+///
+/// Local owners only — the Runtime baseline / execution refs require a
+/// cross-process resolve and are re-verified by the async backend
+/// `AdmitProductReadyForUse` operation. The `LocalAiReady` route here is the
+/// earliest non-ready state for an account/AIConfig owner failure
+/// (`failure_projection` routes to `LocalAiReady` or `Blocked`); `not_logged_in` is
+/// routed when the account is no longer authenticated.
+fn ready_for_use_local_owner_verification_state(
+    record: &ProductControlRecord,
+) -> Option<(ProductControlState, String)> {
+    if !matches!(record.state, ProductControlState::ReadyForUse) {
+        return None;
+    }
+    let data_root = match selected_data_root_path(record) {
+        Some(path) => path,
+        None => {
+            return Some((
+                ProductControlState::DataRootMissing,
+                "ready_for_use record has no selected dataRoot".to_string(),
+            ));
+        }
+    };
+    verify_ready_for_use_local_owners(record, &data_root).err()
+}
+
+/// Enumerate every account id that has a local Account Default Profile record
+/// under `data_root/accounts/*/profiles/default.json`.
+///
+/// This is a read-only directory scan used to discover candidate authenticated
+/// account ids for the sync read-for-entry re-verification. It never trusts the
+/// product-control record for the account binding. The percent-encoded path
+/// segment is decoded back to the canonical account id.
+fn account_ids_with_default_profile(data_root: &Path) -> Vec<String> {
+    let accounts_dir = data_root.join("accounts");
+    let Ok(entries) = fs::read_dir(&accounts_dir) else {
+        return Vec::new();
+    };
+    let mut account_ids = Vec::new();
+    for entry in entries.flatten() {
+        if !entry.path().is_dir() {
+            continue;
+        }
+        if !entry.path().join("profiles").join("default.json").is_file() {
+            continue;
+        }
+        let segment = entry.file_name();
+        let Some(segment) = segment.to_str() else {
+            continue;
+        };
+        if let Some(account_id) = decode_account_path_segment(segment) {
+            account_ids.push(account_id);
+        }
+    }
+    account_ids
+}
+
+/// Decode a percent-encoded `accounts/<segment>` directory name back to the
+/// canonical account id. Mirrors the encoding the account profile library uses
+/// for its account path segment. Returns `None` for a malformed segment.
+fn decode_account_path_segment(segment: &str) -> Option<String> {
+    let mut out = Vec::new();
+    let bytes = segment.as_bytes();
+    let mut index = 0;
+    while index < bytes.len() {
+        match bytes[index] {
+            b'%' => {
+                let hex = bytes.get(index + 1..index + 3)?;
+                let hex = std::str::from_utf8(hex).ok()?;
+                out.push(u8::from_str_radix(hex, 16).ok()?);
+                index += 3;
+            }
+            other => {
+                out.push(other);
+                index += 1;
+            }
+        }
+    }
+    String::from_utf8(out).ok()
+}
+
+/// Re-resolve every locally-owned `ready_for_use` evidence ref through its
+/// owner. Returns the routed non-ready `(state, error)` on the first failure.
+///
+/// The authenticated account binding is not trusted from the product-control
+/// record: candidate account ids are discovered by scanning the local account
+/// profile library directory, and the recorded `accountDefaultProfileRef` /
+/// `builtInAiConfigRefs` must resolve through their owner/verifier for one of
+/// those accounts. A fabricated ref, a string-only ref, or a direct file edit
+/// resolves through no owner and fails closed to `LocalAiReady` — the
+/// earliest affected non-ready state for an account / AIConfig owner failure.
+fn verify_ready_for_use_local_owners(
+    record: &ProductControlRecord,
+    data_root: &Path,
+) -> Result<(), (ProductControlState, String)> {
+    let account_ref = record
+        .first_run
+        .account_default_profile_ref
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .ok_or_else(|| {
+            (
+                ProductControlState::LocalAiReady,
+                "ready_for_use record is missing accountDefaultProfileRef".to_string(),
+            )
+        })?;
+    let candidate_account_ids = account_ids_with_default_profile(data_root);
+    if candidate_account_ids.is_empty() {
+        return Err((
+            ProductControlState::LocalAiReady,
+            "no local Account Default Profile evidence backs the recorded accountDefaultProfileRef"
+                .to_string(),
+        ));
+    }
+    for account_id in candidate_account_ids {
+        if crate::account_profile_library::verify_account_default_profile_ref(
+            data_root,
+            &account_id,
+            account_ref,
+        )
+        .is_err()
+        {
+            continue;
+        }
+        // The account ref resolved for this account; the built-in AIConfig
+        // refs must resolve for the same bound account.
+        return crate::desktop_ai_config_library::verify_built_in_ai_config_evidence_set(
+            data_root,
+            &account_id,
+            &record.first_run.built_in_ai_config_refs,
+        )
+        .map(|_| ())
+        .map_err(|error| (ProductControlState::LocalAiReady, error));
+    }
+    Err((
+        ProductControlState::LocalAiReady,
+        "recorded accountDefaultProfileRef resolves through no local account owner".to_string(),
+    ))
+}
+
 pub fn read_product_control_projection() -> Result<ProductControlRecordProjection, String> {
     let path = product_control_record_path()?;
     if let Some(record) = crate::desktop_e2e_fixture::product_control_record_override()? {
@@ -293,13 +515,28 @@ pub fn read_product_control_projection() -> Result<ProductControlRecordProjectio
         });
     }
     match read_existing_record(&path) {
-        Ok(Some(record)) => Ok(ProductControlRecordProjection {
-            path: path.display().to_string(),
-            exists: true,
-            state: record.state.clone(),
-            record: Some(record),
-            error: None,
-        }),
+        Ok(Some(record)) => {
+            if let Some((routed_state, error)) =
+                ready_for_use_local_owner_verification_state(&record)
+            {
+                return Ok(ProductControlRecordProjection {
+                    path: path.display().to_string(),
+                    exists: true,
+                    state: routed_state,
+                    record: None,
+                    error: Some(format!(
+                        "~/.nimi/nimi.json ready_for_use failed owner admission verification: {error}"
+                    )),
+                });
+            }
+            Ok(ProductControlRecordProjection {
+                path: path.display().to_string(),
+                exists: true,
+                state: record.state.clone(),
+                record: Some(record),
+                error: None,
+            })
+        }
         Ok(None) => {
             let record = empty_record(ProductControlState::DataRootMissing)?;
             write_record(&path, &record)?;
@@ -408,7 +645,7 @@ pub fn set_first_run_install_level(
     read_product_control_projection()
 }
 
-async fn authenticated_runtime_account_id() -> Result<String, String> {
+pub(crate) async fn authenticated_runtime_account_id() -> Result<String, String> {
     let request = crate::runtime_bridge::generated::GetAccountSessionStatusRequest { caller: None };
     let payload = crate::runtime_bridge::RuntimeBridgeUnaryPayload {
         method_id: "/nimi.runtime.v1.RuntimeAccountService/GetAccountSessionStatus".to_string(),
@@ -533,23 +770,25 @@ pub async fn ensure_built_in_ai_config_for_product_control(
 }
 
 /// Resolve + verify the recorded `builtInAiConfigRefs` through the Desktop host
-/// AIConfig service for wave-6 `AdmitProductReadyForUse`.
+/// AIConfig service for the backend `AdmitProductReadyForUse` operation.
 ///
-/// This is the seam wave-6 calls. It does NOT write `ready_for_use`. Fails
-/// closed when either canonical built-in chat scope cannot be resolved, when
-/// the recorded set is partial, or when a string-only ref is supplied.
+/// This is the seam admission step 6 calls. It does NOT write `ready_for_use`.
+/// Fails closed when either canonical built-in chat scope cannot be resolved,
+/// when the recorded set is partial, or when a string-only ref is supplied.
 ///
-/// `dead_code` allowance: the consumer is wave-6 `AdmitProductReadyForUse`,
-/// which is not yet landed.
-#[allow(dead_code)]
-pub async fn resolve_built_in_ai_config_refs_for_admission(
+/// `data_root` and `authenticated_account_id` are the inputs the caller has
+/// already resolved through their owners earlier in the `P-COLD-016`
+/// composition (selected `nimi_data` and the authenticated Runtime account
+/// session). They are passed in so this seam does not re-resolve the account
+/// binding — admission owns a single authenticated account resolution.
+pub fn resolve_built_in_ai_config_refs_for_admission(
+    data_root: &Path,
+    authenticated_account_id: &str,
     built_in_ai_config_refs: &[String],
 ) -> Result<crate::desktop_ai_config_library::BuiltInAiConfigEvidenceSet, String> {
-    let data_root = selected_product_data_root()?;
-    let account_id = authenticated_runtime_account_id().await?;
     crate::desktop_ai_config_library::verify_built_in_ai_config_evidence_set(
-        &data_root,
-        &account_id,
+        data_root,
+        authenticated_account_id,
         built_in_ai_config_refs,
     )
 }
@@ -821,12 +1060,20 @@ mod tests {
                 serde_json::to_string_pretty(&record).expect("json"),
             )
             .expect("write fabricated ready");
+            // A fabricated ready_for_use record — every evidence field is
+            // populated but no ref was minted by an owner — must read back as
+            // a non-ready state. read-for-entry re-resolves the locally-owned
+            // refs (accountDefaultProfileRef, builtInAiConfigRefs) through
+            // their owner/verifier; with no backing owner records the read
+            // routes to LocalAiReady and never surfaces ready_for_use.
             let projection = read_product_control_projection().expect("projection");
-            assert_eq!(projection.state, ProductControlState::RepairRequired);
+            assert_ne!(projection.state, ProductControlState::ReadyForUse);
+            assert_eq!(projection.state, ProductControlState::LocalAiReady);
+            assert!(projection.record.is_none());
             assert!(projection
                 .error
                 .unwrap_or_default()
-                .contains("admission verification"));
+                .contains("owner admission verification"));
         });
     }
 }

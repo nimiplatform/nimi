@@ -318,6 +318,7 @@ fn build_desktop_app() -> Result<tauri::App<tauri::Wry>, tauri::Error> {
             crate::desktop_product_control::product_control_record_ensure_account_default_profile,
             crate::desktop_product_control::product_control_record_ensure_built_in_ai_config,
             crate::desktop_product_control::product_control_record_set_first_run_setup_state,
+            crate::desktop_product_control_admission::product_control_record_admit_ready_for_use,
             super::defaults_and_commands::system_resources::get_system_resource_snapshot,
             super::defaults_and_commands::http_request,
             crate::oauth_commands::open_external_url,
