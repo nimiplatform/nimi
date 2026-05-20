@@ -13,6 +13,8 @@ import {
 } from './world-detail-template';
 import type { WorldAgent } from './world-detail-types';
 import { worldAdmitsUserCreatedRealmAgents } from './world-create-agent-admission';
+import { clearCreateAgentDraft, type CreateAgentConfirmInput } from './create-agent-drawer';
+import { buildRealmAgentWritePayload } from './create-agent/realm-agent-draft-submit';
 import type { WorldListItem } from './world-list-model';
 import {
   fetchWorldDisplayDetail,
@@ -30,6 +32,7 @@ export function WorldDetail({ world, onBack }: WorldDetailProps) {
   const navigateToProfile = useAppStore((state) => state.navigateToProfile);
   const isReady = authStatus === 'authenticated' && !!world.id;
   const [feedback, setFeedback] = useState<InlineFeedbackState | null>(null);
+  const [createAgentRejection, setCreateAgentRejection] = useState<string | null>(null);
   const flowIdRef = useRef('');
   const enteredAtRef = useRef(0);
   const primaryReadyLoggedRef = useRef(false);
@@ -189,64 +192,61 @@ export function WorldDetail({ world, onBack }: WorldDetailProps) {
     });
   };
 
+  // The single Realm truth write for lightweight RealmAgent creation
+  // (D-EXPL-010). The drawer owns the draft-review-confirm flow; this mutation
+  // runs only on the explicit confirm. On rejection the draft stays locally
+  // recoverable in the drawer (D-EXPL-011) and a typed message is shown.
   const createAgentMutation = useMutation({
-    mutationFn: async (input: {
-      handle: string;
-      displayName: string;
-      concept: string;
-      description: string;
-      scenario: string;
-      greeting: string;
-      referenceImageUrl: string;
-      referenceImageFile: File | null;
-      wakeStrategy: '' | 'PASSIVE' | 'PROACTIVE';
-      dnaPrimary: '' | 'CARING' | 'PLAYFUL' | 'INTELLECTUAL' | 'CONFIDENT' | 'MYSTERIOUS' | 'ROMANTIC';
-      dnaSecondary: string[];
-    }) => {
+    mutationFn: async (input: CreateAgentConfirmInput) => {
       if (!worldAdmitsUserCreatedRealmAgents(worldData)) {
         throw new Error(i18n.t('World.createAgent.notAdmitted', {
           defaultValue: 'This World is not admitting new user-created RealmAgents.',
         }));
       }
       let resolvedImageUrl: string | undefined;
-      if (input.referenceImageFile) {
+      if (input.avatarFile) {
         const upload = await dataSync.createImageDirectUpload();
         const formData = new FormData();
-        formData.append('file', input.referenceImageFile);
+        formData.append('file', input.avatarFile);
         const response = await fetch(upload.uploadUrl, { method: 'POST', body: formData });
         if (!response.ok) {
-          throw new Error('头像上传失败，请重试');
+          throw new Error(i18n.t('World.createAgent.avatarUploadFailed', {
+            defaultValue: 'Avatar upload failed, please retry.',
+          }));
         }
         const finalized = await dataSync.finalizeResource(upload.resourceId, {});
         resolvedImageUrl = finalized.url ?? undefined;
       }
+      const payload = buildRealmAgentWritePayload(input.draft, resolvedImageUrl);
       return dataSync.createAgent({
-        worldId: world.id,
-        handle: input.handle,
-        concept: input.concept,
-        displayName: input.displayName || undefined,
-        description: input.description || undefined,
-        scenario: input.scenario || undefined,
-        greeting: input.greeting || undefined,
-        referenceImageUrl: resolvedImageUrl,
-        wakeStrategy: input.wakeStrategy || undefined,
-        dnaPrimary: (input.dnaPrimary || undefined) as Parameters<typeof dataSync.createAgent>[0]['dnaPrimary'],
-        dnaSecondary: input.dnaSecondary.length
-          ? input.dnaSecondary as Parameters<typeof dataSync.createAgent>[0]['dnaSecondary']
-          : undefined,
+        worldId: payload.worldId,
+        handle: payload.handle,
+        concept: payload.concept,
+        displayName: payload.displayName,
+        description: payload.description,
+        referenceImageUrl: payload.referenceImageUrl,
+        dnaPrimary: payload.dnaPrimary,
+        dnaSecondary: payload.dnaSecondary,
       });
     },
     onSuccess: async (data) => {
       const agentId = typeof data?.id === 'string' && data.id ? data.id : null;
       setFeedback(null);
+      setCreateAgentRejection(null);
+      // Realm truth was written: the locally persisted draft is no longer
+      // needed and is cleared so it does not resurface as recoverable.
+      clearCreateAgentDraft(world.id);
       await queryClient.invalidateQueries({ queryKey: worldDisplayDetailQueryKey(world.id) });
       if (agentId) {
         navigateToProfile(agentId, 'agent-detail');
       }
     },
     onError: (error) => {
-      const message = error instanceof Error ? error.message : '创建 Agent 失败，请重试';
-      setFeedback({ kind: 'error', message });
+      const message = error instanceof Error
+        ? error.message
+        : i18n.t('World.createAgent.failed', { defaultValue: 'Could not create the agent, please retry.' });
+      // Surfaced inside the drawer; the draft remains recoverable (D-EXPL-011).
+      setCreateAgentRejection(message);
     },
   });
 
@@ -278,6 +278,7 @@ export function WorldDetail({ world, onBack }: WorldDetailProps) {
           onViewAgent={handleViewAgent}
           onCreateAgent={createAgentAdmitted ? (input) => createAgentMutation.mutate(input) : undefined}
           createAgentMutating={createAgentMutation.isPending}
+          createAgentRejection={createAgentRejection}
         />
       ) : (
         <NarrativeWorldDetailPage
@@ -300,6 +301,7 @@ export function WorldDetail({ world, onBack }: WorldDetailProps) {
           onViewAgent={handleViewAgent}
           onCreateAgent={createAgentAdmitted ? (input) => createAgentMutation.mutate(input) : undefined}
           createAgentMutating={createAgentMutation.isPending}
+          createAgentRejection={createAgentRejection}
         />
       )}
     </ScrollArea>

@@ -84,7 +84,8 @@
       "identity": "身份",
       "character": "角色",
       "personality": "人格 DNA",
-      "wakeStrategy": "唤醒策略"
+      "wakeStrategy": "唤醒策略",
+      "visibility": "可见性"
     },
     "handle": "Handle",
     "handlePlaceholder": "agent_unique_id",
@@ -128,6 +129,62 @@
     },
     "cancel": "取消",
     "creating": "创建中...",
-    "submit": "创建 Agent"
+    "submit": "创建 Agent",
+    "avatar": "头像",
+    "avatarUploadFailed": "头像上传失败，请重试。",
+    "failed": "创建 Agent 失败，请重试。",
+    "back": "返回",
+    "toReview": "查看草稿",
+    "confirmCreate": "确认并创建 Agent",
+    "step": {
+      "modeSelect": "创建新 Agent",
+      "draftEditor": "编辑草稿",
+      "review": "审阅并创建"
+    },
+    "modes": {
+      "prompt": "选择创建该 Agent 的方式。",
+      "manualTitle": "手动快速创建",
+      "manualDesc": "自行填写 Agent 字段。",
+      "importTitle": "导入 Character Card",
+      "importDesc": "导入 Character Card 文件；Nimi 在本地解析。",
+      "aiTitle": "AI 辅助生成",
+      "aiDesc": "描述概念；Nimi 生成候选草稿。"
+    },
+    "recover": {
+      "title": "恢复未完成的草稿",
+      "description": "此 World 此前有一份未完成的创建草稿，可继续编辑。"
+    },
+    "import": {
+      "prompt": "选择一个 Character Card V2（.json）文件。Nimi 在本地解析并映射为可审阅的草稿。",
+      "choose": "选择 Character Card 文件",
+      "parsing": "正在解析卡片...",
+      "failed": "无法导入此卡片"
+    },
+    "ai": {
+      "prompt": "描述你想要的 Agent，Nimi 会生成候选草稿供你审阅和编辑。",
+      "placeholder": "例如：一位漫游的制图师，收集被遗忘的星图，说话总带着谜语。",
+      "generate": "生成草稿",
+      "generating": "正在生成草稿..."
+    },
+    "review": {
+      "gateTitle": "创建前审阅",
+      "gateDescription": "目前还没有写入 {{worldName}}。只有在你确认后才会创建该 Agent。",
+      "source": "草稿来源：{{source}}",
+      "willWrite": "将成为 Realm 真值",
+      "draftOnly": "保留在草稿中（当前创建契约不写入）",
+      "warningsTitle": "{{count}} 条警告",
+      "notSet": "未设置",
+      "avatarSelected": "已选择图片"
+    },
+    "rejection": {
+      "title": "创建未能完成",
+      "recoverable": "你的草稿已保留——可调整后重试。"
+    },
+    "visibility": {
+      "publishedTitle": "已发布",
+      "publishedDesc": "作为公开 RealmAgent 在整个 World 中可被发现。",
+      "unlistedTitle": "不公开",
+      "unlistedDesc": "已创建，但暂不进入公开发现。"
+    }
   }
 }

@@ -119,64 +119,23 @@ export type ChapterChunkRecord = {
 };
 
 // ── Character Card V2 Types ───────────────────────────────────
+// Single-sourced from the shared kit Character Card surface; Forge does not
+// fork the card type. See `@nimiplatform/nimi-kit/core/character-card`.
 
-export type CharacterBookEntry = {
-  keys: string[];
-  content: string;
-  extensions: Record<string, unknown>;
-  enabled: boolean;
-  insertion_order: number;
-  case_sensitive?: boolean;
-  name?: string;
-  priority?: number;
-  id?: number;
-  comment?: string;
-  selective?: boolean;
-  secondary_keys?: string[];
-  constant?: boolean;
-  position?: string;
-};
+import type {
+  CharacterBook,
+  CharacterBookEntry,
+  TavernCardV2,
+  TavernCardV2Data,
+  ValidationResult,
+} from '@nimiplatform/nimi-kit/core/character-card';
 
-export type CharacterBook = {
-  name?: string;
-  description?: string;
-  scan_depth?: number;
-  token_budget?: number;
-  recursive_scanning?: boolean;
-  extensions: Record<string, unknown>;
-  entries: CharacterBookEntry[];
-};
-
-export type TavernCardV2Data = {
-  name: string;
-  description: string;
-  personality: string;
-  scenario: string;
-  first_mes: string;
-  mes_example: string;
-  creator_notes: string;
-  system_prompt: string;
-  post_history_instructions: string;
-  alternate_greetings: string[];
-  character_book?: CharacterBook;
-  tags: string[];
-  creator: string;
-  character_version: string;
-  extensions: Record<string, unknown>;
-};
-
-export type TavernCardV2 = {
-  spec: 'chara_card_v2';
-  spec_version: '2.0';
-  data: TavernCardV2Data;
-};
-
-// ── Character Card Validation ─────────────────────────────────
-
-export type ValidationResult = {
-  valid: boolean;
-  errors: string[];
-  warnings: string[];
+export type {
+  CharacterBook,
+  CharacterBookEntry,
+  TavernCardV2,
+  TavernCardV2Data,
+  ValidationResult,
 };
 
 export type LorebookClassification = {

@@ -2,7 +2,7 @@ import { useMemo, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
 import { ScrollArea } from '@nimiplatform/nimi-kit/ui';
-import { CreateAgentDrawer, type CreateAgentInput } from './create-agent-drawer';
+import { CreateAgentDrawer, type CreateAgentConfirmInput } from './create-agent-drawer';
 import {
   OASIS_WORLD_DETAIL_COMPOSITION,
   NARRATIVE_WORLD_DETAIL_COMPOSITION,
@@ -48,8 +48,14 @@ export type WorldDetailPageProps = {
   // only. RealmAgent direct chat is not admitted (D-EXPL-006 / T3) — chat is
   // reachable solely via friend → Open Agent Chat on the agent-detail surface.
   onViewAgent?: (agent: WorldAgent) => void;
-  onCreateAgent?: (input: CreateAgentInput) => void;
+  /**
+   * Present only when the World admits user-created RealmAgents (D-EXPL-004).
+   * Invoked on the explicit review confirm — the single Realm truth write.
+   */
+  onCreateAgent?: (input: CreateAgentConfirmInput) => void;
   createAgentMutating?: boolean;
+  /** Typed creation-rejection feedback surfaced in the drawer (D-EXPL-012). */
+  createAgentRejection?: string | null;
 };
 
 export type XianxiaWorldTemplateProps = WorldDetailPageProps;
@@ -515,14 +521,15 @@ function WorldDetailPageBody({
       <CreateAgentDrawer
         isOpen={showCreateAgent && Boolean(props.onCreateAgent)}
         onClose={() => setShowCreateAgent(false)}
-        onSubmit={(input) => {
+        onConfirm={(input) => {
           props.onCreateAgent?.(input);
-          setShowCreateAgent(false);
         }}
+        worldId={world.id}
         worldName={world.name}
         worldBannerUrl={world.bannerUrl}
         worldDescription={world.description}
         submitting={props.createAgentMutating}
+        rejectionMessage={props.createAgentRejection}
       />
     </>
   );

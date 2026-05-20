@@ -92,19 +92,22 @@ modules:
     kind: logic
     surface_level: logic
     adapter_contract: none
-    description: Pure-logic utilities (OAuth, env, shell-mode)
+    description: Pure-logic utilities (OAuth, env, shell-mode, Character Card V2 parsing)
     dependencies: []
     peer_dependencies: []
     exports:
       - ./core/shell-mode
       - ./core/oauth
+      - ./core/character-card
     headless_exports:
       - ./core/shell-mode
       - ./core/oauth
+      - ./core/character-card
     ui_exports: []
     reuse_entrypoints:
       - ./core/shell-mode
       - ./core/oauth
+      - ./core/character-card
     admission_status: active
     owner: platform
     source_rule: P-KIT-030

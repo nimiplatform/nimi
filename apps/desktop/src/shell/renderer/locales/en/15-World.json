@@ -84,7 +84,8 @@
       "identity": "Identity",
       "character": "Character",
       "personality": "Personality DNA",
-      "wakeStrategy": "Wake Strategy"
+      "wakeStrategy": "Wake Strategy",
+      "visibility": "Visibility"
     },
     "handle": "Handle",
     "handlePlaceholder": "agent_unique_id",
@@ -128,6 +129,62 @@
     },
     "cancel": "Cancel",
     "creating": "Creating...",
-    "submit": "Create Agent"
+    "submit": "Create Agent",
+    "avatar": "Avatar",
+    "avatarUploadFailed": "Avatar upload failed, please retry.",
+    "failed": "Could not create the agent, please retry.",
+    "back": "Back",
+    "toReview": "Review draft",
+    "confirmCreate": "Confirm & create agent",
+    "step": {
+      "modeSelect": "Create New Agent",
+      "draftEditor": "Edit draft",
+      "review": "Review & create"
+    },
+    "modes": {
+      "prompt": "Choose how to start this agent.",
+      "manualTitle": "Manual quick create",
+      "manualDesc": "Fill the agent fields yourself.",
+      "importTitle": "Character Card import",
+      "importDesc": "Import a Character Card file; Nimi parses it locally.",
+      "aiTitle": "AI-assisted generation",
+      "aiDesc": "Describe the concept; Nimi generates a candidate draft."
+    },
+    "recover": {
+      "title": "Recover unfinished draft",
+      "description": "A previous creation draft for this World was not finished. Resume it."
+    },
+    "import": {
+      "prompt": "Select a Character Card V2 (.json) file. Nimi parses it locally and maps it to a draft you can review.",
+      "choose": "Choose Character Card file",
+      "parsing": "Parsing card...",
+      "failed": "Could not import this card"
+    },
+    "ai": {
+      "prompt": "Describe the agent you want. Nimi generates a candidate draft for you to review and edit.",
+      "placeholder": "e.g. A wandering cartographer who collects forgotten star maps and speaks in riddles.",
+      "generate": "Generate draft",
+      "generating": "Generating draft..."
+    },
+    "review": {
+      "gateTitle": "Review before creating",
+      "gateDescription": "Nothing has been written to {{worldName}} yet. The agent is created only when you confirm below.",
+      "source": "Draft source: {{source}}",
+      "willWrite": "Becomes Realm truth",
+      "draftOnly": "Kept in draft (not written by current creation contract)",
+      "warningsTitle": "{{count}} warning(s)",
+      "notSet": "Not set",
+      "avatarSelected": "Image selected"
+    },
+    "rejection": {
+      "title": "Creation could not be completed",
+      "recoverable": "Your draft is kept — adjust it and try again."
+    },
+    "visibility": {
+      "publishedTitle": "Published",
+      "publishedDesc": "Discoverable across the World as a public RealmAgent.",
+      "unlistedTitle": "Unlisted",
+      "unlistedDesc": "Created but kept out of public discovery for now."
+    }
   }
 }
