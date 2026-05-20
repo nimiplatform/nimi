@@ -23,6 +23,8 @@ table_family_enum:
   - protocol_surface
   - owner_matrix
   - product_catalog
+  - product_state_machine
+  - product_record_schema
   - gate_registry
   - support_registry
 authority_class_enum:
@@ -53,6 +55,16 @@ table_families:
     authority_class: product_authority_table
     required_fields: [table_family, owner, catalog_id, entries]
     allowed_fields: [description, authority_refs, id, name, semantics, owner]
+    forbidden_fields: [done, covered, coverage_status, audit_date, evidence_report, current, proposed, backlog_status, migration_status, mapping_status, run_id, ledger_ref]
+  - table_family: product_state_machine
+    authority_class: product_authority_table
+    required_fields: [table_family, owner, state_machine_id, states]
+    allowed_fields: [description, authority_refs, state, entry_conditions, exit_conditions, invariant, reason_code]
+    forbidden_fields: [done, covered, coverage_status, audit_date, evidence_report, current, proposed, backlog_status, migration_status, mapping_status, run_id, ledger_ref]
+  - table_family: product_record_schema
+    authority_class: product_authority_table
+    required_fields: [table_family, owner, record_id, path, schema_version, required_top_level_fields, invariants]
+    allowed_fields: [description, authority_refs, field, schema_ref, invariant, path, owner]
     forbidden_fields: [done, covered, coverage_status, audit_date, evidence_report, current, proposed, backlog_status, migration_status, mapping_status, run_id, ledger_ref]
   - table_family: gate_registry
     authority_class: product_authority_table

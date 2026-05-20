@@ -21,8 +21,8 @@ importers:
         version: 2.8.2
     devDependencies:
       '@nimiplatform/nimi-coding':
-        specifier: ^0.2.1
-        version: 0.2.1
+        specifier: ^0.2.5
+        version: 0.2.5
 
   apps/avatar:
     dependencies:
@@ -2201,8 +2201,8 @@ packages:
       '@emnapi/core': ^1.7.1
       '@emnapi/runtime': ^1.7.1
 
-  '@nimiplatform/nimi-coding@0.2.1':
-    resolution: {integrity: sha512-JXpGgY7qFB/IcI9N1Muvj8b0PJFK+S9PxOOeFKPKKdMYJNVqfHyas3r+0169GO6R5gRyvG81d2rAX4URwVBCrA==}
+  '@nimiplatform/nimi-coding@0.2.5':
+    resolution: {integrity: sha512-ar1o/He282nnzuP9YJZAZSZX4XnqPyju/0LD6dmyC5IbZiAnGai2eodVMU86JEv6cHkIzc8iubVkMFP72Q0lMw==}
     engines: {node: '>=24.0.0', pnpm: '>=10.0.0'}
     hasBin: true
 
@@ -7815,7 +7815,7 @@ snapshots:
       '@tybys/wasm-util': 0.10.1
     optional: true
 
-  '@nimiplatform/nimi-coding@0.2.1':
+  '@nimiplatform/nimi-coding@0.2.5':
     dependencies:
       '@openai/codex-sdk': 0.124.0
       yaml: 2.8.2

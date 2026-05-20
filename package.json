@@ -225,6 +225,6 @@
     "yaml": "^2.8.2"
   },
   "devDependencies": {
-    "@nimiplatform/nimi-coding": "^0.2.1"
+    "@nimiplatform/nimi-coding": "^0.2.5"
   }
 }

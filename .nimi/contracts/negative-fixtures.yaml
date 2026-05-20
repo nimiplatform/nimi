@@ -74,6 +74,11 @@ fixtures:
     setup: .nimi/spec/runtime/kernel/tables/example.yaml without table_family
     expected_failure: missing_table_family
     validator_scope: table_family
+  - fixture_id: kernel_table_with_unknown_family
+    contract_ref: table-family.schema.yaml
+    setup: .nimi/spec/platform/kernel/tables/unknown-family.yaml with unadmitted table_family
+    expected_failure: unknown_table_family
+    validator_scope: table_family
   - fixture_id: tracked_non_product_without_admission
     contract_ref: tracked-output-admission.schema.yaml
     setup: .nimi/audit/example.yaml
@@ -82,6 +87,16 @@ fixtures:
   - fixture_id: valid_state_machine_table_passes
     contract_ref: table-family.schema.yaml
     setup: .nimi/spec/runtime/kernel/tables/job-states.yaml with table_family state_machine
+    expected_failure: none
+    validator_scope: table_family
+  - fixture_id: valid_product_state_machine_table_passes
+    contract_ref: table-family.schema.yaml
+    setup: .nimi/spec/platform/kernel/tables/first-run-state-machine.yaml with table_family product_state_machine and state entry/exit conditions
+    expected_failure: none
+    validator_scope: table_family
+  - fixture_id: valid_product_record_schema_table_passes
+    contract_ref: table-family.schema.yaml
+    setup: .nimi/spec/platform/kernel/tables/product-control-record-schema.yaml with table_family product_record_schema
     expected_failure: none
     validator_scope: table_family
   - fixture_id: valid_minimal_package_anchor_passes
