@@ -4,7 +4,7 @@
 
 ## Scope
 
-定义 SDK 对 `AIProfile / AIConfig / AISnapshot` 的 typed surface，使 app / mod consumer 无需直接操作底层 capability fragments 作为主真相。本契约依赖 desktop canonical model（D-AIPC-001~012）和 platform scope identity（P-AISC-001~005）。
+定义 SDK 对 `AIProfile / AIConfig / AISnapshot` 的 typed surface，使 app / mod consumer 无需直接操作底层 capability fragments 作为主真相。本契约依赖 desktop canonical model（D-AIPC-001~014）和 platform scope identity（P-AISC-001~005）。
 
 ## S-AICONF-001 — Typed Surface Categories
 
@@ -18,6 +18,7 @@ SDK AI config surface 固定分为以下 logical operation 类别：
 
 ### Profile apply
 
+- `aiProfile.previewApply(scopeRef, profileId)` — 计算（不提交）将 profile 应用到 scope 时产生的 typed before→after `AIConfig` diff（D-AIPC-014）。详见 S-AICONF-008。
 - `aiProfile.apply(scopeRef, profileId)` — 将 profile 原子覆盖到 scope 的 AIConfig（D-AIPC-005）
 - apply 必须返回 typed result，包含 success / failure reason / probe warnings
 
@@ -155,9 +156,46 @@ it does not own the resulting ready evidence refs.
 - SDK must not expose a fallback chat scope or infer `desktop.chat.nimi` /
   `desktop.chat.agent` from an omitted scope
 
+## S-AICONF-008 — Profile Apply Preview Surface
+
+SDK 必须暴露 typed profile apply preview surface，使 app / mod consumer 能在
+commit 之前向用户展示 apply 的影响（D-AIPC-014）：
+
+- `aiProfile.previewApply(scopeRef, profileId)` — 对给定 canonical `AIScopeRef`
+  与 catalog profile 计算 typed before→after `AIConfig` diff，并返回该 diff 加上
+  任何 probe / feasibility warning。
+- 返回值是 typed preview result，至少包含：
+  - `before: AIConfig | null` — preview 计算时该 scope 的当前 `AIConfig`；首次
+    apply（scope 尚无 config）时为显式 `null`。
+  - `after: AIConfig` — 按 `D-AIPC-005` overwrite 语义 full materialize 出的目标
+    `AIConfig`（overwrite，不是 merge / partial patch）。
+  - typed before→after diff 结构，覆盖 `capabilities`、`profileOrigin` 及其他
+    materialized 字段。
+  - `baseVersion` — `before` 所基于的 config version / content hash，使 caller
+    在 commit 前可判断 preview 是否仍 fresh。
+  - probe / feasibility warning（对齐 `aiConfig.probe` / `probeFeasibility` 的
+    typed enum 与 `AISchedulingJudgement` 形状，见 S-AICONF-002）。
+- `previewApply` 是 **non-committing** surface：它不写入 live `AIConfig`，不触发
+  `aiConfig.subscribe`（S-AICONF-006）通知，不记录 `AISnapshot`。commit 仍由
+  caller 显式调用 `aiProfile.apply`（S-AICONF-001 / D-AIPC-005）完成；SDK 不在
+  `previewApply` 内部隐式提交，也不缓存 preview 作为后续 apply 的权威输入。
+- `previewApply` 是 typed surface，不暴露任何 fallback knob（与 S-AICONF-002 一致）：
+  - 不允许 `previewApply({ fallback: 'allow' })` 式参数。
+  - profile / config schema invalid 时必须返回 typed error 并 fail closed，
+    不允许返回 partial diff 或被截断的 `after`。
+  - probe / feasibility warning 必须是 typed enum，不允许 generic string reason。
+- `previewApply` 必须显式传入 canonical `AIScopeRef`（S-AICONF-003）；不允许在
+  caller 省略 scope 时隐式回退到 chat scope 或其他 consumer-default scope。
+- preview 与 commit 之间发生的 live `AIConfig` 变更会使 `baseVersion` 过期；此时
+  `aiProfile.apply` 必须依据 D-AIPC-005 的 scope-level CAS 保护处理，SDK 不得用
+  过期 preview 的 `after` 绕过 commit 端的 version 校验。
+- 该 surface 同时适用于 app scope 与 mod scope；mod consumer 必须通过 Desktop host
+  bridge（S-AICONF-005 / D-AIPC-011）使用 `previewApply`，不得自定义 mod-local
+  preview 真相。
+
 ## Fact Sources
 
-- `.nimi/spec/desktop/kernel/ai-profile-config-contract.md` — D-AIPC-001~012
+- `.nimi/spec/desktop/kernel/ai-profile-config-contract.md` — D-AIPC-001~014
 - `.nimi/spec/platform/kernel/ai-scope-contract.md` — P-AISC-001~006
 - `.nimi/spec/runtime/kernel/ai-profile-execution-contract.md` — K-AIEXEC-001~007
 - `.nimi/spec/runtime/kernel/runtime-memory-service-contract.md` — K-MEM-004~006b

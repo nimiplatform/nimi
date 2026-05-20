@@ -294,6 +294,61 @@ for `desktop.chat.nimi` and `desktop.chat.agent` as defined by `P-AISC-006`.
 - built-in first-run config may not hardcode provider, connector, engine, or
   model identifiers outside the admitted `AIProfile` / `AIConfig` authority
 
+## D-AIPC-014 — Profile Apply Preview Semantics
+
+`D-AIPC-005` 的 atomic apply 是 **commit**。在 commit 之前，系统必须支持一个
+显式、非提交的 **apply preview**：对给定 `scopeRef` + `AIProfile`，计算如果执行
+`D-AIPC-005` apply 会产生的 typed before→after `AIConfig` diff，并返回给 UI 供用户
+确认。
+
+Apply preview 与 commit 是两个独立步骤：
+
+- preview 只计算并返回 diff，不写入任何真相。
+- commit 仍然是 `D-AIPC-005` 定义的 atomic apply，是一个单独的显式调用。
+- preview 不是 commit 的前置必经步骤，但产品 Runtime Ordinary Tasks 要求"先 preview
+  再 apply"的 UX；preview 本身不隐式触发、也不排队 commit。
+
+Preview 计算语义：
+
+- preview 的 `after` 必须反映与 `D-AIPC-005` commit **完全一致**的 full
+  materialization overwrite 语义 — 是 overwrite，不是 merge / partial patch。
+  preview 与后续 commit 之间若使用同一 profile 版本与同一 config base version，
+  产出的 `after` 必须与 commit 实际写入的 `AIConfig` 等价。
+- `before` 是 preview 计算时该 `scopeRef` 的当前 `AIConfig`。若 scope 当前没有
+  `AIConfig`（首次 apply），`before` 为显式 `null`，diff 表示 full creation。
+- diff 必须是 typed before→after 结构，覆盖 `capabilities`、`profileOrigin`、以及
+  其他 `AIConfig` materialized 字段；不允许只返回 free-form 文本摘要或 partial
+  字段子集。
+- preview 必须在产出的 base version 上携带它所基于的 config version / content
+  hash，使 commit 端可以判断 preview 是否仍然 fresh（与 `D-AIPC-005` 并发 apply 的
+  CAS 保护对齐）。
+
+Preview 隔离规则（`MUST NOT`）：
+
+- preview 不得 mutate、persist、或以任何方式改变 scope 的 live `AIConfig`。
+- preview 不得通知 `D-AIPC-005` / `S-AICONF-006` 的 subscriber，不得触发
+  `ConversationCapabilityProjection` 重算。
+- preview 不得生成或回写 `AISnapshot`。
+- preview 不得修改 `AIProfile` 本体或 catalog。
+
+Preview 失败规则（fail closed）：
+
+- 若目标 `AIProfile` 或当前 `AIConfig` base 是 schema invalid，preview 必须
+  fail closed 返回 typed error，不得发出 partial diff 或被截断的 `after`。
+- preview 可附带 runtime availability / resource feasibility 的 probe / 可执行性
+  warning（对齐 `D-AIPC-012` 的 probe taxonomy）；这些 warning 不阻止 preview
+  返回 diff，但 commit 后的 config 是否可执行仍由 `D-AIPC-005` 的 probe 规则约束。
+- preview 不得通过删除失败 capability 字段制造 pseudo-success 的 `after`。
+
+Preview 与 commit 之间发生的 live `AIConfig` 变更（其他 apply / update）会使
+preview 的 base version 过期；此时 commit 端必须依据 `D-AIPC-005` 的 scope-level
+version / CAS 保护处理，不允许把过期 preview 的 `after` 当作权威 commit 输入。
+preview 自身不持有锁，也不冻结 scope。
+
+本规则同时适用于 app scope 与 mod scope；mod consumer 的 apply preview 必须经过
+`D-AIPC-011` 定义的 Desktop host AIConfig bridge，不得自定义 mod-local preview
+真相。
+
 ## Fact Sources
 
 - `agent-chat-behavior-contract.md` — D-LLM-022 ~ D-LLM-026 behavior authority boundary
