@@ -35,6 +35,18 @@ func applyConfigSetOperation(cfg *config.FileConfig, key string, value string) e
 		}
 		cfg.SchemaVersion = parsed
 		return nil
+	case "runtimeId":
+		return fmt.Errorf("runtimeId is immutable and cannot be set; it is generated once at config init")
+	case "localService.enabled":
+		parsed, err := parseBooleanConfigValue(value)
+		if err != nil {
+			return fmt.Errorf("localService.enabled must be boolean: %w", err)
+		}
+		ensureLocalServiceConfig(cfg).Enabled = &parsed
+		return nil
+	case "localService.mode":
+		ensureLocalServiceConfig(cfg).Mode = strings.TrimSpace(value)
+		return nil
 	case "grpcAddr":
 		cfg.GRPCAddr = value
 		return nil
@@ -252,6 +264,14 @@ func applyConfigUnsetOperation(cfg *config.FileConfig, key string) error {
 	switch normalizedKey {
 	case "schemaVersion":
 		return fmt.Errorf("schemaVersion cannot be unset")
+	case "runtimeId":
+		return fmt.Errorf("runtimeId is immutable and cannot be unset")
+	case "localService.enabled":
+		ensureLocalServiceConfig(cfg).Enabled = defaultCfg.LocalService.Enabled
+		return nil
+	case "localService.mode":
+		ensureLocalServiceConfig(cfg).Mode = defaultCfg.LocalService.Mode
+		return nil
 	case "grpcAddr":
 		cfg.GRPCAddr = defaultCfg.GRPCAddr
 		return nil

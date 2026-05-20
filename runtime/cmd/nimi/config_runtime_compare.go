@@ -27,6 +27,9 @@ func restartRequiredFieldsChanged(before, after config.FileConfig) bool {
 	if !fileConfigManagedRootsEqual(before.ManagedRoots, after.ManagedRoots) {
 		return true
 	}
+	if !fileConfigLocalServiceEqual(before.LocalService, after.LocalService) {
+		return true
+	}
 	if strings.TrimSpace(before.DefaultLocalTextModel) != strings.TrimSpace(after.DefaultLocalTextModel) {
 		return true
 	}
@@ -75,6 +78,16 @@ func fileConfigManagedRootsEqual(left *config.FileConfigManagedRoots, right *con
 		strings.TrimSpace(left.Environments) == strings.TrimSpace(right.Environments) &&
 		strings.TrimSpace(left.Logs) == strings.TrimSpace(right.Logs) &&
 		strings.TrimSpace(left.Audit) == strings.TrimSpace(right.Audit)
+}
+
+func fileConfigLocalServiceEqual(left *config.FileConfigLocalService, right *config.FileConfigLocalService) bool {
+	if left == nil || right == nil {
+		return left == nil && right == nil
+	}
+	if !boolPtrEqual(left.Enabled, right.Enabled) {
+		return false
+	}
+	return strings.TrimSpace(left.Mode) == strings.TrimSpace(right.Mode)
 }
 
 func authJWTFieldValue(fileCfg config.FileConfig, selector func(*config.FileConfigJWT) string) string {

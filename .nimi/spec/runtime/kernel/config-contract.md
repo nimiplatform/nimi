@@ -103,15 +103,28 @@ Phase 1 配置文件 `~/.nimi/runtime/config.json` 的权威字段清单由
 
 配置字段的新增或修改必须先更新 `tables/config-schema.yaml`，再同步相关合约文档。
 
-## K-CFG-018 Data Root Reference Boundary
+## K-CFG-018 Data Root Reference And Service Posture Boundary
 
 Runtime config may store `dataRootRef` and derived managed roots for models,
 dependencies, environments, logs, and audit. These fields are Runtime-owned
 daemon/materialization configuration and must be reconciled from the product
 control record selected `nimi_data`.
 
+Runtime config also owns its own daemon identity and service posture:
+
+- `runtimeId` is the stable local Runtime daemon identity. It is generated once
+  at config init and is immutable for the lifetime of the config file.
+- `localService.enabled` and `localService.mode` declare the Runtime local
+  service posture. `localService.mode` is restricted to the closed value
+  `desktop-local` for the on-device Phase 1 product.
+
 Runtime config does not own first-run product state, install level, account app
 library, account profile library, permission grants, or app durable data.
 Conflicts between Runtime config roots and `~/.nimi/nimi.json` selected
 `nimi_data` must fail closed into repair/migration rather than silently choosing
 one path.
+
+The Runtime page `Environment` surface reads the `nimi_data` data-plane roots
+(`models`, `dependencies`, `environments`, `logs`, `audit`) as a Runtime-owned
+read-only data model derived from `dataRootRef` and `managedRoots`; it does not
+introduce a second config authority.

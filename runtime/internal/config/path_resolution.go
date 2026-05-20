@@ -90,3 +90,27 @@ func resolveAppRegistryPath(fileCfg FileConfig) string {
 	}
 	return ""
 }
+
+// resolveRuntimeID resolves the stable local Runtime daemon identity. The
+// config file is the only persistent source; an empty value means config init
+// has not yet generated one. (K-CFG-018)
+func resolveRuntimeID(fileCfg FileConfig) string {
+	return strings.TrimSpace(fileCfg.RuntimeID)
+}
+
+// resolveLocalService resolves the Runtime local service posture. An absent
+// localService object defaults to the admitted desktop-local enabled posture.
+// (K-CFG-018)
+func resolveLocalService(fileCfg FileConfig) LocalServiceConfig {
+	resolved := LocalServiceConfig{Enabled: true, Mode: LocalServiceModeDesktopLocal}
+	if fileCfg.LocalService == nil {
+		return resolved
+	}
+	if fileCfg.LocalService.Enabled != nil {
+		resolved.Enabled = *fileCfg.LocalService.Enabled
+	}
+	if mode := strings.TrimSpace(fileCfg.LocalService.Mode); mode != "" {
+		resolved.Mode = mode
+	}
+	return resolved
+}

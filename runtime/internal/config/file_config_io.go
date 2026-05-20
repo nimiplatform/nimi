@@ -236,6 +236,18 @@ func ValidateFileConfig(fileCfg FileConfig) error {
 	if err := validateOptionalFileConfigInt(fileCfg.LocalAuditCapacity, "localAuditCapacity", 1, 1_000_000); err != nil {
 		return err
 	}
+	if fileCfg.LocalService != nil {
+		if fileCfg.LocalService.Enabled == nil {
+			return fmt.Errorf("localService.enabled is required when localService is set")
+		}
+		mode := strings.TrimSpace(fileCfg.LocalService.Mode)
+		if mode == "" {
+			return fmt.Errorf("localService.mode is required when localService is set")
+		}
+		if mode != LocalServiceModeDesktopLocal {
+			return fmt.Errorf("localService.mode %q is forbidden; only %q is admitted", mode, LocalServiceModeDesktopLocal)
+		}
+	}
 	if fileCfg.Engines != nil {
 		if err := validateOptionalFileConfigPort(fileConfigEngineInt(fileCfg, "llama", "port"), "engines.llama.port"); err != nil {
 			return err

@@ -4,6 +4,9 @@ owner: runtime
 protocol_id: runtime_config_schema
 surfaces:
   - schemaVersion
+  - runtimeId
+  - localService.enabled
+  - localService.mode
   - grpcAddr
   - httpAddr
   - shutdownTimeoutSeconds
@@ -67,6 +70,27 @@ fields:
     reload: immutable
     description: 配置版本号
     source_rule: K-DAEMON-009
+
+  - key: runtimeId
+    type: string
+    default: ""
+    reload: immutable
+    description: Stable local Runtime daemon identity; generated once at config init and never reassigned for the lifetime of the config file
+    source_rule: K-CFG-018
+
+  - key: localService.enabled
+    type: bool
+    default: "true"
+    reload: restart
+    description: Whether the Runtime daemon runs the local AI service plane; false leaves the daemon control-only with local materialization disabled
+    source_rule: K-CFG-018
+
+  - key: localService.mode
+    type: string
+    default: "desktop-local"
+    reload: restart
+    description: Runtime local service posture; desktop-local means the daemon is the on-device local AI service for this machine
+    source_rule: K-CFG-018
 
   - key: grpcAddr
     type: string
@@ -433,6 +457,19 @@ provider_value_schema:
   constraints:
     - apiKey 与 apiKeyEnv 互斥；二者同时设置时写入校验必须拒绝并返回 CONFIG_SECRET_POLICY_VIOLATION
     - source_rule: K-CFG-005
+
+# localService 值约束
+local_service_schema:
+  fields:
+    - key: enabled
+      type: bool
+      required: true
+    - key: mode
+      type: string
+      required: true
+  constraints:
+    - localService.mode 仅允许 closed value "desktop-local"；其他值写入校验必须拒绝并返回 CONFIG_SCHEMA_INVALID
+    - source_rule: K-CFG-018
 
 # reload 列语义
 reload_semantics:

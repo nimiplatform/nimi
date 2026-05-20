@@ -95,6 +95,19 @@ func pruneEmptyAuthConfig(fileCfg *config.FileConfig) {
 	}
 }
 
+func ensureLocalServiceConfig(fileCfg *config.FileConfig) *config.FileConfigLocalService {
+	if fileCfg == nil {
+		return &config.FileConfigLocalService{}
+	}
+	if fileCfg.LocalService == nil {
+		fileCfg.LocalService = &config.FileConfigLocalService{}
+	} else {
+		localServiceCopy := *fileCfg.LocalService
+		fileCfg.LocalService = &localServiceCopy
+	}
+	return fileCfg.LocalService
+}
+
 func ensureEngineConfig(fileCfg *config.FileConfig, engineName string) *config.FileConfigEngine {
 	if fileCfg == nil {
 		return &config.FileConfigEngine{}

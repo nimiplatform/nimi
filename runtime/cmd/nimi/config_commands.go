@@ -113,7 +113,7 @@ func runRuntimeConfigInit(args []string) error {
 		}
 		defer unlock()
 
-		if err := config.WriteFileConfig(path, config.DefaultFileConfig()); err != nil {
+		if err := config.WriteFileConfig(path, config.InitFileConfig()); err != nil {
 			if isSecretPolicyViolation(err) {
 				return newConfigCommandError(configReasonSecretPolicyViolation, "use either apiKey or apiKeyEnv", err)
 			}
@@ -263,6 +263,14 @@ func runRuntimeConfigSet(args []string) error {
 
 	if mutated.SchemaVersion == 0 {
 		mutated.SchemaVersion = config.DefaultSchemaVersion
+	}
+
+	// K-CFG-018: runtimeId is an immutable per-install identity. A mutation
+	// must not change or drop an already-recorded runtimeId. When the prior
+	// config predates the field, carry the post-mutation value through.
+	priorRuntimeID := strings.TrimSpace(previous.RuntimeID)
+	if priorRuntimeID != "" && strings.TrimSpace(mutated.RuntimeID) != priorRuntimeID {
+		return newConfigCommandError(configReasonSchemaInvalid, "runtimeId is immutable; remove it from the mutation payload", fmt.Errorf("runtimeId cannot be changed"))
 	}
 
 	if err := config.ValidateFileConfig(mutated); err != nil {

@@ -10,6 +10,10 @@ const (
 	defaultModelCatalogCustomRelPath = ".nimi/runtime/model-catalog/providers"
 	defaultRuntimeConfigRelPath      = ".nimi/runtime/config.json"
 	defaultCloudGeminiBaseURL        = "https://generativelanguage.googleapis.com/v1beta/openai"
+
+	// LocalServiceModeDesktopLocal is the only admitted localService.mode value
+	// for the on-device Phase 1 product. (K-CFG-018)
+	LocalServiceModeDesktopLocal = "desktop-local"
 )
 
 // Config defines daemon boot configuration. (K-DAEMON-009)
@@ -19,8 +23,17 @@ type Config struct {
 	ShutdownTimeout       time.Duration
 	LocalStatePath        string
 	LocalModelsPath       string
+
+	// RuntimeID is the stable local Runtime daemon identity, generated once at
+	// config init and immutable thereafter. (K-CFG-018)
+	RuntimeID string
+
 	DataRootRef           string
 	ManagedRoots          ManagedRootsConfig
+
+	// LocalService declares the Runtime local service posture. (K-CFG-018)
+	LocalService LocalServiceConfig
+
 	DefaultLocalTextModel string
 	DefaultCloudProvider  string
 
@@ -205,12 +218,14 @@ type Config struct {
 // Pointer types distinguish "not set" from zero value for three-level fallback.
 type FileConfig struct {
 	SchemaVersion          int                     `json:"schemaVersion"`
+	RuntimeID              string                  `json:"runtimeId,omitempty"`
 	GRPCAddr               string                  `json:"grpcAddr,omitempty"`
 	HTTPAddr               string                  `json:"httpAddr,omitempty"`
 	ShutdownTimeoutSeconds *int                    `json:"shutdownTimeoutSeconds,omitempty"`
 	LocalStatePath         string                  `json:"localStatePath,omitempty"`
 	DataRootRef            string                  `json:"dataRootRef,omitempty"`
 	ManagedRoots           *FileConfigManagedRoots `json:"managedRoots,omitempty"`
+	LocalService           *FileConfigLocalService `json:"localService,omitempty"`
 	DefaultLocalTextModel  string                  `json:"defaultLocalTextModel,omitempty"`
 	DefaultCloudProvider   string                  `json:"defaultCloudProvider,omitempty"`
 
@@ -249,6 +264,19 @@ type FileConfigManagedRoots struct {
 	Environments string `json:"environments,omitempty"`
 	Logs         string `json:"logs,omitempty"`
 	Audit        string `json:"audit,omitempty"`
+}
+
+// LocalServiceConfig is the resolved Runtime local service posture. (K-CFG-018)
+type LocalServiceConfig struct {
+	Enabled bool
+	Mode    string
+}
+
+// FileConfigLocalService is the on-disk Runtime local service posture section.
+// Both fields are required when the localService object is present. (K-CFG-018)
+type FileConfigLocalService struct {
+	Enabled *bool  `json:"enabled,omitempty"`
+	Mode    string `json:"mode,omitempty"`
 }
 
 // FileConfigScheduling holds scheduling risk threshold configuration.

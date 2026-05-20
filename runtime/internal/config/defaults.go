@@ -1,20 +1,30 @@
 package config
 
+import "github.com/oklog/ulid/v2"
+
 // intPtr returns a pointer to the given int value.
 func intPtr(v int) *int { return &v }
 
 // boolPtr returns a pointer to the given bool value.
 func boolPtr(v bool) *bool { return &v }
 
+// DefaultFileConfig returns the baseline runtime config shape. RuntimeID is
+// intentionally empty: it is a stable per-install identity assigned once at
+// config init by InitFileConfig, never regenerated on merge/read. (K-CFG-018)
 func DefaultFileConfig() FileConfig {
 	return FileConfig{
 		SchemaVersion:           DefaultSchemaVersion,
+		RuntimeID:               "",
 		GRPCAddr:                defaultGRPCAddr,
 		HTTPAddr:                defaultHTTPAddr,
 		ShutdownTimeoutSeconds:  intPtr(10),
 		LocalStatePath:          "~/" + defaultLocalStateRelPath,
 		DataRootRef:             "",
 		ManagedRoots:            &FileConfigManagedRoots{},
+		LocalService: &FileConfigLocalService{
+			Enabled: boolPtr(true),
+			Mode:    LocalServiceModeDesktopLocal,
+		},
 		AIHealthIntervalSeconds: intPtr(8),
 		AIHTTPTimeoutSeconds:    intPtr(30),
 		GlobalConcurrencyLimit:  intPtr(8),
@@ -30,4 +40,17 @@ func DefaultFileConfig() FileConfig {
 		AppRegistryPath:         "",
 		Providers:               map[string]RuntimeFileTarget{},
 	}
+}
+
+// GenerateRuntimeID returns a fresh stable Runtime daemon identity. (K-CFG-018)
+func GenerateRuntimeID() string {
+	return ulid.Make().String()
+}
+
+// InitFileConfig returns the baseline runtime config with a freshly generated
+// stable RuntimeID. It is the canonical config-init shape. (K-CFG-018)
+func InitFileConfig() FileConfig {
+	cfg := DefaultFileConfig()
+	cfg.RuntimeID = GenerateRuntimeID()
+	return cfg
 }

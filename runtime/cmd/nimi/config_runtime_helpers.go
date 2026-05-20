@@ -19,6 +19,11 @@ func mergeFileConfigWithDefaults(raw config.FileConfig) config.FileConfig {
 	if raw.SchemaVersion != 0 {
 		merged.SchemaVersion = raw.SchemaVersion
 	}
+	merged.RuntimeID = strings.TrimSpace(raw.RuntimeID)
+	if raw.LocalService != nil {
+		localServiceCopy := *raw.LocalService
+		merged.LocalService = &localServiceCopy
+	}
 	if v := strings.TrimSpace(raw.GRPCAddr); v != "" {
 		merged.GRPCAddr = v
 	}
@@ -148,6 +153,14 @@ func cloneFileConfig(fileCfg config.FileConfig) config.FileConfig {
 	if fileCfg.ManagedRoots != nil {
 		managedRootsCopy := *fileCfg.ManagedRoots
 		cloned.ManagedRoots = &managedRootsCopy
+	}
+	if fileCfg.LocalService != nil {
+		localServiceCopy := *fileCfg.LocalService
+		if fileCfg.LocalService.Enabled != nil {
+			enabled := *fileCfg.LocalService.Enabled
+			localServiceCopy.Enabled = &enabled
+		}
+		cloned.LocalService = &localServiceCopy
 	}
 	return cloned
 }
