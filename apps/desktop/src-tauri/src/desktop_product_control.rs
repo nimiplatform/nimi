@@ -488,6 +488,72 @@ pub async fn ensure_account_default_profile_for_product_control(
     read_product_control_projection()
 }
 
+pub async fn ensure_built_in_ai_config_for_product_control(
+) -> Result<ProductControlRecordProjection, String> {
+    let control_path = product_control_record_path()?;
+    let mut record = read_existing_record(&control_path)?.ok_or_else(|| {
+        "~/.nimi/nimi.json is missing; select nimi_data before built-in AIConfig".to_string()
+    })?;
+    let data_root = selected_data_root_path(&record)
+        .ok_or_else(|| "selected nimi_data is required before built-in AIConfig".to_string())?;
+    let install_level = record
+        .first_run
+        .install_level
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .ok_or_else(|| {
+            "first-run install level is required before built-in AIConfig".to_string()
+        })?
+        .to_string();
+    let ai_profile_alias = record
+        .first_run
+        .ai_profile_alias
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .ok_or_else(|| {
+            "first-run aiProfileAlias is required before built-in AIConfig".to_string()
+        })?
+        .to_string();
+    crate::platform_ai_profile_factory_catalog::verify_first_run_factory_ai_profile(
+        &ai_profile_alias,
+        &install_level,
+    )?;
+    let account_id = authenticated_runtime_account_id().await?;
+    let evidence_set = crate::desktop_ai_config_library::ensure_built_in_ai_config_evidence_set(
+        &data_root,
+        &account_id,
+        &ai_profile_alias,
+        &install_level,
+    )?;
+    record.first_run.built_in_ai_config_refs = evidence_set.refs();
+    write_record(&control_path, &record)?;
+    read_product_control_projection()
+}
+
+/// Resolve + verify the recorded `builtInAiConfigRefs` through the Desktop host
+/// AIConfig service for wave-6 `AdmitProductReadyForUse`.
+///
+/// This is the seam wave-6 calls. It does NOT write `ready_for_use`. Fails
+/// closed when either canonical built-in chat scope cannot be resolved, when
+/// the recorded set is partial, or when a string-only ref is supplied.
+///
+/// `dead_code` allowance: the consumer is wave-6 `AdmitProductReadyForUse`,
+/// which is not yet landed.
+#[allow(dead_code)]
+pub async fn resolve_built_in_ai_config_refs_for_admission(
+    built_in_ai_config_refs: &[String],
+) -> Result<crate::desktop_ai_config_library::BuiltInAiConfigEvidenceSet, String> {
+    let data_root = selected_product_data_root()?;
+    let account_id = authenticated_runtime_account_id().await?;
+    crate::desktop_ai_config_library::verify_built_in_ai_config_evidence_set(
+        &data_root,
+        &account_id,
+        built_in_ai_config_refs,
+    )
+}
+
 fn parse_first_run_setup_state(value: &str) -> Result<ProductControlState, String> {
     let quoted = serde_json::to_string(value.trim())
         .map_err(|error| format!("failed to parse first-run setup state: {error}"))?;
@@ -577,6 +643,12 @@ pub fn product_control_record_set_first_run_install_level(
 pub async fn product_control_record_ensure_account_default_profile(
 ) -> Result<ProductControlRecordProjection, String> {
     ensure_account_default_profile_for_product_control().await
+}
+
+#[tauri::command]
+pub async fn product_control_record_ensure_built_in_ai_config(
+) -> Result<ProductControlRecordProjection, String> {
+    ensure_built_in_ai_config_for_product_control().await
 }
 
 #[tauri::command]

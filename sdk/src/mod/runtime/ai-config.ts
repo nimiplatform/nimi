@@ -315,6 +315,18 @@ export type AISchedulingJudgement = {
 const DEFAULT_SCOPE: AIScopeRef = { kind: 'app', ownerId: 'desktop', surfaceId: 'chat' };
 const CANONICAL_MOD_SCOPE_SURFACE_ID = 'workspace';
 
+// ---------------------------------------------------------------------------
+// Built-in first-run chat scopes  (P-AISC-006 / S-AICONF-007)
+// ---------------------------------------------------------------------------
+
+/** Canonical owner of the two built-in first-run chat feature surfaces. */
+const BUILT_IN_CHAT_FEATURE_OWNER_ID = 'desktop.chat';
+
+/** The two canonical built-in first-run chat surface ids (P-AISC-006). */
+export type BuiltInChatSurfaceId = 'nimi' | 'agent';
+
+const BUILT_IN_CHAT_SURFACE_IDS: readonly BuiltInChatSurfaceId[] = ['nimi', 'agent'];
+
 function normalizeRequiredId(value: string, label: string): string {
   const normalized = String(value || '').trim();
   if (!normalized) {
@@ -382,6 +394,167 @@ export function assertCanonicalModAIScopeRef(
     });
   }
   return canonicalScopeRef;
+}
+
+/**
+ * Create a canonical built-in first-run chat AIScopeRef (P-AISC-006).
+ *
+ * Produces the `feature` shape owned by `desktop.chat`:
+ *   - `nimi`  -> { kind: 'feature', ownerId: 'desktop.chat', surfaceId: 'nimi' }
+ *   - `agent` -> { kind: 'feature', ownerId: 'desktop.chat', surfaceId: 'agent' }
+ *
+ * The caller must pass an explicit surface id. There is no omitted-scope
+ * inference and the result is never the generic `DEFAULT_SCOPE`.
+ */
+export function createBuiltInChatAIScopeRef(surfaceId: BuiltInChatSurfaceId): AIScopeRef {
+  const normalized = String(surfaceId || '').trim();
+  if (normalized !== 'nimi' && normalized !== 'agent') {
+    throw createNimiError({
+      message: "built-in chat surface id must be 'nimi' or 'agent'",
+      reasonCode: ReasonCode.ACTION_INPUT_INVALID,
+      actionHint: 'provide_canonical_built_in_chat_surface_id',
+      source: 'sdk',
+    });
+  }
+  return {
+    kind: 'feature',
+    ownerId: BUILT_IN_CHAT_FEATURE_OWNER_ID,
+    surfaceId: normalized,
+  };
+}
+
+/** True when the scope is exactly one of the two canonical built-in chat scopes. */
+export function isBuiltInChatAIScopeRef(scopeRef: AIScopeRef | null | undefined): boolean {
+  if (!scopeRef) {
+    return false;
+  }
+  const surfaceId = String(scopeRef.surfaceId || '').trim();
+  return scopeRef.kind === 'feature'
+    && String(scopeRef.ownerId || '').trim() === BUILT_IN_CHAT_FEATURE_OWNER_ID
+    && (surfaceId === 'nimi' || surfaceId === 'agent');
+}
+
+/**
+ * Assert that the caller provided an exact canonical built-in chat scope.
+ *
+ * Rejects: omitted/null scope, generic `app:desktop:chat`, the retired
+ * `app:desktop.chat.nimi|agent` shape, a merged `desktop.chat` scope with no
+ * `surfaceId`, and any other non-canonical key. SDK never infers the scope.
+ */
+export function assertBuiltInChatAIScopeRef(scopeRef: AIScopeRef | null | undefined): AIScopeRef {
+  if (!scopeRef) {
+    throw createNimiError({
+      message: 'built-in chat AIScopeRef is required and must be provided explicitly',
+      reasonCode: ReasonCode.ACTION_INPUT_INVALID,
+      actionHint: 'provide_explicit_built_in_chat_scope_ref',
+      source: 'sdk',
+    });
+  }
+  if (!isBuiltInChatAIScopeRef(scopeRef)) {
+    throw createNimiError({
+      message:
+        "built-in chat AIScopeRef must equal feature:desktop.chat:nimi or feature:desktop.chat:agent",
+      reasonCode: ReasonCode.ACTION_INPUT_INVALID,
+      actionHint: 'use_canonical_built_in_chat_scope_ref',
+      source: 'sdk',
+    });
+  }
+  return createBuiltInChatAIScopeRef(scopeRef.surfaceId as BuiltInChatSurfaceId);
+}
+
+/** The canonical first-run built-in chat scope set, in stable order (P-AISC-006). */
+export function builtInChatAIScopeRefs(): AIScopeRef[] {
+  return BUILT_IN_CHAT_SURFACE_IDS.map((surfaceId) => createBuiltInChatAIScopeRef(surfaceId));
+}
+
+// ---------------------------------------------------------------------------
+// First-run built-in AIConfig evidence helper  (S-AICONF-007)
+// ---------------------------------------------------------------------------
+
+/**
+ * One backend-issued durable built-in AIConfig evidence ref.
+ *
+ * The SDK keeps `ref` opaque: it does not mint, parse, or string-validate it.
+ * Verification belongs to the Desktop host AIConfig service (D-AIPC-013).
+ */
+export type BuiltInAiConfigEvidenceRef = {
+  scopeRef: AIScopeRef;
+  ref: string;
+};
+
+/** Result of a first-run built-in AIConfig finalization apply (S-AICONF-007). */
+export type FirstRunBuiltInAiConfigResult = {
+  builtInAiConfigRefs: BuiltInAiConfigEvidenceRef[];
+};
+
+/**
+ * Apply the selected first-run baseline AIProfile to a single explicit
+ * canonical built-in chat scope, delegating durable evidence minting to the
+ * host AIConfig service (S-AICONF-007).
+ *
+ * The `applyHostAiConfig` callback is the Desktop host AIConfig authority seam:
+ * it owns atomic apply (D-AIPC-005) and returns the host/backend-issued durable
+ * evidence ref. The SDK never mints the ref, never accepts a caller-provided
+ * string as evidence, and never infers the scope from an omitted argument.
+ */
+export async function applyFirstRunBuiltInChatAIConfig(input: {
+  scopeRef: AIScopeRef;
+  profile: AIProfile;
+  applyHostAiConfig: (boundScopeRef: AIScopeRef, profile: AIProfile) => Promise<string>;
+}): Promise<BuiltInAiConfigEvidenceRef> {
+  const boundScopeRef = assertBuiltInChatAIScopeRef(input.scopeRef);
+  const validation = validateAIProfile(input.profile);
+  if (!validation.valid) {
+    throw createNimiError({
+      message: `first-run built-in chat AIProfile is invalid: ${validation.errors.join('; ')}`,
+      reasonCode: ReasonCode.ACTION_INPUT_INVALID,
+      actionHint: 'provide_valid_first_run_built_in_chat_ai_profile',
+      source: 'sdk',
+    });
+  }
+  if (typeof input.applyHostAiConfig !== 'function') {
+    throw createNimiError({
+      message: 'first-run built-in chat AIConfig requires a host AIConfig apply authority',
+      reasonCode: ReasonCode.ACTION_INPUT_INVALID,
+      actionHint: 'provide_host_ai_config_apply_authority',
+      source: 'sdk',
+    });
+  }
+  const ref = String(await input.applyHostAiConfig(boundScopeRef, input.profile) || '').trim();
+  if (!ref) {
+    throw createNimiError({
+      message: 'host AIConfig service did not return a durable built-in AIConfig ref',
+      reasonCode: ReasonCode.ACTION_INPUT_INVALID,
+      actionHint: 'host_ai_config_service_must_return_durable_ref',
+      source: 'sdk',
+    });
+  }
+  return { scopeRef: boundScopeRef, ref };
+}
+
+/**
+ * Apply the selected first-run baseline AIProfile to BOTH canonical built-in
+ * chat scopes (`desktop.chat.nimi` and `desktop.chat.agent`) and collect the
+ * host-issued durable evidence refs (S-AICONF-007 / D-AIPC-013).
+ *
+ * Fails closed if either scope's apply fails — no partial built-in set is
+ * returned. The generic `DEFAULT_SCOPE` is never reachable from this path.
+ */
+export async function applyFirstRunBuiltInChatAIConfigs(input: {
+  profile: AIProfile;
+  applyHostAiConfig: (boundScopeRef: AIScopeRef, profile: AIProfile) => Promise<string>;
+}): Promise<FirstRunBuiltInAiConfigResult> {
+  const builtInAiConfigRefs: BuiltInAiConfigEvidenceRef[] = [];
+  for (const scopeRef of builtInChatAIScopeRefs()) {
+    builtInAiConfigRefs.push(
+      await applyFirstRunBuiltInChatAIConfig({
+        scopeRef,
+        profile: input.profile,
+        applyHostAiConfig: input.applyHostAiConfig,
+      }),
+    );
+  }
+  return { builtInAiConfigRefs };
 }
 
 /** Create an empty AIConfig for a given scope. */
