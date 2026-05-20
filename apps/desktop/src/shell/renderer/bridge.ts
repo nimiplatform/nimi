@@ -1,4 +1,5 @@
 import {
+  admitProductReadyForUse,
   appendLocalRuntimeInferenceAudit,
   confirmPrivateSync,
   completeMenuBarQuit,
@@ -242,6 +243,7 @@ export const desktopBridge = {
   selectProductDataRoot,
   setProductFirstRunInstallLevel,
   setProductFirstRunSetupState,
+  admitProductReadyForUse,
   loadAuthSession,
   proxyHttp,
   openExternalUrl,

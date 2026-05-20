@@ -1,0 +1,89 @@
+{
+  "eyebrow": "首次运行",
+  "gateEyebrow": "Nimi",
+  "gateTitle": "首次运行设置",
+  "dataRootLabel": "nimi_data",
+  "dataRootConfirm": "确认",
+  "installLevelNoPlan": "没有可用的本地方案",
+  "materializationConfirmationBody": "在首次进行网络或大量本地存储设置前，运行时需要显式确认。开始本地设置以物化所选 AIProfile 的依赖。",
+  "materializationStart": "开始本地设置",
+  "materializationTitle": "运行时本地设置",
+  "materializationEvidenceNote": "{{reason}}。该进度仅为运行时证据；ready_for_use 仍需要产品控制完成证据。",
+  "materializationCancel": "取消",
+  "materializationRetry": "重试",
+  "materializationRepair": "修复",
+  "finalizationTitle": "正在收尾",
+  "finalizationRetry": "重试收尾",
+  "states": {
+    "not_logged_in": {
+      "title": "登录后即可使用 Nimi。",
+      "body": "在存在已认证的账户会话后，才会开始正常的产品使用。"
+    },
+    "config_missing": {
+      "title": "Nimi 正在创建本地产品记录。",
+      "body": "这是一个内部设置步骤。产品记录存在后才会出现数据位置选择。"
+    },
+    "data_root_missing": {
+      "title": "选择 Nimi 存储模型、应用和大型本地数据的位置。",
+      "body": "请使用绝对文件夹路径。Nimi 会在该处创建模型、依赖、应用、日志、审计和缓存目录。"
+    },
+    "data_root_selected": {
+      "title": "Nimi 正在检查此设备。",
+      "body": "已记录所选的数据根目录。在繁重设置开始前请选择本地安装级别。"
+    },
+    "ai_environment_unconfigured": {
+      "title": "选择要安装多少本地 Nimi 环境。",
+      "body": "最小和推荐均为仅本地的基线。云连接器仍属于初始化后的设置。"
+    },
+    "local_ai_profile_selected_assets_missing": {
+      "title": "Nimi 正在下载并校验所需的本地模型和依赖。",
+      "body": "在正常产品使用开启前，运行时所属的物化进度必须完成。"
+    },
+    "local_ai_profile_selected_environment_not_ready": {
+      "title": "Nimi 正在准备其托管的本地环境。",
+      "body": "运行时激活证据仍缺失或不完整。"
+    },
+    "local_ai_assets_downloaded_environment_not_ready": {
+      "title": "Nimi 已获得文件，但本地环境仍需修复。",
+      "body": "本地资产已存在，但激活尚未产生就绪证据。"
+    },
+    "local_ai_ready": {
+      "title": "Nimi 正在完成你的默认 AI 设置。",
+      "body": "账户默认 Profile、内置 AIConfig 和基线执行证据仍需收尾。"
+    },
+    "repair_required": {
+      "title": "Nimi 需要在正常使用前修复一个必需的本地组件。",
+      "body": "修复必须恢复缺失的产品控制、数据根目录、运行时、Profile 或执行证据。"
+    },
+    "blocked": {
+      "title": "Nimi 暂时无法安全继续。",
+      "body": "解决阻塞原因后，Nimi 会重新评估首次运行状态机。"
+    },
+    "ready_for_use": {
+      "title": "Nimi 已就绪。",
+      "body": "正常产品使用会打开到聊天和 Nimi Chat。"
+    }
+  },
+  "capabilities": {
+    "text.generate": "本地聊天",
+    "text.embed": "本地检索",
+    "audio.transcribe": "基础语音转文字",
+    "audio.synthesize": "基础语音合成",
+    "image.generate": "本地图像",
+    "image.edit": "本地图像编辑",
+    "text.generate.vision": "本地视觉文本"
+  },
+  "errors": {
+    "dataRootAbsoluteRequired": "请输入绝对 nimi_data 文件夹路径。",
+    "dataRootRecordFailed": "记录 nimi_data 失败。",
+    "installLevelNoProfile": "{{installLevel}} 没有可用的本地首次运行 AIProfile。",
+    "installLevelSelectFailed": "选择 {{installLevel}} 失败。",
+    "materializationPrerequisitesMissing": "在运行时设置前，请选择首次运行安装级别和绝对 nimi_data 路径。",
+    "materializationStartFailed": "启动运行时物化失败。",
+    "materializationObserveFailed": "观测运行时物化失败。",
+    "materializationCancelFailed": "取消运行时任务失败。",
+    "materializationRetryFailed": "重试运行时任务失败。",
+    "materializationRepairFailed": "修复运行时依赖失败。",
+    "finalizationRequestFailed": "请求首次运行收尾失败。"
+  }
+}

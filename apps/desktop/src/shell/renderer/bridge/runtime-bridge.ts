@@ -21,6 +21,7 @@ import { getSystemResourceSnapshot } from './runtime-bridge/system-resources';
 import { proxyHttp } from './runtime-bridge/http';
 import { getRuntimeDefaults } from './runtime-bridge/runtime-defaults';
 import {
+  admitProductReadyForUse,
   getProductControlRecord,
   selectProductDataRoot,
   setProductFirstRunInstallLevel,
@@ -197,6 +198,7 @@ export {
   selectProductDataRoot,
   setProductFirstRunInstallLevel,
   setProductFirstRunSetupState,
+  admitProductReadyForUse,
   loadAuthSession,
   saveAuthSession,
   clearAuthSession,
@@ -285,6 +287,7 @@ export const desktopBridge = {
   selectProductDataRoot,
   setProductFirstRunInstallLevel,
   setProductFirstRunSetupState,
+  admitProductReadyForUse,
   startWindowDrag,
   proxyHttp,
   openExternalUrl,

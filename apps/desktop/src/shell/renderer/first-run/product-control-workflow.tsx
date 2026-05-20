@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useState, type ReactElement } from 'react';
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { loadPlatformAIProfileFactoryRows } from '../../../runtime/platform-catalog/index.js';
-import { desktopBridge, type ProductControlRecordProjection, type ProductControlState } from '../bridge/runtime-bridge.js';
+import { desktopBridge, type ProductControlRecordProjection, type ProductControlState } from '@renderer/bridge';
+import { FirstRunFinalization } from './first-run-finalization.js';
 import { selectFactoryAIProfileForFirstRun, type FirstRunInstallLevel } from './install-level-policy.js';
 import {
   cancelFirstRunMaterializationJob,
@@ -17,7 +20,14 @@ type ProductControlWorkflowProps = {
   readonly onProjectionChange: (projection: ProductControlRecordProjection) => void;
 };
 
-const PRODUCT_COPY: Record<ProductControlState, { title: string; body: string }> = {
+/**
+ * Spec-admitted product copy floor (first-run-state-machine.yaml). The English
+ * default values mirror the spec verbatim; i18n keys under `FirstRun.states.*`
+ * carry the localized projections without collapsing the per-state semantics
+ * (cold-start-authority-contract P-COLD-014: no generic `ready`/`done`
+ * collapse, no enum names as primary copy).
+ */
+const PRODUCT_COPY_DEFAULTS: Record<ProductControlState, { title: string; body: string }> = {
   not_logged_in: {
     title: 'Sign in to use Nimi.',
     body: 'Normal product use starts after an authenticated account session exists.',
@@ -68,6 +78,14 @@ const PRODUCT_COPY: Record<ProductControlState, { title: string; body: string }>
   },
 };
 
+function productCopy(t: TFunction, state: ProductControlState): { title: string; body: string } {
+  const defaults = PRODUCT_COPY_DEFAULTS[state];
+  return {
+    title: t(`FirstRun.states.${state}.title`, { defaultValue: defaults.title }),
+    body: t(`FirstRun.states.${state}.body`, { defaultValue: defaults.body }),
+  };
+}
+
 const ORDERED_STATES: readonly ProductControlState[] = [
   'not_logged_in',
   'config_missing',
@@ -109,20 +127,23 @@ function canChooseInstallLevel(state: ProductControlState, projection: ProductCo
     );
 }
 
-function capabilitySummary(capabilities: readonly string[]): string {
+const CAPABILITY_LABEL_DEFAULTS: Record<string, string> = {
+  'text.generate': 'local chat',
+  'text.embed': 'local retrieval',
+  'audio.transcribe': 'basic STT',
+  'audio.synthesize': 'basic TTS',
+  'image.generate': 'local image',
+  'image.edit': 'local image edit',
+  'text.generate.vision': 'local vision text',
+};
+
+function capabilitySummary(t: TFunction, capabilities: readonly string[]): string {
   const labels = capabilities
     .filter((capability) => capability !== 'video.generate')
     .map((capability) => {
-      switch (capability) {
-        case 'text.generate': return 'local chat';
-        case 'text.embed': return 'local retrieval';
-        case 'audio.transcribe': return 'basic STT';
-        case 'audio.synthesize': return 'basic TTS';
-        case 'image.generate': return 'local image';
-        case 'image.edit': return 'local image edit';
-        case 'text.generate.vision': return 'local vision text';
-        default: return capability;
-      }
+      const defaultLabel = CAPABILITY_LABEL_DEFAULTS[capability];
+      if (!defaultLabel) return capability;
+      return t(`FirstRun.capabilities.${capability}`, { defaultValue: defaultLabel });
     });
   return Array.from(new Set(labels)).join(', ');
 }
@@ -136,9 +157,10 @@ function canPersistSetupState(state: ProductControlState): state is Exclude<Prod
 }
 
 export function ProductControlWorkflow(props: ProductControlWorkflowProps): ReactElement {
+  const { t } = useTranslation();
   const projection = props.projection;
   const state = projection?.state ?? 'config_missing';
-  const copy = PRODUCT_COPY[state];
+  const copy = productCopy(t, state);
   const [dataRoot, setDataRoot] = useState(projection?.record?.dataRoot?.path ?? '');
   const [pendingAction, setPendingAction] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(projection?.error ?? null);
@@ -160,7 +182,10 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
   }, [projection]);
 
   useEffect(() => {
-    if (!selectedPlan || !selectedDataRoot || state === 'ai_environment_unconfigured') {
+    // At `local_ai_ready` the Runtime materialization phase is already
+    // complete; the renderer shows backend-driven finalization instead, so the
+    // materialization observer is not active here.
+    if (!selectedPlan || !selectedDataRoot || state === 'ai_environment_unconfigured' || state === 'local_ai_ready') {
       setMaterialization(null);
       return;
     }
@@ -184,7 +209,7 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
         }
       } catch (nextError) {
         if (!disposed) {
-          setError(nextError instanceof Error ? nextError.message : 'Failed to observe Runtime materialization.');
+          setError(nextError instanceof Error ? nextError.message : t('FirstRun.errors.materializationObserveFailed', { defaultValue: 'Failed to observe Runtime materialization.' }));
         }
       }
     }
@@ -198,7 +223,7 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
 
   async function selectDataRoot(): Promise<void> {
     if (!isAbsolutePath(dataRoot)) {
-      setError('Enter an absolute nimi_data folder path.');
+      setError(t('FirstRun.errors.dataRootAbsoluteRequired', { defaultValue: 'Enter an absolute nimi_data folder path.' }));
       return;
     }
     setPendingAction('data-root');
@@ -206,7 +231,7 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
     try {
       props.onProjectionChange(await desktopBridge.selectProductDataRoot(dataRoot));
     } catch (nextError) {
-      setError(nextError instanceof Error ? nextError.message : 'Failed to record nimi_data.');
+      setError(nextError instanceof Error ? nextError.message : t('FirstRun.errors.dataRootRecordFailed', { defaultValue: 'Failed to record nimi_data.' }));
     } finally {
       setPendingAction(null);
     }
@@ -215,7 +240,7 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
   async function selectInstallLevel(installLevel: FirstRunInstallLevel): Promise<void> {
     const plan = installPlans[installLevel];
     if (!plan) {
-      setError(`${installLevel} has no admitted local first-run AIProfile.`);
+      setError(t('FirstRun.errors.installLevelNoProfile', { installLevel, defaultValue: '{{installLevel}} has no admitted local first-run AIProfile.' }));
       return;
     }
     setPendingAction(installLevel);
@@ -226,7 +251,7 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
         aiProfileAlias: plan.alias,
       }));
     } catch (nextError) {
-      setError(nextError instanceof Error ? nextError.message : `Failed to select ${installLevel}.`);
+      setError(nextError instanceof Error ? nextError.message : t('FirstRun.errors.installLevelSelectFailed', { installLevel, defaultValue: 'Failed to select {{installLevel}}.' }));
     } finally {
       setPendingAction(null);
     }
@@ -243,7 +268,7 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
 
   async function beginRuntimeMaterialization(): Promise<void> {
     if (!selectedPlan || !selectedDataRoot) {
-      setError('Select a first-run install level and absolute nimi_data path before Runtime setup.');
+      setError(t('FirstRun.errors.materializationPrerequisitesMissing', { defaultValue: 'Select a first-run install level and absolute nimi_data path before Runtime setup.' }));
       return;
     }
     setPendingAction('materialization-start');
@@ -256,7 +281,7 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
       });
       await projectMaterialization(next);
     } catch (nextError) {
-      setError(nextError instanceof Error ? nextError.message : 'Failed to start Runtime materialization.');
+      setError(nextError instanceof Error ? nextError.message : t('FirstRun.errors.materializationStartFailed', { defaultValue: 'Failed to start Runtime materialization.' }));
     } finally {
       setPendingAction(null);
     }
@@ -273,7 +298,7 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
         jobId: item.job.jobId,
       }));
     } catch (nextError) {
-      setError(nextError instanceof Error ? nextError.message : 'Failed to cancel Runtime job.');
+      setError(nextError instanceof Error ? nextError.message : t('FirstRun.errors.materializationCancelFailed', { defaultValue: 'Failed to cancel Runtime job.' }));
     } finally {
       setPendingAction(null);
     }
@@ -291,7 +316,7 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
         confirmed: true,
       }));
     } catch (nextError) {
-      setError(nextError instanceof Error ? nextError.message : 'Failed to retry Runtime job.');
+      setError(nextError instanceof Error ? nextError.message : t('FirstRun.errors.materializationRetryFailed', { defaultValue: 'Failed to retry Runtime job.' }));
     } finally {
       setPendingAction(null);
     }
@@ -310,7 +335,7 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
         reasonCode: item.dependency.reasonCode ?? item.job?.failureDetail ?? materialization?.reason,
       }));
     } catch (nextError) {
-      setError(nextError instanceof Error ? nextError.message : 'Failed to repair Runtime dependency.');
+      setError(nextError instanceof Error ? nextError.message : t('FirstRun.errors.materializationRepairFailed', { defaultValue: 'Failed to repair Runtime dependency.' }));
     } finally {
       setPendingAction(null);
     }
@@ -319,7 +344,7 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
   return (
     <section data-testid="product-first-run-workflow" data-product-state={state} className="flex flex-col gap-5">
       <div className="flex flex-col gap-2">
-        <p className="text-xs font-semibold uppercase text-[var(--nimi-text-secondary)]">First run</p>
+        <p className="text-xs font-semibold uppercase text-[var(--nimi-text-secondary)]">{t('FirstRun.eyebrow', { defaultValue: 'First run' })}</p>
         <h2 className="text-lg font-semibold text-[var(--nimi-text-primary)]">{copy.title}</h2>
         <p className="text-sm leading-6 text-[var(--nimi-text-secondary)]">{copy.body}</p>
       </div>
@@ -347,7 +372,7 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
                     : 'border-[color:var(--nimi-border-subtle)] text-[var(--nimi-text-muted)]'
               }`}
             >
-              {PRODUCT_COPY[item].title}
+              {productCopy(t, item).title}
             </li>
           );
         })}
@@ -356,7 +381,7 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
       {canChooseDataRoot(state, projection) ? (
         <div data-testid="product-first-run-data-root" className="flex flex-col gap-3 rounded-lg border border-[color:var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_82%,transparent)] p-3">
           <label className="text-sm font-medium text-[var(--nimi-text-primary)]" htmlFor="product-first-run-data-root-input">
-            nimi_data
+            {t('FirstRun.dataRootLabel', { defaultValue: 'nimi_data' })}
           </label>
           <div className="flex flex-col gap-2 sm:flex-row">
             <input
@@ -374,7 +399,7 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
               onClick={() => void selectDataRoot()}
               className="min-h-10 rounded-md bg-[var(--nimi-accent)] px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
             >
-              Confirm
+              {t('FirstRun.dataRootConfirm', { defaultValue: 'Confirm' })}
             </button>
           </div>
         </div>
@@ -401,7 +426,7 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
               >
                 <span className="block text-base font-semibold capitalize text-[var(--nimi-text-primary)]">{installLevel}</span>
                 <span className="mt-2 block text-sm leading-6 text-[var(--nimi-text-secondary)]">
-                  {plan ? capabilitySummary(plan.capabilitySet) : 'No admitted local plan'}
+                  {plan ? capabilitySummary(t, plan.capabilitySet) : t('FirstRun.installLevelNoPlan', { defaultValue: 'No admitted local plan' })}
                 </span>
                 {plan ? (
                   <span className="mt-3 block text-xs font-medium text-[var(--nimi-text-muted)]">
@@ -417,7 +442,7 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
       {projection?.record?.firstRun.installLevel && state === 'ai_environment_unconfigured' ? (
         <div data-testid="product-first-run-materialization-confirmation" className="flex flex-col gap-3 rounded-lg border border-[color:var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_82%,transparent)] p-3">
           <p className="text-sm leading-6 text-[var(--nimi-text-secondary)]">
-            Runtime requires explicit confirmation before first network or storage-heavy local setup. Start local setup to materialize the selected AIProfile dependencies.
+            {t('FirstRun.materializationConfirmationBody', { defaultValue: 'Runtime requires explicit confirmation before first network or storage-heavy local setup. Start local setup to materialize the selected AIProfile dependencies.' })}
           </p>
           <button
             type="button"
@@ -426,17 +451,21 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
             onClick={() => void beginRuntimeMaterialization()}
             className="min-h-10 w-fit rounded-md bg-[var(--nimi-accent)] px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
           >
-            Start local setup
+            {t('FirstRun.materializationStart', { defaultValue: 'Start local setup' })}
           </button>
         </div>
       ) : null}
 
-      {materialization ? (
+      {state === 'local_ai_ready' && projection ? (
+        <FirstRunFinalization projection={projection} onProjectionChange={props.onProjectionChange} />
+      ) : null}
+
+      {materialization && state !== 'local_ai_ready' ? (
         <div data-testid="product-first-run-materialization-progress" data-materialization-status={materialization.status} className="flex flex-col gap-3 rounded-lg border border-[color:var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_82%,transparent)] p-3">
           <div className="flex flex-col gap-1">
-            <p className="text-sm font-semibold text-[var(--nimi-text-primary)]">Runtime local setup</p>
+            <p className="text-sm font-semibold text-[var(--nimi-text-primary)]">{t('FirstRun.materializationTitle', { defaultValue: 'Runtime local setup' })}</p>
             <p className="text-sm leading-6 text-[var(--nimi-text-secondary)]">
-              {materialization.reason}. This progress is Runtime evidence only; ready_for_use still requires product-control completion evidence.
+              {t('FirstRun.materializationEvidenceNote', { reason: materialization.reason, defaultValue: '{{reason}}. This progress is Runtime evidence only; ready_for_use still requires product-control completion evidence.' })}
             </p>
           </div>
           <div className="grid gap-2">
@@ -461,7 +490,7 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
                         onClick={() => void cancelRuntimeJob(item)}
                         className="min-h-8 rounded-md border border-[color:var(--nimi-border-subtle)] px-3 text-xs font-medium text-[var(--nimi-text-primary)] disabled:cursor-not-allowed disabled:opacity-50"
                       >
-                        Cancel
+                        {t('FirstRun.materializationCancel', { defaultValue: 'Cancel' })}
                       </button>
                     ) : null}
                     {canRetry ? (
@@ -472,7 +501,7 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
                         onClick={() => void retryRuntimeJob(item)}
                         className="min-h-8 rounded-md border border-[color:var(--nimi-border-subtle)] px-3 text-xs font-medium text-[var(--nimi-text-primary)] disabled:cursor-not-allowed disabled:opacity-50"
                       >
-                        Retry
+                        {t('FirstRun.materializationRetry', { defaultValue: 'Retry' })}
                       </button>
                     ) : null}
                     {canRepair ? (
@@ -483,7 +512,7 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
                         onClick={() => void repairRuntimeDependency(item)}
                         className="min-h-8 rounded-md border border-[color:var(--nimi-border-subtle)] px-3 text-xs font-medium text-[var(--nimi-text-primary)] disabled:cursor-not-allowed disabled:opacity-50"
                       >
-                        Repair
+                        {t('FirstRun.materializationRepair', { defaultValue: 'Repair' })}
                       </button>
                     ) : null}
                   </div>

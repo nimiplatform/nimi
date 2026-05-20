@@ -38,7 +38,8 @@
       "^Google$",
       "^Google login$",
       "^Nimi$",
-      "^(mp3|wav|ogg|pcm|auto|base64|url)$"
+      "^(mp3|wav|ogg|pcm|auto|base64|url)$",
+      "^/absolute/path/to/nimi_data$"
     ]
   }
 }

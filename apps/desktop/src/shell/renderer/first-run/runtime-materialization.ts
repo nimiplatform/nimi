@@ -1,6 +1,6 @@
 import { localRuntime, type LocalRuntimeEnvironmentDependencyJob, type LocalRuntimeEnvironmentPlanDependency, type LocalRuntimeFacade } from '../../../runtime/local-runtime/index.js';
 import type { PlatformAIProfileFactoryRow } from '../../../runtime/platform-catalog/index.js';
-import type { ProductControlState } from '../bridge/runtime-bridge.js';
+import type { ProductControlState } from '@renderer/bridge';
 
 export const FIRST_RUN_MATERIALIZATION_CONSUMER_SCOPE = 'desktop.first-run';
 

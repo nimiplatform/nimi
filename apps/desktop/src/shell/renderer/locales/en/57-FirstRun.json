@@ -1,0 +1,89 @@
+{
+  "eyebrow": "First run",
+  "gateEyebrow": "Nimi",
+  "gateTitle": "First run setup",
+  "dataRootLabel": "nimi_data",
+  "dataRootConfirm": "Confirm",
+  "installLevelNoPlan": "No admitted local plan",
+  "materializationConfirmationBody": "Runtime requires explicit confirmation before first network or storage-heavy local setup. Start local setup to materialize the selected AIProfile dependencies.",
+  "materializationStart": "Start local setup",
+  "materializationTitle": "Runtime local setup",
+  "materializationEvidenceNote": "{{reason}}. This progress is Runtime evidence only; ready_for_use still requires product-control completion evidence.",
+  "materializationCancel": "Cancel",
+  "materializationRetry": "Retry",
+  "materializationRepair": "Repair",
+  "finalizationTitle": "Finalizing",
+  "finalizationRetry": "Retry finalization",
+  "states": {
+    "not_logged_in": {
+      "title": "Sign in to use Nimi.",
+      "body": "Normal product use starts after an authenticated account session exists."
+    },
+    "config_missing": {
+      "title": "Nimi is creating its local product record.",
+      "body": "This is an internal setup step. Data location selection appears after the product record exists."
+    },
+    "data_root_missing": {
+      "title": "Choose where Nimi stores models, apps, and large local data.",
+      "body": "Use an absolute folder path. Nimi creates models, dependencies, apps, logs, audit, and cache roots there."
+    },
+    "data_root_selected": {
+      "title": "Nimi is checking this device.",
+      "body": "The selected data root is recorded. Choose a local install level before heavy setup starts."
+    },
+    "ai_environment_unconfigured": {
+      "title": "Choose how much of the local Nimi environment to install.",
+      "body": "Minimal and Recommended are local-only baselines. Cloud connectors remain post-initialization settings."
+    },
+    "local_ai_profile_selected_assets_missing": {
+      "title": "Nimi is downloading and verifying required local models and dependencies.",
+      "body": "Runtime-owned materialization progress must finish before normal product use opens."
+    },
+    "local_ai_profile_selected_environment_not_ready": {
+      "title": "Nimi is preparing its managed local environment.",
+      "body": "Runtime activation evidence is still missing or incomplete."
+    },
+    "local_ai_assets_downloaded_environment_not_ready": {
+      "title": "Nimi has the files, but the local environment still needs repair.",
+      "body": "The local assets are present, but activation has not produced ready evidence."
+    },
+    "local_ai_ready": {
+      "title": "Nimi is finishing your default AI setup.",
+      "body": "Account Default Profile, built-in AIConfigs, and baseline execution evidence still need finalization."
+    },
+    "repair_required": {
+      "title": "Nimi needs to repair a required local component before normal use.",
+      "body": "Repair must restore the missing product-control, data-root, Runtime, profile, or execution evidence."
+    },
+    "blocked": {
+      "title": "Nimi cannot continue safely yet.",
+      "body": "Resolve the blocking cause, then Nimi will re-evaluate the first-run state machine."
+    },
+    "ready_for_use": {
+      "title": "Nimi is ready.",
+      "body": "Normal product use opens to Chat and Nimi Chat."
+    }
+  },
+  "capabilities": {
+    "text.generate": "local chat",
+    "text.embed": "local retrieval",
+    "audio.transcribe": "basic STT",
+    "audio.synthesize": "basic TTS",
+    "image.generate": "local image",
+    "image.edit": "local image edit",
+    "text.generate.vision": "local vision text"
+  },
+  "errors": {
+    "dataRootAbsoluteRequired": "Enter an absolute nimi_data folder path.",
+    "dataRootRecordFailed": "Failed to record nimi_data.",
+    "installLevelNoProfile": "{{installLevel}} has no admitted local first-run AIProfile.",
+    "installLevelSelectFailed": "Failed to select {{installLevel}}.",
+    "materializationPrerequisitesMissing": "Select a first-run install level and absolute nimi_data path before Runtime setup.",
+    "materializationStartFailed": "Failed to start Runtime materialization.",
+    "materializationObserveFailed": "Failed to observe Runtime materialization.",
+    "materializationCancelFailed": "Failed to cancel Runtime job.",
+    "materializationRetryFailed": "Failed to retry Runtime job.",
+    "materializationRepairFailed": "Failed to repair Runtime dependency.",
+    "finalizationRequestFailed": "Failed to request first-run finalization."
+  }
+}

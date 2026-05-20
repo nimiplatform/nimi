@@ -4,6 +4,7 @@ export type { LibraryEntry, LibraryProjection } from './library-projection.js';
 export { FirstRunReadinessView } from './readiness-view.js';
 export type { FirstRunReadinessViewProps } from './readiness-view.js';
 export { ProductControlWorkflow } from './product-control-workflow.js';
+export { FirstRunFinalization } from './first-run-finalization.js';
 export type { FirstRunInstallLevel } from './install-level-policy.js';
 export {
   isAdmittedFirstRunLocalBaseline,

@@ -1,4 +1,5 @@
 import { useEffect, useState, type ReactElement } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ScrollArea, Surface } from '@nimiplatform/nimi-kit/ui';
 import { desktopBridge, type ProductControlRecordProjection } from '@renderer/bridge';
 import { ProductControlWorkflow } from '../../first-run/index.js';
@@ -33,6 +34,7 @@ function useProductControlRecord(): {
 }
 
 export function FirstRunGatePanel(): ReactElement {
+  const { t } = useTranslation();
   const { projection, setProjection } = useProductControlRecord();
 
   return (
@@ -43,8 +45,8 @@ export function FirstRunGatePanel(): ReactElement {
         contentClassName="mx-auto flex w-full max-w-4xl flex-col gap-5 px-5 py-5"
       >
         <header className="flex flex-col gap-2">
-          <p className="text-xs font-semibold uppercase text-[var(--nimi-text-secondary)]">Nimi</p>
-          <h1 className="text-3xl font-semibold text-[var(--nimi-text-primary)]">First run setup</h1>
+          <p className="text-xs font-semibold uppercase text-[var(--nimi-text-secondary)]">{t('FirstRun.gateEyebrow', { defaultValue: 'Nimi' })}</p>
+          <h1 className="text-3xl font-semibold text-[var(--nimi-text-primary)]">{t('FirstRun.gateTitle', { defaultValue: 'First run setup' })}</h1>
         </header>
         <Surface tone="panel" material="glass-regular" padding="none" className="min-h-[258px] p-5 shadow-[0_16px_44px_rgba(15,23,42,0.06)]">
           <ProductControlWorkflow projection={projection} onProjectionChange={setProjection} />

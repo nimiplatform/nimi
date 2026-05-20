@@ -113,7 +113,7 @@
     "check:desktop-cloud-runtime-only": "node scripts/check-desktop-cloud-runtime-only.mjs",
     "check:desktop-chat-authority-anti-patterns": "node scripts/check-desktop-chat-authority-anti-patterns.mjs",
     "check:no-legacy-cloud-provider-keys": "node scripts/check-no-legacy-cloud-provider-keys.mjs",
-    "check:no-local-ai-private-calls": "if ./scripts/rg.sh -n \"['\\\"]local_ai_[a-z0-9_]+['\\\"]\" apps/desktop/src --glob '*.{ts,tsx}'; then echo \"desktop TS private local_ai_* command literals are forbidden; use runtime.local.*\" && exit 1; else exit 0; fi",
+    "check:no-local-ai-private-calls": "node scripts/check-no-local-ai-private-calls.mjs",
     "check:no-local-ai-tauri-commands": "if ./scripts/rg.sh -n \"\\blocal_ai_[a-z0-9_]+\\b\" apps/desktop/src-tauri/src --glob '*.rs' --glob '!**/generated/**'; then echo \"desktop tauri local_ai_* command symbols are forbidden; use runtime bridge APIs\" && exit 1; else exit 0; fi",
     "check:desktop-no-legacy-runtime-config-path": "node scripts/check-desktop-no-legacy-runtime-config-path.mjs",
     "check:no-legacy-mod-permissions-field": "if ./scripts/rg.sh -n \"\\bpermissions\\s*:\" apps/desktop/src/runtime/mod apps/desktop/src/runtime/execution-kernel sdk/src/mod/types/runtime-mod.ts docs/guides/mod-developer.md --glob '*.{ts,tsx,md,yaml,yml}'; then echo \"legacy permissions field is forbidden in manifest/runtime registration; use capabilities\" && exit 1; else exit 0; fi",
