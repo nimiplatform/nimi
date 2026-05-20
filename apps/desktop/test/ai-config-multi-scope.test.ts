@@ -279,3 +279,103 @@ test('T3-1: setActiveScopeForMode switches the active scope per mode and notifie
     setActiveScopeForMode(originalMode);
   }
 });
+
+// ---------------------------------------------------------------------------
+// T3-2: Group LocalAgent participation reuses the agent scope
+// ---------------------------------------------------------------------------
+
+const groupAdapterSource = readSource('src/shell/renderer/features/chat/chat-group-adapter.tsx');
+
+test('T3-2: active-scope module resolves Group participation to the agent scope, never a group-specific scope', () => {
+  // Group participation resolution exists and reuses createBuiltInChatAIScopeRef('agent')
+  assert.match(
+    activeScopeSource,
+    /export function resolveGroupLocalAgentParticipationAIScopeRef\(/,
+  );
+  assert.match(
+    activeScopeSource,
+    /export function setGroupLocalAgentParticipationActive\(active: boolean\): void/,
+  );
+  assert.match(activeScopeSource, /createBuiltInChatAIScopeRef\('agent'\)/);
+  // No group-specific scope is ever constructed: the only surfaceIds the chat
+  // active-scope module mints are the canonical built-in 'nimi' / 'agent'.
+  assert.doesNotMatch(activeScopeSource, /surfaceId:\s*['"`]group['"`]/);
+  assert.doesNotMatch(activeScopeSource, /createBuiltInChatAIScopeRef\('group'\)/);
+  // No generic / default scope leaks into the Group path.
+  assert.doesNotMatch(activeScopeSource, /createDefaultAIScopeRef/);
+});
+
+test('T3-2: group adapter binds participation to the shared agent scope, never constructs an AIScopeRef', () => {
+  // The adapter drives participation through the shared module entrypoint.
+  assert.match(groupAdapterSource, /setGroupLocalAgentParticipationActive/);
+  assert.match(groupAdapterSource, /hasInvokableGroupLocalAgentParticipation/);
+  // The group adapter must not construct any AIScopeRef itself — scope identity
+  // is owned entirely by the shared active-scope module.
+  assert.doesNotMatch(groupAdapterSource, /createBuiltInChatAIScopeRef/);
+  assert.doesNotMatch(groupAdapterSource, /createDefaultAIScopeRef/);
+  assert.doesNotMatch(groupAdapterSource, /kind:\s*['"`]feature['"`]/);
+});
+
+test('T3-2: resolveGroupLocalAgentParticipationAIScopeRef resolves exactly the agent feature scope or null', async () => {
+  const {
+    resolveGroupLocalAgentParticipationAIScopeRef,
+  } = await import('../src/shell/renderer/features/chat/chat-shared-active-ai-config-scope.js');
+
+  // Active LocalAgent participation reuses the SAME canonical agent scope as
+  // Agent Chat — feature:desktop.chat:agent.
+  assert.deepEqual(resolveGroupLocalAgentParticipationAIScopeRef(true), {
+    kind: 'feature',
+    ownerId: 'desktop.chat',
+    surfaceId: 'agent',
+  });
+  // No LocalAgent participation -> no built-in chat scope.
+  assert.equal(resolveGroupLocalAgentParticipationAIScopeRef(false), null);
+});
+
+test('T3-2: Group mode resolves the agent scope only when LocalAgent participation is active', async () => {
+  const {
+    getActiveScope,
+    getActiveScopeMode,
+    setActiveScopeForMode,
+    setGroupLocalAgentParticipationActive,
+    resolveChatModeAIScopeRef,
+  } = await import('../src/shell/renderer/features/chat/chat-shared-active-ai-config-scope.js');
+
+  const originalMode = getActiveScopeMode();
+  const AGENT_SCOPE: AIScopeRef = {
+    kind: 'feature',
+    ownerId: 'desktop.chat',
+    surfaceId: 'agent',
+  };
+
+  try {
+    // Group mode alone (no participation) binds no built-in chat scope.
+    assert.equal(resolveChatModeAIScopeRef('group'), null);
+    setGroupLocalAgentParticipationActive(false);
+    setActiveScopeForMode('group');
+    assert.equal(getActiveScope(), null);
+
+    // Activating LocalAgent participation rebinds Group to the canonical agent
+    // scope — identical to Agent Chat, never a group-specific scope.
+    setGroupLocalAgentParticipationActive(true);
+    assert.deepEqual(getActiveScope(), AGENT_SCOPE);
+    assert.deepEqual(getActiveScope(), resolveChatModeAIScopeRef('agent'));
+
+    // Clearing participation drops the scope again.
+    setGroupLocalAgentParticipationActive(false);
+    assert.equal(getActiveScope(), null);
+
+    // Leaving Group clears participation so a later mode never inherits the
+    // group's agent-scope binding.
+    setGroupLocalAgentParticipationActive(true);
+    assert.deepEqual(getActiveScope(), AGENT_SCOPE);
+    setActiveScopeForMode('human');
+    assert.equal(getActiveScope(), null);
+    // Returning to Group must start fail-closed (no stale participation).
+    setActiveScopeForMode('group');
+    assert.equal(getActiveScope(), null);
+  } finally {
+    setGroupLocalAgentParticipationActive(false);
+    setActiveScopeForMode(originalMode);
+  }
+});

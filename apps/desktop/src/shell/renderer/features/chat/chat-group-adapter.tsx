@@ -5,6 +5,7 @@ import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { dataSync } from '@runtime/data-sync';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
+import { setGroupLocalAgentParticipationActive } from './chat-shared-active-ai-config-scope';
 import type { DesktopConversationModeHost } from './chat-shared-mode-host-types';
 import { ChatGroupParticipantPanel } from './chat-group-participant-panel';
 import { ChatGroupComposer } from './chat-group-composer';
@@ -35,6 +36,44 @@ function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
+/**
+ * Whether `participant` is a LocalAgent the current user can invoke in this
+ * group: an agent slot the user owns with a fully Realm-projected slot/agent/
+ * local-agent identity. This is the canonical Group LocalAgent participation
+ * criterion shared by mention resolution and AIConfig scope binding.
+ */
+function isInvokableGroupLocalAgentParticipant(
+  participant: GroupParticipantDto,
+  userId: string,
+): boolean {
+  return (
+    participant.type === 'agent'
+    && normalizeText(participant.agentOwnerId) === userId
+    && Boolean(normalizeText(participant.realmGroupAgentSlotId))
+    && Boolean(normalizeText(participant.realmAgentId))
+    && Boolean(normalizeText(participant.localAgentRef))
+  );
+}
+
+/**
+ * Whether the selected group has any active LocalAgent participation for the
+ * current user. Drives whether Group reuses the `desktop.chat.agent` AIConfig
+ * scope (T3-2). When there is no LocalAgent participation, no built-in chat
+ * scope is bound for Group.
+ */
+export function hasInvokableGroupLocalAgentParticipation(
+  participants: readonly GroupParticipantDto[],
+  currentUserId: string | null,
+): boolean {
+  const userId = normalizeText(currentUserId);
+  if (!userId) {
+    return false;
+  }
+  return participants.some((participant) =>
+    isInvokableGroupLocalAgentParticipant(participant, userId),
+  );
+}
+
 export function resolveInvokableGroupAgentMention(
   content: string,
   participants: readonly GroupParticipantDto[],
@@ -46,11 +85,7 @@ export function resolveInvokableGroupAgentMention(
   }
   const candidates = participants
     .filter((participant) =>
-      participant.type === 'agent'
-      && normalizeText(participant.agentOwnerId) === userId
-      && normalizeText(participant.realmGroupAgentSlotId)
-      && normalizeText(participant.realmAgentId)
-      && normalizeText(participant.localAgentRef),
+      isInvokableGroupLocalAgentParticipant(participant, userId),
     )
     .sort((a, b) =>
       normalizeText(b.displayName || b.handle).length
@@ -179,6 +214,25 @@ export function useGroupConversationModeHost(
   }, [allGroups, selectedGroupId, setSelectedTargetForSource]);
 
   const participants: GroupParticipantDto[] = selectedGroup?.participants || [];
+
+  // T3-2: Group LocalAgent participation reuses the canonical
+  // `desktop.chat.agent` built-in AIConfig scope — the SAME scope as Agent
+  // Chat. When the selected group has invokable LocalAgent participation, bind
+  // that agent scope; otherwise no built-in chat scope is bound. Group thread
+  // state stays Realm-owned — only the LocalAgent-participation AIConfig is
+  // scoped, and it never mints a group-specific scope.
+  const groupHasLocalAgentParticipation = useMemo(
+    () => hasInvokableGroupLocalAgentParticipation(participants, currentUserId),
+    [participants, currentUserId],
+  );
+  useEffect(() => {
+    setGroupLocalAgentParticipationActive(groupHasLocalAgentParticipation);
+  }, [groupHasLocalAgentParticipation]);
+  useEffect(() => () => {
+    // Leaving the Group surface clears participation so a later mode does not
+    // inherit a stale agent-scope binding from Group.
+    setGroupLocalAgentParticipationActive(false);
+  }, []);
 
   const setupState = useMemo(() => {
     if (authStatus === 'authenticated') {
