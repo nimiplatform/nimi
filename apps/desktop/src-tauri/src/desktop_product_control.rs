@@ -1,4 +1,6 @@
 use crate::desktop_paths::{normalize_desktop_absolute_path, resolve_nimi_dir};
+use base64::Engine;
+use prost::Message;
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -378,10 +380,18 @@ pub fn set_first_run_install_level(
     if selected_data_root_path(&record).is_none() {
         return Err("selected nimi_data is required before install level".to_string());
     }
-    record.first_run.install_level = Some(normalized);
-    record.first_run.ai_profile_alias = ai_profile_alias
+    let normalized_alias = ai_profile_alias
         .map(|value| value.trim().to_string())
         .filter(|value| !value.is_empty());
+    let alias = normalized_alias
+        .as_deref()
+        .ok_or_else(|| "first-run aiProfileAlias is required".to_string())?;
+    crate::platform_ai_profile_factory_catalog::verify_first_run_factory_ai_profile(
+        alias,
+        &normalized,
+    )?;
+    record.first_run.install_level = Some(normalized);
+    record.first_run.ai_profile_alias = Some(alias.to_string());
     record.first_run.completed = false;
     record.first_run.completed_at = None;
     record.first_run.initialization_plan_id = None;
@@ -394,6 +404,86 @@ pub fn set_first_run_install_level(
     if matches!(record.state, ProductControlState::DataRootSelected) {
         record.state = ProductControlState::AiEnvironmentUnconfigured;
     }
+    write_record(&control_path, &record)?;
+    read_product_control_projection()
+}
+
+async fn authenticated_runtime_account_id() -> Result<String, String> {
+    let request = crate::runtime_bridge::generated::GetAccountSessionStatusRequest { caller: None };
+    let payload = crate::runtime_bridge::RuntimeBridgeUnaryPayload {
+        method_id: "/nimi.runtime.v1.RuntimeAccountService/GetAccountSessionStatus".to_string(),
+        request_bytes_base64: base64::engine::general_purpose::STANDARD
+            .encode(request.encode_to_vec()),
+        metadata: None,
+        authorization: None,
+        protected_access_token: None,
+        app_session: None,
+        timeout_ms: Some(10_000),
+    };
+    let result = crate::runtime_bridge::runtime_bridge_unary(payload).await?;
+    let bytes = base64::engine::general_purpose::STANDARD
+        .decode(result.response_bytes_base64.trim())
+        .map_err(|_| "RuntimeAccountService response could not be decoded".to_string())?;
+    let response =
+        crate::runtime_bridge::generated::GetAccountSessionStatusResponse::decode(bytes.as_slice())
+            .map_err(|error| format!("RuntimeAccountService response was invalid: {error}"))?;
+    if response.state != crate::runtime_bridge::generated::AccountSessionState::Authenticated as i32
+    {
+        return Err("authenticated Runtime account session is required".to_string());
+    }
+    let account_id = response
+        .account_projection
+        .as_ref()
+        .map(|projection| projection.account_id.trim().to_string())
+        .filter(|value| !value.is_empty())
+        .ok_or_else(|| {
+            "authenticated Runtime account session did not include account_id".to_string()
+        })?;
+    Ok(account_id)
+}
+
+pub async fn ensure_account_default_profile_for_product_control(
+) -> Result<ProductControlRecordProjection, String> {
+    let control_path = product_control_record_path()?;
+    let mut record = read_existing_record(&control_path)?.ok_or_else(|| {
+        "~/.nimi/nimi.json is missing; select nimi_data before Account Default Profile".to_string()
+    })?;
+    let data_root = selected_data_root_path(&record).ok_or_else(|| {
+        "selected nimi_data is required before Account Default Profile".to_string()
+    })?;
+    let install_level = record
+        .first_run
+        .install_level
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .ok_or_else(|| {
+            "first-run install level is required before Account Default Profile".to_string()
+        })?
+        .to_string();
+    let ai_profile_alias = record
+        .first_run
+        .ai_profile_alias
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .ok_or_else(|| {
+            "first-run aiProfileAlias is required before Account Default Profile".to_string()
+        })?
+        .to_string();
+    crate::platform_ai_profile_factory_catalog::verify_first_run_factory_ai_profile(
+        &ai_profile_alias,
+        &install_level,
+    )?;
+    let account_id = authenticated_runtime_account_id().await?;
+    let evidence = crate::account_profile_library::ensure_account_default_profile(
+        &data_root,
+        &account_id,
+        &ai_profile_alias,
+        &install_level,
+    )?;
+    record.first_run.account_default_profile_ref =
+        Some(evidence.account_default_profile_ref.clone());
     write_record(&control_path, &record)?;
     read_product_control_projection()
 }
@@ -484,6 +574,12 @@ pub fn product_control_record_set_first_run_install_level(
 }
 
 #[tauri::command]
+pub async fn product_control_record_ensure_account_default_profile(
+) -> Result<ProductControlRecordProjection, String> {
+    ensure_account_default_profile_for_product_control().await
+}
+
+#[tauri::command]
 pub fn product_control_record_set_first_run_setup_state(
     payload: ProductFirstRunSetupStatePayload,
 ) -> Result<ProductControlRecordProjection, String> {
@@ -560,6 +656,13 @@ mod tests {
             let invalid =
                 set_first_run_install_level("cloud-first", None).expect_err("invalid level");
             assert!(invalid.contains("minimal or recommended"));
+            let missing_alias =
+                set_first_run_install_level("minimal", None).expect_err("missing alias");
+            assert!(missing_alias.contains("aiProfileAlias"));
+            let cloud_alias =
+                set_first_run_install_level("minimal", Some("cloud-first".to_string()))
+                    .expect_err("cloud alias");
+            assert!(cloud_alias.contains("not admitted for first-run"));
             let projection =
                 set_first_run_install_level("recommended", Some("local-speech-ready".to_string()))
                     .expect("set install level");
@@ -582,18 +685,35 @@ mod tests {
         with_env(&[("HOME", home.to_str())], || {
             select_product_data_root(root.to_str().expect("root")).expect("select root");
             let setup_state = setup_state_literal("ai_profile_selected_assets_missing");
-            let missing_install_level = set_first_run_setup_state(ProductFirstRunSetupStatePayload { state: setup_state.clone(), reason: None })
+            let missing_install_level =
+                set_first_run_setup_state(ProductFirstRunSetupStatePayload {
+                    state: setup_state.clone(),
+                    reason: None,
+                })
                 .expect_err("missing install level");
             assert!(missing_install_level.contains("install level"));
             set_first_run_install_level("minimal", Some("local-speech-ready".to_string()))
                 .expect("install level");
-            let projection = set_first_run_setup_state(ProductFirstRunSetupStatePayload { state: setup_state, reason: Some("runtime_jobs_started".to_string()) }).expect("setup state");
-            assert_eq!(projection.state, ProductControlState::LocalAiProfileSelectedAssetsMissing);
-            let ready_err = set_first_run_setup_state(ProductFirstRunSetupStatePayload { state: "ready_for_use".to_string(), reason: None })
-                .expect_err("ready shortcut");
+            let projection = set_first_run_setup_state(ProductFirstRunSetupStatePayload {
+                state: setup_state,
+                reason: Some("runtime_jobs_started".to_string()),
+            })
+            .expect("setup state");
+            assert_eq!(
+                projection.state,
+                ProductControlState::LocalAiProfileSelectedAssetsMissing
+            );
+            let ready_err = set_first_run_setup_state(ProductFirstRunSetupStatePayload {
+                state: "ready_for_use".to_string(),
+                reason: None,
+            })
+            .expect_err("ready shortcut");
             assert!(ready_err.contains("cannot mark ready_for_use"));
-            let local_ready = set_first_run_setup_state(ProductFirstRunSetupStatePayload { state: setup_state_literal("ai_ready"), reason: None })
-                .expect_err("local ready shortcut");
+            let local_ready = set_first_run_setup_state(ProductFirstRunSetupStatePayload {
+                state: setup_state_literal("ai_ready"),
+                reason: None,
+            })
+            .expect_err("local ready shortcut");
             assert!(local_ready.contains("cannot mark local AI ready"));
         });
     }
@@ -604,7 +724,7 @@ mod tests {
         with_env(&[("HOME", home.to_str())], || {
             let root = home.join("chosen-nimi-data");
             select_product_data_root(root.to_str().expect("root")).expect("select root");
-            set_first_run_install_level("minimal", Some("local-baseline".to_string()))
+            set_first_run_install_level("minimal", Some("local-speech-ready".to_string()))
                 .expect("install level");
             let control_path = product_control_record_path().expect("path");
             let mut record = super::read_existing_record(&control_path)
@@ -616,18 +736,25 @@ mod tests {
             record.first_run.initialization_plan_id = Some("plan-1".to_string());
             record.first_run.baseline_profile_ref = Some("profile:local-baseline".to_string());
             record.first_run.baseline_commit_id = Some("commit-1".to_string());
-            record.first_run.account_default_profile_ref = Some("account-profile:default".to_string());
+            record.first_run.account_default_profile_ref =
+                Some("account-profile:default".to_string());
             record.first_run.built_in_ai_config_refs = vec!["aiconfig:chat".to_string()];
             record.first_run.runtime_baseline_ref = Some("runtime-baseline:local".to_string());
             record.first_run.execution_evidence_ref = Some("execution:probe-1".to_string());
             if let Some(data_root) = record.data_root.as_mut() {
                 data_root.status = super::ProductDataRootStatus::Ready;
             }
-            std::fs::write(&control_path, serde_json::to_string_pretty(&record).expect("json"))
-                .expect("write fabricated ready");
+            std::fs::write(
+                &control_path,
+                serde_json::to_string_pretty(&record).expect("json"),
+            )
+            .expect("write fabricated ready");
             let projection = read_product_control_projection().expect("projection");
             assert_eq!(projection.state, ProductControlState::RepairRequired);
-            assert!(projection.error.unwrap_or_default().contains("admission verification"));
+            assert!(projection
+                .error
+                .unwrap_or_default()
+                .contains("admission verification"));
         });
     }
 }

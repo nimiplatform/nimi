@@ -4,6 +4,7 @@ use nimi_kit_shell_tauri::auth_session_commands;
 use nimi_kit_shell_tauri::oauth_commands;
 use nimi_kit_shell_tauri::runtime_bridge;
 use nimi_kit_shell_tauri::session_logging;
+mod account_profile_library;
 mod chat_agent_store;
 mod chat_ai_store;
 mod desktop_agent_center_store;
@@ -17,6 +18,7 @@ mod external_agent_gateway;
 mod local_runtime;
 mod main_parts;
 mod menu_bar_shell;
+mod platform_ai_profile_factory_catalog;
 mod runtime_mod;
 #[cfg(test)]
 mod test_support;

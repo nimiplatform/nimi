@@ -205,6 +205,13 @@ export async function setProductFirstRunInstallLevel(input: {
   }, parseProjection);
 }
 
+export async function ensureProductAccountDefaultProfile(): Promise<ProductControlRecordProjection> {
+  if (!hasTauriInvoke()) {
+    throw new Error('product_control_record_ensure_account_default_profile requires Tauri runtime');
+  }
+  return invokeChecked('product_control_record_ensure_account_default_profile', {}, parseProjection);
+}
+
 export async function setProductFirstRunSetupState(input: {
   state: Exclude<ProductControlState, 'ready_for_use' | 'local_ai_ready' | 'config_missing' | 'data_root_missing' | 'data_root_selected' | 'ai_environment_unconfigured' | 'not_logged_in'>;
   reason?: string | null;

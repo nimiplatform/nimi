@@ -315,6 +315,7 @@ fn build_desktop_app() -> Result<tauri::App<tauri::Wry>, tauri::Error> {
             crate::desktop_product_control::product_control_record_get,
             crate::desktop_product_control::product_control_record_select_data_root,
             crate::desktop_product_control::product_control_record_set_first_run_install_level,
+            crate::desktop_product_control::product_control_record_ensure_account_default_profile,
             crate::desktop_product_control::product_control_record_set_first_run_setup_state,
             super::defaults_and_commands::system_resources::get_system_resource_snapshot,
             super::defaults_and_commands::http_request,
