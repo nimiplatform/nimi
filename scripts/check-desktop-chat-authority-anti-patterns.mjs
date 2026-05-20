@@ -24,6 +24,46 @@ const BANNED_IDENTIFIER_PATTERNS = [
   },
 ];
 
+/**
+ * T3-3: built-in chat scope authority anti-patterns.
+ *
+ * The four chat modes bind only the canonical built-in `feature` scopes
+ * (feature:desktop.chat:nimi / feature:desktop.chat:agent) — see the product
+ * manual "Chat AIScopeRef Targets" alignment rule: the generic
+ * `{ kind: 'app', ownerId: 'desktop', surfaceId: 'chat' }` scope and the
+ * generic `createDefaultAIScopeRef` factory are retired historical fallbacks
+ * and must not be the mode-scope authority for the chat surface.
+ *
+ * These patterns are enforced only against the chat *mode-scope live path*
+ * — the files that resolve and rebind a chat mode to its AIConfig scope.
+ * `conversation-capability.ts` is intentionally excluded: it is the
+ * D-AIPC-010 selection-store submodel bridge and legitimately re-exports the
+ * generic SDK factory for non-mode-scoped bridging; it does not bind a chat
+ * mode to a scope.
+ */
+const BANNED_BUILTIN_CHAT_SCOPE_PATTERNS = [
+  {
+    label: 'generic default AIConfig scope factory in chat mode-scope live path',
+    regex: /\bcreateDefaultAIScopeRef\b/gu,
+  },
+  {
+    // Forbid the generic `{ kind: 'app', ownerId: 'desktop', surfaceId: 'chat' }`
+    // scope literal in either property order, tolerant of whitespace.
+    label: 'generic app:desktop:chat AIConfig scope literal in chat mode-scope live path',
+    regex: /\{[^{}]*\bkind\s*:\s*['"`]app['"`][^{}]*\bownerId\s*:\s*['"`]desktop['"`][^{}]*\bsurfaceId\s*:\s*['"`]chat['"`][^{}]*\}|\{[^{}]*\bsurfaceId\s*:\s*['"`]chat['"`][^{}]*\bownerId\s*:\s*['"`]desktop['"`][^{}]*\bkind\s*:\s*['"`]app['"`][^{}]*\}/gu,
+  },
+];
+
+/**
+ * The chat mode-scope live path: files that own resolving / rebinding which
+ * AIConfig scope a chat mode is bound to. A future change that rebinds any of
+ * these to the generic scope fails this guard.
+ */
+const BUILTIN_CHAT_SCOPE_LIVE_PATH = [
+  'chat-shared-active-ai-config-scope.ts',
+  'conversation-capability-projection.ts',
+];
+
 const BANNED_CHAT_STORAGE_PATTERNS = [
   {
     label: 'chat route storage key',
@@ -87,6 +127,12 @@ function collectPatternViolations(source, relPath, patterns) {
   return violations;
 }
 
+function isBuiltInChatScopeLivePathFile(filePath, chatRoot) {
+  return BUILTIN_CHAT_SCOPE_LIVE_PATH.some(
+    (name) => filePath === path.join(chatRoot, name),
+  );
+}
+
 async function collectViolations() {
   const files = [
     ...await collectSourceFiles(CHAT_ROOT),
@@ -99,6 +145,12 @@ async function collectViolations() {
     const source = await fs.readFile(filePath, 'utf8');
 
     violations.push(...collectPatternViolations(source, relPath, BANNED_IDENTIFIER_PATTERNS));
+
+    if (isBuiltInChatScopeLivePathFile(filePath, CHAT_ROOT)) {
+      violations.push(
+        ...collectPatternViolations(source, relPath, BANNED_BUILTIN_CHAT_SCOPE_PATTERNS),
+      );
+    }
 
     if (filePath.startsWith(CHAT_ROOT) && filePath !== ALLOWED_CHAT_STORAGE_FILE) {
       const storageRegex = /\b(?:localStorage|getItem\s*\(|setItem\s*\()/gu;
@@ -154,6 +206,14 @@ async function runSelfTest() {
       "const globalChatRouteSelection = null;\n",
       'utf8',
     );
+    // T3-3: a chat mode-scope live-path file that rebinds to the generic
+    // scope must be flagged (both the factory call and the literal).
+    await fs.writeFile(
+      path.join(chatRoot, 'conversation-capability-projection.ts'),
+      "const scope = createDefaultAIScopeRef();\n"
+        + "const generic = { kind: 'app', ownerId: 'desktop', surfaceId: 'chat' };\n",
+      'utf8',
+    );
 
     globalThis.__NIMI_CHAT_AUTHORITY_TEST_ROOTS__ = {
       CHAT_ROOT: chatRoot,
@@ -198,6 +258,12 @@ async function collectViolationsWithOverrides() {
     const relPath = path.relative(roots.repoRoot, filePath).replaceAll(path.sep, '/');
     const source = await fs.readFile(filePath, 'utf8');
     violations.push(...collectPatternViolations(source, relPath, BANNED_IDENTIFIER_PATTERNS));
+
+    if (isBuiltInChatScopeLivePathFile(filePath, roots.CHAT_ROOT)) {
+      violations.push(
+        ...collectPatternViolations(source, relPath, BANNED_BUILTIN_CHAT_SCOPE_PATTERNS),
+      );
+    }
 
     if (filePath.startsWith(roots.CHAT_ROOT) && filePath !== roots.ALLOWED_CHAT_STORAGE_FILE) {
       const storageRegex = /\b(?:localStorage|getItem\s*\(|setItem\s*\()/gu;
