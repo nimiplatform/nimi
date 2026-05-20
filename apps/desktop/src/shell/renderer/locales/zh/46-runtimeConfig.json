@@ -1,29 +1,39 @@
 {
   "sidebar": {
     "overview": "概览",
-    "overviewDesc": "仪表盘与快捷操作",
-    "recommend": "推荐",
-    "recommendDesc": "按设备适配度排序的模型榜单",
-    "local": "本地模型",
-    "localDesc": "安装与管理模型",
-    "cloud": "云端 API",
+    "overviewDesc": "运行时就绪状态与快捷操作",
+    "profiles": "配置文件",
+    "profilesDesc": "账户默认配置文件",
+    "models": "模型",
+    "modelsDesc": "推荐、已安装与目录模型",
+    "cloud": "云端连接器",
     "cloudDesc": "API 密钥连接器",
-    "catalog": "目录",
-    "catalogDesc": "提供商目录与已验证推荐",
-    "runtime": "运行时",
-    "runtimeDesc": "守护进程、审计与 EAA",
-    "profiles": "AI 配置文件",
-    "profilesDesc": "浏览、创建和管理配置文件",
-    "data-management": "数据管理",
-    "data-managementDesc": "存储、缓存与账户数据",
-    "performance": "性能",
-    "performanceDesc": "渲染偏好、更新与运行时信息",
+    "environment": "环境",
+    "environmentDesc": "依赖、引擎、数据根目录与修复",
+    "advanced": "高级",
+    "advancedDesc": "渲染、更新与开发者工具",
     "section": {
-      "core": "核心",
-      "connectors": "连接器",
-      "operations": "操作",
-      "system": "系统"
+      "runtime": "运行时"
     }
+  },
+  "models": {
+    "tabRecommend": "推荐",
+    "tabInstalled": "已安装",
+    "tabCatalog": "目录"
+  },
+  "environment": {
+    "tabDependencies": "依赖与引擎",
+    "tabData": "数据与存储",
+    "migrationTitle": "数据根目录迁移",
+    "migrationDescription": "将 nimi_data 根目录移动到新位置的功能尚不可用。",
+    "migrationUnavailable": "数据根目录迁移功能尚不可用。该功能将在未来版本中启用；不会执行部分迁移。",
+    "migrationButton": "迁移数据根目录"
+  },
+  "advanced": {
+    "tabPreferences": "偏好与更新",
+    "tabDeveloper": "开发者工具",
+    "developerLocked": "开发者工具已隐藏。请在“偏好与更新”中启用开发者模式以访问 Mod 界面。",
+    "developerSectionTitle": "Mod 开发者界面"
   },
   "memory": {
     "sectionTitle": "记忆 Embedding",
@@ -574,7 +584,15 @@
     "sectionRecommended": "推荐",
     "selectModel": "选择模型...",
     "subtitle": "应用一个配置文件，一次性配置所有能力。",
-    "titlePlaceholder": "我的 AI 配置文件"
+    "titlePlaceholder": "我的 AI 配置文件",
+    "libraryTitle": "配置文件库",
+    "librarySubtitle": "导入、导出和恢复你的账户配置文件库。",
+    "factoryRestore": "恢复为账户默认",
+    "restoring": "正在恢复...",
+    "restorePreview": "请在下方查看账户默认配置的变更，确认后应用。",
+    "exportEmpty": "没有可导出的可编辑配置文件。",
+    "importNone": "未找到有效的配置文件。",
+    "invalidJson": "无效的 JSON"
   },
   "catalog": {
     "providerCatalog": "提供商目录",

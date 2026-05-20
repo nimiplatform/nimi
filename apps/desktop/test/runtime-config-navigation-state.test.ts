@@ -22,16 +22,13 @@ import { RUNTIME_SIDEBAR_ITEMS } from '../src/shell/renderer/features/runtime-co
 // normalizePageIdV11
 // ---------------------------------------------------------------------------
 
-test('normalizePageIdV11: current values pass through unchanged', () => {
+test('normalizePageIdV11: canonical six-section IA values pass through unchanged', () => {
   assert.equal(normalizePageIdV11('overview'), 'overview');
-  assert.equal(normalizePageIdV11('recommend'), 'recommend');
-  assert.equal(normalizePageIdV11('local'), 'local');
-  assert.equal(normalizePageIdV11('cloud'), 'cloud');
-  assert.equal(normalizePageIdV11('catalog'), 'catalog');
-  assert.equal(normalizePageIdV11('runtime'), 'runtime');
   assert.equal(normalizePageIdV11('profiles'), 'profiles');
-  assert.equal(normalizePageIdV11('data-management'), 'data-management');
-  assert.equal(normalizePageIdV11('performance'), 'performance');
+  assert.equal(normalizePageIdV11('models'), 'models');
+  assert.equal(normalizePageIdV11('cloud'), 'cloud');
+  assert.equal(normalizePageIdV11('environment'), 'environment');
+  assert.equal(normalizePageIdV11('advanced'), 'advanced');
 });
 
 test('normalizePageIdV11: unknown values fall back to "overview"', () => {
@@ -44,9 +41,17 @@ test('normalizePageIdV11: unknown values fall back to "overview"', () => {
   assert.equal(normalizePageIdV11({}), 'overview');
 });
 
-test('normalizePageIdV11: retired Runtime page ids fall back to "overview"', () => {
+test('normalizePageIdV11: retired pre-T2.4 page ids fall back to "overview"', () => {
+  // Mods / Mod Developer were never ordinary sections.
   assert.equal(normalizePageIdV11('mods'), 'overview');
   assert.equal(normalizePageIdV11('mod-developer'), 'overview');
+  // Sections merged away by the T2.4 Runtime Surface Cleanup table.
+  assert.equal(normalizePageIdV11('recommend'), 'overview');
+  assert.equal(normalizePageIdV11('local'), 'overview');
+  assert.equal(normalizePageIdV11('catalog'), 'overview');
+  assert.equal(normalizePageIdV11('runtime'), 'overview');
+  assert.equal(normalizePageIdV11('data-management'), 'overview');
+  assert.equal(normalizePageIdV11('performance'), 'overview');
 });
 
 // ---------------------------------------------------------------------------
@@ -71,19 +76,16 @@ test('createDefaultStateV11: state shape keeps current navigation field only', (
 // RUNTIME_PAGE_META
 // ---------------------------------------------------------------------------
 
-test('RUNTIME_PAGE_META covers all current pages', () => {
+test('RUNTIME_PAGE_META covers exactly the canonical six-section IA', () => {
   const expectedPages: Array<
-    'overview' | 'recommend' | 'local' | 'cloud' | 'catalog' | 'runtime' | 'profiles' | 'data-management' | 'performance'
+    'overview' | 'profiles' | 'models' | 'cloud' | 'environment' | 'advanced'
   > = [
     'overview',
-    'recommend',
-    'local',
-    'cloud',
-    'catalog',
-    'runtime',
     'profiles',
-    'data-management',
-    'performance',
+    'models',
+    'cloud',
+    'environment',
+    'advanced',
   ];
 
   for (const page of expectedPages) {
@@ -92,28 +94,28 @@ test('RUNTIME_PAGE_META covers all current pages', () => {
     assert.ok(RUNTIME_PAGE_META[page].description, `RUNTIME_PAGE_META["${page}"].description must be non-empty`);
   }
 
-  assert.equal(Object.keys(RUNTIME_PAGE_META).length, 9, 'RUNTIME_PAGE_META must have exactly 9 entries');
+  assert.equal(Object.keys(RUNTIME_PAGE_META).length, 6, 'RUNTIME_PAGE_META must have exactly 6 entries');
 });
 
-test('ordinary Runtime sidebar excludes Mods and developer pages', () => {
+test('ordinary Runtime sidebar is the canonical six-section IA without Mods/developer pages', () => {
   const pageIds = RUNTIME_SIDEBAR_ITEMS.map((item) => item.id);
   const labels = RUNTIME_SIDEBAR_ITEMS.map((item) => item.label);
 
   assert.deepEqual(pageIds, [
     'overview',
-    'recommend',
-    'local',
-    'cloud',
-    'catalog',
-    'runtime',
     'profiles',
-    'data-management',
-    'performance',
+    'models',
+    'cloud',
+    'environment',
+    'advanced',
   ]);
-  assert.equal((pageIds as string[]).includes('mods'), false);
-  assert.equal((pageIds as string[]).includes('mod-developer'), false);
+  // Retired top-level entries must not survive the T2.4 hard cut.
+  for (const retired of ['recommend', 'catalog', 'data-management', 'performance', 'local', 'runtime', 'mods', 'mod-developer']) {
+    assert.equal((pageIds as string[]).includes(retired), false, `retired id "${retired}" must not be a top-level section`);
+  }
   assert.equal(labels.includes('Mods'), false);
   assert.equal(labels.includes('Mod Developer'), false);
+  assert.equal(labels.includes('AI Runtime'), false);
 });
 
 test('normalizeStoredStateV11: new activePage field takes precedence', () => {
@@ -174,7 +176,7 @@ test('normalizeStoredStateV11: accepts v12 snapshots and preserves local provide
   const stored = {
     version: 12 as const,
     initializedByV11: true,
-    activePage: 'runtime',
+    activePage: 'environment',
     diagnosticsCollapsed: false,
     uiMode: 'advanced',
     selectedSource: 'local',
@@ -302,7 +304,7 @@ test('state round-trip: persist activePage then normalize back correctly', () =>
   try {
     const seed = { localProviderEndpoint: 'http://127.0.0.1:1234/v1' };
     const original = createDefaultStateV11(seed);
-    original.activePage = 'runtime';
+    original.activePage = 'environment';
     original.uiMode = 'advanced';
     original.activeCapability = 'image';
 
@@ -314,7 +316,7 @@ test('state round-trip: persist activePage then normalize back correctly', () =>
     const parsed = JSON.parse(raw);
     const restored = normalizeStoredStateV11(seed, parsed);
 
-    assert.equal(restored.activePage, 'runtime');
+    assert.equal(restored.activePage, 'environment');
     assert.equal(restored.uiMode, 'advanced');
     assert.equal(restored.activeCapability, 'image');
     assert.deepEqual(restored.connectors, [], 'connectors should be empty after round-trip');

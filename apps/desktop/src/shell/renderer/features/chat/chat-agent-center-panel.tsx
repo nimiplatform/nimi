@@ -430,7 +430,7 @@ export function AgentCenterPanel(props: AgentCenterPanelProps) {
             label={t('Chat.agentCenterSharedModelConfig', { defaultValue: 'Shared model configuration' })}
             desc={t('Chat.agentCenterSharedModelConfigDesc', { defaultValue: "This agent uses the workspace's default routing." })}
             right={(
-              <Btn size="sm" variant="default" onClick={() => dispatchRuntimeConfigOpenPage('recommend')}>
+              <Btn size="sm" variant="default" onClick={() => dispatchRuntimeConfigOpenPage('models')}>
                 {t('Chat.agentCenterModelOverride', { defaultValue: 'Override' })}
               </Btn>
             )}

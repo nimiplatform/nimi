@@ -1,29 +1,39 @@
 {
   "sidebar": {
     "overview": "Overview",
-    "overviewDesc": "Dashboard & quick actions",
-    "recommend": "Recommend",
-    "recommendDesc": "Device-fit model leaderboard",
-    "local": "Local Models",
-    "localDesc": "Install & manage models",
-    "cloud": "Cloud API",
+    "overviewDesc": "Runtime readiness & quick actions",
+    "profiles": "Profiles",
+    "profilesDesc": "Account default profile",
+    "models": "Models",
+    "modelsDesc": "Recommended, installed & catalog models",
+    "cloud": "Cloud Connectors",
     "cloudDesc": "API key connectors",
-    "catalog": "Catalog",
-    "catalogDesc": "Provider catalog and verified picks",
-    "runtime": "Runtime",
-    "runtimeDesc": "Daemon, audit & EAA",
-    "profiles": "AI Profiles",
-    "profilesDesc": "Browse, create & manage profiles",
-    "data-management": "Data Management",
-    "data-managementDesc": "Storage, cache, and account data",
-    "performance": "Performance",
-    "performanceDesc": "Rendering, updates, and runtime info",
+    "environment": "Environment",
+    "environmentDesc": "Dependencies, engines, data root & repair",
+    "advanced": "Advanced",
+    "advancedDesc": "Rendering, updates & developer tools",
     "section": {
-      "core": "Core",
-      "connectors": "Connectors",
-      "operations": "Operations",
-      "system": "System"
+      "runtime": "Runtime"
     }
+  },
+  "models": {
+    "tabRecommend": "Recommended",
+    "tabInstalled": "Installed",
+    "tabCatalog": "Catalog"
+  },
+  "environment": {
+    "tabDependencies": "Dependencies & Engines",
+    "tabData": "Data & Storage",
+    "migrationTitle": "Data Root Migration",
+    "migrationDescription": "Moving the nimi_data root to a new location is not yet available.",
+    "migrationUnavailable": "Data root migration is not yet available. This will be enabled in a future release; no partial migration is performed.",
+    "migrationButton": "Migrate Data Root"
+  },
+  "advanced": {
+    "tabPreferences": "Preferences & Updates",
+    "tabDeveloper": "Developer Tools",
+    "developerLocked": "Developer tools are hidden. Enable Developer Mode in Preferences & Updates to access mod surfaces.",
+    "developerSectionTitle": "Mod Developer Surfaces"
   },
   "memory": {
     "sectionTitle": "Memory Embedding",
@@ -574,7 +584,15 @@
     "sectionRecommended": "Recommended",
     "selectModel": "Select model...",
     "subtitle": "Apply a profile to configure all capabilities at once.",
-    "titlePlaceholder": "My AI Profile"
+    "titlePlaceholder": "My AI Profile",
+    "libraryTitle": "Profile Library",
+    "librarySubtitle": "Import, export, and restore your account profile library.",
+    "factoryRestore": "Restore to Account Default",
+    "restoring": "Restoring...",
+    "restorePreview": "Review the Account Default changes below, then confirm to apply.",
+    "exportEmpty": "No editable profiles to export.",
+    "importNone": "No valid profiles found.",
+    "invalidJson": "Invalid JSON"
   },
   "catalog": {
     "providerCatalog": "Provider Catalog",

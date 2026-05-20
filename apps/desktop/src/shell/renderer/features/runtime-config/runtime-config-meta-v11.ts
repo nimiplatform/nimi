@@ -3,39 +3,27 @@ import type { RuntimePageIdV11 } from './runtime-config-state-types';
 export const RUNTIME_PAGE_META: Record<RuntimePageIdV11, { name: string; description: string }> = {
   overview: {
     name: 'Overview',
-    description: 'Dashboard with system stats, capability coverage, and quick actions.',
-  },
-  recommend: {
-    name: 'Recommend',
-    description: 'Model-index powered leaderboard for local chat, image, and video recommendations.',
-  },
-  local: {
-    name: 'Local Models',
-    description: 'Search, install, and manage local AI models.',
-  },
-  cloud: {
-    name: 'Cloud API',
-    description: 'Configure API keys for cloud provider connectors.',
-  },
-  catalog: {
-    name: 'Catalog',
-    description: 'Provider model/voice yaml catalog (default + custom).',
-  },
-  runtime: {
-    name: 'Runtime',
-    description: 'Daemon lifecycle, health, audit log, EAA, and provider diagnostics.',
+    description: 'Runtime readiness, capability coverage, readiness reasons, and quick actions.',
   },
   profiles: {
-    name: 'AI Profiles',
-    description: 'Browse, create, edit, import and export AI capability profiles.',
+    name: 'Profiles',
+    description: 'Account default profile: import, edit, export, and explicit factory restore.',
   },
-  'data-management': {
-    name: 'Data Management',
-    description: 'Storage usage, cache, and account data controls.',
+  models: {
+    name: 'Models',
+    description: 'Recommended, installed, and catalog AI models for local capabilities.',
   },
-  performance: {
-    name: 'Performance',
-    description: 'Rendering preferences, updates, and runtime info.',
+  cloud: {
+    name: 'Cloud Connectors',
+    description: 'Configure API keys and connectors for cloud AI providers.',
+  },
+  environment: {
+    name: 'Environment',
+    description: 'Nimi-managed dependencies, engines, data root, storage, and repair.',
+  },
+  advanced: {
+    name: 'Advanced',
+    description: 'Rendering preferences, updates, and developer-only surfaces.',
   },
 };
 

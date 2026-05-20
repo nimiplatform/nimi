@@ -261,7 +261,7 @@ export function OverviewPage({ model, state }: OverviewPageProps) {
             title={t('runtimeConfig.overview.installedModels', { defaultValue: 'Installed Models' })}
             value={installedModelCount}
             subtitle={t('runtimeConfig.overview.activeModelsCount', { count: activeModelCount, defaultValue: '{{count}} active' })}
-            onClick={() => model.onChangePage('local')}
+            onClick={() => model.onChangePage('models')}
           />
           <StatTile
             title={t('runtimeConfig.overview.cloudConnectors', { defaultValue: 'Cloud Connectors' })}
@@ -426,7 +426,7 @@ export function OverviewPage({ model, state }: OverviewPageProps) {
                         : t('runtimeConfig.overview.fallback', { defaultValue: 'Fallback' })}
                     </KitStatusBadge>
                   ) : (
-                    <Button variant="ghost" size="sm" onClick={() => model.onChangePage('local')}>
+                    <Button variant="ghost" size="sm" onClick={() => model.onChangePage('models')}>
                       {t('runtimeConfig.overview.setup', { defaultValue: 'Setup' })}
                     </Button>
                   )}
@@ -516,7 +516,7 @@ export function OverviewPage({ model, state }: OverviewPageProps) {
           <QuickLinkCard
             title={t('runtimeConfig.overview.manageModels', { defaultValue: 'Manage Models' })}
             description={t('runtimeConfig.overview.manageModelsDescription', { defaultValue: 'Install, start, stop local assets' })}
-            onClick={() => model.onChangePage('local')}
+            onClick={() => model.onChangePage('models')}
           />
           <QuickLinkCard
             title={t('runtimeConfig.overview.configureCloud', { defaultValue: 'Configure Cloud' })}
@@ -526,7 +526,7 @@ export function OverviewPage({ model, state }: OverviewPageProps) {
           <QuickLinkCard
             title={t('runtimeConfig.overview.runtimeAudit', { defaultValue: 'Runtime & Audit' })}
             description={t('runtimeConfig.overview.runtimeAuditDescription', { defaultValue: 'Health, logs, EAA tokens' })}
-            onClick={() => model.onChangePage('runtime')}
+            onClick={() => model.onChangePage('environment')}
           />
         </div>
       </section>

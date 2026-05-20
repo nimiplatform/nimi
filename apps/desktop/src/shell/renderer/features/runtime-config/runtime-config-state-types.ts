@@ -6,8 +6,26 @@ export const CAPABILITIES_V11 = ['chat', 'image', 'video', 'tts', 'stt', 'embedd
 export type CapabilityV11 = (typeof CAPABILITIES_V11)[number];
 
 export type SourceIdV11 = 'local' | 'cloud';
-export type RuntimePageIdV11 = 'overview' | 'recommend' | 'local' | 'cloud' | 'catalog' | 'runtime' | 'profiles' | 'data-management' | 'performance';
-export type RuntimeSetupPageIdV11 = RuntimePageIdV11;
+/**
+ * Canonical six-section Runtime IA (product manual "Runtime / AI Environment").
+ * Section merges from the Runtime Surface Cleanup table:
+ *  - recommend + local (Local Models) + catalog  -> models
+ *  - data-management + runtime (Operations)      -> environment
+ *  - performance + developer-gated mods          -> advanced
+ */
+export type RuntimePageIdV11 =
+  | 'overview'
+  | 'profiles'
+  | 'models'
+  | 'cloud'
+  | 'environment'
+  | 'advanced';
+/**
+ * Sub-navigation targets used inside a section (e.g. the Models section's
+ * recommend/installed/catalog sub-tabs, or cross-section "open Cloud Connectors"
+ * deep links). Not top-level IA entries.
+ */
+export type RuntimeSetupPageIdV11 = 'models' | 'cloud';
 export type UiModeV11 = 'simple' | 'advanced';
 export type ProviderStatusV11 = 'idle' | 'healthy' | 'unreachable' | 'unsupported' | 'degraded';
 export type ApiConnectorScopeV11 = 'user' | 'machine-global' | 'runtime-system';
@@ -176,14 +194,11 @@ export function normalizeSourceV11(value: unknown): SourceIdV11 {
 export function normalizePageIdV11(value: unknown): RuntimePageIdV11 {
   if (
     value === 'overview'
-    || value === 'recommend'
-    || value === 'local'
-    || value === 'cloud'
-    || value === 'catalog'
-    || value === 'runtime'
     || value === 'profiles'
-    || value === 'data-management'
-    || value === 'performance'
+    || value === 'models'
+    || value === 'cloud'
+    || value === 'environment'
+    || value === 'advanced'
   ) {
     return value;
   }

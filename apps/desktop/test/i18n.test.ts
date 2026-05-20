@@ -312,11 +312,9 @@ test('known dynamic desktop locale keys exist in both locales', async () => {
 test('runtime config sidebar section keys are defined in en locale', async () => {
   const panelViewSource = await readFile(RUNTIME_CONFIG_PANEL_VIEW_PATH, 'utf8');
   const en = readDesktopLocale('en');
+  // T2.4 six-section IA: a single canonical "Runtime" sidebar group.
   const requiredKeys = [
-    'runtimeConfig.sidebar.section.core',
-    'runtimeConfig.sidebar.section.connectors',
-    'runtimeConfig.sidebar.section.operations',
-    'runtimeConfig.sidebar.section.system',
+    'runtimeConfig.sidebar.section.runtime',
   ];
 
   for (const key of requiredKeys) {

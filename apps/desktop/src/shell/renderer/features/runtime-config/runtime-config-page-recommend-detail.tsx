@@ -173,7 +173,7 @@ export function RecommendDetailPage({ item, totalVramBytes, model, onBack }: Rec
 
   const openLocalModels = useCallback(() => {
     model.setLocalModelQuery(item.title || item.installPayload.modelId);
-    model.onChangePage('local');
+    model.onChangePage('models');
   }, [model, item]);
 
   return (

@@ -16,6 +16,11 @@ const panelViewSource = readFileSync(
   'utf8',
 );
 
+const modelsPageSource = readFileSync(
+  path.join(import.meta.dirname, '../src/shell/renderer/features/runtime-config/runtime-config-page-models.tsx'),
+  'utf8',
+);
+
 const recommendPageSource = readFileSync(
   path.join(import.meta.dirname, '../src/shell/renderer/features/runtime-config/runtime-config-page-recommend.tsx'),
   'utf8',
@@ -29,18 +34,33 @@ const detailSource = readFileSync(
 const enLocale = readDesktopLocale('en');
 const zhLocale = readDesktopLocale('zh');
 
-test('runtime config sidebar exposes recommend as a core page', () => {
+// T2.4 six-section IA: `recommend` is no longer a top-level Runtime section.
+// It is the default sub-tab inside the canonical `Models` section.
+
+test('runtime config sidebar exposes Models as a canonical six-section IA entry', () => {
   assert.match(
     sidebarSource,
-    /{\s*id:\s*'recommend',\s*section:\s*'Core',\s*label:\s*'Recommend',\s*icon:\s*ICON_RECOMMEND,\s*}/s,
+    /{\s*id:\s*'models',\s*section:\s*'Runtime',\s*label:\s*'Models',\s*icon:\s*ICON_MODELS,\s*}/s,
+  );
+  // Retired top-level entries must not survive.
+  assert.doesNotMatch(sidebarSource, /id:\s*'recommend'/);
+  assert.doesNotMatch(sidebarSource, /id:\s*'catalog'/);
+});
+
+test('runtime config panel mounts the Models section with a stable page root', () => {
+  assert.match(
+    panelViewSource,
+    /activePage === 'models'[\s\S]*?data-testid=\{E2E_IDS\.runtimePageRoot\('models'\)\}[\s\S]*?<ModelsPage model=\{model\} state=\{state\} \/>/s,
   );
 });
 
-test('runtime config panel mounts recommend page with a stable page root', () => {
-  assert.match(
-    panelViewSource,
-    /activePage === 'recommend'[\s\S]*?data-testid=\{E2E_IDS\.runtimePageRoot\('recommend'\)\}[\s\S]*?<RecommendPage model=\{model\} state=\{state\} \/>/s,
-  );
+test('Models section composes the recommend sub-tab', () => {
+  assert.match(modelsPageSource, /RecommendPage/);
+  assert.match(modelsPageSource, /runtime-models-subtab:/);
+  assert.match(modelsPageSource, /runtime-models-pane:recommend/);
+  // The three retired sections all collapse into Models sub-tabs.
+  assert.match(modelsPageSource, /LocalPage/);
+  assert.match(modelsPageSource, /CatalogPage/);
 });
 
 test('recommend page keeps device profile bar, tier summary, and filter toolbar', () => {
@@ -49,9 +69,9 @@ test('recommend page keeps device profile bar, tier summary, and filter toolbar'
   assert.match(recommendPageSource, /ModelRow/);
 });
 
-test('runtime page meta defines recommend page copy', () => {
-  assert.equal(RUNTIME_PAGE_META.recommend.name, 'Recommend');
-  assert.match(RUNTIME_PAGE_META.recommend.description, /Model-index powered leaderboard/i);
+test('runtime page meta defines Models section copy', () => {
+  assert.equal(RUNTIME_PAGE_META.models.name, 'Models');
+  assert.match(RUNTIME_PAGE_META.models.description, /catalog/i);
 });
 
 test('RecommendDetailPage is exported from detail source', () => {
@@ -66,9 +86,9 @@ test('recommend page imports and renders RecommendDetailPage for detail navigati
 test('recommend locale keys exist in english and chinese bundles', () => {
   assert.equal(typeof enLocale.runtimeConfig?.recommend?.heroTitle, 'string');
   assert.equal(typeof enLocale.runtimeConfig?.recommend?.whyRankingTitle, 'string');
-  assert.equal(typeof enLocale.runtimeConfig?.sidebar?.recommend, 'string');
+  assert.equal(typeof enLocale.runtimeConfig?.sidebar?.models, 'string');
 
   assert.equal(typeof zhLocale.runtimeConfig?.recommend?.heroTitle, 'string');
   assert.equal(typeof zhLocale.runtimeConfig?.recommend?.whyRankingTitle, 'string');
-  assert.equal(typeof zhLocale.runtimeConfig?.sidebar?.recommend, 'string');
+  assert.equal(typeof zhLocale.runtimeConfig?.sidebar?.models, 'string');
 });

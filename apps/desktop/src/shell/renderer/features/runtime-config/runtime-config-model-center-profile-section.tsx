@@ -550,7 +550,7 @@ function ProfileSectionFlat(props: ModelCenterProfileSectionProps & {
                               <button
                                 type="button"
                                 className="inline-flex items-center gap-1 rounded-md bg-[var(--nimi-action-primary-bg)] px-2 py-1 text-[10px] font-medium text-white hover:opacity-90 transition-opacity"
-                                onClick={() => props.onNavigateToSetup!(entry.kind === 'service' ? 'cloud' as const : 'local' as const)}
+                                onClick={() => props.onNavigateToSetup!(entry.kind === 'service' ? 'cloud' as const : 'models' as const)}
                               >
                                 <DownloadIcon />
                                 {t('runtimeConfig.mods.setup', { defaultValue: 'Setup' })}

@@ -9,7 +9,7 @@ type SetupAutodiscoverEffectInput = {
 };
 
 const PAGES_REQUIRING_DISCOVERY: ReadonlySet<string> = new Set([
-  'overview', 'local', 'recommend', 'catalog', 'runtime', 'cloud',
+  'overview', 'models', 'cloud', 'environment',
 ]);
 
 export function useRuntimeConfigSetupAutodiscoverEffect(input: SetupAutodiscoverEffectInput) {

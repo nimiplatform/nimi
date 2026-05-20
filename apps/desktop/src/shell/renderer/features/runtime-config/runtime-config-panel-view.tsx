@@ -15,14 +15,11 @@ import { RUNTIME_PAGE_META } from './runtime-config-meta-v11';
 import { RUNTIME_SIDEBAR_ITEMS } from './runtime-config-sidebar';
 import { RuntimeHealthBadge } from './runtime-config-primitives';
 import { OverviewPage } from './runtime-config-page-overview';
-import { RecommendPage } from './runtime-config-page-recommend';
-import { LocalPage } from './runtime-config-page-local';
 import { CloudPage } from './runtime-config-page-cloud';
-import { CatalogPage } from './runtime-config-page-catalog';
-import { RuntimePage } from './runtime-config-page-runtime';
+import { ModelsPage } from './runtime-config-page-models';
+import { EnvironmentPage } from './runtime-config-page-environment';
+import { AdvancedPage } from './runtime-config-page-advanced';
 import { ProfileCatalogPage } from './runtime-config-page-profiles';
-import { DataManagementPage } from '../settings/settings-data-management-page';
-import { PerformancePage } from '../settings/settings-performance-page';
 import type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-types';
 import { useRuntimeConfigPanelController } from './runtime-config-panel-controller';
 import { InlineFeedback } from '@renderer/ui/feedback/inline-feedback';
@@ -32,10 +29,7 @@ function RuntimeSkeletonBlock({ className }: { className: string }) {
 }
 
 const RUNTIME_SECTION_LABEL_KEY: Record<(typeof RUNTIME_SIDEBAR_ITEMS)[number]['section'], string> = {
-  Core: 'runtimeConfig.sidebar.section.core',
-  Connectors: 'runtimeConfig.sidebar.section.connectors',
-  Operations: 'runtimeConfig.sidebar.section.operations',
-  System: 'runtimeConfig.sidebar.section.system',
+  Runtime: 'runtimeConfig.sidebar.section.runtime',
 };
 
 export function RuntimeConfigPanelBody() {
@@ -222,51 +216,35 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
               />
             </div>
           ) : null}
-          {activePage === 'local' ? (
-            <div data-testid={E2E_IDS.runtimePageRoot('local')}>
-              <LocalPage model={model} state={state} />
+          {activePage === 'overview' && (
+            <div data-testid={E2E_IDS.runtimePageRoot('overview')}>
+              <OverviewPage model={model} state={state} />
             </div>
-          ) : activePage === 'data-management' ? (
-            <div data-testid={E2E_IDS.runtimePageRoot('data-management')}>
-              <DataManagementPage />
+          )}
+          {activePage === 'profiles' && (
+            <div data-testid={E2E_IDS.runtimePageRoot('profiles')}>
+              <ProfileCatalogPage />
             </div>
-          ) : activePage === 'performance' ? (
-            <div data-testid={E2E_IDS.runtimePageRoot('performance')}>
-              <PerformancePage />
+          )}
+          {activePage === 'models' && (
+            <div data-testid={E2E_IDS.runtimePageRoot('models')} className="flex min-h-0 flex-1 flex-col">
+              <ModelsPage model={model} state={state} />
             </div>
-          ) : (
-            <>
-              {activePage === 'overview' && (
-                <div data-testid={E2E_IDS.runtimePageRoot('overview')}>
-                  <OverviewPage model={model} state={state} />
-                </div>
-              )}
-              {activePage === 'recommend' && (
-                <div data-testid={E2E_IDS.runtimePageRoot('recommend')}>
-                  <RecommendPage model={model} state={state} />
-                </div>
-              )}
-              {activePage === 'cloud' && (
-                <div data-testid={E2E_IDS.runtimePageRoot('cloud')}>
-                  <CloudPage model={model} state={state} />
-                </div>
-              )}
-              {activePage === 'catalog' && (
-                <div data-testid={E2E_IDS.runtimePageRoot('catalog')}>
-                  <CatalogPage model={model} state={state} />
-                </div>
-              )}
-              {activePage === 'runtime' && (
-                <div data-testid={E2E_IDS.runtimePageRoot('runtime')}>
-                  <RuntimePage model={model} state={state} />
-                </div>
-              )}
-              {activePage === 'profiles' && (
-                <div data-testid={E2E_IDS.runtimePageRoot('profiles')}>
-                  <ProfileCatalogPage />
-                </div>
-              )}
-            </>
+          )}
+          {activePage === 'cloud' && (
+            <div data-testid={E2E_IDS.runtimePageRoot('cloud')}>
+              <CloudPage model={model} state={state} />
+            </div>
+          )}
+          {activePage === 'environment' && (
+            <div data-testid={E2E_IDS.runtimePageRoot('environment')} className="flex min-h-0 flex-1 flex-col">
+              <EnvironmentPage model={model} state={state} />
+            </div>
+          )}
+          {activePage === 'advanced' && (
+            <div data-testid={E2E_IDS.runtimePageRoot('advanced')} className="flex min-h-0 flex-1 flex-col">
+              <AdvancedPage model={model} state={state} />
+            </div>
           )}
         </ScrollArea>
       </Surface>

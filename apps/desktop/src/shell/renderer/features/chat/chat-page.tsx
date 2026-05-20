@@ -117,7 +117,7 @@ function ChatModeUnavailable({ mode }: { mode: string }) {
 
 function toRuntimePageId(targetId: Extract<ConversationSetupAction, { kind: 'open-settings' }>['targetId']) {
   if (targetId === 'runtime-local') {
-    return 'local' as const;
+    return 'models' as const;
   }
   if (targetId === 'runtime-cloud') {
     return 'cloud' as const;

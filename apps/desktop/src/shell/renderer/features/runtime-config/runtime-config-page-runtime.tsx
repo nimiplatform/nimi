@@ -550,7 +550,7 @@ export function RuntimePage({ model, state }: RuntimePageProps) {
                     <div className="mt-3 flex items-center gap-1">
                       <button
                         type="button"
-                        onClick={() => model.onChangePage('local')}
+                        onClick={() => model.onChangePage('models')}
                         className={cn('inline-flex items-center gap-1 rounded-full border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-2.5 py-1 text-[11px] font-medium transition-colors hover:border-[color-mix(in_srgb,var(--nimi-status-success)_55%,transparent)] hover:text-[var(--nimi-status-success)]', TOKEN_TEXT_SECONDARY)}
                       >
                         <PlusIcon />
