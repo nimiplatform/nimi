@@ -19,6 +19,7 @@ import {
   type CandidatePostPayload,
   type LocalPostDraftInput,
 } from './post-draft.js';
+import { CreateRealmAgentWorkspace } from './CreateRealmAgentWorkspace.js';
 
 const PORTFOLIO_FILTER_OPTIONS: { value: OwnerPortfolioFilter; label: string }[] = [
   { value: 'all', label: 'All agents' },
@@ -411,71 +412,77 @@ export function OwnerPortfolio() {
 
   if (agents.length === 0) {
     return (
-      <EmptyState
-        title="No owner-created Realm Agents"
-        description="Realm returned an empty current-user MASTER_OWNED portfolio from GET /api/me/agents."
-        action={<Button onClick={() => void portfolioQuery.refetch()}>Refresh</Button>}
-      />
+      <div className="grid min-w-0 flex-1 gap-4">
+        <CreateRealmAgentWorkspace />
+        <EmptyState
+          title="No owner-created Realm Agents"
+          description="Realm returned an empty current-user MASTER_OWNED portfolio from GET /api/me/agents."
+          action={<Button onClick={() => void portfolioQuery.refetch()}>Refresh</Button>}
+        />
+      </div>
     );
   }
 
   return (
-    <div className="grid min-h-0 min-w-0 flex-1 gap-4 lg:grid-cols-[360px_1fr]">
-      <aside className="min-w-0">
-        <div className="mb-3 flex items-center justify-between gap-3">
-          <div>
-            <h2 className="m-0 text-base font-semibold">Owner portfolio</h2>
-            <p className="m-0 mt-1 text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-muted)]">GET /api/me/agents</p>
+    <div className="grid min-w-0 flex-1 gap-4">
+      <CreateRealmAgentWorkspace />
+      <div className="grid min-h-0 min-w-0 gap-4 lg:grid-cols-[360px_1fr]">
+        <aside className="min-w-0">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <div>
+              <h2 className="m-0 text-base font-semibold">Owner portfolio</h2>
+              <p className="m-0 mt-1 text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-muted)]">GET /api/me/agents</p>
+            </div>
+            <Button loading={portfolioQuery.isFetching} onClick={() => void portfolioQuery.refetch()}>Refresh</Button>
           </div>
-          <Button loading={portfolioQuery.isFetching} onClick={() => void portfolioQuery.refetch()}>Refresh</Button>
-        </div>
-        <Surface tone="panel" padding="md" className="mb-3">
-          <div className="grid gap-3">
-            <FieldShell label="Search portfolio" message="Local view control only. Realm reads remain GET /api/me/agents.">
-              <SearchField
-                value={portfolioQueryText}
-                placeholder="Search name, handle, world, or state"
-                onChange={(event) => setPortfolioQueryText(event.currentTarget.value)}
-              />
-            </FieldShell>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <FieldShell label="Filter">
-                <SelectField
-                  value={portfolioFilter}
-                  options={PORTFOLIO_FILTER_OPTIONS}
-                  onValueChange={(value) => setPortfolioFilter(value as OwnerPortfolioFilter)}
+          <Surface tone="panel" padding="md" className="mb-3">
+            <div className="grid gap-3">
+              <FieldShell label="Search portfolio" message="Local view control only. Realm reads remain GET /api/me/agents.">
+                <SearchField
+                  value={portfolioQueryText}
+                  placeholder="Search name, handle, world, or state"
+                  onChange={(event) => setPortfolioQueryText(event.currentTarget.value)}
                 />
               </FieldShell>
-              <FieldShell label="Sort">
-                <SelectField
-                  value={portfolioSort}
-                  options={PORTFOLIO_SORT_OPTIONS}
-                  onValueChange={(value) => setPortfolioSort(value as OwnerPortfolioSort)}
-                />
-              </FieldShell>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <FieldShell label="Filter">
+                  <SelectField
+                    value={portfolioFilter}
+                    options={PORTFOLIO_FILTER_OPTIONS}
+                    onValueChange={(value) => setPortfolioFilter(value as OwnerPortfolioFilter)}
+                  />
+                </FieldShell>
+                <FieldShell label="Sort">
+                  <SelectField
+                    value={portfolioSort}
+                    options={PORTFOLIO_SORT_OPTIONS}
+                    onValueChange={(value) => setPortfolioSort(value as OwnerPortfolioSort)}
+                  />
+                </FieldShell>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <StatusBadge tone="neutral">{visibleAgents.length} of {agents.length} shown</StatusBadge>
+                <StatusBadge tone="info">app-local view</StatusBadge>
+              </div>
             </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <StatusBadge tone="neutral">{visibleAgents.length} of {agents.length} shown</StatusBadge>
-              <StatusBadge tone="info">app-local view</StatusBadge>
+          </Surface>
+          {sourceWarnings.length > 0 ? (
+            <InlineAlert tone="warning" className="mb-3">
+              friendCount source unavailable for {sourceWarnings.length} Realm Agent{sourceWarnings.length === 1 ? '' : 's'}.
+            </InlineAlert>
+          ) : null}
+          {visibleAgents.length === 0 ? (
+            <EmptyState title="No agents match this local view" description="Adjust search, filter, or sort controls. No Realm write or queue state is created." />
+          ) : (
+            <div className="grid gap-3">
+              {visibleAgents.map((agent) => (
+                <AgentCard key={agent.id} agent={agent} active={agent.id === selectedAgent?.id} onSelect={() => setSelectedId(agent.id)} />
+              ))}
             </div>
-          </div>
-        </Surface>
-        {sourceWarnings.length > 0 ? (
-          <InlineAlert tone="warning" className="mb-3">
-            friendCount source unavailable for {sourceWarnings.length} Realm Agent{sourceWarnings.length === 1 ? '' : 's'}.
-          </InlineAlert>
-        ) : null}
-        {visibleAgents.length === 0 ? (
-          <EmptyState title="No agents match this local view" description="Adjust search, filter, or sort controls. No Realm write or queue state is created." />
-        ) : (
-          <div className="grid gap-3">
-            {visibleAgents.map((agent) => (
-              <AgentCard key={agent.id} agent={agent} active={agent.id === selectedAgent?.id} onSelect={() => setSelectedId(agent.id)} />
-            ))}
-          </div>
-        )}
-      </aside>
-      {selectedAgent ? <AgentDetail agentId={selectedAgent.id} /> : null}
+          )}
+        </aside>
+        {selectedAgent ? <AgentDetail agentId={selectedAgent.id} /> : null}
+      </div>
     </div>
   );
 }
