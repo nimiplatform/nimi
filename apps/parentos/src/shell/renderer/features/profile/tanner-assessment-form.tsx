@@ -1,10 +1,9 @@
 import { useState, type ReactNode } from 'react';
-import { Button, TextField } from '@nimiplatform/nimi-kit/ui';
+import { Button, DatePicker, TextField } from '@nimiplatform/nimi-kit/ui';
 import { computeAgeMonthsAt } from '../../app-shell/app-store.js';
 import { insertMeasurement, insertTannerAssessment } from '../../bridge/sqlite-bridge.js';
 import { isoNow, ulid } from '../../bridge/ulid.js';
 import type { LinkedHealthRecordReminder } from './health-capture-orchestrator.js';
-import { ProfileDatePicker } from './profile-date-picker.js';
 import { TannerStageSelector } from './tanner-stage-selector.js';
 import {
   ASSESSED_BY_LABELS,
@@ -128,7 +127,7 @@ function TannerFormFields({
     <div className="space-y-5">
       <FormGrid cols={2}>
         <FormField label="评估日期">
-          <ProfileDatePicker value={formAssessedAt} onChange={setFormAssessedAt} className="h-12" />
+          <DatePicker value={formAssessedAt} onChange={setFormAssessedAt} className="h-12" />
         </FormField>
         <FormField label="评估人">
           <ChipGroup

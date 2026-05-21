@@ -38,6 +38,7 @@ interface AISummaryCardProps {
 }
 
 const DOMAIN_LABELS: Record<string, string> = {
+  overview: '综合发育',
   growth: '生长发育',
   milestone: '发育里程碑',
   vaccine: '疫苗接种',
@@ -51,9 +52,22 @@ const DOMAIN_LABELS: Record<string, string> = {
 };
 
 function cacheKey(childId: string, domain: string) {
-  // v4: invalidates earlier caches captured before the finishReason-based
-  // retry path; those entries may still hold mid-sentence summaries.
-  return `ai_summary_v4_${childId}_${domain}`;
+  // v5: cache entry now carries a dataHash so a summary is invalidated when
+  // the underlying records change, not only after the TTL elapses.
+  return `ai_summary_v5_${childId}_${domain}`;
+}
+
+// A cached summary stays valid for 7 days, but only while the data it was
+// generated from is unchanged (see dataHash check below).
+const CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+
+// Cheap non-cryptographic hash; only used to detect that dataContext changed.
+function hashDataContext(input: string): string {
+  let hash = 0;
+  for (let index = 0; index < input.length; index += 1) {
+    hash = (Math.imul(hash, 31) + input.charCodeAt(index)) | 0;
+  }
+  return (hash >>> 0).toString(36);
 }
 
 /**
@@ -97,15 +111,19 @@ export function AISummaryCard(props: AISummaryCardProps) {
   const generate = useCallback(async (skipCache = false) => {
     if (!dataContext) return; // no data to analyze
 
+    const dataHash = hashDataContext(dataContext);
+
     // Check cache first
     if (!skipCache) {
       try {
         const cached = await getAppSetting(cacheKey(childId, domain));
         if (cached) {
           try {
-            const parsed = JSON.parse(cached) as { text: string; ts: string };
-            // Cache valid for 24h
-            if (Date.now() - new Date(parsed.ts).getTime() < 24 * 60 * 60 * 1000) {
+            const parsed = JSON.parse(cached) as { text: string; ts: string; dataHash?: string };
+            const withinTtl = Date.now() - new Date(parsed.ts).getTime() < CACHE_TTL_MS;
+            // Reuse the cache only when it is fresh AND derived from the same
+            // data; a new measurement changes the hash and forces a regen.
+            if (withinTtl && parsed.dataHash === dataHash) {
               setSummary(parsed.text);
               return;
             }
@@ -166,7 +184,7 @@ export function AISummaryCard(props: AISummaryCardProps) {
       // summary for 24h.
       if (!wasTruncated) {
         try {
-          await setAppSetting(cacheKey(childId, domain), JSON.stringify({ text, ts: isoNow() }), isoNow());
+          await setAppSetting(cacheKey(childId, domain), JSON.stringify({ text, ts: isoNow(), dataHash }), isoNow());
         } catch { /* cache write failure is non-critical */ }
       }
     } catch {

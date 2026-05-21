@@ -17,7 +17,9 @@ import {
   computeStageOptions,
   defaultPrescribedHoursPerDay,
   defaultReviewIntervalDays,
+  deriveAlignerContextForDate,
   findLatestAlignerChange,
+  formatAlignerContext,
   formatHours,
 } from './orthodontic-derive.js';
 
@@ -698,5 +700,103 @@ describe('APPLIANCE_PHASES', () => {
     expect(APPLIANCE_PHASES['metal-braces'].map((p) => p.phaseId)).toEqual([
       'leveling', 'space-closure', 'finishing', 'debond-prep',
     ]);
+  });
+});
+
+describe('deriveAlignerContextForDate (PO-ORTHO-006a)', () => {
+  it('returns null when no appliance covers the date', () => {
+    expect(
+      deriveAlignerContextForDate({ appliances: [], checkins: [], eventDate: '2026-04-10' }),
+    ).toBeNull();
+  });
+
+  it('returns null for a non-clear-aligner appliance', () => {
+    const braces = makeAppliance({
+      applianceType: 'metal-braces',
+      totalAligners: null,
+      daysPerAligner: null,
+    });
+    expect(
+      deriveAlignerContextForDate({ appliances: [braces], checkins: [], eventDate: '2026-04-10' }),
+    ).toBeNull();
+  });
+
+  it('returns null for an event before the appliance started', () => {
+    expect(
+      deriveAlignerContextForDate({ appliances: [makeAppliance()], checkins: [], eventDate: '2026-03-20' }),
+    ).toBeNull();
+  });
+
+  it('returns null for an event after the appliance ended', () => {
+    const ended = makeAppliance({ endedAt: '2026-04-30', status: 'completed' });
+    expect(
+      deriveAlignerContextForDate({ appliances: [ended], checkins: [], eventDate: '2026-05-10' }),
+    ).toBeNull();
+  });
+
+  it('anchors to startedAt as tray 1 before the first aligner-change', () => {
+    expect(
+      deriveAlignerContextForDate({ appliances: [makeAppliance()], checkins: [], eventDate: '2026-04-05' }),
+    ).toEqual({ alignerIndex: 1, dayInTray: 5, daysPerAligner: 7 });
+  });
+
+  it('reads the start date itself as day 1', () => {
+    expect(
+      deriveAlignerContextForDate({ appliances: [makeAppliance()], checkins: [], eventDate: '2026-04-01' }),
+    ).toEqual({ alignerIndex: 1, dayInTray: 1, daysPerAligner: 7 });
+  });
+
+  it('anchors to the latest aligner-change on or before the date', () => {
+    const checkins = [
+      makeCheckin({ checkinType: 'aligner-change', checkinDate: '2026-04-08', alignerIndex: 2 }),
+      makeCheckin({ checkinType: 'aligner-change', checkinDate: '2026-04-15', alignerIndex: 3 }),
+    ];
+    expect(
+      deriveAlignerContextForDate({ appliances: [makeAppliance()], checkins, eventDate: '2026-04-12' }),
+    ).toEqual({ alignerIndex: 2, dayInTray: 5, daysPerAligner: 7 });
+  });
+
+  it('treats a same-day aligner-change as day 1 of the new tray', () => {
+    const checkins = [
+      makeCheckin({ checkinType: 'aligner-change', checkinDate: '2026-04-12', alignerIndex: 2 }),
+    ];
+    expect(
+      deriveAlignerContextForDate({ appliances: [makeAppliance()], checkins, eventDate: '2026-04-12' }),
+    ).toEqual({ alignerIndex: 2, dayInTray: 1, daysPerAligner: 7 });
+  });
+
+  it('ignores expander-activation checkins', () => {
+    const checkins = [
+      makeCheckin({ checkinType: 'expander-activation', checkinDate: '2026-04-08', activationIndex: 1 }),
+    ];
+    expect(
+      deriveAlignerContextForDate({ appliances: [makeAppliance()], checkins, eventDate: '2026-04-12' }),
+    ).toEqual({ alignerIndex: 1, dayInTray: 12, daysPerAligner: 7 });
+  });
+
+  it('prefers the latest-started clear-aligner appliance on window overlap', () => {
+    const first = makeAppliance({ applianceId: 'a1', startedAt: '2026-04-01', endedAt: '2026-05-01' });
+    const refinement = makeAppliance({ applianceId: 'a2', startedAt: '2026-04-20', daysPerAligner: 10 });
+    expect(
+      deriveAlignerContextForDate({
+        appliances: [first, refinement],
+        checkins: [],
+        eventDate: '2026-04-25',
+      }),
+    ).toEqual({ alignerIndex: 1, dayInTray: 6, daysPerAligner: 10 });
+  });
+});
+
+describe('formatAlignerContext (PO-ORTHO-006a)', () => {
+  it('renders index, day, and cycle length', () => {
+    expect(formatAlignerContext({ alignerIndex: 2, dayInTray: 5, daysPerAligner: 7 })).toBe(
+      '第2副牙套·第5/7天',
+    );
+  });
+
+  it('omits the cycle length when daysPerAligner is null', () => {
+    expect(formatAlignerContext({ alignerIndex: 1, dayInTray: 3, daysPerAligner: null })).toBe(
+      '第1副牙套·第3天',
+    );
   });
 });

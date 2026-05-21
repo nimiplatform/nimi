@@ -22,8 +22,7 @@ import type {
   MedicalEventsFormMedication,
 } from './medical-events-page-types.js';
 import { useMedicalEventsFormState } from './medical-events-page-form-state.js';
-import { Button, TextField, TextareaField } from '@nimiplatform/nimi-kit/ui';
-import { ProfileDatePicker } from './profile-date-picker.js';
+import { Button, DatePicker, TextField, TextareaField } from '@nimiplatform/nimi-kit/ui';
 import {
   ChipGroup,
   type ChipOption,
@@ -332,13 +331,13 @@ function MedicalEventsFormBody({
 
               <FormGrid cols={2}>
                 <FormField label="就诊日期">
-                  <ProfileDatePicker value={formEventDate} onChange={setFormEventDate} className="h-12" />
+                  <DatePicker value={formEventDate} onChange={setFormEventDate} className="h-12" />
                 </FormField>
                 <FormField label={formShowEndDate ? '结束日期' : '持续治疗/住院'}>
                   {formShowEndDate ? (
                     <div className="flex items-center gap-2">
                       <div className="flex-1">
-                        <ProfileDatePicker value={formEndDate} onChange={setFormEndDate} allowClear className="h-12" />
+                        <DatePicker value={formEndDate} onChange={setFormEndDate} allowClear className="h-12" />
                       </div>
                       <button
                         onClick={() => {

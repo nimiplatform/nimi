@@ -13,8 +13,17 @@ import {
   saveAttachment,
   getAttachments,
   deleteAttachment,
+  getOrthodonticCases,
+  getOrthodonticAppliances,
+  getOrthodonticCheckins,
 } from '../../bridge/sqlite-bridge.js';
-import type { DentalRecordRow, AttachmentRow } from '../../bridge/sqlite-bridge.js';
+import type {
+  DentalRecordRow,
+  AttachmentRow,
+  OrthodonticApplianceRow,
+  OrthodonticCheckinRow,
+} from '../../bridge/sqlite-bridge.js';
+import { deriveAlignerContextForDate, type AlignerContext } from './orthodontic-derive.js';
 import { ulid, isoNow } from '../../bridge/ulid.js';
 import { DentalInsightCard } from './dental-page-insight-card.js';
 import { catchLog } from '../../infra/telemetry/catch-log.js';
@@ -327,14 +336,29 @@ export function DentalHistoryView() {
   };
 
   const [attachmentMap, setAttachmentMap] = useState<Map<string, AttachmentRow[]>>(new Map());
+  const [orthoAppliances, setOrthoAppliances] = useState<OrthodonticApplianceRow[]>([]);
+  const [orthoCheckins, setOrthoCheckins] = useState<OrthodonticCheckinRow[]>([]);
 
   const refreshDentalData = async (childId: string) => {
-    const [nextRecords, nextAttachments] = await Promise.all([
+    const [nextRecords, nextAttachments, cases] = await Promise.all([
       getDentalRecords(childId),
       getAttachments(childId),
+      getOrthodonticCases(childId),
     ]);
     setRecords(nextRecords);
     setAttachmentMap(buildDentalAttachmentMap(nextAttachments));
+
+    // Clear-aligner appliances + their aligner-change checkins back the
+    // PO-ORTHO-006a "第 X 副牙套·第 Y/Z 天" decoration on ortho timeline rows.
+    // limitDays is a day window (Rust defaults null to 30); the timeline spans
+    // the whole treatment, so request a wide all-time window.
+    const applianceLists = await Promise.all(cases.map((c) => getOrthodonticAppliances(c.caseId)));
+    const clearAligners = applianceLists.flat().filter((a) => a.applianceType === 'clear-aligner');
+    const checkinLists = await Promise.all(
+      clearAligners.map((a) => getOrthodonticCheckins({ applianceId: a.applianceId, limitDays: 36500 })),
+    );
+    setOrthoAppliances(clearAligners);
+    setOrthoCheckins(checkinLists.flat());
   };
 
   useEffect(() => {
@@ -384,6 +408,25 @@ export function DentalHistoryView() {
     }
     return m;
   }, [records]);
+
+  // PO-ORTHO-006a: derive the "第 X 副牙套·第 Y/Z 天" decoration for every
+  // ortho-* timeline row. deriveAlignerContextForDate returns null unless a
+  // clear-aligner appliance window covers the row's date, so non-aligner
+  // cases and pre-treatment events carry no entry.
+  const alignerContextMap = useMemo(() => {
+    const map = new Map<string, AlignerContext>();
+    if (orthoAppliances.length === 0) return map;
+    for (const record of records) {
+      if (!ORTHO_EVENT_TYPES.has(record.eventType)) continue;
+      const ctx = deriveAlignerContextForDate({
+        appliances: orthoAppliances,
+        checkins: orthoCheckins,
+        eventDate: record.eventDate,
+      });
+      if (ctx) map.set(record.recordId, ctx);
+    }
+    return map;
+  }, [records, orthoAppliances, orthoCheckins]);
 
   // Stats
   const cariesCount = records.filter((r) => r.eventType === 'caries').length;
@@ -753,6 +796,7 @@ export function DentalHistoryView() {
         <DentalHistoryRecordList
           recordGroups={recordGroups}
           attachmentMap={attachmentMap}
+          alignerContextMap={alignerContextMap}
           fmtAge={fmtAge}
           onAskAi={handleAskAiAboutRecord}
           onEdit={startEditingRecord}

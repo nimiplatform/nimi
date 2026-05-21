@@ -8,7 +8,7 @@
 // saveHealthRecordCapture (canonical-API) per
 // apps/parentos/spec/kernel/tables/local-storage.yaml#growth_measurement_canonical_migration.
 import { useState } from 'react';
-import { Button, cn, TextField, TextareaField } from '@nimiplatform/nimi-kit/ui';
+import { Button, cn, DatePicker, TextField, TextareaField } from '@nimiplatform/nimi-kit/ui';
 import { computeAgeMonthsAt } from '../../app-shell/app-store.js';
 import { saveAttachment, saveHealthRecordCapture } from '../../bridge/sqlite-bridge.js';
 import type { SaveHealthRecordCaptureInput } from '../../bridge/sqlite-bridge.js';
@@ -16,7 +16,6 @@ import { isoNow, ulid } from '../../bridge/ulid.js';
 import { bmiLabel, computeBMI } from './growth-curve-page-shared.js';
 import type { LinkedHealthRecordReminder } from './health-capture-orchestrator.js';
 import { PhotoGrid, type PendingPhoto } from './photo-grid.js';
-import { ProfileDatePicker } from './profile-date-picker.js';
 import {
   FormField,
   FormGrid,
@@ -167,7 +166,7 @@ export function GrowthAddRecordContent({
       <ModalContent>
         <div className="space-y-5">
           <FormField label="测量日期">
-            <ProfileDatePicker value={formDate} onChange={setFormDate} className="h-12" />
+            <DatePicker value={formDate} onChange={setFormDate} className="h-12" />
           </FormField>
 
           <FormGrid cols={isUnder6 ? 3 : 2}>

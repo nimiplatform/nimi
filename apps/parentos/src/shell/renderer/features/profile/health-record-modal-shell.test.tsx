@@ -2,14 +2,13 @@
 
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { Button, TextField } from '@nimiplatform/nimi-kit/ui';
+import { Button, DatePicker, TextField } from '@nimiplatform/nimi-kit/ui';
 import {
   HealthRecordModalShell,
   ModalContent,
   ModalFooter,
   ModalHeader,
 } from './health-record-modal-shell.js';
-import { ProfileDatePicker } from './profile-date-picker.js';
 
 const NUMBER_INPUT_CLASS = '[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none';
 
@@ -69,7 +68,7 @@ describe('HealthRecordModalShell', () => {
       <HealthRecordModalShell open size="M" ariaLabel="growth-record-modal" onClose={vi.fn()}>
         <ModalHeader title="添加生长记录" icon="📏" onClose={vi.fn()} />
         <ModalContent>
-          <ProfileDatePicker value="2026-05-14" onChange={vi.fn()} className="h-12" />
+          <DatePicker value="2026-05-14" onChange={vi.fn()} className="h-12" />
         </ModalContent>
       </HealthRecordModalShell>,
     );
@@ -77,7 +76,7 @@ describe('HealthRecordModalShell', () => {
     fireEvent.click(screen.getByRole('textbox'));
 
     await waitFor(() => {
-      const panel = document.body.querySelector('.parentos-profile-date-picker-panel');
+      const panel = document.body.querySelector('.nimi-date-picker-panel');
       expect(panel).toBeTruthy();
       expect(panel?.className).toContain('z-[120]');
     });

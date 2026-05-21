@@ -151,7 +151,13 @@ export interface GrowthDetailProjectionInput {
   growthStandard: GrowthStandard;
   events: HealthRecordEvent[];
   values: HealthRecordValue[];
+  /** LMS dataset for the selected metric — drives headline, history, trend
+   *  stats and milestones. */
   whoDataset: WHOLMSDataset | null;
+  /** Per-metric LMS datasets keyed by canonical metric id. Cross-metric chips
+   *  use these so each chip's percentile is computed against its own standard.
+   *  When omitted, cross-metric chips render without a percentile. */
+  whoDatasetByMetricId?: Partial<Record<HealthMetricId, WHOLMSDataset | null>>;
   page: number;
   perPage: number;
   filters: GrowthHistoryFilters;
@@ -373,7 +379,10 @@ function chipForMetric(
     return { kind, visible: false, primary: '—', secondary: null, tone: 'neutral' };
   }
   const unit = latest.value.unit ?? '';
-  const percentile = computeApproxPercentile(latest.value.valueNumber, latest.event.ageMonths, input.whoDataset);
+  // Each chip compares against its own metric's LMS dataset, not the selected
+  // metric's — otherwise e.g. a weight value gets scored against height bands.
+  const metricDataset = input.whoDatasetByMetricId?.[metricId] ?? null;
+  const percentile = computeApproxPercentile(latest.value.valueNumber, latest.event.ageMonths, metricDataset);
   return {
     kind,
     visible: true,
@@ -503,6 +512,20 @@ function buildTrendStats(
   }
   const yearAgoValue = priorYearValue(selectedPoints, latest.measuredAt);
   const yoy = formatYearOverYearDelta(latest.value, yearAgoValue, selectedUnit);
+  // Year-over-year framed against the prior-year value as a percentage, e.g.
+  // "较去年同期 138.5 cm，增长了 4.0%". Falls back when no prior-year point.
+  const yoyCaption = ((): string => {
+    if (yearAgoValue == null || yearAgoValue <= 0) return '暂无去年同期数据';
+    const unitSuffix = selectedUnit ? ` ${selectedUnit}` : '';
+    const pctText = Math.abs(((latest.value - yearAgoValue) / yearAgoValue) * 100).toFixed(1);
+    const direction =
+      latest.value > yearAgoValue
+        ? `增长了 ${pctText}%`
+        : latest.value < yearAgoValue
+          ? `降低了 ${pctText}%`
+          : '基本持平';
+    return `较去年同期 ${yearAgoValue}${unitSuffix}，${direction}`;
+  })();
   const currentPercentile = computeApproxPercentile(latest.value, latest.ageMonths, whoDataset);
 
   let p50: number | null = null;
@@ -545,7 +568,7 @@ function buildTrendStats(
   // referenced here so the parameter participates in the type signature.
   void selectedMetricId;
   return [
-    { label: '年增速', value: yoy, unit: '', caption: `相比 ${yearAgoValue ?? '—'} ${selectedUnit}` },
+    { label: '年增速', value: yoy, unit: '', caption: yoyCaption },
     { label: '距 P50', value: distanceToP50, unit: selectedUnit, caption: recencyCaption },
     {
       label: '百分位',
@@ -675,7 +698,9 @@ export function buildGrowthDetailSnapshot(
 
   // ---- Milestones --------------------------------------------------------
   const milestonesInput = allGrowthHistoryPoints(enrichedInput);
-  const milestones = evaluateAllMilestones(milestonesInput, enrichedInput.whoDataset, enrichedInput.nowIso);
+  // Full-record milestone set: the history table renders all of it and the
+  // hero card a recent slice, so both surfaces stay in sync.
+  const milestones = evaluateAllMilestones(milestonesInput, enrichedInput.nowIso, true);
 
   // ---- nextCheck via HealthRecordSnapshot --------------------------------
   const nextCheck = nextCheckFromSnapshotMetric(metricSnapshot, enrichedInput.nowIso);

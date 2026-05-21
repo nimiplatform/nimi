@@ -1,4 +1,10 @@
-import { Button, OverlayShell, Surface, TextareaField, TextField } from '@nimiplatform/nimi-kit/ui';
+import { Button, DatePicker, StatusBadge, Surface, TextareaField, TextField } from '@nimiplatform/nimi-kit/ui';
+import {
+  HealthRecordModalShell,
+  ModalContent,
+  ModalFooter,
+  ModalHeader,
+} from './health-record-modal-shell.js';
 import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAppStore, computeAgeMonths, computeAgeMonthsAt, formatAge } from '../../app-shell/app-store.js';
@@ -12,11 +18,25 @@ import { AISummaryCard } from './ai-summary-card.js';
 import { completeReminderByRule } from '../../engine/reminder-actions.js';
 import { NoActiveChildPlaceholder } from './_shared/no-active-child-placeholder.js';
 import { ProfileDetailShell } from './_shared/profile-detail-shell.js';
-import { ProfileDatePicker } from './profile-date-picker.js';
+import { VaccineCaptureModal } from './vaccine-capture-form.js';
 
 /* ── helpers ──────────────────────────────────────────────── */
 
 function fmtDate(d: string) { return d.split('T')[0]; }
+
+/* 二类疫苗（非免疫规划 / 自费）以 `optional` 标签标记；其余为一类疫苗（国家免疫规划 / 免费）。 */
+function isOptionalVaccine(rule: ReminderRule) {
+  return rule.tags?.includes('optional') ?? false;
+}
+
+function VaccineClassBadge({ rule }: { rule: ReminderRule }) {
+  const optional = isOptionalVaccine(rule);
+  return (
+    <StatusBadge tone={optional ? 'warning' : 'info'} className="shrink-0 px-2 py-0.5 text-[11px]">
+      {optional ? '二类 · 自费' : '一类 · 免费'}
+    </StatusBadge>
+  );
+}
 
 /* ================================================================
    RECORD MODAL
@@ -49,157 +69,14 @@ function VaccineRecordModal({ rule, childId, birthDate, onSave, onClose }: {
   };
 
   return (
-    <OverlayShell
-      open
-      kind="dialog"
-      onClose={onClose}
-      panelClassName="w-[420px] rounded-3xl"
-      title={
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="text-[20px]">💉</span>
-            <h2 className="text-[16px] font-bold text-[var(--nimi-text-primary)]">{rule.title}</h2>
-          </div>
-          <button onClick={onClose} className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-[var(--nimi-action-ghost-hover)] text-[var(--nimi-text-muted)]">✕</button>
-        </div>
-      }
-      contentClassName="space-y-4"
-      footer={
-        <div className="flex items-center justify-end gap-2">
-          <Button onClick={onClose} tone="ghost" size="md">取消</Button>
-          <Button onClick={() => void handleSave()} disabled={saving} tone="primary" size="md">
-            {saving ? '保存中...' : '✅ 记录接种'}
-          </Button>
-        </div>
-      }
-    >
-      <p className="text-[14px] text-[var(--nimi-text-muted)]">{rule.description}</p>
-      <div>
-        <label className="text-[13px] mb-1 block text-[var(--nimi-text-muted)]">接种日期</label>
-        <ProfileDatePicker value={date} onChange={setDate} />
-      </div>
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <label className="text-[13px] mb-1 block text-[var(--nimi-text-muted)]">疫苗批号</label>
-          <TextField value={batch} onChange={(e) => setBatch(e.target.value)} placeholder="选填" className="w-full" />
-        </div>
-        <div>
-          <label className="text-[13px] mb-1 block text-[var(--nimi-text-muted)]">接种机构</label>
-          <TextField value={hospital} onChange={(e) => setHospital(e.target.value)} placeholder="选填" className="w-full" />
-        </div>
-      </div>
-      <div>
-        <label className="text-[13px] mb-1 block text-[var(--nimi-text-muted)]">不良反应记录</label>
-        <TextareaField value={reaction} onChange={(e) => setReaction(e.target.value)}
-          placeholder="如有不良反应请记录..."
-          className="w-full" rows={2} />
-      </div>
-    </OverlayShell>
-  );
-}
-
-/* ================================================================
-   CUSTOM VACCINE MODAL
-   ================================================================ */
-
-const REMIND_OPTIONS = [
-  { value: '', label: '不提醒' },
-  { value: '6', label: '6 个月后提醒' },
-  { value: '12', label: '每年提醒' },
-  { value: '24', label: '每 2 年提醒' },
-  { value: 'custom', label: '自定义...' },
-] as const;
-
-function CustomVaccineModal({ childId, birthDate, onSave, onClose }: {
-  childId: string; birthDate: string; onSave: () => void; onClose: () => void;
-}) {
-  const [name, setName] = useState('');
-  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
-  const [batch, setBatch] = useState('');
-  const [hospital, setHospital] = useState('');
-  const [reaction, setReaction] = useState('');
-  const [remindOption, setRemindOption] = useState('');
-  const [customMonths, setCustomMonths] = useState('');
-  const [saving, setSaving] = useState(false);
-
-  const remindMonths = remindOption === 'custom' ? parseInt(customMonths, 10) || 0 : parseInt(remindOption, 10) || 0;
-
-  const handleSave = async () => {
-    if (!name.trim()) return;
-    setSaving(true);
-    try {
-      const ruleId = `custom-vac-${ulid()}`;
-      await insertVaccineRecord({
-        recordId: ulid(), childId, ruleId,
-        vaccineName: name.trim(), vaccinatedAt: date,
-        ageMonths: computeAgeMonthsAt(birthDate, date),
-        batchNumber: batch || null, hospital: hospital || null,
-        adverseReaction: reaction || null, photoPath: null,
-        now: isoNow(),
-      });
-      // If reminder is set, schedule next dose reminder in notes
-      if (remindMonths > 0) {
-        const nextDate = new Date(date);
-        nextDate.setMonth(nextDate.getMonth() + remindMonths);
-        const nextRuleId = `custom-vac-next-${ulid()}`;
-        // Store a placeholder record with future date as a simple reminder mechanism
-        // The notes field carries the reminder metadata
-        await insertVaccineRecord({
-          recordId: ulid(), childId, ruleId: nextRuleId,
-          vaccineName: `${name.trim()} (下次)`, vaccinatedAt: nextDate.toISOString().slice(0, 10),
-          ageMonths: computeAgeMonthsAt(birthDate, nextDate.toISOString()),
-          batchNumber: null, hospital: null,
-          adverseReaction: null, photoPath: null,
-          now: isoNow(),
-        });
-      }
-      onSave();
-      onClose();
-    } catch { /* bridge unavailable */ }
-    setSaving(false);
-  };
-
-  return (
-    <OverlayShell
-      open
-      kind="dialog"
-      onClose={onClose}
-      panelClassName="w-[440px] rounded-3xl"
-      title={
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="text-[20px]">💉</span>
-            <h2 className="text-[16px] font-bold text-[var(--nimi-text-primary)]">自定义疫苗</h2>
-          </div>
-          <button onClick={onClose} className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-[var(--nimi-action-ghost-hover)] text-[var(--nimi-text-muted)]">✕</button>
-        </div>
-      }
-      contentClassName="space-y-4"
-      footer={
-        <div className="flex items-center justify-end gap-2">
-          <Button onClick={onClose} tone="ghost" size="md">取消</Button>
-          <Button onClick={() => void handleSave()} disabled={saving || !name.trim()} tone="primary" size="md">
-            {saving ? '保存中...' : '记录接种'}
-          </Button>
-        </div>
-      }
-    >
-      <p className="text-[13px] text-[var(--nimi-text-muted)]">
-        添加非计划内疫苗（如流感疫苗、自费疫苗等），可设置定期提醒。
-      </p>
+    <HealthRecordModalShell open size="S" onClose={onClose}>
+      <ModalHeader title={rule.title} icon="💉" onClose={onClose} />
+      <ModalContent>
+        <div className="space-y-4">
+          <p className="text-[14px] text-[var(--nimi-text-muted)]">{rule.description}</p>
           <div>
-            <label className="text-[13px] mb-1 block text-[var(--nimi-text-muted)]">疫苗名称 *</label>
-            <TextField value={name} onChange={(e) => setName(e.target.value)} placeholder="如：流感疫苗、水痘疫苗" className="w-full" />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-[13px] mb-1 block text-[var(--nimi-text-muted)]">接种日期 *</label>
-              <ProfileDatePicker value={date} onChange={setDate} />
-            </div>
-            <div>
-              <label className="text-[13px] mb-1 block text-[var(--nimi-text-muted)]">接种机构</label>
-              <TextField value={hospital} onChange={(e) => setHospital(e.target.value)} placeholder="选填" className="w-full" />
-            </div>
+            <label className="text-[13px] mb-1 block text-[var(--nimi-text-muted)]">接种日期</label>
+            <DatePicker value={date} onChange={setDate} />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -207,41 +84,25 @@ function CustomVaccineModal({ childId, birthDate, onSave, onClose }: {
               <TextField value={batch} onChange={(e) => setBatch(e.target.value)} placeholder="选填" className="w-full" />
             </div>
             <div>
-              <label className="text-[13px] mb-1 block text-[var(--nimi-text-muted)]">不良反应</label>
-              <TextField value={reaction} onChange={(e) => setReaction(e.target.value)} placeholder="如有请记录" className="w-full" />
+              <label className="text-[13px] mb-1 block text-[var(--nimi-text-muted)]">接种机构</label>
+              <TextField value={hospital} onChange={(e) => setHospital(e.target.value)} placeholder="选填" className="w-full" />
             </div>
           </div>
-
-          {/* Reminder setting */}
-          <div className="rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] p-3">
-            <label className="text-[13px] mb-2 block font-medium text-[var(--nimi-text-primary)]">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="inline mr-1 -mt-0.5">
-                <circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" />
-              </svg>
-              下次接种提醒
-            </label>
-            <div className="flex flex-wrap gap-1.5">
-              {REMIND_OPTIONS.map((opt) => (
-                <button key={opt.value} onClick={() => setRemindOption(opt.value)}
-                  className={`rounded-full border px-3 py-1.5 text-[13px] transition-all ${remindOption === opt.value ? 'border-[var(--nimi-action-primary-bg)] bg-[var(--nimi-action-primary-bg)] font-medium text-[var(--nimi-action-primary-text)]' : 'border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] text-[var(--nimi-text-muted)]'}`}>
-                  {opt.label}
-                </button>
-              ))}
-            </div>
-            {remindOption === 'custom' && (
-              <div className="flex items-center gap-2 mt-2">
-                <TextField type="number" min="1" max="120" value={customMonths} onChange={(e) => setCustomMonths(e.target.value)}
-                  placeholder="月数" className="w-20" />
-                <span className="text-[13px] text-[var(--nimi-text-muted)]">个月后提醒</span>
-              </div>
-            )}
-            {remindMonths > 0 && (
-              <p className="text-[12px] mt-2 text-[var(--nimi-action-primary-bg)]">
-                将在 {new Date(new Date(date).setMonth(new Date(date).getMonth() + remindMonths)).toLocaleDateString('zh-CN')} 前后提醒下次接种
-              </p>
-            )}
-      </div>
-    </OverlayShell>
+          <div>
+            <label className="text-[13px] mb-1 block text-[var(--nimi-text-muted)]">不良反应记录</label>
+            <TextareaField value={reaction} onChange={(e) => setReaction(e.target.value)}
+              placeholder="如有不良反应请记录..."
+              className="w-full" rows={2} />
+          </div>
+        </div>
+      </ModalContent>
+      <ModalFooter>
+        <Button onClick={onClose} tone="ghost" size="md">取消</Button>
+        <Button onClick={() => void handleSave()} disabled={saving} tone="primary" size="md">
+          {saving ? '保存中...' : '记录接种'}
+        </Button>
+      </ModalFooter>
+    </HealthRecordModalShell>
   );
 }
 
@@ -307,6 +168,7 @@ function HistoricalSection({ rules, onRecord, onMarkAll, onQuickMark }: {
                   className="w-[20px] h-[20px] rounded-full border-[1.5px] border-[var(--nimi-border-strong)] flex items-center justify-center shrink-0 transition-all hover:border-[var(--nimi-text-primary)] hover:bg-[var(--nimi-action-ghost-hover)]"
                   title="点击标记为已接种" />
                 <span className="flex-1 text-[13px] text-[var(--nimi-text-primary)]">{r.title}</span>
+                <VaccineClassBadge rule={r} />
                 <Button onClick={() => onRecord(r.ruleId)} tone="ghost" size="sm">
                   补录
                 </Button>
@@ -324,6 +186,7 @@ function HistoricalSection({ rules, onRecord, onMarkAll, onQuickMark }: {
                       <svg viewBox="0 0 12 12" className="w-2.5 h-2.5"><path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="2" fill="none" /></svg>
                     </div>
                     <span className="flex-1 text-[13px] line-through text-[var(--nimi-text-muted)]">{r.title}</span>
+                    <VaccineClassBadge rule={r} />
                     <Button onClick={() => onRecord(r.ruleId)} tone="ghost" size="sm">
                       补录详情
                     </Button>
@@ -368,6 +231,11 @@ export default function VaccinePage() {
   const recordedRuleIds = new Set(records.map((r) => r.ruleId));
   const completedCount = vaccineRules.filter((r) => recordedRuleIds.has(r.ruleId)).length;
   const pct = vaccineRules.length > 0 ? Math.round((completedCount / vaccineRules.length) * 100) : 0;
+
+  const class1Rules = vaccineRules.filter((r) => !isOptionalVaccine(r));
+  const class2Rules = vaccineRules.filter((r) => isOptionalVaccine(r));
+  const class1Done = class1Rules.filter((r) => recordedRuleIds.has(r.ruleId)).length;
+  const class2Done = class2Rules.filter((r) => recordedRuleIds.has(r.ruleId)).length;
 
   const reload = () => { getVaccineRecords(child.childId).then(setRecords).catch(catchLog('vaccine', 'action:reload-vaccine-records-failed')); };
 
@@ -476,6 +344,16 @@ export default function VaccinePage() {
         <div className="w-full h-2 rounded-full overflow-hidden bg-[var(--nimi-border-subtle)]">
           <div className="h-full rounded-full bg-[var(--nimi-action-primary-bg)] transition-all duration-500" style={{ width: `${pct}%` }} />
         </div>
+        <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1.5">
+          <span className="flex items-center gap-1.5 text-[12px] text-[var(--nimi-text-muted)]">
+            <span className="w-2 h-2 rounded-full bg-[var(--nimi-status-info)]" />
+            一类（免费）<span className="font-medium text-[var(--nimi-text-primary)]">{class1Done}/{class1Rules.length}</span>
+          </span>
+          <span className="flex items-center gap-1.5 text-[12px] text-[var(--nimi-text-muted)]">
+            <span className="w-2 h-2 rounded-full bg-[var(--nimi-status-warning)]" />
+            二类（自费）<span className="font-medium text-[var(--nimi-text-primary)]">{class2Done}/{class2Rules.length}</span>
+          </span>
+        </div>
       </Surface>
 
       {/* ── Upcoming vaccines (主动推送) ──────────────────── */}
@@ -494,7 +372,10 @@ export default function VaccinePage() {
                     {isOverdue ? '⚠️' : '💉'}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-[14px] font-medium text-[var(--nimi-text-primary)]">{r.title}</p>
+                    <div className="flex items-center gap-1.5">
+                      <p className="text-[14px] font-medium truncate text-[var(--nimi-text-primary)]">{r.title}</p>
+                      <VaccineClassBadge rule={r} />
+                    </div>
                     <p className={`text-[12px] ${isOverdue ? 'text-[var(--nimi-status-danger)]' : 'text-[var(--nimi-text-muted)]'}`}>
                       {isOverdue ? `已过建议接种窗口 (${formatAge(r.triggerAge.startMonths)}-${formatAge(r.triggerAge.endMonths)})` : `建议 ${formatAge(r.triggerAge.startMonths)}-${r.triggerAge.endMonths === -1 ? '无上限' : formatAge(r.triggerAge.endMonths)}接种`}
                     </p>
@@ -593,7 +474,10 @@ export default function VaccinePage() {
                           <div className="w-[28px] h-[28px] rounded-lg flex items-center justify-center text-[16px] shrink-0 bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_12%,transparent)]">💉</div>
                         )}
                         <div className="flex-1 min-w-0">
-                          <p className={`text-[14px] font-medium ${done ? 'text-[var(--nimi-action-primary-bg)]' : 'text-[var(--nimi-text-primary)]'}`}>{r.title}</p>
+                          <div className="flex items-center gap-1.5">
+                            <p className={`text-[14px] font-medium truncate ${done ? 'text-[var(--nimi-action-primary-bg)]' : 'text-[var(--nimi-text-primary)]'}`}>{r.title}</p>
+                            <VaccineClassBadge rule={r} />
+                          </div>
                           <p className="text-[12px] truncate text-[var(--nimi-text-muted)]">
                             {done && rec ? `${fmtDate(rec.vaccinatedAt)} 接种${rec.hospital ? ` · ${rec.hospital}` : ''}` : r.description}
                           </p>
@@ -613,38 +497,55 @@ export default function VaccinePage() {
         </div>
       )}
 
-      {/* ── List view (simple) ───────────────────────────────── */}
+      {/* ── List view — grouped by 一类 / 二类 ─────────────────── */}
       {activeTab === 'list' && (
-        <div className="space-y-2">
-          {vaccineRules.map((r) => {
-            const done = recordedRuleIds.has(r.ruleId);
-            const rec = records.find((x) => x.ruleId === r.ruleId);
-            const isOverdue = !done && ageMonths > r.triggerAge.endMonths && r.triggerAge.endMonths !== -1;
-
-            return (
-              <div key={r.ruleId} className={`flex items-center gap-3 rounded-2xl border p-3 ${done ? 'border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_34%,var(--nimi-border-subtle))] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,var(--nimi-surface-card))]' : isOverdue ? 'border-[color-mix(in_srgb,var(--nimi-status-danger)_30%,var(--nimi-border-subtle))] bg-[color-mix(in_srgb,var(--nimi-status-danger)_8%,var(--nimi-surface-card))]' : 'border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)]'}`}>
-                {done ? (
-                  <div className="w-[24px] h-[24px] rounded-full flex items-center justify-center shrink-0 bg-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)]">
-                    <svg viewBox="0 0 12 12" className="w-3 h-3"><path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="2" fill="none" /></svg>
-                  </div>
-                ) : (
-                  <div className={`w-[24px] h-[24px] rounded-full border-[1.5px] shrink-0 ${isOverdue ? 'border-[color-mix(in_srgb,var(--nimi-status-danger)_42%,var(--nimi-border-subtle))]' : 'border-[var(--nimi-border-subtle)]'}`} />
-                )}
-                <div className="flex-1 min-w-0">
-                  <p className={`text-[14px] font-medium ${done ? 'text-[var(--nimi-action-primary-bg)]' : 'text-[var(--nimi-text-primary)]'}`}>{r.title}</p>
-                  <p className="text-[12px] text-[var(--nimi-text-muted)]">
-                    {done && rec ? fmtDate(rec.vaccinatedAt) : `${formatAge(r.triggerAge.startMonths)}-${r.triggerAge.endMonths === -1 ? '∞' : formatAge(r.triggerAge.endMonths)}`}
-                    {isOverdue && ' · 已过期'}
-                  </p>
-                </div>
-                {done ? (
-                  <Button onClick={() => setRecordingRuleId(r.ruleId)} tone="ghost" size="sm">修改</Button>
-                ) : (
-                  <Button onClick={() => setRecordingRuleId(r.ruleId)} tone="primary" size="sm">记录</Button>
-                )}
+        <div className="space-y-6">
+          {([
+            { label: '一类疫苗', sub: '国家免疫规划 · 免费 · 必须接种', rules: class1Rules, done: class1Done },
+            { label: '二类疫苗', sub: '非免疫规划 · 自费 · 推荐接种', rules: class2Rules, done: class2Done },
+          ] as const).map((group) => (
+            <div key={group.label}>
+              <div className="flex items-baseline gap-2 mb-2">
+                <span className="text-[14px] font-bold text-[var(--nimi-text-primary)]">{group.label}</span>
+                <span className="text-[12px] text-[var(--nimi-text-muted)]">{group.sub}</span>
+                <span className="ml-auto text-[12px] text-[var(--nimi-text-muted)]">{group.done}/{group.rules.length}</span>
               </div>
-            );
-          })}
+              <div className="space-y-2">
+                {group.rules.map((r) => {
+                  const done = recordedRuleIds.has(r.ruleId);
+                  const rec = records.find((x) => x.ruleId === r.ruleId);
+                  const isOverdue = !done && ageMonths > r.triggerAge.endMonths && r.triggerAge.endMonths !== -1;
+
+                  return (
+                    <div key={r.ruleId} className={`flex items-center gap-3 rounded-2xl border p-3 ${done ? 'border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_34%,var(--nimi-border-subtle))] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,var(--nimi-surface-card))]' : isOverdue ? 'border-[color-mix(in_srgb,var(--nimi-status-danger)_30%,var(--nimi-border-subtle))] bg-[color-mix(in_srgb,var(--nimi-status-danger)_8%,var(--nimi-surface-card))]' : 'border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)]'}`}>
+                      {done ? (
+                        <div className="w-[24px] h-[24px] rounded-full flex items-center justify-center shrink-0 bg-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)]">
+                          <svg viewBox="0 0 12 12" className="w-3 h-3"><path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="2" fill="none" /></svg>
+                        </div>
+                      ) : (
+                        <div className={`w-[24px] h-[24px] rounded-full border-[1.5px] shrink-0 ${isOverdue ? 'border-[color-mix(in_srgb,var(--nimi-status-danger)_42%,var(--nimi-border-subtle))]' : 'border-[var(--nimi-border-subtle)]'}`} />
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <p className={`text-[14px] font-medium truncate ${done ? 'text-[var(--nimi-action-primary-bg)]' : 'text-[var(--nimi-text-primary)]'}`}>{r.title}</p>
+                          <VaccineClassBadge rule={r} />
+                        </div>
+                        <p className="text-[12px] text-[var(--nimi-text-muted)]">
+                          {done && rec ? fmtDate(rec.vaccinatedAt) : `${formatAge(r.triggerAge.startMonths)}-${r.triggerAge.endMonths === -1 ? '∞' : formatAge(r.triggerAge.endMonths)}`}
+                          {isOverdue && ' · 已过期'}
+                        </p>
+                      </div>
+                      {done ? (
+                        <Button onClick={() => setRecordingRuleId(r.ruleId)} tone="ghost" size="sm">修改</Button>
+                      ) : (
+                        <Button onClick={() => setRecordingRuleId(r.ruleId)} tone="primary" size="sm">记录</Button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
         </div>
       )}
 
@@ -669,10 +570,9 @@ export default function VaccinePage() {
 
       {/* ── Custom vaccine modal ─────────────────────────────── */}
       {showCustomModal && (
-        <CustomVaccineModal
-          childId={child.childId}
-          birthDate={child.birthDate}
-          onSave={reload}
+        <VaccineCaptureModal
+          child={{ childId: child.childId, birthDate: child.birthDate }}
+          onSaved={reload}
           onClose={() => setShowCustomModal(false)}
         />
       )}

@@ -12,13 +12,17 @@ import {
 import {
   buildHealthRecordSnapshot,
   type HealthRecordEvent,
+  type HealthRecordSnapshot,
   type HealthRecordValue,
 } from '../../engine/health-record-domain.js';
+import type { TFunction } from 'i18next';
 import { HealthCaptureModal } from './health-capture-modal.js';
 import { eventRowToDomain, valueRowToDomain } from './health-record-row-mappers.js';
 import { ProfileHero } from './profile-page-hero.js';
-import { ProfileGlance } from './profile-page-glance.js';
+import { AISummaryCard } from './ai-summary-card.js';
 import { ProfileGroupCard } from './profile-page-group-card.js';
+import { formatMetricSnapshotValue, groupLabel, metricLabel } from './health-record-display.js';
+import { ProfilePostureCard } from './profile-page-posture-card.js';
 
 function profileCompleteness(child: {
   birthWeightKg: number | null;
@@ -51,6 +55,25 @@ function lastRecordedDaysAgo(events: readonly HealthRecordEvent[]): number | nul
   if (!Number.isFinite(ms)) return null;
   const diff = Date.now() - ms;
   return Math.max(0, Math.round(diff / (24 * 60 * 60 * 1000)));
+}
+
+// Flattens the rendered console snapshot into a human-readable digest the
+// shared AI summary surface consumes. Derived only from snapshot data already
+// on screen — no extra bridge calls or storage (PO-PROF-025).
+function buildOverviewDataContext(snapshot: HealthRecordSnapshot, t: TFunction): string {
+  const lines: string[] = [];
+  for (const group of snapshot.groups) {
+    const recorded = group.metrics.filter((metric) => metric.latestValue != null);
+    if (recorded.length === 0) continue;
+    const parts = recorded.map((metric) => {
+      const value = formatMetricSnapshotValue(metric, t);
+      const date = metric.latestEvent?.effectiveDate?.slice(0, 10);
+      const label = metricLabel(metric.metric, t);
+      return date ? `${label} ${value}（${date}）` : `${label} ${value}`;
+    });
+    lines.push(`${groupLabel(group.group.groupId, group.group.displayName, t)}：${parts.join('；')}`);
+  }
+  return lines.join('\n');
 }
 
 export default function ProfilePage() {
@@ -173,7 +196,14 @@ export default function ProfilePage() {
           </div>
         ) : (
           <>
-            <ProfileGlance snapshot={snapshot} />
+            <AISummaryCard
+              domain="overview"
+              childName={activeChild.displayName}
+              childId={activeChild.childId}
+              ageLabel={`${Math.floor(ageMonths / 12)}岁${ageMonths % 12}个月`}
+              gender={activeChild.gender}
+              dataContext={buildOverviewDataContext(snapshot, t)}
+            />
 
             <section>
               <div className="mb-3 flex items-end justify-between gap-3">
@@ -204,6 +234,7 @@ export default function ProfilePage() {
                     }}
                   />
                 ))}
+                <ProfilePostureCard childId={activeChild.childId} />
               </div>
             </section>
           </>

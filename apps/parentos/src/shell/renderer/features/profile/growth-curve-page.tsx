@@ -1,5 +1,5 @@
 import { Button, IconButton, Tooltip } from '@nimiplatform/nimi-kit/ui';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { computeAgeMonths, computeAgeMonthsAt, useAppStore } from '../../app-shell/app-store.js';
@@ -23,7 +23,7 @@ import { HealthCaptureModal } from './health-capture-modal.js';
 import { GrowthCurveChartPanel } from './growth-curve-chart-panel.js';
 import { GrowthCurveControls } from './growth-curve-controls.js';
 import { GrowthCurveHistoryTable } from './growth-curve-history-table.js';
-import { GrowthCurveOCRPanel, type GrowthCurveOCRCandidate } from './growth-curve-ocr-panel.js';
+import { GrowthCurveOCRModal, type GrowthCurveOCRCandidate } from './growth-curve-ocr-modal.js';
 import {
   buildGrowthSummaryContext,
   computeBMI,
@@ -31,9 +31,7 @@ import {
 } from './growth-curve-page-shared.js';
 import { buildGrowthDetailSnapshot } from './growth-detail-projection.js';
 import { GrowthHeroCard } from './growth-hero-card.js';
-import { GrowthInsightStrip } from './growth-insight-strip.js';
 import { GrowthMilestonesCard } from './growth-milestones-card.js';
-import { GrowthNextCheckCard } from './growth-next-check-card.js';
 import type {
   HealthRecordEvent,
   HealthRecordEventKind,
@@ -115,6 +113,79 @@ function measurementsToHealthRecordSlice(
   return { events, values };
 }
 
+// BMI derive-on-read. The growth Add modal computes BMI live for display but
+// only persists growth.height / growth.weight / growth.head_circumference
+// rows. The BMI chart series is therefore reconstructed here by pairing
+// height + weight measurements taken on the same effective date.
+function deriveBmiChartData(
+  measurements: MeasurementRow[],
+): Array<{ age: number; value: number; date: string }> {
+  const byDate = new Map<string, { height?: number; weight?: number; ageMonths: number }>();
+  for (const measurement of measurements) {
+    if (measurement.typeId !== 'height' && measurement.typeId !== 'weight') continue;
+    const date = measurement.measuredAt.split('T')[0] ?? measurement.measuredAt;
+    const entry = byDate.get(date) ?? { ageMonths: measurement.ageMonths };
+    entry.ageMonths = measurement.ageMonths;
+    if (measurement.typeId === 'height') entry.height = measurement.value;
+    else entry.weight = measurement.value;
+    byDate.set(date, entry);
+  }
+  const rows: Array<{ age: number; value: number; date: string }> = [];
+  for (const [date, entry] of byDate) {
+    if (entry.height == null || entry.weight == null) continue;
+    rows.push({ age: entry.ageMonths, value: computeBMI(entry.height, entry.weight), date });
+  }
+  return rows.sort((left, right) => left.age - right.age);
+}
+
+// Year-over-year growth rate for the hero chart. Points are grouped by the
+// calendar year of `date`; for the first data year the rate is the in-year
+// delta (latest − earliest), and for each later data year it is the latest
+// value minus the previous data year's latest value. Rates may be negative
+// (weight / BMI can drop).
+function computeYearlyGrowth(
+  chartData: Array<{ age: number; value: number; date: string }>,
+): Array<{ year: number; growth: number }> {
+  const byYear = new Map<number, { earliestDate: string; earliestValue: number; latestDate: string; latestValue: number }>();
+  for (const point of chartData) {
+    const year = Number(point.date.slice(0, 4));
+    if (!Number.isFinite(year)) continue;
+    const entry = byYear.get(year);
+    if (!entry) {
+      byYear.set(year, {
+        earliestDate: point.date,
+        earliestValue: point.value,
+        latestDate: point.date,
+        latestValue: point.value,
+      });
+      continue;
+    }
+    if (point.date < entry.earliestDate) {
+      entry.earliestDate = point.date;
+      entry.earliestValue = point.value;
+    }
+    if (point.date > entry.latestDate) {
+      entry.latestDate = point.date;
+      entry.latestValue = point.value;
+    }
+  }
+  const result: Array<{ year: number; growth: number }> = [];
+  let previousLatest: number | null = null;
+  for (const year of [...byYear.keys()].sort((left, right) => left - right)) {
+    const entry = byYear.get(year)!;
+    const growth = previousLatest == null
+      ? entry.latestValue - entry.earliestValue
+      : entry.latestValue - previousLatest;
+    result.push({ year, growth });
+    previousLatest = entry.latestValue;
+  }
+  return result;
+}
+
+// The hero milestone card shows only the most recent few milestones; the rest
+// are reached via its "查看更多" affordance, which leads to the history table.
+const HERO_MILESTONE_PREVIEW_LIMIT = 3;
+
 export default function GrowthCurvePage() {
   const { t } = useTranslation();
   const { activeChildId, children } = useAppStore();
@@ -124,7 +195,7 @@ export default function GrowthCurvePage() {
   const [selectedType, setSelectedType] = useState<string>('height');
   const [showForm, setShowForm] = useState(false);
   const [growthStandard, setGrowthStandard] = useState<GrowthStandard>('china');
-  const [whoDataset, setWhoDataset] = useState<WHOLMSDataset | null>(null);
+  const [whoDatasets, setWhoDatasets] = useState<Record<string, WHOLMSDataset | null>>({});
   const [showOCR, setShowOCR] = useState(false);
   const [ocrRuntimeAvailable, setOCRRuntimeAvailable] = useState<boolean | null>(null);
   const [ocrImageName, setOCRImageName] = useState<string | null>(null);
@@ -136,6 +207,9 @@ export default function GrowthCurvePage() {
   const [editValue, setEditValue] = useState('');
   const [editDate, setEditDate] = useState('');
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  // Scroll target for the hero milestone card's "查看更多" affordance — it
+  // brings the full milestone list (the history table) into view.
+  const historyTableRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!activeChildId) {
@@ -151,24 +225,43 @@ export default function GrowthCurvePage() {
 
   useEffect(() => {
     if (!child) {
-      setWhoDataset(null);
+      setWhoDatasets({});
       return;
     }
 
-    const selectedStandard = GROWTH_STANDARDS.find((standard) => standard.typeId === selectedType);
-    if (selectedStandard?.curveType !== 'lms-percentile') {
-      setWhoDataset(null);
-      return;
-    }
-
-    loadWHOLMS(selectedType as GrowthTypeId, child.gender, growthStandard)
-      .then(setWhoDataset)
-      .catch(catchLogThen('growth-curve', 'action:load-lms-failed', () => setWhoDataset(null)));
-  }, [selectedType, child, growthStandard]);
+    // Load every metric's LMS reference up front so each tab and cross-metric
+    // chip computes its percentile against its own standard — not whichever
+    // metric happens to be selected.
+    const lmsTypeIds: GrowthTypeId[] = ['height', 'weight', 'head-circumference', 'bmi'];
+    let cancelled = false;
+    void Promise.all(
+      lmsTypeIds.map((typeId) =>
+        loadWHOLMS(typeId, child.gender, growthStandard)
+          .then((dataset) => [typeId, dataset] as const)
+          .catch(() => [typeId, null] as const),
+      ),
+    ).then((entries) => {
+      if (!cancelled) setWhoDatasets(Object.fromEntries(entries));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [child, growthStandard]);
 
   const latestH = useMemo(() => getLatestMeasurement(measurements, 'height'), [measurements]);
   const latestW = useMemo(() => getLatestMeasurement(measurements, 'weight'), [measurements]);
   const nowIso = useMemo(() => isoNow(), [measurements]);
+  // The chart bands track the selected metric; percentile math for other tabs
+  // and chips uses each metric's own dataset (keyed by canonical metric id).
+  const whoDataset = whoDatasets[selectedType] ?? null;
+  const whoDatasetByMetricId = useMemo<Partial<Record<HealthMetricId, WHOLMSDataset | null>>>(() => {
+    const byMetricId: Partial<Record<HealthMetricId, WHOLMSDataset | null>> = {};
+    for (const [typeId, dataset] of Object.entries(whoDatasets)) {
+      const metricId = LEGACY_TYPE_TO_METRIC_ID[typeId];
+      if (metricId) byMetricId[metricId] = dataset;
+    }
+    return byMetricId;
+  }, [whoDatasets]);
   const growthDetailSnapshot = useMemo(() => {
     if (!child) return null;
     const slice = measurementsToHealthRecordSlice(measurements);
@@ -186,6 +279,7 @@ export default function GrowthCurvePage() {
         events: slice.events,
         values: slice.values,
         whoDataset,
+        whoDatasetByMetricId,
         page: 1,
         perPage: 10,
         filters: { dateRangeKey: 'all', sourceKey: 'all' },
@@ -194,7 +288,23 @@ export default function GrowthCurvePage() {
     } catch {
       return null;
     }
-  }, [child, measurements, selectedType, growthStandard, whoDataset, nowIso]);
+  }, [child, measurements, selectedType, growthStandard, whoDataset, whoDatasetByMetricId, nowIso]);
+
+  // Milestones scoped to the selected metric, newest last. The history table
+  // renders all of these; the hero milestone card renders only the most recent
+  // `HERO_MILESTONE_PREVIEW_LIMIT` — one source, so the card preview and its
+  // "查看更多" destination always agree. `growthDetailSnapshot.milestones` is
+  // the full-record set; a milestone belongs to the selected metric when its
+  // evidence events are that metric's measurements.
+  const selectedMetricMilestones = useMemo(() => {
+    const all = growthDetailSnapshot?.milestones ?? [];
+    const selectedMeasurementIds = new Set(
+      measurements.filter((item) => item.typeId === selectedType).map((item) => item.measurementId),
+    );
+    return all.filter((milestone) =>
+      milestone.evidenceEventIds.some((eventId) => selectedMeasurementIds.has(eventId)),
+    );
+  }, [growthDetailSnapshot, measurements, selectedType]);
 
   if (!child) {
     return (
@@ -209,11 +319,18 @@ export default function GrowthCurvePage() {
     .filter((measurement) => measurement.typeId === selectedType)
     .sort((left, right) => left.ageMonths - right.ageMonths);
 
-  const chartData = typeMeasurements.map((measurement) => ({
-    age: measurement.ageMonths,
-    value: measurement.value,
-    date: measurement.measuredAt.split('T')[0],
-  }));
+  // BMI is never persisted as its own measurement row — it is derived on read
+  // by pairing height + weight measurements taken on the same date. Every
+  // other metric reads its stored rows directly.
+  const chartData = selectedType === 'bmi'
+    ? deriveBmiChartData(measurements)
+    : typeMeasurements.map((measurement) => ({
+        age: measurement.ageMonths,
+        value: measurement.value,
+        date: measurement.measuredAt.split('T')[0] ?? measurement.measuredAt,
+      }));
+
+  const heroYearlyGrowth = computeYearlyGrowth(chartData);
 
   const ageMonths = computeAgeMonths(child.birthDate);
   const computedBmi = latestH && latestW ? computeBMI(latestH.value, latestW.value) : null;
@@ -412,19 +529,18 @@ export default function GrowthCurvePage() {
       actions={
         <>
           <Tooltip content={t('Profile.rich.growth.ocrHint')} contentClassName="whitespace-nowrap text-[13px]">
-            <Button
+            <IconButton
               onClick={() => setShowOCR(!showOCR)}
               tone={showOCR ? 'secondary' : 'primary'}
               size="sm"
-              className="min-h-0 rounded-full px-3 py-1.5 text-[14px]"
-              leadingIcon={(
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                  <rect x="3" y="3" width="18" height="18" rx="2" /><path d="M7 8h4M7 12h10M7 16h6" />
+              className="min-h-0 rounded-full"
+              aria-label={showOCR ? t('Profile.rich.growth.closeRecognize') : t('Profile.rich.growth.smartRecognize')}
+              icon={(
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M3 7V5a2 2 0 012-2h2M17 3h2a2 2 0 012 2v2M21 17v2a2 2 0 01-2 2h-2M7 21H5a2 2 0 01-2-2v-2M7 12h10" />
                 </svg>
               )}
-            >
-              {showOCR ? t('Profile.rich.growth.closeRecognize') : t('Profile.rich.growth.smartRecognize')}
-            </Button>
+            />
           </Tooltip>
           <Button
             onClick={() => setShowForm(true)}
@@ -448,28 +564,32 @@ export default function GrowthCurvePage() {
         selectedType={selectedType}
         ageMonths={ageMonths}
         availableTypes={availableTypes}
-        growthStandard={growthStandard}
-        whoDataset={whoDataset}
         nowIso={nowIso}
         onSelectType={setSelectedType}
-        onSelectGrowthStandard={setGrowthStandard}
       />
 
       {growthDetailSnapshot ? (
-        <>
+        <div className="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-[1.5fr_1fr] lg:items-stretch">
           <GrowthHeroCard
             headline={growthDetailSnapshot.headline}
-            crossMetric={growthDetailSnapshot.crossMetric}
+            trendStats={growthDetailSnapshot.trendStats}
             selectedMetricDisplayName={growthDetailSnapshot.selectedMetric.displayName || typeInfo?.displayName || selectedType}
             selectedMetricUnit={growthDetailSnapshot.selectedMetric.unit || typeInfo?.unit || ''}
-            childDisplayName={growthDetailSnapshot.child.displayName}
-            ageLabel={growthDetailSnapshot.child.ageLabel}
+            yearlyGrowth={heroYearlyGrowth}
           />
-          <GrowthInsightStrip
-            snapshot={growthDetailSnapshot}
-            selectedMetricId={growthDetailSnapshot.selectedMetric.metricId}
+          <GrowthMilestonesCard
+            milestones={selectedMetricMilestones.slice(-HERO_MILESTONE_PREVIEW_LIMIT)}
+            headline={growthDetailSnapshot.headline}
+            nextCheck={growthDetailSnapshot.nextCheck}
+            childId={growthDetailSnapshot.child.childId}
+            metricId={growthDetailSnapshot.selectedMetric.metricId}
+            onViewMore={
+              selectedMetricMilestones.length > HERO_MILESTONE_PREVIEW_LIMIT
+                ? () => historyTableRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                : undefined
+            }
           />
-        </>
+        </div>
       ) : null}
 
       <GrowthCurveChartPanel
@@ -479,26 +599,16 @@ export default function GrowthCurvePage() {
         whoDataset={whoDataset}
         canShowWhoLines={canShowWhoLines}
         growthStandard={growthStandard}
+        onSelectGrowthStandard={setGrowthStandard}
         measurements={measurements}
         ageMonths={ageMonths}
       />
-
-      {growthDetailSnapshot ? (
-        <>
-          <GrowthMilestonesCard milestones={growthDetailSnapshot.milestones} />
-          <GrowthNextCheckCard
-            nextCheck={growthDetailSnapshot.nextCheck}
-            trendStats={growthDetailSnapshot.trendStats}
-            childId={growthDetailSnapshot.child.childId}
-            metricId={growthDetailSnapshot.selectedMetric.metricId}
-          />
-        </>
-      ) : null}
 
       <div className="flex flex-wrap gap-3">
         {showForm ? (
           <HealthCaptureModal
             open
+            hideSidebar
             childId={child.childId}
             childBirthDate={child.birthDate}
             initialGroupId="growth"
@@ -510,10 +620,10 @@ export default function GrowthCurvePage() {
         ) : null}
 
         {showOCR ? (
-          <GrowthCurveOCRPanel
+          <GrowthCurveOCRModal
             ocrRuntimeAvailable={ocrRuntimeAvailable}
             ocrImageName={ocrImageName}
-            hasOCRImage={Boolean(ocrImageDataUrl)}
+            ocrImageDataUrl={ocrImageDataUrl}
             ocrStatus={ocrStatus}
             ocrError={ocrError}
             ocrCandidates={ocrCandidates}
@@ -523,7 +633,7 @@ export default function GrowthCurvePage() {
             }}
             onFileChange={(file) => void handleOCRFileChange(file)}
             onAnalyze={() => void handleOCRAnalyze()}
-            onReset={resetOCRDraft}
+            onRetake={resetOCRDraft}
             onToggleCandidate={(index, selected) => {
               setOCRCandidates((previous) =>
                 previous.map((item, itemIndex) =>
@@ -557,24 +667,27 @@ export default function GrowthCurvePage() {
         ) : null}
       </div>
 
-      <GrowthCurveHistoryTable
-        typeMeasurements={typeMeasurements}
-        typeInfo={typeInfo}
-        whoDataset={whoDataset}
-        editingId={editingId}
-        editValue={editValue}
-        editDate={editDate}
-        deletingId={deletingId}
-        onAnalyze={navigateToAI}
-        onStartEdit={handleEditMeasurement}
-        onEditValueChange={setEditValue}
-        onEditDateChange={setEditDate}
-        onSaveEdit={(measurement) => void handleSaveEdit(measurement)}
-        onCancelEdit={() => setEditingId(null)}
-        onRequestDelete={setDeletingId}
-        onCancelDelete={() => setDeletingId(null)}
-        onConfirmDelete={(measurementId) => void handleDeleteMeasurement(measurementId)}
-      />
+      <div ref={historyTableRef}>
+        <GrowthCurveHistoryTable
+          typeMeasurements={typeMeasurements}
+          typeInfo={typeInfo}
+          whoDataset={whoDataset}
+          milestones={selectedMetricMilestones}
+          editingId={editingId}
+          editValue={editValue}
+          editDate={editDate}
+          deletingId={deletingId}
+          onAnalyze={navigateToAI}
+          onStartEdit={handleEditMeasurement}
+          onEditValueChange={setEditValue}
+          onEditDateChange={setEditDate}
+          onSaveEdit={(measurement) => void handleSaveEdit(measurement)}
+          onCancelEdit={() => setEditingId(null)}
+          onRequestDelete={setDeletingId}
+          onCancelDelete={() => setDeletingId(null)}
+          onConfirmDelete={(measurementId) => void handleDeleteMeasurement(measurementId)}
+        />
+      </div>
     </ProfileDetailShell>
   );
 }

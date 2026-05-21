@@ -2,15 +2,10 @@ import { describe, expect, it } from 'vitest';
 import {
   GROWTH_MILESTONE_RULES,
   type GrowthMilestoneRule,
-  type GrowthMilestoneMeasurementDensityTrigger,
-  type GrowthMilestonePercentileShiftTrigger,
   type GrowthMilestoneThresholdCrossedTrigger,
 } from '../../knowledge-base/index.js';
-import type { WHOLMSDataset } from './who-lms-loader.js';
 import {
   evaluateAllMilestones,
-  evaluateMeasurementDensity,
-  evaluatePercentileShift,
   evaluateThresholdCrossed,
   type HistoryPoint,
 } from './growth-milestone-rules.js';
@@ -107,171 +102,6 @@ describe('evaluateThresholdCrossed', () => {
 });
 
 // ---------------------------------------------------------------------------
-// Percentile-shift boundary tests
-// ---------------------------------------------------------------------------
-
-function makeFlatWhoDataset(): WHOLMSDataset {
-  // Construct a synthetic WHO dataset where the 7 standard percentile lines
-  // are flat across the age range we use. computeApproxPercentile interpolates
-  // between lines by value, so this gives us a deterministic mapping:
-  // value 100 → P3, 105 → P10, 110 → P25, 115 → P50, 120 → P75, 125 → P90,
-  // 130 → P97 (with linear interpolation between).
-  const percentiles = [3, 10, 25, 50, 75, 90, 97];
-  const valueByPercentile: Record<number, number> = {
-    3: 100,
-    10: 105,
-    25: 110,
-    50: 115,
-    75: 120,
-    90: 125,
-    97: 130,
-  };
-  return {
-    typeId: 'height',
-    gender: 'male',
-    coverage: { startAgeMonths: 0, endAgeMonths: 240 },
-    points: [],
-    lines: percentiles.map((p) => ({
-      percentile: p,
-      points: Array.from({ length: 25 }, (_, i) => ({
-        ageMonths: i * 12,
-        value: valueByPercentile[p]!,
-      })),
-    })),
-    standard: 'who',
-  } as unknown as WHOLMSDataset;
-}
-
-describe('evaluatePercentileShift', () => {
-  const ruleUp = findRule('growth-milestone-percentile-shift-up') as GrowthMilestoneRule & {
-    triggerCondition: GrowthMilestonePercentileShiftTrigger;
-  };
-  const ruleDown = findRule('growth-milestone-percentile-shift-down') as GrowthMilestoneRule & {
-    triggerCondition: GrowthMilestonePercentileShiftTrigger;
-  };
-  const dataset = makeFlatWhoDataset();
-
-  it('returns null without a WHO dataset', () => {
-    const history: HistoryPoint[] = [
-      makePoint({ eventId: 'a', measuredAt: isoDaysBefore(NOW, 200), value: 110 }),
-      makePoint({ eventId: 'b', measuredAt: isoDaysBefore(NOW, 10), value: 130 }),
-    ];
-    expect(evaluatePercentileShift(ruleUp, history, null, NOW)).toBeNull();
-  });
-
-  it('returns null when magnitude is exactly minMagnitudePoints − 1 (4)', () => {
-    // Value 111 ≈ P28, value 115 = P50 → shift +22. We need shift exactly 4.
-    // Use P50=115 → P54-ish requires careful values. Easier: just craft +4
-    // delta directly. P50 = 115, P54 ≈ 115.4. Use 115 → 115.8 = shift +4
-    // via interpolation (115 + (120-115)*0.16 = 115.8 → P50+(75-50)*0.16=54).
-    // Easier path: dataset already encodes the lines flat per percentile.
-    // Use 115 (P50) and 116 (between P50 and P75 → 50 + 25*(1/5)=55, shift 5).
-    // So 115 and 115.8 → 50 and 54 = +4.
-    const history: HistoryPoint[] = [
-      makePoint({ eventId: 'a', measuredAt: isoDaysBefore(NOW, 200), value: 115 }),
-      makePoint({ eventId: 'b', measuredAt: isoDaysBefore(NOW, 10), value: 115.8 }),
-    ];
-    expect(evaluatePercentileShift(ruleUp, history, dataset, NOW)).toBeNull();
-  });
-
-  it('fires when upward magnitude is exactly minMagnitudePoints (5)', () => {
-    // 115 → P50; 116 → 50 + 25*(1/5) = 55. Shift = +5.
-    const history: HistoryPoint[] = [
-      makePoint({ eventId: 'a', measuredAt: isoDaysBefore(NOW, 200), value: 115 }),
-      makePoint({ eventId: 'b', measuredAt: isoDaysBefore(NOW, 10), value: 116 }),
-    ];
-    const milestone = evaluatePercentileShift(ruleUp, history, dataset, NOW);
-    expect(milestone).not.toBeNull();
-    expect(milestone!.ruleId).toBe('growth-milestone-percentile-shift-up');
-    expect(milestone!.evidenceEventIds).toEqual(['a', 'b']);
-  });
-
-  it('fires when upward magnitude is +1 above threshold (6)', () => {
-    // 115 → P50; 116.2 → 50 + 25*(1.2/5) = 56. Shift = +6.
-    const history: HistoryPoint[] = [
-      makePoint({ eventId: 'a', measuredAt: isoDaysBefore(NOW, 200), value: 115 }),
-      makePoint({ eventId: 'b', measuredAt: isoDaysBefore(NOW, 10), value: 116.2 }),
-    ];
-    const milestone = evaluatePercentileShift(ruleUp, history, dataset, NOW);
-    expect(milestone).not.toBeNull();
-  });
-
-  it('fires the downward rule on a -5 shift', () => {
-    const history: HistoryPoint[] = [
-      makePoint({ eventId: 'a', measuredAt: isoDaysBefore(NOW, 200), value: 116 }),
-      makePoint({ eventId: 'b', measuredAt: isoDaysBefore(NOW, 10), value: 115 }),
-    ];
-    const milestone = evaluatePercentileShift(ruleDown, history, dataset, NOW);
-    expect(milestone).not.toBeNull();
-    expect(milestone!.ruleId).toBe('growth-milestone-percentile-shift-down');
-  });
-});
-
-// ---------------------------------------------------------------------------
-// Measurement-density boundary tests
-// ---------------------------------------------------------------------------
-
-describe('evaluateMeasurementDensity', () => {
-  const rule = findRule('growth-milestone-measurement-density-spike') as GrowthMilestoneRule & {
-    triggerCondition: GrowthMilestoneMeasurementDensityTrigger;
-  };
-
-  it('returns null when count is minCount − 1 (4 records)', () => {
-    const history: HistoryPoint[] = Array.from({ length: 4 }, (_, i) =>
-      makePoint({
-        eventId: `e${i}`,
-        measuredAt: isoDaysBefore(NOW, 10),
-        value: 100,
-        metricId: 'growth.height',
-      }),
-    );
-    expect(evaluateMeasurementDensity(rule, history, NOW)).toBeNull();
-  });
-
-  it('fires when count is exactly minCount (5 records inside windowDays)', () => {
-    const history: HistoryPoint[] = Array.from({ length: 5 }, (_, i) =>
-      makePoint({
-        eventId: `e${i}`,
-        // All within a single day window (windowDays = 1).
-        measuredAt: isoDaysBefore(NOW, 10) + (i === 0 ? '' : ''),
-        value: 100 + i,
-        metricId: 'growth.height',
-      }),
-    );
-    const milestone = evaluateMeasurementDensity(rule, history, NOW);
-    expect(milestone).not.toBeNull();
-    expect(milestone!.evidenceEventIds).toHaveLength(5);
-  });
-
-  it('fires when count is minCount + 1 (6 records inside windowDays)', () => {
-    const history: HistoryPoint[] = Array.from({ length: 6 }, (_, i) =>
-      makePoint({
-        eventId: `e${i}`,
-        measuredAt: isoDaysBefore(NOW, 10),
-        value: 100 + i,
-        metricId: 'growth.height',
-      }),
-    );
-    const milestone = evaluateMeasurementDensity(rule, history, NOW);
-    expect(milestone).not.toBeNull();
-    expect(milestone!.evidenceEventIds.length).toBeGreaterThanOrEqual(5);
-  });
-
-  it('returns null when 5 records span more than windowDays apart', () => {
-    // Spread points across 10 days (> 1-day window).
-    const history: HistoryPoint[] = Array.from({ length: 5 }, (_, i) =>
-      makePoint({
-        eventId: `e${i}`,
-        measuredAt: isoDaysBefore(NOW, 10 + i * 3),
-        value: 100,
-        metricId: 'growth.height',
-      }),
-    );
-    expect(evaluateMeasurementDensity(rule, history, NOW)).toBeNull();
-  });
-});
-
-// ---------------------------------------------------------------------------
 // Evidence-window boundary tests
 // ---------------------------------------------------------------------------
 
@@ -299,6 +129,20 @@ describe('evidence window enforcement', () => {
     ];
     expect(evaluateThresholdCrossed(ruleHeight140, history, NOW)).toBeNull();
   });
+
+  it('fires for a crossing far outside the 12-month window when fullHistory is set', () => {
+    // Both points predate the 12-month window. The history table evaluates
+    // with fullHistory=true so historical threshold crossings still surface.
+    const history: HistoryPoint[] = [
+      makePoint({ eventId: 'old-prior', measuredAt: isoDaysBefore(NOW, 1100), value: 139 }),
+      makePoint({ eventId: 'old-cross', measuredAt: isoDaysBefore(NOW, 900), value: 141 }),
+    ];
+    expect(evaluateThresholdCrossed(ruleHeight140, history, NOW)).toBeNull();
+    const milestone = evaluateThresholdCrossed(ruleHeight140, history, NOW, true);
+    expect(milestone).not.toBeNull();
+    expect(milestone!.title).toBe('突破 140 cm');
+    expect(milestone!.evidenceEventIds).toEqual(['old-prior', 'old-cross']);
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -307,26 +151,13 @@ describe('evidence window enforcement', () => {
 
 describe('evaluateAllMilestones determinism', () => {
   it('produces identical milestone arrays (including milestoneId) when called twice with the same input', () => {
-    const dataset = makeFlatWhoDataset();
     const history: HistoryPoint[] = [
       makePoint({ eventId: 'h1', measuredAt: isoDaysBefore(NOW, 200), value: 139 }),
       makePoint({ eventId: 'h2', measuredAt: isoDaysBefore(NOW, 30), value: 141 }),
       makePoint({ eventId: 'h3', measuredAt: isoDaysBefore(NOW, 5), value: 142 }),
-      makePoint({
-        eventId: 'p1',
-        measuredAt: isoDaysBefore(NOW, 200),
-        value: 115,
-        ageMonths: 96,
-      }),
-      makePoint({
-        eventId: 'p2',
-        measuredAt: isoDaysBefore(NOW, 10),
-        value: 116.5,
-        ageMonths: 108,
-      }),
     ];
-    const first = evaluateAllMilestones(history, dataset, NOW);
-    const second = evaluateAllMilestones(history, dataset, NOW);
+    const first = evaluateAllMilestones(history, NOW);
+    const second = evaluateAllMilestones(history, NOW);
     expect(JSON.stringify(first)).toEqual(JSON.stringify(second));
     // milestoneId must be present and non-empty for every entry.
     for (const m of first) {
@@ -343,8 +174,8 @@ describe('evaluateAllMilestones determinism', () => {
       makePoint({ eventId: 'y1', measuredAt: isoDaysBefore(NOW, 200), value: 139 }),
       makePoint({ eventId: 'y2', measuredAt: isoDaysBefore(NOW, 30), value: 141 }),
     ];
-    const a = evaluateAllMilestones(history1, null, NOW);
-    const b = evaluateAllMilestones(history2, null, NOW);
+    const a = evaluateAllMilestones(history1, NOW);
+    const b = evaluateAllMilestones(history2, NOW);
     expect(a[0]!.ruleId).toBe(b[0]!.ruleId);
     expect(a[0]!.milestoneId).not.toBe(b[0]!.milestoneId);
   });

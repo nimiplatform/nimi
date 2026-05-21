@@ -19,19 +19,6 @@ import {
 
 const MONO = "var(--nimi-font-mono, 'JetBrains Mono', 'SF Mono', ui-monospace, monospace)";
 
-/* ── Section label — small caps with optional right slot ─────────── */
-
-export function SectionLabel({ children, right }: { children: ReactNode; right?: ReactNode }) {
-  return (
-    <div className="flex items-baseline justify-between px-1 my-2">
-      <span className="text-[11px] font-semibold uppercase tracking-[0.06em]" style={{ color: 'var(--nimi-fg-3)' }}>
-        {children}
-      </span>
-      {right}
-    </div>
-  );
-}
-
 /* ── Status pill — tinted background with leading dot ────────────── */
 
 export type PillTone = 'ok' | 'warn' | 'danger' | 'info' | 'neutral';
@@ -504,7 +491,6 @@ export function ExamTimelineCard({
   onDelete,
 }: {
   exam: ExamView;
-  prev?: ExamView;
   gender: string;
   isLatest: boolean;
   isOpen: boolean;
@@ -524,15 +510,13 @@ export function ExamTimelineCard({
         >
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-[14px] font-semibold tracking-[-0.01em]" style={{ color: 'var(--nimi-fg-1)', fontFamily: MONO }}>
-                {exam.date}
+              <span className="text-[14px] font-semibold tracking-[-0.01em]" style={{ color: 'var(--nimi-fg-1)' }}>
+                {EXAM_TYPE_LABEL(exam.kind)}
               </span>
               {isLatest && <StatusPill tone="ok">最新</StatusPill>}
               <span className="text-[11px]" style={{ color: 'var(--nimi-fg-4)' }}>· {exam.daysAgo} 天前</span>
             </div>
             <div className="mt-1 text-[12px] flex items-center gap-2 flex-wrap" style={{ color: 'var(--nimi-fg-3)' }}>
-              <span>{EXAM_TYPE_LABEL(exam.kind)}</span>
-              <span style={{ color: 'var(--nimi-fg-4)' }}>·</span>
               <span>{fmtAge(exam.ageMonths)}</span>
               {exam.hospital && (
                 <>
@@ -706,46 +690,6 @@ function MeasurementDetail({
         ))}
       </div>
     </>
-  );
-}
-
-/* ── Older-records expand affordance (used inline in the timeline) ── */
-
-export function OlderRecordsToggle({
-  count,
-  expanded,
-  onToggle,
-}: {
-  count: number;
-  expanded: boolean;
-  onToggle: () => void;
-}) {
-  if (expanded) {
-    return (
-      <button
-        onClick={onToggle}
-        className="border-0 bg-transparent text-[11px] text-left cursor-pointer"
-        style={{ marginLeft: -24, padding: '8px 14px 8px 36px', color: 'var(--nimi-fg-3)' }}
-      >
-        收起较早记录
-      </button>
-    );
-  }
-  return (
-    <button
-      onClick={onToggle}
-      className="relative flex items-center gap-2.5 border-0 bg-transparent text-[12px] cursor-pointer rounded-[14px]"
-      style={{ marginLeft: -24, padding: '10px 14px 10px 36px', color: 'var(--nimi-fg-3)' }}
-    >
-      <span
-        className="absolute top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full bg-white"
-        style={{ left: 4, border: '1.5px dashed rgba(15,23,42,0.25)' }}
-      />
-      <span className="flex-1 text-left">
-        查看更早的 <b style={{ color: 'var(--nimi-fg-1)', fontFamily: MONO }}>{count}</b> 次记录
-      </span>
-      <ChevronDown size={14} />
-    </button>
   );
 }
 

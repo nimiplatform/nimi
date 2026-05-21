@@ -1,4 +1,10 @@
-import { Button, DashedAddButton, OverlayShell, Surface, TextareaField, TextField } from '@nimiplatform/nimi-kit/ui';
+import { Button, DashedAddButton, DatePicker, Surface, TextareaField, TextField } from '@nimiplatform/nimi-kit/ui';
+import {
+  HealthRecordModalShell,
+  ModalContent,
+  ModalFooter,
+  ModalHeader,
+} from './health-record-modal-shell.js';
 import { useState, useEffect } from 'react';
 import { useAppStore, computeAgeMonths, computeAgeMonthsAt } from '../../app-shell/app-store.js';
 import { insertAllergyRecord, updateAllergyRecord, getAllergyRecords, upsertReminderState } from '../../bridge/sqlite-bridge.js';
@@ -9,7 +15,6 @@ import { AISummaryCard } from './ai-summary-card.js';
 import { catchLog } from '../../infra/telemetry/catch-log.js';
 import { NoActiveChildPlaceholder } from './_shared/no-active-child-placeholder.js';
 import { ProfileDetailShell } from './_shared/profile-detail-shell.js';
-import { ProfileDatePicker } from './profile-date-picker.js';
 
 /* ── Constants ───────────────────────────────────────────── */
 
@@ -223,24 +228,9 @@ export default function AllergyPage() {
     >
       {/* ── Form ─────────────────────────────────────────── */}
       {showForm && (
-        <OverlayShell
-          open
-          kind="dialog"
-          onClose={resetForm}
-          panelClassName="flex max-h-[85vh] w-[480px] max-w-[480px] flex-col overflow-y-auto rounded-3xl"
-          contentClassName="!p-0 flex flex-col"
-        >
-
-          {/* ── Header ── */}
-          <div className="flex items-center justify-between px-6 pt-6 pb-3">
-            <div className="flex items-center gap-2">
-              <span className="text-[20px]">🤧</span>
-              <h2 className="text-[16px] font-bold text-[var(--nimi-text-primary)]">添加过敏记录</h2>
-            </div>
-            <button onClick={resetForm} className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-[var(--nimi-action-ghost-hover)] text-[var(--nimi-text-muted)]">✕</button>
-          </div>
-
-          <div className="px-6 pb-2 flex-1">
+        <HealthRecordModalShell open size="M" onClose={resetForm}>
+          <ModalHeader title="添加过敏记录" icon="🤧" onClose={resetForm} />
+          <ModalContent>
 
             {/* ━━ Section 1: Core ━━ */}
             <div className="space-y-3 pb-4">
@@ -279,7 +269,7 @@ export default function AllergyPage() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <p className="text-[13px] mb-1.5 font-medium text-[var(--nimi-text-muted)]">发生日期 <span className="text-[var(--nimi-status-danger)]">*</span></p>
-                  <ProfileDatePicker
+                  <DatePicker
                     value={formDiagnosedAt}
                     onChange={setFormDiagnosedAt}
                   />
@@ -435,16 +425,12 @@ export default function AllergyPage() {
                 </div>
               )}
             </div>
-          </div>
-
-          {/* ── Footer ── */}
-          <div className="px-6 pt-3 pb-5">
-            <div className="flex items-center justify-end gap-2">
-              <Button onClick={resetForm} tone="ghost" size="md">取消</Button>
-              <Button onClick={() => void handleSubmit()} disabled={!formAllergen.trim() || !formSeverity} tone="primary" size="md">保存</Button>
-            </div>
-          </div>
-        </OverlayShell>
+          </ModalContent>
+          <ModalFooter>
+            <Button onClick={resetForm} tone="ghost" size="md">取消</Button>
+            <Button onClick={() => void handleSubmit()} disabled={!formAllergen.trim() || !formSeverity} tone="primary" size="md">保存</Button>
+          </ModalFooter>
+        </HealthRecordModalShell>
       )}
 
       {/* ── Active allergies ─────────────────────────────── */}

@@ -218,7 +218,7 @@ describe('GrowthCurvePage', () => {
     });
   });
 
-  it('renders WHO lines only inside official coverage and fails closed for weight after 120 months', async () => {
+  it('fails closed for WHO weight beyond official coverage with an out-of-range note', async () => {
     render(
       <TooltipProvider>
         <MemoryRouter>
@@ -227,20 +227,7 @@ describe('GrowthCurvePage', () => {
       </TooltipProvider>,
     );
 
-    await waitFor(() => {
-      expect(
-        screen.getByText('中国标准百分位参考线（P3-P97）已加载。'),
-      ).toBeTruthy();
-    });
-
-    fireEvent.click(screen.getByRole('button', { name: /WHO 标准/i }));
-
-    await waitFor(() => {
-      expect(
-        screen.getByText('WHO 标准百分位参考线（P3-P97）已加载。'),
-      ).toBeTruthy();
-    });
-
+    fireEvent.click(await screen.findByRole('button', { name: /WHO 标准/i }));
     fireEvent.click(screen.getByText('体重').closest('button') as HTMLButtonElement);
 
     await waitFor(() => {
@@ -248,10 +235,6 @@ describe('GrowthCurvePage', () => {
         screen.getByText('当前年龄超出WHO 标准百分位参考线覆盖范围，仅显示已记录数据。'),
       ).toBeTruthy();
     });
-
-    expect(
-      screen.getByText('当前年龄超出WHO 标准百分位参考线覆盖范围，仅显示已记录数据。'),
-    ).toBeTruthy();
   });
 
   it('imports OCR candidates only after parent confirmation and stores them as source=ocr', async () => {
@@ -278,13 +261,13 @@ describe('GrowthCurvePage', () => {
       expect(screen.getByTestId('ocr-image-name')).toBeTruthy();
     });
 
-    fireEvent.click(screen.getByRole('button', { name: /Analyze sheet/i }));
+    fireEvent.click(screen.getByRole('button', { name: /开始识别/ }));
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: /Import selected OCR measurements/i })).toBeTruthy();
+      expect(screen.getByRole('button', { name: /导入选中数据/ })).toBeTruthy();
     });
 
-    fireEvent.click(screen.getByRole('button', { name: /Import selected OCR measurements/i }));
+    fireEvent.click(screen.getByRole('button', { name: /导入选中数据/ }));
 
     await waitFor(() => {
       expect(insertMeasurementMock).toHaveBeenCalledTimes(2);
@@ -302,7 +285,7 @@ describe('GrowthCurvePage', () => {
     }));
   });
 
-  it('renders the hero card with percentile dial, big value, and cross-metric chips when data present', async () => {
+  it('renders the hero card with percentile dial, big value, and the trend-stat row when data present', async () => {
     render(
       <TooltipProvider>
         <MemoryRouter>
@@ -320,9 +303,10 @@ describe('GrowthCurvePage', () => {
     expect(hero.querySelector('svg[role="img"]')).toBeTruthy();
     // Big value text "98 cm" mirrors the seeded height measurement.
     expect(hero.textContent ?? '').toContain('98');
-    // At least the height and weight chips surface.
-    expect(screen.getByTestId('growth-hero-chip-height')).toBeTruthy();
-    expect(screen.getByTestId('growth-hero-chip-weight')).toBeTruthy();
+    // The hero footer renders two metric chips (距 P50 / 百分位变化).
+    const chips = screen.getByTestId('growth-hero-chips');
+    expect(chips).toBeTruthy();
+    expect(chips.children.length).toBe(2);
   });
 
   it('renders the hero empty state when there are no measurements', async () => {
@@ -341,95 +325,8 @@ describe('GrowthCurvePage', () => {
     });
 
     expect(screen.queryByTestId('growth-hero-card')).toBeNull();
-    expect(screen.queryByTestId('growth-hero-chip-height')).toBeNull();
+    expect(screen.queryByTestId('growth-hero-chips')).toBeNull();
     expect(screen.getByText('暂无生长记录')).toBeTruthy();
-  });
-
-  it('renders the AI insight strip with the generated string when the platform client returns a valid response', async () => {
-    textGenerateMock.mockResolvedValueOnce({
-      text: '{"insight":"观察到孩子身高处于参考区间内，倾向于稳定增长。"}',
-      finishReason: 'stop',
-    });
-
-    render(
-      <TooltipProvider>
-        <MemoryRouter>
-          <GrowthCurvePage />
-        </MemoryRouter>
-      </TooltipProvider>,
-    );
-
-    await waitFor(() => {
-      expect(textGenerateMock).toHaveBeenCalled();
-    });
-
-    await waitFor(() => {
-      const strip = screen.getByTestId('growth-insight-strip');
-      expect(strip.textContent ?? '').toContain('观察到');
-    });
-
-    const stripText = screen.getByTestId('growth-insight-strip').textContent ?? '';
-    for (const denylistTerm of ['落后', '异常', '危险', '警告', '发育迟缓', '障碍']) {
-      expect(stripText).not.toContain(denylistTerm);
-    }
-  });
-
-  it('renders the deterministic fallback line plus a non-destructive badge when the AI response is invalid', async () => {
-    // Force the platform client to throw synchronously inside getPlatformClient
-    // itself. This routes through the strip's catch branch deterministically
-    // and avoids any async ordering ambiguity that defeats waitFor in jsdom.
-    getPlatformClientMock.mockImplementation(() => {
-      throw new Error('mocked AI runtime failure');
-    });
-
-    render(
-      <TooltipProvider>
-        <MemoryRouter>
-          <GrowthCurvePage />
-        </MemoryRouter>
-      </TooltipProvider>,
-    );
-
-    await waitFor(
-      () => {
-        const strip = screen.getByTestId('growth-insight-strip');
-        expect(strip.textContent ?? '').toContain('AI 生成失败，已使用本地摘要');
-      },
-      { timeout: 5000, interval: 50 },
-    );
-
-    const stripText = screen.getByTestId('growth-insight-strip').textContent ?? '';
-    expect(stripText).toContain('AI 生成失败，已使用本地摘要');
-    // The fallback line is rendered via LEDE_TEMPLATES — it must not contain
-    // any denylist vocabulary.
-    for (const denylistTerm of ['落后', '异常', '危险', '警告', '发育迟缓', '障碍']) {
-      expect(stripText).not.toContain(denylistTerm);
-    }
-  });
-
-  it('renders inline percentile label on metric pill tabs when data present and omits it when absent', async () => {
-    render(
-      <TooltipProvider>
-        <MemoryRouter>
-          <GrowthCurvePage />
-        </MemoryRouter>
-      </TooltipProvider>,
-    );
-
-    await waitFor(() => {
-      expect(screen.getByTestId('growth-curve-controls-pill-tabs')).toBeTruthy();
-    });
-
-    await waitFor(() => {
-      const heightPercentile = screen.queryByTestId('growth-curve-tab-percentile-height');
-      expect(heightPercentile).toBeTruthy();
-      expect(heightPercentile!.textContent ?? '').toMatch(/^P\d+$/);
-    });
-
-    // BMI tab requires both height + weight; with the seeded data both are
-    // present but BMI tab still does not render an inline P percentile (BMI
-    // pill currently shows no percentile label per design).
-    expect(screen.queryByTestId('growth-curve-tab-percentile-bmi')).toBeNull();
   });
 
   // -----------------------------------------------------------------
@@ -481,10 +378,10 @@ describe('GrowthCurvePage', () => {
     const card = screen.getByTestId('growth-milestones-card');
     const rows = card.querySelectorAll('[data-testid^="growth-milestone-row-"]');
     expect(rows.length).toBeGreaterThan(0);
-    expect(card.textContent ?? '').toContain('近一年里程碑');
+    expect(card.textContent ?? '').toContain('生长里程碑');
   });
 
-  it('renders the growth milestones empty-state with the admitted copy when no milestones are present', async () => {
+  it('renders the milestone empty-state copy inside the timeline card when no milestones are present', async () => {
     getMeasurementsMock.mockResolvedValueOnce([]);
 
     render(
@@ -496,14 +393,56 @@ describe('GrowthCurvePage', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByTestId('growth-milestones-card-empty')).toBeTruthy();
+      expect(screen.getByTestId('growth-milestones-card')).toBeTruthy();
     });
 
-    expect(screen.queryByTestId('growth-milestones-card')).toBeNull();
-    expect(screen.getByText('过去 12 个月暂无识别到的里程碑事件')).toBeTruthy();
+    expect(screen.getByText('暂无识别到的里程碑事件')).toBeTruthy();
   });
 
-  it('renders the next-check card with badge, lede, CTA, and three-stat trend row when data present', async () => {
+  it('shows the milestone card "查看更多" affordance when more milestones exist than the hero preview', async () => {
+    // 95cm → 135cm crosses the 100/110/120/130 thresholds — four milestones,
+    // more than the hero's 3-row preview, so the "查看更多" affordance renders.
+    getMeasurementsMock.mockResolvedValueOnce([
+      {
+        measurementId: 'm-low',
+        childId: 'child-1',
+        typeId: 'height',
+        value: 95,
+        measuredAt: '2025-01-10T00:00:00.000Z',
+        ageMonths: 120,
+        percentile: null,
+        source: 'manual',
+        notes: null,
+        createdAt: '2025-01-10T00:00:00.000Z',
+      },
+      {
+        measurementId: 'm-high',
+        childId: 'child-1',
+        typeId: 'height',
+        value: 135,
+        measuredAt: '2026-03-10T00:00:00.000Z',
+        ageMonths: 134,
+        percentile: null,
+        source: 'manual',
+        notes: null,
+        createdAt: '2026-03-10T00:00:00.000Z',
+      },
+    ]);
+
+    render(
+      <TooltipProvider>
+        <MemoryRouter>
+          <GrowthCurvePage />
+        </MemoryRouter>
+      </TooltipProvider>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('growth-milestones-view-more')).toBeTruthy();
+    });
+  });
+
+  it('renders the next-check card with badge, lede, and CTA when data present', async () => {
     render(
       <TooltipProvider>
         <MemoryRouter>
@@ -528,9 +467,6 @@ describe('GrowthCurvePage', () => {
       expect(screen.getByTestId('growth-next-check-badge')).toBeTruthy();
       expect(screen.getByTestId('growth-next-check-cta-set-reminder')).toBeTruthy();
       expect(scheduled.textContent ?? '').toContain('设为提醒');
-      const stats = screen.queryByTestId('growth-next-check-trend-stats');
-      expect(stats).toBeTruthy();
-      expect(stats!.querySelectorAll('p.text-\\[11px\\]').length).toBeGreaterThanOrEqual(3);
     } else {
       // Unscheduled-state fallback assertion (still validates wave-C mount)
       expect(screen.getByText('暂无下次测量安排')).toBeTruthy();
@@ -583,9 +519,8 @@ describe('GrowthCurvePage', () => {
   // Per .nimi/topics/ongoing/2026-05-18-parentos-growth-curve-page-redesign/
   // packet-wave-d-history-and-capture-migration.md acceptance_invariants the
   // history table now exposes client-side pagination (10/page), time-range
-  // filter (all/1y/6m/3m), source filter (all/manual/ocr/imported/reminder),
-  // CSV export with admitted column order, and the Add CTA opens
-  // HealthCaptureModal with initialGroupId='growth'.
+  // filter (all/1y/6m/3m), CSV export with admitted column order, and the
+  // Add CTA opens HealthCaptureModal with initialGroupId='growth'.
 
   it('renders history pagination controls when typeMeasurements has more than ten rows', async () => {
     const today = new Date();
@@ -680,56 +615,6 @@ describe('GrowthCurvePage', () => {
     expect(document.querySelector('table tbody')!.querySelectorAll('tr').length).toBe(2);
 
     fireEvent.change(screen.getByLabelText('time-range filter'), { target: { value: '3m' } });
-
-    await waitFor(() => {
-      const rows = document.querySelector('table tbody')!.querySelectorAll('tr').length;
-      expect(rows).toBe(1);
-    });
-  });
-
-  it('narrows visible history rows when the source filter switches to OCR', async () => {
-    getMeasurementsMock.mockResolvedValueOnce([
-      {
-        measurementId: 'm-manual',
-        childId: 'child-1',
-        typeId: 'height',
-        value: 100,
-        measuredAt: '2025-12-10T00:00:00.000Z',
-        ageMonths: 130,
-        percentile: null,
-        source: 'manual',
-        notes: null,
-        createdAt: '2025-12-10T00:00:00.000Z',
-      },
-      {
-        measurementId: 'm-ocr',
-        childId: 'child-1',
-        typeId: 'height',
-        value: 101,
-        measuredAt: '2025-12-15T00:00:00.000Z',
-        ageMonths: 131,
-        percentile: null,
-        source: 'ocr',
-        notes: null,
-        createdAt: '2025-12-15T00:00:00.000Z',
-      },
-    ]);
-
-    render(
-      <TooltipProvider>
-        <MemoryRouter>
-          <GrowthCurvePage />
-        </MemoryRouter>
-      </TooltipProvider>,
-    );
-
-    await waitFor(() => {
-      expect(screen.getByLabelText('source filter')).toBeTruthy();
-    });
-
-    expect(document.querySelector('table tbody')!.querySelectorAll('tr').length).toBe(2);
-
-    fireEvent.change(screen.getByLabelText('source filter'), { target: { value: 'ocr' } });
 
     await waitFor(() => {
       const rows = document.querySelector('table tbody')!.querySelectorAll('tr').length;

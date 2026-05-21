@@ -156,79 +156,15 @@ describe('VisionPage OCR intake', () => {
     );
 
     const guideButton = await screen.findByRole('button', { name: /录入指引/ });
-    const ocrButton = await screen.findByRole('button', { name: /智能识别/ });
     const screeningButton = await screen.findByRole('button', { name: /添加筛查/ });
     const recordButton = await screen.findByRole('button', { name: /录入数据/ });
 
-    for (const button of [guideButton, ocrButton, screeningButton, recordButton]) {
+    for (const button of [guideButton, screeningButton, recordButton]) {
       expect(button.classList.contains('whitespace-nowrap')).toBe(true);
       expect(button.classList.contains('shrink-0')).toBe(true);
     }
   });
 
-  it('prefills the vision form from OCR and stores confirmed rows as source=ocr', async () => {
-    render(
-      <MemoryRouter>
-        <VisionPage />
-      </MemoryRouter>,
-    );
-
-    fireEvent.change(screen.getByLabelText('vision-ocr-file'), {
-      target: {
-        files: [new File(['fake-image'], 'axial-report.png', { type: 'image/png' })],
-      },
-    });
-
-    let saveButton: HTMLButtonElement;
-    await waitFor(() => {
-      saveButton = screen.getByLabelText('vision-record-save') as HTMLButtonElement;
-      expect(saveButton.disabled).toBe(false);
-    });
-
-    fireEvent.click(saveButton!);
-
-    await waitFor(() => {
-      expect(insertMeasurementMock).toHaveBeenCalledTimes(2);
-    });
-
-    expect(insertMeasurementMock).toHaveBeenCalledWith(expect.objectContaining({
-      typeId: 'axial-length-right',
-      value: 24.11,
-      measuredAt: '2026-04-12',
-      source: 'ocr',
-      notes: 'AL OD',
-    }));
-    expect(insertMeasurementMock).toHaveBeenCalledWith(expect.objectContaining({
-      typeId: 'axial-length-left',
-      value: 23.98,
-      measuredAt: '2026-04-12',
-      source: 'ocr',
-      notes: 'AL OS',
-    }));
-  });
-
-  it('surfaces a readable OCR model capability error when image input is unsupported', async () => {
-    analyzeCheckupSheetOCRMock.mockRejectedValueOnce(
-      new Error('当前 AI 对话模型不支持图片识别。请在 AI 设置中切换到支持视觉输入的模型后重试。'),
-    );
-
-    render(
-      <MemoryRouter>
-        <VisionPage />
-      </MemoryRouter>,
-    );
-
-    fireEvent.change(screen.getByLabelText('vision-ocr-file'), {
-      target: {
-        files: [new File(['fake-image'], 'axial-report.png', { type: 'image/png' })],
-      },
-    });
-
-    await waitFor(() => {
-      expect(screen.getByTestId('vision-ocr-error').textContent).toContain('当前 AI 对话模型不支持图片识别');
-    });
-    expect(insertMeasurementMock).not.toHaveBeenCalled();
-  });
   it('persists vision follow-up cadence + custom next-visit date through the bridge', async () => {
     getVisionFollowupSettingsMock.mockResolvedValueOnce(null);
     getMeasurementsMock.mockResolvedValueOnce([
@@ -251,6 +187,9 @@ describe('VisionPage OCR intake', () => {
         <VisionPage />
       </MemoryRouter>,
     );
+
+    // The reminder editor lives inside the collapsed 检查记录 timeline accordion.
+    fireEvent.click(await screen.findByRole('button', { name: /检查记录/ }));
 
     // Open the editor via 提醒设置.
     const settingsBtn = await screen.findByRole('button', { name: /提醒设置/ });
@@ -302,6 +241,9 @@ describe('VisionPage OCR intake', () => {
       </MemoryRouter>,
     );
 
+    // The reminder editor lives inside the collapsed 检查记录 timeline accordion.
+    fireEvent.click(await screen.findByRole('button', { name: /检查记录/ }));
+
     const settingsBtn = await screen.findByRole('button', { name: /提醒设置/ });
     fireEvent.click(settingsBtn);
 
@@ -347,6 +289,11 @@ describe('VisionPage OCR intake', () => {
         <VisionPage />
       </MemoryRouter>,
     );
+
+    // The exam timeline is a collapsed-by-default accordion — expand it, then
+    // expand the exam card itself (cards no longer auto-open).
+    fireEvent.click(await screen.findByRole('button', { name: /检查记录/ }));
+    fireEvent.click(await screen.findByRole('button', { name: /眼轴跟踪/ }));
 
     fireEvent.click(await screen.findByLabelText('delete-vision-record-2026-04-12'));
 

@@ -189,9 +189,11 @@ export function OrthodonticPage({
           catchLog('ortho', 'action:load-intervals-failed')(error);
         }
         try {
+          // All-time window: the journey timeline + PO-ORTHO-006a aligner
+          // context need every aligner-change, not just the last year.
           checkins[a.applianceId] = await getOrthodonticCheckins({
             applianceId: a.applianceId,
-            limitDays: 365,
+            limitDays: 36500,
           });
         } catch (error) {
           catchLog('ortho', 'action:load-checkins-failed')(error);
@@ -276,6 +278,13 @@ export function OrthodonticPage({
         checkins: checkinsByAppliance[appliance.applianceId] ?? [],
       })),
     [sortedActiveAppliances, intervalsByAppliance, checkinsByAppliance],
+  );
+
+  // Flattened checkins across every appliance — backs the journey timeline's
+  // PO-ORTHO-006a aligner-context decoration on clinical-event cards.
+  const journeyCheckins = useMemo(
+    () => Object.values(checkinsByAppliance).flat(),
+    [checkinsByAppliance],
   );
 
   const eligibleApplianceTypes = useMemo(
@@ -460,6 +469,8 @@ export function OrthodonticPage({
           loading={journey === null}
           orthoDentalRecords={orthoDentalRecords}
           attachmentMap={dentalAttachmentMap}
+          appliances={appliances}
+          checkins={journeyCheckins}
           onAskAiAboutRecord={handleAskAiAboutRecord}
           onEditRecord={handleEditRecord}
           onDeleteRecord={(r) => void handleDeleteRecord(r)}

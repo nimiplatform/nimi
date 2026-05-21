@@ -1,11 +1,16 @@
-import { Button, cn, OverlayShell, StatusBadge, Surface, TextField } from '@nimiplatform/nimi-kit/ui';
-import { useEffect, useMemo, useState } from 'react';
+import { Button, cn, DatePicker, StatusBadge, Surface, TextField } from '@nimiplatform/nimi-kit/ui';
+import {
+  HealthRecordModalShell,
+  ModalContent,
+  ModalFooter,
+  ModalHeader,
+} from './health-record-modal-shell.js';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { computeAgeMonthsAt } from '../../app-shell/app-store.js';
 import {
   clearVisionFollowupSettings,
-  getVisionFollowupSettings,
   insertMedicalEvent,
   setVisionFollowupSettings,
   VISION_FOLLOWUP_CADENCE_DEFAULT,
@@ -16,15 +21,11 @@ import type { MeasurementRow, VisionFollowupSettings } from '../../bridge/sqlite
 import { GROWTH_STANDARDS } from '../../knowledge-base/index.js';
 import type { GrowthTypeId } from '../../knowledge-base/gen/growth-standards.gen.js';
 import { AppSelect } from '../../app-shell/app-select.js';
-import { catchLog } from '../../infra/telemetry/catch-log.js';
 import { ulid, isoNow } from '../../bridge/ulid.js';
-import { ProfileDatePicker } from './profile-date-picker.js';
 import { CHART_OPTIONS } from './vision-data.js';
-import { SectionLabel } from './vision-page-cards.js';
 
 export const EARLY_SCREENING_MAX_AGE_MONTHS = 72;
 export const VISION_SCREENING_PREFIX = 'vision:';
-export const RECENT_EXAM_COUNT = 3;
 
 const SCREENING_TYPES = [
   { key: 'red-reflex', labelKey: 'redReflex', emoji: '🔴', desc: '筛查先天性白内障', minAge: 0, maxAge: 12 },
@@ -91,36 +92,9 @@ export function ScreeningModal({
   };
 
   return (
-    <OverlayShell
-      open
-      kind="dialog"
-      onClose={onClose}
-      panelClassName="w-[560px] max-w-[560px] max-h-[85vh] overflow-y-auto rounded-3xl"
-      title={
-        <div className="flex items-center justify-between">
-          <h3 className="text-[16px] font-semibold text-[var(--nimi-text-primary)]">{t('Profile.rich.vision.screeningModalTitle')}</h3>
-          <Button onClick={onClose} aria-label={t('Profile.rich.common.close')} tone="ghost" size="sm" className="h-7 min-h-7 w-7 rounded-full px-0">✕</Button>
-        </div>
-      }
-      footer={
-        <div className="flex gap-2">
-          <Button
-            onClick={() => void handleSubmit()}
-            tone="primary"
-            size="md"
-          >
-            {t('Profile.rich.common.save')}
-          </Button>
-          <Button
-            onClick={onClose}
-            tone="secondary"
-            size="md"
-          >
-            {t('Profile.rich.common.cancel')}
-          </Button>
-        </div>
-      }
-    >
+    <HealthRecordModalShell open size="M" onClose={onClose}>
+      <ModalHeader title={t('Profile.rich.vision.screeningModalTitle')} icon="👁️" onClose={onClose} />
+      <ModalContent>
       <p className="text-[13px] mb-2 text-[var(--nimi-text-muted)]">{t('Profile.rich.vision.screeningItem')}</p>
         <div className="flex flex-wrap gap-1.5 mb-4">
           {availableTypes.map((screeningType) => (
@@ -164,7 +138,7 @@ export function ScreeningModal({
         <div className="grid grid-cols-2 gap-3 mb-3">
           <div>
             <p className="text-[13px] mb-1 text-[var(--nimi-text-muted)]">{t('Profile.rich.common.date')}</p>
-            <ProfileDatePicker value={formDate} onChange={setFormDate} />
+            <DatePicker value={formDate} onChange={setFormDate} />
           </div>
           <div>
             <p className="text-[13px] mb-1 text-[var(--nimi-text-muted)]">{t('Profile.rich.vision.hospitalOrClinic')}</p>
@@ -188,8 +162,16 @@ export function ScreeningModal({
             className="w-full"
           />
         </div>
-
-    </OverlayShell>
+      </ModalContent>
+      <ModalFooter>
+        <Button onClick={onClose} tone="ghost" size="md">
+          {t('Profile.rich.common.cancel')}
+        </Button>
+        <Button onClick={() => void handleSubmit()} tone="primary" size="md">
+          {t('Profile.rich.common.save')}
+        </Button>
+      </ModalFooter>
+    </HealthRecordModalShell>
   );
 }
 
@@ -234,7 +216,7 @@ export function SourcesTooltip() {
   );
 }
 
-/* ── Next-steps card — system-recommended OR user-customised cadence ─ */
+/* ── Next-visit — projected follow-up + user-customised cadence ───── */
 
 const CADENCE_PRESETS: Array<{ months: number; label: string }> = [
   { months: 1, label: '1 个月' },
@@ -273,7 +255,7 @@ function fmtRelative(iso: string, today: Date): string {
   return `约 ${m} 个月后`;
 }
 
-function resolveNextVisit(
+export function resolveNextVisit(
   latestExamDate: string | null,
   settings: VisionFollowupSettings | null,
 ): NextStepsResolved | null {
@@ -295,113 +277,62 @@ function resolveNextVisit(
   };
 }
 
-export function NextStepsCard({
-  childId,
-  latestBiometricDate,
+/**
+ * Projected next-visit card — rendered as the single "future" entry at the
+ * top of the exam timeline (above the 今天 divider). Visually mirrors the
+ * orthodontic 正畸记录 journey card: emoji/icon chip + title + 预计 badge.
+ */
+export function NextVisitCard({
+  resolved,
+  today,
 }: {
-  childId: string;
-  /** Latest exam date of any type — anchors the next-visit cadence. */
-  latestBiometricDate: string | null;
+  resolved: NextStepsResolved;
+  today: Date;
 }) {
   const { t } = useTranslation();
-  const [settings, setSettings] = useState<VisionFollowupSettings | null>(null);
-  const [editing, setEditing] = useState(false);
-  const today = useMemo(() => new Date(), []);
-
-  useEffect(() => {
-    let cancelled = false;
-    getVisionFollowupSettings(childId)
-      .then((row) => { if (!cancelled) setSettings(row); })
-      .catch(catchLog('vision', 'action:load-followup-settings-failed'));
-    return () => { cancelled = true; };
-  }, [childId]);
-
-  const resolved = useMemo(
-    () => resolveNextVisit(latestBiometricDate, settings),
-    [latestBiometricDate, settings],
-  );
-
-  if (!resolved) return null;
-
   return (
-    <div>
-      <SectionLabel
-        right={
-          <button
-            onClick={() => setEditing((e) => !e)}
-            className={cn(
-              'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] cursor-pointer transition-all border-0',
-              editing
-                ? 'bg-[var(--nimi-accent-soft)] text-[var(--nimi-accent)]'
-                : 'bg-[var(--nimi-action-secondary-bg)] text-[var(--nimi-text-secondary)] hover:bg-[var(--nimi-action-ghost-hover)]',
+    <Surface
+      as="article"
+      tone="card"
+      elevation="raised"
+      padding="none"
+      className="border-transparent p-5"
+      style={{ opacity: 0.92 }}
+    >
+      <div className="flex min-w-0 items-start gap-3">
+        <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_12%,transparent)] text-[var(--nimi-action-primary-bg)]">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="4" width="18" height="18" rx="2" />
+            <path d="M16 2v4M8 2v4M3 10h18" />
+          </svg>
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2 text-[14px] font-semibold text-[var(--nimi-text-primary)]">
+            <span>{t('Profile.rich.vision.nextReview')}</span>
+            <StatusBadge tone="info" className="px-2 py-0.5 text-[10px] font-medium">
+              预计
+            </StatusBadge>
+            {resolved.isCustomDate && (
+              <StatusBadge tone="neutral" className="px-1.5 py-0.5 text-[10px]">
+                {t('Profile.rich.vision.custom')}
+              </StatusBadge>
             )}
-          >
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="3" />
-              <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.65 1.65 0 004.6 15a1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06A1.65 1.65 0 009 4.6 1.65 1.65 0 0010 3.09V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06A1.65 1.65 0 0019.4 9c.13.31.2.65.2 1v.09a2 2 0 010 4H20" />
-            </svg>
-            {t('Profile.rich.vision.reminderSettings')}
-          </button>
-        }
-      >
-        {t('Profile.detail.nextRecordDate')}
-      </SectionLabel>
-      <Surface
-        tone="card"
-        material="glass-regular"
-        elevation="raised"
-        padding="none"
-        className="rounded-3xl p-1.5"
-      >
-        <div className="flex items-center gap-3 px-3.5 py-3">
-          <div
-            className="grid h-8 w-8 place-items-center flex-shrink-0 rounded-xl bg-[var(--nimi-accent-soft)] text-[var(--nimi-accent)]"
-          >
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="3" y="4" width="18" height="18" rx="2" />
-              <path d="M16 2v4M8 2v4M3 10h18" />
-            </svg>
+            {!resolved.isCustomDate && resolved.isUserOverride && (
+              <StatusBadge tone="neutral" className="px-1.5 py-0.5 text-[10px]">
+                {t('Profile.rich.vision.everyMonths', { months: resolved.cadenceMonths })}
+              </StatusBadge>
+            )}
           </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <span className="text-[14px] font-medium text-[var(--nimi-text-primary)]">
-                {t('Profile.rich.vision.nextReview')}
-              </span>
-              {resolved.isCustomDate && (
-                <StatusBadge tone="info" className="px-1.5 py-0.5 text-[10px]">
-                  {t('Profile.rich.vision.custom')}
-                </StatusBadge>
-              )}
-              {!resolved.isCustomDate && resolved.isUserOverride && (
-                <StatusBadge tone="neutral" className="px-1.5 py-0.5 text-[10px]">
-                  {t('Profile.rich.vision.everyMonths', { months: resolved.cadenceMonths })}
-                </StatusBadge>
-              )}
-            </div>
-            <div className="text-[11px] mt-0.5 font-mono text-[var(--nimi-text-muted)]">
-              {resolved.visitDate} · {fmtRelative(resolved.visitDate, today)}
-            </div>
+          <div className="mt-0.5 font-mono text-[11px] text-[var(--nimi-text-muted)]">
+            {resolved.visitDate} · {fmtRelative(resolved.visitDate, today)}
           </div>
         </div>
-
-        {editing && (
-          <NextStepsEditor
-            childId={childId}
-            latestExamDate={latestBiometricDate}
-            settings={settings}
-            onClose={() => setEditing(false)}
-            onSaved={(next) => {
-              setSettings(next);
-              setEditing(false);
-            }}
-          />
-        )}
-      </Surface>
-    </div>
+      </div>
+    </Surface>
   );
 }
 
-function NextStepsEditor({
+export function NextStepsEditor({
   childId,
   latestExamDate,
   settings,
@@ -523,7 +454,7 @@ function NextStepsEditor({
         {t('Profile.rich.vision.customNextDate')} <span className="font-normal normal-case lowercase text-[var(--nimi-field-placeholder)]">· {t('Profile.rich.vision.customNextDateHint')}</span>
       </div>
       <div className="flex items-center gap-2 mb-1">
-        <ProfileDatePicker
+        <DatePicker
           value={customDate}
           onChange={setCustomDate}
           className="flex-1 text-[13px] rounded-xl px-3 py-2 border-0 outline-none"

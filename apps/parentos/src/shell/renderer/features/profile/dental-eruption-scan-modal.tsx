@@ -1,6 +1,5 @@
-import { Button, cn, OverlayShell, StatusBadge, Surface } from '@nimiplatform/nimi-kit/ui';
+import { Button, cn, DatePicker, OverlayShell, StatusBadge, Surface } from '@nimiplatform/nimi-kit/ui';
 import { useMemo, useState } from 'react';
-import { ProfileDatePicker } from './profile-date-picker.js';
 import {
   PERM_LOWER_L,
   PERM_LOWER_R,
@@ -360,7 +359,7 @@ export function DentalEruptionScanModal(props: DentalEruptionScanModalProps) {
 
               <div>
                 <p className="mb-1 text-[13px] text-[var(--nimi-text-muted)]">观察日期</p>
-                <ProfileDatePicker value={props.eventDate} onChange={props.onEventDateChange} />
+                <DatePicker value={props.eventDate} onChange={props.onEventDateChange} />
               </div>
             </>
           ) : null}

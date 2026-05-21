@@ -213,7 +213,7 @@ export function ApplianceLogActions({
         size="md"
         className={cn('rounded-full px-4 text-[13px]', !supportsWearGap && 'min-w-[128px]')}
       >
-        记录异常
+        记录不适
       </Button>
     </div>
   );

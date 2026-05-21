@@ -1,12 +1,11 @@
 import { X } from 'lucide-react';
-import { Button, DashedAddButton, StatusBadge, TextField, TextareaField } from '@nimiplatform/nimi-kit/ui';
+import { Button, DashedAddButton, DatePicker, StatusBadge, TextField, TextareaField } from '@nimiplatform/nimi-kit/ui';
 import { useRef, useState } from 'react';
 import { computeAgeMonthsAt } from '../../app-shell/app-store.js';
-import { insertMeasurement } from '../../bridge/sqlite-bridge.js';
+import { insertPostureAssessment } from '../../bridge/sqlite-bridge.js';
 import { isoNow, ulid } from '../../bridge/ulid.js';
 import { catchLog } from '../../infra/telemetry/catch-log.js';
 import { readImageFileAsDataUrl } from './checkup-ocr.js';
-import { ProfileDatePicker } from './profile-date-picker.js';
 import {
   ChipGroup,
   FormField,
@@ -131,84 +130,46 @@ export function PostureCaptureContent({ child, onSaved, onClose }: PostureCaptur
   const isMedical = formSource === 'checkup' || formSource === 'doctor';
 
   const handleSubmit = async () => {
-    if (!formDate) return;
+    if (!formDate) {
+      setErrorMsg('请选择评估日期');
+      return;
+    }
+
+    const photoValues = Object.values(formPhotos);
+    const hasAnyField =
+      Boolean(formShoulder || formScapula || formAdam || formHip || formLeg || formHeel
+        || formNeck || formPelvis || formKnee)
+      || formCobb.trim().length > 0
+      || formNotes.trim().length > 0
+      || photoValues.length > 0;
+    if (!hasAnyField) {
+      setErrorMsg('请至少选择一项体态评估或填写 Cobb 角');
+      return;
+    }
+
     setSaving(true);
     setErrorMsg(null);
-
-    const now = isoNow();
-    const ageMonths = computeAgeMonthsAt(child.birthDate, formDate);
-
-    const parts: string[] = [];
-    if (formSource) parts.push(`来源:${SOURCE_OPTIONS.find((o) => o.value === formSource)?.label ?? formSource}`);
-    if (formScapula) parts.push(`肩胛骨:${SCAPULA_OPTIONS.find((o) => o.value === formScapula)?.label ?? formScapula}`);
-    if (formHip) parts.push(`高低胯:${HIP_OPTIONS.find((o) => o.value === formHip)?.label ?? formHip}`);
-    if (formLeg) parts.push(`腿型:${LEG_OPTIONS.find((o) => o.value === formLeg)?.label ?? formLeg}`);
-    if (formHeel) parts.push(`足跟:${HEEL_OPTIONS.find((o) => o.value === formHeel)?.label ?? formHeel}`);
-    if (formNeck) parts.push(`颈部:${NECK_OPTIONS.find((o) => o.value === formNeck)?.label ?? formNeck}`);
-    if (formPelvis) parts.push(`骨盆:${PELVIS_OPTIONS.find((o) => o.value === formPelvis)?.label ?? formPelvis}`);
-    if (formKnee) parts.push(`膝盖:${KNEE_OPTIONS.find((o) => o.value === formKnee)?.label ?? formKnee}`);
-    if (formAdam) parts.push(`前屈试验:${ADAM_OPTIONS.find((o) => o.value === formAdam)?.label ?? formAdam}`);
-    const photoKeys = Object.keys(formPhotos);
-    if (photoKeys.length > 0) {
-      parts.push(`照片:${photoKeys.map((k) => POSTURE_TABS.find((t) => t.photoKey === k)?.label ?? k).join(',')}`);
-    }
-    if (formNotes.trim()) parts.push(formNotes.trim());
-    const noteStr = parts.length > 0 ? parts.join(' | ') : null;
-
     try {
-      let wroteSomething = false;
-      if (formCobb.trim()) {
-        await insertMeasurement({
-          measurementId: ulid(),
-          childId: child.childId,
-          typeId: 'scoliosis-cobb-angle',
-          value: parseFloat(formCobb),
-          measuredAt: formDate,
-          ageMonths,
-          percentile: null,
-          source: 'manual',
-          notes: noteStr,
-          now,
-        });
-        wroteSomething = true;
-      }
-      if (formShoulder) {
-        await insertMeasurement({
-          measurementId: ulid(),
-          childId: child.childId,
-          typeId: 'shoulder-symmetry',
-          value: parseFloat(formShoulder),
-          measuredAt: formDate,
-          ageMonths,
-          percentile: null,
-          source: 'manual',
-          notes: noteStr,
-          now,
-        });
-        wroteSomething = true;
-      }
-      if (!wroteSomething && (formAdam || formScapula || formHip || formLeg || formHeel || formNeck || formPelvis || formKnee)) {
-        await insertMeasurement({
-          measurementId: ulid(),
-          childId: child.childId,
-          typeId: 'shoulder-symmetry',
-          value: -1,
-          measuredAt: formDate,
-          ageMonths,
-          percentile: null,
-          source: 'manual',
-          notes: noteStr,
-          now,
-        });
-        wroteSomething = true;
-      }
-
-      if (!wroteSomething) {
-        setErrorMsg('请至少选择一项体态评估或填写 Cobb 角');
-        setSaving(false);
-        return;
-      }
-
+      await insertPostureAssessment({
+        assessmentId: ulid(),
+        childId: child.childId,
+        assessedAt: formDate,
+        ageMonths: computeAgeMonthsAt(child.birthDate, formDate),
+        source: formSource || null,
+        shoulder: formShoulder || null,
+        scapula: formScapula || null,
+        hip: formHip || null,
+        leg: formLeg || null,
+        heel: formHeel || null,
+        neck: formNeck || null,
+        pelvis: formPelvis || null,
+        knee: formKnee || null,
+        adam: formAdam || null,
+        cobbAngle: formCobb.trim() ? parseFloat(formCobb) : null,
+        notes: formNotes.trim() || null,
+        photoPaths: photoValues.length > 0 ? JSON.stringify(photoValues) : null,
+        now: isoNow(),
+      });
       await onSaved();
       onClose();
     } catch (error) {
@@ -271,7 +232,7 @@ export function PostureCaptureContent({ child, onSaved, onClose }: PostureCaptur
           <SectionCard title="基础信息">
             <FormGrid cols={2}>
               <FormField label="评估日期">
-                <ProfileDatePicker value={formDate} onChange={setFormDate} className="h-12" />
+                <DatePicker value={formDate} onChange={setFormDate} className="h-12" />
               </FormField>
               <FormField label="数据来源">
                 <ChipGroup
@@ -463,9 +424,14 @@ export function PostureCaptureContent({ child, onSaved, onClose }: PostureCaptur
   );
 }
 
+/**
+ * Sidebar-less modal wrapper for the posture detail page's "添加记录" button.
+ * Sized M (720) so the form pane matches the width of the posture pane inside
+ * the `/profile` 添加健康数据 capture modal (L 920 − 200 sidebar = 720).
+ */
 export function PostureCaptureModal(props: PostureCaptureProps) {
   return (
-    <HealthRecordModalShell open size="L" onClose={props.onClose}>
+    <HealthRecordModalShell open size="M" onClose={props.onClose}>
       <PostureCaptureContent {...props} />
     </HealthRecordModalShell>
   );

@@ -1,47 +1,54 @@
 import { Surface } from '@nimiplatform/nimi-kit/ui';
-import { LEDE_TEMPLATES, type LedeTemplateInputs } from './growth-curve-page-shared.js';
-import type { GrowthChip, GrowthHeadline } from './growth-detail-projection.js';
+import type {
+  GrowthChip,
+  GrowthHeadline,
+  GrowthTrendKind,
+  GrowthTrendStat,
+} from './growth-detail-projection.js';
 
-// growth-hero-card.tsx — PO-GROWTH-DETAIL-002 hero composition (wave-B).
-// Pure render of `GrowthHeadline` + `GrowthChip[]` projected by wave-A.
+// growth-hero-card.tsx — PO-GROWTH-DETAIL-002 hero composition.
+// Pure render of `GrowthHeadline` + `GrowthTrendStat[]` projected by wave-A.
 // No useState/useEffect for projection data, no AI, no bridge, no Date.now().
-// No predicted-adult-height chip (excluded per design.md §10).
+
+/** One bar of the hero year-over-year growth chart. */
+export interface GrowthYearlyRate {
+  year: number;
+  growth: number;
+}
 
 export interface GrowthHeroCardProps {
   headline: GrowthHeadline;
-  crossMetric: GrowthChip[];
+  trendStats: GrowthTrendStat[];
   selectedMetricDisplayName: string;
   selectedMetricUnit: string;
-  childDisplayName: string;
-  ageLabel: string;
+  /** Per-year growth rate for the selected metric, ascending by year. */
+  yearlyGrowth: GrowthYearlyRate[];
 }
-
-const CHIP_LABELS: Record<GrowthChip['kind'], string> = {
-  height: '身高',
-  weight: '体重',
-  bmi: 'BMI',
-  head: '头围',
-  bone_age: '骨龄',
-};
-
-const CHIP_ICONS: Record<GrowthChip['kind'], string> = {
-  height: '📏',
-  weight: '⚖️',
-  bmi: '🏃',
-  head: '📐',
-  bone_age: '🦴',
-};
 
 const CHIP_TONE_CLASSNAMES: Record<GrowthChip['tone'], string> = {
   success:
-    'border-[color-mix(in_srgb,var(--nimi-status-success)_28%,var(--nimi-border-subtle))] bg-[color-mix(in_srgb,var(--nimi-status-success)_8%,var(--nimi-surface-card))] text-[var(--nimi-status-success)]',
+    'border-[color-mix(in_srgb,var(--nimi-accent-secondary)_28%,var(--nimi-border-subtle))] bg-[color-mix(in_srgb,var(--nimi-accent-secondary)_8%,var(--nimi-surface-card))] text-[var(--nimi-accent-secondary)]',
   warn:
     'border-[color-mix(in_srgb,var(--nimi-status-warning)_30%,var(--nimi-border-subtle))] bg-[color-mix(in_srgb,var(--nimi-status-warning)_8%,var(--nimi-surface-card))] text-[var(--nimi-status-warning)]',
   info:
-    'border-[color-mix(in_srgb,var(--nimi-status-info)_28%,var(--nimi-border-subtle))] bg-[color-mix(in_srgb,var(--nimi-status-info)_8%,var(--nimi-surface-card))] text-[var(--nimi-status-info)]',
+    'border-[color-mix(in_srgb,var(--nimi-accent-secondary)_28%,var(--nimi-border-subtle))] bg-[color-mix(in_srgb,var(--nimi-accent-secondary)_8%,var(--nimi-surface-card))] text-[var(--nimi-accent-secondary)]',
   neutral:
     'border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] text-[var(--nimi-text-secondary)]',
 };
+
+// Status pill reflects the growth trend (steady / accelerating / …), which is
+// derived from the child's own measurement series and needs no reference data.
+const TREND_PILL: Record<GrowthTrendKind, { label: string; tone: GrowthChip['tone'] }> = {
+  steady: { label: '生长稳定', tone: 'success' },
+  accelerating: { label: '生长加速', tone: 'success' },
+  decelerating: { label: '生长放缓', tone: 'warn' },
+  plateau: { label: '生长平台期', tone: 'warn' },
+};
+
+function statusPillForHeadline(headline: GrowthHeadline): { label: string; tone: GrowthChip['tone'] } {
+  if (headline.state === 'no_data') return { label: '暂无数据', tone: 'neutral' };
+  return TREND_PILL[headline.trend];
+}
 
 function clampPercentile(percentile: number | null | undefined): number | null {
   if (percentile == null || Number.isNaN(percentile)) return null;
@@ -50,108 +57,184 @@ function clampPercentile(percentile: number | null | undefined): number | null {
   return percentile;
 }
 
-function statusPillForHeadline(headline: GrowthHeadline): { label: string; tone: GrowthChip['tone'] } {
-  if (headline.state === 'no_data') return { label: '暂无数据', tone: 'neutral' };
-  if (headline.state === 'out_of_reference') return { label: '参考数据未覆盖', tone: 'info' };
-  const p = clampPercentile(headline.currentPercentile);
-  if (p == null) return { label: '参考数据未加载', tone: 'info' };
-  if (p >= 90 || p <= 10) return { label: '建议关注', tone: 'warn' };
-  if (p >= 25 && p <= 75) return { label: '稳定区间', tone: 'success' };
-  return { label: '观察中', tone: 'info' };
-}
+// ---------------------------------------------------------------------------
+// SemiCircleGauge — 180° arc gauge showing the percentile.
+// ---------------------------------------------------------------------------
 
-function renderLede(headline: GrowthHeadline, fallbackUnit: string): string {
-  if (headline.state === 'no_data') return LEDE_TEMPLATES.no_data({} as LedeTemplateInputs);
-  const inputs: LedeTemplateInputs = {
-    ...headline.ledeTemplateInputs,
-    unit: headline.ledeTemplateInputs.unit || fallbackUnit,
-  };
-  return LEDE_TEMPLATES[headline.ledeTemplate](inputs);
-}
-
-function PercentileDial({ percentile }: { percentile: number | null }) {
-  // Inline SVG donut. Stroke = var(--nimi-status-success); track =
-  // var(--nimi-border-subtle); empty state collapses to a track-only ring.
-  const radius = 52;
+function SemiCircleGauge({ percentile }: { percentile: number | null }) {
+  const width = 128;
   const stroke = 10;
-  const normalizedRadius = radius - stroke / 2;
-  const circumference = 2 * Math.PI * normalizedRadius;
-  const pct = percentile == null ? 0 : percentile;
-  const filled = (pct / 100) * circumference;
-  const dasharray = `${filled} ${circumference - filled}`;
-  const center = radius + stroke / 2;
-  const size = (radius + stroke / 2) * 2;
+  const radius = width / 2 - stroke / 2;
+  const cx = width / 2;
+  const cy = width / 2;
+  const height = cy + stroke / 2;
+  const total = Math.PI * radius;
+  const pct = percentile == null ? 0 : Math.max(0, Math.min(100, percentile));
+  const filled = (pct / 100) * total;
+  const arcPath = `M ${stroke / 2} ${cy} A ${radius} ${radius} 0 0 1 ${width - stroke / 2} ${cy}`;
+  const theta = Math.PI * (1 - pct / 100);
+  const knobX = cx + radius * Math.cos(theta);
+  const knobY = cy - radius * Math.sin(theta);
   return (
-    <svg
-      role="img"
-      aria-label={percentile == null ? '百分位未知' : `百分位 P${percentile}`}
-      width={size}
-      height={size}
-      viewBox={`0 0 ${size} ${size}`}
-    >
-      <defs>
-        <linearGradient id="growth-hero-dial-grad" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="var(--nimi-status-success)" stopOpacity={0.95} />
-          <stop offset="100%" stopColor="var(--nimi-status-success)" stopOpacity={0.65} />
-        </linearGradient>
-      </defs>
-      <circle
-        cx={center}
-        cy={center}
-        r={normalizedRadius}
-        fill="none"
-        stroke="var(--nimi-border-subtle)"
-        strokeWidth={stroke}
-        opacity={0.6}
-      />
-      {percentile != null ? (
-        <circle
-          cx={center}
-          cy={center}
-          r={normalizedRadius}
+    <div className="relative inline-flex shrink-0">
+      <svg
+        role="img"
+        aria-label={percentile == null ? '百分位未知' : `百分位 P${percentile}`}
+        width={width}
+        height={height}
+        viewBox={`0 0 ${width} ${height}`}
+      >
+        <defs>
+          <linearGradient id="growth-gauge-grad" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stopColor="var(--nimi-accent-secondary)" stopOpacity={0.55} />
+            <stop offset="100%" stopColor="var(--nimi-accent-secondary)" stopOpacity={0.95} />
+          </linearGradient>
+        </defs>
+        <path
+          d={arcPath}
           fill="none"
-          stroke="url(#growth-hero-dial-grad)"
+          stroke="var(--nimi-border-subtle)"
           strokeWidth={stroke}
-          strokeDasharray={dasharray}
-          strokeDashoffset={circumference / 4}
           strokeLinecap="round"
-          transform={`rotate(-90 ${center} ${center})`}
+          opacity={0.6}
         />
-      ) : null}
-      <text
-        x={center}
-        y={center - 4}
-        textAnchor="middle"
-        fontSize={percentile == null ? 14 : 22}
-        fontWeight={700}
-        fill="var(--nimi-text-primary)"
-      >
-        {percentile == null ? '—' : `P${percentile}`}
-      </text>
-      <text
-        x={center}
-        y={center + 14}
-        textAnchor="middle"
-        fontSize={10}
-        fill="var(--nimi-text-muted)"
-      >
-        百分位
-      </text>
-    </svg>
+        {percentile != null ? (
+          <path
+            d={arcPath}
+            fill="none"
+            stroke="url(#growth-gauge-grad)"
+            strokeWidth={stroke}
+            strokeLinecap="round"
+            strokeDasharray={`${filled} ${total - filled}`}
+          />
+        ) : null}
+        {percentile != null ? (
+          <circle
+            cx={knobX}
+            cy={knobY}
+            r={stroke / 2 + 1}
+            fill="var(--nimi-surface-card)"
+            stroke="var(--nimi-accent-secondary)"
+            strokeWidth={2.5}
+          />
+        ) : null}
+      </svg>
+      <div className="absolute inset-0 flex items-end justify-center pb-2.5 text-center">
+        <span className="font-bold leading-none text-[var(--nimi-text-primary)]">
+          {percentile == null ? (
+            <span className="text-[32px]">—</span>
+          ) : (
+            <>
+              <span className="text-[17px]">P</span>
+              <span className="text-[36px]">{percentile}</span>
+            </>
+          )}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// YearlyGrowthBars — per-year growth-rate column chart with a zero baseline.
+// Positive growth rises above the baseline (info blue); negative growth —
+// weight or BMI can drop — extends below it (warning orange).
+// ---------------------------------------------------------------------------
+
+const YGB_HALF_HEIGHT = 52;
+const YGB_BAR_MAX = 36;
+
+function YearlyGrowthBars({
+  yearlyGrowth,
+  selectedMetricUnit,
+}: {
+  yearlyGrowth: GrowthYearlyRate[];
+  selectedMetricUnit: string;
+}) {
+  const maxAbs = Math.max(...yearlyGrowth.map((item) => Math.abs(item.growth)), 0);
+  return (
+    <div data-testid="growth-hero-growth-bars">
+      <div className="flex items-stretch">
+        {yearlyGrowth.map((item) => {
+          const positive = item.growth >= 0;
+          const barHeight = maxAbs > 0 ? Math.max((Math.abs(item.growth) / maxAbs) * YGB_BAR_MAX, 3) : 3;
+          const valueLabel = `${item.growth > 0 ? '+' : ''}${item.growth.toFixed(1)} ${selectedMetricUnit}`.trim();
+          return (
+            <div key={item.year} className="flex flex-1 flex-col items-center">
+              <div
+                className="flex w-full flex-col items-center justify-end border-b border-[var(--nimi-border-strong)]"
+                style={{ height: YGB_HALF_HEIGHT }}
+              >
+                {positive ? (
+                  <>
+                    <span className="mb-1 text-[10px] font-medium text-[var(--nimi-accent-secondary)]">
+                      {valueLabel}
+                    </span>
+                    <div
+                      className="w-7 rounded-t-md bg-[var(--nimi-accent-secondary)]"
+                      style={{ height: barHeight }}
+                    />
+                  </>
+                ) : null}
+              </div>
+              <div
+                className="flex w-full flex-col items-center justify-start"
+                style={{ height: YGB_HALF_HEIGHT }}
+              >
+                {!positive ? (
+                  <>
+                    <div
+                      className="w-7 rounded-b-md bg-[var(--nimi-status-warning)]"
+                      style={{ height: barHeight }}
+                    />
+                    <span className="mt-1 text-[10px] font-medium text-[var(--nimi-status-warning)]">
+                      {valueLabel}
+                    </span>
+                  </>
+                ) : null}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      <div className="mt-1.5 flex">
+        {yearlyGrowth.map((item) => (
+          <span
+            key={item.year}
+            className="flex-1 text-center text-[10px] font-medium text-[var(--nimi-text-muted)]"
+          >
+            {item.year}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// HeroChip — bordered label/value pill used in the hero footer row.
+// ---------------------------------------------------------------------------
+
+function HeroChip({ label, value }: { label: string; value: string }) {
+  return (
+    <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-3 py-1.5 text-[12px]">
+      <span className="text-[var(--nimi-text-muted)]">{label}</span>
+      <span className="font-semibold text-[var(--nimi-text-primary)]">{value}</span>
+    </span>
   );
 }
 
 export function GrowthHeroCard(props: GrowthHeroCardProps) {
-  const { headline, crossMetric, selectedMetricDisplayName, selectedMetricUnit, childDisplayName, ageLabel } = props;
+  const { headline, trendStats, selectedMetricDisplayName, selectedMetricUnit, yearlyGrowth } = props;
 
   if (headline.state === 'no_data') {
     return (
       <Surface
         tone="card"
-        material="solid"
+        material="glass-regular"
         elevation="raised"
         padding="lg"
-        className="mb-5"
+        className="rounded-3xl"
         data-testid="growth-hero-card-empty"
       >
         <div className="flex items-center gap-3">
@@ -169,63 +252,76 @@ export function GrowthHeroCard(props: GrowthHeroCardProps) {
 
   const percentile = clampPercentile(headline.currentPercentile);
   const statusPill = statusPillForHeadline(headline);
-  const lede = renderLede(headline, selectedMetricUnit);
-  const visibleChips = crossMetric.filter((chip) => chip.visible);
+
+  // `currentValueDisplay` is "<number> <unit>" (e.g. "144 cm"); split it so the
+  // number renders large and the unit small.
+  const valueText = headline.currentValueDisplay;
+  const numberPart = selectedMetricUnit && valueText.endsWith(selectedMetricUnit)
+    ? valueText.slice(0, -selectedMetricUnit.length).trim()
+    : valueText;
+  const hasUnit = numberPart !== valueText;
+
+  const findStat = (label: string) => trendStats.find((stat) => stat.label === label);
+  const yoyStat = findStat('年增速');
+  const distP50Stat = findStat('距 P50');
+  const pctStat = findStat('百分位');
+
+  // 6-month percentile change, surfaced as a hero footer chip. The projection
+  // builds `pctStat.caption` as "近 6 月 <↑n|↓n|持平|—>"; strip the window
+  // prefix and append "%" only to the numeric arrow forms.
+  const pctChange = pctStat?.caption?.replace('近 6 月 ', '').trim() ?? '—';
+  const pctChangeDisplay = pctChange === '—' || pctChange === '持平' ? pctChange : `${pctChange}%`;
 
   return (
     <Surface
       tone="card"
-      material="solid"
+      material="glass-regular"
       elevation="raised"
       padding="lg"
-      className="mb-5"
+      className="flex h-full flex-col rounded-3xl"
       data-testid="growth-hero-card"
     >
-      <div className="flex flex-col gap-5 md:flex-row md:items-center">
-        <div className="flex shrink-0 items-center justify-center">
-          <PercentileDial percentile={percentile} />
+      <div className="flex flex-1 flex-col justify-between gap-6">
+        <div className="flex items-start gap-2">
+          <span
+            className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[12px] font-medium ${CHIP_TONE_CLASSNAMES[statusPill.tone]}`}
+          >
+            <span className="inline-block h-1.5 w-1.5 rounded-full bg-current" aria-hidden="true" />
+            {statusPill.label}
+          </span>
         </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
-            <span
-              className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[12px] font-medium ${CHIP_TONE_CLASSNAMES[statusPill.tone]}`}
-            >
-              {statusPill.label}
-            </span>
-            <span className="text-[12px] text-[var(--nimi-text-muted)]">
-              {childDisplayName} · {ageLabel}
-            </span>
+
+        <div className="flex items-end justify-between gap-4">
+          <div className="min-w-0">
+            <div className="flex items-baseline gap-1.5">
+              <p className="text-[42px] font-bold leading-none tracking-tight text-[var(--nimi-text-primary)]">
+                {numberPart}
+              </p>
+              {hasUnit ? (
+                <span className="text-[16px] font-medium text-[var(--nimi-text-secondary)]">
+                  {selectedMetricUnit}
+                </span>
+              ) : null}
+            </div>
+            {yoyStat?.caption ? (
+              <p className="mt-2 text-[13px] text-[var(--nimi-text-muted)]">{yoyStat.caption}</p>
+            ) : null}
           </div>
-          <div className="mt-2 flex items-baseline gap-2">
-            <p className="text-[32px] font-bold leading-none tracking-tight text-[var(--nimi-text-primary)]">
-              {headline.currentValueDisplay}
-            </p>
-            <span className="text-[14px] font-medium text-[var(--nimi-text-secondary)]">
-              {selectedMetricDisplayName}
-            </span>
-          </div>
-          <p className="mt-3 text-[14px] leading-relaxed text-[var(--nimi-text-primary)]">{lede}</p>
+          <SemiCircleGauge percentile={percentile} />
         </div>
+
+        {yearlyGrowth.length > 0 ? (
+          <YearlyGrowthBars yearlyGrowth={yearlyGrowth} selectedMetricUnit={selectedMetricUnit} />
+        ) : null}
       </div>
-      {visibleChips.length > 0 ? (
-        <div
-          className="mt-4 flex flex-wrap gap-2 border-t border-[var(--nimi-border-subtle)] pt-4"
-          data-testid="growth-hero-cross-metric"
-        >
-          {visibleChips.map((chip) => (
-            <span
-              key={chip.kind}
-              data-testid={`growth-hero-chip-${chip.kind}`}
-              className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[13px] ${CHIP_TONE_CLASSNAMES[chip.tone]}`}
-            >
-              <span className="text-[14px]" aria-hidden="true">{CHIP_ICONS[chip.kind]}</span>
-              <span className="font-medium text-[var(--nimi-text-primary)]">
-                {`${CHIP_LABELS[chip.kind]} ${chip.primary}${chip.secondary ? ` · ${chip.secondary}` : ''}`}
-              </span>
-            </span>
-          ))}
-        </div>
-      ) : null}
+
+      <div
+        className="mt-6 flex flex-wrap gap-2 border-t border-[var(--nimi-border-subtle)] pt-4"
+        data-testid="growth-hero-chips"
+      >
+        <HeroChip label="距 P50" value={distP50Stat ? `${distP50Stat.value} ${distP50Stat.unit}`.trim() : '—'} />
+        <HeroChip label="近 6 个月" value={pctChangeDisplay} />
+      </div>
     </Surface>
   );
 }

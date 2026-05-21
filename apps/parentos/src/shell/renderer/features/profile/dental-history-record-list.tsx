@@ -6,6 +6,7 @@ import { DentalRecordActionMenu } from './dental-record-action-menu.js';
 import { formatDateLabel } from '../journal/journal-page-helpers.js';
 import { dentalEventLabelAndEmoji, SEVERITY_LABELS, formatDentalToothLabel } from './dental-page-domain.js';
 import { DentalPhotoLightbox } from './dental-photo-lightbox.js';
+import { formatAlignerContext, type AlignerContext } from './orthodontic-derive.js';
 
 const DENTAL_TYPE_TONE_DEFAULT = 'bg-[color-mix(in_srgb,var(--nimi-status-neutral)_14%,transparent)] text-[var(--nimi-status-neutral)]';
 const DENTAL_TYPE_TONE: Record<string, string> = {
@@ -28,6 +29,8 @@ const DENTAL_TYPE_TONE: Record<string, string> = {
 interface Props {
   recordGroups: Array<[string, DentalRecordRow[]]>;
   attachmentMap: Map<string, AttachmentRow[]>;
+  /** Per-record PO-ORTHO-006a aligner-context decoration; absent for non-ortho rows. */
+  alignerContextMap: Map<string, AlignerContext>;
   fmtAge: (months: number) => string;
   onAskAi: (record: DentalRecordRow) => void;
   onEdit: (record: DentalRecordRow) => void;
@@ -37,6 +40,7 @@ interface Props {
 export function DentalHistoryRecordList({
   recordGroups,
   attachmentMap,
+  alignerContextMap,
   fmtAge,
   onAskAi,
   onEdit,
@@ -57,6 +61,7 @@ export function DentalHistoryRecordList({
               key={r.recordId}
               record={r}
               attachments={attachmentMap.get(r.recordId) ?? []}
+              alignerContext={alignerContextMap.get(r.recordId)}
               fmtAge={fmtAge}
               onAskAi={onAskAi}
               onEdit={onEdit}
@@ -72,6 +77,7 @@ export function DentalHistoryRecordList({
 function DentalHistoryRecordCard({
   record,
   attachments,
+  alignerContext,
   fmtAge,
   onAskAi,
   onEdit,
@@ -79,6 +85,7 @@ function DentalHistoryRecordCard({
 }: {
   record: DentalRecordRow;
   attachments: AttachmentRow[];
+  alignerContext: AlignerContext | undefined;
   fmtAge: (months: number) => string;
   onAskAi: (record: DentalRecordRow) => void;
   onEdit: (record: DentalRecordRow) => void;
@@ -117,6 +124,11 @@ function DentalHistoryRecordCard({
                   className="px-2 py-0.5 text-[10px]"
                 >
                   {SEVERITY_LABELS[record.severity] ?? record.severity}
+                </StatusBadge>
+              )}
+              {alignerContext && (
+                <StatusBadge tone="info" className="px-2 py-0.5 text-[10px]">
+                  {formatAlignerContext(alignerContext)}
                 </StatusBadge>
               )}
             </div>

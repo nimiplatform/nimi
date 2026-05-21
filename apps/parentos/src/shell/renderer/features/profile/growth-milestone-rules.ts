@@ -23,12 +23,8 @@
 import {
   GROWTH_MILESTONE_RULES,
   type GrowthMilestoneRule,
-  type GrowthMilestoneMeasurementDensityTrigger,
-  type GrowthMilestonePercentileShiftTrigger,
   type GrowthMilestoneThresholdCrossedTrigger,
 } from '../../knowledge-base/index.js';
-import type { WHOLMSDataset } from './who-lms-loader.js';
-import { computeApproxPercentile } from './growth-curve-page-shared.js';
 
 const ULID_ALPHABET = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
 
@@ -86,16 +82,19 @@ function makeMilestoneId(ruleId: string, evidenceEventIds: readonly string[]): s
 
 function historyWithinWindow(
   history: readonly HistoryPoint[],
-  evidenceWindowMonths: number,
+  evidenceWindowMonths: number | null,
   nowIso: string,
 ): HistoryPoint[] {
   const nowMs = Date.parse(nowIso);
   if (Number.isNaN(nowMs)) return [];
   // Use 30.436875 days/month (average month length, Gregorian) so the
   // boundary is well-defined and not subject to calendar drift between
-  // months.
-  const windowMs = evidenceWindowMonths * 30.436875 * 86400000;
-  const cutoff = nowMs - windowMs;
+  // months. A null window means "no lower bound" — surfaces that list every
+  // milestone the record ever crossed (the history table) pass null, while
+  // the hero timeline keeps each rule's trailing window.
+  const cutoff = evidenceWindowMonths == null
+    ? Number.NEGATIVE_INFINITY
+    : nowMs - evidenceWindowMonths * 30.436875 * 86400000;
   return history
     .filter((point) => {
       const ms = Date.parse(point.measuredAt);
@@ -139,11 +138,12 @@ export function evaluateThresholdCrossed(
   rule: GrowthMilestoneRule & { triggerCondition: GrowthMilestoneThresholdCrossedTrigger },
   history: readonly HistoryPoint[],
   nowIso: string,
+  fullHistory = false,
 ): GrowthMilestone | null {
   const trigger = rule.triggerCondition;
   const points = historyWithinWindow(
     filterByMetric(history, rule.appliesToMetricIds),
-    trigger.evidenceWindowMonths,
+    fullHistory ? null : trigger.evidenceWindowMonths,
     nowIso,
   );
   if (points.length === 0) return null;
@@ -195,145 +195,37 @@ export function evaluateThresholdCrossed(
 }
 
 // ---------------------------------------------------------------------------
-// evaluatePercentileShift
-// ---------------------------------------------------------------------------
-
-export function evaluatePercentileShift(
-  rule: GrowthMilestoneRule & { triggerCondition: GrowthMilestonePercentileShiftTrigger },
-  history: readonly HistoryPoint[],
-  whoDataset: WHOLMSDataset | null,
-  nowIso: string,
-): GrowthMilestone | null {
-  if (!whoDataset) return null;
-  const trigger = rule.triggerCondition;
-  const points = historyWithinWindow(
-    filterByMetric(history, rule.appliesToMetricIds),
-    trigger.evidenceWindowMonths,
-    nowIso,
-  );
-  if (points.length < 2) return null;
-
-  const earliest = points[0]!;
-  const latest = points[points.length - 1]!;
-  const startPercentile = computeApproxPercentile(earliest.value, earliest.ageMonths, whoDataset);
-  const endPercentile = computeApproxPercentile(latest.value, latest.ageMonths, whoDataset);
-  if (startPercentile == null || endPercentile == null) return null;
-
-  const delta = endPercentile - startPercentile;
-  const matchesUp = trigger.direction === 'upward' && delta >= trigger.minMagnitudePoints;
-  const matchesDown = trigger.direction === 'downward' && -delta >= trigger.minMagnitudePoints;
-  if (!matchesUp && !matchesDown) return null;
-
-  const evidenceEventIds = [earliest.eventId, latest.eventId];
-  return {
-    milestoneId: makeMilestoneId(rule.ruleId, evidenceEventIds),
-    ruleId: rule.ruleId,
-    kind: rule.kind,
-    title: fillTemplate(rule.titleTemplate, {
-      startPercentile,
-      endPercentile,
-    }),
-    deltaMagnitudeDisplay: fillTemplate(rule.deltaMagnitudeTemplate, {
-      magnitudePoints: Math.abs(delta),
-    }),
-    deltaUnitLabel: rule.deltaUnitLabel,
-    detailLine: `${earliest.measuredAt.slice(0, 10)} → ${latest.measuredAt.slice(0, 10)}`,
-    occurredAt: latest.measuredAt,
-    evidenceEventIds,
-  };
-}
-
-// ---------------------------------------------------------------------------
-// evaluateMeasurementDensity
-// ---------------------------------------------------------------------------
-
-export function evaluateMeasurementDensity(
-  rule: GrowthMilestoneRule & { triggerCondition: GrowthMilestoneMeasurementDensityTrigger },
-  history: readonly HistoryPoint[],
-  nowIso: string,
-): GrowthMilestone | null {
-  const trigger = rule.triggerCondition;
-  const points = historyWithinWindow(
-    filterByMetric(history, rule.appliesToMetricIds),
-    trigger.evidenceWindowMonths,
-    nowIso,
-  );
-  if (points.length < trigger.minCount) return null;
-
-  // Find any contiguous window of `windowDays` containing >= minCount points.
-  const sorted = [...points].sort((a, b) => a.measuredAt.localeCompare(b.measuredAt));
-  const windowMs = trigger.windowDays * 86400000;
-  for (let i = 0; i + trigger.minCount - 1 < sorted.length; i++) {
-    const head = sorted[i]!;
-    const tail = sorted[i + trigger.minCount - 1]!;
-    const headMs = Date.parse(head.measuredAt);
-    const tailMs = Date.parse(tail.measuredAt);
-    if (Number.isNaN(headMs) || Number.isNaN(tailMs)) continue;
-    if (tailMs - headMs <= windowMs) {
-      const slice = sorted.slice(i, i + trigger.minCount);
-      const evidenceEventIds = slice.map((p) => p.eventId);
-      return {
-        milestoneId: makeMilestoneId(rule.ruleId, evidenceEventIds),
-        ruleId: rule.ruleId,
-        kind: rule.kind,
-        title: fillTemplate(rule.titleTemplate, {}),
-        deltaMagnitudeDisplay: fillTemplate(rule.deltaMagnitudeTemplate, {
-          count: slice.length,
-        }),
-        deltaUnitLabel: rule.deltaUnitLabel,
-        detailLine: `${head.measuredAt.slice(0, 10)} → ${tail.measuredAt.slice(0, 10)}`,
-        occurredAt: tail.measuredAt,
-        evidenceEventIds,
-      };
-    }
-  }
-  return null;
-}
-
-// ---------------------------------------------------------------------------
 // evaluateAllMilestones — public dispatch entrypoint
 // ---------------------------------------------------------------------------
 
 export function evaluateAllMilestones(
   history: readonly HistoryPoint[],
-  whoDataset: WHOLMSDataset | null,
   nowIso: string,
+  fullHistory = false,
 ): GrowthMilestone[] {
   const out: GrowthMilestone[] = [];
   // Iterate in a stable order — GROWTH_MILESTONE_RULES is declared in YAML
   // order and frozen at generate time, so the loop order is deterministic.
   for (const rule of GROWTH_MILESTONE_RULES) {
-    let milestone: GrowthMilestone | null = null;
     try {
-      if (rule.kind === 'threshold_crossed') {
-        milestone = evaluateThresholdCrossed(
-          rule as GrowthMilestoneRule & { triggerCondition: GrowthMilestoneThresholdCrossedTrigger },
-          history,
-          nowIso,
-        );
-      } else if (rule.kind === 'percentile_shift') {
-        milestone = evaluatePercentileShift(
-          rule as GrowthMilestoneRule & { triggerCondition: GrowthMilestonePercentileShiftTrigger },
-          history,
-          whoDataset,
-          nowIso,
-        );
-      } else if (rule.kind === 'measurement_density') {
-        milestone = evaluateMeasurementDensity(
-          rule as GrowthMilestoneRule & { triggerCondition: GrowthMilestoneMeasurementDensityTrigger },
-          history,
-          nowIso,
-        );
-      }
+      const milestone = evaluateThresholdCrossed(
+        rule as GrowthMilestoneRule & { triggerCondition: GrowthMilestoneThresholdCrossedTrigger },
+        history,
+        nowIso,
+        fullHistory,
+      );
+      if (milestone) out.push(milestone);
     } catch {
       // PO-GROWTH-DETAIL-009: a rule that throws during evaluation is
       // skipped so the surface fails closed for that rule without crashing
       // the whole projection.
-      milestone = null;
     }
-    if (milestone) out.push(milestone);
   }
-  // Sort by occurredAt ascending for deterministic order across runs.
-  out.sort((a, b) => a.occurredAt.localeCompare(b.occurredAt) || a.ruleId.localeCompare(b.ruleId));
+  // Sort by occurredAt ascending for deterministic order across runs; ruleId
+  // breaks ties when two crossings land on the same date.
+  out.sort(
+    (a, b) =>
+      a.occurredAt.localeCompare(b.occurredAt) || a.ruleId.localeCompare(b.ruleId),
+  );
   return out;
 }
