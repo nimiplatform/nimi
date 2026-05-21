@@ -662,12 +662,17 @@ Fixed rules:
 - Default local first-party Avatar must not be forced through this binding
   attachment path solely because Desktop launched it.
 
-## K-AGCORE-139 Nimi Guide Ordinary LocalAgent Projection
+## K-AGCORE-139 Ordinary AgentFriend LocalAgent Projection Creation And Repair
 
-`RuntimeAgentService` may project the user's Nimi guide LocalAgent only through
-the same ordinary AgentFriend mechanics used for any RealmAgent.
+`InitializeAgent` is the runtime creation/repair lifecycle for an
+account-scoped LocalAgent projection. `RuntimeAgentService` may project the
+LocalAgent of any ordinary AgentFriend — the Nimi-authored guide AgentFriend and
+every other RealmAgent AgentFriend alike — only through the same ordinary
+AgentFriend mechanics. This rule is the creation/repair counterpart to the
+deletion lifecycle owned by `K-AGCORE-141`, and applies to every ordinary
+AgentFriend LocalAgent, not only the Nimi guide.
 
-For the Nimi-authored guide agent, Runtime must:
+For any ordinary AgentFriend, Runtime must:
 
 - consume the ordinary RealmAgent and AgentFriend projection through admitted
   Realm/SDK projection, not through Desktop fixtures;
@@ -678,9 +683,33 @@ For the Nimi-authored guide agent, Runtime must:
 - preserve conversation anchor and RuntimeAgentService lifecycle semantics;
 - expose provisioning failures as typed repair/blocked states.
 
-`MUST NOT`: Runtime must not create the guide as a standalone local-only agent,
-fake contact, server-bot bypass, Avatar instance, privileged Agent class,
-special official-guide path, quota bypass, or default global agent.
+Creation trigger owner:
+
+- when an AgentFriend relationship is created, the upstream Realm social
+  admission path issues `InitializeAgent` for the resolved `local_agent_ref`,
+  and `RuntimeAgentService` materializes that projection. The creation trigger
+  is owned by the upstream Realm creation path, not by the renderer; Runtime
+  does not author the creation linkage and does not infer that an AgentFriend
+  exists from renderer-supplied context. This is the creation-side counterpart
+  to the `K-AGCORE-141` sentence that the upstream Realm social admission path
+  issues `TerminateAgent` on AgentFriend removal. The Realm-side authority for
+  the creation linkage, the durable provision intent, and the device courier
+  that delivers `InitializeAgent` to the loopback runtime is owned by
+  `R-SOC-009`;
+- `InitializeAgent` must be idempotent. `InitializeAgent` for a
+  `local_agent_ref` whose LocalAgent projection already exists must succeed as a
+  typed no-op that converges to the same single projection rather than creating
+  a second projection or failing with an already-exists error. Repeated
+  delivery — including a courier re-delivering after a lost acknowledgement —
+  converges to exactly one LocalAgent per AgentFriend;
+- a lazy first-chat-open `InitializeAgent` remains an admitted idempotent repair
+  path for a projection that is absent or stale; it is not the creation trigger.
+  The creation trigger is the upstream Realm creation path above.
+
+`MUST NOT`: Runtime must not create any LocalAgent — the guide AgentFriend's or
+any other AgentFriend's — as a standalone local-only agent, fake contact,
+server-bot bypass, Avatar instance, privileged Agent class, special
+official-guide path, quota bypass, or default global agent.
 
 ## K-AGCORE-140 Nimi Guide Prompt And Documentation Context
 

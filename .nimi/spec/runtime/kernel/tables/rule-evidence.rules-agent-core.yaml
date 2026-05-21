@@ -815,7 +815,7 @@ rules:
   - rule_id: K-AGCORE-139
     evidence_refs:
       - runtime_kernel_consistency
-    note: Nimi guide LocalAgent projection consumes ordinary RealmAgent and AgentFriend projection only; implementation evidence lands with the guide bootstrap child topic.
+    note: InitializeAgent is the idempotent creation/repair lifecycle for every ordinary AgentFriend LocalAgent projection, not only the Nimi guide; the upstream Realm creation path owns the InitializeAgent creation trigger symmetric with the K-AGCORE-141 deletion trigger, and the lazy first-chat-open initialize is a repair path only; implementation evidence lands with the T6.2 contacts creation-linkage implementation wave.
     evidence_requirement: required
   - rule_id: K-AGCORE-140
     evidence_refs:

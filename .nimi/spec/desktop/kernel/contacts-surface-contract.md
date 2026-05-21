@@ -157,12 +157,24 @@ detail 真值来源；缺失字段按缺失收缩，不得保留空占位或合�
 ## D-CONTACTS-006 — Agent-Friend Limit：Single Baseline 配额
 
 `MUST`：`agent_friends` 受一个 Agent-friend limit 约束。当前阶段该 limit
-是 **单一 baseline 值**，由 spec / runtime 配额 authority 拥有；Contacts
-表面只 **消费** 该配额真值并据此呈现状态与路由动作。
+是 **单一 baseline 值**；Contacts 表面只 **消费** 该配额真值并据此呈现
+状态与路由动作。
+
+`MUST`：该 baseline limit 的 canonical authority owner 是 **单一
+backend-owned baseline 常量**。当前阶段它由 backend 拥有并定义为一个值
+（一个数字，不带 `SubscriptionTier` 参数），位于 backend economy/social
+配额 authority 表面；backend 的 AgentFriend 创建准入路径（`addFriend` /
+`addOrAcceptFriend` 的配额校验）以及任何把该 limit 投影给客户端的
+admitted 上游投影都必须消费这同一个常量。该 baseline 值不得由 renderer
+或 Desktop 客户端拥有或定义。如果未来配额需要 per-device / runtime 差异，
+runtime / `.nimi` config 拥有的配额值是一个 **later admitted** 变更，不是
+当前 baseline；当前 baseline 的 authority owner 明确为 backend-owned 常量。
 
 `MUST`：该 baseline limit 不得在 renderer / Desktop 客户端 hardcode；它必须
-来自 admitted 上游配额投影。Contacts 在配额真值不可用时按 typed
-fail-closed 状态呈现，不得 hardcode 一个猜测上限。
+来自 admitted 上游配额投影，该投影的真值来源是上面这个 backend-owned
+baseline 常量。Contacts 在配额真值不可用时按 typed fail-closed 状态呈现，
+不得 hardcode 一个猜测上限，也不得在配额投影失败时回退到一个
+renderer-猜测的 tier 默认值（例如 `FREE` tier 的固定上限）。
 
 `MUST`：当 `agent_friends` 达到配额（`limit_reached`），新增 Agent friend
 的 primary action 必须路由到 **manage / remove** —— 引导用户移除某个既有
@@ -173,8 +185,17 @@ AgentFriend 以释放配额。此处与 Explore 的 `D-EXPL-006`
 `MUST NOT`：Agent-friend limit **不得**耦合 subscription tier。当前阶段
 产品无 economy / purchase 概念，paid upgrade / tier 属 "later admitted"。
 本契约 spec 的是 ONE baseline limit，不得引入 `FREE` / `PRO` / `MAX` 或
-任何 tier-differentiated 配额；tier 差异化配额在被单独 admit 之前明确
-out of scope。
+任何 tier-differentiated 配额；不得用 `SubscriptionTier` 参数化该 limit，
+不得维护一个 per-tier 配额表（如 `{FREE, PRO, MAX}` 上限映射），也不得
+在 backend 配额校验里按 caller 的 subscription tier 解析 limit。tier
+差异化配额在被单独 admit 之前明确 out of scope。`SubscriptionTier` /
+subscription 系统本身对 economy / billing 仍然有效；本规则只把
+**agent-friend 配额** 与 tier 解耦，不移除 subscription 系统。
+
+`MUST NOT`：该 baseline limit 的数值 **不得**在 renderer / Desktop 客户端
+hardcode —— renderer 不得把配额常量作为真值来源，不得维护一个
+client-side 的 limit 数字（无论是否按 tier 分支）。配额真值的唯一来源是
+backend-owned baseline 常量经 admitted 上游投影。
 
 `MUST NOT`：配额达到上限时 Contacts 不得静默丢弃新增请求或投影 generic
 error；必须保留 `limit_reached` 的 typed 状态并路由到 manage / remove。

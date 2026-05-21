@@ -6,6 +6,7 @@ authority_refs:
   - D-EXPL-007
   - R-SOC-007
   - R-SOC-008
+  - R-SOC-009
 states:
   - state: not_friend
     description: Current account has no AgentFriend relation with this RealmAgent. Primary action is Add friend.
@@ -21,13 +22,13 @@ transitions:
     guard: User triggers Add friend and the request is not yet resolved.
   - from: not_friend
     to: friend
-    guard: Add friend auto-approves under quota; AgentFriend relation and the idempotent LocalAgent projection are created.
+    guard: Add friend auto-approves under quota; AgentFriend relation and the idempotent LocalAgent projection are created. The Friendship creation is synchronous, but the LocalAgent projection establishment converges eventually through the durable LocalAgentProvisionIntent and the desktop courier defined by R-SOC-009, not as a synchronous backend-to-runtime call.
   - from: not_friend
     to: limit_reached
     guard: Add friend is attempted while the Agent friend quota is already reached.
   - from: pending
     to: friend
-    guard: AgentFriend request is approved; the idempotent LocalAgent projection is created.
+    guard: AgentFriend request is approved; the idempotent LocalAgent projection is created. The Friendship creation is synchronous, but the LocalAgent projection establishment converges eventually through the durable LocalAgentProvisionIntent and the desktop courier defined by R-SOC-009, not as a synchronous backend-to-runtime call.
   - from: friend
     to: not_friend
     guard: AgentFriend is removed; the one-to-one LocalAgent projection is deleted. The Friendship deletion is synchronous, but the LocalAgent projection deletion converges eventually through the durable LocalAgentTerminationIntent and the desktop courier defined by R-SOC-008, not as a synchronous backend-to-runtime call.
