@@ -17,6 +17,8 @@ export { ContentRatingString } from './generated/models/ContentRatingString.js';
 export { DnaSecondaryTrait } from './generated/models/DnaSecondaryTrait.js';
 export { Gender } from './generated/models/Gender.js';
 export { GiftStatus } from './generated/models/GiftStatus.js';
+export { LocalAgentTerminationIntentAckOutcome } from './generated/models/LocalAgentTerminationIntentAckOutcome.js';
+export { LocalAgentTerminationIntentStatus } from './generated/models/LocalAgentTerminationIntentStatus.js';
 export { MessageType } from './generated/models/MessageType.js';
 export { ModerationStatusString } from './generated/models/ModerationStatusString.js';
 export { OAuthProvider } from './generated/models/OAuthProvider.js';

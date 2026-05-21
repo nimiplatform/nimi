@@ -3136,6 +3136,32 @@ export const REALM_OPERATION_MAP = {
     "successContentTypes": [],
     "hasSuccessBody": false
   },
+  "MeService.ackMyLocalAgentTerminationIntent": {
+    "operationId": "ackMyLocalAgentTerminationIntent",
+    "method": "POST",
+    "path": "/api/human/me/local-agent-termination-intents/{intentId}/ack",
+    "service": "MeService",
+    "methodName": "ackMyLocalAgentTerminationIntent",
+    "tag": "Me",
+    "parameters": [
+      {
+        "name": "intentId",
+        "in": "path",
+        "required": true,
+        "valueType": "string"
+      }
+    ],
+    "hasBody": true,
+    "bodyRequired": true,
+    "requestBodyContentType": "application/json",
+    "successStatusCodes": [
+      "200"
+    ],
+    "successContentTypes": [
+      "application/json"
+    ],
+    "hasSuccessBody": true
+  },
   "MeService.bindWallet": {
     "operationId": "bindWallet",
     "method": "POST",
@@ -3409,6 +3435,24 @@ export const REALM_OPERATION_MAP = {
         "valueType": "number"
       }
     ],
+    "hasBody": false,
+    "bodyRequired": false,
+    "successStatusCodes": [
+      "200"
+    ],
+    "successContentTypes": [
+      "application/json"
+    ],
+    "hasSuccessBody": true
+  },
+  "MeService.listMyLocalAgentTerminationIntents": {
+    "operationId": "listMyLocalAgentTerminationIntents",
+    "method": "GET",
+    "path": "/api/human/me/local-agent-termination-intents",
+    "service": "MeService",
+    "methodName": "listMyLocalAgentTerminationIntents",
+    "tag": "Me",
+    "parameters": [],
     "hasBody": false,
     "bodyRequired": false,
     "successStatusCodes": [
@@ -6410,6 +6454,7 @@ export const REALM_SERVICE_METHODS = {
     "requestDataExport": "MeaccountdataService.requestDataExport"
   },
   "MeService": {
+    "ackMyLocalAgentTerminationIntent": "MeService.ackMyLocalAgentTerminationIntent",
     "bindWallet": "MeService.bindWallet",
     "blockUser": "MeService.blockUser",
     "getMe": "MeService.getMe",
@@ -6424,6 +6469,7 @@ export const REALM_SERVICE_METHODS = {
     "getMyWallets": "MeService.getMyWallets",
     "listMyFriendIds": "MeService.listMyFriendIds",
     "listMyFriendsWithDetails": "MeService.listMyFriendsWithDetails",
+    "listMyLocalAgentTerminationIntents": "MeService.listMyLocalAgentTerminationIntents",
     "prepareBindWallet": "MeService.prepareBindWallet",
     "unbindWallet": "MeService.unbindWallet",
     "unblockUser": "MeService.unblockUser",

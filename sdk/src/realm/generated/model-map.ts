@@ -170,6 +170,11 @@ export type RealmGeneratedModelMap = {
   ListGroupChatsResultDto: components['schemas']['ListGroupChatsResultDto'];
   ListGroupMessagesResultDto: components['schemas']['ListGroupMessagesResultDto'];
   ListMessagesResultDto: components['schemas']['ListMessagesResultDto'];
+  LocalAgentTerminationIntentAckDto: components['schemas']['LocalAgentTerminationIntentAckDto'];
+  LocalAgentTerminationIntentAckOutcome: components['schemas']['LocalAgentTerminationIntentAckOutcome'];
+  LocalAgentTerminationIntentDto: components['schemas']['LocalAgentTerminationIntentDto'];
+  LocalAgentTerminationIntentListDto: components['schemas']['LocalAgentTerminationIntentListDto'];
+  LocalAgentTerminationIntentStatus: components['schemas']['LocalAgentTerminationIntentStatus'];
   LocationLandmarkDto: components['schemas']['LocationLandmarkDto'];
   LocationRegionDto: components['schemas']['LocationRegionDto'];
   MakeAgentPublicResponseDto: components['schemas']['MakeAgentPublicResponseDto'];

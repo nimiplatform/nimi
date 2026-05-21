@@ -2186,6 +2186,46 @@ export type paths = {
         patch: operations["updateMyHandle"];
         trace?: never;
     };
+    "/api/human/me/local-agent-termination-intents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the viewer's own pending LocalAgent termination intents
+         * @description R-SOC-008 viewer-scoped list. Returns only the authenticated viewer’s OPEN and FAILED termination intents. The desktop reconciliation courier pulls this to deliver TerminateAgent to its loopback runtime.
+         */
+        get: operations["listMyLocalAgentTerminationIntents"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/human/me/local-agent-termination-intents/{intentId}/ack": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Acknowledge a LocalAgent termination intent outcome
+         * @description R-SOC-008 backend-owned ack transition. The courier reports a typed outcome; the backend applies the lifecycle move. Idempotent; cross-viewer access fails closed as a typed permission error.
+         */
+        post: operations["ackMyLocalAgentTerminationIntent"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/human/me/notification-settings": {
         parameters: {
             query?: never;
@@ -5198,6 +5238,43 @@ export type components = {
             nextAfter: string | null;
             nextBefore: string | null;
         };
+        LocalAgentTerminationIntentAckDto: {
+            /** @description Typed failure detail recorded as lastError on a substrate_failure outcome. */
+            detail?: string;
+            /** @description terminated = runtime hard-delete confirmed (incl. K-AGCORE-141 absent-ref no-op); substrate_failure = typed K-AGCORE-141 fail-closed deletion failure. */
+            outcome: components["schemas"]["LocalAgentTerminationIntentAckOutcome"];
+        };
+        /**
+         * @description terminated = runtime hard-delete confirmed (incl. K-AGCORE-141 absent-ref no-op); substrate_failure = typed K-AGCORE-141 fail-closed deletion failure.
+         * @enum {string}
+         */
+        LocalAgentTerminationIntentAckOutcome: "terminated" | "substrate_failure";
+        LocalAgentTerminationIntentDto: {
+            /** Format: date-time */
+            ackedAt?: string | null;
+            /** @description Substrate-failure attempt count (only typed runtime failures charge this). */
+            attempts: number;
+            /**
+             * Format: date-time
+             * @description Backoff gate — the courier considers an OPEN intent once this time has elapsed.
+             */
+            availableAt: string;
+            /** Format: date-time */
+            createdAt: string;
+            id: string;
+            /** @description Deterministic R-CHAT-016 identity: local-agent:{ownerUserId}:{realmAgentId}. */
+            localAgentRef: string;
+            /** @description The human owner viewer account id. */
+            ownerUserId: string;
+            /** @description The RealmAgent account id (TerminateAgent target). */
+            realmAgentId: string;
+            status: components["schemas"]["LocalAgentTerminationIntentStatus"];
+        };
+        LocalAgentTerminationIntentListDto: {
+            items: components["schemas"]["LocalAgentTerminationIntentDto"][];
+        };
+        /** @enum {string} */
+        LocalAgentTerminationIntentStatus: "OPEN" | "ACKED" | "FAILED";
         LocationLandmarkDto: {
             description: string;
             id: string;
@@ -10838,6 +10915,50 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["UserPrivateDto"];
+                };
+            };
+        };
+    };
+    listMyLocalAgentTerminationIntents: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LocalAgentTerminationIntentListDto"];
+                };
+            };
+        };
+    };
+    ackMyLocalAgentTerminationIntent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                intentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LocalAgentTerminationIntentAckDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LocalAgentTerminationIntentDto"];
                 };
             };
         };
