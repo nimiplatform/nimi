@@ -3,14 +3,17 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   buildRealmCreateAgentInput,
   buildRealmCreatePostInput,
+  buildRealmSelectAvatarInput,
   createReviewedRealmAgent,
   getCreateRealmAgentWorldPreview,
   getOwnerPortfolioAgentDetail,
   listCreateRealmAgentSelectableWorlds,
   listOwnerPortfolioAgents,
+  normalizeRealmAgentAvatarSelectResult,
   normalizeRealmAgentCreateResult,
   normalizeRealmPostPublishResult,
   publishReviewedPostDraft,
+  selectReviewedAgentAvatarUrl,
   synthesizeReviewedVoiceDemo,
 } from './portfolio-client.js';
 import type { MyRealmAgentDto, OwnerPortfolioAgentDetail, SettingField } from './portfolio-data.js';
@@ -73,6 +76,9 @@ function mockRealm() {
             handle: 'mira.agent',
             displayName: 'Mira Agent',
           },
+        })),
+        agentControllerSelectAvatar: vi.fn(async () => ({
+          success: true,
         })),
       },
       MeService: {
@@ -301,6 +307,72 @@ describe('owner portfolio client', () => {
     await createReviewedRealmAgent(createPayload, realm);
 
     expect(realm.services.AgentsService.agentControllerCreate).toHaveBeenCalledTimes(1);
+  });
+
+  it('selects a reviewed avatar URL through AgentsService.agentControllerSelectAvatar only', async () => {
+    const realm = mockRealm();
+    const result = await selectReviewedAgentAvatarUrl('agent-1', ' https://cdn.example.test/avatar.png ', realm);
+    const selectAvatar = realm.services.AgentsService.agentControllerSelectAvatar;
+    const submittedPayload = vi.mocked(selectAvatar).mock.calls[0]?.[1];
+
+    expect(selectAvatar).toHaveBeenCalledWith('agent-1', {
+      avatarUrl: 'https://cdn.example.test/avatar.png',
+    });
+    expect(submittedPayload).toEqual({
+      avatarUrl: 'https://cdn.example.test/avatar.png',
+    });
+    expect(Object.keys(submittedPayload || {})).toEqual(['avatarUrl']);
+    expect(collectKeys(submittedPayload).has('profileCoverUrl')).toBe(false);
+    expect(collectKeys(submittedPayload).has('resourceId')).toBe(false);
+    expect(collectKeys(submittedPayload).has('bindingId')).toBe(false);
+    expect(collectKeys(submittedPayload).has('provider')).toBe(false);
+    expect(collectKeys(submittedPayload).has('model')).toBe(false);
+    expect(Object.hasOwn(realm.services, 'CreatorService')).toBe(false);
+    expect(result).toMatchObject({
+      ok: true,
+      source: 'Realm AgentsService.agentControllerSelectAvatar',
+      publicTruth: true,
+      realm: {
+        success: true,
+      },
+    });
+  });
+
+  it('rejects invalid avatar URLs before calling Realm', async () => {
+    const realm = mockRealm();
+    const result = await selectReviewedAgentAvatarUrl('agent-1', 'data:text/plain,avatar', realm);
+
+    expect(realm.services.AgentsService.agentControllerSelectAvatar).not.toHaveBeenCalled();
+    expect(result).toMatchObject({
+      ok: false,
+      source: 'Realm AgentsService.agentControllerSelectAvatar',
+      publicTruth: false,
+      failure: 'avatar-url-invalid',
+      submitted: null,
+    });
+  });
+
+  it('fails closed when Realm rejects avatar selection success confirmation', () => {
+    const submitted = {
+      avatarUrl: 'https://cdn.example.test/avatar.png',
+    };
+    const result = normalizeRealmAgentAvatarSelectResult({ success: false }, submitted);
+
+    expect(result).toMatchObject({
+      ok: false,
+      source: 'Realm AgentsService.agentControllerSelectAvatar',
+      publicTruth: false,
+      failure: 'realm-select-avatar-rejected',
+      submitted,
+    });
+  });
+
+  it('builds SelectAvatarDto from a narrow URL allowlist', () => {
+    expect(buildRealmSelectAvatarInput(' https://cdn.example.test/avatar.png ')).toEqual({
+      avatarUrl: 'https://cdn.example.test/avatar.png',
+    });
+    expect(buildRealmSelectAvatarInput('ftp://cdn.example.test/avatar.png')).toBeNull();
+    expect(buildRealmSelectAvatarInput('')).toBeNull();
   });
 
   it('publishes a reviewed post draft through PostsService.createPost without forbidden caller-owned keys', async () => {

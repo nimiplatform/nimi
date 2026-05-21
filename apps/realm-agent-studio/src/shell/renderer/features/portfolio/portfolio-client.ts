@@ -28,10 +28,13 @@ import {
 } from './media-voice-candidate.js';
 
 type RealmCreateAgentResponse = Awaited<ReturnType<Realm['services']['AgentsService']['agentControllerCreate']>>;
+type RealmSelectAvatarInput = Parameters<Realm['services']['AgentsService']['agentControllerSelectAvatar']>[1];
+type RealmSelectAvatarResponse = Awaited<ReturnType<Realm['services']['AgentsService']['agentControllerSelectAvatar']>>;
 type RealmCreatePostInput = Parameters<Realm['services']['PostsService']['createPost']>[0];
 type RealmCreatePostResponse = Awaited<ReturnType<Realm['services']['PostsService']['createPost']>>;
 
 export const REALM_POST_PUBLISH_SOURCE = 'Realm PostsService.createPost';
+export const REALM_AGENT_AVATAR_SELECT_SOURCE = 'Realm AgentsService.agentControllerSelectAvatar';
 
 type RuntimeVoiceClient = {
   media: {
@@ -83,6 +86,25 @@ export type RealmAgentCreateResult =
     message: string;
   };
 
+export type RealmAgentAvatarSelectResult =
+  | {
+    ok: true;
+    source: typeof REALM_AGENT_AVATAR_SELECT_SOURCE;
+    publicTruth: true;
+    submitted: RealmSelectAvatarInput;
+    realm: {
+      success: true;
+    };
+  }
+  | {
+    ok: false;
+    source: typeof REALM_AGENT_AVATAR_SELECT_SOURCE;
+    publicTruth: false;
+    failure: 'avatar-url-invalid' | 'realm-select-avatar-failed' | 'realm-select-avatar-rejected';
+    message: string;
+    submitted: RealmSelectAvatarInput | null;
+  };
+
 export type RuntimeVoiceDemoSynthesisResult =
   | {
     ok: true;
@@ -112,6 +134,23 @@ export type RuntimeVoiceDemoSynthesisResult =
 function readOptionalString(record: Record<string, unknown>, key: string): string | undefined {
   const value = record[key];
   return typeof value === 'string' && value.trim() ? value : undefined;
+}
+
+function normalizeAvatarUrl(value: string): string | null {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  try {
+    const url = new URL(trimmed);
+    if (url.protocol !== 'https:' && url.protocol !== 'http:') {
+      return null;
+    }
+    return url.toString();
+  } catch {
+    return null;
+  }
 }
 
 function normalizeRuntimeVoiceDemoSynthesisOutput(
@@ -212,6 +251,43 @@ export function normalizeRealmAgentCreateResult(agent: RealmCreateAgentResponse)
   };
 }
 
+export function buildRealmSelectAvatarInput(avatarUrl: string): RealmSelectAvatarInput | null {
+  const normalizedAvatarUrl = normalizeAvatarUrl(avatarUrl);
+  if (!normalizedAvatarUrl) {
+    return null;
+  }
+
+  return {
+    avatarUrl: normalizedAvatarUrl,
+  };
+}
+
+export function normalizeRealmAgentAvatarSelectResult(
+  response: RealmSelectAvatarResponse,
+  submitted: RealmSelectAvatarInput,
+): RealmAgentAvatarSelectResult {
+  if (!response || typeof response !== 'object' || (response as Record<string, unknown>).success !== true) {
+    return {
+      ok: false,
+      source: REALM_AGENT_AVATAR_SELECT_SOURCE,
+      publicTruth: false,
+      failure: 'realm-select-avatar-rejected',
+      message: 'Realm avatar selection did not confirm success.',
+      submitted,
+    };
+  }
+
+  return {
+    ok: true,
+    source: REALM_AGENT_AVATAR_SELECT_SOURCE,
+    publicTruth: true,
+    submitted,
+    realm: {
+      success: true,
+    },
+  };
+}
+
 export function buildRealmCreatePostInput(payload: CandidatePostPayload): RealmCreatePostInput {
   return {
     attachments: payload.realmCreatePost.attachments.map((attachment) => ({
@@ -306,6 +382,38 @@ export async function createReviewedRealmAgent(
       source: REALM_AGENT_CREATE_SOURCE,
       failure: 'realm-create-agent-failed',
       message: error instanceof Error ? error.message : 'Realm Create Agent failed.',
+    };
+  }
+}
+
+export async function selectReviewedAgentAvatarUrl(
+  agentId: string,
+  avatarUrl: string,
+  realm: Realm = createStudioRealmClient(),
+): Promise<RealmAgentAvatarSelectResult> {
+  const submitted = buildRealmSelectAvatarInput(avatarUrl);
+  if (!submitted) {
+    return {
+      ok: false,
+      source: REALM_AGENT_AVATAR_SELECT_SOURCE,
+      publicTruth: false,
+      failure: 'avatar-url-invalid',
+      message: 'Avatar URL selection requires a valid http(s) URL.',
+      submitted: null,
+    };
+  }
+
+  try {
+    const response = await realm.services.AgentsService.agentControllerSelectAvatar(agentId, submitted);
+    return normalizeRealmAgentAvatarSelectResult(response, submitted);
+  } catch (error) {
+    return {
+      ok: false,
+      source: REALM_AGENT_AVATAR_SELECT_SOURCE,
+      publicTruth: false,
+      failure: 'realm-select-avatar-failed',
+      message: error instanceof Error ? error.message : 'Realm avatar selection failed.',
+      submitted,
     };
   }
 }

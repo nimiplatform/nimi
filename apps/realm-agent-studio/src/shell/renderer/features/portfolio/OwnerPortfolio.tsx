@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button, Checkbox, EmptyState, FieldShell, InlineAlert, SearchField, SelectField, StatusBadge, Surface, TextareaField, TextField } from '@nimiplatform/nimi-kit/ui';
 import {
   applyOwnerPortfolioView,
@@ -15,7 +15,9 @@ import {
   getOwnerPortfolioAgentDetail,
   listOwnerPortfolioAgents,
   publishReviewedPostDraft,
+  selectReviewedAgentAvatarUrl,
   synthesizeReviewedVoiceDemo,
+  type RealmAgentAvatarSelectResult,
   type RealmPostPublishResult,
   type RuntimeVoiceDemoSynthesisResult,
 } from './portfolio-client.js';
@@ -196,21 +198,21 @@ function SettingProposalWorkspace({ agent }: { agent: OwnerPortfolioAgentDetail 
           </p>
 
           <div className="mt-4 grid gap-4">
-            <FieldShell label="Display name" message="Candidate for UpdateCreatorAgentDto.displayName evidence; omitted if unchanged or empty.">
+            <FieldShell label="Display name" message="Local owner proposal only. UpdateCreatorAgentDto is creator/maintainer evidence, not this save path.">
               <TextField
                 value={draft.displayName}
                 placeholder="Public display name"
                 onChange={(event) => updateDraft({ displayName: event.currentTarget.value })}
               />
             </FieldShell>
-            <FieldShell label="Public bio" message="Candidate for UpdateCreatorAgentDto.bio evidence; omitted if unchanged or empty.">
+            <FieldShell label="Public bio" message="Local owner proposal only. A non-creator owner update surface is not admitted.">
               <TextareaField
                 value={draft.bio}
                 placeholder="Public bio proposal"
                 onChange={(event) => updateDraft({ bio: event.currentTarget.value })}
               />
             </FieldShell>
-            <FieldShell label="Profile cover URL" message="Candidate for UpdateCreatorAgentDto.profileCoverUrl evidence; omitted if unchanged or empty.">
+            <FieldShell label="Profile cover URL" message="profileCoverUrl is admitted for read/source projection; owner write remains blocked without a non-creator update surface.">
               <TextField
                 value={draft.profileCoverUrl}
                 placeholder="https://..."
@@ -292,18 +294,27 @@ function createVoiceDemoCandidateInput(agent: OwnerPortfolioAgentDetail): VoiceD
   };
 }
 
-function MediaVoiceCandidateWorkspace({ agent }: { agent: OwnerPortfolioAgentDetail }) {
+function MediaVoiceCandidateWorkspace({ agent, onAgentWrite }: { agent: OwnerPortfolioAgentDetail; onAgentWrite: () => Promise<void> }) {
   const [visualDraft, setVisualDraft] = useState<VisualMediaCandidateInput>(() => createVisualMediaCandidateInput());
+  const [avatarUrlDraft, setAvatarUrlDraft] = useState(() => agent.avatarUrl || '');
+  const [avatarReviewed, setAvatarReviewed] = useState(false);
+  const [avatarResult, setAvatarResult] = useState<RealmAgentAvatarSelectResult | null>(null);
+  const [isSelectingAvatar, setIsSelectingAvatar] = useState(false);
   const [voiceDraft, setVoiceDraft] = useState<VoiceDemoCandidateInput>(() => createVoiceDemoCandidateInput(agent));
   const [voiceResult, setVoiceResult] = useState<RuntimeVoiceDemoSynthesisResult | null>(null);
   const [isSynthesizingVoice, setIsSynthesizingVoice] = useState(false);
   const visualPayload = useMemo(() => buildBlockedVisualAssetCandidatePayload(visualDraft, agent), [agent, visualDraft]);
   const voicePayload = useMemo(() => buildReviewedVoiceDemoCandidatePayload(voiceDraft, agent), [agent, voiceDraft]);
+  const avatarUrlChanged = avatarUrlDraft.trim() !== (agent.avatarUrl || '');
   const visualResourceTypes = MEDIA_CANDIDATE_RESOURCE_TYPES.filter((resourceType): resourceType is VisualCandidateResourceType => resourceType === 'IMAGE');
   const visualBindingPoints = MEDIA_CANDIDATE_BINDING_POINTS.filter((bindingPoint) => bindingPoint !== 'AGENT_VOICE_SAMPLE');
 
   useEffect(() => {
     setVisualDraft(createVisualMediaCandidateInput());
+    setAvatarUrlDraft(agent.avatarUrl || '');
+    setAvatarReviewed(false);
+    setAvatarResult(null);
+    setIsSelectingAvatar(false);
     setVoiceDraft(createVoiceDemoCandidateInput(agent));
     setVoiceResult(null);
     setIsSynthesizingVoice(false);
@@ -313,9 +324,29 @@ function MediaVoiceCandidateWorkspace({ agent }: { agent: OwnerPortfolioAgentDet
     setVisualDraft((current) => ({ ...current, ...patch }));
   }
 
+  function updateAvatarUrlDraft(value: string) {
+    setAvatarUrlDraft(value);
+    setAvatarReviewed(false);
+    setAvatarResult(null);
+  }
+
   function updateVoiceDraft(patch: Partial<VoiceDemoCandidateInput>) {
     setVoiceDraft((current) => ({ ...current, ...patch }));
     setVoiceResult(null);
+  }
+
+  async function selectAvatarUrl() {
+    setIsSelectingAvatar(true);
+    setAvatarResult(null);
+    try {
+      const result = await selectReviewedAgentAvatarUrl(agent.id, avatarUrlDraft);
+      setAvatarResult(result);
+      if (result.ok) {
+        await onAgentWrite();
+      }
+    } finally {
+      setIsSelectingAvatar(false);
+    }
   }
 
   async function synthesizeVoiceDemo() {
@@ -339,9 +370,62 @@ function MediaVoiceCandidateWorkspace({ agent }: { agent: OwnerPortfolioAgentDet
             <StatusBadge tone="neutral">not public truth</StatusBadge>
           </div>
           <p className="m-0 mt-1 text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-muted)]">
-            Local Resource and Binding evidence preview for {agent.handle.value ? `@${agent.handle.value}` : agent.displayName.value || agent.id}; no upload, finalize, binding upsert, profile update, provider, or model is called.
+            Owner-reviewed avatar URL saves through AgentsService.agentControllerSelectAvatar. Generated/uploaded visual candidates still remain local until a Resource/Binding write succeeds.
           </p>
           <div className="mt-4 grid gap-4">
+            <Surface tone="card" padding="md">
+              <div className="flex min-w-0 flex-wrap items-center gap-3">
+                <div className="min-w-0 flex-1">
+                  <div className="font-medium">Avatar URL selection</div>
+                  <div className="mt-1 text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-muted)]">
+                    Saves to POST /api/agent/accounts/{agent.id}/avatar. This does not create Resource or Binding truth.
+                  </div>
+                </div>
+                <StatusBadge tone="info">Realm save</StatusBadge>
+              </div>
+              <div className="mt-3 grid gap-3 md:grid-cols-[80px_1fr]">
+                <div className="h-20 w-20 overflow-hidden rounded-[var(--nimi-radius-md)] bg-[var(--nimi-surface-active)]">
+                  {avatarUrlDraft.trim() ? <img src={avatarUrlDraft.trim()} alt="" className="h-full w-full object-cover" /> : null}
+                </div>
+                <div className="grid gap-3">
+                  <FieldShell label="Avatar URL" message="Owner-reviewed http(s) URL only. Studio submits only SelectAvatarDto.avatarUrl.">
+                    <TextField
+                      value={avatarUrlDraft}
+                      placeholder="https://..."
+                      onChange={(event) => updateAvatarUrlDraft(event.currentTarget.value)}
+                    />
+                  </FieldShell>
+                  <Checkbox
+                    checked={avatarReviewed}
+                    onChange={(event) => setAvatarReviewed(event.currentTarget.checked)}
+                    label="Human review complete"
+                  />
+                  <div className="flex flex-wrap gap-3">
+                    <Button
+                      disabled={!avatarUrlChanged || !avatarReviewed || isSelectingAvatar}
+                      loading={isSelectingAvatar}
+                      onClick={() => void selectAvatarUrl()}
+                    >
+                      Select avatar URL
+                    </Button>
+                  </div>
+                </div>
+              </div>
+              {avatarResult ? (
+                <InlineAlert tone={avatarResult.ok ? 'success' : 'danger'} className="mt-3">
+                  {avatarResult.ok
+                    ? 'Realm confirmed avatar URL selection. Detail and portfolio reads were refreshed from owner surfaces.'
+                    : avatarResult.message}
+                </InlineAlert>
+              ) : null}
+              {avatarResult ? (
+                <FieldShell label="Avatar selection result" message="Public avatar success is based on Realm operation success, then refreshed owner reads.">
+                  <pre className="ras-json-preview m-0 min-h-24 overflow-auto rounded-[var(--nimi-radius-field)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] p-3 text-xs">
+                    {JSON.stringify(avatarResult, null, 2)}
+                  </pre>
+                </FieldShell>
+              ) : null}
+            </Surface>
             <div className="grid gap-3 md:grid-cols-[160px_1fr]">
               <FieldShell label="Resource type" message="Future Resource carrier only.">
                 <SelectField
@@ -776,6 +860,7 @@ function CreativePostWorkspace({ agent }: { agent: OwnerPortfolioAgentDetail }) 
 }
 
 function AgentDetail({ agentId }: { agentId: string }) {
+  const queryClient = useQueryClient();
   const detailQuery = useQuery({
     queryKey: ['realm-agent-studio', 'owner-portfolio-agent-detail', agentId],
     queryFn: () => getOwnerPortfolioAgentDetail(agentId),
@@ -804,6 +889,13 @@ function AgentDetail({ agentId }: { agentId: string }) {
   const agent = detailQuery.data;
   if (!agent) {
     return null;
+  }
+
+  async function refreshOwnerAgentReads() {
+    await Promise.all([
+      detailQuery.refetch(),
+      queryClient.invalidateQueries({ queryKey: ['realm-agent-studio', 'owner-portfolio'] }),
+    ]);
   }
 
   return (
@@ -852,7 +944,7 @@ function AgentDetail({ agentId }: { agentId: string }) {
         </div>
       </Surface>
       <SettingProposalWorkspace agent={agent} />
-      <MediaVoiceCandidateWorkspace agent={agent} />
+      <MediaVoiceCandidateWorkspace agent={agent} onAgentWrite={refreshOwnerAgentReads} />
       <CreativePostWorkspace agent={agent} />
     </section>
   );

@@ -30,6 +30,9 @@ route design, or app implementation.
   surface.
 - `POST /api/agent` / `AgentsService.agentControllerCreate` is the Studio
   owner-scoped Realm Agent create surface.
+- `POST /api/agent/accounts/{id}/avatar` /
+  `AgentsService.agentControllerSelectAvatar` is the Studio owner-scoped avatar
+  URL selection surface. It is not a Resource/Binding upload path.
 - `GET /api/creator/agents` and `GET /api/agent/dev/my-agents` are evidence
   inputs only and are not Studio canonical surfaces. `/api/creator/agents` is
   World Creator / Maintainer evidence only and must not be used for owner
