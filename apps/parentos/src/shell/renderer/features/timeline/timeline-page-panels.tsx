@@ -303,7 +303,7 @@ function ObservationNudgeSection({ nudges }: { nudges: ObservationNudge[] }) {
 
   return (
     <div className="mt-8 pt-2">
-      <p className="mb-5 text-[18px] font-semibold tracking-tight" style={{ color: '#1e293b', letterSpacing: '-0.3px' }}>观察建议</p>
+      <p className="mb-5 px-3 text-[18px] font-semibold tracking-tight" style={{ color: '#1e293b', letterSpacing: '-0.3px' }}>观察建议</p>
       {nudges.map((nudge) => (
         <div
           key={nudge.dimensionId}
@@ -331,26 +331,7 @@ function ObservationNudgeSection({ nudges }: { nudges: ObservationNudge[] }) {
 // check circle quick-complete, kind glyphs for non-task kinds, and progression
 // notes (已了解 / 实践中 · 已 N 次 / 已咨询).
 
-export function ReminderPanel({
-  todayFocus,
-  upcoming,
-  p0OverflowCount,
-  p0OverflowItems,
-  onboardingCatchupCount,
-  onboardingCatchupItems,
-  overdueCount,
-  overdueItems,
-  seasonalTasks,
-  customTodos,
-  childId,
-  orthoCycle,
-  onAction,
-  onOpenCapture,
-  onCustomTodoChanged,
-  observationNudges,
-  dashboardTodayContent,
-  dashboardTodayCount = 0,
-}: {
+export interface ReminderPanelProps {
   todayFocus: EnhancedReminder[];
   upcoming: EnhancedReminder[];
   p0OverflowCount: number;
@@ -378,7 +359,33 @@ export function ReminderPanel({
   /** Visible catalog-task count; included in the 今天 tab badge and default-tab
    *  selection so the user lands on 今天 when only catalog tasks are present. */
   dashboardTodayCount?: number;
-}) {
+  /** When true, render for an embedding surface (the profile 待办事项 drawer):
+   *  drop the fixed-width right-rail chrome and the panel's own header so the
+   *  host surface owns the outer frame. Default `false` = dashboard right rail. */
+  embedded?: boolean;
+}
+
+export function ReminderPanel({
+  todayFocus,
+  upcoming,
+  p0OverflowCount,
+  p0OverflowItems,
+  onboardingCatchupCount,
+  onboardingCatchupItems,
+  overdueCount,
+  overdueItems,
+  seasonalTasks,
+  customTodos,
+  childId,
+  orthoCycle,
+  onAction,
+  onOpenCapture,
+  onCustomTodoChanged,
+  observationNudges,
+  dashboardTodayContent,
+  dashboardTodayCount = 0,
+  embedded = false,
+}: ReminderPanelProps) {
   const todayTotal = todayFocus.length + dashboardTodayCount;
   const defaultTab = todayTotal > 0 ? 'today' : 'upcoming';
   const [tab, setTab] = useState<'today' | 'upcoming'>(defaultTab);
@@ -408,11 +415,20 @@ export function ReminderPanel({
   }, [animatedTodoId]);
 
   return (
-    <div className="relative hidden w-[320px] shrink-0 flex-col pt-7 pb-6 pr-4 lg:flex" style={{ background: 'transparent' }}>
-      <div className="mb-5 flex items-center justify-between px-3">
-        <h3 className="text-[18px] font-semibold tracking-tight" style={{ color: '#1e293b', letterSpacing: '-0.3px' }}>待办事项</h3>
-        <Link to="/reminders" className="text-[13px] font-medium" style={{ color: '#475569' }}>查看全部</Link>
-      </div>
+    <div
+      className={
+        embedded
+          ? 'relative flex min-h-0 w-full flex-1 flex-col pt-4'
+          : 'relative hidden w-[320px] shrink-0 flex-col pt-7 pb-6 pr-4 lg:flex'
+      }
+      style={{ background: 'transparent' }}
+    >
+      {!embedded && (
+        <div className="mb-5 flex items-center justify-between px-3">
+          <h3 className="text-[18px] font-semibold tracking-tight" style={{ color: '#1e293b', letterSpacing: '-0.3px' }}>待办事项</h3>
+          <Link to="/reminders" className="text-[13px] font-medium" style={{ color: '#475569' }}>查看全部</Link>
+        </div>
+      )}
 
       {showTabs && (
         <div className="mx-3 mb-5 flex gap-0.5 rounded-full p-[3px]" style={{ background: 'rgba(0,0,0,0.04)' }}>

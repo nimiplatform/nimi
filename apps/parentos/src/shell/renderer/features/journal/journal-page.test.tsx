@@ -119,7 +119,7 @@ function renderPage(initialEntry = '/journal') {
 }
 
 function getComposerTextarea() {
-  return screen.getByPlaceholderText(/他刚刚做了什么|参考上面的引导问题/i);
+  return screen.getByPlaceholderText(/[他她]刚刚做了什么|参考上面的引导问题/i);
 }
 
 function createJournalEntry(overrides: Record<string, unknown> = {}) {

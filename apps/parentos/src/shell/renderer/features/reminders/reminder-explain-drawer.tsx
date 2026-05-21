@@ -26,6 +26,7 @@ import {
 } from '../../engine/reminder-actions.js';
 import { currentProgressionState } from '../../engine/reminder-progression.js';
 import { getLocalToday } from '../../engine/reminder-engine.js';
+import { domainDetailRoute } from './reminder-detail-route.js';
 
 const DRAWER_WIDTH = 440;
 
@@ -72,12 +73,12 @@ function resolveFooterPrimary(reminder: ActiveReminder): FooterPrimary[] {
       case 'go_hospital':
         if (reminder.rule.domain === 'vaccine') {
           return [
-            { variant: 'link', label: '记录疫苗', to: '/profile' },
+            { variant: 'link', label: '记录疫苗', to: domainDetailRoute(reminder.rule.domain) },
             { variant: 'action', label: '标记完成', action: 'complete' },
           ];
         }
         return [
-          { variant: 'link', label: '查看档案', to: '/profile' },
+          { variant: 'link', label: '查看档案', to: domainDetailRoute(reminder.rule.domain) },
           { variant: 'action', label: '标记完成', action: 'complete' },
         ];
       case 'record_data':

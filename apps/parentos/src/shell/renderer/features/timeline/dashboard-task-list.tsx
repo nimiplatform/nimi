@@ -141,8 +141,7 @@ function CatalogRow({
           event.stopPropagation();
           handleActivate();
         }}
-        className="shrink-0 rounded-full px-2.5 py-1 text-[12px] font-medium transition-colors hover:bg-[#cbd5e1]"
-        style={{ color: textMain, background: '#e2e8f0' }}
+        className="shrink-0 rounded-full px-2.5 py-1 text-[11px] font-medium text-[#9AA1A8] transition-colors hover:bg-[rgba(78,204,163,0.16)] hover:text-[#2E9C73]"
       >
         {buttonLabel}
       </button>

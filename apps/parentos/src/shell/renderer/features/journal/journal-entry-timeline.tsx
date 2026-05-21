@@ -4,6 +4,7 @@ import { convertFileSrc } from '@tauri-apps/api/core';
 import { IconButton, StatusBadge, Surface, cn } from '@nimiplatform/nimi-kit/ui';
 import { OBSERVATION_DIMENSIONS } from '../../knowledge-base/index.js';
 import type { JournalEntryRow } from '../../bridge/sqlite-bridge.js';
+import { DentalPhotoLightbox, type DentalPhotoLightboxItem } from '../profile/dental-photo-lightbox.js';
 import {
   parseSelectedTags,
   groupEntriesByDate,
@@ -155,6 +156,8 @@ export function JournalEntryTimeline({
   onDeleteEntry,
   onToggleKeepsake,
 }: JournalEntryTimelineProps) {
+  const [lightbox, setLightbox] = useState<{ photos: DentalPhotoLightboxItem[]; index: number } | null>(null);
+
   const filteredEntries = entryFilter === 'keepsake'
     ? entries.filter((entry) => entry.keepsake === 1)
     : entries;
@@ -164,7 +167,7 @@ export function JournalEntryTimeline({
   return (
     <section>
       <div className="mb-3 flex items-center justify-between gap-3">
-        <h2 className="text-[16px] font-semibold text-[var(--nimi-text-primary)]">随记列表</h2>
+        <h2 className="text-[16px] font-semibold text-[var(--nimi-text-primary)]">成长足迹</h2>
         <div className="flex flex-wrap gap-1">
           {FILTER_OPTIONS.map(({ key, label }) => (
             <button
@@ -216,6 +219,11 @@ export function JournalEntryTimeline({
                   const dimension = OBSERVATION_DIMENSIONS.find((item) => item.dimensionId === entry.dimensionId);
                   const tags = parseSelectedTags(entry.selectedTags);
                   const entryPhotos = parseSelectedTags(entry.photoPaths);
+                  const photoItems: DentalPhotoLightboxItem[] = entryPhotos.map((photoPath, index) => ({
+                    attachmentId: `${entry.entryId}-${index}`,
+                    filePath: photoPath,
+                    fileName: photoPath.split(/[\\/]/).pop() ?? '',
+                  }));
                   const bodyText = entry.textContent?.trim() || (entry.voicePath ? '语音记录已保存' : '');
                   const isKeepsake = entry.keepsake === 1;
                   const keepsakeReasonLabel = getKeepsakeReasonLabel(entry.keepsakeReason);
@@ -310,18 +318,35 @@ export function JournalEntryTimeline({
                         ) : null}
 
                         {bodyText ? (
-                          <p className="text-[14px] leading-[1.7] text-[var(--nimi-text-primary)]">{bodyText}</p>
+                          <p className="whitespace-pre-wrap text-[14px] leading-[1.7] text-[var(--nimi-text-primary)]">{bodyText}</p>
                         ) : null}
 
-                        {entryPhotos.length > 0 ? (
+                        {photoItems.length > 0 ? (
                           <div className="mt-3 flex flex-wrap gap-2">
-                            {entryPhotos.map((photoPath, index) => (
-                              <img
-                                key={`${photoPath}-${index}`}
-                                src={convertFileSrc(photoPath)}
-                                alt=""
-                                className="h-20 w-20 parentos-radius-sm border border-[var(--nimi-border-subtle)] object-cover"
-                              />
+                            {photoItems.map((item, index) => (
+                              <button
+                                key={item.attachmentId}
+                                type="button"
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  setLightbox({ photos: photoItems, index });
+                                }}
+                                className="group/photo relative h-20 w-20 cursor-zoom-in overflow-hidden parentos-radius-sm border border-[var(--nimi-border-subtle)]"
+                                aria-label="查看大图"
+                              >
+                                <img
+                                  src={convertFileSrc(item.filePath)}
+                                  alt=""
+                                  className="h-full w-full object-cover"
+                                />
+                                <span className="pointer-events-none absolute inset-0 flex items-center justify-center bg-[var(--nimi-scrim-modal)] text-[var(--nimi-action-primary-text)] opacity-0 transition-opacity duration-150 group-hover/photo:opacity-100">
+                                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <circle cx="11" cy="11" r="7" />
+                                    <path d="M21 21l-4.3-4.3" />
+                                    <path d="M11 8v6M8 11h6" />
+                                  </svg>
+                                </span>
+                              </button>
                             ))}
                           </div>
                         ) : null}
@@ -349,6 +374,15 @@ export function JournalEntryTimeline({
           ))}
         </div>
       )}
+
+      {lightbox ? (
+        <DentalPhotoLightbox
+          photos={lightbox.photos}
+          index={lightbox.index}
+          onChange={(next) => setLightbox((prev) => (prev ? { ...prev, index: next } : prev))}
+          onClose={() => setLightbox(null)}
+        />
+      ) : null}
     </section>
   );
 }

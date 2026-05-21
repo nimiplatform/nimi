@@ -5,7 +5,7 @@ import {
   clampToMax,
   formatDateValue,
   parseDateValue,
-} from '../profile/profile-date-picker.js';
+} from '@nimiplatform/nimi-kit/ui';
 import { getLocalToday } from '../../engine/reminder-engine.js';
 
 const CALENDAR_ICON = (
