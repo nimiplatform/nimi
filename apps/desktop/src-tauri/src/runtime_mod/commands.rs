@@ -1,6 +1,4 @@
-use crate::desktop_paths::{
-    describe_desktop_storage_dirs, set_nimi_data_dir, DesktopStorageDirsPayload,
-};
+use crate::desktop_paths::{describe_desktop_storage_dirs, DesktopStorageDirsPayload};
 use tauri::AppHandle;
 
 use super::commands_payloads::*;
@@ -179,19 +177,6 @@ pub async fn runtime_mod_dev_mode_set(
 #[tauri::command]
 pub fn runtime_mod_storage_dirs_get() -> Result<DesktopStorageDirsPayload, String> {
     describe_desktop_storage_dirs()
-}
-
-#[tauri::command]
-pub async fn runtime_mod_data_dir_set(
-    app: AppHandle,
-    payload: RuntimeModDataDirSetPayload,
-) -> Result<DesktopStorageDirsPayload, String> {
-    run_runtime_mod_store(move || {
-        let directories = set_nimi_data_dir(payload.nimi_data_dir.as_str())?;
-        sync_runtime_mod_source_watchers(&app)?;
-        Ok(directories)
-    })
-    .await
 }
 
 #[tauri::command]

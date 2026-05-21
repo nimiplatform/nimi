@@ -312,7 +312,7 @@ Local-runtime Tauri 命令使用 `runtime_local_assets_*` 前缀。旧 `runtime_
 Desktop 作为 mod developer host 时，开发态 source 管理与 reload 能力必须通过受管 IPC surface 暴露，而不是要求用户改启动参数：
 
 - source registry：`runtime_mod_sources_list`、`runtime_mod_sources_upsert`、`runtime_mod_sources_remove` — 列出、添加/更新、移除 mod source directories。
-- storage dirs：`runtime_mod_storage_dirs_get` — 读取当前 `nimi_dir` / `nimi_data_dir` / installed mods 路径。`runtime_mod_data_dir_set` is not admitted as an ordinary data-root owner; after product-local data-root admission it may only route to the `nimi_data` migration/repair flow or fail closed.
+- storage dirs：`runtime_mod_storage_dirs_get` — 只读读取当前 `nimi_dir` / `nimi_data_dir` / installed mods 路径。数据根迁移不属于本命令面：移动 `nimi_data` 必须经由 Data Management 的 `nimi_data` 迁移流程（P-MIG-007），不存在 casual data-root 重写命令。
 - developer mode：`runtime_mod_dev_mode_get`、`runtime_mod_dev_mode_set` — 读取和切换 App 内的 Developer Mode 状态。
 - reload controls：`runtime_mod_reload`、`runtime_mod_reload_all` — 对 `dev` source 中的单个 mod 或全部 mod 执行 reload。
 - diagnostics：`runtime_mod_diagnostics_list` — 列出 source 扫描结果、重复 `mod id` 冲突、最近 reload 结果。

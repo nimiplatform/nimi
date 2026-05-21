@@ -112,12 +112,6 @@ pub struct RuntimeModDeveloperModeSetPayload {
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct RuntimeModDataDirSetPayload {
-    pub nimi_data_dir: String,
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct RuntimeModReloadPayload {
     pub mod_id: String,
 }

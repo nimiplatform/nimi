@@ -38,8 +38,12 @@ const genericChecks = [
     pattern: /NIMI_RUNTIME_CLOUD_ADAPTER_[A-Z0-9_]+/g,
   },
   {
-    label: 'legacy runtime config path',
-    pattern: /\.nimi\/runtime\/config\.json/g,
+    label: 'legacy root runtime config path',
+    pattern: /\.nimi\/config\.json/g,
+    allowFiles: new Set([
+      // K-CFG-001: README documents the retired root path as migration input only.
+      'runtime/README.md',
+    ]),
   },
   {
     label: 'legacy config migrate command',
@@ -83,6 +87,9 @@ function walk(absPath) {
     const line = lines[i] || '';
 
     for (const check of genericChecks) {
+      if (check.allowFiles && check.allowFiles.has(relPath)) {
+        continue;
+      }
       check.pattern.lastIndex = 0;
       if (check.pattern.test(line)) {
         failures.push(`${relPath}:${i + 1}: ${check.label}: ${line.trim()}`);

@@ -17,10 +17,10 @@ test('D-IPC-013: source registry IPC commands are exported', () => {
   assert.equal(typeof modLocalBridge.removeRuntimeModSource, 'function');
 });
 
-// 2. Storage dirs: read .nimi_dir, nimi_data_dir, installed mods paths, and update nimi_data_dir
+// 2. Storage dirs: read .nimi_dir, nimi_data_dir, installed mods paths (read-only;
+//    moving the data root is owned by the nimi_data migration flow, P-MIG-007)
 test('D-IPC-013: storage directory IPC commands are exported', () => {
   assert.equal(typeof modLocalBridge.getRuntimeModStorageDirs, 'function');
-  assert.equal(typeof modLocalBridge.setRuntimeModDataDir, 'function');
 });
 
 // 3. Developer mode: read/toggle App Developer Mode state
@@ -57,7 +57,6 @@ test('D-IPC-013: mod-local bridge invokes correct Tauri command names', () => {
     'runtime_mod_sources_upsert',
     'runtime_mod_sources_remove',
     'runtime_mod_storage_dirs_get',
-    'runtime_mod_data_dir_set',
     'runtime_mod_dev_mode_get',
     'runtime_mod_dev_mode_set',
     'runtime_mod_reload',

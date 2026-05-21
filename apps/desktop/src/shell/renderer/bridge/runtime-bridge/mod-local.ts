@@ -148,15 +148,6 @@ export async function getRuntimeModStorageDirs(): Promise<RuntimeModStorageDirs>
   return invokeChecked('runtime_mod_storage_dirs_get', {}, parseRuntimeModStorageDirs);
 }
 
-export async function setRuntimeModDataDir(nimiDataDir: string): Promise<RuntimeModStorageDirs> {
-  if (!hasTauriInvoke()) {
-    throw new Error('runtime_mod_data_dir_set requires Tauri runtime');
-  }
-  return invokeChecked('runtime_mod_data_dir_set', {
-    payload: { nimiDataDir },
-  }, parseRuntimeModStorageDirs);
-}
-
 export async function listRuntimeModDiagnostics(): Promise<RuntimeModDiagnosticRecord[]> {
   if (!hasTauriInvoke()) {
     return [];
