@@ -60,6 +60,11 @@ type PlatformDomains = {
     updatePassword: RealmServices['AuthService']['updatePassword'];
     getCurrentUser: RealmServices['MeService']['getMe'];
   };
+  me: {
+    getCurrentUser: RealmServices['MeService']['getMe'];
+    listMyRealmAgents: RealmServices['MeService']['listMyRealmAgents'];
+    getMyRealmAgent: RealmServices['MeService']['getMyRealmAgent'];
+  };
   social: {
     startChat: RealmServices['HumanChatsService']['startChat'];
     listMessages: RealmServices['HumanChatsService']['listMessages'];
@@ -420,6 +425,15 @@ function createDomains(
       walletLogin: (input) => realm.services.AuthService.walletLogin(input),
       updatePassword: (input) => realm.services.AuthService.updatePassword(input),
       getCurrentUser: () => realm.services.MeService.getMe(),
+    },
+    me: authMode === 'local-first-party-runtime' ? {
+      getCurrentUser: async () => createLocalFirstPartyAuthRouteError('MeService.getMe'),
+      listMyRealmAgents: async () => createLocalFirstPartyAuthRouteError('MeService.listMyRealmAgents'),
+      getMyRealmAgent: async () => createLocalFirstPartyAuthRouteError('MeService.getMyRealmAgent'),
+    } : {
+      getCurrentUser: () => realm.services.MeService.getMe(),
+      listMyRealmAgents: () => realm.services.MeService.listMyRealmAgents(),
+      getMyRealmAgent: (agentId) => realm.services.MeService.getMyRealmAgent(agentId),
     },
     social: {
       startChat: (input) => realm.services.HumanChatsService.startChat(input),
