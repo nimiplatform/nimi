@@ -83,6 +83,9 @@ import type {
   NimiDataCleanupPlan,
   NimiDataCleanupOutcome,
   LogsExportResult,
+  ProductControlState,
+  ProductControlRecord,
+  ProductControlRecordProjection,
 } from '@desktop-public/bridge';
 
 export type {
@@ -128,6 +131,14 @@ export type {
   RuntimeModInstallResult,
   RuntimeModUpdatePayload,
   SystemResourceSnapshot,
+  NimiDataMigrationPreview,
+  NimiDataMigrationOutcome,
+  NimiDataCleanupPlan,
+  NimiDataCleanupOutcome,
+  LogsExportResult,
+  ProductControlState,
+  ProductControlRecord,
+  ProductControlRecordProjection,
 };
 
 export {
@@ -281,6 +292,48 @@ export async function exportDesktopLogs(): Promise<LogsExportResult> {
   unsupportedDesktopRuntime('Log export is only available in desktop runtime');
 }
 
+// The product-control record (`P-COLD-001`/`P-COLD-015/016`) is the durable
+// first-run / cold-start authority projection rooted in the desktop-local
+// `~/.nimi` control directory and admitted by the desktop Tauri host. The web
+// shell has no `~/.nimi` control root and no Tauri host, so every
+// product-control read and mutation fails closed rather than synthesizing a
+// projection. Support / first-run consumers already treat a thrown read as a
+// fail-closed `repair_required` projection.
+export async function getProductControlRecord(): Promise<ProductControlRecordProjection> {
+  unsupportedDesktopRuntime('The product control record is only available in desktop runtime');
+}
+
+export async function selectProductDataRoot(_dataRoot: string): Promise<ProductControlRecordProjection> {
+  unsupportedDesktopRuntime('nimi_data root selection is only available in desktop runtime');
+}
+
+export async function setProductFirstRunInstallLevel(_input: {
+  installLevel: 'minimal' | 'recommended';
+  aiProfileAlias?: string | null;
+}): Promise<ProductControlRecordProjection> {
+  unsupportedDesktopRuntime('First-run install level is only available in desktop runtime');
+}
+
+export async function setProductFirstRunSetupState(_input: {
+  state: Exclude<
+    ProductControlState,
+    | 'ready_for_use'
+    | 'local_ai_ready'
+    | 'config_missing'
+    | 'data_root_missing'
+    | 'data_root_selected'
+    | 'ai_environment_unconfigured'
+    | 'not_logged_in'
+  >;
+  reason?: string | null;
+}): Promise<ProductControlRecordProjection> {
+  unsupportedDesktopRuntime('First-run setup state is only available in desktop runtime');
+}
+
+export async function admitProductReadyForUse(): Promise<ProductControlRecordProjection> {
+  unsupportedDesktopRuntime('First-run readiness admission is only available in desktop runtime');
+}
+
 export async function listRuntimeModDiagnostics(): Promise<RuntimeModDiagnosticRecord[]> {
   return [];
 }
@@ -411,6 +464,11 @@ export const desktopBridge = {
   restartRuntimeBridge,
   setRuntimeBridgeConfig,
   getRuntimeDefaults,
+  getProductControlRecord,
+  selectProductDataRoot,
+  setProductFirstRunInstallLevel,
+  setProductFirstRunSetupState,
+  admitProductReadyForUse,
   loadAuthSession,
   proxyHttp,
   openExternalUrl,

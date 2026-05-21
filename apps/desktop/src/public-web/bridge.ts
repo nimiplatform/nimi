@@ -21,6 +21,12 @@ export type {
 export type { LogsExportResult } from '../shell/renderer/bridge/runtime-bridge/support-logs-export';
 
 export type {
+  ProductControlState,
+  ProductControlRecord,
+  ProductControlRecordProjection,
+} from '../shell/renderer/bridge/runtime-bridge/product-control';
+
+export type {
   DesktopReleaseInfo,
   DesktopUpdateCheckResult,
   DesktopUpdateState,
