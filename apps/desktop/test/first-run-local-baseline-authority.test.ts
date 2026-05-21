@@ -40,10 +40,21 @@ const productControlBridgeSource = fs.readFileSync(
   path.join(import.meta.dirname, '../src/shell/renderer/bridge/runtime-bridge/product-control.ts'),
   'utf8',
 );
-const desktopProductControlSource = fs.readFileSync(
-  path.join(import.meta.dirname, '../src-tauri/src/desktop_product_control.rs'),
-  'utf8',
+const desktopProductControlDir = path.join(
+  import.meta.dirname,
+  '../src-tauri/src/desktop_product_control',
 );
+const desktopProductControlSource = [
+  fs.readFileSync(
+    path.join(import.meta.dirname, '../src-tauri/src/desktop_product_control.rs'),
+    'utf8',
+  ),
+  ...fs
+    .readdirSync(desktopProductControlDir)
+    .filter((name) => name.endsWith('.rs'))
+    .sort()
+    .map((name) => fs.readFileSync(path.join(desktopProductControlDir, name), 'utf8')),
+].join('\n');
 const desktopPathsSource = fs.readFileSync(
   path.join(import.meta.dirname, '../src-tauri/src/desktop_paths.rs'),
   'utf8',

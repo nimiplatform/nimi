@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import test from 'node:test';
 
@@ -7,10 +7,20 @@ const desktopAiConfigLibrarySource = readFileSync(
   resolve(import.meta.dirname, '../src-tauri/src/desktop_ai_config_library.rs'),
   'utf8',
 );
-const desktopProductControlSource = readFileSync(
-  resolve(import.meta.dirname, '../src-tauri/src/desktop_product_control.rs'),
-  'utf8',
+const desktopProductControlDir = resolve(
+  import.meta.dirname,
+  '../src-tauri/src/desktop_product_control',
 );
+const desktopProductControlSource = [
+  readFileSync(
+    resolve(import.meta.dirname, '../src-tauri/src/desktop_product_control.rs'),
+    'utf8',
+  ),
+  ...readdirSync(desktopProductControlDir)
+    .filter((name) => name.endsWith('.rs'))
+    .sort()
+    .map((name) => readFileSync(resolve(desktopProductControlDir, name), 'utf8')),
+].join('\n');
 const appBootstrapSource = readFileSync(
   resolve(import.meta.dirname, '../src-tauri/src/main_parts/app_bootstrap.rs'),
   'utf8',
