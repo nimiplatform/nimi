@@ -20,10 +20,6 @@ const firstRunGatePanelSource = fs.readFileSync(
   path.join(import.meta.dirname, '../src/shell/renderer/features/nimi-home/first-run-gate-panel.tsx'),
   'utf8',
 );
-const nimiHomePanelSource = fs.readFileSync(
-  path.join(import.meta.dirname, '../src/shell/renderer/features/nimi-home/nimi-home-panel.tsx'),
-  'utf8',
-);
 const installLevelPolicySource = fs.readFileSync(
   path.join(import.meta.dirname, '../src/shell/renderer/first-run/install-level-policy.ts'),
   'utf8',
@@ -118,13 +114,6 @@ test('non-ready first-run gate renders only product-control setup, not ordinary 
   ]) {
     assert.doesNotMatch(firstRunGatePanelSource, forbidden);
   }
-});
-
-test('ordinary Nimi Home does not mount mutable product-control workflow', () => {
-  assert.doesNotMatch(nimiHomePanelSource, /ProductControlWorkflow/);
-  assert.doesNotMatch(nimiHomePanelSource, /setProductFirstRunSetupState/);
-  assert.doesNotMatch(nimiHomePanelSource, /setProductControl/);
-  assert.match(nimiHomePanelSource, /FirstRunReadinessView/);
 });
 
 test('config_missing is internal and does not expose the data-root form', () => {

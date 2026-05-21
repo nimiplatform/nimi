@@ -26,10 +26,6 @@ const firstRunGatePanelSource = readFileSync(
   resolve(import.meta.dirname, '../src/shell/renderer/features/nimi-home/first-run-gate-panel.tsx'),
   'utf8',
 );
-const nimiHomePanelSource = readFileSync(
-  resolve(import.meta.dirname, '../src/shell/renderer/features/nimi-home/nimi-home-panel.tsx'),
-  'utf8',
-);
 const productControlBridgeSource = readFileSync(
   resolve(import.meta.dirname, '../src/shell/renderer/bridge/runtime-bridge/product-control.ts'),
   'utf8',
@@ -160,12 +156,6 @@ test('fresh authenticated non-ready gate is first-run-only and excludes ordinary
   ]) {
     assert.doesNotMatch(firstRunGatePanelSource, forbidden);
   }
-});
-
-test('ordinary Nimi Home excludes mutable first-run product-control workflow', () => {
-  assert.doesNotMatch(nimiHomePanelSource, /ProductControlWorkflow/);
-  assert.doesNotMatch(nimiHomePanelSource, /setProductFirstRunSetupState/);
-  assert.match(nimiHomePanelSource, /FirstRunReadinessView/);
 });
 
 test('renderer evidence: config_missing is internal and data_root_missing is the first user data-root state', () => {

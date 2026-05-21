@@ -80,8 +80,8 @@ const WorldDetailPanel = lazy(async () => {
   return { default: mod.WorldDetailActivePanel };
 });
 const HomePanel = lazy(async () => {
-  const mod = await import('@renderer/features/nimi-home/nimi-home-panel');
-  return { default: mod.NimiHomePanel };
+  const mod = await import('@renderer/features/home/home-panel');
+  return { default: mod.HomePanel };
 });
 const ModsPanel = lazy(async () => {
   const mod = await import('@renderer/features/mods/mods-panel');
