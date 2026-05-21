@@ -15,6 +15,40 @@ vi.mock('./portfolio-client.js', async (importOriginal) => {
       dmVisibility: 'FRIENDS',
       profileVisibility: 'PUBLIC',
     })),
+    getOwnerAgentSettings: vi.fn(async () => ({
+      agentId: 'agent-1',
+      worldId: 'world-oasis',
+      agentRuleVersion: 3,
+      displayName: 'Mira',
+      description: 'Quiet strategist',
+      greeting: 'Welcome in.',
+      naturalLanguageIntent: '',
+      identity: {
+        publicRole: 'Guide',
+        worldview: 'Layered world.',
+      },
+      personality: {
+        summary: 'Patient strategist.',
+        relationshipMode: 'mentor',
+        interests: ['strategy'],
+        goals: ['keep lore coherent'],
+      },
+      communication: {
+        contentStyle: 'Concise.',
+        formality: 'casual',
+        responseLength: 'medium',
+        sentiment: 'neutral',
+      },
+      boundaries: {
+        allowedThemes: ['adventure'],
+        disallowedThemes: ['gore'],
+      },
+      positioning: {
+        targetAudience: 'builders',
+        positioning: 'guide',
+      },
+      updatedAt: '2026-05-21T00:00:00.000Z',
+    })),
     getOwnerPortfolioAgentDetail: vi.fn(async () => ownerAgentDetail()),
     listOwnerPortfolioAgents: vi.fn(async () => [ownerAgent()]),
     createReviewedPostTextResource: vi.fn(async () => ({
@@ -91,6 +125,51 @@ vi.mock('./portfolio-client.js', async (importOriginal) => {
         contextEnvelope: {
           includeInheritedAgentRules: false,
         },
+      },
+    })),
+    updateReviewedOwnerAgentSettings: vi.fn(async () => ({
+      ok: true,
+      source: 'Realm MeService.updateMyRealmAgentSettings',
+      truthWrite: true,
+      submitted: {
+        displayName: 'Mira Prime',
+        identity: {
+          worldview: 'Layered world, owner revised.',
+        },
+      },
+      settings: {
+        agentId: 'agent-1',
+        worldId: 'world-oasis',
+        agentRuleVersion: 4,
+        displayName: 'Mira Prime',
+        description: 'Quiet strategist',
+        greeting: 'Welcome in.',
+        naturalLanguageIntent: null,
+        identity: {
+          publicRole: 'Guide',
+          worldview: 'Layered world, owner revised.',
+        },
+        personality: {
+          summary: 'Patient strategist.',
+          relationshipMode: 'mentor',
+          interests: ['strategy'],
+          goals: ['keep lore coherent'],
+        },
+        communication: {
+          contentStyle: 'Concise.',
+          formality: 'casual',
+          responseLength: 'medium',
+          sentiment: 'neutral',
+        },
+        boundaries: {
+          allowedThemes: ['adventure'],
+          disallowedThemes: ['gore'],
+        },
+        positioning: {
+          targetAudience: 'builders',
+          positioning: 'guide',
+        },
+        updatedAt: '2026-05-22T00:00:00.000Z',
       },
     })),
     updateReviewedAgentVisibility: vi.fn(),
@@ -326,6 +405,43 @@ describe('OwnerPortfolio visibility settings UI', () => {
     expect(document.body.textContent).toContain('does not create publish, schedule, moderation, or lifecycle state');
     expect(findButtonByText('Save visibility').disabled).toBe(true);
     expect(portfolioClient.updateReviewedAgentVisibility).not.toHaveBeenCalled();
+  });
+
+  it('saves owner settings through MeService settings ingress and leaves raw rule review deferred', async () => {
+    await renderOwnerPortfolio();
+    await waitForText('Owner settings');
+    await waitForText('PATCH payload preview');
+
+    await changeField(findFieldByPlaceholder<HTMLInputElement>('Public display name'), 'Mira Prime');
+    await changeField(findFieldByPlaceholder<HTMLTextAreaElement>('Public worldview and background'), 'Layered world, owner revised.');
+    await changeField(findFieldByPlaceholder<HTMLTextAreaElement>('Visible AgentRule-shaped text for future owner rule-content review'), 'Raw rule candidate only.');
+
+    await waitForText('ready for owner-reviewed settings save.');
+    expect(document.body.textContent).toContain('raw AgentRule review deferred');
+    expect(document.body.textContent).not.toContain('AgentRulesService raw rule save');
+    expect(findButtonByText('Save owner settings').disabled).toBe(true);
+
+    await checkAllHumanReviewBoxes();
+    const saveButton = await waitForButtonEnabled('Save owner settings');
+    await act(async () => {
+      saveButton.click();
+    });
+
+    await waitForText('Realm confirmed owner settings update through MeService');
+    expect(portfolioClient.getOwnerAgentSettings).toHaveBeenCalledWith('agent-1');
+    expect(portfolioClient.updateReviewedOwnerAgentSettings).toHaveBeenCalledWith(
+      'agent-1',
+      expect.objectContaining({
+        displayName: 'Mira Prime',
+        worldview: 'Layered world, owner revised.',
+        rawRuleTextCandidate: 'Raw rule candidate only.',
+      }),
+      expect.objectContaining({
+        agentId: 'agent-1',
+        agentRuleVersion: 3,
+      }),
+    );
+    expect(document.body.textContent).toContain('UpdateOwnerAgentSettingsDto');
   });
 
   it('projects Runtime world context as a summary without raw rule review', async () => {

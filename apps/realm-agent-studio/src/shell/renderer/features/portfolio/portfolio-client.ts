@@ -26,12 +26,19 @@ import {
   type ReviewedVoiceDemoCandidatePayload,
   type VoiceDemoCandidateInput,
 } from './media-voice-candidate.js';
+import {
+  OWNER_SETTINGS_SAVE_SOURCE,
+  buildRealmOwnerAgentSettingsUpdateInput,
+  type OwnerAgentSettingsDraft,
+} from './setting-proposal.js';
 
 type RealmCreateAgentResponse = Awaited<ReturnType<Realm['services']['AgentsService']['agentControllerCreate']>>;
 type RealmSelectAvatarInput = Parameters<Realm['services']['AgentsService']['agentControllerSelectAvatar']>[1];
 type RealmSelectAvatarResponse = Awaited<ReturnType<Realm['services']['AgentsService']['agentControllerSelectAvatar']>>;
 export type RealmAgentVisibilitySettings = Awaited<ReturnType<Realm['services']['AgentsService']['agentControllerGetVisibility']>>;
 type RealmAgentVisibilityUpdateInput = Parameters<Realm['services']['AgentsService']['agentControllerUpdateVisibility']>[1];
+export type RealmOwnerAgentSettings = Awaited<ReturnType<Realm['services']['MeService']['getMyRealmAgentSettings']>>;
+type RealmOwnerAgentSettingsUpdateInput = Parameters<Realm['services']['MeService']['updateMyRealmAgentSettings']>[1];
 type RealmCreatePostInput = Parameters<Realm['services']['PostsService']['createPost']>[0];
 type RealmCreatePostResponse = Awaited<ReturnType<Realm['services']['PostsService']['createPost']>>;
 type RealmCreateTextResourceInput = Parameters<Realm['services']['ResourcesService']['createTextResource']>[0];
@@ -284,6 +291,24 @@ export type RealmAgentVisibilityUpdateResult =
     message: string;
     submitted: RealmAgentVisibilityUpdateInput | null;
     draft: AgentVisibilityDraft;
+  };
+
+export type RealmOwnerAgentSettingsUpdateResult =
+  | {
+    ok: true;
+    source: typeof OWNER_SETTINGS_SAVE_SOURCE;
+    truthWrite: true;
+    submitted: RealmOwnerAgentSettingsUpdateInput;
+    settings: RealmOwnerAgentSettings;
+  }
+  | {
+    ok: false;
+    source: typeof OWNER_SETTINGS_SAVE_SOURCE;
+    truthWrite: false;
+    failure: 'owner-settings-payload-invalid' | 'owner-settings-no-changes' | 'realm-update-owner-settings-failed';
+    message: string;
+    submitted: RealmOwnerAgentSettingsUpdateInput | null;
+    draft: OwnerAgentSettingsDraft;
   };
 
 export type RuntimeVoiceDemoSynthesisResult =
@@ -911,6 +936,13 @@ export async function getAgentVisibilitySettings(
   return realm.services.AgentsService.agentControllerGetVisibility(agentId);
 }
 
+export async function getOwnerAgentSettings(
+  agentId: string,
+  realm: Realm = createStudioRealmClient(),
+): Promise<RealmOwnerAgentSettings> {
+  return realm.services.MeService.getMyRealmAgentSettings(agentId);
+}
+
 export async function updateReviewedAgentVisibility(
   agentId: string,
   draft: AgentVisibilityDraft,
@@ -949,6 +981,48 @@ export async function updateReviewedAgentVisibility(
       failure: 'realm-update-visibility-failed',
       message: error instanceof Error ? error.message : 'Realm visibility update failed.',
       submitted: input,
+      draft,
+    };
+  }
+}
+
+export async function updateReviewedOwnerAgentSettings(
+  agentId: string,
+  draft: OwnerAgentSettingsDraft,
+  current: RealmOwnerAgentSettings,
+  realm: Realm = createStudioRealmClient(),
+): Promise<RealmOwnerAgentSettingsUpdateResult> {
+  const built = buildRealmOwnerAgentSettingsUpdateInput(draft, current);
+  if (!built.ok) {
+    return {
+      ok: false,
+      source: OWNER_SETTINGS_SAVE_SOURCE,
+      truthWrite: false,
+      failure: built.failure === 'owner-settings-invalid' ? 'owner-settings-payload-invalid' : 'owner-settings-no-changes',
+      message: built.errors.join('; ') || 'Owner settings payload invalid.',
+      submitted: null,
+      draft,
+    };
+  }
+
+  const submitted = built.input as RealmOwnerAgentSettingsUpdateInput;
+  try {
+    const settings = await realm.services.MeService.updateMyRealmAgentSettings(agentId, submitted);
+    return {
+      ok: true,
+      source: OWNER_SETTINGS_SAVE_SOURCE,
+      truthWrite: true,
+      submitted,
+      settings,
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      source: OWNER_SETTINGS_SAVE_SOURCE,
+      truthWrite: false,
+      failure: 'realm-update-owner-settings-failed',
+      message: error instanceof Error ? error.message : 'Realm owner settings update failed.',
+      submitted,
       draft,
     };
   }

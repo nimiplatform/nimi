@@ -3,14 +3,14 @@ id: SPEC-REALM-AGENT-STUDIO-PRODUCT-SCOPE-001
 title: Realm Agent Studio Product Scope
 status: active
 owner: "@team"
-updated: 2026-05-21
+updated: 2026-05-22
 ---
 
 # Product Scope
 
 ## Product Position
 
-Realm Agent Studio is for agent owners who incubate and operate creator-owned
+Realm Agent Studio is for agent owners who incubate and operate user-owned
 public Realm Agents as durable Agent IP. It is not a general agent management
 center. It does not manage LocalAgent private runtime forks, world-created
 agents, world NPCs, or Forge package sources.
@@ -22,7 +22,7 @@ owner-created agents.
 
 ## In Scope
 
-- Portfolio scan of owned creator-owned Realm Agents with app-local draft or
+- Portfolio scan of user-owned Realm Agents with app-local draft or
   Realm-created status, selected world, last updated state, and source
   availability.
 - Create Realm Agent with public identity, `OASIS` default world, optional world

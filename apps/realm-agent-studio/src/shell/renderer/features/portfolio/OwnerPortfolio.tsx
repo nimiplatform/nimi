@@ -14,6 +14,7 @@ import {
 import {
   getOwnerPortfolioAgentDetail,
   getAgentVisibilitySettings,
+  getOwnerAgentSettings,
   listOwnerPortfolioAgents,
   createReviewedPostTextResource,
   listReadyPostAttachmentResources,
@@ -21,6 +22,7 @@ import {
   publishReviewedPostDraft,
   selectReviewedAgentAvatarUrl,
   synthesizeReviewedVoiceDemo,
+  updateReviewedOwnerAgentSettings,
   updateReviewedAgentVisibility,
   uploadReviewedPostMediaResource,
   AGENT_VISIBILITY_FIELDS,
@@ -30,6 +32,8 @@ import {
   type AgentVisibilityField,
   type RealmAgentAvatarSelectResult,
   type RealmAgentVisibilityUpdateResult,
+  type RealmOwnerAgentSettings,
+  type RealmOwnerAgentSettingsUpdateResult,
   type RealmPostPublishResult,
   type RealmTextResourceCreateResult,
   type RuntimeVoiceDemoSynthesisResult,
@@ -49,9 +53,10 @@ import {
   type LocalPostDraftInput,
 } from './post-draft.js';
 import {
-  SETTING_PROPOSAL_BLOCKED_REASON,
-  buildBlockedSettingProposal,
-  type SettingProposalInput,
+  RAW_RULE_REVIEW_DEFERRED_REASON,
+  buildRealmOwnerAgentSettingsUpdateInput,
+  createOwnerAgentSettingsDraft,
+  type OwnerAgentSettingsDraft,
 } from './setting-proposal.js';
 import {
   MEDIA_CANDIDATE_BINDING_POINTS,
@@ -168,37 +173,59 @@ function EvidenceCard({ field }: { field: SettingField }) {
   );
 }
 
-function createSettingProposalInput(agent: OwnerPortfolioAgentDetail): SettingProposalInput {
-  return {
-    displayName: agent.displayName.value,
-    bio: agent.bio.value,
-    profileCoverUrl: agent.profileCoverUrl.value,
-    ruleText: '',
-    naturalLanguageInstruction: '',
-  };
-}
-
-function SettingProposalWorkspace({ agent }: { agent: OwnerPortfolioAgentDetail }) {
-  const [draft, setDraft] = useState<SettingProposalInput>(() => createSettingProposalInput(agent));
-  const [saveAttempted, setSaveAttempted] = useState(false);
-  const proposal = useMemo(() => buildBlockedSettingProposal(draft, agent), [agent, draft]);
+function SettingProposalWorkspace({ agent, onAgentWrite }: { agent: OwnerPortfolioAgentDetail; onAgentWrite: () => Promise<void> }) {
+  const settingsQuery = useQuery({
+    queryKey: ['realm-agent-studio', 'owner-agent-settings', agent.id],
+    queryFn: () => getOwnerAgentSettings(agent.id),
+  });
+  const [draft, setDraft] = useState<OwnerAgentSettingsDraft | null>(null);
+  const [ownerReviewed, setOwnerReviewed] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [result, setResult] = useState<RealmOwnerAgentSettingsUpdateResult | null>(null);
+  const proposal = useMemo(() => (
+    draft && settingsQuery.data
+      ? buildRealmOwnerAgentSettingsUpdateInput(draft, settingsQuery.data as RealmOwnerAgentSettings)
+      : null
+  ), [draft, settingsQuery.data]);
 
   useEffect(() => {
-    setDraft(createSettingProposalInput(agent));
-    setSaveAttempted(false);
-  }, [agent.id]);
+    if (settingsQuery.data) {
+      setDraft(createOwnerAgentSettingsDraft(settingsQuery.data));
+      setOwnerReviewed(false);
+      setResult(null);
+    }
+  }, [agent.id, settingsQuery.data]);
 
-  function updateDraft(patch: Partial<SettingProposalInput>) {
-    setDraft((current) => ({ ...current, ...patch }));
-    setSaveAttempted(false);
+  function updateDraft(patch: Partial<OwnerAgentSettingsDraft>) {
+    setDraft((current) => current ? { ...current, ...patch } : current);
+    setOwnerReviewed(false);
+    setResult(null);
   }
 
   function useInstructionAsRuleCandidate() {
-    const instruction = draft.naturalLanguageInstruction.trim();
+    const instruction = draft?.naturalLanguageIntent.trim() ?? '';
     if (!instruction) {
       return;
     }
-    updateDraft({ ruleText: instruction });
+    updateDraft({ rawRuleTextCandidate: instruction });
+  }
+
+  async function saveOwnerSettings() {
+    if (!draft || !settingsQuery.data) {
+      return;
+    }
+    setIsSaving(true);
+    setResult(null);
+    try {
+      const updateResult = await updateReviewedOwnerAgentSettings(agent.id, draft, settingsQuery.data);
+      setResult(updateResult);
+      if (updateResult.ok) {
+        await settingsQuery.refetch();
+        await onAgentWrite();
+      }
+    } finally {
+      setIsSaving(false);
+    }
   }
 
   return (
@@ -206,89 +233,258 @@ function SettingProposalWorkspace({ agent }: { agent: OwnerPortfolioAgentDetail 
       <div className="grid min-w-0 gap-5 xl:grid-cols-[1fr_360px]">
         <div className="min-w-0">
           <div className="flex min-w-0 flex-wrap items-center gap-3">
-            <h3 className="m-0 text-xl font-semibold">Setting proposal workspace</h3>
-            <StatusBadge tone="warning">save blocked</StatusBadge>
-            <StatusBadge tone="neutral">owner-reviewed candidate</StatusBadge>
+            <h3 className="m-0 text-xl font-semibold">Owner settings</h3>
+            <StatusBadge tone="success">Realm save</StatusBadge>
+            <StatusBadge tone="neutral">owner-reviewed</StatusBadge>
           </div>
           <p className="m-0 mt-1 text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-muted)]">
-            Editable local proposal for {agent.handle.value ? `@${agent.handle.value}` : agent.displayName.value || agent.id}; no CreatorService or AgentRulesService write is called.
+            Reads and saves structured settings through MeService owner settings surfaces. Raw AgentRule review stays deferred.
           </p>
 
-          <div className="mt-4 grid gap-4">
-            <FieldShell label="Display name" message="Local owner proposal only. UpdateCreatorAgentDto is creator/maintainer evidence, not this save path.">
-              <TextField
-                value={draft.displayName}
-                placeholder="Public display name"
-                onChange={(event) => updateDraft({ displayName: event.currentTarget.value })}
+          {settingsQuery.isLoading ? (
+            <EmptyState title="Loading owner settings" description="Reading GET /api/me/agents/{agentId}/settings through SDK MeService." />
+          ) : null}
+          {settingsQuery.isError ? (
+            <InlineAlert tone="danger">
+              Owner settings unavailable: {settingsQuery.error instanceof Error ? settingsQuery.error.message : 'Realm owner settings read failed.'}
+            </InlineAlert>
+          ) : null}
+          {draft && settingsQuery.data ? (
+            <div className="mt-4 grid gap-4">
+              <div className="grid gap-4 md:grid-cols-2">
+                <FieldShell label="Display name" message="Saved through UpdateOwnerAgentSettingsDto.displayName.">
+                  <TextField
+                    value={draft.displayName}
+                    placeholder="Public display name"
+                    onChange={(event) => updateDraft({ displayName: event.currentTarget.value })}
+                  />
+                </FieldShell>
+                <FieldShell label="Greeting" message="Saved through UpdateOwnerAgentSettingsDto.greeting.">
+                  <TextField
+                    value={draft.greeting}
+                    placeholder="Opening greeting"
+                    onChange={(event) => updateDraft({ greeting: event.currentTarget.value })}
+                  />
+                </FieldShell>
+              </div>
+              <FieldShell label="Description" message="Owner-facing description setting, not CreatorService bio.">
+                <TextareaField
+                  value={draft.description}
+                  placeholder="Public description"
+                  onChange={(event) => updateDraft({ description: event.currentTarget.value })}
+                />
+              </FieldShell>
+              <div className="grid gap-4 md:grid-cols-2">
+                <FieldShell label="Public role" message="Saved as identity.publicRole.">
+                  <TextField
+                    value={draft.publicRole}
+                    placeholder="Guide, mentor, companion..."
+                    onChange={(event) => updateDraft({ publicRole: event.currentTarget.value })}
+                  />
+                </FieldShell>
+                <FieldShell label="Relationship mode" message="Saved as personality.relationshipMode.">
+                  <TextField
+                    value={draft.relationshipMode}
+                    placeholder="coach, friend, narrator..."
+                    onChange={(event) => updateDraft({ relationshipMode: event.currentTarget.value })}
+                  />
+                </FieldShell>
+              </div>
+              <FieldShell label="Worldview" message="Saved as identity.worldview; server compiles accepted settings into canonical truth.">
+                <TextareaField
+                  value={draft.worldview}
+                  placeholder="Public worldview and background"
+                  onChange={(event) => updateDraft({ worldview: event.currentTarget.value })}
+                />
+              </FieldShell>
+              <FieldShell label="Personality summary" message="Saved as personality.summary.">
+                <TextareaField
+                  value={draft.personalitySummary}
+                  placeholder="Owner-reviewed personality summary"
+                  onChange={(event) => updateDraft({ personalitySummary: event.currentTarget.value })}
+                />
+              </FieldShell>
+              <div className="grid gap-4 md:grid-cols-2">
+                <FieldShell label="Interests" message="Comma or newline separated; saved as personality.interests.">
+                  <TextareaField
+                    value={draft.interestsText}
+                    placeholder="strategy, tea, ruins"
+                    onChange={(event) => updateDraft({ interestsText: event.currentTarget.value })}
+                  />
+                </FieldShell>
+                <FieldShell label="Goals" message="Comma or newline separated; saved as personality.goals.">
+                  <TextareaField
+                    value={draft.goalsText}
+                    placeholder="help users plan, keep lore coherent"
+                    onChange={(event) => updateDraft({ goalsText: event.currentTarget.value })}
+                  />
+                </FieldShell>
+              </div>
+              <FieldShell label="Content style" message="Saved as communication.contentStyle; no provider or model routing is included.">
+                <TextareaField
+                  value={draft.contentStyle}
+                  placeholder="Concise, pragmatic, warm..."
+                  onChange={(event) => updateDraft({ contentStyle: event.currentTarget.value })}
+                />
+              </FieldShell>
+              <div className="grid gap-4 md:grid-cols-3">
+                <FieldShell label="Formality">
+                  <SelectField
+                    value={draft.formality}
+                    options={[
+                      { value: '', label: 'Unset' },
+                      { value: 'casual', label: 'Casual' },
+                      { value: 'formal', label: 'Formal' },
+                      { value: 'slang', label: 'Slang' },
+                    ]}
+                    onValueChange={(value) => updateDraft({ formality: value })}
+                  />
+                </FieldShell>
+                <FieldShell label="Response length">
+                  <SelectField
+                    value={draft.responseLength}
+                    options={[
+                      { value: '', label: 'Unset' },
+                      { value: 'short', label: 'Short' },
+                      { value: 'medium', label: 'Medium' },
+                      { value: 'long', label: 'Long' },
+                    ]}
+                    onValueChange={(value) => updateDraft({ responseLength: value })}
+                  />
+                </FieldShell>
+                <FieldShell label="Sentiment">
+                  <SelectField
+                    value={draft.sentiment}
+                    options={[
+                      { value: '', label: 'Unset' },
+                      { value: 'positive', label: 'Positive' },
+                      { value: 'neutral', label: 'Neutral' },
+                      { value: 'cynical', label: 'Cynical' },
+                    ]}
+                    onValueChange={(value) => updateDraft({ sentiment: value })}
+                  />
+                </FieldShell>
+              </div>
+              <div className="grid gap-4 md:grid-cols-2">
+                <FieldShell label="Allowed themes" message="Comma or newline separated; saved as boundaries.allowedThemes.">
+                  <TextareaField
+                    value={draft.allowedThemesText}
+                    placeholder="adventure, friendship"
+                    onChange={(event) => updateDraft({ allowedThemesText: event.currentTarget.value })}
+                  />
+                </FieldShell>
+                <FieldShell label="Disallowed themes" message="Comma or newline separated; saved as boundaries.disallowedThemes.">
+                  <TextareaField
+                    value={draft.disallowedThemesText}
+                    placeholder="gore, harassment"
+                    onChange={(event) => updateDraft({ disallowedThemesText: event.currentTarget.value })}
+                  />
+                </FieldShell>
+              </div>
+              <div className="grid gap-4 md:grid-cols-2">
+                <FieldShell label="Target audience" message="Saved as positioning.targetAudience.">
+                  <TextareaField
+                    value={draft.targetAudience}
+                    placeholder="Who this agent is for"
+                    onChange={(event) => updateDraft({ targetAudience: event.currentTarget.value })}
+                  />
+                </FieldShell>
+                <FieldShell label="Positioning" message="Saved as positioning.positioning.">
+                  <TextareaField
+                    value={draft.positioning}
+                    placeholder="How this agent should be positioned"
+                    onChange={(event) => updateDraft({ positioning: event.currentTarget.value })}
+                  />
+                </FieldShell>
+              </div>
+              <FieldShell label="Natural-language intent" message="Saved as naturalLanguageIntent for server-side settings compilation; it is not raw rule CRUD.">
+                <TextareaField
+                  value={draft.naturalLanguageIntent}
+                  placeholder="Describe the owner-reviewed setting intent"
+                  onChange={(event) => updateDraft({ naturalLanguageIntent: event.currentTarget.value })}
+                />
+              </FieldShell>
+              <div className="flex flex-wrap gap-3">
+                <Button disabled={!draft.naturalLanguageIntent.trim()} onClick={useInstructionAsRuleCandidate}>
+                  Copy to raw rule candidate
+                </Button>
+              </div>
+              <FieldShell label="Raw rule text candidate" message="Deferred review only. It is never sent to AgentRulesService or the owner settings PATCH payload.">
+                <TextareaField
+                  value={draft.rawRuleTextCandidate}
+                  placeholder="Visible AgentRule-shaped text for future owner rule-content review"
+                  onChange={(event) => updateDraft({ rawRuleTextCandidate: event.currentTarget.value })}
+                />
+              </FieldShell>
+              <FieldShell label="Profile cover URL" message="Read projection only in this workflow. Owner write needs a dedicated non-creator profile cover surface.">
+                <TextField readOnly value={agent.profileCoverUrl.value} placeholder="profileCoverUrl read unavailable" />
+              </FieldShell>
+              {proposal?.ok ? (
+                <InlineAlert tone="info">
+                  {proposal.changedSettingKeys.join(', ')} ready for owner-reviewed settings save.
+                </InlineAlert>
+              ) : (
+                <InlineAlert tone="warning">
+                  {proposal?.errors.join('; ') || 'Owner settings payload unavailable.'}
+                </InlineAlert>
+              )}
+              {draft.rawRuleTextCandidate.trim() ? (
+                <InlineAlert tone="warning">
+                  {RAW_RULE_REVIEW_DEFERRED_REASON}
+                </InlineAlert>
+              ) : null}
+              {result ? (
+                <InlineAlert tone={result.ok ? 'success' : 'danger'}>
+                  {result.ok
+                    ? 'Realm confirmed owner settings update through MeService. Detail reads were refreshed from owner surfaces.'
+                    : result.message}
+                </InlineAlert>
+              ) : null}
+              <Checkbox
+                checked={ownerReviewed}
+                onChange={(event) => setOwnerReviewed(event.currentTarget.checked)}
+                label="Human review complete"
               />
-            </FieldShell>
-            <FieldShell label="Public bio" message="Local owner proposal only. A non-creator owner update surface is not admitted.">
-              <TextareaField
-                value={draft.bio}
-                placeholder="Public bio proposal"
-                onChange={(event) => updateDraft({ bio: event.currentTarget.value })}
-              />
-            </FieldShell>
-            <FieldShell label="Profile cover URL" message="profileCoverUrl is admitted for read/source projection; owner write remains blocked without a non-creator update surface.">
-              <TextField
-                value={draft.profileCoverUrl}
-                placeholder="https://..."
-                onChange={(event) => updateDraft({ profileCoverUrl: event.currentTarget.value })}
-              />
-            </FieldShell>
-            <FieldShell label="Natural-language instruction" message="Local drafting aid only. It never calls Runtime, provider, model, CreatorService, or AgentRulesService.">
-              <TextareaField
-                value={draft.naturalLanguageInstruction}
-                placeholder="Describe the owner-reviewed change you want to draft locally"
-                onChange={(event) => updateDraft({ naturalLanguageInstruction: event.currentTarget.value })}
-              />
-            </FieldShell>
-            <div className="flex flex-wrap gap-3">
-              <Button disabled={!draft.naturalLanguageInstruction.trim()} onClick={useInstructionAsRuleCandidate}>
-                Use as rule candidate
-              </Button>
+              <div className="flex flex-wrap gap-3">
+                <Button
+                  disabled={!proposal?.ok || !ownerReviewed || isSaving}
+                  loading={isSaving}
+                  onClick={() => void saveOwnerSettings()}
+                >
+                  Save owner settings
+                </Button>
+                <Button
+                  tone="secondary"
+                  disabled={isSaving}
+                  onClick={() => {
+                    setDraft(createOwnerAgentSettingsDraft(settingsQuery.data as RealmOwnerAgentSettings));
+                    setOwnerReviewed(false);
+                    setResult(null);
+                  }}
+                >
+                  Reset
+                </Button>
+              </div>
             </div>
-            <FieldShell label="Visible rule text candidate" message="Owner-reviewed visible AgentRule-shaped text only. No hidden personality, worldview, provider, model, or LocalAgent state.">
-              <TextareaField
-                value={draft.ruleText}
-                placeholder="Visible rule text candidate for owner review"
-                onChange={(event) => updateDraft({ ruleText: event.currentTarget.value })}
-              />
-            </FieldShell>
-            {proposal.changed ? (
-              <InlineAlert tone="warning">
-                {SETTING_PROPOSAL_BLOCKED_REASON}
-              </InlineAlert>
-            ) : (
-              <InlineAlert tone="warning">
-                {proposal.errors.join('; ')}
-              </InlineAlert>
-            )}
-            {saveAttempted ? (
-              <InlineAlert tone="danger">
-                Realm save remains blocked. This app slice has no admitted owner update semantics for selected Realm Agent settings.
-              </InlineAlert>
-            ) : null}
-            <div className="flex flex-wrap gap-3">
-              <Button
-                disabled={!proposal.changed}
-                onClick={() => setSaveAttempted(true)}
-              >
-                Check save admission
-              </Button>
-            </div>
-          </div>
+          ) : null}
         </div>
         <div className="min-w-0">
           <div className="mb-3 flex items-center justify-between gap-3">
-            <h4 className="m-0 text-base font-semibold">Blocked candidate payload</h4>
-            <StatusBadge tone="warning">not saved</StatusBadge>
+            <h4 className="m-0 text-base font-semibold">Reviewed settings payload</h4>
+            <StatusBadge tone={proposal?.ok ? 'success' : 'warning'}>{proposal?.ok ? 'ready' : 'not ready'}</StatusBadge>
           </div>
-          <FieldShell label="Payload preview" message="Separated profile update candidate and visible rule text candidate.">
+          <FieldShell label="PATCH payload preview" message="Submitted payload is only UpdateOwnerAgentSettingsDto. Raw rule text remains outside the payload.">
             <pre className="ras-json-preview m-0 min-h-80 overflow-auto rounded-[var(--nimi-radius-field)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-3 text-xs">
-              {proposal.payload ? JSON.stringify(proposal.payload, null, 2) : proposal.errors.join('; ')}
+              {proposal?.ok ? JSON.stringify(proposal.preview, null, 2) : proposal?.errors.join('; ') || 'No owner settings loaded.'}
             </pre>
           </FieldShell>
+          {result ? (
+            <FieldShell label="Save result" message="Truth write success is based on Realm MeService.updateMyRealmAgentSettings response.">
+              <pre className="ras-json-preview m-0 min-h-24 overflow-auto rounded-[var(--nimi-radius-field)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-3 text-xs">
+                {JSON.stringify(result, null, 2)}
+              </pre>
+            </FieldShell>
+          ) : null}
         </div>
       </div>
     </Surface>
@@ -1442,7 +1638,7 @@ function AgentDetail({ agentId }: { agentId: string }) {
         </div>
       </Surface>
       <VisibilitySettingsWorkspace agent={agent} onAgentWrite={refreshOwnerAgentReads} />
-      <SettingProposalWorkspace agent={agent} />
+      <SettingProposalWorkspace agent={agent} onAgentWrite={refreshOwnerAgentReads} />
       <RuntimeProjectionWorkspace agent={agent} />
       <MediaVoiceCandidateWorkspace agent={agent} onAgentWrite={refreshOwnerAgentReads} />
       <CreativePostWorkspace agent={agent} />

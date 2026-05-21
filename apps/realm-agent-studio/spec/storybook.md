@@ -25,7 +25,7 @@ implementation.
 
 | Story | Required acceptance |
 | --- | --- |
-| Review Agent Portfolio | Owned creator-owned Realm Agents are visible with app-local draft or Realm-created status and source availability. Unavailable metrics are not zero. LocalAgent private state is never exposed. |
+| Review Agent Portfolio | User-owned Realm Agents are visible with app-local draft or Realm-created status and source availability. Unavailable metrics are not zero. LocalAgent private state is never exposed. |
 | Create Realm Agent | Creation defaults to `OASIS`, allows any Realm `listWorlds` result by product decision, shows selected-world basic setting from existing world detail before submit, collects owner-facing setting intent rather than raw rule CRUD by default, submits owner create only through `AgentsService.agentControllerCreate` / `POST /api/agent`, and succeeds only when Realm returns the canonical created object with `id`. |
 | Update Canonical Setting | Current owner setting values are shown from `GET /api/me/agents/{agentId}/settings`. Canonical rule review may appear only after an admitted owner-scoped rule-content read surface exists. AI proposals remain editable. Default editing is natural language plus structured setting fields, not raw `AgentRule` CRUD. Save succeeds only through `PATCH /api/me/agents/{agentId}/settings`. Private LocalAgent memory is not overwritten. |
 | Review Setting Consistency | Runtime review is advisory. Accepted edits return to normal owner-reviewed settings save. Runtime does not define Realm truth. |
@@ -45,7 +45,7 @@ implementation.
 
 ## Storybook Gaps
 
-- Portfolio read surfaces for creator-owned Realm Agent list/read are
+- Portfolio read surfaces for user-owned Realm Agent list/read are
   `GET /api/me/agents` and `GET /api/me/agents/{agentId}`; Studio consumes only
   current-user `MASTER_OWNED` Realm Agents and must not substitute
   world-owned/NPC lists. `GET /api/creator/agents` and

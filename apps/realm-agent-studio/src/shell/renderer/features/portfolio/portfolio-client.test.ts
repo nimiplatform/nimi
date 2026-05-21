@@ -13,6 +13,7 @@ import {
   createReviewedRealmAgent,
   getAgentVisibilitySettings,
   getCreateRealmAgentWorldPreview,
+  getOwnerAgentSettings,
   getOwnerPortfolioAgentDetail,
   listCreateRealmAgentSelectableWorlds,
   listOwnerPortfolioAgents,
@@ -28,6 +29,7 @@ import {
   publishReviewedPostDraft,
   selectReviewedAgentAvatarUrl,
   synthesizeReviewedVoiceDemo,
+  updateReviewedOwnerAgentSettings,
   updateReviewedAgentVisibility,
   uploadReviewedPostMediaResource,
   type AgentVisibilityDraft,
@@ -41,6 +43,7 @@ import {
   type ReviewedCreateRealmAgentPayload,
 } from './create-agent-draft.js';
 import type { CandidatePostPayload } from './post-draft.js';
+import { createOwnerAgentSettingsDraft } from './setting-proposal.js';
 
 const agent: MyRealmAgentDto = {
   id: 'agent-1',
@@ -113,6 +116,79 @@ function mockRealm() {
       MeService: {
         listMyRealmAgents: vi.fn(async () => [agent]),
         getMyRealmAgent: vi.fn(async (agentId: string) => ({ ...agent, id: agentId, bio: 'Detail bio' })),
+        getMyRealmAgentSettings: vi.fn(async (agentId: string) => ({
+          agentId,
+          worldId: 'world-oasis',
+          agentRuleVersion: 3,
+          displayName: 'Mira',
+          description: 'Quiet strategist',
+          greeting: 'Welcome in.',
+          naturalLanguageIntent: null,
+          identity: {
+            publicRole: 'Guide',
+            worldview: 'Layered world.',
+          },
+          personality: {
+            summary: 'Patient strategist.',
+            relationshipMode: 'mentor',
+            interests: ['strategy'],
+            goals: ['keep lore coherent'],
+          },
+          communication: {
+            contentStyle: 'Concise.',
+            formality: 'casual',
+            responseLength: 'medium',
+            sentiment: 'neutral',
+          },
+          boundaries: {
+            allowedThemes: ['adventure'],
+            disallowedThemes: ['gore'],
+          },
+          positioning: {
+            targetAudience: 'builders',
+            positioning: 'guide',
+          },
+          updatedAt: '2026-05-21T00:00:00.000Z',
+        })),
+        updateMyRealmAgentSettings: vi.fn(async (agentId: string, input: Record<string, unknown>) => ({
+          agentId,
+          worldId: 'world-oasis',
+          agentRuleVersion: 4,
+          displayName: typeof input.displayName === 'string' ? input.displayName : 'Mira',
+          description: typeof input.description === 'string' ? input.description : 'Quiet strategist',
+          greeting: typeof input.greeting === 'string' ? input.greeting : 'Welcome in.',
+          naturalLanguageIntent: typeof input.naturalLanguageIntent === 'string' ? input.naturalLanguageIntent : null,
+          identity: {
+            publicRole: 'Guide',
+            worldview: 'Layered world.',
+            ...((input.identity && typeof input.identity === 'object') ? input.identity as Record<string, unknown> : {}),
+          },
+          personality: {
+            summary: 'Patient strategist.',
+            relationshipMode: 'mentor',
+            interests: ['strategy'],
+            goals: ['keep lore coherent'],
+            ...((input.personality && typeof input.personality === 'object') ? input.personality as Record<string, unknown> : {}),
+          },
+          communication: {
+            contentStyle: 'Concise.',
+            formality: 'casual',
+            responseLength: 'medium',
+            sentiment: 'neutral',
+            ...((input.communication && typeof input.communication === 'object') ? input.communication as Record<string, unknown> : {}),
+          },
+          boundaries: {
+            allowedThemes: ['adventure'],
+            disallowedThemes: ['gore'],
+            ...((input.boundaries && typeof input.boundaries === 'object') ? input.boundaries as Record<string, unknown> : {}),
+          },
+          positioning: {
+            targetAudience: 'builders',
+            positioning: 'guide',
+            ...((input.positioning && typeof input.positioning === 'object') ? input.positioning as Record<string, unknown> : {}),
+          },
+          updatedAt: '2026-05-22T00:00:00.000Z',
+        })),
       },
       WorldsService: {
         worldControllerListWorlds: vi.fn(async () => [world]),
@@ -581,6 +657,85 @@ describe('owner portfolio client', () => {
     });
     expect(buildRealmSelectAvatarInput('ftp://cdn.example.test/avatar.png')).toBeNull();
     expect(buildRealmSelectAvatarInput('')).toBeNull();
+  });
+
+  it('reads owner settings through MeService.getMyRealmAgentSettings', async () => {
+    const realm = mockRealm();
+    const settings = await getOwnerAgentSettings('agent-1', realm);
+
+    expect(realm.services.MeService.getMyRealmAgentSettings).toHaveBeenCalledWith('agent-1');
+    expect(settings).toMatchObject({
+      agentId: 'agent-1',
+      agentRuleVersion: 3,
+      displayName: 'Mira',
+      identity: {
+        publicRole: 'Guide',
+      },
+    });
+    expect(Object.hasOwn(realm.services, 'CreatorService')).toBe(false);
+    expect(Object.hasOwn(realm.services, 'AgentRulesService')).toBe(false);
+  });
+
+  it('updates owner settings through MeService.updateMyRealmAgentSettings without raw rule payloads', async () => {
+    const realm = mockRealm();
+    const current = await getOwnerAgentSettings('agent-1', realm);
+    const draft = {
+      ...createOwnerAgentSettingsDraft(current),
+      displayName: 'Mira Prime',
+      worldview: 'Layered world with owner-reviewed framing.',
+      interestsText: 'strategy, tea',
+      rawRuleTextCandidate: 'Visible raw rule candidate must stay deferred.',
+    };
+    const result = await updateReviewedOwnerAgentSettings('agent-1', draft, current, realm);
+    const updateSettings = realm.services.MeService.updateMyRealmAgentSettings;
+    const submittedPayload = vi.mocked(updateSettings).mock.calls[0]?.[1];
+
+    expect(updateSettings).toHaveBeenCalledWith('agent-1', {
+      displayName: 'Mira Prime',
+      identity: {
+        worldview: 'Layered world with owner-reviewed framing.',
+      },
+      personality: {
+        interests: ['strategy', 'tea'],
+      },
+    });
+    expect(collectKeys(submittedPayload).has('rawRuleTextCandidate')).toBe(false);
+    expect(collectKeys(submittedPayload).has('ruleText')).toBe(false);
+    expect(collectKeys(submittedPayload).has('agentRules')).toBe(false);
+    expect(collectKeys(submittedPayload).has('profileCoverUrl')).toBe(false);
+    expect(collectKeys(submittedPayload).has('provider')).toBe(false);
+    expect(collectKeys(submittedPayload).has('model')).toBe(false);
+    expect(Object.hasOwn(realm.services, 'CreatorService')).toBe(false);
+    expect(Object.hasOwn(realm.services, 'AgentRulesService')).toBe(false);
+    expect(result).toMatchObject({
+      ok: true,
+      source: 'Realm MeService.updateMyRealmAgentSettings',
+      truthWrite: true,
+      submitted: {
+        displayName: 'Mira Prime',
+      },
+      settings: {
+        agentRuleVersion: 4,
+      },
+    });
+  });
+
+  it('fails closed before owner settings PATCH when there are no admitted changes', async () => {
+    const realm = mockRealm();
+    const current = await getOwnerAgentSettings('agent-1', realm);
+    const result = await updateReviewedOwnerAgentSettings('agent-1', {
+      ...createOwnerAgentSettingsDraft(current),
+      rawRuleTextCandidate: 'Only raw rule review.',
+    }, current, realm);
+
+    expect(realm.services.MeService.updateMyRealmAgentSettings).not.toHaveBeenCalled();
+    expect(result).toMatchObject({
+      ok: false,
+      source: 'Realm MeService.updateMyRealmAgentSettings',
+      truthWrite: false,
+      failure: 'owner-settings-no-changes',
+      submitted: null,
+    });
   });
 
   it('reads owner visibility through AgentsService.agentControllerGetVisibility', async () => {

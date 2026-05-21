@@ -3,12 +3,12 @@ id: SPEC-REALM-AGENT-STUDIO-INDEX-001
 title: Realm Agent Studio Spec Index
 status: active
 owner: "@team"
-updated: 2026-05-21
+updated: 2026-05-22
 ---
 
 # Realm Agent Studio Spec Index
 
-Realm Agent Studio is the owner operation center for creator-owned public Realm
+Realm Agent Studio is the owner operation center for user-owned public Realm
 Agents as durable Agent IP. `apps/realm-agent-studio/spec/**` is the admitted
 app-slice authority root for this product in the repo. This first stage keeps
 the current flat document set as active authority; it does not start UI design,
@@ -97,7 +97,7 @@ author context (`.nimi/spec/realm/kernel/feed-contract.md:107` to `:118`).
 
 ## Boundary
 
-Realm Agent Studio owns only the owner workflow for creator-owned public Realm
+Realm Agent Studio owns only the owner workflow for user-owned public Realm
 Agents:
 
 - public identity and owner-editable presentation;

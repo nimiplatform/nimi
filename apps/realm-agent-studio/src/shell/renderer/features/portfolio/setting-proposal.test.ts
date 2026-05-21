@@ -1,125 +1,142 @@
 import { describe, expect, it } from 'vitest';
-import type { OwnerPortfolioAgentDetail, SettingField } from './portfolio-data.js';
 import {
-  SETTING_PROPOSAL_BLOCKED_REASON,
-  assertNoForbiddenSettingProposalFields,
-  buildBlockedSettingProposal,
-  normalizeSettingProposalInput,
+  RAW_RULE_REVIEW_DEFERRED_REASON,
+  assertNoForbiddenOwnerSettingsFields,
+  buildRealmOwnerAgentSettingsUpdateInput,
+  createOwnerAgentSettingsDraft,
+  normalizeOwnerAgentSettingsDraft,
+  type OwnerAgentSettingsSnapshot,
 } from './setting-proposal.js';
 
-function settingField(key: SettingField['key'], label: string, value: string): SettingField {
-  return {
-    key,
-    label,
-    value,
-    status: value ? 'available' : 'source-unavailable',
-    source: 'Realm MeService.getMyRealmAgent',
-    readOnly: true,
-    unavailableLabel: value ? undefined : 'setting read unavailable',
-  };
-}
-
-const agent: OwnerPortfolioAgentDetail = {
-  id: 'agent-1',
-  displayName: settingField('displayName', 'Display name', 'Mira'),
-  handle: settingField('handle', 'Handle', 'mira'),
-  bio: settingField('bio', 'Bio', 'Quiet strategist'),
-  greeting: settingField('greeting', 'Greeting', 'Welcome in.'),
-  profileCoverUrl: settingField('profileCoverUrl', 'Profile cover URL', 'https://cdn.example.test/cover.png'),
-  ownership: settingField('ownership', 'Ownership evidence', 'MASTER_OWNED'),
-  world: settingField('world', 'World evidence', 'OASIS'),
-  state: settingField('state', 'State evidence', 'ACTIVE'),
-  avatarUrl: 'https://cdn.example.test/avatar.png',
-  friendCount: { status: 'available', value: 7 },
-  source: 'Realm MeService.getMyRealmAgent',
+const settings: OwnerAgentSettingsSnapshot = {
+  displayName: 'Mira',
+  description: 'Quiet strategist',
+  greeting: 'Welcome in.',
+  naturalLanguageIntent: null,
+  identity: {
+    publicRole: 'Guide',
+    worldview: 'The world is layered.',
+  },
+  personality: {
+    summary: 'Patient and practical.',
+    relationshipMode: 'mentor',
+    interests: ['strategy', 'tea'],
+    goals: ['keep lore coherent'],
+  },
+  communication: {
+    contentStyle: 'Concise.',
+    formality: 'casual',
+    responseLength: 'medium',
+    sentiment: 'neutral',
+  },
+  boundaries: {
+    allowedThemes: ['adventure'],
+    disallowedThemes: ['gore'],
+  },
+  positioning: {
+    targetAudience: 'builders',
+    positioning: 'operational guide',
+  },
 };
 
-describe('setting proposal normalization', () => {
-  it('normalizes editable proposal text without introducing hidden fields', () => {
-    expect(normalizeSettingProposalInput({
+describe('owner settings proposal normalization', () => {
+  it('creates an editable draft from owner settings DTO shape', () => {
+    expect(createOwnerAgentSettingsDraft(settings)).toMatchObject({
+      displayName: 'Mira',
+      description: 'Quiet strategist',
+      publicRole: 'Guide',
+      interestsText: 'strategy, tea',
+      allowedThemesText: 'adventure',
+      rawRuleTextCandidate: '',
+    });
+  });
+
+  it('normalizes text, enums, and list fields without introducing hidden keys', () => {
+    expect(normalizeOwnerAgentSettingsDraft({
+      ...createOwnerAgentSettingsDraft(settings),
       displayName: '  Mira   Prime  ',
-      bio: '  Line one\r\nLine two  ',
-      profileCoverUrl: '  https://cdn.example.test/new.png  ',
-      ruleText: '  Keep replies practical.\r\nAvoid spoilers.  ',
-      naturalLanguageInstruction: '  Make the public tone calmer.  ',
-    })).toEqual({
+      interestsText: 'strategy, ruins\ntea',
+      allowedThemesText: ' adventure, friendship ',
+      rawRuleTextCandidate: '  Keep replies practical.\r\nAvoid spoilers.  ',
+    })).toMatchObject({
       displayName: 'Mira Prime',
-      bio: 'Line one\nLine two',
-      profileCoverUrl: 'https://cdn.example.test/new.png',
-      ruleText: 'Keep replies practical.\nAvoid spoilers.',
-      naturalLanguageInstruction: 'Make the public tone calmer.',
+      interests: ['strategy', 'ruins', 'tea'],
+      allowedThemes: ['adventure', 'friendship'],
+      rawRuleTextCandidate: 'Keep replies practical.\nAvoid spoilers.',
     });
   });
 
-  it('diffs changed profile fields separately from visible rule text', () => {
-    const result = buildBlockedSettingProposal({
+  it('builds an UpdateOwnerAgentSettingsDto diff and excludes raw rule text', () => {
+    const result = buildRealmOwnerAgentSettingsUpdateInput({
+      ...createOwnerAgentSettingsDraft(settings),
       displayName: 'Mira Prime',
-      bio: 'Quiet strategist',
-      profileCoverUrl: 'https://cdn.example.test/new-cover.png',
-      ruleText: 'Stay in owner-approved public lore.',
-      naturalLanguageInstruction: 'Make this stricter.',
-    }, agent);
+      worldview: 'The world is layered and negotiated.',
+      interestsText: 'strategy, tea, ruins',
+      formality: 'formal',
+      rawRuleTextCandidate: 'Visible rule candidate only.',
+    }, settings);
 
-    expect(result.blocked).toBe(true);
-    expect(result.changed).toBe(true);
-    expect(result.payload?.blockedReason).toBe(SETTING_PROPOSAL_BLOCKED_REASON);
-    expect(result.payload?.ownerProfileSettingCandidate).toEqual({
-      displayName: 'Mira Prime',
-      profileCoverUrl: 'https://cdn.example.test/new-cover.png',
+    expect(result).toMatchObject({
+      ok: true,
+      changed: true,
+      input: {
+        displayName: 'Mira Prime',
+        identity: {
+          worldview: 'The world is layered and negotiated.',
+        },
+        personality: {
+          interests: ['strategy', 'tea', 'ruins'],
+        },
+        communication: {
+          formality: 'formal',
+        },
+      },
     });
-    expect(result.payload?.ruleTextCandidate).toEqual({
-      text: 'Stay in owner-approved public lore.',
-      ownerReviewed: false,
-      source: 'visible owner-reviewed rule text candidate',
-    });
-    expect(result.payload).not.toHaveProperty('handle');
-    expect(result.payload).not.toHaveProperty('avatarUrl');
+    expect(JSON.stringify(result.input)).not.toContain('Visible rule candidate only.');
+    expect(result.ok ? result.preview.rawRuleReview?.reason : '').toBe(RAW_RULE_REVIEW_DEFERRED_REASON);
+    expect(result.ok ? result.preview.submitted : {}).not.toHaveProperty('profileCoverUrl');
+    expect(result.ok ? result.preview.submitted : {}).not.toHaveProperty('agentRules');
   });
 
-  it('omits unchanged and empty profile fields instead of creating destructive clears', () => {
-    const result = buildBlockedSettingProposal({
-      displayName: 'Mira',
-      bio: '',
-      profileCoverUrl: 'https://cdn.example.test/cover.png',
-      ruleText: 'Visible rule candidate only.',
-      naturalLanguageInstruction: '',
-    }, agent);
-
-    expect(result.changed).toBe(true);
-    expect(result.payload?.ownerProfileSettingCandidate).toEqual({});
-    expect(result.payload?.ruleTextCandidate?.text).toBe('Visible rule candidate only.');
-  });
-
-  it('fails closed when no changed candidate remains', () => {
-    const result = buildBlockedSettingProposal({
-      displayName: 'Mira',
-      bio: 'Quiet strategist',
-      profileCoverUrl: 'https://cdn.example.test/cover.png',
-      ruleText: '',
-      naturalLanguageInstruction: 'Only local drafting text is not a save candidate.',
-    }, agent);
-
-    expect(result).toEqual({
-      blocked: true,
-      changed: false,
-      errors: ['no changed admitted/source-evidence setting candidate'],
-      payload: null,
+  it('fails closed when only raw rule review changed', () => {
+    expect(buildRealmOwnerAgentSettingsUpdateInput({
+      ...createOwnerAgentSettingsDraft(settings),
+      rawRuleTextCandidate: 'Only raw rule review.',
+    }, settings)).toMatchObject({
+      ok: false,
+      failure: 'raw-rule-review-deferred',
+      errors: [RAW_RULE_REVIEW_DEFERRED_REASON],
+      input: null,
     });
   });
 
-  it('detects forbidden setting fields recursively', () => {
-    expect(assertNoForbiddenSettingProposalFields({
-      ownerProfileSettingCandidate: {
-        displayName: 'Mira',
+  it('rejects invalid enum values before Realm submission', () => {
+    expect(buildRealmOwnerAgentSettingsUpdateInput({
+      ...createOwnerAgentSettingsDraft(settings),
+      formality: 'robotic',
+    }, settings)).toMatchObject({
+      ok: false,
+      failure: 'owner-settings-invalid',
+      input: null,
+    });
+  });
+
+  it('detects forbidden owner settings fields recursively', () => {
+    expect(assertNoForbiddenOwnerSettingsFields({
+      submitted: {
         provider: 'forbidden',
       },
     })).toBe('provider');
-    expect(assertNoForbiddenSettingProposalFields({
-      localAgent: { model: 'forbidden' },
-    })).toBe('localAgent');
-    expect(assertNoForbiddenSettingProposalFields({
-      ownerProfileSettingCandidate: {
-        bio: 'Allowed',
+    expect(assertNoForbiddenOwnerSettingsFields({
+      submitted: {
+        profileCoverUrl: 'https://cdn.example.test/cover.png',
+      },
+    })).toBe('profileCoverUrl');
+    expect(assertNoForbiddenOwnerSettingsFields({
+      submitted: {
+        identity: {
+          worldview: 'Allowed',
+        },
       },
     })).toBeNull();
   });

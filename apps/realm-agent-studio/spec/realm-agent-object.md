@@ -57,7 +57,7 @@ rule CRUD or owner rule-content review.
 
 ## Owner Boundary
 
-Realm Agent Studio manages creator-owned public Realm Agents only. Current DTO
+Realm Agent Studio manages user-owned public Realm Agents only. Current DTO
 evidence exposes `AgentOwnershipType` as `MASTER_OWNED | WORLD_OWNED`
 (`sdk/src/realm/generated/schema.ts:3889`), but this app spec does not
 rename that source model. Studio owner-created scope is the current
