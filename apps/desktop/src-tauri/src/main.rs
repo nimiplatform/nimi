@@ -28,6 +28,7 @@ mod local_config_migration;
 mod local_runtime;
 mod main_parts;
 mod menu_bar_shell;
+mod nimi_data_migration;
 mod platform_ai_profile_factory_catalog;
 mod platform_nimi_app_registry;
 mod runtime_mod;

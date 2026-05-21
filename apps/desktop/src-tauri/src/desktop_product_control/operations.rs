@@ -50,6 +50,61 @@ pub fn select_product_data_root(path: &str) -> Result<ProductControlRecordProjec
     read_product_control_projection()
 }
 
+/// Commit a `nimi_data` data-root pointer cutover for the `P-MIG-007`
+/// migration flow.
+///
+/// Unlike [`select_product_data_root`], this is NOT a first-run selection: it
+/// is the last atomic step of a completed-and-verified data-root migration. It
+/// rewrites only the `dataRoot.path` (and the discovery `pointers`) on the
+/// existing record and preserves every `firstRun` evidence field, the product
+/// `state`, and the `installId` — moving the data root must not reset
+/// first-run progress.
+///
+/// `P-MIG-007` "pointer commit last": the caller (the migration flow) only
+/// invokes this after the data has been copied to `new_data_root` and the
+/// integrity check passed. It requires an existing record that already has a
+/// selected data root — a migration has no meaning before first-run data-root
+/// selection. The new path must be absolute and must already exist on disk
+/// (the migration created it); a non-existent target fails closed so the
+/// pointer can never advertise a directory that is not there.
+pub fn migrate_product_data_root_pointer(
+    new_data_root: &str,
+) -> Result<ProductControlRecordProjection, String> {
+    let trimmed = new_data_root.trim();
+    if trimmed.is_empty() {
+        return Err("nimi_data migration target path is required".to_string());
+    }
+    let candidate = PathBuf::from(trimmed);
+    if !candidate.is_absolute() {
+        return Err(format!(
+            "nimi_data migration target path must be absolute, got: {trimmed}"
+        ));
+    }
+    let normalized = normalize_desktop_absolute_path(&candidate);
+    if !normalized.is_dir() {
+        return Err(format!(
+            "nimi_data migration target does not exist on disk: {}",
+            normalized.display()
+        ));
+    }
+    let control_path = product_control_record_path()?;
+    let mut record = read_existing_record(&control_path)?.ok_or_else(|| {
+        "~/.nimi/nimi.json is missing; a data-root migration requires an existing record"
+            .to_string()
+    })?;
+    let data_root = record.data_root.as_mut().ok_or_else(|| {
+        "~/.nimi/nimi.json has no selected data root; nothing to migrate".to_string()
+    })?;
+    let now = now_unix_ms();
+    data_root.path = normalized.display().to_string();
+    // The data root is freshly verified by the migration integrity check.
+    data_root.verified_at = now_iso_timestamp();
+    data_root.verified_at_unix_ms = now;
+    record.pointers = resolve_product_pointers()?;
+    write_record(&control_path, &record)?;
+    read_product_control_projection()
+}
+
 pub fn set_first_run_install_level(
     install_level: &str,
     ai_profile_alias: Option<String>,

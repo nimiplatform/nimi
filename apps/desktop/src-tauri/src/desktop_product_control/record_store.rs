@@ -184,28 +184,13 @@ pub(crate) fn write_record(path: &Path, record: &ProductControlRecord) -> Result
     Ok(())
 }
 
+/// Materialize the `nimi_data` data-root layout.
+///
+/// Delegates to [`crate::nimi_data_migration::enforce_data_root_layout`], the
+/// single authoritative `P-MIG-006` layout builder: it creates exactly the
+/// first-level directories declared in the `nimi_data` directory ownership
+/// matrix (`tables/nimi-data-directory-ownership.yaml`), so the on-disk layout
+/// can never drift from the kernel ownership table.
 pub(crate) fn ensure_data_root_layout(path: &Path) -> Result<(), String> {
-    let required_dirs = [
-        "models",
-        "dependencies",
-        "environments",
-        "apps",
-        "accounts",
-        "cache",
-        "logs",
-        "audit",
-        "generated",
-        "tmp",
-    ];
-    fs::create_dir_all(path)
-        .map_err(|error| format!("创建 nimi_data 根目录失败 ({}): {error}", path.display()))?;
-    for dir in required_dirs {
-        fs::create_dir_all(path.join(dir)).map_err(|error| {
-            format!(
-                "创建 nimi_data 子目录失败 ({}): {error}",
-                path.join(dir).display()
-            )
-        })?;
-    }
-    Ok(())
+    crate::nimi_data_migration::enforce_data_root_layout(path)
 }
