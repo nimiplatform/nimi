@@ -1,6 +1,6 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Button, EmptyState, FieldShell, InlineAlert, StatusBadge, Surface, TextareaField, TextField } from '@nimiplatform/nimi-kit/ui';
+import { Button, Checkbox, EmptyState, FieldShell, InlineAlert, SelectField, StatusBadge, Surface, TextareaField, TextField } from '@nimiplatform/nimi-kit/ui';
 import {
   classifyAgentDetailFailure,
   classifyPortfolioFailure,
@@ -9,6 +9,13 @@ import {
   type SettingField,
 } from './portfolio-data.js';
 import { getOwnerPortfolioAgentDetail, listOwnerPortfolioAgents } from './portfolio-client.js';
+import {
+  ATTACHMENT_TARGET_TYPES,
+  validateLocalPostDraft,
+  type AttachmentTargetType,
+  type CandidatePostPayload,
+  type LocalPostDraftInput,
+} from './post-draft.js';
 
 function friendCountLabel(agent: OwnerPortfolioAgent) {
   if (agent.friendCount.status === 'available') {
@@ -97,6 +104,176 @@ function EvidenceCard({ field }: { field: SettingField }) {
   );
 }
 
+type LocalCreativeAssetCandidate = {
+  sequence: number;
+  label: string;
+  captionSnapshot: string;
+  tagsSnapshot: string;
+};
+
+function createEmptyPostDraft(): LocalPostDraftInput {
+  return {
+    caption: '',
+    tagsText: '',
+    humanReviewed: false,
+    attachmentEnabled: false,
+    attachmentTargetType: 'RESOURCE',
+    attachmentTargetId: '',
+  };
+}
+
+function CreativePostWorkspace({ agent }: { agent: OwnerPortfolioAgentDetail }) {
+  const [draft, setDraft] = useState<LocalPostDraftInput>(() => createEmptyPostDraft());
+  const [payloadPreview, setPayloadPreview] = useState<CandidatePostPayload | null>(null);
+  const [assetCandidates, setAssetCandidates] = useState<LocalCreativeAssetCandidate[]>([]);
+  const validation = validateLocalPostDraft(draft, agent);
+
+  useEffect(() => {
+    setDraft(createEmptyPostDraft());
+    setPayloadPreview(null);
+    setAssetCandidates([]);
+  }, [agent.id]);
+
+  function updateDraft(patch: Partial<LocalPostDraftInput>) {
+    setDraft((current) => ({ ...current, ...patch }));
+    setPayloadPreview(null);
+  }
+
+  function addLocalAssetCandidate() {
+    setAssetCandidates((current) => [
+      {
+        sequence: current.length + 1,
+        label: `Local creative candidate ${current.length + 1}`,
+        captionSnapshot: draft.caption.trim() || 'caption not drafted',
+        tagsSnapshot: draft.tagsText.trim() || 'tags not drafted',
+      },
+      ...current,
+    ]);
+  }
+
+  return (
+    <Surface tone="panel" padding="lg" className="mt-5">
+      <div className="grid min-w-0 gap-5 xl:grid-cols-[1fr_360px]">
+        <div className="min-w-0">
+          <div className="flex min-w-0 flex-wrap items-center gap-3">
+            <h3 className="m-0 text-xl font-semibold">Creative post candidate</h3>
+            <StatusBadge tone="info">app-local draft</StatusBadge>
+            <StatusBadge tone="neutral">not Realm publish</StatusBadge>
+          </div>
+          <p className="m-0 mt-1 text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-muted)]">
+            Integrated with selected canonical detail agent: {agent.handle.value ? `@${agent.handle.value}` : agent.displayName.value || agent.id}.
+          </p>
+
+          <div className="mt-4 grid gap-4">
+            <FieldShell label="Caption" message="Stored only as local candidate state in this slice.">
+              <TextareaField
+                value={draft.caption}
+                placeholder="Draft caption for human review"
+                onChange={(event) => updateDraft({ caption: event.currentTarget.value })}
+              />
+            </FieldShell>
+            <FieldShell label="Tags" message="Comma-separated local tags; normalized in the reviewed payload preview.">
+              <TextField
+                value={draft.tagsText}
+                placeholder="artifact, studio, release-note"
+                onChange={(event) => updateDraft({ tagsText: event.currentTarget.value })}
+              />
+            </FieldShell>
+            <Surface tone="card" padding="md">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <div className="font-medium">Optional attachment envelope</div>
+                  <div className="mt-1 text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-muted)]">
+                    Allowed target semantics: RESOURCE, ASSET, or BUNDLE.
+                  </div>
+                </div>
+                <Checkbox
+                  checked={draft.attachmentEnabled}
+                  onChange={(event) => updateDraft({ attachmentEnabled: event.currentTarget.checked })}
+                  label="Attach target"
+                />
+              </div>
+              <div className="mt-3 grid gap-3 md:grid-cols-[180px_1fr]">
+                <FieldShell label="targetType">
+                  <SelectField
+                    disabled={!draft.attachmentEnabled}
+                    value={draft.attachmentTargetType}
+                    options={ATTACHMENT_TARGET_TYPES.map((targetType) => ({ value: targetType, label: targetType }))}
+                    onValueChange={(value) => updateDraft({ attachmentTargetType: value as AttachmentTargetType })}
+                  />
+                </FieldShell>
+                <FieldShell label="targetId" message={draft.attachmentEnabled && !draft.attachmentTargetId.trim() ? 'attachment validation failed: attachment target missing' : undefined} messageTone="danger">
+                  <TextField
+                    disabled={!draft.attachmentEnabled}
+                    value={draft.attachmentTargetId}
+                    placeholder="resource, asset, or bundle target"
+                    tone={draft.attachmentEnabled && !draft.attachmentTargetId.trim() ? 'danger' : 'default'}
+                    onChange={(event) => updateDraft({ attachmentTargetId: event.currentTarget.value })}
+                  />
+                </FieldShell>
+              </div>
+            </Surface>
+            <Checkbox
+              checked={draft.humanReviewed}
+              onChange={(event) => updateDraft({ humanReviewed: event.currentTarget.checked })}
+              label="Human review complete"
+            />
+            {!validation.publishable ? (
+              <InlineAlert tone="warning">
+                {validation.errors.join('; ')}
+              </InlineAlert>
+            ) : null}
+            <div className="flex flex-wrap gap-3">
+              <Button onClick={addLocalAssetCandidate}>Add local asset candidate</Button>
+              <Button
+                disabled={!validation.publishable}
+                onClick={() => {
+                  if (validation.publishable) {
+                    setPayloadPreview(validation.payload);
+                  }
+                }}
+              >
+                Preview reviewed payload
+              </Button>
+            </div>
+            <FieldShell label="Reviewed candidate payload" message="Preview only. This does not call Realm and does not claim publish success.">
+              <pre className="ras-json-preview m-0 min-h-32 overflow-auto rounded-[var(--nimi-radius-field)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-3 text-xs">
+                {payloadPreview ? JSON.stringify(payloadPreview, null, 2) : 'No reviewed payload preview yet.'}
+              </pre>
+            </FieldShell>
+          </div>
+        </div>
+        <div className="min-w-0">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <h4 className="m-0 text-base font-semibold">Local preview history</h4>
+            <StatusBadge tone="neutral">candidate only</StatusBadge>
+          </div>
+          {assetCandidates.length === 0 ? (
+            <EmptyState title="No local candidates" description="Creative asset candidates created here are local preview/history only." />
+          ) : (
+            <div className="grid gap-3">
+              {assetCandidates.map((candidate) => (
+                <Surface key={candidate.sequence} tone="card" padding="md">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="font-medium">{candidate.label}</div>
+                    <StatusBadge tone="warning">not public truth</StatusBadge>
+                  </div>
+                  <div className="ras-break-anywhere mt-2 text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-secondary)]">
+                    {candidate.captionSnapshot}
+                  </div>
+                  <div className="ras-break-anywhere mt-2 text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-muted)]">
+                    {candidate.tagsSnapshot}
+                  </div>
+                </Surface>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </Surface>
+  );
+}
+
 function AgentDetail({ agentId }: { agentId: string }) {
   const detailQuery = useQuery({
     queryKey: ['realm-agent-studio', 'owner-portfolio-agent-detail', agentId],
@@ -173,6 +350,7 @@ function AgentDetail({ agentId }: { agentId: string }) {
           </div>
         </div>
       </Surface>
+      <CreativePostWorkspace agent={agent} />
     </section>
   );
 }
