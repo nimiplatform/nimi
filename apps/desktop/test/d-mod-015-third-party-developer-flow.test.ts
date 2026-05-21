@@ -68,14 +68,20 @@ test('D-MOD-015: settings developer page provides UI for mod developer operation
   assert.match(source, /runtimeModDiagnostics/, 'Must display diagnostics');
 });
 
-test('D-MOD-015: data management page owns nimi_data_dir configuration', () => {
+// P-MIG-007: moving nimi_data after first-run is a migration flow, not a
+// casual data-root pointer rewrite. The Data Management page owns the data-root
+// migration entry: it must preview the size/impact, then run a confirmed,
+// staged, integrity-checked migration via the nimi_data migration bridge.
+test('D-MOD-015: data management page owns the nimi_data migration flow', () => {
   const source = readFileSync(
     resolve(import.meta.dirname, '../src/shell/renderer/features/settings/settings-data-management-page.tsx'),
     'utf8',
   );
 
-  assert.match(source, /setRuntimeModDataDir/, 'Data Management must configure nimi_data_dir via bridge');
-  assert.match(source, /syncRuntimeLocalModelsConfig/, 'Data Management must sync runtime storage config after data dir changes');
+  assert.match(source, /previewNimiDataMigration/, 'Data Management must preview the nimi_data migration impact before any move (P-MIG-007)');
+  assert.match(source, /runNimiDataMigration/, 'Data Management must run the confirmed nimi_data migration via bridge (P-MIG-007)');
+  assert.doesNotMatch(source, /setRuntimeModDataDir/, 'Data Management must not retain the casual data-root pointer rewrite the migration flow replaced');
+  assert.match(source, /syncRuntimeLocalModelsConfig/, 'Data Management must sync runtime storage config after a completed migration');
   assert.match(source, /resolvedLocalModelsDir/, 'Data Management must display resolved runtime local models dir');
   assert.match(source, /resolvedLocalRuntimeStatePath/, 'Data Management must display resolved runtime local state path');
 });

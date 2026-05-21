@@ -78,6 +78,10 @@ import type {
   RuntimeModInstallResult,
   RuntimeModUpdatePayload,
   SystemResourceSnapshot,
+  NimiDataMigrationPreview,
+  NimiDataMigrationOutcome,
+  NimiDataCleanupPlan,
+  NimiDataCleanupOutcome,
 } from '@desktop-public/bridge';
 
 export type {
@@ -238,6 +242,40 @@ export async function setRuntimeModDataDir(_nimiDataDir: string): Promise<Runtim
   return getRuntimeModStorageDirs();
 }
 
+// The `nimi_data` directory-ownership + migration flow (P-MIG-006/007/008) is a
+// desktop Tauri-only capability: it moves an on-disk data root and reclaims
+// directories on the host filesystem. The web shell has no nimi_data root, so
+// these fail closed rather than synthesizing a fake migration outcome.
+export async function previewNimiDataMigration(_targetRoot: string): Promise<NimiDataMigrationPreview> {
+  throw new Error('nimi_data migration is only available in desktop runtime');
+}
+
+export async function runNimiDataMigration(_targetRoot: string): Promise<NimiDataMigrationOutcome> {
+  throw new Error('nimi_data migration is only available in desktop runtime');
+}
+
+export async function planNimiDataCleanup(_directory: string): Promise<NimiDataCleanupPlan> {
+  throw new Error('nimi_data cleanup is only available in desktop runtime');
+}
+
+export async function executeNimiDataCleanup(
+  _directory: string,
+  _confirmation?: string,
+): Promise<NimiDataCleanupOutcome> {
+  throw new Error('nimi_data cleanup is only available in desktop runtime');
+}
+
+export async function planNimiDataOldRootReclaim(_oldRoot: string): Promise<NimiDataCleanupPlan> {
+  throw new Error('nimi_data old-root reclaim is only available in desktop runtime');
+}
+
+export async function executeNimiDataOldRootReclaim(
+  _oldRoot: string,
+  _confirmation?: string,
+): Promise<NimiDataCleanupOutcome> {
+  throw new Error('nimi_data old-root reclaim is only available in desktop runtime');
+}
+
 export async function listRuntimeModDiagnostics(): Promise<RuntimeModDiagnosticRecord[]> {
   return [];
 }
@@ -393,6 +431,12 @@ export const desktopBridge = {
   getRuntimeModDeveloperMode,
   setRuntimeModDeveloperMode,
   setRuntimeModDataDir,
+  previewNimiDataMigration,
+  runNimiDataMigration,
+  planNimiDataCleanup,
+  executeNimiDataCleanup,
+  planNimiDataOldRootReclaim,
+  executeNimiDataOldRootReclaim,
   listRuntimeModDiagnostics,
   openRuntimeModDir,
   reloadRuntimeMod,

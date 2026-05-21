@@ -64,6 +64,7 @@ surfaces:
   - registered_command_families_30
   - registered_command_families_31
   - registered_command_families_32
+  - registered_command_families_33
   - dormant_command_families_1
 # Desktop Tauri command execution classification.
 # Source of truth for D-GATE-092..D-GATE-096.
@@ -636,6 +637,16 @@ registered_command_families:
       - runtime_bridge_block_on
       - block_on_variants
       - sync_lock_contention
+    source_rule: D-GATE-092
+
+  - family: nimi_data_migration
+    match:
+      regex: "^nimi_data_(migration|cleanup|old_root_reclaim)_.*$"
+    origin_crate: apps/desktop/src-tauri
+    owner_domain: desktop-nimi-data-migration
+    execution_class: request_response_async
+    remediation_required: false
+    admitted_risks: []
     source_rule: D-GATE-092
 
   - family: factory_profile_index

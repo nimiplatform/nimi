@@ -72,7 +72,7 @@ Desktop 通过 `runtime_bridge_status` 轮询获取 `running` 状态。`running=
 - **环境变量覆盖不可见性**：环境变量优先级高于配置文件（K-DAEMON-009 三层优先级）。Desktop UI 展示配置文件中的值，不反映环境变量覆盖。此为已知限制，Phase 1 不解决。
 - **向前兼容**：Runtime 新增配置字段在 Desktop 未更新时不可见。`config_get` 返回完整 JSON（含未识别字段），`config_set` 透传未识别字段（不丢弃）。
 
-canonical 配置路径固定为 `.nimi/config.json`；Desktop 不得保留 `.nimi/runtime/config.json` fallback。
+canonical 配置路径固定为 `~/.nimi/runtime/config.json`（K-CFG-001）；Desktop 不得保留 root-level `~/.nimi/config.json` fallback，该旧路径仅可作为显式迁移输入。
 
 ## D-IPC-004 — HTTP 代理命令
 

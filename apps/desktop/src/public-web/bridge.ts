@@ -10,6 +10,15 @@ export { confirmPrivateSync, startWindowDrag } from '../shell/renderer/bridge/ru
 export type { AppsBridgeProjection } from '../shell/renderer/bridge/runtime-bridge/apps-projection';
 
 export type {
+  NimiDataMigrationState,
+  NimiDataDirectoryImpact,
+  NimiDataMigrationPreview,
+  NimiDataMigrationOutcome,
+  NimiDataCleanupPlan,
+  NimiDataCleanupOutcome,
+} from '../shell/renderer/bridge/runtime-bridge/nimi-data-migration';
+
+export type {
   DesktopReleaseInfo,
   DesktopUpdateCheckResult,
   DesktopUpdateState,

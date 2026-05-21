@@ -28,6 +28,14 @@ import {
   setProductFirstRunInstallLevel,
   setProductFirstRunSetupState,
 } from './runtime-bridge/product-control';
+import {
+  executeNimiDataCleanup,
+  executeNimiDataOldRootReclaim,
+  planNimiDataCleanup,
+  planNimiDataOldRootReclaim,
+  previewNimiDataMigration,
+  runNimiDataMigration,
+} from './runtime-bridge/nimi-data-migration';
 import { getAppsBridgeProjection } from './runtime-bridge/apps-projection';
 import {
   createAccountProfileLibraryProfile,
@@ -111,6 +119,17 @@ export type {
   ProductControlState,
   AccountDefaultProfileAIProfile,
 } from './runtime-bridge/product-control';
+
+export type {
+  NimiDataMigrationState,
+  NimiDataDirectoryImpact,
+  NimiDataMigrationPreview,
+  NimiDataMigrationOutcome,
+  NimiDataCleanupPlan,
+  NimiDataCleanupOutcome,
+} from './runtime-bridge/nimi-data-migration';
+
+export { NIMI_DATA_DESTRUCTIVE_CLEANUP_CONFIRMATION } from './runtime-bridge/nimi-data-migration';
 
 export type { AppsBridgeProjection } from './runtime-bridge/apps-projection';
 
@@ -220,6 +239,12 @@ export {
   setProductFirstRunSetupState,
   admitProductReadyForUse,
   getAccountDefaultProfileForScopeInit,
+  previewNimiDataMigration,
+  runNimiDataMigration,
+  planNimiDataCleanup,
+  executeNimiDataCleanup,
+  planNimiDataOldRootReclaim,
+  executeNimiDataOldRootReclaim,
   getAppsBridgeProjection,
   listAccountProfileLibrary,
   createAccountProfileLibraryProfile,
@@ -316,6 +341,12 @@ export const desktopBridge = {
   setProductFirstRunInstallLevel,
   setProductFirstRunSetupState,
   admitProductReadyForUse,
+  previewNimiDataMigration,
+  runNimiDataMigration,
+  planNimiDataCleanup,
+  executeNimiDataCleanup,
+  planNimiDataOldRootReclaim,
+  executeNimiDataOldRootReclaim,
   getAppsBridgeProjection,
   startWindowDrag,
   proxyHttp,

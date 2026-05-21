@@ -12,7 +12,10 @@ const SOURCE_ROOTS = [
 ];
 const SOURCE_EXTENSIONS = new Set(['.ts', '.tsx', '.rs']);
 const SKIP_DIRS = new Set(['node_modules', 'dist', 'target', '.git']);
-const LEGACY_RUNTIME_CONFIG_PATH = /\.nimi\/runtime\/config\.json/g;
+// K-CFG-001: canonical runtime config is ~/.nimi/runtime/config.json. The
+// root-level ~/.nimi/config.json is retired and may only be read as explicit
+// migration input, never advertised as a desktop config path.
+const LEGACY_RUNTIME_CONFIG_PATH = /\.nimi\/config\.json/g;
 
 function toRepoRelative(filePath) {
   return path.relative(repoRoot, filePath).replaceAll(path.sep, '/');
@@ -67,7 +70,7 @@ async function main() {
     }
   }
   if (violations.length > 0) {
-    process.stderr.write('legacy desktop runtime config fallback path is forbidden; use .nimi/config.json only\n');
+    process.stderr.write('legacy desktop runtime config fallback path is forbidden; use ~/.nimi/runtime/config.json only\n');
     for (const violation of violations) {
       process.stderr.write(`- ${violation}\n`);
     }

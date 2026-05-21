@@ -152,7 +152,7 @@ desktop_runtime_config_path_gate:
   type: static_gate
   command: pnpm check:desktop-no-legacy-runtime-config-path
   path: package.json
-  description: Forbids desktop fallback to the retired .nimi/runtime/config.json path.
+  description: Forbids desktop fallback to the retired root-level .nimi/config.json path.
 desktop_local_ai_bridge_gate:
   type: static_gate
   command: pnpm check:no-local-ai-private-calls && pnpm check:no-local-ai-tauri-commands
