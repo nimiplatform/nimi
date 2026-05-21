@@ -397,3 +397,4 @@ export function createModRuntimeClient(modId: string, context?: ModRuntimeContex
 
 export type * from './types.js';
 export * from './ai-config.js';
+export * from './app-ai-config.js';
