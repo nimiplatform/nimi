@@ -517,7 +517,6 @@ registered_command_families:
       - runtime_mod_dev_mode_get
       - runtime_mod_dev_mode_set
       - runtime_mod_storage_dirs_get
-      - runtime_mod_data_dir_set
       - runtime_mod_diagnostics_list
       - runtime_mod_reload
       - runtime_mod_reload_all
@@ -647,6 +646,21 @@ registered_command_families:
     execution_class: request_response_async
     remediation_required: false
     admitted_risks: []
+    source_rule: D-GATE-092
+
+  - family: desktop_logs_export
+    match:
+      exact:
+        - desktop_logs_export
+    origin_crate: apps/desktop/src-tauri
+    owner_domain: desktop-support-logs-export
+    execution_class: bounded_blocking_with_admission
+    remediation_required: false
+    admitted_risks:
+      - std_fs
+      - archive_or_compression
+      - process_command
+      - spawn_blocking
     source_rule: D-GATE-092
 
   - family: factory_profile_index

@@ -36,7 +36,12 @@ import {
   previewNimiDataMigration,
   runNimiDataMigration,
 } from './runtime-bridge/nimi-data-migration';
+import { exportDesktopLogs } from './runtime-bridge/support-logs-export';
 import { getAppsBridgeProjection } from './runtime-bridge/apps-projection';
+import {
+  applyLibraryMutation,
+  getAccountAppLibrary,
+} from './runtime-bridge/account-app-library';
 import {
   createAccountProfileLibraryProfile,
   deleteAccountProfileLibraryProfile,
@@ -67,7 +72,6 @@ import {
   readRuntimeLocalModAsset,
   readRuntimeLocalModEntry,
   removeRuntimeModSource,
-  setRuntimeModDataDir,
   subscribeRuntimeModInstallProgress,
   subscribeRuntimeModReloadResult,
   subscribeRuntimeModSourceChanged,
@@ -131,7 +135,16 @@ export type {
 
 export { NIMI_DATA_DESTRUCTIVE_CLEANUP_CONFIRMATION } from './runtime-bridge/nimi-data-migration';
 
+export type { LogsExportResult } from './runtime-bridge/support-logs-export';
+
 export type { AppsBridgeProjection } from './runtime-bridge/apps-projection';
+
+export type {
+  AccountAppLibraryMutationKind,
+  AccountAppLibraryRecord,
+  AccountAppLibraryRow,
+  DesktopAppLibraryBridge,
+} from './runtime-bridge/account-app-library';
 
 export type {
   AccountProfileLibraryProjection,
@@ -245,7 +258,10 @@ export {
   executeNimiDataCleanup,
   planNimiDataOldRootReclaim,
   executeNimiDataOldRootReclaim,
+  exportDesktopLogs,
   getAppsBridgeProjection,
+  getAccountAppLibrary,
+  applyLibraryMutation,
   listAccountProfileLibrary,
   createAccountProfileLibraryProfile,
   editAccountProfileLibraryProfile,
@@ -279,7 +295,6 @@ export {
   removeRuntimeModSource,
   getRuntimeModDeveloperMode,
   setRuntimeModDeveloperMode,
-  setRuntimeModDataDir,
   listRuntimeModDiagnostics,
   reloadRuntimeMod,
   reloadAllRuntimeMods,
@@ -347,6 +362,7 @@ export const desktopBridge = {
   executeNimiDataCleanup,
   planNimiDataOldRootReclaim,
   executeNimiDataOldRootReclaim,
+  exportDesktopLogs,
   getAppsBridgeProjection,
   startWindowDrag,
   proxyHttp,

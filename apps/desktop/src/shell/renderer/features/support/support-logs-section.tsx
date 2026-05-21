@@ -6,15 +6,21 @@
  * `runtime_product_support`). The directory path is derived from the typed
  * `runtime_mod_storage_dirs_get` projection; the user can open it natively.
  *
- * Log EXPORT (`D-SUP-006` "用户可定位的导出工件"): there is currently NO typed
- * upstream IPC that produces a log-export artifact. Per the contract, a
- * missing export surface MUST fail closed to a typed state — this sub-area
- * does NOT synthesize an empty export file or a pseudo-success artifact. The
- * export affordance surfaces the typed unavailable reason instead.
+ * Log EXPORT (`D-SUP-006` "用户可定位的导出工件"): the export action invokes the
+ * typed `desktop_logs_export` command, which bundles `<nimi_data>/logs/` into a
+ * user-locatable `.zip` archive in the OS Downloads directory and reveals it.
+ * On a typed backend failure (missing / unreadable / empty logs directory) the
+ * action fails closed to a typed error state — it never synthesizes an empty
+ * export file or a pseudo-success artifact.
  */
 
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { desktopBridge, type RuntimeModStorageDirs } from '@renderer/bridge';
+import {
+  desktopBridge,
+  type LogsExportResult,
+  type RuntimeModStorageDirs,
+} from '@renderer/bridge';
 import { useSupportProjection } from './support-projection.js';
 import {
   SupportCard,
@@ -27,12 +33,11 @@ import { DESKTOP_LOG_AREAS, DESKTOP_LOG_AREA_LABEL_KEY } from './support-log-are
 
 /**
  * Whether a typed log-export IPC exists. The Support `logs` export artifact
- * (`D-SUP-006`) requires a runtime-owned export command producing a
- * user-locatable artifact; no such command exists yet. The flag is `false`
- * until that upstream typed surface lands — and the UI fail-closes honestly
- * rather than fabricating an export.
+ * (`D-SUP-006`) is produced by the runtime-host `desktop_logs_export` command.
+ * That typed surface now exists, so the export action is live; the UI still
+ * fails closed honestly when the command returns a typed error.
  */
-const LOG_EXPORT_IPC_AVAILABLE = false;
+const LOG_EXPORT_IPC_AVAILABLE = true;
 
 function deriveLogsDirectory(nimiDataDir: string): string {
   const trimmed = nimiDataDir.trim();
@@ -44,6 +49,83 @@ function deriveLogsDirectory(nimiDataDir: string): string {
 
 async function loadLogsProjection(): Promise<RuntimeModStorageDirs> {
   return desktopBridge.getRuntimeModStorageDirs();
+}
+
+/** Typed state of the in-component log-export action (`D-SUP-006`). */
+type LogsExportState =
+  | { status: 'idle' }
+  | { status: 'running' }
+  | { status: 'done'; result: LogsExportResult }
+  | { status: 'failed'; reason: string };
+
+function SupportLogsExportCard() {
+  const { t } = useTranslation();
+  const [exportState, setExportState] = useState<LogsExportState>({ status: 'idle' });
+
+  async function runExport() {
+    setExportState({ status: 'running' });
+    try {
+      const result = await desktopBridge.exportDesktopLogs();
+      setExportState({ status: 'done', result });
+    } catch (error) {
+      // D-SUP-006: a typed backend failure (missing / unreadable / empty logs
+      // directory) fails closed to a typed reason — never a fake artifact.
+      const reason = error instanceof Error ? error.message : String(error);
+      setExportState({ status: 'failed', reason });
+    }
+  }
+
+  return (
+    <SupportCard
+      title={t('Support.logsExportTitle')}
+      description={t('Support.logsExportDescription')}
+      testId="support-logs-export"
+    >
+      <button
+        type="button"
+        data-testid="support-logs-export-button"
+        disabled={exportState.status === 'running'}
+        onClick={() => {
+          void runExport();
+        }}
+        className="inline-flex items-center rounded-lg border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-3 py-2 text-xs font-medium text-[var(--nimi-text-primary)] transition hover:bg-[var(--nimi-surface-active)] disabled:opacity-50"
+      >
+        {exportState.status === 'running'
+          ? t('Support.logsExportRunning')
+          : t('Support.logsExportButton')}
+      </button>
+
+      {exportState.status === 'done' ? (
+        <div
+          data-testid="support-logs-export-done"
+          className="mt-4 space-y-2 rounded-lg bg-[var(--nimi-surface-canvas)] px-3 py-2"
+        >
+          <p className="text-xs font-medium text-[var(--nimi-status-positive)]">
+            {t('Support.logsExportSucceeded', {
+              files: exportState.result.fileCount,
+            })}
+          </p>
+          <div className="divide-y divide-[var(--nimi-border-subtle)]">
+            <SupportInfoRow
+              label={t('Support.logsExportArtifactLabel')}
+              value={exportState.result.artifactPath}
+            />
+          </div>
+        </div>
+      ) : null}
+
+      {exportState.status === 'failed' ? (
+        // D-SUP-006: typed fail-closed state. The backend reason is surfaced
+        // verbatim; no export artifact is fabricated.
+        <p
+          data-testid="support-logs-export-failed"
+          className="mt-4 break-words rounded-lg bg-[var(--nimi-surface-canvas)] px-3 py-2 text-xs text-[var(--nimi-status-warning)]"
+        >
+          {t('Support.logsExportFailed', { reason: exportState.reason })}
+        </p>
+      ) : null}
+    </SupportCard>
+  );
 }
 
 export function SupportLogsSection() {
@@ -136,22 +218,10 @@ export function SupportLogsSection() {
         </ul>
       </SupportCard>
 
-      <SupportCard
-        title={t('Support.logsExportTitle')}
-        description={t('Support.logsExportDescription')}
-        testId="support-logs-export"
-      >
-        {LOG_EXPORT_IPC_AVAILABLE ? null : (
-          // D-SUP-006: no typed log-export IPC exists. Fail closed to a typed
-          // unavailable state — never fabricate an empty export artifact.
-          <p
-            data-testid="support-logs-export-unavailable"
-            className="break-words rounded-lg bg-[var(--nimi-surface-canvas)] px-3 py-2 text-xs text-[var(--nimi-status-warning)]"
-          >
-            {t('Support.logsExportUnavailable')}
-          </p>
-        )}
-      </SupportCard>
+      {/* D-SUP-006: log export produces a user-locatable archive via the typed
+          desktop_logs_export command; the action fails closed on a typed
+          backend error. */}
+      {LOG_EXPORT_IPC_AVAILABLE ? <SupportLogsExportCard /> : null}
     </SupportSectionShell>
   );
 }

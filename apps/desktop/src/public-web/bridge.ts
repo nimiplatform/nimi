@@ -18,6 +18,8 @@ export type {
   NimiDataCleanupOutcome,
 } from '../shell/renderer/bridge/runtime-bridge/nimi-data-migration';
 
+export type { LogsExportResult } from '../shell/renderer/bridge/runtime-bridge/support-logs-export';
+
 export type {
   DesktopReleaseInfo,
   DesktopUpdateCheckResult,

@@ -179,14 +179,16 @@ test('D-SUP-005: diagnostics consumes typed runtime projections only', () => {
   assert.match(source, /getSystemResourceSnapshot/);
 });
 
-test('D-SUP-006: logs consumes the log-areas table and fails closed on export', () => {
+test('D-SUP-006: logs consumes the log-areas table and exports via the typed IPC', () => {
   const source = readDesktop(SECTION_FILES.logs);
   assert.match(source, /DESKTOP_LOG_AREAS/);
   assert.match(source, /getRuntimeModStorageDirs/);
-  // No typed log-export IPC exists yet — export must fail closed, never
-  // synthesize an empty artifact.
-  assert.match(source, /LOG_EXPORT_IPC_AVAILABLE/);
-  assert.match(source, /support-logs-export-unavailable/);
+  // The typed `desktop_logs_export` IPC produces the user-locatable artifact.
+  assert.match(source, /exportDesktopLogs/);
+  // The export action fails closed to a typed error state — it never
+  // synthesizes an artifact path or a pseudo-success result.
+  assert.match(source, /support-logs-export-failed/);
+  assert.match(source, /support-logs-export-done/);
 });
 
 test('D-SUP-006: the log-areas projection matches the kernel closed enum', () => {

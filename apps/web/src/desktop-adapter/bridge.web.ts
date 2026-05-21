@@ -82,6 +82,7 @@ import type {
   NimiDataMigrationOutcome,
   NimiDataCleanupPlan,
   NimiDataCleanupOutcome,
+  LogsExportResult,
 } from '@desktop-public/bridge';
 
 export type {
@@ -238,10 +239,6 @@ export async function setRuntimeModDeveloperMode(_input: {
   return { enabled: false, autoReloadEnabled: false };
 }
 
-export async function setRuntimeModDataDir(_nimiDataDir: string): Promise<RuntimeModStorageDirs> {
-  return getRuntimeModStorageDirs();
-}
-
 // The `nimi_data` directory-ownership + migration flow (P-MIG-006/007/008) is a
 // desktop Tauri-only capability: it moves an on-disk data root and reclaims
 // directories on the host filesystem. The web shell has no nimi_data root, so
@@ -274,6 +271,14 @@ export async function executeNimiDataOldRootReclaim(
   _confirmation?: string,
 ): Promise<NimiDataCleanupOutcome> {
   throw new Error('nimi_data old-root reclaim is only available in desktop runtime');
+}
+
+// The Support `logs` export (`D-SUP-006`) bundles the on-disk `<nimi_data>/logs/`
+// directory into a user-locatable archive — a desktop Tauri-only capability.
+// The web shell has no nimi_data root, so the export fails closed rather than
+// synthesizing a fake artifact.
+export async function exportDesktopLogs(): Promise<LogsExportResult> {
+  unsupportedDesktopRuntime('Log export is only available in desktop runtime');
 }
 
 export async function listRuntimeModDiagnostics(): Promise<RuntimeModDiagnosticRecord[]> {
@@ -430,13 +435,13 @@ export const desktopBridge = {
   removeRuntimeModSource,
   getRuntimeModDeveloperMode,
   setRuntimeModDeveloperMode,
-  setRuntimeModDataDir,
   previewNimiDataMigration,
   runNimiDataMigration,
   planNimiDataCleanup,
   executeNimiDataCleanup,
   planNimiDataOldRootReclaim,
   executeNimiDataOldRootReclaim,
+  exportDesktopLogs,
   listRuntimeModDiagnostics,
   openRuntimeModDir,
   reloadRuntimeMod,
