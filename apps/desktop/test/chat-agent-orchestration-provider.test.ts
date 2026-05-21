@@ -524,3 +524,43 @@ test('ai chat execution engine reuse readiness requires text scope and existing 
   assert.ok(preflight.reasons.includes('behavior_authority_change_required'));
   assert.ok(preflight.reasons.includes('policy_authority_change_required'));
 });
+
+test('built-in docs corpus attaches to the per-turn system prompt as context only', () => {
+  // T9.W3 Part B — the built-in usage documentation corpus carried on the
+  // RealmAgent profile (`AgentLocalTargetSnapshot.builtinDocsContext`) is
+  // attached to the per-turn system prompt as a context-only section.
+  const request = buildAgentLocalChatExecutionTextRequest({
+    systemPrompt: 'Be warm and concise.',
+    targetSnapshot: {
+      ...sampleTarget(),
+      builtinDocsContext: '## First-run setup\nSign in and choose a data folder.',
+    },
+    history: sampleTurnInput().history,
+    userText: 'How do I set up Nimi?',
+    context: sampleTurnContext(),
+    resolvedBehavior: resolveAgentChatBehavior({
+      userText: 'How do I set up Nimi?',
+      settings: { thinkingPreference: 'off', maxOutputTokensOverride: null },
+    }),
+  });
+  // The corpus is attached, marked explicitly as context only.
+  assert.match(request.systemPrompt || '', /BuiltinDocumentation:/);
+  assert.match(request.systemPrompt || '', /## First-run setup/);
+  assert.match(request.systemPrompt || '', /It is context only/);
+  assert.match(request.systemPrompt || '', /does not grant permissions/);
+});
+
+test('a RealmAgent with no built-in docs corpus produces no docs section', () => {
+  const request = buildAgentLocalChatExecutionTextRequest({
+    systemPrompt: 'Be warm and concise.',
+    targetSnapshot: sampleTarget(),
+    history: sampleTurnInput().history,
+    userText: 'What should we do next?',
+    context: sampleTurnContext(),
+    resolvedBehavior: resolveAgentChatBehavior({
+      userText: 'What should we do next?',
+      settings: { thinkingPreference: 'off', maxOutputTokensOverride: null },
+    }),
+  });
+  assert.doesNotMatch(request.systemPrompt || '', /BuiltinDocumentation:/);
+});

@@ -3749,6 +3749,8 @@ export type components = {
         };
         AgentProfileDto: {
             activeWorldId?: string;
+            /** @description Ordinary RealmAgent first-turn opening message (AgentProfile.greeting). When present and non-empty, an empty AgentFriend chat thread opens with it as the first assistant message. */
+            greeting?: string | null;
             importance?: components["schemas"]["AgentImportance"];
             ownerWorldId?: string | null;
             ownershipType?: components["schemas"]["AgentOwnershipType"];

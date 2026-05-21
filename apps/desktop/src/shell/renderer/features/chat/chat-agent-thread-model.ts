@@ -15,6 +15,10 @@ import {
   parseOptionalString,
   parseRequiredString,
 } from '@renderer/bridge/runtime-bridge/shared';
+import {
+  projectRealmAgentBuiltinDocsContext,
+  projectRealmAgentGreeting,
+} from './agent-profile-projection.js';
 
 function toIsoString(timestampMs: number): string {
   return new Date(timestampMs).toISOString();
@@ -100,6 +104,46 @@ export function mergeAgentTargetWithPresentationProfile(
     ...target,
     avatarUrl: nextAvatarUrl,
     presentationProfile: nextPresentationProfile,
+  };
+}
+
+/**
+ * Overlay the live Realm/SDK projected RealmAgent profile content onto a
+ * persisted thread target.
+ *
+ * A persisted thread `targetSnapshot` carries durable identity but does not
+ * round-trip live RealmAgent profile content (`presentationProfile`,
+ * `greeting`, `builtinDocsContext`). The live projected target — refreshed
+ * from the Realm/SDK agent projection — is the source of truth for that
+ * content at chat time. This overlays it generically for any RealmAgent.
+ */
+export function overlayAgentTargetWithLiveProfileContent(
+  threadTarget: AgentLocalTargetSnapshot | null,
+  liveTarget: AgentLocalTargetSnapshot | null | undefined,
+): AgentLocalTargetSnapshot | null {
+  if (!threadTarget) {
+    return null;
+  }
+  if (!liveTarget || liveTarget.localAgentRef !== threadTarget.localAgentRef) {
+    return threadTarget;
+  }
+  const merged = mergeAgentTargetWithPresentationProfile(
+    threadTarget,
+    liveTarget.presentationProfile || null,
+  ) as AgentLocalTargetSnapshot;
+  const nextGreeting = liveTarget.greeting ?? threadTarget.greeting ?? null;
+  const nextDocs = liveTarget.builtinDocsContext ?? threadTarget.builtinDocsContext ?? null;
+  if (
+    nextGreeting === (threadTarget.greeting ?? null)
+    && nextDocs === (threadTarget.builtinDocsContext ?? null)
+    && merged === threadTarget
+  ) {
+    return threadTarget;
+  }
+  return {
+    ...merged,
+    greeting: nextGreeting,
+    builtinDocsContext: nextDocs,
   };
 }
 
@@ -193,6 +237,10 @@ function parseAgentFriendTarget(value: unknown, ownerUserId: string): AgentLocal
       || null,
     bio: parseOptionalString(record.bio) || null,
     ownershipType: parseOwnershipType(record.ownershipType || agentProfile?.ownershipType),
+    // Ordinary RealmAgent profile content projected from the Realm agent
+    // projection — applies to any RealmAgent, no guide-specific branch.
+    greeting: projectRealmAgentGreeting(agentProfile),
+    builtinDocsContext: projectRealmAgentBuiltinDocsContext(agentProfile),
   };
 }
 

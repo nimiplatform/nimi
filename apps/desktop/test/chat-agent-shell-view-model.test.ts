@@ -28,6 +28,8 @@ function sampleTargets(): AgentLocalTargetSnapshot[] {
     worldName: 'World One',
     bio: 'friend agent',
     ownershipType: 'MASTER_OWNED',
+    greeting: null,
+    builtinDocsContext: null,
   }, {
     ownerUserId: 'user-1',
     realmAgentId: 'agent-2',
@@ -39,6 +41,8 @@ function sampleTargets(): AgentLocalTargetSnapshot[] {
     worldName: null,
     bio: null,
     ownershipType: null,
+    greeting: null,
+    builtinDocsContext: null,
   }];
 }
 

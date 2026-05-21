@@ -33,6 +33,11 @@ export type RealmAgentFriendTarget = {
   worldId: string | null;
   worldName: string | null;
   bio: string | null;
+  // Optional ordinary RealmAgent profile content. Explore card data carries
+  // identity only; when these are absent the live Realm/SDK agent projection
+  // supplies them at chat time.
+  greeting?: string | null;
+  builtinDocsContext?: string | null;
 };
 
 function requireOwnerUserId(): string {
@@ -67,6 +72,8 @@ function toLocalAgentTarget(
     worldName: target.worldName ?? null,
     bio: target.bio ?? null,
     ownershipType: null,
+    greeting: target.greeting ?? null,
+    builtinDocsContext: target.builtinDocsContext ?? null,
   };
 }
 

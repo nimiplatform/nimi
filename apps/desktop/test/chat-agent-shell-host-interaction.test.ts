@@ -42,6 +42,8 @@ function sampleThread(): AgentLocalThreadRecord {
       worldName: null,
       bio: null,
       ownershipType: null,
+      greeting: null,
+      builtinDocsContext: null,
     },
   };
 }

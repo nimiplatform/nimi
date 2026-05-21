@@ -12,7 +12,7 @@ import type {
 } from '@renderer/bridge/runtime-bridge/types';
 import { chatAgentStoreClient } from '@renderer/bridge/runtime-bridge/chat-agent-store';
 import {
-  mergeAgentTargetWithPresentationProfile,
+  overlayAgentTargetWithLiveProfileContent,
   resolveAgentConversationActiveThreadId,
   toAgentFriendTargetsFromSocialSnapshot,
   toConversationMessageViewModel,
@@ -199,7 +199,7 @@ export function useAgentConversationShellState(
       return selectedTarget || null;
     }
     if (selectedTarget?.localAgentRef === threadTarget.localAgentRef) {
-      return mergeAgentTargetWithPresentationProfile(threadTarget, selectedTarget.presentationProfile || null);
+      return overlayAgentTargetWithLiveProfileContent(threadTarget, selectedTarget);
     }
     return threadTarget;
   }, [selectedTarget, selectedThreadRecord?.targetSnapshot]);

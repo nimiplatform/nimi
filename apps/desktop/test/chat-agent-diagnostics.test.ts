@@ -20,6 +20,8 @@ function sampleTarget() {
     worldName: 'World One',
     bio: 'Helpful companion',
     ownershipType: 'WORLD_OWNED' as const,
+    greeting: null,
+    builtinDocsContext: null,
   };
 }
 

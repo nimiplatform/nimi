@@ -46,6 +46,8 @@ test('agent local mode filters social snapshot to agent friends and fails close 
     worldName: 'World One',
     bio: 'friend agent',
     ownershipType: 'MASTER_OWNED',
+    greeting: null,
+    builtinDocsContext: null,
   }]);
 
   assert.throws(() => {
@@ -90,6 +92,8 @@ test('agent local mode treats Archivist as an ordinary agent friend target', () 
     worldName: 'OASIS',
     bio: 'Nimi guide agent',
     ownershipType: 'MASTER_OWNED',
+    greeting: null,
+    builtinDocsContext: null,
   }]);
   assert.notEqual(targets[0]?.handle, '@archivist.nimi');
 });
@@ -117,6 +121,8 @@ test('agent local mode resolves the selected agent to its existing thread before
         worldName: null,
         bio: null,
         ownershipType: null,
+        greeting: null,
+        builtinDocsContext: null,
       },
     },
     {
@@ -140,6 +146,8 @@ test('agent local mode resolves the selected agent to its existing thread before
         worldName: null,
         bio: null,
         ownershipType: null,
+        greeting: null,
+        builtinDocsContext: null,
       },
     },
   ];
@@ -182,6 +190,8 @@ test('agent session hydration does not replace missing local bundle with text-on
       worldName: null,
       bio: null,
       ownershipType: null,
+      greeting: null,
+      builtinDocsContext: null,
     },
   };
 
@@ -225,6 +235,8 @@ test('agent session hydration preserves local pending projections over runtime s
       worldName: null,
       bio: null,
       ownershipType: null,
+      greeting: null,
+      builtinDocsContext: null,
     },
   };
 
@@ -289,6 +301,8 @@ test('agent session hydration does not drop committed assistant text when failed
       worldName: null,
       bio: null,
       ownershipType: null,
+      greeting: null,
+      builtinDocsContext: null,
     },
   };
 
@@ -397,6 +411,8 @@ test('agent session hydration preserves committed assistant image projection whe
       worldName: null,
       bio: null,
       ownershipType: null,
+      greeting: null,
+      builtinDocsContext: null,
     },
   };
 
@@ -499,6 +515,8 @@ test('agent session hydration merges committed media projections when runtime te
       worldName: null,
       bio: null,
       ownershipType: null,
+      greeting: null,
+      builtinDocsContext: null,
     },
   };
 

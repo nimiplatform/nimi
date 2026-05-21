@@ -217,6 +217,12 @@ export function parseAgentLocalTargetSnapshot(value: unknown): AgentLocalTargetS
     worldName: parseOptionalString(record.worldName) || null,
     bio: parseOptionalString(record.bio) || null,
     ownershipType: parseOwnershipType(record.ownershipType, 'chat_agent target snapshot'),
+    // `greeting` / `builtinDocsContext` are live Realm/SDK projection data and
+    // are not round-tripped through persisted thread-target storage; a stored
+    // thread target legitimately omits them, so they default to null here and
+    // the live projected target supplies them at chat time.
+    greeting: parseOptionalString(record.greeting) || null,
+    builtinDocsContext: parseOptionalString(record.builtinDocsContext) || null,
   };
 }
 

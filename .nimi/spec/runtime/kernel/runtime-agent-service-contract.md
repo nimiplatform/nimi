@@ -757,3 +757,56 @@ Fixed rules:
 memory without its row. Deletion of the row and its agent-scoped
 state/hooks/event-log/memory either completes together or fails closed as a
 typed error.
+
+## K-AGCORE-142 Built-In Usage Documentation Corpus Authoring And Context Attachment
+
+K-AGCORE-140 admits "built-in Nimi usage documentation attached as context" and
+bounds what that documentation must not become. K-AGCORE-142 is the positive
+counterpart: it names where the built-in usage documentation corpus is authored
+and stored, and how it is admitted as the Nimi guide's per-turn context
+attachment, without introducing a special official-guide path.
+
+Authoring and storage:
+
+- the built-in Nimi usage documentation corpus is ordinary RealmAgent profile
+  content authored alongside the guide RealmAgent definition (the same
+  Nimi-authored bootstrap definition that owns the guide `greeting` /
+  `systemPromptBase`), not a separate platform-owned bespoke docs artifact and
+  not a separate admitted docs schema;
+- the corpus is stored inside the projected RealmAgent's ordinary profile
+  knowledge payload (the `AgentProfile.dna` knowledge slot), so it rides the
+  same admitted Realm/SDK RealmAgent projection used for any RealmAgent's
+  profile content;
+- the corpus is bounded built-in product knowledge — first-run setup, Runtime,
+  profiles, Apps, Worlds, RealmAgents, LocalAgents, and Avatar — authored as
+  static structured text;
+- the corpus is ordinary RealmAgent profile content: any RealmAgent profile may
+  carry a built-in documentation knowledge payload through the same field. It
+  is not a guide-only schema, not a privileged Agent class field, and not a
+  quota/admission exception.
+
+Context attachment:
+
+- the corpus reaches the guide LocalAgent's chat turns as product
+  knowledge/context through the same per-turn prompt-context path the guide
+  `systemPromptBase` already uses — it augments the turn's assembled prompt
+  context and is not a separate retrieval surface;
+- attachment is per-turn context only: the corpus is not written into any
+  memory bank, is not a runtime-resident catalog, and is not consulted through
+  a privileged retrieval path.
+
+Source of truth and authoring location remain ordinary:
+
+- Runtime MUST NOT hold a runtime-local hardcoded usage documentation corpus,
+  guide docs catalog, or guide identity constant as parallel product truth; the
+  corpus is reached only through the admitted Realm/SDK RealmAgent projection,
+  consistent with K-AGCORE-140;
+- the desktop/consumer attaches the projected corpus to the per-turn context;
+  it does not author a parallel renderer-local docs corpus.
+
+`MUST NOT`: the built-in usage documentation corpus must not create Agent
+authority, memory truth, permission grant truth, Runtime setup truth, or
+profile/app configuration truth. It is product knowledge/context only,
+identical to the K-AGCORE-140 bound. The corpus may describe and direct the
+user to product surfaces, but it must not bypass setup confirmations,
+permissions, install plans, app admission, or ordinary LocalAgent mechanics.

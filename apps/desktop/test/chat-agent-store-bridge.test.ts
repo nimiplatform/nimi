@@ -81,6 +81,8 @@ function sampleTarget(): AgentLocalTargetSnapshot {
     worldName: 'World One',
     bio: 'friend agent',
     ownershipType: 'WORLD_OWNED',
+    greeting: null,
+    builtinDocsContext: null,
   };
 }
 

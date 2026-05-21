@@ -827,3 +827,8 @@ rules:
       - runtime_kernel_consistency
     note: TerminateAgent hard-deletes the AgentFriend LocalAgent projection (runtime_local_agent row plus agent-scoped state/hooks/event-log/memory), is idempotent for an already-absent agent, and snapshot persistence must not re-insert a deleted ref; implementation evidence lands with the T6.1 contacts removal-linkage implementation wave.
     evidence_requirement: required
+  - rule_id: K-AGCORE-142
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Built-in Nimi usage documentation corpus is ordinary RealmAgent profile content authored alongside the guide bootstrap definition and stored in the AgentProfile.dna knowledge slot, projected through the ordinary Realm/SDK RealmAgent projection and attached per-turn as context only; it is not a runtime-owned catalog, not memory truth, and not Agent/setup/profile authority.
+    evidence_requirement: required

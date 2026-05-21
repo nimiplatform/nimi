@@ -121,6 +121,7 @@ type _GuardAgentProfileDto = Assert<IsEqual<
   components['schemas']['AgentProfileDto'],
   {
     activeWorldId?: string;
+    greeting?: string | null;
     importance?: components['schemas']['AgentImportance'];
     ownerWorldId?: string | null;
     ownershipType?: components['schemas']['AgentOwnershipType'];

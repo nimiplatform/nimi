@@ -97,6 +97,10 @@ test('agent contact launch target fails closed and builds owner-scoped LocalAgen
     worldName: 'OASIS',
     bio: 'ordinary agent friend',
     ownershipType: 'MASTER_OWNED',
+    // Contact-launch sources carry identity only; ordinary RealmAgent profile
+    // content (greeting / docs) is supplied by the live Realm/SDK projection.
+    greeting: null,
+    builtinDocsContext: null,
   });
 
   assert.throws(() => {

@@ -70,6 +70,8 @@ function sampleTarget(): AgentLocalTargetSnapshot {
     worldName: null,
     bio: 'friend agent',
     ownershipType: null,
+    greeting: null,
+    builtinDocsContext: null,
   };
 }
 

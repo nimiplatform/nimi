@@ -51,6 +51,12 @@ export function toAgentContactLaunchTarget(
     worldName: source.worldName || null,
     bio: source.bio || null,
     ownershipType: normalizeOwnershipType(source.agentOwnershipType),
+    // Contact-launch sources carry identity only, not RealmAgent profile
+    // content. `greeting` / `builtinDocsContext` are supplied by the live
+    // Realm/SDK agent projection (the chat-surface targets) and overlaid onto
+    // the chat target at chat time; a contact-launch target leaves them null.
+    greeting: null,
+    builtinDocsContext: null,
   };
 }
 
