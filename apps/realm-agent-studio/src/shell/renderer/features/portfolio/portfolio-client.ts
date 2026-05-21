@@ -30,11 +30,21 @@ import {
 type RealmCreateAgentResponse = Awaited<ReturnType<Realm['services']['AgentsService']['agentControllerCreate']>>;
 type RealmSelectAvatarInput = Parameters<Realm['services']['AgentsService']['agentControllerSelectAvatar']>[1];
 type RealmSelectAvatarResponse = Awaited<ReturnType<Realm['services']['AgentsService']['agentControllerSelectAvatar']>>;
+export type RealmAgentVisibilitySettings = Awaited<ReturnType<Realm['services']['AgentsService']['agentControllerGetVisibility']>>;
+type RealmAgentVisibilityUpdateInput = Parameters<Realm['services']['AgentsService']['agentControllerUpdateVisibility']>[1];
 type RealmCreatePostInput = Parameters<Realm['services']['PostsService']['createPost']>[0];
 type RealmCreatePostResponse = Awaited<ReturnType<Realm['services']['PostsService']['createPost']>>;
 
 export const REALM_POST_PUBLISH_SOURCE = 'Realm PostsService.createPost';
 export const REALM_AGENT_AVATAR_SELECT_SOURCE = 'Realm AgentsService.agentControllerSelectAvatar';
+export const REALM_AGENT_VISIBILITY_SOURCE = 'Realm AgentsService.agentControllerUpdateVisibility';
+export const AGENT_VISIBILITY_VALUES = ['PUBLIC', 'FRIENDS', 'PRIVATE'] as const;
+export const AGENT_VISIBILITY_FIELDS = [
+  'accountVisibility',
+  'defaultPostVisibility',
+  'dmVisibility',
+  'profileVisibility',
+] as const;
 
 type RuntimeVoiceClient = {
   media: {
@@ -105,6 +115,28 @@ export type RealmAgentAvatarSelectResult =
     submitted: RealmSelectAvatarInput | null;
   };
 
+export type AgentVisibilityValue = typeof AGENT_VISIBILITY_VALUES[number];
+export type AgentVisibilityField = typeof AGENT_VISIBILITY_FIELDS[number];
+export type AgentVisibilityDraft = Record<AgentVisibilityField, string>;
+
+export type RealmAgentVisibilityUpdateResult =
+  | {
+    ok: true;
+    source: typeof REALM_AGENT_VISIBILITY_SOURCE;
+    lifecycleTruth: false;
+    submitted: RealmAgentVisibilityUpdateInput;
+    settings: RealmAgentVisibilitySettings;
+  }
+  | {
+    ok: false;
+    source: typeof REALM_AGENT_VISIBILITY_SOURCE;
+    lifecycleTruth: false;
+    failure: 'visibility-payload-invalid' | 'visibility-no-changes' | 'realm-update-visibility-failed';
+    message: string;
+    submitted: RealmAgentVisibilityUpdateInput | null;
+    draft: AgentVisibilityDraft;
+  };
+
 export type RuntimeVoiceDemoSynthesisResult =
   | {
     ok: true;
@@ -151,6 +183,10 @@ function normalizeAvatarUrl(value: string): string | null {
   } catch {
     return null;
   }
+}
+
+function isAgentVisibilityValue(value: string): value is AgentVisibilityValue {
+  return AGENT_VISIBILITY_VALUES.includes(value as AgentVisibilityValue);
 }
 
 function normalizeRuntimeVoiceDemoSynthesisOutput(
@@ -260,6 +296,44 @@ export function buildRealmSelectAvatarInput(avatarUrl: string): RealmSelectAvata
   return {
     avatarUrl: normalizedAvatarUrl,
   };
+}
+
+export function createAgentVisibilityDraft(settings: RealmAgentVisibilitySettings): AgentVisibilityDraft {
+  return {
+    accountVisibility: settings.accountVisibility,
+    defaultPostVisibility: settings.defaultPostVisibility,
+    dmVisibility: settings.dmVisibility,
+    profileVisibility: settings.profileVisibility,
+  };
+}
+
+export function buildRealmUpdateVisibilityInput(
+  draft: AgentVisibilityDraft,
+  current: RealmAgentVisibilitySettings,
+): { input: RealmAgentVisibilityUpdateInput | null; errors: string[] } {
+  const input: RealmAgentVisibilityUpdateInput = {};
+  const errors: string[] = [];
+
+  for (const field of AGENT_VISIBILITY_FIELDS) {
+    const value = draft[field];
+    if (!isAgentVisibilityValue(value)) {
+      errors.push(`${field} must be PUBLIC, FRIENDS, or PRIVATE`);
+      continue;
+    }
+    if (value !== current[field]) {
+      input[field] = value;
+    }
+  }
+
+  if (errors.length > 0) {
+    return { input: null, errors };
+  }
+
+  if (Object.keys(input).length === 0) {
+    return { input: null, errors: ['visibility settings have no reviewed changes'] };
+  }
+
+  return { input, errors: [] };
 }
 
 export function normalizeRealmAgentAvatarSelectResult(
@@ -414,6 +488,56 @@ export async function selectReviewedAgentAvatarUrl(
       failure: 'realm-select-avatar-failed',
       message: error instanceof Error ? error.message : 'Realm avatar selection failed.',
       submitted,
+    };
+  }
+}
+
+export async function getAgentVisibilitySettings(
+  agentId: string,
+  realm: Realm = createStudioRealmClient(),
+): Promise<RealmAgentVisibilitySettings> {
+  return realm.services.AgentsService.agentControllerGetVisibility(agentId);
+}
+
+export async function updateReviewedAgentVisibility(
+  agentId: string,
+  draft: AgentVisibilityDraft,
+  current: RealmAgentVisibilitySettings,
+  realm: Realm = createStudioRealmClient(),
+): Promise<RealmAgentVisibilityUpdateResult> {
+  const { input, errors } = buildRealmUpdateVisibilityInput(draft, current);
+  if (!input) {
+    return {
+      ok: false,
+      source: REALM_AGENT_VISIBILITY_SOURCE,
+      lifecycleTruth: false,
+      failure: errors.some((error) => error.includes('no reviewed changes'))
+        ? 'visibility-no-changes'
+        : 'visibility-payload-invalid',
+      message: errors.join('; ') || 'visibility payload invalid',
+      submitted: null,
+      draft,
+    };
+  }
+
+  try {
+    const settings = await realm.services.AgentsService.agentControllerUpdateVisibility(agentId, input);
+    return {
+      ok: true,
+      source: REALM_AGENT_VISIBILITY_SOURCE,
+      lifecycleTruth: false,
+      submitted: input,
+      settings,
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      source: REALM_AGENT_VISIBILITY_SOURCE,
+      lifecycleTruth: false,
+      failure: 'realm-update-visibility-failed',
+      message: error instanceof Error ? error.message : 'Realm visibility update failed.',
+      submitted: input,
+      draft,
     };
   }
 }

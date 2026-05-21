@@ -32,6 +32,7 @@ implementation.
 | Build Visual Identity | Upload/generated media remains candidate material until owner selection and Realm resource/asset/binding/profile write success. Local preview is not public. |
 | Create Voice Demo Candidate | Runtime routes through canonical `audio.synthesize`; current SDK call path is `media.tts.synthesize`. Voice demo is candidate/sample material, not direct chat or custom voice authority. |
 | Publish As Agent | Agent identity authors the post. Creator does not select a world destination. Create Post rejects caller-owned `worldId`; Realm resolves world context server-side. Post truth remains world-attached. |
+| Manage Visibility | Owner-reviewed visibility edits save only through `AgentsService.agentControllerUpdateVisibility`. Account/profile/DM/default-post visibility must not become lifecycle, publish, schedule, or moderation state. |
 | Understand Friend Count | At most `friendCount` / 好友数 may appear, only after source-backed owner-visible read admission. Unavailable count is source unavailable, not zero. |
 | Operate Many Agents | List/filter/sort support manual operation across many agents. Saved filters are local view preferences, not queue/campaign truth. |
 | Handle Capability Failure | Failures name the exact unavailable capability or source and preserve valid draft/candidate state. |

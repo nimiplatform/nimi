@@ -13,11 +13,19 @@ import {
 } from './portfolio-data.js';
 import {
   getOwnerPortfolioAgentDetail,
+  getAgentVisibilitySettings,
   listOwnerPortfolioAgents,
   publishReviewedPostDraft,
   selectReviewedAgentAvatarUrl,
   synthesizeReviewedVoiceDemo,
+  updateReviewedAgentVisibility,
+  AGENT_VISIBILITY_FIELDS,
+  AGENT_VISIBILITY_VALUES,
+  createAgentVisibilityDraft,
+  type AgentVisibilityDraft,
+  type AgentVisibilityField,
   type RealmAgentAvatarSelectResult,
+  type RealmAgentVisibilityUpdateResult,
   type RealmPostPublishResult,
   type RuntimeVoiceDemoSynthesisResult,
 } from './portfolio-client.js';
@@ -274,6 +282,145 @@ function SettingProposalWorkspace({ agent }: { agent: OwnerPortfolioAgentDetail 
           </FieldShell>
         </div>
       </div>
+    </Surface>
+  );
+}
+
+const VISIBILITY_FIELD_LABELS: Record<AgentVisibilityField, string> = {
+  accountVisibility: 'Account discoverability',
+  defaultPostVisibility: 'Default post visibility',
+  dmVisibility: 'Direct message visibility',
+  profileVisibility: 'Profile visibility',
+};
+
+function VisibilitySettingsWorkspace({ agent, onAgentWrite }: { agent: OwnerPortfolioAgentDetail; onAgentWrite: () => Promise<void> }) {
+  const visibilityQuery = useQuery({
+    queryKey: ['realm-agent-studio', 'owner-agent-visibility', agent.id],
+    queryFn: () => getAgentVisibilitySettings(agent.id),
+  });
+  const [draft, setDraft] = useState<AgentVisibilityDraft | null>(null);
+  const [humanReviewed, setHumanReviewed] = useState(false);
+  const [result, setResult] = useState<RealmAgentVisibilityUpdateResult | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    if (visibilityQuery.data) {
+      setDraft(createAgentVisibilityDraft(visibilityQuery.data));
+      setHumanReviewed(false);
+      setResult(null);
+      setIsSaving(false);
+    }
+  }, [agent.id, visibilityQuery.data]);
+
+  const hasChanges = useMemo(() => {
+    if (!draft || !visibilityQuery.data) {
+      return false;
+    }
+    return AGENT_VISIBILITY_FIELDS.some((field) => draft[field] !== visibilityQuery.data?.[field]);
+  }, [draft, visibilityQuery.data]);
+
+  function updateDraft(field: AgentVisibilityField, value: string) {
+    setDraft((current) => current ? { ...current, [field]: value } : current);
+    setHumanReviewed(false);
+    setResult(null);
+  }
+
+  async function saveVisibility() {
+    if (!draft || !visibilityQuery.data) {
+      return;
+    }
+
+    setIsSaving(true);
+    setResult(null);
+    try {
+      const updateResult = await updateReviewedAgentVisibility(agent.id, draft, visibilityQuery.data);
+      setResult(updateResult);
+      if (updateResult.ok) {
+        await visibilityQuery.refetch();
+        await onAgentWrite();
+      }
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  return (
+    <Surface tone="panel" padding="lg" className="mt-5">
+      <div className="flex min-w-0 flex-wrap items-center gap-3">
+        <h3 className="m-0 text-xl font-semibold">Visibility settings</h3>
+        <StatusBadge tone="info">Realm save</StatusBadge>
+        <StatusBadge tone="neutral">not lifecycle</StatusBadge>
+      </div>
+      <p className="m-0 mt-1 text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-muted)]">
+        Reads and saves owner-reviewed social visibility through AgentsService visibility endpoints only. This does not create publish, schedule, moderation, or lifecycle state.
+      </p>
+
+      {visibilityQuery.isLoading ? (
+        <EmptyState title="Loading visibility settings" description="Reading GET /api/agent/accounts/{id}/visibility through SDK AgentsService." />
+      ) : null}
+      {visibilityQuery.isError ? (
+        <InlineAlert tone="danger">
+          Visibility settings unavailable: {visibilityQuery.error instanceof Error ? visibilityQuery.error.message : 'Realm visibility read failed.'}
+        </InlineAlert>
+      ) : null}
+      {draft && visibilityQuery.data ? (
+        <div className="mt-4 grid gap-4">
+          <div className="grid gap-3 md:grid-cols-2">
+            {AGENT_VISIBILITY_FIELDS.map((field) => (
+              <FieldShell key={field} label={VISIBILITY_FIELD_LABELS[field]} message="Allowed values: PUBLIC, FRIENDS, PRIVATE.">
+                <SelectField
+                  value={draft[field]}
+                  options={AGENT_VISIBILITY_VALUES.map((value) => ({ value, label: value }))}
+                  onValueChange={(value) => updateDraft(field, value)}
+                />
+              </FieldShell>
+            ))}
+          </div>
+          <Checkbox
+            checked={humanReviewed}
+            onChange={(event) => setHumanReviewed(event.currentTarget.checked)}
+            label="Human review complete"
+          />
+          {!hasChanges ? (
+            <InlineAlert tone="warning">
+              Visibility settings have no reviewed changes.
+            </InlineAlert>
+          ) : null}
+          {result ? (
+            <InlineAlert tone={result.ok ? 'success' : 'danger'}>
+              {result.ok
+                ? 'Realm confirmed visibility settings. No lifecycle or publish state was created.'
+                : result.message}
+            </InlineAlert>
+          ) : null}
+          <div className="flex flex-wrap gap-3">
+            <Button
+              disabled={!hasChanges || !humanReviewed || isSaving}
+              loading={isSaving}
+              onClick={() => void saveVisibility()}
+            >
+              Save visibility
+            </Button>
+            <Button
+              disabled={!visibilityQuery.data || isSaving}
+              onClick={() => {
+                if (visibilityQuery.data) {
+                  setDraft(createAgentVisibilityDraft(visibilityQuery.data));
+                  setHumanReviewed(false);
+                  setResult(null);
+                }
+              }}
+            >
+              Reset draft
+            </Button>
+          </div>
+          <FieldShell label="Visibility result" message="PATCH sends only changed UpdateAgentVisibilityDto fields.">
+            <pre className="ras-json-preview m-0 min-h-24 overflow-auto rounded-[var(--nimi-radius-field)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-3 text-xs">
+              {result ? JSON.stringify(result, null, 2) : JSON.stringify({ current: visibilityQuery.data, draft }, null, 2)}
+            </pre>
+          </FieldShell>
+        </div>
+      ) : null}
     </Surface>
   );
 }
@@ -943,6 +1090,7 @@ function AgentDetail({ agentId }: { agentId: string }) {
           </div>
         </div>
       </Surface>
+      <VisibilitySettingsWorkspace agent={agent} onAgentWrite={refreshOwnerAgentReads} />
       <SettingProposalWorkspace agent={agent} />
       <MediaVoiceCandidateWorkspace agent={agent} onAgentWrite={refreshOwnerAgentReads} />
       <CreativePostWorkspace agent={agent} />

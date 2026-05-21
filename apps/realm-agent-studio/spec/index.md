@@ -33,6 +33,11 @@ route design, or app implementation.
 - `POST /api/agent/accounts/{id}/avatar` /
   `AgentsService.agentControllerSelectAvatar` is the Studio owner-scoped avatar
   URL selection surface. It is not a Resource/Binding upload path.
+- `GET/PATCH /api/agent/accounts/{id}/visibility` /
+  `AgentsService.agentControllerGetVisibility` and
+  `AgentsService.agentControllerUpdateVisibility` are owner-scoped social
+  visibility setting surfaces. They must not be mapped into a Realm Agent
+  lifecycle or publication state machine.
 - `GET /api/creator/agents` and `GET /api/agent/dev/my-agents` are evidence
   inputs only and are not Studio canonical surfaces. `/api/creator/agents` is
   World Creator / Maintainer evidence only and must not be used for owner

@@ -4,7 +4,10 @@ import {
   buildRealmCreateAgentInput,
   buildRealmCreatePostInput,
   buildRealmSelectAvatarInput,
+  buildRealmUpdateVisibilityInput,
+  createAgentVisibilityDraft,
   createReviewedRealmAgent,
+  getAgentVisibilitySettings,
   getCreateRealmAgentWorldPreview,
   getOwnerPortfolioAgentDetail,
   listCreateRealmAgentSelectableWorlds,
@@ -15,6 +18,9 @@ import {
   publishReviewedPostDraft,
   selectReviewedAgentAvatarUrl,
   synthesizeReviewedVoiceDemo,
+  updateReviewedAgentVisibility,
+  type AgentVisibilityDraft,
+  type RealmAgentVisibilitySettings,
 } from './portfolio-client.js';
 import type { MyRealmAgentDto, OwnerPortfolioAgentDetail, SettingField } from './portfolio-data.js';
 import {
@@ -79,6 +85,18 @@ function mockRealm() {
         })),
         agentControllerSelectAvatar: vi.fn(async () => ({
           success: true,
+        })),
+        agentControllerGetVisibility: vi.fn(async () => ({
+          accountVisibility: 'PUBLIC',
+          defaultPostVisibility: 'PUBLIC',
+          dmVisibility: 'FRIENDS',
+          profileVisibility: 'PUBLIC',
+        })),
+        agentControllerUpdateVisibility: vi.fn(async (_agentId: string, input: Partial<RealmAgentVisibilitySettings>) => ({
+          accountVisibility: input.accountVisibility || 'PUBLIC',
+          defaultPostVisibility: input.defaultPostVisibility || 'PUBLIC',
+          dmVisibility: input.dmVisibility || 'FRIENDS',
+          profileVisibility: input.profileVisibility || 'PUBLIC',
         })),
       },
       MeService: {
@@ -373,6 +391,113 @@ describe('owner portfolio client', () => {
     });
     expect(buildRealmSelectAvatarInput('ftp://cdn.example.test/avatar.png')).toBeNull();
     expect(buildRealmSelectAvatarInput('')).toBeNull();
+  });
+
+  it('reads owner visibility through AgentsService.agentControllerGetVisibility', async () => {
+    const realm = mockRealm();
+    const settings = await getAgentVisibilitySettings('agent-1', realm);
+
+    expect(realm.services.AgentsService.agentControllerGetVisibility).toHaveBeenCalledWith('agent-1');
+    expect(settings).toEqual({
+      accountVisibility: 'PUBLIC',
+      defaultPostVisibility: 'PUBLIC',
+      dmVisibility: 'FRIENDS',
+      profileVisibility: 'PUBLIC',
+    });
+    expect(Object.hasOwn(realm.services, 'CreatorService')).toBe(false);
+  });
+
+  it('updates owner visibility through AgentsService.agentControllerUpdateVisibility with changed allowlisted fields only', async () => {
+    const realm = mockRealm();
+    const current: RealmAgentVisibilitySettings = {
+      accountVisibility: 'PUBLIC',
+      defaultPostVisibility: 'PUBLIC',
+      dmVisibility: 'FRIENDS',
+      profileVisibility: 'PUBLIC',
+    };
+    const draft: AgentVisibilityDraft = {
+      accountVisibility: 'FRIENDS',
+      defaultPostVisibility: 'PUBLIC',
+      dmVisibility: 'PRIVATE',
+      profileVisibility: 'PUBLIC',
+    };
+    const result = await updateReviewedAgentVisibility('agent-1', draft, current, realm);
+    const updateVisibility = realm.services.AgentsService.agentControllerUpdateVisibility;
+    const submittedPayload = vi.mocked(updateVisibility).mock.calls[0]?.[1];
+
+    expect(updateVisibility).toHaveBeenCalledWith('agent-1', {
+      accountVisibility: 'FRIENDS',
+      dmVisibility: 'PRIVATE',
+    });
+    expect(Object.keys(submittedPayload || {}).sort()).toEqual(['accountVisibility', 'dmVisibility']);
+    expect(collectKeys(submittedPayload).has('state')).toBe(false);
+    expect(collectKeys(submittedPayload).has('lifecycle')).toBe(false);
+    expect(collectKeys(submittedPayload).has('moderationStatus')).toBe(false);
+    expect(collectKeys(submittedPayload).has('worldId')).toBe(false);
+    expect(collectKeys(submittedPayload).has('provider')).toBe(false);
+    expect(collectKeys(submittedPayload).has('model')).toBe(false);
+    expect(result).toMatchObject({
+      ok: true,
+      source: 'Realm AgentsService.agentControllerUpdateVisibility',
+      lifecycleTruth: false,
+      submitted: {
+        accountVisibility: 'FRIENDS',
+        dmVisibility: 'PRIVATE',
+      },
+    });
+  });
+
+  it('fails closed on visibility no-op or invalid enum without calling Realm', async () => {
+    const realm = mockRealm();
+    const current: RealmAgentVisibilitySettings = {
+      accountVisibility: 'PUBLIC',
+      defaultPostVisibility: 'PUBLIC',
+      dmVisibility: 'FRIENDS',
+      profileVisibility: 'PUBLIC',
+    };
+
+    const noChange = await updateReviewedAgentVisibility('agent-1', createAgentVisibilityDraft(current), current, realm);
+    const invalidDraft = {
+      ...createAgentVisibilityDraft(current),
+      dmVisibility: 'EVERYONE',
+    } as AgentVisibilityDraft;
+    const invalid = await updateReviewedAgentVisibility('agent-1', invalidDraft, current, realm);
+
+    expect(realm.services.AgentsService.agentControllerUpdateVisibility).not.toHaveBeenCalled();
+    expect(noChange).toMatchObject({
+      ok: false,
+      source: 'Realm AgentsService.agentControllerUpdateVisibility',
+      lifecycleTruth: false,
+      failure: 'visibility-no-changes',
+      submitted: null,
+    });
+    expect(invalid).toMatchObject({
+      ok: false,
+      source: 'Realm AgentsService.agentControllerUpdateVisibility',
+      lifecycleTruth: false,
+      failure: 'visibility-payload-invalid',
+      submitted: null,
+    });
+  });
+
+  it('builds UpdateAgentVisibilityDto from changed visibility fields only', () => {
+    const current: RealmAgentVisibilitySettings = {
+      accountVisibility: 'PUBLIC',
+      defaultPostVisibility: 'PUBLIC',
+      dmVisibility: 'FRIENDS',
+      profileVisibility: 'PUBLIC',
+    };
+    const draft: AgentVisibilityDraft = {
+      ...createAgentVisibilityDraft(current),
+      profileVisibility: 'PRIVATE',
+    };
+
+    expect(buildRealmUpdateVisibilityInput(draft, current)).toEqual({
+      input: {
+        profileVisibility: 'PRIVATE',
+      },
+      errors: [],
+    });
   });
 
   it('publishes a reviewed post draft through PostsService.createPost without forbidden caller-owned keys', async () => {
