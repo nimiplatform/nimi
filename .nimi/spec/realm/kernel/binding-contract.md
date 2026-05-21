@@ -3,7 +3,7 @@ id: SPEC-REALM-KERNEL-BINDING-001
 title: Realm Binding Kernel Contract
 status: active
 owner: "@team"
-updated: 2026-03-26
+updated: 2026-05-22
 ---
 
 # Binding Contract
@@ -34,3 +34,7 @@ Binding legality is fail-close and matrix-governed. Only declared `(bindingKind,
 ## R-BIND-005
 
 Binding writes must be explicit, idempotent, and auditable. Every binding is scoped to a resolved world, must record the creating actor, and must use the same logical uniqueness key for validation, persistence, and upsert behavior.
+
+## R-BIND-006
+
+World-control binding write surfaces are not owner-scoped RealmAgent binding ingress. A `MASTER_OWNED` RealmAgent owner workflow must not use `/api/worlds/{worldId}/bindings` or `WorldControlService.worldControlControllerBatchUpsertWorldBindings` unless a future admitted Realm contract explicitly grants that route owner authority. Owner-reviewed Resource-to-Agent Binding for public RealmAgent operation remains deferred until a dedicated owner-scoped binding write surface exists or this permission model is formally broadened.

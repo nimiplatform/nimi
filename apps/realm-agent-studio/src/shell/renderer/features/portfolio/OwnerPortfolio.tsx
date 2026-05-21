@@ -727,7 +727,7 @@ function MediaVoiceCandidateWorkspace({ agent, onAgentWrite }: { agent: OwnerPor
             <InlineAlert tone="warning">
               {visualPayload.changed ? VISUAL_MEDIA_BLOCKED_REASON : visualPayload.errors.join('; ')}
             </InlineAlert>
-            <FieldShell label="Blocked visual payload" message="Preview only. Visual generation remains local; READY Resources can be bound separately through the reviewed Binding workflow.">
+            <FieldShell label="Blocked visual payload" message="Preview only. Visual generation remains local; Resource-backed Agent Binding is deferred until Realm exposes an owner-scoped ingress.">
               <pre className="ras-json-preview m-0 min-h-72 overflow-auto rounded-[var(--nimi-radius-field)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-3 text-xs">
                 {visualPayload.payload ? JSON.stringify(visualPayload.payload, null, 2) : visualPayload.errors.join('; ')}
               </pre>
@@ -735,12 +735,12 @@ function MediaVoiceCandidateWorkspace({ agent, onAgentWrite }: { agent: OwnerPor
             <Surface tone="card" padding="md">
               <div className="flex min-w-0 flex-wrap items-center gap-3">
                 <div className="min-w-0 flex-1">
-                  <div className="font-medium">Resource-backed Agent Binding</div>
+                  <div className="font-medium">Resource-backed Agent Binding candidate</div>
                   <div className="mt-1 text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-muted)]">
-                    Writes PRESENTATION Binding truth for a READY Resource. It does not write profileCoverUrl, custom voice, post, moderation, or lifecycle state.
+                    Builds an owner-reviewed Binding candidate for a READY Resource. Realm Binding truth is deferred until an owner-scoped write surface exists.
                   </div>
                 </div>
-                <StatusBadge tone="info">Realm Binding</StatusBadge>
+                <StatusBadge tone="warning">deferred</StatusBadge>
               </div>
               <div className="mt-3 grid gap-3 md:grid-cols-[180px_1fr]">
                 <div className="flex items-end">
@@ -748,7 +748,7 @@ function MediaVoiceCandidateWorkspace({ agent, onAgentWrite }: { agent: OwnerPor
                     Load binding Resources
                   </Button>
                 </div>
-                <FieldShell label="READY IMAGE/AUDIO Resource" message="Uses ResourcesService.listResources, then binds only selected READY IMAGE or AUDIO Resource ids.">
+                <FieldShell label="READY IMAGE/AUDIO Resource" message="Uses ResourcesService.listResources. Save remains blocked until Realm admits owner-scoped Resource-to-Agent Binding.">
                   <SelectField
                     disabled={bindableResourceOptions.length === 0}
                     value={bindingResourceId}
@@ -818,7 +818,7 @@ function MediaVoiceCandidateWorkspace({ agent, onAgentWrite }: { agent: OwnerPor
                   loading={isBindingResource}
                   onClick={() => void bindResourceToAgent()}
                 >
-                  Bind Resource to agent
+                  Check Binding candidate
                 </Button>
               </div>
               {bindingResourceStatus ? (

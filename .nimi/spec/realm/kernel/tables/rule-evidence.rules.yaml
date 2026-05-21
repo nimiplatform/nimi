@@ -90,6 +90,7 @@ entries:
   - R-BIND-003
   - R-BIND-004
   - R-BIND-005
+  - R-BIND-006
   - R-SOC-001
   - R-SOC-002
   - R-SOC-003
@@ -479,6 +480,11 @@ rules:
   R-BIND-005:
     domain: binding
     spec_anchor: .nimi/spec/realm/kernel/binding-contract.md#R-BIND-005
+    profile_refs:
+      - binding
+  R-BIND-006:
+    domain: binding
+    spec_anchor: .nimi/spec/realm/kernel/binding-contract.md#R-BIND-006
     profile_refs:
       - binding
   R-SOC-001:

@@ -50,28 +50,16 @@ vi.mock('./portfolio-client.js', async (importOriginal) => {
       source: 'Realm ResourcesService.listResources',
     }]),
     bindReviewedAgentResource: vi.fn(async () => ({
-      ok: true,
-      source: 'Realm WorldControlService.worldControlControllerBatchUpsertWorldBindings',
-      bindingTruth: true,
+      ok: false,
+      source: 'Realm owner-scoped Agent Binding ingress (deferred)',
+      bindingTruth: false,
       publicProfileTruth: false,
       customVoiceTruth: false,
       publishTruth: false,
-      binding: {
-        worldId: 'OASIS',
-        items: [],
-      },
-      canonical: {
-        id: 'binding-ui',
-        scopeWorldId: 'OASIS',
-        hostId: 'agent-1',
-        hostType: 'AGENT',
-        objectId: 'resource-ready-ui',
-        objectType: 'RESOURCE',
-        bindingKind: 'PRESENTATION',
-        bindingPoint: 'AGENT_PORTRAIT',
-      },
+      failure: 'agent-binding-owner-surface-deferred',
+      message: 'Resource-backed Agent Binding is deferred until Realm exposes an owner-scoped Agent Binding ingress for MASTER_OWNED agents.',
       submitted: {
-        worldId: 'OASIS',
+        worldId: 'world-oasis',
         body: {
           bindingUpserts: [],
         },
@@ -112,7 +100,6 @@ vi.mock('./portfolio-client.js', async (importOriginal) => {
         selectedInputCount: 2,
         suppressedInputCount: 1,
         worldRuleCount: 2,
-        agentRuleCount: 0,
         rawRuleContentExposed: false,
       },
       submitted: {
@@ -373,9 +360,9 @@ describe('OwnerPortfolio visibility settings UI', () => {
     expect(document.body.textContent).not.toContain('Hidden raw rule statement');
   });
 
-  it('binds a reviewed READY Resource to the agent without claiming profile truth', async () => {
+  it('keeps reviewed READY Resource Binding as a deferred candidate', async () => {
     await renderOwnerPortfolio();
-    await waitForText('Resource-backed Agent Binding');
+    await waitForText('Resource-backed Agent Binding candidate');
 
     await act(async () => {
       findButtonByText('Load binding Resources').click();
@@ -390,10 +377,10 @@ describe('OwnerPortfolio visibility settings UI', () => {
 
     await checkAllHumanReviewBoxes();
     await act(async () => {
-      findButtonByText('Bind Resource to agent').click();
+      findButtonByText('Check Binding candidate').click();
     });
 
-    await waitForText('Realm confirmed AGENT_PORTRAIT Binding binding-ui');
+    await waitForText('Resource-backed Agent Binding is deferred until Realm exposes an owner-scoped Agent Binding ingress');
     expect(portfolioClient.bindReviewedAgentResource).toHaveBeenCalledWith({
       agent: expect.objectContaining({ id: 'agent-1' }),
       resourceId: 'resource-ready-ui',
@@ -402,7 +389,7 @@ describe('OwnerPortfolio visibility settings UI', () => {
       humanReviewed: true,
       intentPrompt: '',
     });
-    expect(document.body.textContent).toContain('Public profile projection is not claimed');
+    expect(document.body.textContent).toContain('Realm Binding truth is deferred');
     expect(document.body.textContent).toContain('No profile cover, avatar URL, custom voice, post, schedule, moderation, or lifecycle success is claimed');
   });
 

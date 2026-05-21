@@ -1,7 +1,7 @@
 contract_id: BINDING-CONTRACT-001
 domain: binding
 status: ACTIVE
-version: 2026-03-26
+version: 2026-05-22
 table_family: product_catalog
 catalog_id: realm_binding_contract
 entries:
@@ -14,6 +14,7 @@ entries:
   - R-BIND-003
   - R-BIND-004
   - R-BIND-005
+  - R-BIND-006
   - Binding
   - required_operations
   - secondary_operations
@@ -48,6 +49,10 @@ rules:
     level: must
     title: explicit-idempotent-world-scoped-binding-writes
     statement: 'Binding writes are explicit, idempotent, and auditable; every binding resolves to a world scope, records the creating actor, and uses the same logical uniqueness key for validation, persistence, and upsert behavior.'
+  - rule_id: R-BIND-006
+    level: must
+    title: owner-agent-binding-must-not-use-world-control
+    statement: 'World-control binding write surfaces are not owner-scoped RealmAgent binding ingress; MASTER_OWNED RealmAgent owner workflows must not use /api/worlds/{worldId}/bindings or WorldControlService.worldControlControllerBatchUpsertWorldBindings unless future Realm authority explicitly broadens that permission model.'
 entities:
   - name: Binding
     prisma_model: Binding

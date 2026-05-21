@@ -3,7 +3,7 @@ id: SPEC-REALM-AGENT-STUDIO-RUNTIME-AI-CONSUMPTION-001
 title: Runtime AI Consumption
 status: active
 owner: "@team"
-updated: 2026-05-21
+updated: 2026-05-22
 ---
 
 # Runtime AI Consumption
@@ -75,3 +75,15 @@ output is draft/candidate failure and must not write through Realm.
 
 Development builds may expose source preview for AI inputs. Launch visibility of
 source preview remains a product decision and must be rechecked before release.
+
+## Runtime Projection Summary
+
+Studio's owner-facing Runtime projection helper is world-only. The request may
+carry source-backed `worldId`, allowed world scopes, inherited-agent-rule
+exclusion, and Studio focus keywords. It must not submit `agentId`,
+`allowedAgentLayers`, `allowedAgentScopes`, owner settings writes, raw
+`AgentRule` content, LocalAgent memory, or private transcript material.
+
+The response may be normalized to checksum and aggregate world-rule/source counts
+only. Agent rule counts and raw selected/suppressed rule material are not part of
+the owner-facing summary.

@@ -45,15 +45,13 @@ type RealmFinalizeResourceInput = Parameters<Realm['services']['ResourcesService
 type RealmFinalizeResourceResponse = Awaited<ReturnType<Realm['services']['ResourcesService']['finalizeResource']>>;
 type RealmRuntimeProjectionInput = Parameters<Realm['services']['RuntimeProjectionsService']['projectRuntimePayload']>[0];
 type RealmRuntimeProjectionResponse = Awaited<ReturnType<Realm['services']['RuntimeProjectionsService']['projectRuntimePayload']>>;
-type RealmBatchUpsertBindingsInput = Parameters<Realm['services']['WorldControlService']['worldControlControllerBatchUpsertWorldBindings']>[1];
-type RealmBatchUpsertBindingsResponse = Awaited<ReturnType<Realm['services']['WorldControlService']['worldControlControllerBatchUpsertWorldBindings']>>;
 
 export const REALM_POST_PUBLISH_SOURCE = 'Realm PostsService.createPost';
 export const REALM_TEXT_RESOURCE_SOURCE = 'Realm ResourcesService.createTextResource';
 export const REALM_RESOURCE_LIST_SOURCE = 'Realm ResourcesService.listResources';
 export const REALM_MEDIA_RESOURCE_UPLOAD_SOURCE = 'Realm ResourcesService direct upload + finalizeResource';
 export const REALM_RUNTIME_PROJECTION_SOURCE = 'Realm RuntimeProjectionsService.projectRuntimePayload';
-export const REALM_AGENT_RESOURCE_BINDING_SOURCE = 'Realm WorldControlService.worldControlControllerBatchUpsertWorldBindings';
+export const REALM_AGENT_RESOURCE_BINDING_SOURCE = 'Realm owner-scoped Agent Binding ingress (deferred)';
 export const REALM_AGENT_AVATAR_SELECT_SOURCE = 'Realm AgentsService.agentControllerSelectAvatar';
 export const REALM_AGENT_VISIBILITY_SOURCE = 'Realm AgentsService.agentControllerUpdateVisibility';
 export const AGENT_VISIBILITY_VALUES = ['PUBLIC', 'FRIENDS', 'PRIVATE'] as const;
@@ -212,6 +210,22 @@ export type AgentResourceBindingCanonicalFields = {
   bindingPoint: AgentResourceBindingPoint;
 };
 
+export type RealmAgentResourceBindingUpsertInput = {
+  bindingKind: 'PRESENTATION';
+  bindingPoint: AgentResourceBindingPoint;
+  hostId: string;
+  hostType: 'AGENT';
+  objectId: string;
+  objectType: 'RESOURCE';
+  priority: number;
+  tags: string[];
+  intentPrompt?: string;
+};
+
+export type RealmAgentResourceBindingCandidateInput = {
+  bindingUpserts: RealmAgentResourceBindingUpsertInput[];
+};
+
 export type AgentResourceBindingResult =
   | {
     ok: true;
@@ -220,11 +234,11 @@ export type AgentResourceBindingResult =
     publicProfileTruth: false;
     customVoiceTruth: false;
     publishTruth: false;
-    binding: RealmBatchUpsertBindingsResponse;
+    binding: { items?: unknown[]; [key: string]: unknown };
     canonical: AgentResourceBindingCanonicalFields;
     submitted: {
       worldId: string;
-      body: RealmBatchUpsertBindingsInput;
+      body: RealmAgentResourceBindingCandidateInput;
     };
   }
   | {
@@ -239,12 +253,13 @@ export type AgentResourceBindingResult =
       | 'agent-binding-review-missing'
       | 'agent-binding-resource-invalid'
       | 'agent-binding-point-invalid'
+      | 'agent-binding-owner-surface-deferred'
       | 'realm-agent-binding-failed'
       | 'realm-agent-binding-missing-canonical-id';
     message: string;
     submitted: {
       worldId: string;
-      body: RealmBatchUpsertBindingsInput;
+      body: RealmAgentResourceBindingCandidateInput;
     } | null;
   };
 
@@ -264,7 +279,6 @@ export type RuntimeProjectionSummary = {
   selectedInputCount: number;
   suppressedInputCount: number;
   worldRuleCount: number;
-  agentRuleCount: number;
   rawRuleContentExposed: false;
 };
 
@@ -751,8 +765,6 @@ export function buildRuntimeProjectionInput(agent: OwnerPortfolioAgentDetail): R
   return {
     worldId: agent.world.value.trim(),
     contextEnvelope: {
-      allowedAgentLayers: ['DNA', 'BEHAVIORAL', 'RELATIONAL', 'CONTEXTUAL'],
-      allowedAgentScopes: ['SELF', 'DYAD', 'GROUP', 'WORLD'],
       allowedWorldScopes: ['WORLD', 'REGION', 'FACTION', 'INDIVIDUAL', 'SCENE'],
       includeInheritedAgentRules: false,
       focusKeywords: ['realm-agent-studio', 'owner-reviewed-runtime-context'],
@@ -783,14 +795,13 @@ export function normalizeRuntimeProjectionSummary(response: RealmRuntimeProjecti
     selectedInputCount: readArray(record.selectedInputs).length,
     suppressedInputCount: readArray(trace.suppressedInputs).length,
     worldRuleCount: readArray(payload.worldRules).length,
-    agentRuleCount: readArray(payload.agentRules).length,
     rawRuleContentExposed: false,
   };
 }
 
 export function buildRealmAgentResourceBindingInput(
   input: AgentResourceBindingInput,
-): { worldId: string; body: RealmBatchUpsertBindingsInput } | null {
+): { worldId: string; body: RealmAgentResourceBindingCandidateInput } | null {
   const worldId = input.agent.world.status === 'available' ? input.agent.world.value.trim() : '';
   const resourceId = input.resourceId.trim();
   const intentPrompt = input.intentPrompt?.trim();
@@ -826,8 +837,8 @@ export function buildRealmAgentResourceBindingInput(
 }
 
 export function normalizeAgentResourceBindingResult(
-  response: RealmBatchUpsertBindingsResponse,
-  submitted: { worldId: string; body: RealmBatchUpsertBindingsInput },
+  response: { items?: unknown[]; [key: string]: unknown },
+  submitted: { worldId: string; body: RealmAgentResourceBindingCandidateInput },
 ): AgentResourceBindingResult {
   const firstUpsert = submitted.body.bindingUpserts[0];
   if (!firstUpsert) {
@@ -1384,7 +1395,7 @@ export async function projectAgentRuntimeContextSummary(
 
 export async function bindReviewedAgentResource(
   input: AgentResourceBindingInput,
-  realm: Realm = createStudioRealmClient(),
+  _realm: Realm = createStudioRealmClient(),
 ): Promise<AgentResourceBindingResult> {
   const submitted = buildRealmAgentResourceBindingInput(input);
   if (!submitted) {
@@ -1416,25 +1427,17 @@ export async function bindReviewedAgentResource(
     };
   }
 
-  try {
-    const response = await realm.services.WorldControlService.worldControlControllerBatchUpsertWorldBindings(
-      submitted.worldId,
-      submitted.body,
-    );
-    return normalizeAgentResourceBindingResult(response, submitted);
-  } catch (error) {
-    return {
-      ok: false,
-      source: REALM_AGENT_RESOURCE_BINDING_SOURCE,
-      bindingTruth: false,
-      publicProfileTruth: false,
-      customVoiceTruth: false,
-      publishTruth: false,
-      failure: 'realm-agent-binding-failed',
-      message: error instanceof Error ? error.message : 'Realm agent Resource Binding upsert failed.',
-      submitted,
-    };
-  }
+  return {
+    ok: false,
+    source: REALM_AGENT_RESOURCE_BINDING_SOURCE,
+    bindingTruth: false,
+    publicProfileTruth: false,
+    customVoiceTruth: false,
+    publishTruth: false,
+    failure: 'agent-binding-owner-surface-deferred',
+    message: 'Resource-backed Agent Binding is deferred until Realm exposes an owner-scoped Agent Binding ingress for MASTER_OWNED agents.',
+    submitted,
+  };
 }
 
 export async function synthesizeReviewedVoiceDemo(

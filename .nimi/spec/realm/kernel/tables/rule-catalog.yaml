@@ -96,6 +96,7 @@ entries:
   - R-BIND-003
   - R-BIND-004
   - R-BIND-005
+  - R-BIND-006
   - R-BNDL-001
   - R-BNDL-002
   - R-BNDL-003
@@ -695,6 +696,12 @@ rules:
     level: must
     title: explicit-idempotent-world-scoped-binding-writes
     statement: Binding writes are explicit, idempotent, and auditable; every binding resolves to a world scope, records the creating actor, and uses the same logical uniqueness key for validation, persistence, and upsert behavior.
+    source: .nimi/spec/realm/kernel/binding-contract.md
+  - rule_id: R-BIND-006
+    domain: binding
+    level: must
+    title: owner-agent-binding-must-not-use-world-control
+    statement: World-control binding write surfaces are not owner-scoped RealmAgent binding ingress; MASTER_OWNED RealmAgent owner workflows must not use /api/worlds/{worldId}/bindings or WorldControlService.worldControlControllerBatchUpsertWorldBindings unless future Realm authority explicitly broadens that permission model.
     source: .nimi/spec/realm/kernel/binding-contract.md
   - rule_id: R-BNDL-001
     domain: bundle

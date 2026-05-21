@@ -1083,8 +1083,6 @@ describe('owner portfolio client', () => {
     expect(projectRuntimePayload).toHaveBeenCalledWith({
       worldId: 'OASIS',
       contextEnvelope: {
-        allowedAgentLayers: ['DNA', 'BEHAVIORAL', 'RELATIONAL', 'CONTEXTUAL'],
-        allowedAgentScopes: ['SELF', 'DYAD', 'GROUP', 'WORLD'],
         allowedWorldScopes: ['WORLD', 'REGION', 'FACTION', 'INDIVIDUAL', 'SCENE'],
         includeInheritedAgentRules: false,
         focusKeywords: ['realm-agent-studio', 'owner-reviewed-runtime-context'],
@@ -1103,7 +1101,6 @@ describe('owner portfolio client', () => {
         selectedInputCount: 1,
         suppressedInputCount: 1,
         worldRuleCount: 1,
-        agentRuleCount: 0,
         rawRuleContentExposed: false,
       },
     });
@@ -1126,7 +1123,6 @@ describe('owner portfolio client', () => {
       },
       payload: {
         worldRules: [{ statement: 'world raw' }],
-        agentRules: [{ statement: 'agent raw' }],
       },
     } as unknown as Awaited<ReturnType<Realm['services']['RuntimeProjectionsService']['projectRuntimePayload']>>);
 
@@ -1138,7 +1134,6 @@ describe('owner portfolio client', () => {
       selectedInputCount: 1,
       suppressedInputCount: 1,
       worldRuleCount: 1,
-      agentRuleCount: 1,
       rawRuleContentExposed: false,
     });
     expect(collectKeys(summary).has('statement')).toBe(false);
@@ -1168,7 +1163,7 @@ describe('owner portfolio client', () => {
     expect(collectKeys(buildRuntimeProjectionInput(ownerAgentDetail())).has('agentId')).toBe(false);
   });
 
-  it('upserts an owner-reviewed Resource-backed Agent Binding through WorldControlService only', async () => {
+  it('defers owner-reviewed Resource-backed Agent Binding until Realm exposes owner-scoped ingress', async () => {
     const realm = mockRealm();
     const result = await bindReviewedAgentResource({
       agent: ownerAgentDetailWithWorldId(),
@@ -1179,41 +1174,35 @@ describe('owner portfolio client', () => {
       intentPrompt: ' Owner selected portrait ',
     }, realm);
     const upsert = realm.services.WorldControlService.worldControlControllerBatchUpsertWorldBindings;
-    const submittedBody = vi.mocked(upsert).mock.calls[0]?.[1];
 
-    expect(upsert).toHaveBeenCalledWith('world-oasis', {
-      bindingUpserts: [{
-        bindingKind: 'PRESENTATION',
-        bindingPoint: 'AGENT_PORTRAIT',
-        hostId: 'agent-1',
-        hostType: 'AGENT',
-        objectId: 'resource-image-1',
-        objectType: 'RESOURCE',
-        priority: 0,
-        tags: ['realm-agent-studio', 'owner-reviewed'],
-        intentPrompt: 'Owner selected portrait',
-      }],
-    });
+    expect(upsert).not.toHaveBeenCalled();
     expect(result).toMatchObject({
-      ok: true,
-      source: 'Realm WorldControlService.worldControlControllerBatchUpsertWorldBindings',
-      bindingTruth: true,
+      ok: false,
+      source: 'Realm owner-scoped Agent Binding ingress (deferred)',
+      bindingTruth: false,
       publicProfileTruth: false,
       customVoiceTruth: false,
       publishTruth: false,
-      canonical: {
-        id: 'binding-1',
-        scopeWorldId: 'world-oasis',
-        hostId: 'agent-1',
-        hostType: 'AGENT',
-        objectId: 'resource-image-1',
-        objectType: 'RESOURCE',
-        bindingKind: 'PRESENTATION',
-        bindingPoint: 'AGENT_PORTRAIT',
+      failure: 'agent-binding-owner-surface-deferred',
+      submitted: {
+        worldId: 'world-oasis',
+        body: {
+          bindingUpserts: [{
+            bindingKind: 'PRESENTATION',
+            bindingPoint: 'AGENT_PORTRAIT',
+            hostId: 'agent-1',
+            hostType: 'AGENT',
+            objectId: 'resource-image-1',
+            objectType: 'RESOURCE',
+            priority: 0,
+            tags: ['realm-agent-studio', 'owner-reviewed'],
+            intentPrompt: 'Owner selected portrait',
+          }],
+        },
       },
     });
-    expect(collectKeys(submittedBody).has('profileCoverUrl')).toBe(false);
-    expect(collectKeys(submittedBody).has('avatarUrl')).toBe(false);
+    expect(collectKeys(result.submitted).has('profileCoverUrl')).toBe(false);
+    expect(collectKeys(result.submitted).has('avatarUrl')).toBe(false);
     expect(Object.hasOwn(realm.services, 'CreatorService')).toBe(false);
     expect(Object.hasOwn(realm.services, 'AgentRulesService')).toBe(false);
   });
@@ -1316,7 +1305,7 @@ describe('owner portfolio client', () => {
         bindingPoint: 'AGENT_CANDIDATE',
         scopeWorldId: 'world-oasis',
       }],
-    } as unknown as Awaited<ReturnType<Realm['services']['WorldControlService']['worldControlControllerBatchUpsertWorldBindings']>>, submitted as NonNullable<typeof submitted>)).toMatchObject({
+    }, submitted as NonNullable<typeof submitted>)).toMatchObject({
       ok: false,
       failure: 'realm-agent-binding-missing-canonical-id',
       bindingTruth: false,
@@ -1344,7 +1333,7 @@ describe('owner portfolio client', () => {
         bindingPoint: 'AGENT_PORTRAIT',
         scopeWorldId: 'different-world',
       }],
-    } as unknown as Awaited<ReturnType<Realm['services']['WorldControlService']['worldControlControllerBatchUpsertWorldBindings']>>, submitted as NonNullable<typeof submitted>)).toMatchObject({
+    }, submitted as NonNullable<typeof submitted>)).toMatchObject({
       ok: false,
       failure: 'realm-agent-binding-missing-canonical-id',
       bindingTruth: false,
