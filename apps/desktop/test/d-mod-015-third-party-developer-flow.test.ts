@@ -22,7 +22,6 @@ test('D-MOD-015: developer operations are exposed as async bridge functions', ()
     'getRuntimeModDeveloperMode',
     'setRuntimeModDeveloperMode',
     'getRuntimeModStorageDirs',
-    'setRuntimeModDataDir',
     'reloadRuntimeMod',
     'reloadAllRuntimeMods',
     'listRuntimeModDiagnostics',
@@ -33,21 +32,23 @@ test('D-MOD-015: developer operations are exposed as async bridge functions', ()
   }
 });
 
-// 2. nimi_data_dir is configurable via bridge (setRuntimeModDataDir exists and takes a string)
-test('D-MOD-015: nimi_data_dir configuration is available via bridge', () => {
+// 2. The mod-developer bridge does not own a casual data-root rewrite. Moving
+//    nimi_data after first-run is the staged nimi_data migration flow (P-MIG-007),
+//    not a bridge-level pointer setter.
+test('D-MOD-015: mod-developer bridge has no casual data-root rewrite primitive', () => {
   const source = readFileSync(
     resolve(import.meta.dirname, '../src/shell/renderer/bridge/runtime-bridge/mod-local.ts'),
     'utf8',
   );
 
-  assert.match(source, /setRuntimeModDataDir\(nimiDataDir:\s*string\)/, 'Must accept nimiDataDir string parameter');
-  assert.match(source, /'runtime_mod_data_dir_set'/, 'Must invoke Tauri command runtime_mod_data_dir_set');
+  assert.doesNotMatch(source, /setRuntimeModDataDir/, 'mod-local bridge must not expose a casual data-root setter');
+  assert.doesNotMatch(source, /'runtime_mod_data_dir_set'/, 'mod-local bridge must not invoke the retired runtime_mod_data_dir_set command');
 });
 
 // 3. Developer settings page provides UI for mod developer operations
 test('D-MOD-015: settings developer page provides UI for mod developer operations', () => {
   const source = readFileSync(
-    resolve(import.meta.dirname, '../src/shell/renderer/features/settings/settings-developer-page.tsx'),
+    resolve(import.meta.dirname, '../src/shell/renderer/features/developer/developer-mod-sources-section.tsx'),
     'utf8',
   );
 
@@ -89,7 +90,7 @@ test('D-MOD-015: data management page owns the nimi_data migration flow', () => 
 // 4. No startup parameter dependency in developer settings page
 test('D-MOD-015: developer settings page has no startup parameter references', () => {
   const source = readFileSync(
-    resolve(import.meta.dirname, '../src/shell/renderer/features/settings/settings-developer-page.tsx'),
+    resolve(import.meta.dirname, '../src/shell/renderer/features/developer/developer-mod-sources-section.tsx'),
     'utf8',
   );
 

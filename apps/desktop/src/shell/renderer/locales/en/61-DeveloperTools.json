@@ -1,0 +1,17 @@
+{
+  "surfaceTitle": "Developer Tools",
+  "sidebarSectionLabel": "Developer",
+  "sectionModSources": "Mod Sources",
+  "sectionTester": "Tester",
+  "sectionDiagnostics": "Diagnostics",
+  "navLabel": "Developer Tools",
+  "developerModeTitle": "Developer Mode",
+  "developerModeDescription": "Developer Mode unlocks developer and internal surfaces — Developer Tools, the embedded Tester, and mod UI. It is off by default and only changes what you can reach, never ordinary product behaviour.",
+  "developerModeStatusOn": "Developer Mode is on",
+  "developerModeStatusOff": "Developer Mode is off",
+  "developerModeEnable": "Enable Developer Mode",
+  "developerModeDisable": "Disable Developer Mode",
+  "testerUnavailableTitle": "Tester is not available",
+  "testerUnavailableBody": "The embedded Tester is surfaced only when the nimi.tester app is admitted as a developer-only app in the platform registry.",
+  "testerRegistryBadge": "developer-only · {{rule}}"
+}

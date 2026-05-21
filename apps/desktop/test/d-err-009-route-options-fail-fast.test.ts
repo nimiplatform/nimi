@@ -11,9 +11,12 @@ import {
   loadRuntimeRouteOptions,
 } from '../src/shell/renderer/infra/bootstrap/runtime-bootstrap-route-options';
 
+// T10.5 / D-DEV-003: the mod / developer source-management body that was the
+// orphaned `DeveloperPage` now lives in the Developer Tools `mod-sources`
+// sub-area. `settings-developer-page.tsx` only re-exports the alias.
 const SETTINGS_DEVELOPER_PAGE_PATH = resolve(
   import.meta.dirname,
-  '../src/shell/renderer/features/settings/settings-developer-page.tsx',
+  '../src/shell/renderer/features/developer/developer-mod-sources-section.tsx',
 );
 const settingsDeveloperPageSource = readFileSync(SETTINGS_DEVELOPER_PAGE_PATH, 'utf8');
 const initialRuntimeFields = { ...useAppStore.getState().runtimeFields };

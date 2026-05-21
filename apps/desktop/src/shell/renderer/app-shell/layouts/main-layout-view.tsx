@@ -16,6 +16,11 @@ import {
   loadStoredSettingsSelected,
   persistStoredSettingsSelected,
 } from '@renderer/features/settings/settings-storage';
+import {
+  isDeveloperModeEnabled,
+  isModUiEnabled,
+  subscribeDeveloperMode,
+} from '@renderer/features/developer/developer-mode';
 import { loadWorldDetailPanelModule, WorldDetailRouteLoading } from '@renderer/features/world/world-detail-route-state';
 import { getShellFeatureFlags } from '@nimiplatform/nimi-kit/core/shell-mode';
 import { DesktopReleaseStrip } from './desktop-release-strip';
@@ -91,6 +96,10 @@ const ModsPanel = lazy(async () => {
   const mod = await import('@renderer/features/mods/mods-panel');
   return { default: mod.ModsPanel };
 });
+const DeveloperToolsPanel = lazy(async () => {
+  const mod = await import('@renderer/features/developer/developer-tools-panel');
+  return { default: mod.DeveloperToolsPanel };
+});
 const PrivacyPolicyView = lazy(async () => {
   const mod = await import('@renderer/features/legal/privacy-policy-view');
   return { default: mod.PrivacyPolicyView };
@@ -108,6 +117,7 @@ type SettingsSubmenuItemId =
   | 'wallet'
   | 'settings'
   | 'support'
+  | 'developer-tools'
   | 'terms-of-service'
   | 'privacy-policy'
   | 'logout';
@@ -123,6 +133,11 @@ const SETTINGS_SUBMENU_ITEMS: SettingsSubmenuItem[] = [
   // D-SUP-001: Support is reachable from the account-area menu, peer to
   // Settings — it is NOT injected into the six-item ordinary primary nav.
   { id: 'support', label: 'Support', icon: 'support' },
+  // D-DEV-001 / D-DEV-007: Developer Tools is a developer-group surface. It is
+  // appended to the account-area menu ONLY when admitted Developer Mode is on
+  // (see `developerToolsMenuItems` below) — default-invisible, never primary
+  // nav.
+  { id: 'developer-tools', label: 'Developer Tools', icon: 'developer-tools' },
   { id: 'terms-of-service', label: 'Terms of Service', icon: 'terms-of-service' },
   { id: 'privacy-policy', label: 'Privacy Policy', icon: 'privacy-policy' },
   { id: 'logout', label: 'Logout', icon: 'logout' },
@@ -132,6 +147,7 @@ const SETTINGS_SUBMENU_I18N_KEYS: Record<SettingsSubmenuItemId, string> = {
   wallet: 'Menu.wallet',
   settings: 'Menu.settings',
   support: 'Menu.support',
+  'developer-tools': 'DeveloperTools.navLabel',
   'terms-of-service': 'Menu.termsOfService',
   'privacy-policy': 'Menu.privacyPolicy',
   logout: 'Menu.logout',
@@ -215,6 +231,23 @@ export function MainLayoutView(props: MainLayoutViewProps) {
   const coreNavItems = getCoreNavItems();
   const quickNavItems = getQuickNavItems();
   const primaryCoreNavItems = coreNavItems.filter((item) => item.id !== 'home');
+  // D-DEV-002 / D-DEV-007: Developer Mode is the single discoverable switch
+  // for every developer / internal surface. It is tracked reactively so the
+  // gated surfaces (Developer Tools tab, account-menu entry, mod UI) appear /
+  // disappear immediately when the user flips it from Settings.
+  const [developerModeEnabled, setDeveloperModeEnabled] = useState(
+    () => isDeveloperModeEnabled(),
+  );
+  useEffect(() => {
+    return subscribeDeveloperMode((next) => {
+      setDeveloperModeEnabled(next);
+    });
+  }, []);
+  // D-DEV-004: mod UI surfaces are reachable only behind admitted Developer
+  // Mode AND only when the build-level `enableModUi` flag is on. Default
+  // posture is invisible (`enableModUi` defaults false; Developer Mode
+  // defaults false).
+  const modUiReachable = flags.enableModUi && isModUiEnabled() && developerModeEnabled;
   const [settingsMenuOpen, setSettingsMenuOpen] = useState(false);
   const [collapsedSettingsMenuPosition, setCollapsedSettingsMenuPosition] = useState<{ top: number; left: number } | null>(null);
   const settingsTriggerRef = useRef<HTMLDivElement>(null);
@@ -399,6 +432,16 @@ export function MainLayoutView(props: MainLayoutViewProps) {
     }
     if (itemId === 'support') {
       props.onNav('support');
+      setSettingsMenuOpen(false);
+      return;
+    }
+    if (itemId === 'developer-tools') {
+      // D-DEV-001: reachable only behind admitted Developer Mode. The menu
+      // item is not rendered at all when Developer Mode is off, but guard the
+      // navigation too so a stale click can never reach the surface.
+      if (developerModeEnabled) {
+        props.onNav('developer-tools');
+      }
       setSettingsMenuOpen(false);
       return;
     }
@@ -595,9 +638,18 @@ export function MainLayoutView(props: MainLayoutViewProps) {
               </div>
             ) : null}
 
-            {props.activeTab === 'mods' && flags.enableModUi ? (
+            {props.activeTab === 'mods' && modUiReachable ? (
               <div data-testid={E2E_IDS.panel('mods')} className="flex min-h-0 flex-1 flex-col">
                 <ModsPanel />
+              </div>
+            ) : null}
+
+            {/* D-DEV-001 / D-DEV-007: the Developer Tools surface is mounted
+                only when admitted Developer Mode is on. It is default-invisible
+                and never an ordinary primary nav tab. */}
+            {props.activeTab === 'developer-tools' && developerModeEnabled ? (
+              <div data-testid={E2E_IDS.panel('developer-tools')} className="flex min-h-0 flex-1 flex-col">
+                <DeveloperToolsPanel />
               </div>
             ) : null}
 
@@ -614,7 +666,9 @@ export function MainLayoutView(props: MainLayoutViewProps) {
             ) : null}
           </Suspense>
 
-          {flags.enableModUi ? (
+          {/* D-DEV-004: the mod UI route-extension slot host is a mod UI
+              surface — reachable only behind admitted Developer Mode. */}
+          {modUiReachable ? (
             <Suspense fallback={null}>
               <SlotHost slot="ui-extension.app.content.routes" base={null} context={props.context} />
             </Suspense>
@@ -692,7 +746,18 @@ export function MainLayoutView(props: MainLayoutViewProps) {
                   </svg>
                 </button>
 
-                {SETTINGS_SUBMENU_ITEMS.filter((item) => item.id !== 'logout' && item.id !== 'profile').map((item) => {
+                {SETTINGS_SUBMENU_ITEMS.filter((item) => {
+                  if (item.id === 'logout' || item.id === 'profile') {
+                    return false;
+                  }
+                  // D-DEV-001 / D-DEV-007: the Developer Tools entry is
+                  // default-invisible and appears only when admitted
+                  // Developer Mode is on.
+                  if (item.id === 'developer-tools') {
+                    return developerModeEnabled;
+                  }
+                  return true;
+                }).map((item) => {
                   const active = isSettingsMenuItemActive(item.id);
                   return (
                     <button

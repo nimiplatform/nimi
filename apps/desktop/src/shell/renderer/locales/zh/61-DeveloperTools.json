@@ -1,0 +1,17 @@
+{
+  "surfaceTitle": "开发者工具",
+  "sidebarSectionLabel": "开发者",
+  "sectionModSources": "Mod 源",
+  "sectionTester": "测试器",
+  "sectionDiagnostics": "诊断",
+  "navLabel": "开发者工具",
+  "developerModeTitle": "开发者模式",
+  "developerModeDescription": "开发者模式会解锁开发者与内部界面——开发者工具、内嵌测试器以及 Mod UI。默认关闭，只影响你能访问的界面，不会改变普通产品行为。",
+  "developerModeStatusOn": "开发者模式已开启",
+  "developerModeStatusOff": "开发者模式已关闭",
+  "developerModeEnable": "开启开发者模式",
+  "developerModeDisable": "关闭开发者模式",
+  "testerUnavailableTitle": "测试器不可用",
+  "testerUnavailableBody": "仅当 nimi.tester 应用在平台注册表中以 developer-only 应用准入时，才会展示内嵌测试器。",
+  "testerRegistryBadge": "developer-only · {{rule}}"
+}

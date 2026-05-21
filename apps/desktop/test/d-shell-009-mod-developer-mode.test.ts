@@ -9,7 +9,18 @@ import { readDesktopLocale } from './helpers/read-desktop-locale';
 // Desktop must provide explicit Developer Mode entry in Settings.
 // Developer Mode manages: dev source directories, auto-reload toggle, diagnostics.
 // No launch parameter dependency for main development path.
+//
+// NOTE: `devtools-contract.md` (D-DEV-*) supersedes and closes D-SHELL-009's
+// Developer Mode entry description. The previously orphaned `DeveloperPage`
+// content now lives in the `Developer Tools` surface as the `mod-sources`
+// sub-area (`features/developer/developer-mod-sources-section.tsx`). The
+// `settings-developer-page.tsx` `DeveloperPage` export is retained only as the
+// named alias of that section. These tests follow the implementation to its
+// new canonical home.
 // ---------------------------------------------------------------------------
+
+const DEVELOPER_MOD_SOURCES_SECTION =
+  '../src/shell/renderer/features/developer/developer-mod-sources-section.tsx';
 
 // 1. Developer mode state type has required fields
 test('D-SHELL-009: RuntimeModDeveloperModeState has enabled and autoReloadEnabled fields', () => {
@@ -27,20 +38,26 @@ test('D-SHELL-009: RuntimeModDeveloperModeState has enabled and autoReloadEnable
   assert.match(typesSource, /autoReloadEnabled:\s*boolean/, 'Must have autoReloadEnabled field');
 });
 
-// 2. Developer page exists and provides dedicated Developer Mode UI
-test('D-SHELL-009: DeveloperPage component is exported from settings', () => {
-  const source = readFileSync(
+// 2. Developer mod-sources surface is exported (the superseding section, plus
+//    the retained `DeveloperPage` alias).
+test('D-SHELL-009: developer mod-sources section + DeveloperPage alias are exported', () => {
+  const section = readFileSync(
+    resolve(import.meta.dirname, DEVELOPER_MOD_SOURCES_SECTION),
+    'utf8',
+  );
+  assert.match(section, /export function DeveloperModSourcesSection/, 'section must be exported');
+
+  const alias = readFileSync(
     resolve(import.meta.dirname, '../src/shell/renderer/features/settings/settings-developer-page.tsx'),
     'utf8',
   );
-
-  assert.match(source, /export function DeveloperPage/, 'DeveloperPage must be exported');
+  assert.match(alias, /DeveloperPage/, 'DeveloperPage alias must be retained for the superseded surface');
 });
 
-// 3. Developer page provides enable/disable developer mode toggle
-test('D-SHELL-009: developer page has developer mode toggle buttons', () => {
+// 3. Developer mod-sources section provides enable/disable developer mode toggle
+test('D-SHELL-009: developer mod-sources section has developer mode toggle buttons', () => {
   const source = readFileSync(
-    resolve(import.meta.dirname, '../src/shell/renderer/features/settings/settings-developer-page.tsx'),
+    resolve(import.meta.dirname, DEVELOPER_MOD_SOURCES_SECTION),
     'utf8',
   );
 
@@ -48,10 +65,10 @@ test('D-SHELL-009: developer page has developer mode toggle buttons', () => {
   assert.match(source, /disableDeveloperMode/, 'Must reference disableDeveloperMode i18n key');
 });
 
-// 4. Developer page provides auto-reload toggle
-test('D-SHELL-009: developer page has auto-reload toggle buttons', () => {
+// 4. Developer mod-sources section provides auto-reload toggle
+test('D-SHELL-009: developer mod-sources section has auto-reload toggle buttons', () => {
   const source = readFileSync(
-    resolve(import.meta.dirname, '../src/shell/renderer/features/settings/settings-developer-page.tsx'),
+    resolve(import.meta.dirname, DEVELOPER_MOD_SOURCES_SECTION),
     'utf8',
   );
 
@@ -59,10 +76,10 @@ test('D-SHELL-009: developer page has auto-reload toggle buttons', () => {
   assert.match(source, /disableAutoReload/, 'Must reference disableAutoReload i18n key');
 });
 
-// 5. Developer page provides reload all button
-test('D-SHELL-009: developer page has reload all button', () => {
+// 5. Developer mod-sources section provides reload all button
+test('D-SHELL-009: developer mod-sources section has reload all button', () => {
   const source = readFileSync(
-    resolve(import.meta.dirname, '../src/shell/renderer/features/settings/settings-developer-page.tsx'),
+    resolve(import.meta.dirname, DEVELOPER_MOD_SOURCES_SECTION),
     'utf8',
   );
 
@@ -73,21 +90,21 @@ test('D-SHELL-009: developer page has reload all button', () => {
 // 6. Developer mode state is tracked in app store
 test('D-SHELL-009: app store tracks runtimeModDeveloperMode state', () => {
   const source = readFileSync(
-    resolve(import.meta.dirname, '../src/shell/renderer/features/settings/settings-developer-page.tsx'),
+    resolve(import.meta.dirname, DEVELOPER_MOD_SOURCES_SECTION),
     'utf8',
   );
 
   assert.match(
     source,
     /useAppStore\(.*runtimeModDeveloperMode/s,
-    'DeveloperPage must read runtimeModDeveloperMode from app store',
+    'developer mod-sources section must read runtimeModDeveloperMode from app store',
   );
 });
 
-// 7. Developer page shows source summary (total, dev, enabled counts)
-test('D-SHELL-009: developer page shows source summary counts', () => {
+// 7. Developer mod-sources section shows source summary (total, dev, enabled)
+test('D-SHELL-009: developer mod-sources section shows source summary counts', () => {
   const source = readFileSync(
-    resolve(import.meta.dirname, '../src/shell/renderer/features/settings/settings-developer-page.tsx'),
+    resolve(import.meta.dirname, DEVELOPER_MOD_SOURCES_SECTION),
     'utf8',
   );
 

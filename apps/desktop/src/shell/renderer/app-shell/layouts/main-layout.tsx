@@ -1,4 +1,4 @@
-import React, { Suspense, lazy, useEffect, type MouseEvent, type PropsWithChildren } from 'react';
+import React, { Suspense, lazy, useEffect, useState, type MouseEvent, type PropsWithChildren } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { desktopBridge } from '@renderer/bridge';
 import { useAppStore, type AppTab } from '@renderer/app-shell/providers/app-store';
@@ -6,6 +6,11 @@ import { useUiExtensionContext } from '@renderer/mod-ui/host/slot-context';
 import { getShellFeatureFlags } from '@nimiplatform/nimi-kit/core/shell-mode';
 import { logoutAndClearSession } from '@renderer/features/auth/logout';
 import { logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
+import {
+  isDeveloperModeEnabled,
+  isModUiEnabled,
+  subscribeDeveloperMode,
+} from '@renderer/features/developer/developer-mode';
 import { MainLayoutView } from './main-layout-view';
 
 const MACOS_TRAFFIC_LIGHT_SAFE_ZONE_PX = 92;
@@ -72,15 +77,28 @@ export function MainLayout() {
   const userAvatarUrl = typeof user?.avatarUrl === 'string' ? user.avatarUrl : null;
   const userEmail = typeof user?.email === 'string' ? user.email : null;
 
+  // D-DEV-004 / D-DEV-007: developer / internal surfaces (mods, mod workspace
+  // tabs, Developer Tools) are reachable only behind admitted Developer Mode.
+  // If the active tab is one of them and Developer Mode is off — or it never
+  // turned on — fall back to chat so no developer surface stays reachable.
+  const [developerModeEnabled, setDeveloperModeEnabled] = useState(
+    () => isDeveloperModeEnabled(),
+  );
   useEffect(() => {
-    if (!flags.enableModUi && activeTab === 'mods') {
+    return subscribeDeveloperMode((next) => {
+      setDeveloperModeEnabled(next);
+    });
+  }, []);
+  useEffect(() => {
+    const modUiReachable = flags.enableModUi && isModUiEnabled() && developerModeEnabled;
+    if (!modUiReachable && (activeTab === 'mods' || activeTab.startsWith('mod:'))) {
       setActiveTab('chat');
       return;
     }
-    if (!flags.enableModUi && activeTab.startsWith('mod:')) {
+    if (!developerModeEnabled && activeTab === 'developer-tools') {
       setActiveTab('chat');
     }
-  }, [activeTab, authStatus, flags, setActiveTab]);
+  }, [activeTab, authStatus, developerModeEnabled, flags, setActiveTab]);
 
   useEffect(() => {
     if (!tabSwitchPending || tabSwitchPending.toTab !== activeTab) return;

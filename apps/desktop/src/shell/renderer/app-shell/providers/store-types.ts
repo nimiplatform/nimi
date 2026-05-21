@@ -46,6 +46,7 @@ export type AppTab =
   | 'settings'
   | 'support'
   | 'mods'
+  | 'developer-tools'
   | 'profile'
   | 'agent-detail'
   | 'world-detail'

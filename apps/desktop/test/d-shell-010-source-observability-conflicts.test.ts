@@ -140,7 +140,7 @@ test('D-SHELL-010: failed/conflict mods sort before enabled in management view',
 // 6. Developer panel displays diagnostics section
 test('D-SHELL-010: developer page renders diagnostics with status badges', () => {
   const source = readFileSync(
-    resolve(import.meta.dirname, '../src/shell/renderer/features/settings/settings-developer-page.tsx'),
+    resolve(import.meta.dirname, '../src/shell/renderer/features/developer/developer-mod-sources-section.tsx'),
     'utf8',
   );
 
@@ -153,7 +153,7 @@ test('D-SHELL-010: developer page renders diagnostics with status badges', () =>
 // 7. Developer panel shows recent reloads
 test('D-SHELL-010: developer page renders recent reload results', () => {
   const source = readFileSync(
-    resolve(import.meta.dirname, '../src/shell/renderer/features/settings/settings-developer-page.tsx'),
+    resolve(import.meta.dirname, '../src/shell/renderer/features/developer/developer-mod-sources-section.tsx'),
     'utf8',
   );
 
@@ -165,7 +165,7 @@ test('D-SHELL-010: developer page renders recent reload results', () => {
 // 8. Developer panel shows registered sources with enabled/disabled state
 test('D-SHELL-010: developer page renders registered sources with enable/disable controls', () => {
   const source = readFileSync(
-    resolve(import.meta.dirname, '../src/shell/renderer/features/settings/settings-developer-page.tsx'),
+    resolve(import.meta.dirname, '../src/shell/renderer/features/developer/developer-mod-sources-section.tsx'),
     'utf8',
   );
 

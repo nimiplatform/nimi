@@ -483,8 +483,14 @@ test('main-layout.tsx has guard clause for mods tab', () => {
     source.includes("activeTab === 'mods'"),
     'main-layout.tsx must have guard clause checking activeTab === mods',
   );
+  // T10.5 / D-DEV-004: the mods tab is guarded behind mod-UI reachability,
+  // which is derived from `flags.enableModUi` AND admitted Developer Mode.
   assert.ok(
-    source.includes("!flags.enableModUi && activeTab === 'mods'"),
-    'main-layout.tsx must guard mods tab behind enableModUi flag',
+    source.includes('flags.enableModUi') && source.includes('isModUiEnabled'),
+    'main-layout.tsx must derive mod-UI reachability from enableModUi + Developer Mode',
+  );
+  assert.ok(
+    source.includes("!modUiReachable && (activeTab === 'mods'"),
+    'main-layout.tsx must redirect away from the mods tab when mod UI is unreachable',
   );
 });

@@ -18,6 +18,7 @@ import {
   persistStoredPerformancePreferences,
   type PerformancePreferences,
 } from './settings-storage.js';
+import { DeveloperModeToggle } from '@renderer/features/developer/developer-mode-toggle.js';
 import {
   AnimationIcon,
   AwardIcon,
@@ -272,14 +273,12 @@ export function PerformancePage() {
         <SectionTitle>
           {t('Performance.sectionDeveloper')}
         </SectionTitle>
-        <div className="mt-3 rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
-          <SettingRow
-            icon={<CodeIcon className="h-5 w-5" />}
-            title={t('Performance.developerMode')}
-            description={t('Performance.developerModeDescription')}
-            checked={preferences.developerMode}
-            onChange={(value) => setPreferences((previous) => ({ ...previous, developerMode: value }))}
-          />
+        {/* D-DEV-002: the discoverable Developer Mode toggle. This is the
+            canonical in-app entry — Settings — for enabling / disabling
+            Developer Mode and showing its current state. Developer Mode is
+            never reachable only through launch params or env vars. */}
+        <div className="mt-3">
+          <DeveloperModeToggle />
         </div>
       </section>
 
