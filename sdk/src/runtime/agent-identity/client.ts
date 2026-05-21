@@ -18,7 +18,7 @@ export class AgentIdentityClientError extends Error {
   constructor(
     code: AgentIdentityClientError['code'],
     message: string,
-    public readonly cause?: unknown,
+    public override readonly cause?: unknown,
   ) {
     super(message);
     this.code = code;

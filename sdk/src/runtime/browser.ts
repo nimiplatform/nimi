@@ -181,3 +181,27 @@ export type {
   RuntimeCompanionParticipationSurfaceKind,
   RuntimeCompanionParticipationTriggerSource,
 } from './runtime-companion-participation.js';
+export {
+  decodeAppInstallJob,
+} from './runtime-app-lifecycle.js';
+export type {
+  RuntimeAppLifecycleModule,
+  RuntimeAppInstallJob,
+  RuntimeAppInstallJobEvent,
+  RuntimeAppInstallJobPhase,
+  RuntimeAppInstallJobState,
+  RuntimeAppInstallSourceKind,
+  RuntimeAppInstallStorage,
+  RuntimeAppLifecycleJobKind,
+  RuntimeAppHealthRepairAction,
+  RuntimeAppHealthRepairInput,
+  RuntimeAppInstallInput,
+  RuntimeAppUninstallInput,
+  RuntimeAppUninstallResult,
+  RuntimeAppUpdateInput,
+  RuntimeAppOpenInput,
+  RuntimeAppOpenScopeRef,
+  RuntimeAppOpenFlowStep,
+  RuntimeAppOpenState,
+  RuntimeAppOpenProjection,
+} from './runtime-app-lifecycle.js';

@@ -18,7 +18,7 @@ export class PermissionClientError extends Error {
   constructor(
     code: PermissionClientError['code'],
     message: string,
-    public readonly cause?: unknown,
+    public override readonly cause?: unknown,
   ) {
     super(message);
     this.code = code;
