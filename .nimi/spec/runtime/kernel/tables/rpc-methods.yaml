@@ -363,6 +363,10 @@ services:
         type: unary
       - name: WatchAppInstallJobEvents
         type: server_stream
+      - name: UpdateApp
+        type: unary
+      - name: HealthRepairApp
+        type: unary
   - name: RuntimeAgentService
     source_rule: K-RPC-004b
     methods:

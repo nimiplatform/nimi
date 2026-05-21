@@ -26,6 +26,8 @@ const (
 	RuntimeAppService_GetAppInstallJob_FullMethodName         = "/nimi.runtime.v1.RuntimeAppService/GetAppInstallJob"
 	RuntimeAppService_ListAppInstallJobs_FullMethodName       = "/nimi.runtime.v1.RuntimeAppService/ListAppInstallJobs"
 	RuntimeAppService_WatchAppInstallJobEvents_FullMethodName = "/nimi.runtime.v1.RuntimeAppService/WatchAppInstallJobEvents"
+	RuntimeAppService_UpdateApp_FullMethodName                = "/nimi.runtime.v1.RuntimeAppService/UpdateApp"
+	RuntimeAppService_HealthRepairApp_FullMethodName          = "/nimi.runtime.v1.RuntimeAppService/HealthRepairApp"
 )
 
 // RuntimeAppServiceClient is the client API for RuntimeAppService service.
@@ -40,6 +42,9 @@ type RuntimeAppServiceClient interface {
 	GetAppInstallJob(ctx context.Context, in *GetAppInstallJobRequest, opts ...grpc.CallOption) (*GetAppInstallJobResponse, error)
 	ListAppInstallJobs(ctx context.Context, in *ListAppInstallJobsRequest, opts ...grpc.CallOption) (*ListAppInstallJobsResponse, error)
 	WatchAppInstallJobEvents(ctx context.Context, in *WatchAppInstallJobEventsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[AppInstallJobEvent], error)
+	// Nimi App update + health/repair lifecycle (K-APP-015..K-APP-016).
+	UpdateApp(ctx context.Context, in *UpdateAppRequest, opts ...grpc.CallOption) (*UpdateAppResponse, error)
+	HealthRepairApp(ctx context.Context, in *HealthRepairAppRequest, opts ...grpc.CallOption) (*HealthRepairAppResponse, error)
 }
 
 type runtimeAppServiceClient struct {
@@ -138,6 +143,26 @@ func (c *runtimeAppServiceClient) WatchAppInstallJobEvents(ctx context.Context, 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type RuntimeAppService_WatchAppInstallJobEventsClient = grpc.ServerStreamingClient[AppInstallJobEvent]
 
+func (c *runtimeAppServiceClient) UpdateApp(ctx context.Context, in *UpdateAppRequest, opts ...grpc.CallOption) (*UpdateAppResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UpdateAppResponse)
+	err := c.cc.Invoke(ctx, RuntimeAppService_UpdateApp_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeAppServiceClient) HealthRepairApp(ctx context.Context, in *HealthRepairAppRequest, opts ...grpc.CallOption) (*HealthRepairAppResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(HealthRepairAppResponse)
+	err := c.cc.Invoke(ctx, RuntimeAppService_HealthRepairApp_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // RuntimeAppServiceServer is the server API for RuntimeAppService service.
 // All implementations should embed UnimplementedRuntimeAppServiceServer
 // for forward compatibility.
@@ -150,6 +175,9 @@ type RuntimeAppServiceServer interface {
 	GetAppInstallJob(context.Context, *GetAppInstallJobRequest) (*GetAppInstallJobResponse, error)
 	ListAppInstallJobs(context.Context, *ListAppInstallJobsRequest) (*ListAppInstallJobsResponse, error)
 	WatchAppInstallJobEvents(*WatchAppInstallJobEventsRequest, grpc.ServerStreamingServer[AppInstallJobEvent]) error
+	// Nimi App update + health/repair lifecycle (K-APP-015..K-APP-016).
+	UpdateApp(context.Context, *UpdateAppRequest) (*UpdateAppResponse, error)
+	HealthRepairApp(context.Context, *HealthRepairAppRequest) (*HealthRepairAppResponse, error)
 }
 
 // UnimplementedRuntimeAppServiceServer should be embedded to have
@@ -179,6 +207,12 @@ func (UnimplementedRuntimeAppServiceServer) ListAppInstallJobs(context.Context, 
 }
 func (UnimplementedRuntimeAppServiceServer) WatchAppInstallJobEvents(*WatchAppInstallJobEventsRequest, grpc.ServerStreamingServer[AppInstallJobEvent]) error {
 	return status.Error(codes.Unimplemented, "method WatchAppInstallJobEvents not implemented")
+}
+func (UnimplementedRuntimeAppServiceServer) UpdateApp(context.Context, *UpdateAppRequest) (*UpdateAppResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method UpdateApp not implemented")
+}
+func (UnimplementedRuntimeAppServiceServer) HealthRepairApp(context.Context, *HealthRepairAppRequest) (*HealthRepairAppResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method HealthRepairApp not implemented")
 }
 func (UnimplementedRuntimeAppServiceServer) testEmbeddedByValue() {}
 
@@ -312,6 +346,42 @@ func _RuntimeAppService_WatchAppInstallJobEvents_Handler(srv interface{}, stream
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type RuntimeAppService_WatchAppInstallJobEventsServer = grpc.ServerStreamingServer[AppInstallJobEvent]
 
+func _RuntimeAppService_UpdateApp_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateAppRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAppServiceServer).UpdateApp(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAppService_UpdateApp_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAppServiceServer).UpdateApp(ctx, req.(*UpdateAppRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeAppService_HealthRepairApp_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(HealthRepairAppRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAppServiceServer).HealthRepairApp(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAppService_HealthRepairApp_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAppServiceServer).HealthRepairApp(ctx, req.(*HealthRepairAppRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // RuntimeAppService_ServiceDesc is the grpc.ServiceDesc for RuntimeAppService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -338,6 +408,14 @@ var RuntimeAppService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ListAppInstallJobs",
 			Handler:    _RuntimeAppService_ListAppInstallJobs_Handler,
+		},
+		{
+			MethodName: "UpdateApp",
+			Handler:    _RuntimeAppService_UpdateApp_Handler,
+		},
+		{
+			MethodName: "HealthRepairApp",
+			Handler:    _RuntimeAppService_HealthRepairApp_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

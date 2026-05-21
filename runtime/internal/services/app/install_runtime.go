@@ -128,3 +128,33 @@ func (r *installRuntime) uninstall(ctx context.Context, plan appstorage.Plan, op
 	}
 	return r.gateway.Uninstall(ctx, plan, options)
 }
+
+// update drives the install gateway atomic update for a resolved descriptor:
+// the new release is materialized and digest-verified before the active
+// release pointer is swapped. Durable data is kept.
+func (r *installRuntime) update(ctx context.Context, descriptor appreleasecatalog.Descriptor, observer appinstallgateway.InstallObserver) (appinstallgateway.InstalledApp, error) {
+	if r == nil || r.gateway == nil {
+		return appinstallgateway.InstalledApp{}, errInstallRuntimeUnavailable
+	}
+	return r.gateway.UpdateApp(ctx, descriptor, observer)
+}
+
+// repair drives the install gateway repair for a resolved descriptor: the
+// (damaged) release payload is dropped and re-materialized while durable data
+// is preserved.
+func (r *installRuntime) repair(ctx context.Context, descriptor appreleasecatalog.Descriptor, observer appinstallgateway.InstallObserver) (appinstallgateway.InstalledApp, error) {
+	if r == nil || r.gateway == nil {
+		return appinstallgateway.InstalledApp{}, errInstallRuntimeUnavailable
+	}
+	return r.gateway.RepairApp(ctx, descriptor, observer)
+}
+
+// activeRelease reads the app-root active release pointer for a resolved plan.
+// It returns appstorage.ErrActiveReleaseNotFound when the app has never had a
+// release activated (it is not installed).
+func (r *installRuntime) activeRelease(plan appstorage.Plan) (appstorage.ActiveReleasePointer, error) {
+	if r == nil {
+		return appstorage.ActiveReleasePointer{}, errInstallRuntimeUnavailable
+	}
+	return appstorage.ReadActiveRelease(plan)
+}

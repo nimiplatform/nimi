@@ -182,6 +182,20 @@ methods:
       - K-AUTHN-001
       - K-AUTHN-006
       - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeAppService/UpdateApp
+    posture: authenticated_required
+    rationale: app lifecycle write; requires admitted caller identity to drive the Runtime-owned atomic update
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTHN-006
+      - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeAppService/HealthRepairApp
+    posture: authenticated_required
+    rationale: app lifecycle write; requires admitted caller identity to drive the Runtime-owned health/repair action
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTHN-006
+      - K-AUTH-001
   - method_id: /nimi.runtime.v1.RuntimeAuthService/RegisterApp
     posture: anonymous_read
     rationale: bootstrap app registration; no JWT or session credential required

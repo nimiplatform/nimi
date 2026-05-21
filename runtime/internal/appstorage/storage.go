@@ -41,6 +41,18 @@ type UninstallOptions struct {
 	DestructiveDataDeleteApproved bool
 }
 
+// ActiveReleasePointer is the app-root-level record of which materialized
+// release version is currently the active one. An update job swaps this
+// pointer atomically (P-NAPP-014 / K-APP-015) only after the new release is
+// fully materialized and digest-verified; the old release stays usable until
+// the swap commits.
+type ActiveReleasePointer struct {
+	AppID         string `json:"appId"`
+	ActiveVersion string `json:"activeVersion"`
+	ReleaseRoot   string `json:"releaseRoot"`
+	UpdatedAt     string `json:"updatedAt"`
+}
+
 var (
 	ErrDataRootRequired              = errors.New("app storage dataRootRef is required")
 	ErrDataRootMustBeAbsolute        = errors.New("app storage dataRootRef must be absolute")
@@ -50,7 +62,14 @@ var (
 	ErrDestructiveDeleteConfirmation = errors.New("destructive app data deletion requires explicit confirmation")
 	ErrStorageRootSymlink            = errors.New("app storage root contains a symlink")
 	ErrStorageRootNotDirectory       = errors.New("app storage root component is not a directory")
+	ErrActiveReleaseNotFound         = errors.New("app storage active release pointer not found")
 )
+
+// IsZero reports whether the plan was never resolved (no release root). It
+// lets a caller skip partial-release cleanup when planning itself failed.
+func (p Plan) IsZero() bool {
+	return strings.TrimSpace(p.ReleaseRoot) == "" || strings.TrimSpace(p.AppRoot) == ""
+}
 
 func Resolve(dataRootRef string, appID string, version string, storagePolicyRef string) (Plan, error) {
 	dataRootRef = filepath.Clean(strings.TrimSpace(dataRootRef))
@@ -162,6 +181,87 @@ func Uninstall(plan Plan, options UninstallOptions) error {
 		if err := os.RemoveAll(plan.DurableDataRoot); err != nil {
 			return fmt.Errorf("remove app durable data: %w", err)
 		}
+	}
+	return nil
+}
+
+// ActiveReleasePath is the app-root-level active release pointer file path.
+func ActiveReleasePath(plan Plan) string {
+	return filepath.Join(plan.AppRoot, ".nimi", "active-release.json")
+}
+
+// ReadActiveRelease reads the active release pointer at the app root. It
+// returns ErrActiveReleaseNotFound when no pointer exists yet (the app has
+// never had a release activated).
+func ReadActiveRelease(plan Plan) (ActiveReleasePointer, error) {
+	bytes, err := os.ReadFile(ActiveReleasePath(plan))
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return ActiveReleasePointer{}, ErrActiveReleaseNotFound
+		}
+		return ActiveReleasePointer{}, fmt.Errorf("read app active release pointer: %w", err)
+	}
+	var pointer ActiveReleasePointer
+	if err := json.Unmarshal(bytes, &pointer); err != nil {
+		return ActiveReleasePointer{}, fmt.Errorf("decode app active release pointer: %w", err)
+	}
+	return pointer, nil
+}
+
+// WriteActiveRelease atomically writes the active release pointer at the app
+// root. It is the single commit point of an install/update activation: the
+// rename is the atomic swap of the active release. A failed write before the
+// rename leaves the previous pointer (and thus the previous release) intact.
+func WriteActiveRelease(plan Plan, pointer ActiveReleasePointer) error {
+	pointerPath := ActiveReleasePath(plan)
+	pointerDir := filepath.Dir(pointerPath)
+	if err := materializeRoot(plan.DataRootRef, pointerDir); err != nil {
+		return fmt.Errorf("create app active release pointer dir: %w", err)
+	}
+	if info, err := os.Lstat(pointerPath); err == nil && info.Mode()&os.ModeSymlink != 0 {
+		return ErrStorageRootSymlink
+	}
+	bytes, err := json.MarshalIndent(pointer, "", "  ")
+	if err != nil {
+		return fmt.Errorf("encode app active release pointer: %w", err)
+	}
+	tmpFile, err := os.CreateTemp(pointerDir, "active-release-*.tmp")
+	if err != nil {
+		return fmt.Errorf("write app active release pointer: %w", err)
+	}
+	tmp := tmpFile.Name()
+	committed := false
+	defer func() {
+		if !committed {
+			_ = os.Remove(tmp)
+		}
+	}()
+	if _, err := tmpFile.Write(append(bytes, '\n')); err != nil {
+		_ = tmpFile.Close()
+		return fmt.Errorf("write app active release pointer: %w", err)
+	}
+	if err := tmpFile.Close(); err != nil {
+		return fmt.Errorf("close app active release pointer: %w", err)
+	}
+	if err := os.Rename(tmp, pointerPath); err != nil {
+		return fmt.Errorf("commit app active release pointer: %w", err)
+	}
+	committed = true
+	return nil
+}
+
+// RemoveRelease removes a single release payload directory without touching
+// durable data, cache, tmp, or any other release. It is used to drop a failed
+// or superseded release materialization.
+func RemoveRelease(plan Plan) error {
+	if strings.TrimSpace(plan.ReleaseRoot) == "" {
+		return ErrInvalidVersionSegment
+	}
+	if !within(plan.AppRoot, plan.ReleaseRoot) {
+		return ErrInvalidVersionSegment
+	}
+	if err := os.RemoveAll(plan.ReleaseRoot); err != nil {
+		return fmt.Errorf("remove app release payload: %w", err)
 	}
 	return nil
 }

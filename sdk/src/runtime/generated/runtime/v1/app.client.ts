@@ -5,6 +5,10 @@
 import type { RpcTransport } from "@protobuf-ts/runtime-rpc";
 import type { ServiceInfo } from "@protobuf-ts/runtime-rpc";
 import { RuntimeAppService } from "./app";
+import type { HealthRepairAppResponse } from "./app";
+import type { HealthRepairAppRequest } from "./app";
+import type { UpdateAppResponse } from "./app";
+import type { UpdateAppRequest } from "./app";
 import type { AppInstallJobEvent } from "./app";
 import type { WatchAppInstallJobEventsRequest } from "./app";
 import type { ListAppInstallJobsResponse } from "./app";
@@ -57,6 +61,16 @@ export interface IRuntimeAppServiceClient {
      * @generated from protobuf rpc: WatchAppInstallJobEvents
      */
     watchAppInstallJobEvents(input: WatchAppInstallJobEventsRequest, options?: RpcOptions): ServerStreamingCall<WatchAppInstallJobEventsRequest, AppInstallJobEvent>;
+    /**
+     * Nimi App update + health/repair lifecycle (K-APP-015..K-APP-016).
+     *
+     * @generated from protobuf rpc: UpdateApp
+     */
+    updateApp(input: UpdateAppRequest, options?: RpcOptions): UnaryCall<UpdateAppRequest, UpdateAppResponse>;
+    /**
+     * @generated from protobuf rpc: HealthRepairApp
+     */
+    healthRepairApp(input: HealthRepairAppRequest, options?: RpcOptions): UnaryCall<HealthRepairAppRequest, HealthRepairAppResponse>;
 }
 /**
  * @generated from protobuf service nimi.runtime.v1.RuntimeAppService
@@ -117,5 +131,21 @@ export class RuntimeAppServiceClient implements IRuntimeAppServiceClient, Servic
     watchAppInstallJobEvents(input: WatchAppInstallJobEventsRequest, options?: RpcOptions): ServerStreamingCall<WatchAppInstallJobEventsRequest, AppInstallJobEvent> {
         const method = this.methods[6], opt = this._transport.mergeOptions(options);
         return stackIntercept<WatchAppInstallJobEventsRequest, AppInstallJobEvent>("serverStreaming", this._transport, method, opt, input);
+    }
+    /**
+     * Nimi App update + health/repair lifecycle (K-APP-015..K-APP-016).
+     *
+     * @generated from protobuf rpc: UpdateApp
+     */
+    updateApp(input: UpdateAppRequest, options?: RpcOptions): UnaryCall<UpdateAppRequest, UpdateAppResponse> {
+        const method = this.methods[7], opt = this._transport.mergeOptions(options);
+        return stackIntercept<UpdateAppRequest, UpdateAppResponse>("unary", this._transport, method, opt, input);
+    }
+    /**
+     * @generated from protobuf rpc: HealthRepairApp
+     */
+    healthRepairApp(input: HealthRepairAppRequest, options?: RpcOptions): UnaryCall<HealthRepairAppRequest, HealthRepairAppResponse> {
+        const method = this.methods[8], opt = this._transport.mergeOptions(options);
+        return stackIntercept<HealthRepairAppRequest, HealthRepairAppResponse>("unary", this._transport, method, opt, input);
     }
 }

@@ -245,6 +245,20 @@ export interface AppInstallJob {
      * @generated from protobuf field: string updated_at = 15
      */
     updatedAt: string;
+    /**
+     * kind distinguishes install / update / repair jobs. They share this shape
+     * but the consumer never infers the lifecycle operation from the phase.
+     *
+     * @generated from protobuf field: nimi.runtime.v1.AppLifecycleJobKind kind = 16
+     */
+    kind: AppLifecycleJobKind;
+    /**
+     * previous_version is the active release version before an update or repair
+     * job ran. It is empty for an install job.
+     *
+     * @generated from protobuf field: string previous_version = 17
+     */
+    previousVersion: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.InstallAppRequest
@@ -406,6 +420,81 @@ export interface UninstallAppResponse {
      */
     result?: AppUninstallResult;
 }
+// === Nimi App Update Lifecycle (K-APP-015) ===
+
+/**
+ * @generated from protobuf message nimi.runtime.v1.UpdateAppRequest
+ */
+export interface UpdateAppRequest {
+    /**
+     * app_id resolves an admitted Nimi App registry row whose bound release
+     * descriptor advanced past the currently installed version.
+     *
+     * @generated from protobuf field: string app_id = 1
+     */
+    appId: string;
+    /**
+     * confirmed records that the user confirmed the update impact preview
+     * (version, size, breaking-vs-non-breaking impact). It is required for a
+     * required (breaking) update and ignored for a non-breaking update.
+     *
+     * @generated from protobuf field: bool confirmed = 2
+     */
+    confirmed: boolean;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.UpdateAppResponse
+ */
+export interface UpdateAppResponse {
+    /**
+     * job is the typed update job projection. It reuses the AppInstallJob shape
+     * with kind=APP_LIFECYCLE_JOB_KIND_UPDATE.
+     *
+     * @generated from protobuf field: nimi.runtime.v1.AppInstallJob job = 1
+     */
+    job?: AppInstallJob;
+}
+// === Nimi App Health / Repair Lifecycle (K-APP-016) ===
+
+/**
+ * @generated from protobuf message nimi.runtime.v1.HealthRepairAppRequest
+ */
+export interface HealthRepairAppRequest {
+    /**
+     * app_id resolves the admitted Nimi App registry row whose lifecycle job is
+     * being repaired.
+     *
+     * @generated from protobuf field: string app_id = 1
+     */
+    appId: string;
+    /**
+     * action is the typed repair action. Only the four admitted tokens are
+     * accepted; any other value fails closed.
+     *
+     * @generated from protobuf field: nimi.runtime.v1.AppHealthRepairAction action = 2
+     */
+    action: AppHealthRepairAction;
+    /**
+     * job_id optionally targets a specific lifecycle job for cancel/retry. When
+     * empty, cancel/retry resolve the most recent recoverable job for the app.
+     *
+     * @generated from protobuf field: string job_id = 3
+     */
+    jobId: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.HealthRepairAppResponse
+ */
+export interface HealthRepairAppResponse {
+    /**
+     * job is the typed lifecycle job projection produced by the repair action.
+     * cancel returns the cancelled job; retry/repair/reinstall return the new
+     * in-flight job. A failed repair is never projected as success.
+     *
+     * @generated from protobuf field: nimi.runtime.v1.AppInstallJob job = 1
+     */
+    job?: AppInstallJob;
+}
 /**
  * @generated from protobuf enum nimi.runtime.v1.AppMessageEventType
  */
@@ -430,10 +519,11 @@ export enum AppMessageEventType {
 // === Nimi App Install/Uninstall Lifecycle (K-APP-011..K-APP-014) ===
 
 /**
- * AppInstallJobPhase is the typed install pipeline phase. It surfaces the
- * concrete install step so the product Apps card can show "download / verify /
- * materialize / unpack / evidence" instead of a generic spinner. It is never
- * inferred from transfer/process/file state.
+ * AppInstallJobPhase is the typed install/update pipeline phase. It surfaces
+ * the concrete step so the product Apps card can show "download / verify /
+ * materialize / unpack / swap / evidence" instead of a generic spinner. It is
+ * never inferred from transfer/process/file state. The same phase shape covers
+ * install, update, and healthRepair jobs (K-APP-015 / K-APP-016).
  *
  * @generated from protobuf enum nimi.runtime.v1.AppInstallJobPhase
  */
@@ -477,12 +567,27 @@ export enum AppInstallJobPhase {
     /**
      * @generated from protobuf enum value: APP_INSTALL_JOB_PHASE_FAILED = 9;
      */
-    FAILED = 9
+    FAILED = 9,
+    /**
+     * APP_INSTALL_JOB_PHASE_SWAP is the atomic active-release pointer swap of an
+     * update job. It runs only after the new release is fully materialized and
+     * digest-verified; the old release stays usable until the swap commits.
+     *
+     * @generated from protobuf enum value: APP_INSTALL_JOB_PHASE_SWAP = 10;
+     */
+    SWAP = 10,
+    /**
+     * APP_INSTALL_JOB_PHASE_CANCELLED is the terminal phase of a job cancelled
+     * through HealthRepairApp(action=cancel).
+     *
+     * @generated from protobuf enum value: APP_INSTALL_JOB_PHASE_CANCELLED = 11;
+     */
+    CANCELLED = 11
 }
 /**
  * AppInstallJobState is the typed terminal/in-flight job state. It aligns with
- * the Platform P-NAPP-008 fail-closed projection: a failed install never
- * projects as success and always leaves a recoverable state.
+ * the Platform P-NAPP-008 fail-closed projection: a failed install/update
+ * never projects as success and always leaves a recoverable state.
  *
  * @generated from protobuf enum nimi.runtime.v1.AppInstallJobState
  */
@@ -506,7 +611,68 @@ export enum AppInstallJobState {
     /**
      * @generated from protobuf enum value: APP_INSTALL_JOB_STATE_FAILED = 4;
      */
-    FAILED = 4
+    FAILED = 4,
+    /**
+     * APP_INSTALL_JOB_STATE_CANCELLED is the terminal state of a job cancelled
+     * through HealthRepairApp(action=cancel). A cancelled job is recoverable via
+     * retry and is never projected as success.
+     *
+     * @generated from protobuf enum value: APP_INSTALL_JOB_STATE_CANCELLED = 5;
+     */
+    CANCELLED = 5
+}
+/**
+ * AppLifecycleJobKind distinguishes the lifecycle operation that produced a
+ * job. Install, update, and healthRepair jobs share the AppInstallJob shape
+ * but carry a distinct kind so the consumer never infers intent from phase.
+ *
+ * @generated from protobuf enum nimi.runtime.v1.AppLifecycleJobKind
+ */
+export enum AppLifecycleJobKind {
+    /**
+     * @generated from protobuf enum value: APP_LIFECYCLE_JOB_KIND_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: APP_LIFECYCLE_JOB_KIND_INSTALL = 1;
+     */
+    INSTALL = 1,
+    /**
+     * @generated from protobuf enum value: APP_LIFECYCLE_JOB_KIND_UPDATE = 2;
+     */
+    UPDATE = 2,
+    /**
+     * @generated from protobuf enum value: APP_LIFECYCLE_JOB_KIND_REPAIR = 3;
+     */
+    REPAIR = 3
+}
+/**
+ * AppHealthRepairAction is the typed health/repair action token. It admits
+ * only the four S-APP-002 tokens; no other action is accepted.
+ *
+ * @generated from protobuf enum nimi.runtime.v1.AppHealthRepairAction
+ */
+export enum AppHealthRepairAction {
+    /**
+     * @generated from protobuf enum value: APP_HEALTH_REPAIR_ACTION_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: APP_HEALTH_REPAIR_ACTION_CANCEL = 1;
+     */
+    CANCEL = 1,
+    /**
+     * @generated from protobuf enum value: APP_HEALTH_REPAIR_ACTION_RETRY = 2;
+     */
+    RETRY = 2,
+    /**
+     * @generated from protobuf enum value: APP_HEALTH_REPAIR_ACTION_REPAIR = 3;
+     */
+    REPAIR = 3,
+    /**
+     * @generated from protobuf enum value: APP_HEALTH_REPAIR_ACTION_REINSTALL = 4;
+     */
+    REINSTALL = 4
 }
 /**
  * AppInstallSourceKind distinguishes a bundled first-party install (no network
@@ -985,7 +1151,9 @@ class AppInstallJob$Type extends MessageType<AppInstallJob> {
             { no: 12, name: "failure_detail", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 13, name: "retryable", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
             { no: 14, name: "created_at", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 15, name: "updated_at", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 15, name: "updated_at", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 16, name: "kind", kind: "enum", T: () => ["nimi.runtime.v1.AppLifecycleJobKind", AppLifecycleJobKind, "APP_LIFECYCLE_JOB_KIND_"] },
+            { no: 17, name: "previous_version", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<AppInstallJob>): AppInstallJob {
@@ -1004,6 +1172,8 @@ class AppInstallJob$Type extends MessageType<AppInstallJob> {
         message.retryable = false;
         message.createdAt = "";
         message.updatedAt = "";
+        message.kind = 0;
+        message.previousVersion = "";
         if (value !== undefined)
             reflectionMergePartial<AppInstallJob>(this, message, value);
         return message;
@@ -1057,6 +1227,12 @@ class AppInstallJob$Type extends MessageType<AppInstallJob> {
                     break;
                 case /* string updated_at */ 15:
                     message.updatedAt = reader.string();
+                    break;
+                case /* nimi.runtime.v1.AppLifecycleJobKind kind */ 16:
+                    message.kind = reader.int32();
+                    break;
+                case /* string previous_version */ 17:
+                    message.previousVersion = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -1115,6 +1291,12 @@ class AppInstallJob$Type extends MessageType<AppInstallJob> {
         /* string updated_at = 15; */
         if (message.updatedAt !== "")
             writer.tag(15, WireType.LengthDelimited).string(message.updatedAt);
+        /* nimi.runtime.v1.AppLifecycleJobKind kind = 16; */
+        if (message.kind !== 0)
+            writer.tag(16, WireType.Varint).int32(message.kind);
+        /* string previous_version = 17; */
+        if (message.previousVersion !== "")
+            writer.tag(17, WireType.LengthDelimited).string(message.previousVersion);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -1708,6 +1890,216 @@ class UninstallAppResponse$Type extends MessageType<UninstallAppResponse> {
  * @generated MessageType for protobuf message nimi.runtime.v1.UninstallAppResponse
  */
 export const UninstallAppResponse = new UninstallAppResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class UpdateAppRequest$Type extends MessageType<UpdateAppRequest> {
+    constructor() {
+        super("nimi.runtime.v1.UpdateAppRequest", [
+            { no: 1, name: "app_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "confirmed", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
+        ]);
+    }
+    create(value?: PartialMessage<UpdateAppRequest>): UpdateAppRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.appId = "";
+        message.confirmed = false;
+        if (value !== undefined)
+            reflectionMergePartial<UpdateAppRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: UpdateAppRequest): UpdateAppRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string app_id */ 1:
+                    message.appId = reader.string();
+                    break;
+                case /* bool confirmed */ 2:
+                    message.confirmed = reader.bool();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: UpdateAppRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string app_id = 1; */
+        if (message.appId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.appId);
+        /* bool confirmed = 2; */
+        if (message.confirmed !== false)
+            writer.tag(2, WireType.Varint).bool(message.confirmed);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.UpdateAppRequest
+ */
+export const UpdateAppRequest = new UpdateAppRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class UpdateAppResponse$Type extends MessageType<UpdateAppResponse> {
+    constructor() {
+        super("nimi.runtime.v1.UpdateAppResponse", [
+            { no: 1, name: "job", kind: "message", T: () => AppInstallJob }
+        ]);
+    }
+    create(value?: PartialMessage<UpdateAppResponse>): UpdateAppResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<UpdateAppResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: UpdateAppResponse): UpdateAppResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.AppInstallJob job */ 1:
+                    message.job = AppInstallJob.internalBinaryRead(reader, reader.uint32(), options, message.job);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: UpdateAppResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.AppInstallJob job = 1; */
+        if (message.job)
+            AppInstallJob.internalBinaryWrite(message.job, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.UpdateAppResponse
+ */
+export const UpdateAppResponse = new UpdateAppResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class HealthRepairAppRequest$Type extends MessageType<HealthRepairAppRequest> {
+    constructor() {
+        super("nimi.runtime.v1.HealthRepairAppRequest", [
+            { no: 1, name: "app_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "action", kind: "enum", T: () => ["nimi.runtime.v1.AppHealthRepairAction", AppHealthRepairAction, "APP_HEALTH_REPAIR_ACTION_"] },
+            { no: 3, name: "job_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<HealthRepairAppRequest>): HealthRepairAppRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.appId = "";
+        message.action = 0;
+        message.jobId = "";
+        if (value !== undefined)
+            reflectionMergePartial<HealthRepairAppRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: HealthRepairAppRequest): HealthRepairAppRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string app_id */ 1:
+                    message.appId = reader.string();
+                    break;
+                case /* nimi.runtime.v1.AppHealthRepairAction action */ 2:
+                    message.action = reader.int32();
+                    break;
+                case /* string job_id */ 3:
+                    message.jobId = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: HealthRepairAppRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string app_id = 1; */
+        if (message.appId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.appId);
+        /* nimi.runtime.v1.AppHealthRepairAction action = 2; */
+        if (message.action !== 0)
+            writer.tag(2, WireType.Varint).int32(message.action);
+        /* string job_id = 3; */
+        if (message.jobId !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.jobId);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.HealthRepairAppRequest
+ */
+export const HealthRepairAppRequest = new HealthRepairAppRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class HealthRepairAppResponse$Type extends MessageType<HealthRepairAppResponse> {
+    constructor() {
+        super("nimi.runtime.v1.HealthRepairAppResponse", [
+            { no: 1, name: "job", kind: "message", T: () => AppInstallJob }
+        ]);
+    }
+    create(value?: PartialMessage<HealthRepairAppResponse>): HealthRepairAppResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<HealthRepairAppResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: HealthRepairAppResponse): HealthRepairAppResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.AppInstallJob job */ 1:
+                    message.job = AppInstallJob.internalBinaryRead(reader, reader.uint32(), options, message.job);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: HealthRepairAppResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.AppInstallJob job = 1; */
+        if (message.job)
+            AppInstallJob.internalBinaryWrite(message.job, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.HealthRepairAppResponse
+ */
+export const HealthRepairAppResponse = new HealthRepairAppResponse$Type();
 /**
  * @generated ServiceType for protobuf service nimi.runtime.v1.RuntimeAppService
  */
@@ -1718,5 +2110,7 @@ export const RuntimeAppService = new ServiceType("nimi.runtime.v1.RuntimeAppServ
     { name: "UninstallApp", options: {}, I: UninstallAppRequest, O: UninstallAppResponse },
     { name: "GetAppInstallJob", options: {}, I: GetAppInstallJobRequest, O: GetAppInstallJobResponse },
     { name: "ListAppInstallJobs", options: {}, I: ListAppInstallJobsRequest, O: ListAppInstallJobsResponse },
-    { name: "WatchAppInstallJobEvents", serverStreaming: true, options: {}, I: WatchAppInstallJobEventsRequest, O: AppInstallJobEvent }
+    { name: "WatchAppInstallJobEvents", serverStreaming: true, options: {}, I: WatchAppInstallJobEventsRequest, O: AppInstallJobEvent },
+    { name: "UpdateApp", options: {}, I: UpdateAppRequest, O: UpdateAppResponse },
+    { name: "HealthRepairApp", options: {}, I: HealthRepairAppRequest, O: HealthRepairAppResponse }
 ]);

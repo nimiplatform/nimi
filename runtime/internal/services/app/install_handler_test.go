@@ -303,3 +303,140 @@ func TestWatchAppInstallJobEventsStreamsProgress(t *testing.T) {
 		t.Fatal("expected a terminal install job event on the watch stream")
 	}
 }
+
+func TestUpdateAppRejectsNotInstalled(t *testing.T) {
+	svc, _ := newBundledInstallService(t)
+	_, err := svc.UpdateApp(context.Background(), &runtimev1.UpdateAppRequest{AppId: "nimi.parentos"})
+	if err == nil {
+		t.Fatal("expected fail-closed: app not installed")
+	}
+}
+
+func TestUpdateAppRejectsAlreadyAtBoundVersion(t *testing.T) {
+	svc, _ := newBundledInstallService(t)
+	resp, err := svc.InstallApp(context.Background(), &runtimev1.InstallAppRequest{AppId: "nimi.parentos", Confirmed: true})
+	if err != nil {
+		t.Fatalf("InstallApp: %v", err)
+	}
+	waitForTerminalJob(t, svc, resp.GetJob().GetJobId())
+	// The bound bundled descriptor version equals the active version: no update.
+	_, err = svc.UpdateApp(context.Background(), &runtimev1.UpdateAppRequest{AppId: "nimi.parentos"})
+	if err == nil {
+		t.Fatal("expected fail-closed: update not available")
+	}
+}
+
+func TestHealthRepairRejectsUnknownAction(t *testing.T) {
+	svc, _ := newBundledInstallService(t)
+	_, err := svc.HealthRepairApp(context.Background(), &runtimev1.HealthRepairAppRequest{
+		AppId:  "nimi.parentos",
+		Action: runtimev1.AppHealthRepairAction_APP_HEALTH_REPAIR_ACTION_UNSPECIFIED,
+	})
+	if err == nil {
+		t.Fatal("expected fail-closed: invalid repair action")
+	}
+}
+
+func TestHealthRepairRepairRematerializesRelease(t *testing.T) {
+	svc, _ := newBundledInstallService(t)
+	resp, err := svc.InstallApp(context.Background(), &runtimev1.InstallAppRequest{AppId: "nimi.parentos", Confirmed: true})
+	if err != nil {
+		t.Fatalf("InstallApp: %v", err)
+	}
+	installed := waitForTerminalJob(t, svc, resp.GetJob().GetJobId())
+	// Damage the release payload.
+	if err := os.WriteFile(filepath.Join(installed.GetStorage().GetReleaseRoot(), "manifest.json"), []byte("damaged"), 0o644); err != nil {
+		t.Fatalf("damage release: %v", err)
+	}
+	repairResp, err := svc.HealthRepairApp(context.Background(), &runtimev1.HealthRepairAppRequest{
+		AppId:  "nimi.parentos",
+		Action: runtimev1.AppHealthRepairAction_APP_HEALTH_REPAIR_ACTION_REPAIR,
+	})
+	if err != nil {
+		t.Fatalf("HealthRepairApp repair: %v", err)
+	}
+	if repairResp.GetJob().GetKind() != runtimev1.AppLifecycleJobKind_APP_LIFECYCLE_JOB_KIND_REPAIR {
+		t.Fatalf("repair job kind = %v, want REPAIR", repairResp.GetJob().GetKind())
+	}
+	job := waitForTerminalJob(t, svc, repairResp.GetJob().GetJobId())
+	if job.GetState() != runtimev1.AppInstallJobState_APP_INSTALL_JOB_STATE_INSTALLED {
+		t.Fatalf("repair job state = %v detail=%q, want INSTALLED", job.GetState(), job.GetFailureDetail())
+	}
+	got, err := os.ReadFile(filepath.Join(job.GetStorage().GetReleaseRoot(), "manifest.json"))
+	if err != nil {
+		t.Fatalf("read repaired manifest: %v", err)
+	}
+	if string(got) != `{"name":"parentos"}` {
+		t.Fatalf("repair must re-materialize a clean release payload, got %q", string(got))
+	}
+}
+
+func TestHealthRepairReinstallKeepsData(t *testing.T) {
+	svc, _ := newBundledInstallService(t)
+	resp, err := svc.InstallApp(context.Background(), &runtimev1.InstallAppRequest{AppId: "nimi.parentos", Confirmed: true})
+	if err != nil {
+		t.Fatalf("InstallApp: %v", err)
+	}
+	installed := waitForTerminalJob(t, svc, resp.GetJob().GetJobId())
+	durableFile := filepath.Join(installed.GetStorage().GetDurableDataRoot(), "state.json")
+	if err := os.MkdirAll(installed.GetStorage().GetDurableDataRoot(), 0o755); err != nil {
+		t.Fatalf("mkdir durable data: %v", err)
+	}
+	if err := os.WriteFile(durableFile, []byte(`{"k":"v"}`), 0o600); err != nil {
+		t.Fatalf("write durable data: %v", err)
+	}
+	reinstallResp, err := svc.HealthRepairApp(context.Background(), &runtimev1.HealthRepairAppRequest{
+		AppId:  "nimi.parentos",
+		Action: runtimev1.AppHealthRepairAction_APP_HEALTH_REPAIR_ACTION_REINSTALL,
+	})
+	if err != nil {
+		t.Fatalf("HealthRepairApp reinstall: %v", err)
+	}
+	job := waitForTerminalJob(t, svc, reinstallResp.GetJob().GetJobId())
+	if job.GetState() != runtimev1.AppInstallJobState_APP_INSTALL_JOB_STATE_INSTALLED {
+		t.Fatalf("reinstall job state = %v, want INSTALLED", job.GetState())
+	}
+	if _, err := os.Stat(durableFile); err != nil {
+		t.Fatalf("reinstall must keep durable data: %v", err)
+	}
+}
+
+func TestHealthRepairRetryWithoutRecoverableJobFailsClosed(t *testing.T) {
+	svc, _ := newBundledInstallService(t)
+	_, err := svc.HealthRepairApp(context.Background(), &runtimev1.HealthRepairAppRequest{
+		AppId:  "nimi.parentos",
+		Action: runtimev1.AppHealthRepairAction_APP_HEALTH_REPAIR_ACTION_RETRY,
+	})
+	if err == nil {
+		t.Fatal("expected fail-closed: no recoverable job to retry")
+	}
+}
+
+func TestHealthRepairCancelWithoutInFlightJobFailsClosed(t *testing.T) {
+	svc, _ := newBundledInstallService(t)
+	_, err := svc.HealthRepairApp(context.Background(), &runtimev1.HealthRepairAppRequest{
+		AppId:  "nimi.parentos",
+		Action: runtimev1.AppHealthRepairAction_APP_HEALTH_REPAIR_ACTION_CANCEL,
+	})
+	if err == nil {
+		t.Fatal("expected fail-closed: no in-flight job to cancel")
+	}
+}
+
+func TestIsBreakingUpdate(t *testing.T) {
+	cases := []struct {
+		from, to string
+		breaking bool
+	}{
+		{"1.0.0", "1.2.0", false},
+		{"1.0.0", "2.0.0", true},
+		{"2.3.1", "2.3.4", false},
+		{"1.0.0", "not-a-version", true},
+		{"bundled-with-current-nimi-release", "1.0.0", true},
+	}
+	for _, c := range cases {
+		if got := isBreakingUpdate(c.from, c.to); got != c.breaking {
+			t.Fatalf("isBreakingUpdate(%q,%q) = %v, want %v", c.from, c.to, got, c.breaking)
+		}
+	}
+}

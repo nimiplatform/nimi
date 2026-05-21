@@ -55,10 +55,11 @@ message AppMessageEvent {
 
 // === Nimi App Install/Uninstall Lifecycle (K-APP-011..K-APP-014) ===
 
-// AppInstallJobPhase is the typed install pipeline phase. It surfaces the
-// concrete install step so the product Apps card can show "download / verify /
-// materialize / unpack / evidence" instead of a generic spinner. It is never
-// inferred from transfer/process/file state.
+// AppInstallJobPhase is the typed install/update pipeline phase. It surfaces
+// the concrete step so the product Apps card can show "download / verify /
+// materialize / unpack / swap / evidence" instead of a generic spinner. It is
+// never inferred from transfer/process/file state. The same phase shape covers
+// install, update, and healthRepair jobs (K-APP-015 / K-APP-016).
 enum AppInstallJobPhase {
   APP_INSTALL_JOB_PHASE_UNSPECIFIED = 0;
   APP_INSTALL_JOB_PHASE_QUEUED = 1;
@@ -70,17 +71,48 @@ enum AppInstallJobPhase {
   APP_INSTALL_JOB_PHASE_EVIDENCE = 7;
   APP_INSTALL_JOB_PHASE_INSTALLED = 8;
   APP_INSTALL_JOB_PHASE_FAILED = 9;
+  // APP_INSTALL_JOB_PHASE_SWAP is the atomic active-release pointer swap of an
+  // update job. It runs only after the new release is fully materialized and
+  // digest-verified; the old release stays usable until the swap commits.
+  APP_INSTALL_JOB_PHASE_SWAP = 10;
+  // APP_INSTALL_JOB_PHASE_CANCELLED is the terminal phase of a job cancelled
+  // through HealthRepairApp(action=cancel).
+  APP_INSTALL_JOB_PHASE_CANCELLED = 11;
 }
 
 // AppInstallJobState is the typed terminal/in-flight job state. It aligns with
-// the Platform P-NAPP-008 fail-closed projection: a failed install never
-// projects as success and always leaves a recoverable state.
+// the Platform P-NAPP-008 fail-closed projection: a failed install/update
+// never projects as success and always leaves a recoverable state.
 enum AppInstallJobState {
   APP_INSTALL_JOB_STATE_UNSPECIFIED = 0;
   APP_INSTALL_JOB_STATE_QUEUED = 1;
   APP_INSTALL_JOB_STATE_IN_PROGRESS = 2;
   APP_INSTALL_JOB_STATE_INSTALLED = 3;
   APP_INSTALL_JOB_STATE_FAILED = 4;
+  // APP_INSTALL_JOB_STATE_CANCELLED is the terminal state of a job cancelled
+  // through HealthRepairApp(action=cancel). A cancelled job is recoverable via
+  // retry and is never projected as success.
+  APP_INSTALL_JOB_STATE_CANCELLED = 5;
+}
+
+// AppLifecycleJobKind distinguishes the lifecycle operation that produced a
+// job. Install, update, and healthRepair jobs share the AppInstallJob shape
+// but carry a distinct kind so the consumer never infers intent from phase.
+enum AppLifecycleJobKind {
+  APP_LIFECYCLE_JOB_KIND_UNSPECIFIED = 0;
+  APP_LIFECYCLE_JOB_KIND_INSTALL = 1;
+  APP_LIFECYCLE_JOB_KIND_UPDATE = 2;
+  APP_LIFECYCLE_JOB_KIND_REPAIR = 3;
+}
+
+// AppHealthRepairAction is the typed health/repair action token. It admits
+// only the four S-APP-002 tokens; no other action is accepted.
+enum AppHealthRepairAction {
+  APP_HEALTH_REPAIR_ACTION_UNSPECIFIED = 0;
+  APP_HEALTH_REPAIR_ACTION_CANCEL = 1;
+  APP_HEALTH_REPAIR_ACTION_RETRY = 2;
+  APP_HEALTH_REPAIR_ACTION_REPAIR = 3;
+  APP_HEALTH_REPAIR_ACTION_REINSTALL = 4;
 }
 
 // AppInstallSourceKind distinguishes a bundled first-party install (no network
@@ -128,6 +160,12 @@ message AppInstallJob {
   bool retryable = 13;
   string created_at = 14;
   string updated_at = 15;
+  // kind distinguishes install / update / repair jobs. They share this shape
+  // but the consumer never infers the lifecycle operation from the phase.
+  AppLifecycleJobKind kind = 16;
+  // previous_version is the active release version before an update or repair
+  // job ran. It is empty for an install job.
+  string previous_version = 17;
 }
 
 message InstallAppRequest {
@@ -200,6 +238,45 @@ message UninstallAppResponse {
   AppUninstallResult result = 1;
 }
 
+// === Nimi App Update Lifecycle (K-APP-015) ===
+
+message UpdateAppRequest {
+  // app_id resolves an admitted Nimi App registry row whose bound release
+  // descriptor advanced past the currently installed version.
+  string app_id = 1;
+  // confirmed records that the user confirmed the update impact preview
+  // (version, size, breaking-vs-non-breaking impact). It is required for a
+  // required (breaking) update and ignored for a non-breaking update.
+  bool confirmed = 2;
+}
+
+message UpdateAppResponse {
+  // job is the typed update job projection. It reuses the AppInstallJob shape
+  // with kind=APP_LIFECYCLE_JOB_KIND_UPDATE.
+  AppInstallJob job = 1;
+}
+
+// === Nimi App Health / Repair Lifecycle (K-APP-016) ===
+
+message HealthRepairAppRequest {
+  // app_id resolves the admitted Nimi App registry row whose lifecycle job is
+  // being repaired.
+  string app_id = 1;
+  // action is the typed repair action. Only the four admitted tokens are
+  // accepted; any other value fails closed.
+  AppHealthRepairAction action = 2;
+  // job_id optionally targets a specific lifecycle job for cancel/retry. When
+  // empty, cancel/retry resolve the most recent recoverable job for the app.
+  string job_id = 3;
+}
+
+message HealthRepairAppResponse {
+  // job is the typed lifecycle job projection produced by the repair action.
+  // cancel returns the cancelled job; retry/repair/reinstall return the new
+  // in-flight job. A failed repair is never projected as success.
+  AppInstallJob job = 1;
+}
+
 service RuntimeAppService {
   rpc SendAppMessage(SendAppMessageRequest) returns (SendAppMessageResponse);
   rpc SubscribeAppMessages(SubscribeAppMessagesRequest) returns (stream AppMessageEvent);
@@ -210,4 +287,8 @@ service RuntimeAppService {
   rpc GetAppInstallJob(GetAppInstallJobRequest) returns (GetAppInstallJobResponse);
   rpc ListAppInstallJobs(ListAppInstallJobsRequest) returns (ListAppInstallJobsResponse);
   rpc WatchAppInstallJobEvents(WatchAppInstallJobEventsRequest) returns (stream AppInstallJobEvent);
+
+  // Nimi App update + health/repair lifecycle (K-APP-015..K-APP-016).
+  rpc UpdateApp(UpdateAppRequest) returns (UpdateAppResponse);
+  rpc HealthRepairApp(HealthRepairAppRequest) returns (HealthRepairAppResponse);
 }

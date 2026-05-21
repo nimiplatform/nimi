@@ -1,6 +1,7 @@
 package app
 
 import (
+	"context"
 	"strings"
 	"sync"
 	"time"
@@ -25,6 +26,9 @@ type installJobManager struct {
 	jobs        map[string]*runtimev1.AppInstallJob
 	jobOrder    []string
 	subscribers map[uint64]installJobSubscriber
+	// cancels holds the cancel func of every in-flight job so a
+	// HealthRepairApp(cancel) request can interrupt it.
+	cancels map[string]context.CancelFunc
 }
 
 type installJobSubscriber struct {
@@ -41,6 +45,7 @@ func newInstallJobManager(now func() time.Time) *installJobManager {
 		now:         now,
 		jobs:        make(map[string]*runtimev1.AppInstallJob),
 		subscribers: make(map[uint64]installJobSubscriber),
+		cancels:     make(map[string]context.CancelFunc),
 	}
 }
 
@@ -61,18 +66,33 @@ func (m *installJobManager) activeJobForApp(appID string) *runtimev1.AppInstallJ
 	return nil
 }
 
-// createJob registers a new queued install job and returns its snapshot.
-func (m *installJobManager) createJob(appID string, descriptorRef string, version string, sourceKind runtimev1.AppInstallSourceKind, storage *runtimev1.AppInstallStorageProjection) *runtimev1.AppInstallJob {
+// jobSpec describes a new lifecycle job (install / update / repair).
+type jobSpec struct {
+	appID           string
+	descriptorRef   string
+	version         string
+	previousVersion string
+	kind            runtimev1.AppLifecycleJobKind
+	sourceKind      runtimev1.AppInstallSourceKind
+	storage         *runtimev1.AppInstallStorageProjection
+}
+
+// createJob registers a new queued lifecycle job and returns its snapshot. The
+// job kind distinguishes install / update / repair; install / update / repair
+// jobs share the AppInstallJob shape.
+func (m *installJobManager) createJob(spec jobSpec) *runtimev1.AppInstallJob {
 	now := installJobTimestamp(m.now)
 	job := &runtimev1.AppInstallJob{
 		JobId:                "app_install_job_" + ulidLower(),
-		AppId:                appID,
-		ReleaseDescriptorRef: descriptorRef,
-		InstalledVersion:     version,
+		AppId:                spec.appID,
+		ReleaseDescriptorRef: spec.descriptorRef,
+		InstalledVersion:     spec.version,
+		PreviousVersion:      spec.previousVersion,
+		Kind:                 spec.kind,
 		State:                runtimev1.AppInstallJobState_APP_INSTALL_JOB_STATE_QUEUED,
 		Phase:                runtimev1.AppInstallJobPhase_APP_INSTALL_JOB_PHASE_QUEUED,
-		SourceKind:           sourceKind,
-		Storage:              storage,
+		SourceKind:           spec.sourceKind,
+		Storage:              spec.storage,
 		Retryable:            true,
 		CreatedAt:            now,
 		UpdatedAt:            now,
@@ -137,6 +157,83 @@ func (m *installJobManager) markFailed(jobID string, reason runtimev1.ReasonCode
 		job.FailureDetail = detail
 		job.Retryable = true
 	})
+}
+
+// markCancelled records a fail-closed terminal cancelled state. A cancelled
+// job stays retryable so the operation can be retried; it is never projected
+// as success.
+func (m *installJobManager) markCancelled(jobID string) *runtimev1.AppInstallJob {
+	return m.mutate(jobID, func(job *runtimev1.AppInstallJob) {
+		job.State = runtimev1.AppInstallJobState_APP_INSTALL_JOB_STATE_CANCELLED
+		job.Phase = runtimev1.AppInstallJobPhase_APP_INSTALL_JOB_PHASE_CANCELLED
+		job.ReasonCode = runtimev1.ReasonCode_APP_LIFECYCLE_JOB_CANCELLED
+		job.FailureDetail = "lifecycle job cancelled by healthRepair(cancel)"
+		job.Retryable = true
+	})
+}
+
+// registerCancel records the cancel func of an in-flight job.
+func (m *installJobManager) registerCancel(jobID string, cancel context.CancelFunc) {
+	if cancel == nil {
+		return
+	}
+	m.mu.Lock()
+	m.cancels[jobID] = cancel
+	m.mu.Unlock()
+}
+
+// clearCancel removes a job's cancel func once the job goroutine has exited.
+func (m *installJobManager) clearCancel(jobID string) {
+	m.mu.Lock()
+	delete(m.cancels, jobID)
+	m.mu.Unlock()
+}
+
+// cancelJob interrupts an in-flight job. It returns false when the job is not
+// in flight (already terminal or unknown).
+func (m *installJobManager) cancelJob(jobID string) bool {
+	m.mu.Lock()
+	cancel, ok := m.cancels[jobID]
+	if ok {
+		delete(m.cancels, jobID)
+	}
+	m.mu.Unlock()
+	if !ok {
+		return false
+	}
+	cancel()
+	return true
+}
+
+// jobInFlight reports whether a job is currently being executed.
+func (m *installJobManager) jobInFlight(jobID string) bool {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	_, ok := m.cancels[jobID]
+	return ok
+}
+
+// recentRecoverableJobForApp returns the most recently created job for the app
+// that is in a recoverable terminal state (FAILED or CANCELLED), or any
+// in-flight job. It lets HealthRepairApp resolve a target job when the caller
+// did not pass an explicit job_id.
+func (m *installJobManager) recentRecoverableJobForApp(appID string) *runtimev1.AppInstallJob {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	for i := len(m.jobOrder) - 1; i >= 0; i-- {
+		job := m.jobs[m.jobOrder[i]]
+		if job == nil || job.GetAppId() != appID {
+			continue
+		}
+		switch job.GetState() {
+		case runtimev1.AppInstallJobState_APP_INSTALL_JOB_STATE_FAILED,
+			runtimev1.AppInstallJobState_APP_INSTALL_JOB_STATE_CANCELLED,
+			runtimev1.AppInstallJobState_APP_INSTALL_JOB_STATE_QUEUED,
+			runtimev1.AppInstallJobState_APP_INSTALL_JOB_STATE_IN_PROGRESS:
+			return cloneInstallJob(job)
+		}
+	}
+	return nil
 }
 
 func (m *installJobManager) mutate(jobID string, apply func(*runtimev1.AppInstallJob)) *runtimev1.AppInstallJob {
@@ -234,7 +331,8 @@ func (m *installJobManager) publish(job *runtimev1.AppInstallJob) {
 func installJobTerminal(state runtimev1.AppInstallJobState) bool {
 	switch state {
 	case runtimev1.AppInstallJobState_APP_INSTALL_JOB_STATE_INSTALLED,
-		runtimev1.AppInstallJobState_APP_INSTALL_JOB_STATE_FAILED:
+		runtimev1.AppInstallJobState_APP_INSTALL_JOB_STATE_FAILED,
+		runtimev1.AppInstallJobState_APP_INSTALL_JOB_STATE_CANCELLED:
 		return true
 	default:
 		return false

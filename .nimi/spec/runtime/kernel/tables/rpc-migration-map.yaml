@@ -803,6 +803,16 @@ method_mappings:
     proto_service: RuntimeAppService
     proto_method: WatchAppInstallJobEvents
     mapping_posture: aligned
+  - design_service: RuntimeAppService
+    design_method: UpdateApp
+    proto_service: RuntimeAppService
+    proto_method: UpdateApp
+    mapping_posture: aligned
+  - design_service: RuntimeAppService
+    design_method: HealthRepairApp
+    proto_service: RuntimeAppService
+    proto_method: HealthRepairApp
+    mapping_posture: aligned
   - design_service: RuntimeCognitionService
     design_method: CreateBank
     proto_service: RuntimeCognitionService

@@ -218,6 +218,27 @@ pub enum ReasonCode {
     AppMessagePayloadTooLarge = 550,
     AppMessageRateLimited = 551,
     AppMessageLoopDetected = 552,
+    /// APP_INSTALL family (553+) — Nimi App install/uninstall lifecycle
+    /// fail-closed reasons. Each reason is distinct and is never collapsed
+    /// into a generic value.
+    AppInstallDescriptorNotFound = 553,
+    AppInstallDigestMismatch = 554,
+    AppInstallManifestInvalid = 555,
+    AppInstallStorageViolation = 556,
+    AppInstallDownloadFailed = 557,
+    AppInstallUnpackFailed = 558,
+    AppInstallInternal = 559,
+    /// APP_UPDATE / APP_REPAIR family (590+) — Nimi App update + health/repair
+    /// lifecycle fail-closed reasons. Each reason is distinct and is never
+    /// collapsed into a generic value (K-APP-015 / K-APP-016).
+    AppUpdateNotAvailable = 590,
+    AppUpdateNotInstalled = 591,
+    AppUpdateConfirmationRequired = 592,
+    AppUpdateSwapFailed = 593,
+    AppRepairActionInvalid = 594,
+    AppRepairNoRecoverableJob = 595,
+    AppRepairNotRepairable = 596,
+    AppLifecycleJobCancelled = 597,
     /// LOCAL_SPEECH family (560+)
     AiLocalSpeechPreflightBlocked = 560,
     AiLocalSpeechDownloadConfirmationRequired = 561,
@@ -388,6 +409,21 @@ impl ReasonCode {
             Self::AppMessagePayloadTooLarge => "APP_MESSAGE_PAYLOAD_TOO_LARGE",
             Self::AppMessageRateLimited => "APP_MESSAGE_RATE_LIMITED",
             Self::AppMessageLoopDetected => "APP_MESSAGE_LOOP_DETECTED",
+            Self::AppInstallDescriptorNotFound => "APP_INSTALL_DESCRIPTOR_NOT_FOUND",
+            Self::AppInstallDigestMismatch => "APP_INSTALL_DIGEST_MISMATCH",
+            Self::AppInstallManifestInvalid => "APP_INSTALL_MANIFEST_INVALID",
+            Self::AppInstallStorageViolation => "APP_INSTALL_STORAGE_VIOLATION",
+            Self::AppInstallDownloadFailed => "APP_INSTALL_DOWNLOAD_FAILED",
+            Self::AppInstallUnpackFailed => "APP_INSTALL_UNPACK_FAILED",
+            Self::AppInstallInternal => "APP_INSTALL_INTERNAL",
+            Self::AppUpdateNotAvailable => "APP_UPDATE_NOT_AVAILABLE",
+            Self::AppUpdateNotInstalled => "APP_UPDATE_NOT_INSTALLED",
+            Self::AppUpdateConfirmationRequired => "APP_UPDATE_CONFIRMATION_REQUIRED",
+            Self::AppUpdateSwapFailed => "APP_UPDATE_SWAP_FAILED",
+            Self::AppRepairActionInvalid => "APP_REPAIR_ACTION_INVALID",
+            Self::AppRepairNoRecoverableJob => "APP_REPAIR_NO_RECOVERABLE_JOB",
+            Self::AppRepairNotRepairable => "APP_REPAIR_NOT_REPAIRABLE",
+            Self::AppLifecycleJobCancelled => "APP_LIFECYCLE_JOB_CANCELLED",
             Self::AiLocalSpeechPreflightBlocked => "AI_LOCAL_SPEECH_PREFLIGHT_BLOCKED",
             Self::AiLocalSpeechDownloadConfirmationRequired => {
                 "AI_LOCAL_SPEECH_DOWNLOAD_CONFIRMATION_REQUIRED"
@@ -583,6 +619,25 @@ impl ReasonCode {
             "APP_MESSAGE_PAYLOAD_TOO_LARGE" => Some(Self::AppMessagePayloadTooLarge),
             "APP_MESSAGE_RATE_LIMITED" => Some(Self::AppMessageRateLimited),
             "APP_MESSAGE_LOOP_DETECTED" => Some(Self::AppMessageLoopDetected),
+            "APP_INSTALL_DESCRIPTOR_NOT_FOUND" => {
+                Some(Self::AppInstallDescriptorNotFound)
+            }
+            "APP_INSTALL_DIGEST_MISMATCH" => Some(Self::AppInstallDigestMismatch),
+            "APP_INSTALL_MANIFEST_INVALID" => Some(Self::AppInstallManifestInvalid),
+            "APP_INSTALL_STORAGE_VIOLATION" => Some(Self::AppInstallStorageViolation),
+            "APP_INSTALL_DOWNLOAD_FAILED" => Some(Self::AppInstallDownloadFailed),
+            "APP_INSTALL_UNPACK_FAILED" => Some(Self::AppInstallUnpackFailed),
+            "APP_INSTALL_INTERNAL" => Some(Self::AppInstallInternal),
+            "APP_UPDATE_NOT_AVAILABLE" => Some(Self::AppUpdateNotAvailable),
+            "APP_UPDATE_NOT_INSTALLED" => Some(Self::AppUpdateNotInstalled),
+            "APP_UPDATE_CONFIRMATION_REQUIRED" => {
+                Some(Self::AppUpdateConfirmationRequired)
+            }
+            "APP_UPDATE_SWAP_FAILED" => Some(Self::AppUpdateSwapFailed),
+            "APP_REPAIR_ACTION_INVALID" => Some(Self::AppRepairActionInvalid),
+            "APP_REPAIR_NO_RECOVERABLE_JOB" => Some(Self::AppRepairNoRecoverableJob),
+            "APP_REPAIR_NOT_REPAIRABLE" => Some(Self::AppRepairNotRepairable),
+            "APP_LIFECYCLE_JOB_CANCELLED" => Some(Self::AppLifecycleJobCancelled),
             "AI_LOCAL_SPEECH_PREFLIGHT_BLOCKED" => {
                 Some(Self::AiLocalSpeechPreflightBlocked)
             }
@@ -11805,6 +11860,204 @@ pub struct AppMessageEvent {
     #[prost(message, optional, tag = "11")]
     pub timestamp: ::core::option::Option<::prost_types::Timestamp>,
 }
+/// AppInstallStorageProjection mirrors the Runtime-owned app storage roots
+/// (P-NAPP-015 / S-APP-011). All four roots are absolute paths under the
+/// selected nimi_data directory.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AppInstallStorageProjection {
+    #[prost(string, tag = "1")]
+    pub app_root: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub release_root: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub durable_data_root: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub cache_root: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub temp_root: ::prost::alloc::string::String,
+}
+/// AppInstallJob is the typed install job projection. It mirrors the
+/// LocalEnvironmentDependencyJob shape: a stable job id, a typed state, the
+/// resolved descriptor identity, a fail-closed failure detail, and a
+/// retryable flag so a failed install can be retried or its partial files
+/// removed without ever projecting as success.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AppInstallJob {
+    #[prost(string, tag = "1")]
+    pub job_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub app_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub release_descriptor_ref: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub installed_version: ::prost::alloc::string::String,
+    #[prost(enumeration = "AppInstallJobState", tag = "5")]
+    pub state: i32,
+    #[prost(enumeration = "AppInstallJobPhase", tag = "6")]
+    pub phase: i32,
+    #[prost(enumeration = "AppInstallSourceKind", tag = "7")]
+    pub source_kind: i32,
+    /// sha256 is the digest computed over the downloaded/bundled artifact bytes.
+    /// It is populated only after the verify phase succeeds.
+    #[prost(string, tag = "8")]
+    pub sha256: ::prost::alloc::string::String,
+    #[prost(int64, tag = "9")]
+    pub artifact_bytes: i64,
+    #[prost(message, optional, tag = "10")]
+    pub storage: ::core::option::Option<AppInstallStorageProjection>,
+    /// reason_code is the typed fail-closed reason on a failed job. It is never
+    /// collapsed into a generic value.
+    #[prost(enumeration = "ReasonCode", tag = "11")]
+    pub reason_code: i32,
+    #[prost(string, tag = "12")]
+    pub failure_detail: ::prost::alloc::string::String,
+    #[prost(bool, tag = "13")]
+    pub retryable: bool,
+    #[prost(string, tag = "14")]
+    pub created_at: ::prost::alloc::string::String,
+    #[prost(string, tag = "15")]
+    pub updated_at: ::prost::alloc::string::String,
+    /// kind distinguishes install / update / repair jobs. They share this shape
+    /// but the consumer never infers the lifecycle operation from the phase.
+    #[prost(enumeration = "AppLifecycleJobKind", tag = "16")]
+    pub kind: i32,
+    /// previous_version is the active release version before an update or repair
+    /// job ran. It is empty for an install job.
+    #[prost(string, tag = "17")]
+    pub previous_version: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct InstallAppRequest {
+    /// app_id resolves an admitted Nimi App registry row and its bound release
+    /// descriptor.
+    #[prost(string, tag = "1")]
+    pub app_id: ::prost::alloc::string::String,
+    /// confirmed records that the user confirmed the install requirement preview
+    /// (size, data roots, AI/profile requirements, permissions).
+    #[prost(bool, tag = "2")]
+    pub confirmed: bool,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct InstallAppResponse {
+    #[prost(message, optional, tag = "1")]
+    pub job: ::core::option::Option<AppInstallJob>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetAppInstallJobRequest {
+    #[prost(string, tag = "1")]
+    pub job_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetAppInstallJobResponse {
+    #[prost(message, optional, tag = "1")]
+    pub job: ::core::option::Option<AppInstallJob>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ListAppInstallJobsRequest {
+    /// app_id optionally filters jobs to a single app. Empty lists every job.
+    #[prost(string, tag = "1")]
+    pub app_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ListAppInstallJobsResponse {
+    #[prost(message, repeated, tag = "1")]
+    pub jobs: ::prost::alloc::vec::Vec<AppInstallJob>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct WatchAppInstallJobEventsRequest {
+    /// job_id optionally scopes the stream to a single install job. Empty
+    /// streams progress events for every install job.
+    #[prost(string, tag = "1")]
+    pub job_id: ::prost::alloc::string::String,
+}
+/// AppInstallJobEvent is one typed progress frame for a Watch stream. The
+/// snapshot field carries the full typed job projection at the time of the
+/// event so the consumer never reconstructs state from partial deltas.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AppInstallJobEvent {
+    #[prost(uint64, tag = "1")]
+    pub sequence: u64,
+    #[prost(message, optional, tag = "2")]
+    pub job: ::core::option::Option<AppInstallJob>,
+    #[prost(message, optional, tag = "3")]
+    pub timestamp: ::core::option::Option<::prost_types::Timestamp>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct UninstallAppRequest {
+    #[prost(string, tag = "1")]
+    pub app_id: ::prost::alloc::string::String,
+    /// delete_durable_data, when true, additionally removes the durable app data
+    /// root. It requires destructive_data_delete_confirmed.
+    #[prost(bool, tag = "2")]
+    pub delete_durable_data: bool,
+    /// destructive_data_delete_confirmed records explicit user confirmation of
+    /// the separate destructive "Delete app data" flow with impact preview.
+    #[prost(bool, tag = "3")]
+    pub destructive_data_delete_confirmed: bool,
+}
+/// AppUninstallResult is the typed uninstall projection. Uninstall removes
+/// release payloads by default and keeps durable data unless destructive
+/// deletion was explicitly confirmed.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AppUninstallResult {
+    #[prost(string, tag = "1")]
+    pub app_id: ::prost::alloc::string::String,
+    #[prost(bool, tag = "2")]
+    pub release_removed: bool,
+    #[prost(bool, tag = "3")]
+    pub durable_data_removed: bool,
+    #[prost(message, optional, tag = "4")]
+    pub storage: ::core::option::Option<AppInstallStorageProjection>,
+    #[prost(enumeration = "ReasonCode", tag = "5")]
+    pub reason_code: i32,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct UninstallAppResponse {
+    #[prost(message, optional, tag = "1")]
+    pub result: ::core::option::Option<AppUninstallResult>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct UpdateAppRequest {
+    /// app_id resolves an admitted Nimi App registry row whose bound release
+    /// descriptor advanced past the currently installed version.
+    #[prost(string, tag = "1")]
+    pub app_id: ::prost::alloc::string::String,
+    /// confirmed records that the user confirmed the update impact preview
+    /// (version, size, breaking-vs-non-breaking impact). It is required for a
+    /// required (breaking) update and ignored for a non-breaking update.
+    #[prost(bool, tag = "2")]
+    pub confirmed: bool,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct UpdateAppResponse {
+    /// job is the typed update job projection. It reuses the AppInstallJob shape
+    /// with kind=APP_LIFECYCLE_JOB_KIND_UPDATE.
+    #[prost(message, optional, tag = "1")]
+    pub job: ::core::option::Option<AppInstallJob>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct HealthRepairAppRequest {
+    /// app_id resolves the admitted Nimi App registry row whose lifecycle job is
+    /// being repaired.
+    #[prost(string, tag = "1")]
+    pub app_id: ::prost::alloc::string::String,
+    /// action is the typed repair action. Only the four admitted tokens are
+    /// accepted; any other value fails closed.
+    #[prost(enumeration = "AppHealthRepairAction", tag = "2")]
+    pub action: i32,
+    /// job_id optionally targets a specific lifecycle job for cancel/retry. When
+    /// empty, cancel/retry resolve the most recent recoverable job for the app.
+    #[prost(string, tag = "3")]
+    pub job_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct HealthRepairAppResponse {
+    /// job is the typed lifecycle job projection produced by the repair action.
+    /// cancel returns the cancelled job; retry/repair/reinstall return the new
+    /// in-flight job. A failed repair is never projected as success.
+    #[prost(message, optional, tag = "1")]
+    pub job: ::core::option::Option<AppInstallJob>,
+}
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
 pub enum AppMessageEventType {
@@ -11833,6 +12086,220 @@ impl AppMessageEventType {
             "APP_MESSAGE_EVENT_RECEIVED" => Some(Self::AppMessageEventReceived),
             "APP_MESSAGE_EVENT_ACKED" => Some(Self::AppMessageEventAcked),
             "APP_MESSAGE_EVENT_FAILED" => Some(Self::AppMessageEventFailed),
+            _ => None,
+        }
+    }
+}
+/// AppInstallJobPhase is the typed install/update pipeline phase. It surfaces
+/// the concrete step so the product Apps card can show "download / verify /
+/// materialize / unpack / swap / evidence" instead of a generic spinner. It is
+/// never inferred from transfer/process/file state. The same phase shape covers
+/// install, update, and healthRepair jobs (K-APP-015 / K-APP-016).
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum AppInstallJobPhase {
+    Unspecified = 0,
+    Queued = 1,
+    ResolveDescriptor = 2,
+    Download = 3,
+    Verify = 4,
+    Materialize = 5,
+    Unpack = 6,
+    Evidence = 7,
+    Installed = 8,
+    Failed = 9,
+    /// APP_INSTALL_JOB_PHASE_SWAP is the atomic active-release pointer swap of an
+    /// update job. It runs only after the new release is fully materialized and
+    /// digest-verified; the old release stays usable until the swap commits.
+    Swap = 10,
+    /// APP_INSTALL_JOB_PHASE_CANCELLED is the terminal phase of a job cancelled
+    /// through HealthRepairApp(action=cancel).
+    Cancelled = 11,
+}
+impl AppInstallJobPhase {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "APP_INSTALL_JOB_PHASE_UNSPECIFIED",
+            Self::Queued => "APP_INSTALL_JOB_PHASE_QUEUED",
+            Self::ResolveDescriptor => "APP_INSTALL_JOB_PHASE_RESOLVE_DESCRIPTOR",
+            Self::Download => "APP_INSTALL_JOB_PHASE_DOWNLOAD",
+            Self::Verify => "APP_INSTALL_JOB_PHASE_VERIFY",
+            Self::Materialize => "APP_INSTALL_JOB_PHASE_MATERIALIZE",
+            Self::Unpack => "APP_INSTALL_JOB_PHASE_UNPACK",
+            Self::Evidence => "APP_INSTALL_JOB_PHASE_EVIDENCE",
+            Self::Installed => "APP_INSTALL_JOB_PHASE_INSTALLED",
+            Self::Failed => "APP_INSTALL_JOB_PHASE_FAILED",
+            Self::Swap => "APP_INSTALL_JOB_PHASE_SWAP",
+            Self::Cancelled => "APP_INSTALL_JOB_PHASE_CANCELLED",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "APP_INSTALL_JOB_PHASE_UNSPECIFIED" => Some(Self::Unspecified),
+            "APP_INSTALL_JOB_PHASE_QUEUED" => Some(Self::Queued),
+            "APP_INSTALL_JOB_PHASE_RESOLVE_DESCRIPTOR" => Some(Self::ResolveDescriptor),
+            "APP_INSTALL_JOB_PHASE_DOWNLOAD" => Some(Self::Download),
+            "APP_INSTALL_JOB_PHASE_VERIFY" => Some(Self::Verify),
+            "APP_INSTALL_JOB_PHASE_MATERIALIZE" => Some(Self::Materialize),
+            "APP_INSTALL_JOB_PHASE_UNPACK" => Some(Self::Unpack),
+            "APP_INSTALL_JOB_PHASE_EVIDENCE" => Some(Self::Evidence),
+            "APP_INSTALL_JOB_PHASE_INSTALLED" => Some(Self::Installed),
+            "APP_INSTALL_JOB_PHASE_FAILED" => Some(Self::Failed),
+            "APP_INSTALL_JOB_PHASE_SWAP" => Some(Self::Swap),
+            "APP_INSTALL_JOB_PHASE_CANCELLED" => Some(Self::Cancelled),
+            _ => None,
+        }
+    }
+}
+/// AppInstallJobState is the typed terminal/in-flight job state. It aligns with
+/// the Platform P-NAPP-008 fail-closed projection: a failed install/update
+/// never projects as success and always leaves a recoverable state.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum AppInstallJobState {
+    Unspecified = 0,
+    Queued = 1,
+    InProgress = 2,
+    Installed = 3,
+    Failed = 4,
+    /// APP_INSTALL_JOB_STATE_CANCELLED is the terminal state of a job cancelled
+    /// through HealthRepairApp(action=cancel). A cancelled job is recoverable via
+    /// retry and is never projected as success.
+    Cancelled = 5,
+}
+impl AppInstallJobState {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "APP_INSTALL_JOB_STATE_UNSPECIFIED",
+            Self::Queued => "APP_INSTALL_JOB_STATE_QUEUED",
+            Self::InProgress => "APP_INSTALL_JOB_STATE_IN_PROGRESS",
+            Self::Installed => "APP_INSTALL_JOB_STATE_INSTALLED",
+            Self::Failed => "APP_INSTALL_JOB_STATE_FAILED",
+            Self::Cancelled => "APP_INSTALL_JOB_STATE_CANCELLED",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "APP_INSTALL_JOB_STATE_UNSPECIFIED" => Some(Self::Unspecified),
+            "APP_INSTALL_JOB_STATE_QUEUED" => Some(Self::Queued),
+            "APP_INSTALL_JOB_STATE_IN_PROGRESS" => Some(Self::InProgress),
+            "APP_INSTALL_JOB_STATE_INSTALLED" => Some(Self::Installed),
+            "APP_INSTALL_JOB_STATE_FAILED" => Some(Self::Failed),
+            "APP_INSTALL_JOB_STATE_CANCELLED" => Some(Self::Cancelled),
+            _ => None,
+        }
+    }
+}
+/// AppLifecycleJobKind distinguishes the lifecycle operation that produced a
+/// job. Install, update, and healthRepair jobs share the AppInstallJob shape
+/// but carry a distinct kind so the consumer never infers intent from phase.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum AppLifecycleJobKind {
+    Unspecified = 0,
+    Install = 1,
+    Update = 2,
+    Repair = 3,
+}
+impl AppLifecycleJobKind {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "APP_LIFECYCLE_JOB_KIND_UNSPECIFIED",
+            Self::Install => "APP_LIFECYCLE_JOB_KIND_INSTALL",
+            Self::Update => "APP_LIFECYCLE_JOB_KIND_UPDATE",
+            Self::Repair => "APP_LIFECYCLE_JOB_KIND_REPAIR",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "APP_LIFECYCLE_JOB_KIND_UNSPECIFIED" => Some(Self::Unspecified),
+            "APP_LIFECYCLE_JOB_KIND_INSTALL" => Some(Self::Install),
+            "APP_LIFECYCLE_JOB_KIND_UPDATE" => Some(Self::Update),
+            "APP_LIFECYCLE_JOB_KIND_REPAIR" => Some(Self::Repair),
+            _ => None,
+        }
+    }
+}
+/// AppHealthRepairAction is the typed health/repair action token. It admits
+/// only the four S-APP-002 tokens; no other action is accepted.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum AppHealthRepairAction {
+    Unspecified = 0,
+    Cancel = 1,
+    Retry = 2,
+    Repair = 3,
+    Reinstall = 4,
+}
+impl AppHealthRepairAction {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "APP_HEALTH_REPAIR_ACTION_UNSPECIFIED",
+            Self::Cancel => "APP_HEALTH_REPAIR_ACTION_CANCEL",
+            Self::Retry => "APP_HEALTH_REPAIR_ACTION_RETRY",
+            Self::Repair => "APP_HEALTH_REPAIR_ACTION_REPAIR",
+            Self::Reinstall => "APP_HEALTH_REPAIR_ACTION_REINSTALL",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "APP_HEALTH_REPAIR_ACTION_UNSPECIFIED" => Some(Self::Unspecified),
+            "APP_HEALTH_REPAIR_ACTION_CANCEL" => Some(Self::Cancel),
+            "APP_HEALTH_REPAIR_ACTION_RETRY" => Some(Self::Retry),
+            "APP_HEALTH_REPAIR_ACTION_REPAIR" => Some(Self::Repair),
+            "APP_HEALTH_REPAIR_ACTION_REINSTALL" => Some(Self::Reinstall),
+            _ => None,
+        }
+    }
+}
+/// AppInstallSourceKind distinguishes a bundled first-party install (no network
+/// download; materialized from the atomic Nimi release bundle) from an external
+/// immutable artifact install (HTTPS download + sha256 verification).
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum AppInstallSourceKind {
+    Unspecified = 0,
+    Bundled = 1,
+    ExternalArtifact = 2,
+}
+impl AppInstallSourceKind {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "APP_INSTALL_SOURCE_KIND_UNSPECIFIED",
+            Self::Bundled => "APP_INSTALL_SOURCE_KIND_BUNDLED",
+            Self::ExternalArtifact => "APP_INSTALL_SOURCE_KIND_EXTERNAL_ARTIFACT",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "APP_INSTALL_SOURCE_KIND_UNSPECIFIED" => Some(Self::Unspecified),
+            "APP_INSTALL_SOURCE_KIND_BUNDLED" => Some(Self::Bundled),
+            "APP_INSTALL_SOURCE_KIND_EXTERNAL_ARTIFACT" => Some(Self::ExternalArtifact),
             _ => None,
         }
     }
@@ -11985,6 +12452,202 @@ pub mod runtime_app_service_client {
                     ),
                 );
             self.inner.server_streaming(req, path, codec).await
+        }
+        /// Nimi App install/uninstall lifecycle (K-APP-011..K-APP-014).
+        pub async fn install_app(
+            &mut self,
+            request: impl tonic::IntoRequest<super::InstallAppRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::InstallAppResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAppService/InstallApp",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new("nimi.runtime.v1.RuntimeAppService", "InstallApp"),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn uninstall_app(
+            &mut self,
+            request: impl tonic::IntoRequest<super::UninstallAppRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::UninstallAppResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAppService/UninstallApp",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new("nimi.runtime.v1.RuntimeAppService", "UninstallApp"),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn get_app_install_job(
+            &mut self,
+            request: impl tonic::IntoRequest<super::GetAppInstallJobRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::GetAppInstallJobResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAppService/GetAppInstallJob",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAppService",
+                        "GetAppInstallJob",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn list_app_install_jobs(
+            &mut self,
+            request: impl tonic::IntoRequest<super::ListAppInstallJobsRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ListAppInstallJobsResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAppService/ListAppInstallJobs",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAppService",
+                        "ListAppInstallJobs",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn watch_app_install_job_events(
+            &mut self,
+            request: impl tonic::IntoRequest<super::WatchAppInstallJobEventsRequest>,
+        ) -> std::result::Result<
+            tonic::Response<tonic::codec::Streaming<super::AppInstallJobEvent>>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAppService/WatchAppInstallJobEvents",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAppService",
+                        "WatchAppInstallJobEvents",
+                    ),
+                );
+            self.inner.server_streaming(req, path, codec).await
+        }
+        /// Nimi App update + health/repair lifecycle (K-APP-015..K-APP-016).
+        pub async fn update_app(
+            &mut self,
+            request: impl tonic::IntoRequest<super::UpdateAppRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::UpdateAppResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAppService/UpdateApp",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new("nimi.runtime.v1.RuntimeAppService", "UpdateApp"),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn health_repair_app(
+            &mut self,
+            request: impl tonic::IntoRequest<super::HealthRepairAppRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::HealthRepairAppResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAppService/HealthRepairApp",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAppService",
+                        "HealthRepairApp",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
         }
     }
 }

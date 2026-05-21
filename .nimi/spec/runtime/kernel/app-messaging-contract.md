@@ -13,10 +13,12 @@
 5. `GetAppInstallJob` — 读取单个 install job 的 typed projection（见 `K-APP-012`）
 6. `ListAppInstallJobs` — 列出 install job 的 typed projection（见 `K-APP-012`）
 7. `WatchAppInstallJobEvents` — 订阅 install job 进度事件流（见 `K-APP-013`）
+8. `UpdateApp` — 触发 Runtime-owned Nimi App atomic update lifecycle（见 `K-APP-015`）
+9. `HealthRepairApp` — 触发 Runtime-owned Nimi App health/repair lifecycle（见 `K-APP-016`）
 
-App messaging 方法（1–2）与 app install/uninstall lifecycle 方法（3–7）
-共用 `RuntimeAppService`，但语义独立：lifecycle 方法不承载 app-to-app
-message broker 语义，messaging 方法不承载 install/uninstall 语义。
+App messaging 方法（1–2）与 app install/uninstall/update/repair lifecycle 方法
+（3–9）共用 `RuntimeAppService`，但语义独立：lifecycle 方法不承载 app-to-app
+message broker 语义，messaging 方法不承载 install/uninstall/update/repair 语义。
 
 ## K-APP-002 SendAppMessage 语义
 
@@ -264,3 +266,42 @@ release payload，保留 `<nimi_data>/apps/<app-id>/data` 下的 durable data
 
 `MUST NOT`：uninstall 不得隐式删除 shared models、Runtime dependencies、
 account data、或其他 app 的数据。
+
+## K-APP-015 UpdateApp Atomic Update Lifecycle
+
+`MUST`：`UpdateApp` 由 Runtime 拥有，是 Nimi App update 的唯一 RPC 入口。
+Update handler 必须：
+
+- 解析 `app_id` 对应的 admitted Nimi App registry row 与其当前 bound release
+  descriptor；
+- 对 `external-immutable-artifact` descriptor，仅从 descriptor 的 artifact
+  locator 下载新 release，对下载字节计算 `sha256`，与 descriptor 比对，digest
+  不匹配时在 unpack 之前 fail closed（Platform `P-NAPP-014`）；
+- 在 `<nimi_data>/apps/<app-id>/releases/<new-version>` 物化新 release，
+  完全 materialize + verify + 写入 evidence **之后**，才以一次 atomic
+  pointer swap 切换 active release；
+- 保留 `<nimi_data>/apps/<app-id>/data` 下的 durable data 不变
+  （Platform `P-NAPP-015`）；
+- 区分 required（breaking）update 与 non-breaking update：required update
+  在 caller 确认前 fail closed。
+
+`MUST NOT`：失败的 update 不得 corrupt 既有 installed release——active
+release pointer 在 swap commit 前必须仍指向旧 release，旧 release 保持可用；
+update 不得删除或改写 durable data；不得在 digest/storage/swap 违例时返回
+pseudo-success。
+
+## K-APP-016 HealthRepairApp Lifecycle
+
+`MUST`：`HealthRepairApp` 由 Runtime 拥有，是 Nimi App health/repair 的唯一
+RPC 入口。它仅 admit 四个显式 action token：`cancel`、`retry`、`repair`、
+`reinstall`（SDK `S-APP-002`）。
+
+- `cancel` — 取消一个 in-flight lifecycle job；被取消的 job 进入 recoverable
+  cancelled 终态，可被 retry，不投影为 success；
+- `retry` — 以相同 kind 重新派发一个 failed / cancelled lifecycle job；
+- `repair` — drop（可能损坏的）release payload 并重新 materialize 同版本
+  release，保留 durable data；
+- `reinstall` — 干净重装当前 bound descriptor，保留 durable data。
+
+`MUST NOT`：任何 action 不得删除 durable data；不得把失败的 repair op 投影为
+success；不得 admit 上述四个 token 之外的 action。

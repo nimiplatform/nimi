@@ -20,6 +20,21 @@ pub struct ScopedRuntimeBindingAttachment {
     #[prost(string, tag = "9")]
     pub world_id: ::prost::alloc::string::String,
 }
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct WorkspaceBindingAttachment {
+    #[prost(string, tag = "1")]
+    pub binding_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub binding_handle: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub runtime_app_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub app_instance_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub workspace_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "6")]
+    pub realm_environment_id: ::prost::alloc::string::String,
+}
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct UsageStats {
     #[prost(int64, tag = "1")]
@@ -210,6 +225,18 @@ pub enum ReasonCode {
     AiLocalSpeechHostInitFailed = 563,
     AiLocalSpeechCapabilityDownloadFailed = 564,
     AiLocalSpeechBundleDegraded = 565,
+    /// WORKSPACE_BINDING family (570+)
+    WorkspaceBindingMissing = 570,
+    WorkspaceBindingMalformed = 571,
+    WorkspaceBindingNotFound = 572,
+    WorkspaceBindingRevoked = 573,
+    WorkspaceBindingExpired = 574,
+    WorkspaceBindingReplay = 575,
+    WorkspaceBindingAccountUnavailable = 576,
+    WorkspaceBindingCallerMismatch = 577,
+    WorkspaceBindingWorkspaceMismatch = 578,
+    WorkspaceBindingEnvDeviceMismatch = 579,
+    WorkspaceBindingScopeMissing = 580,
     /// GRANT family (510+)
     GrantTokenChainRootNotFound = 510,
     GrantTokenChainRootRequired = 511,
@@ -371,6 +398,23 @@ impl ReasonCode {
                 "AI_LOCAL_SPEECH_CAPABILITY_DOWNLOAD_FAILED"
             }
             Self::AiLocalSpeechBundleDegraded => "AI_LOCAL_SPEECH_BUNDLE_DEGRADED",
+            Self::WorkspaceBindingMissing => "WORKSPACE_BINDING_MISSING",
+            Self::WorkspaceBindingMalformed => "WORKSPACE_BINDING_MALFORMED",
+            Self::WorkspaceBindingNotFound => "WORKSPACE_BINDING_NOT_FOUND",
+            Self::WorkspaceBindingRevoked => "WORKSPACE_BINDING_REVOKED",
+            Self::WorkspaceBindingExpired => "WORKSPACE_BINDING_EXPIRED",
+            Self::WorkspaceBindingReplay => "WORKSPACE_BINDING_REPLAY",
+            Self::WorkspaceBindingAccountUnavailable => {
+                "WORKSPACE_BINDING_ACCOUNT_UNAVAILABLE"
+            }
+            Self::WorkspaceBindingCallerMismatch => "WORKSPACE_BINDING_CALLER_MISMATCH",
+            Self::WorkspaceBindingWorkspaceMismatch => {
+                "WORKSPACE_BINDING_WORKSPACE_MISMATCH"
+            }
+            Self::WorkspaceBindingEnvDeviceMismatch => {
+                "WORKSPACE_BINDING_ENV_DEVICE_MISMATCH"
+            }
+            Self::WorkspaceBindingScopeMissing => "WORKSPACE_BINDING_SCOPE_MISSING",
             Self::GrantTokenChainRootNotFound => "GRANT_TOKEN_CHAIN_ROOT_NOT_FOUND",
             Self::GrantTokenChainRootRequired => "GRANT_TOKEN_CHAIN_ROOT_REQUIRED",
             Self::PageTokenInvalid => "PAGE_TOKEN_INVALID",
@@ -551,6 +595,25 @@ impl ReasonCode {
                 Some(Self::AiLocalSpeechCapabilityDownloadFailed)
             }
             "AI_LOCAL_SPEECH_BUNDLE_DEGRADED" => Some(Self::AiLocalSpeechBundleDegraded),
+            "WORKSPACE_BINDING_MISSING" => Some(Self::WorkspaceBindingMissing),
+            "WORKSPACE_BINDING_MALFORMED" => Some(Self::WorkspaceBindingMalformed),
+            "WORKSPACE_BINDING_NOT_FOUND" => Some(Self::WorkspaceBindingNotFound),
+            "WORKSPACE_BINDING_REVOKED" => Some(Self::WorkspaceBindingRevoked),
+            "WORKSPACE_BINDING_EXPIRED" => Some(Self::WorkspaceBindingExpired),
+            "WORKSPACE_BINDING_REPLAY" => Some(Self::WorkspaceBindingReplay),
+            "WORKSPACE_BINDING_ACCOUNT_UNAVAILABLE" => {
+                Some(Self::WorkspaceBindingAccountUnavailable)
+            }
+            "WORKSPACE_BINDING_CALLER_MISMATCH" => {
+                Some(Self::WorkspaceBindingCallerMismatch)
+            }
+            "WORKSPACE_BINDING_WORKSPACE_MISMATCH" => {
+                Some(Self::WorkspaceBindingWorkspaceMismatch)
+            }
+            "WORKSPACE_BINDING_ENV_DEVICE_MISMATCH" => {
+                Some(Self::WorkspaceBindingEnvDeviceMismatch)
+            }
+            "WORKSPACE_BINDING_SCOPE_MISSING" => Some(Self::WorkspaceBindingScopeMissing),
             "GRANT_TOKEN_CHAIN_ROOT_NOT_FOUND" => Some(Self::GrantTokenChainRootNotFound),
             "GRANT_TOKEN_CHAIN_ROOT_REQUIRED" => Some(Self::GrantTokenChainRootRequired),
             "PAGE_TOKEN_INVALID" => Some(Self::PageTokenInvalid),
@@ -5917,6 +5980,220 @@ pub struct LocalEnvironmentActivationGate {
     #[prost(message, repeated, tag = "7")]
     pub dependencies: ::prost::alloc::vec::Vec<LocalEnvironmentPlanDependency>,
 }
+/// RuntimeBaselineActivationDependencyEvidence is the per-dependency readiness
+/// projection captured into a runtimeBaselineRef. It is owner-verifiable
+/// evidence, not a probe result.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RuntimeBaselineActivationDependencyEvidence {
+    #[prost(string, tag = "1")]
+    pub dependency_family: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub dependency_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub environment_key: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub selected_source_record_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub source_kind: ::prost::alloc::string::String,
+    /// dependency_state is always ready_system or ready_managed for a valid ref.
+    #[prost(string, tag = "6")]
+    pub dependency_state: ::prost::alloc::string::String,
+    #[prost(string, tag = "7")]
+    pub canonical_root: ::prost::alloc::string::String,
+    /// materialization_or_system_source_verification_evidence carries the
+    /// materialization job terminal evidence ref or the system-source
+    /// verification evidence ref that produced the selected source record.
+    #[prost(string, tag = "8")]
+    pub materialization_or_system_source_verification_evidence: ::prost::alloc::string::String,
+}
+/// RuntimeBaselineActivationConsumerEvidence is the per-consumer activation
+/// response projection captured into a runtimeBaselineRef.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct RuntimeBaselineActivationConsumerEvidence {
+    #[prost(string, tag = "1")]
+    pub consumer_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub pack_id: ::prost::alloc::string::String,
+    /// activation_state is always ready for a valid ref.
+    #[prost(string, tag = "3")]
+    pub activation_state: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub reason_code: ::prost::alloc::string::String,
+    #[prost(message, repeated, tag = "5")]
+    pub dependencies: ::prost::alloc::vec::Vec<
+        RuntimeBaselineActivationDependencyEvidence,
+    >,
+    /// bound_asset_id is the model asset id bound to this consumer; it is
+    /// re-supplied to the activation gate on baseline ref re-verification.
+    #[prost(string, tag = "6")]
+    pub bound_asset_id: ::prost::alloc::string::String,
+}
+/// RuntimeBaselineReadinessRef is the durable, owner-verifiable first-run
+/// runtime baseline readiness evidence record owned by RuntimeLocalService
+/// per K-LENV-ACT-011. It is minted only after fresh activation succeeds for
+/// every required first-run baseline consumer.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct RuntimeBaselineReadinessRef {
+    #[prost(string, tag = "1")]
+    pub runtime_baseline_ref: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub selected_local_factory_ai_profile_ref: ::prost::alloc::string::String,
+    /// install_level is minimal or recommended.
+    #[prost(string, tag = "3")]
+    pub install_level: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub runtime_data_root_or_data_root_ref: ::prost::alloc::string::String,
+    #[prost(string, repeated, tag = "5")]
+    pub required_dependency_families: ::prost::alloc::vec::Vec<
+        ::prost::alloc::string::String,
+    >,
+    #[prost(string, repeated, tag = "6")]
+    pub selected_source_record_ids: ::prost::alloc::vec::Vec<
+        ::prost::alloc::string::String,
+    >,
+    #[prost(message, repeated, tag = "7")]
+    pub activation_ready_responses: ::prost::alloc::vec::Vec<
+        RuntimeBaselineActivationConsumerEvidence,
+    >,
+    #[prost(string, repeated, tag = "8")]
+    pub materialization_or_system_source_verification_evidence: ::prost::alloc::vec::Vec<
+        ::prost::alloc::string::String,
+    >,
+    #[prost(string, tag = "9")]
+    pub observed_at: ::prost::alloc::string::String,
+    #[prost(string, tag = "10")]
+    pub runtime_verifier_identity: ::prost::alloc::string::String,
+    #[prost(string, repeated, tag = "11")]
+    pub runtime_audit_sequence: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+}
+/// ExecutionBaselineCapabilityProof is the durable per-capability execution
+/// proof captured into an executionEvidenceRef. Each entry proves one selected
+/// local first-run baseline capability actually executed through the admitted
+/// Runtime local execution path against a runtimeBaselineRef-bound model asset.
+/// It is owner-verifiable execution evidence, never a probe or warmup result.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ExecutionBaselineCapabilityProof {
+    /// capability is the canonical baseline capability id, e.g.
+    /// local_text_chat_execution / local_basic_stt_execution /
+    /// local_basic_tts_execution.
+    #[prost(string, tag = "1")]
+    pub capability: ::prost::alloc::string::String,
+    /// scenario_type is the runtime ScenarioType the proof executed. Only
+    /// TEXT_GENERATE, SPEECH_SYNTHESIZE, SPEECH_TRANSCRIBE are admitted for the
+    /// first-run baseline; every other scenario fails closed.
+    #[prost(enumeration = "ScenarioType", tag = "2")]
+    pub scenario_type: i32,
+    /// bound_consumer_id is the runtimeBaselineRef baseline consumer this proof
+    /// executed against (llama.cpp.cpu / speech.qwen3-asr.python /
+    /// speech.qwen3-tts.python).
+    #[prost(string, tag = "3")]
+    pub bound_consumer_id: ::prost::alloc::string::String,
+    /// bound_asset_id is the runtimeBaselineRef-bound local model asset id this
+    /// capability executed against.
+    #[prost(string, tag = "4")]
+    pub bound_asset_id: ::prost::alloc::string::String,
+    /// local_route_target is the resolved local execution route target. It is
+    /// always a local route (route_policy ROUTE_POLICY_LOCAL); a cloud / remote
+    /// target fails the evidence closed.
+    #[prost(string, tag = "5")]
+    pub local_route_target: ::prost::alloc::string::String,
+    /// route_policy is the resolved route policy. A valid proof is always
+    /// ROUTE_POLICY_LOCAL.
+    #[prost(enumeration = "RoutePolicy", tag = "6")]
+    pub route_policy: i32,
+    /// model_resolved is the runtime-resolved local model id the local execution
+    /// path ran.
+    #[prost(string, tag = "7")]
+    pub model_resolved: ::prost::alloc::string::String,
+    /// terminal_result is local_executed for a successful proof, otherwise the
+    /// fail-closed terminal projection.
+    #[prost(string, tag = "8")]
+    pub terminal_result: ::prost::alloc::string::String,
+    #[prost(string, tag = "9")]
+    pub reason_code: ::prost::alloc::string::String,
+    /// trace_id is the execution trace id stamped by the local execution path.
+    #[prost(string, tag = "10")]
+    pub trace_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "11")]
+    pub executed_at: ::prost::alloc::string::String,
+}
+/// ExecutionSchedulingJudgement carries a submit-specific execution target
+/// scheduling judgement (K-AIEXEC-003 / K-SCHED-002). It is recorded into
+/// executionEvidenceRef only when a submit-specific Peek was evaluated for the
+/// capability about to execute; a scope aggregate judgement is never recorded
+/// here. When no submit-specific Peek was evaluated this message is absent.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ExecutionSchedulingJudgement {
+    /// evaluated is always true when this message is present.
+    #[prost(bool, tag = "1")]
+    pub evaluated: bool,
+    /// capability is the submit-specific capability the Peek target evaluated.
+    #[prost(string, tag = "2")]
+    pub capability: ::prost::alloc::string::String,
+    /// scheduling_state is the five-state K-SCHED-002 judgement.
+    #[prost(string, tag = "3")]
+    pub scheduling_state: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub detail: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub evaluated_at: ::prost::alloc::string::String,
+}
+/// ExecutionEvidenceRef is the durable, owner-verifiable first-run baseline
+/// execution evidence record owned by RuntimeLocalService runtime execution
+/// (K-AIEXEC-007). It is minted only after every selected first-run baseline
+/// capability executes through the admitted Runtime local execution path and
+/// every execution resolved to a local route target. It carries all ten
+/// required_projection fields declared by product-control-record-schema.yaml ->
+/// evidence_contracts.executionEvidenceRef.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ExecutionEvidenceRef {
+    #[prost(string, tag = "1")]
+    pub execution_evidence_ref: ::prost::alloc::string::String,
+    /// 1. selected_local_factory_aiProfile_ref
+    #[prost(string, tag = "2")]
+    pub selected_local_factory_ai_profile_ref: ::prost::alloc::string::String,
+    /// 2. install_level (minimal or recommended)
+    #[prost(string, tag = "3")]
+    pub install_level: ::prost::alloc::string::String,
+    /// 3. runtimeBaselineRef — the previously verified runtime baseline ref this
+    ///    execution proof was bound to and re-confirmed against.
+    #[prost(string, tag = "4")]
+    pub runtime_baseline_ref: ::prost::alloc::string::String,
+    /// 4. dataRootRef
+    #[prost(string, tag = "5")]
+    pub data_root_ref: ::prost::alloc::string::String,
+    /// 5. local_execution_target_evidence — the de-duplicated set of resolved
+    ///    local route targets every baseline capability executed against.
+    #[prost(string, repeated, tag = "6")]
+    pub local_execution_target_evidence: ::prost::alloc::vec::Vec<
+        ::prost::alloc::string::String,
+    >,
+    /// 6. selected_baseline_capability_proof — one proof per selected first-run
+    ///    baseline capability.
+    #[prost(message, repeated, tag = "7")]
+    pub selected_baseline_capability_proof: ::prost::alloc::vec::Vec<
+        ExecutionBaselineCapabilityProof,
+    >,
+    /// 7. submit_specific_scheduling_judgement_when_evaluated — present only when
+    ///    a submit-specific Peek was evaluated, else absent.
+    #[prost(message, optional, tag = "8")]
+    pub submit_specific_scheduling_judgement: ::core::option::Option<
+        ExecutionSchedulingJudgement,
+    >,
+    /// 8. terminal_result — local_ai_ready when every proof executed locally,
+    ///    otherwise the fail-closed projection (local_ai_blocked).
+    #[prost(string, tag = "9")]
+    pub terminal_result: ::prost::alloc::string::String,
+    /// 9. timestamps — observed_at is the mint/verify timestamp.
+    #[prost(string, tag = "10")]
+    pub observed_at: ::prost::alloc::string::String,
+    /// 10. runtime_audit_sequence — durable Runtime audit evidence sequence.
+    #[prost(string, repeated, tag = "11")]
+    pub runtime_audit_sequence: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    /// runtime_verifier_identity stamps the Runtime execution verifier.
+    #[prost(string, tag = "12")]
+    pub runtime_verifier_identity: ::prost::alloc::string::String,
+}
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct LocalExecutionOptionDescriptor {
     #[prost(string, tag = "1")]
@@ -6982,6 +7259,8 @@ pub struct KnowledgeRequestContext {
     pub app_id: ::prost::alloc::string::String,
     #[prost(string, tag = "2")]
     pub subject_user_id: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "3")]
+    pub workspace_binding: ::core::option::Option<WorkspaceBindingAttachment>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct KnowledgeAppPrivateOwner {

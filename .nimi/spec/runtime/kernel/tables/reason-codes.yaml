@@ -137,6 +137,14 @@ values:
   - APP_INSTALL_DOWNLOAD_FAILED
   - APP_INSTALL_UNPACK_FAILED
   - APP_INSTALL_INTERNAL
+  - APP_UPDATE_NOT_AVAILABLE
+  - APP_UPDATE_NOT_INSTALLED
+  - APP_UPDATE_CONFIRMATION_REQUIRED
+  - APP_UPDATE_SWAP_FAILED
+  - APP_REPAIR_ACTION_INVALID
+  - APP_REPAIR_NO_RECOVERABLE_JOB
+  - APP_REPAIR_NOT_REPAIRABLE
+  - APP_LIFECYCLE_JOB_CANCELLED
   - AI_LOCAL_SPEECH_PREFLIGHT_BLOCKED
   - AI_LOCAL_SPEECH_DOWNLOAD_CONFIRMATION_REQUIRED
   - AI_LOCAL_SPEECH_ENV_INIT_FAILED
@@ -714,6 +722,38 @@ codes:
     value: 559
     family: APP_INSTALL
     source_rule: K-APP-011
+  - name: APP_UPDATE_NOT_AVAILABLE
+    value: 590
+    family: APP_UPDATE
+    source_rule: K-APP-015
+  - name: APP_UPDATE_NOT_INSTALLED
+    value: 591
+    family: APP_UPDATE
+    source_rule: K-APP-015
+  - name: APP_UPDATE_CONFIRMATION_REQUIRED
+    value: 592
+    family: APP_UPDATE
+    source_rule: K-APP-015
+  - name: APP_UPDATE_SWAP_FAILED
+    value: 593
+    family: APP_UPDATE
+    source_rule: K-APP-015
+  - name: APP_REPAIR_ACTION_INVALID
+    value: 594
+    family: APP_REPAIR
+    source_rule: K-APP-016
+  - name: APP_REPAIR_NO_RECOVERABLE_JOB
+    value: 595
+    family: APP_REPAIR
+    source_rule: K-APP-016
+  - name: APP_REPAIR_NOT_REPAIRABLE
+    value: 596
+    family: APP_REPAIR
+    source_rule: K-APP-016
+  - name: APP_LIFECYCLE_JOB_CANCELLED
+    value: 597
+    family: APP_REPAIR
+    source_rule: K-APP-016
   - name: AI_LOCAL_SPEECH_PREFLIGHT_BLOCKED
     value: 560
     family: LOCAL_SPEECH

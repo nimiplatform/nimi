@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/nimiplatform/nimi/runtime/internal/appreleasecatalog"
 	"github.com/nimiplatform/nimi/runtime/internal/appstorage"
@@ -45,6 +46,7 @@ type Gateway struct {
 	releaseRemover  ReleaseRemover
 	bundledSource   BundledSource
 	materializePlan func(appstorage.Plan) error
+	now             func() time.Time
 }
 
 // VerificationState classifies how a release artifact was verified before it
@@ -83,9 +85,9 @@ type InstalledApp struct {
 	Evidence appstorage.InstallEvidence
 }
 
-// InstallPhase is the typed install pipeline phase reported to an
+// InstallPhase is the typed install/update pipeline phase reported to an
 // InstallObserver as the gateway progresses. It lets a caller surface the
-// concrete install step without reimplementing the pipeline.
+// concrete step without reimplementing the pipeline.
 type InstallPhase string
 
 const (
@@ -94,7 +96,10 @@ const (
 	InstallPhaseVerify            InstallPhase = "verify"
 	InstallPhaseMaterialize       InstallPhase = "materialize"
 	InstallPhaseUnpack            InstallPhase = "unpack"
-	InstallPhaseEvidence          InstallPhase = "evidence"
+	// InstallPhaseSwap is the atomic active-release pointer swap of an update.
+	// It runs only after the new release is materialized and digest-verified.
+	InstallPhaseSwap     InstallPhase = "swap"
+	InstallPhaseEvidence InstallPhase = "evidence"
 )
 
 // InstallObserver receives typed install pipeline progress. Phase reports the
@@ -108,7 +113,7 @@ type InstallObserver interface {
 
 type noopObserver struct{}
 
-func (noopObserver) Phase(InstallPhase)               {}
+func (noopObserver) Phase(InstallPhase)                {}
 func (noopObserver) ArtifactVerified(VerifiedArtifact) {}
 
 type DataRootPlanner struct {
@@ -128,6 +133,7 @@ var (
 	ErrDescriptorNotInstallable = errors.New("release descriptor is not externally installable")
 	ErrDigestMismatch           = errors.New("release artifact sha256 mismatch")
 	ErrSizeMismatch             = errors.New("release artifact size mismatch")
+	ErrActiveReleaseSwapFailed  = errors.New("app active release pointer swap failed")
 )
 
 func New(downloader Downloader, unpacker Unpacker, options ...Option) *Gateway {
@@ -135,11 +141,25 @@ func New(downloader Downloader, unpacker Unpacker, options ...Option) *Gateway {
 		downloader:      downloader,
 		unpacker:        unpacker,
 		materializePlan: appstorage.Materialize,
+		now:             time.Now,
 	}
 	for _, option := range options {
 		option(gateway)
 	}
+	if gateway.now == nil {
+		gateway.now = time.Now
+	}
 	return gateway
+}
+
+// WithClock overrides the gateway clock used to stamp the active release
+// pointer.
+func WithClock(now func() time.Time) Option {
+	return func(g *Gateway) {
+		if now != nil {
+			g.now = now
+		}
+	}
 }
 
 func WithStoragePlanner(planner StoragePlanner) Option {
@@ -267,58 +287,178 @@ func (g *Gateway) InstallWithObserver(ctx context.Context, descriptor apprelease
 	}
 }
 
-// installExternal downloads the descriptor artifact, verifies its sha256
-// against the descriptor before unpacking, materializes the storage roots,
-// unpacks the verified payload, and writes digest-verified install evidence.
-func (g *Gateway) installExternal(ctx context.Context, descriptor appreleasecatalog.Descriptor, observer InstallObserver) (InstalledApp, error) {
-	observer.Phase(InstallPhaseDownload)
-	observer.Phase(InstallPhaseVerify)
-	artifact, err := g.Verify(ctx, descriptor)
+// UpdateApp materializes a NEW release for an already-installed app and
+// atomically swaps the active release pointer to it. It is the descriptor-first
+// update path: it downloads + sha256-verifies the new release the same way
+// install does (P-NAPP-014), materializes it under
+// <nimi_data>/apps/<app-id>/releases/<new-version>, then commits the swap.
+//
+// Atomicity (K-APP-015): the new release is fully materialized, verified, and
+// has its evidence written BEFORE the active release pointer is swapped. The
+// pointer swap (appstorage.WriteActiveRelease) is a single atomic rename. A
+// failure before the swap leaves the previous release and pointer intact and
+// removes the partially materialized new release. Durable data under
+// <nimi_data>/apps/<app-id>/data is never touched (P-NAPP-015).
+func (g *Gateway) UpdateApp(ctx context.Context, descriptor appreleasecatalog.Descriptor, observer InstallObserver) (InstalledApp, error) {
+	if observer == nil {
+		observer = noopObserver{}
+	}
+	observer.Phase(InstallPhaseResolveDescriptor)
+	if err := appreleasecatalog.ValidateDescriptor(descriptor); err != nil {
+		return InstalledApp{}, err
+	}
+	installed, err := g.materializeRelease(ctx, descriptor, observer)
 	if err != nil {
+		// Fail closed: drop the partially materialized new release so a
+		// retry starts clean. The old release and pointer are untouched.
+		if !installed.Plan.IsZero() {
+			_ = appstorage.RemoveRelease(installed.Plan)
+		}
 		return InstalledApp{}, err
 	}
-	observer.ArtifactVerified(artifact)
-	observer.Phase(InstallPhaseMaterialize)
-	plan, err := g.planAndMaterialize(ctx, descriptor)
-	if err != nil {
-		return InstalledApp{}, err
+	observer.Phase(InstallPhaseSwap)
+	if err := g.commitActiveRelease(installed.Plan, installed.Artifact); err != nil {
+		_ = appstorage.RemoveRelease(installed.Plan)
+		return InstalledApp{}, fmt.Errorf("%w: %v", ErrActiveReleaseSwapFailed, err)
 	}
-	if g.unpacker == nil {
-		return InstalledApp{}, ErrUnpackerRequired
-	}
-	observer.Phase(InstallPhaseUnpack)
-	if err := g.unpacker.Unpack(ctx, artifact, plan); err != nil {
-		return InstalledApp{}, err
-	}
-	observer.Phase(InstallPhaseEvidence)
-	return g.writeEvidence(ctx, plan, descriptor, artifact, VerificationStateDigestVerified)
+	return installed, nil
 }
 
-// installBundled resolves the bundled artifact from the atomic Nimi release
-// bundle, materializes the storage roots, copies the bundled artifact into the
-// release root, and writes bundled-source install evidence. No network
-// download or archive unpack occurs on this path.
+// installExternal / installBundled materialize a release through
+// materializeRelease and commit the active release pointer.
+func (g *Gateway) installExternal(ctx context.Context, descriptor appreleasecatalog.Descriptor, observer InstallObserver) (InstalledApp, error) {
+	installed, err := g.materializeRelease(ctx, descriptor, observer)
+	if err != nil {
+		return InstalledApp{}, err
+	}
+	if err := g.commitActiveRelease(installed.Plan, installed.Artifact); err != nil {
+		return InstalledApp{}, fmt.Errorf("%w: %v", ErrActiveReleaseSwapFailed, err)
+	}
+	return installed, nil
+}
+
 func (g *Gateway) installBundled(ctx context.Context, descriptor appreleasecatalog.Descriptor, observer InstallObserver) (InstalledApp, error) {
-	if g == nil || g.bundledSource == nil {
-		return InstalledApp{}, ErrBundledSourceRequired
-	}
-	observer.Phase(InstallPhaseVerify)
-	artifact, err := g.bundledSource.Resolve(ctx, descriptor)
+	installed, err := g.materializeRelease(ctx, descriptor, observer)
 	if err != nil {
 		return InstalledApp{}, err
 	}
-	observer.ArtifactVerified(artifact)
-	observer.Phase(InstallPhaseMaterialize)
-	plan, err := g.planAndMaterialize(ctx, descriptor)
+	if err := g.commitActiveRelease(installed.Plan, installed.Artifact); err != nil {
+		return InstalledApp{}, fmt.Errorf("%w: %v", ErrActiveReleaseSwapFailed, err)
+	}
+	return installed, nil
+}
+
+// materializeRelease runs the descriptor-first download/verify/materialize/
+// unpack/evidence pipeline for a single release version. It does NOT swap the
+// active release pointer; the caller commits the release. It routes by
+// descriptor class and fails closed for any class outside the two admitted
+// classes.
+func (g *Gateway) materializeRelease(ctx context.Context, descriptor appreleasecatalog.Descriptor, observer InstallObserver) (InstalledApp, error) {
+	switch descriptor.DescriptorClass {
+	case appreleasecatalog.DescriptorClassExternalImmutableArtifact:
+		observer.Phase(InstallPhaseDownload)
+		observer.Phase(InstallPhaseVerify)
+		artifact, err := g.Verify(ctx, descriptor)
+		if err != nil {
+			return InstalledApp{}, err
+		}
+		observer.ArtifactVerified(artifact)
+		observer.Phase(InstallPhaseMaterialize)
+		plan, err := g.planAndMaterialize(ctx, descriptor)
+		if err != nil {
+			return InstalledApp{}, err
+		}
+		if g.unpacker == nil {
+			return InstalledApp{Plan: plan}, ErrUnpackerRequired
+		}
+		observer.Phase(InstallPhaseUnpack)
+		if err := g.unpacker.Unpack(ctx, artifact, plan); err != nil {
+			return InstalledApp{Plan: plan}, err
+		}
+		observer.Phase(InstallPhaseEvidence)
+		return g.writeEvidence(ctx, plan, descriptor, artifact, VerificationStateDigestVerified)
+	case appreleasecatalog.DescriptorClassBundledWithNimi:
+		if g == nil || g.bundledSource == nil {
+			return InstalledApp{}, ErrBundledSourceRequired
+		}
+		observer.Phase(InstallPhaseVerify)
+		artifact, err := g.bundledSource.Resolve(ctx, descriptor)
+		if err != nil {
+			return InstalledApp{}, err
+		}
+		observer.ArtifactVerified(artifact)
+		observer.Phase(InstallPhaseMaterialize)
+		plan, err := g.planAndMaterialize(ctx, descriptor)
+		if err != nil {
+			return InstalledApp{}, err
+		}
+		observer.Phase(InstallPhaseUnpack)
+		if err := g.bundledSource.MaterializeInto(ctx, descriptor, plan); err != nil {
+			return InstalledApp{Plan: plan}, err
+		}
+		observer.Phase(InstallPhaseEvidence)
+		return g.writeEvidence(ctx, plan, descriptor, artifact, VerificationStateBundledSource)
+	default:
+		return InstalledApp{}, fmt.Errorf("%w: %s", ErrDescriptorNotInstallable, descriptor.DescriptorClass)
+	}
+}
+
+// RepairApp re-verifies and re-materializes a damaged release for the SAME
+// descriptor version without losing durable data (K-APP-016). It removes the
+// (possibly damaged) release payload directory, re-runs the descriptor-first
+// download/verify/materialize/unpack/evidence pipeline, and re-commits the
+// active release pointer. Durable data under <nimi_data>/apps/<app-id>/data,
+// cache, and tmp are never touched. A failed repair drops the partial release
+// and leaves a recoverable state; it is never projected as success.
+func (g *Gateway) RepairApp(ctx context.Context, descriptor appreleasecatalog.Descriptor, observer InstallObserver) (InstalledApp, error) {
+	if observer == nil {
+		observer = noopObserver{}
+	}
+	observer.Phase(InstallPhaseResolveDescriptor)
+	if err := appreleasecatalog.ValidateDescriptor(descriptor); err != nil {
+		return InstalledApp{}, err
+	}
+	if g == nil || g.storagePlanner == nil {
+		return InstalledApp{}, ErrStoragePlannerRequired
+	}
+	plan, err := g.storagePlanner.Plan(ctx, descriptor)
 	if err != nil {
 		return InstalledApp{}, err
 	}
-	observer.Phase(InstallPhaseUnpack)
-	if err := g.bundledSource.MaterializeInto(ctx, descriptor, plan); err != nil {
+	// Drop the damaged release payload so the re-materialization starts clean.
+	// RemoveRelease only removes the release root; durable data is preserved.
+	if err := appstorage.RemoveRelease(plan); err != nil {
 		return InstalledApp{}, err
 	}
-	observer.Phase(InstallPhaseEvidence)
-	return g.writeEvidence(ctx, plan, descriptor, artifact, VerificationStateBundledSource)
+	installed, err := g.materializeRelease(ctx, descriptor, observer)
+	if err != nil {
+		if !installed.Plan.IsZero() {
+			_ = appstorage.RemoveRelease(installed.Plan)
+		}
+		return InstalledApp{}, err
+	}
+	observer.Phase(InstallPhaseSwap)
+	if err := g.commitActiveRelease(installed.Plan, installed.Artifact); err != nil {
+		_ = appstorage.RemoveRelease(installed.Plan)
+		return InstalledApp{}, fmt.Errorf("%w: %v", ErrActiveReleaseSwapFailed, err)
+	}
+	return installed, nil
+}
+
+// commitActiveRelease atomically swaps the app-root active release pointer to
+// the materialized release. This is the single commit point of an install or
+// update: the rename inside appstorage.WriteActiveRelease is atomic.
+func (g *Gateway) commitActiveRelease(plan appstorage.Plan, artifact VerifiedArtifact) error {
+	now := time.Now
+	if g != nil && g.now != nil {
+		now = g.now
+	}
+	return appstorage.WriteActiveRelease(plan, appstorage.ActiveReleasePointer{
+		AppID:         plan.AppID,
+		ActiveVersion: artifact.Version,
+		ReleaseRoot:   plan.ReleaseRoot,
+		UpdatedAt:     now().UTC().Format(time.RFC3339Nano),
+	})
 }
 
 func (g *Gateway) planAndMaterialize(ctx context.Context, descriptor appreleasecatalog.Descriptor) (appstorage.Plan, error) {

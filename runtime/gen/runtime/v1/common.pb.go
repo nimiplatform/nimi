@@ -164,6 +164,17 @@ const (
 	ReasonCode_APP_INSTALL_DOWNLOAD_FAILED      ReasonCode = 557
 	ReasonCode_APP_INSTALL_UNPACK_FAILED        ReasonCode = 558
 	ReasonCode_APP_INSTALL_INTERNAL             ReasonCode = 559
+	// APP_UPDATE / APP_REPAIR family (590+) — Nimi App update + health/repair
+	// lifecycle fail-closed reasons. Each reason is distinct and is never
+	// collapsed into a generic value (K-APP-015 / K-APP-016).
+	ReasonCode_APP_UPDATE_NOT_AVAILABLE         ReasonCode = 590
+	ReasonCode_APP_UPDATE_NOT_INSTALLED         ReasonCode = 591
+	ReasonCode_APP_UPDATE_CONFIRMATION_REQUIRED ReasonCode = 592
+	ReasonCode_APP_UPDATE_SWAP_FAILED           ReasonCode = 593
+	ReasonCode_APP_REPAIR_ACTION_INVALID        ReasonCode = 594
+	ReasonCode_APP_REPAIR_NO_RECOVERABLE_JOB    ReasonCode = 595
+	ReasonCode_APP_REPAIR_NOT_REPAIRABLE        ReasonCode = 596
+	ReasonCode_APP_LIFECYCLE_JOB_CANCELLED      ReasonCode = 597
 	// LOCAL_SPEECH family (560+)
 	ReasonCode_AI_LOCAL_SPEECH_PREFLIGHT_BLOCKED              ReasonCode = 560
 	ReasonCode_AI_LOCAL_SPEECH_DOWNLOAD_CONFIRMATION_REQUIRED ReasonCode = 561
@@ -332,6 +343,14 @@ var (
 		557: "APP_INSTALL_DOWNLOAD_FAILED",
 		558: "APP_INSTALL_UNPACK_FAILED",
 		559: "APP_INSTALL_INTERNAL",
+		590: "APP_UPDATE_NOT_AVAILABLE",
+		591: "APP_UPDATE_NOT_INSTALLED",
+		592: "APP_UPDATE_CONFIRMATION_REQUIRED",
+		593: "APP_UPDATE_SWAP_FAILED",
+		594: "APP_REPAIR_ACTION_INVALID",
+		595: "APP_REPAIR_NO_RECOVERABLE_JOB",
+		596: "APP_REPAIR_NOT_REPAIRABLE",
+		597: "APP_LIFECYCLE_JOB_CANCELLED",
 		560: "AI_LOCAL_SPEECH_PREFLIGHT_BLOCKED",
 		561: "AI_LOCAL_SPEECH_DOWNLOAD_CONFIRMATION_REQUIRED",
 		562: "AI_LOCAL_SPEECH_ENV_INIT_FAILED",
@@ -491,6 +510,14 @@ var (
 		"APP_INSTALL_DOWNLOAD_FAILED":                    557,
 		"APP_INSTALL_UNPACK_FAILED":                      558,
 		"APP_INSTALL_INTERNAL":                           559,
+		"APP_UPDATE_NOT_AVAILABLE":                       590,
+		"APP_UPDATE_NOT_INSTALLED":                       591,
+		"APP_UPDATE_CONFIRMATION_REQUIRED":               592,
+		"APP_UPDATE_SWAP_FAILED":                         593,
+		"APP_REPAIR_ACTION_INVALID":                      594,
+		"APP_REPAIR_NO_RECOVERABLE_JOB":                  595,
+		"APP_REPAIR_NOT_REPAIRABLE":                      596,
+		"APP_LIFECYCLE_JOB_CANCELLED":                    597,
 		"AI_LOCAL_SPEECH_PREFLIGHT_BLOCKED":              560,
 		"AI_LOCAL_SPEECH_DOWNLOAD_CONFIRMATION_REQUIRED": 561,
 		"AI_LOCAL_SPEECH_ENV_INIT_FAILED":                562,
@@ -1226,7 +1253,7 @@ const file_runtime_v1_common_proto_rawDesc = "" +
 	"\vreason_code\x18\x02 \x01(\x0e2\x1b.nimi.runtime.v1.ReasonCodeR\n" +
 	"reasonCode\x12\x1f\n" +
 	"\vaction_hint\x18\x03 \x01(\tR\n" +
-	"actionHint*\xcf(\n" +
+	"actionHint*\xd7*\n" +
 	"\n" +
 	"ReasonCode\x12\x1b\n" +
 	"\x17REASON_CODE_UNSPECIFIED\x10\x00\x12\x13\n" +
@@ -1345,7 +1372,15 @@ const file_runtime_v1_common_proto_rawDesc = "" +
 	"\x1dAPP_INSTALL_STORAGE_VIOLATION\x10\xac\x04\x12 \n" +
 	"\x1bAPP_INSTALL_DOWNLOAD_FAILED\x10\xad\x04\x12\x1e\n" +
 	"\x19APP_INSTALL_UNPACK_FAILED\x10\xae\x04\x12\x19\n" +
-	"\x14APP_INSTALL_INTERNAL\x10\xaf\x04\x12&\n" +
+	"\x14APP_INSTALL_INTERNAL\x10\xaf\x04\x12\x1d\n" +
+	"\x18APP_UPDATE_NOT_AVAILABLE\x10\xce\x04\x12\x1d\n" +
+	"\x18APP_UPDATE_NOT_INSTALLED\x10\xcf\x04\x12%\n" +
+	" APP_UPDATE_CONFIRMATION_REQUIRED\x10\xd0\x04\x12\x1b\n" +
+	"\x16APP_UPDATE_SWAP_FAILED\x10\xd1\x04\x12\x1e\n" +
+	"\x19APP_REPAIR_ACTION_INVALID\x10\xd2\x04\x12\"\n" +
+	"\x1dAPP_REPAIR_NO_RECOVERABLE_JOB\x10\xd3\x04\x12\x1e\n" +
+	"\x19APP_REPAIR_NOT_REPAIRABLE\x10\xd4\x04\x12 \n" +
+	"\x1bAPP_LIFECYCLE_JOB_CANCELLED\x10\xd5\x04\x12&\n" +
 	"!AI_LOCAL_SPEECH_PREFLIGHT_BLOCKED\x10\xb0\x04\x123\n" +
 	".AI_LOCAL_SPEECH_DOWNLOAD_CONFIRMATION_REQUIRED\x10\xb1\x04\x12$\n" +
 	"\x1fAI_LOCAL_SPEECH_ENV_INIT_FAILED\x10\xb2\x04\x12%\n" +

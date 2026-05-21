@@ -687,6 +687,42 @@ export enum ReasonCode {
      */
     APP_INSTALL_INTERNAL = 559,
     /**
+     * APP_UPDATE / APP_REPAIR family (590+) — Nimi App update + health/repair
+     * lifecycle fail-closed reasons. Each reason is distinct and is never
+     * collapsed into a generic value (K-APP-015 / K-APP-016).
+     *
+     * @generated from protobuf enum value: APP_UPDATE_NOT_AVAILABLE = 590;
+     */
+    APP_UPDATE_NOT_AVAILABLE = 590,
+    /**
+     * @generated from protobuf enum value: APP_UPDATE_NOT_INSTALLED = 591;
+     */
+    APP_UPDATE_NOT_INSTALLED = 591,
+    /**
+     * @generated from protobuf enum value: APP_UPDATE_CONFIRMATION_REQUIRED = 592;
+     */
+    APP_UPDATE_CONFIRMATION_REQUIRED = 592,
+    /**
+     * @generated from protobuf enum value: APP_UPDATE_SWAP_FAILED = 593;
+     */
+    APP_UPDATE_SWAP_FAILED = 593,
+    /**
+     * @generated from protobuf enum value: APP_REPAIR_ACTION_INVALID = 594;
+     */
+    APP_REPAIR_ACTION_INVALID = 594,
+    /**
+     * @generated from protobuf enum value: APP_REPAIR_NO_RECOVERABLE_JOB = 595;
+     */
+    APP_REPAIR_NO_RECOVERABLE_JOB = 595,
+    /**
+     * @generated from protobuf enum value: APP_REPAIR_NOT_REPAIRABLE = 596;
+     */
+    APP_REPAIR_NOT_REPAIRABLE = 596,
+    /**
+     * @generated from protobuf enum value: APP_LIFECYCLE_JOB_CANCELLED = 597;
+     */
+    APP_LIFECYCLE_JOB_CANCELLED = 597,
+    /**
      * LOCAL_SPEECH family (560+)
      *
      * @generated from protobuf enum value: AI_LOCAL_SPEECH_PREFLIGHT_BLOCKED = 560;

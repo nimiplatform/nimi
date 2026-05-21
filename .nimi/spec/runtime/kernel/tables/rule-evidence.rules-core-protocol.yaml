@@ -39,6 +39,8 @@ entries:
   - K-APP-012
   - K-APP-013
   - K-APP-014
+  - K-APP-015
+  - K-APP-016
   - K-CONN-001
   - K-CONN-002
   - K-CONN-003
@@ -195,6 +197,16 @@ rules:
       - runtime_go_test
     evidence_requirement: required
   - rule_id: K-APP-014
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-APP-015
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-APP-016
     evidence_refs:
       - runtime_kernel_consistency
       - runtime_go_test

@@ -322,3 +322,154 @@ func externalDescriptor(payload []byte) appreleasecatalog.Descriptor {
 		SourceRule: "P-NAPP-014",
 	}
 }
+
+// externalDescriptorVersion builds an external-immutable-artifact descriptor
+// for community.clock at an explicit version with a payload of any size.
+func externalDescriptorVersion(version string, payload []byte) appreleasecatalog.Descriptor {
+	sum := sha256.Sum256(payload)
+	d := externalDescriptor(payload)
+	d.DescriptorID = "community.clock." + version
+	d.Version = version
+	d.Artifact.SHA256 = hex.EncodeToString(sum[:])
+	d.Artifact.Size = strconvItoa(len(payload))
+	return d
+}
+
+func strconvItoa(n int) string {
+	if n == 0 {
+		return "0"
+	}
+	digits := []byte{}
+	for n > 0 {
+		digits = append([]byte{byte('0' + n%10)}, digits...)
+		n /= 10
+	}
+	return string(digits)
+}
+
+func TestGatewayUpdateAtomicSwapKeepsDurableData(t *testing.T) {
+	dataRoot := t.TempDir()
+	v1 := []byte("clock release v1")
+	v2 := []byte("clock release v2 payload")
+
+	gateway := New(downloaderFunc(func(_ context.Context, d appreleasecatalog.Descriptor) ([]byte, error) {
+		if d.Version == "1.0.0" {
+			return v1, nil
+		}
+		return v2, nil
+	}), &recordingUnpacker{}, WithStoragePlanner(&recordingPlanner{dataRoot: dataRoot}), WithEvidenceWriter(fileEvidenceWriter{}))
+
+	// Install v1.
+	installed, err := gateway.Install(context.Background(), externalDescriptorVersion("1.0.0", v1))
+	if err != nil {
+		t.Fatalf("install v1: %v", err)
+	}
+	// Write durable data that an update must preserve.
+	durableFile := filepath.Join(installed.Plan.DurableDataRoot, "user-state.json")
+	if err := os.WriteFile(durableFile, []byte(`{"k":"v"}`), 0o600); err != nil {
+		t.Fatalf("write durable data: %v", err)
+	}
+	pointerBefore, err := appstorage.ReadActiveRelease(installed.Plan)
+	if err != nil {
+		t.Fatalf("read active release after install: %v", err)
+	}
+	if pointerBefore.ActiveVersion != "1.0.0" {
+		t.Fatalf("active version = %q, want 1.0.0", pointerBefore.ActiveVersion)
+	}
+
+	// Update to v2.
+	updated, err := gateway.UpdateApp(context.Background(), externalDescriptorVersion("2.0.0", v2), nil)
+	if err != nil {
+		t.Fatalf("update to v2: %v", err)
+	}
+	if updated.Artifact.Version != "2.0.0" {
+		t.Fatalf("updated version = %q, want 2.0.0", updated.Artifact.Version)
+	}
+	pointerAfter, err := appstorage.ReadActiveRelease(updated.Plan)
+	if err != nil {
+		t.Fatalf("read active release after update: %v", err)
+	}
+	if pointerAfter.ActiveVersion != "2.0.0" {
+		t.Fatalf("active version after update = %q, want 2.0.0", pointerAfter.ActiveVersion)
+	}
+	// Durable data must survive the update.
+	if _, err := os.Stat(durableFile); err != nil {
+		t.Fatalf("durable data must survive update: %v", err)
+	}
+	// Old release must still exist on disk (atomic swap, no destruction).
+	if _, err := os.Stat(installed.Plan.ReleaseRoot); err != nil {
+		t.Fatalf("old release should remain usable after update: %v", err)
+	}
+}
+
+func TestGatewayUpdateFailureKeepsOldReleaseUsable(t *testing.T) {
+	dataRoot := t.TempDir()
+	v1 := []byte("clock release v1")
+	v2 := []byte("clock release v2 payload")
+
+	gateway := New(downloaderFunc(func(_ context.Context, d appreleasecatalog.Descriptor) ([]byte, error) {
+		if d.Version == "1.0.0" {
+			return v1, nil
+		}
+		// Return bytes that do not match the v2 descriptor digest.
+		return []byte("corrupted update bytes"), nil
+	}), &recordingUnpacker{}, WithStoragePlanner(&recordingPlanner{dataRoot: dataRoot}), WithEvidenceWriter(fileEvidenceWriter{}))
+
+	installed, err := gateway.Install(context.Background(), externalDescriptorVersion("1.0.0", v1))
+	if err != nil {
+		t.Fatalf("install v1: %v", err)
+	}
+
+	_, err = gateway.UpdateApp(context.Background(), externalDescriptorVersion("2.0.0", v2), nil)
+	if !errors.Is(err, ErrDigestMismatch) {
+		t.Fatalf("update error = %v, want ErrDigestMismatch", err)
+	}
+	// The active release pointer must still point at v1.
+	pointer, err := appstorage.ReadActiveRelease(installed.Plan)
+	if err != nil {
+		t.Fatalf("read active release: %v", err)
+	}
+	if pointer.ActiveVersion != "1.0.0" {
+		t.Fatalf("failed update must not advance active version, got %q", pointer.ActiveVersion)
+	}
+	if _, err := os.Stat(installed.Plan.ReleaseRoot); err != nil {
+		t.Fatalf("old release must remain usable after failed update: %v", err)
+	}
+}
+
+func TestGatewayRepairRematerializesReleaseKeepsData(t *testing.T) {
+	dataRoot := t.TempDir()
+	payload := []byte("clock release payload")
+
+	gateway := New(downloaderFunc(func(context.Context, appreleasecatalog.Descriptor) ([]byte, error) {
+		return payload, nil
+	}), &recordingUnpacker{}, WithStoragePlanner(&recordingPlanner{dataRoot: dataRoot}), WithEvidenceWriter(fileEvidenceWriter{}))
+
+	installed, err := gateway.Install(context.Background(), externalDescriptorVersion("1.0.0", payload))
+	if err != nil {
+		t.Fatalf("install: %v", err)
+	}
+	durableFile := filepath.Join(installed.Plan.DurableDataRoot, "user-state.json")
+	if err := os.WriteFile(durableFile, []byte(`{"k":"v"}`), 0o600); err != nil {
+		t.Fatalf("write durable data: %v", err)
+	}
+	// Damage the release payload.
+	if err := os.WriteFile(filepath.Join(installed.Plan.ReleaseRoot, "package.bin"), []byte("damaged"), 0o600); err != nil {
+		t.Fatalf("damage release: %v", err)
+	}
+
+	repaired, err := gateway.RepairApp(context.Background(), externalDescriptorVersion("1.0.0", payload), nil)
+	if err != nil {
+		t.Fatalf("repair: %v", err)
+	}
+	got, err := os.ReadFile(filepath.Join(repaired.Plan.ReleaseRoot, "package.bin"))
+	if err != nil {
+		t.Fatalf("read repaired payload: %v", err)
+	}
+	if string(got) != string(payload) {
+		t.Fatalf("repair must re-materialize a clean release payload")
+	}
+	if _, err := os.Stat(durableFile); err != nil {
+		t.Fatalf("repair must keep durable data: %v", err)
+	}
+}

@@ -47,14 +47,21 @@ func (s *Service) InstallApp(ctx context.Context, req *runtimev1.InstallAppReque
 	if planErr == nil {
 		storage = storageProjectionFromPlan(plan)
 	}
-	job := s.installJobs.createJob(appID, descriptor.DescriptorID, descriptor.Version, installSourceKind(descriptor), storage)
+	job := s.installJobs.createJob(jobSpec{
+		appID:         appID,
+		descriptorRef: descriptor.DescriptorID,
+		version:       descriptor.Version,
+		kind:          runtimev1.AppLifecycleJobKind_APP_LIFECYCLE_JOB_KIND_INSTALL,
+		sourceKind:    installSourceKind(descriptor),
+		storage:       storage,
+	})
 
 	if planErr != nil {
 		failed := s.installJobs.markFailed(job.GetJobId(), runtimev1.ReasonCode_APP_INSTALL_STORAGE_VIOLATION, planErr.Error())
 		return &runtimev1.InstallAppResponse{Job: orJob(failed, job)}, nil
 	}
 
-	go s.runInstallJob(job.GetJobId(), descriptor)
+	go s.runLifecycleJob(job.GetJobId(), descriptor, runtimev1.AppLifecycleJobKind_APP_LIFECYCLE_JOB_KIND_INSTALL)
 	return &runtimev1.InstallAppResponse{Job: job}, nil
 }
 
@@ -73,25 +80,50 @@ func (o installObserver) ArtifactVerified(artifact appinstallgateway.VerifiedArt
 	o.manager.recordVerified(o.jobID, artifact.SHA256, artifact.Bytes)
 }
 
-// runInstallJob executes the install gateway in the background and records the
-// typed phase progression plus the terminal state onto the install job. It
-// fails closed: a digest/manifest/storage violation marks the job FAILED with
-// a typed reason and never as success.
-func (s *Service) runInstallJob(jobID string, descriptor appreleasecatalog.Descriptor) {
+// runLifecycleJob executes the install/update/repair gateway pipeline in the
+// background and records the typed phase progression plus the terminal state
+// onto the job. It registers a cancel func so HealthRepairApp(cancel) can
+// interrupt it. It fails closed: a digest/manifest/storage/swap violation marks
+// the job FAILED with a typed reason and never as success; a cancelled job is
+// marked CANCELLED and never as success.
+func (s *Service) runLifecycleJob(jobID string, descriptor appreleasecatalog.Descriptor, kind runtimev1.AppLifecycleJobKind) {
+	ctx, cancel := context.WithCancel(context.Background())
+	s.installJobs.registerCancel(jobID, cancel)
+	defer func() {
+		cancel()
+		s.installJobs.clearCancel(jobID)
+	}()
+
 	observer := installObserver{manager: s.installJobs, jobID: jobID}
-	installed, err := s.installRuntime.install(context.Background(), descriptor, observer)
+	var installed appinstallgateway.InstalledApp
+	var err error
+	switch kind {
+	case runtimev1.AppLifecycleJobKind_APP_LIFECYCLE_JOB_KIND_UPDATE:
+		installed, err = s.installRuntime.update(ctx, descriptor, observer)
+	case runtimev1.AppLifecycleJobKind_APP_LIFECYCLE_JOB_KIND_REPAIR:
+		installed, err = s.installRuntime.repair(ctx, descriptor, observer)
+	default:
+		installed, err = s.installRuntime.install(ctx, descriptor, observer)
+	}
 	if err != nil {
-		reason, detail := installFailureReason(err)
+		if errors.Is(err, context.Canceled) || ctx.Err() != nil {
+			s.installJobs.markCancelled(jobID)
+			if s.logger != nil {
+				s.logger.Info("app lifecycle job cancelled", "job_id", jobID, "app_id", descriptor.AppID, "kind", kind.String())
+			}
+			return
+		}
+		reason, detail := lifecycleFailureReason(err, kind)
 		s.installJobs.markFailed(jobID, reason, detail)
 		if s.logger != nil {
-			s.logger.Warn("app install job failed", "job_id", jobID, "app_id", descriptor.AppID, "reason", reason.String(), "error", err)
+			s.logger.Warn("app lifecycle job failed", "job_id", jobID, "app_id", descriptor.AppID, "kind", kind.String(), "reason", reason.String(), "error", err)
 		}
 		return
 	}
 	storage := storageProjectionFromPlan(installed.Plan)
 	s.installJobs.markInstalled(jobID, installed.Artifact.Version, installed.Artifact.SHA256, installed.Artifact.Bytes, storage)
 	if s.logger != nil {
-		s.logger.Info("app install job installed", "job_id", jobID, "app_id", descriptor.AppID, "version", installed.Artifact.Version)
+		s.logger.Info("app lifecycle job completed", "job_id", jobID, "app_id", descriptor.AppID, "kind", kind.String(), "version", installed.Artifact.Version)
 	}
 }
 
@@ -272,6 +304,17 @@ func uninstallReason(err error) runtimev1.ReasonCode {
 	return runtimev1.ReasonCode_APP_INSTALL_INTERNAL
 }
 
+// lifecycleFailureReason maps an install/update/repair gateway error to a
+// typed, distinct fail-closed reason. Update/repair add the atomic active
+// release pointer swap failure; all other reasons reuse installFailureReason.
+// Reasons are never collapsed into a generic value.
+func lifecycleFailureReason(err error, kind runtimev1.AppLifecycleJobKind) (runtimev1.ReasonCode, string) {
+	if errors.Is(err, appinstallgateway.ErrActiveReleaseSwapFailed) {
+		return runtimev1.ReasonCode_APP_UPDATE_SWAP_FAILED, err.Error()
+	}
+	return installFailureReason(err)
+}
+
 func installSourceKind(descriptor appreleasecatalog.Descriptor) runtimev1.AppInstallSourceKind {
 	if descriptor.DescriptorClass == appreleasecatalog.DescriptorClassBundledWithNimi {
 		return runtimev1.AppInstallSourceKind_APP_INSTALL_SOURCE_KIND_BUNDLED
@@ -291,6 +334,8 @@ func installPhaseProto(phase appinstallgateway.InstallPhase) runtimev1.AppInstal
 		return runtimev1.AppInstallJobPhase_APP_INSTALL_JOB_PHASE_MATERIALIZE
 	case appinstallgateway.InstallPhaseUnpack:
 		return runtimev1.AppInstallJobPhase_APP_INSTALL_JOB_PHASE_UNPACK
+	case appinstallgateway.InstallPhaseSwap:
+		return runtimev1.AppInstallJobPhase_APP_INSTALL_JOB_PHASE_SWAP
 	case appinstallgateway.InstallPhaseEvidence:
 		return runtimev1.AppInstallJobPhase_APP_INSTALL_JOB_PHASE_EVIDENCE
 	default:

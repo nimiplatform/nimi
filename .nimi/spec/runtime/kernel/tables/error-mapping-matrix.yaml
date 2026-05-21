@@ -120,6 +120,14 @@ rows:
   - APP_INSTALL_DOWNLOAD_FAILED
   - APP_INSTALL_UNPACK_FAILED
   - APP_INSTALL_INTERNAL
+  - APP_UPDATE_NOT_AVAILABLE
+  - APP_UPDATE_NOT_INSTALLED
+  - APP_UPDATE_CONFIRMATION_REQUIRED
+  - APP_UPDATE_SWAP_FAILED
+  - APP_REPAIR_ACTION_INVALID
+  - APP_REPAIR_NO_RECOVERABLE_JOB
+  - APP_REPAIR_NOT_REPAIRABLE
+  - APP_LIFECYCLE_JOB_CANCELLED
   - WF_DAG_INVALID
   - WF_NODE_CONFIG_MISMATCH
   - WF_TIMEOUT
@@ -769,6 +777,46 @@ mappings:
     surface: app_install_lifecycle
     exit_shape: grpc_status
     source_rule: K-APP-011
+  - reason_code: APP_UPDATE_NOT_AVAILABLE
+    grpc_code: FAILED_PRECONDITION
+    surface: app_update_lifecycle
+    exit_shape: grpc_status
+    source_rule: K-APP-015
+  - reason_code: APP_UPDATE_NOT_INSTALLED
+    grpc_code: FAILED_PRECONDITION
+    surface: app_update_lifecycle
+    exit_shape: grpc_status
+    source_rule: K-APP-015
+  - reason_code: APP_UPDATE_CONFIRMATION_REQUIRED
+    grpc_code: FAILED_PRECONDITION
+    surface: app_update_lifecycle
+    exit_shape: grpc_status
+    source_rule: K-APP-015
+  - reason_code: APP_UPDATE_SWAP_FAILED
+    grpc_code: OK
+    surface: app_install_job_projection
+    exit_shape: terminal_reason_non_error
+    source_rule: K-APP-015
+  - reason_code: APP_REPAIR_ACTION_INVALID
+    grpc_code: INVALID_ARGUMENT
+    surface: app_repair_lifecycle
+    exit_shape: grpc_status
+    source_rule: K-APP-016
+  - reason_code: APP_REPAIR_NO_RECOVERABLE_JOB
+    grpc_code: FAILED_PRECONDITION
+    surface: app_repair_lifecycle
+    exit_shape: grpc_status
+    source_rule: K-APP-016
+  - reason_code: APP_REPAIR_NOT_REPAIRABLE
+    grpc_code: FAILED_PRECONDITION
+    surface: app_repair_lifecycle
+    exit_shape: grpc_status
+    source_rule: K-APP-016
+  - reason_code: APP_LIFECYCLE_JOB_CANCELLED
+    grpc_code: OK
+    surface: app_install_job_projection
+    exit_shape: terminal_reason_non_error
+    source_rule: K-APP-016
   - reason_code: WF_DAG_INVALID
     grpc_code: INVALID_ARGUMENT
     surface: workflow_submit
