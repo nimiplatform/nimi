@@ -3,9 +3,11 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   buildRealmCreateAgentInput,
   buildRealmCreatePostInput,
+  buildRealmPostTextResourceInput,
   buildRealmSelectAvatarInput,
   buildRealmUpdateVisibilityInput,
   createAgentVisibilityDraft,
+  createReviewedPostTextResource,
   createReviewedRealmAgent,
   getAgentVisibilitySettings,
   getCreateRealmAgentWorldPreview,
@@ -15,6 +17,7 @@ import {
   normalizeRealmAgentAvatarSelectResult,
   normalizeRealmAgentCreateResult,
   normalizeRealmPostPublishResult,
+  normalizeRealmTextResourceCreateResult,
   publishReviewedPostDraft,
   selectReviewedAgentAvatarUrl,
   synthesizeReviewedVoiceDemo,
@@ -136,6 +139,27 @@ function mockRealm() {
           tags: ['studio'],
           visibility: 'PUBLIC',
           worldId: 'world-from-realm',
+        })),
+      },
+      ResourcesService: {
+        createTextResource: vi.fn(async () => ({
+          id: 'resource-text-1',
+          resourceType: 'TEXT',
+          provider: 'S3_OBJECT',
+          status: 'READY',
+          storageRef: 'text/user-1/resource-text-1.txt',
+          mimeType: 'text/plain; charset=utf-8',
+          provenance: 'UPLOADED',
+          uploaderAccountId: 'user-1',
+          controllerKind: 'ACCOUNT',
+          controllerId: 'user-1',
+          deliveryAccess: 'SIGNED',
+          agentId: 'agent-1',
+          label: 'Reviewed post text for @mira',
+          tags: ['studio'],
+          title: 'Published caption',
+          createdAt: '2026-05-21T00:00:00.000Z',
+          updatedAt: '2026-05-21T00:00:00.000Z',
         })),
       },
     },
@@ -527,6 +551,98 @@ describe('owner portfolio client', () => {
         moderationStatus: 'PENDING',
         visibility: 'PUBLIC',
       },
+    });
+  });
+
+  it('creates a reviewed post text Resource through ResourcesService.createTextResource only', async () => {
+    const realm = mockRealm();
+    const result = await createReviewedPostTextResource(candidatePayload, realm);
+    const createTextResource = realm.services.ResourcesService.createTextResource;
+    const submittedPayload = vi.mocked(createTextResource).mock.calls[0]?.[0];
+
+    expect(createTextResource).toHaveBeenCalledTimes(1);
+    expect(submittedPayload).toEqual({
+      content: 'Published caption',
+      agentId: 'agent-1',
+      deliveryAccess: 'SIGNED',
+      label: 'Reviewed post text for @mira',
+      mimeType: 'text/plain; charset=utf-8',
+      sourceRef: 'realm-agent-studio.reviewed-post-text-resource',
+      title: 'Published caption',
+      tags: ['studio'],
+      metadata: {
+        source: 'realm-agent-studio.reviewed-post-text-resource',
+        agentKey: 'agent-1',
+        attachmentPurpose: 'post',
+        humanReviewed: true,
+      },
+    });
+    expect(Object.keys(submittedPayload || {}).sort()).toEqual([
+      'agentId',
+      'content',
+      'deliveryAccess',
+      'label',
+      'metadata',
+      'mimeType',
+      'sourceRef',
+      'tags',
+      'title',
+    ]);
+    expect(collectKeys(submittedPayload).has('worldId')).toBe(false);
+    expect(collectKeys(submittedPayload).has('authorId')).toBe(false);
+    expect(collectKeys(submittedPayload).has('postId')).toBe(false);
+    expect(collectKeys(submittedPayload).has('id')).toBe(false);
+    expect(collectKeys(submittedPayload).has('provider')).toBe(false);
+    expect(collectKeys(submittedPayload).has('model')).toBe(false);
+    expect(Object.hasOwn(realm.services, 'CreatorService')).toBe(false);
+    expect(result).toMatchObject({
+      ok: true,
+      source: 'Realm ResourcesService.createTextResource',
+      attachmentTruth: true,
+      canonical: {
+        id: 'resource-text-1',
+        resourceType: 'TEXT',
+        status: 'READY',
+        deliveryAccess: 'SIGNED',
+      },
+    });
+  });
+
+  it('fails closed before text Resource creation when reviewed caption content is missing', async () => {
+    const realm = mockRealm();
+    const result = await createReviewedPostTextResource({
+      ...candidatePayload,
+      realmCreatePost: {
+        attachments: [],
+      },
+    }, realm);
+
+    expect(realm.services.ResourcesService.createTextResource).not.toHaveBeenCalled();
+    expect(result).toMatchObject({
+      ok: false,
+      source: 'Realm ResourcesService.createTextResource',
+      attachmentTruth: false,
+      failure: 'post-text-resource-payload-invalid',
+      submitted: null,
+    });
+  });
+
+  it('fails closed when text Resource creation does not return a READY TEXT resource', () => {
+    const submitted = buildRealmPostTextResourceInput(candidatePayload);
+    expect(submitted).not.toBeNull();
+
+    const result = normalizeRealmTextResourceCreateResult({
+      id: 'resource-image-1',
+      resourceType: 'IMAGE',
+      status: 'PENDING',
+    } as Awaited<ReturnType<Realm['services']['ResourcesService']['createTextResource']>>, submitted!);
+
+    expect(result).toMatchObject({
+      ok: false,
+      source: 'Realm ResourcesService.createTextResource',
+      attachmentTruth: false,
+      failure: 'realm-create-text-resource-not-ready',
+      submitted,
     });
   });
 

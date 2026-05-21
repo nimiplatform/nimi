@@ -34,8 +34,11 @@ export type RealmAgentVisibilitySettings = Awaited<ReturnType<Realm['services'][
 type RealmAgentVisibilityUpdateInput = Parameters<Realm['services']['AgentsService']['agentControllerUpdateVisibility']>[1];
 type RealmCreatePostInput = Parameters<Realm['services']['PostsService']['createPost']>[0];
 type RealmCreatePostResponse = Awaited<ReturnType<Realm['services']['PostsService']['createPost']>>;
+type RealmCreateTextResourceInput = Parameters<Realm['services']['ResourcesService']['createTextResource']>[0];
+type RealmCreateTextResourceResponse = Awaited<ReturnType<Realm['services']['ResourcesService']['createTextResource']>>;
 
 export const REALM_POST_PUBLISH_SOURCE = 'Realm PostsService.createPost';
+export const REALM_TEXT_RESOURCE_SOURCE = 'Realm ResourcesService.createTextResource';
 export const REALM_AGENT_AVATAR_SELECT_SOURCE = 'Realm AgentsService.agentControllerSelectAvatar';
 export const REALM_AGENT_VISIBILITY_SOURCE = 'Realm AgentsService.agentControllerUpdateVisibility';
 export const AGENT_VISIBILITY_VALUES = ['PUBLIC', 'FRIENDS', 'PRIVATE'] as const;
@@ -75,6 +78,34 @@ export type RealmPostPublishResult =
     source: typeof REALM_POST_PUBLISH_SOURCE;
     failure: 'realm-create-post-failed' | 'realm-create-post-missing-canonical-id';
     message: string;
+  };
+
+export type RealmTextResourceCanonicalFields = {
+  id: string;
+  resourceType: string;
+  status: string;
+  deliveryAccess?: string;
+};
+
+export type RealmTextResourceCreateResult =
+  | {
+    ok: true;
+    source: typeof REALM_TEXT_RESOURCE_SOURCE;
+    attachmentTruth: true;
+    resource: RealmCreateTextResourceResponse;
+    canonical: RealmTextResourceCanonicalFields;
+  }
+  | {
+    ok: false;
+    source: typeof REALM_TEXT_RESOURCE_SOURCE;
+    attachmentTruth: false;
+    failure:
+      | 'post-text-resource-payload-invalid'
+      | 'realm-create-text-resource-failed'
+      | 'realm-create-text-resource-missing-id'
+      | 'realm-create-text-resource-not-ready';
+    message: string;
+    submitted: RealmCreateTextResourceInput | null;
   };
 
 export type RealmAgentCreateCanonicalFields = {
@@ -373,6 +404,91 @@ export function buildRealmCreatePostInput(payload: CandidatePostPayload): RealmC
   };
 }
 
+function normalizeResourceTitle(value: string): string {
+  const normalized = value.replace(/\s+/g, ' ').trim();
+  return normalized.length > 80 ? `${normalized.slice(0, 77)}...` : normalized;
+}
+
+export function buildRealmPostTextResourceInput(payload: CandidatePostPayload): RealmCreateTextResourceInput | null {
+  const content = payload.realmCreatePost.caption?.trim();
+  if (!content) {
+    return null;
+  }
+
+  return {
+    content,
+    agentId: payload.agentRef.agentKey,
+    deliveryAccess: 'SIGNED',
+    label: `Reviewed post text for ${payload.agentRef.handle ? `@${payload.agentRef.handle}` : payload.agentRef.displayName}`,
+    mimeType: 'text/plain; charset=utf-8',
+    sourceRef: 'realm-agent-studio.reviewed-post-text-resource',
+    title: normalizeResourceTitle(content),
+    ...(payload.realmCreatePost.tags && payload.realmCreatePost.tags.length > 0 ? { tags: [...payload.realmCreatePost.tags] } : {}),
+    metadata: {
+      source: 'realm-agent-studio.reviewed-post-text-resource',
+      agentKey: payload.agentRef.agentKey,
+      attachmentPurpose: 'post',
+      humanReviewed: true,
+    },
+  };
+}
+
+export function normalizeRealmTextResourceCreateResult(
+  resource: RealmCreateTextResourceResponse,
+  submitted: RealmCreateTextResourceInput,
+): RealmTextResourceCreateResult {
+  if (!resource || typeof resource !== 'object') {
+    return {
+      ok: false,
+      source: REALM_TEXT_RESOURCE_SOURCE,
+      attachmentTruth: false,
+      failure: 'realm-create-text-resource-missing-id',
+      message: 'Realm Create Text Resource returned no resource object.',
+      submitted,
+    };
+  }
+
+  const record = resource as Record<string, unknown>;
+  const id = readOptionalString(record, 'id');
+  if (!id) {
+    return {
+      ok: false,
+      source: REALM_TEXT_RESOURCE_SOURCE,
+      attachmentTruth: false,
+      failure: 'realm-create-text-resource-missing-id',
+      message: 'Realm Create Text Resource returned no canonical resource id.',
+      submitted,
+    };
+  }
+
+  const resourceType = readOptionalString(record, 'resourceType');
+  const status = readOptionalString(record, 'status');
+  const deliveryAccess = readOptionalString(record, 'deliveryAccess');
+  if (resourceType !== 'TEXT' || status !== 'READY') {
+    return {
+      ok: false,
+      source: REALM_TEXT_RESOURCE_SOURCE,
+      attachmentTruth: false,
+      failure: 'realm-create-text-resource-not-ready',
+      message: `Realm text resource ${id} is not a READY TEXT resource.`,
+      submitted,
+    };
+  }
+
+  return {
+    ok: true,
+    source: REALM_TEXT_RESOURCE_SOURCE,
+    attachmentTruth: true,
+    resource,
+    canonical: {
+      id,
+      resourceType,
+      status,
+      ...(deliveryAccess ? { deliveryAccess } : {}),
+    },
+  };
+}
+
 export function normalizeRealmPostPublishResult(post: RealmCreatePostResponse): RealmPostPublishResult {
   if (!post || typeof post !== 'object') {
     return {
@@ -555,6 +671,37 @@ export async function publishReviewedPostDraft(
       source: REALM_POST_PUBLISH_SOURCE,
       failure: 'realm-create-post-failed',
       message: error instanceof Error ? error.message : 'Realm Create Post failed.',
+    };
+  }
+}
+
+export async function createReviewedPostTextResource(
+  payload: CandidatePostPayload,
+  realm: Realm = createStudioRealmClient(),
+): Promise<RealmTextResourceCreateResult> {
+  const submitted = buildRealmPostTextResourceInput(payload);
+  if (!submitted) {
+    return {
+      ok: false,
+      source: REALM_TEXT_RESOURCE_SOURCE,
+      attachmentTruth: false,
+      failure: 'post-text-resource-payload-invalid',
+      message: 'Reviewed post text resource requires caption content.',
+      submitted: null,
+    };
+  }
+
+  try {
+    const resource = await realm.services.ResourcesService.createTextResource(submitted);
+    return normalizeRealmTextResourceCreateResult(resource, submitted);
+  } catch (error) {
+    return {
+      ok: false,
+      source: REALM_TEXT_RESOURCE_SOURCE,
+      attachmentTruth: false,
+      failure: 'realm-create-text-resource-failed',
+      message: error instanceof Error ? error.message : 'Realm Create Text Resource failed.',
+      submitted,
     };
   }
 }

@@ -17,6 +17,23 @@ vi.mock('./portfolio-client.js', async (importOriginal) => {
     })),
     getOwnerPortfolioAgentDetail: vi.fn(async () => ownerAgentDetail()),
     listOwnerPortfolioAgents: vi.fn(async () => [ownerAgent()]),
+    createReviewedPostTextResource: vi.fn(async () => ({
+      ok: true,
+      source: 'Realm ResourcesService.createTextResource',
+      attachmentTruth: true,
+      resource: {
+        id: 'resource-text-ui',
+        resourceType: 'TEXT',
+        status: 'READY',
+        deliveryAccess: 'SIGNED',
+      },
+      canonical: {
+        id: 'resource-text-ui',
+        resourceType: 'TEXT',
+        status: 'READY',
+        deliveryAccess: 'SIGNED',
+      },
+    })),
     updateReviewedAgentVisibility: vi.fn(),
   };
 });
@@ -120,6 +137,51 @@ function findButtonByText(text: string): HTMLButtonElement {
   return button;
 }
 
+function findFieldByPlaceholder<TElement extends HTMLInputElement | HTMLTextAreaElement>(placeholder: string): TElement {
+  const field = Array.from(document.querySelectorAll('input, textarea'))
+    .find((candidate) => candidate.getAttribute('placeholder') === placeholder);
+  if (!(field instanceof HTMLInputElement) && !(field instanceof HTMLTextAreaElement)) {
+    throw new Error(`Field not found: ${placeholder}`);
+  }
+  return field as TElement;
+}
+
+async function changeField(field: HTMLInputElement | HTMLTextAreaElement, value: string) {
+  await act(async () => {
+    const prototype = field instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
+    const valueSetter = Object.getOwnPropertyDescriptor(prototype, 'value')?.set;
+    valueSetter?.call(field, value);
+    field.dispatchEvent(new Event('input', { bubbles: true }));
+    field.dispatchEvent(new Event('change', { bubbles: true }));
+  });
+}
+
+async function checkAllHumanReviewBoxes() {
+  const checkboxes = Array.from(document.querySelectorAll('input[type="checkbox"]'))
+    .filter((candidate): candidate is HTMLInputElement => candidate instanceof HTMLInputElement);
+  await act(async () => {
+    for (const checkbox of checkboxes) {
+      if (!checkbox.checked) {
+        checkbox.click();
+      }
+    }
+  });
+}
+
+async function waitForButtonEnabled(text: string): Promise<HTMLButtonElement> {
+  const startedAt = Date.now();
+  while (Date.now() - startedAt < 2000) {
+    const button = findButtonByText(text);
+    if (!button.disabled) {
+      return button;
+    }
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 20));
+    });
+  }
+  throw new Error(`Timed out waiting for enabled button: ${text}`);
+}
+
 afterEach(() => {
   act(() => {
     root?.unmount();
@@ -141,5 +203,24 @@ describe('OwnerPortfolio visibility settings UI', () => {
     expect(document.body.textContent).toContain('PATCH sends only changed UpdateAgentVisibilityDto fields');
     expect(findButtonByText('Save visibility').disabled).toBe(true);
     expect(portfolioClient.updateReviewedAgentVisibility).not.toHaveBeenCalled();
+  });
+
+  it('creates a reviewed text Resource and fills the post attachment envelope', async () => {
+    await renderOwnerPortfolio();
+    await waitForText('Creative post candidate');
+
+    await changeField(findFieldByPlaceholder<HTMLTextAreaElement>('Draft caption for human review'), 'Reviewed caption for Resource');
+    await checkAllHumanReviewBoxes();
+
+    const createButton = await waitForButtonEnabled('Create text Resource attachment');
+
+    await act(async () => {
+      createButton.click();
+    });
+
+    await waitForText('Realm confirmed READY TEXT resource resource-text-ui');
+    expect(portfolioClient.createReviewedPostTextResource).toHaveBeenCalledTimes(1);
+    expect(findFieldByPlaceholder<HTMLInputElement>('resource, asset, or bundle target').value).toBe('resource-text-ui');
+    expect(document.body.textContent).toContain('RESOURCE + resourceId');
   });
 });

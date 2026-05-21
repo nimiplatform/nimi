@@ -15,6 +15,7 @@ import {
   getOwnerPortfolioAgentDetail,
   getAgentVisibilitySettings,
   listOwnerPortfolioAgents,
+  createReviewedPostTextResource,
   publishReviewedPostDraft,
   selectReviewedAgentAvatarUrl,
   synthesizeReviewedVoiceDemo,
@@ -27,6 +28,7 @@ import {
   type RealmAgentAvatarSelectResult,
   type RealmAgentVisibilityUpdateResult,
   type RealmPostPublishResult,
+  type RealmTextResourceCreateResult,
   type RuntimeVoiceDemoSynthesisResult,
 } from './portfolio-client.js';
 import {
@@ -729,17 +731,22 @@ function CreativePostWorkspace({ agent }: { agent: OwnerPortfolioAgentDetail }) 
   const [payloadPreview, setPayloadPreview] = useState<CandidatePostPayload | null>(null);
   const [publishResult, setPublishResult] = useState<RealmPostPublishResult | null>(null);
   const [isPublishing, setIsPublishing] = useState(false);
+  const [textResourceResult, setTextResourceResult] = useState<RealmTextResourceCreateResult | null>(null);
+  const [isCreatingTextResource, setIsCreatingTextResource] = useState(false);
   const [scheduleInput, setScheduleInput] = useState<LocalPostScheduleInput>(() => createEmptyLocalPostScheduleInput());
   const [schedulePreview, setSchedulePreview] = useState<LocalPostScheduleCandidate | null>(null);
   const [scheduleErrors, setScheduleErrors] = useState<string[]>([]);
   const [assetCandidates, setAssetCandidates] = useState<LocalCreativeAssetCandidate[]>([]);
   const validation = validateLocalPostDraft(draft, agent);
+  const postTextResourceDraft = validateLocalPostDraft({ ...draft, attachmentEnabled: false, attachmentTargetId: '' }, agent);
 
   useEffect(() => {
     setDraft(createEmptyPostDraft());
     setPayloadPreview(null);
     setPublishResult(null);
     setIsPublishing(false);
+    setTextResourceResult(null);
+    setIsCreatingTextResource(false);
     setScheduleInput(createEmptyLocalPostScheduleInput());
     setSchedulePreview(null);
     setScheduleErrors([]);
@@ -750,6 +757,7 @@ function CreativePostWorkspace({ agent }: { agent: OwnerPortfolioAgentDetail }) 
     setDraft((current) => ({ ...current, ...patch }));
     setPayloadPreview(null);
     setPublishResult(null);
+    setTextResourceResult(null);
     setSchedulePreview(null);
     setScheduleErrors([]);
   }
@@ -770,6 +778,42 @@ function CreativePostWorkspace({ agent }: { agent: OwnerPortfolioAgentDetail }) 
       },
       ...current,
     ]);
+  }
+
+  async function createTextResourceAttachment() {
+    if (!postTextResourceDraft.publishable) {
+      setTextResourceResult({
+        ok: false,
+        source: 'Realm ResourcesService.createTextResource',
+        attachmentTruth: false,
+        failure: 'post-text-resource-payload-invalid',
+        message: postTextResourceDraft.errors.join('; ') || 'Reviewed post text resource requires caption content.',
+        submitted: null,
+      });
+      return;
+    }
+
+    setPayloadPreview(postTextResourceDraft.payload);
+    setTextResourceResult(null);
+    setIsCreatingTextResource(true);
+    try {
+      const result = await createReviewedPostTextResource(postTextResourceDraft.payload);
+      setTextResourceResult(result);
+      if (result.ok) {
+        setDraft((current) => ({
+          ...current,
+          attachmentEnabled: true,
+          attachmentTargetType: 'RESOURCE',
+          attachmentTargetId: result.canonical.id,
+        }));
+        setPayloadPreview(null);
+        setPublishResult(null);
+        setSchedulePreview(null);
+        setScheduleErrors([]);
+      }
+    } finally {
+      setIsCreatingTextResource(false);
+    }
   }
 
   return (
@@ -835,6 +879,45 @@ function CreativePostWorkspace({ agent }: { agent: OwnerPortfolioAgentDetail }) 
                   />
                 </FieldShell>
               </div>
+            </Surface>
+            <Surface tone="card" padding="md">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <div className="font-medium">Reviewed text Resource</div>
+                  <div className="mt-1 text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-muted)]">
+                    Creates a READY Resource(TEXT) from the reviewed caption, then fills the post attachment envelope as RESOURCE + resourceId.
+                  </div>
+                </div>
+                <StatusBadge tone="info">Realm Resource</StatusBadge>
+              </div>
+              {postTextResourceDraft.publishable ? null : (
+                <InlineAlert tone="warning">
+                  {postTextResourceDraft.errors.join('; ')}
+                </InlineAlert>
+              )}
+              <div className="mt-3 flex flex-wrap gap-3">
+                <Button
+                  disabled={!postTextResourceDraft.publishable || isCreatingTextResource}
+                  loading={isCreatingTextResource}
+                  onClick={() => void createTextResourceAttachment()}
+                >
+                  Create text Resource attachment
+                </Button>
+              </div>
+              {textResourceResult ? (
+                <InlineAlert tone={textResourceResult.ok ? 'success' : 'danger'} className="mt-3">
+                  {textResourceResult.ok
+                    ? `Realm confirmed READY TEXT resource ${textResourceResult.canonical.id}; the attachment envelope now targets that Resource.`
+                    : textResourceResult.message}
+                </InlineAlert>
+              ) : null}
+              {textResourceResult ? (
+                <FieldShell label="Text Resource result" message="Attachment truth is based on Realm Resource success. Publishing still requires PostsService.createPost.">
+                  <pre className="ras-json-preview m-0 min-h-24 overflow-auto rounded-[var(--nimi-radius-field)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] p-3 text-xs">
+                    {JSON.stringify(textResourceResult, null, 2)}
+                  </pre>
+                </FieldShell>
+              ) : null}
             </Surface>
             <Checkbox
               checked={draft.humanReviewed}
