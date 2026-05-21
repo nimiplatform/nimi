@@ -61,6 +61,18 @@ func (s cognitionStaticExchanger) Exchange(context.Context, accountservice.Login
 	return s.material, nil
 }
 
+// AuthorizationURL satisfies accountservice.LoginAuthorizationURLProvider, which
+// BeginLogin requires of its exchanger; without it BeginLogin fails closed into
+// the login-exchange-unavailable response and returns an empty LoginAttemptId.
+func (s cognitionStaticExchanger) AuthorizationURL(attempt accountservice.LoginAttempt) string {
+	u := "https://realm.test/api/auth/oauth/authorize?response_type=code&client_id=nimi-desktop"
+	u += "&redirect_uri=http%3A%2F%2Flocalhost%3A46373%2Fauth%2Fcallback"
+	u += "&code_challenge=" + attempt.PKCEChallenge
+	u += "&code_challenge_method=S256"
+	u += "&state=" + attempt.State
+	return u
+}
+
 func workspaceAuthCaller() *runtimev1.AccountCaller {
 	return &runtimev1.AccountCaller{
 		AppId:         workspaceAuthAppID,
