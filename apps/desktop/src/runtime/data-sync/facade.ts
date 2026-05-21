@@ -36,6 +36,12 @@ import {
   runLocalAgentTerminationCourierPass,
   type LocalAgentTerminationCourierPassResult,
 } from './local-agent-termination-courier';
+import {
+  COURIER_POLLING_KEY as PROVISION_COURIER_POLLING_KEY,
+  COURIER_POLL_INTERVAL_MS as PROVISION_COURIER_POLL_INTERVAL_MS,
+  runLocalAgentProvisionCourierPass,
+  type LocalAgentProvisionCourierPassResult,
+} from './local-agent-provision-courier';
 
 type ChatSyncResultDto = RealmModel<'ChatSyncResultDto'>;
 type CreatePostDto = RealmModel<'CreatePostDto'>;
@@ -363,7 +369,20 @@ export class DataSync {
       // the intent stays OPEN server-side for the periodic tick / next startup.
     });
   }
-  requestOrAcceptFriend(userId: string, message?: string) { return this.actions.requestOrAcceptFriend(userId, message); }
+  async requestOrAcceptFriend(userId: string, message?: string) {
+    const result = await this.actions.requestOrAcceptFriend(userId, message);
+    // R-SOC-009 triggered pass: a HUMAN_AGENT add / accept-request wrote an OPEN
+    // provision intent in the same backend transaction; kick a courier pass so
+    // the common same-device case converges within ~1s instead of waiting for
+    // the tick. For a HUMAN_HUMAN add the viewer-scoped list returns no new
+    // intent, so the pass is a cheap no-op — the courier owns no decision about
+    // which creations produce an intent.
+    void this.runLocalAgentProvisionCourierPass().catch(() => {
+      // Transport/offline failures are expected and telemetered by the courier;
+      // the intent stays OPEN server-side for the periodic tick / next startup.
+    });
+    return result;
+  }
   rejectOrRemoveFriend(userId: string) { return this.actions.rejectOrRemoveFriend(userId); }
   blockUser(contact: Record<string, unknown>) { return this.actions.blockUser(contact); }
   unblockUser(contact: Record<string, unknown>) { return this.actions.unblockUser(contact); }
@@ -548,6 +567,43 @@ export class DataSync {
 
   stopLocalAgentTerminationCourier() {
     this.polling.stop(COURIER_POLLING_KEY);
+  }
+
+  /**
+   * R-SOC-009 desktop reconciliation courier — run one stateless pass: pull the
+   * viewer's OPEN LocalAgentProvisionIntents, deliver runtime.agent.initializeAgent
+   * to the loopback runtime, ack the typed outcome. Pure transport; owns no
+   * decision and drives no UI state.
+   */
+  runLocalAgentProvisionCourierPass(): Promise<LocalAgentProvisionCourierPassResult> {
+    return runLocalAgentProvisionCourierPass({
+      callApi: this.callApiTask,
+      emitDataSyncError: this.emitFacadeError,
+      getCurrentUser: () => this.authCallbacks?.getCurrentUser() || null,
+    });
+  }
+
+  /**
+   * Register the ~60s provision courier tick so an intent created by another
+   * device or session while this device is already online still converges
+   * without a restart. `stopAllPolling()` on auth-clear / refresh-failure halts
+   * it.
+   */
+  startLocalAgentProvisionCourier() {
+    this.polling.start(
+      PROVISION_COURIER_POLLING_KEY,
+      () => {
+        void this.runLocalAgentProvisionCourierPass().catch(() => {
+          // Transport/offline failures are expected and already telemetered by
+          // the courier; the intent stays OPEN server-side for the next tick.
+        });
+      },
+      PROVISION_COURIER_POLL_INTERVAL_MS,
+    );
+  }
+
+  stopLocalAgentProvisionCourier() {
+    this.polling.stop(PROVISION_COURIER_POLLING_KEY);
   }
 
   scheduleProactiveRefresh(accessToken: string) {
