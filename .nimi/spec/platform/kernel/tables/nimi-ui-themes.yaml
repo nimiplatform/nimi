@@ -42,6 +42,7 @@ packs:
       status.warning: "#d97706"
       status.danger: "#dc2626"
       status.info: "#2563eb"
+      accent.secondary: "#6366f1"
       radius.sm: 8px
       radius.md: 12px
       radius.lg: 16px
@@ -203,6 +204,7 @@ packs:
       status.warning: "#fbbf24"
       status.danger: "#f87171"
       status.info: "#60a5fa"
+      accent.secondary: "#818cf8"
       radius.sm: 8px
       radius.md: 12px
       radius.lg: 16px

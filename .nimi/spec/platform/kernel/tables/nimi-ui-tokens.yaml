@@ -44,6 +44,7 @@ entries:
   - status.warning
   - status.danger
   - status.info
+  - accent.secondary
   - radius.sm
   - radius.md
   - radius.lg
@@ -496,6 +497,14 @@ tokens:
     css_var: --nimi-status-info
     ts_token: info
     primitive_family: status
+    source_rule: P-DESIGN-003
+    theme_layer: foundation
+  - id: accent.secondary
+    category: accent
+    semantic_name: Accent secondary
+    css_var: --nimi-accent-secondary
+    ts_token: accentSecondary
+    primitive_family: accent
     source_rule: P-DESIGN-003
     theme_layer: foundation
   - id: radius.sm

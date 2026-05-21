@@ -35,13 +35,21 @@ export function ConfirmDialog({
       onClose={onClose}
       title={title}
       footer={
+        // Each button is wrapped in a `flex-1` cell so the two actions split
+        // the row evenly. Buttons carry `shrink-0` in their base variant, so
+        // two `fullWidth` buttons placed directly in a flex row would not
+        // shrink and the second one would overflow outside the dialog.
         <div className="flex gap-3">
-          <Button tone="secondary" fullWidth onClick={onClose}>
-            {cancelLabel}
-          </Button>
-          <Button tone={confirmTone} fullWidth onClick={onConfirm} disabled={pending}>
-            {pending && pendingLabel ? pendingLabel : confirmLabel}
-          </Button>
+          <div className="flex-1">
+            <Button tone="secondary" fullWidth onClick={onClose}>
+              {cancelLabel}
+            </Button>
+          </div>
+          <div className="flex-1">
+            <Button tone={confirmTone} fullWidth onClick={onConfirm} disabled={pending}>
+              {pending && pendingLabel ? pendingLabel : confirmLabel}
+            </Button>
+          </div>
         </div>
       }
     >

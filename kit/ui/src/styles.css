@@ -104,6 +104,11 @@ button:not(:disabled),
   scrollbar-color: var(--nimi-scrollbar-thumb) transparent;
 }
 
+/* DatePicker drum wheel hides its scrollbar (selection is scroll-snap driven) */
+.nimi-date-picker-scroll::-webkit-scrollbar {
+  display: none;
+}
+
 /* Material (P-DESIGN-022) and Ambient (P-DESIGN-023) styling lives in
  * component code via Tailwind arbitrary values and React inline styles.
  * Hand-authored rule bodies in this file must not target class names
