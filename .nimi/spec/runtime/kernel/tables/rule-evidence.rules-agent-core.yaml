@@ -822,3 +822,8 @@ rules:
       - runtime_kernel_consistency
     note: Nimi guide prompt and built-in docs are product knowledge/context only and must not create Agent authority, memory, grant, setup, profile, or app truth.
     evidence_requirement: required
+  - rule_id: K-AGCORE-141
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: TerminateAgent hard-deletes the AgentFriend LocalAgent projection (runtime_local_agent row plus agent-scoped state/hooks/event-log/memory), is idempotent for an already-absent agent, and snapshot persistence must not re-insert a deleted ref; implementation evidence lands with the T6.1 contacts removal-linkage implementation wave.
+    evidence_requirement: required

@@ -15,6 +15,7 @@ entries:
   - R-SOC-004
   - R-SOC-005
   - R-SOC-006
+  - R-SOC-007
   - Friendship
   - SocialPrecondition
   - required_operations
@@ -54,6 +55,10 @@ rules:
     level: must
     title: nimi-guide-agentfriend-provisioning-validates-realm-payload
     statement: "New-user initialization may seed a Nimi guide AgentFriend relationship only through ordinary Realm social admission. Before creating or repairing that relationship, the backend path must validate the guide Agent account, required RealmAgent identity, and required AgentProfile / Realm payload needed for the ordinary relationship. Missing or invalid payloads fail closed as typed provisioning or repair states. Guide AgentFriend provisioning must not create a privileged official-agent class, social schema fork, quota bypass, server-bot bypass, Runtime local-only agent, Desktop fixture, or prompt/docs authority shortcut."
+  - rule_id: R-SOC-007
+    level: must
+    title: agentfriend-removal-localagent-deletion-linkage
+    statement: "AgentFriend removal and LocalAgent deletion are one server-authoritative canonical linkage. Removing an AgentFriend Friendship row must delete its one-to-one LocalAgent projection and neither side may survive the other. The backend Realm social admission path owns the linkage trigger and the renderer must not own it. Removal executes as one fail-closed ordered unit that validates the agent-variant Friendship and resolves the owner and RealmAgent pair, deletes the canonical Friendship row, then issues runtime TerminateAgent deletion for the deterministic localAgentRef. The linkage is idempotent so repeated removal, retry after transport failure, or removal of an AgentFriend with no materialized LocalAgent converges to the same dangling-free end state. A failed LocalAgent deletion fails closed as a typed error or a durable retried termination intent and must not be reported as renderer-synthesized success. Removal must not leave a half-applied orphan LocalAgent or dangling AgentFriend, and must not mutate the corresponding RealmAgent canonical truth."
 entities:
   - name: Friendship
     prisma_model: Friendship

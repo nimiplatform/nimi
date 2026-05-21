@@ -706,3 +706,54 @@ permission grant truth, Runtime setup truth, or profile/app configuration truth.
 The guide may direct the user to product surfaces but cannot bypass setup
 confirmations, permissions, install plans, app admission, or ordinary LocalAgent
 mechanics.
+
+## K-AGCORE-141 AgentFriend Removal LocalAgent Projection Deletion
+
+`TerminateAgent` is the runtime deletion lifecycle for an account-scoped
+LocalAgent projection. When an AgentFriend relationship is removed, the
+upstream Realm social admission path issues `TerminateAgent` for the resolved
+`local_agent_ref`, and `RuntimeAgentService` must hard-delete that projection.
+This rule is the deletion counterpart to the creation/repair idempotency of
+`K-AGCORE-139` and applies to every ordinary AgentFriend LocalAgent, not only
+the Nimi guide.
+
+`TerminateAgent` deletion scope:
+
+- `TerminateAgent` must remove the `runtime_local_agent` row for the target
+  `local_agent_ref`, not merely flip a lifecycle status field;
+- it must remove the agent-scoped projections bound to that `local_agent_ref`:
+  agent state projection, runtime-owned pending/terminal hooks, the agent event
+  log, and the agent-scoped memory bank (`MEMORY_BANK_SCOPE_AGENT_CORE` and
+  `MEMORY_BANK_SCOPE_AGENT_DYADIC` owned by that agent);
+- the deletion is a hard delete: the projection and its agent-scoped memory are
+  physically removed. `RuntimeAgentService` must not retain a `TERMINATED`
+  tombstone row as the steady-state outcome of AgentFriend removal, because a
+  retained row is the orphan LocalAgent the upstream linkage forbids.
+  `local_agent_ref` is deterministically re-derivable, so a later AgentFriend
+  re-add re-materializes the projection through `K-AGCORE-139` rather than
+  resurrecting deleted state.
+
+Fixed rules:
+
+- `TerminateAgent` must be idempotent. `TerminateAgent` for an already-absent
+  `local_agent_ref` — including a LocalAgent that was never materialized —
+  must succeed as a typed no-op rather than failing with a not-found error.
+- runtime snapshot persistence must not re-insert a deleted `local_agent_ref`.
+  A snapshot rewrite must exclude deleted projections so that a deleted agent
+  never reappears after restart or snapshot replay.
+- `TerminateAgent` must cancel any active hooks and in-flight execution for the
+  target agent before the projection row is removed, so deletion does not strand
+  live runtime work.
+- substrate failure during deletion fails closed: if the row or agent-scoped
+  memory cannot be deleted, `TerminateAgent` must return a typed failure status
+  rather than reporting pseudo-success. The upstream Realm linkage owns retry of
+  the durable termination intent; runtime must not mask an incomplete deletion.
+- `TerminateAgent` deletes the runtime-owned LocalAgent projection only. It must
+  not mutate, delete, or write back the canonical RealmAgent identity, and it
+  must not delete account-scoped truth wider than the target agent.
+
+`MUST NOT`: `TerminateAgent` must not leave a partially deleted projection — a
+`runtime_local_agent` row without its agent-scoped memory, or agent-scoped
+memory without its row. Deletion of the row and its agent-scoped
+state/hooks/event-log/memory either completes together or fails closed as a
+typed error.

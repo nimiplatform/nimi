@@ -4,6 +4,7 @@ machine_id: desktop_realm_agent_friend_action_model
 authority_refs:
   - D-EXPL-006
   - D-EXPL-007
+  - R-SOC-007
 states:
   - state: not_friend
     description: Current account has no AgentFriend relation with this RealmAgent. Primary action is Add friend.
