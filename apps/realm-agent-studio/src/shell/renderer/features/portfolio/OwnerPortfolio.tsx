@@ -24,6 +24,18 @@ import {
   buildBlockedSettingProposal,
   type SettingProposalInput,
 } from './setting-proposal.js';
+import {
+  MEDIA_CANDIDATE_BINDING_POINTS,
+  MEDIA_CANDIDATE_RESOURCE_TYPES,
+  VOICE_DEMO_BLOCKED_REASON,
+  VISUAL_MEDIA_BLOCKED_REASON,
+  buildBlockedVisualAssetCandidatePayload,
+  buildBlockedVoiceDemoRequestPayload,
+  type MediaCandidateBindingPoint,
+  type VisualMediaCandidateInput,
+  type VisualCandidateResourceType,
+  type VoiceDemoCandidateInput,
+} from './media-voice-candidate.js';
 import { CreateRealmAgentWorkspace } from './CreateRealmAgentWorkspace.js';
 
 const PORTFOLIO_FILTER_OPTIONS: { value: OwnerPortfolioFilter; label: string }[] = [
@@ -248,6 +260,139 @@ function SettingProposalWorkspace({ agent }: { agent: OwnerPortfolioAgentDetail 
               {proposal.payload ? JSON.stringify(proposal.payload, null, 2) : proposal.errors.join('; ')}
             </pre>
           </FieldShell>
+        </div>
+      </div>
+    </Surface>
+  );
+}
+
+function createVisualMediaCandidateInput(): VisualMediaCandidateInput {
+  return {
+    resourceType: 'IMAGE',
+    bindingPoint: 'AGENT_CANDIDATE',
+    prompt: '',
+    notes: '',
+  };
+}
+
+function createVoiceDemoCandidateInput(agent: OwnerPortfolioAgentDetail): VoiceDemoCandidateInput {
+  return {
+    scriptText: agent.greeting.value || '',
+  };
+}
+
+function MediaVoiceCandidateWorkspace({ agent }: { agent: OwnerPortfolioAgentDetail }) {
+  const [visualDraft, setVisualDraft] = useState<VisualMediaCandidateInput>(() => createVisualMediaCandidateInput());
+  const [voiceDraft, setVoiceDraft] = useState<VoiceDemoCandidateInput>(() => createVoiceDemoCandidateInput(agent));
+  const visualPayload = useMemo(() => buildBlockedVisualAssetCandidatePayload(visualDraft, agent), [agent, visualDraft]);
+  const voicePayload = useMemo(() => buildBlockedVoiceDemoRequestPayload(voiceDraft, agent), [agent, voiceDraft]);
+  const visualResourceTypes = MEDIA_CANDIDATE_RESOURCE_TYPES.filter((resourceType): resourceType is VisualCandidateResourceType => resourceType === 'IMAGE');
+  const visualBindingPoints = MEDIA_CANDIDATE_BINDING_POINTS.filter((bindingPoint) => bindingPoint !== 'AGENT_VOICE_SAMPLE');
+
+  useEffect(() => {
+    setVisualDraft(createVisualMediaCandidateInput());
+    setVoiceDraft(createVoiceDemoCandidateInput(agent));
+  }, [agent.id]);
+
+  function updateVisualDraft(patch: Partial<VisualMediaCandidateInput>) {
+    setVisualDraft((current) => ({ ...current, ...patch }));
+  }
+
+  function updateVoiceDraft(patch: Partial<VoiceDemoCandidateInput>) {
+    setVoiceDraft((current) => ({ ...current, ...patch }));
+  }
+
+  return (
+    <Surface tone="panel" padding="lg" className="mt-5">
+      <div className="grid min-w-0 gap-5 xl:grid-cols-[1fr_1fr]">
+        <div className="min-w-0">
+          <div className="flex min-w-0 flex-wrap items-center gap-3">
+            <h3 className="m-0 text-xl font-semibold">Visual identity candidate</h3>
+            <StatusBadge tone="warning">blocked preview</StatusBadge>
+            <StatusBadge tone="neutral">not public truth</StatusBadge>
+          </div>
+          <p className="m-0 mt-1 text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-muted)]">
+            Local Resource and Binding evidence preview for {agent.handle.value ? `@${agent.handle.value}` : agent.displayName.value || agent.id}; no upload, finalize, binding upsert, profile update, provider, or model is called.
+          </p>
+          <div className="mt-4 grid gap-4">
+            <div className="grid gap-3 md:grid-cols-[160px_1fr]">
+              <FieldShell label="Resource type" message="Future Resource carrier only.">
+                <SelectField
+                  value={visualDraft.resourceType}
+                  options={visualResourceTypes.map((resourceType) => ({ value: resourceType, label: `Resource(${resourceType})` }))}
+                  onValueChange={(value) => updateVisualDraft({ resourceType: value as VisualCandidateResourceType })}
+                />
+              </FieldShell>
+              <FieldShell label="Binding point" message="Future AGENT binding point only.">
+                <SelectField
+                  value={visualDraft.bindingPoint}
+                  options={visualBindingPoints.map((bindingPoint) => ({ value: bindingPoint, label: bindingPoint }))}
+                  onValueChange={(value) => updateVisualDraft({ bindingPoint: value as MediaCandidateBindingPoint })}
+                />
+              </FieldShell>
+            </div>
+            <FieldShell label="Visual prompt" message="Owner-approved public/context fields plus this local draft only.">
+              <TextareaField
+                value={visualDraft.prompt}
+                placeholder="Describe the avatar, portrait, or candidate visual"
+                onChange={(event) => updateVisualDraft({ prompt: event.currentTarget.value })}
+              />
+            </FieldShell>
+            <FieldShell label="Notes" message="Local preview notes; omitted from future Runtime input unless owner-reviewed.">
+              <TextareaField
+                value={visualDraft.notes}
+                placeholder="Composition, reference, or review notes"
+                onChange={(event) => updateVisualDraft({ notes: event.currentTarget.value })}
+              />
+            </FieldShell>
+            <InlineAlert tone="warning">
+              {visualPayload.changed ? VISUAL_MEDIA_BLOCKED_REASON : visualPayload.errors.join('; ')}
+            </InlineAlert>
+            <FieldShell label="Blocked visual payload" message="Preview only. Resource upload/finalize and Binding/Profile writes remain blocked.">
+              <pre className="ras-json-preview m-0 min-h-72 overflow-auto rounded-[var(--nimi-radius-field)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-3 text-xs">
+                {visualPayload.payload ? JSON.stringify(visualPayload.payload, null, 2) : visualPayload.errors.join('; ')}
+              </pre>
+            </FieldShell>
+          </div>
+        </div>
+        <div className="min-w-0">
+          <div className="flex min-w-0 flex-wrap items-center gap-3">
+            <h3 className="m-0 text-xl font-semibold">Voice demo candidate</h3>
+            <StatusBadge tone="warning">synthesis blocked</StatusBadge>
+            <StatusBadge tone="neutral">sample only</StatusBadge>
+          </div>
+          <p className="m-0 mt-1 text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-muted)]">
+            Blocked request preview for Runtime capability audio.synthesize and SDK path media.tts.synthesize; no Runtime, Resource, Binding, or voice authority write is called.
+          </p>
+          <div className="mt-4 grid gap-4">
+            <Surface tone="card" padding="md">
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div>
+                  <div className="text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-muted)]">Future Resource</div>
+                  <div className="mt-1 font-medium">Resource(AUDIO)</div>
+                </div>
+                <div>
+                  <div className="text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-muted)]">Future Binding</div>
+                  <div className="mt-1 font-medium">AGENT_VOICE_SAMPLE</div>
+                </div>
+              </div>
+            </Surface>
+            <FieldShell label="Demo script" message="Local draft text only. No chat transcript, LocalAgent memory, emotion, cognition, provider, or model.">
+              <TextareaField
+                value={voiceDraft.scriptText}
+                placeholder="Short public voice demo script"
+                onChange={(event) => updateVoiceDraft({ scriptText: event.currentTarget.value })}
+              />
+            </FieldShell>
+            <InlineAlert tone="warning">
+              {voicePayload.changed ? VOICE_DEMO_BLOCKED_REASON : voicePayload.errors.join('; ')}
+            </InlineAlert>
+            <FieldShell label="Blocked voice payload" message="Preview only. Runtime synthesis and public voice/sample admission remain blocked.">
+              <pre className="ras-json-preview m-0 min-h-72 overflow-auto rounded-[var(--nimi-radius-field)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-3 text-xs">
+                {voicePayload.payload ? JSON.stringify(voicePayload.payload, null, 2) : voicePayload.errors.join('; ')}
+              </pre>
+            </FieldShell>
+          </div>
         </div>
       </div>
     </Surface>
@@ -501,6 +646,7 @@ function AgentDetail({ agentId }: { agentId: string }) {
         </div>
       </Surface>
       <SettingProposalWorkspace agent={agent} />
+      <MediaVoiceCandidateWorkspace agent={agent} />
       <CreativePostWorkspace agent={agent} />
     </section>
   );
