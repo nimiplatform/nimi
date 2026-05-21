@@ -743,6 +743,30 @@ export const OAuthLoginState = {
 
 export type OAuthLoginState = (typeof OAuthLoginState)[keyof typeof OAuthLoginState];
 
+export const OwnerAgentCommunicationSettingsFormality = {
+  CASUAL: "casual",
+  FORMAL: "formal",
+  SLANG: "slang",
+} as const satisfies Record<string, components['schemas']['OwnerAgentCommunicationSettingsDto']['formality']>;
+
+export type OwnerAgentCommunicationSettingsFormality = (typeof OwnerAgentCommunicationSettingsFormality)[keyof typeof OwnerAgentCommunicationSettingsFormality];
+
+export const OwnerAgentCommunicationSettingsResponseLength = {
+  SHORT: "short",
+  MEDIUM: "medium",
+  LONG: "long",
+} as const satisfies Record<string, components['schemas']['OwnerAgentCommunicationSettingsDto']['responseLength']>;
+
+export type OwnerAgentCommunicationSettingsResponseLength = (typeof OwnerAgentCommunicationSettingsResponseLength)[keyof typeof OwnerAgentCommunicationSettingsResponseLength];
+
+export const OwnerAgentCommunicationSettingsSentiment = {
+  POSITIVE: "positive",
+  NEUTRAL: "neutral",
+  CYNICAL: "cynical",
+} as const satisfies Record<string, components['schemas']['OwnerAgentCommunicationSettingsDto']['sentiment']>;
+
+export type OwnerAgentCommunicationSettingsSentiment = (typeof OwnerAgentCommunicationSettingsSentiment)[keyof typeof OwnerAgentCommunicationSettingsSentiment];
+
 export const PermissionCheckAction = {
   DEFINE_RULES: "DEFINE_RULES",
   UPDATE_SETTINGS: "UPDATE_SETTINGS",

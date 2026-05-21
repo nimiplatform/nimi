@@ -3413,6 +3413,31 @@ export const REALM_OPERATION_MAP = {
     ],
     "hasSuccessBody": true
   },
+  "MeService.getMyRealmAgentSettings": {
+    "operationId": "getMyRealmAgentSettings",
+    "method": "GET",
+    "path": "/api/me/agents/{agentId}/settings",
+    "service": "MeService",
+    "methodName": "getMyRealmAgentSettings",
+    "tag": "Me",
+    "parameters": [
+      {
+        "name": "agentId",
+        "in": "path",
+        "required": true,
+        "valueType": "string"
+      }
+    ],
+    "hasBody": false,
+    "bodyRequired": false,
+    "successStatusCodes": [
+      "200"
+    ],
+    "successContentTypes": [
+      "application/json"
+    ],
+    "hasSuccessBody": true
+  },
   "MeService.getMySettings": {
     "operationId": "getMySettings",
     "method": "GET",
@@ -3698,6 +3723,32 @@ export const REALM_OPERATION_MAP = {
     "methodName": "updateMyPPConfig",
     "tag": "Me",
     "parameters": [],
+    "hasBody": true,
+    "bodyRequired": true,
+    "requestBodyContentType": "application/json",
+    "successStatusCodes": [
+      "200"
+    ],
+    "successContentTypes": [
+      "application/json"
+    ],
+    "hasSuccessBody": true
+  },
+  "MeService.updateMyRealmAgentSettings": {
+    "operationId": "updateMyRealmAgentSettings",
+    "method": "PATCH",
+    "path": "/api/me/agents/{agentId}/settings",
+    "service": "MeService",
+    "methodName": "updateMyRealmAgentSettings",
+    "tag": "Me",
+    "parameters": [
+      {
+        "name": "agentId",
+        "in": "path",
+        "required": true,
+        "valueType": "string"
+      }
+    ],
     "hasBody": true,
     "bodyRequired": true,
     "requestBodyContentType": "application/json",
@@ -6572,6 +6623,7 @@ export const REALM_SERVICE_METHODS = {
     "getMyPendingFriendRequests": "MeService.getMyPendingFriendRequests",
     "getMyPPConfig": "MeService.getMyPPConfig",
     "getMyRealmAgent": "MeService.getMyRealmAgent",
+    "getMyRealmAgentSettings": "MeService.getMyRealmAgentSettings",
     "getMySettings": "MeService.getMySettings",
     "getMyTiers": "MeService.getMyTiers",
     "getMyWallets": "MeService.getMyWallets",
@@ -6587,6 +6639,7 @@ export const REALM_SERVICE_METHODS = {
     "updateMyHandle": "MeService.updateMyHandle",
     "updateMyNotificationSettings": "MeService.updateMyNotificationSettings",
     "updateMyPPConfig": "MeService.updateMyPPConfig",
+    "updateMyRealmAgentSettings": "MeService.updateMyRealmAgentSettings",
     "updateMySettings": "MeService.updateMySettings"
   },
   "MeTwoFactorService": {

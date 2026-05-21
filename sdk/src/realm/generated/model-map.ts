@@ -213,6 +213,12 @@ export type RealmGeneratedModelMap = {
   OAuthProvider: components['schemas']['OAuthProvider'];
   OAuthTokenRequestDto: components['schemas']['OAuthTokenRequestDto'];
   OAuthTokenResponseDto: components['schemas']['OAuthTokenResponseDto'];
+  OwnerAgentBoundarySettingsDto: components['schemas']['OwnerAgentBoundarySettingsDto'];
+  OwnerAgentCommunicationSettingsDto: components['schemas']['OwnerAgentCommunicationSettingsDto'];
+  OwnerAgentIdentitySettingsDto: components['schemas']['OwnerAgentIdentitySettingsDto'];
+  OwnerAgentPersonalitySettingsDto: components['schemas']['OwnerAgentPersonalitySettingsDto'];
+  OwnerAgentPositioningSettingsDto: components['schemas']['OwnerAgentPositioningSettingsDto'];
+  OwnerAgentSettingsDto: components['schemas']['OwnerAgentSettingsDto'];
   PasswordLoginDto: components['schemas']['PasswordLoginDto'];
   PasswordRegisterDto: components['schemas']['PasswordRegisterDto'];
   PermissionCheckResponseDto: components['schemas']['PermissionCheckResponseDto'];
@@ -314,6 +320,7 @@ export type RealmGeneratedModelMap = {
   UpdateCreatorAgentDto: components['schemas']['UpdateCreatorAgentDto'];
   UpdateGroupInputDto: components['schemas']['UpdateGroupInputDto'];
   UpdateNsfwConsentResponseDto: components['schemas']['UpdateNsfwConsentResponseDto'];
+  UpdateOwnerAgentSettingsDto: components['schemas']['UpdateOwnerAgentSettingsDto'];
   UpdateParticipantRoleInputDto: components['schemas']['UpdateParticipantRoleInputDto'];
   UpdatePasswordRequestDto: components['schemas']['UpdatePasswordRequestDto'];
   UpdatePostDto: components['schemas']['UpdatePostDto'];

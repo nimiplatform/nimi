@@ -2711,6 +2711,30 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/me/agents/{agentId}/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get my owner-owned Realm Agent settings
+         * @description Returns owner-facing structured settings for the current authenticated user owned MASTER_OWNED RealmAgent. This is not raw AgentRule content review.
+         */
+        get: operations["getMyRealmAgentSettings"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update my owner-owned Realm Agent settings
+         * @description Owner-scoped settings ingress for the current authenticated user owned MASTER_OWNED RealmAgent. The server compiles structured settings into profile writes and versioned AgentRule truth writes; callers must not use raw AgentRule CRUD payloads.
+         */
+        patch: operations["updateMyRealmAgentSettings"];
+        trace?: never;
+    };
     "/api/reports": {
         parameters: {
             query?: never;
@@ -5699,6 +5723,49 @@ export type components = {
             /** @example Bearer */
             token_type: string;
         };
+        OwnerAgentBoundarySettingsDto: {
+            allowedThemes?: string[];
+            disallowedThemes?: string[];
+        };
+        OwnerAgentCommunicationSettingsDto: {
+            contentStyle?: string | null;
+            /** @enum {string} */
+            formality?: "casual" | "formal" | "slang";
+            /** @enum {string} */
+            responseLength?: "short" | "medium" | "long";
+            /** @enum {string} */
+            sentiment?: "positive" | "neutral" | "cynical";
+        };
+        OwnerAgentIdentitySettingsDto: {
+            publicRole?: string | null;
+            worldview?: string | null;
+        };
+        OwnerAgentPersonalitySettingsDto: {
+            goals?: string[];
+            interests?: string[];
+            relationshipMode?: string | null;
+            summary?: string | null;
+        };
+        OwnerAgentPositioningSettingsDto: {
+            positioning?: string | null;
+            targetAudience?: string | null;
+        };
+        OwnerAgentSettingsDto: {
+            agentId: string;
+            agentRuleVersion: number;
+            boundaries: components["schemas"]["OwnerAgentBoundarySettingsDto"];
+            communication: components["schemas"]["OwnerAgentCommunicationSettingsDto"];
+            description?: string | null;
+            displayName?: string | null;
+            greeting?: string | null;
+            identity: components["schemas"]["OwnerAgentIdentitySettingsDto"];
+            naturalLanguageIntent?: string | null;
+            personality: components["schemas"]["OwnerAgentPersonalitySettingsDto"];
+            positioning: components["schemas"]["OwnerAgentPositioningSettingsDto"];
+            /** Format: date-time */
+            updatedAt: string;
+            worldId: string;
+        };
         PPSlotConfigDto: {
             slot1?: components["schemas"]["PPSlotItemDto"];
             slot2?: components["schemas"]["PPSlotItemDto"];
@@ -6570,6 +6637,17 @@ export type components = {
              * @description Timestamp of the update
              */
             updatedAt: string;
+        };
+        UpdateOwnerAgentSettingsDto: {
+            boundaries?: components["schemas"]["OwnerAgentBoundarySettingsDto"];
+            communication?: components["schemas"]["OwnerAgentCommunicationSettingsDto"];
+            description?: string | null;
+            displayName?: string | null;
+            greeting?: string | null;
+            identity?: components["schemas"]["OwnerAgentIdentitySettingsDto"];
+            naturalLanguageIntent?: string | null;
+            personality?: components["schemas"]["OwnerAgentPersonalitySettingsDto"];
+            positioning?: components["schemas"]["OwnerAgentPositioningSettingsDto"];
         };
         UpdatePPSlotConfigDto: {
             ppSlotConfig: components["schemas"]["PPSlotConfigDto"];
@@ -11838,6 +11916,56 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["UserLiteDto"];
+                };
+            };
+        };
+    };
+    getMyRealmAgentSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description RealmAgent account ID */
+                agentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Current user owner-owned RealmAgent settings */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OwnerAgentSettingsDto"];
+                };
+            };
+        };
+    };
+    updateMyRealmAgentSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description RealmAgent account ID */
+                agentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateOwnerAgentSettingsDto"];
+            };
+        };
+        responses: {
+            /** @description Updated current user owner-owned RealmAgent settings */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OwnerAgentSettingsDto"];
                 };
             };
         };
