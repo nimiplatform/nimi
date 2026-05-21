@@ -173,6 +173,14 @@ func (s *Service) WatchAppInstallJobEvents(req *runtimev1.WatchAppInstallJobEven
 
 // UninstallApp removes the release payload for an installed app and, only when
 // destructive deletion is explicitly confirmed, the durable app data root.
+//
+// UninstallApp emits a watchable uninstall lifecycle job (K-APP-017): a typed
+// AppInstallJob with kind=APP_LIFECYCLE_JOB_KIND_UNINSTALL is created, advanced
+// through the materialize phase (release payload removal), and marked terminal.
+// The job is the single live-job truth source for the `uninstalling` Apps card
+// state and can be followed via WatchAppInstallJobEvents. A failed uninstall is
+// recorded as a recoverable job and is never projected as success; the
+// K-APP-014 durable-data retention semantics are unchanged.
 func (s *Service) UninstallApp(ctx context.Context, req *runtimev1.UninstallAppRequest) (*runtimev1.UninstallAppResponse, error) {
 	if req == nil {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
@@ -199,24 +207,55 @@ func (s *Service) UninstallApp(ctx context.Context, req *runtimev1.UninstallAppR
 	if err != nil {
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_APP_INSTALL_STORAGE_VIOLATION)
 	}
+
+	// Coalesce onto an in-flight lifecycle job for the app rather than racing
+	// a second mutation against the same storage roots.
+	if existing := s.installJobs.activeJobForApp(appID); existing != nil {
+		return &runtimev1.UninstallAppResponse{Job: existing}, nil
+	}
+
+	storage := storageProjectionFromPlan(plan)
+	job := s.installJobs.createJob(jobSpec{
+		appID:         appID,
+		descriptorRef: descriptor.DescriptorID,
+		version:       descriptor.Version,
+		kind:          runtimev1.AppLifecycleJobKind_APP_LIFECYCLE_JOB_KIND_UNINSTALL,
+		sourceKind:    installSourceKind(descriptor),
+		storage:       storage,
+	})
+
 	options := appstorage.UninstallOptions{
 		DeleteDurableData:             req.GetDeleteDurableData(),
 		DestructiveDataDeleteApproved: req.GetDestructiveDataDeleteConfirmed(),
 	}
-	if err := s.installRuntime.uninstall(ctx, plan, options); err != nil {
-		return nil, grpcerr.WithReasonCode(codes.Internal, uninstallReason(err))
+	// The uninstall job advances through the materialize phase (release
+	// payload removal) and then to a terminal state. Release removal is a
+	// fast local-FS operation, so the job runs inline with tracked phase
+	// transitions: the watch stream still observes queued -> in-progress ->
+	// terminal frames without a parallel-truth signal.
+	s.installJobs.advance(job.GetJobId(), runtimev1.AppInstallJobPhase_APP_INSTALL_JOB_PHASE_MATERIALIZE)
+	if uninstallErr := s.installRuntime.uninstall(ctx, plan, options); uninstallErr != nil {
+		reason := uninstallReason(uninstallErr)
+		failed := s.installJobs.markFailed(job.GetJobId(), reason, uninstallErr.Error())
+		if s.logger != nil {
+			s.logger.Warn("app uninstall job failed", "job_id", job.GetJobId(), "app_id", appID, "reason", reason.String(), "error", uninstallErr)
+		}
+		return &runtimev1.UninstallAppResponse{Job: orJob(failed, job)}, nil
 	}
+
+	completed := s.installJobs.markUninstalled(job.GetJobId(), storage)
 	if s.logger != nil {
-		s.logger.Info("app uninstalled", "app_id", appID, "delete_durable_data", req.GetDeleteDurableData())
+		s.logger.Info("app uninstalled", "job_id", job.GetJobId(), "app_id", appID, "delete_durable_data", req.GetDeleteDurableData())
 	}
 	return &runtimev1.UninstallAppResponse{
 		Result: &runtimev1.AppUninstallResult{
 			AppId:              appID,
 			ReleaseRemoved:     true,
 			DurableDataRemoved: req.GetDeleteDurableData(),
-			Storage:            storageProjectionFromPlan(plan),
+			Storage:            storage,
 			ReasonCode:         runtimev1.ReasonCode_ACTION_EXECUTED,
 		},
+		Job: orJob(completed, job),
 	}, nil
 }
 

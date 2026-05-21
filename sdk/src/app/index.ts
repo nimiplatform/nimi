@@ -7,13 +7,8 @@ export type { NimiAppTransport } from './transport.js';
 export type {
   AppKind,
   AppLaunchReadiness,
-  NimiAppHealthRepairAction,
   NimiAppInstallEvidenceRow,
   NimiAppInstallVerificationState,
-  NimiAppLifecycleEvent,
-  NimiAppLaunchScopeRef,
-  NimiAppOperationResult,
-  NimiAppOperationState,
   NimiAppOrdinaryVisibility,
   NimiAppReleaseDescriptorClass,
   NimiAppReleaseDescriptorRow,
@@ -21,7 +16,6 @@ export type {
   NimiAppRow,
   NimiAppStatus,
   NimiAppStorageRoots,
-  NimiAppSubscription,
   TrustTierId,
 } from './types.js';
 export type {

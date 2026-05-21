@@ -1,6 +1,13 @@
 // SDK Nimi App client. Typed transport over the Nimi App registry +
-// status surfaces. Per Wave 2 admission rule, this is a read-only
-// transport floor; install/update/launch lifecycle is owned by Wave 4.
+// status surfaces. This is a pure read-projection floor: list / get /
+// status only.
+//
+// T4 Fork B: every Nimi App lifecycle mutation — install / update /
+// uninstall / open / healthRepair, and lifecycle-event subscription — is
+// owned by the runtime-mediated `runtime.appLifecycle` surface
+// (`@nimiplatform/sdk/runtime`). NimiAppClient does not expose mutation
+// methods, so there is one typed app-lifecycle surface and no parallel-truth
+// fail-closed stubs.
 //
 // Per closed redesign (P-NAPP-012, P-MOEX-006), this client rejects any
 // non-canonical app kind. Trust tier values are validated against the
@@ -11,13 +18,8 @@ import {
   isCanonicalAppKind,
   isCanonicalLaunchReadiness,
   isCanonicalTrustTier,
-  type NimiAppHealthRepairAction,
-  type NimiAppLifecycleEvent,
-  type NimiAppLaunchScopeRef,
-  type NimiAppOperationResult,
   type NimiAppRow,
   type NimiAppStatus,
-  type NimiAppSubscription,
 } from './types.js';
 
 export class NimiAppClientError extends Error {
@@ -95,62 +97,6 @@ export class NimiAppClient {
       );
     }
     return response;
-  }
-
-  async install(appId: string): Promise<NimiAppOperationResult> {
-    return this.callOperation('install', appId, () => this.transport.install(appId));
-  }
-
-  async update(appId: string): Promise<NimiAppOperationResult> {
-    return this.callOperation('update', appId, () => this.transport.update(appId));
-  }
-
-  async uninstall(appId: string): Promise<NimiAppOperationResult> {
-    return this.callOperation('uninstall', appId, () => this.transport.uninstall(appId));
-  }
-
-  async launch(appId: string, scopeRef: NimiAppLaunchScopeRef): Promise<NimiAppOperationResult> {
-    if (!scopeRef || typeof scopeRef.kind !== 'string' || typeof scopeRef.scopeId !== 'string' || scopeRef.scopeId.length === 0) {
-      throw new NimiAppClientError('missing-required-field', 'launch: canonical scopeRef is required');
-    }
-    return this.callOperation('launch', appId, () => this.transport.launch(appId, scopeRef));
-  }
-
-  subscribe(callback: (event: NimiAppLifecycleEvent) => void): NimiAppSubscription {
-    if (typeof callback !== 'function') {
-      throw new NimiAppClientError('missing-required-field', 'subscribe: callback is required');
-    }
-    return this.transport.subscribe(callback);
-  }
-
-  async healthRepair(appId: string, action: NimiAppHealthRepairAction): Promise<NimiAppOperationResult> {
-    if (!['cancel', 'retry', 'repair', 'reinstall'].includes(action)) {
-      throw new NimiAppClientError('non-canonical-response', `healthRepair action "${String(action)}" is not canonical`);
-    }
-    return this.callOperation('health-repair', appId, () => this.transport.healthRepair(appId, action));
-  }
-
-  private async callOperation(
-    operation: NimiAppOperationResult['operation'],
-    appId: string,
-    call: () => Promise<NimiAppOperationResult>,
-  ): Promise<NimiAppOperationResult> {
-    if (typeof appId !== 'string' || appId.length === 0) {
-      throw new NimiAppClientError('missing-required-field', `${operation}: appId is required`);
-    }
-    try {
-      const result = await call();
-      if (!result || result.appId !== appId || result.operation !== operation || typeof result.reason !== 'string') {
-        throw new NimiAppClientError('non-canonical-response', `${operation} response is not canonical`);
-      }
-      if (!['accepted', 'install-required', 'blocked', 'unsupported', 'failed'].includes(result.state)) {
-        throw new NimiAppClientError('non-canonical-response', `${operation} response state is not canonical`);
-      }
-      return result;
-    } catch (error) {
-      if (error instanceof NimiAppClientError) throw error;
-      throw new NimiAppClientError('transport-error', `${operation} transport error`, error);
-    }
   }
 }
 

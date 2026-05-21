@@ -166,12 +166,21 @@ describe('Nimi App registry transport', () => {
     assert.equal(status.storageRoots?.dataRoot, '/tmp/nimi/apps/nimi.parentos/data');
   });
 
-  it('fails closed for install until runtime install gateway is connected', async () => {
-    const transport = createNimiAppRegistryTransport({ loadRows: () => rows, loadReleaseDescriptors: () => descriptors });
-    const result = await transport.install('nimi.parentos');
-    assert.equal(result.state, 'unsupported');
-    assert.equal(result.reason, 'install-gateway-not-connected');
-    assert.match(result.detail ?? '', /release descriptor/);
+  it('is a pure read-projection transport — no lifecycle mutation methods', () => {
+    // T4 Fork B: install / update / uninstall / launch / healthRepair /
+    // subscribe are retired from the registry transport. Lifecycle mutation
+    // is owned by the runtime-mediated `runtime.appLifecycle` surface.
+    const transport = createNimiAppRegistryTransport({
+      loadRows: () => rows,
+      loadReleaseDescriptors: () => descriptors,
+    }) as unknown as Record<string, unknown>;
+    for (const retired of ['install', 'update', 'uninstall', 'launch', 'healthRepair', 'subscribe']) {
+      assert.equal(
+        typeof transport[retired],
+        'undefined',
+        `registry transport must not expose the retired "${retired}" stub`,
+      );
+    }
   });
 
   it('blocks hidden rows from ordinary get projection', async () => {

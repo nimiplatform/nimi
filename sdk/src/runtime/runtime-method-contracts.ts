@@ -194,6 +194,7 @@ export type RuntimeUnaryMethodContractMap = {
   [RuntimeMethodIds.app.listAppInstallJobs]: RuntimeClientMethodContract<'app', 'listAppInstallJobs'>;
   [RuntimeMethodIds.app.updateApp]: RuntimeClientMethodContract<'app', 'updateApp'>;
   [RuntimeMethodIds.app.healthRepairApp]: RuntimeClientMethodContract<'app', 'healthRepairApp'>;
+  [RuntimeMethodIds.app.openApp]: RuntimeClientMethodContract<'app', 'openApp'>;
   [RuntimeMethodIds.audit.listAuditEvents]: RuntimeClientMethodContract<'audit', 'listAuditEvents'>;
   [RuntimeMethodIds.audit.listUsageStats]: RuntimeClientMethodContract<'audit', 'listUsageStats'>;
   [RuntimeMethodIds.audit.getRuntimeHealth]: RuntimeClientMethodContract<'audit', 'getRuntimeHealth'>;

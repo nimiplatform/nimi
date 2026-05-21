@@ -286,6 +286,18 @@ pub enum ReasonCode {
     ArtifactTooLarge = 602,
     ArtifactForbidden = 603,
     ArtifactMimeMismatch = 604,
+    /// APP_OPEN family (605+) — Nimi App Open / launch flow (K-APP-017)
+    /// fail-closed reasons. Each reason is distinct and is never collapsed
+    /// into a generic value.
+    AppOpenScopeRefRequired = 605,
+    AppOpenScopeRefInvalid = 606,
+    AppOpenPackageNotVerified = 607,
+    AppOpenLibraryStateInvalid = 608,
+    AppOpenAppDataInvalid = 609,
+    AppOpenPermissionNotGranted = 610,
+    AppOpenAiconfigUnresolved = 611,
+    AppOpenManifestRequirementUnsatisfied = 612,
+    AppOpenLaunchFailed = 613,
 }
 impl ReasonCode {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -481,6 +493,17 @@ impl ReasonCode {
             Self::ArtifactTooLarge => "ARTIFACT_TOO_LARGE",
             Self::ArtifactForbidden => "ARTIFACT_FORBIDDEN",
             Self::ArtifactMimeMismatch => "ARTIFACT_MIME_MISMATCH",
+            Self::AppOpenScopeRefRequired => "APP_OPEN_SCOPE_REF_REQUIRED",
+            Self::AppOpenScopeRefInvalid => "APP_OPEN_SCOPE_REF_INVALID",
+            Self::AppOpenPackageNotVerified => "APP_OPEN_PACKAGE_NOT_VERIFIED",
+            Self::AppOpenLibraryStateInvalid => "APP_OPEN_LIBRARY_STATE_INVALID",
+            Self::AppOpenAppDataInvalid => "APP_OPEN_APP_DATA_INVALID",
+            Self::AppOpenPermissionNotGranted => "APP_OPEN_PERMISSION_NOT_GRANTED",
+            Self::AppOpenAiconfigUnresolved => "APP_OPEN_AICONFIG_UNRESOLVED",
+            Self::AppOpenManifestRequirementUnsatisfied => {
+                "APP_OPEN_MANIFEST_REQUIREMENT_UNSATISFIED"
+            }
+            Self::AppOpenLaunchFailed => "APP_OPEN_LAUNCH_FAILED",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -701,6 +724,17 @@ impl ReasonCode {
             "ARTIFACT_TOO_LARGE" => Some(Self::ArtifactTooLarge),
             "ARTIFACT_FORBIDDEN" => Some(Self::ArtifactForbidden),
             "ARTIFACT_MIME_MISMATCH" => Some(Self::ArtifactMimeMismatch),
+            "APP_OPEN_SCOPE_REF_REQUIRED" => Some(Self::AppOpenScopeRefRequired),
+            "APP_OPEN_SCOPE_REF_INVALID" => Some(Self::AppOpenScopeRefInvalid),
+            "APP_OPEN_PACKAGE_NOT_VERIFIED" => Some(Self::AppOpenPackageNotVerified),
+            "APP_OPEN_LIBRARY_STATE_INVALID" => Some(Self::AppOpenLibraryStateInvalid),
+            "APP_OPEN_APP_DATA_INVALID" => Some(Self::AppOpenAppDataInvalid),
+            "APP_OPEN_PERMISSION_NOT_GRANTED" => Some(Self::AppOpenPermissionNotGranted),
+            "APP_OPEN_AICONFIG_UNRESOLVED" => Some(Self::AppOpenAiconfigUnresolved),
+            "APP_OPEN_MANIFEST_REQUIREMENT_UNSATISFIED" => {
+                Some(Self::AppOpenManifestRequirementUnsatisfied)
+            }
+            "APP_OPEN_LAUNCH_FAILED" => Some(Self::AppOpenLaunchFailed),
             _ => None,
         }
     }
@@ -12013,8 +12047,17 @@ pub struct AppUninstallResult {
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct UninstallAppResponse {
+    /// result is the typed uninstall projection carrying the K-APP-014
+    /// durable-data retention semantics (release_removed / durable_data_removed).
     #[prost(message, optional, tag = "1")]
     pub result: ::core::option::Option<AppUninstallResult>,
+    /// job is the watchable uninstall lifecycle job (K-APP-017,
+    /// AppLifecycleJobKind=APP_LIFECYCLE_JOB_KIND_UNINSTALL). It is the single
+    /// live-job truth source for the `uninstalling` Apps card state and can be
+    /// followed via WatchAppInstallJobEvents. A failed uninstall is recorded as a
+    /// recoverable job and is never projected as success.
+    #[prost(message, optional, tag = "2")]
+    pub job: ::core::option::Option<AppInstallJob>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct UpdateAppRequest {
@@ -12057,6 +12100,80 @@ pub struct HealthRepairAppResponse {
     /// in-flight job. A failed repair is never projected as success.
     #[prost(message, optional, tag = "1")]
     pub job: ::core::option::Option<AppInstallJob>,
+}
+/// AppOpenScopeRef is the explicit canonical app-launch AIConfig scope a
+/// caller must carry to open a Nimi App (K-APP-017 / P-AISC-007). It is the
+/// app-shape AIScopeRef: kind is always `app`; owner_id is the admitted Nimi
+/// App registry app_id and must equal the app_id being opened; surface_id is
+/// optional and only set when the app's manifest declares a stable AI feature
+/// surface. OpenApp never infers this scope — a missing or mismatched
+/// AppOpenScopeRef fails closed.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AppOpenScopeRef {
+    /// kind is the AIScopeRef kind discriminator. For OpenApp it is fixed to the
+    /// literal string `app`; any other value fails closed.
+    #[prost(string, tag = "1")]
+    pub kind: ::prost::alloc::string::String,
+    /// owner_id is the admitted Nimi App registry app_id (dot-separated app
+    /// identity, e.g. `nimi.avatar`). It must equal OpenAppRequest.app_id.
+    #[prost(string, tag = "2")]
+    pub owner_id: ::prost::alloc::string::String,
+    /// surface_id is the optional stable app-declared AI feature surface id.
+    /// Empty means the canonical app-level AI scope.
+    #[prost(string, tag = "3")]
+    pub surface_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct OpenAppRequest {
+    /// app_id resolves an admitted Nimi App registry row
+    /// (admission_status=admitted, ordinary_visibility=ordinary-visible).
+    #[prost(string, tag = "1")]
+    pub app_id: ::prost::alloc::string::String,
+    /// scope is the explicit canonical app-launch AIConfig scope. It is
+    /// mandatory: OpenApp never infers launch scope (K-APP-017 / S-APP-003).
+    #[prost(message, optional, tag = "2")]
+    pub scope: ::core::option::Option<AppOpenScopeRef>,
+}
+/// AppOpenProjection is the typed Open-flow projection. It reports the
+/// terminal state, the step the flow reached, the resolved launch scope, and a
+/// fail-closed reason_code on every blocked branch.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AppOpenProjection {
+    #[prost(string, tag = "1")]
+    pub app_id: ::prost::alloc::string::String,
+    #[prost(enumeration = "AppOpenState", tag = "2")]
+    pub state: i32,
+    /// reached_step is the last Open-flow step the launch executed. On a blocked
+    /// open it names the exact step that fail-closed.
+    #[prost(enumeration = "AppOpenFlowStep", tag = "3")]
+    pub reached_step: i32,
+    /// launched is true only when state is APP_OPEN_STATE_LAUNCHED. It is never
+    /// inferred from process liveness or file existence.
+    #[prost(bool, tag = "4")]
+    pub launched: bool,
+    /// active_version is the active release version the launch resolved. Empty
+    /// when the open blocked before package verification.
+    #[prost(string, tag = "5")]
+    pub active_version: ::prost::alloc::string::String,
+    /// scope echoes the resolved app-launch AIConfig scope. On a launched open
+    /// the Open flow has validated this scope as the canonical app-shape
+    /// AIScopeRef (P-AISC-007); the per-app first-launch AIConfig initialization
+    /// (S-AICONF-009) is finalized by the SDK/desktop AIConfig surface against
+    /// this validated scope — the AIConfig store is not Runtime-owned.
+    #[prost(message, optional, tag = "6")]
+    pub scope: ::core::option::Option<AppOpenScopeRef>,
+    /// reason_code is the typed fail-closed reason on a blocked open, or
+    /// ACTION_EXECUTED on a launched open. It is never collapsed into a generic
+    /// value.
+    #[prost(enumeration = "ReasonCode", tag = "7")]
+    pub reason_code: i32,
+    #[prost(string, tag = "8")]
+    pub detail: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct OpenAppResponse {
+    #[prost(message, optional, tag = "1")]
+    pub projection: ::core::option::Option<AppOpenProjection>,
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
@@ -12115,6 +12232,10 @@ pub enum AppInstallJobPhase {
     /// APP_INSTALL_JOB_PHASE_CANCELLED is the terminal phase of a job cancelled
     /// through HealthRepairApp(action=cancel).
     Cancelled = 11,
+    /// APP_INSTALL_JOB_PHASE_UNINSTALLED is the terminal phase of a completed
+    /// uninstall lifecycle job (K-APP-017). It is reached only by a job of kind
+    /// APP_LIFECYCLE_JOB_KIND_UNINSTALL after the release payload is removed.
+    Uninstalled = 12,
 }
 impl AppInstallJobPhase {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -12135,6 +12256,7 @@ impl AppInstallJobPhase {
             Self::Failed => "APP_INSTALL_JOB_PHASE_FAILED",
             Self::Swap => "APP_INSTALL_JOB_PHASE_SWAP",
             Self::Cancelled => "APP_INSTALL_JOB_PHASE_CANCELLED",
+            Self::Uninstalled => "APP_INSTALL_JOB_PHASE_UNINSTALLED",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -12152,6 +12274,7 @@ impl AppInstallJobPhase {
             "APP_INSTALL_JOB_PHASE_FAILED" => Some(Self::Failed),
             "APP_INSTALL_JOB_PHASE_SWAP" => Some(Self::Swap),
             "APP_INSTALL_JOB_PHASE_CANCELLED" => Some(Self::Cancelled),
+            "APP_INSTALL_JOB_PHASE_UNINSTALLED" => Some(Self::Uninstalled),
             _ => None,
         }
     }
@@ -12171,6 +12294,11 @@ pub enum AppInstallJobState {
     /// through HealthRepairApp(action=cancel). A cancelled job is recoverable via
     /// retry and is never projected as success.
     Cancelled = 5,
+    /// APP_INSTALL_JOB_STATE_UNINSTALLED is the terminal success state of an
+    /// uninstall lifecycle job (K-APP-017). It is reached only by a job of kind
+    /// APP_LIFECYCLE_JOB_KIND_UNINSTALL; a successful uninstall is never
+    /// projected as APP_INSTALL_JOB_STATE_INSTALLED.
+    Uninstalled = 6,
 }
 impl AppInstallJobState {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -12185,6 +12313,7 @@ impl AppInstallJobState {
             Self::Installed => "APP_INSTALL_JOB_STATE_INSTALLED",
             Self::Failed => "APP_INSTALL_JOB_STATE_FAILED",
             Self::Cancelled => "APP_INSTALL_JOB_STATE_CANCELLED",
+            Self::Uninstalled => "APP_INSTALL_JOB_STATE_UNINSTALLED",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -12196,13 +12325,15 @@ impl AppInstallJobState {
             "APP_INSTALL_JOB_STATE_INSTALLED" => Some(Self::Installed),
             "APP_INSTALL_JOB_STATE_FAILED" => Some(Self::Failed),
             "APP_INSTALL_JOB_STATE_CANCELLED" => Some(Self::Cancelled),
+            "APP_INSTALL_JOB_STATE_UNINSTALLED" => Some(Self::Uninstalled),
             _ => None,
         }
     }
 }
 /// AppLifecycleJobKind distinguishes the lifecycle operation that produced a
-/// job. Install, update, and healthRepair jobs share the AppInstallJob shape
-/// but carry a distinct kind so the consumer never infers intent from phase.
+/// job. Install, update, healthRepair, and uninstall jobs share the
+/// AppInstallJob shape but carry a distinct kind so the consumer never infers
+/// intent from phase.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
 pub enum AppLifecycleJobKind {
@@ -12210,6 +12341,13 @@ pub enum AppLifecycleJobKind {
     Install = 1,
     Update = 2,
     Repair = 3,
+    /// APP_LIFECYCLE_JOB_KIND_UNINSTALL marks a watchable uninstall lifecycle
+    /// job (K-APP-017). UninstallApp emits a typed AppInstallJob of this kind so
+    /// the `uninstalling` Apps card state has a single live-job truth source. An
+    /// uninstall job never carries the install digest/download phases; it runs
+    /// through the materialize phase (release payload removal) to the installed
+    /// (completed) terminal phase, and a failed uninstall is recoverable.
+    Uninstall = 4,
 }
 impl AppLifecycleJobKind {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -12222,6 +12360,7 @@ impl AppLifecycleJobKind {
             Self::Install => "APP_LIFECYCLE_JOB_KIND_INSTALL",
             Self::Update => "APP_LIFECYCLE_JOB_KIND_UPDATE",
             Self::Repair => "APP_LIFECYCLE_JOB_KIND_REPAIR",
+            Self::Uninstall => "APP_LIFECYCLE_JOB_KIND_UNINSTALL",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -12231,6 +12370,7 @@ impl AppLifecycleJobKind {
             "APP_LIFECYCLE_JOB_KIND_INSTALL" => Some(Self::Install),
             "APP_LIFECYCLE_JOB_KIND_UPDATE" => Some(Self::Update),
             "APP_LIFECYCLE_JOB_KIND_REPAIR" => Some(Self::Repair),
+            "APP_LIFECYCLE_JOB_KIND_UNINSTALL" => Some(Self::Uninstall),
             _ => None,
         }
     }
@@ -12300,6 +12440,104 @@ impl AppInstallSourceKind {
             "APP_INSTALL_SOURCE_KIND_UNSPECIFIED" => Some(Self::Unspecified),
             "APP_INSTALL_SOURCE_KIND_BUNDLED" => Some(Self::Bundled),
             "APP_INSTALL_SOURCE_KIND_EXTERNAL_ARTIFACT" => Some(Self::ExternalArtifact),
+            _ => None,
+        }
+    }
+}
+/// AppOpenFlowStep is the typed Open-flow step (K-APP-017). It surfaces the
+/// concrete checkpoint the launch is at so a failed Open names the exact step
+/// rather than a generic failure. It is never inferred.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum AppOpenFlowStep {
+    Unspecified = 0,
+    /// RESOLVE_REGISTRY resolves the admitted Nimi App registry row.
+    ResolveRegistry = 1,
+    /// VERIFY_PACKAGE verifies the materialized release package + install
+    /// evidence (active release pointer, digest-verified payload).
+    VerifyPackage = 2,
+    /// VERIFY_LIBRARY verifies the account app-library state for the app.
+    VerifyLibrary = 3,
+    /// VERIFY_APP_DATA verifies the durable app-data root state.
+    VerifyAppData = 4,
+    /// VERIFY_PERMISSIONS verifies the app permissions are granted or
+    /// promptable.
+    VerifyPermissions = 5,
+    /// ENSURE_AICONFIG ensures the app-scope AIConfig exists (first-launch
+    /// initialization per S-AICONF-009).
+    EnsureAiconfig = 6,
+    /// VALIDATE_MANIFEST validates the app manifest requirements.
+    ValidateManifest = 7,
+    /// LAUNCH is the terminal launch step: the runtime-owned app launch
+    /// supervision admits the app process/surface.
+    Launch = 8,
+}
+impl AppOpenFlowStep {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "APP_OPEN_FLOW_STEP_UNSPECIFIED",
+            Self::ResolveRegistry => "APP_OPEN_FLOW_STEP_RESOLVE_REGISTRY",
+            Self::VerifyPackage => "APP_OPEN_FLOW_STEP_VERIFY_PACKAGE",
+            Self::VerifyLibrary => "APP_OPEN_FLOW_STEP_VERIFY_LIBRARY",
+            Self::VerifyAppData => "APP_OPEN_FLOW_STEP_VERIFY_APP_DATA",
+            Self::VerifyPermissions => "APP_OPEN_FLOW_STEP_VERIFY_PERMISSIONS",
+            Self::EnsureAiconfig => "APP_OPEN_FLOW_STEP_ENSURE_AICONFIG",
+            Self::ValidateManifest => "APP_OPEN_FLOW_STEP_VALIDATE_MANIFEST",
+            Self::Launch => "APP_OPEN_FLOW_STEP_LAUNCH",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "APP_OPEN_FLOW_STEP_UNSPECIFIED" => Some(Self::Unspecified),
+            "APP_OPEN_FLOW_STEP_RESOLVE_REGISTRY" => Some(Self::ResolveRegistry),
+            "APP_OPEN_FLOW_STEP_VERIFY_PACKAGE" => Some(Self::VerifyPackage),
+            "APP_OPEN_FLOW_STEP_VERIFY_LIBRARY" => Some(Self::VerifyLibrary),
+            "APP_OPEN_FLOW_STEP_VERIFY_APP_DATA" => Some(Self::VerifyAppData),
+            "APP_OPEN_FLOW_STEP_VERIFY_PERMISSIONS" => Some(Self::VerifyPermissions),
+            "APP_OPEN_FLOW_STEP_ENSURE_AICONFIG" => Some(Self::EnsureAiconfig),
+            "APP_OPEN_FLOW_STEP_VALIDATE_MANIFEST" => Some(Self::ValidateManifest),
+            "APP_OPEN_FLOW_STEP_LAUNCH" => Some(Self::Launch),
+            _ => None,
+        }
+    }
+}
+/// AppOpenState is the typed terminal Open-flow state. A blocked or failed
+/// Open never projects as launched.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum AppOpenState {
+    Unspecified = 0,
+    /// APP_OPEN_STATE_LAUNCHED means the Open flow completed and the app launch
+    /// was admitted.
+    Launched = 1,
+    /// APP_OPEN_STATE_BLOCKED means a verify step fail-closed before launch
+    /// (package/library/app-data/permission/AIConfig/manifest). It carries the
+    /// distinct typed reason_code; it is never collapsed into a generic value.
+    Blocked = 2,
+}
+impl AppOpenState {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "APP_OPEN_STATE_UNSPECIFIED",
+            Self::Launched => "APP_OPEN_STATE_LAUNCHED",
+            Self::Blocked => "APP_OPEN_STATE_BLOCKED",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "APP_OPEN_STATE_UNSPECIFIED" => Some(Self::Unspecified),
+            "APP_OPEN_STATE_LAUNCHED" => Some(Self::Launched),
+            "APP_OPEN_STATE_BLOCKED" => Some(Self::Blocked),
             _ => None,
         }
     }
@@ -12647,6 +12885,33 @@ pub mod runtime_app_service_client {
                         "HealthRepairApp",
                     ),
                 );
+            self.inner.unary(req, path, codec).await
+        }
+        /// Nimi App Open / launch flow (K-APP-017). OpenApp is the sole Runtime RPC
+        /// entry for launching a Nimi App; it requires an explicit app-shape
+        /// AIScopeRef and never infers launch scope.
+        pub async fn open_app(
+            &mut self,
+            request: impl tonic::IntoRequest<super::OpenAppRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::OpenAppResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAppService/OpenApp",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(GrpcMethod::new("nimi.runtime.v1.RuntimeAppService", "OpenApp"));
             self.inner.unary(req, path, codec).await
         }
     }

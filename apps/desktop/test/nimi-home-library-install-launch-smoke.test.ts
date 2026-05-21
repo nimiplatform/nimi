@@ -65,10 +65,19 @@ describe('Nimi Home Library / install / launch smoke', () => {
     );
   });
 
-  it('install operation does not claim success without the runtime install gateway', async () => {
-    const result = await createPlatformRegistryClient().install('nimi.parentos');
-    assert.equal(result.state, 'unsupported');
-    assert.equal(result.reason, 'install-gateway-not-connected');
+  it('registry client is read-projection only — install/launch are runtime.appLifecycle-owned', () => {
+    // T4 Fork B: the NimiAppClient install/launch stubs are retired. The Apps
+    // lifecycle (install / open / update / uninstall) is owned solely by the
+    // runtime-mediated `runtime.appLifecycle` surface, never the registry
+    // client.
+    const client = createPlatformRegistryClient() as unknown as Record<string, unknown>;
+    for (const retired of ['install', 'update', 'uninstall', 'launch', 'healthRepair', 'subscribe']) {
+      assert.equal(
+        typeof client[retired],
+        'undefined',
+        `registry client must not expose the retired "${retired}" stub`,
+      );
+    }
   });
 
   it('status cannot be promoted to ready without digest-verified install evidence', async () => {

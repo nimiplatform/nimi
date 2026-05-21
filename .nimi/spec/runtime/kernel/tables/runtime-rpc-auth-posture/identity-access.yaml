@@ -196,6 +196,13 @@ methods:
       - K-AUTHN-001
       - K-AUTHN-006
       - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeAppService/OpenApp
+    posture: authenticated_required
+    rationale: app launch (Open flow) write; requires admitted caller identity to drive the Runtime-owned app launch supervision
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTHN-006
+      - K-AUTH-001
   - method_id: /nimi.runtime.v1.RuntimeAuthService/RegisterApp
     posture: anonymous_read
     rationale: bootstrap app registration; no JWT or session credential required

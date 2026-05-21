@@ -2,16 +2,14 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { NimiAppClient, NimiAppClientError } from '../src/app/index.js';
 import type {
-  NimiAppHealthRepairAction,
-  NimiAppLifecycleEvent,
-  NimiAppLaunchScopeRef,
-  NimiAppOperationResult,
   NimiAppRow,
   NimiAppStatus,
   NimiAppTransport,
-  NimiAppSubscription,
 } from '../src/app/index.js';
 
+// T4 Fork B: NimiAppClient is a pure read-projection surface — list / get /
+// status only. Lifecycle mutation is owned by `runtime.appLifecycle`; the
+// transport carries no mutation methods.
 class StubTransport implements NimiAppTransport {
   constructor(
     private readonly behavior: {
@@ -55,29 +53,6 @@ class StubTransport implements NimiAppTransport {
     };
   }
 
-  async install(appId: string): Promise<NimiAppOperationResult> {
-    return { appId, operation: 'install', state: 'unsupported', reason: 'install-gateway-not-connected' };
-  }
-
-  async update(appId: string): Promise<NimiAppOperationResult> {
-    return { appId, operation: 'update', state: 'unsupported', reason: 'not-connected' };
-  }
-
-  async uninstall(appId: string): Promise<NimiAppOperationResult> {
-    return { appId, operation: 'uninstall', state: 'unsupported', reason: 'not-connected' };
-  }
-
-  async launch(appId: string, _scopeRef: NimiAppLaunchScopeRef): Promise<NimiAppOperationResult> {
-    return { appId, operation: 'launch', state: 'unsupported', reason: 'runtime-mediated-launch-not-connected' };
-  }
-
-  subscribe(_callback: (event: NimiAppLifecycleEvent) => void): NimiAppSubscription {
-    return { subscribed: false, reason: 'not-connected', unsubscribe: () => {} };
-  }
-
-  async healthRepair(appId: string, _action: NimiAppHealthRepairAction): Promise<NimiAppOperationResult> {
-    return { appId, operation: 'health-repair', state: 'unsupported', reason: 'not-connected' };
-  }
 }
 
 describe('NimiAppClient', () => {
@@ -215,15 +190,17 @@ describe('NimiAppClient', () => {
     await assert.rejects(client.status('nimi.parentos'), NimiAppClientError);
   });
 
-  it('exposes install as typed fail-closed projection', async () => {
-    const client = new NimiAppClient(new StubTransport());
-    const result = await client.install('nimi.parentos');
-    assert.equal(result.state, 'unsupported');
-    assert.equal(result.reason, 'install-gateway-not-connected');
-  });
-
-  it('requires explicit launch scope', async () => {
-    const client = new NimiAppClient(new StubTransport());
-    await assert.rejects(client.launch('nimi.parentos', null as unknown as NimiAppLaunchScopeRef), NimiAppClientError);
+  it('is a pure read-projection surface — no lifecycle mutation methods', () => {
+    const client = new NimiAppClient(new StubTransport()) as unknown as Record<string, unknown>;
+    // T4 Fork B: install / update / uninstall / launch / healthRepair /
+    // subscribe are retired from NimiAppClient. Lifecycle mutation is owned
+    // by the runtime-mediated `runtime.appLifecycle` surface.
+    for (const retired of ['install', 'update', 'uninstall', 'launch', 'healthRepair', 'subscribe']) {
+      assert.equal(
+        typeof client[retired],
+        'undefined',
+        `NimiAppClient must not expose the retired "${retired}" stub`,
+      );
+    }
   });
 });

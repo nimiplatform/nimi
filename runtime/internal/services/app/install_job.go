@@ -146,6 +146,22 @@ func (m *installJobManager) markInstalled(jobID string, version string, sha256 s
 	})
 }
 
+// markUninstalled records terminal success of an uninstall lifecycle job
+// (K-APP-017). The job reaches the dedicated UNINSTALLED state/phase; a
+// successful uninstall is never projected as INSTALLED.
+func (m *installJobManager) markUninstalled(jobID string, storage *runtimev1.AppInstallStorageProjection) *runtimev1.AppInstallJob {
+	return m.mutate(jobID, func(job *runtimev1.AppInstallJob) {
+		job.State = runtimev1.AppInstallJobState_APP_INSTALL_JOB_STATE_UNINSTALLED
+		job.Phase = runtimev1.AppInstallJobPhase_APP_INSTALL_JOB_PHASE_UNINSTALLED
+		if storage != nil {
+			job.Storage = storage
+		}
+		job.ReasonCode = runtimev1.ReasonCode_ACTION_EXECUTED
+		job.Retryable = false
+		job.FailureDetail = ""
+	})
+}
+
 // markFailed records a fail-closed terminal state. The job stays retryable so
 // the install can be retried or its partial files removed; it is never
 // projected as success.
@@ -331,6 +347,7 @@ func (m *installJobManager) publish(job *runtimev1.AppInstallJob) {
 func installJobTerminal(state runtimev1.AppInstallJobState) bool {
 	switch state {
 	case runtimev1.AppInstallJobState_APP_INSTALL_JOB_STATE_INSTALLED,
+		runtimev1.AppInstallJobState_APP_INSTALL_JOB_STATE_UNINSTALLED,
 		runtimev1.AppInstallJobState_APP_INSTALL_JOB_STATE_FAILED,
 		runtimev1.AppInstallJobState_APP_INSTALL_JOB_STATE_CANCELLED:
 		return true

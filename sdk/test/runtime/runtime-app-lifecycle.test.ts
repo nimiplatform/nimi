@@ -10,11 +10,16 @@ import {
   AppLifecycleJobKind,
 } from '../../src/runtime/generated/runtime/v1/app.js';
 import { ReasonCode as RuntimeReasonCode } from '../../src/runtime/generated/runtime/v1/common.js';
+import {
+  AppOpenFlowStep,
+  AppOpenState,
+} from '../../src/runtime/generated/runtime/v1/app.js';
 import type {
   AppInstallJob,
   AppInstallJobEvent,
   HealthRepairAppRequest,
   InstallAppRequest,
+  OpenAppRequest,
   UninstallAppRequest,
   UpdateAppRequest,
 } from '../../src/runtime/generated/runtime/v1/app.js';
@@ -63,6 +68,7 @@ type MockClientCapture = {
   uninstallRequest?: UninstallAppRequest;
   updateRequest?: UpdateAppRequest;
   healthRepairRequest?: HealthRepairAppRequest;
+  openRequest?: OpenAppRequest;
   getJobId?: string;
   listAppId?: string;
   watchJobId?: string;
@@ -100,6 +106,10 @@ function mockCtx(
     healthRepairApp: async (request: HealthRepairAppRequest) => {
       capture.healthRepairRequest = request;
       throw new Error('healthRepairApp not stubbed');
+    },
+    openApp: async (request: OpenAppRequest) => {
+      capture.openRequest = request;
+      throw new Error('openApp not stubbed');
     },
     ...client,
   };
@@ -247,6 +257,12 @@ test('uninstall: forwards destructive flags and decodes the result', async () =>
           storage: storage(),
           reasonCode: RuntimeReasonCode.REASON_CODE_UNSPECIFIED,
         },
+        job: protoJob({
+          kind: AppLifecycleJobKind.UNINSTALL,
+          state: AppInstallJobState.UNINSTALLED,
+          phase: AppInstallJobPhase.UNINSTALLED,
+          reasonCode: RuntimeReasonCode.ACTION_EXECUTED,
+        }),
       };
     },
   });
@@ -263,6 +279,9 @@ test('uninstall: forwards destructive flags and decodes the result', async () =>
   });
   assert.equal(result.releaseRemoved, true);
   assert.equal(result.durableDataRemoved, true);
+  assert.equal(result.job.kind, 'uninstall');
+  assert.equal(result.job.state, 'uninstalled');
+  assert.equal(result.job.phase, 'uninstalled');
 });
 
 test('uninstall: defaults destructive flags to false', async () => {
@@ -277,6 +296,12 @@ test('uninstall: defaults destructive flags to false', async () => {
           storage: storage(),
           reasonCode: RuntimeReasonCode.REASON_CODE_UNSPECIFIED,
         },
+        job: protoJob({
+          kind: AppLifecycleJobKind.UNINSTALL,
+          state: AppInstallJobState.UNINSTALLED,
+          phase: AppInstallJobPhase.UNINSTALLED,
+          reasonCode: RuntimeReasonCode.ACTION_EXECUTED,
+        }),
       };
     },
   });
@@ -480,4 +505,121 @@ test('healthRepair: defaults jobId to empty when omitted', async () => {
     action: AppHealthRepairAction.RETRY,
     jobId: '',
   });
+});
+
+// ── open ───────────────────────────────────────────────────────────────
+
+test('open: forwards the explicit app-launch scope and decodes a launched projection', async () => {
+  const { ctx, capture } = mockCtx({
+    openApp: async (request) => {
+      capture.openRequest = request;
+      return {
+        projection: {
+          appId: 'app-1',
+          state: AppOpenState.LAUNCHED,
+          reachedStep: AppOpenFlowStep.LAUNCH,
+          launched: true,
+          activeVersion: '1.0.0',
+          scope: { kind: 'app', ownerId: 'app-1', surfaceId: '' },
+          reasonCode: RuntimeReasonCode.ACTION_EXECUTED,
+          detail: '',
+        },
+      };
+    },
+  });
+  const module = createRuntimeAppLifecycleModule({ ctx });
+  const projection = await module.open({
+    appId: 'app-1',
+    scope: { kind: 'app', ownerId: 'app-1' },
+  });
+  assert.deepEqual(capture.openRequest, {
+    appId: 'app-1',
+    scope: { kind: 'app', ownerId: 'app-1', surfaceId: '' },
+  });
+  assert.equal(projection.state, 'launched');
+  assert.equal(projection.launched, true);
+  assert.equal(projection.reachedStep, 'launch');
+  assert.equal(projection.activeVersion, '1.0.0');
+  assert.deepEqual(projection.scope, { kind: 'app', ownerId: 'app-1' });
+});
+
+test('open: decodes a blocked projection with its typed reason and step', async () => {
+  const { ctx } = mockCtx({
+    openApp: async () => ({
+      projection: {
+        appId: 'app-1',
+        state: AppOpenState.BLOCKED,
+        reachedStep: AppOpenFlowStep.VERIFY_PACKAGE,
+        launched: false,
+        activeVersion: '',
+        scope: { kind: 'app', ownerId: 'app-1', surfaceId: '' },
+        reasonCode: RuntimeReasonCode.APP_OPEN_PACKAGE_NOT_VERIFIED,
+        detail: 'app has no active release',
+      },
+    }),
+  });
+  const module = createRuntimeAppLifecycleModule({ ctx });
+  const projection = await module.open({
+    appId: 'app-1',
+    scope: { kind: 'app', ownerId: 'app-1' },
+  });
+  assert.equal(projection.state, 'blocked');
+  assert.equal(projection.launched, false);
+  assert.equal(projection.reachedStep, 'verify_package');
+  assert.equal(projection.reasonCode, 'APP_OPEN_PACKAGE_NOT_VERIFIED');
+});
+
+test('open: rejects a missing scope ref before any runtime call', async () => {
+  const { ctx, capture } = mockCtx({});
+  const module = createRuntimeAppLifecycleModule({ ctx });
+  await assert.rejects(
+    () =>
+      module.open(
+        { appId: 'app-1' } as unknown as {
+          appId: string;
+          scope: { kind: 'app'; ownerId: string };
+        },
+      ),
+    (error: unknown) =>
+      (error as { reasonCode?: string }).reasonCode
+      === ReasonCode.SDK_RUNTIME_APP_LIFECYCLE_SCOPE_REF_REQUIRED,
+  );
+  assert.equal(capture.openRequest, undefined);
+});
+
+test('open: rejects a scope whose ownerId does not equal the opened appId', async () => {
+  const { ctx, capture } = mockCtx({});
+  const module = createRuntimeAppLifecycleModule({ ctx });
+  await assert.rejects(
+    () =>
+      module.open({ appId: 'app-1', scope: { kind: 'app', ownerId: 'app-2' } }),
+    (error: unknown) =>
+      (error as { reasonCode?: string }).reasonCode
+      === ReasonCode.SDK_RUNTIME_APP_LIFECYCLE_SCOPE_REF_REQUIRED,
+  );
+  assert.equal(capture.openRequest, undefined);
+});
+
+test('open: fail-closes when a blocked projection omits its reason code', async () => {
+  const { ctx } = mockCtx({
+    openApp: async () => ({
+      projection: {
+        appId: 'app-1',
+        state: AppOpenState.BLOCKED,
+        reachedStep: AppOpenFlowStep.VERIFY_PERMISSIONS,
+        launched: false,
+        activeVersion: '',
+        scope: { kind: 'app', ownerId: 'app-1', surfaceId: '' },
+        reasonCode: RuntimeReasonCode.REASON_CODE_UNSPECIFIED,
+        detail: '',
+      },
+    }),
+  });
+  const module = createRuntimeAppLifecycleModule({ ctx });
+  await assert.rejects(
+    () => module.open({ appId: 'app-1', scope: { kind: 'app', ownerId: 'app-1' } }),
+    (error: unknown) =>
+      (error as { reasonCode?: string }).reasonCode
+      === ReasonCode.SDK_RUNTIME_RESPONSE_DECODE_FAILED,
+  );
 });

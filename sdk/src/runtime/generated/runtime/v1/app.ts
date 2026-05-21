@@ -416,9 +416,22 @@ export interface AppUninstallResult {
  */
 export interface UninstallAppResponse {
     /**
+     * result is the typed uninstall projection carrying the K-APP-014
+     * durable-data retention semantics (release_removed / durable_data_removed).
+     *
      * @generated from protobuf field: nimi.runtime.v1.AppUninstallResult result = 1
      */
     result?: AppUninstallResult;
+    /**
+     * job is the watchable uninstall lifecycle job (K-APP-017,
+     * AppLifecycleJobKind=APP_LIFECYCLE_JOB_KIND_UNINSTALL). It is the single
+     * live-job truth source for the `uninstalling` Apps card state and can be
+     * followed via WatchAppInstallJobEvents. A failed uninstall is recorded as a
+     * recoverable job and is never projected as success.
+     *
+     * @generated from protobuf field: nimi.runtime.v1.AppInstallJob job = 2
+     */
+    job?: AppInstallJob;
 }
 // === Nimi App Update Lifecycle (K-APP-015) ===
 
@@ -494,6 +507,130 @@ export interface HealthRepairAppResponse {
      * @generated from protobuf field: nimi.runtime.v1.AppInstallJob job = 1
      */
     job?: AppInstallJob;
+}
+// === Nimi App Open / Launch Flow (K-APP-017) ===
+
+/**
+ * AppOpenScopeRef is the explicit canonical app-launch AIConfig scope a
+ * caller must carry to open a Nimi App (K-APP-017 / P-AISC-007). It is the
+ * app-shape AIScopeRef: kind is always `app`; owner_id is the admitted Nimi
+ * App registry app_id and must equal the app_id being opened; surface_id is
+ * optional and only set when the app's manifest declares a stable AI feature
+ * surface. OpenApp never infers this scope — a missing or mismatched
+ * AppOpenScopeRef fails closed.
+ *
+ * @generated from protobuf message nimi.runtime.v1.AppOpenScopeRef
+ */
+export interface AppOpenScopeRef {
+    /**
+     * kind is the AIScopeRef kind discriminator. For OpenApp it is fixed to the
+     * literal string `app`; any other value fails closed.
+     *
+     * @generated from protobuf field: string kind = 1
+     */
+    kind: string;
+    /**
+     * owner_id is the admitted Nimi App registry app_id (dot-separated app
+     * identity, e.g. `nimi.avatar`). It must equal OpenAppRequest.app_id.
+     *
+     * @generated from protobuf field: string owner_id = 2
+     */
+    ownerId: string;
+    /**
+     * surface_id is the optional stable app-declared AI feature surface id.
+     * Empty means the canonical app-level AI scope.
+     *
+     * @generated from protobuf field: string surface_id = 3
+     */
+    surfaceId: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.OpenAppRequest
+ */
+export interface OpenAppRequest {
+    /**
+     * app_id resolves an admitted Nimi App registry row
+     * (admission_status=admitted, ordinary_visibility=ordinary-visible).
+     *
+     * @generated from protobuf field: string app_id = 1
+     */
+    appId: string;
+    /**
+     * scope is the explicit canonical app-launch AIConfig scope. It is
+     * mandatory: OpenApp never infers launch scope (K-APP-017 / S-APP-003).
+     *
+     * @generated from protobuf field: nimi.runtime.v1.AppOpenScopeRef scope = 2
+     */
+    scope?: AppOpenScopeRef;
+}
+/**
+ * AppOpenProjection is the typed Open-flow projection. It reports the
+ * terminal state, the step the flow reached, the resolved launch scope, and a
+ * fail-closed reason_code on every blocked branch.
+ *
+ * @generated from protobuf message nimi.runtime.v1.AppOpenProjection
+ */
+export interface AppOpenProjection {
+    /**
+     * @generated from protobuf field: string app_id = 1
+     */
+    appId: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AppOpenState state = 2
+     */
+    state: AppOpenState;
+    /**
+     * reached_step is the last Open-flow step the launch executed. On a blocked
+     * open it names the exact step that fail-closed.
+     *
+     * @generated from protobuf field: nimi.runtime.v1.AppOpenFlowStep reached_step = 3
+     */
+    reachedStep: AppOpenFlowStep;
+    /**
+     * launched is true only when state is APP_OPEN_STATE_LAUNCHED. It is never
+     * inferred from process liveness or file existence.
+     *
+     * @generated from protobuf field: bool launched = 4
+     */
+    launched: boolean;
+    /**
+     * active_version is the active release version the launch resolved. Empty
+     * when the open blocked before package verification.
+     *
+     * @generated from protobuf field: string active_version = 5
+     */
+    activeVersion: string;
+    /**
+     * scope echoes the resolved app-launch AIConfig scope. On a launched open
+     * the Open flow has validated this scope as the canonical app-shape
+     * AIScopeRef (P-AISC-007); the per-app first-launch AIConfig initialization
+     * (S-AICONF-009) is finalized by the SDK/desktop AIConfig surface against
+     * this validated scope — the AIConfig store is not Runtime-owned.
+     *
+     * @generated from protobuf field: nimi.runtime.v1.AppOpenScopeRef scope = 6
+     */
+    scope?: AppOpenScopeRef;
+    /**
+     * reason_code is the typed fail-closed reason on a blocked open, or
+     * ACTION_EXECUTED on a launched open. It is never collapsed into a generic
+     * value.
+     *
+     * @generated from protobuf field: nimi.runtime.v1.ReasonCode reason_code = 7
+     */
+    reasonCode: ReasonCode;
+    /**
+     * @generated from protobuf field: string detail = 8
+     */
+    detail: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.OpenAppResponse
+ */
+export interface OpenAppResponse {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AppOpenProjection projection = 1
+     */
+    projection?: AppOpenProjection;
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.AppMessageEventType
@@ -582,7 +719,15 @@ export enum AppInstallJobPhase {
      *
      * @generated from protobuf enum value: APP_INSTALL_JOB_PHASE_CANCELLED = 11;
      */
-    CANCELLED = 11
+    CANCELLED = 11,
+    /**
+     * APP_INSTALL_JOB_PHASE_UNINSTALLED is the terminal phase of a completed
+     * uninstall lifecycle job (K-APP-017). It is reached only by a job of kind
+     * APP_LIFECYCLE_JOB_KIND_UNINSTALL after the release payload is removed.
+     *
+     * @generated from protobuf enum value: APP_INSTALL_JOB_PHASE_UNINSTALLED = 12;
+     */
+    UNINSTALLED = 12
 }
 /**
  * AppInstallJobState is the typed terminal/in-flight job state. It aligns with
@@ -619,12 +764,22 @@ export enum AppInstallJobState {
      *
      * @generated from protobuf enum value: APP_INSTALL_JOB_STATE_CANCELLED = 5;
      */
-    CANCELLED = 5
+    CANCELLED = 5,
+    /**
+     * APP_INSTALL_JOB_STATE_UNINSTALLED is the terminal success state of an
+     * uninstall lifecycle job (K-APP-017). It is reached only by a job of kind
+     * APP_LIFECYCLE_JOB_KIND_UNINSTALL; a successful uninstall is never
+     * projected as APP_INSTALL_JOB_STATE_INSTALLED.
+     *
+     * @generated from protobuf enum value: APP_INSTALL_JOB_STATE_UNINSTALLED = 6;
+     */
+    UNINSTALLED = 6
 }
 /**
  * AppLifecycleJobKind distinguishes the lifecycle operation that produced a
- * job. Install, update, and healthRepair jobs share the AppInstallJob shape
- * but carry a distinct kind so the consumer never infers intent from phase.
+ * job. Install, update, healthRepair, and uninstall jobs share the
+ * AppInstallJob shape but carry a distinct kind so the consumer never infers
+ * intent from phase.
  *
  * @generated from protobuf enum nimi.runtime.v1.AppLifecycleJobKind
  */
@@ -644,7 +799,18 @@ export enum AppLifecycleJobKind {
     /**
      * @generated from protobuf enum value: APP_LIFECYCLE_JOB_KIND_REPAIR = 3;
      */
-    REPAIR = 3
+    REPAIR = 3,
+    /**
+     * APP_LIFECYCLE_JOB_KIND_UNINSTALL marks a watchable uninstall lifecycle
+     * job (K-APP-017). UninstallApp emits a typed AppInstallJob of this kind so
+     * the `uninstalling` Apps card state has a single live-job truth source. An
+     * uninstall job never carries the install digest/download phases; it runs
+     * through the materialize phase (release payload removal) to the installed
+     * (completed) terminal phase, and a failed uninstall is recoverable.
+     *
+     * @generated from protobuf enum value: APP_LIFECYCLE_JOB_KIND_UNINSTALL = 4;
+     */
+    UNINSTALL = 4
 }
 /**
  * AppHealthRepairAction is the typed health/repair action token. It admits
@@ -694,6 +860,98 @@ export enum AppInstallSourceKind {
      * @generated from protobuf enum value: APP_INSTALL_SOURCE_KIND_EXTERNAL_ARTIFACT = 2;
      */
     EXTERNAL_ARTIFACT = 2
+}
+/**
+ * AppOpenFlowStep is the typed Open-flow step (K-APP-017). It surfaces the
+ * concrete checkpoint the launch is at so a failed Open names the exact step
+ * rather than a generic failure. It is never inferred.
+ *
+ * @generated from protobuf enum nimi.runtime.v1.AppOpenFlowStep
+ */
+export enum AppOpenFlowStep {
+    /**
+     * @generated from protobuf enum value: APP_OPEN_FLOW_STEP_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * RESOLVE_REGISTRY resolves the admitted Nimi App registry row.
+     *
+     * @generated from protobuf enum value: APP_OPEN_FLOW_STEP_RESOLVE_REGISTRY = 1;
+     */
+    RESOLVE_REGISTRY = 1,
+    /**
+     * VERIFY_PACKAGE verifies the materialized release package + install
+     * evidence (active release pointer, digest-verified payload).
+     *
+     * @generated from protobuf enum value: APP_OPEN_FLOW_STEP_VERIFY_PACKAGE = 2;
+     */
+    VERIFY_PACKAGE = 2,
+    /**
+     * VERIFY_LIBRARY verifies the account app-library state for the app.
+     *
+     * @generated from protobuf enum value: APP_OPEN_FLOW_STEP_VERIFY_LIBRARY = 3;
+     */
+    VERIFY_LIBRARY = 3,
+    /**
+     * VERIFY_APP_DATA verifies the durable app-data root state.
+     *
+     * @generated from protobuf enum value: APP_OPEN_FLOW_STEP_VERIFY_APP_DATA = 4;
+     */
+    VERIFY_APP_DATA = 4,
+    /**
+     * VERIFY_PERMISSIONS verifies the app permissions are granted or
+     * promptable.
+     *
+     * @generated from protobuf enum value: APP_OPEN_FLOW_STEP_VERIFY_PERMISSIONS = 5;
+     */
+    VERIFY_PERMISSIONS = 5,
+    /**
+     * ENSURE_AICONFIG ensures the app-scope AIConfig exists (first-launch
+     * initialization per S-AICONF-009).
+     *
+     * @generated from protobuf enum value: APP_OPEN_FLOW_STEP_ENSURE_AICONFIG = 6;
+     */
+    ENSURE_AICONFIG = 6,
+    /**
+     * VALIDATE_MANIFEST validates the app manifest requirements.
+     *
+     * @generated from protobuf enum value: APP_OPEN_FLOW_STEP_VALIDATE_MANIFEST = 7;
+     */
+    VALIDATE_MANIFEST = 7,
+    /**
+     * LAUNCH is the terminal launch step: the runtime-owned app launch
+     * supervision admits the app process/surface.
+     *
+     * @generated from protobuf enum value: APP_OPEN_FLOW_STEP_LAUNCH = 8;
+     */
+    LAUNCH = 8
+}
+/**
+ * AppOpenState is the typed terminal Open-flow state. A blocked or failed
+ * Open never projects as launched.
+ *
+ * @generated from protobuf enum nimi.runtime.v1.AppOpenState
+ */
+export enum AppOpenState {
+    /**
+     * @generated from protobuf enum value: APP_OPEN_STATE_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * APP_OPEN_STATE_LAUNCHED means the Open flow completed and the app launch
+     * was admitted.
+     *
+     * @generated from protobuf enum value: APP_OPEN_STATE_LAUNCHED = 1;
+     */
+    LAUNCHED = 1,
+    /**
+     * APP_OPEN_STATE_BLOCKED means a verify step fail-closed before launch
+     * (package/library/app-data/permission/AIConfig/manifest). It carries the
+     * distinct typed reason_code; it is never collapsed into a generic value.
+     *
+     * @generated from protobuf enum value: APP_OPEN_STATE_BLOCKED = 2;
+     */
+    BLOCKED = 2
 }
 // @generated message type with reflection information, may provide speed optimized methods
 class SendAppMessageRequest$Type extends MessageType<SendAppMessageRequest> {
@@ -1848,7 +2106,8 @@ export const AppUninstallResult = new AppUninstallResult$Type();
 class UninstallAppResponse$Type extends MessageType<UninstallAppResponse> {
     constructor() {
         super("nimi.runtime.v1.UninstallAppResponse", [
-            { no: 1, name: "result", kind: "message", T: () => AppUninstallResult }
+            { no: 1, name: "result", kind: "message", T: () => AppUninstallResult },
+            { no: 2, name: "job", kind: "message", T: () => AppInstallJob }
         ]);
     }
     create(value?: PartialMessage<UninstallAppResponse>): UninstallAppResponse {
@@ -1865,6 +2124,9 @@ class UninstallAppResponse$Type extends MessageType<UninstallAppResponse> {
                 case /* nimi.runtime.v1.AppUninstallResult result */ 1:
                     message.result = AppUninstallResult.internalBinaryRead(reader, reader.uint32(), options, message.result);
                     break;
+                case /* nimi.runtime.v1.AppInstallJob job */ 2:
+                    message.job = AppInstallJob.internalBinaryRead(reader, reader.uint32(), options, message.job);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -1880,6 +2142,9 @@ class UninstallAppResponse$Type extends MessageType<UninstallAppResponse> {
         /* nimi.runtime.v1.AppUninstallResult result = 1; */
         if (message.result)
             AppUninstallResult.internalBinaryWrite(message.result, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.AppInstallJob job = 2; */
+        if (message.job)
+            AppInstallJob.internalBinaryWrite(message.job, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -2100,6 +2365,271 @@ class HealthRepairAppResponse$Type extends MessageType<HealthRepairAppResponse> 
  * @generated MessageType for protobuf message nimi.runtime.v1.HealthRepairAppResponse
  */
 export const HealthRepairAppResponse = new HealthRepairAppResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class AppOpenScopeRef$Type extends MessageType<AppOpenScopeRef> {
+    constructor() {
+        super("nimi.runtime.v1.AppOpenScopeRef", [
+            { no: 1, name: "kind", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "owner_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "surface_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<AppOpenScopeRef>): AppOpenScopeRef {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.kind = "";
+        message.ownerId = "";
+        message.surfaceId = "";
+        if (value !== undefined)
+            reflectionMergePartial<AppOpenScopeRef>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: AppOpenScopeRef): AppOpenScopeRef {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string kind */ 1:
+                    message.kind = reader.string();
+                    break;
+                case /* string owner_id */ 2:
+                    message.ownerId = reader.string();
+                    break;
+                case /* string surface_id */ 3:
+                    message.surfaceId = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: AppOpenScopeRef, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string kind = 1; */
+        if (message.kind !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.kind);
+        /* string owner_id = 2; */
+        if (message.ownerId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.ownerId);
+        /* string surface_id = 3; */
+        if (message.surfaceId !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.surfaceId);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.AppOpenScopeRef
+ */
+export const AppOpenScopeRef = new AppOpenScopeRef$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class OpenAppRequest$Type extends MessageType<OpenAppRequest> {
+    constructor() {
+        super("nimi.runtime.v1.OpenAppRequest", [
+            { no: 1, name: "app_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "scope", kind: "message", T: () => AppOpenScopeRef }
+        ]);
+    }
+    create(value?: PartialMessage<OpenAppRequest>): OpenAppRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.appId = "";
+        if (value !== undefined)
+            reflectionMergePartial<OpenAppRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: OpenAppRequest): OpenAppRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string app_id */ 1:
+                    message.appId = reader.string();
+                    break;
+                case /* nimi.runtime.v1.AppOpenScopeRef scope */ 2:
+                    message.scope = AppOpenScopeRef.internalBinaryRead(reader, reader.uint32(), options, message.scope);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: OpenAppRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string app_id = 1; */
+        if (message.appId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.appId);
+        /* nimi.runtime.v1.AppOpenScopeRef scope = 2; */
+        if (message.scope)
+            AppOpenScopeRef.internalBinaryWrite(message.scope, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.OpenAppRequest
+ */
+export const OpenAppRequest = new OpenAppRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class AppOpenProjection$Type extends MessageType<AppOpenProjection> {
+    constructor() {
+        super("nimi.runtime.v1.AppOpenProjection", [
+            { no: 1, name: "app_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "state", kind: "enum", T: () => ["nimi.runtime.v1.AppOpenState", AppOpenState, "APP_OPEN_STATE_"] },
+            { no: 3, name: "reached_step", kind: "enum", T: () => ["nimi.runtime.v1.AppOpenFlowStep", AppOpenFlowStep, "APP_OPEN_FLOW_STEP_"] },
+            { no: 4, name: "launched", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 5, name: "active_version", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "scope", kind: "message", T: () => AppOpenScopeRef },
+            { no: 7, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] },
+            { no: 8, name: "detail", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<AppOpenProjection>): AppOpenProjection {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.appId = "";
+        message.state = 0;
+        message.reachedStep = 0;
+        message.launched = false;
+        message.activeVersion = "";
+        message.reasonCode = 0;
+        message.detail = "";
+        if (value !== undefined)
+            reflectionMergePartial<AppOpenProjection>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: AppOpenProjection): AppOpenProjection {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string app_id */ 1:
+                    message.appId = reader.string();
+                    break;
+                case /* nimi.runtime.v1.AppOpenState state */ 2:
+                    message.state = reader.int32();
+                    break;
+                case /* nimi.runtime.v1.AppOpenFlowStep reached_step */ 3:
+                    message.reachedStep = reader.int32();
+                    break;
+                case /* bool launched */ 4:
+                    message.launched = reader.bool();
+                    break;
+                case /* string active_version */ 5:
+                    message.activeVersion = reader.string();
+                    break;
+                case /* nimi.runtime.v1.AppOpenScopeRef scope */ 6:
+                    message.scope = AppOpenScopeRef.internalBinaryRead(reader, reader.uint32(), options, message.scope);
+                    break;
+                case /* nimi.runtime.v1.ReasonCode reason_code */ 7:
+                    message.reasonCode = reader.int32();
+                    break;
+                case /* string detail */ 8:
+                    message.detail = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: AppOpenProjection, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string app_id = 1; */
+        if (message.appId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.appId);
+        /* nimi.runtime.v1.AppOpenState state = 2; */
+        if (message.state !== 0)
+            writer.tag(2, WireType.Varint).int32(message.state);
+        /* nimi.runtime.v1.AppOpenFlowStep reached_step = 3; */
+        if (message.reachedStep !== 0)
+            writer.tag(3, WireType.Varint).int32(message.reachedStep);
+        /* bool launched = 4; */
+        if (message.launched !== false)
+            writer.tag(4, WireType.Varint).bool(message.launched);
+        /* string active_version = 5; */
+        if (message.activeVersion !== "")
+            writer.tag(5, WireType.LengthDelimited).string(message.activeVersion);
+        /* nimi.runtime.v1.AppOpenScopeRef scope = 6; */
+        if (message.scope)
+            AppOpenScopeRef.internalBinaryWrite(message.scope, writer.tag(6, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.ReasonCode reason_code = 7; */
+        if (message.reasonCode !== 0)
+            writer.tag(7, WireType.Varint).int32(message.reasonCode);
+        /* string detail = 8; */
+        if (message.detail !== "")
+            writer.tag(8, WireType.LengthDelimited).string(message.detail);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.AppOpenProjection
+ */
+export const AppOpenProjection = new AppOpenProjection$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class OpenAppResponse$Type extends MessageType<OpenAppResponse> {
+    constructor() {
+        super("nimi.runtime.v1.OpenAppResponse", [
+            { no: 1, name: "projection", kind: "message", T: () => AppOpenProjection }
+        ]);
+    }
+    create(value?: PartialMessage<OpenAppResponse>): OpenAppResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<OpenAppResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: OpenAppResponse): OpenAppResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.AppOpenProjection projection */ 1:
+                    message.projection = AppOpenProjection.internalBinaryRead(reader, reader.uint32(), options, message.projection);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: OpenAppResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.AppOpenProjection projection = 1; */
+        if (message.projection)
+            AppOpenProjection.internalBinaryWrite(message.projection, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.OpenAppResponse
+ */
+export const OpenAppResponse = new OpenAppResponse$Type();
 /**
  * @generated ServiceType for protobuf service nimi.runtime.v1.RuntimeAppService
  */
@@ -2112,5 +2642,6 @@ export const RuntimeAppService = new ServiceType("nimi.runtime.v1.RuntimeAppServ
     { name: "ListAppInstallJobs", options: {}, I: ListAppInstallJobsRequest, O: ListAppInstallJobsResponse },
     { name: "WatchAppInstallJobEvents", serverStreaming: true, options: {}, I: WatchAppInstallJobEventsRequest, O: AppInstallJobEvent },
     { name: "UpdateApp", options: {}, I: UpdateAppRequest, O: UpdateAppResponse },
-    { name: "HealthRepairApp", options: {}, I: HealthRepairAppRequest, O: HealthRepairAppResponse }
+    { name: "HealthRepairApp", options: {}, I: HealthRepairAppRequest, O: HealthRepairAppResponse },
+    { name: "OpenApp", options: {}, I: OpenAppRequest, O: OpenAppResponse }
 ]);

@@ -75,6 +75,7 @@ pub const RUNTIME_BRIDGE_ALLOWLISTED_METHODS: &[&str] = &[
     "/nimi.runtime.v1.RuntimeAppService/HealthRepairApp",
     "/nimi.runtime.v1.RuntimeAppService/InstallApp",
     "/nimi.runtime.v1.RuntimeAppService/ListAppInstallJobs",
+    "/nimi.runtime.v1.RuntimeAppService/OpenApp",
     "/nimi.runtime.v1.RuntimeAppService/SendAppMessage",
     "/nimi.runtime.v1.RuntimeAppService/SubscribeAppMessages",
     "/nimi.runtime.v1.RuntimeAppService/UninstallApp",

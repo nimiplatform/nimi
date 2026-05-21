@@ -1,17 +1,17 @@
+// T4 Fork B: createNimiAppRegistryTransport builds a pure read-projection
+// transport — list / get / status only. Nimi App lifecycle mutation (install /
+// update / uninstall / open / healthRepair) is owned by the runtime-mediated
+// `runtime.appLifecycle` surface; this transport carries no mutation stubs.
+
 import type { NimiAppTransport } from './transport.js';
 import type {
   AppKind,
   AppLaunchReadiness,
-  NimiAppHealthRepairAction,
   NimiAppInstallEvidenceRow,
-  NimiAppLifecycleEvent,
-  NimiAppLaunchScopeRef,
-  NimiAppOperationResult,
   NimiAppOrdinaryVisibility,
   NimiAppReleaseDescriptorRow,
   NimiAppRow,
   NimiAppStatus,
-  NimiAppSubscription,
   TrustTierId,
 } from './types.js';
 
@@ -104,73 +104,6 @@ export function createNimiAppRegistryTransport(options: NimiAppRegistryTransport
         );
       }
       return defaultStatus(row, descriptors, installEvidence);
-    },
-    async install(appId: string): Promise<NimiAppOperationResult> {
-      const [rows, descriptors] = await Promise.all([
-        loadRows(options.loadRows),
-        loadReleaseDescriptors(options.loadReleaseDescriptors),
-      ]);
-      const row = rows.find((candidate) => candidate.appId === appId);
-      return failClosedOperation('install', appId, row, descriptors);
-    },
-    async update(appId: string): Promise<NimiAppOperationResult> {
-      const [rows, descriptors] = await Promise.all([
-        loadRows(options.loadRows),
-        loadReleaseDescriptors(options.loadReleaseDescriptors),
-      ]);
-      const row = rows.find((candidate) => candidate.appId === appId);
-      return failClosedOperation('update', appId, row, descriptors);
-    },
-    async uninstall(appId: string): Promise<NimiAppOperationResult> {
-      const [rows, descriptors] = await Promise.all([
-        loadRows(options.loadRows),
-        loadReleaseDescriptors(options.loadReleaseDescriptors),
-      ]);
-      const row = rows.find((candidate) => candidate.appId === appId);
-      return failClosedOperation('uninstall', appId, row, descriptors);
-    },
-    async launch(appId: string, scopeRef: NimiAppLaunchScopeRef): Promise<NimiAppOperationResult> {
-      const [rows, descriptors, installEvidence] = await Promise.all([
-        loadRows(options.loadRows),
-        loadReleaseDescriptors(options.loadReleaseDescriptors),
-        loadInstallEvidence(options.loadInstallEvidence),
-      ]);
-      const row = rows.find((candidate) => candidate.appId === appId);
-      if (!scopeRef || !scopeRef.scopeId) {
-        return {
-          appId,
-          operation: 'launch',
-          state: 'failed',
-          reason: 'canonical-scope-ref-required',
-          detail: 'app.launch requires an explicit AIScopeRef',
-        };
-      }
-      const status = row ? defaultStatus(row, descriptors, installEvidence) : undefined;
-      if (status?.launchReadiness === 'ready') {
-        return {
-          appId,
-          operation: 'launch',
-          state: 'unsupported',
-          reason: 'runtime-mediated-app-launch-not-connected',
-          detail: 'Descriptor and install evidence are verified, but the runtime app launcher is not connected.',
-        };
-      }
-      return failClosedOperation('launch', appId, row, descriptors);
-    },
-    subscribe(_callback: (event: NimiAppLifecycleEvent) => void): NimiAppSubscription {
-      return {
-        subscribed: false,
-        reason: 'app-lifecycle-subscription-transport-not-connected',
-        unsubscribe: () => {},
-      };
-    },
-    async healthRepair(appId: string, _action: NimiAppHealthRepairAction): Promise<NimiAppOperationResult> {
-      const [rows, descriptors] = await Promise.all([
-        loadRows(options.loadRows),
-        loadReleaseDescriptors(options.loadReleaseDescriptors),
-      ]);
-      const row = rows.find((candidate) => candidate.appId === appId);
-      return failClosedOperation('health-repair', appId, row, descriptors);
     },
   };
 }
@@ -373,40 +306,6 @@ function missingRow(appId: string): NimiAppRegistryTransportError {
     'missing-registry-row',
     `Nimi App registry row missing for app "${appId}"`,
   );
-}
-
-function failClosedOperation(
-  operation: NimiAppOperationResult['operation'],
-  appId: string,
-  row: NimiAppRegistrySourceRow | undefined,
-  descriptors: readonly NimiAppReleaseDescriptorRow[],
-): NimiAppOperationResult {
-  if (!row) {
-    return {
-      appId,
-      operation,
-      state: 'failed',
-      reason: 'registry-row-missing',
-    };
-  }
-  const descriptorResolution = resolveOrdinaryVisibleDescriptor(row, descriptors);
-  if (!descriptorResolution.ok) {
-    return {
-      appId,
-      operation,
-      state: 'blocked',
-      reason: descriptorResolution.reason,
-    };
-  }
-  return {
-    appId,
-    operation,
-    state: 'unsupported',
-    reason: operation === 'install'
-      ? 'install-gateway-not-connected'
-      : 'runtime-mediated-app-lifecycle-not-connected',
-    detail: `release descriptor ${descriptorResolution.descriptor.descriptorId} resolved; operation requires the runtime install/launch gateway`,
-  };
 }
 
 function assertRegistryTransportOptions(options: NimiAppRegistryTransportOptions): void {

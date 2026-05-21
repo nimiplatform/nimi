@@ -6,10 +6,8 @@ import {
   NimiAppClient,
   createNimiAppRegistryTransport,
   type AppLaunchReadiness,
-  type NimiAppOperationResult,
   type NimiAppRow,
   type NimiAppStatus,
-  type NimiAppSubscription,
   type NimiAppTransport,
 } from '@nimiplatform/sdk/app';
 // T4 Fork C: the live Apps bridge no longer reads `platform-catalog/index.ts`
@@ -57,24 +55,6 @@ function makeClient(behavior: {
         return result;
       }
       return { appId, launchReadiness: 'install-required' };
-    },
-    async install(appId: string): Promise<NimiAppOperationResult> {
-      return { appId, operation: 'install', state: 'unsupported', reason: 'install-gateway-not-connected' };
-    },
-    async update(appId: string): Promise<NimiAppOperationResult> {
-      return { appId, operation: 'update', state: 'unsupported', reason: 'not-connected' };
-    },
-    async uninstall(appId: string): Promise<NimiAppOperationResult> {
-      return { appId, operation: 'uninstall', state: 'unsupported', reason: 'not-connected' };
-    },
-    async launch(appId: string): Promise<NimiAppOperationResult> {
-      return { appId, operation: 'launch', state: 'unsupported', reason: 'not-connected' };
-    },
-    subscribe(): NimiAppSubscription {
-      return { subscribed: false, reason: 'not-connected', unsubscribe: () => {} };
-    },
-    async healthRepair(appId: string): Promise<NimiAppOperationResult> {
-      return { appId, operation: 'health-repair', state: 'unsupported', reason: 'not-connected' };
     },
   };
   return new NimiAppClient(transport);

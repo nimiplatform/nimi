@@ -128,6 +128,15 @@ rows:
   - APP_REPAIR_NO_RECOVERABLE_JOB
   - APP_REPAIR_NOT_REPAIRABLE
   - APP_LIFECYCLE_JOB_CANCELLED
+  - APP_OPEN_SCOPE_REF_REQUIRED
+  - APP_OPEN_SCOPE_REF_INVALID
+  - APP_OPEN_PACKAGE_NOT_VERIFIED
+  - APP_OPEN_LIBRARY_STATE_INVALID
+  - APP_OPEN_APP_DATA_INVALID
+  - APP_OPEN_PERMISSION_NOT_GRANTED
+  - APP_OPEN_AICONFIG_UNRESOLVED
+  - APP_OPEN_MANIFEST_REQUIREMENT_UNSATISFIED
+  - APP_OPEN_LAUNCH_FAILED
   - WF_DAG_INVALID
   - WF_NODE_CONFIG_MISMATCH
   - WF_TIMEOUT
@@ -817,6 +826,51 @@ mappings:
     surface: app_install_job_projection
     exit_shape: terminal_reason_non_error
     source_rule: K-APP-016
+  - reason_code: APP_OPEN_SCOPE_REF_REQUIRED
+    grpc_code: OK
+    surface: app_open_lifecycle
+    exit_shape: terminal_reason_non_error
+    source_rule: K-APP-017
+  - reason_code: APP_OPEN_SCOPE_REF_INVALID
+    grpc_code: OK
+    surface: app_open_lifecycle
+    exit_shape: terminal_reason_non_error
+    source_rule: K-APP-017
+  - reason_code: APP_OPEN_PACKAGE_NOT_VERIFIED
+    grpc_code: OK
+    surface: app_open_lifecycle
+    exit_shape: terminal_reason_non_error
+    source_rule: K-APP-017
+  - reason_code: APP_OPEN_LIBRARY_STATE_INVALID
+    grpc_code: OK
+    surface: app_open_lifecycle
+    exit_shape: terminal_reason_non_error
+    source_rule: K-APP-017
+  - reason_code: APP_OPEN_APP_DATA_INVALID
+    grpc_code: OK
+    surface: app_open_lifecycle
+    exit_shape: terminal_reason_non_error
+    source_rule: K-APP-017
+  - reason_code: APP_OPEN_PERMISSION_NOT_GRANTED
+    grpc_code: OK
+    surface: app_open_lifecycle
+    exit_shape: terminal_reason_non_error
+    source_rule: K-APP-017
+  - reason_code: APP_OPEN_AICONFIG_UNRESOLVED
+    grpc_code: OK
+    surface: app_open_lifecycle
+    exit_shape: terminal_reason_non_error
+    source_rule: K-APP-017
+  - reason_code: APP_OPEN_MANIFEST_REQUIREMENT_UNSATISFIED
+    grpc_code: OK
+    surface: app_open_lifecycle
+    exit_shape: terminal_reason_non_error
+    source_rule: K-APP-017
+  - reason_code: APP_OPEN_LAUNCH_FAILED
+    grpc_code: OK
+    surface: app_open_lifecycle
+    exit_shape: terminal_reason_non_error
+    source_rule: K-APP-017
   - reason_code: WF_DAG_INVALID
     grpc_code: INVALID_ARGUMENT
     surface: workflow_submit

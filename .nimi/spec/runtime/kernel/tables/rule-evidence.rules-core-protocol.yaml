@@ -215,8 +215,8 @@ rules:
   - rule_id: K-APP-017
     evidence_refs:
       - runtime_kernel_consistency
-    evidence_requirement: deferred
-    note: app-launch wave materializes the OpenApp RPC and AppLifecycleJobKind.uninstall in proto/runtime/v1/app.proto; this wave authors the normative contract only
+      - runtime_go_test
+    evidence_requirement: required
   - rule_id: K-CONN-001
     evidence_refs:
       - runtime_kernel_consistency

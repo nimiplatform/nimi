@@ -150,41 +150,9 @@ export interface NimiAppStorageRoots {
   readonly tempRoot: string;
 }
 
-export type NimiAppLifecycleOperation =
-  | 'install'
-  | 'update'
-  | 'uninstall'
-  | 'launch'
-  | 'health-repair';
-
-export type NimiAppOperationState =
-  | 'accepted'
-  | 'install-required'
-  | 'blocked'
-  | 'unsupported'
-  | 'failed';
-
-export interface NimiAppOperationResult {
-  readonly appId: string;
-  readonly operation: NimiAppLifecycleOperation;
-  readonly state: NimiAppOperationState;
-  readonly reason: string;
-  readonly detail?: string;
-}
-
-export interface NimiAppLaunchScopeRef {
-  readonly kind: 'account' | 'app' | 'workspace' | 'first-run';
-  readonly scopeId: string;
-}
-
-export type NimiAppHealthRepairAction = 'cancel' | 'retry' | 'repair' | 'reinstall';
-
-export type NimiAppLifecycleEvent =
-  | { readonly type: 'installed' | 'updated' | 'uninstalled' | 'launching' | 'launched'; readonly appId: string }
-  | { readonly type: 'failed' | 'repair-required'; readonly appId: string; readonly reason: string; readonly detail?: string };
-
-export interface NimiAppSubscription {
-  readonly subscribed: boolean;
-  readonly reason?: string;
-  readonly unsubscribe: () => void;
-}
+// T4 Fork B: the Nimi App lifecycle mutation surface (operation result /
+// launch scope ref / health-repair action / lifecycle event / subscription)
+// is retired from `@nimiplatform/sdk/app`. NimiAppClient is read-projection
+// only; all lifecycle mutation — install / update / uninstall / open /
+// healthRepair plus lifecycle-event streaming — is the runtime-mediated
+// `runtime.appLifecycle` surface (`@nimiplatform/sdk/runtime`).

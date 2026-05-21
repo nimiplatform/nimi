@@ -23,11 +23,15 @@ import {
   AppInstallJobState as ProtoAppInstallJobState,
   AppInstallSourceKind as ProtoAppInstallSourceKind,
   AppLifecycleJobKind as ProtoAppLifecycleJobKind,
+  AppOpenFlowStep as ProtoAppOpenFlowStep,
+  AppOpenState as ProtoAppOpenState,
 } from './generated/runtime/v1/app.js';
 import type {
   AppInstallJob as ProtoAppInstallJob,
   AppInstallJobEvent as ProtoAppInstallJobEvent,
   AppInstallStorageProjection as ProtoAppInstallStorageProjection,
+  AppOpenProjection as ProtoAppOpenProjection,
+  AppOpenScopeRef as ProtoAppOpenScopeRef,
   AppUninstallResult as ProtoAppUninstallResult,
 } from './generated/runtime/v1/app.js';
 import { ReasonCode as RuntimeReasonCode } from './generated/runtime/v1/common.js';
@@ -52,7 +56,8 @@ export type RuntimeAppInstallJobPhase =
   | 'installed'
   | 'swap'
   | 'failed'
-  | 'cancelled';
+  | 'cancelled'
+  | 'uninstalled';
 
 /** Terminal / in-flight job state. Mirrors `AppInstallJobState`. */
 export type RuntimeAppInstallJobState =
@@ -60,10 +65,15 @@ export type RuntimeAppInstallJobState =
   | 'in_progress'
   | 'installed'
   | 'failed'
-  | 'cancelled';
+  | 'cancelled'
+  | 'uninstalled';
 
 /** Lifecycle operation that produced a job. Mirrors `AppLifecycleJobKind`. */
-export type RuntimeAppLifecycleJobKind = 'install' | 'update' | 'repair';
+export type RuntimeAppLifecycleJobKind =
+  | 'install'
+  | 'update'
+  | 'repair'
+  | 'uninstall';
 
 /** Install artifact source. Mirrors `AppInstallSourceKind`. */
 export type RuntimeAppInstallSourceKind = 'bundled' | 'external_artifact';
@@ -129,6 +139,58 @@ export type RuntimeAppUninstallResult = {
   durableDataRemoved: boolean;
   storage: RuntimeAppInstallStorage;
   reasonCode?: string;
+  /**
+   * The watchable uninstall lifecycle job (kind=`uninstall`). It is the
+   * single live-job truth source for the `uninstalling` card state and can be
+   * followed via `watchJobEvents`.
+   */
+  job: RuntimeAppInstallJob;
+};
+
+/**
+ * Explicit canonical app-launch AIConfig scope (`P-AISC-007`). It is the
+ * app-shape `AIScopeRef`: `kind` is always `app`; `ownerId` is the admitted
+ * Nimi App id being opened; `surfaceId` is set only when the app's manifest
+ * declares a stable AI feature surface. `open` requires this scope and never
+ * infers it (`S-APP-003` / `K-APP-017`).
+ */
+export type RuntimeAppOpenScopeRef = {
+  kind: 'app';
+  ownerId: string;
+  surfaceId?: string;
+};
+
+/** Typed Open-flow step. Mirrors `AppOpenFlowStep` (K-APP-017). */
+export type RuntimeAppOpenFlowStep =
+  | 'resolve_registry'
+  | 'verify_package'
+  | 'verify_library'
+  | 'verify_app_data'
+  | 'verify_permissions'
+  | 'ensure_aiconfig'
+  | 'validate_manifest'
+  | 'launch';
+
+/** Terminal Open-flow state. Mirrors `AppOpenState`. */
+export type RuntimeAppOpenState = 'launched' | 'blocked';
+
+/**
+ * Typed Open-flow projection. On a `blocked` open, `reasonCode` carries the
+ * distinct fail-closed reason and `reachedStep` names the exact step that
+ * blocked — it is never collapsed and never projected as launched.
+ */
+export type RuntimeAppOpenProjection = {
+  appId: string;
+  state: RuntimeAppOpenState;
+  reachedStep: RuntimeAppOpenFlowStep;
+  launched: boolean;
+  /** Active release version the launch resolved. Empty when blocked early. */
+  activeVersion?: string;
+  /** The resolved app-launch AIConfig scope. */
+  scope?: RuntimeAppOpenScopeRef;
+  /** Typed reason on a blocked open; `ACTION_EXECUTED` on a launched open. */
+  reasonCode?: string;
+  detail?: string;
 };
 
 // ── Request inputs ─────────────────────────────────────────────────────
@@ -175,6 +237,16 @@ export type RuntimeAppHealthRepairInput = {
    * omitted, cancel/retry resolve the most recent recoverable job.
    */
   jobId?: string;
+};
+
+export type RuntimeAppOpenInput = {
+  /** Admitted Nimi App registry id to open. */
+  appId: string;
+  /**
+   * Mandatory explicit app-launch AIConfig scope (`S-APP-003` / `K-APP-017`).
+   * `open` never infers the launch scope.
+   */
+  scope: RuntimeAppOpenScopeRef;
 };
 
 // ── Module surface ─────────────────────────────────────────────────────
@@ -227,6 +299,17 @@ export type RuntimeAppLifecycleModule = {
     input: RuntimeAppHealthRepairInput,
     options?: RuntimeCallOptions,
   ): Promise<RuntimeAppInstallJob>;
+  /**
+   * Open (launch) an admitted Nimi App through the Runtime Open flow
+   * (`K-APP-017`). It requires an explicit app-launch `AIScopeRef` and never
+   * infers launch scope. Returns the typed Open projection: a `blocked` open
+   * carries the distinct fail-closed `reasonCode` and the step that blocked;
+   * it is never projected as launched.
+   */
+  open(
+    input: RuntimeAppOpenInput,
+    options?: RuntimeCallOptions,
+  ): Promise<RuntimeAppOpenProjection>;
 };
 
 // ── Input validation ───────────────────────────────────────────────────
@@ -255,6 +338,39 @@ function requireJobId(value: unknown): string {
     });
   }
   return jobId;
+}
+
+/**
+ * Validate the mandatory explicit app-launch AIScopeRef and map it to the
+ * proto shape. `open` never infers the scope: a missing scope, a non-`app`
+ * kind, or an `ownerId` that does not equal the opened `appId` fails closed
+ * (`S-APP-003` / `K-APP-017` / `P-AISC-007`).
+ */
+function toProtoOpenScope(
+  appId: string,
+  scope: RuntimeAppOpenScopeRef | undefined,
+): ProtoAppOpenScopeRef {
+  if (!scope || typeof scope !== 'object') {
+    throw createNimiError({
+      message: 'runtime.appLifecycle.open requires an explicit app-launch AIScopeRef',
+      reasonCode: ReasonCode.SDK_RUNTIME_APP_LIFECYCLE_SCOPE_REF_REQUIRED,
+      actionHint: 'pass_explicit_app_launch_scope_ref',
+      source: 'sdk',
+    });
+  }
+  const ownerId = typeof scope.ownerId === 'string' ? scope.ownerId.trim() : '';
+  const surfaceId =
+    typeof scope.surfaceId === 'string' ? scope.surfaceId.trim() : '';
+  if (scope.kind !== 'app' || !ownerId || ownerId !== appId) {
+    throw createNimiError({
+      message:
+        'runtime.appLifecycle.open AIScopeRef must be app-shaped with ownerId equal to the opened appId',
+      reasonCode: ReasonCode.SDK_RUNTIME_APP_LIFECYCLE_SCOPE_REF_REQUIRED,
+      actionHint: 'use_canonical_app_launch_scope_ref',
+      source: 'sdk',
+    });
+  }
+  return { kind: 'app', ownerId, surfaceId };
 }
 
 function toProtoHealthRepairAction(
@@ -318,6 +434,8 @@ function decodePhase(value: ProtoAppInstallJobPhase): RuntimeAppInstallJobPhase 
       return 'failed';
     case ProtoAppInstallJobPhase.CANCELLED:
       return 'cancelled';
+    case ProtoAppInstallJobPhase.UNINSTALLED:
+      return 'uninstalled';
     default:
       return decodeError(
         `runtime app install job has unspecified phase: ${String(value)}`,
@@ -338,6 +456,8 @@ function decodeState(value: ProtoAppInstallJobState): RuntimeAppInstallJobState 
       return 'failed';
     case ProtoAppInstallJobState.CANCELLED:
       return 'cancelled';
+    case ProtoAppInstallJobState.UNINSTALLED:
+      return 'uninstalled';
     default:
       return decodeError(
         `runtime app install job has unspecified state: ${String(value)}`,
@@ -354,6 +474,8 @@ function decodeKind(value: ProtoAppLifecycleJobKind): RuntimeAppLifecycleJobKind
       return 'update';
     case ProtoAppLifecycleJobKind.REPAIR:
       return 'repair';
+    case ProtoAppLifecycleJobKind.UNINSTALL:
+      return 'uninstall';
     default:
       return decodeError(
         `runtime app install job has unspecified kind: ${String(value)}`,
@@ -494,6 +616,7 @@ export function decodeAppInstallJob(
 
 function decodeUninstallResult(
   result: ProtoAppUninstallResult | undefined,
+  jobProjection: ProtoAppInstallJob | undefined,
 ): RuntimeAppUninstallResult {
   if (!result) {
     return decodeError(
@@ -509,12 +632,122 @@ function decodeUninstallResult(
     );
   }
   const reasonCode = decodeReasonCode(result.reasonCode as unknown as number);
+  // The uninstall response carries the watchable uninstall lifecycle job
+  // (K-APP-017) — the single live-job truth source for the `uninstalling`
+  // card state. A missing job fail-closes; it is never synthesized.
+  const job = decodeAppInstallJob(jobProjection);
   return {
     appId,
     releaseRemoved: result.releaseRemoved,
     durableDataRemoved: result.durableDataRemoved,
     storage: decodeStorage(result.storage),
     ...(reasonCode ? { reasonCode } : {}),
+    job,
+  };
+}
+
+function decodeOpenFlowStep(
+  value: ProtoAppOpenFlowStep,
+): RuntimeAppOpenFlowStep {
+  switch (value) {
+    case ProtoAppOpenFlowStep.RESOLVE_REGISTRY:
+      return 'resolve_registry';
+    case ProtoAppOpenFlowStep.VERIFY_PACKAGE:
+      return 'verify_package';
+    case ProtoAppOpenFlowStep.VERIFY_LIBRARY:
+      return 'verify_library';
+    case ProtoAppOpenFlowStep.VERIFY_APP_DATA:
+      return 'verify_app_data';
+    case ProtoAppOpenFlowStep.VERIFY_PERMISSIONS:
+      return 'verify_permissions';
+    case ProtoAppOpenFlowStep.ENSURE_AICONFIG:
+      return 'ensure_aiconfig';
+    case ProtoAppOpenFlowStep.VALIDATE_MANIFEST:
+      return 'validate_manifest';
+    case ProtoAppOpenFlowStep.LAUNCH:
+      return 'launch';
+    default:
+      return decodeError(
+        `runtime app open projection has an unspecified flow step: ${String(value)}`,
+        ReasonCode.SDK_RUNTIME_RESPONSE_DECODE_FAILED,
+      );
+  }
+}
+
+function decodeOpenState(value: ProtoAppOpenState): RuntimeAppOpenState {
+  switch (value) {
+    case ProtoAppOpenState.LAUNCHED:
+      return 'launched';
+    case ProtoAppOpenState.BLOCKED:
+      return 'blocked';
+    default:
+      return decodeError(
+        `runtime app open projection has an unspecified state: ${String(value)}`,
+        ReasonCode.SDK_RUNTIME_RESPONSE_DECODE_FAILED,
+      );
+  }
+}
+
+function decodeOpenScope(
+  scope: ProtoAppOpenScopeRef | undefined,
+): RuntimeAppOpenScopeRef | undefined {
+  if (!scope) return undefined;
+  const ownerId = optionalString(scope.ownerId);
+  if (scope.kind !== 'app' || !ownerId) {
+    return decodeError(
+      'runtime app open projection carries a non-canonical app-launch scope',
+      ReasonCode.SDK_RUNTIME_RESPONSE_DECODE_FAILED,
+    );
+  }
+  const surfaceId = optionalString(scope.surfaceId);
+  return {
+    kind: 'app',
+    ownerId,
+    ...(surfaceId ? { surfaceId } : {}),
+  };
+}
+
+/**
+ * Decode a proto `AppOpenProjection` into the typed projection. A `blocked`
+ * open must always carry a typed reason code so the consumer never has to
+ * invent one — fail-close if the runtime omits it.
+ */
+function decodeOpenProjection(
+  projection: ProtoAppOpenProjection | undefined,
+): RuntimeAppOpenProjection {
+  if (!projection) {
+    return decodeError(
+      'runtime open response is missing the open projection',
+      ReasonCode.SDK_RUNTIME_RESPONSE_DECODE_FAILED,
+    );
+  }
+  const appId = optionalString(projection.appId);
+  if (!appId) {
+    return decodeError(
+      'runtime app open projection is missing an app id',
+      ReasonCode.SDK_RUNTIME_RESPONSE_DECODE_FAILED,
+    );
+  }
+  const state = decodeOpenState(projection.state);
+  const reasonCode = decodeReasonCode(projection.reasonCode as unknown as number);
+  if (state === 'blocked' && !reasonCode) {
+    return decodeError(
+      `runtime app open projection for ${appId} is blocked without a typed reason code`,
+      ReasonCode.SDK_RUNTIME_RESPONSE_DECODE_FAILED,
+    );
+  }
+  const activeVersion = optionalString(projection.activeVersion);
+  const detail = optionalString(projection.detail);
+  const scope = decodeOpenScope(projection.scope);
+  return {
+    appId,
+    state,
+    reachedStep: decodeOpenFlowStep(projection.reachedStep),
+    launched: projection.launched,
+    ...(activeVersion ? { activeVersion } : {}),
+    ...(scope ? { scope } : {}),
+    ...(reasonCode ? { reasonCode } : {}),
+    ...(detail ? { detail } : {}),
   };
 }
 
@@ -565,7 +798,7 @@ export function createRuntimeAppLifecycleModule(input: {
           optionsValue,
         ),
       );
-      return decodeUninstallResult(response.result);
+      return decodeUninstallResult(response.result, response.job);
     },
     async getJob(getInput, optionsValue) {
       const jobId = requireJobId(getInput?.jobId);
@@ -615,6 +848,14 @@ export function createRuntimeAppLifecycleModule(input: {
         client.app.healthRepairApp({ appId, action, jobId }, optionsValue),
       );
       return decodeAppInstallJob(response.job);
+    },
+    async open(openInput, optionsValue) {
+      const appId = requireAppId(openInput?.appId);
+      const scope = toProtoOpenScope(appId, openInput?.scope);
+      const response = await ctx.invokeWithClient(async (client) =>
+        client.app.openApp({ appId, scope }, optionsValue),
+      );
+      return decodeOpenProjection(response.projection);
     },
   };
 }

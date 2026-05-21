@@ -5,6 +5,8 @@
 import type { RpcTransport } from "@protobuf-ts/runtime-rpc";
 import type { ServiceInfo } from "@protobuf-ts/runtime-rpc";
 import { RuntimeAppService } from "./app";
+import type { OpenAppResponse } from "./app";
+import type { OpenAppRequest } from "./app";
 import type { HealthRepairAppResponse } from "./app";
 import type { HealthRepairAppRequest } from "./app";
 import type { UpdateAppResponse } from "./app";
@@ -71,6 +73,14 @@ export interface IRuntimeAppServiceClient {
      * @generated from protobuf rpc: HealthRepairApp
      */
     healthRepairApp(input: HealthRepairAppRequest, options?: RpcOptions): UnaryCall<HealthRepairAppRequest, HealthRepairAppResponse>;
+    /**
+     * Nimi App Open / launch flow (K-APP-017). OpenApp is the sole Runtime RPC
+     * entry for launching a Nimi App; it requires an explicit app-shape
+     * AIScopeRef and never infers launch scope.
+     *
+     * @generated from protobuf rpc: OpenApp
+     */
+    openApp(input: OpenAppRequest, options?: RpcOptions): UnaryCall<OpenAppRequest, OpenAppResponse>;
 }
 /**
  * @generated from protobuf service nimi.runtime.v1.RuntimeAppService
@@ -147,5 +157,16 @@ export class RuntimeAppServiceClient implements IRuntimeAppServiceClient, Servic
     healthRepairApp(input: HealthRepairAppRequest, options?: RpcOptions): UnaryCall<HealthRepairAppRequest, HealthRepairAppResponse> {
         const method = this.methods[8], opt = this._transport.mergeOptions(options);
         return stackIntercept<HealthRepairAppRequest, HealthRepairAppResponse>("unary", this._transport, method, opt, input);
+    }
+    /**
+     * Nimi App Open / launch flow (K-APP-017). OpenApp is the sole Runtime RPC
+     * entry for launching a Nimi App; it requires an explicit app-shape
+     * AIScopeRef and never infers launch scope.
+     *
+     * @generated from protobuf rpc: OpenApp
+     */
+    openApp(input: OpenAppRequest, options?: RpcOptions): UnaryCall<OpenAppRequest, OpenAppResponse> {
+        const method = this.methods[9], opt = this._transport.mergeOptions(options);
+        return stackIntercept<OpenAppRequest, OpenAppResponse>("unary", this._transport, method, opt, input);
     }
 }

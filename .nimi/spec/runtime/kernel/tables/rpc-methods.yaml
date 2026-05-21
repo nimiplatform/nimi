@@ -367,6 +367,8 @@ services:
         type: unary
       - name: HealthRepairApp
         type: unary
+      - name: OpenApp
+        type: unary
   - name: RuntimeAgentService
     source_rule: K-RPC-004b
     methods:

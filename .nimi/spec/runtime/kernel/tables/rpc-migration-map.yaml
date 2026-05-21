@@ -813,6 +813,11 @@ method_mappings:
     proto_service: RuntimeAppService
     proto_method: HealthRepairApp
     mapping_posture: aligned
+  - design_service: RuntimeAppService
+    design_method: OpenApp
+    proto_service: RuntimeAppService
+    proto_method: OpenApp
+    mapping_posture: aligned
   - design_service: RuntimeCognitionService
     design_method: CreateBank
     proto_service: RuntimeCognitionService

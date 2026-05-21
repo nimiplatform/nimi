@@ -222,6 +222,18 @@ const (
 	ReasonCode_ARTIFACT_TOO_LARGE     ReasonCode = 602
 	ReasonCode_ARTIFACT_FORBIDDEN     ReasonCode = 603
 	ReasonCode_ARTIFACT_MIME_MISMATCH ReasonCode = 604
+	// APP_OPEN family (605+) — Nimi App Open / launch flow (K-APP-017)
+	// fail-closed reasons. Each reason is distinct and is never collapsed
+	// into a generic value.
+	ReasonCode_APP_OPEN_SCOPE_REF_REQUIRED               ReasonCode = 605
+	ReasonCode_APP_OPEN_SCOPE_REF_INVALID                ReasonCode = 606
+	ReasonCode_APP_OPEN_PACKAGE_NOT_VERIFIED             ReasonCode = 607
+	ReasonCode_APP_OPEN_LIBRARY_STATE_INVALID            ReasonCode = 608
+	ReasonCode_APP_OPEN_APP_DATA_INVALID                 ReasonCode = 609
+	ReasonCode_APP_OPEN_PERMISSION_NOT_GRANTED           ReasonCode = 610
+	ReasonCode_APP_OPEN_AICONFIG_UNRESOLVED              ReasonCode = 611
+	ReasonCode_APP_OPEN_MANIFEST_REQUIREMENT_UNSATISFIED ReasonCode = 612
+	ReasonCode_APP_OPEN_LAUNCH_FAILED                    ReasonCode = 613
 )
 
 // Enum value maps for ReasonCode.
@@ -392,6 +404,15 @@ var (
 		602: "ARTIFACT_TOO_LARGE",
 		603: "ARTIFACT_FORBIDDEN",
 		604: "ARTIFACT_MIME_MISMATCH",
+		605: "APP_OPEN_SCOPE_REF_REQUIRED",
+		606: "APP_OPEN_SCOPE_REF_INVALID",
+		607: "APP_OPEN_PACKAGE_NOT_VERIFIED",
+		608: "APP_OPEN_LIBRARY_STATE_INVALID",
+		609: "APP_OPEN_APP_DATA_INVALID",
+		610: "APP_OPEN_PERMISSION_NOT_GRANTED",
+		611: "APP_OPEN_AICONFIG_UNRESOLVED",
+		612: "APP_OPEN_MANIFEST_REQUIREMENT_UNSATISFIED",
+		613: "APP_OPEN_LAUNCH_FAILED",
 	}
 	ReasonCode_value = map[string]int32{
 		"REASON_CODE_UNSPECIFIED":                        0,
@@ -559,6 +580,15 @@ var (
 		"ARTIFACT_TOO_LARGE":                             602,
 		"ARTIFACT_FORBIDDEN":                             603,
 		"ARTIFACT_MIME_MISMATCH":                         604,
+		"APP_OPEN_SCOPE_REF_REQUIRED":                    605,
+		"APP_OPEN_SCOPE_REF_INVALID":                     606,
+		"APP_OPEN_PACKAGE_NOT_VERIFIED":                  607,
+		"APP_OPEN_LIBRARY_STATE_INVALID":                 608,
+		"APP_OPEN_APP_DATA_INVALID":                      609,
+		"APP_OPEN_PERMISSION_NOT_GRANTED":                610,
+		"APP_OPEN_AICONFIG_UNRESOLVED":                   611,
+		"APP_OPEN_MANIFEST_REQUIREMENT_UNSATISFIED":      612,
+		"APP_OPEN_LAUNCH_FAILED":                         613,
 	}
 )
 
@@ -1253,7 +1283,7 @@ const file_runtime_v1_common_proto_rawDesc = "" +
 	"\vreason_code\x18\x02 \x01(\x0e2\x1b.nimi.runtime.v1.ReasonCodeR\n" +
 	"reasonCode\x12\x1f\n" +
 	"\vaction_hint\x18\x03 \x01(\tR\n" +
-	"actionHint*\xd7*\n" +
+	"actionHint*\x99-\n" +
 	"\n" +
 	"ReasonCode\x12\x1b\n" +
 	"\x17REASON_CODE_UNSPECIFIED\x10\x00\x12\x13\n" +
@@ -1421,7 +1451,16 @@ const file_runtime_v1_common_proto_rawDesc = "" +
 	"\x12ARTIFACT_NOT_FOUND\x10\xd9\x04\x12\x17\n" +
 	"\x12ARTIFACT_TOO_LARGE\x10\xda\x04\x12\x17\n" +
 	"\x12ARTIFACT_FORBIDDEN\x10\xdb\x04\x12\x1b\n" +
-	"\x16ARTIFACT_MIME_MISMATCH\x10\xdc\x04\"\x04\bh\x10h\"\x04\bj\x10j\"\x04\bs\x10s\"\x04\bt\x10t\"\x04\bv\x10v\"\x06\b\xcb\x01\x10\xcb\x01\"\x06\b\x90\x03\x10\x90\x03\"\x06\b\x91\x03\x10\x91\x03*\xa9\x01\n" +
+	"\x16ARTIFACT_MIME_MISMATCH\x10\xdc\x04\x12 \n" +
+	"\x1bAPP_OPEN_SCOPE_REF_REQUIRED\x10\xdd\x04\x12\x1f\n" +
+	"\x1aAPP_OPEN_SCOPE_REF_INVALID\x10\xde\x04\x12\"\n" +
+	"\x1dAPP_OPEN_PACKAGE_NOT_VERIFIED\x10\xdf\x04\x12#\n" +
+	"\x1eAPP_OPEN_LIBRARY_STATE_INVALID\x10\xe0\x04\x12\x1e\n" +
+	"\x19APP_OPEN_APP_DATA_INVALID\x10\xe1\x04\x12$\n" +
+	"\x1fAPP_OPEN_PERMISSION_NOT_GRANTED\x10\xe2\x04\x12!\n" +
+	"\x1cAPP_OPEN_AICONFIG_UNRESOLVED\x10\xe3\x04\x12.\n" +
+	")APP_OPEN_MANIFEST_REQUIREMENT_UNSATISFIED\x10\xe4\x04\x12\x1b\n" +
+	"\x16APP_OPEN_LAUNCH_FAILED\x10\xe5\x04\"\x04\bh\x10h\"\x04\bj\x10j\"\x04\bs\x10s\"\x04\bt\x10t\"\x04\bv\x10v\"\x06\b\xcb\x01\x10\xcb\x01\"\x06\b\x90\x03\x10\x90\x03\"\x06\b\x91\x03\x10\x91\x03*\xa9\x01\n" +
 	"\x15ExternalPrincipalType\x12'\n" +
 	"#EXTERNAL_PRINCIPAL_TYPE_UNSPECIFIED\x10\x00\x12!\n" +
 	"\x1dEXTERNAL_PRINCIPAL_TYPE_AGENT\x10\x01\x12\x1f\n" +

@@ -49,6 +49,7 @@ const uninstallResult: RuntimeAppUninstallResult = {
   releaseRemoved: true,
   durableDataRemoved: false,
   storage: installJob().storage,
+  job: installJob({ kind: 'uninstall', state: 'uninstalled', phase: 'uninstalled' }),
 };
 
 type ModuleCall = {
@@ -103,6 +104,18 @@ function stubModule(
     async healthRepair(input, options) {
       record('healthRepair')(input, options);
       return installJob({ kind: 'repair' });
+    },
+    async open(input, options) {
+      record('open')(input, options);
+      return {
+        appId: 'nimi.notes',
+        state: 'launched',
+        reachedStep: 'launch',
+        launched: true,
+        activeVersion: '1.0.0',
+        scope: { kind: 'app', ownerId: 'nimi.notes' },
+        reasonCode: 'ACTION_EXECUTED',
+      };
     },
   };
   return { module: { ...base, ...overrides }, calls };

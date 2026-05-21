@@ -145,6 +145,15 @@ values:
   - APP_REPAIR_NO_RECOVERABLE_JOB
   - APP_REPAIR_NOT_REPAIRABLE
   - APP_LIFECYCLE_JOB_CANCELLED
+  - APP_OPEN_SCOPE_REF_REQUIRED
+  - APP_OPEN_SCOPE_REF_INVALID
+  - APP_OPEN_PACKAGE_NOT_VERIFIED
+  - APP_OPEN_LIBRARY_STATE_INVALID
+  - APP_OPEN_APP_DATA_INVALID
+  - APP_OPEN_PERMISSION_NOT_GRANTED
+  - APP_OPEN_AICONFIG_UNRESOLVED
+  - APP_OPEN_MANIFEST_REQUIREMENT_UNSATISFIED
+  - APP_OPEN_LAUNCH_FAILED
   - AI_LOCAL_SPEECH_PREFLIGHT_BLOCKED
   - AI_LOCAL_SPEECH_DOWNLOAD_CONFIRMATION_REQUIRED
   - AI_LOCAL_SPEECH_ENV_INIT_FAILED
@@ -754,6 +763,42 @@ codes:
     value: 597
     family: APP_REPAIR
     source_rule: K-APP-016
+  - name: APP_OPEN_SCOPE_REF_REQUIRED
+    value: 605
+    family: APP_OPEN
+    source_rule: K-APP-017
+  - name: APP_OPEN_SCOPE_REF_INVALID
+    value: 606
+    family: APP_OPEN
+    source_rule: K-APP-017
+  - name: APP_OPEN_PACKAGE_NOT_VERIFIED
+    value: 607
+    family: APP_OPEN
+    source_rule: K-APP-017
+  - name: APP_OPEN_LIBRARY_STATE_INVALID
+    value: 608
+    family: APP_OPEN
+    source_rule: K-APP-017
+  - name: APP_OPEN_APP_DATA_INVALID
+    value: 609
+    family: APP_OPEN
+    source_rule: K-APP-017
+  - name: APP_OPEN_PERMISSION_NOT_GRANTED
+    value: 610
+    family: APP_OPEN
+    source_rule: K-APP-017
+  - name: APP_OPEN_AICONFIG_UNRESOLVED
+    value: 611
+    family: APP_OPEN
+    source_rule: K-APP-017
+  - name: APP_OPEN_MANIFEST_REQUIREMENT_UNSATISFIED
+    value: 612
+    family: APP_OPEN
+    source_rule: K-APP-017
+  - name: APP_OPEN_LAUNCH_FAILED
+    value: 613
+    family: APP_OPEN
+    source_rule: K-APP-017
   - name: AI_LOCAL_SPEECH_PREFLIGHT_BLOCKED
     value: 560
     family: LOCAL_SPEECH

@@ -562,6 +562,7 @@ export function createRuntimeClient(input: RuntimeClientConfig): RuntimeClient {
       watchAppInstallJobEvents: stream(RuntimeMethodIds.app.watchAppInstallJobEvents),
       updateApp: unary(RuntimeMethodIds.app.updateApp),
       healthRepairApp: unary(RuntimeMethodIds.app.healthRepairApp),
+      openApp: unary(RuntimeMethodIds.app.openApp),
     },
     artifact: {
       readArtifactBytes: unary(RuntimeMethodIds.artifact.readArtifactBytes),

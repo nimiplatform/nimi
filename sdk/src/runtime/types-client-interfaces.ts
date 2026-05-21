@@ -370,6 +370,8 @@ import type {
   InstallAppResponse,
   ListAppInstallJobsRequest,
   ListAppInstallJobsResponse,
+  OpenAppRequest,
+  OpenAppResponse,
   SendAppMessageRequest,
   SendAppMessageResponse,
   SubscribeAppMessagesRequest,
@@ -733,6 +735,7 @@ export type RuntimeAppClient = {
   watchAppInstallJobEvents(request: WatchAppInstallJobEventsRequest, options?: RuntimeStreamCallOptions): Promise<AsyncIterable<AppInstallJobEvent>>;
   updateApp(request: UpdateAppRequest, options?: RuntimeCallOptions): Promise<UpdateAppResponse>;
   healthRepairApp(request: HealthRepairAppRequest, options?: RuntimeCallOptions): Promise<HealthRepairAppResponse>;
+  openApp(request: OpenAppRequest, options?: RuntimeCallOptions): Promise<OpenAppResponse>;
 };
 
 export type RuntimeConnectorClient = {

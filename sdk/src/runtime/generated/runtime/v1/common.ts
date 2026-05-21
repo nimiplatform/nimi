@@ -897,7 +897,47 @@ export enum ReasonCode {
     /**
      * @generated from protobuf enum value: ARTIFACT_MIME_MISMATCH = 604;
      */
-    ARTIFACT_MIME_MISMATCH = 604
+    ARTIFACT_MIME_MISMATCH = 604,
+    /**
+     * APP_OPEN family (605+) — Nimi App Open / launch flow (K-APP-017)
+     * fail-closed reasons. Each reason is distinct and is never collapsed
+     * into a generic value.
+     *
+     * @generated from protobuf enum value: APP_OPEN_SCOPE_REF_REQUIRED = 605;
+     */
+    APP_OPEN_SCOPE_REF_REQUIRED = 605,
+    /**
+     * @generated from protobuf enum value: APP_OPEN_SCOPE_REF_INVALID = 606;
+     */
+    APP_OPEN_SCOPE_REF_INVALID = 606,
+    /**
+     * @generated from protobuf enum value: APP_OPEN_PACKAGE_NOT_VERIFIED = 607;
+     */
+    APP_OPEN_PACKAGE_NOT_VERIFIED = 607,
+    /**
+     * @generated from protobuf enum value: APP_OPEN_LIBRARY_STATE_INVALID = 608;
+     */
+    APP_OPEN_LIBRARY_STATE_INVALID = 608,
+    /**
+     * @generated from protobuf enum value: APP_OPEN_APP_DATA_INVALID = 609;
+     */
+    APP_OPEN_APP_DATA_INVALID = 609,
+    /**
+     * @generated from protobuf enum value: APP_OPEN_PERMISSION_NOT_GRANTED = 610;
+     */
+    APP_OPEN_PERMISSION_NOT_GRANTED = 610,
+    /**
+     * @generated from protobuf enum value: APP_OPEN_AICONFIG_UNRESOLVED = 611;
+     */
+    APP_OPEN_AICONFIG_UNRESOLVED = 611,
+    /**
+     * @generated from protobuf enum value: APP_OPEN_MANIFEST_REQUIREMENT_UNSATISFIED = 612;
+     */
+    APP_OPEN_MANIFEST_REQUIREMENT_UNSATISFIED = 612,
+    /**
+     * @generated from protobuf enum value: APP_OPEN_LAUNCH_FAILED = 613;
+     */
+    APP_OPEN_LAUNCH_FAILED = 613
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.ExternalPrincipalType

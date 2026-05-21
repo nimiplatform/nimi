@@ -181,6 +181,8 @@ import {
   InstallAppResponse,
   ListAppInstallJobsRequest,
   ListAppInstallJobsResponse,
+  OpenAppRequest,
+  OpenAppResponse,
   SendAppMessageRequest,
   SendAppMessageResponse,
   UninstallAppRequest,
@@ -544,6 +546,10 @@ export const runtimeUnaryMethodCodecsDomain: Partial<RuntimeUnaryMethodCodecMap>
   [RuntimeMethodIds.app.healthRepairApp]: {
     requestType: HealthRepairAppRequest,
     responseType: HealthRepairAppResponse,
+  },
+  [RuntimeMethodIds.app.openApp]: {
+    requestType: OpenAppRequest,
+    responseType: OpenAppResponse,
   },
   [RuntimeMethodIds.audit.listAuditEvents]: {
     requestType: ListAuditEventsRequest,

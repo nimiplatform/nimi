@@ -201,6 +201,11 @@ export type {
   RuntimeAppUninstallInput,
   RuntimeAppUninstallResult,
   RuntimeAppUpdateInput,
+  RuntimeAppOpenInput,
+  RuntimeAppOpenScopeRef,
+  RuntimeAppOpenFlowStep,
+  RuntimeAppOpenState,
+  RuntimeAppOpenProjection,
 } from './runtime-app-lifecycle.js';
 export type {
   RuntimeAvatarDebugListProbeResultsRequest,

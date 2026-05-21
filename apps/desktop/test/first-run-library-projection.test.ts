@@ -2,11 +2,9 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { projectLibrary } from '../src/shell/renderer/first-run/library-projection.js';
 import type {
-  NimiAppOperationResult,
   NimiAppClient,
   NimiAppRow,
   NimiAppStatus,
-  NimiAppSubscription,
   NimiAppTransport,
 } from '@nimiplatform/sdk/app';
 import { NimiAppClient as NimiAppClientCtor } from '@nimiplatform/sdk/app';
@@ -36,24 +34,6 @@ function makeClient(behavior: {
         return result;
       }
       return { appId, launchReadiness: 'install-required' };
-    },
-    async install(appId: string): Promise<NimiAppOperationResult> {
-      return { appId, operation: 'install', state: 'unsupported', reason: 'install-gateway-not-connected' };
-    },
-    async update(appId: string): Promise<NimiAppOperationResult> {
-      return { appId, operation: 'update', state: 'unsupported', reason: 'not-connected' };
-    },
-    async uninstall(appId: string): Promise<NimiAppOperationResult> {
-      return { appId, operation: 'uninstall', state: 'unsupported', reason: 'not-connected' };
-    },
-    async launch(appId: string): Promise<NimiAppOperationResult> {
-      return { appId, operation: 'launch', state: 'unsupported', reason: 'not-connected' };
-    },
-    subscribe(): NimiAppSubscription {
-      return { subscribed: false, reason: 'not-connected', unsubscribe: () => {} };
-    },
-    async healthRepair(appId: string): Promise<NimiAppOperationResult> {
-      return { appId, operation: 'health-repair', state: 'unsupported', reason: 'not-connected' };
     },
   };
   return new NimiAppClientCtor(transport);

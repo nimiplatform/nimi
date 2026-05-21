@@ -200,6 +200,7 @@ export const RuntimeMethodIds = {
     watchAppInstallJobEvents: '/nimi.runtime.v1.RuntimeAppService/WatchAppInstallJobEvents',
     updateApp: '/nimi.runtime.v1.RuntimeAppService/UpdateApp',
     healthRepairApp: '/nimi.runtime.v1.RuntimeAppService/HealthRepairApp',
+    openApp: '/nimi.runtime.v1.RuntimeAppService/OpenApp',
   },
   connector: {
     createConnector: '/nimi.runtime.v1.RuntimeConnectorService/CreateConnector',

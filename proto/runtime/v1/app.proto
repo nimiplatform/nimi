@@ -78,6 +78,10 @@ enum AppInstallJobPhase {
   // APP_INSTALL_JOB_PHASE_CANCELLED is the terminal phase of a job cancelled
   // through HealthRepairApp(action=cancel).
   APP_INSTALL_JOB_PHASE_CANCELLED = 11;
+  // APP_INSTALL_JOB_PHASE_UNINSTALLED is the terminal phase of a completed
+  // uninstall lifecycle job (K-APP-017). It is reached only by a job of kind
+  // APP_LIFECYCLE_JOB_KIND_UNINSTALL after the release payload is removed.
+  APP_INSTALL_JOB_PHASE_UNINSTALLED = 12;
 }
 
 // AppInstallJobState is the typed terminal/in-flight job state. It aligns with
@@ -93,16 +97,29 @@ enum AppInstallJobState {
   // through HealthRepairApp(action=cancel). A cancelled job is recoverable via
   // retry and is never projected as success.
   APP_INSTALL_JOB_STATE_CANCELLED = 5;
+  // APP_INSTALL_JOB_STATE_UNINSTALLED is the terminal success state of an
+  // uninstall lifecycle job (K-APP-017). It is reached only by a job of kind
+  // APP_LIFECYCLE_JOB_KIND_UNINSTALL; a successful uninstall is never
+  // projected as APP_INSTALL_JOB_STATE_INSTALLED.
+  APP_INSTALL_JOB_STATE_UNINSTALLED = 6;
 }
 
 // AppLifecycleJobKind distinguishes the lifecycle operation that produced a
-// job. Install, update, and healthRepair jobs share the AppInstallJob shape
-// but carry a distinct kind so the consumer never infers intent from phase.
+// job. Install, update, healthRepair, and uninstall jobs share the
+// AppInstallJob shape but carry a distinct kind so the consumer never infers
+// intent from phase.
 enum AppLifecycleJobKind {
   APP_LIFECYCLE_JOB_KIND_UNSPECIFIED = 0;
   APP_LIFECYCLE_JOB_KIND_INSTALL = 1;
   APP_LIFECYCLE_JOB_KIND_UPDATE = 2;
   APP_LIFECYCLE_JOB_KIND_REPAIR = 3;
+  // APP_LIFECYCLE_JOB_KIND_UNINSTALL marks a watchable uninstall lifecycle
+  // job (K-APP-017). UninstallApp emits a typed AppInstallJob of this kind so
+  // the `uninstalling` Apps card state has a single live-job truth source. An
+  // uninstall job never carries the install digest/download phases; it runs
+  // through the materialize phase (release payload removal) to the installed
+  // (completed) terminal phase, and a failed uninstall is recoverable.
+  APP_LIFECYCLE_JOB_KIND_UNINSTALL = 4;
 }
 
 // AppHealthRepairAction is the typed health/repair action token. It admits
@@ -235,7 +252,15 @@ message AppUninstallResult {
 }
 
 message UninstallAppResponse {
+  // result is the typed uninstall projection carrying the K-APP-014
+  // durable-data retention semantics (release_removed / durable_data_removed).
   AppUninstallResult result = 1;
+  // job is the watchable uninstall lifecycle job (K-APP-017,
+  // AppLifecycleJobKind=APP_LIFECYCLE_JOB_KIND_UNINSTALL). It is the single
+  // live-job truth source for the `uninstalling` Apps card state and can be
+  // followed via WatchAppInstallJobEvents. A failed uninstall is recorded as a
+  // recoverable job and is never projected as success.
+  AppInstallJob job = 2;
 }
 
 // === Nimi App Update Lifecycle (K-APP-015) ===
@@ -277,6 +302,108 @@ message HealthRepairAppResponse {
   AppInstallJob job = 1;
 }
 
+// === Nimi App Open / Launch Flow (K-APP-017) ===
+
+// AppOpenScopeRef is the explicit canonical app-launch AIConfig scope a
+// caller must carry to open a Nimi App (K-APP-017 / P-AISC-007). It is the
+// app-shape AIScopeRef: kind is always `app`; owner_id is the admitted Nimi
+// App registry app_id and must equal the app_id being opened; surface_id is
+// optional and only set when the app's manifest declares a stable AI feature
+// surface. OpenApp never infers this scope — a missing or mismatched
+// AppOpenScopeRef fails closed.
+message AppOpenScopeRef {
+  // kind is the AIScopeRef kind discriminator. For OpenApp it is fixed to the
+  // literal string `app`; any other value fails closed.
+  string kind = 1;
+  // owner_id is the admitted Nimi App registry app_id (dot-separated app
+  // identity, e.g. `nimi.avatar`). It must equal OpenAppRequest.app_id.
+  string owner_id = 2;
+  // surface_id is the optional stable app-declared AI feature surface id.
+  // Empty means the canonical app-level AI scope.
+  string surface_id = 3;
+}
+
+// AppOpenFlowStep is the typed Open-flow step (K-APP-017). It surfaces the
+// concrete checkpoint the launch is at so a failed Open names the exact step
+// rather than a generic failure. It is never inferred.
+enum AppOpenFlowStep {
+  APP_OPEN_FLOW_STEP_UNSPECIFIED = 0;
+  // RESOLVE_REGISTRY resolves the admitted Nimi App registry row.
+  APP_OPEN_FLOW_STEP_RESOLVE_REGISTRY = 1;
+  // VERIFY_PACKAGE verifies the materialized release package + install
+  // evidence (active release pointer, digest-verified payload).
+  APP_OPEN_FLOW_STEP_VERIFY_PACKAGE = 2;
+  // VERIFY_LIBRARY verifies the account app-library state for the app.
+  APP_OPEN_FLOW_STEP_VERIFY_LIBRARY = 3;
+  // VERIFY_APP_DATA verifies the durable app-data root state.
+  APP_OPEN_FLOW_STEP_VERIFY_APP_DATA = 4;
+  // VERIFY_PERMISSIONS verifies the app permissions are granted or
+  // promptable.
+  APP_OPEN_FLOW_STEP_VERIFY_PERMISSIONS = 5;
+  // ENSURE_AICONFIG ensures the app-scope AIConfig exists (first-launch
+  // initialization per S-AICONF-009).
+  APP_OPEN_FLOW_STEP_ENSURE_AICONFIG = 6;
+  // VALIDATE_MANIFEST validates the app manifest requirements.
+  APP_OPEN_FLOW_STEP_VALIDATE_MANIFEST = 7;
+  // LAUNCH is the terminal launch step: the runtime-owned app launch
+  // supervision admits the app process/surface.
+  APP_OPEN_FLOW_STEP_LAUNCH = 8;
+}
+
+// AppOpenState is the typed terminal Open-flow state. A blocked or failed
+// Open never projects as launched.
+enum AppOpenState {
+  APP_OPEN_STATE_UNSPECIFIED = 0;
+  // APP_OPEN_STATE_LAUNCHED means the Open flow completed and the app launch
+  // was admitted.
+  APP_OPEN_STATE_LAUNCHED = 1;
+  // APP_OPEN_STATE_BLOCKED means a verify step fail-closed before launch
+  // (package/library/app-data/permission/AIConfig/manifest). It carries the
+  // distinct typed reason_code; it is never collapsed into a generic value.
+  APP_OPEN_STATE_BLOCKED = 2;
+}
+
+message OpenAppRequest {
+  // app_id resolves an admitted Nimi App registry row
+  // (admission_status=admitted, ordinary_visibility=ordinary-visible).
+  string app_id = 1;
+  // scope is the explicit canonical app-launch AIConfig scope. It is
+  // mandatory: OpenApp never infers launch scope (K-APP-017 / S-APP-003).
+  AppOpenScopeRef scope = 2;
+}
+
+// AppOpenProjection is the typed Open-flow projection. It reports the
+// terminal state, the step the flow reached, the resolved launch scope, and a
+// fail-closed reason_code on every blocked branch.
+message AppOpenProjection {
+  string app_id = 1;
+  AppOpenState state = 2;
+  // reached_step is the last Open-flow step the launch executed. On a blocked
+  // open it names the exact step that fail-closed.
+  AppOpenFlowStep reached_step = 3;
+  // launched is true only when state is APP_OPEN_STATE_LAUNCHED. It is never
+  // inferred from process liveness or file existence.
+  bool launched = 4;
+  // active_version is the active release version the launch resolved. Empty
+  // when the open blocked before package verification.
+  string active_version = 5;
+  // scope echoes the resolved app-launch AIConfig scope. On a launched open
+  // the Open flow has validated this scope as the canonical app-shape
+  // AIScopeRef (P-AISC-007); the per-app first-launch AIConfig initialization
+  // (S-AICONF-009) is finalized by the SDK/desktop AIConfig surface against
+  // this validated scope — the AIConfig store is not Runtime-owned.
+  AppOpenScopeRef scope = 6;
+  // reason_code is the typed fail-closed reason on a blocked open, or
+  // ACTION_EXECUTED on a launched open. It is never collapsed into a generic
+  // value.
+  ReasonCode reason_code = 7;
+  string detail = 8;
+}
+
+message OpenAppResponse {
+  AppOpenProjection projection = 1;
+}
+
 service RuntimeAppService {
   rpc SendAppMessage(SendAppMessageRequest) returns (SendAppMessageResponse);
   rpc SubscribeAppMessages(SubscribeAppMessagesRequest) returns (stream AppMessageEvent);
@@ -291,4 +418,9 @@ service RuntimeAppService {
   // Nimi App update + health/repair lifecycle (K-APP-015..K-APP-016).
   rpc UpdateApp(UpdateAppRequest) returns (UpdateAppResponse);
   rpc HealthRepairApp(HealthRepairAppRequest) returns (HealthRepairAppResponse);
+
+  // Nimi App Open / launch flow (K-APP-017). OpenApp is the sole Runtime RPC
+  // entry for launching a Nimi App; it requires an explicit app-shape
+  // AIScopeRef and never infers launch scope.
+  rpc OpenApp(OpenAppRequest) returns (OpenAppResponse);
 }
