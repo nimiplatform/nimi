@@ -1,0 +1,12 @@
+table_family: product_catalog
+owner: desktop
+catalog_id: desktop_contacts_categories
+authority_refs:
+  - D-CONTACTS-002
+entries:
+  - id: human_friends
+    name: Human Friends
+    semantics: Active human-to-human Friendship relations of the current account. Each entry resolves to a human contact and routes to Human Chat.
+  - id: agent_friends
+    name: Agent Friends
+    semantics: Active AgentFriend relations of the current account. Each entry resolves to one one-to-one LocalAgent projection and routes to LocalAgent Chat. Owner-created RealmAgents the account is also friends with appear here, not as a separate category.
