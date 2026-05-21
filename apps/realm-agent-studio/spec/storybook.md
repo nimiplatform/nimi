@@ -26,7 +26,7 @@ implementation.
 | Story | Required acceptance |
 | --- | --- |
 | Review Agent Portfolio | Owned creator-owned Realm Agents are visible with app-local draft or Realm-created status and source availability. Unavailable metrics are not zero. LocalAgent private state is never exposed. |
-| Create Realm Agent | Creation defaults to `OASIS`, allows any Realm `listWorlds` result by product decision, shows selected-world basic setting from existing world detail before submit, and succeeds only when Realm creates the real composed source object. |
+| Create Realm Agent | Creation defaults to `OASIS`, allows any Realm `listWorlds` result by product decision, shows selected-world basic setting from existing world detail before submit, submits owner create only through `AgentsService.agentControllerCreate` / `POST /api/agent`, and succeeds only when Realm returns the canonical created object with `id`. |
 | Update Canonical Setting | Current canonical setting and visible rule content are shown. AI proposals remain editable. Save succeeds only through admitted Realm writes. Private LocalAgent memory is not overwritten. |
 | Review Setting Consistency | Runtime review is advisory. Accepted edits return to normal owner-reviewed save. Runtime does not define Realm truth. |
 | Build Visual Identity | Upload/generated media remains candidate material until owner selection and Realm resource/asset/binding/profile write success. Local preview is not public. |
@@ -48,11 +48,15 @@ implementation.
   current-user `MASTER_OWNED` Realm Agents and must not substitute
   world-owned/NPC lists. `GET /api/creator/agents` and
   `GET /api/agent/dev/my-agents` are not Studio canonical surfaces.
+- Owner create surface is `POST /api/agent` through
+  `AgentsService.agentControllerCreate`. `/api/creator/agents` is
+  World Creator / Maintainer evidence only and is not an owner create path.
 - `GET /api/world` / `listWorlds` exists as a Realm read surface. Product
   decision is that all returned worlds are selectable; admission needs citation
   to the existing SDK surface rather than a new selectable-world decision.
-- `OASIS` is admitted as the canonical system main world, but Studio defaulting
-  behavior remains unclosed.
+- `OASIS` is admitted as the canonical system main world. Studio defaulting
+  resolves from `WorldsService.worldControllerListWorlds` and submits the
+  selected source world id.
 - `friendCount` read surface is source-backed by `UserLiteDto.friendCount` when
   present; Realm derives it from human-agent Friendship rows.
 - Studio must not introduce a Realm Agent lifecycle state machine. App-local

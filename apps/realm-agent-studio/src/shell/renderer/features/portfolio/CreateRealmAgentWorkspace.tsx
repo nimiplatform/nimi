@@ -1,17 +1,21 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button, EmptyState, FieldShell, InlineAlert, SelectField, StatusBadge, Surface, TextareaField, TextField } from '@nimiplatform/nimi-kit/ui';
 import {
-  CREATE_REALM_AGENT_BLOCKED_REASON,
+  REALM_AGENT_CREATE_PATH,
+  REALM_AGENT_CREATE_SOURCE,
   normalizeCreateRealmAgentDraft,
   selectOasisDefaultWorld,
   validateCreateRealmAgentReadiness,
   type CreateRealmAgentDraftInput,
+  type ReviewedCreateRealmAgentPayload,
   type SelectableRealmWorld,
 } from './create-agent-draft.js';
 import {
+  createReviewedRealmAgent,
   getCreateRealmAgentWorldPreview,
   listCreateRealmAgentSelectableWorlds,
+  type RealmAgentCreateResult,
 } from './portfolio-client.js';
 
 function createEmptyDraft(): CreateRealmAgentDraftInput {
@@ -31,9 +35,9 @@ function worldOptionLabel(world: SelectableRealmWorld): string {
   return `${world.name}${type}`;
 }
 
-function ReadinessPreview({ draft }: { draft: CreateRealmAgentDraftInput }) {
+function ReadinessPreview({ draft, selectableWorldIds }: { draft: CreateRealmAgentDraftInput; selectableWorldIds: string[] }) {
   const normalizedDraft = normalizeCreateRealmAgentDraft(draft);
-  const readiness = validateCreateRealmAgentReadiness(draft);
+  const readiness = validateCreateRealmAgentReadiness(draft, { selectableWorldIds });
 
   return (
     <div className="grid gap-4">
@@ -65,10 +69,9 @@ function ReadinessPreview({ draft }: { draft: CreateRealmAgentDraftInput }) {
       {readiness.ready ? null : (
         <InlineAlert tone="warning">{readiness.errors.join('; ')}</InlineAlert>
       )}
-      <InlineAlert tone="danger">{CREATE_REALM_AGENT_BLOCKED_REASON}</InlineAlert>
-      <FieldShell label="Candidate create payload" message="Preview only. This workspace does not call CreatorService.creatorControllerCreateAgent.">
+      <FieldShell label="Reviewed create request" message={`${REALM_AGENT_CREATE_SOURCE} · ${REALM_AGENT_CREATE_PATH}. Request body is CreateAgentDto allowlisted fields only.`}>
         <pre className="ras-json-preview m-0 min-h-56 overflow-auto rounded-[var(--nimi-radius-field)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-3 text-xs">
-          {readiness.payload ? JSON.stringify(readiness.payload, null, 2) : 'Complete handle, display name, and selected world to preview the blocked candidate payload.'}
+          {readiness.payload ? JSON.stringify(readiness.payload, null, 2) : 'Complete handle, display name, concept, and selected world to preview the reviewed create request.'}
         </pre>
       </FieldShell>
     </div>
@@ -77,12 +80,16 @@ function ReadinessPreview({ draft }: { draft: CreateRealmAgentDraftInput }) {
 
 export function CreateRealmAgentWorkspace() {
   const [draft, setDraft] = useState<CreateRealmAgentDraftInput>(() => createEmptyDraft());
+  const [submitResult, setSubmitResult] = useState<RealmAgentCreateResult | null>(null);
+  const [localSubmitErrors, setLocalSubmitErrors] = useState<string[]>([]);
+  const queryClient = useQueryClient();
   const worldsQuery = useQuery({
     queryKey: ['realm-agent-studio', 'create-agent-worlds'],
     queryFn: () => listCreateRealmAgentSelectableWorlds(),
   });
 
   const worlds = worldsQuery.data || [];
+  const selectableWorldIds = useMemo(() => worlds.map((world) => world.id), [worlds]);
   const oasisWorld = useMemo(() => selectOasisDefaultWorld(worlds), [worlds]);
   const selectedWorld = worlds.find((world) => world.id === draft.selectedWorldId) || null;
   const selectedWorldId = draft.selectedWorldId;
@@ -90,7 +97,7 @@ export function CreateRealmAgentWorkspace() {
   const worldPreviewQuery = useQuery({
     queryKey: ['realm-agent-studio', 'create-agent-world-preview', selectedWorldId],
     queryFn: () => getCreateRealmAgentWorldPreview(selectedWorldId),
-    enabled: selectedWorldId.length > 0,
+    enabled: selectedWorldId.length > 0 && Boolean(selectedWorld),
   });
 
   useEffect(() => {
@@ -101,19 +108,47 @@ export function CreateRealmAgentWorkspace() {
 
   function updateDraft(patch: Partial<CreateRealmAgentDraftInput>) {
     setDraft((current) => ({ ...current, ...patch }));
+    setLocalSubmitErrors([]);
+    setSubmitResult(null);
   }
+
+  const createMutation = useMutation<RealmAgentCreateResult, Error, ReviewedCreateRealmAgentPayload>({
+    mutationFn: (payload) => createReviewedRealmAgent(payload),
+    onSuccess: (result) => {
+      setSubmitResult(result);
+      if (result.ok) {
+        setLocalSubmitErrors([]);
+        void queryClient.invalidateQueries({ queryKey: ['realm-agent-studio', 'owner-portfolio'] });
+      }
+    },
+  });
+
+  function submitCreate() {
+    const readiness = validateCreateRealmAgentReadiness(draft, { selectableWorldIds });
+    if (!readiness.ready) {
+      setLocalSubmitErrors(readiness.errors);
+      setSubmitResult(null);
+      return;
+    }
+    setLocalSubmitErrors([]);
+    setSubmitResult(null);
+    createMutation.mutate(readiness.payload);
+  }
+
+  const readiness = validateCreateRealmAgentReadiness(draft, { selectableWorldIds });
+  const createDisabled = createMutation.isPending || worldsQuery.isLoading || worlds.length === 0 || !selectedWorld || !readiness.ready;
 
   return (
     <Surface tone="panel" padding="lg" className="min-w-0">
       <div className="grid min-w-0 gap-5 xl:grid-cols-[1fr_400px]">
         <div className="min-w-0">
           <div className="flex min-w-0 flex-wrap items-center gap-3">
-            <h2 className="m-0 text-xl font-semibold">Create Realm Agent readiness</h2>
-            <StatusBadge tone="info">draft only</StatusBadge>
-            <StatusBadge tone="warning">create write blocked</StatusBadge>
+            <h2 className="m-0 text-xl font-semibold">Create Realm Agent</h2>
+            <StatusBadge tone="info">owner scoped</StatusBadge>
+            <StatusBadge tone="neutral">POST /api/agent</StatusBadge>
           </div>
           <p className="m-0 mt-1 text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-muted)]">
-            Local public identity and world readiness workspace. Creation success is not claimed until an admitted Studio create write contract exists.
+            Owner-reviewed create request through AgentsService.agentControllerCreate. Portfolio reads remain GET /api/me/agents.
           </p>
 
           <div className="mt-4 grid gap-4">
@@ -140,15 +175,16 @@ export function CreateRealmAgentWorkspace() {
                 onChange={(event) => updateDraft({ publicBio: event.currentTarget.value })}
               />
             </FieldShell>
+            <InlineAlert tone="warning">Public bio is preserved in the local draft and is not sent in the CreateAgentDto request body.</InlineAlert>
             <div className="grid gap-4 md:grid-cols-2">
-              <FieldShell label="Concept" message="CreateAgentDto concept candidate; local preview only.">
+              <FieldShell label="Concept" message="Required CreateAgentDto concept field.">
                 <TextareaField
                   value={draft.concept}
                   placeholder="Creative concept"
                   onChange={(event) => updateDraft({ concept: event.currentTarget.value })}
                 />
               </FieldShell>
-              <FieldShell label="Description" message="CreateAgentDto description candidate; local preview only.">
+              <FieldShell label="Description" message="Optional CreateAgentDto description field.">
                 <TextareaField
                   value={draft.description}
                   placeholder="Public-facing description"
@@ -156,7 +192,7 @@ export function CreateRealmAgentWorkspace() {
                 />
               </FieldShell>
             </div>
-            <FieldShell label="Visible rules" message="Rule-shaped candidate content remains owner-visible before any future write.">
+            <FieldShell label="Visible rules" message="Optional visible owner-reviewed CreateAgentRulesDto lines. No hidden personality, worldview, provider, or model fields are sent.">
               <TextareaField
                 value={draft.ruleText}
                 placeholder="Style, boundaries, and public behavior rules"
@@ -181,7 +217,25 @@ export function CreateRealmAgentWorkspace() {
             {!worldsQuery.isLoading && worlds.length === 0 ? (
               <InlineAlert tone="warning">World selection blocked: Realm returned no selectable worlds from WorldsService.worldControllerListWorlds.</InlineAlert>
             ) : null}
-            <Button disabled title={CREATE_REALM_AGENT_BLOCKED_REASON}>Create Realm Agent blocked</Button>
+            {!worldsQuery.isLoading && worlds.length > 0 && draft.selectedWorldId && !selectedWorld ? (
+              <InlineAlert tone="danger">World selection blocked: selected world is not source-backed by WorldsService.worldControllerListWorlds.</InlineAlert>
+            ) : null}
+            {!readiness.ready ? (
+              <InlineAlert tone="warning">{readiness.errors.join('; ')}</InlineAlert>
+            ) : null}
+            {localSubmitErrors.length > 0 ? (
+              <InlineAlert tone="danger">{REALM_AGENT_CREATE_SOURCE} local validation failed: {localSubmitErrors.join('; ')}</InlineAlert>
+            ) : null}
+            {submitResult ? (
+              <InlineAlert tone={submitResult.ok ? 'success' : 'danger'}>
+                {submitResult.ok
+                  ? `${submitResult.source} created canonical Realm Agent ${submitResult.canonical.id}. Portfolio list refresh requested.`
+                  : `${submitResult.source} failed: ${submitResult.message}`}
+              </InlineAlert>
+            ) : null}
+            <Button disabled={createDisabled} loading={createMutation.isPending} onClick={submitCreate}>
+              Create Realm Agent
+            </Button>
           </div>
         </div>
 
@@ -217,7 +271,7 @@ export function CreateRealmAgentWorkspace() {
               </div>
             ) : null}
           </Surface>
-          <ReadinessPreview draft={draft} />
+          <ReadinessPreview draft={draft} selectableWorldIds={selectableWorldIds} />
         </div>
       </div>
     </Surface>

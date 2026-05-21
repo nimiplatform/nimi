@@ -50,9 +50,11 @@ to `:11844`). These surfaces are current authenticated user scoped and
 `MASTER_OWNED` only.
 
 `GET /api/creator/agents` is a creator/world-creator surface, not the Studio
-canonical my-agents surface. `GET /api/agent/dev/my-agents` is an Agent
-Development surface and carries development/limit/stats/delete/unbind/state
-management context; Studio must not use it as canonical portfolio authority.
+canonical my-agents surface and not an owner create path. `/api/creator/agents`
+belongs to World Creator / Maintainer semantics and may be cited only as
+non-owner evidence. `GET /api/agent/dev/my-agents` is an Agent Development
+surface and carries development/limit/stats/delete/unbind/state management
+context; Studio must not use it as canonical portfolio authority.
 
 World ownership does not grant edit authority over an owner-created Realm Agent.
 World-created agents belong to world tooling. AgentFriend creation/removal
@@ -64,7 +66,8 @@ linkages must not mutate the source RealmAgent truth
 Realm Agent Studio must not define a Realm Agent lifecycle state machine. A
 local draft can exist before Realm creation, but creation succeeds only after
 Realm creates the composed source entity. After creation, the first Studio
-version supports update operations only.
+version supports update operations only through separately admitted owner update
+writes.
 
 Current generated Realm DTO evidence exposes `AgentState` as
 `INCUBATING | READY | ACTIVE | SUSPENDED | FAILED`
@@ -88,6 +91,8 @@ success.
 
 Current generated schema evidence for agent creation includes:
 
+- `POST /api/agent` / `AgentsService.agentControllerCreate` as the owner-scoped
+  create operation (`sdk/src/realm/generated/operation-map.ts:272` to `:290`);
 - `CreateAgentDto.handle`, `displayName`, `concept`, `description`, `dna`,
   `dnaPrimary`, `dnaSecondary`, `referenceImageUrl`, `rules`, and required
   `worldId` (`sdk/src/realm/generated/schema.ts:4536` to `:4563`);
@@ -96,14 +101,24 @@ Current generated schema evidence for agent creation includes:
 - `CreateAgentResponseDto.id`, `state`, `user`, and `dna`
   (`sdk/src/realm/generated/schema.ts:4519` to `:4527`).
 
-Gaps:
+Studio owner create admission:
 
-- No admitted app-level create contract yet binds owner-created scope,
-  `OASIS` defaulting, existing `listWorlds` citation, world detail basic-setting
-  preview field citation, and rule derivation into one fail-closed operation.
+- Studio create writes call only
+  `realm.services.AgentsService.agentControllerCreate(body)` /
+  `POST /api/agent`.
+- The submitted body is a `CreateAgentDto` owner allowlist: `handle`,
+  `displayName`, `concept`, optional `description`, `worldId`, optional visible
+  `rules` as `CreateAgentRulesDto`, and `ownershipType: MASTER_OWNED`.
+- Studio must not submit `WORLD_OWNED`, creator/maintainer fields, lifecycle,
+  provider/model, LocalAgent, fake state, id, author/owner ids, hidden
+  personality/worldview fields, `dna`, `dnaPrimary`, `dnaSecondary`, or
+  `referenceImageUrl` in this create path.
+- `OASIS` defaulting and world selection remain source-backed by
+  `WorldsService.worldControllerListWorlds`; selected-world preview remains
+  `WorldsService.worldControllerGetWorldDetailWithAgents`.
+- Success requires the canonical Realm create response object with `id`.
+  Missing object or missing `id` is failure. Studio must not synthesize success,
+  and failure preserves the local draft while naming the exact source or
+  capability.
 - Current DTO `worldId` proves active agents are world-bound. Product decision
-  says all Realm `listWorlds` results are selectable for Studio creation; the
-  remaining work is citing the exact SDK surface and deciding whether Studio
-  defaulting should resolve `GET /api/world/oasis` and submit that `id`.
-- Studio must not add a Realm Agent lifecycle result beyond local draft before
-  creation and update-only behavior after creation.
+  says all Realm `listWorlds` results are selectable for Studio creation.

@@ -7,14 +7,18 @@ import {
   type OwnerPortfolioAgentDetail,
 } from './portfolio-data.js';
 import {
+  REALM_AGENT_CREATE_SOURCE,
   normalizeSelectableWorlds,
   normalizeSelectedWorldPreview,
   type RealmAgentCreationWorldDto,
+  type RealmCreateAgentInput,
+  type ReviewedCreateRealmAgentPayload,
   type SelectableRealmWorld,
   type SelectedWorldPreview,
 } from './create-agent-draft.js';
 import type { CandidatePostPayload } from './post-draft.js';
 
+type RealmCreateAgentResponse = Awaited<ReturnType<Realm['services']['AgentsService']['agentControllerCreate']>>;
 type RealmCreatePostInput = Parameters<Realm['services']['PostsService']['createPost']>[0];
 type RealmCreatePostResponse = Awaited<ReturnType<Realm['services']['PostsService']['createPost']>>;
 
@@ -43,9 +47,82 @@ export type RealmPostPublishResult =
     message: string;
   };
 
+export type RealmAgentCreateCanonicalFields = {
+  id: string;
+  state?: string;
+};
+
+export type RealmAgentCreateResult =
+  | {
+    ok: true;
+    source: typeof REALM_AGENT_CREATE_SOURCE;
+    agent: RealmCreateAgentResponse;
+    canonical: RealmAgentCreateCanonicalFields;
+  }
+  | {
+    ok: false;
+    source: typeof REALM_AGENT_CREATE_SOURCE;
+    failure: 'realm-create-agent-failed' | 'realm-create-agent-missing-canonical-id';
+    message: string;
+  };
+
 function readOptionalString(record: Record<string, unknown>, key: string): string | undefined {
   const value = record[key];
   return typeof value === 'string' && value.trim() ? value : undefined;
+}
+
+export function buildRealmCreateAgentInput(payload: ReviewedCreateRealmAgentPayload): RealmCreateAgentInput {
+  const body = payload.body;
+  return {
+    handle: body.handle,
+    displayName: body.displayName,
+    worldId: body.worldId,
+    concept: body.concept,
+    ownershipType: 'MASTER_OWNED',
+    ...(body.description ? { description: body.description } : {}),
+    ...(body.rules
+      ? {
+        rules: {
+          format: 'rule-lines-v1',
+          lines: [...body.rules.lines],
+          text: body.rules.text,
+        },
+      }
+      : {}),
+  };
+}
+
+export function normalizeRealmAgentCreateResult(agent: RealmCreateAgentResponse): RealmAgentCreateResult {
+  if (!agent || typeof agent !== 'object') {
+    return {
+      ok: false,
+      source: REALM_AGENT_CREATE_SOURCE,
+      failure: 'realm-create-agent-missing-canonical-id',
+      message: 'Realm Create Agent returned no agent object.',
+    };
+  }
+
+  const record = agent as Record<string, unknown>;
+  const id = readOptionalString(record, 'id');
+  if (!id) {
+    return {
+      ok: false,
+      source: REALM_AGENT_CREATE_SOURCE,
+      failure: 'realm-create-agent-missing-canonical-id',
+      message: 'Realm Create Agent returned no canonical agent id.',
+    };
+  }
+
+  const state = readOptionalString(record, 'state');
+  return {
+    ok: true,
+    source: REALM_AGENT_CREATE_SOURCE,
+    agent,
+    canonical: {
+      id,
+      ...(state ? { state } : {}),
+    },
+  };
 }
 
 export function buildRealmCreatePostInput(payload: CandidatePostPayload): RealmCreatePostInput {
@@ -127,6 +204,23 @@ export async function getCreateRealmAgentWorldPreview(
 ): Promise<SelectedWorldPreview> {
   const world = await realm.services.WorldsService.worldControllerGetWorldDetailWithAgents(worldId, 4);
   return normalizeSelectedWorldPreview(world);
+}
+
+export async function createReviewedRealmAgent(
+  payload: ReviewedCreateRealmAgentPayload,
+  realm: Realm = createStudioRealmClient(),
+): Promise<RealmAgentCreateResult> {
+  try {
+    const agent = await realm.services.AgentsService.agentControllerCreate(buildRealmCreateAgentInput(payload));
+    return normalizeRealmAgentCreateResult(agent);
+  } catch (error) {
+    return {
+      ok: false,
+      source: REALM_AGENT_CREATE_SOURCE,
+      failure: 'realm-create-agent-failed',
+      message: error instanceof Error ? error.message : 'Realm Create Agent failed.',
+    };
+  }
 }
 
 export async function publishReviewedPostDraft(

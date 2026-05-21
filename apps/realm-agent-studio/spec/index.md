@@ -28,8 +28,12 @@ route design, or app implementation.
   surface.
 - `GET /api/me/agents/{agentId}` is the Studio canonical my-agents detail
   surface.
+- `POST /api/agent` / `AgentsService.agentControllerCreate` is the Studio
+  owner-scoped Realm Agent create surface.
 - `GET /api/creator/agents` and `GET /api/agent/dev/my-agents` are evidence
-  inputs only and are not Studio canonical surfaces.
+  inputs only and are not Studio canonical surfaces. `/api/creator/agents` is
+  World Creator / Maintainer evidence only and must not be used for owner
+  creation.
 - Top-level `friendCount` is the only admitted first-version owner-visible
   metric field.
 

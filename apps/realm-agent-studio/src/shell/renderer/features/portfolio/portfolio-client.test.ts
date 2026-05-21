@@ -1,16 +1,24 @@
 import type { Realm } from '@nimiplatform/sdk/realm';
 import { describe, expect, it, vi } from 'vitest';
 import {
+  buildRealmCreateAgentInput,
   buildRealmCreatePostInput,
+  createReviewedRealmAgent,
   getCreateRealmAgentWorldPreview,
   getOwnerPortfolioAgentDetail,
   listCreateRealmAgentSelectableWorlds,
   listOwnerPortfolioAgents,
+  normalizeRealmAgentCreateResult,
   normalizeRealmPostPublishResult,
   publishReviewedPostDraft,
 } from './portfolio-client.js';
 import type { MyRealmAgentDto } from './portfolio-data.js';
-import type { RealmAgentCreationWorldDto } from './create-agent-draft.js';
+import {
+  REALM_AGENT_CREATE_PATH,
+  REALM_AGENT_CREATE_SOURCE,
+  type RealmAgentCreationWorldDto,
+  type ReviewedCreateRealmAgentPayload,
+} from './create-agent-draft.js';
 import type { CandidatePostPayload } from './post-draft.js';
 
 const agent: MyRealmAgentDto = {
@@ -54,10 +62,17 @@ const world: RealmAgentCreationWorldDto = {
 function mockRealm() {
   return {
     services: {
-      CreatorService: {
-        creatorControllerCreateAgent: vi.fn(async () => {
-          throw new Error('create must not be called');
-        }),
+      AgentsService: {
+        agentControllerCreate: vi.fn(async () => ({
+          id: 'agent-created-1',
+          state: 'INCUBATING',
+          dna: {},
+          user: {
+            id: 'agent-created-1',
+            handle: 'mira.agent',
+            displayName: 'Mira Agent',
+          },
+        })),
       },
       MeService: {
         listMyRealmAgents: vi.fn(async () => [agent]),
@@ -137,6 +152,32 @@ const candidatePayload: CandidatePostPayload = {
   },
 };
 
+const createPayload: ReviewedCreateRealmAgentPayload = {
+  source: REALM_AGENT_CREATE_SOURCE,
+  path: REALM_AGENT_CREATE_PATH,
+  publicFields: {
+    handle: 'mira.agent',
+    displayName: 'Mira Agent',
+    publicBio: 'Local draft only',
+    concept: 'Durable public Realm Agent',
+    description: 'Owner-created public identity',
+    rulesText: 'Stay visible.\nStay owner-reviewed.',
+  },
+  body: {
+    handle: 'mira.agent',
+    displayName: 'Mira Agent',
+    concept: 'Durable public Realm Agent',
+    description: 'Owner-created public identity',
+    worldId: 'world-oasis',
+    ownershipType: 'MASTER_OWNED',
+    rules: {
+      format: 'rule-lines-v1',
+      lines: ['Stay visible.', 'Stay owner-reviewed.'],
+      text: 'Stay visible.\nStay owner-reviewed.',
+    },
+  },
+};
+
 describe('owner portfolio client', () => {
   it('uses listMyRealmAgents only for portfolio list data', async () => {
     const realm = mockRealm();
@@ -163,7 +204,7 @@ describe('owner portfolio client', () => {
     const worlds = await listCreateRealmAgentSelectableWorlds(realm);
 
     expect(realm.services.WorldsService.worldControllerListWorlds).toHaveBeenCalledTimes(1);
-    expect(realm.services.CreatorService.creatorControllerCreateAgent).not.toHaveBeenCalled();
+    expect(realm.services.AgentsService.agentControllerCreate).not.toHaveBeenCalled();
     expect(worlds[0]).toMatchObject({
       id: 'world-oasis',
       source: 'Realm WorldsService.worldControllerListWorlds',
@@ -175,8 +216,61 @@ describe('owner portfolio client', () => {
     const preview = await getCreateRealmAgentWorldPreview('world-oasis', realm);
 
     expect(realm.services.WorldsService.worldControllerGetWorldDetailWithAgents).toHaveBeenCalledWith('world-oasis', 4);
-    expect(realm.services.CreatorService.creatorControllerCreateAgent).not.toHaveBeenCalled();
+    expect(realm.services.AgentsService.agentControllerCreate).not.toHaveBeenCalled();
     expect(preview.source).toBe('Realm WorldsService.worldControllerGetWorldDetailWithAgents');
+  });
+
+  it('creates a Realm Agent through AgentsService.agentControllerCreate with CreateAgentDto allowlist only', async () => {
+    const realm = mockRealm();
+    const result = await createReviewedRealmAgent(createPayload, realm);
+    const createAgent = realm.services.AgentsService.agentControllerCreate;
+    const submittedPayload = vi.mocked(createAgent).mock.calls[0]?.[0];
+
+    expect(createAgent).toHaveBeenCalledTimes(1);
+    expect(submittedPayload).toEqual(createPayload.body);
+    expect(Object.keys(submittedPayload || {}).sort()).toEqual([
+      'concept',
+      'description',
+      'displayName',
+      'handle',
+      'ownershipType',
+      'rules',
+      'worldId',
+    ]);
+    expect(collectKeys(submittedPayload).has('publicBio')).toBe(false);
+    expect(collectKeys(submittedPayload).has('id')).toBe(false);
+    expect(collectKeys(submittedPayload).has('authorId')).toBe(false);
+    expect(collectKeys(submittedPayload).has('ownerId')).toBe(false);
+    expect(collectKeys(submittedPayload).has('creatorId')).toBe(false);
+    expect(collectKeys(submittedPayload).has('maintainerId')).toBe(false);
+    expect(collectKeys(submittedPayload).has('state')).toBe(false);
+    expect(collectKeys(submittedPayload).has('lifecycle')).toBe(false);
+    expect(collectKeys(submittedPayload).has('provider')).toBe(false);
+    expect(collectKeys(submittedPayload).has('model')).toBe(false);
+    expect(collectKeys(submittedPayload).has('LocalAgent')).toBe(false);
+    expect(collectKeys(submittedPayload).has('dna')).toBe(false);
+    expect(collectKeys(submittedPayload).has('dnaPrimary')).toBe(false);
+    expect(collectKeys(submittedPayload).has('dnaSecondary')).toBe(false);
+    expect(collectKeys(submittedPayload).has('referenceImageUrl')).toBe(false);
+    expect(result).toMatchObject({
+      ok: true,
+      source: REALM_AGENT_CREATE_SOURCE,
+      canonical: {
+        id: 'agent-created-1',
+        state: 'INCUBATING',
+      },
+    });
+  });
+
+  it('does not require or call a Creator service for create reads or writes', async () => {
+    const realm = mockRealm();
+
+    expect(Object.hasOwn(realm.services, 'CreatorService')).toBe(false);
+    await listCreateRealmAgentSelectableWorlds(realm);
+    await getCreateRealmAgentWorldPreview('world-oasis', realm);
+    await createReviewedRealmAgent(createPayload, realm);
+
+    expect(realm.services.AgentsService.agentControllerCreate).toHaveBeenCalledTimes(1);
   });
 
   it('publishes a reviewed post draft through PostsService.createPost without forbidden caller-owned keys', async () => {
@@ -216,6 +310,55 @@ describe('owner portfolio client', () => {
       ok: false,
       failure: 'realm-create-post-missing-canonical-id',
     });
+  });
+
+  it('normalizes Create Agent responses without canonical id as create failure', () => {
+    const result = normalizeRealmAgentCreateResult({} as Awaited<ReturnType<Realm['services']['AgentsService']['agentControllerCreate']>>);
+
+    expect(result).toMatchObject({
+      ok: false,
+      source: REALM_AGENT_CREATE_SOURCE,
+      failure: 'realm-create-agent-missing-canonical-id',
+    });
+  });
+
+  it('builds CreateAgentDto shape from reviewed payload body only', () => {
+    const input = buildRealmCreateAgentInput(createPayload);
+
+    expect(input).toEqual(createPayload.body);
+    expect(collectKeys(input).has('publicFields')).toBe(false);
+    expect(collectKeys(input).has('path')).toBe(false);
+    expect(collectKeys(input).has('source')).toBe(false);
+  });
+
+  it('rebuilds CreateAgentDto from a narrow allowlist and forces MASTER_OWNED at submit boundary', () => {
+    const dirtyPayload = {
+      ...createPayload,
+      body: {
+        ...createPayload.body,
+        ownershipType: 'WORLD_OWNED',
+        dna: { hidden: true },
+        dnaPrimary: 'MYSTERIOUS',
+        dnaSecondary: ['CALM'],
+        referenceImageUrl: 'https://cdn.example.test/reference.png',
+        lifecycle: 'ACTIVE',
+        provider: 'forbidden',
+        model: 'forbidden',
+        ownerId: 'owner-1',
+      },
+    } as unknown as ReviewedCreateRealmAgentPayload;
+    const input = buildRealmCreateAgentInput(dirtyPayload);
+
+    expect(input).toEqual(createPayload.body);
+    expect(input.ownershipType).toBe('MASTER_OWNED');
+    expect(collectKeys(input).has('dna')).toBe(false);
+    expect(collectKeys(input).has('dnaPrimary')).toBe(false);
+    expect(collectKeys(input).has('dnaSecondary')).toBe(false);
+    expect(collectKeys(input).has('referenceImageUrl')).toBe(false);
+    expect(collectKeys(input).has('lifecycle')).toBe(false);
+    expect(collectKeys(input).has('provider')).toBe(false);
+    expect(collectKeys(input).has('model')).toBe(false);
+    expect(collectKeys(input).has('ownerId')).toBe(false);
   });
 
   it('builds CreatePostDto shape from reviewed payload only', () => {

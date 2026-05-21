@@ -1,9 +1,12 @@
-import type { RealmServiceResult } from '@nimiplatform/sdk/realm';
+import type { RealmServiceArgs, RealmServiceResult } from '@nimiplatform/sdk/realm';
 
 export type RealmAgentCreationWorldDto = RealmServiceResult<'WorldsService', 'worldControllerListWorlds'>[number];
 export type RealmAgentCreationWorldDetailDto = RealmServiceResult<'WorldsService', 'worldControllerGetWorldDetailWithAgents'>;
+export type RealmCreateAgentInput = RealmServiceArgs<'AgentsService', 'agentControllerCreate'>[0];
+type RealmCreateAgentRulesInput = NonNullable<RealmCreateAgentInput['rules']>;
 
-export const CREATE_REALM_AGENT_BLOCKED_REASON = 'Missing admitted Studio create write contract for owner-created scope, OASIS defaulting, selected-world detail/rules, and public Realm Agent composition.';
+export const REALM_AGENT_CREATE_SOURCE = 'Realm AgentsService.agentControllerCreate';
+export const REALM_AGENT_CREATE_PATH = 'POST /api/agent';
 
 export type CreateRealmAgentDraftInput = {
   handle: string;
@@ -50,11 +53,19 @@ export type SelectedWorldPreview = {
   source: 'Realm WorldsService.worldControllerGetWorldDetailWithAgents';
 };
 
-export type CandidateCreateRealmAgentPayload = {
-  candidate: true;
-  source: 'realm-agent-studio.local-create-agent-draft';
-  blocked: true;
-  blockedReason: typeof CREATE_REALM_AGENT_BLOCKED_REASON;
+export type ReviewedRealmCreateAgentInput = {
+  handle: string;
+  displayName: string;
+  worldId: string;
+  concept: string;
+  ownershipType: 'MASTER_OWNED';
+  description?: string;
+  rules?: RealmCreateAgentRulesInput;
+};
+
+export type ReviewedCreateRealmAgentPayload = {
+  source: typeof REALM_AGENT_CREATE_SOURCE;
+  path: typeof REALM_AGENT_CREATE_PATH;
   publicFields: {
     handle: string;
     displayName: string;
@@ -63,33 +74,26 @@ export type CandidateCreateRealmAgentPayload = {
     description?: string;
     rulesText?: string;
   };
-  realmCreateAgentCandidate: {
-    handle: string;
-    displayName: string;
-    worldId: string;
-    concept: string;
-    description?: string;
-    rules?: {
-      format: 'rule-lines-v1';
-      lines: string[];
-      text: string;
-    };
-  };
+  body: ReviewedRealmCreateAgentInput;
 };
 
 export type CreateRealmAgentReadiness =
   | {
     ready: false;
     errors: string[];
-    blockedReason: typeof CREATE_REALM_AGENT_BLOCKED_REASON;
+    source: typeof REALM_AGENT_CREATE_SOURCE;
     payload: null;
   }
   | {
     ready: true;
     errors: [];
-    blockedReason: typeof CREATE_REALM_AGENT_BLOCKED_REASON;
-    payload: CandidateCreateRealmAgentPayload;
+    source: typeof REALM_AGENT_CREATE_SOURCE;
+    payload: ReviewedCreateRealmAgentPayload;
   };
+
+export type CreateRealmAgentReadinessOptions = {
+  selectableWorldIds?: string[];
+};
 
 function readRecord(value: unknown): Record<string, unknown> | null {
   return value && typeof value === 'object' ? value as Record<string, unknown> : null;
@@ -167,9 +171,15 @@ export function normalizeSelectedWorldPreview(world: RealmAgentCreationWorldDeta
   };
 }
 
-export function validateCreateRealmAgentReadiness(input: CreateRealmAgentDraftInput): CreateRealmAgentReadiness {
+export function validateCreateRealmAgentReadiness(
+  input: CreateRealmAgentDraftInput,
+  options: CreateRealmAgentReadinessOptions = {},
+): CreateRealmAgentReadiness {
   const draft = normalizeCreateRealmAgentDraft(input);
   const errors: string[] = [];
+  const selectableWorldIds = options.selectableWorldIds
+    ? new Set(options.selectableWorldIds.map((worldId) => worldId.trim()).filter(Boolean))
+    : null;
 
   if (!draft.handle) {
     errors.push('handle missing');
@@ -183,25 +193,37 @@ export function validateCreateRealmAgentReadiness(input: CreateRealmAgentDraftIn
   if (!draft.selectedWorldId) {
     errors.push('selected world missing');
   }
+  if (draft.selectedWorldId && selectableWorldIds && !selectableWorldIds.has(draft.selectedWorldId)) {
+    errors.push('selected world not source-backed by WorldsService.worldControllerListWorlds');
+  }
 
   if (errors.length > 0) {
     return {
       ready: false,
       errors,
-      blockedReason: CREATE_REALM_AGENT_BLOCKED_REASON,
+      source: REALM_AGENT_CREATE_SOURCE,
       payload: null,
     };
   }
 
+  const ruleLines = normalizeRuleLines(draft.ruleText);
+  const body: ReviewedRealmCreateAgentInput = {
+    handle: draft.handle,
+    displayName: draft.displayName,
+    worldId: draft.selectedWorldId,
+    concept: draft.concept,
+    ownershipType: 'MASTER_OWNED',
+    ...(draft.description ? { description: draft.description } : {}),
+    ...(ruleLines.length > 0 ? { rules: { format: 'rule-lines-v1', lines: ruleLines, text: draft.ruleText } } : {}),
+  };
+
   return {
     ready: true,
     errors: [],
-    blockedReason: CREATE_REALM_AGENT_BLOCKED_REASON,
+    source: REALM_AGENT_CREATE_SOURCE,
     payload: {
-      candidate: true,
-      source: 'realm-agent-studio.local-create-agent-draft',
-      blocked: true,
-      blockedReason: CREATE_REALM_AGENT_BLOCKED_REASON,
+      source: REALM_AGENT_CREATE_SOURCE,
+      path: REALM_AGENT_CREATE_PATH,
       publicFields: {
         handle: draft.handle,
         displayName: draft.displayName,
@@ -210,14 +232,7 @@ export function validateCreateRealmAgentReadiness(input: CreateRealmAgentDraftIn
         ...(draft.description ? { description: draft.description } : {}),
         ...(draft.ruleText ? { rulesText: draft.ruleText } : {}),
       },
-      realmCreateAgentCandidate: {
-        handle: draft.handle,
-        displayName: draft.displayName,
-        worldId: draft.selectedWorldId,
-        concept: draft.concept,
-        ...(draft.description ? { description: draft.description } : {}),
-        ...(draft.ruleText ? { rules: { format: 'rule-lines-v1', lines: normalizeRuleLines(draft.ruleText), text: draft.ruleText } } : {}),
-      },
+      body,
     },
   };
 }

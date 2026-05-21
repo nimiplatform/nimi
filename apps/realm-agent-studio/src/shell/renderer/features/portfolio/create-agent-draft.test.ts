@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
-  CREATE_REALM_AGENT_BLOCKED_REASON,
+  REALM_AGENT_CREATE_PATH,
+  REALM_AGENT_CREATE_SOURCE,
   normalizeCreateRealmAgentDraft,
   normalizeSelectableWorlds,
   normalizeSelectedWorldPreview,
@@ -122,16 +123,14 @@ describe('selected world preview normalization', () => {
 });
 
 describe('create Realm Agent readiness', () => {
-  it('returns a blocked candidate payload instead of creation success', () => {
+  it('returns a reviewed owner-scoped CreateAgentDto request payload', () => {
     const result = validateCreateRealmAgentReadiness(baseInput);
 
     expect(result.ready).toBe(true);
-    expect(result.blockedReason).toBe(CREATE_REALM_AGENT_BLOCKED_REASON);
+    expect(result.source).toBe(REALM_AGENT_CREATE_SOURCE);
     expect(result.payload).toEqual({
-      candidate: true,
-      source: 'realm-agent-studio.local-create-agent-draft',
-      blocked: true,
-      blockedReason: CREATE_REALM_AGENT_BLOCKED_REASON,
+      source: REALM_AGENT_CREATE_SOURCE,
+      path: REALM_AGENT_CREATE_PATH,
       publicFields: {
         handle: 'mira.agent',
         displayName: 'Mira Agent',
@@ -140,12 +139,13 @@ describe('create Realm Agent readiness', () => {
         description: 'Owner-created public identity',
         rulesText: 'Stay visible and owner-reviewed.',
       },
-      realmCreateAgentCandidate: {
+      body: {
         handle: 'mira.agent',
         displayName: 'Mira Agent',
         worldId: 'world-oasis',
         concept: 'Durable public Realm Agent',
         description: 'Owner-created public identity',
+        ownershipType: 'MASTER_OWNED',
         rules: {
           format: 'rule-lines-v1',
           lines: ['Stay visible and owner-reviewed.'],
@@ -160,7 +160,15 @@ describe('create Realm Agent readiness', () => {
 
     expect(result.ready).toBe(false);
     expect(result.errors).toEqual(['handle missing', 'concept missing', 'selected world missing']);
-    expect(result.blockedReason).toBe(CREATE_REALM_AGENT_BLOCKED_REASON);
+    expect(result.source).toBe(REALM_AGENT_CREATE_SOURCE);
+    expect(result.payload).toBeNull();
+  });
+
+  it('fails readiness when selected world is not source-backed by the current world list', () => {
+    const result = validateCreateRealmAgentReadiness(baseInput, { selectableWorldIds: ['world-creator'] });
+
+    expect(result.ready).toBe(false);
+    expect(result.errors).toEqual(['selected world not source-backed by WorldsService.worldControllerListWorlds']);
     expect(result.payload).toBeNull();
   });
 });
