@@ -26,9 +26,10 @@ implementation.
 | Story | Required acceptance |
 | --- | --- |
 | Review Agent Portfolio | Owned creator-owned Realm Agents are visible with app-local draft or Realm-created status and source availability. Unavailable metrics are not zero. LocalAgent private state is never exposed. |
-| Create Realm Agent | Creation defaults to `OASIS`, allows any Realm `listWorlds` result by product decision, shows selected-world basic setting from existing world detail before submit, submits owner create only through `AgentsService.agentControllerCreate` / `POST /api/agent`, and succeeds only when Realm returns the canonical created object with `id`. |
-| Update Canonical Setting | Current canonical setting and visible rule content are shown. AI proposals remain editable. Save succeeds only through admitted Realm writes. Private LocalAgent memory is not overwritten. |
-| Review Setting Consistency | Runtime review is advisory. Accepted edits return to normal owner-reviewed save. Runtime does not define Realm truth. |
+| Create Realm Agent | Creation defaults to `OASIS`, allows any Realm `listWorlds` result by product decision, shows selected-world basic setting from existing world detail before submit, collects owner-facing setting intent rather than raw rule CRUD by default, submits owner create only through `AgentsService.agentControllerCreate` / `POST /api/agent`, and succeeds only when Realm returns the canonical created object with `id`. |
+| Update Canonical Setting | Current owner setting values and source-backed canonical rule review are shown. AI proposals remain editable. Default editing is natural language plus structured setting fields, not raw `AgentRule` CRUD. Save succeeds only through admitted Realm writes. Private LocalAgent memory is not overwritten. |
+| Review Setting Consistency | Runtime review is advisory. Accepted edits return to normal owner-reviewed settings save. Runtime does not define Realm truth. |
+| Review Canonical Rule Truth | Canonical `AgentRule` truth may be shown for review, audit, or expert confirmation. It is not the default owner-facing editing model. |
 | Build Visual Identity | Upload/generated media remains candidate material until owner selection and Realm resource/asset/binding/profile write success. Local preview is not public. |
 | Create Voice Demo Candidate | Runtime routes through canonical `audio.synthesize`; current SDK call path is `media.tts.synthesize`. Voice demo is candidate/sample material, not direct chat or custom voice authority. |
 | Publish As Agent | Agent identity authors the post. Creator does not select a world destination. Create Post rejects caller-owned `worldId`; Realm resolves world context server-side. Post truth remains world-attached. |
@@ -52,6 +53,13 @@ implementation.
 - Owner create surface is `POST /api/agent` through
   `AgentsService.agentControllerCreate`. `/api/creator/agents` is
   World Creator / Maintainer evidence only and is not an owner create path.
+- Owner-facing setting save direction is a canonical owner-scoped Realm
+  settings/truth ingress that compiles or derives canonical `AgentRule` truth
+  writes. That ingress direction is required product authority even where the
+  exact backend admission remains a gap.
+- `AgentRulesService` raw rule CRUD surfaces are world-scoped
+  (`/api/world/by-id/{worldId}/agents/{agentId}/rules...`) and must not be
+  reused as the default owner save path for Studio settings.
 - `GET /api/world` / `listWorlds` exists as a Realm read surface. Product
   decision is that all returned worlds are selectable; admission needs citation
   to the existing SDK surface rather than a new selectable-world decision.

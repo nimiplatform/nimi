@@ -11,6 +11,25 @@ updated: 2026-05-21
 Studio may show only source-backed owner-visible signals. Unavailable source is
 a product state, not zero.
 
+## Owner Setting Save Direction
+
+Owner-facing settings are not admitted as default raw `AgentRule` CRUD. The
+settled product direction is owner settings input, proposal, and review, with
+`AgentRule` retained as canonical Realm truth and expert/audit semantics.
+
+Current Realm source evidence shows world-scoped raw rule CRUD on
+`AgentRulesService`:
+
+- `POST /api/world/by-id/{worldId}/agents/{agentId}/rules`
+  (`sdk/src/realm/generated/operation-map.ts:97` to `:115`);
+- `PATCH /api/world/by-id/{worldId}/agents/{agentId}/rules/{ruleId}`
+  (`sdk/src/realm/generated/operation-map.ts:209` to `:220`).
+
+Those world-scoped rule operations must not be reused as the Studio default
+owner save path. The remaining Realm/app gap is a canonical owner-scoped
+settings/truth ingress that accepts owner setting intent and compiles or
+derives canonical truth writes.
+
 ## friendCount
 
 `friendCount` / 好友数 is the only first-version eligible metric and is now

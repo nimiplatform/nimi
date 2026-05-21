@@ -32,6 +32,22 @@ not as an app-local `RealmAgent` table. The product object is composed from:
   are ordinary Friendship rows (`.nimi/spec/realm/kernel/social-contract.md:34`
   to `:52`).
 
+## Truth Anchor And Editing Semantics
+
+`AgentRule` remains the canonical Realm truth anchor for owner-created agent
+behavior and policy (`.nimi/spec/realm/kernel/truth-contract.md:31` to `:33`).
+Studio does not promote explicit raw `AgentRule` CRUD to the default owner UX.
+The default owner-facing model is owner settings input, proposal, review, and
+acceptance. Raw rule text, lines, and rule objects may be shown for review,
+audit, replay, or expert confirmation where source-backed.
+
+Accepted owner edits must eventually flow through a canonical owner-scoped
+Realm settings/truth ingress that derives or compiles canonical truth writes.
+Current `AgentRulesService` rule operations are world-scoped
+(`/api/world/by-id/{worldId}/agents/{agentId}/rules...`) and must not be
+reused as the Studio default owner save path
+(`sdk/src/realm/generated/operation-map.ts:97` to `:115`; `:209` to `:220`).
+
 ## Owner Boundary
 
 Realm Agent Studio manages creator-owned public Realm Agents only. Current DTO
@@ -67,7 +83,9 @@ Realm Agent Studio must not define a Realm Agent lifecycle state machine. A
 local draft can exist before Realm creation, but creation succeeds only after
 Realm creates the composed source entity. After creation, the first Studio
 version supports update operations only through separately admitted owner update
-writes.
+writes. The intended owner update direction is owner-scoped settings/truth
+ingress that compiles or derives canonical truth writes; raw world-scoped rule
+CRUD is not that owner update model.
 
 Current generated Realm DTO evidence exposes `AgentState` as
 `INCUBATING | READY | ACTIVE | SUSPENDED | FAILED`
@@ -108,11 +126,15 @@ Studio owner create admission:
   `POST /api/agent`.
 - The submitted body is a `CreateAgentDto` owner allowlist: `handle`,
   `displayName`, `concept`, optional `description`, `worldId`, optional visible
-  `rules` as `CreateAgentRulesDto`, and `ownershipType: MASTER_OWNED`.
+  `rules` as `CreateAgentRulesDto` only when derived from accepted owner
+  settings input, and `ownershipType: MASTER_OWNED`.
 - Studio must not submit `WORLD_OWNED`, creator/maintainer fields, lifecycle,
   provider/model, LocalAgent, fake state, id, author/owner ids, hidden
   personality/worldview fields, `dna`, `dnaPrimary`, `dnaSecondary`, or
   `referenceImageUrl` in this create path.
+- Studio create UX is owner setting input first. Raw `CreateAgentRulesDto`
+  editing/review may exist as expert semantics, but it is not the default
+  owner-facing model.
 - `OASIS` defaulting and world selection remain source-backed by
   `WorldsService.worldControllerListWorlds`; selected-world preview remains
   `WorldsService.worldControllerGetWorldDetailWithAgents`.

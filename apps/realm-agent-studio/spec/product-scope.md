@@ -29,8 +29,9 @@ owner-created agents.
   selection from any Realm `listWorlds` result by product decision,
   selected-world basic setting preview from existing world detail, and visible
   public fields before submit.
-- Update canonical public setting through natural language and direct field
-  editing, with visible rule content and a field-layer map.
+- Update canonical public setting through owner settings input: natural
+  language, structured setting fields, AI proposal/review, and source-backed
+  canonical rule review where available.
 - Generate or upload visual/media candidates, keep app-local preview/history
   only, and mark assets public only after Realm write succeeds.
 - Generate voice-demo candidates through Runtime `audio.synthesize` when the
@@ -52,6 +53,7 @@ owner-created agents.
 - Forge `agentBlueprint` provenance or package-to-RealmAgent import mapping.
 - World transfer.
 - Team collaboration, invited editors, shared operation, or workspace roles.
+- Explicit raw `AgentRule` CRUD as the default owner-facing editing model.
 - Setting version history, rollback, diff impact attribution, and productized
   notification to existing LocalAgent forks.
 - Campaign calendars, recurring schedules, auto queues, bulk automation, and
@@ -67,6 +69,17 @@ campaign truth.
 
 AI is embedded inside concrete owner workflows. AI output is draft or candidate
 material until the owner accepts it and the relevant Realm write succeeds.
+
+`AgentRule` remains the canonical Realm truth anchor for owner-created agent
+behavior and policy. Studio does not make explicit raw `AgentRule` editing the
+default owner UX. The default owner model is settings input, proposal, review,
+and acceptance; raw rule text/lines are review, audit, or expert semantics when
+shown.
+
+Accepted owner setting edits must eventually flow through a canonical
+owner-scoped Realm ingress that derives or compiles canonical truth writes.
+Studio must not reuse `AgentRulesService` world-scoped `/api/world/.../rules`
+CRUD semantics as the default owner save path.
 
 Public success requires the authoritative operation to succeed. Local draft
 save, local asset preview, AI generation, and local schedule creation are never
