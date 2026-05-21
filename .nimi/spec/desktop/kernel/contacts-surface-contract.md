@@ -199,6 +199,17 @@ projection 删除必须经 admitted 上游路径（Realm 社交 admission +
 `TerminateAgent`）完成；删除是 idempotent 的，重复触发或重试不得产生
 不一致的 dangling LocalAgent 或 dangling AgentFriend。
 
+`NOTE`（clarity，不改变上面的转移语义）：AgentFriend 删除与 LocalAgent
+projection 删除的联动是 *eventually* 收敛的，不是 synchronous 的。Realm
+社交 admission 路径同步删除 `Friendship` 行并在同一事务内写入一条 durable
+`LocalAgentTerminationIntent`；该 intent 与 desktop courier 的机制由
+Realm `R-SOC-008` 定义。LocalAgent projection 的实际终止由 courier 将
+`TerminateAgent` 投递到本机 loopback runtime 后完成。因此
+`friend → not_friend` 转移与 `tables/realm-agent-friend-actions.yaml` 中该
+guard 表达的 LocalAgent 删除应被理解为经 durable intent + courier 收敛，
+而不是后端到 runtime 的同步调用。这是 declared-authority 澄清，不引入
+新的转移或新的 Contacts 行为。
+
 `MUST NOT`：Contacts 不得只删除一侧 —— 不得移除 AgentFriend 而保留
 orphan LocalAgent，也不得删除 LocalAgent 而保留 dangling AgentFriend。
 one-to-one 关系在 Contacts 的移除动作下必须成对失效。

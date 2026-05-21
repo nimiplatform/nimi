@@ -5,6 +5,7 @@ authority_refs:
   - D-EXPL-006
   - D-EXPL-007
   - R-SOC-007
+  - R-SOC-008
 states:
   - state: not_friend
     description: Current account has no AgentFriend relation with this RealmAgent. Primary action is Add friend.
@@ -29,7 +30,7 @@ transitions:
     guard: AgentFriend request is approved; the idempotent LocalAgent projection is created.
   - from: friend
     to: not_friend
-    guard: AgentFriend is removed; the one-to-one LocalAgent projection is deleted.
+    guard: AgentFriend is removed; the one-to-one LocalAgent projection is deleted. The Friendship deletion is synchronous, but the LocalAgent projection deletion converges eventually through the durable LocalAgentTerminationIntent and the desktop courier defined by R-SOC-008, not as a synchronous backend-to-runtime call.
   - from: limit_reached
     to: not_friend
     guard: User removes another AgentFriend, freeing quota for this RealmAgent.
