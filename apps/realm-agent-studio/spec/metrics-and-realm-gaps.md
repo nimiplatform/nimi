@@ -30,6 +30,13 @@ owner save path. The remaining Realm/app gap is a canonical owner-scoped
 settings/truth ingress that accepts owner setting intent and compiles or
 derives canonical truth writes.
 
+Owner-facing canonical rule review has a separate read-side gap. Public Realm
+truth projections expose aggregates only and must not expose `AgentRule`
+content (`.nimi/spec/realm/kernel/truth-contract.md:55` to `:57`). Studio must
+not reuse world-scoped `AgentRulesService` reads as the default review path.
+Raw rule review remains deferred until Realm admits a dedicated owner-scoped
+rule-content read surface.
+
 ## friendCount
 
 `friendCount` / 好友数 is the only first-version eligible metric and is now

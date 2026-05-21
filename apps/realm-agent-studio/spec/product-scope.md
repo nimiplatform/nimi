@@ -30,8 +30,8 @@ owner-created agents.
   selected-world basic setting preview from existing world detail, and visible
   public fields before submit.
 - Update canonical public setting through owner settings input: natural
-  language, structured setting fields, AI proposal/review, and source-backed
-  canonical rule review where available.
+  language, structured setting fields, AI proposal/review, and canonical rule
+  review only when an admitted owner-scoped rule-content read surface exists.
 - Generate or upload visual/media candidates, keep app-local preview/history
   only, and mark assets public only after Realm write succeeds.
 - Generate voice-demo candidates through Runtime `audio.synthesize` when the
@@ -73,8 +73,8 @@ material until the owner accepts it and the relevant Realm write succeeds.
 `AgentRule` remains the canonical Realm truth anchor for owner-created agent
 behavior and policy. Studio does not make explicit raw `AgentRule` editing the
 default owner UX. The default owner model is settings input, proposal, review,
-and acceptance; raw rule text/lines are review, audit, or expert semantics when
-shown.
+and acceptance; raw rule text/lines are review, audit, or expert semantics only
+after an admitted owner-scoped rule-content read surface exists.
 
 Accepted owner setting edits must eventually flow through a canonical
 owner-scoped Realm ingress that derives or compiles canonical truth writes.

@@ -39,7 +39,9 @@ behavior and policy (`.nimi/spec/realm/kernel/truth-contract.md:31` to `:33`).
 Studio does not promote explicit raw `AgentRule` CRUD to the default owner UX.
 The default owner-facing model is owner settings input, proposal, review, and
 acceptance. Raw rule text, lines, and rule objects may be shown for review,
-audit, replay, or expert confirmation where source-backed.
+audit, replay, or expert confirmation only after Realm admits a dedicated
+owner-scoped rule-content read surface. Public projections expose aggregates
+only and must not be reused as rule-content review authority.
 
 Accepted owner edits must eventually flow through a canonical owner-scoped
 Realm settings/truth ingress that derives or compiles canonical truth writes.
