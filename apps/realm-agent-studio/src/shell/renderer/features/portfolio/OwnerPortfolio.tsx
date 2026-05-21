@@ -16,6 +16,7 @@ import {
   getAgentVisibilitySettings,
   listOwnerPortfolioAgents,
   createReviewedPostTextResource,
+  listReadyPostAttachmentResources,
   publishReviewedPostDraft,
   selectReviewedAgentAvatarUrl,
   synthesizeReviewedVoiceDemo,
@@ -30,6 +31,7 @@ import {
   type RealmPostPublishResult,
   type RealmTextResourceCreateResult,
   type RuntimeVoiceDemoSynthesisResult,
+  type PostAttachmentResourceOption,
 } from './portfolio-client.js';
 import {
   ATTACHMENT_TARGET_TYPES,
@@ -733,6 +735,9 @@ function CreativePostWorkspace({ agent }: { agent: OwnerPortfolioAgentDetail }) 
   const [isPublishing, setIsPublishing] = useState(false);
   const [textResourceResult, setTextResourceResult] = useState<RealmTextResourceCreateResult | null>(null);
   const [isCreatingTextResource, setIsCreatingTextResource] = useState(false);
+  const [resourceOptions, setResourceOptions] = useState<PostAttachmentResourceOption[]>([]);
+  const [resourceListStatus, setResourceListStatus] = useState<{ tone: 'info' | 'success' | 'warning' | 'danger'; message: string } | null>(null);
+  const [isLoadingResources, setIsLoadingResources] = useState(false);
   const [scheduleInput, setScheduleInput] = useState<LocalPostScheduleInput>(() => createEmptyLocalPostScheduleInput());
   const [schedulePreview, setSchedulePreview] = useState<LocalPostScheduleCandidate | null>(null);
   const [scheduleErrors, setScheduleErrors] = useState<string[]>([]);
@@ -747,6 +752,9 @@ function CreativePostWorkspace({ agent }: { agent: OwnerPortfolioAgentDetail }) 
     setIsPublishing(false);
     setTextResourceResult(null);
     setIsCreatingTextResource(false);
+    setResourceOptions([]);
+    setResourceListStatus(null);
+    setIsLoadingResources(false);
     setScheduleInput(createEmptyLocalPostScheduleInput());
     setSchedulePreview(null);
     setScheduleErrors([]);
@@ -758,6 +766,7 @@ function CreativePostWorkspace({ agent }: { agent: OwnerPortfolioAgentDetail }) 
     setPayloadPreview(null);
     setPublishResult(null);
     setTextResourceResult(null);
+    setResourceListStatus(null);
     setSchedulePreview(null);
     setScheduleErrors([]);
   }
@@ -814,6 +823,42 @@ function CreativePostWorkspace({ agent }: { agent: OwnerPortfolioAgentDetail }) 
     } finally {
       setIsCreatingTextResource(false);
     }
+  }
+
+  async function loadReadyResources() {
+    setIsLoadingResources(true);
+    setResourceListStatus(null);
+    try {
+      const resources = await listReadyPostAttachmentResources();
+      setResourceOptions(resources);
+      setResourceListStatus(resources.length > 0
+        ? { tone: 'success', message: `Loaded ${resources.length} READY Resource attachment option${resources.length === 1 ? '' : 's'}.` }
+        : { tone: 'warning', message: 'No READY Resource attachment options were returned by Realm ResourcesService.listResources.' });
+    } catch (error) {
+      setResourceOptions([]);
+      setResourceListStatus({
+        tone: 'danger',
+        message: error instanceof Error ? error.message : 'Realm ResourcesService.listResources failed.',
+      });
+    } finally {
+      setIsLoadingResources(false);
+    }
+  }
+
+  function selectReadyResource(resourceId: string) {
+    const resource = resourceOptions.find((option) => option.id === resourceId);
+    if (!resource) {
+      return;
+    }
+    updateDraft({
+      attachmentEnabled: true,
+      attachmentTargetType: 'RESOURCE',
+      attachmentTargetId: resource.id,
+    });
+    setResourceListStatus({
+      tone: 'info',
+      message: `Selected READY Resource(${resource.resourceType}) ${resource.id} for the canonical attachment envelope.`,
+    });
   }
 
   return (
@@ -879,6 +924,32 @@ function CreativePostWorkspace({ agent }: { agent: OwnerPortfolioAgentDetail }) 
                   />
                 </FieldShell>
               </div>
+              <div className="mt-3 grid gap-3 md:grid-cols-[220px_1fr]">
+                <div className="flex items-end">
+                  <Button disabled={isLoadingResources} loading={isLoadingResources} onClick={() => void loadReadyResources()}>
+                    Load ready Resources
+                  </Button>
+                </div>
+                <FieldShell label="READY Resource picker" message="Uses ResourcesService.listResources, then locally filters READY Resource targets. It does not create Binding or profile asset truth.">
+                  <SelectField
+                    disabled={resourceOptions.length === 0}
+                    value={draft.attachmentTargetType === 'RESOURCE' ? draft.attachmentTargetId : ''}
+                    options={[
+                      { value: '', label: resourceOptions.length === 0 ? 'No READY Resources loaded' : 'Select READY Resource' },
+                      ...resourceOptions.map((resource) => ({
+                        value: resource.id,
+                        label: `${resource.resourceType} · ${resource.label}`,
+                      })),
+                    ]}
+                    onValueChange={selectReadyResource}
+                  />
+                </FieldShell>
+              </div>
+              {resourceListStatus ? (
+                <InlineAlert tone={resourceListStatus.tone}>
+                  {resourceListStatus.message}
+                </InlineAlert>
+              ) : null}
             </Surface>
             <Surface tone="card" padding="md">
               <div className="flex flex-wrap items-center justify-between gap-3">

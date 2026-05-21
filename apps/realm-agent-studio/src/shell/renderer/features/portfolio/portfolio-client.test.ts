@@ -18,6 +18,8 @@ import {
   normalizeRealmAgentCreateResult,
   normalizeRealmPostPublishResult,
   normalizeRealmTextResourceCreateResult,
+  normalizePostAttachmentResourceOptions,
+  listReadyPostAttachmentResources,
   publishReviewedPostDraft,
   selectReviewedAgentAvatarUrl,
   synthesizeReviewedVoiceDemo,
@@ -142,6 +144,44 @@ function mockRealm() {
         })),
       },
       ResourcesService: {
+        listResources: vi.fn(async () => ({
+          items: [
+            {
+              id: 'resource-text-1',
+              resourceType: 'TEXT',
+              provider: 'S3_OBJECT',
+              status: 'READY',
+              storageRef: 'text/user-1/resource-text-1.txt',
+              mimeType: 'text/plain; charset=utf-8',
+              provenance: 'UPLOADED',
+              uploaderAccountId: 'user-1',
+              controllerKind: 'ACCOUNT',
+              controllerId: 'user-1',
+              deliveryAccess: 'SIGNED',
+              agentId: 'agent-1',
+              label: 'Reviewed post text for @mira',
+              tags: ['studio'],
+              title: 'Published caption',
+              createdAt: '2026-05-21T00:00:00.000Z',
+              updatedAt: '2026-05-21T00:00:00.000Z',
+            },
+            {
+              id: 'resource-pending-image',
+              resourceType: 'IMAGE',
+              provider: 'CF_IMAGE',
+              status: 'PENDING',
+              storageRef: 'image/user-1/pending',
+              provenance: 'UPLOADED',
+              uploaderAccountId: 'user-1',
+              controllerKind: 'ACCOUNT',
+              controllerId: 'user-1',
+              deliveryAccess: 'SIGNED',
+              tags: [],
+              createdAt: '2026-05-21T00:00:00.000Z',
+              updatedAt: '2026-05-21T00:00:00.000Z',
+            },
+          ],
+        })),
         createTextResource: vi.fn(async () => ({
           id: 'resource-text-1',
           resourceType: 'TEXT',
@@ -606,6 +646,53 @@ describe('owner portfolio client', () => {
         deliveryAccess: 'SIGNED',
       },
     });
+  });
+
+  it('lists READY Resource attachment options without treating non-ready resources as publishable', async () => {
+    const realm = mockRealm();
+    const resources = await listReadyPostAttachmentResources(realm);
+
+    expect(realm.services.ResourcesService.listResources).toHaveBeenCalledTimes(1);
+    expect(resources).toEqual([{
+      id: 'resource-text-1',
+      resourceType: 'TEXT',
+      status: 'READY',
+      label: 'Published caption',
+      deliveryAccess: 'SIGNED',
+      source: 'Realm ResourcesService.listResources',
+    }]);
+    expect(Object.hasOwn(realm.services, 'CreatorService')).toBe(false);
+  });
+
+  it('normalizes Resource attachment options from READY resources only', () => {
+    expect(normalizePostAttachmentResourceOptions({
+      items: [
+        { id: 'resource-ready-image', resourceType: 'IMAGE', status: 'READY', title: 'Ready portrait' },
+        { id: 'resource-ready-video', resourceType: 'VIDEO', status: 'READY', label: 'Ready trailer' },
+        { id: 'resource-ready-audio', resourceType: 'AUDIO', status: 'READY', storageRef: 'audio/user-1/ready.mp3' },
+        { id: 'resource-pending-video', resourceType: 'VIDEO', status: 'PENDING', title: 'Pending video' },
+        { id: 'resource-deleted-audio', resourceType: 'AUDIO', status: 'DELETED', title: 'Deleted audio' },
+        { id: 'resource-unknown', resourceType: 'VOICE', status: 'READY', title: 'Unknown type' },
+      ],
+    } as Awaited<ReturnType<Realm['services']['ResourcesService']['listResources']>>)).toEqual([{
+      id: 'resource-ready-image',
+      resourceType: 'IMAGE',
+      status: 'READY',
+      label: 'Ready portrait',
+      source: 'Realm ResourcesService.listResources',
+    }, {
+      id: 'resource-ready-video',
+      resourceType: 'VIDEO',
+      status: 'READY',
+      label: 'Ready trailer',
+      source: 'Realm ResourcesService.listResources',
+    }, {
+      id: 'resource-ready-audio',
+      resourceType: 'AUDIO',
+      status: 'READY',
+      label: 'audio/user-1/ready.mp3',
+      source: 'Realm ResourcesService.listResources',
+    }]);
   });
 
   it('fails closed before text Resource creation when reviewed caption content is missing', async () => {

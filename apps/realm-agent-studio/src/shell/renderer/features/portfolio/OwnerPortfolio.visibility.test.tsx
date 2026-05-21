@@ -34,7 +34,56 @@ vi.mock('./portfolio-client.js', async (importOriginal) => {
         deliveryAccess: 'SIGNED',
       },
     })),
+    listReadyPostAttachmentResources: vi.fn(async () => [{
+      id: 'resource-ready-ui',
+      resourceType: 'IMAGE',
+      status: 'READY',
+      label: 'Ready image',
+      deliveryAccess: 'SIGNED',
+      source: 'Realm ResourcesService.listResources',
+    }]),
     updateReviewedAgentVisibility: vi.fn(),
+  };
+});
+
+vi.mock('@nimiplatform/nimi-kit/ui', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@nimiplatform/nimi-kit/ui')>();
+  return {
+    ...actual,
+    SelectField: ({
+      options,
+      value,
+      disabled,
+      onValueChange,
+      onChange,
+      placeholder,
+      ...props
+    }: {
+      options: Array<{ value: string; label: React.ReactNode; disabled?: boolean }>;
+      value?: string;
+      disabled?: boolean;
+      onValueChange?: (value: string) => void;
+      onChange?: (event: { target: { value: string }; currentTarget: { value: string } }) => void;
+      placeholder?: string;
+      [key: string]: unknown;
+    }) => (
+      <select
+        aria-label={typeof placeholder === 'string' ? placeholder : undefined}
+        disabled={disabled}
+        value={value || ''}
+        onChange={(event) => {
+          onValueChange?.(event.currentTarget.value);
+          onChange?.({ target: { value: event.currentTarget.value }, currentTarget: { value: event.currentTarget.value } });
+        }}
+        {...props}
+      >
+        {options.map((option) => (
+          <option key={option.value} value={option.value} disabled={option.disabled}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+    ),
   };
 });
 
@@ -146,6 +195,20 @@ function findFieldByPlaceholder<TElement extends HTMLInputElement | HTMLTextArea
   return field as TElement;
 }
 
+function findSelectByLabel(label: string): HTMLSelectElement {
+  const labels = Array.from(document.querySelectorAll('label'));
+  const labelElement = labels.find((candidate) => candidate.textContent?.includes(label));
+  if (!labelElement) {
+    throw new Error(`Label not found: ${label}`);
+  }
+  const wrapper = labelElement.closest('div');
+  const field = wrapper?.querySelector('select');
+  if (!(field instanceof HTMLSelectElement)) {
+    throw new Error(`Select not found for label: ${label}`);
+  }
+  return field;
+}
+
 async function changeField(field: HTMLInputElement | HTMLTextAreaElement, value: string) {
   await act(async () => {
     const prototype = field instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
@@ -222,5 +285,38 @@ describe('OwnerPortfolio visibility settings UI', () => {
     expect(portfolioClient.createReviewedPostTextResource).toHaveBeenCalledTimes(1);
     expect(findFieldByPlaceholder<HTMLInputElement>('resource, asset, or bundle target').value).toBe('resource-text-ui');
     expect(document.body.textContent).toContain('RESOURCE + resourceId');
+  });
+
+  it('loads owner READY Resource attachment options from Realm', async () => {
+    await renderOwnerPortfolio();
+    await waitForText('Creative post candidate');
+
+    await act(async () => {
+      findButtonByText('Load ready Resources').click();
+    });
+
+    await waitForText('Loaded 1 READY Resource attachment option.');
+    expect(portfolioClient.listReadyPostAttachmentResources).toHaveBeenCalledTimes(1);
+    expect(document.body.textContent).toContain('Uses ResourcesService.listResources');
+    expect(document.body.textContent).toContain('does not create Binding or profile asset truth');
+  });
+
+  it('selects a READY Resource option into the post attachment envelope', async () => {
+    await renderOwnerPortfolio();
+    await waitForText('Creative post candidate');
+
+    await act(async () => {
+      findButtonByText('Load ready Resources').click();
+    });
+    await waitForText('Loaded 1 READY Resource attachment option.');
+
+    const picker = findSelectByLabel('READY Resource picker');
+    await act(async () => {
+      picker.value = 'resource-ready-ui';
+      picker.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+
+    expect(findFieldByPlaceholder<HTMLInputElement>('resource, asset, or bundle target').value).toBe('resource-ready-ui');
+    expect(document.body.textContent).toContain('Selected READY Resource(IMAGE) resource-ready-ui');
   });
 });

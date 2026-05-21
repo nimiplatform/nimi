@@ -36,9 +36,11 @@ type RealmCreatePostInput = Parameters<Realm['services']['PostsService']['create
 type RealmCreatePostResponse = Awaited<ReturnType<Realm['services']['PostsService']['createPost']>>;
 type RealmCreateTextResourceInput = Parameters<Realm['services']['ResourcesService']['createTextResource']>[0];
 type RealmCreateTextResourceResponse = Awaited<ReturnType<Realm['services']['ResourcesService']['createTextResource']>>;
+type RealmResourceListResponse = Awaited<ReturnType<Realm['services']['ResourcesService']['listResources']>>;
 
 export const REALM_POST_PUBLISH_SOURCE = 'Realm PostsService.createPost';
 export const REALM_TEXT_RESOURCE_SOURCE = 'Realm ResourcesService.createTextResource';
+export const REALM_RESOURCE_LIST_SOURCE = 'Realm ResourcesService.listResources';
 export const REALM_AGENT_AVATAR_SELECT_SOURCE = 'Realm AgentsService.agentControllerSelectAvatar';
 export const REALM_AGENT_VISIBILITY_SOURCE = 'Realm AgentsService.agentControllerUpdateVisibility';
 export const AGENT_VISIBILITY_VALUES = ['PUBLIC', 'FRIENDS', 'PRIVATE'] as const;
@@ -107,6 +109,15 @@ export type RealmTextResourceCreateResult =
     message: string;
     submitted: RealmCreateTextResourceInput | null;
   };
+
+export type PostAttachmentResourceOption = {
+  id: string;
+  resourceType: 'IMAGE' | 'VIDEO' | 'AUDIO' | 'TEXT';
+  status: 'READY';
+  label: string;
+  deliveryAccess?: string;
+  source: typeof REALM_RESOURCE_LIST_SOURCE;
+};
 
 export type RealmAgentCreateCanonicalFields = {
   id: string;
@@ -214,6 +225,10 @@ function normalizeAvatarUrl(value: string): string | null {
   } catch {
     return null;
   }
+}
+
+function isPostAttachmentResourceType(value: string): value is PostAttachmentResourceOption['resourceType'] {
+  return value === 'IMAGE' || value === 'VIDEO' || value === 'AUDIO' || value === 'TEXT';
 }
 
 function isAgentVisibilityValue(value: string): value is AgentVisibilityValue {
@@ -407,6 +422,39 @@ export function buildRealmCreatePostInput(payload: CandidatePostPayload): RealmC
 function normalizeResourceTitle(value: string): string {
   const normalized = value.replace(/\s+/g, ' ').trim();
   return normalized.length > 80 ? `${normalized.slice(0, 77)}...` : normalized;
+}
+
+export function normalizePostAttachmentResourceOptions(response: RealmResourceListResponse): PostAttachmentResourceOption[] {
+  const items = response && typeof response === 'object' && Array.isArray((response as Record<string, unknown>).items)
+    ? (response as { items: unknown[] }).items
+    : [];
+
+  return items.flatMap((item) => {
+    if (!item || typeof item !== 'object') {
+      return [];
+    }
+    const record = item as Record<string, unknown>;
+    const id = readOptionalString(record, 'id');
+    const resourceType = readOptionalString(record, 'resourceType');
+    const status = readOptionalString(record, 'status');
+    if (!id || !resourceType || !isPostAttachmentResourceType(resourceType) || status !== 'READY') {
+      return [];
+    }
+
+    const title = readOptionalString(record, 'title');
+    const label = readOptionalString(record, 'label');
+    const storageRef = readOptionalString(record, 'storageRef');
+    const deliveryAccess = readOptionalString(record, 'deliveryAccess');
+
+    return [{
+      id,
+      resourceType,
+      status,
+      label: title || label || storageRef || id,
+      ...(deliveryAccess ? { deliveryAccess } : {}),
+      source: REALM_RESOURCE_LIST_SOURCE,
+    }];
+  });
 }
 
 export function buildRealmPostTextResourceInput(payload: CandidatePostPayload): RealmCreateTextResourceInput | null {
@@ -673,6 +721,13 @@ export async function publishReviewedPostDraft(
       message: error instanceof Error ? error.message : 'Realm Create Post failed.',
     };
   }
+}
+
+export async function listReadyPostAttachmentResources(
+  realm: Realm = createStudioRealmClient(),
+): Promise<PostAttachmentResourceOption[]> {
+  const response = await realm.services.ResourcesService.listResources();
+  return normalizePostAttachmentResourceOptions(response);
 }
 
 export async function createReviewedPostTextResource(
