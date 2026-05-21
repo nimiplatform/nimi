@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState, type ReactElement } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactElement } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { TFunction } from 'i18next';
 import { loadPlatformAIProfileFactoryRows } from '../../../runtime/platform-catalog/index.js';
+import { localRuntime, type LocalRuntimeDeviceProfile } from '../../../runtime/local-runtime/index.js';
 import { desktopBridge, type ProductControlRecordProjection, type ProductControlState } from '@renderer/bridge';
 import { FirstRunFinalization } from './first-run-finalization.js';
 import { selectFactoryAIProfileForFirstRun, type FirstRunInstallLevel } from './install-level-policy.js';
@@ -14,6 +14,34 @@ import {
   type FirstRunMaterializationDependencyProjection,
   type FirstRunMaterializationProjection,
 } from './runtime-materialization.js';
+import {
+  firstRunScreenForState,
+  isPhaseTransient,
+} from './first-run-phase-projection.js';
+import { projectInstallLevelCard } from './first-run-install-level-cards.js';
+import { projectSetupChecklist } from './first-run-setup-checklist.js';
+import { projectDeviceSummary } from './first-run-device-summary.js';
+import { FirstRunWizardChrome } from './first-run-wizard-chrome.js';
+import { PhaseStorage } from './phase-storage.js';
+import { PhaseLocalAi } from './phase-local-ai.js';
+import { PhaseSetup } from './phase-setup.js';
+import { ScreenBlocked, ScreenReady, ScreenRepair } from './screen-terminal.js';
+
+/**
+ * Desktop first-run onboarding wizard.
+ *
+ * This is a pure presentation/projection over the product-control state
+ * machine (cold-start-authority-contract P-COLD-009/014,
+ * tables/first-run-state-machine.yaml). It renders the 12 spec-admitted
+ * `ProductControlState` values as a guided 3-phase wizard plus 3 terminal
+ * screens — see first-run-phase-projection.ts for the mapping. It does NOT
+ * own, add, collapse, or rename any state-machine state, and it never writes
+ * `ready_for_use`: backend admission (P-COLD-016) is the sole authority.
+ *
+ * The component name and the `data-testid="product-first-run-workflow"` /
+ * `data-product-state` contract are preserved for the first-run gate and the
+ * acceptance-evidence tests.
+ */
 
 type ProductControlWorkflowProps = {
   readonly projection: ProductControlRecordProjection | null;
@@ -21,171 +49,155 @@ type ProductControlWorkflowProps = {
 };
 
 /**
- * Spec-admitted product copy floor (first-run-state-machine.yaml). The English
- * default values mirror the spec verbatim; i18n keys under `FirstRun.states.*`
- * carry the localized projections without collapsing the per-state semantics
- * (cold-start-authority-contract P-COLD-014: no generic `ready`/`done`
- * collapse, no enum names as primary copy).
+ * Which product-control setup states the renderer may persist via
+ * `setProductFirstRunSetupState`. Mirrors the bridge's `Exclude<...>` on that
+ * call: the renderer can persist Runtime-evidence progress states but never
+ * `ready_for_use`, `local_ai_ready`, or the pre-setup states.
  */
-const PRODUCT_COPY_DEFAULTS: Record<ProductControlState, { title: string; body: string }> = {
-  not_logged_in: {
-    title: 'Sign in to use Nimi.',
-    body: 'Normal product use starts after an authenticated account session exists.',
-  },
-  config_missing: {
-    title: 'Nimi is creating its local product record.',
-    body: 'This is an internal setup step. Data location selection appears after the product record exists.',
-  },
-  data_root_missing: {
-    title: 'Choose where Nimi stores models, apps, and large local data.',
-    body: 'Use an absolute folder path. Nimi creates models, dependencies, apps, logs, audit, and cache roots there.',
-  },
-  data_root_selected: {
-    title: 'Nimi is checking this device.',
-    body: 'The selected data root is recorded. Choose a local install level before heavy setup starts.',
-  },
-  ai_environment_unconfigured: {
-    title: 'Choose how much of the local Nimi environment to install.',
-    body: 'Minimal and Recommended are local-only baselines. Cloud connectors remain post-initialization settings.',
-  },
-  local_ai_profile_selected_assets_missing: {
-    title: 'Nimi is downloading and verifying required local models and dependencies.',
-    body: 'Runtime-owned materialization progress must finish before normal product use opens.',
-  },
-  local_ai_profile_selected_environment_not_ready: {
-    title: 'Nimi is preparing its managed local environment.',
-    body: 'Runtime activation evidence is still missing or incomplete.',
-  },
-  local_ai_assets_downloaded_environment_not_ready: {
-    title: 'Nimi has the files, but the local environment still needs repair.',
-    body: 'The local assets are present, but activation has not produced ready evidence.',
-  },
-  local_ai_ready: {
-    title: 'Nimi is finishing your default AI setup.',
-    body: 'Account Default Profile, built-in AIConfigs, and baseline execution evidence still need finalization.',
-  },
-  repair_required: {
-    title: 'Nimi needs to repair a required local component before normal use.',
-    body: 'Repair must restore the missing product-control, data-root, Runtime, profile, or execution evidence.',
-  },
-  blocked: {
-    title: 'Nimi cannot continue safely yet.',
-    body: 'Resolve the blocking cause, then Nimi will re-evaluate the first-run state machine.',
-  },
-  ready_for_use: {
-    title: 'Nimi is ready.',
-    body: 'Normal product use opens to Chat and Nimi Chat.',
-  },
-};
-
-function productCopy(t: TFunction, state: ProductControlState): { title: string; body: string } {
-  const defaults = PRODUCT_COPY_DEFAULTS[state];
-  return {
-    title: t(`FirstRun.states.${state}.title`, { defaultValue: defaults.title }),
-    body: t(`FirstRun.states.${state}.body`, { defaultValue: defaults.body }),
-  };
-}
-
-const ORDERED_STATES: readonly ProductControlState[] = [
-  'not_logged_in',
-  'config_missing',
-  'data_root_missing',
-  'data_root_selected',
-  'ai_environment_unconfigured',
-  'local_ai_profile_selected_assets_missing',
-  'local_ai_profile_selected_environment_not_ready',
-  'local_ai_assets_downloaded_environment_not_ready',
-  'local_ai_ready',
-  'repair_required',
-  'blocked',
-  'ready_for_use',
-];
-
-function isAbsolutePath(value: string): boolean {
-  const trimmed = value.trim();
-  return trimmed.startsWith('/') || /^[A-Za-z]:[\\/]/.test(trimmed);
-}
-
-function firstRunStateIndex(state: ProductControlState): number {
-  const index = ORDERED_STATES.indexOf(state);
-  return index >= 0 ? index : 0;
-}
-
-function canChooseDataRoot(state: ProductControlState, projection: ProductControlRecordProjection | null): boolean {
+function canPersistSetupState(
+  state: ProductControlState,
+): state is Exclude<
+  ProductControlState,
+  | 'ready_for_use'
+  | 'local_ai_ready'
+  | 'config_missing'
+  | 'data_root_missing'
+  | 'data_root_selected'
+  | 'ai_environment_unconfigured'
+  | 'not_logged_in'
+> {
   return (
-    state === 'data_root_missing'
-    || state === 'blocked'
-  ) && !projection?.record?.dataRoot?.path;
-}
-
-function canChooseInstallLevel(state: ProductControlState, projection: ProductControlRecordProjection | null): boolean {
-  return Boolean(projection?.record?.dataRoot?.path)
-    && (
-      state === 'data_root_selected'
-      || state === 'ai_environment_unconfigured'
-      || state === 'repair_required'
-    );
-}
-
-const CAPABILITY_LABEL_DEFAULTS: Record<string, string> = {
-  'text.generate': 'local chat',
-  'text.embed': 'local retrieval',
-  'audio.transcribe': 'basic STT',
-  'audio.synthesize': 'basic TTS',
-  'image.generate': 'local image',
-  'image.edit': 'local image edit',
-  'text.generate.vision': 'local vision text',
-};
-
-function capabilitySummary(t: TFunction, capabilities: readonly string[]): string {
-  const labels = capabilities
-    .filter((capability) => capability !== 'video.generate')
-    .map((capability) => {
-      const defaultLabel = CAPABILITY_LABEL_DEFAULTS[capability];
-      if (!defaultLabel) return capability;
-      return t(`FirstRun.capabilities.${capability}`, { defaultValue: defaultLabel });
-    });
-  return Array.from(new Set(labels)).join(', ');
-}
-
-function canPersistSetupState(state: ProductControlState): state is Exclude<ProductControlState, 'ready_for_use' | 'local_ai_ready' | 'config_missing' | 'data_root_missing' | 'data_root_selected' | 'ai_environment_unconfigured' | 'not_logged_in'> {
-  return state === 'local_ai_profile_selected_assets_missing'
+    state === 'local_ai_profile_selected_assets_missing'
     || state === 'local_ai_profile_selected_environment_not_ready'
     || state === 'local_ai_assets_downloaded_environment_not_ready'
     || state === 'repair_required'
-    || state === 'blocked';
+    || state === 'blocked'
+  );
 }
 
 export function ProductControlWorkflow(props: ProductControlWorkflowProps): ReactElement {
   const { t } = useTranslation();
   const projection = props.projection;
-  const state = projection?.state ?? 'config_missing';
-  const copy = productCopy(t, state);
-  const [dataRoot, setDataRoot] = useState(projection?.record?.dataRoot?.path ?? '');
+  const state: ProductControlState = projection?.state ?? 'config_missing';
+  const notifyProjectionChange = props.onProjectionChange;
+
   const [pendingAction, setPendingAction] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(projection?.error ?? null);
+  const [pickedPath, setPickedPath] = useState<string | null>(
+    projection?.record?.dataRoot?.path ?? null,
+  );
   const [materialization, setMaterialization] = useState<FirstRunMaterializationProjection | null>(null);
-  const currentIndex = firstRunStateIndex(state);
+  const [deviceProfile, setDeviceProfile] = useState<LocalRuntimeDeviceProfile | null>(null);
+  const [deviceScanSettled, setDeviceScanSettled] = useState(false);
+
+  const busy = pendingAction !== null;
+
+  // Factory AIProfile rows resolve the admitted Minimal / Recommended plans.
   const rows = useMemo(() => loadPlatformAIProfileFactoryRows(), []);
-  const installPlans = useMemo(() => ({
-    minimal: selectFactoryAIProfileForFirstRun(rows, 'minimal'),
-    recommended: selectFactoryAIProfileForFirstRun(rows, 'recommended'),
-  }), [rows]);
+  const installPlans = useMemo(
+    () => ({
+      minimal: selectFactoryAIProfileForFirstRun(rows, 'minimal'),
+      recommended: selectFactoryAIProfileForFirstRun(rows, 'recommended'),
+    }),
+    [rows],
+  );
+  const installLevelCards = useMemo(
+    () => ({
+      minimal: projectInstallLevelCard('minimal', installPlans.minimal),
+      recommended: projectInstallLevelCard('recommended', installPlans.recommended),
+    }),
+    [installPlans],
+  );
+
   const selectedInstallLevel = projection?.record?.firstRun.installLevel ?? null;
   const selectedPlan = selectedInstallLevel ? installPlans[selectedInstallLevel] : null;
   const selectedDataRoot = projection?.record?.dataRoot?.path ?? null;
-  const notifyProjectionChange = props.onProjectionChange;
 
+  const screen = firstRunScreenForState(state);
+
+  // Sync the picked path to the recorded data root whenever the projection
+  // changes. A projection without a recorded data root (the Storage phase)
+  // must NOT wipe an in-progress pick or the pre-filled default proposal —
+  // only an actually-recorded path overrides what the field is showing.
   useEffect(() => {
-    setDataRoot(projection?.record?.dataRoot?.path ?? '');
+    const recorded = projection?.record?.dataRoot?.path;
+    if (recorded) setPickedPath(recorded);
     setError(projection?.error ?? null);
   }, [projection]);
 
+  // Pre-fill the Storage phase with the OS-conventional default `nimi_data`
+  // location so a first-time user never faces an empty field. Fetched once on
+  // mount and kept independent of projection updates, so the proposal is never
+  // raced away by the projection sync above. This is only a proposal: the user
+  // reviews it and either confirms it through `selectProductDataRoot`
+  // (P-COLD-010 — the recorded path stays user-selected and explicitly
+  // confirmed) or overrides it with the folder picker. `current ?? proposed`
+  // never clobbers a recorded or user-picked path; an absent/failed proposal
+  // leaves the field empty and fails closed — never a fabricated path.
   useEffect(() => {
-    // At `local_ai_ready` the Runtime materialization phase is already
-    // complete; the renderer shows backend-driven finalization instead, so the
-    // materialization observer is not active here.
-    if (!selectedPlan || !selectedDataRoot || state === 'ai_environment_unconfigured' || state === 'local_ai_ready') {
+    let disposed = false;
+    void (async () => {
+      try {
+        const proposed = await desktopBridge.defaultProductDataRootDirectory();
+        if (!disposed && proposed) {
+          setPickedPath((current) => current ?? proposed);
+        }
+      } catch {
+        // Fail-closed: leave the field empty; the folder picker stays available.
+      }
+    })();
+    return () => {
+      disposed = true;
+    };
+  }, []);
+
+  // Device-scan evidence for the Phase 2 "Detected:" line. The scan only feeds
+  // that secondary line — it must never block the Local AI phase, which is
+  // interactive from the local install-level catalog alone. The scan is bounded
+  // by a timeout so a hung or unavailable Runtime (e.g. a daemon that needs a
+  // restart) fails the line closed instead of leaving the phase spinning.
+  // `deviceScanSettled` flips true once the scan resolves, fails, or times out.
+  useEffect(() => {
+    if (!selectedDataRoot) {
+      setDeviceProfile(null);
+      setDeviceScanSettled(true);
+      return;
+    }
+    let disposed = false;
+    setDeviceProfile(null);
+    setDeviceScanSettled(false);
+    void (async () => {
+      try {
+        const next = await Promise.race([
+          localRuntime.collectDeviceProfile(),
+          new Promise<LocalRuntimeDeviceProfile | null>((resolve) => {
+            window.setTimeout(() => resolve(null), 8_000);
+          }),
+        ]);
+        if (!disposed) setDeviceProfile(next);
+      } catch {
+        if (!disposed) setDeviceProfile(null);
+      } finally {
+        if (!disposed) setDeviceScanSettled(true);
+      }
+    })();
+    return () => {
+      disposed = true;
+    };
+  }, [selectedDataRoot]);
+
+  // Runtime materialization observer. Active only while the Setup phase is
+  // presenting Runtime-evidence progress. At `local_ai_ready` the
+  // materialization phase is complete and finalization takes over; before an
+  // install level is chosen there is nothing to observe.
+  useEffect(() => {
+    if (
+      !selectedPlan
+      || !selectedDataRoot
+      || state === 'ai_environment_unconfigured'
+      || state === 'data_root_selected'
+      || state === 'local_ai_ready'
+    ) {
       setMaterialization(null);
       return;
     }
@@ -193,7 +205,7 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
     const observedDataRoot = selectedDataRoot;
     const observedProductState = state;
     let disposed = false;
-    async function observeRuntimeMaterialization(): Promise<void> {
+    async function observe(): Promise<void> {
       try {
         const next = await resolveFirstRunMaterializationProjection({
           profile: observedPlan,
@@ -202,326 +214,427 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
         if (disposed) return;
         setMaterialization(next);
         if (next.productState !== observedProductState && canPersistSetupState(next.productState)) {
-          notifyProjectionChange(await desktopBridge.setProductFirstRunSetupState({
-            state: next.productState,
-            reason: next.reason,
-          }));
+          notifyProjectionChange(
+            await desktopBridge.setProductFirstRunSetupState({
+              state: next.productState,
+              reason: next.reason,
+            }),
+          );
         }
       } catch (nextError) {
         if (!disposed) {
-          setError(nextError instanceof Error ? nextError.message : t('FirstRun.errors.materializationObserveFailed', { defaultValue: 'Failed to observe Runtime materialization.' }));
+          setError(
+            nextError instanceof Error
+              ? nextError.message
+              : t('FirstRun.errors.materializationObserveFailed', {
+                  defaultValue: 'Failed to observe Runtime materialization.',
+                }),
+          );
         }
       }
     }
-    void observeRuntimeMaterialization();
-    const interval = window.setInterval(() => void observeRuntimeMaterialization(), 3_000);
+    void observe();
+    const interval = window.setInterval(() => void observe(), 3_000);
     return () => {
       disposed = true;
       window.clearInterval(interval);
     };
-  }, [selectedPlan, selectedDataRoot, state, notifyProjectionChange]);
+  }, [selectedPlan, selectedDataRoot, state, notifyProjectionChange, t]);
 
-  async function selectDataRoot(): Promise<void> {
-    if (!isAbsolutePath(dataRoot)) {
-      setError(t('FirstRun.errors.dataRootAbsoluteRequired', { defaultValue: 'Enter an absolute nimi_data folder path.' }));
+  // --- Phase 1: Storage ---------------------------------------------------
+
+  const chooseDataRootFolder = useCallback(async (): Promise<void> => {
+    setPendingAction('pick-folder');
+    setError(null);
+    try {
+      const picked = await desktopBridge.pickProductDataRootDirectory();
+      if (picked) setPickedPath(picked);
+    } catch (nextError) {
+      setError(
+        nextError instanceof Error
+          ? nextError.message
+          : t('FirstRun.errors.dataRootPickFailed', {
+              defaultValue: 'Failed to open the folder picker.',
+            }),
+      );
+    } finally {
+      setPendingAction(null);
+    }
+  }, [t]);
+
+  const confirmDataRoot = useCallback(async (): Promise<void> => {
+    const candidate = (pickedPath ?? '').trim();
+    if (!candidate) {
+      setError(
+        t('FirstRun.errors.dataRootMissing', {
+          defaultValue: 'Choose a folder for Nimi before continuing.',
+        }),
+      );
       return;
     }
     setPendingAction('data-root');
     setError(null);
     try {
-      props.onProjectionChange(await desktopBridge.selectProductDataRoot(dataRoot));
+      // `selectProductDataRoot` is the sole owner of recording + fail-closed
+      // validation (absolute path, writability, root layout). A non-absolute
+      // or unusable path fails closed here with the backend's typed error.
+      notifyProjectionChange(await desktopBridge.selectProductDataRoot(candidate));
     } catch (nextError) {
-      setError(nextError instanceof Error ? nextError.message : t('FirstRun.errors.dataRootRecordFailed', { defaultValue: 'Failed to record nimi_data.' }));
+      setError(
+        nextError instanceof Error
+          ? nextError.message
+          : t('FirstRun.errors.dataRootRecordFailed', {
+              defaultValue: 'Failed to record nimi_data.',
+            }),
+      );
     } finally {
       setPendingAction(null);
     }
-  }
+  }, [pickedPath, notifyProjectionChange, t]);
 
-  async function selectInstallLevel(installLevel: FirstRunInstallLevel): Promise<void> {
-    const plan = installPlans[installLevel];
-    if (!plan) {
-      setError(t('FirstRun.errors.installLevelNoProfile', { installLevel, defaultValue: '{{installLevel}} has no admitted local first-run AIProfile.' }));
-      return;
-    }
-    setPendingAction(installLevel);
+  // Changing the data root from the Local AI phase. The state machine admits
+  // `change_nimi_data_before_heavy_setup` while no heavy setup has started, so
+  // the user can re-pick the folder here. This re-opens the OS picker and lets
+  // `selectProductDataRoot` re-record + re-validate — the renderer never
+  // mutates the data root itself.
+  const changeDataRootFolder = useCallback(async (): Promise<void> => {
+    setPendingAction('change-data-root');
     setError(null);
     try {
-      props.onProjectionChange(await desktopBridge.setProductFirstRunInstallLevel({
+      const picked = await desktopBridge.pickProductDataRootDirectory();
+      if (!picked) return;
+      notifyProjectionChange(await desktopBridge.selectProductDataRoot(picked));
+    } catch (nextError) {
+      setError(
+        nextError instanceof Error
+          ? nextError.message
+          : t('FirstRun.errors.dataRootRecordFailed', {
+              defaultValue: 'Failed to record nimi_data.',
+            }),
+      );
+    } finally {
+      setPendingAction(null);
+    }
+  }, [notifyProjectionChange, t]);
+
+  // --- Phase 2: Local AI --------------------------------------------------
+
+  const [draftInstallLevel, setDraftInstallLevel] = useState<FirstRunInstallLevel | null>(
+    selectedInstallLevel,
+  );
+  useEffect(() => {
+    if (selectedInstallLevel) setDraftInstallLevel(selectedInstallLevel);
+  }, [selectedInstallLevel]);
+
+  const persistInstallLevel = useCallback(
+    async (installLevel: FirstRunInstallLevel): Promise<ProductControlRecordProjection | null> => {
+      const plan = installPlans[installLevel];
+      if (!plan) {
+        setError(
+          t('FirstRun.errors.installLevelNoProfile', {
+            installLevel,
+            defaultValue: '{{installLevel}} has no admitted local first-run AIProfile.',
+          }),
+        );
+        return null;
+      }
+      const next = await desktopBridge.setProductFirstRunInstallLevel({
         installLevel,
         aiProfileAlias: plan.alias,
-      }));
-    } catch (nextError) {
-      setError(nextError instanceof Error ? nextError.message : t('FirstRun.errors.installLevelSelectFailed', { installLevel, defaultValue: 'Failed to select {{installLevel}}.' }));
-    } finally {
-      setPendingAction(null);
-    }
-  }
+      });
+      notifyProjectionChange(next);
+      return next;
+    },
+    [installPlans, notifyProjectionChange, t],
+  );
 
-  async function projectMaterialization(next: FirstRunMaterializationProjection): Promise<void> {
-    setMaterialization(next);
-    if (!canPersistSetupState(next.productState)) return;
-    props.onProjectionChange(await desktopBridge.setProductFirstRunSetupState({
-      state: next.productState,
-      reason: next.reason,
-    }));
-  }
-
-  async function beginRuntimeMaterialization(): Promise<void> {
-    if (!selectedPlan || !selectedDataRoot) {
-      setError(t('FirstRun.errors.materializationPrerequisitesMissing', { defaultValue: 'Select a first-run install level and absolute nimi_data path before Runtime setup.' }));
+  const continueFromLocalAi = useCallback(async (): Promise<void> => {
+    const installLevel = draftInstallLevel;
+    if (!installLevel) {
+      setError(
+        t('FirstRun.errors.installLevelRequired', {
+          defaultValue: 'Choose an install level to continue.',
+        }),
+      );
       return;
     }
-    setPendingAction('materialization-start');
+    const plan = installPlans[installLevel];
+    if (!plan) {
+      setError(
+        t('FirstRun.errors.installLevelNoProfile', {
+          installLevel,
+          defaultValue: '{{installLevel}} has no admitted local first-run AIProfile.',
+        }),
+      );
+      return;
+    }
+    setPendingAction('install-level');
     setError(null);
     try {
+      // 1) Record the install level on the product-control record.
+      const afterLevel = await persistInstallLevel(installLevel);
+      if (!afterLevel) return;
+      const dataRoot = afterLevel.record?.dataRoot?.path ?? selectedDataRoot;
+      if (!dataRoot) {
+        setError(
+          t('FirstRun.errors.materializationPrerequisitesMissing', {
+            defaultValue:
+              'Select a first-run install level and nimi_data path before Runtime setup.',
+          }),
+        );
+        return;
+      }
+      // 2) Start Runtime materialization (explicit confirmation — this is the
+      //    first storage/network-heavy step) and persist the resulting setup
+      //    state so the gate advances into the Setup phase.
       const next = await startFirstRunMaterialization({
-        profile: selectedPlan,
-        runtimeDataRoot: selectedDataRoot,
+        profile: plan,
+        runtimeDataRoot: dataRoot,
         confirmed: true,
       });
-      await projectMaterialization(next);
+      setMaterialization(next);
+      if (canPersistSetupState(next.productState)) {
+        notifyProjectionChange(
+          await desktopBridge.setProductFirstRunSetupState({
+            state: next.productState,
+            reason: next.reason,
+          }),
+        );
+      }
     } catch (nextError) {
-      setError(nextError instanceof Error ? nextError.message : t('FirstRun.errors.materializationStartFailed', { defaultValue: 'Failed to start Runtime materialization.' }));
+      setError(
+        nextError instanceof Error
+          ? nextError.message
+          : t('FirstRun.errors.materializationStartFailed', {
+              defaultValue: 'Failed to start Runtime materialization.',
+            }),
+      );
     } finally {
       setPendingAction(null);
     }
-  }
+  }, [draftInstallLevel, installPlans, persistInstallLevel, selectedDataRoot, notifyProjectionChange, t]);
 
-  async function cancelRuntimeJob(item: FirstRunMaterializationDependencyProjection): Promise<void> {
-    if (!selectedPlan || !selectedDataRoot || !item.job) return;
-    setPendingAction(`cancel-${item.job.jobId}`);
+  // --- Phase 3: Setup checklist actions -----------------------------------
+
+  const projectMaterialization = useCallback(
+    async (next: FirstRunMaterializationProjection): Promise<void> => {
+      setMaterialization(next);
+      if (!canPersistSetupState(next.productState)) return;
+      notifyProjectionChange(
+        await desktopBridge.setProductFirstRunSetupState({
+          state: next.productState,
+          reason: next.reason,
+        }),
+      );
+    },
+    [notifyProjectionChange],
+  );
+
+  const retrySetupStep = useCallback(
+    async (item: FirstRunMaterializationDependencyProjection): Promise<void> => {
+      if (!selectedPlan || !selectedDataRoot || !item.job) return;
+      setPendingAction(`retry-${item.job.jobId}`);
+      setError(null);
+      try {
+        await projectMaterialization(
+          await retryFirstRunMaterializationJob({
+            profile: selectedPlan,
+            runtimeDataRoot: selectedDataRoot,
+            jobId: item.job.jobId,
+            confirmed: true,
+          }),
+        );
+      } catch (nextError) {
+        setError(
+          nextError instanceof Error
+            ? nextError.message
+            : t('FirstRun.errors.materializationRetryFailed', {
+                defaultValue: 'Failed to retry Runtime job.',
+              }),
+        );
+      } finally {
+        setPendingAction(null);
+      }
+    },
+    [selectedPlan, selectedDataRoot, projectMaterialization, t],
+  );
+
+  const repairSetupStep = useCallback(
+    async (item: FirstRunMaterializationDependencyProjection): Promise<void> => {
+      if (!selectedPlan || !selectedDataRoot) return;
+      setPendingAction(`repair-${item.dependency.environmentKey}`);
+      setError(null);
+      try {
+        await projectMaterialization(
+          await repairFirstRunMaterializationDependency({
+            profile: selectedPlan,
+            runtimeDataRoot: selectedDataRoot,
+            dependency: item.dependency,
+            confirmed: true,
+            reasonCode: item.dependency.reasonCode ?? item.job?.failureDetail ?? materialization?.reason,
+          }),
+        );
+      } catch (nextError) {
+        setError(
+          nextError instanceof Error
+            ? nextError.message
+            : t('FirstRun.errors.materializationRepairFailed', {
+                defaultValue: 'Failed to repair Runtime dependency.',
+              }),
+        );
+      } finally {
+        setPendingAction(null);
+      }
+    },
+    [selectedPlan, selectedDataRoot, projectMaterialization, materialization, t],
+  );
+
+  const cancelSetupStep = useCallback(
+    async (item: FirstRunMaterializationDependencyProjection): Promise<void> => {
+      if (!selectedPlan || !selectedDataRoot || !item.job) return;
+      setPendingAction(`cancel-${item.job.jobId}`);
+      setError(null);
+      try {
+        await projectMaterialization(
+          await cancelFirstRunMaterializationJob({
+            profile: selectedPlan,
+            runtimeDataRoot: selectedDataRoot,
+            jobId: item.job.jobId,
+          }),
+        );
+      } catch (nextError) {
+        setError(
+          nextError instanceof Error
+            ? nextError.message
+            : t('FirstRun.errors.materializationCancelFailed', {
+                defaultValue: 'Failed to cancel Runtime job.',
+              }),
+        );
+      } finally {
+        setPendingAction(null);
+      }
+    },
+    [selectedPlan, selectedDataRoot, projectMaterialization, t],
+  );
+
+  // --- Terminal screen actions -------------------------------------------
+
+  const reevaluatingRef = useRef(false);
+  const reevaluateProductControl = useCallback(async (): Promise<void> => {
+    if (reevaluatingRef.current) return;
+    reevaluatingRef.current = true;
+    setPendingAction('reevaluate');
     setError(null);
     try {
-      await projectMaterialization(await cancelFirstRunMaterializationJob({
-        profile: selectedPlan,
-        runtimeDataRoot: selectedDataRoot,
-        jobId: item.job.jobId,
-      }));
+      notifyProjectionChange(await desktopBridge.getProductControlRecord());
     } catch (nextError) {
-      setError(nextError instanceof Error ? nextError.message : t('FirstRun.errors.materializationCancelFailed', { defaultValue: 'Failed to cancel Runtime job.' }));
+      setError(
+        nextError instanceof Error
+          ? nextError.message
+          : t('FirstRun.errors.repairReevaluateFailed', {
+              defaultValue: 'Failed to re-check Nimi setup.',
+            }),
+      );
     } finally {
+      reevaluatingRef.current = false;
       setPendingAction(null);
     }
-  }
+  }, [notifyProjectionChange, t]);
 
-  async function retryRuntimeJob(item: FirstRunMaterializationDependencyProjection): Promise<void> {
-    if (!selectedPlan || !selectedDataRoot || !item.job) return;
-    setPendingAction(`retry-${item.job.jobId}`);
-    setError(null);
-    try {
-      await projectMaterialization(await retryFirstRunMaterializationJob({
-        profile: selectedPlan,
-        runtimeDataRoot: selectedDataRoot,
-        jobId: item.job.jobId,
-        confirmed: true,
-      }));
-    } catch (nextError) {
-      setError(nextError instanceof Error ? nextError.message : t('FirstRun.errors.materializationRetryFailed', { defaultValue: 'Failed to retry Runtime job.' }));
-    } finally {
-      setPendingAction(null);
-    }
-  }
+  // --- Render -------------------------------------------------------------
 
-  async function repairRuntimeDependency(item: FirstRunMaterializationDependencyProjection): Promise<void> {
-    if (!selectedPlan || !selectedDataRoot) return;
-    setPendingAction(`repair-${item.dependency.environmentKey}`);
-    setError(null);
-    try {
-      await projectMaterialization(await repairFirstRunMaterializationDependency({
-        profile: selectedPlan,
-        runtimeDataRoot: selectedDataRoot,
-        dependency: item.dependency,
-        confirmed: true,
-        reasonCode: item.dependency.reasonCode ?? item.job?.failureDetail ?? materialization?.reason,
-      }));
-    } catch (nextError) {
-      setError(nextError instanceof Error ? nextError.message : t('FirstRun.errors.materializationRepairFailed', { defaultValue: 'Failed to repair Runtime dependency.' }));
-    } finally {
-      setPendingAction(null);
+  const setupChecklist = useMemo(
+    () => projectSetupChecklist(state, materialization),
+    [state, materialization],
+  );
+  const deviceSummary = useMemo(() => projectDeviceSummary(deviceProfile), [deviceProfile]);
+
+  function renderScreen(): ReactElement {
+    if (screen.kind === 'terminal') {
+      if (screen.screen === 'repair') {
+        return (
+          <ScreenRepair
+            reason={projection?.record?.repair.reason ?? projection?.error ?? null}
+            busy={busy}
+            onRetry={() => void reevaluateProductControl()}
+          />
+        );
+      }
+      if (screen.screen === 'blocked') {
+        return <ScreenBlocked reason={projection?.error ?? null} />;
+      }
+      return <ScreenReady />;
     }
+
+    if (screen.phase === 'storage') {
+      return (
+        <PhaseStorage
+          transient={isPhaseTransient(state)}
+          pickedPath={pickedPath}
+          busy={busy}
+          onChooseFolder={() => void chooseDataRootFolder()}
+          onContinue={() => void confirmDataRoot()}
+        />
+      );
+    }
+
+    if (screen.phase === 'local-ai') {
+      return (
+        <PhaseLocalAi
+          cards={installLevelCards}
+          selected={draftInstallLevel}
+          deviceSummary={deviceSummary}
+          deviceScanPending={!deviceScanSettled}
+          dataRootPath={selectedDataRoot}
+          busy={busy}
+          onSelect={setDraftInstallLevel}
+          onChangeDataRoot={() => void changeDataRootFolder()}
+          onContinue={() => void continueFromLocalAi()}
+        />
+      );
+    }
+
+    // Setup phase. At `local_ai_ready` the finalization surface drives the
+    // backend admission request; the calm checklist still shows the folded
+    // progression with `finalize` as the active sub-step.
+    return (
+      <div className="flex flex-col gap-6">
+        <PhaseSetup
+          checklist={setupChecklist}
+          busy={busy}
+          error={error}
+          actions={{
+            onRetry: (item) => void retrySetupStep(item),
+            onRepair: (item) => void repairSetupStep(item),
+            onCancel: (item) => void cancelSetupStep(item),
+          }}
+        />
+        {state === 'local_ai_ready' && projection ? (
+          <FirstRunFinalization projection={projection} onProjectionChange={notifyProjectionChange} />
+        ) : null}
+      </div>
+    );
   }
 
   return (
-    <section data-testid="product-first-run-workflow" data-product-state={state} className="flex flex-col gap-5">
-      <div className="flex flex-col gap-2">
-        <p className="text-xs font-semibold uppercase text-[var(--nimi-text-secondary)]">{t('FirstRun.eyebrow', { defaultValue: 'First run' })}</p>
-        <h2 className="text-lg font-semibold text-[var(--nimi-text-primary)]">{copy.title}</h2>
-        <p className="text-sm leading-6 text-[var(--nimi-text-secondary)]">{copy.body}</p>
-      </div>
-
-      {error ? (
-        <p data-testid="product-first-run-error" className="rounded-lg border border-[color-mix(in_srgb,var(--nimi-status-danger)_24%,white)] bg-[color-mix(in_srgb,var(--nimi-status-danger)_10%,white)] px-3 py-2 text-sm text-[var(--nimi-status-danger)]">
-          {error}
-        </p>
-      ) : null}
-
-      <ol data-testid="product-first-run-state-list" className="grid gap-2 sm:grid-cols-2">
-        {ORDERED_STATES.map((item, index) => {
-          const reached = index <= currentIndex;
-          const active = item === state;
-          return (
-            <li
-              key={item}
-              data-testid={`product-first-run-state-${item}`}
-              data-active={active ? 'true' : 'false'}
-              className={`min-h-10 rounded-lg border px-3 py-2 text-sm ${
-                active
-                  ? 'border-[color:var(--nimi-focus-ring)] bg-[color-mix(in_srgb,var(--nimi-status-info)_12%,transparent)] text-[var(--nimi-text-primary)]'
-                  : reached
-                    ? 'border-[color:var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_80%,transparent)] text-[var(--nimi-text-secondary)]'
-                    : 'border-[color:var(--nimi-border-subtle)] text-[var(--nimi-text-muted)]'
-              }`}
-            >
-              {productCopy(t, item).title}
-            </li>
-          );
-        })}
-      </ol>
-
-      {canChooseDataRoot(state, projection) ? (
-        <div data-testid="product-first-run-data-root" className="flex flex-col gap-3 rounded-lg border border-[color:var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_82%,transparent)] p-3">
-          <label className="text-sm font-medium text-[var(--nimi-text-primary)]" htmlFor="product-first-run-data-root-input">
-            {t('FirstRun.dataRootLabel', { defaultValue: 'nimi_data' })}
-          </label>
-          <div className="flex flex-col gap-2 sm:flex-row">
-            <input
-              id="product-first-run-data-root-input"
-              data-testid="product-first-run-data-root-input"
-              value={dataRoot}
-              onChange={(event) => setDataRoot(event.currentTarget.value)}
-              placeholder="/absolute/path/to/nimi_data"
-              className="min-h-10 flex-1 rounded-md border border-[color:var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-3 text-sm text-[var(--nimi-text-primary)] outline-none focus:border-[color:var(--nimi-focus-ring)]"
-            />
-            <button
-              type="button"
-              data-testid="product-first-run-data-root-submit"
-              disabled={pendingAction !== null}
-              onClick={() => void selectDataRoot()}
-              className="min-h-10 rounded-md bg-[var(--nimi-accent)] px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {t('FirstRun.dataRootConfirm', { defaultValue: 'Confirm' })}
-            </button>
-          </div>
-        </div>
-      ) : null}
-
-      {canChooseInstallLevel(state, projection) ? (
-        <div data-testid="product-first-run-install-levels" className="grid gap-3 md:grid-cols-2">
-          {(['minimal', 'recommended'] as const).map((installLevel) => {
-            const plan = installPlans[installLevel];
-            const selected = projection?.record?.firstRun.installLevel === installLevel;
-            return (
-              <button
-                type="button"
-                key={installLevel}
-                data-testid={`product-first-run-install-level-${installLevel}`}
-                data-selected={selected ? 'true' : 'false'}
-                disabled={!plan || pendingAction !== null}
-                onClick={() => void selectInstallLevel(installLevel)}
-                className={`min-h-32 rounded-lg border p-4 text-left disabled:cursor-not-allowed disabled:opacity-50 ${
-                  selected
-                    ? 'border-[color:var(--nimi-focus-ring)] bg-[color-mix(in_srgb,var(--nimi-status-info)_12%,transparent)]'
-                    : 'border-[color:var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_82%,transparent)]'
-                }`}
-              >
-                <span className="block text-base font-semibold capitalize text-[var(--nimi-text-primary)]">{installLevel}</span>
-                <span className="mt-2 block text-sm leading-6 text-[var(--nimi-text-secondary)]">
-                  {plan ? capabilitySummary(t, plan.capabilitySet) : t('FirstRun.installLevelNoPlan', { defaultValue: 'No admitted local plan' })}
-                </span>
-                {plan ? (
-                  <span className="mt-3 block text-xs font-medium text-[var(--nimi-text-muted)]">
-                    {plan.alias}
-                  </span>
-                ) : null}
-              </button>
-            );
-          })}
-        </div>
-      ) : null}
-
-      {projection?.record?.firstRun.installLevel && state === 'ai_environment_unconfigured' ? (
-        <div data-testid="product-first-run-materialization-confirmation" className="flex flex-col gap-3 rounded-lg border border-[color:var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_82%,transparent)] p-3">
-          <p className="text-sm leading-6 text-[var(--nimi-text-secondary)]">
-            {t('FirstRun.materializationConfirmationBody', { defaultValue: 'Runtime requires explicit confirmation before first network or storage-heavy local setup. Start local setup to materialize the selected AIProfile dependencies.' })}
-          </p>
-          <button
-            type="button"
-            data-testid="product-first-run-materialization-start"
-            disabled={pendingAction !== null}
-            onClick={() => void beginRuntimeMaterialization()}
-            className="min-h-10 w-fit rounded-md bg-[var(--nimi-accent)] px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+    <section
+      data-testid="product-first-run-workflow"
+      data-product-state={state}
+      className="flex min-h-full flex-1 flex-col"
+    >
+      <FirstRunWizardChrome activePhase={screen.kind === 'phase' ? screen.phase : null}>
+        {/* The Storage / Local-AI phases surface typed errors inline above the
+            card content; the Setup phase renders its own error row. */}
+        {screen.kind === 'phase' && screen.phase !== 'setup' && error ? (
+          <p
+            data-testid="product-first-run-error"
+            className="mb-5 rounded-lg border border-[color-mix(in_srgb,var(--nimi-status-danger)_24%,white)] bg-[color-mix(in_srgb,var(--nimi-status-danger)_10%,white)] px-3 py-2 text-sm text-[var(--nimi-status-danger)]"
           >
-            {t('FirstRun.materializationStart', { defaultValue: 'Start local setup' })}
-          </button>
-        </div>
-      ) : null}
-
-      {state === 'local_ai_ready' && projection ? (
-        <FirstRunFinalization projection={projection} onProjectionChange={props.onProjectionChange} />
-      ) : null}
-
-      {materialization && state !== 'local_ai_ready' ? (
-        <div data-testid="product-first-run-materialization-progress" data-materialization-status={materialization.status} className="flex flex-col gap-3 rounded-lg border border-[color:var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_82%,transparent)] p-3">
-          <div className="flex flex-col gap-1">
-            <p className="text-sm font-semibold text-[var(--nimi-text-primary)]">{t('FirstRun.materializationTitle', { defaultValue: 'Runtime local setup' })}</p>
-            <p className="text-sm leading-6 text-[var(--nimi-text-secondary)]">
-              {t('FirstRun.materializationEvidenceNote', { reason: materialization.reason, defaultValue: '{{reason}}. This progress is Runtime evidence only; ready_for_use still requires product-control completion evidence.' })}
-            </p>
-          </div>
-          <div className="grid gap-2">
-            {materialization.dependencies.map((item) => {
-              const jobState = item.job?.state ?? item.dependency.state;
-              const activeJob = item.job && ['needs_confirmation', 'queued', 'starting', 'running', 'in_progress', 'downloading', 'verifying', 'installing'].includes(item.job.state);
-              const canRetry = item.job && (item.job.retryable || item.job.state === 'failed' || item.job.state === 'cancelled');
-              const canRepair = item.dependency.state === 'repair_required' || item.job?.state === 'failed' || item.job?.state === 'repair_required';
-              return (
-                <div key={`${item.dependency.environmentKey}:${item.dependency.dependencyId}`} className="flex flex-col gap-2 rounded-md border border-[color:var(--nimi-border-subtle)] px-3 py-2">
-                  <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                    <span className="text-sm font-medium text-[var(--nimi-text-primary)]">{item.dependency.dependencyFamily}</span>
-                    <span className="text-xs text-[var(--nimi-text-muted)]">{jobState}</span>
-                  </div>
-                  <p className="break-all text-xs text-[var(--nimi-text-muted)]">{item.dependency.environmentKey}</p>
-                  <div className="flex flex-wrap gap-2">
-                    {activeJob ? (
-                      <button
-                        type="button"
-                        data-testid="product-first-run-materialization-cancel"
-                        disabled={pendingAction !== null}
-                        onClick={() => void cancelRuntimeJob(item)}
-                        className="min-h-8 rounded-md border border-[color:var(--nimi-border-subtle)] px-3 text-xs font-medium text-[var(--nimi-text-primary)] disabled:cursor-not-allowed disabled:opacity-50"
-                      >
-                        {t('FirstRun.materializationCancel', { defaultValue: 'Cancel' })}
-                      </button>
-                    ) : null}
-                    {canRetry ? (
-                      <button
-                        type="button"
-                        data-testid="product-first-run-materialization-retry"
-                        disabled={pendingAction !== null}
-                        onClick={() => void retryRuntimeJob(item)}
-                        className="min-h-8 rounded-md border border-[color:var(--nimi-border-subtle)] px-3 text-xs font-medium text-[var(--nimi-text-primary)] disabled:cursor-not-allowed disabled:opacity-50"
-                      >
-                        {t('FirstRun.materializationRetry', { defaultValue: 'Retry' })}
-                      </button>
-                    ) : null}
-                    {canRepair ? (
-                      <button
-                        type="button"
-                        data-testid="product-first-run-materialization-repair"
-                        disabled={pendingAction !== null}
-                        onClick={() => void repairRuntimeDependency(item)}
-                        className="min-h-8 rounded-md border border-[color:var(--nimi-border-subtle)] px-3 text-xs font-medium text-[var(--nimi-text-primary)] disabled:cursor-not-allowed disabled:opacity-50"
-                      >
-                        {t('FirstRun.materializationRepair', { defaultValue: 'Repair' })}
-                      </button>
-                    ) : null}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      ) : null}
+            {error}
+          </p>
+        ) : null}
+        {renderScreen()}
+      </FirstRunWizardChrome>
     </section>
   );
 }

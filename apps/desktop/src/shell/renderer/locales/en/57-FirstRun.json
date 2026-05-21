@@ -1,17 +1,73 @@
 {
-  "eyebrow": "First run",
-  "gateEyebrow": "Nimi",
-  "gateTitle": "First run setup",
-  "dataRootLabel": "nimi_data",
-  "dataRootConfirm": "Confirm",
-  "installLevelNoPlan": "No admitted local plan",
-  "materializationConfirmationBody": "Runtime requires explicit confirmation before first network or storage-heavy local setup. Start local setup to materialize the selected AIProfile dependencies.",
-  "materializationStart": "Start local setup",
-  "materializationTitle": "Runtime local setup",
-  "materializationEvidenceNote": "{{reason}}. This progress is Runtime evidence only; ready_for_use still requires product-control completion evidence.",
-  "materializationCancel": "Cancel",
-  "materializationRetry": "Retry",
-  "materializationRepair": "Repair",
+  "wordmark": "NIMI",
+  "stepIndicatorLabel": "Setup steps",
+  "continue": "Continue",
+  "steps": {
+    "storage": "Storage",
+    "localAi": "Local AI",
+    "setup": "Setup"
+  },
+  "storage": {
+    "heading": "Where should Nimi store its files?",
+    "subline": "Nimi runs AI on your computer and keeps its models and data in one folder, all on this device. We've filled in a recommended spot — use it, or pick your own.",
+    "preparing": "Getting Nimi ready on this computer…",
+    "pathPlaceholder": "No folder chosen yet",
+    "chooseFolder": "Choose folder…"
+  },
+  "localAi": {
+    "heading": "Set up your local AI",
+    "detecting": "Checking this device in the background…",
+    "detected": "Detected: {{device}}",
+    "detectedUnavailable": "Device scan evidence is unavailable.",
+    "unavailable": "No admitted local plan for this level.",
+    "storageFolder": "Saving to {{path}}",
+    "changeFolder": "Change folder",
+    "cards": {
+      "minimal": {
+        "title": "Minimal",
+        "subtitle": "Lightweight — local chat and voice"
+      },
+      "recommended": {
+        "title": "Recommended",
+        "subtitle": "Adds local embeddings and image generation"
+      }
+    },
+    "highlights": {
+      "fast-setup": "Fast setup",
+      "lower-resource": "Lower resource usage",
+      "everyday-chat": "Great for everyday chat",
+      "smarter-answers": "Smarter answers",
+      "image-generation": "Image generation",
+      "future-ready": "Future-ready features",
+      "local-voice": "Local voice"
+    }
+  },
+  "setup": {
+    "heading": "Setting up Nimi…",
+    "subline": "This may take a few minutes. You can relax.",
+    "cancel": "Cancel",
+    "retry": "Retry",
+    "repair": "Repair",
+    "steps": {
+      "download": "Downloading local models",
+      "verify": "Verifying files",
+      "environment": "Preparing local environment",
+      "finalize": "Finalizing your AI profile"
+    }
+  },
+  "repair": {
+    "heading": "Nimi needs to repair a component",
+    "body": "A required local component needs repair before normal use. Retry the setup or run a repair to restore it.",
+    "retry": "Retry"
+  },
+  "blocked": {
+    "heading": "Nimi cannot continue safely",
+    "body": "Setup cannot continue safely on this device right now. Contact Support to resolve the blocking cause."
+  },
+  "ready": {
+    "heading": "Nimi is ready",
+    "body": "Opening Nimi Chat…"
+  },
   "finalizationTitle": "Finalizing",
   "finalizationRetry": "Retry finalization",
   "states": {
@@ -74,16 +130,18 @@
     "text.generate.vision": "local vision text"
   },
   "errors": {
-    "dataRootAbsoluteRequired": "Enter an absolute nimi_data folder path.",
+    "dataRootMissing": "Choose a folder for Nimi before continuing.",
+    "dataRootPickFailed": "Failed to open the folder picker.",
     "dataRootRecordFailed": "Failed to record nimi_data.",
+    "installLevelRequired": "Choose an install level to continue.",
     "installLevelNoProfile": "{{installLevel}} has no admitted local first-run AIProfile.",
-    "installLevelSelectFailed": "Failed to select {{installLevel}}.",
-    "materializationPrerequisitesMissing": "Select a first-run install level and absolute nimi_data path before Runtime setup.",
+    "materializationPrerequisitesMissing": "Select a first-run install level and nimi_data path before Runtime setup.",
     "materializationStartFailed": "Failed to start Runtime materialization.",
     "materializationObserveFailed": "Failed to observe Runtime materialization.",
     "materializationCancelFailed": "Failed to cancel Runtime job.",
     "materializationRetryFailed": "Failed to retry Runtime job.",
     "materializationRepairFailed": "Failed to repair Runtime dependency.",
+    "repairReevaluateFailed": "Failed to re-check Nimi setup.",
     "finalizationRequestFailed": "Failed to request first-run finalization."
   }
 }

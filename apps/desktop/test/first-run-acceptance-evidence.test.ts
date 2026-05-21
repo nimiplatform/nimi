@@ -158,28 +158,50 @@ test('fresh authenticated non-ready gate is first-run-only and excludes ordinary
   }
 });
 
-test('renderer evidence: config_missing is internal and data_root_missing is the first user data-root state', () => {
+test('renderer evidence: config_missing is an internal transient inside the Storage phase, not its own data-root screen', () => {
+  // The 3-phase wizard folds the fast `config_missing` system state into the
+  // Storage phase as a calm transient loading affordance — it never gets its
+  // own boxed data-root screen. `data_root_missing` is the first user-action
+  // data-root state and presents the native folder picker (no raw absolute
+  // path text field).
   const configMissing = renderWorkflow('config_missing');
-  assert.match(configMissing, /Nimi is creating its local product record/);
-  assert.doesNotMatch(configMissing, /product-first-run-data-root-input/);
+  assert.match(configMissing, /data-product-state="config_missing"/);
+  assert.match(configMissing, /data-testid="first-run-phase-storage"/);
+  assert.match(configMissing, /data-phase-transient="true"/);
+  // A fast system state must NOT expose the interactive folder-choose control.
+  assert.doesNotMatch(configMissing, /first-run-storage-choose-folder/);
 
   const dataRootMissing = renderWorkflow('data_root_missing');
-  assert.match(dataRootMissing, /Choose where Nimi stores models, apps, and large local data/);
-  assert.match(dataRootMissing, /product-first-run-data-root-input/);
+  assert.match(dataRootMissing, /data-phase-transient="false"/);
+  assert.match(dataRootMissing, /Where should Nimi keep your models and data/);
+  // The native folder picker, not a raw absolute-path text input.
+  assert.match(dataRootMissing, /first-run-storage-choose-folder/);
+  assert.doesNotMatch(dataRootMissing, /product-first-run-data-root-input/);
 });
 
-test('renderer evidence: explicit data root precedes Minimal and Recommended local install choices', () => {
-  const markup = renderWorkflow('data_root_selected');
-  assert.match(markup, /product-first-run-install-level-minimal/);
-  assert.match(markup, /product-first-run-install-level-recommended/);
-  assert.match(markup, /local chat/);
-  assert.match(markup, /basic STT/);
-  assert.match(markup, /basic TTS/);
-  assert.doesNotMatch(markup, /cloud-first/);
-  assert.doesNotMatch(markup, /hybrid-recommended/);
+test('renderer evidence: data_root_selected opens the interactive Local AI phase with no blocking transient', () => {
+  // `data_root_selected` and `ai_environment_unconfigured` both render the
+  // interactive Minimal / Recommended install-level cards. The device scan is
+  // a secondary inline affordance ("Detected" line) — it never blocks the
+  // choice, so the phase is usable the moment it opens.
+  for (const state of ['data_root_selected', 'ai_environment_unconfigured'] as const) {
+    const markup = renderWorkflow(state);
+    assert.match(markup, /data-testid="first-run-phase-local-ai"/);
+    assert.match(markup, /data-testid="first-run-install-level-minimal"/);
+    assert.match(markup, /data-testid="first-run-install-level-recommended"/);
+  }
+  // The cards are driven by the admitted install-level policy — no cloud /
+  // hybrid first-run rows leak into the local-only baseline.
+  const choice = renderWorkflow('ai_environment_unconfigured');
+  assert.doesNotMatch(choice, /cloud-first/);
+  assert.doesNotMatch(choice, /hybrid-recommended/);
 });
 
-test('renderer evidence: install-level selection exposes explicit Runtime materialization confirmation', () => {
+test('renderer evidence: continuing from the Local AI phase records the install level and starts Runtime materialization', () => {
+  // The redesigned wizard folds the explicit-confirmation step into the
+  // Local AI phase Continue action: persisting the install level + starting
+  // materialization happens through `setProductFirstRunInstallLevel` and
+  // `startFirstRunMaterialization`. The renderer never writes ready_for_use.
   const markup = renderWorkflow('ai_environment_unconfigured', {
     firstRun: {
       installLevel: 'minimal',
@@ -188,23 +210,62 @@ test('renderer evidence: install-level selection exposes explicit Runtime materi
       builtInAiConfigRefs: [],
     },
   });
-  assert.match(markup, /Runtime requires explicit confirmation/);
-  assert.match(markup, /product-first-run-materialization-start/);
   assert.match(markup, /data-product-state="ai_environment_unconfigured"/);
-  assert.match(markup, /data-testid="product-first-run-state-ready_for_use" data-active="false"/);
+  assert.match(markup, /first-run-local-ai-continue/);
+  // The step indicator marks Local AI active and never advertises a ready
+  // shortcut step.
+  assert.match(markup, /data-testid="first-run-step-local-ai" data-active="true"/);
+  assert.match(productControlWorkflowSource, /setProductFirstRunInstallLevel/);
+  assert.match(productControlWorkflowSource, /startFirstRunMaterialization/);
   assert.doesNotMatch(productControlWorkflowSource, /markProductReadyForUse/);
 });
 
-test('renderer evidence: repair and blocked states are explicit failure surfaces', () => {
-  assert.match(renderWorkflow('repair_required'), /repair a required local component/);
-  assert.match(renderWorkflow('blocked'), /cannot continue safely yet/);
+test('renderer evidence: the Setup phase folds the four progress states into one calm checklist', () => {
+  // The four product-progress states fold into the single Setup phase with
+  // the materialization sub-step checklist.
+  for (const state of [
+    'local_ai_profile_selected_assets_missing',
+    'local_ai_profile_selected_environment_not_ready',
+    'local_ai_assets_downloaded_environment_not_ready',
+  ] as const) {
+    const markup = renderWorkflow(state, {
+      firstRun: {
+        installLevel: 'minimal',
+        aiProfileAlias: 'local-speech-ready',
+        completed: false,
+        builtInAiConfigRefs: [],
+      },
+    });
+    assert.match(markup, /data-testid="first-run-phase-setup"/);
+    assert.match(markup, /data-testid="first-run-setup-checklist"/);
+    assert.match(markup, /data-testid="first-run-step-setup" data-active="true"/);
+  }
 });
 
-test('renderer copy-floor: every first-run state incl. repair_required and blocked has copy-floor markup and no raw enum primary copy', () => {
-  // Each first-run product-control state renders a human copy-floor: a
-  // non-empty <h2> title and a <p> body. The raw enum identifier may appear
-  // only in data-testid / data-product-state attributes — never as the
-  // primary user-facing copy (no enum-name collapse).
+test('renderer evidence: repair and blocked states are explicit terminal failure surfaces', () => {
+  const repair = renderWorkflow('repair_required');
+  assert.match(repair, /data-testid="first-run-screen-repair"/);
+  assert.match(repair, /Nimi needs to repair a component/);
+  // The repair screen keeps Retry and a Support entry reachable.
+  assert.match(repair, /first-run-repair-retry/);
+  assert.match(repair, /first-run-repair-support/);
+
+  const blocked = renderWorkflow('blocked');
+  assert.match(blocked, /data-testid="first-run-screen-blocked"/);
+  assert.match(blocked, /Nimi cannot continue safely/);
+  assert.match(blocked, /first-run-blocked-support/);
+  // The blocked terminal screen has no ready / continue shortcut.
+  assert.doesNotMatch(blocked, /first-run-local-ai-continue/);
+  assert.doesNotMatch(blocked, /first-run-storage-continue/);
+});
+
+test('renderer copy-floor: every first-run state renders human copy and no raw enum primary copy', () => {
+  // P-COLD-014 copy floor: the first-run UI must not collapse states into
+  // generic `ready` / `done` and must not show raw enum names as the primary
+  // user-facing copy. The redesigned wizard presents each state through a
+  // phase or terminal screen; the fast `config_missing` system state folds
+  // into the Storage phase as a transient rather than its own boxed screen.
+  // Every state still renders human copy, never the raw enum identifier.
   const allStates: ProductControlState[] = [
     'config_missing',
     'data_root_missing',
@@ -219,24 +280,28 @@ test('renderer copy-floor: every first-run state incl. repair_required and block
     'ready_for_use',
   ];
   for (const state of allStates) {
-    const markup = renderWorkflow(state);
-    // Copy-floor markup: a primary heading exists and is non-empty.
-    const heading = markup.match(/<h2[^>]*>([^<]+)<\/h2>/);
-    assert.ok(heading?.[1], `${state} must render a copy-floor <h2> title`);
-    const title = heading[1].trim();
-    assert.ok(title.length > 0, `${state} title must not be empty`);
-    // The primary copy must not be the raw enum identifier.
-    assert.notEqual(title, state, `${state} must not use its raw enum name as the title`);
+    const markup = renderWorkflow(state, {
+      firstRun: {
+        installLevel: 'minimal',
+        aiProfileAlias: 'local-speech-ready',
+        completed: false,
+        builtInAiConfigRefs: [],
+      },
+    });
+    // The state machine state is carried only on the data attribute, never
+    // as the primary user copy.
+    assert.match(markup, new RegExp(`data-product-state="${state}"`));
+    // Strip every data-* / id attribute value, then assert the raw enum
+    // identifier never appears as visible text.
+    const visibleText = markup
+      .replace(/<[^>]*>/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+    assert.ok(visibleText.length > 0, `${state} must render visible copy`);
     assert.doesNotMatch(
-      title,
-      /^[a-z][a-z0-9_]*$/,
-      `${state} title "${title}" looks like a raw enum identifier, not user copy`,
-    );
-    // A copy-floor body paragraph is rendered alongside the heading.
-    assert.match(
-      markup,
-      /<p class="text-sm leading-6[^>]*>[^<]+<\/p>/,
-      `${state} must render a copy-floor body paragraph`,
+      visibleText,
+      new RegExp(`(^|\\s)${state}(\\s|$)`),
+      `${state} must not show its raw enum name as user-facing copy`,
     );
   }
 });

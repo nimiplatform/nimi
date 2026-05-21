@@ -22,8 +22,10 @@ import { proxyHttp } from './runtime-bridge/http';
 import { getRuntimeDefaults } from './runtime-bridge/runtime-defaults';
 import {
   admitProductReadyForUse,
+  defaultProductDataRootDirectory,
   getAccountDefaultProfileForScopeInit,
   getProductControlRecord,
+  pickProductDataRootDirectory,
   selectProductDataRoot,
   setProductFirstRunInstallLevel,
   setProductFirstRunSetupState,
@@ -247,6 +249,8 @@ export {
   proxyHttp,
   getRuntimeDefaults,
   getProductControlRecord,
+  pickProductDataRootDirectory,
+  defaultProductDataRootDirectory,
   selectProductDataRoot,
   setProductFirstRunInstallLevel,
   setProductFirstRunSetupState,
@@ -352,6 +356,8 @@ export const desktopBridge = {
   setRuntimeBridgeConfig,
   getRuntimeDefaults,
   getProductControlRecord,
+  pickProductDataRootDirectory,
+  defaultProductDataRootDirectory,
   selectProductDataRoot,
   setProductFirstRunInstallLevel,
   setProductFirstRunSetupState,

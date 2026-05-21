@@ -1,17 +1,10 @@
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use std::fs;
 use std::path::{Component, Path, PathBuf};
 
 const NIMI_DIR_NAME: &str = ".nimi";
 const NIMI_RUNTIME_DIR_NAME: &str = "runtime";
 const LOCAL_RUNTIME_STATE_FILE: &str = "local-state.json";
-const DESKTOP_PATHS_CONFIG_FILE: &str = "desktop-paths.json";
-
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
-#[serde(rename_all = "camelCase")]
-struct DesktopPathsConfigFile {
-    nimi_data_dir: Option<String>,
-}
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -77,41 +70,22 @@ pub fn resolve_nimi_dir() -> Result<PathBuf, String> {
     Ok(dir)
 }
 
-fn desktop_paths_config_path() -> Result<PathBuf, String> {
-    Ok(resolve_nimi_dir()?.join(DESKTOP_PATHS_CONFIG_FILE))
-}
-
-fn write_desktop_paths_config(config: &DesktopPathsConfigFile) -> Result<(), String> {
-    let path = desktop_paths_config_path()?;
-    let raw = serde_json::to_string_pretty(config)
-        .map_err(|error| format!("序列化 desktop paths 配置失败: {error}"))?;
-    fs::write(&path, raw)
-        .map_err(|error| format!("写入 desktop paths 配置失败 ({}): {error}", path.display()))
-}
-
 pub fn resolve_nimi_data_dir() -> Result<PathBuf, String> {
     crate::desktop_product_control::selected_product_data_root()
 }
 
-pub fn set_nimi_data_dir(path: &str) -> Result<DesktopStorageDirsPayload, String> {
-    let trimmed = path.trim();
-    if trimmed.is_empty() {
-        return Err("nimi_data_dir 不能为空".to_string());
-    }
-    let candidate = PathBuf::from(trimmed);
-    if !candidate.is_absolute() {
-        return Err(format!("nimi_data_dir 必须是绝对路径，当前值: {trimmed}"));
-    }
-    let normalized = normalize_absolute_path(&candidate);
-    crate::desktop_product_control::select_product_data_root(
-        normalized
-            .to_str()
-            .ok_or_else(|| format!("nimi_data_dir 路径不是有效 UTF-8: {}", normalized.display()))?,
-    )?;
-    write_desktop_paths_config(&DesktopPathsConfigFile {
-        nimi_data_dir: Some(normalized.display().to_string()),
-    })?;
-    describe_desktop_storage_dirs()
+/// Resolves the OS-conventional `nimi_data` location *proposed* to the user
+/// during first-run Storage selection: a `Nimi` folder in the user home.
+///
+/// This is only a proposal surfaced as a pre-filled, user-visible value — not
+/// a readiness default. It does not create the directory, does not record
+/// anything, and is never wired into `resolve_nimi_data_dir`. The user reviews
+/// this path on the `data_root_missing` screen and must explicitly confirm it;
+/// `select_product_data_root` remains the sole owner of recording and
+/// fail-closed validation (`P-COLD-010`).
+pub fn default_data_root_proposal() -> Result<PathBuf, String> {
+    let home = resolve_home_dir().ok_or_else(|| "无法获取用户 home 目录".to_string())?;
+    Ok(normalize_absolute_path(&home.join("Nimi")))
 }
 
 pub fn describe_desktop_storage_dirs() -> Result<DesktopStorageDirsPayload, String> {
@@ -148,7 +122,8 @@ pub fn describe_desktop_storage_dirs() -> Result<DesktopStorageDirsPayload, Stri
 #[cfg(test)]
 mod tests {
     use super::{
-        describe_desktop_storage_dirs, resolve_nimi_data_dir, resolve_nimi_dir, set_nimi_data_dir,
+        default_data_root_proposal, describe_desktop_storage_dirs, resolve_nimi_data_dir,
+        resolve_nimi_dir,
     };
     use crate::test_support::with_env;
     use std::path::PathBuf;
@@ -177,39 +152,29 @@ mod tests {
     }
 
     #[test]
+    fn default_data_root_proposal_proposes_nimi_folder_in_home_without_creating_it() {
+        let home = temp_home("default-proposal");
+        with_env(&[("HOME", home.to_str())], || {
+            let proposed = default_data_root_proposal().expect("default proposal");
+            // The proposal is a `Nimi` folder in the user home — never the
+            // `~/.nimi/data` location P-COLD-010 forbids as a silent default.
+            assert_eq!(proposed, home.join("Nimi"));
+            assert_ne!(proposed, home.join(".nimi").join("data"));
+            // It is only a proposal: the directory is not created here, and no
+            // product-control record is written. Recording stays with
+            // `select_product_data_root` after explicit user confirmation.
+            assert!(!proposed.exists());
+            assert!(!home.join(".nimi").join("nimi.json").exists());
+        });
+    }
+
+    #[test]
     fn describe_storage_dirs_requires_selected_product_nimi_data() {
         let home = temp_home("storage-dirs");
         with_env(&[("HOME", home.to_str())], || {
             let error = describe_desktop_storage_dirs().expect_err("missing product data root");
 
             assert!(error.contains("~/.nimi/nimi.json is missing"));
-        });
-    }
-
-    #[test]
-    fn switching_nimi_data_dir_keeps_runtime_state_under_nimi_runtime() {
-        let home = temp_home("set-data-dir");
-        let custom_data_dir = home.join("custom-data-root");
-        with_env(&[("HOME", home.to_str())], || {
-            let dirs = set_nimi_data_dir(custom_data_dir.to_str().expect("custom data dir"))
-                .expect("set nimi data dir");
-
-            assert_eq!(dirs.nimi_data_dir, custom_data_dir.display().to_string());
-            assert_eq!(
-                dirs.installed_mods_dir,
-                custom_data_dir.join("mods").display().to_string()
-            );
-            assert_eq!(
-                dirs.local_runtime_state_path,
-                home.join(".nimi")
-                    .join("runtime")
-                    .join("local-state.json")
-                    .display()
-                    .to_string()
-            );
-            assert!(custom_data_dir.exists());
-            assert!(custom_data_dir.join("mods").exists());
-            assert!(home.join(".nimi").join("runtime").exists());
         });
     }
 }

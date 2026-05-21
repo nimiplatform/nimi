@@ -99,11 +99,17 @@ test('Wave 7: first-run finalization requests admission and routes on the projec
 });
 
 test('Wave 7: workflow mounts the finalization branch only at local_ai_ready', () => {
+  // The redesigned 3-phase wizard folds the four progress states into the
+  // Setup phase. The backend-admission FirstRunFinalization surface is still
+  // mounted only at `local_ai_ready` — never earlier, never on a renderer
+  // shortcut.
   assert.match(workflowSource, /state === 'local_ai_ready' && projection \? \(\s*<FirstRunFinalization/);
-  // The Runtime materialization progress block is not rendered at local_ai_ready.
-  assert.match(workflowSource, /materialization && state !== 'local_ai_ready'/);
-  // Product copy keeps per-state semantics; no generic ready/done collapse.
-  assert.match(workflowSource, /FirstRun\.states\.\$\{state\}\.title/);
+  // The Setup-phase checklist projects the real materialization progression
+  // and folds `local_ai_ready` as the active `finalize` sub-step rather than
+  // re-rendering raw materialization rows.
+  assert.match(workflowSource, /projectSetupChecklist/);
+  // No mark-ready shortcut: backend admission is the sole ready_for_use writer.
+  assert.doesNotMatch(workflowSource, /markProductReadyForUse/);
 });
 
 /**

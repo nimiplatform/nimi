@@ -199,6 +199,51 @@ export async function selectProductDataRoot(dataRoot: string): Promise<ProductCo
   }, parseProjection);
 }
 
+/**
+ * Opens the OS native directory picker for the first-run Storage phase.
+ *
+ * Returns the picked absolute directory path, or `null` when the user
+ * cancelled the dialog. The path is only a candidate; the caller must pass it
+ * to {@link selectProductDataRoot}, which is the sole owner of recording and
+ * fail-closed validation of the selected `nimi_data` root (P-COLD-010).
+ */
+export async function pickProductDataRootDirectory(): Promise<string | null> {
+  if (!hasTauriInvoke()) {
+    throw new Error('product_control_pick_data_root_directory requires Tauri runtime');
+  }
+  return invokeChecked('product_control_pick_data_root_directory', {}, (value) => {
+    if (value == null) return null;
+    if (typeof value !== 'string') {
+      throw new Error('product_control_pick_data_root_directory returned invalid payload');
+    }
+    const trimmed = value.trim();
+    return trimmed.length > 0 ? trimmed : null;
+  });
+}
+
+/**
+ * Resolves the OS-conventional default `nimi_data` directory proposed during
+ * first-run Storage selection.
+ *
+ * This is a read-only proposal — it neither creates the directory nor mutates
+ * the product-control record. The renderer pre-fills the returned absolute
+ * path so the Storage phase never starts from an empty field; the user still
+ * explicitly confirms it via {@link selectProductDataRoot}, the sole owner of
+ * recording and fail-closed validation (P-COLD-010). Outside the Tauri runtime
+ * — and on any non-string payload — it resolves to `null` so the field fails
+ * closed (empty) rather than showing a fabricated path.
+ */
+export async function defaultProductDataRootDirectory(): Promise<string | null> {
+  if (!hasTauriInvoke()) return null;
+  return invokeChecked('product_control_default_data_root_directory', {}, (value) => {
+    if (typeof value !== 'string') {
+      throw new Error('product_control_default_data_root_directory returned invalid payload');
+    }
+    const trimmed = value.trim();
+    return trimmed.length > 0 ? trimmed : null;
+  });
+}
+
 export async function setProductFirstRunInstallLevel(input: {
   installLevel: 'minimal' | 'recommended';
   aiProfileAlias?: string | null;

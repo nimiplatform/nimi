@@ -239,6 +239,7 @@ registered_command_families:
         - runtime_local_pick_asset_manifest_path
         - runtime_local_pick_asset_file
         - runtime_local_pick_asset_directory
+        - product_control_pick_data_root_directory
         - desktop_agent_center_live2d_adapter_manifest_pick_source
         - desktop_agent_center_background_pick_source
     origin_crate: apps/desktop/src-tauri
@@ -625,7 +626,7 @@ registered_command_families:
 
   - family: product_control
     match:
-      regex: "^(product_control_record_.*|account_default_profile_for_scope_init)$"
+      regex: "^(product_control_record_.*|product_control_default_data_root_directory|account_default_profile_for_scope_init)$"
     origin_crate: apps/desktop/src-tauri
     owner_domain: desktop-product-control
     execution_class: request_response_async

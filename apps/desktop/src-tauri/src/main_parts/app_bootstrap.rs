@@ -314,6 +314,8 @@ fn build_desktop_app() -> Result<tauri::App<tauri::Wry>, tauri::Error> {
             desktop_updates::desktop_update_restart,
             crate::desktop_product_control::product_control_record_get,
             crate::desktop_product_control::product_control_record_select_data_root,
+            crate::desktop_product_control::product_control_pick_data_root_directory,
+            crate::desktop_product_control::product_control_default_data_root_directory,
             crate::desktop_product_control::product_control_record_set_first_run_install_level,
             crate::desktop_product_control::product_control_record_ensure_account_default_profile,
             crate::desktop_product_control::product_control_record_ensure_built_in_ai_config,

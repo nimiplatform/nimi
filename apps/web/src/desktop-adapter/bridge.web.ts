@@ -307,6 +307,18 @@ export async function selectProductDataRoot(_dataRoot: string): Promise<ProductC
   unsupportedDesktopRuntime('nimi_data root selection is only available in desktop runtime');
 }
 
+export async function pickProductDataRootDirectory(): Promise<string | null> {
+  unsupportedDesktopRuntime('The nimi_data folder picker is only available in desktop runtime');
+}
+
+// The default nimi_data proposal is a read-only, fail-closed contract: outside
+// the desktop runtime there is no OS home directory to propose, so it resolves
+// to `null` (no proposal) rather than throwing — the Storage field then fails
+// closed to empty instead of showing a fabricated path.
+export async function defaultProductDataRootDirectory(): Promise<string | null> {
+  return null;
+}
+
 export async function setProductFirstRunInstallLevel(_input: {
   installLevel: 'minimal' | 'recommended';
   aiProfileAlias?: string | null;
@@ -465,6 +477,8 @@ export const desktopBridge = {
   setRuntimeBridgeConfig,
   getRuntimeDefaults,
   getProductControlRecord,
+  pickProductDataRootDirectory,
+  defaultProductDataRootDirectory,
   selectProductDataRoot,
   setProductFirstRunInstallLevel,
   setProductFirstRunSetupState,

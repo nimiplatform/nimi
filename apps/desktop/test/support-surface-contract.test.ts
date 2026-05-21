@@ -242,11 +242,27 @@ test('D-SUP-008: repair and recovery are the degraded-reachable sub-areas', () =
 });
 
 test('D-SUP-008: the degraded first-run gate mounts the Support degraded entry', () => {
+  // The redesigned first-run gate renders the onboarding wizard. The wizard
+  // chrome — present on every phase and terminal screen — mounts the Support
+  // degraded entry as the top-right Support pill, so Support stays reachable
+  // from the degraded first-run gate. The dedicated repair terminal screen
+  // also mounts it. The gate panel composes the wizard.
   const gatePanel = readDesktop(
     'src/shell/renderer/features/nimi-home/first-run-gate-panel.tsx',
   );
-  assert.match(gatePanel, /SupportDegradedEntry/);
-  assert.match(gatePanel, /support\/support-degraded-entry/);
+  assert.match(gatePanel, /ProductControlWorkflow/);
+
+  const wizardChrome = readDesktop(
+    'src/shell/renderer/first-run/first-run-wizard-chrome.tsx',
+  );
+  assert.match(wizardChrome, /SupportDegradedEntry/);
+  assert.match(wizardChrome, /support\/support-degraded-entry/);
+
+  const terminalScreens = readDesktop(
+    'src/shell/renderer/first-run/screen-terminal.tsx',
+  );
+  assert.match(terminalScreens, /SupportDegradedEntry/);
+  assert.match(terminalScreens, /support\/support-degraded-entry/);
 });
 
 test('D-SUP-008: the degraded entry only exposes repair and recovery', () => {

@@ -1,17 +1,73 @@
 {
-  "eyebrow": "首次运行",
-  "gateEyebrow": "Nimi",
-  "gateTitle": "首次运行设置",
-  "dataRootLabel": "nimi_data",
-  "dataRootConfirm": "确认",
-  "installLevelNoPlan": "没有可用的本地方案",
-  "materializationConfirmationBody": "在首次进行网络或大量本地存储设置前，运行时需要显式确认。开始本地设置以物化所选 AIProfile 的依赖。",
-  "materializationStart": "开始本地设置",
-  "materializationTitle": "运行时本地设置",
-  "materializationEvidenceNote": "{{reason}}。该进度仅为运行时证据；ready_for_use 仍需要产品控制完成证据。",
-  "materializationCancel": "取消",
-  "materializationRetry": "重试",
-  "materializationRepair": "修复",
+  "wordmark": "NIMI",
+  "stepIndicatorLabel": "设置步骤",
+  "continue": "继续",
+  "steps": {
+    "storage": "存储",
+    "localAi": "本地 AI",
+    "setup": "设置"
+  },
+  "storage": {
+    "heading": "Nimi 的文件保存在哪里？",
+    "subline": "Nimi 在你的电脑上运行 AI，会把模型和数据放在本机的一个文件夹里。我们已经填好了推荐位置，你可以直接使用，也可以另选其他文件夹。",
+    "preparing": "正在为这台电脑准备 Nimi…",
+    "pathPlaceholder": "尚未选择文件夹",
+    "chooseFolder": "选择文件夹…"
+  },
+  "localAi": {
+    "heading": "设置你的本地 AI",
+    "detecting": "正在后台检查此设备…",
+    "detected": "已检测到：{{device}}",
+    "detectedUnavailable": "设备扫描证据不可用。",
+    "unavailable": "该级别没有可用的本地方案。",
+    "storageFolder": "保存到 {{path}}",
+    "changeFolder": "更换文件夹",
+    "cards": {
+      "minimal": {
+        "title": "最小",
+        "subtitle": "轻量 — 本地聊天与语音"
+      },
+      "recommended": {
+        "title": "推荐",
+        "subtitle": "新增本地嵌入与图像生成"
+      }
+    },
+    "highlights": {
+      "fast-setup": "快速设置",
+      "lower-resource": "更低的资源占用",
+      "everyday-chat": "适合日常聊天",
+      "smarter-answers": "更聪明的回答",
+      "image-generation": "图像生成",
+      "future-ready": "面向未来的功能",
+      "local-voice": "本地语音"
+    }
+  },
+  "setup": {
+    "heading": "正在设置 Nimi…",
+    "subline": "这可能需要几分钟。你可以放松一下。",
+    "cancel": "取消",
+    "retry": "重试",
+    "repair": "修复",
+    "steps": {
+      "download": "正在下载本地模型",
+      "verify": "正在校验文件",
+      "environment": "正在准备本地环境",
+      "finalize": "正在完成你的 AI Profile"
+    }
+  },
+  "repair": {
+    "heading": "Nimi 需要修复一个组件",
+    "body": "在正常使用前，有一个必需的本地组件需要修复。重试设置或运行修复以恢复它。",
+    "retry": "重试"
+  },
+  "blocked": {
+    "heading": "Nimi 无法安全继续",
+    "body": "目前在此设备上无法安全继续设置。请联系支持以解决阻塞原因。"
+  },
+  "ready": {
+    "heading": "Nimi 已就绪",
+    "body": "正在打开 Nimi Chat…"
+  },
   "finalizationTitle": "正在收尾",
   "finalizationRetry": "重试收尾",
   "states": {
@@ -74,16 +130,18 @@
     "text.generate.vision": "本地视觉文本"
   },
   "errors": {
-    "dataRootAbsoluteRequired": "请输入绝对 nimi_data 文件夹路径。",
+    "dataRootMissing": "请先为 Nimi 选择一个文件夹再继续。",
+    "dataRootPickFailed": "打开文件夹选择器失败。",
     "dataRootRecordFailed": "记录 nimi_data 失败。",
+    "installLevelRequired": "请选择一个安装级别以继续。",
     "installLevelNoProfile": "{{installLevel}} 没有可用的本地首次运行 AIProfile。",
-    "installLevelSelectFailed": "选择 {{installLevel}} 失败。",
-    "materializationPrerequisitesMissing": "在运行时设置前，请选择首次运行安装级别和绝对 nimi_data 路径。",
+    "materializationPrerequisitesMissing": "在运行时设置前，请选择首次运行安装级别和 nimi_data 路径。",
     "materializationStartFailed": "启动运行时物化失败。",
     "materializationObserveFailed": "观测运行时物化失败。",
     "materializationCancelFailed": "取消运行时任务失败。",
     "materializationRetryFailed": "重试运行时任务失败。",
     "materializationRepairFailed": "修复运行时依赖失败。",
+    "repairReevaluateFailed": "重新检查 Nimi 设置失败。",
     "finalizationRequestFailed": "请求首次运行收尾失败。"
   }
 }

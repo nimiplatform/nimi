@@ -86,16 +86,21 @@ test('Nimi Home first-run selection is install-level aware and fail-closed again
   assert.doesNotMatch(homeBridgeSource, /return rows\[0\] \?\? null/);
 });
 
-test('first-run workflow exposes product states, data root selection, install levels, and no mark-ready shortcut', () => {
+test('first-run wizard exposes data root selection, install levels, and no mark-ready shortcut', () => {
+  // The redesigned wizard keeps every product-control bridge call and the
+  // Minimal / Recommended install-level surface; it presents them through
+  // the 3-phase wizard instead of the prior state-dump. The forbidden
+  // mark-ready shortcut negative still holds.
   assert.match(productControlWorkflowSource, /ProductControlWorkflow/);
-  assert.match(productControlWorkflowSource, /PRODUCT_COPY/);
   assert.match(productControlWorkflowSource, /selectProductDataRoot/);
+  assert.match(productControlWorkflowSource, /pickProductDataRootDirectory/);
   assert.match(productControlWorkflowSource, /setProductFirstRunInstallLevel/);
   assert.match(productControlWorkflowSource, /setProductFirstRunSetupState/);
   assert.match(productControlWorkflowSource, /startFirstRunMaterialization/);
-  assert.match(productControlWorkflowSource, /product-first-run-install-level-\$\{installLevel\}/);
-  assert.match(productControlWorkflowSource, /\(\['minimal', 'recommended'\] as const\)/);
-  assert.match(productControlWorkflowSource, /product-first-run-materialization-start/);
+  // The two admitted install levels are still the only ones presented.
+  assert.match(productControlWorkflowSource, /'minimal'/);
+  assert.match(productControlWorkflowSource, /'recommended'/);
+  assert.match(productControlWorkflowSource, /first-run-install-level-/);
   assert.doesNotMatch(productControlWorkflowSource, /markProductReadyForUse/);
 });
 
@@ -116,10 +121,26 @@ test('non-ready first-run gate renders only product-control setup, not ordinary 
   }
 });
 
-test('config_missing is internal and does not expose the data-root form', () => {
-  assert.match(productControlWorkflowSource, /config_missing/);
-  assert.doesNotMatch(productControlWorkflowSource, /state === 'config_missing'/);
-  assert.match(productControlWorkflowSource, /state === 'data_root_missing'/);
+test('config_missing is an internal transient and does not expose the data-root picker', () => {
+  // `config_missing` is a fast system state: the phase projection folds it
+  // into the Storage phase as a transient (`isTransientSystemState`), so it
+  // never presents the interactive folder-choose control. `data_root_missing`
+  // is the first user-action data-root state.
+  const phaseProjectionSource = fs.readFileSync(
+    path.join(import.meta.dirname, '../src/shell/renderer/first-run/first-run-phase-projection.ts'),
+    'utf8',
+  );
+  assert.match(phaseProjectionSource, /config_missing/);
+  assert.match(phaseProjectionSource, /isTransientSystemState/);
+  assert.match(phaseProjectionSource, /data_root_missing/);
+  // The Storage phase swaps to a transient loading affordance and hides the
+  // folder-choose control when the phase is transient.
+  const storagePhaseSource = fs.readFileSync(
+    path.join(import.meta.dirname, '../src/shell/renderer/first-run/phase-storage.tsx'),
+    'utf8',
+  );
+  assert.match(storagePhaseSource, /props\.transient/);
+  assert.match(storagePhaseSource, /first-run-storage-choose-folder/);
   assert.match(desktopProductControlSource, /empty_record\(ProductControlState::DataRootMissing\)/);
 });
 
@@ -146,7 +167,12 @@ test('Desktop product control record owns selected data root; desktop paths no l
   assert.match(desktopProductControlSource, /empty_record\(ProductControlState::DataRootMissing\)/);
   assert.match(desktopProductControlSource, /select_product_data_root/);
   assert.match(desktopProductControlSource, /ensure_data_root_layout/);
+  // `resolve_nimi_data_dir` — the readiness path — still requires the
+  // user-selected product data root and never silently defaults.
   assert.match(desktopPathsSource, /selected_product_data_root/);
-  assert.doesNotMatch(desktopPathsSource, /fn default_nimi_data_dir/);
+  // The OS-default `nimi_data` *proposal* helper is admitted as a first-run
+  // pre-fill only: it resolves a `Nimi` home folder the user reviews and
+  // confirms, never a silent `~/.nimi/data` readiness default.
+  assert.match(desktopPathsSource, /fn default_data_root_proposal/);
   assert.doesNotMatch(desktopPathsSource, /join\(NIMI_DATA_DIR_NAME\)/);
 });
