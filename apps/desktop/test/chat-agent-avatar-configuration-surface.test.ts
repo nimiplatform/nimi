@@ -113,7 +113,17 @@ test('Agent Chat composer Avatar launch fails closed without local asset and bac
   assert.match(invalidEvidenceGuard[0], /Chat\.agentCenterAvatarStartBackendEvidenceRequired/u);
   assert.match(invalidEvidenceGuard[0], /Chat\.agentCenterAvatarStartLocalAssetRequired/u);
 
-  const guardIndex = presentationSource.indexOf('if (!avatarRunning && !avatarAssetValid)');
-  const launchIndex = presentationSource.indexOf('launchDesktopAvatarHandoff({');
-  assert.ok(guardIndex >= 0 && launchIndex >= 0 && guardIndex < launchIndex);
+  // The explicit composer launch routes through the D-LLM-106 instance-policy
+  // arbitration (executeArbitratedLaunch). The local-asset / backend evidence
+  // guard must run before that arbitrated launch is triggered.
+  const composerAction = presentationSource.match(
+    /handleComposerAvatarAction = useCallback\(async \(\) => \{[\s\S]*?\n {2}\}, \[/u,
+  );
+  assert.ok(composerAction, 'handleComposerAvatarAction callback must be visible to the guard check');
+  const guardIndex = composerAction[0].indexOf('if (!avatarRunning && !avatarAssetValid)');
+  const launchIndex = composerAction[0].indexOf('executeArbitratedLaunch({');
+  assert.ok(
+    guardIndex >= 0 && launchIndex >= 0 && guardIndex < launchIndex,
+    'evidence guard must precede the arbitrated launch in the composer action',
+  );
 });
