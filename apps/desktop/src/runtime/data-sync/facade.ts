@@ -30,6 +30,12 @@ import type {
 import { createDataSyncActions } from './facade-actions';
 import type { CreateMasterAgentInput } from './flows/social-flow';
 import type { PostFeedScope } from './flows/post-attachment-flow';
+import {
+  COURIER_POLLING_KEY,
+  COURIER_POLL_INTERVAL_MS,
+  runLocalAgentTerminationCourierPass,
+  type LocalAgentTerminationCourierPassResult,
+} from './local-agent-termination-courier';
 
 type ChatSyncResultDto = RealmModel<'ChatSyncResultDto'>;
 type CreatePostDto = RealmModel<'CreatePostDto'>;
@@ -344,7 +350,19 @@ export class DataSync {
   isFriend(userId: string): boolean { return this.authCallbacks?.isFriend(userId) ?? false; }
   isBlockedUser(userId: string): boolean { return isBlockedUser(userId); }
 
-  async removeFriend(userId: string) { await this.actions.removeFriend(userId); }
+  async removeFriend(userId: string) {
+    await this.actions.removeFriend(userId);
+    // R-SOC-008 triggered pass: a HUMAN_AGENT removal wrote an OPEN termination
+    // intent in the same backend transaction; kick a courier pass so the common
+    // same-device case converges within ~1s instead of waiting for the tick.
+    // For a HUMAN_HUMAN removal the viewer-scoped list returns no new intent, so
+    // the pass is a cheap no-op — the courier owns no decision about which
+    // removals produce an intent.
+    void this.runLocalAgentTerminationCourierPass().catch(() => {
+      // Transport/offline failures are expected and telemetered by the courier;
+      // the intent stays OPEN server-side for the periodic tick / next startup.
+    });
+  }
   requestOrAcceptFriend(userId: string, message?: string) { return this.actions.requestOrAcceptFriend(userId, message); }
   rejectOrRemoveFriend(userId: string) { return this.actions.rejectOrRemoveFriend(userId); }
   blockUser(contact: Record<string, unknown>) { return this.actions.blockUser(contact); }
@@ -495,6 +513,42 @@ export class DataSync {
   startPolling(key: string, callback: () => void, intervalMs: number) { this.polling.start(key, callback, intervalMs); }
   stopPolling(key: string) { this.polling.stop(key); }
   stopAllPolling() { this.polling.stopAll(); }
+
+  /**
+   * R-SOC-008 desktop reconciliation courier — run one stateless pass: pull the
+   * viewer's OPEN LocalAgentTerminationIntents, deliver runtime.agent.terminateAgent
+   * to the loopback runtime, ack the typed outcome. Pure transport; owns no
+   * decision and drives no UI state.
+   */
+  runLocalAgentTerminationCourierPass(): Promise<LocalAgentTerminationCourierPassResult> {
+    return runLocalAgentTerminationCourierPass({
+      callApi: this.callApiTask,
+      emitDataSyncError: this.emitFacadeError,
+      getCurrentUser: () => this.authCallbacks?.getCurrentUser() || null,
+    });
+  }
+
+  /**
+   * Register the ~60s courier tick so an intent created by another device or
+   * session while this device is already online still converges without a
+   * restart. `stopAllPolling()` on auth-clear / refresh-failure halts it.
+   */
+  startLocalAgentTerminationCourier() {
+    this.polling.start(
+      COURIER_POLLING_KEY,
+      () => {
+        void this.runLocalAgentTerminationCourierPass().catch(() => {
+          // Transport/offline failures are expected and already telemetered by
+          // the courier; the intent stays OPEN server-side for the next tick.
+        });
+      },
+      COURIER_POLL_INTERVAL_MS,
+    );
+  }
+
+  stopLocalAgentTerminationCourier() {
+    this.polling.stop(COURIER_POLLING_KEY);
+  }
 
   scheduleProactiveRefresh(accessToken: string) {
     this.clearProactiveRefreshTimer();

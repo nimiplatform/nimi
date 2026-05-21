@@ -42,6 +42,17 @@ export function startAuthStateWatcher() {
           hasUser: Boolean(state.auth.user),
         },
       });
+      // R-SOC-008 desktop reconciliation courier: on every authenticated
+      // transition (startup / post-login / re-login) run one stateless courier
+      // pass and register the ~60s tick. The startup pass is what converges a
+      // device that was offline when the AgentFriend was removed — the intent
+      // has stayed OPEN server-side and the loopback runtime is reachable
+      // exactly when this device is online.
+      dataSync.startLocalAgentTerminationCourier();
+      void dataSync.runLocalAgentTerminationCourierPass().catch(() => {
+        // Transport/offline failures are expected and telemetered by the
+        // courier; the intent stays OPEN for the periodic tick.
+      });
     } else if (auth.status === 'anonymous' && prev.status !== 'anonymous') {
       dataSync.setToken('');
       dataSync.setRefreshToken('');
