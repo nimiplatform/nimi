@@ -2,7 +2,7 @@
  * AI Config Resolution
  *
  * Resolves the user's AI selection into parameters suitable for runtime AI calls.
- * Speech reads use audio.synthesize canonically and accept legacy tts.synthesize as an alias.
+ * Speech reads use audio.synthesize canonically.
  */
 
 import {

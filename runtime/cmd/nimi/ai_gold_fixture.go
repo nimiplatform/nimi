@@ -125,19 +125,19 @@ func (f *aiGoldFixture) validate() error {
 		if err := f.validateAudioRequest("audio.transcribe"); err != nil {
 			return err
 		}
-	case "voice.clone":
+	case "voice_workflow.voice_clone":
 		if strings.TrimSpace(f.TargetModelID) == "" {
-			return fmt.Errorf("voice.clone requires target_model_id")
+			return fmt.Errorf("voice_workflow.voice_clone requires target_model_id")
 		}
-		if err := f.validateAudioRequest("voice.clone"); err != nil {
+		if err := f.validateAudioRequest("voice_workflow.voice_clone"); err != nil {
 			return err
 		}
-	case "voice.design":
+	case "voice_workflow.voice_design":
 		if strings.TrimSpace(f.TargetModelID) == "" {
-			return fmt.Errorf("voice.design requires target_model_id")
+			return fmt.Errorf("voice_workflow.voice_design requires target_model_id")
 		}
 		if strings.TrimSpace(f.Request.InstructionText) == "" {
-			return fmt.Errorf("voice.design requires request.instruction_text")
+			return fmt.Errorf("voice_workflow.voice_design requires request.instruction_text")
 		}
 	case "video.generate":
 		return nil
@@ -410,7 +410,7 @@ func (f *aiGoldFixture) buildSubmitScenarioJobRequest(appID string, subjectUserI
 				AudioBytes: audioBytes,
 			}
 		}
-	case "voice.clone":
+	case "voice_workflow.voice_clone":
 		audioURI, audioBytes, audioMime, err := f.resolveAudioInput()
 		if err != nil {
 			return nil, err
@@ -432,7 +432,7 @@ func (f *aiGoldFixture) buildSubmitScenarioJobRequest(appID string, subjectUserI
 			request.GetSpec().GetVoiceClone().GetInput().ReferenceAudioBytes = audioBytes
 			request.GetSpec().GetVoiceClone().GetInput().ReferenceAudioUri = ""
 		}
-	case "voice.design":
+	case "voice_workflow.voice_design":
 		request.ScenarioType = runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN
 		request.Spec = &runtimev1.ScenarioSpec{
 			Spec: &runtimev1.ScenarioSpec_VoiceDesign{

@@ -1,5 +1,5 @@
-fixture_id: dashscope.voice.design
-capability: voice.design
+fixture_id: dashscope.voice_workflow.voice_design
+capability: voice_workflow.voice_design
 provider: dashscope
 model_id: "${NIMI_LIVE_DASHSCOPE_VOICE_DESIGN_MODEL_ID}"
 target_model_id: "${NIMI_LIVE_DASHSCOPE_VOICE_DESIGN_MODEL_ID_TARGET_MODEL_ID}"

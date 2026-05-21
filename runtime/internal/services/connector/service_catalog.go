@@ -196,7 +196,7 @@ func modelMatchesCategory(model *runtimev1.LocalAssetRecord, category runtimev1.
 	case runtimev1.LocalConnectorCategory_LOCAL_CONNECTOR_CATEGORY_IMAGE:
 		return hasAny("image", "image.generate")
 	case runtimev1.LocalConnectorCategory_LOCAL_CONNECTOR_CATEGORY_TTS:
-		return hasAny("tts", "speech.synthesize", "audio.synthesize")
+		return hasAny("tts", "audio.synthesize")
 	case runtimev1.LocalConnectorCategory_LOCAL_CONNECTOR_CATEGORY_STT:
 		return hasAny("stt", "speech.transcribe", "audio.transcribe")
 	case runtimev1.LocalConnectorCategory_LOCAL_CONNECTOR_CATEGORY_CUSTOM:

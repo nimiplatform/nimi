@@ -31,9 +31,7 @@ const CAPABILITY_MAP: Record<ForgeAiCapability, string> = {
   voiceDesign: 'voice_workflow.voice_design',
 };
 
-const CAPABILITY_ALIASES: Partial<Record<string, readonly string[]>> = {
-  'audio.synthesize': ['tts.synthesize'],
-};
+const CANONICAL_CAPABILITIES = new Set(Object.values(CAPABILITY_MAP));
 
 /** Forge AIScopeRef per FG-ROUTE-004. */
 const FORGE_SCOPE_REF: AIScopeRef = {
@@ -53,10 +51,6 @@ function createDefaultAIConfigForForge(): AIConfig {
   return createEmptyAIConfig(FORGE_SCOPE_REF);
 }
 
-function getCapabilityAliasList(capability: string): readonly string[] {
-  return CAPABILITY_ALIASES[capability] ?? [];
-}
-
 function resolveStoredBinding(
   selectedBindings: AIConfig['capabilities']['selectedBindings'],
   capability: string,
@@ -64,24 +58,17 @@ function resolveStoredBinding(
   const directBinding = selectedBindings[capability];
   if (directBinding !== undefined) return directBinding;
 
-  for (const alias of getCapabilityAliasList(capability)) {
-    const aliasBinding = selectedBindings[alias];
-    if (aliasBinding !== undefined) return aliasBinding;
-  }
-
   return undefined;
 }
 
-function canonicalizeSelectedBindings(
+function scrubSelectedBindings(
   selectedBindings: AIConfig['capabilities']['selectedBindings'],
 ): AIConfig['capabilities']['selectedBindings'] {
-  const nextBindings = { ...selectedBindings };
-  const legacySpeechBinding = nextBindings['tts.synthesize'];
-  if (nextBindings['audio.synthesize'] === undefined && legacySpeechBinding !== undefined) {
-    nextBindings['audio.synthesize'] = legacySpeechBinding;
-  }
-  if ('tts.synthesize' in nextBindings) {
-    delete nextBindings['tts.synthesize'];
+  const nextBindings: AIConfig['capabilities']['selectedBindings'] = {};
+  for (const [capability, binding] of Object.entries(selectedBindings)) {
+    if (CANONICAL_CAPABILITIES.has(capability)) {
+      nextBindings[capability] = binding;
+    }
   }
   return nextBindings;
 }
@@ -136,7 +123,7 @@ function migrateV1DeferredSelections(stored: any): AIConfig | null {
             ...(stored.aiConfig.capabilities && typeof stored.aiConfig.capabilities === 'object'
               ? stored.aiConfig.capabilities
               : {}),
-            selectedBindings: canonicalizeSelectedBindings(
+            selectedBindings: scrubSelectedBindings(
               stored.aiConfig.capabilities?.selectedBindings && typeof stored.aiConfig.capabilities.selectedBindings === 'object'
                 ? stored.aiConfig.capabilities.selectedBindings
                 : {},
@@ -180,7 +167,7 @@ function loadPersistedAIConfig(): AIConfig {
               ...(parsed.aiConfig.capabilities && typeof parsed.aiConfig.capabilities === 'object'
                 ? parsed.aiConfig.capabilities
                 : {}),
-              selectedBindings: canonicalizeSelectedBindings(
+              selectedBindings: scrubSelectedBindings(
                 parsed.aiConfig.capabilities?.selectedBindings && typeof parsed.aiConfig.capabilities.selectedBindings === 'object'
                   ? parsed.aiConfig.capabilities.selectedBindings
                   : {},
@@ -200,7 +187,7 @@ function loadPersistedAIConfig(): AIConfig {
           capabilities: {
             ...createDefaultAIConfigForForge().capabilities,
             ...(parsed.capabilities && typeof parsed.capabilities === 'object' ? parsed.capabilities : {}),
-            selectedBindings: canonicalizeSelectedBindings(
+            selectedBindings: scrubSelectedBindings(
               parsed.capabilities?.selectedBindings && typeof parsed.capabilities.selectedBindings === 'object'
                 ? parsed.capabilities.selectedBindings
                 : {},
@@ -228,7 +215,7 @@ function persistAIConfig(config: AIConfig): void {
       ...config,
       capabilities: {
         ...config.capabilities,
-        selectedBindings: canonicalizeSelectedBindings(config.capabilities.selectedBindings),
+        selectedBindings: scrubSelectedBindings(config.capabilities.selectedBindings),
       },
     }));
   } catch {
@@ -279,13 +266,10 @@ export const useAiConfigStore = create<AiConfigStore>((set, get) => {
 
     setCapabilityBinding(capability, binding) {
       const current = get();
-      const nextSelectedBindings = {
+      const nextSelectedBindings = scrubSelectedBindings({
         ...current.aiConfig.capabilities.selectedBindings,
         [capability]: binding,
-      };
-      for (const alias of getCapabilityAliasList(capability)) {
-        delete nextSelectedBindings[alias];
-      }
+      });
       const aiConfig: AIConfig = {
         ...current.aiConfig,
         capabilities: {

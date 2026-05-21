@@ -561,11 +561,11 @@ class SpeechServerTests(unittest.TestCase):
                     op = request["operation"]
                     if op == "driver.preflight":
                         pathlib.Path(args.response).write_text(json.dumps({"driver_family": "qwen3_tts"}))
-                    elif op == "voice.clone":
+                    elif op == "voice_workflow.voice_clone":
                         assert request["input"]["preferred_name"] == "clone-voice"
                         assert request["input"]["reference_audio_base64"]
                         pathlib.Path(args.response).write_text(json.dumps({"voice_id": "clone-voice-001", "job_id": "job-clone-001"}))
-                    elif op == "voice.design":
+                    elif op == "voice_workflow.voice_design":
                         assert request["input"]["instruction_text"] == "warm narrator"
                         pathlib.Path(args.response).write_text(json.dumps({"voice_id": "design-voice-001"}))
                     else:

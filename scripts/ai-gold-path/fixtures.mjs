@@ -5,6 +5,7 @@ import YAML from 'yaml';
 
 const ENV_PATTERN = /\$\{([A-Z0-9_]+)\}/g;
 const LEGACY_KEYS = new Set(['connectorId', 'connector_id']);
+const LEGACY_CAPABILITIES = new Set(['speech.synthesize', 'tts.synthesize', 'voice.clone', 'voice.design']);
 const REPO_ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..', '..');
 
 export const GOLD_FIXTURE_DIR = path.join(REPO_ROOT, 'config', 'live', 'fixtures', 'ai-gold-path');
@@ -81,6 +82,9 @@ function normalizeFixture(fixture, fixturePath) {
   }
 
   const capability = normalized.capability;
+  if (LEGACY_CAPABILITIES.has(capability)) {
+    throw new Error(`${fixturePath}: legacy capability ${capability} is forbidden; use canonical runtime capability tokens`);
+  }
   if (capability === 'text.generate' && !String(request.prompt || '').trim()) {
     throw new Error(`${fixturePath}: text.generate requires request.prompt`);
   }
@@ -101,20 +105,20 @@ function normalizeFixture(fixture, fixturePath) {
   if (capability === 'audio.transcribe' && !audioURI && !audioPath) {
     throw new Error(`${fixturePath}: audio.transcribe requires request.audio_uri or request.audio_path`);
   }
-  if (capability === 'voice.clone') {
+  if (capability === 'voice_workflow.voice_clone') {
     if (!normalized.target_model_id) {
-      throw new Error(`${fixturePath}: voice.clone requires target_model_id`);
+      throw new Error(`${fixturePath}: voice_workflow.voice_clone requires target_model_id`);
     }
     if (!audioURI && !audioPath) {
-      throw new Error(`${fixturePath}: voice.clone requires request.audio_uri or request.audio_path`);
+      throw new Error(`${fixturePath}: voice_workflow.voice_clone requires request.audio_uri or request.audio_path`);
     }
   }
-  if (capability === 'voice.design') {
+  if (capability === 'voice_workflow.voice_design') {
     if (!normalized.target_model_id) {
-      throw new Error(`${fixturePath}: voice.design requires target_model_id`);
+      throw new Error(`${fixturePath}: voice_workflow.voice_design requires target_model_id`);
     }
     if (!String(request.instruction_text || '').trim()) {
-      throw new Error(`${fixturePath}: voice.design requires request.instruction_text`);
+      throw new Error(`${fixturePath}: voice_workflow.voice_design requires request.instruction_text`);
     }
   }
 

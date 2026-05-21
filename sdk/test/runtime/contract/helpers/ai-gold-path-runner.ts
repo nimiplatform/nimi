@@ -306,7 +306,7 @@ async function main(): Promise<void> {
       return;
     }
 
-    const request = fixture.capability === 'voice.clone'
+    const request = fixture.capability === 'voice_workflow.voice_clone'
       ? {
         head: {
           appId: runtime.appId,

@@ -35,7 +35,7 @@ class VoxCPMMLXDriverTests(unittest.TestCase):
     def test_voice_design_handle_roundtrip(self) -> None:
         response = VOXCPM_MLX_DRIVER.build_design_handle(
             {
-                "operation": "voice.design",
+                "operation": "voice_workflow.voice_design",
                 "target_model_id": "speech/voxcpm2",
                 "input": {"instruction_text": "Bright and cheerful", "preferred_name": "mlx-design"},
             }
@@ -78,6 +78,8 @@ class VoxCPMMLXDriverTests(unittest.TestCase):
         self.assertEqual(response["driver_backend"], "mlx")
         self.assertEqual(response["model_ref"], "mlx-community/VoxCPM2-4bit")
         self.assertIn("audio.synthesize", response["supports"])
+        self.assertIn("voice_workflow.voice_design", response["supports"])
+        self.assertIn("voice_workflow.voice_clone", response["supports"])
 
     def test_main_synthesize_writes_response_file(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

@@ -281,7 +281,7 @@ def create_app() -> FastAPI:
                 driver_command_state(QWEN3_TTS_DRIVER_ENV, "qwen3_tts")[0],
                 {
                     "driver": "qwen3_tts",
-                    "operation": "voice.clone",
+                    "operation": "voice_workflow.voice_clone",
                     "workflow_type": "voice_clone",
                     "workflow_model_id": workflow_model_id,
                     "target_model_id": model.model_id,
@@ -315,7 +315,7 @@ def create_app() -> FastAPI:
                 driver_command_state(QWEN3_TTS_DRIVER_ENV, "qwen3_tts")[0],
                 {
                     "driver": "qwen3_tts",
-                    "operation": "voice.design",
+                    "operation": "voice_workflow.voice_design",
                     "workflow_type": "voice_design",
                     "workflow_model_id": workflow_model_id,
                     "target_model_id": model.model_id,

@@ -25,7 +25,7 @@ class VoxCPMDriverTests(unittest.TestCase):
     def test_voice_design_handle_roundtrip(self) -> None:
         response = VOXCPM_DRIVER.build_design_handle(
             {
-                "operation": "voice.design",
+                "operation": "voice_workflow.voice_design",
                 "target_model_id": "speech/voxcpm2",
                 "input": {
                     "instruction_text": "Warm, calm narrator",
@@ -44,7 +44,7 @@ class VoxCPMDriverTests(unittest.TestCase):
     def test_voice_clone_handle_roundtrip(self) -> None:
         response = VOXCPM_DRIVER.build_clone_handle(
             {
-                "operation": "voice.clone",
+                "operation": "voice_workflow.voice_clone",
                 "target_model_id": "speech/voxcpm2",
                 "input": {
                     "reference_audio_base64": "AQI=",
@@ -68,7 +68,7 @@ class VoxCPMDriverTests(unittest.TestCase):
             request_path.write_text(
                 json.dumps(
                     {
-                        "operation": "voice.design",
+                        "operation": "voice_workflow.voice_design",
                         "target_model_id": "speech/voxcpm2",
                         "input": {"instruction_text": "Soft voice"},
                     }

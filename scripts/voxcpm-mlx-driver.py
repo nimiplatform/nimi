@@ -99,7 +99,7 @@ def handle_preflight(model_ref: str) -> dict[str, Any]:
         "driver_family": "voxcpm",
         "driver_backend": "mlx",
         "model_ref": model_ref,
-        "supports": ["audio.synthesize", "voice.design", "voice.clone"],
+        "supports": ["audio.synthesize", "voice_workflow.voice_design", "voice_workflow.voice_clone"],
     }
     if version:
         response["mlx_audio_version"] = version
@@ -193,7 +193,7 @@ def handle_synthesize(request: dict[str, Any], model_ref: str) -> dict[str, Any]
 def build_design_handle(request: dict[str, Any]) -> dict[str, Any]:
     input_payload = request.get("input")
     if not isinstance(input_payload, dict):
-        fail("voice.design requires input object")
+        fail("voice_workflow.voice_design requires input object")
     instruction_text = require_string(input_payload, "instruction_text")
     preferred_name = optional_string(input_payload, "preferred_name")
     handle = encode_voice_handle(
@@ -221,7 +221,7 @@ def build_design_handle(request: dict[str, Any]) -> dict[str, Any]:
 def build_clone_handle(request: dict[str, Any]) -> dict[str, Any]:
     input_payload = request.get("input")
     if not isinstance(input_payload, dict):
-        fail("voice.clone requires input object")
+        fail("voice_workflow.voice_clone requires input object")
     reference_audio_base64 = require_string(input_payload, "reference_audio_base64")
     handle = encode_voice_handle(
         VOICE_CLONE_PREFIX,
@@ -252,9 +252,9 @@ def handle_request(request: dict[str, Any], model_ref: str) -> dict[str, Any]:
         return handle_preflight(model_ref)
     if operation == "audio.synthesize":
         return handle_synthesize(request, model_ref)
-    if operation == "voice.design":
+    if operation == "voice_workflow.voice_design":
         return build_design_handle(request)
-    if operation == "voice.clone":
+    if operation == "voice_workflow.voice_clone":
         return build_clone_handle(request)
     fail(f"unsupported voxcpm mlx operation: {operation}")
 

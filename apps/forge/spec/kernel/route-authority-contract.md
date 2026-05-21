@@ -114,8 +114,8 @@ Speech storage constraints:
   admitted plain-speech selection key
 - `AIConfig.capabilities.selectedBindings['voice_workflow.voice_design']` is the
   optional custom-voice design selection key when that lane is admitted
-- `tts.synthesize` may be read only as a migration alias and must not be
-  written back as canonical selection truth
+- non-canonical speech aliases must not be read, written, or projected as
+  selection truth
 
 ## FG-ROUTE-005: Route Picker Provider
 
@@ -172,8 +172,8 @@ Rules:
 - if `voice_workflow.voice_design` is unavailable, Forge must fail closed on custom
   voice design while keeping plain speech demo generation available through
   `audio.synthesize`
-- `tts.synthesize` must not remain a stored, displayed, or route-authority
-  canonical token
+- non-canonical speech aliases must not remain stored, displayed, or used as
+  route-authority tokens
 
 ## FG-ROUTE-007: No Projection System Required
 

@@ -320,7 +320,7 @@ source、snapshot、registry、resolver、scenario guard、live-provider checks 
 - `voice_workflow.voice_clone`
 - `voice_workflow.voice_design`
 
-`chat`、`embedding`、`image`、`tts`、`stt`、`video_generation`、`llm.text.generate`、`llm.embed`、`llm.image.generate`、`llm.video.generate`、`llm.speech.synthesize`、`llm.speech.transcribe` 不得作为有效 capability 声明值继续存在于 source 或 snapshot 中。
+`chat`、`embedding`、`image`、`tts`、`stt`、`video_generation`、`speech.synthesize`、`tts.synthesize`、`voice.clone`、`voice.design`、`llm.text.generate`、`llm.embed`、`llm.image.generate`、`llm.video.generate`、`llm.speech.synthesize`、`llm.speech.transcribe` 不得作为有效 capability 声明值继续存在于 source、snapshot、fixture、registry、resolver、scenario guard 或 live-provider checks 中。
 
 local runtime 若仍使用 `chat` / `embedding` / `tts` 等本地 token，必须先通过 `tables/capability-vocabulary-mapping.yaml` 做 local → canonical 转换，再进入 source/snapshot/resolver/guard 语义面。
 

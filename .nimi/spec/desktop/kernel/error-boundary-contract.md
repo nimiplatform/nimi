@@ -48,7 +48,7 @@ Desktop 必须把 baseline local speech 失败至少投影为以下 bundle-aware
 
 固定规则：
 
-- 当 failing slice 或 capability 已知时，用户文案必须优先使用 `Local Speech` + slice/capability（如 `STT`、`TTS`、`voice.clone`、`voice.design`），不得默认退化为 `Qwen TTS`。
+- 当 failing slice 或 capability 已知时，用户文案必须优先使用 `Local Speech` + slice/capability（如 `STT`、`TTS`、`voice_workflow.voice_clone`、`voice_workflow.voice_design`），不得默认退化为 `Qwen TTS`。
 - `LOCAL_AI_SPEECH_BOOTSTRAP_FAILED` 可以保留为 bridge 诊断别名，但 canonical 用户文案不得把所有 local speech 失败压成同一个 bootstrap 句式。
 - helper IPC / Tauri 相关失败只允许描述 runtime-owned speech bundle projection 失败，不得暗示 Desktop/Tauri 是安装真源。
 
@@ -164,8 +164,8 @@ Phase 1 provider 健康细粒度展示为 Phase 2（D-IPC-002），因此 Phase 
   `AI_LOCAL_SPEECH_BUNDLE_DEGRADED` 统一收口成单一
   `LOCAL_AI_SPEECH_BOOTSTRAP_FAILED` 文案。
 - 当 runtime metadata 携带 capability 或 bundle slice 时，Desktop 文案应优先
-  投影为 `Local Speech / STT`、`Local Speech / TTS`、`Local Speech / voice.clone`
-  或 `Local Speech / voice.design`，而不是 generic `Qwen TTS`。
+  投影为 `Local Speech / STT`、`Local Speech / TTS`、`Local Speech / voice_workflow.voice_clone`
+  或 `Local Speech / voice_workflow.voice_design`，而不是 generic `Qwen TTS`。
 - `AI_LOCAL_SPEECH_DOWNLOAD_CONFIRMATION_REQUIRED` 是显式用户动作 gate，不得被
   Desktop 自动转成后台下载重试。
 

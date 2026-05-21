@@ -1,5 +1,5 @@
-fixture_id: dashscope.voice.clone
-capability: voice.clone
+fixture_id: dashscope.voice_workflow.voice_clone
+capability: voice_workflow.voice_clone
 provider: dashscope
 model_id: "${NIMI_LIVE_DASHSCOPE_VOICE_CLONE_MODEL_ID}"
 target_model_id: "${NIMI_LIVE_DASHSCOPE_VOICE_CLONE_MODEL_ID_TARGET_MODEL_ID}"

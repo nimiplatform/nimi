@@ -99,7 +99,7 @@ func TestAIGoldFixtureBuildSubmitScenarioJobRequestUsesAudioPathBytes(t *testing
 	t.Run("voice clone", func(t *testing.T) {
 		fixture := &aiGoldFixture{
 			Path:          filepath.Join(t.TempDir(), "fixture.yaml"),
-			Capability:    "voice.clone",
+			Capability:    "voice_workflow.voice_clone",
 			Provider:      "dashscope",
 			ModelID:       "qwen3-tts-vc",
 			TargetModelID: "qwen3-tts-vc-2026-01-22",

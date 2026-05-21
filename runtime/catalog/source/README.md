@@ -82,7 +82,7 @@ Canonical capability tokens are:
 - `voice_workflow.voice_clone`
 - `voice_workflow.voice_design`
 
-Legacy capability synonyms such as `chat`, `embedding`, `image`, `tts`, `stt`, `video_generation`, `llm.text.generate`, `llm.embed`, `llm.image.generate`, `llm.video.generate`, `llm.speech.synthesize`, and `llm.speech.transcribe` are not valid source declarations.
+Legacy capability synonyms such as `chat`, `embedding`, `image`, `tts`, `stt`, `video_generation`, `speech.synthesize`, `tts.synthesize`, `voice.clone`, `voice.design`, `llm.text.generate`, `llm.embed`, `llm.image.generate`, `llm.video.generate`, `llm.speech.synthesize`, and `llm.speech.transcribe` are not valid source declarations.
 
 ### 5.1a Runtime Metadata Rule
 

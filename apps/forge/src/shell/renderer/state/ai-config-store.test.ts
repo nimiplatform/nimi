@@ -89,7 +89,7 @@ describe('ai-config-store (AIConfig)', () => {
 
     const binding = useAiConfigStore.getState().aiConfig.capabilities.selectedBindings['audio.synthesize'];
     expect(binding).toEqual({ source: 'cloud', connectorId: 'c-tts', model: 'tts-v1' });
-    expect(useAiConfigStore.getState().aiConfig.capabilities.selectedBindings['tts.synthesize']).toBeUndefined();
+    expect(Object.keys(useAiConfigStore.getState().aiConfig.capabilities.selectedBindings)).toEqual(['audio.synthesize']);
   });
 
   it('setSelection stores voice_workflow.voice_design in AIConfig', () => {
@@ -129,7 +129,8 @@ describe('ai-config-store (AIConfig)', () => {
     expect(useAiConfigStore.getState().getBinding('text.generate')).toBeUndefined();
   });
 
-  it('getBinding reads legacy tts.synthesize as alias for audio.synthesize', () => {
+  it('getBinding ignores non-canonical speech alias keys', () => {
+    const legacySpeechKey = ['tts', 'synthesize'].join('.');
     useAiConfigStore.setState((state) => ({
       ...state,
       aiConfig: {
@@ -138,20 +139,17 @@ describe('ai-config-store (AIConfig)', () => {
           ...state.aiConfig.capabilities,
           selectedBindings: {
             ...state.aiConfig.capabilities.selectedBindings,
-            'tts.synthesize': { source: 'cloud', connectorId: 'legacy-tts', model: 'legacy-voice' },
+            [legacySpeechKey]: { source: 'cloud', connectorId: 'legacy-tts', model: 'legacy-voice' },
           },
         },
       },
     }));
 
-    expect(useAiConfigStore.getState().getBinding('audio.synthesize')).toEqual({
-      source: 'cloud',
-      connectorId: 'legacy-tts',
-      model: 'legacy-voice',
-    });
+    expect(useAiConfigStore.getState().getBinding('audio.synthesize')).toBeUndefined();
   });
 
-  it('canonical speech writes scrub legacy tts.synthesize drift', () => {
+  it('canonical speech writes scrub non-canonical speech alias drift', () => {
+    const legacySpeechKey = ['tts', 'synthesize'].join('.');
     useAiConfigStore.setState((state) => ({
       ...state,
       aiConfig: {
@@ -160,7 +158,7 @@ describe('ai-config-store (AIConfig)', () => {
           ...state.aiConfig.capabilities,
           selectedBindings: {
             ...state.aiConfig.capabilities.selectedBindings,
-            'tts.synthesize': { source: 'cloud', connectorId: 'legacy-tts', model: 'legacy-voice' },
+            [legacySpeechKey]: { source: 'cloud', connectorId: 'legacy-tts', model: 'legacy-voice' },
           },
         },
       },
@@ -172,12 +170,13 @@ describe('ai-config-store (AIConfig)', () => {
       model: 'speech-v2',
     });
 
-    expect(useAiConfigStore.getState().aiConfig.capabilities.selectedBindings['audio.synthesize']).toEqual({
+    const selectedBindings = useAiConfigStore.getState().aiConfig.capabilities.selectedBindings;
+    expect(selectedBindings['audio.synthesize']).toEqual({
       source: 'local',
       connectorId: '',
       model: 'speech-v2',
     });
-    expect(useAiConfigStore.getState().aiConfig.capabilities.selectedBindings['tts.synthesize']).toBeUndefined();
+    expect(selectedBindings[legacySpeechKey]).toBeUndefined();
   });
 
   it('migrates legacy localStorage format (nimi:forge:ai-config)', () => {

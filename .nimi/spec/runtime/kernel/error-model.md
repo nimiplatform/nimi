@@ -109,6 +109,6 @@ canonical truth。
   degraded truth；不得被 runtime 或 Desktop 自动伪装为 healthy。
 - capability / slice-specific 细节必须进入结构化 metadata（例如 capability、
   bundle slice、repair hint），而不是在本轮再拆出 `STT` / `TTS` /
-  `voice.clone` / `voice.design` 专属 reason code。
+  `voice_workflow.voice_clone` / `voice_workflow.voice_design` 专属 reason code。
 - Desktop `LOCAL_AI_SPEECH_*` 仅可保留为 bridge 诊断别名；canonical 产品错误
   owner 仍是 runtime ReasonCode。

@@ -18,7 +18,7 @@ function createMockRuntimeClient() {
     media: {
       tts: {
         synthesize: async (input: Record<string, unknown>) => {
-          calls.push({ kind: 'tts.synthesize', input });
+          calls.push({ kind: 'media.tts.synthesize', input });
           return {
             artifacts: [{
               uri: 'file:///tmp/test.mp3',
@@ -130,7 +130,7 @@ test('tester speech actions synthesize through runtime media.tts', async () => {
 
   assert.equal(result.result, 'passed');
   assert.equal((result.output as { audioUri?: string }).audioUri, 'file:///tmp/test.mp3');
-  assert.equal(calls[0]?.kind, 'tts.synthesize');
+  assert.equal(calls[0]?.kind, 'media.tts.synthesize');
   assert.deepEqual((calls[0]?.input as Record<string, unknown>).voiceRef, { kind: 'preset_voice_id', presetVoiceId: 'ryan' });
   assert.equal((calls[0]?.input as Record<string, unknown>).language, 'en');
   assert.equal((calls[0]?.input as Record<string, unknown>).speed, 1.2);
@@ -157,7 +157,7 @@ test('tester speech actions allow provider default voice', async () => {
     resolveCallParamsImpl: async () => ({ ...mockCallParams, route: 'cloud', connectorId: 'dashscope' }),
   });
 
-  assert.equal(calls[0]?.kind, 'tts.synthesize');
+  assert.equal(calls[0]?.kind, 'media.tts.synthesize');
   assert.equal(Object.prototype.hasOwnProperty.call(calls[0]?.input as Record<string, unknown>, 'voiceRef'), false);
 });
 
@@ -191,7 +191,7 @@ test('tester speech actions route voice assets through their target model', asyn
 
   assert.equal(calls[0]?.kind, 'voice.getAsset');
   assert.deepEqual(calls[0]?.input, { voiceAssetId: 'voice-asset-1' });
-  assert.equal(calls[1]?.kind, 'tts.synthesize');
+  assert.equal(calls[1]?.kind, 'media.tts.synthesize');
   assert.equal((calls[1]?.input as Record<string, unknown>).model, 'dashscope/qwen3-tts-vd');
   assert.equal(resolvedBinding?.model, 'dashscope/qwen3-tts-vd');
   assert.equal(resolvedBinding?.modelId, 'dashscope/qwen3-tts-vd');

@@ -200,7 +200,7 @@ function mapLocalRuntimeCapabilityToCanonical(capability: unknown): RuntimeCanon
         return 'image.generate';
     if (normalized === 'video.generate' || normalized === 'video')
         return 'video.generate';
-    if (normalized === 'audio.synthesize' || normalized === 'tts' || normalized === 'speech.synthesize')
+    if (normalized === 'audio.synthesize' || normalized === 'tts')
         return 'audio.synthesize';
     if (normalized === 'audio.transcribe' || normalized === 'stt' || normalized === 'speech.transcribe')
         return 'audio.transcribe';

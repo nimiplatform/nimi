@@ -234,7 +234,7 @@ Posture rules:
 - `voice_workflow.voice_design` is optional and constrained; it may create
   `workflow-output` candidates or reusable voice handles, but it does not
   replace plain speech demo synthesis
-- `tts.synthesize` must not be stored or reasoned over as a canonical Forge
+- non-canonical speech aliases must not be stored or reasoned over as Forge
   capability token
 - runtime workflow handles and provider/model behavior remain runtime-owned
   truth; Forge only consumes those outputs as candidates inside the family

@@ -10,6 +10,7 @@ const repoRoot = path.resolve(scriptDir, '..');
 
 const sourceDir = path.join(repoRoot, 'runtime', 'catalog', 'source', 'providers');
 const snapshotDir = path.join(repoRoot, 'runtime', 'catalog', 'providers');
+const goldFixtureDir = path.join(repoRoot, 'config', 'live', 'fixtures', 'ai-gold-path');
 const capabilityVocabularyPath = path.join(
   repoRoot,
   '.nimi',
@@ -22,6 +23,10 @@ const capabilityVocabularyPath = path.join(
 
 const historicalLegacyCapabilityTokens = [
   'video_generation',
+  'speech.synthesize',
+  'tts.synthesize',
+  'voice.clone',
+  'voice.design',
   'llm.text.generate',
   'llm.embed',
   'llm.image.generate',
@@ -127,6 +132,12 @@ function checkSnapshotFile(absPath, vocabulary) {
   });
 }
 
+function checkGoldFixtureFile(absPath, vocabulary) {
+  const relPath = path.relative(repoRoot, absPath);
+  const doc = readYaml(absPath);
+  checkCapabilityList(relPath, 'capability', normalizeStringArray([doc?.capability]), vocabulary);
+}
+
 function checkDocPhrases(absPath, bannedPatterns, requiredTokens) {
   const relPath = path.relative(repoRoot, absPath);
   const content = readText(absPath);
@@ -152,9 +163,14 @@ function main() {
     .filter((entry) => entry.endsWith('.yaml'))
     .map((entry) => path.join(snapshotDir, entry))
     .sort((left, right) => left.localeCompare(right));
+  const goldFixtureFiles = fs.readdirSync(goldFixtureDir)
+    .filter((entry) => entry.endsWith('.yaml'))
+    .map((entry) => path.join(goldFixtureDir, entry))
+    .sort((left, right) => left.localeCompare(right));
 
   sourceFiles.forEach((sourceFile) => checkSourceProviderFile(sourceFile, vocabulary));
   snapshotFiles.forEach((snapshotFile) => checkSnapshotFile(snapshotFile, vocabulary));
+  goldFixtureFiles.forEach((fixtureFile) => checkGoldFixtureFile(fixtureFile, vocabulary));
 
   checkDocPhrases(
     path.join(repoRoot, 'runtime', 'catalog', 'source', 'README.md'),
