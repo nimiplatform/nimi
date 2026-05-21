@@ -42,6 +42,29 @@ vi.mock('./portfolio-client.js', async (importOriginal) => {
       deliveryAccess: 'SIGNED',
       source: 'Realm ResourcesService.listResources',
     }]),
+    uploadReviewedPostMediaResource: vi.fn(async () => ({
+      ok: true,
+      source: 'Realm ResourcesService direct upload + finalizeResource',
+      attachmentTruth: true,
+      publicTruth: false,
+      session: {
+        resourceId: 'resource-upload-ui',
+        resourceType: 'IMAGE',
+        status: 'PENDING',
+      },
+      resource: {
+        id: 'resource-upload-ui',
+        resourceType: 'IMAGE',
+        status: 'READY',
+        deliveryAccess: 'SIGNED',
+      },
+      canonical: {
+        id: 'resource-upload-ui',
+        resourceType: 'IMAGE',
+        status: 'READY',
+        deliveryAccess: 'SIGNED',
+      },
+    })),
     updateReviewedAgentVisibility: vi.fn(),
   };
 });
@@ -209,6 +232,15 @@ function findSelectByLabel(label: string): HTMLSelectElement {
   return field;
 }
 
+function findFileInput(): HTMLInputElement {
+  const input = Array.from(document.querySelectorAll('input[type="file"]'))
+    .find((candidate): candidate is HTMLInputElement => candidate instanceof HTMLInputElement);
+  if (!input) {
+    throw new Error('File input not found');
+  }
+  return input;
+}
+
 async function changeField(field: HTMLInputElement | HTMLTextAreaElement, value: string) {
   await act(async () => {
     const prototype = field instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
@@ -318,5 +350,31 @@ describe('OwnerPortfolio visibility settings UI', () => {
 
     expect(findFieldByPlaceholder<HTMLInputElement>('resource, asset, or bundle target').value).toBe('resource-ready-ui');
     expect(document.body.textContent).toContain('Selected READY Resource(IMAGE) resource-ready-ui');
+  });
+
+  it('uploads reviewed media Resource and fills the post attachment envelope', async () => {
+    await renderOwnerPortfolio();
+    await waitForText('Creative post candidate');
+    await checkAllHumanReviewBoxes();
+
+    const file = new File(['image-bytes'], 'portrait.png', { type: 'image/png' });
+    const fileInput = findFileInput();
+    await act(async () => {
+      Object.defineProperty(fileInput, 'files', {
+        configurable: true,
+        value: [file],
+      });
+      fileInput.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+
+    const uploadButton = await waitForButtonEnabled('Upload media Resource attachment');
+    await act(async () => {
+      uploadButton.click();
+    });
+
+    await waitForText('Realm finalized READY IMAGE resource resource-upload-ui');
+    expect(portfolioClient.uploadReviewedPostMediaResource).toHaveBeenCalledTimes(1);
+    expect(findFieldByPlaceholder<HTMLInputElement>('resource, asset, or bundle target').value).toBe('resource-upload-ui');
+    expect(document.body.textContent).toContain('No Binding, profile asset, schedule, moderation, or post success is claimed here');
   });
 });

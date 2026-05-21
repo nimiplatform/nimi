@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   buildRealmCreateAgentInput,
   buildRealmCreatePostInput,
+  buildFinalizeDirectMediaResourceInput,
   buildRealmPostTextResourceInput,
   buildRealmSelectAvatarInput,
   buildRealmUpdateVisibilityInput,
@@ -19,11 +20,13 @@ import {
   normalizeRealmPostPublishResult,
   normalizeRealmTextResourceCreateResult,
   normalizePostAttachmentResourceOptions,
+  normalizeFinalizedDirectMediaResource,
   listReadyPostAttachmentResources,
   publishReviewedPostDraft,
   selectReviewedAgentAvatarUrl,
   synthesizeReviewedVoiceDemo,
   updateReviewedAgentVisibility,
+  uploadReviewedPostMediaResource,
   type AgentVisibilityDraft,
   type RealmAgentVisibilitySettings,
 } from './portfolio-client.js';
@@ -181,6 +184,58 @@ function mockRealm() {
               updatedAt: '2026-05-21T00:00:00.000Z',
             },
           ],
+        })),
+        createImageDirectUpload: vi.fn(async () => ({
+          resourceId: 'resource-image-upload',
+          resourceType: 'IMAGE',
+          provider: 'CF_IMAGE',
+          storageRef: 'cf-image-1',
+          uploadUrl: 'https://upload.example.test/image',
+          expiresIn: null,
+          status: 'PENDING',
+          deliveryAccess: 'SIGNED',
+        })),
+        createVideoDirectUpload: vi.fn(async () => ({
+          resourceId: 'resource-video-upload',
+          resourceType: 'VIDEO',
+          provider: 'CF_STREAM',
+          storageRef: 'cf-video-1',
+          uploadUrl: 'https://upload.example.test/video',
+          expiresIn: null,
+          status: 'PENDING',
+          deliveryAccess: 'SIGNED',
+        })),
+        createAudioDirectUpload: vi.fn(async () => ({
+          resourceId: 'resource-audio-upload',
+          resourceType: 'AUDIO',
+          provider: 'S3_OBJECT',
+          storageRef: 'audio/user-1/audio.mp3',
+          uploadUrl: 'https://upload.example.test/audio',
+          expiresIn: 3600,
+          status: 'PENDING',
+          deliveryAccess: 'SIGNED',
+        })),
+        finalizeResource: vi.fn(async (resourceId: string, input: Record<string, unknown>) => ({
+          id: resourceId,
+          resourceType: input.metadata && typeof input.metadata === 'object'
+            ? (input.metadata as Record<string, unknown>).resourceType
+            : 'IMAGE',
+          provider: 'S3_OBJECT',
+          status: 'READY',
+          storageRef: resourceId,
+          mimeType: input.mimeType,
+          provenance: 'UPLOADED',
+          uploaderAccountId: 'user-1',
+          controllerKind: 'ACCOUNT',
+          controllerId: 'user-1',
+          deliveryAccess: input.deliveryAccess || 'SIGNED',
+          agentId: input.agentId,
+          label: input.label,
+          tags: input.tags || [],
+          title: input.title,
+          metadata: input.metadata,
+          createdAt: '2026-05-21T00:00:00.000Z',
+          updatedAt: '2026-05-21T00:00:00.000Z',
         })),
         createTextResource: vi.fn(async () => ({
           id: 'resource-text-1',
@@ -693,6 +748,233 @@ describe('owner portfolio client', () => {
       label: 'audio/user-1/ready.mp3',
       source: 'Realm ResourcesService.listResources',
     }]);
+  });
+
+  it('uploads reviewed image Resource through direct upload and finalize only', async () => {
+    const realm = mockRealm();
+    const storageUpload = vi.fn(async () => undefined);
+    const result = await uploadReviewedPostMediaResource({
+      resourceType: 'IMAGE',
+      file: { name: 'portrait.png', type: 'image/png', size: 2048 },
+      agent: ownerAgentDetail(),
+    }, realm, storageUpload);
+    const finalizeResource = realm.services.ResourcesService.finalizeResource;
+    const finalizePayload = vi.mocked(finalizeResource).mock.calls[0]?.[1];
+
+    expect(realm.services.ResourcesService.createImageDirectUpload).toHaveBeenCalledWith('true');
+    expect(storageUpload).toHaveBeenCalledWith({
+      uploadUrl: 'https://upload.example.test/image',
+      resourceType: 'IMAGE',
+      file: { name: 'portrait.png', type: 'image/png', size: 2048 },
+    });
+    expect(finalizeResource).toHaveBeenCalledWith('resource-image-upload', {
+      agentId: 'agent-1',
+      deliveryAccess: 'SIGNED',
+      label: 'Reviewed image upload for @mira',
+      mimeType: 'image/png',
+      sizeBytes: 2048,
+      sourceRef: 'realm-agent-studio.reviewed-post-media-resource',
+      title: 'portrait.png',
+      metadata: {
+        source: 'realm-agent-studio.reviewed-post-media-resource',
+        agentKey: 'agent-1',
+        attachmentPurpose: 'post',
+        resourceType: 'IMAGE',
+        humanReviewed: true,
+      },
+    });
+    expect(collectKeys(finalizePayload).has('worldId')).toBe(false);
+    expect(collectKeys(finalizePayload).has('authorId')).toBe(false);
+    expect(collectKeys(finalizePayload).has('id')).toBe(false);
+    expect(collectKeys(finalizePayload).has('provider')).toBe(false);
+    expect(collectKeys(finalizePayload).has('model')).toBe(false);
+    expect(result).toMatchObject({
+      ok: true,
+      source: 'Realm ResourcesService direct upload + finalizeResource',
+      attachmentTruth: true,
+      publicTruth: false,
+      canonical: {
+        id: 'resource-image-upload',
+        resourceType: 'IMAGE',
+        status: 'READY',
+      },
+    });
+  });
+
+  it('creates audio upload session with metadata and finalizes after storage upload', async () => {
+    const realm = mockRealm();
+    const storageUpload = vi.fn(async () => undefined);
+    const result = await uploadReviewedPostMediaResource({
+      resourceType: 'AUDIO',
+      file: { name: 'voice.mp3', type: 'audio/mpeg', size: 4096 },
+      agent: ownerAgentDetail(),
+    }, realm, storageUpload);
+    const audioPayload = vi.mocked(realm.services.ResourcesService.createAudioDirectUpload).mock.calls[0]?.[0];
+
+    expect(audioPayload).toMatchObject({
+      agentId: 'agent-1',
+      filename: 'voice.mp3',
+      mimeType: 'audio/mpeg',
+      metadata: {
+        source: 'realm-agent-studio.reviewed-post-media-resource',
+        resourceType: 'AUDIO',
+      },
+    });
+    expect(storageUpload).toHaveBeenCalledWith({
+      uploadUrl: 'https://upload.example.test/audio',
+      resourceType: 'AUDIO',
+      file: { name: 'voice.mp3', type: 'audio/mpeg', size: 4096 },
+    });
+    expect(result).toMatchObject({
+      ok: true,
+      canonical: {
+        id: 'resource-audio-upload',
+        resourceType: 'AUDIO',
+        status: 'READY',
+      },
+    });
+  });
+
+  it('fails closed before direct upload for mismatched media file types', async () => {
+    const realm = mockRealm();
+    const result = await uploadReviewedPostMediaResource({
+      resourceType: 'VIDEO',
+      file: { name: 'not-video.png', type: 'image/png', size: 10 },
+      agent: ownerAgentDetail(),
+    }, realm, vi.fn(async () => undefined));
+
+    expect(realm.services.ResourcesService.createVideoDirectUpload).not.toHaveBeenCalled();
+    expect(result).toMatchObject({
+      ok: false,
+      failure: 'media-upload-file-invalid',
+      submitted: null,
+    });
+  });
+
+  it('fails closed when Realm direct upload session creation throws', async () => {
+    const realm = mockRealm();
+    vi.mocked(realm.services.ResourcesService.createImageDirectUpload).mockRejectedValueOnce(new Error('Cloudflare unavailable'));
+
+    const result = await uploadReviewedPostMediaResource({
+      resourceType: 'IMAGE',
+      file: { name: 'portrait.png', type: 'image/png', size: 2048 },
+      agent: ownerAgentDetail(),
+    }, realm, vi.fn(async () => undefined));
+
+    expect(realm.services.ResourcesService.finalizeResource).not.toHaveBeenCalled();
+    expect(result).toMatchObject({
+      ok: false,
+      failure: 'realm-direct-upload-session-failed',
+      message: 'Cloudflare unavailable',
+    });
+  });
+
+  it('fails closed when Realm direct upload session is not a PENDING matching Resource', async () => {
+    const realm = mockRealm();
+    vi.mocked(realm.services.ResourcesService.createImageDirectUpload).mockResolvedValueOnce({
+      resourceId: 'resource-wrong',
+      resourceType: 'VIDEO',
+      provider: 'CF_STREAM',
+      storageRef: 'wrong',
+      uploadUrl: 'https://upload.example.test/wrong',
+      status: 'PENDING',
+      deliveryAccess: 'SIGNED',
+    });
+
+    const result = await uploadReviewedPostMediaResource({
+      resourceType: 'IMAGE',
+      file: { name: 'portrait.png', type: 'image/png', size: 2048 },
+      agent: ownerAgentDetail(),
+    }, realm, vi.fn(async () => undefined));
+
+    expect(realm.services.ResourcesService.finalizeResource).not.toHaveBeenCalled();
+    expect(result).toMatchObject({
+      ok: false,
+      failure: 'realm-direct-upload-session-invalid',
+    });
+  });
+
+  it('fails closed when storage direct upload fails before finalize', async () => {
+    const realm = mockRealm();
+    const storageUpload = vi.fn(async () => {
+      throw new Error('storage rejected upload');
+    });
+
+    const result = await uploadReviewedPostMediaResource({
+      resourceType: 'IMAGE',
+      file: { name: 'portrait.png', type: 'image/png', size: 2048 },
+      agent: ownerAgentDetail(),
+    }, realm, storageUpload);
+
+    expect(realm.services.ResourcesService.finalizeResource).not.toHaveBeenCalled();
+    expect(result).toMatchObject({
+      ok: false,
+      failure: 'storage-direct-upload-failed',
+      message: 'storage rejected upload',
+    });
+  });
+
+  it('fails closed when finalizeResource throws after storage upload', async () => {
+    const realm = mockRealm();
+    vi.mocked(realm.services.ResourcesService.finalizeResource).mockRejectedValueOnce(new Error('finalize rejected'));
+
+    const result = await uploadReviewedPostMediaResource({
+      resourceType: 'IMAGE',
+      file: { name: 'portrait.png', type: 'image/png', size: 2048 },
+      agent: ownerAgentDetail(),
+    }, realm, vi.fn(async () => undefined));
+
+    expect(result).toMatchObject({
+      ok: false,
+      failure: 'realm-finalize-resource-failed',
+      message: 'finalize rejected',
+    });
+  });
+
+  it('fails closed when finalizeResource returns a non-ready media Resource', async () => {
+    const realm = mockRealm();
+    vi.mocked(realm.services.ResourcesService.finalizeResource).mockResolvedValueOnce({
+      id: 'resource-image-upload',
+      resourceType: 'IMAGE',
+      provider: 'CF_IMAGE',
+      status: 'PENDING',
+      storageRef: 'resource-image-upload',
+      provenance: 'UPLOADED',
+      uploaderAccountId: 'user-1',
+      controllerKind: 'ACCOUNT',
+      controllerId: 'user-1',
+      deliveryAccess: 'SIGNED',
+      tags: [],
+      createdAt: '2026-05-21T00:00:00.000Z',
+      updatedAt: '2026-05-21T00:00:00.000Z',
+    });
+
+    const result = await uploadReviewedPostMediaResource({
+      resourceType: 'IMAGE',
+      file: { name: 'portrait.png', type: 'image/png', size: 2048 },
+      agent: ownerAgentDetail(),
+    }, realm, vi.fn(async () => undefined));
+
+    expect(result).toMatchObject({
+      ok: false,
+      failure: 'realm-finalize-resource-not-ready',
+    });
+  });
+
+  it('fails closed when finalized direct media Resource is not READY', () => {
+    expect(buildFinalizeDirectMediaResourceInput({
+      resourceType: 'VIDEO',
+      file: { name: 'clip.mp4', type: 'video/mp4', size: 1024 },
+      agent: ownerAgentDetail(),
+    })).toMatchObject({
+      agentId: 'agent-1',
+      mimeType: 'video/mp4',
+    });
+    expect(normalizeFinalizedDirectMediaResource({
+      id: 'resource-video-upload',
+      resourceType: 'VIDEO',
+      status: 'PENDING',
+    } as Awaited<ReturnType<Realm['services']['ResourcesService']['finalizeResource']>>, 'VIDEO')).toBeNull();
   });
 
   it('fails closed before text Resource creation when reviewed caption content is missing', async () => {

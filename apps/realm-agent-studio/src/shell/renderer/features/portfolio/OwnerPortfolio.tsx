@@ -21,6 +21,7 @@ import {
   selectReviewedAgentAvatarUrl,
   synthesizeReviewedVoiceDemo,
   updateReviewedAgentVisibility,
+  uploadReviewedPostMediaResource,
   AGENT_VISIBILITY_FIELDS,
   AGENT_VISIBILITY_VALUES,
   createAgentVisibilityDraft,
@@ -32,6 +33,8 @@ import {
   type RealmTextResourceCreateResult,
   type RuntimeVoiceDemoSynthesisResult,
   type PostAttachmentResourceOption,
+  type DirectMediaResourceType,
+  type DirectMediaResourceUploadResult,
 } from './portfolio-client.js';
 import {
   ATTACHMENT_TARGET_TYPES,
@@ -738,6 +741,10 @@ function CreativePostWorkspace({ agent }: { agent: OwnerPortfolioAgentDetail }) 
   const [resourceOptions, setResourceOptions] = useState<PostAttachmentResourceOption[]>([]);
   const [resourceListStatus, setResourceListStatus] = useState<{ tone: 'info' | 'success' | 'warning' | 'danger'; message: string } | null>(null);
   const [isLoadingResources, setIsLoadingResources] = useState(false);
+  const [mediaResourceType, setMediaResourceType] = useState<DirectMediaResourceType>('IMAGE');
+  const [mediaUploadFile, setMediaUploadFile] = useState<File | null>(null);
+  const [mediaUploadResult, setMediaUploadResult] = useState<DirectMediaResourceUploadResult | null>(null);
+  const [isUploadingMediaResource, setIsUploadingMediaResource] = useState(false);
   const [scheduleInput, setScheduleInput] = useState<LocalPostScheduleInput>(() => createEmptyLocalPostScheduleInput());
   const [schedulePreview, setSchedulePreview] = useState<LocalPostScheduleCandidate | null>(null);
   const [scheduleErrors, setScheduleErrors] = useState<string[]>([]);
@@ -755,6 +762,10 @@ function CreativePostWorkspace({ agent }: { agent: OwnerPortfolioAgentDetail }) 
     setResourceOptions([]);
     setResourceListStatus(null);
     setIsLoadingResources(false);
+    setMediaResourceType('IMAGE');
+    setMediaUploadFile(null);
+    setMediaUploadResult(null);
+    setIsUploadingMediaResource(false);
     setScheduleInput(createEmptyLocalPostScheduleInput());
     setSchedulePreview(null);
     setScheduleErrors([]);
@@ -767,6 +778,7 @@ function CreativePostWorkspace({ agent }: { agent: OwnerPortfolioAgentDetail }) 
     setPublishResult(null);
     setTextResourceResult(null);
     setResourceListStatus(null);
+    setMediaUploadResult(null);
     setSchedulePreview(null);
     setScheduleErrors([]);
   }
@@ -861,6 +873,45 @@ function CreativePostWorkspace({ agent }: { agent: OwnerPortfolioAgentDetail }) 
     });
   }
 
+  async function uploadMediaResourceAttachment() {
+    if (!mediaUploadFile) {
+      setMediaUploadResult({
+        ok: false,
+        source: 'Realm ResourcesService direct upload + finalizeResource',
+        attachmentTruth: false,
+        publicTruth: false,
+        failure: 'media-upload-file-invalid',
+        message: 'Reviewed media Resource upload requires a selected file.',
+        submitted: null,
+      });
+      return;
+    }
+    setMediaUploadResult(null);
+    setIsUploadingMediaResource(true);
+    try {
+      const result = await uploadReviewedPostMediaResource({
+        resourceType: mediaResourceType,
+        file: mediaUploadFile,
+        agent,
+      });
+      setMediaUploadResult(result);
+      if (result.ok) {
+        setDraft((current) => ({
+          ...current,
+          attachmentEnabled: true,
+          attachmentTargetType: 'RESOURCE',
+          attachmentTargetId: result.canonical.id,
+        }));
+        setPayloadPreview(null);
+        setPublishResult(null);
+        setSchedulePreview(null);
+        setScheduleErrors([]);
+      }
+    } finally {
+      setIsUploadingMediaResource(false);
+    }
+  }
+
   return (
     <Surface tone="panel" padding="lg" className="mt-5">
       <div className="grid min-w-0 gap-5 xl:grid-cols-[1fr_360px]">
@@ -949,6 +1000,67 @@ function CreativePostWorkspace({ agent }: { agent: OwnerPortfolioAgentDetail }) 
                 <InlineAlert tone={resourceListStatus.tone}>
                   {resourceListStatus.message}
                 </InlineAlert>
+              ) : null}
+            </Surface>
+            <Surface tone="card" padding="md">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <div className="font-medium">Upload media Resource</div>
+                  <div className="mt-1 text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-muted)]">
+                    Creates a PENDING media Resource, uploads to the signed storage URL, finalizes to READY, then fills RESOURCE + resourceId.
+                  </div>
+                </div>
+                <StatusBadge tone="info">direct upload</StatusBadge>
+              </div>
+              <div className="mt-3 grid gap-3 md:grid-cols-[180px_1fr]">
+                <FieldShell label="Resource type">
+                  <SelectField
+                    value={mediaResourceType}
+                    options={[
+                      { value: 'IMAGE', label: 'Resource(IMAGE)' },
+                      { value: 'VIDEO', label: 'Resource(VIDEO)' },
+                      { value: 'AUDIO', label: 'Resource(AUDIO)' },
+                    ]}
+                    onValueChange={(value) => {
+                      setMediaResourceType(value as DirectMediaResourceType);
+                      setMediaUploadFile(null);
+                      setMediaUploadResult(null);
+                    }}
+                  />
+                </FieldShell>
+                <FieldShell label="File" message={draft.humanReviewed ? 'Owner-reviewed media only. This does not create Binding/Profile or publish success.' : 'Human review complete is required before upload.'} messageTone={draft.humanReviewed ? 'neutral' : 'danger'}>
+                  <TextField
+                    type="file"
+                    accept={mediaResourceType === 'IMAGE' ? 'image/*' : mediaResourceType === 'VIDEO' ? 'video/*' : 'audio/*'}
+                    onChange={(event) => {
+                      setMediaUploadFile(event.currentTarget.files?.[0] ?? null);
+                      setMediaUploadResult(null);
+                    }}
+                  />
+                </FieldShell>
+              </div>
+              <div className="mt-3 flex flex-wrap gap-3">
+                <Button
+                  disabled={!draft.humanReviewed || !mediaUploadFile || isUploadingMediaResource}
+                  loading={isUploadingMediaResource}
+                  onClick={() => void uploadMediaResourceAttachment()}
+                >
+                  Upload media Resource attachment
+                </Button>
+              </div>
+              {mediaUploadResult ? (
+                <InlineAlert tone={mediaUploadResult.ok ? 'success' : 'danger'} className="mt-3">
+                  {mediaUploadResult.ok
+                    ? `Realm finalized READY ${mediaUploadResult.canonical.resourceType} resource ${mediaUploadResult.canonical.id}; publishing still requires PostsService.createPost.`
+                    : mediaUploadResult.message}
+                </InlineAlert>
+              ) : null}
+              {mediaUploadResult ? (
+                <FieldShell label="Media Resource result" message="Resource attachment truth only. No Binding, profile asset, schedule, moderation, or post success is claimed here.">
+                  <pre className="ras-json-preview m-0 min-h-24 overflow-auto rounded-[var(--nimi-radius-field)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] p-3 text-xs">
+                    {JSON.stringify(mediaUploadResult, null, 2)}
+                  </pre>
+                </FieldShell>
               ) : null}
             </Surface>
             <Surface tone="card" padding="md">

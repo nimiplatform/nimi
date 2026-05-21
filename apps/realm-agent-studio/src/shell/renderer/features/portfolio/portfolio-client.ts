@@ -37,10 +37,17 @@ type RealmCreatePostResponse = Awaited<ReturnType<Realm['services']['PostsServic
 type RealmCreateTextResourceInput = Parameters<Realm['services']['ResourcesService']['createTextResource']>[0];
 type RealmCreateTextResourceResponse = Awaited<ReturnType<Realm['services']['ResourcesService']['createTextResource']>>;
 type RealmResourceListResponse = Awaited<ReturnType<Realm['services']['ResourcesService']['listResources']>>;
+type RealmCreateImageUploadResponse = Awaited<ReturnType<Realm['services']['ResourcesService']['createImageDirectUpload']>>;
+type RealmCreateVideoUploadResponse = Awaited<ReturnType<Realm['services']['ResourcesService']['createVideoDirectUpload']>>;
+type RealmCreateAudioUploadInput = Parameters<Realm['services']['ResourcesService']['createAudioDirectUpload']>[0];
+type RealmCreateAudioUploadResponse = Awaited<ReturnType<Realm['services']['ResourcesService']['createAudioDirectUpload']>>;
+type RealmFinalizeResourceInput = Parameters<Realm['services']['ResourcesService']['finalizeResource']>[1];
+type RealmFinalizeResourceResponse = Awaited<ReturnType<Realm['services']['ResourcesService']['finalizeResource']>>;
 
 export const REALM_POST_PUBLISH_SOURCE = 'Realm PostsService.createPost';
 export const REALM_TEXT_RESOURCE_SOURCE = 'Realm ResourcesService.createTextResource';
 export const REALM_RESOURCE_LIST_SOURCE = 'Realm ResourcesService.listResources';
+export const REALM_MEDIA_RESOURCE_UPLOAD_SOURCE = 'Realm ResourcesService direct upload + finalizeResource';
 export const REALM_AGENT_AVATAR_SELECT_SOURCE = 'Realm AgentsService.agentControllerSelectAvatar';
 export const REALM_AGENT_VISIBILITY_SOURCE = 'Realm AgentsService.agentControllerUpdateVisibility';
 export const AGENT_VISIBILITY_VALUES = ['PUBLIC', 'FRIENDS', 'PRIVATE'] as const;
@@ -118,6 +125,72 @@ export type PostAttachmentResourceOption = {
   deliveryAccess?: string;
   source: typeof REALM_RESOURCE_LIST_SOURCE;
 };
+
+export type DirectMediaResourceType = Extract<PostAttachmentResourceOption['resourceType'], 'IMAGE' | 'VIDEO' | 'AUDIO'>;
+
+export type DirectMediaResourceUploadFile = {
+  name: string;
+  type: string;
+  size: number;
+};
+
+export type DirectMediaResourceUploadInput = {
+  resourceType: DirectMediaResourceType;
+  file: DirectMediaResourceUploadFile;
+  agent: OwnerPortfolioAgentDetail;
+  tags?: string[];
+};
+
+type DirectMediaResourceUploadSession =
+  | RealmCreateImageUploadResponse
+  | RealmCreateVideoUploadResponse
+  | RealmCreateAudioUploadResponse;
+
+type DirectMediaResourceCanonicalFields = {
+  id: string;
+  resourceType: DirectMediaResourceType;
+  status: 'READY';
+  deliveryAccess?: string;
+};
+
+export type DirectMediaResourceUploadResult =
+  | {
+    ok: true;
+    source: typeof REALM_MEDIA_RESOURCE_UPLOAD_SOURCE;
+    attachmentTruth: true;
+    publicTruth: false;
+    session: {
+      resourceId: string;
+      resourceType: DirectMediaResourceType;
+      status: string;
+    };
+    resource: RealmFinalizeResourceResponse;
+    canonical: DirectMediaResourceCanonicalFields;
+  }
+  | {
+    ok: false;
+    source: typeof REALM_MEDIA_RESOURCE_UPLOAD_SOURCE;
+    attachmentTruth: false;
+    publicTruth: false;
+    failure:
+      | 'media-upload-file-invalid'
+      | 'media-upload-type-invalid'
+      | 'realm-direct-upload-session-failed'
+      | 'realm-direct-upload-session-invalid'
+      | 'storage-direct-upload-failed'
+      | 'realm-finalize-resource-failed'
+      | 'realm-finalize-resource-not-ready';
+    message: string;
+    submitted: RealmFinalizeResourceInput | RealmCreateAudioUploadInput | null;
+  };
+
+type StorageUploadRequest = {
+  uploadUrl: string;
+  resourceType: DirectMediaResourceType;
+  file: DirectMediaResourceUploadFile;
+};
+
+type StorageUploadTransport = (request: StorageUploadRequest) => Promise<void>;
 
 export type RealmAgentCreateCanonicalFields = {
   id: string;
@@ -229,6 +302,10 @@ function normalizeAvatarUrl(value: string): string | null {
 
 function isPostAttachmentResourceType(value: string): value is PostAttachmentResourceOption['resourceType'] {
   return value === 'IMAGE' || value === 'VIDEO' || value === 'AUDIO' || value === 'TEXT';
+}
+
+function isDirectMediaResourceType(value: string): value is DirectMediaResourceType {
+  return value === 'IMAGE' || value === 'VIDEO' || value === 'AUDIO';
 }
 
 function isAgentVisibilityValue(value: string): value is AgentVisibilityValue {
@@ -455,6 +532,97 @@ export function normalizePostAttachmentResourceOptions(response: RealmResourceLi
       source: REALM_RESOURCE_LIST_SOURCE,
     }];
   });
+}
+
+function isUploadableMediaFile(input: DirectMediaResourceUploadInput): boolean {
+  if (!isDirectMediaResourceType(input.resourceType)) {
+    return false;
+  }
+  if (!input.file.name.trim() || input.file.size <= 0) {
+    return false;
+  }
+  if (input.resourceType === 'IMAGE') {
+    return input.file.type.startsWith('image/');
+  }
+  if (input.resourceType === 'VIDEO') {
+    return input.file.type.startsWith('video/');
+  }
+  return input.file.type.startsWith('audio/');
+}
+
+function normalizeDirectMediaTitle(fileName: string): string {
+  return normalizeResourceTitle(fileName.replace(/\s+/g, ' ').trim() || 'Studio media upload');
+}
+
+export function buildFinalizeDirectMediaResourceInput(input: DirectMediaResourceUploadInput): RealmFinalizeResourceInput | null {
+  if (!isUploadableMediaFile(input)) {
+    return null;
+  }
+
+  const tags = input.tags?.map((tag) => tag.trim()).filter(Boolean) ?? [];
+  return {
+    agentId: input.agent.id,
+    deliveryAccess: 'SIGNED',
+    label: `Reviewed ${input.resourceType.toLowerCase()} upload for ${input.agent.handle.value ? `@${input.agent.handle.value}` : input.agent.displayName.value}`,
+    mimeType: input.file.type,
+    sizeBytes: input.file.size,
+    sourceRef: 'realm-agent-studio.reviewed-post-media-resource',
+    title: normalizeDirectMediaTitle(input.file.name),
+    ...(tags.length > 0 ? { tags } : {}),
+    metadata: {
+      source: 'realm-agent-studio.reviewed-post-media-resource',
+      agentKey: input.agent.id,
+      attachmentPurpose: 'post',
+      resourceType: input.resourceType,
+      humanReviewed: true,
+    },
+  };
+}
+
+function normalizeDirectMediaUploadSession(
+  session: DirectMediaResourceUploadSession,
+  expectedResourceType: DirectMediaResourceType,
+): { resourceId: string; resourceType: DirectMediaResourceType; uploadUrl: string; status: string } | null {
+  if (!session || typeof session !== 'object') {
+    return null;
+  }
+  const record = session as Record<string, unknown>;
+  const resourceId = readOptionalString(record, 'resourceId');
+  const resourceType = readOptionalString(record, 'resourceType');
+  const uploadUrl = readOptionalString(record, 'uploadUrl');
+  const status = readOptionalString(record, 'status');
+  if (!resourceId || resourceType !== expectedResourceType || !uploadUrl || status !== 'PENDING') {
+    return null;
+  }
+  return {
+    resourceId,
+    resourceType,
+    uploadUrl,
+    status,
+  };
+}
+
+export function normalizeFinalizedDirectMediaResource(
+  resource: RealmFinalizeResourceResponse,
+  expectedResourceType: DirectMediaResourceType,
+): DirectMediaResourceCanonicalFields | null {
+  if (!resource || typeof resource !== 'object') {
+    return null;
+  }
+  const record = resource as Record<string, unknown>;
+  const id = readOptionalString(record, 'id');
+  const resourceType = readOptionalString(record, 'resourceType');
+  const status = readOptionalString(record, 'status');
+  const deliveryAccess = readOptionalString(record, 'deliveryAccess');
+  if (!id || resourceType !== expectedResourceType || status !== 'READY') {
+    return null;
+  }
+  return {
+    id,
+    resourceType,
+    status,
+    ...(deliveryAccess ? { deliveryAccess } : {}),
+  };
 }
 
 export function buildRealmPostTextResourceInput(payload: CandidatePostPayload): RealmCreateTextResourceInput | null {
@@ -728,6 +896,140 @@ export async function listReadyPostAttachmentResources(
 ): Promise<PostAttachmentResourceOption[]> {
   const response = await realm.services.ResourcesService.listResources();
   return normalizePostAttachmentResourceOptions(response);
+}
+
+async function defaultStorageUploadTransport(request: StorageUploadRequest): Promise<void> {
+  const response = request.resourceType === 'AUDIO'
+    ? await fetch(request.uploadUrl, {
+      method: 'PUT',
+      body: request.file as unknown as BodyInit,
+      headers: request.file.type ? { 'content-type': request.file.type } : undefined,
+    })
+    : await fetch(request.uploadUrl, {
+      method: 'POST',
+      body: (() => {
+        const formData = new FormData();
+        formData.append('file', request.file as unknown as Blob, request.file.name);
+        return formData;
+      })(),
+    });
+
+  if (!response.ok) {
+    throw new Error(`storage upload failed with HTTP ${response.status}`);
+  }
+}
+
+export async function uploadReviewedPostMediaResource(
+  input: DirectMediaResourceUploadInput,
+  realm: Realm = createStudioRealmClient(),
+  storageUpload: StorageUploadTransport = defaultStorageUploadTransport,
+): Promise<DirectMediaResourceUploadResult> {
+  const finalizeInput = buildFinalizeDirectMediaResourceInput(input);
+  if (!finalizeInput) {
+    return {
+      ok: false,
+      source: REALM_MEDIA_RESOURCE_UPLOAD_SOURCE,
+      attachmentTruth: false,
+      publicTruth: false,
+      failure: isDirectMediaResourceType(input.resourceType) ? 'media-upload-file-invalid' : 'media-upload-type-invalid',
+      message: 'Reviewed media Resource upload requires a matching non-empty image, video, or audio file.',
+      submitted: null,
+    };
+  }
+
+  let rawSession: DirectMediaResourceUploadSession;
+  try {
+    if (input.resourceType === 'IMAGE') {
+      rawSession = await realm.services.ResourcesService.createImageDirectUpload('true');
+    } else if (input.resourceType === 'VIDEO') {
+      rawSession = await realm.services.ResourcesService.createVideoDirectUpload('true');
+    } else {
+      rawSession = await realm.services.ResourcesService.createAudioDirectUpload({
+        ...finalizeInput,
+        filename: input.file.name,
+      });
+    }
+  } catch (error) {
+    return {
+      ok: false,
+      source: REALM_MEDIA_RESOURCE_UPLOAD_SOURCE,
+      attachmentTruth: false,
+      publicTruth: false,
+      failure: 'realm-direct-upload-session-failed',
+      message: error instanceof Error ? error.message : 'Realm direct upload session failed.',
+      submitted: input.resourceType === 'AUDIO' ? { ...finalizeInput, filename: input.file.name } : finalizeInput,
+    };
+  }
+
+  const session = normalizeDirectMediaUploadSession(rawSession, input.resourceType);
+  if (!session) {
+    return {
+      ok: false,
+      source: REALM_MEDIA_RESOURCE_UPLOAD_SOURCE,
+      attachmentTruth: false,
+      publicTruth: false,
+      failure: 'realm-direct-upload-session-invalid',
+      message: 'Realm direct upload session did not return a PENDING resource id and upload URL.',
+      submitted: finalizeInput,
+    };
+  }
+
+  try {
+    await storageUpload({
+      uploadUrl: session.uploadUrl,
+      resourceType: input.resourceType,
+      file: input.file,
+    });
+  } catch (error) {
+    return {
+      ok: false,
+      source: REALM_MEDIA_RESOURCE_UPLOAD_SOURCE,
+      attachmentTruth: false,
+      publicTruth: false,
+      failure: 'storage-direct-upload-failed',
+      message: error instanceof Error ? error.message : 'Storage direct upload failed.',
+      submitted: finalizeInput,
+    };
+  }
+
+  try {
+    const resource = await realm.services.ResourcesService.finalizeResource(session.resourceId, finalizeInput);
+    const canonical = normalizeFinalizedDirectMediaResource(resource, input.resourceType);
+    if (!canonical) {
+      return {
+        ok: false,
+        source: REALM_MEDIA_RESOURCE_UPLOAD_SOURCE,
+        attachmentTruth: false,
+        publicTruth: false,
+        failure: 'realm-finalize-resource-not-ready',
+        message: 'Realm finalizeResource did not return a READY media Resource.',
+        submitted: finalizeInput,
+      };
+    }
+    return {
+      ok: true,
+      source: REALM_MEDIA_RESOURCE_UPLOAD_SOURCE,
+      attachmentTruth: true,
+      publicTruth: false,
+      session: {
+        resourceId: session.resourceId,
+        resourceType: session.resourceType,
+        status: session.status,
+      },
+      resource,
+      canonical,
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      source: REALM_MEDIA_RESOURCE_UPLOAD_SOURCE,
+      attachmentTruth: false,
+      publicTruth: false,
+      failure: 'realm-finalize-resource-failed',
+      message: error instanceof Error ? error.message : 'Realm finalizeResource failed.',
+      submitted: finalizeInput,
+    };
+  }
 }
 
 export async function createReviewedPostTextResource(
