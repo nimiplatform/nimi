@@ -30,6 +30,12 @@ route design, or app implementation.
   surface.
 - `POST /api/agent` / `AgentsService.agentControllerCreate` is the Studio
   owner-scoped Realm Agent create surface.
+- `GET/PATCH /api/me/agents/{agentId}/settings` /
+  `MeService.getMyRealmAgentSettings` and
+  `MeService.updateMyRealmAgentSettings` are the Studio owner-scoped settings
+  read/write surfaces. The write surface compiles owner-reviewed structured
+  settings into Realm profile writes and versioned `AgentRule` truth writes; it
+  is not raw `AgentRule` CRUD or rule-content review authority.
 - `POST /api/agent/accounts/{id}/avatar` /
   `AgentsService.agentControllerSelectAvatar` is the Studio owner-scoped avatar
   URL selection surface. It is not a Resource/Binding upload path.

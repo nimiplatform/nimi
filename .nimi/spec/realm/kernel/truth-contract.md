@@ -117,3 +117,18 @@ consolidated batch 的边界。
 consolidated extraction batch。raw provider output、partial attempt residue、
 或未完成 continuation 的中间态，不得直接作为 canonical truth ingress 或 publish
 evidence 成功态。
+
+## R-TRUTH-022
+
+User-owned public RealmAgent settings ingress is a Realm truth-write admission
+path, not a world creator control-plane shortcut. `GET
+/api/me/agents/{agentId}/settings` and `PATCH
+/api/me/agents/{agentId}/settings` are owner-scoped surfaces for the current
+authenticated user's `MASTER_OWNED` RealmAgent only. The read surface returns
+owner-facing structured settings and profile/truth projections; it must not
+expose raw `AgentRule` content as rule-review authority. The write surface
+accepts owner-reviewed settings input and optional natural-language intent,
+then server-side compiles or derives canonical profile writes and versioned
+`AgentRule` truth writes. It must reject `WORLD_OWNED` agents, world creator
+authority substitution, caller-owned lifecycle state, provider/model fields,
+LocalAgent private state, and raw AgentRule CRUD payloads.

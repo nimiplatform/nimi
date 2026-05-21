@@ -76,10 +76,10 @@ default owner UX. The default owner model is settings input, proposal, review,
 and acceptance; raw rule text/lines are review, audit, or expert semantics only
 after an admitted owner-scoped rule-content read surface exists.
 
-Accepted owner setting edits must eventually flow through a canonical
-owner-scoped Realm ingress that derives or compiles canonical truth writes.
-Studio must not reuse `AgentRulesService` world-scoped `/api/world/.../rules`
-CRUD semantics as the default owner save path.
+Accepted owner setting edits flow through the canonical owner-scoped Realm
+ingress `PATCH /api/me/agents/{agentId}/settings`, which derives or compiles
+canonical truth writes. Studio must not reuse `AgentRulesService` world-scoped
+`/api/world/.../rules` CRUD semantics as the default owner save path.
 
 Public success requires the authoritative operation to succeed. Local draft
 save, local asset preview, AI generation, and local schedule creation are never

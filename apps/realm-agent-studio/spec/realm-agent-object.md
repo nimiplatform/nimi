@@ -49,6 +49,11 @@ Current `AgentRulesService` rule operations are world-scoped
 (`/api/world/by-id/{worldId}/agents/{agentId}/rules...`) and must not be
 reused as the Studio default owner save path
 (`sdk/src/realm/generated/operation-map.ts:97` to `:115`; `:209` to `:220`).
+Studio owner setting save uses `PATCH /api/me/agents/{agentId}/settings`, which
+is admitted by Realm truth authority as the current-user `MASTER_OWNED`
+settings ingress. It accepts owner-reviewed structured settings and compiles or
+derives versioned `AgentRule` truth writes server-side; it does not admit raw
+rule CRUD or owner rule-content review.
 
 ## Owner Boundary
 
@@ -85,9 +90,9 @@ Realm Agent Studio must not define a Realm Agent lifecycle state machine. A
 local draft can exist before Realm creation, but creation succeeds only after
 Realm creates the composed source entity. After creation, the first Studio
 version supports update operations only through separately admitted owner update
-writes. The intended owner update direction is owner-scoped settings/truth
-ingress that compiles or derives canonical truth writes; raw world-scoped rule
-CRUD is not that owner update model.
+writes. Owner setting updates use the owner-scoped settings/truth ingress
+`PATCH /api/me/agents/{agentId}/settings`, which compiles or derives canonical
+truth writes; raw world-scoped rule CRUD is not that owner update model.
 
 Current generated Realm DTO evidence exposes `AgentState` as
 `INCUBATING | READY | ACTIVE | SUSPENDED | FAILED`

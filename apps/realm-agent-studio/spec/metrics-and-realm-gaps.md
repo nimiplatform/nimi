@@ -26,9 +26,11 @@ Current Realm source evidence shows world-scoped raw rule CRUD on
   (`sdk/src/realm/generated/operation-map.ts:209` to `:220`).
 
 Those world-scoped rule operations must not be reused as the Studio default
-owner save path. The remaining Realm/app gap is a canonical owner-scoped
-settings/truth ingress that accepts owner setting intent and compiles or
-derives canonical truth writes.
+owner save path. The canonical owner-scoped settings/truth ingress is
+`GET/PATCH /api/me/agents/{agentId}/settings`: reads return structured owner
+settings without raw rule-review authority, and writes accept owner-reviewed
+settings input that Realm compiles or derives into profile writes and versioned
+`AgentRule` truth writes.
 
 Owner-facing canonical rule review has a separate read-side gap. Public Realm
 truth projections expose aggregates only and must not expose `AgentRule`
