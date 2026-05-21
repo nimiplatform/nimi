@@ -11,7 +11,12 @@ import {
   type OwnerPortfolioSort,
   type SettingField,
 } from './portfolio-data.js';
-import { getOwnerPortfolioAgentDetail, listOwnerPortfolioAgents } from './portfolio-client.js';
+import {
+  getOwnerPortfolioAgentDetail,
+  listOwnerPortfolioAgents,
+  publishReviewedPostDraft,
+  type RealmPostPublishResult,
+} from './portfolio-client.js';
 import {
   ATTACHMENT_TARGET_TYPES,
   buildLocalPostScheduleCandidate,
@@ -430,6 +435,8 @@ function createEmptyLocalPostScheduleInput(): LocalPostScheduleInput {
 function CreativePostWorkspace({ agent }: { agent: OwnerPortfolioAgentDetail }) {
   const [draft, setDraft] = useState<LocalPostDraftInput>(() => createEmptyPostDraft());
   const [payloadPreview, setPayloadPreview] = useState<CandidatePostPayload | null>(null);
+  const [publishResult, setPublishResult] = useState<RealmPostPublishResult | null>(null);
+  const [isPublishing, setIsPublishing] = useState(false);
   const [scheduleInput, setScheduleInput] = useState<LocalPostScheduleInput>(() => createEmptyLocalPostScheduleInput());
   const [schedulePreview, setSchedulePreview] = useState<LocalPostScheduleCandidate | null>(null);
   const [scheduleErrors, setScheduleErrors] = useState<string[]>([]);
@@ -439,6 +446,8 @@ function CreativePostWorkspace({ agent }: { agent: OwnerPortfolioAgentDetail }) 
   useEffect(() => {
     setDraft(createEmptyPostDraft());
     setPayloadPreview(null);
+    setPublishResult(null);
+    setIsPublishing(false);
     setScheduleInput(createEmptyLocalPostScheduleInput());
     setSchedulePreview(null);
     setScheduleErrors([]);
@@ -448,6 +457,7 @@ function CreativePostWorkspace({ agent }: { agent: OwnerPortfolioAgentDetail }) 
   function updateDraft(patch: Partial<LocalPostDraftInput>) {
     setDraft((current) => ({ ...current, ...patch }));
     setPayloadPreview(null);
+    setPublishResult(null);
     setSchedulePreview(null);
     setScheduleErrors([]);
   }
@@ -477,7 +487,9 @@ function CreativePostWorkspace({ agent }: { agent: OwnerPortfolioAgentDetail }) 
           <div className="flex min-w-0 flex-wrap items-center gap-3">
             <h3 className="m-0 text-xl font-semibold">Creative post candidate</h3>
             <StatusBadge tone="info">app-local draft</StatusBadge>
-            <StatusBadge tone="neutral">not Realm publish</StatusBadge>
+            <StatusBadge tone={validation.publishable ? 'success' : 'neutral'}>
+              {validation.publishable ? 'Realm publish ready' : 'not Realm publish'}
+            </StatusBadge>
           </div>
           <p className="m-0 mt-1 text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-muted)]">
             Integrated with selected canonical detail agent: {agent.handle.value ? `@${agent.handle.value}` : agent.displayName.value || agent.id}.
@@ -554,12 +566,60 @@ function CreativePostWorkspace({ agent }: { agent: OwnerPortfolioAgentDetail }) 
               >
                 Preview reviewed payload
               </Button>
+              <Button
+                disabled={!validation.publishable || isPublishing}
+                onClick={async () => {
+                  if (!validation.publishable) {
+                    return;
+                  }
+                  setPayloadPreview(validation.payload);
+                  setPublishResult(null);
+                  setIsPublishing(true);
+                  try {
+                    const result = await publishReviewedPostDraft(validation.payload);
+                    setPublishResult(result);
+                  } finally {
+                    setIsPublishing(false);
+                  }
+                }}
+              >
+                {isPublishing ? 'Publishing...' : 'Publish to Realm'}
+              </Button>
             </div>
-            <FieldShell label="Reviewed candidate payload" message="Preview only. This does not call Realm and does not claim publish success.">
+            <FieldShell label="Reviewed candidate payload" message="Payload preview is preserved for review and failure diagnosis. Publish sends only realmCreatePost to Realm.">
               <pre className="ras-json-preview m-0 min-h-32 overflow-auto rounded-[var(--nimi-radius-field)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-3 text-xs">
                 {payloadPreview ? JSON.stringify(payloadPreview, null, 2) : 'No reviewed payload preview yet.'}
               </pre>
             </FieldShell>
+            {publishResult ? (
+              <Surface tone="card" padding="md">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <div className="font-medium">Realm publish result</div>
+                    <div className="mt-1 text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-muted)]">
+                      Source: {publishResult.source}
+                    </div>
+                  </div>
+                  <StatusBadge tone={publishResult.ok ? 'success' : 'danger'}>
+                    {publishResult.ok ? 'canonical post returned' : publishResult.failure}
+                  </StatusBadge>
+                </div>
+                {publishResult.ok ? (
+                  <dl className="mt-3 grid gap-2 text-[length:var(--nimi-type-body-sm-size)]">
+                    {Object.entries(publishResult.canonical).map(([key, value]) => (
+                      <div key={key} className="grid gap-1 sm:grid-cols-[150px_1fr]">
+                        <dt className="font-medium text-[var(--nimi-text-muted)]">{key}</dt>
+                        <dd className="ras-break-anywhere m-0 text-[var(--nimi-text-primary)]">{value}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                ) : (
+                  <InlineAlert tone="danger">
+                    {publishResult.message}
+                  </InlineAlert>
+                )}
+              </Surface>
+            ) : null}
             <Surface tone="card" padding="md">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>

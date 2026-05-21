@@ -1,13 +1,17 @@
 import type { Realm } from '@nimiplatform/sdk/realm';
 import { describe, expect, it, vi } from 'vitest';
 import {
+  buildRealmCreatePostInput,
   getCreateRealmAgentWorldPreview,
   getOwnerPortfolioAgentDetail,
   listCreateRealmAgentSelectableWorlds,
   listOwnerPortfolioAgents,
+  normalizeRealmPostPublishResult,
+  publishReviewedPostDraft,
 } from './portfolio-client.js';
 import type { MyRealmAgentDto } from './portfolio-data.js';
 import type { RealmAgentCreationWorldDto } from './create-agent-draft.js';
+import type { CandidatePostPayload } from './post-draft.js';
 
 const agent: MyRealmAgentDto = {
   id: 'agent-1',
@@ -77,9 +81,61 @@ function mockRealm() {
           agents: [],
         })),
       },
+      PostsService: {
+        createPost: vi.fn(async () => ({
+          id: 'post-1',
+          authorId: 'author-from-realm',
+          author: {
+            id: 'author-from-realm',
+            displayName: 'Mira',
+          },
+          attachments: [],
+          caption: 'Published caption',
+          createdAt: '2026-05-21T00:00:00.000Z',
+          moderationStatus: 'PENDING',
+          tags: ['studio'],
+          visibility: 'PUBLIC',
+          worldId: 'world-from-realm',
+        })),
+      },
     },
   } as unknown as Realm;
 }
+
+function collectKeys(value: unknown, keys = new Set<string>()): Set<string> {
+  if (!value || typeof value !== 'object') {
+    return keys;
+  }
+
+  for (const [key, nested] of Object.entries(value as Record<string, unknown>)) {
+    keys.add(key);
+    collectKeys(nested, keys);
+  }
+
+  return keys;
+}
+
+const candidatePayload: CandidatePostPayload = {
+  candidate: true,
+  source: 'realm-agent-studio.local-post-draft',
+  agentRef: {
+    source: 'Realm MeService.getMyRealmAgent',
+    agentKey: 'agent-1',
+    handle: 'mira',
+    displayName: 'Mira',
+  },
+  realmCreatePost: {
+    attachments: [{
+      targetType: 'RESOURCE',
+      targetId: 'resource-1',
+    }],
+    caption: 'Published caption',
+    tags: ['studio'],
+  },
+  review: {
+    humanReviewed: true,
+  },
+};
 
 describe('owner portfolio client', () => {
   it('uses listMyRealmAgents only for portfolio list data', async () => {
@@ -121,5 +177,52 @@ describe('owner portfolio client', () => {
     expect(realm.services.WorldsService.worldControllerGetWorldDetailWithAgents).toHaveBeenCalledWith('world-oasis', 4);
     expect(realm.services.CreatorService.creatorControllerCreateAgent).not.toHaveBeenCalled();
     expect(preview.source).toBe('Realm WorldsService.worldControllerGetWorldDetailWithAgents');
+  });
+
+  it('publishes a reviewed post draft through PostsService.createPost without forbidden caller-owned keys', async () => {
+    const realm = mockRealm();
+    const result = await publishReviewedPostDraft(candidatePayload, realm);
+    const createPost = realm.services.PostsService.createPost;
+    const submittedPayload = vi.mocked(createPost).mock.calls[0]?.[0];
+
+    expect(createPost).toHaveBeenCalledTimes(1);
+    expect(submittedPayload).toEqual({
+      attachments: [{
+        targetType: 'RESOURCE',
+        targetId: 'resource-1',
+      }],
+      caption: 'Published caption',
+      tags: ['studio'],
+    });
+    expect(collectKeys(submittedPayload).has('id')).toBe(false);
+    expect(collectKeys(submittedPayload).has('authorId')).toBe(false);
+    expect(collectKeys(submittedPayload).has('worldId')).toBe(false);
+    expect(collectKeys(submittedPayload).has('scheduledAt')).toBe(false);
+    expect(result).toMatchObject({
+      ok: true,
+      canonical: {
+        id: 'post-1',
+        worldId: 'world-from-realm',
+        moderationStatus: 'PENDING',
+        visibility: 'PUBLIC',
+      },
+    });
+  });
+
+  it('normalizes Create Post responses without canonical id as publish failure', () => {
+    const result = normalizeRealmPostPublishResult({} as Awaited<ReturnType<Realm['services']['PostsService']['createPost']>>);
+
+    expect(result).toMatchObject({
+      ok: false,
+      failure: 'realm-create-post-missing-canonical-id',
+    });
+  });
+
+  it('builds CreatePostDto shape from reviewed payload only', () => {
+    const input = buildRealmCreatePostInput(candidatePayload);
+
+    expect(input).toEqual(candidatePayload.realmCreatePost);
+    expect(collectKeys(input).has('agentRef')).toBe(false);
+    expect(collectKeys(input).has('review')).toBe(false);
   });
 });
