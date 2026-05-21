@@ -91,6 +91,18 @@ func resolveAppRegistryPath(fileCfg FileConfig) string {
 	return ""
 }
 
+// resolveAppBundledArtifactsRoot resolves the runtime-local bundled Nimi App
+// artifacts directory. An empty value disables the bundled install path.
+func resolveAppBundledArtifactsRoot(fileCfg FileConfig) string {
+	if value := strings.TrimSpace(os.Getenv("NIMI_RUNTIME_APP_BUNDLED_ARTIFACTS_ROOT")); value != "" {
+		return expandUserPath(value)
+	}
+	if value := strings.TrimSpace(fileCfg.AppBundledArtifactsRoot); value != "" {
+		return expandUserPath(value)
+	}
+	return ""
+}
+
 // resolveRuntimeID resolves the stable local Runtime daemon identity. The
 // config file is the only persistent source; an empty value means config init
 // has not yet generated one. (K-CFG-018)

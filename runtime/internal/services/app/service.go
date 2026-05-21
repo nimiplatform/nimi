@@ -64,6 +64,8 @@ type Service struct {
 	bindingValidator  scopedBindingValidator
 	rateLimiter       *appRateLimiter
 	loopDetector      *appLoopDetector
+	installJobs       *installJobManager
+	installRuntime    *installRuntime
 }
 
 func WithSessionValidator(validator sessionValidator) Option {
@@ -86,6 +88,14 @@ func WithClock(now func() time.Time) Option {
 	}
 }
 
+// WithInstallRuntime injects the Runtime-owned Nimi App install/uninstall
+// lifecycle dependencies. When nil, the install lifecycle RPCs fail closed.
+func WithInstallRuntime(runtime *installRuntime) Option {
+	return func(s *Service) {
+		s.installRuntime = runtime
+	}
+}
+
 func New(logger *slog.Logger, opts ...Option) *Service {
 	svc := &Service{
 		logger:            logger,
@@ -100,6 +110,7 @@ func New(logger *slog.Logger, opts ...Option) *Service {
 			opt(svc)
 		}
 	}
+	svc.installJobs = newInstallJobManager(svc.now)
 	return svc
 }
 

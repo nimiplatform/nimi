@@ -154,6 +154,16 @@ const (
 	ReasonCode_APP_MESSAGE_PAYLOAD_TOO_LARGE ReasonCode = 550
 	ReasonCode_APP_MESSAGE_RATE_LIMITED      ReasonCode = 551
 	ReasonCode_APP_MESSAGE_LOOP_DETECTED     ReasonCode = 552
+	// APP_INSTALL family (553+) — Nimi App install/uninstall lifecycle
+	// fail-closed reasons. Each reason is distinct and is never collapsed
+	// into a generic value.
+	ReasonCode_APP_INSTALL_DESCRIPTOR_NOT_FOUND ReasonCode = 553
+	ReasonCode_APP_INSTALL_DIGEST_MISMATCH      ReasonCode = 554
+	ReasonCode_APP_INSTALL_MANIFEST_INVALID     ReasonCode = 555
+	ReasonCode_APP_INSTALL_STORAGE_VIOLATION    ReasonCode = 556
+	ReasonCode_APP_INSTALL_DOWNLOAD_FAILED      ReasonCode = 557
+	ReasonCode_APP_INSTALL_UNPACK_FAILED        ReasonCode = 558
+	ReasonCode_APP_INSTALL_INTERNAL             ReasonCode = 559
 	// LOCAL_SPEECH family (560+)
 	ReasonCode_AI_LOCAL_SPEECH_PREFLIGHT_BLOCKED              ReasonCode = 560
 	ReasonCode_AI_LOCAL_SPEECH_DOWNLOAD_CONFIRMATION_REQUIRED ReasonCode = 561
@@ -315,6 +325,13 @@ var (
 		550: "APP_MESSAGE_PAYLOAD_TOO_LARGE",
 		551: "APP_MESSAGE_RATE_LIMITED",
 		552: "APP_MESSAGE_LOOP_DETECTED",
+		553: "APP_INSTALL_DESCRIPTOR_NOT_FOUND",
+		554: "APP_INSTALL_DIGEST_MISMATCH",
+		555: "APP_INSTALL_MANIFEST_INVALID",
+		556: "APP_INSTALL_STORAGE_VIOLATION",
+		557: "APP_INSTALL_DOWNLOAD_FAILED",
+		558: "APP_INSTALL_UNPACK_FAILED",
+		559: "APP_INSTALL_INTERNAL",
 		560: "AI_LOCAL_SPEECH_PREFLIGHT_BLOCKED",
 		561: "AI_LOCAL_SPEECH_DOWNLOAD_CONFIRMATION_REQUIRED",
 		562: "AI_LOCAL_SPEECH_ENV_INIT_FAILED",
@@ -467,6 +484,13 @@ var (
 		"APP_MESSAGE_PAYLOAD_TOO_LARGE":                  550,
 		"APP_MESSAGE_RATE_LIMITED":                       551,
 		"APP_MESSAGE_LOOP_DETECTED":                      552,
+		"APP_INSTALL_DESCRIPTOR_NOT_FOUND":               553,
+		"APP_INSTALL_DIGEST_MISMATCH":                    554,
+		"APP_INSTALL_MANIFEST_INVALID":                   555,
+		"APP_INSTALL_STORAGE_VIOLATION":                  556,
+		"APP_INSTALL_DOWNLOAD_FAILED":                    557,
+		"APP_INSTALL_UNPACK_FAILED":                      558,
+		"APP_INSTALL_INTERNAL":                           559,
 		"AI_LOCAL_SPEECH_PREFLIGHT_BLOCKED":              560,
 		"AI_LOCAL_SPEECH_DOWNLOAD_CONFIRMATION_REQUIRED": 561,
 		"AI_LOCAL_SPEECH_ENV_INIT_FAILED":                562,
@@ -1202,7 +1226,7 @@ const file_runtime_v1_common_proto_rawDesc = "" +
 	"\vreason_code\x18\x02 \x01(\x0e2\x1b.nimi.runtime.v1.ReasonCodeR\n" +
 	"reasonCode\x12\x1f\n" +
 	"\vaction_hint\x18\x03 \x01(\tR\n" +
-	"actionHint*\xe2&\n" +
+	"actionHint*\xcf(\n" +
 	"\n" +
 	"ReasonCode\x12\x1b\n" +
 	"\x17REASON_CODE_UNSPECIFIED\x10\x00\x12\x13\n" +
@@ -1314,7 +1338,14 @@ const file_runtime_v1_common_proto_rawDesc = "" +
 	"\x11APP_SCOPE_REVOKED\x10\xf8\x03\x12\"\n" +
 	"\x1dAPP_MESSAGE_PAYLOAD_TOO_LARGE\x10\xa6\x04\x12\x1d\n" +
 	"\x18APP_MESSAGE_RATE_LIMITED\x10\xa7\x04\x12\x1e\n" +
-	"\x19APP_MESSAGE_LOOP_DETECTED\x10\xa8\x04\x12&\n" +
+	"\x19APP_MESSAGE_LOOP_DETECTED\x10\xa8\x04\x12%\n" +
+	" APP_INSTALL_DESCRIPTOR_NOT_FOUND\x10\xa9\x04\x12 \n" +
+	"\x1bAPP_INSTALL_DIGEST_MISMATCH\x10\xaa\x04\x12!\n" +
+	"\x1cAPP_INSTALL_MANIFEST_INVALID\x10\xab\x04\x12\"\n" +
+	"\x1dAPP_INSTALL_STORAGE_VIOLATION\x10\xac\x04\x12 \n" +
+	"\x1bAPP_INSTALL_DOWNLOAD_FAILED\x10\xad\x04\x12\x1e\n" +
+	"\x19APP_INSTALL_UNPACK_FAILED\x10\xae\x04\x12\x19\n" +
+	"\x14APP_INSTALL_INTERNAL\x10\xaf\x04\x12&\n" +
 	"!AI_LOCAL_SPEECH_PREFLIGHT_BLOCKED\x10\xb0\x04\x123\n" +
 	".AI_LOCAL_SPEECH_DOWNLOAD_CONFIRMATION_REQUIRED\x10\xb1\x04\x12$\n" +
 	"\x1fAI_LOCAL_SPEECH_ENV_INIT_FAILED\x10\xb2\x04\x12%\n" +

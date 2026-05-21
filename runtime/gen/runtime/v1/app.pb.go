@@ -75,6 +75,190 @@ func (AppMessageEventType) EnumDescriptor() ([]byte, []int) {
 	return file_runtime_v1_app_proto_rawDescGZIP(), []int{0}
 }
 
+// AppInstallJobPhase is the typed install pipeline phase. It surfaces the
+// concrete install step so the product Apps card can show "download / verify /
+// materialize / unpack / evidence" instead of a generic spinner. It is never
+// inferred from transfer/process/file state.
+type AppInstallJobPhase int32
+
+const (
+	AppInstallJobPhase_APP_INSTALL_JOB_PHASE_UNSPECIFIED        AppInstallJobPhase = 0
+	AppInstallJobPhase_APP_INSTALL_JOB_PHASE_QUEUED             AppInstallJobPhase = 1
+	AppInstallJobPhase_APP_INSTALL_JOB_PHASE_RESOLVE_DESCRIPTOR AppInstallJobPhase = 2
+	AppInstallJobPhase_APP_INSTALL_JOB_PHASE_DOWNLOAD           AppInstallJobPhase = 3
+	AppInstallJobPhase_APP_INSTALL_JOB_PHASE_VERIFY             AppInstallJobPhase = 4
+	AppInstallJobPhase_APP_INSTALL_JOB_PHASE_MATERIALIZE        AppInstallJobPhase = 5
+	AppInstallJobPhase_APP_INSTALL_JOB_PHASE_UNPACK             AppInstallJobPhase = 6
+	AppInstallJobPhase_APP_INSTALL_JOB_PHASE_EVIDENCE           AppInstallJobPhase = 7
+	AppInstallJobPhase_APP_INSTALL_JOB_PHASE_INSTALLED          AppInstallJobPhase = 8
+	AppInstallJobPhase_APP_INSTALL_JOB_PHASE_FAILED             AppInstallJobPhase = 9
+)
+
+// Enum value maps for AppInstallJobPhase.
+var (
+	AppInstallJobPhase_name = map[int32]string{
+		0: "APP_INSTALL_JOB_PHASE_UNSPECIFIED",
+		1: "APP_INSTALL_JOB_PHASE_QUEUED",
+		2: "APP_INSTALL_JOB_PHASE_RESOLVE_DESCRIPTOR",
+		3: "APP_INSTALL_JOB_PHASE_DOWNLOAD",
+		4: "APP_INSTALL_JOB_PHASE_VERIFY",
+		5: "APP_INSTALL_JOB_PHASE_MATERIALIZE",
+		6: "APP_INSTALL_JOB_PHASE_UNPACK",
+		7: "APP_INSTALL_JOB_PHASE_EVIDENCE",
+		8: "APP_INSTALL_JOB_PHASE_INSTALLED",
+		9: "APP_INSTALL_JOB_PHASE_FAILED",
+	}
+	AppInstallJobPhase_value = map[string]int32{
+		"APP_INSTALL_JOB_PHASE_UNSPECIFIED":        0,
+		"APP_INSTALL_JOB_PHASE_QUEUED":             1,
+		"APP_INSTALL_JOB_PHASE_RESOLVE_DESCRIPTOR": 2,
+		"APP_INSTALL_JOB_PHASE_DOWNLOAD":           3,
+		"APP_INSTALL_JOB_PHASE_VERIFY":             4,
+		"APP_INSTALL_JOB_PHASE_MATERIALIZE":        5,
+		"APP_INSTALL_JOB_PHASE_UNPACK":             6,
+		"APP_INSTALL_JOB_PHASE_EVIDENCE":           7,
+		"APP_INSTALL_JOB_PHASE_INSTALLED":          8,
+		"APP_INSTALL_JOB_PHASE_FAILED":             9,
+	}
+)
+
+func (x AppInstallJobPhase) Enum() *AppInstallJobPhase {
+	p := new(AppInstallJobPhase)
+	*p = x
+	return p
+}
+
+func (x AppInstallJobPhase) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (AppInstallJobPhase) Descriptor() protoreflect.EnumDescriptor {
+	return file_runtime_v1_app_proto_enumTypes[1].Descriptor()
+}
+
+func (AppInstallJobPhase) Type() protoreflect.EnumType {
+	return &file_runtime_v1_app_proto_enumTypes[1]
+}
+
+func (x AppInstallJobPhase) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use AppInstallJobPhase.Descriptor instead.
+func (AppInstallJobPhase) EnumDescriptor() ([]byte, []int) {
+	return file_runtime_v1_app_proto_rawDescGZIP(), []int{1}
+}
+
+// AppInstallJobState is the typed terminal/in-flight job state. It aligns with
+// the Platform P-NAPP-008 fail-closed projection: a failed install never
+// projects as success and always leaves a recoverable state.
+type AppInstallJobState int32
+
+const (
+	AppInstallJobState_APP_INSTALL_JOB_STATE_UNSPECIFIED AppInstallJobState = 0
+	AppInstallJobState_APP_INSTALL_JOB_STATE_QUEUED      AppInstallJobState = 1
+	AppInstallJobState_APP_INSTALL_JOB_STATE_IN_PROGRESS AppInstallJobState = 2
+	AppInstallJobState_APP_INSTALL_JOB_STATE_INSTALLED   AppInstallJobState = 3
+	AppInstallJobState_APP_INSTALL_JOB_STATE_FAILED      AppInstallJobState = 4
+)
+
+// Enum value maps for AppInstallJobState.
+var (
+	AppInstallJobState_name = map[int32]string{
+		0: "APP_INSTALL_JOB_STATE_UNSPECIFIED",
+		1: "APP_INSTALL_JOB_STATE_QUEUED",
+		2: "APP_INSTALL_JOB_STATE_IN_PROGRESS",
+		3: "APP_INSTALL_JOB_STATE_INSTALLED",
+		4: "APP_INSTALL_JOB_STATE_FAILED",
+	}
+	AppInstallJobState_value = map[string]int32{
+		"APP_INSTALL_JOB_STATE_UNSPECIFIED": 0,
+		"APP_INSTALL_JOB_STATE_QUEUED":      1,
+		"APP_INSTALL_JOB_STATE_IN_PROGRESS": 2,
+		"APP_INSTALL_JOB_STATE_INSTALLED":   3,
+		"APP_INSTALL_JOB_STATE_FAILED":      4,
+	}
+)
+
+func (x AppInstallJobState) Enum() *AppInstallJobState {
+	p := new(AppInstallJobState)
+	*p = x
+	return p
+}
+
+func (x AppInstallJobState) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (AppInstallJobState) Descriptor() protoreflect.EnumDescriptor {
+	return file_runtime_v1_app_proto_enumTypes[2].Descriptor()
+}
+
+func (AppInstallJobState) Type() protoreflect.EnumType {
+	return &file_runtime_v1_app_proto_enumTypes[2]
+}
+
+func (x AppInstallJobState) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use AppInstallJobState.Descriptor instead.
+func (AppInstallJobState) EnumDescriptor() ([]byte, []int) {
+	return file_runtime_v1_app_proto_rawDescGZIP(), []int{2}
+}
+
+// AppInstallSourceKind distinguishes a bundled first-party install (no network
+// download; materialized from the atomic Nimi release bundle) from an external
+// immutable artifact install (HTTPS download + sha256 verification).
+type AppInstallSourceKind int32
+
+const (
+	AppInstallSourceKind_APP_INSTALL_SOURCE_KIND_UNSPECIFIED       AppInstallSourceKind = 0
+	AppInstallSourceKind_APP_INSTALL_SOURCE_KIND_BUNDLED           AppInstallSourceKind = 1
+	AppInstallSourceKind_APP_INSTALL_SOURCE_KIND_EXTERNAL_ARTIFACT AppInstallSourceKind = 2
+)
+
+// Enum value maps for AppInstallSourceKind.
+var (
+	AppInstallSourceKind_name = map[int32]string{
+		0: "APP_INSTALL_SOURCE_KIND_UNSPECIFIED",
+		1: "APP_INSTALL_SOURCE_KIND_BUNDLED",
+		2: "APP_INSTALL_SOURCE_KIND_EXTERNAL_ARTIFACT",
+	}
+	AppInstallSourceKind_value = map[string]int32{
+		"APP_INSTALL_SOURCE_KIND_UNSPECIFIED":       0,
+		"APP_INSTALL_SOURCE_KIND_BUNDLED":           1,
+		"APP_INSTALL_SOURCE_KIND_EXTERNAL_ARTIFACT": 2,
+	}
+)
+
+func (x AppInstallSourceKind) Enum() *AppInstallSourceKind {
+	p := new(AppInstallSourceKind)
+	*p = x
+	return p
+}
+
+func (x AppInstallSourceKind) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (AppInstallSourceKind) Descriptor() protoreflect.EnumDescriptor {
+	return file_runtime_v1_app_proto_enumTypes[3].Descriptor()
+}
+
+func (AppInstallSourceKind) Type() protoreflect.EnumType {
+	return &file_runtime_v1_app_proto_enumTypes[3]
+}
+
+func (x AppInstallSourceKind) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use AppInstallSourceKind.Descriptor instead.
+func (AppInstallSourceKind) EnumDescriptor() ([]byte, []int) {
+	return file_runtime_v1_app_proto_rawDescGZIP(), []int{3}
+}
+
 type SendAppMessageRequest struct {
 	state         protoimpl.MessageState          `protogen:"open.v1"`
 	FromAppId     string                          `protobuf:"bytes,1,opt,name=from_app_id,json=fromAppId,proto3" json:"from_app_id,omitempty"`
@@ -427,6 +611,823 @@ func (x *AppMessageEvent) GetTimestamp() *timestamppb.Timestamp {
 	return nil
 }
 
+// AppInstallStorageProjection mirrors the Runtime-owned app storage roots
+// (P-NAPP-015 / S-APP-011). All four roots are absolute paths under the
+// selected nimi_data directory.
+type AppInstallStorageProjection struct {
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	AppRoot         string                 `protobuf:"bytes,1,opt,name=app_root,json=appRoot,proto3" json:"app_root,omitempty"`
+	ReleaseRoot     string                 `protobuf:"bytes,2,opt,name=release_root,json=releaseRoot,proto3" json:"release_root,omitempty"`
+	DurableDataRoot string                 `protobuf:"bytes,3,opt,name=durable_data_root,json=durableDataRoot,proto3" json:"durable_data_root,omitempty"`
+	CacheRoot       string                 `protobuf:"bytes,4,opt,name=cache_root,json=cacheRoot,proto3" json:"cache_root,omitempty"`
+	TempRoot        string                 `protobuf:"bytes,5,opt,name=temp_root,json=tempRoot,proto3" json:"temp_root,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *AppInstallStorageProjection) Reset() {
+	*x = AppInstallStorageProjection{}
+	mi := &file_runtime_v1_app_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AppInstallStorageProjection) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AppInstallStorageProjection) ProtoMessage() {}
+
+func (x *AppInstallStorageProjection) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_app_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AppInstallStorageProjection.ProtoReflect.Descriptor instead.
+func (*AppInstallStorageProjection) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_app_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *AppInstallStorageProjection) GetAppRoot() string {
+	if x != nil {
+		return x.AppRoot
+	}
+	return ""
+}
+
+func (x *AppInstallStorageProjection) GetReleaseRoot() string {
+	if x != nil {
+		return x.ReleaseRoot
+	}
+	return ""
+}
+
+func (x *AppInstallStorageProjection) GetDurableDataRoot() string {
+	if x != nil {
+		return x.DurableDataRoot
+	}
+	return ""
+}
+
+func (x *AppInstallStorageProjection) GetCacheRoot() string {
+	if x != nil {
+		return x.CacheRoot
+	}
+	return ""
+}
+
+func (x *AppInstallStorageProjection) GetTempRoot() string {
+	if x != nil {
+		return x.TempRoot
+	}
+	return ""
+}
+
+// AppInstallJob is the typed install job projection. It mirrors the
+// LocalEnvironmentDependencyJob shape: a stable job id, a typed state, the
+// resolved descriptor identity, a fail-closed failure detail, and a
+// retryable flag so a failed install can be retried or its partial files
+// removed without ever projecting as success.
+type AppInstallJob struct {
+	state                protoimpl.MessageState `protogen:"open.v1"`
+	JobId                string                 `protobuf:"bytes,1,opt,name=job_id,json=jobId,proto3" json:"job_id,omitempty"`
+	AppId                string                 `protobuf:"bytes,2,opt,name=app_id,json=appId,proto3" json:"app_id,omitempty"`
+	ReleaseDescriptorRef string                 `protobuf:"bytes,3,opt,name=release_descriptor_ref,json=releaseDescriptorRef,proto3" json:"release_descriptor_ref,omitempty"`
+	InstalledVersion     string                 `protobuf:"bytes,4,opt,name=installed_version,json=installedVersion,proto3" json:"installed_version,omitempty"`
+	State                AppInstallJobState     `protobuf:"varint,5,opt,name=state,proto3,enum=nimi.runtime.v1.AppInstallJobState" json:"state,omitempty"`
+	Phase                AppInstallJobPhase     `protobuf:"varint,6,opt,name=phase,proto3,enum=nimi.runtime.v1.AppInstallJobPhase" json:"phase,omitempty"`
+	SourceKind           AppInstallSourceKind   `protobuf:"varint,7,opt,name=source_kind,json=sourceKind,proto3,enum=nimi.runtime.v1.AppInstallSourceKind" json:"source_kind,omitempty"`
+	// sha256 is the digest computed over the downloaded/bundled artifact bytes.
+	// It is populated only after the verify phase succeeds.
+	Sha256        string                       `protobuf:"bytes,8,opt,name=sha256,proto3" json:"sha256,omitempty"`
+	ArtifactBytes int64                        `protobuf:"varint,9,opt,name=artifact_bytes,json=artifactBytes,proto3" json:"artifact_bytes,omitempty"`
+	Storage       *AppInstallStorageProjection `protobuf:"bytes,10,opt,name=storage,proto3" json:"storage,omitempty"`
+	// reason_code is the typed fail-closed reason on a failed job. It is never
+	// collapsed into a generic value.
+	ReasonCode    ReasonCode `protobuf:"varint,11,opt,name=reason_code,json=reasonCode,proto3,enum=nimi.runtime.v1.ReasonCode" json:"reason_code,omitempty"`
+	FailureDetail string     `protobuf:"bytes,12,opt,name=failure_detail,json=failureDetail,proto3" json:"failure_detail,omitempty"`
+	Retryable     bool       `protobuf:"varint,13,opt,name=retryable,proto3" json:"retryable,omitempty"`
+	CreatedAt     string     `protobuf:"bytes,14,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	UpdatedAt     string     `protobuf:"bytes,15,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AppInstallJob) Reset() {
+	*x = AppInstallJob{}
+	mi := &file_runtime_v1_app_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AppInstallJob) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AppInstallJob) ProtoMessage() {}
+
+func (x *AppInstallJob) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_app_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AppInstallJob.ProtoReflect.Descriptor instead.
+func (*AppInstallJob) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_app_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *AppInstallJob) GetJobId() string {
+	if x != nil {
+		return x.JobId
+	}
+	return ""
+}
+
+func (x *AppInstallJob) GetAppId() string {
+	if x != nil {
+		return x.AppId
+	}
+	return ""
+}
+
+func (x *AppInstallJob) GetReleaseDescriptorRef() string {
+	if x != nil {
+		return x.ReleaseDescriptorRef
+	}
+	return ""
+}
+
+func (x *AppInstallJob) GetInstalledVersion() string {
+	if x != nil {
+		return x.InstalledVersion
+	}
+	return ""
+}
+
+func (x *AppInstallJob) GetState() AppInstallJobState {
+	if x != nil {
+		return x.State
+	}
+	return AppInstallJobState_APP_INSTALL_JOB_STATE_UNSPECIFIED
+}
+
+func (x *AppInstallJob) GetPhase() AppInstallJobPhase {
+	if x != nil {
+		return x.Phase
+	}
+	return AppInstallJobPhase_APP_INSTALL_JOB_PHASE_UNSPECIFIED
+}
+
+func (x *AppInstallJob) GetSourceKind() AppInstallSourceKind {
+	if x != nil {
+		return x.SourceKind
+	}
+	return AppInstallSourceKind_APP_INSTALL_SOURCE_KIND_UNSPECIFIED
+}
+
+func (x *AppInstallJob) GetSha256() string {
+	if x != nil {
+		return x.Sha256
+	}
+	return ""
+}
+
+func (x *AppInstallJob) GetArtifactBytes() int64 {
+	if x != nil {
+		return x.ArtifactBytes
+	}
+	return 0
+}
+
+func (x *AppInstallJob) GetStorage() *AppInstallStorageProjection {
+	if x != nil {
+		return x.Storage
+	}
+	return nil
+}
+
+func (x *AppInstallJob) GetReasonCode() ReasonCode {
+	if x != nil {
+		return x.ReasonCode
+	}
+	return ReasonCode_REASON_CODE_UNSPECIFIED
+}
+
+func (x *AppInstallJob) GetFailureDetail() string {
+	if x != nil {
+		return x.FailureDetail
+	}
+	return ""
+}
+
+func (x *AppInstallJob) GetRetryable() bool {
+	if x != nil {
+		return x.Retryable
+	}
+	return false
+}
+
+func (x *AppInstallJob) GetCreatedAt() string {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return ""
+}
+
+func (x *AppInstallJob) GetUpdatedAt() string {
+	if x != nil {
+		return x.UpdatedAt
+	}
+	return ""
+}
+
+type InstallAppRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// app_id resolves an admitted Nimi App registry row and its bound release
+	// descriptor.
+	AppId string `protobuf:"bytes,1,opt,name=app_id,json=appId,proto3" json:"app_id,omitempty"`
+	// confirmed records that the user confirmed the install requirement preview
+	// (size, data roots, AI/profile requirements, permissions).
+	Confirmed     bool `protobuf:"varint,2,opt,name=confirmed,proto3" json:"confirmed,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *InstallAppRequest) Reset() {
+	*x = InstallAppRequest{}
+	mi := &file_runtime_v1_app_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *InstallAppRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*InstallAppRequest) ProtoMessage() {}
+
+func (x *InstallAppRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_app_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use InstallAppRequest.ProtoReflect.Descriptor instead.
+func (*InstallAppRequest) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_app_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *InstallAppRequest) GetAppId() string {
+	if x != nil {
+		return x.AppId
+	}
+	return ""
+}
+
+func (x *InstallAppRequest) GetConfirmed() bool {
+	if x != nil {
+		return x.Confirmed
+	}
+	return false
+}
+
+type InstallAppResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Job           *AppInstallJob         `protobuf:"bytes,1,opt,name=job,proto3" json:"job,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *InstallAppResponse) Reset() {
+	*x = InstallAppResponse{}
+	mi := &file_runtime_v1_app_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *InstallAppResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*InstallAppResponse) ProtoMessage() {}
+
+func (x *InstallAppResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_app_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use InstallAppResponse.ProtoReflect.Descriptor instead.
+func (*InstallAppResponse) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_app_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *InstallAppResponse) GetJob() *AppInstallJob {
+	if x != nil {
+		return x.Job
+	}
+	return nil
+}
+
+type GetAppInstallJobRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	JobId         string                 `protobuf:"bytes,1,opt,name=job_id,json=jobId,proto3" json:"job_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetAppInstallJobRequest) Reset() {
+	*x = GetAppInstallJobRequest{}
+	mi := &file_runtime_v1_app_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetAppInstallJobRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetAppInstallJobRequest) ProtoMessage() {}
+
+func (x *GetAppInstallJobRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_app_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetAppInstallJobRequest.ProtoReflect.Descriptor instead.
+func (*GetAppInstallJobRequest) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_app_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *GetAppInstallJobRequest) GetJobId() string {
+	if x != nil {
+		return x.JobId
+	}
+	return ""
+}
+
+type GetAppInstallJobResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Job           *AppInstallJob         `protobuf:"bytes,1,opt,name=job,proto3" json:"job,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetAppInstallJobResponse) Reset() {
+	*x = GetAppInstallJobResponse{}
+	mi := &file_runtime_v1_app_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetAppInstallJobResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetAppInstallJobResponse) ProtoMessage() {}
+
+func (x *GetAppInstallJobResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_app_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetAppInstallJobResponse.ProtoReflect.Descriptor instead.
+func (*GetAppInstallJobResponse) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_app_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *GetAppInstallJobResponse) GetJob() *AppInstallJob {
+	if x != nil {
+		return x.Job
+	}
+	return nil
+}
+
+type ListAppInstallJobsRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// app_id optionally filters jobs to a single app. Empty lists every job.
+	AppId         string `protobuf:"bytes,1,opt,name=app_id,json=appId,proto3" json:"app_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListAppInstallJobsRequest) Reset() {
+	*x = ListAppInstallJobsRequest{}
+	mi := &file_runtime_v1_app_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListAppInstallJobsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListAppInstallJobsRequest) ProtoMessage() {}
+
+func (x *ListAppInstallJobsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_app_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListAppInstallJobsRequest.ProtoReflect.Descriptor instead.
+func (*ListAppInstallJobsRequest) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_app_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *ListAppInstallJobsRequest) GetAppId() string {
+	if x != nil {
+		return x.AppId
+	}
+	return ""
+}
+
+type ListAppInstallJobsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Jobs          []*AppInstallJob       `protobuf:"bytes,1,rep,name=jobs,proto3" json:"jobs,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListAppInstallJobsResponse) Reset() {
+	*x = ListAppInstallJobsResponse{}
+	mi := &file_runtime_v1_app_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListAppInstallJobsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListAppInstallJobsResponse) ProtoMessage() {}
+
+func (x *ListAppInstallJobsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_app_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListAppInstallJobsResponse.ProtoReflect.Descriptor instead.
+func (*ListAppInstallJobsResponse) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_app_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *ListAppInstallJobsResponse) GetJobs() []*AppInstallJob {
+	if x != nil {
+		return x.Jobs
+	}
+	return nil
+}
+
+type WatchAppInstallJobEventsRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// job_id optionally scopes the stream to a single install job. Empty
+	// streams progress events for every install job.
+	JobId         string `protobuf:"bytes,1,opt,name=job_id,json=jobId,proto3" json:"job_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *WatchAppInstallJobEventsRequest) Reset() {
+	*x = WatchAppInstallJobEventsRequest{}
+	mi := &file_runtime_v1_app_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *WatchAppInstallJobEventsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*WatchAppInstallJobEventsRequest) ProtoMessage() {}
+
+func (x *WatchAppInstallJobEventsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_app_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use WatchAppInstallJobEventsRequest.ProtoReflect.Descriptor instead.
+func (*WatchAppInstallJobEventsRequest) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_app_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *WatchAppInstallJobEventsRequest) GetJobId() string {
+	if x != nil {
+		return x.JobId
+	}
+	return ""
+}
+
+// AppInstallJobEvent is one typed progress frame for a Watch stream. The
+// snapshot field carries the full typed job projection at the time of the
+// event so the consumer never reconstructs state from partial deltas.
+type AppInstallJobEvent struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Sequence      uint64                 `protobuf:"varint,1,opt,name=sequence,proto3" json:"sequence,omitempty"`
+	Job           *AppInstallJob         `protobuf:"bytes,2,opt,name=job,proto3" json:"job,omitempty"`
+	Timestamp     *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AppInstallJobEvent) Reset() {
+	*x = AppInstallJobEvent{}
+	mi := &file_runtime_v1_app_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AppInstallJobEvent) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AppInstallJobEvent) ProtoMessage() {}
+
+func (x *AppInstallJobEvent) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_app_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AppInstallJobEvent.ProtoReflect.Descriptor instead.
+func (*AppInstallJobEvent) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_app_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *AppInstallJobEvent) GetSequence() uint64 {
+	if x != nil {
+		return x.Sequence
+	}
+	return 0
+}
+
+func (x *AppInstallJobEvent) GetJob() *AppInstallJob {
+	if x != nil {
+		return x.Job
+	}
+	return nil
+}
+
+func (x *AppInstallJobEvent) GetTimestamp() *timestamppb.Timestamp {
+	if x != nil {
+		return x.Timestamp
+	}
+	return nil
+}
+
+type UninstallAppRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	AppId string                 `protobuf:"bytes,1,opt,name=app_id,json=appId,proto3" json:"app_id,omitempty"`
+	// delete_durable_data, when true, additionally removes the durable app data
+	// root. It requires destructive_data_delete_confirmed.
+	DeleteDurableData bool `protobuf:"varint,2,opt,name=delete_durable_data,json=deleteDurableData,proto3" json:"delete_durable_data,omitempty"`
+	// destructive_data_delete_confirmed records explicit user confirmation of
+	// the separate destructive "Delete app data" flow with impact preview.
+	DestructiveDataDeleteConfirmed bool `protobuf:"varint,3,opt,name=destructive_data_delete_confirmed,json=destructiveDataDeleteConfirmed,proto3" json:"destructive_data_delete_confirmed,omitempty"`
+	unknownFields                  protoimpl.UnknownFields
+	sizeCache                      protoimpl.SizeCache
+}
+
+func (x *UninstallAppRequest) Reset() {
+	*x = UninstallAppRequest{}
+	mi := &file_runtime_v1_app_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UninstallAppRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UninstallAppRequest) ProtoMessage() {}
+
+func (x *UninstallAppRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_app_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UninstallAppRequest.ProtoReflect.Descriptor instead.
+func (*UninstallAppRequest) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_app_proto_rawDescGZIP(), []int{14}
+}
+
+func (x *UninstallAppRequest) GetAppId() string {
+	if x != nil {
+		return x.AppId
+	}
+	return ""
+}
+
+func (x *UninstallAppRequest) GetDeleteDurableData() bool {
+	if x != nil {
+		return x.DeleteDurableData
+	}
+	return false
+}
+
+func (x *UninstallAppRequest) GetDestructiveDataDeleteConfirmed() bool {
+	if x != nil {
+		return x.DestructiveDataDeleteConfirmed
+	}
+	return false
+}
+
+// AppUninstallResult is the typed uninstall projection. Uninstall removes
+// release payloads by default and keeps durable data unless destructive
+// deletion was explicitly confirmed.
+type AppUninstallResult struct {
+	state              protoimpl.MessageState       `protogen:"open.v1"`
+	AppId              string                       `protobuf:"bytes,1,opt,name=app_id,json=appId,proto3" json:"app_id,omitempty"`
+	ReleaseRemoved     bool                         `protobuf:"varint,2,opt,name=release_removed,json=releaseRemoved,proto3" json:"release_removed,omitempty"`
+	DurableDataRemoved bool                         `protobuf:"varint,3,opt,name=durable_data_removed,json=durableDataRemoved,proto3" json:"durable_data_removed,omitempty"`
+	Storage            *AppInstallStorageProjection `protobuf:"bytes,4,opt,name=storage,proto3" json:"storage,omitempty"`
+	ReasonCode         ReasonCode                   `protobuf:"varint,5,opt,name=reason_code,json=reasonCode,proto3,enum=nimi.runtime.v1.ReasonCode" json:"reason_code,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
+}
+
+func (x *AppUninstallResult) Reset() {
+	*x = AppUninstallResult{}
+	mi := &file_runtime_v1_app_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AppUninstallResult) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AppUninstallResult) ProtoMessage() {}
+
+func (x *AppUninstallResult) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_app_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AppUninstallResult.ProtoReflect.Descriptor instead.
+func (*AppUninstallResult) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_app_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *AppUninstallResult) GetAppId() string {
+	if x != nil {
+		return x.AppId
+	}
+	return ""
+}
+
+func (x *AppUninstallResult) GetReleaseRemoved() bool {
+	if x != nil {
+		return x.ReleaseRemoved
+	}
+	return false
+}
+
+func (x *AppUninstallResult) GetDurableDataRemoved() bool {
+	if x != nil {
+		return x.DurableDataRemoved
+	}
+	return false
+}
+
+func (x *AppUninstallResult) GetStorage() *AppInstallStorageProjection {
+	if x != nil {
+		return x.Storage
+	}
+	return nil
+}
+
+func (x *AppUninstallResult) GetReasonCode() ReasonCode {
+	if x != nil {
+		return x.ReasonCode
+	}
+	return ReasonCode_REASON_CODE_UNSPECIFIED
+}
+
+type UninstallAppResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Result        *AppUninstallResult    `protobuf:"bytes,1,opt,name=result,proto3" json:"result,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UninstallAppResponse) Reset() {
+	*x = UninstallAppResponse{}
+	mi := &file_runtime_v1_app_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UninstallAppResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UninstallAppResponse) ProtoMessage() {}
+
+func (x *UninstallAppResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_app_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UninstallAppResponse.ProtoReflect.Descriptor instead.
+func (*UninstallAppResponse) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_app_proto_rawDescGZIP(), []int{16}
+}
+
+func (x *UninstallAppResponse) GetResult() *AppUninstallResult {
+	if x != nil {
+		return x.Result
+	}
+	return nil
+}
+
 var File_runtime_v1_app_proto protoreflect.FileDescriptor
 
 const file_runtime_v1_app_proto_rawDesc = "" +
@@ -469,15 +1470,102 @@ const file_runtime_v1_app_proto_rawDesc = "" +
 	"reasonCode\x12\x19\n" +
 	"\btrace_id\x18\n" +
 	" \x01(\tR\atraceId\x128\n" +
-	"\ttimestamp\x18\v \x01(\v2\x1a.google.protobuf.TimestampR\ttimestamp*\x98\x01\n" +
+	"\ttimestamp\x18\v \x01(\v2\x1a.google.protobuf.TimestampR\ttimestamp\"\xc3\x01\n" +
+	"\x1bAppInstallStorageProjection\x12\x19\n" +
+	"\bapp_root\x18\x01 \x01(\tR\aappRoot\x12!\n" +
+	"\frelease_root\x18\x02 \x01(\tR\vreleaseRoot\x12*\n" +
+	"\x11durable_data_root\x18\x03 \x01(\tR\x0fdurableDataRoot\x12\x1d\n" +
+	"\n" +
+	"cache_root\x18\x04 \x01(\tR\tcacheRoot\x12\x1b\n" +
+	"\ttemp_root\x18\x05 \x01(\tR\btempRoot\"\xa6\x05\n" +
+	"\rAppInstallJob\x12\x15\n" +
+	"\x06job_id\x18\x01 \x01(\tR\x05jobId\x12\x15\n" +
+	"\x06app_id\x18\x02 \x01(\tR\x05appId\x124\n" +
+	"\x16release_descriptor_ref\x18\x03 \x01(\tR\x14releaseDescriptorRef\x12+\n" +
+	"\x11installed_version\x18\x04 \x01(\tR\x10installedVersion\x129\n" +
+	"\x05state\x18\x05 \x01(\x0e2#.nimi.runtime.v1.AppInstallJobStateR\x05state\x129\n" +
+	"\x05phase\x18\x06 \x01(\x0e2#.nimi.runtime.v1.AppInstallJobPhaseR\x05phase\x12F\n" +
+	"\vsource_kind\x18\a \x01(\x0e2%.nimi.runtime.v1.AppInstallSourceKindR\n" +
+	"sourceKind\x12\x16\n" +
+	"\x06sha256\x18\b \x01(\tR\x06sha256\x12%\n" +
+	"\x0eartifact_bytes\x18\t \x01(\x03R\rartifactBytes\x12F\n" +
+	"\astorage\x18\n" +
+	" \x01(\v2,.nimi.runtime.v1.AppInstallStorageProjectionR\astorage\x12<\n" +
+	"\vreason_code\x18\v \x01(\x0e2\x1b.nimi.runtime.v1.ReasonCodeR\n" +
+	"reasonCode\x12%\n" +
+	"\x0efailure_detail\x18\f \x01(\tR\rfailureDetail\x12\x1c\n" +
+	"\tretryable\x18\r \x01(\bR\tretryable\x12\x1d\n" +
+	"\n" +
+	"created_at\x18\x0e \x01(\tR\tcreatedAt\x12\x1d\n" +
+	"\n" +
+	"updated_at\x18\x0f \x01(\tR\tupdatedAt\"H\n" +
+	"\x11InstallAppRequest\x12\x15\n" +
+	"\x06app_id\x18\x01 \x01(\tR\x05appId\x12\x1c\n" +
+	"\tconfirmed\x18\x02 \x01(\bR\tconfirmed\"F\n" +
+	"\x12InstallAppResponse\x120\n" +
+	"\x03job\x18\x01 \x01(\v2\x1e.nimi.runtime.v1.AppInstallJobR\x03job\"0\n" +
+	"\x17GetAppInstallJobRequest\x12\x15\n" +
+	"\x06job_id\x18\x01 \x01(\tR\x05jobId\"L\n" +
+	"\x18GetAppInstallJobResponse\x120\n" +
+	"\x03job\x18\x01 \x01(\v2\x1e.nimi.runtime.v1.AppInstallJobR\x03job\"2\n" +
+	"\x19ListAppInstallJobsRequest\x12\x15\n" +
+	"\x06app_id\x18\x01 \x01(\tR\x05appId\"P\n" +
+	"\x1aListAppInstallJobsResponse\x122\n" +
+	"\x04jobs\x18\x01 \x03(\v2\x1e.nimi.runtime.v1.AppInstallJobR\x04jobs\"8\n" +
+	"\x1fWatchAppInstallJobEventsRequest\x12\x15\n" +
+	"\x06job_id\x18\x01 \x01(\tR\x05jobId\"\x9c\x01\n" +
+	"\x12AppInstallJobEvent\x12\x1a\n" +
+	"\bsequence\x18\x01 \x01(\x04R\bsequence\x120\n" +
+	"\x03job\x18\x02 \x01(\v2\x1e.nimi.runtime.v1.AppInstallJobR\x03job\x128\n" +
+	"\ttimestamp\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\ttimestamp\"\xa7\x01\n" +
+	"\x13UninstallAppRequest\x12\x15\n" +
+	"\x06app_id\x18\x01 \x01(\tR\x05appId\x12.\n" +
+	"\x13delete_durable_data\x18\x02 \x01(\bR\x11deleteDurableData\x12I\n" +
+	"!destructive_data_delete_confirmed\x18\x03 \x01(\bR\x1edestructiveDataDeleteConfirmed\"\x8c\x02\n" +
+	"\x12AppUninstallResult\x12\x15\n" +
+	"\x06app_id\x18\x01 \x01(\tR\x05appId\x12'\n" +
+	"\x0frelease_removed\x18\x02 \x01(\bR\x0ereleaseRemoved\x120\n" +
+	"\x14durable_data_removed\x18\x03 \x01(\bR\x12durableDataRemoved\x12F\n" +
+	"\astorage\x18\x04 \x01(\v2,.nimi.runtime.v1.AppInstallStorageProjectionR\astorage\x12<\n" +
+	"\vreason_code\x18\x05 \x01(\x0e2\x1b.nimi.runtime.v1.ReasonCodeR\n" +
+	"reasonCode\"S\n" +
+	"\x14UninstallAppResponse\x12;\n" +
+	"\x06result\x18\x01 \x01(\v2#.nimi.runtime.v1.AppUninstallResultR\x06result*\x98\x01\n" +
 	"\x13AppMessageEventType\x12&\n" +
 	"\"APP_MESSAGE_EVENT_TYPE_UNSPECIFIED\x10\x00\x12\x1e\n" +
 	"\x1aAPP_MESSAGE_EVENT_RECEIVED\x10\x01\x12\x1b\n" +
 	"\x17APP_MESSAGE_EVENT_ACKED\x10\x02\x12\x1c\n" +
-	"\x18APP_MESSAGE_EVENT_FAILED\x10\x032\xe0\x01\n" +
+	"\x18APP_MESSAGE_EVENT_FAILED\x10\x03*\x85\x03\n" +
+	"\x12AppInstallJobPhase\x12%\n" +
+	"!APP_INSTALL_JOB_PHASE_UNSPECIFIED\x10\x00\x12 \n" +
+	"\x1cAPP_INSTALL_JOB_PHASE_QUEUED\x10\x01\x12,\n" +
+	"(APP_INSTALL_JOB_PHASE_RESOLVE_DESCRIPTOR\x10\x02\x12\"\n" +
+	"\x1eAPP_INSTALL_JOB_PHASE_DOWNLOAD\x10\x03\x12 \n" +
+	"\x1cAPP_INSTALL_JOB_PHASE_VERIFY\x10\x04\x12%\n" +
+	"!APP_INSTALL_JOB_PHASE_MATERIALIZE\x10\x05\x12 \n" +
+	"\x1cAPP_INSTALL_JOB_PHASE_UNPACK\x10\x06\x12\"\n" +
+	"\x1eAPP_INSTALL_JOB_PHASE_EVIDENCE\x10\a\x12#\n" +
+	"\x1fAPP_INSTALL_JOB_PHASE_INSTALLED\x10\b\x12 \n" +
+	"\x1cAPP_INSTALL_JOB_PHASE_FAILED\x10\t*\xcb\x01\n" +
+	"\x12AppInstallJobState\x12%\n" +
+	"!APP_INSTALL_JOB_STATE_UNSPECIFIED\x10\x00\x12 \n" +
+	"\x1cAPP_INSTALL_JOB_STATE_QUEUED\x10\x01\x12%\n" +
+	"!APP_INSTALL_JOB_STATE_IN_PROGRESS\x10\x02\x12#\n" +
+	"\x1fAPP_INSTALL_JOB_STATE_INSTALLED\x10\x03\x12 \n" +
+	"\x1cAPP_INSTALL_JOB_STATE_FAILED\x10\x04*\x93\x01\n" +
+	"\x14AppInstallSourceKind\x12'\n" +
+	"#APP_INSTALL_SOURCE_KIND_UNSPECIFIED\x10\x00\x12#\n" +
+	"\x1fAPP_INSTALL_SOURCE_KIND_BUNDLED\x10\x01\x12-\n" +
+	")APP_INSTALL_SOURCE_KIND_EXTERNAL_ARTIFACT\x10\x022\xe1\x05\n" +
 	"\x11RuntimeAppService\x12a\n" +
 	"\x0eSendAppMessage\x12&.nimi.runtime.v1.SendAppMessageRequest\x1a'.nimi.runtime.v1.SendAppMessageResponse\x12h\n" +
-	"\x14SubscribeAppMessages\x12,.nimi.runtime.v1.SubscribeAppMessagesRequest\x1a .nimi.runtime.v1.AppMessageEvent0\x01B?Z=github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1b\x06proto3"
+	"\x14SubscribeAppMessages\x12,.nimi.runtime.v1.SubscribeAppMessagesRequest\x1a .nimi.runtime.v1.AppMessageEvent0\x01\x12U\n" +
+	"\n" +
+	"InstallApp\x12\".nimi.runtime.v1.InstallAppRequest\x1a#.nimi.runtime.v1.InstallAppResponse\x12[\n" +
+	"\fUninstallApp\x12$.nimi.runtime.v1.UninstallAppRequest\x1a%.nimi.runtime.v1.UninstallAppResponse\x12g\n" +
+	"\x10GetAppInstallJob\x12(.nimi.runtime.v1.GetAppInstallJobRequest\x1a).nimi.runtime.v1.GetAppInstallJobResponse\x12m\n" +
+	"\x12ListAppInstallJobs\x12*.nimi.runtime.v1.ListAppInstallJobsRequest\x1a+.nimi.runtime.v1.ListAppInstallJobsResponse\x12s\n" +
+	"\x18WatchAppInstallJobEvents\x120.nimi.runtime.v1.WatchAppInstallJobEventsRequest\x1a#.nimi.runtime.v1.AppInstallJobEvent0\x01B?Z=github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1b\x06proto3"
 
 var (
 	file_runtime_v1_app_proto_rawDescOnce sync.Once
@@ -491,37 +1579,76 @@ func file_runtime_v1_app_proto_rawDescGZIP() []byte {
 	return file_runtime_v1_app_proto_rawDescData
 }
 
-var file_runtime_v1_app_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_runtime_v1_app_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
+var file_runtime_v1_app_proto_enumTypes = make([]protoimpl.EnumInfo, 4)
+var file_runtime_v1_app_proto_msgTypes = make([]protoimpl.MessageInfo, 17)
 var file_runtime_v1_app_proto_goTypes = []any{
-	(AppMessageEventType)(0),               // 0: nimi.runtime.v1.AppMessageEventType
-	(*SendAppMessageRequest)(nil),          // 1: nimi.runtime.v1.SendAppMessageRequest
-	(*SendAppMessageResponse)(nil),         // 2: nimi.runtime.v1.SendAppMessageResponse
-	(*SubscribeAppMessagesRequest)(nil),    // 3: nimi.runtime.v1.SubscribeAppMessagesRequest
-	(*AppMessageEvent)(nil),                // 4: nimi.runtime.v1.AppMessageEvent
-	(*structpb.Struct)(nil),                // 5: google.protobuf.Struct
-	(*ScopedRuntimeBindingAttachment)(nil), // 6: nimi.runtime.v1.ScopedRuntimeBindingAttachment
-	(ReasonCode)(0),                        // 7: nimi.runtime.v1.ReasonCode
-	(*timestamppb.Timestamp)(nil),          // 8: google.protobuf.Timestamp
+	(AppMessageEventType)(0),                // 0: nimi.runtime.v1.AppMessageEventType
+	(AppInstallJobPhase)(0),                 // 1: nimi.runtime.v1.AppInstallJobPhase
+	(AppInstallJobState)(0),                 // 2: nimi.runtime.v1.AppInstallJobState
+	(AppInstallSourceKind)(0),               // 3: nimi.runtime.v1.AppInstallSourceKind
+	(*SendAppMessageRequest)(nil),           // 4: nimi.runtime.v1.SendAppMessageRequest
+	(*SendAppMessageResponse)(nil),          // 5: nimi.runtime.v1.SendAppMessageResponse
+	(*SubscribeAppMessagesRequest)(nil),     // 6: nimi.runtime.v1.SubscribeAppMessagesRequest
+	(*AppMessageEvent)(nil),                 // 7: nimi.runtime.v1.AppMessageEvent
+	(*AppInstallStorageProjection)(nil),     // 8: nimi.runtime.v1.AppInstallStorageProjection
+	(*AppInstallJob)(nil),                   // 9: nimi.runtime.v1.AppInstallJob
+	(*InstallAppRequest)(nil),               // 10: nimi.runtime.v1.InstallAppRequest
+	(*InstallAppResponse)(nil),              // 11: nimi.runtime.v1.InstallAppResponse
+	(*GetAppInstallJobRequest)(nil),         // 12: nimi.runtime.v1.GetAppInstallJobRequest
+	(*GetAppInstallJobResponse)(nil),        // 13: nimi.runtime.v1.GetAppInstallJobResponse
+	(*ListAppInstallJobsRequest)(nil),       // 14: nimi.runtime.v1.ListAppInstallJobsRequest
+	(*ListAppInstallJobsResponse)(nil),      // 15: nimi.runtime.v1.ListAppInstallJobsResponse
+	(*WatchAppInstallJobEventsRequest)(nil), // 16: nimi.runtime.v1.WatchAppInstallJobEventsRequest
+	(*AppInstallJobEvent)(nil),              // 17: nimi.runtime.v1.AppInstallJobEvent
+	(*UninstallAppRequest)(nil),             // 18: nimi.runtime.v1.UninstallAppRequest
+	(*AppUninstallResult)(nil),              // 19: nimi.runtime.v1.AppUninstallResult
+	(*UninstallAppResponse)(nil),            // 20: nimi.runtime.v1.UninstallAppResponse
+	(*structpb.Struct)(nil),                 // 21: google.protobuf.Struct
+	(*ScopedRuntimeBindingAttachment)(nil),  // 22: nimi.runtime.v1.ScopedRuntimeBindingAttachment
+	(ReasonCode)(0),                         // 23: nimi.runtime.v1.ReasonCode
+	(*timestamppb.Timestamp)(nil),           // 24: google.protobuf.Timestamp
 }
 var file_runtime_v1_app_proto_depIdxs = []int32{
-	5,  // 0: nimi.runtime.v1.SendAppMessageRequest.payload:type_name -> google.protobuf.Struct
-	6,  // 1: nimi.runtime.v1.SendAppMessageRequest.scoped_binding:type_name -> nimi.runtime.v1.ScopedRuntimeBindingAttachment
-	7,  // 2: nimi.runtime.v1.SendAppMessageResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	6,  // 3: nimi.runtime.v1.SubscribeAppMessagesRequest.scoped_binding:type_name -> nimi.runtime.v1.ScopedRuntimeBindingAttachment
+	21, // 0: nimi.runtime.v1.SendAppMessageRequest.payload:type_name -> google.protobuf.Struct
+	22, // 1: nimi.runtime.v1.SendAppMessageRequest.scoped_binding:type_name -> nimi.runtime.v1.ScopedRuntimeBindingAttachment
+	23, // 2: nimi.runtime.v1.SendAppMessageResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	22, // 3: nimi.runtime.v1.SubscribeAppMessagesRequest.scoped_binding:type_name -> nimi.runtime.v1.ScopedRuntimeBindingAttachment
 	0,  // 4: nimi.runtime.v1.AppMessageEvent.event_type:type_name -> nimi.runtime.v1.AppMessageEventType
-	5,  // 5: nimi.runtime.v1.AppMessageEvent.payload:type_name -> google.protobuf.Struct
-	7,  // 6: nimi.runtime.v1.AppMessageEvent.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	8,  // 7: nimi.runtime.v1.AppMessageEvent.timestamp:type_name -> google.protobuf.Timestamp
-	1,  // 8: nimi.runtime.v1.RuntimeAppService.SendAppMessage:input_type -> nimi.runtime.v1.SendAppMessageRequest
-	3,  // 9: nimi.runtime.v1.RuntimeAppService.SubscribeAppMessages:input_type -> nimi.runtime.v1.SubscribeAppMessagesRequest
-	2,  // 10: nimi.runtime.v1.RuntimeAppService.SendAppMessage:output_type -> nimi.runtime.v1.SendAppMessageResponse
-	4,  // 11: nimi.runtime.v1.RuntimeAppService.SubscribeAppMessages:output_type -> nimi.runtime.v1.AppMessageEvent
-	10, // [10:12] is the sub-list for method output_type
-	8,  // [8:10] is the sub-list for method input_type
-	8,  // [8:8] is the sub-list for extension type_name
-	8,  // [8:8] is the sub-list for extension extendee
-	0,  // [0:8] is the sub-list for field type_name
+	21, // 5: nimi.runtime.v1.AppMessageEvent.payload:type_name -> google.protobuf.Struct
+	23, // 6: nimi.runtime.v1.AppMessageEvent.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	24, // 7: nimi.runtime.v1.AppMessageEvent.timestamp:type_name -> google.protobuf.Timestamp
+	2,  // 8: nimi.runtime.v1.AppInstallJob.state:type_name -> nimi.runtime.v1.AppInstallJobState
+	1,  // 9: nimi.runtime.v1.AppInstallJob.phase:type_name -> nimi.runtime.v1.AppInstallJobPhase
+	3,  // 10: nimi.runtime.v1.AppInstallJob.source_kind:type_name -> nimi.runtime.v1.AppInstallSourceKind
+	8,  // 11: nimi.runtime.v1.AppInstallJob.storage:type_name -> nimi.runtime.v1.AppInstallStorageProjection
+	23, // 12: nimi.runtime.v1.AppInstallJob.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	9,  // 13: nimi.runtime.v1.InstallAppResponse.job:type_name -> nimi.runtime.v1.AppInstallJob
+	9,  // 14: nimi.runtime.v1.GetAppInstallJobResponse.job:type_name -> nimi.runtime.v1.AppInstallJob
+	9,  // 15: nimi.runtime.v1.ListAppInstallJobsResponse.jobs:type_name -> nimi.runtime.v1.AppInstallJob
+	9,  // 16: nimi.runtime.v1.AppInstallJobEvent.job:type_name -> nimi.runtime.v1.AppInstallJob
+	24, // 17: nimi.runtime.v1.AppInstallJobEvent.timestamp:type_name -> google.protobuf.Timestamp
+	8,  // 18: nimi.runtime.v1.AppUninstallResult.storage:type_name -> nimi.runtime.v1.AppInstallStorageProjection
+	23, // 19: nimi.runtime.v1.AppUninstallResult.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	19, // 20: nimi.runtime.v1.UninstallAppResponse.result:type_name -> nimi.runtime.v1.AppUninstallResult
+	4,  // 21: nimi.runtime.v1.RuntimeAppService.SendAppMessage:input_type -> nimi.runtime.v1.SendAppMessageRequest
+	6,  // 22: nimi.runtime.v1.RuntimeAppService.SubscribeAppMessages:input_type -> nimi.runtime.v1.SubscribeAppMessagesRequest
+	10, // 23: nimi.runtime.v1.RuntimeAppService.InstallApp:input_type -> nimi.runtime.v1.InstallAppRequest
+	18, // 24: nimi.runtime.v1.RuntimeAppService.UninstallApp:input_type -> nimi.runtime.v1.UninstallAppRequest
+	12, // 25: nimi.runtime.v1.RuntimeAppService.GetAppInstallJob:input_type -> nimi.runtime.v1.GetAppInstallJobRequest
+	14, // 26: nimi.runtime.v1.RuntimeAppService.ListAppInstallJobs:input_type -> nimi.runtime.v1.ListAppInstallJobsRequest
+	16, // 27: nimi.runtime.v1.RuntimeAppService.WatchAppInstallJobEvents:input_type -> nimi.runtime.v1.WatchAppInstallJobEventsRequest
+	5,  // 28: nimi.runtime.v1.RuntimeAppService.SendAppMessage:output_type -> nimi.runtime.v1.SendAppMessageResponse
+	7,  // 29: nimi.runtime.v1.RuntimeAppService.SubscribeAppMessages:output_type -> nimi.runtime.v1.AppMessageEvent
+	11, // 30: nimi.runtime.v1.RuntimeAppService.InstallApp:output_type -> nimi.runtime.v1.InstallAppResponse
+	20, // 31: nimi.runtime.v1.RuntimeAppService.UninstallApp:output_type -> nimi.runtime.v1.UninstallAppResponse
+	13, // 32: nimi.runtime.v1.RuntimeAppService.GetAppInstallJob:output_type -> nimi.runtime.v1.GetAppInstallJobResponse
+	15, // 33: nimi.runtime.v1.RuntimeAppService.ListAppInstallJobs:output_type -> nimi.runtime.v1.ListAppInstallJobsResponse
+	17, // 34: nimi.runtime.v1.RuntimeAppService.WatchAppInstallJobEvents:output_type -> nimi.runtime.v1.AppInstallJobEvent
+	28, // [28:35] is the sub-list for method output_type
+	21, // [21:28] is the sub-list for method input_type
+	21, // [21:21] is the sub-list for extension type_name
+	21, // [21:21] is the sub-list for extension extendee
+	0,  // [0:21] is the sub-list for field type_name
 }
 
 func init() { file_runtime_v1_app_proto_init() }
@@ -535,8 +1662,8 @@ func file_runtime_v1_app_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_runtime_v1_app_proto_rawDesc), len(file_runtime_v1_app_proto_rawDesc)),
-			NumEnums:      1,
-			NumMessages:   4,
+			NumEnums:      4,
+			NumMessages:   17,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

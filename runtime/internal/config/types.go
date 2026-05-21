@@ -136,6 +136,13 @@ type Config struct {
 	// this file read-only and does not own app admission truth.
 	AppRegistryPath string
 
+	// AppBundledArtifactsRoot points to the runtime-local directory holding
+	// first-party bundled Nimi App artifacts shipped inside the atomic Nimi
+	// release bundle. Each admitted bundled-with-nimi app artifact is the
+	// directory <AppBundledArtifactsRoot>/<app-id>. Empty disables the
+	// bundled install path; bundled descriptors then fail closed.
+	AppBundledArtifactsRoot string
+
 	// EngineLlamaEnabled enables the supervised llama engine.
 	// Default: false. (K-LENG-004)
 	EngineLlamaEnabled bool
@@ -242,6 +249,7 @@ type FileConfig struct {
 	SessionTTLMaxSeconds    *int   `json:"sessionTtlMaxSeconds,omitempty"`
 	ModelCatalogCustomDir   string `json:"modelCatalogCustomDir,omitempty"`
 	AppRegistryPath         string `json:"appRegistryPath,omitempty"`
+	AppBundledArtifactsRoot string `json:"appBundledArtifactsRoot,omitempty"`
 	LogLevel                string `json:"logLevel,omitempty"`
 
 	Auth       *FileConfigAuth              `json:"auth,omitempty"`

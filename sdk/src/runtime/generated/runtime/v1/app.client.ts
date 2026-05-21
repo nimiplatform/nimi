@@ -5,6 +5,16 @@
 import type { RpcTransport } from "@protobuf-ts/runtime-rpc";
 import type { ServiceInfo } from "@protobuf-ts/runtime-rpc";
 import { RuntimeAppService } from "./app";
+import type { AppInstallJobEvent } from "./app";
+import type { WatchAppInstallJobEventsRequest } from "./app";
+import type { ListAppInstallJobsResponse } from "./app";
+import type { ListAppInstallJobsRequest } from "./app";
+import type { GetAppInstallJobResponse } from "./app";
+import type { GetAppInstallJobRequest } from "./app";
+import type { UninstallAppResponse } from "./app";
+import type { UninstallAppRequest } from "./app";
+import type { InstallAppResponse } from "./app";
+import type { InstallAppRequest } from "./app";
 import type { AppMessageEvent } from "./app";
 import type { SubscribeAppMessagesRequest } from "./app";
 import type { ServerStreamingCall } from "@protobuf-ts/runtime-rpc";
@@ -25,6 +35,28 @@ export interface IRuntimeAppServiceClient {
      * @generated from protobuf rpc: SubscribeAppMessages
      */
     subscribeAppMessages(input: SubscribeAppMessagesRequest, options?: RpcOptions): ServerStreamingCall<SubscribeAppMessagesRequest, AppMessageEvent>;
+    /**
+     * Nimi App install/uninstall lifecycle (K-APP-011..K-APP-014).
+     *
+     * @generated from protobuf rpc: InstallApp
+     */
+    installApp(input: InstallAppRequest, options?: RpcOptions): UnaryCall<InstallAppRequest, InstallAppResponse>;
+    /**
+     * @generated from protobuf rpc: UninstallApp
+     */
+    uninstallApp(input: UninstallAppRequest, options?: RpcOptions): UnaryCall<UninstallAppRequest, UninstallAppResponse>;
+    /**
+     * @generated from protobuf rpc: GetAppInstallJob
+     */
+    getAppInstallJob(input: GetAppInstallJobRequest, options?: RpcOptions): UnaryCall<GetAppInstallJobRequest, GetAppInstallJobResponse>;
+    /**
+     * @generated from protobuf rpc: ListAppInstallJobs
+     */
+    listAppInstallJobs(input: ListAppInstallJobsRequest, options?: RpcOptions): UnaryCall<ListAppInstallJobsRequest, ListAppInstallJobsResponse>;
+    /**
+     * @generated from protobuf rpc: WatchAppInstallJobEvents
+     */
+    watchAppInstallJobEvents(input: WatchAppInstallJobEventsRequest, options?: RpcOptions): ServerStreamingCall<WatchAppInstallJobEventsRequest, AppInstallJobEvent>;
 }
 /**
  * @generated from protobuf service nimi.runtime.v1.RuntimeAppService
@@ -48,5 +80,42 @@ export class RuntimeAppServiceClient implements IRuntimeAppServiceClient, Servic
     subscribeAppMessages(input: SubscribeAppMessagesRequest, options?: RpcOptions): ServerStreamingCall<SubscribeAppMessagesRequest, AppMessageEvent> {
         const method = this.methods[1], opt = this._transport.mergeOptions(options);
         return stackIntercept<SubscribeAppMessagesRequest, AppMessageEvent>("serverStreaming", this._transport, method, opt, input);
+    }
+    /**
+     * Nimi App install/uninstall lifecycle (K-APP-011..K-APP-014).
+     *
+     * @generated from protobuf rpc: InstallApp
+     */
+    installApp(input: InstallAppRequest, options?: RpcOptions): UnaryCall<InstallAppRequest, InstallAppResponse> {
+        const method = this.methods[2], opt = this._transport.mergeOptions(options);
+        return stackIntercept<InstallAppRequest, InstallAppResponse>("unary", this._transport, method, opt, input);
+    }
+    /**
+     * @generated from protobuf rpc: UninstallApp
+     */
+    uninstallApp(input: UninstallAppRequest, options?: RpcOptions): UnaryCall<UninstallAppRequest, UninstallAppResponse> {
+        const method = this.methods[3], opt = this._transport.mergeOptions(options);
+        return stackIntercept<UninstallAppRequest, UninstallAppResponse>("unary", this._transport, method, opt, input);
+    }
+    /**
+     * @generated from protobuf rpc: GetAppInstallJob
+     */
+    getAppInstallJob(input: GetAppInstallJobRequest, options?: RpcOptions): UnaryCall<GetAppInstallJobRequest, GetAppInstallJobResponse> {
+        const method = this.methods[4], opt = this._transport.mergeOptions(options);
+        return stackIntercept<GetAppInstallJobRequest, GetAppInstallJobResponse>("unary", this._transport, method, opt, input);
+    }
+    /**
+     * @generated from protobuf rpc: ListAppInstallJobs
+     */
+    listAppInstallJobs(input: ListAppInstallJobsRequest, options?: RpcOptions): UnaryCall<ListAppInstallJobsRequest, ListAppInstallJobsResponse> {
+        const method = this.methods[5], opt = this._transport.mergeOptions(options);
+        return stackIntercept<ListAppInstallJobsRequest, ListAppInstallJobsResponse>("unary", this._transport, method, opt, input);
+    }
+    /**
+     * @generated from protobuf rpc: WatchAppInstallJobEvents
+     */
+    watchAppInstallJobEvents(input: WatchAppInstallJobEventsRequest, options?: RpcOptions): ServerStreamingCall<WatchAppInstallJobEventsRequest, AppInstallJobEvent> {
+        const method = this.methods[6], opt = this._transport.mergeOptions(options);
+        return stackIntercept<WatchAppInstallJobEventsRequest, AppInstallJobEvent>("serverStreaming", this._transport, method, opt, input);
     }
 }

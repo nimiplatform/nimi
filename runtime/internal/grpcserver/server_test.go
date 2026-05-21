@@ -125,12 +125,15 @@ apps:
 		t.Fatalf("write release descriptors: %v", err)
 	}
 
-	registry, err := loadNimiAppRegistryCatalog(path)
+	registry, releases, err := loadNimiAppRegistryCatalog(path)
 	if err != nil {
 		t.Fatalf("load registry: %v", err)
 	}
 	if registry == nil {
 		t.Fatal("expected registry")
+	}
+	if releases == nil {
+		t.Fatal("expected release descriptor catalog")
 	}
 	eligibility, err := registry.CheckCallerEligibility("nimi.parentos")
 	if err != nil {
@@ -171,7 +174,7 @@ apps:
 		t.Fatalf("write release descriptors: %v", err)
 	}
 
-	_, err := loadNimiAppRegistryCatalog(path)
+	_, _, err := loadNimiAppRegistryCatalog(path)
 	if err == nil {
 		t.Fatal("expected cross-app descriptor binding rejection")
 	}
@@ -207,7 +210,7 @@ apps:
 		t.Fatalf("write release descriptors: %v", err)
 	}
 
-	_, err := loadNimiAppRegistryCatalog(path)
+	_, _, err := loadNimiAppRegistryCatalog(path)
 	if err == nil {
 		t.Fatal("expected descriptor storage mismatch rejection")
 	}
@@ -217,12 +220,15 @@ apps:
 }
 
 func TestLoadNimiAppRegistryCatalogEmptyPath(t *testing.T) {
-	registry, err := loadNimiAppRegistryCatalog("")
+	registry, releases, err := loadNimiAppRegistryCatalog("")
 	if err != nil {
 		t.Fatalf("empty path should not error: %v", err)
 	}
 	if registry != nil {
 		t.Fatalf("empty path should not load registry")
+	}
+	if releases != nil {
+		t.Fatalf("empty path should not load release descriptor catalog")
 	}
 }
 

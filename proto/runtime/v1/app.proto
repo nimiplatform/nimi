@@ -53,7 +53,161 @@ message AppMessageEvent {
   google.protobuf.Timestamp timestamp = 11;
 }
 
+// === Nimi App Install/Uninstall Lifecycle (K-APP-011..K-APP-014) ===
+
+// AppInstallJobPhase is the typed install pipeline phase. It surfaces the
+// concrete install step so the product Apps card can show "download / verify /
+// materialize / unpack / evidence" instead of a generic spinner. It is never
+// inferred from transfer/process/file state.
+enum AppInstallJobPhase {
+  APP_INSTALL_JOB_PHASE_UNSPECIFIED = 0;
+  APP_INSTALL_JOB_PHASE_QUEUED = 1;
+  APP_INSTALL_JOB_PHASE_RESOLVE_DESCRIPTOR = 2;
+  APP_INSTALL_JOB_PHASE_DOWNLOAD = 3;
+  APP_INSTALL_JOB_PHASE_VERIFY = 4;
+  APP_INSTALL_JOB_PHASE_MATERIALIZE = 5;
+  APP_INSTALL_JOB_PHASE_UNPACK = 6;
+  APP_INSTALL_JOB_PHASE_EVIDENCE = 7;
+  APP_INSTALL_JOB_PHASE_INSTALLED = 8;
+  APP_INSTALL_JOB_PHASE_FAILED = 9;
+}
+
+// AppInstallJobState is the typed terminal/in-flight job state. It aligns with
+// the Platform P-NAPP-008 fail-closed projection: a failed install never
+// projects as success and always leaves a recoverable state.
+enum AppInstallJobState {
+  APP_INSTALL_JOB_STATE_UNSPECIFIED = 0;
+  APP_INSTALL_JOB_STATE_QUEUED = 1;
+  APP_INSTALL_JOB_STATE_IN_PROGRESS = 2;
+  APP_INSTALL_JOB_STATE_INSTALLED = 3;
+  APP_INSTALL_JOB_STATE_FAILED = 4;
+}
+
+// AppInstallSourceKind distinguishes a bundled first-party install (no network
+// download; materialized from the atomic Nimi release bundle) from an external
+// immutable artifact install (HTTPS download + sha256 verification).
+enum AppInstallSourceKind {
+  APP_INSTALL_SOURCE_KIND_UNSPECIFIED = 0;
+  APP_INSTALL_SOURCE_KIND_BUNDLED = 1;
+  APP_INSTALL_SOURCE_KIND_EXTERNAL_ARTIFACT = 2;
+}
+
+// AppInstallStorageProjection mirrors the Runtime-owned app storage roots
+// (P-NAPP-015 / S-APP-011). All four roots are absolute paths under the
+// selected nimi_data directory.
+message AppInstallStorageProjection {
+  string app_root = 1;
+  string release_root = 2;
+  string durable_data_root = 3;
+  string cache_root = 4;
+  string temp_root = 5;
+}
+
+// AppInstallJob is the typed install job projection. It mirrors the
+// LocalEnvironmentDependencyJob shape: a stable job id, a typed state, the
+// resolved descriptor identity, a fail-closed failure detail, and a
+// retryable flag so a failed install can be retried or its partial files
+// removed without ever projecting as success.
+message AppInstallJob {
+  string job_id = 1;
+  string app_id = 2;
+  string release_descriptor_ref = 3;
+  string installed_version = 4;
+  AppInstallJobState state = 5;
+  AppInstallJobPhase phase = 6;
+  AppInstallSourceKind source_kind = 7;
+  // sha256 is the digest computed over the downloaded/bundled artifact bytes.
+  // It is populated only after the verify phase succeeds.
+  string sha256 = 8;
+  int64 artifact_bytes = 9;
+  AppInstallStorageProjection storage = 10;
+  // reason_code is the typed fail-closed reason on a failed job. It is never
+  // collapsed into a generic value.
+  ReasonCode reason_code = 11;
+  string failure_detail = 12;
+  bool retryable = 13;
+  string created_at = 14;
+  string updated_at = 15;
+}
+
+message InstallAppRequest {
+  // app_id resolves an admitted Nimi App registry row and its bound release
+  // descriptor.
+  string app_id = 1;
+  // confirmed records that the user confirmed the install requirement preview
+  // (size, data roots, AI/profile requirements, permissions).
+  bool confirmed = 2;
+}
+
+message InstallAppResponse {
+  AppInstallJob job = 1;
+}
+
+message GetAppInstallJobRequest {
+  string job_id = 1;
+}
+
+message GetAppInstallJobResponse {
+  AppInstallJob job = 1;
+}
+
+message ListAppInstallJobsRequest {
+  // app_id optionally filters jobs to a single app. Empty lists every job.
+  string app_id = 1;
+}
+
+message ListAppInstallJobsResponse {
+  repeated AppInstallJob jobs = 1;
+}
+
+message WatchAppInstallJobEventsRequest {
+  // job_id optionally scopes the stream to a single install job. Empty
+  // streams progress events for every install job.
+  string job_id = 1;
+}
+
+// AppInstallJobEvent is one typed progress frame for a Watch stream. The
+// snapshot field carries the full typed job projection at the time of the
+// event so the consumer never reconstructs state from partial deltas.
+message AppInstallJobEvent {
+  uint64 sequence = 1;
+  AppInstallJob job = 2;
+  google.protobuf.Timestamp timestamp = 3;
+}
+
+message UninstallAppRequest {
+  string app_id = 1;
+  // delete_durable_data, when true, additionally removes the durable app data
+  // root. It requires destructive_data_delete_confirmed.
+  bool delete_durable_data = 2;
+  // destructive_data_delete_confirmed records explicit user confirmation of
+  // the separate destructive "Delete app data" flow with impact preview.
+  bool destructive_data_delete_confirmed = 3;
+}
+
+// AppUninstallResult is the typed uninstall projection. Uninstall removes
+// release payloads by default and keeps durable data unless destructive
+// deletion was explicitly confirmed.
+message AppUninstallResult {
+  string app_id = 1;
+  bool release_removed = 2;
+  bool durable_data_removed = 3;
+  AppInstallStorageProjection storage = 4;
+  ReasonCode reason_code = 5;
+}
+
+message UninstallAppResponse {
+  AppUninstallResult result = 1;
+}
+
 service RuntimeAppService {
   rpc SendAppMessage(SendAppMessageRequest) returns (SendAppMessageResponse);
   rpc SubscribeAppMessages(SubscribeAppMessagesRequest) returns (stream AppMessageEvent);
+
+  // Nimi App install/uninstall lifecycle (K-APP-011..K-APP-014).
+  rpc InstallApp(InstallAppRequest) returns (InstallAppResponse);
+  rpc UninstallApp(UninstallAppRequest) returns (UninstallAppResponse);
+  rpc GetAppInstallJob(GetAppInstallJobRequest) returns (GetAppInstallJobResponse);
+  rpc ListAppInstallJobs(ListAppInstallJobsRequest) returns (ListAppInstallJobsResponse);
+  rpc WatchAppInstallJobEvents(WatchAppInstallJobEventsRequest) returns (stream AppInstallJobEvent);
 }

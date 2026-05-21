@@ -38,6 +38,7 @@ func DefaultFileConfig() FileConfig {
 		SessionTTLMaxSeconds:    intPtr(86400),
 		ModelCatalogCustomDir:   "~/" + defaultModelCatalogCustomRelPath,
 		AppRegistryPath:         "",
+		AppBundledArtifactsRoot: "",
 		Providers:               map[string]RuntimeFileTarget{},
 	}
 }

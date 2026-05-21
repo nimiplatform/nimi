@@ -19,8 +19,13 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	RuntimeAppService_SendAppMessage_FullMethodName       = "/nimi.runtime.v1.RuntimeAppService/SendAppMessage"
-	RuntimeAppService_SubscribeAppMessages_FullMethodName = "/nimi.runtime.v1.RuntimeAppService/SubscribeAppMessages"
+	RuntimeAppService_SendAppMessage_FullMethodName           = "/nimi.runtime.v1.RuntimeAppService/SendAppMessage"
+	RuntimeAppService_SubscribeAppMessages_FullMethodName     = "/nimi.runtime.v1.RuntimeAppService/SubscribeAppMessages"
+	RuntimeAppService_InstallApp_FullMethodName               = "/nimi.runtime.v1.RuntimeAppService/InstallApp"
+	RuntimeAppService_UninstallApp_FullMethodName             = "/nimi.runtime.v1.RuntimeAppService/UninstallApp"
+	RuntimeAppService_GetAppInstallJob_FullMethodName         = "/nimi.runtime.v1.RuntimeAppService/GetAppInstallJob"
+	RuntimeAppService_ListAppInstallJobs_FullMethodName       = "/nimi.runtime.v1.RuntimeAppService/ListAppInstallJobs"
+	RuntimeAppService_WatchAppInstallJobEvents_FullMethodName = "/nimi.runtime.v1.RuntimeAppService/WatchAppInstallJobEvents"
 )
 
 // RuntimeAppServiceClient is the client API for RuntimeAppService service.
@@ -29,6 +34,12 @@ const (
 type RuntimeAppServiceClient interface {
 	SendAppMessage(ctx context.Context, in *SendAppMessageRequest, opts ...grpc.CallOption) (*SendAppMessageResponse, error)
 	SubscribeAppMessages(ctx context.Context, in *SubscribeAppMessagesRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[AppMessageEvent], error)
+	// Nimi App install/uninstall lifecycle (K-APP-011..K-APP-014).
+	InstallApp(ctx context.Context, in *InstallAppRequest, opts ...grpc.CallOption) (*InstallAppResponse, error)
+	UninstallApp(ctx context.Context, in *UninstallAppRequest, opts ...grpc.CallOption) (*UninstallAppResponse, error)
+	GetAppInstallJob(ctx context.Context, in *GetAppInstallJobRequest, opts ...grpc.CallOption) (*GetAppInstallJobResponse, error)
+	ListAppInstallJobs(ctx context.Context, in *ListAppInstallJobsRequest, opts ...grpc.CallOption) (*ListAppInstallJobsResponse, error)
+	WatchAppInstallJobEvents(ctx context.Context, in *WatchAppInstallJobEventsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[AppInstallJobEvent], error)
 }
 
 type runtimeAppServiceClient struct {
@@ -68,12 +79,77 @@ func (c *runtimeAppServiceClient) SubscribeAppMessages(ctx context.Context, in *
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type RuntimeAppService_SubscribeAppMessagesClient = grpc.ServerStreamingClient[AppMessageEvent]
 
+func (c *runtimeAppServiceClient) InstallApp(ctx context.Context, in *InstallAppRequest, opts ...grpc.CallOption) (*InstallAppResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(InstallAppResponse)
+	err := c.cc.Invoke(ctx, RuntimeAppService_InstallApp_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeAppServiceClient) UninstallApp(ctx context.Context, in *UninstallAppRequest, opts ...grpc.CallOption) (*UninstallAppResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UninstallAppResponse)
+	err := c.cc.Invoke(ctx, RuntimeAppService_UninstallApp_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeAppServiceClient) GetAppInstallJob(ctx context.Context, in *GetAppInstallJobRequest, opts ...grpc.CallOption) (*GetAppInstallJobResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetAppInstallJobResponse)
+	err := c.cc.Invoke(ctx, RuntimeAppService_GetAppInstallJob_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeAppServiceClient) ListAppInstallJobs(ctx context.Context, in *ListAppInstallJobsRequest, opts ...grpc.CallOption) (*ListAppInstallJobsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListAppInstallJobsResponse)
+	err := c.cc.Invoke(ctx, RuntimeAppService_ListAppInstallJobs_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeAppServiceClient) WatchAppInstallJobEvents(ctx context.Context, in *WatchAppInstallJobEventsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[AppInstallJobEvent], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &RuntimeAppService_ServiceDesc.Streams[1], RuntimeAppService_WatchAppInstallJobEvents_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[WatchAppInstallJobEventsRequest, AppInstallJobEvent]{ClientStream: stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type RuntimeAppService_WatchAppInstallJobEventsClient = grpc.ServerStreamingClient[AppInstallJobEvent]
+
 // RuntimeAppServiceServer is the server API for RuntimeAppService service.
 // All implementations should embed UnimplementedRuntimeAppServiceServer
 // for forward compatibility.
 type RuntimeAppServiceServer interface {
 	SendAppMessage(context.Context, *SendAppMessageRequest) (*SendAppMessageResponse, error)
 	SubscribeAppMessages(*SubscribeAppMessagesRequest, grpc.ServerStreamingServer[AppMessageEvent]) error
+	// Nimi App install/uninstall lifecycle (K-APP-011..K-APP-014).
+	InstallApp(context.Context, *InstallAppRequest) (*InstallAppResponse, error)
+	UninstallApp(context.Context, *UninstallAppRequest) (*UninstallAppResponse, error)
+	GetAppInstallJob(context.Context, *GetAppInstallJobRequest) (*GetAppInstallJobResponse, error)
+	ListAppInstallJobs(context.Context, *ListAppInstallJobsRequest) (*ListAppInstallJobsResponse, error)
+	WatchAppInstallJobEvents(*WatchAppInstallJobEventsRequest, grpc.ServerStreamingServer[AppInstallJobEvent]) error
 }
 
 // UnimplementedRuntimeAppServiceServer should be embedded to have
@@ -88,6 +164,21 @@ func (UnimplementedRuntimeAppServiceServer) SendAppMessage(context.Context, *Sen
 }
 func (UnimplementedRuntimeAppServiceServer) SubscribeAppMessages(*SubscribeAppMessagesRequest, grpc.ServerStreamingServer[AppMessageEvent]) error {
 	return status.Error(codes.Unimplemented, "method SubscribeAppMessages not implemented")
+}
+func (UnimplementedRuntimeAppServiceServer) InstallApp(context.Context, *InstallAppRequest) (*InstallAppResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method InstallApp not implemented")
+}
+func (UnimplementedRuntimeAppServiceServer) UninstallApp(context.Context, *UninstallAppRequest) (*UninstallAppResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method UninstallApp not implemented")
+}
+func (UnimplementedRuntimeAppServiceServer) GetAppInstallJob(context.Context, *GetAppInstallJobRequest) (*GetAppInstallJobResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetAppInstallJob not implemented")
+}
+func (UnimplementedRuntimeAppServiceServer) ListAppInstallJobs(context.Context, *ListAppInstallJobsRequest) (*ListAppInstallJobsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListAppInstallJobs not implemented")
+}
+func (UnimplementedRuntimeAppServiceServer) WatchAppInstallJobEvents(*WatchAppInstallJobEventsRequest, grpc.ServerStreamingServer[AppInstallJobEvent]) error {
+	return status.Error(codes.Unimplemented, "method WatchAppInstallJobEvents not implemented")
 }
 func (UnimplementedRuntimeAppServiceServer) testEmbeddedByValue() {}
 
@@ -138,6 +229,89 @@ func _RuntimeAppService_SubscribeAppMessages_Handler(srv interface{}, stream grp
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type RuntimeAppService_SubscribeAppMessagesServer = grpc.ServerStreamingServer[AppMessageEvent]
 
+func _RuntimeAppService_InstallApp_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(InstallAppRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAppServiceServer).InstallApp(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAppService_InstallApp_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAppServiceServer).InstallApp(ctx, req.(*InstallAppRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeAppService_UninstallApp_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UninstallAppRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAppServiceServer).UninstallApp(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAppService_UninstallApp_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAppServiceServer).UninstallApp(ctx, req.(*UninstallAppRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeAppService_GetAppInstallJob_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetAppInstallJobRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAppServiceServer).GetAppInstallJob(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAppService_GetAppInstallJob_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAppServiceServer).GetAppInstallJob(ctx, req.(*GetAppInstallJobRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeAppService_ListAppInstallJobs_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListAppInstallJobsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAppServiceServer).ListAppInstallJobs(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAppService_ListAppInstallJobs_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAppServiceServer).ListAppInstallJobs(ctx, req.(*ListAppInstallJobsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeAppService_WatchAppInstallJobEvents_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(WatchAppInstallJobEventsRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(RuntimeAppServiceServer).WatchAppInstallJobEvents(m, &grpc.GenericServerStream[WatchAppInstallJobEventsRequest, AppInstallJobEvent]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type RuntimeAppService_WatchAppInstallJobEventsServer = grpc.ServerStreamingServer[AppInstallJobEvent]
+
 // RuntimeAppService_ServiceDesc is the grpc.ServiceDesc for RuntimeAppService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -149,11 +323,32 @@ var RuntimeAppService_ServiceDesc = grpc.ServiceDesc{
 			MethodName: "SendAppMessage",
 			Handler:    _RuntimeAppService_SendAppMessage_Handler,
 		},
+		{
+			MethodName: "InstallApp",
+			Handler:    _RuntimeAppService_InstallApp_Handler,
+		},
+		{
+			MethodName: "UninstallApp",
+			Handler:    _RuntimeAppService_UninstallApp_Handler,
+		},
+		{
+			MethodName: "GetAppInstallJob",
+			Handler:    _RuntimeAppService_GetAppInstallJob_Handler,
+		},
+		{
+			MethodName: "ListAppInstallJobs",
+			Handler:    _RuntimeAppService_ListAppInstallJobs_Handler,
+		},
 	},
 	Streams: []grpc.StreamDesc{
 		{
 			StreamName:    "SubscribeAppMessages",
 			Handler:       _RuntimeAppService_SubscribeAppMessages_Handler,
+			ServerStreams: true,
+		},
+		{
+			StreamName:    "WatchAppInstallJobEvents",
+			Handler:       _RuntimeAppService_WatchAppInstallJobEvents_Handler,
 			ServerStreams: true,
 		},
 	},

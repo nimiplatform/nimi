@@ -35,6 +35,10 @@ entries:
   - K-APP-008
   - K-APP-009
   - K-APP-010
+  - K-APP-011
+  - K-APP-012
+  - K-APP-013
+  - K-APP-014
   - K-CONN-001
   - K-CONN-002
   - K-CONN-003
@@ -174,6 +178,26 @@ rules:
       - runtime_kernel_consistency
     note: Avatar runtime binding boundary; executable owner-side binding implementation is deferred and
       must not be bypassed through Avatar Realm/auth ownership.
+    evidence_requirement: required
+  - rule_id: K-APP-011
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-APP-012
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-APP-013
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-APP-014
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
     evidence_requirement: required
   - rule_id: K-CONN-001
     evidence_refs:

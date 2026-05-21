@@ -14,6 +14,7 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	catalog "github.com/nimiplatform/nimi/runtime/internal/aicatalog"
+	"github.com/nimiplatform/nimi/runtime/internal/appinstallgateway"
 	"github.com/nimiplatform/nimi/runtime/internal/appregistry"
 	"github.com/nimiplatform/nimi/runtime/internal/appregistrycatalog"
 	"github.com/nimiplatform/nimi/runtime/internal/appreleasecatalog"
@@ -80,7 +81,7 @@ func New(cfg config.Config, state *health.State, logger *slog.Logger, version st
 		return nil, fmt.Errorf("configure idempotency store: %w", err)
 	}
 	appRegistry := appregistry.New()
-	nimiAppRegistry, err := loadNimiAppRegistryCatalog(cfg.AppRegistryPath)
+	nimiAppRegistry, nimiAppReleases, err := loadNimiAppRegistryCatalog(cfg.AppRegistryPath)
 	if err != nil {
 		return nil, err
 	}
@@ -330,7 +331,24 @@ func New(cfg config.Config, state *health.State, logger *slog.Logger, version st
 	runtimev1.RegisterRuntimeAuthServiceServer(g, authSvc)
 	runtimev1.RegisterRuntimeAccountServiceServer(g, accountSvc)
 	runtimev1.RegisterRuntimeCognitionServiceServer(g, cognitionSvc)
-	appSvc := appservice.New(logger, appservice.WithSessionValidator(authSvc), appservice.WithScopedBindingValidator(accountSvc))
+	appInstallRuntime, err := appservice.NewInstallRuntime(
+		nimiAppRegistry,
+		nimiAppReleases,
+		cfg.DataRootRef,
+		cfg.AppBundledArtifactsRoot,
+		appinstallgateway.NewHTTPSDownloader(),
+		appinstallgateway.NewArchiveUnpacker(),
+	)
+	if err != nil {
+		_ = memorySvc.Close()
+		localSvc.Close()
+		return nil, fmt.Errorf("init Nimi App install runtime: %w", err)
+	}
+	appSvc := appservice.New(logger,
+		appservice.WithSessionValidator(authSvc),
+		appservice.WithScopedBindingValidator(accountSvc),
+		appservice.WithInstallRuntime(appInstallRuntime),
+	)
 	appSvc.RegisterInternalConsumer("runtime.agent.internal.chat_track_sidecar", agentSvc.ConsumeChatTrackSidecarAppMessage)
 	appSvc.RegisterInternalConsumer("runtime.agent", agentSvc.ConsumePublicChatAppMessage)
 	agentSvc.SetPublicChatAppEmitter(func(ctx context.Context, req *runtimev1.SendAppMessageRequest) (*runtimev1.SendAppMessageResponse, error) {
@@ -365,27 +383,27 @@ func New(cfg config.Config, state *health.State, logger *slog.Logger, version st
 	return s, nil
 }
 
-func loadNimiAppRegistryCatalog(path string) (*appregistrycatalog.Registry, error) {
+func loadNimiAppRegistryCatalog(path string) (*appregistrycatalog.Registry, *appreleasecatalog.Catalog, error) {
 	path = strings.TrimSpace(path)
 	if path == "" {
-		return nil, nil
+		return nil, nil, nil
 	}
 	registry, err := appregistrycatalog.LoadRegistryFromFile(path)
 	if err != nil {
-		return nil, fmt.Errorf("load Nimi App registry projection: %w", err)
+		return nil, nil, fmt.Errorf("load Nimi App registry projection: %w", err)
 	}
 	releaseDescriptors, err := appreleasecatalog.LoadCatalogFromFile(deriveNimiAppReleaseDescriptorPath(path))
 	if err != nil {
-		return nil, fmt.Errorf("load Nimi App release descriptor projection: %w", err)
+		return nil, nil, fmt.Errorf("load Nimi App release descriptor projection: %w", err)
 	}
 	violations := registry.ValidateReleaseDescriptorBindings(
 		releaseDescriptorValidationRefs(releaseDescriptors),
 		admittedNimiAppStoragePolicyRefs(),
 	)
 	if len(violations) > 0 {
-		return nil, fmt.Errorf("validate Nimi App registry release descriptor bindings: %s", formatNimiAppRegistryViolations(violations))
+		return nil, nil, fmt.Errorf("validate Nimi App registry release descriptor bindings: %s", formatNimiAppRegistryViolations(violations))
 	}
-	return registry, nil
+	return registry, releaseDescriptors, nil
 }
 
 func deriveNimiAppReleaseDescriptorPath(registryPath string) string {

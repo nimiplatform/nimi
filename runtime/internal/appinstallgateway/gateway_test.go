@@ -47,8 +47,9 @@ func (fileEvidenceWriter) WriteInstallEvidence(
 	plan appstorage.Plan,
 	descriptor appreleasecatalog.Descriptor,
 	artifact VerifiedArtifact,
+	verificationState VerificationState,
 ) (appstorage.InstallEvidence, error) {
-	return FileEvidenceWriter{}.WriteInstallEvidence(ctx, plan, descriptor, artifact)
+	return FileEvidenceWriter{}.WriteInstallEvidence(ctx, plan, descriptor, artifact, verificationState)
 }
 
 type recordingReleaseRemover struct {
@@ -254,10 +255,10 @@ func TestGatewayRejectsBundledDescriptorAsExternalInstall(t *testing.T) {
 
 	_, err := gateway.Install(context.Background(), descriptor)
 	if err == nil {
-		t.Fatal("expected bundled descriptor rejection")
+		t.Fatal("expected bundled descriptor rejection without a bundled source")
 	}
-	if !errors.Is(err, ErrDescriptorNotInstallable) {
-		t.Fatalf("error = %v, want ErrDescriptorNotInstallable", err)
+	if !errors.Is(err, ErrBundledSourceRequired) {
+		t.Fatalf("error = %v, want ErrBundledSourceRequired", err)
 	}
 	if downloadCalled {
 		t.Fatal("bundled descriptor must not invoke external downloader")

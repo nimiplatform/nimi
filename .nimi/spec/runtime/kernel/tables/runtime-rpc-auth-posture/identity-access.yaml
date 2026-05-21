@@ -147,6 +147,41 @@ methods:
       - K-AUTHN-001
       - K-AUTHN-006
       - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeAppService/InstallApp
+    posture: authenticated_required
+    rationale: app lifecycle write; requires admitted caller identity to drive the Runtime-owned install gateway
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTHN-006
+      - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeAppService/UninstallApp
+    posture: authenticated_required
+    rationale: app lifecycle write; requires admitted caller identity to remove the Runtime-owned release payload
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTHN-006
+      - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeAppService/GetAppInstallJob
+    posture: authenticated_required
+    rationale: owner-scoped install job read; requires admitted caller identity
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTHN-006
+      - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeAppService/ListAppInstallJobs
+    posture: authenticated_required
+    rationale: owner-scoped install job read; requires admitted caller identity
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTHN-006
+      - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeAppService/WatchAppInstallJobEvents
+    posture: authenticated_required
+    rationale: owner-scoped install job progress stream; requires admitted caller identity
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTHN-006
+      - K-AUTH-001
   - method_id: /nimi.runtime.v1.RuntimeAuthService/RegisterApp
     posture: anonymous_read
     rationale: bootstrap app registration; no JWT or session credential required

@@ -655,6 +655,38 @@ export enum ReasonCode {
      */
     APP_MESSAGE_LOOP_DETECTED = 552,
     /**
+     * APP_INSTALL family (553+) — Nimi App install/uninstall lifecycle
+     * fail-closed reasons. Each reason is distinct and is never collapsed
+     * into a generic value.
+     *
+     * @generated from protobuf enum value: APP_INSTALL_DESCRIPTOR_NOT_FOUND = 553;
+     */
+    APP_INSTALL_DESCRIPTOR_NOT_FOUND = 553,
+    /**
+     * @generated from protobuf enum value: APP_INSTALL_DIGEST_MISMATCH = 554;
+     */
+    APP_INSTALL_DIGEST_MISMATCH = 554,
+    /**
+     * @generated from protobuf enum value: APP_INSTALL_MANIFEST_INVALID = 555;
+     */
+    APP_INSTALL_MANIFEST_INVALID = 555,
+    /**
+     * @generated from protobuf enum value: APP_INSTALL_STORAGE_VIOLATION = 556;
+     */
+    APP_INSTALL_STORAGE_VIOLATION = 556,
+    /**
+     * @generated from protobuf enum value: APP_INSTALL_DOWNLOAD_FAILED = 557;
+     */
+    APP_INSTALL_DOWNLOAD_FAILED = 557,
+    /**
+     * @generated from protobuf enum value: APP_INSTALL_UNPACK_FAILED = 558;
+     */
+    APP_INSTALL_UNPACK_FAILED = 558,
+    /**
+     * @generated from protobuf enum value: APP_INSTALL_INTERNAL = 559;
+     */
+    APP_INSTALL_INTERNAL = 559,
+    /**
      * LOCAL_SPEECH family (560+)
      *
      * @generated from protobuf enum value: AI_LOCAL_SPEECH_PREFLIGHT_BLOCKED = 560;

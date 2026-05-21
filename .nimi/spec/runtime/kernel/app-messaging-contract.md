@@ -8,6 +8,15 @@
 
 1. `SendAppMessage` — 发送应用间消息
 2. `SubscribeAppMessages` — 订阅应用消息事件流
+3. `InstallApp` — 触发 Runtime-owned Nimi App install lifecycle（见 `K-APP-011`）
+4. `UninstallApp` — 触发 Runtime-owned Nimi App uninstall lifecycle（见 `K-APP-014`）
+5. `GetAppInstallJob` — 读取单个 install job 的 typed projection（见 `K-APP-012`）
+6. `ListAppInstallJobs` — 列出 install job 的 typed projection（见 `K-APP-012`）
+7. `WatchAppInstallJobEvents` — 订阅 install job 进度事件流（见 `K-APP-013`）
+
+App messaging 方法（1–2）与 app install/uninstall lifecycle 方法（3–7）
+共用 `RuntimeAppService`，但语义独立：lifecycle 方法不承载 app-to-app
+message broker 语义，messaging 方法不承载 install/uninstall 语义。
 
 ## K-APP-002 SendAppMessage 语义
 
@@ -205,3 +214,53 @@ Fixed rules:
   through Runtime / SDK authority before loading private agent data.
 - Explicit binding-only Avatar modes must use `K-BIND-*` scoped binding
   attachment and must fail closed when binding is missing or invalid.
+
+## K-APP-011 InstallApp Lifecycle
+
+`MUST`：`InstallApp` 由 Runtime 拥有，是 Nimi App install 的唯一 RPC 入口。
+Runtime registration / supervision / sandbox 归 Runtime 所有
+（Platform `P-NAPP-006`）。Install handler 必须：
+
+- 解析 `app_id` 对应的 admitted Nimi App registry row 与其 bound release
+  descriptor；
+- 对 `external-immutable-artifact` descriptor，仅从 descriptor 的 artifact
+  locator 下载，对下载字节计算 `sha256`，与 descriptor 比对，digest 不匹配
+  时在 unpack 之前 fail closed（Platform `P-NAPP-014`）；
+- 对 `bundled-with-nimi` descriptor，从 atomic Nimi release bundle 的
+  bundled-app artifact 物化，不授权外部 download；
+- 在 `<nimi_data>/apps/<app-id>/{releases/<version>,data,cache,tmp}` 物化
+  存储根（Platform `P-NAPP-015`）；
+- 写入 Runtime-owned `install-evidence.json`。
+
+`MUST NOT`：install handler 不得在 digest/manifest/storage 违例时返回
+pseudo-success；失败 install 必须留下 recoverable 状态（retry / 移除
+partial files），不得投影为 success。
+
+## K-APP-012 AppInstallJob Typed Projection
+
+`MUST`：`InstallApp` / `GetAppInstallJob` / `ListAppInstallJobs` 返回
+typed `AppInstallJob`，携带 stable job id、typed `state`、typed `phase`、
+typed `source_kind`、`release_descriptor_ref`、storage projection、与
+fail-closed `reason_code` / `failure_detail` / `retryable`。
+
+`MUST NOT`：不得从 transfer completion、endpoint reachability、process
+liveness、file existence 推断 `installed`；不得用单一 `failed` 文案
+collapse 多种 fail-closed reason。
+
+## K-APP-013 WatchAppInstallJobEvents 事件流
+
+`MUST`：`WatchAppInstallJobEvents` 以 server-stream 投影 install job 的
+typed 进度帧。每个 `AppInstallJobEvent` 携带单调递增 `sequence` 与该时刻
+完整的 `AppInstallJob` 快照，使 consumer 不从 partial delta 重建状态。
+
+`MUST NOT`：进度流不承载 audit / permission / spend 事件。
+
+## K-APP-014 UninstallApp Lifecycle
+
+`MUST`：`UninstallApp` 默认移除 `<nimi_data>/apps/<app-id>/releases` 下的
+release payload，保留 `<nimi_data>/apps/<app-id>/data` 下的 durable data
+（Platform `P-NAPP-015`）。只有当 caller 显式确认 destructive delete 时才
+额外移除 durable data。
+
+`MUST NOT`：uninstall 不得隐式删除 shared models、Runtime dependencies、
+account data、或其他 app 的数据。

@@ -29,17 +29,39 @@ type StoragePlanner interface {
 	Plan(ctx context.Context, descriptor appreleasecatalog.Descriptor) (appstorage.Plan, error)
 }
 
+// BundledSource resolves and materializes a bundled-with-nimi app artifact
+// from the atomic Nimi release bundle. It is the no-network install path: a
+// bundled descriptor never downloads or unpacks an external byte payload.
+type BundledSource interface {
+	Resolve(ctx context.Context, descriptor appreleasecatalog.Descriptor) (VerifiedArtifact, error)
+	MaterializeInto(ctx context.Context, descriptor appreleasecatalog.Descriptor, plan appstorage.Plan) error
+}
+
 type Gateway struct {
 	downloader      Downloader
 	unpacker        Unpacker
 	storagePlanner  StoragePlanner
 	evidenceWriter  EvidenceWriter
 	releaseRemover  ReleaseRemover
+	bundledSource   BundledSource
 	materializePlan func(appstorage.Plan) error
 }
 
+// VerificationState classifies how a release artifact was verified before it
+// was materialized into the release root.
+type VerificationState string
+
+const (
+	// VerificationStateDigestVerified marks an external artifact whose
+	// downloaded bytes matched the descriptor sha256.
+	VerificationStateDigestVerified VerificationState = "digest-verified"
+	// VerificationStateBundledSource marks a bundled artifact materialized
+	// from the atomic Nimi release bundle with a deterministic tree digest.
+	VerificationStateBundledSource VerificationState = "bundled-source"
+)
+
 type EvidenceWriter interface {
-	WriteInstallEvidence(ctx context.Context, plan appstorage.Plan, descriptor appreleasecatalog.Descriptor, artifact VerifiedArtifact) (appstorage.InstallEvidence, error)
+	WriteInstallEvidence(ctx context.Context, plan appstorage.Plan, descriptor appreleasecatalog.Descriptor, artifact VerifiedArtifact, verificationState VerificationState) (appstorage.InstallEvidence, error)
 }
 
 type ReleaseRemover interface {
@@ -61,6 +83,34 @@ type InstalledApp struct {
 	Evidence appstorage.InstallEvidence
 }
 
+// InstallPhase is the typed install pipeline phase reported to an
+// InstallObserver as the gateway progresses. It lets a caller surface the
+// concrete install step without reimplementing the pipeline.
+type InstallPhase string
+
+const (
+	InstallPhaseResolveDescriptor InstallPhase = "resolve-descriptor"
+	InstallPhaseDownload          InstallPhase = "download"
+	InstallPhaseVerify            InstallPhase = "verify"
+	InstallPhaseMaterialize       InstallPhase = "materialize"
+	InstallPhaseUnpack            InstallPhase = "unpack"
+	InstallPhaseEvidence          InstallPhase = "evidence"
+)
+
+// InstallObserver receives typed install pipeline progress. Phase reports the
+// step the gateway is about to run. ArtifactVerified reports the verified
+// artifact digest/size once the verify phase succeeds. An observer is purely
+// observational: returning from a callback must not change install behavior.
+type InstallObserver interface {
+	Phase(phase InstallPhase)
+	ArtifactVerified(artifact VerifiedArtifact)
+}
+
+type noopObserver struct{}
+
+func (noopObserver) Phase(InstallPhase)               {}
+func (noopObserver) ArtifactVerified(VerifiedArtifact) {}
+
 type DataRootPlanner struct {
 	DataRootRef string
 }
@@ -74,6 +124,7 @@ var (
 	ErrUnpackerRequired         = errors.New("app install gateway unpacker is required")
 	ErrStoragePlannerRequired   = errors.New("app install gateway storage planner is required")
 	ErrEvidenceWriterRequired   = errors.New("app install gateway evidence writer is required")
+	ErrBundledSourceRequired    = errors.New("app install gateway bundled source is required for bundled descriptors")
 	ErrDescriptorNotInstallable = errors.New("release descriptor is not externally installable")
 	ErrDigestMismatch           = errors.New("release artifact sha256 mismatch")
 	ErrSizeMismatch             = errors.New("release artifact size mismatch")
@@ -109,6 +160,12 @@ func WithReleaseRemover(remover ReleaseRemover) Option {
 	}
 }
 
+func WithBundledSource(source BundledSource) Option {
+	return func(g *Gateway) {
+		g.bundledSource = source
+	}
+}
+
 func WithMaterializePlan(fn func(appstorage.Plan) error) Option {
 	return func(g *Gateway) {
 		g.materializePlan = fn
@@ -124,14 +181,19 @@ func (FileEvidenceWriter) WriteInstallEvidence(
 	plan appstorage.Plan,
 	descriptor appreleasecatalog.Descriptor,
 	artifact VerifiedArtifact,
+	verificationState VerificationState,
 ) (appstorage.InstallEvidence, error) {
+	state := strings.TrimSpace(string(verificationState))
+	if state == "" {
+		state = string(VerificationStateDigestVerified)
+	}
 	evidence := appstorage.InstallEvidence{
 		AppID:                artifact.AppID,
 		ReleaseDescriptorRef: descriptor.DescriptorID,
 		StoragePolicyRef:     descriptor.StoragePolicyRef,
 		InstalledVersion:     artifact.Version,
 		SHA256:               artifact.SHA256,
-		VerificationState:    "digest-verified",
+		VerificationState:    state,
 		ReleaseRoot:          plan.ReleaseRoot,
 		DurableDataRoot:      plan.DurableDataRoot,
 		CacheRoot:            plan.CacheRoot,
@@ -176,35 +238,118 @@ func (g *Gateway) Verify(ctx context.Context, descriptor appreleasecatalog.Descr
 	}, nil
 }
 
+// Install routes a descriptor to the bundled-source path (no network) or the
+// external immutable artifact path (download + sha256 verify) based on the
+// descriptor class. It fails closed for any descriptor class outside the two
+// admitted classes.
 func (g *Gateway) Install(ctx context.Context, descriptor appreleasecatalog.Descriptor) (InstalledApp, error) {
+	return g.InstallWithObserver(ctx, descriptor, nil)
+}
+
+// InstallWithObserver is Install with typed pipeline phase reporting. The
+// observer receives each phase before it runs and the verified artifact after
+// the verify phase succeeds. A nil observer is equivalent to Install.
+func (g *Gateway) InstallWithObserver(ctx context.Context, descriptor appreleasecatalog.Descriptor, observer InstallObserver) (InstalledApp, error) {
+	if observer == nil {
+		observer = noopObserver{}
+	}
+	observer.Phase(InstallPhaseResolveDescriptor)
+	if err := appreleasecatalog.ValidateDescriptor(descriptor); err != nil {
+		return InstalledApp{}, err
+	}
+	switch descriptor.DescriptorClass {
+	case appreleasecatalog.DescriptorClassBundledWithNimi:
+		return g.installBundled(ctx, descriptor, observer)
+	case appreleasecatalog.DescriptorClassExternalImmutableArtifact:
+		return g.installExternal(ctx, descriptor, observer)
+	default:
+		return InstalledApp{}, fmt.Errorf("%w: %s", ErrDescriptorNotInstallable, descriptor.DescriptorClass)
+	}
+}
+
+// installExternal downloads the descriptor artifact, verifies its sha256
+// against the descriptor before unpacking, materializes the storage roots,
+// unpacks the verified payload, and writes digest-verified install evidence.
+func (g *Gateway) installExternal(ctx context.Context, descriptor appreleasecatalog.Descriptor, observer InstallObserver) (InstalledApp, error) {
+	observer.Phase(InstallPhaseDownload)
+	observer.Phase(InstallPhaseVerify)
 	artifact, err := g.Verify(ctx, descriptor)
 	if err != nil {
 		return InstalledApp{}, err
 	}
+	observer.ArtifactVerified(artifact)
+	observer.Phase(InstallPhaseMaterialize)
+	plan, err := g.planAndMaterialize(ctx, descriptor)
+	if err != nil {
+		return InstalledApp{}, err
+	}
+	if g.unpacker == nil {
+		return InstalledApp{}, ErrUnpackerRequired
+	}
+	observer.Phase(InstallPhaseUnpack)
+	if err := g.unpacker.Unpack(ctx, artifact, plan); err != nil {
+		return InstalledApp{}, err
+	}
+	observer.Phase(InstallPhaseEvidence)
+	return g.writeEvidence(ctx, plan, descriptor, artifact, VerificationStateDigestVerified)
+}
+
+// installBundled resolves the bundled artifact from the atomic Nimi release
+// bundle, materializes the storage roots, copies the bundled artifact into the
+// release root, and writes bundled-source install evidence. No network
+// download or archive unpack occurs on this path.
+func (g *Gateway) installBundled(ctx context.Context, descriptor appreleasecatalog.Descriptor, observer InstallObserver) (InstalledApp, error) {
+	if g == nil || g.bundledSource == nil {
+		return InstalledApp{}, ErrBundledSourceRequired
+	}
+	observer.Phase(InstallPhaseVerify)
+	artifact, err := g.bundledSource.Resolve(ctx, descriptor)
+	if err != nil {
+		return InstalledApp{}, err
+	}
+	observer.ArtifactVerified(artifact)
+	observer.Phase(InstallPhaseMaterialize)
+	plan, err := g.planAndMaterialize(ctx, descriptor)
+	if err != nil {
+		return InstalledApp{}, err
+	}
+	observer.Phase(InstallPhaseUnpack)
+	if err := g.bundledSource.MaterializeInto(ctx, descriptor, plan); err != nil {
+		return InstalledApp{}, err
+	}
+	observer.Phase(InstallPhaseEvidence)
+	return g.writeEvidence(ctx, plan, descriptor, artifact, VerificationStateBundledSource)
+}
+
+func (g *Gateway) planAndMaterialize(ctx context.Context, descriptor appreleasecatalog.Descriptor) (appstorage.Plan, error) {
 	if g == nil || g.storagePlanner == nil {
-		return InstalledApp{}, ErrStoragePlannerRequired
+		return appstorage.Plan{}, ErrStoragePlannerRequired
 	}
 	plan, err := g.storagePlanner.Plan(ctx, descriptor)
 	if err != nil {
-		return InstalledApp{}, err
+		return appstorage.Plan{}, err
 	}
 	materializePlan := appstorage.Materialize
 	if g.materializePlan != nil {
 		materializePlan = g.materializePlan
 	}
 	if err := materializePlan(plan); err != nil {
-		return InstalledApp{}, err
+		return appstorage.Plan{}, err
 	}
-	if g.unpacker == nil {
-		return InstalledApp{}, ErrUnpackerRequired
-	}
-	if err := g.unpacker.Unpack(ctx, artifact, plan); err != nil {
-		return InstalledApp{}, err
-	}
+	return plan, nil
+}
+
+func (g *Gateway) writeEvidence(
+	ctx context.Context,
+	plan appstorage.Plan,
+	descriptor appreleasecatalog.Descriptor,
+	artifact VerifiedArtifact,
+	state VerificationState,
+) (InstalledApp, error) {
 	if g.evidenceWriter == nil {
 		return InstalledApp{}, ErrEvidenceWriterRequired
 	}
-	evidence, err := g.evidenceWriter.WriteInstallEvidence(ctx, plan, descriptor, artifact)
+	evidence, err := g.evidenceWriter.WriteInstallEvidence(ctx, plan, descriptor, artifact, state)
 	if err != nil {
 		return InstalledApp{}, err
 	}

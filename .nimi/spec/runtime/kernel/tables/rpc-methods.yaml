@@ -353,6 +353,16 @@ services:
         type: unary
       - name: SubscribeAppMessages
         type: server_stream
+      - name: InstallApp
+        type: unary
+      - name: UninstallApp
+        type: unary
+      - name: GetAppInstallJob
+        type: unary
+      - name: ListAppInstallJobs
+        type: unary
+      - name: WatchAppInstallJobEvents
+        type: server_stream
   - name: RuntimeAgentService
     source_rule: K-RPC-004b
     methods:
