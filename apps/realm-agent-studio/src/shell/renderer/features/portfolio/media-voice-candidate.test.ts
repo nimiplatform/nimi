@@ -6,12 +6,15 @@ import {
   assertNoForbiddenMediaCandidateFields,
   buildBlockedVisualAssetCandidatePayload,
   buildBlockedVoiceDemoRequestPayload,
+  buildReviewedVoiceDemoCandidatePayload,
+  buildReviewedVoiceSynthesisPayload,
   isAllowedMediaCandidateBindingPoint,
   isAllowedMediaCandidateResourceType,
   normalizeVisualMediaCandidateInput,
   normalizeVoiceDemoCandidateInput,
   type BlockedVisualAssetCandidatePayload,
   type BlockedVoiceDemoRequestPayload,
+  type ReviewedVoiceDemoCandidatePayload,
 } from './media-voice-candidate.js';
 
 function settingField(key: SettingField['key'], label: string, value: string): SettingField {
@@ -80,10 +83,12 @@ describe('media and voice candidate normalization', () => {
   it('normalizes voice input to Resource(AUDIO) and AGENT_VOICE_SAMPLE', () => {
     expect(normalizeVoiceDemoCandidateInput({
       scriptText: '  Hello\r\nfrom the public demo.  ',
+      model: '  configured-tts-model  ',
     })).toEqual({
       resourceType: 'AUDIO',
       bindingPoint: 'AGENT_VOICE_SAMPLE',
       scriptText: 'Hello\nfrom the public demo.',
+      model: 'configured-tts-model',
     });
   });
 });
@@ -164,6 +169,7 @@ describe('blocked voice demo request payload', () => {
   it('builds a blocked Runtime audio.synthesize preview and Resource(AUDIO) path', () => {
     const result = buildBlockedVoiceDemoRequestPayload({
       scriptText: '  Welcome in.\nThis is a local sample candidate.  ',
+      model: 'runtime-tts-model',
     }, agent);
 
     expect(result.changed).toBe(true);
@@ -186,6 +192,7 @@ describe('blocked voice demo request payload', () => {
         capabilityToken: 'audio.synthesize',
         currentSdkPath: 'media.tts.synthesize',
         requestCandidate: {
+          model: 'runtime-tts-model',
           text: 'Welcome in.\nThis is a local sample candidate.',
           metadata: {
             source: 'realm-agent-studio.local-voice-demo-candidate',
@@ -212,14 +219,122 @@ describe('blocked voice demo request payload', () => {
   });
 
   it('fails closed when voice script is empty', () => {
-    const result = buildBlockedVoiceDemoRequestPayload({ scriptText: ' ' }, agent);
+    const result = buildBlockedVoiceDemoRequestPayload({ scriptText: ' ', model: 'runtime-tts-model' }, agent);
 
     expect(result).toEqual({
       blocked: true,
       changed: false,
-      errors: ['voice demo script missing'],
+      errors: ['voice demo script missing for Runtime media.tts.synthesize'],
       payload: null,
     });
+  });
+
+  it('builds an allowlisted SpeechSynthesizeInput for Runtime media.tts.synthesize', () => {
+    const result = buildReviewedVoiceSynthesisPayload({
+      scriptText: '  Welcome in.  ',
+      model: ' runtime-tts-model ',
+    }, agent);
+
+    expect(result).toEqual({
+      changed: true,
+      errors: [],
+      payload: {
+        model: 'runtime-tts-model',
+        text: 'Welcome in.',
+        metadata: {
+          source: 'realm-agent-studio.reviewed-voice-demo-candidate',
+          agentKey: 'agent-1',
+        },
+      },
+    });
+    expect(Object.keys(result.payload || {}).sort()).toEqual(['metadata', 'model', 'text']);
+    expect(collectKeys(result.payload).has('provider')).toBe(false);
+    expect(collectKeys(result.payload).has('localAgent')).toBe(false);
+    expect(collectKeys(result.payload).has('emotion')).toBe(false);
+    expect(collectKeys(result.payload).has('voiceRef')).toBe(false);
+  });
+
+  it('fails closed when Runtime media.tts.synthesize model config is missing', () => {
+    const result = buildReviewedVoiceSynthesisPayload({
+      scriptText: 'Welcome in.',
+      model: ' ',
+    }, agent);
+
+    expect(result).toEqual({
+      changed: false,
+      errors: ['Runtime media.tts.synthesize model config missing'],
+      payload: null,
+    });
+  });
+
+  it('fails closed when Runtime media.tts.synthesize script text is missing', () => {
+    const result = buildReviewedVoiceSynthesisPayload({
+      scriptText: ' ',
+      model: 'runtime-tts-model',
+    }, agent);
+
+    expect(result).toEqual({
+      changed: false,
+      errors: ['voice demo script missing for Runtime media.tts.synthesize'],
+      payload: null,
+    });
+  });
+
+  it('builds a candidate-only Runtime voice payload without public Resource or Binding success', () => {
+    const result = buildReviewedVoiceDemoCandidatePayload({
+      scriptText: 'Welcome in.',
+      model: 'runtime-tts-model',
+    }, agent);
+
+    expect(result.changed).toBe(true);
+    expect(result.payload).toEqual({
+      candidate: true,
+      publicTruth: false,
+      source: 'realm-agent-studio.reviewed-voice-demo-candidate',
+      agentContext: {
+        source: 'Realm MeService.getMyRealmAgent',
+        agentKey: 'agent-1',
+        handle: 'mira',
+        displayName: 'Mira',
+        bio: 'Public strategist bio',
+        greeting: 'Welcome in.',
+        profileCoverUrl: 'https://cdn.example.test/cover.png',
+      },
+      runtime: {
+        capabilityToken: 'audio.synthesize',
+        currentSdkPath: 'media.tts.synthesize',
+        source: 'Runtime media.tts.synthesize',
+        request: {
+          model: 'runtime-tts-model',
+          text: 'Welcome in.',
+          metadata: {
+            source: 'realm-agent-studio.reviewed-voice-demo-candidate',
+            agentKey: 'agent-1',
+          },
+        },
+        status: 'candidate-ready',
+      },
+      futureEvidencePath: {
+        resource: {
+          carrier: 'Resource',
+          type: 'AUDIO',
+          status: 'candidate-only',
+        },
+        binding: {
+          family: 'Binding',
+          hostType: 'AGENT',
+          objectType: 'RESOURCE',
+          bindingPoint: 'AGENT_VOICE_SAMPLE',
+          status: 'candidate-only',
+        },
+      },
+    } satisfies ReviewedVoiceDemoCandidatePayload);
+
+    expect(collectKeys(result.payload).has('publicSuccess')).toBe(false);
+    expect(collectKeys(result.payload).has('bindingSuccess')).toBe(false);
+    expect(collectKeys(result.payload).has('resourceReady')).toBe(false);
+    expect(collectKeys(result.payload).has('provider')).toBe(false);
+    expect(collectKeys(result.payload).has('localAgent')).toBe(false);
   });
 
   it('detects forbidden media candidate fields recursively', () => {
@@ -228,6 +343,25 @@ describe('blocked voice demo request payload', () => {
         provider: 'forbidden',
       },
     })).toBe('provider');
+    expect(assertNoForbiddenMediaCandidateFields({
+      runtimePreview: {
+        requestCandidate: {
+          model: 'runtime-tts-model',
+        },
+      },
+    })).toBeNull();
+    expect(assertNoForbiddenMediaCandidateFields({
+      runtime: {
+        request: {
+          model: 'runtime-tts-model',
+        },
+      },
+    })).toBeNull();
+    expect(assertNoForbiddenMediaCandidateFields({
+      futureEvidencePath: {
+        model: 'forbidden',
+      },
+    })).toBe('model');
     expect(assertNoForbiddenMediaCandidateFields({
       localAgent: { model: 'forbidden' },
     })).toBe('localAgent');

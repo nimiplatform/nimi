@@ -15,7 +15,9 @@ import {
   getOwnerPortfolioAgentDetail,
   listOwnerPortfolioAgents,
   publishReviewedPostDraft,
+  synthesizeReviewedVoiceDemo,
   type RealmPostPublishResult,
+  type RuntimeVoiceDemoSynthesisResult,
 } from './portfolio-client.js';
 import {
   ATTACHMENT_TARGET_TYPES,
@@ -35,10 +37,10 @@ import {
 import {
   MEDIA_CANDIDATE_BINDING_POINTS,
   MEDIA_CANDIDATE_RESOURCE_TYPES,
-  VOICE_DEMO_BLOCKED_REASON,
+  VOICE_DEMO_CANDIDATE_NOTICE,
   VISUAL_MEDIA_BLOCKED_REASON,
+  buildReviewedVoiceDemoCandidatePayload,
   buildBlockedVisualAssetCandidatePayload,
-  buildBlockedVoiceDemoRequestPayload,
   type MediaCandidateBindingPoint,
   type VisualMediaCandidateInput,
   type VisualCandidateResourceType,
@@ -286,20 +288,25 @@ function createVisualMediaCandidateInput(): VisualMediaCandidateInput {
 function createVoiceDemoCandidateInput(agent: OwnerPortfolioAgentDetail): VoiceDemoCandidateInput {
   return {
     scriptText: agent.greeting.value || '',
+    model: import.meta.env.VITE_RUNTIME_TTS_MODEL || '',
   };
 }
 
 function MediaVoiceCandidateWorkspace({ agent }: { agent: OwnerPortfolioAgentDetail }) {
   const [visualDraft, setVisualDraft] = useState<VisualMediaCandidateInput>(() => createVisualMediaCandidateInput());
   const [voiceDraft, setVoiceDraft] = useState<VoiceDemoCandidateInput>(() => createVoiceDemoCandidateInput(agent));
+  const [voiceResult, setVoiceResult] = useState<RuntimeVoiceDemoSynthesisResult | null>(null);
+  const [isSynthesizingVoice, setIsSynthesizingVoice] = useState(false);
   const visualPayload = useMemo(() => buildBlockedVisualAssetCandidatePayload(visualDraft, agent), [agent, visualDraft]);
-  const voicePayload = useMemo(() => buildBlockedVoiceDemoRequestPayload(voiceDraft, agent), [agent, voiceDraft]);
+  const voicePayload = useMemo(() => buildReviewedVoiceDemoCandidatePayload(voiceDraft, agent), [agent, voiceDraft]);
   const visualResourceTypes = MEDIA_CANDIDATE_RESOURCE_TYPES.filter((resourceType): resourceType is VisualCandidateResourceType => resourceType === 'IMAGE');
   const visualBindingPoints = MEDIA_CANDIDATE_BINDING_POINTS.filter((bindingPoint) => bindingPoint !== 'AGENT_VOICE_SAMPLE');
 
   useEffect(() => {
     setVisualDraft(createVisualMediaCandidateInput());
     setVoiceDraft(createVoiceDemoCandidateInput(agent));
+    setVoiceResult(null);
+    setIsSynthesizingVoice(false);
   }, [agent.id]);
 
   function updateVisualDraft(patch: Partial<VisualMediaCandidateInput>) {
@@ -308,6 +315,18 @@ function MediaVoiceCandidateWorkspace({ agent }: { agent: OwnerPortfolioAgentDet
 
   function updateVoiceDraft(patch: Partial<VoiceDemoCandidateInput>) {
     setVoiceDraft((current) => ({ ...current, ...patch }));
+    setVoiceResult(null);
+  }
+
+  async function synthesizeVoiceDemo() {
+    setIsSynthesizingVoice(true);
+    setVoiceResult(null);
+    try {
+      const result = await synthesizeReviewedVoiceDemo(voiceDraft, agent);
+      setVoiceResult(result);
+    } finally {
+      setIsSynthesizingVoice(false);
+    }
   }
 
   return (
@@ -366,11 +385,12 @@ function MediaVoiceCandidateWorkspace({ agent }: { agent: OwnerPortfolioAgentDet
         <div className="min-w-0">
           <div className="flex min-w-0 flex-wrap items-center gap-3">
             <h3 className="m-0 text-xl font-semibold">Voice demo candidate</h3>
-            <StatusBadge tone="warning">synthesis blocked</StatusBadge>
+            <StatusBadge tone="info">Runtime candidate</StatusBadge>
             <StatusBadge tone="neutral">sample only</StatusBadge>
+            <StatusBadge tone="warning">not public truth</StatusBadge>
           </div>
           <p className="m-0 mt-1 text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-muted)]">
-            Blocked request preview for Runtime capability audio.synthesize and SDK path media.tts.synthesize; no Runtime, Resource, Binding, or voice authority write is called.
+            Runtime candidate generation for capability audio.synthesize and SDK path media.tts.synthesize; Resource, Binding, and voice authority writes remain blocked.
           </p>
           <div className="mt-4 grid gap-4">
             <Surface tone="card" padding="md">
@@ -385,17 +405,58 @@ function MediaVoiceCandidateWorkspace({ agent }: { agent: OwnerPortfolioAgentDet
                 </div>
               </div>
             </Surface>
-            <FieldShell label="Demo script" message="Local draft text only. No chat transcript, LocalAgent memory, emotion, cognition, provider, or model.">
+            <FieldShell label="Demo script" message="Local draft text only. No chat transcript, LocalAgent memory, emotion, cognition, provider, or hardcoded model.">
               <TextareaField
                 value={voiceDraft.scriptText}
                 placeholder="Short public voice demo script"
                 onChange={(event) => updateVoiceDraft({ scriptText: event.currentTarget.value })}
               />
             </FieldShell>
-            <InlineAlert tone="warning">
-              {voicePayload.changed ? VOICE_DEMO_BLOCKED_REASON : voicePayload.errors.join('; ')}
+            <FieldShell label="Runtime TTS model" message="Required user/env model config for Runtime media.tts.synthesize. No provider or hardcoded model is supplied by Studio.">
+              <TextField
+                value={voiceDraft.model}
+                placeholder="Configured Runtime TTS model"
+                onChange={(event) => updateVoiceDraft({ model: event.currentTarget.value })}
+              />
+            </FieldShell>
+            <InlineAlert tone={voicePayload.changed ? 'info' : 'warning'}>
+              {voicePayload.changed ? VOICE_DEMO_CANDIDATE_NOTICE : voicePayload.errors.join('; ')}
             </InlineAlert>
-            <FieldShell label="Blocked voice payload" message="Preview only. Runtime synthesis and public voice/sample admission remain blocked.">
+            <div className="flex flex-wrap gap-3">
+              <Button disabled={!voicePayload.changed || isSynthesizingVoice} loading={isSynthesizingVoice} onClick={() => void synthesizeVoiceDemo()}>
+                Synthesize voice demo
+              </Button>
+            </div>
+            {voiceResult ? (
+              <InlineAlert tone={voiceResult.ok ? 'info' : 'danger'}>
+                {voiceResult.ok
+                  ? 'Runtime media.tts.synthesize returned candidate output. Resource/Binding public voice admission remains blocked.'
+                  : voiceResult.message}
+              </InlineAlert>
+            ) : null}
+            {voiceResult?.ok ? (
+              <Surface tone="card" padding="md">
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div>
+                    <div className="text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-muted)]">Runtime job</div>
+                    <div className="ras-break-anywhere mt-1 font-medium">{voiceResult.runtime.jobId || 'job id unavailable'}</div>
+                  </div>
+                  <div>
+                    <div className="text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-muted)]">Artifact ids</div>
+                    <div className="ras-break-anywhere mt-1 font-medium">{voiceResult.runtime.artifactIds.join(', ') || 'artifact id unavailable'}</div>
+                  </div>
+                  <div>
+                    <div className="text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-muted)]">Source</div>
+                    <div className="mt-1 font-medium">{voiceResult.source}</div>
+                  </div>
+                  <div>
+                    <div className="text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-muted)]">Trace</div>
+                    <div className="ras-break-anywhere mt-1 font-medium">{voiceResult.runtime.traceId || 'trace unavailable'}</div>
+                  </div>
+                </div>
+              </Surface>
+            ) : null}
+            <FieldShell label="Runtime voice payload" message="Candidate-only. Runtime may generate audio artifacts; Resource/Binding/Profile and public voice/sample writes remain blocked.">
               <pre className="ras-json-preview m-0 min-h-72 overflow-auto rounded-[var(--nimi-radius-field)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-3 text-xs">
                 {voicePayload.payload ? JSON.stringify(voicePayload.payload, null, 2) : voicePayload.errors.join('; ')}
               </pre>

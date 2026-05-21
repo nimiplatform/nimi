@@ -1,3 +1,4 @@
+import type { SpeechSynthesizeInput } from '@nimiplatform/sdk/runtime/browser';
 import type { OwnerPortfolioAgentDetail } from './portfolio-data.js';
 
 export const MEDIA_CANDIDATE_RESOURCE_TYPES = ['IMAGE', 'VIDEO', 'AUDIO'] as const;
@@ -10,6 +11,8 @@ export const MEDIA_CANDIDATE_BINDING_POINTS = [
 
 export const VISUAL_MEDIA_BLOCKED_REASON = 'visual media candidate blocked: Resource upload/finalize and Binding/Profile writes are not admitted in this local preview slice';
 export const VOICE_DEMO_BLOCKED_REASON = 'voice demo candidate blocked: Runtime synthesis and Resource upload/finalize are not called in this local preview slice';
+export const VOICE_DEMO_CANDIDATE_NOTICE = 'voice demo candidate uses Runtime media.tts.synthesize only; Resource, Binding, and public voice authority remain candidate-only';
+export const VOICE_DEMO_SYNTHESIS_SOURCE = 'Runtime media.tts.synthesize';
 
 export type MediaCandidateResourceType = typeof MEDIA_CANDIDATE_RESOURCE_TYPES[number];
 export type MediaCandidateBindingPoint = typeof MEDIA_CANDIDATE_BINDING_POINTS[number];
@@ -25,6 +28,7 @@ export type VisualMediaCandidateInput = {
 
 export type VoiceDemoCandidateInput = {
   scriptText: string;
+  model: string;
 };
 
 export type NormalizedVisualMediaCandidateInput = {
@@ -38,6 +42,7 @@ export type NormalizedVoiceDemoCandidateInput = {
   resourceType: VoiceCandidateResourceType;
   bindingPoint: Extract<MediaCandidateBindingPoint, 'AGENT_VOICE_SAMPLE'>;
   scriptText: string;
+  model: string;
 };
 
 export type CandidateAgentContext = {
@@ -88,6 +93,7 @@ export type BlockedVoiceDemoRequestPayload = {
     capabilityToken: 'audio.synthesize';
     currentSdkPath: 'media.tts.synthesize';
     requestCandidate: {
+      model: string;
       text: string;
       metadata: {
         source: 'realm-agent-studio.local-voice-demo-candidate';
@@ -112,6 +118,34 @@ export type BlockedVoiceDemoRequestPayload = {
   };
 };
 
+export type ReviewedVoiceDemoCandidatePayload = {
+  candidate: true;
+  publicTruth: false;
+  source: 'realm-agent-studio.reviewed-voice-demo-candidate';
+  agentContext: CandidateAgentContext;
+  runtime: {
+    capabilityToken: 'audio.synthesize';
+    currentSdkPath: 'media.tts.synthesize';
+    source: typeof VOICE_DEMO_SYNTHESIS_SOURCE;
+    request: SpeechSynthesizeInput;
+    status: 'candidate-ready';
+  };
+  futureEvidencePath: {
+    resource: {
+      carrier: 'Resource';
+      type: VoiceCandidateResourceType;
+      status: 'candidate-only';
+    };
+    binding: {
+      family: 'Binding';
+      hostType: 'AGENT';
+      objectType: 'RESOURCE';
+      bindingPoint: Extract<MediaCandidateBindingPoint, 'AGENT_VOICE_SAMPLE'>;
+      status: 'candidate-only';
+    };
+  };
+};
+
 export type MediaCandidateBuildResult<TPayload> =
   | {
     blocked: true;
@@ -121,6 +155,18 @@ export type MediaCandidateBuildResult<TPayload> =
   }
   | {
     blocked: true;
+    changed: false;
+    errors: string[];
+    payload: null;
+  };
+
+export type VoiceDemoCandidateBuildResult<TPayload> =
+  | {
+    changed: true;
+    errors: [];
+    payload: TPayload;
+  }
+  | {
     changed: false;
     errors: string[];
     payload: null;
@@ -140,6 +186,10 @@ const FORBIDDEN_MEDIA_CANDIDATE_FIELDS = new Set([
   'publicSuccess',
   'bindingSuccess',
   'resourceReady',
+]);
+const MODEL_ALLOWED_PATHS = new Set([
+  'runtimePreview.requestCandidate.model',
+  'runtime.request.model',
 ]);
 
 function normalizeLineText(value: string): string {
@@ -166,16 +216,17 @@ export function isAllowedMediaCandidateBindingPoint(value: string): value is Med
   return MEDIA_CANDIDATE_BINDING_POINTS.includes(value as MediaCandidateBindingPoint);
 }
 
-export function assertNoForbiddenMediaCandidateFields(value: unknown): string | null {
+export function assertNoForbiddenMediaCandidateFields(value: unknown, path: string[] = []): string | null {
   if (!value || typeof value !== 'object') {
     return null;
   }
 
   for (const [key, nested] of Object.entries(value as Record<string, unknown>)) {
-    if (FORBIDDEN_MEDIA_CANDIDATE_FIELDS.has(key)) {
+    const nextPath = [...path, key];
+    if (FORBIDDEN_MEDIA_CANDIDATE_FIELDS.has(key) && !(key === 'model' && MODEL_ALLOWED_PATHS.has(nextPath.join('.')))) {
       return key;
     }
-    const nestedViolation = assertNoForbiddenMediaCandidateFields(nested);
+    const nestedViolation = assertNoForbiddenMediaCandidateFields(nested, nextPath);
     if (nestedViolation) {
       return nestedViolation;
     }
@@ -210,6 +261,81 @@ export function normalizeVoiceDemoCandidateInput(input: VoiceDemoCandidateInput)
     resourceType: 'AUDIO',
     bindingPoint: 'AGENT_VOICE_SAMPLE',
     scriptText: normalizeLineText(input.scriptText),
+    model: normalizeSingleLine(input.model),
+  };
+}
+
+export function buildReviewedVoiceSynthesisPayload(
+  input: VoiceDemoCandidateInput,
+  agent: OwnerPortfolioAgentDetail,
+): VoiceDemoCandidateBuildResult<SpeechSynthesizeInput> {
+  const normalized = normalizeVoiceDemoCandidateInput(input);
+  const errors: string[] = [];
+
+  if (!normalized.scriptText) {
+    errors.push('voice demo script missing for Runtime media.tts.synthesize');
+  }
+  if (!normalized.model) {
+    errors.push('Runtime media.tts.synthesize model config missing');
+  }
+
+  if (errors.length > 0) {
+    return { changed: false, errors, payload: null };
+  }
+
+  const payload: SpeechSynthesizeInput = {
+    model: normalized.model,
+    text: normalizeSingleLine(normalized.scriptText),
+    metadata: {
+      source: 'realm-agent-studio.reviewed-voice-demo-candidate',
+      agentKey: agent.id,
+    },
+  };
+
+  return { changed: true, errors: [], payload };
+}
+
+export function buildReviewedVoiceDemoCandidatePayload(
+  input: VoiceDemoCandidateInput,
+  agent: OwnerPortfolioAgentDetail,
+): VoiceDemoCandidateBuildResult<ReviewedVoiceDemoCandidatePayload> {
+  const synthesisPayload = buildReviewedVoiceSynthesisPayload(input, agent);
+  const normalized = normalizeVoiceDemoCandidateInput(input);
+
+  if (!synthesisPayload.payload) {
+    return synthesisPayload;
+  }
+
+  return {
+    changed: true,
+    errors: [],
+    payload: {
+      candidate: true,
+      publicTruth: false,
+      source: 'realm-agent-studio.reviewed-voice-demo-candidate',
+      agentContext: createAgentContext(agent),
+      runtime: {
+        capabilityToken: 'audio.synthesize',
+        currentSdkPath: 'media.tts.synthesize',
+        source: VOICE_DEMO_SYNTHESIS_SOURCE,
+        request: synthesisPayload.payload,
+        status: 'candidate-ready',
+      },
+      futureEvidencePath: {
+        resource: {
+          carrier: 'Resource',
+          type: normalized.resourceType,
+          status: 'candidate-only',
+        },
+        binding: {
+          family: 'Binding',
+          hostType: 'AGENT',
+          objectType: 'RESOURCE',
+          bindingPoint: normalized.bindingPoint,
+          status: 'candidate-only',
+        },
+      },
+    },
   };
 }
 
@@ -279,14 +405,17 @@ export function buildBlockedVoiceDemoRequestPayload(
   agent: OwnerPortfolioAgentDetail,
 ): MediaCandidateBuildResult<BlockedVoiceDemoRequestPayload> {
   const normalized = normalizeVoiceDemoCandidateInput(input);
+  const errors: string[] = [];
 
   if (!normalized.scriptText) {
-    return {
-      blocked: true,
-      changed: false,
-      errors: ['voice demo script missing'],
-      payload: null,
-    };
+    errors.push('voice demo script missing for Runtime media.tts.synthesize');
+  }
+  if (!normalized.model) {
+    errors.push('Runtime media.tts.synthesize model config missing');
+  }
+
+  if (errors.length > 0) {
+    return { blocked: true, changed: false, errors, payload: null };
   }
 
   const payload: BlockedVoiceDemoRequestPayload = {
@@ -300,6 +429,7 @@ export function buildBlockedVoiceDemoRequestPayload(
       capabilityToken: 'audio.synthesize',
       currentSdkPath: 'media.tts.synthesize',
       requestCandidate: {
+        model: normalized.model,
         text: normalizeSingleLine(normalized.scriptText),
         metadata: {
           source: 'realm-agent-studio.local-voice-demo-candidate',

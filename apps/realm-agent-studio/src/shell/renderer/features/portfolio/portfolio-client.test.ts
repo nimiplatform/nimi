@@ -11,8 +11,9 @@ import {
   normalizeRealmAgentCreateResult,
   normalizeRealmPostPublishResult,
   publishReviewedPostDraft,
+  synthesizeReviewedVoiceDemo,
 } from './portfolio-client.js';
-import type { MyRealmAgentDto } from './portfolio-data.js';
+import type { MyRealmAgentDto, OwnerPortfolioAgentDetail, SettingField } from './portfolio-data.js';
 import {
   REALM_AGENT_CREATE_PATH,
   REALM_AGENT_CREATE_SOURCE,
@@ -128,6 +129,35 @@ function collectKeys(value: unknown, keys = new Set<string>()): Set<string> {
   }
 
   return keys;
+}
+
+function detailField(key: SettingField['key'], label: string, value: string): SettingField {
+  return {
+    key,
+    label,
+    value,
+    status: value ? 'available' : 'source-unavailable',
+    source: 'Realm MeService.getMyRealmAgent',
+    readOnly: true,
+    ...(value ? {} : { unavailableLabel: 'setting read unavailable' }),
+  };
+}
+
+function ownerAgentDetail(): OwnerPortfolioAgentDetail {
+  return {
+    id: 'agent-1',
+    displayName: detailField('displayName', 'Display name', 'Mira'),
+    handle: detailField('handle', 'Handle', 'mira'),
+    bio: detailField('bio', 'Bio', ''),
+    greeting: detailField('greeting', 'Greeting', ''),
+    profileCoverUrl: detailField('profileCoverUrl', 'Profile cover URL', ''),
+    ownership: detailField('ownership', 'Ownership evidence', 'MASTER_OWNED'),
+    world: detailField('world', 'World evidence', 'OASIS'),
+    state: detailField('state', 'State evidence', 'ACTIVE'),
+    avatarUrl: null,
+    friendCount: { status: 'source-unavailable', label: 'friendCount source unavailable' },
+    source: 'Realm MeService.getMyRealmAgent',
+  };
 }
 
 const candidatePayload: CandidatePostPayload = {
@@ -367,5 +397,152 @@ describe('owner portfolio client', () => {
     expect(input).toEqual(candidatePayload.realmCreatePost);
     expect(collectKeys(input).has('agentRef')).toBe(false);
     expect(collectKeys(input).has('review')).toBe(false);
+  });
+
+  it('calls Runtime media.tts.synthesize with the allowlisted reviewed voice body', async () => {
+    const runtime = {
+      media: {
+        tts: {
+          synthesize: vi.fn(async (_input: unknown) => ({
+            job: {
+              jobId: 'job-voice-1',
+              modelResolved: 'runtime-tts-model',
+              traceId: 'trace-job-1',
+            },
+            artifacts: [{
+              artifactId: 'artifact-audio-1',
+              mimeType: 'audio/wav',
+            }],
+            trace: {
+              traceId: 'trace-output-1',
+            },
+          })),
+        },
+      },
+    };
+
+    const result = await synthesizeReviewedVoiceDemo({
+      scriptText: '  Welcome in.  ',
+      model: 'runtime-tts-model',
+    }, ownerAgentDetail(), runtime as unknown as Parameters<typeof synthesizeReviewedVoiceDemo>[2]);
+
+    expect(runtime.media.tts.synthesize).toHaveBeenCalledWith({
+      model: 'runtime-tts-model',
+      text: 'Welcome in.',
+      metadata: {
+        source: 'realm-agent-studio.reviewed-voice-demo-candidate',
+        agentKey: 'agent-1',
+      },
+    });
+    const submittedPayload = vi.mocked(runtime.media.tts.synthesize).mock.calls[0]?.[0];
+    expect(Object.keys(submittedPayload || {}).sort()).toEqual(['metadata', 'model', 'text']);
+    expect(collectKeys(submittedPayload).has('provider')).toBe(false);
+    expect(collectKeys(submittedPayload).has('localAgent')).toBe(false);
+    expect(collectKeys(submittedPayload).has('emotion')).toBe(false);
+    expect(result).toMatchObject({
+      ok: true,
+      source: 'Runtime media.tts.synthesize',
+      candidate: true,
+      publicTruth: false,
+      runtime: {
+        jobId: 'job-voice-1',
+        artifactIds: ['artifact-audio-1'],
+        traceId: 'trace-output-1',
+        modelResolved: 'runtime-tts-model',
+      },
+    });
+  });
+
+  it('fails closed when Runtime media.tts.synthesize model config is missing', async () => {
+    const runtime = {
+      media: {
+        tts: {
+          synthesize: vi.fn(),
+        },
+      },
+    };
+    const result = await synthesizeReviewedVoiceDemo({
+      scriptText: 'Welcome in.',
+      model: '',
+    }, ownerAgentDetail(), runtime as unknown as Parameters<typeof synthesizeReviewedVoiceDemo>[2]);
+
+    expect(runtime.media.tts.synthesize).not.toHaveBeenCalled();
+    expect(result).toMatchObject({
+      ok: false,
+      source: 'Runtime media.tts.synthesize',
+      failure: 'runtime-payload-invalid',
+      message: 'Runtime media.tts.synthesize model config missing',
+    });
+  });
+
+  it('fails closed when Runtime Tauri IPC transport is unavailable', async () => {
+    const result = await synthesizeReviewedVoiceDemo({
+      scriptText: 'Welcome in.',
+      model: 'runtime-tts-model',
+    }, ownerAgentDetail(), null);
+
+    expect(result).toMatchObject({
+      ok: false,
+      source: 'Runtime media.tts.synthesize',
+      failure: 'runtime-transport-unavailable',
+      message: 'Runtime media.tts.synthesize runtime transport unavailable: Tauri IPC runtime transport is required.',
+    });
+    expect(result.draft).toMatchObject({
+      candidate: true,
+      publicTruth: false,
+    });
+  });
+
+  it('fails closed when Runtime media.tts.synthesize output has no real job or artifact id', async () => {
+    const runtime = {
+      media: {
+        tts: {
+          synthesize: vi.fn(async (_input: unknown) => ({
+            job: {},
+            artifacts: [],
+            trace: {},
+          })),
+        },
+      },
+    };
+    const result = await synthesizeReviewedVoiceDemo({
+      scriptText: 'Welcome in.',
+      model: 'runtime-tts-model',
+    }, ownerAgentDetail(), runtime as unknown as Parameters<typeof synthesizeReviewedVoiceDemo>[2]);
+
+    expect(result).toMatchObject({
+      ok: false,
+      source: 'Runtime media.tts.synthesize',
+      failure: 'runtime-output-missing',
+      message: 'Runtime media.tts.synthesize output missing real job id or artifact id.',
+    });
+  });
+
+  it('fails closed and preserves draft when Runtime media.tts.synthesize throws', async () => {
+    const runtime = {
+      media: {
+        tts: {
+          synthesize: vi.fn(async () => {
+            throw new Error('runtime unavailable');
+          }),
+        },
+      },
+    };
+    const result = await synthesizeReviewedVoiceDemo({
+      scriptText: 'Welcome in.',
+      model: 'runtime-tts-model',
+    }, ownerAgentDetail(), runtime as unknown as Parameters<typeof synthesizeReviewedVoiceDemo>[2]);
+
+    expect(runtime.media.tts.synthesize).toHaveBeenCalledTimes(1);
+    expect(result).toMatchObject({
+      ok: false,
+      source: 'Runtime media.tts.synthesize',
+      failure: 'runtime-synthesize-failed',
+      message: 'Runtime media.tts.synthesize failed: runtime unavailable',
+      draft: {
+        candidate: true,
+        publicTruth: false,
+      },
+    });
   });
 });

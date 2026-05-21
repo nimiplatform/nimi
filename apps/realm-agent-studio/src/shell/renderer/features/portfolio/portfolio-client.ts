@@ -1,5 +1,7 @@
 import type { Realm } from '@nimiplatform/sdk/realm';
+import type { SpeechSynthesizeInput, SpeechSynthesizeOutput } from '@nimiplatform/sdk/runtime/browser';
 import { createStudioRealmClient } from '@renderer/data/realm-client.js';
+import { createStudioRuntimeClient } from '@renderer/data/runtime-client.js';
 import {
   normalizeOwnerPortfolio,
   normalizeOwnerPortfolioAgentDetail,
@@ -17,12 +19,27 @@ import {
   type SelectedWorldPreview,
 } from './create-agent-draft.js';
 import type { CandidatePostPayload } from './post-draft.js';
+import {
+  VOICE_DEMO_SYNTHESIS_SOURCE,
+  buildReviewedVoiceDemoCandidatePayload,
+  buildReviewedVoiceSynthesisPayload,
+  type ReviewedVoiceDemoCandidatePayload,
+  type VoiceDemoCandidateInput,
+} from './media-voice-candidate.js';
 
 type RealmCreateAgentResponse = Awaited<ReturnType<Realm['services']['AgentsService']['agentControllerCreate']>>;
 type RealmCreatePostInput = Parameters<Realm['services']['PostsService']['createPost']>[0];
 type RealmCreatePostResponse = Awaited<ReturnType<Realm['services']['PostsService']['createPost']>>;
 
 export const REALM_POST_PUBLISH_SOURCE = 'Realm PostsService.createPost';
+
+type RuntimeVoiceClient = {
+  media: {
+    tts: {
+      synthesize(input: SpeechSynthesizeInput): Promise<SpeechSynthesizeOutput>;
+    };
+  };
+};
 
 export type RealmPostPublishCanonicalFields = {
   id: string;
@@ -66,9 +83,79 @@ export type RealmAgentCreateResult =
     message: string;
   };
 
+export type RuntimeVoiceDemoSynthesisResult =
+  | {
+    ok: true;
+    source: typeof VOICE_DEMO_SYNTHESIS_SOURCE;
+    candidate: true;
+    publicTruth: false;
+    draft: ReviewedVoiceDemoCandidatePayload;
+    runtime: {
+      jobId?: string;
+      artifactIds: string[];
+      traceId?: string;
+      modelResolved?: string;
+    };
+  }
+  | {
+    ok: false;
+    source: typeof VOICE_DEMO_SYNTHESIS_SOURCE;
+    failure:
+      | 'runtime-payload-invalid'
+      | 'runtime-transport-unavailable'
+      | 'runtime-synthesize-failed'
+      | 'runtime-output-missing';
+    message: string;
+    draft: ReviewedVoiceDemoCandidatePayload | null;
+  };
+
 function readOptionalString(record: Record<string, unknown>, key: string): string | undefined {
   const value = record[key];
   return typeof value === 'string' && value.trim() ? value : undefined;
+}
+
+function normalizeRuntimeVoiceDemoSynthesisOutput(
+  output: SpeechSynthesizeOutput,
+  draft: ReviewedVoiceDemoCandidatePayload,
+): RuntimeVoiceDemoSynthesisResult {
+  const job = output.job && typeof output.job === 'object' ? output.job : null;
+  const jobId = job ? readOptionalString(job as unknown as Record<string, unknown>, 'jobId') : undefined;
+  const jobTraceId = job ? readOptionalString(job as unknown as Record<string, unknown>, 'traceId') : undefined;
+  const modelResolved = job ? readOptionalString(job as unknown as Record<string, unknown>, 'modelResolved') : undefined;
+  const outputTraceId = output.trace && typeof output.trace === 'object'
+    ? readOptionalString(output.trace as unknown as Record<string, unknown>, 'traceId')
+    : undefined;
+  const artifactIds = Array.isArray(output.artifacts)
+    ? output.artifacts
+      .map((artifact) => artifact && typeof artifact === 'object'
+        ? readOptionalString(artifact as unknown as Record<string, unknown>, 'artifactId')
+        : undefined)
+      .filter((artifactId): artifactId is string => Boolean(artifactId))
+    : [];
+
+  if (!jobId && artifactIds.length === 0) {
+    return {
+      ok: false,
+      source: VOICE_DEMO_SYNTHESIS_SOURCE,
+      failure: 'runtime-output-missing',
+      message: 'Runtime media.tts.synthesize output missing real job id or artifact id.',
+      draft,
+    };
+  }
+
+  return {
+    ok: true,
+    source: VOICE_DEMO_SYNTHESIS_SOURCE,
+    candidate: true,
+    publicTruth: false,
+    draft,
+    runtime: {
+      ...(jobId ? { jobId } : {}),
+      artifactIds,
+      ...(outputTraceId || jobTraceId ? { traceId: outputTraceId || jobTraceId } : {}),
+      ...(modelResolved ? { modelResolved } : {}),
+    },
+  };
 }
 
 export function buildRealmCreateAgentInput(payload: ReviewedCreateRealmAgentPayload): RealmCreateAgentInput {
@@ -236,6 +323,50 @@ export async function publishReviewedPostDraft(
       source: REALM_POST_PUBLISH_SOURCE,
       failure: 'realm-create-post-failed',
       message: error instanceof Error ? error.message : 'Realm Create Post failed.',
+    };
+  }
+}
+
+export async function synthesizeReviewedVoiceDemo(
+  input: VoiceDemoCandidateInput,
+  agent: OwnerPortfolioAgentDetail,
+  runtime?: RuntimeVoiceClient | null,
+): Promise<RuntimeVoiceDemoSynthesisResult> {
+  const draft = buildReviewedVoiceDemoCandidatePayload(input, agent);
+  const synthesisPayload = buildReviewedVoiceSynthesisPayload(input, agent);
+
+  if (!draft.payload || !synthesisPayload.payload) {
+    return {
+      ok: false,
+      source: VOICE_DEMO_SYNTHESIS_SOURCE,
+      failure: 'runtime-payload-invalid',
+      message: synthesisPayload.errors.join('; ') || 'Runtime media.tts.synthesize payload invalid.',
+      draft: draft.payload,
+    };
+  }
+
+  const runtimeClient = runtime === undefined ? await createStudioRuntimeClient() : runtime;
+
+  if (!runtimeClient) {
+    return {
+      ok: false,
+      source: VOICE_DEMO_SYNTHESIS_SOURCE,
+      failure: 'runtime-transport-unavailable',
+      message: 'Runtime media.tts.synthesize runtime transport unavailable: Tauri IPC runtime transport is required.',
+      draft: draft.payload,
+    };
+  }
+
+  try {
+    const output = await runtimeClient.media.tts.synthesize(synthesisPayload.payload);
+    return normalizeRuntimeVoiceDemoSynthesisOutput(output, draft.payload);
+  } catch (error) {
+    return {
+      ok: false,
+      source: VOICE_DEMO_SYNTHESIS_SOURCE,
+      failure: 'runtime-synthesize-failed',
+      message: `Runtime media.tts.synthesize failed: ${error instanceof Error ? error.message : 'runtime transport call failed.'}`,
+      draft: draft.payload,
     };
   }
 }
