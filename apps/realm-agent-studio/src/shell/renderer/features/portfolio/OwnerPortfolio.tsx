@@ -19,6 +19,11 @@ import {
   type CandidatePostPayload,
   type LocalPostDraftInput,
 } from './post-draft.js';
+import {
+  SETTING_PROPOSAL_BLOCKED_REASON,
+  buildBlockedSettingProposal,
+  type SettingProposalInput,
+} from './setting-proposal.js';
 import { CreateRealmAgentWorkspace } from './CreateRealmAgentWorkspace.js';
 
 const PORTFOLIO_FILTER_OPTIONS: { value: OwnerPortfolioFilter; label: string }[] = [
@@ -118,6 +123,133 @@ function EvidenceCard({ field }: { field: SettingField }) {
       <div className="text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-muted)]">{field.label}</div>
       <div className="ras-break-anywhere mt-1 font-medium">{field.value || field.unavailableLabel}</div>
       <FieldStatus field={field} />
+    </Surface>
+  );
+}
+
+function createSettingProposalInput(agent: OwnerPortfolioAgentDetail): SettingProposalInput {
+  return {
+    displayName: agent.displayName.value,
+    bio: agent.bio.value,
+    profileCoverUrl: agent.profileCoverUrl.value,
+    ruleText: '',
+    naturalLanguageInstruction: '',
+  };
+}
+
+function SettingProposalWorkspace({ agent }: { agent: OwnerPortfolioAgentDetail }) {
+  const [draft, setDraft] = useState<SettingProposalInput>(() => createSettingProposalInput(agent));
+  const [saveAttempted, setSaveAttempted] = useState(false);
+  const proposal = useMemo(() => buildBlockedSettingProposal(draft, agent), [agent, draft]);
+
+  useEffect(() => {
+    setDraft(createSettingProposalInput(agent));
+    setSaveAttempted(false);
+  }, [agent.id]);
+
+  function updateDraft(patch: Partial<SettingProposalInput>) {
+    setDraft((current) => ({ ...current, ...patch }));
+    setSaveAttempted(false);
+  }
+
+  function useInstructionAsRuleCandidate() {
+    const instruction = draft.naturalLanguageInstruction.trim();
+    if (!instruction) {
+      return;
+    }
+    updateDraft({ ruleText: instruction });
+  }
+
+  return (
+    <Surface tone="panel" padding="lg" className="mt-5">
+      <div className="grid min-w-0 gap-5 xl:grid-cols-[1fr_360px]">
+        <div className="min-w-0">
+          <div className="flex min-w-0 flex-wrap items-center gap-3">
+            <h3 className="m-0 text-xl font-semibold">Setting proposal workspace</h3>
+            <StatusBadge tone="warning">save blocked</StatusBadge>
+            <StatusBadge tone="neutral">owner-reviewed candidate</StatusBadge>
+          </div>
+          <p className="m-0 mt-1 text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-muted)]">
+            Editable local proposal for {agent.handle.value ? `@${agent.handle.value}` : agent.displayName.value || agent.id}; no CreatorService or AgentRulesService write is called.
+          </p>
+
+          <div className="mt-4 grid gap-4">
+            <FieldShell label="Display name" message="Candidate for UpdateCreatorAgentDto.displayName evidence; omitted if unchanged or empty.">
+              <TextField
+                value={draft.displayName}
+                placeholder="Public display name"
+                onChange={(event) => updateDraft({ displayName: event.currentTarget.value })}
+              />
+            </FieldShell>
+            <FieldShell label="Public bio" message="Candidate for UpdateCreatorAgentDto.bio evidence; omitted if unchanged or empty.">
+              <TextareaField
+                value={draft.bio}
+                placeholder="Public bio proposal"
+                onChange={(event) => updateDraft({ bio: event.currentTarget.value })}
+              />
+            </FieldShell>
+            <FieldShell label="Profile cover URL" message="Candidate for UpdateCreatorAgentDto.profileCoverUrl evidence; omitted if unchanged or empty.">
+              <TextField
+                value={draft.profileCoverUrl}
+                placeholder="https://..."
+                onChange={(event) => updateDraft({ profileCoverUrl: event.currentTarget.value })}
+              />
+            </FieldShell>
+            <FieldShell label="Natural-language instruction" message="Local drafting aid only. It never calls Runtime, provider, model, CreatorService, or AgentRulesService.">
+              <TextareaField
+                value={draft.naturalLanguageInstruction}
+                placeholder="Describe the owner-reviewed change you want to draft locally"
+                onChange={(event) => updateDraft({ naturalLanguageInstruction: event.currentTarget.value })}
+              />
+            </FieldShell>
+            <div className="flex flex-wrap gap-3">
+              <Button disabled={!draft.naturalLanguageInstruction.trim()} onClick={useInstructionAsRuleCandidate}>
+                Use as rule candidate
+              </Button>
+            </div>
+            <FieldShell label="Visible rule text candidate" message="Owner-reviewed visible AgentRule-shaped text only. No hidden personality, worldview, provider, model, or LocalAgent state.">
+              <TextareaField
+                value={draft.ruleText}
+                placeholder="Visible rule text candidate for owner review"
+                onChange={(event) => updateDraft({ ruleText: event.currentTarget.value })}
+              />
+            </FieldShell>
+            {proposal.changed ? (
+              <InlineAlert tone="warning">
+                {SETTING_PROPOSAL_BLOCKED_REASON}
+              </InlineAlert>
+            ) : (
+              <InlineAlert tone="warning">
+                {proposal.errors.join('; ')}
+              </InlineAlert>
+            )}
+            {saveAttempted ? (
+              <InlineAlert tone="danger">
+                Realm save remains blocked. This app slice has no admitted owner update semantics for selected Realm Agent settings.
+              </InlineAlert>
+            ) : null}
+            <div className="flex flex-wrap gap-3">
+              <Button
+                disabled={!proposal.changed}
+                onClick={() => setSaveAttempted(true)}
+              >
+                Check save admission
+              </Button>
+            </div>
+          </div>
+        </div>
+        <div className="min-w-0">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <h4 className="m-0 text-base font-semibold">Blocked candidate payload</h4>
+            <StatusBadge tone="warning">not saved</StatusBadge>
+          </div>
+          <FieldShell label="Payload preview" message="Separated profile update candidate and visible rule text candidate.">
+            <pre className="ras-json-preview m-0 min-h-80 overflow-auto rounded-[var(--nimi-radius-field)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-3 text-xs">
+              {proposal.payload ? JSON.stringify(proposal.payload, null, 2) : proposal.errors.join('; ')}
+            </pre>
+          </FieldShell>
+        </div>
+      </div>
     </Surface>
   );
 }
@@ -368,6 +500,7 @@ function AgentDetail({ agentId }: { agentId: string }) {
           </div>
         </div>
       </Surface>
+      <SettingProposalWorkspace agent={agent} />
       <CreativePostWorkspace agent={agent} />
     </section>
   );
