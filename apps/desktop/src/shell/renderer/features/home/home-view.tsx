@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { IconButton, ScrollArea, Surface } from '@nimiplatform/nimi-kit/ui';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { IconButton, ScrollArea, SegmentedControl, Surface } from '@nimiplatform/nimi-kit/ui';
 import { useTranslation } from 'react-i18next';
-import { BLOCKED_USERS_UPDATED_EVENT, dataSync } from '@runtime/data-sync';
+import { BLOCKED_USERS_UPDATED_EVENT, dataSync, type PostFeedScope } from '@runtime/data-sync';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import { ContactDetailProfileModal } from '@renderer/features/contacts/contact-detail-profile-modal.js';
 import { CreatePostModal } from '../profile/create-post-modal.js';
@@ -80,6 +80,15 @@ function Toast({ message, type, onClose }: { message: string; type: 'success' | 
 
 const PAGE_SIZE = 15;
 
+/**
+ * Canonical Realm feed scopes presented on the Home feed surface.
+ * Source of truth: `.nimi/spec/desktop/kernel/tables/home-feed-scopes.yaml`
+ * (D-HOMEFEED-004) over Realm `R-FEED-005`. Scope membership is server
+ * truth; the renderer never infers authorship client-side.
+ */
+const HOME_FEED_SCOPES: readonly PostFeedScope[] = ['personal', 'friends', 'agent_activity'];
+const DEFAULT_HOME_FEED_SCOPE: PostFeedScope = 'friends';
+
 type HomeViewProps = {
   createPostRequestKey?: number;
 };
@@ -89,16 +98,30 @@ export function HomeView(props: HomeViewProps) {
   const [createPostOpen, setCreatePostOpen] = useState(false);
   const [selectedFeedProfile, setSelectedFeedProfile] = useState<PostCardAuthorProfileTarget | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [feedScope, setFeedScope] = useState<PostFeedScope>(DEFAULT_HOME_FEED_SCOPE);
   const [isPublishing, setIsPublishing] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const createPostRequestRef = useRef<number>(props.createPostRequestKey ?? 0);
   const feedScrollRef = useRef<HTMLDivElement>(null);
-  const postFeedKey = `moments-${refreshKey}`;
+  // PostFeed remounts when scope or refreshKey changes so each scope is read
+  // fresh through the SDK typed Realm feed projection — no carried-over
+  // cross-scope Post state.
+  const postFeedKey = `moments-${feedScope}-${refreshKey}`;
   const postCardActionAdapter = usePostCardActionAdapter();
+
+  const scopeSelectorItems = useMemo(
+    () =>
+      HOME_FEED_SCOPES.map((scope) => ({
+        value: scope,
+        label: t(`Home.feedScopes.${scope}`),
+      })),
+    [t],
+  );
 
   const fetchPage = useCallback(
     async (cursorArg: string | null) => {
       const data = await dataSync.loadPostFeed({
+        scope: feedScope,
         limit: PAGE_SIZE,
         cursor: cursorArg ?? undefined,
       });
@@ -107,7 +130,7 @@ export function HomeView(props: HomeViewProps) {
         nextCursor: data?.page?.nextCursor ?? null,
       };
     },
-    [],
+    [feedScope],
   );
 
   useEffect(() => {
@@ -135,6 +158,28 @@ export function HomeView(props: HomeViewProps) {
       {/* Top bar */}
       <div className="flex h-14 shrink-0 items-center gap-3 px-5">
         <h1 className={`nimi-type-page-title text-[color:var(--nimi-text-primary)]`}>{t('Home.pageTitle')}</h1>
+        <div
+          className="ml-auto"
+          data-testid={E2E_IDS.homeFeedScopeSelector}
+        >
+          <SegmentedControl
+            ariaLabel={t('Home.feedScopeSelectorLabel', { defaultValue: 'Feed scope' })}
+            value={feedScope}
+            onValueChange={(value) => {
+              const next = HOME_FEED_SCOPES.find((scope) => scope === value);
+              if (next) {
+                setFeedScope(next);
+              }
+            }}
+            items={scopeSelectorItems.map((item) => ({
+              ...item,
+              label: (
+                <span data-testid={E2E_IDS.homeFeedScopeOption(item.value)}>{item.label}</span>
+              ),
+            }))}
+            size="sm"
+          />
+        </div>
       </div>
 
       <ScrollArea
@@ -179,7 +224,7 @@ export function HomeView(props: HomeViewProps) {
               key={postFeedKey}
               fetchPage={fetchPage}
               scrollRef={feedScrollRef}
-              emptyText={t('PostsTab.noPosts', { defaultValue: 'No posts yet' })}
+              emptyText={t(`Home.feedScopeEmpty.${feedScope}`)}
               renderItem={(post) => (
                 <PostCard
                   post={post}

@@ -5,6 +5,7 @@ export {
 } from './flows/profile-flow-social';
 export type { SocialContactSnapshot } from './flows/profile-flow-social';
 export { isFriendInContacts } from './flows/social-flow';
+export type { PostFeedScope } from './flows/post-attachment-flow';
 export {
   BLOCKED_USERS_UPDATED_EVENT,
   filterBlockedPosts,

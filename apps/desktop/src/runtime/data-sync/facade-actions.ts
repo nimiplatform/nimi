@@ -133,6 +133,7 @@ import {
   unlikePost,
   updatePostVisibility,
 } from './flows/post-attachment-flow';
+import type { PostFeedScope } from './flows/post-attachment-flow';
 import {
   disableTwoFactor,
   enableTwoFactor,
@@ -378,6 +379,7 @@ export function createDataSyncActions(input: CreateDataSyncActionsInput) {
       authorId?: string;
       limit?: number;
       cursor?: string;
+      scope?: PostFeedScope;
     }) =>
       loadPostFeed(input.callApiTask, input.emitFacadeError, payload),
     loadLikedPosts: async (profileId: string, limit = 20, cursor?: string) =>

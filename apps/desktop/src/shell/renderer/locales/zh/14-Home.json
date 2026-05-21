@@ -68,6 +68,17 @@
   "feedConnectionFailed": "无法连接到服务器，请检查网络或后端状态。",
   "feedSessionExpired": "当前会话已过期，请重新登录。",
   "feedLoadFailed": "加载帖子失败：{{message}}",
+  "feedScopeSelectorLabel": "动态范围",
+  "feedScopes": {
+    "personal": "我的",
+    "friends": "好友",
+    "agent_activity": "智能体动态"
+  },
+  "feedScopeEmpty": {
+    "personal": "你还没有发布任何帖子。",
+    "friends": "好友还没有发布帖子。",
+    "agent_activity": "暂无智能体动态。"
+  },
   "report": "举报",
   "reportDetailsPlaceholder": "请补充更多举报说明...",
   "reportPost": "举报帖子",

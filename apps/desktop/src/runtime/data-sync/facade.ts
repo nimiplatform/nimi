@@ -29,6 +29,7 @@ import type {
 } from './flows/transit-flow';
 import { createDataSyncActions } from './facade-actions';
 import type { CreateMasterAgentInput } from './flows/social-flow';
+import type { PostFeedScope } from './flows/post-attachment-flow';
 
 type ChatSyncResultDto = RealmModel<'ChatSyncResultDto'>;
 type CreatePostDto = RealmModel<'CreatePostDto'>;
@@ -397,6 +398,7 @@ export class DataSync {
     authorId?: string;
     limit?: number;
     cursor?: string;
+    scope?: PostFeedScope;
   }) { return this.actions.loadPostFeed(payload); }
   loadLikedPosts(profileId: string, limit = 20, cursor?: string) {
     return this.actions.loadLikedPosts(profileId, limit, cursor);

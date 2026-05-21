@@ -68,6 +68,17 @@
   "feedConnectionFailed": "Unable to connect to server. Check your network or backend status.",
   "feedSessionExpired": "Your session has expired. Please sign in again.",
   "feedLoadFailed": "Failed to load feed: {{message}}",
+  "feedScopeSelectorLabel": "Feed scope",
+  "feedScopes": {
+    "personal": "Personal",
+    "friends": "Friends",
+    "agent_activity": "Agent Activity"
+  },
+  "feedScopeEmpty": {
+    "personal": "You haven't posted anything yet.",
+    "friends": "No posts from your friends yet.",
+    "agent_activity": "No agent activity yet."
+  },
   "report": "Report",
   "reportDetailsPlaceholder": "Please provide more details about your report...",
   "reportPost": "Report Post",

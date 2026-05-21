@@ -44,6 +44,8 @@ export const E2E_IDS = {
   chatAvatarLaunchNewButton: 'chat-avatar-launch-new-button',
   messageTimeline: 'message-timeline',
   feedPostAuthor: (postId: string) => `feed-post-author:${postId}`,
+  homeFeedScopeSelector: 'home-feed-scope-selector',
+  homeFeedScopeOption: (scope: string) => `home-feed-scope-option:${scope}`,
   contactDetailProfileModal: 'contact-detail-profile-modal',
   contactDetailProfileModalClose: 'contact-detail-profile-modal-close',
   profileDetailSurface: 'profile-detail-surface',

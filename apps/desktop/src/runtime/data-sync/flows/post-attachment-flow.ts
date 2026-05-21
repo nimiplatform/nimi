@@ -28,12 +28,20 @@ type DataSyncErrorEmitter = (
   details?: Record<string, unknown>,
 ) => void;
 
+/**
+ * Canonical Realm feed scopes (Realm R-FEED-005, Desktop D-HOMEFEED-004).
+ * Server-side filter branches; the renderer never infers scope membership
+ * client-side.
+ */
+export type PostFeedScope = 'personal' | 'friends' | 'agent_activity';
+
 export type LoadPostFeedInput = {
   visibility?: 'PUBLIC' | 'FRIENDS' | 'PRIVATE';
   worldId?: string;
   authorId?: string;
   limit?: number;
   cursor?: string;
+  scope?: PostFeedScope;
 };
 
 function buildEmptyFeedResponse(input: {
@@ -70,6 +78,7 @@ export async function loadPostFeed(
     authorId: typeof input.authorId === 'string' ? input.authorId : undefined,
     limit: typeof input.limit === 'number' ? input.limit : undefined,
     cursor: typeof input.cursor === 'string' ? input.cursor : undefined,
+    scope: input.scope,
   };
 
   if (normalized.authorId && isBlockedUser(normalized.authorId)) {
@@ -84,6 +93,7 @@ export async function loadPostFeed(
         normalized.authorId,
         normalized.limit,
         normalized.cursor,
+        normalized.scope,
       ),
       'Failed to load posts',
     );
