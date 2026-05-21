@@ -3136,6 +3136,32 @@ export const REALM_OPERATION_MAP = {
     "successContentTypes": [],
     "hasSuccessBody": false
   },
+  "MeService.ackMyLocalAgentProvisionIntent": {
+    "operationId": "ackMyLocalAgentProvisionIntent",
+    "method": "POST",
+    "path": "/api/human/me/local-agent-provision-intents/{intentId}/ack",
+    "service": "MeService",
+    "methodName": "ackMyLocalAgentProvisionIntent",
+    "tag": "Me",
+    "parameters": [
+      {
+        "name": "intentId",
+        "in": "path",
+        "required": true,
+        "valueType": "string"
+      }
+    ],
+    "hasBody": true,
+    "bodyRequired": true,
+    "requestBodyContentType": "application/json",
+    "successStatusCodes": [
+      "200"
+    ],
+    "successContentTypes": [
+      "application/json"
+    ],
+    "hasSuccessBody": true
+  },
   "MeService.ackMyLocalAgentTerminationIntent": {
     "operationId": "ackMyLocalAgentTerminationIntent",
     "method": "POST",
@@ -3435,6 +3461,24 @@ export const REALM_OPERATION_MAP = {
         "valueType": "number"
       }
     ],
+    "hasBody": false,
+    "bodyRequired": false,
+    "successStatusCodes": [
+      "200"
+    ],
+    "successContentTypes": [
+      "application/json"
+    ],
+    "hasSuccessBody": true
+  },
+  "MeService.listMyLocalAgentProvisionIntents": {
+    "operationId": "listMyLocalAgentProvisionIntents",
+    "method": "GET",
+    "path": "/api/human/me/local-agent-provision-intents",
+    "service": "MeService",
+    "methodName": "listMyLocalAgentProvisionIntents",
+    "tag": "Me",
+    "parameters": [],
     "hasBody": false,
     "bodyRequired": false,
     "successStatusCodes": [
@@ -6454,6 +6498,7 @@ export const REALM_SERVICE_METHODS = {
     "requestDataExport": "MeaccountdataService.requestDataExport"
   },
   "MeService": {
+    "ackMyLocalAgentProvisionIntent": "MeService.ackMyLocalAgentProvisionIntent",
     "ackMyLocalAgentTerminationIntent": "MeService.ackMyLocalAgentTerminationIntent",
     "bindWallet": "MeService.bindWallet",
     "blockUser": "MeService.blockUser",
@@ -6469,6 +6514,7 @@ export const REALM_SERVICE_METHODS = {
     "getMyWallets": "MeService.getMyWallets",
     "listMyFriendIds": "MeService.listMyFriendIds",
     "listMyFriendsWithDetails": "MeService.listMyFriendsWithDetails",
+    "listMyLocalAgentProvisionIntents": "MeService.listMyLocalAgentProvisionIntents",
     "listMyLocalAgentTerminationIntents": "MeService.listMyLocalAgentTerminationIntents",
     "prepareBindWallet": "MeService.prepareBindWallet",
     "unbindWallet": "MeService.unbindWallet",

@@ -2186,6 +2186,46 @@ export type paths = {
         patch: operations["updateMyHandle"];
         trace?: never;
     };
+    "/api/human/me/local-agent-provision-intents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the viewer's own pending LocalAgent provision intents
+         * @description R-SOC-009 viewer-scoped list. Returns only the authenticated viewer’s OPEN and FAILED provision intents. The desktop reconciliation courier pulls this to deliver InitializeAgent to its loopback runtime.
+         */
+        get: operations["listMyLocalAgentProvisionIntents"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/human/me/local-agent-provision-intents/{intentId}/ack": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Acknowledge a LocalAgent provision intent outcome
+         * @description R-SOC-009 backend-owned ack transition. The courier reports a typed outcome; the backend applies the lifecycle move. Idempotent; cross-viewer access fails closed as a typed permission error.
+         */
+        post: operations["ackMyLocalAgentProvisionIntent"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/human/me/local-agent-termination-intents": {
         parameters: {
             query?: never;
@@ -5238,6 +5278,43 @@ export type components = {
             nextAfter: string | null;
             nextBefore: string | null;
         };
+        LocalAgentProvisionIntentAckDto: {
+            /** @description Typed failure detail recorded as lastError on a substrate_failure outcome. */
+            detail?: string;
+            /** @description established = runtime creation/repair confirmed (incl. K-AGCORE-139 already-exists no-op); substrate_failure = typed K-AGCORE-139 fail-closed provisioning failure. */
+            outcome: components["schemas"]["LocalAgentProvisionIntentAckOutcome"];
+        };
+        /**
+         * @description established = runtime creation/repair confirmed (incl. K-AGCORE-139 already-exists no-op); substrate_failure = typed K-AGCORE-139 fail-closed provisioning failure.
+         * @enum {string}
+         */
+        LocalAgentProvisionIntentAckOutcome: "established" | "substrate_failure";
+        LocalAgentProvisionIntentDto: {
+            /** Format: date-time */
+            ackedAt?: string | null;
+            /** @description Substrate-failure attempt count (only typed runtime failures charge this). */
+            attempts: number;
+            /**
+             * Format: date-time
+             * @description Backoff gate — the courier considers an OPEN intent once this time has elapsed.
+             */
+            availableAt: string;
+            /** Format: date-time */
+            createdAt: string;
+            id: string;
+            /** @description Deterministic R-CHAT-016 identity: local-agent:{ownerUserId}:{realmAgentId}. */
+            localAgentRef: string;
+            /** @description The human owner viewer account id. */
+            ownerUserId: string;
+            /** @description The RealmAgent account id (InitializeAgent target). */
+            realmAgentId: string;
+            status: components["schemas"]["LocalAgentProvisionIntentStatus"];
+        };
+        LocalAgentProvisionIntentListDto: {
+            items: components["schemas"]["LocalAgentProvisionIntentDto"][];
+        };
+        /** @enum {string} */
+        LocalAgentProvisionIntentStatus: "OPEN" | "ACKED" | "FAILED";
         LocalAgentTerminationIntentAckDto: {
             /** @description Typed failure detail recorded as lastError on a substrate_failure outcome. */
             detail?: string;
@@ -10915,6 +10992,50 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["UserPrivateDto"];
+                };
+            };
+        };
+    };
+    listMyLocalAgentProvisionIntents: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LocalAgentProvisionIntentListDto"];
+                };
+            };
+        };
+    };
+    ackMyLocalAgentProvisionIntent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                intentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LocalAgentProvisionIntentAckDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LocalAgentProvisionIntentDto"];
                 };
             };
         };

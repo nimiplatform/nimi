@@ -120,6 +120,7 @@ export const GENERATED_RUNTIME_SCOPES: readonly ScopeName[] = Object.freeze([
   'runtime.app.install_app' as ScopeName,
   'runtime.app.list_app_install_jobs' as ScopeName,
   'runtime.app.message' as ScopeName,
+  'runtime.app.open_app' as ScopeName,
   'runtime.app.read' as ScopeName,
   'runtime.app.send_app_message' as ScopeName,
   'runtime.app.subscribe_app_messages' as ScopeName,
