@@ -305,3 +305,49 @@ RPC 入口。它仅 admit 四个显式 action token：`cancel`、`retry`、`repa
 
 `MUST NOT`：任何 action 不得删除 durable data；不得把失败的 repair op 投影为
 success；不得 admit 上述四个 token 之外的 action。
+
+## K-APP-017 OpenApp Launch Flow
+
+`MUST`：`RuntimeAppService` admit 一个 `OpenApp` RPC，作为 Nimi App
+launch（Open flow）的唯一 Runtime RPC 入口。Runtime 拥有 app launch
+supervision（Platform `P-NAPP-006`）。`OpenApp` 必须：
+
+- 解析 `app_id` 对应的 admitted Nimi App registry row
+  （`admission_status=admitted`、`ordinary_visibility=ordinary-visible`）；
+- 接收一个显式的 canonical `AIScopeRef`，且该 ref 必须是 `P-AISC-007`
+  定义的 app-launch scope 形状 `{ kind: 'app', ownerId: <admitted app_id>,
+  surfaceId? }`，其 `ownerId` 必须与被 launch 的 `app_id` 一致；
+- 按 Open flow 顺序校验并 launch：verify package + account library state +
+  app data state → verify permissions 已 grant 或 promptable → ensure app
+  AIConfig 存在（首次 launch 走 `S-AICONF-009` 的 per-app first-launch
+  AIConfig initialization：app recommended profile if declared+satisfied,
+  else Account Default Profile；既有 per-app AIConfig 永不被覆盖）→
+  validate manifest requirements → launch；
+- 返回 typed launch projection，并对 package / library / app-data /
+  permission / AIConfig / manifest 任一环节的 fail-closed reason 携带
+  typed `reason_code`。
+
+`MUST NOT`：`OpenApp` 不得在缺少显式 `AIScopeRef` 时 launch，不得从 active
+chat、renderer-local current app、或默认 scope 隐式推断 launch scope
+（对齐 SDK `S-APP-003`）。它不得从 transfer completion、process liveness、
+file existence 推断 launch 成功；不得用单一 generic `unavailable` /
+`failed` 文案 collapse 多种 fail-closed reason；不得在 permission 未授予、
+AIConfig 无法解析、或 manifest requirement 未满足时返回 pseudo-success；
+不得在 Open flow 内静默改写既有 per-app AIConfig 或 factory profile
+template。
+
+`MUST`：`UninstallApp`（`K-APP-014`）必须发射一个可被 watch 的 lifecycle
+job —— `AppLifecycleJobKind` admit 一个 `uninstall` job kind，使
+`UninstallApp` 产出一个 typed `AppInstallJob`（`K-APP-012`）并可通过
+`WatchAppInstallJobEvents`（`K-APP-013`）订阅其 typed 进度帧。`uninstall`
+job 是 `uninstalling` 卡片状态的唯一 live-job 真相源。
+
+`MUST NOT`：`uninstalling` 进度态不得由 renderer-local in-flight flag 或
+其他 parallel-truth 信号推断；uninstall 进度 job 不得承载
+audit / permission / spend 事件，也不得改变 `K-APP-014` 的 durable-data
+保留语义。
+
+> 实现注记：`OpenApp` RPC 与 `AppLifecycleJobKind.uninstall` 的
+> `proto/runtime/v1/app.proto` 物化随后续 app-launch 实现 wave 落地；本规则
+> 是其 normative 契约面。`OpenApp` 不承载 app-to-app message broker 语义，
+> 与 `SendAppMessage` / `SubscribeAppMessages` 语义独立（对齐 `K-APP-001`）。

@@ -193,10 +193,71 @@ commit 之前向用户展示 apply 的影响（D-AIPC-014）：
   bridge（S-AICONF-005 / D-AIPC-011）使用 `previewApply`，不得自定义 mod-local
   preview 真相。
 
+## S-AICONF-009 — Per-App First-Launch AIConfig Initialization
+
+When a Nimi App is launched as a Nimi App, its app-scope `AIConfig` is
+initialized on first launch only. SDK may expose a typed helper for this
+finalization (e.g. an `appLifecycle.ensureAppAIConfig` surface), but the
+initialization semantics are fixed by this rule.
+
+`MUST`:
+
+- the initialization target scope must be a canonical `AIScopeRef` of the
+  app shape `{ kind: 'app', ownerId: <admitted app_id>, surfaceId? }`
+  (`P-AISC-007`, `S-AICONF-003`); the helper must require an explicit
+  `AIScopeRef` and must not infer it
+- on first launch, when the app scope has no existing `AIConfig`, the helper
+  must initialize it from the app's recommended profile — the typed factory
+  `AIProfile` reference declared by the app's registry row
+  `ai_profile_selection_ref` (`P-NAPP-002` / `P-NAPP-003`, `P-AIPS-009`) —
+  **only when** that reference is declared and resolves to an admitted
+  factory `AIProfile` whose manifest requirements the app validates as
+  satisfied
+- when the recommended profile is undeclared, unresolvable, or its manifest
+  requirements are not satisfied, the helper must initialize the app scope
+  `AIConfig` from the Account Default Profile (`accountDefaultProfileRef`,
+  `P-AIPS-013`)
+- initialization must go through the typed `aiProfile.apply(scopeRef,
+  profileId)` overwrite path (`S-AICONF-001`, `D-AIPC-005`); it produces a
+  full materialized `AIConfig`, not a partial overlay
+- when neither a satisfied recommended profile nor a resolvable Account
+  Default Profile is available, the helper must fail closed with a typed
+  error and must not launch with a synthesized, empty, or placeholder
+  `AIConfig`
+- when the app scope already has an existing `AIConfig`, the helper must
+  treat first-launch initialization as already complete and return the
+  existing config unchanged
+- when the app validates the materialized `AIConfig` against its manifest
+  requirements and finds them unmet, the helper must return a typed
+  setup/repair plan describing the unmet requirements; it must not silently
+  mutate the profile, the app scope `AIConfig`, or factory profile templates
+  to force a pass
+
+`MUST NOT`:
+
+- the helper must not overwrite, merge into, reset, or otherwise mutate an
+  existing per-app `AIConfig` on any launch after the first; a changed
+  Account Default Profile or a changed registry `ai_profile_selection_ref`
+  must never silently re-initialize an app scope that already has a config
+- the helper must not expose a fallback knob (`ensureAppAIConfig({ fallback:
+  'allow' })` style), must not downgrade a fail-closed result to a partial
+  config, and must not project an initialization failure as launch success
+- the helper must not accept renderer/localStorage values, app-local caches,
+  caller-provided strings, route-health probes, or file paths as a substitute
+  for the resolved recommended profile or Account Default Profile evidence
+- initialization must not be performed by the runtime install path; install
+  handles package readiness only and must not mutate AIConfig (Apps manual
+  authority; `K-APP-011`)
+
 ## Fact Sources
 
 - `.nimi/spec/desktop/kernel/ai-profile-config-contract.md` — D-AIPC-001~014
-- `.nimi/spec/platform/kernel/ai-scope-contract.md` — P-AISC-001~006
+- `.nimi/spec/platform/kernel/ai-scope-contract.md` — P-AISC-001~007
+- `.nimi/spec/platform/kernel/ai-profile-selection-policy-contract.md` —
+  P-AIPS-009 first-party app AIProfile hint, P-AIPS-013 Account Default Profile
+- `.nimi/spec/platform/kernel/nimi-app-admission-contract.md` —
+  P-NAPP-002 registry row schema, P-NAPP-003 AIProfile selection hint
+- `.nimi/spec/runtime/kernel/app-messaging-contract.md` — K-APP-017 app Open flow
 - `.nimi/spec/runtime/kernel/ai-profile-execution-contract.md` — K-AIEXEC-001~007
 - `.nimi/spec/runtime/kernel/runtime-memory-service-contract.md` — K-MEM-004~006b
 - `.nimi/spec/runtime/kernel/scheduling-contract.md` — K-SCHED-001~007

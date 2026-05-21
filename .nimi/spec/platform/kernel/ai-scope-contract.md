@@ -102,6 +102,50 @@ surfaceId: 'chat' }`、把两个子面合并到单一 `desktop.chat` scope、省
 `surfaceId` 的 feature scope、consumer-local string key、或任何 generic
 fallback chat scope 当作上述两个 built-in scope 的替身。
 
+## P-AISC-007 — App-Launch AIConfig Scope
+
+`MUST`：当一个 Nimi App 以 Nimi App 身份被 launch（Open flow，见
+`K-APP-017`）时，其 AIConfig 作用域只 admit 以下 canonical `AIScopeRef`
+形状：
+
+```
+AIScopeRef {
+  kind: 'app'
+  ownerId: <admitted Nimi App app_id>
+  surfaceId?: <stable app-declared AI feature surface id>
+}
+```
+
+- `ownerId` 必须是该 app 在 Nimi App registry 中已 admit 的 `app_id`
+  （`P-NAPP-002`），即 dot-separated namespace 形式的 app identity（例如
+  `nimi.avatar`、`parentos`），并且对应 row 必须满足
+  `admission_status=admitted`。它不得是 release descriptor id、package id、
+  registry row 序号、library record id、launch session id、renderer tab key、
+  account id、agent id、conversation id、profile id 或任何瞬时 launch context
+  token。
+- `surfaceId` 可选；仅当该 app 在其 manifest 中显式声明了一个 stable 的、
+  用户可稳定理解的 app 内独立 AI feature surface 时才允许携带，且其值必须是
+  该 manifest 声明的 stable surface id。它不得按 route、tab、window、
+  conversation、document、wizard step 或其他瞬时 UI / domain 粒度滥扩。省略
+  `surfaceId` 表示该 app 当前唯一的 canonical app-level AI scope。
+- 该 scope 的 identity 必须由 canonical factory / registry 产出
+  （`P-AISC-002`），并锚定到 app identity 的 lifecycle：app 从 account
+  library 中被移除时其 app-scope `AIConfig` 必须同步失效或清理，不得残留
+  悬空 config。
+- launch（Open flow）必须显式携带该 `AIScopeRef`；它是 `S-APP-003`
+  mandatory-AIScopeRef-on-launch 与 `K-APP-017` Open flow 的 canonical scope
+  载体。
+
+`MUST NOT`：app-launch 不得用 inferred、隐式默认、或 generic fallback app
+scope 充当 launch scope —— 不得在 caller 省略 scope 时回退到
+`{ kind: 'app', ownerId: 'desktop' }`、active app selection、renderer-local
+current app、上一次 launch 的 scope、或任何 consumer-default app scope。
+app-launch scope 不得复用 `P-AISC-006` 的 built-in chat feature scope
+（`desktop.chat.nimi` / `desktop.chat.agent` 是 `kind: 'feature'`，owner
+`desktop.chat`，不是 Nimi App），也不得把 built-in chat 的 `kind: 'feature'`
+形状投影成 app-launch scope。Nimi App 的 AIConfig truth 不得拆散到多个
+未经 manifest 声明的 `surfaceId` fragment。
+
 ## Fact Sources
 
 - 本契约无 YAML 表。Phase 1 scope kind 值域为封闭枚举 `'app' | 'mod' | 'module' | 'feature'`；若需扩展，须修改本规则并通过 spec consistency check。
@@ -109,3 +153,6 @@ fallback chat scope 当作上述两个 built-in scope 的替身。
 - First-run built-in chat scope identities固定为 `P-AISC-006` 中
   feature owner `desktop.chat` 下的 `{ surfaceId: 'nimi' }` 与
   `{ surfaceId: 'agent' }` 两个子面。
+- App-launch AIConfig scope identity 固定为 `P-AISC-007` 的
+  `{ kind: 'app', ownerId: <admitted app_id>, surfaceId? }` 形状；其
+  `ownerId` 解析对齐 `P-NAPP-002` registry row schema。
