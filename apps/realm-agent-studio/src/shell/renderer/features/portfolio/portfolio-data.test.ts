@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  applyOwnerPortfolioView,
   classifyAgentDetailFailure,
   classifyPortfolioFailure,
   normalizeOwnerPortfolioAgent,
@@ -38,6 +39,95 @@ describe('owner portfolio normalization', () => {
 
   it('classifies SDK httpStatus permission failures', () => {
     expect(classifyPortfolioFailure({ details: { httpStatus: 403 } }).title).toBe('Permission missing');
+  });
+});
+
+describe('owner portfolio local view controls', () => {
+  const agents = [
+    normalizeOwnerPortfolioAgent({
+      ...baseAgent,
+      id: 'agent-1',
+      displayName: 'Mira',
+      handle: 'mira',
+      friendCount: 12,
+      agentProfile: { worldId: 'oasis', state: 'ACTIVE' },
+    }),
+    normalizeOwnerPortfolioAgent({
+      ...baseAgent,
+      id: 'agent-2',
+      displayName: 'Zed',
+      handle: 'zed',
+      friendCount: 3,
+      agentProfile: { worldId: 'workshop', state: 'READY' },
+    }),
+    normalizeOwnerPortfolioAgent({
+      ...baseAgent,
+      id: 'agent-3',
+      displayName: 'Aster',
+      handle: 'aster',
+      agentProfile: { worldId: 'oasis', state: 'ACTIVE' },
+    }),
+  ];
+
+  it('searches local display, handle, world, and state fields without mutating the source list', () => {
+    const result = applyOwnerPortfolioView(agents, {
+      query: 'oasis',
+      filter: 'all',
+      sort: 'display-name-asc',
+    });
+
+    expect(result.map((agent) => agent.id)).toEqual(['agent-3', 'agent-1']);
+    expect(agents.map((agent) => agent.id)).toEqual(['agent-1', 'agent-2', 'agent-3']);
+  });
+
+  it('searches canonical agent id for manual lookup', () => {
+    const result = applyOwnerPortfolioView(agents, {
+      query: 'agent-2',
+      filter: 'all',
+      sort: 'display-name-asc',
+    });
+
+    expect(result.map((agent) => agent.id)).toEqual(['agent-2']);
+  });
+
+  it('preserves Realm list order until an owner selects a local sort', () => {
+    const result = applyOwnerPortfolioView(agents, {
+      query: '',
+      filter: 'all',
+      sort: 'realm-order',
+    });
+
+    expect(result.map((agent) => agent.id)).toEqual(['agent-1', 'agent-2', 'agent-3']);
+  });
+
+  it('filters source unavailable friendCount as unavailable rather than zero', () => {
+    const result = applyOwnerPortfolioView(agents, {
+      query: '',
+      filter: 'friend-count-unavailable',
+      sort: 'display-name-asc',
+    });
+
+    expect(result.map((agent) => agent.id)).toEqual(['agent-3']);
+    expect(result[0]?.friendCount).toEqual({
+      status: 'source-unavailable',
+      label: 'friendCount source unavailable',
+    });
+  });
+
+  it('sorts available friendCount values and keeps unavailable values after them', () => {
+    const descending = applyOwnerPortfolioView(agents, {
+      query: '',
+      filter: 'all',
+      sort: 'friend-count-desc',
+    });
+    const ascending = applyOwnerPortfolioView(agents, {
+      query: '',
+      filter: 'all',
+      sort: 'friend-count-asc',
+    });
+
+    expect(descending.map((agent) => agent.id)).toEqual(['agent-1', 'agent-2', 'agent-3']);
+    expect(ascending.map((agent) => agent.id)).toEqual(['agent-2', 'agent-1', 'agent-3']);
   });
 });
 

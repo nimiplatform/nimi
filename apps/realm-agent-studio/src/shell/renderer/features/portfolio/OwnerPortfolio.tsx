@@ -1,11 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Button, Checkbox, EmptyState, FieldShell, InlineAlert, SelectField, StatusBadge, Surface, TextareaField, TextField } from '@nimiplatform/nimi-kit/ui';
+import { Button, Checkbox, EmptyState, FieldShell, InlineAlert, SearchField, SelectField, StatusBadge, Surface, TextareaField, TextField } from '@nimiplatform/nimi-kit/ui';
 import {
+  applyOwnerPortfolioView,
   classifyAgentDetailFailure,
   classifyPortfolioFailure,
+  type OwnerPortfolioFilter,
   type OwnerPortfolioAgent,
   type OwnerPortfolioAgentDetail,
+  type OwnerPortfolioSort,
   type SettingField,
 } from './portfolio-data.js';
 import { getOwnerPortfolioAgentDetail, listOwnerPortfolioAgents } from './portfolio-client.js';
@@ -16,6 +19,20 @@ import {
   type CandidatePostPayload,
   type LocalPostDraftInput,
 } from './post-draft.js';
+
+const PORTFOLIO_FILTER_OPTIONS: { value: OwnerPortfolioFilter; label: string }[] = [
+  { value: 'all', label: 'All agents' },
+  { value: 'friend-count-available', label: 'friendCount available' },
+  { value: 'friend-count-unavailable', label: 'friendCount unavailable' },
+];
+
+const PORTFOLIO_SORT_OPTIONS: { value: OwnerPortfolioSort; label: string }[] = [
+  { value: 'realm-order', label: 'Realm order' },
+  { value: 'display-name-asc', label: 'Name A-Z' },
+  { value: 'updated-desc', label: 'Recently updated' },
+  { value: 'friend-count-desc', label: 'friendCount high-low' },
+  { value: 'friend-count-asc', label: 'friendCount low-high' },
+];
 
 function friendCountLabel(agent: OwnerPortfolioAgent) {
   if (agent.friendCount.status === 'available') {
@@ -357,17 +374,26 @@ function AgentDetail({ agentId }: { agentId: string }) {
 
 export function OwnerPortfolio() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [portfolioQueryText, setPortfolioQueryText] = useState('');
+  const [portfolioFilter, setPortfolioFilter] = useState<OwnerPortfolioFilter>('all');
+  const [portfolioSort, setPortfolioSort] = useState<OwnerPortfolioSort>('realm-order');
   const portfolioQuery = useQuery({
     queryKey: ['realm-agent-studio', 'owner-portfolio'],
     queryFn: () => listOwnerPortfolioAgents(),
   });
 
-  const selectedAgent = useMemo(() => {
-    const agents = portfolioQuery.data || [];
-    return agents.find((agent) => agent.id === selectedId) || agents[0] || null;
-  }, [portfolioQuery.data, selectedId]);
+  const agents = portfolioQuery.data || [];
+  const visibleAgents = useMemo(() => applyOwnerPortfolioView(agents, {
+    query: portfolioQueryText,
+    filter: portfolioFilter,
+    sort: portfolioSort,
+  }), [agents, portfolioFilter, portfolioQueryText, portfolioSort]);
 
-  const sourceWarnings = (portfolioQuery.data || []).filter((agent) => agent.friendCount.status === 'source-unavailable');
+  const selectedAgent = useMemo(() => {
+    return visibleAgents.find((agent) => agent.id === selectedId) || visibleAgents[0] || null;
+  }, [selectedId, visibleAgents]);
+
+  const sourceWarnings = agents.filter((agent) => agent.friendCount.status === 'source-unavailable');
 
   if (portfolioQuery.isLoading) {
     return <EmptyState title="Loading Realm owner portfolio" description="Reading GET /api/me/agents through SDK MeService.listMyRealmAgents." />;
@@ -383,7 +409,6 @@ export function OwnerPortfolio() {
     );
   }
 
-  const agents = portfolioQuery.data || [];
   if (agents.length === 0) {
     return (
       <EmptyState
@@ -404,16 +429,51 @@ export function OwnerPortfolio() {
           </div>
           <Button loading={portfolioQuery.isFetching} onClick={() => void portfolioQuery.refetch()}>Refresh</Button>
         </div>
+        <Surface tone="panel" padding="md" className="mb-3">
+          <div className="grid gap-3">
+            <FieldShell label="Search portfolio" message="Local view control only. Realm reads remain GET /api/me/agents.">
+              <SearchField
+                value={portfolioQueryText}
+                placeholder="Search name, handle, world, or state"
+                onChange={(event) => setPortfolioQueryText(event.currentTarget.value)}
+              />
+            </FieldShell>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <FieldShell label="Filter">
+                <SelectField
+                  value={portfolioFilter}
+                  options={PORTFOLIO_FILTER_OPTIONS}
+                  onValueChange={(value) => setPortfolioFilter(value as OwnerPortfolioFilter)}
+                />
+              </FieldShell>
+              <FieldShell label="Sort">
+                <SelectField
+                  value={portfolioSort}
+                  options={PORTFOLIO_SORT_OPTIONS}
+                  onValueChange={(value) => setPortfolioSort(value as OwnerPortfolioSort)}
+                />
+              </FieldShell>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <StatusBadge tone="neutral">{visibleAgents.length} of {agents.length} shown</StatusBadge>
+              <StatusBadge tone="info">app-local view</StatusBadge>
+            </div>
+          </div>
+        </Surface>
         {sourceWarnings.length > 0 ? (
           <InlineAlert tone="warning" className="mb-3">
             friendCount source unavailable for {sourceWarnings.length} Realm Agent{sourceWarnings.length === 1 ? '' : 's'}.
           </InlineAlert>
         ) : null}
-        <div className="grid gap-3">
-          {agents.map((agent) => (
-            <AgentCard key={agent.id} agent={agent} active={agent.id === selectedAgent?.id} onSelect={() => setSelectedId(agent.id)} />
-          ))}
-        </div>
+        {visibleAgents.length === 0 ? (
+          <EmptyState title="No agents match this local view" description="Adjust search, filter, or sort controls. No Realm write or queue state is created." />
+        ) : (
+          <div className="grid gap-3">
+            {visibleAgents.map((agent) => (
+              <AgentCard key={agent.id} agent={agent} active={agent.id === selectedAgent?.id} onSelect={() => setSelectedId(agent.id)} />
+            ))}
+          </div>
+        )}
       </aside>
       {selectedAgent ? <AgentDetail agentId={selectedAgent.id} /> : null}
     </div>
