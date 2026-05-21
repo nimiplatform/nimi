@@ -61,6 +61,16 @@ Forbidden fields:
 - raw Live2D adapter manifest payload, absolute source path, semantic
   compatibility verdict, computed tier, or Avatar diagnostic code ownership
 
+## D-LLM-079a Cross-Reference — `launch_mode` Actuation Authority
+
+The `launch_mode` field in the closed configuration record is declarative only.
+`launch_mode='start_with_chat'` actuation is owned by
+`agent-avatar-surface-contract.md` **D-LLM-105** (the eight-condition
+auto-launch gate), and `avatar_instance_policy` launch-time arbitration is owned
+by **D-LLM-106**. This configuration contract stores and presents the record; it
+does not own the launch-decision behavior and must not re-derive a second
+auto-launch gate or instance-arbitration path.
+
 ## D-LLM-080 — Launch Payload Hard Cut
 
 Desktop configuration MUST NOT widen Avatar launch payload.

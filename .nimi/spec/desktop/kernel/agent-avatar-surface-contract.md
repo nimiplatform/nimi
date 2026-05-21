@@ -435,6 +435,109 @@ Fixed rules:
   `avatar_instance_id`, but it must not treat those operations as proof of
   account, binding, package, or conversation authority.
 
+## D-LLM-105 — `start_with_chat` Auto-Launch Gate
+
+Desktop owns a single normative gate that decides whether opening Agent Chat for
+a LocalAgent auto-launches Avatar. The gate is the only authority for
+`launch_mode='start_with_chat'` actuation. It produces a launch *intent* and is
+adjacent to D-LLM-072, which owns the resulting launch payload.
+
+Actuation scope:
+
+- the gate evaluates on **each Agent-Chat-open event** for the selected
+  LocalAgent. It is per-open, not per-app-session; switching conversation
+  anchor or reopening Agent Chat re-evaluates the gate.
+- per-open evaluation does not by itself cause repeated spawning; double-spawn
+  prevention is owned by the instance-policy arbitration in D-LLM-106, not by a
+  separate session-scoped suppression.
+- the gate fires only for the `Agent Chat open` entry. The explicit setup-launch
+  and explicit quick-launch entries remain user-action launches and do not route
+  through this gate.
+
+The gate's admitted condition set is closed and pinned. Avatar auto-launch is
+permitted **only when all eight of the following are true**:
+
+1. user is logged in;
+2. selected target is a LocalAgent, not a RealmAgent;
+3. conversation anchor exists;
+4. local Avatar asset is selected and valid;
+5. backend capability posture is valid;
+6. Runtime projection is authorized;
+7. `launch_mode='start_with_chat'`;
+8. instance policy can be resolved safely.
+
+Fixed rules:
+
+- the gate MUST evaluate all eight conditions on every Agent-Chat-open event for
+  the selected LocalAgent before any `start_with_chat` launch intent is emitted.
+- the gate MUST NOT emit a launch intent when any one of the eight conditions is
+  false; a single failed condition fails the whole gate closed.
+- a failed gate MUST resolve to a typed non-launch outcome consistent with the
+  fail-closed configuration states of `agent-avatar-configuration-contract.md`
+  (`D-LLM-083`); it MUST NOT degrade to a guessed launch, a remembered local
+  binding, idle-motion success, or a static carrier proxy.
+- the gate MUST be the single actuation authority for `start_with_chat`. No
+  other Desktop surface, lifecycle hook, effect, or companion-event handler may
+  emit a `start_with_chat` auto-launch intent outside this gate.
+- the gate MUST NOT auto-launch Avatar globally on Nimi start, and MUST NOT
+  auto-launch from Nimi Chat, Human Chat, Group Chat, Contacts, Explore, or
+  Apps. Auto-launch is exclusively a per-LocalAgent Agent Chat posture and is
+  never applied to every AgentFriend.
+- the gate MUST NOT widen the launch payload. A passed gate emits only the
+  D-LLM-072 payload (`agent_id`, optional `avatar_instance_id`, optional
+  non-authoritative `launch_source`); the configuration record MUST NOT be
+  copied into the launch payload.
+- condition 6 (`Runtime projection is authorized`) MUST be a typed authorization
+  result, not inferred from the presence of a configuration record or from
+  prior same-agent traffic.
+
+## D-LLM-106 — Instance-Policy Launch Arbitration
+
+Every Avatar launch decision — both explicit-launch entries and the
+`start_with_chat` gate of D-LLM-105 — MUST branch on the configured
+`avatar_instance_policy`. The policy is the launch-time arbitration authority
+for whether a launch reuses, creates, or defers an Avatar instance. The closed
+policy enum is pinned by `tables/agent-avatar-configuration.schema.yaml`
+(`reuse_active_instance`, `launch_new_instance`, `require_user_selection`);
+the default is `reuse_active_instance`.
+
+Per-policy launch-time behavior:
+
+- `reuse_active_instance` — the launch decision MUST reuse an active Avatar
+  instance for the same `{ LocalAgent, conversation anchor }` when one exists,
+  and otherwise launch exactly one. Under this policy a single Agent-Chat-open
+  event MUST NOT produce a second instance for the same target.
+- `launch_new_instance` — a new instance is admitted only for explicit user
+  launch actions. When combined with `start_with_chat`, the launch decision MUST
+  apply a repeated-spawn guard so that a single Agent-Chat-open event spawns at
+  most one new instance; re-evaluation of D-LLM-105 on the same open event MUST
+  NOT spawn additional instances.
+- `require_user_selection` — when more than one valid instance/asset launch
+  posture exists, the launch decision MUST present a user selection and MUST NOT
+  auto-resolve; it launches only after the user chooses.
+
+Fixed rules:
+
+- the launch decision MUST NOT ignore `avatar_instance_policy` or hardcode a
+  single behavior; the three policies MUST produce three distinct launch-time
+  outcomes.
+- instance-conflict (a launch target collides with an existing live instance in
+  a way the active policy cannot resolve) MUST fail closed to a typed product
+  state. It MUST NOT silently reuse, silently spawn a duplicate, or report
+  launch success.
+- anchor-unavailable (no resolvable conversation anchor at launch time) MUST
+  fail closed to a typed product state and MUST NOT be substituted with a
+  guessed or remembered anchor, consistent with D-LLM-054 and D-LLM-072.
+- the repeated-spawn guard is a launch-decision concern; it MUST NOT be
+  implemented as Desktop-local carrier process ownership and MUST NOT promote
+  Desktop into an Avatar instance lifecycle owner. Avatar remains the execution
+  owner; Desktop arbitrates only the launch intent.
+- arbitration MUST preserve D-LLM-054 multi-instance identity: each launched or
+  reused instance remains bound to an explicit
+  `{ agent_id, conversation_anchor_id, surface_instance_id }` triple, and the
+  product surface MUST keep each visible instance attributable to its LocalAgent
+  so the user can identify, reveal, and close it.
+
 ## Fact Sources
 
 - `.nimi/spec/runtime/kernel/agent-presentation-contract.md` — runtime persistent presentation truth and non-owner boundary
