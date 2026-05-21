@@ -2671,6 +2671,46 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/me/agents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List my owner-owned Realm Agents
+         * @description Returns the current authenticated user owned MASTER_OWNED RealmAgent users. WORLD_OWNED and world-created NPC agents are excluded.
+         */
+        get: operations["listMyRealmAgents"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/me/agents/{agentId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get my owner-owned Realm Agent
+         * @description Returns one current authenticated user owned MASTER_OWNED RealmAgent user. WORLD_OWNED and world-created NPC agents are excluded.
+         */
+        get: operations["getMyRealmAgent"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/reports": {
         parameters: {
             query?: never;
@@ -3927,6 +3967,8 @@ export type components = {
             bio?: string | null;
             createdAt: string;
             displayName: string;
+            /** @description Owner-visible friend count for this account. For RealmAgent users, this is derived from ACTIVE HUMAN_AGENT Friendship rows. */
+            friendCount?: number;
             handle: string;
             id: string;
             isAgent?: boolean;
@@ -3934,6 +3976,7 @@ export type components = {
             presenceEmoji?: string | null;
             presenceStatus?: string | null;
             presenceText?: string | null;
+            profileCoverUrl?: string | null;
             stats?: components["schemas"]["AgentStatsDto"];
             status?: components["schemas"]["AccountStatus"];
             tiers?: components["schemas"]["AgentResponseTierSummaryDto"];
@@ -5023,6 +5066,8 @@ export type components = {
             countryCode?: string | null;
             createdAt: string;
             displayName: string;
+            /** @description Owner-visible friend count for this account. For RealmAgent users, this is derived from ACTIVE HUMAN_AGENT Friendship rows. */
+            friendCount?: number;
             /** Format: date-time */
             friendsSince?: string | null;
             gender?: components["schemas"]["Gender"] | null;
@@ -5037,6 +5082,7 @@ export type components = {
             presenceEmoji?: string | null;
             presenceStatus?: string | null;
             presenceText?: string | null;
+            profileCoverUrl?: string | null;
             reviewStats?: components["schemas"]["ReviewStatsDto"];
             socialProfiles?: components["schemas"]["SocialProfileDto"][];
             stats?: components["schemas"]["UserStatsDto"];
@@ -6507,6 +6553,7 @@ export type components = {
             category?: string;
             contentRating?: string;
             displayName?: string;
+            profileCoverUrl?: string;
             tags?: string[];
             webhookUrl?: string;
         };
@@ -6587,6 +6634,8 @@ export type components = {
             gender?: components["schemas"]["Gender"];
             /** @description Spoken languages */
             languages?: string[];
+            /** @description Profile cover URL */
+            profileCoverUrl?: string;
             /** @description User tags/interests */
             tags?: string[];
         };
@@ -6724,6 +6773,8 @@ export type components = {
             bio?: string | null;
             createdAt: string;
             displayName: string;
+            /** @description Owner-visible friend count for this account. For RealmAgent users, this is derived from ACTIVE HUMAN_AGENT Friendship rows. */
+            friendCount?: number;
             handle: string;
             id: string;
             isAgent?: boolean;
@@ -6731,6 +6782,7 @@ export type components = {
             presenceEmoji?: string | null;
             presenceStatus?: string | null;
             presenceText?: string | null;
+            profileCoverUrl?: string | null;
             status?: components["schemas"]["AccountStatus"];
             tiers?: components["schemas"]["UserTierSummaryDto"];
         };
@@ -6750,6 +6802,8 @@ export type components = {
             createdAt: string;
             displayName: string;
             email?: string;
+            /** @description Owner-visible friend count for this account. For RealmAgent users, this is derived from ACTIVE HUMAN_AGENT Friendship rows. */
+            friendCount?: number;
             gender?: components["schemas"]["Gender"] | null;
             giftStats?: {
                 [key: string]: number;
@@ -6767,6 +6821,7 @@ export type components = {
             presenceEmoji?: string | null;
             presenceStatus?: string | null;
             presenceText?: string | null;
+            profileCoverUrl?: string | null;
             reviewStats?: components["schemas"]["ReviewStatsDto"];
             role: components["schemas"]["AccountRole"];
             socialProfiles?: components["schemas"]["SocialProfileDto"][];
@@ -6788,6 +6843,8 @@ export type components = {
             countryCode?: string | null;
             createdAt: string;
             displayName: string;
+            /** @description Owner-visible friend count for this account. For RealmAgent users, this is derived from ACTIVE HUMAN_AGENT Friendship rows. */
+            friendCount?: number;
             gender?: components["schemas"]["Gender"] | null;
             giftStats?: {
                 [key: string]: number;
@@ -6800,6 +6857,7 @@ export type components = {
             presenceEmoji?: string | null;
             presenceStatus?: string | null;
             presenceText?: string | null;
+            profileCoverUrl?: string | null;
             reviewStats?: components["schemas"]["ReviewStatsDto"];
             socialProfiles?: components["schemas"]["SocialProfileDto"][];
             stats?: components["schemas"]["UserStatsDto"];
@@ -11737,6 +11795,49 @@ export interface operations {
                 };
                 content: {
                     "application/json": boolean;
+                };
+            };
+        };
+    };
+    listMyRealmAgents: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Current user owner-owned RealmAgent users */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserLiteDto"][];
+                };
+            };
+        };
+    };
+    getMyRealmAgent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description RealmAgent account ID */
+                agentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Current user owner-owned RealmAgent user */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserLiteDto"];
                 };
             };
         };

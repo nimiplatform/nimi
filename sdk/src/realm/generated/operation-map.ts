@@ -3388,6 +3388,31 @@ export const REALM_OPERATION_MAP = {
     ],
     "hasSuccessBody": true
   },
+  "MeService.getMyRealmAgent": {
+    "operationId": "getMyRealmAgent",
+    "method": "GET",
+    "path": "/api/me/agents/{agentId}",
+    "service": "MeService",
+    "methodName": "getMyRealmAgent",
+    "tag": "Me",
+    "parameters": [
+      {
+        "name": "agentId",
+        "in": "path",
+        "required": true,
+        "valueType": "string"
+      }
+    ],
+    "hasBody": false,
+    "bodyRequired": false,
+    "successStatusCodes": [
+      "200"
+    ],
+    "successContentTypes": [
+      "application/json"
+    ],
+    "hasSuccessBody": true
+  },
   "MeService.getMySettings": {
     "operationId": "getMySettings",
     "method": "GET",
@@ -3513,6 +3538,24 @@ export const REALM_OPERATION_MAP = {
     "path": "/api/human/me/local-agent-termination-intents",
     "service": "MeService",
     "methodName": "listMyLocalAgentTerminationIntents",
+    "tag": "Me",
+    "parameters": [],
+    "hasBody": false,
+    "bodyRequired": false,
+    "successStatusCodes": [
+      "200"
+    ],
+    "successContentTypes": [
+      "application/json"
+    ],
+    "hasSuccessBody": true
+  },
+  "MeService.listMyRealmAgents": {
+    "operationId": "listMyRealmAgents",
+    "method": "GET",
+    "path": "/api/me/agents",
+    "service": "MeService",
+    "methodName": "listMyRealmAgents",
     "tag": "Me",
     "parameters": [],
     "hasBody": false,
@@ -6528,6 +6571,7 @@ export const REALM_SERVICE_METHODS = {
     "getMyNotificationSettings": "MeService.getMyNotificationSettings",
     "getMyPendingFriendRequests": "MeService.getMyPendingFriendRequests",
     "getMyPPConfig": "MeService.getMyPPConfig",
+    "getMyRealmAgent": "MeService.getMyRealmAgent",
     "getMySettings": "MeService.getMySettings",
     "getMyTiers": "MeService.getMyTiers",
     "getMyWallets": "MeService.getMyWallets",
@@ -6535,6 +6579,7 @@ export const REALM_SERVICE_METHODS = {
     "listMyFriendsWithDetails": "MeService.listMyFriendsWithDetails",
     "listMyLocalAgentProvisionIntents": "MeService.listMyLocalAgentProvisionIntents",
     "listMyLocalAgentTerminationIntents": "MeService.listMyLocalAgentTerminationIntents",
+    "listMyRealmAgents": "MeService.listMyRealmAgents",
     "prepareBindWallet": "MeService.prepareBindWallet",
     "unbindWallet": "MeService.unbindWallet",
     "unblockUser": "MeService.unblockUser",
