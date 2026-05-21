@@ -26,7 +26,7 @@ implementation.
 | Story | Required acceptance |
 | --- | --- |
 | Review Agent Portfolio | User-owned Realm Agents are visible with app-local draft or Realm-created status and source availability. Unavailable metrics are not zero. LocalAgent private state is never exposed. |
-| Create Realm Agent | Creation defaults to `OASIS`, allows any Realm `listWorlds` result by product decision, shows selected-world basic setting from existing world detail before submit, collects owner-facing setting intent rather than raw rule CRUD by default, submits owner create only through `AgentsService.agentControllerCreate` / `POST /api/agent`, and succeeds only when Realm returns the canonical created object with `id`. |
+| Create Realm Agent | Creation defaults to `OASIS`, allows any Realm `listWorlds` result by product decision, checks handle availability through `AgentsService.agentControllerCheckHandle`, shows selected-world basic setting from existing world detail before submit, collects owner-facing setting intent rather than raw rule CRUD by default, submits owner create only through `AgentsService.agentControllerCreate` / `POST /api/agent`, and succeeds only when Realm returns the canonical created object with `id`. |
 | Update Canonical Setting | Current owner setting values are shown from `GET /api/me/agents/{agentId}/settings`. Canonical rule review may appear only after an admitted owner-scoped rule-content read surface exists. AI proposals remain editable. Default editing is natural language plus structured setting fields, not raw `AgentRule` CRUD. Save succeeds only through `PATCH /api/me/agents/{agentId}/settings`. Private LocalAgent memory is not overwritten. |
 | Review Setting Consistency | Runtime review is advisory. Accepted edits return to normal owner-reviewed settings save. Runtime does not define Realm truth. |
 | Review Canonical Rule Truth | Canonical `AgentRule` truth may be shown for review, audit, or expert confirmation only through an admitted owner-scoped rule-content read surface. It is not the default owner-facing editing model. |
@@ -53,6 +53,9 @@ implementation.
 - Owner create surface is `POST /api/agent` through
   `AgentsService.agentControllerCreate`. `/api/creator/agents` is
   World Creator / Maintainer evidence only and is not an owner create path.
+- Handle availability preflight uses `GET /api/agent/handles/check` through
+  `AgentsService.agentControllerCheckHandle`. It is not a truth write and does
+  not replace create response confirmation.
 - Owner-facing setting save uses `PATCH /api/me/agents/{agentId}/settings`, a
   canonical owner-scoped Realm settings/truth ingress that compiles or derives
   canonical `AgentRule` truth writes.

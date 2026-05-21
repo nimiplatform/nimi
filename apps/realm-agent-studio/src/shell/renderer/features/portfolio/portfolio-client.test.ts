@@ -8,6 +8,7 @@ import {
   buildRuntimeProjectionInput,
   buildRealmSelectAvatarInput,
   buildRealmUpdateVisibilityInput,
+  checkCreateRealmAgentHandleAvailability,
   createAgentVisibilityDraft,
   createReviewedPostTextResource,
   createReviewedRealmAgent,
@@ -87,6 +88,11 @@ function mockRealm() {
   return {
     services: {
       AgentsService: {
+        agentControllerCheckHandle: vi.fn(async (handle: string) => ({
+          available: handle !== 'taken.agent',
+          normalized: handle,
+          ...(handle === 'taken.agent' ? { message: 'Handle already taken.' } : {}),
+        })),
         agentControllerCreate: vi.fn(async () => ({
           id: 'agent-created-1',
           state: 'INCUBATING',
@@ -538,6 +544,36 @@ describe('owner portfolio client', () => {
     expect(realm.services.WorldsService.worldControllerGetWorldDetailWithAgents).toHaveBeenCalledWith('world-oasis', 4);
     expect(realm.services.AgentsService.agentControllerCreate).not.toHaveBeenCalled();
     expect(preview.source).toBe('Realm WorldsService.worldControllerGetWorldDetailWithAgents');
+  });
+
+  it('checks create handle availability through AgentsService before create', async () => {
+    const realm = mockRealm();
+    const available = await checkCreateRealmAgentHandleAvailability(' @Mira.Agent ', realm);
+    const unavailable = await checkCreateRealmAgentHandleAvailability('taken.agent', realm);
+
+    expect(realm.services.AgentsService.agentControllerCheckHandle).toHaveBeenCalledWith('mira.agent');
+    expect(realm.services.AgentsService.agentControllerCheckHandle).toHaveBeenCalledWith('taken.agent');
+    expect(available).toMatchObject({
+      ok: true,
+      truthWrite: false,
+      availability: {
+        source: 'Realm AgentsService.agentControllerCheckHandle',
+        handle: 'mira.agent',
+        normalized: 'mira.agent',
+        available: true,
+      },
+    });
+    expect(unavailable).toMatchObject({
+      ok: true,
+      truthWrite: false,
+      availability: {
+        handle: 'taken.agent',
+        available: false,
+        message: 'Handle already taken.',
+      },
+    });
+    expect(realm.services.AgentsService.agentControllerCreate).not.toHaveBeenCalled();
+    expect(Object.hasOwn(realm.services, 'CreatorService')).toBe(false);
   });
 
   it('creates a Realm Agent through AgentsService.agentControllerCreate with CreateAgentDto allowlist only', async () => {

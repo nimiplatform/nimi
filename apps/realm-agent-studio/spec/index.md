@@ -30,6 +30,10 @@ route design, or app implementation.
   surface.
 - `POST /api/agent` / `AgentsService.agentControllerCreate` is the Studio
   owner-scoped Realm Agent create surface.
+- `GET /api/agent/handles/check` /
+  `AgentsService.agentControllerCheckHandle` is the Studio create preflight
+  handle availability surface. It writes no truth and must not replace Realm
+  create confirmation.
 - `GET/PATCH /api/me/agents/{agentId}/settings` /
   `MeService.getMyRealmAgentSettings` and
   `MeService.updateMyRealmAgentSettings` are the Studio owner-scoped settings

@@ -27,8 +27,8 @@ owner-created agents.
   availability.
 - Create Realm Agent with public identity, `OASIS` default world, optional world
   selection from any Realm `listWorlds` result by product decision,
-  selected-world basic setting preview from existing world detail, and visible
-  public fields before submit.
+  handle availability preflight, selected-world basic setting preview from
+  existing world detail, and visible public fields before submit.
 - Update canonical public setting through owner settings input: natural
   language, structured setting fields, AI proposal/review, and canonical rule
   review only when an admitted owner-scoped rule-content read surface exists.

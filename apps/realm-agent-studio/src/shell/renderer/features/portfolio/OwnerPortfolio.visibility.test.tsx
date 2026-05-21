@@ -15,6 +15,23 @@ vi.mock('./portfolio-client.js', async (importOriginal) => {
       dmVisibility: 'FRIENDS',
       profileVisibility: 'PUBLIC',
     })),
+    checkCreateRealmAgentHandleAvailability: vi.fn(async (handle: string) => ({
+      ok: true,
+      truthWrite: false,
+      response: {
+        available: handle !== 'taken.agent',
+        normalized: handle,
+        ...(handle === 'taken.agent' ? { message: 'Handle already taken.' } : {}),
+      },
+      availability: {
+        checked: true,
+        source: 'Realm AgentsService.agentControllerCheckHandle',
+        handle,
+        normalized: handle,
+        available: handle !== 'taken.agent',
+        ...(handle === 'taken.agent' ? { message: 'Handle already taken.' } : {}),
+      },
+    })),
     getOwnerAgentSettings: vi.fn(async () => ({
       agentId: 'agent-1',
       worldId: 'world-oasis',
@@ -395,6 +412,17 @@ afterEach(() => {
 });
 
 describe('OwnerPortfolio visibility settings UI', () => {
+  it('checks create handle availability through Realm before create submit', async () => {
+    await renderOwnerPortfolio();
+    await waitForText('Create Realm Agent');
+
+    await changeField(findFieldByPlaceholder<HTMLInputElement>('@creator-agent'), '@Mira.Agent');
+
+    await waitForText('Handle @mira.agent is available.');
+    expect(portfolioClient.checkCreateRealmAgentHandleAvailability).toHaveBeenCalledWith('mira.agent');
+    expect(document.body.textContent).toContain('Checked through AgentsService.agentControllerCheckHandle before submit');
+  });
+
   it('shows the human-review gate and lifecycle boundary for real visibility settings', async () => {
     await renderOwnerPortfolio();
     await waitForText('Visibility settings');

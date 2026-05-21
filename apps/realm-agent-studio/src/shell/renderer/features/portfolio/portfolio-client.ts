@@ -10,8 +10,11 @@ import {
 } from './portfolio-data.js';
 import {
   REALM_AGENT_CREATE_SOURCE,
+  normalizeCreateRealmAgentDraft,
+  normalizeRealmAgentHandleAvailability,
   normalizeSelectableWorlds,
   normalizeSelectedWorldPreview,
+  type NormalizedRealmAgentHandleAvailability,
   type RealmAgentCreationWorldDto,
   type RealmCreateAgentInput,
   type ReviewedCreateRealmAgentPayload,
@@ -33,6 +36,7 @@ import {
 } from './setting-proposal.js';
 
 type RealmCreateAgentResponse = Awaited<ReturnType<Realm['services']['AgentsService']['agentControllerCreate']>>;
+type RealmAgentHandleAvailabilityResponse = Awaited<ReturnType<Realm['services']['AgentsService']['agentControllerCheckHandle']>>;
 type RealmSelectAvatarInput = Parameters<Realm['services']['AgentsService']['agentControllerSelectAvatar']>[1];
 type RealmSelectAvatarResponse = Awaited<ReturnType<Realm['services']['AgentsService']['agentControllerSelectAvatar']>>;
 export type RealmAgentVisibilitySettings = Awaited<ReturnType<Realm['services']['AgentsService']['agentControllerGetVisibility']>>;
@@ -250,6 +254,21 @@ export type RealmAgentCreateResult =
     source: typeof REALM_AGENT_CREATE_SOURCE;
     failure: 'realm-create-agent-failed' | 'realm-create-agent-missing-canonical-id';
     message: string;
+  };
+
+export type RealmAgentHandleAvailabilityResult =
+  | {
+    ok: true;
+    truthWrite: false;
+    availability: NormalizedRealmAgentHandleAvailability;
+    response: RealmAgentHandleAvailabilityResponse;
+  }
+  | {
+    ok: false;
+    truthWrite: false;
+    failure: 'agent-handle-invalid' | 'realm-agent-handle-check-failed' | 'realm-agent-handle-check-invalid-response';
+    message: string;
+    availability: null;
   };
 
 export type RealmAgentAvatarSelectResult =
@@ -878,6 +897,57 @@ export async function getCreateRealmAgentWorldPreview(
 ): Promise<SelectedWorldPreview> {
   const world = await realm.services.WorldsService.worldControllerGetWorldDetailWithAgents(worldId, 4);
   return normalizeSelectedWorldPreview(world);
+}
+
+export async function checkCreateRealmAgentHandleAvailability(
+  handle: string,
+  realm: Realm = createStudioRealmClient(),
+): Promise<RealmAgentHandleAvailabilityResult> {
+  const normalizedHandle = normalizeCreateRealmAgentDraft({
+    handle,
+    displayName: '',
+    publicBio: '',
+    concept: '',
+    description: '',
+    ruleText: '',
+    selectedWorldId: '',
+  }).handle;
+  if (!normalizedHandle) {
+    return {
+      ok: false,
+      truthWrite: false,
+      failure: 'agent-handle-invalid',
+      message: 'Agent handle check requires a non-empty normalized handle.',
+      availability: null,
+    };
+  }
+
+  try {
+    const response = await realm.services.AgentsService.agentControllerCheckHandle(normalizedHandle);
+    if (!response || typeof response !== 'object' || typeof (response as Record<string, unknown>).available !== 'boolean') {
+      return {
+        ok: false,
+        truthWrite: false,
+        failure: 'realm-agent-handle-check-invalid-response',
+        message: 'Realm handle availability check did not return an availability boolean.',
+        availability: null,
+      };
+    }
+    return {
+      ok: true,
+      truthWrite: false,
+      availability: normalizeRealmAgentHandleAvailability(normalizedHandle, response),
+      response,
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      truthWrite: false,
+      failure: 'realm-agent-handle-check-failed',
+      message: error instanceof Error ? error.message : 'Realm handle availability check failed.',
+      availability: null,
+    };
+  }
 }
 
 export async function createReviewedRealmAgent(

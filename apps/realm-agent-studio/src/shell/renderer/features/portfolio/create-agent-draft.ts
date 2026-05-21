@@ -3,10 +3,13 @@ import type { RealmServiceArgs, RealmServiceResult } from '@nimiplatform/sdk/rea
 export type RealmAgentCreationWorldDto = RealmServiceResult<'WorldsService', 'worldControllerListWorlds'>[number];
 export type RealmAgentCreationWorldDetailDto = RealmServiceResult<'WorldsService', 'worldControllerGetWorldDetailWithAgents'>;
 export type RealmCreateAgentInput = RealmServiceArgs<'AgentsService', 'agentControllerCreate'>[0];
+export type RealmAgentHandleAvailabilityDto = RealmServiceResult<'AgentsService', 'agentControllerCheckHandle'>;
 type RealmCreateAgentRulesInput = NonNullable<RealmCreateAgentInput['rules']>;
 
 export const REALM_AGENT_CREATE_SOURCE = 'Realm AgentsService.agentControllerCreate';
 export const REALM_AGENT_CREATE_PATH = 'POST /api/agent';
+export const REALM_AGENT_HANDLE_CHECK_SOURCE = 'Realm AgentsService.agentControllerCheckHandle';
+export const REALM_AGENT_HANDLE_CHECK_PATH = 'GET /api/agent/handles/check';
 
 export type CreateRealmAgentDraftInput = {
   handle: string;
@@ -93,7 +96,26 @@ export type CreateRealmAgentReadiness =
 
 export type CreateRealmAgentReadinessOptions = {
   selectableWorldIds?: string[];
+  handleAvailability?: NormalizedRealmAgentHandleAvailability | null | undefined;
 };
+
+export type NormalizedRealmAgentHandleAvailability =
+  | {
+    checked: true;
+    source: typeof REALM_AGENT_HANDLE_CHECK_SOURCE;
+    handle: string;
+    normalized: string;
+    available: true;
+    message?: string;
+  }
+  | {
+    checked: true;
+    source: typeof REALM_AGENT_HANDLE_CHECK_SOURCE;
+    handle: string;
+    normalized: string;
+    available: false;
+    message: string;
+  };
 
 function readRecord(value: unknown): Record<string, unknown> | null {
   return value && typeof value === 'object' ? value as Record<string, unknown> : null;
@@ -123,6 +145,32 @@ export function normalizeCreateRealmAgentDraft(input: CreateRealmAgentDraftInput
     description: input.description.trim(),
     ruleText: input.ruleText.trim(),
     selectedWorldId: input.selectedWorldId.trim(),
+  };
+}
+
+export function normalizeRealmAgentHandleAvailability(
+  handle: string,
+  response: RealmAgentHandleAvailabilityDto,
+): NormalizedRealmAgentHandleAvailability {
+  const normalized = readString(response.normalized) || normalizeHandle(handle);
+  if (response.available) {
+    return {
+      checked: true,
+      source: REALM_AGENT_HANDLE_CHECK_SOURCE,
+      handle: normalizeHandle(handle),
+      normalized,
+      available: true,
+      ...(response.message ? { message: response.message } : {}),
+    };
+  }
+
+  return {
+    checked: true,
+    source: REALM_AGENT_HANDLE_CHECK_SOURCE,
+    handle: normalizeHandle(handle),
+    normalized,
+    available: false,
+    message: response.message || 'Realm reported this agent handle is unavailable.',
   };
 }
 
@@ -180,6 +228,7 @@ export function validateCreateRealmAgentReadiness(
   const selectableWorldIds = options.selectableWorldIds
     ? new Set(options.selectableWorldIds.map((worldId) => worldId.trim()).filter(Boolean))
     : null;
+  const handleAvailability = options.handleAvailability;
 
   if (!draft.handle) {
     errors.push('handle missing');
@@ -195,6 +244,15 @@ export function validateCreateRealmAgentReadiness(
   }
   if (draft.selectedWorldId && selectableWorldIds && !selectableWorldIds.has(draft.selectedWorldId)) {
     errors.push('selected world not source-backed by WorldsService.worldControllerListWorlds');
+  }
+  if (draft.handle) {
+    if (!handleAvailability) {
+      errors.push('handle availability not checked by AgentsService.agentControllerCheckHandle');
+    } else if (handleAvailability.handle !== draft.handle && handleAvailability.normalized !== draft.handle) {
+      errors.push('handle availability not checked for the current normalized handle');
+    } else if (!handleAvailability.available) {
+      errors.push(`handle unavailable: ${handleAvailability.message}`);
+    }
   }
 
   if (errors.length > 0) {

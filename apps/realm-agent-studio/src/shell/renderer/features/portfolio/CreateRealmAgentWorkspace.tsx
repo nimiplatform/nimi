@@ -8,13 +8,16 @@ import {
   selectOasisDefaultWorld,
   validateCreateRealmAgentReadiness,
   type CreateRealmAgentDraftInput,
+  type NormalizedRealmAgentHandleAvailability,
   type ReviewedCreateRealmAgentPayload,
   type SelectableRealmWorld,
 } from './create-agent-draft.js';
 import {
+  checkCreateRealmAgentHandleAvailability,
   createReviewedRealmAgent,
   getCreateRealmAgentWorldPreview,
   listCreateRealmAgentSelectableWorlds,
+  type RealmAgentHandleAvailabilityResult,
   type RealmAgentCreateResult,
 } from './portfolio-client.js';
 
@@ -35,9 +38,17 @@ function worldOptionLabel(world: SelectableRealmWorld): string {
   return `${world.name}${type}`;
 }
 
-function ReadinessPreview({ draft, selectableWorldIds }: { draft: CreateRealmAgentDraftInput; selectableWorldIds: string[] }) {
+function ReadinessPreview({
+  draft,
+  selectableWorldIds,
+  handleAvailability,
+}: {
+  draft: CreateRealmAgentDraftInput;
+  selectableWorldIds: string[];
+  handleAvailability: NormalizedRealmAgentHandleAvailability | null;
+}) {
   const normalizedDraft = normalizeCreateRealmAgentDraft(draft);
-  const readiness = validateCreateRealmAgentReadiness(draft, { selectableWorldIds });
+  const readiness = validateCreateRealmAgentReadiness(draft, { selectableWorldIds, handleAvailability });
 
   return (
     <div className="grid gap-4">
@@ -93,12 +104,19 @@ export function CreateRealmAgentWorkspace() {
   const oasisWorld = useMemo(() => selectOasisDefaultWorld(worlds), [worlds]);
   const selectedWorld = worlds.find((world) => world.id === draft.selectedWorldId) || null;
   const selectedWorldId = draft.selectedWorldId;
+  const normalizedDraft = useMemo(() => normalizeCreateRealmAgentDraft(draft), [draft]);
 
   const worldPreviewQuery = useQuery({
     queryKey: ['realm-agent-studio', 'create-agent-world-preview', selectedWorldId],
     queryFn: () => getCreateRealmAgentWorldPreview(selectedWorldId),
     enabled: selectedWorldId.length > 0 && Boolean(selectedWorld),
   });
+  const handleAvailabilityQuery = useQuery<RealmAgentHandleAvailabilityResult>({
+    queryKey: ['realm-agent-studio', 'create-agent-handle-availability', normalizedDraft.handle],
+    queryFn: () => checkCreateRealmAgentHandleAvailability(normalizedDraft.handle),
+    enabled: normalizedDraft.handle.length > 0,
+  });
+  const handleAvailability = handleAvailabilityQuery.data?.ok ? handleAvailabilityQuery.data.availability : null;
 
   useEffect(() => {
     if (!draft.selectedWorldId && oasisWorld) {
@@ -124,7 +142,7 @@ export function CreateRealmAgentWorkspace() {
   });
 
   function submitCreate() {
-    const readiness = validateCreateRealmAgentReadiness(draft, { selectableWorldIds });
+    const readiness = validateCreateRealmAgentReadiness(draft, { selectableWorldIds, handleAvailability });
     if (!readiness.ready) {
       setLocalSubmitErrors(readiness.errors);
       setSubmitResult(null);
@@ -135,8 +153,10 @@ export function CreateRealmAgentWorkspace() {
     createMutation.mutate(readiness.payload);
   }
 
-  const readiness = validateCreateRealmAgentReadiness(draft, { selectableWorldIds });
-  const createDisabled = createMutation.isPending || worldsQuery.isLoading || worlds.length === 0 || !selectedWorld || !readiness.ready;
+  const readiness = validateCreateRealmAgentReadiness(draft, { selectableWorldIds, handleAvailability });
+  const handleCheckBlocking = Boolean(normalizedDraft.handle)
+    && (handleAvailabilityQuery.isLoading || handleAvailabilityQuery.isError || !handleAvailability?.available);
+  const createDisabled = createMutation.isPending || worldsQuery.isLoading || worlds.length === 0 || !selectedWorld || !readiness.ready || handleCheckBlocking;
 
   return (
     <Surface tone="panel" padding="lg" className="min-w-0">
@@ -153,7 +173,7 @@ export function CreateRealmAgentWorkspace() {
 
           <div className="mt-4 grid gap-4">
             <div className="grid gap-4 md:grid-cols-2">
-              <FieldShell label="Agent handle" message="Normalized locally for preview; uniqueness is not checked in this slice.">
+              <FieldShell label="Agent handle" message="Checked through AgentsService.agentControllerCheckHandle before submit.">
                 <TextField
                   value={draft.handle}
                   placeholder="@creator-agent"
@@ -168,6 +188,22 @@ export function CreateRealmAgentWorkspace() {
                 />
               </FieldShell>
             </div>
+            {normalizedDraft.handle && handleAvailabilityQuery.isLoading ? (
+              <InlineAlert tone="info">Checking handle availability through AgentsService.agentControllerCheckHandle.</InlineAlert>
+            ) : null}
+            {handleAvailabilityQuery.isError ? (
+              <InlineAlert tone="danger">Handle availability source unavailable: AgentsService.agentControllerCheckHandle failed.</InlineAlert>
+            ) : null}
+            {handleAvailabilityQuery.data?.ok === false ? (
+              <InlineAlert tone="danger">{handleAvailabilityQuery.data.message}</InlineAlert>
+            ) : null}
+            {handleAvailability ? (
+              <InlineAlert tone={handleAvailability.available ? 'success' : 'danger'}>
+                {handleAvailability.available
+                  ? `Handle @${handleAvailability.normalized} is available.`
+                  : `Handle @${handleAvailability.normalized} is unavailable: ${handleAvailability.message}`}
+              </InlineAlert>
+            ) : null}
             <FieldShell label="Public bio" message="Visible preview field only; no Realm write is performed.">
               <TextareaField
                 value={draft.publicBio}
@@ -271,7 +307,7 @@ export function CreateRealmAgentWorkspace() {
               </div>
             ) : null}
           </Surface>
-          <ReadinessPreview draft={draft} selectableWorldIds={selectableWorldIds} />
+          <ReadinessPreview draft={draft} selectableWorldIds={selectableWorldIds} handleAvailability={handleAvailability} />
         </div>
       </div>
     </Surface>

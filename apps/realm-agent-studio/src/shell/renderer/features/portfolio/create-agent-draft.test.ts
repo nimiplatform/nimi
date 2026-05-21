@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   REALM_AGENT_CREATE_PATH,
   REALM_AGENT_CREATE_SOURCE,
+  normalizeRealmAgentHandleAvailability,
   normalizeCreateRealmAgentDraft,
   normalizeSelectableWorlds,
   normalizeSelectedWorldPreview,
@@ -124,7 +125,12 @@ describe('selected world preview normalization', () => {
 
 describe('create Realm Agent readiness', () => {
   it('returns a reviewed owner-scoped CreateAgentDto request payload', () => {
-    const result = validateCreateRealmAgentReadiness(baseInput);
+    const result = validateCreateRealmAgentReadiness(baseInput, {
+      handleAvailability: normalizeRealmAgentHandleAvailability('mira.agent', {
+        available: true,
+        normalized: 'mira.agent',
+      }),
+    });
 
     expect(result.ready).toBe(true);
     expect(result.source).toBe(REALM_AGENT_CREATE_SOURCE);
@@ -165,10 +171,40 @@ describe('create Realm Agent readiness', () => {
   });
 
   it('fails readiness when selected world is not source-backed by the current world list', () => {
-    const result = validateCreateRealmAgentReadiness(baseInput, { selectableWorldIds: ['world-creator'] });
+    const result = validateCreateRealmAgentReadiness(baseInput, {
+      selectableWorldIds: ['world-creator'],
+      handleAvailability: normalizeRealmAgentHandleAvailability('mira.agent', {
+        available: true,
+        normalized: 'mira.agent',
+      }),
+    });
 
     expect(result.ready).toBe(false);
     expect(result.errors).toEqual(['selected world not source-backed by WorldsService.worldControllerListWorlds']);
     expect(result.payload).toBeNull();
+  });
+
+  it('fails readiness when handle availability is missing, unavailable, or stale', () => {
+    const unchecked = validateCreateRealmAgentReadiness(baseInput);
+    const unavailable = validateCreateRealmAgentReadiness(baseInput, {
+      handleAvailability: normalizeRealmAgentHandleAvailability('mira.agent', {
+        available: false,
+        normalized: 'mira.agent',
+        message: 'Handle already taken.',
+      }),
+    });
+    const stale = validateCreateRealmAgentReadiness(baseInput, {
+      handleAvailability: normalizeRealmAgentHandleAvailability('other.agent', {
+        available: true,
+        normalized: 'other.agent',
+      }),
+    });
+
+    expect(unchecked.ready).toBe(false);
+    expect(unchecked.errors).toEqual(['handle availability not checked by AgentsService.agentControllerCheckHandle']);
+    expect(unavailable.ready).toBe(false);
+    expect(unavailable.errors).toEqual(['handle unavailable: Handle already taken.']);
+    expect(stale.ready).toBe(false);
+    expect(stale.errors).toEqual(['handle availability not checked for the current normalized handle']);
   });
 });
