@@ -183,6 +183,25 @@ export type {
   RuntimeArtifactsReadBytesInput,
   RuntimeArtifactsReadBytesResult,
 } from './runtime-artifacts.js';
+export {
+  decodeAppInstallJob,
+} from './runtime-app-lifecycle.js';
+export type {
+  RuntimeAppLifecycleModule,
+  RuntimeAppInstallJob,
+  RuntimeAppInstallJobEvent,
+  RuntimeAppInstallJobPhase,
+  RuntimeAppInstallJobState,
+  RuntimeAppInstallSourceKind,
+  RuntimeAppInstallStorage,
+  RuntimeAppLifecycleJobKind,
+  RuntimeAppHealthRepairAction,
+  RuntimeAppHealthRepairInput,
+  RuntimeAppInstallInput,
+  RuntimeAppUninstallInput,
+  RuntimeAppUninstallResult,
+  RuntimeAppUpdateInput,
+} from './runtime-app-lifecycle.js';
 export type {
   RuntimeAvatarDebugListProbeResultsRequest,
   RuntimeAvatarDebugModule,

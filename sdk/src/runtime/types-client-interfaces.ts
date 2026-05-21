@@ -360,10 +360,24 @@ import type {
   GetRealmGroupMessageCandidateEvidenceResponse,
 } from './generated/runtime/v1/agent_group_message_candidate';
 import type {
+  AppInstallJobEvent,
   AppMessageEvent,
+  GetAppInstallJobRequest,
+  GetAppInstallJobResponse,
+  HealthRepairAppRequest,
+  HealthRepairAppResponse,
+  InstallAppRequest,
+  InstallAppResponse,
+  ListAppInstallJobsRequest,
+  ListAppInstallJobsResponse,
   SendAppMessageRequest,
   SendAppMessageResponse,
   SubscribeAppMessagesRequest,
+  UninstallAppRequest,
+  UninstallAppResponse,
+  UpdateAppRequest,
+  UpdateAppResponse,
+  WatchAppInstallJobEventsRequest,
 } from './generated/runtime/v1/app';
 import type {
   CreateConnectorRequest,
@@ -712,6 +726,13 @@ export type RuntimeLocalServiceClient = {
 export type RuntimeAppClient = {
   sendAppMessage(request: SendAppMessageRequest, options?: RuntimeCallOptions): Promise<SendAppMessageResponse>;
   subscribeAppMessages(request: SubscribeAppMessagesRequest, options?: RuntimeStreamCallOptions): Promise<AsyncIterable<AppMessageEvent>>;
+  installApp(request: InstallAppRequest, options?: RuntimeCallOptions): Promise<InstallAppResponse>;
+  uninstallApp(request: UninstallAppRequest, options?: RuntimeCallOptions): Promise<UninstallAppResponse>;
+  getAppInstallJob(request: GetAppInstallJobRequest, options?: RuntimeCallOptions): Promise<GetAppInstallJobResponse>;
+  listAppInstallJobs(request: ListAppInstallJobsRequest, options?: RuntimeCallOptions): Promise<ListAppInstallJobsResponse>;
+  watchAppInstallJobEvents(request: WatchAppInstallJobEventsRequest, options?: RuntimeStreamCallOptions): Promise<AsyncIterable<AppInstallJobEvent>>;
+  updateApp(request: UpdateAppRequest, options?: RuntimeCallOptions): Promise<UpdateAppResponse>;
+  healthRepairApp(request: HealthRepairAppRequest, options?: RuntimeCallOptions): Promise<HealthRepairAppResponse>;
 };
 
 export type RuntimeConnectorClient = {

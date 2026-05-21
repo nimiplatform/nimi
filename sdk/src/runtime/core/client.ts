@@ -555,6 +555,13 @@ export function createRuntimeClient(input: RuntimeClientConfig): RuntimeClient {
     app: {
       sendAppMessage: unary(RuntimeMethodIds.app.sendAppMessage),
       subscribeAppMessages: stream(RuntimeMethodIds.app.subscribeAppMessages),
+      installApp: unary(RuntimeMethodIds.app.installApp),
+      uninstallApp: unary(RuntimeMethodIds.app.uninstallApp),
+      getAppInstallJob: unary(RuntimeMethodIds.app.getAppInstallJob),
+      listAppInstallJobs: unary(RuntimeMethodIds.app.listAppInstallJobs),
+      watchAppInstallJobEvents: stream(RuntimeMethodIds.app.watchAppInstallJobEvents),
+      updateApp: unary(RuntimeMethodIds.app.updateApp),
+      healthRepairApp: unary(RuntimeMethodIds.app.healthRepairApp),
     },
     artifact: {
       readArtifactBytes: unary(RuntimeMethodIds.artifact.readArtifactBytes),

@@ -188,6 +188,12 @@ export type RuntimeUnaryMethodContractMap = {
   [RuntimeMethodIds.agent.queryMemory]: RuntimeClientMethodContract<'agent', 'queryMemory'>;
   [RuntimeMethodIds.agent.writeMemory]: RuntimeClientMethodContract<'agent', 'writeMemory'>;
   [RuntimeMethodIds.app.sendAppMessage]: RuntimeClientMethodContract<'app', 'sendAppMessage'>;
+  [RuntimeMethodIds.app.installApp]: RuntimeClientMethodContract<'app', 'installApp'>;
+  [RuntimeMethodIds.app.uninstallApp]: RuntimeClientMethodContract<'app', 'uninstallApp'>;
+  [RuntimeMethodIds.app.getAppInstallJob]: RuntimeClientMethodContract<'app', 'getAppInstallJob'>;
+  [RuntimeMethodIds.app.listAppInstallJobs]: RuntimeClientMethodContract<'app', 'listAppInstallJobs'>;
+  [RuntimeMethodIds.app.updateApp]: RuntimeClientMethodContract<'app', 'updateApp'>;
+  [RuntimeMethodIds.app.healthRepairApp]: RuntimeClientMethodContract<'app', 'healthRepairApp'>;
   [RuntimeMethodIds.audit.listAuditEvents]: RuntimeClientMethodContract<'audit', 'listAuditEvents'>;
   [RuntimeMethodIds.audit.listUsageStats]: RuntimeClientMethodContract<'audit', 'listUsageStats'>;
   [RuntimeMethodIds.audit.getRuntimeHealth]: RuntimeClientMethodContract<'audit', 'getRuntimeHealth'>;
@@ -208,6 +214,7 @@ export type RuntimeStreamMethodContractMap = {
   [RuntimeMethodIds.memory.subscribeEvents]: RuntimeClientMethodContract<'memory', 'subscribeEvents'>;
   [RuntimeMethodIds.agent.subscribeEvents]: RuntimeClientMethodContract<'agent', 'subscribeEvents'>;
   [RuntimeMethodIds.app.subscribeAppMessages]: RuntimeClientMethodContract<'app', 'subscribeAppMessages'>;
+  [RuntimeMethodIds.app.watchAppInstallJobEvents]: RuntimeClientMethodContract<'app', 'watchAppInstallJobEvents'>;
   [RuntimeMethodIds.audit.exportAuditEvents]: RuntimeClientMethodContract<'audit', 'exportAuditEvents'>;
   [RuntimeMethodIds.audit.subscribeAIProviderHealthEvents]: RuntimeClientMethodContract<'audit', 'subscribeAIProviderHealthEvents'>;
   [RuntimeMethodIds.audit.subscribeRuntimeHealthEvents]: RuntimeClientMethodContract<'audit', 'subscribeRuntimeHealthEvents'>;

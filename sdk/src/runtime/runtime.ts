@@ -83,6 +83,10 @@ import {
   type RuntimeArtifactsModule,
   createRuntimeArtifactsModule,
 } from './runtime-artifacts.js';
+import {
+  type RuntimeAppLifecycleModule,
+  createRuntimeAppLifecycleModule,
+} from './runtime-app-lifecycle.js';
 import { createRuntimeProtectedScopeHelper } from './protected-access.js';
 import {
   ensureRuntimeClientForCall,
@@ -149,6 +153,7 @@ export class Runtime {
     sendMessage: RuntimeClient['app']['sendAppMessage'];
     subscribeMessages: RuntimeClient['app']['subscribeAppMessages'];
   };
+  readonly appLifecycle: RuntimeAppLifecycleModule;
   readonly audit: RuntimeAuditClient;
   readonly healthEvents: (
     request?: import('./generated/runtime/v1/audit').SubscribeRuntimeHealthEventsRequest,
@@ -368,6 +373,8 @@ export class Runtime {
     });
 
     this.artifacts = createRuntimeArtifactsModule({ ctx });
+
+    this.appLifecycle = createRuntimeAppLifecycleModule({ ctx });
 
     this.media = createMediaModule(ctx);
 

@@ -173,8 +173,20 @@ import {
 } from '../generated/runtime/v1/connector';
 import {
   AppMessageEvent,
+  GetAppInstallJobRequest,
+  GetAppInstallJobResponse,
+  HealthRepairAppRequest,
+  HealthRepairAppResponse,
+  InstallAppRequest,
+  InstallAppResponse,
+  ListAppInstallJobsRequest,
+  ListAppInstallJobsResponse,
   SendAppMessageRequest,
   SendAppMessageResponse,
+  UninstallAppRequest,
+  UninstallAppResponse,
+  UpdateAppRequest,
+  UpdateAppResponse,
 } from '../generated/runtime/v1/app';
 import {
   GetRuntimeHealthRequest,
@@ -508,6 +520,30 @@ export const runtimeUnaryMethodCodecsDomain: Partial<RuntimeUnaryMethodCodecMap>
   [RuntimeMethodIds.app.sendAppMessage]: {
     requestType: SendAppMessageRequest,
     responseType: SendAppMessageResponse,
+  },
+  [RuntimeMethodIds.app.installApp]: {
+    requestType: InstallAppRequest,
+    responseType: InstallAppResponse,
+  },
+  [RuntimeMethodIds.app.uninstallApp]: {
+    requestType: UninstallAppRequest,
+    responseType: UninstallAppResponse,
+  },
+  [RuntimeMethodIds.app.getAppInstallJob]: {
+    requestType: GetAppInstallJobRequest,
+    responseType: GetAppInstallJobResponse,
+  },
+  [RuntimeMethodIds.app.listAppInstallJobs]: {
+    requestType: ListAppInstallJobsRequest,
+    responseType: ListAppInstallJobsResponse,
+  },
+  [RuntimeMethodIds.app.updateApp]: {
+    requestType: UpdateAppRequest,
+    responseType: UpdateAppResponse,
+  },
+  [RuntimeMethodIds.app.healthRepairApp]: {
+    requestType: HealthRepairAppRequest,
+    responseType: HealthRepairAppResponse,
   },
   [RuntimeMethodIds.audit.listAuditEvents]: {
     requestType: ListAuditEventsRequest,

@@ -193,6 +193,13 @@ export const RuntimeMethodIds = {
   app: {
     sendAppMessage: '/nimi.runtime.v1.RuntimeAppService/SendAppMessage',
     subscribeAppMessages: '/nimi.runtime.v1.RuntimeAppService/SubscribeAppMessages',
+    installApp: '/nimi.runtime.v1.RuntimeAppService/InstallApp',
+    uninstallApp: '/nimi.runtime.v1.RuntimeAppService/UninstallApp',
+    getAppInstallJob: '/nimi.runtime.v1.RuntimeAppService/GetAppInstallJob',
+    listAppInstallJobs: '/nimi.runtime.v1.RuntimeAppService/ListAppInstallJobs',
+    watchAppInstallJobEvents: '/nimi.runtime.v1.RuntimeAppService/WatchAppInstallJobEvents',
+    updateApp: '/nimi.runtime.v1.RuntimeAppService/UpdateApp',
+    healthRepairApp: '/nimi.runtime.v1.RuntimeAppService/HealthRepairApp',
   },
   connector: {
     createConnector: '/nimi.runtime.v1.RuntimeConnectorService/CreateConnector',
@@ -257,6 +264,7 @@ export const RuntimeStreamMethodIds: readonly string[] = Object.freeze([
   RuntimeMethodIds.memory.subscribeEvents,
   RuntimeMethodIds.agent.subscribeEvents,
   RuntimeMethodIds.app.subscribeAppMessages,
+  RuntimeMethodIds.app.watchAppInstallJobEvents,
   RuntimeMethodIds.audit.exportAuditEvents,
   RuntimeMethodIds.audit.subscribeAIProviderHealthEvents,
   RuntimeMethodIds.audit.subscribeRuntimeHealthEvents,

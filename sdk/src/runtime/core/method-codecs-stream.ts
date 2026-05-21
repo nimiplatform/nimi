@@ -24,8 +24,10 @@ import {
   SubscribeAgentEventsRequest,
 } from '../generated/runtime/v1/agent_service';
 import {
+  AppInstallJobEvent,
   AppMessageEvent,
   SubscribeAppMessagesRequest,
+  WatchAppInstallJobEventsRequest,
 } from '../generated/runtime/v1/app';
 import {
   AIProviderHealthEvent,
@@ -69,6 +71,10 @@ export const runtimeStreamMethodCodecs: Partial<RuntimeStreamMethodCodecMap> = {
   [RuntimeMethodIds.app.subscribeAppMessages]: {
     requestType: SubscribeAppMessagesRequest,
     eventType: AppMessageEvent,
+  },
+  [RuntimeMethodIds.app.watchAppInstallJobEvents]: {
+    requestType: WatchAppInstallJobEventsRequest,
+    eventType: AppInstallJobEvent,
   },
   [RuntimeMethodIds.audit.exportAuditEvents]: {
     requestType: ExportAuditEventsRequest,
