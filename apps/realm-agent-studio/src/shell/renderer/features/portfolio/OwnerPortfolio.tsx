@@ -14,9 +14,12 @@ import {
 import { getOwnerPortfolioAgentDetail, listOwnerPortfolioAgents } from './portfolio-client.js';
 import {
   ATTACHMENT_TARGET_TYPES,
+  buildLocalPostScheduleCandidate,
   validateLocalPostDraft,
   type AttachmentTargetType,
   type CandidatePostPayload,
+  type LocalPostScheduleCandidate,
+  type LocalPostScheduleInput,
   type LocalPostDraftInput,
 } from './post-draft.js';
 import {
@@ -417,21 +420,42 @@ function createEmptyPostDraft(): LocalPostDraftInput {
   };
 }
 
+function createEmptyLocalPostScheduleInput(): LocalPostScheduleInput {
+  return {
+    localDate: '',
+    localTime: '',
+  };
+}
+
 function CreativePostWorkspace({ agent }: { agent: OwnerPortfolioAgentDetail }) {
   const [draft, setDraft] = useState<LocalPostDraftInput>(() => createEmptyPostDraft());
   const [payloadPreview, setPayloadPreview] = useState<CandidatePostPayload | null>(null);
+  const [scheduleInput, setScheduleInput] = useState<LocalPostScheduleInput>(() => createEmptyLocalPostScheduleInput());
+  const [schedulePreview, setSchedulePreview] = useState<LocalPostScheduleCandidate | null>(null);
+  const [scheduleErrors, setScheduleErrors] = useState<string[]>([]);
   const [assetCandidates, setAssetCandidates] = useState<LocalCreativeAssetCandidate[]>([]);
   const validation = validateLocalPostDraft(draft, agent);
 
   useEffect(() => {
     setDraft(createEmptyPostDraft());
     setPayloadPreview(null);
+    setScheduleInput(createEmptyLocalPostScheduleInput());
+    setSchedulePreview(null);
+    setScheduleErrors([]);
     setAssetCandidates([]);
   }, [agent.id]);
 
   function updateDraft(patch: Partial<LocalPostDraftInput>) {
     setDraft((current) => ({ ...current, ...patch }));
     setPayloadPreview(null);
+    setSchedulePreview(null);
+    setScheduleErrors([]);
+  }
+
+  function updateScheduleInput(patch: Partial<LocalPostScheduleInput>) {
+    setScheduleInput((current) => ({ ...current, ...patch }));
+    setSchedulePreview(null);
+    setScheduleErrors([]);
   }
 
   function addLocalAssetCandidate() {
@@ -536,6 +560,67 @@ function CreativePostWorkspace({ agent }: { agent: OwnerPortfolioAgentDetail }) 
                 {payloadPreview ? JSON.stringify(payloadPreview, null, 2) : 'No reviewed payload preview yet.'}
               </pre>
             </FieldShell>
+            <Surface tone="card" padding="md">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <div className="font-medium">App-local single schedule</div>
+                  <div className="mt-1 text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-muted)]">
+                    Creates one local preview candidate only after human review. It is not Realm scheduling, moderation, or publish success.
+                  </div>
+                </div>
+                <StatusBadge tone="warning">not Realm schedule</StatusBadge>
+              </div>
+              <div className="mt-3 grid gap-3 md:grid-cols-2">
+                <FieldShell label="Local date">
+                  <TextField
+                    type="date"
+                    value={scheduleInput.localDate}
+                    disabled={!validation.publishable}
+                    onChange={(event) => updateScheduleInput({ localDate: event.currentTarget.value })}
+                  />
+                </FieldShell>
+                <FieldShell label="Local time">
+                  <TextField
+                    type="time"
+                    value={scheduleInput.localTime}
+                    disabled={!validation.publishable}
+                    onChange={(event) => updateScheduleInput({ localTime: event.currentTarget.value })}
+                  />
+                </FieldShell>
+              </div>
+              {!validation.publishable ? (
+                <InlineAlert tone="warning">
+                  App-local schedule unavailable: reviewed publishable local post draft required.
+                </InlineAlert>
+              ) : null}
+              {scheduleErrors.length > 0 ? (
+                <InlineAlert tone="warning">
+                  {scheduleErrors.join('; ')}
+                </InlineAlert>
+              ) : null}
+              <div className="mt-3">
+                <Button
+                  disabled={!validation.publishable}
+                  onClick={() => {
+                    const result = buildLocalPostScheduleCandidate(validation, scheduleInput);
+                    if (result.scheduleable) {
+                      setSchedulePreview(result.candidate);
+                      setScheduleErrors([]);
+                    } else {
+                      setSchedulePreview(null);
+                      setScheduleErrors(result.errors);
+                    }
+                  }}
+                >
+                  Preview local schedule
+                </Button>
+              </div>
+              <FieldShell label="Local schedule candidate" message="Preview only. No Realm, timers, persistence, queue, campaign, or recurring automation is created.">
+                <pre className="ras-json-preview m-0 min-h-28 overflow-auto rounded-[var(--nimi-radius-field)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] p-3 text-xs">
+                  {schedulePreview ? JSON.stringify(schedulePreview, null, 2) : 'No app-local schedule preview yet.'}
+                </pre>
+              </FieldShell>
+            </Surface>
           </div>
         </div>
         <div className="min-w-0">

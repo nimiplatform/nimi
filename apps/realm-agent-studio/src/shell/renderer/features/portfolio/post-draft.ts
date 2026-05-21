@@ -46,6 +46,30 @@ export type CandidatePostPayload = {
   };
 };
 
+export type LocalPostScheduleInput = {
+  localDate: string;
+  localTime: string;
+};
+
+export type NormalizedLocalPostScheduleInput = {
+  localRunAt: string;
+  runAtDate: Date;
+};
+
+export type LocalPostScheduleCandidate = {
+  candidate: true;
+  source: 'realm-agent-studio.local-single-post-schedule';
+  appLocalOnly: true;
+  localRunAt: string;
+  boundary: {
+    scope: 'app-local-only';
+    realmPublish: 'not-created';
+    realmScheduling: 'not-created';
+    moderation: 'not-claimed';
+  };
+  postCandidate: CandidatePostPayload;
+};
+
 export type PostDraftValidationResult =
   | {
     publishable: true;
@@ -58,7 +82,31 @@ export type PostDraftValidationResult =
     payload: null;
   };
 
-const FORBIDDEN_POST_PAYLOAD_KEYS = new Set(['worldId', 'id', 'authorId']);
+export type LocalPostScheduleValidationResult =
+  | {
+    scheduleable: true;
+    errors: [];
+    candidate: LocalPostScheduleCandidate;
+  }
+  | {
+    scheduleable: false;
+    errors: string[];
+    candidate: null;
+  };
+
+const FORBIDDEN_POST_PAYLOAD_KEYS = new Set([
+  'worldId',
+  'id',
+  'authorId',
+  'scheduledAt',
+  'scheduleId',
+  'queue',
+  'campaign',
+  'recurrence',
+  'publicSuccess',
+  'publishSuccess',
+  'moderationSuccess',
+]);
 
 function normalizeTags(tagsText: string): string[] {
   const seen = new Set<string>();
@@ -96,6 +144,10 @@ function assertNoForbiddenPayloadKeys(value: unknown): string | null {
   }
 
   return null;
+}
+
+function formatLocalRunAt(date: string, time: string): string {
+  return `${date}T${time}`;
 }
 
 export function normalizeLocalPostDraft(input: LocalPostDraftInput): LocalPostDraft {
@@ -170,4 +222,90 @@ export function validateLocalPostDraft(
   }
 
   return { publishable: true, errors: [], payload };
+}
+
+export function normalizeLocalPostScheduleInput(input: LocalPostScheduleInput): NormalizedLocalPostScheduleInput | null {
+  const localDate = input.localDate.trim();
+  const localTime = input.localTime.trim();
+
+  if (!localDate || !localTime) {
+    return null;
+  }
+
+  const dateMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(localDate);
+  const timeMatch = /^(\d{2}):(\d{2})$/.exec(localTime);
+  if (!dateMatch || !timeMatch) {
+    return null;
+  }
+
+  const year = Number(dateMatch[1]);
+  const monthIndex = Number(dateMatch[2]) - 1;
+  const day = Number(dateMatch[3]);
+  const hours = Number(timeMatch[1]);
+  const minutes = Number(timeMatch[2]);
+  const runAtDate = new Date(year, monthIndex, day, hours, minutes);
+
+  if (
+    Number.isNaN(runAtDate.getTime())
+    || runAtDate.getFullYear() !== year
+    || runAtDate.getMonth() !== monthIndex
+    || runAtDate.getDate() !== day
+    || runAtDate.getHours() !== hours
+    || runAtDate.getMinutes() !== minutes
+  ) {
+    return null;
+  }
+
+  return {
+    localRunAt: formatLocalRunAt(localDate, localTime),
+    runAtDate,
+  };
+}
+
+export function buildLocalPostScheduleCandidate(
+  postValidation: PostDraftValidationResult,
+  input: LocalPostScheduleInput,
+  now = new Date(),
+): LocalPostScheduleValidationResult {
+  const errors: string[] = [];
+
+  if (!postValidation.publishable) {
+    errors.push('app-local schedule unavailable: reviewed publishable local post draft required');
+  }
+
+  const normalized = normalizeLocalPostScheduleInput(input);
+  if (!normalized) {
+    errors.push('app-local schedule unavailable: local run date and time required');
+  } else if (normalized.runAtDate.getTime() <= now.getTime()) {
+    errors.push('app-local schedule unavailable: local run time must be in the future');
+  }
+
+  if (errors.length > 0 || !postValidation.publishable || !normalized) {
+    return { scheduleable: false, errors, candidate: null };
+  }
+
+  const candidate: LocalPostScheduleCandidate = {
+    candidate: true,
+    source: 'realm-agent-studio.local-single-post-schedule',
+    appLocalOnly: true,
+    localRunAt: normalized.localRunAt,
+    boundary: {
+      scope: 'app-local-only',
+      realmPublish: 'not-created',
+      realmScheduling: 'not-created',
+      moderation: 'not-claimed',
+    },
+    postCandidate: postValidation.payload,
+  };
+
+  const forbiddenKey = assertNoForbiddenPayloadKeys(candidate);
+  if (forbiddenKey) {
+    return {
+      scheduleable: false,
+      errors: [`app-local schedule rejected: forbidden ${forbiddenKey} present`],
+      candidate: null,
+    };
+  }
+
+  return { scheduleable: true, errors: [], candidate };
 }

@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import type { OwnerPortfolioAgentDetail } from './portfolio-data.js';
-import { normalizeLocalPostDraft, validateLocalPostDraft, type CandidatePostPayload, type LocalPostDraftInput } from './post-draft.js';
+import {
+  buildLocalPostScheduleCandidate,
+  normalizeLocalPostDraft,
+  normalizeLocalPostScheduleInput,
+  validateLocalPostDraft,
+  type CandidatePostPayload,
+  type LocalPostDraftInput,
+} from './post-draft.js';
 
 const agent: OwnerPortfolioAgentDetail = {
   id: 'agent-1',
@@ -171,5 +178,85 @@ describe('local post draft validation', () => {
 
     expect(result.publishable).toBe(true);
     expect(result.payload?.realmCreatePost.attachments).toEqual([]);
+  });
+});
+
+describe('app-local post schedule candidate', () => {
+  it('normalizes local date and time input', () => {
+    expect(normalizeLocalPostScheduleInput({
+      localDate: ' 2026-05-22 ',
+      localTime: ' 09:30 ',
+    })).toMatchObject({
+      localRunAt: '2026-05-22T09:30',
+    });
+  });
+
+  it('rejects empty or malformed local run time', () => {
+    expect(normalizeLocalPostScheduleInput({ localDate: '', localTime: '09:30' })).toBeNull();
+    expect(normalizeLocalPostScheduleInput({ localDate: '2026/05/22', localTime: '09:30' })).toBeNull();
+    expect(normalizeLocalPostScheduleInput({ localDate: '2026-05-22', localTime: '9:30' })).toBeNull();
+    expect(normalizeLocalPostScheduleInput({ localDate: '2026-02-31', localTime: '09:30' })).toBeNull();
+    expect(normalizeLocalPostScheduleInput({ localDate: '2026-05-22', localTime: '25:30' })).toBeNull();
+  });
+
+  it('wraps an already reviewed candidate payload without Realm schedule or success fields', () => {
+    const postValidation = validateLocalPostDraft(baseInput, agent);
+    const result = buildLocalPostScheduleCandidate(
+      postValidation,
+      { localDate: '2026-05-22', localTime: '09:30' },
+      new Date('2026-05-21T09:30:00'),
+    );
+
+    expect(result.scheduleable).toBe(true);
+    expect(result.candidate).toMatchObject({
+      candidate: true,
+      source: 'realm-agent-studio.local-single-post-schedule',
+      appLocalOnly: true,
+      localRunAt: '2026-05-22T09:30',
+      boundary: {
+        scope: 'app-local-only',
+        realmPublish: 'not-created',
+        realmScheduling: 'not-created',
+        moderation: 'not-claimed',
+      },
+      postCandidate: postValidation.payload,
+    });
+    expect(collectKeys(result.candidate).has('scheduledAt')).toBe(false);
+    expect(collectKeys(result.candidate).has('scheduleId')).toBe(false);
+    expect(collectKeys(result.candidate).has('worldId')).toBe(false);
+    expect(collectKeys(result.candidate).has('authorId')).toBe(false);
+    expect(collectKeys(result.candidate).has('id')).toBe(false);
+    expect(collectKeys(result.candidate).has('queue')).toBe(false);
+    expect(collectKeys(result.candidate).has('campaign')).toBe(false);
+    expect(collectKeys(result.candidate).has('recurrence')).toBe(false);
+    expect(collectKeys(result.candidate).has('publicSuccess')).toBe(false);
+    expect(collectKeys(result.candidate).has('publishSuccess')).toBe(false);
+    expect(collectKeys(result.candidate).has('moderationSuccess')).toBe(false);
+  });
+
+  it('fails closed when the post draft is not reviewed and publishable', () => {
+    const postValidation = validateLocalPostDraft({ ...baseInput, humanReviewed: false }, agent);
+    const result = buildLocalPostScheduleCandidate(
+      postValidation,
+      { localDate: '2026-05-22', localTime: '09:30' },
+      new Date('2026-05-21T09:30:00'),
+    );
+
+    expect(result.scheduleable).toBe(false);
+    expect(result.errors).toContain('app-local schedule unavailable: reviewed publishable local post draft required');
+    expect(result.candidate).toBeNull();
+  });
+
+  it('fails closed when the local run time is not future-ish', () => {
+    const postValidation = validateLocalPostDraft(baseInput, agent);
+    const result = buildLocalPostScheduleCandidate(
+      postValidation,
+      { localDate: '2026-05-21', localTime: '09:30' },
+      new Date('2026-05-21T09:30:00'),
+    );
+
+    expect(result.scheduleable).toBe(false);
+    expect(result.errors).toContain('app-local schedule unavailable: local run time must be in the future');
+    expect(result.candidate).toBeNull();
   });
 });
