@@ -51,7 +51,6 @@ export const REALM_TEXT_RESOURCE_SOURCE = 'Realm ResourcesService.createTextReso
 export const REALM_RESOURCE_LIST_SOURCE = 'Realm ResourcesService.listResources';
 export const REALM_MEDIA_RESOURCE_UPLOAD_SOURCE = 'Realm ResourcesService direct upload + finalizeResource';
 export const REALM_RUNTIME_PROJECTION_SOURCE = 'Realm RuntimeProjectionsService.projectRuntimePayload';
-export const REALM_AGENT_RESOURCE_BINDING_SOURCE = 'Realm owner-scoped Agent Binding ingress (deferred)';
 export const REALM_AGENT_AVATAR_SELECT_SOURCE = 'Realm AgentsService.agentControllerSelectAvatar';
 export const REALM_AGENT_VISIBILITY_SOURCE = 'Realm AgentsService.agentControllerUpdateVisibility';
 export const AGENT_VISIBILITY_VALUES = ['PUBLIC', 'FRIENDS', 'PRIVATE'] as const;
@@ -131,17 +130,6 @@ export type PostAttachmentResourceOption = {
 };
 
 export type DirectMediaResourceType = Extract<PostAttachmentResourceOption['resourceType'], 'IMAGE' | 'VIDEO' | 'AUDIO'>;
-export type AgentResourceBindingResourceType = Extract<PostAttachmentResourceOption['resourceType'], 'IMAGE' | 'AUDIO'>;
-export type AgentResourceBindingPoint = 'AGENT_PORTRAIT' | 'AGENT_CANDIDATE' | 'AGENT_VOICE_SAMPLE';
-
-export type AgentResourceBindingInput = {
-  agent: OwnerPortfolioAgentDetail;
-  resourceId: string;
-  resourceType: AgentResourceBindingResourceType;
-  bindingPoint: AgentResourceBindingPoint;
-  humanReviewed: boolean;
-  intentPrompt?: string;
-};
 
 export type DirectMediaResourceUploadFile = {
   name: string;
@@ -197,70 +185,6 @@ export type DirectMediaResourceUploadResult =
       | 'realm-finalize-resource-not-ready';
     message: string;
       submitted: RealmFinalizeResourceInput | RealmCreateAudioUploadInput | null;
-  };
-
-export type AgentResourceBindingCanonicalFields = {
-  id: string;
-  scopeWorldId: string;
-  hostId: string;
-  hostType: 'AGENT';
-  objectId: string;
-  objectType: 'RESOURCE';
-  bindingKind: 'PRESENTATION';
-  bindingPoint: AgentResourceBindingPoint;
-};
-
-export type RealmAgentResourceBindingUpsertInput = {
-  bindingKind: 'PRESENTATION';
-  bindingPoint: AgentResourceBindingPoint;
-  hostId: string;
-  hostType: 'AGENT';
-  objectId: string;
-  objectType: 'RESOURCE';
-  priority: number;
-  tags: string[];
-  intentPrompt?: string;
-};
-
-export type RealmAgentResourceBindingCandidateInput = {
-  bindingUpserts: RealmAgentResourceBindingUpsertInput[];
-};
-
-export type AgentResourceBindingResult =
-  | {
-    ok: true;
-    source: typeof REALM_AGENT_RESOURCE_BINDING_SOURCE;
-    bindingTruth: true;
-    publicProfileTruth: false;
-    customVoiceTruth: false;
-    publishTruth: false;
-    binding: { items?: unknown[]; [key: string]: unknown };
-    canonical: AgentResourceBindingCanonicalFields;
-    submitted: {
-      worldId: string;
-      body: RealmAgentResourceBindingCandidateInput;
-    };
-  }
-  | {
-    ok: false;
-    source: typeof REALM_AGENT_RESOURCE_BINDING_SOURCE;
-    bindingTruth: false;
-    publicProfileTruth: false;
-    customVoiceTruth: false;
-    publishTruth: false;
-    failure:
-      | 'agent-binding-world-unavailable'
-      | 'agent-binding-review-missing'
-      | 'agent-binding-resource-invalid'
-      | 'agent-binding-point-invalid'
-      | 'agent-binding-owner-surface-deferred'
-      | 'realm-agent-binding-failed'
-      | 'realm-agent-binding-missing-canonical-id';
-    message: string;
-    submitted: {
-      worldId: string;
-      body: RealmAgentResourceBindingCandidateInput;
-    } | null;
   };
 
 type StorageUploadRequest = {
@@ -416,24 +340,6 @@ function isPostAttachmentResourceType(value: string): value is PostAttachmentRes
 
 function isDirectMediaResourceType(value: string): value is DirectMediaResourceType {
   return value === 'IMAGE' || value === 'VIDEO' || value === 'AUDIO';
-}
-
-function isAgentResourceBindingResourceType(value: string): value is AgentResourceBindingResourceType {
-  return value === 'IMAGE' || value === 'AUDIO';
-}
-
-function isAgentResourceBindingPoint(value: string): value is AgentResourceBindingPoint {
-  return value === 'AGENT_PORTRAIT' || value === 'AGENT_CANDIDATE' || value === 'AGENT_VOICE_SAMPLE';
-}
-
-export function isCompatibleAgentResourceBinding(
-  resourceType: AgentResourceBindingResourceType,
-  bindingPoint: AgentResourceBindingPoint,
-): boolean {
-  if (resourceType === 'IMAGE') {
-    return bindingPoint === 'AGENT_PORTRAIT' || bindingPoint === 'AGENT_CANDIDATE';
-  }
-  return bindingPoint === 'AGENT_VOICE_SAMPLE';
 }
 
 function readArray(value: unknown): unknown[] {
@@ -796,114 +702,6 @@ export function normalizeRuntimeProjectionSummary(response: RealmRuntimeProjecti
     suppressedInputCount: readArray(trace.suppressedInputs).length,
     worldRuleCount: readArray(payload.worldRules).length,
     rawRuleContentExposed: false,
-  };
-}
-
-export function buildRealmAgentResourceBindingInput(
-  input: AgentResourceBindingInput,
-): { worldId: string; body: RealmAgentResourceBindingCandidateInput } | null {
-  const worldId = input.agent.world.status === 'available' ? input.agent.world.value.trim() : '';
-  const resourceId = input.resourceId.trim();
-  const intentPrompt = input.intentPrompt?.trim();
-  if (!input.humanReviewed) {
-    return null;
-  }
-  if (!worldId || !resourceId) {
-    return null;
-  }
-  if (!isAgentResourceBindingResourceType(input.resourceType) || !isAgentResourceBindingPoint(input.bindingPoint)) {
-    return null;
-  }
-  if (!isCompatibleAgentResourceBinding(input.resourceType, input.bindingPoint)) {
-    return null;
-  }
-
-  return {
-    worldId,
-    body: {
-      bindingUpserts: [{
-        bindingKind: 'PRESENTATION',
-        bindingPoint: input.bindingPoint,
-        hostId: input.agent.id,
-        hostType: 'AGENT',
-        objectId: resourceId,
-        objectType: 'RESOURCE',
-        priority: 0,
-        tags: ['realm-agent-studio', 'owner-reviewed'],
-        ...(intentPrompt ? { intentPrompt } : {}),
-      }],
-    },
-  };
-}
-
-export function normalizeAgentResourceBindingResult(
-  response: { items?: unknown[]; [key: string]: unknown },
-  submitted: { worldId: string; body: RealmAgentResourceBindingCandidateInput },
-): AgentResourceBindingResult {
-  const firstUpsert = submitted.body.bindingUpserts[0];
-  if (!firstUpsert) {
-    return {
-      ok: false,
-      source: REALM_AGENT_RESOURCE_BINDING_SOURCE,
-      bindingTruth: false,
-      publicProfileTruth: false,
-      customVoiceTruth: false,
-      publishTruth: false,
-      failure: 'realm-agent-binding-missing-canonical-id',
-      message: 'Realm binding upsert did not include a submitted Binding upsert.',
-      submitted,
-    };
-  }
-  const items = response && typeof response === 'object' && Array.isArray((response as Record<string, unknown>).items)
-    ? (response as { items: unknown[] }).items
-    : [];
-
-  const canonical = items
-    .map((item) => item && typeof item === 'object' ? item as Record<string, unknown> : null)
-    .find((record) => record
-      && readOptionalString(record, 'hostId') === firstUpsert.hostId
-      && readOptionalString(record, 'hostType') === 'AGENT'
-      && readOptionalString(record, 'objectId') === firstUpsert.objectId
-      && readOptionalString(record, 'objectType') === 'RESOURCE'
-      && readOptionalString(record, 'bindingKind') === 'PRESENTATION'
-      && readOptionalString(record, 'bindingPoint') === firstUpsert.bindingPoint);
-
-  const id = canonical ? readOptionalString(canonical, 'id') : undefined;
-  const scopeWorldId = canonical ? readOptionalString(canonical, 'scopeWorldId') : undefined;
-  const bindingPoint = canonical ? readOptionalString(canonical, 'bindingPoint') : undefined;
-  if (!canonical || !id || scopeWorldId !== submitted.worldId || !bindingPoint || !isAgentResourceBindingPoint(bindingPoint)) {
-    return {
-      ok: false,
-      source: REALM_AGENT_RESOURCE_BINDING_SOURCE,
-      bindingTruth: false,
-      publicProfileTruth: false,
-      customVoiceTruth: false,
-      publishTruth: false,
-      failure: 'realm-agent-binding-missing-canonical-id',
-      message: 'Realm binding upsert did not return a canonical AGENT Resource binding id.',
-      submitted,
-    };
-  }
-
-  return {
-    ok: true,
-    source: REALM_AGENT_RESOURCE_BINDING_SOURCE,
-    bindingTruth: true,
-    publicProfileTruth: false,
-    customVoiceTruth: false,
-    publishTruth: false,
-    binding: response,
-    canonical: {
-      id,
-      scopeWorldId,
-      hostId: firstUpsert.hostId,
-      hostType: 'AGENT',
-      objectId: firstUpsert.objectId,
-      objectType: 'RESOURCE',
-      bindingKind: 'PRESENTATION',
-      bindingPoint,
-    },
-    submitted,
   };
 }
 
@@ -1391,53 +1189,6 @@ export async function projectAgentRuntimeContextSummary(
       submitted,
     };
   }
-}
-
-export async function bindReviewedAgentResource(
-  input: AgentResourceBindingInput,
-  _realm: Realm = createStudioRealmClient(),
-): Promise<AgentResourceBindingResult> {
-  const submitted = buildRealmAgentResourceBindingInput(input);
-  if (!submitted) {
-    const worldAvailable = input.agent.world.status === 'available' && Boolean(input.agent.world.value.trim());
-    const reviewComplete = input.humanReviewed === true;
-    const resourceAvailable = Boolean(input.resourceId.trim());
-    return {
-      ok: false,
-      source: REALM_AGENT_RESOURCE_BINDING_SOURCE,
-      bindingTruth: false,
-      publicProfileTruth: false,
-      customVoiceTruth: false,
-      publishTruth: false,
-      failure: !worldAvailable
-        ? 'agent-binding-world-unavailable'
-        : !reviewComplete
-          ? 'agent-binding-review-missing'
-          : !resourceAvailable
-            ? 'agent-binding-resource-invalid'
-            : 'agent-binding-point-invalid',
-      message: !worldAvailable
-        ? 'Agent Resource Binding requires worldId evidence from Realm MeService.getMyRealmAgent.'
-        : !reviewComplete
-          ? 'Agent Resource Binding requires completed human review.'
-          : !resourceAvailable
-            ? 'Agent Resource Binding requires a READY Resource id.'
-            : 'Agent Resource Binding requires a compatible Resource type and AGENT binding point.',
-      submitted: null,
-    };
-  }
-
-  return {
-    ok: false,
-    source: REALM_AGENT_RESOURCE_BINDING_SOURCE,
-    bindingTruth: false,
-    publicProfileTruth: false,
-    customVoiceTruth: false,
-    publishTruth: false,
-    failure: 'agent-binding-owner-surface-deferred',
-    message: 'Resource-backed Agent Binding is deferred until Realm exposes an owner-scoped Agent Binding ingress for MASTER_OWNED agents.',
-    submitted,
-  };
 }
 
 export async function synthesizeReviewedVoiceDemo(

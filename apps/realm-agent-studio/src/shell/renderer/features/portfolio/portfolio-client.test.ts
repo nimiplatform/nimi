@@ -2,7 +2,6 @@ import type { Realm } from '@nimiplatform/sdk/realm';
 import { describe, expect, it, vi } from 'vitest';
 import {
   buildRealmCreateAgentInput,
-  buildRealmAgentResourceBindingInput,
   buildRealmCreatePostInput,
   buildFinalizeDirectMediaResourceInput,
   buildRealmPostTextResourceInput,
@@ -10,7 +9,6 @@ import {
   buildRealmSelectAvatarInput,
   buildRealmUpdateVisibilityInput,
   createAgentVisibilityDraft,
-  bindReviewedAgentResource,
   createReviewedPostTextResource,
   createReviewedRealmAgent,
   getAgentVisibilitySettings,
@@ -23,7 +21,6 @@ import {
   normalizeRealmPostPublishResult,
   normalizeRealmTextResourceCreateResult,
   normalizePostAttachmentResourceOptions,
-  normalizeAgentResourceBindingResult,
   normalizeFinalizedDirectMediaResource,
   normalizeRuntimeProjectionSummary,
   listReadyPostAttachmentResources,
@@ -322,29 +319,6 @@ function mockRealm() {
             }],
             agentRules: [],
           },
-        })),
-      },
-      WorldControlService: {
-        worldControlControllerBatchUpsertWorldBindings: vi.fn(async (worldId: string, body: { bindingUpserts: Array<Record<string, unknown>> }) => ({
-          worldId,
-          items: body.bindingUpserts.map((binding, index) => ({
-            id: `binding-${index + 1}`,
-            bindingKind: binding.bindingKind,
-            bindingPoint: binding.bindingPoint,
-            conditionHash: 'condition-none',
-            conditions: {},
-            createdAt: '2026-05-21T00:00:00.000Z',
-            createdBy: 'user-1',
-            hostId: binding.hostId,
-            hostType: binding.hostType,
-            objectId: binding.objectId,
-            objectType: binding.objectType,
-            priority: binding.priority || 0,
-            scopeWorldId: worldId,
-            tags: binding.tags || [],
-            updatedAt: '2026-05-21T00:00:00.000Z',
-            versionPin: null,
-          })),
         })),
       },
     },
@@ -1161,183 +1135,6 @@ describe('owner portfolio client', () => {
       worldId: 'OASIS',
     });
     expect(collectKeys(buildRuntimeProjectionInput(ownerAgentDetail())).has('agentId')).toBe(false);
-  });
-
-  it('defers owner-reviewed Resource-backed Agent Binding until Realm exposes owner-scoped ingress', async () => {
-    const realm = mockRealm();
-    const result = await bindReviewedAgentResource({
-      agent: ownerAgentDetailWithWorldId(),
-      resourceId: ' resource-image-1 ',
-      resourceType: 'IMAGE',
-      bindingPoint: 'AGENT_PORTRAIT',
-      humanReviewed: true,
-      intentPrompt: ' Owner selected portrait ',
-    }, realm);
-    const upsert = realm.services.WorldControlService.worldControlControllerBatchUpsertWorldBindings;
-
-    expect(upsert).not.toHaveBeenCalled();
-    expect(result).toMatchObject({
-      ok: false,
-      source: 'Realm owner-scoped Agent Binding ingress (deferred)',
-      bindingTruth: false,
-      publicProfileTruth: false,
-      customVoiceTruth: false,
-      publishTruth: false,
-      failure: 'agent-binding-owner-surface-deferred',
-      submitted: {
-        worldId: 'world-oasis',
-        body: {
-          bindingUpserts: [{
-            bindingKind: 'PRESENTATION',
-            bindingPoint: 'AGENT_PORTRAIT',
-            hostId: 'agent-1',
-            hostType: 'AGENT',
-            objectId: 'resource-image-1',
-            objectType: 'RESOURCE',
-            priority: 0,
-            tags: ['realm-agent-studio', 'owner-reviewed'],
-            intentPrompt: 'Owner selected portrait',
-          }],
-        },
-      },
-    });
-    expect(collectKeys(result.submitted).has('profileCoverUrl')).toBe(false);
-    expect(collectKeys(result.submitted).has('avatarUrl')).toBe(false);
-    expect(Object.hasOwn(realm.services, 'CreatorService')).toBe(false);
-    expect(Object.hasOwn(realm.services, 'AgentRulesService')).toBe(false);
-  });
-
-  it('builds an AUDIO voice sample Binding payload without Resource VOICE or custom voice truth', () => {
-    expect(buildRealmAgentResourceBindingInput({
-      agent: ownerAgentDetailWithWorldId(),
-      resourceId: 'resource-audio-1',
-      resourceType: 'AUDIO',
-      bindingPoint: 'AGENT_VOICE_SAMPLE',
-      humanReviewed: true,
-    })).toEqual({
-      worldId: 'world-oasis',
-      body: {
-        bindingUpserts: [{
-          bindingKind: 'PRESENTATION',
-          bindingPoint: 'AGENT_VOICE_SAMPLE',
-          hostId: 'agent-1',
-          hostType: 'AGENT',
-          objectId: 'resource-audio-1',
-          objectType: 'RESOURCE',
-          priority: 0,
-          tags: ['realm-agent-studio', 'owner-reviewed'],
-        }],
-      },
-    });
-  });
-
-  it('fails closed before Agent Binding when world, resource, or binding matrix evidence is invalid', async () => {
-    const realm = mockRealm();
-
-    await expect(bindReviewedAgentResource({
-      agent: { ...ownerAgentDetailWithWorldId(), world: detailField('world', 'World evidence', '') },
-      resourceId: 'resource-image-1',
-      resourceType: 'IMAGE',
-      bindingPoint: 'AGENT_PORTRAIT',
-      humanReviewed: true,
-    }, realm)).resolves.toMatchObject({
-      ok: false,
-      failure: 'agent-binding-world-unavailable',
-      submitted: null,
-    });
-
-    await expect(bindReviewedAgentResource({
-      agent: ownerAgentDetailWithWorldId(),
-      resourceId: 'resource-image-1',
-      resourceType: 'IMAGE',
-      bindingPoint: 'AGENT_PORTRAIT',
-      humanReviewed: false,
-    }, realm)).resolves.toMatchObject({
-      ok: false,
-      failure: 'agent-binding-review-missing',
-      submitted: null,
-    });
-
-    await expect(bindReviewedAgentResource({
-      agent: ownerAgentDetailWithWorldId(),
-      resourceId: '',
-      resourceType: 'IMAGE',
-      bindingPoint: 'AGENT_PORTRAIT',
-      humanReviewed: true,
-    }, realm)).resolves.toMatchObject({
-      ok: false,
-      failure: 'agent-binding-resource-invalid',
-      submitted: null,
-    });
-
-    await expect(bindReviewedAgentResource({
-      agent: ownerAgentDetailWithWorldId(),
-      resourceId: 'resource-audio-1',
-      resourceType: 'AUDIO',
-      bindingPoint: 'AGENT_PORTRAIT',
-      humanReviewed: true,
-    }, realm)).resolves.toMatchObject({
-      ok: false,
-      failure: 'agent-binding-point-invalid',
-      submitted: null,
-    });
-
-    expect(realm.services.WorldControlService.worldControlControllerBatchUpsertWorldBindings).not.toHaveBeenCalled();
-  });
-
-  it('fails closed when Agent Binding response omits the canonical binding id', () => {
-    const submitted = buildRealmAgentResourceBindingInput({
-      agent: ownerAgentDetailWithWorldId(),
-      resourceId: 'resource-image-1',
-      resourceType: 'IMAGE',
-      bindingPoint: 'AGENT_CANDIDATE',
-      humanReviewed: true,
-    });
-    expect(submitted).not.toBeNull();
-    expect(normalizeAgentResourceBindingResult({
-      worldId: 'OASIS',
-      items: [{
-        hostId: 'agent-1',
-        hostType: 'AGENT',
-        objectId: 'resource-image-1',
-        objectType: 'RESOURCE',
-        bindingKind: 'PRESENTATION',
-        bindingPoint: 'AGENT_CANDIDATE',
-        scopeWorldId: 'world-oasis',
-      }],
-    }, submitted as NonNullable<typeof submitted>)).toMatchObject({
-      ok: false,
-      failure: 'realm-agent-binding-missing-canonical-id',
-      bindingTruth: false,
-    });
-  });
-
-  it('fails closed when Agent Binding response returns a different scope world id', () => {
-    const submitted = buildRealmAgentResourceBindingInput({
-      agent: ownerAgentDetailWithWorldId(),
-      resourceId: 'resource-image-1',
-      resourceType: 'IMAGE',
-      bindingPoint: 'AGENT_PORTRAIT',
-      humanReviewed: true,
-    });
-    expect(submitted).not.toBeNull();
-    expect(normalizeAgentResourceBindingResult({
-      worldId: 'different-world',
-      items: [{
-        id: 'binding-cross-world',
-        hostId: 'agent-1',
-        hostType: 'AGENT',
-        objectId: 'resource-image-1',
-        objectType: 'RESOURCE',
-        bindingKind: 'PRESENTATION',
-        bindingPoint: 'AGENT_PORTRAIT',
-        scopeWorldId: 'different-world',
-      }],
-    }, submitted as NonNullable<typeof submitted>)).toMatchObject({
-      ok: false,
-      failure: 'realm-agent-binding-missing-canonical-id',
-      bindingTruth: false,
-    });
   });
 
   it('fails closed before text Resource creation when reviewed caption content is missing', async () => {

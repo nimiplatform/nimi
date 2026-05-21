@@ -49,22 +49,6 @@ vi.mock('./portfolio-client.js', async (importOriginal) => {
       deliveryAccess: 'SIGNED',
       source: 'Realm ResourcesService.listResources',
     }]),
-    bindReviewedAgentResource: vi.fn(async () => ({
-      ok: false,
-      source: 'Realm owner-scoped Agent Binding ingress (deferred)',
-      bindingTruth: false,
-      publicProfileTruth: false,
-      customVoiceTruth: false,
-      publishTruth: false,
-      failure: 'agent-binding-owner-surface-deferred',
-      message: 'Resource-backed Agent Binding is deferred until Realm exposes an owner-scoped Agent Binding ingress for MASTER_OWNED agents.',
-      submitted: {
-        worldId: 'world-oasis',
-        body: {
-          bindingUpserts: [],
-        },
-      },
-    })),
     uploadReviewedPostMediaResource: vi.fn(async () => ({
       ok: true,
       source: 'Realm ResourcesService direct upload + finalizeResource',
@@ -360,37 +344,14 @@ describe('OwnerPortfolio visibility settings UI', () => {
     expect(document.body.textContent).not.toContain('Hidden raw rule statement');
   });
 
-  it('keeps reviewed READY Resource Binding as a deferred candidate', async () => {
+  it('keeps Resource-backed Agent Binding fail-closed behind backend admission', async () => {
     await renderOwnerPortfolio();
-    await waitForText('Resource-backed Agent Binding candidate');
+    await waitForText('Owner Resource Binding admission gap');
 
-    await act(async () => {
-      findButtonByText('Load binding Resources').click();
-    });
-    await waitForText('Loaded 2 READY IMAGE/AUDIO Resource options for Agent Binding.');
-
-    const picker = findSelectByLabel('READY IMAGE/AUDIO Resource');
-    await act(async () => {
-      picker.value = 'resource-ready-ui';
-      picker.dispatchEvent(new Event('change', { bubbles: true }));
-    });
-
-    await checkAllHumanReviewBoxes();
-    await act(async () => {
-      findButtonByText('Check Binding candidate').click();
-    });
-
-    await waitForText('Resource-backed Agent Binding is deferred until Realm exposes an owner-scoped Agent Binding ingress');
-    expect(portfolioClient.bindReviewedAgentResource).toHaveBeenCalledWith({
-      agent: expect.objectContaining({ id: 'agent-1' }),
-      resourceId: 'resource-ready-ui',
-      resourceType: 'IMAGE',
-      bindingPoint: 'AGENT_PORTRAIT',
-      humanReviewed: true,
-      intentPrompt: '',
-    });
-    expect(document.body.textContent).toContain('Realm Binding truth is deferred');
-    expect(document.body.textContent).toContain('No profile cover, avatar URL, custom voice, post, schedule, moderation, or lifecycle success is claimed');
+    expect(document.body.textContent).toContain('Backend admission required: owner-scoped Resource-to-Agent binding ingress');
+    expect(document.body.textContent).toContain('Studio does not call WorldControlService, CreatorService, or AgentRulesService');
+    expect(document.body.textContent).not.toContain('Load binding Resources');
+    expect(document.body.textContent).not.toContain('Check Binding candidate');
   });
 
   it('creates a reviewed text Resource and fills the post attachment envelope', async () => {

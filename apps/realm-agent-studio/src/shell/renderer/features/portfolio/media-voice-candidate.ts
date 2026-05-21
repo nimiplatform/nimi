@@ -9,9 +9,9 @@ export const MEDIA_CANDIDATE_BINDING_POINTS = [
   'AGENT_VOICE_SAMPLE',
 ] as const;
 
-export const VISUAL_MEDIA_BLOCKED_REASON = 'visual media candidate blocked: image generation is not admitted in this local preview slice; READY Resources can be bound only through the reviewed Binding workflow';
+export const VISUAL_MEDIA_BLOCKED_REASON = 'visual media candidate blocked: image generation and owner-scoped Resource-to-Agent binding ingress are not admitted; READY Resources may be used for post attachments only';
 export const VOICE_DEMO_BLOCKED_REASON = 'voice demo candidate blocked: Runtime synthesis and Resource upload/finalize are not called in this local preview slice';
-export const VOICE_DEMO_CANDIDATE_NOTICE = 'voice demo candidate uses Runtime media.tts.synthesize only; Resource(AUDIO) and Binding truth require separate reviewed Realm operations';
+export const VOICE_DEMO_CANDIDATE_NOTICE = 'voice demo candidate uses Runtime media.tts.synthesize only; public voice/sample binding requires a dedicated owner-scoped Realm ingress';
 export const VOICE_DEMO_SYNTHESIS_SOURCE = 'Runtime media.tts.synthesize';
 
 export type MediaCandidateResourceType = typeof MEDIA_CANDIDATE_RESOURCE_TYPES[number];
