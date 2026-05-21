@@ -102,6 +102,10 @@ func (r *runtimeAgentStateRepository) loadState(s *Service) error {
 }
 
 func (r *runtimeAgentStateRepository) saveStateLocked(s *Service) error {
+	return r.saveStateLockedWithTxHook(s, nil)
+}
+
+func (r *runtimeAgentStateRepository) saveStateLockedWithTxHook(s *Service, txHook runtimeAgentStateTxHook) error {
 	persisted := persistedRuntimeAgentState{
 		SchemaVersion: runtimeAgentStateSchemaVersion,
 		SavedAt:       time.Now().UTC().Format(time.RFC3339),
@@ -142,7 +146,7 @@ func (r *runtimeAgentStateRepository) saveStateLocked(s *Service) error {
 	if _, err := json.MarshalIndent(persisted, "", "  "); err != nil {
 		return fmt.Errorf("marshal runtime agent state file: %w", err)
 	}
-	return r.persistSnapshot(persisted)
+	return r.persistSnapshot(persisted, txHook)
 }
 
 func (r *runtimeAgentStateRepository) loadStateFromDB(s *Service) error {
@@ -249,7 +253,15 @@ func (r *runtimeAgentStateRepository) loadStateFromDB(s *Service) error {
 	return nil
 }
 
-func (r *runtimeAgentStateRepository) persistSnapshot(persisted persistedRuntimeAgentState) error {
+// runtimeAgentStateTxHook runs additional row mutations inside the same
+// snapshot-rewrite transaction. It is used by the K-AGCORE-141 hard delete to
+// purge the agent-scoped projection tables (`runtime_local_agent_behavioral_
+// posture`, `runtime_local_agent_review_run`, `runtime_local_agent_review_
+// followup`) that `persistSnapshot` does NOT rewrite from in-memory state, so
+// row deletion and projection purge either commit together or fail closed.
+type runtimeAgentStateTxHook func(*sql.Tx) error
+
+func (r *runtimeAgentStateRepository) persistSnapshot(persisted persistedRuntimeAgentState, txHook runtimeAgentStateTxHook) error {
 	return r.backend.WriteTx(context.Background(), func(tx *sql.Tx) error {
 		if _, err := tx.Exec(`DELETE FROM runtime_local_agent`); err != nil {
 			return err
@@ -294,6 +306,11 @@ func (r *runtimeAgentStateRepository) persistSnapshot(persisted persistedRuntime
 				return err
 			}
 			if _, err := tx.Exec(`INSERT INTO runtime_local_agent_event_log(sequence, local_agent_ref, event_type, timestamp, event_json) VALUES (?, ?, ?, ?, ?)`, event.GetSequence(), event.GetLocalAgentRef(), int(event.GetEventType()), timestampString(event.GetTimestamp()), string(eventRaw)); err != nil {
+				return err
+			}
+		}
+		if txHook != nil {
+			if err := txHook(tx); err != nil {
 				return err
 			}
 		}

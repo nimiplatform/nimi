@@ -28,8 +28,12 @@ func (r agentAdminRuntime) initialize(ctx context.Context, req *runtimev1.Initia
 	}
 	localAgentRef := identity.LocalAgentRef
 
+	// K-AGCORE-141: TerminateAgent hard-deletes the LocalAgent projection and
+	// never retains a TERMINATED tombstone, so any present in-memory entry is
+	// a live projection. A present ref is the ordinary K-AGCORE-139 idempotency
+	// gate; a re-add after removal re-materializes from an absent ref.
 	r.svc.mu.RLock()
-	if existing := r.svc.agents[localAgentRef]; existing != nil && existing.Agent.GetLifecycleStatus() != runtimev1.AgentLifecycleStatus_AGENT_LIFECYCLE_STATUS_TERMINATED {
+	if existing := r.svc.agents[localAgentRef]; existing != nil {
 		r.svc.mu.RUnlock()
 		return nil, status.Error(codes.AlreadyExists, "agent already exists")
 	}
@@ -96,31 +100,83 @@ func (r agentAdminRuntime) initialize(ctx context.Context, req *runtimev1.Initia
 	}, nil
 }
 
-func (r agentAdminRuntime) terminate(req *runtimev1.TerminateAgentRequest) (*runtimev1.TerminateAgentResponse, error) {
+// terminate is the K-AGCORE-141 LocalAgent projection hard-delete lifecycle.
+//
+// It removes the `runtime_local_agent` row plus the agent-scoped state
+// projection, runtime-owned hooks, agent event log, and the agent-scoped
+// memory banks (`MEMORY_BANK_SCOPE_AGENT_CORE` and every
+// `MEMORY_BANK_SCOPE_AGENT_DYADIC` owned by the agent). It does not retain a
+// TERMINATED tombstone — `local_agent_ref` is deterministically re-derivable,
+// so a later AgentFriend re-add re-materializes the projection through
+// K-AGCORE-139.
+//
+// Ordering is retry-safety-driven. Agent-scoped memory is deleted before the
+// runtime-agent row: if memory deletion fails the row is still present, so an
+// upstream `TerminateAgent` retry re-enters this path and re-attempts both
+// halves. The idempotent no-op branch (already-absent ref) still runs the
+// memory delete so a retry after a row-only deletion failure still converges
+// — neither half can be permanently stranded. Either half failing returns a
+// typed error; runtime never reports pseudo-success on an incomplete delete.
+func (r agentAdminRuntime) terminate(ctx context.Context, req *runtimev1.TerminateAgentRequest) (*runtimev1.TerminateAgentResponse, error) {
 	identity, err := localAgentIdentityFromContext(req.GetContext())
 	if err != nil {
 		return nil, err
 	}
-	entry, err := r.svc.agentByID(identity.LocalAgentRef)
+	localAgentRef := identity.LocalAgentRef
+
+	entry, err := r.svc.agentByID(localAgentRef)
 	if err != nil {
+		if status.Code(err) == codes.NotFound {
+			// Idempotent typed no-op: TerminateAgent for an already-absent
+			// (or never-materialized) local_agent_ref must succeed. The
+			// agent-scoped memory delete still runs so a retry after a
+			// row-only deletion failure finishes the memory half.
+			if _, err := r.svc.memorySvc.DeleteAgentScopedBanks(ctx, localAgentRef); err != nil {
+				return nil, err
+			}
+			return &runtimev1.TerminateAgentResponse{Ack: okAck()}, nil
+		}
 		return nil, err
 	}
 	if err := validateAgentRecordIdentity(entry.Agent, identity); err != nil {
 		return nil, err
 	}
+
 	now := time.Now().UTC()
+	reason := firstNonEmpty(strings.TrimSpace(req.GetReason()), "agent terminated")
+	previousStatus := entry.Agent.GetLifecycleStatus()
+
+	// Move the working copy to TERMINATED before cancelling hooks so the
+	// life-track teardown resolves the agent's execution state to SUSPENDED.
+	// This mutation drives the cancellation/teardown projection only; the
+	// entry is hard-deleted below and never persisted as a TERMINATED row.
 	entry.Agent.LifecycleStatus = runtimev1.AgentLifecycleStatus_AGENT_LIFECYCLE_STATUS_TERMINATED
 	entry.Agent.UpdatedAt = timestamppb.New(now)
-	events := []*runtimev1.AgentEvent{
+
+	// Cancel active hooks and in-flight chat/follow-up execution before the
+	// projection row is removed so deletion does not strand live runtime work.
+	liveEvents := []*runtimev1.AgentEvent{
 		r.svc.newEventForIdentity(identity, runtimev1.AgentEventType_AGENT_EVENT_TYPE_LIFECYCLE, &runtimev1.AgentEvent_Lifecycle{
 			Lifecycle: &runtimev1.AgentLifecycleEventDetail{
-				PreviousStatus: runtimev1.AgentLifecycleStatus_AGENT_LIFECYCLE_STATUS_ACTIVE,
+				PreviousStatus: previousStatus,
 				CurrentStatus:  runtimev1.AgentLifecycleStatus_AGENT_LIFECYCLE_STATUS_TERMINATED,
 			},
 		}),
 	}
-	events = append(events, r.svc.cancelActiveHooks(entry, "runtime", firstNonEmpty(strings.TrimSpace(req.GetReason()), "agent terminated"), now)...)
-	if err := r.svc.updateAgent(entry, events...); err != nil {
+	liveEvents = append(liveEvents, r.svc.cancelActiveHooks(entry, "runtime", reason, now)...)
+	r.svc.purgeAgentScopedChatSurfaceState(localAgentRef)
+
+	// Memory deletion first (see ordering note above). Capture the removed
+	// agent-scoped bank locator keys to purge the runtime-agent-side review
+	// followup rows keyed by those same bank locator keys.
+	removedBankKeys, err := r.svc.memorySvc.DeleteAgentScopedBanks(ctx, localAgentRef)
+	if err != nil {
+		return nil, err
+	}
+
+	// Row + agent-scoped state/hooks/event-log deletion. The txHook purges the
+	// runtime-agent projection tables the snapshot rewrite does not cover.
+	if err := r.svc.deleteAgent(localAgentRef, agentProjectionPurgeHook(localAgentRef, removedBankKeys), liveEvents...); err != nil {
 		return nil, err
 	}
 	return &runtimev1.TerminateAgentResponse{Ack: okAck()}, nil

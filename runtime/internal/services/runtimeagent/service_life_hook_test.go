@@ -175,20 +175,46 @@ func TestRuntimeAgentHookLifecycleExecutionStateAndCursor(t *testing.T) {
 	}
 }
 
-func TestRuntimeAgentTerminateEmitsExecutionStateProjection(t *testing.T) {
+// TestRuntimeAgentTerminateBroadcastsTeardownThenHardDeletes is the
+// K-AGCORE-141 conformance for the terminate execution-state teardown.
+//
+// Pre-K-AGCORE-141 TerminateAgent flipped the agent to a TERMINATED tombstone
+// and persisted a SUSPENDED execution-state projection event replayable via a
+// subscriber cursor. K-AGCORE-141 makes TerminateAgent a hard delete: the
+// agent state projection and the agent event log are removed, so there is no
+// surviving SUSPENDED state and no persisted event to cursor-replay. The
+// execution-state teardown is instead broadcast to live subscribers as
+// observability of the in-flight cancellation, then the projection is gone.
+func TestRuntimeAgentTerminateBroadcastsTeardownThenHardDeletes(t *testing.T) {
 	t.Parallel()
 
 	svc := newRuntimeAgentTestService(t)
-	ctx := context.Background()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
 		Context: testRuntimeAgentIdentityContext("agent-terminate-state"),
 	}); err != nil {
 		t.Fatalf("InitializeAgent: %v", err)
 	}
 
-	svc.mu.RLock()
-	cursor := svc.sequence
-	svc.mu.RUnlock()
+	// Attach a live STATE subscriber before terminate. The teardown event is
+	// broadcast-only (the persisted event log for the agent is deleted), so it
+	// is observable only to a subscriber that is live at terminate time.
+	stream := newAgentEventCaptureStreamLimit(ctx, 1)
+	stream.headerSent = make(chan struct{}, 1)
+	done := make(chan error, 1)
+	go func() {
+		done <- svc.SubscribeAgentEvents(&runtimev1.SubscribeAgentEventsRequest{
+			Context:      testRuntimeAgentIdentityContext("agent-terminate-state"),
+			AgentId:      "agent-terminate-state",
+			EventFilters: []runtimev1.AgentEventType{runtimev1.AgentEventType_AGENT_EVENT_TYPE_STATE},
+		}, stream)
+	}()
+	select {
+	case <-stream.headerSent:
+	case <-time.After(time.Second):
+		t.Fatal("subscriber did not become live before terminate")
+	}
 
 	if _, err := svc.TerminateAgent(ctx, &runtimev1.TerminateAgentRequest{
 		Context: testRuntimeAgentIdentityContext("agent-terminate-state"),
@@ -198,23 +224,13 @@ func TestRuntimeAgentTerminateEmitsExecutionStateProjection(t *testing.T) {
 		t.Fatalf("TerminateAgent: %v", err)
 	}
 
-	stateResp, err := svc.GetAgentState(ctx, &runtimev1.GetAgentStateRequest{
-		Context: testRuntimeAgentIdentityContext("agent-terminate-state"), AgentId: "agent-terminate-state"})
-	if err != nil {
-		t.Fatalf("GetAgentState: %v", err)
-	}
-	if got := stateResp.GetState().GetExecutionState(); got != runtimev1.AgentExecutionState_AGENT_EXECUTION_STATE_SUSPENDED {
-		t.Fatalf("expected SUSPENDED after terminate, got %s", got)
-	}
-
-	stream := newAgentEventCaptureStreamLimit(ctx, 1)
-	if err := svc.SubscribeAgentEvents(&runtimev1.SubscribeAgentEventsRequest{
-		Context:      testRuntimeAgentIdentityContext("agent-terminate-state"),
-		AgentId:      "agent-terminate-state",
-		Cursor:       encodeCursor(cursor),
-		EventFilters: []runtimev1.AgentEventType{runtimev1.AgentEventType_AGENT_EVENT_TYPE_STATE},
-	}, stream); err != context.Canceled {
-		t.Fatalf("SubscribeAgentEvents(state) returned %v, want context.Canceled", err)
+	select {
+	case err := <-done:
+		if err != context.Canceled {
+			t.Fatalf("SubscribeAgentEvents(state) returned %v, want context.Canceled", err)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("expected the terminate teardown event to reach the live subscriber")
 	}
 	if len(stream.events) != 1 {
 		t.Fatalf("expected 1 terminate execution-state event, got %d", len(stream.events))
@@ -233,6 +249,14 @@ func TestRuntimeAgentTerminateEmitsExecutionStateProjection(t *testing.T) {
 		strings.TrimSpace(detail.GetOriginatingTurnId()) != "" ||
 		strings.TrimSpace(detail.GetOriginatingStreamId()) != "" {
 		t.Fatalf("terminate execution-state event must not fabricate origin, got %#v", detail)
+	}
+
+	// K-AGCORE-141 hard delete: the agent state projection is physically gone.
+	if _, err := svc.GetAgentState(ctx, &runtimev1.GetAgentStateRequest{
+		Context: testRuntimeAgentIdentityContext("agent-terminate-state"),
+		AgentId: "agent-terminate-state",
+	}); status.Code(err) != codes.NotFound {
+		t.Fatalf("GetAgentState after terminate: status = %s, want NotFound (%v)", status.Code(err), err)
 	}
 }
 

@@ -113,23 +113,33 @@ func TestRuntimeAgentGuideProjectsAsOrdinaryLocalAgent(t *testing.T) {
 		t.Fatalf("guide anchor carries seeded turn/message linkage; runtime must not seed welcome copy")
 	}
 
-	// Ordinary lifecycle: TerminateAgent behaves as for any RealmAgent.
+	// Ordinary lifecycle: TerminateAgent behaves as for any RealmAgent. Per
+	// K-AGCORE-141 TerminateAgent hard-deletes the LocalAgent projection — it
+	// does not flip a status field and does not retain a TERMINATED tombstone.
 	if _, err := svc.TerminateAgent(ctx, &runtimev1.TerminateAgentRequest{
 		Context: guideCtx,
 		Reason:  "conformance teardown",
 	}); err != nil {
 		t.Fatalf("TerminateAgent(guide): %v", err)
 	}
-	getResp, err := svc.GetAgent(ctx, &runtimev1.GetAgentRequest{Context: guideCtx})
-	if err != nil {
-		t.Fatalf("GetAgent(guide) after terminate: %v", err)
-	}
-	if getResp.GetAgent().GetLifecycleStatus() != runtimev1.AgentLifecycleStatus_AGENT_LIFECYCLE_STATUS_TERMINATED {
-		t.Fatalf("guide lifecycle after terminate = %s, want TERMINATED", getResp.GetAgent().GetLifecycleStatus())
+	// The projection row is physically gone: GetAgent must report NotFound, not
+	// a retained TERMINATED record.
+	if _, err := svc.GetAgent(ctx, &runtimev1.GetAgentRequest{Context: guideCtx}); status.Code(err) != codes.NotFound {
+		t.Fatalf("GetAgent(guide) after terminate: status = %s, want NotFound (%v)", status.Code(err), err)
 	}
 
-	// Post-terminate the ordinary idempotency gate releases the ref: a fresh
-	// InitializeAgent succeeds (repair), exactly as for a non-guide RealmAgent.
+	// TerminateAgent is idempotent: a second terminate of the now-absent ref is
+	// a typed no-op, not a not-found error (K-AGCORE-141 fixed rule).
+	if _, err := svc.TerminateAgent(ctx, &runtimev1.TerminateAgentRequest{
+		Context: guideCtx,
+		Reason:  "conformance teardown repeat",
+	}); err != nil {
+		t.Fatalf("TerminateAgent(guide) idempotent repeat: %v", err)
+	}
+
+	// Post-terminate the ref is absent, so a fresh InitializeAgent is an
+	// ordinary clean create that re-materializes the projection through the
+	// K-AGCORE-139 path — not a tombstone repair.
 	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
 		Context:       guideCtx,
 		LocalAgentRef: wantLocalRef,
@@ -137,7 +147,7 @@ func TestRuntimeAgentGuideProjectsAsOrdinaryLocalAgent(t *testing.T) {
 		RealmAgentId:  guideRealmAgentID,
 		DisplayName:   "Archivist",
 	}); err != nil {
-		t.Fatalf("re-init guide after terminate (ordinary repair): %v", err)
+		t.Fatalf("re-init guide after terminate (clean re-materialize): %v", err)
 	}
 }
 

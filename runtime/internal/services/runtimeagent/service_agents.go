@@ -12,8 +12,8 @@ func (s *Service) InitializeAgent(ctx context.Context, req *runtimev1.Initialize
 	return s.agentAdminRuntime().initialize(ctx, req)
 }
 
-func (s *Service) TerminateAgent(_ context.Context, req *runtimev1.TerminateAgentRequest) (*runtimev1.TerminateAgentResponse, error) {
-	return s.agentAdminRuntime().terminate(req)
+func (s *Service) TerminateAgent(ctx context.Context, req *runtimev1.TerminateAgentRequest) (*runtimev1.TerminateAgentResponse, error) {
+	return s.agentAdminRuntime().terminate(ctx, req)
 }
 
 func (s *Service) GetAgent(_ context.Context, req *runtimev1.GetAgentRequest) (*runtimev1.GetAgentResponse, error) {
