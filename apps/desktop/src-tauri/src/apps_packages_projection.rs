@@ -20,14 +20,35 @@
 use crate::apps_registry_projection::read_apps_registry;
 use crate::desktop_paths::resolve_nimi_dir;
 use crate::desktop_product_control::selected_product_data_root;
+use crate::local_config_migration::{
+    read_governed_config, ConfigReadOutcome, GovernedConfigFile, MigrationRegistry,
+};
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 /// Supported `~/.nimi/apps/packages.json` schema version. An unknown future
-/// version fails closed on read (migration mechanics are T10).
+/// version or an old version with no registered migration fails closed to a
+/// typed repair outcome through the `local_config_migration` framework
+/// (`P-MIG-002`).
 pub const APPS_PACKAGES_SCHEMA_VERSION: u32 = 1;
+
+/// Governed config-file identity for `~/.nimi/apps/packages.json`
+/// (`local-config-file-registry.yaml` row `packages_json`).
+const PACKAGES_CONFIG_FILE: GovernedConfigFile =
+    GovernedConfigFile::new("packages_json", "~/.nimi/apps/packages.json");
+
+/// The shared-framework migration registry for `~/.nimi/apps/packages.json`.
+///
+/// The package projection is deterministically rebuilt from Runtime-written
+/// install evidence; a schema bump's forward migration is owned by its T4
+/// schema owner and registered here. No version has been bumped yet, so the
+/// step set is empty — an old/unknown version then fails closed to repair
+/// (`P-MIG-002`), and the repair action is the deterministic
+/// [`ensure_apps_packages`] regeneration.
+const PACKAGES_MIGRATIONS: MigrationRegistry =
+    MigrationRegistry::new("packages_json", APPS_PACKAGES_SCHEMA_VERSION, &[]);
 
 /// `~/.nimi`-relative location of the package projection. This is the manual
 /// `~/.nimi/nimi.json` `pointers.appPackages` value.
@@ -211,9 +232,12 @@ pub fn build_apps_packages_record() -> Result<AppsPackagesRecord, String> {
     })
 }
 
-/// Structural validation of a package record read from disk.
+/// Structural validation of a package record.
 ///
-/// An unknown future `schemaVersion` fails closed.
+/// `schemaVersion` fail-closed / migration routing is owned by the
+/// `local_config_migration` framework (`P-MIG-002`); the `schemaVersion` check
+/// here is a defensive post-migration assertion. A failure routes the read to
+/// `repair_required`, never a raw `Err`.
 fn validate_record(record: &AppsPackagesRecord) -> Result<(), String> {
     if record.schema_version != APPS_PACKAGES_SCHEMA_VERSION {
         return Err(format!(
@@ -278,34 +302,42 @@ fn write_record(path: &Path, record: &AppsPackagesRecord) -> Result<(), String> 
     })
 }
 
+/// Read the installed package projection through the shared `~/.nimi`
+/// migration / repair framework.
+///
+/// Routes a parse failure, a missing / unknown `schemaVersion`, or a structural
+/// fault to a typed `ConfigReadOutcome::Repair` (`P-MIG-004`) instead of a raw
+/// `Err`. `ConfigReadOutcome::Absent` means the projection has not been
+/// materialized; the deterministic [`ensure_apps_packages`] regeneration is the
+/// recovery path.
+#[allow(dead_code)]
+pub fn read_apps_packages_governed() -> Result<ConfigReadOutcome<AppsPackagesRecord>, String> {
+    let path = apps_packages_path()?;
+    read_governed_config(
+        &PACKAGES_CONFIG_FILE,
+        &path,
+        &PACKAGES_MIGRATIONS,
+        |document| {
+            let record: AppsPackagesRecord = serde_json::from_value(document.clone())
+                .map_err(|error| format!("package projection cannot be deserialized: {error}"))?;
+            validate_record(&record)?;
+            Ok(record)
+        },
+    )
+}
+
 /// Read the installed package projection, if present.
 ///
-/// Fails closed on a parse failure or an unsupported `schemaVersion`; returns
-/// `Ok(None)` only when the file does not exist.
-///
-/// This is the projection reader half of the writer/reader pair. The Apps card
-/// UI (wave T4-W4) is its first non-test consumer; until that wave lands the
-/// reader is exercised only by this module's tests.
+/// Thin presence-shaped adapter over [`read_apps_packages_governed`]: a routed
+/// repair state is surfaced as the typed repair reason; `Absent` maps to
+/// `Ok(None)`.
 #[allow(dead_code)]
 pub fn read_apps_packages() -> Result<Option<AppsPackagesRecord>, String> {
-    let path = apps_packages_path()?;
-    if !path.exists() {
-        return Ok(None);
+    match read_apps_packages_governed()? {
+        ConfigReadOutcome::Absent => Ok(None),
+        ConfigReadOutcome::Ready(record) => Ok(Some(record)),
+        ConfigReadOutcome::Repair { reason, .. } => Err(reason),
     }
-    let raw = fs::read_to_string(&path).map_err(|error| {
-        format!(
-            "read ~/.nimi/apps/packages.json failed ({}): {error}",
-            path.display()
-        )
-    })?;
-    let record = serde_json::from_str::<AppsPackagesRecord>(&raw).map_err(|error| {
-        format!(
-            "parse ~/.nimi/apps/packages.json failed ({}): {error}",
-            path.display()
-        )
-    })?;
-    validate_record(&record)?;
-    Ok(Some(record))
 }
 
 /// Regenerate `~/.nimi/apps/packages.json` from the Runtime-written install
@@ -328,10 +360,11 @@ pub fn apps_packages_get() -> Result<AppsPackagesProjection, String> {
 #[cfg(test)]
 mod tests {
     use super::{
-        apps_packages_path, ensure_apps_packages, read_apps_packages, AppsPackagesRecord,
-        APPS_PACKAGES_POINTER, APPS_PACKAGES_SCHEMA_VERSION,
+        apps_packages_path, ensure_apps_packages, read_apps_packages_governed,
+        AppsPackagesRecord, APPS_PACKAGES_POINTER, APPS_PACKAGES_SCHEMA_VERSION,
     };
     use crate::desktop_product_control::select_product_data_root;
+    use crate::local_config_migration::{ConfigReadOutcome, ConfigRepairSeverity};
     use crate::test_support::with_env;
     use std::path::{Path, PathBuf};
     use std::time::{SystemTime, UNIX_EPOCH};
@@ -458,7 +491,7 @@ mod tests {
     }
 
     #[test]
-    fn unknown_future_schema_version_fails_closed_on_read() {
+    fn unknown_future_schema_version_routes_repair_required() {
         let home = temp_home("future-schema");
         let data_root = home.join("nimi-data");
         with_env(&[("HOME", home.to_str())], || {
@@ -475,10 +508,21 @@ mod tests {
                 .as_object_mut()
                 .expect("object")
                 .insert("schemaVersion".to_string(), serde_json::json!(9999));
-            std::fs::write(&path, serde_json::to_string_pretty(&record).expect("json"))
-                .expect("write future schema");
-            let error = read_apps_packages().expect_err("unknown schema fails closed");
-            assert!(error.contains("unsupported"));
+            let future_raw = serde_json::to_string_pretty(&record).expect("json");
+            std::fs::write(&path, &future_raw).expect("write future schema");
+            // P-MIG-002 / P-MIG-004: unknown future version -> typed repair.
+            match read_apps_packages_governed().expect("governed read") {
+                ConfigReadOutcome::Repair { severity, reason } => {
+                    assert_eq!(severity, ConfigRepairSeverity::RepairRequired);
+                    assert!(reason.contains("newer than the supported version"));
+                }
+                other => panic!("expected repair_required, got {other:?}"),
+            }
+            assert_eq!(
+                std::fs::read_to_string(&path).expect("read after"),
+                future_raw,
+                "the faulted file is left intact for repair"
+            );
         });
     }
 

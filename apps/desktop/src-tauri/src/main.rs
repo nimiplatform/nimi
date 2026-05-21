@@ -24,6 +24,7 @@ mod desktop_release;
 mod desktop_updates;
 mod external_agent_gateway;
 mod factory_profile_index;
+mod local_config_migration;
 mod local_runtime;
 mod main_parts;
 mod menu_bar_shell;

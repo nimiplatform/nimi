@@ -18,6 +18,9 @@
 //! module never writes account-scoped records.
 
 use crate::desktop_paths::resolve_nimi_dir;
+use crate::local_config_migration::{
+    read_governed_config, ConfigReadOutcome, GovernedConfigFile, MigrationRegistry,
+};
 use crate::platform_ai_profile_factory_catalog::{
     PlatformAIProfileFactoryRow, PLATFORM_AI_PROFILE_FACTORY_CATALOG_VERSION,
     PLATFORM_AI_PROFILE_FACTORY_ROWS, PLATFORM_AI_PROFILE_SELECTION_POLICY_REF,
@@ -28,6 +31,24 @@ use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 const FACTORY_PROFILE_INDEX_SCHEMA_VERSION: u32 = 1;
+
+/// Governed config-file identity for `~/.nimi/profiles/factory-index.json`
+/// (`local-config-file-registry.yaml` row `factory_index_json`).
+const FACTORY_INDEX_CONFIG_FILE: GovernedConfigFile =
+    GovernedConfigFile::new("factory_index_json", "~/.nimi/profiles/factory-index.json");
+
+/// The shared-framework migration registry for the factory profile index.
+///
+/// The index is a deterministic read-only catalog projection; a schema bump's
+/// forward migration is owned by its T2 schema owner and registered here. No
+/// version has been bumped yet, so the step set is empty — an old/unknown
+/// version then fails closed to repair (`P-MIG-002`), and the repair action is
+/// the deterministic [`ensure_factory_profile_index`] regeneration.
+const FACTORY_INDEX_MIGRATIONS: MigrationRegistry = MigrationRegistry::new(
+    "factory_index_json",
+    FACTORY_PROFILE_INDEX_SCHEMA_VERSION,
+    &[],
+);
 /// Stable typed ref prefix for a factory `AIProfile` row. The catalog `alias`
 /// is the readable projection of the four-dimensional matrix; it is not a
 /// schema owner, so the projected `profileRef` keeps the catalog id + alias
@@ -214,11 +235,13 @@ pub fn build_factory_profile_index_record() -> Result<FactoryProfileIndexRecord,
     })
 }
 
-/// Structural validation of a factory profile index record read from disk.
+/// Structural validation of a factory profile index record.
 ///
-/// An unknown future `schemaVersion` fails closed: the cross-cutting migration
-/// mechanics are owned elsewhere (T10), so this read just rejects unsupported
-/// versions rather than attempting a migration.
+/// `schemaVersion` fail-closed / migration routing is owned by the
+/// `local_config_migration` framework (`P-MIG-002`); by the time this runs the
+/// document is already at `FACTORY_PROFILE_INDEX_SCHEMA_VERSION`. The
+/// `schemaVersion` check is kept as a defensive post-migration assertion. A
+/// failure here routes the read to `repair_required`, never a raw `Err`.
 fn validate_record(record: &FactoryProfileIndexRecord) -> Result<(), String> {
     if record.schema_version != FACTORY_PROFILE_INDEX_SCHEMA_VERSION {
         return Err(format!(
@@ -308,34 +331,45 @@ fn write_record(path: &Path, record: &FactoryProfileIndexRecord) -> Result<(), S
     })
 }
 
+/// Read the installed factory profile index projection through the shared
+/// `~/.nimi` migration / repair framework.
+///
+/// Routes a parse failure, a missing / unknown `schemaVersion`, or a structural
+/// fault to a typed `ConfigReadOutcome::Repair` (`P-MIG-004`) instead of a raw
+/// `Err`. `ConfigReadOutcome::Absent` means the projection has not been
+/// materialized; the deterministic [`ensure_factory_profile_index`]
+/// regeneration is the recovery path.
+#[allow(dead_code)]
+pub fn read_factory_profile_index_governed(
+) -> Result<ConfigReadOutcome<FactoryProfileIndexRecord>, String> {
+    let path = factory_profile_index_path()?;
+    read_governed_config(
+        &FACTORY_INDEX_CONFIG_FILE,
+        &path,
+        &FACTORY_INDEX_MIGRATIONS,
+        |document| {
+            let record: FactoryProfileIndexRecord = serde_json::from_value(document.clone())
+                .map_err(|error| {
+                    format!("factory profile index cannot be deserialized: {error}")
+                })?;
+            validate_record(&record)?;
+            Ok(record)
+        },
+    )
+}
+
 /// Read the installed factory profile index projection, if present.
 ///
-/// Fails closed on a parse failure or an unsupported `schemaVersion`; returns
-/// `Ok(None)` only when the file does not exist.
-///
-/// This is the projection reader half of the writer/reader pair. The Runtime
-/// IA surface (wave T2.4) is its first non-test consumer; until that wave
-/// lands the reader is exercised only by this module's tests.
+/// Thin presence-shaped adapter over [`read_factory_profile_index_governed`]:
+/// a routed repair state is surfaced as the typed repair reason; `Absent` maps
+/// to `Ok(None)`.
 #[allow(dead_code)]
 pub fn read_factory_profile_index() -> Result<Option<FactoryProfileIndexRecord>, String> {
-    let path = factory_profile_index_path()?;
-    if !path.exists() {
-        return Ok(None);
+    match read_factory_profile_index_governed()? {
+        ConfigReadOutcome::Absent => Ok(None),
+        ConfigReadOutcome::Ready(record) => Ok(Some(record)),
+        ConfigReadOutcome::Repair { reason, .. } => Err(reason),
     }
-    let raw = fs::read_to_string(&path).map_err(|error| {
-        format!(
-            "read ~/.nimi/profiles/factory-index.json failed ({}): {error}",
-            path.display()
-        )
-    })?;
-    let record = serde_json::from_str::<FactoryProfileIndexRecord>(&raw).map_err(|error| {
-        format!(
-            "parse ~/.nimi/profiles/factory-index.json failed ({}): {error}",
-            path.display()
-        )
-    })?;
-    validate_record(&record)?;
-    Ok(Some(record))
 }
 
 /// Regenerate `~/.nimi/profiles/factory-index.json` from the packaged Platform
@@ -363,9 +397,11 @@ pub fn factory_profile_index_get() -> Result<FactoryProfileIndexProjection, Stri
 mod tests {
     use super::{
         build_factory_profile_index_record, ensure_factory_profile_index,
-        factory_profile_index_path, read_factory_profile_index, FactoryProfileIndexRecord,
+        factory_profile_index_path, read_factory_profile_index,
+        read_factory_profile_index_governed, FactoryProfileIndexRecord,
         FACTORY_PROFILE_INDEX_POINTER,
     };
+    use crate::local_config_migration::{ConfigReadOutcome, ConfigRepairSeverity};
     use crate::test_support::with_env;
     use std::path::PathBuf;
     use std::time::{SystemTime, UNIX_EPOCH};
@@ -480,7 +516,7 @@ mod tests {
     }
 
     #[test]
-    fn unknown_future_schema_version_fails_closed_on_read() {
+    fn unknown_future_schema_version_routes_repair_required() {
         let home = temp_home("future-schema");
         with_env(&[("HOME", home.to_str())], || {
             ensure_factory_profile_index().expect("ensure");
@@ -493,23 +529,38 @@ mod tests {
                 .as_object_mut()
                 .expect("object")
                 .insert("schemaVersion".to_string(), serde_json::json!(9999));
-            std::fs::write(&path, serde_json::to_string_pretty(&record).expect("json"))
-                .expect("write future schema");
-            let error = read_factory_profile_index().expect_err("unknown schema fails closed");
-            assert!(error.contains("unsupported"));
-            assert!(error.contains("schemaVersion"));
+            let future_raw = serde_json::to_string_pretty(&record).expect("json");
+            std::fs::write(&path, &future_raw).expect("write future schema");
+            // P-MIG-002 / P-MIG-004: unknown future version -> typed repair.
+            match read_factory_profile_index_governed().expect("governed read") {
+                ConfigReadOutcome::Repair { severity, reason } => {
+                    assert_eq!(severity, ConfigRepairSeverity::RepairRequired);
+                    assert!(reason.contains("newer than the supported version"));
+                }
+                other => panic!("expected repair_required, got {other:?}"),
+            }
+            assert_eq!(
+                std::fs::read_to_string(&path).expect("read after"),
+                future_raw,
+                "the faulted file is left intact for repair"
+            );
         });
     }
 
     #[test]
-    fn corrupt_projection_fails_closed_on_read() {
+    fn corrupt_projection_routes_repair_required() {
         let home = temp_home("corrupt");
         with_env(&[("HOME", home.to_str())], || {
             let path = factory_profile_index_path().expect("path");
             std::fs::create_dir_all(path.parent().expect("parent")).expect("mkdir");
             std::fs::write(&path, "{ not valid json").expect("write corrupt");
-            let error = read_factory_profile_index().expect_err("corrupt fails closed");
-            assert!(error.contains("parse"));
+            match read_factory_profile_index_governed().expect("governed read") {
+                ConfigReadOutcome::Repair { severity, reason } => {
+                    assert_eq!(severity, ConfigRepairSeverity::RepairRequired);
+                    assert!(reason.contains("not valid JSON"));
+                }
+                other => panic!("expected repair_required, got {other:?}"),
+            }
         });
     }
 

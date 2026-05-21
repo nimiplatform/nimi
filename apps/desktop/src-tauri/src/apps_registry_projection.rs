@@ -21,6 +21,9 @@
 //! consuming bridge transport.
 
 use crate::desktop_paths::resolve_nimi_dir;
+use crate::local_config_migration::{
+    read_governed_config, ConfigReadOutcome, GovernedConfigFile, MigrationRegistry,
+};
 use crate::platform_nimi_app_registry::{
     resolve_release_descriptor, PlatformNimiAppRegistryRow, PLATFORM_NIMI_APP_REGISTRY_CATALOG_ID,
     PLATFORM_NIMI_APP_REGISTRY_CATALOG_VERSION, PLATFORM_NIMI_APP_REGISTRY_ROWS,
@@ -31,8 +34,27 @@ use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 /// Supported `~/.nimi/apps/registry.json` schema version. An unknown future
-/// version fails closed on read (migration mechanics are T10, not this wave).
+/// version or an old version with no registered migration fails closed to a
+/// typed repair outcome through the `local_config_migration` framework
+/// (`P-MIG-002`).
 pub const APPS_REGISTRY_SCHEMA_VERSION: u32 = 1;
+
+/// Governed config-file identity for `~/.nimi/apps/registry.json`
+/// (`local-config-file-registry.yaml` row `registry_json`).
+const REGISTRY_CONFIG_FILE: GovernedConfigFile =
+    GovernedConfigFile::new("registry_json", "~/.nimi/apps/registry.json");
+
+/// The shared-framework migration registry for `~/.nimi/apps/registry.json`.
+///
+/// The registry projection is a deterministic read-only derivation of the
+/// packaged Platform catalog: a schema bump's forward migration is owned by
+/// the registry's T4 schema owner and registered here. No version has been
+/// bumped yet, so the ordered step set is empty — a file found below the
+/// current version then correctly fails closed to repair (`P-MIG-002`), and
+/// the repair action for this projection is the deterministic
+/// [`ensure_apps_registry`] regeneration.
+const REGISTRY_MIGRATIONS: MigrationRegistry =
+    MigrationRegistry::new("registry_json", APPS_REGISTRY_SCHEMA_VERSION, &[]);
 
 /// `~/.nimi`-relative location of the registry projection. This is the manual
 /// `~/.nimi/nimi.json` `pointers.appRegistry` value.
@@ -216,10 +238,14 @@ pub fn build_apps_registry_record() -> Result<AppsRegistryRecord, String> {
     })
 }
 
-/// Structural validation of a registry record read from disk.
+/// Structural validation of a registry record.
 ///
-/// An unknown future `schemaVersion` fails closed: the cross-cutting migration
-/// mechanics are owned by T10, so this read just rejects unsupported versions.
+/// `schemaVersion` fail-closed / migration routing is owned by the
+/// `local_config_migration` framework (`P-MIG-002`); by the time this runs the
+/// document is already at `APPS_REGISTRY_SCHEMA_VERSION`. This is a defensive
+/// post-migration assertion plus the field-level structural checks. A failure
+/// here routes the read to `repair_required` via the framework, never a raw
+/// `Err` at the renderer boundary.
 fn validate_record(record: &AppsRegistryRecord) -> Result<(), String> {
     if record.schema_version != APPS_REGISTRY_SCHEMA_VERSION {
         return Err(format!(
@@ -309,29 +335,42 @@ fn write_record(path: &Path, record: &AppsRegistryRecord) -> Result<(), String> 
     })
 }
 
+/// Read the installed registry projection through the shared `~/.nimi`
+/// migration / repair framework.
+///
+/// Routes a parse failure, a missing / unknown `schemaVersion`, or a structural
+/// fault to a typed `ConfigReadOutcome::Repair` (`P-MIG-004`) instead of a raw
+/// `Err`. `ConfigReadOutcome::Absent` means the projection has not been
+/// materialized yet — the deterministic [`ensure_apps_registry`] regeneration
+/// is the caller's recovery path. `ConfigReadOutcome::Repair` means the on-disk
+/// file is faulted and was left intact for a guided repair.
+pub fn read_apps_registry_governed() -> Result<ConfigReadOutcome<AppsRegistryRecord>, String> {
+    let path = apps_registry_path()?;
+    read_governed_config(
+        &REGISTRY_CONFIG_FILE,
+        &path,
+        &REGISTRY_MIGRATIONS,
+        |document| {
+            let record: AppsRegistryRecord = serde_json::from_value(document.clone())
+                .map_err(|error| format!("registry projection cannot be deserialized: {error}"))?;
+            validate_record(&record)?;
+            Ok(record)
+        },
+    )
+}
+
 /// Read the installed registry projection, if present.
 ///
-/// Fails closed on a parse failure or an unsupported `schemaVersion`; returns
-/// `Ok(None)` only when the file does not exist.
+/// Thin presence-shaped adapter over [`read_apps_registry_governed`] for the
+/// internal package-projection consumer that needs an `Option<Record>`: a
+/// routed repair state is surfaced as the typed repair reason (still not a raw
+/// serde dump), and `Absent` maps to `Ok(None)`.
 pub fn read_apps_registry() -> Result<Option<AppsRegistryRecord>, String> {
-    let path = apps_registry_path()?;
-    if !path.exists() {
-        return Ok(None);
+    match read_apps_registry_governed()? {
+        ConfigReadOutcome::Absent => Ok(None),
+        ConfigReadOutcome::Ready(record) => Ok(Some(record)),
+        ConfigReadOutcome::Repair { reason, .. } => Err(reason),
     }
-    let raw = fs::read_to_string(&path).map_err(|error| {
-        format!(
-            "read ~/.nimi/apps/registry.json failed ({}): {error}",
-            path.display()
-        )
-    })?;
-    let record = serde_json::from_str::<AppsRegistryRecord>(&raw).map_err(|error| {
-        format!(
-            "parse ~/.nimi/apps/registry.json failed ({}): {error}",
-            path.display()
-        )
-    })?;
-    validate_record(&record)?;
-    Ok(Some(record))
 }
 
 /// Regenerate `~/.nimi/apps/registry.json` from the packaged Platform Nimi App
@@ -358,8 +397,10 @@ pub fn apps_registry_get() -> Result<AppsRegistryProjection, String> {
 mod tests {
     use super::{
         apps_registry_path, build_apps_registry_record, ensure_apps_registry, read_apps_registry,
-        AppsRegistryRecord, APPS_REGISTRY_POINTER, APPS_REGISTRY_SCHEMA_VERSION,
+        read_apps_registry_governed, AppsRegistryRecord, APPS_REGISTRY_POINTER,
+        APPS_REGISTRY_SCHEMA_VERSION,
     };
+    use crate::local_config_migration::{ConfigReadOutcome, ConfigRepairSeverity};
     use crate::test_support::with_env;
     use std::path::PathBuf;
     use std::time::{SystemTime, UNIX_EPOCH};
@@ -447,11 +488,15 @@ mod tests {
         let home = temp_home("absent");
         with_env(&[("HOME", home.to_str())], || {
             assert!(read_apps_registry().expect("read").is_none());
+            assert!(matches!(
+                read_apps_registry_governed().expect("governed read"),
+                ConfigReadOutcome::Absent
+            ));
         });
     }
 
     #[test]
-    fn unknown_future_schema_version_fails_closed_on_read() {
+    fn unknown_future_schema_version_routes_repair_required() {
         let home = temp_home("future-schema");
         with_env(&[("HOME", home.to_str())], || {
             ensure_apps_registry().expect("ensure");
@@ -464,23 +509,41 @@ mod tests {
                 .as_object_mut()
                 .expect("object")
                 .insert("schemaVersion".to_string(), serde_json::json!(9999));
-            std::fs::write(&path, serde_json::to_string_pretty(&record).expect("json"))
-                .expect("write future schema");
-            let error = read_apps_registry().expect_err("unknown schema fails closed");
-            assert!(error.contains("unsupported"));
-            assert!(error.contains("schemaVersion"));
+            let future_raw = serde_json::to_string_pretty(&record).expect("json");
+            std::fs::write(&path, &future_raw).expect("write future schema");
+            // P-MIG-002 / P-MIG-004: an unknown future version routes to a typed
+            // repair_required outcome, never a raw Err, and never a silent
+            // recreate of the file.
+            match read_apps_registry_governed().expect("governed read") {
+                ConfigReadOutcome::Repair { severity, reason } => {
+                    assert_eq!(severity, ConfigRepairSeverity::RepairRequired);
+                    assert!(reason.contains("newer than the supported version"));
+                    assert!(reason.contains("~/.nimi/apps/registry.json"));
+                }
+                other => panic!("expected repair_required, got {other:?}"),
+            }
+            assert_eq!(
+                std::fs::read_to_string(&path).expect("read after"),
+                future_raw,
+                "the faulted file is left intact for repair"
+            );
         });
     }
 
     #[test]
-    fn corrupt_projection_fails_closed_on_read() {
+    fn corrupt_projection_routes_repair_required() {
         let home = temp_home("corrupt");
         with_env(&[("HOME", home.to_str())], || {
             let path = apps_registry_path().expect("path");
             std::fs::create_dir_all(path.parent().expect("parent")).expect("mkdir");
             std::fs::write(&path, "{ not valid json").expect("write corrupt");
-            let error = read_apps_registry().expect_err("corrupt fails closed");
-            assert!(error.contains("parse"));
+            match read_apps_registry_governed().expect("governed read") {
+                ConfigReadOutcome::Repair { severity, reason } => {
+                    assert_eq!(severity, ConfigRepairSeverity::RepairRequired);
+                    assert!(reason.contains("not valid JSON"));
+                }
+                other => panic!("expected repair_required, got {other:?}"),
+            }
         });
     }
 

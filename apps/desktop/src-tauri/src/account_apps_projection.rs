@@ -20,16 +20,47 @@
 //! writes are T4-W2; this wave does not implement enable/disable/open mutation.
 
 use crate::desktop_paths::resolve_nimi_dir;
+use crate::local_config_migration::{
+    read_governed_config, ConfigReadOutcome, GovernedConfigFile, MigrationRegistry,
+};
 use serde::{Deserialize, Serialize};
-use std::fs;
 use std::path::PathBuf;
 
-/// Supported `library.json` schema version. An unknown future version fails
-/// closed on read (migration mechanics are T10).
+/// Supported `library.json` schema version. An unknown future version or an
+/// old version with no registered migration fails closed to a typed repair
+/// outcome through the `local_config_migration` framework (`P-MIG-002`).
 pub const ACCOUNT_APP_LIBRARY_SCHEMA_VERSION: u32 = 1;
 
 /// Supported `grants.json` schema version.
 pub const ACCOUNT_GRANTS_SCHEMA_VERSION: u32 = 1;
+
+/// Governed config-file identity for the account app-library projection
+/// (`local-config-file-registry.yaml` row `library_json`).
+const LIBRARY_CONFIG_FILE: GovernedConfigFile =
+    GovernedConfigFile::new("library_json", "~/.nimi/accounts/<account-id>/apps/library.json");
+
+/// The shared-framework migration registry for `library.json`.
+///
+/// Per-file migration steps are owned by the account app-library's T4 schema
+/// owner and registered here on a version bump. No version has been bumped
+/// yet, so the step set is empty — an old/unknown version fails closed to
+/// repair (`P-MIG-002`).
+const LIBRARY_MIGRATIONS: MigrationRegistry =
+    MigrationRegistry::new("library_json", ACCOUNT_APP_LIBRARY_SCHEMA_VERSION, &[]);
+
+/// Governed config-file identity for the permission/grant projection
+/// (`local-config-file-registry.yaml` row `grants_json`).
+const GRANTS_CONFIG_FILE: GovernedConfigFile = GovernedConfigFile::new(
+    "grants_json",
+    "~/.nimi/accounts/<account-id>/permissions/grants.json",
+);
+
+/// The shared-framework migration registry for `grants.json`.
+///
+/// Per-file migration steps are owned by the permission/grant projection's T4
+/// schema owner. No version has been bumped yet, so the step set is empty.
+const GRANTS_MIGRATIONS: MigrationRegistry =
+    MigrationRegistry::new("grants_json", ACCOUNT_GRANTS_SCHEMA_VERSION, &[]);
 
 /// Closed account app-library `libraryState` vocabulary.
 const LIBRARY_STATE_ENABLED: &str = "enabled";
@@ -161,29 +192,47 @@ fn validate_app_library_record(
     Ok(())
 }
 
+/// Read the account app-library projection through the shared `~/.nimi`
+/// migration / repair framework.
+///
+/// Routes a parse failure, a missing / unknown `schemaVersion`, an account-id
+/// mismatch, or a structural fault to a typed `ConfigReadOutcome::Repair`
+/// (`P-MIG-004`) instead of a raw `Err`. `ConfigReadOutcome::Absent` means the
+/// projection has not been written yet (the account app-library lifecycle is
+/// T4-W2).
+#[allow(dead_code)]
+pub fn read_account_app_library_governed(
+    account_id: &str,
+) -> Result<ConfigReadOutcome<AccountAppLibraryRecord>, String> {
+    let normalized = validate_account_id(account_id)?;
+    let path = account_app_library_path(&normalized)?;
+    read_governed_config(
+        &LIBRARY_CONFIG_FILE,
+        &path,
+        &LIBRARY_MIGRATIONS,
+        |document| {
+            let record: AccountAppLibraryRecord = serde_json::from_value(document.clone())
+                .map_err(|error| format!("library.json cannot be deserialized: {error}"))?;
+            validate_app_library_record(&record, &normalized)?;
+            Ok(record)
+        },
+    )
+}
+
 /// Read the account app-library projection, if present.
 ///
-/// Fails closed on a parse failure, an unsupported `schemaVersion`, or an
-/// account-id mismatch; returns `Ok(None)` only when the file does not exist.
-///
-/// T4-W1 owns the schema + fail-closed reader. The account app-library
-/// lifecycle (enable/disable/open) is wave T4-W2; until that wave lands the
-/// reader is exercised only by this module's tests.
+/// Thin presence-shaped adapter over [`read_account_app_library_governed`]: a
+/// routed repair state is surfaced as the typed repair reason; `Absent` maps
+/// to `Ok(None)`.
 #[allow(dead_code)]
 pub fn read_account_app_library(
     account_id: &str,
 ) -> Result<Option<AccountAppLibraryRecord>, String> {
-    let normalized = validate_account_id(account_id)?;
-    let path = account_app_library_path(&normalized)?;
-    if !path.exists() {
-        return Ok(None);
+    match read_account_app_library_governed(account_id)? {
+        ConfigReadOutcome::Absent => Ok(None),
+        ConfigReadOutcome::Ready(record) => Ok(Some(record)),
+        ConfigReadOutcome::Repair { reason, .. } => Err(reason),
     }
-    let raw = fs::read_to_string(&path)
-        .map_err(|error| format!("read library.json failed ({}): {error}", path.display()))?;
-    let record = serde_json::from_str::<AccountAppLibraryRecord>(&raw)
-        .map_err(|error| format!("parse library.json failed ({}): {error}", path.display()))?;
-    validate_app_library_record(&record, &normalized)?;
-    Ok(Some(record))
 }
 
 // === Permission/grant projection (`grants.json`) ===
@@ -288,40 +337,18 @@ pub struct AccountGrantsProjection {
     pub grants: Vec<AccountGrantRow>,
 }
 
-/// Read the permission/grant projection for an account, failing closed.
+/// Structural + staleness validation of a grants record.
 ///
-/// Returns `Err` when:
-/// - the file is missing (no projection cache exists — fail closed, not empty);
-/// - the file cannot be parsed;
-/// - the `schemaVersion` is unsupported;
-/// - the `accountId` does not match;
-/// - any grant row is structurally invalid;
-/// - any `granted` grant has an `expiresAt` already in the past (a stale grant
-///   projection must not read as still-granted).
-///
-/// This is a projection reader only. It does not mint, refresh, or revoke
-/// grants — the canonical grant authority is the deferred wave-4 fabric.
-///
-/// T4-W1 owns the schema + fail-closed reader. The Apps card
-/// `permission_required` state (wave T4-W4) is its first non-test consumer;
-/// until that wave lands the reader is exercised only by this module's tests.
-#[allow(dead_code)]
-pub fn read_account_grants_fail_closed(
+/// `schemaVersion` fail-closed / migration routing is owned by the
+/// `local_config_migration` framework; this checks the account-id binding,
+/// per-row structure, and the wall-clock staleness invariant (an already-
+/// expired `granted` row makes the whole projection stale). A failure routes
+/// the read to `repair_required`.
+fn validate_grants_record_freshness(
+    record: &AccountGrantsRecord,
     account_id: &str,
-) -> Result<AccountGrantsProjection, String> {
-    let normalized = validate_account_id(account_id)?;
-    let path = account_grants_path(&normalized)?;
-    if !path.exists() {
-        return Err(
-            "grants.json permission projection is missing; the permission surface fails closed"
-                .to_string(),
-        );
-    }
-    let raw = fs::read_to_string(&path)
-        .map_err(|error| format!("read grants.json failed ({}): {error}", path.display()))?;
-    let record = serde_json::from_str::<AccountGrantsRecord>(&raw)
-        .map_err(|error| format!("parse grants.json failed ({}): {error}", path.display()))?;
-    validate_grants_record(&record, &normalized)?;
+) -> Result<(), String> {
+    validate_grants_record(record, account_id)?;
     let now = chrono::Utc::now();
     for grant in &record.grants {
         if grant.state != GRANT_STATE_GRANTED {
@@ -342,19 +369,73 @@ pub fn read_account_grants_fail_closed(
             }
         }
     }
-    Ok(AccountGrantsProjection {
-        account_id: record.account_id,
-        grants: record.grants,
-    })
+    Ok(())
+}
+
+/// Read the permission/grant projection through the shared `~/.nimi` migration
+/// / repair framework.
+///
+/// Routes a parse failure, a missing / unknown `schemaVersion`, an account-id
+/// mismatch, a structural fault, or a stale (expired) grant to a typed
+/// `ConfigReadOutcome::Repair` (`P-MIG-004`). `ConfigReadOutcome::Absent`
+/// means the projection cache has never been written — the caller maps that to
+/// the T4-owned fail-closed permission semantic
+/// (see [`read_account_grants_fail_closed`]).
+#[allow(dead_code)]
+pub fn read_account_grants_governed(
+    account_id: &str,
+) -> Result<ConfigReadOutcome<AccountGrantsProjection>, String> {
+    let normalized = validate_account_id(account_id)?;
+    let path = account_grants_path(&normalized)?;
+    read_governed_config(
+        &GRANTS_CONFIG_FILE,
+        &path,
+        &GRANTS_MIGRATIONS,
+        |document| {
+            let record: AccountGrantsRecord = serde_json::from_value(document.clone())
+                .map_err(|error| format!("grants.json cannot be deserialized: {error}"))?;
+            validate_grants_record_freshness(&record, &normalized)?;
+            Ok(AccountGrantsProjection {
+                account_id: record.account_id,
+                grants: record.grants,
+            })
+        },
+    )
+}
+
+/// Read the permission/grant projection for an account, failing closed.
+///
+/// Returns `Err` when the projection is absent, faulted, account-mismatched, or
+/// stale. The framework distinguishes `Absent` from a routed repair state;
+/// this reader applies the T4-owned permission semantic that a *missing*
+/// grants projection is itself a fail-closed condition (the permission surface
+/// is not satisfied), so both `Absent` and `Repair` collapse to `Err` here.
+///
+/// This is a projection reader only. It does not mint, refresh, or revoke
+/// grants — the canonical grant authority is the deferred wave-4 fabric.
+#[allow(dead_code)]
+pub fn read_account_grants_fail_closed(
+    account_id: &str,
+) -> Result<AccountGrantsProjection, String> {
+    match read_account_grants_governed(account_id)? {
+        ConfigReadOutcome::Ready(projection) => Ok(projection),
+        ConfigReadOutcome::Absent => Err(
+            "grants.json permission projection is missing; the permission surface fails closed"
+                .to_string(),
+        ),
+        ConfigReadOutcome::Repair { reason, .. } => Err(reason),
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::{
         account_app_library_path, account_grants_path, read_account_app_library,
-        read_account_grants_fail_closed, ACCOUNT_APP_LIBRARY_SCHEMA_VERSION,
+        read_account_app_library_governed, read_account_grants_fail_closed,
+        read_account_grants_governed, ACCOUNT_APP_LIBRARY_SCHEMA_VERSION,
         ACCOUNT_GRANTS_SCHEMA_VERSION,
     };
+    use crate::local_config_migration::{ConfigReadOutcome, ConfigRepairSeverity};
     use crate::test_support::with_env;
     use std::path::PathBuf;
     use std::time::{SystemTime, UNIX_EPOCH};
@@ -414,7 +495,7 @@ mod tests {
     }
 
     #[test]
-    fn library_unknown_schema_and_account_mismatch_fail_closed() {
+    fn library_unknown_schema_and_account_mismatch_route_repair_required() {
         let home = temp_home("library-fail");
         with_env(&[("HOME", home.to_str())], || {
             let path = account_app_library_path("account_1").expect("path");
@@ -427,9 +508,14 @@ mod tests {
                     "apps": []
                 }),
             );
-            let schema_err =
-                read_account_app_library("account_1").expect_err("unknown schema fails closed");
-            assert!(schema_err.contains("unsupported"));
+            // P-MIG-002 / P-MIG-004: unknown future version -> typed repair.
+            match read_account_app_library_governed("account_1").expect("governed read") {
+                ConfigReadOutcome::Repair { severity, reason } => {
+                    assert_eq!(severity, ConfigRepairSeverity::RepairRequired);
+                    assert!(reason.contains("newer than the supported version"));
+                }
+                other => panic!("expected repair_required, got {other:?}"),
+            }
 
             write_json(
                 &path,
@@ -440,9 +526,15 @@ mod tests {
                     "apps": []
                 }),
             );
-            let account_err =
-                read_account_app_library("account_1").expect_err("account mismatch fails closed");
-            assert!(account_err.contains("accountId does not match"));
+            // An account-id mismatch is a structural fault detected by the
+            // owner validator; it routes to repair, not a raw Err.
+            match read_account_app_library_governed("account_1").expect("governed read") {
+                ConfigReadOutcome::Repair { severity, reason } => {
+                    assert_eq!(severity, ConfigRepairSeverity::RepairRequired);
+                    assert!(reason.contains("accountId does not match"));
+                }
+                other => panic!("expected repair_required, got {other:?}"),
+            }
         });
     }
 
@@ -514,15 +606,24 @@ mod tests {
     }
 
     #[test]
-    fn grants_corrupt_and_unknown_schema_fail_closed() {
+    fn grants_corrupt_and_unknown_schema_route_repair_required() {
         let home = temp_home("grants-corrupt");
         with_env(&[("HOME", home.to_str())], || {
             let path = account_grants_path("account_1").expect("path");
             std::fs::create_dir_all(path.parent().expect("parent")).expect("mkdir");
             std::fs::write(&path, "{ not json").expect("write corrupt");
-            let parse_err = read_account_grants_fail_closed("account_1")
-                .expect_err("corrupt grants fails closed");
-            assert!(parse_err.contains("parse"));
+            // A corrupt grants file routes to a typed repair_required, and the
+            // fail-closed adapter still surfaces the framework reason.
+            match read_account_grants_governed("account_1").expect("governed read") {
+                ConfigReadOutcome::Repair { severity, reason } => {
+                    assert_eq!(severity, ConfigRepairSeverity::RepairRequired);
+                    assert!(reason.contains("not valid JSON"));
+                }
+                other => panic!("expected repair_required, got {other:?}"),
+            }
+            assert!(read_account_grants_fail_closed("account_1")
+                .expect_err("corrupt grants fails closed")
+                .contains("not valid JSON"));
 
             write_json(
                 &path,
@@ -533,9 +634,13 @@ mod tests {
                     "grants": []
                 }),
             );
-            let schema_err = read_account_grants_fail_closed("account_1")
-                .expect_err("unknown schema fails closed");
-            assert!(schema_err.contains("unsupported"));
+            match read_account_grants_governed("account_1").expect("governed read") {
+                ConfigReadOutcome::Repair { severity, reason } => {
+                    assert_eq!(severity, ConfigRepairSeverity::RepairRequired);
+                    assert!(reason.contains("newer than the supported version"));
+                }
+                other => panic!("expected repair_required, got {other:?}"),
+            }
         });
     }
 }
