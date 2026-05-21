@@ -36,6 +36,8 @@ spec_governance:
       - node scripts/check-polyinfo-spec-kernel-consistency.mjs
     apps/realm-drift:
       - node scripts/check-realm-drift-spec-kernel-consistency.mjs
+    apps/realm-agent-studio:
+      - node scripts/check-realm-agent-studio-spec-kernel-consistency.mjs
     apps/shiji:
       - node scripts/check-shiji-spec-kernel-consistency.mjs
     avatar:

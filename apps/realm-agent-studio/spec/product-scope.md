@@ -1,0 +1,82 @@
+---
+id: SPEC-REALM-AGENT-STUDIO-PRODUCT-SCOPE-001
+title: Realm Agent Studio Product Scope
+status: active
+owner: "@team"
+updated: 2026-05-21
+---
+
+# Product Scope
+
+## Product Position
+
+Realm Agent Studio is for agent owners who incubate and operate creator-owned
+public Realm Agents as durable Agent IP. It is not a general agent management
+center. It does not manage LocalAgent private runtime forks, world-created
+agents, world NPCs, or Forge package sources.
+
+The primary user is an agent owner who may operate one public Realm Agent or a
+portfolio of public Realm Agents. The first-version depth is owner-only: no
+invited editors, no team workspace, and no world-owner override over
+owner-created agents.
+
+## In Scope
+
+- Portfolio scan of owned creator-owned Realm Agents with app-local draft or
+  Realm-created status, selected world, last updated state, and source
+  availability.
+- Create Realm Agent with public identity, `OASIS` default world, optional world
+  selection from any Realm `listWorlds` result by product decision,
+  selected-world basic setting preview from existing world detail, and visible
+  public fields before submit.
+- Update canonical public setting through natural language and direct field
+  editing, with visible rule content and a field-layer map.
+- Generate or upload visual/media candidates, keep app-local preview/history
+  only, and mark assets public only after Realm write succeeds.
+- Generate voice-demo candidates through Runtime `audio.synthesize` when the
+  route is available, with current SDK use through `media.tts.synthesize`.
+- Compose agent-authored Realm posts with canonical attachment envelope targets,
+  human review, moderation status, and Realm publish result.
+- App-local single schedule for one human-reviewed local post draft.
+- `friendCount` / 好友数 from Realm `UserLiteDto.friendCount` when the source
+  field is present. For RealmAgent users, Realm derives it from human-agent
+  Friendship rows.
+
+## Out Of Scope
+
+- LocalAgent private memory, emotion, cognition, runtime state, or app-specific
+  memory fragments.
+- RealmAgent direct chat as a Studio feature.
+- World-created agents, world-owned NPCs, package-derived world agents, and
+  world maintainer tooling.
+- Forge `agentBlueprint` provenance or package-to-RealmAgent import mapping.
+- World transfer.
+- Team collaboration, invited editors, shared operation, or workspace roles.
+- Setting version history, rollback, diff impact attribution, and productized
+  notification to existing LocalAgent forks.
+- Campaign calendars, recurring schedules, auto queues, bulk automation, and
+  post performance analytics.
+- Gift, revenue, settlement, payout, and economic surfaces.
+- Profile-view metrics until Realm admits view-event authority.
+
+## First-Version Depth
+
+Many-agent operation is list, filter, sort, and manual action. Saved filters may
+exist only as app-local view preferences and must not become queue, cohort, or
+campaign truth.
+
+AI is embedded inside concrete owner workflows. AI output is draft or candidate
+material until the owner accepts it and the relevant Realm write succeeds.
+
+Public success requires the authoritative operation to succeed. Local draft
+save, local asset preview, AI generation, and local schedule creation are never
+Realm publish or public asset success.
+
+## Source References
+
+- Topic product authority draft:
+  `.nimi/topics/ongoing/2026-05-21-realm-agent-studio-product-flow-storybook/product-document.md`
+- Topic detailed storybook:
+  `.nimi/topics/ongoing/2026-05-21-realm-agent-studio-product-flow-storybook/user-storybook-detailed.md`
+- Topic boundary and forbidden shortcuts:
+  `.nimi/topics/ongoing/2026-05-21-realm-agent-studio-product-flow-storybook/topic.yaml`
