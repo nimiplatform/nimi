@@ -704,6 +704,21 @@ registered_command_families:
       - sync_lock_contention
     source_rule: D-GATE-092
 
+  - family: account_app_library
+    match:
+      prefix: account_app_library_
+    origin_crate: apps/desktop/src-tauri
+    owner_domain: desktop-account-app-library
+    execution_class: request_response_async
+    remediation_required: false
+    admitted_risks:
+      - std_fs
+      - cpu_hash_or_codec
+      - runtime_bridge_block_on
+      - block_on_variants
+      - sync_lock_contention
+    source_rule: D-GATE-092
+
   - family: desktop_agent_center_avatar_assets
     match:
       prefix: desktop_agent_center_avatar_
