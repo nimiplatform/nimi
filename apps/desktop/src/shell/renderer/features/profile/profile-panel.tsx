@@ -128,17 +128,9 @@ export function ProfilePanel() {
     profile?.isAgent && agentLimitQuery.data && !agentLimitQuery.data.canAdd,
   );
   const isBlockedProfile = Boolean(!isOwnProfile && profile && dataSync.isBlockedUser(profile.id));
-  const addFriendHint = profile?.isAgent && agentLimitQuery.data
-    ? (
-      agentLimitQuery.data.reason
-      || i18n.t('Contacts.agentFriendLimitReached', {
-        used: agentLimitQuery.data.used,
-        limit: agentLimitQuery.data.limit,
-        tier: agentLimitQuery.data.tier,
-        defaultValue: 'Agent friend limit reached ({{used}}/{{limit}}, tier: {{tier}})',
-      })
-    )
-    : null;
+  // D-CONTACTS-006: the hint is the typed reason from the single-baseline quota
+  // projection; no renderer-rebuilt tier-coupled message.
+  const addFriendHint = profile?.isAgent ? (agentLimitQuery.data?.reason ?? null) : null;
 
   const onMessage = async () => {
     if (!profile) {

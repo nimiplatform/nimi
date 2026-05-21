@@ -3249,6 +3249,24 @@ export const REALM_OPERATION_MAP = {
     ],
     "hasSuccessBody": true
   },
+  "MeService.getMyAgentFriendLimit": {
+    "operationId": "getMyAgentFriendLimit",
+    "method": "GET",
+    "path": "/api/human/me/friends/agent-limit",
+    "service": "MeService",
+    "methodName": "getMyAgentFriendLimit",
+    "tag": "Me",
+    "parameters": [],
+    "hasBody": false,
+    "bodyRequired": false,
+    "successStatusCodes": [
+      "200"
+    ],
+    "successContentTypes": [
+      "application/json"
+    ],
+    "hasSuccessBody": true
+  },
   "MeService.getMyBlockedUsers": {
     "operationId": "getMyBlockedUsers",
     "method": "GET",
@@ -6503,6 +6521,7 @@ export const REALM_SERVICE_METHODS = {
     "bindWallet": "MeService.bindWallet",
     "blockUser": "MeService.blockUser",
     "getMe": "MeService.getMe",
+    "getMyAgentFriendLimit": "MeService.getMyAgentFriendLimit",
     "getMyBlockedUsers": "MeService.getMyBlockedUsers",
     "getMyCapabilities": "MeService.getMyCapabilities",
     "getMyCreatorEligibility": "MeService.getMyCreatorEligibility",

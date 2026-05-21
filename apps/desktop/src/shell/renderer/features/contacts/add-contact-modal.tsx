@@ -5,16 +5,12 @@ import { OverlayShell } from '@renderer/components/overlay/index.js';
 import { getSemanticAgentPalette } from '@renderer/components/agent-theme.js';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
 import type { ContactSearchCandidate } from './contacts-model';
+import type { AgentFriendLimit } from './agent-friend-limit';
 
 type AddContactModalProps = {
   open: boolean;
   selfUserId: string | null;
-  agentLimit: {
-    used: number;
-    limit: number;
-    canAdd: boolean;
-    reason: string | null;
-  } | null;
+  agentLimit: AgentFriendLimit | null;
   onClose: () => void;
   onSearch: (identifier: string) => Promise<ContactSearchCandidate>;
   onAdd: (candidate: ContactSearchCandidate, message?: string) => Promise<void>;
@@ -285,8 +281,8 @@ export function AddContactModal(props: AddContactModalProps) {
                 : t('Contacts.search', { defaultValue: 'Search' })}
             </Button>
           </div>
-          {/* Agent Limit Info */}
-          {candidate?.isAgent && props.agentLimit ? (
+          {/* Agent Limit Info — D-CONTACTS-006 single baseline quota projection. */}
+          {candidate?.isAgent && props.agentLimit?.status === 'available' ? (
             <div className="rounded-xl bg-gray-50 px-4 py-3">
               <div className="flex items-center gap-2">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -301,11 +297,17 @@ export function AddContactModal(props: AddContactModalProps) {
               </div>
               {/* Progress bar */}
               <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-gray-200">
-                <div 
+                <div
                   className="h-full rounded-full bg-mint-500 transition-all duration-300"
                   style={{ width: `${Math.min((props.agentLimit.used / props.agentLimit.limit) * 100, 100)}%` }}
                 />
               </div>
+            </div>
+          ) : null}
+          {/* Quota projection unavailable — typed fail-closed notice, no guessed ceiling. */}
+          {candidate?.isAgent && props.agentLimit?.status === 'unavailable' ? (
+            <div className="rounded-xl bg-amber-50 px-4 py-3">
+              <p className="text-sm text-amber-700">{props.agentLimit.reason}</p>
             </div>
           ) : null}
 

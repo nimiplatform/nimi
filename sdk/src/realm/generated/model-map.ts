@@ -17,6 +17,7 @@ export type RealmGeneratedModelMap = {
   AgentCommunicationDto: components['schemas']['AgentCommunicationDto'];
   AgentDisplayDto: components['schemas']['AgentDisplayDto'];
   AgentDnaDto: components['schemas']['AgentDnaDto'];
+  AgentFriendLimitDto: components['schemas']['AgentFriendLimitDto'];
   AgentHandleAvailabilityResponseDto: components['schemas']['AgentHandleAvailabilityResponseDto'];
   AgentIdentityDto: components['schemas']['AgentIdentityDto'];
   AgentImportance: components['schemas']['AgentImportance'];

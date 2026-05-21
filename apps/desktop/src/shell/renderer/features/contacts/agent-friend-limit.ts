@@ -2,73 +2,69 @@ import { dataSync } from '@runtime/data-sync';
 import { i18n } from '@renderer/i18n';
 import { parseOptionalJsonObject, type JsonObject } from '@renderer/bridge/runtime-bridge/shared';
 
-export type AgentFriendLimit = {
-  tier: 'FREE' | 'PRO' | 'MAX';
-  status: 'ACTIVE' | 'CANCELED' | 'PAST_DUE' | 'PAUSED';
-  used: number;
-  limit: number;
-  canAdd: boolean;
-  reason: string | null;
-};
-
-const LIMIT_BY_TIER: Record<AgentFriendLimit['tier'], number> = {
-  FREE: 10,
-  PRO: 20,
-  MAX: 50,
-};
-
-function normalizeTier(value: unknown): AgentFriendLimit['tier'] {
-  if (value === 'PRO' || value === 'MAX') {
-    return value;
-  }
-  return 'FREE';
-}
-
-function normalizeStatus(value: unknown): AgentFriendLimit['status'] {
-  if (value === 'CANCELED' || value === 'PAST_DUE' || value === 'PAUSED') {
-    return value;
-  }
-  return 'ACTIVE';
-}
-
-function isAgentFriend(friend: unknown): boolean {
-  const payload = parseOptionalJsonObject(friend);
-  if (!payload) {
-    return false;
-  }
-  return payload.isAgent === true;
-}
+/**
+ * Agent-friend quota — Desktop projection (`D-CONTACTS-006`).
+ *
+ * The agent-friend limit is a SINGLE backend-owned baseline value with no
+ * subscription-tier coupling. The renderer MUST NOT hardcode the limit number
+ * and MUST NOT keep a per-tier table: the baseline value is sourced verbatim
+ * from the `getMyAgentFriendLimit` backend projection.
+ *
+ * When the quota projection is unavailable, the surface fails closed with a
+ * typed `unavailable` state — it does NOT fall back to a renderer-guessed
+ * ceiling.
+ */
+export type AgentFriendLimit =
+  | {
+      status: 'available';
+      used: number;
+      limit: number;
+      canAdd: boolean;
+      reason: string | null;
+    }
+  | {
+      status: 'unavailable';
+      used: null;
+      limit: null;
+      canAdd: false;
+      reason: string;
+    };
 
 export async function resolveAgentFriendLimit(): Promise<AgentFriendLimit> {
-  const [social, subscriptionResult] = await Promise.allSettled([
-    dataSync.loadSocialSnapshot(),
-    dataSync.loadSubscriptionStatus(),
-  ]);
-  if (social.status === 'rejected') throw social.reason;
-  let subscriptionRecord: JsonObject = {};
-  if (subscriptionResult.status === 'fulfilled') {
-    subscriptionRecord = parseOptionalJsonObject(subscriptionResult.value) ?? {};
+  let projection: JsonObject | null;
+  try {
+    projection = parseOptionalJsonObject(await dataSync.loadAgentFriendLimit()) ?? null;
+  } catch {
+    projection = null;
   }
-  // subscription API 失败时回退 FREE tier（limit=10）
 
-  const tier = normalizeTier(subscriptionRecord.tier);
-  const status = normalizeStatus(subscriptionRecord.status);
-  const limit = LIMIT_BY_TIER[tier];
-  const friends = Array.isArray(social.value.friends) ? social.value.friends : [];
-  const used = friends.filter((friend) => isAgentFriend(friend)).length;
-  const canAdd = used < limit;
+  const used = projection?.used;
+  const limit = projection?.limit;
+  if (typeof used !== 'number' || typeof limit !== 'number') {
+    // D-CONTACTS-006: quota truth unavailable -> typed fail-closed state.
+    // No renderer-guessed ceiling, no tier-default fallback.
+    return {
+      status: 'unavailable',
+      used: null,
+      limit: null,
+      canAdd: false,
+      reason: i18n.t('Contacts.agentFriendLimitUnavailable', {
+        defaultValue: 'Agent friend quota is currently unavailable',
+      }),
+    };
+  }
+
+  const canAdd = typeof projection?.canAdd === 'boolean' ? projection.canAdd : used < limit;
   const reason = canAdd
     ? null
     : i18n.t('Contacts.agentFriendLimitReached', {
       used,
       limit,
-      tier,
-      defaultValue: 'Agent friend limit reached ({{used}}/{{limit}}, tier: {{tier}})',
+      defaultValue: 'Agent friend limit reached ({{used}}/{{limit}})',
     });
 
   return {
-    tier,
-    status,
+    status: 'available',
     used,
     limit,
     canAdd,

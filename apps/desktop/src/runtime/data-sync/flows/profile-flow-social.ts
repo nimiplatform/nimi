@@ -249,6 +249,28 @@ export async function fetchPendingFriendRequests(
   }
 }
 
+/**
+ * Agent-friend quota projection (`D-CONTACTS-006`).
+ *
+ * Returns the single backend-owned baseline limit and the account's current
+ * usage. The limit is NOT derived from a subscription tier and is NOT
+ * hardcoded in the renderer — it is sourced verbatim from this projection.
+ */
+export async function fetchAgentFriendLimit(
+  callApi: DataSyncApiCaller,
+  emitDataSyncError: DataSyncErrorEmitter,
+): Promise<RealmModel<'AgentFriendLimitDto'>> {
+  try {
+    return await callApi(
+      (realm) => realm.services.MeService.getMyAgentFriendLimit(),
+      '加载 Agent 好友配额失败',
+    );
+  } catch (error) {
+    emitDataSyncError('load-agent-friend-limit', error);
+    throw error;
+  }
+}
+
 async function fetchBlockedUsers(
   callApi: DataSyncApiCaller,
   emitDataSyncError: DataSyncErrorEmitter,

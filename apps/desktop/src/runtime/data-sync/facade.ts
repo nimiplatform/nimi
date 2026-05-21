@@ -351,6 +351,7 @@ export class DataSync {
     await this.actions.loadContacts();
   }
   loadSocialSnapshot() { return this.actions.loadSocialSnapshot(); }
+  loadAgentFriendLimit() { return this.actions.loadAgentFriendLimit(); }
   searchUser(identifierInput: string) { return this.actions.searchUser(identifierInput); }
 
   isFriend(userId: string): boolean { return this.authCallbacks?.isFriend(userId) ?? false; }

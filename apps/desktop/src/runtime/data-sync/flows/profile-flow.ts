@@ -7,6 +7,7 @@ import {
 } from '@runtime/offline';
 import {
   enrichProfileWithWorldBanner,
+  fetchAgentFriendLimit,
   fetchPendingFriendRequests,
   loadMergedSocialSnapshot,
   type DataSyncApiCaller,
@@ -74,6 +75,13 @@ export async function loadPendingFriendRequests(
   emitDataSyncError: DataSyncErrorEmitter,
 ) {
   return fetchPendingFriendRequests(callApi, emitDataSyncError);
+}
+
+export async function loadAgentFriendLimit(
+  callApi: DataSyncApiCaller,
+  emitDataSyncError: DataSyncErrorEmitter,
+) {
+  return fetchAgentFriendLimit(callApi, emitDataSyncError);
 }
 
 export async function loadUserProfileById(

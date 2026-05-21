@@ -54,6 +54,7 @@ import {
 } from './offline-social-outbox';
 import {
   blockUser,
+  loadAgentFriendLimit,
   loadContactList,
   loadCurrentUserProfile,
   loadPendingFriendRequests,
@@ -275,6 +276,8 @@ export function createDataSyncActions(input: CreateDataSyncActionsInput) {
     },
     loadContacts,
     loadSocialSnapshot: async () => loadSocialSnapshot(input.callApiTask, input.emitFacadeError),
+    loadAgentFriendLimit: async () =>
+      loadAgentFriendLimit(input.callApiTask, input.emitFacadeError),
     searchUser: async (identifierInput: string) =>
       searchUserByIdentifier(input.callApiTask, identifierInput, (userId) => input.isFriend(userId)),
     removeFriend: async (userId: string) =>

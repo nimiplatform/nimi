@@ -5,16 +5,12 @@ import { EntityAvatar } from '@renderer/components/entity-avatar.js';
 import { OverlayShell } from '@renderer/components/overlay/index.js';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import type { ExploreAgentCardData } from './explore-cards';
+import type { AgentFriendLimit } from '@renderer/features/contacts/agent-friend-limit';
 
 type QuickAddFriendModalProps = {
   open: boolean;
   agent: ExploreAgentCardData | null;
-  agentLimit: {
-    used: number;
-    limit: number;
-    canAdd: boolean;
-    reason: string | null;
-  } | null;
+  agentLimit: AgentFriendLimit | null;
   onClose: () => void;
   onAdd: (agentId: string, message?: string) => Promise<void>;
 };

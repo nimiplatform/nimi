@@ -1,4 +1,5 @@
 import type { ContactRecord, ContactRequestRecord, TabFilter } from './contacts-model.js';
+import type { AgentFriendLimit } from './agent-friend-limit.js';
 import type { InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
 
 export type ContactsViewProps = {
@@ -9,12 +10,7 @@ export type ContactsViewProps = {
   requestsCount: number;
   blocksCount: number;
   blockedContacts: ContactRecord[];
-  agentLimit: {
-    used: number;
-    limit: number;
-    canAdd: boolean;
-    reason: string | null;
-  } | null;
+  agentLimit: AgentFriendLimit | null;
   allFriends: ContactRecord[];
   filteredContacts: ContactRecord[];
   filteredRequests: ContactRequestRecord[];

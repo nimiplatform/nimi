@@ -135,7 +135,7 @@ test('T5 acceptance: friend-state is a deterministic projection of Realm social 
   const canAddProjection: RealmAgentSocialProjection = {
     friendIds: new Set(['agent-friend']),
     pendingSentIds: new Set(['agent-pending']),
-    limit: { tier: 'FREE', status: 'ACTIVE', used: 1, limit: 10, canAdd: true, reason: null },
+    limit: { status: 'available', used: 1, limit: 10, canAdd: true, reason: null },
   };
   assert.equal(resolveRealmAgentFriendState('agent-friend', canAddProjection), 'friend');
   assert.equal(resolveRealmAgentFriendState('agent-pending', canAddProjection), 'pending');
@@ -144,7 +144,7 @@ test('T5 acceptance: friend-state is a deterministic projection of Realm social 
   const quotaBlocked: RealmAgentSocialProjection = {
     friendIds: new Set(['agent-friend']),
     pendingSentIds: new Set(['agent-pending']),
-    limit: { tier: 'FREE', status: 'ACTIVE', used: 10, limit: 10, canAdd: false, reason: 'limit reached' },
+    limit: { status: 'available', used: 10, limit: 10, canAdd: false, reason: 'limit reached' },
   };
   // Friend / pending still win over the quota block — only an otherwise
   // `not_friend` agent collapses to `limit_reached`.
