@@ -1,0 +1,107 @@
+/**
+ * `Support` secondary system surface host (`D-SUP-001` / `D-SUP-002`).
+ *
+ * `Support` is a standalone secondary surface, peer to `Settings`. It is
+ * mounted from the `app-tabs.yaml` `support` entry (`nav_group: secondary`)
+ * and is NOT one of the six ordinary primary navigation tabs.
+ *
+ * The host renders a fixed five-item sub-area sidebar (`D-SUP-002`: repair /
+ * updates / diagnostics / logs / recovery) and dispatches the active sub-area.
+ * Each sub-area owns its own typed-projection load and fail-closed state.
+ */
+
+import { useCallback, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import {
+  ScrollArea,
+  SidebarAffordanceChevron,
+  SidebarHeader,
+  SidebarItem,
+  SidebarSection,
+  SidebarShell,
+  Surface,
+} from '@nimiplatform/nimi-kit/ui';
+import {
+  SUPPORT_SECTION_IDS,
+  SUPPORT_SECTION_LABEL_KEY,
+  type SupportSectionId,
+} from './support-sections.js';
+import { loadStoredSupportSection, persistStoredSupportSection } from './support-storage.js';
+import { SupportRepairSection } from './support-repair-section.js';
+import { SupportUpdatesSection } from './support-updates-section.js';
+import { SupportDiagnosticsSection } from './support-diagnostics-section.js';
+import { SupportLogsSection } from './support-logs-section.js';
+import { SupportRecoverySection } from './support-recovery-section.js';
+
+function renderSupportSection(
+  section: SupportSectionId,
+  navigate: (next: SupportSectionId) => void,
+) {
+  switch (section) {
+    case 'repair':
+      return <SupportRepairSection onNavigateToRecovery={() => navigate('recovery')} />;
+    case 'updates':
+      return <SupportUpdatesSection />;
+    case 'diagnostics':
+      return <SupportDiagnosticsSection />;
+    case 'logs':
+      return <SupportLogsSection />;
+    case 'recovery':
+      return <SupportRecoverySection onNavigateToRepair={() => navigate('repair')} />;
+  }
+}
+
+export function SupportPanel() {
+  const { t } = useTranslation();
+  const [selected, setSelected] = useState<SupportSectionId>(() => loadStoredSupportSection());
+
+  const navigate = useCallback((next: SupportSectionId) => {
+    persistStoredSupportSection(next);
+    setSelected(next);
+  }, []);
+
+  return (
+    <div
+      data-testid="panel:support"
+      className="flex min-h-0 flex-1 gap-4 px-5 pb-5 pt-4"
+    >
+      <SidebarShell width={240} data-testid="panel:support-sidebar">
+        <SidebarHeader
+          title={(
+            <h1 className="nimi-type-page-title text-[color:var(--nimi-text-primary)]">
+              {t('Support.surfaceTitle')}
+            </h1>
+          )}
+          className="px-6"
+        />
+        <ScrollArea className="flex-1" contentClassName="space-y-5 px-3 pb-3 pt-2">
+          <SidebarSection label={t('Support.sidebarSectionLabel')}>
+            {SUPPORT_SECTION_IDS.map((sectionId) => {
+              const active = selected === sectionId;
+              return (
+                <SidebarItem
+                  key={sectionId}
+                  kind="nav-row"
+                  active={active}
+                  data-testid={`support-nav:${sectionId}`}
+                  onClick={() => navigate(sectionId)}
+                  label={t(SUPPORT_SECTION_LABEL_KEY[sectionId])}
+                  trailing={active ? <SidebarAffordanceChevron /> : undefined}
+                />
+              );
+            })}
+          </SidebarSection>
+        </ScrollArea>
+      </SidebarShell>
+
+      <Surface
+        tone="panel"
+        material="glass-regular"
+        padding="none"
+        className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-3xl"
+      >
+        {renderSupportSection(selected, navigate)}
+      </Surface>
+    </div>
+  );
+}

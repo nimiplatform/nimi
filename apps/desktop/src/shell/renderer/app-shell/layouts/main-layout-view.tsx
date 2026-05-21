@@ -55,6 +55,10 @@ const SettingsPanelBody = lazy(async () => {
   const mod = await import('@renderer/features/settings/settings-panel-body');
   return { default: mod.SettingsPanelBody };
 });
+const SupportPanel = lazy(async () => {
+  const mod = await import('@renderer/features/support/support-panel');
+  return { default: mod.SupportPanel };
+});
 const RuntimeConfigPanelBody = lazy(async () => {
   const mod = await import('@renderer/features/runtime-config/runtime-config-panel-view');
   return { default: mod.RuntimeConfigPanelBody };
@@ -103,6 +107,7 @@ type SettingsSubmenuItemId =
   | 'profile'
   | 'wallet'
   | 'settings'
+  | 'support'
   | 'terms-of-service'
   | 'privacy-policy'
   | 'logout';
@@ -115,6 +120,9 @@ const SETTINGS_SUBMENU_ITEMS: SettingsSubmenuItem[] = [
   { id: 'profile', label: 'Profile', icon: 'profile' },
   { id: 'wallet', label: 'Wallet', icon: 'wallet' },
   { id: 'settings', label: 'Settings', icon: 'settings' },
+  // D-SUP-001: Support is reachable from the account-area menu, peer to
+  // Settings — it is NOT injected into the six-item ordinary primary nav.
+  { id: 'support', label: 'Support', icon: 'support' },
   { id: 'terms-of-service', label: 'Terms of Service', icon: 'terms-of-service' },
   { id: 'privacy-policy', label: 'Privacy Policy', icon: 'privacy-policy' },
   { id: 'logout', label: 'Logout', icon: 'logout' },
@@ -123,6 +131,7 @@ const SETTINGS_SUBMENU_I18N_KEYS: Record<SettingsSubmenuItemId, string> = {
   profile: 'Menu.profile',
   wallet: 'Menu.wallet',
   settings: 'Menu.settings',
+  support: 'Menu.support',
   'terms-of-service': 'Menu.termsOfService',
   'privacy-policy': 'Menu.privacyPolicy',
   logout: 'Menu.logout',
@@ -388,6 +397,11 @@ export function MainLayoutView(props: MainLayoutViewProps) {
       setSettingsMenuOpen(false);
       return;
     }
+    if (itemId === 'support') {
+      props.onNav('support');
+      setSettingsMenuOpen(false);
+      return;
+    }
     if (itemId === 'terms-of-service') {
       props.onNav('terms-of-service');
       setSettingsMenuOpen(false);
@@ -554,6 +568,12 @@ export function MainLayoutView(props: MainLayoutViewProps) {
             {props.activeTab === 'settings' ? (
               <div data-testid={E2E_IDS.panel('settings')} className="flex min-h-0 flex-1 flex-col">
                 <SettingsPanelBody />
+              </div>
+            ) : null}
+
+            {props.activeTab === 'support' ? (
+              <div data-testid={E2E_IDS.panel('support')} className="flex min-h-0 flex-1 flex-col">
+                <SupportPanel />
               </div>
             ) : null}
 

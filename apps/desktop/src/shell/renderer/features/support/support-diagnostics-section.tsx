@@ -1,0 +1,194 @@
+/**
+ * Support `diagnostics` sub-area (`D-SUP-005`).
+ *
+ * Aggregates the previously scattered feature-local diagnostics into one
+ * technical diagnostics view. It consumes typed Runtime / SDK projections —
+ * runtime daemon lifecycle status, host system-resource snapshot, runtime mod
+ * source diagnostics — and never reads runtime internal state directly or
+ * bypasses the typed projections. The ordinary-user product path does not
+ * depend on this view.
+ */
+
+import { useTranslation } from 'react-i18next';
+import {
+  desktopBridge,
+  type RuntimeBridgeDaemonStatus,
+  type RuntimeModDiagnosticRecord,
+  type SystemResourceSnapshot,
+} from '@renderer/bridge';
+import { useSupportProjection } from './support-projection.js';
+import {
+  SupportCard,
+  SupportFailClosed,
+  SupportInfoRow,
+  SupportLoading,
+  SupportSectionShell,
+} from './support-section-shell.js';
+
+interface DiagnosticsProjection {
+  readonly daemon: RuntimeBridgeDaemonStatus;
+  readonly modDiagnostics: RuntimeModDiagnosticRecord[];
+  /** System resource snapshot — secondary; absence does not fail the section. */
+  readonly resources: SystemResourceSnapshot | null;
+  readonly resourcesError: string | null;
+}
+
+async function loadDiagnosticsProjection(): Promise<DiagnosticsProjection> {
+  // The runtime daemon status is the load-bearing typed projection. The mod
+  // diagnostics list and the resource snapshot are aggregated alongside; the
+  // resource snapshot can be legitimately unavailable (no Tauri host probe),
+  // so its failure is captured inline instead of fail-closing the section.
+  const daemon = await desktopBridge.getRuntimeBridgeStatus();
+  const modDiagnostics = await desktopBridge.listRuntimeModDiagnostics();
+  let resources: SystemResourceSnapshot | null = null;
+  let resourcesError: string | null = null;
+  try {
+    resources = await desktopBridge.getSystemResourceSnapshot();
+  } catch (error) {
+    resourcesError = error instanceof Error ? error.message : String(error ?? 'resource snapshot unavailable');
+  }
+  return { daemon, modDiagnostics, resources, resourcesError };
+}
+
+function formatBytes(bytes: number): string {
+  if (!Number.isFinite(bytes) || bytes <= 0) return '0 B';
+  if (bytes < 1024 ** 2) return `${(bytes / 1024).toFixed(1)} KB`;
+  if (bytes < 1024 ** 3) return `${(bytes / 1024 ** 2).toFixed(1)} MB`;
+  return `${(bytes / 1024 ** 3).toFixed(2)} GB`;
+}
+
+export function SupportDiagnosticsSection() {
+  const { t } = useTranslation();
+  const projection = useSupportProjection(loadDiagnosticsProjection, {
+    failClosedMessage: t('Support.diagnosticsProjectionUnavailable'),
+  });
+
+  if (projection.status === 'loading') {
+    return (
+      <SupportSectionShell
+        title={t('Support.diagnosticsTitle')}
+        description={t('Support.diagnosticsDescription')}
+        testId="support-section-diagnostics"
+      >
+        <SupportLoading testId="support-diagnostics-loading" />
+      </SupportSectionShell>
+    );
+  }
+
+  if (projection.status === 'failed' || !projection.data) {
+    return (
+      <SupportSectionShell
+        title={t('Support.diagnosticsTitle')}
+        description={t('Support.diagnosticsDescription')}
+        testId="support-section-diagnostics"
+      >
+        <SupportFailClosed
+          testId="support-diagnostics-fail-closed"
+          reason={projection.error ?? t('Support.diagnosticsProjectionUnavailable')}
+          onRetry={projection.reload}
+        />
+      </SupportSectionShell>
+    );
+  }
+
+  const { daemon, modDiagnostics, resources, resourcesError } = projection.data;
+  const unresolvedDiagnostics = modDiagnostics.filter((record) => record.status !== 'resolved');
+
+  return (
+    <SupportSectionShell
+      title={t('Support.diagnosticsTitle')}
+      description={t('Support.diagnosticsDescription')}
+      testId="support-section-diagnostics"
+    >
+      <SupportCard title={t('Support.diagnosticsRuntimeTitle')} testId="support-diagnostics-runtime">
+        <div className="divide-y divide-[var(--nimi-border-subtle)]">
+          <SupportInfoRow
+            label={t('Support.diagnosticsRuntimeRunning')}
+            value={daemon.running ? t('Support.valueYes') : t('Support.valueNo')}
+          />
+          <SupportInfoRow
+            label={t('Support.diagnosticsRuntimeLaunchMode')}
+            value={daemon.launchMode}
+          />
+          <SupportInfoRow
+            label={t('Support.diagnosticsRuntimeGrpcAddr')}
+            value={daemon.grpcAddr || t('Support.valueUnknown')}
+          />
+          <SupportInfoRow
+            label={t('Support.diagnosticsRuntimeVersion')}
+            value={daemon.version || t('Support.valueUnknown')}
+          />
+        </div>
+        {daemon.lastError ? (
+          <p
+            data-testid="support-diagnostics-runtime-error"
+            className="mt-3 break-words rounded-lg bg-[var(--nimi-surface-canvas)] px-3 py-2 text-xs text-[var(--nimi-status-danger)]"
+          >
+            {daemon.lastError}
+          </p>
+        ) : null}
+      </SupportCard>
+
+      <SupportCard title={t('Support.diagnosticsResourcesTitle')} testId="support-diagnostics-resources">
+        {resources ? (
+          <div className="divide-y divide-[var(--nimi-border-subtle)]">
+            <SupportInfoRow
+              label={t('Support.diagnosticsResourcesCpu')}
+              value={`${resources.cpuPercent.toFixed(1)}%`}
+            />
+            <SupportInfoRow
+              label={t('Support.diagnosticsResourcesMemory')}
+              value={`${formatBytes(resources.memoryUsedBytes)} / ${formatBytes(resources.memoryTotalBytes)}`}
+            />
+            <SupportInfoRow
+              label={t('Support.diagnosticsResourcesDisk')}
+              value={`${formatBytes(resources.diskUsedBytes)} / ${formatBytes(resources.diskTotalBytes)}`}
+            />
+            <SupportInfoRow
+              label={t('Support.diagnosticsResourcesSource')}
+              value={resources.source || t('Support.valueUnknown')}
+            />
+          </div>
+        ) : (
+          <p
+            data-testid="support-diagnostics-resources-unavailable"
+            className="break-words rounded-lg bg-[var(--nimi-surface-canvas)] px-3 py-2 text-xs text-[var(--nimi-text-secondary)]"
+          >
+            {resourcesError || t('Support.diagnosticsResourcesUnavailable')}
+          </p>
+        )}
+      </SupportCard>
+
+      <SupportCard
+        title={t('Support.diagnosticsModTitle')}
+        description={t('Support.diagnosticsModDescription')}
+        testId="support-diagnostics-mods"
+      >
+        {unresolvedDiagnostics.length === 0 ? (
+          <p
+            data-testid="support-diagnostics-mods-clear"
+            className="text-xs text-[var(--nimi-text-secondary)]"
+          >
+            {t('Support.diagnosticsModClear')}
+          </p>
+        ) : (
+          <ul className="flex flex-col gap-2" data-testid="support-diagnostics-mods-list">
+            {unresolvedDiagnostics.map((record) => (
+              <li
+                key={`${record.sourceId}:${record.modId}`}
+                className="rounded-lg border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-canvas)] px-3 py-2 text-xs"
+              >
+                <p className="font-medium text-[var(--nimi-text-primary)]">
+                  {record.modId} · {record.status}
+                </p>
+                {record.error ? (
+                  <p className="mt-1 break-words text-[var(--nimi-text-secondary)]">{record.error}</p>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        )}
+      </SupportCard>
+    </SupportSectionShell>
+  );
+}
