@@ -17,6 +17,7 @@ import {
   listOwnerPortfolioAgents,
   createReviewedPostTextResource,
   listReadyPostAttachmentResources,
+  projectAgentRuntimeContextSummary,
   publishReviewedPostDraft,
   selectReviewedAgentAvatarUrl,
   synthesizeReviewedVoiceDemo,
@@ -32,6 +33,7 @@ import {
   type RealmPostPublishResult,
   type RealmTextResourceCreateResult,
   type RuntimeVoiceDemoSynthesisResult,
+  type RuntimeProjectionSummaryResult,
   type PostAttachmentResourceOption,
   type DirectMediaResourceType,
   type DirectMediaResourceUploadResult,
@@ -706,6 +708,75 @@ function MediaVoiceCandidateWorkspace({ agent, onAgentWrite }: { agent: OwnerPor
   );
 }
 
+function RuntimeProjectionWorkspace({ agent }: { agent: OwnerPortfolioAgentDetail }) {
+  const [projectionResult, setProjectionResult] = useState<RuntimeProjectionSummaryResult | null>(null);
+  const [isProjecting, setIsProjecting] = useState(false);
+
+  useEffect(() => {
+    setProjectionResult(null);
+    setIsProjecting(false);
+  }, [agent.id]);
+
+  async function projectRuntimeContext() {
+    setIsProjecting(true);
+    setProjectionResult(null);
+    try {
+      const result = await projectAgentRuntimeContextSummary(agent);
+      setProjectionResult(result);
+    } finally {
+      setIsProjecting(false);
+    }
+  }
+
+  return (
+    <Surface tone="panel" padding="lg" className="mt-5">
+      <div className="flex min-w-0 flex-wrap items-center gap-3">
+        <h3 className="m-0 text-xl font-semibold">Runtime world context projection</h3>
+        <StatusBadge tone="info">Realm projection</StatusBadge>
+        <StatusBadge tone="neutral">summary only</StatusBadge>
+        <StatusBadge tone="warning">not rule review</StatusBadge>
+      </div>
+      <p className="m-0 mt-1 text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-muted)]">
+        Calls RuntimeProjectionsService.projectRuntimePayload for world AI consumption readiness, then displays only checksum and counts. Raw rule statements are not exposed or accepted as owner edits.
+      </p>
+      <div className="mt-4 flex flex-wrap gap-3">
+        <Button disabled={isProjecting || agent.world.status !== 'available'} loading={isProjecting} onClick={() => void projectRuntimeContext()}>
+          Project Runtime context
+        </Button>
+      </div>
+      {agent.world.status !== 'available' ? (
+        <InlineAlert tone="warning">
+          Runtime world projection unavailable: worldId evidence is missing from Realm MeService.getMyRealmAgent.
+        </InlineAlert>
+      ) : null}
+      {projectionResult ? (
+        <InlineAlert tone={projectionResult.ok ? 'success' : 'danger'} className="mt-3">
+          {projectionResult.ok
+            ? 'Runtime projection returned a source-backed RUNTIME_PAYLOAD summary. No truth write, agent-specific rule review, or raw rule content was created.'
+            : projectionResult.message}
+        </InlineAlert>
+      ) : null}
+      {projectionResult?.ok ? (
+        <dl className="mt-4 grid gap-3 text-[length:var(--nimi-type-body-sm-size)] md:grid-cols-2">
+          {Object.entries(projectionResult.summary).map(([key, value]) => (
+            <div key={key} className="min-w-0 rounded-[var(--nimi-radius-field)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-3">
+              <dt className="font-medium text-[var(--nimi-text-muted)]">{key}</dt>
+              <dd className="ras-break-anywhere m-0 mt-1 text-[var(--nimi-text-primary)]">{String(value)}</dd>
+            </div>
+          ))}
+        </dl>
+      ) : null}
+      {projectionResult ? (
+        <FieldShell label="Submitted projection request" message="Request contains only world evidence and allowed scope filters; no LocalAgent memory, private transcript, owner setting writes, or agent-specific raw rule review.">
+          <pre className="ras-json-preview m-0 mt-3 min-h-24 overflow-auto rounded-[var(--nimi-radius-field)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] p-3 text-xs">
+            {JSON.stringify(projectionResult.submitted, null, 2)}
+          </pre>
+        </FieldShell>
+      ) : null}
+    </Surface>
+  );
+}
+
 type LocalCreativeAssetCandidate = {
   sequence: number;
   label: string;
@@ -1358,6 +1429,7 @@ function AgentDetail({ agentId }: { agentId: string }) {
       </Surface>
       <VisibilitySettingsWorkspace agent={agent} onAgentWrite={refreshOwnerAgentReads} />
       <SettingProposalWorkspace agent={agent} />
+      <RuntimeProjectionWorkspace agent={agent} />
       <MediaVoiceCandidateWorkspace agent={agent} onAgentWrite={refreshOwnerAgentReads} />
       <CreativePostWorkspace agent={agent} />
     </section>

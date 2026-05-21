@@ -65,6 +65,28 @@ vi.mock('./portfolio-client.js', async (importOriginal) => {
         deliveryAccess: 'SIGNED',
       },
     })),
+    projectAgentRuntimeContextSummary: vi.fn(async () => ({
+      ok: true,
+      source: 'Realm RuntimeProjectionsService.projectRuntimePayload',
+      truthWrite: false,
+      summary: {
+        source: 'Realm RuntimeProjectionsService.projectRuntimePayload',
+        consumerSurface: 'RUNTIME_PAYLOAD',
+        worldId: 'OASIS',
+        checksum: 'checksum-ui',
+        selectedInputCount: 2,
+        suppressedInputCount: 1,
+        worldRuleCount: 2,
+        agentRuleCount: 0,
+        rawRuleContentExposed: false,
+      },
+      submitted: {
+        worldId: 'OASIS',
+        contextEnvelope: {
+          includeInheritedAgentRules: false,
+        },
+      },
+    })),
     updateReviewedAgentVisibility: vi.fn(),
   };
 });
@@ -298,6 +320,22 @@ describe('OwnerPortfolio visibility settings UI', () => {
     expect(document.body.textContent).toContain('PATCH sends only changed UpdateAgentVisibilityDto fields');
     expect(findButtonByText('Save visibility').disabled).toBe(true);
     expect(portfolioClient.updateReviewedAgentVisibility).not.toHaveBeenCalled();
+  });
+
+  it('projects Runtime world context as a summary without raw rule review', async () => {
+    await renderOwnerPortfolio();
+    await waitForText('Runtime world context projection');
+
+    await act(async () => {
+      findButtonByText('Project Runtime context').click();
+    });
+
+    await waitForText('checksum-ui');
+    expect(portfolioClient.projectAgentRuntimeContextSummary).toHaveBeenCalledTimes(1);
+    expect(document.body.textContent).toContain('summary only');
+    expect(document.body.textContent).toContain('not rule review');
+    expect(document.body.textContent).toContain('rawRuleContentExposed');
+    expect(document.body.textContent).not.toContain('Hidden raw rule statement');
   });
 
   it('creates a reviewed text Resource and fills the post attachment envelope', async () => {

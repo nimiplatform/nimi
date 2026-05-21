@@ -5,6 +5,7 @@ import {
   buildRealmCreatePostInput,
   buildFinalizeDirectMediaResourceInput,
   buildRealmPostTextResourceInput,
+  buildRuntimeProjectionInput,
   buildRealmSelectAvatarInput,
   buildRealmUpdateVisibilityInput,
   createAgentVisibilityDraft,
@@ -21,7 +22,9 @@ import {
   normalizeRealmTextResourceCreateResult,
   normalizePostAttachmentResourceOptions,
   normalizeFinalizedDirectMediaResource,
+  normalizeRuntimeProjectionSummary,
   listReadyPostAttachmentResources,
+  projectAgentRuntimeContextSummary,
   publishReviewedPostDraft,
   selectReviewedAgentAvatarUrl,
   synthesizeReviewedVoiceDemo,
@@ -255,6 +258,67 @@ function mockRealm() {
           title: 'Published caption',
           createdAt: '2026-05-21T00:00:00.000Z',
           updatedAt: '2026-05-21T00:00:00.000Z',
+        })),
+      },
+      RuntimeProjectionsService: {
+        projectRuntimePayload: vi.fn(async () => ({
+          worldId: 'OASIS',
+          consumerSurface: 'RUNTIME_PAYLOAD',
+          releaseAnchor: null,
+          checksum: 'checksum-runtime-1',
+          selectedInputs: [{
+            id: 'rule-input-1',
+            sourceType: 'WORLD_RULE',
+            sourceId: 'world-rule-1',
+            lineageId: 'lineage-1',
+            worldId: 'OASIS',
+            ruleKey: 'hidden.raw.rule',
+            title: 'Hidden raw rule title',
+            statement: 'Hidden raw rule statement that must not reach Studio UI.',
+            hardness: 'HARD',
+            priority: 1,
+            scope: 'WORLD',
+            provenance: 'WORLD',
+          }],
+          trace: {
+            selectedInputIds: ['rule-input-1'],
+            suppressedInputs: [{
+              input: {
+                id: 'rule-input-suppressed',
+                sourceType: 'AGENT_RULE',
+                sourceId: 'agent-rule-1',
+                lineageId: 'lineage-suppressed',
+                worldId: 'OASIS',
+                agentId: 'agent-1',
+                ruleKey: 'hidden.agent.rule',
+                title: 'Suppressed raw rule title',
+                statement: 'Suppressed raw rule statement that must not reach Studio UI.',
+                hardness: 'SOFT',
+                priority: 1,
+                scope: 'SELF',
+                provenance: 'OWNER',
+              },
+              reason: 'SURFACE_POLICY',
+            }],
+            resolutionOutcomes: [],
+          },
+          payload: {
+            worldRules: [{
+              id: 'rule-input-1',
+              sourceType: 'WORLD_RULE',
+              sourceId: 'world-rule-1',
+              lineageId: 'lineage-1',
+              worldId: 'OASIS',
+              ruleKey: 'hidden.raw.rule',
+              title: 'Hidden raw rule title',
+              statement: 'Hidden raw rule statement that must not reach Studio UI.',
+              hardness: 'HARD',
+              priority: 1,
+              scope: 'WORLD',
+              provenance: 'WORLD',
+            }],
+            agentRules: [],
+          },
         })),
       },
     },
@@ -975,6 +1039,100 @@ describe('owner portfolio client', () => {
       resourceType: 'VIDEO',
       status: 'PENDING',
     } as Awaited<ReturnType<Realm['services']['ResourcesService']['finalizeResource']>>, 'VIDEO')).toBeNull();
+  });
+
+  it('projects Runtime context through world-only RuntimeProjectionsService and returns summary counts only', async () => {
+    const realm = mockRealm();
+    const result = await projectAgentRuntimeContextSummary(ownerAgentDetail(), realm);
+    const projectRuntimePayload = realm.services.RuntimeProjectionsService.projectRuntimePayload;
+    const submittedPayload = vi.mocked(projectRuntimePayload).mock.calls[0]?.[0];
+
+    expect(projectRuntimePayload).toHaveBeenCalledWith({
+      worldId: 'OASIS',
+      contextEnvelope: {
+        allowedAgentLayers: ['DNA', 'BEHAVIORAL', 'RELATIONAL', 'CONTEXTUAL'],
+        allowedAgentScopes: ['SELF', 'DYAD', 'GROUP', 'WORLD'],
+        allowedWorldScopes: ['WORLD', 'REGION', 'FACTION', 'INDIVIDUAL', 'SCENE'],
+        includeInheritedAgentRules: false,
+        focusKeywords: ['realm-agent-studio', 'owner-reviewed-runtime-context'],
+      },
+    });
+    expect(collectKeys(submittedPayload).has('agentId')).toBe(false);
+    expect(collectKeys(submittedPayload).has('statement')).toBe(false);
+    expect(result).toMatchObject({
+      ok: true,
+      source: 'Realm RuntimeProjectionsService.projectRuntimePayload',
+      truthWrite: false,
+      summary: {
+        consumerSurface: 'RUNTIME_PAYLOAD',
+        worldId: 'OASIS',
+        checksum: 'checksum-runtime-1',
+        selectedInputCount: 1,
+        suppressedInputCount: 1,
+        worldRuleCount: 1,
+        agentRuleCount: 0,
+        rawRuleContentExposed: false,
+      },
+    });
+    expect(collectKeys(result).has('statement')).toBe(false);
+    expect(collectKeys(result).has('ruleKey')).toBe(false);
+    expect(collectKeys(result).has('selectedInputs')).toBe(false);
+  });
+
+  it('normalizes Runtime projection summary without exposing raw rule content', () => {
+    const summary = normalizeRuntimeProjectionSummary({
+      worldId: 'world-1',
+      agentId: 'agent-1',
+      consumerSurface: 'RUNTIME_PAYLOAD',
+      checksum: 'checksum-1',
+      selectedInputs: [{ statement: 'raw statement' }],
+      trace: {
+        selectedInputIds: ['rule-1'],
+        suppressedInputs: [{ input: { statement: 'suppressed raw' }, reason: 'SURFACE_POLICY' }],
+        resolutionOutcomes: [],
+      },
+      payload: {
+        worldRules: [{ statement: 'world raw' }],
+        agentRules: [{ statement: 'agent raw' }],
+      },
+    } as unknown as Awaited<ReturnType<Realm['services']['RuntimeProjectionsService']['projectRuntimePayload']>>);
+
+    expect(summary).toEqual({
+      source: 'Realm RuntimeProjectionsService.projectRuntimePayload',
+      consumerSurface: 'RUNTIME_PAYLOAD',
+      worldId: 'world-1',
+      checksum: 'checksum-1',
+      selectedInputCount: 1,
+      suppressedInputCount: 1,
+      worldRuleCount: 1,
+      agentRuleCount: 1,
+      rawRuleContentExposed: false,
+    });
+    expect(collectKeys(summary).has('statement')).toBe(false);
+    expect(collectKeys(summary).has('agentId')).toBe(false);
+  });
+
+  it('fails closed before Runtime projection when world evidence is missing', async () => {
+    const realm = mockRealm();
+    const result = await projectAgentRuntimeContextSummary({
+      ...ownerAgentDetail(),
+      world: detailField('world', 'World evidence', ''),
+    }, realm);
+
+    expect(realm.services.RuntimeProjectionsService.projectRuntimePayload).not.toHaveBeenCalled();
+    expect(result).toMatchObject({
+      ok: false,
+      truthWrite: false,
+      failure: 'runtime-projection-world-unavailable',
+      submitted: null,
+    });
+  });
+
+  it('builds no agent-specific Runtime projection request for owner-facing summary UI', () => {
+    expect(buildRuntimeProjectionInput(ownerAgentDetail())).toMatchObject({
+      worldId: 'OASIS',
+    });
+    expect(collectKeys(buildRuntimeProjectionInput(ownerAgentDetail())).has('agentId')).toBe(false);
   });
 
   it('fails closed before text Resource creation when reviewed caption content is missing', async () => {

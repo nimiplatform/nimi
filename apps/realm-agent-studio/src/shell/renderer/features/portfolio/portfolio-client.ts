@@ -43,11 +43,14 @@ type RealmCreateAudioUploadInput = Parameters<Realm['services']['ResourcesServic
 type RealmCreateAudioUploadResponse = Awaited<ReturnType<Realm['services']['ResourcesService']['createAudioDirectUpload']>>;
 type RealmFinalizeResourceInput = Parameters<Realm['services']['ResourcesService']['finalizeResource']>[1];
 type RealmFinalizeResourceResponse = Awaited<ReturnType<Realm['services']['ResourcesService']['finalizeResource']>>;
+type RealmRuntimeProjectionInput = Parameters<Realm['services']['RuntimeProjectionsService']['projectRuntimePayload']>[0];
+type RealmRuntimeProjectionResponse = Awaited<ReturnType<Realm['services']['RuntimeProjectionsService']['projectRuntimePayload']>>;
 
 export const REALM_POST_PUBLISH_SOURCE = 'Realm PostsService.createPost';
 export const REALM_TEXT_RESOURCE_SOURCE = 'Realm ResourcesService.createTextResource';
 export const REALM_RESOURCE_LIST_SOURCE = 'Realm ResourcesService.listResources';
 export const REALM_MEDIA_RESOURCE_UPLOAD_SOURCE = 'Realm ResourcesService direct upload + finalizeResource';
+export const REALM_RUNTIME_PROJECTION_SOURCE = 'Realm RuntimeProjectionsService.projectRuntimePayload';
 export const REALM_AGENT_AVATAR_SELECT_SOURCE = 'Realm AgentsService.agentControllerSelectAvatar';
 export const REALM_AGENT_VISIBILITY_SOURCE = 'Realm AgentsService.agentControllerUpdateVisibility';
 export const AGENT_VISIBILITY_VALUES = ['PUBLIC', 'FRIENDS', 'PRIVATE'] as const;
@@ -192,6 +195,38 @@ type StorageUploadRequest = {
 
 type StorageUploadTransport = (request: StorageUploadRequest) => Promise<void>;
 
+export type RuntimeProjectionSummary = {
+  source: typeof REALM_RUNTIME_PROJECTION_SOURCE;
+  consumerSurface: 'RUNTIME_PAYLOAD';
+  worldId: string;
+  checksum: string;
+  selectedInputCount: number;
+  suppressedInputCount: number;
+  worldRuleCount: number;
+  agentRuleCount: number;
+  rawRuleContentExposed: false;
+};
+
+export type RuntimeProjectionSummaryResult =
+  | {
+    ok: true;
+    source: typeof REALM_RUNTIME_PROJECTION_SOURCE;
+    truthWrite: false;
+    summary: RuntimeProjectionSummary;
+    submitted: RealmRuntimeProjectionInput;
+  }
+  | {
+    ok: false;
+    source: typeof REALM_RUNTIME_PROJECTION_SOURCE;
+    truthWrite: false;
+    failure:
+      | 'runtime-projection-world-unavailable'
+      | 'runtime-projection-failed'
+      | 'runtime-projection-invalid-response';
+    message: string;
+    submitted: RealmRuntimeProjectionInput | null;
+  };
+
 export type RealmAgentCreateCanonicalFields = {
   id: string;
   state?: string;
@@ -306,6 +341,10 @@ function isPostAttachmentResourceType(value: string): value is PostAttachmentRes
 
 function isDirectMediaResourceType(value: string): value is DirectMediaResourceType {
   return value === 'IMAGE' || value === 'VIDEO' || value === 'AUDIO';
+}
+
+function readArray(value: unknown): unknown[] {
+  return Array.isArray(value) ? value : [];
 }
 
 function isAgentVisibilityValue(value: string): value is AgentVisibilityValue {
@@ -622,6 +661,51 @@ export function normalizeFinalizedDirectMediaResource(
     resourceType,
     status,
     ...(deliveryAccess ? { deliveryAccess } : {}),
+  };
+}
+
+export function buildRuntimeProjectionInput(agent: OwnerPortfolioAgentDetail): RealmRuntimeProjectionInput | null {
+  if (agent.world.status !== 'available' || !agent.world.value.trim()) {
+    return null;
+  }
+
+  return {
+    worldId: agent.world.value.trim(),
+    contextEnvelope: {
+      allowedAgentLayers: ['DNA', 'BEHAVIORAL', 'RELATIONAL', 'CONTEXTUAL'],
+      allowedAgentScopes: ['SELF', 'DYAD', 'GROUP', 'WORLD'],
+      allowedWorldScopes: ['WORLD', 'REGION', 'FACTION', 'INDIVIDUAL', 'SCENE'],
+      includeInheritedAgentRules: false,
+      focusKeywords: ['realm-agent-studio', 'owner-reviewed-runtime-context'],
+    },
+  };
+}
+
+export function normalizeRuntimeProjectionSummary(response: RealmRuntimeProjectionResponse): RuntimeProjectionSummary | null {
+  if (!response || typeof response !== 'object') {
+    return null;
+  }
+  const record = response as Record<string, unknown>;
+  const consumerSurface = record.consumerSurface;
+  const worldId = readOptionalString(record, 'worldId');
+  const checksum = readOptionalString(record, 'checksum');
+  if (consumerSurface !== 'RUNTIME_PAYLOAD' || !worldId || !checksum) {
+    return null;
+  }
+
+  const payload = record.payload && typeof record.payload === 'object' ? record.payload as Record<string, unknown> : {};
+  const trace = record.trace && typeof record.trace === 'object' ? record.trace as Record<string, unknown> : {};
+
+  return {
+    source: REALM_RUNTIME_PROJECTION_SOURCE,
+    consumerSurface,
+    worldId,
+    checksum,
+    selectedInputCount: readArray(record.selectedInputs).length,
+    suppressedInputCount: readArray(trace.suppressedInputs).length,
+    worldRuleCount: readArray(payload.worldRules).length,
+    agentRuleCount: readArray(payload.agentRules).length,
+    rawRuleContentExposed: false,
   };
 }
 
@@ -1058,6 +1142,54 @@ export async function createReviewedPostTextResource(
       attachmentTruth: false,
       failure: 'realm-create-text-resource-failed',
       message: error instanceof Error ? error.message : 'Realm Create Text Resource failed.',
+      submitted,
+    };
+  }
+}
+
+export async function projectAgentRuntimeContextSummary(
+  agent: OwnerPortfolioAgentDetail,
+  realm: Realm = createStudioRealmClient(),
+): Promise<RuntimeProjectionSummaryResult> {
+  const submitted = buildRuntimeProjectionInput(agent);
+  if (!submitted) {
+    return {
+      ok: false,
+      source: REALM_RUNTIME_PROJECTION_SOURCE,
+      truthWrite: false,
+      failure: 'runtime-projection-world-unavailable',
+      message: 'Runtime projection requires worldId evidence from Realm MeService.getMyRealmAgent.',
+      submitted: null,
+    };
+  }
+
+  try {
+    const response = await realm.services.RuntimeProjectionsService.projectRuntimePayload(submitted);
+    const summary = normalizeRuntimeProjectionSummary(response);
+    if (!summary) {
+      return {
+        ok: false,
+        source: REALM_RUNTIME_PROJECTION_SOURCE,
+        truthWrite: false,
+        failure: 'runtime-projection-invalid-response',
+        message: 'Runtime projection response did not include RUNTIME_PAYLOAD checksum summary.',
+        submitted,
+      };
+    }
+    return {
+      ok: true,
+      source: REALM_RUNTIME_PROJECTION_SOURCE,
+      truthWrite: false,
+      summary,
+      submitted,
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      source: REALM_RUNTIME_PROJECTION_SOURCE,
+      truthWrite: false,
+      failure: 'runtime-projection-failed',
+      message: error instanceof Error ? error.message : 'Realm runtime projection failed.',
       submitted,
     };
   }
