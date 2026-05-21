@@ -689,6 +689,18 @@ projection, Runtime may initialize the first conversation from Nimi guide
 welcome copy and may attach built-in Nimi usage documentation as product
 knowledge/context.
 
+Source of truth:
+
+- the Nimi guide welcome copy and guide system prompt are ordinary RealmAgent
+  profile content carried on the projected RealmAgent (the
+  AgentFriend's `greeting` / `systemPromptBase` equivalents), reached through
+  the same admitted Realm/SDK projection used for any RealmAgent;
+- Runtime MUST NOT hold a runtime-local hardcoded guide welcome string, guide
+  prompt, or guide identity constant as parallel product truth;
+- built-in Nimi usage documentation attached as context is product
+  knowledge/context only and is not RealmAgent authority, not memory truth, and
+  not a runtime-owned guide catalog.
+
 `MUST NOT`: prompt/docs context must not create Agent authority, memory truth,
 permission grant truth, Runtime setup truth, or profile/app configuration truth.
 The guide may direct the user to product surfaces but cannot bypass setup
