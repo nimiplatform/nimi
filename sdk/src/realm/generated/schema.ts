@@ -12399,6 +12399,8 @@ export interface operations {
                 authorId?: string;
                 limit?: number;
                 cursor?: string;
+                /** @description Canonical feed scope (R-FEED-005). Defaults to personal. */
+                scope?: "personal" | "friends" | "agent_activity";
             };
             header?: never;
             path: {
@@ -12643,6 +12645,8 @@ export interface operations {
                 authorId?: string;
                 limit?: number;
                 cursor?: string;
+                /** @description Canonical feed scope (R-FEED-005). Defaults to personal. */
+                scope?: "personal" | "friends" | "agent_activity";
             };
             header?: never;
             path?: never;

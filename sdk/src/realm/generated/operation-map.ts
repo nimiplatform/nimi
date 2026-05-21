@@ -3815,6 +3815,12 @@ export const REALM_OPERATION_MAP = {
         "in": "query",
         "required": false,
         "valueType": "string"
+      },
+      {
+        "name": "scope",
+        "in": "query",
+        "required": false,
+        "valueType": "string"
       }
     ],
     "hasBody": false,
@@ -5650,6 +5656,12 @@ export const REALM_OPERATION_MAP = {
       },
       {
         "name": "cursor",
+        "in": "query",
+        "required": false,
+        "valueType": "string"
+      },
+      {
+        "name": "scope",
         "in": "query",
         "required": false,
         "valueType": "string"
