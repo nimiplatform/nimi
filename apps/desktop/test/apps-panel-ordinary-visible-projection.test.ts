@@ -116,7 +116,12 @@ describe('AppsPanel ordinary-visible projection', () => {
     }
   });
 
-  it('keeps per-app status failures explicit instead of dropping rows silently', async () => {
+  it('resolves an opaque per-app status failure to repair_required (W5 hard-cut default)', async () => {
+    // T4-W5: the historical 12th `status_unavailable` bucket is hard-cut. An
+    // opaque (untyped) `status()` failure resolves to the canonical
+    // `repair_required` card state — the row stays visible, carries a Repair
+    // action, and the detail carries the exact failure (P-NAPP-008 / manual
+    // line 962: no collapsed "Unavailable" card).
     const projection = await projectAppsPanel(makeClient({
       status: () => new Error('status boom'),
     }));
@@ -124,8 +129,13 @@ describe('AppsPanel ordinary-visible projection', () => {
     if (projection.status !== 'loaded') return;
 
     assert.equal(projection.entries.length, 1);
-    assert.equal(projection.entries[0]!.cardState, 'status_unavailable');
+    assert.equal(projection.entries[0]!.cardState, 'repair_required');
     assert.match(projection.entries[0]!.detail ?? '', /status boom/);
+    // The 12th state must not survive anywhere in the resolved projection.
+    assert.equal(
+      projection.entries.some((entry) => (entry.cardState as string) === 'status_unavailable'),
+      false,
+    );
   });
 
   it('fails closed when the ordinary Apps registry projection cannot load', async () => {

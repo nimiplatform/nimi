@@ -20,8 +20,7 @@
     "unsupportedOnThisDevice": "当前设备不支持",
     "blockedByPolicy": "已阻止",
     "installFailed": "安装失败",
-    "uninstalling": "卸载中",
-    "statusUnavailable": "状态不可用"
+    "uninstalling": "卸载中"
   },
   "action": {
     "install": "安装",

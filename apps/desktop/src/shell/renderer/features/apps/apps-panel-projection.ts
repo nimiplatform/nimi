@@ -1,4 +1,4 @@
-// Desktop Apps panel projection (T4-W4).
+// Desktop Apps panel projection (T4-W4, status-failure hard-cut T4-W5).
 //
 // Composes the Apps card grid from three typed projections:
 //   1. the Nimi App registry read-projection (`NimiAppClient.list`/`.status`)
@@ -9,9 +9,13 @@
 //
 // The renderer owns no parallel job/registry truth: every card field is read
 // from an already-typed SDK projection. A missing/failed registry projection
-// fails the whole panel closed; a per-app `status()` failure produces a typed
-// `status_unavailable` bucket — that historical 12th state is preserved here
-// for the W5 hard-cut and is intentionally NOT extended by W4.
+// fails the whole panel closed.
+//
+// W5 hard-cut: there is no longer a 12th `status_unavailable` card state. A
+// per-app `client.status()` failure resolves to one of the 11 canonical
+// product card states via `resolveAppStatusFailure` (per-reason-code mapping,
+// `repair_required` default) — `P-NAPP-008` / manual line 962 forbid
+// collapsing distinct failures into a single "Unavailable" card.
 
 import type {
   AppLaunchReadiness,
@@ -25,24 +29,20 @@ import {
   selectLatestJobForApp,
   type CanonicalAppCardState,
 } from './apps-card-state.js';
+import { resolveAppStatusFailure } from './apps-status-failure.js';
 import type { DesktopAppLifecycleBridge, RuntimeAppInstallJob } from './apps-lifecycle-bridge.js';
 
 /**
  * The full Desktop Apps card-state vocabulary: the 11 canonical product states
- * plus the historical `status_unavailable` bucket.
+ * — exactly the canonical set, with no 12th value.
  *
- * `status_unavailable` is NOT a canonical product state — it is the typed
- * fail-closed bucket produced only when the per-app `status()` RPC throws. The
- * preflight (§1.5 / Fork E) hard-cuts it in W5; W4 keeps it defined and does
- * not extend it, so a `status()` failure still resolves to a typed card rather
- * than dropping the row.
+ * The historical `status_unavailable` bucket was hard-cut in T4-W5: a
+ * `status()` failure now resolves through `resolveAppStatusFailure` to one of
+ * these 11 canonical states.
  */
-export const DESKTOP_APPS_CARD_STATES = [
-  ...CANONICAL_APP_CARD_STATES,
-  'status_unavailable',
-] as const;
+export const DESKTOP_APPS_CARD_STATES = CANONICAL_APP_CARD_STATES;
 
-export type DesktopAppsCardState = typeof DESKTOP_APPS_CARD_STATES[number];
+export type DesktopAppsCardState = CanonicalAppCardState;
 
 /**
  * One projected Apps card entry. `job` is the live `RuntimeAppInstallJob` the
@@ -107,13 +107,15 @@ export async function projectAppsPanel(
     try {
       status = await client.status(app.appId);
     } catch (error) {
-      // Historical `status_unavailable` bucket (W5 hard-cut target). A typed
-      // card, never a dropped row, never a collapsed "Unavailable" across
-      // distinct reasons — the detail carries the exact failure.
+      // W5 hard-cut: a `status()` failure resolves to one of the 11 canonical
+      // card states via the per-reason-code mapping (`repair_required`
+      // default). Never a dropped row, never a 12th bucket, never a collapsed
+      // "Unavailable" — the detail carries the exact typed failure.
+      const resolution = resolveAppStatusFailure(error);
       entries.push({
         app,
-        cardState: 'status_unavailable',
-        detail: `status failed: ${errorMessage(error)}`,
+        cardState: resolution.cardState,
+        detail: resolution.detail,
       });
       continue;
     }

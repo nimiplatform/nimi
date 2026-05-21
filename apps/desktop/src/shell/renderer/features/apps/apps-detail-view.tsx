@@ -15,10 +15,7 @@ import {
   actionPlanForCardState,
   type AppCardActionId,
 } from './apps-card-actions.js';
-import {
-  postureForCardState,
-  type CanonicalAppCardState,
-} from './apps-card-state.js';
+import { postureForCardState } from './apps-card-state.js';
 import {
   deriveIconGlyph,
   deriveRequirementSummary,
@@ -45,12 +42,10 @@ export function AppsDetailView({ entry, onCardAction, onClose }: AppsDetailViewP
   const requirements = deriveRequirementSummary(entry);
   const storageRoots = status?.storageRoots;
 
-  const canonical = cardState !== 'status_unavailable';
-  const plan = canonical
-    ? actionPlanForCardState(cardState as CanonicalAppCardState)
-    : { primary: null, secondary: [] as ReadonlyArray<{ id: AppCardActionId; destructive: boolean }> };
-  const disabled =
-    canonical && postureForCardState(cardState as CanonicalAppCardState) === 'disabled';
+  // The card state is always one of the 11 canonical states (the 12th
+  // `status_unavailable` bucket was hard-cut in T4-W5).
+  const plan = actionPlanForCardState(cardState);
+  const disabled = postureForCardState(cardState) === 'disabled';
 
   return (
     <OverlayShell

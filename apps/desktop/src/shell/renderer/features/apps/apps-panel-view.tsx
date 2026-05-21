@@ -7,10 +7,7 @@ import {
   type AppCardAction,
   type AppCardActionId,
 } from './apps-card-actions.js';
-import {
-  postureForCardState,
-  type CanonicalAppCardState,
-} from './apps-card-state.js';
+import { postureForCardState } from './apps-card-state.js';
 import {
   deriveIconGlyph,
   deriveRequirementSummary,
@@ -37,7 +34,6 @@ const CARD_STATE_LABEL_KEYS: Record<DesktopAppsCardState, string> = {
   blocked_by_policy: 'Apps.state.blockedByPolicy',
   install_failed: 'Apps.state.installFailed',
   uninstalling: 'Apps.state.uninstalling',
-  status_unavailable: 'Apps.state.statusUnavailable',
 };
 
 const CARD_STATE_TONES: Record<DesktopAppsCardState, string> = {
@@ -52,7 +48,6 @@ const CARD_STATE_TONES: Record<DesktopAppsCardState, string> = {
   blocked_by_policy: 'bg-[color-mix(in_srgb,var(--nimi-text-muted)_12%,transparent)] text-[color:var(--nimi-text-muted)]',
   install_failed: 'bg-[color-mix(in_srgb,var(--nimi-status-danger)_14%,transparent)] text-[var(--nimi-status-danger)]',
   uninstalling: 'bg-[color-mix(in_srgb,var(--nimi-status-info)_14%,transparent)] text-[var(--nimi-status-info)]',
-  status_unavailable: 'bg-[color-mix(in_srgb,var(--nimi-text-muted)_10%,transparent)] text-[color:var(--nimi-text-muted)]',
 };
 
 const ACTION_LABEL_KEYS: Record<AppCardActionId, string> = {
@@ -77,10 +72,7 @@ const REQUIREMENT_LABEL_KEYS: Record<keyof AppCardRequirementSummary, string> = 
 
 /** A card whose posture is a disabled posture renders all actions disabled. */
 function isDisabledPosture(cardState: DesktopAppsCardState): boolean {
-  if (cardState === 'status_unavailable') {
-    return false;
-  }
-  return postureForCardState(cardState as CanonicalAppCardState) === 'disabled';
+  return postureForCardState(cardState) === 'disabled';
 }
 
 export interface AppsPanelViewProps {
@@ -167,12 +159,9 @@ function AppCard({ entry, busy, onCardAction }: AppCardProps): ReactElement {
   const requirements = deriveRequirementSummary(entry);
   const disabled = isDisabledPosture(cardState);
 
-  // `status_unavailable` is a typed fail-closed bucket (W5 hard-cut target);
-  // it carries only the Details secondary action.
-  const plan =
-    cardState === 'status_unavailable'
-      ? { primary: null, secondary: [{ id: 'details' as AppCardActionId, destructive: false }] }
-      : actionPlanForCardState(cardState as CanonicalAppCardState);
+  // The card state is always one of the 11 canonical states (the 12th
+  // `status_unavailable` bucket was hard-cut in T4-W5).
+  const plan = actionPlanForCardState(cardState);
 
   return (
     <li

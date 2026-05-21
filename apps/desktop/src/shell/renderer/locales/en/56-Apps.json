@@ -20,8 +20,7 @@
     "unsupportedOnThisDevice": "Unsupported",
     "blockedByPolicy": "Blocked",
     "installFailed": "Install Failed",
-    "uninstalling": "Uninstalling",
-    "statusUnavailable": "Status Unavailable"
+    "uninstalling": "Uninstalling"
   },
   "action": {
     "install": "Install",
