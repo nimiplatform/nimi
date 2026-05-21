@@ -184,6 +184,7 @@ const BASE_MENU_SECTIONS: SettingsMenuSection[] = [
     items: [
       { id: 'profile', icon: ICON_USER, title: 'Profile' },
       { id: 'language', icon: ICON_GLOBE, title: 'Language & Region' },
+      { id: 'appearance', icon: ICON_MONITOR, title: 'Appearance' },
     ],
   },
   {
@@ -197,7 +198,14 @@ const BASE_MENU_SECTIONS: SettingsMenuSection[] = [
     label: 'Preferences',
     items: [
       { id: 'notifications', icon: ICON_BELL, title: 'Notifications' },
+      { id: 'downloads', icon: ICON_DOWNLOAD, title: 'Downloads' },
       { id: 'performance', icon: ICON_ZAP, title: 'Performance' },
+    ],
+  },
+  {
+    label: 'Data',
+    items: [
+      { id: 'data', icon: ICON_DATABASE, title: 'Data Management' },
     ],
   },
   {

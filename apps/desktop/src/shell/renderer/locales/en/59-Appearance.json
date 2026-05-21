@@ -1,0 +1,23 @@
+{
+  "pageTitle": "Appearance",
+  "pageDescription": "Theme and accessibility preferences for this device.",
+  "sectionTheme": "Theme",
+  "sectionThemeDescription": "Choose how Nimi looks on this device.",
+  "themeLabel": "Color theme",
+  "themeHelper": "System follows your operating system appearance.",
+  "themeSystem": "System",
+  "themeLight": "Light",
+  "themeDark": "Dark",
+  "sectionAccessibility": "Accessibility",
+  "sectionAccessibilityDescription": "Adjust motion, contrast, and text size for comfort.",
+  "reduceMotion": "Reduce motion",
+  "reduceMotionDescription": "Minimize non-essential animations and transitions.",
+  "highContrast": "High contrast",
+  "highContrastDescription": "Increase contrast between text and background.",
+  "largerText": "Larger text",
+  "largerTextDescription": "Render interface text at a larger base size.",
+  "saveSuccess": "Appearance preferences saved.",
+  "saveFailClosed": "Could not save appearance preferences — local storage is unavailable.",
+  "failClosedTitle": "Appearance preferences unavailable",
+  "failClosedBody": "The stored appearance projection could not be read and may be corrupt. Preferences are not shown to avoid masking the failure."
+}

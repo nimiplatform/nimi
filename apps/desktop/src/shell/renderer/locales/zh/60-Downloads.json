@@ -1,0 +1,19 @@
+{
+  "pageTitle": "下载",
+  "pageDescription": "Nimi 保存下载文件的位置以及下载行为。",
+  "sectionLocation": "下载位置",
+  "sectionLocationDescription": "选择 Nimi 用于保存下载文件的文件夹。",
+  "locationLabel": "下载文件夹",
+  "locationHelper": "留空则使用系统默认的下载文件夹。",
+  "locationPlaceholder": "系统默认下载文件夹",
+  "sectionBehavior": "下载行为",
+  "sectionBehaviorDescription": "控制 Nimi 处理每次下载的方式。",
+  "askEachTime": "每次询问保存位置",
+  "askEachTimeDescription": "在每次下载前询问保存目标位置。",
+  "autoOpenOnComplete": "下载完成后打开文件",
+  "autoOpenOnCompleteDescription": "下载完成后自动打开该文件。",
+  "saveSuccess": "下载偏好已保存。",
+  "saveFailClosed": "无法保存下载偏好——本地存储不可用。",
+  "failClosedTitle": "下载偏好不可用",
+  "failClosedBody": "无法读取已存储的下载投影，数据可能已损坏。为避免掩盖该故障，此处不显示偏好设置。"
+}

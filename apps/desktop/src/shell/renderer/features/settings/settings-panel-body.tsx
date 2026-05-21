@@ -22,6 +22,7 @@ const SETTINGS_SECTION_KEY_BY_LABEL: Record<string, string> = {
   Account: 'Settings.sectionAccount',
   'Privacy & Security': 'Settings.sectionPrivacySecurity',
   Preferences: 'Settings.sectionPreferences',
+  Data: 'Settings.sectionData',
   Extensions: 'Settings.sectionExtensions',
   Advanced: 'Settings.sectionAdvanced',
 };
@@ -29,10 +30,13 @@ const SETTINGS_SECTION_KEY_BY_LABEL: Record<string, string> = {
 const SETTINGS_ITEM_KEY_BY_ID: Record<string, string> = {
   profile: 'Settings.menuProfile',
   language: 'Settings.menuLanguage',
+  appearance: 'Settings.menuAppearance',
   privacy: 'Settings.menuPrivacy',
   security: 'Settings.menuSecurity',
   notifications: 'Settings.menuNotifications',
+  downloads: 'Settings.menuDownloads',
   performance: 'Settings.menuPerformance',
+  data: 'Settings.menuData',
   extensions: 'Settings.menuModSettings',
   wallet: 'Settings.menuWallet',
 };

@@ -1,0 +1,23 @@
+{
+  "pageTitle": "外观",
+  "pageDescription": "此设备的主题与无障碍偏好。",
+  "sectionTheme": "主题",
+  "sectionThemeDescription": "选择 Nimi 在此设备上的外观。",
+  "themeLabel": "配色主题",
+  "themeHelper": "“跟随系统”将匹配操作系统的外观设置。",
+  "themeSystem": "跟随系统",
+  "themeLight": "浅色",
+  "themeDark": "深色",
+  "sectionAccessibility": "无障碍",
+  "sectionAccessibilityDescription": "调整动效、对比度与文字大小以获得更舒适的体验。",
+  "reduceMotion": "减少动效",
+  "reduceMotionDescription": "尽量减少非必要的动画与过渡效果。",
+  "highContrast": "高对比度",
+  "highContrastDescription": "增强文字与背景之间的对比度。",
+  "largerText": "更大字号",
+  "largerTextDescription": "以更大的基础字号渲染界面文字。",
+  "saveSuccess": "外观偏好已保存。",
+  "saveFailClosed": "无法保存外观偏好——本地存储不可用。",
+  "failClosedTitle": "外观偏好不可用",
+  "failClosedBody": "无法读取已存储的外观投影，数据可能已损坏。为避免掩盖该故障，此处不显示偏好设置。"
+}

@@ -56,6 +56,8 @@ import section54 from './55-ModelConfig.json';
 import section55 from './56-Apps.json';
 import section56 from './57-FirstRun.json';
 import section57 from './58-Support.json';
+import section58 from './59-Appearance.json';
+import section59 from './60-Downloads.json';
 
 const messages = {
   "Navigation": section0,
@@ -116,6 +118,8 @@ const messages = {
   "Apps": section55,
   "FirstRun": section56,
   "Support": section57,
+  "Appearance": section58,
+  "Downloads": section59,
 };
 
 export default messages;
