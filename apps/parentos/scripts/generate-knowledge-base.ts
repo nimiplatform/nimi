@@ -663,7 +663,7 @@ function generateGrowthMilestoneRules() {
   const kinds = [...new Set(rules.map((rule) => rule.kind))].sort();
   const kindUnion = kinds.length > 0
     ? kinds.map((kind) => `'${kind}'`).join(' | ')
-    : "'threshold_crossed' | 'percentile_shift' | 'measurement_density'";
+    : "'threshold_crossed' | 'percentile_shift'";
   const ruleIdUnion = ruleIds.length > 0
     ? ruleIds.map((id) => `'${id}'`).join(' | ')
     : 'string';
@@ -671,8 +671,7 @@ function generateGrowthMilestoneRules() {
 export type GrowthMilestoneRuleKind = ${kindUnion};
 export interface GrowthMilestoneThresholdCrossedTrigger { type: 'threshold_cross'; thresholdValue: number; thresholdUnit: string; direction: 'upward' | 'downward'; evidenceWindowMonths: number; }
 export interface GrowthMilestonePercentileShiftTrigger { type: 'percentile_shift'; minMagnitudePoints: number; direction: 'upward' | 'downward'; evidenceWindowMonths: number; }
-export interface GrowthMilestoneMeasurementDensityTrigger { type: 'measurement_density'; windowDays: number; minCount: number; evidenceWindowMonths: number; }
-export type GrowthMilestoneTriggerCondition = GrowthMilestoneThresholdCrossedTrigger | GrowthMilestonePercentileShiftTrigger | GrowthMilestoneMeasurementDensityTrigger;
+export type GrowthMilestoneTriggerCondition = GrowthMilestoneThresholdCrossedTrigger | GrowthMilestonePercentileShiftTrigger;
 export interface GrowthMilestoneRule { ruleId: string; kind: GrowthMilestoneRuleKind; appliesToMetricIds: readonly string[]; triggerCondition: GrowthMilestoneTriggerCondition; titleTemplate: string; deltaMagnitudeTemplate: string; deltaUnitLabel: string; }
 export const GROWTH_MILESTONE_RULES = ${JSON.stringify(rules, null, 2)} as const;
 export type GrowthMilestoneRuleId = ${ruleIdUnion};

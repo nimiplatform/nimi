@@ -448,6 +448,61 @@ metrics:
     safetyClass: descriptive
     applicableAgeRange: { startMonths: 36, endMonths: 216 }
     applicableSex: both
+  # Sport-activity metrics — general (non national-standard) sport logging.
+  # Each record pairs a category with universal fields; not graded against any
+  # admitted standard, so no evaluation/freshness policy applies.
+  - metricId: fitness.activity_category
+    groupId: fitness
+    displayName: Sport activity category
+    valueShape: enum
+    valueCardinality: single
+    recordKind: assessment
+    captureProtocolIds: [fitness-sport-activity]
+    detailRoute: /profile/fitness
+    sourceSupport: [manual]
+    safetyClass: no_evaluation
+    applicableAgeRange: { startMonths: 24, endMonths: 216 }
+    applicableSex: both
+  - metricId: fitness.activity_duration
+    groupId: fitness
+    displayName: Sport activity duration
+    unit: min
+    precision: 0
+    valueShape: duration
+    valueCardinality: single
+    recordKind: assessment
+    captureProtocolIds: [fitness-sport-activity]
+    detailRoute: /profile/fitness
+    sourceSupport: [manual]
+    safetyClass: no_evaluation
+    applicableAgeRange: { startMonths: 24, endMonths: 216 }
+    applicableSex: both
+  - metricId: fitness.activity_distance
+    groupId: fitness
+    displayName: Sport activity distance
+    unit: m
+    precision: 0
+    valueShape: number
+    valueCardinality: single
+    recordKind: assessment
+    captureProtocolIds: [fitness-sport-activity]
+    detailRoute: /profile/fitness
+    sourceSupport: [manual]
+    safetyClass: no_evaluation
+    applicableAgeRange: { startMonths: 24, endMonths: 216 }
+    applicableSex: both
+  - metricId: fitness.activity_intensity
+    groupId: fitness
+    displayName: Sport activity intensity
+    valueShape: enum
+    valueCardinality: single
+    recordKind: assessment
+    captureProtocolIds: [fitness-sport-activity]
+    detailRoute: /profile/fitness
+    sourceSupport: [manual]
+    safetyClass: no_evaluation
+    applicableAgeRange: { startMonths: 24, endMonths: 216 }
+    applicableSex: both
   - metricId: development.tanner_breast_stage
     groupId: development
     displayName: Tanner breast stage

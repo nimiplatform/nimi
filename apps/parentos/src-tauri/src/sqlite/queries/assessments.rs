@@ -527,3 +527,19 @@ pub fn delete_fitness_assessment(assessment_id: String) -> Result<(), String> {
         .map_err(|e| format!("delete_fitness_assessment: {e}"))?;
     Ok(())
 }
+
+/// Delete a fitness health record event by its raw `eventId`. Covers both the
+/// national-standard assessment and the sport-activity protocols; child
+/// `health_record_values` rows are removed by the FK `ON DELETE CASCADE`.
+#[tauri::command]
+pub fn delete_fitness_event(event_id: String) -> Result<(), String> {
+    let conn = get_conn()?.lock().map_err(|e| e.to_string())?;
+    conn.execute(
+        "DELETE FROM health_record_events \
+         WHERE eventId = ?1 \
+           AND protocolId IN ('fitness-school-assessment', 'fitness-sport-activity')",
+        params![event_id],
+    )
+        .map_err(|e| format!("delete_fitness_event: {e}"))?;
+    Ok(())
+}

@@ -446,6 +446,11 @@ export function getFitnessAssessments(childId: string) {
   return invoke<FitnessAssessmentRow[]>('get_fitness_assessments', { childId });
 }
 
+/** Delete a fitness health record event (standard test or sport activity) by raw eventId. */
+export function deleteFitnessEvent(eventId: string) {
+  return invoke<void>('delete_fitness_event', { eventId });
+}
+
 export interface SectionSummary {
   sectionId: string;
   recordCount: number;

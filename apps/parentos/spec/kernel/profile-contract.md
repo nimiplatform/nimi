@@ -271,6 +271,20 @@ Physical fitness assessments are now captured through `health_record_events` /
 
 Fitness metric fields follow China National Student Physical Fitness Standards (国家学生体质健康标准) test items. Not all fields are required per assessment — only populated metrics are meaningful.
 
+Beyond the national-standard test items, the fitness domain also captures
+general **sport-activity records** (running, swimming, cycling, ball sports,
+and other activities a child takes part in). These are captured under the
+`fitness-sport-activity` protocol and carry universal fields rather than
+graded test items:
+
+- `fitness.activity_category` — the sport/activity category (enum)
+- `fitness.activity_duration` — duration in minutes (required)
+- `fitness.activity_distance` — distance in metres (optional)
+- `fitness.activity_intensity` — perceived intensity, light/moderate/vigorous (optional)
+
+Sport-activity metrics are descriptive logs only — they are not evaluated
+against any admitted standard and carry no evaluation or freshness policy.
+
 ## PO-PROF-014 Extended Eye Health Measurements
 
 Beyond the base vision metrics, structured eye exam data is captured through
@@ -351,16 +365,30 @@ OCR import must obey these invariants:
 - no measurement row may be written before parent confirmation
 - import failures must not silently create placeholder measurements
 
-## PO-PROF-019 Posture Projection
+## PO-PROF-019 Posture Retained Domain
 
-Posture and body-alignment review is a profile projection, not an independent
-`/profile/posture` page after the PO-HREC hard cut. The route shell may remain
-registered only to redirect to `/profile`.
+Posture and body-alignment review is an admitted retained-owner stateful
+domain. A posture assessment is a discrete dated observation snapshot
+(parent or clinician), not a value-at-time PO-HREC metric, so posture records
+are stored in their own `posture_assessments` table
+(`tables/local-storage.yaml`) and are not folded into `health_record_events`.
 
-- `/profile` may project posture-related local records, linked medical context, and related profile summaries already available to the app
-- until a dedicated posture persistence contract is introduced, posture is authority only at the UI/projection level
-- posture projection must not invent an undocumented hidden storage schema
-- posture projection must not render diagnosis, treatment plans, or comparative ranking
+This supersedes the prior projection-only disposition: posture now has its
+own persistence contract (the `posture_assessments` table), so the earlier
+constraint against an independent `/profile/posture` page no longer applies.
+
+- `/profile/posture` is a retained domain detail surface (`tables/routes.yaml`,
+  `surfaceKind: health-record-domain-detail`). It owns posture record reads
+  and writes against `posture_assessments`.
+- `/profile` projects posture as its own console card — a sibling of the
+  `health-metric-registry.yaml` snapshot groups, not one of them — that links
+  to `/profile/posture`.
+- Structured posture writes are owned by the posture detail surface and the
+  `/profile` health-capture posture form. Both write only through the
+  `posture_assessments` retained-owner path and must not create parallel
+  metric truth in `health_record_events`.
+- posture surfaces must not render diagnosis, treatment plans, or comparative
+  ranking (AI boundary Layer 2).
 
 ## PO-PROF-021 Timeline vs Profile Responsibility Boundary
 
@@ -453,32 +481,29 @@ Health record console ordering tiers (descending priority):
 Rows not listed in a tier's top group appear after the top group in
 `health-metric-registry.yaml` rank order, not route registration order.
 
-## PO-PROF-025 Key Metrics Summary Presentation
+## PO-PROF-025 First-Screen Health Summary Card
 
-The `/profile` health record console may render a "key metrics summary" row
-above the full group list. The summary row is a presentation layer over the
-existing `HealthRecordSnapshot` projection and must not introduce new data
-sources, new bridge calls, or independent storage.
+The `/profile` health record console renders a single profile-local AI health
+summary card above the full group list. The card replaces the prior static
+key-metrics value row; latest per-metric values remain available on the
+group-list rows below it.
 
 Invariants:
 
-- The summary row consumes the same `HealthMetricSnapshot` entries that the
-  group list renders. It must not query different tables or recompute values
-  through an alternate path.
-- Each summary card is rendered only when its bound metric snapshot has a
-  `latestValue` with a real recorded number, text, or JSON payload. Metrics
-  with no recorded value must not render a placeholder card.
-- When zero highlighted metric snapshots have a `latestValue`, the entire
-  summary row must be omitted; the page must not render an empty container,
-  skeletons, or "no data" copy in place of the row.
-- A summary card must link to the same `metric.detailRoute` (or `/profile`
-  fallback) used by the group-list row for that metric. The card must not own
-  an independent capture or write path.
-- The summary row may not duplicate timeline agenda counts, reminder buckets,
-  or aggregations that the snapshot projection itself does not expose.
-- The set of highlighted metric ids is a deterministic, ordered allowlist
-  declared in the renderer; it must reference only metric ids present in
-  `health-metric-registry.yaml`.
+- The card is the shared profile AI summary surface (`AISummaryCard`) bound to
+  the `overview` domain. It must resolve runtime params through the governed
+  `parentos.profile.summary.*` surface helper, warm the local runtime before
+  generation, and pass output through shared AI safety filtering.
+- The card `dataContext` is derived only from the current `HealthRecordSnapshot`
+  projection already rendered by the console. It must not introduce new data
+  sources, new bridge calls, or independent storage.
+- When no metric snapshot across all groups has a `latestValue`, the card must
+  render the shared "record more data" hint instead of a generated summary; it
+  must not fabricate summary text.
+- The card must fail closed per PO-PROF-020 when a summary is attempted without
+  current local page data or when generated output fails safety filtering.
+- The card must not own an independent capture or write path, and must not
+  duplicate timeline agenda counts or reminder buckets.
 
 ## PO-PROF-020 Fail-Close Behavior
 

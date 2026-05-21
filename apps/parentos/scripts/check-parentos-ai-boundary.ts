@@ -10,7 +10,7 @@
  */
 
 import { readFileSync, readdirSync } from 'node:fs';
-import { resolve, dirname, join } from 'node:path';
+import { resolve, dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parse as parseYaml } from 'yaml';
 
@@ -38,7 +38,7 @@ export interface SourceFile {
 }
 
 function relativeToRoot(path: string, rootPath: string) {
-  return path.replace(rootPath + '/', '').replace(rootPath + '\\', '');
+  return relative(rootPath, path).replaceAll('\\', '/');
 }
 
 function fileHasRuntimeCall(content: string) {

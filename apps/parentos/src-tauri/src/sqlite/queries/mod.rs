@@ -5,6 +5,7 @@ mod health_records;
 mod journal;
 mod orthodontic;
 mod outdoor;
+mod posture;
 mod reminders;
 mod vision;
 
@@ -15,6 +16,7 @@ pub use health_records::*;
 pub use journal::*;
 pub use orthodontic::*;
 pub use outdoor::*;
+pub use posture::*;
 pub use reminders::*;
 pub use vision::*;
 

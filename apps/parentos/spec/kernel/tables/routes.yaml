@@ -114,7 +114,7 @@ routes:
     parent: /profile
     routeKind: detail
     authority: profile-contract.md
-    summarySource: null
+    summarySource: posture_assessments
 
   - path: /profile/tanner
     surfaceKind: health-record-domain-detail

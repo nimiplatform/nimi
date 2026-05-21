@@ -79,6 +79,16 @@ protocols:
     sourceSupport: [manual, imported, reminder]
     storageTarget: health_record_event
     completionPolicy: "At least one admitted fitness metric must be recorded in the event."
+  - protocolId: fitness-sport-activity
+    groupId: fitness
+    displayName: Sport activity log
+    modeSupport: [manual]
+    metricIds: [fitness.activity_category, fitness.activity_duration, fitness.activity_distance, fitness.activity_intensity]
+    requiredMetricIds: [fitness.activity_category, fitness.activity_duration]
+    optionalMetricIds: [fitness.activity_distance, fitness.activity_intensity]
+    sourceSupport: [manual]
+    storageTarget: health_record_event
+    completionPolicy: "A sport activity event must record a category and a duration."
   - protocolId: tanner-female-self-assessment
     groupId: development
     displayName: Female Tanner self-assessment

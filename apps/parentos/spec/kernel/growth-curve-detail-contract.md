@@ -23,8 +23,6 @@ extend, or shadow it:
   fail-close behaviors.
 - `capture-orchestrator-contract.md` — `PO-CAPT-001` `CaptureIntent`,
   `PO-CAPT-002` modes, `PO-CAPT-004` save transaction.
-- `advisor-contract.md` — descriptive AI vocabulary and `needs-review`
-  domain gating used by the inline insight surface (PO-GROWTH-DETAIL-003).
 - `timeline-contract.md` — reminder timeline writeback surface used by the
   next-check CTA when present.
 - `reminder-interaction-contract.md` — reminder kind taxonomy boundary
@@ -66,8 +64,6 @@ The detail surface owns:
 
 - the page-local `GrowthDetailSnapshot` projection shape
   (PO-GROWTH-DETAIL-002),
-- the bounded inline AI insight surface
-  (PO-GROWTH-DETAIL-003),
 - the threading of `HealthCaptureModal` props for the Add CTA
   (PO-GROWTH-DETAIL-004),
 - the inline edit/delete affordance routing through the existing bridge
@@ -102,7 +98,7 @@ GrowthDetailSnapshot {
   recencyLabel:     string | null            // "最近更新 X 前" | null
   headline:         GrowthHeadline | { state: 'no_data' }
   crossMetric:      GrowthChip[]             // height / weight / BMI / head_circumference / bone_age
-  milestones:       GrowthMilestone[]        // empty if none in trailing 12 months
+  milestones:       GrowthMilestone[]        // full-record events, ascending by occurredAt
   nextCheck:        GrowthNextCheck | { state: 'unscheduled' }
   trendStats:       GrowthTrendStat[]        // exactly three entries
   historyPage:      GrowthHistoryPage        // already paginated + filtered
@@ -132,7 +128,7 @@ GrowthChip {
 GrowthMilestone {
   milestoneId:        string                  // ULID; deterministic from (ruleId, evidenceEventIds.sort().join(','))
   ruleId:             string                  // FK to tables/growth-milestone-rules.yaml#rules[].ruleId
-  kind:               'threshold_crossed' | 'percentile_shift' | 'measurement_density'
+  kind:               'threshold_crossed'
   deltaMagnitudeDisplay: string               // "+8"
   deltaUnitLabel:     string                  // "CM · 12 月"
   title:              string                  // "突破 140cm"
@@ -175,30 +171,19 @@ band or freshness state machine.
 `HealthRecordConsoleSnapshot`. It must not be substituted for the console
 snapshot and must not be cached in console storage.
 
-## PO-GROWTH-DETAIL-003 Inline AI Insight Surface
+## PO-GROWTH-DETAIL-003 — Retired
 
-The detail surface exposes a single bounded inline AI summary region per
-active metric. The growth domain remains `needs-review` in
-`tables/knowledge-source-readiness.yaml`; the inline insight is therefore
-admitted as a descriptive-only bounded generator, not as advisor
-free-form output.
+The bounded inline AI insight surface ("今日洞察") admitted at wave-0 is
+retired. The `/profile/growth` detail surface no longer renders an inline
+AI summary region, and no `GrowthInsightStrip` composition is registered in
+`tables/nimi-kit-compositions.yaml`.
 
-| Constraint | Source |
-|---|---|
-| Vocabulary: only `观察到`, `可能`, `倾向于`, `处于…水平`, `建议咨询专业人士`. Never `落后`, `异常`, `危险`, `警告`, `发育迟缓`, `障碍`, `应该吃`, `建议用药`, `建议服用`, `推荐治疗`, `达不到`, `未达到`. | `apps/parentos/AGENTS.md`, `advisor-contract.md` |
-| Inputs: only the active metric's last ≤6 measurements plus deterministic stats already computed by the projection (`yearOverYearDelta`, `distanceToP50`, `currentPercentile`, trend pill). No free-text history, no other domains, no advisor-snapshot inputs. | this contract |
-| Output: single Chinese paragraph of 60–120 characters, no list, no bullets. | this contract |
-| Length cap enforced at parse time: truncate at 140 characters and append `…`. | this contract |
-| Vocabulary guard enforced at parse time: regex denylist over the response string; any hit triggers fail-close. | this contract + `advisor-contract.md` |
-| AI runtime entry point: the existing platform-client text-generation helper used by `ai-summary-card.tsx`, `dental-eruption-scan.ts`, `medical-events-page-insights.ts`, `ai-journal-tagging.ts`, and `narrative-prompt.ts`. No new client construction. | this contract |
-| Failure mode: AI runtime error, schema violation, vocabulary-guard hit, or length-cap violation → render the deterministic fallback line built from `GrowthHeadline.ledeTemplate`. The UI signals AI failure non-destructively (small "AI 生成失败，已使用本地摘要" badge, never red). | PO-HREC-009 + PO-GROWTH-DETAIL-009 |
-| Refresh: user-triggered, debounced to a 30-second minimum between requests per `(childId, metricId)`. | this contract |
-| Per-session cap: 20 successful inline insight requests per session-day; over cap → render fallback line plus a disabled refresh button with explanatory tooltip. | this contract |
+The on-demand `AISummaryButton` / `AISummaryCard` advisor surface is
+unaffected by this retirement; its admission, prompt strategy, and
+persistence remain governed by `advisor-contract.md`.
 
-This is not a free-form advisor surface. The existing
-`AISummaryButton` remains as the on-demand deeper AI surface; its
-admission, prompt strategy, and persistence remain under
-`advisor-contract.md` and are unchanged by this contract.
+The clause number is retained as a tombstone so that PO-GROWTH-DETAIL-004
+through PO-GROWTH-DETAIL-009 keep their stable identifiers.
 
 ## PO-GROWTH-DETAIL-004 Add Capture Affordance
 
@@ -267,9 +252,10 @@ displays without round-tripping through the bridge.
 
 ## PO-GROWTH-DETAIL-006 Next-Check Reminder Affordance
 
-The `设为提醒` CTA on the next-check card behaves per
-`GrowthNextCheck.reminderActionability`, which is resolved at projection
-time from the timeline writeback surface presence:
+The `设为提醒` CTA renders as the next-check node at the foot of the
+milestone timeline (PO-GROWTH-DETAIL-002); it is not a standalone card. The
+CTA behaves per `GrowthNextCheck.reminderActionability`, which is resolved at
+projection time from the timeline writeback surface presence:
 
 - `has_writeback`: invoke the timeline user-reminder writeback path
   with a typed payload `{ childId, metricId, nextRecordAt, kind: 'growth_metric' }`.
@@ -307,7 +293,7 @@ would expose internal storage shapes.
 
 The detail surface consumes only `@nimiplatform/nimi-kit/ui` primitives
 and existing CSS custom properties — `--nimi-text-*`, `--nimi-surface-*`,
-`--nimi-status-*`, `--nimi-action-*`, `--nimi-border-*`,
+`--nimi-status-*`, `--nimi-accent-*`, `--nimi-action-*`, `--nimi-border-*`,
 `--nimi-material-*`, `--nimi-elevation-*`. The mockup's `--mint`,
 `--mint-deep`, `--mint-tint`, `--mint-band`, `--aurora`, `--paper`,
 `--surface-strong`, `--ink-*`, `--radius-*` variables and the global
@@ -317,9 +303,9 @@ token is introduced. No new kit primitive is admitted.
 
 Future visual compositions for the growth detail page must be admitted in
 `tables/nimi-kit-compositions.yaml` before they land. Expected app-owned
-surfaces include the hero card, inline insight strip, milestone timeline,
-and next-check card, but this projection wave does not register those
-modules because their source files are not landed here.
+surfaces include the hero card and the milestone timeline (which also
+surfaces the current-measurement and next-check nodes), each registered in
+`tables/nimi-kit-compositions.yaml`.
 
 When those compositions are implemented, their authority placement under
 `nimi-kit-compositions.yaml` with `classification: app_owned_composition`
@@ -333,18 +319,15 @@ The surface must fail closed when any of the following occurs:
 - the active `metricId` is not present in
   `tables/health-metric-registry.yaml` — render PO-HREC-009 fail-close.
 - the WHO LMS dataset for the selected `growthStandard` is unavailable
-  and the metric requires percentile computation — the hero dial, the
-  inline insight inputs, and milestone percentile-shift rules switch to
-  deterministic-only display with no percentile shown; the surface
-  indicates `参考数据未加载` rather than rendering empty percentiles.
-- the inline AI insight returns invalid schema, violates the vocabulary
-  guard, or exceeds the length cap — fallback line renders from
-  `GrowthHeadline.ledeTemplate`; UI signals AI failure non-destructively.
-- the milestone projection encounters a rule it cannot evaluate (missing
-  WHO LMS dataset for a `percentile_shift` rule, malformed
-  `triggerCondition` payload after the YAML loader's typed parse, or an
-  evidence event missing the required metric value) — skip that rule;
-  never crash the surface, never substitute a placeholder milestone.
+  and the metric requires percentile computation — the hero dial
+  switches to deterministic-only display with no percentile shown; the
+  surface indicates `参考数据未加载` rather than rendering empty
+  percentiles.
+- the milestone projection encounters a rule it cannot evaluate
+  (malformed `triggerCondition` payload after the YAML loader's typed
+  parse, or an evidence event missing the required metric value) — skip
+  that rule; never crash the surface, never substitute a placeholder
+  milestone.
 - the next-check freshness policy is unresolved — render
   `GrowthNextCheck = { state: 'unscheduled' }` with the policy-ref's
   diagnostic label; the CTA is disabled.
@@ -354,10 +337,7 @@ The surface must fail closed when any of the following occurs:
 - the predicted-adult-height chip is requested by future code without
   the algorithm being admitted by a separate topic — compile-time
   absent in this topic; the chip is not present in any composition.
-- the per-session inline insight cap is reached — render fallback line
-  plus a disabled refresh button with explanatory tooltip.
 
 Fail-close behavior must remain visible to the parent. The surface must
-not synthesize success states, must not silently substitute deterministic
-output for AI output without the small badge, and must not render
-placeholder reminder writes.
+not synthesize success states and must not render placeholder reminder
+writes.

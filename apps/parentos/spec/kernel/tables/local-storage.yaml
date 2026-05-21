@@ -22,6 +22,7 @@ health_record_unification:
     - allergy_records
     - vaccine_records
     - milestone_records
+    - posture_assessments
   projection_only_tables:
     - vision_followup_settings
   outside_scope_tables:
@@ -582,6 +583,31 @@ tables:
       - { columns: [childId, ruleId], unique: true }
       - { columns: [childId, vaccinatedAt] }
 
+  - name: posture_assessments
+    description: "Posture and body-alignment assessment records. Retained-owner stateful domain per profile-contract.md#PO-PROF-019; not folded into health_record_events."
+    columns:
+      - { name: assessmentId, type: TEXT, pk: true, description: "ULID" }
+      - { name: childId, type: TEXT, nullable: false, fk: "children.childId" }
+      - { name: assessedAt, type: TEXT, nullable: false, description: "ISO 8601 date" }
+      - { name: ageMonths, type: INTEGER, nullable: false }
+      - { name: source, type: TEXT, nullable: true, description: "parent | checkup | doctor" }
+      - { name: shoulder, type: TEXT, nullable: true, description: "Shoulder-level observation code" }
+      - { name: scapula, type: TEXT, nullable: true, description: "Scapula observation code" }
+      - { name: hip, type: TEXT, nullable: true, description: "Hip-level observation code" }
+      - { name: leg, type: TEXT, nullable: true, description: "Leg-alignment observation code" }
+      - { name: heel, type: TEXT, nullable: true, description: "Heel valgus/varus observation code" }
+      - { name: neck, type: TEXT, nullable: true, description: "Neck/head-forward observation code" }
+      - { name: pelvis, type: TEXT, nullable: true, description: "Pelvis-tilt observation code" }
+      - { name: knee, type: TEXT, nullable: true, description: "Knee hyperextension observation code" }
+      - { name: adam, type: TEXT, nullable: true, description: "Adam's forward-bend test observation code" }
+      - { name: cobbAngle, type: REAL, nullable: true, description: "Cobb angle in degrees from a medical X-ray report" }
+      - { name: notes, type: TEXT, nullable: true }
+      - { name: photoPaths, type: TEXT, nullable: true, description: "JSON array of attachment data URLs/paths" }
+      - { name: createdAt, type: TEXT, nullable: false, description: "ISO 8601 datetime" }
+      - { name: updatedAt, type: TEXT, nullable: false, description: "ISO 8601 datetime" }
+    indexes:
+      - { columns: [childId, assessedAt] }
+
   - name: journal_entries
     description: "Observation journal entries with optional voice, photo, and Montessori fields."
     columns:
@@ -1057,7 +1083,7 @@ constraints:
   - "JSON payloads are stored as TEXT and must remain valid JSON on read/write."
   - "childId is the primary filter field for child-scoped tables."
   - "growth_reports.reportType is limited to monthly | quarterly | quarterly-letter | custom."
-  - "Child deletion cascades through all child-scoped tables: growth_measurements, milestone_records, reminder_states, vaccine_records, journal_entries, ai_conversations, growth_reports, dental_records, allergy_records, sleep_records, medical_events, tanner_assessments, fitness_assessments, outdoor_records, vision_followup_settings, health_record_events, health_record_values, attachments, custom_todos, orthodontic_cases, orthodontic_appliances, orthodontic_checkins, orthodontic_unwear_intervals, orthodontic_photo_sessions."
+  - "Child deletion cascades through all child-scoped tables: growth_measurements, milestone_records, reminder_states, vaccine_records, posture_assessments, journal_entries, ai_conversations, growth_reports, dental_records, allergy_records, sleep_records, medical_events, tanner_assessments, fitness_assessments, outdoor_records, vision_followup_settings, health_record_events, health_record_values, attachments, custom_todos, orthodontic_cases, orthodontic_appliances, orthodontic_checkins, orthodontic_unwear_intervals, orthodontic_photo_sessions."
   - "vision_followup_settings.cadenceMonths is constrained to the integer range 1..36 at the bridge boundary; values outside this range must fail-close. customNextDate must be ISO 8601 YYYY-MM-DD when present."
   - "orthodontic_cases deletion cascades to orthodontic_appliances, orthodontic_checkins, orthodontic_unwear_intervals, and orthodontic_photo_sessions. orthodontic_appliances deletion cascades to orthodontic_checkins, orthodontic_unwear_intervals, and orthodontic_photo_sessions (when pinned via applianceId)."
   - "orthodontic_photo_sessions deletion cascades to its attachments rows AND the on-disk session directory under ${appLocalData}/parentos/photos/{childId}/{sessionId}/ (PO-ORTHO-012). The attachments-row purge and file purge run inside the same Tauri command transaction; the FK chain does not cascade attachments because attachments is the unified owner-polymorphic table with no per-owner FK back."

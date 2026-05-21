@@ -5,8 +5,7 @@ version: 1
 # This table is the only authority for growth milestone-event derivation
 # semantics. The renderer reads only the generated TypeScript constants
 # emitted from this file by `scripts/generate-knowledge-base.ts` and must
-# not inline its own thresholds, percentile-shift magnitudes, or density
-# windows.
+# not inline its own thresholds.
 #
 # This table defines NO metric ids. Every `appliesToMetricIds[j]` is a
 # foreign key into `tables/health-metric-registry.yaml#metrics[].metricId`.
@@ -116,36 +115,3 @@ rules:
     titleTemplate: "突破 {thresholdValue} {thresholdUnit}"
     deltaMagnitudeTemplate: "+{deltaSinceLastYearRounded}"
     deltaUnitLabel: "CM · 12 月"
-  - ruleId: growth-milestone-percentile-shift-up
-    kind: percentile_shift
-    appliesToMetricIds: [growth.height, growth.weight]
-    triggerCondition:
-      type: percentile_shift
-      minMagnitudePoints: 5
-      direction: upward
-      evidenceWindowMonths: 12
-    titleTemplate: "从 P{startPercentile} 升至 P{endPercentile}"
-    deltaMagnitudeTemplate: "↑{magnitudePoints}"
-    deltaUnitLabel: "PCT · 跃升"
-  - ruleId: growth-milestone-percentile-shift-down
-    kind: percentile_shift
-    appliesToMetricIds: [growth.height, growth.weight]
-    triggerCondition:
-      type: percentile_shift
-      minMagnitudePoints: 5
-      direction: downward
-      evidenceWindowMonths: 12
-    titleTemplate: "从 P{startPercentile} 降至 P{endPercentile}"
-    deltaMagnitudeTemplate: "↓{magnitudePoints}"
-    deltaUnitLabel: "PCT · 回落"
-  - ruleId: growth-milestone-measurement-density-spike
-    kind: measurement_density
-    appliesToMetricIds: [growth.height, growth.weight, growth.head_circumference]
-    triggerCondition:
-      type: measurement_density
-      windowDays: 1
-      minCount: 5
-      evidenceWindowMonths: 3
-    titleTemplate: "近三个月密集测量"
-    deltaMagnitudeTemplate: "{count}"
-    deltaUnitLabel: "条 · 测量"

@@ -114,6 +114,55 @@ export function getVaccineRecords(childId: string) {
   return invoke<VaccineRecordRow[]>('get_vaccine_records', { childId });
 }
 
+export interface PostureAssessmentRow {
+  assessmentId: string;
+  childId: string;
+  assessedAt: string;
+  ageMonths: number;
+  source: string | null;
+  shoulder: string | null;
+  scapula: string | null;
+  hip: string | null;
+  leg: string | null;
+  heel: string | null;
+  neck: string | null;
+  pelvis: string | null;
+  knee: string | null;
+  adam: string | null;
+  cobbAngle: number | null;
+  notes: string | null;
+  photoPaths: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export function insertPostureAssessment(params: {
+  assessmentId: string;
+  childId: string;
+  assessedAt: string;
+  ageMonths: number;
+  source: string | null;
+  shoulder: string | null;
+  scapula: string | null;
+  hip: string | null;
+  leg: string | null;
+  heel: string | null;
+  neck: string | null;
+  pelvis: string | null;
+  knee: string | null;
+  adam: string | null;
+  cobbAngle: number | null;
+  notes: string | null;
+  photoPaths: string | null;
+  now: string;
+}) {
+  return invoke<void>('insert_posture_assessment', params);
+}
+
+export function getPostureAssessments(childId: string) {
+  return invoke<PostureAssessmentRow[]>('get_posture_assessments', { childId });
+}
+
 export function insertGrowthReport(params: {
   reportId: string;
   childId: string;
