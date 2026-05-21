@@ -26,6 +26,8 @@ export const kernelFiles = [
   '.nimi/spec/desktop/kernel/companion-participation-control-surface-contract.md',
   '.nimi/spec/desktop/kernel/menu-bar-shell-contract.md',
   '.nimi/spec/desktop/kernel/ui-shell-contract.md',
+  '.nimi/spec/desktop/kernel/support-surface-contract.md',
+  '.nimi/spec/desktop/kernel/devtools-contract.md',
   '.nimi/spec/desktop/kernel/nimi-home-shell-contract.md',
   '.nimi/spec/desktop/kernel/error-boundary-contract.md',
   '.nimi/spec/desktop/kernel/telemetry-contract.md',

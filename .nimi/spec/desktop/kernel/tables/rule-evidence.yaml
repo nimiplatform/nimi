@@ -30,7 +30,7 @@ entries:
   - evidence_catalog
   - rules
 rule_registry:
-  total_d_rules: 296
+  total_d_rules: 311
 fragments:
   evidence_catalog: rule-evidence.catalog.yaml
   rules:
@@ -38,3 +38,4 @@ fragments:
     - rule-evidence.rules-runtime-bridge.yaml
     - rule-evidence.rules-shell-ui.yaml
     - rule-evidence.rules-nimi-home.yaml
+    - rule-evidence.rules-support-devtools.yaml

@@ -15,7 +15,7 @@
 ## 3. Rule ID 规范
 
 - 格式：`D-<DOMAIN>-NNN`
-- `DOMAIN` 固定枚举：`BOOT` `IPC` `STATE` `AUTH` `DSYNC` `HOOK` `MOD` `LLM` `SHELL` `MBAR` `HOME` `HOMEFEED` `EXPL` `CONTACTS` `AIPC` `ERR` `TEL` `NET` `SEC` `STRM` `OFFLINE` `CODEGEN` `GATE`
+- `DOMAIN` 固定枚举：`BOOT` `IPC` `STATE` `AUTH` `DSYNC` `HOOK` `MOD` `LLM` `SHELL` `MBAR` `HOME` `HOMEFEED` `EXPL` `CONTACTS` `AIPC` `SUP` `DEV` `ERR` `TEL` `NET` `SEC` `STRM` `OFFLINE` `CODEGEN` `GATE`
 - `NNN` 三位递增编号，不复用。
 
 ## 4. 文档所有权
@@ -46,6 +46,8 @@
 | `agent-chat-voice-session-contract.md` | `D-LLM-*` | Agent chat broader voice session authority：explicit entry / exit、same-anchor text/voice continuity、admitted listening modes（`push-to-talk` / foreground `hands-free`）、interruption、transcript/caption rules；不拥有 voice executor / workflow / wake-word / background continuation truth |
 | `agent-chat-voice-workflow-contract.md` | `D-LLM-*` | Agent chat richer voice workflow authority：`voice_workflow.voice_clone` / `voice_workflow.voice_design` admission、voice identity / `VoiceReference`、preset/custom voice selection、packet-bounded clone/design trigger、workflow return-path truth；不拥有 APML-projected resolved message/action / runtime workflow substrate / broader voice session truth |
 | `ui-shell-contract.md` | `D-SHELL-*` | 导航、布局、路由、分包 |
+| `support-surface-contract.md` | `D-SUP-*` | Desktop `Support` 独立 secondary 系统表面产品语义：repair / updates / diagnostics / logs-export / recovery-help 五子区、self-update 投影宿主、`P-MIG-*` 修复流程消费边界、degraded-state 可达性；不拥有 self-update 机制、`~/.nimi` 迁移执行、Runtime diagnostic/log/audit 真值、product-control first-run 状态机 |
+| `devtools-contract.md` | `D-DEV-*` | Desktop `Developer Tools` 表面与 `Developer Mode` 门控产品语义：可发现 Developer Mode 切换、DevTools surface 门控、embedded Tester 门控、`nimi.tester` registry 登记关系、mod/developer surface 默认不可见；`D-SHELL-009` 的门控收口；不拥有 `nimi.tester` App admission 真值、World Tour Tester 语义、mod 执行内核、public Mod/Extension 准入；不 mandate 本 portfolio 内 Tester 源码完整抽取 |
 | `nimi-home-shell-contract.md` | `D-HOME-*` | Desktop-hosted Nimi Home shell IA、first-run / return-run state machine、surface registry placement、Agent Chat in-shell reference placement、`AIScopeRef` enforcement、no-private-path enforcement、self-update UI projection、first-screen rule、failure-projection as first-class surface |
 | `home-feed-contract.md` | `D-HOMEFEED-*` | Desktop `Home` primary-nav tab 作为 Realm feed 表面的产品语义：三个 feed scope（personal / friends / agent_activity）呈现、Create Post affordance、SDK-typed Realm feed projection 消费边界、与 `D-HOME-*`（`Nimi Home` installed shell）的显式 non-overlap、`Home` 非 ready entry；不拥有 shell 导航布局、Realm Post / Feed canonical 真值 |
 | `ai-profile-config-contract.md` | `D-AIPC-*` | Desktop `AIProfile` / `AIConfig` / `AISnapshot` 三段式 AI 配置 canonical model 与 `D-LLM-015` ~ `D-LLM-021` 的 umbrella 关系 |
@@ -106,7 +108,7 @@
 - `tables/contacts-friend-request-states.yaml`
 - `tables/realm-agent-creation-modes.yaml`
 - `tables/realm-agent-creation-fields.yaml`
-- `tables/rule-evidence.yaml`（fragment directive；实际内容委托给 `tables/rule-evidence.catalog.yaml` 与 `tables/rule-evidence.rules-*.yaml`）
+- `tables/rule-evidence.yaml`（fragment directive；实际内容委托给 `tables/rule-evidence.catalog.yaml` 与 `tables/rule-evidence.rules-*.yaml`，含 `tables/rule-evidence.rules-support-devtools.yaml`）
 - `tables/codegen-import-allowlist.yaml`
 - `tables/codegen-capability-tiers.yaml`
 - `tables/codegen-static-scan-deny-patterns.yaml`

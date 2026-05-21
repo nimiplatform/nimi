@@ -36,6 +36,7 @@ Every platform domain document (vision, architecture, protocol, ai-last-mile, de
 | `ECO` | Nimi ecosystem (third-party / world-game / engine-seam / economy / no-Steam-copy) contract | `nimi-ecosystem-contract.md` |
 | `GOV` | Governance contract | `governance-contract.md` |
 | `RELG` | Release gate contract (operational refinement of `P-GOV-003/011/021/023`) | `release-gate-contract.md` |
+| `MIG` | Local config migration and repair contract | `local-config-migration-contract.md` |
 
 ## Numbering Convention
 
@@ -68,6 +69,7 @@ Every platform domain document (vision, architecture, protocol, ai-last-mile, de
 | 230–239 | Nimi first-party integration authority |
 | 240–249 | Nimi first-party migration authority |
 | 250–259 | Nimi ecosystem authority (third-party / world-game / engine-seam / economy / no-Steam-copy) |
+| 260–269 | Local config migration / repair authority (`~/.nimi` cross-file `schemaVersion`, repair routing, `nimi_data` migration flow) |
 
 ## Document Ownership Matrix
 
@@ -97,6 +99,7 @@ Every platform domain document (vision, architecture, protocol, ai-last-mile, de
 | `nimi-ecosystem-contract.md` | `P-ECO-*` | Nimi ecosystem authority: third-party developer onboarding, trust tier behavior expansion (ceiling / review / kill-switch), world / game app class posture, engine SDK future-seam boundary, economy posture child-proposal reference, no-Steam-copy negative gate list, cross-wave invariants |
 | `governance-contract.md` | `P-GOV-*` | License matrix, release gates, governance tasks |
 | `release-gate-contract.md` | `P-RELG-*` | Release-gate registry authority, projection-only execution surfaces (preflight, lint chain, CI step blocks), evidence JSON shape, verdict semantics, drift gate self-bootstrap |
+| `local-config-migration-contract.md` | `P-MIG-*` | `~/.nimi` cross-file config migration and repair authority: governed config file family, mandatory `schemaVersion`, fail-closed read, shared migration framework (ordered registry, backup, atomic rewrite, idempotent replay), repair routing for unknown version and broken pointer, no-data-orphaning invariant, `nimi_data` directory ownership authority, `nimi_data` migration flow, destructive cleanup confirmation; aligns with but does not redefine Runtime `K-CFG-014..016` |
 
 ## Structured Fact Sources
 
@@ -129,6 +132,8 @@ Every platform domain document (vision, architecture, protocol, ai-last-mile, de
 | `tables/audit-evidence-roots.yaml` | `web-release-contract.md`, `kit-contract.md`, `package-authority-admission-contract.md` | Authority-specific implementation and host-local evidence roots admitted for spec-first audit planning |
 | `tables/rule-evidence.yaml` | `protocol-contract.md`, `architecture-contract.md`, `ai-last-mile-contract.md`, `ai-scope-contract.md`, `design-pattern-contract.md`, `kit-contract.md`, `capability-catalog-contract.md`, `ai-profile-selection-policy-contract.md`, `nimi-home-contract.md`, `nimi-self-update-contract.md`, `nimi-package-release-contract.md`, `cold-start-authority-contract.md`, `nimi-app-admission-contract.md`, `mod-extension-retirement-contract.md`, `agent-identity-floor-contract.md`, `app-permission-contract.md`, `nimi-first-party-integration-contract.md`, `nimi-first-party-migration-contract.md`, `nimi-ecosystem-contract.md`, `governance-contract.md` | Platform formal rule → executable evidence mapping |
 | `tables/release-gate-registry.yaml` | `release-gate-contract.md` | Single source of release-gate identity (gate id, command, tier, target, prerequisites, evidence shape, blocker semantics) projected into preflight, lint chain, and CI step blocks. Populated in topic `2026-05-10-release-preflight-gate-authority-hardcut` Wave 1. |
+| `tables/nimi-data-directory-ownership.yaml` | `local-config-migration-contract.md` | Canonical `nimi_data` data-root directory ownership matrix: per first-level directory owner, product meaning, and cleanup rule. Authority `P-MIG-006`. |
+| `tables/local-config-file-registry.yaml` | `local-config-migration-contract.md` | Canonical membership registry for the `~/.nimi` governed config file family: per file the schema-owner topic and migration execution authority. Authority `P-MIG-001`, `P-MIG-003`. |
 
 ## Version Terminology
 

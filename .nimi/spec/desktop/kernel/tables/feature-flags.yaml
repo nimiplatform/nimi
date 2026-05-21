@@ -9,6 +9,7 @@ values:
   - flags_5
   - flags_6
   - flags_7
+  - flags_8
 # Desktop Shell Feature Flags
 # Source: kit/core/src/shell-mode.ts (ShellFeatureFlags)
 # Note: platform-conditional desktop defaults are captured in entry-specific fields when a plain
@@ -22,10 +23,22 @@ flags:
     source_rule: D-SHELL-001
 
   - flag: enableModUi
-    default_desktop: true
+    default_desktop: false
     default_web: false
-    description: Enable mod UI extension rendering
-    source_rule: D-SHELL-002
+    description: >-
+      Enable mod UI extension rendering. Default false on desktop and web; mod UI
+      surfaces are reachable only behind admitted Developer Mode per D-DEV-004,
+      consistent with the developer/internal/retirement-only posture of D-SHELL-002.
+    source_rule: D-DEV-004
+
+  - flag: enableDeveloperTools
+    default_desktop: false
+    default_web: false
+    description: >-
+      Enable the Developer Tools developer-group surface. Default false; the
+      surface is reachable only after the user enables admitted Developer Mode
+      from the discoverable Settings toggle per D-DEV-001 and D-DEV-002.
+    source_rule: D-DEV-001
 
   - flag: enableModWorkspaceTabs
     default_desktop: true

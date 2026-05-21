@@ -9,7 +9,9 @@ entries:
   - apps
   - runtime
   - settings
+  - support
   - mods
+  - developer-tools
   - profile
   - agent-detail
   - world-detail
@@ -68,12 +70,24 @@ tabs:
     gated_by: null
     source_rule: D-SHELL-001
 
+  - id: support
+    nav_group: secondary
+    label: Support
+    gated_by: null
+    source_rule: D-SUP-001
+
   # Developer/internal surfaces. They are not ordinary primary nav entries.
   - id: mods
     nav_group: developer
     label: Mods
     gated_by: enableModUi
     source_rule: D-SHELL-002
+
+  - id: developer-tools
+    nav_group: developer
+    label: Developer Tools
+    gated_by: enableDeveloperTools
+    source_rule: D-DEV-001
 
   # Detail tabs (navigated to, not in sidebar)
   - id: profile

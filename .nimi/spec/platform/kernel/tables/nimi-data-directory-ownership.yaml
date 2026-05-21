@@ -1,0 +1,140 @@
+version: 1
+table_family: owner_matrix
+owner: platform
+matrix_id: platform_nimi_data_directory_ownership
+description: >-
+  Canonical nimi_data data-root directory ownership matrix. Source authority is
+  local-config-migration-contract.md (P-MIG-006). Mirrors the product manual
+  nimi_data Directory Ownership table. The nimi_data layout itself is recorded
+  in cold-start-authority-contract.md P-COLD-010; this table adds the
+  per-directory owner and cleanup-rule authority.
+rows:
+  - directories_1
+  - directories_2
+  - directories_3
+  - directories_4
+  - directories_5
+  - directories_6
+  - directories_7
+  - directories_8
+  - directories_9
+  - directories_10
+  - directories_11
+  - directories_12
+  - directories_13
+  - directories_14
+  - directories_15
+  - every first-level nimi_data directory must declare an owner and a cleanup
+    rule; cleanup operations must obey the owning authority per P-MIG-006
+  - models, dependencies, and environments may only be mutated through
+    Runtime-owned management or job paths, never directly by Desktop shell
+  - destructive cleanup of non-cache user/app/account data requires explicit
+    confirmation and impact preview per P-MIG-008
+  - app uninstall must not delete shared models, Runtime dependencies, account
+    data, or other app data by implication
+
+directories:
+  - directory_id: models
+    path: "<nimi_data>/models/"
+    owner: runtime_model_materializer
+    product_meaning: Local model assets used by AIProfiles and AIConfigs.
+    cleanup_rule: Delete only through Runtime model management with impact preview.
+    source_rule: P-MIG-006
+
+  - directory_id: dependencies
+    path: "<nimi_data>/dependencies/"
+    owner: runtime_dependency_materializer
+    product_meaning: Downloaded dependency payloads such as CUDA, Python, uv, and package families.
+    cleanup_rule: Delete or repair only through Runtime dependency management.
+    source_rule: P-MIG-006
+
+  - directory_id: environments
+    path: "<nimi_data>/environments/"
+    owner: runtime_environment_materializer
+    product_meaning: Nimi-managed executable environments.
+    cleanup_rule: Never mutate system PATH; repair through Runtime jobs only.
+    source_rule: P-MIG-006
+
+  - directory_id: apps_releases
+    path: "<nimi_data>/apps/<app-id>/releases/"
+    owner: app_package_installer
+    product_meaning: Installed app release payloads.
+    cleanup_rule: App uninstall may remove releases.
+    source_rule: P-MIG-006
+
+  - directory_id: apps_data
+    path: "<nimi_data>/apps/<app-id>/data/"
+    owner: app
+    product_meaning: App-owned durable local data.
+    cleanup_rule: Kept by default on package uninstall; explicit user delete required.
+    source_rule: P-MIG-006
+
+  - directory_id: apps_cache
+    path: "<nimi_data>/apps/<app-id>/cache/"
+    owner: app
+    product_meaning: App-owned cache.
+    cleanup_rule: Clearable through app or Support cleanup.
+    source_rule: P-MIG-006
+
+  - directory_id: apps_tmp
+    path: "<nimi_data>/apps/<app-id>/tmp/"
+    owner: app
+    product_meaning: App temporary files.
+    cleanup_rule: Safe to clean when the app is stopped.
+    source_rule: P-MIG-006
+
+  - directory_id: accounts_data
+    path: "<nimi_data>/accounts/<account-id>/data/"
+    owner: account_data_plane_consumers
+    product_meaning: Large account-scoped local data not owned by a single app.
+    cleanup_rule: Explicit user, export, or delete policy required.
+    source_rule: P-MIG-006
+
+  - directory_id: accounts_cache
+    path: "<nimi_data>/accounts/<account-id>/cache/"
+    owner: account_data_plane_consumers
+    product_meaning: Account-scoped cache.
+    cleanup_rule: Clearable.
+    source_rule: P-MIG-006
+
+  - directory_id: accounts_exports
+    path: "<nimi_data>/accounts/<account-id>/exports/"
+    owner: user_export_flow
+    product_meaning: User-created exports.
+    cleanup_rule: User-managed.
+    source_rule: P-MIG-006
+
+  - directory_id: shared_cache
+    path: "<nimi_data>/cache/"
+    owner: nimi_product_shell
+    product_meaning: Shared cache not owned by one app or account.
+    cleanup_rule: Clearable.
+    source_rule: P-MIG-006
+
+  - directory_id: logs
+    path: "<nimi_data>/logs/"
+    owner: runtime_product_support
+    product_meaning: Operational logs.
+    cleanup_rule: Retention policy applies; exportable for support.
+    source_rule: P-MIG-006
+
+  - directory_id: audit
+    path: "<nimi_data>/audit/"
+    owner: runtime_realm_product_audit
+    product_meaning: Local audit projections.
+    cleanup_rule: Retention and privacy policy required.
+    source_rule: P-MIG-006
+
+  - directory_id: generated
+    path: "<nimi_data>/generated/"
+    owner: runtime_and_apps
+    product_meaning: Generated artifacts not yet committed to app or account data.
+    cleanup_rule: User-visible cleanup policy required.
+    source_rule: P-MIG-006
+
+  - directory_id: product_tmp
+    path: "<nimi_data>/tmp/"
+    owner: nimi_product_shell
+    product_meaning: Temporary product files.
+    cleanup_rule: Safe to clean after process exit.
+    source_rule: P-MIG-006
