@@ -348,11 +348,11 @@ describe('OwnerPortfolio visibility settings UI', () => {
   it('shows the human-review gate and lifecycle boundary for real visibility settings', async () => {
     await renderOwnerPortfolio();
     await waitForText('Visibility settings');
+    await waitForText('PATCH sends only changed UpdateAgentVisibilityDto fields');
 
     expect(portfolioClient.getAgentVisibilitySettings).toHaveBeenCalledWith('agent-1');
     expect(document.body.textContent).toContain('Human review complete');
     expect(document.body.textContent).toContain('does not create publish, schedule, moderation, or lifecycle state');
-    expect(document.body.textContent).toContain('PATCH sends only changed UpdateAgentVisibilityDto fields');
     expect(findButtonByText('Save visibility').disabled).toBe(true);
     expect(portfolioClient.updateReviewedAgentVisibility).not.toHaveBeenCalled();
   });

@@ -18,7 +18,7 @@ export type NormalizedSettingProposalInput = {
   naturalLanguageInstruction: string;
 };
 
-export type CreatorAgentUpdateCandidate = Partial<{
+export type OwnerProfileSettingCandidate = Partial<{
   displayName: string;
   bio: string;
   profileCoverUrl: string;
@@ -34,7 +34,7 @@ export type BlockedSettingProposalPayload = {
     agentKey: string;
     displayName: string;
   };
-  creatorAgentUpdateCandidate: CreatorAgentUpdateCandidate;
+  ownerProfileSettingCandidate: OwnerProfileSettingCandidate;
   ruleTextCandidate?: {
     text: string;
     ownerReviewed: false;
@@ -83,8 +83,8 @@ function compactProfileText(value: string): string {
 }
 
 function addChangedProfileField(
-  candidate: CreatorAgentUpdateCandidate,
-  key: keyof CreatorAgentUpdateCandidate,
+  candidate: OwnerProfileSettingCandidate,
+  key: keyof OwnerProfileSettingCandidate,
   proposedValue: string,
   currentValue: string,
 ) {
@@ -130,16 +130,16 @@ export function buildBlockedSettingProposal(
   agent: OwnerPortfolioAgentDetail,
 ): SettingProposalBuildResult {
   const normalized = normalizeSettingProposalInput(input);
-  const creatorAgentUpdateCandidate: CreatorAgentUpdateCandidate = {};
+  const ownerProfileSettingCandidate: OwnerProfileSettingCandidate = {};
 
-  addChangedProfileField(creatorAgentUpdateCandidate, 'displayName', normalized.displayName, agent.displayName.value);
-  addChangedProfileField(creatorAgentUpdateCandidate, 'bio', normalized.bio, agent.bio.value);
-  addChangedProfileField(creatorAgentUpdateCandidate, 'profileCoverUrl', normalized.profileCoverUrl, agent.profileCoverUrl.value);
+  addChangedProfileField(ownerProfileSettingCandidate, 'displayName', normalized.displayName, agent.displayName.value);
+  addChangedProfileField(ownerProfileSettingCandidate, 'bio', normalized.bio, agent.bio.value);
+  addChangedProfileField(ownerProfileSettingCandidate, 'profileCoverUrl', normalized.profileCoverUrl, agent.profileCoverUrl.value);
 
-  const hasCreatorCandidate = Object.keys(creatorAgentUpdateCandidate).length > 0;
+  const hasProfileCandidate = Object.keys(ownerProfileSettingCandidate).length > 0;
   const hasRuleCandidate = Boolean(normalized.ruleText);
 
-  if (!hasCreatorCandidate && !hasRuleCandidate) {
+  if (!hasProfileCandidate && !hasRuleCandidate) {
     return {
       blocked: true,
       changed: false,
@@ -158,7 +158,7 @@ export function buildBlockedSettingProposal(
       agentKey: agent.id,
       displayName: agent.displayName.value,
     },
-    creatorAgentUpdateCandidate,
+    ownerProfileSettingCandidate,
     ...(hasRuleCandidate
       ? {
         ruleTextCandidate: {

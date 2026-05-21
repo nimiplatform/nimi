@@ -63,7 +63,7 @@ describe('setting proposal normalization', () => {
     expect(result.blocked).toBe(true);
     expect(result.changed).toBe(true);
     expect(result.payload?.blockedReason).toBe(SETTING_PROPOSAL_BLOCKED_REASON);
-    expect(result.payload?.creatorAgentUpdateCandidate).toEqual({
+    expect(result.payload?.ownerProfileSettingCandidate).toEqual({
       displayName: 'Mira Prime',
       profileCoverUrl: 'https://cdn.example.test/new-cover.png',
     });
@@ -86,7 +86,7 @@ describe('setting proposal normalization', () => {
     }, agent);
 
     expect(result.changed).toBe(true);
-    expect(result.payload?.creatorAgentUpdateCandidate).toEqual({});
+    expect(result.payload?.ownerProfileSettingCandidate).toEqual({});
     expect(result.payload?.ruleTextCandidate?.text).toBe('Visible rule candidate only.');
   });
 
@@ -109,7 +109,7 @@ describe('setting proposal normalization', () => {
 
   it('detects forbidden setting fields recursively', () => {
     expect(assertNoForbiddenSettingProposalFields({
-      creatorAgentUpdateCandidate: {
+      ownerProfileSettingCandidate: {
         displayName: 'Mira',
         provider: 'forbidden',
       },
@@ -118,7 +118,7 @@ describe('setting proposal normalization', () => {
       localAgent: { model: 'forbidden' },
     })).toBe('localAgent');
     expect(assertNoForbiddenSettingProposalFields({
-      creatorAgentUpdateCandidate: {
+      ownerProfileSettingCandidate: {
         bio: 'Allowed',
       },
     })).toBeNull();
