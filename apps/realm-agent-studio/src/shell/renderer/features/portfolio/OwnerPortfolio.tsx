@@ -14,6 +14,7 @@ import {
 import {
   getOwnerPortfolioAgentDetail,
   getAgentVisibilitySettings,
+  bindReviewedAgentResource,
   listOwnerPortfolioAgents,
   createReviewedPostTextResource,
   listReadyPostAttachmentResources,
@@ -37,6 +38,9 @@ import {
   type PostAttachmentResourceOption,
   type DirectMediaResourceType,
   type DirectMediaResourceUploadResult,
+  type AgentResourceBindingPoint,
+  type AgentResourceBindingResourceType,
+  type AgentResourceBindingResult,
 } from './portfolio-client.js';
 import {
   ATTACHMENT_TARGET_TYPES,
@@ -450,6 +454,24 @@ function createVoiceDemoCandidateInput(agent: OwnerPortfolioAgentDetail): VoiceD
   };
 }
 
+const AGENT_RESOURCE_BINDING_POINTS: AgentResourceBindingPoint[] = [
+  'AGENT_PORTRAIT',
+  'AGENT_CANDIDATE',
+  'AGENT_VOICE_SAMPLE',
+];
+
+function defaultAgentBindingPoint(resourceType: AgentResourceBindingResourceType): AgentResourceBindingPoint {
+  return resourceType === 'AUDIO' ? 'AGENT_VOICE_SAMPLE' : 'AGENT_PORTRAIT';
+}
+
+function agentBindingPointOptions(resourceType: AgentResourceBindingResourceType): AgentResourceBindingPoint[] {
+  return AGENT_RESOURCE_BINDING_POINTS.filter((bindingPoint) => (
+    resourceType === 'AUDIO'
+      ? bindingPoint === 'AGENT_VOICE_SAMPLE'
+      : bindingPoint === 'AGENT_PORTRAIT' || bindingPoint === 'AGENT_CANDIDATE'
+  ));
+}
+
 function MediaVoiceCandidateWorkspace({ agent, onAgentWrite }: { agent: OwnerPortfolioAgentDetail; onAgentWrite: () => Promise<void> }) {
   const [visualDraft, setVisualDraft] = useState<VisualMediaCandidateInput>(() => createVisualMediaCandidateInput());
   const [avatarUrlDraft, setAvatarUrlDraft] = useState(() => agent.avatarUrl || '');
@@ -459,11 +481,25 @@ function MediaVoiceCandidateWorkspace({ agent, onAgentWrite }: { agent: OwnerPor
   const [voiceDraft, setVoiceDraft] = useState<VoiceDemoCandidateInput>(() => createVoiceDemoCandidateInput(agent));
   const [voiceResult, setVoiceResult] = useState<RuntimeVoiceDemoSynthesisResult | null>(null);
   const [isSynthesizingVoice, setIsSynthesizingVoice] = useState(false);
+  const [bindingResourceOptions, setBindingResourceOptions] = useState<PostAttachmentResourceOption[]>([]);
+  const [bindingResourceStatus, setBindingResourceStatus] = useState<{ tone: 'info' | 'success' | 'warning' | 'danger'; message: string } | null>(null);
+  const [isLoadingBindingResources, setIsLoadingBindingResources] = useState(false);
+  const [bindingResourceType, setBindingResourceType] = useState<AgentResourceBindingResourceType>('IMAGE');
+  const [bindingResourceId, setBindingResourceId] = useState('');
+  const [bindingPoint, setBindingPoint] = useState<AgentResourceBindingPoint>('AGENT_PORTRAIT');
+  const [bindingIntentPrompt, setBindingIntentPrompt] = useState('');
+  const [bindingReviewed, setBindingReviewed] = useState(false);
+  const [bindingResult, setBindingResult] = useState<AgentResourceBindingResult | null>(null);
+  const [isBindingResource, setIsBindingResource] = useState(false);
   const visualPayload = useMemo(() => buildBlockedVisualAssetCandidatePayload(visualDraft, agent), [agent, visualDraft]);
   const voicePayload = useMemo(() => buildReviewedVoiceDemoCandidatePayload(voiceDraft, agent), [agent, voiceDraft]);
   const avatarUrlChanged = avatarUrlDraft.trim() !== (agent.avatarUrl || '');
   const visualResourceTypes = MEDIA_CANDIDATE_RESOURCE_TYPES.filter((resourceType): resourceType is VisualCandidateResourceType => resourceType === 'IMAGE');
   const visualBindingPoints = MEDIA_CANDIDATE_BINDING_POINTS.filter((bindingPoint) => bindingPoint !== 'AGENT_VOICE_SAMPLE');
+  const bindableResourceOptions = bindingResourceOptions.filter((resource): resource is PostAttachmentResourceOption & { resourceType: AgentResourceBindingResourceType } => (
+    resource.resourceType === 'IMAGE' || resource.resourceType === 'AUDIO'
+  ));
+  const compatibleBindingPoints = agentBindingPointOptions(bindingResourceType);
 
   useEffect(() => {
     setVisualDraft(createVisualMediaCandidateInput());
@@ -474,6 +510,16 @@ function MediaVoiceCandidateWorkspace({ agent, onAgentWrite }: { agent: OwnerPor
     setVoiceDraft(createVoiceDemoCandidateInput(agent));
     setVoiceResult(null);
     setIsSynthesizingVoice(false);
+    setBindingResourceOptions([]);
+    setBindingResourceStatus(null);
+    setIsLoadingBindingResources(false);
+    setBindingResourceType('IMAGE');
+    setBindingResourceId('');
+    setBindingPoint('AGENT_PORTRAIT');
+    setBindingIntentPrompt('');
+    setBindingReviewed(false);
+    setBindingResult(null);
+    setIsBindingResource(false);
   }, [agent.id]);
 
   function updateVisualDraft(patch: Partial<VisualMediaCandidateInput>) {
@@ -489,6 +535,33 @@ function MediaVoiceCandidateWorkspace({ agent, onAgentWrite }: { agent: OwnerPor
   function updateVoiceDraft(patch: Partial<VoiceDemoCandidateInput>) {
     setVoiceDraft((current) => ({ ...current, ...patch }));
     setVoiceResult(null);
+  }
+
+  function updateBindingResourceType(resourceType: AgentResourceBindingResourceType, clearResource = true) {
+    setBindingResourceType(resourceType);
+    setBindingPoint(defaultAgentBindingPoint(resourceType));
+    if (clearResource) {
+      setBindingResourceId('');
+      setBindingResourceStatus(null);
+    }
+    setBindingReviewed(false);
+    setBindingResult(null);
+  }
+
+  function selectBindingResource(resourceId: string) {
+    const resource = bindableResourceOptions.find((option) => option.id === resourceId);
+    if (!resource) {
+      setBindingResourceId(resourceId);
+      setBindingReviewed(false);
+      setBindingResult(null);
+      return;
+    }
+    setBindingResourceId(resource.id);
+    updateBindingResourceType(resource.resourceType, false);
+    setBindingResourceStatus({
+      tone: 'info',
+      message: `Selected READY Resource(${resource.resourceType}) ${resource.id} for an owner-reviewed Agent Binding.`,
+    });
   }
 
   async function selectAvatarUrl() {
@@ -513,6 +586,45 @@ function MediaVoiceCandidateWorkspace({ agent, onAgentWrite }: { agent: OwnerPor
       setVoiceResult(result);
     } finally {
       setIsSynthesizingVoice(false);
+    }
+  }
+
+  async function loadBindingResources() {
+    setIsLoadingBindingResources(true);
+    setBindingResourceStatus(null);
+    try {
+      const resources = await listReadyPostAttachmentResources();
+      setBindingResourceOptions(resources);
+      const bindableCount = resources.filter((resource) => resource.resourceType === 'IMAGE' || resource.resourceType === 'AUDIO').length;
+      setBindingResourceStatus(bindableCount > 0
+        ? { tone: 'success', message: `Loaded ${bindableCount} READY IMAGE/AUDIO Resource option${bindableCount === 1 ? '' : 's'} for Agent Binding.` }
+        : { tone: 'warning', message: 'No READY IMAGE/AUDIO Resource options were returned by Realm ResourcesService.listResources.' });
+    } catch (error) {
+      setBindingResourceOptions([]);
+      setBindingResourceStatus({
+        tone: 'danger',
+        message: error instanceof Error ? error.message : 'Realm ResourcesService.listResources failed.',
+      });
+    } finally {
+      setIsLoadingBindingResources(false);
+    }
+  }
+
+  async function bindResourceToAgent() {
+    setIsBindingResource(true);
+    setBindingResult(null);
+    try {
+      const result = await bindReviewedAgentResource({
+        agent,
+        resourceId: bindingResourceId,
+        resourceType: bindingResourceType,
+        bindingPoint,
+        humanReviewed: bindingReviewed,
+        intentPrompt: bindingIntentPrompt,
+      });
+      setBindingResult(result);
+    } finally {
+      setIsBindingResource(false);
     }
   }
 
@@ -615,11 +727,120 @@ function MediaVoiceCandidateWorkspace({ agent, onAgentWrite }: { agent: OwnerPor
             <InlineAlert tone="warning">
               {visualPayload.changed ? VISUAL_MEDIA_BLOCKED_REASON : visualPayload.errors.join('; ')}
             </InlineAlert>
-            <FieldShell label="Blocked visual payload" message="Preview only. Resource upload/finalize and Binding/Profile writes remain blocked.">
+            <FieldShell label="Blocked visual payload" message="Preview only. Visual generation remains local; READY Resources can be bound separately through the reviewed Binding workflow.">
               <pre className="ras-json-preview m-0 min-h-72 overflow-auto rounded-[var(--nimi-radius-field)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-3 text-xs">
                 {visualPayload.payload ? JSON.stringify(visualPayload.payload, null, 2) : visualPayload.errors.join('; ')}
               </pre>
             </FieldShell>
+            <Surface tone="card" padding="md">
+              <div className="flex min-w-0 flex-wrap items-center gap-3">
+                <div className="min-w-0 flex-1">
+                  <div className="font-medium">Resource-backed Agent Binding</div>
+                  <div className="mt-1 text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-muted)]">
+                    Writes PRESENTATION Binding truth for a READY Resource. It does not write profileCoverUrl, custom voice, post, moderation, or lifecycle state.
+                  </div>
+                </div>
+                <StatusBadge tone="info">Realm Binding</StatusBadge>
+              </div>
+              <div className="mt-3 grid gap-3 md:grid-cols-[180px_1fr]">
+                <div className="flex items-end">
+                  <Button disabled={isLoadingBindingResources} loading={isLoadingBindingResources} onClick={() => void loadBindingResources()}>
+                    Load binding Resources
+                  </Button>
+                </div>
+                <FieldShell label="READY IMAGE/AUDIO Resource" message="Uses ResourcesService.listResources, then binds only selected READY IMAGE or AUDIO Resource ids.">
+                  <SelectField
+                    disabled={bindableResourceOptions.length === 0}
+                    value={bindingResourceId}
+                    options={[
+                      { value: '', label: bindableResourceOptions.length === 0 ? 'No bindable Resources loaded' : 'Select Resource for Binding' },
+                      ...bindableResourceOptions.map((resource) => ({
+                        value: resource.id,
+                        label: `${resource.resourceType} · ${resource.label}`,
+                      })),
+                    ]}
+                    onValueChange={selectBindingResource}
+                  />
+                </FieldShell>
+              </div>
+              <div className="mt-3 grid gap-3 md:grid-cols-[180px_1fr]">
+                <FieldShell label="Resource type">
+                  <SelectField
+                    value={bindingResourceType}
+                    options={[
+                      { value: 'IMAGE', label: 'Resource(IMAGE)' },
+                      { value: 'AUDIO', label: 'Resource(AUDIO)' },
+                    ]}
+                    onValueChange={(value) => updateBindingResourceType(value as AgentResourceBindingResourceType)}
+                  />
+                </FieldShell>
+                <FieldShell label="Binding point" message="IMAGE may bind as AGENT_PORTRAIT or AGENT_CANDIDATE; AUDIO may bind as AGENT_VOICE_SAMPLE.">
+                  <SelectField
+                    value={bindingPoint}
+                    options={compatibleBindingPoints.map((point) => ({ value: point, label: point }))}
+                    onValueChange={(value) => {
+                      setBindingPoint(value as AgentResourceBindingPoint);
+                      setBindingReviewed(false);
+                      setBindingResult(null);
+                    }}
+                  />
+                </FieldShell>
+              </div>
+              <FieldShell label="Resource id" message="Manual id entry is allowed; Realm validates that the Resource is real, READY, and manageable.">
+                <TextField
+                  value={bindingResourceId}
+                  placeholder="READY resource id"
+                  onChange={(event) => {
+                    setBindingResourceId(event.currentTarget.value);
+                    setBindingReviewed(false);
+                    setBindingResult(null);
+                  }}
+                />
+              </FieldShell>
+              <FieldShell label="Binding intent" message="Optional owner-reviewed note sent as Binding intentPrompt.">
+                <TextareaField
+                  value={bindingIntentPrompt}
+                  placeholder="Why this Resource should represent the agent"
+                  onChange={(event) => {
+                    setBindingIntentPrompt(event.currentTarget.value);
+                    setBindingResult(null);
+                  }}
+                />
+              </FieldShell>
+              <Checkbox
+                checked={bindingReviewed}
+                onChange={(event) => setBindingReviewed(event.currentTarget.checked)}
+                label="Human review complete"
+              />
+              <div className="mt-3 flex flex-wrap gap-3">
+                <Button
+                  disabled={!bindingReviewed || !bindingResourceId.trim() || isBindingResource}
+                  loading={isBindingResource}
+                  onClick={() => void bindResourceToAgent()}
+                >
+                  Bind Resource to agent
+                </Button>
+              </div>
+              {bindingResourceStatus ? (
+                <InlineAlert tone={bindingResourceStatus.tone} className="mt-3">
+                  {bindingResourceStatus.message}
+                </InlineAlert>
+              ) : null}
+              {bindingResult ? (
+                <InlineAlert tone={bindingResult.ok ? 'success' : 'danger'} className="mt-3">
+                  {bindingResult.ok
+                    ? `Realm confirmed ${bindingResult.canonical.bindingPoint} Binding ${bindingResult.canonical.id}. Public profile projection is not claimed by this operation.`
+                    : bindingResult.message}
+                </InlineAlert>
+              ) : null}
+              {bindingResult ? (
+                <FieldShell label="Agent Binding result" message="Binding truth only. No profile cover, avatar URL, custom voice, post, schedule, moderation, or lifecycle success is claimed.">
+                  <pre className="ras-json-preview m-0 min-h-24 overflow-auto rounded-[var(--nimi-radius-field)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] p-3 text-xs">
+                    {JSON.stringify(bindingResult, null, 2)}
+                  </pre>
+                </FieldShell>
+              ) : null}
+            </Surface>
           </div>
         </div>
         <div className="min-w-0">
@@ -630,7 +851,7 @@ function MediaVoiceCandidateWorkspace({ agent, onAgentWrite }: { agent: OwnerPor
             <StatusBadge tone="warning">not public truth</StatusBadge>
           </div>
           <p className="m-0 mt-1 text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-muted)]">
-            Runtime candidate generation for capability audio.synthesize and SDK path media.tts.synthesize; Resource, Binding, and voice authority writes remain blocked.
+            Runtime candidate generation for capability audio.synthesize and SDK path media.tts.synthesize. Runtime artifacts are not Resource or Binding truth until a separate reviewed Realm write succeeds.
           </p>
           <div className="mt-4 grid gap-4">
             <Surface tone="card" padding="md">
@@ -670,7 +891,7 @@ function MediaVoiceCandidateWorkspace({ agent, onAgentWrite }: { agent: OwnerPor
             {voiceResult ? (
               <InlineAlert tone={voiceResult.ok ? 'info' : 'danger'}>
                 {voiceResult.ok
-                  ? 'Runtime media.tts.synthesize returned candidate output. Resource/Binding public voice admission remains blocked.'
+                  ? 'Runtime media.tts.synthesize returned candidate output. Public voice truth still requires a reviewed Resource(AUDIO) and Binding write.'
                   : voiceResult.message}
               </InlineAlert>
             ) : null}
@@ -696,7 +917,7 @@ function MediaVoiceCandidateWorkspace({ agent, onAgentWrite }: { agent: OwnerPor
                 </div>
               </Surface>
             ) : null}
-            <FieldShell label="Runtime voice payload" message="Candidate-only. Runtime may generate audio artifacts; Resource/Binding/Profile and public voice/sample writes remain blocked.">
+            <FieldShell label="Runtime voice payload" message="Candidate-only. Runtime may generate audio artifacts; Resource/Binding/Profile writes require separate Realm operations.">
               <pre className="ras-json-preview m-0 min-h-72 overflow-auto rounded-[var(--nimi-radius-field)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-3 text-xs">
                 {voicePayload.payload ? JSON.stringify(voicePayload.payload, null, 2) : voicePayload.errors.join('; ')}
               </pre>

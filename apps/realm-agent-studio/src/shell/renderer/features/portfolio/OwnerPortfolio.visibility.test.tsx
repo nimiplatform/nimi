@@ -41,7 +41,42 @@ vi.mock('./portfolio-client.js', async (importOriginal) => {
       label: 'Ready image',
       deliveryAccess: 'SIGNED',
       source: 'Realm ResourcesService.listResources',
+    }, {
+      id: 'resource-ready-audio-ui',
+      resourceType: 'AUDIO',
+      status: 'READY',
+      label: 'Ready audio',
+      deliveryAccess: 'SIGNED',
+      source: 'Realm ResourcesService.listResources',
     }]),
+    bindReviewedAgentResource: vi.fn(async () => ({
+      ok: true,
+      source: 'Realm WorldControlService.worldControlControllerBatchUpsertWorldBindings',
+      bindingTruth: true,
+      publicProfileTruth: false,
+      customVoiceTruth: false,
+      publishTruth: false,
+      binding: {
+        worldId: 'OASIS',
+        items: [],
+      },
+      canonical: {
+        id: 'binding-ui',
+        scopeWorldId: 'OASIS',
+        hostId: 'agent-1',
+        hostType: 'AGENT',
+        objectId: 'resource-ready-ui',
+        objectType: 'RESOURCE',
+        bindingKind: 'PRESENTATION',
+        bindingPoint: 'AGENT_PORTRAIT',
+      },
+      submitted: {
+        worldId: 'OASIS',
+        body: {
+          bindingUpserts: [],
+        },
+      },
+    })),
     uploadReviewedPostMediaResource: vi.fn(async () => ({
       ok: true,
       source: 'Realm ResourcesService direct upload + finalizeResource',
@@ -175,7 +210,7 @@ function ownerAgentDetail(): OwnerPortfolioAgentDetail {
     greeting: detailField('greeting', 'Greeting', 'Welcome in.'),
     profileCoverUrl: detailField('profileCoverUrl', 'Profile cover URL', ''),
     ownership: detailField('ownership', 'Ownership evidence', 'MASTER_OWNED'),
-    world: detailField('world', 'World evidence', 'OASIS'),
+    world: detailField('world', 'World id evidence', 'world-oasis'),
     state: detailField('state', 'State evidence', 'ACTIVE'),
     avatarUrl: null,
     friendCount: { status: 'available', value: 3 },
@@ -338,6 +373,39 @@ describe('OwnerPortfolio visibility settings UI', () => {
     expect(document.body.textContent).not.toContain('Hidden raw rule statement');
   });
 
+  it('binds a reviewed READY Resource to the agent without claiming profile truth', async () => {
+    await renderOwnerPortfolio();
+    await waitForText('Resource-backed Agent Binding');
+
+    await act(async () => {
+      findButtonByText('Load binding Resources').click();
+    });
+    await waitForText('Loaded 2 READY IMAGE/AUDIO Resource options for Agent Binding.');
+
+    const picker = findSelectByLabel('READY IMAGE/AUDIO Resource');
+    await act(async () => {
+      picker.value = 'resource-ready-ui';
+      picker.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+
+    await checkAllHumanReviewBoxes();
+    await act(async () => {
+      findButtonByText('Bind Resource to agent').click();
+    });
+
+    await waitForText('Realm confirmed AGENT_PORTRAIT Binding binding-ui');
+    expect(portfolioClient.bindReviewedAgentResource).toHaveBeenCalledWith({
+      agent: expect.objectContaining({ id: 'agent-1' }),
+      resourceId: 'resource-ready-ui',
+      resourceType: 'IMAGE',
+      bindingPoint: 'AGENT_PORTRAIT',
+      humanReviewed: true,
+      intentPrompt: '',
+    });
+    expect(document.body.textContent).toContain('Public profile projection is not claimed');
+    expect(document.body.textContent).toContain('No profile cover, avatar URL, custom voice, post, schedule, moderation, or lifecycle success is claimed');
+  });
+
   it('creates a reviewed text Resource and fills the post attachment envelope', async () => {
     await renderOwnerPortfolio();
     await waitForText('Creative post candidate');
@@ -365,7 +433,7 @@ describe('OwnerPortfolio visibility settings UI', () => {
       findButtonByText('Load ready Resources').click();
     });
 
-    await waitForText('Loaded 1 READY Resource attachment option.');
+    await waitForText('Loaded 2 READY Resource attachment options.');
     expect(portfolioClient.listReadyPostAttachmentResources).toHaveBeenCalledTimes(1);
     expect(document.body.textContent).toContain('Uses ResourcesService.listResources');
     expect(document.body.textContent).toContain('does not create Binding or profile asset truth');
@@ -378,7 +446,7 @@ describe('OwnerPortfolio visibility settings UI', () => {
     await act(async () => {
       findButtonByText('Load ready Resources').click();
     });
-    await waitForText('Loaded 1 READY Resource attachment option.');
+    await waitForText('Loaded 2 READY Resource attachment options.');
 
     const picker = findSelectByLabel('READY Resource picker');
     await act(async () => {

@@ -177,6 +177,18 @@ describe('owner portfolio detail normalization', () => {
     });
   });
 
+  it('does not treat world display names as write-safe world id evidence', () => {
+    const detail = normalizeOwnerPortfolioAgentDetail({
+      ...baseAgent,
+      agentProfile: {
+        worldName: 'OASIS',
+      } as unknown as NonNullable<MyRealmAgentDto['agentProfile']>,
+    });
+
+    expect(detail.world.status).toBe('source-unavailable');
+    expect(detail.world.value).toBe('');
+  });
+
   it('classifies detail setting read failures separately', () => {
     const failure = classifyAgentDetailFailure(new Error('schema parse failed for setting fields'));
 

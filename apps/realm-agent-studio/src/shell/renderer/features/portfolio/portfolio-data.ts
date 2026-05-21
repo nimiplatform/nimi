@@ -104,8 +104,7 @@ function readWorldName(agentProfile: Record<string, unknown> | null): string | n
 function readWorldEvidence(agentProfile: Record<string, unknown> | null): string | null {
   return readString(agentProfile?.activeWorldId)
     || readString(agentProfile?.ownerWorldId)
-    || readString(agentProfile?.worldId)
-    || readWorldName(agentProfile);
+    || readString(agentProfile?.worldId);
 }
 
 function readUpdatedAt(agent: MyRealmAgentDto): string | null {

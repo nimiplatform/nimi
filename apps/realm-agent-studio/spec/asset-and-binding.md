@@ -42,16 +42,39 @@ Every generated or uploaded creative asset follows this product state sequence:
 
 Failure in an earlier state must not be projected as success in a later state.
 
+## Studio Binding Admission
+
+Studio may write owner-reviewed `Resource` to `Agent` presentation bindings
+through `WorldControlService.worldControlControllerBatchUpsertWorldBindings`
+only when all of the following are true:
+
+- the agent comes from the canonical owner detail surface
+  `GET /api/me/agents/{agentId}`;
+- the detail read provides source-backed world id evidence for the binding path;
+- the selected object is a Realm `Resource` id, not a local preview, Runtime
+  artifact id, URL, or attachment envelope;
+- the owner has completed human review for the binding action;
+- the binding is `bindingKind=PRESENTATION`, `hostType=AGENT`,
+  `objectType=RESOURCE`;
+- Studio uses only the first-version owner binding points
+  `AGENT_PORTRAIT`, `AGENT_CANDIDATE`, and `AGENT_VOICE_SAMPLE`.
+
+This admission establishes Binding truth only. It does not claim profile cover,
+avatar URL, custom voice, post publish, moderation, scheduling, lifecycle, or
+feed success. Realm must still fail closed for missing world/resource evidence,
+unauthorized or non-READY Resource references, or invalid binding matrix
+combinations.
+
 ## Write Path Map
 
 | Candidate | Required public path | Source evidence | Admission status |
 | --- | --- | --- | --- |
 | Avatar image | Owner-reviewed avatar URL selection may write through `POST /api/agent/accounts/{id}/avatar` / `AgentsService.agentControllerSelectAvatar`. Resource-backed avatar publication prefers `Resource(IMAGE)` or `OwnableAsset` plus `Binding(PRESENTATION, hostType=AGENT, bindingPoint=AGENT_AVATAR)`. | `SelectAvatarDto.avatarUrl` and the non-creator `AgentsService.agentControllerSelectAvatar` operation exist (`sdk/src/realm/generated/schema.ts:6257` to `:6259`; `:7738` to `:7762`; `sdk/src/realm/generated/operation-map.ts:417` to `:438`). Binding enum and upsert DTO support `AGENT_AVATAR`, `hostType=AGENT`, `objectType=RESOURCE/ASSET/BUNDLE` (`sdk/src/realm/generated/schema.ts:4212` to `:4289`; `:13298` to `:13320`). | URL selection pinned for owner-reviewed avatar URL only. Resource/Binding-backed avatar asset truth remains partial and must not be claimed from local preview alone. Raw `UpdateCreatorAgentDto.avatarUrl` remains creator/maintainer evidence and is not the Studio owner path. |
-| Portrait/reference image | `Resource(IMAGE)` or `OwnableAsset` plus `AGENT_PORTRAIT` or `AGENT_CANDIDATE` binding. | Binding points exist; `CreateAgentDto.referenceImageUrl` exists (`sdk/src/realm/generated/schema.ts:4536` to `:4563`). | Gap for active public meaning. Reference image URL is not enough for public asset truth. |
+| Portrait/reference image | `Resource(IMAGE)` or `OwnableAsset` plus `AGENT_PORTRAIT` or `AGENT_CANDIDATE` binding. | Binding points exist; `CreateAgentDto.referenceImageUrl` exists (`sdk/src/realm/generated/schema.ts:4536` to `:4563`). | Admitted for owner-reviewed Resource-to-Agent Binding truth through `WorldControlService.worldControlControllerBatchUpsertWorldBindings` only. Active public profile meaning is not claimed beyond the returned Binding. Reference image URL is not enough for public asset truth. |
 | Profile cover | Realm `profileCoverUrl` profile attribute. | `UserLiteDto`, `UserPrivateDto`, and `UserProfileDto` read projections exist. `UpdateCreatorAgentDto.profileCoverUrl` exists only as creator/maintainer DTO evidence (`sdk/src/realm/generated/schema.ts:6549` to `:6558`; `:6769` to `:6786`; `:6795` to `:6825`; `:6832` to `:6860`). | Profile cover attribute is admitted for read/source projection. Owner write remains blocked until a non-creator owner update surface is admitted. Binding enum still does not expose separate agent banner/background/cover binding points; world/scene binding points must not be reused by analogy. |
 | Post image candidate | `Resource(IMAGE)` or readable `ASSET/BUNDLE`, then post `attachments[*]` envelope. | Resource supports `IMAGE`; direct image upload/finalize evidence exists (`sdk/src/realm/generated/schema.ts:2728`; `:11942`); attachment targets are `RESOURCE`, `ASSET`, `BUNDLE` (`.nimi/spec/realm/kernel/attachment-contract.md:18` to `:32`). | Pinned for post attachment if target is READY/readable and Create Post succeeds. |
 | Post video candidate | `Resource(VIDEO)` or readable `ASSET/BUNDLE`, then post `attachments[*]` envelope. | Resource supports `VIDEO`; video upload evidence exists (`sdk/src/realm/generated/schema.ts:2762`); attachment envelope supports typed target references. | Pinned for post attachment if target is READY/readable and Create Post succeeds. |
-| Voice-demo candidate | `Resource(AUDIO)` plus optional `Binding(PRESENTATION, hostType=AGENT, bindingPoint=AGENT_VOICE_SAMPLE)`. | Resource supports `AUDIO`; direct audio upload evidence exists (`sdk/src/realm/generated/schema.ts:2711`); `AGENT_VOICE_SAMPLE` exists. | Partially pinned. It is a voice-demo/sample path only; custom voice design remains out of active Resource `VOICE` model. |
+| Voice-demo candidate | `Resource(AUDIO)` plus optional `Binding(PRESENTATION, hostType=AGENT, bindingPoint=AGENT_VOICE_SAMPLE)`. | Resource supports `AUDIO`; direct audio upload evidence exists (`sdk/src/realm/generated/schema.ts:2711`); `AGENT_VOICE_SAMPLE` exists. | Admitted for owner-reviewed Resource(AUDIO)-to-Agent Binding truth through `WorldControlService.worldControlControllerBatchUpsertWorldBindings` only. It is a voice-demo/sample binding path; custom voice design remains out of active Resource `VOICE` model. |
 
 ## Current DTO Evidence
 
@@ -67,6 +90,6 @@ Generated schema currently exposes:
 - batch binding upsert under `/api/worlds/{worldId}/bindings`
   (`sdk/src/realm/generated/schema.ts:3605` to `:3617`).
 
-These surfaces are evidence, not complete Studio admission. Studio still needs
-an explicit Realm-approved path for each public profile asset family before
-displaying it as active public truth.
+These surfaces now admit the limited Binding truth path above. Studio still
+needs an explicit Realm-approved projection/profile path for each public
+profile asset family before displaying a binding as active public profile truth.
