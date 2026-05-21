@@ -37,7 +37,7 @@ export type ContactRequestRecord = {
   requestMessage: string | null;
 };
 
-export type TabFilter = 'humans' | 'agents' | 'myAgents' | 'requests' | 'blocks' | 'world';
+export type TabFilter = 'humans' | 'agents' | 'requests' | 'blocks' | 'world';
 export type ContactSearchCandidate = {
   id: string;
   displayName: string;
@@ -57,7 +57,12 @@ export function loadStoredContactsFilter(defaultFilter: TabFilter = 'humans'): T
   }
   try {
     const value = String(window.localStorage.getItem(CONTACTS_ACTIVE_FILTER_STORAGE_KEY) || '').trim();
-    if (value === 'humans' || value === 'agents' || value === 'myAgents' || value === 'requests' || value === 'blocks') {
+    // D-CONTACTS-002: there is no third `myAgents` category; a previously
+    // persisted `myAgents` filter folds into the ordinary `agents` category.
+    if (value === 'myAgents') {
+      return 'agents';
+    }
+    if (value === 'humans' || value === 'agents' || value === 'requests' || value === 'blocks') {
       return value;
     }
     return defaultFilter;

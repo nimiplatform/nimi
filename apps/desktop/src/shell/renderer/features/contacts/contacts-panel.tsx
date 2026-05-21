@@ -79,10 +79,10 @@ export function ContactsPanel() {
   }, [contactsQuery.data?.friends, blockedIds]);
 
   const humans = useMemo(() => allFriends.filter((contact) => !contact.isAgent), [allFriends]);
-  // Agents: 所有是我的好友的 Agent（我不是 Owner）
-  const agents = useMemo(() => allFriends.filter((contact) => contact.isAgent && contact.agentOwnershipType !== 'MASTER_OWNED'), [allFriends]);
-  // My Agents: 我是 Owner 的 Agent（来自好友列表）
-  const myAgents = useMemo(() => allFriends.filter((contact) => contact.isAgent && contact.agentOwnershipType === 'MASTER_OWNED'), [allFriends]);
+  // D-CONTACTS-002: `agent_friends` is the single Agent category. Owner-created
+  // RealmAgents the account is also friends with appear here as ordinary
+  // AgentFriends — there is no separate `myAgents` category.
+  const agents = useMemo(() => allFriends.filter((contact) => contact.isAgent), [allFriends]);
 
   const navigateToProfile = useAppStore((state) => state.navigateToProfile);
   const pendingReceived = useMemo(
@@ -104,27 +104,25 @@ export function ContactsPanel() {
         return humans;
       case 'agents':
         return agents;
-      case 'myAgents':
-        return myAgents;
       case 'blocks':
         return blockedContacts;
       default:
         return humans;
     }
-  }, [activeFilter, humans, agents, myAgents, blockedContacts]);
+  }, [activeFilter, humans, agents, blockedContacts]);
 
   const filteredContacts = useMemo(() => {
     const query = searchText.trim().toLowerCase();
     if (!query) return activeList;
     // 搜索所有非 blocked 的联系人（不限制于当前分类）
-    const allContacts = [...humans, ...agents, ...myAgents];
+    const allContacts = [...humans, ...agents];
     return allContacts.filter(
       (contact) =>
         contact.displayName.toLowerCase().includes(query) ||
         contact.handle.toLowerCase().includes(query) ||
         (contact.bio && contact.bio.toLowerCase().includes(query)),
     );
-  }, [activeList, searchText, humans, agents, myAgents]);
+  }, [activeList, searchText, humans, agents]);
 
   const filteredRequests = useMemo(() => {
     const query = searchText.trim().toLowerCase();
@@ -352,7 +350,6 @@ export function ContactsPanel() {
         activeFilter={activeFilter}
         humansCount={humans.length}
         agentsCount={agents.length}
-        myAgentsCount={myAgents.length}
         requestsCount={pendingRequests.length}
         blocksCount={blockedContacts.length}
         blockedContacts={blockedContacts}

@@ -345,9 +345,7 @@ export function ContactsView(props: ContactsViewProps) {
     if (!restoredContact) {
       return;
     }
-    const nextCategory: TabFilter = restoredContact.isAgent
-      ? (restoredContact.agentOwnershipType === 'MASTER_OWNED' ? 'myAgents' : 'agents')
-      : 'humans';
+    const nextCategory: TabFilter = restoredContact.isAgent ? 'agents' : 'humans';
     setSelectedContact(restoredContact);
     setSelectedRequest(null);
     setSelectedCategory(nextCategory);
@@ -449,7 +447,7 @@ export function ContactsView(props: ContactsViewProps) {
               <div className="min-w-0">
                 <h1 className="nimi-type-page-title text-[color:var(--nimi-text-primary)]">{t('Contacts.title')}</h1>
                 <p className="mt-1.5 text-xs text-[color:var(--nimi-text-muted)]">
-                  {t('Contacts.totalCount', { defaultValue: '{{count}} contacts', count: counts.humansCount + counts.agentsCount + counts.myAgentsCount })}
+                  {t('Contacts.totalCount', { defaultValue: '{{count}} contacts', count: counts.humansCount + counts.agentsCount })}
                 </p>
               </div>
             </div>

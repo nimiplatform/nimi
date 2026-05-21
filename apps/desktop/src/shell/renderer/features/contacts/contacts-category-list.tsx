@@ -81,10 +81,10 @@ function getContactPalette(contact: ContactRecord) {
 }
 
 function describeRole(contact: ContactRecord, t: (key: string, opts?: { defaultValue: string }) => string): string {
+  // D-CONTACTS-002: an owner-created befriended RealmAgent appears as an
+  // ordinary AgentFriend with no product distinction — no "My Agent" sub-label.
   const kind = contact.isAgent
-    ? (contact.agentOwnershipType === 'MASTER_OWNED'
-        ? t('Contacts.roleMyAgent', { defaultValue: 'My Agent' })
-        : t('Contacts.roleAgent', { defaultValue: 'Agent' }))
+    ? t('Contacts.roleAgent', { defaultValue: 'Agent' })
     : t('Contacts.roleHuman', { defaultValue: 'Human' });
   const detail = contact.worldName || contact.handle || '';
   return detail ? `${kind} · ${detail}` : kind;
@@ -204,8 +204,7 @@ export function ContactsSearchResults({
   );
 
   const humans = directMatches.filter(c => !c.isAgent);
-  const agents = directMatches.filter(c => c.isAgent && c.agentOwnershipType !== 'MASTER_OWNED');
-  const myAgents = directMatches.filter(c => c.isAgent && c.agentOwnershipType === 'MASTER_OWNED');
+  const agents = directMatches.filter(c => c.isAgent);
 
   const matchedWorldIds = new Set<string>();
   const matchedWorldNames = new Map<string, string>();
@@ -234,7 +233,6 @@ export function ContactsSearchResults({
   const baseGroups: Array<{id: TabFilter; title: string; items: ContactRecord[]; worldId?: string}> = [
     { id: 'humans', title: t('Contacts.tabHumans'), items: humans },
     { id: 'agents', title: t('Contacts.tabAgents'), items: agents },
-    { id: 'myAgents', title: t('Contacts.tabMyAgents'), items: myAgents },
   ];
   const worldGroupList: Array<{id: TabFilter; title: string; items: ContactRecord[]; worldId?: string}> = worldGroups.size > 0
     ? Array.from(worldGroups.entries()).map(([worldId, items]) => ({
@@ -285,8 +283,8 @@ export function ContactsSearchResults({
 // ---------- Main list (chip-driven flat layout) ----------
 
 function categoryForContact(contact: ContactRecord): TabFilter {
-  if (!contact.isAgent) return 'humans';
-  return contact.agentOwnershipType === 'MASTER_OWNED' ? 'myAgents' : 'agents';
+  // D-CONTACTS-002: exactly two relationship categories — `humans` / `agents`.
+  return contact.isAgent ? 'agents' : 'humans';
 }
 
 function sortContactsAlphabetically(contacts: ContactRecord[]): ContactRecord[] {

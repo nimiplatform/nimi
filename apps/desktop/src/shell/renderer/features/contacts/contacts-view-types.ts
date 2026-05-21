@@ -6,7 +6,6 @@ export type ContactsViewProps = {
   activeFilter: TabFilter;
   humansCount: number;
   agentsCount: number;
-  myAgentsCount: number;
   requestsCount: number;
   blocksCount: number;
   blockedContacts: ContactRecord[];
@@ -42,7 +41,6 @@ export const CATEGORIES = [
   { id: 'requests' as TabFilter, label: 'New Friends', icon: '👋', countKey: 'requestsCount' },
   { id: 'humans' as TabFilter, label: 'Humans', icon: '👤', countKey: 'humansCount' },
   { id: 'agents' as TabFilter, label: 'Agents', icon: '🤖', countKey: 'agentsCount' },
-  { id: 'myAgents' as TabFilter, label: 'My Agents', icon: '⭐', countKey: 'myAgentsCount' },
   { id: 'blocks' as TabFilter, label: 'Blocks', icon: '🚫', countKey: 'blocksCount' },
 ];
 
