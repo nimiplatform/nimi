@@ -1,0 +1,36 @@
+@import "@nimiplatform/nimi-kit/ui/styles.css";
+@import "@nimiplatform/nimi-kit/ui/themes/light.css";
+@import "@nimiplatform/nimi-kit/ui/themes/dark.css";
+@import "@nimiplatform/nimi-kit/ui/themes/nimi-accent.css";
+@import "tailwindcss";
+
+html,
+body,
+#root {
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--nimi-font-sans);
+  color: var(--nimi-text-primary);
+  background: var(--nimi-app-background);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+button {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.ras-break-anywhere {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
