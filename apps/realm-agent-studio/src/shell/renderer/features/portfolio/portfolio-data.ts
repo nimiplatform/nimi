@@ -1,6 +1,7 @@
 import type { RealmServiceResult } from '@nimiplatform/sdk/realm';
 
 export type MyRealmAgentDto = RealmServiceResult<'MeService', 'listMyRealmAgents'>[number];
+export type MyRealmAgentDetailDto = RealmServiceResult<'MeService', 'getMyRealmAgent'>;
 
 export type FriendCountMetric =
   | { status: 'available'; value: number }
@@ -20,15 +21,51 @@ export type OwnerPortfolioAgent = {
   friendCount: FriendCountMetric;
 };
 
+export type SettingFieldKey =
+  | 'displayName'
+  | 'handle'
+  | 'bio'
+  | 'greeting'
+  | 'profileCoverUrl'
+  | 'ownership'
+  | 'world'
+  | 'state';
+
+export type SettingField = {
+  key: SettingFieldKey;
+  label: string;
+  value: string;
+  status: 'available' | 'source-unavailable';
+  source: 'Realm MeService.getMyRealmAgent';
+  readOnly: true;
+  unavailableLabel?: 'setting read unavailable';
+};
+
+export type OwnerPortfolioAgentDetail = {
+  id: string;
+  displayName: SettingField;
+  handle: SettingField;
+  bio: SettingField;
+  greeting: SettingField;
+  profileCoverUrl: SettingField;
+  ownership: SettingField;
+  world: SettingField;
+  state: SettingField;
+  avatarUrl: string | null;
+  friendCount: FriendCountMetric;
+  source: 'Realm MeService.getMyRealmAgent';
+};
+
 export type PortfolioFailureKind =
   | 'realm-unavailable'
   | 'permission-missing'
   | 'owner-authority-missing'
+  | 'setting-read-unavailable'
   | 'unknown';
 
 export type PortfolioFailure = {
   kind: PortfolioFailureKind;
-  title: 'Realm unavailable' | 'Permission missing' | 'owner authority missing' | 'Portfolio unavailable';
+  title: 'Realm unavailable' | 'Permission missing' | 'owner authority missing' | 'Setting read unavailable' | 'Portfolio unavailable';
   detail: string;
 };
 
@@ -53,6 +90,13 @@ function readString(value: unknown): string | null {
 function readWorldName(agentProfile: Record<string, unknown> | null): string | null {
   const world = readOptionalRecord(agentProfile?.world);
   return readString(world?.name) || readString(agentProfile?.worldName) || readString(agentProfile?.worldId);
+}
+
+function readWorldEvidence(agentProfile: Record<string, unknown> | null): string | null {
+  return readString(agentProfile?.activeWorldId)
+    || readString(agentProfile?.ownerWorldId)
+    || readString(agentProfile?.worldId)
+    || readWorldName(agentProfile);
 }
 
 function readUpdatedAt(agent: MyRealmAgentDto): string | null {
@@ -91,13 +135,45 @@ export function normalizeOwnerPortfolio(agents: MyRealmAgentDto[]): OwnerPortfol
   return agents.map(normalizeOwnerPortfolioAgent);
 }
 
-export function classifyPortfolioFailure(error: unknown): PortfolioFailure {
+function settingField(key: SettingFieldKey, label: string, value: string | null): SettingField {
+  return {
+    key,
+    label,
+    value: value || '',
+    status: value ? 'available' : 'source-unavailable',
+    source: 'Realm MeService.getMyRealmAgent',
+    readOnly: true,
+    unavailableLabel: value ? undefined : 'setting read unavailable',
+  };
+}
+
+export function normalizeOwnerPortfolioAgentDetail(agent: MyRealmAgentDetailDto): OwnerPortfolioAgentDetail {
+  const profile = readOptionalRecord(agent.agentProfile);
+  return {
+    id: agent.id,
+    displayName: settingField('displayName', 'Display name', readString(agent.displayName)),
+    handle: settingField('handle', 'Handle', readString(agent.handle)),
+    bio: settingField('bio', 'Bio', readString(agent.bio)),
+    greeting: settingField('greeting', 'Greeting', readString(profile?.greeting)),
+    profileCoverUrl: settingField('profileCoverUrl', 'Profile cover URL', readString(agent.profileCoverUrl)),
+    ownership: settingField('ownership', 'Ownership evidence', readString(profile?.ownershipType)),
+    world: settingField('world', 'World evidence', readWorldEvidence(profile)),
+    state: settingField('state', 'State evidence', readString(profile?.state)),
+    avatarUrl: agent.avatarUrl || null,
+    friendCount: normalizeFriendCount(agent),
+    source: 'Realm MeService.getMyRealmAgent',
+  };
+}
+
+export function classifyRealmAgentReadFailure(error: unknown, read: 'portfolio' | 'detail'): PortfolioFailure {
   const status = readHttpStatus(error);
   if (status === 401 || status === 403) {
     return {
       kind: 'permission-missing',
       title: 'Permission missing',
-      detail: 'The canonical GET /api/me/agents owner portfolio read did not authorize this session.',
+      detail: read === 'detail'
+        ? 'The canonical GET /api/me/agents/{agentId} owner detail read did not authorize this session.'
+        : 'The canonical GET /api/me/agents owner portfolio read did not authorize this session.',
     };
   }
 
@@ -106,7 +182,9 @@ export function classifyPortfolioFailure(error: unknown): PortfolioFailure {
     return {
       kind: 'owner-authority-missing',
       title: 'owner authority missing',
-      detail: 'Realm did not prove current-user owner-created authority for this portfolio.',
+      detail: read === 'detail'
+        ? 'Realm did not prove current-user owner-created authority for this Realm Agent detail.'
+        : 'Realm did not prove current-user owner-created authority for this portfolio.',
     };
   }
 
@@ -114,13 +192,33 @@ export function classifyPortfolioFailure(error: unknown): PortfolioFailure {
     return {
       kind: 'realm-unavailable',
       title: 'Realm unavailable',
-      detail: 'MeService.listMyRealmAgents could not reach Realm.',
+      detail: read === 'detail' ? 'MeService.getMyRealmAgent could not reach Realm.' : 'MeService.listMyRealmAgents could not reach Realm.',
+    };
+  }
+
+  if (/setting|field|read|shape|schema|parse/i.test(message)) {
+    return {
+      kind: 'setting-read-unavailable',
+      title: 'Setting read unavailable',
+      detail: read === 'detail'
+        ? 'GET /api/me/agents/{agentId} did not return usable read-only setting fields.'
+        : 'GET /api/me/agents did not return usable portfolio fields.',
     };
   }
 
   return {
-    kind: 'unknown',
-    title: 'Portfolio unavailable',
-    detail: 'GET /api/me/agents did not return a usable owner portfolio.',
+    kind: read === 'detail' ? 'setting-read-unavailable' : 'unknown',
+    title: read === 'detail' ? 'Setting read unavailable' : 'Portfolio unavailable',
+    detail: read === 'detail'
+      ? 'GET /api/me/agents/{agentId} did not return a usable owner-owned Realm Agent detail.'
+      : 'GET /api/me/agents did not return a usable owner portfolio.',
   };
+}
+
+export function classifyPortfolioFailure(error: unknown): PortfolioFailure {
+  return classifyRealmAgentReadFailure(error, 'portfolio');
+}
+
+export function classifyAgentDetailFailure(error: unknown): PortfolioFailure {
+  return classifyRealmAgentReadFailure(error, 'detail');
 }

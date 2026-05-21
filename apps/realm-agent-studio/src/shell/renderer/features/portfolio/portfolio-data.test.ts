@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { classifyPortfolioFailure, normalizeOwnerPortfolioAgent, type MyRealmAgentDto } from './portfolio-data.js';
+import {
+  classifyAgentDetailFailure,
+  classifyPortfolioFailure,
+  normalizeOwnerPortfolioAgent,
+  normalizeOwnerPortfolioAgentDetail,
+  type MyRealmAgentDto,
+} from './portfolio-data.js';
 
 const baseAgent: MyRealmAgentDto = {
   id: 'agent-1',
@@ -32,5 +38,60 @@ describe('owner portfolio normalization', () => {
 
   it('classifies SDK httpStatus permission failures', () => {
     expect(classifyPortfolioFailure({ details: { httpStatus: 403 } }).title).toBe('Permission missing');
+  });
+});
+
+describe('owner portfolio detail normalization', () => {
+  it('maps settings and evidence from getMyRealmAgent as read-only fields', () => {
+    const detail = normalizeOwnerPortfolioAgentDetail({
+      ...baseAgent,
+      bio: 'Quiet strategist',
+      profileCoverUrl: 'https://cdn.example.test/cover.png',
+      friendCount: 7,
+      agentProfile: {
+        greeting: 'Welcome in.',
+        ownershipType: 'MASTER_OWNED',
+        state: 'ACTIVE',
+        worldId: 'world-1',
+      },
+    });
+
+    expect(detail.source).toBe('Realm MeService.getMyRealmAgent');
+    expect(detail.displayName).toMatchObject({ value: 'Mira', readOnly: true, status: 'available' });
+    expect(detail.handle.value).toBe('mira');
+    expect(detail.bio.value).toBe('Quiet strategist');
+    expect(detail.greeting.value).toBe('Welcome in.');
+    expect(detail.profileCoverUrl.value).toBe('https://cdn.example.test/cover.png');
+    expect(detail.ownership.value).toBe('MASTER_OWNED');
+    expect(detail.world.value).toBe('world-1');
+    expect(detail.state.value).toBe('ACTIVE');
+    expect(detail.friendCount).toEqual({ status: 'available', value: 7 });
+  });
+
+  it('keeps missing settings and friendCount source-unavailable', () => {
+    const detail = normalizeOwnerPortfolioAgentDetail(baseAgent);
+
+    expect(detail.bio).toMatchObject({
+      status: 'source-unavailable',
+      value: '',
+      unavailableLabel: 'setting read unavailable',
+    });
+    expect(detail.greeting.status).toBe('source-unavailable');
+    expect(detail.profileCoverUrl.status).toBe('source-unavailable');
+    expect(detail.ownership.status).toBe('source-unavailable');
+    expect(detail.world.status).toBe('source-unavailable');
+    expect(detail.state.status).toBe('source-unavailable');
+    expect(detail.friendCount).toEqual({
+      status: 'source-unavailable',
+      label: 'friendCount source unavailable',
+    });
+  });
+
+  it('classifies detail setting read failures separately', () => {
+    const failure = classifyAgentDetailFailure(new Error('schema parse failed for setting fields'));
+
+    expect(failure.kind).toBe('setting-read-unavailable');
+    expect(failure.title).toBe('Setting read unavailable');
+    expect(failure.detail).toContain('/api/me/agents/{agentId}');
   });
 });

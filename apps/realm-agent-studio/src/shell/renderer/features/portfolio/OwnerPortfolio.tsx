@@ -1,16 +1,23 @@
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Button, EmptyState, InlineAlert, StatusBadge, Surface } from '@nimiplatform/nimi-kit/ui';
-import { classifyPortfolioFailure, type OwnerPortfolioAgent } from './portfolio-data.js';
-import { listOwnerPortfolioAgents } from './portfolio-client.js';
-
-function formatUpdatedAt(value: string | null) {
-  if (!value) return 'Realm updated source unavailable';
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? value : date.toLocaleDateString();
-}
+import { Button, EmptyState, FieldShell, InlineAlert, StatusBadge, Surface, TextareaField, TextField } from '@nimiplatform/nimi-kit/ui';
+import {
+  classifyAgentDetailFailure,
+  classifyPortfolioFailure,
+  type OwnerPortfolioAgent,
+  type OwnerPortfolioAgentDetail,
+  type SettingField,
+} from './portfolio-data.js';
+import { getOwnerPortfolioAgentDetail, listOwnerPortfolioAgents } from './portfolio-client.js';
 
 function friendCountLabel(agent: OwnerPortfolioAgent) {
+  if (agent.friendCount.status === 'available') {
+    return `${agent.friendCount.value} friends`;
+  }
+  return agent.friendCount.label;
+}
+
+function detailFriendCountLabel(agent: OwnerPortfolioAgentDetail) {
   if (agent.friendCount.status === 'available') {
     return `${agent.friendCount.value} friends`;
   }
@@ -53,21 +60,98 @@ function AgentCard({ agent, active, onSelect }: { agent: OwnerPortfolioAgent; ac
   );
 }
 
-function AgentDetail({ agent }: { agent: OwnerPortfolioAgent }) {
+function FieldStatus({ field }: { field: SettingField }) {
+  return (
+    <div className="mt-1 flex flex-wrap gap-2">
+      <StatusBadge tone={field.status === 'available' ? 'success' : 'warning'} shape="dot">
+        {field.status === 'available' ? field.source : field.unavailableLabel}
+      </StatusBadge>
+      <StatusBadge tone="neutral">read-only</StatusBadge>
+    </div>
+  );
+}
+
+function ReadOnlySettingField({ field, multiline = false }: { field: SettingField; multiline?: boolean }) {
+  const message = field.status === 'available'
+    ? 'Read from GET /api/me/agents/{agentId}; write ownership is not admitted in this slice.'
+    : 'Source unavailable from GET /api/me/agents/{agentId}.';
+
+  return (
+    <FieldShell label={field.label} message={message} messageTone={field.status === 'available' ? 'neutral' : 'danger'}>
+      {multiline ? (
+        <TextareaField readOnly value={field.value} placeholder={field.unavailableLabel || 'setting read unavailable'} />
+      ) : (
+        <TextField readOnly value={field.value} placeholder={field.unavailableLabel || 'setting read unavailable'} />
+      )}
+    </FieldShell>
+  );
+}
+
+function EvidenceCard({ field }: { field: SettingField }) {
+  return (
+    <Surface tone="card" padding="md">
+      <div className="text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-muted)]">{field.label}</div>
+      <div className="ras-break-anywhere mt-1 font-medium">{field.value || field.unavailableLabel}</div>
+      <FieldStatus field={field} />
+    </Surface>
+  );
+}
+
+function AgentDetail({ agentId }: { agentId: string }) {
+  const detailQuery = useQuery({
+    queryKey: ['realm-agent-studio', 'owner-portfolio-agent-detail', agentId],
+    queryFn: () => getOwnerPortfolioAgentDetail(agentId),
+  });
+
+  if (detailQuery.isLoading) {
+    return (
+      <section className="min-w-0 flex-1">
+        <EmptyState title="Loading Realm Agent settings" description="Reading GET /api/me/agents/{agentId} through SDK MeService.getMyRealmAgent." />
+      </section>
+    );
+  }
+
+  if (detailQuery.isError) {
+    const failure = classifyAgentDetailFailure(detailQuery.error);
+    return (
+      <section className="min-w-0 flex-1">
+        <InlineAlert tone="danger">
+          <strong>{failure.title}</strong>
+          <div>{failure.detail}</div>
+        </InlineAlert>
+      </section>
+    );
+  }
+
+  const agent = detailQuery.data;
+  if (!agent) {
+    return null;
+  }
+
   return (
     <section className="min-w-0 flex-1">
       <Surface tone="panel" padding="lg" className="min-h-full">
         <div className="grid min-w-0 gap-5 lg:grid-cols-[1.1fr_0.9fr]">
           <div className="min-w-0">
             <div className="h-44 overflow-hidden rounded-[var(--nimi-radius-md)] bg-[var(--nimi-surface-active)]">
-              {agent.coverUrl ? <img src={agent.coverUrl} alt="" className="h-full w-full object-cover" /> : null}
+              {agent.profileCoverUrl.status === 'available' ? <img src={agent.profileCoverUrl.value} alt="" className="h-full w-full object-cover" /> : null}
             </div>
             <div className="mt-5 min-w-0">
               <div className="flex min-w-0 flex-wrap items-center gap-3">
-                <h2 className="ras-break-anywhere m-0 text-2xl font-semibold">{agent.displayName}</h2>
-                <StatusBadge tone="info">Realm source</StatusBadge>
+                <h2 className="ras-break-anywhere m-0 text-2xl font-semibold">{agent.displayName.value || 'Display name unavailable'}</h2>
+                <StatusBadge tone="info">MeService.getMyRealmAgent</StatusBadge>
+                <StatusBadge tone="neutral">read-only settings</StatusBadge>
               </div>
-              <p className="ras-break-anywhere m-0 mt-2 text-[var(--nimi-text-secondary)]">@{agent.handle}</p>
+              <p className="ras-break-anywhere m-0 mt-2 text-[var(--nimi-text-secondary)]">
+                {agent.handle.value ? `@${agent.handle.value}` : 'handle setting read unavailable'}
+              </p>
+            </div>
+            <div className="mt-5 grid gap-4">
+              <ReadOnlySettingField field={agent.displayName} />
+              <ReadOnlySettingField field={agent.handle} />
+              <ReadOnlySettingField field={agent.bio} multiline />
+              <ReadOnlySettingField field={agent.greeting} multiline />
+              <ReadOnlySettingField field={agent.profileCoverUrl} />
             </div>
           </div>
           <div className="grid content-start gap-3">
@@ -75,17 +159,17 @@ function AgentDetail({ agent }: { agent: OwnerPortfolioAgent }) {
               <div className="text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-muted)]">Canonical source</div>
               <div className="ras-break-anywhere mt-1 font-medium">{agent.source}</div>
             </Surface>
-            <Surface tone="card" padding="md">
-              <div className="text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-muted)]">好友数 / friendCount</div>
-              <div className="mt-1 font-medium">{friendCountLabel(agent)}</div>
-            </Surface>
-            <Surface tone="card" padding="md">
-              <div className="text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-muted)]">Realm evidence</div>
-              <div className="mt-1 font-medium">{agent.realmState || 'state source unavailable'}</div>
-              <div className="mt-1 text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-muted)]">
-                {formatUpdatedAt(agent.updatedAt)}
-              </div>
-            </Surface>
+            {agent.friendCount.status === 'available' ? (
+              <Surface tone="card" padding="md">
+                <div className="text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-muted)]">好友数 / friendCount</div>
+                <div className="mt-1 font-medium">{detailFriendCountLabel(agent)}</div>
+              </Surface>
+            ) : (
+              <InlineAlert tone="warning">{agent.friendCount.label}</InlineAlert>
+            )}
+            <EvidenceCard field={agent.ownership} />
+            <EvidenceCard field={agent.world} />
+            <EvidenceCard field={agent.state} />
           </div>
         </div>
       </Surface>
@@ -153,7 +237,7 @@ export function OwnerPortfolio() {
           ))}
         </div>
       </aside>
-      {selectedAgent ? <AgentDetail agent={selectedAgent} /> : null}
+      {selectedAgent ? <AgentDetail agentId={selectedAgent.id} /> : null}
     </div>
   );
 }
