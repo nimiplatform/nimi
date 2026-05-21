@@ -25,6 +25,7 @@ const RULE_FAMILIES = [
   'BNDL',
   'TRANSIT',
   'OAUTH',
+  'FEED',
 ];
 const EXPECTED_ID_PATTERN = `^R-(${RULE_FAMILIES.join('|')})-[0-9]{3}$`;
 const RULE_FAMILY_ORDER = new Map(RULE_FAMILIES.map((family, index) => [family, index]));

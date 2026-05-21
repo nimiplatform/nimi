@@ -15,7 +15,7 @@
 ## 3. Rule ID 规范
 
 - 格式：`D-<DOMAIN>-NNN`
-- `DOMAIN` 固定枚举：`BOOT` `IPC` `STATE` `AUTH` `DSYNC` `HOOK` `MOD` `LLM` `SHELL` `MBAR` `HOME` `EXPL` `AIPC` `ERR` `TEL` `NET` `SEC` `STRM` `OFFLINE` `CODEGEN` `GATE`
+- `DOMAIN` 固定枚举：`BOOT` `IPC` `STATE` `AUTH` `DSYNC` `HOOK` `MOD` `LLM` `SHELL` `MBAR` `HOME` `HOMEFEED` `EXPL` `AIPC` `ERR` `TEL` `NET` `SEC` `STRM` `OFFLINE` `CODEGEN` `GATE`
 - `NNN` 三位递增编号，不复用。
 
 ## 4. 文档所有权
@@ -47,6 +47,7 @@
 | `agent-chat-voice-workflow-contract.md` | `D-LLM-*` | Agent chat richer voice workflow authority：`voice_workflow.voice_clone` / `voice_workflow.voice_design` admission、voice identity / `VoiceReference`、preset/custom voice selection、packet-bounded clone/design trigger、workflow return-path truth；不拥有 APML-projected resolved message/action / runtime workflow substrate / broader voice session truth |
 | `ui-shell-contract.md` | `D-SHELL-*` | 导航、布局、路由、分包 |
 | `nimi-home-shell-contract.md` | `D-HOME-*` | Desktop-hosted Nimi Home shell IA、first-run / return-run state machine、surface registry placement、Agent Chat in-shell reference placement、`AIScopeRef` enforcement、no-private-path enforcement、self-update UI projection、first-screen rule、failure-projection as first-class surface |
+| `home-feed-contract.md` | `D-HOMEFEED-*` | Desktop `Home` primary-nav tab 作为 Realm feed 表面的产品语义：三个 feed scope（personal / friends / agent_activity）呈现、Create Post affordance、SDK-typed Realm feed projection 消费边界、与 `D-HOME-*`（`Nimi Home` installed shell）的显式 non-overlap、`Home` 非 ready entry；不拥有 shell 导航布局、Realm Post / Feed canonical 真值 |
 | `ai-profile-config-contract.md` | `D-AIPC-*` | Desktop `AIProfile` / `AIConfig` / `AISnapshot` 三段式 AI 配置 canonical model 与 `D-LLM-015` ~ `D-LLM-021` 的 umbrella 关系 |
 | `explore-surface-contract.md` | `D-EXPL-*` | Explore 统一 Realm 发现表面产品语义：四区结构（Worlds / Agents / Activity / Create Agent）、World card / detail 字段语义、RealmAgent card 与 friend-state → primary-action 模型、lightweight RealmAgent creation 的 draft-before-truth 规则、controlled World creation 边界；不拥有导航布局、Friendship / AgentFriend canonical 真值、LocalAgent projection / `localAgentRef`、World canonical truth |
 | `kit-ui-consumption-contract.md` | `D-SHELL-*` | Desktop 对 `@nimiplatform/nimi-kit/ui` 的消费清单、保留 composition、allowlist 与受控例外 |
@@ -97,6 +98,7 @@
 - `tables/agent-avatar-debug-workbench-probes.yaml`
 - `tables/agent-avatar-debug-remediation-states.yaml`
 - `tables/nimi-home-surfaces.yaml`
+- `tables/home-feed-scopes.yaml`
 - `tables/explore-sections.yaml`
 - `tables/realm-agent-friend-actions.yaml`
 - `tables/realm-agent-creation-modes.yaml`

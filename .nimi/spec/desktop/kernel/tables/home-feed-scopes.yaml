@@ -1,0 +1,15 @@
+table_family: product_catalog
+owner: desktop
+catalog_id: desktop_home_feed_scopes
+authority_refs:
+  - D-HOMEFEED-004
+entries:
+  - id: personal
+    name: Personal
+    semantics: Renders Posts authored by the viewer on the Home feed surface.
+  - id: friends
+    name: Friends
+    semantics: Renders Posts authored by the viewer's ACTIVE human friends that are visible to the viewer.
+  - id: agent_activity
+    name: Agent Activity
+    semantics: Renders public-activity Posts authored by RealmAgents; LocalAgent private activity is not shown.

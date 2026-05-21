@@ -4,33 +4,28 @@
 
 ## Scope
 
-This guide points to the desktop authority surfaces for home. It does not define product rules.
+This guide points to the desktop authority surfaces for the `Home` primary-nav
+tab (the Realm feed surface). It does not define product rules.
+
+`Home` is the Realm feed surface inside the `Nimi Home` installed shell. It is
+distinct from the `Nimi Home` shell itself (see `nimi-home-shell-contract.md`,
+`D-HOME-*`). `Home` is not the ready entry; the ready entry is
+`Chat -> Nimi Chat`.
 
 ## Reading Path
 
 - `.nimi/spec/desktop/kernel/index.md`
-- `.nimi/spec/desktop/kernel/agent-avatar-configuration-contract.md`
-- `.nimi/spec/desktop/kernel/agent-avatar-debug-workbench-contract.md`
-- `.nimi/spec/desktop/kernel/agent-avatar-surface-contract.md`
-- `.nimi/spec/desktop/kernel/agent-chat-behavior-contract.md`
-- `.nimi/spec/desktop/kernel/agent-chat-message-action-contract.md`
-- `.nimi/spec/desktop/kernel/agent-chat-voice-executor-contract.md`
-- `.nimi/spec/desktop/kernel/agent-chat-voice-session-contract.md`
-- `.nimi/spec/desktop/kernel/agent-chat-voice-workflow-contract.md`
-- `.nimi/spec/desktop/kernel/agent-delegation-control-surface-contract.md`
-- `.nimi/spec/desktop/kernel/ai-profile-config-contract.md`
-- `.nimi/spec/desktop/kernel/auth-session-contract.md`
-- `.nimi/spec/desktop/kernel/bootstrap-contract.md`
+- `.nimi/spec/desktop/kernel/home-feed-contract.md`
+- `.nimi/spec/desktop/kernel/nimi-home-shell-contract.md`
+- `.nimi/spec/desktop/kernel/ui-shell-contract.md`
+- `.nimi/spec/realm/kernel/feed-contract.md`
+- `.nimi/spec/realm/kernel/social-contract.md`
 
 ## Tables
 
-- `.nimi/spec/desktop/kernel/tables/agent-avatar-configuration.schema.yaml`
-- `.nimi/spec/desktop/kernel/tables/agent-avatar-debug-remediation-states.yaml`
-- `.nimi/spec/desktop/kernel/tables/agent-avatar-debug-workbench-probes.yaml`
+- `.nimi/spec/desktop/kernel/tables/home-feed-scopes.yaml`
+- `.nimi/spec/desktop/kernel/tables/nimi-home-surfaces.yaml`
 - `.nimi/spec/desktop/kernel/tables/app-tabs.yaml`
-- `.nimi/spec/desktop/kernel/tables/bootstrap-phases.yaml`
-- `.nimi/spec/desktop/kernel/tables/build-chunks.yaml`
-- `.nimi/spec/desktop/kernel/tables/codegen-acceptance-gates.yaml`
-- `.nimi/spec/desktop/kernel/tables/codegen-capability-tiers.yaml`
-- `.nimi/spec/desktop/kernel/tables/codegen-import-allowlist.yaml`
-- `.nimi/spec/desktop/kernel/tables/codegen-static-scan-deny-patterns.yaml`
+- `.nimi/spec/realm/kernel/tables/feed-contract.yaml`
+- `.nimi/spec/realm/kernel/tables/feed-scopes.yaml`
+- `.nimi/spec/realm/kernel/tables/feed-visibility.yaml`

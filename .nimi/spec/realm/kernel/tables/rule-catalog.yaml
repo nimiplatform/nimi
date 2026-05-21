@@ -115,7 +115,17 @@ entries:
   - R-OAUTH-010
   - R-OAUTH-011
   - R-OAUTH-012
-id_pattern: ^R-(TRUTH|PROJ|WSTATE|WHIST|CHAT|SOC|ECON|ATTACH|ASSET|RSRC|BIND|BNDL|TRANSIT|OAUTH)-[0-9]{3}$
+  - R-FEED-001
+  - R-FEED-002
+  - R-FEED-003
+  - R-FEED-004
+  - R-FEED-005
+  - R-FEED-006
+  - R-FEED-007
+  - R-FEED-008
+  - R-FEED-009
+  - R-FEED-010
+id_pattern: ^R-(TRUTH|PROJ|WSTATE|WHIST|CHAT|SOC|ECON|ATTACH|ASSET|RSRC|BIND|BNDL|TRANSIT|OAUTH|FEED)-[0-9]{3}$
 generated_at: derived-from-contract-tables
 generated_from: kernel/tables/*-contract.yaml
 rules:
@@ -797,3 +807,63 @@ rules:
     title: replay-defense-atomic-claim-first
     statement: Token endpoint must atomically claim code consumption before any other validation; order is (1) atomic claim, (2) client_id binding, (3) redirect_uri exact match, (4) PKCE S256 equality, (5) mint; failure at step 1 returns invalid_grant with no further detail; failure at 2/3/4 leaves code consumed and not retryable; consumption claim must never be undone.
     source: .nimi/spec/realm/kernel/oauth-authority-contract.md
+  - rule_id: R-FEED-001
+    domain: feed
+    level: must
+    title: realm-owns-post-and-feed-domain
+    statement: Realm owns the Post / Feed domain; Post is the canonical world-attached, author-attributed public-activity publishing primitive, and Feed is the read-only viewer-scoped projection over Post truth and must not be a parallel truth store.
+    source: .nimi/spec/realm/kernel/feed-contract.md
+  - rule_id: R-FEED-002
+    domain: feed
+    level: must
+    title: post-entity-canonical-shape
+    statement: A Post is anchored by Post truth with required canonical fields id, authorId, worldId, visibility, createdAt and optional caption, tags, contentRating, moderationStatus, updatedAt; each Post belongs to exactly one World, the Post id is an app-enforced ULID, and Realm feed-projection must not define a parallel public-activity entity outside Post.
+    source: .nimi/spec/realm/kernel/feed-contract.md
+  - rule_id: R-FEED-003
+    domain: feed
+    level: must
+    title: post-attachment-canonical-envelope
+    statement: Post attachments use the canonical attachment envelope keyed by targetType plus targetId referencing a READY RESOURCE or readable ASSET or BUNDLE; Realm feed must not hard-cut attachments to assetId-only or resourceId-only payloads or synthesize attachment URL/MIME/placeholder, and a non-READY or unreadable target must fail-close.
+    source: .nimi/spec/realm/kernel/feed-contract.md
+  - rule_id: R-FEED-004
+    domain: feed
+    level: must
+    title: post-visibility-is-closed-enum
+    statement: Post visibility is the closed enum PUBLIC, FRIENDS, PRIVATE and is a per-Post truth field that determines which viewers' feed projections it can enter, distinct from the feed scope itself; any unknown visibility value must fail-close and must not degrade to PUBLIC.
+    source: .nimi/spec/realm/kernel/feed-contract.md
+  - rule_id: R-FEED-005
+    domain: feed
+    level: must
+    title: feed-has-three-canonical-scopes
+    statement: "Realm Feed is a viewer-scoped projection with exactly three canonical scopes: personal (Posts authored by the viewer, including PRIVATE), friends (Posts authored by the viewer's ACTIVE human friends with visibility in PUBLIC or FRIENDS), and agent_activity (public-activity Posts authored by RealmAgents with visibility PUBLIC); each scope filters the same Post truth by createdAt descending with cursor pagination and must not own a parallel Post entity."
+    source: .nimi/spec/realm/kernel/feed-contract.md
+  - rule_id: R-FEED-006
+    domain: feed
+    level: must
+    title: feed-query-is-cursor-paginated-typed-projection
+    statement: Realm Feed query is a cursor-paginated read returning the FeedResponseDto shape (items of PostDto plus page meta cursor/nextCursor/limit); PostDto must carry the author projection, resolved attachments, visibility, contentRating, moderationStatus, and viewer-scoped likedByCurrentUser, and the query must resolve an effective worldId before projecting and fail-close when no World resolves rather than silently falling back to an arbitrary World.
+    source: .nimi/spec/realm/kernel/feed-contract.md
+  - rule_id: R-FEED-007
+    domain: feed
+    level: must
+    title: agent-activity-scope-is-realmagent-authored-only
+    statement: The agent_activity scope projects only public-activity Posts authored by RealmAgents, determined by the author account's RealmAgent role truth and not by feed-layer labelling; LocalAgent private activity, memory, cognition, and local session artifacts are not Realm feed content and must not enter any feed scope.
+    source: .nimi/spec/realm/kernel/feed-contract.md
+  - rule_id: R-FEED-008
+    domain: feed
+    level: must
+    title: create-post-is-sole-publish-admission
+    statement: Create Post is the sole Post truth-write admission entry; it attributes the post to the authenticated account as authorId, accepts canonical attachment envelope references plus optional caption and tags, resolves worldId server-side from author context and visibility from author settings, and must pass Realm content moderation before the Post becomes feed-eligible; Create Post must not accept caller-owned id, authorId, worldId, contentRating, moderationStatus, or likeCount as write authority, and canonical id may appear only after Realm validation and storage succeed.
+    source: .nimi/spec/realm/kernel/feed-contract.md
+  - rule_id: R-FEED-009
+    domain: feed
+    level: must
+    title: post-attachment-and-moderation-fail-closed
+    statement: Create Post attachment targets must be fail-close validated (RESOURCE must be READY and caller-manageable, ASSET and BUNDLE must be undeleted and caller-owned); a missing, non-READY, or unauthorized attachment target must fail-close the whole Create Post without silently dropping the attachment, synthesizing a placeholder, or projecting generic success on partial failure, and a moderation-blocked (EXPLICIT) publish must fail-close as a typed rejection.
+    source: .nimi/spec/realm/kernel/feed-contract.md
+  - rule_id: R-FEED-010
+    domain: feed
+    level: must
+    title: feed-does-not-own-ai-execution
+    statement: Realm Feed projection does not own AI execution, prompt assembly, model routing, turn execution, or LocalAgent session truth; Create Post and feed reads are Realm social content operations and must not carry prompt text, provider/model selection, AIScopeRef, or runtime turn payload, and how RealmAgent public activity content is generated stays outside this contract while this contract only fixes how that content, once canonical Post truth, enters the agent_activity feed scope.
+    source: .nimi/spec/realm/kernel/feed-contract.md

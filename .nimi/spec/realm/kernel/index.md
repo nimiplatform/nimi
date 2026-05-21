@@ -16,6 +16,7 @@ updated: 2026-04-18
 - `world-history-contract.md` (`R-WHIST-*`)
 - `chat-contract.md` (`R-CHAT-*`)
 - `group-agent-participation-contract.md` (`R-CHAT-*`)
+- `feed-contract.md` (`R-FEED-*`)
 - `attachment-contract.md` (`R-ATTACH-*`)
 - `binding-contract.md` (`R-BIND-*`)
 - `resource-contract.md` (`R-RSRC-*`)
@@ -37,6 +38,9 @@ updated: 2026-04-18
 - `tables/world-history-contract.yaml`
 - `tables/chat-contract.yaml`
 - `tables/group-agent-participation-contract.yaml`
+- `tables/feed-contract.yaml`
+- `tables/feed-scopes.yaml`
+- `tables/feed-visibility.yaml`
 - `tables/group-agent-trigger-policy.yaml`
 - `tables/group-agent-slot-lifecycle.yaml`
 - `tables/attachment-contract.yaml`

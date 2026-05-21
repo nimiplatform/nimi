@@ -96,6 +96,16 @@ entries:
   - R-SOC-004
   - R-SOC-005
   - R-SOC-006
+  - R-FEED-001
+  - R-FEED-002
+  - R-FEED-003
+  - R-FEED-004
+  - R-FEED-005
+  - R-FEED-006
+  - R-FEED-007
+  - R-FEED-008
+  - R-FEED-009
+  - R-FEED-010
   - R-ECON-001
   - R-ECON-002
   - R-ECON-003
@@ -498,6 +508,56 @@ rules:
     spec_anchor: .nimi/spec/realm/kernel/social-contract.md#R-SOC-006
     profile_refs:
       - social
+  R-FEED-001:
+    domain: feed
+    spec_anchor: .nimi/spec/realm/kernel/feed-contract.md#R-FEED-001
+    profile_refs:
+      - feed
+  R-FEED-002:
+    domain: feed
+    spec_anchor: .nimi/spec/realm/kernel/feed-contract.md#R-FEED-002
+    profile_refs:
+      - feed
+  R-FEED-003:
+    domain: feed
+    spec_anchor: .nimi/spec/realm/kernel/feed-contract.md#R-FEED-003
+    profile_refs:
+      - feed
+  R-FEED-004:
+    domain: feed
+    spec_anchor: .nimi/spec/realm/kernel/feed-contract.md#R-FEED-004
+    profile_refs:
+      - feed
+  R-FEED-005:
+    domain: feed
+    spec_anchor: .nimi/spec/realm/kernel/feed-contract.md#R-FEED-005
+    profile_refs:
+      - feed
+  R-FEED-006:
+    domain: feed
+    spec_anchor: .nimi/spec/realm/kernel/feed-contract.md#R-FEED-006
+    profile_refs:
+      - feed
+  R-FEED-007:
+    domain: feed
+    spec_anchor: .nimi/spec/realm/kernel/feed-contract.md#R-FEED-007
+    profile_refs:
+      - feed
+  R-FEED-008:
+    domain: feed
+    spec_anchor: .nimi/spec/realm/kernel/feed-contract.md#R-FEED-008
+    profile_refs:
+      - feed
+  R-FEED-009:
+    domain: feed
+    spec_anchor: .nimi/spec/realm/kernel/feed-contract.md#R-FEED-009
+    profile_refs:
+      - feed
+  R-FEED-010:
+    domain: feed
+    spec_anchor: .nimi/spec/realm/kernel/feed-contract.md#R-FEED-010
+    profile_refs:
+      - feed
   R-ECON-001:
     domain: economy
     spec_anchor: .nimi/spec/realm/kernel/economy-contract.md#R-ECON-001

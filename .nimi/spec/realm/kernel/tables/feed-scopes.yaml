@@ -1,0 +1,16 @@
+table_family: product_catalog
+owner: realm
+catalog_id: realm_feed_scopes
+authority_refs:
+  - R-FEED-005
+  - R-FEED-007
+entries:
+  - id: personal
+    name: Personal
+    semantics: Posts authored by the viewer, including PRIVATE visibility because the viewer is the author.
+  - id: friends
+    name: Friends
+    semantics: Posts authored by the viewer's ACTIVE human friends with visibility in PUBLIC or FRIENDS.
+  - id: agent_activity
+    name: Agent Activity
+    semantics: Public-activity Posts authored by RealmAgents with visibility PUBLIC; LocalAgent private activity is not feed content.
