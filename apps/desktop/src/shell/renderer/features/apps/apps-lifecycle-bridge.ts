@@ -33,6 +33,8 @@ import type {
   RuntimeAppInstallJob,
   RuntimeAppInstallJobEvent,
   RuntimeAppLifecycleModule,
+  RuntimeAppOpenInput,
+  RuntimeAppOpenProjection,
   RuntimeAppUninstallInput,
   RuntimeAppUninstallResult,
   RuntimeAppUpdateInput,
@@ -53,6 +55,11 @@ export type {
   RuntimeAppInstallSourceKind,
   RuntimeAppInstallStorage,
   RuntimeAppLifecycleJobKind,
+  RuntimeAppOpenFlowStep,
+  RuntimeAppOpenInput,
+  RuntimeAppOpenProjection,
+  RuntimeAppOpenScopeRef,
+  RuntimeAppOpenState,
   RuntimeAppUninstallInput,
   RuntimeAppUninstallResult,
   RuntimeAppUpdateInput,
@@ -162,6 +169,14 @@ export interface DesktopAppLifecycleBridge {
    * in-flight job.
    */
   healthRepair(input: RuntimeAppHealthRepairInput): Promise<RuntimeAppInstallJob>;
+  /**
+   * Open (launch) an admitted Nimi App through the Runtime Open flow
+   * (`K-APP-017`). Requires an explicit app-launch `AIScopeRef` — the bridge
+   * forwards it verbatim and never infers it. Resolves with the typed Open
+   * projection: a `blocked` open carries the distinct fail-closed `reasonCode`
+   * and the step that blocked; it is never projected as launched.
+   */
+  open(input: RuntimeAppOpenInput): Promise<RuntimeAppOpenProjection>;
 }
 
 function requireJobId(jobId: string): string {
@@ -242,6 +257,13 @@ export function createDesktopAppLifecycleBridge(deps?: {
     async healthRepair(input) {
       try {
         return await getModule().healthRepair(input, APP_LIFECYCLE_CALL_OPTIONS);
+      } catch (error) {
+        throw asAppLifecycleNimiError(error);
+      }
+    },
+    async open(input) {
+      try {
+        return await getModule().open(input, APP_LIFECYCLE_CALL_OPTIONS);
       } catch (error) {
         throw asAppLifecycleNimiError(error);
       }

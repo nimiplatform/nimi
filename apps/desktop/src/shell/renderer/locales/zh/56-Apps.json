@@ -22,5 +22,69 @@
     "installFailed": "安装失败",
     "uninstalling": "卸载中",
     "statusUnavailable": "状态不可用"
+  },
+  "action": {
+    "install": "安装",
+    "open": "打开",
+    "update": "更新",
+    "repair": "修复",
+    "retry": "重试",
+    "cancel": "取消",
+    "uninstall": "卸载",
+    "deleteAppData": "删除应用数据",
+    "reviewPermissions": "查看权限",
+    "details": "详情",
+    "close": "关闭"
+  },
+  "requirement": {
+    "ai": "AI",
+    "permissions": "权限",
+    "data": "数据",
+    "runtime": "运行时",
+    "aiDetail": "使用从推荐或默认 AI 配置初始化的应用 AIConfig。",
+    "permissionsDetail": "启动前需要账户授予权限。",
+    "dataDetail": "在受管的 nimi_data 应用根目录下存储持久应用数据。",
+    "runtimeDetail": "需要经过校验的运行时包发布。"
+  },
+  "version": {
+    "installed": "已安装 {{version}}",
+    "available": "更新 {{version}}",
+    "notInstalled": "未安装"
+  },
+  "phase": {
+    "queued": "排队中",
+    "resolve_descriptor": "正在解析发布描述符",
+    "download": "正在下载安装包",
+    "verify": "正在校验签名与清单",
+    "materialize": "正在落地发布",
+    "unpack": "正在解包发布",
+    "evidence": "正在记录安装凭证",
+    "installed": "已安装",
+    "swap": "正在切换发布",
+    "failed": "失败",
+    "cancelled": "已取消",
+    "uninstalled": "已卸载"
+  },
+  "failure": {
+    "detail": "安装失败：{{reasonCode}} {{detail}}"
+  },
+  "detail": {
+    "publisher": "发布者",
+    "trustTier": "信任层级",
+    "installState": "安装状态",
+    "versionState": "版本",
+    "requirements": "要求",
+    "storageRoots": "存储根目录",
+    "releaseRoot": "发布",
+    "dataRoot": "数据",
+    "cacheRoot": "缓存",
+    "tempRoot": "临时"
+  },
+  "confirm": {
+    "deleteAppData": {
+      "title": "删除应用数据",
+      "message": "确定要永久删除 {{app}} 的持久应用数据吗？此操作会移除发布与该应用存储的数据，且不可撤销。",
+      "confirm": "删除应用数据"
+    }
   }
 }

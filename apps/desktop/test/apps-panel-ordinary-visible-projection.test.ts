@@ -149,10 +149,17 @@ const appsViewSource = readFileSync(
   resolve(import.meta.dirname, '../src/shell/renderer/features/apps/apps-panel-view.tsx'),
   'utf8',
 );
+const appsControllerSource = readFileSync(
+  resolve(import.meta.dirname, '../src/shell/renderer/features/apps/apps-panel-controller.ts'),
+  'utf8',
+);
 
 test('AppsPanel consumes Apps-owned projection and no longer mounts historical LibraryView', () => {
-  assert.match(appsPanelSource, /projectAppsPanel/);
+  // T4-W4 moved the projection load into `apps-panel-controller.ts`; the panel
+  // delegates via `useAppsPanelController` and mounts the Apps-owned view.
+  assert.match(appsPanelSource, /useAppsPanelController/);
   assert.match(appsPanelSource, /AppsPanelView/);
+  assert.match(appsControllerSource, /projectAppsPanel/);
   assert.doesNotMatch(appsPanelSource, /LibraryView/);
   assert.doesNotMatch(appsPanelSource, /projectLibrary/);
 });

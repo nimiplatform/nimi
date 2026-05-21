@@ -200,7 +200,6 @@ fn validate_app_library_record(
 /// (`P-MIG-004`) instead of a raw `Err`. `ConfigReadOutcome::Absent` means the
 /// projection has not been written yet (the account app-library lifecycle is
 /// T4-W2).
-#[allow(dead_code)]
 pub fn read_account_app_library_governed(
     account_id: &str,
 ) -> Result<ConfigReadOutcome<AccountAppLibraryRecord>, String> {
@@ -224,7 +223,6 @@ pub fn read_account_app_library_governed(
 /// Thin presence-shaped adapter over [`read_account_app_library_governed`]: a
 /// routed repair state is surfaced as the typed repair reason; `Absent` maps
 /// to `Ok(None)`.
-#[allow(dead_code)]
 pub fn read_account_app_library(
     account_id: &str,
 ) -> Result<Option<AccountAppLibraryRecord>, String> {
@@ -233,6 +231,153 @@ pub fn read_account_app_library(
         ConfigReadOutcome::Ready(record) => Ok(Some(record)),
         ConfigReadOutcome::Repair { reason, .. } => Err(reason),
     }
+}
+
+// === Account app-library projection writer (T4-W4) ===
+//
+// T4-W4 Fork D (D1): the desktop Tauri layer owns the `library.json` writer.
+// `library.json` is an account-scoped display/launch-preference projection; it
+// is mutated on install / uninstall (here) and on open (`lastOpenedAt`, the
+// app-launch wave). The writer is fail-closed: it routes through the same
+// governed read so a corrupt / unknown-version / account-mismatched file is a
+// typed repair, never silently overwritten.
+
+/// The library mutation a lifecycle terminal event applies.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum AccountAppLibraryMutation {
+    /// A terminal `installed` job: the app is installed and enabled in the
+    /// account library. The data-retention policy defaults to keep-on-uninstall
+    /// (manual `#### Uninstall And Data`).
+    InstalledEnabled,
+    /// A terminal `uninstalled` job that removed the release only: the package
+    /// is no longer installed, but the account library record is kept (the app
+    /// stays in the library, just not installed) per manual `#### Uninstall And
+    /// Data` ("keep account library record unless user explicitly removes").
+    UninstalledKeepRecord,
+    /// A confirmed destructive "Delete app data" flow: the app is removed from
+    /// the account library entirely (`libraryState = removed`).
+    RemovedFromLibrary,
+}
+
+/// Build an empty, valid library record for an account that has none yet.
+fn empty_app_library_record(account_id: &str) -> AccountAppLibraryRecord {
+    AccountAppLibraryRecord {
+        schema_version: ACCOUNT_APP_LIBRARY_SCHEMA_VERSION,
+        account_id: account_id.to_string(),
+        updated_at: now_app_iso_timestamp(),
+        apps: Vec::new(),
+    }
+}
+
+fn now_app_iso_timestamp() -> String {
+    chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Millis, true)
+}
+
+/// Atomically write the account app-library record (temp-file + rename).
+fn write_app_library_record(
+    path: &std::path::Path,
+    record: &AccountAppLibraryRecord,
+) -> Result<(), String> {
+    let parent = path
+        .parent()
+        .ok_or_else(|| "library.json path has no parent directory".to_string())?;
+    std::fs::create_dir_all(parent).map_err(|error| {
+        format!(
+            "create library.json directory failed ({}): {error}",
+            parent.display()
+        )
+    })?;
+    let raw = serde_json::to_string_pretty(record)
+        .map_err(|error| format!("serialize library.json failed: {error}"))?;
+    let tmp_path = path.with_extension(format!(
+        "json.tmp.{}.{}",
+        std::process::id(),
+        chrono::Utc::now().timestamp_nanos_opt().unwrap_or_default()
+    ));
+    std::fs::write(&tmp_path, raw).map_err(|error| {
+        format!(
+            "write library.json temporary file failed ({}): {error}",
+            tmp_path.display()
+        )
+    })?;
+    std::fs::rename(&tmp_path, path)
+        .map_err(|error| format!("commit library.json record failed ({}): {error}", path.display()))
+}
+
+/// Apply a lifecycle mutation to one app row in an account's `library.json`.
+///
+/// Fail-closed: the existing file is read through the governed reader, so a
+/// corrupt / unknown-version / account-mismatched file routes to a typed
+/// repair `Err` and is NOT overwritten. An absent file is treated as an empty
+/// library and a fresh record is written. The mutation is idempotent — the
+/// same install/uninstall event applied twice converges to the same row.
+///
+/// Returns the committed record.
+pub fn apply_account_app_library_mutation(
+    account_id: &str,
+    app_id: &str,
+    mutation: AccountAppLibraryMutation,
+) -> Result<AccountAppLibraryRecord, String> {
+    let normalized_account = validate_account_id(account_id)?;
+    let normalized_app = app_id.trim();
+    if normalized_app.is_empty() {
+        return Err("library.json mutation requires a non-empty appId".to_string());
+    }
+    let path = account_app_library_path(&normalized_account)?;
+
+    // Fail-closed read of the current record. `Absent` -> fresh empty record;
+    // `Repair` -> typed Err (never overwrite a faulted file).
+    let mut record = match read_account_app_library_governed(&normalized_account)? {
+        ConfigReadOutcome::Absent => empty_app_library_record(&normalized_account),
+        ConfigReadOutcome::Ready(existing) => existing,
+        ConfigReadOutcome::Repair { reason, .. } => return Err(reason),
+    };
+
+    let existing = record
+        .apps
+        .iter_mut()
+        .find(|row| row.app_id == normalized_app);
+
+    match mutation {
+        AccountAppLibraryMutation::InstalledEnabled => {
+            if let Some(row) = existing {
+                row.library_state = LIBRARY_STATE_ENABLED.to_string();
+                row.installed = true;
+            } else {
+                record.apps.push(AccountAppLibraryRow {
+                    app_id: normalized_app.to_string(),
+                    library_state: LIBRARY_STATE_ENABLED.to_string(),
+                    installed: true,
+                    last_opened_at: None,
+                    // Default retention: keep durable data on uninstall.
+                    data_policy: DATA_POLICY_KEEP_ON_UNINSTALL.to_string(),
+                });
+            }
+        }
+        AccountAppLibraryMutation::UninstalledKeepRecord => {
+            if let Some(row) = existing {
+                // Package removed; the library record is kept. The app stays
+                // in the library (enabled vocabulary keeps it visible), just
+                // not installed.
+                row.installed = false;
+            }
+            // An uninstall of an app with no library row is a no-op — there is
+            // no record to keep.
+        }
+        AccountAppLibraryMutation::RemovedFromLibrary => {
+            if let Some(row) = existing {
+                row.library_state = LIBRARY_STATE_REMOVED.to_string();
+                row.installed = false;
+            }
+        }
+    }
+
+    record.updated_at = now_app_iso_timestamp();
+    // Validate the mutated record before committing — a write must never
+    // produce a file the governed reader would reject.
+    validate_app_library_record(&record, &normalized_account)?;
+    write_app_library_record(&path, &record)?;
+    Ok(record)
 }
 
 // === Permission/grant projection (`grants.json`) ===
@@ -430,10 +575,10 @@ pub fn read_account_grants_fail_closed(
 #[cfg(test)]
 mod tests {
     use super::{
-        account_app_library_path, account_grants_path, read_account_app_library,
-        read_account_app_library_governed, read_account_grants_fail_closed,
-        read_account_grants_governed, ACCOUNT_APP_LIBRARY_SCHEMA_VERSION,
-        ACCOUNT_GRANTS_SCHEMA_VERSION,
+        account_app_library_path, account_grants_path, apply_account_app_library_mutation,
+        read_account_app_library, read_account_app_library_governed,
+        read_account_grants_fail_closed, read_account_grants_governed, AccountAppLibraryMutation,
+        ACCOUNT_APP_LIBRARY_SCHEMA_VERSION, ACCOUNT_GRANTS_SCHEMA_VERSION,
     };
     use crate::local_config_migration::{ConfigReadOutcome, ConfigRepairSeverity};
     use crate::test_support::with_env;
@@ -535,6 +680,115 @@ mod tests {
                 }
                 other => panic!("expected repair_required, got {other:?}"),
             }
+        });
+    }
+
+    #[test]
+    fn library_mutation_installs_then_uninstalls_keeping_record() {
+        // T4-W4: the install/uninstall lifecycle terminal events drive the
+        // `library.json` writer. Install marks the app installed+enabled; an
+        // uninstall keeps the library record but marks the package not
+        // installed (manual `#### Uninstall And Data`).
+        let home = temp_home("library-mutate");
+        with_env(&[("HOME", home.to_str())], || {
+            let installed = apply_account_app_library_mutation(
+                "account_1",
+                "nimi.parentos",
+                AccountAppLibraryMutation::InstalledEnabled,
+            )
+            .expect("install mutation");
+            assert_eq!(installed.apps.len(), 1);
+            assert_eq!(installed.apps[0].app_id, "nimi.parentos");
+            assert_eq!(installed.apps[0].library_state, "enabled");
+            assert!(installed.apps[0].installed);
+            assert_eq!(installed.apps[0].data_policy, "keep_on_uninstall");
+
+            let uninstalled = apply_account_app_library_mutation(
+                "account_1",
+                "nimi.parentos",
+                AccountAppLibraryMutation::UninstalledKeepRecord,
+            )
+            .expect("uninstall mutation");
+            assert_eq!(uninstalled.apps.len(), 1, "library record kept on uninstall");
+            assert!(!uninstalled.apps[0].installed, "package no longer installed");
+            assert_eq!(uninstalled.apps[0].library_state, "enabled");
+
+            // The committed file round-trips through the governed reader.
+            let read_back = read_account_app_library("account_1")
+                .expect("read")
+                .expect("record present");
+            assert_eq!(read_back.apps.len(), 1);
+            assert!(!read_back.apps[0].installed);
+        });
+    }
+
+    #[test]
+    fn library_mutation_remove_marks_record_removed() {
+        let home = temp_home("library-remove");
+        with_env(&[("HOME", home.to_str())], || {
+            apply_account_app_library_mutation(
+                "account_1",
+                "nimi.parentos",
+                AccountAppLibraryMutation::InstalledEnabled,
+            )
+            .expect("install mutation");
+            let removed = apply_account_app_library_mutation(
+                "account_1",
+                "nimi.parentos",
+                AccountAppLibraryMutation::RemovedFromLibrary,
+            )
+            .expect("remove mutation");
+            assert_eq!(removed.apps[0].library_state, "removed");
+            assert!(!removed.apps[0].installed);
+        });
+    }
+
+    #[test]
+    fn library_mutation_is_idempotent() {
+        let home = temp_home("library-idempotent");
+        with_env(&[("HOME", home.to_str())], || {
+            apply_account_app_library_mutation(
+                "account_1",
+                "nimi.parentos",
+                AccountAppLibraryMutation::InstalledEnabled,
+            )
+            .expect("install mutation");
+            let second = apply_account_app_library_mutation(
+                "account_1",
+                "nimi.parentos",
+                AccountAppLibraryMutation::InstalledEnabled,
+            )
+            .expect("repeated install mutation");
+            assert_eq!(second.apps.len(), 1, "repeated install converges to one row");
+        });
+    }
+
+    #[test]
+    fn library_mutation_fails_closed_on_faulted_file() {
+        // A corrupt / unknown-version file routes the governed read to a typed
+        // repair; the writer must NOT overwrite it.
+        let home = temp_home("library-mutate-fault");
+        with_env(&[("HOME", home.to_str())], || {
+            let path = account_app_library_path("account_1").expect("path");
+            write_json(
+                &path,
+                serde_json::json!({
+                    "schemaVersion": 9999,
+                    "accountId": "account_1",
+                    "updatedAt": "2026-05-21T00:00:00.000Z",
+                    "apps": []
+                }),
+            );
+            let error = apply_account_app_library_mutation(
+                "account_1",
+                "nimi.parentos",
+                AccountAppLibraryMutation::InstalledEnabled,
+            )
+            .expect_err("faulted file fails the mutation closed");
+            assert!(error.contains("newer than the supported version"));
+            // The faulted file is untouched, not overwritten.
+            let raw = std::fs::read_to_string(&path).expect("file still present");
+            assert!(raw.contains("9999"), "faulted file not overwritten");
         });
     }
 

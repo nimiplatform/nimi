@@ -22,5 +22,69 @@
     "installFailed": "Install Failed",
     "uninstalling": "Uninstalling",
     "statusUnavailable": "Status Unavailable"
+  },
+  "action": {
+    "install": "Install",
+    "open": "Open",
+    "update": "Update",
+    "repair": "Repair",
+    "retry": "Retry",
+    "cancel": "Cancel",
+    "uninstall": "Uninstall",
+    "deleteAppData": "Delete App Data",
+    "reviewPermissions": "Review Permissions",
+    "details": "Details",
+    "close": "Close"
+  },
+  "requirement": {
+    "ai": "AI",
+    "permissions": "Permissions",
+    "data": "Data",
+    "runtime": "Runtime",
+    "aiDetail": "Uses an app AIConfig initialized from your recommended or default AI profile.",
+    "permissionsDetail": "Requests account permission grants before launch.",
+    "dataDetail": "Stores durable app data under a managed nimi_data app root.",
+    "runtimeDetail": "Requires a verified runtime package release."
+  },
+  "version": {
+    "installed": "Installed {{version}}",
+    "available": "Update {{version}}",
+    "notInstalled": "Not installed"
+  },
+  "phase": {
+    "queued": "Queued",
+    "resolve_descriptor": "Resolving release descriptor",
+    "download": "Downloading package",
+    "verify": "Verifying signature and manifest",
+    "materialize": "Materializing release",
+    "unpack": "Unpacking release",
+    "evidence": "Recording install evidence",
+    "installed": "Installed",
+    "swap": "Swapping release",
+    "failed": "Failed",
+    "cancelled": "Cancelled",
+    "uninstalled": "Uninstalled"
+  },
+  "failure": {
+    "detail": "Install failed: {{reasonCode}} {{detail}}"
+  },
+  "detail": {
+    "publisher": "Publisher",
+    "trustTier": "Trust tier",
+    "installState": "Install state",
+    "versionState": "Version",
+    "requirements": "Requirements",
+    "storageRoots": "Storage roots",
+    "releaseRoot": "Release",
+    "dataRoot": "Data",
+    "cacheRoot": "Cache",
+    "tempRoot": "Temp"
+  },
+  "confirm": {
+    "deleteAppData": {
+      "title": "Delete app data",
+      "message": "Permanently delete the durable app data for {{app}}? This removes the release and the app's stored data. This cannot be undone.",
+      "confirm": "Delete app data"
+    }
   }
 }
