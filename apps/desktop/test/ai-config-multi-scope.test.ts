@@ -62,6 +62,13 @@ test('multi-scope: shared Desktop host service maintains config by scope map', (
   assert.match(serviceSource, /configByScope\.keys\(\)/);
 });
 
+test('multi-scope: read fallback does not mark a scope as initialized', () => {
+  assert.match(serviceSource, /materializedScopeKeys/);
+  assert.match(serviceSource, /materializedScopeKeys\.add\(key\)/);
+  assert.match(serviceSource, /materializedScopeKeys\.has\(key\)/);
+  assert.doesNotMatch(serviceSource, /scopeHasPersistedConfig[\s\S]{0,220}configByScope\.has\(key\)/);
+});
+
 test('multi-scope: shared Desktop host service listScopes returns real scope refs from map', () => {
   // listScopes must iterate configByScope, not return hardcoded single scope
   assert.match(serviceSource, /listScopes\(\): AIScopeRef\[\]/);

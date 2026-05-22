@@ -88,10 +88,11 @@ test('built-in AIConfig fails closed on generic scope, string-only ref, and part
     desktopAiConfigLibrarySource,
     /requires exactly \{\} refs for both canonical chat scopes/,
   );
-  // text.generate binding comes from Runtime baseline evidence; non-text
-  // capabilities stay explicitly unbound instead of hardcoding a provider/model.
-  assert.match(desktopAiConfigLibrarySource, /runtime_text_generate_binding_from_baseline_ref/);
-  assert.match(desktopAiConfigLibrarySource, /capability == TEXT_GENERATE_CAPABILITY/);
+  // Text/STT/TTS bindings come from Runtime baseline evidence; no capability
+  // binding is invented when the runtime baseline omits its consumer.
+  assert.match(desktopAiConfigLibrarySource, /runtime_capability_bindings_from_baseline_ref/);
+  assert.match(desktopAiConfigLibrarySource, /AUDIO_SYNTHESIZE_CAPABILITY/);
+  assert.match(desktopAiConfigLibrarySource, /AUDIO_TRANSCRIBE_CAPABILITY/);
 });
 
 test('built-in AIConfig apply is atomic (D-AIPC-005) via temp-file then rename', () => {

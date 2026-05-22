@@ -47,7 +47,10 @@ import {
   getConversationCapabilityRouteRuntime,
   type ConversationCapabilityRouteRuntime,
 } from '@renderer/features/chat/conversation-capability.js';
-import { getAccountDefaultProfileForScopeInit } from '@renderer/bridge/runtime-bridge/product-control.js';
+import {
+  getAccountDefaultProfileForScopeInit,
+  getBuiltInAIConfigForScopeInit,
+} from '@renderer/bridge/runtime-bridge/product-control.js';
 
 // ---------------------------------------------------------------------------
 // Snapshot store — in-memory ring buffer (S-AICONF-005: host-local persistence)
@@ -116,6 +119,7 @@ const snapshotStore = createSnapshotStore();
 
 /** In-memory config map keyed by scope key string. */
 const configByScope = new Map<string, AIConfig>();
+const materializedScopeKeys = new Set<string>();
 
 const CORE_RUNTIME_MOD_ID = 'core:runtime';
 const DESKTOP_RUNTIME_APP_ID = 'nimi.desktop';
@@ -136,6 +140,7 @@ function ensureHydrated(): void {
     if (!ref) continue;
     const config = loadAIConfigForScope(ref);
     configByScope.set(key, config);
+    materializedScopeKeys.add(key);
   }
 }
 
@@ -147,7 +152,7 @@ function ensureHydrated(): void {
 function scopeHasPersistedConfig(scopeRef: AIScopeRef): boolean {
   ensureHydrated();
   const key = scopeKey(scopeRef);
-  if (configByScope.has(key)) {
+  if (materializedScopeKeys.has(key)) {
     return true;
   }
   return listPersistedScopeKeys().includes(key);
@@ -176,6 +181,7 @@ function commitConfig(config: AIConfig): void {
   const key = scopeKey(config.scopeRef);
   persistAIConfigForScope(config);
   configByScope.set(key, config);
+  materializedScopeKeys.add(key);
   if (appStoreSetter) {
     appStoreSetter(key, config);
   }
@@ -234,6 +240,25 @@ export async function initializeScopeFromAccountDefaultProfile(
   }
   const initialConfig = applyAIProfileToConfig(createEmptyAIConfig(scopeRef), profile);
   commitConfig(initialConfig);
+  return true;
+}
+
+export async function initializeBuiltInChatScopeFromProductControl(
+  scopeRef: AIScopeRef,
+): Promise<boolean> {
+  if (scopeRef.kind !== 'feature'
+    || scopeRef.ownerId !== 'desktop.chat'
+    || (scopeRef.surfaceId !== 'nimi' && scopeRef.surfaceId !== 'agent')) {
+    return false;
+  }
+  if (scopeHasPersistedConfig(scopeRef)) {
+    return false;
+  }
+  const builtInConfig = await getBuiltInAIConfigForScopeInit(scopeRef.surfaceId);
+  if (scopeHasPersistedConfig(scopeRef)) {
+    return false;
+  }
+  commitConfig(builtInConfig);
   return true;
 }
 

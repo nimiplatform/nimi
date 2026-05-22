@@ -39,7 +39,11 @@ const BUILT_IN_AI_CONFIG_SCOPE_KIND: &str = "feature";
 const BUILT_IN_AI_CONFIG_SCOPE_OWNER_ID: &str = "desktop.chat";
 const BUILT_IN_AI_CONFIG_APPLY_SOURCE: &str = "desktop_host_first_run_built_in_ai_config";
 const TEXT_GENERATE_CAPABILITY: &str = "text.generate";
+const AUDIO_TRANSCRIBE_CAPABILITY: &str = "audio.transcribe";
+const AUDIO_SYNTHESIZE_CAPABILITY: &str = "audio.synthesize";
 const FIRST_RUN_TEXT_CONSUMER_ID: &str = "llama.cpp.cpu";
+const FIRST_RUN_STT_CONSUMER_ID: &str = "speech.qwen3-asr.python";
+const FIRST_RUN_TTS_CONSUMER_ID: &str = "speech.qwen3-tts.python";
 
 /// The two canonical first-run built-in chat surface ids (`P-AISC-006`).
 const BUILT_IN_CHAT_SURFACE_IDS: &[&str] = &["nimi", "agent"];
@@ -144,6 +148,30 @@ pub struct BuiltInAiConfigEvidenceSet {
     pub agent: BuiltInAiConfigEvidence,
 }
 
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct BuiltInAiConfigScopeInitCapabilities {
+    pub selected_bindings: serde_json::Map<String, serde_json::Value>,
+    pub local_profile_refs: serde_json::Map<String, serde_json::Value>,
+    pub selected_params: serde_json::Map<String, serde_json::Value>,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct BuiltInAiConfigScopeInitProfileOrigin {
+    pub profile_id: String,
+    pub title: String,
+    pub applied_at: String,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct BuiltInAiConfigForScopeInit {
+    pub scope_ref: BuiltInChatScopeRef,
+    pub capabilities: BuiltInAiConfigScopeInitCapabilities,
+    pub profile_origin: BuiltInAiConfigScopeInitProfileOrigin,
+}
+
 impl BuiltInAiConfigEvidenceSet {
     /// Durable `builtInAiConfigRefs` in stable order (`nimi`, then `agent`).
     pub fn refs(&self) -> Vec<String> {
@@ -151,6 +179,30 @@ impl BuiltInAiConfigEvidenceSet {
             self.nimi.built_in_ai_config_ref.clone(),
             self.agent.built_in_ai_config_ref.clone(),
         ]
+    }
+}
+
+fn built_in_ai_config_for_scope_init_from_record(
+    record: &BuiltInAiConfigRecord,
+) -> BuiltInAiConfigForScopeInit {
+    let mut selected_bindings = serde_json::Map::new();
+    for capability in &record.config_payload.capabilities {
+        if !capability.binding.is_null() {
+            selected_bindings.insert(capability.capability.clone(), capability.binding.clone());
+        }
+    }
+    BuiltInAiConfigForScopeInit {
+        scope_ref: record.scope_ref.clone(),
+        capabilities: BuiltInAiConfigScopeInitCapabilities {
+            selected_bindings,
+            local_profile_refs: serde_json::Map::new(),
+            selected_params: serde_json::Map::new(),
+        },
+        profile_origin: BuiltInAiConfigScopeInitProfileOrigin {
+            profile_id: record.ai_profile_ref.profile_id.clone(),
+            title: format!("Factory {}", record.ai_profile_ref.ai_profile_alias),
+            applied_at: record.ai_profile_ref.applied_at.clone(),
+        },
     }
 }
 
@@ -281,18 +333,21 @@ pub fn built_in_ai_config_path(
 /// connector, engine, or model identifier.
 fn config_capabilities_from_row(
     row: &PlatformAIProfileFactoryRow,
-    text_generate_binding: &serde_json::Value,
+    baseline_bindings: &[BuiltInAiConfigCapability],
 ) -> Vec<BuiltInAiConfigCapability> {
+    let binding_for_capability = |capability: &str| {
+        baseline_bindings
+            .iter()
+            .find(|binding| binding.capability == capability)
+            .map(|binding| binding.binding.clone())
+            .unwrap_or(serde_json::Value::Null)
+    };
     let mut capabilities: Vec<BuiltInAiConfigCapability> = row
         .capability_set
         .iter()
         .map(|capability| BuiltInAiConfigCapability {
             capability: (*capability).to_string(),
-            binding: if *capability == TEXT_GENERATE_CAPABILITY {
-                text_generate_binding.clone()
-            } else {
-                serde_json::Value::Null
-            },
+            binding: binding_for_capability(capability),
         })
         .collect();
     capabilities.sort_by(|a, b| a.capability.cmp(&b.capability));
@@ -303,10 +358,10 @@ fn ai_profile_ref_from_row(
     row: &PlatformAIProfileFactoryRow,
     install_level: &str,
     applied_at: &str,
-    text_generate_binding: &serde_json::Value,
+    baseline_bindings: &[BuiltInAiConfigCapability],
 ) -> Result<BuiltInAiProfileRef, String> {
     let payload_hash = stable_json_hash(
-        &config_capabilities_from_row(row, text_generate_binding),
+        &config_capabilities_from_row(row, baseline_bindings),
         "built-in AIConfig capability payload",
     )?;
     Ok(BuiltInAiProfileRef {
@@ -321,19 +376,32 @@ fn ai_profile_ref_from_row(
     })
 }
 
-pub fn runtime_text_generate_binding_from_baseline_ref(
-    baseline: &crate::runtime_bridge::generated::RuntimeBaselineReadinessRef,
-) -> Result<serde_json::Value, String> {
-    let consumer = baseline
+fn consumer_evidence_from_baseline_ref<'a>(
+    baseline: &'a crate::runtime_bridge::generated::RuntimeBaselineReadinessRef,
+    consumer_id: &str,
+) -> Result<&'a crate::runtime_bridge::generated::RuntimeBaselineActivationConsumerEvidence, String>
+{
+    baseline
         .activation_ready_responses
         .iter()
-        .find(|item| item.consumer_id.trim() == FIRST_RUN_TEXT_CONSUMER_ID)
+        .find(|item| item.consumer_id.trim() == consumer_id)
         .ok_or_else(|| {
-            "Runtime baseline evidence is missing the first-run text consumer".to_string()
-        })?;
+            format!("Runtime baseline evidence is missing the first-run consumer {consumer_id}")
+        })
+}
+
+fn local_binding_from_baseline_consumer(
+    baseline: &crate::runtime_bridge::generated::RuntimeBaselineReadinessRef,
+    consumer_id: &str,
+    engine: &str,
+    provider: &str,
+) -> Result<serde_json::Value, String> {
+    let consumer = consumer_evidence_from_baseline_ref(baseline, consumer_id)?;
     let bound_asset_id = consumer.bound_asset_id.trim();
     if bound_asset_id.is_empty() {
-        return Err("Runtime baseline text consumer is missing bound_asset_id".to_string());
+        return Err(format!(
+            "Runtime baseline consumer {consumer_id} is missing bound_asset_id"
+        ));
     }
     let runtime_baseline_ref = baseline.runtime_baseline_ref.trim();
     if runtime_baseline_ref.is_empty() {
@@ -345,20 +413,63 @@ pub fn runtime_text_generate_binding_from_baseline_ref(
         "model": bound_asset_id,
         "modelId": bound_asset_id,
         "localModelId": bound_asset_id,
-        "provider": "local",
-        "engine": consumer.consumer_id.trim(),
+        "provider": provider,
+        "engine": engine,
         "goRuntimeLocalModelId": bound_asset_id,
         "runtimeBaselineRef": runtime_baseline_ref,
         "runtimeConsumerId": consumer.consumer_id.trim(),
     }))
 }
 
-fn text_generate_binding_from_capabilities(
-    capabilities: &[BuiltInAiConfigCapability],
-) -> Option<&serde_json::Value> {
+pub fn runtime_text_generate_binding_from_baseline_ref(
+    baseline: &crate::runtime_bridge::generated::RuntimeBaselineReadinessRef,
+) -> Result<serde_json::Value, String> {
+    local_binding_from_baseline_consumer(
+        baseline,
+        FIRST_RUN_TEXT_CONSUMER_ID,
+        FIRST_RUN_TEXT_CONSUMER_ID,
+        "local",
+    )
+}
+
+pub fn runtime_capability_bindings_from_baseline_ref(
+    baseline: &crate::runtime_bridge::generated::RuntimeBaselineReadinessRef,
+) -> Result<Vec<BuiltInAiConfigCapability>, String> {
+    let mut bindings = vec![
+        BuiltInAiConfigCapability {
+            capability: TEXT_GENERATE_CAPABILITY.to_string(),
+            binding: runtime_text_generate_binding_from_baseline_ref(baseline)?,
+        },
+        BuiltInAiConfigCapability {
+            capability: AUDIO_TRANSCRIBE_CAPABILITY.to_string(),
+            binding: local_binding_from_baseline_consumer(
+                baseline,
+                FIRST_RUN_STT_CONSUMER_ID,
+                "speech",
+                "speech",
+            )?,
+        },
+        BuiltInAiConfigCapability {
+            capability: AUDIO_SYNTHESIZE_CAPABILITY.to_string(),
+            binding: local_binding_from_baseline_consumer(
+                baseline,
+                FIRST_RUN_TTS_CONSUMER_ID,
+                "speech",
+                "speech",
+            )?,
+        },
+    ];
+    bindings.sort_by(|a, b| a.capability.cmp(&b.capability));
+    Ok(bindings)
+}
+
+fn capability_binding_from_capabilities<'a>(
+    capabilities: &'a [BuiltInAiConfigCapability],
+    capability: &str,
+) -> Option<&'a serde_json::Value> {
     capabilities
         .iter()
-        .find(|capability| capability.capability == TEXT_GENERATE_CAPABILITY)
+        .find(|item| item.capability == capability)
         .map(|capability| &capability.binding)
 }
 
@@ -413,7 +524,7 @@ fn verify_record_fields(
     authenticated_account_id: &str,
     expected_data_root_ref: &str,
     expected_surface_id: &str,
-    expected_text_generate_binding: Option<&serde_json::Value>,
+    expected_baseline_bindings: Option<&[BuiltInAiConfigCapability]>,
 ) -> Result<(), String> {
     let account_id = validate_account_id(authenticated_account_id)?;
     let expected_surface = validate_built_in_chat_surface_id(expected_surface_id)?;
@@ -476,19 +587,26 @@ fn verify_record_fields(
             "built-in AIConfig applied AIProfile appliedAt evidence is required".to_string(),
         );
     }
-    let recorded_text_binding =
-        text_generate_binding_from_capabilities(&record.config_payload.capabilities)
+    if let Some(expected_bindings) = expected_baseline_bindings {
+        for expected in expected_bindings {
+            let recorded = capability_binding_from_capabilities(
+                &record.config_payload.capabilities,
+                &expected.capability,
+            )
             .unwrap_or(&serde_json::Value::Null);
-    if let Some(expected_binding) = expected_text_generate_binding {
-        if recorded_text_binding != expected_binding {
-            return Err(
-                "built-in AIConfig text.generate binding does not match Runtime baseline evidence"
-                    .to_string(),
-            );
+            if recorded != &expected.binding {
+                return Err(format!(
+                    "built-in AIConfig {} binding does not match Runtime baseline evidence",
+                    expected.capability
+                ));
+            }
         }
     }
     // Capability payload must equal the full materialization of the factory row.
-    let expected_capabilities = config_capabilities_from_row(row, recorded_text_binding);
+    let expected_capabilities = config_capabilities_from_row(
+        row,
+        expected_baseline_bindings.unwrap_or(&record.config_payload.capabilities),
+    );
     if record.config_payload.capabilities != expected_capabilities {
         return Err(
             "built-in AIConfig capability payload is not the full materialized factory AIProfile"
@@ -582,14 +700,14 @@ fn new_config_record(
     surface_id: &str,
     install_level: &str,
     row: &PlatformAIProfileFactoryRow,
-    text_generate_binding: &serde_json::Value,
+    baseline_bindings: &[BuiltInAiConfigCapability],
 ) -> Result<BuiltInAiConfigRecord, String> {
     let now = now_iso_timestamp();
     let scope_ref = built_in_chat_scope_ref(surface_id)?;
-    let ai_profile_ref = ai_profile_ref_from_row(row, install_level, &now, text_generate_binding)?;
+    let ai_profile_ref = ai_profile_ref_from_row(row, install_level, &now, baseline_bindings)?;
     let config_payload = BuiltInAiConfigPayload {
         scope_ref: scope_ref.clone(),
-        capabilities: config_capabilities_from_row(row, text_generate_binding),
+        capabilities: config_capabilities_from_row(row, baseline_bindings),
         profile_origin: ai_profile_ref.clone(),
     };
     let mut record = BuiltInAiConfigRecord {
@@ -619,7 +737,7 @@ pub fn verify_built_in_ai_config_ref(
     authenticated_account_id: &str,
     surface_id: &str,
     built_in_ai_config_ref_value: &str,
-    expected_text_generate_binding: Option<&serde_json::Value>,
+    expected_baseline_bindings: Option<&[BuiltInAiConfigCapability]>,
 ) -> Result<BuiltInAiConfigEvidence, String> {
     let path = built_in_ai_config_path(data_root, authenticated_account_id, surface_id)?;
     let expected_data_root_ref = data_root_ref(data_root)?;
@@ -629,7 +747,7 @@ pub fn verify_built_in_ai_config_ref(
         authenticated_account_id,
         &expected_data_root_ref,
         surface_id,
-        expected_text_generate_binding,
+        expected_baseline_bindings,
     )?;
     let evidence = evidence_from_record(&path, &record)?;
     if evidence.built_in_ai_config_ref != built_in_ai_config_ref_value.trim() {
@@ -647,7 +765,7 @@ pub fn ensure_built_in_ai_config(
     surface_id: &str,
     selected_ai_profile_alias: &str,
     install_level: &str,
-    text_generate_binding: &serde_json::Value,
+    baseline_bindings: &[BuiltInAiConfigCapability],
 ) -> Result<BuiltInAiConfigEvidence, String> {
     let path = built_in_ai_config_path(data_root, authenticated_account_id, surface_id)?;
     let expected_data_root_ref = data_root_ref(data_root)?;
@@ -660,7 +778,7 @@ pub fn ensure_built_in_ai_config(
             authenticated_account_id,
             &expected_data_root_ref,
             surface_id,
-            Some(text_generate_binding),
+            Some(baseline_bindings),
         )
         .is_ok()
         {
@@ -670,7 +788,7 @@ pub fn ensure_built_in_ai_config(
                 authenticated_account_id,
                 surface_id,
                 &evidence.built_in_ai_config_ref,
-                Some(text_generate_binding),
+                Some(baseline_bindings),
             );
         }
     }
@@ -680,7 +798,7 @@ pub fn ensure_built_in_ai_config(
         surface_id,
         install_level,
         selected_row,
-        text_generate_binding,
+        baseline_bindings,
     )?;
     write_config_record(&path, &record)?;
     let evidence = evidence_from_record(&path, &record)?;
@@ -689,7 +807,7 @@ pub fn ensure_built_in_ai_config(
         authenticated_account_id,
         surface_id,
         &evidence.built_in_ai_config_ref,
-        Some(text_generate_binding),
+        Some(baseline_bindings),
     )
 }
 
@@ -705,7 +823,7 @@ pub fn ensure_built_in_ai_config_evidence_set(
     authenticated_account_id: &str,
     selected_ai_profile_alias: &str,
     install_level: &str,
-    text_generate_binding: &serde_json::Value,
+    baseline_bindings: &[BuiltInAiConfigCapability],
 ) -> Result<BuiltInAiConfigEvidenceSet, String> {
     let nimi = ensure_built_in_ai_config(
         data_root,
@@ -713,7 +831,7 @@ pub fn ensure_built_in_ai_config_evidence_set(
         "nimi",
         selected_ai_profile_alias,
         install_level,
-        text_generate_binding,
+        baseline_bindings,
     )?;
     let agent = ensure_built_in_ai_config(
         data_root,
@@ -721,7 +839,7 @@ pub fn ensure_built_in_ai_config_evidence_set(
         "agent",
         selected_ai_profile_alias,
         install_level,
-        text_generate_binding,
+        baseline_bindings,
     )?;
     Ok(BuiltInAiConfigEvidenceSet { nimi, agent })
 }
@@ -741,7 +859,7 @@ pub fn verify_built_in_ai_config_evidence_set(
     data_root: &Path,
     authenticated_account_id: &str,
     built_in_ai_config_refs: &[String],
-    expected_text_generate_binding: Option<&serde_json::Value>,
+    expected_baseline_bindings: Option<&[BuiltInAiConfigCapability]>,
 ) -> Result<BuiltInAiConfigEvidenceSet, String> {
     if built_in_ai_config_refs.len() != BUILT_IN_CHAT_SURFACE_IDS.len() {
         return Err(format!(
@@ -763,7 +881,7 @@ pub fn verify_built_in_ai_config_evidence_set(
                 authenticated_account_id,
                 surface_id,
                 candidate,
-                expected_text_generate_binding,
+                expected_baseline_bindings,
             ) else {
                 continue;
             };
@@ -807,6 +925,37 @@ pub fn verify_built_in_ai_config_evidence_set(
     Ok(BuiltInAiConfigEvidenceSet { nimi, agent })
 }
 
+pub fn read_built_in_ai_config_for_scope_init(
+    data_root: &Path,
+    authenticated_account_id: &str,
+    surface_id: &str,
+    built_in_ai_config_refs: &[String],
+    expected_baseline_bindings: &[BuiltInAiConfigCapability],
+) -> Result<BuiltInAiConfigForScopeInit, String> {
+    for raw_ref in built_in_ai_config_refs {
+        let candidate = raw_ref.trim();
+        if candidate.is_empty() {
+            continue;
+        }
+        if verify_built_in_ai_config_ref(
+            data_root,
+            authenticated_account_id,
+            surface_id,
+            candidate,
+            Some(expected_baseline_bindings),
+        )
+        .is_ok()
+        {
+            let path = built_in_ai_config_path(data_root, authenticated_account_id, surface_id)?;
+            let record = read_config_record(&path)?;
+            return Ok(built_in_ai_config_for_scope_init_from_record(&record));
+        }
+    }
+    Err(format!(
+        "built-in AIConfig for desktop.chat.{surface_id} does not resolve from product-control refs"
+    ))
+}
+
 #[cfg(test)]
 mod tests {
     use super::{
@@ -834,6 +983,53 @@ mod tests {
             "runtimeBaselineRef": "runtime-baseline:test",
             "runtimeConsumerId": "llama.cpp.cpu",
         })
+    }
+
+    fn stt_binding() -> serde_json::Value {
+        serde_json::json!({
+            "source": "local",
+            "connectorId": "",
+            "model": "asset-id:asr-test",
+            "modelId": "asset-id:asr-test",
+            "localModelId": "asset-id:asr-test",
+            "provider": "speech",
+            "engine": "speech",
+            "goRuntimeLocalModelId": "asset-id:asr-test",
+            "runtimeBaselineRef": "runtime-baseline:test",
+            "runtimeConsumerId": "speech.qwen3-asr.python",
+        })
+    }
+
+    fn tts_binding() -> serde_json::Value {
+        serde_json::json!({
+            "source": "local",
+            "connectorId": "",
+            "model": "asset-id:tts-test",
+            "modelId": "asset-id:tts-test",
+            "localModelId": "asset-id:tts-test",
+            "provider": "speech",
+            "engine": "speech",
+            "goRuntimeLocalModelId": "asset-id:tts-test",
+            "runtimeBaselineRef": "runtime-baseline:test",
+            "runtimeConsumerId": "speech.qwen3-tts.python",
+        })
+    }
+
+    fn baseline_bindings() -> Vec<super::BuiltInAiConfigCapability> {
+        vec![
+            super::BuiltInAiConfigCapability {
+                capability: "audio.synthesize".to_string(),
+                binding: tts_binding(),
+            },
+            super::BuiltInAiConfigCapability {
+                capability: "audio.transcribe".to_string(),
+                binding: stt_binding(),
+            },
+            super::BuiltInAiConfigCapability {
+                capability: "text.generate".to_string(),
+                binding: text_binding(),
+            },
+        ]
     }
 
     fn temp_data_root(prefix: &str) -> PathBuf {
@@ -885,7 +1081,7 @@ mod tests {
             "account:abc.def+1",
             ALIAS,
             LEVEL,
-            &text_binding(),
+            &baseline_bindings(),
         )
         .expect("ensure evidence set");
 
@@ -916,7 +1112,7 @@ mod tests {
             &root,
             "account:abc.def+1",
             &set.refs(),
-            Some(&text_binding()),
+            Some(&baseline_bindings()),
         )
         .expect("resolve evidence set");
         assert_eq!(resolved.refs(), set.refs());
@@ -934,7 +1130,7 @@ mod tests {
             "account_1",
             ALIAS,
             LEVEL,
-            &text_binding(),
+            &baseline_bindings(),
         )
         .expect("ensure evidence set");
         let record =
@@ -951,14 +1147,20 @@ mod tests {
             .find(|cap| cap.capability == "text.generate")
             .expect("text.generate");
         assert_eq!(text.binding, text_binding());
-        for capability in record
+        let stt = record
             .config_payload
             .capabilities
             .iter()
-            .filter(|cap| cap.capability != "text.generate")
-        {
-            assert!(capability.binding.is_null());
-        }
+            .find(|cap| cap.capability == "audio.transcribe")
+            .expect("audio.transcribe");
+        assert_eq!(stt.binding, stt_binding());
+        let tts = record
+            .config_payload
+            .capabilities
+            .iter()
+            .find(|cap| cap.capability == "audio.synthesize")
+            .expect("audio.synthesize");
+        assert_eq!(tts.binding, tts_binding());
         assert_eq!(set.nimi.ai_profile_ref.install_level, LEVEL);
     }
 
@@ -970,7 +1172,7 @@ mod tests {
             "account_1",
             ALIAS,
             LEVEL,
-            &text_binding(),
+            &baseline_bindings(),
         )
         .expect("first ensure");
         let nimi_path = built_in_ai_config_path(&root, "account_1", "nimi").expect("path");
@@ -980,7 +1182,7 @@ mod tests {
             "account_1",
             "local-gpu",
             "recommended",
-            &text_binding(),
+            &baseline_bindings(),
         )
         .expect("second ensure");
         let raw_after = std::fs::read_to_string(&nimi_path).expect("read after");
@@ -998,7 +1200,7 @@ mod tests {
             "account_1",
             ALIAS,
             LEVEL,
-            &text_binding(),
+            &baseline_bindings(),
         )
         .expect("ensure evidence set");
         let path = built_in_ai_config_path(&root, "account_1", "nimi").expect("path");
@@ -1014,7 +1216,7 @@ mod tests {
             "account_1",
             "nimi",
             &set.nimi.built_in_ai_config_ref,
-            Some(&text_binding()),
+            Some(&baseline_bindings()),
         )
         .expect_err("generic app scope must fail");
         assert!(error.contains("feature shape") || error.contains("surfaceId"));
@@ -1028,7 +1230,7 @@ mod tests {
             "account_1",
             ALIAS,
             LEVEL,
-            &text_binding(),
+            &baseline_bindings(),
         )
         .expect("ensure evidence set");
         let path = built_in_ai_config_path(&root, "account_1", "nimi").expect("path");
@@ -1047,7 +1249,7 @@ mod tests {
             "account_1",
             "nimi",
             &set.nimi.built_in_ai_config_ref,
-            Some(&text_binding()),
+            Some(&baseline_bindings()),
         )
         .expect_err("omitted surfaceId must fail");
         assert!(error.contains("surfaceId") || error.contains("cannot be parsed"));
@@ -1071,7 +1273,7 @@ mod tests {
             "account_1",
             ALIAS,
             LEVEL,
-            &text_binding(),
+            &baseline_bindings(),
         )
         .expect("ensure evidence set");
         let string_only = verify_built_in_ai_config_ref(
@@ -1089,7 +1291,7 @@ mod tests {
             "account_1",
             "nimi",
             &set.nimi.built_in_ai_config_ref,
-            Some(&text_binding()),
+            Some(&baseline_bindings()),
         )
         .expect("real ref resolves");
     }
@@ -1102,7 +1304,7 @@ mod tests {
             "account_1",
             ALIAS,
             LEVEL,
-            &text_binding(),
+            &baseline_bindings(),
         )
         .expect("ensure evidence set");
         let wrong_account = verify_built_in_ai_config_ref(
@@ -1110,7 +1312,7 @@ mod tests {
             "account_2",
             "nimi",
             &set.nimi.built_in_ai_config_ref,
-            Some(&text_binding()),
+            Some(&baseline_bindings()),
         )
         .expect_err("wrong account must fail");
         assert!(wrong_account.contains("missing or unreadable"));
@@ -1121,7 +1323,7 @@ mod tests {
             "account_1",
             "nimi",
             &set.nimi.built_in_ai_config_ref,
-            Some(&text_binding()),
+            Some(&baseline_bindings()),
         )
         .expect_err("wrong data root must fail");
         assert!(wrong_root.contains("missing or unreadable"));
@@ -1135,7 +1337,7 @@ mod tests {
             "account_1",
             ALIAS,
             LEVEL,
-            &text_binding(),
+            &baseline_bindings(),
         )
         .expect("ensure evidence set");
         let path = built_in_ai_config_path(&root, "account_1", "agent").expect("path");
@@ -1148,7 +1350,7 @@ mod tests {
             "account_1",
             "agent",
             &set.agent.built_in_ai_config_ref,
-            Some(&text_binding()),
+            Some(&baseline_bindings()),
         )
         .expect_err("content hash tampering must fail");
         assert!(hash_error.contains("content hash"));
@@ -1162,7 +1364,7 @@ mod tests {
             "account_1",
             "agent",
             &set.agent.built_in_ai_config_ref,
-            Some(&text_binding()),
+            Some(&baseline_bindings()),
         )
         .expect_err("writer identity tampering must fail");
         assert!(writer_error.contains("writer identity"));
@@ -1176,7 +1378,7 @@ mod tests {
             "account_1",
             ALIAS,
             LEVEL,
-            &text_binding(),
+            &baseline_bindings(),
         )
         .expect("ensure evidence set");
         // Only the nimi ref present — not a complete built-in chat set.
@@ -1184,7 +1386,7 @@ mod tests {
             &root,
             "account_1",
             std::slice::from_ref(&set.nimi.built_in_ai_config_ref),
-            Some(&text_binding()),
+            Some(&baseline_bindings()),
         )
         .expect_err("partial set must fail");
         assert!(partial.contains("exactly 2"));
@@ -1197,7 +1399,7 @@ mod tests {
                 set.nimi.built_in_ai_config_ref.clone(),
                 set.nimi.built_in_ai_config_ref.clone(),
             ],
-            Some(&text_binding()),
+            Some(&baseline_bindings()),
         )
         .expect_err("duplicate scope must fail");
         assert!(duplicate.contains("duplicate") || duplicate.contains("missing"));
@@ -1211,7 +1413,7 @@ mod tests {
             "account_1",
             ALIAS,
             LEVEL,
-            &text_binding(),
+            &baseline_bindings(),
         )
         .expect("ensure evidence set");
         let error = verify_built_in_ai_config_evidence_set(
@@ -1221,7 +1423,7 @@ mod tests {
                 set.nimi.built_in_ai_config_ref.clone(),
                 "built-in-ai-config:v1:string-only".to_string(),
             ],
-            Some(&text_binding()),
+            Some(&baseline_bindings()),
         )
         .expect_err("string-only set member must fail");
         assert!(error.contains("does not resolve"));
@@ -1238,7 +1440,7 @@ mod tests {
             "account_1",
             ALIAS,
             LEVEL,
-            &text_binding(),
+            &baseline_bindings(),
         )
         .expect("ensure evidence set");
         let nimi_path = built_in_ai_config_path(&root, "account_1", "nimi").expect("path");
@@ -1262,7 +1464,7 @@ mod tests {
             &root,
             "account_1",
             &set.refs(),
-            Some(&text_binding()),
+            Some(&baseline_bindings()),
         )
         .expect("resolve after account profile");
         assert_eq!(resolved.refs(), set.refs());
@@ -1277,9 +1479,15 @@ mod tests {
     #[test]
     fn ensure_single_scope_rejects_non_canonical_surface_id() {
         let root = temp_data_root("bad-surface");
-        let error =
-            ensure_built_in_ai_config(&root, "account_1", "chat", ALIAS, LEVEL, &text_binding())
-                .expect_err("non-canonical surface must fail");
+        let error = ensure_built_in_ai_config(
+            &root,
+            "account_1",
+            "chat",
+            ALIAS,
+            LEVEL,
+            &baseline_bindings(),
+        )
+        .expect_err("non-canonical surface must fail");
         assert!(error.contains("surfaceId"));
     }
 }

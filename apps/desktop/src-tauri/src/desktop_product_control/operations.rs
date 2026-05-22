@@ -4,6 +4,7 @@
 
 use base64::Engine;
 use prost::Message;
+use serde::Deserialize;
 use std::path::{Path, PathBuf};
 
 use crate::desktop_paths::normalize_desktop_absolute_path;
@@ -19,6 +20,12 @@ use super::record_store::{
     empty_record, ensure_data_root_layout, read_existing_record, selected_data_root_path,
     write_record,
 };
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ProductBuiltInAiConfigScopePayload {
+    pub surface_id: String,
+}
 
 async fn runtime_bridge_unary_decode<Req, Resp>(
     method_id: &str,
@@ -289,6 +296,98 @@ pub async fn read_account_default_profile_for_scope_init(
     crate::account_profile_library::read_account_default_profile_ai_profile(&data_root, &account_id)
 }
 
+pub async fn read_built_in_ai_config_for_scope_init(
+    surface_id: &str,
+) -> Result<crate::desktop_ai_config_library::BuiltInAiConfigForScopeInit, String> {
+    let control_path = product_control_record_path()?;
+    let mut record = read_existing_record(&control_path)?.ok_or_else(|| {
+        "~/.nimi/nimi.json is missing; select nimi_data before built-in AIConfig".to_string()
+    })?;
+    let data_root = selected_data_root_path(&record)
+        .ok_or_else(|| "selected nimi_data is required before built-in AIConfig".to_string())?;
+    let runtime_baseline_ref = record
+        .first_run
+        .runtime_baseline_ref
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .ok_or_else(|| {
+            "runtimeBaselineRef is required before built-in AIConfig scope init".to_string()
+        })?
+        .to_string();
+    let account_id = authenticated_runtime_account_id().await?;
+    let baseline_response: crate::runtime_bridge::generated::ResolveRuntimeBaselineReadinessResponse =
+        runtime_bridge_unary_decode(
+            "/nimi.runtime.v1.RuntimeLocalService/ResolveRuntimeBaselineReadiness",
+            crate::runtime_bridge::generated::ResolveRuntimeBaselineReadinessRequest {
+                runtime_baseline_ref,
+                host_profile: None,
+            },
+            Some(60_000),
+        )
+        .await?;
+    if baseline_response.state.trim() != "ready" {
+        return Err(format!(
+            "runtimeBaselineRef must resolve ready before built-in AIConfig scope init (state={}, reason={})",
+            baseline_response.state.trim(),
+            baseline_response.reason_code.trim(),
+        ));
+    }
+    let baseline_ref = baseline_response
+        .r#ref
+        .ok_or_else(|| "Runtime baseline readiness response did not include ref".to_string())?;
+    let baseline_bindings =
+        crate::desktop_ai_config_library::runtime_capability_bindings_from_baseline_ref(
+            &baseline_ref,
+        )?;
+    if let Ok(config) = crate::desktop_ai_config_library::read_built_in_ai_config_for_scope_init(
+        &data_root,
+        &account_id,
+        surface_id,
+        &record.first_run.built_in_ai_config_refs,
+        &baseline_bindings,
+    ) {
+        return Ok(config);
+    }
+
+    let install_level = record
+        .first_run
+        .install_level
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .ok_or_else(|| "first-run install level is required before built-in AIConfig".to_string())?
+        .to_string();
+    let ai_profile_alias = record
+        .first_run
+        .ai_profile_alias
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .ok_or_else(|| "first-run aiProfileAlias is required before built-in AIConfig".to_string())?
+        .to_string();
+    crate::platform_ai_profile_factory_catalog::verify_first_run_factory_ai_profile(
+        &ai_profile_alias,
+        &install_level,
+    )?;
+    let evidence_set = crate::desktop_ai_config_library::ensure_built_in_ai_config_evidence_set(
+        &data_root,
+        &account_id,
+        &ai_profile_alias,
+        &install_level,
+        &baseline_bindings,
+    )?;
+    record.first_run.built_in_ai_config_refs = evidence_set.refs();
+    write_record(&control_path, &record)?;
+    crate::desktop_ai_config_library::read_built_in_ai_config_for_scope_init(
+        &data_root,
+        &account_id,
+        surface_id,
+        &record.first_run.built_in_ai_config_refs,
+        &baseline_bindings,
+    )
+}
+
 pub async fn ensure_built_in_ai_config_for_product_control(
 ) -> Result<ProductControlRecordProjection, String> {
     let control_path = product_control_record_path()?;
@@ -348,8 +447,8 @@ pub async fn ensure_built_in_ai_config_for_product_control(
     let baseline_ref = baseline_response
         .r#ref
         .ok_or_else(|| "Runtime baseline readiness response did not include ref".to_string())?;
-    let text_binding =
-        crate::desktop_ai_config_library::runtime_text_generate_binding_from_baseline_ref(
+    let baseline_bindings =
+        crate::desktop_ai_config_library::runtime_capability_bindings_from_baseline_ref(
             &baseline_ref,
         )?;
     let evidence_set = crate::desktop_ai_config_library::ensure_built_in_ai_config_evidence_set(
@@ -357,7 +456,7 @@ pub async fn ensure_built_in_ai_config_for_product_control(
         &account_id,
         &ai_profile_alias,
         &install_level,
-        &text_binding,
+        &baseline_bindings,
     )?;
     record.first_run.built_in_ai_config_refs = evidence_set.refs();
     write_record(&control_path, &record)?;
@@ -452,8 +551,8 @@ pub async fn prepare_first_run_local_ai_ready_for_product_control(
         .ok_or_else(|| {
             "Runtime baseline readiness response did not include runtimeBaselineRef".to_string()
         })?;
-    let text_binding =
-        crate::desktop_ai_config_library::runtime_text_generate_binding_from_baseline_ref(
+    let baseline_bindings =
+        crate::desktop_ai_config_library::runtime_capability_bindings_from_baseline_ref(
             &baseline_ref,
         )?;
     let evidence_set = crate::desktop_ai_config_library::ensure_built_in_ai_config_evidence_set(
@@ -461,7 +560,7 @@ pub async fn prepare_first_run_local_ai_ready_for_product_control(
         &account_id,
         &ai_profile_alias,
         &install_level,
-        &text_binding,
+        &baseline_bindings,
     )?;
     let recommended_capabilities = recommended_first_run_capabilities(factory_row, &install_level);
 
@@ -480,7 +579,8 @@ pub async fn prepare_first_run_local_ai_ready_for_product_control(
             Some(120_000),
         )
         .await?;
-    let expected_execution_state = product_control_state_wire_value(ProductControlState::LocalAiReady)?;
+    let expected_execution_state =
+        product_control_state_wire_value(ProductControlState::LocalAiReady)?;
     if execution_response.state.trim() != expected_execution_state.as_str() {
         return Err(format!(
             "executionEvidenceRef mint failed (state={}, reason={}): {}",
@@ -553,13 +653,15 @@ pub fn resolve_built_in_ai_config_refs_for_admission(
     data_root: &Path,
     authenticated_account_id: &str,
     built_in_ai_config_refs: &[String],
-    expected_text_generate_binding: Option<&serde_json::Value>,
+    expected_baseline_bindings: Option<
+        &[crate::desktop_ai_config_library::BuiltInAiConfigCapability],
+    >,
 ) -> Result<crate::desktop_ai_config_library::BuiltInAiConfigEvidenceSet, String> {
     crate::desktop_ai_config_library::verify_built_in_ai_config_evidence_set(
         data_root,
         authenticated_account_id,
         built_in_ai_config_refs,
-        expected_text_generate_binding,
+        expected_baseline_bindings,
     )
 }
 

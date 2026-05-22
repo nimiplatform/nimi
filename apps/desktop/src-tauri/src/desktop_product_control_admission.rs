@@ -43,7 +43,7 @@ pub struct RuntimeBaselineResolution {
     pub selected_local_factory_ai_profile_ref: String,
     pub install_level: String,
     pub runtime_data_root_or_data_root_ref: String,
-    pub text_generate_binding: serde_json::Value,
+    pub capability_bindings: Vec<crate::desktop_ai_config_library::BuiltInAiConfigCapability>,
 }
 
 /// Resolved first-run execution evidence accepted by admission step 7.
@@ -411,7 +411,7 @@ async fn compose_admission<R: AdmissionRuntimeResolvers>(
             &data_root,
             &account_id,
             &record.first_run.built_in_ai_config_refs,
-            Some(&runtime_baseline.text_generate_binding),
+            Some(&runtime_baseline.capability_bindings),
         ) {
             Ok(set) => set,
             Err(error) => {
@@ -606,8 +606,8 @@ impl AdmissionRuntimeResolvers for BridgeAdmissionRuntimeResolvers {
             projection_state: String::new(),
             detail: "Runtime baseline readiness response had no evidence ref".to_string(),
         })?;
-        let text_generate_binding =
-            crate::desktop_ai_config_library::runtime_text_generate_binding_from_baseline_ref(
+        let capability_bindings =
+            crate::desktop_ai_config_library::runtime_capability_bindings_from_baseline_ref(
                 &evidence,
             )
             .map_err(|detail| RuntimeOwnerFailure {
@@ -619,7 +619,7 @@ impl AdmissionRuntimeResolvers for BridgeAdmissionRuntimeResolvers {
             selected_local_factory_ai_profile_ref: evidence.selected_local_factory_ai_profile_ref,
             install_level: evidence.install_level,
             runtime_data_root_or_data_root_ref: evidence.runtime_data_root_or_data_root_ref,
-            text_generate_binding,
+            capability_bindings,
         })
     }
 
@@ -780,7 +780,7 @@ mod tests {
                     ),
                     install_level: install_level.to_string(),
                     runtime_data_root_or_data_root_ref: data_root.display().to_string(),
-                    text_generate_binding: fake_text_generate_binding(),
+                    capability_bindings: fake_baseline_bindings(),
                 }),
                 execution: Ok(ExecutionEvidenceResolution {
                     execution_evidence_ref: VALID_EXECUTION_EVIDENCE_REF.to_string(),
@@ -808,6 +808,54 @@ mod tests {
             "runtimeBaselineRef": VALID_RUNTIME_BASELINE_REF,
             "runtimeConsumerId": "llama.cpp.cpu",
         })
+    }
+
+    fn fake_stt_binding() -> serde_json::Value {
+        serde_json::json!({
+            "source": "local",
+            "connectorId": "",
+            "model": "asset-id:asr-test",
+            "modelId": "asset-id:asr-test",
+            "localModelId": "asset-id:asr-test",
+            "provider": "speech",
+            "engine": "speech",
+            "goRuntimeLocalModelId": "asset-id:asr-test",
+            "runtimeBaselineRef": VALID_RUNTIME_BASELINE_REF,
+            "runtimeConsumerId": "speech.qwen3-asr.python",
+        })
+    }
+
+    fn fake_tts_binding() -> serde_json::Value {
+        serde_json::json!({
+            "source": "local",
+            "connectorId": "",
+            "model": "asset-id:tts-test",
+            "modelId": "asset-id:tts-test",
+            "localModelId": "asset-id:tts-test",
+            "provider": "speech",
+            "engine": "speech",
+            "goRuntimeLocalModelId": "asset-id:tts-test",
+            "runtimeBaselineRef": VALID_RUNTIME_BASELINE_REF,
+            "runtimeConsumerId": "speech.qwen3-tts.python",
+        })
+    }
+
+    fn fake_baseline_bindings() -> Vec<crate::desktop_ai_config_library::BuiltInAiConfigCapability>
+    {
+        vec![
+            crate::desktop_ai_config_library::BuiltInAiConfigCapability {
+                capability: "audio.synthesize".to_string(),
+                binding: fake_tts_binding(),
+            },
+            crate::desktop_ai_config_library::BuiltInAiConfigCapability {
+                capability: "audio.transcribe".to_string(),
+                binding: fake_stt_binding(),
+            },
+            crate::desktop_ai_config_library::BuiltInAiConfigCapability {
+                capability: "text.generate".to_string(),
+                binding: fake_text_generate_binding(),
+            },
+        ]
     }
 
     impl AdmissionRuntimeResolvers for FakeResolvers {
@@ -885,7 +933,7 @@ mod tests {
                 TEST_ACCOUNT_ID,
                 TEST_ALIAS,
                 install_level,
-                &fake_text_generate_binding(),
+                &fake_baseline_bindings(),
             )
             .expect("seed built-in aiconfig set");
 
@@ -1250,7 +1298,7 @@ mod tests {
                     ),
                     install_level: RECOMMENDED_INSTALL_LEVEL.to_string(),
                     runtime_data_root_or_data_root_ref: data_root.display().to_string(),
-                    text_generate_binding: fake_text_generate_binding(),
+                    capability_bindings: fake_baseline_bindings(),
                 });
                 let projection = admit_product_ready_for_use(&resolvers)
                     .await

@@ -1,5 +1,6 @@
 import { hasTauriInvoke } from './env';
 import { invokeChecked } from './invoke';
+import type { AIConfig } from '@nimiplatform/sdk/mod';
 
 export type ProductControlState =
   | 'not_logged_in'
@@ -332,6 +333,46 @@ export async function getAccountDefaultProfileForScopeInit(): Promise<AccountDef
     'account_default_profile_for_scope_init',
     {},
     parseAccountDefaultProfileAIProfile,
+  );
+}
+
+function parseBuiltInAIConfigForScopeInit(value: unknown): AIConfig {
+  const record = asRecord(value, 'built_in_ai_config_for_scope_init');
+  const scopeRef = asRecord(record.scopeRef, 'built-in AIConfig scopeRef');
+  const capabilities = asRecord(record.capabilities, 'built-in AIConfig capabilities');
+  const profileOrigin = asRecord(record.profileOrigin, 'built-in AIConfig profileOrigin');
+  const kind = String(scopeRef.kind || '').trim();
+  const ownerId = String(scopeRef.ownerId || '').trim();
+  const surfaceId = String(scopeRef.surfaceId || '').trim();
+  if (kind !== 'feature' || ownerId !== 'desktop.chat' || (surfaceId !== 'nimi' && surfaceId !== 'agent')) {
+    throw new Error('built-in AIConfig returned a non-canonical chat scope');
+  }
+  const selectedBindings = asRecord(capabilities.selectedBindings, 'built-in AIConfig selectedBindings');
+  return {
+    scopeRef: { kind: 'feature', ownerId, surfaceId },
+    capabilities: {
+      selectedBindings: selectedBindings as AIConfig['capabilities']['selectedBindings'],
+      localProfileRefs: {},
+      selectedParams: {},
+    },
+    profileOrigin: {
+      profileId: String(profileOrigin.profileId || '').trim(),
+      title: String(profileOrigin.title || '').trim(),
+      appliedAt: String(profileOrigin.appliedAt || '').trim(),
+    },
+  };
+}
+
+export async function getBuiltInAIConfigForScopeInit(
+  surfaceId: 'nimi' | 'agent',
+): Promise<AIConfig> {
+  if (!hasTauriInvoke()) {
+    throw new Error('built_in_ai_config_for_scope_init requires Tauri runtime');
+  }
+  return invokeChecked(
+    'built_in_ai_config_for_scope_init',
+    { payload: { surfaceId } },
+    parseBuiltInAIConfigForScopeInit,
   );
 }
 

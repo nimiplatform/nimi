@@ -104,6 +104,13 @@ pub async fn account_default_profile_for_scope_init(
 }
 
 #[tauri::command]
+pub async fn built_in_ai_config_for_scope_init(
+    payload: ProductBuiltInAiConfigScopePayload,
+) -> Result<crate::desktop_ai_config_library::BuiltInAiConfigForScopeInit, String> {
+    read_built_in_ai_config_for_scope_init(&payload.surface_id).await
+}
+
+#[tauri::command]
 pub fn product_control_record_set_first_run_setup_state(
     payload: ProductFirstRunSetupStatePayload,
 ) -> Result<ProductControlRecordProjection, String> {
