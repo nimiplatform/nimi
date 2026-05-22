@@ -74,8 +74,8 @@
     "dist"
   ],
   "dependencies": {
-    "@ai-sdk/provider": "^3.0.8",
-    "@grpc/grpc-js": "^1.14.3",
+    "@ai-sdk/provider": "^3.0.10",
+    "@grpc/grpc-js": "^1.14.4",
     "@protobuf-ts/runtime": "2.11.1",
     "@protobuf-ts/runtime-rpc": "2.11.1",
     "i18next": "^25.8.18",
@@ -91,9 +91,9 @@
     "test": "tsx --test --test-concurrency=1 test/**/*.test.ts"
   },
   "devDependencies": {
-    "@types/node": "^25.5.0",
-    "@types/react": "^19.2.14",
-    "tsx": "^4.21.0",
+    "@types/node": "^25.9.1",
+    "@types/react": "^19.2.15",
+    "tsx": "^4.22.3",
     "typescript": "^5.9.3"
   }
 }

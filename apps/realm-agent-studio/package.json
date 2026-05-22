@@ -15,23 +15,23 @@
   "dependencies": {
     "@nimiplatform/nimi-kit": "workspace:*",
     "@nimiplatform/sdk": "workspace:*",
-    "@tanstack/react-query": "^5.90.21",
+    "@tanstack/react-query": "^5.100.11",
     "@tauri-apps/api": "^2.11.0",
-    "react": "19.2.4",
-    "react-dom": "19.2.4",
+    "react": "19.2.6",
+    "react-dom": "19.2.6",
     "scheduler": "^0.27.0"
   },
   "devDependencies": {
-    "@tailwindcss/vite": "^4.2.1",
-    "@tauri-apps/cli": "^2.10.1",
-    "@types/node": "^25.5.0",
-    "@types/react": "^19.2.14",
+    "@tailwindcss/vite": "^4.3.0",
+    "@tauri-apps/cli": "^2.11.2",
+    "@types/node": "^25.9.1",
+    "@types/react": "^19.2.15",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.1.4",
     "jsdom": "^28.1.0",
-    "tailwindcss": "^4.2.1",
+    "tailwindcss": "^4.3.0",
     "typescript": "^5.9.3",
     "vite": "^7.3.1",
-    "vitest": "^4.1.0"
+    "vitest": "^4.1.7"
   }
 }
