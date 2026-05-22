@@ -29,6 +29,7 @@
   "missingAuthorForGift": "Cannot send gift: user ID not found",
   "missingAuthorForChat": "Cannot start chat: user ID not found",
   "openChatFailed": "Failed to open chat",
+  "openChat": "Open chat",
   "likes": "Likes",
   "modifyVisibility": "Modify visibility",
   "nimiHomeTitle": "Home",
@@ -64,6 +65,7 @@
   "postUpdateFailed": "Failed to update post",
   "postUpdated": "Post updated successfully!",
   "postVideo": "Post video",
+  "postMenu": "Post menu",
   "publishing": "Publishing...",
   "feedConnectionFailed": "Unable to connect to server. Check your network or backend status.",
   "feedSessionExpired": "Your session has expired. Please sign in again.",
@@ -73,6 +75,11 @@
     "personal": "Personal",
     "friends": "Friends",
     "agent_activity": "Agent Activity"
+  },
+  "feedScopeDescriptions": {
+    "personal": "Your private posting lane.",
+    "friends": "Updates from people you trust.",
+    "agent_activity": "Signals from your personal agents."
   },
   "feedScopeEmpty": {
     "personal": "You haven't posted anything yet.",
@@ -94,6 +101,7 @@
   },
   "save": "Save",
   "sayHello": "Say Hello...",
+  "sendGift": "Send gift",
   "submitReport": "Submit Report",
   "submitting": "Submitting...",
   "unknownError": "Unknown error",

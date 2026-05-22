@@ -14,11 +14,13 @@ const notificationPanelSource = readWorkspaceFile('src/shell/renderer/features/n
 const profilePanelSource = readWorkspaceFile('src/shell/renderer/features/profile/profile-panel.tsx');
 
 test('W3 route redesign: home and explore adopt route-shell material hosts', () => {
-  assert.match(homeViewSource, /<Surface[\s\S]*tone="panel"[\s\S]*material="glass-regular"[\s\S]*Home\.pageTitle/);
+  assert.doesNotMatch(homeViewSource, /Home\.pageTitle/);
+  assert.match(homeViewSource, /xl:grid-cols-\[minmax\(0,720px\)_300px\]/);
   assert.match(homeViewSource, /<Surface[\s\S]*as="button"[\s\S]*material="glass-regular"/);
   assert.doesNotMatch(homeViewSource, /viewportClassName="bg-gray-50"/);
 
-  assert.match(exploreViewSource, /<Surface[\s\S]*tone="panel"[\s\S]*material="glass-regular"[\s\S]*Explore\.pageTitle/);
+  assert.doesNotMatch(exploreViewSource, /Explore\.pageTitle/);
+  assert.match(exploreViewSource, /<ExploreSectionNav active=\{activeSection\} onSelect=\{selectSection\} \/>/);
   assert.match(exploreViewSource, /<Surface[\s\S]*material="glass-thick"[\s\S]*type="search"/);
   assert.doesNotMatch(exploreViewSource, /className="flex min-h-0 flex-1 flex-col bg-\[var\(--nimi-sidebar-canvas\)\]"/);
 });

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { IconButton, ScrollArea, SegmentedControl, Surface } from '@nimiplatform/nimi-kit/ui';
+import { ScrollArea, Surface } from '@nimiplatform/nimi-kit/ui';
 import { useTranslation } from 'react-i18next';
 import { BLOCKED_USERS_UPDATED_EVENT, dataSync, type PostFeedScope } from '@runtime/data-sync';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
@@ -89,6 +89,12 @@ const PAGE_SIZE = 15;
 const HOME_FEED_SCOPES: readonly PostFeedScope[] = ['personal', 'friends', 'agent_activity'];
 const DEFAULT_HOME_FEED_SCOPE: PostFeedScope = 'friends';
 
+type ScopeSelectorItem = {
+  value: PostFeedScope;
+  label: string;
+  description: string;
+};
+
 type HomeViewProps = {
   createPostRequestKey?: number;
 };
@@ -109,15 +115,15 @@ export function HomeView(props: HomeViewProps) {
   const postFeedKey = `moments-${feedScope}-${refreshKey}`;
   const postCardActionAdapter = usePostCardActionAdapter();
 
-  const scopeSelectorItems = useMemo(
+  const scopeSelectorItems = useMemo<ScopeSelectorItem[]>(
     () =>
       HOME_FEED_SCOPES.map((scope) => ({
         value: scope,
         label: t(`Home.feedScopes.${scope}`),
+        description: t(`Home.feedScopeDescriptions.${scope}`),
       })),
     [t],
   );
-
   const fetchPage = useCallback(
     async (cursorArg: string | null) => {
       const data = await dataSync.loadPostFeed({
@@ -154,89 +160,124 @@ export function HomeView(props: HomeViewProps) {
   }, []);
 
   return (
-    <div data-testid={E2E_IDS.panel('home')} className="flex min-h-0 flex-1 flex-col px-5 pb-5 pt-4">
-      {/* Top bar */}
-      <div className="flex h-14 shrink-0 items-center gap-3 px-5">
-        <h1 className={`nimi-type-page-title text-[color:var(--nimi-text-primary)]`}>{t('Home.pageTitle')}</h1>
-        <div
-          className="ml-auto"
-          data-testid={E2E_IDS.homeFeedScopeSelector}
-        >
-          <SegmentedControl
-            ariaLabel={t('Home.feedScopeSelectorLabel', { defaultValue: 'Feed scope' })}
-            value={feedScope}
-            onValueChange={(value) => {
-              const next = HOME_FEED_SCOPES.find((scope) => scope === value);
-              if (next) {
-                setFeedScope(next);
-              }
-            }}
-            items={scopeSelectorItems.map((item) => ({
-              ...item,
-              label: (
-                <span data-testid={E2E_IDS.homeFeedScopeOption(item.value)}>{item.label}</span>
-              ),
-            }))}
-            size="sm"
-          />
-        </div>
-      </div>
-
+    <div
+      data-testid={E2E_IDS.panel('home')}
+      className="relative flex min-h-0 flex-1 flex-col overflow-hidden px-5 pb-5 pt-4"
+    >
       <ScrollArea
         className="flex-1"
         viewportClassName="bg-transparent"
-        contentClassName="mx-auto w-full max-w-2xl px-1 py-4"
+        contentClassName="w-full px-1 py-4"
         viewportRef={feedScrollRef}
       >
-          {/* Create Post Prompt */}
-          <Surface
-            as="button"
-            type="button"
-            onClick={() => setCreatePostOpen(true)}
-            tone="panel"
-            material="glass-regular"
-            elevation="base"
-            padding="none"
-            interactive
-            className="mt-2 flex w-full items-center gap-3 rounded-[1.75rem] border-white/60 px-4 py-3 text-left shadow-[0_16px_36px_rgba(15,23,42,0.06)]"
-          >
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_12%,white)] text-[var(--nimi-action-primary-bg)]">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="12" y1="5" x2="12" y2="19" />
-                <line x1="5" y1="12" x2="19" y2="12" />
-              </svg>
-            </div>
-            <span className="text-sm text-[var(--nimi-text-secondary)]">
-              {t('Home.composePrompt', { defaultValue: "What's on your mind?" })}
-            </span>
-          </Surface>
+        <div className="mx-auto grid w-full max-w-[1040px] grid-cols-1 gap-6 xl:grid-cols-[minmax(0,720px)_300px]">
+          <main className="min-w-0">
+            <Surface
+              as="button"
+              type="button"
+              onClick={() => setCreatePostOpen(true)}
+              tone="panel"
+              material="glass-regular"
+              elevation="base"
+              padding="none"
+              interactive
+              className="mb-4 mt-2 flex w-full items-center gap-3 rounded-2xl border-white/65 px-4 py-3 text-left shadow-[0_16px_36px_rgba(15,23,42,0.06)] xl:hidden"
+            >
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_12%,white)] text-[var(--nimi-action-primary-bg)]">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="12" y1="5" x2="12" y2="19" />
+                  <line x1="5" y1="12" x2="19" y2="12" />
+                </svg>
+              </span>
+              <span className="text-sm text-[var(--nimi-text-secondary)]">
+                {t('Home.composePrompt', { defaultValue: "What's on your mind?" })}
+              </span>
+            </Surface>
 
-          {/* Publishing placeholder - shown at top of feed */}
-          {isPublishing && (
-            <div className="mt-4">
-              <PublishingPostCard />
-            </div>
-          )}
+            {/* Publishing placeholder - shown at top of feed */}
+            {isPublishing && (
+              <div className="mt-2">
+                <PublishingPostCard />
+              </div>
+            )}
 
-          {/* Feed */}
-          <div className="mt-4">
-            <PostFeed
-              key={postFeedKey}
-              fetchPage={fetchPage}
-              scrollRef={feedScrollRef}
-              emptyText={t(`Home.feedScopeEmpty.${feedScope}`)}
-              renderItem={(post) => (
-                <PostCard
-                  post={post}
-                  actionAdapter={postCardActionAdapter}
-                  onDelete={() => setRefreshKey((k) => k + 1)}
-                  onBlock={() => setRefreshKey((k) => k + 1)}
-                  showAddFriendBadge={false}
-                  onOpenAuthorProfile={setSelectedFeedProfile}
-                />
-              )}
-            />
-          </div>
+            {/* Feed */}
+            <div className="mt-2">
+              <PostFeed
+                key={postFeedKey}
+                fetchPage={fetchPage}
+                scrollRef={feedScrollRef}
+                emptyText={t(`Home.feedScopeEmpty.${feedScope}`)}
+                renderItem={(post) => (
+                  <PostCard
+                    post={post}
+                    actionAdapter={postCardActionAdapter}
+                    onDelete={() => setRefreshKey((k) => k + 1)}
+                    onBlock={() => setRefreshKey((k) => k + 1)}
+                    showAddFriendBadge={false}
+                    onOpenAuthorProfile={setSelectedFeedProfile}
+                  />
+                )}
+              />
+            </div>
+          </main>
+
+          <aside className="order-first mt-2 xl:order-none">
+            <Surface
+              tone="panel"
+              material="glass-regular"
+              elevation="base"
+              padding="none"
+              className="sticky top-2 overflow-hidden rounded-2xl border border-white/65 shadow-[0_18px_42px_rgba(15,23,42,0.07)]"
+            >
+              <div className="space-y-2 p-3">
+                {scopeSelectorItems.map((item) => {
+                  const selected = item.value === feedScope;
+                  return (
+                    <button
+                      key={item.value}
+                      type="button"
+                      onClick={() => setFeedScope(item.value)}
+                      className={`group flex w-full items-start gap-3 rounded-xl px-3 py-3 text-left transition ${
+                        selected
+                          ? 'bg-white/78 shadow-[0_12px_28px_rgba(15,23,42,0.07)] ring-1 ring-white/80'
+                          : 'hover:bg-white/50'
+                      }`}
+                    >
+                      <span
+                        className={`mt-1 h-2.5 w-2.5 shrink-0 rounded-full ${
+                          selected ? 'bg-[var(--nimi-action-primary-bg)]' : 'bg-slate-300 group-hover:bg-slate-400'
+                        }`}
+                      />
+                      <span className="min-w-0">
+                        <span className="block text-sm font-semibold text-[color:var(--nimi-text-primary)]">
+                          {item.label}
+                        </span>
+                        <span className="mt-1 block text-xs leading-5 text-[color:var(--nimi-text-muted)]">
+                          {item.description}
+                        </span>
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="border-t border-white/55 p-3">
+                <button
+                  type="button"
+                  onClick={() => setCreatePostOpen(true)}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--nimi-action-primary-bg)] px-4 py-3 text-sm font-semibold text-white shadow-[0_14px_30px_rgba(78,204,163,0.22)] transition active:scale-[0.99]"
+                >
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="12" y1="5" x2="12" y2="19" />
+                    <line x1="5" y1="12" x2="19" y2="12" />
+                  </svg>
+                  {t('Home.createPost', { defaultValue: 'Create Post' })}
+                </button>
+              </div>
+            </Surface>
+          </aside>
+        </div>
       </ScrollArea>
 
       <CreatePostModal
@@ -280,19 +321,6 @@ export function HomeView(props: HomeViewProps) {
         onClose={() => setSelectedFeedProfile(null)}
       />
 
-      {/* Floating Create Post Button */}
-      <IconButton
-        icon={(
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <line x1="12" y1="5" x2="12" y2="19" />
-            <line x1="5" y1="12" x2="19" y2="12" />
-          </svg>
-        )}
-        tone="primary"
-        onClick={() => setCreatePostOpen(true)}
-        className="fixed bottom-6 right-6 z-50 h-12 w-12 ring-1 ring-white/45 shadow-[0_18px_40px_rgba(15,23,42,0.16)]"
-        aria-label={t('Home.createPost', { defaultValue: 'Create Post' })}
-      />
     </div>
   );
 }

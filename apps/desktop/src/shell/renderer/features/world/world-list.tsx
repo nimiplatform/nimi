@@ -459,53 +459,53 @@ export function WorldCatalogContent({
     sub: worlds.filter((world) => !isMainWorld(world)).length,
     archived: worlds.filter((world) => isArchived(world)).length,
   };
-  const showFeaturedHero = filter === 'all' && !query && Boolean(mainWorld);
-  const filteredBase = applyFilter(worlds, filter);
+  const showFeaturedHero = !embedded && filter === 'all' && !query && Boolean(mainWorld);
+  const filteredBase = embedded ? worlds : applyFilter(worlds, filter);
   const withoutHero = showFeaturedHero && mainWorld
     ? filteredBase.filter((world) => world.id !== mainWorld.id)
     : filteredBase;
-  const searched = withoutHero.filter((world) => matchesQuery(world, query));
-  const sorted = sortWorlds(searched, sort);
+  const searched = embedded ? withoutHero : withoutHero.filter((world) => matchesQuery(world, query));
+  const sorted = sortWorlds(searched, embedded ? 'active' : sort);
   const content = (
     <div
       className="mx-auto grid w-full max-w-[1240px] gap-6"
-      style={{ gridTemplateColumns: embedded ? 'minmax(0, 1fr) minmax(220px, 260px)' : 'minmax(0, 1fr) 260px' }}
+      style={{ gridTemplateColumns: embedded ? 'minmax(0, 1fr)' : 'minmax(0, 1fr) 260px' }}
       data-testid="explore-worlds-catalog"
     >
       <div className="flex min-w-0 flex-col gap-6">
-        <div className="px-0.5">
-          <Kicker style={{ marginBottom: 4 }}>
-            {embedded
-              ? t('Explore.worldsKicker', { defaultValue: 'Explore · Worlds' })
-              : t('World.header.kicker')}
-          </Kicker>
-          <h2
-            style={{
-              margin: 0,
-              fontFamily: 'var(--nimi-font-display)',
-              fontSize: embedded ? 26 : 28,
-              fontWeight: 700,
-              letterSpacing: '-0.02em',
-              color: 'var(--nimi-text-primary)',
-            }}
-          >
-            {embedded
-              ? t('Explore.worldsTitle', { defaultValue: 'Worlds' })
-              : t('World.title')}
-          </h2>
-        </div>
+        {!embedded ? (
+          <div className="px-0.5">
+            <Kicker style={{ marginBottom: 4 }}>
+              {t('World.header.kicker')}
+            </Kicker>
+            <h2
+              style={{
+                margin: 0,
+                fontFamily: 'var(--nimi-font-display)',
+                fontSize: 28,
+                fontWeight: 700,
+                letterSpacing: '-0.02em',
+                color: 'var(--nimi-text-primary)',
+              }}
+            >
+              {t('World.title')}
+            </h2>
+          </div>
+        ) : null}
         {showFeaturedHero && mainWorld ? (
           <FeaturedWorldCard world={mainWorld} onOpen={() => onOpenWorld(mainWorld.id)} />
         ) : null}
-        <ToolBar
-          view={view}
-          setView={setView}
-          sort={sort}
-          setSort={setSort}
-          query={query}
-          setQuery={setQuery}
-          count={sorted.length}
-        />
+        {!embedded ? (
+          <ToolBar
+            view={view}
+            setView={setView}
+            sort={sort}
+            setSort={setSort}
+            query={query}
+            setQuery={setQuery}
+            count={sorted.length}
+          />
+        ) : null}
         {sorted.length === 0 ? (
           <div
             className="nimi-material-glass-regular backdrop-blur-[var(--nimi-backdrop-blur-regular)]"
@@ -521,7 +521,7 @@ export function WorldCatalogContent({
           >
             {query ? t('World.noSearchResults') : t('World.card.noMatch')}
           </div>
-        ) : view === 'grid' ? (
+        ) : embedded || view === 'grid' ? (
           <div
             style={{
               display: 'grid',
@@ -541,7 +541,7 @@ export function WorldCatalogContent({
           </div>
         )}
       </div>
-      <Sidebar worlds={worlds} filter={filter} setFilter={setFilter} counts={counts} />
+      {!embedded ? <Sidebar worlds={worlds} filter={filter} setFilter={setFilter} counts={counts} /> : null}
     </div>
   );
 

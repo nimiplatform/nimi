@@ -153,21 +153,6 @@ function FeaturedWorldHero({
   };
   return (
     <section className="relative mb-8" data-testid="explore-featured-world">
-      <div className="mb-4">
-        <h3
-          className="m-0"
-          style={{
-            fontFamily: 'var(--nimi-font-display)',
-            fontSize: 20,
-            fontWeight: 600,
-            letterSpacing: '-0.02em',
-            color: 'var(--nimi-fg-1)',
-            lineHeight: 1.1,
-          }}
-        >
-          {t('Explore.featuredWorld', { defaultValue: 'Featured world' })}
-        </h3>
-      </div>
       <div
         role="button"
         tabIndex={0}
@@ -522,8 +507,7 @@ export function ExploreView(props: ExploreViewProps) {
     return (
       <div data-testid={E2E_IDS.panel('explore')} className="flex min-h-0 flex-1 flex-col px-5 pb-5 pt-4">
         <div className="shrink-0">
-          <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-5 py-4">
-            <ExploreSkeletonBlock className="h-9 w-40 rounded-xl" />
+          <div className="mx-auto flex w-full max-w-6xl items-center justify-end gap-4 px-5 py-4">
             <ExploreSkeletonBlock className="h-11 w-[300px] rounded-full" />
           </div>
         </div>
@@ -559,27 +543,7 @@ export function ExploreView(props: ExploreViewProps) {
     <div data-testid={E2E_IDS.panel('explore')} className="flex min-h-0 flex-1 flex-col px-5 pb-5 pt-4">
       {/* Header bar */}
       <div className="shrink-0">
-        <div className="mx-auto flex w-full max-w-6xl flex-wrap items-end justify-between gap-4 px-5 py-4">
-          <Surface
-            tone="panel"
-            material="glass-regular"
-            padding="none"
-            className="rounded-2xl border-white/60 px-5 py-4 shadow-[0_18px_44px_rgba(15,23,42,0.06)]"
-          >
-            <div className="desktop-kicker-tiny mb-1">{t('Explore.pageKicker', { defaultValue: 'Nimi · Explore' })}</div>
-            <h1
-              className="m-0 leading-none"
-              style={{
-                fontFamily: 'var(--nimi-font-display)',
-                fontSize: 28,
-                fontWeight: 700,
-                letterSpacing: '-0.02em',
-                color: 'var(--nimi-text-primary)',
-              }}
-            >
-              {t('Explore.pageTitle')}
-            </h1>
-          </Surface>
+        <div className="mx-auto flex w-full max-w-6xl flex-wrap items-end justify-end gap-4 px-5 py-4">
           <div className="w-[300px] shrink-0">
             <Surface
               tone="panel"
@@ -618,7 +582,6 @@ export function ExploreView(props: ExploreViewProps) {
       >
         {activeSection === 'worlds' && (
           <section data-testid="explore-worlds-section">
-            <ExploreSectionHeader section="worlds" />
             {worldsWithBanners.length > 0 && (
               <FeaturedWorldHero
                 worldsWithBanners={worldsWithBanners}

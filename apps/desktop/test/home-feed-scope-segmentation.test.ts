@@ -129,13 +129,11 @@ test('HomeView does not carry AI execution payload on the feed path (D-HOMEFEED-
   assert.doesNotMatch(homeViewSource, /loadPostFeed\([^)]*provider/s);
 });
 
-test('HomeView exposes a testable scope selector with the three canonical options', () => {
-  assert.match(homeViewSource, /E2E_IDS\.homeFeedScopeSelector/);
-  for (const scope of CANONICAL_SCOPES) {
-    assert.match(
-      homeViewSource,
-      /E2E_IDS\.homeFeedScopeOption\(item\.value\)/,
-      `scope selector must tag each option (missing for ${scope})`,
-    );
-  }
+test('HomeView presents the new scope rail as semantic scope buttons', () => {
+  assert.doesNotMatch(homeViewSource, /SegmentedControl/);
+  assert.doesNotMatch(homeViewSource, /Home\.pageTitle/);
+  assert.match(homeViewSource, /scopeSelectorItems\.map\(\(item\) =>/);
+  assert.match(homeViewSource, /<button[\s\S]*key=\{item\.value\}[\s\S]*onClick=\{\(\) => setFeedScope\(item\.value\)\}/);
+  assert.match(homeViewSource, /Home\.feedScopeDescriptions\.\$\{scope\}/);
+  assert.match(homeViewSource, /xl:grid-cols-\[minmax\(0,720px\)_300px\]/);
 });

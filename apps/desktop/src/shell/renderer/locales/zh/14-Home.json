@@ -29,6 +29,7 @@
   "missingAuthorForGift": "无法送礼：未找到用户 ID",
   "missingAuthorForChat": "无法开始聊天：未找到用户 ID",
   "openChatFailed": "打开聊天失败",
+  "openChat": "打开聊天",
   "likes": "点赞",
   "modifyVisibility": "修改可见范围",
   "nimiHomeTitle": "主页",
@@ -64,6 +65,7 @@
   "postUpdateFailed": "更新帖子失败",
   "postUpdated": "帖子更新成功！",
   "postVideo": "帖子视频",
+  "postMenu": "帖子菜单",
   "publishing": "发布中...",
   "feedConnectionFailed": "无法连接到服务器，请检查网络或后端状态。",
   "feedSessionExpired": "当前会话已过期，请重新登录。",
@@ -73,6 +75,11 @@
     "personal": "我的",
     "friends": "好友",
     "agent_activity": "智能体动态"
+  },
+  "feedScopeDescriptions": {
+    "personal": "你的个人发布流。",
+    "friends": "来自可信好友的更新。",
+    "agent_activity": "来自个人智能体的信号。"
   },
   "feedScopeEmpty": {
     "personal": "你还没有发布任何帖子。",
@@ -94,6 +101,7 @@
   },
   "save": "保存",
   "sayHello": "打个招呼...",
+  "sendGift": "赠送礼物",
   "submitReport": "提交举报",
   "submitting": "提交中...",
   "unknownError": "未知错误",
