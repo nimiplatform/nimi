@@ -3,8 +3,10 @@ import { describe, expect, it } from 'vitest';
 import type { MeasurementRow, MedicalEventRow } from '../../bridge/sqlite-bridge.js';
 import {
   buildExamViews,
+  buildReferenceBand,
   computeGlanceMetrics,
   deriveMeasurementExamKind,
+  describeReferenceStatus,
   findLatestFullRecord,
   groupByDate,
   parseExamMeta,
@@ -145,5 +147,47 @@ describe('computeGlanceMetrics', () => {
   it('returns placeholder chips when there are no records', () => {
     const chips = computeGlanceMetrics(null);
     expect(chips.every((c) => c.od == null && c.os == null)).toBe(true);
+  });
+});
+
+describe('buildReferenceBand', () => {
+  it('builds an interpolated normal-range band for vision metrics', () => {
+    // 54 months sits halfway between the 48mo {0.6,1.2} and 60mo {0.8,1.5} bands.
+    const ref = buildReferenceBand('vision-left', 'male', [54]);
+    expect(ref?.kind).toBe('band');
+    expect(ref?.points).toEqual([{ age: 54, bandLow: 0.7, bandHigh: 1.35 }]);
+    expect(ref?.caption).toContain('0.7~1.35');
+  });
+
+  it('builds gender-specific P50/P75 lines for axial length', () => {
+    // 72 months → 6 years → AL_MALE[6] = { p50: 22.97, p75: 23.45 }.
+    const ref = buildReferenceBand('axial-length-right', 'male', [72]);
+    expect(ref?.kind).toBe('percentile');
+    expect(ref?.points).toEqual([{ age: 72, median: 22.97, critical: 23.45 }]);
+  });
+
+  it('returns null for metrics without an admitted age reference', () => {
+    expect(buildReferenceBand('refraction-sph-right', 'male', [72])).toBeNull();
+    expect(buildReferenceBand('iop-left', 'male', [72])).toBeNull();
+  });
+
+  it('returns null when there are no measurement ages', () => {
+    expect(buildReferenceBand('vision-left', 'male', [])).toBeNull();
+  });
+});
+
+describe('describeReferenceStatus', () => {
+  it('locates a value inside / above / below a normal-range band', () => {
+    const ref = buildReferenceBand('vision-left', 'male', [60])!;
+    expect(describeReferenceStatus(ref, 1.0)).toBe('当前处于同龄参考范围内');
+    expect(describeReferenceStatus(ref, 0.5)).toBe('当前低于同龄参考范围');
+    expect(describeReferenceStatus(ref, 1.8)).toBe('当前高于同龄参考范围');
+  });
+
+  it('locates a value against axial-length P50/P75 lines', () => {
+    const ref = buildReferenceBand('axial-length-right', 'male', [72])!;
+    expect(describeReferenceStatus(ref, 22.5)).toBe('当前低于同龄中位');
+    expect(describeReferenceStatus(ref, 23.2)).toBe('当前处于同龄中位与临界值之间');
+    expect(describeReferenceStatus(ref, 24.0)).toBe('当前高于同龄临界值');
   });
 });

@@ -63,8 +63,9 @@ vi.mock('../../bridge/sqlite-bridge.js', () => ({
 
 vi.mock('recharts', () => ({
   ResponsiveContainer: ({ children }: { children: ReactNode }) => <div>{children}</div>,
-  LineChart: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+  ComposedChart: ({ children }: { children: ReactNode }) => <div>{children}</div>,
   CartesianGrid: () => null,
+  Area: () => null,
   Line: () => null,
   Tooltip: () => null,
   XAxis: () => null,
@@ -253,6 +254,36 @@ describe('VisionPage OCR intake', () => {
       expect(clearVisionFollowupSettingsMock).toHaveBeenCalledTimes(1);
     });
     expect(clearVisionFollowupSettingsMock).toHaveBeenCalledWith('child-1');
+  });
+
+  it('opens the trend chart on the metric named by the ?metric= deep link', async () => {
+    getMeasurementsMock.mockResolvedValueOnce([
+      {
+        measurementId: 'm-va-left',
+        childId: 'child-1',
+        typeId: 'vision-left',
+        value: 1.0,
+        measuredAt: '2026-04-06',
+        ageMonths: 99,
+        percentile: null,
+        source: 'manual',
+        notes: null,
+        createdAt: '2026-04-06T08:00:00.000Z',
+      },
+    ]);
+
+    render(
+      <MemoryRouter initialEntries={['/profile/vision?metric=vision.left_visual_acuity']}>
+        <VisionPage />
+      </MemoryRouter>,
+    );
+
+    // ?metric=vision.left_visual_acuity selects the left-eye visual-acuity
+    // series ("左眼裸眼"), not the axial-length-right default ("右眼眼轴").
+    await waitFor(() => {
+      expect(screen.getByText('左眼裸眼')).toBeTruthy();
+    });
+    expect(screen.queryByText('右眼眼轴')).toBeNull();
   });
 
   it('deletes every measurement belonging to a grouped vision record', async () => {

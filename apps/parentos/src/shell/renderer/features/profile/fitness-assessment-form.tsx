@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Button, cn, DashedAddButton, DatePicker, TextField, TextareaField } from '@nimiplatform/nimi-kit/ui';
+import { Button, cn, DashedAddButton, DatePicker, PillTabs, TextField, TextareaField } from '@nimiplatform/nimi-kit/ui';
 import { AppSelect } from '../../app-shell/app-select.js';
 import { computeAgeMonthsAt } from '../../app-shell/app-store.js';
 import { deleteFitnessEvent, insertFitnessAssessment, saveHealthRecordCapture } from '../../bridge/sqlite-bridge.js';
@@ -81,10 +81,15 @@ const CATEGORY_META: Record<string, { label: string; emoji: string }> = {
   [STANDARD_CATEGORY]: { label: '国标体测', emoji: '📋' },
   ...Object.fromEntries(ACTIVITY_CATEGORIES.map((c) => [c.id, { label: c.label, emoji: c.emoji }])),
 };
-const CATEGORY_CHIPS: ChipOption<string>[] = [
-  { value: STANDARD_CATEGORY, label: '国标体测', emoji: '📋' },
-  ...ACTIVITY_CATEGORIES.map((c) => ({ value: c.id, label: c.label, emoji: c.emoji })),
-];
+// `类型` splits into two tabs: 体测 (the single national-standard test) and
+// 日常运动 (the sport-activity chips). The standard test is not a chip — picking
+// the 体测 tab is itself the selection.
+const ACTIVITY_TAB = 'activity';
+const ACTIVITY_CHIPS: ChipOption<string>[] = ACTIVITY_CATEGORIES.map((c) => ({
+  value: c.id,
+  label: c.label,
+  emoji: c.emoji,
+}));
 
 type AgeTier = 'preschool' | 'grade12' | 'grade34' | 'grade56' | 'grade7plus';
 
@@ -447,12 +452,32 @@ export function FitnessAssessmentFormContent({ child, ageMonths, onSaved, onClos
                 {isActive ? (
                   <div className="mt-2 space-y-3" onClick={(event) => event.stopPropagation()}>
                     <FormField label="类型">
-                      <ChipGroup
-                        size="sm"
-                        options={CATEGORY_CHIPS}
-                        value={entry.category}
-                        onChange={(value) => updateEntry(idx, { category: value })}
-                      />
+                      <div className="space-y-2.5">
+                        <PillTabs
+                          size="sm"
+                          ariaLabel="记录类型"
+                          items={[
+                            { value: STANDARD_CATEGORY, label: '📋 体测' },
+                            { value: ACTIVITY_TAB, label: '🏃 日常运动' },
+                          ]}
+                          value={entry.category === STANDARD_CATEGORY ? STANDARD_CATEGORY : ACTIVITY_TAB}
+                          onValueChange={(tab) => {
+                            if (tab === STANDARD_CATEGORY) {
+                              updateEntry(idx, { category: STANDARD_CATEGORY });
+                            } else if (entry.category === STANDARD_CATEGORY) {
+                              updateEntry(idx, { category: 'running' });
+                            }
+                          }}
+                        />
+                        {entry.category !== STANDARD_CATEGORY ? (
+                          <ChipGroup
+                            size="sm"
+                            options={ACTIVITY_CHIPS}
+                            value={entry.category}
+                            onChange={(value) => updateEntry(idx, { category: value })}
+                          />
+                        ) : null}
+                      </div>
                     </FormField>
 
                     {entry.category === STANDARD_CATEGORY ? (

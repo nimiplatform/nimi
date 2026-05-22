@@ -13,6 +13,7 @@ import { Button, Timeline, TimelineDivider, TimelineGroup } from '@nimiplatform/
  * Both streams are merged into a single ExamView list via `buildExamViews`.
  */
 import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { computeAgeMonths, useAppStore } from '../../app-shell/app-store.js';
 import {
@@ -61,14 +62,29 @@ import { formatDateLabel } from '../journal/journal-page-helpers.js';
 
 /* ── Page ────────────────────────────────────────────────────────── */
 
+// Deep link from the /profile group card: ?metric=<healthMetricId> opens the
+// matching trend-chart series. Maps each canonical vision metric id to its
+// chart `GrowthTypeId`; an absent or unrecognized param keeps the default.
+const METRIC_ID_TO_CHART_TYPE: Record<string, GrowthTypeId> = {
+  'vision.left_visual_acuity': 'vision-left',
+  'vision.right_visual_acuity': 'vision-right',
+  'vision.left_axial_length': 'axial-length-left',
+  'vision.right_axial_length': 'axial-length-right',
+  'vision.left_iop': 'iop-left',
+  'vision.right_iop': 'iop-right',
+};
+
 export default function VisionPage() {
   const { t } = useTranslation();
   const { activeChildId, children } = useAppStore();
   const child = children.find((c) => c.childId === activeChildId);
 
+  const [searchParams] = useSearchParams();
   const [measurements, setMeasurements] = useState<MeasurementRow[]>([]);
   const [medicalEvents, setMedicalEvents] = useState<MedicalEventRow[]>([]);
-  const [chartType, setChartType] = useState<GrowthTypeId>('axial-length-right');
+  const [chartType, setChartType] = useState<GrowthTypeId>(
+    () => METRIC_ID_TO_CHART_TYPE[searchParams.get('metric') ?? ''] ?? 'axial-length-right',
+  );
 
   const [showForm, setShowForm] = useState(false);
   const [editingRecord, setEditingRecord] = useState<VisionRecord | null>(null);
@@ -260,6 +276,7 @@ export default function VisionPage() {
           <TrendChartCard
             measurements={trendPoints}
             chartType={chartType}
+            gender={child.gender}
             onChartTypeChange={setChartType}
           />
         )}

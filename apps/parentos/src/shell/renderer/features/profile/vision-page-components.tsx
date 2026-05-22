@@ -7,7 +7,7 @@ import {
 } from './health-record-modal-shell.js';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { Area, CartesianGrid, ComposedChart, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { computeAgeMonthsAt } from '../../app-shell/app-store.js';
 import {
   clearVisionFollowupSettings,
@@ -22,7 +22,8 @@ import { GROWTH_STANDARDS } from '../../knowledge-base/index.js';
 import type { GrowthTypeId } from '../../knowledge-base/gen/growth-standards.gen.js';
 import { AppSelect } from '../../app-shell/app-select.js';
 import { ulid, isoNow } from '../../bridge/ulid.js';
-import { CHART_OPTIONS } from './vision-data.js';
+import { buildReferenceBand, CHART_OPTIONS, describeReferenceStatus } from './vision-data.js';
+import type { ReferencePoint } from './vision-data.js';
 
 export const EARLY_SCREENING_MAX_AGE_MONTHS = 72;
 export const VISION_SCREENING_PREFIX = 'vision:';
@@ -518,10 +519,12 @@ export function NextStepsEditor({
 export function TrendChartCard({
   measurements,
   chartType,
+  gender,
   onChartTypeChange,
 }: {
   measurements: MeasurementRow[];
   chartType: GrowthTypeId;
+  gender: string;
   onChartTypeChange: (v: GrowthTypeId) => void;
 }) {
   const { t } = useTranslation();
@@ -530,6 +533,28 @@ export function TrendChartCard({
     .filter((m) => m.typeId === chartType)
     .sort((a, b) => a.ageMonths - b.ageMonths)
     .map((m) => ({ age: m.ageMonths, value: m.value, date: m.measuredAt.split('T')[0] }));
+
+  // Age-shaped reference overlay — a shaded normal band (vision /
+  // hyperopia reserve) or P50/P75 lines (axial length). Reference
+  // points share the measurement ages, so they merge by `age`.
+  const reference = buildReferenceBand(chartType, gender, chartData.map((d) => d.age));
+  const refByAge = new Map<number, ReferencePoint>();
+  if (reference) {
+    for (const point of reference.points) refByAge.set(point.age, point);
+  }
+  const mergedData = chartData.map((d) => {
+    const ref = refByAge.get(d.age);
+    return {
+      ...d,
+      band: ref?.bandLow != null && ref.bandHigh != null ? [ref.bandLow, ref.bandHigh] : undefined,
+      median: ref?.median,
+      critical: ref?.critical,
+    };
+  });
+  const latestValue = chartData[chartData.length - 1]?.value ?? null;
+  const refStatus = reference && latestValue != null
+    ? describeReferenceStatus(reference, latestValue)
+    : null;
 
   return (
     <Surface
@@ -561,25 +586,86 @@ export function TrendChartCard({
           <span className="text-[13px]">{t('Profile.rich.vision.emptyMetric', { metric: typeInfo?.displayName ?? '' })}</span>
         </div>
       ) : (
-        <ResponsiveContainer width="100%" height={200}>
-          <LineChart data={chartData}>
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(15,23,42,0.06)" />
-            <XAxis
-              dataKey="age"
-              tick={{ fontSize: 10 }}
-              label={{ value: '月龄', position: 'insideBottom', offset: -4, fontSize: 10 }}
-            />
-            <YAxis
-              tick={{ fontSize: 10 }}
-              label={{ value: typeInfo?.unit ?? '', angle: -90, position: 'insideLeft', fontSize: 10 }}
-            />
-            <Tooltip
-              formatter={(v: number) => [`${v} ${typeInfo?.unit ?? ''}`, typeInfo?.displayName]}
-              labelFormatter={(a) => `${a} 个月`}
-            />
-            <Line type="monotone" dataKey="value" stroke="var(--nimi-accent)" strokeWidth={2} dot={{ r: 3, fill: 'var(--nimi-accent)' }} />
-          </LineChart>
-        </ResponsiveContainer>
+        <>
+          <ResponsiveContainer width="100%" height={200}>
+            <ComposedChart data={mergedData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(15,23,42,0.06)" />
+              <XAxis
+                dataKey="age"
+                tick={{ fontSize: 10 }}
+                label={{ value: '月龄', position: 'insideBottom', offset: -4, fontSize: 10 }}
+              />
+              <YAxis
+                tick={{ fontSize: 10 }}
+                label={{ value: typeInfo?.unit ?? '', angle: -90, position: 'insideLeft', fontSize: 10 }}
+              />
+              <Tooltip
+                formatter={(v, name) => {
+                  const text = Array.isArray(v) ? `${v[0]}~${v[1]}` : `${v}`;
+                  return [`${text}${typeInfo?.unit ? ` ${typeInfo.unit}` : ''}`, name];
+                }}
+                labelFormatter={(a) => `${a} 个月`}
+              />
+              {reference?.kind === 'band' && (
+                <Area
+                  type="monotone"
+                  dataKey="band"
+                  name="同龄参考范围"
+                  stroke="none"
+                  fill="var(--nimi-accent)"
+                  fillOpacity={0.12}
+                  dot={false}
+                  activeDot={false}
+                  connectNulls
+                  isAnimationActive={false}
+                />
+              )}
+              {reference?.kind === 'percentile' && (
+                <Line
+                  type="monotone"
+                  dataKey="median"
+                  name="同龄中位 P50"
+                  stroke="var(--nimi-text-muted)"
+                  strokeWidth={1}
+                  strokeDasharray="5 3"
+                  dot={false}
+                  activeDot={false}
+                  connectNulls
+                  isAnimationActive={false}
+                />
+              )}
+              {reference?.kind === 'percentile' && (
+                <Line
+                  type="monotone"
+                  dataKey="critical"
+                  name="同龄临界 P75"
+                  stroke="var(--nimi-status-warning)"
+                  strokeWidth={1}
+                  strokeDasharray="5 3"
+                  dot={false}
+                  activeDot={false}
+                  connectNulls
+                  isAnimationActive={false}
+                />
+              )}
+              <Line
+                type="monotone"
+                dataKey="value"
+                name={typeInfo?.displayName ?? '数值'}
+                stroke="var(--nimi-accent)"
+                strokeWidth={2}
+                dot={{ r: 3, fill: 'var(--nimi-accent)' }}
+                connectNulls
+              />
+            </ComposedChart>
+          </ResponsiveContainer>
+          {reference && (reference.caption || refStatus) && (
+            <div className="mt-2.5 flex flex-wrap items-center justify-center gap-x-2 gap-y-0.5 text-[11px] text-[var(--nimi-text-muted)]">
+              {reference.caption && <span>{reference.caption}</span>}
+              {refStatus && <span className="text-[var(--nimi-text-secondary)]">· {refStatus}</span>}
+            </div>
+          )}
+        </>
       )}
     </Surface>
   );

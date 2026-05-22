@@ -1,4 +1,5 @@
 import type { GrowthTypeId } from '../../knowledge-base/gen/growth-standards.gen.js';
+import { REFERENCE_RANGES } from '../../knowledge-base/index.js';
 import type { MeasurementRow, MedicalEventRow } from '../../bridge/sqlite-bridge.js';
 
 /* ── Eye type IDs ────────────────────────────────────────── */
@@ -558,4 +559,141 @@ export function getAxialRef(ageMonths: number, gender: string): { mean: number; 
   if (!entry) return null;
   const kMean = +(337.5 / entry.crMean).toFixed(2);
   return { mean: entry.p50, critical: entry.p75, kMean };
+}
+
+/* ── Trend chart reference overlay ─────────────────────────────
+
+   The trend chart plots the child's recorded values against an
+   age-shaped reference so a parent reads development at a glance:
+     - vision / hyperopia reserve → a shaded normal-range band,
+       interpolated from REFERENCE_RANGES' age-banded normalMin/Max.
+     - axial length → P50 median + P75 critical lines, from the
+       gender-specific AL_MALE / AL_FEMALE percentiles.
+   Refraction sphere and IOP have no admitted age reference, so the
+   chart renders without an overlay for those metrics.
+*/
+
+interface AgeBand { ageMonths: number; normalMin: number; normalMax: number }
+
+const RANGE_TABLES = REFERENCE_RANGES as Record<string, { ranges?: AgeBand[] }>;
+
+/** One merged reference sample at a given age. */
+export interface ReferencePoint {
+  age: number;
+  /** Shaded normal-range band edges (vision / hyperopia reserve). */
+  bandLow?: number;
+  bandHigh?: number;
+  /** P50 median reference line (axial length). */
+  median?: number;
+  /** P75 critical reference line (axial length). */
+  critical?: number;
+}
+
+export type ReferenceKind = 'band' | 'percentile';
+
+export interface ChartReference {
+  kind: ReferenceKind;
+  points: ReferencePoint[];
+  /** Short caption describing the reference at the newest measured age. */
+  caption: string;
+}
+
+/** Linear-interpolate an age-banded table at an arbitrary age; ages
+ *  outside the table clamp to the nearest endpoint. */
+function interpolateBand(ranges: AgeBand[], age: number): { low: number; high: number } | null {
+  const sorted = [...ranges].sort((a, b) => a.ageMonths - b.ageMonths);
+  const first = sorted[0];
+  const last = sorted[sorted.length - 1];
+  if (!first || !last) return null;
+  if (age <= first.ageMonths) return { low: first.normalMin, high: first.normalMax };
+  if (age >= last.ageMonths) return { low: last.normalMin, high: last.normalMax };
+  for (let i = 0; i < sorted.length - 1; i += 1) {
+    const lo = sorted[i]!;
+    const hi = sorted[i + 1]!;
+    if (age >= lo.ageMonths && age <= hi.ageMonths) {
+      const t = (age - lo.ageMonths) / (hi.ageMonths - lo.ageMonths);
+      return {
+        low: +(lo.normalMin + (hi.normalMin - lo.normalMin) * t).toFixed(2),
+        high: +(lo.normalMax + (hi.normalMax - lo.normalMax) * t).toFixed(2),
+      };
+    }
+  }
+  return null;
+}
+
+const BAND_TABLE_BY_TYPE: Partial<Record<GrowthTypeId, string>> = {
+  'vision-left': 'vision',
+  'vision-right': 'vision',
+  'hyperopia-reserve': 'hyperopiaReserve',
+};
+
+const AXIAL_TYPES = new Set<GrowthTypeId>(['axial-length-left', 'axial-length-right']);
+
+/** Build the trend-chart reference overlay for a metric across the
+ *  given measurement ages. Returns null when the metric has no
+ *  admitted age reference. */
+export function buildReferenceBand(
+  chartType: GrowthTypeId,
+  gender: string,
+  ages: number[],
+): ChartReference | null {
+  const sortedAges = [...new Set(ages)].sort((a, b) => a - b);
+  const newestAge = sortedAges[sortedAges.length - 1];
+  if (newestAge == null) return null;
+
+  const bandKey = BAND_TABLE_BY_TYPE[chartType];
+  if (bandKey) {
+    const ranges = RANGE_TABLES[bandKey]?.ranges;
+    if (!ranges?.length) return null;
+    const points: ReferencePoint[] = [];
+    for (const age of sortedAges) {
+      const band = interpolateBand(ranges, age);
+      if (band) points.push({ age, bandLow: band.low, bandHigh: band.high });
+    }
+    if (points.length === 0) return null;
+    const newest = interpolateBand(ranges, newestAge);
+    return {
+      kind: 'band',
+      points,
+      caption: newest ? `${fmtAge(newestAge)}同龄参考范围 ${newest.low}~${newest.high}` : '',
+    };
+  }
+
+  if (AXIAL_TYPES.has(chartType)) {
+    const points: ReferencePoint[] = [];
+    for (const age of sortedAges) {
+      const ref = getAxialRef(age, gender);
+      if (ref) points.push({ age, median: ref.mean, critical: ref.critical });
+    }
+    if (points.length === 0) return null;
+    const newest = getAxialRef(newestAge, gender);
+    return {
+      kind: 'percentile',
+      points,
+      caption: newest ? `${fmtAge(newestAge)}同龄中位 ${newest.mean} · 临界 ${newest.critical}` : '',
+    };
+  }
+
+  return null;
+}
+
+/** Describe where the newest measured value sits relative to the
+ *  reference overlay — objective wording only, no risk language. */
+export function describeReferenceStatus(
+  reference: ChartReference,
+  latestValue: number,
+): string | null {
+  const newest = reference.points[reference.points.length - 1];
+  if (!newest) return null;
+  if (reference.kind === 'band' && newest.bandLow != null && newest.bandHigh != null) {
+    if (latestValue < newest.bandLow) return '当前低于同龄参考范围';
+    if (latestValue > newest.bandHigh) return '当前高于同龄参考范围';
+    return '当前处于同龄参考范围内';
+  }
+  if (reference.kind === 'percentile' && newest.median != null && newest.critical != null) {
+    if (latestValue > newest.critical) return '当前高于同龄临界值';
+    if (latestValue > newest.median) return '当前处于同龄中位与临界值之间';
+    return '当前低于同龄中位';
+  }
+  return null;
 }
