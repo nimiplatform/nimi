@@ -10,7 +10,7 @@ import (
 
 const defaultLocalEnvironmentPythonVersion = "3.12"
 
-func (s *Service) executePythonUVEnvironmentDependencyJob(ctx context.Context, job localEnvironmentDependencyJobState) (localEnvironmentDependencyJobResult, error) {
+func (s *Service) executePythonUVEnvironmentDependencyJob(ctx context.Context, job localEnvironmentDependencyJobState, report localEnvironmentDependencyJobProgressReporter) (localEnvironmentDependencyJobResult, error) {
 	if strings.TrimSpace(job.DependencyID) != "uv" {
 		return localEnvironmentDependencyJobResult{
 			State:           localEnvironmentStateUnsupported,
@@ -22,10 +22,12 @@ func (s *Service) executePythonUVEnvironmentDependencyJob(ctx context.Context, j
 	if mgr == nil {
 		return localEnvironmentDependencyJobResult{}, errors.New("runtime engine manager unavailable")
 	}
+	reportLocalEnvironmentJobProgress(report, localEnvironmentStateDownloading)
 	status, err := mgr.EnsureUVToolDependency(ctx)
 	if err != nil {
 		return localEnvironmentDependencyJobResult{}, err
 	}
+	reportLocalEnvironmentJobProgress(report, localEnvironmentStateVerifying)
 	if strings.TrimSpace(status.ExecutablePath) == "" || strings.TrimSpace(status.Version) == "" || strings.TrimSpace(status.ArchiveSHA256) == "" {
 		return localEnvironmentDependencyJobResult{
 			State:           localEnvironmentStateRepairRequired,
@@ -46,7 +48,7 @@ func (s *Service) executePythonUVEnvironmentDependencyJob(ctx context.Context, j
 	}, nil
 }
 
-func (s *Service) executePythonRuntimeEnvironmentDependencyJob(ctx context.Context, job localEnvironmentDependencyJobState) (localEnvironmentDependencyJobResult, error) {
+func (s *Service) executePythonRuntimeEnvironmentDependencyJob(ctx context.Context, job localEnvironmentDependencyJobState, report localEnvironmentDependencyJobProgressReporter) (localEnvironmentDependencyJobResult, error) {
 	if strings.TrimSpace(job.DependencyID) != "python.runtime" {
 		return localEnvironmentDependencyJobResult{
 			State:           localEnvironmentStateUnsupported,
@@ -55,7 +57,12 @@ func (s *Service) executePythonRuntimeEnvironmentDependencyJob(ctx context.Conte
 		}, nil
 	}
 	consumer := pythonMaterializerConsumerForDependency(job.DependencyID)
-	uvRecord, ok := s.selectedSourceForFamilyAndConsumer(localEnvironmentFamilyPythonUV, consumer)
+	// Prerequisite ordering is runtime authority: the desktop fires uv ->
+	// python.runtime concurrently, so wait (bounded, on the job ctx) for uv's
+	// selected-source record rather than failing closed when this job races
+	// ahead of the uv job. A genuinely absent uv record still fails closed once
+	// the bounded wait elapses.
+	uvRecord, ok := s.waitForSelectedSourceForFamilyAndConsumer(ctx, localEnvironmentFamilyPythonUV, consumer)
 	if !ok {
 		return localEnvironmentDependencyJobResult{
 			State:           localEnvironmentStateFailed,
@@ -63,6 +70,7 @@ func (s *Service) executePythonRuntimeEnvironmentDependencyJob(ctx context.Conte
 			AuditReasonCode: "LOCAL_ENVIRONMENT_DEPENDENCY_PREREQUISITE_MISSING",
 		}, nil
 	}
+	reportLocalEnvironmentJobProgress(report, localEnvironmentStateDownloading)
 	if strings.TrimSpace(uvRecord.CanonicalRoot) == "" {
 		return localEnvironmentDependencyJobResult{
 			State:           localEnvironmentStateRepairRequired,
@@ -99,7 +107,7 @@ func (s *Service) executePythonRuntimeEnvironmentDependencyJob(ctx context.Conte
 	}, nil
 }
 
-func (s *Service) executePythonVenvEnvironmentDependencyJob(ctx context.Context, job localEnvironmentDependencyJobState) (localEnvironmentDependencyJobResult, error) {
+func (s *Service) executePythonVenvEnvironmentDependencyJob(ctx context.Context, job localEnvironmentDependencyJobState, report localEnvironmentDependencyJobProgressReporter) (localEnvironmentDependencyJobResult, error) {
 	if !strings.HasSuffix(strings.TrimSpace(job.DependencyID), ".venv") {
 		return localEnvironmentDependencyJobResult{
 			State:           localEnvironmentStateUnsupported,
@@ -108,7 +116,16 @@ func (s *Service) executePythonVenvEnvironmentDependencyJob(ctx context.Context,
 		}, nil
 	}
 	consumer := pythonMaterializerConsumerForDependency(job.DependencyID)
-	uvRecord, ok := s.selectedSourceForFamilyAndConsumer(localEnvironmentFamilyPythonUV, consumer)
+	if strings.TrimSpace(consumer) == "" && strings.HasPrefix(strings.TrimSpace(job.DependencyID), "local-speech.") {
+		return localEnvironmentDependencyJobResult{
+			State:           localEnvironmentStateUnsupported,
+			SourceKind:      localEnvironmentSourceUnavailable,
+			AuditReasonCode: "LOCAL_ENVIRONMENT_DEPENDENCY_UNSUPPORTED",
+		}, nil
+	}
+	// Prerequisite ordering (runtime authority): wait for uv then python.runtime
+	// rather than failing closed under concurrent unordered desktop Start calls.
+	uvRecord, ok := s.waitForSelectedSourceForFamilyAndConsumer(ctx, localEnvironmentFamilyPythonUV, consumer)
 	if !ok {
 		return localEnvironmentDependencyJobResult{
 			State:           localEnvironmentStateFailed,
@@ -116,7 +133,7 @@ func (s *Service) executePythonVenvEnvironmentDependencyJob(ctx context.Context,
 			AuditReasonCode: "LOCAL_ENVIRONMENT_DEPENDENCY_PREREQUISITE_MISSING",
 		}, nil
 	}
-	runtimeRecord, ok := s.selectedSourceForFamilyAndConsumer(localEnvironmentFamilyPythonRuntime, consumer)
+	runtimeRecord, ok := s.waitForSelectedSourceForFamilyAndConsumer(ctx, localEnvironmentFamilyPythonRuntime, consumer)
 	if !ok {
 		return localEnvironmentDependencyJobResult{
 			State:           localEnvironmentStateFailed,
@@ -124,6 +141,7 @@ func (s *Service) executePythonVenvEnvironmentDependencyJob(ctx context.Context,
 			AuditReasonCode: "LOCAL_ENVIRONMENT_DEPENDENCY_PREREQUISITE_MISSING",
 		}, nil
 	}
+	reportLocalEnvironmentJobProgress(report, localEnvironmentStateInstalling)
 	if strings.TrimSpace(uvRecord.CanonicalRoot) == "" || strings.TrimSpace(runtimeRecord.CanonicalRoot) == "" {
 		return localEnvironmentDependencyJobResult{
 			State:           localEnvironmentStateRepairRequired,
@@ -163,7 +181,7 @@ func (s *Service) executePythonVenvEnvironmentDependencyJob(ctx context.Context,
 	}, nil
 }
 
-func (s *Service) executePythonPackageSetEnvironmentDependencyJob(ctx context.Context, job localEnvironmentDependencyJobState) (localEnvironmentDependencyJobResult, error) {
+func (s *Service) executePythonPackageSetEnvironmentDependencyJob(ctx context.Context, job localEnvironmentDependencyJobState, report localEnvironmentDependencyJobProgressReporter) (localEnvironmentDependencyJobResult, error) {
 	if !strings.HasSuffix(strings.TrimSpace(job.DependencyID), ".package-set") {
 		return localEnvironmentDependencyJobResult{
 			State:           localEnvironmentStateUnsupported,
@@ -172,7 +190,15 @@ func (s *Service) executePythonPackageSetEnvironmentDependencyJob(ctx context.Co
 		}, nil
 	}
 	consumer := pythonMaterializerConsumerForDependency(job.DependencyID)
-	uvRecord, ok := s.selectedSourceForFamilyAndConsumer(localEnvironmentFamilyPythonUV, consumer)
+	if strings.TrimSpace(consumer) == "" && strings.HasPrefix(strings.TrimSpace(job.DependencyID), "local-speech.") {
+		return localEnvironmentDependencyJobResult{
+			State:           localEnvironmentStateUnsupported,
+			SourceKind:      localEnvironmentSourceUnavailable,
+			AuditReasonCode: "LOCAL_ENVIRONMENT_DEPENDENCY_UNSUPPORTED",
+		}, nil
+	}
+	// Prerequisite ordering (runtime authority): wait for uv then venv.
+	uvRecord, ok := s.waitForSelectedSourceForFamilyAndConsumer(ctx, localEnvironmentFamilyPythonUV, consumer)
 	if !ok {
 		return localEnvironmentDependencyJobResult{
 			State:           localEnvironmentStateFailed,
@@ -180,7 +206,7 @@ func (s *Service) executePythonPackageSetEnvironmentDependencyJob(ctx context.Co
 			AuditReasonCode: "LOCAL_ENVIRONMENT_DEPENDENCY_PREREQUISITE_MISSING",
 		}, nil
 	}
-	venvRecord, ok := s.selectedSourceForFamilyAndConsumer(localEnvironmentFamilyPythonVenv, consumer)
+	venvRecord, ok := s.waitForSelectedSourceForFamilyAndConsumer(ctx, localEnvironmentFamilyPythonVenv, consumer)
 	if !ok {
 		return localEnvironmentDependencyJobResult{
 			State:           localEnvironmentStateFailed,
@@ -188,6 +214,7 @@ func (s *Service) executePythonPackageSetEnvironmentDependencyJob(ctx context.Co
 			AuditReasonCode: "LOCAL_ENVIRONMENT_DEPENDENCY_PREREQUISITE_MISSING",
 		}, nil
 	}
+	reportLocalEnvironmentJobProgress(report, localEnvironmentStateDownloading)
 	if strings.TrimSpace(uvRecord.CanonicalRoot) == "" || strings.TrimSpace(venvRecord.CanonicalRoot) == "" {
 		return localEnvironmentDependencyJobResult{
 			State:           localEnvironmentStateRepairRequired,
@@ -211,6 +238,7 @@ func (s *Service) executePythonPackageSetEnvironmentDependencyJob(ctx context.Co
 		}, nil
 	}
 	verifiedArtifacts := normalizeStringSlice([]string{strings.TrimSpace(status.InterpreterPath), strings.TrimSpace(status.UVExecutable)})
+	verifiedArtifacts = append(verifiedArtifacts, normalizeStringSlice(status.DriverScripts)...)
 	for _, dist := range status.InstalledDistributions {
 		verifiedArtifacts = append(verifiedArtifacts, "distribution="+strings.TrimSpace(dist))
 	}
@@ -222,6 +250,16 @@ func (s *Service) executePythonPackageSetEnvironmentDependencyJob(ctx context.Co
 	}
 	for _, probe := range status.ImportProbes {
 		compatibilityEvidence = append(compatibilityEvidence, "import_probe="+strings.TrimSpace(probe))
+	}
+	activationEnvDelta := make([]string, 0, len(status.DriverCommands))
+	for key, value := range status.DriverCommands {
+		key = strings.TrimSpace(key)
+		value = strings.TrimSpace(value)
+		if key == "" || value == "" {
+			continue
+		}
+		activationEnvDelta = append(activationEnvDelta, key+"="+value)
+		compatibilityEvidence = append(compatibilityEvidence, "driver_command="+key)
 	}
 	return localEnvironmentDependencyJobResult{
 		State:                 localEnvironmentStateReadyManaged,
@@ -235,12 +273,13 @@ func (s *Service) executePythonPackageSetEnvironmentDependencyJob(ctx context.Co
 			"selected_uv_record":   strings.TrimSpace(uvRecord.RecordID),
 			"selected_venv_record": strings.TrimSpace(venvRecord.RecordID),
 		},
-		SelectedConsumers: pythonSelectedConsumersForDependency(job.DependencyID),
-		AuditReasonCode:   "LOCAL_ENVIRONMENT_DEPENDENCY_READY_MANAGED",
+		SelectedConsumers:  pythonSelectedConsumersForDependency(job.DependencyID),
+		ActivationEnvDelta: normalizeStringSlice(activationEnvDelta),
+		AuditReasonCode:    "LOCAL_ENVIRONMENT_DEPENDENCY_READY_MANAGED",
 	}, nil
 }
 
-func (s *Service) executePythonTorchWheelEnvironmentDependencyJob(ctx context.Context, job localEnvironmentDependencyJobState) (localEnvironmentDependencyJobResult, error) {
+func (s *Service) executePythonTorchWheelEnvironmentDependencyJob(ctx context.Context, job localEnvironmentDependencyJobState, report localEnvironmentDependencyJobProgressReporter) (localEnvironmentDependencyJobResult, error) {
 	if !strings.HasSuffix(strings.TrimSpace(job.DependencyID), ".torch-wheel") {
 		return localEnvironmentDependencyJobResult{
 			State:           localEnvironmentStateUnsupported,
@@ -256,7 +295,10 @@ func (s *Service) executePythonTorchWheelEnvironmentDependencyJob(ctx context.Co
 			AuditReasonCode: "LOCAL_ENVIRONMENT_DEPENDENCY_UNSUPPORTED",
 		}, nil
 	}
-	uvRecord, ok := s.selectedSourceForFamilyAndConsumer(localEnvironmentFamilyPythonUV, consumer)
+	// Prerequisite ordering (runtime authority): wait for uv, venv, and — for a
+	// cuda consumer — the CUDA runtime, rather than failing closed under
+	// concurrent unordered desktop Start calls.
+	uvRecord, ok := s.waitForSelectedSourceForFamilyAndConsumer(ctx, localEnvironmentFamilyPythonUV, consumer)
 	if !ok {
 		return localEnvironmentDependencyJobResult{
 			State:           localEnvironmentStateFailed,
@@ -264,7 +306,7 @@ func (s *Service) executePythonTorchWheelEnvironmentDependencyJob(ctx context.Co
 			AuditReasonCode: "LOCAL_ENVIRONMENT_DEPENDENCY_PREREQUISITE_MISSING",
 		}, nil
 	}
-	venvRecord, ok := s.selectedSourceForFamilyAndConsumer(localEnvironmentFamilyPythonVenv, consumer)
+	venvRecord, ok := s.waitForSelectedSourceForFamilyAndConsumer(ctx, localEnvironmentFamilyPythonVenv, consumer)
 	if !ok {
 		return localEnvironmentDependencyJobResult{
 			State:           localEnvironmentStateFailed,
@@ -273,7 +315,7 @@ func (s *Service) executePythonTorchWheelEnvironmentDependencyJob(ctx context.Co
 		}, nil
 	}
 	if strings.Contains(strings.TrimSpace(consumer), ".cuda") {
-		if _, ok := s.selectedSourceForFamilyAndConsumer(localEnvironmentFamilyCUDA, consumer); !ok {
+		if _, ok := s.waitForSelectedSourceForFamilyAndConsumer(ctx, localEnvironmentFamilyCUDA, consumer); !ok {
 			return localEnvironmentDependencyJobResult{
 				State:           localEnvironmentStateFailed,
 				SourceKind:      localEnvironmentSourceManaged,
@@ -281,6 +323,7 @@ func (s *Service) executePythonTorchWheelEnvironmentDependencyJob(ctx context.Co
 			}, nil
 		}
 	}
+	reportLocalEnvironmentJobProgress(report, localEnvironmentStateDownloading)
 	if strings.TrimSpace(uvRecord.CanonicalRoot) == "" || strings.TrimSpace(venvRecord.CanonicalRoot) == "" {
 		return localEnvironmentDependencyJobResult{
 			State:           localEnvironmentStateRepairRequired,
@@ -346,6 +389,10 @@ func pythonSelectedConsumersForDependency(dependencyID string) []string {
 		return []string{"media.diffusers.cpu", "media.diffusers.cuda"}
 	case strings.HasPrefix(strings.TrimSpace(dependencyID), "local-video-python."):
 		return []string{"media.video-python.cpu", "media.video-python.cuda"}
+	case strings.HasPrefix(strings.TrimSpace(dependencyID), "local-speech-qwen3-asr."):
+		return []string{"speech.qwen3-asr.python"}
+	case strings.HasPrefix(strings.TrimSpace(dependencyID), "local-speech-qwen3-tts."):
+		return []string{"speech.qwen3-tts.python"}
 	case strings.HasPrefix(strings.TrimSpace(dependencyID), "local-speech."):
 		return []string{"speech.qwen3-asr.python", "speech.qwen3-tts.python"}
 	case strings.TrimSpace(dependencyID) == "python.runtime", strings.TrimSpace(dependencyID) == "uv":
@@ -368,8 +415,12 @@ func pythonMaterializerConsumerForDependency(dependencyID string) string {
 		return "media.diffusers.cuda"
 	case strings.HasPrefix(strings.TrimSpace(dependencyID), "local-video-python."):
 		return "media.video-python.cuda"
-	case strings.HasPrefix(strings.TrimSpace(dependencyID), "local-speech."):
+	case strings.HasPrefix(strings.TrimSpace(dependencyID), "local-speech-qwen3-asr."):
+		return "speech.qwen3-asr.python"
+	case strings.HasPrefix(strings.TrimSpace(dependencyID), "local-speech-qwen3-tts."):
 		return "speech.qwen3-tts.python"
+	case strings.HasPrefix(strings.TrimSpace(dependencyID), "local-speech."):
+		return ""
 	default:
 		return ""
 	}
@@ -379,7 +430,14 @@ func pythonRuntimeEngineTarget(consumer string) (string, string) {
 	switch {
 	case strings.HasPrefix(strings.TrimSpace(consumer), "speech."):
 		cfg := engine.DefaultSpeechConfig()
-		return "speech", cfg.Version
+		switch strings.TrimSpace(consumer) {
+		case "speech.qwen3-asr.python":
+			return "speech", cfg.Version + "-qwen3-asr"
+		case "speech.qwen3-tts.python":
+			return "speech", cfg.Version + "-qwen3-tts"
+		default:
+			return "speech", cfg.Version
+		}
 	case strings.TrimSpace(consumer) == "":
 		return "python", defaultLocalEnvironmentPythonVersion
 	default:

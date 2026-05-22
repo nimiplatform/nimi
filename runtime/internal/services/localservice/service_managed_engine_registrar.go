@@ -92,6 +92,32 @@ func (s *Service) ManagedLlamaEndpoint() string {
 	return s.managedLlamaEndpoint()
 }
 
+// ManagedLlamaRouterReady reports whether the shared managed llama router has
+// a generated preset with at least one valid Runtime-owned llama registration.
+// The daemon uses this to avoid starting llama-server with an absent/empty
+// --models-preset before onboarding materialization has admitted a text model.
+func (s *Service) ManagedLlamaRouterReady() bool {
+	if s == nil {
+		return false
+	}
+	s.mu.RLock()
+	managed := s.managedLlamaEnabled
+	configPath := strings.TrimSpace(s.managedLlamaModelsConfigPath)
+	readyRegistration := false
+	for _, registration := range s.managedLlamaRegistrations {
+		if registration.Managed && !registration.DynamicProfile && strings.TrimSpace(registration.Problem) == "" {
+			readyRegistration = true
+			break
+		}
+	}
+	s.mu.RUnlock()
+	if !managed || configPath == "" || !readyRegistration {
+		return false
+	}
+	raw, err := os.ReadFile(configPath)
+	return err == nil && len(bytes.TrimSpace(raw)) > 0
+}
+
 // SetManagedMediaEndpoint records the managed media endpoint exposed
 // by the daemon and rewrites supervised media model endpoints to that value.
 func (s *Service) SetManagedMediaEndpoint(endpoint string) {

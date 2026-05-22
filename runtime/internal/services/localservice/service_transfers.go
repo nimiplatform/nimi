@@ -254,6 +254,7 @@ func (s *Service) mutateLocalTransfer(sessionID string, persist bool, mutate fun
 	s.transfers[current.GetInstallSessionId()] = cloneLocalTransferSummary(current)
 	if isTerminalTransferState(current.GetState()) {
 		delete(s.transferControls, current.GetInstallSessionId())
+		delete(s.transferRates, current.GetInstallSessionId())
 	}
 	if persist {
 		s.persistStateLocked()
@@ -266,6 +267,20 @@ func (s *Service) transferControl(sessionID string) *localTransferControl {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	return s.transferControls[strings.TrimSpace(sessionID)]
+}
+
+// localTransferSummary returns a clone of the current transfer summary for a
+// session, or an empty summary when the session is unknown. It is a read-only
+// accessor used to reuse the bounded speed / ETA already derived onto the
+// transfer summary when projecting per-job download progress.
+func (s *Service) localTransferSummary(sessionID string) *runtimev1.LocalTransferSessionSummary {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	summary := s.transfers[strings.TrimSpace(sessionID)]
+	if summary == nil {
+		return &runtimev1.LocalTransferSessionSummary{}
+	}
+	return cloneLocalTransferSummary(summary)
 }
 
 func (s *Service) listLocalTransferSummariesLocked() []*runtimev1.LocalTransferSessionSummary {

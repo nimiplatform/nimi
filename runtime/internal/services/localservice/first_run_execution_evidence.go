@@ -214,6 +214,10 @@ func (s *Service) mintFirstRunExecutionEvidence(req firstRunExecutionMintRequest
 		return firstRunExecutionEvidenceRecord{}, firstRunExecutionStateBlocked, firstRunExecutionReasonDataRootInvalid,
 			"dataRootRef does not match the verified runtimeBaselineRef"
 	}
+	if err := s.ensureFirstRunSpeechEngineReady(context.Background(), baseline); err != nil {
+		return firstRunExecutionEvidenceRecord{}, firstRunExecutionStateBlocked, firstRunExecutionReasonExecutionFailed,
+			"first-run speech engine activation failed: " + err.Error()
+	}
 
 	capabilityIDs, ok := firstRunExecutionCapabilityIDs(installLevel, req.RecommendedCapabilities)
 	if !ok {

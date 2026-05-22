@@ -128,7 +128,7 @@ func (s *Service) localEnvironmentDependencyJobExecutor(family string) localEnvi
 	case localEnvironmentFamilyModelCompanion:
 		return s.executeModelCompanionEnvironmentDependencyJob
 	default:
-		return func(context.Context, localEnvironmentDependencyJobState) (localEnvironmentDependencyJobResult, error) {
+		return func(context.Context, localEnvironmentDependencyJobState, localEnvironmentDependencyJobProgressReporter) (localEnvironmentDependencyJobResult, error) {
 			return localEnvironmentDependencyJobResult{}, errors.New("no admitted Runtime materializer for dependency family " + strings.TrimSpace(family))
 		}
 	}

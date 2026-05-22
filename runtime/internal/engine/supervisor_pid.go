@@ -14,12 +14,20 @@ import (
 
 var ErrSupervisorPortUnavailable = errors.New("supervisor port unavailable")
 
+// portReclaimWait bounds how long Start waits for a just-released listener
+// socket to free up after stale-process cleanup before failing closed.
+const portReclaimWait = 3 * time.Second
+
+// pidFilePath resolves the supervised-engine pid file under the data-plane
+// `environments` root stamped on the EngineConfig by the Manager. An empty
+// SupervisedRoot returns an empty path (pid tracking is skipped) rather than
+// falling back to a home-directory root. (K-CFG-018, K-LENG-004)
 func (s *Supervisor) pidFilePath() string {
-	home, err := os.UserHomeDir()
-	if err != nil {
+	root := strings.TrimSpace(s.cfg.SupervisedRoot)
+	if root == "" || !filepath.IsAbs(root) {
 		return ""
 	}
-	return filepath.Join(home, ".nimi", "engines", string(s.cfg.Kind), "supervised.pid")
+	return filepath.Join(root, string(s.cfg.Kind), "supervised.pid")
 }
 
 func (s *Supervisor) writePIDFile() {
@@ -149,13 +157,35 @@ func (s *Supervisor) cleanStalePID() {
 }
 
 func resolvePort(desired int) (int, error) {
+	return resolvePortWithReclaim(desired, 0)
+}
+
+// resolvePortWithReclaim verifies the desired supervised-engine port is bindable,
+// retrying for up to reclaimWait so a listener socket released by a process the
+// supervisor just terminated has a chance to free up. It fails closed with
+// ErrSupervisorPortUnavailable if the port is still occupied after the wait —
+// no fallback to an alternate port, since supervised engines bind a fixed
+// contract port.
+func resolvePortWithReclaim(desired int, reclaimWait time.Duration) (int, error) {
 	if desired <= 0 || desired > 65535 {
 		return 0, fmt.Errorf("%w: configured port must be between 1 and 65535", ErrSupervisorPortUnavailable)
 	}
 	if portAvailable(desired) {
 		return desired, nil
 	}
-	return 0, fmt.Errorf("%w: configured port %d is unavailable", ErrSupervisorPortUnavailable, desired)
+	if reclaimWait <= 0 {
+		return 0, fmt.Errorf("%w: configured port %d is unavailable", ErrSupervisorPortUnavailable, desired)
+	}
+	deadline := time.Now().Add(reclaimWait)
+	for {
+		time.Sleep(100 * time.Millisecond)
+		if portAvailable(desired) {
+			return desired, nil
+		}
+		if time.Now().After(deadline) {
+			return 0, fmt.Errorf("%w: configured port %d is still in use after %s reclaim wait", ErrSupervisorPortUnavailable, desired, reclaimWait)
+		}
+	}
 }
 
 func portAvailable(port int) bool {

@@ -118,7 +118,7 @@ func TestDaemonRunTransitionsReadyBeforeStartupDegraded(t *testing.T) {
 	if svc := daemon.grpc.LocalService(); svc != nil {
 		t.Cleanup(func() { svc.Close() })
 	}
-	daemon.newEngineManager = func(_ *slog.Logger, _ string, _ engine.StateChangeFunc) (*engine.Manager, error) {
+	daemon.newEngineManager = func(_ *slog.Logger, _ engine.ManagedRoots, _ engine.StateChangeFunc) (*engine.Manager, error) {
 		return nil, errors.New("engine manager unavailable")
 	}
 
@@ -165,7 +165,7 @@ func TestDaemonRunTransitionsReadyBeforeStartupDegraded(t *testing.T) {
 	}
 }
 
-func TestDaemonRunReadyDoesNotWaitForSupervisedEngineBootstrap(t *testing.T) {
+func TestDaemonRunReadyDefersEmptyManagedLlamaBootstrap(t *testing.T) {
 	cfg := config.Config{
 		GRPCAddr:             "127.0.0.1:0",
 		HTTPAddr:             "127.0.0.1:0",
@@ -186,14 +186,16 @@ func TestDaemonRunReadyDoesNotWaitForSupervisedEngineBootstrap(t *testing.T) {
 	if svc := daemon.grpc.LocalService(); svc != nil {
 		t.Cleanup(func() { svc.Close() })
 	}
-	daemon.newEngineManager = func(_ *slog.Logger, _ string, _ engine.StateChangeFunc) (*engine.Manager, error) {
+	daemon.newEngineManager = func(_ *slog.Logger, _ engine.ManagedRoots, _ engine.StateChangeFunc) (*engine.Manager, error) {
 		return &engine.Manager{}, nil
 	}
-	started := make(chan struct{})
+	started := make(chan struct{}, 1)
 	daemon.startEngineFn = func(ctx context.Context, _ engine.EngineKind, _ string, _ int, _ string) error {
-		close(started)
-		<-ctx.Done()
-		return ctx.Err()
+		select {
+		case started <- struct{}{}:
+		default:
+		}
+		return nil
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -202,13 +204,13 @@ func TestDaemonRunReadyDoesNotWaitForSupervisedEngineBootstrap(t *testing.T) {
 		done <- daemon.Run(ctx)
 	}()
 
+	waitForDaemonStatus(t, daemon, health.StatusReady, 2*time.Second)
 	select {
 	case <-started:
-	case <-time.After(2 * time.Second):
 		cancel()
-		t.Fatal("expected supervised engine bootstrap to start")
+		t.Fatal("empty managed llama state must not start supervised bootstrap without a generated preset")
+	default:
 	}
-	waitForDaemonStatus(t, daemon, health.StatusReady, 2*time.Second)
 
 	cancel()
 	if err := <-done; err != nil {

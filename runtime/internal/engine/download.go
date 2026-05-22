@@ -4,6 +4,7 @@ import (
 	"archive/tar"
 	"archive/zip"
 	"compress/gzip"
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
@@ -16,6 +17,20 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/nimiplatform/nimi/runtime/internal/filedownload"
+)
+
+const (
+	// engineDownloadMaxAttempts bounds the shared-core retry-with-backoff loop
+	// for one engine binary asset: the first attempt plus a small number of
+	// retries on transient body-stream failures (mid-stream EOF, reset, 5xx).
+	engineDownloadMaxAttempts = 4
+	// engineDownloadRetryBackoff is the base backoff between transient retries;
+	// attempt N waits N*engineDownloadRetryBackoff.
+	engineDownloadRetryBackoff = 300 * time.Millisecond
+	// engineDownloadFallbackTimeout bounds a single engine binary download.
+	engineDownloadFallbackTimeout = 30 * time.Minute
 )
 
 var (
@@ -128,62 +143,50 @@ func downloadFromURLWithExpectedSHA256(url, destDir, binaryName, expectedSHA256 
 	return destPath, hash, nil
 }
 
+// doEngineDownloadRequest issues a single engine-download GET through the
+// HTTP/2-negotiating, redirect-validating client. Retry is NOT done here: the
+// shared filedownload core (used by downloadURLToFile) is the one place that
+// implements download retry + Range resume. This helper exists so the
+// transport's HTTP/2 negotiation can be exercised directly.
 func doEngineDownloadRequest(sourceURL string, base *http.Client, fallbackTimeout time.Duration) (*http.Response, error) {
 	client := newEngineDownloadHTTPClient(sourceURL, base, fallbackTimeout)
-	var lastErr error
-	for attempt := 0; attempt < 3; attempt++ {
-		req, err := http.NewRequest(http.MethodGet, sourceURL, nil)
-		if err != nil {
-			return nil, err
-		}
-		req.Header.Set("User-Agent", "nimi-runtime/0.1")
-		req.Header.Set("Accept", "application/vnd.github+json")
-		resp, err := client.Do(req)
-		if err == nil {
-			return resp, nil
-		}
-		lastErr = err
-		if !isRetryableEngineDownloadError(err) || attempt == 2 {
-			break
-		}
-		time.Sleep(time.Duration(attempt+1) * 300 * time.Millisecond)
+	req, err := http.NewRequest(http.MethodGet, sourceURL, nil)
+	if err != nil {
+		return nil, err
 	}
-	return nil, lastErr
+	req.Header.Set("User-Agent", "nimi-runtime/0.1")
+	req.Header.Set("Accept", "application/vnd.github+json")
+	return client.Do(req)
 }
 
+// downloadURLToFile downloads an engine binary asset via the shared
+// filedownload core: one place implements retry + HTTP Range resume. The
+// engine path keeps its HTTP/2-negotiating, redirect-validating client
+// (newEngineDownloadHTTPClient) — that client is injected into the core, and
+// the core covers connection-establishment retries AND the mid-stream body
+// drop that the old `doEngineDownloadRequest` 3x loop could not.
 func downloadURLToFile(sourceURL string, destPath string) (string, error) {
-	resp, err := doEngineDownloadRequest(sourceURL, nil, 30*time.Minute)
-	if err != nil {
-		return "", fmt.Errorf("%w: request engine binary: %v", ErrEngineBinaryDownloadFailed, err)
-	}
-	defer func() { _ = resp.Body.Close() }()
+	client := newEngineDownloadHTTPClient(sourceURL, nil, engineDownloadFallbackTimeout)
+	header := http.Header{}
+	header.Set("User-Agent", "nimi-runtime/0.1")
+	header.Set("Accept", "application/vnd.github+json")
 
-	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("%w: HTTP %d from %s", ErrEngineBinaryDownloadFailed, resp.StatusCode, sourceURL)
-	}
-
-	out, err := os.Create(destPath)
+	result, err := filedownload.Download(context.Background(), filedownload.Options{
+		URL:          sourceURL,
+		DestPath:     destPath,
+		Client:       client,
+		Header:       header,
+		MaxAttempts:  engineDownloadMaxAttempts,
+		RetryBackoff: engineDownloadRetryBackoff,
+		IsTransient:  isRetryableEngineDownloadError,
+	})
 	if err != nil {
-		return "", fmt.Errorf("%w: create temp file: %v", ErrEngineBinaryDownloadFailed, err)
-	}
-	shouldRemove := true
-	defer func() {
-		_ = out.Close()
-		if shouldRemove {
-			_ = os.Remove(destPath)
+		if errors.Is(err, filedownload.ErrHTTPStatus) {
+			return "", fmt.Errorf("%w: HTTP error from %s: %v", ErrEngineBinaryDownloadFailed, sourceURL, err)
 		}
-	}()
-
-	hasher := sha256.New()
-	if _, err := io.Copy(io.MultiWriter(out, hasher), resp.Body); err != nil {
-		return "", fmt.Errorf("%w: write engine binary: %v", ErrEngineBinaryDownloadFailed, err)
+		return "", fmt.Errorf("%w: download engine binary: %v", ErrEngineBinaryDownloadFailed, err)
 	}
-	if err := out.Close(); err != nil {
-		return "", fmt.Errorf("%w: close temp file: %v", ErrEngineBinaryDownloadFailed, err)
-	}
-	shouldRemove = false
-
-	return hex.EncodeToString(hasher.Sum(nil)), nil
+	return result.SHA256, nil
 }
 
 func isEngineArchiveAsset(name string) bool {
@@ -502,31 +505,34 @@ func newEngineDownloadHTTPClient(sourceURL string, base *http.Client, fallbackTi
 	return client
 }
 
-func cloneEngineDownloadTransport(sourceURL string, base http.RoundTripper) *http.Transport {
-	disableHTTP2 := shouldDisableHTTP2ForEngineDownload(sourceURL)
+// cloneEngineDownloadTransport returns an engine-download transport that
+// correctly negotiates HTTP/2.
+//
+// The release hosts the engine downloader talks to (api.github.com,
+// github.com, objects.githubusercontent.com, releases.astral.sh, quay.io,
+// huggingface.co) all serve HTTP/2 over ALPN. The transport must therefore be
+// HTTP/2-capable: ForceAttemptHTTP2 alone does NOT govern this — a clone of an
+// already-used http.DefaultTransport carries a populated TLSNextProto map
+// (the h2 ALPN entry registered by onceSetNextProtoDefaults), so ALPN still
+// negotiates h2 even when ForceAttemptHTTP2 is false. The earlier
+// HTTP/2-"disabling" path produced exactly that mismatch: ALPN negotiated h2
+// while the HTTP/1.x round-tripper kept reading, yielding
+// `malformed HTTP response "\x00\x00\x12\x04..."` (an HTTP/2 SETTINGS frame).
+//
+// The fix is to keep HTTP/2 enabled and consistent: ForceAttemptHTTP2 = true
+// so the h2 ALPN entry and the HTTP/2 round-tripper stay in agreement.
+func cloneEngineDownloadTransport(_ string, base http.RoundTripper) *http.Transport {
 	if typed, ok := base.(*http.Transport); ok && typed != nil {
 		cloned := typed.Clone()
-		cloned.ForceAttemptHTTP2 = !disableHTTP2
+		cloned.ForceAttemptHTTP2 = true
 		return cloned
 	}
 	if typed, ok := http.DefaultTransport.(*http.Transport); ok && typed != nil {
 		cloned := typed.Clone()
-		cloned.ForceAttemptHTTP2 = !disableHTTP2
+		cloned.ForceAttemptHTTP2 = true
 		return cloned
 	}
 	return nil
-}
-
-func shouldDisableHTTP2ForEngineDownload(sourceURL string) bool {
-	parsed, err := url.Parse(strings.TrimSpace(sourceURL))
-	if err != nil {
-		return true
-	}
-	host := strings.ToLower(strings.TrimSpace(parsed.Hostname()))
-	if host == "quay.io" || strings.HasSuffix(host, ".quay.io") {
-		return false
-	}
-	return true
 }
 
 func isRetryableEngineDownloadError(err error) bool {

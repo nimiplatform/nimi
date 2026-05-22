@@ -2841,8 +2841,23 @@ type LocalEnvironmentDependencyJob struct {
 	Retryable              bool                   `protobuf:"varint,10,opt,name=retryable,proto3" json:"retryable,omitempty"`
 	CreatedAt              string                 `protobuf:"bytes,11,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	UpdatedAt              string                 `protobuf:"bytes,12,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
-	unknownFields          protoimpl.UnknownFields
-	sizeCache              protoimpl.SizeCache
+	// K-RPC-025 dependency-job download-progress projection. The fields are a
+	// bounded diagnostic projection of the byte progress Runtime already tracks
+	// for the job's artifact transfer; they are meaningful only while the job is
+	// actively materializing (downloading / verifying) and project zero/absent
+	// for every other state. They never promote, select, or substitute for
+	// verification evidence. speed_bytes_per_sec / eta_seconds are projected only
+	// when a rate can actually be computed and are 0 (absent) otherwise — never a
+	// fabricated value.
+	BytesReceived int64 `protobuf:"varint,13,opt,name=bytes_received,json=bytesReceived,proto3" json:"bytes_received,omitempty"`
+	BytesTotal    int64 `protobuf:"varint,14,opt,name=bytes_total,json=bytesTotal,proto3" json:"bytes_total,omitempty"`
+	// percent is an integer 0..100 projected only when bytes_total > 0; 0 means
+	// the total is not yet known and the consumer renders an indeterminate state.
+	Percent          int32 `protobuf:"varint,15,opt,name=percent,proto3" json:"percent,omitempty"`
+	SpeedBytesPerSec int64 `protobuf:"varint,16,opt,name=speed_bytes_per_sec,json=speedBytesPerSec,proto3" json:"speed_bytes_per_sec,omitempty"`
+	EtaSeconds       int64 `protobuf:"varint,17,opt,name=eta_seconds,json=etaSeconds,proto3" json:"eta_seconds,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *LocalEnvironmentDependencyJob) Reset() {
@@ -2957,6 +2972,41 @@ func (x *LocalEnvironmentDependencyJob) GetUpdatedAt() string {
 		return x.UpdatedAt
 	}
 	return ""
+}
+
+func (x *LocalEnvironmentDependencyJob) GetBytesReceived() int64 {
+	if x != nil {
+		return x.BytesReceived
+	}
+	return 0
+}
+
+func (x *LocalEnvironmentDependencyJob) GetBytesTotal() int64 {
+	if x != nil {
+		return x.BytesTotal
+	}
+	return 0
+}
+
+func (x *LocalEnvironmentDependencyJob) GetPercent() int32 {
+	if x != nil {
+		return x.Percent
+	}
+	return 0
+}
+
+func (x *LocalEnvironmentDependencyJob) GetSpeedBytesPerSec() int64 {
+	if x != nil {
+		return x.SpeedBytesPerSec
+	}
+	return 0
+}
+
+func (x *LocalEnvironmentDependencyJob) GetEtaSeconds() int64 {
+	if x != nil {
+		return x.EtaSeconds
+	}
+	return 0
 }
 
 type LocalEnvironmentActivationGate struct {
@@ -6123,7 +6173,7 @@ const file_runtime_v1_local_runtime_types_proto_rawDesc = "" +
 	"\x11audit_reason_code\x18\x10 \x01(\tR\x0fauditReasonCode\x1a9\n" +
 	"\vHashesEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xcd\x03\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xff\x04\n" +
 	"\x1dLocalEnvironmentDependencyJob\x12\x15\n" +
 	"\x06job_id\x18\x01 \x01(\tR\x05jobId\x12'\n" +
 	"\x0fenvironment_key\x18\x02 \x01(\tR\x0eenvironmentKey\x12+\n" +
@@ -6140,7 +6190,14 @@ const file_runtime_v1_local_runtime_types_proto_rawDesc = "" +
 	"\n" +
 	"created_at\x18\v \x01(\tR\tcreatedAt\x12\x1d\n" +
 	"\n" +
-	"updated_at\x18\f \x01(\tR\tupdatedAt\"\xe4\x02\n" +
+	"updated_at\x18\f \x01(\tR\tupdatedAt\x12%\n" +
+	"\x0ebytes_received\x18\r \x01(\x03R\rbytesReceived\x12\x1f\n" +
+	"\vbytes_total\x18\x0e \x01(\x03R\n" +
+	"bytesTotal\x12\x18\n" +
+	"\apercent\x18\x0f \x01(\x05R\apercent\x12-\n" +
+	"\x13speed_bytes_per_sec\x18\x10 \x01(\x03R\x10speedBytesPerSec\x12\x1f\n" +
+	"\veta_seconds\x18\x11 \x01(\x03R\n" +
+	"etaSeconds\"\xe4\x02\n" +
 	"\x1eLocalEnvironmentActivationGate\x12\x1f\n" +
 	"\vconsumer_id\x18\x01 \x01(\tR\n" +
 	"consumerId\x12\x17\n" +

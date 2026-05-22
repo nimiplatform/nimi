@@ -76,6 +76,7 @@ func (f *fakeFirstRunLocalExecutor) PeekFirstRunLocalBaseline(
 // runtimeBaselineRef at the given install level, and returns the verified ref.
 func mintReadyBaselineRefAtLevel(t *testing.T, svc *Service, runtimeDataRoot string, installLevel string) string {
 	t.Helper()
+	svc.SetEngineManager(&mockEngineManager{})
 	markRuntimeBaselineMinimalReady(t, svc, runtimeDataRoot, runtimeBaselineCPUProfile())
 	req := runtimeBaselineMintRequest(runtimeDataRoot)
 	req.InstallLevel = installLevel

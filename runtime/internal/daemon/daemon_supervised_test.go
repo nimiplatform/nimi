@@ -364,7 +364,7 @@ func TestStartSupervisedEnginesManagerInitFailureDegradesAndAudits(t *testing.T)
 	store := auditlog.New(32, 32)
 	daemon.auditStore = store
 
-	daemon.newEngineManager = func(_ *slog.Logger, _ string, _ engine.StateChangeFunc) (*engine.Manager, error) {
+	daemon.newEngineManager = func(_ *slog.Logger, _ engine.ManagedRoots, _ engine.StateChangeFunc) (*engine.Manager, error) {
 		return nil, errors.New("engine manager unavailable")
 	}
 
@@ -395,6 +395,97 @@ func TestStartSupervisedEnginesManagerInitFailureDegradesAndAudits(t *testing.T)
 	}
 }
 
+// TestStartSupervisedEnginesResolvesEngineRootsFromDataPlaneConfig is the
+// daemon-level regression guard for the engine install-root vs K-CFG-018
+// data-plane contract alignment. It exercises the real engine.NewManager
+// factory (no test stub) so the data-root threading is verified end to end:
+//   - engines requested with no data root -> degrades (fail closed, no
+//     ~/.nimi/engines fallback);
+//   - engines requested with valid managed roots -> manager builds;
+//   - no engine work requested with no data root -> daemon is not degraded
+//     (Runtime core readiness is independent of materializers, K-LENG-028).
+func TestStartSupervisedEnginesResolvesEngineRootsFromDataPlaneConfig(t *testing.T) {
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	baseCfg := func() config.Config {
+		return config.Config{
+			GRPCAddr:             "127.0.0.1:0",
+			HTTPAddr:             "127.0.0.1:0",
+			LocalStatePath:       filepath.Join(t.TempDir(), "local-state.json"),
+			AuditRingBufferSize:  64,
+			UsageStatsBufferSize: 64,
+			IdempotencyCapacity:  32,
+		}
+	}
+
+	t.Run("engines requested without data root degrades", func(t *testing.T) {
+		cfg := baseCfg()
+		cfg.EngineLlamaEnabled = true
+		cfg.EngineLlamaPort = 1234
+		cfg.EngineLlamaVersion = "b8575"
+		daemon, err := New(cfg, logger, "test")
+		if err != nil {
+			t.Fatalf("create daemon: %v", err)
+		}
+		closeDaemonForTest(t, daemon)
+		if svc := daemon.grpc.LocalService(); svc != nil {
+			t.Cleanup(func() { svc.Close() })
+		}
+		daemon.startSupervisedEngines(context.Background())
+		snapshot := daemon.state.Snapshot()
+		if snapshot.Status != health.StatusDegraded {
+			t.Fatalf("expected degraded state without data root, got %s (%s)", snapshot.Status, snapshot.Reason)
+		}
+		if !strings.Contains(snapshot.Reason, "engine manager init failed") {
+			t.Fatalf("unexpected degraded reason: %s", snapshot.Reason)
+		}
+	})
+
+	t.Run("engines requested with data root builds manager", func(t *testing.T) {
+		dataRoot := t.TempDir()
+		cfg := baseCfg()
+		cfg.EngineLlamaEnabled = true
+		cfg.EngineLlamaPort = 1234
+		cfg.EngineLlamaVersion = "b8575"
+		cfg.DataRootRef = dataRoot
+		cfg.ManagedRoots = config.ManagedRootsConfig{
+			Environments: filepath.Join(dataRoot, "environments"),
+			Dependencies: filepath.Join(dataRoot, "dependencies"),
+		}
+		daemon, err := New(cfg, logger, "test")
+		if err != nil {
+			t.Fatalf("create daemon: %v", err)
+		}
+		closeDaemonForTest(t, daemon)
+		if svc := daemon.grpc.LocalService(); svc != nil {
+			t.Cleanup(func() { svc.Close() })
+		}
+		daemon.startSupervisedEngines(context.Background())
+		if daemon.engineMgr == nil {
+			t.Fatal("expected engine manager to be built from data-plane roots")
+		}
+		if snapshot := daemon.state.Snapshot(); snapshot.Status == health.StatusDegraded &&
+			strings.Contains(snapshot.Reason, "engine manager init failed") {
+			t.Fatalf("engine manager init must not fail closed with a valid data root: %s", snapshot.Reason)
+		}
+	})
+
+	t.Run("no engine work without data root does not degrade", func(t *testing.T) {
+		cfg := baseCfg()
+		daemon, err := New(cfg, logger, "test")
+		if err != nil {
+			t.Fatalf("create daemon: %v", err)
+		}
+		closeDaemonForTest(t, daemon)
+		if svc := daemon.grpc.LocalService(); svc != nil {
+			t.Cleanup(func() { svc.Close() })
+		}
+		daemon.startSupervisedEngines(context.Background())
+		if snapshot := daemon.state.Snapshot(); snapshot.Status == health.StatusDegraded {
+			t.Fatalf("daemon must not degrade when no engine work is requested, got %s (%s)", snapshot.Status, snapshot.Reason)
+		}
+	})
+}
+
 func TestStartSupervisedEnginesDoesNotExposeManagedMediaLoopbackOnAttachedOnlyHost(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	cfg := config.Config{
@@ -421,8 +512,8 @@ func TestStartSupervisedEnginesDoesNotExposeManagedMediaLoopbackOnAttachedOnlyHo
 		return engine.MediaHostSupportAttachedOnly, "attached only"
 	}
 
-	daemon.newEngineManager = func(_ *slog.Logger, _ string, _ engine.StateChangeFunc) (*engine.Manager, error) {
-		return engine.NewManager(slog.New(slog.NewTextHandler(io.Discard, nil)), t.TempDir(), nil)
+	daemon.newEngineManager = func(_ *slog.Logger, _ engine.ManagedRoots, _ engine.StateChangeFunc) (*engine.Manager, error) {
+		return engine.NewManager(slog.New(slog.NewTextHandler(io.Discard, nil)), engine.ManagedRoots{Environments: t.TempDir(), Dependencies: t.TempDir()}, nil)
 	}
 
 	startCalls := make([]engine.EngineKind, 0, 1)
@@ -482,8 +573,8 @@ func TestStartSupervisedEnginesExposesManagedMediaLoopbackOnSupportedHost(t *tes
 		return engine.MediaHostSupportSupportedSupervised, "supported"
 	}
 
-	daemon.newEngineManager = func(_ *slog.Logger, _ string, _ engine.StateChangeFunc) (*engine.Manager, error) {
-		return engine.NewManager(slog.New(slog.NewTextHandler(io.Discard, nil)), t.TempDir(), nil)
+	daemon.newEngineManager = func(_ *slog.Logger, _ engine.ManagedRoots, _ engine.StateChangeFunc) (*engine.Manager, error) {
+		return engine.NewManager(slog.New(slog.NewTextHandler(io.Discard, nil)), engine.ManagedRoots{Environments: t.TempDir(), Dependencies: t.TempDir()}, nil)
 	}
 
 	startCalls := make([]engine.EngineKind, 0, 1)
@@ -516,7 +607,14 @@ func TestStartSupervisedEnginesEnablesManagedImageBackendOnImageSupportedAttache
 	if err := os.MkdirAll(filepath.Join(homeDir, ".nimi", "runtime"), 0o755); err != nil {
 		t.Fatalf("create test runtime dir: %v", err)
 	}
-	managedCUDADependencyDir := filepath.Join(homeDir, ".nimi", "runtime", "accelerator-dependencies", engine.NVIDIACUDAUserSpaceRuntimeDependencyID)
+	// The engine manager resolves managed install artifacts under the
+	// K-CFG-018 data-plane roots; fixtures must be seeded under those roots,
+	// not the legacy ~/.nimi/runtime tree. (K-CFG-018, K-LENG-004)
+	engineRoots := engine.ManagedRoots{
+		Environments: filepath.Join(homeDir, ".nimi", "data", "environments"),
+		Dependencies: filepath.Join(homeDir, ".nimi", "data", "dependencies"),
+	}
+	managedCUDADependencyDir := filepath.Join(engineRoots.Dependencies, "accelerator-dependencies", engine.NVIDIACUDAUserSpaceRuntimeDependencyID)
 	if err := os.MkdirAll(managedCUDADependencyDir, 0o755); err != nil {
 		t.Fatalf("create managed CUDA dependency dir: %v", err)
 	}
@@ -525,7 +623,7 @@ func TestStartSupervisedEnginesEnablesManagedImageBackendOnImageSupportedAttache
 			t.Fatalf("write managed CUDA dependency artifact %s: %v", artifact, err)
 		}
 	}
-	managedBackendDir := filepath.Join(homeDir, ".nimi", "runtime", "managed-image-backends", "metal-stablediffusion-ggml")
+	managedBackendDir := filepath.Join(engineRoots.Environments, "managed-image-backends", "metal-stablediffusion-ggml")
 	if err := os.MkdirAll(managedBackendDir, 0o755); err != nil {
 		t.Fatalf("create managed image backend dir: %v", err)
 	}
@@ -535,7 +633,7 @@ func TestStartSupervisedEnginesEnablesManagedImageBackendOnImageSupportedAttache
 	if err := os.WriteFile(filepath.Join(managedBackendDir, "metadata.json"), []byte(`{"name":"metal-stablediffusion-ggml","alias":"stablediffusion-ggml"}`), 0o644); err != nil {
 		t.Fatalf("write managed image backend metadata: %v", err)
 	}
-	windowsManagedBackendDir := filepath.Join(homeDir, ".nimi", "runtime", "managed-image-backends", "sd-win-cuda12-x64-stablediffusion-ggml")
+	windowsManagedBackendDir := filepath.Join(engineRoots.Environments, "managed-image-backends", "sd-win-cuda12-x64-stablediffusion-ggml")
 	if err := os.MkdirAll(windowsManagedBackendDir, 0o755); err != nil {
 		t.Fatalf("create Windows managed image backend dir: %v", err)
 	}
@@ -596,6 +694,11 @@ func TestStartSupervisedEnginesEnablesManagedImageBackendOnImageSupportedAttache
 		EngineMediaEnabled:   false,
 		EngineMediaPort:      8321,
 		EngineMediaVersion:   "0.1.0",
+		DataRootRef:          filepath.Join(homeDir, ".nimi", "data"),
+		ManagedRoots: config.ManagedRootsConfig{
+			Environments: engineRoots.Environments,
+			Dependencies: engineRoots.Dependencies,
+		},
 	}
 	daemon, err := New(cfg, logger, "test")
 	if err != nil {
@@ -624,8 +727,8 @@ func TestStartSupervisedEnginesEnablesManagedImageBackendOnImageSupportedAttache
 			},
 		}, true
 	}
-	daemon.newEngineManager = func(_ *slog.Logger, _ string, _ engine.StateChangeFunc) (*engine.Manager, error) {
-		manager, err := engine.NewManager(slog.New(slog.NewTextHandler(io.Discard, nil)), t.TempDir(), nil)
+	daemon.newEngineManager = func(_ *slog.Logger, roots engine.ManagedRoots, _ engine.StateChangeFunc) (*engine.Manager, error) {
+		manager, err := engine.NewManager(slog.New(slog.NewTextHandler(io.Discard, nil)), roots, nil)
 		if err != nil {
 			return nil, err
 		}
@@ -741,8 +844,8 @@ func TestStartSupervisedEnginesFailsClosedOnManagedImageBootstrapConflict(t *tes
 			CompatibilityDetail: "multiple managed image topology entries are active: entry-a, entry-b; runtime cannot arbitrate",
 		}, true
 	}
-	daemon.newEngineManager = func(_ *slog.Logger, _ string, _ engine.StateChangeFunc) (*engine.Manager, error) {
-		return engine.NewManager(slog.New(slog.NewTextHandler(io.Discard, nil)), t.TempDir(), nil)
+	daemon.newEngineManager = func(_ *slog.Logger, _ engine.ManagedRoots, _ engine.StateChangeFunc) (*engine.Manager, error) {
+		return engine.NewManager(slog.New(slog.NewTextHandler(io.Discard, nil)), engine.ManagedRoots{Environments: t.TempDir(), Dependencies: t.TempDir()}, nil)
 	}
 
 	startCalls := make([]engine.EngineKind, 0, 2)

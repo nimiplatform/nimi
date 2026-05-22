@@ -135,6 +135,30 @@ def truthy_form_value(value: str | None) -> bool:
     return normalized in {"1", "true", "yes", "on"}
 
 
+def truthy_payload_value(value: Any) -> bool:
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)):
+        return value != 0
+    if isinstance(value, str):
+        return truthy_form_value(value)
+    return False
+
+
+def allow_empty_transcript_request(payload: dict[str, Any]) -> bool:
+    extensions = payload.get("extensions")
+    if not isinstance(extensions, dict):
+        extensions = {}
+    is_first_run_probe = truthy_payload_value(payload.get("nimi_first_run_baseline_probe")) or truthy_payload_value(extensions.get("nimi_first_run_baseline_probe"))
+    allow_empty = (
+        truthy_payload_value(payload.get("nimi_allow_empty_transcript"))
+        or truthy_payload_value(payload.get("allow_empty_transcript"))
+        or truthy_payload_value(extensions.get("nimi_allow_empty_transcript"))
+        or truthy_payload_value(extensions.get("allow_empty_transcript"))
+    )
+    return is_first_run_probe and allow_empty
+
+
 def normalized_capabilities(value: Any) -> list[str]:
     if not isinstance(value, list):
         return []
@@ -643,6 +667,8 @@ def transcribe_with_driver(model: SpeechModelState, request_payload: dict[str, A
     response = run_driver_command(command, request_payload)
     text = str(response.get("text") or "").strip()
     if not text:
+        if allow_empty_transcript_request(request_payload) and truthy_payload_value(response.get("empty_transcript")):
+            return ""
         raise RuntimeError("speech driver response missing transcription text")
     return text
 

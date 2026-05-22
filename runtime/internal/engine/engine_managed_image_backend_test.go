@@ -347,7 +347,7 @@ func TestEnsureManagedImageBackendRequiresMaterializerWithoutInstalling(t *testi
 	if !ok || !spec.Supported {
 		t.Skip("current host has no supported managed image backend package spec")
 	}
-	mgr, err := NewManager(nil, t.TempDir(), nil)
+	mgr, err := NewManager(nil, testManagedRoots(t), nil)
 	if err != nil {
 		t.Fatalf("NewManager: %v", err)
 	}

@@ -2,6 +2,7 @@ package ai
 
 import (
 	"context"
+	"encoding/binary"
 	"fmt"
 	"strings"
 
@@ -84,33 +85,16 @@ func (s *Service) ExecuteFirstRunLocalBaseline(ctx context.Context, req FirstRun
 	// selector down the local path so a cloud preferred-route alias on the
 	// asset id can never silently route this baseline proof to cloud.
 	localModelID := "local/" + strings.TrimPrefix(modelID, "local/")
-
-	// Local-only route resolution: ROUTE_POLICY_LOCAL, no RemoteTarget, denied
-	// fallback. resolveProviderWithTarget(remoteTarget=nil) never produces a
-	// cloud provider for a local preferred route; the assertion below still
-	// fails closed defensively if route resolution ever diverged.
-	selectedProvider, routeDecision, modelResolved, _, err := s.selector.resolveProviderWithTarget(
-		ctx,
-		runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
-		runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
-		localModelID,
-		nil,
-	)
-	if err != nil {
+	if _, err := s.prepareLocalModelExecutionPlan(ctx, localModelID, nil, scenarioModalFromType(req.ScenarioType), nil); err != nil {
 		return FirstRunLocalExecutionResult{}, err
 	}
-	// Central correctness requirement: the resolved route MUST be a local route
-	// target. A remoteTarget, a cloud provider, or any non-local route fails the
-	// first-run baseline execution proof closed.
-	if routeDecision != runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL {
-		return FirstRunLocalExecutionResult{}, grpcerr.WithReasonCodeOptions(
-			codes.FailedPrecondition,
-			runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED,
-			grpcerr.ReasonOptions{
-				Message: fmt.Sprintf("first-run baseline execution resolved route %s, expected ROUTE_POLICY_LOCAL", routeDecision.String()),
-			},
-		)
-	}
+
+	// Local-only route resolution: after prepareLocalModelExecutionPlan has
+	// validated and, when needed, started the RuntimeLocalService-owned asset,
+	// bind directly to the in-process local provider. The generic route
+	// availability check is text-capability shaped; first-run STT/TTS must use
+	// the modality-aware local execution proof below instead of a text probe.
+	selectedProvider := s.selector.local
 	localBackend, ok := selectedProvider.(*localProvider)
 	if !ok || localBackend == nil || localBackend.Route() != runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL {
 		return FirstRunLocalExecutionResult{}, grpcerr.WithReasonCodeOptions(
@@ -121,6 +105,8 @@ func (s *Service) ExecuteFirstRunLocalBaseline(ctx context.Context, req FirstRun
 			},
 		)
 	}
+	routeDecision := runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL
+	modelResolved := localBackend.ResolveModelID(localModelID)
 
 	traceID := ulid.Make().String()
 	if err := s.runFirstRunLocalBaselineScenario(ctx, req.ScenarioType, localBackend, modelResolved); err != nil {
@@ -201,13 +187,15 @@ func (s *Service) runFirstRunLocalBaselineScenario(
 ) error {
 	switch scenario {
 	case runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE:
+		execCtx, cancel := withTimeout(ctx, 0, defaultGenerateTimeout)
+		defer cancel()
 		spec := &runtimev1.TextGenerateScenarioSpec{
 			Input: []*runtimev1.ChatMessage{
 				{Role: "user", Content: firstRunBaselineTextProbe},
 			},
 			MaxTokens: firstRunBaselineMaxTokens,
 		}
-		text, _, finish, err := local.GenerateTextScenario(ctx, modelResolved, spec, firstRunBaselineTextProbe)
+		text, _, finish, err := local.GenerateTextScenario(execCtx, modelResolved, spec, firstRunBaselineTextProbe)
 		if err != nil {
 			return err
 		}
@@ -220,6 +208,8 @@ func (s *Service) runFirstRunLocalBaselineScenario(
 		}
 		return nil
 	case runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE:
+		execCtx, cancel := withTimeout(ctx, 0, defaultSynthesizeTimeout)
+		defer cancel()
 		backend, backendModelID, _ := local.resolveMediaBackendForModal(modelResolved, runtimev1.Modal_MODAL_TTS)
 		if backend == nil {
 			return grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
@@ -228,7 +218,7 @@ func (s *Service) runFirstRunLocalBaselineScenario(
 			Text:        firstRunBaselineTextProbe,
 			AudioFormat: firstRunBaselineAudioFormat,
 		}
-		payload, _, err := backend.SynthesizeSpeech(ctx, backendModelID, spec, nil)
+		payload, _, err := backend.SynthesizeSpeech(execCtx, backendModelID, spec, nil)
 		if err != nil {
 			return err
 		}
@@ -241,6 +231,8 @@ func (s *Service) runFirstRunLocalBaselineScenario(
 		}
 		return nil
 	case runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE:
+		execCtx, cancel := withTimeout(ctx, 0, defaultTranscribeTimeout)
+		defer cancel()
 		backend, backendModelID, _ := local.resolveMediaBackendForModal(modelResolved, runtimev1.Modal_MODAL_STT)
 		if backend == nil {
 			return grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
@@ -248,7 +240,7 @@ func (s *Service) runFirstRunLocalBaselineScenario(
 		spec := &runtimev1.SpeechTranscribeScenarioSpec{
 			MimeType: firstRunBaselineSTTMimeType,
 		}
-		text, _, err := backend.Transcribe(ctx, backendModelID, spec, firstRunBaselineSTTAudioProbe(), firstRunBaselineSTTMimeType, nil)
+		text, _, err := backend.Transcribe(execCtx, backendModelID, spec, firstRunBaselineSTTAudioProbe(), firstRunBaselineSTTMimeType, firstRunBaselineSTTExtensions())
 		if err != nil {
 			return err
 		}
@@ -269,28 +261,48 @@ const (
 	firstRunBaselineAudioFormat = "wav"
 	// firstRunBaselineSTTMimeType is the STT baseline input mime type.
 	firstRunBaselineSTTMimeType = "audio/wav"
+	// firstRunBaselineSTTSampleRateHz is the deterministic WAV probe sample rate.
+	firstRunBaselineSTTSampleRateHz = 16_000
+	// firstRunBaselineSTTChannels is the deterministic WAV probe channel count.
+	firstRunBaselineSTTChannels = 1
+	// firstRunBaselineSTTBitsPerSample is the deterministic WAV probe bit depth.
+	firstRunBaselineSTTBitsPerSample = 16
+	// firstRunBaselineSTTDurationSeconds is long enough to be a valid ASR
+	// tensor while remaining a minimal first-run execution proof payload.
+	firstRunBaselineSTTDurationSeconds = 1
 )
 
-// firstRunBaselineSTTAudioProbe returns a minimal non-empty WAV payload (a
-// 44-byte RIFF/WAVE header with zero samples) for the local STT baseline
-// execution. Transcribe rejects an empty payload, so a real byte payload is
-// supplied; the local STT engine produces the terminal transcription result.
+func firstRunBaselineSTTExtensions() map[string]any {
+	return map[string]any{
+		"nimi_first_run_baseline_probe": true,
+		"nimi_allow_empty_transcript":   true,
+	}
+}
+
+// firstRunBaselineSTTAudioProbe returns a valid mono PCM WAV payload for the
+// local STT baseline execution. The audio intentionally contains silence: the
+// execution proof needs the local ASR path to run to a terminal result, while
+// no-speech is allowed only through the private first-run extension.
 func firstRunBaselineSTTAudioProbe() []byte {
-	header := make([]byte, 44)
-	copy(header[0:4], "RIFF")
-	header[4] = 36 // chunk size = 36 + data size(0)
-	copy(header[8:12], "WAVE")
-	copy(header[12:16], "fmt ")
-	header[16] = 16   // fmt chunk size
-	header[20] = 1    // PCM
-	header[22] = 1    // mono
-	header[24] = 0x80 // 16000 Hz sample rate (0x3E80)
-	header[25] = 0x3E
-	header[28] = 0x00 // byte rate (32000 = 0x7D00)
-	header[29] = 0x7D
-	header[32] = 2  // block align
-	header[34] = 16 // bits per sample
-	copy(header[36:40], "data")
-	// data size = 0
-	return header
+	const headerSize = 44
+	bytesPerSample := firstRunBaselineSTTBitsPerSample / 8
+	blockAlign := firstRunBaselineSTTChannels * bytesPerSample
+	sampleCount := firstRunBaselineSTTSampleRateHz * firstRunBaselineSTTDurationSeconds
+	dataSize := sampleCount * blockAlign
+	payload := make([]byte, headerSize+dataSize)
+
+	copy(payload[0:4], "RIFF")
+	binary.LittleEndian.PutUint32(payload[4:8], uint32(36+dataSize))
+	copy(payload[8:12], "WAVE")
+	copy(payload[12:16], "fmt ")
+	binary.LittleEndian.PutUint32(payload[16:20], 16)
+	binary.LittleEndian.PutUint16(payload[20:22], 1)
+	binary.LittleEndian.PutUint16(payload[22:24], firstRunBaselineSTTChannels)
+	binary.LittleEndian.PutUint32(payload[24:28], firstRunBaselineSTTSampleRateHz)
+	binary.LittleEndian.PutUint32(payload[28:32], uint32(firstRunBaselineSTTSampleRateHz*blockAlign))
+	binary.LittleEndian.PutUint16(payload[32:34], uint16(blockAlign))
+	binary.LittleEndian.PutUint16(payload[34:36], firstRunBaselineSTTBitsPerSample)
+	copy(payload[36:40], "data")
+	binary.LittleEndian.PutUint32(payload[40:44], uint32(dataSize))
+	return payload
 }

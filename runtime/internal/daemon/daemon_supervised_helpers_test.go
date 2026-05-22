@@ -61,7 +61,7 @@ func setDaemonTestHome(t *testing.T, homeDir string) {
 
 func newHealthyEngineManager(t *testing.T, kind engine.EngineKind, port int) *engine.Manager {
 	t.Helper()
-	manager, err := engine.NewManager(slog.New(slog.NewTextHandler(io.Discard, nil)), t.TempDir(), nil)
+	manager, err := engine.NewManager(slog.New(slog.NewTextHandler(io.Discard, nil)), engine.ManagedRoots{Environments: t.TempDir(), Dependencies: t.TempDir()}, nil)
 	if err != nil {
 		t.Fatalf("create engine manager: %v", err)
 	}

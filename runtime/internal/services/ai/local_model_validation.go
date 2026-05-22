@@ -295,6 +295,9 @@ func shouldRetryUnhealthyLocalModelStart(model *runtimev1.LocalAssetRecord, moda
 	if shouldRetryUnhealthyManagedLlamaStart(model, modal) {
 		return true
 	}
+	if shouldRetryUnhealthyManagedSpeechStart(model, modal) {
+		return true
+	}
 	switch modal {
 	case runtimev1.Modal_MODAL_IMAGE:
 	default:
@@ -310,6 +313,23 @@ func shouldRetryUnhealthyLocalModelStart(model *runtimev1.LocalAssetRecord, moda
 		}
 	}
 	return false
+}
+
+func shouldRetryUnhealthyManagedSpeechStart(model *runtimev1.LocalAssetRecord, modal runtimev1.Modal) bool {
+	if model == nil || model.GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY {
+		return false
+	}
+	if !strings.EqualFold(strings.TrimSpace(model.GetEngine()), "speech") {
+		return false
+	}
+	switch modal {
+	case runtimev1.Modal_MODAL_TTS:
+		return localModelHasAnyCapability(model, "audio.synthesize", "tts")
+	case runtimev1.Modal_MODAL_STT:
+		return localModelHasAnyCapability(model, "audio.transcribe", "stt")
+	default:
+		return false
+	}
 }
 
 func shouldRetryUnhealthyManagedLlamaStart(model *runtimev1.LocalAssetRecord, modal runtimev1.Modal) bool {
@@ -331,6 +351,29 @@ func shouldRetryUnhealthyManagedLlamaStart(model *runtimev1.LocalAssetRecord, mo
 	for _, capability := range model.GetCapabilities() {
 		normalized := strings.ToLower(strings.TrimSpace(capability))
 		if normalized == "chat" || normalized == "text.generate" || normalized == "embedding" || normalized == "text.embed" {
+			return true
+		}
+	}
+	return false
+}
+
+func localModelHasAnyCapability(model *runtimev1.LocalAssetRecord, capabilities ...string) bool {
+	if model == nil {
+		return false
+	}
+	expected := make(map[string]struct{}, len(capabilities))
+	for _, capability := range capabilities {
+		normalized := strings.ToLower(strings.TrimSpace(capability))
+		if normalized != "" {
+			expected[normalized] = struct{}{}
+		}
+	}
+	if len(expected) == 0 {
+		return false
+	}
+	for _, capability := range model.GetCapabilities() {
+		normalized := strings.ToLower(strings.TrimSpace(capability))
+		if _, ok := expected[normalized]; ok {
 			return true
 		}
 	}

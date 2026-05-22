@@ -114,6 +114,17 @@ func localEnvironmentKey(dependencyFamily string, dependencyID string, hostProfi
 }
 
 func (s *Service) upsertLocalEnvironmentSelectedSourceRecord(record localEnvironmentSelectedSourceRecordState) localEnvironmentSelectedSourceRecordState {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.upsertLocalEnvironmentSelectedSourceRecordLocked(record)
+}
+
+// upsertLocalEnvironmentSelectedSourceRecordLocked normalizes and persists a
+// selected-source record into s.localEnvironmentSelectedSources. Caller must
+// hold s.mu. It exists so the record write can be folded into the same locked
+// critical section as a dependency-job promotion, keeping the two atomic with
+// respect to a concurrent Cancel.
+func (s *Service) upsertLocalEnvironmentSelectedSourceRecordLocked(record localEnvironmentSelectedSourceRecordState) localEnvironmentSelectedSourceRecordState {
 	record.DependencyFamily = strings.TrimSpace(record.DependencyFamily)
 	record.DependencyID = strings.TrimSpace(record.DependencyID)
 	record.EnvironmentKey = strings.TrimSpace(record.EnvironmentKey)
@@ -136,13 +147,11 @@ func (s *Service) upsertLocalEnvironmentSelectedSourceRecord(record localEnviron
 		record.LastVerifiedAt = record.SelectedAt
 	}
 
-	s.mu.Lock()
 	if s.localEnvironmentSelectedSources == nil {
 		s.localEnvironmentSelectedSources = make(map[string]localEnvironmentSelectedSourceRecordState)
 	}
 	s.localEnvironmentSelectedSources[record.EnvironmentKey] = record
 	s.persistStateLocked()
-	s.mu.Unlock()
 	return record
 }
 

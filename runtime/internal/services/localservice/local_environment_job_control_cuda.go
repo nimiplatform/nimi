@@ -8,7 +8,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/engine"
 )
 
-func (s *Service) executeCUDAEnvironmentDependencyJob(ctx context.Context, job localEnvironmentDependencyJobState) (localEnvironmentDependencyJobResult, error) {
+func (s *Service) executeCUDAEnvironmentDependencyJob(ctx context.Context, job localEnvironmentDependencyJobState, report localEnvironmentDependencyJobProgressReporter) (localEnvironmentDependencyJobResult, error) {
 	if normalizeLocalRuntimeDependencyID(job.DependencyID) != cudaUserSpaceRuntimeDependencyID {
 		return localEnvironmentDependencyJobResult{
 			State:           localEnvironmentStateUnsupported,
@@ -20,10 +20,12 @@ func (s *Service) executeCUDAEnvironmentDependencyJob(ctx context.Context, job l
 	if mgr == nil {
 		return localEnvironmentDependencyJobResult{}, errors.New("runtime engine manager unavailable")
 	}
+	reportLocalEnvironmentJobProgress(report, localEnvironmentStateDownloading)
 	status, err := mgr.EnsureSharedAcceleratorDependency(ctx, cudaUserSpaceRuntimeDependencyID)
 	if err != nil {
 		return localEnvironmentDependencyJobResult{}, err
 	}
+	reportLocalEnvironmentJobProgress(report, localEnvironmentStateVerifying)
 	if strings.TrimSpace(status.ConsumerID) == "" {
 		status.ConsumerID = cudaSelectedConsumer(job.EnvironmentKey)
 	}

@@ -21,6 +21,17 @@ const (
 	localEnvironmentStateCancelled         = "cancelled"
 )
 
+// localResolverCapability* are the precise K-MCAT-033 preset-slot capability
+// identifiers a compute pack may host a model asset for (design/05 §3). They
+// are matched verbatim against the resolver's ResolvedSlot.Capability.
+const (
+	localResolverCapabilityTextGenerate    = "text.generate"
+	localResolverCapabilityAudioTranscribe = "audio.transcribe"
+	localResolverCapabilityAudioSynthesize = "audio.synthesize"
+	localResolverCapabilityImageGenerate   = "image.generate"
+	localResolverCapabilityVideoGenerate   = "video.generate"
+)
+
 const (
 	localEnvironmentFamilyCUDA             = "accelerator.cuda.runtime"
 	localEnvironmentFamilyNativeLlama      = "native-engine-package.llama"
@@ -43,6 +54,13 @@ type localEnvironmentPlanRequest struct {
 	LocalAssetID     string
 	CompanionAssetID string
 	ParentAssetID    string
+	// InstallLevel is the first-run install level (minimal | recommended | "").
+	// When set and no explicit AssetID is supplied, the plan resolves the
+	// pack's model.asset / model.companion-asset dependencies internally via the
+	// K-MCAT-034 deterministic resolver from the curated preset + host posture
+	// (design/05 §2-3). An explicit AssetID always wins; an empty InstallLevel
+	// preserves the prior explicit-identity behaviour.
+	InstallLevel string
 }
 
 type localEnvironmentPlan struct {
@@ -79,6 +97,17 @@ type localComputePackDefinition struct {
 	RequiredDependencyFamilies []string
 	OptionalDependencyFamilies []string
 	CloudOnlyImpact            string
+	// HostedCapabilities is the explicit set of resolver-slot capabilities a
+	// pack hosts model assets for (design/05 §3). It is NOT the broad
+	// product-facing `capabilities` grouping of local-compute-packs.yaml; it is
+	// the precise per-slot capability set the K-MCAT-033 presets bind
+	// (`text.generate` | `audio.transcribe` | `audio.synthesize` |
+	// `image.generate`). When install-level resolution is requested, the plan
+	// emits one model.asset dependency per resolved preset slot whose capability
+	// appears here — so a multi-slot pack (`local-speech` hosts both stt and
+	// tts) materialises every hosted asset. Empty means the pack hosts no
+	// preset model slot and install-level resolution does not apply.
+	HostedCapabilities []string
 }
 
 func (s *Service) resolveLocalEnvironmentPlan(req localEnvironmentPlanRequest) localEnvironmentPlan {
@@ -94,10 +123,7 @@ func (s *Service) resolveLocalEnvironmentPlan(req localEnvironmentPlanRequest) l
 		}
 	}
 
-	profile := cloneDeviceProfile(req.HostProfile)
-	if profile == nil {
-		profile = collectDeviceProfile()
-	}
+	profile := hostProfileOrCollected(req.HostProfile)
 	hostState := localEnvironmentHostProfileFromDeviceProfile(profile)
 	runtimeDataRoot := strings.TrimSpace(req.RuntimeDataRoot)
 	if runtimeDataRoot == "" {
@@ -117,11 +143,41 @@ func (s *Service) resolveLocalEnvironmentPlan(req localEnvironmentPlanRequest) l
 	s.persistStateLocked()
 	s.mu.Unlock()
 
+	// design/05 §2-3: when an install_level is supplied and the caller passes no
+	// explicit AssetID, the plan resolves the pack's model.asset /
+	// model.companion-asset dependencies internally via the K-MCAT-034
+	// deterministic resolver. A pack may host more than one preset slot
+	// (`local-speech` hosts both stt and tts), so `model.asset` is 1:N per pack:
+	// one dependency per resolved preset slot whose capability the pack hosts.
+	//
+	// The resolver consumes `profile` — the host posture this plan already
+	// normalized above (a caller-supplied HostProfile, or one collected on this
+	// host when the request omitted it). It must never read req.HostProfile
+	// directly: a nil request HostProfile would zero the resolver's RAM budget
+	// and fail-close every cpu variant even on a capable host.
+	modelResolution := s.resolvePlanModelAssetDependencies(def, hostState, platformTuple, runtimeDataRoot, req, profile)
+
 	dependencies := make([]localEnvironmentPlanDependency, 0, len(def.RequiredDependencyFamilies)+len(def.OptionalDependencyFamilies))
 	for _, family := range def.RequiredDependencyFamilies {
+		if resolved, ok := modelResolution[family]; ok {
+			dependencies = append(dependencies, resolved...)
+			continue
+		}
+		if resolved, ok := s.resolveExpandedLocalEnvironmentDependencies(def, family, true, hostState, platformTuple, runtimeDataRoot, consumerScope, req); ok {
+			dependencies = append(dependencies, resolved...)
+			continue
+		}
 		dependencies = append(dependencies, s.resolveLocalEnvironmentDependency(def, family, true, hostState, platformTuple, runtimeDataRoot, consumerScope, req))
 	}
 	for _, family := range def.OptionalDependencyFamilies {
+		if resolved, ok := modelResolution[family]; ok {
+			dependencies = append(dependencies, resolved...)
+			continue
+		}
+		if resolved, ok := s.resolveExpandedLocalEnvironmentDependencies(def, family, false, hostState, platformTuple, runtimeDataRoot, consumerScope, req); ok {
+			dependencies = append(dependencies, resolved...)
+			continue
+		}
 		dependencies = append(dependencies, s.resolveLocalEnvironmentDependency(def, family, false, hostState, platformTuple, runtimeDataRoot, consumerScope, req))
 	}
 
@@ -161,6 +217,10 @@ func (s *Service) resolveLocalEnvironmentPlan(req localEnvironmentPlanRequest) l
 
 func (s *Service) resolveLocalEnvironmentDependency(def localComputePackDefinition, family string, required bool, hostState localEnvironmentHostProfileState, platformTuple string, runtimeDataRoot string, consumerScope string, req localEnvironmentPlanRequest) localEnvironmentPlanDependency {
 	dependencyID := s.localEnvironmentDependencyID(def.PackID, family, req)
+	return s.resolveLocalEnvironmentDependencyWithID(def, family, dependencyID, required, hostState, platformTuple, runtimeDataRoot, consumerScope)
+}
+
+func (s *Service) resolveLocalEnvironmentDependencyWithID(def localComputePackDefinition, family string, dependencyID string, required bool, hostState localEnvironmentHostProfileState, platformTuple string, runtimeDataRoot string, consumerScope string) localEnvironmentPlanDependency {
 	environmentKey := localEnvironmentKey(family, dependencyID, hostState.HostProfileID, platformTuple, runtimeDataRoot)
 	dep := localEnvironmentPlanDependency{
 		DependencyFamily: family,
@@ -226,6 +286,53 @@ func (s *Service) resolveLocalEnvironmentDependency(def localComputePackDefiniti
 	return dep
 }
 
+func (s *Service) resolveExpandedLocalEnvironmentDependencies(def localComputePackDefinition, family string, required bool, hostState localEnvironmentHostProfileState, platformTuple string, runtimeDataRoot string, consumerScope string, _ localEnvironmentPlanRequest) ([]localEnvironmentPlanDependency, bool) {
+	if def.PackID != "local-speech" {
+		return nil, false
+	}
+	if family != localEnvironmentFamilyPythonVenv && family != localEnvironmentFamilyPythonPackageSet {
+		return nil, false
+	}
+	consumers := localSpeechPlanConsumers(consumerScope)
+	dependencies := make([]localEnvironmentPlanDependency, 0, len(consumers))
+	for _, consumer := range consumers {
+		dependencyID := localSpeechPythonDependencyID(family, consumer)
+		dependencies = append(dependencies, s.resolveLocalEnvironmentDependencyWithID(def, family, dependencyID, required, hostState, platformTuple, runtimeDataRoot, consumer))
+	}
+	return dependencies, true
+}
+
+func localSpeechPlanConsumers(consumerScope string) []string {
+	switch strings.TrimSpace(consumerScope) {
+	case "speech.qwen3-asr.python":
+		return []string{"speech.qwen3-asr.python"}
+	case "speech.qwen3-tts.python":
+		return []string{"speech.qwen3-tts.python"}
+	default:
+		return []string{"speech.qwen3-asr.python", "speech.qwen3-tts.python"}
+	}
+}
+
+func localSpeechPythonDependencyID(family string, consumer string) string {
+	suffix := ""
+	switch family {
+	case localEnvironmentFamilyPythonVenv:
+		suffix = "venv"
+	case localEnvironmentFamilyPythonPackageSet:
+		suffix = "package-set"
+	default:
+		suffix = strings.ReplaceAll(family, ".", "-")
+	}
+	switch strings.TrimSpace(consumer) {
+	case "speech.qwen3-asr.python":
+		return "local-speech-qwen3-asr." + suffix
+	case "speech.qwen3-tts.python":
+		return "local-speech-qwen3-tts." + suffix
+	default:
+		return "local-speech." + suffix
+	}
+}
+
 func (s *Service) localEnvironmentDependencyID(packID string, family string, req localEnvironmentPlanRequest) string {
 	switch family {
 	case localEnvironmentFamilyModelAsset:
@@ -284,6 +391,7 @@ func localComputePackDefinitions() []localComputePackDefinition {
 			RequiredDependencyFamilies: []string{localEnvironmentFamilyNativeLlama, localEnvironmentFamilyModelAsset},
 			OptionalDependencyFamilies: []string{localEnvironmentFamilyCUDA},
 			CloudOnlyImpact:            "none",
+			HostedCapabilities:         []string{localResolverCapabilityTextGenerate},
 		},
 		{
 			PackID:                     "local-image-native",
@@ -291,6 +399,7 @@ func localComputePackDefinitions() []localComputePackDefinition {
 			RequiredDependencyFamilies: []string{localEnvironmentFamilyNativeSDCPP, localEnvironmentFamilyModelAsset, localEnvironmentFamilyModelCompanion},
 			OptionalDependencyFamilies: []string{localEnvironmentFamilyCUDA},
 			CloudOnlyImpact:            "none",
+			HostedCapabilities:         []string{localResolverCapabilityImageGenerate},
 		},
 		{
 			PackID:       "local-image-python",
@@ -306,6 +415,7 @@ func localComputePackDefinitions() []localComputePackDefinition {
 			},
 			OptionalDependencyFamilies: []string{localEnvironmentFamilyCUDA},
 			CloudOnlyImpact:            "none",
+			HostedCapabilities:         []string{localResolverCapabilityImageGenerate},
 		},
 		{
 			PackID:       "local-video-python",
@@ -321,6 +431,7 @@ func localComputePackDefinitions() []localComputePackDefinition {
 			},
 			OptionalDependencyFamilies: []string{localEnvironmentFamilyCUDA},
 			CloudOnlyImpact:            "none",
+			HostedCapabilities:         []string{localResolverCapabilityVideoGenerate},
 		},
 		{
 			PackID:                     "local-speech",
@@ -328,6 +439,7 @@ func localComputePackDefinitions() []localComputePackDefinition {
 			RequiredDependencyFamilies: []string{localEnvironmentFamilyPythonUV, localEnvironmentFamilyPythonRuntime, localEnvironmentFamilyPythonVenv, localEnvironmentFamilyPythonPackageSet, localEnvironmentFamilyModelAsset},
 			OptionalDependencyFamilies: []string{},
 			CloudOnlyImpact:            "none",
+			HostedCapabilities:         []string{localResolverCapabilityAudioTranscribe, localResolverCapabilityAudioSynthesize},
 		},
 		{
 			PackID:                     "local-gpu-support",

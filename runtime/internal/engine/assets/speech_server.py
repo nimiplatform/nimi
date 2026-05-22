@@ -12,6 +12,7 @@ import uuid
 
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.responses import Response
+from starlette.concurrency import run_in_threadpool
 import uvicorn
 from speech_server_runtime import (
     MODELS_ROOT_ENV,
@@ -167,7 +168,8 @@ def create_app() -> FastAPI:
             )
         try:
             model = find_ready_model(request.model, "audio.synthesize")
-            audio, content_type = synthesize_with_driver(
+            audio, content_type = await run_in_threadpool(
+                synthesize_with_driver,
                 model,
                 {
                     "driver": model.capability_drivers.get("audio.synthesize", ""),
@@ -238,7 +240,8 @@ def create_app() -> FastAPI:
             with tempfile.TemporaryDirectory(prefix="nimi-speech-audio-") as temp_dir:
                 audio_path = safe_uploaded_audio_path(temp_dir, file.filename, mime_type)
                 audio_path.write_bytes(raw_audio)
-                text = transcribe_with_driver(
+                text = await run_in_threadpool(
+                    transcribe_with_driver,
                     active_model,
                     {
                         "driver": active_model.capability_drivers.get("audio.transcribe", ""),

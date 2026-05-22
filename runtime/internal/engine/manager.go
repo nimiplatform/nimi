@@ -15,16 +15,41 @@ import (
 
 var ErrManagedImageBackendMaterializationRequired = errors.New("managed image backend package materialization requires local environment dependency confirmation")
 
+// ErrManagedRootUnresolved is returned when the engine manager is constructed
+// without a usable K-CFG-018 data-plane root. Managed engine/dependency
+// materialization fails closed rather than falling back to a home-directory
+// install root. (K-CFG-018, K-LENG-004)
+var ErrManagedRootUnresolved = errors.New("managed engine install root unresolved: product setup must record a nimi_data data root")
+
+// ManagedRoots carries the K-CFG-018 data-plane install roots the engine
+// manager materializes under. Both roots are resolved from the Runtime config
+// dataRootRef / managedRoots and injected at construction; there is no
+// home-directory fallback. (K-CFG-018, K-LENG-028)
+type ManagedRoots struct {
+	// Environments is the data-plane `environments` root: native engine
+	// packages, the managed Python interpreter, venvs, package sets, Torch
+	// wheels, and the engine binary registry.
+	Environments string
+	// Dependencies is the data-plane `dependencies` root: standalone
+	// downloaded dependency payloads — the `uv` tool and the shared
+	// accelerator/CUDA runtime.
+	Dependencies string
+}
+
 // Manager is the facade for engine lifecycle management.
 type Manager struct {
 	logger   *slog.Logger
 	baseDir  string
+	depsDir  string
 	registry *Registry
 	onState  StateChangeFunc
 
 	llamaModelsPath                   string
 	llamaModelsConfigPath             string
 	llamaBackendsPath                 string
+	speechModelsPath                  string
+	speechQwen3TTSPackageSetRoot      string
+	speechQwen3ASRPackageSetRoot      string
 	managedImageBackendsPath          string
 	sharedAcceleratorDependenciesPath string
 	managedImageBackend               *ManagedImageBackendConfig
@@ -35,21 +60,38 @@ type Manager struct {
 }
 
 // NewManager creates a new engine manager.
-// baseDir is the root engines directory (typically ~/.nimi/engines/).
-func NewManager(logger *slog.Logger, baseDir string, onState StateChangeFunc) (*Manager, error) {
+//
+// roots carries the K-CFG-018 data-plane install roots. roots.Environments is
+// the engine/runtime-environment install root (formerly the hardcoded
+// ~/.nimi/engines tree); roots.Dependencies is the downloaded-payload root for
+// the uv tool and the shared accelerator runtime. Both must be absolute paths
+// resolved from the Runtime config data root; an empty Environments root fails
+// closed with ErrManagedRootUnresolved rather than guessing a home-directory
+// path. (K-CFG-018, K-LENG-004, K-LENG-028)
+func NewManager(logger *slog.Logger, roots ManagedRoots, onState StateChangeFunc) (*Manager, error) {
 	if logger == nil {
 		logger = slog.Default()
 	}
+	baseDir := strings.TrimSpace(roots.Environments)
 	if baseDir == "" {
-		home, err := os.UserHomeDir()
-		if err != nil {
-			return nil, fmt.Errorf("resolve home directory: %w", err)
-		}
-		baseDir = filepath.Join(home, ".nimi", "engines")
+		return nil, fmt.Errorf("create engine manager: %w", ErrManagedRootUnresolved)
+	}
+	if !filepath.IsAbs(baseDir) {
+		return nil, fmt.Errorf("create engine manager: environments root %q is not an absolute path: %w", baseDir, ErrManagedRootUnresolved)
+	}
+	depsDir := strings.TrimSpace(roots.Dependencies)
+	if depsDir == "" {
+		return nil, fmt.Errorf("create engine manager: %w", ErrManagedRootUnresolved)
+	}
+	if !filepath.IsAbs(depsDir) {
+		return nil, fmt.Errorf("create engine manager: dependencies root %q is not an absolute path: %w", depsDir, ErrManagedRootUnresolved)
 	}
 
 	if err := os.MkdirAll(baseDir, 0o755); err != nil {
-		return nil, fmt.Errorf("create engines directory: %w", err)
+		return nil, fmt.Errorf("create environments root directory: %w", err)
+	}
+	if err := os.MkdirAll(depsDir, 0o755); err != nil {
+		return nil, fmt.Errorf("create dependencies root directory: %w", err)
 	}
 
 	registry, err := NewRegistry(baseDir)
@@ -57,19 +99,7 @@ func NewManager(logger *slog.Logger, baseDir string, onState StateChangeFunc) (*
 		return nil, fmt.Errorf("load engine registry: %w", err)
 	}
 
-	modelsPath, modelsConfigPath, err := defaultLlamaPaths()
-	if err != nil {
-		return nil, err
-	}
-	backendsPath, err := defaultLlamaBackendsPath()
-	if err != nil {
-		return nil, err
-	}
-	managedImageBackendsPath, err := defaultManagedImageBackendsPath()
-	if err != nil {
-		return nil, err
-	}
-	sharedAcceleratorDependenciesPath, err := defaultSharedAcceleratorDependenciesPath()
+	modelsConfigPath, err := defaultLlamaModelsConfigPath()
 	if err != nil {
 		return nil, err
 	}
@@ -77,13 +107,14 @@ func NewManager(logger *slog.Logger, baseDir string, onState StateChangeFunc) (*
 	return &Manager{
 		logger:                            logger,
 		baseDir:                           baseDir,
+		depsDir:                           depsDir,
 		registry:                          registry,
 		onState:                           onState,
-		llamaModelsPath:                   modelsPath,
+		llamaModelsPath:                   "",
 		llamaModelsConfigPath:             modelsConfigPath,
-		llamaBackendsPath:                 backendsPath,
-		managedImageBackendsPath:          managedImageBackendsPath,
-		sharedAcceleratorDependenciesPath: sharedAcceleratorDependenciesPath,
+		llamaBackendsPath:                 filepath.Join(baseDir, "llama-backends"),
+		managedImageBackendsPath:          filepath.Join(baseDir, "managed-image-backends"),
+		sharedAcceleratorDependenciesPath: filepath.Join(depsDir, "accelerator-dependencies"),
 		supervisors:                       make(map[EngineKind]*Supervisor),
 		starting:                          make(map[EngineKind]bool),
 	}, nil
@@ -101,29 +132,18 @@ func (m *Manager) SetSupervisorForTesting(kind EngineKind, supervisor *Superviso
 	m.mu.Unlock()
 }
 
-func defaultLlamaPaths() (string, string, error) {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return "", "", fmt.Errorf("resolve home directory: %w", err)
-	}
-	modelsRoot := ""
-	return modelsRoot, filepath.Join(home, ".nimi", "runtime", "llama-models.yaml"), nil
-}
-
-func defaultLlamaBackendsPath() (string, error) {
+// defaultLlamaModelsConfigPath resolves the runtime-private generated managed
+// llama router config path. This is a generated daemon-identity-scoped config
+// file (not a downloadable dependency payload), so it remains under the
+// runtime-private `~/.nimi/runtime/` directory. The daemon overrides it via
+// SetLlamaPaths with resolveManagedLlamaModelsConfigPath, which uses the same
+// runtime-private path; this default is the engine-package fallback only.
+func defaultLlamaModelsConfigPath() (string, error) {
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return "", fmt.Errorf("resolve home directory: %w", err)
 	}
-	return filepath.Join(home, ".nimi", "runtime", "llama-backends"), nil
-}
-
-func defaultManagedImageBackendsPath() (string, error) {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return "", fmt.Errorf("resolve home directory: %w", err)
-	}
-	return filepath.Join(home, ".nimi", "runtime", "managed-image-backends"), nil
+	return filepath.Join(home, ".nimi", "runtime", "llama-models.yaml"), nil
 }
 
 // SetLlamaPaths overrides the default llama model directory and generated
@@ -133,6 +153,17 @@ func (m *Manager) SetLlamaPaths(modelsPath string, modelsConfigPath string) {
 	defer m.mu.Unlock()
 	m.llamaModelsPath = strings.TrimSpace(modelsPath)
 	m.llamaModelsConfigPath = strings.TrimSpace(modelsConfigPath)
+}
+
+// SetSpeechPaths injects Runtime-verified speech materialization records into
+// the supervised speech host. The roots come from selected python.package-set
+// records; startup must fail closed when they are absent.
+func (m *Manager) SetSpeechPaths(modelsPath string, qwen3TTSPackageSetRoot string, qwen3ASRPackageSetRoot string) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.speechModelsPath = strings.TrimSpace(modelsPath)
+	m.speechQwen3TTSPackageSetRoot = strings.TrimSpace(qwen3TTSPackageSetRoot)
+	m.speechQwen3ASRPackageSetRoot = strings.TrimSpace(qwen3ASRPackageSetRoot)
 }
 
 // SetManagedImageBackend configures the daemon-managed runtime-owned image backend.
@@ -302,11 +333,33 @@ func (m *Manager) applyLlamaPaths(cfg EngineConfig) EngineConfig {
 	return cfg
 }
 
+func (m *Manager) applySpeechPaths(cfg EngineConfig) EngineConfig {
+	if cfg.Kind != EngineSpeech {
+		return cfg
+	}
+	m.mu.RLock()
+	modelsPath := strings.TrimSpace(m.speechModelsPath)
+	ttsPackageSetRoot := strings.TrimSpace(m.speechQwen3TTSPackageSetRoot)
+	asrPackageSetRoot := strings.TrimSpace(m.speechQwen3ASRPackageSetRoot)
+	m.mu.RUnlock()
+	if cfg.ModelsPath == "" {
+		cfg.ModelsPath = modelsPath
+	}
+	if cfg.SpeechQwen3TTSPackageSetRoot == "" {
+		cfg.SpeechQwen3TTSPackageSetRoot = ttsPackageSetRoot
+	}
+	if cfg.SpeechQwen3ASRPackageSetRoot == "" {
+		cfg.SpeechQwen3ASRPackageSetRoot = asrPackageSetRoot
+	}
+	return cfg
+}
+
 // EnsureEngine ensures the engine binary is available.
 // Llama downloads if not in registry.
 // Media provisions its managed Python environment on demand.
 func (m *Manager) EnsureEngine(ctx context.Context, cfg EngineConfig) (EngineConfig, error) {
 	cfg = m.applyLlamaPaths(cfg)
+	cfg = m.applySpeechPaths(cfg)
 	switch cfg.Kind {
 	case EngineLlama:
 		return m.ensureLlama(ctx, cfg)
@@ -409,6 +462,8 @@ func (m *Manager) ensureLlama(ctx context.Context, cfg EngineConfig) (EngineConf
 // StartEngine starts the engine with the given configuration.
 func (m *Manager) StartEngine(ctx context.Context, cfg EngineConfig) error {
 	cfg = m.applyLlamaPaths(cfg)
+	cfg = m.applySpeechPaths(cfg)
+	cfg.SupervisedRoot = m.baseDir
 	if err := m.beginEngineStart(cfg.Kind); err != nil {
 		return err
 	}
@@ -426,15 +481,31 @@ func (m *Manager) StartEngine(ctx context.Context, cfg EngineConfig) error {
 		}
 	}
 	m.mu.Lock()
-	if existing, ok := m.supervisors[cfg.Kind]; ok {
+	existing, hasExisting := m.supervisors[cfg.Kind]
+	if hasExisting {
 		if existing.Status() == StatusHealthy || existing.Status() == StatusStarting {
 			m.mu.Unlock()
 			return fmt.Errorf("engine %s already running", cfg.Kind)
 		}
+		// A non-healthy supervisor for this engine is still present: its
+		// monitor goroutine and crash/restart loop are alive and may keep
+		// spawning processes. Drop it from the map and stop it before
+		// installing a replacement so two supervision cycles never spawn the
+		// same engine concurrently (the port-8330 double-spawn).
+		delete(m.supervisors, cfg.Kind)
 	}
 	sup := NewSupervisor(cfg, m.logger, m.onState)
 	m.supervisors[cfg.Kind] = sup
 	m.mu.Unlock()
+
+	if hasExisting && existing != nil {
+		if err := existing.Stop(); err != nil {
+			m.logger.Warn("stop superseded engine supervisor failed",
+				"engine", cfg.Kind,
+				"error", err,
+			)
+		}
+	}
 
 	if err := sup.Start(ctx); err != nil {
 		m.removeSupervisorIfCurrent(cfg.Kind, sup)
@@ -636,6 +707,7 @@ func (m *Manager) prepareLlamaStart(_ context.Context, cfg EngineConfig) (Engine
 }
 
 func (m *Manager) startManagedImageBackend(ctx context.Context, cfg EngineConfig) error {
+	cfg.SupervisedRoot = m.baseDir
 	m.mu.Lock()
 	existing, ok := m.supervisors[engineManagedImageBackend]
 	if m.starting[engineManagedImageBackend] {

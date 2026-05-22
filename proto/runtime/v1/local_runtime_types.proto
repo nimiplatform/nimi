@@ -387,6 +387,21 @@ message LocalEnvironmentDependencyJob {
   bool retryable = 10;
   string created_at = 11;
   string updated_at = 12;
+  // K-RPC-025 dependency-job download-progress projection. The fields are a
+  // bounded diagnostic projection of the byte progress Runtime already tracks
+  // for the job's artifact transfer; they are meaningful only while the job is
+  // actively materializing (downloading / verifying) and project zero/absent
+  // for every other state. They never promote, select, or substitute for
+  // verification evidence. speed_bytes_per_sec / eta_seconds are projected only
+  // when a rate can actually be computed and are 0 (absent) otherwise — never a
+  // fabricated value.
+  int64 bytes_received = 13;
+  int64 bytes_total = 14;
+  // percent is an integer 0..100 projected only when bytes_total > 0; 0 means
+  // the total is not yet known and the consumer renders an indeterminate state.
+  int32 percent = 15;
+  int64 speed_bytes_per_sec = 16;
+  int64 eta_seconds = 17;
 }
 
 message LocalEnvironmentActivationGate {

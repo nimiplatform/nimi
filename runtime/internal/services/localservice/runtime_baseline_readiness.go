@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	catalog "github.com/nimiplatform/nimi/runtime/internal/aicatalog"
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/protobuf/types/known/structpb"
 )
@@ -109,6 +110,16 @@ type runtimeBaselineConsumerBinding struct {
 	LocalAssetID string
 }
 
+// runtimeBaselineConsumerSlotByID maps each engine-keyed first-run baseline
+// consumer to the resolver slot id it serves (design/03 consumer<->slot seam).
+// The three first-run baseline consumers map one-to-one to the three required
+// minimal/recommended preset slots.
+var runtimeBaselineConsumerSlotByID = map[string]string{
+	"llama.cpp.cpu":           "chat",
+	"speech.qwen3-asr.python": "stt",
+	"speech.qwen3-tts.python": "tts",
+}
+
 // runtimeBaselineResolveRequest is the normalized internal request for both
 // minting and re-verifying a runtimeBaselineRef.
 type runtimeBaselineResolveRequest struct {
@@ -203,6 +214,13 @@ func (s *Service) resolveRuntimeBaselineActivationSet(req runtimeBaselineResolve
 		}
 	}
 
+	// Normalize the host posture once for the whole mint: a caller-supplied
+	// HostProfile, or one collected on this host when the request omitted it.
+	// The K-MCAT-034 resolver MUST receive this normalized profile — a nil
+	// request HostProfile zeroes the resolver RAM budget and fail-closes every
+	// cpu variant, projecting a capable host into the first-run blocked state.
+	hostProfile := hostProfileOrCollected(req.HostProfile)
+
 	bindings := normalizeRuntimeBaselineConsumerBindings(req.BaselineConsumers)
 	if len(bindings) == 0 {
 		canonical, ok := runtimeBaselineConsumerSet(installLevel)
@@ -213,10 +231,15 @@ func (s *Service) resolveRuntimeBaselineActivationSet(req runtimeBaselineResolve
 				Detail:     "no canonical first-run baseline consumer set for install level: " + installLevel,
 			}
 		}
-		bindings = make([]runtimeBaselineConsumerBinding, 0, len(canonical))
-		for _, consumerID := range canonical {
-			bindings = append(bindings, runtimeBaselineConsumerBinding{ConsumerID: consumerID})
+		// design/03 seam: run the deterministic K-MCAT-034 resolver to fill the
+		// per-consumer AssetID from the curated preset + host posture. Without
+		// this the bindings carry an empty AssetID and the downstream
+		// model.asset dependency fail-closes on LOCAL_ENVIRONMENT_ASSET_ID_REQUIRED.
+		resolved, resolveOutcome := s.resolveBaselineConsumerBindings(installLevel, hostProfile, canonical)
+		if resolveOutcome.State != runtimeBaselineStateReady {
+			return resolveOutcome
 		}
+		bindings = resolved
 	}
 
 	outcome := runtimeBaselineResolveOutcome{
@@ -246,7 +269,7 @@ func (s *Service) resolveRuntimeBaselineActivationSet(req runtimeBaselineResolve
 		gate := s.resolveLocalEnvironmentConsumerActivationGate(localEnvironmentConsumerActivationGateRequest{
 			ConsumerID:      consumerID,
 			PackID:          requirement.PackID,
-			HostProfile:     req.HostProfile,
+			HostProfile:     hostProfile,
 			RuntimeDataRoot: req.RuntimeDataRootOrDataRootRef,
 			AssetID:         binding.AssetID,
 			LocalAssetID:    binding.LocalAssetID,
@@ -368,9 +391,10 @@ func (s *Service) mintRuntimeBaselineReadiness(req runtimeBaselineResolveRequest
 
 	ref := "runtime_baseline_" + strings.ToLower(ulid.Make().String())
 	observedAt := nowISO()
-	auditID := s.recordRuntimeBaselineAudit(runtimeBaselineMintAudit, ref, outcome.ReasonCode,
+	auditSequence := make([]string, 0, 1)
+	auditSequence = append(auditSequence, s.recordRuntimeBaselineAudit(runtimeBaselineMintAudit, ref, outcome.ReasonCode,
 		fmt.Sprintf("runtime baseline readiness minted for install_level=%s factory_profile=%s",
-			outcome.InstallLevel, strings.TrimSpace(req.SelectedLocalFactoryAIProfileRef)))
+			outcome.InstallLevel, strings.TrimSpace(req.SelectedLocalFactoryAIProfileRef))))
 
 	record := runtimeBaselineReadinessRecord{
 		RuntimeBaselineRef:                                ref,
@@ -382,7 +406,7 @@ func (s *Service) mintRuntimeBaselineReadiness(req runtimeBaselineResolveRequest
 		ActivationReadyResponses:                          outcome.ActivationResponses,
 		MaterializationOrSystemSourceVerificationEvidence: outcome.VerificationEvidence,
 		ObservedAt:                                        observedAt,
-		RuntimeAuditSequence:                              []string{auditID},
+		RuntimeAuditSequence:                              auditSequence,
 		RuntimeVerifierIdentity:                           runtimeBaselineVerifierIdentity,
 	}
 	record = s.upsertRuntimeBaselineReadinessRecord(record)
@@ -482,6 +506,88 @@ func mapKeysSorted(set map[string]struct{}) []string {
 	}
 	sort.Strings(out)
 	return out
+}
+
+// resolveBaselineConsumerBindings runs the deterministic K-MCAT-034 resolver
+// over the curated preset + host posture and projects each engine-keyed
+// baseline consumer onto the resolver-selected variant asset id (design/03
+// seam). It fails closed when the resolver fails closed and when a baseline
+// consumer has no curated slot.
+//
+// The resolver never substitutes a different preset: the chosen install level
+// resolves for this host or it fails closed (K-MCAT-036/037, design/02).
+func (s *Service) resolveBaselineConsumerBindings(
+	installLevel string,
+	hostProfile *runtimev1.LocalDeviceProfile,
+	canonicalConsumers []string,
+) ([]runtimeBaselineConsumerBinding, runtimeBaselineResolveOutcome) {
+	if s.localProviderCatalog == nil {
+		return nil, runtimeBaselineResolveOutcome{
+			State:      runtimeBaselineStateNotReady,
+			ReasonCode: runtimeBaselineReasonNotReady,
+			Detail:     "local provider catalog is not loaded; cannot resolve first-run baseline model set",
+		}
+	}
+	outcome := s.localProviderCatalog.ResolveLocalModelSet(installLevel, hostProfile)
+	switch outcome.Kind {
+	case catalog.LocalResolveFailClose:
+		return nil, runtimeBaselineResolveOutcome{
+			State:      runtimeBaselineStateNotReady,
+			ReasonCode: baselineReasonForResolverReason(outcome.ReasonCode),
+			Detail:     "first-run baseline model resolution failed closed: " + strings.TrimSpace(outcome.Detail),
+		}
+	case catalog.LocalResolveResolved:
+		// proceed
+	default:
+		return nil, runtimeBaselineResolveOutcome{
+			State:      runtimeBaselineStateNotReady,
+			ReasonCode: runtimeBaselineReasonNotReady,
+			Detail:     "first-run baseline model resolution returned an unknown outcome",
+		}
+	}
+
+	bindings := make([]runtimeBaselineConsumerBinding, 0, len(canonicalConsumers))
+	for _, consumerID := range canonicalConsumers {
+		slotID, mapped := runtimeBaselineConsumerSlotByID[consumerID]
+		if !mapped {
+			return nil, runtimeBaselineResolveOutcome{
+				State:      runtimeBaselineStateNotReady,
+				ReasonCode: runtimeBaselineReasonConsumerUnsupported,
+				Detail:     "first-run baseline consumer has no curated resolver slot: " + consumerID,
+			}
+		}
+		resolvedSlot, ok := outcome.ResolvedSlotByName(slotID)
+		if !ok {
+			// A required baseline consumer with no resolved slot is a
+			// fail-close: the resolver did not satisfy it and never produces a
+			// placeholder asset id.
+			return nil, runtimeBaselineResolveOutcome{
+				State:      runtimeBaselineStateNotReady,
+				ReasonCode: catalog.ReasonLocalModelResolveHostUnsupported,
+				Detail:     fmt.Sprintf("first-run baseline consumer %q slot %q was not resolved to a model asset", consumerID, slotID),
+			}
+		}
+		bindings = append(bindings, runtimeBaselineConsumerBinding{
+			ConsumerID: consumerID,
+			AssetID:    resolvedSlot.AssetID,
+		})
+	}
+	return bindings, runtimeBaselineResolveOutcome{State: runtimeBaselineStateReady}
+}
+
+// baselineReasonForResolverReason maps a K-MCAT-037 resolver reason code onto a
+// runtime baseline readiness reason code. The resolver reason code is preserved
+// as the canonical activation projection identifier.
+func baselineReasonForResolverReason(resolverReason string) string {
+	switch strings.TrimSpace(resolverReason) {
+	case catalog.ReasonLocalModelResolveInstallLevelInvalid:
+		return runtimeBaselineReasonInstallLevelInvalid
+	case catalog.ReasonLocalModelResolveHostUnsupported,
+		catalog.ReasonLocalModelResolveSlotOmitted:
+		return catalog.ReasonLocalModelResolveHostUnsupported
+	default:
+		return runtimeBaselineReasonNotReady
+	}
 }
 
 // stringSetsEqual compares two string slices as de-duplicated unordered sets.

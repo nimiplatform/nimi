@@ -116,10 +116,12 @@ func ensureManagedPythonRuntime(ctx context.Context, uvPath string, root string,
 		return "", "", fmt.Errorf("create managed python installation root: %w", err)
 	}
 	env := managedPythonRuntimeEnv(root)
-	if err := runCommand(ctx, root, env, uvPath, "python", "install", "--managed-python", "--install-dir", managedPythonInstallationDir(root), pythonVersion); err != nil {
+	// Managed-only Python preference is carried by UV_PYTHON_PREFERENCE in env;
+	// the --managed-python CLI flag is its alias and uv rejects passing both.
+	if err := runCommand(ctx, root, env, uvPath, "python", "install", "--install-dir", managedPythonInstallationDir(root), pythonVersion); err != nil {
 		return "", "", err
 	}
-	interpreterPath, err := runCommandOutput(ctx, root, env, uvPath, "python", "find", "--managed-python", pythonVersion)
+	interpreterPath, err := runCommandOutput(ctx, root, env, uvPath, "python", "find", pythonVersion)
 	if err != nil {
 		return "", "", err
 	}

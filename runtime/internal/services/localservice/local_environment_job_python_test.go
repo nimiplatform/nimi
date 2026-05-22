@@ -3,6 +3,7 @@ package localservice
 import (
 	"context"
 	"testing"
+	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/engine"
@@ -10,6 +11,9 @@ import (
 
 func TestStartPythonRuntimeDependencyJobRequiresSelectedUVRecord(t *testing.T) {
 	svc := newTestService(t)
+	// A genuinely absent prerequisite still fails closed once the bounded
+	// prerequisite wait elapses; shorten it so the test does not pause.
+	svc.SetLocalEnvironmentPrerequisiteWaitTimeout(100 * time.Millisecond)
 	svc.SetEngineManager(&mockEngineManager{})
 
 	resp, err := svc.StartLocalEnvironmentDependencyJob(context.Background(), &runtimev1.StartLocalEnvironmentDependencyJobRequest{
@@ -21,8 +25,9 @@ func TestStartPythonRuntimeDependencyJobRequiresSelectedUVRecord(t *testing.T) {
 	if err != nil {
 		t.Fatalf("StartLocalEnvironmentDependencyJob: %v", err)
 	}
-	if resp.GetJob().GetState() != localEnvironmentStateFailed {
-		t.Fatalf("job state = %q, want failed without selected uv record", resp.GetJob().GetState())
+	job := awaitLocalEnvironmentDependencyJobTerminal(t, svc, resp.GetJob().GetJobId())
+	if job.GetState() != localEnvironmentStateFailed {
+		t.Fatalf("job state = %q, want failed without selected uv record", job.GetState())
 	}
 }
 
@@ -57,7 +62,7 @@ func TestStartPythonRuntimeDependencyJobPromotesVerifiedSelectedSource(t *testin
 	if err != nil {
 		t.Fatalf("StartLocalEnvironmentDependencyJob: %v", err)
 	}
-	job := resp.GetJob()
+	job := awaitLocalEnvironmentDependencyJobTerminal(t, svc, resp.GetJob().GetJobId())
 	if job.GetState() != localEnvironmentStateReadyManaged {
 		t.Fatalf("job state = %q, want ready_managed", job.GetState())
 	}
@@ -78,6 +83,7 @@ func TestStartPythonRuntimeDependencyJobPromotesVerifiedSelectedSource(t *testin
 
 func TestStartPythonVenvDependencyJobRequiresSelectedPythonRuntimeRecord(t *testing.T) {
 	svc := newTestService(t)
+	svc.SetLocalEnvironmentPrerequisiteWaitTimeout(100 * time.Millisecond)
 	svc.upsertLocalEnvironmentSelectedSourceRecord(localEnvironmentSelectedSourceRecordState{
 		DependencyFamily:  localEnvironmentFamilyPythonUV,
 		DependencyID:      "uv",
@@ -99,8 +105,9 @@ func TestStartPythonVenvDependencyJobRequiresSelectedPythonRuntimeRecord(t *test
 	if err != nil {
 		t.Fatalf("StartLocalEnvironmentDependencyJob: %v", err)
 	}
-	if resp.GetJob().GetState() != localEnvironmentStateFailed {
-		t.Fatalf("job state = %q, want failed without selected python.runtime record", resp.GetJob().GetState())
+	job := awaitLocalEnvironmentDependencyJobTerminal(t, svc, resp.GetJob().GetJobId())
+	if job.GetState() != localEnvironmentStateFailed {
+		t.Fatalf("job state = %q, want failed without selected python.runtime record", job.GetState())
 	}
 }
 
@@ -145,7 +152,7 @@ func TestStartPythonVenvDependencyJobPromotesVerifiedSelectedSource(t *testing.T
 	if err != nil {
 		t.Fatalf("StartLocalEnvironmentDependencyJob: %v", err)
 	}
-	job := resp.GetJob()
+	job := awaitLocalEnvironmentDependencyJobTerminal(t, svc, resp.GetJob().GetJobId())
 	if job.GetState() != localEnvironmentStateReadyManaged {
 		t.Fatalf("job state = %q, want ready_managed", job.GetState())
 	}
@@ -172,6 +179,7 @@ func TestStartPythonVenvDependencyJobPromotesVerifiedSelectedSource(t *testing.T
 
 func TestStartPythonPackageSetDependencyJobRequiresSelectedVenvRecord(t *testing.T) {
 	svc := newTestService(t)
+	svc.SetLocalEnvironmentPrerequisiteWaitTimeout(100 * time.Millisecond)
 	svc.upsertLocalEnvironmentSelectedSourceRecord(localEnvironmentSelectedSourceRecordState{
 		DependencyFamily:  localEnvironmentFamilyPythonUV,
 		DependencyID:      "uv",
@@ -185,16 +193,17 @@ func TestStartPythonPackageSetDependencyJobRequiresSelectedVenvRecord(t *testing
 	svc.SetEngineManager(&mockEngineManager{})
 
 	resp, err := svc.StartLocalEnvironmentDependencyJob(context.Background(), &runtimev1.StartLocalEnvironmentDependencyJobRequest{
-		EnvironmentKey:   "python.package-set|local-speech.package-set|host|windows/amd64|root|speech.qwen3-tts.python",
+		EnvironmentKey:   "python.package-set|local-speech-qwen3-tts.package-set|host|windows/amd64|root",
 		DependencyFamily: localEnvironmentFamilyPythonPackageSet,
-		DependencyId:     "local-speech.package-set",
+		DependencyId:     "local-speech-qwen3-tts.package-set",
 		Confirmed:        true,
 	})
 	if err != nil {
 		t.Fatalf("StartLocalEnvironmentDependencyJob: %v", err)
 	}
-	if resp.GetJob().GetState() != localEnvironmentStateFailed {
-		t.Fatalf("job state = %q, want failed without selected python.venv record", resp.GetJob().GetState())
+	job := awaitLocalEnvironmentDependencyJobTerminal(t, svc, resp.GetJob().GetJobId())
+	if job.GetState() != localEnvironmentStateFailed {
+		t.Fatalf("job state = %q, want failed without selected python.venv record", job.GetState())
 	}
 }
 
@@ -212,8 +221,8 @@ func TestStartPythonPackageSetDependencyJobPromotesVerifiedSelectedSource(t *tes
 	})
 	venvRecord := svc.upsertLocalEnvironmentSelectedSourceRecord(localEnvironmentSelectedSourceRecordState{
 		DependencyFamily:  localEnvironmentFamilyPythonVenv,
-		DependencyID:      "local-speech.venv",
-		EnvironmentKey:    "python.venv|local-speech.venv|host|windows/amd64|root|speech.qwen3-tts.python",
+		DependencyID:      "local-speech-qwen3-tts.venv",
+		EnvironmentKey:    "python.venv|local-speech-qwen3-tts.venv|host|windows/amd64|root",
 		SourceKind:        localEnvironmentSourceManaged,
 		CanonicalRoot:     `C:\nimi\engines\speech\0.1.0`,
 		Version:           "Python 3.12.11",
@@ -222,7 +231,7 @@ func TestStartPythonPackageSetDependencyJobPromotesVerifiedSelectedSource(t *tes
 	})
 	svc.SetEngineManager(&mockEngineManager{
 		pythonPackageSetStatus: &engine.PythonPackageSetDependencyStatus{
-			PackageSetID:           "speech-qwen3-python-core",
+			PackageSetID:           "speech-qwen3-tts-python-core",
 			LockHash:               "9a9307c48e6d92fb600d63a330c126e93c8625978b753534e65926353b85a58e",
 			VenvRoot:               `C:\nimi\engines\speech\0.1.0`,
 			InterpreterPath:        `C:\nimi\engines\speech\0.1.0\Scripts\python.exe`,
@@ -230,20 +239,24 @@ func TestStartPythonPackageSetDependencyJobPromotesVerifiedSelectedSource(t *tes
 			Packages:               []string{"fastapi==0.121.1", "uvicorn[standard]==0.38.0", "python-multipart==0.0.26"},
 			InstalledDistributions: []string{"fastapi==0.121.1", "python-multipart==0.0.26", "uvicorn==0.38.0"},
 			ImportProbes:           []string{"fastapi", "uvicorn", "multipart"},
-			Detail:                 "Runtime-managed Python package set verified from declared lock manifest",
+			DriverScripts:          []string{`C:\nimi\engines\speech\0.1.0\qwen3_tts_driver.py`},
+			DriverCommands: map[string]string{
+				"NIMI_RUNTIME_SPEECH_QWEN3_TTS_CMD": `'C:\nimi\engines\speech\0.1.0\Scripts\python.exe' 'C:\nimi\engines\speech\0.1.0\qwen3_tts_driver.py'`,
+			},
+			Detail: "Runtime-managed Python package set verified from declared lock manifest",
 		},
 	})
 
 	resp, err := svc.StartLocalEnvironmentDependencyJob(context.Background(), &runtimev1.StartLocalEnvironmentDependencyJobRequest{
-		EnvironmentKey:   "python.package-set|local-speech.package-set|host|windows/amd64|root|speech.qwen3-tts.python",
+		EnvironmentKey:   "python.package-set|local-speech-qwen3-tts.package-set|host|windows/amd64|root",
 		DependencyFamily: localEnvironmentFamilyPythonPackageSet,
-		DependencyId:     "local-speech.package-set",
+		DependencyId:     "local-speech-qwen3-tts.package-set",
 		Confirmed:        true,
 	})
 	if err != nil {
 		t.Fatalf("StartLocalEnvironmentDependencyJob: %v", err)
 	}
-	job := resp.GetJob()
+	job := awaitLocalEnvironmentDependencyJobTerminal(t, svc, resp.GetJob().GetJobId())
 	if job.GetState() != localEnvironmentStateReadyManaged {
 		t.Fatalf("job state = %q, want ready_managed", job.GetState())
 	}
@@ -263,13 +276,20 @@ func TestStartPythonPackageSetDependencyJobPromotesVerifiedSelectedSource(t *tes
 	if got := source.GetHashes()["selected_venv_record"]; got != venvRecord.RecordID {
 		t.Fatalf("selected venv record hash = %q, want %q", got, venvRecord.RecordID)
 	}
-	if got := source.GetSelectedConsumers(); !stringSliceContains(got, "speech.qwen3-tts.python") || !stringSliceContains(got, "speech.qwen3-asr.python") {
-		t.Fatalf("selected consumers = %v, want speech consumers", got)
+	if got := source.GetSelectedConsumers(); !stringSliceContains(got, "speech.qwen3-tts.python") || stringSliceContains(got, "speech.qwen3-asr.python") {
+		t.Fatalf("selected consumers = %v, want tts speech consumer only", got)
+	}
+	if got := source.GetActivationEnvDelta(); !stringSliceContains(got, `NIMI_RUNTIME_SPEECH_QWEN3_TTS_CMD='C:\nimi\engines\speech\0.1.0\Scripts\python.exe' 'C:\nimi\engines\speech\0.1.0\qwen3_tts_driver.py'`) {
+		t.Fatalf("activation env delta = %v, want verified tts driver command", got)
+	}
+	if got := source.GetVerifiedArtifacts(); !stringSliceContains(got, `C:\nimi\engines\speech\0.1.0\qwen3_tts_driver.py`) {
+		t.Fatalf("verified artifacts = %v, want tts driver script", got)
 	}
 }
 
 func TestStartPythonTorchWheelDependencyJobRequiresCUDARecordForCUDAConsumer(t *testing.T) {
 	svc := newTestService(t)
+	svc.SetLocalEnvironmentPrerequisiteWaitTimeout(100 * time.Millisecond)
 	svc.upsertLocalEnvironmentSelectedSourceRecord(localEnvironmentSelectedSourceRecordState{
 		DependencyFamily:  localEnvironmentFamilyPythonUV,
 		DependencyID:      "uv",
@@ -301,8 +321,9 @@ func TestStartPythonTorchWheelDependencyJobRequiresCUDARecordForCUDAConsumer(t *
 	if err != nil {
 		t.Fatalf("StartLocalEnvironmentDependencyJob: %v", err)
 	}
-	if resp.GetJob().GetState() != localEnvironmentStateFailed {
-		t.Fatalf("job state = %q, want failed without selected CUDA record", resp.GetJob().GetState())
+	job := awaitLocalEnvironmentDependencyJobTerminal(t, svc, resp.GetJob().GetJobId())
+	if job.GetState() != localEnvironmentStateFailed {
+		t.Fatalf("job state = %q, want failed without selected CUDA record", job.GetState())
 	}
 }
 
@@ -362,7 +383,7 @@ func TestStartPythonTorchWheelDependencyJobPromotesVerifiedSelectedSource(t *tes
 	if err != nil {
 		t.Fatalf("StartLocalEnvironmentDependencyJob: %v", err)
 	}
-	job := resp.GetJob()
+	job := awaitLocalEnvironmentDependencyJobTerminal(t, svc, resp.GetJob().GetJobId())
 	if job.GetState() != localEnvironmentStateReadyManaged {
 		t.Fatalf("job state = %q, want ready_managed", job.GetState())
 	}
@@ -402,8 +423,9 @@ func TestStartModelAssetDependencyJobRejectsPackPlaceholder(t *testing.T) {
 	if err != nil {
 		t.Fatalf("StartLocalEnvironmentDependencyJob: %v", err)
 	}
-	if resp.GetJob().GetState() != localEnvironmentStateRepairRequired {
-		t.Fatalf("job state = %q, want repair_required for non asset-specific dependency id", resp.GetJob().GetState())
+	job := awaitLocalEnvironmentDependencyJobTerminal(t, svc, resp.GetJob().GetJobId())
+	if job.GetState() != localEnvironmentStateRepairRequired {
+		t.Fatalf("job state = %q, want repair_required for non asset-specific dependency id", job.GetState())
 	}
 }
 
@@ -427,7 +449,7 @@ func TestStartModelAssetDependencyJobPromotesVerifiedSelectedSource(t *testing.T
 	if err != nil {
 		t.Fatalf("StartLocalEnvironmentDependencyJob: %v", err)
 	}
-	job := resp.GetJob()
+	job := awaitLocalEnvironmentDependencyJobTerminal(t, svc, resp.GetJob().GetJobId())
 	if job.GetState() != localEnvironmentStateReadyManaged {
 		t.Fatalf("job state = %q, want ready_managed", job.GetState())
 	}
@@ -451,6 +473,7 @@ func TestStartModelAssetDependencyJobPromotesVerifiedSelectedSource(t *testing.T
 
 func TestStartModelCompanionDependencyJobRequiresParentModelAssetRecord(t *testing.T) {
 	svc := newTestService(t)
+	svc.SetLocalEnvironmentPrerequisiteWaitTimeout(100 * time.Millisecond)
 	companion := mustInstallSupervisedLocalModel(t, svc, installLocalAssetParams{
 		assetID:      "image/test-companion",
 		capabilities: []string{"image"},
@@ -468,8 +491,9 @@ func TestStartModelCompanionDependencyJobRequiresParentModelAssetRecord(t *testi
 	if err != nil {
 		t.Fatalf("StartLocalEnvironmentDependencyJob: %v", err)
 	}
-	if resp.GetJob().GetState() != localEnvironmentStateFailed {
-		t.Fatalf("job state = %q, want failed without parent model.asset selected source", resp.GetJob().GetState())
+	job := awaitLocalEnvironmentDependencyJobTerminal(t, svc, resp.GetJob().GetJobId())
+	if job.GetState() != localEnvironmentStateFailed {
+		t.Fatalf("job state = %q, want failed without parent model.asset selected source", job.GetState())
 	}
 }
 
@@ -508,7 +532,7 @@ func TestStartModelCompanionDependencyJobPromotesVerifiedSelectedSource(t *testi
 	if err != nil {
 		t.Fatalf("StartLocalEnvironmentDependencyJob: %v", err)
 	}
-	job := resp.GetJob()
+	job := awaitLocalEnvironmentDependencyJobTerminal(t, svc, resp.GetJob().GetJobId())
 	if job.GetState() != localEnvironmentStateReadyManaged {
 		t.Fatalf("job state = %q, want ready_managed", job.GetState())
 	}
@@ -524,6 +548,65 @@ func TestStartModelCompanionDependencyJobPromotesVerifiedSelectedSource(t *testi
 	}
 	if got := source.GetHashes()["companion_local_asset_id"]; got != companion.GetLocalAssetId() {
 		t.Fatalf("companion asset hash = %q, want %q", got, companion.GetLocalAssetId())
+	}
+}
+
+// TestPythonPrerequisiteOrderingConvergesUnderConcurrentUnorderedStart asserts
+// the wave-4 runtime-side ordering guarantee: the desktop fires the python
+// family chain as concurrent unordered Start calls, and a dependent
+// python.runtime job started before its uv prerequisite still converges to
+// ready_managed because the dependent executor waits (bounded, on the job ctx)
+// for uv's selected-source record rather than failing closed.
+func TestPythonPrerequisiteOrderingConvergesUnderConcurrentUnorderedStart(t *testing.T) {
+	svc := newTestService(t)
+	svc.SetEngineManager(&mockEngineManager{
+		uvToolDependencyStatus: &engine.UVToolDependencyStatus{
+			Version:          "0.11.8",
+			ExecutablePath:   `C:\nimi\engines\uv\uv.exe`,
+			SourceRoot:       `C:\nimi\engines\uv`,
+			ArchiveURL:       "https://releases.astral.sh/github/uv/releases/download/0.11.8/uv-x86_64-pc-windows-msvc.zip",
+			ArchiveSHA256:    "c84629a56e0706b69a47ea35862208af827cb6fbfa1d0ca763c52c67594637e8",
+			ArchiveAssetName: "uv-x86_64-pc-windows-msvc.zip",
+			Platform:         "windows/amd64",
+			Detail:           "Runtime-managed uv tool verified from pinned official archive",
+		},
+		pythonRuntimeStatus: &engine.PythonRuntimeDependencyStatus{
+			PythonVersion:   "Python 3.12.11",
+			InterpreterPath: `C:\nimi\engines\media\0.1.0\Scripts\python.exe`,
+			RuntimeRoot:     `C:\nimi\engines\media\0.1.0`,
+			UVExecutable:    `C:\nimi\engines\uv\uv.exe`,
+			Detail:          "Runtime-managed Python runtime verified through selected uv tool",
+		},
+	})
+
+	// Start the dependent python.runtime job FIRST (before uv) — the worst-case
+	// ordering. Its executor must wait for uv's record rather than fail closed.
+	runtimeResp, err := svc.StartLocalEnvironmentDependencyJob(context.Background(), &runtimev1.StartLocalEnvironmentDependencyJobRequest{
+		EnvironmentKey:   "python.runtime|python.runtime|host|windows/amd64|root|media.diffusers.cuda",
+		DependencyFamily: localEnvironmentFamilyPythonRuntime,
+		DependencyId:     "python.runtime",
+		Confirmed:        true,
+	})
+	if err != nil {
+		t.Fatalf("StartLocalEnvironmentDependencyJob python.runtime: %v", err)
+	}
+	uvResp, err := svc.StartLocalEnvironmentDependencyJob(context.Background(), &runtimev1.StartLocalEnvironmentDependencyJobRequest{
+		EnvironmentKey:   "python.tool.uv|uv|host|windows/amd64|root|media.diffusers.cuda",
+		DependencyFamily: localEnvironmentFamilyPythonUV,
+		DependencyId:     "uv",
+		Confirmed:        true,
+	})
+	if err != nil {
+		t.Fatalf("StartLocalEnvironmentDependencyJob uv: %v", err)
+	}
+
+	uvJob := awaitLocalEnvironmentDependencyJobTerminal(t, svc, uvResp.GetJob().GetJobId())
+	if uvJob.GetState() != localEnvironmentStateReadyManaged {
+		t.Fatalf("uv job state = %q, want ready_managed", uvJob.GetState())
+	}
+	runtimeJob := awaitLocalEnvironmentDependencyJobTerminal(t, svc, runtimeResp.GetJob().GetJobId())
+	if runtimeJob.GetState() != localEnvironmentStateReadyManaged {
+		t.Fatalf("python.runtime job state = %q, want ready_managed after waiting for uv prerequisite", runtimeJob.GetState())
 	}
 }
 
@@ -544,7 +627,8 @@ func TestStartNativeSDCPPDependencyJobRepairRequiredWithoutEvidence(t *testing.T
 	if err != nil {
 		t.Fatalf("StartLocalEnvironmentDependencyJob: %v", err)
 	}
-	if resp.GetJob().GetState() != localEnvironmentStateRepairRequired {
-		t.Fatalf("job state = %q, want repair_required", resp.GetJob().GetState())
+	job := awaitLocalEnvironmentDependencyJobTerminal(t, svc, resp.GetJob().GetJobId())
+	if job.GetState() != localEnvironmentStateRepairRequired {
+		t.Fatalf("job state = %q, want repair_required", job.GetState())
 	}
 }

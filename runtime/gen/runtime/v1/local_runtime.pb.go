@@ -2348,8 +2348,15 @@ type ResolveLocalEnvironmentPlanRequest struct {
 	LocalAssetId     string                 `protobuf:"bytes,6,opt,name=local_asset_id,json=localAssetId,proto3" json:"local_asset_id,omitempty"`
 	CompanionAssetId string                 `protobuf:"bytes,7,opt,name=companion_asset_id,json=companionAssetId,proto3" json:"companion_asset_id,omitempty"`
 	ParentAssetId    string                 `protobuf:"bytes,8,opt,name=parent_asset_id,json=parentAssetId,proto3" json:"parent_asset_id,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
+	// install_level is minimal or recommended. When set and no explicit asset_id
+	// is supplied, RuntimeLocalService runs the K-MCAT-034 deterministic resolver
+	// to fill the model.asset / model.companion-asset dependencies of the pack
+	// from the curated preset + host posture (K-RPC-025, model-catalog-contract
+	// K-MCAT-034). An empty install_level preserves the prior explicit-identity
+	// behaviour. A new optional field; non-breaking.
+	InstallLevel  string `protobuf:"bytes,9,opt,name=install_level,json=installLevel,proto3" json:"install_level,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ResolveLocalEnvironmentPlanRequest) Reset() {
@@ -2434,6 +2441,13 @@ func (x *ResolveLocalEnvironmentPlanRequest) GetCompanionAssetId() string {
 func (x *ResolveLocalEnvironmentPlanRequest) GetParentAssetId() string {
 	if x != nil {
 		return x.ParentAssetId
+	}
+	return ""
+}
+
+func (x *ResolveLocalEnvironmentPlanRequest) GetInstallLevel() string {
+	if x != nil {
+		return x.InstallLevel
 	}
 	return ""
 }
@@ -5916,7 +5930,7 @@ const file_runtime_v1_local_runtime_proto_rawDesc = "" +
 	"\x12install_session_id\x18\x01 \x01(\tR\x10installSessionId\"g\n" +
 	"\x1bCancelLocalTransferResponse\x12H\n" +
 	"\btransfer\x18\x01 \x01(\v2,.nimi.runtime.v1.LocalTransferSessionSummaryR\btransfer\"\x1c\n" +
-	"\x1aWatchLocalTransfersRequest\"\xef\x02\n" +
+	"\x1aWatchLocalTransfersRequest\"\x94\x03\n" +
 	"\"ResolveLocalEnvironmentPlanRequest\x12\x17\n" +
 	"\apack_id\x18\x01 \x01(\tR\x06packId\x12%\n" +
 	"\x0econsumer_scope\x18\x02 \x01(\tR\rconsumerScope\x12F\n" +
@@ -5925,7 +5939,8 @@ const file_runtime_v1_local_runtime_proto_rawDesc = "" +
 	"\basset_id\x18\x05 \x01(\tR\aassetId\x12$\n" +
 	"\x0elocal_asset_id\x18\x06 \x01(\tR\flocalAssetId\x12,\n" +
 	"\x12companion_asset_id\x18\a \x01(\tR\x10companionAssetId\x12&\n" +
-	"\x0fparent_asset_id\x18\b \x01(\tR\rparentAssetId\"`\n" +
+	"\x0fparent_asset_id\x18\b \x01(\tR\rparentAssetId\x12#\n" +
+	"\rinstall_level\x18\t \x01(\tR\finstallLevel\"`\n" +
 	"#ResolveLocalEnvironmentPlanResponse\x129\n" +
 	"\x04plan\x18\x01 \x01(\v2%.nimi.runtime.v1.LocalEnvironmentPlanR\x04plan\"\x80\x01\n" +
 	"*ListLocalEnvironmentSelectedSourcesRequest\x12+\n" +

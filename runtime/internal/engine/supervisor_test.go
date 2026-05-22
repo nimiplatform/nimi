@@ -35,12 +35,24 @@ func writeTestScript(t *testing.T, body string) string {
 	return path
 }
 
+// testSupervisedRoot resolves a stable per-test data-plane environments root
+// for Supervisor pid/metadata tracking. It uses the test HOME established by
+// setSupervisorTestHome so repeated calls within one test agree.
+func testSupervisedRoot() string {
+	home, err := os.UserHomeDir()
+	if err != nil || home == "" {
+		return ""
+	}
+	return filepath.Join(home, ".nimi", "data", "environments")
+}
+
 func testSupervisorCfg(scriptPath string) EngineConfig {
 	return EngineConfig{
 		Kind:             EngineMedia,
 		BinaryPath:       scriptPath,
 		Port:             mustAllocateTestPort(),
 		Version:          "test",
+		SupervisedRoot:   testSupervisedRoot(),
 		HealthPath:       "/readyz",
 		StartupTimeout:   500 * time.Millisecond,
 		HealthInterval:   100 * time.Millisecond,
@@ -559,9 +571,10 @@ func TestCleanStalePIDKillsOnlyMatchingProcessIdentity(t *testing.T) {
 		t.Fatalf("os.Executable: %v", err)
 	}
 	sup := NewSupervisor(EngineConfig{
-		Kind:       EngineLlama,
-		BinaryPath: executablePath,
-		Port:       mustAllocateTestPort(),
+		Kind:           EngineLlama,
+		BinaryPath:     executablePath,
+		Port:           mustAllocateTestPort(),
+		SupervisedRoot: testSupervisedRoot(),
 	}, testLogger(), nil)
 
 	pidPath := sup.pidFilePath()
@@ -618,9 +631,10 @@ func TestCleanStalePIDSkipsMismatchedProcessIdentity(t *testing.T) {
 		t.Fatalf("os.Executable: %v", err)
 	}
 	sup := NewSupervisor(EngineConfig{
-		Kind:       EngineLlama,
-		BinaryPath: executablePath,
-		Port:       mustAllocateTestPort(),
+		Kind:           EngineLlama,
+		BinaryPath:     executablePath,
+		Port:           mustAllocateTestPort(),
+		SupervisedRoot: testSupervisedRoot(),
 	}, testLogger(), nil)
 
 	pidPath := sup.pidFilePath()
@@ -668,9 +682,10 @@ func TestCleanStalePIDSkipsKillWithoutMetadata(t *testing.T) {
 		t.Fatalf("os.Executable: %v", err)
 	}
 	sup := NewSupervisor(EngineConfig{
-		Kind:       EngineLlama,
-		BinaryPath: executablePath,
-		Port:       mustAllocateTestPort(),
+		Kind:           EngineLlama,
+		BinaryPath:     executablePath,
+		Port:           mustAllocateTestPort(),
+		SupervisedRoot: testSupervisedRoot(),
 	}, testLogger(), nil)
 
 	pidPath := sup.pidFilePath()
@@ -738,4 +753,132 @@ func TestCleanStalePIDKillsWrappedExecProcess(t *testing.T) {
 	}) {
 		t.Fatalf("expected wrapped exec process %d to exit during stale cleanup", pid)
 	}
+}
+
+// TestSupervisorStartupHealthWaitFailsFastOnProcessExit is the regression guard
+// for bug A: a supervised process that exits immediately (e.g. speech failing
+// to bind its port) must fail the startup health wait within a couple of
+// seconds — not block the full StartupTimeout on a dead process. The script
+// exits non-zero right away while StartupTimeout is a deliberately long 60s.
+func TestSupervisorStartupHealthWaitFailsFastOnProcessExit(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("supervisor process tests require unix signals")
+	}
+	setSupervisorTestHome(t)
+
+	script := writeTestScript(t, "echo bind failure 1>&2\nexit 1")
+	cfg := testSupervisorCfg(script)
+	// A long startup timeout: the test proves the health wait does NOT block on
+	// it once the process exits.
+	cfg.StartupTimeout = 60 * time.Second
+	cfg.HealthInterval = 50 * time.Millisecond
+	cfg.MaxRestarts = 1
+	cfg.RestartBaseDelay = 10 * time.Millisecond
+
+	sup := NewSupervisor(cfg, testLogger(), nil)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	start := time.Now()
+	if err := sup.Start(ctx); err != nil {
+		t.Fatalf("Start: %v", err)
+	}
+	defer func() { _ = sup.Stop() }()
+
+	// The supervisor must observe the immediate process exit and transition out
+	// of Starting well within a few seconds, not after the 60s StartupTimeout.
+	if !waitForCondition(8*time.Second, func() bool {
+		status := sup.Status()
+		return status == StatusUnhealthy || status == StatusStopped
+	}) {
+		t.Fatalf("expected fast startup failure, status=%s after %s", sup.Status(), time.Since(start))
+	}
+	if elapsed := time.Since(start); elapsed > 20*time.Second {
+		t.Fatalf("startup health wait did not fail fast on process exit: took %s", elapsed)
+	}
+}
+
+// TestSupervisorStartReclaimsStalePortFromPriorInstance is the regression guard
+// for bug B (port reclaim): a stale supervised process from a prior runtime
+// instance — recorded in the pid file — that still holds the configured port
+// must be killed and the port reclaimed before the new supervisor spawns.
+func TestSupervisorStartReclaimsStalePortFromPriorInstance(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("supervisor process tests require unix signals")
+	}
+	setSupervisorTestHome(t)
+
+	port := mustAllocateTestPort()
+
+	// A "prior runtime instance" supervisor binds the port and stays alive.
+	priorScript := writeTestScript(t, "exec "+pythonOrNetcatPortHolder(t, port))
+	priorCfg := testSupervisorCfg(priorScript)
+	priorCfg.Port = port
+	priorCfg.StartupTimeout = 200 * time.Millisecond
+	priorCfg.MaxRestarts = 1
+
+	prior := NewSupervisor(priorCfg, testLogger(), nil)
+	if err := prior.Start(context.Background()); err != nil {
+		t.Fatalf("prior Start: %v", err)
+	}
+	priorPID := prior.Info().PID
+	t.Cleanup(func() {
+		if testProcessAlive(priorPID) {
+			_ = signalSupervisorProcessDirect(priorPID, syscall.SIGKILL)
+		}
+	})
+
+	// The prior instance leaks its pid file (a hard runtime kill never ran
+	// removePIDFile). Wait until the pid + metadata are durably written.
+	if !waitForCondition(2*time.Second, func() bool {
+		metadata, err := readSupervisorPIDMetadata(prior.pidMetadataPath())
+		return err == nil && metadata.PID == priorPID
+	}) {
+		t.Fatalf("prior instance never persisted pid metadata")
+	}
+	// Wait until the port-holder process has actually bound the port.
+	if !waitForCondition(5*time.Second, func() bool {
+		return !portAvailable(port)
+	}) {
+		t.Skip("port holder process never bound the port on this host")
+	}
+
+	// A new runtime instance: same SupervisedRoot, same configured port. Start
+	// must reclaim the stale process + port instead of crash-looping on bind.
+	nextScript := writeTestScript(t, "sleep 60")
+	nextCfg := testSupervisorCfg(nextScript)
+	nextCfg.Port = port
+	nextCfg.StartupTimeout = 500 * time.Millisecond
+	nextCfg.MaxRestarts = 1
+
+	next := NewSupervisor(nextCfg, testLogger(), nil)
+	if err := next.Start(context.Background()); err != nil {
+		t.Fatalf("next Start failed; stale port was not reclaimed: %v", err)
+	}
+	defer func() { _ = next.Stop() }()
+
+	if !waitForCondition(3*time.Second, func() bool {
+		return !testProcessAlive(priorPID)
+	}) {
+		t.Fatalf("expected stale prior process %d to be killed during port reclaim", priorPID)
+	}
+	if nextPID := next.Info().PID; nextPID <= 0 || nextPID == priorPID {
+		t.Fatalf("expected new process spawned after port reclaim, got pid %d", nextPID)
+	}
+}
+
+// pythonOrNetcatPortHolder returns a shell command that binds the given TCP
+// port on 127.0.0.1 and holds it open, used to simulate a stale engine process
+// occupying a supervised-engine port.
+func pythonOrNetcatPortHolder(t *testing.T, port int) string {
+	t.Helper()
+	for _, name := range []string{"python3", "python"} {
+		if path, err := exec.LookPath(name); err == nil {
+			return path + " -c \"import socket,time;s=socket.socket();s.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,0);s.bind(('127.0.0.1'," +
+				strconv.Itoa(port) + "));s.listen(1);time.sleep(60)\""
+		}
+	}
+	t.Skip("no python interpreter available to simulate a stale port holder")
+	return ""
 }

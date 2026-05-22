@@ -6449,6 +6449,26 @@ pub struct LocalEnvironmentDependencyJob {
     pub created_at: ::prost::alloc::string::String,
     #[prost(string, tag = "12")]
     pub updated_at: ::prost::alloc::string::String,
+    /// K-RPC-025 dependency-job download-progress projection. The fields are a
+    /// bounded diagnostic projection of the byte progress Runtime already tracks
+    /// for the job's artifact transfer; they are meaningful only while the job is
+    /// actively materializing (downloading / verifying) and project zero/absent
+    /// for every other state. They never promote, select, or substitute for
+    /// verification evidence. speed_bytes_per_sec / eta_seconds are projected only
+    /// when a rate can actually be computed and are 0 (absent) otherwise — never a
+    /// fabricated value.
+    #[prost(int64, tag = "13")]
+    pub bytes_received: i64,
+    #[prost(int64, tag = "14")]
+    pub bytes_total: i64,
+    /// percent is an integer 0..100 projected only when bytes_total > 0; 0 means
+    /// the total is not yet known and the consumer renders an indeterminate state.
+    #[prost(int32, tag = "15")]
+    pub percent: i32,
+    #[prost(int64, tag = "16")]
+    pub speed_bytes_per_sec: i64,
+    #[prost(int64, tag = "17")]
+    pub eta_seconds: i64,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct LocalEnvironmentActivationGate {
@@ -7884,6 +7904,14 @@ pub struct ResolveLocalEnvironmentPlanRequest {
     pub companion_asset_id: ::prost::alloc::string::String,
     #[prost(string, tag = "8")]
     pub parent_asset_id: ::prost::alloc::string::String,
+    /// install_level is minimal or recommended. When set and no explicit asset_id
+    /// is supplied, RuntimeLocalService runs the K-MCAT-034 deterministic resolver
+    /// to fill the model.asset / model.companion-asset dependencies of the pack
+    /// from the curated preset + host posture (K-RPC-025, model-catalog-contract
+    /// K-MCAT-034). An empty install_level preserves the prior explicit-identity
+    /// behaviour. A new optional field; non-breaking.
+    #[prost(string, tag = "9")]
+    pub install_level: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ResolveLocalEnvironmentPlanResponse {

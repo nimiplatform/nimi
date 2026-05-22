@@ -24,6 +24,26 @@ type localEnvironmentDependencyJobState struct {
 	Retryable              bool   `json:"retryable,omitempty"`
 	CreatedAt              string `json:"createdAt"`
 	UpdatedAt              string `json:"updatedAt"`
+	// K-RPC-025 download-progress projection. Meaningful only while the job is
+	// actively materializing (downloading / verifying); zeroed for every other
+	// state. SpeedBytesPerSec / EtaSeconds are 0 (absent) unless a rate can be
+	// computed — never fabricated.
+	BytesReceived    int64 `json:"bytesReceived,omitempty"`
+	BytesTotal       int64 `json:"bytesTotal,omitempty"`
+	Percent          int32 `json:"percent,omitempty"`
+	SpeedBytesPerSec int64 `json:"speedBytesPerSec,omitempty"`
+	EtaSeconds       int64 `json:"etaSeconds,omitempty"`
+}
+
+// localEnvironmentDependencyJobProgress is the bounded per-job download-progress
+// snapshot an executor publishes onto its job projection while it streams
+// artifact bytes. SpeedBytesPerSec / EtaSeconds are absent (0) unless a rate
+// could actually be computed; they are never fabricated.
+type localEnvironmentDependencyJobProgress struct {
+	BytesReceived    int64
+	BytesTotal       int64
+	SpeedBytesPerSec int64
+	EtaSeconds       int64
 }
 
 type localEnvironmentDependencyJobRequest struct {
@@ -48,9 +68,34 @@ type localEnvironmentDependencyJobResult struct {
 	AuditReasonCode         string
 }
 
-type localEnvironmentDependencyJobExecutor func(context.Context, localEnvironmentDependencyJobState) (localEnvironmentDependencyJobResult, error)
+// localEnvironmentDependencyJobProgressReporter lets an executor publish a
+// truthful coarse in-progress state (`downloading`, `verifying`, `installing`)
+// onto the job projection while the background goroutine drives it, plus — for
+// a job that streams artifact bytes — a bounded download-progress snapshot
+// (K-RPC-025 progress projection). Both are no-ops once the job has reached a
+// terminal state.
+//
+// State is the coarse-state sink: it publishes `downloading` / `verifying` /
+// `installing` onto the job. Progress is the optional byte-progress sink: an
+// executor that downloads artifacts publishes a localEnvironmentDependencyJobProgress
+// snapshot here so a Desktop consumer can render a concrete %/rate/ETA. An
+// executor that does not stream bytes simply never calls Progress and the
+// projection stays zeroed.
+type localEnvironmentDependencyJobProgressReporter struct {
+	State    func(state string)
+	Progress func(localEnvironmentDependencyJobProgress)
+}
 
-func (s *Service) startLocalEnvironmentDependencyJob(ctx context.Context, req localEnvironmentDependencyJobRequest, executor localEnvironmentDependencyJobExecutor) (localEnvironmentDependencyJobState, error) {
+type localEnvironmentDependencyJobExecutor func(context.Context, localEnvironmentDependencyJobState, localEnvironmentDependencyJobProgressReporter) (localEnvironmentDependencyJobResult, error)
+
+// startLocalEnvironmentDependencyJob creates (or dedups onto) a dependency job,
+// persists it at `queued`, and — when an executor is supplied — drives it on a
+// background goroutine detached from the caller RPC context. The non-terminal
+// job is returned to the caller immediately; the desktop observes terminal
+// transition by polling ListLocalEnvironmentDependencyJobs. The RPC handler
+// `ctx` is intentionally unused for execution: it is cancelled the moment Start
+// returns, which would abort multi-GB downloads.
+func (s *Service) startLocalEnvironmentDependencyJob(_ context.Context, req localEnvironmentDependencyJobRequest, executor localEnvironmentDependencyJobExecutor) (localEnvironmentDependencyJobState, error) {
 	normalized := normalizeLocalEnvironmentDependencyJobRequest(req)
 	if normalized.EnvironmentKey == "" || normalized.DependencyFamily == "" || normalized.DependencyID == "" {
 		return localEnvironmentDependencyJobState{}, errors.New("local environment dependency job requires environment key, family, and dependency id")
@@ -60,6 +105,9 @@ func (s *Service) startLocalEnvironmentDependencyJob(ctx context.Context, req lo
 	s.mu.Lock()
 	if s.localEnvironmentDependencyJobs == nil {
 		s.localEnvironmentDependencyJobs = make(map[string]localEnvironmentDependencyJobState)
+	}
+	if s.localEnvironmentJobCancels == nil {
+		s.localEnvironmentJobCancels = make(map[string]context.CancelFunc)
 	}
 	for _, job := range s.localEnvironmentDependencyJobs {
 		if job.EnvironmentKey == normalized.EnvironmentKey && !localEnvironmentDependencyJobTerminal(job.State) {
@@ -80,12 +128,42 @@ func (s *Service) startLocalEnvironmentDependencyJob(ctx context.Context, req lo
 	}
 	s.localEnvironmentDependencyJobs[job.JobID] = job
 	s.persistStateLocked()
-	s.mu.Unlock()
 
 	if executor == nil {
+		s.mu.Unlock()
 		return job, nil
 	}
-	return s.runLocalEnvironmentDependencyJob(ctx, job.JobID, executor)
+
+	// Detach execution from the RPC context. Use the service-lifetime context
+	// as the parent so a daemon shutdown still aborts in-flight jobs, and
+	// register a per-job cancel func so CancelLocalEnvironmentDependencyJob can
+	// abort a running job.
+	parent := s.jobLifetimeCtx
+	if parent == nil {
+		parent = context.Background()
+	}
+	jobCtx, jobCancel := context.WithCancel(parent)
+	s.localEnvironmentJobCancels[job.JobID] = jobCancel
+	s.localEnvironmentJobWG.Add(1)
+	s.mu.Unlock()
+
+	go func() {
+		defer s.localEnvironmentJobWG.Done()
+		defer func() {
+			s.mu.Lock()
+			delete(s.localEnvironmentJobCancels, job.JobID)
+			s.mu.Unlock()
+			jobCancel()
+		}()
+		if _, err := s.runLocalEnvironmentDependencyJob(jobCtx, job.JobID, executor); err != nil {
+			s.logger.Debug("local environment dependency job ended with error",
+				"job_id", job.JobID,
+				"dependency_family", job.DependencyFamily,
+				"error", err)
+		}
+	}()
+
+	return job, nil
 }
 
 func (s *Service) runLocalEnvironmentDependencyJob(ctx context.Context, jobID string, executor localEnvironmentDependencyJobExecutor) (localEnvironmentDependencyJobState, error) {
@@ -97,7 +175,20 @@ func (s *Service) runLocalEnvironmentDependencyJob(ctx context.Context, jobID st
 		return job, nil
 	}
 
-	result, err := executor(ctx, job)
+	reporter := localEnvironmentDependencyJobProgressReporter{
+		State: func(state string) {
+			coarse := strings.TrimSpace(state)
+			switch coarse {
+			case localEnvironmentStateDownloading, localEnvironmentStateVerifying, localEnvironmentStateInstalling:
+				s.transitionLocalEnvironmentDependencyJob(jobID, coarse, "", true)
+			}
+		},
+		Progress: func(progress localEnvironmentDependencyJobProgress) {
+			s.updateLocalEnvironmentDependencyJobProgress(jobID, progress)
+		},
+	}
+
+	result, err := executor(ctx, job, reporter)
 	if err != nil {
 		if errors.Is(err, errLocalEnvironmentJobCancelled) || errors.Is(err, context.Canceled) {
 			cancelled, _ := s.transitionLocalEnvironmentDependencyJob(jobID, localEnvironmentStateCancelled, err.Error(), true)
@@ -148,7 +239,18 @@ func (s *Service) runLocalEnvironmentDependencyJob(ctx context.Context, jobID st
 		failed, _ := s.transitionLocalEnvironmentDependencyJob(jobID, localEnvironmentStateFailed, err.Error(), true)
 		return failed, nil
 	}
-	record := s.upsertLocalEnvironmentSelectedSourceRecord(localEnvironmentSelectedSourceRecordState{
+	// Promote the job to its terminal ready state, write the selected-source
+	// record, and write the job's selected-source promotion fields in a single
+	// locked critical section. With async execution a desktop poller observes
+	// the job concurrently and a concurrent Cancel can land at any instant:
+	// performing the record upsert in its own lock then the promotion in a
+	// separate lock leaves a window where a Cancel between the two persists a
+	// live selected-source record alongside a cancelled job — a fail-close
+	// violation, because plan resolution would still read that record as a
+	// satisfied prerequisite. Folding both into one section behind the
+	// non-terminal guard keeps them atomic with respect to cancellation: when
+	// the job is already terminal the record is never written.
+	pendingRecord := localEnvironmentSelectedSourceRecordState{
 		DependencyFamily:        job.DependencyFamily,
 		DependencyID:            job.DependencyID,
 		EnvironmentKey:          job.EnvironmentKey,
@@ -163,19 +265,54 @@ func (s *Service) runLocalEnvironmentDependencyJob(ctx context.Context, jobID st
 		VerificationEvidenceRef: strings.TrimSpace(result.VerificationEvidenceRef),
 		ActivationEnvDelta:      normalizeStringSlice(result.ActivationEnvDelta),
 		AuditReasonCode:         strings.TrimSpace(result.AuditReasonCode),
-	})
-
-	readyState := resultState
-	promoted, _ := s.transitionLocalEnvironmentDependencyJob(jobID, readyState, "", false)
-	promoted.SelectedSourceRecordID = record.RecordID
-	promoted.SourceKind = sourceKind
-	promoted.CanonicalRoot = strings.TrimSpace(result.CanonicalRoot)
-
-	s.mu.Lock()
-	s.localEnvironmentDependencyJobs[promoted.JobID] = promoted
-	s.persistStateLocked()
-	s.mu.Unlock()
+	}
+	promoted, ok := s.promoteLocalEnvironmentDependencyJobReady(jobID, resultState, sourceKind, strings.TrimSpace(result.CanonicalRoot), pendingRecord)
+	if !ok {
+		return localEnvironmentDependencyJobState{}, errors.New("local environment dependency job not found")
+	}
 	return promoted, nil
+}
+
+// promoteLocalEnvironmentDependencyJobReady atomically writes the
+// selected-source record and transitions a job to its terminal ready state
+// together with its selected-source promotion fields, all under one s.mu
+// section. A concurrent poller therefore never observes a ready job with an
+// incomplete projection, and — critically — a Cancel that lands before this
+// section acquires the lock leaves the job already terminal so the record is
+// never written: a cancelled job can never coexist with a live selected-source
+// record. A job already at a terminal state (e.g. cancelled mid-flight) is left
+// untouched and pendingRecord is discarded.
+func (s *Service) promoteLocalEnvironmentDependencyJobReady(jobID string, readyState string, sourceKind string, canonicalRoot string, pendingRecord localEnvironmentSelectedSourceRecordState) (localEnvironmentDependencyJobState, bool) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	job, ok := s.localEnvironmentDependencyJobs[strings.TrimSpace(jobID)]
+	if !ok {
+		return localEnvironmentDependencyJobState{}, false
+	}
+	if localEnvironmentDependencyJobTerminal(job.State) {
+		// Job was cancelled/failed between executor success and this section.
+		// Skip the record upsert entirely so no satisfied prerequisite is left
+		// behind for a terminal job.
+		return job, true
+	}
+	record := s.upsertLocalEnvironmentSelectedSourceRecordLocked(pendingRecord)
+	job.State = strings.TrimSpace(readyState)
+	job.FailureDetail = ""
+	job.Retryable = false
+	job.SelectedSourceRecordID = strings.TrimSpace(record.RecordID)
+	job.SourceKind = strings.TrimSpace(sourceKind)
+	job.CanonicalRoot = strings.TrimSpace(canonicalRoot)
+	// The ready terminal state is not transferring — clear any byte-progress
+	// the verifying phase left so a ready job never carries a stale %/rate/ETA.
+	job.BytesReceived = 0
+	job.BytesTotal = 0
+	job.Percent = 0
+	job.SpeedBytesPerSec = 0
+	job.EtaSeconds = 0
+	job.UpdatedAt = nowISO()
+	s.localEnvironmentDependencyJobs[job.JobID] = job
+	s.persistStateLocked()
+	return job, true
 }
 
 func validateLocalEnvironmentDependencyJobReadyEvidence(job localEnvironmentDependencyJobState, result localEnvironmentDependencyJobResult) error {
@@ -334,6 +471,16 @@ func localEnvironmentVerificationEvidenceFamilyRef(family string) string {
 }
 
 func (s *Service) cancelLocalEnvironmentDependencyJob(jobID string) (localEnvironmentDependencyJobState, bool) {
+	// Abort the background executor goroutine first so its in-flight download /
+	// verification ctx is cancelled, then mark the job cancelled. The goroutine
+	// observes the terminal state via transitionLocalEnvironmentDependencyJob's
+	// terminal short-circuit and does not overwrite it.
+	s.mu.Lock()
+	cancel := s.localEnvironmentJobCancels[strings.TrimSpace(jobID)]
+	s.mu.Unlock()
+	if cancel != nil {
+		cancel()
+	}
 	return s.transitionLocalEnvironmentDependencyJob(jobID, localEnvironmentStateCancelled, "", true)
 }
 
@@ -362,13 +509,250 @@ func (s *Service) transitionLocalEnvironmentDependencyJob(jobID string, state st
 	if localEnvironmentDependencyJobTerminal(job.State) {
 		return job, true
 	}
-	job.State = strings.TrimSpace(state)
+	next := strings.TrimSpace(state)
+	job.State = next
 	job.FailureDetail = strings.TrimSpace(detail)
 	job.Retryable = retryable
+	// The K-RPC-025 download-progress projection is meaningful only while the
+	// job is actively transferring bytes. Any transition out of a transferring
+	// state (to installing, a terminal state, or repair_required) clears the
+	// progress fields so a stale %/rate/ETA is never carried onto a state that
+	// is not downloading — fail-closed, not back-filled.
+	if !localEnvironmentDependencyJobTransferring(next) {
+		job.BytesReceived = 0
+		job.BytesTotal = 0
+		job.Percent = 0
+		job.SpeedBytesPerSec = 0
+		job.EtaSeconds = 0
+	}
 	job.UpdatedAt = nowISO()
 	s.localEnvironmentDependencyJobs[job.JobID] = job
 	s.persistStateLocked()
 	return job, true
+}
+
+// localEnvironmentDependencyJobTransferring reports whether a job state is one
+// where the K-RPC-025 download-progress projection is meaningful — the job is
+// actively streaming artifact bytes. Only `downloading` and `verifying` qualify
+// (verifying can still re-read streamed artifacts); `queued` / `installing` and
+// every terminal state carry no live byte progress.
+func localEnvironmentDependencyJobTransferring(state string) bool {
+	switch strings.TrimSpace(state) {
+	case localEnvironmentStateDownloading, localEnvironmentStateVerifying:
+		return true
+	default:
+		return false
+	}
+}
+
+// updateLocalEnvironmentDependencyJobProgress publishes a bounded
+// download-progress snapshot onto a job. It is a no-op once the job is terminal
+// or is no longer in a transferring state, so a late progress callback from an
+// aborted download can never resurrect a stale percentage. `percent` is derived
+// only when `bytesTotal > 0`; speed/eta are persisted verbatim from the snapshot
+// (the caller already projects them absent when a rate cannot be computed).
+func (s *Service) updateLocalEnvironmentDependencyJobProgress(jobID string, progress localEnvironmentDependencyJobProgress) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	job, ok := s.localEnvironmentDependencyJobs[strings.TrimSpace(jobID)]
+	if !ok {
+		return
+	}
+	if localEnvironmentDependencyJobTerminal(job.State) || !localEnvironmentDependencyJobTransferring(job.State) {
+		return
+	}
+	bytesReceived := progress.BytesReceived
+	if bytesReceived < 0 {
+		bytesReceived = 0
+	}
+	bytesTotal := progress.BytesTotal
+	if bytesTotal < 0 {
+		bytesTotal = 0
+	}
+	job.BytesReceived = bytesReceived
+	job.BytesTotal = bytesTotal
+	job.Percent = localEnvironmentDependencyJobPercent(bytesReceived, bytesTotal)
+	speed := progress.SpeedBytesPerSec
+	if speed < 0 {
+		speed = 0
+	}
+	job.SpeedBytesPerSec = speed
+	eta := progress.EtaSeconds
+	if eta < 0 {
+		eta = 0
+	}
+	job.EtaSeconds = eta
+	job.UpdatedAt = nowISO()
+	s.localEnvironmentDependencyJobs[job.JobID] = job
+	// Progress ticks are high-frequency; they are not persisted to the state
+	// store on every tick (a terminal transition persists). Holding the live
+	// projection in memory keeps the ListLocalEnvironmentDependencyJobs poll
+	// truthful without a write amplification on every 128 KiB chunk.
+}
+
+// localEnvironmentDependencyJobPercent projects an integer 0..100 completion
+// only when the total is known; an unknown total projects 0 so the consumer
+// renders an indeterminate state rather than a fabricated percentage.
+func localEnvironmentDependencyJobPercent(bytesReceived int64, bytesTotal int64) int32 {
+	if bytesTotal <= 0 || bytesReceived <= 0 {
+		return 0
+	}
+	if bytesReceived >= bytesTotal {
+		return 100
+	}
+	return int32((bytesReceived * 100) / bytesTotal)
+}
+
+// defaultLocalEnvironmentPrerequisiteWaitTimeout bounds how long a dependent
+// python / companion executor waits for an upstream family's selected-source
+// record to appear before it fails closed. The desktop fires the python family
+// chain (uv -> python.runtime -> python.venv -> python.package-set) as
+// concurrent unordered Start calls; ordering is runtime authority, so a
+// dependent job that races ahead of its prerequisite waits rather than failing
+// with a hard PREREQUISITE_MISSING. Each prerequisite job is itself bounded by
+// its own download/verify timeout. Tests override the per-service value via
+// SetLocalEnvironmentPrerequisiteWaitTimeout.
+const defaultLocalEnvironmentPrerequisiteWaitTimeout = 45 * time.Minute
+
+const localEnvironmentPrerequisiteWaitPoll = 25 * time.Millisecond
+
+// SetLocalEnvironmentPrerequisiteWaitTimeout overrides the bounded prerequisite
+// wait. It exists so tests can assert the wait-then-fail-closed behaviour for a
+// genuinely absent prerequisite without a multi-minute pause.
+func (s *Service) SetLocalEnvironmentPrerequisiteWaitTimeout(d time.Duration) {
+	if s == nil || d <= 0 {
+		return
+	}
+	s.mu.Lock()
+	s.localEnvironmentPrerequisiteWaitTimeout = d
+	s.mu.Unlock()
+}
+
+func (s *Service) prerequisiteWaitTimeout() time.Duration {
+	s.mu.RLock()
+	d := s.localEnvironmentPrerequisiteWaitTimeout
+	s.mu.RUnlock()
+	if d <= 0 {
+		return defaultLocalEnvironmentPrerequisiteWaitTimeout
+	}
+	return d
+}
+
+// waitForSelectedSourceForFamilyAndConsumer blocks until the prerequisite
+// family's selected-source record exists for the consumer (i.e. its upstream
+// dependency job has reached ready_managed and promoted a record), the job ctx
+// is cancelled, or the bounded wait elapses. It returns the resolved record on
+// success. A concurrent unordered Start from the desktop therefore converges
+// correctly: the dependent executor parks here while the prerequisite job's own
+// background goroutine drives it to ready_managed.
+func (s *Service) waitForSelectedSourceForFamilyAndConsumer(ctx context.Context, family string, consumer string) (localEnvironmentSelectedSourceRecordState, bool) {
+	if record, ok := s.selectedSourceForFamilyAndConsumer(family, consumer); ok {
+		return record, true
+	}
+	deadline := time.NewTimer(s.prerequisiteWaitTimeout())
+	defer deadline.Stop()
+	ticker := time.NewTicker(localEnvironmentPrerequisiteWaitPoll)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return localEnvironmentSelectedSourceRecordState{}, false
+		case <-deadline.C:
+			return localEnvironmentSelectedSourceRecordState{}, false
+		case <-ticker.C:
+			if record, ok := s.selectedSourceForFamilyAndConsumer(family, consumer); ok {
+				return record, true
+			}
+		}
+	}
+}
+
+// failOrphanedLocalEnvironmentDependencyJobsLocked is the crash-recovery seam.
+// On daemon restart restoreState rehydrates persisted jobs but no goroutine is
+// driving them, so any job persisted at a non-terminal state would otherwise be
+// a permanent orphan. Fail every such job closed (retryable) with an audit
+// reason so the desktop projects it as a retryable failure rather than a frozen
+// in-progress job. Caller must hold s.mu.
+func (s *Service) failOrphanedLocalEnvironmentDependencyJobsLocked() int {
+	if len(s.localEnvironmentDependencyJobs) == 0 {
+		return 0
+	}
+	now := nowISO()
+	healed := 0
+	for jobID, job := range s.localEnvironmentDependencyJobs {
+		if localEnvironmentDependencyJobTerminal(job.State) {
+			continue
+		}
+		job.State = localEnvironmentStateFailed
+		job.FailureDetail = "LOCAL_ENVIRONMENT_DEPENDENCY_JOB_INTERRUPTED"
+		job.Retryable = true
+		// A job rehydrated mid-download carries a stale byte-progress
+		// projection; the failed terminal state is not transferring, so clear
+		// it rather than leaving a frozen %/rate/ETA on a dead job.
+		job.BytesReceived = 0
+		job.BytesTotal = 0
+		job.Percent = 0
+		job.SpeedBytesPerSec = 0
+		job.EtaSeconds = 0
+		job.UpdatedAt = now
+		s.localEnvironmentDependencyJobs[jobID] = job
+		healed++
+	}
+	return healed
+}
+
+// localEnvironmentJobDownloadProgressSink is a per-job byte-progress callback an
+// executor attaches to the job context before it enters the shared model
+// install/download path. The shared download core's progress callback resolves
+// it from the context and forwards each byte-progress snapshot, so the install
+// path (installVerifiedAssetByTemplateID → installManagedDownloadedModel →
+// downloadManagedModelFile → downloadToFileWithTransfer) needs no extra
+// signature parameter to carry per-job progress. A context with no sink leaves
+// the install path's behaviour unchanged (the InstallVerifiedAsset RPC path).
+type localEnvironmentJobDownloadProgressSink func(localEnvironmentDependencyJobProgress)
+
+type localEnvironmentJobProgressContextKey struct{}
+
+// withLocalEnvironmentJobDownloadProgressSink returns a child context carrying a
+// byte-progress sink for the running materializer job. The model.asset /
+// model.companion-asset executors attach their reporter's Progress sink so the
+// shared download core can publish onto the job projection.
+func withLocalEnvironmentJobDownloadProgressSink(ctx context.Context, sink localEnvironmentJobDownloadProgressSink) context.Context {
+	if sink == nil {
+		return ctx
+	}
+	return context.WithValue(ctx, localEnvironmentJobProgressContextKey{}, sink)
+}
+
+// localEnvironmentJobDownloadProgressSinkFromContext resolves the per-job
+// byte-progress sink, or nil when the context carries none (e.g. the
+// InstallVerifiedAsset RPC path, which has no owning materializer job).
+func localEnvironmentJobDownloadProgressSinkFromContext(ctx context.Context) localEnvironmentJobDownloadProgressSink {
+	if ctx == nil {
+		return nil
+	}
+	sink, _ := ctx.Value(localEnvironmentJobProgressContextKey{}).(localEnvironmentJobDownloadProgressSink)
+	return sink
+}
+
+// reportLocalEnvironmentJobProgress is a nil-safe shim so executors can publish
+// a coarse in-progress state without a nil-check at every call site (executor
+// unit tests pass jobs through with a zero reporter).
+func reportLocalEnvironmentJobProgress(report localEnvironmentDependencyJobProgressReporter, state string) {
+	if report.State == nil {
+		return
+	}
+	report.State(state)
+}
+
+// reportLocalEnvironmentJobDownloadProgress is the nil-safe byte-progress shim.
+// An executor that streams artifact bytes calls it with each progress snapshot;
+// a zero reporter (unit tests, or a non-downloading executor) is a no-op.
+func reportLocalEnvironmentJobDownloadProgress(report localEnvironmentDependencyJobProgressReporter, progress localEnvironmentDependencyJobProgress) {
+	if report.Progress == nil {
+		return
+	}
+	report.Progress(progress)
 }
 
 func normalizeLocalEnvironmentDependencyJobRequest(req localEnvironmentDependencyJobRequest) localEnvironmentDependencyJobRequest {

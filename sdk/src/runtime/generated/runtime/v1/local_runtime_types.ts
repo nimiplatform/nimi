@@ -991,6 +991,38 @@ export interface LocalEnvironmentDependencyJob {
      * @generated from protobuf field: string updated_at = 12
      */
     updatedAt: string;
+    /**
+     * K-RPC-025 dependency-job download-progress projection. The fields are a
+     * bounded diagnostic projection of the byte progress Runtime already tracks
+     * for the job's artifact transfer; they are meaningful only while the job is
+     * actively materializing (downloading / verifying) and project zero/absent
+     * for every other state. They never promote, select, or substitute for
+     * verification evidence. speed_bytes_per_sec / eta_seconds are projected only
+     * when a rate can actually be computed and are 0 (absent) otherwise — never a
+     * fabricated value.
+     *
+     * @generated from protobuf field: int64 bytes_received = 13
+     */
+    bytesReceived: string;
+    /**
+     * @generated from protobuf field: int64 bytes_total = 14
+     */
+    bytesTotal: string;
+    /**
+     * percent is an integer 0..100 projected only when bytes_total > 0; 0 means
+     * the total is not yet known and the consumer renders an indeterminate state.
+     *
+     * @generated from protobuf field: int32 percent = 15
+     */
+    percent: number;
+    /**
+     * @generated from protobuf field: int64 speed_bytes_per_sec = 16
+     */
+    speedBytesPerSec: string;
+    /**
+     * @generated from protobuf field: int64 eta_seconds = 17
+     */
+    etaSeconds: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.LocalEnvironmentActivationGate
@@ -4862,7 +4894,12 @@ class LocalEnvironmentDependencyJob$Type extends MessageType<LocalEnvironmentDep
             { no: 9, name: "failure_detail", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 10, name: "retryable", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
             { no: 11, name: "created_at", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 12, name: "updated_at", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 12, name: "updated_at", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 13, name: "bytes_received", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
+            { no: 14, name: "bytes_total", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
+            { no: 15, name: "percent", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
+            { no: 16, name: "speed_bytes_per_sec", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
+            { no: 17, name: "eta_seconds", kind: "scalar", T: 3 /*ScalarType.INT64*/ }
         ]);
     }
     create(value?: PartialMessage<LocalEnvironmentDependencyJob>): LocalEnvironmentDependencyJob {
@@ -4879,6 +4916,11 @@ class LocalEnvironmentDependencyJob$Type extends MessageType<LocalEnvironmentDep
         message.retryable = false;
         message.createdAt = "";
         message.updatedAt = "";
+        message.bytesReceived = "0";
+        message.bytesTotal = "0";
+        message.percent = 0;
+        message.speedBytesPerSec = "0";
+        message.etaSeconds = "0";
         if (value !== undefined)
             reflectionMergePartial<LocalEnvironmentDependencyJob>(this, message, value);
         return message;
@@ -4923,6 +4965,21 @@ class LocalEnvironmentDependencyJob$Type extends MessageType<LocalEnvironmentDep
                     break;
                 case /* string updated_at */ 12:
                     message.updatedAt = reader.string();
+                    break;
+                case /* int64 bytes_received */ 13:
+                    message.bytesReceived = reader.int64().toString();
+                    break;
+                case /* int64 bytes_total */ 14:
+                    message.bytesTotal = reader.int64().toString();
+                    break;
+                case /* int32 percent */ 15:
+                    message.percent = reader.int32();
+                    break;
+                case /* int64 speed_bytes_per_sec */ 16:
+                    message.speedBytesPerSec = reader.int64().toString();
+                    break;
+                case /* int64 eta_seconds */ 17:
+                    message.etaSeconds = reader.int64().toString();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -4972,6 +5029,21 @@ class LocalEnvironmentDependencyJob$Type extends MessageType<LocalEnvironmentDep
         /* string updated_at = 12; */
         if (message.updatedAt !== "")
             writer.tag(12, WireType.LengthDelimited).string(message.updatedAt);
+        /* int64 bytes_received = 13; */
+        if (message.bytesReceived !== "0")
+            writer.tag(13, WireType.Varint).int64(message.bytesReceived);
+        /* int64 bytes_total = 14; */
+        if (message.bytesTotal !== "0")
+            writer.tag(14, WireType.Varint).int64(message.bytesTotal);
+        /* int32 percent = 15; */
+        if (message.percent !== 0)
+            writer.tag(15, WireType.Varint).int32(message.percent);
+        /* int64 speed_bytes_per_sec = 16; */
+        if (message.speedBytesPerSec !== "0")
+            writer.tag(16, WireType.Varint).int64(message.speedBytesPerSec);
+        /* int64 eta_seconds = 17; */
+        if (message.etaSeconds !== "0")
+            writer.tag(17, WireType.Varint).int64(message.etaSeconds);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

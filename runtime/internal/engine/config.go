@@ -124,6 +124,8 @@ type PythonPackageSetDependencyStatus struct {
 	Packages               []string
 	InstalledDistributions []string
 	ImportProbes           []string
+	DriverCommands         map[string]string
+	DriverScripts          []string
 	Detail                 string
 }
 
@@ -184,6 +186,13 @@ type EngineConfig struct {
 	Port    int
 	Version string
 
+	// SupervisedRoot is the data-plane `environments` root the engine manager
+	// installs and supervises under. The Supervisor derives its pid/metadata
+	// file path from this root; it is stamped by the Manager before the
+	// Supervisor is constructed and must not be a home-directory fallback.
+	// (K-CFG-018, K-LENG-004)
+	SupervisedRoot string
+
 	// MediaMode carries the explicit media server topology mode selected by the
 	// caller. Media bootstrap must not infer this internally.
 	MediaMode MediaMode
@@ -214,6 +223,14 @@ type EngineConfig struct {
 
 	// ModelsPath is the directory for model files (llama --models-path).
 	ModelsPath string
+
+	// SpeechQwen3TTSPackageSetRoot is the Runtime-verified qwen3_tts Python
+	// package-set root used to derive the supervised speech TTS driver command.
+	SpeechQwen3TTSPackageSetRoot string
+
+	// SpeechQwen3ASRPackageSetRoot is the Runtime-verified qwen3_asr Python
+	// package-set root used to derive the supervised speech ASR driver command.
+	SpeechQwen3ASRPackageSetRoot string
 
 	// ModelsConfigPath is the managed llama router preset file passed via
 	// --models-preset when the runtime boots the shared managed llama router.

@@ -30,7 +30,7 @@ type Daemon struct {
 	aiHealth                  *providerhealth.Tracker
 	auditStore                *auditlog.Store
 	engineMgr                 *engine.Manager
-	newEngineManager          func(logger *slog.Logger, baseDir string, onState engine.StateChangeFunc) (*engine.Manager, error)
+	newEngineManager          func(logger *slog.Logger, roots engine.ManagedRoots, onState engine.StateChangeFunc) (*engine.Manager, error)
 	startEngineFn             func(ctx context.Context, kind engine.EngineKind, version string, port int, envKey string) error
 	probeAIProviderFn         func(ctx context.Context, client *http.Client, target aiProviderTarget) error
 	detectMediaHostSupportFn  func() (engine.MediaHostSupport, string)
@@ -359,9 +359,6 @@ func (d *Daemon) startSupervisedEngines(ctx context.Context) {
 		effectiveManagedLlama = true
 	}
 	managedImageAssetsPresent := svc != nil && svc.HasManagedSupervisedImageModels()
-	if !effectiveManagedLlama && !managedImageAssetsPresent && !d.cfg.EngineMediaEnabled && !d.cfg.EngineSpeechEnabled && !d.cfg.EngineSidecarEnabled {
-		return
-	}
 	onState := func(kind engine.EngineKind, status engine.EngineStatus, detail string) {
 		d.onEngineStateChange(string(kind), string(status), detail)
 	}
@@ -369,8 +366,27 @@ func (d *Daemon) startSupervisedEngines(ctx context.Context) {
 	if managerFactory == nil {
 		managerFactory = engine.NewManager
 	}
-	mgr, err := managerFactory(d.logger, "", onState)
+	// The engine manager installs native engine packages, the managed Python
+	// environment, the uv tool, and venvs strictly under the K-CFG-018
+	// data-plane roots resolved from the user-selected data root. When the
+	// config carries no resolved data root the managed install fails closed
+	// rather than falling back to a home-directory tree. (K-CFG-018, K-LENG-004)
+	engineRoots := engine.ManagedRoots{
+		Environments: strings.TrimSpace(d.cfg.ManagedRoots.Environments),
+		Dependencies: strings.TrimSpace(d.cfg.ManagedRoots.Dependencies),
+	}
+	engineWorkRequested := effectiveManagedLlama || managedImageAssetsPresent ||
+		d.cfg.EngineMediaEnabled || d.cfg.EngineSpeechEnabled || d.cfg.EngineSidecarEnabled
+	mgr, err := managerFactory(d.logger, engineRoots, onState)
 	if err != nil {
+		// Runtime core readiness is independent from local environment
+		// materializers (K-LENG-028). When no engine work is requested, a
+		// missing data root must not degrade the daemon; engine RPCs fail
+		// closed individually until product setup records a data root.
+		if !engineWorkRequested {
+			d.logger.Warn("engine manager unavailable; deferring engine setup", "error", err)
+			return
+		}
 		d.logger.Error("create engine manager failed", "error", err)
 		reason := fmt.Sprintf("engine manager init failed (%v)", err)
 		d.setDegradedStatus(reason)
@@ -380,7 +396,13 @@ func (d *Daemon) startSupervisedEngines(ctx context.Context) {
 	d.engineMgr = mgr
 	managedLlamaConfigPath := resolveManagedLlamaModelsConfigPath()
 	mgr.SetLlamaPaths(d.cfg.LocalModelsPath, managedLlamaConfigPath)
-	// Inject engine manager into local service for gRPC access.
+	if svc != nil {
+		svc.SetManagedLlamaRegistrationConfig(d.cfg.LocalModelsPath, managedLlamaConfigPath, effectiveManagedLlama)
+		svc.SetEngineManager(engine.NewServiceAdapter(mgr))
+	}
+	if !engineWorkRequested {
+		return
+	}
 	skipLlamaBootstrap := false
 	mediaHostSupport, _ := d.detectMediaHostSupport()
 	d.cacheImageMatrix()
@@ -456,6 +478,15 @@ func (d *Daemon) startSupervisedEngines(ctx context.Context) {
 	if svc != nil {
 		svc.SetManagedLlamaRegistrationConfig(d.cfg.LocalModelsPath, managedLlamaConfigPath, effectiveManagedLlama)
 		if effectiveManagedLlama {
+			if err := svc.SyncManagedLlamaAssets(ctx); err != nil {
+				d.recordManagedLlamaBootstrapFailure(fmt.Sprintf("sync managed llama assets: %v", err))
+				skipLlamaBootstrap = true
+			} else if !svc.ManagedLlamaRouterReady() {
+				d.logger.Info("managed llama bootstrap deferred; no runtime-verified llama model preset is ready")
+				skipLlamaBootstrap = true
+			}
+		}
+		if effectiveManagedLlama && !skipLlamaBootstrap {
 			svc.SetManagedLlamaEndpoint(fmt.Sprintf("http://127.0.0.1:%d/v1", d.cfg.EngineLlamaPort))
 		} else {
 			svc.SetManagedLlamaEndpoint("")
@@ -475,11 +506,6 @@ func (d *Daemon) startSupervisedEngines(ctx context.Context) {
 		} else {
 			svc.SetManagedImageBackendConfig(false, "")
 		}
-		svc.SetEngineManager(engine.NewServiceAdapter(mgr))
-		if err := svc.SyncManagedLlamaAssets(ctx); err != nil {
-			d.recordManagedLlamaBootstrapFailure(fmt.Sprintf("sync managed llama assets: %v", err))
-			skipLlamaBootstrap = true
-		}
 	}
 	var wg sync.WaitGroup
 	type bootstrapFailure struct {
@@ -490,6 +516,16 @@ func (d *Daemon) startSupervisedEngines(ctx context.Context) {
 	startEngine := d.startEngineFn
 	if startEngine == nil {
 		startEngine = d.startEngine
+	}
+	speechBootstrapReady := d.cfg.EngineSpeechEnabled
+	if speechBootstrapReady {
+		if err := d.configureSpeechActivation(ctx, svc); err != nil {
+			speechBootstrapReady = false
+			failures <- bootstrapFailure{
+				kind:   engine.EngineSpeech,
+				detail: err.Error(),
+			}
+		}
 	}
 	bootstrap := func(kind engine.EngineKind, version string, port int, envKey string) {
 		wg.Add(1)
@@ -515,7 +551,7 @@ func (d *Daemon) startSupervisedEngines(ctx context.Context) {
 		bootstrap(engine.EngineMedia, d.cfg.EngineMediaVersion, d.cfg.EngineMediaPort,
 			"NIMI_RUNTIME_LOCAL_MEDIA_BASE_URL")
 	}
-	if d.cfg.EngineSpeechEnabled {
+	if speechBootstrapReady {
 		bootstrap(engine.EngineSpeech, d.cfg.EngineSpeechVersion, d.cfg.EngineSpeechPort,
 			"NIMI_RUNTIME_LOCAL_SPEECH_BASE_URL")
 	}
@@ -556,6 +592,7 @@ func (d *Daemon) startEngine(ctx context.Context, kind engine.EngineKind, versio
 		cfg = engine.DefaultMediaConfig()
 	case engine.EngineSpeech:
 		cfg = engine.DefaultSpeechConfig()
+		cfg.ModelsPath = d.cfg.LocalModelsPath
 	case engineSidecar:
 		return fmt.Errorf("engine %s is not yet supported for supervised lifecycle", kind)
 	default:

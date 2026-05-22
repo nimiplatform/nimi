@@ -749,6 +749,17 @@ export interface ResolveLocalEnvironmentPlanRequest {
      * @generated from protobuf field: string parent_asset_id = 8
      */
     parentAssetId: string;
+    /**
+     * install_level is minimal or recommended. When set and no explicit asset_id
+     * is supplied, RuntimeLocalService runs the K-MCAT-034 deterministic resolver
+     * to fill the model.asset / model.companion-asset dependencies of the pack
+     * from the curated preset + host posture (K-RPC-025, model-catalog-contract
+     * K-MCAT-034). An empty install_level preserves the prior explicit-identity
+     * behaviour. A new optional field; non-breaking.
+     *
+     * @generated from protobuf field: string install_level = 9
+     */
+    installLevel: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.ResolveLocalEnvironmentPlanResponse
@@ -4206,7 +4217,8 @@ class ResolveLocalEnvironmentPlanRequest$Type extends MessageType<ResolveLocalEn
             { no: 5, name: "asset_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 6, name: "local_asset_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 7, name: "companion_asset_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 8, name: "parent_asset_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 8, name: "parent_asset_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 9, name: "install_level", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<ResolveLocalEnvironmentPlanRequest>): ResolveLocalEnvironmentPlanRequest {
@@ -4218,6 +4230,7 @@ class ResolveLocalEnvironmentPlanRequest$Type extends MessageType<ResolveLocalEn
         message.localAssetId = "";
         message.companionAssetId = "";
         message.parentAssetId = "";
+        message.installLevel = "";
         if (value !== undefined)
             reflectionMergePartial<ResolveLocalEnvironmentPlanRequest>(this, message, value);
         return message;
@@ -4250,6 +4263,9 @@ class ResolveLocalEnvironmentPlanRequest$Type extends MessageType<ResolveLocalEn
                     break;
                 case /* string parent_asset_id */ 8:
                     message.parentAssetId = reader.string();
+                    break;
+                case /* string install_level */ 9:
+                    message.installLevel = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -4287,6 +4303,9 @@ class ResolveLocalEnvironmentPlanRequest$Type extends MessageType<ResolveLocalEn
         /* string parent_asset_id = 8; */
         if (message.parentAssetId !== "")
             writer.tag(8, WireType.LengthDelimited).string(message.parentAssetId);
+        /* string install_level = 9; */
+        if (message.installLevel !== "")
+            writer.tag(9, WireType.LengthDelimited).string(message.installLevel);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

@@ -304,6 +304,12 @@ func (s *Service) restoreState() error {
 		}
 		s.localEnvironmentDependencyJobs[item.JobID] = item
 	}
+	// Crash recovery: a job persisted at a non-terminal state across a daemon
+	// restart has no background goroutine driving it. Fail every orphan closed
+	// (retryable) so it is never a permanently frozen in-progress job.
+	if s.failOrphanedLocalEnvironmentDependencyJobsLocked() > 0 {
+		healedSnapshot = true
+	}
 	s.runtimeBaselineReadinessRecords = make(map[string]runtimeBaselineReadinessRecord, len(snapshot.RuntimeBaselineReadinessRecords))
 	for _, item := range snapshot.RuntimeBaselineReadinessRecords {
 		if strings.TrimSpace(item.RuntimeBaselineRef) == "" {

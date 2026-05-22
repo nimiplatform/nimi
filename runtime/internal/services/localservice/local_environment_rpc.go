@@ -18,6 +18,7 @@ func (s *Service) ResolveLocalEnvironmentPlan(_ context.Context, req *runtimev1.
 		LocalAssetID:     req.GetLocalAssetId(),
 		CompanionAssetID: req.GetCompanionAssetId(),
 		ParentAssetID:    req.GetParentAssetId(),
+		InstallLevel:     req.GetInstallLevel(),
 	})
 	return &runtimev1.ResolveLocalEnvironmentPlanResponse{
 		Plan: localEnvironmentPlanToProto(plan),
@@ -371,6 +372,14 @@ func localEnvironmentDependencyJobToProto(job localEnvironmentDependencyJobState
 		Retryable:              job.Retryable,
 		CreatedAt:              job.CreatedAt,
 		UpdatedAt:              job.UpdatedAt,
+		// K-RPC-025 download-progress projection. The job state already zeroes
+		// these fields outside a transferring state, so the projection here is a
+		// faithful pass-through — never a fabricated %/rate/ETA.
+		BytesReceived:    job.BytesReceived,
+		BytesTotal:       job.BytesTotal,
+		Percent:          job.Percent,
+		SpeedBytesPerSec: job.SpeedBytesPerSec,
+		EtaSeconds:       job.EtaSeconds,
 	}
 }
 

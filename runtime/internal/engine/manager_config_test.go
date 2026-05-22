@@ -1,9 +1,12 @@
 package engine
 
 import (
+	"context"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
+	"syscall"
 	"testing"
 	"time"
 )
@@ -17,9 +20,18 @@ func TestPortAvailable(t *testing.T) {
 
 // --- Manager tests ---
 
+// testManagedRoots returns absolute K-CFG-018 data-plane roots backed by
+// distinct temp directories for engine manager construction in tests.
+func testManagedRoots(t *testing.T) ManagedRoots {
+	t.Helper()
+	return ManagedRoots{
+		Environments: t.TempDir(),
+		Dependencies: t.TempDir(),
+	}
+}
+
 func TestNewManager(t *testing.T) {
-	dir := t.TempDir()
-	mgr, err := NewManager(nil, dir, nil)
+	mgr, err := NewManager(nil, testManagedRoots(t), nil)
 	if err != nil {
 		t.Fatalf("NewManager: %v", err)
 	}
@@ -45,8 +57,7 @@ func TestNewManager(t *testing.T) {
 }
 
 func TestManagerStopAllEmpty(t *testing.T) {
-	dir := t.TempDir()
-	mgr, err := NewManager(nil, dir, nil)
+	mgr, err := NewManager(nil, testManagedRoots(t), nil)
 	if err != nil {
 		t.Fatalf("NewManager: %v", err)
 	}
@@ -56,8 +67,7 @@ func TestManagerStopAllEmpty(t *testing.T) {
 }
 
 func TestManagerBeginEngineStartGuardsConcurrentStarts(t *testing.T) {
-	dir := t.TempDir()
-	mgr, err := NewManager(nil, dir, nil)
+	mgr, err := NewManager(nil, testManagedRoots(t), nil)
 	if err != nil {
 		t.Fatalf("NewManager: %v", err)
 	}
@@ -77,8 +87,7 @@ func TestManagerBeginEngineStartGuardsConcurrentStarts(t *testing.T) {
 }
 
 func TestManagerStopAllRemovesStoppedSupervisors(t *testing.T) {
-	dir := t.TempDir()
-	mgr, err := NewManager(nil, dir, nil)
+	mgr, err := NewManager(nil, testManagedRoots(t), nil)
 	if err != nil {
 		t.Fatalf("NewManager: %v", err)
 	}
@@ -93,8 +102,7 @@ func TestManagerStopAllRemovesStoppedSupervisors(t *testing.T) {
 }
 
 func TestManagerStopEngineRemovesSupervisor(t *testing.T) {
-	dir := t.TempDir()
-	mgr, err := NewManager(nil, dir, nil)
+	mgr, err := NewManager(nil, testManagedRoots(t), nil)
 	if err != nil {
 		t.Fatalf("NewManager: %v", err)
 	}
@@ -110,8 +118,7 @@ func TestManagerStopEngineRemovesSupervisor(t *testing.T) {
 }
 
 func TestManagerStopEngineLlamaRemovesImageBackendSupervisor(t *testing.T) {
-	dir := t.TempDir()
-	mgr, err := NewManager(nil, dir, nil)
+	mgr, err := NewManager(nil, testManagedRoots(t), nil)
 	if err != nil {
 		t.Fatalf("NewManager: %v", err)
 	}
@@ -130,8 +137,7 @@ func TestManagerStopEngineLlamaRemovesImageBackendSupervisor(t *testing.T) {
 }
 
 func TestManagerEngineEndpointNotStarted(t *testing.T) {
-	dir := t.TempDir()
-	mgr, err := NewManager(nil, dir, nil)
+	mgr, err := NewManager(nil, testManagedRoots(t), nil)
 	if err != nil {
 		t.Fatalf("NewManager: %v", err)
 	}
@@ -143,8 +149,7 @@ func TestManagerEngineEndpointNotStarted(t *testing.T) {
 }
 
 func TestManagerEngineStatusNotStarted(t *testing.T) {
-	dir := t.TempDir()
-	mgr, err := NewManager(nil, dir, nil)
+	mgr, err := NewManager(nil, testManagedRoots(t), nil)
 	if err != nil {
 		t.Fatalf("NewManager: %v", err)
 	}
@@ -152,6 +157,68 @@ func TestManagerEngineStatusNotStarted(t *testing.T) {
 	_, err = mgr.EngineStatus(EngineLlama)
 	if err == nil {
 		t.Error("expected error for engine not started, got nil")
+	}
+}
+
+// TestManagerStartEngineStopsSupersededUnhealthySupervisor is the regression
+// guard for bug B (double-spawn): when StartEngine replaces a non-healthy
+// supervisor for the same engine, it must stop the old supervisor — killing its
+// process and halting its crash/restart loop — so two supervision cycles never
+// spawn the same engine concurrently and race for the same port.
+func TestManagerStartEngineStopsSupersededUnhealthySupervisor(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("supervisor process tests require unix signals")
+	}
+	setSupervisorTestHome(t)
+
+	mgr, err := NewManager(testLogger(), testManagedRoots(t), nil)
+	if err != nil {
+		t.Fatalf("NewManager: %v", err)
+	}
+
+	// Seed a non-healthy supervisor with a real, alive child process — the
+	// state the unhealthy speech supervisor sits in after a failed startup.
+	priorScript := writeTestScript(t, "sleep 60")
+	priorCfg := testSupervisorCfg(priorScript)
+	priorCfg.StartupTimeout = 200 * time.Millisecond
+	priorCfg.MaxRestarts = 1
+	prior := NewSupervisor(priorCfg, testLogger(), nil)
+	if err := prior.Start(context.Background()); err != nil {
+		t.Fatalf("prior supervisor Start: %v", err)
+	}
+	priorPID := prior.Info().PID
+	t.Cleanup(func() {
+		if testProcessAlive(priorPID) {
+			_ = signalSupervisorProcessDirect(priorPID, syscall.SIGKILL)
+		}
+	})
+	prior.SetStateForTesting(StatusUnhealthy, time.Time{})
+	mgr.SetSupervisorForTesting(EngineMedia, prior)
+
+	// StartEngine for the same engine: the superseded unhealthy supervisor must
+	// be stopped (its process killed) before the replacement spawns.
+	nextScript := writeTestScript(t, "sleep 60")
+	nextCfg := testSupervisorCfg(nextScript)
+	nextCfg.Kind = EngineMedia
+	nextCfg.StartupTimeout = 500 * time.Millisecond
+	nextCfg.MaxRestarts = 1
+	if err := mgr.StartEngine(context.Background(), nextCfg); err != nil {
+		t.Fatalf("StartEngine: %v", err)
+	}
+	t.Cleanup(func() { _ = mgr.StopEngine(EngineMedia) })
+
+	if !waitForCondition(3*time.Second, func() bool {
+		return !testProcessAlive(priorPID)
+	}) {
+		t.Fatalf("expected superseded supervisor process %d to be killed by StartEngine", priorPID)
+	}
+
+	info, err := mgr.EngineStatus(EngineMedia)
+	if err != nil {
+		t.Fatalf("EngineStatus: %v", err)
+	}
+	if info.PID <= 0 || info.PID == priorPID {
+		t.Fatalf("expected a fresh supervised process after supersede, got pid %d", info.PID)
 	}
 }
 
@@ -186,8 +253,7 @@ func TestSupervisorInfo(t *testing.T) {
 // --- ServiceAdapter tests ---
 
 func TestServiceAdapterListEnginesEmpty(t *testing.T) {
-	dir := t.TempDir()
-	mgr, err := NewManager(nil, dir, nil)
+	mgr, err := NewManager(nil, testManagedRoots(t), nil)
 	if err != nil {
 		t.Fatalf("NewManager: %v", err)
 	}
@@ -210,8 +276,7 @@ func TestServiceAdapterListEnginesEmpty(t *testing.T) {
 }
 
 func TestServiceAdapterEngineStatusNotFound(t *testing.T) {
-	dir := t.TempDir()
-	mgr, err := NewManager(nil, dir, nil)
+	mgr, err := NewManager(nil, testManagedRoots(t), nil)
 	if err != nil {
 		t.Fatalf("NewManager: %v", err)
 	}
@@ -224,8 +289,7 @@ func TestServiceAdapterEngineStatusNotFound(t *testing.T) {
 }
 
 func TestServiceAdapterStopEngineNotFound(t *testing.T) {
-	dir := t.TempDir()
-	mgr, err := NewManager(nil, dir, nil)
+	mgr, err := NewManager(nil, testManagedRoots(t), nil)
 	if err != nil {
 		t.Fatalf("NewManager: %v", err)
 	}
@@ -238,8 +302,8 @@ func TestServiceAdapterStopEngineNotFound(t *testing.T) {
 }
 
 func TestManagerApplyLlamaPaths(t *testing.T) {
-	dir := t.TempDir()
-	mgr, err := NewManager(nil, dir, nil)
+	roots := testManagedRoots(t)
+	mgr, err := NewManager(nil, roots, nil)
 	if err != nil {
 		t.Fatalf("NewManager: %v", err)
 	}
@@ -266,11 +330,7 @@ func TestManagerApplyLlamaPaths(t *testing.T) {
 	if cfg.ModelsConfigPath != configPath {
 		t.Fatalf("models config path mismatch: %q", cfg.ModelsConfigPath)
 	}
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		t.Fatalf("resolve home dir: %v", err)
-	}
-	if got, want := cfg.BackendsPath, filepath.Join(homeDir, ".nimi", "runtime", "llama-backends"); got != want {
+	if got, want := cfg.BackendsPath, filepath.Join(roots.Environments, "llama-backends"); got != want {
 		t.Fatalf("backends path mismatch: got=%q want=%q", got, want)
 	}
 	if got, want := strings.Join(cfg.ExternalBackends, ","), "llama-cpp,whisper-ggml"; got != want {

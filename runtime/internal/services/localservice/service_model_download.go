@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
+	"net"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -12,6 +14,7 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/filedownload"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/modelregistry"
 	"google.golang.org/grpc/codes"
@@ -25,7 +28,19 @@ const (
 	localModelDownloadMaxBodyBytes    = 64 << 30
 	localArtifactDownloadTimeout      = 30 * time.Minute
 	localArtifactDownloadMaxBodyBytes = 64 << 30
+	// localModelDownloadMaxAttempts bounds the automatic retry-with-backoff loop
+	// for a single managed model file. The first attempt plus a small number of
+	// retries; after exhaustion the job fails closed, retryable, as today.
+	localModelDownloadMaxAttempts = 4
+	// localModelDownloadRetryBackoff is the base backoff between transient
+	// retries; the loop applies an exponential-ish multiple per attempt.
+	localModelDownloadRetryBackoff = 2 * time.Second
 )
+
+// errModelDownloadHashMismatch is the non-transient failure for a verified
+// sha256 mismatch on the assembled file: the retry loop must never retry it and
+// the caller must discard the `.download` partial.
+var errModelDownloadHashMismatch = errors.New("model file hash mismatch")
 
 type managedDownloadedModelSpec struct {
 	modelID            string
@@ -72,7 +87,10 @@ func (s *Service) installManagedDownloadedModel(
 			Message: "downloaded model requires at least one file",
 		})
 	}
-	modelsRoot := resolveLocalModelsPath(s.localModelsPath)
+	modelsRoot, err := s.resolveManagedBundleModelsRoot()
+	if err != nil {
+		return nil, err
+	}
 	logicalModelID := strings.TrimSpace(spec.logicalModelID)
 	if logicalModelID == "" {
 		logicalModelID = filepath.ToSlash(filepath.Join("nimi", slugifyLocalModelID(modelID)))
@@ -251,6 +269,30 @@ func (s *Service) installManagedDownloadedModel(
 	return record, nil
 }
 
+// resolveManagedBundleModelsRoot resolves the absolute models root a managed
+// bundle install must stage and activate under. This is the single
+// config-sourced runtime models root — `resolveLocalModelsPath(s.localModelsPath)`
+// → `<dataRootRef>/models` (config.resolveLocalModelsPath / NewDataPlaneModel) —
+// the same root every other models-root consumer reads (verify, engine
+// activation, warm, residency, media).
+//
+// An empty or relative resolved root fails closed with a typed reason code: the
+// runtime must never stage a multi-GB bundle into a relative `resolved/`
+// directory resolved against its process CWD (the repo working tree on a
+// desktop-bridge runtime). A relative model root is a fail-close condition, not
+// a default — the desktop config sync must supply the user-selected data root
+// before materialization.
+func (s *Service) resolveManagedBundleModelsRoot() (string, error) {
+	modelsRoot := strings.TrimSpace(s.resolvedLocalModelsPath())
+	if modelsRoot == "" || !filepath.IsAbs(modelsRoot) {
+		return "", grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, grpcerr.ReasonOptions{
+			Message:    "managed model install requires an absolute models root; runtime has no resolved data root",
+			ActionHint: "select_nimi_data_root",
+		})
+	}
+	return modelsRoot, nil
+}
+
 func manifestPathForStaging(stagingDir string) string {
 	return filepath.Join(stagingDir, "asset.manifest.json")
 }
@@ -273,47 +315,74 @@ func (s *Service) downloadManagedModelFile(
 	if err != nil {
 		return "", err
 	}
-	httpReq, err := http.NewRequestWithContext(ctx, http.MethodGet, requestURL, nil)
-	if err != nil {
-		return "", fmt.Errorf("build model download request: %w", err)
+	expectedHash := expectedModelSHA256(hashes, relativeFile)
+	if expectedHash == "" {
+		return "", fmt.Errorf("model file %q requires admitted expected sha256 before download", relativeFile)
 	}
 	timeout := s.modelDownloadTimeout
 	if timeout <= 0 {
 		timeout = localModelDownloadTimeout
 	}
-	resp, err := (&http.Client{Timeout: timeout}).Do(httpReq)
-	if err != nil {
-		return "", fmt.Errorf("download model file %q: %w", relativeFile, err)
-	}
-	defer func() { _ = resp.Body.Close() }()
-	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("download model file %q status=%d", relativeFile, resp.StatusCode)
-	}
 	maxBodyBytes := s.modelDownloadMaxBodyBytes
 	if maxBodyBytes <= 0 {
 		maxBodyBytes = localModelDownloadMaxBodyBytes
 	}
-	if resp.ContentLength > 0 {
-		_ = s.mutateLocalTransfer(sessionID, false, func(summary *runtimev1.LocalTransferSessionSummary) {
-			summary.Phase = "download"
-			summary.BytesReceived = 0
-			summary.BytesTotal = resp.ContentLength
-			summary.Message = "downloading " + relativeFile
-			summary.State = localTransferStateRunning
-		})
-	}
-	expectedHash := expectedModelSHA256(hashes, relativeFile)
-	if expectedHash == "" {
-		return "", fmt.Errorf("model file %q requires admitted expected sha256 before download", relativeFile)
-	}
-	actualHash, _, err := s.downloadToFileWithTransfer(ctx, sessionID, "download", resp.Body, targetPath, maxBodyBytes)
+
+	_ = s.mutateLocalTransfer(sessionID, false, func(summary *runtimev1.LocalTransferSessionSummary) {
+		summary.Phase = "download"
+		summary.Message = "downloading " + relativeFile
+		summary.State = localTransferStateRunning
+	})
+
+	header := http.Header{}
+	header.Set("User-Agent", "nimi-runtime/0.1")
+
+	result, err := s.downloadToFileWithTransfer(
+		ctx,
+		sessionID,
+		"download",
+		requestURL,
+		targetPath,
+		expectedHash,
+		maxBodyBytes,
+		header,
+		timeout,
+	)
 	if err != nil {
-		return "", fmt.Errorf("write model file %q: %w", relativeFile, err)
+		if errors.Is(err, errLocalTransferCancelled) {
+			return "", err
+		}
+		if errors.Is(err, filedownload.ErrHashMismatch) {
+			return "", fmt.Errorf("model file %q: %w: %v", relativeFile, errModelDownloadHashMismatch, err)
+		}
+		return "", fmt.Errorf("download model file %q: %w", relativeFile, err)
 	}
-	if !strings.EqualFold(expectedHash, actualHash) {
-		return "", fmt.Errorf("model file %q hash mismatch: expected=%s actual=%s", relativeFile, expectedHash, actualHash)
+	return result.SHA256, nil
+}
+
+// isTransientModelDownloadError classifies a model-download transport/stream
+// error as worth a shared-core retry. Mid-stream connection drops
+// (`unexpected EOF`), connection resets, broken pipes, and network timeouts
+// are transient; the core handles 5xx, hash mismatch, 4xx, oversize and
+// context cancellation itself and never routes them here.
+func isTransientModelDownloadError(err error) bool {
+	if err == nil {
+		return false
 	}
-	return actualHash, nil
+	if errors.Is(err, io.ErrUnexpectedEOF) || errors.Is(err, io.EOF) {
+		return true
+	}
+	var netErr net.Error
+	if errors.As(err, &netErr) {
+		return true
+	}
+	lower := strings.ToLower(strings.TrimSpace(err.Error()))
+	return strings.Contains(lower, "eof") ||
+		strings.Contains(lower, "connection reset") ||
+		strings.Contains(lower, "broken pipe") ||
+		strings.Contains(lower, "connection refused") ||
+		strings.Contains(lower, "tls handshake timeout") ||
+		strings.Contains(lower, "timeout")
 }
 
 func normalizeArtifactRelativeFile(file string) (string, error) {

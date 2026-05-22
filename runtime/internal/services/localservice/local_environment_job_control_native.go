@@ -8,7 +8,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/engine"
 )
 
-func (s *Service) executeNativeLlamaEnvironmentDependencyJob(ctx context.Context, job localEnvironmentDependencyJobState) (localEnvironmentDependencyJobResult, error) {
+func (s *Service) executeNativeLlamaEnvironmentDependencyJob(ctx context.Context, job localEnvironmentDependencyJobState, report localEnvironmentDependencyJobProgressReporter) (localEnvironmentDependencyJobResult, error) {
 	if strings.TrimSpace(job.DependencyID) != "llama.cpp.package" {
 		return localEnvironmentDependencyJobResult{
 			State:           localEnvironmentStateUnsupported,
@@ -20,10 +20,12 @@ func (s *Service) executeNativeLlamaEnvironmentDependencyJob(ctx context.Context
 	if mgr == nil {
 		return localEnvironmentDependencyJobResult{}, errors.New("runtime engine manager unavailable")
 	}
+	reportLocalEnvironmentJobProgress(report, localEnvironmentStateDownloading)
 	status, err := mgr.EnsureEngineBinaryDependency(ctx, "llama", "")
 	if err != nil {
 		return localEnvironmentDependencyJobResult{}, err
 	}
+	reportLocalEnvironmentJobProgress(report, localEnvironmentStateVerifying)
 	if strings.TrimSpace(status.BinaryPath) == "" || strings.TrimSpace(status.SHA256) == "" {
 		return localEnvironmentDependencyJobResult{
 			State:           localEnvironmentStateRepairRequired,
@@ -57,7 +59,7 @@ func nativeLlamaSelectedConsumers(environmentKey string) []string {
 	}
 }
 
-func (s *Service) executeNativeSDCPPEnvironmentDependencyJob(ctx context.Context, job localEnvironmentDependencyJobState) (localEnvironmentDependencyJobResult, error) {
+func (s *Service) executeNativeSDCPPEnvironmentDependencyJob(ctx context.Context, job localEnvironmentDependencyJobState, report localEnvironmentDependencyJobProgressReporter) (localEnvironmentDependencyJobResult, error) {
 	if strings.TrimSpace(job.DependencyID) != "stable-diffusion.cpp.package" {
 		return localEnvironmentDependencyJobResult{
 			State:           localEnvironmentStateUnsupported,
@@ -69,6 +71,7 @@ func (s *Service) executeNativeSDCPPEnvironmentDependencyJob(ctx context.Context
 	if mgr == nil {
 		return localEnvironmentDependencyJobResult{}, errors.New("runtime engine manager unavailable")
 	}
+	reportLocalEnvironmentJobProgress(report, localEnvironmentStateDownloading)
 	status, err := mgr.EnsureManagedImageBackendDependency(ctx, &engine.ManagedImageBackendConfig{
 		Mode:        engine.ManagedImageBackendOfficial,
 		BackendName: "stablediffusion-ggml",
@@ -77,6 +80,7 @@ func (s *Service) executeNativeSDCPPEnvironmentDependencyJob(ctx context.Context
 	if err != nil {
 		return localEnvironmentDependencyJobResult{}, err
 	}
+	reportLocalEnvironmentJobProgress(report, localEnvironmentStateVerifying)
 	if strings.TrimSpace(status.CanonicalRoot) == "" || len(status.VerifiedArtifacts) == 0 {
 		return localEnvironmentDependencyJobResult{
 			State:           localEnvironmentStateRepairRequired,

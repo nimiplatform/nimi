@@ -16,6 +16,7 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestDownloadFromURLSuccessDownloadHelpers(t *testing.T) {
@@ -146,6 +147,86 @@ func TestDownloadURLToFileRetriesTransientEOF(t *testing.T) {
 	}
 }
 
+// TestEngineDownloadClientNegotiatesHTTP2 is the regression guard for the
+// install-download HTTP/2 bug. The engine download hosts (api.github.com,
+// releases.astral.sh, …) serve HTTP/2 over ALPN. The earlier transport
+// "disabled" HTTP/2 with ForceAttemptHTTP2=false on a clone of an already-used
+// http.DefaultTransport — but the clone carried a populated TLSNextProto map,
+// so ALPN still negotiated h2 while the HTTP/1.x round-tripper kept reading,
+// yielding `malformed HTTP response "\x00\x00\x12\x04..."`. This test runs an
+// HTTP/2 TLS server and asserts the engine download client both negotiates h2
+// and reads the body without that decode failure.
+func TestEngineDownloadClientNegotiatesHTTP2(t *testing.T) {
+	fakeBinary := []byte("#!/bin/sh\necho http2\n")
+	var servedProto string
+
+	server := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		servedProto = r.Proto
+		w.Header().Set("Content-Length", strconv.Itoa(len(fakeBinary)))
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write(fakeBinary)
+	}))
+	// httptest.StartTLS registers h2 in the server TLSConfig.NextProtos, so the
+	// server speaks HTTP/2 over ALPN — the same posture as the real hosts.
+	server.EnableHTTP2 = true
+	server.StartTLS()
+	defer server.Close()
+
+	// Trust the test server certificate; mirror a real engine download base
+	// client (no custom transport) so cloneEngineDownloadTransport rebuilds the
+	// transport from http.DefaultTransport, the exact production path.
+	base := &http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig: server.Client().Transport.(*http.Transport).TLSClientConfig.Clone(),
+		},
+	}
+
+	resp, err := doEngineDownloadRequest(server.URL+"/engine-binary", base, 30*time.Second)
+	if err != nil {
+		t.Fatalf("doEngineDownloadRequest over HTTP/2: %v", err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("expected HTTP 200, got %d", resp.StatusCode)
+	}
+	if resp.ProtoMajor != 2 {
+		t.Fatalf("expected the response to be HTTP/2, got proto=%s", resp.Proto)
+	}
+	if !strings.HasPrefix(servedProto, "HTTP/2") {
+		t.Fatalf("expected the server to observe an HTTP/2 request, got %q", servedProto)
+	}
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatalf("read HTTP/2 response body: %v", err)
+	}
+	if string(body) != string(fakeBinary) {
+		t.Fatalf("HTTP/2 body mismatch: got %q want %q", body, fakeBinary)
+	}
+}
+
+// TestEngineDownloadTransportEnablesHTTP2 asserts cloneEngineDownloadTransport
+// keeps HTTP/2 enabled (ForceAttemptHTTP2=true) for every host, so the h2 ALPN
+// entry and the HTTP/2 round-tripper stay in agreement. A false value here
+// reintroduces the ALPN/round-tripper mismatch the regression test above
+// covers.
+func TestEngineDownloadTransportEnablesHTTP2(t *testing.T) {
+	for _, sourceURL := range []string{
+		"https://api.github.com/repos/ggml-org/llama.cpp/releases/tags/b8645",
+		"https://releases.astral.sh/uv/uv-aarch64-apple-darwin.tar.gz",
+		"https://huggingface.co/example/model/resolve/main/model.gguf",
+		"https://quay.io/example/backend:latest",
+	} {
+		transport := cloneEngineDownloadTransport(sourceURL, nil)
+		if transport == nil {
+			t.Fatalf("expected a non-nil transport for %s", sourceURL)
+		}
+		if !transport.ForceAttemptHTTP2 {
+			t.Fatalf("expected ForceAttemptHTTP2=true for %s", sourceURL)
+		}
+	}
+}
+
 func TestManagerEnsureLlamaFailsWhenRegistryPersistFailsDownloadHelpers(t *testing.T) {
 	if !LlamaSupervisedPlatformSupported() {
 		t.Skipf("unsupported platform: %s", PlatformString())
@@ -178,7 +259,7 @@ func TestManagerEnsureLlamaFailsWhenRegistryPersistFailsDownloadHelpers(t *testi
 	t.Cleanup(setLlamaReleaseSourceForTest(server.URL, server.Client()))
 
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
-	mgr, err := NewManager(logger, t.TempDir(), nil)
+	mgr, err := NewManager(logger, testManagedRoots(t), nil)
 	if err != nil {
 		t.Fatalf("NewManager: %v", err)
 	}

@@ -6,6 +6,7 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 func TestClassifyScenarioExtensionsBestEffort(t *testing.T) {
@@ -88,6 +89,32 @@ func TestClassifyScenarioExtensionsRejectsUnknownMediaNamespace(t *testing.T) {
 		runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE,
 		[]*runtimev1.ScenarioExtension{
 			{Namespace: "nimi.runtime.unknown"},
+		},
+	)
+	st, ok := status.FromError(err)
+	if !ok {
+		t.Fatalf("expected grpc status error, got=%v", err)
+	}
+	if st.Code() != codes.InvalidArgument {
+		t.Fatalf("status code mismatch: got=%v want=%v", st.Code(), codes.InvalidArgument)
+	}
+	if st.Message() != runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED.String() {
+		t.Fatalf("reason code mismatch: got=%q want=%q", st.Message(), runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED.String())
+	}
+}
+
+func TestClassifyScenarioExtensionsRejectsFirstRunInternalKeys(t *testing.T) {
+	payload, err := structpb.NewStruct(map[string]any{
+		"nimi_first_run_baseline_probe": true,
+		"nimi_allow_empty_transcript":   true,
+	})
+	if err != nil {
+		t.Fatalf("build payload: %v", err)
+	}
+	_, err = classifyScenarioExtensions(
+		runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE,
+		[]*runtimev1.ScenarioExtension{
+			{Namespace: "nimi.scenario.speech_transcribe.request", Payload: payload},
 		},
 	)
 	st, ok := status.FromError(err)

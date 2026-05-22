@@ -208,7 +208,7 @@ func (b *Backend) Transcribe(
 		return "", nil, err
 	}
 	text := strings.TrimSpace(out.Text)
-	if text == "" {
+	if text == "" && !allowEmptyTranscript(scenarioExtensions) {
 		return "", nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}
 
@@ -218,6 +218,16 @@ func (b *Backend) Transcribe(
 		ComputeMs:    MaxInt64(10, int64(len(audio)/64)),
 	}
 	return text, usage, nil
+}
+
+func allowEmptyTranscript(scenarioExtensions map[string]any) bool {
+	if len(scenarioExtensions) == 0 {
+		return false
+	}
+	return ValueAsBool(scenarioExtensions["nimi_first_run_baseline_probe"]) && ValueAsBool(FirstNonNil(
+		scenarioExtensions["nimi_allow_empty_transcript"],
+		scenarioExtensions["allow_empty_transcript"],
+	))
 }
 
 // ManagedMediaImageDiagnostics captures managed image execution diagnostics.

@@ -9,6 +9,8 @@ import (
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	catalog "github.com/nimiplatform/nimi/runtime/internal/aicatalog"
+	"github.com/nimiplatform/nimi/runtime/internal/engine"
 )
 
 const (
@@ -63,15 +65,29 @@ func markRuntimeBaselineConsumerReady(t *testing.T, svc *Service, runtimeDataRoo
 		if dep.DependencyFamily == localEnvironmentFamilyPythonRuntime || dep.DependencyFamily == localEnvironmentFamilyPythonUV {
 			sourceKind = localEnvironmentSourceSystem
 		}
-		svc.upsertLocalEnvironmentSelectedSourceRecord(verifiedSelectedSourceRecordForTest(localEnvironmentSelectedSourceRecordState{
+		canonicalRoot := filepath.Join(runtimeDataRoot, strings.ReplaceAll(dep.DependencyID, ":", "-"))
+		record := localEnvironmentSelectedSourceRecordState{
 			DependencyFamily:  dep.DependencyFamily,
 			DependencyID:      dep.DependencyID,
 			EnvironmentKey:    dep.EnvironmentKey,
 			SourceKind:        sourceKind,
-			CanonicalRoot:     filepath.Join(runtimeDataRoot, strings.ReplaceAll(dep.DependencyID, ":", "-")),
+			CanonicalRoot:     canonicalRoot,
 			SelectedConsumers: []string{binding.ConsumerID},
 			AuditReasonCode:   "test_ready",
-		}))
+		}
+		if dep.DependencyFamily == localEnvironmentFamilyPythonPackageSet {
+			switch binding.ConsumerID {
+			case "speech.qwen3-tts.python":
+				driverScript := engine.SpeechQwen3TTSDriverPath(canonicalRoot)
+				record.VerifiedArtifacts = []string{filepath.Join(canonicalRoot, "bin", "python"), driverScript}
+				record.ActivationEnvDelta = []string{"NIMI_RUNTIME_SPEECH_QWEN3_TTS_CMD='python' '" + driverScript + "'"}
+			case "speech.qwen3-asr.python":
+				driverScript := engine.SpeechQwen3ASRDriverPath(canonicalRoot)
+				record.VerifiedArtifacts = []string{filepath.Join(canonicalRoot, "bin", "python"), driverScript}
+				record.ActivationEnvDelta = []string{"NIMI_RUNTIME_SPEECH_QWEN3_ASR_CMD='python' '" + driverScript + "'"}
+			}
+		}
+		svc.upsertLocalEnvironmentSelectedSourceRecord(verifiedSelectedSourceRecordForTest(record))
 	}
 }
 
@@ -469,5 +485,100 @@ func TestRuntimeBaselineReadinessRPCFailClosed(t *testing.T) {
 	}
 	if badResp.GetState() == runtimeBaselineStateReady || badResp.GetRef() != nil {
 		t.Fatal("resolve RPC accepted a renderer-supplied string ref with no backing record")
+	}
+}
+
+// TestResolveBaselineConsumerBindingsFillsAssetID verifies the design/03 seam:
+// when no caller-supplied consumer bindings are present, the deterministic
+// K-MCAT-034 resolver fills each engine-keyed consumer's AssetID from the
+// curated preset, so the downstream model.asset env key is non-empty.
+func TestResolveBaselineConsumerBindingsFillsAssetID(t *testing.T) {
+	svc, _ := newRuntimeBaselineTestService(t)
+	defer func() { svc.Close() }()
+
+	host := &runtimev1.LocalDeviceProfile{
+		Os:            "linux",
+		Arch:          "amd64",
+		TotalRamBytes: int64(64) << 30,
+		Python:        &runtimev1.LocalPythonProfile{Available: true, Version: "3.11.6"},
+	}
+	canonical, ok := runtimeBaselineConsumerSet(runtimeBaselineInstallLevelMinimal)
+	if !ok {
+		t.Fatal("expected a canonical minimal consumer set")
+	}
+	bindings, outcome := svc.resolveBaselineConsumerBindings(runtimeBaselineInstallLevelMinimal, host, canonical)
+	if outcome.State != runtimeBaselineStateReady {
+		t.Fatalf("resolveBaselineConsumerBindings state = %q (%s), want ready", outcome.State, outcome.Detail)
+	}
+	if len(bindings) != len(canonical) {
+		t.Fatalf("expected %d bindings, got %d", len(canonical), len(bindings))
+	}
+	for _, binding := range bindings {
+		if strings.TrimSpace(binding.AssetID) == "" {
+			t.Fatalf("baseline consumer %q has an empty resolved AssetID", binding.ConsumerID)
+		}
+	}
+}
+
+// runtimeBaselineUnsupportedRecommendedHost is an 8 GiB CPU-only host with
+// Python available: it fits every minimal chat/speech variant but cannot fit
+// the recommended preset's larger chat variants. The resolver never
+// substitutes a different preset, so a recommended install level fails closed
+// here — it does NOT silently resolve to minimal.
+func runtimeBaselineUnsupportedRecommendedHost() *runtimev1.LocalDeviceProfile {
+	return &runtimev1.LocalDeviceProfile{
+		Os:            "linux",
+		Arch:          "amd64",
+		TotalRamBytes: int64(8) << 30,
+		Gpu:           &runtimev1.LocalGpuProfile{Available: false},
+		Python:        &runtimev1.LocalPythonProfile{Available: true, Version: "3.11.6"},
+	}
+}
+
+// TestResolveBaselineConsumerBindingsRecommendedFailsCloseOnUnsupportedHost
+// verifies the no-substitution design: a host that fits the minimal preset but
+// cannot fit the recommended preset's required slots fails closed with
+// local_model_resolve_host_unsupported. The resolver never falls back to the
+// minimal preset (K-MCAT-036/037, design/02).
+func TestResolveBaselineConsumerBindingsRecommendedFailsCloseOnUnsupportedHost(t *testing.T) {
+	svc, _ := newRuntimeBaselineTestService(t)
+	defer func() { svc.Close() }()
+
+	canonical, ok := runtimeBaselineConsumerSet(runtimeBaselineInstallLevelRecommended)
+	if !ok {
+		t.Fatal("expected a canonical recommended consumer set")
+	}
+	bindings, outcome := svc.resolveBaselineConsumerBindings(
+		runtimeBaselineInstallLevelRecommended, runtimeBaselineUnsupportedRecommendedHost(), canonical)
+	if outcome.State == runtimeBaselineStateReady {
+		t.Fatal("recommended preset must fail closed on a host it does not fit; the resolver must not substitute minimal")
+	}
+	if outcome.ReasonCode != catalog.ReasonLocalModelResolveHostUnsupported {
+		t.Fatalf("fail-close reason = %q, want %q", outcome.ReasonCode, catalog.ReasonLocalModelResolveHostUnsupported)
+	}
+	if len(bindings) != 0 {
+		t.Fatal("a fail-closed resolver must not produce consumer bindings")
+	}
+}
+
+// TestResolveBaselineConsumerBindingsFailsClosedOnUnsupportedHost verifies the
+// resolver fail-close projects a non-ready baseline outcome rather than a
+// placeholder asset id.
+func TestResolveBaselineConsumerBindingsFailsClosedOnUnsupportedHost(t *testing.T) {
+	svc, _ := newRuntimeBaselineTestService(t)
+	defer func() { svc.Close() }()
+
+	tinyHost := &runtimev1.LocalDeviceProfile{
+		Os:            "linux",
+		Arch:          "amd64",
+		TotalRamBytes: int64(2) << 30,
+	}
+	canonical, _ := runtimeBaselineConsumerSet(runtimeBaselineInstallLevelMinimal)
+	bindings, outcome := svc.resolveBaselineConsumerBindings(runtimeBaselineInstallLevelMinimal, tinyHost, canonical)
+	if outcome.State == runtimeBaselineStateReady {
+		t.Fatal("expected a non-ready outcome on an unsupported host")
+	}
+	if len(bindings) != 0 {
+		t.Fatal("a fail-closed resolver must not produce consumer bindings")
 	}
 }

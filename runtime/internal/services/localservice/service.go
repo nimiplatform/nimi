@@ -2,11 +2,13 @@ package localservice
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"sync"
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	catalog "github.com/nimiplatform/nimi/runtime/internal/aicatalog"
 	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
 	"github.com/nimiplatform/nimi/runtime/internal/engine"
 	"github.com/nimiplatform/nimi/runtime/internal/managedimagebackend"
@@ -51,6 +53,7 @@ type Service struct {
 
 	logger                         *slog.Logger
 	auditStore                     *auditlog.Store
+	localProviderCatalog           *catalog.LocalProviderCatalog
 	stateStorePath                 string
 	localAuditCap                  int
 	localModelsPath                string
@@ -68,33 +71,38 @@ type Service struct {
 	managedMediaBackendUpdatedAt   string
 	managedMediaBackendEpoch       uint64
 
-	mu                               sync.RWMutex
-	assets                           map[string]*runtimev1.LocalAssetRecord
-	assetRuntimeModes                map[string]runtimev1.LocalEngineRuntimeMode
-	services                         map[string]*runtimev1.LocalServiceDescriptor
-	serviceRuntimeModes              map[string]runtimev1.LocalEngineRuntimeMode
-	audits                           []*runtimev1.LocalAuditEvent
-	verified                         []*runtimev1.LocalVerifiedAssetDescriptor
-	catalog                          []*runtimev1.LocalCatalogModelDescriptor
-	managedImageProfiles             map[string]managedImageProfileState
-	managedImageLoadCache            map[string]managedImageLoadedState
-	managedImageLoadInflight         map[string]*managedImageLoadInflight
-	localAssetProbeInflight          map[string]*localAssetProbeInflight
-	engineMgr                        EngineManager
-	managedLlamaRegistrations        map[string]managedLlamaRegistration
-	primaryManagedLlamaModelName     string
-	managedLlamaLoadedLocalAssetID   string
-	warmedModelKeys                  map[string]struct{}
-	warmedModelOrder                 []string
-	assetResidency                   map[string]localAssetResidencyState
-	engineResidency                  map[string]localEngineResidencyState
-	localEnvironmentHostProfiles     map[string]localEnvironmentHostProfileState
-	localEnvironmentSelectedSources  map[string]localEnvironmentSelectedSourceRecordState
-	localEnvironmentDependencyJobs   map[string]localEnvironmentDependencyJobState
-	runtimeBaselineReadinessRecords  map[string]runtimeBaselineReadinessRecord
-	firstRunExecutionEvidenceRecords map[string]firstRunExecutionEvidenceRecord
-	firstRunLocalExecutor            FirstRunLocalExecution
-	managedLlamaLoadMu               sync.Mutex
+	mu                                      sync.RWMutex
+	assets                                  map[string]*runtimev1.LocalAssetRecord
+	assetRuntimeModes                       map[string]runtimev1.LocalEngineRuntimeMode
+	services                                map[string]*runtimev1.LocalServiceDescriptor
+	serviceRuntimeModes                     map[string]runtimev1.LocalEngineRuntimeMode
+	audits                                  []*runtimev1.LocalAuditEvent
+	verified                                []*runtimev1.LocalVerifiedAssetDescriptor
+	catalog                                 []*runtimev1.LocalCatalogModelDescriptor
+	managedImageProfiles                    map[string]managedImageProfileState
+	managedImageLoadCache                   map[string]managedImageLoadedState
+	managedImageLoadInflight                map[string]*managedImageLoadInflight
+	localAssetProbeInflight                 map[string]*localAssetProbeInflight
+	engineMgr                               EngineManager
+	managedLlamaRegistrations               map[string]managedLlamaRegistration
+	primaryManagedLlamaModelName            string
+	managedLlamaLoadedLocalAssetID          string
+	warmedModelKeys                         map[string]struct{}
+	warmedModelOrder                        []string
+	assetResidency                          map[string]localAssetResidencyState
+	engineResidency                         map[string]localEngineResidencyState
+	localEnvironmentHostProfiles            map[string]localEnvironmentHostProfileState
+	localEnvironmentSelectedSources         map[string]localEnvironmentSelectedSourceRecordState
+	localEnvironmentDependencyJobs          map[string]localEnvironmentDependencyJobState
+	localEnvironmentJobCancels              map[string]context.CancelFunc
+	localEnvironmentJobWG                   sync.WaitGroup
+	localEnvironmentPrerequisiteWaitTimeout time.Duration
+	jobLifetimeCtx                          context.Context
+	jobLifetimeCancel                       context.CancelFunc
+	runtimeBaselineReadinessRecords         map[string]runtimeBaselineReadinessRecord
+	firstRunExecutionEvidenceRecords        map[string]firstRunExecutionEvidenceRecord
+	firstRunLocalExecutor                   FirstRunLocalExecution
+	managedLlamaLoadMu                      sync.Mutex
 
 	profileRegistry *ProfileRegistry
 
@@ -105,12 +113,15 @@ type Service struct {
 	artifactDownloadMaxBodyBytes int64
 	modelDownloadTimeout         time.Duration
 	modelDownloadMaxBodyBytes    int64
+	modelDownloadMaxAttempts     int
+	modelDownloadRetryBackoff    time.Duration
 	managedImageLoadModel        func(context.Context, managedimagebackend.LoadModelRequest) (*managedimagebackend.LoadModelDiagnostics, error)
 	managedImageFreeModel        func(context.Context, managedimagebackend.LoadModelRequest) error
 	assetProbeState              map[string]*probeRecoveryState
 	serviceProbeState            map[string]*probeRecoveryState
 	transfers                    map[string]*runtimev1.LocalTransferSessionSummary
 	transferControls             map[string]*localTransferControl
+	transferRates                map[string]*transferRateTracker
 	transferSubscribers          map[uint64]chan *runtimev1.LocalTransferProgressEvent
 	transferSubscriberSeq        uint64
 	entryHashCache               map[string]entryHashCacheState
@@ -137,10 +148,18 @@ func New(logger *slog.Logger, store *auditlog.Store, stateStorePath string, loca
 	if len(localModelsPathOverride) > 0 {
 		localModelsPath = localModelsPathOverride[0]
 	}
-	verified := defaultVerifiedAssets()
+	localProviderCatalog, catalogErr := catalog.LoadBuiltInLocalProviderCatalog()
+	if catalogErr != nil {
+		return nil, fmt.Errorf("local service: load local provider catalog: %w", catalogErr)
+	}
+	verified, verifiedErr := verifiedAssetsFromLocalCatalog(localProviderCatalog)
+	if verifiedErr != nil {
+		return nil, fmt.Errorf("local service: load verified assets: %w", verifiedErr)
+	}
 	svc := &Service{
 		logger:                           logger,
 		auditStore:                       store,
+		localProviderCatalog:             localProviderCatalog,
 		stateStorePath:                   resolveLocalStatePath(stateStorePath),
 		localAuditCap:                    localAuditCapacity,
 		localModelsPath:                  resolveLocalModelsPath(localModelsPath),
@@ -164,6 +183,7 @@ func New(logger *slog.Logger, store *auditlog.Store, stateStorePath string, loca
 		localEnvironmentHostProfiles:     make(map[string]localEnvironmentHostProfileState),
 		localEnvironmentSelectedSources:  make(map[string]localEnvironmentSelectedSourceRecordState),
 		localEnvironmentDependencyJobs:   make(map[string]localEnvironmentDependencyJobState),
+		localEnvironmentJobCancels:       make(map[string]context.CancelFunc),
 		runtimeBaselineReadinessRecords:  make(map[string]runtimeBaselineReadinessRecord),
 		firstRunExecutionEvidenceRecords: make(map[string]firstRunExecutionEvidenceRecord),
 		profileRegistry:                  NewProfileRegistry(),
@@ -174,18 +194,25 @@ func New(logger *slog.Logger, store *auditlog.Store, stateStorePath string, loca
 		artifactDownloadMaxBodyBytes:     localArtifactDownloadMaxBodyBytes,
 		modelDownloadTimeout:             localModelDownloadTimeout,
 		modelDownloadMaxBodyBytes:        localModelDownloadMaxBodyBytes,
+		modelDownloadMaxAttempts:         localModelDownloadMaxAttempts,
+		modelDownloadRetryBackoff:        localModelDownloadRetryBackoff,
 		managedImageLoadModel:            managedimagebackend.LoadModel,
 		managedImageFreeModel:            managedimagebackend.FreeModel,
 		assetProbeState:                  make(map[string]*probeRecoveryState),
 		serviceProbeState:                make(map[string]*probeRecoveryState),
 		transfers:                        make(map[string]*runtimev1.LocalTransferSessionSummary),
 		transferControls:                 make(map[string]*localTransferControl),
+		transferRates:                    make(map[string]*transferRateTracker),
 		transferSubscribers:              make(map[uint64]chan *runtimev1.LocalTransferProgressEvent),
 		entryHashCache:                   make(map[string]entryHashCacheState),
 		localModelKeepAlive:              defaultLocalModelKeepAlive,
 		managedPortAvailable:             loopbackPortAvailable,
 	}
+	jobCtx, jobCancel := context.WithCancel(context.Background())
+	svc.jobLifetimeCtx = jobCtx
+	svc.jobLifetimeCancel = jobCancel
 	if err := svc.restoreState(); err != nil {
+		jobCancel()
 		return nil, err
 	}
 	svc.seedInitialResidencyState()
@@ -215,8 +242,10 @@ func (s *Service) Close() {
 	s.mu.Lock()
 	cancel := s.recoveryCancel
 	done := s.recoveryDone
+	jobCancel := s.jobLifetimeCancel
 	s.recoveryCancel = nil
 	s.recoveryDone = nil
+	s.jobLifetimeCancel = nil
 	s.mu.Unlock()
 
 	if cancel != nil {
@@ -225,4 +254,10 @@ func (s *Service) Close() {
 	if done != nil {
 		<-done
 	}
+	// Abort any in-flight local-environment dependency-job goroutines and wait
+	// for them to reach a terminal transition before the service is torn down.
+	if jobCancel != nil {
+		jobCancel()
+	}
+	s.localEnvironmentJobWG.Wait()
 }

@@ -107,39 +107,8 @@ func TestValidateOfficialManagedImageBackendName(t *testing.T) {
 	}
 }
 
-func TestShouldDisableHTTP2ForEngineDownload(t *testing.T) {
-	tests := []struct {
-		name      string
-		sourceURL string
-		want      bool
-	}{
-		{
-			name:      "quay registry keeps http2",
-			sourceURL: "https://quay.io/v2/go-skynet/local-ai-backends/manifests/latest-metal-darwin-arm64-stablediffusion-ggml",
-			want:      false,
-		},
-		{
-			name:      "quay cdn keeps http2",
-			sourceURL: "https://cdn01.quay.io/quayio-production-s3/sha256/ab/blob",
-			want:      false,
-		},
-		{
-			name:      "github download disables http2",
-			sourceURL: "https://github.com/ggml-org/llama.cpp/releases/download/b8575/file",
-			want:      true,
-		},
-		{
-			name:      "invalid url defaults to disabled",
-			sourceURL: ":bad",
-			want:      true,
-		},
-	}
-
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			if got := shouldDisableHTTP2ForEngineDownload(tc.sourceURL); got != tc.want {
-				t.Fatalf("shouldDisableHTTP2ForEngineDownload(%q) = %v, want %v", tc.sourceURL, got, tc.want)
-			}
-		})
-	}
-}
+// HTTP/2 negotiation for the engine download transport is covered by
+// TestEngineDownloadClientNegotiatesHTTP2 and
+// TestEngineDownloadTransportEnablesHTTP2 in engine_download_test.go. The
+// engine download hosts all serve HTTP/2 over ALPN; the transport keeps it
+// enabled so the h2 ALPN entry and the HTTP/2 round-tripper stay in agreement.

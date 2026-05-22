@@ -19,18 +19,42 @@ import (
 const ggufMagicHeader = "GGUF"
 const minManagedGGUFSizeBytes = 4 * 1024
 
+// shouldUseLogicalManagedBundlePath reports whether a managed local asset
+// record's entry resolves under the canonical `resolved/<logicalModelID>/`
+// bundle layout.
+//
+// `installManagedDownloadedModel` — the single managed bundle install/activate
+// path — always stages and activates at
+// `runtimeManagedResolvedModelDir(modelsRoot, logicalModelID)` =
+// `<modelsRoot>/resolved/<logicalModelID>/`, for every managed download
+// regardless of entry extension. It requires a non-empty source `repo` (the
+// HuggingFace repo it downloads from). So a record resolves under the logical
+// bundle layout when it carries both a logical model id and a non-empty source
+// repo, with one exception: a `file://` direct-file repo that is NOT an
+// `asset.manifest.json` pointer is a legacy direct-file import whose base dir is
+// derived from the file path itself (`resolveManagedBaseDir`), not the logical
+// bundle layout.
+//
+// `file://.../asset.manifest.json` imports and `local-import/` passive records
+// also live under `resolved/<logicalModelID>/` and are covered by the default.
+// A record with no source repo is a non-bundle / user-install record and keeps
+// the `<modelsRoot>/<slug(assetID)>/` resolution.
 func shouldUseLogicalManagedBundlePath(model *runtimev1.LocalAssetRecord) bool {
 	if model == nil {
 		return false
 	}
-	if strings.ToLower(filepath.Ext(strings.TrimSpace(model.GetEntry()))) != ".gguf" {
+	if strings.Trim(strings.TrimSpace(model.GetLogicalModelId()), "/") == "" {
 		return false
 	}
 	repo := strings.TrimSpace(model.GetSource().GetRepo())
-	if strings.HasPrefix(repo, "file://") && strings.HasSuffix(strings.ToLower(repo), "/asset.manifest.json") {
-		return true
+	if repo == "" {
+		return false
 	}
-	return strings.HasPrefix(strings.ToLower(repo), "local-import/")
+	if strings.HasPrefix(repo, "file://") &&
+		!strings.HasSuffix(strings.ToLower(repo), "/asset.manifest.json") {
+		return false
+	}
+	return true
 }
 
 func sanitizeManagedEntryPath(entry string) (string, error) {
@@ -530,11 +554,7 @@ func isLegacyManagedLocalImportRecord(model *runtimev1.LocalAssetRecord, mode ru
 		return false
 	}
 	repo := strings.ToLower(strings.TrimSpace(model.GetSource().GetRepo()))
-	if strings.HasPrefix(repo, "local-import/") {
-		return true
-	}
-	logicalModelID := strings.Trim(strings.TrimSpace(model.GetLogicalModelId()), "/")
-	return logicalModelID != "" && !strings.HasPrefix(strings.ToLower(logicalModelID), "nimi/")
+	return strings.HasPrefix(repo, "local-import/")
 }
 
 func validateManagedLocalAssetRecord(model *runtimev1.LocalAssetRecord, mode runtimev1.LocalEngineRuntimeMode) error {

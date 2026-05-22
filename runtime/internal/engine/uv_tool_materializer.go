@@ -58,7 +58,11 @@ var managedUVArchiveSpecs = []managedUVArchiveSpec{
 
 func (m *Manager) EnsureUVToolDependency(ctx context.Context) (UVToolDependencyStatus, error) {
 	_ = ctx
-	uvRoot := filepath.Join(m.baseDir, "uv")
+	// The uv tool is a standalone downloaded dependency payload
+	// (python.tool.uv -> managed_root: dependencies in
+	// local-environment-dependencies.yaml), so it installs under the
+	// data-plane `dependencies` root, not the `environments` engine tree.
+	uvRoot := filepath.Join(m.depsDir, "uv")
 	spec, ok := managedUVArchiveSpecForCurrentHost()
 	if !ok {
 		return UVToolDependencyStatus{}, fmt.Errorf("no published Runtime-managed uv package is available for %s/%s", currentGOOS(), currentGOARCH())

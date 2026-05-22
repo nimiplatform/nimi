@@ -56,14 +56,6 @@ var nvidiaCUDAUserSpaceRuntimeManagedSource = sharedAcceleratorDependencyManaged
 	InstallDirName: NVIDIACUDAUserSpaceRuntimeDependencyID,
 }
 
-func defaultSharedAcceleratorDependenciesPath() (string, error) {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return "", fmt.Errorf("resolve home directory: %w", err)
-	}
-	return filepath.Join(home, ".nimi", "runtime", "accelerator-dependencies"), nil
-}
-
 func NormalizeSharedAcceleratorDependencyID(raw string) string {
 	trimmed := strings.ToLower(strings.TrimSpace(raw))
 	switch trimmed {

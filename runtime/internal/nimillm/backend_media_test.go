@@ -427,6 +427,96 @@ func TestBackendTranscribeForwardsScenarioExtensions(t *testing.T) {
 	}
 }
 
+func TestBackendTranscribeRejectsEmptyTextByDefault(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost || r.URL.Path != "/v1/audio/transcriptions" {
+			http.NotFound(w, r)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]any{"text": ""})
+	}))
+	defer func() { server.Close() }()
+
+	backend := NewBackend("openai", server.URL, "", time.Second)
+	_, _, err := backend.Transcribe(
+		context.Background(),
+		"openai/stt",
+		&runtimev1.SpeechTranscribeScenarioSpec{},
+		[]byte("audio-bytes"),
+		"audio/wav",
+		nil,
+	)
+	if err == nil {
+		t.Fatal("expected empty transcription text to fail closed")
+	}
+	if status.Code(err) != codes.Internal {
+		t.Fatalf("unexpected status code: %v", status.Code(err))
+	}
+	got, ok := grpcerr.ExtractReasonCode(err)
+	if !ok || got != runtimev1.ReasonCode_AI_OUTPUT_INVALID {
+		t.Fatalf("unexpected reason code: %s", got)
+	}
+}
+
+func TestBackendTranscribeAllowsEmptyTextForFirstRunProbeExtension(t *testing.T) {
+	var capturedExtensions map[string]any
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost || r.URL.Path != "/v1/audio/transcriptions" {
+			http.NotFound(w, r)
+			return
+		}
+		reader, err := r.MultipartReader()
+		if err != nil {
+			t.Fatalf("MultipartReader: %v", err)
+		}
+		for {
+			part, err := reader.NextPart()
+			if err == io.EOF {
+				break
+			}
+			if err != nil {
+				t.Fatalf("NextPart: %v", err)
+			}
+			if part.FormName() != "extensions" {
+				continue
+			}
+			payload, err := io.ReadAll(part)
+			if err != nil {
+				t.Fatalf("ReadAll(extensions): %v", err)
+			}
+			if err := json.Unmarshal(payload, &capturedExtensions); err != nil {
+				t.Fatalf("json.Unmarshal(extensions): %v", err)
+			}
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]any{"text": ""})
+	}))
+	defer func() { server.Close() }()
+
+	backend := NewBackend("openai", server.URL, "", time.Second)
+	text, _, err := backend.Transcribe(
+		context.Background(),
+		"openai/stt",
+		&runtimev1.SpeechTranscribeScenarioSpec{},
+		[]byte("audio-bytes"),
+		"audio/wav",
+		map[string]any{
+			"nimi_first_run_baseline_probe": true,
+			"nimi_allow_empty_transcript":   true,
+		},
+	)
+	if err != nil {
+		t.Fatalf("Transcribe failed: %v", err)
+	}
+	if text != "" {
+		t.Fatalf("expected empty transcript to be preserved, got %q", text)
+	}
+	if !ValueAsBool(capturedExtensions["nimi_allow_empty_transcript"]) {
+		t.Fatalf("expected first-run allow-empty extension to be forwarded, got %#v", capturedExtensions)
+	}
+}
+
 func TestBackendGenerateMusicNormalizesIterationExtensions(t *testing.T) {
 	var captured map[string]any
 

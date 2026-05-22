@@ -94,8 +94,8 @@ func TestStartSupervisedEnginesCachesUnsupportedImageSelectionWithoutBootstrappi
 			},
 		}, true
 	}
-	daemon.newEngineManager = func(_ *slog.Logger, _ string, _ engine.StateChangeFunc) (*engine.Manager, error) {
-		return engine.NewManager(slog.New(slog.NewTextHandler(io.Discard, nil)), t.TempDir(), nil)
+	daemon.newEngineManager = func(_ *slog.Logger, _ engine.ManagedRoots, _ engine.StateChangeFunc) (*engine.Manager, error) {
+		return engine.NewManager(slog.New(slog.NewTextHandler(io.Discard, nil)), engine.ManagedRoots{Environments: t.TempDir(), Dependencies: t.TempDir()}, nil)
 	}
 
 	startCalls := make([]engine.EngineKind, 0, 1)
@@ -167,12 +167,15 @@ func TestAppendEngineCrashAuditIncludesStructuredFields(t *testing.T) {
 	}
 }
 
-func TestStartSupervisedEnginesAutoManagedLlamaEntersLocalBootstrapBranch(t *testing.T) {
+func TestStartSupervisedEnginesDefersAutoManagedLlamaWithoutRuntimePreset(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	homeDir := t.TempDir()
+	setDaemonTestHome(t, homeDir)
+	configPath := filepath.Join(homeDir, ".nimi", "runtime", "llama-models.yaml")
 	cfg := config.Config{
 		GRPCAddr:               "127.0.0.1:0",
 		HTTPAddr:               "127.0.0.1:0",
-		LocalStatePath:         filepath.Join(t.TempDir(), "local-state.json"),
+		LocalStatePath:         filepath.Join(homeDir, ".nimi", "runtime", "local-state.json"),
 		AuditRingBufferSize:    64,
 		UsageStatsBufferSize:   64,
 		IdempotencyCapacity:    32,
@@ -192,7 +195,7 @@ func TestStartSupervisedEnginesAutoManagedLlamaEntersLocalBootstrapBranch(t *tes
 	store := auditlog.New(64, 64)
 	daemon.auditStore = store
 	daemon.aiHealth = providerhealth.New()
-	daemon.newEngineManager = func(_ *slog.Logger, _ string, _ engine.StateChangeFunc) (*engine.Manager, error) {
+	daemon.newEngineManager = func(_ *slog.Logger, _ engine.ManagedRoots, _ engine.StateChangeFunc) (*engine.Manager, error) {
 		return &engine.Manager{}, nil
 	}
 	calls := make([]engine.EngineKind, 0, 1)
@@ -206,42 +209,18 @@ func TestStartSupervisedEnginesAutoManagedLlamaEntersLocalBootstrapBranch(t *tes
 
 	daemon.startSupervisedEngines(context.Background())
 
-	if !slices.Equal(calls, []engine.EngineKind{engine.EngineLlama}) {
-		t.Fatalf("expected llama bootstrap call, got=%v", calls)
+	if len(calls) != 0 {
+		t.Fatalf("empty Runtime state must not bootstrap llama without a generated preset, got=%v", calls)
 	}
 	snapshot := daemon.state.Snapshot()
-	if snapshot.Status != health.StatusDegraded {
-		t.Fatalf("expected degraded on bootstrap failure, got=%s (%s)", snapshot.Status, snapshot.Reason)
+	if snapshot.Status == health.StatusDegraded {
+		t.Fatalf("deferring empty managed llama bootstrap must not degrade Runtime core readiness: %s", snapshot.Reason)
 	}
-	if !strings.Contains(snapshot.Reason, "engine bootstrap failed (llama: mock bootstrap failure)") {
-		t.Fatalf("unexpected degraded reason: %s", snapshot.Reason)
+	if _, err := os.Stat(configPath); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("empty Runtime state must not leave a generated llama preset, stat err=%v", err)
 	}
-
-	localProvider := daemon.aiHealth.SnapshotOf("local")
-	if localProvider.State != providerhealth.StateUnhealthy {
-		t.Fatalf("expected local provider unhealthy after bootstrap failure, got=%s", localProvider.State)
-	}
-	if !strings.Contains(localProvider.LastReason, "engine bootstrap failed (llama: mock bootstrap failure)") {
-		t.Fatalf("unexpected local provider reason: %s", localProvider.LastReason)
-	}
-
-	events := mustListAuditEvents(t, store, &runtimev1.ListAuditEventsRequest{Domain: "runtime.engine"}).GetEvents()
-	if len(events) != 1 {
-		t.Fatalf("expected 1 runtime.engine event, got=%d", len(events))
-	}
-	record := events[0]
-	if record.GetOperation() != "engine.bootstrap_failed" {
-		t.Fatalf("unexpected operation: %s", record.GetOperation())
-	}
-	payload := record.GetPayload().GetFields()
-	if payload["engine"].GetStringValue() != "llama" {
-		t.Fatalf("unexpected engine payload: %q", payload["engine"].GetStringValue())
-	}
-	if payload["provider"].GetStringValue() != "local" {
-		t.Fatalf("unexpected provider payload: %q", payload["provider"].GetStringValue())
-	}
-	if payload["detail"].GetStringValue() != "mock bootstrap failure" {
-		t.Fatalf("unexpected detail payload: %q", payload["detail"].GetStringValue())
+	if managedEndpoint := daemon.grpc.LocalService().ManagedLlamaEndpoint(); managedEndpoint != "" {
+		t.Fatalf("empty Runtime state must not expose managed llama endpoint, got %q", managedEndpoint)
 	}
 }
 
@@ -336,7 +315,7 @@ func TestStartSupervisedEnginesBootstrapsManagedLlamaControlPlaneFromState(t *te
 	store := auditlog.New(64, 64)
 	daemon.auditStore = store
 	daemon.aiHealth = providerhealth.New()
-	daemon.newEngineManager = func(_ *slog.Logger, _ string, _ engine.StateChangeFunc) (*engine.Manager, error) {
+	daemon.newEngineManager = func(_ *slog.Logger, _ engine.ManagedRoots, _ engine.StateChangeFunc) (*engine.Manager, error) {
 		return &engine.Manager{}, nil
 	}
 	calls := make([]engine.EngineKind, 0, 1)
@@ -362,7 +341,7 @@ func TestStartSupervisedEnginesBootstrapsManagedLlamaControlPlaneFromState(t *te
 	}
 }
 
-func TestStartSupervisedEnginesSkipsBootstrapWhenNoManagedEnginesEnabled(t *testing.T) {
+func TestStartSupervisedEnginesInjectsManagerWithoutBootstrappingWhenNoManagedEnginesEnabled(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	t.Setenv("NIMI_RUNTIME_LOCAL_LLAMA_BASE_URL", "http://127.0.0.1:2234/v1")
 
@@ -383,9 +362,9 @@ func TestStartSupervisedEnginesSkipsBootstrapWhenNoManagedEnginesEnabled(t *test
 
 	managerCreated := false
 	startCalls := 0
-	daemon.newEngineManager = func(_ *slog.Logger, _ string, _ engine.StateChangeFunc) (*engine.Manager, error) {
+	daemon.newEngineManager = func(_ *slog.Logger, _ engine.ManagedRoots, _ engine.StateChangeFunc) (*engine.Manager, error) {
 		managerCreated = true
-		return &engine.Manager{}, nil
+		return engine.NewManager(slog.New(slog.NewTextHandler(io.Discard, nil)), engine.ManagedRoots{Environments: t.TempDir(), Dependencies: t.TempDir()}, nil)
 	}
 	daemon.startEngineFn = func(_ context.Context, _ engine.EngineKind, _ string, _ int, _ string) error {
 		startCalls++
@@ -394,17 +373,22 @@ func TestStartSupervisedEnginesSkipsBootstrapWhenNoManagedEnginesEnabled(t *test
 
 	daemon.startSupervisedEngines(context.Background())
 
-	if managerCreated {
-		t.Fatalf("did not expect engine manager creation when supervised engines are disabled")
+	if !managerCreated {
+		t.Fatalf("expected engine manager creation for local environment materializers")
 	}
 	if startCalls != 0 {
 		t.Fatalf("did not expect supervised bootstrap calls, got %d", startCalls)
 	}
-	if daemon.engineMgr != nil {
-		t.Fatalf("expected daemon engine manager to stay nil when supervised engines are disabled")
+	if daemon.engineMgr == nil {
+		t.Fatalf("expected daemon engine manager to be available for materializers")
+	}
+	if svc := daemon.grpc.LocalService(); svc != nil {
+		if _, err := svc.ListEngines(context.Background(), &runtimev1.ListEnginesRequest{}); err != nil {
+			t.Fatalf("expected local service engine manager injection: %v", err)
+		}
 	}
 	if snapshot := daemon.state.Snapshot(); snapshot.Status == health.StatusDegraded {
-		t.Fatalf("did not expect degraded state when supervised bootstrap is skipped: %s", snapshot.Reason)
+		t.Fatalf("did not expect degraded state when only supervised bootstrap is skipped: %s", snapshot.Reason)
 	}
 }
 
@@ -509,7 +493,7 @@ func TestStartSupervisedEnginesSkipsManagedLlamaBootstrapWhenAssetSyncFails(t *t
 	store := auditlog.New(64, 64)
 	daemon.auditStore = store
 	daemon.aiHealth = providerhealth.New()
-	daemon.newEngineManager = func(_ *slog.Logger, _ string, _ engine.StateChangeFunc) (*engine.Manager, error) {
+	daemon.newEngineManager = func(_ *slog.Logger, _ engine.ManagedRoots, _ engine.StateChangeFunc) (*engine.Manager, error) {
 		return &engine.Manager{}, nil
 	}
 	calls := make([]engine.EngineKind, 0, 1)
@@ -578,7 +562,7 @@ func TestStartSupervisedEnginesFailsClosedForUnsupportedSidecar(t *testing.T) {
 	}
 	daemon.auditStore = auditlog.New(32, 32)
 	daemon.aiHealth = providerhealth.New()
-	daemon.newEngineManager = func(_ *slog.Logger, _ string, _ engine.StateChangeFunc) (*engine.Manager, error) {
+	daemon.newEngineManager = func(_ *slog.Logger, _ engine.ManagedRoots, _ engine.StateChangeFunc) (*engine.Manager, error) {
 		return &engine.Manager{}, nil
 	}
 

@@ -540,7 +540,29 @@ func (s *Service) installLocalAsset(ctx context.Context, params installLocalAsse
 }
 
 func (s *Service) InstallVerifiedAsset(ctx context.Context, req *runtimev1.InstallVerifiedAssetRequest) (*runtimev1.InstallVerifiedAssetResponse, error) {
-	templateID := strings.TrimSpace(req.GetTemplateId())
+	record, err := s.installVerifiedAssetByTemplateID(ctx, req.GetTemplateId(), req.GetEndpoint())
+	if err != nil {
+		return nil, err
+	}
+	return &runtimev1.InstallVerifiedAssetResponse{Asset: record}, nil
+}
+
+// installVerifiedAssetByTemplateID installs a verified catalog asset by its
+// template id (the K-MCAT-032 variant id, identical to the asset id). It is the
+// shared install path behind the InstallVerifiedAsset RPC and the first-run
+// model.asset materializer job: both resolve a concrete asset id, then this
+// helper downloads + installs it from the verified catalog descriptor.
+// endpointRaw is the optional caller-supplied local provider endpoint (empty
+// for the materializer path; supervised assets do not require one).
+//
+// The supervised bundle stages and activates under the single config-sourced
+// runtime models root (`resolveLocalModelsPath(s.localModelsPath)` →
+// `<dataRootRef>/models`). The desktop-bridge runtime is given that data root
+// by the desktop config sync before materialization starts; an unresolved root
+// fails closed in resolveManagedBundleModelsRoot rather than staging into the
+// runtime process CWD.
+func (s *Service) installVerifiedAssetByTemplateID(ctx context.Context, templateIDRaw string, endpointRaw string) (*runtimev1.LocalAssetRecord, error) {
+	templateID := strings.TrimSpace(templateIDRaw)
 	if templateID == "" {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_TEMPLATE_NOT_FOUND)
 	}
@@ -563,7 +585,7 @@ func (s *Service) InstallVerifiedAsset(ctx context.Context, req *runtimev1.Insta
 		matched.GetEngine(),
 		matched.GetCapabilities(),
 		matched.GetKind(),
-		defaultString(strings.TrimSpace(req.GetEndpoint()), matched.GetEndpoint()),
+		defaultString(strings.TrimSpace(endpointRaw), matched.GetEndpoint()),
 		collectDeviceProfile(),
 	)
 	deviceProfile := collectDeviceProfile()
@@ -627,7 +649,7 @@ func (s *Service) InstallVerifiedAsset(ctx context.Context, req *runtimev1.Insta
 		if err != nil {
 			return nil, err
 		}
-		return &runtimev1.InstallVerifiedAssetResponse{Asset: record}, nil
+		return record, nil
 	}
 	record, err := s.installLocalAssetRecord(
 		matched.GetAssetId(),
@@ -656,7 +678,7 @@ func (s *Service) InstallVerifiedAsset(ctx context.Context, req *runtimev1.Insta
 	if err != nil {
 		return nil, err
 	}
-	return &runtimev1.InstallVerifiedAssetResponse{Asset: record}, nil
+	return record, nil
 }
 
 func normalizePublicFallbackEngines(values []string) []string {

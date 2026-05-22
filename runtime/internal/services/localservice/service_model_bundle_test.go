@@ -674,6 +674,61 @@ func TestEnsureManagedLocalModelBundleReadyRejectsLegacyManagedLocalImportRecord
 	}
 }
 
+func TestEnsureManagedLocalModelBundleReadyAcceptsVerifiedCatalogLogicalModelID(t *testing.T) {
+	homeDir := t.TempDir()
+	t.Setenv("HOME", homeDir)
+
+	svc := newTestService(t)
+	modelsRoot := filepath.Join(homeDir, ".nimi", "data", "models")
+	configPath := filepath.Join(homeDir, ".nimi", "runtime", "llama-models.yaml")
+	logicalModelID := "gemma-4-e2b-it-local"
+	modelID := "local.chat.gemma-4-e2b-it.q8-0"
+	entry := "gemma-4-E2B-it-Q8_0.gguf"
+	manifestPath := writeManagedGGUFBundleForTest(t, modelsRoot, logicalModelID, modelID, entry)
+	sum := sha256.Sum256(validTestGGUF())
+
+	localModelID := "verified_catalog_model"
+	svc.mu.Lock()
+	svc.assets[localModelID] = &runtimev1.LocalAssetRecord{
+		LocalAssetId:   localModelID,
+		AssetId:        modelID,
+		Kind:           runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT,
+		Capabilities:   []string{"text.generate"},
+		Engine:         "llama",
+		Entry:          entry,
+		Source:         &runtimev1.LocalAssetSource{Repo: "file://" + filepath.ToSlash(manifestPath), Revision: "90f9618340396838ee7ff5b0ba2da27da62953d3"},
+		Hashes:         map[string]string{entry: "sha256:" + hex.EncodeToString(sum[:])},
+		LogicalModelId: logicalModelID,
+		BundleState:    runtimev1.LocalBundleState_LOCAL_BUNDLE_STATE_READY,
+		WarmState:      runtimev1.LocalWarmState_LOCAL_WARM_STATE_COLD,
+	}
+	svc.setModelRuntimeModeLocked(localModelID, runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED)
+	svc.persistStateLocked()
+	svc.mu.Unlock()
+	svc.SetManagedLlamaRegistrationConfig(modelsRoot, configPath, true)
+
+	entryPath, repaired, err := svc.ensureManagedLocalModelBundleReady(context.Background(), svc.modelByID(localModelID))
+	if err != nil {
+		t.Fatalf("ensure managed local model bundle ready: %v", err)
+	}
+	if repaired {
+		t.Fatal("verified catalog bundle should be adopted without repair")
+	}
+	if !strings.HasSuffix(entryPath, filepath.Join("resolved", logicalModelID, entry)) {
+		t.Fatalf("entry path = %q", entryPath)
+	}
+	if err := svc.SyncManagedLlamaAssets(context.Background()); err != nil {
+		t.Fatalf("sync managed llama assets: %v", err)
+	}
+	raw, err := os.ReadFile(configPath)
+	if err != nil {
+		t.Fatalf("expected generated managed llama preset: %v", err)
+	}
+	if !strings.Contains(string(raw), "gemma-4-e2b-it-local") {
+		t.Fatalf("generated preset did not include catalog logical model id:\n%s", raw)
+	}
+}
+
 func TestEnsureManagedLocalModelBundleReadyRejectsManagedSpeechBundleMissingDeclaredFile(t *testing.T) {
 	svc := newTestService(t)
 

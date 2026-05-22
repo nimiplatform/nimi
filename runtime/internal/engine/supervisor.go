@@ -83,7 +83,11 @@ func (s *Supervisor) Start(ctx context.Context) error {
 	s.cleanStalePID()
 
 	s.mu.Lock()
-	port, err := resolvePort(s.cfg.Port)
+	// Resolve the configured port with a bounded reclaim wait: a process the
+	// supervisor just killed (or an orphan from a prior runtime instance) can
+	// hold the listener socket for a brief moment after the process exits, so
+	// a single immediate availability check would spuriously fail.
+	port, err := resolvePortWithReclaim(s.cfg.Port, portReclaimWait)
 	if err != nil {
 		s.mu.Unlock()
 		return fmt.Errorf("resolve port for %s: %w", s.cfg.Kind, err)
@@ -345,9 +349,12 @@ func (s *Supervisor) spawn(ctx context.Context, epoch uint64) error {
 		"port", s.cfg.Port,
 	)
 
-	// Wait for healthy.
+	// Wait for healthy. The health wait races against process exit: a
+	// supervised process that exits immediately (e.g. speech failing to bind
+	// its port) must fail the startup wait in seconds, not block the full
+	// StartupTimeout on a dead process.
 	probeInterval := 500 * time.Millisecond
-	if err := waitSupervisorHealthy(runCtx, s.cfg, probeInterval); err != nil {
+	if err := waitSupervisorHealthyOrExit(runCtx, s.cfg, process, probeInterval); err != nil {
 		if runCtx.Err() != nil || !s.isRunEpochActive(epoch) {
 			s.removePIDFile()
 			return nil
@@ -376,6 +383,50 @@ func (s *Supervisor) spawn(ctx context.Context, epoch uint64) error {
 	go s.monitor(runCtx, epoch)
 
 	return nil
+}
+
+// waitSupervisorHealthyOrExit waits for the supervised engine to become healthy
+// while also watching for the process to exit. The health probe alone polls
+// with a long StartupTimeout; if the process exits before becoming healthy
+// (e.g. an immediate `address already in use` bind failure) the health wait
+// would otherwise block the full timeout against a dead process. Selecting on
+// process.done makes startup fail fast with the process exit error so the
+// crash/backoff/restart cycle proceeds in seconds, not minutes.
+func waitSupervisorHealthyOrExit(ctx context.Context, cfg EngineConfig, process *supervisedProcess, interval time.Duration) error {
+	if process == nil {
+		return waitSupervisorHealthy(ctx, cfg, interval)
+	}
+	healthCtx, cancelHealth := context.WithCancel(ctx)
+	defer cancelHealth()
+
+	healthResult := make(chan error, 1)
+	go func() {
+		healthResult <- waitSupervisorHealthy(healthCtx, cfg, interval)
+	}()
+
+	select {
+	case err := <-healthResult:
+		return err
+	case <-process.done:
+		// Cancel the in-flight health probe and reap its result so the
+		// goroutine does not leak.
+		cancelHealth()
+		<-healthResult
+		exitDetail := strings.TrimSpace(processExitErrorDetail(process.waitErr))
+		if exitDetail == "" {
+			exitDetail = "process exited during startup"
+		}
+		return fmt.Errorf("engine %s exited before becoming healthy: %s", cfg.Kind, exitDetail)
+	}
+}
+
+// processExitErrorDetail renders a process Wait() error for inclusion in a
+// startup failure message.
+func processExitErrorDetail(waitErr error) string {
+	if waitErr == nil {
+		return "process exited with status 0"
+	}
+	return waitErr.Error()
 }
 
 func waitSupervisorHealthy(ctx context.Context, cfg EngineConfig, interval time.Duration) error {

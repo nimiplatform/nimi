@@ -100,6 +100,11 @@ const (
 	scenarioExtensionStrategyBestEffort scenarioExtensionStrategy = "best_effort"
 )
 
+var internalFirstRunScenarioExtensionKeys = map[string]struct{}{
+	"nimi_first_run_baseline_probe": {},
+	"nimi_allow_empty_transcript":   {},
+}
+
 var scenarioExtensionRegistry = map[runtimev1.ScenarioType]map[string]scenarioExtensionStrategy{
 	runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE: {
 		textGenerateRouteDescribeExtensionNamespace: scenarioExtensionStrategyStrict,
@@ -168,8 +173,23 @@ func classifyScenarioExtensions(scenarioType runtimev1.ScenarioType, items []*ru
 		if _, ok := allowedNamespaces[namespace]; !ok {
 			return nil, unsupportedScenarioExtensionError(scenarioType)
 		}
+		if hasInternalFirstRunScenarioExtensionKey(item) {
+			return nil, unsupportedScenarioExtensionError(scenarioType)
+		}
 	}
 	return nil, nil
+}
+
+func hasInternalFirstRunScenarioExtensionKey(item *runtimev1.ScenarioExtension) bool {
+	if item == nil || item.GetPayload() == nil {
+		return false
+	}
+	for key := range item.GetPayload().GetFields() {
+		if _, reserved := internalFirstRunScenarioExtensionKeys[strings.TrimSpace(key)]; reserved {
+			return true
+		}
+	}
+	return false
 }
 
 func unsupportedScenarioExtensionError(scenarioType runtimev1.ScenarioType) error {

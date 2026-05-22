@@ -2,10 +2,16 @@ package localservice
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
+	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/engine"
@@ -13,9 +19,45 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+// awaitLocalEnvironmentDependencyJobTerminal polls a dependency job (started via
+// an async Start/Retry/Repair RPC) until its background goroutine drives it to a
+// terminal state, returning the terminal job projection.
+func awaitLocalEnvironmentDependencyJobTerminal(t *testing.T, svc *Service, jobID string) *runtimev1.LocalEnvironmentDependencyJob {
+	t.Helper()
+	if jobID == "" {
+		t.Fatal("awaitLocalEnvironmentDependencyJobTerminal: empty job id")
+	}
+	deadline := time.Now().Add(10 * time.Second)
+	for {
+		job, ok := svc.localEnvironmentDependencyJob(jobID)
+		if !ok {
+			t.Fatalf("local environment dependency job %s not found", jobID)
+		}
+		if localEnvironmentDependencyJobSettledForTest(job.State) {
+			return localEnvironmentDependencyJobToProto(job)
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("local environment dependency job %s did not settle (last=%q)", jobID, job.State)
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
+}
+
+// writeLocalEnvironmentAssetEntryForTest stages a model entry at the canonical
+// managed-download bundle layout that installManagedDownloadedModel produces and
+// the materializer verify path (resolveManagedModelEntryAbsolutePath) resolves:
+// `<modelsRoot>/resolved/<logicalModelID>/<entry>` for any record carrying a
+// logical model id, falling back to `<modelsRoot>/<slug(assetID)>/<entry>` only
+// for a record with no logical model id.
 func writeLocalEnvironmentAssetEntryForTest(t *testing.T, svc *Service, asset *runtimev1.LocalAssetRecord, content string) string {
 	t.Helper()
-	target := filepath.Join(svc.resolvedLocalModelsPath(), slugifyLocalModelID(asset.GetAssetId()), filepath.FromSlash(asset.GetEntry()))
+	modelsRoot := svc.resolvedLocalModelsPath()
+	var target string
+	if logicalModelID := strings.Trim(strings.TrimSpace(asset.GetLogicalModelId()), "/"); logicalModelID != "" && shouldUseLogicalManagedBundlePath(asset) {
+		target = filepath.Join(runtimeManagedResolvedModelDir(modelsRoot, logicalModelID), filepath.FromSlash(asset.GetEntry()))
+	} else {
+		target = filepath.Join(modelsRoot, slugifyLocalModelID(asset.GetAssetId()), filepath.FromSlash(asset.GetEntry()))
+	}
 	if err := os.MkdirAll(filepath.Dir(target), 0o755); err != nil {
 		t.Fatalf("mkdir asset entry: %v", err)
 	}
@@ -50,10 +92,11 @@ func TestStartLocalEnvironmentDependencyJobReturnsFailedRuntimeOwnedJob(t *testi
 	if err != nil {
 		t.Fatalf("StartLocalEnvironmentDependencyJob: %v", err)
 	}
-	job := resp.GetJob()
-	if job.GetJobId() == "" {
+	started := resp.GetJob()
+	if started.GetJobId() == "" {
 		t.Fatal("expected job id")
 	}
+	job := awaitLocalEnvironmentDependencyJobTerminal(t, svc, started.GetJobId())
 	if job.GetState() != localEnvironmentStateFailed {
 		t.Fatalf("job state = %q, want failed when engine manager is unavailable", job.GetState())
 	}
@@ -131,7 +174,7 @@ func TestStartCUDADependencyJobPromotesVerifiedSelectedSource(t *testing.T) {
 	if err != nil {
 		t.Fatalf("StartLocalEnvironmentDependencyJob: %v", err)
 	}
-	job := resp.GetJob()
+	job := awaitLocalEnvironmentDependencyJobTerminal(t, svc, resp.GetJob().GetJobId())
 	if job.GetState() != localEnvironmentStateReadyManaged {
 		t.Fatalf("job state = %q, want ready_managed", job.GetState())
 	}
@@ -170,23 +213,25 @@ func TestRetryLocalEnvironmentDependencyJobReexecutesFailedJob(t *testing.T) {
 	if err != nil {
 		t.Fatalf("StartLocalEnvironmentDependencyJob: %v", err)
 	}
-	if startResp.GetJob().GetState() != localEnvironmentStateFailed || !startResp.GetJob().GetRetryable() {
-		t.Fatalf("start job = %+v, want retryable failed", startResp.GetJob())
+	startTerminal := awaitLocalEnvironmentDependencyJobTerminal(t, svc, startResp.GetJob().GetJobId())
+	if startTerminal.GetState() != localEnvironmentStateFailed || !startTerminal.GetRetryable() {
+		t.Fatalf("start job = %+v, want retryable failed", startTerminal)
 	}
 
 	mgr.ensureManagedImageBackendErr = nil
 	retryResp, err := svc.RetryLocalEnvironmentDependencyJob(context.Background(), &runtimev1.RetryLocalEnvironmentDependencyJobRequest{
-		JobId:     startResp.GetJob().GetJobId(),
+		JobId:     startTerminal.GetJobId(),
 		Confirmed: true,
 	})
 	if err != nil {
 		t.Fatalf("RetryLocalEnvironmentDependencyJob: %v", err)
 	}
-	if retryResp.GetJob().GetState() != localEnvironmentStateReadyManaged {
-		t.Fatalf("retry job state = %q, want ready_managed", retryResp.GetJob().GetState())
+	retryTerminal := awaitLocalEnvironmentDependencyJobTerminal(t, svc, retryResp.GetJob().GetJobId())
+	if retryTerminal.GetState() != localEnvironmentStateReadyManaged {
+		t.Fatalf("retry job state = %q, want ready_managed", retryTerminal.GetState())
 	}
-	if retryResp.GetJob().GetSelectedSourceRecordId() == "" {
-		t.Fatalf("retry job missing selected source record: %+v", retryResp.GetJob())
+	if retryTerminal.GetSelectedSourceRecordId() == "" {
+		t.Fatalf("retry job missing selected source record: %+v", retryTerminal)
 	}
 }
 
@@ -224,11 +269,12 @@ func TestRepairLocalEnvironmentDependencyReverifiesSelectedSource(t *testing.T) 
 	if err != nil {
 		t.Fatalf("RepairLocalEnvironmentDependency: %v", err)
 	}
-	if resp.GetJob().GetState() != localEnvironmentStateReadyManaged {
-		t.Fatalf("repair job state = %q, want ready_managed", resp.GetJob().GetState())
+	repairTerminal := awaitLocalEnvironmentDependencyJobTerminal(t, svc, resp.GetJob().GetJobId())
+	if repairTerminal.GetState() != localEnvironmentStateReadyManaged {
+		t.Fatalf("repair job state = %q, want ready_managed", repairTerminal.GetState())
 	}
-	if resp.GetJob().GetSelectedSourceRecordId() == "" || resp.GetJob().GetSelectedSourceRecordId() == record.RecordID {
-		t.Fatalf("repair job selected source = %q, previous = %q", resp.GetJob().GetSelectedSourceRecordId(), record.RecordID)
+	if repairTerminal.GetSelectedSourceRecordId() == "" || repairTerminal.GetSelectedSourceRecordId() == record.RecordID {
+		t.Fatalf("repair job selected source = %q, previous = %q", repairTerminal.GetSelectedSourceRecordId(), record.RecordID)
 	}
 	repaired, ok := svc.localEnvironmentSelectedSourceRecord(environmentKey)
 	if !ok {
@@ -264,7 +310,7 @@ func TestStartNativeSDCPPDependencyJobPromotesVerifiedSelectedSource(t *testing.
 	if err != nil {
 		t.Fatalf("StartLocalEnvironmentDependencyJob: %v", err)
 	}
-	job := resp.GetJob()
+	job := awaitLocalEnvironmentDependencyJobTerminal(t, svc, resp.GetJob().GetJobId())
 	if job.GetState() != localEnvironmentStateReadyManaged {
 		t.Fatalf("job state = %q, want ready_managed", job.GetState())
 	}
@@ -314,7 +360,7 @@ func TestStartNativeLlamaDependencyJobPromotesVerifiedSelectedSource(t *testing.
 	if err != nil {
 		t.Fatalf("StartLocalEnvironmentDependencyJob: %v", err)
 	}
-	job := resp.GetJob()
+	job := awaitLocalEnvironmentDependencyJobTerminal(t, svc, resp.GetJob().GetJobId())
 	if job.GetState() != localEnvironmentStateReadyManaged {
 		t.Fatalf("job state = %q, want ready_managed", job.GetState())
 	}
@@ -356,8 +402,9 @@ func TestStartNativeLlamaDependencyJobRepairRequiredWithoutHash(t *testing.T) {
 	if err != nil {
 		t.Fatalf("StartLocalEnvironmentDependencyJob: %v", err)
 	}
-	if resp.GetJob().GetState() != localEnvironmentStateRepairRequired {
-		t.Fatalf("job state = %q, want repair_required", resp.GetJob().GetState())
+	job := awaitLocalEnvironmentDependencyJobTerminal(t, svc, resp.GetJob().GetJobId())
+	if job.GetState() != localEnvironmentStateRepairRequired {
+		t.Fatalf("job state = %q, want repair_required", job.GetState())
 	}
 }
 
@@ -385,7 +432,7 @@ func TestStartPythonUVDependencyJobPromotesVerifiedSelectedSource(t *testing.T) 
 	if err != nil {
 		t.Fatalf("StartLocalEnvironmentDependencyJob: %v", err)
 	}
-	job := resp.GetJob()
+	job := awaitLocalEnvironmentDependencyJobTerminal(t, svc, resp.GetJob().GetJobId())
 	if job.GetState() != localEnvironmentStateReadyManaged {
 		t.Fatalf("job state = %q, want ready_managed", job.GetState())
 	}
@@ -426,7 +473,395 @@ func TestStartPythonUVDependencyJobRepairRequiredWithoutVersion(t *testing.T) {
 	if err != nil {
 		t.Fatalf("StartLocalEnvironmentDependencyJob: %v", err)
 	}
-	if resp.GetJob().GetState() != localEnvironmentStateRepairRequired {
-		t.Fatalf("job state = %q, want repair_required", resp.GetJob().GetState())
+	job := awaitLocalEnvironmentDependencyJobTerminal(t, svc, resp.GetJob().GetJobId())
+	if job.GetState() != localEnvironmentStateRepairRequired {
+		t.Fatalf("job state = %q, want repair_required", job.GetState())
+	}
+}
+
+// TestEnsureLocalEnvironmentModelAssetInstalledSkipsInstalledAsset is the
+// regression guard for the first-run model.asset materializer install seam: an
+// already-installed resolved asset must not be re-downloaded — the install seam
+// returns without error so the verify step can run.
+func TestEnsureLocalEnvironmentModelAssetInstalledSkipsInstalledAsset(t *testing.T) {
+	svc := newTestService(t)
+	model := mustInstallSupervisedLocalModel(t, svc, installLocalAssetParams{
+		assetID:      "image/test-installed-asset",
+		capabilities: []string{"image"},
+		engine:       "media",
+		entry:        "model.safetensors",
+		hashes:       map[string]string{"model.safetensors": "sha256:b899bf805912441a8767d3e01859281ab3a1cd7b18edea93f5e54c18b648b54c"},
+	})
+
+	if err := svc.ensureLocalEnvironmentModelAssetInstalled(context.Background(), "asset-id:"+model.GetAssetId()); err != nil {
+		t.Fatalf("ensureLocalEnvironmentModelAssetInstalled for an installed asset: %v", err)
+	}
+	// The user-install dependency id form must also be a no-op.
+	if err := svc.ensureLocalEnvironmentModelAssetInstalled(context.Background(), "asset:"+model.GetLocalAssetId()); err != nil {
+		t.Fatalf("ensureLocalEnvironmentModelAssetInstalled for a user-install id: %v", err)
+	}
+}
+
+// TestEnsureLocalEnvironmentModelAssetInstalledFailsClosedOnCatalogMiss asserts
+// the materializer install seam fails closed: a resolved asset id with neither
+// an installed record nor a verified catalog descriptor returns an error so the
+// materializer job fails rather than reporting pseudo-success.
+func TestEnsureLocalEnvironmentModelAssetInstalledFailsClosedOnCatalogMiss(t *testing.T) {
+	svc := newTestService(t)
+
+	err := svc.ensureLocalEnvironmentModelAssetInstalled(context.Background(), "asset-id:local.chat.no-such-asset")
+	if err == nil {
+		t.Fatal("expected ensureLocalEnvironmentModelAssetInstalled to fail closed on a catalog miss")
+	}
+	if status.Code(err) != codes.NotFound {
+		t.Fatalf("expected a NotFound install failure, got %v", err)
+	}
+}
+
+// TestEnsureLocalEnvironmentModelAssetInstalledIgnoresNonAssetSpecificID
+// asserts a non-asset-specific dependency id (a resolver fail-close pack
+// placeholder) is left for the verify step: no download is attempted and no
+// hard failure is raised, so the job projects the established repair_required
+// outcome rather than a download failure.
+func TestEnsureLocalEnvironmentModelAssetInstalledIgnoresNonAssetSpecificID(t *testing.T) {
+	svc := newTestService(t)
+
+	if err := svc.ensureLocalEnvironmentModelAssetInstalled(context.Background(), "local-text.model-asset"); err != nil {
+		t.Fatalf("expected a non-asset-specific dependency id to be ignored, got %v", err)
+	}
+}
+
+// TestStartModelAssetDependencyJobFailsClosedWhenResolvedAssetUninstallable is
+// the end-to-end regression for the first-run gap: the model.asset materializer
+// job now drives the install seam, so a resolved asset id that cannot be
+// installed (catalog miss) yields a `failed` job — not a silent repair_required
+// with nothing downloaded.
+func TestStartModelAssetDependencyJobFailsClosedWhenResolvedAssetUninstallable(t *testing.T) {
+	svc := newTestService(t)
+
+	resp, err := svc.StartLocalEnvironmentDependencyJob(context.Background(), &runtimev1.StartLocalEnvironmentDependencyJobRequest{
+		EnvironmentKey:   "model.asset|asset-id:local.chat.no-such-asset|host|darwin/arm64|root|llama.cpp.cpu",
+		DependencyFamily: localEnvironmentFamilyModelAsset,
+		DependencyId:     "asset-id:local.chat.no-such-asset",
+		Confirmed:        true,
+	})
+	if err != nil {
+		t.Fatalf("StartLocalEnvironmentDependencyJob: %v", err)
+	}
+	job := awaitLocalEnvironmentDependencyJobTerminal(t, svc, resp.GetJob().GetJobId())
+	if job.GetState() != localEnvironmentStateFailed {
+		t.Fatalf("job state = %q, want failed for an uninstallable resolved asset", job.GetState())
+	}
+}
+
+// TestStartModelAssetDependencyJobDownloadsVerifiesAndReachesReadyManaged is the
+// end-to-end regression for the fresh-install download-root bug and the
+// install-vs-verify bundle layout reconciliation: a first-run model.asset
+// materializer job downloads + stages the resolved catalog asset under the
+// single config-sourced runtime models root (`resolvedLocalModelsPath()`), at
+// the canonical `resolved/<logicalModelID>/` layout, then the verify path
+// resolves that exact layout and the job reaches `ready_managed` — not a silent
+// `repair_required` from a layout disagreement, and never a relative `resolved/`
+// directory rooted at the runtime process CWD.
+func TestStartModelAssetDependencyJobDownloadsVerifiesAndReachesReadyManaged(t *testing.T) {
+	svc := newTestService(t)
+	modelsRoot := svc.resolvedLocalModelsPath()
+
+	payload := validTestGGUF()
+	sum := sha256.Sum256(payload)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/Qwen/Qwen3-Embedding-8B-GGUF/resolve/main/model.gguf" {
+			http.NotFound(w, r)
+			return
+		}
+		_, _ = w.Write(payload)
+	}))
+	defer func() { server.Close() }()
+	svc.hfDownloadBaseURL = server.URL
+	svc.verified = []*runtimev1.LocalVerifiedAssetDescriptor{
+		{
+			TemplateId:     "local/embed-data-root",
+			Title:          "Embedding Data Root",
+			AssetId:        "local/embed-data-root",
+			LogicalModelId: "nimi/embed-data-root",
+			Kind:           runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_EMBEDDING,
+			Engine:         "llama",
+			Entry:          "model.gguf",
+			Files:          []string{"model.gguf"},
+			License:        "apache-2.0",
+			Repo:           "Qwen/Qwen3-Embedding-8B-GGUF",
+			Revision:       "main",
+			Hashes:         map[string]string{"model.gguf": "sha256:" + hex.EncodeToString(sum[:])},
+		},
+	}
+
+	// The plan layer still embeds the desktop-owned data root in the environment
+	// key; the runtime no longer reads it back per-request — it stages under the
+	// config-sourced models root.
+	dataRoot := t.TempDir()
+	dependencyID := "asset-id:local/embed-data-root"
+	environmentKey := localEnvironmentKey(
+		localEnvironmentFamilyModelAsset,
+		dependencyID,
+		"host_data_root_test",
+		"darwin/arm64",
+		dataRoot,
+	)
+
+	resp, err := svc.StartLocalEnvironmentDependencyJob(context.Background(), &runtimev1.StartLocalEnvironmentDependencyJobRequest{
+		EnvironmentKey:   environmentKey,
+		DependencyFamily: localEnvironmentFamilyModelAsset,
+		DependencyId:     dependencyID,
+		Confirmed:        true,
+	})
+	if err != nil {
+		t.Fatalf("StartLocalEnvironmentDependencyJob: %v", err)
+	}
+	job := awaitLocalEnvironmentDependencyJobTerminal(t, svc, resp.GetJob().GetJobId())
+
+	// The downloaded bundle is staged + activated by installManagedDownloadedModel
+	// at `<modelsRoot>/resolved/<logicalModelID>/` — and the verify path resolves
+	// that exact layout, so the job reaches ready_managed.
+	if job.GetState() != localEnvironmentStateReadyManaged {
+		t.Fatalf("job state = %q, want ready_managed (download → verify → ready)", job.GetState())
+	}
+	stagedAsset := filepath.Join(
+		runtimeManagedResolvedModelDir(modelsRoot, "nimi/embed-data-root"),
+		"model.gguf",
+	)
+	if _, err := os.Stat(stagedAsset); err != nil {
+		t.Fatalf("materializer job did not stage the asset under the configured models root %q: %v", modelsRoot, err)
+	}
+	if !strings.HasPrefix(stagedAsset, modelsRoot) {
+		t.Fatalf("staged asset %q is not under the configured models root %q", stagedAsset, modelsRoot)
+	}
+	// The runtime CWD must never receive a relative `resolved/` staging dir —
+	// that is the exact e2e regression this packet fixes.
+	if cwd, err := os.Getwd(); err == nil {
+		if entries, err := os.ReadDir(filepath.Join(cwd, "resolved")); err == nil && len(entries) > 0 {
+			t.Fatalf("materializer job staged a relative resolved/ dir into the runtime CWD %q", cwd)
+		}
+	}
+}
+
+// writeResolvedModelBundleForTest stages a managed model bundle on disk at the
+// canonical `<modelsRoot>/resolved/<logicalModelID>/` layout that a completed
+// managed download produces: the GGUF artifact plus an `asset.manifest.json`
+// whose `hashes` map records `sha256:<actual>` for each declared file. It
+// returns the bundle directory.
+func writeResolvedModelBundleForTest(
+	t *testing.T,
+	modelsRoot string,
+	logicalModelID string,
+	assetID string,
+	entry string,
+	payload []byte,
+) string {
+	t.Helper()
+	bundleDir := runtimeManagedResolvedModelDir(modelsRoot, logicalModelID)
+	if err := os.MkdirAll(bundleDir, 0o755); err != nil {
+		t.Fatalf("mkdir resolved bundle dir: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(bundleDir, filepath.FromSlash(entry)), payload, 0o644); err != nil {
+		t.Fatalf("write resolved bundle artifact: %v", err)
+	}
+	sum := sha256.Sum256(payload)
+	manifest := managedModelManifestDescriptor{
+		assetID:        assetID,
+		kind:           runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_EMBEDDING,
+		logicalModelID: logicalModelID,
+		capabilities:   []string{"text.embed"},
+		engine:         "llama",
+		entry:          entry,
+		files:          []string{entry},
+		license:        "apache-2.0",
+		repo:           "Qwen/Qwen3-Embedding-8B-GGUF",
+		revision:       "main",
+		hashes:         map[string]string{entry: "sha256:" + hex.EncodeToString(sum[:])},
+		integrityMode:  "verified",
+	}
+	if err := writeModelManifest(filepath.Join(bundleDir, "asset.manifest.json"), manifest); err != nil {
+		t.Fatalf("write resolved bundle manifest: %v", err)
+	}
+	return bundleDir
+}
+
+// verifiedEmbeddingDescriptorForTest builds the verified catalog descriptor that
+// is the K-LOCAL-010 SSOT for the adoption hash-verification authority.
+func verifiedEmbeddingDescriptorForTest(assetID string, logicalModelID string, entry string, payload []byte) *runtimev1.LocalVerifiedAssetDescriptor {
+	sum := sha256.Sum256(payload)
+	return &runtimev1.LocalVerifiedAssetDescriptor{
+		TemplateId:     assetID,
+		Title:          "Embedding Adopt Bundle",
+		AssetId:        assetID,
+		LogicalModelId: logicalModelID,
+		Kind:           runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_EMBEDDING,
+		Engine:         "llama",
+		Entry:          entry,
+		Files:          []string{entry},
+		License:        "apache-2.0",
+		Repo:           "Qwen/Qwen3-Embedding-8B-GGUF",
+		Revision:       "main",
+		Hashes:         map[string]string{entry: "sha256:" + hex.EncodeToString(sum[:])},
+	}
+}
+
+// failingHFDownloadServerForTest returns an HTTP server that fails the test if
+// any model file is requested — the adoption guarantee is ZERO download.
+func failingHFDownloadServerForTest(t *testing.T) *httptest.Server {
+	t.Helper()
+	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		t.Errorf("materializer issued a model download when a valid bundle was already on disk")
+		http.Error(w, "no download expected", http.StatusInternalServerError)
+	}))
+}
+
+// TestEnsureLocalEnvironmentModelAssetInstalledAdoptsExistingBundle is the
+// idempotent-materialization regression: when `~/.nimi` is cleared (empty
+// in-memory registry) but the data-root bundle is intact, the materializer
+// adopts the on-disk bundle and performs ZERO download.
+func TestEnsureLocalEnvironmentModelAssetInstalledAdoptsExistingBundle(t *testing.T) {
+	svc := newTestService(t)
+	server := failingHFDownloadServerForTest(t)
+	defer server.Close()
+	svc.hfDownloadBaseURL = server.URL
+
+	modelsRoot := svc.resolvedLocalModelsPath()
+	const assetID = "local/embed-adopt"
+	const logicalModelID = "nimi/embed-adopt"
+	const entry = "model.gguf"
+	payload := validTestGGUF()
+
+	svc.verified = []*runtimev1.LocalVerifiedAssetDescriptor{
+		verifiedEmbeddingDescriptorForTest(assetID, logicalModelID, entry, payload),
+	}
+	writeResolvedModelBundleForTest(t, modelsRoot, logicalModelID, assetID, entry, payload)
+
+	// The registry is empty (no installed record) — the asset is only on disk.
+	if svc.installedAssetRecordForAssetID(assetID) != nil {
+		t.Fatal("precondition: asset must not be in the in-memory registry")
+	}
+
+	if err := svc.ensureLocalEnvironmentModelAssetInstalled(context.Background(), "asset-id:"+assetID); err != nil {
+		t.Fatalf("ensureLocalEnvironmentModelAssetInstalled: %v", err)
+	}
+
+	// Adoption must have registered the asset record from the on-disk manifest.
+	adopted := svc.installedAssetRecordForAssetID(assetID)
+	if adopted == nil {
+		t.Fatal("materializer did not adopt the on-disk bundle into the registry")
+	}
+	if got := strings.TrimSpace(adopted.GetAssetId()); got != assetID {
+		t.Fatalf("adopted asset id = %q, want %q", got, assetID)
+	}
+
+	// The adopted record must pass the materializer verify step and yield a
+	// resolved entry — the job would then reach ready_managed.
+	model, entryPath, entryHash, _, err := svc.verifyLocalEnvironmentModelAsset(context.Background(), "asset-id:"+assetID)
+	if err != nil {
+		t.Fatalf("verifyLocalEnvironmentModelAsset on the adopted record: %v", err)
+	}
+	if model == nil || strings.TrimSpace(entryPath) == "" || strings.TrimSpace(entryHash) == "" {
+		t.Fatalf("verify of adopted record returned incomplete result (path=%q hash=%q)", entryPath, entryHash)
+	}
+}
+
+// TestStartModelAssetDependencyJobAdoptsExistingBundleReachesReadyManaged is the
+// end-to-end idempotent-materialization regression: a first-run model.asset job
+// over a pre-placed valid bundle reaches `ready_managed` with ZERO download.
+func TestStartModelAssetDependencyJobAdoptsExistingBundleReachesReadyManaged(t *testing.T) {
+	svc := newTestService(t)
+	server := failingHFDownloadServerForTest(t)
+	defer server.Close()
+	svc.hfDownloadBaseURL = server.URL
+
+	modelsRoot := svc.resolvedLocalModelsPath()
+	const assetID = "local/embed-adopt-e2e"
+	const logicalModelID = "nimi/embed-adopt-e2e"
+	const entry = "model.gguf"
+	payload := validTestGGUF()
+
+	svc.verified = []*runtimev1.LocalVerifiedAssetDescriptor{
+		verifiedEmbeddingDescriptorForTest(assetID, logicalModelID, entry, payload),
+	}
+	writeResolvedModelBundleForTest(t, modelsRoot, logicalModelID, assetID, entry, payload)
+
+	dependencyID := "asset-id:" + assetID
+	resp, err := svc.StartLocalEnvironmentDependencyJob(context.Background(), &runtimev1.StartLocalEnvironmentDependencyJobRequest{
+		EnvironmentKey: localEnvironmentKey(
+			localEnvironmentFamilyModelAsset, dependencyID, "host_adopt_test", "darwin/arm64", t.TempDir(),
+		),
+		DependencyFamily: localEnvironmentFamilyModelAsset,
+		DependencyId:     dependencyID,
+		Confirmed:        true,
+	})
+	if err != nil {
+		t.Fatalf("StartLocalEnvironmentDependencyJob: %v", err)
+	}
+	job := awaitLocalEnvironmentDependencyJobTerminal(t, svc, resp.GetJob().GetJobId())
+	if job.GetState() != localEnvironmentStateReadyManaged {
+		t.Fatalf("job state = %q, want ready_managed (adopt → verify → ready)", job.GetState())
+	}
+}
+
+// TestEnsureLocalEnvironmentModelAssetInstalledDoesNotAdoptCorruptBundle is the
+// fail-closed regression: a pre-placed bundle whose artifact hash does not match
+// the catalog-admitted sha256 is NEVER adopted — the materializer falls through
+// to the download path.
+func TestEnsureLocalEnvironmentModelAssetInstalledDoesNotAdoptCorruptBundle(t *testing.T) {
+	svc := newTestService(t)
+
+	modelsRoot := svc.resolvedLocalModelsPath()
+	const assetID = "local/embed-adopt-corrupt"
+	const logicalModelID = "nimi/embed-adopt-corrupt"
+	const entry = "model.gguf"
+	catalogPayload := validTestGGUF()
+
+	// The catalog descriptor's admitted hash is over catalogPayload, but the
+	// on-disk artifact carries different bytes — a hash mismatch.
+	svc.verified = []*runtimev1.LocalVerifiedAssetDescriptor{
+		verifiedEmbeddingDescriptorForTest(assetID, logicalModelID, entry, catalogPayload),
+	}
+	corruptPayload := append(validTestGGUF(), []byte("tampered-tail")...)
+	writeResolvedModelBundleForTest(t, modelsRoot, logicalModelID, assetID, entry, corruptPayload)
+
+	// No HF base URL configured — the download path fails closed, proving the
+	// corrupt bundle was NOT adopted (an adoption would have returned nil).
+	err := svc.ensureLocalEnvironmentModelAssetInstalled(context.Background(), "asset-id:"+assetID)
+	if err == nil {
+		t.Fatal("expected the materializer to fall through to download (not adopt a hash-mismatched bundle)")
+	}
+	if svc.installedAssetRecordForAssetID(assetID) != nil {
+		t.Fatal("a hash-mismatched bundle must never be adopted into the registry")
+	}
+}
+
+// TestEnsureLocalEnvironmentModelAssetInstalledDoesNotAdoptIncompleteBundle is
+// the fail-closed regression for a bundle with a manifest but a missing declared
+// artifact: it is NEVER adopted and falls through to the download path.
+func TestEnsureLocalEnvironmentModelAssetInstalledDoesNotAdoptIncompleteBundle(t *testing.T) {
+	svc := newTestService(t)
+
+	modelsRoot := svc.resolvedLocalModelsPath()
+	const assetID = "local/embed-adopt-incomplete"
+	const logicalModelID = "nimi/embed-adopt-incomplete"
+	const entry = "model.gguf"
+	payload := validTestGGUF()
+
+	svc.verified = []*runtimev1.LocalVerifiedAssetDescriptor{
+		verifiedEmbeddingDescriptorForTest(assetID, logicalModelID, entry, payload),
+	}
+	// Stage the bundle, then delete the artifact so only the manifest remains.
+	bundleDir := writeResolvedModelBundleForTest(t, modelsRoot, logicalModelID, assetID, entry, payload)
+	if err := os.Remove(filepath.Join(bundleDir, entry)); err != nil {
+		t.Fatalf("remove bundle artifact: %v", err)
+	}
+
+	err := svc.ensureLocalEnvironmentModelAssetInstalled(context.Background(), "asset-id:"+assetID)
+	if err == nil {
+		t.Fatal("expected the materializer to fall through to download for an incomplete bundle")
+	}
+	if svc.installedAssetRecordForAssetID(assetID) != nil {
+		t.Fatal("an incomplete bundle must never be adopted into the registry")
 	}
 }
