@@ -47,17 +47,18 @@ export function RecommendPage({ model, state }: RecommendPageProps) {
 
   // ---------------------------------------------------------------------------
   // Feed state — long cache; hardware + model data rarely change
-  // staleTime 24h: model index updates once/day; hardware is static
+  // staleTime: fresh snapshots keep the 24h model-index cadence; empty/stale
+  // snapshots retry on remount so the page recovers when model-index returns.
   // gcTime Infinity: never evict — manual refresh via "Refresh Hardware" button
   // placeholderData: keepPreviousData so UI renders instantly on capability switch
   // ---------------------------------------------------------------------------
   const feedQuery = useQuery<LocalRuntimeRecommendationFeedDescriptor, Error>({
     queryKey: ['recommendation-feed', capability],
     queryFn: () => localRuntime.getRecommendationFeed({ capability, pageSize: 48 }),
-    staleTime: 24 * 60 * 60 * 1000,
+    staleTime: (query) => query.state.data?.cacheState === 'fresh' ? 24 * 60 * 60 * 1000 : 0,
     gcTime: Infinity,
     refetchOnWindowFocus: false,
-    refetchOnMount: false,
+    refetchOnMount: true,
     refetchOnReconnect: false,
     placeholderData: (prev) => prev,
   });

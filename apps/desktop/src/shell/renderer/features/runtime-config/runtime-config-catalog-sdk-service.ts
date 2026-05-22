@@ -14,6 +14,7 @@ import {
   type CatalogWorkflowModel,
   type ModelCatalogProviderEntry,
 } from '@nimiplatform/sdk/runtime';
+import { runtimeModelCatalogService } from '@nimiplatform/nimi-kit/features/model-picker/runtime';
 
 type JsonObject = Record<string, unknown>;
 type JsonValue = unknown;
@@ -253,18 +254,13 @@ function detailToProtoInput(provider: string, detail: RuntimeCatalogModelDetail)
 }
 
 export async function sdkListModelCatalogProviders(): Promise<RuntimeModelCatalogProvider[]> {
-  const response = await runtimeAdmin().listModelCatalogProviders({}, CATALOG_CALL_OPTIONS);
-  return (response.providers || []).map(normalizeProviderEntry).sort((a, b) => a.provider.localeCompare(b.provider));
+  return runtimeModelCatalogService.listProviders();
 }
 export async function sdkListCatalogProviderModels(provider: string, pageSize = 500, pageToken = ''): Promise<RuntimeCatalogProviderModelsResponse> {
-  const request = { provider: provider.trim(), pageSize, pageToken };
-  const response = await runtimeAdmin().listCatalogProviderModels(request, CATALOG_CALL_OPTIONS);
-  return { provider: normalizeProviderEntry(response.provider || {} as ModelCatalogProviderEntry), models: (response.models || []).map(normalizeModelSummary), nextPageToken: String(response.nextPageToken || '').trim(), warnings: normalizeWarnings(response.warnings) };
+  return runtimeModelCatalogService.listProviderModels(provider, pageSize, pageToken);
 }
 export async function sdkGetCatalogModelDetail(provider: string, modelId: string): Promise<RuntimeCatalogModelDetailResponse> {
-  const request = { provider: provider.trim(), modelId: modelId.trim() };
-  const response = await runtimeAdmin().getCatalogModelDetail(request, CATALOG_CALL_OPTIONS);
-  return { provider: normalizeProviderEntry(response.provider || {} as ModelCatalogProviderEntry), model: normalizeModelDetail(response.model), warnings: normalizeWarnings(response.warnings) };
+  return runtimeModelCatalogService.getModelDetail(provider, modelId);
 }
 export async function sdkUpsertCatalogModelOverlay(provider: string, input: RuntimeCatalogModelOverlayInput): Promise<RuntimeCatalogModelDetailResponse> { const response = await runtimeAdmin().upsertCatalogModelOverlay({ provider: provider.trim(), model: detailToProtoInput(provider, input.model), voices: (input.voices || []).map((voice) => ({ voiceSetId: voice.voiceSetId.trim(), provider: provider.trim(), voiceId: voice.voiceId.trim(), name: voice.name.trim(), langs: voice.langs.map((item) => item.trim()).filter(Boolean), modelIds: voice.modelIds.map((item) => item.trim()).filter(Boolean), sourceRef: { url: voice.sourceRef.url.trim(), retrievedAt: voice.sourceRef.retrievedAt.trim(), note: voice.sourceRef.note.trim() } } satisfies CatalogVoiceEntry)), voiceWorkflowModels: (input.voiceWorkflowModels || []).map((workflow) => ({ workflowModelId: workflow.workflowModelId.trim(), workflowType: workflow.workflowType.trim(), inputContractRef: workflow.inputContractRef.trim(), outputPersistence: workflow.outputPersistence.trim(), targetModelRefs: workflow.targetModelRefs.map((item) => item.trim()).filter(Boolean), langs: workflow.langs.map((item) => item.trim()).filter(Boolean), sourceRef: { url: workflow.sourceRef.url.trim(), retrievedAt: workflow.sourceRef.retrievedAt.trim(), note: workflow.sourceRef.note.trim() } } satisfies CatalogWorkflowModel)), modelWorkflowBinding: input.modelWorkflowBinding ? { modelId: input.modelWorkflowBinding.modelId.trim(), workflowModelRefs: input.modelWorkflowBinding.workflowModelRefs.map((item) => item.trim()).filter(Boolean), workflowTypes: input.modelWorkflowBinding.workflowTypes.map((item) => item.trim()).filter(Boolean) } satisfies CatalogModelWorkflowBinding : undefined }, CATALOG_CALL_OPTIONS); return { provider: normalizeProviderEntry(response.provider || {} as ModelCatalogProviderEntry), model: normalizeModelDetail(response.model), warnings: normalizeWarnings(response.warnings) }; }
 export async function sdkDeleteCatalogModelOverlay(provider: string, modelId: string): Promise<RuntimeModelCatalogProvider> { const response = await runtimeAdmin().deleteCatalogModelOverlay({ provider: provider.trim(), modelId: modelId.trim() }, CATALOG_CALL_OPTIONS); return normalizeProviderEntry(response.provider || {} as ModelCatalogProviderEntry); }

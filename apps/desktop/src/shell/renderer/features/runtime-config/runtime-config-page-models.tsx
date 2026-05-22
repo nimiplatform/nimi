@@ -25,12 +25,12 @@ type ModelsPageProps = {
 const SUB_TABS: Array<{ id: ModelsSubTabId; labelKey: string; defaultLabel: string }> = [
   { id: 'recommend', labelKey: 'runtimeConfig.models.tabRecommend', defaultLabel: 'Recommended' },
   { id: 'installed', labelKey: 'runtimeConfig.models.tabInstalled', defaultLabel: 'Installed' },
-  { id: 'catalog', labelKey: 'runtimeConfig.models.tabCatalog', defaultLabel: 'Catalog' },
+  { id: 'catalog', labelKey: 'runtimeConfig.models.tabCatalog', defaultLabel: 'Model Catalog' },
 ];
 
 export function ModelsPage({ model, state }: ModelsPageProps) {
   const { t } = useTranslation();
-  const [subTab, setSubTab] = useState<ModelsSubTabId>('recommend');
+  const [subTab, setSubTab] = useState<ModelsSubTabId>('installed');
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">

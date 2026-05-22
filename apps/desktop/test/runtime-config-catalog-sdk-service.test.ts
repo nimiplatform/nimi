@@ -1,8 +1,15 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import test from 'node:test';
 
 import { CatalogModelSource, ModelCatalogProviderSource, type CatalogModelDetail, type ModelCatalogProviderEntry } from '@nimiplatform/sdk/runtime';
 import { jsonToProtoStruct, normalizeModelDetail, normalizeProviderEntry, protoStructToJson } from '../src/shell/renderer/features/runtime-config/runtime-config-catalog-sdk-service';
+
+const catalogSdkServiceSource = readFileSync(
+  fileURLToPath(new URL('../src/shell/renderer/features/runtime-config/runtime-config-catalog-sdk-service.ts', import.meta.url)),
+  'utf8',
+);
 
 test('normalizeProviderEntry maps overlay metadata and overridden source', () => {
   const entry: ModelCatalogProviderEntry = {
@@ -77,4 +84,12 @@ test('normalizeModelDetail maps video generation and warnings', () => {
   assert.equal(normalized.videoGeneration?.outputs.videoUrl, true);
   assert.deepEqual(normalized.videoGeneration?.limits, { duration_sec: { min: 1, max: 8 } });
   assert.equal(normalized.warnings[0]?.code, 'user_custom_model');
+});
+
+test('catalog read APIs reuse the shared kit runtime catalog service', () => {
+  assert.match(catalogSdkServiceSource, /runtimeModelCatalogService/);
+  assert.match(catalogSdkServiceSource, /runtimeModelCatalogService\.listProviders/);
+  assert.match(catalogSdkServiceSource, /runtimeModelCatalogService\.listProviderModels/);
+  assert.match(catalogSdkServiceSource, /runtimeModelCatalogService\.getModelDetail/);
+  assert.doesNotMatch(catalogSdkServiceSource, /new Runtime\(/);
 });

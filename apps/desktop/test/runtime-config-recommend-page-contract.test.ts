@@ -35,7 +35,7 @@ const enLocale = readDesktopLocale('en');
 const zhLocale = readDesktopLocale('zh');
 
 // T2.4 six-section IA: `recommend` is no longer a top-level Runtime section.
-// It is the default sub-tab inside the canonical `Models` section.
+// It lives as a sub-tab inside the canonical `Models` section.
 
 test('runtime config sidebar exposes Models as a canonical six-section IA entry', () => {
   assert.match(
@@ -63,10 +63,19 @@ test('Models section composes the recommend sub-tab', () => {
   assert.match(modelsPageSource, /CatalogPage/);
 });
 
+test('Models section defaults to the installed sub-tab', () => {
+  assert.match(modelsPageSource, /useState<ModelsSubTabId>\('installed'\)/);
+});
+
 test('recommend page keeps device profile bar, tier summary, and filter toolbar', () => {
   assert.match(recommendPageSource, /DeviceProfileBar/);
   assert.match(recommendPageSource, /TierSummaryBar/);
   assert.match(recommendPageSource, /ModelRow/);
+});
+
+test('recommend page retries empty or stale model-index snapshots on mount', () => {
+  assert.match(recommendPageSource, /cacheState === 'fresh' \? 24 \* 60 \* 60 \* 1000 : 0/);
+  assert.match(recommendPageSource, /refetchOnMount:\s*true/);
 });
 
 test('runtime page meta defines Models section copy', () => {
