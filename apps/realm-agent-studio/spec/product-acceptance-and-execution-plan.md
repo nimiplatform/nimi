@@ -45,17 +45,17 @@ acceptance. Acceptance requires the whole owner workflow to be coherent:
 
 | Gate | Required final acceptance | Current status |
 | --- | --- | --- |
-| A0 Authority and scope | `apps/realm-agent-studio/spec/**` contains the single active product/app authority, including acceptance gates. No topic file or conversation creates parallel truth. | Partial. Core spec exists; this document closes the missing acceptance authority gap. |
+| A0 Authority and scope | `apps/realm-agent-studio/spec/**` contains the single active product/app authority, including acceptance gates. No topic file or conversation creates parallel truth. | W7 accepted. App-slice authority remains under this spec set; W7 evidence updates this document only and does not create parallel truth. |
 | A1 Desktop app shell | App has a real desktop shell path comparable to `apps/parentos`: `dev:shell`, Tauri config, Rust shell bridge where needed, Runtime IPC transport, desktop account/session bootstrap, and no app-owned token fallback. Browser/Vite renderer is only a renderer development surface. | W1 shell baseline closed. The app now has `src-tauri`, `dev:shell`, shared kit Runtime bridge commands, desktop Runtime hook installation, and desktop smoke evidence. |
-| A2 Platform UX system | First screen, navigation, loading, empty, error, form, review, and confirmation states are kit-first and platform-consistent. Custom UI is allowed only after a recorded kit gap. UI must not expose SDK route names, DTO names, raw payloads, or debug contract text as normal product copy. | W2 closed. Workspace navigation, disclosure-backed technical review details, and fail-closed unauthenticated renderer evidence are in place. Final copy pass remains W7 scope. |
+| A2 Platform UX system | First screen, navigation, loading, empty, error, form, review, and confirmation states are kit-first and platform-consistent. Custom UI is allowed only after a recorded kit gap. UI must not expose SDK route names, DTO names, raw payloads, or debug contract text as normal product copy. | W7 accepted for admitted surfaces. Workspace navigation, kit-first controls, review gates, fail-closed states, and disclosure-backed technical evidence are in place. |
 | A3 Information architecture | Owner can move predictably between portfolio, create, agent detail, settings, assets, posts, and local schedule without a single mega-form. Navigation controls are functional, stateful, and do not imply unavailable surfaces. | W2 closed. Shell and in-page workspace controls are functional across Portfolio, Create, Agent Detail, Settings, Assets, Posts, and Local Schedule; tests assert workflows no longer render as one mega-surface. |
 | A4 Owner portfolio and create | Portfolio list/filter/sort, create flow, handle preflight, OASIS/default world selection, selected-world preview, create confirmation, and post-create opening behavior are product-complete. Public draft fields are not silently dropped. | W3 closed. Portfolio/create/detail owner surfaces are complete for the admitted first-version scope; public bio is preserved as a post-create settings continuation instead of being silently submitted or dropped. |
 | A5 Settings and rule-of-truth | Settings flow is natural-language-first plus structured fields, AI proposal/review where useful, field-to-layer clarity, human review, owner settings save, and no raw world-scoped `AgentRule` CRUD. | W4 closed. Runtime-assisted settings proposals are candidate-only, apply to visible fields for owner review, and save only through owner-scoped `MeService.updateMyRealmAgentSettings`. |
 | A6 Creative identity assets | Avatar, profile cover/background, visual candidates, upload/generation, local history, owner review, public write success, and deferred public asset paths are clearly separated. App-local history is durable enough for the desktop product shape. | W5 closed for admitted surfaces. Avatar URL remains the only owner-reviewed public profile asset write; Runtime image candidates, identity Resource upload, voice-demo candidates, and app-local creative history are candidate-only. Profile cover/background and Resource-to-Agent binding publication remain explicitly deferred pending owner-scoped Realm ingress. |
 | A7 Agent-authored posts | Owner can draft from agent voice, use AI assistance, attach canonical media, human-review, publish through Realm, and create a single local schedule that is actually persisted/executable or explicitly not admitted. | W6 closed for admitted surfaces. Post copy assistance is candidate-only, attachment and publish paths use Realm canonical services, and one app-local schedule is persisted per agent with foreground due execution. Realm publish success is claimed only after `PostsService.createPost` returns canonical post identity. |
-| A8 Runtime AI consumption | Runtime AI support covers setting rewrite/proposal, visual/image generation candidates when available, post copy, voice demo, and source-backed suggestions through SDK surfaces. Runtime output remains candidate material until owner review. | Partial. W4 closes settings proposals, W5 closes visual image candidates and voice demo candidate behavior, and W6 closes post-copy assistance through `runtime.ai.text.generate`. Source-backed portfolio suggestions remain final/deferred audit scope. |
-| A9 Failure and recovery | Every failure state preserves valid local work, names the unavailable source/capability in product terms, avoids pseudo-success, and gives a valid next action. | Partial. Fail-closed exists in many client paths; UI recovery is not yet product-wide. |
-| A10 Verification evidence | Final closeout includes desktop-shell smoke, renderer screenshot only as secondary evidence, unit/integration tests, boundary checks, spec governance, no app REST bypass, no first-party SDK misuse, and acceptance matrix results per gate. | Not accepted. Current evidence covers renderer tests/build/boundary checks only. |
+| A8 Runtime AI consumption | Runtime AI support covers setting rewrite/proposal, visual/image generation candidates when available, post copy, voice demo, and source-backed suggestions through SDK surfaces. Runtime output remains candidate material until owner review. | W7 accepted for admitted surfaces. Settings proposals, visual candidates, voice-demo candidates, and post copy use Runtime SDK surfaces and remain owner-reviewed candidate material. Source-backed portfolio suggestions are explicitly deferred until an admitted owner-scoped suggestion surface exists. |
+| A9 Failure and recovery | Every failure state preserves valid local work, names the unavailable source/capability in product terms, avoids pseudo-success, and gives a valid next action. | W7 accepted for admitted surfaces. Client and UI tests cover fail-closed Realm/Runtime/source failures, invalid output, unavailable transport, local schedule invalidity, and no pseudo-success. |
+| A10 Verification evidence | Final closeout includes desktop-shell smoke, renderer screenshot only as secondary evidence, unit/integration tests, boundary checks, spec governance, no app REST bypass, no first-party SDK misuse, and acceptance matrix results per gate. | W7 accepted for Realm Agent Studio. Desktop shell smoke, Studio tests/build, boundary checks, spec governance, dependency alignment, and A0-A10 audit are recorded below. Repo-wide AI governance still has unrelated pre-existing errors outside Studio. |
 
 ## Current Implementation Gap Audit
 
@@ -114,7 +114,7 @@ P2 gaps:
 | W4 Settings and AI proposal workflow | closed | W3 | Natural-language setting edits, Runtime-assisted proposal/rewrite, structured field review, owner settings save, no raw rule CRUD. | A5 and A8 settings subset passed. |
 | W5 Creative identity and media workflow | closed | W3 | Avatar/profile cover strategy, visual/image candidates, upload, local durable history, clear blocked/deferred public asset publishing. | A6 and A8 visual subset passed for admitted surfaces; blocked Realm profile/binding publication is explicitly deferred. |
 | W6 Agent post and local schedule | closed | W3 | Agent-authored post composer, AI copy assistance, attachments, human review, publish, and real app-local single schedule. | A7 and A8 post-copy subset passed. App-local schedule is persisted and foreground-executable when due. |
-| W7 Final acceptance hardening | candidate | W4, W5, W6 | Run complete acceptance matrix, desktop smoke, renderer screenshot, spec/boundary checks, copy pass, release-risk audit. | A0-A10 pass or carry explicit deferred Realm-surface blockers. |
+| W7 Final acceptance hardening | closed | W4, W5, W6 | Run complete acceptance matrix, desktop smoke, renderer screenshot, spec/boundary checks, copy pass, release-risk audit. | A0-A10 accepted for admitted Realm Agent Studio surfaces; deferred Realm-surface blockers and repo-wide non-Studio governance risks are recorded. |
 
 Wave ordering follows `.nimi/methodology/wave-dag-policy.yaml`: upstream owner
 and app shell decisions close before downstream feature fan-out. Parallelization
@@ -374,3 +374,62 @@ W6 closed on 2026-05-22 with:
 
 W6 closure does not claim final product acceptance. W7 remains responsible for
 complete A0-A10 hardening, desktop smoke, copy pass, and release-risk audit.
+
+## W7 Closure Evidence
+
+W7 closed on 2026-05-22 with:
+
+- Final hardening stayed in `Work Type=alignment` under
+  `apps/realm-agent-studio/spec/**`; no topic, renderer result, or conversation
+  note was promoted to parallel product truth.
+- The owner portfolio renderer was split by workflow ownership into bounded
+  Portfolio, Settings, Assets, Posts, and shared modules. The SDK client was
+  split into core owner/create, settings/projection, media/avatar, and
+  post/resource modules. The oversized client test was split into workflow
+  tests with shared fixtures. Studio-specific AI governance oversize errors are
+  gone.
+- `@tauri-apps/api` is aligned to the available Tauri 2.11 minor
+  (`^2.11.0`) used by the Rust shell dependency line. The W7 desktop smoke no
+  longer emits the prior Tauri 2.11.2 / JS 2.10.1 minor mismatch warning.
+- Real desktop smoke ran through `pnpm exec tauri dev --config
+  src-tauri/tauri.conf.json` from `apps/realm-agent-studio`. Vite opened
+  `http://127.0.0.1:1426/`, Cargo launched
+  `target/debug/nimiplatform-realm-agent-studio`, dotenv loaded, and the binary
+  logged `realm-agent-studio main() entered`. The process was then terminated
+  after evidence capture; renderer success alone was not used as acceptance.
+- `pnpm --filter @nimiplatform/realm-agent-studio typecheck` passed.
+- `pnpm --filter @nimiplatform/realm-agent-studio test` passed with 13 files and
+  136 tests.
+- `pnpm --filter @nimiplatform/realm-agent-studio build` passed, including
+  renderer production build and Tauri `cargo check`. The existing large-chunk,
+  circular-chunk, and empty `sdk-realm` renderer warnings remain release-risk
+  items, not current acceptance blockers.
+- `pnpm check:no-retired-methodology-refs` passed.
+- `pnpm check:no-legacy-imports` passed.
+- `pnpm check:no-absolute-user-paths` passed.
+- `pnpm check:no-app-realm-rest-bypass` passed.
+- `pnpm check:no-first-party-sdk-client-construction` passed.
+- `pnpm exec nimicoding validate-spec-governance --profile nimi --scope
+  apps/realm-agent-studio` passed.
+- `pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope
+  spec-human-doc --check` passed.
+- `pnpm nimicoding:validate-ai-governance --profile nimi --scope all` still
+  fails on pre-existing repo-wide files outside Realm Agent Studio, including
+  `.nimi/spec/runtime/kernel/runtime-agent-service-contract.md`,
+  `apps/desktop/**`, `runtime/**`, and `sdk/**` oversized-file errors. The rerun
+  no longer reports Studio files as errors.
+
+Deferred blockers and risks carried after W7:
+
+- Source-backed portfolio suggestions remain deferred until an admitted
+  owner-scoped Realm/Runtime suggestion surface exists.
+- Profile cover/background publication and Resource-to-Agent Binding public
+  truth remain deferred until Realm admits an owner-scoped binding ingress.
+- Local scheduling remains a single app-local foreground schedule, not Realm
+  schedule truth, recurrence, campaign, or queue state.
+- Renderer bundle-size warnings remain release-risk debt for later chunking
+  work; they do not alter the owner authority or product truth model.
+
+W7 accepts Realm Agent Studio final product scope for the admitted W2-W7 owner
+surfaces. Acceptance still excludes the deferred Realm surfaces named above and
+does not claim repo-wide AI governance completion outside this app.
