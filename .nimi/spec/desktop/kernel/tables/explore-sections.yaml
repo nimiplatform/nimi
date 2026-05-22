@@ -13,6 +13,3 @@ entries:
   - id: activity
     name: Activity
     semantics: Public Realm activity from Worlds, friends, and Agents where admitted.
-  - id: create-agent
-    name: Create Agent
-    semantics: Lightweight RealmAgent creation inside a selected World.

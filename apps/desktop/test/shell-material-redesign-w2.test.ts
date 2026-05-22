@@ -9,6 +9,7 @@ function readWorkspaceFile(relativePath: string): string {
 
 const appRoutesSource = readWorkspaceFile('src/shell/renderer/app-shell/routes/app-routes.tsx');
 const mainLayoutViewSource = readWorkspaceFile('src/shell/renderer/app-shell/layouts/main-layout-view.tsx');
+const mainLayoutSettingsMenuSource = readWorkspaceFile('src/shell/renderer/app-shell/layouts/main-layout-settings-menu.tsx');
 const mainLayoutTopbarSource = readWorkspaceFile('src/shell/renderer/app-shell/layouts/main-layout-topbar.tsx');
 const navConfigSource = readWorkspaceFile('src/shell/renderer/app-shell/layouts/navigation-config.tsx');
 const sidebarTooltipSource = readWorkspaceFile('src/shell/renderer/app-shell/layouts/main-layout-sidebar-tooltip-button.tsx');
@@ -22,10 +23,11 @@ test('W2 shell redesign: shared status shell adopts AmbientBackground and glass 
 });
 
 test('W2 shell redesign: main layout owns ambient root and glass shell hosts', () => {
-  assert.match(mainLayoutViewSource, /import \{ AmbientBackground, ScrollArea, Surface \} from '@nimiplatform\/nimi-kit\/ui';/);
+  assert.match(mainLayoutViewSource, /import \{ AmbientBackground, ScrollArea \} from '@nimiplatform\/nimi-kit\/ui';/);
   assert.match(mainLayoutViewSource, /<AmbientBackground[\s\S]*data-testid=\{E2E_IDS\.mainShell\}[\s\S]*variant="mesh"/);
   assert.match(mainLayoutViewSource, /<aside[\s\S]*data-testid=\{E2E_IDS\.shellSidebarRail\}/);
-  assert.match(mainLayoutViewSource, /<Surface[\s\S]*tone="overlay"[\s\S]*material="glass-thick"/);
+  assert.match(mainLayoutViewSource, /<MainLayoutSettingsMenu/);
+  assert.match(mainLayoutSettingsMenuSource, /<Surface[\s\S]*tone="overlay"[\s\S]*material="glass-thick"/);
 });
 
 test('W2 shell redesign: shell chrome tooltips and topbar use shared material language', () => {

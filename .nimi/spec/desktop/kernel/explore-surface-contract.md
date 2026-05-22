@@ -4,8 +4,8 @@
 
 ## Scope
 
-定义 Desktop `Explore` 作为 Realm 发现表面的产品语义内核：四区结构
-（Worlds / Agents / Activity / Create Agent）、World card 与 World detail
+定义 Desktop `Explore` 作为 Realm 发现表面的产品语义内核：三区结构
+（Worlds / Agents / Activity）、World card 与 World detail
 的产品字段语义、RealmAgent card 与 friend-state → primary-action 模型、
 以及 lightweight RealmAgent creation（manual / Character Card import /
 AI-assisted）的 draft-before-truth 规则。
@@ -32,8 +32,8 @@ Realm 真值。它 **不拥有**：
 
 ## D-EXPL-001 — Explore 是统一 Realm 发现表面
 
-`MUST`：`Explore` 是 Realm 内容（Worlds、RealmAgents、public activity、
-RealmAgent 创建入口）的唯一统一发现表面。Desktop 既有的独立 `World`
+`MUST`：`Explore` 是 Realm 内容（Worlds、RealmAgents、public activity）
+的唯一统一发现表面。Desktop 既有的独立 `World`
 页面与 World detail 路由必须折入 `Explore`。
 
 `MUST`：`Explore` primary navigation 入口由 `D-SHELL-001` 拥有；本规则只
@@ -43,11 +43,11 @@ RealmAgent 创建入口）的唯一统一发现表面。Desktop 既有的独立 
 `World` 入口。`Explore` 当前阶段不得承载 App / Nimi App / Mod / Extension
 发现 —— App discovery 属于 `Apps` 表面（`D-HOME-004`），不在本契约范围。
 
-`MUST NOT`：不得把 `Explore` 退化成单一列表而丢失下述四区的语义区分。
+`MUST NOT`：不得把 `Explore` 退化成单一列表而丢失下述三区的语义区分。
 
-## D-EXPL-002 — Explore 四区结构
+## D-EXPL-002 — Explore 三区结构
 
-`MUST`：`Explore` 的产品结构固定为四个 section，语义事实源为
+`MUST`：`Explore` 的产品结构固定为三个 section，语义事实源为
 `tables/explore-sections.yaml`：
 
 | Section | 产品职责 |
@@ -55,13 +55,9 @@ RealmAgent 创建入口）的唯一统一发现表面。Desktop 既有的独立 
 | `Worlds` | 浏览 admitted Realm Worlds，并进入 World detail。 |
 | `Agents` | 跨 Worlds 发现 RealmAgents。 |
 | `Activity` | 在 admitted 范围内呈现来自 Worlds、friends、Agents 的 public Realm activity。 |
-| `Create Agent` | 在选定 World 内进行 lightweight RealmAgent creation。 |
-
-`MUST`：`Create Agent` 是发现表面内的创建入口，其创建流程的实际执行受
-`D-EXPL-008` ~ `D-EXPL-012` 约束。
 
 `MUST NOT`：不得新增、删除、或重命名 section 而不更新
-`tables/explore-sections.yaml` 与本规则；不得把 four-section 语义压缩为
+`tables/explore-sections.yaml` 与本规则；不得把 three-section 语义压缩为
 无区分的混合流。
 
 ## D-EXPL-003 — World Card 字段语义
@@ -281,13 +277,13 @@ creation 只允许 controlled / admitted 创建路径，不是 ordinary open-use
 `MUST`：`Explore` 对 ordinary 用户只暴露 **在 admitted World 内创建
 RealmAgent** 的能力（`D-EXPL-008`），不暴露自由创建 World 的入口。
 
-`MUST NOT`：`Explore` 任何 section（包含 `Worlds`、`Create Agent`）都
+`MUST NOT`：`Explore` 任何 section（包含 `Worlds`）都
 不得向 ordinary 用户提供自由 World 创建入口；World creation admission
 真值由 Realm world kernel 契约拥有，不在本契约范围。
 
 ## Fact Sources
 
-- `.nimi/spec/desktop/kernel/tables/explore-sections.yaml` — Explore 四区 catalog
+- `.nimi/spec/desktop/kernel/tables/explore-sections.yaml` — Explore 三区 catalog
 - `.nimi/spec/desktop/kernel/tables/realm-agent-friend-actions.yaml` — friend-state → primary-action 状态机
 - `.nimi/spec/desktop/kernel/tables/realm-agent-creation-modes.yaml` — creation modes catalog
 - `.nimi/spec/desktop/kernel/tables/realm-agent-creation-fields.yaml` — creation 最小字段集 catalog

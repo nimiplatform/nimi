@@ -384,6 +384,11 @@ export default defineConfig(({ mode }) => {
                 return 'chat-agent-shell';
               }
             }
+            if (
+              normalizedId.includes('/apps/desktop/src/shell/renderer/app-shell/providers/desktop-memory-embedding-config-')
+            ) {
+              return 'runtime-memory-embedding-config';
+            }
             if (normalizedId.includes('/apps/desktop/src/shell/renderer/features/runtime-config/')) {
               if (normalizedId.includes('/runtime-config-navigation-events')) {
                 return 'runtime-config-overview';

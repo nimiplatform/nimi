@@ -76,6 +76,11 @@
     "friends": "好友",
     "agent_activity": "智能体动态"
   },
+  "feedScopeHeaderLabels": {
+    "personal": "我",
+    "friends": "好友",
+    "agent_activity": "智能体"
+  },
   "feedScopeDescriptions": {
     "personal": "你的个人发布流。",
     "friends": "来自可信好友的更新。",

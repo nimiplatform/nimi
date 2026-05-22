@@ -53,6 +53,26 @@ test('desktop agent center local config bridge stays with the agent chat chunk',
   );
 });
 
+test('desktop settings dependencies stay out of the agent chat chunk', () => {
+  const navigationEventsExceptionIndex = viteConfigSource.indexOf(
+    "normalizedId.includes('/runtime-config-navigation-events')",
+  );
+  const memoryEmbeddingProviderChunkIndex = viteConfigSource.indexOf(
+    '/app-shell/providers/desktop-memory-embedding-config-',
+  );
+
+  assert.notEqual(navigationEventsExceptionIndex, -1);
+  assert.notEqual(memoryEmbeddingProviderChunkIndex, -1);
+  assert.match(
+    viteConfigSource.slice(navigationEventsExceptionIndex, navigationEventsExceptionIndex + 180),
+    /return 'runtime-config-overview';/,
+  );
+  assert.match(
+    viteConfigSource.slice(memoryEmbeddingProviderChunkIndex, memoryEmbeddingProviderChunkIndex + 220),
+    /return 'runtime-memory-embedding-config';/,
+  );
+});
+
 test('desktop renderer entrypoint is packaged-local and has no remote boot resources', () => {
   assert.doesNotMatch(rendererEntryHtml, /https?:\/\//);
   assert.doesNotMatch(rendererEntryHtml, /fonts\.(googleapis|gstatic)\.com/);

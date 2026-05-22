@@ -17,6 +17,9 @@ function readDesktopFile(relativePath: string): string {
 
 const explorePanelSource = readRendererFile('features/explore/explore-panel.tsx');
 const exploreViewSource = readRendererFile('features/explore/explore-view.tsx');
+const exploreSectionNavSource = readRendererFile('features/explore/explore-section-nav.tsx');
+const mainLayoutViewSource = readRendererFile('app-shell/layouts/main-layout-view.tsx');
+const mainLayoutTitlebarContentSource = readRendererFile('app-shell/layouts/main-layout-titlebar-content.tsx');
 const worldListSource = readRendererFile('features/world/world-list.tsx');
 const worldDetailSource = readRendererFile('features/world/world-detail.tsx');
 const worldCreateAgentAdmissionSource = readRendererFile('features/world/world-create-agent-admission.ts');
@@ -49,13 +52,16 @@ test('Explore fold keeps RealmAgent discovery as Explore-owned discovery without
   assert.doesNotMatch(worldDetailSource, /onChatAgent=\{/);
 });
 
-test('Explore exposes the canonical four-section discovery IA', () => {
-  // D-EXPL-002: Worlds / Agents / Activity / Create Agent.
+test('Explore exposes the canonical three-section discovery IA', () => {
+  // D-EXPL-002: Worlds / Agents / Activity.
   assert.match(exploreViewSource, /data-testid="explore-worlds-section"/);
   assert.match(exploreViewSource, /data-testid="explore-agents-section"/);
   assert.match(exploreViewSource, /data-testid="explore-activity-section"/);
-  assert.match(exploreViewSource, /ExploreCreateAgentSection/);
-  assert.match(exploreViewSource, /ExploreSectionNav/);
+  assert.doesNotMatch(exploreViewSource, /ExploreCreateAgentSection/);
+  assert.doesNotMatch(exploreViewSource, /explore-create-agent-section/);
+  assert.match(exploreSectionNavSource, /EXPLORE_SECTION_IDS:\s*readonly ExploreSectionId\[\]\s*=\s*\[\s*'worlds',\s*'agents',\s*'activity'/);
+  assert.match(mainLayoutViewSource, /<MainLayoutTitlebarContent/);
+  assert.match(mainLayoutTitlebarContentSource, /<ExploreSectionNav[\s\S]*active=\{props\.exploreActiveSection\}[\s\S]*variant="topbar"/);
   // Agents section is a full discovery grid, not a truncated carousel.
   assert.doesNotMatch(explorePanelSource, /TOP_AGENTS_COUNT/);
 });

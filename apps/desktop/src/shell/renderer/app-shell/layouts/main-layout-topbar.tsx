@@ -1,7 +1,6 @@
 import type { MouseEvent, ReactNode, RefObject } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Tooltip } from '@nimiplatform/nimi-kit/ui';
-import { ModWorkspaceTabs } from '@renderer/features/mod-workspace/mod-workspace-tabs';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import {
   SHELL_CHROME_ACTION_CELL_CLASS,
@@ -11,8 +10,8 @@ import {
 
 type MainLayoutTopBarProps = {
   authStatus: 'bootstrapping' | 'anonymous' | 'authenticated';
-  enableModWorkspaceTabs: boolean;
   titlebarLeftInsetClass: string;
+  titlebarContent?: ReactNode;
   sparkBalance: number;
   gemBalance: number;
   balancesPending: boolean;
@@ -57,9 +56,9 @@ export function MainLayoutTopBar(props: MainLayoutTopBarProps) {
       onMouseDown={props.onMouseDown}
     >
       <div className="flex h-full w-full items-center border-b border-[color-mix(in_srgb,var(--nimi-border-subtle)_78%,white)] px-1">
-        {props.enableModWorkspaceTabs ? (
-          <div data-mod-tab-interactive="true" className="h-full w-fit max-w-[52vw]">
-            <ModWorkspaceTabs placement="titlebar" />
+        {props.titlebarContent ? (
+          <div className="min-w-0 flex-1">
+            {props.titlebarContent}
           </div>
         ) : null}
         <div className="ml-auto flex items-center gap-3">

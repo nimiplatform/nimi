@@ -132,9 +132,15 @@ export function AgentDetailPanel() {
     }
   };
 
-  // `limit_reached` → Manage Agent friends.
+  // `limit_reached` no longer routes to a retired Contacts page. Keep the
+  // action fail-closed until an in-context management action is admitted.
   const handleManageFriends = () => {
-    setActiveTab('contacts');
+    setFeedback({
+      kind: 'warning',
+      message: i18n.t('AgentDetail.agentFriendLimitManagementUnavailable', {
+        defaultValue: 'Agent friend limit reached. Remove an agent friend from a profile before adding another.',
+      }),
+    });
   };
 
   if (!agentIdentifier) {

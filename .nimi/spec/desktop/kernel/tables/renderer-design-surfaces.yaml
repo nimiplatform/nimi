@@ -94,13 +94,6 @@ surfaces:
     exception_policy: none
     testid_required: true
     source_rule: D-SHELL-022
-  - id: contacts.view.root
-    module: features/contacts/contacts-view.tsx
-    role: contacts_root
-    surface_profile: baseline
-    exception_policy: allowlisted_arbitrary
-    testid_required: true
-    source_rule: D-SHELL-019
   - id: contacts.blocked_users.dialogs
     module: features/contacts/contacts-blocked-users.tsx
     role: block_restore_dialogs
@@ -204,13 +197,6 @@ surfaces:
     role: contacts_profile_detail_shell_exception
     surface_profile: exception
     exception_policy: controlled
-    testid_required: false
-    source_rule: D-SHELL-032
-  - id: contacts.friend_requests.cards
-    module: features/contacts/contacts-friend-requests.tsx
-    role: contacts_friend_requests_cards
-    surface_profile: secondary
-    exception_policy: none
     testid_required: false
     source_rule: D-SHELL-032
   - id: settings.operational.cards

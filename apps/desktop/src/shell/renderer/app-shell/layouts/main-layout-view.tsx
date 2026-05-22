@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { useAppStore, type AppTab } from '@renderer/app-shell/providers/app-store';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
-import { AmbientBackground, ScrollArea, Surface } from '@nimiplatform/nimi-kit/ui';
+import { AmbientBackground, ScrollArea } from '@nimiplatform/nimi-kit/ui';
 import type { UiExtensionContext } from '@renderer/mod-ui/contracts';
 import { resolveRouteTabExtension } from '@renderer/mod-ui/lifecycle/sync-runtime-extensions';
 import { StatusBanner } from '@renderer/ui/feedback/status-banner';
@@ -12,6 +12,9 @@ import {
   notificationQueryKeys,
   resolveNotificationIdentityRef,
 } from '@renderer/features/notification/notification-query.js';
+import type { PostFeedScope } from '@runtime/data-sync';
+import { DEFAULT_HOME_FEED_SCOPE } from '@renderer/features/home/home-feed-controls';
+import type { ExploreSectionId } from '@renderer/features/explore/explore-section-nav';
 import {
   loadStoredSettingsSelected,
   persistStoredSettingsSelected,
@@ -25,28 +28,23 @@ import { loadWorldDetailPanelModule, WorldDetailRouteLoading } from '@renderer/f
 import { getShellFeatureFlags } from '@nimiplatform/nimi-kit/core/shell-mode';
 import { DesktopReleaseStrip } from './desktop-release-strip';
 import { MainLayoutTopBar } from './main-layout-topbar';
+import { MainLayoutSettingsMenu, type SettingsSubmenuItemId } from './main-layout-settings-menu';
+import { MainLayoutTitlebarContent } from './main-layout-titlebar-content';
 import { SidebarTooltipButton } from './main-layout-sidebar-tooltip-button';
 import { OfflineShellStrip } from './offline-shell-strip';
 import {
   SHELL_CHROME_INTERACTIVE_RADIUS_CLASS,
-  SHELL_CHROME_MENU_ITEM_BASE_CLASS,
-  SHELL_CHROME_OVERLAY_CLASS,
 } from './shell-chrome-classes';
 import {
   getCoreNavItems,
   getQuickNavItems,
   NavLink,
-  renderShellNavIcon,
 } from './navigation-config';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 
 const ChatPage = lazy(async () => {
   const mod = await import('@renderer/features/chat/chat-page');
   return { default: mod.ChatPage };
-});
-const ContactsPanel = lazy(async () => {
-  const mod = await import('@renderer/features/contacts/contacts-panel');
-  return { default: mod.ContactsPanel };
 });
 const ExplorePanel = lazy(async () => {
   const mod = await import('@renderer/features/explore/explore-panel');
@@ -112,47 +110,6 @@ const SlotHost = lazy(async () => {
   const mod = await import('@renderer/mod-ui/host/slot-host');
   return { default: mod.SlotHost };
 });
-type SettingsSubmenuItemId =
-  | 'profile'
-  | 'wallet'
-  | 'settings'
-  | 'support'
-  | 'developer-tools'
-  | 'terms-of-service'
-  | 'privacy-policy'
-  | 'logout';
-type SettingsSubmenuItem = {
-  id: SettingsSubmenuItemId;
-  label: string;
-  icon: string;
-};
-const SETTINGS_SUBMENU_ITEMS: SettingsSubmenuItem[] = [
-  { id: 'profile', label: 'Profile', icon: 'profile' },
-  { id: 'wallet', label: 'Wallet', icon: 'wallet' },
-  { id: 'settings', label: 'Settings', icon: 'settings' },
-  // D-SUP-001: Support is reachable from the account-area menu, peer to
-  // Settings — it is NOT injected into the six-item ordinary primary nav.
-  { id: 'support', label: 'Support', icon: 'support' },
-  // D-DEV-001 / D-DEV-007: Developer Tools is a developer-group surface. It is
-  // appended to the account-area menu ONLY when admitted Developer Mode is on
-  // (see `developerToolsMenuItems` below) — default-invisible, never primary
-  // nav.
-  { id: 'developer-tools', label: 'Developer Tools', icon: 'developer-tools' },
-  { id: 'terms-of-service', label: 'Terms of Service', icon: 'terms-of-service' },
-  { id: 'privacy-policy', label: 'Privacy Policy', icon: 'privacy-policy' },
-  { id: 'logout', label: 'Logout', icon: 'logout' },
-];
-const SETTINGS_SUBMENU_I18N_KEYS: Record<SettingsSubmenuItemId, string> = {
-  profile: 'Menu.profile',
-  wallet: 'Menu.wallet',
-  settings: 'Menu.settings',
-  support: 'Menu.support',
-  'developer-tools': 'DeveloperTools.navLabel',
-  'terms-of-service': 'Menu.termsOfService',
-  'privacy-policy': 'Menu.privacyPolicy',
-  logout: 'Menu.logout',
-};
-
 function parseBalanceValue(input: unknown): number {
   const raw = typeof input === 'string' ? Number(input) : (typeof input === 'number' ? input : 0);
   if (!Number.isFinite(raw) || raw < 0) {
@@ -254,6 +211,10 @@ export function MainLayoutView(props: MainLayoutViewProps) {
   const settingsMenuRef = useRef<HTMLDivElement>(null);
   const sidebarWidthClass = 'w-[60px]';
   const titlebarLeftInsetClass = flags.enableTitlebarDrag ? 'pl-[92px]' : 'pl-3';
+  const [exploreActiveSection, setExploreActiveSection] = useState<ExploreSectionId>('worlds');
+  const [exploreSearchText, setExploreSearchText] = useState('');
+  const [homeFeedScope, setHomeFeedScope] = useState(DEFAULT_HOME_FEED_SCOPE);
+  const [homeCreatePostRequestKey, setHomeCreatePostRequestKey] = useState(0);
 
   // Keep-alive: once the runtime tab is visited, keep the component mounted (display:none
   // when inactive) so that subsequent visits are instant — no re-init, no re-hydration.
@@ -481,8 +442,19 @@ export function MainLayoutView(props: MainLayoutViewProps) {
     >
       <MainLayoutTopBar
         authStatus={props.authStatus}
-        enableModWorkspaceTabs={flags.enableModWorkspaceTabs}
         titlebarLeftInsetClass={titlebarLeftInsetClass}
+        titlebarContent={(
+          <MainLayoutTitlebarContent
+            activeTab={props.activeTab}
+            homeFeedScope={homeFeedScope}
+            onHomeFeedScopeChange={(scope: PostFeedScope) => setHomeFeedScope(scope)}
+            onCreatePostRequest={() => setHomeCreatePostRequestKey((current) => current + 1)}
+            exploreActiveSection={exploreActiveSection}
+            onExploreSectionChange={setExploreActiveSection}
+            exploreSearchText={exploreSearchText}
+            onExploreSearchTextChange={setExploreSearchText}
+          />
+        )}
         sparkBalance={sparkBalance}
         gemBalance={gemBalance}
         balancesPending={balancesQuery.isPending}
@@ -568,7 +540,10 @@ export function MainLayoutView(props: MainLayoutViewProps) {
           <Suspense fallback={props.activeTab === 'world-detail' ? <WorldDetailRouteLoading /> : <div className="flex min-h-0 flex-1" />}>
             {props.activeTab === 'home' ? (
               <div data-testid={E2E_IDS.panel('home')} className="flex min-h-0 flex-1 flex-col">
-                <HomePanel />
+                <HomePanel
+                  createPostRequestKey={homeCreatePostRequestKey}
+                  feedScope={homeFeedScope}
+                />
               </div>
             ) : null}
 
@@ -578,15 +553,12 @@ export function MainLayoutView(props: MainLayoutViewProps) {
               </div>
             ) : null}
 
-            {props.activeTab === 'contacts' ? (
-              <div data-testid={E2E_IDS.panel('contacts')} className="flex min-h-0 flex-1 flex-col">
-                <ContactsPanel />
-              </div>
-            ) : null}
-
             {props.activeTab === 'explore' ? (
               <div data-testid={E2E_IDS.panel('explore')} className="flex min-h-0 flex-1 flex-col">
-                <ExplorePanel />
+                <ExplorePanel
+                  activeSection={exploreActiveSection}
+                  searchText={exploreSearchText}
+                />
               </div>
             ) : null}
 
@@ -677,139 +649,26 @@ export function MainLayoutView(props: MainLayoutViewProps) {
       </div>
 
       {settingsMenuOpen ? (
-        <div
-          ref={settingsMenuRef}
-          className="fixed z-[11010]"
-          style={{
-            top: `${collapsedSettingsMenuPosition?.top ?? 76}px`,
-            left: `${collapsedSettingsMenuPosition?.left ?? 81}px`,
-          }}
-        >
-          <Surface
-            tone="overlay"
-            material="glass-thick"
-            padding="none"
-            className={`flex max-h-[calc(100vh-100px)] w-64 flex-col overflow-hidden py-2 ${SHELL_CHROME_OVERLAY_CLASS}`}
-          >
-            <div className="flex items-center gap-3 px-4 py-3">
-              <EntityAvatar
-                imageUrl={props.userAvatarUrl}
-                name={props.displayName}
-                kind="human"
-                sizeClassName="h-10 w-10"
-                textClassName="text-sm font-semibold"
-              />
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-semibold text-[var(--nimi-text-primary)]">{props.displayName}</p>
-                {props.userEmail ? (
-                  <p className="truncate text-xs text-[var(--nimi-text-secondary)]">{props.userEmail}</p>
-                ) : null}
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  persistStoredSettingsSelected('profile');
-                  props.onNav('settings');
-                  setSettingsMenuOpen(false);
-                }}
-                className="flex h-7 w-7 items-center justify-center rounded-full text-[var(--nimi-text-secondary)] transition hover:bg-[var(--nimi-action-ghost-hover)] hover:text-[var(--nimi-action-primary-bg)]"
-                title={t('Layout.editProfile', { defaultValue: 'Edit Profile' })}
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M12 20h9" />
-                  <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
-                </svg>
-              </button>
-            </div>
-
-            <div className="mx-4 my-2 h-px bg-gradient-to-r from-transparent via-[color-mix(in_srgb,var(--nimi-action-primary-bg)_24%,white)] to-transparent" />
-
-            <ScrollArea className="flex-1">
-              <div className="px-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    openSettingsSubmenuItem('profile');
-                  }}
-                  className={`${SHELL_CHROME_MENU_ITEM_BASE_CLASS} ${
-                    isSettingsMenuItemActive('profile')
-                      ? 'bg-[var(--nimi-action-ghost-hover)] text-[var(--nimi-action-primary-bg)]'
-                      : 'text-[var(--nimi-text-primary)] hover:bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_6%,white)]'
-                  }`}
-                >
-                  <span className={`w-4 shrink-0 ${isSettingsMenuItemActive('profile') ? 'text-[var(--nimi-action-primary-bg)]' : 'text-[var(--nimi-text-secondary)]'}`}>
-                    {renderShellNavIcon('profile')}
-                  </span>
-                  <span className="min-w-0 flex-1 text-left font-medium">{t(SETTINGS_SUBMENU_I18N_KEYS.profile ?? '', 'Profile')}</span>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[color-mix(in_srgb,var(--nimi-text-secondary)_45%,white)]">
-                    <path d="m9 18 6-6-6-6" />
-                  </svg>
-                </button>
-
-                {SETTINGS_SUBMENU_ITEMS.filter((item) => {
-                  if (item.id === 'logout' || item.id === 'profile') {
-                    return false;
-                  }
-                  // D-DEV-001 / D-DEV-007: the Developer Tools entry is
-                  // default-invisible and appears only when admitted
-                  // Developer Mode is on.
-                  if (item.id === 'developer-tools') {
-                    return developerModeEnabled;
-                  }
-                  return true;
-                }).map((item) => {
-                  const active = isSettingsMenuItemActive(item.id);
-                  return (
-                    <button
-                      key={item.id}
-                      type="button"
-                      onClick={() => {
-                        openSettingsSubmenuItem(item.id);
-                      }}
-                      className={`${SHELL_CHROME_MENU_ITEM_BASE_CLASS} ${
-                        active
-                          ? 'bg-[var(--nimi-action-ghost-hover)] text-[var(--nimi-action-primary-bg)]'
-                          : 'text-[var(--nimi-text-primary)] hover:bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_6%,white)]'
-                      }`}
-                    >
-                      <span className={`w-4 shrink-0 ${active ? 'text-[var(--nimi-action-primary-bg)]' : 'text-[var(--nimi-text-secondary)]'}`}>
-                        {renderShellNavIcon(item.icon)}
-                      </span>
-                      <span className="min-w-0 flex-1 text-left font-medium">{t(SETTINGS_SUBMENU_I18N_KEYS[item.id] ?? '', item.label)}</span>
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[color-mix(in_srgb,var(--nimi-text-secondary)_45%,white)]">
-                        <path d="m9 18 6-6-6-6" />
-                      </svg>
-                    </button>
-                  );
-                })}
-              </div>
-
-              <div className="mx-4 my-2 h-px bg-gradient-to-r from-transparent via-[color-mix(in_srgb,var(--nimi-text-secondary)_14%,white)] to-transparent" />
-
-              <div className="px-2 pb-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    props.onLogout();
-                    setSettingsMenuOpen(false);
-                  }}
-                  className={`${SHELL_CHROME_MENU_ITEM_BASE_CLASS} text-[var(--nimi-text-primary)] hover:bg-[color-mix(in_srgb,var(--nimi-status-danger)_8%,white)]`}
-                >
-                  <span className="w-4 shrink-0 text-[var(--nimi-text-secondary)]">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                      <polyline points="16 17 21 12 16 7" />
-                      <line x1="21" y1="12" x2="9" y2="12" />
-                    </svg>
-                  </span>
-                  <span className="min-w-0 flex-1 text-left font-medium">{t('Menu.logout', 'Log out')}</span>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[color-mix(in_srgb,var(--nimi-text-secondary)_45%,white)]">
-                    <path d="m9 18 6-6-6-6" />
-                  </svg>
-                </button>
-              </div>
-            </ScrollArea>
-          </Surface>
+        <div ref={settingsMenuRef}>
+          <MainLayoutSettingsMenu
+            top={collapsedSettingsMenuPosition?.top ?? 76}
+            left={collapsedSettingsMenuPosition?.left ?? 81}
+            userAvatarUrl={props.userAvatarUrl}
+            displayName={props.displayName}
+            userEmail={props.userEmail}
+            developerModeEnabled={developerModeEnabled}
+            isItemActive={isSettingsMenuItemActive}
+            onOpenItem={openSettingsSubmenuItem}
+            onEditProfile={() => {
+              persistStoredSettingsSelected('profile');
+              props.onNav('settings');
+              setSettingsMenuOpen(false);
+            }}
+            onLogout={() => {
+              props.onLogout();
+              setSettingsMenuOpen(false);
+            }}
+          />
         </div>
       ) : null}
     </AmbientBackground>

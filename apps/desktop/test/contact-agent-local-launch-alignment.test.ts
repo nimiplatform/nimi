@@ -31,16 +31,14 @@ test('Contact profile modal only exposes agent chat after ordinary friendship ev
   assert.doesNotMatch(source, /profile\.isAgent\s*\|\|\s*isBlockedProfile/);
 });
 
-test('Contacts detail surface does not hide ordinary agent-friend message actions', () => {
-  const source = readRepo('apps/desktop/src/shell/renderer/features/contacts/contacts-view.tsx');
+test('shared contact profile modal does not hide ordinary agent-friend message actions', () => {
+  const source = readRepo('apps/desktop/src/shell/renderer/features/contacts/contact-detail-profile-modal.tsx');
 
-  assert.match(source, /selectedContactIsBlocked/);
-  assert.match(source, /selectedCategory === 'blocks'/);
-  assert.match(source, /blockedUsers\.has\(selectedContact\.id\)/);
-  assert.match(source, /selectedContact\?\.isAgent === true/);
-  assert.match(source, /selectedProfile\.isFriend/);
-  assert.match(source, /!selectedContactIsBlocked/);
-  assert.doesNotMatch(source, /showMessageButton=\{!selectedProfile\?\.isAgent &&/);
+  assert.match(source, /isBlockedProfile/);
+  assert.match(source, /profile\.isAgent/);
+  assert.match(source, /!profile\.isFriend/);
+  assert.match(source, /!isBlockedProfile\s*&& profile\.accessState !== 'restricted'\s*&& \(!profile\.isAgent \|\| profile\.isFriend\)/);
+  assert.doesNotMatch(source, /showMessageButton=\{!profile\?\.isAgent &&/);
 });
 
 test('World detail offers View profile only for a RealmAgent — no direct chat/voice path', () => {

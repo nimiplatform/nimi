@@ -22,7 +22,7 @@ import {
  * Final wave of portfolio topic T5. Test + acceptance only — this file owns no
  * behavior; it proves the T5 portfolio gate over the surface delivered by
  * T5-0..T5-3:
- *   - Worlds and RealmAgents are discoverable in the four-section Explore IA;
+ *   - Worlds and RealmAgents are discoverable in the Explore IA;
  *   - Add Friend creates the AgentFriend relation AND the idempotent LocalAgent
  *     projection (D-EXPL-007 dual effect);
  *   - the friend-state -> primary-action model has exactly four typed states;
@@ -47,6 +47,9 @@ function readRendererFile(relativePath: string): string {
 
 const exploreViewSource = readRendererFile('features/explore/explore-view.tsx');
 const explorePanelSource = readRendererFile('features/explore/explore-panel.tsx');
+const exploreSectionNavSource = readRendererFile('features/explore/explore-section-nav.tsx');
+const mainLayoutViewSource = readRendererFile('app-shell/layouts/main-layout-view.tsx');
+const mainLayoutTitlebarContentSource = readRendererFile('app-shell/layouts/main-layout-titlebar-content.tsx');
 const worldDetailSource = readRendererFile('features/world/world-detail.tsx');
 const worldDetailTemplateSource = readRendererFile('features/world/world-detail-template.tsx');
 const friendActionsSource = readRendererFile('features/explore/realm-agent-friend-actions.ts');
@@ -62,16 +65,18 @@ const modePanelsSource = readRendererFile(
 );
 
 // ---------------------------------------------------------------------------
-// Gate 1 — Worlds and RealmAgents are discoverable in the four-section IA
+// Gate 1 — Worlds and RealmAgents are discoverable in the three-section IA
 // ---------------------------------------------------------------------------
 
-test('T5 acceptance: Explore exposes the four-section discovery IA with Worlds + RealmAgents', () => {
-  // D-EXPL-002 — Worlds / Agents / Activity / Create Agent are all mounted.
+test('T5 acceptance: Explore exposes the three-section discovery IA with Worlds + RealmAgents', () => {
+  // D-EXPL-002 — Worlds / Agents / Activity are mounted.
   assert.match(exploreViewSource, /data-testid="explore-worlds-section"/);
   assert.match(exploreViewSource, /data-testid="explore-agents-section"/);
   assert.match(exploreViewSource, /data-testid="explore-activity-section"/);
-  assert.match(exploreViewSource, /ExploreCreateAgentSection/);
-  assert.match(exploreViewSource, /ExploreSectionNav/);
+  assert.doesNotMatch(exploreViewSource, /ExploreCreateAgentSection/);
+  assert.match(exploreSectionNavSource, /EXPLORE_SECTION_IDS:\s*readonly ExploreSectionId\[\]\s*=\s*\[\s*'worlds',\s*'agents',\s*'activity'/);
+  assert.match(mainLayoutViewSource, /<MainLayoutTitlebarContent/);
+  assert.match(mainLayoutTitlebarContentSource, /<ExploreSectionNav[\s\S]*active=\{props\.exploreActiveSection\}[\s\S]*variant="topbar"/);
 
   // Worlds catalog is folded into Explore as a full catalog (T5-1), and the
   // Agents section is a full discovery grid — not a truncated carousel.

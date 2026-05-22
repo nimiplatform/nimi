@@ -5,11 +5,13 @@ import { useQuery } from '@tanstack/react-query';
 import { dataSync } from '@runtime/data-sync';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
+import { InlineFeedback, type InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
 import { ContactDetailProfileModal, type ContactDetailProfileSeed } from '@renderer/features/contacts/contact-detail-profile-modal.js';
 import { SendGiftModal } from '@renderer/features/economy/send-gift-modal';
 import { parseOptionalJsonObject, type JsonObject } from '@renderer/bridge/runtime-bridge/shared';
 import { ExploreView } from './explore-view';
 import type { ExploreAgentCardData } from './explore-cards';
+import type { ExploreSectionId } from './explore-section-nav';
 import type { PostCardAuthorProfileTarget } from '../home/post-card';
 import { toWorldListItemFromTruth } from '../world/world-list-model';
 import {
@@ -219,7 +221,12 @@ function toProfileTargetFromAgent(agent: ExploreAgentCardData): PostCardAuthorPr
   };
 }
 
-export function ExplorePanel() {
+type ExplorePanelProps = {
+  activeSection: ExploreSectionId;
+  searchText: string;
+};
+
+export function ExplorePanel(props: ExplorePanelProps) {
   const { t } = useTranslation();
   const authStatus = useAppStore((state) => state.auth.status);
   const navigateToWorld = useAppStore((state) => state.navigateToWorld);
@@ -227,9 +234,9 @@ export function ExplorePanel() {
   const setChatMode = useAppStore((state) => state.setChatMode);
   const setSelectedTargetForSource = useAppStore((state) => state.setSelectedTargetForSource);
   const setAgentConversationSelection = useAppStore((state) => state.setAgentConversationSelection);
-  const [searchText, setSearchText] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedProfileTarget, setSelectedProfileTarget] = useState<PostCardAuthorProfileTarget | null>(null);
+  const [feedback, setFeedback] = useState<InlineFeedbackState | null>(null);
 
   // Fetch worlds for banner carousel
   const worldsQuery = useQuery({
@@ -267,10 +274,10 @@ export function ExplorePanel() {
 
   // Fetch agents for sidebar
   const agentsQuery = useQuery({
-    queryKey: ['explore-agents', authStatus, selectedCategory, searchText],
+    queryKey: ['explore-agents', authStatus, selectedCategory, props.searchText],
     queryFn: async () => {
       const tag = selectedCategory || undefined;
-      const query = searchText.trim() || undefined;
+      const query = props.searchText.trim() || undefined;
       return dataSync.loadExploreAgents({ tag, query, limit: PAGE_SIZE });
     },
     enabled: authStatus === 'authenticated',
@@ -420,11 +427,16 @@ export function ExplorePanel() {
     );
   }, [agents, setActiveTab, setChatMode, setSelectedTargetForSource, setAgentConversationSelection]);
 
-  // `limit_reached` → Manage Agent friends. Routes the user to Contacts where
-  // an AgentFriend can be removed to free quota.
+  // `limit_reached` no longer routes to a retired Contacts page. Keep the
+  // action fail-closed until an in-context management action is admitted.
   const onAgentManageFriends = useCallback(() => {
-    setActiveTab('contacts');
-  }, [setActiveTab]);
+    setFeedback({
+      kind: 'warning',
+      message: t('Explore.agentFriendLimitManagementUnavailable', {
+        defaultValue: 'Agent friend limit reached. Remove an agent friend from a profile before adding another.',
+      }),
+    });
+  }, [t]);
 
   const onAgentSendGift = useCallback(
     (agentId: string) => {
@@ -472,8 +484,12 @@ export function ExplorePanel() {
 
   return (
     <>
+      <InlineFeedback
+        feedback={feedback}
+        onDismiss={() => setFeedback(null)}
+        className="absolute left-1/2 top-20 z-30 w-[min(720px,calc(100vw-160px))] -translate-x-1/2 shadow-[0_18px_48px_rgba(15,23,42,0.16)]"
+      />
       <ExploreView
-        searchText={searchText}
         selectedCategory={selectedCategory}
         categories={categories}
         agents={agents}
@@ -481,11 +497,11 @@ export function ExplorePanel() {
         worldCatalogItems={worldsQuery.data ?? []}
         worldsLoading={worldsQuery.isPending}
         worldsError={worldsQuery.isError}
+        activeSection={props.activeSection}
         fetchPostPage={fetchPostPage}
         postFeedKey={postFeedKey}
         onPostDelete={() => setRefreshKey((k) => k + 1)}
         loading={agentsQuery.isPending}
-        onSearchTextChange={setSearchText}
         onToggleCategory={onToggleCategory}
         onAgentAddFriend={onAgentAddFriend}
         onAgentOpenChat={onAgentOpenChat}

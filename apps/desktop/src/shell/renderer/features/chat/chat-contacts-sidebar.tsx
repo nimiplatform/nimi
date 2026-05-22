@@ -1,6 +1,7 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState, type MouseEvent } from 'react';
 import type { ConversationTargetSummary } from '@nimiplatform/nimi-kit/features/chat/headless';
 import { ScrollArea } from '@nimiplatform/nimi-kit/ui';
+import type { TFunction } from 'i18next';
 import { useTranslation } from 'react-i18next';
 import { DesktopIconToggleAction } from '@renderer/components/action';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
@@ -22,17 +23,154 @@ export type ChatContactsSidebarProps = {
 };
 
 // ---------------------------------------------------------------------------
-// Tooltip (reuses pattern from SidebarTooltipButton)
+// Hover card
 // ---------------------------------------------------------------------------
 
-function ContactTooltip({ label, pos }: { label: string; pos: { top: number; right: number } }) {
+type ContactHoverCardPosition = {
+  top: number;
+  right: number;
+};
+
+function clampHoverCardTop(top: number): number {
+  const minTop = 78;
+  const maxTop = Math.max(minTop, window.innerHeight - 78);
+  return Math.min(Math.max(top, minTop), maxTop);
+}
+
+function getSourceLabel(source: ConversationTargetSummary['source'], t: TFunction): string {
+  switch (source) {
+    case 'ai':
+      return t('Chat.hoverCardAi', { defaultValue: 'AI' });
+    case 'agent':
+      return t('Chat.hoverCardAgent', { defaultValue: 'Agent' });
+    case 'group':
+      return t('Chat.hoverCardGroup', { defaultValue: 'Group' });
+    case 'human':
+    default:
+      return t('Chat.hoverCardHuman', { defaultValue: 'Human' });
+  }
+}
+
+function formatRelativeShort(value: string | null | undefined): string | null {
+  if (!value) {
+    return null;
+  }
+  const timestamp = Date.parse(value);
+  if (!Number.isFinite(timestamp)) {
+    return null;
+  }
+  const deltaSeconds = Math.max(0, Math.floor((Date.now() - timestamp) / 1000));
+  if (deltaSeconds < 60) {
+    return 'now';
+  }
+  const deltaMinutes = Math.floor(deltaSeconds / 60);
+  if (deltaMinutes < 60) {
+    return `${deltaMinutes}m`;
+  }
+  const deltaHours = Math.floor(deltaMinutes / 60);
+  if (deltaHours < 24) {
+    return `${deltaHours}h`;
+  }
+  const deltaDays = Math.floor(deltaHours / 24);
+  if (deltaDays < 7) {
+    return `${deltaDays}d`;
+  }
+  return new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric' }).format(new Date(timestamp));
+}
+
+function ContactHoverCard({
+  target,
+  pos,
+  onMouseEnter,
+  onMouseLeave,
+  onSelect,
+}: {
+  target: ConversationTargetSummary;
+  pos: ContactHoverCardPosition;
+  onMouseEnter: () => void;
+  onMouseLeave: () => void;
+  onSelect: () => void;
+}) {
+  const { t } = useTranslation();
+  const sourceLabel = getSourceLabel(target.source, t);
+  const initial = (target.avatarFallback || target.title || '?').charAt(0).toUpperCase();
+  const handle = target.handle || (target.source === 'ai' ? '@nimi' : sourceLabel);
+  const preview = target.previewText || target.bio || t('Chat.hoverCardNoPreview', { defaultValue: 'No recent message' });
+  const relativeTime = formatRelativeShort(target.updatedAt);
+
   return (
-    <span
-      className="pointer-events-none fixed z-[9999] whitespace-nowrap rounded-md bg-[#4ECCA3] px-2 py-1 text-xs text-white shadow-lg"
+    <div
+      data-chat-contact-hover-card="true"
+      className="fixed z-[9999] w-[min(420px,calc(100vw-96px))] rounded-[22px] border border-white/70 bg-white/78 p-4 text-left shadow-[0_22px_70px_rgba(80,95,130,0.22)] backdrop-blur-2xl"
       style={{ top: pos.top, right: pos.right, transform: 'translateY(-50%)' }}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
     >
-      {label}
-    </span>
+      <div className="flex min-w-0 items-center gap-4">
+        <div className="h-[72px] w-[72px] shrink-0 overflow-hidden rounded-full bg-gradient-to-br from-slate-100 to-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.8),0_10px_24px_rgba(15,23,42,0.12)]">
+          {target.avatarUrl ? (
+            <img src={target.avatarUrl} alt="" className="h-full w-full object-cover" />
+          ) : (
+            <div
+              className={`flex h-full w-full items-center justify-center text-xl font-semibold text-white ${
+                target.source === 'ai'
+                  ? 'bg-gradient-to-br from-sky-400 to-teal-500'
+                  : target.source === 'agent'
+                    ? 'bg-gradient-to-br from-emerald-400 to-teal-600'
+                    : target.source === 'group'
+                      ? 'bg-gradient-to-br from-pink-400 to-rose-500'
+                      : 'bg-gradient-to-br from-violet-400 to-indigo-500'
+              }`}
+            >
+              {initial}
+            </div>
+          )}
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex min-w-0 items-center gap-2">
+            <h3 className="min-w-0 truncate text-[22px] font-semibold leading-7 text-slate-950">
+              {target.title}
+            </h3>
+            <span className="shrink-0 rounded-full border border-slate-200 bg-slate-50/90 px-2.5 py-1 text-sm font-medium leading-none text-slate-500">
+              {sourceLabel}
+            </span>
+          </div>
+          <div className="mt-1 truncate text-[15px] font-medium text-slate-500">
+            {handle}
+          </div>
+          <div className="mt-5 flex min-w-0 items-center gap-2 text-[15px] leading-5 text-slate-500">
+            <span className="shrink-0 font-semibold text-slate-600">
+              {t('Chat.hoverCardLast', { defaultValue: 'Last:' })}
+            </span>
+            <span className="min-w-0 flex-1 truncate">{preview}</span>
+            {relativeTime ? <span className="shrink-0 pl-2 text-slate-500">{relativeTime}</span> : null}
+          </div>
+        </div>
+        <div className="flex shrink-0 items-center gap-3 self-start pt-1">
+          <button
+            type="button"
+            aria-label={t('Chat.hoverCardOpenChat', { defaultValue: 'Open chat' })}
+            onClick={onSelect}
+            className="flex h-12 w-12 items-center justify-center rounded-2xl border border-slate-200/80 bg-white/80 text-slate-600 shadow-[0_8px_20px_rgba(15,23,42,0.07)] transition-colors hover:border-emerald-200 hover:text-emerald-600"
+          >
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z" />
+            </svg>
+          </button>
+          <button
+            type="button"
+            aria-label={t('Chat.hoverCardOpenProfile', { defaultValue: 'Open profile' })}
+            onClick={onSelect}
+            className="flex h-12 w-12 items-center justify-center rounded-2xl border border-slate-200/80 bg-white/80 text-slate-600 shadow-[0_8px_20px_rgba(15,23,42,0.07)] transition-colors hover:border-emerald-200 hover:text-emerald-600"
+          >
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M20 21a8 8 0 0 0-16 0" />
+              <circle cx="12" cy="7" r="4" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -50,7 +188,8 @@ function ContactAvatar({
   onSelect: () => void;
 }) {
   const ref = useRef<HTMLButtonElement>(null);
-  const [tooltipPos, setTooltipPos] = useState<{ top: number; right: number } | null>(null);
+  const hideTimerRef = useRef<number | null>(null);
+  const [hoverCardPos, setHoverCardPos] = useState<ContactHoverCardPosition | null>(null);
 
   const initial = (target.avatarFallback || target.title || '?').charAt(0).toUpperCase();
   const unread = target.unreadCount && target.unreadCount > 0 ? target.unreadCount : null;
@@ -60,10 +199,54 @@ function ContactAvatar({
       ? E2E_IDS.chatTarget(String(target.id))
       : undefined;
 
-  const handleMouseEnter = () => {
+  useEffect(() => () => {
+    if (hideTimerRef.current !== null) {
+      window.clearTimeout(hideTimerRef.current);
+    }
+  }, []);
+
+  const cancelHide = () => {
+    if (hideTimerRef.current !== null) {
+      window.clearTimeout(hideTimerRef.current);
+      hideTimerRef.current = null;
+    }
+  };
+
+  const scheduleHide = () => {
+    cancelHide();
+    hideTimerRef.current = window.setTimeout(() => {
+      setHoverCardPos(null);
+      hideTimerRef.current = null;
+    }, 90);
+  };
+
+  const showHoverCard = (top: number) => {
     if (ref.current) {
       const rect = ref.current.getBoundingClientRect();
-      setTooltipPos({ top: rect.top + rect.height / 2, right: window.innerWidth - rect.left + 10 });
+      setHoverCardPos({
+        top: clampHoverCardTop(top),
+        right: window.innerWidth - rect.left + 14,
+      });
+    }
+  };
+
+  const handleMouseEnter = () => {
+    cancelHide();
+    if (ref.current) {
+      const rect = ref.current.getBoundingClientRect();
+      showHoverCard(rect.top + rect.height / 2);
+    }
+  };
+
+  const handleMouseMove = (event: MouseEvent<HTMLButtonElement>) => {
+    cancelHide();
+    showHoverCard(event.clientY);
+  };
+
+  const handleFocus = () => {
+    if (ref.current) {
+      const rect = ref.current.getBoundingClientRect();
+      showHoverCard(rect.top + rect.height / 2);
     }
   };
 
@@ -86,7 +269,10 @@ function ContactAvatar({
           data-testid={testId}
           onClick={onSelect}
           onMouseEnter={handleMouseEnter}
-          onMouseLeave={() => setTooltipPos(null)}
+          onMouseMove={handleMouseMove}
+          onMouseLeave={scheduleHide}
+          onFocus={handleFocus}
+          onBlur={scheduleHide}
           className={`relative ml-0.5 flex h-10 w-10 items-center justify-center overflow-hidden transition-all duration-200 ${
             selected ? 'rounded-2xl' : 'rounded-full hover:rounded-2xl'
           }`}
@@ -121,7 +307,15 @@ function ContactAvatar({
         </button>
       </div>
 
-      {tooltipPos ? <ContactTooltip label={target.title} pos={tooltipPos} /> : null}
+      {hoverCardPos ? (
+        <ContactHoverCard
+          target={target}
+          pos={hoverCardPos}
+          onMouseEnter={cancelHide}
+          onMouseLeave={scheduleHide}
+          onSelect={onSelect}
+        />
+      ) : null}
     </>
   );
 }

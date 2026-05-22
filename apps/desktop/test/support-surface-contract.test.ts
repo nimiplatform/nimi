@@ -3,14 +3,14 @@
  *
  * Acceptance coverage for `.nimi/spec/desktop/kernel/support-surface-contract.md`:
  *   - D-SUP-001: Support is a `nav_group: secondary` surface, reachable from
- *     the account-area menu, and NOT one of the six ordinary primary nav tabs.
+ *     the account-area menu, and NOT one of the ordinary primary nav tabs.
  *   - D-SUP-002: the surface hosts exactly the five sub-areas.
  *   - D-SUP-003..007: each sub-area consumes a typed projection and fails
  *     closed; recovery uses the copy floor, not raw enum names.
  *   - D-SUP-008: Support (repair + recovery) is reachable from the degraded
  *     first-run / repair gate.
  *
- * The six-item ordinary primary nav (`Home | Chat | Contacts | Explore | Apps
+ * The ordinary primary nav (`Home | Chat | Explore | Apps
  * | Runtime`) must stay unchanged — this file also re-guards that floor.
  */
 
@@ -59,18 +59,18 @@ test('D-SUP-001: AppTab type includes support', () => {
   assert.match(storeTypes, /\bAppTab\b[\s\S]*?\|\s*'support'/);
 });
 
-test('D-SUP-001: support is NOT in the six-item ordinary core nav', () => {
+test('D-SUP-001: support is NOT in the ordinary core nav', () => {
   const navConfig = readDesktop('src/shell/renderer/app-shell/layouts/navigation-config.tsx');
   const coreNavBlock = navConfig.slice(
     navConfig.indexOf('BASE_CORE_NAV_ITEMS'),
     navConfig.indexOf('export function getQuickNavItems'),
   );
   const coreIds = [...coreNavBlock.matchAll(/id:\s*'([^']+)'/g)].map((m) => m[1]);
-  assert.deepEqual(coreIds, ['home', 'chat', 'contacts', 'explore', 'apps', 'runtime']);
+  assert.deepEqual(coreIds, ['home', 'chat', 'explore', 'apps', 'runtime']);
   assert.equal(coreIds.includes('support'), false);
 });
 
-test('D-SUP-001: getCoreNavItems still returns exactly six items', () => {
+test('D-SUP-001: getCoreNavItems still returns exactly the ordinary items', () => {
   const navConfig = readDesktop('src/shell/renderer/app-shell/layouts/navigation-config.tsx');
   const fn = navConfig.slice(
     navConfig.indexOf('export function getCoreNavItems'),
@@ -82,9 +82,10 @@ test('D-SUP-001: getCoreNavItems still returns exactly six items', () => {
 
 test('D-SUP-001: Support is reachable from the account-area menu', () => {
   const layoutView = readDesktop('src/shell/renderer/app-shell/layouts/main-layout-view.tsx');
+  const settingsMenu = readDesktop('src/shell/renderer/app-shell/layouts/main-layout-settings-menu.tsx');
   // The settings/account submenu carries a `support` item that navigates to
   // the support tab — Support is reachable without being a primary nav tab.
-  assert.match(layoutView, /id:\s*'support'/);
+  assert.match(settingsMenu, /id:\s*'support'/);
   assert.match(layoutView, /props\.onNav\('support'\)/);
 });
 

@@ -8,6 +8,7 @@ function readWorkspaceFile(relativePath: string): string {
 }
 
 const mainLayoutViewSource = readWorkspaceFile('src/shell/renderer/app-shell/layouts/main-layout-view.tsx');
+const mainLayoutSettingsMenuSource = readWorkspaceFile('src/shell/renderer/app-shell/layouts/main-layout-settings-menu.tsx');
 const mainLayoutTopbarSource = readWorkspaceFile('src/shell/renderer/app-shell/layouts/main-layout-topbar.tsx');
 const navConfigSource = readWorkspaceFile('src/shell/renderer/app-shell/layouts/navigation-config.tsx');
 const sidebarTooltipSource = readWorkspaceFile('src/shell/renderer/app-shell/layouts/main-layout-sidebar-tooltip-button.tsx');
@@ -31,9 +32,9 @@ test('shell chrome retune: shell chrome classes tighten radius scale', () => {
 
 test('shell chrome retune: nav, home launcher, account menu, and tooltips consume the tighter shell scale', () => {
   assert.match(mainLayoutViewSource, /SidebarTooltipButton[\s\S]*SHELL_CHROME_INTERACTIVE_RADIUS_CLASS/);
-  assert.match(mainLayoutViewSource, /<Surface[\s\S]*tone="overlay"[\s\S]*material="glass-thick"[\s\S]*SHELL_CHROME_OVERLAY_CLASS/);
+  assert.match(mainLayoutSettingsMenuSource, /<Surface[\s\S]*tone="overlay"[\s\S]*material="glass-thick"[\s\S]*SHELL_CHROME_OVERLAY_CLASS/);
   assert.match(mainLayoutViewSource, /avatarNode[\s\S]*sizeClassName="h-10 w-10"/u);
-  assert.match(mainLayoutViewSource, /SHELL_CHROME_MENU_ITEM_BASE_CLASS/);
+  assert.match(mainLayoutSettingsMenuSource, /SHELL_CHROME_MENU_ITEM_BASE_CLASS/);
   assert.match(mainLayoutTopbarSource, /SHELL_CHROME_ACTION_CELL_CLASS/);
   assert.match(mainLayoutTopbarSource, /SHELL_CHROME_METRIC_CELL_CLASS/);
   assert.doesNotMatch(mainLayoutTopbarSource, /openAccountMenu[\s\S]*SHELL_CHROME_ACTION_CELL_CLASS/u);
@@ -43,6 +44,7 @@ test('shell chrome retune: nav, home launcher, account menu, and tooltips consum
   assert.match(navConfigSource, /SHELL_CHROME_TOOLTIP_CLASS/);
   assert.match(sidebarTooltipSource, /SHELL_CHROME_TOOLTIP_CLASS/);
   assert.doesNotMatch(mainLayoutViewSource, /rounded-\[32px\]|rounded-\[24px\]|rounded-\[18px\]/u);
+  assert.doesNotMatch(mainLayoutSettingsMenuSource, /rounded-\[32px\]|rounded-\[24px\]|rounded-\[18px\]/u);
   assert.doesNotMatch(mainLayoutTopbarSource, /rounded-\[24px\]|rounded-\[14px\]/u);
   assert.doesNotMatch(navConfigSource, /rounded-\[18px\]|rounded-\[16px\]|rounded-xl/u);
   assert.doesNotMatch(sidebarTooltipSource, /rounded-xl/u);

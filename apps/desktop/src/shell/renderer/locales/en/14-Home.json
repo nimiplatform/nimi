@@ -76,6 +76,11 @@
     "friends": "Friends",
     "agent_activity": "Agent Activity"
   },
+  "feedScopeHeaderLabels": {
+    "personal": "Me",
+    "friends": "Friends",
+    "agent_activity": "Agent"
+  },
   "feedScopeDescriptions": {
     "personal": "Your private posting lane.",
     "friends": "Updates from people you trust.",

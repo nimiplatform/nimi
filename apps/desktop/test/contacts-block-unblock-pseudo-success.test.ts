@@ -19,13 +19,33 @@ function extractFunction(source: string, name: string): string {
   return source.slice(start, nextMarker);
 }
 
-test('contacts block action waits for parent DataSync mutation before success UI updates', () => {
-  const section = extractFunction(viewSource, 'handleBlockUser');
+function extractCallback(source: string, name: string): string {
+  const marker = `const ${name} = useCallback`;
+  const start = source.indexOf(marker);
+  assert.notEqual(start, -1, `${name} must be a callback`);
+  const nextConst = source.indexOf('\n  const ', start + marker.length);
+  const nextRenderGuard = source.indexOf('\n  if (!props.open)', start + marker.length);
+  const candidates = [nextConst, nextRenderGuard].filter((value) => value !== -1);
+  assert.notEqual(candidates.length, 0, `${name} section must be bounded`);
+  return source.slice(start, Math.min(...candidates));
+}
 
-  assert.match(section, /await props\.onBlockFriend\?\.\(contact\)/);
+test('retired contacts detail pane no longer owns block success state', () => {
+  assert.doesNotMatch(viewSource, /const handleBlockUser = async/);
+  assert.doesNotMatch(viewSource, /BlockConfirmDialog/);
+  assert.doesNotMatch(viewSource, /setBlockingContact/);
+});
+
+test('contact profile modal block action waits for DataSync mutation before success UI updates', () => {
+  const section = extractCallback(profileModalSource, 'handleBlock');
+
+  assert.match(section, /await dataSync\.blockUser\(\{/);
+  assert.match(section, /await Promise\.all\(\[/);
   assert.doesNotMatch(section, /setBlockedUsers/);
-  assert.doesNotMatch(section, /newMap\.set\(contact\.id/);
-  assert.match(section, /setBlockingContact\(null\)/);
+  assert.doesNotMatch(section, /newMap\.set\(profile\.id/);
+  assert.match(section, /props\.onClose\(\)/);
+  assert.match(section, /catch \(error\) \{/);
+  assert.match(section, /setFeedback\(\{/);
 });
 
 test('contacts unblock action waits for parent DataSync mutation before success UI updates', () => {
@@ -53,20 +73,26 @@ test('contacts panel rethrows block and unblock mutation failures after feedback
   assert.match(unblockSection, /throw error;/);
 });
 
-test('contacts remove-friend detail action opens a confirmation gate before mutation', () => {
-  const removeSection = extractFunction(viewSource, 'handleRemoveUser');
-  const detailRenderSection = viewSource.slice(
-    viewSource.indexOf('<ContactDetailView'),
-    viewSource.indexOf(') : selectedContact && profileError'),
+test('retired contacts detail pane no longer owns remove-friend mutation', () => {
+  assert.doesNotMatch(viewSource, /const handleRemoveUser = async/);
+  assert.doesNotMatch(viewSource, /RemoveFriendConfirmDialog/);
+  assert.doesNotMatch(viewSource, /setRemovingContact/);
+});
+
+test('contact profile modal remove-friend action opens a confirmation gate before mutation', () => {
+  const modalRemoveSection = extractCallback(profileModalSource, 'handleRemove');
+  const modalRenderSection = profileModalSource.slice(
+    profileModalSource.indexOf('<ContactDetailView'),
+    profileModalSource.indexOf('</OverlayShell>'),
   );
 
-  assert.match(viewSource, /RemoveFriendConfirmDialog/);
+  assert.match(profileModalSource, /RemoveFriendConfirmDialog/);
   assert.match(blockedUsersSource, /contactsRemoveFriendConfirmDialog/);
-  assert.match(detailRenderSection, /onRemove=\{selectedContact \? \(\) => setRemovingContact\(selectedContact\) : undefined\}/);
-  assert.doesNotMatch(detailRenderSection, /props\.onRemoveFriend/);
-  assert.match(removeSection, /await props\.onRemoveFriend\(contact\)/);
-  assert.match(removeSection, /setSelectedContact\(null\)/);
-  assert.match(removeSection, /setRemovingContact\(null\)/);
+  assert.match(modalRenderSection, /onRemove=\{!isBlockedProfile && profile\.isFriend \? \(\) => setRemoveConfirmOpen\(true\) : undefined\}/);
+  assert.doesNotMatch(modalRenderSection, /dataSync\.removeFriend/);
+  assert.match(modalRemoveSection, /await dataSync\.removeFriend\(profile\.id\)/);
+  assert.match(modalRemoveSection, /setRemoveConfirmOpen\(false\)/);
+  assert.match(modalRemoveSection, /props\.onClose\(\)/);
 });
 
 test('contacts remove-friend mutation failures are not treated as success', () => {
@@ -74,12 +100,15 @@ test('contacts remove-friend mutation failures are not treated as success', () =
     panelSource.indexOf('const onRemoveFriend = useCallback'),
     panelSource.indexOf('const onBlockFriend = useCallback'),
   );
-  const viewRemoveSection = extractFunction(viewSource, 'handleRemoveUser');
+  const modalRemoveSection = extractCallback(profileModalSource, 'handleRemove');
 
   assert.match(panelRemoveSection, /setFeedback\(\{/);
   assert.match(panelRemoveSection, /throw error;/);
-  assert.match(viewRemoveSection, /catch \{/);
-  assert.match(viewRemoveSection, /keep the dialog open for retry/);
+  assert.match(modalRemoveSection, /catch \(error\) \{/);
+  assert.match(modalRemoveSection, /setFeedback\(\{/);
+  const modalRemoveCatchSection = modalRemoveSection.slice(modalRemoveSection.indexOf('catch (error) {'));
+  assert.doesNotMatch(modalRemoveCatchSection, /props\.onClose\(\)/);
+  assert.doesNotMatch(modalRemoveCatchSection, /setRemoveConfirmOpen\(false\)/);
 });
 
 test('contact profile modal remove-friend action requires confirmation before DataSync mutation', () => {

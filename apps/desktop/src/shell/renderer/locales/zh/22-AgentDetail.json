@@ -27,5 +27,6 @@
   "posts": "帖子",
   "likes": "点赞",
   "noAgentSelected": "未选择 Agent",
-  "noAgentDataAvailable": "没有可用的 Agent 数据"
+  "noAgentDataAvailable": "没有可用的 Agent 数据",
+  "agentFriendLimitManagementUnavailable": "Agent 好友数量已达上限。请先从某个资料页移除一个 Agent 好友，再添加新的 Agent。"
 }

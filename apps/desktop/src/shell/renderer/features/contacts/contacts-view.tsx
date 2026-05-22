@@ -1,6 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef, type MouseEvent } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useQuery } from '@tanstack/react-query';
 import {
   IconButton,
   ScrollArea,
@@ -14,22 +13,15 @@ import {
   SidebarSection,
   SidebarShell,
 } from '@renderer/components/sidebar.js';
-import { dataSync } from '@runtime/data-sync';
+import { EntityAvatar } from '@renderer/components/entity-avatar.js';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import { InlineFeedback } from '@renderer/ui/feedback/inline-feedback';
 import type { ContactRecord, ContactRequestRecord, TabFilter } from './contacts-model';
-import { toProfileData } from '@renderer/features/profile/profile-model';
-import type { ProfileData } from '@renderer/features/profile/profile-model';
-import {
-  isPrivateProfileAccessError,
-  toRestrictedContactProfileData,
-} from './contact-private-profile.js';
-import { SendGiftModal } from '@renderer/features/economy/send-gift-modal';
 import nimiLogo from '@renderer/assets/logo-gray.png';
 import type { ContactsViewProps, BlockedUserInfo } from './contacts-view-types.js';
 import { FriendRequestDetail, FriendRequestsList } from './contacts-friend-requests.js';
-import { BlockConfirmDialog, RemoveFriendConfirmDialog, UnblockConfirmDialog } from './contacts-blocked-users.js';
+import { UnblockConfirmDialog } from './contacts-blocked-users.js';
 import {
   ContactsChipList,
   ContactsFilterChips,
@@ -37,11 +29,25 @@ import {
   ContactsSearchResults,
   type ContactsChipFilter,
 } from './contacts-category-list.js';
-import { ContactDetailView } from './contact-detail-view.js';
-import {
-  ContactDetailErrorState,
-  ContactDetailLoadingState,
-} from './contact-detail-view-content-shell.js';
+import { ContactDetailProfileModal, type ContactDetailProfileSeed } from './contact-detail-profile-modal.js';
+
+function toContactDetailProfileSeed(contact: ContactRecord): ContactDetailProfileSeed {
+  return {
+    id: contact.id,
+    displayName: contact.displayName,
+    handle: contact.handle,
+    avatarUrl: contact.avatarUrl,
+    bio: contact.bio,
+    isAgent: contact.isAgent,
+    tags: contact.tags,
+    gender: contact.gender,
+    worldName: contact.worldName,
+    worldBannerUrl: contact.worldBannerUrl,
+    agentOwnershipType: contact.agentOwnershipType,
+    agentWorldId: contact.worldId,
+    agentOwnerWorldId: contact.worldId,
+  };
+}
 
 function SkeletonBlock(props: { className: string }) {
   return <div className={`animate-pulse rounded-full bg-slate-200/75 ${props.className}`} />;
@@ -141,19 +147,17 @@ export function ContactsView(props: ContactsViewProps) {
   const resizingRef = useRef(false);
   const dragCleanupRef = useRef<(() => void) | null>(null);
   const [sidebarWidth, setSidebarWidth] = useState(CONTACTS_SIDEBAR_DEFAULT_WIDTH);
-  const [blockingContact, setBlockingContact] = useState<ContactRecord | null>(null);
   const [unblockingContact, setUnblockingContact] = useState<ContactRecord | null>(null);
-  const [removingContact, setRemovingContact] = useState<ContactRecord | null>(null);
-  const [blockMutationPending, setBlockMutationPending] = useState(false);
   const [unblockMutationPending, setUnblockMutationPending] = useState(false);
-  const [removeMutationPending, setRemoveMutationPending] = useState(false);
   const [selectedContact, setSelectedContact] = useState<ContactRecord | null>(null);
+  const [profileModalOpen, setProfileModalOpen] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<ContactRequestRecord | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<TabFilter | null>(null);
 
   const closeSearch = () => {
     props.onSearchTextChange('');
     setSelectedContact(null);
+    setProfileModalOpen(false);
     setSelectedRequest(null);
     setSelectedCategory(null);
   };
@@ -226,10 +230,6 @@ export function ContactsView(props: ContactsViewProps) {
   // 跟踪已拒绝的好友请求
   const [rejectedRequests, setRejectedRequests] = useState<Set<string>>(new Set());
 
-  // 送礼物模态框状态
-  const [giftModalOpen, setGiftModalOpen] = useState(false);
-  const [giftTargetContact, setGiftTargetContact] = useState<ContactRecord | null>(null);
-
   // 顶部 chip 过滤器 — 区别于 props.activeFilter（后者由父组件持久化的视图过滤器）
   const [chipFilter, setChipFilter] = useState<ContactsChipFilter>('all');
 
@@ -245,23 +245,6 @@ export function ContactsView(props: ContactsViewProps) {
   );
   const blockedContactsList = useMemo(() => Array.from(blockedUsers.values()), [blockedUsers]);
 
-  const handleBlockUser = async (contact: ContactRecord) => {
-    if (blockMutationPending) return;
-
-    try {
-      setBlockMutationPending(true);
-      await props.onBlockFriend?.(contact);
-      if (selectedContact?.id === contact.id) {
-        setSelectedContact(null);
-      }
-      setBlockingContact(null);
-    } catch {
-      // Parent mutation owns user feedback; keep the dialog open for retry.
-    } finally {
-      setBlockMutationPending(false);
-    }
-  };
-
   const handleUnblockUser = async (contact: ContactRecord) => {
     if (unblockMutationPending) return;
 
@@ -276,25 +259,6 @@ export function ContactsView(props: ContactsViewProps) {
       // Parent mutation owns user feedback; keep the dialog open for retry.
     } finally {
       setUnblockMutationPending(false);
-    }
-  };
-
-  const handleRemoveUser = async (contact: ContactRecord) => {
-    if (removeMutationPending) return;
-
-    try {
-      setRemoveMutationPending(true);
-      await props.onRemoveFriend(contact);
-      if (selectedContact?.id === contact.id) {
-        setSelectedContact(null);
-        setSelectedProfileId(null);
-        setSelectedProfileIsAgent(null);
-      }
-      setRemovingContact(null);
-    } catch {
-      // Parent mutation owns user feedback; keep the dialog open for retry.
-    } finally {
-      setRemoveMutationPending(false);
     }
   };
 
@@ -327,14 +291,22 @@ export function ContactsView(props: ContactsViewProps) {
 
   // 当 allFriends 刷新时，同步更新 selectedContact（避免头像等字段显示旧缓存数据）
   useEffect(() => {
-    setSelectedContact((prev) => {
-      if (!prev) return prev;
-      const updated = props.allFriends.find((c) => c.id === prev.id);
-      if (!updated) return prev;
-      if (updated.avatarUrl === prev.avatarUrl && updated.displayName === prev.displayName) return prev;
-      return updated;
-    });
-  }, [props.allFriends]);
+    if (!selectedContact) {
+      return;
+    }
+    const updated = props.allFriends.find((contact) => contact.id === selectedContact.id)
+      || props.blockedContacts.find((contact) => contact.id === selectedContact.id);
+    if (!updated) {
+      setSelectedContact(null);
+      setProfileModalOpen(false);
+      setSelectedProfileId(null);
+      setSelectedProfileIsAgent(null);
+      return;
+    }
+    if (updated.avatarUrl !== selectedContact.avatarUrl || updated.displayName !== selectedContact.displayName) {
+      setSelectedContact(updated);
+    }
+  }, [props.allFriends, props.blockedContacts, selectedContact, setSelectedProfileId, setSelectedProfileIsAgent]);
 
   // 处理选择联系人
   useEffect(() => {
@@ -347,6 +319,7 @@ export function ContactsView(props: ContactsViewProps) {
     }
     const nextCategory: TabFilter = restoredContact.isAgent ? 'agents' : 'humans';
     setSelectedContact(restoredContact);
+    setProfileModalOpen(true);
     setSelectedRequest(null);
     setSelectedCategory(nextCategory);
     props.onFilterChange(nextCategory);
@@ -354,6 +327,7 @@ export function ContactsView(props: ContactsViewProps) {
 
   const handleSelectContact = (contact: ContactRecord, categoryId: TabFilter) => {
     setSelectedContact(contact);
+    setProfileModalOpen(true);
     setSelectedRequest(null);
     setSelectedCategory(categoryId);
     setSelectedProfileId(contact.id);
@@ -361,44 +335,6 @@ export function ContactsView(props: ContactsViewProps) {
     props.onFilterChange(categoryId);
   };
 
-  // 加载选中联系人的 Profile 数据
-  const profileQuery = useQuery({
-    queryKey: ['contact-profile', selectedContact?.id, 'restricted-state-v1'],
-    queryFn: async () => {
-      if (!selectedContact) return null;
-      try {
-        const result = selectedContact.isAgent
-          ? await dataSync.loadAgentDetails(selectedContact.id)
-          : await dataSync.loadUserProfile(selectedContact.id);
-        return toProfileData(result);
-      } catch (error) {
-        if (!selectedContact.isAgent && isPrivateProfileAccessError(error)) {
-          return toRestrictedContactProfileData(selectedContact);
-        }
-        throw error;
-      }
-    },
-    enabled: !!selectedContact,
-    retry: (failureCount, error) => !isPrivateProfileAccessError(error) && failureCount < 1,
-  });
-
-  const selectedContactIsBlocked = Boolean(
-    selectedContact && (selectedCategory === 'blocks' || blockedUsers.has(selectedContact.id)),
-  );
-
-  const selectedProfile: ProfileData | null = useMemo(() => {
-    if (!selectedContact || !profileQuery.data) return null;
-    if (selectedContactIsBlocked) {
-      return { ...profileQuery.data, isFriend: false };
-    }
-    if (!profileQuery.data.isFriend) {
-      return { ...profileQuery.data, isFriend: true };
-    }
-    return profileQuery.data;
-  }, [profileQuery.data, selectedContact, selectedContactIsBlocked]);
-
-  // Profile 加载和错误状态
-  const profileError = profileQuery.isError && !!selectedContact;
   const addContactAction = (
     <Tooltip content={t('Contacts.addContact', { defaultValue: 'Add Friend' })} placement="bottom">
       <IconButton
@@ -495,6 +431,7 @@ export function ContactsView(props: ContactsViewProps) {
                     setSelectedCategory('requests');
                     setSelectedRequest(null);
                     setSelectedContact(null);
+                    setProfileModalOpen(false);
                   }}
                 />
                 <ContactsChipList
@@ -515,7 +452,7 @@ export function ContactsView(props: ContactsViewProps) {
         />
       </SidebarShell>
 
-      {/* 右侧详情区 - 使用共享 profile 详情页 */}
+      {/* 右侧详情区：profile 详情由弹层承载，面板只保留当前联系人入口。 */}
       <Surface
         as="main"
         tone="panel"
@@ -573,70 +510,52 @@ export function ContactsView(props: ContactsViewProps) {
               void rejectRequestWithEvidence(req);
             }}
           />
-        ) : selectedContact && selectedProfile ? (
-          <ContactDetailView
-            profile={selectedProfile}
-            loading={false}
-            error={false}
-            isBlockedProfile={selectedContactIsBlocked}
-            isRestrictedProfile={selectedProfile.accessState === 'restricted'}
-            onClose={() => {
-              setSelectedContact(null);
-              setSelectedProfileId(null);
-              setSelectedProfileIsAgent(null);
-            }}
-            onMessage={selectedProfile.accessState === 'restricted' || selectedContactIsBlocked ? () => {} : () => {
-              if (selectedContact) {
-                props.onMessage(selectedContact);
-              }
-            }}
-            onSendGift={selectedProfile.accessState === 'restricted' ? () => {} : () => {
-              // 打开送礼物模态框
-              if (selectedContact) {
-                setGiftTargetContact(selectedContact);
-                setGiftModalOpen(true);
-              }
-            }}
-            onBlock={selectedContact ? () => setBlockingContact(selectedContact) : undefined}
-            onRemove={selectedContact ? () => setRemovingContact(selectedContact) : undefined}
-            showMessageButton={
-              selectedProfile.accessState !== 'restricted'
-              && !selectedContactIsBlocked
-              && (!selectedProfile.isAgent || (selectedContact?.isAgent === true && selectedProfile.isFriend))
-            }
-            hideBackButton
-          />
-        ) : selectedContact && profileError ? (
-          <div className="flex h-full items-center justify-center bg-transparent px-6 py-6">
-            <ContactDetailErrorState
-              backLabel={t('Common.back')}
-              label={t('ProfileView.error')}
-              onClose={() => {
-                setSelectedContact(null);
-                setSelectedProfileId(null);
-                setSelectedProfileIsAgent(null);
-              }}
-            />
-          </div>
         ) : selectedContact ? (
-          <div className="flex h-full items-center justify-center bg-transparent px-6 py-6">
-            <ContactDetailLoadingState label={t('ProfileView.loading', { defaultValue: 'Loading profile...' })} />
+          <div className="flex min-h-full items-center justify-center bg-transparent px-6 py-6">
+            <div className="flex w-full max-w-md flex-col items-center rounded-[28px] border border-white/70 bg-white/76 px-8 py-9 text-center shadow-[0_24px_70px_rgba(15,23,42,0.08)] backdrop-blur-[var(--nimi-backdrop-blur-regular)]">
+              <EntityAvatar
+                imageUrl={selectedContact.avatarUrl}
+                name={selectedContact.displayName}
+                kind={selectedContact.isAgent ? 'agent' : 'human'}
+                sizeClassName="h-20 w-20"
+                textClassName="text-2xl font-semibold"
+                fallbackClassName={selectedContact.isAgent ? undefined : 'bg-gradient-to-br from-[#4ECCA3]/18 to-[#4ECCA3]/5 text-[#1f8f69]'}
+                className={selectedContact.isAgent ? '' : 'rounded-full border border-white/85 shadow-[0_14px_34px_rgba(15,23,42,0.10)]'}
+              />
+              <h2 className="mt-5 max-w-full truncate text-xl font-semibold text-[var(--nimi-text-primary)]">
+                {selectedContact.displayName}
+              </h2>
+              <p className="mt-1 max-w-full truncate text-sm text-[var(--nimi-text-muted)]">
+                {selectedContact.isAgent ? t('Contacts.agentBadge', { defaultValue: 'Agent' }) : t('Contacts.humanBadge', { defaultValue: 'Human' })}
+                {selectedContact.handle ? ` · ${selectedContact.handle}` : ''}
+              </p>
+              {selectedContact.bio ? (
+                <p className="mt-4 line-clamp-3 text-sm leading-6 text-slate-600">
+                  {selectedContact.bio}
+                </p>
+              ) : null}
+              <button
+                type="button"
+                onClick={() => setProfileModalOpen(true)}
+                className="mt-6 inline-flex items-center justify-center rounded-full bg-[#4ECCA3] px-5 py-2.5 text-sm font-semibold text-white shadow-[0_14px_32px_rgba(78,204,163,0.24)] transition hover:bg-[#41b992]"
+              >
+                {t('Contacts.openProfile', { defaultValue: 'Open profile' })}
+              </button>
+            </div>
           </div>
         ) : null}
         </ScrollArea>
         )}
       </Surface>
 
-      {/* Block 确认对话框 */}
-      {blockingContact && (
-        <BlockConfirmDialog
-          contact={blockingContact}
-          onConfirm={() => {
-            void handleBlockUser(blockingContact);
-          }}
-          onCancel={() => setBlockingContact(null)}
+      {selectedContact ? (
+        <ContactDetailProfileModal
+          open={profileModalOpen}
+          profileId={selectedContact.id}
+          profileSeed={toContactDetailProfileSeed(selectedContact)}
+          onClose={() => setProfileModalOpen(false)}
         />
-      )}
+      ) : null}
 
       {/* Unblock/恢复 确认对话框 */}
       {unblockingContact && (
@@ -648,40 +567,6 @@ export function ContactsView(props: ContactsViewProps) {
           onCancel={() => setUnblockingContact(null)}
         />
       )}
-
-      {/* Remove friend confirmation dialog */}
-      {removingContact && (
-        <RemoveFriendConfirmDialog
-          contact={removingContact}
-          pending={removeMutationPending}
-          onConfirm={() => {
-            void handleRemoveUser(removingContact);
-          }}
-          onCancel={() => {
-            if (!removeMutationPending) {
-              setRemovingContact(null);
-            }
-          }}
-        />
-      )}
-
-      {/* 送礼物模态框 */}
-      <SendGiftModal
-        open={giftModalOpen && !!giftTargetContact}
-        receiverId={giftTargetContact?.id || ''}
-        receiverName={giftTargetContact?.displayName || giftTargetContact?.handle || 'User'}
-        receiverHandle={giftTargetContact?.handle}
-        receiverIsAgent={giftTargetContact?.isAgent === true}
-        receiverAvatarUrl={giftTargetContact?.avatarUrl}
-        onClose={() => {
-          setGiftModalOpen(false);
-          setGiftTargetContact(null);
-        }}
-        onSent={() => {
-          setGiftModalOpen(false);
-          setGiftTargetContact(null);
-        }}
-      />
     </div>
   );
 }

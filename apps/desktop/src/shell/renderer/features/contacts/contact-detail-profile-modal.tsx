@@ -247,14 +247,27 @@ export function ContactDetailProfileModal(props: ContactDetailProfileModalProps)
   return (
     <>
       <OverlayShell
-        open={props.open && Boolean(profile)}
+        open={props.open}
         kind="dialog"
         onClose={props.onClose}
         dataTestId={E2E_IDS.contactDetailProfileModal}
-        className="top-14 bottom-0 left-0 right-0 bg-black/42 p-0 items-stretch justify-stretch"
-        panelClassName="h-full max-w-none rounded-none border-0 bg-white shadow-none"
-        contentClassName="h-full p-0"
+        className="bg-slate-950/45 backdrop-blur-sm"
+        panelClassName="h-[calc(100vh-88px)] max-w-none overflow-hidden rounded-[28px] border border-white/70 bg-[#f6fafb] shadow-[0_32px_100px_rgba(15,23,42,0.28)]"
+        panelStyle={{ width: 'min(1180px, calc(100vw - 88px))', maxHeight: 'calc(100vh - 88px)' }}
+        contentClassName="relative h-full min-h-0 p-0"
       >
+        <button
+          type="button"
+          data-testid={E2E_IDS.contactDetailProfileModalClose}
+          onClick={props.onClose}
+          aria-label={t('Common.close', { defaultValue: 'Close' })}
+          className="absolute right-5 top-5 z-30 inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/70 bg-white/90 text-slate-600 shadow-[0_14px_34px_rgba(15,23,42,0.14)] transition hover:border-[#4ECCA3]/55 hover:bg-white hover:text-[#1f8f69]"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M18 6 6 18" />
+            <path d="m6 6 12 12" />
+          </svg>
+        </button>
         <div className="h-full min-h-0 flex-1 overflow-hidden">
           {feedback ? (
             <div className="px-6 pt-4">

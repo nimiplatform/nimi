@@ -13,7 +13,7 @@ describe('shell.core-navigation', () => {
     for (const button of navButtons) {
       primaryOrder.push((await button.getAttribute('data-testid')).replace(E2E_IDS.navTab(''), ''));
     }
-    assert.deepEqual(primaryOrder, ['home', 'chat', 'contacts', 'explore', 'apps', 'runtime']);
+    assert.deepEqual(primaryOrder, ['home', 'chat', 'explore', 'apps', 'runtime']);
     for (const removed of ['world', 'tester', 'settings', 'mods']) {
       assert.equal(await $(`[data-testid="${E2E_IDS.navTab(removed)}"]`).isExisting(), false);
     }
@@ -22,8 +22,6 @@ describe('shell.core-navigation', () => {
     await waitForTestId(E2E_IDS.panel('home'));
     await clickByTestId(E2E_IDS.navTab('chat'));
     await waitForTestId(E2E_IDS.panel('chat'));
-    await clickByTestId(E2E_IDS.navTab('contacts'));
-    await waitForTestId(E2E_IDS.panel('contacts'));
     await clickByTestId(E2E_IDS.navTab('explore'));
     await waitForTestId(E2E_IDS.panel('explore'));
     await clickByTestId(E2E_IDS.navTab('apps'));

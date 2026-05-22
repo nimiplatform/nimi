@@ -27,5 +27,6 @@
   "posts": "Posts",
   "likes": "Likes",
   "noAgentSelected": "No agent selected",
-  "noAgentDataAvailable": "No agent data available"
+  "noAgentDataAvailable": "No agent data available",
+  "agentFriendLimitManagementUnavailable": "Agent friend limit reached. Remove an agent friend from a profile before adding another."
 }

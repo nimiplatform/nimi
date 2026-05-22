@@ -39,7 +39,6 @@ export type AuthStatus = 'bootstrapping' | 'anonymous' | 'authenticated';
 export type AppTab =
   | 'home'
   | 'chat'
-  | 'contacts'
   | 'explore'
   | 'apps'
   | 'runtime'

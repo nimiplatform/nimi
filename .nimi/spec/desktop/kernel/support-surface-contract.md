@@ -8,7 +8,7 @@
 表面，承载 repair、updates、diagnostics、logs/export、recovery help 五个子区。
 
 `Support` 不是 ordinary primary navigation tab。普通用户 primary navigation 固定
-为 `Home | Chat | Contacts | Explore | Apps | Runtime`（`D-SHELL-001`）。
+为 `Home | Chat | Explore | Apps | Runtime`（`D-SHELL-001`）。
 `Support` 与 `Settings` 一样属于 Secondary/System 分组：可由菜单、账户区或
 Settings 入口打开，但不得作为第 7 个 primary nav 项。
 
@@ -33,7 +33,7 @@ recovery 在 Settings preference 状态本身损坏时仍可达。
 表面，与 `settings` 平级。它必须可从菜单 / 账户区 / Settings 入口到达。
 
 `MUST NOT`：`Support` 不得进入 `getCoreNavItems()` 的 core 导航；ordinary
-primary navigation 必须保持恰好 6 项。`Support`、其子区（repair / updates /
+primary navigation 必须保持恰好 5 项。`Support`、其子区（repair / updates /
 diagnostics / logs / recovery）均不得作为 primary ordinary 产品类别。
 
 ## D-SUP-002 — Support Sub-Area Set

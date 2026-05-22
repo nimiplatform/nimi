@@ -158,7 +158,6 @@ export function checkDesktopFeatureCoverage(fail, kernelRuleDefinitions) {
     'offline-recovery',
     'settings-release-preferences',
     'chat-core',
-    'contacts-core',
     'explore-entry',
     'runtime-config',
     'local-ai-entry',

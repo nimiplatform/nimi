@@ -11,12 +11,12 @@ Desktop UI Shell 契约。定义导航 Tab 体系、布局结构、路由映射�
 导航由 `navigation-config.tsx` 定义。普通用户 primary navigation 固定为：
 
 ```text
-Home | Chat | Contacts | Explore | Apps | Runtime
+Home | Chat | Explore | Apps | Runtime
 ```
 
 Tab 分组：
 
-1. **Core Nav**（`getCoreNavItems()`）：home、chat、contacts、explore、apps、runtime。
+1. **Core Nav**（`getCoreNavItems()`）：home、chat、explore、apps、runtime。
 2. **Secondary/System**：settings 等系统入口。它们可由菜单、账户区或设置入口打开，
    但不得作为普通 primary nav 项。
 3. **Developer/Internal**：mods、mod workspace、developer mode、diagnostics。
@@ -71,7 +71,7 @@ Mods Panel（`features/mods/mods-panel.tsx`）直接承载单页 Mod Hub：
 代码分割策略：
 
 - **同步加载**：shell-core、bridge（首屏必需）。
-- **懒加载**：chat、contacts、explore、settings、profile、runtime-view、mod-ui、local-ai、external-agent。
+- **懒加载**：chat、explore、settings、profile、runtime-view、mod-ui、local-ai、external-agent。
 
 懒加载通过 `React.lazy(() => import(...))` 实现，配合 `Suspense` 边界。
 
@@ -93,7 +93,6 @@ Mods Panel（`features/mods/mods-panel.tsx`）直接承载单页 Mod Hub：
 
 Content 面板映射：
 - `chat` → `ChatPage`
-- `contacts` → `ContactsPanel`
 - `explore` → `ExplorePanel`
 - `apps` → `AppsPanel`
 - `settings` → `SettingsPanel`
@@ -107,7 +106,7 @@ Content 面板映射：
 
 `renderShellNavIcon(icon)` 提供内联 SVG 图标：
 
-- 支持的图标名：home、chat、contacts、explore、runtime、profile、settings、store、globe、wallet、agent/agents/my-agents/bot、terms/file/document、privacy/shield、logout
+- 支持的图标名：home、chat、explore、runtime、profile、settings、store、globe、wallet、agent/agents/my-agents/bot、terms/file/document、privacy/shield、logout
 - `apps` 必须使用 app/grid/store 类熟悉图标，不得使用未知 fallback 作为
   close evidence。
 - 未知图标名回退到 puzzle 图标。
@@ -218,7 +217,7 @@ Desktop renderer 的共享 UI 设计必须通过 renderer-level semantic token �
 
 - baseline surface 的默认落点是 `components/design-tokens.ts`、`components/surface.tsx`、`components/action.tsx`、`components/overlay.tsx` 与 `styles.css` 中的语义 token。
 - 受治理的 secondary consumer 必须在 `tables/renderer-design-surfaces.yaml` 中显式登记；`secondary consumer` 不能只存在于 domain prose 或 code review 记忆里。
-- feature-local primitive 不得继续作为 `chat`、`contacts`、`runtime-config`、`settings` sidebar family 的事实源；这四个内部左侧栏必须通过共享 sidebar primitive 与对应 fact table 治理。
+- feature-local primitive 不得继续作为 `chat`、`runtime-config`、`settings` sidebar family 的事实源；内部左侧栏必须通过共享 sidebar primitive 与对应 fact table 治理。
 - design audit、spec、check 与 renderer implementation 必须围绕同一组 baseline primitive 演进。
 
 ## D-SHELL-016 — Token Resolution
@@ -256,11 +255,11 @@ overlay 的 module、surface tone、elevation、z token、testability 与 reduce
 
 ## D-SHELL-019 — Main Surface Baseline
 
-`chat`、`explore`、`contacts` 是 desktop 主设计语言的 baseline anchors：
+`chat`、`explore` 是 desktop 主设计语言的 baseline anchors：
 
-- 这三个 surface 必须优先消费共享 `surface / action / overlay` primitive。
+- 这些 surface 必须优先消费共享 `surface / action / overlay` primitive。
 - baseline 迁移优先级以 root shell、list/card、primary/secondary/icon actions、tooltip 与一个标准 dialog family 为先。
-- 新增 baseline 视觉决策必须先在这三个 surface 验证，再扩散到 secondary/admin surface。
+- 新增 baseline 视觉决策必须先在这些 surface 验证，再扩散到 secondary/admin surface。
 
 ## D-SHELL-020 — Controlled Exceptions
 
@@ -282,37 +281,33 @@ baseline surface 的 arbitrary Tailwind value 与 inline style 默认禁止：
 
 baseline surface 的共享 action、surface、dialog、popover 与 tooltip 必须经过 renderer-level primitive facade：
 
-- `chat`、`explore`、`contacts` 中新增或重写的 baseline button / card / dialog / tooltip 不得再定义本地 shell。
+- `chat`、`explore` 中新增或重写的 baseline button / card / dialog / tooltip 不得再定义本地 shell。
 - 受治理的 overlay adoption 以 table registration 为准；凡是在 `renderer-design-overlays.yaml` 中登记的 module，必须通过 shared overlay primitive 暴露 dialog / drawer / popover / tooltip shell。
 - 允许 feature 组合 shared primitive，但不允许重新发明另一套 baseline shell class contract。
 - adoption 进度由 `D-GATE-091` 追踪；完成前允许局部 legacy 实现存在，但不得继续扩散。
 
 ## D-SHELL-023 — Sidebar Family Contract
 
-`contacts`、`runtime-config`、`settings` 的 feature 内部左侧栏必须属于同一个 desktop sidebar family。
+`runtime-config`、`settings` 的 feature 内部左侧栏必须属于同一个 desktop sidebar family。
 
 - 统一 family 固定为 `desktop-sidebar-v1`，事实源为 `tables/renderer-design-sidebars.yaml`。
 - 允许的信息架构变体仅限：
-  - `contacts`：`header + search + primaryAction + sectioned category/entity list`
   - `runtime-config`：`header + sectioned nav-row list`
   - `settings`：`header + sectioned nav-row list`
 - family 必须通过共享 sidebar primitive 暴露一致的 slot：
   - `container`
   - `header`
-  - `search?`
-  - `primaryAction?`
   - `sectionLabel*`
   - `itemList+`
   - `resizeHandle?`
-- `contacts` 的 `search?` slot 使用 `SidebarSearch` 的 collapsible 模式：未输入时呈现 icon trigger，展开后显示输入框，空值 blur 或 `Escape` 后回到折叠态。该交互属于 sidebar primitive contract，不由 contacts feature 本地复写。
 - `chat` surface 的最外层 contact rail 属于主 shell 级 target rail 组合，不属于本规则范围；该 rail 可以作为 app-owned composition 存在，但不得反向声明自己是 `desktop-sidebar-v1`。
 
 ## D-SHELL-024 — Sidebar Item Taxonomy
 
 desktop sidebar family 的 item 语义固定为：
 
-- `entity-row`：头像/实体型列表项，适用于 contact record。
-- `category-row`：分类或聚合入口，适用于 contacts 分类与折叠入口。
+- `entity-row`：头像/实体型列表项，适用于 contact-like record。
+- `category-row`：分类或聚合入口。
 - `nav-row`：设置/运行时页面导航项。
 
 item trailing affordance 只允许：
@@ -331,7 +326,7 @@ desktop sidebar family 的视觉与交互 contract 固定为共享 token + primi
 - sidebar 背景、边界、header 高度、horizontal padding、item 高度、item hover/active、section label typography、search shell 与 resize handle 命中区必须使用共享 sidebar token。
 - `runtime-config` 与 `settings` 不再允许维持独立的 sidebar 样式系统；本地 `SidebarNav` / `RuntimeSidebar` / 等价 helper 若继续承载样式 contract，视为违约。
 - resizable sidebar 的动态宽度必须通过共享 `SidebarShell` / `SidebarResizeHandle` 处理；feature 代码不得用独立的 sidebar inline style 重新定义视觉 contract。
-- search、primary action、active row、section label 与 trailing affordance 必须在三个治理内 sidebar 上保持同一家族的一致语义与交互反馈。
+- active row、section label 与 trailing affordance 必须在治理内 sidebar 上保持同一家族的一致语义与交互反馈。
 
 ## D-SHELL-026 — Desktop Material Baseline Adoption
 
@@ -362,7 +357,7 @@ secondary route 各自重复的局部背景实现。
   独立海报”。route content 应被视为浮在 shell ambient 之上的受控 surface。
 - redesign rollout order 固定如下：
   1. shell frame / navigation chrome
-  2. baseline route cohort: `home`, `explore`, `contacts`, `notification`,
+  2. baseline route cohort: `home`, `explore`, `notification`,
      `profile`
   3. dense operational cohort: `settings`, `runtime-config`, equivalent admin /
      operations surfaces
@@ -410,7 +405,7 @@ secondary / tertiary card 不得继续按 feature 自发发明新的 material �
 - `chat` / `agent` surface 仍然不是自动 admitted exception，也不因 shell glass
   baseline 落地而自动获得自由 glass 权限；它们必须作为单独收敛 cohort 接入共享
   hierarchy，而不是把当前 local recipe 升格为事实标准。
-- `contacts` / `profile` 的 branded hero-glass 族谱在单独 decision packet 闭环前，
+- profile detail 的 branded hero-glass 族谱在单独 decision packet 闭环前，
   只允许作为 `secondary` surface 注册为 exception candidate，不得直接提升成
   admitted exception。
 - `world-detail` 继续是当前唯一受控的 Desktop art-directed exception；任何其他
@@ -422,7 +417,7 @@ secondary / tertiary card 不得继续按 feature 自发发明新的 material �
   1. `chat` secondary card cluster + shared `settings` / `runtime-config`
      operational card wrapper
   2. `home` / `explore` / `notification` inner-card convergence
-  3. `contacts` / `profile` branded card decision packet
+  3. profile detail branded card decision packet
 - 在上述 cohort 被新的 admitted authority 改写前，Desktop 不得把 leaf card restyle
   伪装成局部清理并跳过共享 hierarchy 收敛。
 
@@ -495,41 +490,41 @@ candidate 状态永久停留在 Desktop authority 里。
   2. retired desktop avatar viewport exceptions remain history only and do not
      constitute current shell authority
 
-## D-SHELL-032 — Contacts Profile Branded Surface Split And Hero Exception Freeze
+## D-SHELL-032 — Shared Profile Detail Hero Exception Freeze
 
-`contacts` / `profile` 不再允许被当成一整块 branded subsystem。W1 decision packet
-必须把 shell-root、hero shell、feed cards 三类 surface 拆开治理。
+shared profile detail / profile 不再允许被当成一整块 branded subsystem。W1 decision packet
+必须把 page shell-root、hero shell、feed cards 三类 surface 拆开治理。Contacts
+primary page 已退休；本规则只治理仍被 Home、Explore、Chat、Profile 复用的
+profile detail modal/content。
 
-- `contacts.view.root` 与 `profile.panel.root` 继续是 Desktop shared shell root
+- `profile.panel.root` 继续是 Desktop shared shell root
   consumer，不得因为 detail hero shell 仍然品牌化，就整体回退成
-  `contacts/profile`-owned art direction。
-- `contacts` profile detail hero shell 现被限定为一组窄范围 controlled exception，
+  profile-owned art direction。
+- shared profile detail hero shell 现被限定为一组窄范围 controlled exception，
   仅覆盖：
   1. detail hero header / backdrop aura
   2. detail hero glass slab 与 companion skeleton / loading / error shell
   3. 与 detail hero shell 强绑定的 branded stats/action chrome
-- 上述 `contacts` hero exception 不自动扩展到：
-  1. `contacts` friend request / relationship cards
-  2. `profile` feed cards
-  3. generic overlay / dialog surfaces
-  4. sidebar rows、category rows、search rows
+- 上述 hero exception 不自动扩展到：
+  1. `profile` feed cards
+  2. generic overlay / dialog surfaces
+  3. sidebar rows、category rows、search rows
 - `profile` tab content cards（posts / likes / collections / media / gifts）与
-  `contacts` friend request cards 必须被视为 converging cohort，而不是 hero
+  other profile-adjacent cards 必须被视为 converging cohort，而不是 hero
   exception 的自然延伸。它们后续只能通过 admitted Desktop shared card/action
   path 收敛，不得继续维持 branded white-card / mint-accent local family。
-- `contacts/profile` branded mint accent、arbitrary radius、white-card shadow
+- profile detail branded mint accent、arbitrary radius、white-card shadow
   formula，不得再被表述成“profile 特例”。只有在
   `renderer-design-surfaces.yaml` 中被显式登记为 exception 的 detail hero shell
   才允许保留 bespoke geometry 与 glass aura。
 - `tables/renderer-design-surfaces.yaml` 必须把本轮 disposition 显式记录为：
   1. `contacts.profile_detail.hero_exception`
   2. `contacts.profile_detail.shell_exception`
-  3. `contacts.friend_requests.cards`
-  4. `profile.posts.cards`
-  5. `profile.likes.cards`
-  6. `profile.collections.cards`
-  7. `profile.media.cards`
-  8. `profile.gifts.cards`
+  3. `profile.posts.cards`
+  4. `profile.likes.cards`
+  5. `profile.collections.cards`
+  6. `profile.media.cards`
+  7. `profile.gifts.cards`
 
 ## D-SHELL-033 — App-Level Attention Context Boundary
 

@@ -7,7 +7,6 @@ rows:
   - bootstrap
   - theme_provider
   - desktop.app_shell.routes
-  - desktop.contacts.sidebar
   - desktop.runtime.sidebar
   - desktop.runtime.shared
   - desktop.runtime.overview.page
@@ -41,22 +40,6 @@ modules:
       - status
       - feedback
     testid_required: false
-    exception_policy: none
-    source_rule: P-DESIGN-020
-    scheme_support:
-      - light
-      - dark
-    default_scheme: light
-    accent_pack: nimi-accent
-  - id: desktop.contacts.sidebar
-    app: desktop
-    module: apps/desktop/src/shell/renderer/features/contacts/contacts-view.tsx
-    families:
-      - avatar
-      - surface
-      - action
-      - sidebar
-    testid_required: true
     exception_policy: none
     source_rule: P-DESIGN-020
     scheme_support:

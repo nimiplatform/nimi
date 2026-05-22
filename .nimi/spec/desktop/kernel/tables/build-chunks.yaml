@@ -42,13 +42,6 @@ chunks:
     description: Chat list, message timeline, turn input
     source_rule: D-SHELL-004
 
-  - chunk: contacts
-    includes:
-      - features/contacts
-    lazy: true
-    description: Contacts panel and friend management
-    source_rule: D-SHELL-004
-
   - chunk: explore
     includes:
       - features/explore

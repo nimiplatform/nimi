@@ -83,7 +83,7 @@ export function checkRendererDesignTables(fail) {
       hasWorldException = true;
     }
   }
-  for (const requiredModule of ['features/chat/chat-page.tsx', 'features/explore/explore-view.tsx', 'features/contacts/contacts-view.tsx']) {
+  for (const requiredModule of ['features/chat/chat-page.tsx', 'features/explore/explore-view.tsx']) {
     if (!baselineModules.has(requiredModule)) {
       fail(`${surfacesPath} missing baseline module: ${requiredModule}`);
     }
@@ -118,7 +118,6 @@ export function checkRendererDesignTables(fail) {
     fail(`${sidebarsPath} must define at least one sidebar row`);
   }
   const requiredSidebarModules = new Set([
-    'features/contacts/contacts-view.tsx',
     'features/runtime-config/runtime-config-panel-view.tsx',
     'features/settings/settings-panel-body.tsx',
   ]);
@@ -248,4 +247,3 @@ export function checkRendererDesignTables(fail) {
     }
   }
 }
-

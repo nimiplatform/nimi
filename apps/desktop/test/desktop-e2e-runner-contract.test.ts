@@ -98,7 +98,7 @@ test('offline recovery smoke targets Realm REST reachability, not runtime releas
   assert.equal(offlineRecoveryProfile.tauriFixture, undefined);
   assert.match(runnerSource, /const fixtureServer = await startRealmFixtureServer/);
   assert.match(runnerSource, /fixtureOrigin: fixtureServer\.origin/);
-  assert.match(offlineRecoverySpecSource, /clickByTestId\(E2E_IDS\.navTab\('contacts'\)\)/);
+  assert.match(offlineRecoverySpecSource, /clickByTestId\(E2E_IDS\.navTab\('explore'\)\)/);
   assert.match(offlineRecoverySpecSource, /updateRealmRestOnline\(true\)/);
   assert.doesNotMatch(offlineRecoverySpecSource, /updateRuntimeBridgeStatus/);
   assert.match(realmFixtureServerSource, /reasonCode:\s*ReasonCode\.REALM_UNAVAILABLE/);

@@ -104,10 +104,13 @@ test('loadPostFeed fails closed when the typed feed projection throws — no syn
 });
 
 const homeViewSource = readWorkspaceFile('src/shell/renderer/features/home/home-view.tsx');
+const homeFeedControlsSource = readWorkspaceFile('src/shell/renderer/features/home/home-feed-controls.tsx');
+const mainLayoutViewSource = readWorkspaceFile('src/shell/renderer/app-shell/layouts/main-layout-view.tsx');
+const mainLayoutTitlebarContentSource = readWorkspaceFile('src/shell/renderer/app-shell/layouts/main-layout-titlebar-content.tsx');
 
-test('HomeView presents exactly the three canonical feed scopes (D-HOMEFEED-004)', () => {
+test('Home feed controls present exactly the three canonical feed scopes (D-HOMEFEED-004)', () => {
   assert.match(
-    homeViewSource,
+    homeFeedControlsSource,
     /HOME_FEED_SCOPES:\s*readonly PostFeedScope\[\]\s*=\s*\[\s*'personal',\s*'friends',\s*'agent_activity',?\s*\]/,
   );
 });
@@ -115,12 +118,12 @@ test('HomeView presents exactly the three canonical feed scopes (D-HOMEFEED-004)
 test('HomeView reads each scope through the SDK typed feed projection (D-HOMEFEED-006)', () => {
   // The feed read goes through dataSync.loadPostFeed (SDK typed Realm path),
   // carrying the active scope. No renderer-local REST fetch.
-  assert.match(homeViewSource, /dataSync\.loadPostFeed\(\{\s*scope:\s*feedScope,/s);
+  assert.match(homeViewSource, /dataSync\.loadPostFeed\(\{\s*scope:\s*props\.feedScope,/s);
   assert.doesNotMatch(homeViewSource, /\bfetch\(/);
 });
 
 test('HomeView remounts PostFeed per scope so scope reads are not cross-contaminated', () => {
-  assert.match(homeViewSource, /postFeedKey\s*=\s*`moments-\$\{feedScope\}-\$\{refreshKey\}`/);
+  assert.match(homeViewSource, /postFeedKey\s*=\s*`moments-\$\{props\.feedScope\}-\$\{refreshKey\}`/);
   assert.match(homeViewSource, /<PostFeed\s+key=\{postFeedKey\}/s);
 });
 
@@ -129,11 +132,17 @@ test('HomeView does not carry AI execution payload on the feed path (D-HOMEFEED-
   assert.doesNotMatch(homeViewSource, /loadPostFeed\([^)]*provider/s);
 });
 
-test('HomeView presents the new scope rail as semantic scope buttons', () => {
+test('Home presents feed scope controls in the shell header', () => {
   assert.doesNotMatch(homeViewSource, /SegmentedControl/);
   assert.doesNotMatch(homeViewSource, /Home\.pageTitle/);
-  assert.match(homeViewSource, /scopeSelectorItems\.map\(\(item\) =>/);
-  assert.match(homeViewSource, /<button[\s\S]*key=\{item\.value\}[\s\S]*onClick=\{\(\) => setFeedScope\(item\.value\)\}/);
-  assert.match(homeViewSource, /Home\.feedScopeDescriptions\.\$\{scope\}/);
-  assert.match(homeViewSource, /xl:grid-cols-\[minmax\(0,720px\)_300px\]/);
+  assert.match(homeFeedControlsSource, /HOME_FEED_SCOPES\.map\(\(scope\) =>/);
+  assert.match(homeFeedControlsSource, /<button[\s\S]*key=\{scope\}[\s\S]*onClick=\{\(\) => onSelect\(scope\)\}/);
+  assert.match(homeFeedControlsSource, /function HomeFeedScopeIcon/);
+  assert.match(homeFeedControlsSource, /<HomeFeedScopeIcon scope=\{scope\} \/>/);
+  assert.doesNotMatch(homeFeedControlsSource, /DOT_TONE_BY_SCOPE/);
+  assert.match(mainLayoutViewSource, /<MainLayoutTitlebarContent/);
+  assert.match(mainLayoutTitlebarContentSource, /props\.activeTab === 'home'/);
+  assert.match(mainLayoutTitlebarContentSource, /<HomeFeedScopeNav[\s\S]*active=\{props\.homeFeedScope\}/);
+  assert.match(mainLayoutTitlebarContentSource, /<HomeCreatePostButton/);
+  assert.match(homeViewSource, /max-w-\[760px\]/);
 });

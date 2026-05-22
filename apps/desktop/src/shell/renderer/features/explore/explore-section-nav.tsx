@@ -4,15 +4,14 @@ import { Surface } from '@nimiplatform/nimi-kit/ui';
 
 // Canonical Explore section catalog. Fact source:
 // .nimi/spec/desktop/kernel/tables/explore-sections.yaml (D-EXPL-002).
-// The four sections are fixed; do not add/remove/rename without updating the
+// The sections are fixed; do not add/remove/rename without updating the
 // table and the explore-surface-contract.
-export type ExploreSectionId = 'worlds' | 'agents' | 'activity' | 'create-agent';
+export type ExploreSectionId = 'worlds' | 'agents' | 'activity';
 
 export const EXPLORE_SECTION_IDS: readonly ExploreSectionId[] = [
   'worlds',
   'agents',
   'activity',
-  'create-agent',
 ] as const;
 
 type SectionMeta = {
@@ -45,9 +44,10 @@ const ICON_ACTIVITY = (
   </svg>
 );
 
-const ICON_CREATE = (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M12 5v14M5 12h14" />
+const ICON_SEARCH = (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="11" cy="11" r="8" />
+    <line x1="21" y1="21" x2="16.65" y2="16.65" />
   </svg>
 );
 
@@ -70,32 +70,25 @@ const SECTION_META: Record<ExploreSectionId, SectionMeta> = {
     descKey: 'Explore.sectionActivityDesc',
     icon: ICON_ACTIVITY,
   },
-  'create-agent': {
-    id: 'create-agent',
-    labelKey: 'Explore.sectionCreateAgent',
-    descKey: 'Explore.sectionCreateAgentDesc',
-    icon: ICON_CREATE,
-  },
 };
 
 export function ExploreSectionNav({
   active,
   onSelect,
+  trailing,
+  variant = 'panel',
 }: {
   active: ExploreSectionId;
   onSelect: (section: ExploreSectionId) => void;
+  trailing?: ReactNode;
+  variant?: 'panel' | 'topbar';
 }) {
   const { t } = useTranslation();
-  return (
-    <Surface
-      tone="panel"
-      material="glass-regular"
-      padding="none"
-      className="rounded-2xl border-white/60 p-1.5 shadow-[0_14px_34px_rgba(15,23,42,0.05)]"
-    >
+  const nav = (
+    <div className={variant === 'topbar' ? 'flex min-w-0 items-center gap-3' : 'flex flex-wrap items-center gap-2'}>
       <nav
         aria-label={t('Explore.sectionNavLabel', { defaultValue: 'Explore sections' })}
-        className="flex flex-wrap gap-1.5"
+        className={variant === 'topbar' ? 'flex min-w-0 items-center gap-3' : 'flex min-w-0 flex-wrap gap-1.5'}
         data-testid="explore-section-nav"
       >
         {EXPLORE_SECTION_IDS.map((id) => {
@@ -108,15 +101,29 @@ export function ExploreSectionNav({
               role="tab"
               aria-selected={isActive}
               data-testid={`explore-section-tab-${id}`}
+              data-mod-tab-interactive="true"
               onClick={() => onSelect(id)}
-              className="inline-flex items-center gap-2 rounded-xl px-3.5 py-2 text-sm font-semibold transition-colors"
+              className={variant === 'topbar'
+                ? 'inline-flex h-10 items-center gap-2 rounded-2xl px-4 text-[15px] font-semibold transition-[background-color,color,box-shadow,border-color]'
+                : 'inline-flex items-center gap-2 rounded-xl px-3.5 py-2 text-sm font-semibold transition-colors'}
               style={{
                 fontFamily: 'var(--nimi-font-sans)',
-                background: isActive ? 'var(--nimi-accent)' : 'transparent',
-                color: isActive ? 'var(--nimi-accent-onAccent)' : 'var(--nimi-fg-2)',
+                background: isActive
+                  ? (variant === 'topbar'
+                    ? 'color-mix(in srgb, var(--nimi-accent) 12%, white 88%)'
+                    : 'var(--nimi-accent)')
+                  : 'transparent',
+                color: isActive
+                  ? (variant === 'topbar' ? 'var(--nimi-accent)' : 'var(--nimi-accent-onAccent)')
+                  : 'var(--nimi-fg-2)',
                 border: isActive
-                  ? '1px solid color-mix(in srgb, var(--nimi-accent) 80%, transparent)'
+                  ? (variant === 'topbar'
+                    ? '1px solid color-mix(in srgb, var(--nimi-accent) 10%, white 70%)'
+                    : '1px solid color-mix(in srgb, var(--nimi-accent) 80%, transparent)')
                   : '1px solid transparent',
+                boxShadow: isActive && variant === 'topbar'
+                  ? '0 14px 34px rgba(78,204,163,0.10)'
+                  : undefined,
               }}
             >
               <span aria-hidden className="shrink-0">{meta.icon}</span>
@@ -125,7 +132,58 @@ export function ExploreSectionNav({
           );
         })}
       </nav>
+      {trailing && (
+        <div className={variant === 'topbar' ? 'min-w-[260px] flex-1' : 'ml-auto w-full min-w-[220px] sm:w-[300px] sm:flex-none'}>
+          {trailing}
+        </div>
+      )}
+    </div>
+  );
+
+  if (variant === 'topbar') {
+    return nav;
+  }
+
+  return (
+    <Surface
+      tone="panel"
+      material="glass-regular"
+      padding="none"
+      className="rounded-2xl border-white/60 p-1.5 shadow-[0_14px_34px_rgba(15,23,42,0.05)]"
+    >
+      {nav}
     </Surface>
+  );
+}
+
+export function ExploreSearchField({
+  value,
+  onChange,
+  placeholder,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+}) {
+  const { t } = useTranslation();
+  return (
+    <div
+      className="group relative flex h-10 items-center rounded-2xl border border-[color-mix(in_srgb,var(--nimi-border-subtle)_68%,white)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_72%,white)] px-4 shadow-[0_14px_34px_rgba(15,23,42,0.05)] backdrop-blur-[var(--nimi-backdrop-blur-regular)]"
+      data-testid="explore-search-field"
+      data-mod-tab-interactive="true"
+    >
+      <span className="pointer-events-none absolute left-4 top-1/2 z-10 -translate-y-1/2 text-[color:var(--nimi-fg-3)] transition-colors group-focus-within:text-[color:var(--nimi-accent)]">
+        {ICON_SEARCH}
+      </span>
+      <input
+        type="search"
+        className="w-full bg-transparent py-2 pl-8 pr-1 text-sm font-medium text-[color:var(--nimi-fg-1)] outline-none placeholder:text-[color:var(--nimi-fg-3)] focus:ring-0"
+        style={{ fontFamily: 'var(--nimi-font-sans)' }}
+        placeholder={placeholder ?? t('Explore.searchPlaceholder', { defaultValue: 'Search worlds, agents, posts...' })}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+      />
+    </div>
   );
 }
 

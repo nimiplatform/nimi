@@ -238,7 +238,7 @@ export function createUiSlice(set: AppStoreSet): UiSlice {
         }
 
         const target = state.previousTab || 'chat';
-        const keepProfile = target === 'contacts' || target === 'home' || target === 'explore';
+        const keepProfile = target === 'home' || target === 'explore';
         return {
           activeTab: target,
           previousTab: null,

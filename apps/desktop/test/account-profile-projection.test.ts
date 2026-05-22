@@ -3,8 +3,8 @@ import test from 'node:test';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
-const mainLayoutViewSource = readFileSync(
-  resolve(import.meta.dirname, '../src/shell/renderer/app-shell/layouts/main-layout-view.tsx'),
+const mainLayoutSettingsMenuSource = readFileSync(
+  resolve(import.meta.dirname, '../src/shell/renderer/app-shell/layouts/main-layout-settings-menu.tsx'),
   'utf8',
 );
 const runtimeBootstrapSource = readFileSync(
@@ -17,11 +17,11 @@ const runtimeBootstrapAccountProfileSource = readFileSync(
 );
 
 test('account menu renders only a real email and never synthesizes a nimi.app address', () => {
-  assert.doesNotMatch(mainLayoutViewSource, /@nimi\.app/);
-  assert.doesNotMatch(mainLayoutViewSource, /toLowerCase\(\)\.replace\(/);
+  assert.doesNotMatch(mainLayoutSettingsMenuSource, /@nimi\.app/);
+  assert.doesNotMatch(mainLayoutSettingsMenuSource, /toLowerCase\(\)\.replace\(/);
   assert.match(
-    mainLayoutViewSource,
-    /\{props\.userEmail \? \(\s*<p className="truncate text-xs text-\[var\(--nimi-text-secondary\)\]">\{props\.userEmail\}<\/p>\s*\) : null\}/s,
+    mainLayoutSettingsMenuSource,
+    /\{props\.userEmail \? <p className="truncate text-xs text-\[var\(--nimi-text-secondary\)\]">\{props\.userEmail\}<\/p> : null\}/,
   );
 });
 

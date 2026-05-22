@@ -58,7 +58,7 @@ test('top agent cards sanitize banner URLs before interpolating them into backgr
 });
 
 test('explore panel keeps agent queries declarative without imperative refetch loops', () => {
-  assert.match(explorePanelSource, /queryKey: \['explore-agents', authStatus, selectedCategory, searchText\]/);
+  assert.match(explorePanelSource, /queryKey: \['explore-agents', authStatus, selectedCategory, props\.searchText\]/);
   assert.doesNotMatch(explorePanelSource, /agentsQuery\.refetch\(\)/);
 });
 
@@ -76,9 +76,12 @@ test('add contact modal localizes footer action labels instead of hardcoding Eng
   assert.doesNotMatch(addContactModalSource, /\n\s*'Add Contact'\n/);
 });
 
-test('contacts view no longer relies on a non-null assertion for selected profiles and keeps comments accurate', () => {
+test('shared profile modal remains decoupled from Contacts page profile fetching', () => {
   assert.doesNotMatch(contactsViewSource, /selectedProfile!/);
-  assert.match(contactsViewSource, /selectedContact && selectedProfile/);
+  assert.match(contactsViewSource, /ContactDetailProfileModal/);
+  assert.match(contactsViewSource, /profileSeed=\{toContactDetailProfileSeed\(selectedContact\)\}/);
+  assert.doesNotMatch(contactsViewSource, /queryKey: \['contact-profile'/);
+  assert.doesNotMatch(contactsViewSource, /<ContactDetailView/);
   assert.doesNotMatch(contactsViewSource, /return toProfileData\(fallbackProfile\)/);
   assert.doesNotMatch(contactDetailProfileModalSource, /toSeedProfileData/);
   assert.doesNotMatch(contactDetailProfileModalSource, /profileQuery\.data \|\| fallbackProfile/);
@@ -102,13 +105,15 @@ test('home and notification surfaces import shared design primitives from nimi-k
   assert.match(notificationRejectDialogSource, /@nimiplatform\/nimi-kit\/ui/);
 });
 
-test('design governance tables register secondary profile and overlay consumers explicitly, including the admitted contacts detail hero/shell split', () => {
+test('design governance tables register secondary profile and overlay consumers explicitly, including the admitted shared profile detail hero/shell split', () => {
   assert.match(designSurfacesTable, /id: profile\.panel\.root/);
   assert.match(designSurfacesTable, /module: features\/profile\/profile-panel\.tsx/);
   assert.match(designSurfacesTable, /id: contacts\.profile_detail\.hero_exception/);
   assert.match(designSurfacesTable, /module: features\/contacts\/contact-detail-view-content\.tsx/);
   assert.match(designSurfacesTable, /id: contacts\.profile_detail\.shell_exception/);
   assert.match(designSurfacesTable, /module: features\/contacts\/contact-detail-view-content-shell\.tsx/);
+  assert.doesNotMatch(designSurfacesTable, /id: contacts\.view\.root/);
+  assert.doesNotMatch(designSurfacesTable, /id: contacts\.friend_requests\.cards/);
   assert.match(designSurfacesTable, /id: economy\.send_gift\.dialog_surface/);
   assert.match(designSurfacesTable, /module: features\/economy\/send-gift-modal\.tsx/);
   assert.match(designOverlaysTable, /id: notification\.reject_gift/);
@@ -138,6 +143,7 @@ test('governed roots and overlays expose stable testability hooks', () => {
   assert.match(createPostModalPanelsSource, /dataTestId=\{E2E_IDS\.createPostLocationPanel\}/);
   assert.match(createPostModalPanelsSource, /dataTestId=\{E2E_IDS\.createPostTagPanel\}/);
   assert.match(contactDetailProfileModalSource, /dataTestId=\{E2E_IDS\.contactDetailProfileModal\}/);
+  assert.match(contactDetailProfileModalSource, /data-testid=\{E2E_IDS\.contactDetailProfileModalClose\}/);
   assert.match(giftsTabSource, /dataTestId=\{E2E_IDS\.profileTopSupportersDialog\}/);
 });
 

@@ -3,23 +3,9 @@ table_family: product_catalog
 owner: desktop
 catalog_id: desktop_renderer_design_sidebars
 entries:
-  - contacts.sidebar
   - runtime.sidebar
   - settings.sidebar
 sidebars:
-  - id: contacts.sidebar
-    module: features/contacts/contacts-view.tsx
-    surface_profile: baseline
-    family: desktop-sidebar-v1
-    item_kinds:
-      - category-row
-      - entity-row
-    has_search: true
-    has_primary_action: true
-    has_sections: true
-    has_resize_handle: true
-    testid_required: true
-    source_rule: D-SHELL-023
   - id: runtime.sidebar
     module: features/runtime-config/runtime-config-panel-view.tsx
     surface_profile: secondary

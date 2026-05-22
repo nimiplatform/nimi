@@ -16,7 +16,6 @@ const chatAiModeContentSource = readWorkspace('src/shell/renderer/features/chat/
 const chatAgentModeContentSource = readWorkspace('src/shell/renderer/features/chat/chat-agent-mode-content.tsx');
 const chatHumanModeContentSource = readWorkspace('src/shell/renderer/features/chat/chat-human-mode-content.tsx');
 const chatContactsSidebarSource = readWorkspace('src/shell/renderer/features/chat/chat-contacts-sidebar.tsx');
-const contactsViewSource = readWorkspace('src/shell/renderer/features/contacts/contacts-view.tsx');
 const runtimePanelSource = readWorkspace('src/shell/renderer/features/runtime-config/runtime-config-panel-view.tsx');
 const settingsPanelSource = readWorkspace('src/shell/renderer/features/settings/settings-panel-body.tsx');
 const sidebarPrimitiveSource = readRepo('kit/ui/src/components/sidebar.tsx');
@@ -28,8 +27,8 @@ const designOverviewSource = readRepo('.nimi/spec/platform/design-pattern.md');
 
 test('desktop kit registries align with the desktop chat contact rail refactor', () => {
   assert.doesNotMatch(adoptionTable, /features\/chats\/chat-list\.tsx/);
-  assert.match(adoptionTable, /id: desktop\.contacts\.sidebar/);
-  assert.match(adoptionTable, /module: apps\/desktop\/src\/shell\/renderer\/features\/contacts\/contacts-view\.tsx/);
+  assert.doesNotMatch(adoptionTable, /id: desktop\.contacts\.sidebar/);
+  assert.doesNotMatch(adoptionTable, /module: apps\/desktop\/src\/shell\/renderer\/features\/contacts\/contacts-view\.tsx/);
   assert.match(adoptionTable, /id: desktop\.runtime\.sidebar/);
   assert.match(adoptionTable, /module: apps\/desktop\/src\/shell\/renderer\/features\/runtime-config\/runtime-config-panel-view\.tsx/);
   assert.match(adoptionTable, /id: desktop\.settings\.sidebar/);
@@ -51,20 +50,16 @@ test('sidebar family contract is anchored in platform design authority', () => {
 });
 
 test('governed sidebar modules import and use the shared sidebar primitive', () => {
-  for (const source of [contactsViewSource, runtimePanelSource, settingsPanelSource]) {
+  for (const source of [runtimePanelSource, settingsPanelSource]) {
     assert.match(source, /@nimiplatform\/nimi-kit\/ui/);
     assert.match(source, /SidebarShell/);
     assert.match(source, /SidebarHeader/);
   }
 
-  assert.match(contactsViewSource, /SidebarSearch/);
-  assert.match(contactsViewSource, /primaryAction=/);
-  assert.match(contactsViewSource, /'category-row', 'entity-row'/);
   assert.match(runtimePanelSource, /SidebarSection/);
   assert.match(runtimePanelSource, /kind="nav-row"/);
   assert.match(settingsPanelSource, /SidebarSection/);
   assert.match(settingsPanelSource, /kind="nav-row"/);
-  assert.match(contactsViewSource, /SidebarResizeHandle/);
   assert.match(runtimePanelSource, /SidebarResizeHandle/);
   assert.match(settingsPanelSource, /SidebarResizeHandle/);
 });

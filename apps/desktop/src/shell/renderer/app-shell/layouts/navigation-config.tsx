@@ -24,15 +24,6 @@ const ICON_CHAT = (
   </svg>
 );
 
-const ICON_CONTACTS = (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-    <circle cx="9" cy="7" r="4" />
-    <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-  </svg>
-);
-
 const ICON_EXPLORE = (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <circle cx="12" cy="12" r="10" />
@@ -160,7 +151,6 @@ export function renderShellNavIcon(icon: string): ReactNode {
   if (normalized === 'home') return ICON_HOME;
   if (normalized === 'developer-tools' || normalized === 'code' || normalized === 'devtools') return ICON_DEVELOPER_TOOLS;
   if (normalized === 'chat') return ICON_CHAT;
-  if (normalized === 'contacts') return ICON_CONTACTS;
   if (normalized === 'explore') return ICON_EXPLORE;
   if (normalized === 'runtime') return ICON_RUNTIME;
   if (normalized === 'profile') return ICON_PROFILE;
@@ -181,7 +171,6 @@ export function renderShellNavIcon(icon: string): ReactNode {
 const BASE_CORE_NAV_ITEMS: NavItem[] = [
   { id: 'home', label: 'Home', icon: renderShellNavIcon('home') },
   { id: 'chat', label: 'Chat', icon: renderShellNavIcon('chat') },
-  { id: 'contacts', label: 'Contacts', icon: renderShellNavIcon('contacts') },
   { id: 'explore', label: 'Explore', icon: renderShellNavIcon('explore') },
   { id: 'apps', label: 'Apps', icon: renderShellNavIcon('apps') },
   { id: 'runtime', label: 'Runtime', icon: renderShellNavIcon('runtime') },

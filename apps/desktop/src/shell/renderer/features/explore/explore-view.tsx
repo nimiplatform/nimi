@@ -18,19 +18,10 @@ import {
 } from './explore-cards';
 import {
   ExploreSectionHeader,
-  ExploreSectionNav,
   type ExploreSectionId,
 } from './explore-section-nav';
-import { ExploreCreateAgentSection } from './explore-create-agent-section';
 
 type PostDto = RealmModel<'PostDto'>;
-
-const ICON_SEARCH = (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="11" cy="11" r="8" />
-    <line x1="21" y1="21" x2="16.65" y2="16.65" />
-  </svg>
-);
 
 type WorldBanner = {
   id: string;
@@ -45,7 +36,6 @@ type WorldBanner = {
 };
 
 type ExploreViewProps = {
-  searchText: string;
   selectedCategory: string | null;
   categories: string[];
   agents: ExploreAgentCardData[];
@@ -53,11 +43,11 @@ type ExploreViewProps = {
   worldCatalogItems: WorldListItem[];
   worldsLoading: boolean;
   worldsError: boolean;
+  activeSection: ExploreSectionId;
   fetchPostPage: (cursor: string | null) => Promise<{ items: PostDto[]; nextCursor: string | null }>;
   postFeedKey: string;
   onPostDelete?: () => void;
   loading: boolean;
-  onSearchTextChange: (value: string) => void;
   onToggleCategory: (category: string) => void;
   onAgentAddFriend: (agentId: string) => void;
   onAgentOpenChat: (agentId: string) => void;
@@ -472,7 +462,6 @@ export function ExploreView(props: ExploreViewProps) {
   const feedScrollRef = useRef<HTMLDivElement>(null);
   const feedSectionRef = useRef<HTMLElement>(null);
   const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
-  const [activeSection, setActiveSection] = useState<ExploreSectionId>('worlds');
   const postCardActionAdapter = usePostCardActionAdapter();
   const [feedColumns, setFeedColumns] = useState(() => (
     typeof window !== 'undefined' && typeof window.matchMedia === 'function' && window.matchMedia('(min-width: 640px)').matches
@@ -494,25 +483,18 @@ export function ExploreView(props: ExploreViewProps) {
   // Worlds with banners power the featured-world hero inside the Worlds section.
   const worldsWithBanners = props.worldBanners.filter((w) => w.bannerUrl);
 
+  useEffect(() => {
+    scrollContainerRef.current?.scrollTo({ top: 0, behavior: 'auto' });
+  }, [props.activeSection]);
+
   const scrollToTop = () => {
     scrollContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
-  const selectSection = (section: ExploreSectionId) => {
-    setActiveSection(section);
-    scrollContainerRef.current?.scrollTo({ top: 0, behavior: 'auto' });
   };
 
   if (props.loading) {
     return (
       <div data-testid={E2E_IDS.panel('explore')} className="flex min-h-0 flex-1 flex-col px-5 pb-5 pt-4">
-        <div className="shrink-0">
-          <div className="mx-auto flex w-full max-w-6xl items-center justify-end gap-4 px-5 py-4">
-            <ExploreSkeletonBlock className="h-11 w-[300px] rounded-full" />
-          </div>
-        </div>
         <ScrollArea className="flex-1" viewportClassName="bg-transparent" contentClassName="mx-auto w-full max-w-6xl space-y-10 px-1 py-5">
-            <ExploreSkeletonBlock className="h-12 w-full rounded-2xl" />
             <section className="space-y-3">
               <ExploreSkeletonBlock className="h-6 w-24 rounded-lg" />
               <ExploreSkeletonBlock className="h-[280px] w-full rounded-[2rem]" />
@@ -541,37 +523,6 @@ export function ExploreView(props: ExploreViewProps) {
 
   return (
     <div data-testid={E2E_IDS.panel('explore')} className="flex min-h-0 flex-1 flex-col px-5 pb-5 pt-4">
-      {/* Header bar */}
-      <div className="shrink-0">
-        <div className="mx-auto flex w-full max-w-6xl flex-wrap items-end justify-end gap-4 px-5 py-4">
-          <div className="w-[300px] shrink-0">
-            <Surface
-              tone="panel"
-              material="glass-thick"
-              elevation="base"
-              padding="none"
-              className="group relative flex h-11 items-center rounded-full border-white/70 px-4 shadow-[0_14px_34px_rgba(15,23,42,0.06)]"
-            >
-              <span className="pointer-events-none absolute left-4 top-1/2 z-10 -translate-y-1/2 text-[color:var(--nimi-fg-3)] transition-colors group-focus-within:text-[color:var(--nimi-accent)]">
-                {ICON_SEARCH}
-              </span>
-              <input
-                type="search"
-                className="w-full bg-transparent py-2.5 pl-7 pr-1 text-sm text-[color:var(--nimi-fg-1)] outline-none placeholder:text-[color:var(--nimi-fg-3)] focus:ring-0"
-                style={{ fontFamily: 'var(--nimi-font-sans)' }}
-                placeholder={t('Explore.searchPlaceholder', { defaultValue: 'Search worlds, agents, posts...' })}
-                value={props.searchText}
-                onChange={(e) => props.onSearchTextChange(e.target.value)}
-              />
-            </Surface>
-          </div>
-        </div>
-        {/* Canonical 4-section nav (D-EXPL-002) */}
-        <div className="mx-auto w-full max-w-6xl px-5 pb-1">
-          <ExploreSectionNav active={activeSection} onSelect={selectSection} />
-        </div>
-      </div>
-
       {/* Scrollable section content */}
       <ScrollArea
         ref={scrollContainerRef}
@@ -580,7 +531,7 @@ export function ExploreView(props: ExploreViewProps) {
         contentClassName="mx-auto w-full max-w-6xl px-1 py-5"
         viewportRef={feedScrollRef}
       >
-        {activeSection === 'worlds' && (
+        {props.activeSection === 'worlds' && (
           <section data-testid="explore-worlds-section">
             {worldsWithBanners.length > 0 && (
               <FeaturedWorldHero
@@ -604,7 +555,7 @@ export function ExploreView(props: ExploreViewProps) {
           </section>
         )}
 
-        {activeSection === 'agents' && (
+        {props.activeSection === 'agents' && (
           <section data-testid="explore-agents-section">
             <ExploreSectionHeader section="agents" />
             <ExploreAgentsSection
@@ -617,7 +568,7 @@ export function ExploreView(props: ExploreViewProps) {
           </section>
         )}
 
-        {activeSection === 'activity' && (
+        {props.activeSection === 'activity' && (
           <section ref={feedSectionRef} data-testid="explore-activity-section">
             <ExploreSectionHeader section="activity" />
             <PostFeed
@@ -642,12 +593,6 @@ export function ExploreView(props: ExploreViewProps) {
           </section>
         )}
 
-        {activeSection === 'create-agent' && (
-          <section data-testid="explore-create-agent-section-wrap">
-            <ExploreSectionHeader section="create-agent" />
-            <ExploreCreateAgentSection onBrowseWorlds={() => selectSection('worlds')} />
-          </section>
-        )}
       </ScrollArea>
 
       <IconButton

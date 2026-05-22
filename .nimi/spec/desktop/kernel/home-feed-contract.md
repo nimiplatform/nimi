@@ -35,13 +35,13 @@ installed shell（`D-HOME-*`）的显式 non-overlap。
 
 `MUST`：Desktop primary navigation 的 `home` tab 渲染 **Realm feed 表面**。
 `Home` 表面呈现 Realm 公共活动 feed 与 Create Post 入口；它是 ordinary
-primary navigation `Home | Chat | Contacts | Explore | Apps | Runtime` 中的
+primary navigation `Home | Chat | Explore | Apps | Runtime` 中的
 `Home` 项的产品职责。
 
 `MUST`：`home` tab 的 primary-navigation placement 由 `D-SHELL-001` 拥有；
 本规则只固定其产品职责为 Realm feed surface。
 
-`MUST NOT`：`Home` feed 表面不得承载 Chat、Contacts、Explore discovery、
+`MUST NOT`：`Home` feed 表面不得承载 Chat、Explore discovery、
 Apps、Runtime 的产品职责；不得把 `Home` 退化成无 feed 语义的 landing /
 dashboard 屏。
 

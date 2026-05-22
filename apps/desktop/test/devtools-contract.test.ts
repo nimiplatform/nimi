@@ -4,7 +4,7 @@
  *
  * Acceptance coverage for `.nimi/spec/desktop/kernel/devtools-contract.md`:
  *   - D-DEV-001: Developer Tools is a `nav_group: developer` surface gated by
- *     `enableDeveloperTools`; it is NOT in the six-item ordinary primary nav.
+ *     `enableDeveloperTools`; it is NOT in the ordinary primary nav.
  *   - D-DEV-002: the discoverable Developer Mode toggle lives in Settings; it
  *     is not reachable only via env vars / launch params.
  *   - D-DEV-003: the surface composition (mod sources, Tester, diagnostics)
@@ -16,7 +16,7 @@
  *   - D-DEV-006: `nimi.tester` is referenced via the admitted registry row.
  *   - D-DEV-007: developer surfaces default to invisible / unreachable.
  *
- * The six-item ordinary primary nav must stay unchanged — this file re-guards
+ * The ordinary primary nav must stay unchanged — this file re-guards
  * that floor too.
  */
 
@@ -65,14 +65,14 @@ test('D-DEV-001: AppTab type includes developer-tools', () => {
   assert.match(storeTypes, /\bAppTab\b[\s\S]*?\|\s*'developer-tools'/);
 });
 
-test('D-DEV-001: developer-tools is NOT in the six-item ordinary core nav', () => {
+test('D-DEV-001: developer-tools is NOT in the ordinary core nav', () => {
   const navConfig = readDesktop('src/shell/renderer/app-shell/layouts/navigation-config.tsx');
   const coreNavBlock = navConfig.slice(
     navConfig.indexOf('BASE_CORE_NAV_ITEMS'),
     navConfig.indexOf('export function getQuickNavItems'),
   );
   const coreIds = [...coreNavBlock.matchAll(/id:\s*'([^']+)'/g)].map((m) => m[1]);
-  assert.deepEqual(coreIds, ['home', 'chat', 'contacts', 'explore', 'apps', 'runtime']);
+  assert.deepEqual(coreIds, ['home', 'chat', 'explore', 'apps', 'runtime']);
   assert.equal(coreIds.includes('developer-tools'), false);
 });
 
@@ -254,9 +254,9 @@ test('D-DEV-006: the registry row — not the source folder — is the admission
 // ---------------------------------------------------------------------------
 
 test('D-DEV-007: the Developer Tools account-menu entry is invisible by default', () => {
-  const layoutView = readDesktop('src/shell/renderer/app-shell/layouts/main-layout-view.tsx');
+  const settingsMenu = readDesktop('src/shell/renderer/app-shell/layouts/main-layout-settings-menu.tsx');
   // The developer-tools submenu item is filtered out unless Developer Mode is on.
-  assert.match(layoutView, /item\.id === 'developer-tools'[\s\S]*?return developerModeEnabled/);
+  assert.match(settingsMenu, /item\.id !== 'developer-tools' \|\| props\.developerModeEnabled/);
 });
 
 test('D-DEV-007: navigation to developer-tools is guarded by Developer Mode', () => {
@@ -270,10 +270,10 @@ test('D-DEV-007: the layout redirects away from developer-tools when Developer M
 });
 
 // ---------------------------------------------------------------------------
-// Six-item ordinary primary nav floor — regression guard
+// Ordinary primary nav floor — regression guard
 // ---------------------------------------------------------------------------
 
-test('D-DEV-001: getCoreNavItems still returns exactly the six ordinary items', () => {
+test('D-DEV-001: getCoreNavItems still returns exactly the ordinary items', () => {
   const navConfig = readDesktop('src/shell/renderer/app-shell/layouts/navigation-config.tsx');
   const fn = navConfig.slice(
     navConfig.indexOf('export function getCoreNavItems'),
