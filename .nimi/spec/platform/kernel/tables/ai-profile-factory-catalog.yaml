@@ -118,7 +118,6 @@ profiles:
     compute_posture: cpu-only
     capability_set:
       - text.generate
-      - text.embed
       - audio.transcribe
       - audio.synthesize
     routing_policy: local-first
@@ -152,7 +151,6 @@ profiles:
     capability_set:
       - text.generate
       - text.generate.vision
-      - text.embed
       - audio.transcribe
       - audio.synthesize
       - image.generate

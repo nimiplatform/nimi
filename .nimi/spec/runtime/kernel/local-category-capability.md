@@ -128,27 +128,30 @@ ordinary-user desktop local speech 可以投影为 canonical product object `Loc
 
 ## K-LOCAL-010 Verified 资产目录结构
 
-`LocalVerifiedAssetDescriptor` 定义 verified 资产的元数据：
+verified 资产元数据的 SSOT 是 K-MCAT `local` provider catalog（`K-MCAT-032`
+local-plane row block：`install` / `variants` / `host_requirement` / `fitness`）。
+verified 资产没有独立的 catalog 真相源。
 
-| 字段 | 必填 | 说明 |
-|---|---|---|
-| `template_id` | 是 | 唯一标识（如 `llama3.1-8b`） |
-| `title` | 是 | 人类可读名称 |
-| `asset_id` | 是 | 安装时使用的统一 asset_id |
-| `logical_model_id` | 是 | 用户抽象 ID；不得直接退化成 provider alias |
-| `kind` | 是 | 资产类型（`chat` / `image` / `video` / `tts` / `stt` / `vae` / `clip` / `lora` / `controlnet` / `auxiliary`） |
-| `repo` | 条件必填 | 资产仓库地址；`install_kind=verified-hf-multi-file` 时必填 |
-| `capabilities` | 是 | 能力列表（`chat`/`embedding` 等） |
-| `engine` | 是 | 目标引擎（`llama`/`media`/`speech`/`sidecar`） |
-| `entry` | 条件必填 | 引擎内资产入口标识；`install_kind=verified-hf-multi-file` 时必填 |
-| `files` | 条件必填 | 组成文件列表；`install_kind=verified-hf-multi-file` 时必填 |
-| `hashes` | 条件必填 | 文件哈希校验（`sha256:{hex}` 格式）；`install_kind=verified-hf-multi-file` 时必填 |
-| `endpoint` | 否 | 默认端点（覆盖 `K-LENG-005`） |
-| `install_kind` | 是 | 安装类型（`binary`/`weights`/`container`/`verified-hf-multi-file`） |
-| `total_size_bytes` | 否 | 预计总下载字节数（用于进度计算与磁盘空间预检） |
-| `tags` | 否 | 标签列表（搜索/过滤用，如 `["llama", "chat", "8b"]`） |
-| `artifact_roles` | 是 | runtime 解析 bundle 所需的 artifact 角色集合 |
-| `preferred_engine` | 是 | 首选执行引擎；值域固定为 `llama` / `media` / `speech` / `sidecar` |
+`LocalVerifiedAssetDescriptor` 是该 catalog truth 的 **投影**，不是平行 catalog：
+
+- `LocalVerifiedAssetDescriptor` 的每个字段必须从 K-MCAT `local` catalog row
+  与其 `K-MCAT-032` local-plane block 派生：
+  - `asset_id` ← variant 级 `variants[].variant_id`（`K-MCAT-032` installable
+    identity）
+  - `logical_model_id` ← catalog row `model_id`；不得退化成 provider alias
+  - `kind` ← catalog row `model_type` / capability-to-asset-kind 映射
+  - `capabilities` ← catalog row `capabilities`（必须是 `K-MCAT-024` canonical
+    token）
+  - `repo` / `revision` / `entry` / `install_kind` / `artifact_roles` /
+    `preferred_engine` ← `install` block
+  - `files` / `hashes` / `total_size_bytes` ← 选定 `variants[]` 变体
+- runtime 不得维护进程内硬编码的 verified 资产元数据字面量；任何这种平行真相
+  必须删除。
+- 缺失完整性材料（`hashes`）的投影必须 fail-close，不得产出 placeholder
+  descriptor。
+
+descriptor 是 catalog projection 这一点不放宽 `K-LOCAL-009` 的安装语义：
+`InstallVerifiedAsset` 仍以 variant 级 `asset_id` 注册并持久化资产记录。
 
 ## K-LOCAL-010a Public Manifest Intake
 
@@ -162,9 +165,12 @@ ordinary-user desktop local speech 可以投影为 canonical product object `Loc
 
 ## K-LOCAL-011 模型目录来源
 
-Phase 1 模型目录来源：
+模型目录来源：
 
-- **Verified list**：进程内硬编码的可信模型列表。`ListVerifiedAssets` 直接返回。
+- **Verified list**：K-MCAT `local` provider catalog（`K-MCAT-032` /
+  `K-MCAT-033`）。`ListVerifiedAssets` 返回的是该 catalog truth 的投影
+  （`K-LOCAL-010`），不是进程内硬编码列表。runtime 不得保留第二套硬编码
+  verified 模型列表；任何这种平行真相必须删除。
 - **HuggingFace Catalog**：通过 HF REST API 搜索社区模型（`K-LOCAL-023`）：
   - API: `https://huggingface.co/api/models`（REST GET）
   - 搜索参数: `search`（query）+ `pipeline_tag` + `library` 过滤
@@ -172,6 +178,9 @@ Phase 1 模型目录来源：
   - 结果数限制: 1–80（由 `limit` 参数控制）
   - 能力推断: 从 `pipeline_tag` + `tags` 推导 capability（映射规则见 `K-LOCAL-023`）
 - **Catalog search** 结果排序: verified 置顶 + HF results（`K-LOCAL-021`）
+
+verified list 与 HF catalog 是两个不同来源，但 verified 真相只有一个 SSOT：
+K-MCAT `local` catalog。两者不得形成第二套 verified catalog。
 
 未来扩展方向：
 

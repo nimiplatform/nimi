@@ -19,6 +19,9 @@ entries:
     families, not user prerequisites
   - engine package selection consumes dependency graph truth and must not select
     private prerequisites
+  - each dependency family materializes strictly under its managed_root K-CFG-018
+    data-plane root resolved from the selected dataRootRef; engine-private or
+    home-directory install roots are not admitted
   - model import may request a plan but must not become dependency source truth
   - imported model and companion assets may produce model-family selected source
     records only; they must not become Python, uv, CUDA, DLL, package-manager,
@@ -45,6 +48,23 @@ entries:
 # schema families are defined in local-environment-source-manifests.yaml and
 # local-environment-verification-evidence.yaml.
 
+# The per-family `managed_root` field is a closed reference to a K-CFG-018
+# data-plane root id (config-schema.yaml `managedRoots.*`). Each materializer
+# stages and verifies its family artifacts strictly under that data-plane root
+# resolved from the user-selected `dataRootRef`; no engine-private or
+# home-directory install root is admitted as a parallel truth.
+data_plane_root_binding:
+  authority: K-CFG-018
+  root_id_source: tables/config-schema.yaml#managedRoots
+  admitted_root_ids:
+    - models
+    - dependencies
+    - environments
+  binding:
+    models: model payload trees (model.asset, model.companion-asset)
+    dependencies: standalone downloaded dependency payloads (uv tool, shared accelerator/CUDA runtime)
+    environments: Nimi-managed executable environment trees (native engine packages, the managed Python interpreter, venvs, package sets, Torch wheels)
+
 dependency_families:
   - family_id: accelerator.cuda.runtime
     owner: runtime_local_environment_plan
@@ -68,7 +88,7 @@ dependency_families:
       - source_kind: unavailable
         priority: 4
         admission: fail_closed
-    managed_root: nimi_data_runtime_dependencies
+    managed_root: dependencies
     activation_env_delta: path_prepend_process_only
     materializer_ref: materializer.accelerator.cuda.runtime
     source_manifest_ref: managed-cuda-runtime-source
@@ -101,7 +121,7 @@ dependency_families:
       - source_kind: unavailable
         priority: 2
         admission: fail_closed
-    managed_root: nimi_data_runtime_engines
+    managed_root: environments
     activation_env_delta: process_env_only
     materializer_ref: materializer.native-engine-package.llama
     source_manifest_ref: managed-native-engine-package-source
@@ -130,7 +150,7 @@ dependency_families:
       - source_kind: unavailable
         priority: 2
         admission: fail_closed
-    managed_root: nimi_data_runtime_engines
+    managed_root: environments
     activation_env_delta: process_env_only
     materializer_ref: materializer.native-engine-package.stablediffusion-ggml
     source_manifest_ref: managed-image-backend-package-source
@@ -160,7 +180,7 @@ dependency_families:
       - source_kind: unavailable
         priority: 3
         admission: fail_closed
-    managed_root: nimi_data_runtime_dependencies
+    managed_root: dependencies
     activation_env_delta: process_env_only
     materializer_ref: materializer.python.tool.uv
     source_manifest_ref: managed-uv-tool-source
@@ -185,7 +205,7 @@ dependency_families:
       - source_kind: unavailable
         priority: 2
         admission: fail_closed
-    managed_root: nimi_data_runtime_dependencies
+    managed_root: environments
     activation_env_delta: process_env_only
     materializer_ref: materializer.python.runtime
     source_manifest_ref: managed-python-runtime-source
@@ -214,7 +234,7 @@ dependency_families:
       - source_kind: unavailable
         priority: 2
         admission: fail_closed
-    managed_root: nimi_data_runtime_dependencies
+    managed_root: environments
     activation_env_delta: process_env_only
     materializer_ref: materializer.python.venv
     source_manifest_ref: managed-python-venv-source
@@ -242,7 +262,7 @@ dependency_families:
       - source_kind: unavailable
         priority: 2
         admission: fail_closed
-    managed_root: nimi_data_runtime_dependencies
+    managed_root: environments
     activation_env_delta: process_env_only
     materializer_ref: materializer.python.package-set
     source_manifest_ref: managed-python-package-lock-source
@@ -270,7 +290,7 @@ dependency_families:
       - source_kind: unavailable
         priority: 2
         admission: fail_closed
-    managed_root: nimi_data_runtime_dependencies
+    managed_root: environments
     activation_env_delta: process_env_only
     materializer_ref: materializer.python.torch-wheel
     source_manifest_ref: managed-torch-wheel-source
@@ -301,7 +321,7 @@ dependency_families:
       - source_kind: unavailable
         priority: 3
         admission: fail_closed
-    managed_root: nimi_data_local_models
+    managed_root: models
     activation_env_delta: none
     materializer_ref: materializer.model.asset
     source_manifest_ref: managed-or-imported-model-asset-source
@@ -331,7 +351,7 @@ dependency_families:
       - source_kind: unavailable
         priority: 3
         admission: fail_closed
-    managed_root: nimi_data_local_models
+    managed_root: models
     activation_env_delta: none
     materializer_ref: materializer.model.companion-asset
     source_manifest_ref: managed-or-imported-companion-asset-source
@@ -346,6 +366,7 @@ graph_rules:
   - dependency families are resolved by Runtime local environment plan before activation
   - uv, Python, venv, package sets, and Torch wheels are managed dependency families, not user prerequisites
   - engine package selection consumes dependency graph truth and must not select private prerequisites
+  - each dependency family materializes strictly under its managed_root K-CFG-018 data-plane root resolved from the selected dataRootRef; engine-private or home-directory install roots are not admitted
   - model import may request a plan but must not become dependency source truth
   - imported model and companion assets may produce model-family selected source records only; they must not become Python, uv, CUDA, DLL, package-manager, or native engine package roots
   - missing uv, Python runtime, venv, package set, Torch wheel, native package, model asset, or companion asset readiness projects Runtime local environment setup or repair state, not ordinary-user package-manager or PATH prerequisites

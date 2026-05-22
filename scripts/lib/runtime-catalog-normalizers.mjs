@@ -633,3 +633,335 @@ export function normalizeWorkflowType(value) {
   }
   throw new Error(`voice workflow type must be voice_clone or voice_design, got: ${normalized}`);
 }
+
+const localInstallKinds = new Set(['binary', 'weights', 'verified-hf-multi-file']);
+const localPreferredEngines = new Set(['llama', 'media', 'speech', 'sidecar']);
+const localAccelerators = new Set(['cpu', 'metal', 'cuda']);
+
+function normalizeInt(value, label) {
+  if (value === undefined || value === null || value === '') {
+    return undefined;
+  }
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || !Number.isInteger(parsed) || parsed < 0) {
+    throw new Error(`${label} must be a non-negative integer, got: ${value}`);
+  }
+  return parsed;
+}
+
+// normalizeLocalHostRequirement projects a K-MCAT-032 variant host_requirement
+// block. min_vram_bytes is required only when accelerator != cpu.
+function normalizeLocalHostRequirement(raw, label) {
+  if (!raw || typeof raw !== 'object') {
+    throw new Error(`${label} requires a host_requirement block`);
+  }
+  const accelerator = normalizeString(raw.accelerator).toLowerCase();
+  if (!localAccelerators.has(accelerator)) {
+    throw new Error(`${label} host_requirement.accelerator must be cpu|metal|cuda, got: ${raw.accelerator}`);
+  }
+  const minRamBytes = normalizeInt(raw.min_ram_bytes, `${label} host_requirement.min_ram_bytes`);
+  if (minRamBytes === undefined) {
+    throw new Error(`${label} host_requirement.min_ram_bytes is required`);
+  }
+  const out = { accelerator, min_ram_bytes: minRamBytes };
+  const minVramBytes = normalizeInt(raw.min_vram_bytes, `${label} host_requirement.min_vram_bytes`);
+  if (accelerator !== 'cpu') {
+    if (minVramBytes === undefined) {
+      throw new Error(`${label} host_requirement.min_vram_bytes is required when accelerator != cpu`);
+    }
+    out.min_vram_bytes = minVramBytes;
+  } else if (minVramBytes !== undefined) {
+    out.min_vram_bytes = minVramBytes;
+  }
+  return out;
+}
+
+// normalizeLocalVariant projects one K-MCAT-032 variant. Every file MUST carry
+// a sha256 hash; missing integrity material fails closed. The variant entry is
+// the per-variant engine entry artifact; when omitted it defaults to
+// install.entry (multi-file bundles share one canonical entry name, while
+// per-quant GGUF variants each carry a distinct entry file).
+function normalizeLocalVariant(raw, modelID, installEntry) {
+  const variantID = normalizeString(raw?.variant_id);
+  if (!variantID) {
+    throw new Error(`local model ${modelID} variant entry missing variant_id`);
+  }
+  const label = `local model ${modelID} variant ${variantID}`;
+  const quant = normalizeString(raw?.quant);
+  if (!quant) {
+    throw new Error(`${label} missing quant`);
+  }
+  const files = normalizeStringArray(raw?.files);
+  if (files.length === 0) {
+    throw new Error(`${label} must declare at least one file`);
+  }
+  let entry = normalizeString(raw?.entry);
+  if (!entry) {
+    entry = files.length === 1 ? files[0] : installEntry;
+  }
+  if (!files.includes(entry)) {
+    throw new Error(`${label} entry ${entry} is not in the variant files list`);
+  }
+  const hashesRaw = raw?.hashes && typeof raw.hashes === 'object' ? raw.hashes : {};
+  const hashes = {};
+  for (const file of files) {
+    const hash = normalizeString(hashesRaw[file]);
+    if (!hash) {
+      throw new Error(`${label} file ${file} is missing a hash`);
+    }
+    if (!/^sha256:[0-9a-f]{64}$/iu.test(hash)) {
+      throw new Error(`${label} file ${file} hash must be sha256:<64-hex>, got: ${hash}`);
+    }
+    hashes[file] = hash.toLowerCase();
+  }
+  for (const key of Object.keys(hashesRaw)) {
+    if (!files.includes(normalizeString(key))) {
+      throw new Error(`${label} hash key ${key} does not match any declared file`);
+    }
+  }
+  const totalSizeBytes = normalizeInt(raw?.total_size_bytes, `${label} total_size_bytes`);
+  if (totalSizeBytes === undefined || totalSizeBytes <= 0) {
+    throw new Error(`${label} total_size_bytes must be a positive integer`);
+  }
+  return {
+    variant_id: variantID,
+    quant,
+    entry,
+    files,
+    hashes,
+    total_size_bytes: totalSizeBytes,
+    host_requirement: normalizeLocalHostRequirement(raw?.host_requirement, label),
+  };
+}
+
+const localCompanionKinds = new Set(['vae', 'clip', 'lora', 'controlnet', 'auxiliary']);
+
+// normalizeLocalInstall projects a K-MCAT-032 install block (shared by the main
+// model row and by companion blocks). label scopes error messages.
+function normalizeLocalInstall(install, label) {
+  if (!install || typeof install !== 'object') {
+    throw new Error(`${label} requires an install block`);
+  }
+  const repo = normalizeString(install.repo);
+  if (!repo) {
+    throw new Error(`${label} install.repo is required`);
+  }
+  const revision = normalizeString(install.revision);
+  if (!revision || revision.toLowerCase() === 'main') {
+    throw new Error(`${label} install.revision must be a pinned commit sha, not "main"`);
+  }
+  const installKind = normalizeString(install.install_kind);
+  if (!localInstallKinds.has(installKind)) {
+    throw new Error(`${label} install.install_kind must be binary|weights|verified-hf-multi-file, got: ${installKind}`);
+  }
+  const entry = normalizeString(install.entry);
+  if (!entry) {
+    throw new Error(`${label} install.entry is required`);
+  }
+  const artifactRoles = normalizeStringArray(install.artifact_roles);
+  if (artifactRoles.length === 0) {
+    throw new Error(`${label} install.artifact_roles must not be empty`);
+  }
+  const preferredEngine = normalizeString(install.preferred_engine).toLowerCase();
+  if (!localPreferredEngines.has(preferredEngine)) {
+    throw new Error(`${label} install.preferred_engine must be llama|media|speech|sidecar, got: ${preferredEngine}`);
+  }
+  return {
+    repo,
+    revision,
+    install_kind: installKind,
+    entry,
+    artifact_roles: artifactRoles,
+    preferred_engine: preferredEngine,
+  };
+}
+
+// normalizeLocalVariantList projects a K-MCAT-032 variants array (shared by the
+// main model row and by companion blocks), enforcing unique variant_id.
+function normalizeLocalVariantList(rawVariants, modelID, installEntry) {
+  const variants = [];
+  const seenVariantIDs = new Set();
+  for (const rawVariant of rawVariants) {
+    const variant = normalizeLocalVariant(rawVariant, modelID, installEntry);
+    const key = variant.variant_id.toLowerCase();
+    if (seenVariantIDs.has(key)) {
+      throw new Error(`local model ${modelID} duplicate variant_id: ${variant.variant_id}`);
+    }
+    seenVariantIDs.add(key);
+    variants.push(variant);
+  }
+  return variants;
+}
+
+// normalizeLocalCompanion projects one K-MCAT-032 companion block. A companion
+// is a passive parent-bound asset: it carries install + variants like a model
+// but no capabilities and no fitness. companion_kind must be a K-LOCAL-007
+// passive-kind and engine_slot is a K-LOCAL-031 engine-defined slot.
+function normalizeLocalCompanion(raw, modelID) {
+  if (!raw || typeof raw !== 'object') {
+    throw new Error(`local model ${modelID} companion entry must be an object`);
+  }
+  const companionKind = normalizeString(raw.companion_kind).toLowerCase();
+  if (!localCompanionKinds.has(companionKind)) {
+    throw new Error(`local model ${modelID} companion.companion_kind must be vae|clip|lora|controlnet|auxiliary, got: ${raw.companion_kind}`);
+  }
+  const engineSlot = normalizeString(raw.engine_slot);
+  if (!engineSlot) {
+    throw new Error(`local model ${modelID} companion (${companionKind}) requires an engine_slot`);
+  }
+  const label = `local model ${modelID} companion ${companionKind}/${engineSlot}`;
+  const install = normalizeLocalInstall(raw.install, label);
+  if (!Array.isArray(raw.variants) || raw.variants.length === 0) {
+    throw new Error(`${label} requires at least one variant`);
+  }
+  const variants = normalizeLocalVariantList(raw.variants, modelID, install.entry);
+  if (raw.capabilities !== undefined) {
+    throw new Error(`${label} is passive and must not declare capabilities`);
+  }
+  if (raw.fitness !== undefined) {
+    throw new Error(`${label} is passive and must not declare fitness`);
+  }
+  return {
+    companion_kind: companionKind,
+    engine_slot: engineSlot,
+    install,
+    variants,
+  };
+}
+
+// normalizeLocalPlaneRow projects the K-MCAT-032 local-plane block
+// (install / variants / fitness / optional companions) for a single models[]
+// row. Returns null when the row carries no local-plane block.
+export function normalizeLocalPlaneRow(model, modelID) {
+  const hasInstall = model?.install && typeof model.install === 'object';
+  const hasVariants = Array.isArray(model?.variants) && model.variants.length > 0;
+  const hasFitness = model?.fitness && typeof model.fitness === 'object';
+  if (!hasInstall && !hasVariants && !hasFitness) {
+    return null;
+  }
+  if (!hasInstall || !hasVariants || !hasFitness) {
+    throw new Error(`local model ${modelID} local-plane block requires install, variants, and fitness together`);
+  }
+  const install = normalizeLocalInstall(model.install, `local model ${modelID}`);
+  const variants = normalizeLocalVariantList(model.variants, modelID, install.entry);
+  const paramCount = normalizeInt(model.fitness.param_count, `local model ${modelID} fitness.param_count`);
+  if (paramCount === undefined || paramCount <= 0) {
+    throw new Error(`local model ${modelID} fitness.param_count must be a positive integer`);
+  }
+  const contextLength = normalizeInt(model.fitness.context_length, `local model ${modelID} fitness.context_length`);
+  if (contextLength === undefined) {
+    throw new Error(`local model ${modelID} fitness.context_length is required`);
+  }
+  const out = {
+    install,
+    variants,
+    fitness: {
+      param_count: paramCount,
+      context_length: contextLength,
+    },
+  };
+  // K-MCAT-032 optional companions block. engine_slot must be unique within a
+  // parent row (K-LOCAL-031). Absent or empty companions: omit the field.
+  if (model.companions !== undefined) {
+    if (!Array.isArray(model.companions)) {
+      throw new Error(`local model ${modelID} companions must be a list`);
+    }
+    if (model.companions.length > 0) {
+      const companions = [];
+      const seenEngineSlots = new Set();
+      for (const rawCompanion of model.companions) {
+        const companion = normalizeLocalCompanion(rawCompanion, modelID);
+        const slotKey = companion.engine_slot.toLowerCase();
+        if (seenEngineSlots.has(slotKey)) {
+          throw new Error(`local model ${modelID} duplicate companion engine_slot: ${companion.engine_slot}`);
+        }
+        seenEngineSlots.add(slotKey);
+        companions.push(companion);
+      }
+      out.companions = companions;
+    }
+  }
+  return out;
+}
+
+// normalizePresets projects the K-MCAT-033 curated presets section. install
+// level keys are fixed to minimal and recommended. Each slot.model_ref must
+// resolve to a local-plane row whose capabilities include slot.capability.
+export function normalizePresets(rawPresets, localPlaneByModelID, modelCapabilitiesByID) {
+  if (rawPresets === undefined || rawPresets === null) {
+    return undefined;
+  }
+  if (typeof rawPresets !== 'object' || Array.isArray(rawPresets)) {
+    throw new Error('presets must be a mapping of install-level keys');
+  }
+  const allowedLevels = ['minimal', 'recommended'];
+  for (const level of Object.keys(rawPresets)) {
+    if (!allowedLevels.includes(level)) {
+      throw new Error(`presets install level must be minimal or recommended, got: ${level}`);
+    }
+  }
+  const out = {};
+  for (const level of allowedLevels) {
+    const preset = rawPresets[level];
+    if (preset === undefined) {
+      continue;
+    }
+    if (!preset || typeof preset !== 'object') {
+      throw new Error(`presets.${level} must be an object`);
+    }
+    const factoryAlias = normalizeString(preset.factory_aiprofile_alias);
+    if (!factoryAlias) {
+      throw new Error(`presets.${level} missing factory_aiprofile_alias`);
+    }
+    const slotsRaw = Array.isArray(preset.slots) ? preset.slots : [];
+    if (slotsRaw.length === 0) {
+      throw new Error(`presets.${level} must declare at least one slot`);
+    }
+    const slots = [];
+    const seenSlots = new Set();
+    for (const slotRaw of slotsRaw) {
+      const slotID = normalizeString(slotRaw?.slot);
+      if (!slotID) {
+        throw new Error(`presets.${level} slot entry missing slot id`);
+      }
+      if (seenSlots.has(slotID.toLowerCase())) {
+        throw new Error(`presets.${level} duplicate slot: ${slotID}`);
+      }
+      seenSlots.add(slotID.toLowerCase());
+      const capability = normalizeString(slotRaw?.capability);
+      if (!canonicalModelCapabilities.has(capability)) {
+        throw new Error(`presets.${level} slot ${slotID} capability is not a canonical token: ${capability}`);
+      }
+      if (capability === 'text.embed') {
+        throw new Error(`presets.${level} slot ${slotID}: text.embed is not allowed as a preset slot`);
+      }
+      const modelRef = normalizeString(slotRaw?.model_ref);
+      if (!modelRef) {
+        throw new Error(`presets.${level} slot ${slotID} missing model_ref`);
+      }
+      const modelKey = modelRef.toLowerCase();
+      if (!localPlaneByModelID.has(modelKey)) {
+        throw new Error(`presets.${level} slot ${slotID} model_ref ${modelRef} does not resolve to a local-plane catalog row`);
+      }
+      const caps = modelCapabilitiesByID.get(modelKey) || [];
+      if (!caps.map((value) => value.toLowerCase()).includes(capability.toLowerCase())) {
+        throw new Error(`presets.${level} slot ${slotID} model_ref ${modelRef} does not declare capability ${capability}`);
+      }
+      const slot = {
+        slot: slotID,
+        capability,
+        model_ref: modelRef,
+        required: Boolean(slotRaw?.required),
+      };
+      if (slotRaw?.host_conditional !== undefined) {
+        slot.host_conditional = Boolean(slotRaw.host_conditional);
+      }
+      slots.push(slot);
+    }
+    out[level] = {
+      factory_aiprofile_alias: factoryAlias,
+      slots,
+    };
+  }
+  return Object.keys(out).length > 0 ? out : undefined;
+}

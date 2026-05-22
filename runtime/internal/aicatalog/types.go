@@ -141,6 +141,56 @@ type SelectionProfile struct {
 	Rationale        string `yaml:"rationale,omitempty" json:"rationale,omitempty"`
 }
 
+// LocalPlaneHostRequirement is the K-MCAT-032 per-variant host fitness input.
+// MinVRAMBytes is meaningful only when Accelerator != "cpu".
+type LocalPlaneHostRequirement struct {
+	Accelerator  string `yaml:"accelerator" json:"accelerator"`
+	MinRAMBytes  int64  `yaml:"min_ram_bytes" json:"min_ram_bytes"`
+	MinVRAMBytes int64  `yaml:"min_vram_bytes,omitempty" json:"min_vram_bytes,omitempty"`
+}
+
+// LocalPlaneVariant is one K-MCAT-032 quant variant — an installable asset.
+// VariantID is the variant-level asset_id used by the resolver and by
+// InstallVerifiedAsset.
+type LocalPlaneVariant struct {
+	VariantID       string                    `yaml:"variant_id" json:"variant_id"`
+	Quant           string                    `yaml:"quant" json:"quant"`
+	Entry           string                    `yaml:"entry" json:"entry"`
+	Files           []string                  `yaml:"files" json:"files"`
+	Hashes          map[string]string         `yaml:"hashes" json:"hashes"`
+	TotalSizeBytes  int64                     `yaml:"total_size_bytes" json:"total_size_bytes"`
+	HostRequirement LocalPlaneHostRequirement `yaml:"host_requirement" json:"host_requirement"`
+}
+
+// LocalPlaneInstall is the K-MCAT-032 installable-fact block shared by every
+// variant of a local-plane model row.
+type LocalPlaneInstall struct {
+	Repo            string   `yaml:"repo" json:"repo"`
+	Revision        string   `yaml:"revision" json:"revision"`
+	InstallKind     string   `yaml:"install_kind" json:"install_kind"`
+	Entry           string   `yaml:"entry" json:"entry"`
+	ArtifactRoles   []string `yaml:"artifact_roles" json:"artifact_roles"`
+	PreferredEngine string   `yaml:"preferred_engine" json:"preferred_engine"`
+}
+
+// LocalPlaneFitness is the K-MCAT-032 main-model fitness metadata.
+type LocalPlaneFitness struct {
+	ParamCount    int64 `yaml:"param_count" json:"param_count"`
+	ContextLength int64 `yaml:"context_length" json:"context_length"`
+}
+
+// LocalPlaneCompanion is one K-MCAT-032 companion block — a passive
+// parent-bound asset (VAE, text encoder, etc.). A companion carries install +
+// variants like a model but no capabilities and no fitness (K-LOCAL-007
+// passive asset). CompanionKind is a K-LOCAL-007 passive-kind; EngineSlot is a
+// K-LOCAL-031 engine-defined workflow slot, unique within the parent row.
+type LocalPlaneCompanion struct {
+	CompanionKind string              `yaml:"companion_kind" json:"companion_kind"`
+	EngineSlot    string              `yaml:"engine_slot" json:"engine_slot"`
+	Install       *LocalPlaneInstall  `yaml:"install" json:"install"`
+	Variants      []LocalPlaneVariant `yaml:"variants" json:"variants"`
+}
+
 type ModelEntry struct {
 	Provider            string                     `yaml:"provider" json:"provider"`
 	ModelID             string                     `yaml:"model_id" json:"model_id"`
@@ -156,6 +206,37 @@ type ModelEntry struct {
 	Transcription       *TranscriptionOptions      `yaml:"transcription,omitempty" json:"transcription,omitempty"`
 	VideoGeneration     *VideoGenerationCapability `yaml:"video_generation,omitempty" json:"video_generation,omitempty"`
 	SourceRef           SourceRef                  `yaml:"source_ref" json:"source_ref"`
+
+	// K-MCAT-032 local-plane block — present only on runtime_plane=local rows.
+	Install  *LocalPlaneInstall  `yaml:"install,omitempty" json:"install,omitempty"`
+	Variants []LocalPlaneVariant `yaml:"variants,omitempty" json:"variants,omitempty"`
+	Fitness  *LocalPlaneFitness  `yaml:"fitness,omitempty" json:"fitness,omitempty"`
+	// Companions is the optional K-MCAT-032 passive companion-asset list. It is
+	// present only on rows whose engine genuinely requires companions (image /
+	// video workflow models); core text/speech rows carry none.
+	Companions []LocalPlaneCompanion `yaml:"companions,omitempty" json:"companions,omitempty"`
+}
+
+// PresetSlot is one K-MCAT-033 curated slot binding a capability to a model.
+type PresetSlot struct {
+	Slot            string `yaml:"slot" json:"slot"`
+	Capability      string `yaml:"capability" json:"capability"`
+	ModelRef        string `yaml:"model_ref" json:"model_ref"`
+	Required        bool   `yaml:"required" json:"required"`
+	HostConditional bool   `yaml:"host_conditional,omitempty" json:"host_conditional,omitempty"`
+}
+
+// Preset is one K-MCAT-033 install-level preset (a fixed concrete model set).
+type Preset struct {
+	FactoryAIProfileAlias string       `yaml:"factory_aiprofile_alias" json:"factory_aiprofile_alias"`
+	Slots                 []PresetSlot `yaml:"slots" json:"slots"`
+}
+
+// Presets is the K-MCAT-033 curated presets section. Install-level keys are
+// fixed to minimal and recommended.
+type Presets struct {
+	Minimal     *Preset `yaml:"minimal,omitempty" json:"minimal,omitempty"`
+	Recommended *Preset `yaml:"recommended,omitempty" json:"recommended,omitempty"`
 }
 
 type VoiceEntry struct {
@@ -210,6 +291,9 @@ type ProviderDocument struct {
 	VoiceWorkflowModels   []VoiceWorkflowModel    `yaml:"voice_workflow_models,omitempty" json:"voice_workflow_models,omitempty"`
 	ModelWorkflowBindings []ModelWorkflowBinding  `yaml:"model_workflow_bindings,omitempty" json:"model_workflow_bindings,omitempty"`
 	VoiceHandlePolicies   []VoiceHandlePolicy     `yaml:"voice_handle_policies,omitempty" json:"voice_handle_policies,omitempty"`
+
+	// K-MCAT-033 curated presets — present only on the local provider document.
+	Presets *Presets `yaml:"presets,omitempty" json:"presets,omitempty"`
 
 	RawYAML string `yaml:"-" json:"raw_yaml"`
 }

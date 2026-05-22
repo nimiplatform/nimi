@@ -128,3 +128,16 @@ The Runtime page `Environment` surface reads the `nimi_data` data-plane roots
 (`models`, `dependencies`, `environments`, `logs`, `audit`) as a Runtime-owned
 read-only data model derived from `dataRootRef` and `managedRoots`; it does not
 introduce a second config authority.
+
+The data-plane roots are also the only admitted install location for Runtime
+local environment materialization. `local-environment-dependencies.yaml` binds
+each dependency family to one of these root ids through its `managed_root`
+field: `models` for model and companion asset payloads, `dependencies` for
+standalone downloaded dependency payloads (the `uv` tool, the shared
+accelerator/CUDA runtime), and `environments` for Nimi-managed executable
+environment trees (native engine packages, the managed Python interpreter,
+venvs, package sets, Torch wheels). The engine manager, native engine package
+installers, and Python dependency materializers must resolve their install root
+from `dataRootRef` / `managedRoots` and must not use `~/.nimi/engines` or any
+other home-directory root. When `dataRootRef` is empty the managed install
+fails closed into product setup rather than guessing a path.

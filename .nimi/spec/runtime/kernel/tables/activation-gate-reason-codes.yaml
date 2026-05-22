@@ -16,6 +16,9 @@ values:
   - torch_wheel_missing
   - vulkan_runtime_unavailable
   - metal_runtime_unavailable
+  - local_model_resolve_install_level_invalid
+  - local_model_resolve_slot_omitted
+  - local_model_resolve_host_unsupported
   - unsupported
   - repair_required
   - failed
@@ -34,6 +37,9 @@ values:
     python_package_set_missing when blocked
   - non-ready activation states must not project active, degraded-ready,
     best-effort-ready, endpoint-ready, or import-ready
+  - local_model_resolver reason codes are owned by the K-MCAT deterministic
+    local model resolver; they project resolver outcome over the local model
+    catalog and must not be invented by consumers
 
 # Canonical activation gate reason-code ownership.
 # Activation reasons are Runtime projection, not consumer-local readiness truth.
@@ -117,6 +123,24 @@ reason_codes:
     activation_state: unsupported
     audit_shape: host_capability_blocking
 
+  - reason_code: local_model_resolve_install_level_invalid
+    owner_kind: local_model_resolver
+    owner_ref: K-MCAT-034
+    activation_state: unsupported
+    audit_shape: resolver_blocking
+
+  - reason_code: local_model_resolve_slot_omitted
+    owner_kind: local_model_resolver
+    owner_ref: K-MCAT-036
+    activation_state: unsupported
+    audit_shape: resolver_slot_note
+
+  - reason_code: local_model_resolve_host_unsupported
+    owner_kind: local_model_resolver
+    owner_ref: K-MCAT-037
+    activation_state: unsupported
+    audit_shape: resolver_blocking
+
 state_priority:
   - unsupported
   - repair_required
@@ -132,3 +156,4 @@ rules:
   - host capability projection reason codes must not create dependency families or selected source records
   - speech driver readiness is folded into python.package-set evidence and uses python_package_set_missing when blocked
   - non-ready activation states must not project active, degraded-ready, best-effort-ready, endpoint-ready, or import-ready
+  - local_model_resolver reason codes are owned by the K-MCAT deterministic local model resolver; they project resolver outcome over the local model catalog and must not be invented by consumers

@@ -56,6 +56,12 @@ entries:
   - K-MCAT-029
   - K-MCAT-030
   - K-MCAT-031
+  - K-MCAT-032
+  - K-MCAT-033
+  - K-MCAT-034
+  - K-MCAT-035
+  - K-MCAT-036
+  - K-MCAT-037
 rules:
   - rule_id: K-MCAT-001
     evidence_refs:
@@ -249,4 +255,36 @@ rules:
       - runtime_kernel_consistency
       - runtime_go_test
       - runtime_catalog_drift
+    evidence_requirement: required
+  - rule_id: K-MCAT-032
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_catalog_drift
+    evidence_requirement: required
+  - rule_id: K-MCAT-033
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_catalog_drift
+    evidence_requirement: required
+  - rule_id: K-MCAT-034
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-MCAT-035
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-MCAT-036
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-MCAT-037
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
     evidence_requirement: required

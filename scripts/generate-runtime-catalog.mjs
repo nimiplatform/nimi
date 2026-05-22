@@ -25,6 +25,8 @@ import {
   normalizeVoiceRequestOptions,
   normalizeVoiceWorkflowRequestOptions,
   normalizeWorkflowType,
+  normalizeLocalPlaneRow,
+  normalizePresets,
   parseVoiceDefinition,
   resolveCapabilities,
   resolveLangs,
@@ -181,6 +183,9 @@ function generateProviderCatalog(doc) {
     const modelSourceRef = resolveSourceRef(modelSourceIDs, sourceIndex, fallbackSourceRef);
 
     const videoGeneration = normalizeVideoGeneration(model?.video_generation);
+    const localPlane = runtime.runtime_plane === 'local'
+      ? normalizeLocalPlaneRow(model, canonicalModelID)
+      : null;
     if (voiceRequestOptions && !requiresVoice) {
       throw new Error(`${provider} model ${canonicalModelID} declares voice.request_options without audio.synthesize support`);
     }
@@ -223,6 +228,14 @@ function generateProviderCatalog(doc) {
       }
       if (supportsVoiceRefKinds.length > 0) {
         modelEntry.voice_ref_kinds = supportsVoiceRefKinds;
+      }
+      if (localPlane && entryModelID === canonicalModelID) {
+        modelEntry.install = localPlane.install;
+        modelEntry.variants = localPlane.variants;
+        modelEntry.fitness = localPlane.fitness;
+        if (localPlane.companions) {
+          modelEntry.companions = localPlane.companions;
+        }
       }
 
       modelsOut.push(modelEntry);
@@ -343,6 +356,20 @@ function generateProviderCatalog(doc) {
   }
 
   const modelIndex = new Map(modelsOut.map((model) => [normalizeString(model.model_id).toLowerCase(), model]));
+
+  const localPlaneByModelID = new Map();
+  const modelCapabilitiesByID = new Map();
+  for (const model of modelsOut) {
+    const key = normalizeString(model.model_id).toLowerCase();
+    modelCapabilitiesByID.set(key, normalizeStringArray(model.capabilities));
+    if (model.install && model.variants && model.fitness) {
+      localPlaneByModelID.set(key, model);
+    }
+  }
+  const presetsOut = runtime.runtime_plane === 'local'
+    ? normalizePresets(doc?.presets, localPlaneByModelID, modelCapabilitiesByID)
+    : undefined;
+
   const selectionProfilesOut = inventoryMode === 'static_source'
     ? normalizeSelectionProfiles(doc?.selection_profiles, provider, modelIndex)
     : [];
@@ -535,6 +562,9 @@ function generateProviderCatalog(doc) {
   }
   if (voiceHandlePoliciesOut.length > 0) {
     result.voice_handle_policies = voiceHandlePoliciesOut;
+  }
+  if (presetsOut) {
+    result.presets = presetsOut;
   }
   return result;
 }

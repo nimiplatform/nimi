@@ -1,6 +1,6 @@
 schema_version: 3
 provider: local
-catalog_version: 2026-04-17-local-v6
+catalog_version: 2026-05-21-local-v8
 generated_target: runtime/catalog/providers/local.yaml
 runtime:
   runtime_plane: local
@@ -46,6 +46,34 @@ sources:
     url: https://huggingface.co/Qwen/Qwen3-ASR-0.6B
     retrieved_at: 2026-04-17
     note: Default local STT checkpoint for first-wave local admission.
+  - source_id: gemma4_e2b_gguf_modelcard
+    url: https://huggingface.co/unsloth/gemma-4-E2B-it-GGUF
+    retrieved_at: 2026-05-21
+    note: Curated minimal-preset local chat checkpoint (Gemma 4 E2B, GGUF quants).
+  - source_id: gemma4_26b_a4b_gguf_modelcard
+    url: https://huggingface.co/unsloth/gemma-4-26B-A4B-it-GGUF
+    retrieved_at: 2026-05-21
+    note: Curated recommended-preset local chat checkpoint (Gemma 4 26B-A4B MoE, GGUF quants).
+  - source_id: z_image_turbo_gguf_modelcard
+    url: https://huggingface.co/leejet/Z-Image-Turbo-GGUF
+    retrieved_at: 2026-05-21
+    note: Curated recommended-preset local image checkpoint (Z-Image-Turbo, stable-diffusion.cpp GGUF quants).
+  - source_id: stable_diffusion_cpp_z_image_guide
+    url: https://github.com/leejet/stable-diffusion.cpp/blob/master/docs/z_image.md
+    retrieved_at: 2026-05-21
+    note: stable-diffusion.cpp Z-Image usage guide defining the diffusion-model / vae / llm engine slots.
+  - source_id: comfy_org_z_image_turbo_modelcard
+    url: https://huggingface.co/Comfy-Org/z_image_turbo
+    retrieved_at: 2026-05-21
+    note: >-
+      Z-Image-Turbo VAE companion source (split_files/vae/ae.safetensors). The
+      stable-diffusion.cpp Z-Image guide also names black-forest-labs/FLUX.1-schnell
+      for ae.sft, but that repo is access-gated; Comfy-Org/z_image_turbo is the
+      guide's ungated Z-Image distribution carrying byte-identical ae.safetensors.
+  - source_id: qwen3_4b_instruct_2507_gguf_modelcard
+    url: https://huggingface.co/unsloth/Qwen3-4B-Instruct-2507-GGUF
+    retrieved_at: 2026-05-21
+    note: Z-Image-Turbo text-encoder companion source (Qwen3-4B-Instruct-2507, GGUF quants for the stable-diffusion.cpp --llm slot).
   - source_id: cosyvoice_repo
     url: https://github.com/FunAudioLLM/CosyVoice
     retrieved_at: 2026-03-05
@@ -134,9 +162,67 @@ voice_sets:
 # - voice design default lane: Qwen3-TTS-12Hz-1.7B-VoiceDesign
 # Other local speech families below remain catalog evidence only until their
 # own execution plane and admission proof are explicitly cut over.
+#
+# LOCAL-PLANE ROW SCHEMA (K-MCAT-032 — authoring contract, populated per tier
+# in wave-1/wave-2). Each runtime_plane=local models[] row gains a local-plane
+# block. It is a plane-conditional block (mirrors the video_generation/voice
+# capability-conditional pattern), not a schema fork:
+#
+#   - model_id: <stable model identity>
+#     capabilities: [<canonical K-MCAT-024 tokens only>]
+#     install:
+#       repo: <huggingface repo>
+#       revision: <pinned revision>
+#       install_kind: binary | weights | verified-hf-multi-file
+#       entry: <engine entry artifact, relative path>
+#       artifact_roles: [<bundle roles>]
+#       preferred_engine: llama | media | speech | sidecar
+#     variants:                       # 1+; each variant is one installable asset
+#       - variant_id: <stable per-(model,quant) identity; the installable asset_id>
+#         quant: Q4_K_M | Q8_0 | Q6_K | Q5_K_M | Q4_0 | Q3 | Q2 | F16
+#         files: [<file>...]
+#         hashes: { <file>: "sha256:<hex>" }    # every file; missing => fail-close
+#         total_size_bytes: <int>
+#         host_requirement:
+#           accelerator: cpu | metal | cuda
+#           min_ram_bytes: <int>
+#           min_vram_bytes: <int>               # required only when accelerator != cpu
+#     fitness:
+#       param_count: <int>
+#       context_length: <int>
+#
+# CURATED PRESETS SCHEMA (K-MCAT-033 — authoring contract, populated in
+# wave-1/wave-2). A top-level `presets:` section binds factory AIProfile
+# install levels to concrete model slots. install-level keys are fixed to
+# `minimal` and `recommended` (aligns with ai-profile-factory-catalog.yaml
+# first_run_install_levels). `text.embed` is deliberately NOT a preset slot in
+# either level — embedding is a post-initialization / cloud-default capability,
+# not a first-run local baseline slot:
+#
+#   presets:
+#     minimal:
+#       factory_aiprofile_alias: local-speech-ready
+#       slots:
+#         - { slot: chat,  capability: text.generate,    model_ref: <model_id>, required: true }
+#         - { slot: stt,   capability: audio.transcribe, model_ref: <model_id>, required: true }
+#         - { slot: tts,   capability: audio.synthesize, model_ref: <model_id>, required: true }
+#     recommended:
+#       factory_aiprofile_alias: local-gpu
+#       slots:
+#         - { slot: chat,  capability: text.generate,    model_ref: <model_id>, required: true }
+#         - { slot: stt,   capability: audio.transcribe, model_ref: <model_id>, required: true }
+#         - { slot: tts,   capability: audio.synthesize, model_ref: <model_id>, required: true }
+#         - { slot: image, capability: image.generate,   model_ref: <model_id>, required: false, host_conditional: true }
+#
+# Each slot.model_ref must resolve to an admitted models[] row whose
+# capabilities include slot.capability. Each preset's declared capability set
+# must be a subset of the bound factory AIProfile's capability_set. The
+# deterministic resolver (K-MCAT-034..037) resolves
+# (install_level, host_posture) over this catalog into variant-level asset ids.
+# Catalog rows are populated in wave-1 (text/speech) and wave-2 (image/gpu).
 models:
   - model_id: qwen3-tts-local
-    updated_at: 2026-04-17
+    updated_at: 2026-05-21
     capabilities: [audio.synthesize]
     source_ids: [qwen3_tts_customvoice_modelcard]
     voice:
@@ -144,6 +230,47 @@ models:
       dynamic_voice_set_ref: local_qwen3_tts_customvoice_dynamic_voice_set
       supports_voice_ref_kinds: [voice_asset_id, provider_voice_ref]
       langs_ref: short_v1
+    install:
+      repo: Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice
+      revision: 85e237c12c027371202489a0ec509ded67b5e4b5
+      install_kind: verified-hf-multi-file
+      entry: model.safetensors
+      artifact_roles: [tts_model, speech_tokenizer, tokenizer]
+      preferred_engine: speech
+    variants:
+      - variant_id: local.tts.qwen3-tts-customvoice-0.6b.safetensors
+        quant: F16
+        files:
+          - model.safetensors
+          - config.json
+          - generation_config.json
+          - preprocessor_config.json
+          - tokenizer_config.json
+          - vocab.json
+          - merges.txt
+          - speech_tokenizer/model.safetensors
+          - speech_tokenizer/config.json
+          - speech_tokenizer/configuration.json
+          - speech_tokenizer/preprocessor_config.json
+        hashes:
+          model.safetensors: "sha256:bc3c7e785eb961179c25450d1acff03f839e0002f2f3a5aeb67b5735c0fa2adb"
+          config.json: "sha256:81aca2b6fac304944d8acf345272d8a9a727d5fc2e2e66b222ab4729340c7455"
+          generation_config.json: "sha256:f1b90b4513f3b34c62851049e2492d7b4c5940daf1276f89c82b8ef04127f3aa"
+          preprocessor_config.json: "sha256:efdde1022ea9d76928bf7a9cd53139138f5ba2e466e837f08f6105ab1af1c119"
+          tokenizer_config.json: "sha256:dc3c31c3bdaedd5016382bb3cbe07323026775ad51f5a4fb564505992ae4a670"
+          vocab.json: "sha256:ca10d7e9fb3ed18575dd1e277a2579c16d108e32f27439684afa0e10b1440910"
+          merges.txt: "sha256:599bab54075088774b1733fde865d5bd747cbcc7a547c5bc12610e874e26f5e3"
+          speech_tokenizer/model.safetensors: "sha256:836b7b357f5ea43e889936a3709af68dfe3751881acefe4ecf0dbd30ba571258"
+          speech_tokenizer/config.json: "sha256:ee65bb901c876664ab8707c487157aa1a6ee57c65969b28fb5ec9dc211e68167"
+          speech_tokenizer/configuration.json: "sha256:6bc26d64eb5024b4d1dab5a52371958b429256d6c9d59787f1f5294a54e0cebd"
+          speech_tokenizer/preprocessor_config.json: "sha256:fcb3805e597e786d4067706e602f6688524640f8d3396790e2e09b5942fcbdfb"
+        total_size_bytes: 2498383610
+        host_requirement:
+          accelerator: cpu
+          min_ram_bytes: 4831838208
+    fitness:
+      param_count: 600000000
+      context_length: 0
     aliases:
       - qwen3-tts
       - local/qwen3-tts
@@ -242,13 +369,135 @@ models:
       - speech/voxcpm2
       - openbmb/VoxCPM2
 
-  - model_id: qwen3-chat-local
+  # Curated first-run local chat lane (K-MCAT-033 minimal preset). Gemma 4 E2B
+  # is the small-footprint instruction model; GGUF quants span cpu-small ->
+  # gpu-high. mmproj / text.generate.vision is deferred to a later tier; the
+  # first-run chat slot only consumes text.generate.
+  - model_id: gemma-4-e2b-it-local
     model_type: chat
-    updated_at: 2026-03-15
+    updated_at: 2026-05-04
     capabilities: [text.generate]
+    source_ids: [gemma4_e2b_gguf_modelcard]
+    install:
+      repo: unsloth/gemma-4-E2B-it-GGUF
+      revision: 90f9618340396838ee7ff5b0ba2da27da62953d3
+      install_kind: weights
+      entry: gemma-4-E2B-it-Q4_K_M.gguf
+      artifact_roles: [llm]
+      preferred_engine: llama
+    variants:
+      - variant_id: local.chat.gemma-4-e2b-it.q3-k-m
+        quant: Q3_K_M
+        files: [gemma-4-E2B-it-Q3_K_M.gguf]
+        hashes:
+          gemma-4-E2B-it-Q3_K_M.gguf: "sha256:31aeee4a8b5c4a743f51f4021c29cfaa809d31a892cf9b918b9bb40542941197"
+        total_size_bytes: 2536784000
+        host_requirement:
+          accelerator: cpu
+          min_ram_bytes: 5368709120
+      - variant_id: local.chat.gemma-4-e2b-it.q4-k-m
+        quant: Q4_K_M
+        files: [gemma-4-E2B-it-Q4_K_M.gguf]
+        hashes:
+          gemma-4-E2B-it-Q4_K_M.gguf: "sha256:9378bc471710229ef165709b62e34bfb62231420ddaf6d729e727305b5b8672d"
+        total_size_bytes: 3106736256
+        host_requirement:
+          accelerator: cpu
+          min_ram_bytes: 6442450944
+      - variant_id: local.chat.gemma-4-e2b-it.q5-k-m
+        quant: Q5_K_M
+        files: [gemma-4-E2B-it-Q5_K_M.gguf]
+        hashes:
+          gemma-4-E2B-it-Q5_K_M.gguf: "sha256:d8fc2ac6fd597481dfd9c5ef9543ea1f0bda8088086da3853ce5e5564ab43bf8"
+        total_size_bytes: 3356035200
+        host_requirement:
+          accelerator: cpu
+          min_ram_bytes: 6979321856
+      - variant_id: local.chat.gemma-4-e2b-it.q6-k
+        quant: Q6_K
+        files: [gemma-4-E2B-it-Q6_K.gguf]
+        hashes:
+          gemma-4-E2B-it-Q6_K.gguf: "sha256:b36824f13bf9fab2910cb7b4282a4d73b13799ee4126d4ec241309ce69c0e783"
+        total_size_bytes: 4501719168
+        host_requirement:
+          accelerator: cpu
+          min_ram_bytes: 8589934592
+      - variant_id: local.chat.gemma-4-e2b-it.q8-0
+        quant: Q8_0
+        files: [gemma-4-E2B-it-Q8_0.gguf]
+        hashes:
+          gemma-4-E2B-it-Q8_0.gguf: "sha256:0a8488b149e1f700712c35d5bf0a3795f9dcc2563b4944d5ef2fb89375f9483e"
+        total_size_bytes: 5048350848
+        host_requirement:
+          accelerator: cpu
+          min_ram_bytes: 9663676416
+    fitness:
+      param_count: 2000000000
+      context_length: 32768
     aliases:
-      - local/qwen3-chat
-      - llama/qwen3-chat
+      - local/gemma-4-e2b-it
+      - llama/gemma-4-e2b-it
+      - unsloth/gemma-4-E2B-it-GGUF
+
+  # Curated first-run local chat lane (K-MCAT-033 recommended preset). Gemma 4
+  # 26B-A4B is the mixture-of-experts instruction model; GGUF quants span a
+  # higher footprint band. mmproj / text.generate.vision is deferred.
+  - model_id: gemma-4-26b-a4b-it-local
+    model_type: chat
+    updated_at: 2026-05-04
+    capabilities: [text.generate]
+    source_ids: [gemma4_26b_a4b_gguf_modelcard]
+    install:
+      repo: unsloth/gemma-4-26B-A4B-it-GGUF
+      revision: 3365c68df1a83799b846d05324ebfadbb8cc70b3
+      install_kind: weights
+      entry: gemma-4-26B-A4B-it-UD-Q4_K_M.gguf
+      artifact_roles: [llm]
+      preferred_engine: llama
+    variants:
+      - variant_id: local.chat.gemma-4-26b-a4b-it.q4-k-m
+        quant: Q4_K_M
+        files: [gemma-4-26B-A4B-it-UD-Q4_K_M.gguf]
+        hashes:
+          gemma-4-26B-A4B-it-UD-Q4_K_M.gguf: "sha256:34c746b1d50ab813e29cd46c4796e3f43c741901a582f93a67b55b9fc9687b35"
+        total_size_bytes: 16947539744
+        host_requirement:
+          accelerator: cpu
+          min_ram_bytes: 25769803776
+      - variant_id: local.chat.gemma-4-26b-a4b-it.q5-k-m
+        quant: Q5_K_M
+        files: [gemma-4-26B-A4B-it-UD-Q5_K_M.gguf]
+        hashes:
+          gemma-4-26B-A4B-it-UD-Q5_K_M.gguf: "sha256:f2fe28fc1d82e7c74f47d570a8c8847513fe2712a1b3a5bcd869031d952c4936"
+        total_size_bytes: 21150363424
+        host_requirement:
+          accelerator: cpu
+          min_ram_bytes: 32212254720
+      - variant_id: local.chat.gemma-4-26b-a4b-it.q6-k
+        quant: Q6_K
+        files: [gemma-4-26B-A4B-it-UD-Q6_K.gguf]
+        hashes:
+          gemma-4-26B-A4B-it-UD-Q6_K.gguf: "sha256:d3d9e6a63845bdc83e9f9fc5923e77c023ccc1197c9e145e6a8754bad80b5d75"
+        total_size_bytes: 23172476704
+        host_requirement:
+          accelerator: cpu
+          min_ram_bytes: 34359738368
+      - variant_id: local.chat.gemma-4-26b-a4b-it.q8-0
+        quant: Q8_0
+        files: [gemma-4-26B-A4B-it-Q8_0.gguf]
+        hashes:
+          gemma-4-26B-A4B-it-Q8_0.gguf: "sha256:b26c56ea4bf724b4efa0161bb4615e974847ec64450a4dd49da8712614a128c7"
+        total_size_bytes: 26859859744
+        host_requirement:
+          accelerator: cpu
+          min_ram_bytes: 38654705664
+    fitness:
+      param_count: 26000000000
+      context_length: 32768
+    aliases:
+      - local/gemma-4-26b-a4b-it
+      - llama/gemma-4-26b-a4b-it
+      - unsloth/gemma-4-26B-A4B-it-GGUF
 
   - model_id: nomic-embed-text-local
     model_type: embedding
@@ -268,7 +517,7 @@ models:
 
   - model_id: qwen3-asr-local
     model_type: stt
-    updated_at: 2026-04-17
+    updated_at: 2026-05-21
     capabilities: [audio.transcribe]
     source_ids: [qwen3_asr_modelcard]
     transcription:
@@ -276,6 +525,41 @@ models:
       response_formats: [text, json]
       supports_language: true
       supports_timestamps: true
+    install:
+      repo: Qwen/Qwen3-ASR-0.6B
+      revision: 5eb144179a02acc5e5ba31e748d22b0cf3e303b0
+      install_kind: verified-hf-multi-file
+      entry: model.safetensors
+      artifact_roles: [stt_model, tokenizer]
+      preferred_engine: speech
+    variants:
+      - variant_id: local.stt.qwen3-asr-0.6b.safetensors
+        quant: F16
+        files:
+          - model.safetensors
+          - config.json
+          - generation_config.json
+          - preprocessor_config.json
+          - chat_template.json
+          - tokenizer_config.json
+          - vocab.json
+          - merges.txt
+        hashes:
+          model.safetensors: "sha256:79d6cbd4c98c7bbffe9db2edac07f56cd6637d0d5944b27f6c2b8353840323ea"
+          config.json: "sha256:76d3ae4601ce939830b2517f4a6cadb86cc51316c3900af6b020b051c21a478c"
+          generation_config.json: "sha256:1da527824d81e07118facff437e03f2e24a23311e3bdeb2368973fe77e5f275c"
+          preprocessor_config.json: "sha256:45e120a4eda2c20c5d7f2ea9354e63536bf35e27aa573fb7cdf78017b378770d"
+          chat_template.json: "sha256:75a8cfca24f00de72d796fbfed6858fc9614ef3dabd8696684cc3bc03a9c58ff"
+          tokenizer_config.json: "sha256:4942d005604266809309cabc9f4e9cb89ce855d59b14681fdc0e1cc62ea26c4c"
+          vocab.json: "sha256:ca10d7e9fb3ed18575dd1e277a2579c16d108e32f27439684afa0e10b1440910"
+          merges.txt: "sha256:8831e4f1a044471340f7c0a83d7bd71306a5b867e95fd870f74d0c5308a904d5"
+        total_size_bytes: 1880560703
+        host_requirement:
+          accelerator: cpu
+          min_ram_bytes: 4294967296
+    fitness:
+      param_count: 600000000
+      context_length: 0
     aliases:
       - local/qwen3-asr
       - speech/qwen3asr
@@ -289,6 +573,306 @@ models:
     aliases:
       - local/flux.1-schnell
       - media/flux.1-schnell
+
+  # Curated first-run local image lane (K-MCAT-033 recommended preset, wave-2).
+  # Z-Image-Turbo runs on stable-diffusion.cpp (stablediffusion-ggml native
+  # backend). Per the stable-diffusion.cpp Z-Image guide the workflow needs two
+  # passive companion assets: a VAE (--vae / vae_path) and a Qwen3-4B text
+  # encoder (--llm / llm_path). GGUF quants span 4GB-VRAM hosts up to high-VRAM
+  # hosts; each quant carries a cuda and a metal accelerator variant.
+  - model_id: z-image-turbo-local
+    model_type: image
+    updated_at: 2026-05-21
+    capabilities: [image.generate]
+    source_ids: [z_image_turbo_gguf_modelcard, stable_diffusion_cpp_z_image_guide]
+    install:
+      repo: leejet/Z-Image-Turbo-GGUF
+      revision: c61c0e422dc8b541b7548cf33a4ef8302b0f8085
+      install_kind: weights
+      entry: z_image_turbo-Q4_K.gguf
+      artifact_roles: [diffusion_model]
+      preferred_engine: media
+    variants:
+      - variant_id: local.image.z-image-turbo.q3-k.cuda
+        quant: Q3_K
+        entry: z_image_turbo-Q3_K.gguf
+        files: [z_image_turbo-Q3_K.gguf]
+        hashes:
+          z_image_turbo-Q3_K.gguf: "sha256:4b44bdaa7814f20d7cf144e3939bd93aa32f50660204dd0c2aea5c5376232980"
+        total_size_bytes: 3143559104
+        host_requirement:
+          accelerator: cuda
+          min_ram_bytes: 8589934592
+          min_vram_bytes: 4294967296
+      - variant_id: local.image.z-image-turbo.q3-k.metal
+        quant: Q3_K
+        entry: z_image_turbo-Q3_K.gguf
+        files: [z_image_turbo-Q3_K.gguf]
+        hashes:
+          z_image_turbo-Q3_K.gguf: "sha256:4b44bdaa7814f20d7cf144e3939bd93aa32f50660204dd0c2aea5c5376232980"
+        total_size_bytes: 3143559104
+        host_requirement:
+          accelerator: metal
+          min_ram_bytes: 8589934592
+          min_vram_bytes: 4294967296
+      - variant_id: local.image.z-image-turbo.q4-0.cuda
+        quant: Q4_0
+        entry: z_image_turbo-Q4_0.gguf
+        files: [z_image_turbo-Q4_0.gguf]
+        hashes:
+          z_image_turbo-Q4_0.gguf: "sha256:2bc57986874c84f7ec6d02d9d7070a53b0029954a0e38a6e1342eb91095572f5"
+        total_size_bytes: 3683370944
+        host_requirement:
+          accelerator: cuda
+          min_ram_bytes: 8589934592
+          min_vram_bytes: 5368709120
+      - variant_id: local.image.z-image-turbo.q4-0.metal
+        quant: Q4_0
+        entry: z_image_turbo-Q4_0.gguf
+        files: [z_image_turbo-Q4_0.gguf]
+        hashes:
+          z_image_turbo-Q4_0.gguf: "sha256:2bc57986874c84f7ec6d02d9d7070a53b0029954a0e38a6e1342eb91095572f5"
+        total_size_bytes: 3683370944
+        host_requirement:
+          accelerator: metal
+          min_ram_bytes: 8589934592
+          min_vram_bytes: 5368709120
+      - variant_id: local.image.z-image-turbo.q4-k.cuda
+        quant: Q4_K
+        entry: z_image_turbo-Q4_K.gguf
+        files: [z_image_turbo-Q4_K.gguf]
+        hashes:
+          z_image_turbo-Q4_K.gguf: "sha256:14b375ab4f226bc5378f68f37e899ef3c2242b8541e61e2bc1aff40976086fbd"
+        total_size_bytes: 3864250304
+        host_requirement:
+          accelerator: cuda
+          min_ram_bytes: 8589934592
+          min_vram_bytes: 5368709120
+      - variant_id: local.image.z-image-turbo.q4-k.metal
+        quant: Q4_K
+        entry: z_image_turbo-Q4_K.gguf
+        files: [z_image_turbo-Q4_K.gguf]
+        hashes:
+          z_image_turbo-Q4_K.gguf: "sha256:14b375ab4f226bc5378f68f37e899ef3c2242b8541e61e2bc1aff40976086fbd"
+        total_size_bytes: 3864250304
+        host_requirement:
+          accelerator: metal
+          min_ram_bytes: 8589934592
+          min_vram_bytes: 5368709120
+      - variant_id: local.image.z-image-turbo.q5-0.cuda
+        quant: Q5_0
+        entry: z_image_turbo-Q5_0.gguf
+        files: [z_image_turbo-Q5_0.gguf]
+        hashes:
+          z_image_turbo-Q5_0.gguf: "sha256:12b4a5c064cf8a0fa45d665c5b399d43effbcbeb37748d028d0d0d0fc34c2255"
+        total_size_bytes: 4542547904
+        host_requirement:
+          accelerator: cuda
+          min_ram_bytes: 10737418240
+          min_vram_bytes: 6442450944
+      - variant_id: local.image.z-image-turbo.q5-0.metal
+        quant: Q5_0
+        entry: z_image_turbo-Q5_0.gguf
+        files: [z_image_turbo-Q5_0.gguf]
+        hashes:
+          z_image_turbo-Q5_0.gguf: "sha256:12b4a5c064cf8a0fa45d665c5b399d43effbcbeb37748d028d0d0d0fc34c2255"
+        total_size_bytes: 4542547904
+        host_requirement:
+          accelerator: metal
+          min_ram_bytes: 10737418240
+          min_vram_bytes: 6442450944
+      - variant_id: local.image.z-image-turbo.q6-k.cuda
+        quant: Q6_K
+        entry: z_image_turbo-Q6_K.gguf
+        files: [z_image_turbo-Q6_K.gguf]
+        hashes:
+          z_image_turbo-Q6_K.gguf: "sha256:319f627beac8059b7546f36a7b4d5097b7f4ee6a1fc37585d0f75ca1d12d01af"
+        total_size_bytes: 5263239104
+        host_requirement:
+          accelerator: cuda
+          min_ram_bytes: 10737418240
+          min_vram_bytes: 7516192768
+      - variant_id: local.image.z-image-turbo.q6-k.metal
+        quant: Q6_K
+        entry: z_image_turbo-Q6_K.gguf
+        files: [z_image_turbo-Q6_K.gguf]
+        hashes:
+          z_image_turbo-Q6_K.gguf: "sha256:319f627beac8059b7546f36a7b4d5097b7f4ee6a1fc37585d0f75ca1d12d01af"
+        total_size_bytes: 5263239104
+        host_requirement:
+          accelerator: metal
+          min_ram_bytes: 10737418240
+          min_vram_bytes: 7516192768
+      - variant_id: local.image.z-image-turbo.q8-0.cuda
+        quant: Q8_0
+        entry: z_image_turbo-Q8_0.gguf
+        files: [z_image_turbo-Q8_0.gguf]
+        hashes:
+          z_image_turbo-Q8_0.gguf: "sha256:df1c5baa86d1398c979495a6072dbcee79444fdb884a2445582ba0769c44e9a1"
+        total_size_bytes: 6577440704
+        host_requirement:
+          accelerator: cuda
+          min_ram_bytes: 12884901888
+          min_vram_bytes: 9663676416
+      - variant_id: local.image.z-image-turbo.q8-0.metal
+        quant: Q8_0
+        entry: z_image_turbo-Q8_0.gguf
+        files: [z_image_turbo-Q8_0.gguf]
+        hashes:
+          z_image_turbo-Q8_0.gguf: "sha256:df1c5baa86d1398c979495a6072dbcee79444fdb884a2445582ba0769c44e9a1"
+        total_size_bytes: 6577440704
+        host_requirement:
+          accelerator: metal
+          min_ram_bytes: 12884901888
+          min_vram_bytes: 9663676416
+    fitness:
+      param_count: 6000000000
+      context_length: 0
+    companions:
+      # VAE companion — stable-diffusion.cpp --vae slot. Single F16 safetensors;
+      # sourced from the Comfy-Org Z-Image-Turbo distribution (the gated FLUX
+      # repo named by the guide carries the byte-identical file but cannot be
+      # authentically resolved without authentication).
+      - companion_kind: vae
+        engine_slot: vae_path
+        install:
+          repo: Comfy-Org/z_image_turbo
+          revision: 2f862278568d3f0a83167a16e5f11094da6dee72
+          install_kind: weights
+          entry: split_files/vae/ae.safetensors
+          artifact_roles: [vae]
+          preferred_engine: media
+        variants:
+          - variant_id: local.image-vae.z-image-ae.f16.cuda
+            quant: F16
+            entry: split_files/vae/ae.safetensors
+            files: [split_files/vae/ae.safetensors]
+            hashes:
+              split_files/vae/ae.safetensors: "sha256:afc8e28272cd15db3919bacdb6918ce9c1ed22e96cb12c4d5ed0fba823529e38"
+            total_size_bytes: 335304388
+            host_requirement:
+              accelerator: cuda
+              min_ram_bytes: 8589934592
+              min_vram_bytes: 4294967296
+          - variant_id: local.image-vae.z-image-ae.f16.metal
+            quant: F16
+            entry: split_files/vae/ae.safetensors
+            files: [split_files/vae/ae.safetensors]
+            hashes:
+              split_files/vae/ae.safetensors: "sha256:afc8e28272cd15db3919bacdb6918ce9c1ed22e96cb12c4d5ed0fba823529e38"
+            total_size_bytes: 335304388
+            host_requirement:
+              accelerator: metal
+              min_ram_bytes: 8589934592
+              min_vram_bytes: 4294967296
+      # Text-encoder companion — stable-diffusion.cpp --llm slot. Qwen3-4B used
+      # as the Z-Image prompt text encoder. A 4B autoregressive LLM text encoder
+      # is not a CLIP model; companion_kind is K-LOCAL-007's `auxiliary`
+      # catch-all (a passive role outside the named kinds), while functional
+      # routing stays precise via engine_slot llm_path — a distinct K-LOCAL-031
+      # engine slot from clip_path.
+      - companion_kind: auxiliary
+        engine_slot: llm_path
+        install:
+          repo: unsloth/Qwen3-4B-Instruct-2507-GGUF
+          revision: a06e946bb6b655725eafa393f4a9745d460374c9
+          install_kind: weights
+          entry: Qwen3-4B-Instruct-2507-Q4_K_M.gguf
+          artifact_roles: [text_encoder]
+          preferred_engine: media
+        variants:
+          - variant_id: local.image-textenc.qwen3-4b-instruct-2507.q4-k-m.cuda
+            quant: Q4_K_M
+            entry: Qwen3-4B-Instruct-2507-Q4_K_M.gguf
+            files: [Qwen3-4B-Instruct-2507-Q4_K_M.gguf]
+            hashes:
+              Qwen3-4B-Instruct-2507-Q4_K_M.gguf: "sha256:3605803b982cb64aead44f6c1b2ae36e3acdb41d8e46c8a94c6533bc4c67e597"
+            total_size_bytes: 2497281120
+            host_requirement:
+              accelerator: cuda
+              min_ram_bytes: 8589934592
+              min_vram_bytes: 4294967296
+          - variant_id: local.image-textenc.qwen3-4b-instruct-2507.q4-k-m.metal
+            quant: Q4_K_M
+            entry: Qwen3-4B-Instruct-2507-Q4_K_M.gguf
+            files: [Qwen3-4B-Instruct-2507-Q4_K_M.gguf]
+            hashes:
+              Qwen3-4B-Instruct-2507-Q4_K_M.gguf: "sha256:3605803b982cb64aead44f6c1b2ae36e3acdb41d8e46c8a94c6533bc4c67e597"
+            total_size_bytes: 2497281120
+            host_requirement:
+              accelerator: metal
+              min_ram_bytes: 8589934592
+              min_vram_bytes: 4294967296
+          - variant_id: local.image-textenc.qwen3-4b-instruct-2507.q5-k-m.cuda
+            quant: Q5_K_M
+            entry: Qwen3-4B-Instruct-2507-Q5_K_M.gguf
+            files: [Qwen3-4B-Instruct-2507-Q5_K_M.gguf]
+            hashes:
+              Qwen3-4B-Instruct-2507-Q5_K_M.gguf: "sha256:5bde5e9d883622acb02bf77fe7dcbc56a8b9a9ad4be78a72ca23a532658b4ecb"
+            total_size_bytes: 2889514080
+            host_requirement:
+              accelerator: cuda
+              min_ram_bytes: 10737418240
+              min_vram_bytes: 5368709120
+          - variant_id: local.image-textenc.qwen3-4b-instruct-2507.q5-k-m.metal
+            quant: Q5_K_M
+            entry: Qwen3-4B-Instruct-2507-Q5_K_M.gguf
+            files: [Qwen3-4B-Instruct-2507-Q5_K_M.gguf]
+            hashes:
+              Qwen3-4B-Instruct-2507-Q5_K_M.gguf: "sha256:5bde5e9d883622acb02bf77fe7dcbc56a8b9a9ad4be78a72ca23a532658b4ecb"
+            total_size_bytes: 2889514080
+            host_requirement:
+              accelerator: metal
+              min_ram_bytes: 10737418240
+              min_vram_bytes: 5368709120
+          - variant_id: local.image-textenc.qwen3-4b-instruct-2507.q6-k.cuda
+            quant: Q6_K
+            entry: Qwen3-4B-Instruct-2507-Q6_K.gguf
+            files: [Qwen3-4B-Instruct-2507-Q6_K.gguf]
+            hashes:
+              Qwen3-4B-Instruct-2507-Q6_K.gguf: "sha256:cd7b21b38b3e71400587c184b6a9b04d3beb4d13fdae6464d4075dee4f1bc5ad"
+            total_size_bytes: 3306261600
+            host_requirement:
+              accelerator: cuda
+              min_ram_bytes: 10737418240
+              min_vram_bytes: 6442450944
+          - variant_id: local.image-textenc.qwen3-4b-instruct-2507.q6-k.metal
+            quant: Q6_K
+            entry: Qwen3-4B-Instruct-2507-Q6_K.gguf
+            files: [Qwen3-4B-Instruct-2507-Q6_K.gguf]
+            hashes:
+              Qwen3-4B-Instruct-2507-Q6_K.gguf: "sha256:cd7b21b38b3e71400587c184b6a9b04d3beb4d13fdae6464d4075dee4f1bc5ad"
+            total_size_bytes: 3306261600
+            host_requirement:
+              accelerator: metal
+              min_ram_bytes: 10737418240
+              min_vram_bytes: 6442450944
+          - variant_id: local.image-textenc.qwen3-4b-instruct-2507.q8-0.cuda
+            quant: Q8_0
+            entry: Qwen3-4B-Instruct-2507-Q8_0.gguf
+            files: [Qwen3-4B-Instruct-2507-Q8_0.gguf]
+            hashes:
+              Qwen3-4B-Instruct-2507-Q8_0.gguf: "sha256:391c1e410fd9f4cf2de2b510273b56a84c19ce18f4fa3bfb3774031dac4ef068"
+            total_size_bytes: 4280405600
+            host_requirement:
+              accelerator: cuda
+              min_ram_bytes: 12884901888
+              min_vram_bytes: 8589934592
+          - variant_id: local.image-textenc.qwen3-4b-instruct-2507.q8-0.metal
+            quant: Q8_0
+            entry: Qwen3-4B-Instruct-2507-Q8_0.gguf
+            files: [Qwen3-4B-Instruct-2507-Q8_0.gguf]
+            hashes:
+              Qwen3-4B-Instruct-2507-Q8_0.gguf: "sha256:391c1e410fd9f4cf2de2b510273b56a84c19ce18f4fa3bfb3774031dac4ef068"
+            total_size_bytes: 4280405600
+            host_requirement:
+              accelerator: metal
+              min_ram_bytes: 12884901888
+              min_vram_bytes: 8589934592
+    aliases:
+      - local/z-image-turbo
+      - media/z-image-turbo
+      - leejet/Z-Image-Turbo-GGUF
 
   - model_id: wan2.1-video-local
     model_type: video
@@ -344,6 +928,25 @@ models:
     aliases:
       - sidecar/stable-audio-open
       - sidecar/stable-audio-open-default
+
+# CURATED PRESETS (K-MCAT-033). Binds factory AIProfile install levels to
+# concrete model slots. wave-1 populates the core text/speech tier; the
+# recommended image slot is wave-2 scope. `text.embed` is intentionally not a
+# preset slot in either level (post-initialization / cloud-default capability).
+presets:
+  minimal:
+    factory_aiprofile_alias: local-speech-ready
+    slots:
+      - { slot: chat, capability: text.generate, model_ref: gemma-4-e2b-it-local, required: true }
+      - { slot: stt, capability: audio.transcribe, model_ref: qwen3-asr-local, required: true }
+      - { slot: tts, capability: audio.synthesize, model_ref: qwen3-tts-local, required: true }
+  recommended:
+    factory_aiprofile_alias: local-gpu
+    slots:
+      - { slot: chat, capability: text.generate, model_ref: gemma-4-26b-a4b-it-local, required: true }
+      - { slot: stt, capability: audio.transcribe, model_ref: qwen3-asr-local, required: true }
+      - { slot: tts, capability: audio.synthesize, model_ref: qwen3-tts-local, required: true }
+      - { slot: image, capability: image.generate, model_ref: z-image-turbo-local, required: false, host_conditional: true }
 
 # NOTE: local workflow objects below are not a generic local workflow green
 # state. They express only the first admitted family-scoped slice:

@@ -53,8 +53,15 @@ Speech product posture 由 `local-engine-speech-contract.md` 的 `Speech Runtime
 - runtime 负责 fork/exec、监控与回收引擎进程。
 - 信号处理：`SIGTERM` 优雅关闭，超时后 `SIGKILL`。
 - 重启策略：指数退避（2s base + jitter），最大重试 5 次，累计失败后标记 `UNHEALTHY`。
-- 二进制/运行时目录：`~/.nimi/engines/{engine}/{version}/...`。
-- 注册表：`~/.nimi/engines/registry.json`，必须原子写入。
+- 二进制/运行时目录：受管引擎二进制与运行时环境必须落地在 K-CFG-018 数据面
+  `environments` root（`<dataRootRef>/environments` 或 `managedRoots.environments`）
+  下的 `{engine}/{version}/...`。不得使用 `~/.nimi/engines/` 等 home 目录硬编码
+  根作为并行事实源。
+- 注册表：`<environments-root>/registry.json`，必须原子写入。
+- 当 Runtime config 未携带 `dataRootRef`（产品安装尚未记录 `nimi_data`）时，受管
+  引擎物化必须 fail-close，不得回退到 home 目录根。`environments` root 对应
+  `local-environment-dependencies.yaml` 中 `native-engine-package.*` /
+  `python.*` 家族的 `managed_root` 绑定。
 - stale pid 清理只能在 runtime 能证明该 pid 仍属于当前 supervised engine binary 时执行；缺少身份元数据或无法完成身份校验时，runtime 必须只清理跟踪文件，不得终止该进程。
 - supervised engine bootstrap 下载只允许 `https -> https` redirect；同 host redirect 允许，`github.com` release 资产仅允许跳到显式 GitHub release-chain host（`github.com`、`objects.githubusercontent.com`、`release-assets.githubusercontent.com`），其它 redirect 一律 fail-close。
 - `llama` supervised bootstrap 必须使用官方 `ggml-org/llama.cpp` release pack，并落地 `llama-server` 二进制。
@@ -280,7 +287,8 @@ Internal lifecycle 到 public lifecycle 的投影：
 - v1 mandates `uv` 作为唯一 Python bootstrap 管道。不允许并存第二套 Python bootstrap 实现。
 - v1 受管 Python 版本固定为 `3.12`。
 - Python runtime 以 `engine=media` 的 supervised engine version 为作用域共享，不按 model 单独创建 venv。
-- venv 路径固定在 `~/.nimi/engines/media/{version}/python/` 或等价 engine-root 私有目录。
+- venv 路径固定在 K-CFG-018 数据面 `environments` root 下的
+  `media/{version}/python/`（`python.venv` 家族 `managed_root: environments`）。不得使用 home 目录硬编码根。
 - venv 必须绑定：engine version、Python version、package set / lock hash、host platform tuple、`backend_class=python_pipeline`。任一绑定因子变化都必须触发重建。
 - 创建策略：staging dir -> verify -> atomic promote。校验失败必须进入重建或 fail-close。
 - Python runtime 创建预算：120s。dependency install 预算：600s。pipeline warmup / ready 预算：300s。
