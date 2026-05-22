@@ -4,6 +4,7 @@ import {
   getPlatformClient,
   type PlatformClient,
 } from '@nimiplatform/sdk';
+import { getRuntimeDefaults } from '@nimiplatform/nimi-kit/shell/renderer/bridge';
 import {
   AccountCallerMode,
   AccountSessionState,
@@ -15,7 +16,7 @@ import { hasTauriIpcRuntime } from './tauri-runtime.js';
 export const STUDIO_RUNTIME_APP_ID = 'app.nimi.realm-agent-studio';
 export const STUDIO_RUNTIME_APP_INSTANCE_ID = `${STUDIO_RUNTIME_APP_ID}.local-first-party`;
 export const STUDIO_RUNTIME_DEVICE_ID = 'local-first-party-device';
-export const DEFAULT_REALM_BASE_URL = 'http://127.0.0.1:3000';
+export const DEFAULT_REALM_BASE_URL = 'http://localhost:3002';
 
 export const studioRuntimeAccountCaller: AccountCaller = {
   appId: STUDIO_RUNTIME_APP_ID,
@@ -77,7 +78,7 @@ export async function loadStudioRuntimeAccountUser(client: PlatformClient): Prom
 }
 
 export async function runStudioBootstrap(): Promise<StudioBootstrapResult> {
-  const realmBaseUrl = resolveStudioRealmBaseUrl();
+  let realmBaseUrl = resolveStudioRealmBaseUrl();
   if (!hasTauriIpcRuntime()) {
     clearPlatformClient();
     return {
@@ -88,6 +89,8 @@ export async function runStudioBootstrap(): Promise<StudioBootstrapResult> {
   }
 
   try {
+    const runtimeDefaults = await getRuntimeDefaults();
+    realmBaseUrl = runtimeDefaults.realm.realmBaseUrl || realmBaseUrl;
     clearPlatformClient();
     const client = await createLocalFirstPartyRuntimePlatformClient({
       appId: STUDIO_RUNTIME_APP_ID,

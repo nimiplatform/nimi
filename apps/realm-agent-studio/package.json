@@ -5,9 +5,10 @@
   "type": "module",
   "scripts": {
     "dev:renderer": "vite --host 127.0.0.1 --port 1426 --strictPort",
+    "dev:shell": "tauri dev --config src-tauri/tauri.conf.json",
     "build:renderer": "vite build",
     "typecheck": "tsc --noEmit",
-    "build": "pnpm run typecheck && pnpm run build:renderer",
+    "build": "pnpm run typecheck && pnpm run build:renderer && (cd src-tauri && cargo check)",
     "test": "vitest run",
     "test:watch": "vitest"
   },
@@ -15,12 +16,14 @@
     "@nimiplatform/nimi-kit": "workspace:*",
     "@nimiplatform/sdk": "workspace:*",
     "@tanstack/react-query": "^5.90.21",
+    "@tauri-apps/api": "^2.10.1",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "scheduler": "^0.27.0"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.2.1",
+    "@tauri-apps/cli": "^2.10.1",
     "@types/node": "^25.5.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",

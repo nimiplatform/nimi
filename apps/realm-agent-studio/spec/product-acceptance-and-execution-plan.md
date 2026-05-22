@@ -46,7 +46,7 @@ acceptance. Acceptance requires the whole owner workflow to be coherent:
 | Gate | Required final acceptance | Current status |
 | --- | --- | --- |
 | A0 Authority and scope | `apps/realm-agent-studio/spec/**` contains the single active product/app authority, including acceptance gates. No topic file or conversation creates parallel truth. | Partial. Core spec exists; this document closes the missing acceptance authority gap. |
-| A1 Desktop app shell | App has a real desktop shell path comparable to `apps/parentos`: `dev:shell`, Tauri config, Rust shell bridge where needed, Runtime IPC transport, desktop account/session bootstrap, and no app-owned token fallback. Browser/Vite renderer is only a renderer development surface. | Not accepted. Current app has renderer-only Vite scripts and no `src-tauri` shell. |
+| A1 Desktop app shell | App has a real desktop shell path comparable to `apps/parentos`: `dev:shell`, Tauri config, Rust shell bridge where needed, Runtime IPC transport, desktop account/session bootstrap, and no app-owned token fallback. Browser/Vite renderer is only a renderer development surface. | W1 shell baseline closed. The app now has `src-tauri`, `dev:shell`, shared kit Runtime bridge commands, desktop Runtime hook installation, and desktop smoke evidence. |
 | A2 Platform UX system | First screen, navigation, loading, empty, error, form, review, and confirmation states are kit-first and platform-consistent. Custom UI is allowed only after a recorded kit gap. UI must not expose SDK route names, DTO names, raw payloads, or debug contract text as normal product copy. | Partial. Shell and some copy were improved, but the app remains a monolithic control surface with debug previews. |
 | A3 Information architecture | Owner can move predictably between portfolio, create, agent detail, settings, assets, posts, and local schedule without a single mega-form. Navigation controls are functional, stateful, and do not imply unavailable surfaces. | Not accepted. Current nav buttons are visual only and all workflows live in one long page. |
 | A4 Owner portfolio and create | Portfolio list/filter/sort, create flow, handle preflight, OASIS/default world selection, selected-world preview, create confirmation, and post-create opening behavior are product-complete. Public draft fields are not silently dropped. | Partial. Owner surfaces are wired, but create UX still mixes local-only bio with create submission and does not complete a polished post-create flow. |
@@ -61,19 +61,14 @@ acceptance. Acceptance requires the whole owner workflow to be coherent:
 
 P0 gaps:
 
-- No real desktop app shell exists under `apps/realm-agent-studio/src-tauri`.
-  `pnpm dev:realm:agent:studio` starts only the renderer. This is incompatible
-  with final desktop-app acceptance.
 - The current UI is not an industrial product information architecture. It is a
   single long workspace where create, portfolio, settings, projection, media,
   voice, post, and schedule are all visible at once.
 - Navigation is decorative. The side rail buttons do not route, select a
   workspace, or preserve user context.
-- Runtime account/session is gated in renderer, but there is no desktop launch
-  verification that Runtime IPC, account projection, and Realm SDK calls work
-  inside the actual app shell.
-- Final product acceptance criteria did not exist before this document; previous
-  "green" validation was too narrow.
+- Authenticated account projection and owner Realm SDK calls have not yet been
+  verified inside the desktop shell against a live owner session. W1 proves the
+  shell/Runtime bridge path starts; W3 must prove the owner workflow inside it.
 
 P1 gaps:
 
@@ -112,7 +107,7 @@ P2 gaps:
 | Wave | State | Dependency | Closure goal | Acceptance closure |
 | --- | --- | --- | --- | --- |
 | W0 Acceptance authority | active | none | Admit this product acceptance standard, gap audit, waves, and preflight. | This document exists, is indexed, and spec governance passes. |
-| W1 Desktop shell hard cut | candidate | W0 | Build a real desktop app shell equivalent in posture to parentOS: `src-tauri`, `dev:shell`, shell bridge/runtime defaults, desktop launch, Runtime session, SDK client custody. | A1 and desktop-shell smoke pass. Renderer-only launch is no longer treated as product acceptance. |
+| W1 Desktop shell hard cut | closed | W0 | Build a real desktop app shell equivalent in posture to parentOS: `src-tauri`, `dev:shell`, shell bridge/runtime defaults, desktop launch, Runtime session, SDK client custody. | A1 shell baseline passed. Renderer-only launch is no longer treated as product acceptance. |
 | W2 Product information architecture | candidate | W1 | Replace the single mega-surface with functional Studio workspaces: Portfolio, Create, Agent Detail, Settings, Assets, Posts, Local Schedule. | A2 and A3 pass with screenshot/interaction evidence. |
 | W3 Owner portfolio/create/detail completion | candidate | W2 | Finish owner list/filter/sort, create, world selection, post-create flow, detail state, friendCount, source failures, and owner-only boundaries. | A4 and relevant A9 cases pass. |
 | W4 Settings and AI proposal workflow | candidate | W3 | Natural-language setting edits, Runtime-assisted proposal/rewrite, structured field review, owner settings save, no raw rule CRUD. | A5 and A8 settings subset pass. |
@@ -171,5 +166,27 @@ Final closeout must report:
 - Evidence Sufficiency: exact commands and visual/desktop evidence.
 - Acceptance Matrix: A0-A10 status with file references and evidence.
 - Next Step or Reopen Condition: exact blocker or follow-up wave.
+
+## W1 Closure Evidence
+
+W1 closed on 2026-05-22 with:
+
+- `apps/realm-agent-studio/src-tauri/**` desktop shell admitted.
+- Root `pnpm dev:realm:agent:studio` routed to app `dev:shell`.
+- Renderer installs the Tauri Runtime hook before bootstrap.
+- Realm base URL is resolved from desktop Runtime defaults when Tauri IPC is
+  available.
+- `pnpm --filter @nimiplatform/realm-agent-studio typecheck` passed.
+- `cd apps/realm-agent-studio/src-tauri && cargo check` passed.
+- `pnpm --filter @nimiplatform/realm-agent-studio test` passed.
+- `pnpm --filter @nimiplatform/realm-agent-studio build:renderer` passed with
+  existing chunk/circular warnings.
+- `pnpm check:no-app-realm-rest-bypass` passed.
+- `pnpm check:no-first-party-sdk-client-construction` passed.
+- `pnpm exec nimicoding validate-spec-governance --profile nimi --scope
+  apps/realm-agent-studio` passed.
+- Desktop shell smoke: with an existing renderer on port 1426, `cargo run`
+  entered `target/debug/nimiplatform-realm-agent-studio` and logged
+  `realm-agent-studio main() entered`; the process was then terminated.
 
 The app is not accepted until W7 closes.
