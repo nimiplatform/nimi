@@ -24,6 +24,7 @@ import {
   GROWTH_MILESTONE_RULES,
   type GrowthMilestoneRule,
   type GrowthMilestoneThresholdCrossedTrigger,
+  type GrowthMilestoneRelativeChangeTrigger,
 } from '../../knowledge-base/index.js';
 
 const ULID_ALPHABET = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
@@ -40,6 +41,10 @@ export interface GrowthMilestone {
   milestoneId: string; // deterministic ULID-shaped id, see header
   ruleId: GrowthMilestoneRule['ruleId'];
   kind: GrowthMilestoneRule['kind'];
+  // 'positive' for growth achievements (height thresholds, weight rises);
+  // 'negative' for cautionary nodes (weight drops) the parent surface marks
+  // distinctly. Descriptive of recorded data only — carries no diagnosis.
+  polarity: 'positive' | 'negative';
   deltaMagnitudeDisplay: string;
   deltaUnitLabel: string;
   title: string;
@@ -178,6 +183,8 @@ export function evaluateThresholdCrossed(
       milestoneId: makeMilestoneId(rule.ruleId, evidenceEventIds),
       ruleId: rule.ruleId,
       kind: rule.kind,
+      // Threshold crossings are always upward growth achievements.
+      polarity: 'positive',
       title: fillTemplate(rule.titleTemplate, {
         thresholdValue: trigger.thresholdValue,
         thresholdUnit: trigger.thresholdUnit,
@@ -195,6 +202,59 @@ export function evaluateThresholdCrossed(
 }
 
 // ---------------------------------------------------------------------------
+// evaluateRelativeChange
+// ---------------------------------------------------------------------------
+
+// Emits a node for every consecutive measurement pair whose relative change
+// meets the rule's `changePercent` in the configured direction. Unlike
+// threshold crossings, one relative-change rule can yield multiple nodes
+// across a long history. The comparison is point-to-point: each measurement
+// versus the one immediately preceding it.
+export function evaluateRelativeChange(
+  rule: GrowthMilestoneRule & { triggerCondition: GrowthMilestoneRelativeChangeTrigger },
+  history: readonly HistoryPoint[],
+  nowIso: string,
+  fullHistory = false,
+): GrowthMilestone[] {
+  const trigger = rule.triggerCondition;
+  const points = historyWithinWindow(
+    filterByMetric(history, rule.appliesToMetricIds),
+    fullHistory ? null : trigger.evidenceWindowMonths,
+    nowIso,
+  );
+  const out: GrowthMilestone[] = [];
+  for (let i = 1; i < points.length; i++) {
+    const prior = points[i - 1]!;
+    const current = points[i]!;
+    if (prior.value <= 0) continue;
+    const changePct = ((current.value - prior.value) / prior.value) * 100;
+    const matches =
+      (trigger.direction === 'upward' && changePct >= trigger.changePercent) ||
+      (trigger.direction === 'downward' && changePct <= -trigger.changePercent);
+    if (!matches) continue;
+
+    const evidenceEventIds = [prior.eventId, current.eventId];
+    const changeMagnitude = Math.abs(Math.round(changePct));
+    const deltaValueRounded = Math.abs(roundDelta(current.value - prior.value));
+    out.push({
+      milestoneId: makeMilestoneId(rule.ruleId, evidenceEventIds),
+      ruleId: rule.ruleId,
+      kind: rule.kind,
+      // A downward swing is the cautionary node the parent surface flags;
+      // an upward swing is a positive node. Descriptive only.
+      polarity: trigger.direction === 'downward' ? 'negative' : 'positive',
+      title: fillTemplate(rule.titleTemplate, { changeMagnitude }),
+      deltaMagnitudeDisplay: fillTemplate(rule.deltaMagnitudeTemplate, { deltaValueRounded }),
+      deltaUnitLabel: rule.deltaUnitLabel,
+      detailLine: `${current.measuredAt.slice(0, 10)} · ${current.value} ${trigger.valueUnit}`,
+      occurredAt: current.measuredAt,
+      evidenceEventIds,
+    });
+  }
+  return out;
+}
+
+// ---------------------------------------------------------------------------
 // evaluateAllMilestones — public dispatch entrypoint
 // ---------------------------------------------------------------------------
 
@@ -208,13 +268,27 @@ export function evaluateAllMilestones(
   // order and frozen at generate time, so the loop order is deterministic.
   for (const rule of GROWTH_MILESTONE_RULES) {
     try {
-      const milestone = evaluateThresholdCrossed(
-        rule as GrowthMilestoneRule & { triggerCondition: GrowthMilestoneThresholdCrossedTrigger },
-        history,
-        nowIso,
-        fullHistory,
-      );
-      if (milestone) out.push(milestone);
+      const triggerType = rule.triggerCondition.type;
+      if (triggerType === 'threshold_cross') {
+        const milestone = evaluateThresholdCrossed(
+          rule as GrowthMilestoneRule & { triggerCondition: GrowthMilestoneThresholdCrossedTrigger },
+          history,
+          nowIso,
+          fullHistory,
+        );
+        if (milestone) out.push(milestone);
+      } else if (triggerType === 'relative_change') {
+        out.push(
+          ...evaluateRelativeChange(
+            rule as GrowthMilestoneRule & { triggerCondition: GrowthMilestoneRelativeChangeTrigger },
+            history,
+            nowIso,
+            fullHistory,
+          ),
+        );
+      }
+      // Any other trigger type has no admitted evaluator yet — PO-GROWTH-
+      // DETAIL-009: skip it rather than crashing the surface.
     } catch {
       // PO-GROWTH-DETAIL-009: a rule that throws during evaluation is
       // skipped so the surface fails closed for that rule without crashing

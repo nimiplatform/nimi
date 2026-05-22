@@ -80,8 +80,8 @@ export function GrowthCurveChartPanel({
     ? `当前年龄超出${standardLabel}百分位参考线覆盖范围，仅显示已记录数据。`
     : null;
 
-  const colors = growthBandPalette(growthStandard);
-  const userColor = growthMetricStroke(selectedType);
+  const colors = growthBandPalette();
+  const userColor = growthMetricStroke();
 
   const chartAges = chartData.map((point) => point.age);
   const spanYears = chartAges.length >= 2
@@ -230,34 +230,35 @@ export function GrowthCurveChartPanel({
 
                   {hasBands ? (
                     <>
-                      <Area type="monotone" dataKey="p97" stroke="none" fill={colors.outer} isAnimationActive={false} connectNulls />
+                      <Area type="monotone" dataKey="p97" stroke="none" fill={colors.band} fillOpacity={0.09} isAnimationActive={false} connectNulls />
                       <Area type="monotone" dataKey="p3" stroke="none" fill={'var(--nimi-surface-card)'} isAnimationActive={false} connectNulls />
-                      <Area type="monotone" dataKey="p90" stroke="none" fill={colors.inner} isAnimationActive={false} connectNulls />
+                      <Area type="monotone" dataKey="p90" stroke="none" fill={colors.band} fillOpacity={0.09} isAnimationActive={false} connectNulls />
                       <Area type="monotone" dataKey="p10" stroke="none" fill={'var(--nimi-surface-card)'} isAnimationActive={false} connectNulls />
                     </>
                   ) : null}
 
                   {[
-                    { key: 'p97', label: '97%', width: 0.8, dash: '3 4', color: colors.far },
-                    { key: 'p90', label: '90%', width: 0.8, dash: '3 4', color: colors.edge },
-                    { key: 'p50', label: '50%', width: 1.5, dash: '5 4', color: colors.median },
-                    { key: 'p10', label: '10%', width: 0.8, dash: '3 4', color: colors.edge },
-                    { key: 'p3', label: '3%', width: 0.8, dash: '3 4', color: colors.far },
+                    { key: 'p97', label: '97%', width: 1.5, dash: '5 4', opacity: 0.5 },
+                    { key: 'p90', label: '90%', width: 1.5, dash: '5 4', opacity: 0.78 },
+                    { key: 'p50', label: '50%', width: 2, dash: '6 4', opacity: 1 },
+                    { key: 'p10', label: '10%', width: 1.5, dash: '5 4', opacity: 0.78 },
+                    { key: 'p3', label: '3%', width: 1.5, dash: '5 4', opacity: 0.5 },
                   ].map((line) => (
                     <Line
                       key={line.key}
                       type="monotone"
                       dataKey={line.key}
-                      stroke={line.color}
+                      stroke={colors.line}
                       strokeWidth={line.width}
                       strokeDasharray={line.dash}
+                      strokeOpacity={line.opacity}
                       dot={false}
                       activeDot={false}
                       isAnimationActive={false}
                       connectNulls
                       label={({ x, y, index, value }: { x: number; y: number; index: number; value: unknown }) =>
                         value != null && index === merged.length - 1
-                          ? <text x={x + 5} y={y} dy={3} fontSize={8} fill={line.color} fontWeight={line.key === 'p50' ? 600 : 400} opacity={0.85}>{line.label}</text>
+                          ? <text x={x + 5} y={y} dy={3} fontSize={8} fill={colors.line} fontWeight={line.key === 'p50' ? 600 : 400} opacity={0.85}>{line.label}</text>
                           : <g />}
                     />
                   ))}
@@ -369,36 +370,22 @@ export function GrowthCurveChartPanel({
   );
 }
 
-function growthMetricStroke(selectedType: string): string {
-  if (selectedType === 'weight') return 'var(--nimi-status-success)';
-  if (selectedType === 'head-circumference') return 'var(--nimi-status-warning)';
-  if (selectedType === 'bmi') return 'var(--nimi-status-info)';
+// The child's own measured series is the page's green "life line". It reads
+// the same life-energy green for every metric so the growth signal stays
+// consistent regardless of which tab is active.
+function growthMetricStroke(): string {
   return 'var(--nimi-action-primary-bg)';
 }
 
-function growthBandPalette(growthStandard: GrowthStandard): {
-  outer: string;
-  inner: string;
-  median: string;
-  edge: string;
-  far: string;
-} {
-  if (growthStandard === 'china') {
-    return {
-      outer: 'color-mix(in_srgb,var(--nimi-status-warning)_8%,transparent)',
-      inner: 'color-mix(in_srgb,var(--nimi-status-danger)_6%,transparent)',
-      median: 'var(--nimi-status-danger)',
-      edge: 'var(--nimi-status-warning)',
-      far: 'color-mix(in_srgb,var(--nimi-status-warning)_68%,var(--nimi-text-muted))',
-    };
-  }
-  return {
-    outer: 'color-mix(in_srgb,var(--nimi-status-info)_8%,transparent)',
-    inner: 'color-mix(in_srgb,var(--nimi-status-info)_6%,transparent)',
-    median: 'var(--nimi-status-info)',
-    edge: 'color-mix(in_srgb,var(--nimi-status-info)_72%,var(--nimi-action-primary-bg))',
-    far: 'color-mix(in_srgb,var(--nimi-status-info)_52%,var(--nimi-text-muted))',
-  };
+// Percentile reference bands + lines are the analytical layer behind the green
+// life line — the blue-violet analysis accent. These strings are consumed as
+// raw SVG `fill` / `stroke` attributes: only plain `var()` tokens are used
+// (`color-mix()` does not resolve as a raw SVG paint value in the WebView).
+// The P50 / P10–P90 / P3–P97 visual hierarchy comes from stroke width +
+// opacity, applied on the chart elements — not from hue.
+function growthBandPalette(): { band: string; line: string } {
+  const accent = 'var(--nimi-color-indigo)';
+  return { band: accent, line: accent };
 }
 
 function percentileHintClassName(text: string): string {

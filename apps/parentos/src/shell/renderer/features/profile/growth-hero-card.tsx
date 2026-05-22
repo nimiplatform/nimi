@@ -26,12 +26,14 @@ export interface GrowthHeroCardProps {
 }
 
 const CHIP_TONE_CLASSNAMES: Record<GrowthChip['tone'], string> = {
+  // `success` carries the growth/life signal — green, matching the milestone
+  // timeline and the chart's measured line.
   success:
-    'border-[color-mix(in_srgb,var(--nimi-accent-secondary)_28%,var(--nimi-border-subtle))] bg-[color-mix(in_srgb,var(--nimi-accent-secondary)_8%,var(--nimi-surface-card))] text-[var(--nimi-accent-secondary)]',
+    'border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_30%,var(--nimi-border-subtle))] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_8%,var(--nimi-surface-card))] text-[var(--nimi-action-primary-bg)]',
   warn:
     'border-[color-mix(in_srgb,var(--nimi-status-warning)_30%,var(--nimi-border-subtle))] bg-[color-mix(in_srgb,var(--nimi-status-warning)_8%,var(--nimi-surface-card))] text-[var(--nimi-status-warning)]',
   info:
-    'border-[color-mix(in_srgb,var(--nimi-accent-secondary)_28%,var(--nimi-border-subtle))] bg-[color-mix(in_srgb,var(--nimi-accent-secondary)_8%,var(--nimi-surface-card))] text-[var(--nimi-accent-secondary)]',
+    'border-[color-mix(in_srgb,var(--nimi-color-indigo)_28%,var(--nimi-border-subtle))] bg-[color-mix(in_srgb,var(--nimi-color-indigo)_8%,var(--nimi-surface-card))] text-[var(--nimi-color-indigo)]',
   neutral:
     'border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] text-[var(--nimi-text-secondary)]',
 };
@@ -86,8 +88,8 @@ function SemiCircleGauge({ percentile }: { percentile: number | null }) {
       >
         <defs>
           <linearGradient id="growth-gauge-grad" x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0%" stopColor="var(--nimi-accent-secondary)" stopOpacity={0.55} />
-            <stop offset="100%" stopColor="var(--nimi-accent-secondary)" stopOpacity={0.95} />
+            <stop offset="0%" stopColor="var(--nimi-action-primary-bg)" stopOpacity={0.55} />
+            <stop offset="100%" stopColor="var(--nimi-action-primary-bg)" stopOpacity={0.95} />
           </linearGradient>
         </defs>
         <path
@@ -114,7 +116,7 @@ function SemiCircleGauge({ percentile }: { percentile: number | null }) {
             cy={knobY}
             r={stroke / 2 + 1}
             fill="var(--nimi-surface-card)"
-            stroke="var(--nimi-accent-secondary)"
+            stroke="var(--nimi-action-primary-bg)"
             strokeWidth={2.5}
           />
         ) : null}
@@ -137,8 +139,8 @@ function SemiCircleGauge({ percentile }: { percentile: number | null }) {
 
 // ---------------------------------------------------------------------------
 // YearlyGrowthBars — per-year growth-rate column chart with a zero baseline.
-// Positive growth rises above the baseline (info blue); negative growth —
-// weight or BMI can drop — extends below it (warning orange).
+// Positive growth rises above the baseline in life-energy green; negative
+// growth — weight or BMI can drop — extends below it in warning orange.
 // ---------------------------------------------------------------------------
 
 const YGB_HALF_HEIGHT = 52;
@@ -167,11 +169,11 @@ function YearlyGrowthBars({
               >
                 {positive ? (
                   <>
-                    <span className="mb-1 text-[10px] font-medium text-[var(--nimi-accent-secondary)]">
+                    <span className="mb-1 text-[10px] font-medium text-[var(--nimi-action-primary-bg)]">
                       {valueLabel}
                     </span>
                     <div
-                      className="w-7 rounded-t-md bg-[var(--nimi-accent-secondary)]"
+                      className="w-7 rounded-t-md bg-[var(--nimi-action-primary-bg)]"
                       style={{ height: barHeight }}
                     />
                   </>

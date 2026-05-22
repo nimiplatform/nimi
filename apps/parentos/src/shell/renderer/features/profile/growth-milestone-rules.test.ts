@@ -3,9 +3,11 @@ import {
   GROWTH_MILESTONE_RULES,
   type GrowthMilestoneRule,
   type GrowthMilestoneThresholdCrossedTrigger,
+  type GrowthMilestoneRelativeChangeTrigger,
 } from '../../knowledge-base/index.js';
 import {
   evaluateAllMilestones,
+  evaluateRelativeChange,
   evaluateThresholdCrossed,
   type HistoryPoint,
 } from './growth-milestone-rules.js';
@@ -178,5 +180,70 @@ describe('evaluateAllMilestones determinism', () => {
     const b = evaluateAllMilestones(history2, NOW);
     expect(a[0]!.ruleId).toBe(b[0]!.ruleId);
     expect(a[0]!.milestoneId).not.toBe(b[0]!.milestoneId);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Relative-change weight nodes (rules: growth-milestone-weight-rise/drop-10pct)
+// ---------------------------------------------------------------------------
+
+describe('evaluateRelativeChange', () => {
+  const dropRule = findRule('growth-milestone-weight-drop-10pct') as GrowthMilestoneRule & {
+    triggerCondition: GrowthMilestoneRelativeChangeTrigger;
+  };
+  const riseRule = findRule('growth-milestone-weight-rise-10pct') as GrowthMilestoneRule & {
+    triggerCondition: GrowthMilestoneRelativeChangeTrigger;
+  };
+
+  function weightPoint(eventId: string, daysBefore: number, value: number): HistoryPoint {
+    return makePoint({
+      eventId,
+      measuredAt: isoDaysBefore(NOW, daysBefore),
+      value,
+      metricId: 'growth.weight',
+    });
+  }
+
+  it('fires a negative node when weight drops >=10% versus the previous record', () => {
+    const history = [weightPoint('w1', 90, 20), weightPoint('w2', 30, 17)];
+    const nodes = evaluateRelativeChange(dropRule, history, NOW);
+    expect(nodes).toHaveLength(1);
+    expect(nodes[0]!.polarity).toBe('negative');
+    expect(nodes[0]!.title).toBe('体重下降 15%');
+    expect(nodes[0]!.evidenceEventIds).toEqual(['w1', 'w2']);
+  });
+
+  it('does not fire when the drop is under the 10% threshold', () => {
+    const history = [weightPoint('w1', 90, 20), weightPoint('w2', 30, 19)];
+    expect(evaluateRelativeChange(dropRule, history, NOW)).toHaveLength(0);
+  });
+
+  it('fires a positive node when weight rises >=10% versus the previous record', () => {
+    const history = [weightPoint('w1', 90, 15), weightPoint('w2', 30, 17)];
+    const nodes = evaluateRelativeChange(riseRule, history, NOW);
+    expect(nodes).toHaveLength(1);
+    expect(nodes[0]!.polarity).toBe('positive');
+    expect(nodes[0]!.title).toBe('体重上升 13%');
+  });
+
+  it('emits one node per qualifying consecutive pair across a longer history', () => {
+    const history = [
+      weightPoint('w1', 200, 20),
+      weightPoint('w2', 120, 17), // -15%
+      weightPoint('w3', 40, 15), // -11.8%
+    ];
+    const nodes = evaluateRelativeChange(dropRule, history, NOW);
+    expect(nodes).toHaveLength(2);
+    expect(nodes.every((node) => node.polarity === 'negative')).toBe(true);
+  });
+
+  it('surfaces weight nodes through evaluateAllMilestones with deterministic ids', () => {
+    const history = [weightPoint('w1', 90, 20), weightPoint('w2', 30, 17)];
+    const first = evaluateAllMilestones(history, NOW, true);
+    const second = evaluateAllMilestones(history, NOW, true);
+    expect(JSON.stringify(first)).toEqual(JSON.stringify(second));
+    const drop = first.find((m) => m.ruleId === 'growth-milestone-weight-drop-10pct');
+    expect(drop).toBeDefined();
+    expect(drop!.polarity).toBe('negative');
   });
 });

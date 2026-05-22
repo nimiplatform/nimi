@@ -1,29 +1,22 @@
 import { Button, IconButton, Tooltip } from '@nimiplatform/nimi-kit/ui';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { computeAgeMonths, computeAgeMonthsAt, useAppStore } from '../../app-shell/app-store.js';
-import { getMeasurements, insertMeasurement, updateMeasurement, deleteMeasurement } from '../../bridge/sqlite-bridge.js';
+import { getMeasurements, updateMeasurement, deleteMeasurement } from '../../bridge/sqlite-bridge.js';
 import type { MeasurementRow } from '../../bridge/sqlite-bridge.js';
-import { isoNow, ulid } from '../../bridge/ulid.js';
+import { isoNow } from '../../bridge/ulid.js';
 import { GROWTH_STANDARDS } from '../../knowledge-base/index.js';
-import { catchLog, catchLogThen } from '../../infra/telemetry/catch-log.js';
+import { catchLog } from '../../infra/telemetry/catch-log.js';
 import type { GrowthTypeId } from '../../knowledge-base/gen/growth-standards.gen.js';
 import { canRenderWHOLMS, loadWHOLMS, type WHOLMSDataset, type GrowthStandard } from './who-lms-loader.js';
 import { AISummaryCard } from './ai-summary-card.js';
 import { NoActiveChildPlaceholder } from './_shared/no-active-child-placeholder.js';
 import { ProfileDetailShell } from './_shared/profile-detail-shell.js';
-import {
-  analyzeCheckupSheetOCR,
-  getCheckupOCRDisplayMessage,
-  hasCheckupOCRRuntime,
-  readImageFileAsDataUrl,
-} from './checkup-ocr.js';
 import { HealthCaptureModal } from './health-capture-modal.js';
 import { GrowthCurveChartPanel } from './growth-curve-chart-panel.js';
 import { GrowthCurveControls } from './growth-curve-controls.js';
 import { GrowthCurveHistoryTable } from './growth-curve-history-table.js';
-import { GrowthCurveOCRModal, type GrowthCurveOCRCandidate } from './growth-curve-ocr-modal.js';
 import {
   buildGrowthSummaryContext,
   computeBMI,
@@ -32,6 +25,7 @@ import {
 import { buildGrowthDetailSnapshot } from './growth-detail-projection.js';
 import { GrowthHeroCard } from './growth-hero-card.js';
 import { GrowthMilestonesCard } from './growth-milestones-card.js';
+import { GrowthNextCheckModal } from './growth-next-check-modal.js';
 import type {
   HealthRecordEvent,
   HealthRecordEventKind,
@@ -52,6 +46,16 @@ const LEGACY_TYPE_TO_METRIC_ID: Record<string, HealthMetricId> = {
   'head-circumference': 'growth.head_circumference',
   bmi: 'growth.bmi',
   'bone-age': 'development.bone_age_years',
+};
+
+// Inverse of LEGACY_TYPE_TO_METRIC_ID for the four growth chart tabs — maps a
+// canonical health metric id (carried by the /profile group card's ?metric=
+// deep link) back to this page's `selectedType` tab id.
+const METRIC_ID_TO_GROWTH_TYPE: Partial<Record<HealthMetricId, string>> = {
+  'growth.height': 'height',
+  'growth.weight': 'weight',
+  'growth.head_circumference': 'head-circumference',
+  'growth.bmi': 'bmi',
 };
 
 const LEGACY_TYPE_TO_UNIT: Record<string, string> = {
@@ -110,6 +114,53 @@ function measurementsToHealthRecordSlice(
       createdAt,
     });
   }
+
+  // BMI is never persisted as its own measurement row. The canonical
+  // health-record projection only derives BMI when one event carries both
+  // height and weight — but the per-measurement adapter above emits a
+  // separate event per row, so BMI would never derive and the BMI hero would
+  // fall back to its no-data state ("添加首次BMI测量后…"). Pair same-date
+  // height + weight here and attach a synthetic growth.bmi value to that
+  // date's height event. recordKind 'measured' keeps it through
+  // recomputeDerivedHealthRecordValues, which only strips 'derived' rows.
+  const bmiByDate = new Map<
+    string,
+    { childId: string; ageMonths: number; createdAt: string; height?: { value: number; eventId: string }; weight?: number }
+  >();
+  for (const measurement of measurements) {
+    if (measurement.typeId !== 'height' && measurement.typeId !== 'weight') continue;
+    const date = measurement.measuredAt.split('T')[0] ?? measurement.measuredAt;
+    const entry = bmiByDate.get(date) ?? {
+      childId: measurement.childId,
+      ageMonths: measurement.ageMonths,
+      createdAt: measurement.createdAt ?? measurement.measuredAt,
+    };
+    entry.ageMonths = measurement.ageMonths;
+    if (measurement.typeId === 'height') {
+      entry.height = { value: measurement.value, eventId: measurement.measurementId };
+    } else {
+      entry.weight = measurement.value;
+    }
+    bmiByDate.set(date, entry);
+  }
+  for (const entry of bmiByDate.values()) {
+    if (!entry.height || entry.weight == null) continue;
+    values.push({
+      valueId: `${entry.height.eventId}:growth.bmi`,
+      eventId: entry.height.eventId,
+      childId: entry.childId,
+      metricId: 'growth.bmi',
+      valueNumber: computeBMI(entry.height.value, entry.weight),
+      valueText: null,
+      valueJson: null,
+      unit: 'kg/m²',
+      qualifier: null,
+      recordKind: 'measured',
+      sourceValueIds: null,
+      createdAt: entry.createdAt,
+    });
+  }
+
   return { events, values };
 }
 
@@ -192,21 +243,21 @@ export default function GrowthCurvePage() {
   const child = children.find((item) => item.childId === activeChildId);
   const [measurements, setMeasurements] = useState<MeasurementRow[]>([]);
   const navigate = useNavigate();
-  const [selectedType, setSelectedType] = useState<string>('height');
+  const [searchParams] = useSearchParams();
+  // Deep link from the /profile group card: ?metric=<healthMetricId> opens the
+  // corresponding chart tab (PO-GROWTH-DETAIL-002 admitted query param). Falls
+  // back to height when absent or unrecognized.
+  const [selectedType, setSelectedType] = useState<string>(
+    () => METRIC_ID_TO_GROWTH_TYPE[searchParams.get('metric') as HealthMetricId] ?? 'height',
+  );
   const [showForm, setShowForm] = useState(false);
   const [growthStandard, setGrowthStandard] = useState<GrowthStandard>('china');
   const [whoDatasets, setWhoDatasets] = useState<Record<string, WHOLMSDataset | null>>({});
-  const [showOCR, setShowOCR] = useState(false);
-  const [ocrRuntimeAvailable, setOCRRuntimeAvailable] = useState<boolean | null>(null);
-  const [ocrImageName, setOCRImageName] = useState<string | null>(null);
-  const [ocrImageDataUrl, setOCRImageDataUrl] = useState<string | null>(null);
-  const [ocrStatus, setOCRStatus] = useState<'idle' | 'analyzing' | 'review'>('idle');
-  const [ocrError, setOCRError] = useState<string | null>(null);
-  const [ocrCandidates, setOCRCandidates] = useState<GrowthCurveOCRCandidate[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
   const [editDate, setEditDate] = useState('');
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [showReschedule, setShowReschedule] = useState(false);
   // Scroll target for the hero milestone card's "查看更多" affordance — it
   // brings the full milestone list (the history table) into view.
   const historyTableRef = useRef<HTMLDivElement>(null);
@@ -218,10 +269,6 @@ export default function GrowthCurvePage() {
 
     getMeasurements(activeChildId).then(setMeasurements).catch(catchLog('growth-curve', 'action:load-measurements-failed'));
   }, [activeChildId]);
-
-  useEffect(() => {
-    hasCheckupOCRRuntime().then(setOCRRuntimeAvailable).catch(catchLogThen('growth-curve', 'action:check-ocr-runtime-failed', () => setOCRRuntimeAvailable(false)));
-  }, []);
 
   useEffect(() => {
     if (!child) {
@@ -388,94 +435,6 @@ export default function GrowthCurvePage() {
     setDeletingId(null);
   };
 
-  const resetOCRDraft = () => {
-    setOCRImageName(null);
-    setOCRImageDataUrl(null);
-    setOCRStatus('idle');
-    setOCRCandidates([]);
-    setOCRError(null);
-  };
-
-  const handleOCRFileChange = async (file: File | null) => {
-    if (!file) {
-      resetOCRDraft();
-      return;
-    }
-
-    setOCRError(null);
-    try {
-      const dataUrl = await readImageFileAsDataUrl(file);
-      setOCRImageName(file.name);
-      setOCRImageDataUrl(dataUrl);
-      setOCRStatus('idle');
-      setOCRCandidates([]);
-    } catch {
-      resetOCRDraft();
-      setOCRError(t('Profile.rich.growth.importReadFailed'));
-    }
-  };
-
-  const handleOCRAnalyze = async () => {
-    if (!ocrImageDataUrl) {
-      return;
-    }
-
-    setOCRStatus('analyzing');
-    setOCRError(null);
-    try {
-      const result = await analyzeCheckupSheetOCR({ imageUrl: ocrImageDataUrl });
-      setOCRCandidates(result.measurements.map((candidate) => ({ ...candidate, selected: true })));
-      setOCRStatus('review');
-    } catch (error) {
-      setOCRStatus('idle');
-      setOCRCandidates([]);
-      setOCRError(getCheckupOCRDisplayMessage(error));
-      return;
-      setOCRError('OCR 提取失败或返回了不合法的结构化结果。');
-    }
-  };
-
-  const handleImportOCR = async () => {
-    const selectedCandidates = ocrCandidates.filter((candidate) => candidate.selected);
-    if (selectedCandidates.length === 0) {
-      setOCRError(t('Profile.rich.growth.importSelectAtLeastOne'));
-      return;
-    }
-
-    const invalidCandidate = selectedCandidates.find((candidate) => {
-      return !candidate.measuredAt.trim() || !Number.isFinite(candidate.value);
-    });
-    if (invalidCandidate) {
-      setOCRError(t('Profile.rich.growth.importInvalidCandidate'));
-      return;
-    }
-
-    setOCRError(null);
-    try {
-      for (const candidate of selectedCandidates) {
-        const measuredAt = candidate.measuredAt.trim();
-        const now = isoNow();
-        await insertMeasurement({
-          measurementId: ulid(),
-          childId: child.childId,
-          typeId: candidate.typeId,
-          value: candidate.value,
-          measuredAt,
-          ageMonths: computeAgeMonthsAt(child.birthDate, measuredAt),
-          percentile: null,
-          source: 'ocr',
-          notes: candidate.notes,
-          now,
-        });
-      }
-      await refreshMeasurements();
-      resetOCRDraft();
-      setShowOCR(false);
-    } catch {
-      setOCRError(t('Profile.rich.growth.importFailed'));
-    }
-  };
-
   return (
     <ProfileDetailShell
       title={
@@ -527,30 +486,14 @@ export default function GrowthCurvePage() {
         </span>
       }
       actions={
-        <>
-          <Tooltip content={t('Profile.rich.growth.ocrHint')} contentClassName="whitespace-nowrap text-[13px]">
-            <IconButton
-              onClick={() => setShowOCR(!showOCR)}
-              tone={showOCR ? 'secondary' : 'primary'}
-              size="sm"
-              className="min-h-0 rounded-full"
-              aria-label={showOCR ? t('Profile.rich.growth.closeRecognize') : t('Profile.rich.growth.smartRecognize')}
-              icon={(
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M3 7V5a2 2 0 012-2h2M17 3h2a2 2 0 012 2v2M21 17v2a2 2 0 01-2 2h-2M7 21H5a2 2 0 01-2-2v-2M7 12h10" />
-                </svg>
-              )}
-            />
-          </Tooltip>
-          <Button
-            onClick={() => setShowForm(true)}
-            tone="primary"
-            size="sm"
-            className="min-h-0 rounded-full px-3 py-1.5 text-[14px]"
-          >
-            + {t('Profile.rich.common.addRecord')}
-          </Button>
-        </>
+        <Button
+          onClick={() => setShowForm(true)}
+          tone="primary"
+          size="sm"
+          className="min-h-0 rounded-full px-3 py-1.5 text-[14px]"
+        >
+          + {t('Profile.rich.common.addRecord')}
+        </Button>
       }
       aiSummary={
         <AISummaryCard domain="growth" childName={child.displayName} childId={child.childId}
@@ -581,8 +524,7 @@ export default function GrowthCurvePage() {
             milestones={selectedMetricMilestones.slice(-HERO_MILESTONE_PREVIEW_LIMIT)}
             headline={growthDetailSnapshot.headline}
             nextCheck={growthDetailSnapshot.nextCheck}
-            childId={growthDetailSnapshot.child.childId}
-            metricId={growthDetailSnapshot.selectedMetric.metricId}
+            onReschedule={() => setShowReschedule(true)}
             onViewMore={
               selectedMetricMilestones.length > HERO_MILESTONE_PREVIEW_LIMIT
                 ? () => historyTableRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
@@ -619,50 +561,11 @@ export default function GrowthCurvePage() {
           />
         ) : null}
 
-        {showOCR ? (
-          <GrowthCurveOCRModal
-            ocrRuntimeAvailable={ocrRuntimeAvailable}
-            ocrImageName={ocrImageName}
-            ocrImageDataUrl={ocrImageDataUrl}
-            ocrStatus={ocrStatus}
-            ocrError={ocrError}
-            ocrCandidates={ocrCandidates}
-            onClose={() => {
-              setShowOCR(false);
-              resetOCRDraft();
-            }}
-            onFileChange={(file) => void handleOCRFileChange(file)}
-            onAnalyze={() => void handleOCRAnalyze()}
-            onRetake={resetOCRDraft}
-            onToggleCandidate={(index, selected) => {
-              setOCRCandidates((previous) =>
-                previous.map((item, itemIndex) =>
-                  itemIndex === index ? { ...item, selected } : item,
-                ),
-              );
-            }}
-            onChangeCandidateType={(index, typeId) => {
-              setOCRCandidates((previous) =>
-                previous.map((item, itemIndex) =>
-                  itemIndex === index ? { ...item, typeId } : item,
-                ),
-              );
-            }}
-            onChangeCandidateValue={(index, value) => {
-              setOCRCandidates((previous) =>
-                previous.map((item, itemIndex) =>
-                  itemIndex === index ? { ...item, value } : item,
-                ),
-              );
-            }}
-            onChangeCandidateDate={(index, measuredAt) => {
-              setOCRCandidates((previous) =>
-                previous.map((item, itemIndex) =>
-                  itemIndex === index ? { ...item, measuredAt } : item,
-                ),
-              );
-            }}
-            onImport={() => void handleImportOCR()}
+        {showReschedule ? (
+          <GrowthNextCheckModal
+            child={child}
+            onSaved={() => void refreshMeasurements()}
+            onClose={() => setShowReschedule(false)}
           />
         ) : null}
       </div>

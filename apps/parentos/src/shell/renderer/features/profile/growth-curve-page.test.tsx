@@ -3,33 +3,20 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { TooltipProvider } from '@nimiplatform/nimi-kit/ui';
 import type { ReactNode } from 'react';
-import { MemoryRouter, useLocation } from 'react-router-dom';
+import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import GrowthCurvePage from './growth-curve-page.js';
+import { GrowthCurveChartPanel } from './growth-curve-chart-panel.js';
+import type { WHOLMSDataset } from './who-lms-loader.js';
 import { useAppStore } from '../../app-shell/app-store.js';
 import { i18n } from '../../i18n/index.js';
-
-// Sentinel that mirrors the current router location into the DOM so wave-C
-// next-check CTA deep-link navigation can be asserted without mocking
-// react-router-dom.
-function LocationSentinel() {
-  const location = useLocation();
-  return (
-    <div
-      data-testid="location-sentinel"
-      data-pathname={location.pathname}
-      data-search={location.search}
-    />
-  );
-}
 
 const {
   getMeasurementsMock,
   insertMeasurementMock,
   updateMeasurementMock,
   deleteMeasurementMock,
-  hasCheckupOCRRuntimeMock,
-  analyzeCheckupSheetOCRMock,
+  saveTextFileViaDialogMock,
   textGenerateMock,
   getPlatformClientMock,
   resolveParentosTextRuntimeConfigMock,
@@ -65,23 +52,7 @@ const {
   insertMeasurementMock: vi.fn().mockResolvedValue(undefined),
   updateMeasurementMock: vi.fn().mockResolvedValue(undefined),
   deleteMeasurementMock: vi.fn().mockResolvedValue(undefined),
-  hasCheckupOCRRuntimeMock: vi.fn().mockResolvedValue(true),
-  analyzeCheckupSheetOCRMock: vi.fn().mockResolvedValue({
-    measurements: [
-      {
-        typeId: 'height',
-        value: 100.2,
-        measuredAt: '2026-03-01',
-        notes: 'OCR row 1',
-      },
-      {
-        typeId: 'weight',
-        value: 16.1,
-        measuredAt: '2026-03-01',
-        notes: null,
-      },
-    ],
-  }),
+  saveTextFileViaDialogMock: vi.fn().mockResolvedValue('/tmp/growth_history.csv'),
   textGenerateMock: vi.fn().mockResolvedValue({
     text: '{"insight":"观察到孩子身高处于参考区间内，倾向于稳定增长。"}',
     finishReason: 'stop',
@@ -110,6 +81,12 @@ vi.mock('../../bridge/sqlite-bridge.js', () => ({
   insertMeasurement: insertMeasurementMock,
   updateMeasurement: updateMeasurementMock,
   deleteMeasurement: deleteMeasurementMock,
+  // Next-check reschedule modal (PO-GROWTH-DETAIL-006) reads reminder state +
+  // app-setting frequency overrides; default to an empty/clean slate.
+  getReminderStates: vi.fn().mockResolvedValue([]),
+  upsertReminderState: vi.fn().mockResolvedValue(undefined),
+  getAppSetting: vi.fn().mockResolvedValue(null),
+  setAppSetting: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock('@nimiplatform/sdk', () => ({
@@ -123,22 +100,38 @@ vi.mock('../settings/parentos-ai-runtime.js', () => ({
   PARENTOS_LOCAL_RUNTIME_WARM_TIMEOUT_MS: 1000,
 }));
 
+vi.mock('../reports/report-export.js', () => ({
+  saveTextFileViaDialog: saveTextFileViaDialogMock,
+}));
+
 vi.mock('recharts', () => ({
   ResponsiveContainer: ({ children }: { children: ReactNode }) => <div>{children}</div>,
   ComposedChart: ({ children }: { children: ReactNode }) => <div>{children}</div>,
   LineChart: ({ children }: { children: ReactNode }) => <div>{children}</div>,
   CartesianGrid: () => null,
-  Line: ({ name }: { name?: string }) => <div>{name ?? 'line'}</div>,
+  Line: ({
+    dataKey,
+    name,
+    stroke,
+    strokeDasharray,
+  }: {
+    dataKey?: string;
+    name?: string;
+    stroke?: string;
+    strokeDasharray?: string;
+  }) => (
+    <div
+      data-testid={dataKey ? `recharts-line-${dataKey}` : undefined}
+      data-stroke={stroke}
+      data-stroke-dasharray={strokeDasharray}
+    >
+      {name ?? 'line'}
+    </div>
+  ),
   Area: () => null,
   Tooltip: () => null,
   XAxis: () => null,
   YAxis: () => null,
-}));
-
-vi.mock('./checkup-ocr.js', () => ({
-  hasCheckupOCRRuntime: hasCheckupOCRRuntimeMock,
-  analyzeCheckupSheetOCR: analyzeCheckupSheetOCRMock,
-  readImageFileAsDataUrl: vi.fn().mockResolvedValue('data:image/png;base64,abc'),
 }));
 
 describe('GrowthCurvePage', () => {
@@ -148,6 +141,7 @@ describe('GrowthCurvePage', () => {
     insertMeasurementMock.mockClear();
     updateMeasurementMock.mockClear();
     deleteMeasurementMock.mockClear();
+    saveTextFileViaDialogMock.mockClear();
     textGenerateMock.mockReset();
     textGenerateMock.mockResolvedValue({
       text: '{"insight":"观察到孩子身高处于参考区间内，倾向于稳定增长。"}',
@@ -164,23 +158,6 @@ describe('GrowthCurvePage', () => {
       maxTokens: 256,
     });
     ensureParentosLocalRuntimeReadyMock.mockResolvedValue(undefined);
-    hasCheckupOCRRuntimeMock.mockResolvedValue(true);
-    analyzeCheckupSheetOCRMock.mockResolvedValue({
-      measurements: [
-        {
-          typeId: 'height',
-          value: 100.2,
-          measuredAt: '2026-03-01',
-          notes: 'OCR row 1',
-        },
-        {
-          typeId: 'weight',
-          value: 16.1,
-          measuredAt: '2026-03-01',
-          notes: null,
-        },
-      ],
-    });
 
     useAppStore.setState({
       bootstrapReady: true,
@@ -237,52 +214,46 @@ describe('GrowthCurvePage', () => {
     });
   });
 
-  it('imports OCR candidates only after parent confirmation and stores them as source=ocr', async () => {
+  it('renders the outer percentile dashed reference lines with the active theme token', () => {
+    const whoDataset: WHOLMSDataset = {
+      typeId: 'height',
+      gender: 'female',
+      source: 'test',
+      coverage: { startAgeMonths: 0, endAgeMonths: 216 },
+      points: [],
+      standard: 'china',
+      lines: [3, 10, 25, 50, 75, 90, 97].map((percentile) => ({
+        percentile,
+        points: [120, 121, 122].map((ageMonths) => ({
+          ageMonths,
+          value: 90 + percentile * 0.4 + (ageMonths - 120),
+        })),
+      })),
+    };
+
     render(
       <TooltipProvider>
         <MemoryRouter>
-          <GrowthCurvePage />
+          <GrowthCurveChartPanel
+            chartData={[{ age: 121, value: 110, date: '2026-01-01' }]}
+            selectedType="height"
+            typeInfo={undefined}
+            whoDataset={whoDataset}
+            canShowWhoLines
+            growthStandard="china"
+            onSelectGrowthStandard={vi.fn()}
+            measurements={[]}
+            ageMonths={121}
+          />
         </MemoryRouter>
       </TooltipProvider>,
     );
 
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: /智能识别/i })).toBeTruthy();
-    });
-
-    fireEvent.click(screen.getByRole('button', { name: /智能识别/i }));
-    fireEvent.change(screen.getByLabelText('checkup-sheet-file'), {
-      target: {
-        files: [new File(['fake-image'], 'checkup.png', { type: 'image/png' })],
-      },
-    });
-
-    await waitFor(() => {
-      expect(screen.getByTestId('ocr-image-name')).toBeTruthy();
-    });
-
-    fireEvent.click(screen.getByRole('button', { name: /开始识别/ }));
-
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: /导入选中数据/ })).toBeTruthy();
-    });
-
-    fireEvent.click(screen.getByRole('button', { name: /导入选中数据/ }));
-
-    await waitFor(() => {
-      expect(insertMeasurementMock).toHaveBeenCalledTimes(2);
-    });
-
-    expect(insertMeasurementMock).toHaveBeenCalledWith(expect.objectContaining({
-      typeId: 'height',
-      source: 'ocr',
-      notes: 'OCR row 1',
-    }));
-    expect(insertMeasurementMock).toHaveBeenCalledWith(expect.objectContaining({
-      typeId: 'weight',
-      source: 'ocr',
-      notes: null,
-    }));
+    for (const key of ['p3', 'p10', 'p90', 'p97']) {
+      const line = screen.getByTestId(`recharts-line-${key}`);
+      expect(line.getAttribute('data-stroke')).toBe('var(--nimi-color-indigo)');
+      expect(line.getAttribute('data-stroke-dasharray')).toBe('5 4');
+    }
   });
 
   it('renders the hero card with percentile dial, big value, and the trend-stat row when data present', async () => {
@@ -307,6 +278,26 @@ describe('GrowthCurvePage', () => {
     const chips = screen.getByTestId('growth-hero-chips');
     expect(chips).toBeTruthy();
     expect(chips.children.length).toBe(2);
+  });
+
+  it('opens the metric tab named by the ?metric= deep link instead of the height default', async () => {
+    render(
+      <TooltipProvider>
+        <MemoryRouter initialEntries={['/profile/growth?metric=growth.weight']}>
+          <GrowthCurvePage />
+        </MemoryRouter>
+      </TooltipProvider>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('growth-hero-card')).toBeTruthy();
+    });
+
+    // ?metric=growth.weight selects the weight tab — the hero shows the seeded
+    // weight measurement (15), not the height default (98).
+    const hero = screen.getByTestId('growth-hero-card');
+    expect(hero.textContent ?? '').toContain('15');
+    expect(hero.textContent ?? '').not.toContain('98');
   });
 
   it('renders the hero empty state when there are no measurements', async () => {
@@ -378,7 +369,7 @@ describe('GrowthCurvePage', () => {
     const card = screen.getByTestId('growth-milestones-card');
     const rows = card.querySelectorAll('[data-testid^="growth-milestone-row-"]');
     expect(rows.length).toBeGreaterThan(0);
-    expect(card.textContent ?? '').toContain('生长里程碑');
+    expect(card.textContent ?? '').toContain('生长重要节点');
   });
 
   it('renders the milestone empty-state copy inside the timeline card when no milestones are present', async () => {
@@ -396,7 +387,7 @@ describe('GrowthCurvePage', () => {
       expect(screen.getByTestId('growth-milestones-card')).toBeTruthy();
     });
 
-    expect(screen.getByText('暂无识别到的里程碑事件')).toBeTruthy();
+    expect(screen.getByText('暂无识别到的重要节点')).toBeTruthy();
   });
 
   it('shows the milestone card "查看更多" affordance when more milestones exist than the hero preview', async () => {
@@ -466,7 +457,7 @@ describe('GrowthCurvePage', () => {
       // Scheduled-state assertions
       expect(screen.getByTestId('growth-next-check-badge')).toBeTruthy();
       expect(screen.getByTestId('growth-next-check-cta-set-reminder')).toBeTruthy();
-      expect(scheduled.textContent ?? '').toContain('设为提醒');
+      expect(scheduled.textContent ?? '').toContain('更改');
     } else {
       // Unscheduled-state fallback assertion (still validates wave-C mount)
       expect(screen.getByText('暂无下次测量安排')).toBeTruthy();
@@ -492,12 +483,11 @@ describe('GrowthCurvePage', () => {
     expect(screen.getByText('暂无下次测量安排')).toBeTruthy();
   });
 
-  it('navigates to /timeline?focus=growth&metric=<id> when the next-check set-reminder CTA is clicked on the deep_link_only branch', async () => {
+  it('opens the next-check reschedule modal with date + cadence controls when the 更改 CTA is clicked', async () => {
     render(
       <TooltipProvider>
-        <MemoryRouter initialEntries={['/profile/growth']}>
+        <MemoryRouter>
           <GrowthCurvePage />
-          <LocationSentinel />
         </MemoryRouter>
       </TooltipProvider>,
     );
@@ -505,13 +495,16 @@ describe('GrowthCurvePage', () => {
     const cta = await screen.findByTestId('growth-next-check-cta-set-reminder');
     fireEvent.click(cta);
 
+    // PO-GROWTH-DETAIL-006: the CTA opens the reschedule modal against the
+    // child's age-active growth record_data reminder, exposing both the
+    // next-occurrence date field and the cadence presets.
     await waitFor(() => {
-      const sentinel = screen.getByTestId('location-sentinel');
-      expect(sentinel.getAttribute('data-pathname')).toBe('/timeline');
-      const search = sentinel.getAttribute('data-search') ?? '';
-      expect(search).toContain('focus=growth');
-      expect(search).toContain('metric=');
+      expect(screen.getByTestId('growth-next-check-modal')).toBeTruthy();
     });
+    await waitFor(() => {
+      expect(screen.getByTestId('growth-next-check-date')).toBeTruthy();
+    });
+    expect(screen.getByText('复测频率')).toBeTruthy();
   });
 
   // ── Wave-D additions: history-table pagination/filter/export + Add CTA ──
@@ -622,66 +615,55 @@ describe('GrowthCurvePage', () => {
     });
   });
 
-  it('emits a CSV blob with the admitted column order on history export', async () => {
-    const captured: Blob[] = [];
-    const originalCreateObjectURL = URL.createObjectURL;
-    const originalRevokeObjectURL = URL.revokeObjectURL;
-    // Capture the blob handed to the download trigger; jsdom does not
-    // simulate <a download> navigation, but URL.createObjectURL still
-    // receives the constructed blob.
-    URL.createObjectURL = vi.fn((blob: Blob) => {
-      captured.push(blob);
-      return 'blob:mock';
-    }) as unknown as typeof URL.createObjectURL;
-    URL.revokeObjectURL = vi.fn();
+  it('exports history as CSV with the admitted column order via the native save dialog', async () => {
+    getMeasurementsMock.mockResolvedValueOnce([
+      {
+        measurementId: 'm-csv-1',
+        childId: 'child-1',
+        typeId: 'height',
+        value: 100.5,
+        measuredAt: '2025-12-10T00:00:00.000Z',
+        ageMonths: 130,
+        percentile: 50,
+        source: 'manual',
+        notes: null,
+        createdAt: '2025-12-10T00:00:00.000Z',
+      },
+    ]);
 
-    try {
-      getMeasurementsMock.mockResolvedValueOnce([
-        {
-          measurementId: 'm-csv-1',
-          childId: 'child-1',
-          typeId: 'height',
-          value: 100.5,
-          measuredAt: '2025-12-10T00:00:00.000Z',
-          ageMonths: 130,
-          percentile: 50,
-          source: 'manual',
-          notes: null,
-          createdAt: '2025-12-10T00:00:00.000Z',
-        },
-      ]);
+    render(
+      <TooltipProvider>
+        <MemoryRouter>
+          <GrowthCurvePage />
+        </MemoryRouter>
+      </TooltipProvider>,
+    );
 
-      render(
-        <TooltipProvider>
-          <MemoryRouter>
-            <GrowthCurvePage />
-          </MemoryRouter>
-        </TooltipProvider>,
-      );
+    await waitFor(() => {
+      expect(screen.getByLabelText('export csv')).toBeTruthy();
+    });
 
-      await waitFor(() => {
-        expect(screen.getByLabelText('export csv')).toBeTruthy();
-      });
+    fireEvent.click(screen.getByLabelText('export csv'));
 
-      fireEvent.click(screen.getByLabelText('export csv'));
+    // `<a download>` is inert in the Tauri WebView, so the export round-trips
+    // through the native save-dialog pipeline (saveTextFileViaDialog).
+    await waitFor(() => {
+      expect(saveTextFileViaDialogMock).toHaveBeenCalledTimes(1);
+    });
 
-      await waitFor(() => {
-        expect(captured.length).toBe(1);
-      });
-
-      const text = await captured[0]!.text();
-      const lines = text.split('\n');
-      // First line is the header in the admitted order.
-      expect(lines[0]).toBe('effective_date,age_label,value,unit,source,percentile');
-      // Second line is the seeded row.
-      expect(lines[1]).toContain('2025-12-10');
-      expect(lines[1]).toContain('100.5');
-      expect(lines[1]).toContain('手动');
-      expect(lines[1]).toContain('P50');
-    } finally {
-      URL.createObjectURL = originalCreateObjectURL;
-      URL.revokeObjectURL = originalRevokeObjectURL;
-    }
+    const arg = saveTextFileViaDialogMock.mock.calls[0]![0] as {
+      text: string;
+      kind: string;
+      defaultFilename: string;
+    };
+    expect(arg.kind).toBe('csv');
+    // BOM stripped — the admitted header order, then the seeded row.
+    const lines = arg.text.replace(String.fromCharCode(0xfeff), '').split('\n');
+    expect(lines[0]).toBe('effective_date,age_label,value,unit,source,percentile');
+    expect(lines[1]).toContain('2025-12-10');
+    expect(lines[1]).toContain('100.5');
+    expect(lines[1]).toContain('手动');
+    expect(lines[1]).toContain('P50');
   });
 
   it('opens HealthCaptureModal with initialGroupId="growth" + initialMetricId from the selected metric when the Add CTA is clicked', async () => {

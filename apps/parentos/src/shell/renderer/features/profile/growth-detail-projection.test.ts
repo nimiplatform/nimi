@@ -7,6 +7,7 @@ import {
   buildGrowthDetailSnapshot,
   type GrowthDetailProjectionInput,
 } from './growth-detail-projection.js';
+import { resolveGrowthRecheckRuleId } from './growth-curve-page-shared.js';
 import type { WHOLMSDataset } from './who-lms-loader.js';
 
 const NOW = '2026-05-18T12:00:00.000Z';
@@ -219,6 +220,14 @@ describe('buildGrowthDetailSnapshot — freshness boundary', () => {
   it('emits nextCheck.state="unscheduled" when there is no latest record', () => {
     const snap = buildGrowthDetailSnapshot(baseInput());
     expect(snap.nextCheck.state).toBe('unscheduled');
+  });
+});
+
+describe('resolveGrowthRecheckRuleId', () => {
+  it('uses the next-stage growth rule at inclusive age boundaries', () => {
+    expect(resolveGrowthRecheckRuleId(11)).toBe('PO-REM-GRO-001');
+    expect(resolveGrowthRecheckRuleId(12)).toBe('PO-REM-GRO-002');
+    expect(resolveGrowthRecheckRuleId(36)).toBe('PO-REM-GRO-003');
   });
 });
 

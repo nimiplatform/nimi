@@ -61,7 +61,7 @@ export interface ExportResult {
   filename: string;
 }
 
-type SaveKind = 'pdf' | 'png';
+type SaveKind = 'pdf' | 'png' | 'csv';
 
 async function pickSavePath(
   defaultFilename: string,
@@ -77,6 +77,25 @@ async function pickSavePath(
 
 async function writeReportFileAt(path: string, base64Data: string): Promise<string> {
   return invoke<string>('write_report_file_at', { path, base64Data });
+}
+
+/**
+ * Saves a UTF-8 text payload (e.g. a CSV export) through the same native
+ * "Save as" dialog pipeline as the report exports. A programmatic
+ * `<a download>` is inert in the Tauri WebView, so text exports must
+ * round-trip through Rust. Returns the chosen absolute path, or null if
+ * the dialog was cancelled.
+ */
+export async function saveTextFileViaDialog(params: {
+  text: string;
+  defaultFilename: string;
+  kind: SaveKind;
+  title: string;
+}): Promise<string | null> {
+  const chosenPath = await pickSavePath(params.defaultFilename, params.kind, params.title);
+  if (!chosenPath) return null;
+  const base64Data = await blobToBase64(new Blob([params.text]));
+  return writeReportFileAt(chosenPath, base64Data);
 }
 
 /**

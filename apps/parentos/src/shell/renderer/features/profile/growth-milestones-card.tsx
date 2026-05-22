@@ -1,6 +1,5 @@
 import { Button, Surface } from '@nimiplatform/nimi-kit/ui';
-import { useCallback, type ReactNode } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { type ReactNode } from 'react';
 import type { GrowthMilestone } from './growth-milestone-rules.js';
 import type {
   GrowthHeadline,
@@ -13,19 +12,28 @@ import type {
 // measurement, and the next-check reminder as a single vertical timeline.
 // A flex-grow spacer keeps the next-check node pinned to the foot of the card
 // so this card can share a row height with the hero card.
-// Pure render of typed projection rows + a deep-link CTA. No useState/useEffect
-// for projection data, no AI, no bridge, no Date.now().
+// Pure render of typed projection rows + a reschedule CTA (PO-GROWTH-DETAIL-006).
+// No useState/useEffect for projection data, no AI, no bridge, no Date.now().
 
-const EMPTY_STATE_COPY = '暂无识别到的里程碑事件';
-const NEXT_CHECK_CTA_LABEL = '设为提醒';
+const EMPTY_STATE_COPY = '暂无识别到的重要节点';
+// The next-check date is a system-default reminder time; the CTA opens the
+// timeline where the parent adjusts it, so the label reads "更改" not "设为提醒".
+const NEXT_CHECK_CTA_LABEL = '更改';
 
-const MILESTONE_DOT_TONE: Record<GrowthMilestone['kind'], string> = {
-  threshold_crossed: 'border-[var(--nimi-status-success)]',
+// Positive nodes (height thresholds, weight rises) sit on the calm grey
+// rail; negative nodes (e.g. a >=10% weight drop) are marked in caution
+// orange so the parent notices them. The live "current measurement" node
+// is the key node and renders separately in the brand green.
+const MILESTONE_DOT_TONE: Record<GrowthMilestone['polarity'], string> = {
+  positive: 'border-[var(--nimi-border-strong)]',
+  negative: 'border-[var(--nimi-status-warning)]',
 };
 
-const MILESTONE_BADGE_TONE: Record<GrowthMilestone['kind'], string> = {
-  threshold_crossed:
+const MILESTONE_BADGE_TONE: Record<GrowthMilestone['polarity'], string> = {
+  positive:
     'bg-[color-mix(in_srgb,var(--nimi-status-success)_14%,var(--nimi-surface-card))] text-[var(--nimi-status-success)]',
+  negative:
+    'bg-[color-mix(in_srgb,var(--nimi-status-warning)_16%,var(--nimi-surface-card))] text-[var(--nimi-status-warning)]',
 };
 
 function formatNextCheckDate(iso: string): string {
@@ -75,8 +83,10 @@ export interface GrowthMilestonesCardProps {
   milestones: GrowthMilestone[];
   headline: GrowthHeadline;
   nextCheck: GrowthNextCheck;
-  childId: string;
-  metricId: string;
+  /** Opens the next-check reschedule modal (PO-GROWTH-DETAIL-006). When omitted,
+   *  or when the scheduled next-check carries a null `recheckRuleId`, the `更改`
+   *  CTA is disabled (PO-GROWTH-DETAIL-009). */
+  onReschedule?: () => void;
   /** When set, the card renders a "查看更多" affordance. The page wires this
    *  to scroll the full milestone list (the history table) into view; it is
    *  omitted when the preview already shows every milestone. */
@@ -106,22 +116,7 @@ function TimelineNode({
 }
 
 export function GrowthMilestonesCard(props: GrowthMilestonesCardProps) {
-  const { milestones, headline, nextCheck, childId, metricId, onViewMore } = props;
-  const navigate = useNavigate();
-
-  const handleSetReminder = useCallback(() => {
-    if (nextCheck.state !== 'scheduled') return;
-    if (nextCheck.reminderActionability === 'has_writeback') {
-      // HALT branch — no user-driven reminder writeback surface is admitted
-      // today, so this is a no-op early return. It MUST NOT synthesize a
-      // reminder_states row, call a speculative writeback API, or fake
-      // reminder completion. A future wave that admits the writeback surface
-      // updates this branch.
-      return;
-    }
-    navigate(`/timeline?focus=growth&metric=${encodeURIComponent(metricId)}`);
-    void childId; // participates in the type signature for a future writeback payload
-  }, [childId, metricId, navigate, nextCheck]);
+  const { milestones, headline, nextCheck, onReschedule, onViewMore } = props;
 
   // Milestones oldest → newest, so the timeline reads top-down chronologically.
   const sortedMilestones = [...milestones].sort((a, b) => a.occurredAt.localeCompare(b.occurredAt));
@@ -141,7 +136,7 @@ export function GrowthMilestonesCard(props: GrowthMilestonesCardProps) {
       data-testid="growth-milestones-card"
     >
       <div className="mb-4 flex items-center justify-between gap-2">
-        <h3 className="text-[15px] font-semibold text-[var(--nimi-text-primary)]">生长里程碑</h3>
+        <h3 className="text-[15px] font-semibold text-[var(--nimi-text-primary)]">生长重要节点</h3>
         {onViewMore ? (
           <button
             type="button"
@@ -172,7 +167,7 @@ export function GrowthMilestonesCard(props: GrowthMilestonesCardProps) {
             <TimelineNode
               key={milestone.milestoneId}
               testId={`growth-milestone-row-${milestone.milestoneId}`}
-              dotClassName={`border-2 bg-[var(--nimi-surface-card)] ${MILESTONE_DOT_TONE[milestone.kind]}`}
+              dotClassName={`border-2 bg-[var(--nimi-surface-card)] ${MILESTONE_DOT_TONE[milestone.polarity]}`}
             >
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
@@ -189,7 +184,7 @@ export function GrowthMilestonesCard(props: GrowthMilestonesCardProps) {
                   ) : null}
                 </div>
                 <span
-                  className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold ${MILESTONE_BADGE_TONE[milestone.kind]}`}
+                  className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold ${MILESTONE_BADGE_TONE[milestone.polarity]}`}
                 >
                   {milestoneBadgeText(milestone)}
                 </span>
@@ -198,7 +193,7 @@ export function GrowthMilestonesCard(props: GrowthMilestonesCardProps) {
           ))}
 
           {headline.state !== 'no_data' ? (
-            <TimelineNode dotClassName="bg-[var(--nimi-text-primary)]">
+            <TimelineNode dotClassName="bg-[var(--nimi-action-primary-bg)]">
               <p className="text-[11px] text-[var(--nimi-text-muted)]">
                 {headline.measuredAt.split('T')[0]}
               </p>
@@ -246,7 +241,8 @@ export function GrowthMilestonesCard(props: GrowthMilestonesCardProps) {
                 </p>
               </div>
               <Button
-                onClick={handleSetReminder}
+                onClick={onReschedule}
+                disabled={!onReschedule || scheduled.recheckRuleId == null}
                 tone="primary"
                 size="sm"
                 className="shrink-0 whitespace-nowrap rounded-full"

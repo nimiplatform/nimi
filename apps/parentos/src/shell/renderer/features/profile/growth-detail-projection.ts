@@ -28,6 +28,7 @@ import {
   formatRecencyLabel,
   formatYearOverYearDelta,
   LEDE_TEMPLATES,
+  resolveGrowthRecheckRuleId,
   type LedeTemplateId,
   type LedeTemplateInputs,
 } from './growth-curve-page-shared.js';
@@ -94,7 +95,9 @@ export interface GrowthNextCheckScheduled {
   daysFromNow: number;
   badgeLabel: string;
   ledeTemplate: 'next_check_due_soon' | 'next_check_overdue' | 'next_check_upcoming';
-  reminderActionability: 'has_writeback' | 'deep_link_only';
+  /** Age-active growth record_data rule the 更改 CTA reschedules (PO-GROWTH-DETAIL-006);
+   *  null when no growth record_data rule covers the child's age, disabling the CTA. */
+  recheckRuleId: string | null;
 }
 
 export type GrowthNextCheck = GrowthNextCheckScheduled | { state: 'unscheduled' };
@@ -446,6 +449,7 @@ function badgeLabelFromDaysFromNow(daysFromNow: number): string {
 function nextCheckFromSnapshotMetric(
   metricSnapshot: HealthMetricSnapshot | null,
   nowIso: string,
+  ageMonths: number,
 ): GrowthNextCheck {
   if (!metricSnapshot || !metricSnapshot.nextRecordAt) {
     return { state: 'unscheduled' };
@@ -462,9 +466,9 @@ function nextCheckFromSnapshotMetric(
     daysFromNow,
     badgeLabel: badgeLabelFromDaysFromNow(daysFromNow),
     ledeTemplate,
-    // Per design.md §11 wave-C entry — wave-A defaults conservatively to
-    // deep_link_only. Wave-C resolves the actual writeback availability.
-    reminderActionability: 'deep_link_only',
+    // Age-active growth record_data rule the 更改 reschedule modal targets
+    // (PO-GROWTH-DETAIL-006). Null disables the CTA per PO-GROWTH-DETAIL-009.
+    recheckRuleId: resolveGrowthRecheckRuleId(ageMonths),
   };
 }
 
@@ -703,7 +707,7 @@ export function buildGrowthDetailSnapshot(
   const milestones = evaluateAllMilestones(milestonesInput, enrichedInput.nowIso, true);
 
   // ---- nextCheck via HealthRecordSnapshot --------------------------------
-  const nextCheck = nextCheckFromSnapshotMetric(metricSnapshot, enrichedInput.nowIso);
+  const nextCheck = nextCheckFromSnapshotMetric(metricSnapshot, enrichedInput.nowIso, ageMonths);
 
   // ---- Trend stats -------------------------------------------------------
   const trendStats = buildTrendStats(

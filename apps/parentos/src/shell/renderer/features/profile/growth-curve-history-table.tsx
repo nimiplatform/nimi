@@ -1,6 +1,8 @@
 import { ConfirmDialog, IconButton, Surface, TextField } from '@nimiplatform/nimi-kit/ui';
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { saveTextFileViaDialog } from '../reports/report-export.js';
+import { catchLog } from '../../infra/telemetry/catch-log.js';
 import type { MeasurementRow } from '../../bridge/sqlite-bridge.js';
 import type { WHOLMSDataset } from './who-lms-loader.js';
 import type { GrowthMilestone } from './growth-milestone-rules.js';
@@ -59,8 +61,9 @@ function ageLabel(ageMonths: number): string {
   return months > 0 ? `${years}岁${months}月` : `${years}岁`;
 }
 
-// Percentile pill tone — clinical band: P10–P90 reads as the common range,
-// the near-extreme bands warn softly, the outer extremes warn strongly.
+// Percentile pill tone — clinical band: P10–P90 reads as the common range in
+// life-energy green, the near-extreme bands carry the blue-violet analysis
+// accent, the outer extremes warn in orange.
 function percentilePillClass(percentile: number | null): string {
   if (percentile == null) {
     return 'bg-[var(--nimi-surface-panel)] text-[var(--nimi-text-muted)]';
@@ -69,16 +72,20 @@ function percentilePillClass(percentile: number | null): string {
     return 'bg-[color-mix(in_srgb,var(--nimi-status-warning)_18%,var(--nimi-surface-card))] text-[var(--nimi-status-warning)]';
   }
   if (percentile < 10 || percentile > 90) {
-    return 'bg-[color-mix(in_srgb,var(--nimi-status-info)_18%,var(--nimi-surface-card))] text-[var(--nimi-status-info)]';
+    return 'bg-[color-mix(in_srgb,var(--nimi-color-indigo)_18%,var(--nimi-surface-card))] text-[var(--nimi-color-indigo)]';
   }
   return 'bg-[color-mix(in_srgb,var(--nimi-status-success)_18%,var(--nimi-surface-card))] text-[var(--nimi-status-success)]';
 }
 
-// Milestone pill tone — threshold crossings read as success, matching the
-// hero milestones timeline.
-const MILESTONE_CELL_TONE: Record<GrowthMilestone['kind'], string> = {
-  threshold_crossed:
+// Key-node pill tone — keyed by polarity, not kind: a rapid_change rule can
+// be a positive rise or a negative drop, and only the drop should flag in
+// caution orange. Positive nodes read as success green, matching the hero
+// timeline.
+const MILESTONE_CELL_TONE: Record<GrowthMilestone['polarity'], string> = {
+  positive:
     'bg-[color-mix(in_srgb,var(--nimi-status-success)_14%,var(--nimi-surface-card))] text-[var(--nimi-status-success)]',
+  negative:
+    'bg-[color-mix(in_srgb,var(--nimi-status-warning)_16%,var(--nimi-surface-card))] text-[var(--nimi-status-warning)]',
 };
 
 function escapeCsvCell(cell: string | number | null | undefined): string {
@@ -90,21 +97,11 @@ function escapeCsvCell(cell: string | number | null | undefined): string {
   return text;
 }
 
-function buildCsvBlob(rows: ReadonlyArray<ReadonlyArray<string | number | null>>): Blob {
+function buildCsvText(rows: ReadonlyArray<ReadonlyArray<string | number | null>>): string {
   const body = rows.map((row) => row.map(escapeCsvCell).join(',')).join('\n');
-  return new Blob([body], { type: 'text/csv;charset=utf-8' });
-}
-
-function triggerDownload(blob: Blob, filename: string): void {
-  if (typeof window === 'undefined' || typeof URL === 'undefined') return;
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = filename;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  setTimeout(() => URL.revokeObjectURL(url), 0);
+  // Prepend a UTF-8 BOM so spreadsheet apps render the Chinese source labels
+  // ("手动" / "导入" etc.) correctly instead of mojibake.
+  return `${String.fromCharCode(0xfeff)}${body}`;
 }
 
 const ICON_STROKE = {
@@ -186,7 +183,7 @@ export function GrowthCurveHistoryTable({
     return null;
   }
 
-  const handleExportCsv = () => {
+  const handleExportCsv = async () => {
     const header: ReadonlyArray<string> = [
       'effective_date',
       'age_label',
@@ -208,10 +205,16 @@ export function GrowthCurveHistoryTable({
         percentile != null ? `P${Math.round(percentile)}` : '',
       ];
     });
-    const blob = buildCsvBlob([header, ...body]);
     const metricSlug = typeInfo?.typeId ?? 'metric';
     const dateSlug = new Date().toISOString().slice(0, 10);
-    triggerDownload(blob, `growth_history_${metricSlug}_${dateSlug}.csv`);
+    // `<a download>` is inert inside the Tauri WebView — round-trip the CSV
+    // through the native save-dialog pipeline instead.
+    await saveTextFileViaDialog({
+      text: buildCsvText([header, ...body]),
+      defaultFilename: `growth_history_${metricSlug}_${dateSlug}.csv`,
+      kind: 'csv',
+      title: '导出历史记录',
+    });
   };
 
   const rangeStart = filteredRows.length === 0 ? 0 : pageStart + 1;
@@ -246,7 +249,7 @@ export function GrowthCurveHistoryTable({
             </select>
             <button
               type="button"
-              onClick={handleExportCsv}
+              onClick={() => void handleExportCsv().catch(catchLog('growth-history', 'action:export-csv-failed'))}
               disabled={filteredRows.length === 0}
               className="inline-flex h-8 items-center gap-1.5 rounded-full border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] px-3 text-[12px] font-medium text-[var(--nimi-text-secondary)] hover:text-[var(--nimi-text-primary)] disabled:opacity-50"
               aria-label="export csv"
@@ -270,7 +273,7 @@ export function GrowthCurveHistoryTable({
                 <th className="pb-3 font-medium">{t('Profile.rich.common.age')}</th>
                 <th className="pb-3 font-medium">{valueColumnLabel}</th>
                 <th className="pb-3 font-medium">{t('Profile.rich.growth.percentile')}</th>
-                <th className="pb-3 font-medium">生长里程碑</th>
+                <th className="pb-3 font-medium">生长重要节点</th>
                 <th className="pb-3 w-24 text-right font-medium">{t('Profile.rich.common.actions')}</th>
               </tr>
             </thead>
@@ -335,7 +338,7 @@ export function GrowthCurveHistoryTable({
                     <td className="py-4">
                       {milestone ? (
                         <span
-                          className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[12px] font-medium ${MILESTONE_CELL_TONE[milestone.kind]}`}
+                          className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[12px] font-medium ${MILESTONE_CELL_TONE[milestone.polarity]}`}
                         >
                           <span aria-hidden="true" className="h-1.5 w-1.5 shrink-0 rounded-full bg-current" />
                           {milestone.title}

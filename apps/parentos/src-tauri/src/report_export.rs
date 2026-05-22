@@ -15,6 +15,7 @@ fn filter_for_kind(kind: &str) -> (&'static str, &'static [&'static str]) {
     match kind {
         "pdf" => ("PDF Document", &["pdf"]),
         "png" => ("PNG Image", &["png"]),
+        "csv" => ("CSV File", &["csv"]),
         _ => ("File", &["*"]),
     }
 }
