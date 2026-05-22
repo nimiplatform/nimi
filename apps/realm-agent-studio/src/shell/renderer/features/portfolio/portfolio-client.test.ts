@@ -12,6 +12,7 @@ import {
   createAgentVisibilityDraft,
   createReviewedPostTextResource,
   createReviewedRealmAgent,
+  generateReviewedVisualImageCandidate,
   getAgentVisibilitySettings,
   getCreateRealmAgentWorldPreview,
   getOwnerAgentSettings,
@@ -33,6 +34,7 @@ import {
   synthesizeReviewedVoiceDemo,
   updateReviewedOwnerAgentSettings,
   updateReviewedAgentVisibility,
+  uploadReviewedIdentityMediaResource,
   uploadReviewedPostMediaResource,
   type AgentVisibilityDraft,
   type RealmAgentVisibilitySettings,
@@ -1120,7 +1122,7 @@ describe('owner portfolio client', () => {
     expect(finalizeResource).toHaveBeenCalledWith('resource-image-upload', {
       agentId: 'agent-1',
       deliveryAccess: 'SIGNED',
-      label: 'Reviewed image upload for @mira',
+      label: 'Reviewed post image upload for @mira',
       mimeType: 'image/png',
       sizeBytes: 2048,
       sourceRef: 'realm-agent-studio.reviewed-post-media-resource',
@@ -1138,6 +1140,44 @@ describe('owner portfolio client', () => {
     expect(collectKeys(finalizePayload).has('id')).toBe(false);
     expect(collectKeys(finalizePayload).has('provider')).toBe(false);
     expect(collectKeys(finalizePayload).has('model')).toBe(false);
+    expect(result).toMatchObject({
+      ok: true,
+      source: 'Realm ResourcesService direct upload + finalizeResource',
+      attachmentTruth: true,
+      publicTruth: false,
+      canonical: {
+        id: 'resource-image-upload',
+        resourceType: 'IMAGE',
+        status: 'READY',
+      },
+    });
+  });
+
+  it('uploads reviewed identity image Resource without claiming profile binding truth', async () => {
+    const realm = mockRealm();
+    const storageUpload = vi.fn(async () => undefined);
+    const result = await uploadReviewedIdentityMediaResource({
+      resourceType: 'IMAGE',
+      file: { name: 'identity.png', type: 'image/png', size: 3072 },
+      agent: ownerAgentDetailWithWorldId(),
+      tags: ['realm-agent-studio', 'identity-candidate'],
+    }, realm, storageUpload);
+    const finalizeResource = realm.services.ResourcesService.finalizeResource;
+    const finalizePayload = vi.mocked(finalizeResource).mock.calls[0]?.[1];
+
+    expect(finalizeResource).toHaveBeenCalledWith('resource-image-upload', expect.objectContaining({
+      agentId: 'agent-1',
+      label: 'Reviewed identity image upload for @mira',
+      sourceRef: 'realm-agent-studio.reviewed-identity-media-resource',
+      metadata: expect.objectContaining({
+        source: 'realm-agent-studio.reviewed-identity-media-resource',
+        attachmentPurpose: 'identity',
+        humanReviewed: true,
+      }),
+      tags: ['realm-agent-studio', 'identity-candidate'],
+    }));
+    expect(collectKeys(finalizePayload).has('WorldControlService')).toBe(false);
+    expect(collectKeys(finalizePayload).has('bindingSuccess')).toBe(false);
     expect(result).toMatchObject({
       ok: true,
       source: 'Realm ResourcesService direct upload + finalizeResource',
@@ -1518,6 +1558,99 @@ describe('owner portfolio client', () => {
     expect(input).toEqual(candidatePayload.realmCreatePost);
     expect(collectKeys(input).has('agentRef')).toBe(false);
     expect(collectKeys(input).has('review')).toBe(false);
+  });
+
+  it('calls Runtime media.image.generate for visual candidates only', async () => {
+    const runtime = {
+      media: {
+        image: {
+          generate: vi.fn(async (_input: unknown) => ({
+            job: {
+              jobId: 'job-image-1',
+              modelResolved: 'runtime-image-model',
+              traceId: 'trace-image-job',
+            },
+            artifacts: [{
+              artifactId: 'artifact-image-1',
+              mimeType: 'image/png',
+              uri: 'runtime://artifact-image-1',
+            }],
+            trace: {
+              traceId: 'trace-image-output',
+            },
+          })),
+        },
+      },
+    };
+
+    const result = await generateReviewedVisualImageCandidate({
+      resourceType: 'IMAGE',
+      bindingPoint: 'AGENT_CANDIDATE',
+      prompt: 'Warm profile portrait.',
+      notes: 'Use public bio only.',
+      model: 'runtime-image-model',
+      aspectRatio: '1:1',
+    }, ownerAgentDetail(), runtime as unknown as Parameters<typeof generateReviewedVisualImageCandidate>[2]);
+
+    const submittedPayload = vi.mocked(runtime.media.image.generate).mock.calls[0]?.[0];
+    expect(runtime.media.image.generate).toHaveBeenCalledTimes(1);
+    expect(submittedPayload).toMatchObject({
+      model: 'runtime-image-model',
+      n: 1,
+      aspectRatio: '1:1',
+      responseFormat: 'url',
+      metadata: {
+        source: 'realm-agent-studio.reviewed-visual-image-candidate',
+        agentKey: 'agent-1',
+        bindingPoint: 'AGENT_CANDIDATE',
+      },
+    });
+    expect(collectKeys(submittedPayload).has('provider')).toBe(false);
+    expect(collectKeys(submittedPayload).has('localAgent')).toBe(false);
+    expect(collectKeys(submittedPayload).has('worldId')).toBe(false);
+    expect(result).toMatchObject({
+      ok: true,
+      source: 'Runtime media.image.generate',
+      candidate: true,
+      publicTruth: false,
+      runtime: {
+        jobId: 'job-image-1',
+        artifactIds: ['artifact-image-1'],
+        artifactUris: ['runtime://artifact-image-1'],
+        traceId: 'trace-image-output',
+        modelResolved: 'runtime-image-model',
+      },
+    });
+  });
+
+  it('fails closed when Runtime media.image.generate output has no real job or artifact', async () => {
+    const runtime = {
+      media: {
+        image: {
+          generate: vi.fn(async () => ({
+            job: {},
+            artifacts: [],
+            trace: {},
+          })),
+        },
+      },
+    };
+
+    const result = await generateReviewedVisualImageCandidate({
+      resourceType: 'IMAGE',
+      bindingPoint: 'AGENT_CANDIDATE',
+      prompt: 'Warm profile portrait.',
+      notes: '',
+      model: 'runtime-image-model',
+      aspectRatio: '1:1',
+    }, ownerAgentDetail(), runtime as unknown as Parameters<typeof generateReviewedVisualImageCandidate>[2]);
+
+    expect(result).toMatchObject({
+      ok: false,
+      source: 'Runtime media.image.generate',
+      failure: 'runtime-output-missing',
+      message: 'Runtime media.image.generate output missing real job id, artifact id, or artifact URI.',
+    });
   });
 
   it('calls Runtime media.tts.synthesize with the allowlisted reviewed voice body', async () => {

@@ -1,4 +1,4 @@
-import type { SpeechSynthesizeInput } from '@nimiplatform/sdk/runtime/browser';
+import type { ImageGenerateInput, SpeechSynthesizeInput } from '@nimiplatform/sdk/runtime/browser';
 import type { OwnerPortfolioAgentDetail } from './portfolio-data.js';
 
 export const MEDIA_CANDIDATE_RESOURCE_TYPES = ['IMAGE', 'VIDEO', 'AUDIO'] as const;
@@ -11,7 +11,9 @@ export const MEDIA_CANDIDATE_BINDING_POINTS = [
 
 export const VISUAL_MEDIA_BLOCKED_REASON = 'visual media candidate blocked: image generation and owner-scoped Resource-to-Agent binding ingress are not admitted; READY Resources may be used for post attachments only';
 export const VOICE_DEMO_BLOCKED_REASON = 'voice demo candidate blocked: Runtime synthesis and Resource upload/finalize are not called in this local preview slice';
+export const VISUAL_IMAGE_CANDIDATE_NOTICE = 'visual image candidate uses Runtime media.image.generate only; public profile Resource-to-Agent binding requires a dedicated owner-scoped Realm ingress';
 export const VOICE_DEMO_CANDIDATE_NOTICE = 'voice demo candidate uses Runtime media.tts.synthesize only; public voice/sample binding requires a dedicated owner-scoped Realm ingress';
+export const VISUAL_IMAGE_GENERATION_SOURCE = 'Runtime media.image.generate';
 export const VOICE_DEMO_SYNTHESIS_SOURCE = 'Runtime media.tts.synthesize';
 
 export type MediaCandidateResourceType = typeof MEDIA_CANDIDATE_RESOURCE_TYPES[number];
@@ -24,6 +26,11 @@ export type VisualMediaCandidateInput = {
   bindingPoint: string;
   prompt: string;
   notes: string;
+};
+
+export type VisualImageGenerationInput = VisualMediaCandidateInput & {
+  model: string;
+  aspectRatio: string;
 };
 
 export type VoiceDemoCandidateInput = {
@@ -146,6 +153,34 @@ export type ReviewedVoiceDemoCandidatePayload = {
   };
 };
 
+export type ReviewedVisualImageCandidatePayload = {
+  candidate: true;
+  publicTruth: false;
+  source: 'realm-agent-studio.reviewed-visual-image-candidate';
+  agentContext: CandidateAgentContext;
+  runtime: {
+    capabilityToken: 'image.generate';
+    currentSdkPath: 'media.image.generate';
+    source: typeof VISUAL_IMAGE_GENERATION_SOURCE;
+    request: ImageGenerateInput;
+    status: 'candidate-ready';
+  };
+  futureEvidencePath: {
+    resource: {
+      carrier: 'Resource';
+      type: VisualCandidateResourceType;
+      status: 'candidate-only';
+    };
+    binding: {
+      family: 'Binding';
+      hostType: 'AGENT';
+      objectType: 'RESOURCE';
+      bindingPoint: Exclude<MediaCandidateBindingPoint, 'AGENT_VOICE_SAMPLE'>;
+      status: 'candidate-only';
+    };
+  };
+};
+
 export type MediaCandidateBuildResult<TPayload> =
   | {
     blocked: true;
@@ -159,6 +194,8 @@ export type MediaCandidateBuildResult<TPayload> =
     errors: string[];
     payload: null;
   };
+
+export type VisualImageCandidateBuildResult<TPayload> = VoiceDemoCandidateBuildResult<TPayload>;
 
 export type VoiceDemoCandidateBuildResult<TPayload> =
   | {
@@ -262,6 +299,95 @@ export function normalizeVoiceDemoCandidateInput(input: VoiceDemoCandidateInput)
     bindingPoint: 'AGENT_VOICE_SAMPLE',
     scriptText: normalizeLineText(input.scriptText),
     model: normalizeSingleLine(input.model),
+  };
+}
+
+export function buildReviewedVisualImageGenerationPayload(
+  input: VisualImageGenerationInput,
+  agent: OwnerPortfolioAgentDetail,
+): VisualImageCandidateBuildResult<ImageGenerateInput> {
+  const normalized = normalizeVisualMediaCandidateInput(input);
+  const model = normalizeSingleLine(input.model);
+  const aspectRatio = normalizeSingleLine(input.aspectRatio) || '1:1';
+  const errors: string[] = [];
+
+  if (!normalized.prompt) {
+    errors.push('visual prompt missing for Runtime media.image.generate');
+  }
+  if (!model) {
+    errors.push('Runtime media.image.generate model config missing');
+  }
+
+  if (errors.length > 0) {
+    return { changed: false, errors, payload: null };
+  }
+
+  const promptParts = [
+    normalized.prompt,
+    normalized.notes ? `Owner notes: ${normalized.notes}` : '',
+    agent.displayName.value ? `Realm Agent display name: ${agent.displayName.value}` : '',
+    agent.bio.value ? `Public bio context: ${agent.bio.value}` : '',
+  ].filter(Boolean);
+
+  return {
+    changed: true,
+    errors: [],
+    payload: {
+      model,
+      prompt: promptParts.join('\n'),
+      n: 1,
+      aspectRatio,
+      responseFormat: 'url',
+      metadata: {
+        source: 'realm-agent-studio.reviewed-visual-image-candidate',
+        agentKey: agent.id,
+        bindingPoint: normalized.bindingPoint,
+      },
+    },
+  };
+}
+
+export function buildReviewedVisualImageCandidatePayload(
+  input: VisualImageGenerationInput,
+  agent: OwnerPortfolioAgentDetail,
+): VisualImageCandidateBuildResult<ReviewedVisualImageCandidatePayload> {
+  const imagePayload = buildReviewedVisualImageGenerationPayload(input, agent);
+  const normalized = normalizeVisualMediaCandidateInput(input);
+
+  if (!imagePayload.payload) {
+    return imagePayload;
+  }
+
+  return {
+    changed: true,
+    errors: [],
+    payload: {
+      candidate: true,
+      publicTruth: false,
+      source: 'realm-agent-studio.reviewed-visual-image-candidate',
+      agentContext: createAgentContext(agent),
+      runtime: {
+        capabilityToken: 'image.generate',
+        currentSdkPath: 'media.image.generate',
+        source: VISUAL_IMAGE_GENERATION_SOURCE,
+        request: imagePayload.payload,
+        status: 'candidate-ready',
+      },
+      futureEvidencePath: {
+        resource: {
+          carrier: 'Resource',
+          type: normalized.resourceType,
+          status: 'candidate-only',
+        },
+        binding: {
+          family: 'Binding',
+          hostType: 'AGENT',
+          objectType: 'RESOURCE',
+          bindingPoint: normalized.bindingPoint,
+          status: 'candidate-only',
+        },
+      },
+    },
   };
 }
 

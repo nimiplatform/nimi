@@ -158,6 +158,80 @@ vi.mock('./portfolio-client.js', async (importOriginal) => {
         deliveryAccess: 'SIGNED',
       },
     })),
+    uploadReviewedIdentityMediaResource: vi.fn(async () => ({
+      ok: true,
+      source: 'Realm ResourcesService direct upload + finalizeResource',
+      attachmentTruth: true,
+      publicTruth: false,
+      session: {
+        resourceId: 'resource-identity-ui',
+        resourceType: 'IMAGE',
+        status: 'PENDING',
+      },
+      resource: {
+        id: 'resource-identity-ui',
+        resourceType: 'IMAGE',
+        status: 'READY',
+        deliveryAccess: 'SIGNED',
+      },
+      canonical: {
+        id: 'resource-identity-ui',
+        resourceType: 'IMAGE',
+        status: 'READY',
+        deliveryAccess: 'SIGNED',
+      },
+    })),
+    generateReviewedVisualImageCandidate: vi.fn(async () => ({
+      ok: true,
+      source: 'Runtime media.image.generate',
+      candidate: true,
+      publicTruth: false,
+      draft: {
+        candidate: true,
+        publicTruth: false,
+        source: 'realm-agent-studio.reviewed-visual-image-candidate',
+        agentContext: {
+          source: 'Realm MeService.getMyRealmAgent',
+          agentKey: 'agent-1',
+          handle: 'mira',
+          displayName: 'Mira',
+        },
+        runtime: {
+          capabilityToken: 'image.generate',
+          currentSdkPath: 'media.image.generate',
+          source: 'Runtime media.image.generate',
+          request: {
+            model: 'configured-image-model',
+            prompt: 'portrait',
+            metadata: {
+              source: 'realm-agent-studio.reviewed-visual-image-candidate',
+              agentKey: 'agent-1',
+            },
+          },
+          status: 'candidate-ready',
+        },
+        futureEvidencePath: {
+          resource: {
+            carrier: 'Resource',
+            type: 'IMAGE',
+            status: 'candidate-only',
+          },
+          binding: {
+            family: 'Binding',
+            hostType: 'AGENT',
+            objectType: 'RESOURCE',
+            bindingPoint: 'AGENT_CANDIDATE',
+            status: 'candidate-only',
+          },
+        },
+      },
+      runtime: {
+        jobId: 'job-image-ui',
+        artifactIds: ['artifact-image-ui'],
+        artifactUris: ['runtime://artifact-image-ui'],
+        traceId: 'trace-image-ui',
+      },
+    })),
     projectAgentRuntimeContextSummary: vi.fn(async () => ({
       ok: true,
       source: 'Realm RuntimeProjectionsService.projectRuntimePayload',
@@ -486,6 +560,7 @@ afterEach(() => {
   root = null;
   container = null;
   vi.clearAllMocks();
+  window.localStorage.clear();
 });
 
 describe('OwnerPortfolio visibility settings UI', () => {
@@ -648,6 +723,70 @@ describe('OwnerPortfolio visibility settings UI', () => {
     expect(document.body.textContent).toContain('will not publish them as profile assets yet');
     expect(document.body.textContent).not.toContain('Load binding Resources');
     expect(document.body.textContent).not.toContain('Check Binding candidate');
+  });
+
+  it('generates a Runtime image candidate into local creative history without public truth', async () => {
+    await renderOwnerPortfolio();
+    await openWorkspace('Assets', 'Runtime image candidate');
+
+    await changeField(
+      findFieldByPlaceholder<HTMLTextAreaElement>('Describe the avatar, portrait, or candidate visual'),
+      'Warm portrait with blue accent.',
+    );
+    await changeField(
+      findFieldByPlaceholder<HTMLInputElement>('Configured Runtime image model'),
+      'configured-image-model',
+    );
+
+    const generateButton = await waitForButtonEnabled('Generate image candidate');
+    await act(async () => {
+      generateButton.click();
+    });
+
+    await waitForText('Image candidate generated for local review.');
+    expect(portfolioClient.generateReviewedVisualImageCandidate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        prompt: 'Warm portrait with blue accent.',
+        model: 'configured-image-model',
+      }),
+      expect.objectContaining({
+        id: 'agent-1',
+      }),
+    );
+    expect(document.body.textContent).toContain('Runtime image candidate');
+    expect(document.body.textContent).toContain('runtime://artifact-image-ui');
+    expect(document.body.textContent).toContain('Candidate history is stored on this desktop device');
+    expect(document.body.textContent).toContain('Public profile binding remains separate');
+  });
+
+  it('uploads an identity Resource for local review without publishing a profile binding', async () => {
+    await renderOwnerPortfolio();
+    await openWorkspace('Assets', 'Upload identity Resource');
+
+    const file = new File(['image-bytes'], 'identity.png', { type: 'image/png' });
+    const fileInput = findFileInput();
+    await act(async () => {
+      Object.defineProperty(fileInput, 'files', {
+        configurable: true,
+        value: [file],
+      });
+      fileInput.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+    await checkAllHumanReviewBoxes();
+
+    const uploadButton = await waitForButtonEnabled('Upload identity Resource');
+    await act(async () => {
+      uploadButton.click();
+    });
+
+    await waitForText('Identity Resource uploaded for local review as resource-identity-ui.');
+    expect(portfolioClient.uploadReviewedIdentityMediaResource).toHaveBeenCalledWith(expect.objectContaining({
+      resourceType: 'IMAGE',
+      file,
+      tags: ['realm-agent-studio', 'identity-candidate'],
+    }));
+    expect(document.body.textContent).toContain('Public profile binding remains deferred');
+    expect(document.body.textContent).toContain('Identity Resource upload');
   });
 
   it('creates a reviewed text Resource and fills the post attachment envelope', async () => {

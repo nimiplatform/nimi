@@ -13,6 +13,7 @@ import {
   type SettingField,
 } from './portfolio-data.js';
 import {
+  generateReviewedVisualImageCandidate,
   getOwnerPortfolioAgentDetail,
   getAgentVisibilitySettings,
   getOwnerAgentSettings,
@@ -26,6 +27,7 @@ import {
   synthesizeReviewedVoiceDemo,
   updateReviewedOwnerAgentSettings,
   updateReviewedAgentVisibility,
+  uploadReviewedIdentityMediaResource,
   uploadReviewedPostMediaResource,
   AGENT_VISIBILITY_FIELDS,
   AGENT_VISIBILITY_VALUES,
@@ -38,6 +40,7 @@ import {
   type RealmOwnerAgentSettingsUpdateResult,
   type RealmPostPublishResult,
   type RealmTextResourceCreateResult,
+  type RuntimeVisualImageGenerationResult,
   type RuntimeVoiceDemoSynthesisResult,
   type RuntimeProjectionSummaryResult,
   type RuntimeOwnerSettingsProposalResult,
@@ -65,8 +68,10 @@ import {
 import {
   MEDIA_CANDIDATE_BINDING_POINTS,
   MEDIA_CANDIDATE_RESOURCE_TYPES,
+  VISUAL_IMAGE_CANDIDATE_NOTICE,
   VOICE_DEMO_CANDIDATE_NOTICE,
   VISUAL_MEDIA_BLOCKED_REASON,
+  buildReviewedVisualImageCandidatePayload,
   buildReviewedVoiceDemoCandidatePayload,
   buildBlockedVisualAssetCandidatePayload,
   type MediaCandidateBindingPoint,
@@ -74,6 +79,11 @@ import {
   type VisualCandidateResourceType,
   type VoiceDemoCandidateInput,
 } from './media-voice-candidate.js';
+import {
+  appendLocalCreativeAssetHistory,
+  loadLocalCreativeAssetHistory,
+  type CreativeAssetHistoryRecord,
+} from './creative-asset-history.js';
 import { CreateRealmAgentWorkspace, type CreatedRealmAgentContext } from './CreateRealmAgentWorkspace.js';
 
 const PORTFOLIO_FILTER_OPTIONS: { value: OwnerPortfolioFilter; label: string }[] = [
@@ -812,6 +822,14 @@ function createVisualMediaCandidateInput(): VisualMediaCandidateInput {
   };
 }
 
+function createVisualImageGenerationDraft(): VisualMediaCandidateInput & { model: string; aspectRatio: string } {
+  return {
+    ...createVisualMediaCandidateInput(),
+    model: import.meta.env.VITE_RUNTIME_IMAGE_MODEL || '',
+    aspectRatio: '1:1',
+  };
+}
+
 function createVoiceDemoCandidateInput(agent: OwnerPortfolioAgentDetail): VoiceDemoCandidateInput {
   return {
     scriptText: agent.greeting.value || '',
@@ -821,6 +839,14 @@ function createVoiceDemoCandidateInput(agent: OwnerPortfolioAgentDetail): VoiceD
 
 function MediaVoiceCandidateWorkspace({ agent, onAgentWrite }: { agent: OwnerPortfolioAgentDetail; onAgentWrite: () => Promise<void> }) {
   const [visualDraft, setVisualDraft] = useState<VisualMediaCandidateInput>(() => createVisualMediaCandidateInput());
+  const [visualImageDraft, setVisualImageDraft] = useState(() => createVisualImageGenerationDraft());
+  const [visualImageResult, setVisualImageResult] = useState<RuntimeVisualImageGenerationResult | null>(null);
+  const [isGeneratingVisualImage, setIsGeneratingVisualImage] = useState(false);
+  const [identityUploadReviewed, setIdentityUploadReviewed] = useState(false);
+  const [identityUploadFile, setIdentityUploadFile] = useState<File | null>(null);
+  const [identityUploadResult, setIdentityUploadResult] = useState<DirectMediaResourceUploadResult | null>(null);
+  const [isUploadingIdentityResource, setIsUploadingIdentityResource] = useState(false);
+  const [creativeHistory, setCreativeHistory] = useState<CreativeAssetHistoryRecord[]>([]);
   const [avatarUrlDraft, setAvatarUrlDraft] = useState(() => agent.avatarUrl || '');
   const [avatarReviewed, setAvatarReviewed] = useState(false);
   const [avatarResult, setAvatarResult] = useState<RealmAgentAvatarSelectResult | null>(null);
@@ -829,6 +855,7 @@ function MediaVoiceCandidateWorkspace({ agent, onAgentWrite }: { agent: OwnerPor
   const [voiceResult, setVoiceResult] = useState<RuntimeVoiceDemoSynthesisResult | null>(null);
   const [isSynthesizingVoice, setIsSynthesizingVoice] = useState(false);
   const visualPayload = useMemo(() => buildBlockedVisualAssetCandidatePayload(visualDraft, agent), [agent, visualDraft]);
+  const visualImagePayload = useMemo(() => buildReviewedVisualImageCandidatePayload(visualImageDraft, agent), [agent, visualImageDraft]);
   const voicePayload = useMemo(() => buildReviewedVoiceDemoCandidatePayload(voiceDraft, agent), [agent, voiceDraft]);
   const avatarUrlChanged = avatarUrlDraft.trim() !== (agent.avatarUrl || '');
   const visualResourceTypes = MEDIA_CANDIDATE_RESOURCE_TYPES.filter((resourceType): resourceType is VisualCandidateResourceType => resourceType === 'IMAGE');
@@ -836,6 +863,14 @@ function MediaVoiceCandidateWorkspace({ agent, onAgentWrite }: { agent: OwnerPor
 
   useEffect(() => {
     setVisualDraft(createVisualMediaCandidateInput());
+    setVisualImageDraft(createVisualImageGenerationDraft());
+    setVisualImageResult(null);
+    setIsGeneratingVisualImage(false);
+    setIdentityUploadReviewed(false);
+    setIdentityUploadFile(null);
+    setIdentityUploadResult(null);
+    setIsUploadingIdentityResource(false);
+    setCreativeHistory(loadLocalCreativeAssetHistory(agent.id));
     setAvatarUrlDraft(agent.avatarUrl || '');
     setAvatarReviewed(false);
     setAvatarResult(null);
@@ -847,6 +882,13 @@ function MediaVoiceCandidateWorkspace({ agent, onAgentWrite }: { agent: OwnerPor
 
   function updateVisualDraft(patch: Partial<VisualMediaCandidateInput>) {
     setVisualDraft((current) => ({ ...current, ...patch }));
+    setVisualImageDraft((current) => ({ ...current, ...patch }));
+    setVisualImageResult(null);
+  }
+
+  function updateVisualImageDraft(patch: Partial<typeof visualImageDraft>) {
+    setVisualImageDraft((current) => ({ ...current, ...patch }));
+    setVisualImageResult(null);
   }
 
   function updateAvatarUrlDraft(value: string) {
@@ -874,12 +916,81 @@ function MediaVoiceCandidateWorkspace({ agent, onAgentWrite }: { agent: OwnerPor
     }
   }
 
+  async function generateVisualImageCandidate() {
+    setIsGeneratingVisualImage(true);
+    setVisualImageResult(null);
+    try {
+      const result = await generateReviewedVisualImageCandidate(visualImageDraft, agent);
+      setVisualImageResult(result);
+      if (result.ok) {
+        setCreativeHistory(appendLocalCreativeAssetHistory(agent.id, {
+          kind: 'runtime-image-candidate',
+          label: 'Runtime image candidate',
+          source: result.source,
+          detail: result.runtime.artifactUris[0] || result.runtime.artifactIds[0] || result.runtime.jobId || 'image artifact generated',
+          artifactIds: result.runtime.artifactIds,
+          ...(result.runtime.traceId ? { traceId: result.runtime.traceId } : {}),
+        }));
+      }
+    } finally {
+      setIsGeneratingVisualImage(false);
+    }
+  }
+
+  async function uploadIdentityResource() {
+    if (!identityUploadFile) {
+      setIdentityUploadResult({
+        ok: false,
+        source: 'Realm ResourcesService direct upload + finalizeResource',
+        attachmentTruth: false,
+        publicTruth: false,
+        failure: 'media-upload-file-invalid',
+        message: 'Reviewed identity Resource upload requires a selected image file.',
+        submitted: null,
+      });
+      return;
+    }
+
+    setIsUploadingIdentityResource(true);
+    setIdentityUploadResult(null);
+    try {
+      const result = await uploadReviewedIdentityMediaResource({
+        resourceType: 'IMAGE',
+        file: identityUploadFile,
+        agent,
+        tags: ['realm-agent-studio', 'identity-candidate'],
+      });
+      setIdentityUploadResult(result);
+      if (result.ok) {
+        setCreativeHistory(appendLocalCreativeAssetHistory(agent.id, {
+          kind: 'identity-resource-upload',
+          label: 'Identity Resource upload',
+          source: result.source,
+          detail: result.canonical.id,
+          resourceId: result.canonical.id,
+        }));
+      }
+    } finally {
+      setIsUploadingIdentityResource(false);
+    }
+  }
+
   async function synthesizeVoiceDemo() {
     setIsSynthesizingVoice(true);
     setVoiceResult(null);
     try {
       const result = await synthesizeReviewedVoiceDemo(voiceDraft, agent);
       setVoiceResult(result);
+      if (result.ok) {
+        setCreativeHistory(appendLocalCreativeAssetHistory(agent.id, {
+          kind: 'voice-demo-candidate',
+          label: 'Voice demo candidate',
+          source: result.source,
+          detail: result.runtime.artifactIds[0] || result.runtime.jobId || 'voice artifact generated',
+          artifactIds: result.runtime.artifactIds,
+          ...(result.runtime.traceId ? { traceId: result.runtime.traceId } : {}),
+        }));
+      }
     } finally {
       setIsSynthesizingVoice(false);
     }
@@ -981,6 +1092,128 @@ function MediaVoiceCandidateWorkspace({ agent, onAgentWrite }: { agent: OwnerPor
                 onChange={(event) => updateVisualDraft({ notes: event.currentTarget.value })}
               />
             </FieldShell>
+            <Surface tone="card" padding="md">
+              <div className="flex min-w-0 flex-wrap items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="font-medium">Runtime image candidate</div>
+                  <div className="mt-1 text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-muted)]">
+                    Generate one reviewed visual candidate for local history. Public profile binding remains separate.
+                  </div>
+                </div>
+                <StatusBadge tone="info">AI candidate</StatusBadge>
+              </div>
+              <div className="mt-3 grid gap-3 md:grid-cols-[1fr_150px]">
+                <FieldShell label="Image model" message="Configured Runtime image model.">
+                  <TextField
+                    value={visualImageDraft.model}
+                    placeholder="Configured Runtime image model"
+                    onChange={(event) => updateVisualImageDraft({ model: event.currentTarget.value })}
+                  />
+                </FieldShell>
+                <FieldShell label="Aspect ratio">
+                  <SelectField
+                    value={visualImageDraft.aspectRatio}
+                    options={[
+                      { value: '1:1', label: '1:1' },
+                      { value: '4:5', label: '4:5' },
+                      { value: '16:9', label: '16:9' },
+                    ]}
+                    onValueChange={(value) => updateVisualImageDraft({ aspectRatio: value })}
+                  />
+                </FieldShell>
+              </div>
+              <div className="mt-3 flex flex-wrap gap-3">
+                <Button
+                  disabled={!visualImagePayload.changed || isGeneratingVisualImage}
+                  loading={isGeneratingVisualImage}
+                  onClick={() => void generateVisualImageCandidate()}
+                >
+                  Generate image candidate
+                </Button>
+              </div>
+              <InlineAlert tone={visualImagePayload.changed ? 'info' : 'warning'} className="mt-3">
+                {visualImagePayload.changed ? VISUAL_IMAGE_CANDIDATE_NOTICE : visualImagePayload.errors.join('; ')}
+              </InlineAlert>
+              {visualImageResult ? (
+                <InlineAlert tone={visualImageResult.ok ? 'success' : 'danger'} className="mt-3">
+                  {visualImageResult.ok
+                    ? 'Image candidate generated for local review. It has not been published to the profile.'
+                    : visualImageResult.message}
+                </InlineAlert>
+              ) : null}
+              {visualImageResult?.ok ? (
+                <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                  <Surface tone="panel" padding="md">
+                    <div className="text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-muted)]">Generated artifacts</div>
+                    <div className="ras-break-anywhere mt-1 font-medium">
+                      {visualImageResult.runtime.artifactUris.concat(visualImageResult.runtime.artifactIds).join(', ') || 'artifact unavailable'}
+                    </div>
+                  </Surface>
+                  <Surface tone="panel" padding="md">
+                    <div className="text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-muted)]">Public state</div>
+                    <div className="mt-1 font-medium">Candidate only</div>
+                  </Surface>
+                </div>
+              ) : null}
+              <TechnicalReviewDetails title="Image generation request details">
+                <pre className="ras-json-preview m-0 min-h-32 overflow-auto rounded-[var(--nimi-radius-field)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] p-3 text-xs">
+                  {visualImagePayload.payload ? JSON.stringify(visualImagePayload.payload.runtime.request, null, 2) : visualImagePayload.errors.join('; ')}
+                </pre>
+              </TechnicalReviewDetails>
+            </Surface>
+            <Surface tone="card" padding="md">
+              <div className="flex min-w-0 flex-wrap items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="font-medium">Upload identity Resource</div>
+                  <div className="mt-1 text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-muted)]">
+                    Upload an owner-reviewed image as a READY Resource for local identity review. It is not a profile binding.
+                  </div>
+                </div>
+                <StatusBadge tone="info">Resource upload</StatusBadge>
+              </div>
+              <div className="mt-3 grid gap-3 md:grid-cols-[1fr_auto]">
+                <FieldShell label="Identity image" message={identityUploadReviewed ? 'Owner-reviewed image only.' : 'Human review complete is required before upload.'} messageTone={identityUploadReviewed ? 'neutral' : 'danger'}>
+                  <TextField
+                    type="file"
+                    accept="image/*"
+                    onChange={(event) => {
+                      setIdentityUploadFile(event.currentTarget.files?.[0] ?? null);
+                      setIdentityUploadResult(null);
+                    }}
+                  />
+                </FieldShell>
+                <div className="flex items-end">
+                  <Checkbox
+                    checked={identityUploadReviewed}
+                    onChange={(event) => setIdentityUploadReviewed(event.currentTarget.checked)}
+                    label="Human review complete"
+                  />
+                </div>
+              </div>
+              <div className="mt-3 flex flex-wrap gap-3">
+                <Button
+                  disabled={!identityUploadReviewed || !identityUploadFile || isUploadingIdentityResource}
+                  loading={isUploadingIdentityResource}
+                  onClick={() => void uploadIdentityResource()}
+                >
+                  Upload identity Resource
+                </Button>
+              </div>
+              {identityUploadResult ? (
+                <InlineAlert tone={identityUploadResult.ok ? 'success' : 'danger'} className="mt-3">
+                  {identityUploadResult.ok
+                    ? `Identity Resource uploaded for local review as ${identityUploadResult.canonical.id}. Public profile binding remains deferred.`
+                    : identityUploadResult.message}
+                </InlineAlert>
+              ) : null}
+              {identityUploadResult ? (
+                <TechnicalReviewDetails title="Identity upload response">
+                  <pre className="ras-json-preview m-0 min-h-24 overflow-auto rounded-[var(--nimi-radius-field)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] p-3 text-xs">
+                    {JSON.stringify(identityUploadResult, null, 2)}
+                  </pre>
+                </TechnicalReviewDetails>
+              ) : null}
+            </Surface>
             <InlineAlert tone="warning">
               {visualPayload.changed ? VISUAL_MEDIA_BLOCKED_REASON : visualPayload.errors.join('; ')}
             </InlineAlert>
@@ -1087,6 +1320,37 @@ function MediaVoiceCandidateWorkspace({ agent, onAgentWrite }: { agent: OwnerPor
           </div>
         </div>
       </div>
+      <Surface tone="card" padding="md" className="mt-5">
+        <div className="flex min-w-0 flex-wrap items-center justify-between gap-3">
+          <div className="min-w-0">
+            <div className="font-medium">Local creative history</div>
+            <div className="mt-1 text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-muted)]">
+              Candidate history is stored on this desktop device and does not publish profile assets.
+            </div>
+          </div>
+          <StatusBadge tone="warning">app-local</StatusBadge>
+        </div>
+        {creativeHistory.length === 0 ? (
+          <EmptyState title="No creative history" description="Generate or upload a reviewed candidate to add local history." />
+        ) : (
+          <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+            {creativeHistory.map((record) => (
+              <Surface key={record.id} tone="panel" padding="md">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="font-medium">{record.label}</div>
+                  <StatusBadge tone="warning">local only</StatusBadge>
+                </div>
+                <div className="ras-break-anywhere mt-2 text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-secondary)]">
+                  {record.detail}
+                </div>
+                <div className="ras-break-anywhere mt-2 text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-muted)]">
+                  {record.source}
+                </div>
+              </Surface>
+            ))}
+          </div>
+        )}
+      </Surface>
     </Surface>
   );
 }

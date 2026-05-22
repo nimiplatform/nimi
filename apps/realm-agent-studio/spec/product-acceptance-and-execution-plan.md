@@ -51,9 +51,9 @@ acceptance. Acceptance requires the whole owner workflow to be coherent:
 | A3 Information architecture | Owner can move predictably between portfolio, create, agent detail, settings, assets, posts, and local schedule without a single mega-form. Navigation controls are functional, stateful, and do not imply unavailable surfaces. | W2 closed. Shell and in-page workspace controls are functional across Portfolio, Create, Agent Detail, Settings, Assets, Posts, and Local Schedule; tests assert workflows no longer render as one mega-surface. |
 | A4 Owner portfolio and create | Portfolio list/filter/sort, create flow, handle preflight, OASIS/default world selection, selected-world preview, create confirmation, and post-create opening behavior are product-complete. Public draft fields are not silently dropped. | W3 closed. Portfolio/create/detail owner surfaces are complete for the admitted first-version scope; public bio is preserved as a post-create settings continuation instead of being silently submitted or dropped. |
 | A5 Settings and rule-of-truth | Settings flow is natural-language-first plus structured fields, AI proposal/review where useful, field-to-layer clarity, human review, owner settings save, and no raw world-scoped `AgentRule` CRUD. | W4 closed. Runtime-assisted settings proposals are candidate-only, apply to visible fields for owner review, and save only through owner-scoped `MeService.updateMyRealmAgentSettings`. |
-| A6 Creative identity assets | Avatar, profile cover/background, visual candidates, upload/generation, local history, owner review, public write success, and deferred public asset paths are clearly separated. App-local history is durable enough for the desktop product shape. | Not accepted. Avatar URL and post media upload exist; image generation, profile cover write, durable local history, and owner-scoped public asset write remain incomplete/deferred. |
+| A6 Creative identity assets | Avatar, profile cover/background, visual candidates, upload/generation, local history, owner review, public write success, and deferred public asset paths are clearly separated. App-local history is durable enough for the desktop product shape. | W5 closed for admitted surfaces. Avatar URL remains the only owner-reviewed public profile asset write; Runtime image candidates, identity Resource upload, voice-demo candidates, and app-local creative history are candidate-only. Profile cover/background and Resource-to-Agent binding publication remain explicitly deferred pending owner-scoped Realm ingress. |
 | A7 Agent-authored posts | Owner can draft from agent voice, use AI assistance, attach canonical media, human-review, publish through Realm, and create a single local schedule that is actually persisted/executable or explicitly not admitted. | Partial. Realm publish and attachments exist. AI post assistance and real app-local scheduling are not complete. |
-| A8 Runtime AI consumption | Runtime AI support covers setting rewrite/proposal, visual/image generation candidates when available, post copy, voice demo, and source-backed suggestions through SDK surfaces. Runtime output remains candidate material until owner review. | Partial. W4 closes the settings proposal subset through `runtime.ai.text.generate`; voice demo and world projection exist. Visual/image and post-copy subsets remain W5/W6. |
+| A8 Runtime AI consumption | Runtime AI support covers setting rewrite/proposal, visual/image generation candidates when available, post copy, voice demo, and source-backed suggestions through SDK surfaces. Runtime output remains candidate material until owner review. | Partial. W4 closes the settings proposal subset through `runtime.ai.text.generate`; W5 closes the visual image candidate subset through `media.image.generate` and keeps voice demo candidate-only. Post-copy remains W6. |
 | A9 Failure and recovery | Every failure state preserves valid local work, names the unavailable source/capability in product terms, avoids pseudo-success, and gives a valid next action. | Partial. Fail-closed exists in many client paths; UI recovery is not yet product-wide. |
 | A10 Verification evidence | Final closeout includes desktop-shell smoke, renderer screenshot only as secondary evidence, unit/integration tests, boundary checks, spec governance, no app REST bypass, no first-party SDK misuse, and acceptance matrix results per gate. | Not accepted. Current evidence covers renderer tests/build/boundary checks only. |
 
@@ -75,19 +75,19 @@ P1 gaps:
 - `OwnerPortfolio.tsx` and `portfolio-client.ts` are too broad for sustained
   product iteration. Their size is a symptom of mixed workflow ownership, not a
   cosmetic refactor issue.
-- AI support is underbuilt relative to product authority: no integrated setting
-  rewrite/proposal flow, no post copy assistance, no image/visual candidate
-  generation workflow, and no source-backed portfolio suggestions.
+- AI support is still incomplete for posts and source-backed suggestions. W4
+  closed setting rewrite/proposal, and W5 closed image/visual candidate
+  generation as candidate-only Runtime output.
 - Local post scheduling is only a preview candidate. It is not a durable desktop
   schedule with execution semantics.
-- Local creative asset history is component state only. It does not satisfy the
-  desktop product expectation of local saved history/preview.
+- Local creative asset history is app-local desktop storage after W5. It is not
+  cross-device public truth.
 - Create flow collects public bio as a local preview but does not persist it as
   part of the create/update sequence. That is product-confusing unless the flow
   explicitly continues into settings save.
-- Visual identity is only partially real: avatar URL can save, post media can
-  upload, but profile cover/background and owner-scoped public asset binding are
-  incomplete or deferred.
+- Visual identity is admitted for avatar URL save, Runtime image candidates,
+  identity Resource upload, and local history. Profile cover/background writes
+  and owner-scoped public Resource-to-Agent binding remain incomplete/deferred.
 - Product UI still has diagnostic JSON previews in normal screens. Development
   diagnostics may exist, but launch UX must move them behind explicit developer
   disclosure or remove them.
@@ -111,7 +111,7 @@ P2 gaps:
 | W2 Product information architecture | closed | W1 | Replace the single mega-surface with functional Studio workspaces: Portfolio, Create, Agent Detail, Settings, Assets, Posts, Local Schedule. | A2 and A3 passed with interaction evidence, local shell failure-state evidence, and verification commands. |
 | W3 Owner portfolio/create/detail completion | closed | W2 | Finish owner list/filter/sort, create, world selection, post-create flow, detail state, friendCount, source failures, and owner-only boundaries. | A4 and relevant A9 cases passed for portfolio/create/detail. |
 | W4 Settings and AI proposal workflow | closed | W3 | Natural-language setting edits, Runtime-assisted proposal/rewrite, structured field review, owner settings save, no raw rule CRUD. | A5 and A8 settings subset passed. |
-| W5 Creative identity and media workflow | candidate | W3 | Avatar/profile cover strategy, visual/image candidates, upload, local durable history, clear blocked/deferred public asset publishing. | A6 and A8 visual subset pass or explicitly defer blocked Realm surfaces. |
+| W5 Creative identity and media workflow | closed | W3 | Avatar/profile cover strategy, visual/image candidates, upload, local durable history, clear blocked/deferred public asset publishing. | A6 and A8 visual subset passed for admitted surfaces; blocked Realm profile/binding publication is explicitly deferred. |
 | W6 Agent post and local schedule | candidate | W3 | Agent-authored post composer, AI copy assistance, attachments, human review, publish, and real app-local single schedule. | A7 and schedule failure/recovery pass. |
 | W7 Final acceptance hardening | candidate | W4, W5, W6 | Run complete acceptance matrix, desktop smoke, renderer screenshot, spec/boundary checks, copy pass, release-risk audit. | A0-A10 pass or carry explicit deferred Realm-surface blockers. |
 
@@ -293,3 +293,43 @@ W4 closed on 2026-05-22 with:
 W4 closure does not claim visual/image generation, creative media history, post
 copy assistance, local schedule, or final product acceptance. W5 remains
 responsible for creative identity and media workflow.
+
+## W5 Closure Evidence
+
+W5 closed on 2026-05-22 with:
+
+- The Assets workspace separates public avatar URL save from candidate-only
+  visual identity work. Avatar URL selection remains the only admitted public
+  profile asset write and still uses `AgentsService.agentControllerSelectAvatar`.
+- Runtime image assistance uses SDK `media.image.generate` with configured model
+  input and owner-approved public/profile context only. Output is local candidate
+  material with `publicTruth=false`.
+- Identity image upload creates/finalizes a Realm `Resource(IMAGE)` for local
+  identity review through `ResourcesService` direct upload and `finalizeResource`.
+  It does not claim profile cover, avatar binding, feed, or public profile
+  publication.
+- App-local creative history persists Runtime image candidates, identity
+  Resource uploads, and voice-demo candidates per agent in desktop local storage.
+  History records are explicitly local and rejected if they claim public truth.
+- Profile cover/background write and Resource-to-Agent presentation Binding
+  publication remain deferred until Realm admits an owner-scoped ingress. Studio
+  still does not use `WorldControlService`.
+- Tests cover Runtime image request shaping, malformed image output failure,
+  identity Resource upload metadata, durable local creative history, UI image
+  generation, UI identity upload, existing avatar URL selection, and voice-demo
+  candidate behavior.
+- `pnpm --filter @nimiplatform/realm-agent-studio typecheck` passed.
+- `pnpm --filter @nimiplatform/realm-agent-studio test` passed with 9 files and
+  127 tests.
+- `pnpm --filter @nimiplatform/realm-agent-studio build:renderer` passed with
+  the existing chunk warnings still carried to W7 risk audit.
+- `pnpm check:no-app-realm-rest-bypass` passed.
+- `pnpm check:no-first-party-sdk-client-construction` passed.
+- `pnpm exec nimicoding validate-spec-governance --profile nimi --scope
+  apps/realm-agent-studio` passed.
+- `pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope
+  spec-human-doc --check` passed.
+
+W5 closure does not claim post copy assistance, durable executable schedule, or
+final product acceptance. W6 remains responsible for agent-authored posts and
+local schedule workflow.

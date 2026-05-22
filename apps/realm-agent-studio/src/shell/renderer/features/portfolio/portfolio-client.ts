@@ -4,7 +4,7 @@ import type {
   RealmServiceName,
   RealmServiceResult,
 } from '@nimiplatform/sdk/realm';
-import type { SpeechSynthesizeInput, SpeechSynthesizeOutput, TextGenerateInput, TextGenerateOutput } from '@nimiplatform/sdk/runtime/browser';
+import type { ImageGenerateInput, ImageGenerateOutput, SpeechSynthesizeInput, SpeechSynthesizeOutput, TextGenerateInput, TextGenerateOutput } from '@nimiplatform/sdk/runtime/browser';
 import { createStudioRealmClient } from '@renderer/data/realm-client.js';
 import { createStudioRuntimeClient } from '@renderer/data/runtime-client.js';
 import {
@@ -28,10 +28,15 @@ import {
 } from './create-agent-draft.js';
 import type { CandidatePostPayload } from './post-draft.js';
 import {
+  VISUAL_IMAGE_GENERATION_SOURCE,
   VOICE_DEMO_SYNTHESIS_SOURCE,
+  buildReviewedVisualImageCandidatePayload,
+  buildReviewedVisualImageGenerationPayload,
   buildReviewedVoiceDemoCandidatePayload,
   buildReviewedVoiceSynthesisPayload,
+  type ReviewedVisualImageCandidatePayload,
   type ReviewedVoiceDemoCandidatePayload,
+  type VisualImageGenerationInput,
   type VoiceDemoCandidateInput,
 } from './media-voice-candidate.js';
 import {
@@ -130,6 +135,14 @@ type RuntimeVoiceClient = {
   };
 };
 
+type RuntimeImageClient = {
+  media: {
+    image: {
+      generate(input: ImageGenerateInput): Promise<ImageGenerateOutput>;
+    };
+  };
+};
+
 type RuntimeTextClient = {
   ai: {
     text: {
@@ -210,6 +223,7 @@ export type DirectMediaResourceUploadInput = {
   resourceType: DirectMediaResourceType;
   file: DirectMediaResourceUploadFile;
   agent: OwnerPortfolioAgentDetail;
+  purpose?: 'post' | 'identity';
   tags?: string[];
 };
 
@@ -416,6 +430,33 @@ export type RuntimeOwnerSettingsProposalResult =
     submitted: TextGenerateInput | null;
   };
 
+export type RuntimeVisualImageGenerationResult =
+  | {
+    ok: true;
+    source: typeof VISUAL_IMAGE_GENERATION_SOURCE;
+    candidate: true;
+    publicTruth: false;
+    draft: ReviewedVisualImageCandidatePayload;
+    runtime: {
+      jobId?: string;
+      artifactIds: string[];
+      artifactUris: string[];
+      traceId?: string;
+      modelResolved?: string;
+    };
+  }
+  | {
+    ok: false;
+    source: typeof VISUAL_IMAGE_GENERATION_SOURCE;
+    failure:
+      | 'runtime-payload-invalid'
+      | 'runtime-transport-unavailable'
+      | 'runtime-generate-failed'
+      | 'runtime-output-missing';
+    message: string;
+    draft: ReviewedVisualImageCandidatePayload | null;
+  };
+
 export type RuntimeVoiceDemoSynthesisResult =
   | {
     ok: true;
@@ -518,6 +559,55 @@ function normalizeRuntimeVoiceDemoSynthesisOutput(
     runtime: {
       ...(jobId ? { jobId } : {}),
       artifactIds,
+      ...(outputTraceId || jobTraceId ? { traceId: outputTraceId || jobTraceId } : {}),
+      ...(modelResolved ? { modelResolved } : {}),
+    },
+  };
+}
+
+function normalizeRuntimeVisualImageGenerationOutput(
+  output: ImageGenerateOutput,
+  draft: ReviewedVisualImageCandidatePayload,
+): RuntimeVisualImageGenerationResult {
+  const job = output.job && typeof output.job === 'object' ? output.job : null;
+  const jobId = job ? readOptionalString(job as unknown as Record<string, unknown>, 'jobId') : undefined;
+  const jobTraceId = job ? readOptionalString(job as unknown as Record<string, unknown>, 'traceId') : undefined;
+  const modelResolved = job ? readOptionalString(job as unknown as Record<string, unknown>, 'modelResolved') : undefined;
+  const outputTraceId = output.trace && typeof output.trace === 'object'
+    ? readOptionalString(output.trace as unknown as Record<string, unknown>, 'traceId')
+    : undefined;
+  const artifacts = Array.isArray(output.artifacts) ? output.artifacts : [];
+  const artifactIds = artifacts
+    .map((artifact) => artifact && typeof artifact === 'object'
+      ? readOptionalString(artifact as unknown as Record<string, unknown>, 'artifactId')
+      : undefined)
+    .filter((artifactId): artifactId is string => Boolean(artifactId));
+  const artifactUris = artifacts
+    .map((artifact) => artifact && typeof artifact === 'object'
+      ? readOptionalString(artifact as unknown as Record<string, unknown>, 'uri')
+      : undefined)
+    .filter((uri): uri is string => Boolean(uri));
+
+  if (!jobId && artifactIds.length === 0 && artifactUris.length === 0) {
+    return {
+      ok: false,
+      source: VISUAL_IMAGE_GENERATION_SOURCE,
+      failure: 'runtime-output-missing',
+      message: 'Runtime media.image.generate output missing real job id, artifact id, or artifact URI.',
+      draft,
+    };
+  }
+
+  return {
+    ok: true,
+    source: VISUAL_IMAGE_GENERATION_SOURCE,
+    candidate: true,
+    publicTruth: false,
+    draft,
+    runtime: {
+      ...(jobId ? { jobId } : {}),
+      artifactIds,
+      artifactUris,
       ...(outputTraceId || jobTraceId ? { traceId: outputTraceId || jobTraceId } : {}),
       ...(modelResolved ? { modelResolved } : {}),
     },
@@ -728,19 +818,23 @@ export function buildFinalizeDirectMediaResourceInput(input: DirectMediaResource
   }
 
   const tags = input.tags?.map((tag) => tag.trim()).filter(Boolean) ?? [];
+  const purpose = input.purpose === 'identity' ? 'identity' : 'post';
+  const sourceRef = purpose === 'identity'
+    ? 'realm-agent-studio.reviewed-identity-media-resource'
+    : 'realm-agent-studio.reviewed-post-media-resource';
   return {
     agentId: input.agent.id,
     deliveryAccess: 'SIGNED',
-    label: `Reviewed ${input.resourceType.toLowerCase()} upload for ${input.agent.handle.value ? `@${input.agent.handle.value}` : input.agent.displayName.value}`,
+    label: `Reviewed ${purpose} ${input.resourceType.toLowerCase()} upload for ${input.agent.handle.value ? `@${input.agent.handle.value}` : input.agent.displayName.value}`,
     mimeType: input.file.type,
     sizeBytes: input.file.size,
-    sourceRef: 'realm-agent-studio.reviewed-post-media-resource',
+    sourceRef,
     title: normalizeDirectMediaTitle(input.file.name),
     ...(tags.length > 0 ? { tags } : {}),
     metadata: {
-      source: 'realm-agent-studio.reviewed-post-media-resource',
+      source: sourceRef,
       agentKey: input.agent.id,
-      attachmentPurpose: 'post',
+      attachmentPurpose: purpose,
       resourceType: input.resourceType,
       humanReviewed: true,
     },
@@ -1428,6 +1522,14 @@ export async function uploadReviewedPostMediaResource(
   }
 }
 
+export async function uploadReviewedIdentityMediaResource(
+  input: Omit<DirectMediaResourceUploadInput, 'purpose'>,
+  realm: StudioRealmClient = createStudioRealmClient(),
+  storageUpload: StorageUploadTransport = defaultStorageUploadTransport,
+): Promise<DirectMediaResourceUploadResult> {
+  return uploadReviewedPostMediaResource({ ...input, purpose: 'identity' }, realm, storageUpload);
+}
+
 export async function createReviewedPostTextResource(
   payload: CandidatePostPayload,
   realm: StudioRealmClient = createStudioRealmClient(),
@@ -1546,6 +1648,50 @@ export async function synthesizeReviewedVoiceDemo(
       source: VOICE_DEMO_SYNTHESIS_SOURCE,
       failure: 'runtime-synthesize-failed',
       message: `Runtime media.tts.synthesize failed: ${error instanceof Error ? error.message : 'runtime transport call failed.'}`,
+      draft: draft.payload,
+    };
+  }
+}
+
+export async function generateReviewedVisualImageCandidate(
+  input: VisualImageGenerationInput,
+  agent: OwnerPortfolioAgentDetail,
+  runtime?: RuntimeImageClient | null,
+): Promise<RuntimeVisualImageGenerationResult> {
+  const draft = buildReviewedVisualImageCandidatePayload(input, agent);
+  const imagePayload = buildReviewedVisualImageGenerationPayload(input, agent);
+
+  if (!draft.payload || !imagePayload.payload) {
+    return {
+      ok: false,
+      source: VISUAL_IMAGE_GENERATION_SOURCE,
+      failure: 'runtime-payload-invalid',
+      message: imagePayload.errors.join('; ') || 'Runtime media.image.generate payload invalid.',
+      draft: draft.payload,
+    };
+  }
+
+  const runtimeClient = runtime === undefined ? await createStudioRuntimeClient() : runtime;
+
+  if (!runtimeClient) {
+    return {
+      ok: false,
+      source: VISUAL_IMAGE_GENERATION_SOURCE,
+      failure: 'runtime-transport-unavailable',
+      message: 'Runtime media.image.generate runtime transport unavailable: Tauri IPC runtime transport is required.',
+      draft: draft.payload,
+    };
+  }
+
+  try {
+    const output = await runtimeClient.media.image.generate(imagePayload.payload);
+    return normalizeRuntimeVisualImageGenerationOutput(output, draft.payload);
+  } catch (error) {
+    return {
+      ok: false,
+      source: VISUAL_IMAGE_GENERATION_SOURCE,
+      failure: 'runtime-generate-failed',
+      message: `Runtime media.image.generate failed: ${error instanceof Error ? error.message : 'runtime transport call failed.'}`,
       draft: draft.payload,
     };
   }

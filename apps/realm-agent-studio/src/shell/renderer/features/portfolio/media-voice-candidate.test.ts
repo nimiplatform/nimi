@@ -6,6 +6,8 @@ import {
   assertNoForbiddenMediaCandidateFields,
   buildBlockedVisualAssetCandidatePayload,
   buildBlockedVoiceDemoRequestPayload,
+  buildReviewedVisualImageCandidatePayload,
+  buildReviewedVisualImageGenerationPayload,
   buildReviewedVoiceDemoCandidatePayload,
   buildReviewedVoiceSynthesisPayload,
   isAllowedMediaCandidateBindingPoint,
@@ -166,6 +168,90 @@ describe('blocked visual asset candidate payload', () => {
 });
 
 describe('blocked voice demo request payload', () => {
+  it('builds an allowlisted Runtime image generation candidate', () => {
+    const result = buildReviewedVisualImageGenerationPayload({
+      resourceType: 'IMAGE',
+      bindingPoint: 'AGENT_CANDIDATE',
+      prompt: '  warm public portrait  ',
+      notes: 'blue accent',
+      model: ' configured-image-model ',
+      aspectRatio: '4:5',
+    }, agent);
+
+    expect(result).toEqual({
+      changed: true,
+      errors: [],
+      payload: {
+        model: 'configured-image-model',
+        prompt: 'warm public portrait\nOwner notes: blue accent\nRealm Agent display name: Mira\nPublic bio context: Public strategist bio',
+        n: 1,
+        aspectRatio: '4:5',
+        responseFormat: 'url',
+        metadata: {
+          source: 'realm-agent-studio.reviewed-visual-image-candidate',
+          agentKey: 'agent-1',
+          bindingPoint: 'AGENT_CANDIDATE',
+        },
+      },
+    });
+    expect(collectKeys(result.payload).has('provider')).toBe(false);
+    expect(collectKeys(result.payload).has('localAgent')).toBe(false);
+    expect(collectKeys(result.payload).has('worldId')).toBe(false);
+  });
+
+  it('builds visual image candidate evidence without claiming public asset truth', () => {
+    const result = buildReviewedVisualImageCandidatePayload({
+      resourceType: 'IMAGE',
+      bindingPoint: 'AGENT_PORTRAIT',
+      prompt: 'Reference portrait.',
+      notes: '',
+      model: 'configured-image-model',
+      aspectRatio: '1:1',
+    }, agent);
+
+    expect(result.payload).toMatchObject({
+      candidate: true,
+      publicTruth: false,
+      source: 'realm-agent-studio.reviewed-visual-image-candidate',
+      runtime: {
+        capabilityToken: 'image.generate',
+        currentSdkPath: 'media.image.generate',
+        source: 'Runtime media.image.generate',
+      },
+      futureEvidencePath: {
+        resource: {
+          carrier: 'Resource',
+          type: 'IMAGE',
+          status: 'candidate-only',
+        },
+        binding: {
+          family: 'Binding',
+          hostType: 'AGENT',
+          objectType: 'RESOURCE',
+          bindingPoint: 'AGENT_PORTRAIT',
+          status: 'candidate-only',
+        },
+      },
+    });
+  });
+
+  it('fails closed when Runtime image generation model config is missing', () => {
+    const result = buildReviewedVisualImageGenerationPayload({
+      resourceType: 'IMAGE',
+      bindingPoint: 'AGENT_CANDIDATE',
+      prompt: 'portrait',
+      notes: '',
+      model: ' ',
+      aspectRatio: '1:1',
+    }, agent);
+
+    expect(result).toEqual({
+      changed: false,
+      errors: ['Runtime media.image.generate model config missing'],
+      payload: null,
+    });
+  });
+
   it('builds a blocked Runtime audio.synthesize preview and Resource(AUDIO) path', () => {
     const result = buildBlockedVoiceDemoRequestPayload({
       scriptText: '  Welcome in.\nThis is a local sample candidate.  ',
