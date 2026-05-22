@@ -33,6 +33,26 @@ test('desktop dev renderer disables HMR to avoid React refresh module preamble i
   assert.match(viteConfigSource, /server:\s*{[\s\S]*hmr:\s*false/);
 });
 
+test('desktop agent center local config bridge stays with the agent chat chunk', () => {
+  const agentCenterBridgeExceptionIndex = viteConfigSource.indexOf(
+    "chat-agent-center-local-config-store.ts')",
+  );
+  const runtimeBridgeChunkIndex = viteConfigSource.indexOf(
+    "return 'runtime-bridge';",
+  );
+
+  assert.notEqual(agentCenterBridgeExceptionIndex, -1);
+  assert.notEqual(runtimeBridgeChunkIndex, -1);
+  assert.ok(
+    agentCenterBridgeExceptionIndex < runtimeBridgeChunkIndex,
+    'Agent Center local config bridge must be chunked before the generic runtime-bridge catch-all',
+  );
+  assert.match(
+    viteConfigSource.slice(agentCenterBridgeExceptionIndex, runtimeBridgeChunkIndex),
+    /return 'chat-agent-shell';/,
+  );
+});
+
 test('desktop renderer entrypoint is packaged-local and has no remote boot resources', () => {
   assert.doesNotMatch(rendererEntryHtml, /https?:\/\//);
   assert.doesNotMatch(rendererEntryHtml, /fonts\.(googleapis|gstatic)\.com/);

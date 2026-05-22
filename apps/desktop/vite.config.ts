@@ -385,6 +385,9 @@ export default defineConfig(({ mode }) => {
               }
             }
             if (normalizedId.includes('/apps/desktop/src/shell/renderer/features/runtime-config/')) {
+              if (normalizedId.includes('/runtime-config-navigation-events')) {
+                return 'runtime-config-overview';
+              }
               if (matchesAny(normalizedId, [
                 '/runtime-config-page-overview',
                 '/runtime-config-usage-stats-section',
@@ -465,6 +468,11 @@ export default defineConfig(({ mode }) => {
             }
             if (normalizedId.includes('/apps/desktop/src/runtime/data-sync/')) {
               return 'runtime-data-sync';
+            }
+            if (
+              normalizedId.endsWith('/apps/desktop/src/shell/renderer/bridge/runtime-bridge/chat-agent-center-local-config-store.ts')
+            ) {
+              return 'chat-agent-shell';
             }
             if (
               normalizedId.includes('/apps/desktop/src/runtime/local-runtime/')
