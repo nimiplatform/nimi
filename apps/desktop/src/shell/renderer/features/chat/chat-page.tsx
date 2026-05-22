@@ -57,6 +57,7 @@ type ChatModeSurfaceErrorBoundaryProps = {
   children: ReactNode;
   fallback: ReactNode;
   mode: string;
+  resetKey: string;
 };
 
 type ChatModeSurfaceErrorBoundaryState = {
@@ -77,7 +78,10 @@ class ChatModeSurfaceErrorBoundary extends Component<
   }
 
   override componentDidUpdate(prevProps: ChatModeSurfaceErrorBoundaryProps): void {
-    if (prevProps.mode !== this.props.mode && this.state.failed) {
+    if (
+      (prevProps.mode !== this.props.mode || prevProps.resetKey !== this.props.resetKey)
+      && this.state.failed
+    ) {
       this.setState({ failed: false });
     }
   }
@@ -251,18 +255,32 @@ export function ChatPage() {
     onSetupAction: handleSetupAction,
     onSelectTarget: handleShellSelectTarget,
   } as const;
+  const surfaceResetKey = [
+    chatMode,
+    storeSelectedTargetId ?? '',
+    chatSettingsOpen ? 'settings-open' : 'settings-closed',
+    nimiThreadListOpen ? 'threads-open' : 'threads-closed',
+  ].join(':');
 
   return (
     <div data-testid={E2E_IDS.chatPage} data-chat-page-layout="split" className="relative flex min-h-0 min-w-0 flex-1">
       {chatMode === 'human' ? (
-        <ChatModeSurfaceErrorBoundary mode="human" fallback={<ChatModeUnavailable mode="Human" />}>
+        <ChatModeSurfaceErrorBoundary
+          mode="human"
+          resetKey={surfaceResetKey}
+          fallback={<ChatModeUnavailable mode="Human" />}
+        >
           <Suspense fallback={<div className="flex min-h-0 min-w-0 flex-1" />}>
             <ChatHumanModeContent {...sharedProps} />
           </Suspense>
         </ChatModeSurfaceErrorBoundary>
       ) : null}
       {chatMode === 'ai' ? (
-        <ChatModeSurfaceErrorBoundary mode="ai" fallback={<ChatModeUnavailable mode="Nimi" />}>
+        <ChatModeSurfaceErrorBoundary
+          mode="ai"
+          resetKey={surfaceResetKey}
+          fallback={<ChatModeUnavailable mode="Nimi" />}
+        >
           <Suspense fallback={<div className="flex min-h-0 min-w-0 flex-1" />}>
             <ChatNimiModeContent
               {...sharedProps}
@@ -275,6 +293,7 @@ export function ChatPage() {
       {chatMode === 'agent' ? (
         <ChatModeSurfaceErrorBoundary
           mode="agent"
+          resetKey={surfaceResetKey}
           fallback={<ChatModeUnavailable mode="Agent" />}
         >
           <Suspense fallback={<div className="flex min-h-0 min-w-0 flex-1" />}>
@@ -283,7 +302,11 @@ export function ChatPage() {
         </ChatModeSurfaceErrorBoundary>
       ) : null}
       {chatMode === 'group' ? (
-        <ChatModeSurfaceErrorBoundary mode="group" fallback={<ChatModeUnavailable mode="Group" />}>
+        <ChatModeSurfaceErrorBoundary
+          mode="group"
+          resetKey={surfaceResetKey}
+          fallback={<ChatModeUnavailable mode="Group" />}
+        >
           <Suspense fallback={<div className="flex min-h-0 min-w-0 flex-1" />}>
             <ChatGroupModeContent {...sharedProps} />
           </Suspense>

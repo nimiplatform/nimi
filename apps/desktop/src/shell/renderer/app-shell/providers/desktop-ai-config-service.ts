@@ -58,7 +58,6 @@ import {
   normalizeSchedulingTarget,
   peekAggregateSchedulingJudgement,
   peekSchedulingBatch,
-  resolveAIConfigSchedulingTargetForCapability,
   resolveAIConfigScopeSchedulingTargets,
   schedulingTargetsEqual,
 } from './desktop-ai-config-scheduling.js';

@@ -27,6 +27,8 @@ test('chat page split layout keeps contacts on the far-right transparent rail', 
   assert.match(chatPageSource, /ChatContactsSidebar/);
   assert.match(chatContactsSidebarSource, /data-chat-contacts-sidebar-chrome="transparent"/);
   assert.match(chatContactsSidebarSource, /className="ml-4 mr-1 flex h-full w-14 shrink-0 flex-col items-center bg-transparent py-2"/);
+  assert.match(chatContactsSidebarSource, /onClick=\{onSelect\}/);
+  assert.match(chatContactsSidebarSource, /onOpenProfile=\{profileSeed \? handleOpenProfile : undefined\}/);
   assert.doesNotMatch(chatContactsSidebarSource, /border-l/u);
 });
 
@@ -62,6 +64,10 @@ test('chat page startup keeps agent mode lazy-loaded while removing the desktop-
   assert.match(chatPageSource, /const ChatAgentModeContent = lazy\(async \(\) => \{/);
   assert.match(chatPageSource, /import\('\.\/chat-agent-mode-content'\)/);
   assert.match(chatPageSource, /ChatModeSurfaceErrorBoundary/);
+  assert.match(chatPageSource, /resetKey:\s*string/);
+  assert.match(chatPageSource, /prevProps\.resetKey !== this\.props\.resetKey/);
+  assert.match(chatPageSource, /const surfaceResetKey = \[/);
+  assert.match(chatPageSource, /chatSettingsOpen \? 'settings-open' : 'settings-closed'/);
   assert.match(chatPageSource, /Agent mode is temporarily unavailable/);
 
   assert.doesNotMatch(chatAgentModeSource, /const ChatAgentAvatarOverlay = lazy/);

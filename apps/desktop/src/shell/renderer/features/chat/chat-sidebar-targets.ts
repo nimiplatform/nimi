@@ -101,6 +101,9 @@ export function useChatTargetsForSidebar(
       status: 'active' as const,
       isOnline: null,
       metadata: {
+        realmAgentId: target.realmAgentId,
+        localAgentRef: target.localAgentRef,
+        ownerUserId: target.ownerUserId,
         worldName: target.worldName,
         ownershipType: target.ownershipType,
       },
