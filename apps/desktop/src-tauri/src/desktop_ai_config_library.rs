@@ -27,6 +27,7 @@ use crate::platform_ai_profile_factory_catalog::{
     PLATFORM_AI_PROFILE_SELECTION_POLICY_REF,
 };
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 use sha2::{Digest, Sha256};
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -37,6 +38,8 @@ const BUILT_IN_AI_CONFIG_WRITER_IDENTITY: &str = "desktop_host_ai_config_service
 const BUILT_IN_AI_CONFIG_SCOPE_KIND: &str = "feature";
 const BUILT_IN_AI_CONFIG_SCOPE_OWNER_ID: &str = "desktop.chat";
 const BUILT_IN_AI_CONFIG_APPLY_SOURCE: &str = "desktop_host_first_run_built_in_ai_config";
+const TEXT_GENERATE_CAPABILITY: &str = "text.generate";
+const FIRST_RUN_TEXT_CONSUMER_ID: &str = "llama.cpp.cpu";
 
 /// The two canonical first-run built-in chat surface ids (`P-AISC-006`).
 const BUILT_IN_CHAT_SURFACE_IDS: &[&str] = &["nimi", "agent"];
@@ -276,13 +279,20 @@ pub fn built_in_ai_config_path(
 /// `D-AIPC-005`: this is a full materialization overwrite, not a merge. Binding
 /// intent starts unbound (`null`) — first-run does not hardcode any provider,
 /// connector, engine, or model identifier.
-fn config_capabilities_from_row(row: &PlatformAIProfileFactoryRow) -> Vec<BuiltInAiConfigCapability> {
+fn config_capabilities_from_row(
+    row: &PlatformAIProfileFactoryRow,
+    text_generate_binding: &serde_json::Value,
+) -> Vec<BuiltInAiConfigCapability> {
     let mut capabilities: Vec<BuiltInAiConfigCapability> = row
         .capability_set
         .iter()
         .map(|capability| BuiltInAiConfigCapability {
             capability: (*capability).to_string(),
-            binding: serde_json::Value::Null,
+            binding: if *capability == TEXT_GENERATE_CAPABILITY {
+                text_generate_binding.clone()
+            } else {
+                serde_json::Value::Null
+            },
         })
         .collect();
     capabilities.sort_by(|a, b| a.capability.cmp(&b.capability));
@@ -293,9 +303,10 @@ fn ai_profile_ref_from_row(
     row: &PlatformAIProfileFactoryRow,
     install_level: &str,
     applied_at: &str,
+    text_generate_binding: &serde_json::Value,
 ) -> Result<BuiltInAiProfileRef, String> {
     let payload_hash = stable_json_hash(
-        &config_capabilities_from_row(row),
+        &config_capabilities_from_row(row, text_generate_binding),
         "built-in AIConfig capability payload",
     )?;
     Ok(BuiltInAiProfileRef {
@@ -308,6 +319,47 @@ fn ai_profile_ref_from_row(
         profile_payload_hash: payload_hash,
         applied_at: applied_at.to_string(),
     })
+}
+
+pub fn runtime_text_generate_binding_from_baseline_ref(
+    baseline: &crate::runtime_bridge::generated::RuntimeBaselineReadinessRef,
+) -> Result<serde_json::Value, String> {
+    let consumer = baseline
+        .activation_ready_responses
+        .iter()
+        .find(|item| item.consumer_id.trim() == FIRST_RUN_TEXT_CONSUMER_ID)
+        .ok_or_else(|| {
+            "Runtime baseline evidence is missing the first-run text consumer".to_string()
+        })?;
+    let bound_asset_id = consumer.bound_asset_id.trim();
+    if bound_asset_id.is_empty() {
+        return Err("Runtime baseline text consumer is missing bound_asset_id".to_string());
+    }
+    let runtime_baseline_ref = baseline.runtime_baseline_ref.trim();
+    if runtime_baseline_ref.is_empty() {
+        return Err("Runtime baseline evidence is missing runtimeBaselineRef".to_string());
+    }
+    Ok(json!({
+        "source": "local",
+        "connectorId": "",
+        "model": bound_asset_id,
+        "modelId": bound_asset_id,
+        "localModelId": bound_asset_id,
+        "provider": "local",
+        "engine": consumer.consumer_id.trim(),
+        "goRuntimeLocalModelId": bound_asset_id,
+        "runtimeBaselineRef": runtime_baseline_ref,
+        "runtimeConsumerId": consumer.consumer_id.trim(),
+    }))
+}
+
+fn text_generate_binding_from_capabilities(
+    capabilities: &[BuiltInAiConfigCapability],
+) -> Option<&serde_json::Value> {
+    capabilities
+        .iter()
+        .find(|capability| capability.capability == TEXT_GENERATE_CAPABILITY)
+        .map(|capability| &capability.binding)
 }
 
 /// Stable content hash over the committed config payload + identity binding.
@@ -361,6 +413,7 @@ fn verify_record_fields(
     authenticated_account_id: &str,
     expected_data_root_ref: &str,
     expected_surface_id: &str,
+    expected_text_generate_binding: Option<&serde_json::Value>,
 ) -> Result<(), String> {
     let account_id = validate_account_id(authenticated_account_id)?;
     let expected_surface = validate_built_in_chat_surface_id(expected_surface_id)?;
@@ -369,8 +422,7 @@ fn verify_record_fields(
     }
     if record.account_id != account_id {
         return Err(
-            "built-in AIConfig account_id does not match authenticated Runtime account"
-                .to_string(),
+            "built-in AIConfig account_id does not match authenticated Runtime account".to_string(),
         );
     }
     if record.data_root_ref != expected_data_root_ref {
@@ -378,10 +430,14 @@ fn verify_record_fields(
     }
     verify_built_in_chat_scope_ref(&record.scope_ref)?;
     if record.scope_ref.surface_id != expected_surface {
-        return Err("built-in AIConfig scopeRef.surfaceId does not match expected scope".to_string());
+        return Err(
+            "built-in AIConfig scopeRef.surfaceId does not match expected scope".to_string(),
+        );
     }
     if record.config_payload.scope_ref != record.scope_ref {
-        return Err("built-in AIConfig payload scopeRef does not match record scopeRef".to_string());
+        return Err(
+            "built-in AIConfig payload scopeRef does not match record scopeRef".to_string(),
+        );
     }
     if record.writer_identity != BUILT_IN_AI_CONFIG_WRITER_IDENTITY {
         return Err(
@@ -410,15 +466,29 @@ fn verify_record_fields(
         return Err("built-in AIConfig applied AIProfile source policy ref is invalid".to_string());
     }
     if record.ai_profile_ref.source_catalog_id != PLATFORM_AI_PROFILE_FACTORY_CATALOG_ID
-        || record.ai_profile_ref.source_catalog_version != PLATFORM_AI_PROFILE_FACTORY_CATALOG_VERSION
+        || record.ai_profile_ref.source_catalog_version
+            != PLATFORM_AI_PROFILE_FACTORY_CATALOG_VERSION
     {
         return Err("built-in AIConfig applied AIProfile source catalog is invalid".to_string());
     }
     if record.ai_profile_ref.applied_at.trim().is_empty() {
-        return Err("built-in AIConfig applied AIProfile appliedAt evidence is required".to_string());
+        return Err(
+            "built-in AIConfig applied AIProfile appliedAt evidence is required".to_string(),
+        );
+    }
+    let recorded_text_binding =
+        text_generate_binding_from_capabilities(&record.config_payload.capabilities)
+            .unwrap_or(&serde_json::Value::Null);
+    if let Some(expected_binding) = expected_text_generate_binding {
+        if recorded_text_binding != expected_binding {
+            return Err(
+                "built-in AIConfig text.generate binding does not match Runtime baseline evidence"
+                    .to_string(),
+            );
+        }
     }
     // Capability payload must equal the full materialization of the factory row.
-    let expected_capabilities = config_capabilities_from_row(row);
+    let expected_capabilities = config_capabilities_from_row(row, recorded_text_binding);
     if record.config_payload.capabilities != expected_capabilities {
         return Err(
             "built-in AIConfig capability payload is not the full materialized factory AIProfile"
@@ -433,8 +503,10 @@ fn verify_record_fields(
         return Err("built-in AIConfig applied AIProfile payload hash is mismatched".to_string());
     }
     if record.config_payload.profile_origin != record.ai_profile_ref {
-        return Err("built-in AIConfig payload profileOrigin does not match applied AIProfile ref"
-            .to_string());
+        return Err(
+            "built-in AIConfig payload profileOrigin does not match applied AIProfile ref"
+                .to_string(),
+        );
     }
     let expected_content_hash = compute_config_content_hash(record)?;
     if record.ai_config_content_hash != expected_content_hash {
@@ -510,13 +582,14 @@ fn new_config_record(
     surface_id: &str,
     install_level: &str,
     row: &PlatformAIProfileFactoryRow,
+    text_generate_binding: &serde_json::Value,
 ) -> Result<BuiltInAiConfigRecord, String> {
     let now = now_iso_timestamp();
     let scope_ref = built_in_chat_scope_ref(surface_id)?;
-    let ai_profile_ref = ai_profile_ref_from_row(row, install_level, &now)?;
+    let ai_profile_ref = ai_profile_ref_from_row(row, install_level, &now, text_generate_binding)?;
     let config_payload = BuiltInAiConfigPayload {
         scope_ref: scope_ref.clone(),
-        capabilities: config_capabilities_from_row(row),
+        capabilities: config_capabilities_from_row(row, text_generate_binding),
         profile_origin: ai_profile_ref.clone(),
     };
     let mut record = BuiltInAiConfigRecord {
@@ -546,6 +619,7 @@ pub fn verify_built_in_ai_config_ref(
     authenticated_account_id: &str,
     surface_id: &str,
     built_in_ai_config_ref_value: &str,
+    expected_text_generate_binding: Option<&serde_json::Value>,
 ) -> Result<BuiltInAiConfigEvidence, String> {
     let path = built_in_ai_config_path(data_root, authenticated_account_id, surface_id)?;
     let expected_data_root_ref = data_root_ref(data_root)?;
@@ -555,12 +629,11 @@ pub fn verify_built_in_ai_config_ref(
         authenticated_account_id,
         &expected_data_root_ref,
         surface_id,
+        expected_text_generate_binding,
     )?;
     let evidence = evidence_from_record(&path, &record)?;
     if evidence.built_in_ai_config_ref != built_in_ai_config_ref_value.trim() {
-        return Err(
-            "built-in AIConfig ref is caller-provided, stale, or string-only".to_string(),
-        );
+        return Err("built-in AIConfig ref is caller-provided, stale, or string-only".to_string());
     }
     Ok(evidence)
 }
@@ -574,6 +647,7 @@ pub fn ensure_built_in_ai_config(
     surface_id: &str,
     selected_ai_profile_alias: &str,
     install_level: &str,
+    text_generate_binding: &serde_json::Value,
 ) -> Result<BuiltInAiConfigEvidence, String> {
     let path = built_in_ai_config_path(data_root, authenticated_account_id, surface_id)?;
     let expected_data_root_ref = data_root_ref(data_root)?;
@@ -581,19 +655,24 @@ pub fn ensure_built_in_ai_config(
         verify_first_run_factory_ai_profile(selected_ai_profile_alias, install_level)?;
     if path.exists() {
         let record = read_config_record(&path)?;
-        verify_record_fields(
+        if verify_record_fields(
             &record,
             authenticated_account_id,
             &expected_data_root_ref,
             surface_id,
-        )?;
-        let evidence = evidence_from_record(&path, &record)?;
-        return verify_built_in_ai_config_ref(
-            data_root,
-            authenticated_account_id,
-            surface_id,
-            &evidence.built_in_ai_config_ref,
-        );
+            Some(text_generate_binding),
+        )
+        .is_ok()
+        {
+            let evidence = evidence_from_record(&path, &record)?;
+            return verify_built_in_ai_config_ref(
+                data_root,
+                authenticated_account_id,
+                surface_id,
+                &evidence.built_in_ai_config_ref,
+                Some(text_generate_binding),
+            );
+        }
     }
     let record = new_config_record(
         authenticated_account_id,
@@ -601,6 +680,7 @@ pub fn ensure_built_in_ai_config(
         surface_id,
         install_level,
         selected_row,
+        text_generate_binding,
     )?;
     write_config_record(&path, &record)?;
     let evidence = evidence_from_record(&path, &record)?;
@@ -609,6 +689,7 @@ pub fn ensure_built_in_ai_config(
         authenticated_account_id,
         surface_id,
         &evidence.built_in_ai_config_ref,
+        Some(text_generate_binding),
     )
 }
 
@@ -624,6 +705,7 @@ pub fn ensure_built_in_ai_config_evidence_set(
     authenticated_account_id: &str,
     selected_ai_profile_alias: &str,
     install_level: &str,
+    text_generate_binding: &serde_json::Value,
 ) -> Result<BuiltInAiConfigEvidenceSet, String> {
     let nimi = ensure_built_in_ai_config(
         data_root,
@@ -631,6 +713,7 @@ pub fn ensure_built_in_ai_config_evidence_set(
         "nimi",
         selected_ai_profile_alias,
         install_level,
+        text_generate_binding,
     )?;
     let agent = ensure_built_in_ai_config(
         data_root,
@@ -638,6 +721,7 @@ pub fn ensure_built_in_ai_config_evidence_set(
         "agent",
         selected_ai_profile_alias,
         install_level,
+        text_generate_binding,
     )?;
     Ok(BuiltInAiConfigEvidenceSet { nimi, agent })
 }
@@ -657,6 +741,7 @@ pub fn verify_built_in_ai_config_evidence_set(
     data_root: &Path,
     authenticated_account_id: &str,
     built_in_ai_config_refs: &[String],
+    expected_text_generate_binding: Option<&serde_json::Value>,
 ) -> Result<BuiltInAiConfigEvidenceSet, String> {
     if built_in_ai_config_refs.len() != BUILT_IN_CHAT_SURFACE_IDS.len() {
         return Err(format!(
@@ -678,6 +763,7 @@ pub fn verify_built_in_ai_config_evidence_set(
                 authenticated_account_id,
                 surface_id,
                 candidate,
+                expected_text_generate_binding,
             ) else {
                 continue;
             };
@@ -735,6 +821,21 @@ mod tests {
     const ALIAS: &str = "local-speech-ready";
     const LEVEL: &str = "minimal";
 
+    fn text_binding() -> serde_json::Value {
+        serde_json::json!({
+            "source": "local",
+            "connectorId": "",
+            "model": "asset-id:gemma-test",
+            "modelId": "asset-id:gemma-test",
+            "localModelId": "asset-id:gemma-test",
+            "provider": "local",
+            "engine": "llama.cpp.cpu",
+            "goRuntimeLocalModelId": "asset-id:gemma-test",
+            "runtimeBaselineRef": "runtime-baseline:test",
+            "runtimeConsumerId": "llama.cpp.cpu",
+        })
+    }
+
     fn temp_data_root(prefix: &str) -> PathBuf {
         let unique = SystemTime::now()
             .duration_since(UNIX_EPOCH)
@@ -742,6 +843,17 @@ mod tests {
             .as_nanos();
         let dir = std::env::temp_dir().join(format!("nimi-built-in-aiconfig-{prefix}-{unique}"));
         std::fs::create_dir_all(&dir).expect("create temp data root");
+        dir
+    }
+
+    fn temp_home(prefix: &str) -> PathBuf {
+        let unique = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("time")
+            .as_nanos();
+        let dir =
+            std::env::temp_dir().join(format!("nimi-built-in-aiconfig-home-{prefix}-{unique}"));
+        std::fs::create_dir_all(&dir).expect("create temp home");
         dir
     }
 
@@ -760,8 +872,7 @@ mod tests {
     }
 
     fn refresh_content_hash(record: &mut BuiltInAiConfigRecord) {
-        record.ai_config_content_hash =
-            compute_config_content_hash(record).expect("content hash");
+        record.ai_config_content_hash = compute_config_content_hash(record).expect("content hash");
     }
 
     // ---- Positive ---------------------------------------------------------
@@ -769,8 +880,14 @@ mod tests {
     #[test]
     fn first_run_materializes_both_canonical_feature_scopes_with_five_projection_fields() {
         let root = temp_data_root("positive");
-        let set = ensure_built_in_ai_config_evidence_set(&root, "account:abc.def+1", ALIAS, LEVEL)
-            .expect("ensure evidence set");
+        let set = ensure_built_in_ai_config_evidence_set(
+            &root,
+            "account:abc.def+1",
+            ALIAS,
+            LEVEL,
+            &text_binding(),
+        )
+        .expect("ensure evidence set");
 
         for (surface, evidence) in [("nimi", &set.nimi), ("agent", &set.agent)] {
             // required_projection[0]: canonical feature-shape scopeRef.
@@ -790,35 +907,56 @@ mod tests {
             assert_eq!(evidence.writer_identity, "desktop_host_ai_config_service");
             // required_projection[4]: committedAt.
             assert!(!evidence.committed_at.trim().is_empty());
-            assert!(
-                built_in_ai_config_path(&root, "account:abc.def+1", surface)
-                    .expect("path")
-                    .exists()
-            );
+            assert!(built_in_ai_config_path(&root, "account:abc.def+1", surface)
+                .expect("path")
+                .exists());
         }
         // Both refs resolve back through the host AIConfig service.
-        let resolved =
-            verify_built_in_ai_config_evidence_set(&root, "account:abc.def+1", &set.refs())
-                .expect("resolve evidence set");
+        let resolved = verify_built_in_ai_config_evidence_set(
+            &root,
+            "account:abc.def+1",
+            &set.refs(),
+            Some(&text_binding()),
+        )
+        .expect("resolve evidence set");
         assert_eq!(resolved.refs(), set.refs());
-        assert_ne!(set.nimi.built_in_ai_config_ref, set.agent.built_in_ai_config_ref);
+        assert_ne!(
+            set.nimi.built_in_ai_config_ref,
+            set.agent.built_in_ai_config_ref
+        );
     }
 
     #[test]
     fn committed_built_in_config_is_full_materialized_for_factory_capability_set() {
         let root = temp_data_root("materialized");
-        let set = ensure_built_in_ai_config_evidence_set(&root, "account_1", ALIAS, LEVEL)
-            .expect("ensure evidence set");
-        let record = read_record(
-            &built_in_ai_config_path(&root, "account_1", "nimi").expect("path"),
-        );
+        let set = ensure_built_in_ai_config_evidence_set(
+            &root,
+            "account_1",
+            ALIAS,
+            LEVEL,
+            &text_binding(),
+        )
+        .expect("ensure evidence set");
+        let record =
+            read_record(&built_in_ai_config_path(&root, "account_1", "nimi").expect("path"));
         assert!(record
             .config_payload
             .capabilities
             .iter()
             .any(|cap| cap.capability == "text.generate"));
-        // Binding intent is unbound — no hardcoded provider/model on first-run.
-        for capability in &record.config_payload.capabilities {
+        let text = record
+            .config_payload
+            .capabilities
+            .iter()
+            .find(|cap| cap.capability == "text.generate")
+            .expect("text.generate");
+        assert_eq!(text.binding, text_binding());
+        for capability in record
+            .config_payload
+            .capabilities
+            .iter()
+            .filter(|cap| cap.capability != "text.generate")
+        {
             assert!(capability.binding.is_null());
         }
         assert_eq!(set.nimi.ai_profile_ref.install_level, LEVEL);
@@ -827,13 +965,24 @@ mod tests {
     #[test]
     fn existing_valid_records_are_reused_without_rewrite() {
         let root = temp_data_root("idempotent");
-        let first = ensure_built_in_ai_config_evidence_set(&root, "account_1", ALIAS, LEVEL)
-            .expect("first ensure");
+        let first = ensure_built_in_ai_config_evidence_set(
+            &root,
+            "account_1",
+            ALIAS,
+            LEVEL,
+            &text_binding(),
+        )
+        .expect("first ensure");
         let nimi_path = built_in_ai_config_path(&root, "account_1", "nimi").expect("path");
         let raw_before = std::fs::read_to_string(&nimi_path).expect("read before");
-        let second =
-            ensure_built_in_ai_config_evidence_set(&root, "account_1", "local-gpu", "recommended")
-                .expect("second ensure");
+        let second = ensure_built_in_ai_config_evidence_set(
+            &root,
+            "account_1",
+            "local-gpu",
+            "recommended",
+            &text_binding(),
+        )
+        .expect("second ensure");
         let raw_after = std::fs::read_to_string(&nimi_path).expect("read after");
         assert_eq!(raw_after, raw_before);
         assert_eq!(first.refs(), second.refs());
@@ -844,8 +993,14 @@ mod tests {
     #[test]
     fn generic_app_chat_scope_is_rejected_as_built_in_evidence() {
         let root = temp_data_root("generic-scope");
-        let set = ensure_built_in_ai_config_evidence_set(&root, "account_1", ALIAS, LEVEL)
-            .expect("ensure evidence set");
+        let set = ensure_built_in_ai_config_evidence_set(
+            &root,
+            "account_1",
+            ALIAS,
+            LEVEL,
+            &text_binding(),
+        )
+        .expect("ensure evidence set");
         let path = built_in_ai_config_path(&root, "account_1", "nimi").expect("path");
         let mut record = read_record(&path);
         record.scope_ref.kind = "app".to_string();
@@ -859,6 +1014,7 @@ mod tests {
             "account_1",
             "nimi",
             &set.nimi.built_in_ai_config_ref,
+            Some(&text_binding()),
         )
         .expect_err("generic app scope must fail");
         assert!(error.contains("feature shape") || error.contains("surfaceId"));
@@ -867,21 +1023,31 @@ mod tests {
     #[test]
     fn omitted_or_empty_scope_surface_id_is_rejected() {
         let root = temp_data_root("omitted-scope");
-        let set = ensure_built_in_ai_config_evidence_set(&root, "account_1", ALIAS, LEVEL)
-            .expect("ensure evidence set");
+        let set = ensure_built_in_ai_config_evidence_set(
+            &root,
+            "account_1",
+            ALIAS,
+            LEVEL,
+            &text_binding(),
+        )
+        .expect("ensure evidence set");
         let path = built_in_ai_config_path(&root, "account_1", "nimi").expect("path");
         let mut record = serde_json::to_value(read_record(&path)).expect("record json");
         record
             .get_mut("scopeRef")
             .and_then(|value| value.as_object_mut())
             .expect("scopeRef object")
-            .insert("surfaceId".to_string(), serde_json::Value::String(String::new()));
+            .insert(
+                "surfaceId".to_string(),
+                serde_json::Value::String(String::new()),
+            );
         write_json(&path, record);
         let error = verify_built_in_ai_config_ref(
             &root,
             "account_1",
             "nimi",
             &set.nimi.built_in_ai_config_ref,
+            Some(&text_binding()),
         )
         .expect_err("omitted surfaceId must fail");
         assert!(error.contains("surfaceId") || error.contains("cannot be parsed"));
@@ -895,35 +1061,56 @@ mod tests {
             "account_1",
             "nimi",
             "built-in-ai-config:v1:string-only",
+            None,
         )
         .expect_err("missing config must fail");
         assert!(missing.contains("missing or unreadable"));
 
-        let set = ensure_built_in_ai_config_evidence_set(&root, "account_1", ALIAS, LEVEL)
-            .expect("ensure evidence set");
+        let set = ensure_built_in_ai_config_evidence_set(
+            &root,
+            "account_1",
+            ALIAS,
+            LEVEL,
+            &text_binding(),
+        )
+        .expect("ensure evidence set");
         let string_only = verify_built_in_ai_config_ref(
             &root,
             "account_1",
             "nimi",
             "built-in-ai-config:v1:string-only",
+            None,
         )
         .expect_err("string-only ref must fail");
         assert!(string_only.contains("string-only"));
         // Sanity: the real ref still resolves.
-        verify_built_in_ai_config_ref(&root, "account_1", "nimi", &set.nimi.built_in_ai_config_ref)
-            .expect("real ref resolves");
+        verify_built_in_ai_config_ref(
+            &root,
+            "account_1",
+            "nimi",
+            &set.nimi.built_in_ai_config_ref,
+            Some(&text_binding()),
+        )
+        .expect("real ref resolves");
     }
 
     #[test]
     fn wrong_account_and_wrong_data_root_fail_closed() {
         let root = temp_data_root("wrong-identity");
-        let set = ensure_built_in_ai_config_evidence_set(&root, "account_1", ALIAS, LEVEL)
-            .expect("ensure evidence set");
+        let set = ensure_built_in_ai_config_evidence_set(
+            &root,
+            "account_1",
+            ALIAS,
+            LEVEL,
+            &text_binding(),
+        )
+        .expect("ensure evidence set");
         let wrong_account = verify_built_in_ai_config_ref(
             &root,
             "account_2",
             "nimi",
             &set.nimi.built_in_ai_config_ref,
+            Some(&text_binding()),
         )
         .expect_err("wrong account must fail");
         assert!(wrong_account.contains("missing or unreadable"));
@@ -934,6 +1121,7 @@ mod tests {
             "account_1",
             "nimi",
             &set.nimi.built_in_ai_config_ref,
+            Some(&text_binding()),
         )
         .expect_err("wrong data root must fail");
         assert!(wrong_root.contains("missing or unreadable"));
@@ -942,8 +1130,14 @@ mod tests {
     #[test]
     fn content_hash_and_writer_identity_tampering_fail_closed() {
         let root = temp_data_root("tamper");
-        let set = ensure_built_in_ai_config_evidence_set(&root, "account_1", ALIAS, LEVEL)
-            .expect("ensure evidence set");
+        let set = ensure_built_in_ai_config_evidence_set(
+            &root,
+            "account_1",
+            ALIAS,
+            LEVEL,
+            &text_binding(),
+        )
+        .expect("ensure evidence set");
         let path = built_in_ai_config_path(&root, "account_1", "agent").expect("path");
 
         let mut record = read_record(&path);
@@ -954,6 +1148,7 @@ mod tests {
             "account_1",
             "agent",
             &set.agent.built_in_ai_config_ref,
+            Some(&text_binding()),
         )
         .expect_err("content hash tampering must fail");
         assert!(hash_error.contains("content hash"));
@@ -967,6 +1162,7 @@ mod tests {
             "account_1",
             "agent",
             &set.agent.built_in_ai_config_ref,
+            Some(&text_binding()),
         )
         .expect_err("writer identity tampering must fail");
         assert!(writer_error.contains("writer identity"));
@@ -975,13 +1171,20 @@ mod tests {
     #[test]
     fn partial_one_of_two_built_in_set_fails_closed() {
         let root = temp_data_root("partial");
-        let set = ensure_built_in_ai_config_evidence_set(&root, "account_1", ALIAS, LEVEL)
-            .expect("ensure evidence set");
+        let set = ensure_built_in_ai_config_evidence_set(
+            &root,
+            "account_1",
+            ALIAS,
+            LEVEL,
+            &text_binding(),
+        )
+        .expect("ensure evidence set");
         // Only the nimi ref present — not a complete built-in chat set.
         let partial = verify_built_in_ai_config_evidence_set(
             &root,
             "account_1",
             std::slice::from_ref(&set.nimi.built_in_ai_config_ref),
+            Some(&text_binding()),
         )
         .expect_err("partial set must fail");
         assert!(partial.contains("exactly 2"));
@@ -994,6 +1197,7 @@ mod tests {
                 set.nimi.built_in_ai_config_ref.clone(),
                 set.nimi.built_in_ai_config_ref.clone(),
             ],
+            Some(&text_binding()),
         )
         .expect_err("duplicate scope must fail");
         assert!(duplicate.contains("duplicate") || duplicate.contains("missing"));
@@ -1002,8 +1206,14 @@ mod tests {
     #[test]
     fn string_only_set_member_fails_closed() {
         let root = temp_data_root("set-string-only");
-        let set = ensure_built_in_ai_config_evidence_set(&root, "account_1", ALIAS, LEVEL)
-            .expect("ensure evidence set");
+        let set = ensure_built_in_ai_config_evidence_set(
+            &root,
+            "account_1",
+            ALIAS,
+            LEVEL,
+            &text_binding(),
+        )
+        .expect("ensure evidence set");
         let error = verify_built_in_ai_config_evidence_set(
             &root,
             "account_1",
@@ -1011,6 +1221,7 @@ mod tests {
                 set.nimi.built_in_ai_config_ref.clone(),
                 "built-in-ai-config:v1:string-only".to_string(),
             ],
+            Some(&text_binding()),
         )
         .expect_err("string-only set member must fail");
         assert!(error.contains("does not resolve"));
@@ -1021,25 +1232,39 @@ mod tests {
         // Wave-10 invariant: replacing the Account Default Profile must not
         // mutate committed built-in AIConfig evidence.
         let root = temp_data_root("aiconfig-isolation");
-        let set = ensure_built_in_ai_config_evidence_set(&root, "account_1", ALIAS, LEVEL)
-            .expect("ensure evidence set");
-        let nimi_path = built_in_ai_config_path(&root, "account_1", "nimi").expect("path");
-        let raw_before = std::fs::read_to_string(&nimi_path).expect("read before");
-
-        let _ = crate::account_profile_library::ensure_account_default_profile(
+        let home = temp_home("aiconfig-isolation");
+        let set = ensure_built_in_ai_config_evidence_set(
             &root,
             "account_1",
             ALIAS,
             LEVEL,
+            &text_binding(),
         )
-        .expect("ensure account default profile");
+        .expect("ensure evidence set");
+        let nimi_path = built_in_ai_config_path(&root, "account_1", "nimi").expect("path");
+        let raw_before = std::fs::read_to_string(&nimi_path).expect("read before");
+
+        let home_str = home.to_str().expect("home path").to_string();
+        crate::test_support::with_env(&[("HOME", Some(home_str.as_str()))], || {
+            let _ = crate::account_profile_library::ensure_account_default_profile(
+                &root,
+                "account_1",
+                ALIAS,
+                LEVEL,
+            )
+            .expect("ensure account default profile");
+        });
 
         let raw_after = std::fs::read_to_string(&nimi_path).expect("read after");
         assert_eq!(raw_after, raw_before);
         // Built-in evidence still resolves unchanged.
-        let resolved =
-            verify_built_in_ai_config_evidence_set(&root, "account_1", &set.refs())
-                .expect("resolve after account profile");
+        let resolved = verify_built_in_ai_config_evidence_set(
+            &root,
+            "account_1",
+            &set.refs(),
+            Some(&text_binding()),
+        )
+        .expect("resolve after account profile");
         assert_eq!(resolved.refs(), set.refs());
     }
 
@@ -1052,8 +1277,9 @@ mod tests {
     #[test]
     fn ensure_single_scope_rejects_non_canonical_surface_id() {
         let root = temp_data_root("bad-surface");
-        let error = ensure_built_in_ai_config(&root, "account_1", "chat", ALIAS, LEVEL)
-            .expect_err("non-canonical surface must fail");
+        let error =
+            ensure_built_in_ai_config(&root, "account_1", "chat", ALIAS, LEVEL, &text_binding())
+                .expect_err("non-canonical surface must fail");
         assert!(error.contains("surfaceId"));
     }
 }

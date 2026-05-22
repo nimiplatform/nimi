@@ -107,7 +107,7 @@ test('first-run wizard exposes data root selection, install levels, and no mark-
 test('non-ready first-run gate renders only product-control setup, not ordinary Home surfaces', () => {
   assert.match(appRoutesSource, /features\/nimi-home\/first-run-gate-panel/);
   assert.match(appRoutesSource, /default:\s*mod\.FirstRunGatePanel/);
-  assert.match(appRoutesSource, /<FirstRunGatePanel \/>/);
+  assert.match(appRoutesSource, /<FirstRunGatePanel onReadyForUse=\{props\.onReadyForUse\} \/>/);
   assert.match(firstRunGatePanelSource, /ProductControlWorkflow/);
   for (const forbidden of [
     /AgentChatReference/,

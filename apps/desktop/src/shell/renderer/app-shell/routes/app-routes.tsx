@@ -282,7 +282,7 @@ function useDesktopOrdinaryShellAdmission(authStatus: 'bootstrapping' | 'anonymo
   return admission;
 }
 
-function DesktopFirstRunGate() {
+function DesktopFirstRunGate(props: { readonly onReadyForUse: () => void }) {
   return (
     <AmbientBackground
       variant="mesh"
@@ -290,7 +290,7 @@ function DesktopFirstRunGate() {
     >
       <div data-testid="desktop-first-run-gate" className="flex min-h-screen min-w-0">
         <Suspense fallback={<LoadingScreen />}>
-          <FirstRunGatePanel />
+          <FirstRunGatePanel onReadyForUse={props.onReadyForUse} />
         </Suspense>
       </div>
     </AmbientBackground>
@@ -298,25 +298,27 @@ function DesktopFirstRunGate() {
 }
 
 function ReadyDesktopShell() {
-  const activeTab = useAppStore((state) => state.activeTab);
   const setActiveTab = useAppStore((state) => state.setActiveTab);
 
   useEffect(() => {
-    if (activeTab !== 'chat') {
-      setActiveTab('chat');
-    }
-  }, [activeTab, setActiveTab]);
-
-  if (activeTab !== 'chat') {
-    return <LoadingScreen />;
-  }
+    setActiveTab('chat');
+  }, [setActiveTab]);
 
   return <MainLayout />;
 }
 
 function DesktopOrdinaryShellGate() {
   const authStatus = useAppStore((state) => state.auth.status);
-  const admission = useDesktopOrdinaryShellAdmission(authStatus);
+  const observedAdmission = useDesktopOrdinaryShellAdmission(authStatus);
+  const [firstRunReady, setFirstRunReady] = useState(false);
+
+  useEffect(() => {
+    if (authStatus !== 'authenticated') {
+      setFirstRunReady(false);
+    }
+  }, [authStatus]);
+
+  const admission: DesktopOrdinaryShellAdmission = firstRunReady ? 'ready' : observedAdmission;
 
   if (authStatus === 'bootstrapping') {
     return <LoadingScreen />;
@@ -328,7 +330,7 @@ function DesktopOrdinaryShellGate() {
     return <LoadingScreen />;
   }
   if (admission !== 'ready') {
-    return <DesktopFirstRunGate />;
+    return <DesktopFirstRunGate onReadyForUse={() => setFirstRunReady(true)} />;
   }
   return (
     <Suspense fallback={<LoadingScreen />}>

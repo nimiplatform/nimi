@@ -23,12 +23,8 @@ use super::ownership::{first_level_directory_names, first_level_row, is_declared
 /// builder: callers that previously hardcoded a directory list now route here
 /// so the on-disk layout cannot drift from the kernel ownership table.
 pub fn enforce_data_root_layout(root: &Path) -> Result<(), String> {
-    fs::create_dir_all(root).map_err(|error| {
-        format!(
-            "nimi_data 根目录创建失败 ({}): {error}",
-            root.display()
-        )
-    })?;
+    fs::create_dir_all(root)
+        .map_err(|error| format!("nimi_data 根目录创建失败 ({}): {error}", root.display()))?;
     for name in first_level_directory_names() {
         // P-MIG-006: a directory created under the data root must be a
         // declared first-level directory. `first_level_directory_names` is
@@ -41,12 +37,8 @@ pub fn enforce_data_root_layout(root: &Path) -> Result<(), String> {
             ));
         }
         let dir = root.join(name);
-        fs::create_dir_all(&dir).map_err(|error| {
-            format!(
-                "nimi_data 子目录创建失败 ({}): {error}",
-                dir.display()
-            )
-        })?;
+        fs::create_dir_all(&dir)
+            .map_err(|error| format!("nimi_data 子目录创建失败 ({}): {error}", dir.display()))?;
     }
     Ok(())
 }
@@ -66,9 +58,7 @@ impl DirectoryUsage {
     fn add(&mut self, other: DirectoryUsage) {
         self.total_bytes = self.total_bytes.saturating_add(other.total_bytes);
         self.file_count = self.file_count.saturating_add(other.file_count);
-        self.directory_count = self
-            .directory_count
-            .saturating_add(other.directory_count);
+        self.directory_count = self.directory_count.saturating_add(other.directory_count);
     }
 }
 
@@ -86,10 +76,7 @@ pub fn measure_directory(path: &Path) -> Result<DirectoryUsage, String> {
             return Ok(DirectoryUsage::default());
         }
         Err(error) => {
-            return Err(format!(
-                "读取目录元数据失败 ({}): {error}",
-                path.display()
-            ));
+            return Err(format!("读取目录元数据失败 ({}): {error}", path.display()));
         }
     };
     if !metadata.is_dir() {
@@ -107,12 +94,8 @@ pub fn measure_directory(path: &Path) -> Result<DirectoryUsage, String> {
         let entry =
             entry.map_err(|error| format!("遍历目录项失败 ({}): {error}", path.display()))?;
         let entry_path = entry.path();
-        let entry_metadata = fs::symlink_metadata(&entry_path).map_err(|error| {
-            format!(
-                "读取目录项元数据失败 ({}): {error}",
-                entry_path.display()
-            )
-        })?;
+        let entry_metadata = fs::symlink_metadata(&entry_path)
+            .map_err(|error| format!("读取目录项元数据失败 ({}): {error}", entry_path.display()))?;
         let file_type = entry_metadata.file_type();
         if file_type.is_symlink() {
             // Count a symlink as one file; do not descend (no loop, no escape).
@@ -204,4 +187,3 @@ pub fn scan_data_root(root: &Path) -> Result<DataRootUsageBreakdown, String> {
     breakdown.unowned_names.sort();
     Ok(breakdown)
 }
-

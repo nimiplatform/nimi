@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactElement } from 'react';
+import { useCallback, useEffect, useState, type ReactElement } from 'react';
 import { desktopBridge, type ProductControlRecordProjection } from '@renderer/bridge';
 import { ProductControlWorkflow } from '../../first-run/index.js';
 
@@ -47,12 +47,33 @@ function useProductControlRecord(): {
   return { projection, setProjection };
 }
 
-export function FirstRunGatePanel(): ReactElement {
+type FirstRunGatePanelProps = {
+  readonly onReadyForUse?: () => void;
+};
+
+export function FirstRunGatePanel(props: FirstRunGatePanelProps): ReactElement {
   const { projection, setProjection } = useProductControlRecord();
+  const onReadyForUse = props.onReadyForUse;
+
+  useEffect(() => {
+    if (projection?.state === 'ready_for_use') {
+      onReadyForUse?.();
+    }
+  }, [projection?.state, onReadyForUse]);
+
+  const updateProjection = useCallback(
+    (next: ProductControlRecordProjection): void => {
+      setProjection(next);
+      if (next.state === 'ready_for_use') {
+        onReadyForUse?.();
+      }
+    },
+    [onReadyForUse, setProjection],
+  );
 
   return (
     <div data-testid="first-run-gate-panel" className="flex min-h-0 flex-1 flex-col">
-      <ProductControlWorkflow projection={projection} onProjectionChange={setProjection} />
+      <ProductControlWorkflow projection={projection} onProjectionChange={updateProjection} />
     </div>
   );
 }

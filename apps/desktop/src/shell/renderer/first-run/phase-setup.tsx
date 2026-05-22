@@ -37,6 +37,35 @@ function stepLabel(t: TFunction, id: FirstRunSetupStepId): string {
   return t(`FirstRun.setup.steps.${id}`, { defaultValue: STEP_LABEL_DEFAULTS[id] });
 }
 
+/** Formats a byte count into a compact human-readable size. */
+function formatBytes(bytes: number): string {
+  if (!Number.isFinite(bytes) || bytes <= 0) return '0 B';
+  const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+  let value = bytes;
+  let unit = 0;
+  while (value >= 1024 && unit < units.length - 1) {
+    value /= 1024;
+    unit += 1;
+  }
+  return `${value >= 100 || unit === 0 ? Math.round(value) : value.toFixed(1)} ${units[unit]}`;
+}
+
+/** Formats a remaining-seconds count into a compact `Nm Ns` / `Ns` string. */
+function formatEta(seconds: number): string {
+  const total = Math.max(0, Math.round(seconds));
+  if (total >= 3600) {
+    const hours = Math.floor(total / 3600);
+    const minutes = Math.round((total % 3600) / 60);
+    return minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`;
+  }
+  if (total >= 60) {
+    const minutes = Math.floor(total / 60);
+    const secs = total % 60;
+    return secs > 0 ? `${minutes}m ${secs}s` : `${minutes}m`;
+  }
+  return `${total}s`;
+}
+
 type SetupActionHandlers = {
   readonly onRetry: (dependency: FirstRunMaterializationDependencyProjection) => void;
   readonly onRepair: (dependency: FirstRunMaterializationDependencyProjection) => void;
@@ -71,7 +100,12 @@ function StepRow(props: {
     icon = <EmptyCircleIcon className="h-5 w-5 text-[color-mix(in_srgb,var(--nimi-text-muted)_50%,transparent)]" />;
   }
 
+  // Action affordances and the red error indicator are gated on a genuine
+  // typed failure only. An `active` (queued / downloading / verifying /
+  // installing) step is in progress — it never renders red and never offers
+  // Retry / Repair.
   const failing = step.status === 'failed' && step.failingDependency;
+  const progress = step.status === 'active' ? step.downloadProgress : null;
 
   return (
     <li
@@ -92,7 +126,60 @@ function StepRow(props: {
         >
           {stepLabel(t, step.id)}
         </span>
+        {progress && progress.percent !== null ? (
+          <span
+            data-testid={`first-run-setup-step-${step.id}-percent`}
+            className="ml-auto text-sm tabular-nums text-[var(--nimi-text-secondary)]"
+          >
+            {progress.percent}%
+          </span>
+        ) : null}
       </div>
+
+      {progress ? (
+        <div
+          data-testid={`first-run-setup-step-${step.id}-progress`}
+          data-progress-determinate={progress.percent !== null ? 'true' : 'false'}
+          className="ml-8 flex flex-col gap-1"
+        >
+          {progress.percent !== null ? (
+            <ProgressIndicator value={progress.percent} />
+          ) : (
+            <div
+              className="nimi-progress__track h-2 w-full overflow-hidden rounded-full bg-[var(--nimi-surface-active)]"
+              role="progressbar"
+              aria-valuemin={0}
+              aria-valuemax={100}
+            >
+              <div className="nimi-progress__bar h-full w-1/3 animate-pulse rounded-full bg-[var(--nimi-action-primary-bg)]" />
+            </div>
+          )}
+          <span className="text-xs tabular-nums text-[var(--nimi-text-muted)]">
+            {progress.percent !== null
+              ? t('FirstRun.setup.progressOf', {
+                  defaultValue: '{{received}} of {{total}}',
+                  received: formatBytes(progress.bytesReceived),
+                  total: formatBytes(progress.bytesTotal),
+                })
+              : t('FirstRun.setup.progressReceived', {
+                  defaultValue: '{{received}} downloaded',
+                  received: formatBytes(progress.bytesReceived),
+                })}
+            {progress.speedBytesPerSec !== null
+              ? ` · ${t('FirstRun.setup.progressRate', {
+                  defaultValue: '{{rate}}/s',
+                  rate: formatBytes(progress.speedBytesPerSec),
+                })}`
+              : ''}
+            {progress.etaSeconds !== null
+              ? ` · ${t('FirstRun.setup.progressEta', {
+                  defaultValue: '{{eta}} left',
+                  eta: formatEta(progress.etaSeconds),
+                })}`
+              : ''}
+          </span>
+        </div>
+      ) : null}
 
       {failing ? (
         <div className="ml-8 flex flex-wrap gap-2">

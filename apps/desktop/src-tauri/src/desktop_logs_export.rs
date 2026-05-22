@@ -115,15 +115,14 @@ pub fn export_logs_archive(logs_dir: &Path, output_dir: &Path) -> Result<LogsExp
         )
     })?;
     let mut writer = zip::ZipWriter::new(archive_file);
-    let options = SimpleFileOptions::default()
-        .compression_method(zip::CompressionMethod::Deflated);
+    let options = SimpleFileOptions::default().compression_method(zip::CompressionMethod::Deflated);
 
     let mut byte_size: u64 = 0;
     for entry in &files {
         let archive_name = entry.archive_name.as_str();
-        writer
-            .start_file(archive_name, options)
-            .map_err(|error| format!("LOGS_EXPORT_ARCHIVE_ENTRY_FAILED: {archive_name}: {error}"))?;
+        writer.start_file(archive_name, options).map_err(|error| {
+            format!("LOGS_EXPORT_ARCHIVE_ENTRY_FAILED: {archive_name}: {error}")
+        })?;
         let mut source = fs::File::open(&entry.absolute_path).map_err(|error| {
             format!(
                 "LOGS_EXPORT_LOG_FILE_UNREADABLE: {}: {error}",
@@ -168,11 +167,7 @@ struct LogFileEntry {
 /// Recursively collect every regular file under `dir`, recording its path
 /// relative to `root` as the archive entry name. Symlinks are skipped so the
 /// archive never escapes the logs tree.
-fn collect_log_files(
-    root: &Path,
-    dir: &Path,
-    out: &mut Vec<LogFileEntry>,
-) -> Result<(), String> {
+fn collect_log_files(root: &Path, dir: &Path, out: &mut Vec<LogFileEntry>) -> Result<(), String> {
     let read_dir = fs::read_dir(dir).map_err(|error| {
         format!(
             "LOGS_EXPORT_LOGS_DIR_UNREADABLE: 无法读取日志目录 {}: {error}",
@@ -180,8 +175,7 @@ fn collect_log_files(
         )
     })?;
     for entry in read_dir {
-        let entry = entry
-            .map_err(|error| format!("LOGS_EXPORT_LOGS_DIR_ENTRY_FAILED: {error}"))?;
+        let entry = entry.map_err(|error| format!("LOGS_EXPORT_LOGS_DIR_ENTRY_FAILED: {error}"))?;
         let path = entry.path();
         let file_type = entry
             .file_type()
@@ -192,9 +186,9 @@ fn collect_log_files(
         if file_type.is_dir() {
             collect_log_files(root, &path, out)?;
         } else if file_type.is_file() {
-            let relative = path.strip_prefix(root).map_err(|error| {
-                format!("LOGS_EXPORT_RELATIVE_PATH_FAILED: {error}")
-            })?;
+            let relative = path
+                .strip_prefix(root)
+                .map_err(|error| format!("LOGS_EXPORT_RELATIVE_PATH_FAILED: {error}"))?;
             let archive_name = relative
                 .components()
                 .map(|component| component.as_os_str().to_string_lossy())
@@ -219,7 +213,10 @@ fn collect_log_files(
 fn reveal_in_os(path: &Path) {
     #[cfg(target_os = "macos")]
     {
-        let _ = std::process::Command::new("open").arg("-R").arg(path).spawn();
+        let _ = std::process::Command::new("open")
+            .arg("-R")
+            .arg(path)
+            .spawn();
     }
     #[cfg(target_os = "windows")]
     {
@@ -266,10 +263,19 @@ mod tests {
         let result = export_logs_archive(&logs_dir, &output_dir).expect("export succeeds");
 
         assert_eq!(result.file_count, 2);
-        assert_eq!(result.byte_size, b"runtime line\n".len() as u64 + b"net line\n".len() as u64);
+        assert_eq!(
+            result.byte_size,
+            b"runtime line\n".len() as u64 + b"net line\n".len() as u64
+        );
         let artifact = PathBuf::from(&result.artifact_path);
-        assert!(artifact.exists(), "artifact must be written to a locatable path");
-        assert!(artifact.starts_with(&output_dir), "artifact lands in the output dir");
+        assert!(
+            artifact.exists(),
+            "artifact must be written to a locatable path"
+        );
+        assert!(
+            artifact.starts_with(&output_dir),
+            "artifact lands in the output dir"
+        );
         let file_name = artifact.file_name().unwrap().to_string_lossy().to_string();
         assert!(file_name.starts_with(EXPORT_FILE_PREFIX));
         assert!(file_name.ends_with(".zip"));
@@ -294,10 +300,16 @@ mod tests {
         let error = export_logs_archive(&logs_dir, &output_dir)
             .expect_err("missing logs directory must fail closed");
 
-        assert!(error.starts_with("LOGS_EXPORT_LOGS_DIR_MISSING"), "got: {error}");
+        assert!(
+            error.starts_with("LOGS_EXPORT_LOGS_DIR_MISSING"),
+            "got: {error}"
+        );
         // No artifact must be fabricated on the fail-closed path.
         let produced: Vec<_> = fs::read_dir(&output_dir).unwrap().collect();
-        assert!(produced.is_empty(), "fail-closed export must not write an artifact");
+        assert!(
+            produced.is_empty(),
+            "fail-closed export must not write an artifact"
+        );
     }
 
     #[test]
@@ -311,8 +323,14 @@ mod tests {
         let error = export_logs_archive(&logs_dir, &output_dir)
             .expect_err("empty logs directory must fail closed");
 
-        assert!(error.starts_with("LOGS_EXPORT_LOGS_DIR_EMPTY"), "got: {error}");
+        assert!(
+            error.starts_with("LOGS_EXPORT_LOGS_DIR_EMPTY"),
+            "got: {error}"
+        );
         let produced: Vec<_> = fs::read_dir(&output_dir).unwrap().collect();
-        assert!(produced.is_empty(), "empty-logs export must not write an artifact");
+        assert!(
+            produced.is_empty(),
+            "empty-logs export must not write an artifact"
+        );
     }
 }

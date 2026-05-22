@@ -208,6 +208,9 @@ export function parseLocalRuntimeEnvironmentSelectedSourceRecord(value: unknown)
 
 export function parseLocalRuntimeEnvironmentDependencyJob(value: unknown): LocalRuntimeEnvironmentDependencyJob {
   const record = asRecord(value);
+  // K-RPC-025 progress fields. The proto int64s arrive as strings over the
+  // bridge; clamp every field to a non-negative finite number and fall back to
+  // 0 (absent) on any non-numeric value — never a fabricated estimate.
   return {
     jobId: asString(record.jobId),
     environmentKey: asString(record.environmentKey),
@@ -221,7 +224,23 @@ export function parseLocalRuntimeEnvironmentDependencyJob(value: unknown): Local
     retryable: Boolean(record.retryable),
     createdAt: asString(record.createdAt) || undefined,
     updatedAt: asString(record.updatedAt) || undefined,
+    bytesReceived: nonNegativeNumber(record.bytesReceived),
+    bytesTotal: nonNegativeNumber(record.bytesTotal),
+    percent: clampPercent(record.percent),
+    speedBytesPerSec: nonNegativeNumber(record.speedBytesPerSec),
+    etaSeconds: nonNegativeNumber(record.etaSeconds),
   };
+}
+
+function nonNegativeNumber(value: unknown): number {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
+}
+
+function clampPercent(value: unknown): number {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed <= 0) return 0;
+  return parsed >= 100 ? 100 : Math.round(parsed);
 }
 
 export function parseLocalRuntimeEnvironmentActivationGate(value: unknown): LocalRuntimeEnvironmentActivationGate {

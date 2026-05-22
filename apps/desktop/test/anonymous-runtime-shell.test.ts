@@ -31,7 +31,7 @@ test('Gate 7 ready entry: desktop router gates root ordinary shell', () => {
 test('Gate 7 ready entry: root gate consumes product control readiness', () => {
   assert.match(appRoutesSource, /desktopBridge\.getProductControlRecord\(\)/);
   assert.match(appRoutesSource, /projection\.state === 'ready_for_use'/);
-  assert.match(appRoutesSource, /<DesktopFirstRunGate \/>/);
+  assert.match(appRoutesSource, /<DesktopFirstRunGate onReadyForUse=\{\(\) => setFirstRunReady\(true\)\} \/>/);
 });
 
 test('Gate 7 ready entry: legacy topbar login id remains a selector only', () => {

@@ -36,8 +36,10 @@ pub const ACCOUNT_GRANTS_SCHEMA_VERSION: u32 = 1;
 
 /// Governed config-file identity for the account app-library projection
 /// (`local-config-file-registry.yaml` row `library_json`).
-const LIBRARY_CONFIG_FILE: GovernedConfigFile =
-    GovernedConfigFile::new("library_json", "~/.nimi/accounts/<account-id>/apps/library.json");
+const LIBRARY_CONFIG_FILE: GovernedConfigFile = GovernedConfigFile::new(
+    "library_json",
+    "~/.nimi/accounts/<account-id>/apps/library.json",
+);
 
 /// The shared-framework migration registry for `library.json`.
 ///
@@ -300,8 +302,12 @@ fn write_app_library_record(
             tmp_path.display()
         )
     })?;
-    std::fs::rename(&tmp_path, path)
-        .map_err(|error| format!("commit library.json record failed ({}): {error}", path.display()))
+    std::fs::rename(&tmp_path, path).map_err(|error| {
+        format!(
+            "commit library.json record failed ({}): {error}",
+            path.display()
+        )
+    })
 }
 
 /// Apply a lifecycle mutation to one app row in an account's `library.json`.
@@ -532,20 +538,15 @@ pub fn read_account_grants_governed(
 ) -> Result<ConfigReadOutcome<AccountGrantsProjection>, String> {
     let normalized = validate_account_id(account_id)?;
     let path = account_grants_path(&normalized)?;
-    read_governed_config(
-        &GRANTS_CONFIG_FILE,
-        &path,
-        &GRANTS_MIGRATIONS,
-        |document| {
-            let record: AccountGrantsRecord = serde_json::from_value(document.clone())
-                .map_err(|error| format!("grants.json cannot be deserialized: {error}"))?;
-            validate_grants_record_freshness(&record, &normalized)?;
-            Ok(AccountGrantsProjection {
-                account_id: record.account_id,
-                grants: record.grants,
-            })
-        },
-    )
+    read_governed_config(&GRANTS_CONFIG_FILE, &path, &GRANTS_MIGRATIONS, |document| {
+        let record: AccountGrantsRecord = serde_json::from_value(document.clone())
+            .map_err(|error| format!("grants.json cannot be deserialized: {error}"))?;
+        validate_grants_record_freshness(&record, &normalized)?;
+        Ok(AccountGrantsProjection {
+            account_id: record.account_id,
+            grants: record.grants,
+        })
+    })
 }
 
 /// Read the permission/grant projection for an account, failing closed.
@@ -709,8 +710,15 @@ mod tests {
                 AccountAppLibraryMutation::UninstalledKeepRecord,
             )
             .expect("uninstall mutation");
-            assert_eq!(uninstalled.apps.len(), 1, "library record kept on uninstall");
-            assert!(!uninstalled.apps[0].installed, "package no longer installed");
+            assert_eq!(
+                uninstalled.apps.len(),
+                1,
+                "library record kept on uninstall"
+            );
+            assert!(
+                !uninstalled.apps[0].installed,
+                "package no longer installed"
+            );
             assert_eq!(uninstalled.apps[0].library_state, "enabled");
 
             // The committed file round-trips through the governed reader.
@@ -759,7 +767,11 @@ mod tests {
                 AccountAppLibraryMutation::InstalledEnabled,
             )
             .expect("repeated install mutation");
-            assert_eq!(second.apps.len(), 1, "repeated install converges to one row");
+            assert_eq!(
+                second.apps.len(),
+                1,
+                "repeated install converges to one row"
+            );
         });
     }
 

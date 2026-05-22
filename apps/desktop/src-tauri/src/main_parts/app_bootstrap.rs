@@ -319,6 +319,7 @@ fn build_desktop_app() -> Result<tauri::App<tauri::Wry>, tauri::Error> {
             crate::desktop_product_control::product_control_record_set_first_run_install_level,
             crate::desktop_product_control::product_control_record_ensure_account_default_profile,
             crate::desktop_product_control::product_control_record_ensure_built_in_ai_config,
+            crate::desktop_product_control::product_control_record_prepare_first_run_local_ai_ready,
             crate::desktop_product_control::account_default_profile_for_scope_init,
             crate::account_profile_library_commands::account_profile_library_list,
             crate::account_profile_library_commands::account_profile_library_create,

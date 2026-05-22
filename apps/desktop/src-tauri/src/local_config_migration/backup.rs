@@ -67,8 +67,12 @@ pub fn backup_and_rewrite(
 /// Atomically write `bytes` to `path` via a unique temp file + rename.
 fn write_atomic(path: &Path, bytes: &[u8]) -> Result<(), String> {
     if let Some(parent) = path.parent() {
-        fs::create_dir_all(parent)
-            .map_err(|error| format!("create parent directory failed ({}): {error}", parent.display()))?;
+        fs::create_dir_all(parent).map_err(|error| {
+            format!(
+                "create parent directory failed ({}): {error}",
+                parent.display()
+            )
+        })?;
     }
     let tmp_path = path.with_extension(format!(
         "{}.tmp.{}.{}",

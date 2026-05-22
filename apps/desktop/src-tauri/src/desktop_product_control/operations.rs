@@ -20,6 +20,33 @@ use super::record_store::{
     write_record,
 };
 
+async fn runtime_bridge_unary_decode<Req, Resp>(
+    method_id: &str,
+    request: Req,
+    timeout_ms: Option<u64>,
+) -> Result<Resp, String>
+where
+    Req: Message,
+    Resp: Message + Default,
+{
+    let payload = crate::runtime_bridge::RuntimeBridgeUnaryPayload {
+        method_id: method_id.to_string(),
+        request_bytes_base64: base64::engine::general_purpose::STANDARD
+            .encode(request.encode_to_vec()),
+        metadata: None,
+        authorization: None,
+        protected_access_token: None,
+        app_session: None,
+        timeout_ms,
+    };
+    let result = crate::runtime_bridge::runtime_bridge_unary(payload).await?;
+    let bytes = base64::engine::general_purpose::STANDARD
+        .decode(result.response_bytes_base64.trim())
+        .map_err(|_| format!("{method_id} response could not be decoded"))?;
+    Resp::decode(bytes.as_slice())
+        .map_err(|error| format!("{method_id} response was invalid: {error}"))
+}
+
 pub fn select_product_data_root(path: &str) -> Result<ProductControlRecordProjection, String> {
     let trimmed = path.trim();
     if trimmed.is_empty() {
@@ -149,7 +176,9 @@ pub fn set_first_run_install_level(
 }
 
 pub(crate) async fn authenticated_runtime_account_id() -> Result<String, String> {
-    let request = crate::runtime_bridge::generated::GetAccountSessionStatusRequest { caller: None };
+    let request = crate::runtime_bridge::generated::GetAccountSessionStatusRequest {
+        caller: Some(product_control_runtime_account_caller()),
+    };
     let payload = crate::runtime_bridge::RuntimeBridgeUnaryPayload {
         method_id: "/nimi.runtime.v1.RuntimeAccountService/GetAccountSessionStatus".to_string(),
         request_bytes_base64: base64::engine::general_purpose::STANDARD
@@ -180,6 +209,16 @@ pub(crate) async fn authenticated_runtime_account_id() -> Result<String, String>
             "authenticated Runtime account session did not include account_id".to_string()
         })?;
     Ok(account_id)
+}
+
+fn product_control_runtime_account_caller() -> crate::runtime_bridge::generated::AccountCaller {
+    crate::runtime_bridge::generated::AccountCaller {
+        app_id: "nimi.desktop".to_string(),
+        app_instance_id: "nimi.desktop.local-first-party".to_string(),
+        device_id: "desktop-shell".to_string(),
+        mode: crate::runtime_bridge::generated::AccountCallerMode::DesktopShell as i32,
+        scopes: Vec::new(),
+    }
 }
 
 pub async fn ensure_account_default_profile_for_product_control(
@@ -247,10 +286,7 @@ pub async fn read_account_default_profile_for_scope_init(
         "selected nimi_data is required before Account Default Profile".to_string()
     })?;
     let account_id = authenticated_runtime_account_id().await?;
-    crate::account_profile_library::read_account_default_profile_ai_profile(
-        &data_root,
-        &account_id,
-    )
+    crate::account_profile_library::read_account_default_profile_ai_profile(&data_root, &account_id)
 }
 
 pub async fn ensure_built_in_ai_config_for_product_control(
@@ -267,8 +303,93 @@ pub async fn ensure_built_in_ai_config_for_product_control(
         .as_deref()
         .map(str::trim)
         .filter(|value| !value.is_empty())
+        .ok_or_else(|| "first-run install level is required before built-in AIConfig".to_string())?
+        .to_string();
+    let ai_profile_alias = record
+        .first_run
+        .ai_profile_alias
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .ok_or_else(|| "first-run aiProfileAlias is required before built-in AIConfig".to_string())?
+        .to_string();
+    crate::platform_ai_profile_factory_catalog::verify_first_run_factory_ai_profile(
+        &ai_profile_alias,
+        &install_level,
+    )?;
+    let account_id = authenticated_runtime_account_id().await?;
+    let runtime_baseline_ref = record
+        .first_run
+        .runtime_baseline_ref
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
         .ok_or_else(|| {
-            "first-run install level is required before built-in AIConfig".to_string()
+            "runtimeBaselineRef is required before built-in AIConfig materialization".to_string()
+        })?
+        .to_string();
+    let baseline_response: crate::runtime_bridge::generated::ResolveRuntimeBaselineReadinessResponse =
+        runtime_bridge_unary_decode(
+            "/nimi.runtime.v1.RuntimeLocalService/ResolveRuntimeBaselineReadiness",
+            crate::runtime_bridge::generated::ResolveRuntimeBaselineReadinessRequest {
+                runtime_baseline_ref,
+                host_profile: None,
+            },
+            Some(60_000),
+        )
+        .await?;
+    if baseline_response.state.trim() != "ready" {
+        return Err(format!(
+            "runtimeBaselineRef must resolve ready before built-in AIConfig materialization (state={}, reason={})",
+            baseline_response.state.trim(),
+            baseline_response.reason_code.trim(),
+        ));
+    }
+    let baseline_ref = baseline_response
+        .r#ref
+        .ok_or_else(|| "Runtime baseline readiness response did not include ref".to_string())?;
+    let text_binding =
+        crate::desktop_ai_config_library::runtime_text_generate_binding_from_baseline_ref(
+            &baseline_ref,
+        )?;
+    let evidence_set = crate::desktop_ai_config_library::ensure_built_in_ai_config_evidence_set(
+        &data_root,
+        &account_id,
+        &ai_profile_alias,
+        &install_level,
+        &text_binding,
+    )?;
+    record.first_run.built_in_ai_config_refs = evidence_set.refs();
+    write_record(&control_path, &record)?;
+    read_product_control_projection()
+}
+
+fn first_run_factory_profile_ref(install_level: &str) -> String {
+    format!(
+        "aiprofile/nimi.first-run.local-factory.{}@1",
+        install_level.trim().to_lowercase()
+    )
+}
+
+pub async fn prepare_first_run_local_ai_ready_for_product_control(
+) -> Result<ProductControlRecordProjection, String> {
+    ensure_account_default_profile_for_product_control().await?;
+
+    let control_path = product_control_record_path()?;
+    let mut record = read_existing_record(&control_path)?.ok_or_else(|| {
+        "~/.nimi/nimi.json is missing; select nimi_data before local AI finalization".to_string()
+    })?;
+    let data_root = selected_data_root_path(&record)
+        .ok_or_else(|| "selected nimi_data is required before local AI finalization".to_string())?;
+    let account_id = authenticated_runtime_account_id().await?;
+    let install_level = record
+        .first_run
+        .install_level
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .ok_or_else(|| {
+            "first-run install level is required before local AI finalization".to_string()
         })?
         .to_string();
     let ai_profile_alias = record
@@ -278,23 +399,142 @@ pub async fn ensure_built_in_ai_config_for_product_control(
         .map(str::trim)
         .filter(|value| !value.is_empty())
         .ok_or_else(|| {
-            "first-run aiProfileAlias is required before built-in AIConfig".to_string()
+            "first-run aiProfileAlias is required before local AI finalization".to_string()
         })?
         .to_string();
-    crate::platform_ai_profile_factory_catalog::verify_first_run_factory_ai_profile(
-        &ai_profile_alias,
-        &install_level,
-    )?;
-    let account_id = authenticated_runtime_account_id().await?;
+    let factory_row =
+        crate::platform_ai_profile_factory_catalog::verify_first_run_factory_ai_profile(
+            &ai_profile_alias,
+            &install_level,
+        )?;
+
+    let profile_response: crate::runtime_bridge::generated::CollectDeviceProfileResponse =
+        runtime_bridge_unary_decode(
+            "/nimi.runtime.v1.RuntimeLocalService/CollectDeviceProfile",
+            crate::runtime_bridge::generated::CollectDeviceProfileRequest {
+                extra_ports: Vec::new(),
+            },
+            Some(10_000),
+        )
+        .await?;
+    let host_profile = profile_response
+        .profile
+        .ok_or_else(|| "Runtime did not return a device profile".to_string())?;
+    let selected_factory_ref = first_run_factory_profile_ref(&install_level);
+    let data_root_ref = data_root.display().to_string();
+
+    let baseline_response: crate::runtime_bridge::generated::MintRuntimeBaselineReadinessResponse =
+        runtime_bridge_unary_decode(
+            "/nimi.runtime.v1.RuntimeLocalService/MintRuntimeBaselineReadiness",
+            crate::runtime_bridge::generated::MintRuntimeBaselineReadinessRequest {
+                selected_local_factory_ai_profile_ref: selected_factory_ref.clone(),
+                install_level: install_level.clone(),
+                runtime_data_root_or_data_root_ref: data_root_ref.clone(),
+                host_profile: Some(host_profile.clone()),
+                baseline_consumers: Vec::new(),
+            },
+            Some(60_000),
+        )
+        .await?;
+    if baseline_response.state.trim() != "ready" {
+        return Err(format!(
+            "runtimeBaselineRef mint failed (state={}, reason={}): {}",
+            baseline_response.state.trim(),
+            baseline_response.reason_code.trim(),
+            baseline_response.detail.trim()
+        ));
+    }
+    let baseline_ref = baseline_response.r#ref.clone().ok_or_else(|| {
+        "Runtime baseline readiness response did not include runtimeBaselineRef".to_string()
+    })?;
+    let runtime_baseline_ref = Some(baseline_ref.runtime_baseline_ref.trim().to_string())
+        .filter(|value| !value.is_empty())
+        .ok_or_else(|| {
+            "Runtime baseline readiness response did not include runtimeBaselineRef".to_string()
+        })?;
+    let text_binding =
+        crate::desktop_ai_config_library::runtime_text_generate_binding_from_baseline_ref(
+            &baseline_ref,
+        )?;
     let evidence_set = crate::desktop_ai_config_library::ensure_built_in_ai_config_evidence_set(
         &data_root,
         &account_id,
         &ai_profile_alias,
         &install_level,
+        &text_binding,
     )?;
+    let recommended_capabilities = recommended_first_run_capabilities(factory_row, &install_level);
+
+    let execution_response: crate::runtime_bridge::generated::MintFirstRunExecutionEvidenceResponse =
+        runtime_bridge_unary_decode(
+            "/nimi.runtime.v1.RuntimeLocalService/MintFirstRunExecutionEvidence",
+            crate::runtime_bridge::generated::MintFirstRunExecutionEvidenceRequest {
+                runtime_baseline_ref: runtime_baseline_ref.clone(),
+                selected_local_factory_ai_profile_ref: selected_factory_ref,
+                install_level: install_level.clone(),
+                data_root_ref: data_root_ref.clone(),
+                host_profile: Some(host_profile),
+                recommended_capabilities,
+                submit_scheduling_evaluated: false,
+            },
+            Some(120_000),
+        )
+        .await?;
+    let expected_execution_state = product_control_state_wire_value(ProductControlState::LocalAiReady)?;
+    if execution_response.state.trim() != expected_execution_state.as_str() {
+        return Err(format!(
+            "executionEvidenceRef mint failed (state={}, reason={}): {}",
+            execution_response.state.trim(),
+            execution_response.reason_code.trim(),
+            execution_response.detail.trim()
+        ));
+    }
+    let execution_evidence_ref = execution_response
+        .r#ref
+        .as_ref()
+        .map(|value| value.execution_evidence_ref.trim().to_string())
+        .filter(|value| !value.is_empty())
+        .ok_or_else(|| {
+            "Runtime execution evidence response did not include executionEvidenceRef".to_string()
+        })?;
+
+    record.first_run.runtime_baseline_ref = Some(runtime_baseline_ref);
     record.first_run.built_in_ai_config_refs = evidence_set.refs();
+    record.first_run.execution_evidence_ref = Some(execution_evidence_ref);
+    record.state = ProductControlState::LocalAiReady;
+    if let Some(data_root) = record.data_root.as_mut() {
+        data_root.status = ProductDataRootStatus::Ready;
+        data_root.verified_at = now_iso_timestamp();
+        data_root.verified_at_unix_ms = now_unix_ms();
+    }
+    record.repair = ProductRepairRecord::default();
     write_record(&control_path, &record)?;
     read_product_control_projection()
+}
+
+fn recommended_first_run_capabilities(
+    row: &crate::platform_ai_profile_factory_catalog::PlatformAIProfileFactoryRow,
+    install_level: &str,
+) -> Vec<String> {
+    if install_level.trim() != "recommended" {
+        return Vec::new();
+    }
+    let minimal_floor = ["text.generate", "audio.transcribe", "audio.synthesize"];
+    row.capability_set
+        .iter()
+        .copied()
+        .filter(|capability| !minimal_floor.contains(capability))
+        .map(str::to_string)
+        .collect()
+}
+
+fn product_control_state_wire_value(state: ProductControlState) -> Result<String, String> {
+    let value = serde_json::to_value(state)
+        .map_err(|error| format!("failed to serialize product-control state: {error}"))?;
+    value
+        .as_str()
+        .map(str::to_string)
+        .ok_or_else(|| "product-control state did not serialize to a string".to_string())
 }
 
 /// Resolve + verify the recorded `builtInAiConfigRefs` through the Desktop host
@@ -313,11 +553,13 @@ pub fn resolve_built_in_ai_config_refs_for_admission(
     data_root: &Path,
     authenticated_account_id: &str,
     built_in_ai_config_refs: &[String],
+    expected_text_generate_binding: Option<&serde_json::Value>,
 ) -> Result<crate::desktop_ai_config_library::BuiltInAiConfigEvidenceSet, String> {
     crate::desktop_ai_config_library::verify_built_in_ai_config_evidence_set(
         data_root,
         authenticated_account_id,
         built_in_ai_config_refs,
+        expected_text_generate_binding,
     )
 }
 
@@ -385,4 +627,19 @@ pub fn set_first_run_setup_state(
     }
     write_record(&control_path, &record)?;
     read_product_control_projection()
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn product_control_account_resolution_uses_admitted_desktop_caller() {
+        let caller = super::product_control_runtime_account_caller();
+        assert_eq!(caller.app_id, "nimi.desktop");
+        assert_eq!(caller.app_instance_id, "nimi.desktop.local-first-party");
+        assert_eq!(caller.device_id, "desktop-shell");
+        assert_eq!(
+            caller.mode,
+            crate::runtime_bridge::generated::AccountCallerMode::DesktopShell as i32
+        );
+    }
 }

@@ -251,6 +251,7 @@ test('DataSync clears Desktop auth projection for Realm AUTH_REQUIRED responses'
   clearHotState();
   let clearAuthCalls = 0;
   let stopAllPollingCalls = 0;
+  const lifecycle: string[] = [];
   const dataSync = new DataSync();
   dataSync.initApi({
     realmBaseUrl: 'https://realm.example',
@@ -258,14 +259,18 @@ test('DataSync clears Desktop auth projection for Realm AUTH_REQUIRED responses'
   });
   dataSync.setAuthCallbacks({
     setAuth: () => undefined,
-    clearAuth: () => {
+    clearAuth: async () => {
+      lifecycle.push('clearAuth:start');
+      await Promise.resolve();
       clearAuthCalls += 1;
+      lifecycle.push('clearAuth:done');
     },
     getCurrentUser: () => ({ id: 'user-1' }),
     isFriend: () => false,
   });
   dataSync.stopAllPolling = (() => {
     stopAllPollingCalls += 1;
+    lifecycle.push('stopAllPolling');
   }) as typeof dataSync.stopAllPolling;
   const authRequired = Object.assign(new Error('Authentication required'), {
     code: ReasonCode.AUTH_TOKEN_INVALID,
@@ -284,6 +289,7 @@ test('DataSync clears Desktop auth projection for Realm AUTH_REQUIRED responses'
 
   assert.equal(clearAuthCalls, 1);
   assert.equal(stopAllPollingCalls, 1);
+  assert.deepEqual(lifecycle, ['clearAuth:start', 'clearAuth:done', 'stopAllPolling']);
   const hotState = readDataSyncHotState();
   assert.equal(hotState?.accessToken, '');
   assert.equal(hotState?.refreshToken, '');

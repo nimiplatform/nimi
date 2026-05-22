@@ -194,8 +194,9 @@ fn project_evidence_file(path: &Path) -> Result<Option<AppsPackageRow>, String> 
 /// scanned. An app with no install evidence simply contributes no package row.
 pub fn build_apps_packages_record() -> Result<AppsPackagesRecord, String> {
     let data_root = selected_product_data_root()?;
-    let registry = read_apps_registry()?
-        .ok_or_else(|| "~/.nimi/apps/registry.json is required before package projection".to_string())?;
+    let registry = read_apps_registry()?.ok_or_else(|| {
+        "~/.nimi/apps/registry.json is required before package projection".to_string()
+    })?;
     let mut packages = Vec::new();
     for app in &registry.apps {
         let releases_root = data_root.join("apps").join(&app.app_id).join("releases");
@@ -360,8 +361,8 @@ pub fn apps_packages_get() -> Result<AppsPackagesProjection, String> {
 #[cfg(test)]
 mod tests {
     use super::{
-        apps_packages_path, ensure_apps_packages, read_apps_packages_governed,
-        AppsPackagesRecord, APPS_PACKAGES_POINTER, APPS_PACKAGES_SCHEMA_VERSION,
+        apps_packages_path, ensure_apps_packages, read_apps_packages_governed, AppsPackagesRecord,
+        APPS_PACKAGES_POINTER, APPS_PACKAGES_SCHEMA_VERSION,
     };
     use crate::desktop_product_control::select_product_data_root;
     use crate::local_config_migration::{ConfigReadOutcome, ConfigRepairSeverity};

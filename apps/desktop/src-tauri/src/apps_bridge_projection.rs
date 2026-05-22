@@ -345,9 +345,12 @@ mod tests {
 
     #[test]
     fn derive_storage_roots_resolves_app_root_siblings() {
-        let roots = derive_storage_roots("/data/apps/nimi.parentos/releases/1.0.0")
-            .expect("storage roots");
-        assert_eq!(roots.release_root, "/data/apps/nimi.parentos/releases/1.0.0");
+        let roots =
+            derive_storage_roots("/data/apps/nimi.parentos/releases/1.0.0").expect("storage roots");
+        assert_eq!(
+            roots.release_root,
+            "/data/apps/nimi.parentos/releases/1.0.0"
+        );
         assert_eq!(roots.data_root, "/data/apps/nimi.parentos/data");
         assert_eq!(roots.cache_root, "/data/apps/nimi.parentos/cache");
         assert_eq!(roots.temp_root, "/data/apps/nimi.parentos/tmp");

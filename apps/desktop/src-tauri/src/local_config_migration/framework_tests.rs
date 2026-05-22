@@ -124,7 +124,10 @@ fn current_version_file_reads_ready_without_rewrite() {
     // Idempotent replay: a current-version file is never rewritten, so no
     // `.bak` is produced.
     let backup = path.with_extension(format!("json{BACKUP_SUFFIX}"));
-    assert!(!backup.exists(), "current-version read must not write a backup");
+    assert!(
+        !backup.exists(),
+        "current-version read must not write a backup"
+    );
 }
 
 #[test]
@@ -280,8 +283,8 @@ fn missing_migration_step_fails_closed_to_repair() {
 
     // The chain is internally consistent (2->3 ends at current 3) but does not
     // reach down to the on-disk v1 — a v1 file has no registered path.
-    let outcome = read_governed_config(&TEST_FILE, &path, &GAPPED_REGISTRY, deserialize_probe)
-        .expect("read");
+    let outcome =
+        read_governed_config(&TEST_FILE, &path, &GAPPED_REGISTRY, deserialize_probe).expect("read");
     match outcome {
         ConfigReadOutcome::Repair { severity, reason } => {
             assert_eq!(severity, ConfigRepairSeverity::RepairRequired);
@@ -346,8 +349,7 @@ fn broken_pointer_routes_repair_without_orphaning() {
         Ok(record)
     }
 
-    static POINTER_REGISTRY: MigrationRegistry =
-        MigrationRegistry::new("framework_probe", 1, &[]);
+    static POINTER_REGISTRY: MigrationRegistry = MigrationRegistry::new("framework_probe", 1, &[]);
     const POINTER_FILE: GovernedConfigFile =
         GovernedConfigFile::new("framework_probe", "~/.nimi/framework-probe.json");
 
@@ -389,8 +391,10 @@ fn malformed_registry_chain_is_a_hard_error() {
     let path = temp_path("bad-registry");
     std::fs::write(
         &path,
-        serde_json::to_vec_pretty(&json!({ "schemaVersion": 3, "displayName": "P", "revision": 0 }))
-            .expect("json"),
+        serde_json::to_vec_pretty(
+            &json!({ "schemaVersion": 3, "displayName": "P", "revision": 0 }),
+        )
+        .expect("json"),
     )
     .expect("write");
 

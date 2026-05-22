@@ -27,6 +27,13 @@ export function FirstRunFinalization(props: FirstRunFinalizationProps): ReactEle
   const [status, setStatus] = useState<FinalizationStatus>('requesting');
   const [error, setError] = useState<string | null>(props.projection.error ?? null);
   const inFlightRef = useRef(false);
+  const firstRun = props.projection.record?.firstRun;
+  const hasFinalizationRefs = Boolean(
+    firstRun?.accountDefaultProfileRef
+    && firstRun.builtInAiConfigRefs.length >= 2
+    && firstRun.runtimeBaselineRef
+    && firstRun.executionEvidenceRef,
+  );
 
   const requestAdmission = useCallback(async (): Promise<void> => {
     if (inFlightRef.current) return;
@@ -34,6 +41,15 @@ export function FirstRunFinalization(props: FirstRunFinalizationProps): ReactEle
     setStatus('requesting');
     setError(null);
     try {
+      if (!hasFinalizationRefs) {
+        const prepared = await desktopBridge.prepareProductFirstRunLocalAiReady();
+        notifyProjectionChange(prepared);
+        if (prepared.state !== 'local_ai_ready' && prepared.state !== 'ready_for_use') {
+          setStatus('failed');
+          setError(prepared.error);
+          return;
+        }
+      }
       const next = await desktopBridge.admitProductReadyForUse();
       notifyProjectionChange(next);
       if (next.state !== 'ready_for_use') {
@@ -52,7 +68,7 @@ export function FirstRunFinalization(props: FirstRunFinalizationProps): ReactEle
     } finally {
       inFlightRef.current = false;
     }
-  }, [notifyProjectionChange, t]);
+  }, [hasFinalizationRefs, notifyProjectionChange, t]);
 
   // Request admission once on entry into `local_ai_ready`. The backend is the
   // only authority that may admit `ready_for_use`; the renderer only requests.

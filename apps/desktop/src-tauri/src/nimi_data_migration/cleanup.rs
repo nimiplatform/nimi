@@ -72,14 +72,9 @@ fn cleanup_class_id(class: CleanupClass) -> &'static str {
 /// `P-MIG-006` matrix — an undeclared directory has no owner and is rejected.
 /// This scans the directory for the real byte / file impact; it deletes
 /// nothing.
-pub fn plan_directory_cleanup(
-    data_root: &Path,
-    directory: &str,
-) -> Result<CleanupPlan, String> {
+pub fn plan_directory_cleanup(data_root: &Path, directory: &str) -> Result<CleanupPlan, String> {
     let row = first_level_row(directory).ok_or_else(|| {
-        format!(
-            "{directory} 不是 P-MIG-006 矩阵中的一级 nimi_data 目录，无法清理"
-        )
+        format!("{directory} 不是 P-MIG-006 矩阵中的一级 nimi_data 目录，无法清理")
     })?;
     let usage = measure_directory(&data_root.join(directory))?;
     Ok(CleanupPlan {
@@ -128,9 +123,7 @@ pub fn execute_directory_cleanup(
     confirmation: Option<&str>,
 ) -> Result<CleanupOutcome, String> {
     let row = first_level_row(directory).ok_or_else(|| {
-        format!(
-            "{directory} 不是 P-MIG-006 矩阵中的一级 nimi_data 目录，无法清理"
-        )
+        format!("{directory} 不是 P-MIG-006 矩阵中的一级 nimi_data 目录，无法清理")
     })?;
 
     // P-MIG-006: a Runtime-owned data plane is never cleaned by the Desktop
@@ -156,9 +149,8 @@ pub fn execute_directory_cleanup(
     let target = data_root.join(directory);
     let usage = measure_directory(&target)?;
     if target.exists() {
-        fs::remove_dir_all(&target).map_err(|error| {
-            format!("清理 nimi_data 目录失败 ({}): {error}", target.display())
-        })?;
+        fs::remove_dir_all(&target)
+            .map_err(|error| format!("清理 nimi_data 目录失败 ({}): {error}", target.display()))?;
     }
     // Re-create the empty directory so the P-MIG-006 first-level layout still
     // holds after the cleanup.
@@ -216,9 +208,7 @@ pub fn reclaim_old_root(
     let old = crate::desktop_paths::normalize_desktop_absolute_path(old_root);
     let active = crate::desktop_paths::normalize_desktop_absolute_path(active_root);
     if old == active {
-        return Err(
-            "拒绝回收：待回收的旧 nimi_data 数据根与当前活动数据根相同".to_string(),
-        );
+        return Err("拒绝回收：待回收的旧 nimi_data 数据根与当前活动数据根相同".to_string());
     }
     if active.starts_with(&old) {
         return Err(format!(
@@ -235,12 +225,8 @@ pub fn reclaim_old_root(
     }
     let usage = measure_directory(&old)?;
     if old.exists() {
-        fs::remove_dir_all(&old).map_err(|error| {
-            format!(
-                "回收旧 nimi_data 数据根失败 ({}): {error}",
-                old.display()
-            )
-        })?;
+        fs::remove_dir_all(&old)
+            .map_err(|error| format!("回收旧 nimi_data 数据根失败 ({}): {error}", old.display()))?;
     }
     Ok(CleanupOutcome {
         directory: old.display().to_string(),

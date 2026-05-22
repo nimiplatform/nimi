@@ -48,6 +48,10 @@
     "cancel": "取消",
     "retry": "重试",
     "repair": "修复",
+    "progressOf": "{{received}} / {{total}}",
+    "progressReceived": "已下载 {{received}}",
+    "progressRate": "{{rate}}/s",
+    "progressEta": "剩余 {{eta}}",
     "steps": {
       "download": "正在下载本地模型",
       "verify": "正在校验文件",

@@ -250,6 +250,7 @@ export async function resolveLocalRuntimeEnvironmentPlan(
     localAssetId: String(payload.localAssetId || '').trim(),
     companionAssetId: String(payload.companionAssetId || '').trim(),
     parentAssetId: String(payload.parentAssetId || '').trim(),
+    installLevel: String(payload.installLevel || '').trim(),
   });
   return parseLocalRuntimeEnvironmentPlan(asRecord(response).plan);
 }

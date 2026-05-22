@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactElement } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Navigate } from 'react-router-dom';
 import { loadPlatformAIProfileFactoryRows } from '../../../runtime/platform-catalog/index.js';
 import { localRuntime, type LocalRuntimeDeviceProfile } from '../../../runtime/local-runtime/index.js';
 import { desktopBridge, type ProductControlRecordProjection, type ProductControlState } from '@renderer/bridge';
@@ -10,6 +11,7 @@ import {
   repairFirstRunMaterializationDependency,
   resolveFirstRunMaterializationProjection,
   retryFirstRunMaterializationJob,
+  shouldResumeConfirmedFirstRunMaterialization,
   startFirstRunMaterialization,
   type FirstRunMaterializationDependencyProjection,
   type FirstRunMaterializationProjection,
@@ -18,6 +20,7 @@ import {
   firstRunScreenForState,
   isPhaseTransient,
 } from './first-run-phase-projection.js';
+import { syncRuntimeStorageConfig } from '../infra/bootstrap/runtime-bootstrap-local-models-sync.js';
 import { projectInstallLevelCard } from './first-run-install-level-cards.js';
 import { projectSetupChecklist } from './first-run-setup-checklist.js';
 import { projectDeviceSummary } from './first-run-device-summary.js';
@@ -89,6 +92,8 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
   const [materialization, setMaterialization] = useState<FirstRunMaterializationProjection | null>(null);
   const [deviceProfile, setDeviceProfile] = useState<LocalRuntimeDeviceProfile | null>(null);
   const [deviceScanSettled, setDeviceScanSettled] = useState(false);
+  const preparingLocalAiReadyRef = useRef(false);
+  const resumingMaterializationRef = useRef(false);
 
   const busy = pendingAction !== null;
 
@@ -186,6 +191,36 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
     };
   }, [selectedDataRoot]);
 
+  const projectMaterialization = useCallback(
+    async (next: FirstRunMaterializationProjection, observedProductState?: ProductControlState): Promise<void> => {
+      setMaterialization(next);
+      if (next.productState === 'local_ai_ready') {
+        if (preparingLocalAiReadyRef.current) return;
+        preparingLocalAiReadyRef.current = true;
+        setPendingAction('local-ai-ready');
+        try {
+          notifyProjectionChange(await desktopBridge.prepareProductFirstRunLocalAiReady());
+        } finally {
+          preparingLocalAiReadyRef.current = false;
+          setPendingAction(null);
+        }
+        return;
+      }
+      if (
+        next.productState !== observedProductState
+        && canPersistSetupState(next.productState)
+      ) {
+        notifyProjectionChange(
+          await desktopBridge.setProductFirstRunSetupState({
+            state: next.productState,
+            reason: next.reason,
+          }),
+        );
+      }
+    },
+    [notifyProjectionChange],
+  );
+
   // Runtime materialization observer. Active only while the Setup phase is
   // presenting Runtime-evidence progress. At `local_ai_ready` the
   // materialization phase is complete and finalization takes over; before an
@@ -203,6 +238,7 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
     }
     const observedPlan = selectedPlan;
     const observedDataRoot = selectedDataRoot;
+    const observedInstallLevel = selectedInstallLevel;
     const observedProductState = state;
     let disposed = false;
     async function observe(): Promise<void> {
@@ -210,17 +246,33 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
         const next = await resolveFirstRunMaterializationProjection({
           profile: observedPlan,
           runtimeDataRoot: observedDataRoot,
+          installLevel: observedInstallLevel,
         });
         if (disposed) return;
-        setMaterialization(next);
-        if (next.productState !== observedProductState && canPersistSetupState(next.productState)) {
-          notifyProjectionChange(
-            await desktopBridge.setProductFirstRunSetupState({
-              state: next.productState,
-              reason: next.reason,
-            }),
-          );
+        if (shouldResumeConfirmedFirstRunMaterialization(observedProductState, next)) {
+          if (resumingMaterializationRef.current) {
+            await projectMaterialization(next, observedProductState);
+            return;
+          }
+          resumingMaterializationRef.current = true;
+          setPendingAction('resume-materialization');
+          try {
+            const resumed = await startFirstRunMaterialization({
+              profile: observedPlan,
+              runtimeDataRoot: observedDataRoot,
+              installLevel: observedInstallLevel,
+              confirmed: true,
+            });
+            if (!disposed) {
+              await projectMaterialization(resumed, observedProductState);
+            }
+          } finally {
+            resumingMaterializationRef.current = false;
+            if (!disposed) setPendingAction(null);
+          }
+          return;
         }
+        await projectMaterialization(next, observedProductState);
       } catch (nextError) {
         if (!disposed) {
           setError(
@@ -239,9 +291,34 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
       disposed = true;
       window.clearInterval(interval);
     };
-  }, [selectedPlan, selectedDataRoot, state, notifyProjectionChange, t]);
+  }, [selectedPlan, selectedDataRoot, selectedInstallLevel, state, projectMaterialization, t]);
 
   // --- Phase 1: Storage ---------------------------------------------------
+
+  // After `selectProductDataRoot` records the user-selected nimi_data root, the
+  // runtime config must be updated to carry that data root before any Runtime
+  // materialization starts. Desktop bootstrap runs before this Storage step, so
+  // its config sync found no data root and failed closed; this is the seam that
+  // makes the desktop→runtime data-root config sync effective. It reuses the
+  // single `syncRuntimeStorageConfig` mechanism (the same one bootstrap uses),
+  // resolves the freshly-recorded storage dirs, writes `dataRootRef` /
+  // `managedRoots` into the runtime config, and restarts the managed runtime so
+  // the config takes effect. A failure here fails closed — the user cannot
+  // advance to materialization with a runtime config that has no data root.
+  const syncRuntimeDataRootConfig = useCallback(async (): Promise<void> => {
+    if (!desktopBridge.hasTauriInvoke()) {
+      return;
+    }
+    await syncRuntimeStorageConfig({
+      bridge: {
+        getRuntimeBridgeStatus: () => desktopBridge.getRuntimeBridgeStatus(),
+        getRuntimeModStorageDirs: () => desktopBridge.getRuntimeModStorageDirs(),
+        getRuntimeBridgeConfig: () => desktopBridge.getRuntimeBridgeConfig(),
+        setRuntimeBridgeConfig: (configJson: string) => desktopBridge.setRuntimeBridgeConfig(configJson),
+        restartRuntimeBridge: () => desktopBridge.restartRuntimeBridge(),
+      },
+    });
+  }, []);
 
   const chooseDataRootFolder = useCallback(async (): Promise<void> => {
     setPendingAction('pick-folder');
@@ -278,7 +355,12 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
       // `selectProductDataRoot` is the sole owner of recording + fail-closed
       // validation (absolute path, writability, root layout). A non-absolute
       // or unusable path fails closed here with the backend's typed error.
-      notifyProjectionChange(await desktopBridge.selectProductDataRoot(candidate));
+      const next = await desktopBridge.selectProductDataRoot(candidate);
+      // The runtime config must carry the freshly-recorded data root before
+      // materialization; sync it now (fails closed if the runtime config write
+      // fails) and only then advance the projection out of the Storage phase.
+      await syncRuntimeDataRootConfig();
+      notifyProjectionChange(next);
     } catch (nextError) {
       setError(
         nextError instanceof Error
@@ -290,7 +372,7 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
     } finally {
       setPendingAction(null);
     }
-  }, [pickedPath, notifyProjectionChange, t]);
+  }, [pickedPath, notifyProjectionChange, syncRuntimeDataRootConfig, t]);
 
   // Changing the data root from the Local AI phase. The state machine admits
   // `change_nimi_data_before_heavy_setup` while no heavy setup has started, so
@@ -303,7 +385,11 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
     try {
       const picked = await desktopBridge.pickProductDataRootDirectory();
       if (!picked) return;
-      notifyProjectionChange(await desktopBridge.selectProductDataRoot(picked));
+      const next = await desktopBridge.selectProductDataRoot(picked);
+      // Re-pointing the data root before heavy setup must re-sync the runtime
+      // config so the runtime resolves models under the new data root.
+      await syncRuntimeDataRootConfig();
+      notifyProjectionChange(next);
     } catch (nextError) {
       setError(
         nextError instanceof Error
@@ -315,7 +401,7 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
     } finally {
       setPendingAction(null);
     }
-  }, [notifyProjectionChange, t]);
+  }, [notifyProjectionChange, syncRuntimeDataRootConfig, t]);
 
   // --- Phase 2: Local AI --------------------------------------------------
 
@@ -390,17 +476,10 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
       const next = await startFirstRunMaterialization({
         profile: plan,
         runtimeDataRoot: dataRoot,
+        installLevel,
         confirmed: true,
       });
-      setMaterialization(next);
-      if (canPersistSetupState(next.productState)) {
-        notifyProjectionChange(
-          await desktopBridge.setProductFirstRunSetupState({
-            state: next.productState,
-            reason: next.reason,
-          }),
-        );
-      }
+      await projectMaterialization(next, afterLevel.state);
     } catch (nextError) {
       setError(
         nextError instanceof Error
@@ -412,23 +491,9 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
     } finally {
       setPendingAction(null);
     }
-  }, [draftInstallLevel, installPlans, persistInstallLevel, selectedDataRoot, notifyProjectionChange, t]);
+  }, [draftInstallLevel, installPlans, persistInstallLevel, selectedDataRoot, projectMaterialization, t]);
 
   // --- Phase 3: Setup checklist actions -----------------------------------
-
-  const projectMaterialization = useCallback(
-    async (next: FirstRunMaterializationProjection): Promise<void> => {
-      setMaterialization(next);
-      if (!canPersistSetupState(next.productState)) return;
-      notifyProjectionChange(
-        await desktopBridge.setProductFirstRunSetupState({
-          state: next.productState,
-          reason: next.reason,
-        }),
-      );
-    },
-    [notifyProjectionChange],
-  );
 
   const retrySetupStep = useCallback(
     async (item: FirstRunMaterializationDependencyProjection): Promise<void> => {
@@ -440,6 +505,7 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
           await retryFirstRunMaterializationJob({
             profile: selectedPlan,
             runtimeDataRoot: selectedDataRoot,
+            installLevel: selectedInstallLevel,
             jobId: item.job.jobId,
             confirmed: true,
           }),
@@ -456,7 +522,7 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
         setPendingAction(null);
       }
     },
-    [selectedPlan, selectedDataRoot, projectMaterialization, t],
+    [selectedPlan, selectedDataRoot, selectedInstallLevel, projectMaterialization, t],
   );
 
   const repairSetupStep = useCallback(
@@ -469,6 +535,7 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
           await repairFirstRunMaterializationDependency({
             profile: selectedPlan,
             runtimeDataRoot: selectedDataRoot,
+            installLevel: selectedInstallLevel,
             dependency: item.dependency,
             confirmed: true,
             reasonCode: item.dependency.reasonCode ?? item.job?.failureDetail ?? materialization?.reason,
@@ -486,7 +553,7 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
         setPendingAction(null);
       }
     },
-    [selectedPlan, selectedDataRoot, projectMaterialization, materialization, t],
+    [selectedPlan, selectedDataRoot, selectedInstallLevel, projectMaterialization, materialization, t],
   );
 
   const cancelSetupStep = useCallback(
@@ -499,6 +566,7 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
           await cancelFirstRunMaterializationJob({
             profile: selectedPlan,
             runtimeDataRoot: selectedDataRoot,
+            installLevel: selectedInstallLevel,
             jobId: item.job.jobId,
           }),
         );
@@ -514,7 +582,7 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
         setPendingAction(null);
       }
     },
-    [selectedPlan, selectedDataRoot, projectMaterialization, t],
+    [selectedPlan, selectedDataRoot, selectedInstallLevel, projectMaterialization, t],
   );
 
   // --- Terminal screen actions -------------------------------------------
@@ -551,6 +619,9 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
 
   function renderScreen(): ReactElement {
     if (screen.kind === 'terminal') {
+      if (screen.screen === 'login') {
+        return <Navigate to="/login" replace />;
+      }
       if (screen.screen === 'repair') {
         return (
           <ScreenRepair

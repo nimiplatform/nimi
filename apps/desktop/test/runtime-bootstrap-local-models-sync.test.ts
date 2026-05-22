@@ -3,9 +3,11 @@ import test from 'node:test';
 
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import type { RuntimeBridgeDaemonStatus } from '../src/shell/renderer/bridge/runtime-bridge/types';
+import type { RuntimeModStorageDirs } from '../src/shell/renderer/bridge/runtime-bridge/runtime-types';
 import {
   mergeRuntimeLocalModelsConfig,
   syncRuntimeLocalModelsConfig,
+  syncRuntimeStorageConfig,
 } from '../src/shell/renderer/infra/bootstrap/runtime-bootstrap-local-models-sync';
 
 function createDaemonStatus(overrides: Partial<RuntimeBridgeDaemonStatus> = {}): RuntimeBridgeDaemonStatus {
@@ -207,4 +209,133 @@ test('syncRuntimeLocalModelsConfig skips write when product data root and manage
 
   assert.equal(setCalls, 0);
   assert.equal(result.pid, 3003);
+});
+
+function storageDirs(overrides: Partial<RuntimeModStorageDirs> = {}): RuntimeModStorageDirs {
+  return {
+    nimiDir: '/Users/eric/.nimi',
+    nimiDataDir: '/Users/eric/Nimi',
+    installedModsDir: '/Users/eric/Nimi/mods',
+    runtimeModDbPath: '/Users/eric/Nimi/runtime-mod.db',
+    mediaCacheDir: '/Users/eric/Nimi/cache/media',
+    localModelsDir: '/Users/eric/Nimi/models',
+    localRuntimeStatePath: '/Users/eric/.nimi/runtime/local-state.json',
+    ...overrides,
+  };
+}
+
+// Regression (Part 1): after the first-run Storage selection records the
+// user-selected nimi_data root, syncRuntimeStorageConfig must resolve the
+// storage dirs and write dataRootRef + managedRoots.models into the runtime
+// config so the runtime resolves `<dataRoot>/models` before materialization.
+test('syncRuntimeStorageConfig writes dataRootRef and managedRoots from the selected nimi_data root', async () => {
+  let writtenConfig = '';
+  let restartCalls = 0;
+
+  const result = await syncRuntimeStorageConfig({
+    daemonStatus: createDaemonStatus({ running: true, managed: true, pid: 7001 }),
+    bridge: {
+      async getRuntimeBridgeStatus() {
+        return createDaemonStatus({ running: true, managed: true, pid: 7001 });
+      },
+      async getRuntimeModStorageDirs() {
+        return storageDirs();
+      },
+      async getRuntimeBridgeConfig() {
+        return { path: '/tmp/config.json', config: { schemaVersion: 1 } };
+      },
+      async setRuntimeBridgeConfig(configJson: string) {
+        writtenConfig = configJson;
+        return {
+          path: '/tmp/config.json',
+          reasonCode: ReasonCode.CONFIG_RESTART_REQUIRED,
+          actionHint: 'restart runtime to apply config changes',
+          config: JSON.parse(configJson) as Record<string, unknown>,
+        };
+      },
+      async restartRuntimeBridge() {
+        restartCalls += 1;
+        return createDaemonStatus({ running: true, managed: true, pid: 7002 });
+      },
+    },
+  });
+
+  assert.equal(restartCalls, 1);
+  assert.equal(result.pid, 7002);
+  const parsed = JSON.parse(writtenConfig) as Record<string, unknown>;
+  assert.equal(parsed.dataRootRef, '/Users/eric/Nimi');
+  assert.equal((parsed.managedRoots as Record<string, unknown>).models, '/Users/eric/Nimi/models');
+  assert.equal(parsed.localStatePath, '/Users/eric/.nimi/runtime/local-state.json');
+});
+
+// Regression (Part 1): syncRuntimeStorageConfig fetches the daemon status when
+// the caller does not supply one (the first-run path).
+test('syncRuntimeStorageConfig fetches daemon status when not supplied', async () => {
+  let statusCalls = 0;
+
+  await syncRuntimeStorageConfig({
+    bridge: {
+      async getRuntimeBridgeStatus() {
+        statusCalls += 1;
+        return createDaemonStatus({ running: true, managed: true });
+      },
+      async getRuntimeModStorageDirs() {
+        return storageDirs();
+      },
+      async getRuntimeBridgeConfig() {
+        return { path: '/tmp/config.json', config: { schemaVersion: 1 } };
+      },
+      async setRuntimeBridgeConfig(configJson: string) {
+        return {
+          path: '/tmp/config.json',
+          reasonCode: ReasonCode.CONFIG_RESTART_REQUIRED,
+          actionHint: 'restart runtime to apply config changes',
+          config: JSON.parse(configJson) as Record<string, unknown>,
+        };
+      },
+      async restartRuntimeBridge() {
+        return createDaemonStatus({ running: true, managed: true });
+      },
+    },
+  });
+
+  assert.equal(statusCalls, 1);
+});
+
+// Regression (Part 1): on a fresh install the data root is not yet selected, so
+// getRuntimeModStorageDirs throws; syncRuntimeStorageConfig must propagate that
+// failure (fail closed) rather than writing an empty/partial runtime config.
+test('syncRuntimeStorageConfig fails closed when no data root is selected yet', async () => {
+  let setCalls = 0;
+
+  await assert.rejects(
+    async () => syncRuntimeStorageConfig({
+      daemonStatus: createDaemonStatus({ running: true, managed: true }),
+      bridge: {
+        async getRuntimeBridgeStatus() {
+          return createDaemonStatus({ running: true, managed: true });
+        },
+        async getRuntimeModStorageDirs() {
+          throw new Error('~/.nimi/nimi.json is missing');
+        },
+        async getRuntimeBridgeConfig() {
+          return { path: '/tmp/config.json', config: { schemaVersion: 1 } };
+        },
+        async setRuntimeBridgeConfig(configJson: string) {
+          setCalls += 1;
+          return {
+            path: '/tmp/config.json',
+            reasonCode: ReasonCode.CONFIG_APPLIED,
+            config: JSON.parse(configJson) as Record<string, unknown>,
+          };
+        },
+        async restartRuntimeBridge() {
+          return createDaemonStatus();
+        },
+      },
+    }),
+    /nimi\.json is missing/,
+  );
+
+  assert.equal(setCalls, 0);
 });

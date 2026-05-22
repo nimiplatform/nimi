@@ -83,7 +83,11 @@ fn enforce_layout_creates_exactly_the_declared_first_level_directories() {
     enforce_data_root_layout(&root).expect("enforce layout");
 
     let expected = first_level_directory_names();
-    assert_eq!(expected.len(), 10, "ten first-level directories are declared");
+    assert_eq!(
+        expected.len(),
+        10,
+        "ten first-level directories are declared"
+    );
     for name in &expected {
         assert!(
             root.join(name).is_dir(),
@@ -134,12 +138,15 @@ fn copy_tree_then_verify_matches_integrity_signature() {
     let signature = verify_copy(&source, &target).expect("verify copy");
 
     assert_eq!(signature.file_count, 3);
-    assert_eq!(signature.total_bytes, (b"model-bytes".len()
-        + b"app-data".len()
-        + b"log-line".len()) as u64);
+    assert_eq!(
+        signature.total_bytes,
+        (b"model-bytes".len() + b"app-data".len() + b"log-line".len()) as u64
+    );
     // The digest is deterministic and path-ordered.
     assert_eq!(
-        compute_signature(&source).expect("source signature").content_digest,
+        compute_signature(&source)
+            .expect("source signature")
+            .content_digest,
         signature.content_digest
     );
 }
@@ -308,7 +315,10 @@ fn non_cache_cleanup_fails_closed_without_confirmation() {
     let base = unique_dir("cleanup-confirm");
     let data_root = base.join("nimi_data");
     enforce_data_root_layout(&data_root).expect("layout");
-    write_file(&data_root.join("generated/artifact.png"), b"generated-bytes");
+    write_file(
+        &data_root.join("generated/artifact.png"),
+        b"generated-bytes",
+    );
 
     // `generated` is ConfirmRequired — a cleanup without the token fails closed.
     let plan = plan_directory_cleanup(&data_root, "generated").expect("plan");
@@ -326,9 +336,12 @@ fn non_cache_cleanup_fails_closed_without_confirmation() {
     assert!(data_root.join("generated/artifact.png").exists());
 
     // The correct token executes the cleanup.
-    let outcome =
-        execute_directory_cleanup(&data_root, "generated", Some(DESTRUCTIVE_CLEANUP_CONFIRMATION))
-            .expect("confirmed cleanup");
+    let outcome = execute_directory_cleanup(
+        &data_root,
+        "generated",
+        Some(DESTRUCTIVE_CLEANUP_CONFIRMATION),
+    )
+    .expect("confirmed cleanup");
     assert_eq!(outcome.removed_files, 1);
     assert!(!data_root.join("generated/artifact.png").exists());
     // The directory itself is re-created so the P-MIG-006 layout still holds.
@@ -343,9 +356,11 @@ fn pure_cache_cleanup_runs_without_confirmation() {
     write_file(&data_root.join("cache/blob"), b"cache-bytes");
 
     let plan = plan_directory_cleanup(&data_root, "cache").expect("plan");
-    assert!(!plan.requires_confirmation, "pure cache needs no confirmation");
-    let outcome =
-        execute_directory_cleanup(&data_root, "cache", None).expect("cache cleanup");
+    assert!(
+        !plan.requires_confirmation,
+        "pure cache needs no confirmation"
+    );
+    let outcome = execute_directory_cleanup(&data_root, "cache", None).expect("cache cleanup");
     assert_eq!(outcome.removed_files, 1);
     assert!(!data_root.join("cache/blob").exists());
     assert!(data_root.join("cache").is_dir());
@@ -360,12 +375,9 @@ fn runtime_owned_directory_cleanup_is_refused() {
 
     // Even with the confirmation token, a Runtime-owned directory is refused —
     // P-MIG-006 forbids the Desktop shell from mutating it.
-    let error = execute_directory_cleanup(
-        &data_root,
-        "models",
-        Some(DESTRUCTIVE_CLEANUP_CONFIRMATION),
-    )
-    .expect_err("runtime-owned cleanup must be refused");
+    let error =
+        execute_directory_cleanup(&data_root, "models", Some(DESTRUCTIVE_CLEANUP_CONFIRMATION))
+            .expect_err("runtime-owned cleanup must be refused");
     assert!(error.contains("Runtime"));
     assert!(data_root.join("models/m.bin").exists());
 }
@@ -430,7 +442,11 @@ fn scan_data_root_surfaces_unowned_directories() {
     assert_eq!(breakdown.unowned_extra.file_count, 1);
     // The declared `apps` directory carries its data.
     assert_eq!(
-        breakdown.per_directory.get("apps").expect("apps").file_count,
+        breakdown
+            .per_directory
+            .get("apps")
+            .expect("apps")
+            .file_count,
         1
     );
 }

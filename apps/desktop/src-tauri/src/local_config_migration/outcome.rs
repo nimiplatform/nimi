@@ -79,11 +79,7 @@ impl<T> ConfigReadOutcome<T> {
     pub fn repair_required(file: &GovernedConfigFile, detail: impl AsRef<str>) -> Self {
         Self::Repair {
             severity: ConfigRepairSeverity::RepairRequired,
-            reason: format!(
-                "{} requires repair: {}",
-                file.display_path,
-                detail.as_ref()
-            ),
+            reason: format!("{} requires repair: {}", file.display_path, detail.as_ref()),
         }
     }
 

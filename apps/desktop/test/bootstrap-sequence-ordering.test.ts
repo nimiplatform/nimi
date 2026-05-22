@@ -234,8 +234,13 @@ describe('bootstrap sequence ordering (D-BOOT)', () => {
     );
     assert.match(
       bootstrapSource,
-      /if \(isRuntimeConfigManualRestartRequiredError\(error\)\) \{\s*throw error;\s*\}/,
-      'manual restart-required runtime config sync errors must escape the degraded catch',
+      /if \(isRuntimeConfigManualRestartRequiredError\(input\.error\)\) \{[\s\S]*?if \(!degradeForProductSetup\) \{\s*throw input\.error;\s*\}/,
+      'manual restart-required runtime config sync errors must fail-close once product setup is ready',
+    );
+    assert.match(
+      bootstrapSource,
+      /const projection = await desktopBridge\.getProductControlRecord\(\);[\s\S]*?return projection\.state !== 'ready_for_use';/,
+      'manual restart-required runtime config sync may degrade only before ordinary product readiness',
     );
     const degradedIndex = bootstrapSource.indexOf("message: 'phase:runtime-config-sync:degraded'");
     const readyIndex = bootstrapSource.indexOf('useAppStore.getState().setBootstrapReady(true);');
@@ -289,6 +294,11 @@ describe('bootstrap sequence ordering (D-BOOT)', () => {
     assert.ok(callbacksIndex < hydrateIndex, 'auth callbacks must be active before profile hydration can fail closed');
     assert.ok(hydrateIndex < watcherIndex, 'initial profile hydration must happen before the auth watcher begins observing updates');
     assert.match(bootstrapSource, /hydrateDesktopAccountProfile\(\{\s*accountProjection,\s*flowId,\s*\}\)/s);
+    assert.match(
+      bootstrapSource,
+      /clearAuth:\s*async\s*\(\)\s*=>[\s\S]*platformClient\.runtime\.account\.logout\(\{\s*caller:\s*accountCaller,\s*reason:\s*'realm_auth_required',\s*\}\)/,
+      'Realm AUTH_REQUIRED cleanup must clear RuntimeAccountService custody before re-login',
+    );
     assert.doesNotMatch(bootstrapSource, /desktop_bootstrap_reauth_required/);
     assert.match(bootstrapSource, /dataSync\.loadCurrentUser\(\)/);
     assert.doesNotMatch(
@@ -299,9 +309,9 @@ describe('bootstrap sequence ordering (D-BOOT)', () => {
   });
 
   test('D-BOOT-016: runtime account auth config sync is independent of product data storage sync', () => {
-    const localModelsSyncIndex = bootstrapSource.indexOf('syncRuntimeLocalModelsConfig({');
+    const localModelsSyncIndex = bootstrapSource.indexOf('syncRuntimeStorageConfig({');
     const jwtSyncIndex = bootstrapSource.indexOf('syncRuntimeJwtConfig({');
-    assert.ok(localModelsSyncIndex !== -1, 'syncRuntimeLocalModelsConfig({ must appear in bootstrap source');
+    assert.ok(localModelsSyncIndex !== -1, 'syncRuntimeStorageConfig({ must appear in bootstrap source');
     assert.ok(jwtSyncIndex !== -1, 'syncRuntimeJwtConfig({ must appear in bootstrap source');
     assert.ok(
       jwtSyncIndex < localModelsSyncIndex,

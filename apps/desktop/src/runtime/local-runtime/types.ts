@@ -636,6 +636,11 @@ export type LocalRuntimeEnvironmentPlanPayload = {
   localAssetId?: string;
   companionAssetId?: string;
   parentAssetId?: string;
+  // installLevel is the first-run install level ('minimal' | 'recommended').
+  // When set and no explicit assetId is supplied, Runtime resolves the pack's
+  // model.asset / model.companion-asset dependencies internally via the
+  // K-MCAT-034 deterministic resolver (K-RPC-025).
+  installLevel?: string;
 };
 
 export type LocalRuntimeEnvironmentSelectedSourceRecord = {
@@ -675,6 +680,16 @@ export type LocalRuntimeEnvironmentDependencyJob = {
   retryable: boolean;
   createdAt?: string;
   updatedAt?: string;
+  // K-RPC-025 download-progress projection. Meaningful only while the job is
+  // actively materializing (downloading / verifying); 0 for every other state.
+  // `percent` is 0..100 and is 0 when `bytesTotal` is 0 (unknown total — the
+  // consumer renders an indeterminate state). `speedBytesPerSec` / `etaSeconds`
+  // are 0 (absent) unless a rate could be computed — never fabricated.
+  bytesReceived: number;
+  bytesTotal: number;
+  percent: number;
+  speedBytesPerSec: number;
+  etaSeconds: number;
 };
 
 export type LocalRuntimeEnvironmentDependencyJobsPayload = {

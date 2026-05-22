@@ -40,15 +40,20 @@ const FIRST_RUN_EXECUTION_STATE_READY: &str = concat!("local_", "ai_ready");
 #[derive(Debug, Clone)]
 pub struct RuntimeBaselineResolution {
     pub runtime_baseline_ref: String,
+    pub selected_local_factory_ai_profile_ref: String,
     pub install_level: String,
     pub runtime_data_root_or_data_root_ref: String,
+    pub text_generate_binding: serde_json::Value,
 }
 
 /// Resolved first-run execution evidence accepted by admission step 7.
 #[derive(Debug, Clone)]
 pub struct ExecutionEvidenceResolution {
     pub execution_evidence_ref: String,
+    pub selected_local_factory_ai_profile_ref: String,
+    pub install_level: String,
     pub runtime_baseline_ref: String,
+    pub data_root_ref: String,
 }
 
 /// Cross-process Runtime owner resolution seam.
@@ -115,6 +120,13 @@ fn map_execution_evidence_failure(failure: &RuntimeOwnerFailure) -> ProductContr
         }
         _ => ProductControlState::LocalAiReady,
     }
+}
+
+fn first_run_factory_profile_ref(install_level: &str) -> String {
+    format!(
+        "aiprofile/nimi.first-run.local-factory.{}@1",
+        install_level.trim().to_lowercase()
+    )
 }
 
 /// Outcome of admission composition before the record write.
@@ -296,15 +308,18 @@ async fn compose_admission<R: AdmissionRuntimeResolvers>(
     // Platform factory catalog. baselineProfileRef / baselineCommitId are
     // backend-derived from the owner-verified Account Default Profile evidence
     // (profile_id / content_hash) — the recorded fields are never trusted.
-    if let Err(error) = crate::platform_ai_profile_factory_catalog::verify_first_run_factory_ai_profile(
-        &ai_profile_alias,
-        &install_level,
-    ) {
+    if let Err(error) =
+        crate::platform_ai_profile_factory_catalog::verify_first_run_factory_ai_profile(
+            &ai_profile_alias,
+            &install_level,
+        )
+    {
         return Ok(AdmissionComposition::Failed {
             state: ProductControlState::AiEnvironmentUnconfigured,
             error: format!("selected first-run factory AIProfile verification failed: {error}"),
         });
     }
+    let selected_factory_ref = first_run_factory_profile_ref(&install_level);
     if account_evidence.ai_profile_alias.trim() != ai_profile_alias {
         return Ok(AdmissionComposition::Failed {
             state: ProductControlState::AiEnvironmentUnconfigured,
@@ -349,7 +364,10 @@ async fn compose_admission<R: AdmissionRuntimeResolvers>(
             });
         }
     };
-    let runtime_baseline = match resolvers.resolve_runtime_baseline(&runtime_baseline_ref).await {
+    let runtime_baseline = match resolvers
+        .resolve_runtime_baseline(&runtime_baseline_ref)
+        .await
+    {
         Ok(resolution) => resolution,
         Err(failure) => {
             return Ok(AdmissionComposition::Failed {
@@ -367,6 +385,24 @@ async fn compose_admission<R: AdmissionRuntimeResolvers>(
             error: "Runtime baseline readiness is bound to a different install level".to_string(),
         });
     }
+    if runtime_baseline
+        .selected_local_factory_ai_profile_ref
+        .trim()
+        != selected_factory_ref.as_str()
+    {
+        return Ok(AdmissionComposition::Failed {
+            state: ProductControlState::LocalAiProfileSelectedEnvironmentNotReady,
+            error: "Runtime baseline readiness is bound to a different selected factory AIProfile"
+                .to_string(),
+        });
+    }
+    let selected_data_root_ref = data_root.display().to_string();
+    if runtime_baseline.runtime_data_root_or_data_root_ref.trim() != selected_data_root_ref {
+        return Ok(AdmissionComposition::Failed {
+            state: ProductControlState::LocalAiProfileSelectedEnvironmentNotReady,
+            error: "Runtime baseline readiness is bound to a different data root".to_string(),
+        });
+    }
 
     // Step 6 — built-in Desktop AIConfig refs for desktop.chat.nimi and
     // desktop.chat.agent (P-AISC-006 / D-AIPC-013). The wave-5 seam.
@@ -375,6 +411,7 @@ async fn compose_admission<R: AdmissionRuntimeResolvers>(
             &data_root,
             &account_id,
             &record.first_run.built_in_ai_config_refs,
+            Some(&runtime_baseline.text_generate_binding),
         ) {
             Ok(set) => set,
             Err(error) => {
@@ -435,6 +472,29 @@ async fn compose_admission<R: AdmissionRuntimeResolvers>(
             error: "execution evidence is bound to a different runtimeBaselineRef".to_string(),
         });
     }
+    if execution_evidence
+        .selected_local_factory_ai_profile_ref
+        .trim()
+        != selected_factory_ref.as_str()
+    {
+        return Ok(AdmissionComposition::Failed {
+            state: ProductControlState::LocalAiReady,
+            error: "execution evidence is bound to a different selected factory AIProfile"
+                .to_string(),
+        });
+    }
+    if execution_evidence.install_level.trim() != install_level {
+        return Ok(AdmissionComposition::Failed {
+            state: ProductControlState::LocalAiReady,
+            error: "execution evidence is bound to a different install level".to_string(),
+        });
+    }
+    if execution_evidence.data_root_ref.trim() != selected_data_root_ref {
+        return Ok(AdmissionComposition::Failed {
+            state: ProductControlState::LocalAiReady,
+            error: "execution evidence is bound to a different data root".to_string(),
+        });
+    }
 
     // Step 8 — all owners verified. Compose the durable ready evidence. The
     // initializationPlanId binds the verified Runtime baseline + execution
@@ -444,15 +504,17 @@ async fn compose_admission<R: AdmissionRuntimeResolvers>(
         runtime_baseline.runtime_baseline_ref.trim(),
         execution_evidence.execution_evidence_ref.trim()
     );
-    Ok(AdmissionComposition::Ready(Box::new(ReadyAdmissionEvidence {
-        baseline_profile_ref,
-        baseline_commit_id,
-        initialization_plan_id,
-        account_default_profile_ref: account_evidence.account_default_profile_ref,
-        built_in_ai_config_refs: built_in_ai_config_set.refs(),
-        runtime_baseline_ref: runtime_baseline.runtime_baseline_ref,
-        execution_evidence_ref: execution_evidence.execution_evidence_ref,
-    })))
+    Ok(AdmissionComposition::Ready(Box::new(
+        ReadyAdmissionEvidence {
+            baseline_profile_ref,
+            baseline_commit_id,
+            initialization_plan_id,
+            account_default_profile_ref: account_evidence.account_default_profile_ref,
+            built_in_ai_config_refs: built_in_ai_config_set.refs(),
+            runtime_baseline_ref: runtime_baseline.runtime_baseline_ref,
+            execution_evidence_ref: execution_evidence.execution_evidence_ref,
+        },
+    )))
 }
 
 /// Apply the owner-verified ready evidence to the record for the atomic
@@ -544,10 +606,20 @@ impl AdmissionRuntimeResolvers for BridgeAdmissionRuntimeResolvers {
             projection_state: String::new(),
             detail: "Runtime baseline readiness response had no evidence ref".to_string(),
         })?;
+        let text_generate_binding =
+            crate::desktop_ai_config_library::runtime_text_generate_binding_from_baseline_ref(
+                &evidence,
+            )
+            .map_err(|detail| RuntimeOwnerFailure {
+                projection_state: String::new(),
+                detail,
+            })?;
         Ok(RuntimeBaselineResolution {
             runtime_baseline_ref: evidence.runtime_baseline_ref,
+            selected_local_factory_ai_profile_ref: evidence.selected_local_factory_ai_profile_ref,
             install_level: evidence.install_level,
             runtime_data_root_or_data_root_ref: evidence.runtime_data_root_or_data_root_ref,
+            text_generate_binding,
         })
     }
 
@@ -578,7 +650,8 @@ impl AdmissionRuntimeResolvers for BridgeAdmissionRuntimeResolvers {
                 detail: format!(
                     concat!(
                         "executionEvidenceRef did not resolve ",
-                        "local_", "ai_ready (state={}, reason={})"
+                        "local_",
+                        "ai_ready (state={}, reason={})"
                     ),
                     response.state.trim(),
                     response.reason_code.trim()
@@ -591,7 +664,10 @@ impl AdmissionRuntimeResolvers for BridgeAdmissionRuntimeResolvers {
         })?;
         Ok(ExecutionEvidenceResolution {
             execution_evidence_ref: evidence.execution_evidence_ref,
+            selected_local_factory_ai_profile_ref: evidence.selected_local_factory_ai_profile_ref,
+            install_level: evidence.install_level,
             runtime_baseline_ref: evidence.runtime_baseline_ref,
+            data_root_ref: evidence.data_root_ref,
         })
     }
 }
@@ -690,20 +766,48 @@ mod tests {
 
     impl FakeResolvers {
         /// All four Runtime owner resolutions valid.
-        fn all_valid() -> Self {
+        fn all_valid_for_data_root(data_root: &Path) -> Self {
+            Self::all_valid_for_data_root_and_level(data_root, TEST_INSTALL_LEVEL)
+        }
+
+        fn all_valid_for_data_root_and_level(data_root: &Path, install_level: &str) -> Self {
             FakeResolvers {
                 account_id: Ok(TEST_ACCOUNT_ID.to_string()),
                 baseline: Ok(RuntimeBaselineResolution {
                     runtime_baseline_ref: VALID_RUNTIME_BASELINE_REF.to_string(),
-                    install_level: TEST_INSTALL_LEVEL.to_string(),
-                    runtime_data_root_or_data_root_ref: "data-root:test".to_string(),
+                    selected_local_factory_ai_profile_ref: first_run_factory_profile_ref(
+                        install_level,
+                    ),
+                    install_level: install_level.to_string(),
+                    runtime_data_root_or_data_root_ref: data_root.display().to_string(),
+                    text_generate_binding: fake_text_generate_binding(),
                 }),
                 execution: Ok(ExecutionEvidenceResolution {
                     execution_evidence_ref: VALID_EXECUTION_EVIDENCE_REF.to_string(),
+                    selected_local_factory_ai_profile_ref: first_run_factory_profile_ref(
+                        install_level,
+                    ),
+                    install_level: install_level.to_string(),
                     runtime_baseline_ref: VALID_RUNTIME_BASELINE_REF.to_string(),
+                    data_root_ref: data_root.display().to_string(),
                 }),
             }
         }
+    }
+
+    fn fake_text_generate_binding() -> serde_json::Value {
+        serde_json::json!({
+            "source": "local",
+            "connectorId": "",
+            "model": "asset-id:gemma-test",
+            "modelId": "asset-id:gemma-test",
+            "localModelId": "asset-id:gemma-test",
+            "provider": "local",
+            "engine": "llama.cpp.cpu",
+            "goRuntimeLocalModelId": "asset-id:gemma-test",
+            "runtimeBaselineRef": VALID_RUNTIME_BASELINE_REF,
+            "runtimeConsumerId": "llama.cpp.cpu",
+        })
     }
 
     impl AdmissionRuntimeResolvers for FakeResolvers {
@@ -775,13 +879,15 @@ mod tests {
             install_level,
         )
         .expect("seed account default profile");
-        let aiconfig_set = crate::desktop_ai_config_library::ensure_built_in_ai_config_evidence_set(
-            &data_root,
-            TEST_ACCOUNT_ID,
-            TEST_ALIAS,
-            install_level,
-        )
-        .expect("seed built-in aiconfig set");
+        let aiconfig_set =
+            crate::desktop_ai_config_library::ensure_built_in_ai_config_evidence_set(
+                &data_root,
+                TEST_ACCOUNT_ID,
+                TEST_ALIAS,
+                install_level,
+                &fake_text_generate_binding(),
+            )
+            .expect("seed built-in aiconfig set");
 
         let control_path = product_control_record_path().expect("path");
         let mut record = crate::desktop_product_control::read_existing_record(&control_path)
@@ -810,16 +916,18 @@ mod tests {
         let home = temp_home("positive");
         with_env(&[("HOME", home.to_str())], || {
             run_async(async {
-                seed_pre_admission_record(
+                let data_root = seed_pre_admission_record(
                     &home,
                     None,
                     None,
                     VALID_RUNTIME_BASELINE_REF,
                     VALID_EXECUTION_EVIDENCE_REF,
                 );
-                let projection = admit_product_ready_for_use(&FakeResolvers::all_valid())
-                    .await
-                    .expect("admission");
+                let projection = admit_product_ready_for_use(
+                    &FakeResolvers::all_valid_for_data_root(&data_root),
+                )
+                .await
+                .expect("admission");
                 assert_eq!(projection.state, ProductControlState::ReadyForUse);
                 let record = projection.record.expect("record");
                 assert!(record.first_run.completed);
@@ -857,16 +965,18 @@ mod tests {
         let home = temp_home("bad-account");
         with_env(&[("HOME", home.to_str())], || {
             run_async(async {
-                seed_pre_admission_record(
+                let data_root = seed_pre_admission_record(
                     &home,
                     Some("account-default-profile:fabricated".to_string()),
                     None,
                     VALID_RUNTIME_BASELINE_REF,
                     VALID_EXECUTION_EVIDENCE_REF,
                 );
-                let projection = admit_product_ready_for_use(&FakeResolvers::all_valid())
-                    .await
-                    .expect("admission");
+                let projection = admit_product_ready_for_use(
+                    &FakeResolvers::all_valid_for_data_root(&data_root),
+                )
+                .await
+                .expect("admission");
                 assert_eq!(projection.state, ProductControlState::LocalAiReady);
                 assert!(projection
                     .error
@@ -882,16 +992,15 @@ mod tests {
         let home = temp_home("no-session");
         with_env(&[("HOME", home.to_str())], || {
             run_async(async {
-                seed_pre_admission_record(
+                let data_root = seed_pre_admission_record(
                     &home,
                     None,
                     None,
                     VALID_RUNTIME_BASELINE_REF,
                     VALID_EXECUTION_EVIDENCE_REF,
                 );
-                let mut resolvers = FakeResolvers::all_valid();
-                resolvers.account_id =
-                    Err("no authenticated Runtime account session".to_string());
+                let mut resolvers = FakeResolvers::all_valid_for_data_root(&data_root);
+                resolvers.account_id = Err("no authenticated Runtime account session".to_string());
                 let projection = admit_product_ready_for_use(&resolvers)
                     .await
                     .expect("admission");
@@ -907,17 +1016,18 @@ mod tests {
         let home = temp_home("baseline-not-ready");
         with_env(&[("HOME", home.to_str())], || {
             run_async(async {
-                seed_pre_admission_record(
+                let data_root = seed_pre_admission_record(
                     &home,
                     None,
                     None,
                     VALID_RUNTIME_BASELINE_REF,
                     VALID_EXECUTION_EVIDENCE_REF,
                 );
-                let mut resolvers = FakeResolvers::all_valid();
+                let mut resolvers = FakeResolvers::all_valid_for_data_root(&data_root);
                 resolvers.baseline = Err(RuntimeOwnerFailure {
                     projection_state: concat!(
-                        "local_", "ai_profile_selected_environment_not_ready"
+                        "local_",
+                        "ai_profile_selected_environment_not_ready"
                     )
                     .to_string(),
                     detail: "baseline activation evidence missing".to_string(),
@@ -940,14 +1050,14 @@ mod tests {
         let home = temp_home("baseline-repair");
         with_env(&[("HOME", home.to_str())], || {
             run_async(async {
-                seed_pre_admission_record(
+                let data_root = seed_pre_admission_record(
                     &home,
                     None,
                     None,
                     VALID_RUNTIME_BASELINE_REF,
                     VALID_EXECUTION_EVIDENCE_REF,
                 );
-                let mut resolvers = FakeResolvers::all_valid();
+                let mut resolvers = FakeResolvers::all_valid_for_data_root(&data_root);
                 resolvers.baseline = Err(RuntimeOwnerFailure {
                     projection_state: "repair_required".to_string(),
                     detail: "baseline ref binding mismatch".to_string(),
@@ -966,16 +1076,18 @@ mod tests {
         let home = temp_home("partial-aiconfig");
         with_env(&[("HOME", home.to_str())], || {
             run_async(async {
-                seed_pre_admission_record(
+                let data_root = seed_pre_admission_record(
                     &home,
                     None,
                     Some(vec!["aiconfig:string-only".to_string()]),
                     VALID_RUNTIME_BASELINE_REF,
                     VALID_EXECUTION_EVIDENCE_REF,
                 );
-                let projection = admit_product_ready_for_use(&FakeResolvers::all_valid())
-                    .await
-                    .expect("admission");
+                let projection = admit_product_ready_for_use(
+                    &FakeResolvers::all_valid_for_data_root(&data_root),
+                )
+                .await
+                .expect("admission");
                 assert_eq!(projection.state, ProductControlState::LocalAiReady);
                 assert!(projection
                     .error
@@ -992,14 +1104,14 @@ mod tests {
         let home = temp_home("bad-execution");
         with_env(&[("HOME", home.to_str())], || {
             run_async(async {
-                seed_pre_admission_record(
+                let data_root = seed_pre_admission_record(
                     &home,
                     None,
                     None,
                     VALID_RUNTIME_BASELINE_REF,
                     VALID_EXECUTION_EVIDENCE_REF,
                 );
-                let mut resolvers = FakeResolvers::all_valid();
+                let mut resolvers = FakeResolvers::all_valid_for_data_root(&data_root);
                 resolvers.execution = Err(RuntimeOwnerFailure {
                     projection_state: concat!("local_", "ai_ready").to_string(),
                     detail: "execution route was not local".to_string(),
@@ -1018,14 +1130,14 @@ mod tests {
         let home = temp_home("execution-blocked");
         with_env(&[("HOME", home.to_str())], || {
             run_async(async {
-                seed_pre_admission_record(
+                let data_root = seed_pre_admission_record(
                     &home,
                     None,
                     None,
                     VALID_RUNTIME_BASELINE_REF,
                     VALID_EXECUTION_EVIDENCE_REF,
                 );
-                let mut resolvers = FakeResolvers::all_valid();
+                let mut resolvers = FakeResolvers::all_valid_for_data_root(&data_root);
                 resolvers.execution = Err(RuntimeOwnerFailure {
                     projection_state: concat!("local_", "ai_blocked").to_string(),
                     detail: "execution failed non-recoverably".to_string(),
@@ -1045,20 +1157,24 @@ mod tests {
         let home = temp_home("idempotent");
         with_env(&[("HOME", home.to_str())], || {
             run_async(async {
-                seed_pre_admission_record(
+                let data_root = seed_pre_admission_record(
                     &home,
                     None,
                     None,
                     VALID_RUNTIME_BASELINE_REF,
                     VALID_EXECUTION_EVIDENCE_REF,
                 );
-                let first = admit_product_ready_for_use(&FakeResolvers::all_valid())
-                    .await
-                    .expect("first admission");
+                let first = admit_product_ready_for_use(&FakeResolvers::all_valid_for_data_root(
+                    &data_root,
+                ))
+                .await
+                .expect("first admission");
                 assert_eq!(first.state, ProductControlState::ReadyForUse);
-                let second = admit_product_ready_for_use(&FakeResolvers::all_valid())
-                    .await
-                    .expect("re-admission");
+                let second = admit_product_ready_for_use(&FakeResolvers::all_valid_for_data_root(
+                    &data_root,
+                ))
+                .await
+                .expect("re-admission");
                 assert_eq!(second.state, ProductControlState::ReadyForUse);
                 assert!(second.record.expect("record").first_run.completed);
             });
@@ -1072,18 +1188,20 @@ mod tests {
         let home = temp_home("invalidated");
         with_env(&[("HOME", home.to_str())], || {
             run_async(async {
-                seed_pre_admission_record(
+                let data_root = seed_pre_admission_record(
                     &home,
                     None,
                     None,
                     VALID_RUNTIME_BASELINE_REF,
                     VALID_EXECUTION_EVIDENCE_REF,
                 );
-                let first = admit_product_ready_for_use(&FakeResolvers::all_valid())
-                    .await
-                    .expect("first admission");
+                let first = admit_product_ready_for_use(&FakeResolvers::all_valid_for_data_root(
+                    &data_root,
+                ))
+                .await
+                .expect("first admission");
                 assert_eq!(first.state, ProductControlState::ReadyForUse);
-                let mut resolvers = FakeResolvers::all_valid();
+                let mut resolvers = FakeResolvers::all_valid_for_data_root(&data_root);
                 resolvers.baseline = Err(RuntimeOwnerFailure {
                     projection_state: "repair_required".to_string(),
                     detail: "baseline evidence invalidated after ready".to_string(),
@@ -1110,7 +1228,7 @@ mod tests {
         let home = temp_home("recommended");
         with_env(&[("HOME", home.to_str())], || {
             run_async(async {
-                seed_pre_admission_record_at_level(
+                let data_root = seed_pre_admission_record_at_level(
                     &home,
                     RECOMMENDED_INSTALL_LEVEL,
                     None,
@@ -1118,14 +1236,21 @@ mod tests {
                     VALID_RUNTIME_BASELINE_REF,
                     VALID_EXECUTION_EVIDENCE_REF,
                 );
-                let mut resolvers = FakeResolvers::all_valid();
+                let mut resolvers = FakeResolvers::all_valid_for_data_root_and_level(
+                    &data_root,
+                    RECOMMENDED_INSTALL_LEVEL,
+                );
                 // Step 5 binds the Runtime baseline readiness to the recorded
                 // install level; a Recommended record requires a Recommended
                 // baseline resolution.
                 resolvers.baseline = Ok(RuntimeBaselineResolution {
                     runtime_baseline_ref: VALID_RUNTIME_BASELINE_REF.to_string(),
+                    selected_local_factory_ai_profile_ref: first_run_factory_profile_ref(
+                        RECOMMENDED_INSTALL_LEVEL,
+                    ),
                     install_level: RECOMMENDED_INSTALL_LEVEL.to_string(),
-                    runtime_data_root_or_data_root_ref: "data-root:test".to_string(),
+                    runtime_data_root_or_data_root_ref: data_root.display().to_string(),
+                    text_generate_binding: fake_text_generate_binding(),
                 });
                 let projection = admit_product_ready_for_use(&resolvers)
                     .await
@@ -1155,7 +1280,7 @@ mod tests {
         let home = temp_home("level-mismatch");
         with_env(&[("HOME", home.to_str())], || {
             run_async(async {
-                seed_pre_admission_record_at_level(
+                let data_root = seed_pre_admission_record_at_level(
                     &home,
                     RECOMMENDED_INSTALL_LEVEL,
                     None,
@@ -1164,9 +1289,11 @@ mod tests {
                     VALID_EXECUTION_EVIDENCE_REF,
                 );
                 // FakeResolvers::all_valid reports the Minimal install level.
-                let projection = admit_product_ready_for_use(&FakeResolvers::all_valid())
-                    .await
-                    .expect("admission");
+                let projection = admit_product_ready_for_use(
+                    &FakeResolvers::all_valid_for_data_root(&data_root),
+                )
+                .await
+                .expect("admission");
                 assert_ne!(projection.state, ProductControlState::ReadyForUse);
                 assert_eq!(
                     projection.state,
@@ -1201,16 +1328,18 @@ mod tests {
                     // The recorded accountDefaultProfileRef is a transfer /
                     // probe / liveness signal instead of an owner-minted
                     // Account Default Profile library ref.
-                    seed_pre_admission_record(
+                    let data_root = seed_pre_admission_record(
                         &home,
                         Some(signal_value.to_string()),
                         None,
                         VALID_RUNTIME_BASELINE_REF,
                         VALID_EXECUTION_EVIDENCE_REF,
                     );
-                    let projection = admit_product_ready_for_use(&FakeResolvers::all_valid())
-                        .await
-                        .expect("admission");
+                    let projection = admit_product_ready_for_use(
+                        &FakeResolvers::all_valid_for_data_root(&data_root),
+                    )
+                    .await
+                    .expect("admission");
                     assert_ne!(
                         projection.state,
                         ProductControlState::ReadyForUse,
@@ -1241,11 +1370,10 @@ mod tests {
                 );
                 let _ = data_root;
                 let control_path = product_control_record_path().expect("path");
-                let mut record = crate::desktop_product_control::read_existing_record(
-                    &control_path,
-                )
-                .expect("read")
-                .expect("record");
+                let mut record =
+                    crate::desktop_product_control::read_existing_record(&control_path)
+                        .expect("read")
+                        .expect("record");
                 // Fabricate a ready_for_use record by direct file edit: the
                 // shape is complete but the refs were never owner-admitted.
                 record.state = ProductControlState::ReadyForUse;
@@ -1276,5 +1404,4 @@ mod tests {
             });
         });
     }
-
 }

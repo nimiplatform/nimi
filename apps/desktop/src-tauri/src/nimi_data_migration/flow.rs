@@ -212,7 +212,10 @@ pub fn run_migration(
                     &target,
                     preview,
                     None,
-                    format!("无法检查目标 nimi_data 路径 ({}): {error}", target.display()),
+                    format!(
+                        "无法检查目标 nimi_data 路径 ({}): {error}",
+                        target.display()
+                    ),
                 ));
             }
         };

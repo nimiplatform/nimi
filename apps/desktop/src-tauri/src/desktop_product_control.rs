@@ -21,8 +21,15 @@ pub use record::*;
 pub(crate) use record_store::*;
 
 #[tauri::command]
-pub fn product_control_record_get() -> Result<ProductControlRecordProjection, String> {
-    read_product_control_projection()
+pub async fn product_control_record_get() -> Result<ProductControlRecordProjection, String> {
+    let projection = read_product_control_projection()?;
+    if matches!(projection.state, ProductControlState::ReadyForUse) {
+        return crate::desktop_product_control_admission::admit_product_ready_for_use(
+            &crate::desktop_product_control_admission::BridgeAdmissionRuntimeResolvers,
+        )
+        .await;
+    }
+    Ok(projection)
 }
 
 #[tauri::command]
@@ -82,6 +89,12 @@ pub async fn product_control_record_ensure_account_default_profile(
 pub async fn product_control_record_ensure_built_in_ai_config(
 ) -> Result<ProductControlRecordProjection, String> {
     ensure_built_in_ai_config_for_product_control().await
+}
+
+#[tauri::command]
+pub async fn product_control_record_prepare_first_run_local_ai_ready(
+) -> Result<ProductControlRecordProjection, String> {
+    prepare_first_run_local_ai_ready_for_product_control().await
 }
 
 #[tauri::command]

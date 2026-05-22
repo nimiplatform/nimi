@@ -144,7 +144,7 @@ function firstRunRows(): readonly PlatformAIProfileFactoryRow[] {
 
 test('fresh authenticated non-ready gate is first-run-only and excludes ordinary Home-adjacent surfaces', () => {
   assert.match(appRoutesSource, /features\/nimi-home\/first-run-gate-panel/);
-  assert.match(appRoutesSource, /<FirstRunGatePanel \/>/);
+  assert.match(appRoutesSource, /<FirstRunGatePanel onReadyForUse=\{props\.onReadyForUse\} \/>/);
   assert.match(firstRunGatePanelSource, /ProductControlWorkflow/);
   for (const forbidden of [
     /AgentChatReference/,
@@ -217,6 +217,9 @@ test('renderer evidence: continuing from the Local AI phase records the install 
   assert.match(markup, /data-testid="first-run-step-local-ai" data-active="true"/);
   assert.match(productControlWorkflowSource, /setProductFirstRunInstallLevel/);
   assert.match(productControlWorkflowSource, /startFirstRunMaterialization/);
+  assert.match(productControlWorkflowSource, /prepareProductFirstRunLocalAiReady/);
+  assert.match(productControlWorkflowSource, /await projectMaterialization\(next, afterLevel\.state\)/);
+  assert.match(productControlWorkflowSource, /next\.productState === 'local_ai_ready'[\s\S]*?prepareProductFirstRunLocalAiReady/);
   assert.doesNotMatch(productControlWorkflowSource, /markProductReadyForUse/);
 });
 
@@ -372,8 +375,10 @@ test('first-run materialization derives Runtime job requests from selected AIPro
   const profile = PLATFORM_AI_PROFILE_FACTORY_ROWS.find((row) => row.alias === 'local-speech-ready');
   assert.ok(profile);
   const calls: Array<{ dependencyFamily: string; dependencyId: string; environmentKey: string; sourceKind: string; confirmed: boolean }> = [];
+  const planInstallLevels: Array<string | undefined> = [];
   const runtime: FirstRunMaterializationInput['runtime'] = {
     async resolveEnvironmentPlan(payload) {
+      planInstallLevels.push(payload.installLevel);
       const dependencies = payload.packId === 'local-text'
         ? [
             dependency('native-engine-package.llama', 'native-engine-package.llama:default'),
@@ -400,15 +405,6 @@ test('first-run materialization derives Runtime job requests from selected AIPro
     async listEnvironmentDependencyJobs() {
       return [];
     },
-    async resolveEnvironmentActivationGate(payload) {
-      return {
-        consumerId: payload.consumerId,
-        packId: payload.packId,
-        state: 'blocked',
-        blockingDependencies: [],
-        dependencies: [],
-      };
-    },
     async startEnvironmentDependencyJob(payload) {
       calls.push(payload);
       return {
@@ -419,6 +415,11 @@ test('first-run materialization derives Runtime job requests from selected AIPro
         state: 'queued',
         sourceKind: payload.sourceKind,
         retryable: false,
+        bytesReceived: 0,
+        bytesTotal: 0,
+        percent: 0,
+        speedBytesPerSec: 0,
+        etaSeconds: 0,
       };
     },
     async cancelEnvironmentDependencyJob() {
@@ -436,6 +437,7 @@ test('first-run materialization derives Runtime job requests from selected AIPro
     profile,
     runtime,
     runtimeDataRoot: '/tmp/nimi-data-explicit',
+    installLevel: 'minimal',
     confirmed: false,
   });
   assert.equal(unconfirmed.status, 'needs_confirmation');
@@ -445,6 +447,7 @@ test('first-run materialization derives Runtime job requests from selected AIPro
     profile,
     runtime,
     runtimeDataRoot: '/tmp/nimi-data-explicit',
+    installLevel: 'minimal',
     confirmed: true,
   });
   assert.equal(projection.reason, 'runtime_materialization_jobs_started');
@@ -456,7 +459,8 @@ test('first-run materialization derives Runtime job requests from selected AIPro
     new Set(calls.map((call) => call.confirmed)),
     new Set([true]),
   );
-  assert.equal(FIRST_RUN_MATERIALIZATION_CONSUMER_SCOPE, 'desktop.first-run');
+  assert.deepEqual(new Set(planInstallLevels), new Set(['minimal']));
+  assert.equal(FIRST_RUN_MATERIALIZATION_CONSUMER_SCOPE, 'first-run');
 });
 
 test('first-run materialization does not treat selected or candidate dependency states as ready', async () => {
@@ -485,15 +489,6 @@ test('first-run materialization does not treat selected or candidate dependency 
     async listEnvironmentDependencyJobs() {
       return [];
     },
-    async resolveEnvironmentActivationGate(payload) {
-      return {
-        consumerId: payload.consumerId,
-        packId: payload.packId,
-        state: 'ready',
-        blockingDependencies: [],
-        dependencies: [],
-      };
-    },
     async startEnvironmentDependencyJob(payload) {
       calls.push(payload);
       return {
@@ -504,6 +499,11 @@ test('first-run materialization does not treat selected or candidate dependency 
         state: 'queued',
         sourceKind: payload.sourceKind,
         retryable: false,
+        bytesReceived: 0,
+        bytesTotal: 0,
+        percent: 0,
+        speedBytesPerSec: 0,
+        etaSeconds: 0,
       };
     },
     async cancelEnvironmentDependencyJob() {
@@ -522,7 +522,7 @@ test('first-run materialization does not treat selected or candidate dependency 
     runtime,
     runtimeDataRoot: '/tmp/nimi-data-explicit',
   });
-  assert.equal(projectionBeforeStart.status, 'needs_confirmation');
+  assert.equal(projectionBeforeStart.status, 'activation_pending');
   assert.notEqual(projectionBeforeStart.productState, 'local_ai_ready');
 
   const projectionAfterStart = await startFirstRunMaterialization({
@@ -531,12 +531,12 @@ test('first-run materialization does not treat selected or candidate dependency 
     runtimeDataRoot: '/tmp/nimi-data-explicit',
     confirmed: true,
   });
-  assert.equal(projectionAfterStart.reason, 'runtime_materialization_jobs_started');
-  assert.equal(calls.length, profile.dependencyFamilyRefs.length);
+  assert.equal(projectionAfterStart.status, 'activation_pending');
+  assert.equal(calls.length, 0);
   assert.notEqual(projectionAfterStart.productState, 'local_ai_ready');
 });
 
-test('first-run materialization projects local_ai_ready only for ready_system or ready_managed plus ready activation gate', async () => {
+test('first-run materialization asks backend finalization only after ready_system or ready_managed dependencies', async () => {
   const profile = PLATFORM_AI_PROFILE_FACTORY_ROWS.find((row) => row.alias === 'local-speech-ready');
   assert.ok(profile);
   const runtime: FirstRunMaterializationInput['runtime'] = {
@@ -560,15 +560,6 @@ test('first-run materialization projects local_ai_ready only for ready_system or
     },
     async listEnvironmentDependencyJobs() {
       return [];
-    },
-    async resolveEnvironmentActivationGate(payload) {
-      return {
-        consumerId: payload.consumerId,
-        packId: payload.packId,
-        state: 'ready',
-        blockingDependencies: [],
-        dependencies: [],
-      };
     },
     async startEnvironmentDependencyJob() {
       throw new Error('not used');

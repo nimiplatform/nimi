@@ -13,18 +13,20 @@
 // exactly where it failed.
 
 import type { ProductControlState } from '@renderer/bridge';
-import type {
-  FirstRunMaterializationDependencyProjection,
-  FirstRunMaterializationProjection,
+import {
+  aggregateMaterializationDownloadProgress,
+  type FirstRunMaterializationDependencyProjection,
+  type FirstRunMaterializationDownloadProgress,
+  type FirstRunMaterializationProjection,
 } from './runtime-materialization.js';
 
 /**
  * The four design sub-steps. Ordering matches the materialization →
- * activation → finalization progression.
+	 * backend baseline preparation → finalization progression.
  *
  * - `download`  — Downloading local models (assets job phase)
  * - `verify`    — Verifying files (asset verification phase)
- * - `environment` — Preparing local environment (activation gate)
+	 * - `environment` — Preparing local environment (Runtime dependencies ready)
  * - `finalize`  — Finalizing your AI profile (product-control finalization)
  */
 export type FirstRunSetupStepId = 'download' | 'verify' | 'environment' | 'finalize';
@@ -52,6 +54,14 @@ export type FirstRunSetupStep = {
   readonly canRepair: boolean;
   /** Whether the failing/active row's job can be cancelled. */
   readonly canCancel: boolean;
+  /**
+   * The aggregate K-RPC-025 download-progress projection for this step, present
+   * only on an `active` step whose jobs are actively transferring bytes (the
+   * `download` step). It is a faithful projection of Runtime job progress — the
+   * row renders a concrete %/rate/ETA from it and never invents an estimate.
+   * `null` when the step is not actively downloading.
+   */
+  readonly downloadProgress: FirstRunMaterializationDownloadProgress | null;
 };
 
 export type FirstRunSetupChecklist = {
@@ -81,8 +91,8 @@ function normalize(value: string | undefined): string {
 /**
  * Builds the setup checklist for a materialization projection.
  *
- * `download` + `verify` cover the asset materialization jobs; `environment`
- * covers the activation gate; `finalize` covers product-control finalization
+	 * `download` + `verify` cover the asset materialization jobs; `environment`
+	 * covers the backend-owned local AI prepare/admission handoff; `finalize` covers product-control finalization
  * and is only marked done once the state machine itself reports
  * `ready_for_use` (handled by {@link projectSetupChecklist}).
  */
@@ -172,6 +182,12 @@ function projectFromMaterialization(
     finalize: 'pending',
   };
 
+  // The concrete download-progress projection is meaningful only while assets
+  // are actively being fetched — it is attached to the `download` step while
+  // it is the active step. Verifying jobs roll up into the same transferring
+  // aggregate, so the bar keeps moving across download → verify.
+  const downloadProgress = aggregateMaterializationDownloadProgress(deps);
+
   const steps = FIRST_RUN_SETUP_STEP_IDS.map((id) => {
     const isFailing = failed && id === failingStepId;
     return {
@@ -181,6 +197,9 @@ function projectFromMaterialization(
       canRetry: isFailing ? canRetry : false,
       canRepair: isFailing ? canRepair : false,
       canCancel: isFailing ? canCancel : false,
+      downloadProgress: id === 'download' && baseStatuses[id] === 'active'
+        ? downloadProgress
+        : null,
     } satisfies FirstRunSetupStep;
   });
 
@@ -224,7 +243,8 @@ export function projectSetupChecklist(
       canRetry: false,
       canRepair: false,
       canCancel: false,
-    }));
+      downloadProgress: null,
+    } satisfies FirstRunSetupStep));
     return { steps, progressPercent: computeProgress(steps), hasFailure: false };
   }
   if (!materialization) {
@@ -237,7 +257,8 @@ export function projectSetupChecklist(
       canRetry: false,
       canRepair: false,
       canCancel: false,
-    }));
+      downloadProgress: null,
+    } satisfies FirstRunSetupStep));
     return { steps, progressPercent: computeProgress(steps), hasFailure: false };
   }
   return projectFromMaterialization(materialization);

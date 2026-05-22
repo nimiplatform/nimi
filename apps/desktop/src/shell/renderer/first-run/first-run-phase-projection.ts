@@ -24,10 +24,11 @@ import type { ProductControlState } from '@renderer/bridge';
 export type FirstRunPhase = 'storage' | 'local-ai' | 'setup';
 
 /**
- * The off-happy-path terminal screens. `ready` is the brief confirmation
- * shown for `ready_for_use` before the shell auto-continues to Chat.
+ * The off-happy-path terminal screens. `login` hands `not_logged_in` back to
+ * the auth surface; `ready` is the brief confirmation shown for
+ * `ready_for_use` before the shell auto-continues to Chat.
  */
-export type FirstRunTerminalScreen = 'repair' | 'blocked' | 'ready';
+export type FirstRunTerminalScreen = 'login' | 'repair' | 'blocked' | 'ready';
 
 /**
  * What the wizard renders for a given product-control state: either one of
@@ -54,8 +55,8 @@ export const FIRST_RUN_PHASES: readonly FirstRunPhase[] = ['storage', 'local-ai'
  *   Setup phase.
  * - `repair_required` / `blocked` / `ready_for_use` are terminal screens.
  * - `not_logged_in` is owned by the auth gate upstream of first-run; if it is
- *   ever observed here it fails closed onto the blocked terminal screen
- *   rather than silently rendering a phase.
+ *   ever observed here it routes back to the login/re-auth surface rather than
+ *   collapsing into a generic blocked repair path.
  */
 export function firstRunScreenForState(state: ProductControlState): FirstRunScreen {
   switch (state) {
@@ -77,7 +78,7 @@ export function firstRunScreenForState(state: ProductControlState): FirstRunScre
     case 'ready_for_use':
       return { kind: 'terminal', screen: 'ready' };
     case 'not_logged_in':
-      return { kind: 'terminal', screen: 'blocked' };
+      return { kind: 'terminal', screen: 'login' };
   }
 }
 

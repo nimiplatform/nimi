@@ -255,9 +255,7 @@ fn validate_record(record: &FactoryProfileIndexRecord) -> Result<(), String> {
     if record.updated_at.trim().is_empty() {
         return Err("~/.nimi/profiles/factory-index.json updatedAt is required".to_string());
     }
-    if record.policies.baseline.trim().is_empty()
-        || record.policies.recommended.trim().is_empty()
-    {
+    if record.policies.baseline.trim().is_empty() || record.policies.recommended.trim().is_empty() {
         return Err(
             "~/.nimi/profiles/factory-index.json policies.baseline and policies.recommended are required"
                 .to_string(),
@@ -425,7 +423,10 @@ mod tests {
             record.profiles.len(),
             super::PLATFORM_AI_PROFILE_FACTORY_ROWS.len()
         );
-        assert_eq!(record.schema_version, super::FACTORY_PROFILE_INDEX_SCHEMA_VERSION);
+        assert_eq!(
+            record.schema_version,
+            super::FACTORY_PROFILE_INDEX_SCHEMA_VERSION
+        );
         assert_eq!(
             record.catalog_version,
             format!("v{}", super::PLATFORM_AI_PROFILE_FACTORY_CATALOG_VERSION)
@@ -597,8 +598,7 @@ mod tests {
     fn serde_round_trip_preserves_record() {
         let record = build_factory_profile_index_record().expect("record");
         let raw = serde_json::to_string_pretty(&record).expect("serialize");
-        let parsed: FactoryProfileIndexRecord =
-            serde_json::from_str(&raw).expect("deserialize");
+        let parsed: FactoryProfileIndexRecord = serde_json::from_str(&raw).expect("deserialize");
         assert_eq!(record, parsed);
     }
 }

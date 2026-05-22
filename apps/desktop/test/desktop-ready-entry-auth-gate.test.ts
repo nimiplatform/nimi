@@ -38,6 +38,10 @@ const workflowSource = readFileSync(
   resolve(import.meta.dirname, '../src/shell/renderer/first-run/product-control-workflow.tsx'),
   'utf8',
 );
+const firstRunGatePanelSource = readFileSync(
+  resolve(import.meta.dirname, '../src/shell/renderer/features/nimi-home/first-run-gate-panel.tsx'),
+  'utf8',
+);
 
 test('Gate 7: Desktop root route is guarded by auth and product ready_for_use', () => {
   assert.match(appRoutesSource, /function DesktopOrdinaryShellGate/);
@@ -53,6 +57,7 @@ test('Gate 7: ready Desktop shell lands at Chat -> Nimi Chat', () => {
   assert.match(uiSliceSource, /chatMode:\s*'ai'/);
   assert.match(appRoutesSource, /function ReadyDesktopShell/);
   assert.match(appRoutesSource, /setActiveTab\('chat'\)/);
+  assert.doesNotMatch(appRoutesSource, /activeTab !== 'chat'/);
   assert.doesNotMatch(appRoutesSource, /setChatMode\('ai'\)/);
 });
 
@@ -67,6 +72,16 @@ test('Gate 7: ordinary shell admission stays gated strictly on backend ready_for
   // projection. ready_for_use is the only state that mounts ReadyDesktopShell.
   assert.match(appRoutesSource, /projection\.state === 'ready_for_use' \? 'ready' : 'not-ready'/);
   assert.doesNotMatch(appRoutesSource, /state === 'local_ai_ready'\s*\?\s*'ready'/);
+});
+
+test('Gate 7: first-run ready projection signals the ordinary shell admission gate', () => {
+  assert.match(appRoutesSource, /const \[firstRunReady, setFirstRunReady\] = useState\(false\)/);
+  assert.match(appRoutesSource, /const admission: DesktopOrdinaryShellAdmission = firstRunReady \? 'ready' : observedAdmission/);
+  assert.match(appRoutesSource, /<DesktopFirstRunGate onReadyForUse=\{\(\) => setFirstRunReady\(true\)\} \/>/);
+  assert.match(firstRunGatePanelSource, /readonly onReadyForUse\?: \(\) => void/);
+  assert.match(firstRunGatePanelSource, /projection\?\.state === 'ready_for_use'/);
+  assert.match(firstRunGatePanelSource, /next\.state === 'ready_for_use'/);
+  assert.doesNotMatch(firstRunGatePanelSource, /markProductReadyForUse|product_control_record_mark_ready_for_use/);
 });
 
 test('Wave 7: bridge exposes a backend-only admitProductReadyForUse request', () => {

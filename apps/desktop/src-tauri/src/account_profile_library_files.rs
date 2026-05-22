@@ -208,9 +208,9 @@ fn validate_library_profile_id(profile_id: &str) -> Result<String, String> {
                 .to_string(),
         );
     }
-    let safe = normalized.chars().all(|character| {
-        character.is_ascii_alphanumeric() || matches!(character, '-' | '_' | '.')
-    });
+    let safe = normalized
+        .chars()
+        .all(|character| character.is_ascii_alphanumeric() || matches!(character, '-' | '_' | '.'));
     if !safe {
         return Err(
             "library profile id must contain only ASCII letters, digits, '-', '_', or '.'"
@@ -271,9 +271,7 @@ fn validate_library_ai_profile_payload(
             return Err("library AIProfile payload capability id is required".to_string());
         }
         if !value.is_object() {
-            return Err(
-                "library AIProfile payload capability entries must be objects".to_string(),
-            );
+            return Err("library AIProfile payload capability entries must be objects".to_string());
         }
     }
     Ok(())
@@ -287,22 +285,39 @@ fn write_json_atomic<T: Serialize>(path: &Path, value: &T, label: &str) -> Resul
     let parent = path
         .parent()
         .ok_or_else(|| format!("{label} path has no parent directory"))?;
-    fs::create_dir_all(parent)
-        .map_err(|error| format!("create {label} directory failed ({}): {error}", parent.display()))?;
+    fs::create_dir_all(parent).map_err(|error| {
+        format!(
+            "create {label} directory failed ({}): {error}",
+            parent.display()
+        )
+    })?;
     let raw = serde_json::to_string_pretty(value)
         .map_err(|error| format!("serialize {label} failed: {error}"))?;
-    let tmp_path = path.with_extension(format!("json.tmp.{}.{}", std::process::id(), now_unix_ms()));
-    fs::write(&tmp_path, raw)
-        .map_err(|error| format!("write {label} temporary file failed ({}): {error}", tmp_path.display()))?;
+    let tmp_path =
+        path.with_extension(format!("json.tmp.{}.{}", std::process::id(), now_unix_ms()));
+    fs::write(&tmp_path, raw).map_err(|error| {
+        format!(
+            "write {label} temporary file failed ({}): {error}",
+            tmp_path.display()
+        )
+    })?;
     fs::rename(&tmp_path, path)
         .map_err(|error| format!("commit {label} record failed ({}): {error}", path.display()))
 }
 
 fn read_library_profile_record(path: &Path) -> Result<LibraryProfileRecord, String> {
-    let raw = fs::read_to_string(path)
-        .map_err(|error| format!("library profile record is unreadable ({}): {error}", path.display()))?;
-    let record = serde_json::from_str::<LibraryProfileRecord>(&raw)
-        .map_err(|error| format!("library profile record cannot be parsed ({}): {error}", path.display()))?;
+    let raw = fs::read_to_string(path).map_err(|error| {
+        format!(
+            "library profile record is unreadable ({}): {error}",
+            path.display()
+        )
+    })?;
+    let record = serde_json::from_str::<LibraryProfileRecord>(&raw).map_err(|error| {
+        format!(
+            "library profile record cannot be parsed ({}): {error}",
+            path.display()
+        )
+    })?;
     if record.schema_version != LIBRARY_ENTRY_SCHEMA_VERSION {
         return Err(format!(
             "library profile record schemaVersion={} is unsupported ({})",
@@ -334,11 +349,15 @@ fn scan_origin_directory(
         return Ok(Vec::new());
     }
     let mut scanned: Vec<ScannedLibraryProfile> = Vec::new();
-    let entries = fs::read_dir(&dir)
-        .map_err(|error| format!("read library {origin} directory failed ({}): {error}", dir.display()))?;
+    let entries = fs::read_dir(&dir).map_err(|error| {
+        format!(
+            "read library {origin} directory failed ({}): {error}",
+            dir.display()
+        )
+    })?;
     for entry in entries {
-        let entry = entry
-            .map_err(|error| format!("read library {origin} entry failed: {error}"))?;
+        let entry =
+            entry.map_err(|error| format!("read library {origin} entry failed: {error}"))?;
         let path = entry.path();
         if !path.is_file() {
             continue;
@@ -379,7 +398,12 @@ fn scan_origin_directory(
             relative_path: format!("{origin}/{file_name}"),
         });
     }
-    scanned.sort_by(|left, right| left.record.profile.profile_id.cmp(&right.record.profile.profile_id));
+    scanned.sort_by(|left, right| {
+        left.record
+            .profile
+            .profile_id
+            .cmp(&right.record.profile.profile_id)
+    });
     Ok(scanned)
 }
 
@@ -393,10 +417,18 @@ fn read_account_default_index_row(account_id: &str) -> Result<Option<LibraryInde
     if !path.exists() {
         return Ok(None);
     }
-    let raw = fs::read_to_string(&path)
-        .map_err(|error| format!("Account Default Profile record is unreadable ({}): {error}", path.display()))?;
-    let value = serde_json::from_str::<serde_json::Value>(&raw)
-        .map_err(|error| format!("Account Default Profile record cannot be parsed ({}): {error}", path.display()))?;
+    let raw = fs::read_to_string(&path).map_err(|error| {
+        format!(
+            "Account Default Profile record is unreadable ({}): {error}",
+            path.display()
+        )
+    })?;
+    let value = serde_json::from_str::<serde_json::Value>(&raw).map_err(|error| {
+        format!(
+            "Account Default Profile record cannot be parsed ({}): {error}",
+            path.display()
+        )
+    })?;
     let display_name = value
         .get("displayName")
         .and_then(serde_json::Value::as_str)
@@ -642,9 +674,7 @@ pub fn export_account_profile_library_entries(
             .profiles
             .iter()
             .find(|entry| entry.profile_id == normalized_id)
-            .ok_or_else(|| {
-                format!("library profile `{normalized_id}` was not found for export")
-            })?;
+            .ok_or_else(|| format!("library profile `{normalized_id}` was not found for export"))?;
         exported.push(matched.profile.clone());
     }
     Ok(exported)
@@ -659,8 +689,12 @@ pub fn delete_account_profile_library_entry(
     let normalized_account = validate_account_id(account_id)?;
     let normalized_id = validate_library_profile_id(profile_id)?;
     let (_origin, path) = locate_editable_profile(&normalized_account, &normalized_id)?;
-    fs::remove_file(&path)
-        .map_err(|error| format!("delete library profile record failed ({}): {error}", path.display()))?;
+    fs::remove_file(&path).map_err(|error| {
+        format!(
+            "delete library profile record failed ({}): {error}",
+            path.display()
+        )
+    })?;
     derive_and_commit_library_projection(&normalized_account)
 }
 
@@ -678,8 +712,10 @@ mod tests {
     }
 
     fn temp_home(prefix: &str) -> PathBuf {
-        let dir = std::env::temp_dir()
-            .join(format!("nimi-account-profile-library-{prefix}-{}", unique_suffix()));
+        let dir = std::env::temp_dir().join(format!(
+            "nimi-account-profile-library-{prefix}-{}",
+            unique_suffix()
+        ));
         std::fs::create_dir_all(&dir).expect("create temp home");
         dir
     }
@@ -741,9 +777,8 @@ mod tests {
             .expect_err("reserved id must fail");
             assert!(create_error.contains("reserved"));
 
-            let delete_error =
-                delete_account_profile_library_entry("account_1", "default")
-                    .expect_err("reserved id delete must fail");
+            let delete_error = delete_account_profile_library_entry("account_1", "default")
+                .expect_err("reserved id delete must fail");
             assert!(delete_error.contains("reserved"));
         });
     }
@@ -815,10 +850,7 @@ mod tests {
         with_isolated_home("import-dup", || {
             let error = import_account_profile_library_entries(
                 "account_1",
-                vec![
-                    sample_payload("dup", "One"),
-                    sample_payload("dup", "Two"),
-                ],
+                vec![sample_payload("dup", "One"), sample_payload("dup", "Two")],
             )
             .expect_err("duplicate ids must fail");
             assert!(error.contains("duplicate"));
@@ -849,11 +881,9 @@ mod tests {
                 .expect("export all");
             assert_eq!(all.len(), 2);
 
-            let one = export_account_profile_library_entries(
-                "account_1",
-                vec!["exp-a".to_string()],
-            )
-            .expect("export one");
+            let one =
+                export_account_profile_library_entries("account_1", vec!["exp-a".to_string()])
+                    .expect("export one");
             assert_eq!(one.len(), 1);
             assert_eq!(one[0].profile_id, "exp-a");
 

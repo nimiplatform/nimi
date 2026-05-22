@@ -154,6 +154,7 @@ fn verify_ready_for_use_local_owners(
             data_root,
             &account_id,
             &record.first_run.built_in_ai_config_refs,
+            None,
         )
         .map(|_| ())
         .map_err(|error| (ProductControlState::LocalAiReady, error));

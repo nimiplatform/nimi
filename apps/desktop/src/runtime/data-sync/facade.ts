@@ -77,7 +77,7 @@ type WorldDetailWithAgentsDto = RealmModel<'WorldDetailWithAgentsDto'>;
 
 export type DataSyncAuthCallbacks = {
   setAuth: (user: Record<string, unknown> | null | undefined, token: string, refreshToken?: string) => void;
-  clearAuth: () => void;
+  clearAuth: () => void | Promise<void>;
   getCurrentUser: () => Record<string, unknown> | null;
   isFriend: (userId: string) => boolean;
 };
@@ -200,7 +200,7 @@ export class DataSync {
       if (isRealmOfflineError(normalized)) {
         getOfflineCoordinator().markRealmRestReachable(false);
       }
-      this.handleAuthRequired(normalized);
+      await this.handleAuthRequired(normalized);
       throw normalized;
     }
   }
@@ -261,7 +261,7 @@ export class DataSync {
     );
   }
 
-  private handleAuthRequired(error: unknown): void {
+  private async handleAuthRequired(error: unknown): Promise<void> {
     const errorFields = extractRuntimeErrorFields(error);
     const requiresReauthentication = this.isReauthenticationRequired(error);
     if (!requiresReauthentication) {
@@ -282,7 +282,7 @@ export class DataSync {
     this.accessToken = '';
     this.refreshToken = '';
     this.persistApiToHotState();
-    this.authCallbacks?.clearAuth();
+    await this.authCallbacks?.clearAuth();
     this.stopAllPolling();
     this.clearProactiveRefreshTimer();
   }
@@ -671,7 +671,7 @@ export class DataSync {
           error: errorFields.message || (error instanceof Error ? error.message : String(error || '')),
         },
       });
-      this.handleAuthRequired(error);
+      await this.handleAuthRequired(error);
     }
   }
 

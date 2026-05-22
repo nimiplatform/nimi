@@ -88,8 +88,10 @@ test('built-in AIConfig fails closed on generic scope, string-only ref, and part
     desktopAiConfigLibrarySource,
     /requires exactly \{\} refs for both canonical chat scopes/,
   );
-  // no hardcoded provider/model: binding intent starts unbound.
-  assert.match(desktopAiConfigLibrarySource, /binding: serde_json::Value::Null/);
+  // text.generate binding comes from Runtime baseline evidence; non-text
+  // capabilities stay explicitly unbound instead of hardcoding a provider/model.
+  assert.match(desktopAiConfigLibrarySource, /runtime_text_generate_binding_from_baseline_ref/);
+  assert.match(desktopAiConfigLibrarySource, /capability == TEXT_GENERATE_CAPABILITY/);
 });
 
 test('built-in AIConfig apply is atomic (D-AIPC-005) via temp-file then rename', () => {

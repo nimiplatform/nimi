@@ -48,6 +48,10 @@
     "cancel": "Cancel",
     "retry": "Retry",
     "repair": "Repair",
+    "progressOf": "{{received}} of {{total}}",
+    "progressReceived": "{{received}} downloaded",
+    "progressRate": "{{rate}}/s",
+    "progressEta": "{{eta}} left",
     "steps": {
       "download": "Downloading local models",
       "verify": "Verifying files",

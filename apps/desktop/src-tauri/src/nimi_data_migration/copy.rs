@@ -42,10 +42,7 @@ pub fn copy_tree(source: &Path, target: &Path) -> Result<(), String> {
     let metadata = fs::symlink_metadata(source)
         .map_err(|error| format!("读取拷贝源元数据失败 ({}): {error}", source.display()))?;
     if !metadata.is_dir() {
-        return Err(format!(
-            "拷贝源不是目录 ({})",
-            source.display()
-        ));
+        return Err(format!("拷贝源不是目录 ({})", source.display()));
     }
     fs::create_dir_all(target)
         .map_err(|error| format!("创建拷贝目标目录失败 ({}): {error}", target.display()))?;
@@ -56,14 +53,11 @@ fn copy_dir_contents(source: &Path, target: &Path) -> Result<(), String> {
     let entries = fs::read_dir(source)
         .map_err(|error| format!("读取拷贝源目录失败 ({}): {error}", source.display()))?;
     for entry in entries {
-        let entry = entry
-            .map_err(|error| format!("遍历拷贝源目录失败 ({}): {error}", source.display()))?;
+        let entry =
+            entry.map_err(|error| format!("遍历拷贝源目录失败 ({}): {error}", source.display()))?;
         let entry_path = entry.path();
         let entry_metadata = fs::symlink_metadata(&entry_path).map_err(|error| {
-            format!(
-                "读取拷贝源项元数据失败 ({}): {error}",
-                entry_path.display()
-            )
+            format!("读取拷贝源项元数据失败 ({}): {error}", entry_path.display())
         })?;
         let file_type = entry_metadata.file_type();
         let dest = target.join(entry.file_name());
@@ -75,9 +69,8 @@ fn copy_dir_contents(source: &Path, target: &Path) -> Result<(), String> {
             continue;
         }
         if file_type.is_dir() {
-            fs::create_dir_all(&dest).map_err(|error| {
-                format!("创建拷贝子目录失败 ({}): {error}", dest.display())
-            })?;
+            fs::create_dir_all(&dest)
+                .map_err(|error| format!("创建拷贝子目录失败 ({}): {error}", dest.display()))?;
             copy_dir_contents(&entry_path, &dest)?;
         } else {
             fs::copy(&entry_path, &dest).map_err(|error| {
@@ -106,9 +99,8 @@ pub fn compute_signature(root: &Path) -> Result<IntegritySignature, String> {
     relative_files.sort();
     for relative in &relative_files {
         let absolute = root.join(relative);
-        let bytes = fs::read(&absolute).map_err(|error| {
-            format!("读取文件计算校验和失败 ({}): {error}", absolute.display())
-        })?;
+        let bytes = fs::read(&absolute)
+            .map_err(|error| format!("读取文件计算校验和失败 ({}): {error}", absolute.display()))?;
         hasher.update(relative.as_bytes());
         hasher.update([0u8]);
         hasher.update((bytes.len() as u64).to_le_bytes());
@@ -123,18 +115,13 @@ pub fn compute_signature(root: &Path) -> Result<IntegritySignature, String> {
 }
 
 fn collect_files(root: &Path, dir: &Path, out: &mut Vec<String>) -> Result<(), String> {
-    let entries = fs::read_dir(dir)
-        .map_err(|error| format!("读取目录失败 ({}): {error}", dir.display()))?;
+    let entries =
+        fs::read_dir(dir).map_err(|error| format!("读取目录失败 ({}): {error}", dir.display()))?;
     for entry in entries {
-        let entry =
-            entry.map_err(|error| format!("遍历目录失败 ({}): {error}", dir.display()))?;
+        let entry = entry.map_err(|error| format!("遍历目录失败 ({}): {error}", dir.display()))?;
         let entry_path = entry.path();
-        let entry_metadata = fs::symlink_metadata(&entry_path).map_err(|error| {
-            format!(
-                "读取目录项元数据失败 ({}): {error}",
-                entry_path.display()
-            )
-        })?;
+        let entry_metadata = fs::symlink_metadata(&entry_path)
+            .map_err(|error| format!("读取目录项元数据失败 ({}): {error}", entry_path.display()))?;
         let file_type = entry_metadata.file_type();
         if file_type.is_symlink() {
             // A symlink contributes to the file count (via measure_directory)
@@ -149,10 +136,7 @@ fn collect_files(root: &Path, dir: &Path, out: &mut Vec<String>) -> Result<(), S
             if let Some(relative) = relative.to_str() {
                 out.push(relative.replace('\\', "/"));
             } else {
-                return Err(format!(
-                    "文件路径不是有效 UTF-8 ({})",
-                    entry_path.display()
-                ));
+                return Err(format!("文件路径不是有效 UTF-8 ({})", entry_path.display()));
             }
         }
     }
@@ -165,10 +149,7 @@ fn collect_files(root: &Path, dir: &Path, out: &mut Vec<String>) -> Result<(), S
 /// content to the source; returns a typed `Err` describing the first mismatch
 /// otherwise. `P-MIG-007`: a failed integrity check must abort the migration
 /// before any pointer cutover.
-pub fn verify_copy(
-    source: &Path,
-    target: &Path,
-) -> Result<IntegritySignature, String> {
+pub fn verify_copy(source: &Path, target: &Path) -> Result<IntegritySignature, String> {
     let source_signature = compute_signature(source)?;
     let target_signature = compute_signature(target)?;
     if source_signature.file_count != target_signature.file_count {

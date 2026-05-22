@@ -40,7 +40,7 @@ import { safeErrorMessage } from './runtime-bootstrap-utils';
 import {
   buildRuntimeHostCapabilities,
 } from './runtime-bootstrap-host-capabilities';
-import { syncRuntimeLocalModelsConfig } from './runtime-bootstrap-local-models-sync';
+import { syncRuntimeStorageConfig } from './runtime-bootstrap-local-models-sync';
 import { syncRuntimeJwtConfig } from './runtime-bootstrap-jwt-sync';
 import { isRuntimeConfigManualRestartRequiredError } from './runtime-bootstrap-config-errors';
 import { reconcileLocalRuntimeBootstrapState } from './runtime-bootstrap-local-ai';
@@ -163,6 +163,64 @@ function runtimeDaemonUnavailable(status: { running: boolean; lastError?: string
   return !status.running;
 }
 
+async function shouldDegradeRuntimeConfigManualRestartForProductSetup(flowId: string): Promise<boolean> {
+  if (!desktopBridge.hasTauriInvoke()) {
+    return false;
+  }
+  try {
+    const projection = await desktopBridge.getProductControlRecord();
+    return projection.state !== 'ready_for_use';
+  } catch (error) {
+    logRendererEvent({
+      level: 'warn',
+      area: 'renderer-bootstrap',
+      message: 'phase:product-control:read-for-config-restart-gate-failed',
+      flowId,
+      details: {
+        error: safeErrorMessage(error),
+      },
+    });
+    return false;
+  }
+}
+
+async function handleRuntimeConfigSyncError(input: {
+  error: unknown;
+  flowId: string;
+  step: string;
+}): Promise<string> {
+  const message = safeErrorMessage(input.error);
+  if (isRuntimeConfigManualRestartRequiredError(input.error)) {
+    const degradeForProductSetup = await shouldDegradeRuntimeConfigManualRestartForProductSetup(input.flowId);
+    if (!degradeForProductSetup) {
+      throw input.error;
+    }
+    logRendererEvent({
+      level: 'warn',
+      area: 'renderer-bootstrap',
+      message: 'phase:runtime-config-sync:degraded',
+      flowId: input.flowId,
+      details: {
+        error: message,
+        step: input.step,
+        productStateReady: false,
+      },
+    });
+    return message;
+  }
+  logRendererEvent({
+    level: 'warn',
+    area: 'renderer-bootstrap',
+    message: 'phase:runtime-config-sync:degraded',
+    flowId: input.flowId,
+    details: {
+      error: message,
+      step: input.step,
+    },
+  });
+  return message;
+}
+
 async function teardownBootstrapState(): Promise<void> {
   invalidatePostReadyRuntimeModHydration();
   stopAuthStateWatcher();
@@ -251,33 +309,26 @@ export function bootstrapRuntime(): Promise<void> {
         });
         runtimeUnavailable = runtimeDaemonUnavailable(daemonStatus);
       } catch (error) {
-        if (isRuntimeConfigManualRestartRequiredError(error)) {
-          throw error;
-        }
-        bootstrapRuntimeConfigWarning = safeErrorMessage(error);
-        logRendererEvent({
-          level: 'warn',
-          area: 'renderer-bootstrap',
-          message: 'phase:runtime-config-sync:degraded',
+        const warning = await handleRuntimeConfigSyncError({
+          error,
           flowId,
-          details: {
-            error: bootstrapRuntimeConfigWarning,
-            step: 'runtime account auth config sync',
-          },
+          step: 'runtime account auth config sync',
         });
+        bootstrapRuntimeConfigWarning = bootstrapRuntimeConfigWarning ?? warning;
       }
       try {
-        const runtimeStorageDirs = await desktopBridge.getRuntimeModStorageDirs();
         const preserveMacosSmokeRuntimeStatePath =
           macosSmokeContext.scenarioId === 'chat.live2d-avatar-product-smoke';
-        daemonStatus = await syncRuntimeLocalModelsConfig({
+        // On a fresh install the user has not yet selected nimi_data, so
+        // `getRuntimeModStorageDirs` fails closed here; the first-run Storage
+        // phase re-runs `syncRuntimeStorageConfig` after `selectProductDataRoot`
+        // so the runtime config carries the data root before materialization.
+        daemonStatus = await syncRuntimeStorageConfig({
           daemonStatus,
-          dataRootPath: runtimeStorageDirs.nimiDataDir,
-          localModelsPath: runtimeStorageDirs.localModelsDir,
-          localStatePath: preserveMacosSmokeRuntimeStatePath
-            ? undefined
-            : runtimeStorageDirs.localRuntimeStatePath,
+          preserveLocalRuntimeStatePath: preserveMacosSmokeRuntimeStatePath,
           bridge: {
+            getRuntimeBridgeStatus: () => desktopBridge.getRuntimeBridgeStatus(),
+            getRuntimeModStorageDirs: () => desktopBridge.getRuntimeModStorageDirs(),
             getRuntimeBridgeConfig: () => desktopBridge.getRuntimeBridgeConfig(),
             setRuntimeBridgeConfig: (configJson: string) => desktopBridge.setRuntimeBridgeConfig(configJson),
             restartRuntimeBridge: () => desktopBridge.restartRuntimeBridge(),
@@ -285,20 +336,12 @@ export function bootstrapRuntime(): Promise<void> {
         });
         runtimeUnavailable = runtimeDaemonUnavailable(daemonStatus);
       } catch (error) {
-        if (isRuntimeConfigManualRestartRequiredError(error)) {
-          throw error;
-        }
-        bootstrapRuntimeConfigWarning = safeErrorMessage(error);
-        logRendererEvent({
-          level: 'warn',
-          area: 'renderer-bootstrap',
-          message: 'phase:runtime-config-sync:degraded',
+        const warning = await handleRuntimeConfigSyncError({
+          error,
           flowId,
-          details: {
-            error: bootstrapRuntimeConfigWarning,
-            step: 'runtime local storage config sync',
-          },
+          step: 'runtime local storage config sync',
         });
+        bootstrapRuntimeConfigWarning = bootstrapRuntimeConfigWarning ?? warning;
       }
     }
     if (desktopBridge.hasTauriInvoke() && runtimeUnavailable) {
@@ -453,8 +496,24 @@ export function bootstrapRuntime(): Promise<void> {
       setAuth: (user) => {
         useAppStore.getState().setAuthSession(user ?? null, '', '');
       },
-      clearAuth: () => {
+      clearAuth: async () => {
         useAppStore.getState().clearAuthSession();
+        try {
+          await platformClient.runtime.account.logout({
+            caller: accountCaller,
+            reason: 'realm_auth_required',
+          });
+        } catch (error) {
+          logRendererEvent({
+            level: 'warn',
+            area: 'renderer-bootstrap',
+            message: 'action:runtime-account-clear-after-realm-auth-required:failed',
+            flowId,
+            details: {
+              error: safeErrorMessage(error),
+            },
+          });
+        }
       },
       getCurrentUser: () => {
         return useAppStore.getState().auth.user;

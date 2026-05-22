@@ -16,6 +16,8 @@ import {
   FIRST_RUN_SETUP_STEP_IDS,
   projectSetupChecklist,
 } from '../src/shell/renderer/first-run/first-run-setup-checklist.js';
+import { PhaseSetup } from '../src/shell/renderer/first-run/phase-setup.js';
+import { aggregateMaterializationDownloadProgress } from '../src/shell/renderer/first-run/runtime-materialization.js';
 import { projectInstallLevelCard } from '../src/shell/renderer/first-run/first-run-install-level-cards.js';
 import { projectDeviceSummary } from '../src/shell/renderer/first-run/first-run-device-summary.js';
 import {
@@ -29,6 +31,9 @@ import type {
   ProductControlState,
 } from '../src/shell/renderer/bridge/runtime-bridge/product-control.js';
 import type { FirstRunMaterializationProjection } from '../src/shell/renderer/first-run/runtime-materialization.js';
+import {
+  productStateForMaterializationStatus,
+} from '../src/shell/renderer/first-run/runtime-materialization.js';
 
 // --- Fixtures -------------------------------------------------------------
 
@@ -113,8 +118,8 @@ test('phase projection maps the 12 product-control states onto 3 phases + 3 term
   assert.deepEqual(firstRunScreenForState('repair_required'), { kind: 'terminal', screen: 'repair' });
   assert.deepEqual(firstRunScreenForState('blocked'), { kind: 'terminal', screen: 'blocked' });
   assert.deepEqual(firstRunScreenForState('ready_for_use'), { kind: 'terminal', screen: 'ready' });
-  // not_logged_in is owned by the auth gate; if observed here it fails closed.
-  assert.deepEqual(firstRunScreenForState('not_logged_in'), { kind: 'terminal', screen: 'blocked' });
+  // not_logged_in is owned by the auth gate; if observed here it routes back to login/re-auth.
+  assert.deepEqual(firstRunScreenForState('not_logged_in'), { kind: 'terminal', screen: 'login' });
 });
 
 test('only config_missing is a phase transient; data_root_selected is interactive', () => {
@@ -313,6 +318,11 @@ test('the setup checklist projects the real materialization progression', () => 
             state: 'failed',
             sourceKind: 'runtime-managed',
             retryable: true,
+            bytesReceived: 0,
+            bytesTotal: 0,
+            percent: 0,
+            speedBytesPerSec: 0,
+            etaSeconds: 0,
           },
         },
       ],
@@ -324,6 +334,171 @@ test('the setup checklist projects the real materialization progression', () => 
   assert.ok(failingStep.failingDependency, 'the failed sub-step carries the failing dependency');
   assert.equal(failingStep.canRetry, true);
   assert.equal(failingStep.canRepair, true);
+});
+
+// --- Wave-5: materialization download-progress UX -------------------------
+
+function downloadingDependency(
+  bytesReceived: number,
+  bytesTotal: number,
+  speedBytesPerSec: number,
+  etaSeconds: number,
+) {
+  return {
+    packId: 'local-text',
+    dependency: {
+      dependencyFamily: 'model.asset',
+      dependencyId: 'model.asset:default',
+      required: true,
+      state: 'downloading',
+      sourceKind: 'runtime-managed',
+      confirmationRequired: true,
+      environmentKey: 'model.asset:default',
+    },
+    job: {
+      jobId: 'job:model.asset:default',
+      environmentKey: 'model.asset:default',
+      dependencyFamily: 'model.asset',
+      dependencyId: 'model.asset:default',
+      state: 'downloading',
+      sourceKind: 'runtime-managed',
+      retryable: true,
+      bytesReceived,
+      bytesTotal,
+      percent: bytesTotal > 0 ? Math.round((bytesReceived / bytesTotal) * 100) : 0,
+      speedBytesPerSec,
+      etaSeconds,
+    },
+  };
+}
+
+test('aggregateMaterializationDownloadProgress projects Runtime job progress, never fabricates a rate', () => {
+  // A downloading job with a known total and a rate -> a concrete projection.
+  const withRate = aggregateMaterializationDownloadProgress([
+    downloadingDependency(250, 1000, 125, 6),
+  ]);
+  assert.ok(withRate);
+  assert.equal(withRate.percent, 25);
+  assert.equal(withRate.speedBytesPerSec, 125);
+  assert.equal(withRate.etaSeconds, 6);
+
+  // No rate computed yet -> speed/eta absent, never fabricated.
+  const noRate = aggregateMaterializationDownloadProgress([
+    downloadingDependency(250, 1000, 0, 0),
+  ]);
+  assert.ok(noRate);
+  assert.equal(noRate.percent, 25);
+  assert.equal(noRate.speedBytesPerSec, null);
+  assert.equal(noRate.etaSeconds, null);
+
+  // Unknown total -> percent is null (indeterminate), never a fabricated %.
+  const noTotal = aggregateMaterializationDownloadProgress([
+    downloadingDependency(250, 0, 125, 0),
+  ]);
+  assert.ok(noTotal);
+  assert.equal(noTotal.percent, null);
+  assert.equal(noTotal.etaSeconds, null);
+
+  // No transferring job -> nothing to render.
+  assert.equal(aggregateMaterializationDownloadProgress([]), null);
+});
+
+test('an actively-downloading setup step renders progress and is not failed, with no Retry/Repair', () => {
+  const checklist = projectSetupChecklist(
+    'local_ai_profile_selected_assets_missing',
+    materializationFixture('in_progress', {
+      dependencies: [downloadingDependency(500, 1000, 250, 2)],
+    }),
+  );
+  const downloadStep = checklist.steps.find((s) => s.id === 'download');
+  assert.ok(downloadStep);
+  // The downloading step is active (in progress) — never failed.
+  assert.equal(downloadStep.status, 'active');
+  assert.equal(checklist.hasFailure, false);
+  // No failing affordances on an active step.
+  assert.equal(downloadStep.canRetry, false);
+  assert.equal(downloadStep.canRepair, false);
+  assert.equal(downloadStep.failingDependency, null);
+  // The step carries the concrete download-progress projection.
+  assert.ok(downloadStep.downloadProgress);
+  assert.equal(downloadStep.downloadProgress.percent, 50);
+  assert.equal(downloadStep.downloadProgress.speedBytesPerSec, 250);
+
+  const markup = renderToStaticMarkup(
+    React.createElement(PhaseSetup, {
+      checklist,
+      busy: false,
+      error: null,
+      actions: { onRetry: () => {}, onRepair: () => {}, onCancel: () => {} },
+    }),
+  );
+  // The in-progress step renders concrete progress.
+  assert.match(markup, /data-testid="first-run-setup-step-download-progress"/);
+  assert.match(markup, /data-testid="first-run-setup-step-download-percent"/);
+  assert.match(markup, /50%/);
+  // The actively-downloading step exposes neither Retry nor Repair.
+  assert.doesNotMatch(markup, /data-testid="first-run-setup-retry"/);
+  assert.doesNotMatch(markup, /data-testid="first-run-setup-repair"/);
+  // download step is not the red failed status.
+  assert.match(markup, /data-testid="first-run-setup-step-download"[^>]*data-step-status="active"/);
+});
+
+test('a genuinely failed setup step is red and offers Retry/Repair, with no progress', () => {
+  const checklist = projectSetupChecklist(
+    'repair_required',
+    materializationFixture('failed', {
+      dependencies: [
+        {
+          packId: 'local-text',
+          dependency: {
+            dependencyFamily: 'model.asset',
+            dependencyId: 'model.asset:default',
+            required: true,
+            state: 'repair_required',
+            sourceKind: 'runtime-managed',
+            confirmationRequired: true,
+            environmentKey: 'model.asset:default',
+          },
+          job: {
+            jobId: 'job:model.asset:default',
+            environmentKey: 'model.asset:default',
+            dependencyFamily: 'model.asset',
+            dependencyId: 'model.asset:default',
+            state: 'failed',
+            sourceKind: 'runtime-managed',
+            retryable: true,
+            bytesReceived: 0,
+            bytesTotal: 0,
+            percent: 0,
+            speedBytesPerSec: 0,
+            etaSeconds: 0,
+          },
+        },
+      ],
+    }),
+  );
+  const markup = renderToStaticMarkup(
+    React.createElement(PhaseSetup, {
+      checklist,
+      busy: false,
+      error: null,
+      actions: { onRetry: () => {}, onRepair: () => {}, onCancel: () => {} },
+    }),
+  );
+  // The failed step is red and carries the typed Retry / Repair affordances.
+  assert.match(markup, /data-step-status="failed"/);
+  assert.match(markup, /data-testid="first-run-setup-retry"/);
+  assert.match(markup, /data-testid="first-run-setup-repair"/);
+  // A failed step shows no in-progress download-progress block.
+  assert.doesNotMatch(markup, /data-testid="first-run-setup-step-download-progress"/);
+});
+
+test('materialization failures stay in the retryable Setup phase', () => {
+  for (const status of ['failed', 'repair_required', 'cancelled'] as const) {
+    const productState = productStateForMaterializationStatus(status);
+    assert.equal(productState, 'local_ai_profile_selected_environment_not_ready');
+    assert.deepEqual(firstRunScreenForState(productState), { kind: 'phase', phase: 'setup' });
+  }
 });
 
 test('the Setup phase renders the checklist for the four progress states', () => {

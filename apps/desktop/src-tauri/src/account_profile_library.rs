@@ -846,8 +846,10 @@ mod tests {
     /// Account Default Profile under `~/.nimi/accounts/...`, so the test pins
     /// `HOME` to a fresh temp directory before exercising the library.
     fn temp_home(prefix: &str) -> PathBuf {
-        let dir = std::env::temp_dir()
-            .join(format!("nimi-account-profile-home-{prefix}-{}", unique_suffix()));
+        let dir = std::env::temp_dir().join(format!(
+            "nimi-account-profile-home-{prefix}-{}",
+            unique_suffix()
+        ));
         std::fs::create_dir_all(&dir).expect("create temp home");
         dir
     }
@@ -856,8 +858,8 @@ mod tests {
     /// is only the binding assertion recorded as `dataRootRef`; the Account
     /// Default Profile record no longer LIVES under it.
     fn temp_data_root(prefix: &str) -> PathBuf {
-        let dir = std::env::temp_dir()
-            .join(format!("nimi-account-profile-{prefix}-{}", unique_suffix()));
+        let dir =
+            std::env::temp_dir().join(format!("nimi-account-profile-{prefix}-{}", unique_suffix()));
         std::fs::create_dir_all(&dir).expect("create temp data root");
         dir
     }
@@ -894,7 +896,10 @@ mod tests {
     ) {
         let previous_hash = record.content_hash.clone();
         record.profile.ai_profile_version += 1;
-        record.updated_at = format!("2026-05-20T00:00:0{}.000Z", record.profile.ai_profile_version);
+        record.updated_at = format!(
+            "2026-05-20T00:00:0{}.000Z",
+            record.profile.ai_profile_version
+        );
         record.profile.payload.title = title.to_string();
         record
             .profile
