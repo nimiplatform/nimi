@@ -41,11 +41,25 @@ test('profile section retires the bespoke profile editor', () => {
 
 test('profile section exposes the file-backed library actions and factory restore', () => {
   const source = readFileSync(sourcePath, 'utf8');
+  assert.match(source, /runtime-profiles-account-library/);
+  assert.match(source, /runtime-profiles-create/);
   assert.match(source, /runtime-profiles-import/);
   assert.match(source, /runtime-profiles-export/);
   assert.match(source, /runtime-profiles-factory-restore/);
   // Factory-restore re-applies the file-backed Account Default Profile.
   assert.match(source, /getAccountDefaultProfileForScopeInit/);
+});
+
+test('profile section restores account profile CRUD without turning profiles into capability categories', () => {
+  const source = readFileSync(sourcePath, 'utf8');
+  assert.match(source, /createAccountProfileLibraryEntry/);
+  assert.match(source, /editAccountProfileLibraryEntry/);
+  assert.match(source, /deleteAccountProfileLibraryEntry/);
+  assert.match(source, /profileCapabilitiesFromAIConfig/);
+  assert.match(source, /accountDefaultProfile \? \[accountDefaultProfile\] : \[\]/);
+  assert.match(source, /onApply=\{\(profileId\) => profile\.onApply\(profileId\)\}/);
+  assert.doesNotMatch(source, /createAccountProfileLibraryEntry[\s\S]{0,300}aiConfigService\.aiConfig\.update/);
+  assert.doesNotMatch(source, /editAccountProfileLibraryEntry[\s\S]{0,300}aiConfigService\.aiConfig\.update/);
 });
 
 // ---------------------------------------------------------------------------

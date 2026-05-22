@@ -250,9 +250,12 @@ test('ordinary task 2: see the active Default Profile for new scopes (Profiles)'
 });
 
 test('ordinary task 3: import / edit / restore / export profiles (Profiles)', () => {
+  assert.match(profilesPageSource, /runtime-profiles-account-library/);
+  assert.match(profilesPageSource, /runtime-profiles-create/);
   assert.match(profilesPageSource, /runtime-profiles-import/);
   assert.match(profilesPageSource, /runtime-profiles-export/);
   assert.match(profilesPageSource, /runtime-profiles-factory-restore/);
+  assert.match(profilesPageSource, /deleteAccountProfileLibraryEntry/);
   // Per-capability edit is delegated to the kit AI Config component.
   assert.match(profilesPageSource, /ModelConfigAiModelHub/);
 });
