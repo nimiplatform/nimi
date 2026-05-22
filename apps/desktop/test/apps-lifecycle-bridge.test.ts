@@ -114,7 +114,7 @@ function stubModule(
         launched: true,
         activeVersion: '1.0.0',
         scope: { kind: 'app', ownerId: 'nimi.notes' },
-        reasonCode: 'ACTION_EXECUTED',
+        reasonCode: ReasonCode.ACTION_EXECUTED,
       };
     },
   };

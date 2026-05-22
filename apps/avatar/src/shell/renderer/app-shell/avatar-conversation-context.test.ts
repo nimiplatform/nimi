@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { resolveAvatarConversationContext } from './avatar-conversation-context.js';
+import { ReasonCode } from '@nimiplatform/sdk/types';
 import type { Runtime } from '@nimiplatform/sdk/runtime/browser';
 
 const OWNER_USER_ID = 'account-runtime';
@@ -65,7 +66,7 @@ describe('resolveAvatarConversationContext', () => {
   it('fails closed on registered live-instance binding permission errors', async () => {
     const open = vi.fn();
     const resolveAvatarLiveInstance = vi.fn().mockRejectedValue(Object.assign(new Error('permission denied'), {
-      reasonCode: 'RUNTIME_GRPC_PERMISSION_DENIED',
+      reasonCode: ReasonCode.RUNTIME_GRPC_PERMISSION_DENIED,
     }));
     const runtime = {
       agent: {
@@ -84,7 +85,7 @@ describe('resolveAvatarConversationContext', () => {
       realmAgentId: REALM_AGENT_ID,
       localAgentRef: LOCAL_AGENT_REF,
       avatarInstanceId: 'instance-1',
-    })).rejects.toMatchObject({ reasonCode: 'RUNTIME_GRPC_PERMISSION_DENIED' });
+    })).rejects.toMatchObject({ reasonCode: ReasonCode.RUNTIME_GRPC_PERMISSION_DENIED });
     expect(open).not.toHaveBeenCalled();
   });
 });

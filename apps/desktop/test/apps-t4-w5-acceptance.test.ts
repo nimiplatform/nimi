@@ -26,6 +26,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { createNimiError } from '@nimiplatform/sdk/runtime';
+import { ReasonCode } from '@nimiplatform/sdk/types';
 import {
   NimiAppClient,
   createNimiAppRegistryTransport,
@@ -86,32 +87,32 @@ describe('T4-W5 — status_unavailable 12th card state is hard-cut', () => {
   it('a host/runtime-incompatible reason code maps to unsupported_on_this_device', () => {
     const error = createNimiError({
       message: 'runtime is too old for this app',
-      reasonCode: 'COMPAT_RUNTIME_TOO_OLD',
+      reasonCode: ReasonCode.COMPAT_RUNTIME_TOO_OLD,
       actionHint: 'update_runtime',
       source: 'runtime',
     });
     const resolution = resolveAppStatusFailure(error);
     assert.equal(resolution.cardState, 'unsupported_on_this_device');
-    assert.match(resolution.detail, /COMPAT_RUNTIME_TOO_OLD/);
+    assert.match(resolution.detail, new RegExp(ReasonCode.COMPAT_RUNTIME_TOO_OLD));
   });
 
   it('a policy/permission reason code maps to blocked_by_policy', () => {
     const error = createNimiError({
       message: 'app authorization denied by policy',
-      reasonCode: 'APP_AUTHORIZATION_DENIED',
+      reasonCode: ReasonCode.APP_AUTHORIZATION_DENIED,
       actionHint: 'review_policy',
       source: 'runtime',
     });
     const resolution = resolveAppStatusFailure(error);
     assert.equal(resolution.cardState, 'blocked_by_policy');
-    assert.match(resolution.detail, /APP_AUTHORIZATION_DENIED/);
+    assert.match(resolution.detail, new RegExp(ReasonCode.APP_AUTHORIZATION_DENIED));
   });
 
   it('a typed reason code carried on the error cause is still mapped', () => {
     // `NimiAppClientError` wraps the runtime `NimiError` as `.cause`.
     const inner = createNimiError({
       message: 'permission denied',
-      reasonCode: 'RUNTIME_GRPC_PERMISSION_DENIED',
+      reasonCode: ReasonCode.RUNTIME_GRPC_PERMISSION_DENIED,
       actionHint: 'review_policy',
       source: 'runtime',
     });
@@ -128,7 +129,7 @@ describe('T4-W5 — status_unavailable 12th card state is hard-cut', () => {
     const unsupported = resolveAppStatusFailure(
       createNimiError({
         message: 'too new',
-        reasonCode: 'COMPAT_RUNTIME_TOO_NEW',
+        reasonCode: ReasonCode.COMPAT_RUNTIME_TOO_NEW,
         actionHint: 'x',
         source: 'runtime',
       }),
@@ -136,7 +137,7 @@ describe('T4-W5 — status_unavailable 12th card state is hard-cut', () => {
     const blocked = resolveAppStatusFailure(
       createNimiError({
         message: 'denied',
-        reasonCode: 'AUTH_DENIED',
+        reasonCode: ReasonCode.AUTH_DENIED,
         actionHint: 'x',
         source: 'runtime',
       }),
@@ -150,7 +151,7 @@ describe('T4-W5 — status_unavailable 12th card state is hard-cut', () => {
       status: () =>
         createNimiError({
           message: 'app authorization denied',
-          reasonCode: 'APP_SCOPE_FORBIDDEN',
+          reasonCode: ReasonCode.APP_SCOPE_FORBIDDEN,
           actionHint: 'review_policy',
           source: 'runtime',
         }),
@@ -424,7 +425,7 @@ function recordingLifecycle(): {
         launched: true,
         activeVersion: '1.0.0',
         scope: { kind: 'app', ownerId: 'nimi.parentos' },
-        reasonCode: 'ACTION_EXECUTED',
+        reasonCode: ReasonCode.ACTION_EXECUTED,
       };
     },
   };
