@@ -72,6 +72,7 @@
     "AI_LOCAL_ENDPOINT_REQUIRED": "本地 AI endpoint 配置缺失。",
     "AI_LOCAL_TEMPLATE_NOT_FOUND": "未找到本地 AI 模板。",
     "AI_LOCAL_MANIFEST_INVALID": "本地 AI 清单无效。",
+    "AUTH_REVOCATION_UNAVAILABLE": "认证撤销检查暂时不可用。",
     "AUTH_TOKEN_INVALID": "认证令牌无效。",
     "SESSION_EXPIRED": "会话已过期。",
     "APP_MODE_DOMAIN_FORBIDDEN": "应用模式域被禁止。",

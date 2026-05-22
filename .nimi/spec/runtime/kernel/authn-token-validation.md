@@ -43,7 +43,7 @@ Realm JWT 最小必校验集合：
 ## K-AUTHN-006 会话失效与撤销
 
 - token 通过签名校验后仍需检查会话撤销状态（若会话域可用）。
-- 已撤销或已过期会话必须返回 `UNAUTHENTICATED` + `AUTH_TOKEN_INVALID`。
+- 已撤销或已过期会话必须返回 `UNAUTHENTICATED` + `SESSION_EXPIRED`。
 - Runtime 通过 `auth.jwt.revocationUrl` 配置的内省端点执行撤销检查；bearer JWT 验签成功后必须携带 `sid` 继续查询该端点。
 - `auth.jwt.revocationUrl` 与 `auth.jwt.issuer` / `auth.jwt.audience` / `auth.jwt.jwksUrl` 属于同一组 restart 配置，缺任一项时 bearer JWT 链路必须 fail-close。
 - 撤销查询 contract 固定为 `POST auth.jwt.revocationUrl`，JSON body 包含：
@@ -57,16 +57,16 @@ Realm JWT 最小必校验集合：
   - `active: boolean`
   - `revoked: boolean`
   - `expires_at?: string`（RFC3339）
-- `revoked=true` 或 `active=false` 均视为撤销；网络错误、非 2xx、非法响应不得降级为 anonymous，必须返回 `UNAUTHENTICATED` + `AUTH_TOKEN_INVALID`。
+- `revoked=true` 或 `active=false` 均视为撤销；网络错误、非 2xx、非法响应不得降级为 anonymous，必须返回 `UNAVAILABLE` + `AUTH_REVOCATION_UNAVAILABLE`，并携带 retryable 投影。
 
 ## K-AUTHN-007 失败语义统一
 
-所有 AuthN 失败（格式、验签、claims、会话撤销）统一：
+Bearer 格式、验签、claims 失败统一：
 
 - gRPC code: `UNAUTHENTICATED`
 - reason code: `AUTH_TOKEN_INVALID`
 
-> **注脚**：K-AUTHSVC-013 为 ExternalPrincipal 场景定义了细分码 `AUTH_TOKEN_EXPIRED`（proof JWT 过期）和 `AUTH_UNSUPPORTED_PROOF_TYPE`（不支持的 proof_type），作为本规则在 ExternalPrincipal 上下文的例外。通用 AuthN 路径仍统一使用 `AUTH_TOKEN_INVALID`。
+> **注脚**：K-AUTHN-006 对已判定的会话撤销/过期使用 `SESSION_EXPIRED`，对撤销内省临时不可判定使用 `AUTH_REVOCATION_UNAVAILABLE`。K-AUTHSVC-013 为 ExternalPrincipal 场景定义了细分码 `AUTH_TOKEN_EXPIRED`（proof JWT 过期）和 `AUTH_UNSUPPORTED_PROOF_TYPE`（不支持的 proof_type）。这些均为本规则的显式细分例外。
 
 ## K-AUTHN-008 上下文投影
 

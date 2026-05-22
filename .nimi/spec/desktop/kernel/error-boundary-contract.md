@@ -128,6 +128,7 @@ Runtime 错误通过三层投影到 Desktop UI：
 | `AI_CONNECTOR_INVALID` | `S-ERROR-001` 上游错误 | "连接器配置无效，请检查输入" |
 | `AI_CONNECTOR_IMMUTABLE` | `S-ERROR-001` 上游错误 | "该连接器字段不可修改" |
 | `AI_CONNECTOR_LIMIT_EXCEEDED` | `S-ERROR-001` 上游错误 | "连接器数量已达上限" |
+| `AUTH_REVOCATION_UNAVAILABLE` | `S-ERROR-007` retryable | "认证撤销检查暂时不可用，请重试" |
 | `AUTH_TOKEN_INVALID` | `S-ERROR-001` 上游错误（**不可重试**） | "认证令牌无效，请重新登录" |
 | `SESSION_EXPIRED` | `S-ERROR-007` retryable | "会话已过期，请重新登录" |
 | `APP_MODE_DOMAIN_FORBIDDEN` | `S-ERROR-001` 上游错误（**不可重试**） | "应用权限不足，请检查应用模式配置" |
@@ -154,7 +155,7 @@ Phase 1 provider 健康细粒度展示为 Phase 2（D-IPC-002），因此 Phase 
 
 **非错误终态说明**：`AI_FINISH_LENGTH` 和 `AI_FINISH_CONTENT_FILTER` 通过 gRPC OK + `reason_code` 返回（参考 SDK S-ERROR-009），投影为 `finishReason` 而非异常。UI 不触发错误边界（D-ERR-006），仅在消息元信息区域展示提示标注。
 
-**认证失效投影**：Runtime read surface 返回 `AUTH_TOKEN_INVALID` 时，Desktop UI 投影为 `invalid_requires_reauth`，除非目标 RPC 已在 Runtime/SDK authority 中声明为匿名可读。匿名重试只适用于已准入的只读 Runtime surface，且 credential source 继续保留在诊断详情中。Runtime Config、Local AI、usage、audit、dependency setup 等读取路径都需要 bounded timeout、错误投影、stale 投影或认证失效投影，不能无限停留在 loading 文案。
+**认证失效投影**：Runtime read surface 返回 `AUTH_TOKEN_INVALID` 时，Desktop UI 投影为 `invalid_requires_reauth`，除非目标 RPC 已在 Runtime/SDK authority 中声明为匿名可读。`AUTH_REVOCATION_UNAVAILABLE` 表示撤销内省临时不可判定，必须作为 retryable unavailable 投影，不得清空会话或触发 reauth。匿名重试只适用于已准入的只读 Runtime surface，且 credential source 继续保留在诊断详情中。Runtime Config、Local AI、usage、audit、dependency setup 等读取路径都需要 bounded timeout、错误投影、stale 投影或认证失效投影，不能无限停留在 loading 文案。
 
 **Local Speech 细化映射约束**：
 

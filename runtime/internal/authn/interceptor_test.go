@@ -3,7 +3,10 @@ package authn
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"log/slog"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -12,6 +15,7 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
@@ -152,6 +156,92 @@ func TestAuthenticateMapsInvalidTokenToAuthTokenInvalid(t *testing.T) {
 	}
 	if st.Message() != runtimev1.ReasonCode_AUTH_TOKEN_INVALID.String() {
 		t.Fatalf("unexpected reason code: %s", st.Message())
+	}
+}
+
+func TestAuthenticateMapsRevokedSessionToSessionExpired(t *testing.T) {
+	key := generateRSAKey(t)
+	jwksServer := newJWKSTestServer(t, jwksDocument{
+		Keys: []jwkEntry{rsaJWKFromPrivateKey(t, key, "kid-1")},
+	})
+	defer func() { jwksServer.Close() }()
+
+	revocationServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(revocationResponse{Active: false})
+	}))
+	defer func() { revocationServer.Close() }()
+
+	v, err := NewValidator(jwksServer.URL(), "test-issuer", "test-audience")
+	if err != nil {
+		t.Fatalf("NewValidator: %v", err)
+	}
+	v.SetRevocationURL(revocationServer.URL)
+	token := signRS256(t, key, "kid-1", validClaims())
+
+	ctx := metadata.NewIncomingContext(context.Background(), metadata.Pairs(
+		"authorization", "Bearer "+token,
+	))
+	_, authErr := authenticate(ctx, v, "/runtime.v1.RuntimeConnectorService/ListCatalogProviderModels")
+	if authErr == nil {
+		t.Fatalf("expected auth error")
+	}
+	st, ok := status.FromError(authErr)
+	if !ok {
+		t.Fatalf("expected grpc status error")
+	}
+	if st.Code() != codes.Unauthenticated {
+		t.Fatalf("unexpected code: %v", st.Code())
+	}
+	reason, ok := grpcerr.ExtractReasonCode(authErr)
+	if !ok || reason != runtimev1.ReasonCode_SESSION_EXPIRED {
+		t.Fatalf("unexpected reason code: %v", reason)
+	}
+}
+
+func TestAuthenticateMapsRevocationRateLimitToRetryableUnavailable(t *testing.T) {
+	key := generateRSAKey(t)
+	jwksServer := newJWKSTestServer(t, jwksDocument{
+		Keys: []jwkEntry{rsaJWKFromPrivateKey(t, key, "kid-1")},
+	})
+	defer func() { jwksServer.Close() }()
+
+	revocationServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		http.Error(w, "too many revocation checks", http.StatusTooManyRequests)
+	}))
+	defer func() { revocationServer.Close() }()
+
+	v, err := NewValidator(jwksServer.URL(), "test-issuer", "test-audience")
+	if err != nil {
+		t.Fatalf("NewValidator: %v", err)
+	}
+	v.SetRevocationURL(revocationServer.URL)
+	token := signRS256(t, key, "kid-1", validClaims())
+
+	ctx := metadata.NewIncomingContext(context.Background(), metadata.Pairs(
+		"authorization", "Bearer "+token,
+	))
+	_, authErr := authenticate(ctx, v, "/runtime.v1.RuntimeConnectorService/ListCatalogProviderModels")
+	if authErr == nil {
+		t.Fatalf("expected auth error")
+	}
+	st, ok := status.FromError(authErr)
+	if !ok {
+		t.Fatalf("expected grpc status error")
+	}
+	if st.Code() != codes.Unavailable {
+		t.Fatalf("unexpected code: %v", st.Code())
+	}
+	reason, ok := grpcerr.ExtractReasonCode(authErr)
+	if !ok || reason != runtimev1.ReasonCode_AUTH_REVOCATION_UNAVAILABLE {
+		t.Fatalf("unexpected reason code: %v", reason)
+	}
+	metadata, ok := grpcerr.ExtractReasonMetadata(authErr)
+	if !ok {
+		t.Fatalf("expected ErrorInfo metadata")
+	}
+	if metadata["retryable"] != "true" || metadata["action_hint"] != "retry_revocation_introspection" {
+		t.Fatalf("unexpected metadata: %#v", metadata)
 	}
 }
 

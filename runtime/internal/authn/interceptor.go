@@ -68,12 +68,30 @@ func authenticate(ctx context.Context, v *Validator, method string) (context.Con
 			fields = append(fields, "participant_id", participantID)
 		}
 		slog.Warn("jwt validation failed", fields...)
-		return ctx, grpcerr.WithReasonCode(codes.Unauthenticated, runtimev1.ReasonCode_AUTH_TOKEN_INVALID)
+		return ctx, authnFailureError(err)
 	}
 	if identity == nil {
 		return ctx, grpcerr.WithReasonCode(codes.Unauthenticated, runtimev1.ReasonCode_AUTH_TOKEN_INVALID)
 	}
 	return WithIdentity(ctx, identity), nil
+}
+
+func authnFailureError(err error) error {
+	if IsSessionRevoked(err) {
+		retryable := false
+		return grpcerr.WithReasonCodeOptions(codes.Unauthenticated, runtimev1.ReasonCode_SESSION_EXPIRED, grpcerr.ReasonOptions{
+			ActionHint: "reauthorize_runtime_account",
+			Retryable:  &retryable,
+		})
+	}
+	if IsRevocationUnavailable(err) {
+		retryable := true
+		return grpcerr.WithReasonCodeOptions(codes.Unavailable, runtimev1.ReasonCode_AUTH_REVOCATION_UNAVAILABLE, grpcerr.ReasonOptions{
+			ActionHint: "retry_revocation_introspection",
+			Retryable:  &retryable,
+		})
+	}
+	return grpcerr.WithReasonCode(codes.Unauthenticated, runtimev1.ReasonCode_AUTH_TOKEN_INVALID)
 }
 
 // extractBearerToken extracts the JWT from "Authorization: Bearer <token>" metadata.

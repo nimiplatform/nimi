@@ -135,6 +135,7 @@ pub enum ReasonCode {
     AuthTokenInvalid = 300,
     AuthTokenExpired = 301,
     AuthUnsupportedProofType = 302,
+    AuthRevocationUnavailable = 303,
     /// CONNECTOR family (310+)
     AiConnectorNotFound = 310,
     AiConnectorDisabled = 311,
@@ -347,6 +348,7 @@ impl ReasonCode {
             Self::AuthTokenInvalid => "AUTH_TOKEN_INVALID",
             Self::AuthTokenExpired => "AUTH_TOKEN_EXPIRED",
             Self::AuthUnsupportedProofType => "AUTH_UNSUPPORTED_PROOF_TYPE",
+            Self::AuthRevocationUnavailable => "AUTH_REVOCATION_UNAVAILABLE",
             Self::AiConnectorNotFound => "AI_CONNECTOR_NOT_FOUND",
             Self::AiConnectorDisabled => "AI_CONNECTOR_DISABLED",
             Self::AiConnectorCredentialMissing => "AI_CONNECTOR_CREDENTIAL_MISSING",
@@ -558,6 +560,7 @@ impl ReasonCode {
             "AUTH_TOKEN_INVALID" => Some(Self::AuthTokenInvalid),
             "AUTH_TOKEN_EXPIRED" => Some(Self::AuthTokenExpired),
             "AUTH_UNSUPPORTED_PROOF_TYPE" => Some(Self::AuthUnsupportedProofType),
+            "AUTH_REVOCATION_UNAVAILABLE" => Some(Self::AuthRevocationUnavailable),
             "AI_CONNECTOR_NOT_FOUND" => Some(Self::AiConnectorNotFound),
             "AI_CONNECTOR_DISABLED" => Some(Self::AiConnectorDisabled),
             "AI_CONNECTOR_CREDENTIAL_MISSING" => Some(Self::AiConnectorCredentialMissing),

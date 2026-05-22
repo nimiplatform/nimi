@@ -102,6 +102,7 @@ const BRIDGE_ERROR_CODE_MAP: Record<string, { key: string; defaultValue: string 
   AI_LOCAL_SPEECH_BUNDLE_DEGRADED: { key: 'BridgeErrors.codes.AI_LOCAL_SPEECH_BUNDLE_DEGRADED', defaultValue: 'Local Speech is degraded and must be repaired before continuing.' },
 
   // Phase 1: Auth & Session reason codes
+  AUTH_REVOCATION_UNAVAILABLE: { key: 'BridgeErrors.codes.AUTH_REVOCATION_UNAVAILABLE', defaultValue: 'Authentication revocation check is temporarily unavailable.' },
   AUTH_TOKEN_INVALID: { key: 'BridgeErrors.codes.AUTH_TOKEN_INVALID', defaultValue: 'Authentication token is invalid.' },
   SESSION_EXPIRED: { key: 'BridgeErrors.codes.SESSION_EXPIRED', defaultValue: 'Session has expired.' },
 

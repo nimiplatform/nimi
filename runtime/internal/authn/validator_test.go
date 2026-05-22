@@ -377,8 +377,120 @@ func TestValidateRejectsMalformedRevocationResponse(t *testing.T) {
 	validator.SetRevocationURL(revocationServer.URL)
 
 	token := signRS256(t, key, "kid-1", validClaims())
-	if _, err := validator.Validate(token); err == nil || !strings.Contains(err.Error(), "invalid revocation response expires_at") {
+	if _, err := validator.Validate(token); err == nil || !IsRevocationUnavailable(err) || !strings.Contains(err.Error(), "invalid revocation response expires_at") {
 		t.Fatalf("expected malformed revocation response rejection, got %v", err)
+	}
+}
+
+func TestValidateClassifiesRevocationRateLimitAsUnavailable(t *testing.T) {
+	key := generateRSAKey(t)
+	jwksServer := newJWKSTestServer(t, jwksDocument{Keys: []jwkEntry{rsaJWKFromPrivateKey(t, key, "kid-1")}})
+	defer func() { jwksServer.Close() }()
+
+	revocationServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		http.Error(w, "too many revocation checks", http.StatusTooManyRequests)
+	}))
+	defer func() { revocationServer.Close() }()
+
+	validator, err := NewValidator(jwksServer.URL(), "test-issuer", "test-audience")
+	if err != nil {
+		t.Fatalf("NewValidator: %v", err)
+	}
+	validator.SetRevocationURL(revocationServer.URL)
+
+	token := signRS256(t, key, "kid-1", validClaims())
+	if _, err := validator.Validate(token); err == nil || !IsRevocationUnavailable(err) || !strings.Contains(err.Error(), "status 429") {
+		t.Fatalf("expected revocation unavailable status 429, got %v", err)
+	}
+}
+
+func TestValidateCachesActiveRevocationResult(t *testing.T) {
+	key := generateRSAKey(t)
+	jwksServer := newJWKSTestServer(t, jwksDocument{Keys: []jwkEntry{rsaJWKFromPrivateKey(t, key, "kid-1")}})
+	defer func() { jwksServer.Close() }()
+
+	var mu sync.Mutex
+	hits := 0
+	revocationServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		mu.Lock()
+		hits++
+		mu.Unlock()
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(revocationResponse{Active: true})
+	}))
+	defer func() { revocationServer.Close() }()
+
+	validator, err := NewValidator(jwksServer.URL(), "test-issuer", "test-audience")
+	if err != nil {
+		t.Fatalf("NewValidator: %v", err)
+	}
+	validator.revocationCacheTTL = time.Minute
+	validator.SetRevocationURL(revocationServer.URL)
+
+	token := signRS256(t, key, "kid-1", validClaims())
+	for i := 0; i < 3; i++ {
+		if _, err := validator.Validate(token); err != nil {
+			t.Fatalf("Validate(%d): %v", i, err)
+		}
+	}
+
+	mu.Lock()
+	gotHits := hits
+	mu.Unlock()
+	if gotHits != 1 {
+		t.Fatalf("expected one revocation hit for cached active result, got %d", gotHits)
+	}
+}
+
+func TestValidateCoalescesConcurrentRevocationChecks(t *testing.T) {
+	key := generateRSAKey(t)
+	jwksServer := newJWKSTestServer(t, jwksDocument{Keys: []jwkEntry{rsaJWKFromPrivateKey(t, key, "kid-1")}})
+	defer func() { jwksServer.Close() }()
+
+	var mu sync.Mutex
+	hits := 0
+	revocationServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		mu.Lock()
+		hits++
+		mu.Unlock()
+		time.Sleep(50 * time.Millisecond)
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(revocationResponse{Active: true})
+	}))
+	defer func() { revocationServer.Close() }()
+
+	validator, err := NewValidator(jwksServer.URL(), "test-issuer", "test-audience")
+	if err != nil {
+		t.Fatalf("NewValidator: %v", err)
+	}
+	validator.revocationCacheTTL = time.Minute
+	validator.SetRevocationURL(revocationServer.URL)
+
+	token := signRS256(t, key, "kid-1", validClaims())
+	const goroutines = 8
+	var wg sync.WaitGroup
+	errCh := make(chan error, goroutines)
+	for i := 0; i < goroutines; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			_, validateErr := validator.Validate(token)
+			errCh <- validateErr
+		}()
+	}
+	wg.Wait()
+	close(errCh)
+	for err := range errCh {
+		if err != nil {
+			t.Fatalf("Validate: %v", err)
+		}
+	}
+
+	mu.Lock()
+	gotHits := hits
+	mu.Unlock()
+	if gotHits != 1 {
+		t.Fatalf("expected one coalesced revocation hit, got %d", gotHits)
 	}
 }
 

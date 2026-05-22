@@ -35,6 +35,7 @@ rows:
   - AUTH_TOKEN_INVALID
   - AUTH_TOKEN_EXPIRED
   - AUTH_UNSUPPORTED_PROOF_TYPE
+  - AUTH_REVOCATION_UNAVAILABLE
   - AI_CONNECTOR_NOT_FOUND
   - AI_CONNECTOR_DISABLED
   - AI_CONNECTOR_CREDENTIAL_MISSING
@@ -341,6 +342,11 @@ mappings:
     surface: external_principal_registration
     exit_shape: grpc_status
     source_rule: K-AUTHSVC-013
+  - reason_code: AUTH_REVOCATION_UNAVAILABLE
+    grpc_code: UNAVAILABLE
+    surface: authn_revocation_introspection
+    exit_shape: grpc_status
+    source_rule: K-AUTHN-006
   - reason_code: AI_CONNECTOR_NOT_FOUND
     grpc_code: NOT_FOUND
     surface: consume_remote_or_hidden_connector

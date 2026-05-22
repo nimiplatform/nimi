@@ -1,6 +1,7 @@
 package authn
 
 import (
+	"bytes"
 	"context"
 	"crypto"
 	"crypto/ecdsa"
@@ -30,6 +31,7 @@ const (
 	defaultJWKSFallbackTTL    = 2 * time.Minute
 	defaultJWKSRequestTimeout = 5 * time.Second
 	defaultRevocationTimeout  = 5 * time.Second
+	defaultRevocationCacheTTL = 15 * time.Second
 	refreshCoalesceWindow     = 1 * time.Second
 	maxJWKSBodyBytes          = 1 << 20
 	maxRevocationBodyBytes    = 1 << 20
@@ -37,7 +39,48 @@ const (
 	defaultJWTMaxLifetime     = 24 * time.Hour
 )
 
-var errEmptyToken = errors.New("empty token")
+var (
+	errEmptyToken     = errors.New("empty token")
+	errSessionRevoked = errors.New("session revoked")
+)
+
+type revocationUnavailableError struct {
+	message string
+	err     error
+}
+
+func (e *revocationUnavailableError) Error() string {
+	if e == nil {
+		return ""
+	}
+	if e.err == nil {
+		return e.message
+	}
+	return e.message + ": " + e.err.Error()
+}
+
+func (e *revocationUnavailableError) Unwrap() error {
+	if e == nil {
+		return nil
+	}
+	return e.err
+}
+
+func newRevocationUnavailableError(message string, err error) error {
+	return &revocationUnavailableError{
+		message: message,
+		err:     err,
+	}
+}
+
+func IsSessionRevoked(err error) bool {
+	return errors.Is(err, errSessionRevoked)
+}
+
+func IsRevocationUnavailable(err error) bool {
+	var target *revocationUnavailableError
+	return errors.As(err, &target)
+}
 
 // allowedAlgorithms lists the signing algorithms accepted by the validator.
 // alg=none is explicitly rejected (K-AUTHN-002).
@@ -79,6 +122,20 @@ type Validator struct {
 	signingKeys map[string]cachedSigningKey
 	fetchedAt   time.Time
 	refreshMu   sync.Mutex
+
+	revocationCacheTTL time.Duration
+	revocationMu       sync.Mutex
+	revocationCache    map[string]cachedRevocation
+	revocationFlights  map[string]*revocationFlight
+}
+
+type cachedRevocation struct {
+	expiresAt time.Time
+}
+
+type revocationFlight struct {
+	done chan struct{}
+	err  error
 }
 
 type revocationRequest struct {
@@ -106,22 +163,29 @@ func NewValidator(jwksURL, issuer, audience string) (*Validator, error) {
 		return nil, err
 	}
 	return &Validator{
-		jwksURL:     jwksURL,
-		issuer:      issuer,
-		aud:         audience,
-		cacheTTL:    defaultJWKSCacheTTL,
-		fallbackTTL: defaultJWKSFallbackTTL,
+		jwksURL:            jwksURL,
+		issuer:             issuer,
+		aud:                audience,
+		cacheTTL:           defaultJWKSCacheTTL,
+		fallbackTTL:        defaultJWKSFallbackTTL,
+		revocationCacheTTL: defaultRevocationCacheTTL,
 		httpClient: &http.Client{
 			Timeout: defaultJWKSRequestTimeout,
 		},
-		signingKeys: map[string]cachedSigningKey{},
+		signingKeys:       map[string]cachedSigningKey{},
+		revocationCache:   map[string]cachedRevocation{},
+		revocationFlights: map[string]*revocationFlight{},
 	}, nil
 }
 
 // SetRevocationURL configures the optional session revocation endpoint used
 // after successful JWT validation.
 func (v *Validator) SetRevocationURL(rawURL string) {
+	v.revocationMu.Lock()
+	defer v.revocationMu.Unlock()
 	v.revocationURL = strings.TrimSpace(rawURL)
+	v.revocationCache = map[string]cachedRevocation{}
+	v.revocationFlights = map[string]*revocationFlight{}
 }
 
 // Validate parses and verifies a JWT token string.
@@ -219,7 +283,8 @@ func (v *Validator) ValidateContext(ctx context.Context, tokenString string) (*I
 }
 
 func (v *Validator) checkRevocation(ctx context.Context, identity *Identity) error {
-	if strings.TrimSpace(v.revocationURL) == "" {
+	revocationURL := v.currentRevocationURL()
+	if strings.TrimSpace(revocationURL) == "" {
 		return nil
 	}
 	if identity == nil || strings.TrimSpace(identity.SessionID) == "" {
@@ -237,9 +302,71 @@ func (v *Validator) checkRevocation(ctx context.Context, identity *Identity) err
 	if err != nil {
 		return fmt.Errorf("encode revocation request: %w", err)
 	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, v.revocationURL, strings.NewReader(string(body)))
+
+	cacheKey := revocationURL + "\n" + string(body)
+	flight, started, err := v.beginRevocationCheck(ctx, cacheKey, time.Now())
+	if !started {
+		return err
+	}
+	responseExpiry, err := v.requestRevocation(ctx, revocationURL, body)
+	v.finishRevocationCheck(cacheKey, flight, revocationCacheExpiry(time.Now(), v.revocationCacheTTL, identity, responseExpiry), err)
+	return err
+}
+
+func (v *Validator) currentRevocationURL() string {
+	v.revocationMu.Lock()
+	defer v.revocationMu.Unlock()
+	return v.revocationURL
+}
+
+func (v *Validator) beginRevocationCheck(ctx context.Context, cacheKey string, now time.Time) (*revocationFlight, bool, error) {
+	v.revocationMu.Lock()
+	if v.revocationCache == nil {
+		v.revocationCache = map[string]cachedRevocation{}
+	}
+	if v.revocationFlights == nil {
+		v.revocationFlights = map[string]*revocationFlight{}
+	}
+	if cached, ok := v.revocationCache[cacheKey]; ok {
+		if cached.expiresAt.After(now) {
+			v.revocationMu.Unlock()
+			return nil, false, nil
+		}
+		delete(v.revocationCache, cacheKey)
+	}
+	if flight, ok := v.revocationFlights[cacheKey]; ok {
+		v.revocationMu.Unlock()
+		select {
+		case <-flight.done:
+			return nil, false, flight.err
+		case <-ctx.Done():
+			return nil, false, newRevocationUnavailableError("wait for revocation check", ctx.Err())
+		}
+	}
+	flight := &revocationFlight{done: make(chan struct{})}
+	v.revocationFlights[cacheKey] = flight
+	v.revocationMu.Unlock()
+	return flight, true, nil
+}
+
+func (v *Validator) finishRevocationCheck(cacheKey string, flight *revocationFlight, expiresAt time.Time, err error) {
+	v.revocationMu.Lock()
+	defer v.revocationMu.Unlock()
+	if flight == nil {
+		return
+	}
+	flight.err = err
+	delete(v.revocationFlights, cacheKey)
+	if err == nil && expiresAt.After(time.Now()) {
+		v.revocationCache[cacheKey] = cachedRevocation{expiresAt: expiresAt}
+	}
+	close(flight.done)
+}
+
+func (v *Validator) requestRevocation(ctx context.Context, revocationURL string, body []byte) (time.Time, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, revocationURL, bytes.NewReader(body))
 	if err != nil {
-		return fmt.Errorf("build revocation request: %w", err)
+		return time.Time{}, fmt.Errorf("build revocation request: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
 
@@ -249,26 +376,46 @@ func (v *Validator) checkRevocation(ctx context.Context, identity *Identity) err
 	}
 	resp, err := client.Do(req)
 	if err != nil {
-		return fmt.Errorf("request revocation endpoint: %w", err)
+		return time.Time{}, newRevocationUnavailableError("request revocation endpoint", err)
 	}
 	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("revocation endpoint returned status %d", resp.StatusCode)
+		return time.Time{}, newRevocationUnavailableError(fmt.Sprintf("revocation endpoint returned status %d", resp.StatusCode), nil)
 	}
 	limited := io.LimitReader(resp.Body, maxRevocationBodyBytes)
 	var result revocationResponse
 	if err := json.NewDecoder(limited).Decode(&result); err != nil {
-		return fmt.Errorf("decode revocation response: %w", err)
+		return time.Time{}, newRevocationUnavailableError("decode revocation response", err)
 	}
 	if result.Revoked || !result.Active {
-		return fmt.Errorf("session revoked")
+		return time.Time{}, errSessionRevoked
 	}
+	var responseExpiry time.Time
 	if expiry := strings.TrimSpace(result.ExpiresAt); expiry != "" {
-		if _, err := time.Parse(time.RFC3339, expiry); err != nil {
-			return fmt.Errorf("invalid revocation response expires_at: %w", err)
+		parsed, err := time.Parse(time.RFC3339, expiry)
+		if err != nil {
+			return time.Time{}, newRevocationUnavailableError("invalid revocation response expires_at", err)
 		}
+		responseExpiry = parsed
 	}
-	return nil
+	return responseExpiry, nil
+}
+
+func revocationCacheExpiry(now time.Time, ttl time.Duration, identity *Identity, responseExpiry time.Time) time.Time {
+	if ttl <= 0 || identity == nil {
+		return time.Time{}
+	}
+	expiresAt := now.Add(ttl)
+	if !identity.ExpiresAt.IsZero() && identity.ExpiresAt.Before(expiresAt) {
+		expiresAt = identity.ExpiresAt
+	}
+	if !responseExpiry.IsZero() && responseExpiry.Before(expiresAt) {
+		expiresAt = responseExpiry
+	}
+	if !expiresAt.After(now) {
+		return time.Time{}
+	}
+	return expiresAt
 }
 
 func (v *Validator) resolveSigningKey(ctx context.Context, kid, tokenAlg string) (crypto.PublicKey, error) {

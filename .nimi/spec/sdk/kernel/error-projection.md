@@ -115,6 +115,8 @@ SDK 在特定场景合成不在 `reason-codes.yaml` 中的 ReasonCode：
 
 两者均不进入 `isRetryableReasonCode()` 集合（`S-ERROR-007`），自动重试无法修复根因。
 
+`AUTH_REVOCATION_UNAVAILABLE`（来源：`K-AUTHN-006`）表示会话撤销内省临时不可判定，必须进入 `isRetryableReasonCode()` 集合，并保持为 unavailable/retryable 投影；SDK 不得将其归类为 reauth 或 token invalid。
+
 ## S-ERROR-012 Mode D 流 CANCELLED 语义
 
 Mode D 长生命周期订阅流（`K-STREAM-010`）在 daemon 进入 STOPPING 时以 gRPC `CANCELLED` 关闭。`CANCELLED` 不在 S-ERROR-004 的 retryable transport codes 中，SDK 处理规则：

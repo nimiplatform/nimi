@@ -72,6 +72,7 @@
     "AI_LOCAL_ENDPOINT_REQUIRED": "Local AI endpoint configuration is missing.",
     "AI_LOCAL_TEMPLATE_NOT_FOUND": "Local AI template was not found.",
     "AI_LOCAL_MANIFEST_INVALID": "Local AI manifest is invalid.",
+    "AUTH_REVOCATION_UNAVAILABLE": "Authentication revocation check is temporarily unavailable.",
     "AUTH_TOKEN_INVALID": "Authentication token is invalid.",
     "SESSION_EXPIRED": "Session has expired.",
     "APP_MODE_DOMAIN_FORBIDDEN": "App mode domain is forbidden.",

@@ -349,6 +349,10 @@ export enum ReasonCode {
      */
     AUTH_UNSUPPORTED_PROOF_TYPE = 302,
     /**
+     * @generated from protobuf enum value: AUTH_REVOCATION_UNAVAILABLE = 303;
+     */
+    AUTH_REVOCATION_UNAVAILABLE = 303,
+    /**
      * CONNECTOR family (310+)
      *
      * @generated from protobuf enum value: AI_CONNECTOR_NOT_FOUND = 310;

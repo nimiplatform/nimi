@@ -29,7 +29,7 @@ import {
   clearNodeGrpcBridge,
 } from './runtime-class-test-utils.js';
 
-test('S-ERROR-011: AUTH_TOKEN_EXPIRED, AUTH_UNSUPPORTED_PROOF_TYPE, AUTH_TOKEN_INVALID are not retryable; SESSION_EXPIRED is retryable', () => {
+test('S-ERROR-011: invalid auth is not retryable; revocation outage and session refresh are retryable', () => {
   // ExternalPrincipal auth failure codes must never be retried
   assert.equal(isRetryableReasonCode(ReasonCode.AUTH_TOKEN_EXPIRED), false,
     'AUTH_TOKEN_EXPIRED must not be retryable');
@@ -38,7 +38,8 @@ test('S-ERROR-011: AUTH_TOKEN_EXPIRED, AUTH_UNSUPPORTED_PROOF_TYPE, AUTH_TOKEN_I
   assert.equal(isRetryableReasonCode(ReasonCode.AUTH_TOKEN_INVALID), false,
     'AUTH_TOKEN_INVALID must not be retryable');
 
-  // SESSION_EXPIRED is a transient condition and IS retryable (contrast)
+  assert.equal(isRetryableReasonCode(ReasonCode.AUTH_REVOCATION_UNAVAILABLE), true,
+    'AUTH_REVOCATION_UNAVAILABLE must be retryable');
   assert.equal(isRetryableReasonCode(ReasonCode.SESSION_EXPIRED), true,
     'SESSION_EXPIRED must be retryable');
 });

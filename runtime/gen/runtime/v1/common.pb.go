@@ -71,6 +71,7 @@ const (
 	ReasonCode_AUTH_TOKEN_INVALID          ReasonCode = 300
 	ReasonCode_AUTH_TOKEN_EXPIRED          ReasonCode = 301
 	ReasonCode_AUTH_UNSUPPORTED_PROOF_TYPE ReasonCode = 302
+	ReasonCode_AUTH_REVOCATION_UNAVAILABLE ReasonCode = 303
 	// CONNECTOR family (310+)
 	ReasonCode_AI_CONNECTOR_NOT_FOUND          ReasonCode = 310
 	ReasonCode_AI_CONNECTOR_DISABLED           ReasonCode = 311
@@ -278,6 +279,7 @@ var (
 		300: "AUTH_TOKEN_INVALID",
 		301: "AUTH_TOKEN_EXPIRED",
 		302: "AUTH_UNSUPPORTED_PROOF_TYPE",
+		303: "AUTH_REVOCATION_UNAVAILABLE",
 		310: "AI_CONNECTOR_NOT_FOUND",
 		311: "AI_CONNECTOR_DISABLED",
 		312: "AI_CONNECTOR_CREDENTIAL_MISSING",
@@ -454,6 +456,7 @@ var (
 		"AUTH_TOKEN_INVALID":                             300,
 		"AUTH_TOKEN_EXPIRED":                             301,
 		"AUTH_UNSUPPORTED_PROOF_TYPE":                    302,
+		"AUTH_REVOCATION_UNAVAILABLE":                    303,
 		"AI_CONNECTOR_NOT_FOUND":                         310,
 		"AI_CONNECTOR_DISABLED":                          311,
 		"AI_CONNECTOR_CREDENTIAL_MISSING":                312,
@@ -1283,7 +1286,7 @@ const file_runtime_v1_common_proto_rawDesc = "" +
 	"\vreason_code\x18\x02 \x01(\x0e2\x1b.nimi.runtime.v1.ReasonCodeR\n" +
 	"reasonCode\x12\x1f\n" +
 	"\vaction_hint\x18\x03 \x01(\tR\n" +
-	"actionHint*\x99-\n" +
+	"actionHint*\xbb-\n" +
 	"\n" +
 	"ReasonCode\x12\x1b\n" +
 	"\x17REASON_CODE_UNSPECIFIED\x10\x00\x12\x13\n" +
@@ -1324,7 +1327,8 @@ const file_runtime_v1_common_proto_rawDesc = "" +
 	"%AI_REQUEST_CREDENTIAL_SCOPE_FORBIDDEN\x10\xd5\x01\x12\x17\n" +
 	"\x12AUTH_TOKEN_INVALID\x10\xac\x02\x12\x17\n" +
 	"\x12AUTH_TOKEN_EXPIRED\x10\xad\x02\x12 \n" +
-	"\x1bAUTH_UNSUPPORTED_PROOF_TYPE\x10\xae\x02\x12\x1b\n" +
+	"\x1bAUTH_UNSUPPORTED_PROOF_TYPE\x10\xae\x02\x12 \n" +
+	"\x1bAUTH_REVOCATION_UNAVAILABLE\x10\xaf\x02\x12\x1b\n" +
 	"\x16AI_CONNECTOR_NOT_FOUND\x10\xb6\x02\x12\x1a\n" +
 	"\x15AI_CONNECTOR_DISABLED\x10\xb7\x02\x12$\n" +
 	"\x1fAI_CONNECTOR_CREDENTIAL_MISSING\x10\xb8\x02\x12\x19\n" +
