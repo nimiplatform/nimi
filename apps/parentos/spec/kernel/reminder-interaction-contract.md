@@ -163,6 +163,7 @@ ReminderAction =
   | { kind: 'practice', type: 'mark_habituated' }
   | { kind: 'consult',  type: 'open_advisor' }              // no writeback; routing only
   | { kind: '*',        type: 'snooze', until: ISODate }
+  | { kind: '*',        type: 'schedule', date: ISODate | null }  // parent-set next-occurrence date
   | { kind: '*',        type: 'mark_not_applicable' }       // admissibility per PO-REMI-010
   | { kind: '*',        type: 'dismiss_today' }
   | { kind: '*',        type: 'restore' }                   // admin/debug
@@ -173,6 +174,8 @@ A `consult`-kind `open_advisor` action must not write any timestamp to `reminder
 A `consult`-kind rule has no client-driven terminal action. This is intentional: opening the advisor is navigation, not completion.
 
 A task reminder whose `actionType` is `record_data` also has no direct click-to-complete action. Its primary action opens the `PO-CAPT-*` capture orchestrator using the canonical target in `tables/reminder-capture-targets.yaml`. The reminder reaches `task.completed` only after the orchestrator validates and persists a record event that satisfies the target's completion policy.
+
+The `schedule` action sets a parent-chosen calendar date for a reminder's next occurrence. It writes only the kind-agnostic `scheduledDate` column (a PO-REMI-004 shared column) and must not write, clear, or advance any kind-scoped progression timestamp (`completedAt`, `acknowledgedAt`, `reflectedAt`, `practice*`, `consult*`). It is idempotent for a given `(childId, ruleId, repeatIndex)`; `date: null` clears a prior custom date and restores the rule-derived schedule. `schedule` is navigation-of-time only — it never moves a reminder into or out of a terminal lifecycle state and never fakes completion.
 
 Default snooze duration per kind:
 
@@ -372,6 +375,29 @@ This gate does **not**:
 - admit a new reminder kind,
 - authorize AI free-form parenting advice outside the admitted reviewed-source
   boundary.
+
+## PO-REMI-015 Reminder Frequency Override
+
+A repeating reminder rule (one carrying `repeatRule`) may carry a per-`(childId, ruleId)` frequency override that adjusts how often the rule re-surfaces for one child without editing `tables/reminder-rules.yaml`.
+
+The override record holds:
+
+```yaml
+FreqOverride:
+  intervalMonths: integer    # parent-chosen cadence replacing repeatRule.intervalMonths
+  disabled:       boolean    # when true, the rule is suppressed for this child
+  modifiedAt:     ISO8601DateTime
+```
+
+Constraints:
+
+- The override is per-child operational state. It must be stored outside `reminder_states` and outside every rule table, and must never be written back into `tables/reminder-rules.yaml`.
+- The timeline engine's eligibility computation (`timeline-contract.md`) consumes the override in place of `repeatRule.intervalMonths` when one is present, so a customized cadence is honored consistently across every agenda surface.
+- `disabled: true` is **inadmissible for P0 rules** — it would breach the P0 delivery floor (`PO-TIME-003`). A surface offering the disable affordance must withhold it for P0 rules.
+- Clearing the override restores the rule's authored `repeatRule` cadence.
+- The override changes cadence only. It must not write any `reminder_states` progression timestamp and must not fake completion.
+
+This clause admits the existing per-child frequency-adjustment surface. It does not introduce a new reminder `kind` and does not modify the PO-REMI-005 action enumeration — the override is not a `reminder_states` action.
 
 ## Exclusions
 

@@ -105,3 +105,11 @@ components:
     shared_families: []
     shared_targets: []
     source_rule: P-DESIGN-019
+  - id: parentos.profile.growth_next_check_modal
+    app: parentos
+    module: apps/parentos/src/shell/renderer/features/profile/growth-next-check-modal.tsx
+    component: GrowthNextCheckModal
+    classification: app_owned_composition
+    shared_families: []
+    shared_targets: []
+    source_rule: P-DESIGN-019

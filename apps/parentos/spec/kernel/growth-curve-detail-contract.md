@@ -128,10 +128,11 @@ GrowthChip {
 GrowthMilestone {
   milestoneId:        string                  // ULID; deterministic from (ruleId, evidenceEventIds.sort().join(','))
   ruleId:             string                  // FK to tables/growth-milestone-rules.yaml#rules[].ruleId
-  kind:               'threshold_crossed'
+  kind:               'threshold_crossed' | 'rapid_change'
+  polarity:           'positive' | 'negative' // 'negative' = a cautionary node the surface marks distinctly
   deltaMagnitudeDisplay: string               // "+8"
   deltaUnitLabel:     string                  // "CM · 12 月"
-  title:              string                  // "突破 140cm"
+  title:              string                  // "突破 140cm" | "体重下降 12%"
   detailLine:         string                  // "2026-02-08 · 9 岁 2 月 · P84"
   occurredAt:         ISO8601Date
   evidenceEventIds:   string[]
@@ -143,7 +144,7 @@ GrowthNextCheck {
   daysFromNow:            number
   badgeLabel:             string              // "月度复测" | "季度复测" | "半年复测" — from PO-HREC-006 freshness policy
   ledeTemplate:           TemplateId
-  reminderActionability:  'has_writeback' | 'deep_link_only'
+  recheckRuleId:          RuleId | null       // age-active growth record_data rule the 更改 CTA targets (PO-GROWTH-DETAIL-006); null disables the CTA
 }
 
 GrowthTrendStat { label: string, value: string, unit: string, caption: string }
@@ -165,6 +166,19 @@ or the runtime AI. Percentile values come from the existing
 `health-record-domain.ts`; freshness comes from the existing
 `resolveNextRecordAt`. The projection must not declare its own percentile
 band or freshness state machine.
+
+Growth key-node derivation (`milestones`) consumes two trigger families
+from `tables/growth-milestone-rules.yaml`: absolute `threshold_cross` rules
+(height achievements — always `polarity: 'positive'`) and `relative_change`
+rules (a configured percent swing versus the immediately preceding recorded
+value — e.g. a ≥10% weight change). A downward `relative_change` rule emits
+`polarity: 'negative'` nodes; the detail surface marks negative nodes
+distinctly so the parent notices them. Negative nodes describe recorded
+data only — `title` / `detailLine` carry no diagnostic, evaluative, or
+alarming wording, consistent with the Layer-1 boundary in
+`parentos.md` / `profile-contract.md`. A `relative_change` rule may yield
+multiple nodes across a long history (one per qualifying consecutive pair);
+each `milestoneId` stays deterministic from `(ruleId, evidenceEventIds)`.
 
 `GrowthDetailSnapshot` is a detail-only projection. It shares only the
 `child` and `generatedAt` entity references with PO-HREC-002's
@@ -250,26 +264,49 @@ The detail surface must not introduce a new bridge command, must not
 synthesize a parallel write path, and must not modify the records it
 displays without round-tripping through the bridge.
 
-## PO-GROWTH-DETAIL-006 Next-Check Reminder Affordance
+## PO-GROWTH-DETAIL-006 Next-Check Reschedule Affordance
 
-The `设为提醒` CTA renders as the next-check node at the foot of the
-milestone timeline (PO-GROWTH-DETAIL-002); it is not a standalone card. The
-CTA behaves per `GrowthNextCheck.reminderActionability`, which is resolved at
-projection time from the timeline writeback surface presence:
+The `更改` CTA renders as the next-check node at the foot of the milestone
+timeline (PO-GROWTH-DETAIL-002); it is not a standalone card. The next-check
+is a real, repeating growth-measurement reminder, so the CTA reads `更改`
+(adjust the existing schedule) rather than `设为提醒`.
 
-- `has_writeback`: invoke the timeline user-reminder writeback path
-  with a typed payload `{ childId, metricId, nextRecordAt, kind: 'growth_metric' }`.
-  The writeback path's signature and reminder-kind admission remain owned
-  by `timeline-contract.md` and `reminder-interaction-contract.md`.
-- `deep_link_only`: navigate to `/timeline?focus=growth&metric=<id>`. The
-  query parameters are admitted in
-  `tables/routes.yaml#/timeline` (per-route description) at wave-0.
+The next-check node targets the child's **age-active growth `record_data`
+reminder** — exactly one admitted rule in `tables/reminder-rules.yaml` whose
+`domain` is `growth`, `actionType` is `record_data`, and whose `triggerAge`
+range contains the child's age in months (`PO-REM-GRO-001` 0–12m monthly,
+`PO-REM-GRO-002` 12–36m quarterly, `PO-REM-GRO-003` 36–216m biannual at the
+time of writing). The projection resolves `GrowthNextCheck.recheckRuleId`
+deterministically from the child's age; the detail surface does not author,
+mutate, reorder, or extend growth rules.
 
-The detail surface must not synthesize a `reminder_states` row, must not
-write to `tables/reminder-rules.yaml` or any reminder rule table, and
-must not fake reminder completion. A new reminder kind is not introduced;
-the writeback uses an existing reminder kind admitted in
-`reminder-interaction-contract.md`.
+Clicking `更改` opens the next-check reschedule modal — the
+`parentos.profile.growth_next_check_modal` composition registered under
+PO-GROWTH-DETAIL-008. The modal performs exactly two adjustments to the
+targeted rule, both through mechanisms owned by
+`reminder-interaction-contract.md`:
+
+- **Next occurrence date** — the modal dispatches the `PO-REMI-005`
+  `schedule` action, writing the kind-agnostic `scheduledDate` column for
+  that `(childId, ruleId, repeatIndex)`. A cleared date restores the
+  rule-derived schedule.
+- **Cadence** — the modal writes a `PO-REMI-015` per-`(childId, ruleId)`
+  frequency override. Clearing the override restores the rule's authored
+  `repeatRule` cadence.
+
+The detail surface must not:
+
+- write to `tables/reminder-rules.yaml` or any reminder rule table;
+- introduce a new reminder `kind` — the growth reminders are admitted
+  `task` kind;
+- mark the reminder complete, synthesize a `completedAt`, or otherwise fake
+  reminder completion from the reschedule flow (`record_data` completion is
+  gated by `PO-REMI-013` capture-policy proof);
+- write any kind-scoped progression timestamp.
+
+The `record_data` completion path is unchanged: a measurement is still
+recorded through PO-GROWTH-DETAIL-004 (`HealthCaptureModal`), never through
+this CTA.
 
 ## PO-GROWTH-DETAIL-007 History Export
 
@@ -303,9 +340,10 @@ token is introduced. No new kit primitive is admitted.
 
 Future visual compositions for the growth detail page must be admitted in
 `tables/nimi-kit-compositions.yaml` before they land. Expected app-owned
-surfaces include the hero card and the milestone timeline (which also
-surfaces the current-measurement and next-check nodes), each registered in
-`tables/nimi-kit-compositions.yaml`.
+surfaces include the hero card, the milestone timeline (which also surfaces
+the current-measurement and next-check nodes), and the next-check reschedule
+modal (`parentos.profile.growth_next_check_modal`, PO-GROWTH-DETAIL-006),
+each registered in `tables/nimi-kit-compositions.yaml`.
 
 When those compositions are implemented, their authority placement under
 `nimi-kit-compositions.yaml` with `classification: app_owned_composition`
@@ -331,6 +369,10 @@ The surface must fail closed when any of the following occurs:
 - the next-check freshness policy is unresolved — render
   `GrowthNextCheck = { state: 'unscheduled' }` with the policy-ref's
   diagnostic label; the CTA is disabled.
+- no growth `record_data` rule is age-active for the child
+  (`GrowthNextCheck.recheckRuleId` is `null`) — the `更改` CTA is disabled;
+  the surface must not target an arbitrary rule, open the reschedule modal
+  against a missing rule, or synthesize a reminder.
 - the CDC growth-standards dataset is requested but no admitted CDC
   asset exists in `tables/reference-data-assets.yaml` — disable the CDC
   pill with explanatory tooltip; do not synthesize CDC LMS data.

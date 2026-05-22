@@ -115,3 +115,33 @@ rules:
     titleTemplate: "突破 {thresholdValue} {thresholdUnit}"
     deltaMagnitudeTemplate: "+{deltaSinceLastYearRounded}"
     deltaUnitLabel: "CM · 12 月"
+  # Weight rapid-change nodes. Unlike height (monotonic, absolute thresholds),
+  # weight can swing either way, so these are relative_change rules: a >=10%
+  # change versus the immediately preceding recorded weight. The upward rule
+  # is a positive node; the downward rule is a negative node the parent
+  # surface marks distinctly. These describe recorded data only (Layer 1) —
+  # they carry no diagnostic or evaluative wording.
+  - ruleId: growth-milestone-weight-rise-10pct
+    kind: rapid_change
+    appliesToMetricIds: [growth.weight]
+    triggerCondition:
+      type: relative_change
+      changePercent: 10
+      direction: upward
+      valueUnit: kg
+      evidenceWindowMonths: 24
+    titleTemplate: "体重上升 {changeMagnitude}%"
+    deltaMagnitudeTemplate: "+{deltaValueRounded}"
+    deltaUnitLabel: "KG · 较上次"
+  - ruleId: growth-milestone-weight-drop-10pct
+    kind: rapid_change
+    appliesToMetricIds: [growth.weight]
+    triggerCondition:
+      type: relative_change
+      changePercent: 10
+      direction: downward
+      valueUnit: kg
+      evidenceWindowMonths: 24
+    titleTemplate: "体重下降 {changeMagnitude}%"
+    deltaMagnitudeTemplate: "-{deltaValueRounded}"
+    deltaUnitLabel: "KG · 较上次"

@@ -671,7 +671,8 @@ function generateGrowthMilestoneRules() {
 export type GrowthMilestoneRuleKind = ${kindUnion};
 export interface GrowthMilestoneThresholdCrossedTrigger { type: 'threshold_cross'; thresholdValue: number; thresholdUnit: string; direction: 'upward' | 'downward'; evidenceWindowMonths: number; }
 export interface GrowthMilestonePercentileShiftTrigger { type: 'percentile_shift'; minMagnitudePoints: number; direction: 'upward' | 'downward'; evidenceWindowMonths: number; }
-export type GrowthMilestoneTriggerCondition = GrowthMilestoneThresholdCrossedTrigger | GrowthMilestonePercentileShiftTrigger;
+export interface GrowthMilestoneRelativeChangeTrigger { type: 'relative_change'; changePercent: number; direction: 'upward' | 'downward'; valueUnit: string; evidenceWindowMonths: number; }
+export type GrowthMilestoneTriggerCondition = GrowthMilestoneThresholdCrossedTrigger | GrowthMilestonePercentileShiftTrigger | GrowthMilestoneRelativeChangeTrigger;
 export interface GrowthMilestoneRule { ruleId: string; kind: GrowthMilestoneRuleKind; appliesToMetricIds: readonly string[]; triggerCondition: GrowthMilestoneTriggerCondition; titleTemplate: string; deltaMagnitudeTemplate: string; deltaUnitLabel: string; }
 export const GROWTH_MILESTONE_RULES = ${JSON.stringify(rules, null, 2)} as const;
 export type GrowthMilestoneRuleId = ${ruleIdUnion};
