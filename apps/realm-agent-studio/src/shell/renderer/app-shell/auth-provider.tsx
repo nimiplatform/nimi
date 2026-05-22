@@ -36,7 +36,7 @@ function StudioSessionGate(props: {
             <StatusBadge tone="danger">session unavailable</StatusBadge>
             <h2 className="m-0 mt-4 text-2xl font-semibold">Runtime account session required</h2>
             <p className="m-0 mt-3 text-[var(--nimi-text-muted)]">
-              Open this app from the Nimi desktop shell, or sign in through the desktop Runtime account broker.
+              Start the Studio desktop shell with the Runtime account broker available, then sign in or refresh this session.
             </p>
             <Button className="mt-6" onClick={() => void props.state.refresh()}>Retry connection</Button>
           </div>

@@ -108,11 +108,6 @@ fn main() {
             runtime_bridge::runtime_bridge_stream_open,
             runtime_bridge::runtime_bridge_stream_close,
             runtime_bridge::runtime_bridge_status,
-            runtime_bridge::runtime_bridge_start,
-            runtime_bridge::runtime_bridge_stop,
-            runtime_bridge::runtime_bridge_restart,
-            runtime_bridge::runtime_bridge_config_get,
-            runtime_bridge::runtime_bridge_config_set,
             session_logging::log_renderer_event,
         ])
         .run(tauri::generate_context!())

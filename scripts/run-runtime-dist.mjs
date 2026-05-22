@@ -9,6 +9,50 @@ const repoRoot = path.resolve(scriptDir, '..');
 const distDir = path.join(repoRoot, 'dist');
 const binaryName = process.platform === 'win32' ? 'nimi.exe' : 'nimi';
 const binaryPath = path.join(distDir, binaryName);
+const rootEnvPath = path.join(repoRoot, '.env');
+const devAppRegistryPath = path.join(repoRoot, '.nimi', 'spec', 'platform', 'kernel', 'tables', 'nimi-app-registry.yaml');
+
+function parseEnvLine(line) {
+  const trimmed = line.trim();
+  if (!trimmed || trimmed.startsWith('#') || !trimmed.includes('=')) {
+    return null;
+  }
+  const separatorIndex = trimmed.indexOf('=');
+  const key = trimmed.slice(0, separatorIndex).trim();
+  let value = trimmed.slice(separatorIndex + 1).trim();
+  if (!key) {
+    return null;
+  }
+  if (
+    (value.startsWith('"') && value.endsWith('"'))
+    || (value.startsWith("'") && value.endsWith("'"))
+  ) {
+    value = value.slice(1, -1);
+  }
+  return { key, value };
+}
+
+function applyRootRuntimeEnv(env) {
+  if (fs.existsSync(rootEnvPath)) {
+    const raw = fs.readFileSync(rootEnvPath, 'utf8');
+    for (const line of raw.split(/\r?\n/u)) {
+      const parsed = parseEnvLine(line);
+      if (!parsed) {
+        continue;
+      }
+      const shouldApply = parsed.key.startsWith('NIMI_') || parsed.key.startsWith('VITE_NIMI_');
+      if (shouldApply) {
+        env[parsed.key] = parsed.value;
+      } else if (env[parsed.key] == null) {
+        env[parsed.key] = parsed.value;
+      }
+    }
+  }
+  if (!String(env.NIMI_RUNTIME_APP_REGISTRY_PATH || '').trim() && fs.existsSync(devAppRegistryPath)) {
+    env.NIMI_RUNTIME_APP_REGISTRY_PATH = devAppRegistryPath;
+  }
+  return env;
+}
 
 if (!fs.existsSync(binaryPath)) {
   process.stderr.write(`[run-runtime-dist] missing ${path.relative(repoRoot, binaryPath)}; run 'pnpm build:runtime' first.\n`);
@@ -18,7 +62,7 @@ if (!fs.existsSync(binaryPath)) {
 const child = spawn(binaryPath, process.argv.slice(2), {
   cwd: repoRoot,
   stdio: 'inherit',
-  env: process.env,
+  env: applyRootRuntimeEnv({ ...process.env }),
 });
 
 let childExited = false;

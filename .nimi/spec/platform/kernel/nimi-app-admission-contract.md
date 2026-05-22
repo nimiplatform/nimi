@@ -247,6 +247,32 @@ Tester、workspace fixture cache、Tauri command name、source folder、GitHub r
 Tester 只能作为 frozen internal source/validation surface，后续 hard-cut
 retirement 必须等待 `nimi.tester` stability evidence。
 
+## P-NAPP-017 — Developer-Only Realm Agent Studio Admission
+
+`MUST`：Realm Agent Studio 在当前 owner-product acceptance cut 中只作为
+first-party developer-only Nimi App admitted：
+
+- `app_id: nimi.realm-agent-studio`
+- `admission_status: admitted`
+- `ordinary_visibility: developer-only`
+- `package_kind: nimi-app`
+- `release_descriptor_ref: nimi.realm-agent-studio.bundled-with-nimi`
+- `install_storage_policy_ref: nimi-data-app-roots`
+
+`MUST`：Realm Agent Studio 的 release descriptor 使用 bundled first-party
+posture，绑定当前 atomic Nimi release bundle，不授权外部 mutable download。
+
+`MUST`：`app.nimi.realm-agent-studio` / `app.nimi.realm-agent-studio.local-first-party`
+是 Realm Agent Studio 独立 Tauri desktop shell 的 Runtime account caller
+identity。`pnpm dev:realm:agent:studio` 必须通过 Runtime registry admission
+完成 first-party caller registration；未登录可以停在真实 account/session
+required 状态，但不得因 `APP_NOT_REGISTERED` 失败。
+
+`MUST NOT`：Realm Agent Studio 不得作为 ordinary primary navigation entry，
+不得出现在 ordinary-visible Apps projection，且不得用 app-local token、
+fake Runtime session、Desktop host impersonation、source folder、GitHub repo
+或 npm package 作为 App admission/install truth。
+
 ## Fact Sources
 
 - `.nimi/spec/platform/kernel/architecture-contract.md` — `P-ARCH-001..P-ARCH-021`

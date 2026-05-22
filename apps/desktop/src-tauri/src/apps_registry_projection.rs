@@ -426,7 +426,7 @@ mod tests {
     }
 
     #[test]
-    fn avatar_and_tester_never_project_as_ordinary_visibility() {
+    fn internal_and_developer_apps_never_project_as_ordinary_visibility() {
         let record = build_apps_registry_record().expect("record");
         let avatar = record
             .apps
@@ -442,6 +442,13 @@ mod tests {
             .expect("tester row");
         assert_eq!(tester.visibility, "developer-only");
         assert_ne!(tester.visibility, "ordinary");
+        let studio = record
+            .apps
+            .iter()
+            .find(|row| row.app_id == "nimi.realm-agent-studio")
+            .expect("realm agent studio row");
+        assert_eq!(studio.visibility, "developer-only");
+        assert_ne!(studio.visibility, "ordinary");
         let parentos = record
             .apps
             .iter()

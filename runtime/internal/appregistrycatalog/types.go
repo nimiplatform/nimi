@@ -104,7 +104,7 @@ type App struct {
 	LocalComputePackRefs      []string
 	RuntimeRegistrationMode   RuntimeRegistrationMode
 	PermissionScopeRefs       []PermissionScopeRef
-	HealthRepairProjection    string
+	HealthRepairProjection    []string
 	OrdinaryVisibility        OrdinaryVisibility
 	ReleaseDescriptorRef      string
 	InstallStoragePolicyRef   string

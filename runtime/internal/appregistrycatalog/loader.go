@@ -36,12 +36,41 @@ type rawApp struct {
 	LocalComputePackRefs      []string             `yaml:"local_compute_pack_refs"`
 	RuntimeRegistrationMode   string               `yaml:"runtime_registration_mode"`
 	PermissionScopeRef        []rawPermissionScope `yaml:"permission_scope_ref"`
-	HealthRepairProjection    string               `yaml:"health_repair_projection"`
+	HealthRepairProjection    stringList           `yaml:"health_repair_projection"`
 	OrdinaryVisibility        string               `yaml:"ordinary_visibility"`
 	ReleaseDescriptorRef      string               `yaml:"release_descriptor_ref"`
 	InstallStoragePolicyRef   string               `yaml:"install_storage_policy_ref"`
 	AdmissionStatus           string               `yaml:"admission_status"`
 	SourceRule                string               `yaml:"source_rule"`
+}
+
+type stringList []string
+
+func (s *stringList) UnmarshalYAML(value *yaml.Node) error {
+	switch value.Kind {
+	case yaml.ScalarNode:
+		normalized := value.Value
+		if normalized == "" {
+			*s = nil
+			return nil
+		}
+		*s = []string{normalized}
+		return nil
+	case yaml.SequenceNode:
+		values := make([]string, 0, len(value.Content))
+		for _, item := range value.Content {
+			if item.Kind != yaml.ScalarNode {
+				return fmt.Errorf("expected scalar string in sequence")
+			}
+			if item.Value != "" {
+				values = append(values, item.Value)
+			}
+		}
+		*s = values
+		return nil
+	default:
+		return fmt.Errorf("expected string or string sequence")
+	}
 }
 
 // LoadRegistry parses the Nimi App registry from a reader. Fail-closed:
@@ -139,7 +168,7 @@ func convertApp(raw rawApp) (App, error) {
 		LocalComputePackRefs:      append([]string(nil), raw.LocalComputePackRefs...),
 		RuntimeRegistrationMode:   mode,
 		PermissionScopeRefs:       scopes,
-		HealthRepairProjection:    raw.HealthRepairProjection,
+		HealthRepairProjection:    append([]string(nil), raw.HealthRepairProjection...),
 		OrdinaryVisibility:        visibility,
 		ReleaseDescriptorRef:      raw.ReleaseDescriptorRef,
 		InstallStoragePolicyRef:   raw.InstallStoragePolicyRef,

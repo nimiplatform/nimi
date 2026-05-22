@@ -13,6 +13,9 @@ entries:
   - Avatar must remain hidden-internal for ordinary Apps even when package/update coordination rows exist
   - Tester is admitted only as developer-only first-party App in this cut and
     must not appear in ordinary Apps
+  - Realm Agent Studio is admitted only as developer-only first-party App in
+    this cut so standalone desktop dev-shell account registration can fail
+    closed through Runtime registry truth instead of app-local session shims
   - every installable non-bundled version must resolve to an immutable release descriptor with digest verification before unpack or execution
   - permission_scope_ref is the wave 4 permission fabric placeholder and must remain pending_wave_4 until wave 4 close
 
@@ -195,3 +198,42 @@ apps:
     install_storage_policy_ref: nimi-data-app-roots
     admission_status: admitted
     source_rule: P-NAPP-016
+
+  - app_id: nimi.realm-agent-studio
+    display_label: Realm Agent Studio
+    publisher: nimi-first-party
+    trust_tier_ref: nimi-first-party
+    package_kind: nimi-app
+    package_signature_policy_ref: nimi-first-party-signature-policy
+    update_channel_ref: stable
+    ai_profile_selection_ref: hybrid-recommended
+    capability_set_refs:
+      - text.generate
+      - audio.synthesize
+      - image.generate
+    local_compute_pack_refs:
+      - local-text
+      - local-speech
+      - local-image-native
+    runtime_registration_mode: app-managed
+    permission_scope_ref:
+      - { appId: nimi.realm-agent-studio, scopeFamily: account, scopeName: account.session.read }
+      - { appId: nimi.realm-agent-studio, scopeFamily: agent, scopeName: agent.identity.project }
+      - { appId: nimi.realm-agent-studio, scopeFamily: ai_profile, scopeName: ai_profile.selection.consume }
+      - { appId: nimi.realm-agent-studio, scopeFamily: ai_spend, scopeName: ai.spend.meter }
+      - { appId: nimi.realm-agent-studio, scopeFamily: file_device, scopeName: file.read.scoped, qualifier: owner-media-candidate }
+      - { appId: nimi.realm-agent-studio, scopeFamily: file_device, scopeName: file.write.scoped, qualifier: app-local-drafts }
+    health_repair_projection:
+      - unavailable
+      - setup-required
+      - needs-confirmation
+      - in-progress
+      - failed
+      - unsupported
+      - repair-required
+      - stale-projection
+    ordinary_visibility: developer-only
+    release_descriptor_ref: nimi.realm-agent-studio.bundled-with-nimi
+    install_storage_policy_ref: nimi-data-app-roots
+    admission_status: admitted
+    source_rule: P-NAPP-017

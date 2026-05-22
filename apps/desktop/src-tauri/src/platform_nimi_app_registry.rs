@@ -79,6 +79,18 @@ pub const PLATFORM_NIMI_APP_REGISTRY_ROWS: &[PlatformNimiAppRegistryRow] = &[
         admission_status: "admitted",
         source_rule: "P-NAPP-016",
     },
+    PlatformNimiAppRegistryRow {
+        app_id: "nimi.realm-agent-studio",
+        app_kind: "nimi-app",
+        display_name: "Realm Agent Studio",
+        publisher: "nimi-first-party",
+        trust_tier: "nimi-first-party",
+        ordinary_visibility: "developer-only",
+        release_descriptor_ref: "nimi.realm-agent-studio.bundled-with-nimi",
+        install_storage_policy_ref: "nimi-data-app-roots",
+        admission_status: "admitted",
+        source_rule: "P-NAPP-017",
+    },
 ];
 
 pub const PLATFORM_NIMI_APP_RELEASE_DESCRIPTOR_ROWS: &[PlatformNimiAppReleaseDescriptorRow] = &[
@@ -126,6 +138,21 @@ pub const PLATFORM_NIMI_APP_RELEASE_DESCRIPTOR_ROWS: &[PlatformNimiAppReleaseDes
         admission_path: "first-party-bundled-release",
         install_digest_verification_required: "inherited_from_atomic_bundle",
         source_rule: "P-NAPP-016",
+    },
+    PlatformNimiAppReleaseDescriptorRow {
+        descriptor_id: "nimi.realm-agent-studio.bundled-with-nimi",
+        app_id: "nimi.realm-agent-studio",
+        version: "bundled-with-current-nimi-release",
+        descriptor_class: "bundled-with-nimi",
+        source_kind: "nimi-bundle",
+        sha256: "inherited-from-atomic-nimi-release-manifest",
+        package_kind: "nimi-app",
+        storage_policy_ref: "nimi-data-app-roots",
+        digest_algorithm: "sha256",
+        mutable_source_allowed: false,
+        admission_path: "first-party-bundled-release",
+        install_digest_verification_required: "inherited_from_atomic_bundle",
+        source_rule: "P-NAPP-017",
     },
 ];
 

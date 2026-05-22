@@ -142,3 +142,27 @@ app-owned long-lived auth token storage. When a temporary environment-token
 development path exists, it is not acceptable as final app architecture and must
 remain visible as an architecture gap until replaced by the shared session
 posture used by parentOS/desktop.
+
+## Desktop Runtime Caller Authority
+
+Realm Agent Studio's standalone Tauri shell uses a fixed local first-party
+Runtime account caller:
+
+| Field | Value |
+| --- | --- |
+| `appId` | `app.nimi.realm-agent-studio` |
+| `appInstanceId` | `app.nimi.realm-agent-studio.local-first-party` |
+| `deviceId` | `local-first-party-device` |
+| `mode` | `ACCOUNT_CALLER_MODE_LOCAL_FIRST_PARTY_APP` |
+
+The Platform Nimi App registry row is `nimi.realm-agent-studio` under
+`.nimi/spec/platform/kernel/tables/nimi-app-registry.yaml` and is admitted as
+developer-only for this cut. This developer-only posture allows
+`pnpm dev:realm:agent:studio` to register through Runtime registry truth without
+requiring an ordinary Apps install path.
+
+`pnpm dev:realm:agent:studio` is a valid desktop development entry. It must not
+fall back to browser/Vite acceptance, app-local session tokens, fake Runtime
+sessions, or Desktop host impersonation. If the owner is not signed in, the
+valid fail-closed state is account/session required after caller registration,
+not `APP_NOT_REGISTERED` / registration rejected.
