@@ -179,6 +179,31 @@ vi.mock('./portfolio-client.js', async (importOriginal) => {
         },
       },
     })),
+    proposeReviewedOwnerAgentSettings: vi.fn(async () => ({
+      ok: true,
+      source: 'Runtime runtime.ai.text.generate',
+      candidate: true,
+      truthWrite: false,
+      submitted: {
+        model: 'configured-text-model',
+        input: 'owner intent',
+      },
+      runtime: {
+        traceId: 'trace-settings-ui',
+      },
+      proposal: {
+        source: 'Runtime runtime.ai.text.generate',
+        candidate: true,
+        truthWrite: false,
+        draftPatch: {
+          worldview: 'Layered world, Runtime proposed.',
+          contentStyle: 'Warm and concise.',
+        },
+        changedSettingKeys: ['worldview', 'contentStyle'],
+        rationale: 'Runtime mapped the owner intent into visible fields.',
+        rawText: '{"worldview":"Layered world, Runtime proposed.","contentStyle":"Warm and concise."}',
+      },
+    })),
     updateReviewedOwnerAgentSettings: vi.fn(async () => ({
       ok: true,
       source: 'Realm MeService.updateMyRealmAgentSettings',
@@ -565,6 +590,39 @@ describe('OwnerPortfolio visibility settings UI', () => {
       }),
     );
     expect(document.body.textContent).toContain('raw AgentRule review deferred');
+  });
+
+  it('applies a Runtime settings proposal as editable candidate fields before save', async () => {
+    await renderOwnerPortfolio();
+    await openWorkspace('Settings', 'Owner settings');
+
+    await changeField(
+      findFieldByPlaceholder<HTMLTextAreaElement>('Describe the owner-reviewed setting intent'),
+      'Make Mira warmer and clearer.',
+    );
+    const proposeButton = await waitForButtonEnabled('Ask Runtime for proposal');
+    await act(async () => {
+      proposeButton.click();
+    });
+
+    await waitForText('Runtime mapped the owner intent into visible fields.');
+    expect(portfolioClient.proposeReviewedOwnerAgentSettings).toHaveBeenCalledWith(
+      'agent-1',
+      expect.objectContaining({
+        naturalLanguageIntent: 'Make Mira warmer and clearer.',
+      }),
+      expect.objectContaining({
+        agentId: 'agent-1',
+      }),
+    );
+
+    await act(async () => {
+      findButtonByText('Apply proposal to fields').click();
+    });
+
+    expect(findFieldByPlaceholder<HTMLTextAreaElement>('Public worldview and background').value).toBe('Layered world, Runtime proposed.');
+    expect(findFieldByPlaceholder<HTMLTextAreaElement>('Concise, pragmatic, warm...').value).toBe('Warm and concise.');
+    expect(document.body.textContent).toContain('Runtime output is candidate material only.');
   });
 
   it('projects Runtime world context as a summary without raw rule review', async () => {

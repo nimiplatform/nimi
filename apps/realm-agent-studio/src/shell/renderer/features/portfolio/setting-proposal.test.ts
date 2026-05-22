@@ -2,9 +2,12 @@ import { describe, expect, it } from 'vitest';
 import {
   RAW_RULE_REVIEW_DEFERRED_REASON,
   assertNoForbiddenOwnerSettingsFields,
+  applyRuntimeOwnerSettingsProposal,
   buildRealmOwnerAgentSettingsUpdateInput,
+  buildRuntimeOwnerSettingsProposalPrompt,
   createOwnerAgentSettingsDraft,
   normalizeOwnerAgentSettingsDraft,
+  normalizeRuntimeOwnerSettingsProposal,
   type OwnerAgentSettingsSnapshot,
 } from './setting-proposal.js';
 
@@ -139,5 +142,67 @@ describe('owner settings proposal normalization', () => {
         },
       },
     })).toBeNull();
+  });
+
+  it('builds a Runtime text proposal request from owner intent without hardcoded provider fields', () => {
+    const draft = {
+      ...createOwnerAgentSettingsDraft(settings),
+      naturalLanguageIntent: 'Make Mira warmer and clearer for builders.',
+    };
+    const result = buildRuntimeOwnerSettingsProposalPrompt({
+      agentId: 'agent-1',
+      current: settings,
+      draft,
+      model: 'configured-text-model',
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.payload).toMatchObject({
+      model: 'configured-text-model',
+      metadata: {
+        domain: 'realm-agent-studio.settings-proposal',
+      },
+    });
+    expect(result.payload?.input).not.toContain('provider');
+    expect(result.payload?.input).not.toContain('LocalAgent');
+  });
+
+  it('normalizes Runtime proposal JSON into admitted draft fields only', () => {
+    const baseDraft = createOwnerAgentSettingsDraft(settings);
+    const proposal = normalizeRuntimeOwnerSettingsProposal(JSON.stringify({
+      description: 'Warmer public strategist.',
+      worldview: 'Layered world with practical entry points.',
+      contentStyle: 'Warm, clear, and concise.',
+      allowedThemesText: ['adventure', 'friendship'],
+      responseLength: 'short',
+      rationale: 'Matches the owner request.',
+    }), baseDraft);
+
+    expect(proposal).toMatchObject({
+      candidate: true,
+      truthWrite: false,
+      changedSettingKeys: ['description', 'worldview', 'contentStyle', 'allowedThemesText', 'responseLength'],
+      draftPatch: {
+        description: 'Warmer public strategist.',
+        allowedThemesText: 'adventure, friendship',
+        responseLength: 'short',
+      },
+    });
+    expect(applyRuntimeOwnerSettingsProposal(baseDraft, proposal)).toMatchObject({
+      description: 'Warmer public strategist.',
+      worldview: 'Layered world with practical entry points.',
+      contentStyle: 'Warm, clear, and concise.',
+    });
+  });
+
+  it('rejects Runtime proposals with forbidden or invalid setting fields', () => {
+    const baseDraft = createOwnerAgentSettingsDraft(settings);
+    expect(() => normalizeRuntimeOwnerSettingsProposal(JSON.stringify({
+      model: 'forbidden',
+      description: 'Allowed text.',
+    }), baseDraft)).toThrow('forbidden model');
+    expect(() => normalizeRuntimeOwnerSettingsProposal(JSON.stringify({
+      responseLength: 'endless',
+    }), baseDraft)).toThrow('invalid responseLength');
   });
 });

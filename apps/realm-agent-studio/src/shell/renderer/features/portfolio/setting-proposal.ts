@@ -1,4 +1,5 @@
 export const OWNER_SETTINGS_SAVE_SOURCE = 'Realm MeService.updateMyRealmAgentSettings';
+export const SETTINGS_AI_PROPOSAL_SOURCE = 'Runtime runtime.ai.text.generate';
 export const RAW_RULE_REVIEW_DEFERRED_REASON = 'raw AgentRule review deferred: Realm has not admitted a dedicated owner-scoped rule-content read surface';
 
 export type OwnerAgentSettingsSnapshot = {
@@ -52,6 +53,39 @@ export type OwnerAgentSettingsDraft = {
   targetAudience: string;
   positioning: string;
   rawRuleTextCandidate: string;
+};
+
+export type RuntimeOwnerSettingsProposalPatch = Partial<Pick<
+  OwnerAgentSettingsDraft,
+  | 'displayName'
+  | 'description'
+  | 'greeting'
+  | 'naturalLanguageIntent'
+  | 'publicRole'
+  | 'worldview'
+  | 'personalitySummary'
+  | 'relationshipMode'
+  | 'interestsText'
+  | 'goalsText'
+  | 'contentStyle'
+  | 'formality'
+  | 'responseLength'
+  | 'sentiment'
+  | 'allowedThemesText'
+  | 'disallowedThemesText'
+  | 'targetAudience'
+  | 'positioning'
+  | 'rawRuleTextCandidate'
+>>;
+
+export type RuntimeOwnerSettingsProposal = {
+  source: typeof SETTINGS_AI_PROPOSAL_SOURCE;
+  candidate: true;
+  truthWrite: false;
+  draftPatch: RuntimeOwnerSettingsProposalPatch;
+  changedSettingKeys: string[];
+  rationale: string;
+  rawText: string;
 };
 
 export type NormalizedOwnerAgentSettingsDraft = OwnerAgentSettingsDraft & {
@@ -142,6 +176,31 @@ const FORBIDDEN_SETTING_KEYS = new Set([
   'ruleText',
 ]);
 
+const RUNTIME_PROPOSAL_STRING_FIELDS = [
+  'displayName',
+  'description',
+  'greeting',
+  'naturalLanguageIntent',
+  'publicRole',
+  'worldview',
+  'personalitySummary',
+  'relationshipMode',
+  'interestsText',
+  'goalsText',
+  'contentStyle',
+  'allowedThemesText',
+  'disallowedThemesText',
+  'targetAudience',
+  'positioning',
+  'rawRuleTextCandidate',
+] as const;
+
+const RUNTIME_PROPOSAL_ENUM_FIELDS = {
+  formality: FORMALITY_VALUES,
+  responseLength: RESPONSE_LENGTH_VALUES,
+  sentiment: SENTIMENT_VALUES,
+} as const;
+
 function normalizeLineText(value: string): string {
   return value.replace(/\r\n?/g, '\n').trim();
 }
@@ -159,6 +218,28 @@ function parseListText(value: string): string[] {
     .split(/[,\n]/g)
     .map((item) => compactProfileText(item))
     .filter(Boolean);
+}
+
+function extractFirstJsonObject(text: string): unknown {
+  const start = text.indexOf('{');
+  const end = text.lastIndexOf('}');
+  if (start < 0 || end <= start) {
+    throw new Error('Runtime settings proposal did not return a JSON object.');
+  }
+  return JSON.parse(text.slice(start, end + 1));
+}
+
+function proposalValueToText(value: unknown): string | null {
+  if (typeof value === 'string') {
+    return normalizeLineText(value);
+  }
+  if (Array.isArray(value)) {
+    const lines = value
+      .map((item) => typeof item === 'string' ? compactProfileText(item) : '')
+      .filter(Boolean);
+    return lines.length > 0 ? lines.join(', ') : null;
+  }
+  return null;
 }
 
 function normalizeNullableText(value: string): string | null {
@@ -282,6 +363,122 @@ export function assertNoForbiddenOwnerSettingsFields(value: unknown): string | n
   }
 
   return null;
+}
+
+export function buildRuntimeOwnerSettingsProposalPrompt(input: {
+  agentId: string;
+  current: OwnerAgentSettingsSnapshot;
+  draft: OwnerAgentSettingsDraft;
+  model: string;
+}) {
+  const normalizedDraft = normalizeOwnerAgentSettingsDraft(input.draft);
+  const model = compactProfileText(input.model);
+  const intent = normalizedDraft.naturalLanguageIntent;
+  const errors: string[] = [];
+
+  if (!model) {
+    errors.push('Runtime runtime.ai.text.generate model config missing');
+  }
+  if (!intent) {
+    errors.push('natural-language setting intent missing');
+  }
+
+  if (errors.length > 0) {
+    return { ok: false as const, errors, payload: null };
+  }
+
+  return {
+    ok: true as const,
+    errors: [],
+    payload: {
+      model,
+      maxTokens: 900,
+      temperature: 0.2,
+      system: [
+        'You propose owner-reviewed Realm Agent settings only.',
+        'Return one JSON object with admitted draft field names only.',
+        'Allowed fields: displayName, description, greeting, naturalLanguageIntent, publicRole, worldview, personalitySummary, relationshipMode, interestsText, goalsText, contentStyle, formality, responseLength, sentiment, allowedThemesText, disallowedThemesText, targetAudience, positioning, rawRuleTextCandidate, rationale.',
+        'Do not include provider, model, LocalAgent, lifecycle, state, worldId, handle, avatarUrl, profileCoverUrl, dna, agentRule, or agentRules.',
+        'The owner must review the result before any Realm save.',
+      ].join('\n'),
+      input: JSON.stringify({
+        agentId: input.agentId,
+        ownerIntent: intent,
+        currentSettings: input.current,
+        currentDraft: normalizedDraft,
+      }),
+      metadata: {
+        domain: 'realm-agent-studio.settings-proposal',
+        surfaceId: 'realm-agent-studio',
+      },
+    },
+  };
+}
+
+export function normalizeRuntimeOwnerSettingsProposal(
+  outputText: string,
+  baseDraft: OwnerAgentSettingsDraft,
+): RuntimeOwnerSettingsProposal {
+  const parsed = extractFirstJsonObject(outputText);
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    throw new Error('Runtime settings proposal JSON must be an object.');
+  }
+
+  const forbiddenKey = assertNoForbiddenOwnerSettingsFields(parsed);
+  if (forbiddenKey) {
+    throw new Error(`Runtime settings proposal rejected forbidden ${forbiddenKey}.`);
+  }
+
+  const record = parsed as Record<string, unknown>;
+  const draftPatch: RuntimeOwnerSettingsProposalPatch = {};
+  const changedSettingKeys: string[] = [];
+
+  for (const field of RUNTIME_PROPOSAL_STRING_FIELDS) {
+    const value = proposalValueToText(record[field]);
+    if (value !== null && value !== baseDraft[field]) {
+      draftPatch[field] = value;
+      changedSettingKeys.push(field);
+    }
+  }
+
+  for (const [field, allowed] of Object.entries(RUNTIME_PROPOSAL_ENUM_FIELDS)) {
+    const value = proposalValueToText(record[field]);
+    if (!value) {
+      continue;
+    }
+    if (!(allowed as readonly string[]).includes(value)) {
+      throw new Error(`Runtime settings proposal rejected invalid ${field}.`);
+    }
+    const typedField = field as keyof typeof RUNTIME_PROPOSAL_ENUM_FIELDS;
+    if (value !== baseDraft[typedField]) {
+      draftPatch[typedField] = value;
+      changedSettingKeys.push(field);
+    }
+  }
+
+  if (changedSettingKeys.length === 0) {
+    throw new Error('Runtime settings proposal returned no admitted setting changes.');
+  }
+
+  return {
+    source: SETTINGS_AI_PROPOSAL_SOURCE,
+    candidate: true,
+    truthWrite: false,
+    draftPatch,
+    changedSettingKeys,
+    rationale: proposalValueToText(record.rationale) || 'Runtime returned a settings candidate for owner review.',
+    rawText: outputText,
+  };
+}
+
+export function applyRuntimeOwnerSettingsProposal(
+  draft: OwnerAgentSettingsDraft,
+  proposal: RuntimeOwnerSettingsProposal,
+): OwnerAgentSettingsDraft {
+  return {
+    ...draft,
+    ...proposal.draftPatch,
+  };
 }
 
 export function buildRealmOwnerAgentSettingsUpdateInput(

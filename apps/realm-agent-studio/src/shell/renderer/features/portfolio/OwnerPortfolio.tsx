@@ -20,6 +20,7 @@ import {
   createReviewedPostTextResource,
   listReadyPostAttachmentResources,
   projectAgentRuntimeContextSummary,
+  proposeReviewedOwnerAgentSettings,
   publishReviewedPostDraft,
   selectReviewedAgentAvatarUrl,
   synthesizeReviewedVoiceDemo,
@@ -39,6 +40,7 @@ import {
   type RealmTextResourceCreateResult,
   type RuntimeVoiceDemoSynthesisResult,
   type RuntimeProjectionSummaryResult,
+  type RuntimeOwnerSettingsProposalResult,
   type PostAttachmentResourceOption,
   type DirectMediaResourceType,
   type DirectMediaResourceUploadResult,
@@ -55,6 +57,7 @@ import {
 } from './post-draft.js';
 import {
   RAW_RULE_REVIEW_DEFERRED_REASON,
+  applyRuntimeOwnerSettingsProposal,
   buildRealmOwnerAgentSettingsUpdateInput,
   createOwnerAgentSettingsDraft,
   type OwnerAgentSettingsDraft,
@@ -280,6 +283,8 @@ function SettingProposalWorkspace({ agent, onAgentWrite }: { agent: OwnerPortfol
   const [ownerReviewed, setOwnerReviewed] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [result, setResult] = useState<RealmOwnerAgentSettingsUpdateResult | null>(null);
+  const [runtimeProposal, setRuntimeProposal] = useState<RuntimeOwnerSettingsProposalResult | null>(null);
+  const [isProposing, setIsProposing] = useState(false);
   const proposal = useMemo(() => (
     draft && settingsQuery.data
       ? buildRealmOwnerAgentSettingsUpdateInput(draft, settingsQuery.data as RealmOwnerAgentSettings)
@@ -291,6 +296,8 @@ function SettingProposalWorkspace({ agent, onAgentWrite }: { agent: OwnerPortfol
       setDraft(createOwnerAgentSettingsDraft(settingsQuery.data));
       setOwnerReviewed(false);
       setResult(null);
+      setRuntimeProposal(null);
+      setIsProposing(false);
     }
   }, [agent.id, settingsQuery.data]);
 
@@ -298,6 +305,7 @@ function SettingProposalWorkspace({ agent, onAgentWrite }: { agent: OwnerPortfol
     setDraft((current) => current ? { ...current, ...patch } : current);
     setOwnerReviewed(false);
     setResult(null);
+    setRuntimeProposal(null);
   }
 
   function useInstructionAsRuleCandidate() {
@@ -324,6 +332,29 @@ function SettingProposalWorkspace({ agent, onAgentWrite }: { agent: OwnerPortfol
     } finally {
       setIsSaving(false);
     }
+  }
+
+  async function requestRuntimeProposal() {
+    if (!draft || !settingsQuery.data) {
+      return;
+    }
+    setIsProposing(true);
+    setRuntimeProposal(null);
+    try {
+      const proposalResult = await proposeReviewedOwnerAgentSettings(agent.id, draft, settingsQuery.data);
+      setRuntimeProposal(proposalResult);
+    } finally {
+      setIsProposing(false);
+    }
+  }
+
+  function applyRuntimeProposal() {
+    if (!draft || !runtimeProposal?.ok) {
+      return;
+    }
+    setDraft(applyRuntimeOwnerSettingsProposal(draft, runtimeProposal.proposal));
+    setOwnerReviewed(false);
+    setResult(null);
   }
 
   return (
@@ -506,7 +537,51 @@ function SettingProposalWorkspace({ agent, onAgentWrite }: { agent: OwnerPortfol
                 <Button disabled={!draft.naturalLanguageIntent.trim()} onClick={useInstructionAsRuleCandidate}>
                   Use as rule review note
                 </Button>
+                <Button
+                  tone="secondary"
+                  disabled={!draft.naturalLanguageIntent.trim() || isProposing}
+                  loading={isProposing}
+                  onClick={() => void requestRuntimeProposal()}
+                >
+                  Ask Runtime for proposal
+                </Button>
               </div>
+              {runtimeProposal ? (
+                <Surface tone="card" padding="md">
+                  <div className="flex min-w-0 flex-wrap items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="font-medium">Runtime settings proposal</div>
+                      <div className="ras-break-anywhere mt-1 text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-muted)]">
+                        {runtimeProposal.ok
+                          ? runtimeProposal.proposal.rationale
+                          : runtimeProposal.message}
+                      </div>
+                    </div>
+                    <StatusBadge tone={runtimeProposal.ok ? 'info' : 'danger'}>
+                      {runtimeProposal.ok ? 'candidate' : 'unavailable'}
+                    </StatusBadge>
+                  </div>
+                  {runtimeProposal.ok ? (
+                    <>
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {runtimeProposal.proposal.changedSettingKeys.map((key) => (
+                          <StatusBadge key={key} tone="neutral">{key}</StatusBadge>
+                        ))}
+                      </div>
+                      <InlineAlert tone="info" className="mt-3">
+                        Runtime output is candidate material only. Apply it to the form, review the fields, then save through Realm.
+                      </InlineAlert>
+                      <div className="mt-3">
+                        <Button onClick={applyRuntimeProposal}>Apply proposal to fields</Button>
+                      </div>
+                    </>
+                  ) : (
+                    <InlineAlert tone="danger" className="mt-3">
+                      Draft fields were preserved. Edit manually or retry after Runtime text generation is available.
+                    </InlineAlert>
+                  )}
+                </Surface>
+              ) : null}
               <FieldShell label="Rule review note" message="Visible note for future advanced review. It is not saved with this settings update.">
                 <TextareaField
                   value={draft.rawRuleTextCandidate}

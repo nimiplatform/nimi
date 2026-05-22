@@ -4,7 +4,7 @@ import type {
   RealmServiceName,
   RealmServiceResult,
 } from '@nimiplatform/sdk/realm';
-import type { SpeechSynthesizeInput, SpeechSynthesizeOutput } from '@nimiplatform/sdk/runtime/browser';
+import type { SpeechSynthesizeInput, SpeechSynthesizeOutput, TextGenerateInput, TextGenerateOutput } from '@nimiplatform/sdk/runtime/browser';
 import { createStudioRealmClient } from '@renderer/data/realm-client.js';
 import { createStudioRuntimeClient } from '@renderer/data/runtime-client.js';
 import {
@@ -36,8 +36,12 @@ import {
 } from './media-voice-candidate.js';
 import {
   OWNER_SETTINGS_SAVE_SOURCE,
+  SETTINGS_AI_PROPOSAL_SOURCE,
   buildRealmOwnerAgentSettingsUpdateInput,
+  buildRuntimeOwnerSettingsProposalPrompt,
+  normalizeRuntimeOwnerSettingsProposal,
   type OwnerAgentSettingsDraft,
+  type RuntimeOwnerSettingsProposal,
 } from './setting-proposal.js';
 
 type StudioRealmMethod<
@@ -122,6 +126,14 @@ type RuntimeVoiceClient = {
   media: {
     tts: {
       synthesize(input: SpeechSynthesizeInput): Promise<SpeechSynthesizeOutput>;
+    };
+  };
+};
+
+type RuntimeTextClient = {
+  ai: {
+    text: {
+      generate(input: TextGenerateInput): Promise<TextGenerateOutput>;
     };
   };
 };
@@ -374,6 +386,34 @@ export type RealmOwnerAgentSettingsUpdateResult =
     message: string;
     submitted: RealmOwnerAgentSettingsUpdateInput | null;
     draft: OwnerAgentSettingsDraft;
+  };
+
+export type RuntimeOwnerSettingsProposalResult =
+  | {
+    ok: true;
+    source: typeof SETTINGS_AI_PROPOSAL_SOURCE;
+    candidate: true;
+    truthWrite: false;
+    proposal: RuntimeOwnerSettingsProposal;
+    submitted: TextGenerateInput;
+    runtime: {
+      traceId?: string;
+      modelResolved?: string;
+      finishReason?: string;
+    };
+  }
+  | {
+    ok: false;
+    source: typeof SETTINGS_AI_PROPOSAL_SOURCE;
+    candidate: false;
+    truthWrite: false;
+    failure:
+      | 'runtime-settings-proposal-payload-invalid'
+      | 'runtime-settings-proposal-transport-unavailable'
+      | 'runtime-settings-proposal-failed'
+      | 'runtime-settings-proposal-invalid-output';
+    message: string;
+    submitted: TextGenerateInput | null;
   };
 
 export type RuntimeVoiceDemoSynthesisResult =
@@ -1098,6 +1138,92 @@ export async function updateReviewedAgentVisibility(
       message: error instanceof Error ? error.message : 'Realm visibility update failed.',
       submitted: input,
       draft,
+    };
+  }
+}
+
+function resolveRuntimeSettingsProposalModel(): string {
+  return String(
+    import.meta.env.VITE_RUNTIME_SETTINGS_MODEL
+    || import.meta.env.VITE_RUNTIME_TEXT_MODEL
+    || '',
+  ).trim();
+}
+
+export async function proposeReviewedOwnerAgentSettings(
+  agentId: string,
+  draft: OwnerAgentSettingsDraft,
+  current: RealmOwnerAgentSettings,
+  runtime?: RuntimeTextClient | null,
+): Promise<RuntimeOwnerSettingsProposalResult> {
+  const built = buildRuntimeOwnerSettingsProposalPrompt({
+    agentId,
+    draft,
+    current,
+    model: resolveRuntimeSettingsProposalModel(),
+  });
+  if (!built.ok) {
+    return {
+      ok: false,
+      source: SETTINGS_AI_PROPOSAL_SOURCE,
+      candidate: false,
+      truthWrite: false,
+      failure: 'runtime-settings-proposal-payload-invalid',
+      message: built.errors.join('; ') || 'Runtime settings proposal payload invalid.',
+      submitted: null,
+    };
+  }
+
+  const runtimeClient = runtime === undefined ? await createStudioRuntimeClient() : runtime;
+  if (!runtimeClient) {
+    return {
+      ok: false,
+      source: SETTINGS_AI_PROPOSAL_SOURCE,
+      candidate: false,
+      truthWrite: false,
+      failure: 'runtime-settings-proposal-transport-unavailable',
+      message: 'Runtime runtime.ai.text.generate runtime transport unavailable: Tauri IPC runtime transport is required.',
+      submitted: built.payload,
+    };
+  }
+
+  try {
+    const output = await runtimeClient.ai.text.generate(built.payload);
+    try {
+      const proposal = normalizeRuntimeOwnerSettingsProposal(output.text, draft);
+      return {
+        ok: true,
+        source: SETTINGS_AI_PROPOSAL_SOURCE,
+        candidate: true,
+        truthWrite: false,
+        proposal,
+        submitted: built.payload,
+        runtime: {
+          ...(output.trace?.traceId ? { traceId: output.trace.traceId } : {}),
+          ...(output.trace?.modelResolved ? { modelResolved: output.trace.modelResolved } : {}),
+          ...(output.finishReason ? { finishReason: String(output.finishReason) } : {}),
+        },
+      };
+    } catch (error) {
+      return {
+        ok: false,
+        source: SETTINGS_AI_PROPOSAL_SOURCE,
+        candidate: false,
+        truthWrite: false,
+        failure: 'runtime-settings-proposal-invalid-output',
+        message: error instanceof Error ? error.message : 'Runtime settings proposal output invalid.',
+        submitted: built.payload,
+      };
+    }
+  } catch (error) {
+    return {
+      ok: false,
+      source: SETTINGS_AI_PROPOSAL_SOURCE,
+      candidate: false,
+      truthWrite: false,
+      failure: 'runtime-settings-proposal-failed',
+      message: `Runtime runtime.ai.text.generate failed: ${error instanceof Error ? error.message : 'runtime transport call failed.'}`,
+      submitted: built.payload,
     };
   }
 }

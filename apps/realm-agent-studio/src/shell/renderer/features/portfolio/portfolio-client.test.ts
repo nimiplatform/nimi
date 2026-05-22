@@ -26,6 +26,7 @@ import {
   normalizeFinalizedDirectMediaResource,
   normalizeRuntimeProjectionSummary,
   listReadyPostAttachmentResources,
+  proposeReviewedOwnerAgentSettings,
   projectAgentRuntimeContextSummary,
   publishReviewedPostDraft,
   selectReviewedAgentAvatarUrl,
@@ -754,6 +755,93 @@ describe('owner portfolio client', () => {
         agentRuleVersion: 4,
       },
     });
+  });
+
+  it('uses Runtime text.generate for candidate owner settings proposals only', async () => {
+    vi.stubEnv('VITE_RUNTIME_SETTINGS_MODEL', 'configured-text-model');
+    const realm = mockRealm();
+    const current = await getOwnerAgentSettings('agent-1', realm);
+    const draft = {
+      ...createOwnerAgentSettingsDraft(current),
+      naturalLanguageIntent: 'Make Mira warmer for builders.',
+    };
+    const generateSettings = vi.fn(async (_input: unknown) => ({
+      text: JSON.stringify({
+        description: 'Warmer strategist for builders.',
+        contentStyle: 'Warm and concise.',
+        rationale: 'Owner asked for a warmer public presentation.',
+      }),
+      finishReason: 'stop' as const,
+      usage: { inputTokens: 1, outputTokens: 1 },
+      trace: { traceId: 'trace-settings', modelResolved: 'configured-text-model' },
+    }));
+    const runtime = {
+      ai: {
+        text: {
+          generate: generateSettings,
+        },
+      },
+    };
+
+    const result = await proposeReviewedOwnerAgentSettings('agent-1', draft, current, runtime);
+    const submittedPayload = generateSettings.mock.calls[0]?.[0] as Record<string, unknown> | undefined;
+
+    expect(generateSettings).toHaveBeenCalledTimes(1);
+    expect(submittedPayload).toMatchObject({
+      model: 'configured-text-model',
+      metadata: {
+        domain: 'realm-agent-studio.settings-proposal',
+      },
+    });
+    expect(collectKeys(submittedPayload).has('provider')).toBe(false);
+    expect(String(submittedPayload?.input || '')).not.toContain('LocalAgent');
+    expect(result).toMatchObject({
+      ok: true,
+      source: 'Runtime runtime.ai.text.generate',
+      candidate: true,
+      truthWrite: false,
+      proposal: {
+        draftPatch: {
+          description: 'Warmer strategist for builders.',
+          contentStyle: 'Warm and concise.',
+        },
+      },
+      runtime: {
+        traceId: 'trace-settings',
+      },
+    });
+    expect(realm.services.MeService.updateMyRealmAgentSettings).not.toHaveBeenCalled();
+    vi.unstubAllEnvs();
+  });
+
+  it('fails closed for Runtime settings proposal when model config is missing', async () => {
+    vi.stubEnv('VITE_RUNTIME_SETTINGS_MODEL', '');
+    vi.stubEnv('VITE_RUNTIME_TEXT_MODEL', '');
+    const realm = mockRealm();
+    const current = await getOwnerAgentSettings('agent-1', realm);
+    const runtime = {
+      ai: {
+        text: {
+          generate: vi.fn(),
+        },
+      },
+    };
+
+    const result = await proposeReviewedOwnerAgentSettings('agent-1', {
+      ...createOwnerAgentSettingsDraft(current),
+      naturalLanguageIntent: 'Make Mira warmer.',
+    }, current, runtime);
+
+    expect(runtime.ai.text.generate).not.toHaveBeenCalled();
+    expect(result).toMatchObject({
+      ok: false,
+      source: 'Runtime runtime.ai.text.generate',
+      candidate: false,
+      truthWrite: false,
+      failure: 'runtime-settings-proposal-payload-invalid',
+      message: 'Runtime runtime.ai.text.generate model config missing',
+    });
+    vi.unstubAllEnvs();
   });
 
   it('fails closed before owner settings PATCH when there are no admitted changes', async () => {
