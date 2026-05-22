@@ -158,7 +158,8 @@ pub async fn open_stream(
         payload.method_id.trim().to_string(),
     )
     .map_err(|_| bridge_error("RUNTIME_BRIDGE_METHOD_INVALID", payload.method_id.as_str()))?;
-    let channel = channel_pool::shared_channel(super::daemon_manager::grpc_addr().as_str()).await?;
+    let channel =
+        channel_pool::shared_stream_channel(super::daemon_manager::grpc_addr().as_str()).await?;
     let mut grpc = Grpc::new(channel);
     let mut request = tonic::Request::new(request_bytes);
     metadata::apply_metadata(

@@ -13,11 +13,23 @@ struct CachedChannel {
     channel: Channel,
 }
 
-static CHANNEL_CACHE: OnceLock<Mutex<Option<CachedChannel>>> = OnceLock::new();
+#[derive(Debug, Default)]
+struct ChannelCache {
+    unary: Option<CachedChannel>,
+    stream: Option<CachedChannel>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum ChannelRole {
+    Unary,
+    Stream,
+}
+
+static CHANNEL_CACHE: OnceLock<Mutex<ChannelCache>> = OnceLock::new();
 static INVALIDATION_COUNT: AtomicUsize = AtomicUsize::new(0);
 
-fn cache() -> &'static Mutex<Option<CachedChannel>> {
-    CHANNEL_CACHE.get_or_init(|| Mutex::new(None))
+fn cache() -> &'static Mutex<ChannelCache> {
+    CHANNEL_CACHE.get_or_init(|| Mutex::new(ChannelCache::default()))
 }
 
 fn to_endpoint_uri(grpc_addr: &str) -> String {
@@ -32,7 +44,7 @@ pub fn invalidate_channel() {
     let mut guard = cache()
         .lock()
         .expect("runtime bridge channel cache lock poisoned");
-    *guard = None;
+    *guard = ChannelCache::default();
     INVALIDATION_COUNT.fetch_add(1, Ordering::Relaxed);
 }
 
@@ -44,13 +56,27 @@ pub fn reset_invalidation_count() {
     INVALIDATION_COUNT.store(0, Ordering::Relaxed);
 }
 
-pub async fn shared_channel(grpc_addr: &str) -> Result<Channel, String> {
+fn cached_channel_for_role(cache: &ChannelCache, role: ChannelRole) -> Option<&CachedChannel> {
+    match role {
+        ChannelRole::Unary => cache.unary.as_ref(),
+        ChannelRole::Stream => cache.stream.as_ref(),
+    }
+}
+
+fn store_channel_for_role(cache: &mut ChannelCache, role: ChannelRole, channel: CachedChannel) {
+    match role {
+        ChannelRole::Unary => cache.unary = Some(channel),
+        ChannelRole::Stream => cache.stream = Some(channel),
+    }
+}
+
+async fn shared_channel_for_role(grpc_addr: &str, role: ChannelRole) -> Result<Channel, String> {
     let endpoint_uri = to_endpoint_uri(grpc_addr);
     {
         let guard = cache()
             .lock()
             .expect("runtime bridge channel cache lock poisoned");
-        if let Some(cached) = guard.as_ref() {
+        if let Some(cached) = cached_channel_for_role(&guard, role) {
             if cached.endpoint_uri == endpoint_uri {
                 return Ok(cached.channel.clone());
             }
@@ -74,11 +100,60 @@ pub async fn shared_channel(grpc_addr: &str) -> Result<Channel, String> {
         let mut guard = cache()
             .lock()
             .expect("runtime bridge channel cache lock poisoned");
-        *guard = Some(CachedChannel {
-            endpoint_uri,
-            channel: channel.clone(),
-        });
+        store_channel_for_role(
+            &mut guard,
+            role,
+            CachedChannel {
+                endpoint_uri,
+                channel: channel.clone(),
+            },
+        );
     }
 
     Ok(channel)
+}
+
+pub async fn shared_unary_channel(grpc_addr: &str) -> Result<Channel, String> {
+    shared_channel_for_role(grpc_addr, ChannelRole::Unary).await
+}
+
+pub async fn shared_stream_channel(grpc_addr: &str) -> Result<Channel, String> {
+    shared_channel_for_role(grpc_addr, ChannelRole::Stream).await
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{cache, invalidate_channel, CachedChannel, ChannelCache};
+    use tonic::transport::Endpoint;
+
+    fn lazy_channel() -> tonic::transport::Channel {
+        Endpoint::from_static("http://127.0.0.1:1").connect_lazy()
+    }
+
+    #[tokio::test]
+    async fn invalidate_channel_clears_unary_and_stream_caches() {
+        {
+            let mut guard = cache()
+                .lock()
+                .expect("runtime bridge channel cache lock poisoned");
+            *guard = ChannelCache {
+                unary: Some(CachedChannel {
+                    endpoint_uri: "http://127.0.0.1:1".to_string(),
+                    channel: lazy_channel(),
+                }),
+                stream: Some(CachedChannel {
+                    endpoint_uri: "http://127.0.0.1:2".to_string(),
+                    channel: lazy_channel(),
+                }),
+            };
+        }
+
+        invalidate_channel();
+
+        let guard = cache()
+            .lock()
+            .expect("runtime bridge channel cache lock poisoned");
+        assert!(guard.unary.is_none());
+        assert!(guard.stream.is_none());
+    }
 }
