@@ -10,9 +10,10 @@ updated: 2026-05-22
 
 Realm Agent Studio is the owner operation center for user-owned public Realm
 Agents as durable Agent IP. `apps/realm-agent-studio/spec/**` is the admitted
-app-slice authority root for this product in the repo. This first stage keeps
-the current flat document set as active authority; it does not start UI design,
-route design, or app implementation.
+app-slice authority root for this product in the repo. The current stage keeps
+the flat document set as active authority and adds product acceptance gates for
+implementation. Product implementation is not accepted until the acceptance
+waves in `product-acceptance-and-execution-plan.md` close.
 
 ## Admission Status
 
@@ -66,6 +67,7 @@ route design, or app implementation.
 7. `metrics-and-realm-gaps.md`
 8. `failure-semantics.md`
 9. `storybook.md`
+10. `product-acceptance-and-execution-plan.md`
 
 ## Authority Inputs
 

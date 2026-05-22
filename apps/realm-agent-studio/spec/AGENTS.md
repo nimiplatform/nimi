@@ -6,8 +6,9 @@
 - `product-scope.md`, `realm-agent-object.md`, `agent-setting-field-map.md`,
   `asset-and-binding.md`, `post-publishing.md`,
   `runtime-ai-consumption.md`, `metrics-and-realm-gaps.md`,
-  `failure-semantics.md`, and `storybook.md` are the active authority
-  documents for this stage.
+  `failure-semantics.md`, `storybook.md`, and
+  `product-acceptance-and-execution-plan.md` are the active authority documents
+  for this stage.
 
 ## Editing Rules
 
@@ -26,3 +27,6 @@
    Do not invent `agentFriendCount`.
 7. Do not expand scope into Realm lifecycle ownership, Realm scheduling,
    LocalAgent private state, or world-created agent management.
+8. Do not claim product acceptance from renderer tests, partial feature wiring,
+   or browser screenshots. Final acceptance is governed by
+   `product-acceptance-and-execution-plan.md`.
