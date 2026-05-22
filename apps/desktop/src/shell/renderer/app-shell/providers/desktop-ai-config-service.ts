@@ -28,7 +28,6 @@ import {
   type AIRuntimeEvidence,
   type AISchedulingEvaluationTarget,
   type AISchedulingJudgement,
-  type AISchedulingState,
   type AIScopeRef,
   type AISnapshot,
   type AISnapshotSurface,
@@ -52,70 +51,28 @@ import {
   getBuiltInAIConfigForScopeInit,
 } from '@renderer/bridge/runtime-bridge/product-control.js';
 
-// ---------------------------------------------------------------------------
-// Snapshot store — in-memory ring buffer (S-AICONF-005: host-local persistence)
-// ---------------------------------------------------------------------------
+import { createSnapshotStore, storeSnapshot } from './desktop-ai-config-snapshot-store.js';
 
-const SNAPSHOT_RING_SIZE = 64;
-
-type SnapshotStore = {
-  byExecutionId: Map<string, AISnapshot>;
-  byScopeKey: Map<string, AISnapshot>; // latest per scope
-  insertionOrder: string[]; // executionId ring for eviction
-};
-
-function createSnapshotStore(): SnapshotStore {
-  return {
-    byExecutionId: new Map(),
-    byScopeKey: new Map(),
-    insertionOrder: [],
-  };
-}
-
-function scopeKey(ref: AIScopeRef): string {
-  return scopeKeyFromRef(ref);
-}
-
-function storeSnapshot(store: SnapshotStore, snapshot: AISnapshot): void {
-  if (store.insertionOrder.length >= SNAPSHOT_RING_SIZE) {
-    const evictId = store.insertionOrder.shift()!;
-    store.byExecutionId.delete(evictId);
-  }
-  store.byExecutionId.set(snapshot.executionId, snapshot);
-  store.byScopeKey.set(scopeKey(snapshot.scopeRef), snapshot);
-  store.insertionOrder.push(snapshot.executionId);
-}
-
-// ---------------------------------------------------------------------------
-// Config subscription registry (S-AICONF-006)
-// ---------------------------------------------------------------------------
-
-type ConfigSubscription = {
-  scopeKey: string;
-  callback: (config: AIConfig) => void;
-};
-
-let subscriptionIdCounter = 0;
-const subscriptions = new Map<number, ConfigSubscription>();
-
-function notifyConfigSubscribers(config: AIConfig): void {
-  const key = scopeKey(config.scopeRef);
-  for (const sub of subscriptions.values()) {
-    if (sub.scopeKey === key) {
-      try {
-        sub.callback(config);
-      } catch {
-        // Subscriber errors must not break the surface
-      }
-    }
-  }
-}
+import { createConfigSubscriptionRegistry } from './desktop-ai-config-subscriptions.js';
+import {
+  normalizeSchedulingTarget,
+  peekAggregateSchedulingJudgement,
+  peekSchedulingBatch,
+  resolveAIConfigSchedulingTargetForCapability,
+  resolveAIConfigScopeSchedulingTargets,
+  schedulingTargetsEqual,
+} from './desktop-ai-config-scheduling.js';
 
 // ---------------------------------------------------------------------------
 // Multi-scope config state
 // ---------------------------------------------------------------------------
 
 const snapshotStore = createSnapshotStore();
+const configSubscriptions = createConfigSubscriptionRegistry((config) => scopeKey(config.scopeRef));
+
+function scopeKey(ref: AIScopeRef): string {
+  return scopeKeyFromRef(ref);
+}
 
 /** In-memory config map keyed by scope key string. */
 const configByScope = new Map<string, AIConfig>();
@@ -185,7 +142,7 @@ function commitConfig(config: AIConfig): void {
   if (appStoreSetter) {
     appStoreSetter(key, config);
   }
-  notifyConfigSubscribers(config);
+  configSubscriptions.notify(config);
 }
 
 export function pushDesktopAIConfigToBoundStore(scopeRef: AIScopeRef): void {
@@ -606,7 +563,7 @@ function createAIConfigSurface(): AIConfigSurface {
       const availabilityResult = await probeConfigAvailability(config, routeRuntime);
       const targets = resolveAIConfigScopeSchedulingTargets(config);
       const schedulingJudgement = targets.length > 0
-        ? await peekAggregateSchedulingJudgement(DESKTOP_RUNTIME_APP_ID, targets)
+        ? await peekAggregateSchedulingJudgement(CORE_RUNTIME_MOD_ID, DESKTOP_RUNTIME_APP_ID, targets)
         : null;
 
       // Aggregate status projection: combine availability + scheduling.
@@ -635,7 +592,7 @@ function createAIConfigSurface(): AIConfigSurface {
       if (!normalizedTarget) {
         return null;
       }
-      const batchResult = await peekSchedulingBatch(DESKTOP_RUNTIME_APP_ID, [normalizedTarget]);
+      const batchResult = await peekSchedulingBatch(CORE_RUNTIME_MOD_ID, DESKTOP_RUNTIME_APP_ID, [normalizedTarget]);
       if (!batchResult) {
         return null;
       }
@@ -645,12 +602,7 @@ function createAIConfigSurface(): AIConfigSurface {
     },
 
     subscribe(scopeRef: AIScopeRef, callback: (config: AIConfig) => void): () => void {
-      const id = ++subscriptionIdCounter;
-      subscriptions.set(id, {
-        scopeKey: scopeKey(scopeRef),
-        callback,
-      });
-      return () => { subscriptions.delete(id); };
+      return configSubscriptions.subscribe(scopeKey(scopeRef), callback);
     },
   };
 }
@@ -723,154 +675,10 @@ export function recordDesktopAISnapshot(snapshot: AISnapshot): void {
 // Scheduling evidence helper (K-AIEXEC-003 + K-SCHED-002)
 // ---------------------------------------------------------------------------
 
-export function resolveAIConfigScopeSchedulingTargets(
-  config: AIConfig,
-): AISchedulingEvaluationTarget[] {
-  const localRefs = config.capabilities.localProfileRefs || {};
-  const selectedBindings = config.capabilities.selectedBindings || {};
-  const targets: AISchedulingEvaluationTarget[] = [];
-  const capabilities = Object.keys(selectedBindings).sort((left, right) => left.localeCompare(right));
-  for (const capability of capabilities) {
-    const binding = selectedBindings[capability];
-    if (!binding || binding.source !== 'local') {
-      continue;
-    }
-    const ref = localRefs[capability];
-    targets.push({
-      capability,
-      modId: ref?.modId || null,
-      profileId: ref?.profileId || null,
-      resourceHint: null,
-    });
-  }
-  return targets;
-}
-
-export function resolveAIConfigSchedulingTargetForCapability(
-  config: AIConfig,
-  capability: string,
-): AISchedulingEvaluationTarget | null {
-  const binding = config.capabilities.selectedBindings?.[capability];
-  if (!binding || binding.source !== 'local') {
-    return null;
-  }
-  const ref = config.capabilities.localProfileRefs?.[capability];
-  return {
-    capability,
-    modId: ref?.modId || null,
-    profileId: ref?.profileId || null,
-    resourceHint: null,
-  };
-}
-
-const VALID_SCHEDULING_STATES: AISchedulingState[] = [
-  'runnable', 'queue_required', 'preemption_risk', 'slowdown_risk', 'denied', 'unknown',
-];
-
-type SchedulingBatchPeekResult = {
-  occupancy: AISchedulingJudgement['occupancy'];
-  aggregateJudgement: AISchedulingJudgement | null;
-  targetJudgements: Array<{
-    target: AISchedulingEvaluationTarget;
-    judgement: AISchedulingJudgement;
-  }>;
-};
-
-function normalizeSchedulingTarget(
-  target: AISchedulingEvaluationTarget | null | undefined,
-): AISchedulingEvaluationTarget | null {
-  if (!target) {
-    return null;
-  }
-  const capability = String(target.capability || '').trim();
-  if (!capability) {
-    return null;
-  }
-  return {
-    capability,
-    modId: String(target.modId || '').trim() || null,
-    profileId: String(target.profileId || '').trim() || null,
-    resourceHint: target.resourceHint ? {
-      estimatedVramBytes: target.resourceHint.estimatedVramBytes ?? null,
-      estimatedRamBytes: target.resourceHint.estimatedRamBytes ?? null,
-      estimatedDiskBytes: target.resourceHint.estimatedDiskBytes ?? null,
-      engine: target.resourceHint.engine ?? null,
-    } : null,
-  };
-}
-
-function schedulingTargetsEqual(
-  left: AISchedulingEvaluationTarget,
-  right: AISchedulingEvaluationTarget,
-): boolean {
-  return left.capability === right.capability
-    && (left.modId || null) === (right.modId || null)
-    && (left.profileId || null) === (right.profileId || null);
-}
-
-function toSchedulingJudgement(value: {
-  state: string;
-  detail: string;
-  occupancy: { globalUsed: number; globalCap: number; appUsed: number; appCap: number } | null;
-  resourceWarnings: string[];
-} | null | undefined): AISchedulingJudgement | null {
-  if (!value) {
-    return null;
-  }
-  const state = VALID_SCHEDULING_STATES.includes(value.state as AISchedulingState)
-    ? value.state as AISchedulingState
-    : 'unknown';
-  return {
-    state,
-    detail: value.detail || null,
-    occupancy: value.occupancy,
-    resourceWarnings: value.resourceWarnings || [],
-  };
-}
-
-async function peekSchedulingBatch(
-  appId: string,
-  targets: AISchedulingEvaluationTarget[],
-): Promise<SchedulingBatchPeekResult | null> {
-  const normalizedTargets = targets
-    .map((target) => normalizeSchedulingTarget(target))
-    .filter((target): target is AISchedulingEvaluationTarget => target !== null);
-  if (normalizedTargets.length === 0) {
-    return null;
-  }
-  try {
-    const client = createModRuntimeClient(CORE_RUNTIME_MOD_ID);
-    const peekResult = await client.scheduler.peek({
-      appId,
-      targets: normalizedTargets,
-    });
-    return {
-      occupancy: peekResult.occupancy,
-      aggregateJudgement: toSchedulingJudgement(peekResult.aggregateJudgement),
-      targetJudgements: (peekResult.targetJudgements || [])
-        .map((entry) => {
-          const target = normalizeSchedulingTarget(entry.target);
-          const judgement = toSchedulingJudgement(entry.judgement);
-          if (!target || !judgement) {
-            return null;
-          }
-          return { target, judgement };
-        })
-        .filter((entry): entry is NonNullable<typeof entry> => entry !== null),
-    };
-  } catch {
-    // Runtime Peek RPC not available — honest null per D-AIPC-012.
-    return null;
-  }
-}
-
-async function peekAggregateSchedulingJudgement(
-  appId: string,
-  targets: AISchedulingEvaluationTarget[],
-): Promise<AISchedulingJudgement | null> {
-  const batchResult = await peekSchedulingBatch(appId, targets);
-  return batchResult?.aggregateJudgement ?? null;
-}
+export {
+  resolveAIConfigSchedulingTargetForCapability,
+  resolveAIConfigScopeSchedulingTargets,
+} from './desktop-ai-config-scheduling.js';
 
 /**
  * Peek scheduling judgement for snapshot evidence capture.

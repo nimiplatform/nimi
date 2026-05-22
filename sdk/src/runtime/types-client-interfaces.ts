@@ -433,8 +433,8 @@ import type { Ack } from './generated/runtime/v1/common';
 import type {
   RuntimeCallOptions,
   RuntimeStreamCallOptions,
-  RuntimeTransportConfig,
 } from './types.js';
+export type { RuntimeClient } from './types-client-root.js';
 
 export type RuntimeAuthClient = {
   registerApp(request: RegisterAppRequest, options?: RuntimeCallOptions): Promise<RegisterAppResponse>;
@@ -789,25 +789,4 @@ export type RuntimeAuditClient = {
   listAIProviderHealth(request: ListAIProviderHealthRequest, options?: RuntimeCallOptions): Promise<ListAIProviderHealthResponse>;
   subscribeAIProviderHealthEvents(request: SubscribeAIProviderHealthEventsRequest, options?: RuntimeStreamCallOptions): Promise<AsyncIterable<AIProviderHealthEvent>>;
   subscribeRuntimeHealthEvents(request: SubscribeRuntimeHealthEventsRequest, options?: RuntimeStreamCallOptions): Promise<AsyncIterable<RuntimeHealthEvent>>;
-};
-
-export type RuntimeClient = {
-  appId: string;
-  transport: RuntimeTransportConfig;
-  auth: RuntimeAuthClient;
-  appAuth: RuntimeAppAuthClient;
-  account: RuntimeAccountClient;
-  ai: RuntimeAiClient;
-  artifact: RuntimeArtifactClient;
-  workflow: RuntimeWorkflowClient;
-  model: RuntimeModelClient;
-  memory: RuntimeMemoryClient;
-  agent: RuntimeAgentClient;
-  local: RuntimeLocalServiceClient;
-  connector: RuntimeConnectorClient;
-  knowledge: RuntimeKnowledgeClient;
-  app: RuntimeAppClient;
-  audit: RuntimeAuditClient;
-  closeStream(streamId: string): Promise<void>;
-  close(): Promise<void>;
 };

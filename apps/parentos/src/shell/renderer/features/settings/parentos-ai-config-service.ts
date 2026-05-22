@@ -4,6 +4,7 @@ import {
   type AIConfigProbeResult,
   type AIConfigSDKSurface,
   type AIProfileApplyResult,
+  type AIProfilePreviewResult,
   type AIProbeStatus,
   type AISchedulingEvaluationTarget,
   type AISchedulingJudgement,
@@ -77,6 +78,10 @@ function createAIProfileSurface() {
         valid: true,
         errors: [],
       };
+    },
+    async previewApply(scopeRef: AIScopeRef, profileId: string): Promise<AIProfilePreviewResult> {
+      void scopeRef;
+      throw new Error(`Profile not found: ${profileId}`);
     },
     apply: applyProfile,
 
@@ -174,11 +179,12 @@ let parentosAIConfigServiceSingleton: AIConfigSDKSurface | null = null;
 
 export function getParentosAIConfigService(): AIConfigSDKSurface {
   if (!parentosAIConfigServiceSingleton) {
-    parentosAIConfigServiceSingleton = {
+    const service: AIConfigSDKSurface = {
       aiProfile: createAIProfileSurface(),
       aiConfig: createAIConfigSurface(),
       aiSnapshot: createAISnapshotSurface(),
     };
+    parentosAIConfigServiceSingleton = service;
   }
   return parentosAIConfigServiceSingleton;
 }

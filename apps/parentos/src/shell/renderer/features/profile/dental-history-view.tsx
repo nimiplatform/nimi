@@ -1,4 +1,3 @@
-import { Surface } from '@nimiplatform/nimi-kit/ui';
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -51,6 +50,7 @@ import { DentalKPIStrip } from './dental-page-kpi-strip.js';
 import { DentalEruptionScanModal } from './dental-eruption-scan-modal.js';
 import { DentalHistoryRecordList } from './dental-history-record-list.js';
 import { DentalHistoryActions } from './dental-history-actions.js';
+import { DentalHistoryTimelineSection } from './dental-history-timeline-section.js';
 import { NoActiveChildPlaceholder } from './_shared/no-active-child-placeholder.js';
 import {
   analyzeDentalEruptionImage,
@@ -755,54 +755,25 @@ export function DentalHistoryView() {
         onEventDateChange={setScanEventDate}
       />
 
-      {/* ── Records timeline ─────────────────────────────── */}
-      <div className="mt-2 mb-4 flex items-center justify-between gap-3 flex-wrap px-1">
-        <div className="flex items-baseline gap-2">
-          <h3 className="m-0 text-[15px] font-semibold text-[var(--nimi-text-primary)]">{t('Profile.rich.dental.history')}</h3>
-          <span className="font-mono text-[12px] text-[var(--nimi-text-muted)]">
-            {t('Profile.rich.common.recordsCount', { count: sortedRecords.length })}
-          </span>
-        </div>
-        {filterTabs.length > 1 && (
-          <div className="flex gap-0.5 rounded-full border border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-border-subtle)_45%,transparent)] p-[3px]">
-            {filterTabs.map((tab) => {
-              const active = typeFilter === tab.key;
-              return (
-                <button key={tab.key ?? 'all'} type="button" onClick={() => setTypeFilter(tab.key)}
-                  className={`cursor-pointer rounded-full border-0 px-3 py-1.5 text-[12px] transition-all ${active ? 'bg-[var(--nimi-surface-card)] font-semibold text-[var(--nimi-text-primary)] shadow-[var(--nimi-elevation-base)]' : 'bg-transparent font-normal text-[var(--nimi-text-muted)]'}`}>
-                  {tab.label}
-                </button>
-              );
-            })}
-          </div>
-        )}
-      </div>
-
-      {sortedRecords.length === 0 && !showForm && (
-        <Surface tone="card" material="glass-regular" elevation="raised" padding="lg" className="rounded-3xl p-8 text-center">
-          <span className="text-[24px]">🦷</span>
-          <p className="text-[14px] mt-2 font-medium text-[var(--nimi-text-primary)]">{t('Profile.rich.dental.empty')}</p>
-          <p className="text-[13px] mt-1 text-[var(--nimi-text-muted)]">{t('Profile.rich.dental.emptyHint')}</p>
-        </Surface>
-      )}
-
-      {sortedRecords.length > 0 && filteredSortedRecords.length === 0 && (
-        <Surface tone="card" material="glass-regular" elevation="raised" padding="lg" className="rounded-3xl p-6 text-center">
-          <p className="text-[14px] text-[var(--nimi-text-muted)]">{t('Profile.rich.dental.emptyFiltered')}</p>
-        </Surface>
-      )}
-
-      {filteredSortedRecords.length > 0 && (
-        <DentalHistoryRecordList
-          recordGroups={recordGroups}
-          attachmentMap={attachmentMap}
-          alignerContextMap={alignerContextMap}
-          fmtAge={fmtAge}
-          onAskAi={handleAskAiAboutRecord}
-          onEdit={startEditingRecord}
-          onDelete={(r) => void handleDeleteRecord(r)}
-        />
-      )}
-    </div>
+      <DentalHistoryTimelineSection
+        sortedRecords={sortedRecords}
+        filteredSortedRecords={filteredSortedRecords}
+        recordGroups={recordGroups}
+        attachmentMap={attachmentMap}
+        alignerContextMap={alignerContextMap}
+        filterTabs={filterTabs}
+        typeFilter={typeFilter}
+        setTypeFilter={setTypeFilter}
+        showForm={showForm}
+        fmtAge={fmtAge}
+        historyLabel={t('Profile.rich.dental.history')}
+        recordsCountLabel={t('Profile.rich.common.recordsCount', { count: sortedRecords.length })}
+        emptyLabel={t('Profile.rich.dental.empty')}
+        emptyHint={t('Profile.rich.dental.emptyHint')}
+        emptyFilteredLabel={t('Profile.rich.dental.emptyFiltered')}
+        onAskAi={handleAskAiAboutRecord}
+        onEdit={startEditingRecord}
+        onDelete={(r) => void handleDeleteRecord(r)}
+      />    </div>
   );
 }
