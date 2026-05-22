@@ -194,6 +194,13 @@
   action, active navigation, subtle background tint, and positive/confirming
   status emphasis. Accent semantics are shared; app-local accent packs remain
   app-local manifest authority.
+- Fixed companion hues that do not vary by accent pack must use `color.*`
+  tokens such as `--nimi-color-indigo`; they must not be named as secondary
+  accent tokens unless they are owned by the active accent pack.
+- Soft status surfaces must resolve through `status.*.soft_bg`,
+  `status.*.soft_border`, and `status.*.soft_text` tokens. Consumers should
+  not hand-author status badge or alert backgrounds with raw `color-mix(...)`
+  expressions when a soft status token exists.
 
 ## P-DESIGN-025 — Composition Extraction Boundary
 

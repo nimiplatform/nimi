@@ -7,11 +7,11 @@ const badgeVariants = cva(
   {
     variants: {
       tone: {
-        neutral: 'nimi-status-badge--neutral bg-[color-mix(in_srgb,var(--nimi-status-neutral)_15%,transparent)] text-[var(--nimi-status-neutral)]',
-        success: 'nimi-status-badge--success bg-[color-mix(in_srgb,var(--nimi-status-success)_15%,transparent)] text-[var(--nimi-status-success)]',
-        warning: 'nimi-status-badge--warning bg-[color-mix(in_srgb,var(--nimi-status-warning)_15%,transparent)] text-[var(--nimi-status-warning)]',
-        danger: 'nimi-status-badge--danger bg-[color-mix(in_srgb,var(--nimi-status-danger)_15%,transparent)] text-[var(--nimi-status-danger)]',
-        info: 'nimi-status-badge--info bg-[color-mix(in_srgb,var(--nimi-status-info)_15%,transparent)] text-[var(--nimi-status-info)]',
+        neutral: 'nimi-status-badge--neutral bg-[var(--nimi-status-neutral-soft-bg)] text-[var(--nimi-status-neutral-soft-text)]',
+        success: 'nimi-status-badge--success bg-[var(--nimi-status-success-soft-bg)] text-[var(--nimi-status-success-soft-text)]',
+        warning: 'nimi-status-badge--warning bg-[var(--nimi-status-warning-soft-bg)] text-[var(--nimi-status-warning-soft-text)]',
+        danger: 'nimi-status-badge--danger bg-[var(--nimi-status-danger-soft-bg)] text-[var(--nimi-status-danger-soft-text)]',
+        info: 'nimi-status-badge--info bg-[var(--nimi-status-info-soft-bg)] text-[var(--nimi-status-info-soft-text)]',
       },
       shape: {
         soft: 'nimi-status-badge--soft px-2.5 py-0.5',

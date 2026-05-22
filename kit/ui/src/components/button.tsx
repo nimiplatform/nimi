@@ -15,7 +15,7 @@ export const buttonVariants = cva(
         ghost:
           'nimi-action--ghost bg-transparent border-transparent text-[var(--nimi-text-secondary)] hover:bg-[var(--nimi-action-ghost-hover)] hover:text-[var(--nimi-text-primary)] hover:-translate-y-px',
         danger:
-          'nimi-action--danger bg-[color-mix(in_srgb,var(--nimi-status-danger)_var(--nimi-opacity-subtle-fill),transparent)] border-transparent text-[var(--nimi-status-danger)] hover:-translate-y-px',
+          'nimi-action--danger bg-[var(--nimi-status-danger-soft-bg)] border-transparent text-[var(--nimi-status-danger-soft-text)] hover:-translate-y-px',
       },
       size: {
         sm: 'nimi-action--size-sm min-h-[var(--nimi-sizing-action-sm-height)] px-3 text-[length:var(--nimi-type-body-sm-size)]',

@@ -8,10 +8,10 @@ const alertVariants = cva(
     variants: {
       tone: {
         neutral: 'nimi-inline-alert--neutral border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] text-[var(--nimi-text-secondary)]',
-        success: 'nimi-inline-alert--success border-[color-mix(in_srgb,var(--nimi-status-success)_24%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-success)_10%,transparent)] text-[var(--nimi-status-success)]',
-        warning: 'nimi-inline-alert--warning border-[color-mix(in_srgb,var(--nimi-status-warning)_24%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-warning)_10%,transparent)] text-[var(--nimi-status-warning)]',
-        danger: 'nimi-inline-alert--danger border-[color-mix(in_srgb,var(--nimi-status-danger)_24%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-danger)_10%,transparent)] text-[var(--nimi-status-danger)]',
-        info: 'nimi-inline-alert--info border-[color-mix(in_srgb,var(--nimi-status-info)_24%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-info)_10%,transparent)] text-[var(--nimi-status-info)]',
+        success: 'nimi-inline-alert--success border-[var(--nimi-status-success-soft-border)] bg-[var(--nimi-status-success-soft-bg)] text-[var(--nimi-status-success-soft-text)]',
+        warning: 'nimi-inline-alert--warning border-[var(--nimi-status-warning-soft-border)] bg-[var(--nimi-status-warning-soft-bg)] text-[var(--nimi-status-warning-soft-text)]',
+        danger: 'nimi-inline-alert--danger border-[var(--nimi-status-danger-soft-border)] bg-[var(--nimi-status-danger-soft-bg)] text-[var(--nimi-status-danger-soft-text)]',
+        info: 'nimi-inline-alert--info border-[var(--nimi-status-info-soft-border)] bg-[var(--nimi-status-info-soft-bg)] text-[var(--nimi-status-info-soft-text)]',
       },
     },
     defaultVariants: { tone: 'neutral' },

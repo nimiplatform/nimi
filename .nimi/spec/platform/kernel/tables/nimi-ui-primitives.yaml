@@ -212,9 +212,9 @@ primitives:
         - id: danger
           class_name: nimi-action--danger
           styles:
-            background: color-mix(in srgb, var(--nimi-status-danger) var(--nimi-opacity-subtle-fill), transparent)
-            border-color: color-mix(in srgb, var(--nimi-status-danger) var(--nimi-opacity-subtle-fill), transparent)
-            color: var(--nimi-status-danger)
+            background: var(--nimi-status-danger-soft-bg)
+            border-color: var(--nimi-status-danger-soft-border)
+            color: var(--nimi-status-danger-soft-text)
       size:
         - id: sm
           class_name: nimi-action--size-sm
@@ -261,8 +261,8 @@ primitives:
         - id: hover_danger
           selector: .nimi-action--danger:hover:not(:disabled)
           styles:
-            background: color-mix(in srgb, var(--nimi-status-danger) calc(var(--nimi-opacity-subtle-fill) + 0.06), transparent)
-            border-color: color-mix(in srgb, var(--nimi-status-danger) calc(var(--nimi-opacity-subtle-fill) + 0.06), transparent)
+            background: var(--nimi-status-danger-soft-bg)
+            border-color: var(--nimi-status-danger-soft-border)
             transform: translateY(-1px)
         - id: disabled
           selector: .nimi-action:disabled
@@ -743,28 +743,28 @@ primitives:
         - id: neutral
           class_name: nimi-status-badge--neutral
           styles:
-            background: color-mix(in srgb, var(--nimi-status-neutral) var(--nimi-opacity-subtle-fill), transparent)
-            color: var(--nimi-status-neutral)
+            background: var(--nimi-status-neutral-soft-bg)
+            color: var(--nimi-status-neutral-soft-text)
         - id: success
           class_name: nimi-status-badge--success
           styles:
-            background: color-mix(in srgb, var(--nimi-status-success) var(--nimi-opacity-subtle-fill), transparent)
-            color: var(--nimi-status-success)
+            background: var(--nimi-status-success-soft-bg)
+            color: var(--nimi-status-success-soft-text)
         - id: warning
           class_name: nimi-status-badge--warning
           styles:
-            background: color-mix(in srgb, var(--nimi-status-warning) var(--nimi-opacity-subtle-fill), transparent)
-            color: var(--nimi-status-warning)
+            background: var(--nimi-status-warning-soft-bg)
+            color: var(--nimi-status-warning-soft-text)
         - id: danger
           class_name: nimi-status-badge--danger
           styles:
-            background: color-mix(in srgb, var(--nimi-status-danger) var(--nimi-opacity-subtle-fill), transparent)
-            color: var(--nimi-status-danger)
+            background: var(--nimi-status-danger-soft-bg)
+            color: var(--nimi-status-danger-soft-text)
         - id: info
           class_name: nimi-status-badge--info
           styles:
-            background: color-mix(in srgb, var(--nimi-status-info) var(--nimi-opacity-subtle-fill), transparent)
-            color: var(--nimi-status-info)
+            background: var(--nimi-status-info-soft-bg)
+            color: var(--nimi-status-info-soft-text)
       shape:
         - id: soft
           class_name: nimi-status-badge--soft

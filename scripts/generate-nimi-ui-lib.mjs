@@ -124,6 +124,9 @@ function renderThemeBase(tokensDoc) {
   const tokens = tokenRows(tokensDoc);
   const blocks = [cssHeader('nimi-ui-tokens.yaml')];
 
+  blocks.push('@layer nimi-theme.foundation, nimi-theme.accent;');
+  blocks.push('');
+
   // Register all CSS vars with Tailwind 4 @theme so they become valid theme tokens.
   // Using `initial` as the value — actual values come from foundation/accent theme CSS.
   blocks.push('@theme {');
@@ -170,9 +173,13 @@ function renderThemeBase(tokensDoc) {
 // Foundation theme CSS (light / dark)
 // ---------------------------------------------------------------------------
 
-function renderPackSelector(tokensDoc, pack, selector, onlyLayer = null) {
+function renderPackSelector(tokensDoc, pack, selector, onlyLayer = null, cascadeLayer = null) {
   const values = packValueMap(pack);
-  const lines = [cssHeader('nimi-ui-themes.yaml'), `${selector} {`];
+  const lines = [cssHeader('nimi-ui-themes.yaml')];
+  if (cascadeLayer) {
+    lines.push(`@layer ${cascadeLayer} {`);
+  }
+  lines.push(`${selector} {`);
   for (const token of tokenRows(tokensDoc)) {
     const themeLayer = String(token?.theme_layer || 'foundation');
     if (onlyLayer && themeLayer !== onlyLayer) continue;
@@ -183,6 +190,9 @@ function renderPackSelector(tokensDoc, pack, selector, onlyLayer = null) {
     lines.push(`  ${cssVar}: ${value};`);
   }
   lines.push('}');
+  if (cascadeLayer) {
+    lines.push('}');
+  }
   lines.push('');
   return lines.join('\n');
 }
@@ -190,7 +200,7 @@ function renderPackSelector(tokensDoc, pack, selector, onlyLayer = null) {
 function renderFoundationTheme(tokensDoc, themesDoc, themeId, selector) {
   const pack = normalizePacks(themesDoc).find((item) => String(item?.theme_id) === themeId);
   if (!pack) throw new Error(`missing pack ${themeId}`);
-  return renderPackSelector(tokensDoc, pack, selector, 'foundation');
+  return renderPackSelector(tokensDoc, pack, selector, 'foundation', 'nimi-theme.foundation');
 }
 
 // ---------------------------------------------------------------------------
@@ -201,7 +211,7 @@ function renderAccentTheme(tokensDoc, themesDoc, themeId) {
   const pack = normalizePacks(themesDoc).find((item) => String(item?.theme_id) === themeId);
   if (!pack) throw new Error(`missing pack ${themeId}`);
   const selector = `:root[data-nimi-accent="${themeId}"]`;
-  return renderPackSelector(tokensDoc, pack, selector, 'accent');
+  return renderPackSelector(tokensDoc, pack, selector, 'accent', 'nimi-theme.accent');
 }
 
 // ---------------------------------------------------------------------------
