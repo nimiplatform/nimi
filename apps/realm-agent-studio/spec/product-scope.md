@@ -42,6 +42,10 @@ owner-created agents.
 - `friendCount` / 好友数 from Realm `UserLiteDto.friendCount` when the source
   field is present. For RealmAgent users, Realm derives it from human-agent
   Friendship rows.
+- App shell, session posture, navigation, loading/failure states, and SDK client
+  construction must follow `apps/parentos` / `apps/desktop` patterns. The app
+  must use `nimi-kit` as the visible interaction system and `@nimiplatform/sdk`
+  for Realm/Runtime access.
 
 ## Out Of Scope
 
@@ -60,6 +64,8 @@ owner-created agents.
   post performance analytics.
 - Gift, revenue, settlement, payout, and economic surfaces.
 - Profile-view metrics until Realm admits view-event authority.
+- A standalone visual shell, ad hoc design system, app-owned long-lived auth
+  token storage, or app-level REST bypass around the SDK.
 
 ## First-Version Depth
 

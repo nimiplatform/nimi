@@ -268,8 +268,8 @@ export function classifyRealmAgentReadFailure(error: unknown, read: 'portfolio' 
       kind: 'permission-missing',
       title: 'Permission missing',
       detail: read === 'detail'
-        ? 'The canonical GET /api/me/agents/{agentId} owner detail read did not authorize this session.'
-        : 'The canonical GET /api/me/agents owner portfolio read did not authorize this session.',
+        ? 'This Runtime account session is not authorized to read that Realm Agent.'
+        : 'This Runtime account session is not authorized to read your Realm Agent portfolio.',
     };
   }
 
@@ -288,7 +288,7 @@ export function classifyRealmAgentReadFailure(error: unknown, read: 'portfolio' 
     return {
       kind: 'realm-unavailable',
       title: 'Realm unavailable',
-      detail: read === 'detail' ? 'MeService.getMyRealmAgent could not reach Realm.' : 'MeService.listMyRealmAgents could not reach Realm.',
+      detail: read === 'detail' ? 'Realm Agent detail could not reach Realm.' : 'Owner portfolio could not reach Realm.',
     };
   }
 
@@ -297,8 +297,8 @@ export function classifyRealmAgentReadFailure(error: unknown, read: 'portfolio' 
       kind: 'setting-read-unavailable',
       title: 'Setting read unavailable',
       detail: read === 'detail'
-        ? 'GET /api/me/agents/{agentId} did not return usable read-only setting fields.'
-        : 'GET /api/me/agents did not return usable portfolio fields.',
+        ? 'Realm did not return usable read-only setting fields for this agent.'
+        : 'Realm did not return usable portfolio fields.',
     };
   }
 
@@ -306,8 +306,8 @@ export function classifyRealmAgentReadFailure(error: unknown, read: 'portfolio' 
     kind: read === 'detail' ? 'setting-read-unavailable' : 'unknown',
     title: read === 'detail' ? 'Setting read unavailable' : 'Portfolio unavailable',
     detail: read === 'detail'
-      ? 'GET /api/me/agents/{agentId} did not return a usable owner-owned Realm Agent detail.'
-      : 'GET /api/me/agents did not return a usable owner portfolio.',
+      ? 'Realm did not return a usable user-owned Realm Agent detail.'
+      : 'Realm did not return a usable owner portfolio.',
   };
 }
 

@@ -2,8 +2,6 @@ import { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button, EmptyState, FieldShell, InlineAlert, SelectField, StatusBadge, Surface, TextareaField, TextField } from '@nimiplatform/nimi-kit/ui';
 import {
-  REALM_AGENT_CREATE_PATH,
-  REALM_AGENT_CREATE_SOURCE,
   normalizeCreateRealmAgentDraft,
   selectOasisDefaultWorld,
   validateCreateRealmAgentReadiness,
@@ -80,7 +78,7 @@ function ReadinessPreview({
       {readiness.ready ? null : (
         <InlineAlert tone="warning">{readiness.errors.join('; ')}</InlineAlert>
       )}
-      <FieldShell label="Reviewed create request" message={`${REALM_AGENT_CREATE_SOURCE} · ${REALM_AGENT_CREATE_PATH}. Request body is CreateAgentDto allowlisted fields only.`}>
+      <FieldShell label="Create request preview" message="Review the normalized create request before submitting.">
         <pre className="ras-json-preview m-0 min-h-56 overflow-auto rounded-[var(--nimi-radius-field)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-3 text-xs">
           {readiness.payload ? JSON.stringify(readiness.payload, null, 2) : 'Complete handle, display name, concept, and selected world to preview the reviewed create request.'}
         </pre>
@@ -165,22 +163,22 @@ export function CreateRealmAgentWorkspace() {
           <div className="flex min-w-0 flex-wrap items-center gap-3">
             <h2 className="m-0 text-xl font-semibold">Create Realm Agent</h2>
             <StatusBadge tone="info">owner scoped</StatusBadge>
-            <StatusBadge tone="neutral">POST /api/agent</StatusBadge>
+            <StatusBadge tone="neutral">review required</StatusBadge>
           </div>
           <p className="m-0 mt-1 text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-muted)]">
-            Owner-reviewed create request through AgentsService.agentControllerCreate. Portfolio reads remain GET /api/me/agents.
+            Create a user-owned Realm Agent by selecting a world, defining public identity, and reviewing the request before submit.
           </p>
 
           <div className="mt-4 grid gap-4">
             <div className="grid gap-4 md:grid-cols-2">
-              <FieldShell label="Agent handle" message="Checked through AgentsService.agentControllerCheckHandle before submit.">
+              <FieldShell label="Agent handle" message="Checked before submit.">
                 <TextField
                   value={draft.handle}
                   placeholder="@creator-agent"
                   onChange={(event) => updateDraft({ handle: event.currentTarget.value })}
                 />
               </FieldShell>
-              <FieldShell label="Display name" message="Visible public identity field before submit.">
+              <FieldShell label="Display name" message="Visible public identity field.">
                 <TextField
                   value={draft.displayName}
                   placeholder="Creator Agent"
@@ -189,10 +187,10 @@ export function CreateRealmAgentWorkspace() {
               </FieldShell>
             </div>
             {normalizedDraft.handle && handleAvailabilityQuery.isLoading ? (
-              <InlineAlert tone="info">Checking handle availability through AgentsService.agentControllerCheckHandle.</InlineAlert>
+              <InlineAlert tone="info">Checking handle availability.</InlineAlert>
             ) : null}
             {handleAvailabilityQuery.isError ? (
-              <InlineAlert tone="danger">Handle availability source unavailable: AgentsService.agentControllerCheckHandle failed.</InlineAlert>
+              <InlineAlert tone="danger">Handle availability check failed.</InlineAlert>
             ) : null}
             {handleAvailabilityQuery.data?.ok === false ? (
               <InlineAlert tone="danger">{handleAvailabilityQuery.data.message}</InlineAlert>
@@ -204,23 +202,23 @@ export function CreateRealmAgentWorkspace() {
                   : `Handle @${handleAvailability.normalized} is unavailable: ${handleAvailability.message}`}
               </InlineAlert>
             ) : null}
-            <FieldShell label="Public bio" message="Visible preview field only; no Realm write is performed.">
+            <FieldShell label="Public bio" message="Short profile bio for review.">
               <TextareaField
                 value={draft.publicBio}
                 placeholder="Short public bio"
                 onChange={(event) => updateDraft({ publicBio: event.currentTarget.value })}
               />
             </FieldShell>
-            <InlineAlert tone="warning">Public bio is preserved in the local draft and is not sent in the CreateAgentDto request body.</InlineAlert>
+            <InlineAlert tone="warning">Public bio is held in the draft until the profile settings save step.</InlineAlert>
             <div className="grid gap-4 md:grid-cols-2">
-              <FieldShell label="Concept" message="Required CreateAgentDto concept field.">
+              <FieldShell label="Concept" message="Core creative concept for the agent.">
                 <TextareaField
                   value={draft.concept}
                   placeholder="Creative concept"
                   onChange={(event) => updateDraft({ concept: event.currentTarget.value })}
                 />
               </FieldShell>
-              <FieldShell label="Description" message="Optional CreateAgentDto description field.">
+              <FieldShell label="Description" message="Public-facing description.">
                 <TextareaField
                   value={draft.description}
                   placeholder="Public-facing description"
@@ -228,7 +226,7 @@ export function CreateRealmAgentWorkspace() {
                 />
               </FieldShell>
             </div>
-            <FieldShell label="Visible rules" message="Optional visible owner-reviewed CreateAgentRulesDto lines. No hidden personality, worldview, provider, or model fields are sent.">
+            <FieldShell label="Visible rules" message="Optional behavior and boundary notes for review.">
               <TextareaField
                 value={draft.ruleText}
                 placeholder="Style, boundaries, and public behavior rules"
@@ -237,7 +235,7 @@ export function CreateRealmAgentWorkspace() {
             </FieldShell>
             <FieldShell
               label="World"
-              message={oasisWorld ? `Defaults to source-backed OASIS world: ${oasisWorld.name}.` : 'OASIS default unavailable until Realm world list returns an OASIS world.'}
+              message={oasisWorld ? `Defaults to OASIS: ${oasisWorld.name}.` : 'OASIS default is unavailable until worlds load.'}
               messageTone={oasisWorld ? 'neutral' : 'danger'}
             >
               <SelectField
@@ -248,25 +246,25 @@ export function CreateRealmAgentWorkspace() {
               />
             </FieldShell>
             {worldsQuery.isError ? (
-              <InlineAlert tone="danger">World selection source unavailable: WorldsService.worldControllerListWorlds failed.</InlineAlert>
+              <InlineAlert tone="danger">World selection is unavailable.</InlineAlert>
             ) : null}
             {!worldsQuery.isLoading && worlds.length === 0 ? (
-              <InlineAlert tone="warning">World selection blocked: Realm returned no selectable worlds from WorldsService.worldControllerListWorlds.</InlineAlert>
+              <InlineAlert tone="warning">World selection is unavailable because Realm returned no selectable worlds.</InlineAlert>
             ) : null}
             {!worldsQuery.isLoading && worlds.length > 0 && draft.selectedWorldId && !selectedWorld ? (
-              <InlineAlert tone="danger">World selection blocked: selected world is not source-backed by WorldsService.worldControllerListWorlds.</InlineAlert>
+              <InlineAlert tone="danger">Selected world is no longer available.</InlineAlert>
             ) : null}
             {!readiness.ready ? (
               <InlineAlert tone="warning">{readiness.errors.join('; ')}</InlineAlert>
             ) : null}
             {localSubmitErrors.length > 0 ? (
-              <InlineAlert tone="danger">{REALM_AGENT_CREATE_SOURCE} local validation failed: {localSubmitErrors.join('; ')}</InlineAlert>
+              <InlineAlert tone="danger">Create validation failed: {localSubmitErrors.join('; ')}</InlineAlert>
             ) : null}
             {submitResult ? (
               <InlineAlert tone={submitResult.ok ? 'success' : 'danger'}>
                 {submitResult.ok
-                  ? `${submitResult.source} created canonical Realm Agent ${submitResult.canonical.id}. Portfolio list refresh requested.`
-                  : `${submitResult.source} failed: ${submitResult.message}`}
+                  ? `Realm Agent created: ${submitResult.canonical.id}. Portfolio refresh requested.`
+                  : submitResult.message}
               </InlineAlert>
             ) : null}
             <Button disabled={createDisabled} loading={createMutation.isPending} onClick={submitCreate}>
@@ -279,14 +277,14 @@ export function CreateRealmAgentWorkspace() {
           <Surface tone="card" padding="md">
             <div className="flex flex-wrap items-center gap-2">
               <div className="font-medium">Selected world preview</div>
-              <StatusBadge tone="neutral">WorldsService detail</StatusBadge>
+              <StatusBadge tone="neutral">world settings</StatusBadge>
             </div>
             {!selectedWorld ? (
-              <EmptyState title="No selected world" description="Select a Realm world from the source-backed list." />
+              <EmptyState title="No selected world" description="Select a Realm world." />
             ) : worldPreviewQuery.isLoading ? (
-              <EmptyState title="Loading world preview" description="Reading WorldsService.worldControllerGetWorldDetailWithAgents." />
+              <EmptyState title="Loading world preview" description="Loading selected world settings." />
             ) : worldPreviewQuery.isError ? (
-              <InlineAlert tone="danger">Selected-world basic setting preview unavailable from WorldsService.worldControllerGetWorldDetailWithAgents.</InlineAlert>
+              <InlineAlert tone="danger">Selected-world settings preview is unavailable.</InlineAlert>
             ) : worldPreviewQuery.data ? (
               <div className="mt-3 grid gap-3 text-[length:var(--nimi-type-body-sm-size)]">
                 <div>

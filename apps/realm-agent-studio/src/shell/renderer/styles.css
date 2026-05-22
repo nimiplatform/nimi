@@ -34,3 +34,15 @@ button {
   overflow-wrap: anywhere;
   word-break: break-word;
 }
+
+.ras-portfolio-state {
+  width: 100%;
+  min-width: 0;
+  border-color: var(--nimi-border-subtle);
+}
+
+.ras-json-preview {
+  max-width: 100%;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}

@@ -420,17 +420,17 @@ describe('OwnerPortfolio visibility settings UI', () => {
 
     await waitForText('Handle @mira.agent is available.');
     expect(portfolioClient.checkCreateRealmAgentHandleAvailability).toHaveBeenCalledWith('mira.agent');
-    expect(document.body.textContent).toContain('Checked through AgentsService.agentControllerCheckHandle before submit');
+    expect(document.body.textContent).toContain('Checked before submit');
   });
 
   it('shows the human-review gate and lifecycle boundary for real visibility settings', async () => {
     await renderOwnerPortfolio();
     await waitForText('Visibility settings');
-    await waitForText('PATCH sends only changed UpdateAgentVisibilityDto fields');
+    await waitForText('Current values and reviewed changes before save.');
 
     expect(portfolioClient.getAgentVisibilitySettings).toHaveBeenCalledWith('agent-1');
     expect(document.body.textContent).toContain('Human review complete');
-    expect(document.body.textContent).toContain('does not create publish, schedule, moderation, or lifecycle state');
+    expect(document.body.textContent).toContain('do not create lifecycle, moderation, or scheduling state');
     expect(findButtonByText('Save visibility').disabled).toBe(true);
     expect(portfolioClient.updateReviewedAgentVisibility).not.toHaveBeenCalled();
   });
@@ -438,15 +438,13 @@ describe('OwnerPortfolio visibility settings UI', () => {
   it('saves owner settings through MeService settings ingress and leaves raw rule review deferred', async () => {
     await renderOwnerPortfolio();
     await waitForText('Owner settings');
-    await waitForText('PATCH payload preview');
+    await waitForText('Settings change preview');
 
     await changeField(findFieldByPlaceholder<HTMLInputElement>('Public display name'), 'Mira Prime');
     await changeField(findFieldByPlaceholder<HTMLTextAreaElement>('Public worldview and background'), 'Layered world, owner revised.');
-    await changeField(findFieldByPlaceholder<HTMLTextAreaElement>('Visible AgentRule-shaped text for future owner rule-content review'), 'Raw rule candidate only.');
+    await changeField(findFieldByPlaceholder<HTMLTextAreaElement>('Advanced note for future rule-content review'), 'Raw rule candidate only.');
 
     await waitForText('ready for owner-reviewed settings save.');
-    expect(document.body.textContent).toContain('raw AgentRule review deferred');
-    expect(document.body.textContent).not.toContain('AgentRulesService raw rule save');
     expect(findButtonByText('Save owner settings').disabled).toBe(true);
 
     await checkAllHumanReviewBoxes();
@@ -455,7 +453,7 @@ describe('OwnerPortfolio visibility settings UI', () => {
       saveButton.click();
     });
 
-    await waitForText('Realm confirmed owner settings update through MeService');
+    await waitForText('Settings saved. The agent profile has been refreshed.');
     expect(portfolioClient.getOwnerAgentSettings).toHaveBeenCalledWith('agent-1');
     expect(portfolioClient.updateReviewedOwnerAgentSettings).toHaveBeenCalledWith(
       'agent-1',
@@ -469,31 +467,30 @@ describe('OwnerPortfolio visibility settings UI', () => {
         agentRuleVersion: 3,
       }),
     );
-    expect(document.body.textContent).toContain('UpdateOwnerAgentSettingsDto');
+    expect(document.body.textContent).toContain('Advanced rule notes stay out of this save.');
   });
 
   it('projects Runtime world context as a summary without raw rule review', async () => {
     await renderOwnerPortfolio();
-    await waitForText('Runtime world context projection');
+    await waitForText('World context summary');
 
     await act(async () => {
-      findButtonByText('Project Runtime context').click();
+      findButtonByText('Generate world context summary').click();
     });
 
     await waitForText('checksum-ui');
     expect(portfolioClient.projectAgentRuntimeContextSummary).toHaveBeenCalledTimes(1);
     expect(document.body.textContent).toContain('summary only');
-    expect(document.body.textContent).toContain('not rule review');
+    expect(document.body.textContent).toContain('read only');
     expect(document.body.textContent).toContain('rawRuleContentExposed');
     expect(document.body.textContent).not.toContain('Hidden raw rule statement');
   });
 
   it('keeps Resource-backed Agent Binding fail-closed behind backend admission', async () => {
     await renderOwnerPortfolio();
-    await waitForText('Owner Resource Binding admission gap');
+    await waitForText('Public asset publishing is not enabled yet');
 
-    expect(document.body.textContent).toContain('Backend admission required: owner-scoped Resource-to-Agent binding ingress');
-    expect(document.body.textContent).toContain('Studio does not call WorldControlService, CreatorService, or AgentRulesService');
+    expect(document.body.textContent).toContain('will not publish them as profile assets yet');
     expect(document.body.textContent).not.toContain('Load binding Resources');
     expect(document.body.textContent).not.toContain('Check Binding candidate');
   });
@@ -505,16 +502,16 @@ describe('OwnerPortfolio visibility settings UI', () => {
     await changeField(findFieldByPlaceholder<HTMLTextAreaElement>('Draft caption for human review'), 'Reviewed caption for Resource');
     await checkAllHumanReviewBoxes();
 
-    const createButton = await waitForButtonEnabled('Create text Resource attachment');
+    const createButton = await waitForButtonEnabled('Create text attachment');
 
     await act(async () => {
       createButton.click();
     });
 
-    await waitForText('Realm confirmed READY TEXT resource resource-text-ui');
+    await waitForText('Text attachment created and selected: resource-text-ui.');
     expect(portfolioClient.createReviewedPostTextResource).toHaveBeenCalledTimes(1);
-    expect(findFieldByPlaceholder<HTMLInputElement>('resource, asset, or bundle target').value).toBe('resource-text-ui');
-    expect(document.body.textContent).toContain('RESOURCE + resourceId');
+    expect(findFieldByPlaceholder<HTMLInputElement>('Attachment id').value).toBe('resource-text-ui');
+    expect(document.body.textContent).toContain('Publishing still requires review.');
   });
 
   it('loads owner READY Resource attachment options from Realm', async () => {
@@ -522,13 +519,12 @@ describe('OwnerPortfolio visibility settings UI', () => {
     await waitForText('Creative post candidate');
 
     await act(async () => {
-      findButtonByText('Load ready Resources').click();
+      findButtonByText('Load ready media').click();
     });
 
-    await waitForText('Loaded 2 READY Resource attachment options.');
+    await waitForText('Loaded 2 ready media attachment options.');
     expect(portfolioClient.listReadyPostAttachmentResources).toHaveBeenCalledTimes(1);
-    expect(document.body.textContent).toContain('Uses ResourcesService.listResources');
-    expect(document.body.textContent).toContain('does not create Binding or profile asset truth');
+    expect(document.body.textContent).toContain('Choose an existing ready media item for this post.');
   });
 
   it('selects a READY Resource option into the post attachment envelope', async () => {
@@ -536,18 +532,18 @@ describe('OwnerPortfolio visibility settings UI', () => {
     await waitForText('Creative post candidate');
 
     await act(async () => {
-      findButtonByText('Load ready Resources').click();
+      findButtonByText('Load ready media').click();
     });
-    await waitForText('Loaded 2 READY Resource attachment options.');
+    await waitForText('Loaded 2 ready media attachment options.');
 
-    const picker = findSelectByLabel('READY Resource picker');
+    const picker = findSelectByLabel('Ready media picker');
     await act(async () => {
       picker.value = 'resource-ready-ui';
       picker.dispatchEvent(new Event('change', { bubbles: true }));
     });
 
-    expect(findFieldByPlaceholder<HTMLInputElement>('resource, asset, or bundle target').value).toBe('resource-ready-ui');
-    expect(document.body.textContent).toContain('Selected READY Resource(IMAGE) resource-ready-ui');
+    expect(findFieldByPlaceholder<HTMLInputElement>('Attachment id').value).toBe('resource-ready-ui');
+    expect(document.body.textContent).toContain('Selected image media resource-ready-ui.');
   });
 
   it('uploads reviewed media Resource and fills the post attachment envelope', async () => {
@@ -565,14 +561,14 @@ describe('OwnerPortfolio visibility settings UI', () => {
       fileInput.dispatchEvent(new Event('change', { bubbles: true }));
     });
 
-    const uploadButton = await waitForButtonEnabled('Upload media Resource attachment');
+    const uploadButton = await waitForButtonEnabled('Upload media attachment');
     await act(async () => {
       uploadButton.click();
     });
 
-    await waitForText('Realm finalized READY IMAGE resource resource-upload-ui');
+    await waitForText('Media uploaded and attached as resource-upload-ui.');
     expect(portfolioClient.uploadReviewedPostMediaResource).toHaveBeenCalledTimes(1);
-    expect(findFieldByPlaceholder<HTMLInputElement>('resource, asset, or bundle target').value).toBe('resource-upload-ui');
-    expect(document.body.textContent).toContain('No Binding, profile asset, schedule, moderation, or post success is claimed here');
+    expect(findFieldByPlaceholder<HTMLInputElement>('Attachment id').value).toBe('resource-upload-ui');
+    expect(document.body.textContent).toContain('This does not publish the post by itself.');
   });
 });

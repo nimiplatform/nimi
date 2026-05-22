@@ -118,9 +118,25 @@ provider/model routing, moderation authority, or Realm truth itself.
 This spec tree must not create app-local shadow truth. Every public success state
 must resolve to Realm, Runtime, or SDK authority owned outside this app spec.
 
-## UX Guardrail
+## UX And App Architecture Guardrail
 
-Future UX work may reference `apps/desktop` for architecture, shell posture, and
-interaction patterns. UI implementation must use `nimi-kit` and shared
-components first. Realm Agent Studio must not create a parallel component system;
-custom components require a recorded kit gap before implementation.
+Realm Agent Studio implementation must follow the established `apps/parentos`
+and `apps/desktop` posture for shell, bootstrap, session, navigation, failure
+states, and SDK client construction. `apps/parentos/src/shell/renderer/App.tsx`
+and `apps/parentos/src/shell/renderer/app-shell/**` are the current concrete
+architecture reference for provider composition, shell layout, and auth/session
+ownership.
+
+UI implementation must use `nimi-kit` and shared components first. Importing
+`nimi-kit` tokens is not sufficient: the first screen, loading states, failure
+states, navigation, cards, forms, and reviewed-action surfaces must render as a
+coherent kit-first application. Realm Agent Studio must not create a parallel
+component system; custom components require a recorded kit gap before
+implementation.
+
+Realm and Runtime access must go through the `@nimiplatform/sdk` surfaces. App
+code must not use app-local REST bypasses, hardcoded provider/model routing, or
+app-owned long-lived auth token storage. When a temporary environment-token
+development path exists, it is not acceptable as final app architecture and must
+remain visible as an architecture gap until replaced by the shared session
+posture used by parentOS/desktop.

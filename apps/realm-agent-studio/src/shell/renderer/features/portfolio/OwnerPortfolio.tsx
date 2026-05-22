@@ -140,7 +140,7 @@ function FieldStatus({ field }: { field: SettingField }) {
   return (
     <div className="mt-1 flex flex-wrap gap-2">
       <StatusBadge tone={field.status === 'available' ? 'success' : 'warning'} shape="dot">
-        {field.status === 'available' ? field.source : field.unavailableLabel}
+        {field.status === 'available' ? 'available' : field.unavailableLabel}
       </StatusBadge>
       <StatusBadge tone="neutral">read-only</StatusBadge>
     </div>
@@ -149,8 +149,8 @@ function FieldStatus({ field }: { field: SettingField }) {
 
 function ReadOnlySettingField({ field, multiline = false }: { field: SettingField; multiline?: boolean }) {
   const message = field.status === 'available'
-    ? 'Read from GET /api/me/agents/{agentId}; write ownership is not admitted in this slice.'
-    : 'Source unavailable from GET /api/me/agents/{agentId}.';
+    ? 'Current public profile value.'
+    : 'This value is not available from Realm yet.';
 
   return (
     <FieldShell label={field.label} message={message} messageTone={field.status === 'available' ? 'neutral' : 'danger'}>
@@ -169,6 +169,90 @@ function EvidenceCard({ field }: { field: SettingField }) {
       <div className="text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-muted)]">{field.label}</div>
       <div className="ras-break-anywhere mt-1 font-medium">{field.value || field.unavailableLabel}</div>
       <FieldStatus field={field} />
+    </Surface>
+  );
+}
+
+function PortfolioLoadingState() {
+  return (
+    <Surface tone="card" material="glass-regular" elevation="raised" padding="none" className="ras-portfolio-state overflow-hidden">
+      <div className="grid min-h-[520px] min-w-0 lg:grid-cols-[320px_1fr]">
+        <div className="flex min-w-0 flex-col justify-between border-b border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_80%,transparent)] p-6 lg:border-b-0 lg:border-r">
+          <div>
+            <StatusBadge tone="info">loading</StatusBadge>
+            <h2 className="m-0 mt-4 text-2xl font-semibold">Opening owner portfolio</h2>
+            <p className="m-0 mt-3 text-[var(--nimi-text-muted)]">
+              Loading your Realm Agents, public profile settings, and creative workspace.
+            </p>
+          </div>
+          <div className="mt-8 h-2 overflow-hidden rounded-full bg-[var(--nimi-surface-active)]">
+            <div className="h-full w-1/3 animate-pulse rounded-full bg-[var(--nimi-action-primary-bg)]" />
+          </div>
+        </div>
+        <div className="grid min-w-0 content-start gap-4 p-6">
+          {Array.from({ length: 3 }).map((_, index) => (
+            <Surface key={index} tone="panel" padding="md" className="grid min-w-0 grid-cols-[56px_1fr] gap-3">
+              <div className="h-14 w-14 rounded-[var(--nimi-radius-md)] bg-[var(--nimi-surface-active)]" />
+              <div className="min-w-0 space-y-3">
+                <div className="h-3 w-2/3 rounded-full bg-[var(--nimi-surface-active)]" />
+                <div className="h-3 w-1/2 rounded-full bg-[var(--nimi-surface-active)]" />
+                <div className="h-6 w-40 rounded-full bg-[var(--nimi-surface-active)]" />
+              </div>
+            </Surface>
+          ))}
+        </div>
+      </div>
+    </Surface>
+  );
+}
+
+function PortfolioUnavailableState({
+  title,
+  detail,
+  loading,
+  onRetry,
+}: {
+  title: string;
+  detail: string;
+  loading: boolean;
+  onRetry: () => void;
+}) {
+  return (
+    <Surface tone="card" material="glass-regular" elevation="raised" padding="none" className="ras-portfolio-state overflow-hidden">
+      <div className="grid min-h-[520px] min-w-0 lg:grid-cols-[360px_1fr]">
+        <div className="flex min-w-0 flex-col justify-between border-b border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_82%,transparent)] p-6 lg:border-b-0 lg:border-r">
+          <div>
+            <StatusBadge tone="danger">Realm unavailable</StatusBadge>
+            <h2 className="m-0 mt-4 text-2xl font-semibold">Portfolio cannot open</h2>
+            <p className="m-0 mt-3 text-[var(--nimi-text-muted)]">
+              Studio waits for your Runtime account session before it opens owner-only data.
+            </p>
+          </div>
+          <div className="mt-8 flex flex-wrap gap-3">
+            <Button loading={loading} onClick={onRetry}>Retry</Button>
+          </div>
+        </div>
+        <div className="grid min-w-0 content-start gap-4 p-6">
+          <InlineAlert tone="danger">
+            <strong>{title}</strong>
+            <div>{detail}</div>
+          </InlineAlert>
+          <div className="grid gap-4 xl:grid-cols-3">
+            <Surface tone="panel" padding="md">
+              <div className="text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-muted)]">Account</div>
+              <div className="mt-1 font-medium">Current owner only</div>
+            </Surface>
+            <Surface tone="panel" padding="md">
+              <div className="text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-muted)]">Data source</div>
+              <div className="mt-1 font-medium">Realm</div>
+            </Surface>
+            <Surface tone="panel" padding="md">
+              <div className="text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-muted)]">Fallback</div>
+              <div className="mt-1 font-medium">None</div>
+            </Surface>
+          </div>
+        </div>
+      </div>
     </Surface>
   );
 }
@@ -238,11 +322,11 @@ function SettingProposalWorkspace({ agent, onAgentWrite }: { agent: OwnerPortfol
             <StatusBadge tone="neutral">owner-reviewed</StatusBadge>
           </div>
           <p className="m-0 mt-1 text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-muted)]">
-            Reads and saves structured settings through MeService owner settings surfaces. Raw AgentRule review stays deferred.
+            Edit the agent's public identity, behavior notes, and communication style. Changes are reviewed before save.
           </p>
 
           {settingsQuery.isLoading ? (
-            <EmptyState title="Loading owner settings" description="Reading GET /api/me/agents/{agentId}/settings through SDK MeService." />
+            <EmptyState title="Loading owner settings" description="Loading editable settings for this Realm Agent." />
           ) : null}
           {settingsQuery.isError ? (
             <InlineAlert tone="danger">
@@ -252,14 +336,14 @@ function SettingProposalWorkspace({ agent, onAgentWrite }: { agent: OwnerPortfol
           {draft && settingsQuery.data ? (
             <div className="mt-4 grid gap-4">
               <div className="grid gap-4 md:grid-cols-2">
-                <FieldShell label="Display name" message="Saved through UpdateOwnerAgentSettingsDto.displayName.">
+                <FieldShell label="Display name" message="Shown on the agent profile.">
                   <TextField
                     value={draft.displayName}
                     placeholder="Public display name"
                     onChange={(event) => updateDraft({ displayName: event.currentTarget.value })}
                   />
                 </FieldShell>
-                <FieldShell label="Greeting" message="Saved through UpdateOwnerAgentSettingsDto.greeting.">
+                <FieldShell label="Greeting" message="The agent's opening line for public presentation.">
                   <TextField
                     value={draft.greeting}
                     placeholder="Opening greeting"
@@ -267,7 +351,7 @@ function SettingProposalWorkspace({ agent, onAgentWrite }: { agent: OwnerPortfol
                   />
                 </FieldShell>
               </div>
-              <FieldShell label="Description" message="Owner-facing description setting, not CreatorService bio.">
+              <FieldShell label="Description" message="Public description for the agent profile.">
                 <TextareaField
                   value={draft.description}
                   placeholder="Public description"
@@ -275,14 +359,14 @@ function SettingProposalWorkspace({ agent, onAgentWrite }: { agent: OwnerPortfol
                 />
               </FieldShell>
               <div className="grid gap-4 md:grid-cols-2">
-                <FieldShell label="Public role" message="Saved as identity.publicRole.">
+                <FieldShell label="Public role" message="How the agent should be understood by visitors.">
                   <TextField
                     value={draft.publicRole}
                     placeholder="Guide, mentor, companion..."
                     onChange={(event) => updateDraft({ publicRole: event.currentTarget.value })}
                   />
                 </FieldShell>
-                <FieldShell label="Relationship mode" message="Saved as personality.relationshipMode.">
+                <FieldShell label="Relationship mode" message="The agent's preferred interaction posture.">
                   <TextField
                     value={draft.relationshipMode}
                     placeholder="coach, friend, narrator..."
@@ -290,7 +374,7 @@ function SettingProposalWorkspace({ agent, onAgentWrite }: { agent: OwnerPortfol
                   />
                 </FieldShell>
               </div>
-              <FieldShell label="Worldview" message="Saved as identity.worldview; server compiles accepted settings into canonical truth.">
+              <FieldShell label="Worldview" message="The background, beliefs, and setting assumptions the agent should preserve.">
                 <TextareaField
                   value={draft.worldview}
                   placeholder="Public worldview and background"
@@ -389,7 +473,7 @@ function SettingProposalWorkspace({ agent, onAgentWrite }: { agent: OwnerPortfol
                     onChange={(event) => updateDraft({ targetAudience: event.currentTarget.value })}
                   />
                 </FieldShell>
-                <FieldShell label="Positioning" message="Saved as positioning.positioning.">
+                <FieldShell label="Positioning" message="How this agent should be presented and differentiated.">
                   <TextareaField
                     value={draft.positioning}
                     placeholder="How this agent should be positioned"
@@ -397,7 +481,7 @@ function SettingProposalWorkspace({ agent, onAgentWrite }: { agent: OwnerPortfol
                   />
                 </FieldShell>
               </div>
-              <FieldShell label="Natural-language intent" message="Saved as naturalLanguageIntent for server-side settings compilation; it is not raw rule CRUD.">
+              <FieldShell label="Natural-language intent" message="Describe the update in your own words before review.">
                 <TextareaField
                   value={draft.naturalLanguageIntent}
                   placeholder="Describe the owner-reviewed setting intent"
@@ -406,17 +490,17 @@ function SettingProposalWorkspace({ agent, onAgentWrite }: { agent: OwnerPortfol
               </FieldShell>
               <div className="flex flex-wrap gap-3">
                 <Button disabled={!draft.naturalLanguageIntent.trim()} onClick={useInstructionAsRuleCandidate}>
-                  Copy to raw rule candidate
+                  Use as rule review note
                 </Button>
               </div>
-              <FieldShell label="Raw rule text candidate" message="Deferred review only. It is never sent to AgentRulesService or the owner settings PATCH payload.">
+              <FieldShell label="Rule review note" message="Visible note for future advanced review. It is not saved with this settings update.">
                 <TextareaField
                   value={draft.rawRuleTextCandidate}
-                  placeholder="Visible AgentRule-shaped text for future owner rule-content review"
+                  placeholder="Advanced note for future rule-content review"
                   onChange={(event) => updateDraft({ rawRuleTextCandidate: event.currentTarget.value })}
                 />
               </FieldShell>
-              <FieldShell label="Profile cover URL" message="Read projection only in this workflow. Owner write needs a dedicated non-creator profile cover surface.">
+              <FieldShell label="Profile cover URL" message="Current cover projection. Editing will be enabled once this profile asset path is admitted.">
                 <TextField readOnly value={agent.profileCoverUrl.value} placeholder="profileCoverUrl read unavailable" />
               </FieldShell>
               {proposal?.ok ? (
@@ -436,7 +520,7 @@ function SettingProposalWorkspace({ agent, onAgentWrite }: { agent: OwnerPortfol
               {result ? (
                 <InlineAlert tone={result.ok ? 'success' : 'danger'}>
                   {result.ok
-                    ? 'Realm confirmed owner settings update through MeService. Detail reads were refreshed from owner surfaces.'
+                    ? 'Settings saved. The agent profile has been refreshed.'
                     : result.message}
                 </InlineAlert>
               ) : null}
@@ -470,16 +554,16 @@ function SettingProposalWorkspace({ agent, onAgentWrite }: { agent: OwnerPortfol
         </div>
         <div className="min-w-0">
           <div className="mb-3 flex items-center justify-between gap-3">
-            <h4 className="m-0 text-base font-semibold">Reviewed settings payload</h4>
+            <h4 className="m-0 text-base font-semibold">Review summary</h4>
             <StatusBadge tone={proposal?.ok ? 'success' : 'warning'}>{proposal?.ok ? 'ready' : 'not ready'}</StatusBadge>
           </div>
-          <FieldShell label="PATCH payload preview" message="Submitted payload is only UpdateOwnerAgentSettingsDto. Raw rule text remains outside the payload.">
+          <FieldShell label="Settings change preview" message="Only reviewed setting fields are submitted. Advanced rule notes stay out of this save.">
             <pre className="ras-json-preview m-0 min-h-80 overflow-auto rounded-[var(--nimi-radius-field)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-3 text-xs">
               {proposal?.ok ? JSON.stringify(proposal.preview, null, 2) : proposal?.errors.join('; ') || 'No owner settings loaded.'}
             </pre>
           </FieldShell>
           {result ? (
-            <FieldShell label="Save result" message="Truth write success is based on Realm MeService.updateMyRealmAgentSettings response.">
+            <FieldShell label="Save result" message="Latest confirmed save response.">
               <pre className="ras-json-preview m-0 min-h-24 overflow-auto rounded-[var(--nimi-radius-field)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-3 text-xs">
                 {JSON.stringify(result, null, 2)}
               </pre>
@@ -557,11 +641,11 @@ function VisibilitySettingsWorkspace({ agent, onAgentWrite }: { agent: OwnerPort
         <StatusBadge tone="neutral">not lifecycle</StatusBadge>
       </div>
       <p className="m-0 mt-1 text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-muted)]">
-        Reads and saves owner-reviewed social visibility through AgentsService visibility endpoints only. This does not create publish, schedule, moderation, or lifecycle state.
+        Control how this agent appears socially. Visibility changes do not create lifecycle, moderation, or scheduling state.
       </p>
 
       {visibilityQuery.isLoading ? (
-        <EmptyState title="Loading visibility settings" description="Reading GET /api/agent/accounts/{id}/visibility through SDK AgentsService." />
+        <EmptyState title="Loading visibility settings" description="Loading current profile and interaction visibility." />
       ) : null}
       {visibilityQuery.isError ? (
         <InlineAlert tone="danger">
@@ -594,7 +678,7 @@ function VisibilitySettingsWorkspace({ agent, onAgentWrite }: { agent: OwnerPort
           {result ? (
             <InlineAlert tone={result.ok ? 'success' : 'danger'}>
               {result.ok
-                ? 'Realm confirmed visibility settings. No lifecycle or publish state was created.'
+                ? 'Visibility settings saved.'
                 : result.message}
             </InlineAlert>
           ) : null}
@@ -619,7 +703,7 @@ function VisibilitySettingsWorkspace({ agent, onAgentWrite }: { agent: OwnerPort
               Reset draft
             </Button>
           </div>
-          <FieldShell label="Visibility result" message="PATCH sends only changed UpdateAgentVisibilityDto fields.">
+          <FieldShell label="Visibility review" message="Current values and reviewed changes before save.">
             <pre className="ras-json-preview m-0 min-h-24 overflow-auto rounded-[var(--nimi-radius-field)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-3 text-xs">
               {result ? JSON.stringify(result, null, 2) : JSON.stringify({ current: visibilityQuery.data, draft }, null, 2)}
             </pre>
@@ -718,11 +802,11 @@ function MediaVoiceCandidateWorkspace({ agent, onAgentWrite }: { agent: OwnerPor
         <div className="min-w-0">
           <div className="flex min-w-0 flex-wrap items-center gap-3">
             <h3 className="m-0 text-xl font-semibold">Visual identity candidate</h3>
-            <StatusBadge tone="warning">blocked preview</StatusBadge>
-            <StatusBadge tone="neutral">not public truth</StatusBadge>
+            <StatusBadge tone="warning">local preview</StatusBadge>
+            <StatusBadge tone="neutral">not published</StatusBadge>
           </div>
           <p className="m-0 mt-1 text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-muted)]">
-            Owner-reviewed avatar URL saves through AgentsService.agentControllerSelectAvatar. Generated/uploaded visual candidates still remain local until a Resource/Binding write succeeds.
+            Update the public avatar URL now. Generated and uploaded identity assets remain local previews until the owner asset publishing path is admitted.
           </p>
           <div className="mt-4 grid gap-4">
             <Surface tone="card" padding="md">
@@ -730,7 +814,7 @@ function MediaVoiceCandidateWorkspace({ agent, onAgentWrite }: { agent: OwnerPor
                 <div className="min-w-0 flex-1">
                   <div className="font-medium">Avatar URL selection</div>
                   <div className="mt-1 text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-muted)]">
-                    Saves to POST /api/agent/accounts/{agent.id}/avatar. This does not create Resource or Binding truth.
+                    Saves the reviewed avatar URL on the public profile. It does not publish generated asset candidates.
                   </div>
                 </div>
                 <StatusBadge tone="info">Realm save</StatusBadge>
@@ -740,7 +824,7 @@ function MediaVoiceCandidateWorkspace({ agent, onAgentWrite }: { agent: OwnerPor
                   {avatarUrlDraft.trim() ? <img src={avatarUrlDraft.trim()} alt="" className="h-full w-full object-cover" /> : null}
                 </div>
                 <div className="grid gap-3">
-                  <FieldShell label="Avatar URL" message="Owner-reviewed http(s) URL only. Studio submits only SelectAvatarDto.avatarUrl.">
+                  <FieldShell label="Avatar URL" message="Owner-reviewed http(s) URL only.">
                     <TextField
                       value={avatarUrlDraft}
                       placeholder="https://..."
@@ -766,12 +850,12 @@ function MediaVoiceCandidateWorkspace({ agent, onAgentWrite }: { agent: OwnerPor
               {avatarResult ? (
                 <InlineAlert tone={avatarResult.ok ? 'success' : 'danger'} className="mt-3">
                   {avatarResult.ok
-                    ? 'Realm confirmed avatar URL selection. Detail and portfolio reads were refreshed from owner surfaces.'
+                    ? 'Avatar URL saved. The profile has been refreshed.'
                     : avatarResult.message}
                 </InlineAlert>
               ) : null}
               {avatarResult ? (
-                <FieldShell label="Avatar selection result" message="Public avatar success is based on Realm operation success, then refreshed owner reads.">
+                <FieldShell label="Avatar save result" message="Latest confirmed save response.">
                   <pre className="ras-json-preview m-0 min-h-24 overflow-auto rounded-[var(--nimi-radius-field)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] p-3 text-xs">
                     {JSON.stringify(avatarResult, null, 2)}
                   </pre>
@@ -779,14 +863,14 @@ function MediaVoiceCandidateWorkspace({ agent, onAgentWrite }: { agent: OwnerPor
               ) : null}
             </Surface>
             <div className="grid gap-3 md:grid-cols-[160px_1fr]">
-              <FieldShell label="Resource type" message="Future Resource carrier only.">
+              <FieldShell label="Asset type" message="Local preview category.">
                 <SelectField
                   value={visualDraft.resourceType}
-                  options={visualResourceTypes.map((resourceType) => ({ value: resourceType, label: `Resource(${resourceType})` }))}
+                  options={visualResourceTypes.map((resourceType) => ({ value: resourceType, label: resourceType }))}
                   onValueChange={(value) => updateVisualDraft({ resourceType: value as VisualCandidateResourceType })}
                 />
               </FieldShell>
-              <FieldShell label="Binding point" message="Future AGENT binding point only.">
+              <FieldShell label="Profile slot" message="Where this candidate would be used after review.">
                 <SelectField
                   value={visualDraft.bindingPoint}
                   options={visualBindingPoints.map((bindingPoint) => ({ value: bindingPoint, label: bindingPoint }))}
@@ -794,14 +878,14 @@ function MediaVoiceCandidateWorkspace({ agent, onAgentWrite }: { agent: OwnerPor
                 />
               </FieldShell>
             </div>
-            <FieldShell label="Visual prompt" message="Owner-approved public/context fields plus this local draft only.">
+            <FieldShell label="Visual prompt" message="Describe the avatar, portrait, or visual direction.">
               <TextareaField
                 value={visualDraft.prompt}
                 placeholder="Describe the avatar, portrait, or candidate visual"
                 onChange={(event) => updateVisualDraft({ prompt: event.currentTarget.value })}
               />
             </FieldShell>
-            <FieldShell label="Notes" message="Local preview notes; omitted from future Runtime input unless owner-reviewed.">
+            <FieldShell label="Notes" message="Composition, references, and review notes.">
               <TextareaField
                 value={visualDraft.notes}
                 placeholder="Composition, reference, or review notes"
@@ -811,7 +895,7 @@ function MediaVoiceCandidateWorkspace({ agent, onAgentWrite }: { agent: OwnerPor
             <InlineAlert tone="warning">
               {visualPayload.changed ? VISUAL_MEDIA_BLOCKED_REASON : visualPayload.errors.join('; ')}
             </InlineAlert>
-            <FieldShell label="Blocked visual payload" message="Preview only. Visual generation remains local; Resource-backed Agent Binding is deferred until Realm exposes an owner-scoped ingress.">
+            <FieldShell label="Visual candidate preview" message="Local preview only. Public asset publishing is not enabled for this owner path yet.">
               <pre className="ras-json-preview m-0 min-h-72 overflow-auto rounded-[var(--nimi-radius-field)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-3 text-xs">
                 {visualPayload.payload ? JSON.stringify(visualPayload.payload, null, 2) : visualPayload.errors.join('; ')}
               </pre>
@@ -819,15 +903,15 @@ function MediaVoiceCandidateWorkspace({ agent, onAgentWrite }: { agent: OwnerPor
             <Surface tone="card" padding="md">
               <div className="flex min-w-0 flex-wrap items-center gap-3">
                 <div className="min-w-0 flex-1">
-                  <div className="font-medium">Owner Resource Binding admission gap</div>
+                  <div className="font-medium">Public asset publishing is not enabled yet</div>
                   <div className="mt-1 text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-muted)]">
-                    Resource-backed avatar, portrait, and voice sample publication requires a dedicated owner-scoped Realm ingress. Studio does not call WorldControlService, CreatorService, or AgentRulesService for this owner save path.
+                    Generated portraits and voice samples stay in local preview until Realm exposes a reviewed owner publishing path.
                   </div>
                 </div>
-                <StatusBadge tone="danger">blocked</StatusBadge>
+                <StatusBadge tone="warning">local only</StatusBadge>
               </div>
-              <InlineAlert tone="danger" className="mt-3">
-                Backend admission required: owner-scoped Resource-to-Agent binding ingress for MASTER_OWNED agents, with owner review and canonical Binding confirmation.
+              <InlineAlert tone="warning" className="mt-3">
+                You can review candidates here, but this workflow will not publish them as profile assets yet.
               </InlineAlert>
             </Surface>
           </div>
@@ -835,34 +919,34 @@ function MediaVoiceCandidateWorkspace({ agent, onAgentWrite }: { agent: OwnerPor
         <div className="min-w-0">
           <div className="flex min-w-0 flex-wrap items-center gap-3">
             <h3 className="m-0 text-xl font-semibold">Voice demo candidate</h3>
-            <StatusBadge tone="info">Runtime candidate</StatusBadge>
+            <StatusBadge tone="info">AI assisted</StatusBadge>
             <StatusBadge tone="neutral">sample only</StatusBadge>
-            <StatusBadge tone="warning">not public truth</StatusBadge>
+            <StatusBadge tone="warning">not published</StatusBadge>
           </div>
           <p className="m-0 mt-1 text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-muted)]">
-            Runtime candidate generation for capability audio.synthesize and SDK path media.tts.synthesize. Runtime artifacts are not Resource or Binding truth until a separate reviewed Realm write succeeds.
+            Generate a voice sample for review. Publishing the sample as a public profile asset is deferred until the owner asset path is available.
           </p>
           <div className="mt-4 grid gap-4">
             <Surface tone="card" padding="md">
               <div className="grid gap-3 sm:grid-cols-2">
                 <div>
-                  <div className="text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-muted)]">Future Resource</div>
-                  <div className="mt-1 font-medium">Resource(AUDIO)</div>
+                  <div className="text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-muted)]">Sample type</div>
+                  <div className="mt-1 font-medium">Audio</div>
                 </div>
                 <div>
-                  <div className="text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-muted)]">Future Binding</div>
-                  <div className="mt-1 font-medium">AGENT_VOICE_SAMPLE</div>
+                  <div className="text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-muted)]">Review state</div>
+                  <div className="mt-1 font-medium">Local sample</div>
                 </div>
               </div>
             </Surface>
-            <FieldShell label="Demo script" message="Local draft text only. No chat transcript, LocalAgent memory, emotion, cognition, provider, or hardcoded model.">
+            <FieldShell label="Demo script" message="Short text the agent will speak for the sample.">
               <TextareaField
                 value={voiceDraft.scriptText}
                 placeholder="Short public voice demo script"
                 onChange={(event) => updateVoiceDraft({ scriptText: event.currentTarget.value })}
               />
             </FieldShell>
-            <FieldShell label="Runtime TTS model" message="Required user/env model config for Runtime media.tts.synthesize. No provider or hardcoded model is supplied by Studio.">
+            <FieldShell label="Voice model" message="Use the Runtime voice model configured for this environment.">
               <TextField
                 value={voiceDraft.model}
                 placeholder="Configured Runtime TTS model"
@@ -879,8 +963,8 @@ function MediaVoiceCandidateWorkspace({ agent, onAgentWrite }: { agent: OwnerPor
             </div>
             {voiceResult ? (
               <InlineAlert tone={voiceResult.ok ? 'info' : 'danger'}>
-                {voiceResult.ok
-                  ? 'Runtime media.tts.synthesize returned candidate output. Public voice truth still requires a reviewed Resource(AUDIO) and Binding write.'
+                  {voiceResult.ok
+                  ? 'Voice sample generated for local review. It has not been published to the profile.'
                   : voiceResult.message}
               </InlineAlert>
             ) : null}
@@ -888,16 +972,16 @@ function MediaVoiceCandidateWorkspace({ agent, onAgentWrite }: { agent: OwnerPor
               <Surface tone="card" padding="md">
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div>
-                    <div className="text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-muted)]">Runtime job</div>
+                    <div className="text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-muted)]">Generation job</div>
                     <div className="ras-break-anywhere mt-1 font-medium">{voiceResult.runtime.jobId || 'job id unavailable'}</div>
                   </div>
                   <div>
-                    <div className="text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-muted)]">Artifact ids</div>
+                    <div className="text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-muted)]">Generated files</div>
                     <div className="ras-break-anywhere mt-1 font-medium">{voiceResult.runtime.artifactIds.join(', ') || 'artifact id unavailable'}</div>
                   </div>
                   <div>
-                    <div className="text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-muted)]">Source</div>
-                    <div className="mt-1 font-medium">{voiceResult.source}</div>
+                    <div className="text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-muted)]">Status</div>
+                    <div className="mt-1 font-medium">Generated locally</div>
                   </div>
                   <div>
                     <div className="text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-muted)]">Trace</div>
@@ -906,7 +990,7 @@ function MediaVoiceCandidateWorkspace({ agent, onAgentWrite }: { agent: OwnerPor
                 </div>
               </Surface>
             ) : null}
-            <FieldShell label="Runtime voice payload" message="Candidate-only. Runtime may generate audio artifacts; Resource/Binding/Profile writes require separate Realm operations.">
+            <FieldShell label="Voice request preview" message="Reviewed local request preview before generation.">
               <pre className="ras-json-preview m-0 min-h-72 overflow-auto rounded-[var(--nimi-radius-field)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-3 text-xs">
                 {voicePayload.payload ? JSON.stringify(voicePayload.payload, null, 2) : voicePayload.errors.join('; ')}
               </pre>
@@ -941,28 +1025,28 @@ function RuntimeProjectionWorkspace({ agent }: { agent: OwnerPortfolioAgentDetai
   return (
     <Surface tone="panel" padding="lg" className="mt-5">
       <div className="flex min-w-0 flex-wrap items-center gap-3">
-        <h3 className="m-0 text-xl font-semibold">Runtime world context projection</h3>
-        <StatusBadge tone="info">Realm projection</StatusBadge>
+        <h3 className="m-0 text-xl font-semibold">World context summary</h3>
+        <StatusBadge tone="info">AI context</StatusBadge>
         <StatusBadge tone="neutral">summary only</StatusBadge>
-        <StatusBadge tone="warning">not rule review</StatusBadge>
+        <StatusBadge tone="warning">read only</StatusBadge>
       </div>
       <p className="m-0 mt-1 text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-muted)]">
-        Calls RuntimeProjectionsService.projectRuntimePayload for world AI consumption readiness, then displays only checksum and counts. Raw rule statements are not exposed or accepted as owner edits.
+        Preview the world context available to AI-assisted workflows without exposing or editing raw rules.
       </p>
       <div className="mt-4 flex flex-wrap gap-3">
         <Button disabled={isProjecting || agent.world.status !== 'available'} loading={isProjecting} onClick={() => void projectRuntimeContext()}>
-          Project Runtime context
+          Generate world context summary
         </Button>
       </div>
       {agent.world.status !== 'available' ? (
         <InlineAlert tone="warning">
-          Runtime world projection unavailable: worldId evidence is missing from Realm MeService.getMyRealmAgent.
+          World context is unavailable because this agent does not have a resolved world.
         </InlineAlert>
       ) : null}
       {projectionResult ? (
         <InlineAlert tone={projectionResult.ok ? 'success' : 'danger'} className="mt-3">
           {projectionResult.ok
-            ? 'Runtime projection returned a source-backed RUNTIME_PAYLOAD summary. No truth write, agent-specific rule review, or raw rule content was created.'
+            ? 'World context summary generated. No agent settings were changed.'
             : projectionResult.message}
         </InlineAlert>
       ) : null}
@@ -977,7 +1061,7 @@ function RuntimeProjectionWorkspace({ agent }: { agent: OwnerPortfolioAgentDetai
         </dl>
       ) : null}
       {projectionResult ? (
-        <FieldShell label="Submitted projection request" message="Request contains only world evidence and allowed scope filters; no LocalAgent memory, private transcript, owner setting writes, or agent-specific raw rule review.">
+        <FieldShell label="Context request preview" message="World-only request preview for review and diagnostics.">
           <pre className="ras-json-preview m-0 mt-3 min-h-24 overflow-auto rounded-[var(--nimi-radius-field)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] p-3 text-xs">
             {JSON.stringify(projectionResult.submitted, null, 2)}
           </pre>
@@ -1125,13 +1209,13 @@ function CreativePostWorkspace({ agent }: { agent: OwnerPortfolioAgentDetail }) 
       const resources = await listReadyPostAttachmentResources();
       setResourceOptions(resources);
       setResourceListStatus(resources.length > 0
-        ? { tone: 'success', message: `Loaded ${resources.length} READY Resource attachment option${resources.length === 1 ? '' : 's'}.` }
-        : { tone: 'warning', message: 'No READY Resource attachment options were returned by Realm ResourcesService.listResources.' });
+        ? { tone: 'success', message: `Loaded ${resources.length} ready media attachment option${resources.length === 1 ? '' : 's'}.` }
+        : { tone: 'warning', message: 'No ready media attachment options were returned.' });
     } catch (error) {
       setResourceOptions([]);
       setResourceListStatus({
         tone: 'danger',
-        message: error instanceof Error ? error.message : 'Realm ResourcesService.listResources failed.',
+        message: error instanceof Error ? error.message : 'Ready media list failed.',
       });
     } finally {
       setIsLoadingResources(false);
@@ -1150,7 +1234,7 @@ function CreativePostWorkspace({ agent }: { agent: OwnerPortfolioAgentDetail }) 
     });
     setResourceListStatus({
       tone: 'info',
-      message: `Selected READY Resource(${resource.resourceType}) ${resource.id} for the canonical attachment envelope.`,
+      message: `Selected ${resource.resourceType.toLowerCase()} media ${resource.id}.`,
     });
   }
 
@@ -1162,7 +1246,7 @@ function CreativePostWorkspace({ agent }: { agent: OwnerPortfolioAgentDetail }) 
         attachmentTruth: false,
         publicTruth: false,
         failure: 'media-upload-file-invalid',
-        message: 'Reviewed media Resource upload requires a selected file.',
+        message: 'Reviewed media upload requires a selected file.',
         submitted: null,
       });
       return;
@@ -1199,9 +1283,9 @@ function CreativePostWorkspace({ agent }: { agent: OwnerPortfolioAgentDetail }) 
         <div className="min-w-0">
           <div className="flex min-w-0 flex-wrap items-center gap-3">
             <h3 className="m-0 text-xl font-semibold">Creative post candidate</h3>
-            <StatusBadge tone="info">app-local draft</StatusBadge>
+            <StatusBadge tone="info">local draft</StatusBadge>
             <StatusBadge tone={validation.publishable ? 'success' : 'neutral'}>
-              {validation.publishable ? 'Realm publish ready' : 'not Realm publish'}
+              {validation.publishable ? 'ready to publish' : 'not ready'}
             </StatusBadge>
           </div>
           <p className="m-0 mt-1 text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-muted)]">
@@ -1209,14 +1293,14 @@ function CreativePostWorkspace({ agent }: { agent: OwnerPortfolioAgentDetail }) 
           </p>
 
           <div className="mt-4 grid gap-4">
-            <FieldShell label="Caption" message="Stored only as local candidate state in this slice.">
+            <FieldShell label="Caption" message="Post text written from the agent's voice.">
               <TextareaField
                 value={draft.caption}
                 placeholder="Draft caption for human review"
                 onChange={(event) => updateDraft({ caption: event.currentTarget.value })}
               />
             </FieldShell>
-            <FieldShell label="Tags" message="Comma-separated local tags; normalized in the reviewed payload preview.">
+            <FieldShell label="Tags" message="Comma-separated tags for the post.">
               <TextField
                 value={draft.tagsText}
                 placeholder="artifact, studio, release-note"
@@ -1226,9 +1310,9 @@ function CreativePostWorkspace({ agent }: { agent: OwnerPortfolioAgentDetail }) 
             <Surface tone="card" padding="md">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <div className="font-medium">Optional attachment envelope</div>
+                  <div className="font-medium">Optional media attachment</div>
                   <div className="mt-1 text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-muted)]">
-                    Allowed target semantics: RESOURCE, ASSET, or BUNDLE.
+                    Attach an existing ready resource or upload reviewed media for this post.
                   </div>
                 </div>
                 <Checkbox
@@ -1238,7 +1322,7 @@ function CreativePostWorkspace({ agent }: { agent: OwnerPortfolioAgentDetail }) 
                 />
               </div>
               <div className="mt-3 grid gap-3 md:grid-cols-[180px_1fr]">
-                <FieldShell label="targetType">
+                <FieldShell label="Attachment type">
                   <SelectField
                     disabled={!draft.attachmentEnabled}
                     value={draft.attachmentTargetType}
@@ -1246,11 +1330,11 @@ function CreativePostWorkspace({ agent }: { agent: OwnerPortfolioAgentDetail }) 
                     onValueChange={(value) => updateDraft({ attachmentTargetType: value as AttachmentTargetType })}
                   />
                 </FieldShell>
-                <FieldShell label="targetId" message={draft.attachmentEnabled && !draft.attachmentTargetId.trim() ? 'attachment validation failed: attachment target missing' : undefined} messageTone="danger">
+                <FieldShell label="Attachment id" message={draft.attachmentEnabled && !draft.attachmentTargetId.trim() ? 'Select or enter an attachment id.' : undefined} messageTone="danger">
                   <TextField
                     disabled={!draft.attachmentEnabled}
                     value={draft.attachmentTargetId}
-                    placeholder="resource, asset, or bundle target"
+                    placeholder="Attachment id"
                     tone={draft.attachmentEnabled && !draft.attachmentTargetId.trim() ? 'danger' : 'default'}
                     onChange={(event) => updateDraft({ attachmentTargetId: event.currentTarget.value })}
                   />
@@ -1259,15 +1343,15 @@ function CreativePostWorkspace({ agent }: { agent: OwnerPortfolioAgentDetail }) 
               <div className="mt-3 grid gap-3 md:grid-cols-[220px_1fr]">
                 <div className="flex items-end">
                   <Button disabled={isLoadingResources} loading={isLoadingResources} onClick={() => void loadReadyResources()}>
-                    Load ready Resources
+                    Load ready media
                   </Button>
                 </div>
-                <FieldShell label="READY Resource picker" message="Uses ResourcesService.listResources, then locally filters READY Resource targets. It does not create Binding or profile asset truth.">
+                <FieldShell label="Ready media picker" message="Choose an existing ready media item for this post.">
                   <SelectField
                     disabled={resourceOptions.length === 0}
                     value={draft.attachmentTargetType === 'RESOURCE' ? draft.attachmentTargetId : ''}
                     options={[
-                      { value: '', label: resourceOptions.length === 0 ? 'No READY Resources loaded' : 'Select READY Resource' },
+                      { value: '', label: resourceOptions.length === 0 ? 'No ready media loaded' : 'Select ready media' },
                       ...resourceOptions.map((resource) => ({
                         value: resource.id,
                         label: `${resource.resourceType} · ${resource.label}`,
@@ -1286,21 +1370,21 @@ function CreativePostWorkspace({ agent }: { agent: OwnerPortfolioAgentDetail }) 
             <Surface tone="card" padding="md">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <div className="font-medium">Upload media Resource</div>
+                  <div className="font-medium">Upload media</div>
                   <div className="mt-1 text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-muted)]">
-                    Creates a PENDING media Resource, uploads to the signed storage URL, finalizes to READY, then fills RESOURCE + resourceId.
+                    Upload reviewed image, video, or audio and attach it to this post.
                   </div>
                 </div>
-                <StatusBadge tone="info">direct upload</StatusBadge>
+                <StatusBadge tone="info">upload</StatusBadge>
               </div>
               <div className="mt-3 grid gap-3 md:grid-cols-[180px_1fr]">
-                <FieldShell label="Resource type">
+                <FieldShell label="Media type">
                   <SelectField
                     value={mediaResourceType}
                     options={[
-                      { value: 'IMAGE', label: 'Resource(IMAGE)' },
-                      { value: 'VIDEO', label: 'Resource(VIDEO)' },
-                      { value: 'AUDIO', label: 'Resource(AUDIO)' },
+                      { value: 'IMAGE', label: 'Image' },
+                      { value: 'VIDEO', label: 'Video' },
+                      { value: 'AUDIO', label: 'Audio' },
                     ]}
                     onValueChange={(value) => {
                       setMediaResourceType(value as DirectMediaResourceType);
@@ -1309,7 +1393,7 @@ function CreativePostWorkspace({ agent }: { agent: OwnerPortfolioAgentDetail }) 
                     }}
                   />
                 </FieldShell>
-                <FieldShell label="File" message={draft.humanReviewed ? 'Owner-reviewed media only. This does not create Binding/Profile or publish success.' : 'Human review complete is required before upload.'} messageTone={draft.humanReviewed ? 'neutral' : 'danger'}>
+                <FieldShell label="File" message={draft.humanReviewed ? 'Owner-reviewed media only.' : 'Human review complete is required before upload.'} messageTone={draft.humanReviewed ? 'neutral' : 'danger'}>
                   <TextField
                     type="file"
                     accept={mediaResourceType === 'IMAGE' ? 'image/*' : mediaResourceType === 'VIDEO' ? 'video/*' : 'audio/*'}
@@ -1326,18 +1410,18 @@ function CreativePostWorkspace({ agent }: { agent: OwnerPortfolioAgentDetail }) 
                   loading={isUploadingMediaResource}
                   onClick={() => void uploadMediaResourceAttachment()}
                 >
-                  Upload media Resource attachment
+                  Upload media attachment
                 </Button>
               </div>
               {mediaUploadResult ? (
                 <InlineAlert tone={mediaUploadResult.ok ? 'success' : 'danger'} className="mt-3">
                   {mediaUploadResult.ok
-                    ? `Realm finalized READY ${mediaUploadResult.canonical.resourceType} resource ${mediaUploadResult.canonical.id}; publishing still requires PostsService.createPost.`
+                    ? `Media uploaded and attached as ${mediaUploadResult.canonical.id}. Publishing still requires review.`
                     : mediaUploadResult.message}
                 </InlineAlert>
               ) : null}
               {mediaUploadResult ? (
-                <FieldShell label="Media Resource result" message="Resource attachment truth only. No Binding, profile asset, schedule, moderation, or post success is claimed here.">
+                <FieldShell label="Media upload result" message="Latest upload response. This does not publish the post by itself.">
                   <pre className="ras-json-preview m-0 min-h-24 overflow-auto rounded-[var(--nimi-radius-field)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] p-3 text-xs">
                     {JSON.stringify(mediaUploadResult, null, 2)}
                   </pre>
@@ -1347,12 +1431,12 @@ function CreativePostWorkspace({ agent }: { agent: OwnerPortfolioAgentDetail }) 
             <Surface tone="card" padding="md">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <div className="font-medium">Reviewed text Resource</div>
+                  <div className="font-medium">Create text attachment</div>
                   <div className="mt-1 text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-muted)]">
-                    Creates a READY Resource(TEXT) from the reviewed caption, then fills the post attachment envelope as RESOURCE + resourceId.
+                    Turn the reviewed caption into a reusable text attachment for this post.
                   </div>
                 </div>
-                <StatusBadge tone="info">Realm Resource</StatusBadge>
+                <StatusBadge tone="info">text</StatusBadge>
               </div>
               {postTextResourceDraft.publishable ? null : (
                 <InlineAlert tone="warning">
@@ -1365,18 +1449,18 @@ function CreativePostWorkspace({ agent }: { agent: OwnerPortfolioAgentDetail }) 
                   loading={isCreatingTextResource}
                   onClick={() => void createTextResourceAttachment()}
                 >
-                  Create text Resource attachment
+                  Create text attachment
                 </Button>
               </div>
               {textResourceResult ? (
                 <InlineAlert tone={textResourceResult.ok ? 'success' : 'danger'} className="mt-3">
                   {textResourceResult.ok
-                    ? `Realm confirmed READY TEXT resource ${textResourceResult.canonical.id}; the attachment envelope now targets that Resource.`
+                    ? `Text attachment created and selected: ${textResourceResult.canonical.id}.`
                     : textResourceResult.message}
                 </InlineAlert>
               ) : null}
               {textResourceResult ? (
-                <FieldShell label="Text Resource result" message="Attachment truth is based on Realm Resource success. Publishing still requires PostsService.createPost.">
+                <FieldShell label="Text attachment result" message="Latest attachment response. Publishing still requires review.">
                   <pre className="ras-json-preview m-0 min-h-24 overflow-auto rounded-[var(--nimi-radius-field)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] p-3 text-xs">
                     {JSON.stringify(textResourceResult, null, 2)}
                   </pre>
@@ -1403,7 +1487,7 @@ function CreativePostWorkspace({ agent }: { agent: OwnerPortfolioAgentDetail }) 
                   }
                 }}
               >
-                Preview reviewed payload
+                Preview reviewed post
               </Button>
               <Button
                 disabled={!validation.publishable || isPublishing}
@@ -1425,22 +1509,22 @@ function CreativePostWorkspace({ agent }: { agent: OwnerPortfolioAgentDetail }) 
                 {isPublishing ? 'Publishing...' : 'Publish to Realm'}
               </Button>
             </div>
-            <FieldShell label="Reviewed candidate payload" message="Payload preview is preserved for review and failure diagnosis. Publish sends only realmCreatePost to Realm.">
+            <FieldShell label="Reviewed post preview" message="Review the normalized post before publishing.">
               <pre className="ras-json-preview m-0 min-h-32 overflow-auto rounded-[var(--nimi-radius-field)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-3 text-xs">
-                {payloadPreview ? JSON.stringify(payloadPreview, null, 2) : 'No reviewed payload preview yet.'}
+                {payloadPreview ? JSON.stringify(payloadPreview, null, 2) : 'No reviewed post preview yet.'}
               </pre>
             </FieldShell>
             {publishResult ? (
               <Surface tone="card" padding="md">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
-                    <div className="font-medium">Realm publish result</div>
+                    <div className="font-medium">Publish result</div>
                     <div className="mt-1 text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-muted)]">
-                      Source: {publishResult.source}
+                      {publishResult.ok ? 'Post returned from Realm.' : 'Publish failed.'}
                     </div>
                   </div>
                   <StatusBadge tone={publishResult.ok ? 'success' : 'danger'}>
-                    {publishResult.ok ? 'canonical post returned' : publishResult.failure}
+                    {publishResult.ok ? 'published' : 'failed'}
                   </StatusBadge>
                 </div>
                 {publishResult.ok ? (
@@ -1462,12 +1546,12 @@ function CreativePostWorkspace({ agent }: { agent: OwnerPortfolioAgentDetail }) 
             <Surface tone="card" padding="md">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <div className="font-medium">App-local single schedule</div>
+                  <div className="font-medium">Single local schedule</div>
                   <div className="mt-1 text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-muted)]">
-                    Creates one local preview candidate only after human review. It is not Realm scheduling, moderation, or publish success.
+                    Hold a reviewed draft for one local scheduled publish action.
                   </div>
                 </div>
-                <StatusBadge tone="warning">not Realm schedule</StatusBadge>
+                <StatusBadge tone="warning">local only</StatusBadge>
               </div>
               <div className="mt-3 grid gap-3 md:grid-cols-2">
                 <FieldShell label="Local date">
@@ -1489,7 +1573,7 @@ function CreativePostWorkspace({ agent }: { agent: OwnerPortfolioAgentDetail }) 
               </div>
               {!validation.publishable ? (
                 <InlineAlert tone="warning">
-                  App-local schedule unavailable: reviewed publishable local post draft required.
+                  Local schedule unavailable: reviewed publishable post draft required.
                 </InlineAlert>
               ) : null}
               {scheduleErrors.length > 0 ? (
@@ -1514,9 +1598,9 @@ function CreativePostWorkspace({ agent }: { agent: OwnerPortfolioAgentDetail }) 
                   Preview local schedule
                 </Button>
               </div>
-              <FieldShell label="Local schedule candidate" message="Preview only. No Realm, timers, persistence, queue, campaign, or recurring automation is created.">
+              <FieldShell label="Local schedule preview" message="Preview only. This does not create an automated queue or recurring schedule.">
                 <pre className="ras-json-preview m-0 min-h-28 overflow-auto rounded-[var(--nimi-radius-field)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] p-3 text-xs">
-                  {schedulePreview ? JSON.stringify(schedulePreview, null, 2) : 'No app-local schedule preview yet.'}
+                  {schedulePreview ? JSON.stringify(schedulePreview, null, 2) : 'No local schedule preview yet.'}
                 </pre>
               </FieldShell>
             </Surface>
@@ -1535,7 +1619,7 @@ function CreativePostWorkspace({ agent }: { agent: OwnerPortfolioAgentDetail }) 
                 <Surface key={candidate.sequence} tone="card" padding="md">
                   <div className="flex items-center justify-between gap-3">
                     <div className="font-medium">{candidate.label}</div>
-                    <StatusBadge tone="warning">not public truth</StatusBadge>
+                    <StatusBadge tone="warning">local only</StatusBadge>
                   </div>
                   <div className="ras-break-anywhere mt-2 text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-secondary)]">
                     {candidate.captionSnapshot}
@@ -1563,7 +1647,7 @@ function AgentDetail({ agentId }: { agentId: string }) {
   if (detailQuery.isLoading) {
     return (
       <section className="min-w-0 flex-1">
-        <EmptyState title="Loading Realm Agent settings" description="Reading GET /api/me/agents/{agentId} through SDK MeService.getMyRealmAgent." />
+        <EmptyState title="Loading Realm Agent settings" description="Loading current agent profile and settings." />
       </section>
     );
   }
@@ -1603,8 +1687,8 @@ function AgentDetail({ agentId }: { agentId: string }) {
             <div className="mt-5 min-w-0">
               <div className="flex min-w-0 flex-wrap items-center gap-3">
                 <h2 className="ras-break-anywhere m-0 text-2xl font-semibold">{agent.displayName.value || 'Display name unavailable'}</h2>
-                <StatusBadge tone="info">MeService.getMyRealmAgent</StatusBadge>
-                <StatusBadge tone="neutral">read-only settings</StatusBadge>
+                <StatusBadge tone="info">Realm Agent</StatusBadge>
+                <StatusBadge tone="neutral">current profile</StatusBadge>
               </div>
               <p className="ras-break-anywhere m-0 mt-2 text-[var(--nimi-text-secondary)]">
                 {agent.handle.value ? `@${agent.handle.value}` : 'handle setting read unavailable'}
@@ -1620,8 +1704,8 @@ function AgentDetail({ agentId }: { agentId: string }) {
           </div>
           <div className="grid content-start gap-3">
             <Surface tone="card" padding="md">
-              <div className="text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-muted)]">Canonical source</div>
-              <div className="ras-break-anywhere mt-1 font-medium">{agent.source}</div>
+              <div className="text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-muted)]">Ownership</div>
+              <div className="ras-break-anywhere mt-1 font-medium">User-owned Realm Agent</div>
             </Surface>
             {agent.friendCount.status === 'available' ? (
               <Surface tone="card" padding="md">
@@ -1670,16 +1754,18 @@ export function OwnerPortfolio() {
   const sourceWarnings = agents.filter((agent) => agent.friendCount.status === 'source-unavailable');
 
   if (portfolioQuery.isLoading) {
-    return <EmptyState title="Loading Realm owner portfolio" description="Reading GET /api/me/agents through SDK MeService.listMyRealmAgents." />;
+    return <PortfolioLoadingState />;
   }
 
   if (portfolioQuery.isError) {
     const failure = classifyPortfolioFailure(portfolioQuery.error);
     return (
-      <InlineAlert tone="danger">
-        <strong>{failure.title}</strong>
-        <div>{failure.detail}</div>
-      </InlineAlert>
+      <PortfolioUnavailableState
+        title={failure.title}
+        detail={failure.detail}
+        loading={portfolioQuery.isFetching}
+        onRetry={() => void portfolioQuery.refetch()}
+      />
     );
   }
 
@@ -1689,7 +1775,7 @@ export function OwnerPortfolio() {
         <CreateRealmAgentWorkspace />
         <EmptyState
           title="No owner-created Realm Agents"
-          description="Realm returned an empty current-user MASTER_OWNED portfolio from GET /api/me/agents."
+          description="You have not created any user-owned Realm Agents yet."
           action={<Button onClick={() => void portfolioQuery.refetch()}>Refresh</Button>}
         />
       </div>
@@ -1704,13 +1790,13 @@ export function OwnerPortfolio() {
           <div className="mb-3 flex items-center justify-between gap-3">
             <div>
               <h2 className="m-0 text-base font-semibold">Owner portfolio</h2>
-              <p className="m-0 mt-1 text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-muted)]">GET /api/me/agents</p>
+              <p className="m-0 mt-1 text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-muted)]">Your user-owned Realm Agents</p>
             </div>
             <Button loading={portfolioQuery.isFetching} onClick={() => void portfolioQuery.refetch()}>Refresh</Button>
           </div>
           <Surface tone="panel" padding="md" className="mb-3">
             <div className="grid gap-3">
-              <FieldShell label="Search portfolio" message="Local view control only. Realm reads remain GET /api/me/agents.">
+              <FieldShell label="Search portfolio" message="Search, filter, and sort the current portfolio view.">
                 <SearchField
                   value={portfolioQueryText}
                   placeholder="Search name, handle, world, or state"

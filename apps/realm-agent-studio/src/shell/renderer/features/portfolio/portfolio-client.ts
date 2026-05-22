@@ -1,4 +1,9 @@
-import type { Realm } from '@nimiplatform/sdk/realm';
+import type {
+  RealmServiceArgs,
+  RealmServiceMethod,
+  RealmServiceName,
+  RealmServiceResult,
+} from '@nimiplatform/sdk/realm';
 import type { SpeechSynthesizeInput, SpeechSynthesizeOutput } from '@nimiplatform/sdk/runtime/browser';
 import { createStudioRealmClient } from '@renderer/data/realm-client.js';
 import { createStudioRuntimeClient } from '@renderer/data/runtime-client.js';
@@ -35,27 +40,68 @@ import {
   type OwnerAgentSettingsDraft,
 } from './setting-proposal.js';
 
-type RealmCreateAgentResponse = Awaited<ReturnType<Realm['services']['AgentsService']['agentControllerCreate']>>;
-type RealmAgentHandleAvailabilityResponse = Awaited<ReturnType<Realm['services']['AgentsService']['agentControllerCheckHandle']>>;
-type RealmSelectAvatarInput = Parameters<Realm['services']['AgentsService']['agentControllerSelectAvatar']>[1];
-type RealmSelectAvatarResponse = Awaited<ReturnType<Realm['services']['AgentsService']['agentControllerSelectAvatar']>>;
-export type RealmAgentVisibilitySettings = Awaited<ReturnType<Realm['services']['AgentsService']['agentControllerGetVisibility']>>;
-type RealmAgentVisibilityUpdateInput = Parameters<Realm['services']['AgentsService']['agentControllerUpdateVisibility']>[1];
-export type RealmOwnerAgentSettings = Awaited<ReturnType<Realm['services']['MeService']['getMyRealmAgentSettings']>>;
-type RealmOwnerAgentSettingsUpdateInput = Parameters<Realm['services']['MeService']['updateMyRealmAgentSettings']>[1];
-type RealmCreatePostInput = Parameters<Realm['services']['PostsService']['createPost']>[0];
-type RealmCreatePostResponse = Awaited<ReturnType<Realm['services']['PostsService']['createPost']>>;
-type RealmCreateTextResourceInput = Parameters<Realm['services']['ResourcesService']['createTextResource']>[0];
-type RealmCreateTextResourceResponse = Awaited<ReturnType<Realm['services']['ResourcesService']['createTextResource']>>;
-type RealmResourceListResponse = Awaited<ReturnType<Realm['services']['ResourcesService']['listResources']>>;
-type RealmCreateImageUploadResponse = Awaited<ReturnType<Realm['services']['ResourcesService']['createImageDirectUpload']>>;
-type RealmCreateVideoUploadResponse = Awaited<ReturnType<Realm['services']['ResourcesService']['createVideoDirectUpload']>>;
-type RealmCreateAudioUploadInput = Parameters<Realm['services']['ResourcesService']['createAudioDirectUpload']>[0];
-type RealmCreateAudioUploadResponse = Awaited<ReturnType<Realm['services']['ResourcesService']['createAudioDirectUpload']>>;
-type RealmFinalizeResourceInput = Parameters<Realm['services']['ResourcesService']['finalizeResource']>[1];
-type RealmFinalizeResourceResponse = Awaited<ReturnType<Realm['services']['ResourcesService']['finalizeResource']>>;
-type RealmRuntimeProjectionInput = Parameters<Realm['services']['RuntimeProjectionsService']['projectRuntimePayload']>[0];
-type RealmRuntimeProjectionResponse = Awaited<ReturnType<Realm['services']['RuntimeProjectionsService']['projectRuntimePayload']>>;
+type StudioRealmMethod<
+  Service extends RealmServiceName,
+  Method extends RealmServiceMethod<Service>,
+> = (...args: RealmServiceArgs<Service, Method>) => Promise<RealmServiceResult<Service, Method>>;
+
+type StudioRealmClient = {
+  services: {
+    AgentsService: {
+      agentControllerCheckHandle: StudioRealmMethod<'AgentsService', 'agentControllerCheckHandle'>;
+      agentControllerCreate: StudioRealmMethod<'AgentsService', 'agentControllerCreate'>;
+      agentControllerGetVisibility: StudioRealmMethod<'AgentsService', 'agentControllerGetVisibility'>;
+      agentControllerSelectAvatar: StudioRealmMethod<'AgentsService', 'agentControllerSelectAvatar'>;
+      agentControllerUpdateVisibility: StudioRealmMethod<'AgentsService', 'agentControllerUpdateVisibility'>;
+    };
+    MeService: {
+      getMyRealmAgent: StudioRealmMethod<'MeService', 'getMyRealmAgent'>;
+      getMyRealmAgentSettings: StudioRealmMethod<'MeService', 'getMyRealmAgentSettings'>;
+      listMyRealmAgents: StudioRealmMethod<'MeService', 'listMyRealmAgents'>;
+      updateMyRealmAgentSettings: StudioRealmMethod<'MeService', 'updateMyRealmAgentSettings'>;
+    };
+    PostsService: {
+      createPost: StudioRealmMethod<'PostsService', 'createPost'>;
+    };
+    ResourcesService: {
+      createAudioDirectUpload: StudioRealmMethod<'ResourcesService', 'createAudioDirectUpload'>;
+      createImageDirectUpload: StudioRealmMethod<'ResourcesService', 'createImageDirectUpload'>;
+      createTextResource: StudioRealmMethod<'ResourcesService', 'createTextResource'>;
+      createVideoDirectUpload: StudioRealmMethod<'ResourcesService', 'createVideoDirectUpload'>;
+      finalizeResource: StudioRealmMethod<'ResourcesService', 'finalizeResource'>;
+      listResources: StudioRealmMethod<'ResourcesService', 'listResources'>;
+    };
+    RuntimeProjectionsService: {
+      projectRuntimePayload: StudioRealmMethod<'RuntimeProjectionsService', 'projectRuntimePayload'>;
+    };
+    WorldsService: {
+      worldControllerGetWorldDetailWithAgents: StudioRealmMethod<'WorldsService', 'worldControllerGetWorldDetailWithAgents'>;
+      worldControllerListWorlds: StudioRealmMethod<'WorldsService', 'worldControllerListWorlds'>;
+    };
+  };
+};
+
+type RealmCreateAgentResponse = RealmServiceResult<'AgentsService', 'agentControllerCreate'>;
+type RealmAgentHandleAvailabilityResponse = RealmServiceResult<'AgentsService', 'agentControllerCheckHandle'>;
+type RealmSelectAvatarInput = RealmServiceArgs<'AgentsService', 'agentControllerSelectAvatar'>[1];
+type RealmSelectAvatarResponse = RealmServiceResult<'AgentsService', 'agentControllerSelectAvatar'>;
+export type RealmAgentVisibilitySettings = RealmServiceResult<'AgentsService', 'agentControllerGetVisibility'>;
+type RealmAgentVisibilityUpdateInput = RealmServiceArgs<'AgentsService', 'agentControllerUpdateVisibility'>[1];
+export type RealmOwnerAgentSettings = RealmServiceResult<'MeService', 'getMyRealmAgentSettings'>;
+type RealmOwnerAgentSettingsUpdateInput = RealmServiceArgs<'MeService', 'updateMyRealmAgentSettings'>[1];
+type RealmCreatePostInput = RealmServiceArgs<'PostsService', 'createPost'>[0];
+type RealmCreatePostResponse = RealmServiceResult<'PostsService', 'createPost'>;
+type RealmCreateTextResourceInput = RealmServiceArgs<'ResourcesService', 'createTextResource'>[0];
+type RealmCreateTextResourceResponse = RealmServiceResult<'ResourcesService', 'createTextResource'>;
+type RealmResourceListResponse = RealmServiceResult<'ResourcesService', 'listResources'>;
+type RealmCreateImageUploadResponse = RealmServiceResult<'ResourcesService', 'createImageDirectUpload'>;
+type RealmCreateVideoUploadResponse = RealmServiceResult<'ResourcesService', 'createVideoDirectUpload'>;
+type RealmCreateAudioUploadInput = RealmServiceArgs<'ResourcesService', 'createAudioDirectUpload'>[0];
+type RealmCreateAudioUploadResponse = RealmServiceResult<'ResourcesService', 'createAudioDirectUpload'>;
+type RealmFinalizeResourceInput = RealmServiceArgs<'ResourcesService', 'finalizeResource'>[1];
+type RealmFinalizeResourceResponse = RealmServiceResult<'ResourcesService', 'finalizeResource'>;
+type RealmRuntimeProjectionInput = RealmServiceArgs<'RuntimeProjectionsService', 'projectRuntimePayload'>[0];
+type RealmRuntimeProjectionResponse = RealmServiceResult<'RuntimeProjectionsService', 'projectRuntimePayload'>;
 
 export const REALM_POST_PUBLISH_SOURCE = 'Realm PostsService.createPost';
 export const REALM_TEXT_RESOURCE_SOURCE = 'Realm ResourcesService.createTextResource';
@@ -871,21 +917,21 @@ export function normalizeRealmPostPublishResult(post: RealmCreatePostResponse): 
   };
 }
 
-export async function listOwnerPortfolioAgents(realm: Realm = createStudioRealmClient()): Promise<OwnerPortfolioAgent[]> {
+export async function listOwnerPortfolioAgents(realm: StudioRealmClient = createStudioRealmClient()): Promise<OwnerPortfolioAgent[]> {
   const agents = await realm.services.MeService.listMyRealmAgents();
   return normalizeOwnerPortfolio(agents);
 }
 
 export async function getOwnerPortfolioAgentDetail(
   agentId: string,
-  realm: Realm = createStudioRealmClient(),
+  realm: StudioRealmClient = createStudioRealmClient(),
 ): Promise<OwnerPortfolioAgentDetail> {
   const agent = await realm.services.MeService.getMyRealmAgent(agentId);
   return normalizeOwnerPortfolioAgentDetail(agent);
 }
 
 export async function listCreateRealmAgentSelectableWorlds(
-  realm: Realm = createStudioRealmClient(),
+  realm: StudioRealmClient = createStudioRealmClient(),
 ): Promise<SelectableRealmWorld[]> {
   const worlds = await realm.services.WorldsService.worldControllerListWorlds();
   return normalizeSelectableWorlds(worlds as RealmAgentCreationWorldDto[]);
@@ -893,7 +939,7 @@ export async function listCreateRealmAgentSelectableWorlds(
 
 export async function getCreateRealmAgentWorldPreview(
   worldId: string,
-  realm: Realm = createStudioRealmClient(),
+  realm: StudioRealmClient = createStudioRealmClient(),
 ): Promise<SelectedWorldPreview> {
   const world = await realm.services.WorldsService.worldControllerGetWorldDetailWithAgents(worldId, 4);
   return normalizeSelectedWorldPreview(world);
@@ -901,7 +947,7 @@ export async function getCreateRealmAgentWorldPreview(
 
 export async function checkCreateRealmAgentHandleAvailability(
   handle: string,
-  realm: Realm = createStudioRealmClient(),
+  realm: StudioRealmClient = createStudioRealmClient(),
 ): Promise<RealmAgentHandleAvailabilityResult> {
   const normalizedHandle = normalizeCreateRealmAgentDraft({
     handle,
@@ -952,7 +998,7 @@ export async function checkCreateRealmAgentHandleAvailability(
 
 export async function createReviewedRealmAgent(
   payload: ReviewedCreateRealmAgentPayload,
-  realm: Realm = createStudioRealmClient(),
+  realm: StudioRealmClient = createStudioRealmClient(),
 ): Promise<RealmAgentCreateResult> {
   try {
     const agent = await realm.services.AgentsService.agentControllerCreate(buildRealmCreateAgentInput(payload));
@@ -970,7 +1016,7 @@ export async function createReviewedRealmAgent(
 export async function selectReviewedAgentAvatarUrl(
   agentId: string,
   avatarUrl: string,
-  realm: Realm = createStudioRealmClient(),
+  realm: StudioRealmClient = createStudioRealmClient(),
 ): Promise<RealmAgentAvatarSelectResult> {
   const submitted = buildRealmSelectAvatarInput(avatarUrl);
   if (!submitted) {
@@ -1001,14 +1047,14 @@ export async function selectReviewedAgentAvatarUrl(
 
 export async function getAgentVisibilitySettings(
   agentId: string,
-  realm: Realm = createStudioRealmClient(),
+  realm: StudioRealmClient = createStudioRealmClient(),
 ): Promise<RealmAgentVisibilitySettings> {
   return realm.services.AgentsService.agentControllerGetVisibility(agentId);
 }
 
 export async function getOwnerAgentSettings(
   agentId: string,
-  realm: Realm = createStudioRealmClient(),
+  realm: StudioRealmClient = createStudioRealmClient(),
 ): Promise<RealmOwnerAgentSettings> {
   return realm.services.MeService.getMyRealmAgentSettings(agentId);
 }
@@ -1017,7 +1063,7 @@ export async function updateReviewedAgentVisibility(
   agentId: string,
   draft: AgentVisibilityDraft,
   current: RealmAgentVisibilitySettings,
-  realm: Realm = createStudioRealmClient(),
+  realm: StudioRealmClient = createStudioRealmClient(),
 ): Promise<RealmAgentVisibilityUpdateResult> {
   const { input, errors } = buildRealmUpdateVisibilityInput(draft, current);
   if (!input) {
@@ -1060,7 +1106,7 @@ export async function updateReviewedOwnerAgentSettings(
   agentId: string,
   draft: OwnerAgentSettingsDraft,
   current: RealmOwnerAgentSettings,
-  realm: Realm = createStudioRealmClient(),
+  realm: StudioRealmClient = createStudioRealmClient(),
 ): Promise<RealmOwnerAgentSettingsUpdateResult> {
   const built = buildRealmOwnerAgentSettingsUpdateInput(draft, current);
   if (!built.ok) {
@@ -1100,7 +1146,7 @@ export async function updateReviewedOwnerAgentSettings(
 
 export async function publishReviewedPostDraft(
   payload: CandidatePostPayload,
-  realm: Realm = createStudioRealmClient(),
+  realm: StudioRealmClient = createStudioRealmClient(),
 ): Promise<RealmPostPublishResult> {
   try {
     const post = await realm.services.PostsService.createPost(buildRealmCreatePostInput(payload));
@@ -1116,7 +1162,7 @@ export async function publishReviewedPostDraft(
 }
 
 export async function listReadyPostAttachmentResources(
-  realm: Realm = createStudioRealmClient(),
+  realm: StudioRealmClient = createStudioRealmClient(),
 ): Promise<PostAttachmentResourceOption[]> {
   const response = await realm.services.ResourcesService.listResources();
   return normalizePostAttachmentResourceOptions(response);
@@ -1145,7 +1191,7 @@ async function defaultStorageUploadTransport(request: StorageUploadRequest): Pro
 
 export async function uploadReviewedPostMediaResource(
   input: DirectMediaResourceUploadInput,
-  realm: Realm = createStudioRealmClient(),
+  realm: StudioRealmClient = createStudioRealmClient(),
   storageUpload: StorageUploadTransport = defaultStorageUploadTransport,
 ): Promise<DirectMediaResourceUploadResult> {
   const finalizeInput = buildFinalizeDirectMediaResourceInput(input);
@@ -1258,7 +1304,7 @@ export async function uploadReviewedPostMediaResource(
 
 export async function createReviewedPostTextResource(
   payload: CandidatePostPayload,
-  realm: Realm = createStudioRealmClient(),
+  realm: StudioRealmClient = createStudioRealmClient(),
 ): Promise<RealmTextResourceCreateResult> {
   const submitted = buildRealmPostTextResourceInput(payload);
   if (!submitted) {
@@ -1289,7 +1335,7 @@ export async function createReviewedPostTextResource(
 
 export async function projectAgentRuntimeContextSummary(
   agent: OwnerPortfolioAgentDetail,
-  realm: Realm = createStudioRealmClient(),
+  realm: StudioRealmClient = createStudioRealmClient(),
 ): Promise<RuntimeProjectionSummaryResult> {
   const submitted = buildRuntimeProjectionInput(agent);
   if (!submitted) {

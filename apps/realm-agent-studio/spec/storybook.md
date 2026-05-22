@@ -41,7 +41,7 @@ implementation.
 | Use AI As Creative Assistance | AI is embedded in setting, visual, voice, post, and source-backed suggestion workflows. AI output never bypasses human review. |
 | Preview Agent Voice And Behavior | Preview is advisory, cannot mutate LocalAgent state, cannot create posts, and cannot become truth without owner save. |
 | Deferred Post Performance Review | Post performance, economic views, and causal attribution are deferred. |
-| UX Consistency With Platform | Future implementation must use platform architecture and kit-first UI authority, but this spec does not begin UI design. |
+| UX Consistency With Platform | Implementation must follow the `apps/parentos` / `apps/desktop` shell, bootstrap, session, navigation, and failure-state posture. It must use `nimi-kit` and shared components as the visible interaction system, not merely import kit tokens. |
 
 ## Storybook Gaps
 

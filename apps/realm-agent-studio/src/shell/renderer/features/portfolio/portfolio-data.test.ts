@@ -194,6 +194,6 @@ describe('owner portfolio detail normalization', () => {
 
     expect(failure.kind).toBe('setting-read-unavailable');
     expect(failure.title).toBe('Setting read unavailable');
-    expect(failure.detail).toContain('/api/me/agents/{agentId}');
+    expect(failure.detail).toContain('read-only setting fields');
   });
 });
