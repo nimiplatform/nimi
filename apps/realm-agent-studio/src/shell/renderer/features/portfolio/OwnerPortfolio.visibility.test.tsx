@@ -66,8 +66,43 @@ vi.mock('./portfolio-client.js', async (importOriginal) => {
       },
       updatedAt: '2026-05-21T00:00:00.000Z',
     })),
-    getOwnerPortfolioAgentDetail: vi.fn(async () => ownerAgentDetail()),
+    getOwnerPortfolioAgentDetail: vi.fn(async (agentId: string) => ownerAgentDetail(agentId)),
     listOwnerPortfolioAgents: vi.fn(async () => [ownerAgent()]),
+    listCreateRealmAgentSelectableWorlds: vi.fn(async () => [{
+      id: 'world-oasis',
+      name: 'OASIS',
+      type: 'OASIS',
+      status: 'ACTIVE',
+      description: 'Main Realm world',
+      tagline: 'Main world',
+      source: 'Realm WorldsService.worldControllerListWorlds',
+    }]),
+    getCreateRealmAgentWorldPreview: vi.fn(async () => ({
+      id: 'world-oasis',
+      name: 'OASIS',
+      type: 'OASIS',
+      status: 'ACTIVE',
+      contentRating: 'PG13',
+      tagline: 'Main world',
+      description: 'Main Realm world',
+      overview: 'Shared source world.',
+      themes: ['agent-ip'],
+      agentCount: 3,
+      nativeCreationState: 'OPEN',
+      source: 'Realm WorldsService.worldControllerGetWorldDetailWithAgents',
+    })),
+    createReviewedRealmAgent: vi.fn(async () => ({
+      ok: true,
+      source: 'Realm AgentsService.agentControllerCreate',
+      agent: {
+        id: 'agent-created-ui',
+        state: 'INCUBATING',
+      },
+      canonical: {
+        id: 'agent-created-ui',
+        state: 'INCUBATING',
+      },
+    })),
     createReviewedPostTextResource: vi.fn(async () => ({
       ok: true,
       source: 'Realm ResourcesService.createTextResource',
@@ -269,9 +304,9 @@ function ownerAgent(): OwnerPortfolioAgent {
   };
 }
 
-function ownerAgentDetail(): OwnerPortfolioAgentDetail {
+function ownerAgentDetail(id = 'agent-1'): OwnerPortfolioAgentDetail {
   return {
-    id: 'agent-1',
+    id,
     displayName: detailField('displayName', 'Display name', 'Mira'),
     handle: detailField('handle', 'Handle', 'mira'),
     bio: detailField('bio', 'Bio', 'Visible public bio'),
@@ -453,6 +488,36 @@ describe('OwnerPortfolio visibility settings UI', () => {
     await waitForText('Handle @mira.agent is available.');
     expect(portfolioClient.checkCreateRealmAgentHandleAvailability).toHaveBeenCalledWith('mira.agent');
     expect(document.body.textContent).toContain('Checked before submit');
+  });
+
+  it('opens the created agent detail and preserves public bio for post-create settings', async () => {
+    await renderOwnerPortfolio();
+    await openWorkspace('Create', 'Create Realm Agent');
+
+    await changeField(findFieldByPlaceholder<HTMLInputElement>('@creator-agent'), '@New.Agent');
+    await changeField(findFieldByPlaceholder<HTMLInputElement>('Creator Agent'), 'New Agent');
+    await changeField(findFieldByPlaceholder<HTMLTextAreaElement>('Short public bio'), 'Public bio continues after create.');
+    await changeField(findFieldByPlaceholder<HTMLTextAreaElement>('Creative concept'), 'Owner-created public agent concept.');
+    await changeField(findFieldByPlaceholder<HTMLTextAreaElement>('Public-facing description'), 'Created from Studio.');
+
+    await waitForText('Handle @new.agent is available.');
+    const createButton = await waitForButtonEnabled('Create Realm Agent');
+    await act(async () => {
+      createButton.click();
+    });
+
+    await waitForText('Post-create draft preserved');
+    await waitForText('Public bio continues after create.');
+    expect(portfolioClient.createReviewedRealmAgent).toHaveBeenCalledWith(expect.objectContaining({
+      publicFields: expect.objectContaining({
+        publicBio: 'Public bio continues after create.',
+      }),
+      body: expect.not.objectContaining({
+        publicBio: expect.anything(),
+      }),
+    }));
+    expect(portfolioClient.getOwnerPortfolioAgentDetail).toHaveBeenCalledWith('agent-created-ui');
+    expect(document.body.textContent).toContain('Public bio was intentionally not included in the Realm create request');
   });
 
   it('shows the human-review gate and lifecycle boundary for real visibility settings', async () => {

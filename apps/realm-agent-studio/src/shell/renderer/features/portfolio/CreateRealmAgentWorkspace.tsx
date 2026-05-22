@@ -19,6 +19,21 @@ import {
   type RealmAgentCreateResult,
 } from './portfolio-client.js';
 
+export type CreatedRealmAgentContext = {
+  agentId: string;
+  state: string | null;
+  handle: string;
+  displayName: string;
+  publicBio: string;
+  selectedWorldId: string;
+  needsPostCreateSettings: boolean;
+};
+
+type CreateRealmAgentWorkspaceProps = {
+  onCreated?: (context: CreatedRealmAgentContext) => void;
+  onOpenCreatedAgent?: (agentId: string, target: 'detail' | 'settings') => void;
+};
+
 function createEmptyDraft(): CreateRealmAgentDraftInput {
   return {
     handle: '',
@@ -98,9 +113,10 @@ function ReadinessPreview({
   );
 }
 
-export function CreateRealmAgentWorkspace() {
+export function CreateRealmAgentWorkspace({ onCreated, onOpenCreatedAgent }: CreateRealmAgentWorkspaceProps) {
   const [draft, setDraft] = useState<CreateRealmAgentDraftInput>(() => createEmptyDraft());
   const [submitResult, setSubmitResult] = useState<RealmAgentCreateResult | null>(null);
+  const [createdContext, setCreatedContext] = useState<CreatedRealmAgentContext | null>(null);
   const [localSubmitErrors, setLocalSubmitErrors] = useState<string[]>([]);
   const queryClient = useQueryClient();
   const worldsQuery = useQuery({
@@ -137,6 +153,7 @@ export function CreateRealmAgentWorkspace() {
     setDraft((current) => ({ ...current, ...patch }));
     setLocalSubmitErrors([]);
     setSubmitResult(null);
+    setCreatedContext(null);
   }
 
   const createMutation = useMutation<RealmAgentCreateResult, Error, ReviewedCreateRealmAgentPayload>({
@@ -144,7 +161,19 @@ export function CreateRealmAgentWorkspace() {
     onSuccess: (result) => {
       setSubmitResult(result);
       if (result.ok) {
+        const currentDraft = normalizeCreateRealmAgentDraft(draft);
+        const context: CreatedRealmAgentContext = {
+          agentId: result.canonical.id,
+          state: result.canonical.state || null,
+          handle: currentDraft.handle,
+          displayName: currentDraft.displayName,
+          publicBio: currentDraft.publicBio,
+          selectedWorldId: currentDraft.selectedWorldId,
+          needsPostCreateSettings: currentDraft.publicBio.length > 0,
+        };
+        setCreatedContext(context);
         setLocalSubmitErrors([]);
+        onCreated?.(context);
         void queryClient.invalidateQueries({ queryKey: ['realm-agent-studio', 'owner-portfolio'] });
       }
     },
@@ -274,9 +303,38 @@ export function CreateRealmAgentWorkspace() {
             {submitResult ? (
               <InlineAlert tone={submitResult.ok ? 'success' : 'danger'}>
                 {submitResult.ok
-                  ? `Realm Agent created: ${submitResult.canonical.id}. Portfolio refresh requested.`
+                  ? `Realm Agent created: ${submitResult.canonical.id}. Opening the owner detail lane.`
                   : submitResult.message}
               </InlineAlert>
+            ) : null}
+            {createdContext ? (
+              <Surface tone="card" padding="md">
+                <div className="flex min-w-0 flex-wrap items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="font-medium">Created Realm Agent</div>
+                    <div className="ras-break-anywhere mt-1 text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-muted)]">
+                      @{createdContext.handle} · {createdContext.agentId}
+                    </div>
+                  </div>
+                  <StatusBadge tone="success">{createdContext.state || 'created'}</StatusBadge>
+                </div>
+                {createdContext.needsPostCreateSettings ? (
+                  <InlineAlert tone="warning" className="mt-3">
+                    Public bio is preserved for the post-create owner settings step. It was not submitted in the Realm create request.
+                  </InlineAlert>
+                ) : null}
+                <div className="mt-3 flex flex-wrap gap-3">
+                  <Button tone="secondary" onClick={() => onOpenCreatedAgent?.(createdContext.agentId, 'detail')}>
+                    Open created detail
+                  </Button>
+                  <Button
+                    disabled={!createdContext.needsPostCreateSettings}
+                    onClick={() => onOpenCreatedAgent?.(createdContext.agentId, 'settings')}
+                  >
+                    Continue to settings
+                  </Button>
+                </div>
+              </Surface>
             ) : null}
             <Button disabled={createDisabled} loading={createMutation.isPending} onClick={submitCreate}>
               Create Realm Agent

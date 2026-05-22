@@ -71,7 +71,7 @@ import {
   type VisualCandidateResourceType,
   type VoiceDemoCandidateInput,
 } from './media-voice-candidate.js';
-import { CreateRealmAgentWorkspace } from './CreateRealmAgentWorkspace.js';
+import { CreateRealmAgentWorkspace, type CreatedRealmAgentContext } from './CreateRealmAgentWorkspace.js';
 
 const PORTFOLIO_FILTER_OPTIONS: { value: OwnerPortfolioFilter; label: string }[] = [
   { value: 'all', label: 'All agents' },
@@ -1742,7 +1742,54 @@ function AgentProfileOverview({ agent, compact = false }: { agent: OwnerPortfoli
   );
 }
 
-function AgentDetail({ agentId, workspace }: { agentId: string; workspace: StudioWorkspace }) {
+function PostCreateDraftNotice({
+  context,
+  onOpenSettings,
+}: {
+  context: CreatedRealmAgentContext;
+  onOpenSettings: () => void;
+}) {
+  return (
+    <Surface tone="card" padding="md" className="mt-4">
+      <div className="flex min-w-0 flex-wrap items-center justify-between gap-3">
+        <div className="min-w-0">
+          <div className="font-medium">Post-create draft preserved</div>
+          <div className="ras-break-anywhere mt-1 text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-muted)]">
+            @{context.handle} was created in {context.selectedWorldId}. Public bio continues through owner settings.
+          </div>
+        </div>
+        <StatusBadge tone={context.needsPostCreateSettings ? 'warning' : 'success'}>
+          {context.needsPostCreateSettings ? 'settings needed' : 'create complete'}
+        </StatusBadge>
+      </div>
+      {context.needsPostCreateSettings ? (
+        <>
+          <InlineAlert tone="warning" className="mt-3">
+            Public bio was intentionally not included in the Realm create request and is still available for the reviewed settings step.
+          </InlineAlert>
+          <div className="ras-break-anywhere mt-3 rounded-[var(--nimi-radius-field)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] p-3 text-[length:var(--nimi-type-body-sm-size)]">
+            {context.publicBio}
+          </div>
+          <div className="mt-3">
+            <Button onClick={onOpenSettings}>Continue to settings</Button>
+          </div>
+        </>
+      ) : null}
+    </Surface>
+  );
+}
+
+function AgentDetail({
+  agentId,
+  workspace,
+  postCreateDraft,
+  onOpenSettings,
+}: {
+  agentId: string;
+  workspace: StudioWorkspace;
+  postCreateDraft: CreatedRealmAgentContext | null;
+  onOpenSettings: () => void;
+}) {
   const queryClient = useQueryClient();
   const detailQuery = useQuery({
     queryKey: ['realm-agent-studio', 'owner-portfolio-agent-detail', agentId],
@@ -1784,6 +1831,9 @@ function AgentDetail({ agentId, workspace }: { agentId: string; workspace: Studi
   return (
     <section className="min-w-0 flex-1">
       {workspace === 'detail' ? <AgentProfileOverview agent={agent} /> : <AgentProfileOverview agent={agent} compact />}
+      {postCreateDraft && postCreateDraft.agentId === agent.id ? (
+        <PostCreateDraftNotice context={postCreateDraft} onOpenSettings={onOpenSettings} />
+      ) : null}
       {workspace === 'settings' ? (
         <>
           <VisibilitySettingsWorkspace agent={agent} onAgentWrite={refreshOwnerAgentReads} />
@@ -1843,6 +1893,7 @@ export function OwnerPortfolio({
   onWorkspaceChange: (workspace: StudioWorkspace) => void;
 }) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [postCreateDraft, setPostCreateDraft] = useState<CreatedRealmAgentContext | null>(null);
   const [portfolioQueryText, setPortfolioQueryText] = useState('');
   const [portfolioFilter, setPortfolioFilter] = useState<OwnerPortfolioFilter>('all');
   const [portfolioSort, setPortfolioSort] = useState<OwnerPortfolioSort>('realm-order');
@@ -1858,13 +1909,24 @@ export function OwnerPortfolio({
     sort: portfolioSort,
   }), [agents, portfolioFilter, portfolioQueryText, portfolioSort]);
 
+  const selectedAgentId = selectedId || visibleAgents[0]?.id || null;
   const selectedAgent = useMemo(() => {
-    return visibleAgents.find((agent) => agent.id === selectedId) || visibleAgents[0] || null;
-  }, [selectedId, visibleAgents]);
+    return selectedAgentId ? visibleAgents.find((agent) => agent.id === selectedAgentId) || null : null;
+  }, [selectedAgentId, visibleAgents]);
 
   const sourceWarnings = agents.filter((agent) => agent.friendCount.status === 'source-unavailable');
   const activeWorkspaceItem = studioWorkspaceItems.find((item) => item.id === activeWorkspace) || studioWorkspaceItems[0]!;
   const agentWorkspace = AGENT_WORKSPACES.includes(activeWorkspace) ? activeWorkspace : 'detail';
+
+  function openAgentWorkspace(agentId: string, workspace: Extract<StudioWorkspace, 'detail' | 'settings'>) {
+    setSelectedId(agentId);
+    onWorkspaceChange(workspace);
+  }
+
+  function handleCreatedAgent(context: CreatedRealmAgentContext) {
+    setPostCreateDraft(context);
+    openAgentWorkspace(context.agentId, 'detail');
+  }
 
   if (portfolioQuery.isLoading) {
     return <PortfolioLoadingState />;
@@ -1886,14 +1948,29 @@ export function OwnerPortfolio({
     return (
       <div className="grid min-w-0 flex-1 gap-4">
         <WorkspaceHeader activeWorkspace={activeWorkspace} onWorkspaceChange={onWorkspaceChange} />
-        {activeWorkspace === 'create' ? <CreateRealmAgentWorkspace /> : null}
-        <EmptyState
-          title="No owner-created Realm Agents"
-          description="You have not created any user-owned Realm Agents yet."
-          action={activeWorkspace === 'create'
-            ? <Button onClick={() => void portfolioQuery.refetch()}>Refresh portfolio</Button>
-            : <Button onClick={() => onWorkspaceChange('create')}>Create Realm Agent</Button>}
-        />
+        {activeWorkspace === 'create' ? (
+          <CreateRealmAgentWorkspace
+            onCreated={handleCreatedAgent}
+            onOpenCreatedAgent={openAgentWorkspace}
+          />
+        ) : null}
+        {selectedId && activeWorkspace !== 'portfolio' && activeWorkspace !== 'create' ? (
+          <AgentDetail
+            agentId={selectedId}
+            workspace={agentWorkspace}
+            postCreateDraft={postCreateDraft}
+            onOpenSettings={() => openAgentWorkspace(selectedId, 'settings')}
+          />
+        ) : null}
+        {selectedId && activeWorkspace !== 'portfolio' && activeWorkspace !== 'create' ? null : (
+          <EmptyState
+            title="No owner-created Realm Agents"
+            description="You have not created any user-owned Realm Agents yet."
+            action={activeWorkspace === 'create'
+              ? <Button onClick={() => void portfolioQuery.refetch()}>Refresh portfolio</Button>
+              : <Button onClick={() => onWorkspaceChange('create')}>Create Realm Agent</Button>}
+          />
+        )}
       </div>
     );
   }
@@ -1901,7 +1978,12 @@ export function OwnerPortfolio({
   return (
     <div className="grid min-w-0 flex-1 gap-4">
       <WorkspaceHeader activeWorkspace={activeWorkspace} onWorkspaceChange={onWorkspaceChange} />
-      {activeWorkspace === 'create' ? <CreateRealmAgentWorkspace /> : null}
+      {activeWorkspace === 'create' ? (
+        <CreateRealmAgentWorkspace
+          onCreated={handleCreatedAgent}
+          onOpenCreatedAgent={openAgentWorkspace}
+        />
+      ) : null}
       <div className="grid min-h-0 min-w-0 gap-4 lg:grid-cols-[360px_1fr]">
         <aside className="min-w-0">
           <div className="mb-3 flex items-center justify-between gap-3">
@@ -1989,8 +2071,13 @@ export function OwnerPortfolio({
               </Surface>
             ) : null}
           </Surface>
-        ) : selectedAgent && activeWorkspace !== 'create' ? (
-          <AgentDetail agentId={selectedAgent.id} workspace={agentWorkspace} />
+        ) : selectedAgentId && activeWorkspace !== 'create' ? (
+          <AgentDetail
+            agentId={selectedAgentId}
+            workspace={agentWorkspace}
+            postCreateDraft={postCreateDraft}
+            onOpenSettings={() => openAgentWorkspace(selectedAgentId, 'settings')}
+          />
         ) : activeWorkspace === 'create' ? (
           <Surface tone="panel" padding="lg">
             <h2 className="m-0 text-xl font-semibold">{activeWorkspaceItem.label}</h2>
