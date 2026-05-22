@@ -46,3 +46,18 @@ button {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
+
+.ras-technical-details {
+  min-width: 0;
+  border: 1px solid var(--nimi-border-subtle);
+  border-radius: var(--nimi-radius-md);
+  background: var(--nimi-surface-card);
+  padding: 0.75rem;
+}
+
+.ras-technical-details > summary {
+  cursor: pointer;
+  color: var(--nimi-text-secondary);
+  font-size: var(--nimi-type-body-sm-size);
+  font-weight: 500;
+}

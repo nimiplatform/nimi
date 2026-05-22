@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button, EmptyState, FieldShell, InlineAlert, SelectField, StatusBadge, Surface, TextareaField, TextField } from '@nimiplatform/nimi-kit/ui';
 import {
@@ -34,6 +34,17 @@ function createEmptyDraft(): CreateRealmAgentDraftInput {
 function worldOptionLabel(world: SelectableRealmWorld): string {
   const type = world.type ? ` · ${world.type}` : '';
   return `${world.name}${type}`;
+}
+
+function TechnicalReviewDetails({ children }: { children: ReactNode }) {
+  return (
+    <details className="ras-technical-details">
+      <summary>Create request technical details</summary>
+      <div className="mt-3">
+        {children}
+      </div>
+    </details>
+  );
 }
 
 function ReadinessPreview({
@@ -78,11 +89,11 @@ function ReadinessPreview({
       {readiness.ready ? null : (
         <InlineAlert tone="warning">{readiness.errors.join('; ')}</InlineAlert>
       )}
-      <FieldShell label="Create request preview" message="Review the normalized create request before submitting.">
+      <TechnicalReviewDetails>
         <pre className="ras-json-preview m-0 min-h-56 overflow-auto rounded-[var(--nimi-radius-field)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-3 text-xs">
           {readiness.payload ? JSON.stringify(readiness.payload, null, 2) : 'Complete handle, display name, concept, and selected world to preview the reviewed create request.'}
         </pre>
-      </FieldShell>
+      </TechnicalReviewDetails>
     </div>
   );
 }

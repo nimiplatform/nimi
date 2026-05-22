@@ -2,11 +2,24 @@ import { useMemo, type ReactNode } from 'react';
 import { AmbientBackground, Button, StatusBadge, Surface } from '@nimiplatform/nimi-kit/ui';
 import { useStudioSession } from './studio-session.js';
 
-const navItems = [
-  { id: 'agents', label: 'Agents' },
-  { id: 'create', label: 'Create' },
-  { id: 'posts', label: 'Posts' },
-] as const;
+export type StudioWorkspace = 'portfolio' | 'create' | 'detail' | 'settings' | 'assets' | 'posts' | 'schedule';
+
+export type StudioWorkspaceItem = {
+  id: StudioWorkspace;
+  label: string;
+  shortLabel: string;
+  description: string;
+};
+
+export const studioWorkspaceItems: StudioWorkspaceItem[] = [
+  { id: 'portfolio', label: 'Portfolio', shortLabel: 'P', description: 'Owner agent list, search, filters, and source status.' },
+  { id: 'create', label: 'Create', shortLabel: '+', description: 'Create a user-owned Realm Agent with world and handle review.' },
+  { id: 'detail', label: 'Detail', shortLabel: 'D', description: 'Current public profile, ownership, world, state, and friendCount.' },
+  { id: 'settings', label: 'Settings', shortLabel: 'S', description: 'Owner-reviewed settings, visibility, and AI context review.' },
+  { id: 'assets', label: 'Assets', shortLabel: 'A', description: 'Avatar, visual candidates, and voice sample review.' },
+  { id: 'posts', label: 'Posts', shortLabel: 'T', description: 'Agent-authored post draft, media attachment, and Realm publish.' },
+  { id: 'schedule', label: 'Schedule', shortLabel: 'L', description: 'Single local scheduled post candidate.' },
+];
 
 function AccountSurface() {
   const session = useStudioSession();
@@ -35,7 +48,17 @@ function AccountSurface() {
   );
 }
 
-export function ShellLayout({ children }: { children: ReactNode }) {
+export function ShellLayout({
+  children,
+  activeWorkspace,
+  onWorkspaceChange,
+}: {
+  children: ReactNode;
+  activeWorkspace: StudioWorkspace;
+  onWorkspaceChange: (workspace: StudioWorkspace) => void;
+}) {
+  const activeItem = studioWorkspaceItems.find((item) => item.id === activeWorkspace) || studioWorkspaceItems[0]!;
+
   return (
     <AmbientBackground variant="mesh" className="isolate flex h-full min-h-0 overflow-hidden">
       <nav className="relative z-30 flex w-[72px] shrink-0 flex-col items-center bg-transparent py-5">
@@ -43,15 +66,17 @@ export function ShellLayout({ children }: { children: ReactNode }) {
           RAS
         </div>
         <div className="mt-8 flex flex-1 flex-col items-center gap-2">
-          {navItems.map((item, index) => (
+          {studioWorkspaceItems.map((item) => (
             <Button
               key={item.id}
               size="sm"
-              tone={index === 0 ? 'primary' : 'ghost'}
+              tone={item.id === activeWorkspace ? 'primary' : 'ghost'}
               className="group relative h-10 w-10 px-0"
               aria-label={item.label}
+              aria-pressed={item.id === activeWorkspace}
+              onClick={() => onWorkspaceChange(item.id)}
             >
-              {item.label.slice(0, 1)}
+              {item.shortLabel}
               <span className="pointer-events-none absolute left-[52px] z-50 whitespace-nowrap rounded-2xl border border-[var(--nimi-material-glass-thick-border)] bg-[var(--nimi-material-glass-thick-bg)] px-3 py-1.5 text-[13px] font-medium text-[var(--nimi-text-primary)] opacity-0 shadow-[var(--nimi-elevation-floating)] backdrop-blur-[var(--nimi-backdrop-blur-strong)] transition-opacity duration-100 group-hover:opacity-100 nimi-material-glass-thick">
                 {item.label}
               </span>
@@ -68,9 +93,10 @@ export function ShellLayout({ children }: { children: ReactNode }) {
                 Realm Agent Studio
               </h1>
               <StatusBadge tone="info">Owner</StatusBadge>
+              <StatusBadge tone="neutral">{activeItem.label}</StatusBadge>
             </div>
             <p className="m-0 mt-0.5 truncate text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-muted)]">
-              Agent portfolio, settings, creative assets, and posts.
+              {activeItem.description}
             </p>
           </div>
           <div className="ml-auto">

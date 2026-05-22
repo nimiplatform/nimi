@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Button, Checkbox, EmptyState, FieldShell, InlineAlert, SearchField, SelectField, StatusBadge, Surface, TextareaField, TextField } from '@nimiplatform/nimi-kit/ui';
+import { Button, Checkbox, EmptyState, FieldShell, InlineAlert, SearchField, SegmentedControl, SelectField, StatusBadge, Surface, TextareaField, TextField } from '@nimiplatform/nimi-kit/ui';
+import { studioWorkspaceItems, type StudioWorkspace } from '../../app-shell/shell-layout.js';
 import {
   applyOwnerPortfolioView,
   classifyAgentDetailFailure,
@@ -85,6 +86,19 @@ const PORTFOLIO_SORT_OPTIONS: { value: OwnerPortfolioSort; label: string }[] = [
   { value: 'friend-count-desc', label: 'friendCount high-low' },
   { value: 'friend-count-asc', label: 'friendCount low-high' },
 ];
+
+const AGENT_WORKSPACES: StudioWorkspace[] = ['detail', 'settings', 'assets', 'posts', 'schedule'];
+
+function TechnicalReviewDetails({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <details className="ras-technical-details">
+      <summary>{title}</summary>
+      <div className="mt-3">
+        {children}
+      </div>
+    </details>
+  );
+}
 
 function friendCountLabel(agent: OwnerPortfolioAgent) {
   if (agent.friendCount.status === 'available') {
@@ -557,17 +571,17 @@ function SettingProposalWorkspace({ agent, onAgentWrite }: { agent: OwnerPortfol
             <h4 className="m-0 text-base font-semibold">Review summary</h4>
             <StatusBadge tone={proposal?.ok ? 'success' : 'warning'}>{proposal?.ok ? 'ready' : 'not ready'}</StatusBadge>
           </div>
-          <FieldShell label="Settings change preview" message="Only reviewed setting fields are submitted. Advanced rule notes stay out of this save.">
+          <TechnicalReviewDetails title="Settings technical review">
             <pre className="ras-json-preview m-0 min-h-80 overflow-auto rounded-[var(--nimi-radius-field)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-3 text-xs">
               {proposal?.ok ? JSON.stringify(proposal.preview, null, 2) : proposal?.errors.join('; ') || 'No owner settings loaded.'}
             </pre>
-          </FieldShell>
+          </TechnicalReviewDetails>
           {result ? (
-            <FieldShell label="Save result" message="Latest confirmed save response.">
+            <TechnicalReviewDetails title="Settings save response">
               <pre className="ras-json-preview m-0 min-h-24 overflow-auto rounded-[var(--nimi-radius-field)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-3 text-xs">
                 {JSON.stringify(result, null, 2)}
               </pre>
-            </FieldShell>
+            </TechnicalReviewDetails>
           ) : null}
         </div>
       </div>
@@ -703,11 +717,11 @@ function VisibilitySettingsWorkspace({ agent, onAgentWrite }: { agent: OwnerPort
               Reset draft
             </Button>
           </div>
-          <FieldShell label="Visibility review" message="Current values and reviewed changes before save.">
+          <TechnicalReviewDetails title="Visibility technical review">
             <pre className="ras-json-preview m-0 min-h-24 overflow-auto rounded-[var(--nimi-radius-field)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-3 text-xs">
               {result ? JSON.stringify(result, null, 2) : JSON.stringify({ current: visibilityQuery.data, draft }, null, 2)}
             </pre>
-          </FieldShell>
+          </TechnicalReviewDetails>
         </div>
       ) : null}
     </Surface>
@@ -855,11 +869,11 @@ function MediaVoiceCandidateWorkspace({ agent, onAgentWrite }: { agent: OwnerPor
                 </InlineAlert>
               ) : null}
               {avatarResult ? (
-                <FieldShell label="Avatar save result" message="Latest confirmed save response.">
+                <TechnicalReviewDetails title="Avatar save response">
                   <pre className="ras-json-preview m-0 min-h-24 overflow-auto rounded-[var(--nimi-radius-field)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] p-3 text-xs">
                     {JSON.stringify(avatarResult, null, 2)}
                   </pre>
-                </FieldShell>
+                </TechnicalReviewDetails>
               ) : null}
             </Surface>
             <div className="grid gap-3 md:grid-cols-[160px_1fr]">
@@ -895,11 +909,11 @@ function MediaVoiceCandidateWorkspace({ agent, onAgentWrite }: { agent: OwnerPor
             <InlineAlert tone="warning">
               {visualPayload.changed ? VISUAL_MEDIA_BLOCKED_REASON : visualPayload.errors.join('; ')}
             </InlineAlert>
-            <FieldShell label="Visual candidate preview" message="Local preview only. Public asset publishing is not enabled for this owner path yet.">
+            <TechnicalReviewDetails title="Visual candidate technical details">
               <pre className="ras-json-preview m-0 min-h-72 overflow-auto rounded-[var(--nimi-radius-field)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-3 text-xs">
                 {visualPayload.payload ? JSON.stringify(visualPayload.payload, null, 2) : visualPayload.errors.join('; ')}
               </pre>
-            </FieldShell>
+            </TechnicalReviewDetails>
             <Surface tone="card" padding="md">
               <div className="flex min-w-0 flex-wrap items-center gap-3">
                 <div className="min-w-0 flex-1">
@@ -990,11 +1004,11 @@ function MediaVoiceCandidateWorkspace({ agent, onAgentWrite }: { agent: OwnerPor
                 </div>
               </Surface>
             ) : null}
-            <FieldShell label="Voice request preview" message="Reviewed local request preview before generation.">
+            <TechnicalReviewDetails title="Voice request technical details">
               <pre className="ras-json-preview m-0 min-h-72 overflow-auto rounded-[var(--nimi-radius-field)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-3 text-xs">
                 {voicePayload.payload ? JSON.stringify(voicePayload.payload, null, 2) : voicePayload.errors.join('; ')}
               </pre>
-            </FieldShell>
+            </TechnicalReviewDetails>
           </div>
         </div>
       </div>
@@ -1061,11 +1075,11 @@ function RuntimeProjectionWorkspace({ agent }: { agent: OwnerPortfolioAgentDetai
         </dl>
       ) : null}
       {projectionResult ? (
-        <FieldShell label="Context request preview" message="World-only request preview for review and diagnostics.">
+        <TechnicalReviewDetails title="World context request details">
           <pre className="ras-json-preview m-0 mt-3 min-h-24 overflow-auto rounded-[var(--nimi-radius-field)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] p-3 text-xs">
             {JSON.stringify(projectionResult.submitted, null, 2)}
           </pre>
-        </FieldShell>
+        </TechnicalReviewDetails>
       ) : null}
     </Surface>
   );
@@ -1096,7 +1110,7 @@ function createEmptyLocalPostScheduleInput(): LocalPostScheduleInput {
   };
 }
 
-function CreativePostWorkspace({ agent }: { agent: OwnerPortfolioAgentDetail }) {
+function CreativePostWorkspace({ agent, mode }: { agent: OwnerPortfolioAgentDetail; mode: 'posts' | 'schedule' }) {
   const [draft, setDraft] = useState<LocalPostDraftInput>(() => createEmptyPostDraft());
   const [payloadPreview, setPayloadPreview] = useState<CandidatePostPayload | null>(null);
   const [publishResult, setPublishResult] = useState<RealmPostPublishResult | null>(null);
@@ -1116,6 +1130,7 @@ function CreativePostWorkspace({ agent }: { agent: OwnerPortfolioAgentDetail }) 
   const [assetCandidates, setAssetCandidates] = useState<LocalCreativeAssetCandidate[]>([]);
   const validation = validateLocalPostDraft(draft, agent);
   const postTextResourceDraft = validateLocalPostDraft({ ...draft, attachmentEnabled: false, attachmentTargetId: '' }, agent);
+  const isScheduleWorkspace = mode === 'schedule';
 
   useEffect(() => {
     setDraft(createEmptyPostDraft());
@@ -1282,14 +1297,16 @@ function CreativePostWorkspace({ agent }: { agent: OwnerPortfolioAgentDetail }) 
       <div className="grid min-w-0 gap-5 xl:grid-cols-[1fr_360px]">
         <div className="min-w-0">
           <div className="flex min-w-0 flex-wrap items-center gap-3">
-            <h3 className="m-0 text-xl font-semibold">Creative post candidate</h3>
-            <StatusBadge tone="info">local draft</StatusBadge>
+            <h3 className="m-0 text-xl font-semibold">{isScheduleWorkspace ? 'Local schedule candidate' : 'Creative post candidate'}</h3>
+            <StatusBadge tone={isScheduleWorkspace ? 'warning' : 'info'}>{isScheduleWorkspace ? 'local schedule' : 'local draft'}</StatusBadge>
             <StatusBadge tone={validation.publishable ? 'success' : 'neutral'}>
               {validation.publishable ? 'ready to publish' : 'not ready'}
             </StatusBadge>
           </div>
           <p className="m-0 mt-1 text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-muted)]">
-            Integrated with selected canonical detail agent: {agent.handle.value ? `@${agent.handle.value}` : agent.displayName.value || agent.id}.
+            {isScheduleWorkspace
+              ? 'Prepare one reviewed local scheduled publish candidate. This workspace does not create recurring queue state.'
+              : `Integrated with selected canonical detail agent: ${agent.handle.value ? `@${agent.handle.value}` : agent.displayName.value || agent.id}.`}
           </p>
 
           <div className="mt-4 grid gap-4">
@@ -1307,7 +1324,7 @@ function CreativePostWorkspace({ agent }: { agent: OwnerPortfolioAgentDetail }) 
                 onChange={(event) => updateDraft({ tagsText: event.currentTarget.value })}
               />
             </FieldShell>
-            <Surface tone="card" padding="md">
+            {!isScheduleWorkspace ? <Surface tone="card" padding="md">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <div className="font-medium">Optional media attachment</div>
@@ -1366,8 +1383,8 @@ function CreativePostWorkspace({ agent }: { agent: OwnerPortfolioAgentDetail }) 
                   {resourceListStatus.message}
                 </InlineAlert>
               ) : null}
-            </Surface>
-            <Surface tone="card" padding="md">
+            </Surface> : null}
+            {!isScheduleWorkspace ? <Surface tone="card" padding="md">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <div className="font-medium">Upload media</div>
@@ -1421,14 +1438,14 @@ function CreativePostWorkspace({ agent }: { agent: OwnerPortfolioAgentDetail }) 
                 </InlineAlert>
               ) : null}
               {mediaUploadResult ? (
-                <FieldShell label="Media upload result" message="Latest upload response. This does not publish the post by itself.">
+                <TechnicalReviewDetails title="Media upload response">
                   <pre className="ras-json-preview m-0 min-h-24 overflow-auto rounded-[var(--nimi-radius-field)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] p-3 text-xs">
                     {JSON.stringify(mediaUploadResult, null, 2)}
                   </pre>
-                </FieldShell>
+                </TechnicalReviewDetails>
               ) : null}
-            </Surface>
-            <Surface tone="card" padding="md">
+            </Surface> : null}
+            {!isScheduleWorkspace ? <Surface tone="card" padding="md">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <div className="font-medium">Create text attachment</div>
@@ -1460,13 +1477,13 @@ function CreativePostWorkspace({ agent }: { agent: OwnerPortfolioAgentDetail }) 
                 </InlineAlert>
               ) : null}
               {textResourceResult ? (
-                <FieldShell label="Text attachment result" message="Latest attachment response. Publishing still requires review.">
+                <TechnicalReviewDetails title="Text attachment response">
                   <pre className="ras-json-preview m-0 min-h-24 overflow-auto rounded-[var(--nimi-radius-field)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] p-3 text-xs">
                     {JSON.stringify(textResourceResult, null, 2)}
                   </pre>
-                </FieldShell>
+                </TechnicalReviewDetails>
               ) : null}
-            </Surface>
+            </Surface> : null}
             <Checkbox
               checked={draft.humanReviewed}
               onChange={(event) => updateDraft({ humanReviewed: event.currentTarget.checked })}
@@ -1477,7 +1494,7 @@ function CreativePostWorkspace({ agent }: { agent: OwnerPortfolioAgentDetail }) 
                 {validation.errors.join('; ')}
               </InlineAlert>
             ) : null}
-            <div className="flex flex-wrap gap-3">
+            {!isScheduleWorkspace ? <div className="flex flex-wrap gap-3">
               <Button onClick={addLocalAssetCandidate}>Add local asset candidate</Button>
               <Button
                 disabled={!validation.publishable}
@@ -1508,13 +1525,15 @@ function CreativePostWorkspace({ agent }: { agent: OwnerPortfolioAgentDetail }) 
               >
                 {isPublishing ? 'Publishing...' : 'Publish to Realm'}
               </Button>
-            </div>
-            <FieldShell label="Reviewed post preview" message="Review the normalized post before publishing.">
-              <pre className="ras-json-preview m-0 min-h-32 overflow-auto rounded-[var(--nimi-radius-field)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-3 text-xs">
-                {payloadPreview ? JSON.stringify(payloadPreview, null, 2) : 'No reviewed post preview yet.'}
-              </pre>
-            </FieldShell>
-            {publishResult ? (
+            </div> : null}
+            {!isScheduleWorkspace ? (
+              <TechnicalReviewDetails title="Reviewed post payload">
+                <pre className="ras-json-preview m-0 min-h-32 overflow-auto rounded-[var(--nimi-radius-field)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-3 text-xs">
+                  {payloadPreview ? JSON.stringify(payloadPreview, null, 2) : 'No reviewed post preview yet.'}
+                </pre>
+              </TechnicalReviewDetails>
+            ) : null}
+            {!isScheduleWorkspace && publishResult ? (
               <Surface tone="card" padding="md">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
@@ -1543,7 +1562,7 @@ function CreativePostWorkspace({ agent }: { agent: OwnerPortfolioAgentDetail }) 
                 )}
               </Surface>
             ) : null}
-            <Surface tone="card" padding="md">
+            {isScheduleWorkspace ? <Surface tone="card" padding="md">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <div className="font-medium">Single local schedule</div>
@@ -1598,20 +1617,27 @@ function CreativePostWorkspace({ agent }: { agent: OwnerPortfolioAgentDetail }) 
                   Preview local schedule
                 </Button>
               </div>
-              <FieldShell label="Local schedule preview" message="Preview only. This does not create an automated queue or recurring schedule.">
+              <TechnicalReviewDetails title="Local schedule payload">
                 <pre className="ras-json-preview m-0 min-h-28 overflow-auto rounded-[var(--nimi-radius-field)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] p-3 text-xs">
                   {schedulePreview ? JSON.stringify(schedulePreview, null, 2) : 'No local schedule preview yet.'}
                 </pre>
-              </FieldShell>
-            </Surface>
+              </TechnicalReviewDetails>
+            </Surface> : null}
           </div>
         </div>
         <div className="min-w-0">
           <div className="mb-3 flex items-center justify-between gap-3">
-            <h4 className="m-0 text-base font-semibold">Local preview history</h4>
-            <StatusBadge tone="neutral">candidate only</StatusBadge>
+            <h4 className="m-0 text-base font-semibold">{isScheduleWorkspace ? 'Schedule status' : 'Local preview history'}</h4>
+            <StatusBadge tone="neutral">{isScheduleWorkspace ? 'single candidate' : 'candidate only'}</StatusBadge>
           </div>
-          {assetCandidates.length === 0 ? (
+          {isScheduleWorkspace ? (
+            <Surface tone="card" padding="md">
+              <div className="font-medium">No automated queue is created</div>
+              <p className="m-0 mt-2 text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-muted)]">
+                This workspace preserves a reviewed local scheduled candidate and keeps Realm publish as the only public success state.
+              </p>
+            </Surface>
+          ) : assetCandidates.length === 0 ? (
             <EmptyState title="No local candidates" description="Creative asset candidates created here are local preview/history only." />
           ) : (
             <div className="grid gap-3">
@@ -1637,7 +1663,86 @@ function CreativePostWorkspace({ agent }: { agent: OwnerPortfolioAgentDetail }) 
   );
 }
 
-function AgentDetail({ agentId }: { agentId: string }) {
+function AgentProfileOverview({ agent, compact = false }: { agent: OwnerPortfolioAgentDetail; compact?: boolean }) {
+  return (
+    <Surface tone="panel" padding={compact ? 'md' : 'lg'} className="min-h-full">
+      <div className={compact ? 'grid min-w-0 gap-4 md:grid-cols-[96px_1fr_auto]' : 'grid min-w-0 gap-5 lg:grid-cols-[1.1fr_0.9fr]'}>
+        <div className={compact ? 'h-24 w-24 overflow-hidden rounded-[var(--nimi-radius-md)] bg-[var(--nimi-surface-active)]' : 'min-w-0'}>
+          {compact ? (
+            agent.avatarUrl ? <img src={agent.avatarUrl} alt="" className="h-full w-full object-cover" /> : null
+          ) : (
+            <>
+              <div className="h-44 overflow-hidden rounded-[var(--nimi-radius-md)] bg-[var(--nimi-surface-active)]">
+                {agent.profileCoverUrl.status === 'available' ? <img src={agent.profileCoverUrl.value} alt="" className="h-full w-full object-cover" /> : null}
+              </div>
+              <div className="mt-5 min-w-0">
+                <div className="flex min-w-0 flex-wrap items-center gap-3">
+                  <h2 className="ras-break-anywhere m-0 text-2xl font-semibold">{agent.displayName.value || 'Display name unavailable'}</h2>
+                  <StatusBadge tone="info">Realm Agent</StatusBadge>
+                  <StatusBadge tone="neutral">current profile</StatusBadge>
+                </div>
+                <p className="ras-break-anywhere m-0 mt-2 text-[var(--nimi-text-secondary)]">
+                  {agent.handle.value ? `@${agent.handle.value}` : 'handle setting read unavailable'}
+                </p>
+              </div>
+              <div className="mt-5 grid gap-4">
+                <ReadOnlySettingField field={agent.displayName} />
+                <ReadOnlySettingField field={agent.handle} />
+                <ReadOnlySettingField field={agent.bio} multiline />
+                <ReadOnlySettingField field={agent.greeting} multiline />
+                <ReadOnlySettingField field={agent.profileCoverUrl} />
+              </div>
+            </>
+          )}
+        </div>
+        <div className={compact ? 'min-w-0 self-center' : 'grid content-start gap-3'}>
+          {compact ? (
+            <>
+              <div className="flex min-w-0 flex-wrap items-center gap-3">
+                <h2 className="ras-break-anywhere m-0 text-xl font-semibold">{agent.displayName.value || 'Display name unavailable'}</h2>
+                <StatusBadge tone="info">Realm Agent</StatusBadge>
+              </div>
+              <p className="ras-break-anywhere m-0 mt-1 text-[var(--nimi-text-secondary)]">
+                {agent.handle.value ? `@${agent.handle.value}` : 'handle setting read unavailable'}
+              </p>
+              <p className="ras-break-anywhere m-0 mt-2 text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-muted)]">
+                {agent.bio.value || agent.bio.unavailableLabel || 'Public bio unavailable'}
+              </p>
+            </>
+          ) : (
+            <>
+              <Surface tone="card" padding="md">
+                <div className="text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-muted)]">Ownership</div>
+                <div className="ras-break-anywhere mt-1 font-medium">User-owned Realm Agent</div>
+              </Surface>
+              {agent.friendCount.status === 'available' ? (
+                <Surface tone="card" padding="md">
+                  <div className="text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-muted)]">好友数 / friendCount</div>
+                  <div className="mt-1 font-medium">{detailFriendCountLabel(agent)}</div>
+                </Surface>
+              ) : (
+                <InlineAlert tone="warning">{agent.friendCount.label}</InlineAlert>
+              )}
+              <EvidenceCard field={agent.ownership} />
+              <EvidenceCard field={agent.world} />
+              <EvidenceCard field={agent.state} />
+            </>
+          )}
+        </div>
+        {compact ? (
+          <div className="grid content-center gap-2">
+            <StatusBadge tone={agent.friendCount.status === 'available' ? 'success' : 'warning'}>
+              {detailFriendCountLabel(agent)}
+            </StatusBadge>
+            <StatusBadge tone="neutral">{agent.world.value || 'world unavailable'}</StatusBadge>
+          </div>
+        ) : null}
+      </div>
+    </Surface>
+  );
+}
+
+function AgentDetail({ agentId, workspace }: { agentId: string; workspace: StudioWorkspace }) {
   const queryClient = useQueryClient();
   const detailQuery = useQuery({
     queryKey: ['realm-agent-studio', 'owner-portfolio-agent-detail', agentId],
@@ -1678,59 +1783,65 @@ function AgentDetail({ agentId }: { agentId: string }) {
 
   return (
     <section className="min-w-0 flex-1">
-      <Surface tone="panel" padding="lg" className="min-h-full">
-        <div className="grid min-w-0 gap-5 lg:grid-cols-[1.1fr_0.9fr]">
-          <div className="min-w-0">
-            <div className="h-44 overflow-hidden rounded-[var(--nimi-radius-md)] bg-[var(--nimi-surface-active)]">
-              {agent.profileCoverUrl.status === 'available' ? <img src={agent.profileCoverUrl.value} alt="" className="h-full w-full object-cover" /> : null}
-            </div>
-            <div className="mt-5 min-w-0">
-              <div className="flex min-w-0 flex-wrap items-center gap-3">
-                <h2 className="ras-break-anywhere m-0 text-2xl font-semibold">{agent.displayName.value || 'Display name unavailable'}</h2>
-                <StatusBadge tone="info">Realm Agent</StatusBadge>
-                <StatusBadge tone="neutral">current profile</StatusBadge>
-              </div>
-              <p className="ras-break-anywhere m-0 mt-2 text-[var(--nimi-text-secondary)]">
-                {agent.handle.value ? `@${agent.handle.value}` : 'handle setting read unavailable'}
-              </p>
-            </div>
-            <div className="mt-5 grid gap-4">
-              <ReadOnlySettingField field={agent.displayName} />
-              <ReadOnlySettingField field={agent.handle} />
-              <ReadOnlySettingField field={agent.bio} multiline />
-              <ReadOnlySettingField field={agent.greeting} multiline />
-              <ReadOnlySettingField field={agent.profileCoverUrl} />
-            </div>
-          </div>
-          <div className="grid content-start gap-3">
-            <Surface tone="card" padding="md">
-              <div className="text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-muted)]">Ownership</div>
-              <div className="ras-break-anywhere mt-1 font-medium">User-owned Realm Agent</div>
-            </Surface>
-            {agent.friendCount.status === 'available' ? (
-              <Surface tone="card" padding="md">
-                <div className="text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-muted)]">好友数 / friendCount</div>
-                <div className="mt-1 font-medium">{detailFriendCountLabel(agent)}</div>
-              </Surface>
-            ) : (
-              <InlineAlert tone="warning">{agent.friendCount.label}</InlineAlert>
-            )}
-            <EvidenceCard field={agent.ownership} />
-            <EvidenceCard field={agent.world} />
-            <EvidenceCard field={agent.state} />
-          </div>
-        </div>
-      </Surface>
-      <VisibilitySettingsWorkspace agent={agent} onAgentWrite={refreshOwnerAgentReads} />
-      <SettingProposalWorkspace agent={agent} onAgentWrite={refreshOwnerAgentReads} />
-      <RuntimeProjectionWorkspace agent={agent} />
-      <MediaVoiceCandidateWorkspace agent={agent} onAgentWrite={refreshOwnerAgentReads} />
-      <CreativePostWorkspace agent={agent} />
+      {workspace === 'detail' ? <AgentProfileOverview agent={agent} /> : <AgentProfileOverview agent={agent} compact />}
+      {workspace === 'settings' ? (
+        <>
+          <VisibilitySettingsWorkspace agent={agent} onAgentWrite={refreshOwnerAgentReads} />
+          <SettingProposalWorkspace agent={agent} onAgentWrite={refreshOwnerAgentReads} />
+          <RuntimeProjectionWorkspace agent={agent} />
+        </>
+      ) : null}
+      {workspace === 'assets' ? <MediaVoiceCandidateWorkspace agent={agent} onAgentWrite={refreshOwnerAgentReads} /> : null}
+      {workspace === 'posts' ? <CreativePostWorkspace agent={agent} mode="posts" /> : null}
+      {workspace === 'schedule' ? <CreativePostWorkspace agent={agent} mode="schedule" /> : null}
     </section>
   );
 }
 
-export function OwnerPortfolio() {
+function WorkspaceHeader({
+  activeWorkspace,
+  onWorkspaceChange,
+}: {
+  activeWorkspace: StudioWorkspace;
+  onWorkspaceChange: (workspace: StudioWorkspace) => void;
+}) {
+  const activeItem = studioWorkspaceItems.find((item) => item.id === activeWorkspace) || studioWorkspaceItems[0]!;
+
+  return (
+    <Surface tone="panel" padding="md" className="min-w-0">
+      <div className="flex min-w-0 flex-wrap items-center justify-between gap-4">
+        <div className="min-w-0">
+          <div className="flex min-w-0 flex-wrap items-center gap-3">
+            <h2 className="m-0 text-xl font-semibold">{activeItem.label}</h2>
+            <StatusBadge tone="info">workspace</StatusBadge>
+          </div>
+          <p className="m-0 mt-1 text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-muted)]">
+            {activeItem.description}
+          </p>
+        </div>
+        <SegmentedControl
+          ariaLabel="Realm Agent Studio workspace"
+          size="sm"
+          value={activeWorkspace}
+          onValueChange={(value) => onWorkspaceChange(value as StudioWorkspace)}
+          items={studioWorkspaceItems.map((item) => ({
+            value: item.id,
+            label: item.label,
+          }))}
+          className="max-w-full overflow-x-auto"
+        />
+      </div>
+    </Surface>
+  );
+}
+
+export function OwnerPortfolio({
+  activeWorkspace,
+  onWorkspaceChange,
+}: {
+  activeWorkspace: StudioWorkspace;
+  onWorkspaceChange: (workspace: StudioWorkspace) => void;
+}) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [portfolioQueryText, setPortfolioQueryText] = useState('');
   const [portfolioFilter, setPortfolioFilter] = useState<OwnerPortfolioFilter>('all');
@@ -1752,6 +1863,8 @@ export function OwnerPortfolio() {
   }, [selectedId, visibleAgents]);
 
   const sourceWarnings = agents.filter((agent) => agent.friendCount.status === 'source-unavailable');
+  const activeWorkspaceItem = studioWorkspaceItems.find((item) => item.id === activeWorkspace) || studioWorkspaceItems[0]!;
+  const agentWorkspace = AGENT_WORKSPACES.includes(activeWorkspace) ? activeWorkspace : 'detail';
 
   if (portfolioQuery.isLoading) {
     return <PortfolioLoadingState />;
@@ -1772,11 +1885,14 @@ export function OwnerPortfolio() {
   if (agents.length === 0) {
     return (
       <div className="grid min-w-0 flex-1 gap-4">
-        <CreateRealmAgentWorkspace />
+        <WorkspaceHeader activeWorkspace={activeWorkspace} onWorkspaceChange={onWorkspaceChange} />
+        {activeWorkspace === 'create' ? <CreateRealmAgentWorkspace /> : null}
         <EmptyState
           title="No owner-created Realm Agents"
           description="You have not created any user-owned Realm Agents yet."
-          action={<Button onClick={() => void portfolioQuery.refetch()}>Refresh</Button>}
+          action={activeWorkspace === 'create'
+            ? <Button onClick={() => void portfolioQuery.refetch()}>Refresh portfolio</Button>
+            : <Button onClick={() => onWorkspaceChange('create')}>Create Realm Agent</Button>}
         />
       </div>
     );
@@ -1784,7 +1900,8 @@ export function OwnerPortfolio() {
 
   return (
     <div className="grid min-w-0 flex-1 gap-4">
-      <CreateRealmAgentWorkspace />
+      <WorkspaceHeader activeWorkspace={activeWorkspace} onWorkspaceChange={onWorkspaceChange} />
+      {activeWorkspace === 'create' ? <CreateRealmAgentWorkspace /> : null}
       <div className="grid min-h-0 min-w-0 gap-4 lg:grid-cols-[360px_1fr]">
         <aside className="min-w-0">
           <div className="mb-3 flex items-center justify-between gap-3">
@@ -1835,12 +1952,53 @@ export function OwnerPortfolio() {
           ) : (
             <div className="grid gap-3">
               {visibleAgents.map((agent) => (
-                <AgentCard key={agent.id} agent={agent} active={agent.id === selectedAgent?.id} onSelect={() => setSelectedId(agent.id)} />
+                <AgentCard
+                  key={agent.id}
+                  agent={agent}
+                  active={agent.id === selectedAgent?.id}
+                  onSelect={() => {
+                    setSelectedId(agent.id);
+                    if (activeWorkspace === 'portfolio' || activeWorkspace === 'create') {
+                      onWorkspaceChange('detail');
+                    }
+                  }}
+                />
               ))}
             </div>
           )}
         </aside>
-        {selectedAgent ? <AgentDetail agentId={selectedAgent.id} /> : null}
+        {activeWorkspace === 'portfolio' ? (
+          <Surface tone="panel" padding="lg" className="min-w-0">
+            <div className="flex min-w-0 flex-wrap items-center gap-3">
+              <h2 className="m-0 text-xl font-semibold">Portfolio workspace</h2>
+              <StatusBadge tone="info">{visibleAgents.length} visible</StatusBadge>
+              <StatusBadge tone="neutral">{agents.length} total</StatusBadge>
+            </div>
+            <p className="m-0 mt-2 text-[var(--nimi-text-muted)]">
+              Select an agent to open the detail workspace, or use the shell navigation to move to create, settings, assets, posts, or local schedule.
+            </p>
+            {selectedAgent ? (
+              <Surface tone="card" padding="md" className="mt-4">
+                <div className="flex min-w-0 flex-wrap items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="ras-break-anywhere font-medium">{selectedAgent.displayName}</div>
+                    <div className="ras-break-anywhere mt-1 text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-muted)]">@{selectedAgent.handle}</div>
+                  </div>
+                  <Button onClick={() => onWorkspaceChange('detail')}>Open detail</Button>
+                </div>
+              </Surface>
+            ) : null}
+          </Surface>
+        ) : selectedAgent && activeWorkspace !== 'create' ? (
+          <AgentDetail agentId={selectedAgent.id} workspace={agentWorkspace} />
+        ) : activeWorkspace === 'create' ? (
+          <Surface tone="panel" padding="lg">
+            <h2 className="m-0 text-xl font-semibold">{activeWorkspaceItem.label}</h2>
+            <p className="m-0 mt-2 text-[var(--nimi-text-muted)]">
+              Create uses the full-width workspace above. The portfolio remains available for context and post-create refresh.
+            </p>
+          </Surface>
+        ) : null}
       </div>
     </div>
   );

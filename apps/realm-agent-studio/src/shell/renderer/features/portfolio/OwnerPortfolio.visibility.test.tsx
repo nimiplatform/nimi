@@ -236,6 +236,7 @@ vi.mock('@nimiplatform/nimi-kit/ui', async (importOriginal) => {
 
 const { OwnerPortfolio } = await import('./OwnerPortfolio.js');
 const portfolioClient = await import('./portfolio-client.js');
+const { studioWorkspaceItems } = await import('../../app-shell/shell-layout.js');
 
 let root: Root | null = null;
 let container: HTMLDivElement | null = null;
@@ -302,13 +303,21 @@ async function renderOwnerPortfolio() {
     root?.render(
       <NimiThemeProvider accentPack="nimi-accent" defaultScheme="light">
         <QueryClientProvider client={queryClient}>
-          <OwnerPortfolio />
+          <OwnerPortfolioHarness />
         </QueryClientProvider>
       </NimiThemeProvider>,
     );
   });
 
   return container;
+}
+
+function OwnerPortfolioHarness() {
+  const [activeWorkspace, setActiveWorkspace] = React.useState<(typeof studioWorkspaceItems)[number]['id']>('portfolio');
+
+  return (
+    <OwnerPortfolio activeWorkspace={activeWorkspace} onWorkspaceChange={setActiveWorkspace} />
+  );
 }
 
 async function waitForText(text: string): Promise<void> {
@@ -401,6 +410,14 @@ async function waitForButtonEnabled(text: string): Promise<HTMLButtonElement> {
   throw new Error(`Timed out waiting for enabled button: ${text}`);
 }
 
+async function openWorkspace(label: string, expectedText: string) {
+  await waitForText('PortfolioCreateDetailSettingsAssetsPostsSchedule');
+  await act(async () => {
+    findButtonByText(label).click();
+  });
+  await waitForText(expectedText);
+}
+
 afterEach(() => {
   act(() => {
     root?.unmount();
@@ -412,9 +429,24 @@ afterEach(() => {
 });
 
 describe('OwnerPortfolio visibility settings UI', () => {
+  it('keeps Studio workspaces navigable without rendering every workflow at once', async () => {
+    await renderOwnerPortfolio();
+    await waitForText('Portfolio workspace');
+
+    expect(document.body.textContent).toContain('PortfolioCreateDetailSettingsAssetsPostsSchedule');
+    expect(document.body.textContent).not.toContain('Creative post candidate');
+    expect(document.body.textContent).not.toContain('Owner settings');
+
+    await openWorkspace('Posts', 'Creative post candidate');
+    expect(document.body.textContent).not.toContain('Owner settings');
+
+    await openWorkspace('Schedule', 'Local schedule candidate');
+    expect(document.body.textContent).not.toContain('Creative post candidate');
+  });
+
   it('checks create handle availability through Realm before create submit', async () => {
     await renderOwnerPortfolio();
-    await waitForText('Create Realm Agent');
+    await openWorkspace('Create', 'Create Realm Agent');
 
     await changeField(findFieldByPlaceholder<HTMLInputElement>('@creator-agent'), '@Mira.Agent');
 
@@ -425,8 +457,8 @@ describe('OwnerPortfolio visibility settings UI', () => {
 
   it('shows the human-review gate and lifecycle boundary for real visibility settings', async () => {
     await renderOwnerPortfolio();
-    await waitForText('Visibility settings');
-    await waitForText('Current values and reviewed changes before save.');
+    await openWorkspace('Settings', 'Visibility settings');
+    await waitForText('Visibility technical review');
 
     expect(portfolioClient.getAgentVisibilitySettings).toHaveBeenCalledWith('agent-1');
     expect(document.body.textContent).toContain('Human review complete');
@@ -437,8 +469,8 @@ describe('OwnerPortfolio visibility settings UI', () => {
 
   it('saves owner settings through MeService settings ingress and leaves raw rule review deferred', async () => {
     await renderOwnerPortfolio();
-    await waitForText('Owner settings');
-    await waitForText('Settings change preview');
+    await openWorkspace('Settings', 'Owner settings');
+    await waitForText('Settings technical review');
 
     await changeField(findFieldByPlaceholder<HTMLInputElement>('Public display name'), 'Mira Prime');
     await changeField(findFieldByPlaceholder<HTMLTextAreaElement>('Public worldview and background'), 'Layered world, owner revised.');
@@ -467,12 +499,12 @@ describe('OwnerPortfolio visibility settings UI', () => {
         agentRuleVersion: 3,
       }),
     );
-    expect(document.body.textContent).toContain('Advanced rule notes stay out of this save.');
+    expect(document.body.textContent).toContain('raw AgentRule review deferred');
   });
 
   it('projects Runtime world context as a summary without raw rule review', async () => {
     await renderOwnerPortfolio();
-    await waitForText('World context summary');
+    await openWorkspace('Settings', 'World context summary');
 
     await act(async () => {
       findButtonByText('Generate world context summary').click();
@@ -488,7 +520,7 @@ describe('OwnerPortfolio visibility settings UI', () => {
 
   it('keeps Resource-backed Agent Binding fail-closed behind backend admission', async () => {
     await renderOwnerPortfolio();
-    await waitForText('Public asset publishing is not enabled yet');
+    await openWorkspace('Assets', 'Public asset publishing is not enabled yet');
 
     expect(document.body.textContent).toContain('will not publish them as profile assets yet');
     expect(document.body.textContent).not.toContain('Load binding Resources');
@@ -497,7 +529,7 @@ describe('OwnerPortfolio visibility settings UI', () => {
 
   it('creates a reviewed text Resource and fills the post attachment envelope', async () => {
     await renderOwnerPortfolio();
-    await waitForText('Creative post candidate');
+    await openWorkspace('Posts', 'Creative post candidate');
 
     await changeField(findFieldByPlaceholder<HTMLTextAreaElement>('Draft caption for human review'), 'Reviewed caption for Resource');
     await checkAllHumanReviewBoxes();
@@ -511,12 +543,12 @@ describe('OwnerPortfolio visibility settings UI', () => {
     await waitForText('Text attachment created and selected: resource-text-ui.');
     expect(portfolioClient.createReviewedPostTextResource).toHaveBeenCalledTimes(1);
     expect(findFieldByPlaceholder<HTMLInputElement>('Attachment id').value).toBe('resource-text-ui');
-    expect(document.body.textContent).toContain('Publishing still requires review.');
+    expect(document.body.textContent).toContain('Text attachment response');
   });
 
   it('loads owner READY Resource attachment options from Realm', async () => {
     await renderOwnerPortfolio();
-    await waitForText('Creative post candidate');
+    await openWorkspace('Posts', 'Creative post candidate');
 
     await act(async () => {
       findButtonByText('Load ready media').click();
@@ -529,7 +561,7 @@ describe('OwnerPortfolio visibility settings UI', () => {
 
   it('selects a READY Resource option into the post attachment envelope', async () => {
     await renderOwnerPortfolio();
-    await waitForText('Creative post candidate');
+    await openWorkspace('Posts', 'Creative post candidate');
 
     await act(async () => {
       findButtonByText('Load ready media').click();
@@ -548,7 +580,7 @@ describe('OwnerPortfolio visibility settings UI', () => {
 
   it('uploads reviewed media Resource and fills the post attachment envelope', async () => {
     await renderOwnerPortfolio();
-    await waitForText('Creative post candidate');
+    await openWorkspace('Posts', 'Creative post candidate');
     await checkAllHumanReviewBoxes();
 
     const file = new File(['image-bytes'], 'portrait.png', { type: 'image/png' });
@@ -569,6 +601,6 @@ describe('OwnerPortfolio visibility settings UI', () => {
     await waitForText('Media uploaded and attached as resource-upload-ui.');
     expect(portfolioClient.uploadReviewedPostMediaResource).toHaveBeenCalledTimes(1);
     expect(findFieldByPlaceholder<HTMLInputElement>('Attachment id').value).toBe('resource-upload-ui');
-    expect(document.body.textContent).toContain('This does not publish the post by itself.');
+    expect(document.body.textContent).toContain('Publishing still requires review.');
   });
 });

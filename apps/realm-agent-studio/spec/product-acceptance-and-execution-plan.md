@@ -47,8 +47,8 @@ acceptance. Acceptance requires the whole owner workflow to be coherent:
 | --- | --- | --- |
 | A0 Authority and scope | `apps/realm-agent-studio/spec/**` contains the single active product/app authority, including acceptance gates. No topic file or conversation creates parallel truth. | Partial. Core spec exists; this document closes the missing acceptance authority gap. |
 | A1 Desktop app shell | App has a real desktop shell path comparable to `apps/parentos`: `dev:shell`, Tauri config, Rust shell bridge where needed, Runtime IPC transport, desktop account/session bootstrap, and no app-owned token fallback. Browser/Vite renderer is only a renderer development surface. | W1 shell baseline closed. The app now has `src-tauri`, `dev:shell`, shared kit Runtime bridge commands, desktop Runtime hook installation, and desktop smoke evidence. |
-| A2 Platform UX system | First screen, navigation, loading, empty, error, form, review, and confirmation states are kit-first and platform-consistent. Custom UI is allowed only after a recorded kit gap. UI must not expose SDK route names, DTO names, raw payloads, or debug contract text as normal product copy. | Partial. Shell and some copy were improved, but the app remains a monolithic control surface with debug previews. |
-| A3 Information architecture | Owner can move predictably between portfolio, create, agent detail, settings, assets, posts, and local schedule without a single mega-form. Navigation controls are functional, stateful, and do not imply unavailable surfaces. | Not accepted. Current nav buttons are visual only and all workflows live in one long page. |
+| A2 Platform UX system | First screen, navigation, loading, empty, error, form, review, and confirmation states are kit-first and platform-consistent. Custom UI is allowed only after a recorded kit gap. UI must not expose SDK route names, DTO names, raw payloads, or debug contract text as normal product copy. | W2 closed. Workspace navigation, disclosure-backed technical review details, and fail-closed unauthenticated renderer evidence are in place. Final copy pass remains W7 scope. |
+| A3 Information architecture | Owner can move predictably between portfolio, create, agent detail, settings, assets, posts, and local schedule without a single mega-form. Navigation controls are functional, stateful, and do not imply unavailable surfaces. | W2 closed. Shell and in-page workspace controls are functional across Portfolio, Create, Agent Detail, Settings, Assets, Posts, and Local Schedule; tests assert workflows no longer render as one mega-surface. |
 | A4 Owner portfolio and create | Portfolio list/filter/sort, create flow, handle preflight, OASIS/default world selection, selected-world preview, create confirmation, and post-create opening behavior are product-complete. Public draft fields are not silently dropped. | Partial. Owner surfaces are wired, but create UX still mixes local-only bio with create submission and does not complete a polished post-create flow. |
 | A5 Settings and rule-of-truth | Settings flow is natural-language-first plus structured fields, AI proposal/review where useful, field-to-layer clarity, human review, owner settings save, and no raw world-scoped `AgentRule` CRUD. | Partial. Owner settings save exists. AI proposal/internalization and product-grade review flow are not complete. |
 | A6 Creative identity assets | Avatar, profile cover/background, visual candidates, upload/generation, local history, owner review, public write success, and deferred public asset paths are clearly separated. App-local history is durable enough for the desktop product shape. | Not accepted. Avatar URL and post media upload exist; image generation, profile cover write, durable local history, and owner-scoped public asset write remain incomplete/deferred. |
@@ -108,7 +108,7 @@ P2 gaps:
 | --- | --- | --- | --- | --- |
 | W0 Acceptance authority | active | none | Admit this product acceptance standard, gap audit, waves, and preflight. | This document exists, is indexed, and spec governance passes. |
 | W1 Desktop shell hard cut | closed | W0 | Build a real desktop app shell equivalent in posture to parentOS: `src-tauri`, `dev:shell`, shell bridge/runtime defaults, desktop launch, Runtime session, SDK client custody. | A1 shell baseline passed. Renderer-only launch is no longer treated as product acceptance. |
-| W2 Product information architecture | candidate | W1 | Replace the single mega-surface with functional Studio workspaces: Portfolio, Create, Agent Detail, Settings, Assets, Posts, Local Schedule. | A2 and A3 pass with screenshot/interaction evidence. |
+| W2 Product information architecture | closed | W1 | Replace the single mega-surface with functional Studio workspaces: Portfolio, Create, Agent Detail, Settings, Assets, Posts, Local Schedule. | A2 and A3 passed with interaction evidence, local shell failure-state evidence, and verification commands. |
 | W3 Owner portfolio/create/detail completion | candidate | W2 | Finish owner list/filter/sort, create, world selection, post-create flow, detail state, friendCount, source failures, and owner-only boundaries. | A4 and relevant A9 cases pass. |
 | W4 Settings and AI proposal workflow | candidate | W3 | Natural-language setting edits, Runtime-assisted proposal/rewrite, structured field review, owner settings save, no raw rule CRUD. | A5 and A8 settings subset pass. |
 | W5 Creative identity and media workflow | candidate | W3 | Avatar/profile cover strategy, visual/image candidates, upload, local durable history, clear blocked/deferred public asset publishing. | A6 and A8 visual subset pass or explicitly defer blocked Realm surfaces. |
@@ -190,3 +190,44 @@ W1 closed on 2026-05-22 with:
   `realm-agent-studio main() entered`; the process was then terminated.
 
 The app is not accepted until W7 closes.
+
+## W2 Closure Evidence
+
+W2 closed on 2026-05-22 with:
+
+- `apps/realm-agent-studio/src/shell/renderer/app-shell/shell-layout.tsx`
+  owns the admitted Studio workspace set and functional shell navigation:
+  Portfolio, Create, Detail, Settings, Assets, Posts, and Schedule.
+- `apps/realm-agent-studio/src/shell/renderer/App.tsx` owns active workspace
+  state and passes it through the shell and product workspace.
+- `apps/realm-agent-studio/src/shell/renderer/features/portfolio/OwnerPortfolio.tsx`
+  renders create, portfolio, agent detail, settings, assets, posts, and local
+  schedule as separate stateful workspaces instead of one long page. Selecting
+  an agent preserves context and opens the detail lane from portfolio/create.
+- Raw review payloads touched in W2 were moved behind explicit technical
+  disclosure controls so they are no longer primary launch copy.
+- `apps/realm-agent-studio/src/shell/renderer/features/portfolio/OwnerPortfolio.visibility.test.tsx`
+  now covers workspace navigation and asserts that portfolio, settings, posts,
+  and schedule are not rendered as a single mega-surface.
+- `pnpm --filter @nimiplatform/realm-agent-studio typecheck` passed.
+- `pnpm --filter @nimiplatform/realm-agent-studio test` passed with 8 files and
+  110 tests.
+- `pnpm --filter @nimiplatform/realm-agent-studio build:renderer` passed with
+  the pre-existing large chunk, empty sdk-realm chunk, and circular chunk
+  warnings still carried to W7 risk audit.
+- `pnpm check:no-app-realm-rest-bypass` passed.
+- `pnpm check:no-first-party-sdk-client-construction` passed.
+- `pnpm exec nimicoding validate-spec-governance --profile nimi --scope
+  apps/realm-agent-studio` passed.
+- `pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope
+  spec-human-doc --check` passed. The narrower
+  `generate-spec-derived-docs --scope apps/realm-agent-studio --check` command
+  is not supported by the current nimicoding package and was refused before
+  writing files.
+- Local renderer smoke on `http://127.0.0.1:1426/` returned HTTP 200. A Safari
+  Computer Use check showed the renderer fail-closed at the Runtime account
+  session gate outside Tauri/desktop Runtime custody. This is supporting
+  failure-state evidence only and is not product acceptance.
+
+W2 closure does not claim final product acceptance. W3 remains responsible for
+live owner portfolio/create/detail completion inside the desktop owner session.
